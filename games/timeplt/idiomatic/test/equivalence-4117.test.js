@@ -40,7 +40,7 @@ import { chaseOneAimPointAndRetireAtTheLine } from "../chaseOneAimPointAndRetire
 import { headingToward } from "../headingToward.js";
 import { steerTowardAimOneUnitAFrame } from "../steerTowardAimOneUnitAFrame.js";
 import { loc_58aa } from "../loc_58aa.js";
-import { loc_3faf } from "../loc_3faf.js";
+import { dressSpriteShapeAndAttributeForHeadingSector } from "../dressSpriteShapeAndAttributeForHeadingSector.js";
 import { hasReachedRetireLine } from "../hasReachedRetireLine.js";
 import { retireSlot } from "../retireSlot.js";
 import { loc_4117 as oracle } from "../../translated/loc_4117.js";
@@ -209,7 +209,7 @@ function brokenAlwaysReAims(m) {
   mem8[(object + AIM_HEADING) & 0xffff] = headingToward(m, ONE_AIM_POINT);
   steerTowardAimOneUnitAFrame(m);
   loc_58aa(m);
-  loc_3faf(m);
+  dressSpriteShapeAndAttributeForHeadingSector(m);
   regs.bc = held;
   if (!hasReachedRetireLine(m)) return;
   retireSlot(m);
@@ -221,7 +221,7 @@ function brokenNeverReAims(m) {
   const held = regs.bc;
   steerTowardAimOneUnitAFrame(m);
   loc_58aa(m);
-  loc_3faf(m);
+  dressSpriteShapeAndAttributeForHeadingSector(m);
   regs.bc = held;
   if (!hasReachedRetireLine(m)) return;
   retireSlot(m);
@@ -236,7 +236,7 @@ function brokenNoMove(m) {
     mem8[(object + AIM_HEADING) & 0xffff] = headingToward(m, ONE_AIM_POINT);
   }
   steerTowardAimOneUnitAFrame(m);
-  loc_3faf(m);
+  dressSpriteShapeAndAttributeForHeadingSector(m);
   regs.bc = held;
   if (!hasReachedRetireLine(m)) return;
   retireSlot(m);
@@ -252,7 +252,7 @@ function brokenInvertedRetire(m) {
   }
   steerTowardAimOneUnitAFrame(m);
   loc_58aa(m);
-  loc_3faf(m);
+  dressSpriteShapeAndAttributeForHeadingSector(m);
   regs.bc = held;
   if (hasReachedRetireLine(m)) return;
   retireSlot(m);
@@ -268,7 +268,7 @@ function brokenAimToWrongCell(m) {
   }
   steerTowardAimOneUnitAFrame(m);
   loc_58aa(m);
-  loc_3faf(m);
+  dressSpriteShapeAndAttributeForHeadingSector(m);
   regs.bc = held;
   if (!hasReachedRetireLine(m)) return;
   retireSlot(m);
@@ -283,7 +283,7 @@ function brokenCounterNotRestored(m) {
   }
   steerTowardAimOneUnitAFrame(m);
   loc_58aa(m);
-  loc_3faf(m);
+  dressSpriteShapeAndAttributeForHeadingSector(m);
   if (!hasReachedRetireLine(m)) return;
   retireSlot(m);
 }

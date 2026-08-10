@@ -10,7 +10,7 @@
  * request. LIVE-OUT: memory, and whatever the sound request leaves. */
 
 import { loc_598e } from "./loc_598e.js";
-import { loc_3faf } from "./loc_3faf.js";
+import { dressSpriteShapeAndAttributeForHeadingSector } from "./dressSpriteShapeAndAttributeForHeadingSector.js";
 import { headingToward } from "./headingToward.js";
 import { loc_5664 } from "./loc_5664.js";
 import { loc_5674 } from "./loc_5674.js";
@@ -74,7 +74,7 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
     mem8[record + 0x0c] = regs.c;
     mem8[record + 0x0d] = regs.b;
     mem8[record + 0x02] = facing;
-    loc_3faf(m);
+    dressSpriteShapeAndAttributeForHeadingSector(m);
     mem8[record + 0x0e] = 0x20;
     return tailOff(requestTwoSoundsWhilePlaying);
   }
@@ -89,7 +89,7 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
     a = (a & 0x80) + 0x40; // +/- half a turn from bit 0 of the stored byte
     mem8[record + 0x02] = (a + mem8[record + 0x01]) & 0xff;
   }
-  loc_3faf(m);
+  dressSpriteShapeAndAttributeForHeadingSector(m);
   mem8[record + 0x0e] = 0x00;
   return tailOff(era >= 3 ? loc_5674 : requestTwoSoundsWhilePlaying);
 }

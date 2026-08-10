@@ -5,7 +5,7 @@
  * destination gets a value with a marker beside it), print the six-digit readout, set two sub-state
  * cells, and push a fifth command only when the gate cell is non-zero. LIVE-OUT: memory. */
 
-import { loc_0d6b } from "./loc_0d6b.js";
+import { paintHighScoreReadout } from "./paintHighScoreReadout.js";
 import { postCommand } from "./postCommand.js";
 
 // the countdown guard is still frozen, reached through the dispatch registry
@@ -39,7 +39,7 @@ export function armAttractScreenShowingHighScore(m) {
     cursor += 3;
   }
 
-  loc_0d6b(m);
+  paintHighScoreReadout(m);
 
   mem8[0xa9ab] = 1;
   mem8[0xa9ac] = 2;

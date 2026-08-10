@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0d57 — memory-equivalent to the frozen oracle at ROM 0x0D57.
+ * paintPlayerOneScoreReadout — memory-equivalent to the frozen oracle at ROM 0x0D57.
  *
  * Three constants and a tail transfer to the shared digit painter at ROM 0x0D73 (already
  * decompiled): the first character-plane cell, the high end of the packed-decimal field walked
- * downward, and the pen colour. The rewrite calls loc_0d73 directly; dissolving that transfer is
+ * downward, and the pen colour. The rewrite calls paintSixDigitFieldSuppressingLeadingZeros directly; dissolving that transfer is
  * this caller's unit, and the painter is gated by its own file, so what this file gates is the
  * CHOICE of the three arguments and the dissolve.
  *
@@ -33,8 +33,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0d57 } from "../loc_0d57.js";
-import { loc_0d73 } from "../loc_0d73.js";
+import { paintPlayerOneScoreReadout } from "../paintPlayerOneScoreReadout.js";
+import { paintSixDigitFieldSuppressingLeadingZeros } from "../paintSixDigitFieldSuppressingLeadingZeros.js";
 import { loc_0d57 as oracle } from "../../translated/loc_0d57.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -71,7 +71,7 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
  * name. The same predicate runs over the painter itself as a positive control, so the absence is
  * evidence only once the check is shown able to see the thing present.
  */
-const HELPER = ["loc_0d73", "../loc_0d73.js", "loc_0da0"];
+const HELPER = ["paintSixDigitFieldSuppressingLeadingZeros", "../paintSixDigitFieldSuppressingLeadingZeros.js", "paintTwoSuppressedDigitsFromByte"];
 
 function callsRatherThanRestates(text, [name, file, ownName]) {
   return text.includes(`from "./${file.slice(3)}"`) &&
@@ -95,7 +95,7 @@ function strict(candidate) {
 }
 
 function entryState() {
-  if (entry === null) strict(loc_0d57);
+  if (entry === null) strict(paintPlayerOneScoreReadout);
   return entry;
 }
 
@@ -204,7 +204,7 @@ function brokenWrongCell(m) {
   regs.de = FIRST_CELL + 1;
   regs.hl = FIELD_HIGH_END;
   regs.c = COLOUR;
-  loc_0d73(m);
+  paintSixDigitFieldSuppressingLeadingZeros(m);
 }
 
 /** BUG: reads the other player's field. */
@@ -213,7 +213,7 @@ function brokenWrongField(m) {
   regs.de = FIRST_CELL;
   regs.hl = FIELD_HIGH_END + FIELD_BYTES;
   regs.c = COLOUR;
-  loc_0d73(m);
+  paintSixDigitFieldSuppressingLeadingZeros(m);
 }
 
 /** BUG: lays down a different colour beside every cell. */
@@ -222,7 +222,7 @@ function brokenWrongColour(m) {
   regs.de = FIRST_CELL;
   regs.hl = FIELD_HIGH_END;
   regs.c = COLOUR + 1;
-  loc_0d73(m);
+  paintSixDigitFieldSuppressingLeadingZeros(m);
 }
 
 const TWINS = [
@@ -247,14 +247,14 @@ function scribbler(offset) {
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the measured window", { skip }, () => {
-  strict(loc_0d57);
+  strict(paintPlayerOneScoreReadout);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const e = entryState();
   const sp = e.regs.sp;
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_0d57(b);
+  paintPlayerOneScoreReadout(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -331,7 +331,7 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
-  const moved = movedOver(loc_0d57);
+  const moved = movedOver(paintPlayerOneScoreReadout);
   // The absence below is only evidence if the same measurement CAN report a register outside the
   // ceiling. The wrong-cell twin leaves the cursor elsewhere, and the control asserts it is seen.
   const control = movedOver(brokenWrongCell);
@@ -349,14 +349,14 @@ test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, 
 
 test("PRIORS: the same run is painted for every field value tried", { skip }, () => {
   for (const bytes of FIELD_CASES) {
-    const d = unitDiff(loc_0d57, withField(bytes));
+    const d = unitDiff(paintPlayerOneScoreReadout, withField(bytes));
     assert.equal(d, null, `field=${bytes.join(",")}: ${show(d)}`);
   }
   console.log(`  PRIORS: ${FIELD_CASES.length} field values identical outside the window`);
 });
 
 test("CALLS, NOT RESTATES: the module's text, with the painter as a positive control", () => {
-  const module = read("../loc_0d57.js");
+  const module = read("../paintPlayerOneScoreReadout.js");
   assert.ok(callsRatherThanRestates(module, HELPER), `the module does not call ${HELPER[0]}`);
   assert.ok(!callsRatherThanRestates(read(HELPER[1]), HELPER), `the check passes ${HELPER[0]}'s ` +
     "OWN body, so it cannot tell a call from an inlined copy and proves nothing");

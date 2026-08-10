@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0d73 — memory-equivalent to the frozen oracle at ROM 0x0D73.
+ * paintSixDigitFieldSuppressingLeadingZeros — memory-equivalent to the frozen oracle at ROM 0x0D73.
  *
  * WHAT IT IS. A six-digit field: two packed bytes through the suppressing pair-painter at ROM
  * 0x0DA0, then one through the plain pair-painter at ROM 0x0D81, with the run pointer stepped
- * back a byte between them. BOTH PAINTERS ARE ALREADY DECOMPILED, so the rewrite calls loc_0da0
+ * back a byte between them. BOTH PAINTERS ARE ALREADY DECOMPILED, so the rewrite calls paintTwoSuppressedDigitsFromByte
  * and paintTwoUnsuppressedDigitsFromByte directly and dissolving those three transfers belongs to this caller's unit.
  *
  * ★ LIVE-OUT, DERIVED FROM THE ORACLE, NOT FROM THE MODULE. Four sites reach this entry. ROM
@@ -68,9 +68,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0d73 } from "../loc_0d73.js";
+import { paintSixDigitFieldSuppressingLeadingZeros } from "../paintSixDigitFieldSuppressingLeadingZeros.js";
 import { paintTwoUnsuppressedDigitsFromByte } from "../paintTwoUnsuppressedDigitsFromByte.js";
-import { loc_0da0 } from "../loc_0da0.js";
+import { paintTwoSuppressedDigitsFromByte } from "../paintTwoSuppressedDigitsFromByte.js";
 import { loc_0d73 as oracle } from "../../translated/loc_0d73.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -114,7 +114,7 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
  * evidence only once the check is shown able to see the thing present.
  */
 const HELPERS = [
-  ["loc_0da0", "../loc_0da0.js", "HIGH_DIGIT_SHIFT"],
+  ["paintTwoSuppressedDigitsFromByte", "../paintTwoSuppressedDigitsFromByte.js", "HIGH_DIGIT_SHIFT"],
   ["paintTwoUnsuppressedDigitsFromByte", "../paintTwoUnsuppressedDigitsFromByte.js", "HIGH_DIGIT_SHIFT"],
 ];
 
@@ -173,7 +173,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0d73);
+  if (entry === null) gate(paintSixDigitFieldSuppressingLeadingZeros);
   return entry;
 }
 
@@ -300,7 +300,7 @@ function replaySession(factory, candidate) {
 let sessionCache = null;
 function sessions() {
   if (sessionCache) return sessionCache;
-  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, loc_0d73) }));
+  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, paintSixDigitFieldSuppressingLeadingZeros) }));
   return sessionCache;
 }
 
@@ -378,9 +378,9 @@ function brokenNoOp() {}
 /** BUG: the suppression flag is left as the caller had it instead of being cleared. */
 function brokenFlagNotCleared(m) {
   const { regs } = m;
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
   paintTwoUnsuppressedDigitsFromByte(m);
 }
@@ -389,9 +389,9 @@ function brokenFlagNotCleared(m) {
 function brokenFlagStartsSet(m) {
   const { regs } = m;
   regs.b = 1;
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
   paintTwoUnsuppressedDigitsFromByte(m);
 }
@@ -400,8 +400,8 @@ function brokenFlagStartsSet(m) {
 function brokenPointerNotStepped(m) {
   const { regs } = m;
   regs.b = 0;
-  loc_0da0(m);
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
+  paintTwoSuppressedDigitsFromByte(m);
   paintTwoUnsuppressedDigitsFromByte(m);
 }
 
@@ -409,9 +409,9 @@ function brokenPointerNotStepped(m) {
 function brokenPointerStepsForward(m) {
   const { regs } = m;
   regs.b = 0;
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl + 1);
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl + 1);
   paintTwoUnsuppressedDigitsFromByte(m);
 }
@@ -420,9 +420,9 @@ function brokenPointerStepsForward(m) {
 function brokenPointerStepsOnce(m) {
   const { regs } = m;
   regs.b = 0;
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   paintTwoUnsuppressedDigitsFromByte(m);
 }
 
@@ -430,11 +430,11 @@ function brokenPointerStepsOnce(m) {
 function brokenAllSuppressed(m) {
   const { regs } = m;
   regs.b = 0;
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
 }
 
 /** BUG: nothing suppresses, so the field's leading zeros all show. */
@@ -454,16 +454,16 @@ function brokenPlainPairFirst(m) {
   regs.b = 0;
   paintTwoUnsuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
 }
 
 /** BUG: the field is four digits, not six. */
 function brokenTwoPairsOnly(m) {
   const { regs } = m;
   regs.b = 0;
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
   paintTwoUnsuppressedDigitsFromByte(m);
 }
@@ -472,9 +472,9 @@ function brokenTwoPairsOnly(m) {
 function brokenExtraPair(m) {
   const { regs } = m;
   regs.b = 0;
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
   paintTwoUnsuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
@@ -498,14 +498,14 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the measured window", { skip }, () => {
-  gate(loc_0d73);
+  gate(paintSixDigitFieldSuppressingLeadingZeros);
   assert.notEqual(entry, null, "vacuous: the session never reached the routine");
   const e = entryState();
   const sp = e.regs.sp;
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_0d73(b);
+  paintSixDigitFieldSuppressingLeadingZeros(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -553,7 +553,7 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
-  const moved = movedOver(loc_0d73);
+  const moved = movedOver(paintSixDigitFieldSuppressingLeadingZeros);
   // The absence is evidence only if the same measurement CAN report a register outside the
   // ceiling; the twin that steps the pointer an extra time leaves it elsewhere.
   const control = movedOver(brokenExtraPair);
@@ -596,7 +596,7 @@ test("CORPUS: every dispatch of every session replays identically", { skip }, ()
 
 test("CROSSED: every sampled field against every arriving flag, cursor and colour", { skip }, () => {
   for (const [bytes, arriving, label] of cross()) {
-    const d = unitDiff(loc_0d73, craft(bytes, arriving));
+    const d = unitDiff(paintSixDigitFieldSuppressingLeadingZeros, craft(bytes, arriving));
     assert.equal(d, null, `field [${bytes.join(",")}] arriving ${label}: ${show(d)}`);
   }
   console.log(`  CROSSED: ${cross().length} field x arriving comparisons identical`);
@@ -608,7 +608,7 @@ test("EXHAUSTIVE PER POSITION: every byte value at each of the three positions",
     for (const value of everyByte) {
       const bytes = [0x00, 0x00, 0x00];
       bytes[position] = value;
-      const d = unitDiff(loc_0d73, craft(bytes, ARRIVING[0][1]));
+      const d = unitDiff(paintSixDigitFieldSuppressingLeadingZeros, craft(bytes, ARRIVING[0][1]));
       assert.equal(d, null, `position ${position} value ${value}: ${show(d)}`);
       checked++;
     }
@@ -629,9 +629,9 @@ test("THE FLAG IS CLEARED HERE: what arrives in it cannot reach the cells", { sk
   const FLAGS = [0, 1, 3, 255];
   let checked = 0;
   for (const bytes of [[0x00, 0x00, 0x00], [0x00, 0x01, 0x23], [0x00, 0x00, 0x07]]) {
-    const reference = painted(loc_0d73, bytes, { b: FLAGS[0], de: null, c: null });
+    const reference = painted(paintSixDigitFieldSuppressingLeadingZeros, bytes, { b: FLAGS[0], de: null, c: null });
     for (const flag of FLAGS.slice(1)) {
-      assert.equal(painted(loc_0d73, bytes, { b: flag, de: null, c: null }), reference,
+      assert.equal(painted(paintSixDigitFieldSuppressingLeadingZeros, bytes, { b: flag, de: null, c: null }), reference,
         `field [${bytes.join(",")}] painted differently when the flag arrived as ${flag}`);
       checked++;
     }
@@ -647,7 +647,7 @@ test("THE FLAG IS CLEARED HERE: what arrives in it cannot reach the cells", { sk
 });
 
 test("CALLS, NOT RESTATES: the module's text, with the painters as positive controls", () => {
-  const module = read("../loc_0d73.js");
+  const module = read("../paintSixDigitFieldSuppressingLeadingZeros.js");
   for (const helper of HELPERS) {
     assert.ok(callsRatherThanRestates(module, helper), `the module does not call ${helper[0]}`);
     assert.ok(!callsRatherThanRestates(read(helper[1]), helper), `the check passes ${helper[0]}'s ` +
@@ -658,7 +658,7 @@ test("CALLS, NOT RESTATES: the module's text, with the painters as positive cont
 });
 
 test("WHOLE-MACHINE: a driven session differs only in stack scratch", { skip }, () => {
-  const r = wholeRunCells(loc_0d73);
+  const r = wholeRunCells(paintSixDigitFieldSuppressingLeadingZeros);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,

@@ -8,7 +8,7 @@
 
 import { advanceCharCursor } from "./advanceCharCursor.js";
 import { fetchTableByte } from "./fetchTableByte.js";
-import { loc_0d73 } from "./loc_0d73.js";
+import { paintSixDigitFieldSuppressingLeadingZeros } from "./paintSixDigitFieldSuppressingLeadingZeros.js";
 import { u8, u16 } from "../../../core/int.js";
 
 const PICTOGRAM_TABLE = 0x4cb4;
@@ -43,7 +43,7 @@ export function paintLabelledNumericReadoutColumn(m) {
 
   regs.de = u16(regs.de - PICTOGRAM_TO_FIELD);
   regs.hl = u16(source + 3);
-  loc_0d73(m);
+  paintSixDigitFieldSuppressingLeadingZeros(m);
 
   regs.de = u16(regs.de - FIELD_TO_SUFFIX);
   regs.hl = u16(regs.hl + 3);

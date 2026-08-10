@@ -835,6 +835,13 @@ into a hardware value that puts the sprite entirely above the first visible rast
 does it to four. **"Retired" and "hidden" are the same write; the occupancy byte is the only thing
 that distinguishes them.** `[code]`
 
+One caller of `hideAllSprites` is a screen-clearing sequence sub-step,
+`parkSpritesAndArmLineWipeThenAdvanceSequence`: it parks every sprite, copies the glyph and colour at
+one fixed character cell (`0xA5FC`) into a two-byte record (`0xACBE`), arms a character-plane wipe to
+run from the plane's fifth line, and steps the sequence's inner sub-step on — a step seen only in
+driven play, never in attract. `[seen]` for the driven-only dispatch and the sampled cell; `[code]`
+for the four steps.
+
 ### The retire lines are the player's antipode
 
 `hasReachedRetireLine` tests two three-pixel windows: Y at `0xF8`, X at
@@ -1076,6 +1083,15 @@ Left, down, right, up — so the heading byte increases **counter-clockwise on t
 ★ **This is the direction of TRAVEL and nothing more.** That the ship's *nose* is drawn along the
 same direction is a separate claim, about `spriteForHeading`, and no one has measured it. Do not
 read this table as a statement about the sprite.
+
+`spriteForHeading` rounds a heading to one of sixteen sectors and RETURNS the shape-and-attribute
+pair; the enemy objects have store-variant siblings that round the same way but write the pair
+straight into a sprite entry. One is `dressSpriteShapeAndAttributeForHeadingSector`: it reads the
+object's heading at record `+0x02`, adds half a sector before taking the top nibble so the heading
+snaps to the NEAREST of sixteen — the add wrapping, which closes the circle of sectors — picks a
+shape and the byte beside it from parallel tables at `0x3FCA` and `0x3FDA`, and lands the shape at
+sprite entry `+0x01` and the attribute at `+0x30`. Its sibling `dressSpriteForCoarseHeading` does the
+identical rounding from a DIFFERENT table pair — same mechanism, different shapes. `[code]`
 
 ### ★ Six points stand off the ship on its own heading — and they are WRITTEN
 
@@ -1463,6 +1479,14 @@ discards the final carry, so the score **wraps at 1,000,000**. The readout suppr
 and always prints the last two digits — which are permanently `00`, because every award record has
 a zero low byte. `[code]`
 
+Three entry points feed that readout, each fixing the shared six-digit painter's three arguments — a
+first character cell, the high byte of the three-byte packed field, and a colour — and falling
+straight into it: `paintPlayerOneScoreReadout` (player 1's field `0xAD35`, into cell `0xA781`),
+`paintPlayerTwoScoreReadout` (player 2's field `0xAD38`, into cell `0xA501`) and
+`paintHighScoreReadout` (the boot-seeded high-score cell `0xA98D`, into cell `0xA641`). The field is
+walked downward from its high byte, so the leftmost digit is painted first, and which of the two
+player fields is the *active* one is decided elsewhere, not here. `[code]`
+
 That answers a puzzle in the public record: a recorded score of 15,000,000 is fifteen rollovers and
 a scorekeeper, not a wider counter.
 
@@ -1691,11 +1715,13 @@ game never presents, and a tap logging the value in and the glyph byte out caugh
 
 ### Leading zeros are blanked, and one flag carries the whole number
 
-The suppressing twin of that drawer takes the same nibble but chooses the glyph three ways: a
+The suppressing twin of that drawer, `paintSuppressedDigit`, takes the same nibble but chooses the glyph three ways: a
 non-zero digit indexes by its own value and steps a flag on; a zero indexes the blank while the flag
-is still clear; a zero indexes the digit `0` once it is set. The flag lives in the caller across the
-whole number and is cleared before the first digit, and the drawer that lays a number's last two
-digits is the NON-suppressing one — so a value of zero still shows its final digits. `[seen]` — a
+is still clear; a zero indexes the digit `0` once it is set. The flag lives in the caller — `paintSixDigitFieldSuppressingLeadingZeros`, which lays the whole
+six-digit field from three packed bytes, driving `paintTwoSuppressedDigitsFromByte` (which calls the
+single-digit drawer twice) over its first two — across the whole number and is cleared before the first
+digit, and the drawer that lays a number's last two digits is the NON-suppressing one,
+`paintTwoUnsuppressedDigitsFromByte` — so a value of zero still shows its final digits. `[seen]` — a
 tap logging the digit, the flag and the destination on every dispatch caught the same digit zero
 painting the blank with the flag clear and the digit `0` with it set, the flag turning over exactly
 at the first significant digit.

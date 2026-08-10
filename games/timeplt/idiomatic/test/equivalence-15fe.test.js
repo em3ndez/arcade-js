@@ -4,7 +4,7 @@
  * GATE: unit-capture with a measured 10-byte stack-scratch mask and the printer running; the
  *   natural dispatches (guard-block and one proceed), crafted proceed/full arms the tape never
  *   reaches, a boundary probe, register-ceiling and dissolve checks, and teeth.
- * ★ The dissolved printer at loc_0d6b takes no return the direct call takes, so dead scratch sits
+ * ★ The dissolved printer at paintHighScoreReadout takes no return the direct call takes, so dead scratch sits
  *   below the seat and a/f/sp are the measured register ceiling; every arm masks ONLY that window.
  */
 
@@ -15,7 +15,7 @@ import { readFileSync } from "node:fs";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { armAttractScreenShowingHighScore } from "../armAttractScreenShowingHighScore.js";
 import { loc_15fe as oracle } from "../../translated/loc_15fe.js";
-import { loc_0d6b } from "../loc_0d6b.js";
+import { paintHighScoreReadout } from "../paintHighScoreReadout.js";
 import { postCommand } from "../postCommand.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -139,7 +139,7 @@ const cursorAfter = (machine) => { const c = machine.clone(); oracle(c); return 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────
 // A faithful re-run of the routine with one behaviour swapped, transferring the way the module
 // transfers -- m.call over push16 for the still-frozen guard, direct calls to postCommand and
-// loc_0d6b -- so a twin's divergence shows at a real cell rather than hiding in the masked scratch.
+// paintHighScoreReadout -- so a twin's divergence shows at a real cell rather than hiding in the masked scratch.
 // `null` is the baseline.
 
 function variant(bug) {
@@ -165,7 +165,7 @@ function variant(bug) {
         cursor += 3;
       }
     }
-    if (bug !== "skip-printer") loc_0d6b(m);
+    if (bug !== "skip-printer") paintHighScoreReadout(m);
     mem8[0xa9ab] = bug === "wrong-substate" ? 9 : 1;
     mem8[0xa9ac] = bug === "wrong-substate" ? 9 : 2;
     if (bug !== "ignore-gate" && mem8[0xa9c0] === 0) return;
@@ -275,8 +275,8 @@ test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, 
 
 test("DISSOLVED: the printer and the enqueue are called directly, only the guard stays wired", () => {
   const module = readFileSync(new URL("../armAttractScreenShowingHighScore.js", import.meta.url), "utf8");
-  assert.ok(module.includes('from "./loc_0d6b.js"'), "the module does not import loc_0d6b");
-  assert.ok(module.includes("loc_0d6b(m)"), "the module does not call loc_0d6b directly");
+  assert.ok(module.includes('from "./paintHighScoreReadout.js"'), "the module does not import paintHighScoreReadout");
+  assert.ok(module.includes("paintHighScoreReadout(m)"), "the module does not call paintHighScoreReadout directly");
   assert.ok(module.includes('from "./postCommand.js"'), "the module does not import postCommand");
   assert.ok(module.includes("postCommand(m)"), "the module does not call postCommand directly");
   assert.ok(!module.includes("m.call(ENQUEUE)"),
@@ -285,9 +285,9 @@ test("DISSOLVED: the printer and the enqueue are called directly, only the guard
   assert.ok(module.includes("m.call(COUNTDOWN)"),
     "the still-frozen guard is no longer reached through the registry");
   // the text check can tell files apart: a sibling that does not call the printer must fail it.
-  assert.ok(!readFileSync(new URL("../loc_0d73.js", import.meta.url), "utf8").includes("loc_0d6b(m)"),
-    "a sibling that does not call loc_0d6b passes the same check, so it proves nothing");
-  console.log("  DISSOLVED: loc_0d6b and postCommand called directly; the guard stays m.call by name");
+  assert.ok(!readFileSync(new URL("../paintSixDigitFieldSuppressingLeadingZeros.js", import.meta.url), "utf8").includes("paintHighScoreReadout(m)"),
+    "a sibling that does not call paintHighScoreReadout passes the same check, so it proves nothing");
+  console.log("  DISSOLVED: paintHighScoreReadout and postCommand called directly; the guard stays m.call by name");
 });
 
 test("BASELINE: the twin factory with no bug is itself memory-equivalent", { skip }, () => {

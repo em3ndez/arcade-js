@@ -16,7 +16,7 @@ import { paintLabelledNumericReadoutColumn } from "../paintLabelledNumericReadou
 import { loc_4c1f as oracle } from "../../translated/loc_4c1f.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
 import { fetchTableByte } from "../fetchTableByte.js";
-import { loc_0d73 } from "../loc_0d73.js";
+import { paintSixDigitFieldSuppressingLeadingZeros } from "../paintSixDigitFieldSuppressingLeadingZeros.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
 
@@ -117,7 +117,7 @@ function painter({ stride = 3, colour = true, suffix = true, step = advanceCharC
     stamp(fetchTableByte(m));
     regs.hl = u16(regs.hl + 1); step(m); stamp(mem8[regs.hl]);
     regs.hl = u16(regs.hl + 1); step(m); stamp(mem8[regs.hl]);
-    regs.de = u16(regs.de - 0x80); regs.hl = u16(src + 3); loc_0d73(m);
+    regs.de = u16(regs.de - 0x80); regs.hl = u16(src + 3); paintSixDigitFieldSuppressingLeadingZeros(m);
     if (!suffix) return;
     regs.de = u16(regs.de - 0x60); regs.hl = u16(regs.hl + 3); stamp(mem8[regs.hl]);
     regs.hl = u16(regs.hl + 1); step(m); stamp(mem8[regs.hl]);

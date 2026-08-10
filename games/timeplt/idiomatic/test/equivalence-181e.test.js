@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_181e — memory-equivalent to the frozen oracle at ROM 0x181E.
+ * parkSpritesAndArmLineWipeThenAdvanceSequence — memory-equivalent to the frozen oracle at ROM 0x181E.
  *
  * WHAT IT IS. One step of a screen-clearing sequence: every sprite parked out of sight, one
  * character cell's glyph and colour copied into a fixed record, the line wipe armed, and the
@@ -51,7 +51,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_181e } from "../loc_181e.js";
+import { parkSpritesAndArmLineWipeThenAdvanceSequence } from "../parkSpritesAndArmLineWipeThenAdvanceSequence.js";
 import { loc_181e as oracle } from "../../translated/loc_181e.js";
 import { BLANK_LINES_LEFT, BLANK_LINE_CURSOR, SEQUENCE_SUBSTEP } from "../names.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
@@ -239,7 +239,7 @@ function replaySession(opts, candidate) {
 let sessionCache = null;
 function sessions() {
   if (!sessionCache) {
-    sessionCache = SESSIONS.map(([label, opts]) => ({ label, ...replaySession(opts, loc_181e) }));
+    sessionCache = SESSIONS.map(([label, opts]) => ({ label, ...replaySession(opts, parkSpritesAndArmLineWipeThenAdvanceSequence) }));
   }
   return sessionCache;
 }
@@ -399,7 +399,7 @@ test("EQUAL at the real dispatch: RAM, SP and pc all identical", { skip }, () =>
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  seam(loc_181e)(b);
+  seam(parkSpritesAndArmLineWipeThenAdvanceSequence)(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   assert.equal(a.regs.sp, b.regs.sp, "the stack pointer must come back to the same seat");
@@ -434,7 +434,7 @@ test("SEAM: SP and pc agree on the real dispatch and every crafted entry", { ski
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    seam(loc_181e)(b);
+    seam(parkSpritesAndArmLineWipeThenAdvanceSequence)(b);
     assert.equal(b.regs.sp, a.regs.sp, `${label}: the seam left SP adrift`);
     assert.equal(b.pc, a.pc, `${label}: the seam left pc adrift`);
     assert.equal(a.regs.sp, (sp + 2) & 0xffff, `${label}: the oracle did not net exactly one return`);
@@ -450,7 +450,7 @@ test("EXCLUDED: the registers that move, bounded by a ceiling; SP, pc and the sl
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    seam(loc_181e)(b);
+    seam(parkSpritesAndArmLineWipeThenAdvanceSequence)(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
     for (const k of HELD) assert.equal(b.regs[k], a.regs[k], `${label}: ${k} must be held`);
   }
@@ -461,7 +461,7 @@ test("EXCLUDED: the registers that move, bounded by a ceiling; SP, pc and the sl
 
 test("CRAFTED: every entry of the cross is identical", { skip }, () => {
   for (const [label, edit] of cross()) {
-    const d = unitDiff(loc_181e, craft(edit));
+    const d = unitDiff(parkSpritesAndArmLineWipeThenAdvanceSequence, craft(edit));
     assert.equal(d, null, `${label}: ${show(d)}`);
   }
   console.log(`  CRAFTED: ${cross().length} entries identical`);
@@ -508,7 +508,7 @@ test("CORPUS: the one real dispatch replays identically; the demo makes none", {
 });
 
 test("WHOLE-MACHINE: a wired driven session differs only in dead stack bytes", { skip }, () => {
-  const r = wholeRunCells(loc_181e);
+  const r = wholeRunCells(parkSpritesAndArmLineWipeThenAdvanceSequence);
   assert.equal(r.threw, null, `the run threw: ${r.threw}`);
   assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
   assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);

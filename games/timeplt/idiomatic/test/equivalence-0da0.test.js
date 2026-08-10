@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0da0 — memory-equivalent to the frozen oracle at ROM 0x0DA0.
+ * paintTwoSuppressedDigitsFromByte — memory-equivalent to the frozen oracle at ROM 0x0DA0.
  *
  * WHAT IT IS. One packed byte painted as two digits with leading zeros suppressed: the high
  * nibble, a cursor step, the low nibble, another cursor step. Both the painter at ROM 0x0DAF and
@@ -67,7 +67,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0da0 } from "../loc_0da0.js";
+import { paintTwoSuppressedDigitsFromByte } from "../paintTwoSuppressedDigitsFromByte.js";
 import { paintSuppressedDigit } from "../paintSuppressedDigit.js";
 import { paintUnsuppressedDigit } from "../paintUnsuppressedDigit.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
@@ -170,7 +170,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0da0);
+  if (entry === null) gate(paintTwoSuppressedDigitsFromByte);
   return entry;
 }
 
@@ -268,7 +268,7 @@ function replaySession(factory, candidate) {
 let sessionCache = null;
 function sessions() {
   if (sessionCache) return sessionCache;
-  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, loc_0da0) }));
+  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, paintTwoSuppressedDigitsFromByte) }));
   return sessionCache;
 }
 
@@ -455,14 +455,14 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the scratch window", { skip }, () => {
-  gate(loc_0da0);
+  gate(paintTwoSuppressedDigitsFromByte);
   assert.notEqual(entry, null, "vacuous: the session never reached the routine");
   const e = entryState();
   const sp = e.regs.sp;
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_0da0(b);
+  paintTwoSuppressedDigitsFromByte(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -488,7 +488,7 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole cross"
     const a = craft(value, flag, cursor, colour);
     const b = a.clone();
     oracle(a);
-    loc_0da0(b);
+    paintTwoSuppressedDigitsFromByte(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
@@ -523,7 +523,7 @@ test("CORPUS: every dispatch of three real sessions replays identically", { skip
 
 test("EXHAUSTIVE: every packed byte against every crafted flag, cursor and colour", { skip }, () => {
   for (const [value, flag, cursor, colour] of cross()) {
-    const d = unitDiff(loc_0da0, craft(value, flag, cursor, colour));
+    const d = unitDiff(paintTwoSuppressedDigitsFromByte, craft(value, flag, cursor, colour));
     assert.equal(d, null, `byte ${value} flag ${flag} cursor ${hex4(cursor)}: ${show(d)}`);
   }
   console.log(`  EXHAUSTIVE: ${cross().length} byte x flag x cursor x colour comparisons identical`);
@@ -536,13 +536,13 @@ test("THE FLAG CARRIES: it comes out changed, and the order of the digits matter
     const a = craft(value, flag, cursor, 16);
     const b = a.clone();
     oracle(a);
-    loc_0da0(b);
+    paintTwoSuppressedDigitsFromByte(b);
     assert.equal(a.regs.b, b.regs.b, `the flag differs on byte ${value} from flag ${flag}`);
     stepped.push(`${value.toString(16)}/${flag}->${a.regs.b}`);
   }
   const straight = craft(0x10, 0, cursor, 16);
   const swapped = straight.clone();
-  loc_0da0(straight);
+  paintTwoSuppressedDigitsFromByte(straight);
   brokenDigitsSwapped(swapped);
   assert.notDeepEqual(straight.dumpState(), swapped.dumpState(), "painting the two digits the " +
     "other way round changes nothing, so the order this file fixes is not observable here");
@@ -570,7 +570,7 @@ test("TWO READS: the second digit follows a byte the first paint overwrote", { s
     "not reach the cell the run pointer names, so this arm proves nothing");
   for (const colour of [0x37, 0x5a, 0x00]) {
     for (const flag of FLAGS) {
-      const d = unitDiff(loc_0da0, craftOverlapping(colour, flag));
+      const d = unitDiff(paintTwoSuppressedDigitsFromByte, craftOverlapping(colour, flag));
       assert.equal(d, null, `overlapping run pointer, colour ${colour} flag ${flag}: ${show(d)}`);
     }
   }
@@ -605,7 +605,7 @@ test("ACCUMULATOR IS DEAD AT THE PAINT: poisoning it changes nothing observable"
   for (const [value, flag, cursor, colour] of cross()) {
     const clean = craft(value, flag, cursor, colour);
     const dirty = clean.clone();
-    loc_0da0(clean);
+    paintTwoSuppressedDigitsFromByte(clean);
     poisonedOracle(dirty);
     const strays = allDiffs(clean, dirty).filter((d) => !inScratch(d.addr, clean.regs.sp));
     assert.deepEqual(strays, [], `byte ${value} flag ${flag}: ${show(strays[0])}`);
@@ -619,7 +619,7 @@ test("ACCUMULATOR IS DEAD AT THE PAINT: poisoning it changes nothing observable"
 });
 
 test("CALLS, NOT RESTATES: the module's text, with the helpers as positive controls", () => {
-  const module = read("../loc_0da0.js");
+  const module = read("../paintTwoSuppressedDigitsFromByte.js");
   for (const helper of HELPERS) {
     assert.ok(callsRatherThanRestates(module, helper), `the module does not call ${helper[0]}`);
     assert.ok(!callsRatherThanRestates(read(helper[1]), helper), `the check passes ${helper[0]}'s ` +
@@ -646,7 +646,7 @@ test("HANDOVER: the digits, in order, at the cursors the steps produce", { skip 
   };
   const probe = craft(0x47, 0, entryState().regs.de, 16);
   const painted = probe.clone();
-  loc_0da0(painted);
+  paintTwoSuppressedDigitsFromByte(painted);
   stubbed(probe);
   assert.equal(painted.regs.de, probe.regs.de, "the rewrite and the composition leave different " +
     "cursors, so the handover this arm reads is not the rewrite's");
@@ -661,7 +661,7 @@ test("HANDOVER: the digits, in order, at the cursors the steps produce", { skip 
 });
 
 test("WHOLE-MACHINE: a driven session leaves no cell differing", { skip }, () => {
-  const r = wholeRunCells(loc_0da0);
+  const r = wholeRunCells(paintTwoSuppressedDigitsFromByte);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,

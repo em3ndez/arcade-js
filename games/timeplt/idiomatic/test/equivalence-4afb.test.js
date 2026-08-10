@@ -66,7 +66,7 @@ import { readFileSync } from "node:fs";
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_4afb } from "../loc_4afb.js";
 import { paintTwoUnsuppressedDigitsFromByte } from "../paintTwoUnsuppressedDigitsFromByte.js";
-import { loc_0da0 } from "../loc_0da0.js";
+import { paintTwoSuppressedDigitsFromByte } from "../paintTwoSuppressedDigitsFromByte.js";
 import { paintUnsuppressedDigit } from "../paintUnsuppressedDigit.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
 import { loc_4afb as oracle } from "../../translated/loc_4afb.js";
@@ -356,7 +356,7 @@ function brokenSuppressingPainter(m) {
   regs.c = PEN_COLOUR;
   regs.de = FIRST_CELL;
   regs.hl = PACKED_BYTE;
-  loc_0da0(m);
+  paintTwoSuppressedDigitsFromByte(m);
 }
 
 /** BUG: the pen colour is one off. */

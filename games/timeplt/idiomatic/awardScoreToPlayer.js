@@ -7,9 +7,9 @@
 
 import { u16 } from "../../../core/int.js";
 import { loc_0ce8 } from "./loc_0ce8.js";
-import { loc_0d57 } from "./loc_0d57.js";
-import { loc_0d61 } from "./loc_0d61.js";
-import { loc_0d6b } from "./loc_0d6b.js";
+import { paintPlayerOneScoreReadout } from "./paintPlayerOneScoreReadout.js";
+import { paintPlayerTwoScoreReadout } from "./paintPlayerTwoScoreReadout.js";
+import { paintHighScoreReadout } from "./paintHighScoreReadout.js";
 import { drawTextRunByIndex } from "./drawTextRunByIndex.js";
 import { eraseTextRunByIndex } from "./eraseTextRunByIndex.js";
 import { advanceCharCursor } from "./advanceCharCursor.js";
@@ -59,11 +59,11 @@ export function awardScoreToPlayer(m) {
     let src = de;
     let dst = hl;
     for (let n = count; n > 0; n--) { mem8[dst] = mem8[src]; src = u16(src - 1); dst = u16(dst - 1); }
-    loc_0d6b(m);
+    paintHighScoreReadout(m);
   }
 
-  if (mem8[CURRENT_PLAYER] !== 0) loc_0d61(m);
-  else loc_0d57(m);
+  if (mem8[CURRENT_PLAYER] !== 0) paintPlayerTwoScoreReadout(m);
+  else paintPlayerOneScoreReadout(m);
   return loc_0ce8(m);
 }
 
@@ -71,13 +71,13 @@ function repaintScores(m) {
   const { regs, mem8 } = m;
   if (mem8[PLAYER_COUNT] !== 0) {
     drawTextRunByIndex(m, P1_LABEL);
-    loc_0d57(m);
+    paintPlayerOneScoreReadout(m);
     drawTextRunByIndex(m, P2_LABEL);
-    loc_0d61(m);
+    paintPlayerTwoScoreReadout(m);
     return;
   }
   drawTextRunByIndex(m, mem8[0x0b31]);
-  loc_0d57(m);
+  paintPlayerOneScoreReadout(m);
   eraseTextRunByIndex(m, mem8[0x15c6]);
   // blank the six cells of the vanished second player's score, one screen row apart
   regs.de = SECOND_SCORE_CELL;

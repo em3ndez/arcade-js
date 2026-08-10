@@ -10,7 +10,7 @@ import { ENEMY_STANDOFF_AIM_MAIN, FRAME_TICK } from "./names.js";
 import { headingToward } from "./headingToward.js";
 import { steerTowardAimOneUnitAFrame } from "./steerTowardAimOneUnitAFrame.js";
 import { loc_58aa } from "./loc_58aa.js";
-import { loc_3faf } from "./loc_3faf.js";
+import { dressSpriteShapeAndAttributeForHeadingSector } from "./dressSpriteShapeAndAttributeForHeadingSector.js";
 import { hasReachedRetireLine } from "./hasReachedRetireLine.js";
 import { retireSlot } from "./retireSlot.js";
 
@@ -29,7 +29,7 @@ export function chaseOneAimPointAndRetireAtTheLine(m) {
 
   steerTowardAimOneUnitAFrame(m);
   loc_58aa(m);
-  loc_3faf(m);
+  dressSpriteShapeAndAttributeForHeadingSector(m);
 
   regs.bc = held;
   if (!hasReachedRetireLine(m)) return;

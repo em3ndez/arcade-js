@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0d6b — memory-equivalent to the frozen oracle at ROM 0x0D6B.
+ * paintHighScoreReadout — memory-equivalent to the frozen oracle at ROM 0x0D6B.
  *
  * Three constants and a fall-through into the six-digit readout printer at ROM 0x0D73 (already
  * decompiled): the tally to print (from its highest byte, because the printer walks downward), the
- * cell its leftmost digit lands in, and the digit colour. The rewrite calls loc_0d73 directly;
+ * cell its leftmost digit lands in, and the digit colour. The rewrite calls paintSixDigitFieldSuppressingLeadingZeros directly;
  * dissolving that transfer is this caller's unit, and the printer is gated by its own file, so what
  * this file gates is the CHOICE of the three arguments and the dissolve.
  *
@@ -37,8 +37,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0d6b } from "../loc_0d6b.js";
-import { loc_0d73 } from "../loc_0d73.js";
+import { paintHighScoreReadout } from "../paintHighScoreReadout.js";
+import { paintSixDigitFieldSuppressingLeadingZeros } from "../paintSixDigitFieldSuppressingLeadingZeros.js";
 import { loc_0d6b as oracle } from "../../translated/loc_0d6b.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -74,7 +74,7 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
  * name. The same predicate runs over the printer itself as a positive control, so the absence is
  * evidence only once the check is shown able to see the thing present.
  */
-const HELPER = ["loc_0d73", "../loc_0d73.js", "loc_0da0"];
+const HELPER = ["paintSixDigitFieldSuppressingLeadingZeros", "../paintSixDigitFieldSuppressingLeadingZeros.js", "paintTwoSuppressedDigitsFromByte"];
 
 function callsRatherThanRestates(text, [name, file, ownName]) {
   return text.includes(`from "./${file.slice(3)}"`) &&
@@ -112,7 +112,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0d6b);
+  if (entry === null) gate(paintHighScoreReadout);
   return entry;
 }
 
@@ -203,7 +203,7 @@ function replaySession(opts, candidate) {
 let sessionCache = null;
 function sessions() {
   if (sessionCache) return sessionCache;
-  sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, loc_0d6b) }));
+  sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, paintHighScoreReadout) }));
   return sessionCache;
 }
 
@@ -219,7 +219,7 @@ function brokenWrongSource(m) {
   m.regs.de = FIRST_DIGIT_CELL;
   m.regs.hl = 0xad35;
   m.regs.c = DIGIT_COLOUR;
-  loc_0d73(m);
+  paintSixDigitFieldSuppressingLeadingZeros(m);
 }
 
 /** BUG: prints into one of the other siblings' screen positions. */
@@ -227,7 +227,7 @@ function brokenWrongDestination(m) {
   m.regs.de = 0xa781;
   m.regs.hl = TALLY_TOP_BYTE;
   m.regs.c = DIGIT_COLOUR;
-  loc_0d73(m);
+  paintSixDigitFieldSuppressingLeadingZeros(m);
 }
 
 /** BUG: picks a different colour for the digits. */
@@ -235,7 +235,7 @@ function brokenWrongColour(m) {
   m.regs.de = FIRST_DIGIT_CELL;
   m.regs.hl = TALLY_TOP_BYTE;
   m.regs.c = DIGIT_COLOUR + 1;
-  loc_0d73(m);
+  paintSixDigitFieldSuppressingLeadingZeros(m);
 }
 
 /** BUG: walks the tally upward from its lowest byte instead of down from its highest. */
@@ -243,7 +243,7 @@ function brokenLowestByteFirst(m) {
   m.regs.de = FIRST_DIGIT_CELL;
   m.regs.hl = TALLY_TOP_BYTE - 2;
   m.regs.c = DIGIT_COLOUR;
-  loc_0d73(m);
+  paintSixDigitFieldSuppressingLeadingZeros(m);
 }
 
 /** BUG: fixes the arguments and never transfers, so nothing is printed. */
@@ -279,14 +279,14 @@ function scribbler(offset) {
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the measured window", { skip }, () => {
-  gate(loc_0d6b);
+  gate(paintHighScoreReadout);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const e = entryState();
   const sp = e.regs.sp;
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_0d6b(b);
+  paintHighScoreReadout(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -349,8 +349,8 @@ test("PINNED: the ROM's argument triple, and the module names the same three", {
   );
   // The text check is only evidence if it can tell one module from another. A sibling entry
   // chooses a different tally and a different cell, and must FAIL the same predicate.
-  assert.ok(namesTheTriple(read("../loc_0d6b.js")), "the module does not name the ROM's triple");
-  assert.ok(!namesTheTriple(read("../loc_0d57.js")), "a sibling entry that chooses a different " +
+  assert.ok(namesTheTriple(read("../paintHighScoreReadout.js")), "the module does not name the ROM's triple");
+  assert.ok(!namesTheTriple(read("../paintPlayerOneScoreReadout.js")), "a sibling entry that chooses a different " +
     "tally and cell passes the same text check, so the check proves nothing");
   console.log(
     `  PINNED: source=${hex4(TALLY_TOP_BYTE)} destination=${hex4(FIRST_DIGIT_CELL)} ` +
@@ -372,7 +372,7 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
-  const moved = movedOver(loc_0d6b);
+  const moved = movedOver(paintHighScoreReadout);
   // The absence below is only evidence if the same measurement CAN report a register outside the
   // ceiling. The wrong-destination twin leaves the cursor elsewhere, and the control says so.
   const control = movedOver(brokenWrongDestination);
@@ -400,7 +400,7 @@ test("CORPUS: the one dispatch of each session replays identically", { skip }, (
 });
 
 test("CALLS, NOT RESTATES: the module's text, with the printer as a positive control", () => {
-  const module = read("../loc_0d6b.js");
+  const module = read("../paintHighScoreReadout.js");
   assert.ok(callsRatherThanRestates(module, HELPER), `the module does not call ${HELPER[0]}`);
   assert.ok(!callsRatherThanRestates(read(HELPER[1]), HELPER), `the check passes ${HELPER[0]}'s ` +
     "OWN body, so it cannot tell a call from an inlined copy and proves nothing");

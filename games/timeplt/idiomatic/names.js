@@ -1400,7 +1400,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x0d73: {
-    name: "loc_0d73",
+    name: "paintSixDigitFieldSuppressingLeadingZeros",
     role: "paint a six-digit field: two packed bytes through the suppressing painter, sharing one suppression flag this entry clears, then a third through the plain painter so the last two digits always show, walking the source pointer backwards as it goes",
     cert: "code",
   },
@@ -1416,7 +1416,7 @@ export const ROUTINES = {
     why: "the name's whole content is the contrast with paintSuppressedDigit at 0x0DAF, and the contrast is refutable per dispatch. A PC-gated read tap under MAME logged the value handed in and the glyph byte written out, on every entry to BOTH routines in ONE ninety-second run: this one painted the digit `0` on all twenty-two of its zero-valued dispatches and the blanking glyph on none, while the twin -- same run, same instrument -- painted the blanking glyph on nineteen zero-valued dispatches and the digit `0` on six, so the instrument that reported the absence was shown able to see the thing absent. MAME's own screenshot agrees on the glass, on the HI-SCORE field rather than a player's: it reads `10000`, and the tap attributes its leading blank and first three digits to the twin and only its two trailing zeros to this routine. Feeding it what the name says it never gets refutes `hex` as well: holding the displayed field at 0xAB, 0xCD and 0xEF drove it to the table's last entry and five bytes beyond, where it painted 0xF1, 0x11, 0x63, 0xA4, 0xFE, 0x64 -- the blanking glyph the table really holds, then the first five bytes of the routine at 0x0DD7 -- and never a glyph A-F",
   },
   0x0da0: {
-    name: "loc_0da0",
+    name: "paintTwoSuppressedDigitsFromByte",
     role: "paint the two decimal digits packed into one byte with a leading zero suppressed, the high one first, stepping the cursor one cell on after each; the caller's suppression flag arrives, carries across both digits and goes back out, so a longer run of digits suppresses as one field",
     cert: "code",
   },
@@ -1556,7 +1556,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x181e: {
-    name: "loc_181e",
+    name: "parkSpritesAndArmLineWipeThenAdvanceSequence",
     role: "one step of a screen-clearing sequence: park every sprite out of sight, copy the glyph and colour showing at one fixed character cell into one fixed two-byte record, arm the line wipe to run from the plane's fifth line, and step the sequence's inner index on last; both the cell and the record are fixed here, so nothing a caller was holding chooses either",
     cert: "code",
   },
@@ -1575,7 +1575,7 @@ export const ROUTINES = {
     name: "sampleCellGlyphAndColour",
     role: "take what is currently showing at one character cell -- its glyph byte and the colour byte of the same cell -- and lay the two down side by side as a two-byte record. One pointer reaches both planes because they hold the same grid at the same offset and are told apart by a single address bit. The cell itself is not touched, so what the caller gets is a reading and not a reservation",
     cert: "seen",
-    why: 'the reading a name has to choose between is SAMPLE and SAVE-FOR-RESTORE: both copy a cell into RAM, and only what happens to the record afterwards tells them apart. A write tap on the record cells across a driven MAME game on the real ROM settles it. The glyph half came back CONSTANT -- 0xA5 on all 15733 writes -- while the colour half alternated, 0x05 on 7865 and 0x10 on 7868, so the cell being read is blinking under the routine and the copy tracks it frame by frame; a fixed pair would have made "sample" pointless and a constant colour would have made it a plain save. A read tap on the same cells then enumerated the consumers rather than grepping for them: exactly two program counters ever read the record, 0x202D and 0x2036, and both are COMPARISONS inside advancePlayerAnimationStrip (against 0xA5, then against 0x05 or 0x10). Nothing writes the pair back to any cell in that run, which is what a restore would have to do. The two call sites fix the cells from outside: stepCopyrightScreenAwaitingStart samples 0xA61C into 0xABFE every frame, loc_181e samples 0xA5FC into 0xACBE once. The second record took ZERO reads in the run, so what consumes it is unmeasured and this entry does not claim one. Dispatches are a clean A/B: 15735 across a driven game, ZERO across two undriven attract runs of 180 and 300 emulated seconds',
+    why: 'the reading a name has to choose between is SAMPLE and SAVE-FOR-RESTORE: both copy a cell into RAM, and only what happens to the record afterwards tells them apart. A write tap on the record cells across a driven MAME game on the real ROM settles it. The glyph half came back CONSTANT -- 0xA5 on all 15733 writes -- while the colour half alternated, 0x05 on 7865 and 0x10 on 7868, so the cell being read is blinking under the routine and the copy tracks it frame by frame; a fixed pair would have made "sample" pointless and a constant colour would have made it a plain save. A read tap on the same cells then enumerated the consumers rather than grepping for them: exactly two program counters ever read the record, 0x202D and 0x2036, and both are COMPARISONS inside advancePlayerAnimationStrip (against 0xA5, then against 0x05 or 0x10). Nothing writes the pair back to any cell in that run, which is what a restore would have to do. The two call sites fix the cells from outside: stepCopyrightScreenAwaitingStart samples 0xA61C into 0xABFE every frame, parkSpritesAndArmLineWipeThenAdvanceSequence samples 0xA5FC into 0xACBE once. The second record took ZERO reads in the run, so what consumes it is unmeasured and this entry does not claim one. Dispatches are a clean A/B: 15735 across a driven game, ZERO across two undriven attract runs of 180 and 300 emulated seconds',
   },
   0x1f01: {
     name: "turnShipTowardTargetHeading",
@@ -1851,7 +1851,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x3faf: {
-    name: "loc_3faf",
+    name: "dressSpriteShapeAndAttributeForHeadingSector",
     role: "point an object's sprite the way it is heading, from a different pair of sector tables to the sibling that does the same rounding",
     cert: "code",
   },
@@ -2423,17 +2423,17 @@ export const ROUTINES = {
     why: "two things the name claims could have been refuted by watching one of those four bytes under MAME, and neither was. Attributed by program counter over 160 s of driven play the byte took 1255 writes from stampCopyrightStrip's own store and exactly two zeroes from this routine's, and the four bytes went from the stamped ladder to all-zero on the frame a driven start press raised PLAY_ACTIVE -- so it fires when a game begins, on the slots the stamper filled. That those slots are the copyright caption's is re-derivable: the shapes the stamper puts in them decode out of the sprite ROM as a copyright mark and then KO, NA, MI",
   },
   0x0d57: {
-    name: "loc_0d57",
+    name: "paintPlayerOneScoreReadout",
     role: "enter the shared packed-decimal digit routine at 0x0D73 with one fixed triple -- first cell 0xA781, the three-byte field whose high end is 0xAD35, and a fixed colour; choosing that triple is the whole entry and whatever the caller held is discarded",
     cert: "code",
   },
   0x0d61: {
-    name: "loc_0d61",
+    name: "paintPlayerTwoScoreReadout",
     role: "enter the shared packed-decimal digit routine at 0x0D73 with a second fixed triple -- first cell 0xA501, the three-byte field whose high end is 0xAD38, and a fixed colour; choosing that triple is the whole entry and whatever the caller held is discarded",
     cert: "code",
   },
   0x0d6b: {
-    name: "loc_0d6b",
+    name: "paintHighScoreReadout",
     role: "enter the shared packed-decimal digit routine at 0x0D73 with a third fixed triple -- first cell 0xA641, the field whose high end is 0xA98D, and a fixed colour; the routine walks the field downward, so the high end is where it starts",
     cert: "code",
   },

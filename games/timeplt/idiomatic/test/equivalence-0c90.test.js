@@ -47,9 +47,9 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { awardScoreToPlayer } from "../awardScoreToPlayer.js";
 import { loc_0c90 as oracle } from "../../translated/loc_0c90.js";
 import { loc_0ce8 } from "../loc_0ce8.js";
-import { loc_0d57 } from "../loc_0d57.js";
-import { loc_0d61 } from "../loc_0d61.js";
-import { loc_0d6b } from "../loc_0d6b.js";
+import { paintPlayerOneScoreReadout } from "../paintPlayerOneScoreReadout.js";
+import { paintPlayerTwoScoreReadout } from "../paintPlayerTwoScoreReadout.js";
+import { paintHighScoreReadout } from "../paintHighScoreReadout.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -213,7 +213,7 @@ function brokenNoVeto(m) {
   const { regs, mem8 } = m;
   if (regs.a === 0) return;
   addAward(m, regs.a, mem8[CURRENT_PLAYER] === 0 ? PLAYER1_SCORE : PLAYER2_SCORE);
-  return loc_0d57(m);
+  return paintPlayerOneScoreReadout(m);
 }
 
 /** BUG: always credits player one, whoever is playing. */
@@ -222,7 +222,7 @@ function brokenWrongPlayer(m) {
   if (mem8[SCORING_ENABLED] === 0) return loc_0ce8(m);
   if (regs.a === 0) return;
   addAward(m, regs.a, PLAYER1_SCORE);
-  return loc_0d57(m);
+  return paintPlayerOneScoreReadout(m);
 }
 
 /** BUG: credits the award selected by the wrong argument. */
@@ -231,7 +231,7 @@ function brokenWrongAward(m) {
   if (mem8[SCORING_ENABLED] === 0) return loc_0ce8(m);
   if (regs.a === 0) return;
   addAward(m, u8(regs.a + 1), mem8[CURRENT_PLAYER] === 0 ? PLAYER1_SCORE : PLAYER2_SCORE);
-  return loc_0d57(m);
+  return paintPlayerOneScoreReadout(m);
 }
 
 /** BUG: never promotes a new high score. */
@@ -240,8 +240,8 @@ function brokenNoPromote(m) {
   if (mem8[SCORING_ENABLED] === 0) return loc_0ce8(m);
   if (regs.a === 0) return;
   addAward(m, regs.a, mem8[CURRENT_PLAYER] === 0 ? PLAYER1_SCORE : PLAYER2_SCORE);
-  if (mem8[CURRENT_PLAYER] !== 0) loc_0d61(m);
-  else loc_0d57(m);
+  if (mem8[CURRENT_PLAYER] !== 0) paintPlayerTwoScoreReadout(m);
+  else paintPlayerOneScoreReadout(m);
   return loc_0ce8(m);
 }
 
@@ -369,9 +369,9 @@ test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, 
 
 const DISSOLVED_CALLEES = [
   ["loc_0ce8", "loc_0ce8(m)"],
-  ["loc_0d57", "loc_0d57(m)"],
-  ["loc_0d61", "loc_0d61(m)"],
-  ["loc_0d6b", "loc_0d6b(m)"],
+  ["paintPlayerOneScoreReadout", "paintPlayerOneScoreReadout(m)"],
+  ["paintPlayerTwoScoreReadout", "paintPlayerTwoScoreReadout(m)"],
+  ["paintHighScoreReadout", "paintHighScoreReadout(m)"],
   ["drawTextRunByIndex", "drawTextRunByIndex(m"],
   ["eraseTextRunByIndex", "eraseTextRunByIndex(m"],
   ["advanceCharCursor", "advanceCharCursor(m)"],
