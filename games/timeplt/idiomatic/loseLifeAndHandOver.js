@@ -11,6 +11,7 @@ import { loc_5634 } from "./loc_5634.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startNextRound } from "./startNextRound.js";
 import { postGameOverBanner } from "./postGameOverBanner.js";
+import { ROUND_TRANSITION_HOLD } from "./names.js";
 
 const RECORD = 0xad00;
 const SLOT_A = 0xad10;
@@ -18,7 +19,6 @@ const SLOT_B = 0xad20;
 const SELECTOR = 0xad32;
 const RECORD_LEN = 16;
 
-const EVENT_FLAG = 0xacc6;
 const STAMP_CELL = 0xa9eb;
 const STAMP_VALUE = 90;
 const IMAGE_TARGET = 0xa9ac;
@@ -28,7 +28,7 @@ export function loseLifeAndHandOver(m) {
   const { mem8 } = m;
 
   hideAllSprites(m);
-  if (mem8[EVENT_FLAG] !== 0) startNextRound(m);
+  if (mem8[ROUND_TRANSITION_HOLD] !== 0) startNextRound(m);
   loc_5634(m);
 
   const count = u8(mem8[RECORD] - 1);

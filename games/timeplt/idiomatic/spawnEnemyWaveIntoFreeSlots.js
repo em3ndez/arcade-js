@@ -10,21 +10,19 @@ import { drawRandomByte } from "./drawRandomByte.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { stepShapeAnimation } from "./stepShapeAnimation.js";
 import { u8, u16 } from "../../../core/int.js";
-import { MOTHER_SHIP_ARMED } from "./names.js";
+import { MOTHER_SHIP_ARMED, ROUND_CRAFT_COUNT, WAVE_CLAIM_TIMER } from "./names.js";
 
 const SLOT_BANK = 0xa850;
 const ENTRY_BANK = 0xaa1a;
-const CONFIGURED_COUNT = 0xacc1;
 const SLOT_STRIDE = 0x10;
 const DEFAULT_COUNT = 5;
 const SHAPE_TABLE = 0x3a3b;
 const ORDINAL_TABLE = 0x38d2;
-const STATUS_CELL = 0xa812;
 const STATUS_VALUE = 0xe4;
 
 export function spawnEnemyWaveIntoFreeSlots(m) {
   const { regs, mem8 } = m;
-  const configuredCount = mem8[CONFIGURED_COUNT];
+  const configuredCount = mem8[ROUND_CRAFT_COUNT];
   const count = mem8[MOTHER_SHIP_ARMED] === 0 ? configuredCount : DEFAULT_COUNT;
 
   let slot = SLOT_BANK;
@@ -59,5 +57,5 @@ export function spawnEnemyWaveIntoFreeSlots(m) {
     remaining = u8(remaining - 1);
   } while (remaining !== 0);
 
-  mem8[STATUS_CELL] = STATUS_VALUE;
+  mem8[WAVE_CLAIM_TIMER] = STATUS_VALUE;
 }

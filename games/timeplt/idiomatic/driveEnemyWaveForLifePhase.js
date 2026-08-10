@@ -15,18 +15,14 @@ import { stopFiveSlotAnimations } from "./stopFiveSlotAnimations.js";
 import { gateTheFreeSlotSearchAndPickItsRun } from "./gateTheFreeSlotSearchAndPickItsRun.js";
 import { loc_379f } from "./loc_379f.js";
 import { loc_5817 } from "./loc_5817.js";
+import { ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, WAVE_CLAIM_TIMER, WAVE_DESCRIPTOR_INDEX, WAVE_KILL_COUNTDOWN } from "./names.js";
 
-const WAVE_HOLD = 0xacc6;
 const ERA_INDEX = 0xad04;
 const LIFE_PHASE = 0xad06;
 const LIFE_TICKS_LOW = 0xad05;
 const KILLS_REMAINING = 0xad02;
-const ROUND_CRAFT_COUNT = 0xacc1;
 const PLAYER_HEADING = 0xa802;
 const WAVE_MARK = 0xacc2;
-const STRIDE_INDEX = 0xacc3;
-const FILLED_SLOTS = 0xa811;
-const WAVE_STATUS = 0xa812;
 
 const CRAFT_BAND = 0xa850;
 const ENTRY_BAND = 0xaa1a;
@@ -43,7 +39,7 @@ const READY_STATUS = 0xe4;
 
 export function driveEnemyWaveForLifePhase(m) {
   const { regs, mem8 } = m;
-  if (mem8[WAVE_HOLD] !== 0) return;
+  if (mem8[ROUND_TRANSITION_HOLD] !== 0) return;
   if (mem8[ERA_INDEX] === BOSS_ERA) return spawnEnemyWaveIntoFreeSlots(m);
 
   regs.hl = LIFE_TICKS_LOW; // the phase tails all read the byte here
@@ -55,19 +51,19 @@ export function driveEnemyWaveForLifePhase(m) {
 
   const parityBit = drawRandomByte(m) & 1;
   mem8[WAVE_MARK] = 0xff;
-  mem8[STRIDE_INDEX] = u8(2 * mem8[ERA_INDEX] + parityBit);
+  mem8[WAVE_DESCRIPTOR_INDEX] = u8(2 * mem8[ERA_INDEX] + parityBit);
 
   const headingIndex = u8(mem8[PLAYER_HEADING] + 8) >> 4;
   regs.hl = BIAS_TABLE;
   regs.a = headingIndex;
   const bias = mem8[offsetAddress(m)];
 
-  regs.a = u8(16 * mem8[STRIDE_INDEX]);
+  regs.a = u8(16 * mem8[WAVE_DESCRIPTOR_INDEX]);
   regs.hl = DESCRIPTOR_TABLE;
   let descriptor = offsetAddress(m); // two-byte entries, one consumed per filled slot
 
   const count = mem8[KILLS_REMAINING] !== 0 ? mem8[ROUND_CRAFT_COUNT] : DEFAULT_COUNT;
-  mem8[FILLED_SLOTS] = 0;
+  mem8[WAVE_KILL_COUNTDOWN] = 0;
   let record = CRAFT_BAND;
   let entry = ENTRY_BAND;
 
@@ -93,7 +89,7 @@ export function driveEnemyWaveForLifePhase(m) {
       stepShapeAnimation(m, record);
 
       mem8[record] = mem8[record + 0x0e] === 0 ? 0xff : 0xfe; // live, and settled when its tail is clear
-      mem8[FILLED_SLOTS] = u8(mem8[FILLED_SLOTS] + 1);
+      mem8[WAVE_KILL_COUNTDOWN] = u8(mem8[WAVE_KILL_COUNTDOWN] + 1);
     }
     record = u16(record + RECORD_STRIDE);
     entry = u16(entry + 2);
@@ -101,10 +97,10 @@ export function driveEnemyWaveForLifePhase(m) {
   } while (remaining !== 0);
 
   mem8[WAVE_MARK] = 0;
-  mem8[WAVE_STATUS] = READY_STATUS;
-  const filled = mem8[FILLED_SLOTS];
+  mem8[WAVE_CLAIM_TIMER] = READY_STATUS;
+  const filled = mem8[WAVE_KILL_COUNTDOWN];
   if (filled >= DEFAULT_COUNT) return loc_5817(m);
   const owed = mem8[ROUND_CRAFT_COUNT];
-  mem8[FILLED_SLOTS] = owed;
+  mem8[WAVE_KILL_COUNTDOWN] = owed;
   if (filled >= owed) return loc_5817(m);
 }

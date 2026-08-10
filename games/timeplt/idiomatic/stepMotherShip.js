@@ -22,11 +22,11 @@ import { requestTwoSounds } from "./requestTwoSounds.js";
 import { loc_56d2 } from "./loc_56d2.js";
 import { loc_57f7 } from "./loc_57f7.js";
 import { loc_580b } from "./loc_580b.js";
+import { ROUND_TRANSITION_HOLD } from "./names.js";
 
 const RECORD_BANK = 0xa8a0;
 const SPRITE_BANK = 0xaa24;
 
-const READY_FLAG = 0xacc6;
 const CLEAR_CELL = 0xa8dc;
 const SCROLL_X = 0xa808;
 const SCROLL_Y = 0xa80a;
@@ -186,7 +186,7 @@ export function loc_43f0_4554(m) {
 
   regs.c = 0x3c;
   regs.a = READY_ARMED;
-  mem8[READY_FLAG] = regs.a;
+  mem8[ROUND_TRANSITION_HOLD] = regs.a;
   mem8[X(STATE)] = INIT_MARKER;
   mem8[Y(SECOND_ENTRY)] = SPRITE_SEED;
   mem8[Y(0x32)] = SPRITE_SEED;
@@ -269,7 +269,7 @@ export function loc_43f0_4646(m) {
   const X = (d) => u16(regs.ix + d);
 
   regs.a = 0xff;
-  mem8[READY_FLAG] = regs.a;
+  mem8[ROUND_TRANSITION_HOLD] = regs.a;
   mem8[X(STATE)] = 0x00; // idle
   regs.hl = RESTART_IMAGE;
   regs.a = mem8[regs.hl];
@@ -290,7 +290,7 @@ export function loc_43f0_4663(m) {
   const X = (d) => u16(regs.ix + d);
   const Y = (d) => u16(regs.iy + d);
 
-  regs.a = mem8[READY_FLAG];
+  regs.a = mem8[ROUND_TRANSITION_HOLD];
   regs.and(regs.a);
   if (regs.fNZ) return; // locked out
 

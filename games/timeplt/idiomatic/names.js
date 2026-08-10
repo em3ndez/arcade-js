@@ -201,6 +201,90 @@ export const CHAIN_STEP = 0xa99e;
 export const ERA_RUNG = 0xacc0;
 
 /**
+ * Per-round enemy-craft quota: how many craft a round should field. [code]
+ *
+ * Written by the era/rung config scatter from record byte 4 (resetPlayfieldAndArmNewRound stores
+ * mem[src+4]; applyEraRungSettings and cold init reach the same cell), and read as the wave spawn
+ * count / loop bound wherever craft are launched -- driveEnemyWaveForLifePhase, spawnEnemyWaveIntoFreeSlots,
+ * gateTheFreeSlotSearchAndPickItsRun, loc_379f. The quota-picks-the-count idiom recurs: a spawner loads its
+ * loop bound from here unless the kill quota is already spent, then falls back to five.
+ */
+export const ROUND_CRAFT_COUNT = 0xacc1;
+
+/**
+ * Descriptor-table selector for the current inline wave: (2 * era) + a random parity bit. [code]
+ *
+ * driveEnemyWaveForLifePhase computes it as 2*ERA_INDEX + one drawn bit, then multiplies by sixteen to
+ * stride into the wave descriptor table at 0x397b (two-byte entries, one consumed per filled slot), so it
+ * picks one of two shape/formation rows per era. Routine-local scratch that happens to live in RAM.
+ */
+export const WAVE_DESCRIPTOR_INDEX = 0xacc3;
+
+/**
+ * Per-round threshold that decides how each spawning craft's movement script is chosen. [code]
+ *
+ * Written by the era/rung config scatter from record byte 5, and read only by pickScriptAtRandomOrInTurn:
+ * a random draw at or above this value yields a random script from a small band, a draw below it yields the
+ * next entry of a round-robin cycle. A higher threshold biases toward the ordered cycle.
+ */
+export const SCRIPT_PICK_THRESHOLD = 0xacc4;
+
+/**
+ * Nonzero while a round / wave / Mother-Ship transition sequence is underway. [code]
+ *
+ * Cleared to zero when a fresh round arms (resetPlayfieldAndArmNewRound, cold init) and when the field-cleared
+ * advancer completes a round (advanceRoundWhenFieldCleared writes ROM[0x07d1]=0x00, disarming the hold); raised
+ * at the end of a wave/Mother-Ship sequence -- to 0xFE on a full formation rebuild (stepMotherShip 0x4587) or
+ * 0xFF at warp/flash finish (loc_459b / stepMotherShip 0x464b). While it is set the per-frame enemy drivers
+ * stand down (driveEnemyWaveForLifePhase returns; fireAndSweepPlayerShots skips spawning; armMotherShipOrStep
+ * holds only on 0xFF, proceeding on 0xFE), and it is the gate the round-advancer requires (advance only when
+ * this is set, the kill quota is spent, and the object band is empty). Different routines named it for the one
+ * effect each saw -- spawn-hold, wave-hold, round-over -- but every reader treats a set value as a transition
+ * in progress.
+ */
+export const ROUND_TRANSITION_HOLD = 0xacc6;
+
+/**
+ * How many more qualifying kills until the current wave's shared claim fires. [code]
+ *
+ * The inline wave builder tallies filled slots into this cell, then -- unless five or more slots filled, in
+ * which case the tally itself stands -- overwrites it with ROUND_CRAFT_COUNT; from then on
+ * countTheKillAndGrantTheSharedToken decrements it once per kill whose object cleared the claim guards, and the
+ * kill that brings it to zero writes the winning slot ordinal into CLAIM_TOKEN. So the stored value is a
+ * per-wave kill countdown, not a frame timer -- its builder-side fill tally and its claim-side countdown are
+ * the same physical cell, filled while spawning then counted down.
+ */
+export const WAVE_KILL_COUNTDOWN = 0xa811;
+
+/**
+ * Frame-countdown window during which a spawned wave's shared claim is armed. [code]
+ *
+ * Preloaded to 0xE4 whenever a wave spawns (both the inline builder and the era-four/boss spawner), and wound
+ * down one per vblank alongside the other frame timers. Its numeric value is never compared against a
+ * threshold -- the only reader beyond the tick treats nonzero as "wave live, claim armed" -- so the 0xE4 seed
+ * is a time budget: roughly how long after a wave spawns the last-of-wave kill can still be claimed.
+ */
+export const WAVE_CLAIM_TIMER = 0xa812;
+
+/**
+ * The shared "last of the wave" token, holding one claimant at a time. [code]
+ *
+ * The kill that empties WAVE_KILL_COUNTDOWN writes its own slot ordinal here with the top bit set; loc_2c31
+ * keeps alive whichever object's record number matches the low seven bits -- a "named request" -- holding a
+ * fixed shape and tint, and on its first phase posts a command and clears this cell, so the token is consumed
+ * exactly once. Its writer-side (holder) and reader-side (request) views are the same cell.
+ */
+export const CLAIM_TOKEN = 0xa821;
+
+/*
+ * Kept hex (no confident name, so no const -- the absence is the signal):
+ *   0xACC2  set 0xFF across the inline wave-build loop and cleared to 0 after (driveEnemyWaveForLifePhase);
+ *           no reader in either layer, so its purpose (a build-in-progress interlock) is not earned.
+ *   0xACC5  written 0 once when a free slot is stocked (spawnEnemyIntoFreeSlotElseStepSearch); no reader in
+ *           either layer, so no role can be justified.
+ */
+
+/**
  * How many wraps of the base-sixty counter one rung of ERA_RUNG lasts. [seen]
  *
  * Written once, from a program byte, and read only to reload ERA_RUNG_TIMER. Watched under MAME it

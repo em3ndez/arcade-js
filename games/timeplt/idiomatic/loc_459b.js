@@ -14,13 +14,13 @@ import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { loc_580b } from "./loc_580b.js";
 import { postCommand } from "./postCommand.js";
+import { ROUND_TRANSITION_HOLD } from "./names.js";
 
 const STATE = 0x00;
 const HEADING = 0x31;
 const SPRITE_STATE = 0x30;
 const TRIGGER = 0xb4;
 const SHAPE_TABLE = 0x461b;
-const READY_FLAG = 0xacc6;
 const RESTART = 0xab43;
 const WARP_SENTINEL = 0xa800;
 
@@ -106,7 +106,7 @@ export function loc_459b(m) {
     if (regs.fZ) {
       // sequence spent: back to idle, then loop or return on two program-image gates
       regs.a = 0xff;
-      mem8[READY_FLAG] = regs.a;
+      mem8[ROUND_TRANSITION_HOLD] = regs.a;
       mem8[X(STATE)] = 0x00;
       regs.hl = RESTART;
       regs.a = mem8[regs.hl];

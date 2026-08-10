@@ -10,6 +10,7 @@ import { drainBothDeferredCellLists } from "./drainBothDeferredCellLists.js";
 import { serviceCoinInputs } from "./serviceCoinInputs.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { sendOneQueuedSoundThenUnwindTheFrameInterrupt } from "./sendOneQueuedSoundThenUnwindTheFrameInterrupt.js";
+import { WAVE_CLAIM_TIMER } from "./names.js";
 
 const NMI_ENABLE = 0xc300;
 const WATCHDOG = 0xc200;
@@ -32,7 +33,7 @@ const DIP0_MIRROR = 0xa9b1;
 
 const FRAME_COUNTER = 0xa980;
 const DECIMAL_COUNTER = 0xa9ce;
-const TIMERS = [0xa817, 0xa812, 0xa8f4];
+const TIMERS = [0xa817, WAVE_CLAIM_TIMER, 0xa8f4];
 
 const PHASE_INDEX = 0xa9ab;
 const PHASE_TABLE = 0x015f;

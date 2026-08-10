@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** gateTheFreeSlotSearchAndPickItsRun — decide whether this tick launches and, if so, hand the body
- * the run of slots to search: only two counter values open the gate. Past it the count of enemies
- * still owed picks between two runs of the one slot file — while owed, start at the later record for
- * the round's craft count, else a fixed run of five two records earlier. LIVE-OUT: memory, the two cursors, the counter. */
+/** gateTheFreeSlotSearchAndPickItsRun — only two counter values open the gate; past it, the count of
+ * enemies still owed picks between two runs of the slot file (the owed run for the round's craft count,
+ * else a fixed run of five two records earlier). LIVE-OUT: memory, the two cursors, the counter. */
 
-import { KILLS_REMAINING } from "./names.js";
+import { KILLS_REMAINING, ROUND_CRAFT_COUNT } from "./names.js";
 import { spawnEnemyIntoFreeSlotElseStepSearch } from "./spawnEnemyIntoFreeSlotElseStepSearch.js";
 
 const LAUNCH_TICKS = [0x00, 0x30];
-const ROUND_CRAFT_COUNT = 0xacc1;
 
 const OWED_RUN = { records: 0xa8b0, entries: 0xaa26 };
 const CLEARED_RUN = { records: 0xa890, entries: 0xaa22, slots: 5 };

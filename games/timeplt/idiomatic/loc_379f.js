@@ -7,6 +7,7 @@
 
 import { loc_3793 } from "./loc_3793.js";
 import { spawnEnemyIntoFreeSlotElseStepSearch } from "./spawnEnemyIntoFreeSlotElseStepSearch.js";
+import { ROUND_CRAFT_COUNT } from "./names.js";
 
 const CRAFT_BAND = 0xa850;
 const RECORD_STRIDE = 0x10;
@@ -14,7 +15,6 @@ const BAND_SLOTS = 0x07;
 const BUSY_CEILING = 0x02;
 const OPEN_PHASE = 0x30;
 const OWED_KILLS = 0xad02;
-const ROUND_CRAFT_COUNT = 0xacc1;
 const OWED_RECORD = 0xa8b0;
 const OWED_ENTRY = 0xaa26;
 

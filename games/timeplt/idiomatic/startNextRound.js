@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** startNextRound — start the next round. The round counter is stepped on, the era it selects rolls
- * forward and wraps back to the first after the fifth, and the rung a round starts on is reloaded
- * from one of three cells chosen by how far into the run the round counter has got — the first
- * bracket covers the opening rounds, the second the middle ones, the third everything after. The kill
- * quota is refilled from a cell that is not era-keyed, so it is the same in every round. Two
- * flags are cleared and a third is set to all-ones, which is what leaves the round armed rather
- * than merely counted. LIVE-OUT: memory only. */
+/** startNextRound — step the round counter, roll the era forward (wrapping after the fifth), and reload
+ * the starting rung from one of three cells bracketed by how far into the run the round counter has got.
+ * The kill quota is refilled from a non-era-keyed cell, so it is the same every round. Two flags are
+ * cleared and a third set to all-ones, which leaves the round armed rather than merely counted.
+ * LIVE-OUT: memory only. */
 
-import { ERA_INDEX, KILLS_REMAINING, KILL_QUOTA, ROUND_NUMBER, START_RUNG_ROUNDS_1_5, START_RUNG_ROUNDS_6_10, START_RUNG_ROUNDS_11_UP, MOTHER_SHIP_ARMED } from "./names.js";
+import { ERA_INDEX, KILLS_REMAINING, KILL_QUOTA, MOTHER_SHIP_ARMED, ROUND_NUMBER, ROUND_TRANSITION_HOLD, START_RUNG_ROUNDS_11_UP, START_RUNG_ROUNDS_1_5, START_RUNG_ROUNDS_6_10 } from "./names.js";
 import { u8 } from "../../../core/int.js";
 
 const ERAS = 5;
@@ -16,7 +14,6 @@ const SECOND_BRACKET_FROM = 6;
 const THIRD_BRACKET_FROM = 11;
 const START_RUNG = 0xad0a;
 
-const ROUND_OVER_FLAG = 0xacc6;
 const ARMED_FLAG = 0xad0e;
 const ARMED = 0xff;
 
@@ -36,6 +33,6 @@ export function startNextRound(m) {
 
   mem8[KILLS_REMAINING] = mem8[KILL_QUOTA];
   mem8[MOTHER_SHIP_ARMED] = 0;
-  mem8[ROUND_OVER_FLAG] = 0;
+  mem8[ROUND_TRANSITION_HOLD] = 0;
   mem8[ARMED_FLAG] = ARMED;
 }

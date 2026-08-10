@@ -8,9 +8,8 @@ import { readPlayerControls } from "./readPlayerControls.js";
 import { loc_567e } from "./loc_567e.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
 import { queueTileStampForObject } from "./queueTileStampForObject.js";
-import { PLAYER_STATE, PLAY_ACTIVE, PLAYER_HEADING, WORLD_SCROLL_X, WORLD_SCROLL_Y } from "./names.js";
+import { PLAYER_HEADING, PLAYER_STATE, PLAY_ACTIVE, ROUND_TRANSITION_HOLD, WORLD_SCROLL_X, WORLD_SCROLL_Y } from "./names.js";
 
-const SPAWN_INHIBIT = 0xacc6;
 const PHASE_SHIFT_REG = 0xa98e;
 const SPAWNS_ARMED = 0xaa81;
 const SPAWN_COOLDOWN = 0xaa82;
@@ -29,7 +28,7 @@ const SEED2 = 12;
 export function fireAndSweepPlayerShots(m) {
   const { mem8, mem16 } = m;
   if (mem8[PLAYER_STATE] !== 0xff) return sweepSlots(m);
-  if (mem8[SPAWN_INHIBIT] !== 0) return sweepSlots(m);
+  if (mem8[ROUND_TRANSITION_HOLD] !== 0) return sweepSlots(m);
 
   const controls = readPlayerControls(m);
   mem8[PHASE_SHIFT_REG] = u8((mem8[PHASE_SHIFT_REG] << 1) | ((controls >> 4) & 1));

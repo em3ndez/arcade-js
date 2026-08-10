@@ -1160,6 +1160,24 @@ flags it as ambiguous. **Nothing in this game times the player.** The bar is the
 same fact. (The interrupt does tick short countdown cells — see §2 — but none of them races the
 player or ends a round.) `[code]`
 
+### Clearing a whole wave arms a one-shot claim
+
+Beyond the round-long 56 quota, each spawned wave carries its own short-lived tally. When a wave is
+built a count of its craft is written into `WAVE_KILL_COUNTDOWN` (`0xA811`) and a frame countdown
+`WAVE_CLAIM_TIMER` (`0xA812`) is preloaded to `0xE4`; that timer winds down one per vblank alongside
+the other interrupt countdowns (§2), so the claim is live only for a fixed window after the wave
+appears. While the window is open, each enemy death whose object has its cooldown top bit set spends
+one tick of `WAVE_KILL_COUNTDOWN` — every qualifying death, not only the last — and the death that
+brings it to zero writes its slot ordinal, top bit set, into the single-holder cell `CLAIM_TOKEN`
+(`0xA821`). `[code]`
+
+`CLAIM_TOKEN` is a request, consumed once: the object driver `loc_2c31` keeps alive whichever object's
+record number matches the low seven bits, holds a fixed shape and tint, and on that object's first
+phase posts a command and clears the cell. So the plumbing is "clear the wave inside the window → name
+one object → that object posts a command once". What the posted command yields in play is not yet
+watched under a capture, so this is the claim's machinery, not its reward — `[code]` for the cells and
+the claim logic, `[guess]` for the payoff.
+
 ### The 1940 bomber takes four hits
 
 Its counter starts at three, absorbs three, and the object dies on the hit that finds it at zero.

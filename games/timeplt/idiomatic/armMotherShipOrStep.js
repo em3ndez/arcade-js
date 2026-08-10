@@ -6,8 +6,8 @@
  */
 
 import { retireEntryPairIntoCooldown } from "./retireEntryPairIntoCooldown.js";
+import { ROUND_TRANSITION_HOLD } from "./names.js";
 
-const WAVE_HOLD = 0xacc6;
 const SPECIAL_ACTIVE = 0xad0d;
 const FRAME_TICK = 0xa980;
 const SPAWN_GATE = 0xad02;
@@ -23,7 +23,7 @@ const FIRE_ARMED = 0x07;
 export function armMotherShipOrStep(m) {
   const { regs, mem8 } = m;
 
-  if (mem8[WAVE_HOLD] === HELD) return;
+  if (mem8[ROUND_TRANSITION_HOLD] === HELD) return;
 
   regs.a = mem8[SPECIAL_ACTIVE];
   if (regs.a !== 0) return m.call(0x43f0);

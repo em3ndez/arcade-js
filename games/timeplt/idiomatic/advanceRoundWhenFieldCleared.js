@@ -8,12 +8,13 @@
 import { loc_5634 } from "./loc_5634.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startNextRound } from "./startNextRound.js";
+import { ROUND_TRANSITION_HOLD } from "./names.js";
 
 export function advanceRoundWhenFieldCleared(m) {
   const { mem8 } = m;
 
   if (mem8[0xad02] !== 0) return;
-  if (mem8[0xacc6] === 0) return;
+  if (mem8[ROUND_TRANSITION_HOLD] === 0) return;
   for (let slot = 0xa810; slot < 0xa810 + 15 * 0x10; slot += 0x10) {
     if (mem8[slot] !== 0) return;
   }
@@ -21,7 +22,7 @@ export function advanceRoundWhenFieldCleared(m) {
   loc_5634(m);
 
   if (mem8[0xad30] === 0) {
-    mem8[0xacc6] = mem8[0x07d1];
+    mem8[ROUND_TRANSITION_HOLD] = mem8[0x07d1];
     hideAllSprites(m);
     mem8[0xad30] = 0;
     mem8[0xad32] = 0;

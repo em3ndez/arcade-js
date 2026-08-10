@@ -1,36 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2c31 — drive one object's appearance from a phase byte it keeps in its own record, in
- * three bands.
+ * loc_2c31 — drive one object's appearance from a phase byte in its own record, in three bands.
  *
- * At forty-two and above only the tint moves: the top two bits of the sprite's second byte are
- * kept and the low nibble of a free-running counter is dropped in beneath them, so the object
- * cycles through sixteen tints as that counter turns over and holds its shape.
- *
- * Between ten and forty-one the phase is halved into a step and that step picks a shape out of a
- * fixed sixteen-entry table, with one fixed tint. Two phases share a step, so the run of shapes
- * advances at half the speed the phase does.
- *
- * Below ten the object is only kept alive while an outside request names it: the request cell's
- * top bit must be set and the rest of it must match this record's number, or the object is retired
- * outright. While it is named, the phase advances on seven frames in every eight, a fixed shape
- * and tint are held, and the very first phase — and only that one — posts a command and clears the
- * request, so the request is consumed exactly once.
- * LIVE-OUT: memory-only.
+ * At 42+ only the tint moves: the sprite's top two attribute bits are kept and a free-running
+ * counter's low nibble dropped beneath them, cycling sixteen tints while the shape holds.
+ * Between 10 and 41 the phase is halved into a step that picks a shape from a sixteen-entry table
+ * (one fixed tint), so shapes advance at half the phase's speed.
+ * Below 10 the object lives only while CLAIM_TOKEN names it — top bit set and low seven bits
+ * matching this record's number, else it is retired; while named the phase advances seven frames in
+ * eight, a fixed shape and tint hold, and only its first phase posts a command and clears the token,
+ * consuming it once. LIVE-OUT: memory-only.
  */
 
 import { fetchTableByte } from "./fetchTableByte.js";
 import { postCommand } from "./postCommand.js";
 import { retireSlotAndSubPixel } from "./retireSlotAndSubPixel.js";
 import { u8 } from "../../../core/int.js";
-import { FRAME_TICK } from "./names.js";
+import { CLAIM_TOKEN, FRAME_TICK } from "./names.js";
 
 const PHASE = 0;
 const RECORD_NUMBER = 15;
 const SHAPE = 1;
 const ATTRIBUTE = 0x30;
 
-const REQUEST = 0xa821;
 const SHAPE_BY_STEP = 0x2c94;
 
 const TINT_ONLY_FROM = 42;
@@ -66,7 +58,7 @@ export function loc_2c31(m, object = m.regs.ix, sprite = m.regs.iy) {
     return;
   }
 
-  const request = mem8[REQUEST];
+  const request = mem8[CLAIM_TOKEN];
   const named = (request & REQUEST_PRESENT) !== 0 &&
     (request & REQUEST_NUMBER) === mem8[object + RECORD_NUMBER];
   if (!named) {
@@ -79,7 +71,7 @@ export function loc_2c31(m, object = m.regs.ix, sprite = m.regs.iy) {
   mem8[sprite + ATTRIBUTE] = HELD_TINT;
   if (mem8[object + PHASE] !== FIRST_PHASE) return;
   postCommand(m, COMMAND, ARGUMENT);
-  mem8[REQUEST] = 0;
+  mem8[CLAIM_TOKEN] = 0;
 }
 
 /** The table fetch wants its base and its index in the registers it reads them from. */
