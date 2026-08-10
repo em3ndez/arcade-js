@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_2010 — advance a multi-frame tile animation driven by a phase byte in the record. On the
+/** advancePlayerAnimationStrip — advance a multi-frame tile animation driven by a phase byte in the record. On the
  * opening frame (phase at or past the cap) the phase is clamped, the paired entry is flagged, and
  * sound cues are requested — one burst always, one extra only past the second level — unless two
  * game-state cells divert the frame into the heading snap instead. Otherwise the phase is stepped
@@ -41,7 +41,7 @@ const FRAME_ARMS = [
   [0x83, 0x1fee],
 ];
 
-export function loc_2010(m) {
+export function advancePlayerAnimationStrip(m) {
   const { regs, mem, mem8 } = m;
 
   regs.a = mem8[(regs.ix + PHASE) & 0xffff];

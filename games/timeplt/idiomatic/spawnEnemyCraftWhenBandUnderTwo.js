@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_379f — gate a spawning tick on the packed-decimal phase byte the caller points at, count the
+/** spawnEnemyCraftWhenBandUnderTwo — gate a spawning tick on the packed-decimal phase byte the caller points at, count the
  * busy heads across the enemy-craft band, and only when fewer than two are busy run the free-slot
  * search: the cleared run when the owed-kills cell is zero, else the owed run seated for as many
  * turns as the round asks. LIVE-OUT: whatever the chosen search leaves, or nothing when the gate is
@@ -15,7 +15,7 @@ const BUSY_CEILING = 0x02;
 const OPEN_PHASE = 0x30;
 const OWED_KILLS = 0xad02;
 
-export function loc_379f(m) {
+export function spawnEnemyCraftWhenBandUnderTwo(m) {
   const { regs, mem8 } = m;
 
   regs.a = mem8[regs.hl];

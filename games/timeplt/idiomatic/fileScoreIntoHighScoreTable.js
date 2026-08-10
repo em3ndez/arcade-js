@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4cc3 — try to file the active player's finished score into the five-entry high-score board.
+/** fileScoreIntoHighScoreTable — try to file the active player's finished score into the five-entry high-score board.
  * The standing records are read top (highest) first; the new score is compared against each until
  * the first one it is NOT below, which is where it belongs. The records beneath that slot slide
  * down one place, the new score is written into the freed slot with its three name cells set to a
@@ -27,7 +27,7 @@ const SLOT_PTR = 0xa991;
 const GLYPH_ROW_TABLE = 0xa531;
 const GLYPH_ROW_PTR = 0xa993;
 
-export function loc_4cc3(m) {
+export function fileScoreIntoHighScoreTable(m) {
   const { regs, mem } = m;
 
   regs.hl = STANDING_SCORE;

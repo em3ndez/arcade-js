@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0b93 — memory-equivalent to the frozen oracle at ROM 0x0B93.
+ * runCommandRingDrainLoop — memory-equivalent to the frozen oracle at ROM 0x0B93.
  *
  * WHAT IT IS. The foreground loop. It consumes the command ring forever: read cursor, occupancy
  * test, take two bytes, free both cells, step and wrap the cursor, index a sixteen-entry address
@@ -58,7 +58,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0b93 } from "../loc_0b93.js";
+import { runCommandRingDrainLoop } from "../runCommandRingDrainLoop.js";
 import { loc_0b93 as oracle } from "../../translated/loc_0b93.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { COMMAND_READ_CURSOR, COMMAND_RING } from "../names.js";
@@ -269,7 +269,7 @@ test("ESCAPE WORKS: both sides return after exactly one command", { skip }, () =
   const left = escaping(machine);
   const right = escaping(machine);
   oracle(left.m);
-  drive(loc_0b93, right.m);
+  drive(runCommandRingDrainLoop, right.m);
   console.log(
     `  ESCAPE: oracle handed over ${left.seen.length} time(s) to ${hex4(left.seen[0]?.handler ?? 0)}, ` +
       `rewrite ${right.seen.length} time(s)`,
@@ -284,7 +284,7 @@ test("EQUAL: identical outside the scratch window, on the real cursor", { skip }
   const left = escaping(machine);
   const right = escaping(machine);
   oracle(left.m);
-  drive(loc_0b93, right.m);
+  drive(runCommandRingDrainLoop, right.m);
   const all = allDiffs(left.m, right.m);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(`  EQUAL: ${all.length} differing bytes, ${strays.length} outside the window`);
@@ -305,7 +305,7 @@ test("THE HANDOVER: the arm chosen, and the registers it is handed", { skip }, (
     const left = escaping(machine);
     const right = escaping(machine);
     oracle(left.m);
-    drive(loc_0b93, right.m);
+    drive(runCommandRingDrainLoop, right.m);
     assert.equal(left.seen[0].handler, table[index], `arm ${index} is not the table's entry`);
     assert.deepEqual(right.seen, left.seen, `arm ${index}: the handover state differs`);
   }
@@ -319,7 +319,7 @@ test("EXCLUDED, deliberately: which registers differ after the handover", { skip
     const left = escaping(machine);
     const right = escaping(machine);
     oracle(left.m);
-    drive(loc_0b93, right.m);
+    drive(runCommandRingDrainLoop, right.m);
     for (const k of REG_FIELDS) if (left.m.regs[k] !== right.m.regs[k]) moved.add(k);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
@@ -329,7 +329,7 @@ test("EXCLUDED, deliberately: which registers differ after the handover", { skip
 
 test("EXHAUSTIVE: every occupied command byte, over several cursors", { skip }, () => {
   for (const [cursor, command, argument] of cross()) {
-    const d = unitDiff(loc_0b93, craft(cursor, command, argument));
+    const d = unitDiff(runCommandRingDrainLoop, craft(cursor, command, argument));
     assert.equal(d, null, `cursor ${cursor} command ${command} argument ${argument}: ${show(d)}`);
   }
   console.log(`  EXHAUSTIVE: ${cross().length} cursor x command x argument entries identical`);
@@ -342,7 +342,7 @@ test("COMMAND_RING WRAP: a cursor at the end of the ring folds back onto its hea
     const left = escaping(machine);
     oracle(left.m);
     wraps.push(`${cursor}->${left.m.mem8[COMMAND_READ_CURSOR]}`);
-    const d = unitDiff(loc_0b93, machine);
+    const d = unitDiff(runCommandRingDrainLoop, machine);
     assert.equal(d, null, `cursor ${cursor}: ${show(d)}`);
   }
   console.log(`  COMMAND_RING WRAP: ${wraps.join(", ")}`);

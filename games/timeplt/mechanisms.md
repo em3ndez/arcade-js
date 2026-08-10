@@ -606,7 +606,7 @@ governs is not fully settled: most are read by spawners, aim windows and fire co
 read by paths this pass did not tie to attacking. `[code]`
 
 ★ **The twelve cells are now mapped to their readers, in two parallel spawn-config families.** One
-routine writes the row; its readers split into `BANK_LAUNCH_*` (read by the loc_3ed6 bank-launch arm and
+routine writes the row; its readers split into `BANK_LAUNCH_*` (read by the launchBankEnemyWhenAimedNearPlayer bank-launch arm and
 the Mother-Ship stepper) and `ATTACKER_SPAWN_*` (read by the per-era attacker/craft-bank spawners), each
 family the same shape: a live per-vblank cooldown and its reload period, one or two near-band / aim-window
 half-widths, and a bank slot count. `[code]` for the per-cell roles (which reader consumes which byte);
@@ -2648,7 +2648,7 @@ methods, one answer. `[seen]`
   `0x2010` in B, C and D alike, and none at all in A — so this is one observation repeated, not four independent ones. It is the same
   shape as `0x1EFE` above, and the honest reading is "never fired on these tapes", not "cannot".
   ⇒ Consequence for the layer: `translated/loc_1f2e.js` already exists, is registered, and is a
-  live `m.call` target from `loc_2010`. Whatever eventually models this address must decode the
+  live `m.call` target from `advancePlayerAnimationStrip`. Whatever eventually models this address must decode the
   bytes and MUST NOT be a stub that throws, or it breaks the one inbound path the ROM has.
   (§10 lists `loc_1f2e.js` under the 0x1F76–0x200B tilemap field; that filing is wrong and this
   supersedes it.)

@@ -4,14 +4,14 @@
  * call rotates the debounce histories; crediting and pulsing fire only on an edge or a debt. LIVE-OUT: memory, plus the latched coin-counter lines. */
 
 import { loc_48e7 } from "./loc_48e7.js";
-import { loc_4941 } from "./loc_4941.js";
+import { tallyCoinSlot1AndAwardCredit } from "./tallyCoinSlot1AndAwardCredit.js";
 import { loc_4911 } from "./loc_4911.js";
 import { pulseSlot1CoinCounter } from "./pulseSlot1CoinCounter.js";
 import { loc_49d6 } from "./loc_49d6.js";
 
 export function serviceCoinInputs(m) {
   loc_48e7(m);
-  loc_4941(m);
+  tallyCoinSlot1AndAwardCredit(m);
   loc_4911(m);
   pulseSlot1CoinCounter(m);
   loc_49d6(m);

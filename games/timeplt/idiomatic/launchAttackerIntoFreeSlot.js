@@ -7,7 +7,7 @@
  * byte in C the launcher reads. */
 
 import { setTheLaunchFacingInsideOneAimWindow } from "./setTheLaunchFacingInsideOneAimWindow.js";
-import { loc_42b7 } from "./loc_42b7.js";
+import { commissionStagedAttackerByEra } from "./commissionStagedAttackerByEra.js";
 import { u8 } from "../../../core/int.js";
 import { ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF } from "./names.js";
 
@@ -59,5 +59,5 @@ export function launchAttackerIntoFreeSlot(m) {
 
   regs.c = mem8[regs.ix + 0x02];
   if (mem8[ERA] === 0) return setTheLaunchFacingInsideOneAimWindow(m);
-  return loc_42b7(m);
+  return commissionStagedAttackerByEra(m);
 }

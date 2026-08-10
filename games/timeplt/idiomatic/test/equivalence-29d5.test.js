@@ -22,7 +22,7 @@ import { stepDyingObjectState } from "../stepDyingObjectState.js";
 import { steerEnemyTowardShip } from "../steerEnemyTowardShip.js";
 import { retireSlotAndSubPixel } from "../retireSlotAndSubPixel.js";
 import { animateSelectedShapeCycle } from "../animateSelectedShapeCycle.js";
-import { loc_3ed6 } from "../loc_3ed6.js";
+import { launchBankEnemyWhenAimedNearPlayer } from "../launchBankEnemyWhenAimedNearPlayer.js";
 import { launchAttackerIntoFreeSlot } from "../launchAttackerIntoFreeSlot.js";
 import { ERA_INDEX } from "../names.js";
 
@@ -149,7 +149,7 @@ function brokenHeldAsDying(m) {
   steerEnemyTowardShip(m);
   if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
   animateSelectedShapeCycle(m);
-  loc_3ed6(m);
+  launchBankEnemyWhenAimedNearPlayer(m);
   launchAttackerIntoFreeSlot(m);
 }
 
@@ -161,7 +161,7 @@ function brokenDyingAsHeld(m) {
   steerEnemyTowardShip(m);
   if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
   animateSelectedShapeCycle(m);
-  loc_3ed6(m);
+  launchBankEnemyWhenAimedNearPlayer(m);
   launchAttackerIntoFreeSlot(m);
 }
 
@@ -183,7 +183,7 @@ function brokenNeverRetire(m) {
   if (s !== LIVE) return stepDyingObjectState(m);
   steerEnemyTowardShip(m);
   animateSelectedShapeCycle(m);
-  loc_3ed6(m);
+  launchBankEnemyWhenAimedNearPlayer(m);
   launchAttackerIntoFreeSlot(m);
 }
 
@@ -196,7 +196,7 @@ function brokenState1Free(m) {
   steerEnemyTowardShip(m);
   if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
   animateSelectedShapeCycle(m);
-  loc_3ed6(m);
+  launchBankEnemyWhenAimedNearPlayer(m);
   launchAttackerIntoFreeSlot(m);
 }
 

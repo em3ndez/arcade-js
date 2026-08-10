@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4c1f vs the frozen oracle at ROM 0x4C1F. Nothing the coin-start tape drives dispatches this
+ * paintLabelledNumericReadoutColumn vs the frozen oracle at ROM 0x4C1F. Nothing the coin-start tape drives dispatches this
  * readout painter, so the corpus is CRAFTED: a cross of destinations, pen colours and source
  * records, oracle against candidate on independent clones, masked over the oracle's own stack
  * scratch. Teeth attack the pictogram stride, the colour plane, the suffix and the cursor step.
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES } from "../../routines.js";
-import { loc_4c1f } from "../loc_4c1f.js";
+import { paintLabelledNumericReadoutColumn } from "../paintLabelledNumericReadoutColumn.js";
 import { loc_4c1f as oracle } from "../../translated/loc_4c1f.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
 import { fetchTableByte } from "../fetchTableByte.js";
@@ -156,7 +156,7 @@ test("EQUAL: crafted entries identical outside the measured scratch window", { s
   let seat = STACK_SEAT;
   for (const [dst, colour, bytes] of cross()) {
     const m = craft(dst, colour, bytes);
-    const d = unitDiff(loc_4c1f, m);
+    const d = unitDiff(paintLabelledNumericReadoutColumn, m);
     assert.equal(d, null, `dst ${hex4(dst)} colour ${colour} record ${bytes[0]}: ${show(d)}`);
     if (d === null) {
       const probe = m.clone();
@@ -177,7 +177,7 @@ test("SP DRIFT: exactly two bytes, the dropped return and nothing more", { skip 
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    loc_4c1f(b);
+    paintLabelledNumericReadoutColumn(b);
     drifts.add(a.regs.sp - b.regs.sp);
   }
   assert.deepEqual([...drifts], [2], `the stack drift moved: ${[...drifts].join(",")}`);
@@ -205,8 +205,8 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED, deliberately: nothing moves outside the ceiling, with a control that does", { skip }, () => {
-  const moved = movedOver(loc_4c1f);
-  const control = movedOver((m) => { loc_4c1f(m); m.regs.h = u8(m.regs.h + 1); });
+  const moved = movedOver(paintLabelledNumericReadoutColumn);
+  const control = movedOver((m) => { paintLabelledNumericReadoutColumn(m); m.regs.h = u8(m.regs.h + 1); });
   assert.ok(REG_FIELDS.some((k) => control.has(k) && !EXCLUDED.includes(k)),
     "the measurement reports nothing even for a twin that scribbles a register, so a clean read is worthless");
   assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k)), [],

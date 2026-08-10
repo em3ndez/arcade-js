@@ -8,7 +8,7 @@ import { steerEnemyTowardShip } from "./steerEnemyTowardShip.js";
 import { hasReachedRetireLine } from "./hasReachedRetireLine.js";
 import { retireSlotAndSubPixel } from "./retireSlotAndSubPixel.js";
 import { animateSelectedShapeCycle } from "./animateSelectedShapeCycle.js";
-import { loc_3ed6 } from "./loc_3ed6.js";
+import { launchBankEnemyWhenAimedNearPlayer } from "./launchBankEnemyWhenAimedNearPlayer.js";
 import { launchAttackerIntoFreeSlot } from "./launchAttackerIntoFreeSlot.js";
 
 const FREE = 0;
@@ -24,6 +24,6 @@ export function serviceEra4EnemyCraftSlot(m) {
   steerEnemyTowardShip(m);
   if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
   animateSelectedShapeCycle(m);
-  loc_3ed6(m);
+  launchBankEnemyWhenAimedNearPlayer(m);
   launchAttackerIntoFreeSlot(m);
 }

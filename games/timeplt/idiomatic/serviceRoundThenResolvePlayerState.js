@@ -18,7 +18,7 @@ import { stepFourActorSlots } from "./stepFourActorSlots.js";
 import { serviceEra0BallisticObjectBank } from "./serviceEra0BallisticObjectBank.js";
 import { dispatchCollisionPassByEra } from "./dispatchCollisionPassByEra.js";
 import { askForSoundWhileTheGroupIsClear } from "./askForSoundWhileTheGroupIsClear.js";
-import { loc_4dde } from "./loc_4dde.js";
+import { awardBonusLifeAtScoreMark } from "./awardBonusLifeAtScoreMark.js";
 import { expireHitChain } from "./expireHitChain.js";
 import { escalateDifficultyRungOnCounterWrap } from "./escalateDifficultyRungOnCounterWrap.js";
 import { drawKillMeter } from "./drawKillMeter.js";
@@ -55,7 +55,7 @@ export function serviceRoundThenResolvePlayerState(m) {
   dispatchCollisionPassByEra(m);
   askForSoundWhileTheGroupIsClear(m);
   spriteFixup();
-  loc_4dde(m);
+  awardBonusLifeAtScoreMark(m);
   expireHitChain(m);
   escalateDifficultyRungOnCounterWrap(m);
   drawKillMeter(m);

@@ -8,7 +8,7 @@ import { steerTowardAimHeading } from "./steerTowardAimHeading.js";
 import { flyAtSlowestSpeed } from "./flyAtSlowestSpeed.js";
 import { hasReachedRetireLine } from "./hasReachedRetireLine.js";
 import { retireSlotAndSubPixel } from "./retireSlotAndSubPixel.js";
-import { loc_3ed6 } from "./loc_3ed6.js";
+import { launchBankEnemyWhenAimedNearPlayer } from "./launchBankEnemyWhenAimedNearPlayer.js";
 import { dressSpriteForFineHeading } from "./dressSpriteForFineHeading.js";
 import { launchAttackerIntoFreeSlot } from "./launchAttackerIntoFreeSlot.js";
 import { releaseHeldObject } from "./releaseHeldObject.js";
@@ -28,7 +28,7 @@ export function serviceEra2EnemyCraftSlot(m) {
     if ((mem8[FRAME_TICK] & STEER_MASK) < STEER_MASK) steerTowardAimHeading(m);
     flyAtSlowestSpeed(m);
     if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
-    loc_3ed6(m);
+    launchBankEnemyWhenAimedNearPlayer(m);
     dressSpriteForFineHeading(m);
     launchAttackerIntoFreeSlot(m);
     return;

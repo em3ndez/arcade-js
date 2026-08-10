@@ -29,7 +29,7 @@ import { stepFourActorSlots } from "../stepFourActorSlots.js";
 import { serviceEra0BallisticObjectBank } from "../serviceEra0BallisticObjectBank.js";
 import { dispatchCollisionPassByEra } from "../dispatchCollisionPassByEra.js";
 import { askForSoundWhileTheGroupIsClear } from "../askForSoundWhileTheGroupIsClear.js";
-import { loc_4dde } from "../loc_4dde.js";
+import { awardBonusLifeAtScoreMark } from "../awardBonusLifeAtScoreMark.js";
 import { expireHitChain } from "../expireHitChain.js";
 import { escalateDifficultyRungOnCounterWrap } from "../escalateDifficultyRungOnCounterWrap.js";
 import { drawKillMeter } from "../drawKillMeter.js";
@@ -125,7 +125,7 @@ function services(m, skipIdx = -1) {
     driveEnemyWaveForLifePhase, fix, runParachutistSlot, (mm) => { mm.push16(0); mm.call(0x43b7); },
     stepSevenCraftSlots, fix, runSceneryForEra, sweepEra2PlusObjectBank, fix, serviceEra1BomberObject,
     loc_3dda, stepFourActorSlots, fix, serviceEra0BallisticObjectBank, dispatchCollisionPassByEra,
-    askForSoundWhileTheGroupIsClear, fix, loc_4dde, expireHitChain, escalateDifficultyRungOnCounterWrap,
+    askForSoundWhileTheGroupIsClear, fix, awardBonusLifeAtScoreMark, expireHitChain, escalateDifficultyRungOnCounterWrap,
     drawKillMeter, multiplexSpriteSlots,
   ];
   for (let i = 0; i < list.length; i++) if (i !== skipIdx) list[i](m);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4941 — memory-equivalent to the frozen oracle at ROM 0x4941. A pure leaf: its three ROM
+/** tallyCoinSlot1AndAwardCredit — memory-equivalent to the frozen oracle at ROM 0x4941. A pure leaf: its three ROM
  * calls are dissolved to direct imports, so the rewrite models no stack and omits its own ret.
  * Both tapes' real dispatches replay identically outside the masked stack scratch; four crafted
  * states drive the coinage branches the tapes never reach; register drift is held to a measured
@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4941 as candidate } from "../loc_4941.js";
+import { tallyCoinSlot1AndAwardCredit as candidate } from "../tallyCoinSlot1AndAwardCredit.js";
 import { loc_4941 as oracle } from "../../translated/loc_4941.js";
 import { loc_57f1 } from "../loc_57f1.js";
 import { loc_4afb } from "../loc_4afb.js";

@@ -2,7 +2,7 @@
 /**
  * loc_2251 — memory-equivalent to the frozen oracle at ROM 0x2251.
  * GATE: crafted-entry. No tape dispatches this tamper-trap table-as-code, so real machine states
- * captured at loc_2010 (which owns this table region) are replayed through both sides. On a real
+ * captured at advancePlayerAnimationStrip (which owns this table region) are replayed through both sides. On a real
  * state the churn faults trying to write to ROM; oracle and rewrite must fault at the SAME target
  * address with identical register/memory state. Faults are keyed by name+addr, NOT the message: the
  * message carries a pc the step-free rewrite does not track. Teeth below, with a register control.

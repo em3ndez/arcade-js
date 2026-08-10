@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { dispatchCollisionPassByEra as candidate } from "../dispatchCollisionPassByEra.js";
 import { loc_4e4f as oracle } from "../../translated/loc_4e4f.js";
-import { loc_4f2a } from "../loc_4f2a.js";
+import { dispatchEra4CollisionByFrameParity } from "../dispatchEra4CollisionByFrameParity.js";
 import { loc_4f35 } from "../loc_4f35.js";
 import { splitCollisionWorkByFrameParity } from "../splitCollisionWorkByFrameParity.js";
 import { runAllCollisionSweepsThisFrame } from "../runAllCollisionSweepsThisFrame.js";
@@ -126,17 +126,17 @@ const dispatchByParity = (m) =>
 
 const twinSwapParity = (m) => {
   const era = m.mem8[ERA_INDEX];
-  if (era === 4) return loc_4f2a(m);
+  if (era === 4) return dispatchEra4CollisionByFrameParity(m);
   if (era === 1) return splitCollisionWorkByFrameParity(m);
   return (m.mem8[FRAME_TICK] & 1) ? runAllCollisionSweepsThisFrame(m) : loc_4f35(m);
 };
-const twinDropEra1 = (m) => (m.mem8[ERA_INDEX] === 4 ? loc_4f2a(m) : dispatchByParity(m));
+const twinDropEra1 = (m) => (m.mem8[ERA_INDEX] === 4 ? dispatchEra4CollisionByFrameParity(m) : dispatchByParity(m));
 const twinDropEra4 = (m) =>
   (m.mem8[ERA_INDEX] === 1 ? splitCollisionWorkByFrameParity(m) : dispatchByParity(m));
 
 const TWINS = [
   ["no-op", () => {}, ["era0-even", "era0-odd", "era1", "era4"]],
-  ["always-4f2a", (m) => loc_4f2a(m), ["era0-odd", "era1"]],
+  ["always-4f2a", (m) => dispatchEra4CollisionByFrameParity(m), ["era0-odd", "era1"]],
   ["always-runAll", (m) => runAllCollisionSweepsThisFrame(m), ["era0-odd", "era1", "era4"]],
   ["swap-parity", twinSwapParity, ["era0-even", "era0-odd"]],
   ["drop-era1", twinDropEra1, ["era1"]],

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4cc3 — high-score insertion, reached only at game over so neither tape dispatches it. Entries
+ * fileScoreIntoHighScoreTable — high-score insertion, reached only at game over so neither tape dispatches it. Entries
  * are CRAFTED: a real machine's RAM with a seated descending board and a candidate score. Oracle vs
  * rewrite on independent clones, RAM diffed outside the masked stack scratch, carry (the live-out)
  * pinned, registers held to a measured {sp,f,c} ceiling. Run: node --test this file.
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_4cc3 as candidate } from "../loc_4cc3.js";
+import { fileScoreIntoHighScoreTable as candidate } from "../fileScoreIntoHighScoreTable.js";
 import { loc_4cc3 as oracle } from "../../translated/loc_4cc3.js";
 import { REG_FIELDS, F_C } from "../../../../core/cpu/z80.js";
 

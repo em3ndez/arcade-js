@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4447 — dress one object's sprite entry so it shows the way it is heading, unless the object
+/** dressSpriteForHeadingOrRetireAtEdge — dress one object's sprite entry so it shows the way it is heading, unless the object
  * has just reached the field edge, in which case it is retired instead. When the era cell holds one
  * fixed value the object is given a plain two-frame flutter and its wind-down counter is stepped,
  * capped, or closed out once it overruns; on any other era a heading-quadrant picks a shape pair and
@@ -36,7 +36,7 @@ const CLOSED_OUT = 0x80;
 const HEADING_BIAS = 0x40;
 const HALF = 0x80;
 
-export function loc_4447(m) {
+export function dressSpriteForHeadingOrRetireAtEdge(m) {
   const { regs, mem8 } = m;
   const record = regs.ix;
   const entry = regs.iy;

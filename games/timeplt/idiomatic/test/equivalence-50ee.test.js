@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_50ee — memory-equivalent to the frozen oracle at ROM 0x50EE.
+ * destroyPlayerAndMotherShipOnContact — memory-equivalent to the frozen oracle at ROM 0x50EE.
  *
  * WHAT IT IS. A four-test guard and, when all four hold, four effects: two state bytes take a
  * destroyed code, a third cell beside them is cleared, and the chained hit score is posted. The
@@ -63,7 +63,7 @@ import assert from "node:assert/strict";
 import { makeMachine, romsPresent } from "./_harness.js";
 import { ROUTINES as ORACLE_ROUTINES } from "../../routines.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_50ee } from "../loc_50ee.js";
+import { destroyPlayerAndMotherShipOnContact } from "../destroyPlayerAndMotherShipOnContact.js";
 import { postChainedHitScore } from "../postChainedHitScore.js";
 import { loc_50ee as oracle } from "../../translated/loc_50ee.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -213,7 +213,7 @@ function nudgedSession(candidate, opts) {
 
 let cache = null;
 const sessions = () =>
-  (cache ??= TAPES.map(([label, opts]) => ({ label, ...nudgedSession(loc_50ee, opts) })));
+  (cache ??= TAPES.map(([label, opts]) => ({ label, ...nudgedSession(destroyPlayerAndMotherShipOnContact, opts) })));
 
 function entryState() {
   const s = sessions()[RICHEST];
@@ -406,7 +406,7 @@ test("EQUAL at a nudged dispatch, outside the dead stack window", { skip }, () =
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_50ee(b);
+  destroyPlayerAndMotherShipOnContact(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
@@ -431,7 +431,7 @@ test("NOT VACUOUS: a no-op FAILS on a crafted entry, and passes on every real on
 });
 
 test("EXCLUDED, deliberately: bounded over the whole crafted space", { skip }, () => {
-  const moved = movedRegisters(loc_50ee);
+  const moved = movedRegisters(destroyPlayerAndMotherShipOnContact);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc; live-out is memory only`);
@@ -445,7 +445,7 @@ test("THE MASK IS LOAD-BEARING, MEASURED: it is exactly six bytes and it is used
     const a = machine.clone();
     const b = machine.clone();
     oracle(a);
-    loc_50ee(b);
+    destroyPlayerAndMotherShipOnContact(b);
     const diffs = allDiffs(a, b);
     if (diffs.length === 0) return;
     unmasked++;
@@ -474,13 +474,13 @@ test("EXHAUSTIVE: four state pairs x each axis over 256 coordinates from two bas
   });
   assert.equal(destroys, CRAFTED_DESTROYS, "the crafted sweep's destroy count moved, so it no " +
     "longer covers what this entry does when the guard holds");
-  assert.equal(sweepCaught(loc_50ee), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(destroyPlayerAndMotherShipOnContact), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} comparisons identical, ${destroys} of them destroying`);
 });
 
 for (const [label, opts] of TAPES) {
   test(`WHOLE-MACHINE: the ${label} session differs only in the dead stack bytes`, { skip }, () => {
-    const r = wholeRunCells(loc_50ee, label, opts);
+    const r = wholeRunCells(destroyPlayerAndMotherShipOnContact, label, opts);
     assert.equal(r.threw, null, `the run threw: ${r.threw}`);
     assert.equal(r.stopped, null, `a run stopped early (${r.stopped})`);
     assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);
@@ -494,7 +494,7 @@ for (const [label, opts] of TAPES) {
 }
 
 test("TEETH/seam: without the omitted-return seam the session dies", { skip }, () => {
-  const r = wholeRunCells(loc_50ee, "attract", TAPES[RICHEST][1], (fn) => fn);
+  const r = wholeRunCells(destroyPlayerAndMotherShipOnContact, "attract", TAPES[RICHEST][1], (fn) => fn);
   assert.ok(
     r.threw !== null || r.stopped !== null,
     "the run COMPLETED with the seam removed, so the caller of this address no longer expects a " +

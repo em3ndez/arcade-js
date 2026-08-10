@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3e8e — run down one slot's counter for a frame, and take the slot out of play as soon as
+/** runSlotCountdownDriftAndAnimateElseRetire — run down one slot's counter for a frame, and take the slot out of play as soon as
  * it has nothing left to run. Two things end it outright: the era cell not standing at the last
  * era, and the counter already sitting one above the floor. Otherwise the counter drops by one;
  * a counter that came in at or above a high mark is clamped by the step this hands to, and the
@@ -26,7 +26,7 @@ const SHAPE_IN_ENTRY = 1;
 const BESIDE_IT_IN_ENTRY = 48;
 const BESIDE_IT = 3;
 
-export function loc_3e8e(m) {
+export function runSlotCountdownDriftAndAnimateElseRetire(m) {
   const { mem8, regs } = m;
 
   if (mem8[ERA_INDEX] !== LAST_ERA) {

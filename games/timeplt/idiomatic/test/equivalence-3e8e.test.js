@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3e8e — memory-equivalent to the frozen oracle at ROM 0x3E8E.
+ * runSlotCountdownDriftAndAnimateElseRetire — memory-equivalent to the frozen oracle at ROM 0x3E8E.
  *
  * ★ NO TAPE REACHES IT, AND THAT IS ASSERTED, NOT ASSUMED. Three sessions — the shared coin-then-
  *   start tape, an undriven attract run, and a long driven one that fires and steers — dispatch
@@ -46,7 +46,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3e8e } from "../loc_3e8e.js";
+import { runSlotCountdownDriftAndAnimateElseRetire } from "../runSlotCountdownDriftAndAnimateElseRetire.js";
 import { loc_3e8e as oracle } from "../../translated/loc_3e8e.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { driftWithWorldScroll } from "../driftWithWorldScroll.js";
@@ -208,7 +208,7 @@ function movedRegisters() {
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    loc_3e8e(b);
+    runSlotCountdownDriftAndAnimateElseRetire(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
   });
   return moved;
@@ -252,7 +252,7 @@ test("NO TAPE REACHES IT: three sessions dispatch it zero times", { skip }, () =
 
 test("CROSS: six eras against all 256 counter values", { skip }, () => {
   eachCrossEntry((era, counter) => {
-    const d = compare(loc_3e8e, craft(era, counter));
+    const d = compare(runSlotCountdownDriftAndAnimateElseRetire, craft(era, counter));
     assert.equal(d, null, `era=${era} counter=${counter}: ${show(d)}`);
   });
   console.log(`  CROSS: ${CROSS_SIZE} era x counter combinations identical`);
@@ -267,7 +267,7 @@ test("NOTHING ESCAPES UPWARD: no divergence at or above the entry stack pointer"
     const a = machine.clone();
     const b = machine.clone();
     oracle(a);
-    loc_3e8e(b);
+    runSlotCountdownDriftAndAnimateElseRetire(b);
     for (const d of allDiffs(a, b)) {
       deepest = Math.max(deepest, sp - d.addr);
       if (d.addr >= sp) above++;

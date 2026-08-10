@@ -3,7 +3,7 @@
  * paintFiveLabelledNumericReadouts — memory-equivalent to the frozen oracle at ROM 0x4bdc.
  * GATE: the one attract dispatch plus crafted record contents; a MASKED diff excluding the stack
  * scratch the frozen side leaves below its seat, the two-byte SP drift asserted, F and SP the
- * register ceiling. The routine paints five readouts through loc_4c1f; the crafts vary the source
+ * register ceiling. The routine paints five readouts through paintLabelledNumericReadoutColumn; the crafts vary the source
  * records it reads. Run: node --test games/timeplt/idiomatic/test/equivalence-4bdc.test.js
  */
 
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { makeMachine, romsPresent } from "./_harness.js";
 import { paintFiveLabelledNumericReadouts } from "../paintFiveLabelledNumericReadouts.js";
 import { loc_4bdc as oracle } from "../../translated/loc_4bdc.js";
-import { loc_4c1f } from "../loc_4c1f.js";
+import { paintLabelledNumericReadoutColumn } from "../paintLabelledNumericReadoutColumn.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -108,7 +108,7 @@ function paint(m, rows) {
     m.regs.hl = source;
     m.regs.de = cursor;
     m.regs.c = pen;
-    loc_4c1f(m);
+    paintLabelledNumericReadoutColumn(m);
   }
 }
 

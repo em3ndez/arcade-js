@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4a0f — memory-equivalent to the frozen oracle at ROM 0x4A0F. A pure leaf: fillCellRun,
+ * paintSelfTestScreenPhaseThenStepSequence — memory-equivalent to the frozen oracle at ROM 0x4A0F. A pure leaf: fillCellRun,
  * setSavedPenFromEra and advanceSequenceSubStep are dissolved into direct imports, so the rewrite
  * pushes no return address and omits the tail ret. No tape reaches this address, so the gate is a
  * crafted sweep of the base colour and the saved-pen player selector; RAM is compared with the dead
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4a0f as candidate } from "../loc_4a0f.js";
+import { paintSelfTestScreenPhaseThenStepSequence as candidate } from "../paintSelfTestScreenPhaseThenStepSequence.js";
 import { loc_4a0f as oracle } from "../../translated/loc_4a0f.js";
 import { u8 } from "../../../../core/int.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";

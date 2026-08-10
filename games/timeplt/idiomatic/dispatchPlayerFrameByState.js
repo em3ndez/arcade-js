@@ -4,7 +4,7 @@
  * mid-count, and once it is fully wound either fly the demo pilot (no live play), turn the ship
  * toward the read stick, or just scroll the world when the stick is centred. LIVE-OUT: memory. */
 
-import { loc_2010 } from "./loc_2010.js";
+import { advancePlayerAnimationStrip } from "./advancePlayerAnimationStrip.js";
 import { flyDemoShipByScript } from "./flyDemoShipByScript.js";
 import { readPlayerControls } from "./readPlayerControls.js";
 import { turnShipTowardTargetHeading } from "./turnShipTowardTargetHeading.js";
@@ -21,7 +21,7 @@ export function dispatchPlayerFrameByState(m) {
 
   const state = mem8[PLAYER_STATE];
   if (state === 0) return;
-  if (state !== WOUND) return loc_2010(m);
+  if (state !== WOUND) return advancePlayerAnimationStrip(m);
 
   if (mem8[PLAY_ACTIVE] === 0) return flyDemoShipByScript(m);
 

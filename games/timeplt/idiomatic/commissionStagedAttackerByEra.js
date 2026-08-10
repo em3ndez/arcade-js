@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_42b7 — commission the object the slot-finder staged, whose record and paired-entry pointers
+/** commissionStagedAttackerByEra — commission the object the slot-finder staged, whose record and paired-entry pointers
  * wait in two fixed cells. Copies the spawner's two coordinate pairs and the caller's facing byte
  * across into the new slot, then fits it out one of four ways chosen by the current era: era zero
  * an unaimed drift with a mirror flag and a slow-fall marker; eras one and two a heading toward a
@@ -23,7 +23,7 @@ const NEW_ENTRY = 0xa993;
 const ERA = 0xad04;
 const OFFSET_STEP = 0x1a;
 
-export function loc_42b7(m, spawnerRecord = m.regs.ix, spawnerEntry = m.regs.iy) {
+export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spawnerEntry = m.regs.iy) {
   const { regs, mem8 } = m;
 
   const d = mem8[spawnerEntry + 0x31];

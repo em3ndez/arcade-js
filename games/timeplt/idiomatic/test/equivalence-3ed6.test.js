@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3ed6 vs its frozen oracle. A leaf whose every ROM call is dissolved into a direct import, so
+ * launchBankEnemyWhenAimedNearPlayer vs its frozen oracle. A leaf whose every ROM call is dissolved into a direct import, so
  * the rewrite pushes no return address and omits its own ret. Entries are captured at the real
  * dispatch over both tapes; each is replayed on both sides and the whole RAM compared with the dead
  * stack scratch masked out, the +2 SP re-seat asserted, and the scratch registers the translated
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3ed6 as candidate } from "../loc_3ed6.js";
+import { launchBankEnemyWhenAimedNearPlayer as candidate } from "../launchBankEnemyWhenAimedNearPlayer.js";
 import { loc_3ed6 as oracle } from "../../translated/loc_3ed6.js";
 import { headingToward } from "../headingToward.js";
 import { requestEraKeyedLaunchSound } from "../requestEraKeyedLaunchSound.js";
@@ -100,7 +100,7 @@ function footprint(machine) {
 
 // ── broken twins ────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every knob matches loc_3ed6 by default. */
+/** The rewrite with one deliberate defect each; every knob matches launchBankEnemyWhenAimedNearPlayer by default. */
 function twin(o = {}) {
   const { noop = false, store = true, c1 = 0x4d, selectFlip = false, dec = true } = o;
   return function (m) {

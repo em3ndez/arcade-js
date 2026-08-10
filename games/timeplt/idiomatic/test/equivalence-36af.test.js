@@ -21,7 +21,7 @@ import { stepShapeAnimation } from "../stepShapeAnimation.js";
 import { spawnEnemyWaveIntoFreeSlots } from "../spawnEnemyWaveIntoFreeSlots.js";
 import { stopFiveSlotAnimations } from "../stopFiveSlotAnimations.js";
 import { gateTheFreeSlotSearchAndPickItsRun } from "../gateTheFreeSlotSearchAndPickItsRun.js";
-import { loc_379f } from "../loc_379f.js";
+import { spawnEnemyCraftWhenBandUnderTwo } from "../spawnEnemyCraftWhenBandUnderTwo.js";
 import { loc_5817 } from "../loc_5817.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -167,7 +167,7 @@ function twin(opts) {
     const phase = mem8[LIFE_PHASE] & 0x0f;
     if (phase === 7) return stopFiveSlotAnimations(m);
     if (phase < 7) return gateTheFreeSlotSearchAndPickItsRun(m);
-    if (phase < 9) return loc_379f(m);
+    if (phase < 9) return spawnEnemyCraftWhenBandUnderTwo(m);
     if (mem8[LIFE_TICKS_LOW] !== 0) return;
 
     const parityBit = drawRandomByte(m) & 1;

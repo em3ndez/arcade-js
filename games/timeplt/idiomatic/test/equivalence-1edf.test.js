@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { dispatchPlayerFrameByState as candidate } from "../dispatchPlayerFrameByState.js";
 import { loc_1edf as oracle } from "../../translated/loc_1edf.js";
-import { loc_2010 } from "../loc_2010.js";
+import { advancePlayerAnimationStrip } from "../advancePlayerAnimationStrip.js";
 import { flyDemoShipByScript } from "../flyDemoShipByScript.js";
 import { readPlayerControls } from "../readPlayerControls.js";
 import { turnShipTowardTargetHeading } from "../turnShipTowardTargetHeading.js";
@@ -123,7 +123,7 @@ function noOp() {}
 function dropGuard(m) {
   const { regs, mem8 } = m;
   seatBoth(m);
-  if (mem8[PLAYER_STATE] !== 0xff) return loc_2010(m);
+  if (mem8[PLAYER_STATE] !== 0xff) return advancePlayerAnimationStrip(m);
   if (mem8[PLAY_ACTIVE] === 0) return flyDemoShipByScript(m);
   regs.a = readPlayerControls(m) & 0x0f;
   return regs.a !== 0 ? turnShipTowardTargetHeading(m) : scrollWorldAtTheEraPace(m);
@@ -131,14 +131,14 @@ function dropGuard(m) {
 function alwaysAnimate(m) {
   seatBoth(m);
   if (m.mem8[PLAYER_STATE] === 0) return;
-  return loc_2010(m);
+  return advancePlayerAnimationStrip(m);
 }
 function swapTurnScroll(m) {
   const { regs, mem8 } = m;
   seatBoth(m);
   const state = mem8[PLAYER_STATE];
   if (state === 0) return;
-  if (state !== 0xff) return loc_2010(m);
+  if (state !== 0xff) return advancePlayerAnimationStrip(m);
   if (mem8[PLAY_ACTIVE] === 0) return flyDemoShipByScript(m);
   regs.a = readPlayerControls(m) & 0x0f;
   return regs.a !== 0 ? scrollWorldAtTheEraPace(m) : turnShipTowardTargetHeading(m);
@@ -149,7 +149,7 @@ function wrongSeat(m) {
   regs.iy = SEAT + 2;
   const state = mem8[PLAYER_STATE];
   if (state === 0) return;
-  if (state !== 0xff) return loc_2010(m);
+  if (state !== 0xff) return advancePlayerAnimationStrip(m);
   if (mem8[PLAY_ACTIVE] === 0) return flyDemoShipByScript(m);
   regs.a = readPlayerControls(m) & 0x0f;
   return regs.a !== 0 ? turnShipTowardTargetHeading(m) : scrollWorldAtTheEraPace(m);

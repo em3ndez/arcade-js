@@ -14,7 +14,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { serviceCoinInputs as candidate } from "../serviceCoinInputs.js";
 import { loc_48be as oracle } from "../../translated/loc_48be.js";
 import { loc_48e7 } from "../loc_48e7.js";
-import { loc_4941 } from "../loc_4941.js";
+import { tallyCoinSlot1AndAwardCredit } from "../tallyCoinSlot1AndAwardCredit.js";
 import { loc_4911 } from "../loc_4911.js";
 import { pulseSlot1CoinCounter } from "../pulseSlot1CoinCounter.js";
 import { loc_49d6 } from "../loc_49d6.js";
@@ -133,7 +133,7 @@ function edges() {
 function twin(drop) {
   return function body(m) {
     if (drop !== "flat") loc_48e7(m);
-    if (drop !== "coin1") loc_4941(m);
+    if (drop !== "coin1") tallyCoinSlot1AndAwardCredit(m);
     if (drop !== "drip") loc_4911(m);
     if (drop !== "pulse1") pulseSlot1CoinCounter(m);
     if (drop !== "pulse2") loc_49d6(m);

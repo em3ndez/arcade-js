@@ -8,7 +8,7 @@ import { flyAlongStoredVelocity } from "./flyAlongStoredVelocity.js";
 import { loc_3cc4 } from "./loc_3cc4.js";
 import { retireObjectAndHold } from "./retireObjectAndHold.js";
 import { mirrorTwoTileObjectByHeading } from "./mirrorTwoTileObjectByHeading.js";
-import { loc_3d25 } from "./loc_3d25.js";
+import { spawnAimedEnemyIntoEraBankWhenInWindow } from "./spawnAimedEnemyIntoEraBankWhenInWindow.js";
 
 const TILE_Y = 0x31;
 const SECOND_TILE_Y = 0x33;
@@ -26,5 +26,5 @@ export function advanceTwoTileObjectThenTryAimedSpawn(m) {
 
   if (loc_3cc4(m)) return retireObjectAndHold(m);
   mirrorTwoTileObjectByHeading(m);
-  return loc_3d25(m);
+  return spawnAimedEnemyIntoEraBankWhenInWindow(m);
 }

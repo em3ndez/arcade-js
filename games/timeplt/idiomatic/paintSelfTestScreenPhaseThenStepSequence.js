@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4a0f — lay out one phase of the sequenced intro/self-test screen, then step the sub-sequence.
+/** paintSelfTestScreenPhaseThenStepSequence — lay out one phase of the sequenced intro/self-test screen, then step the sub-sequence.
  * It stocks an eight-byte control block (a shape byte, four fixed fields, a count and a parked
  * pointer), writes a fixed run of attribute bytes, colours three cell rows and a small block of
  * the colour plane by adding a base colour read from work RAM to fixed offsets, seeds the active
@@ -20,7 +20,7 @@ const ROW_STEP = -32;
 
 const toColour = (cell) => cell & 0xfbff; // clear bit 10: attribute plane -> colour plane
 
-export function loc_4a0f(m) {
+export function paintSelfTestScreenPhaseThenStepSequence(m) {
   const { regs, mem8 } = m;
 
   mem8[CONTROL_BLOCK + 0x0] = mem8[SHAPE_BYTE];

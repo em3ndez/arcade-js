@@ -1,14 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_50ee — destroy two roaming things at once when one has reached the other.
- *
- * Both must be live — each has its own state byte at a fixed cell — and their two coordinates must
- * fall inside a box centred on the second one. The first thing's coordinates are kept as a sprite
- * entry, the two halves far apart in the same block; the second's are two fixed cells. The box is
- * taller than it is wide and is centred off-square on the taller axis. When it holds, both state
- * bytes take the destroyed code, a third cell beside them is cleared, and the chained hit score is
- * posted, which this entry reaches by transferring rather than calling so that routine's own
- * return carries it. Any one of the four tests failing leaves everything untouched.
- * LIVE-OUT: memory. */
+/** destroyPlayerAndMotherShipOnContact — destroy two roaming things at once when one has reached the other.
+ * Both must be live (each has a state byte at a fixed cell) and their coordinates must fall inside a box centred on
+ * the second, taller than wide and centred off-square on the taller axis. When it holds, both state bytes take the
+ * destroyed code, a third cell beside them is cleared, and the chained hit score is posted -- reached by transfer,
+ * not call, so that routine's return carries it. Any of the four tests failing leaves all untouched. LIVE-OUT: memory. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
@@ -32,7 +27,7 @@ const SECOND_AXIS_SPAN = 35;
 /** Two coordinates are close enough when their wrapped difference lands inside the box. */
 const within = (a, b, reach, span) => u8(u8(a - b) + reach) < span;
 
-export function loc_50ee(m) {
+export function destroyPlayerAndMotherShipOnContact(m) {
   const { mem8 } = m;
   if (mem8[PLAYER_STATE] !== LIVE) return;
   if (mem8[MOTHER_SHIP_STATE] !== LIVE) return;

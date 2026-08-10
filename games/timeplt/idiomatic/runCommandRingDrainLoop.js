@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0b93 — the foreground loop: take commands off the 64-cell ring, one at a time, for ever.
+/** runCommandRingDrainLoop — the foreground loop: take commands off the 64-cell ring, one at a time, for ever.
  *  A read cursor names a cell; high bit set means empty, so the loop looks again — it has no exit
  *  of its own. An occupied cell gives up a command and an argument byte, BOTH freed before the
  *  command runs so it may reuse the pair. The low nibble indexes sixteen handlers, and where one
@@ -21,7 +21,7 @@ const HANDLERS = 0x0bbc;
 const HANDLER_BITS = 0x0f;
 const COME_BACK_TO = 0x0b90;
 
-export function* loc_0b93(m) {
+export function* runCommandRingDrainLoop(m) {
   const { regs, mem8 } = m;
   for (;;) {
     const commandCell = u16(COMMAND_RING + mem8[COMMAND_READ_CURSOR]);

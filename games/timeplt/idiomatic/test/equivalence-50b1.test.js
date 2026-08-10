@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * ramTestPlayerVsMotherShip — memory-equivalent to the frozen oracle at ROM 0x50B1. It picks a collision box by the
- * era: two eras transfer to the wider check (loc_50ee), the rest run a narrower one inline. Both
+ * era: two eras transfer to the wider check (destroyPlayerAndMotherShipOnContact), the rest run a narrower one inline. Both
  * dissolved transfers land in already-decompiled modules, so the oracle's tail ret is gone and RAM
  * is compared with the dead stack scratch below the seated SP masked out, the +2 SP re-seat and the
  * return value checked, and registers bounded rather than compared. The tapes reach this entry
- * (unlike loc_50ee) but only ever on the inline path with the destroy conditions unmet, so the
+ * (unlike destroyPlayerAndMotherShipOnContact) but only ever on the inline path with the destroy conditions unmet, so the
  * destroy and transfer paths are exercised by a crafted sweep. Run:
  *   node --test games/timeplt/idiomatic/test/equivalence-50b1.test.js
  */
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { makeMachine, romsPresent } from "./_harness.js";
 import { ramTestPlayerVsMotherShip as candidate } from "../ramTestPlayerVsMotherShip.js";
 import { loc_50b1 as oracle } from "../../translated/loc_50b1.js";
-import { loc_50ee } from "../loc_50ee.js";
+import { destroyPlayerAndMotherShipOnContact } from "../destroyPlayerAndMotherShipOnContact.js";
 import { postChainedHitScore } from "../postChainedHitScore.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { ERA_INDEX, PLAYER_STATE, MOTHER_SHIP_STATE } from "../names.js";
@@ -166,7 +166,7 @@ function variant({ eras = WIDE_ERAS, r1 = FIRST_AXIS_REACH, s1 = FIRST_AXIS_SPAN
   skipFirst = false, skipSecond = false, keepThird = false, noScore = false } = {}) {
   return (m) => {
     const { mem8 } = m;
-    if (eras.includes(mem8[ERA_INDEX])) return loc_50ee(m);
+    if (eras.includes(mem8[ERA_INDEX])) return destroyPlayerAndMotherShipOnContact(m);
     if (!skipFirst && mem8[PLAYER_STATE] !== LIVE) return;
     if (!skipSecond && mem8[MOTHER_SHIP_STATE] !== LIVE) return;
     if (!within(mem8[SECOND_FIRST_AXIS], mem8[ENTRY], r1, s1)) return;
@@ -180,7 +180,7 @@ function variant({ eras = WIDE_ERAS, r1 = FIRST_AXIS_REACH, s1 = FIRST_AXIS_SPAN
 }
 
 // label, twin, crafted catches. only-era-zero and wide-inline are the ramTestPlayerVsMotherShip-specific teeth: one
-// runs era 4 down the narrow inline path, the other widens the inline window to loc_50ee's.
+// runs era 4 down the narrow inline path, the other widens the inline window to destroyPlayerAndMotherShipOnContact's.
 const TWINS = [
   ["no-op", () => {}, 304],
   ["only-era-zero", variant({ eras: [0] }), 8],

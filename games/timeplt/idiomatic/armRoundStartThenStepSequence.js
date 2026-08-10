@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_27b1 — a round-start sequence arm. Seats a pair of player-object records to their
+/** armRoundStartThenStepSequence — a round-start sequence arm. Seats a pair of player-object records to their
  * defaults, requests a sound and loads the difficulty record in force, then splits on
  * PLAY_ACTIVE: mid-game it queues a command and folds a program-image checksum into the
  * sound latch; on a fresh round it cycles the stage counter, reseeds the random register,
@@ -24,7 +24,7 @@ const SEQUENCE_MODE = 0xa9eb;
 const ZERO_CELLS = [0xad14, 0xad24, 0xad32, 0xad13, 0xad23, 0xad1d, 0xad2d, 0xad0c];
 const ONE_CELLS = [0xad11, 0xad21, 0xad1e, 0xad2e];
 
-export function loc_27b1(m) {
+export function armRoundStartThenStepSequence(m) {
   const { mem8, mem16, regs } = m;
 
   loc_5834(m);

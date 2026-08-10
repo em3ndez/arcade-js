@@ -2,7 +2,7 @@
 /**
  * loc_1f99 — memory-equivalent to the frozen oracle at ROM 0x1F99.
  * GATE: crafted-entry. No input tape dispatches this table-as-code address, so real machine states
- * captured at loc_2010 (the routine that owns this table region) are replayed through both sides:
+ * captured at advancePlayerAnimationStrip (the routine that owns this table region) are replayed through both sides:
  * identical memory, registers and return when the churn comes back, identical fault when it
  * transfers off the map. Teeth below, with a register control proving the memory reach is real.
  */

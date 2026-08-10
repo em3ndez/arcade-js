@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { reaimAndAnimateEnemyCraftOnPhaseTick as candidate } from "../reaimAndAnimateEnemyCraftOnPhaseTick.js";
 import { loc_31b4 as oracle } from "../../translated/loc_31b4.js";
-import { loc_326c } from "../loc_326c.js";
+import { layOutEnemyAimPointsFromScrollAngle } from "../layOutEnemyAimPointsFromScrollAngle.js";
 import { stepShapeAnimation } from "../stepShapeAnimation.js";
 import { headingToward } from "../headingToward.js";
 import { offsetAddress } from "../offsetAddress.js";
@@ -138,7 +138,7 @@ function twin({ noop = false, slotCount = 7, halfTurn = true, call326c = true, h
     const phase = mem8[PHASE];
     regs.c = phase;
     const tens = phase & 0xf0;
-    if (tens !== 0x00 && tens !== 0x30) { if (call326c) return loc_326c(m); return; }
+    if (tens !== 0x00 && tens !== 0x30) { if (call326c) return layOutEnemyAimPointsFromScrollAngle(m); return; }
     const slot = phase & 0x0f;
     if (slot >= slotCount) return;
     const record = RECORD_BASE + slot * 16;

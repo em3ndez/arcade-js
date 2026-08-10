@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence gate for the idiomatic loc_42b7 (ROM 0x42B7) — the launcher the free-slot finder at
+ * Equivalence gate for the idiomatic commissionStagedAttackerByEra (ROM 0x42B7) — the launcher the free-slot finder at
  * 0x4243 tails into. All six ROM calls are dissolved to direct imports, so the rewrite pushes no
  * return address; the oracle's stack scratch [low, seat) is masked (floor proven above game data)
  * and its unbalanced tail ret shows as spDiff 2. RAM outside the mask is compared whole, registers
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_42b7 as candidate } from "../loc_42b7.js";
+import { commissionStagedAttackerByEra as candidate } from "../commissionStagedAttackerByEra.js";
 import { loc_42b7 as oracle } from "../../translated/loc_42b7.js";
 import { loc_4243 as dispatcher } from "../../translated/loc_4243.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";

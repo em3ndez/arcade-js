@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_326c — when the mode byte in C selects sub-mode 7, lay a sprite object's twelve coordinate
+/** layOutEnemyAimPointsFromScrollAngle — when the mode byte in C selects sub-mode 7, lay a sprite object's twelve coordinate
  * fields (0x10-0x1b) out as six XY pairs around centre (0x78 across, 0x84 down): the scroll angle
  * turned a quarter and the scroll angle itself, each drawn through the velocity table at an x8 and an
  * x16 radius, the quarter-turned direction also mirrored to its negatives; every other sub-mode
@@ -28,7 +28,7 @@ function plot(m, term, centre, off8, off16, mirror) {
   if (mirror) { regs.a = u8(centre - regs.h); mem8[u16(regs.ix + off16 + 4)] = regs.a; }
 }
 
-export function loc_326c(m) {
+export function layOutEnemyAimPointsFromScrollAngle(m) {
   const { regs, mem8 } = m;
   if ((regs.c & SUBMODE_MASK) !== SUBMODE) return;
   regs.ix = OBJECT;

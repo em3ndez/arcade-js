@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3d25 — spawn one aimed enemy, but only when the spawn slot is free, the cooldown at
+/** spawnAimedEnemyIntoEraBankWhenInWindow — spawn one aimed enemy, but only when the spawn slot is free, the cooldown at
  * ATTACKER_SPAWN_COOLDOWN is clear, the era count is live, and some object in the caller's two-slot bank sits
  * inside a doubled window. Draws a heading toward the player at ENEMY_STANDOFF_AIM_MAIN, alternates the aim's
  * side each spawn via SIDE_TOGGLE, then seats coords, the doubled velocity pair, a script and a
@@ -35,7 +35,7 @@ const NEW_SHAPE = 0x62;
 // era count != 1 with the scan flag clear selects the second bank; the guard and the seat both ask.
 const useSecondBank = (m) => m.mem8[ATTACKER_SPAWN_SLOT_COUNT] !== 1 && m.mem8[SCAN_BANK_FLAG] === 0;
 
-export function loc_3d25(m) {
+export function spawnAimedEnemyIntoEraBankWhenInWindow(m) {
   const { regs, mem8 } = m;
 
   if (mem8[regs.ix] !== SLOT_FREE) return;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4447 — memory-equivalent to the frozen oracle at ROM 0x4447. A pure leaf: every ROM call is
+ * dressSpriteForHeadingOrRetireAtEdge — memory-equivalent to the frozen oracle at ROM 0x4447. A pure leaf: every ROM call is
  * dissolved to a direct import, so the rewrite pushes no return and omits its own ret. Nothing
  * reaches it on either tape (REACH proves it, with a positive control), so the gate runs on CRAFTED
  * entries poked onto real captured machines to force each path, RAM compared with the dead stack
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_4447 as candidate } from "../loc_4447.js";
+import { dressSpriteForHeadingOrRetireAtEdge as candidate } from "../dressSpriteForHeadingOrRetireAtEdge.js";
 import { loc_4447 as oracle } from "../../translated/loc_4447.js";
 import { loc_3cc4 } from "../loc_3cc4.js";
 import { retireEntryPairIntoCooldown } from "../retireEntryPairIntoCooldown.js";

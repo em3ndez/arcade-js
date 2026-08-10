@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4941 — one frame of coin slot 1's accounting. The raw coin line is clocked into a debounce
+/** tallyCoinSlot1AndAwardCredit — one frame of coin slot 1's accounting. The raw coin line is clocked into a debounce
  * shift register and only a clean rising edge (its low three bits reading 1) counts as a coin: it
  * blips the coin sound, bumps the tally, and adds a unit to the coins-inserted accumulator. Once the
  * accumulator passes the coinage threshold (coins-per-credit in the high nibble, credits awarded in
@@ -19,7 +19,7 @@ const COINAGE = 0xa9c9;
 const NO_CREDIT = 0xa9c0;
 const CREDIT_COUNT = 0xa986;
 
-export function loc_4941(m) {
+export function tallyCoinSlot1AndAwardCredit(m) {
   const { regs, mem8 } = m;
 
   regs.a = mem8[COIN_SAMPLE];

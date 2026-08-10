@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_379f vs the frozen oracle: poked real dispatches, the four decision branches crafted, and a
+ * spawnEnemyCraftWhenBandUnderTwo vs the frozen oracle: poked real dispatches, the four decision branches crafted, and a
  * full occupancy x gate x owed-kills sweep, each masked for the dead stack scratch the dissolved
  * tails leave and held to a register ceiling. Run:
  *   node --test games/timeplt/idiomatic/test/equivalence-379f.test.js
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_379f as candidate } from "../loc_379f.js";
+import { spawnEnemyCraftWhenBandUnderTwo as candidate } from "../spawnEnemyCraftWhenBandUnderTwo.js";
 import { loc_379f as oracle } from "../../translated/loc_379f.js";
 import { loc_3793 } from "../loc_3793.js";
 import { spawnEnemyIntoFreeSlotElseStepSearch as spawn } from "../spawnEnemyIntoFreeSlotElseStepSearch.js";

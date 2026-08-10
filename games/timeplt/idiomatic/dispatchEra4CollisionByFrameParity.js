@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4f2a — the era-4 per-frame collision dispatch, split by frame parity. On even frames run the
+/** dispatchEra4CollisionByFrameParity — the era-4 per-frame collision dispatch, split by frame parity. On even frames run the
  * whole player-versus-object collision-and-destruction pass. On odd frames stage one shot-versus-
  * target sweep over a run of object slots and hand it the shared destruction body: while the mother
  * ship is armed the run is nine long and a following mother-ship mutual-kill pass runs after it;
@@ -22,7 +22,7 @@ const SPAN = 0x0f;
 const ARMED_TARGETS = 0x09;
 const OPEN_TARGETS = 0x0b;
 
-export function loc_4f2a(m) {
+export function dispatchEra4CollisionByFrameParity(m) {
   const { regs, mem8, mem16 } = m;
   if ((mem8[FRAME_TICK] & 0x01) === 0) return runAllCollisionSweepsThisFrame(m);
 

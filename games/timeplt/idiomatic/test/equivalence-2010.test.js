@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2010 vs the frozen oracle: the coin-start tape reaches this address directly, so real captured
+ * advancePlayerAnimationStrip vs the frozen oracle: the coin-start tape reaches this address directly, so real captured
  * dispatches drive the REAL arm, and crafted entries force each decision branch. A pure leaf — every
  * call dissolved to a direct import — so the rewrite omits its own ret; the dead stack scratch is
  * masked off the oracle's own pushes and the flag byte and SP held to a measured ceiling.
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2010 as candidate } from "../loc_2010.js";
+import { advancePlayerAnimationStrip as candidate } from "../advancePlayerAnimationStrip.js";
 import { loc_2010 as oracle } from "../../translated/loc_2010.js";
 import { loc_1f2e } from "../loc_1f2e.js";
 import { loc_5679 } from "../loc_5679.js";

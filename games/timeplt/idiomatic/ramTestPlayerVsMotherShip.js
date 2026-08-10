@@ -7,7 +7,7 @@
  * Any one test failing leaves everything untouched. LIVE-OUT: memory. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { loc_50ee } from "./loc_50ee.js";
+import { destroyPlayerAndMotherShipOnContact } from "./destroyPlayerAndMotherShipOnContact.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
 import { ERA_INDEX, PLAYER_STATE, MOTHER_SHIP_STATE } from "./names.js";
 
@@ -31,7 +31,7 @@ const within = (a, b, reach, span) => u8(u8(a - b) + reach) < span;
 
 export function ramTestPlayerVsMotherShip(m) {
   const { mem8 } = m;
-  if (WIDE_WINDOW_ERAS.includes(mem8[ERA_INDEX])) return loc_50ee(m);
+  if (WIDE_WINDOW_ERAS.includes(mem8[ERA_INDEX])) return destroyPlayerAndMotherShipOnContact(m);
 
   if (mem8[PLAYER_STATE] !== LIVE) return;
   if (mem8[MOTHER_SHIP_STATE] !== LIVE) return;

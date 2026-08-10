@@ -13,8 +13,8 @@ import { fetchTableWord } from "./fetchTableWord.js";
 import { postCommand } from "./postCommand.js";
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { headingToward } from "./headingToward.js";
-import { loc_4447 } from "./loc_4447.js";
-import { loc_459b } from "./loc_459b.js";
+import { dressSpriteForHeadingOrRetireAtEdge } from "./dressSpriteForHeadingOrRetireAtEdge.js";
+import { stepMotherShipWarpFlashFrame } from "./stepMotherShipWarpFlashFrame.js";
 import { setMotherShipVelocityFromHeading } from "./setMotherShipVelocityFromHeading.js";
 import { loc_5634 } from "./loc_5634.js";
 import { loc_565f } from "./loc_565f.js";
@@ -117,7 +117,7 @@ export function loc_43f0_4403(m) {
   regs.a = mem8[Y(0x00)];
   mem8[Y(0x02)] = regs.a;
 
-  loc_4447(m);
+  dressSpriteForHeadingOrRetireAtEdge(m);
   return loc_43f0_46f0(m);
 }
 
@@ -278,7 +278,7 @@ export function loc_43f0_4646(m) {
     regs.cp(RESTART_HIGH);
     if (regs.fZ) return;
   }
-  return loc_459b(m);
+  return stepMotherShipWarpFlashFrame(m);
 }
 
 export function loc_43f0_4663(m) {

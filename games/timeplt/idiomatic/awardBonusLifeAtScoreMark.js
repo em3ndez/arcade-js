@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4dde — award the next milestone the moment a tally reaches one of its marks, once only.
- *
- * Nothing happens at all unless play is active. Which list of marks applies is fixed by one bit of
- * a settings cell, and which of two tallies is examined by a one-bit selector; only the tally's
- * top byte is looked at, so the marks are coarse. The list is searched for that byte exactly, not
- * compared against — a tally that steps over a mark between calls never matches it. A latch bit
- * makes the award one-shot: matching while it is already set does nothing, and the FIRST call that
- * does not match clears it again, so the same mark can be awarded again next time round the tally.
- * Awarding steps a running count on and asks for both the award and its sound, the count BEFORE
- * the step going out with the request. LIVE-OUT: memory. */
+/** awardBonusLifeAtScoreMark — award the next milestone the moment a tally reaches one of its marks, once only.
+ * Nothing happens unless play is active. A settings bit picks which mark list applies and a one-bit selector which
+ * of two tallies; only the tally's top byte is matched EXACTLY (a tally that steps over a mark never hits it). A
+ * latch bit makes it one-shot -- matching while set does nothing, and the first non-match clears it, so the same
+ * mark pays again next time round the tally. Awarding steps a running count and requests the award + its sound, the
+ * pre-step count going out with the request. LIVE-OUT: memory. */
 
 import { u16 } from "../../../core/int.js";
 import { PLAY_ACTIVE, ACTIVE_PLAYER, LIVES_REMAINING } from "./names.js";
@@ -25,7 +21,7 @@ const LATCH_BIT = 0x01;
 const AWARD_COMMAND = 5;
 const A_ZERO_LENGTH_MEANS = 65536;
 
-export function loc_4dde(m) {
+export function awardBonusLifeAtScoreMark(m) {
   const { mem8 } = m;
   if (mem8[PLAY_ACTIVE] === 0) return;
 

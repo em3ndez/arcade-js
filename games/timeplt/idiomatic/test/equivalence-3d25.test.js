@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_3d25 vs its frozen oracle. coin-start never dispatches this address in
+// Memory-equivalence for spawnAimedEnemyIntoEraBankWhenInWindow vs its frozen oracle. coin-start never dispatches this address in
 // the budget; the attract demo does, and its spawns are the positive control. Real attract entries,
 // plus body variants crafted from the one full-path entry, are diffed whole -- minus the frozen
 // side's own push window and the scratch registers the dissolved callees leave. Teeth part in memory.
@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3d25 } from "../loc_3d25.js";
+import { spawnAimedEnemyIntoEraBankWhenInWindow } from "../spawnAimedEnemyIntoEraBankWhenInWindow.js";
 import { loc_3d25 as oracle } from "../../translated/loc_3d25.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
@@ -121,7 +121,7 @@ test("REACHABILITY: attract dispatches the address and reaches the spawn body; c
 test("REAL DISPATCHES: every attract entry identical, and at least one runs the body", { skip }, () => {
   const entries = captureAttract();
   for (const e of entries) {
-    const d = unitDiff(loc_3d25, e);
+    const d = unitDiff(spawnAimedEnemyIntoEraBankWhenInWindow, e);
     assert.equal(d, null, `an attract dispatch diverged: ${show(d)}`);
   }
   const foots = entries.map(footprint);
@@ -131,7 +131,7 @@ test("REAL DISPATCHES: every attract entry identical, and at least one runs the 
 
 test("CRAFTED BODY: both banks, the search hit slots, toggle parity, and the guard trio", { skip }, () => {
   for (const [label, fn] of VARIANTS) {
-    const d = unitDiff(loc_3d25, craft(fn));
+    const d = unitDiff(spawnAimedEnemyIntoEraBankWhenInWindow, craft(fn));
     assert.equal(d, null, `crafted "${label}" diverged: ${show(d)}`);
   }
   const bankB = footprint(craft(VARIANTS[1][1]));
@@ -147,7 +147,7 @@ test("STACK: the drift is exactly two bytes and the mask floor clears the data",
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
-  loc_3d25(b);
+  spawnAimedEnemyIntoEraBankWhenInWindow(b);
   assert.equal(a.regs.sp - b.regs.sp, 2, `the frozen side no longer re-seats two bytes higher (${a.regs.sp - b.regs.sp})`);
   assert.ok(low > DATA_TOP, `the push window ${hex4(low)} reached down into game data`);
   console.log(`  STACK: spDiff 2; window floor ${hex4(low)}`);
@@ -158,14 +158,14 @@ test("TEETH: broken twins part company IN MEMORY; the genuine routine does not",
   const cooldownBlockedM = craft((c) => { c.mem8[SPAWN_COOLDOWN] = 7; });
   const twins = [
     ["never spawns", () => {}, bodyM],
-    ["ignores the cooldown guard", (m) => { m.mem8[SPAWN_COOLDOWN] = 0; loc_3d25(m); }, cooldownBlockedM],
-    ["corrupts the reloaded cooldown", (m) => { loc_3d25(m); m.mem8[SPAWN_COOLDOWN] = u8(m.mem8[SPAWN_COOLDOWN] + 1); }, bodyM],
+    ["ignores the cooldown guard", (m) => { m.mem8[SPAWN_COOLDOWN] = 0; spawnAimedEnemyIntoEraBankWhenInWindow(m); }, cooldownBlockedM],
+    ["corrupts the reloaded cooldown", (m) => { spawnAimedEnemyIntoEraBankWhenInWindow(m); m.mem8[SPAWN_COOLDOWN] = u8(m.mem8[SPAWN_COOLDOWN] + 1); }, bodyM],
   ];
   for (const [label, twin, machine] of twins) {
     const d = unitDiff(twin, machine);
     assert.notEqual(d, null, `the "${label}" twin escaped the gate`);
     assert.notEqual(d.addr, null, `the "${label}" twin was caught only in a register, not in memory: ${show(d)}`);
   }
-  assert.equal(unitDiff(loc_3d25, bodyM), null, "the genuine routine is flagged on the body entry, so the teeth prove nothing");
+  assert.equal(unitDiff(spawnAimedEnemyIntoEraBankWhenInWindow, bodyM), null, "the genuine routine is flagged on the body entry, so the teeth prove nothing");
   console.log(`  TEETH: ${twins.length} twins caught in memory; genuine clean`);
 });

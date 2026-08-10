@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3ed6 — one gated attempt to launch an enemy into the object bank. Four gates guard it: a
+/** launchBankEnemyWhenAimedNearPlayer — one gated attempt to launch an enemy into the object bank. Four gates guard it: a
  * phase key that only lets one bank phase through, an arm flag, a non-empty flight count, and a
  * free record in the bank being found by a strided downward scan. When all pass, three margin
  * windows must place the aim point near enough to the player entry and to the scroll; only then
@@ -31,7 +31,7 @@ const COORD_Y = 0x31;
 const VELOCITY = 0x0a;
 const RECORD_STRIDE = 0x10;
 
-export function loc_3ed6(m) {
+export function launchBankEnemyWhenAimedNearPlayer(m) {
   const { regs, mem8, mem } = m;
 
   regs.a = mem8[SPAWN_PHASE];

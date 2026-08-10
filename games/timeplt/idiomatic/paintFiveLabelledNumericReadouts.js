@@ -2,7 +2,7 @@
 /** paintFiveLabelledNumericReadouts — paint five labelled numeric readouts up the tile plane, seating each one's source
  * record, cursor cell and pen colour before handing it to the column painter. LIVE-OUT: memory-only. */
 
-import { loc_4c1f } from "./loc_4c1f.js";
+import { paintLabelledNumericReadoutColumn } from "./paintLabelledNumericReadoutColumn.js";
 
 const READOUTS = [
   { source: 0xab08, cursor: 0xa711, pen: 0x14 },
@@ -18,6 +18,6 @@ export function paintFiveLabelledNumericReadouts(m) {
     regs.hl = source;
     regs.de = cursor;
     regs.c = pen;
-    loc_4c1f(m);
+    paintLabelledNumericReadoutColumn(m);
   }
 }

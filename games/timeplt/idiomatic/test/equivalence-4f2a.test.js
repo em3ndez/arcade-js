@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4f2a — memory-equivalent to the frozen oracle at ROM 0x4F2A. A pure leaf: every ROM call
+ * dispatchEra4CollisionByFrameParity — memory-equivalent to the frozen oracle at ROM 0x4F2A. A pure leaf: every ROM call
  * dissolves into a direct import, so the rewrite pushes no return address and omits its own ret.
  * UNREACHED by both tapes (the era index never reaches four in the budget), so the corpus is a
  * poked dispatch with the caller as the live control; RAM is compared with the dead stack scratch
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4f2a as candidate } from "../loc_4f2a.js";
+import { dispatchEra4CollisionByFrameParity as candidate } from "../dispatchEra4CollisionByFrameParity.js";
 import { loc_4f2a as oracle } from "../../translated/loc_4f2a.js";
 import { loc_4e4f as caller } from "../../translated/loc_4e4f.js";
 import { runAllCollisionSweepsThisFrame } from "../runAllCollisionSweepsThisFrame.js";
@@ -162,7 +162,7 @@ const scenarios = () => [
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite's odd arm, each option a deliberate defect; defaults match loc_4f2a. */
+/** The rewrite's odd arm, each option a deliberate defect; defaults match dispatchEra4CollisionByFrameParity. */
 function oddArm(m, { count = null, skipCursors = false, seat = null, skipArmed = false } = {}) {
   const { regs, mem8, mem16 } = m;
   const armed = mem8[MOTHER_SHIP_ARMED] !== 0;

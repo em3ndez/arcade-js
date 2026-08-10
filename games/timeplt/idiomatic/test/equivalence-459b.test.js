@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence for loc_459b, a warp/flash sequence step nothing dispatches — no tape ever branches
+ * Equivalence for stepMotherShipWarpFlashFrame, a warp/flash sequence step nothing dispatches — no tape ever branches
  * into it (a dispatcher, 0x176A, does run in attract, but its jump here is never taken). So states
  * come from the drift site 0x2B60, which the body calls with the same object ix / sprite iy, plus
  * crafts that walk the state byte through every
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_459b } from "../loc_459b.js";
+import { stepMotherShipWarpFlashFrame } from "../stepMotherShipWarpFlashFrame.js";
 import { loc_459b as oracle } from "../../translated/loc_459b.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -139,7 +139,7 @@ test("UNREACHED: no tape branches into this address, with a live control", { ski
 
 test("REALISTIC: the drift-site captures, identical outside the ceiling", { skip }, () => {
   const entries = captureDrifts();
-  for (const e of entries) assert.equal(unitDiff(loc_459b, e), null, () => show(unitDiff(loc_459b, e)));
+  for (const e of entries) assert.equal(unitDiff(stepMotherShipWarpFlashFrame, e), null, () => show(unitDiff(stepMotherShipWarpFlashFrame, e)));
   const prints = entries.slice(0, 5).map(footprint);
   assert.ok(prints.every((n) => n > 0), "a capture moved no memory, so a no-op rewrite would pass");
   console.log(`  REALISTIC: ${entries.length} captures identical; footprints ${prints.join(", ")}`);
@@ -147,7 +147,7 @@ test("REALISTIC: the drift-site captures, identical outside the ceiling", { skip
 
 test("BRANCHES: every state-byte path, identical outside the ceiling", { skip }, () => {
   for (const [label, make] of CRAFTS) {
-    const d = unitDiff(loc_459b, make());
+    const d = unitDiff(stepMotherShipWarpFlashFrame, make());
     assert.equal(d, null, `${label} diverged — ${show(d)}`);
     console.log(`  BRANCH ${label}: footprint ${footprint(make())} bytes`);
   }
@@ -163,7 +163,7 @@ test("GARBAGE PATH: the forced life-loss branch writes identical memory", { skip
   const base = craftLoseLife();
   assert.equal(unitDiff(probe, base), null, "the forced life-loss path is vacuous or diverged");
   assert.ok(fired, "the craft did not actually reach the life-loss branch");
-  assert.equal(unitDiff(loc_459b, base), null, () => show(unitDiff(loc_459b, base)));
+  assert.equal(unitDiff(stepMotherShipWarpFlashFrame, base), null, () => show(unitDiff(stepMotherShipWarpFlashFrame, base)));
   assert.ok(footprint(base) > 20, "the life-loss path moved little memory; the craft is wrong");
   console.log(`  GARBAGE PATH: life-loss fired, footprint ${footprint(base)} bytes, identical`);
 }); // probe restores the shared registry so later arms are unaffected
@@ -175,8 +175,8 @@ const skipDrift = (mm) => {
   mm.routines.set(DRIFT_SITE, () => {});
   try { return oracle(mm); } finally { mm.routines.set(DRIFT_SITE, real); }
 };
-const scribbleData = (mm) => { loc_459b(mm); mm.mem8[0xa878] ^= 0xff; };
-const scribbleKeptReg = (mm) => { loc_459b(mm); mm.regs.b = (mm.regs.b + 1) & 0xff; };
+const scribbleData = (mm) => { stepMotherShipWarpFlashFrame(mm); mm.mem8[0xa878] ^= 0xff; };
+const scribbleKeptReg = (mm) => { stepMotherShipWarpFlashFrame(mm); mm.regs.b = (mm.regs.b + 1) & 0xff; };
 
 /** memory-only catch, so a broad register ceiling cannot be what is doing the biting. */
 function caughtInMemory(twin, machine) {

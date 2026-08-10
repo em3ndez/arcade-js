@@ -17,7 +17,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { launchAttackerIntoFreeSlot } from "../launchAttackerIntoFreeSlot.js";
 import { loc_4243 as oracle } from "../../translated/loc_4243.js";
 import { setTheLaunchFacingInsideOneAimWindow } from "../setTheLaunchFacingInsideOneAimWindow.js";
-import { loc_42b7 } from "../loc_42b7.js";
+import { commissionStagedAttackerByEra } from "../commissionStagedAttackerByEra.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x4243;
@@ -200,7 +200,7 @@ function makeTwin(defect) {
     regs.c = mem8[(regs.ix + (defect.facingOff ?? FACING)) & 0xffff];
     const era0 = mem8[ERA] === 0;
     if (defect.swapEra ? !era0 : era0) return setTheLaunchFacingInsideOneAimWindow(m);
-    return loc_42b7(m);
+    return commissionStagedAttackerByEra(m);
   };
 }
 

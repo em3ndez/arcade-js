@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_459b — one frame of an object's warp/flash sequence, entered through a misaligned prologue
+/** stepMotherShipWarpFlashFrame — one frame of an object's warp/flash sequence, entered through a misaligned prologue
  * that reads garbage words off the stack (two POP AF, a DEC SP) and folds the resulting carry into
  * a rare conditional life-loss. The body drifts the object with the world, then seeds the sprite's
  * heading and animation from tables gated on its angle and Y, and counts a state byte down: the
@@ -24,7 +24,7 @@ const SHAPE_TABLE = 0x461b;
 const RESTART = 0xab43;
 const WARP_SENTINEL = 0xa800;
 
-export function loc_459b(m) {
+export function stepMotherShipWarpFlashFrame(m) {
   const { regs, mem, mem8 } = m;
   const X = (d) => u16(regs.ix + d);
   const Y = (d) => u16(regs.iy + d);

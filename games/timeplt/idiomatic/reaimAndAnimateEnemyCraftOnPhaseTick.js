@@ -7,7 +7,7 @@
  * tenth lay out the six-point sprite object instead. LIVE-OUT: memory-only. */
 
 import { u8 } from "../../../core/int.js";
-import { loc_326c } from "./loc_326c.js";
+import { layOutEnemyAimPointsFromScrollAngle } from "./layOutEnemyAimPointsFromScrollAngle.js";
 import { stepShapeAnimation } from "./stepShapeAnimation.js";
 import { headingToward } from "./headingToward.js";
 import { offsetAddress } from "./offsetAddress.js";
@@ -27,7 +27,7 @@ export function reaimAndAnimateEnemyCraftOnPhaseTick(m) {
   regs.c = phase;
 
   const tens = phase & 0xf0;
-  if (tens !== TENTHS_00 && tens !== TENTHS_30) return loc_326c(m);
+  if (tens !== TENTHS_00 && tens !== TENTHS_30) return layOutEnemyAimPointsFromScrollAngle(m);
 
   const slot = phase & 0x0f;
   if (slot >= SLOT_COUNT) return;

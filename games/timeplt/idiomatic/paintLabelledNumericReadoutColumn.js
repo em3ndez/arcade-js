@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4c1f — paint one labelled numeric readout as a single column climbing the tile plane: a
+/** paintLabelledNumericReadoutColumn — paint one labelled numeric readout as a single column climbing the tile plane: a
  * three-tile pictogram taken from a record table by the source's lead byte, a six-digit field
  * beneath it, and a three-tile suffix, every cell paired with the caller's pen colour in the
  * colour plane. The column is walked upward a cell at a time and the source is read forward past
@@ -27,7 +27,7 @@ function stamp(m, tile) {
   regs.d = regs.d | COLOUR_PLANE_BIT;
 }
 
-export function loc_4c1f(m) {
+export function paintLabelledNumericReadoutColumn(m) {
   const { regs, mem8 } = m;
   const source = regs.hl;
 

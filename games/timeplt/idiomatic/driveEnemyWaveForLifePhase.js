@@ -13,7 +13,7 @@ import { stepShapeAnimation } from "./stepShapeAnimation.js";
 import { spawnEnemyWaveIntoFreeSlots } from "./spawnEnemyWaveIntoFreeSlots.js";
 import { stopFiveSlotAnimations } from "./stopFiveSlotAnimations.js";
 import { gateTheFreeSlotSearchAndPickItsRun } from "./gateTheFreeSlotSearchAndPickItsRun.js";
-import { loc_379f } from "./loc_379f.js";
+import { spawnEnemyCraftWhenBandUnderTwo } from "./spawnEnemyCraftWhenBandUnderTwo.js";
 import { loc_5817 } from "./loc_5817.js";
 import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, WAVE_CLAIM_TIMER, WAVE_DESCRIPTOR_INDEX, WAVE_KILL_COUNTDOWN } from "./names.js";
 
@@ -44,7 +44,7 @@ export function driveEnemyWaveForLifePhase(m) {
   const phase = mem8[LIFE_PHASE] & 0x0f;
   if (phase === 7) return stopFiveSlotAnimations(m);
   if (phase < 7) return gateTheFreeSlotSearchAndPickItsRun(m);
-  if (phase < 9) return loc_379f(m);
+  if (phase < 9) return spawnEnemyCraftWhenBandUnderTwo(m);
   if (mem8[LIFE_TICKS_LOW] !== 0) return;
 
   const parityBit = drawRandomByte(m) & 1;

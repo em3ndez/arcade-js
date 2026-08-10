@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4dde — memory-equivalent to the frozen oracle at ROM 0x4DDE.
+ * awardBonusLifeAtScoreMark — memory-equivalent to the frozen oracle at ROM 0x4DDE.
  *
  * WHAT IT IS. A one-shot award fired when a tally's top byte matches one of a list of marks. Two
  * of the things it does are ALREADY decompiled — the ring append and the sound request it leaves
@@ -45,7 +45,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_4dde } from "../loc_4dde.js";
+import { awardBonusLifeAtScoreMark } from "../awardBonusLifeAtScoreMark.js";
 import { loc_5805 } from "../loc_5805.js";
 import { postCommand } from "../postCommand.js";
 import { PLAY_ACTIVE, ACTIVE_PLAYER, LIVES_REMAINING } from "../names.js";
@@ -147,7 +147,7 @@ function armOf(m) {
 
 let cache = null;
 function sessions() {
-  if (!cache) cache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, loc_4dde) }));
+  if (!cache) cache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, awardBonusLifeAtScoreMark) }));
   return cache;
 }
 
@@ -213,7 +213,7 @@ function craftedScratchOffsets() {
   return [...offsets].sort((x, y) => x - y);
 }
 
-const candidateOnce = (mm) => loc_4dde(mm);
+const candidateOnce = (mm) => awardBonusLifeAtScoreMark(mm);
 
 function movedRegisters(candidate) {
   const moved = new Set();
@@ -356,12 +356,12 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_4dde == oracle outside the scratch window", { skip }, () => {
+test("EQUAL at the real dispatch: awardBonusLifeAtScoreMark == oracle outside the scratch window", { skip }, () => {
   const sp = entryState().regs.sp;
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_4dde(b);
+  awardBonusLifeAtScoreMark(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   console.log(`  EQUAL: the captured entry takes the ${armOf(entryState())} arm; identical`);
@@ -373,7 +373,7 @@ test("NOT VACUOUS: a no-op candidate FAILS in the crafted space", { skip }, () =
 });
 
 test("EXCLUDED, deliberately: bounded over the whole crafted space, not at one entry", { skip }, () => {
-  const moved = movedRegisters(loc_4dde);
+  const moved = movedRegisters(awardBonusLifeAtScoreMark);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
@@ -405,13 +405,13 @@ test("SCRATCH DEPTH: the crafted space dirties exactly six bytes under the stack
 });
 
 test("EXHAUSTIVE: 256 tallies x two mark lists x two tallies x two latch states", { skip }, () => {
-  assert.equal(sweepCaught(loc_4dde), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(awardBonusLifeAtScoreMark), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} crafted comparisons identical`);
 });
 
 for (const [label, opts] of TAPES) {
   test(`WHOLE-MACHINE: the ${label} session differs only in the dead stack bytes`, { skip }, () => {
-    const r = wholeRunCells(loc_4dde, opts);
+    const r = wholeRunCells(awardBonusLifeAtScoreMark, opts);
     assert.equal(r.threw, null, `the run threw: ${r.threw}`);
     assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
     assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);
