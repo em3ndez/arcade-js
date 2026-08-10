@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3e6c — memory-equivalent to the frozen oracle at ROM 0x3E6C.
+ * flyAndRetireSlotCyclingShapeInEra4 — memory-equivalent to the frozen oracle at ROM 0x3E6C.
  *
  * WHAT IT IS. An object flown one step along the velocity it carries and its slot retired once
  * that step lands it on a retire line, with one era of the game also restyling it first. All four
@@ -53,7 +53,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_3e6c } from "../loc_3e6c.js";
+import { flyAndRetireSlotCyclingShapeInEra4 } from "../flyAndRetireSlotCyclingShapeInEra4.js";
 import { loc_3e6c as oracle } from "../../translated/loc_3e6c.js";
 import { ERA_INDEX, FRAME_TICK } from "../names.js";
 import { animateFixedShapeCycle } from "../animateFixedShapeCycle.js";
@@ -204,7 +204,7 @@ function replaySession(opts, candidate) {
 let sessionCache = null;
 function sessions() {
   if (!sessionCache) {
-    sessionCache = SESSIONS.map(([label, opts]) => ({ label, ...replaySession(opts, loc_3e6c) }));
+    sessionCache = SESSIONS.map(([label, opts]) => ({ label, ...replaySession(opts, flyAndRetireSlotCyclingShapeInEra4) }));
   }
   return sessionCache;
 }
@@ -320,7 +320,7 @@ test("EQUAL at the real dispatch: RAM, SP and pc all identical", { skip }, () =>
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  seam(loc_3e6c)(b);
+  seam(flyAndRetireSlotCyclingShapeInEra4)(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   assert.equal(a.regs.sp, b.regs.sp, "the stack pointer must come back to the same seat");
@@ -344,7 +344,7 @@ test("SEAM: SP and pc agree on every crafted entry and every real dispatch", { s
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    seam(loc_3e6c)(b);
+    seam(flyAndRetireSlotCyclingShapeInEra4)(b);
     assert.equal(b.regs.sp, a.regs.sp, `${c}: the seam left SP adrift`);
     assert.equal(b.pc, a.pc, `${c}: the seam left pc adrift`);
     assert.equal(a.regs.sp, (sp + 2) & 0xffff, `${c}: the oracle did not net exactly one return`);
@@ -360,7 +360,7 @@ test("EXCLUDED: the registers that move, bounded by a ceiling; SP, pc and the sl
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    seam(loc_3e6c)(b);
+    seam(flyAndRetireSlotCyclingShapeInEra4)(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
     for (const k of HELD) assert.equal(b.regs[k], a.regs[k], `${c}: ${k} must be held`);
   }
@@ -371,7 +371,7 @@ test("EXCLUDED: the registers that move, bounded by a ceiling; SP, pc and the sl
 
 test("EXHAUSTIVE and CRAFTED: every entry of the cross is identical", { skip }, () => {
   for (const c of cross()) {
-    const d = unitDiff(loc_3e6c, craft(...c));
+    const d = unitDiff(flyAndRetireSlotCyclingShapeInEra4, craft(...c));
     assert.equal(d, null, `${c}: ${show(d)}`);
   }
   console.log(`  EXHAUSTIVE: 256 eras plus coordinates and shape counter — ${cross().length} entries`);
@@ -413,7 +413,7 @@ test("CORPUS: every dispatch of both sessions replays identically", { skip }, ()
 });
 
 test("WHOLE-MACHINE: a wired driven session differs only in dead stack bytes", { skip }, () => {
-  const r = wholeRunCells(loc_3e6c);
+  const r = wholeRunCells(flyAndRetireSlotCyclingShapeInEra4);
   assert.equal(r.threw, null, `the run threw: ${r.threw}`);
   assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
   assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);

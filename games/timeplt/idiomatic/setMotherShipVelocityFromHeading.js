@@ -6,7 +6,7 @@
  * leaves through a stack slot, so the slot is laid down for it first. LIVE-OUT: memory. */
 
 import { ERA_INDEX } from "./names.js";
-import { loc_46ce } from "./loc_46ce.js";
+import { fileTwoPairsIntoObjectRecordHighByteFirst } from "./fileTwoPairsIntoObjectRecordHighByteFirst.js";
 
 const ARM_TABLE = 0x46c4;
 const ARM_MASK = 0x07;
@@ -16,5 +16,5 @@ export function setMotherShipVelocityFromHeading(m) {
   const arm = m.mem16[ARM_TABLE + 2 * (m.mem8[ERA_INDEX] & ARM_MASK)];
   m.push16(AFTER_ARM);
   m.call(arm);
-  loc_46ce(m);
+  fileTwoPairsIntoObjectRecordHighByteFirst(m);
 }

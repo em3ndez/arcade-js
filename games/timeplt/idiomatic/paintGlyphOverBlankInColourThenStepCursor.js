@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4dcf — lay a two-cell piece into the character plane at the cursor, then step the cursor
+/** paintGlyphOverBlankInColourThenStepCursor — lay a two-cell piece into the character plane at the cursor, then step the cursor
  * one place along the line. The cell the cursor names takes the caller's glyph; the address one
  * BELOW it takes the blanking glyph; and both take the caller's colour in the plane beside them.
  * Coming back from the colour plane is a SET, so the cursor is left on the glyph side whether or
@@ -13,7 +13,7 @@ import { advanceCharCursor } from "./advanceCharCursor.js";
 const BLANK_GLYPH = 241;
 const CHARACTER_PLANE_BIT = 0x0400;
 
-export function loc_4dcf(m) {
+export function paintGlyphOverBlankInColourThenStepCursor(m) {
   const { regs, mem8 } = m;
   let cursor = regs.de;
   mem8[cursor] = regs.b;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_400b — memory-equivalent to the frozen oracle at ROM 0x400B, the advance-step entry of the
+ * advanceSlotThenSweepObjectBankByHead — memory-equivalent to the frozen oracle at ROM 0x400B, the advance-step entry of the
  * object-bank sweep. REACHED: the coin-start tape dispatches this address (via serviceEra0BallisticObjectBank's empty-slot0
  * tail jump); the crafted sweep varies the two slots this entry reads, seated exactly as serviceEra0BallisticObjectBank
  * seats them. The oracle brackets services with pushed returns the rewrite never writes, so RAM is
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_400b as candidate } from "../loc_400b.js";
+import { advanceSlotThenSweepObjectBankByHead as candidate } from "../advanceSlotThenSweepObjectBankByHead.js";
 import { loc_400b as oracle } from "../../translated/loc_400b.js";
 import { loc_3fea as seedOracle } from "../../translated/loc_3fea.js";
 import { sweepObjectSlotBankServicingFirstSlot } from "../sweepObjectSlotBankServicingFirstSlot.js";
@@ -114,7 +114,7 @@ function sweep(twin) {
   return caught;
 }
 
-// ── twins: each a loc_400b with one deliberate defect; every knob matches the real one by default ──
+// ── twins: each a advanceSlotThenSweepObjectBankByHead with one deliberate defect; every knob matches the real one by default ──
 
 function twin({ recStride = RECORD_STRIDE, sprStride = SPRITE_STRIDE, skipEmpty = true,
                 ballistic = BALLISTIC, handoff = true }) {

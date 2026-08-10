@@ -5,7 +5,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { flyAlongStoredVelocity } from "./flyAlongStoredVelocity.js";
-import { loc_3cc4 } from "./loc_3cc4.js";
+import { hasReachedBoundaryBandSelectedByHeading } from "./hasReachedBoundaryBandSelectedByHeading.js";
 import { retireObjectAndHold } from "./retireObjectAndHold.js";
 import { mirrorTwoTileObjectByHeading } from "./mirrorTwoTileObjectByHeading.js";
 import { spawnAimedEnemyIntoEraBankWhenInWindow } from "./spawnAimedEnemyIntoEraBankWhenInWindow.js";
@@ -24,7 +24,7 @@ export function advanceTwoTileObjectThenTryAimedSpawn(m) {
   mem8[u16(sprite + SECOND_TILE_Y)] = u8(mem8[u16(sprite + TILE_Y)] + TILE_DROP);
   mem8[u16(sprite + SECOND_TILE_X)] = mem8[u16(sprite + TILE_X)];
 
-  if (loc_3cc4(m)) return retireObjectAndHold(m);
+  if (hasReachedBoundaryBandSelectedByHeading(m)) return retireObjectAndHold(m);
   mirrorTwoTileObjectByHeading(m);
   return spawnAimedEnemyIntoEraBankWhenInWindow(m);
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3deb — memory-equivalent to the frozen oracle at ROM 0x3DEB.
+ * serviceSlotByHeadByte — memory-equivalent to the frozen oracle at ROM 0x3DEB.
  *
  * WHAT IT IS. A three-way split on the head byte of one slot's record, with all three arms
  * already decompiled, so each transfer is dissolved into a direct call in the rewrite.
@@ -57,7 +57,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_3deb } from "../loc_3deb.js";
+import { serviceSlotByHeadByte } from "../serviceSlotByHeadByte.js";
 import { loc_3deb as oracle } from "../../translated/loc_3deb.js";
 import { flyAlongStoredVelocity } from "../flyAlongStoredVelocity.js";
 import { hasReachedRetireLine } from "../hasReachedRetireLine.js";
@@ -197,7 +197,7 @@ function replaySession(opts, candidate) {
 let sessionCache = null;
 function sessions() {
   if (!sessionCache) {
-    sessionCache = SESSIONS.map(([label, opts]) => ({ label, ...replaySession(opts, loc_3deb) }));
+    sessionCache = SESSIONS.map(([label, opts]) => ({ label, ...replaySession(opts, serviceSlotByHeadByte) }));
   }
   return sessionCache;
 }
@@ -327,7 +327,7 @@ test("EQUAL at the real dispatch: RAM, SP and pc all identical", { skip }, () =>
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  seam(loc_3deb)(b);
+  seam(serviceSlotByHeadByte)(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   assert.equal(a.regs.sp, b.regs.sp, "the stack pointer must come back to the same seat");
@@ -364,7 +364,7 @@ test("SEAM: SP and pc agree on every crafted entry and every real dispatch", { s
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    seam(loc_3deb)(b);
+    seam(serviceSlotByHeadByte)(b);
     assert.equal(b.regs.sp, a.regs.sp, `head ${head} col ${column} row ${row}: the seam left SP adrift`);
     assert.equal(b.pc, a.pc, `head ${head} col ${column} row ${row}: the seam left pc adrift`);
     assert.equal(a.regs.sp, (sp + 2) & 0xffff, `head ${head}: the oracle did not net exactly one return`);
@@ -380,7 +380,7 @@ test("EXCLUDED: the registers that move, bounded by a ceiling; SP, pc and the sl
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    seam(loc_3deb)(b);
+    seam(serviceSlotByHeadByte)(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
     for (const k of HELD) assert.equal(b.regs[k], a.regs[k], `head ${head}: ${k} must be held`);
   }
@@ -391,7 +391,7 @@ test("EXCLUDED: the registers that move, bounded by a ceiling; SP, pc and the sl
 
 test("EXHAUSTIVE: all 256 head bytes, and the coordinate cross, are identical", { skip }, () => {
   for (const [head, column, row] of cross()) {
-    const d = unitDiff(loc_3deb, craft(head, column, row));
+    const d = unitDiff(serviceSlotByHeadByte, craft(head, column, row));
     assert.equal(d, null, `head ${head} col ${column} row ${row}: ${show(d)}`);
   }
   console.log(`  EXHAUSTIVE: ${cross().length} crafted entries identical`);
@@ -441,7 +441,7 @@ test("CORPUS: every dispatch of both sessions replays identically", { skip }, ()
 });
 
 test("WHOLE-MACHINE: a wired demo session differs only in dead stack bytes", { skip }, () => {
-  const r = wholeRunCells(loc_3deb);
+  const r = wholeRunCells(serviceSlotByHeadByte);
   assert.equal(r.threw, null, `the run threw: ${r.threw}`);
   assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
   assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);

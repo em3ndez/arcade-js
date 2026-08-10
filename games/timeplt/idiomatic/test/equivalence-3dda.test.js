@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3dda — memory-equivalent to the frozen oracle at ROM 0x3DDA.
+ * serviceFixedSlotInEra1 — memory-equivalent to the frozen oracle at ROM 0x3DDA.
  *
  * WHAT IT IS. A guard on the era index, then two constant record bases handed to the slot
- * servicer at ROM 0x3DEB — WHICH IS ALREADY DECOMPILED, so the rewrite calls loc_3deb directly
+ * servicer at ROM 0x3DEB — WHICH IS ALREADY DECOMPILED, so the rewrite calls serviceSlotByHeadByte directly
  * and dissolving that transfer belongs to this caller's unit. The guard is `dec a / ret nz` on
  * the era cell, so it passes on exactly one value and the rewrite writes that comparison out.
  *
@@ -74,8 +74,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3dda } from "../loc_3dda.js";
-import { loc_3deb } from "../loc_3deb.js";
+import { serviceFixedSlotInEra1 } from "../serviceFixedSlotInEra1.js";
+import { serviceSlotByHeadByte } from "../serviceSlotByHeadByte.js";
 import { ERA_INDEX } from "../names.js";
 import { loc_3dda as oracle } from "../../translated/loc_3dda.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -128,7 +128,7 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
  * the servicer's own body. The same predicate runs over the servicer as a positive control, so
  * the absence is evidence only once the check is shown able to see the thing present.
  */
-const HELPER = ["loc_3deb", "../loc_3deb.js", "ALL_ONES"];
+const HELPER = ["serviceSlotByHeadByte", "../serviceSlotByHeadByte.js", "ALL_ONES"];
 
 function callsRatherThanRestates(text, [name, file, ownConstant]) {
   return text.includes(`from "./${file.slice(3)}"`) &&
@@ -183,7 +183,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_3dda);
+  if (entry === null) gate(serviceFixedSlotInEra1);
   return entry;
 }
 
@@ -321,7 +321,7 @@ function replaySession(factory, candidate) {
 let sessionCache = null;
 function sessions() {
   if (sessionCache) return sessionCache;
-  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, loc_3dda) }));
+  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, serviceFixedSlotInEra1) }));
   return sessionCache;
 }
 
@@ -398,7 +398,7 @@ function brokenGuardInverted(m) {
   if (mem8[ERA_INDEX] === SERVICED_ERA) return;
   regs.ix = SLOT_RECORD;
   regs.iy = SPRITE_ENTRY;
-  loc_3deb(m);
+  serviceSlotByHeadByte(m);
 }
 
 /** BUG: there is no guard, so the slot is serviced in every era. */
@@ -406,7 +406,7 @@ function brokenNoGuard(m) {
   const { regs } = m;
   regs.ix = SLOT_RECORD;
   regs.iy = SPRITE_ENTRY;
-  loc_3deb(m);
+  serviceSlotByHeadByte(m);
 }
 
 /** BUG: the guard admits the next era along. */
@@ -415,7 +415,7 @@ function brokenGuardOffByOne(m) {
   if (mem8[ERA_INDEX] !== SERVICED_ERA + 1) return;
   regs.ix = SLOT_RECORD;
   regs.iy = SPRITE_ENTRY;
-  loc_3deb(m);
+  serviceSlotByHeadByte(m);
 }
 
 /** BUG: the guard tests a bit instead of the value, so every odd era passes. */
@@ -424,7 +424,7 @@ function brokenGuardTestsLowBit(m) {
   if ((mem8[ERA_INDEX] & 1) === 0) return;
   regs.ix = SLOT_RECORD;
   regs.iy = SPRITE_ENTRY;
-  loc_3deb(m);
+  serviceSlotByHeadByte(m);
 }
 
 /** BUG: the slot one record along is serviced. */
@@ -433,7 +433,7 @@ function brokenNextRecord(m) {
   if (mem8[ERA_INDEX] !== SERVICED_ERA) return;
   regs.ix = SLOT_RECORD + RECORD_STRIDE;
   regs.iy = SPRITE_ENTRY;
-  loc_3deb(m);
+  serviceSlotByHeadByte(m);
 }
 
 /** BUG: the slot one record back is serviced. */
@@ -442,7 +442,7 @@ function brokenPreviousRecord(m) {
   if (mem8[ERA_INDEX] !== SERVICED_ERA) return;
   regs.ix = SLOT_RECORD - RECORD_STRIDE;
   regs.iy = SPRITE_ENTRY;
-  loc_3deb(m);
+  serviceSlotByHeadByte(m);
 }
 
 /** BUG: the record is right but the sprite entry beside it is not. */
@@ -451,7 +451,7 @@ function brokenNextSpriteEntry(m) {
   if (mem8[ERA_INDEX] !== SERVICED_ERA) return;
   regs.ix = SLOT_RECORD;
   regs.iy = SPRITE_ENTRY + SPRITE_STRIDE;
-  loc_3deb(m);
+  serviceSlotByHeadByte(m);
 }
 
 /** BUG: the two bases change places. */
@@ -460,13 +460,13 @@ function brokenBasesSwapped(m) {
   if (mem8[ERA_INDEX] !== SERVICED_ERA) return;
   regs.ix = SPRITE_ENTRY;
   regs.iy = SLOT_RECORD;
-  loc_3deb(m);
+  serviceSlotByHeadByte(m);
 }
 
 /** BUG: the bases the caller was holding are used instead of the entry's own. */
 function brokenKeepsCallerBases(m) {
   if (m.mem8[ERA_INDEX] !== SERVICED_ERA) return;
-  loc_3deb(m);
+  serviceSlotByHeadByte(m);
 }
 
 /** BUG: only the record base is set, so the sprite entry is whatever arrived. */
@@ -474,7 +474,7 @@ function brokenOnlyRecordBase(m) {
   const { regs, mem8 } = m;
   if (mem8[ERA_INDEX] !== SERVICED_ERA) return;
   regs.ix = SLOT_RECORD;
-  loc_3deb(m);
+  serviceSlotByHeadByte(m);
 }
 
 const TWINS = [
@@ -494,14 +494,14 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the measured window", { skip }, () => {
-  gate(loc_3dda);
+  gate(serviceFixedSlotInEra1);
   assert.notEqual(entry, null, "vacuous: the session never reached the routine");
   const e = entryState();
   const sp = e.regs.sp;
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_3dda(b);
+  serviceFixedSlotInEra1(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -565,7 +565,7 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
-  const moved = movedOver(loc_3dda);
+  const moved = movedOver(serviceFixedSlotInEra1);
   // The absence is evidence only if the measurement CAN report a register outside the ceiling;
   // the bases are outside it, and the twin that swaps them moves both.
   const control = movedOver(brokenBasesSwapped);
@@ -587,7 +587,7 @@ test("THE GUARD: exactly one era value gets past it", { skip }, () => {
   console.log(`  THE GUARD (measured): the oracle acts on eras [${acting.join(",")}]`);
   assert.deepEqual(acting, [SERVICED_ERA], "the set of era values the oracle acts on moved");
   for (const era of everyByte) {
-    const d = unitDiff(loc_3dda, craft(era, 255, PLACEMENTS[1][1]));
+    const d = unitDiff(serviceFixedSlotInEra1, craft(era, 255, PLACEMENTS[1][1]));
     assert.equal(d, null, `era ${era}: ${show(d)}`);
   }
 });
@@ -617,7 +617,7 @@ test("CORPUS: every dispatch of every session replays identically", { skip }, ()
 
 test("CROSSED: every head byte at each swept era and each placement", { skip }, () => {
   for (const [era, head, [label, place]] of cross()) {
-    const d = unitDiff(loc_3dda, craft(era, head, place));
+    const d = unitDiff(serviceFixedSlotInEra1, craft(era, head, place));
     assert.equal(d, null, `era ${era} head ${head} ${label}: ${show(d)}`);
   }
   console.log(`  CROSSED: ${cross().length} era x head x placement comparisons identical`);
@@ -644,7 +644,7 @@ test("THREE ARMS REACHED: the cross drives all three of the servicer's arms", { 
 });
 
 test("CALLS, NOT RESTATES: the module's text, with the servicer as a positive control", () => {
-  const module = read("../loc_3dda.js");
+  const module = read("../serviceFixedSlotInEra1.js");
   assert.ok(callsRatherThanRestates(module, HELPER), `the module does not call ${HELPER[0]}`);
   assert.ok(!callsRatherThanRestates(read(HELPER[1]), HELPER), `the check passes ${HELPER[0]}'s ` +
     "OWN body, so it cannot tell a call from an inlined copy and proves nothing");
@@ -652,7 +652,7 @@ test("CALLS, NOT RESTATES: the module's text, with the servicer as a positive co
 });
 
 test("WHOLE-MACHINE: a driven session differs only in stack scratch", { skip }, () => {
-  const r = wholeRunCells(loc_3dda);
+  const r = wholeRunCells(serviceFixedSlotInEra1);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,
@@ -670,7 +670,7 @@ test("WHOLE-MACHINE: a driven session differs only in stack scratch", { skip }, 
   // if the instrument were not wired at all. The control makes the blindness attributable to the
   // game state rather than to the measurement: a candidate that touches one sprite cell IS seen.
   const control = wholeRunCells((mm) => {
-    loc_3dda(mm);
+    serviceFixedSlotInEra1(mm);
     mm.mem8[SPRITE_ENTRY] = u8(mm.mem8[SPRITE_ENTRY] + 1);
   });
   assert.ok(control.threw !== null || !sameCells(control.cells), "a candidate that writes a " +

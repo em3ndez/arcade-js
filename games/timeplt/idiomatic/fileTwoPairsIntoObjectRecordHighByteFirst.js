@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_46ce — file two register pairs away in an object's record, as four separate bytes: the first
+/** fileTwoPairsIntoObjectRecordHighByteFirst — file two register pairs away in an object's record, as four separate bytes: the first
  * pair into two adjacent slots, the second into two more sixteen slots further on. Each half goes
  * in high byte first, so the pair is stored the opposite way round from a word. Nothing is read,
  * nothing is tested, and the four values are taken exactly as they arrive.
@@ -10,7 +10,7 @@ import { u16 } from "../../../core/int.js";
 const FIRST_PAIR_SLOT = 12;
 const SECOND_PAIR_SLOT = 28;
 
-export function loc_46ce(
+export function fileTwoPairsIntoObjectRecordHighByteFirst(
   m,
   record = m.regs.ix,
   firstHigh = m.regs.d,

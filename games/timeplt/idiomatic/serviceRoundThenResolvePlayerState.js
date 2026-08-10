@@ -13,7 +13,7 @@ import { stepSevenCraftSlots } from "./stepSevenCraftSlots.js";
 import { runSceneryForEra } from "./runSceneryForEra.js";
 import { sweepEra2PlusObjectBank } from "./sweepEra2PlusObjectBank.js";
 import { serviceEra1BomberObject } from "./serviceEra1BomberObject.js";
-import { loc_3dda } from "./loc_3dda.js";
+import { serviceFixedSlotInEra1 } from "./serviceFixedSlotInEra1.js";
 import { stepFourActorSlots } from "./stepFourActorSlots.js";
 import { serviceEra0BallisticObjectBank } from "./serviceEra0BallisticObjectBank.js";
 import { dispatchCollisionPassByEra } from "./dispatchCollisionPassByEra.js";
@@ -48,7 +48,7 @@ export function serviceRoundThenResolvePlayerState(m) {
   sweepEra2PlusObjectBank(m);
   spriteFixup();
   serviceEra1BomberObject(m);
-  loc_3dda(m);
+  serviceFixedSlotInEra1(m);
   stepFourActorSlots(m);
   spriteFixup();
   serviceEra0BallisticObjectBank(m);

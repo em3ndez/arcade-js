@@ -7,7 +7,7 @@
 
 import { u8 } from "../../../core/int.js";
 import { loc_4daf } from "./loc_4daf.js";
-import { loc_4dcf } from "./loc_4dcf.js";
+import { paintGlyphOverBlankInColourThenStepCursor } from "./paintGlyphOverBlankInColourThenStepCursor.js";
 
 const ENABLE = 0xad30;
 const CURSOR_START = 0xa783;
@@ -35,7 +35,7 @@ export function drawEmblemStripThenGuardImage(m, count = m.regs.a) {
 
   regs.b = BLANK_GLYPH;
   regs.c = BLANK_COLOUR;
-  while (regs.de >= ROW_FLOOR) loc_4dcf(m);
+  while (regs.de >= ROW_FLOOR) paintGlyphOverBlankInColourThenStepCursor(m);
 
   let check = 0;
   for (let i = 0; i < CHECK_LEN; i++) check ^= mem8[CHECK_START + i];

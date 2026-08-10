@@ -16,7 +16,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { drawEmblemStripThenGuardImage as candidate } from "../drawEmblemStripThenGuardImage.js";
 import { loc_4d72 as oracle } from "../../translated/loc_4d72.js";
 import { loc_4daf } from "../loc_4daf.js";
-import { loc_4dcf } from "../loc_4dcf.js";
+import { paintGlyphOverBlankInColourThenStepCursor } from "../paintGlyphOverBlankInColourThenStepCursor.js";
 import { u8 } from "../../../../core/int.js";
 
 const TARGET = 0x4d72;
@@ -132,7 +132,7 @@ function variant({ enable = true, clamp = true, base = EMBLEM_BASE, colour = EMB
     }
     regs.b = blankGlyph;
     regs.c = blankColour;
-    if (blank) while (regs.de >= ROW_FLOOR) loc_4dcf(m);
+    if (blank) while (regs.de >= ROW_FLOOR) paintGlyphOverBlankInColourThenStepCursor(m);
     let check = 0;
     for (let i = 0; i < CHECK_LEN; i++) check ^= mem8[CHECK_START + i];
     if (u8(check + CHECK_BIAS) !== 0) throw new Error("altered");

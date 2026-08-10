@@ -2,12 +2,12 @@
 /** flyLiveSlotAndTickCountdown — service one live slot of the per-slot object sweep: fly the slot's object a step along
  * its velocity, retire it if that step took it past the retire line, tick the slot countdown one record in, then close the turn. LIVE-OUT: memory. */
 import { closeOneTurnOfTheSlotSweep } from "./closeOneTurnOfTheSlotSweep.js";
-import { loc_3e6c } from "./loc_3e6c.js";
+import { flyAndRetireSlotCyclingShapeInEra4 } from "./flyAndRetireSlotCyclingShapeInEra4.js";
 
 const COUNTDOWN_OFFSET = 0x0e;
 
 export function flyLiveSlotAndTickCountdown(m) {
-  loc_3e6c(m);
+  flyAndRetireSlotCyclingShapeInEra4(m);
   const countdown = (m.regs.ix + COUNTDOWN_OFFSET) & 0xffff;
   m.mem8[countdown] = m.mem8[countdown] - 1;
   return closeOneTurnOfTheSlotSweep(m);

@@ -15,7 +15,7 @@ import { flyLiveSlotAndTickCountdown as candidate } from "../flyLiveSlotAndTickC
 import { loc_418b as oracle } from "../../translated/loc_418b.js";
 import { loc_40ea as sweepBody } from "../../translated/loc_40ea.js";
 import { closeOneTurnOfTheSlotSweep } from "../closeOneTurnOfTheSlotSweep.js";
-import { loc_3e6c } from "../loc_3e6c.js";
+import { flyAndRetireSlotCyclingShapeInEra4 } from "../flyAndRetireSlotCyclingShapeInEra4.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { ERA_INDEX } from "../names.js";
 
@@ -148,17 +148,17 @@ function skip3e6c(m) {
   return closeOneTurnOfTheSlotSweep(m);
 }
 function skipCountdown(m) {
-  loc_3e6c(m);
+  flyAndRetireSlotCyclingShapeInEra4(m);
   return closeOneTurnOfTheSlotSweep(m);
 }
 function wrongCountdownCell(m) {
-  loc_3e6c(m);
+  flyAndRetireSlotCyclingShapeInEra4(m);
   const addr = (m.regs.ix + COUNTDOWN_OFFSET - 1) & 0xffff;
   m.mem8[addr] = m.mem8[addr] - 1;
   return closeOneTurnOfTheSlotSweep(m);
 }
 function skipCloseTurn(m) {
-  loc_3e6c(m);
+  flyAndRetireSlotCyclingShapeInEra4(m);
   const addr = (m.regs.ix + COUNTDOWN_OFFSET) & 0xffff;
   m.mem8[addr] = m.mem8[addr] - 1;
 }

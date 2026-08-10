@@ -237,11 +237,15 @@ above, whose failure arm is "wipe everything and start again". `[code]`
 The coinage switches are read once, complemented, and unpacked through a small ROM table into one
 byte per coin slot — `COIN_SLOT_1_RATIO` and `COIN_SLOT_2_RATIO`. Each byte packs **the number of
 coins required, less one, in the high nibble and the credits awarded in the low**, and the accept
-arm for that slot keeps its own accumulator: a coin steps the accumulator by one unit of the high
+arm for that slot keeps its own accumulator (`tallyCoinSlot1AndAwardCredit` for slot 1, `meterCoinageTowardCreditOnEdge` for slot 2): a coin steps the accumulator by one unit of the high
 nibble, and only when it reaches the required count is the low nibble added to the BCD credit
 count and the accumulator drawn down. The two slots are wholly independent, price included.
 `[seen]` — forced switch values under MAME produced exactly the coins-and-credits pair MAME's own
-label gives each setting, each destination following its own nibble alone.
+label gives each setting, each destination following its own nibble alone. A third debounced input bypasses the coinage table
+altogether: `awardOneCreditOnDebouncedInputEdge` rotates bit 2 of the port mirror through its own
+history cell `0xA983` and, on a clean `001` edge, adds a single credit and pulses the counter outright
+through the shared `awardCoinCreditThenPulseCoinCounter` tail — one flat credit per press, no
+accumulator and no ratio. `[code]`
 
 Free play is not a price. Either slot set to it raises `FREE_PLAY`, and the accept path then skips
 the credit arithmetic entirely rather than charging zero. `[seen]`
@@ -693,7 +697,11 @@ position to live in one place will not find it. `[code]`
 
 Offsets `0x00`–`0x05` and `0x0E`–`0x0F` mean the same thing to every family. **`+0x08`..`+0x0D` do
 not** — the player keeps the camera there, a shot keeps its frozen velocity there, and actor
-families use them differently again. Any single name for that block would be wrong for somebody.
+families use them differently again. Any single name for that block would be wrong for somebody. One writer into that block,
+`fileTwoPairsIntoObjectRecordHighByteFirst`, files a 16-bit pair into `+0x0C`/`+0x0D` and a second
+into `+0x1C`/`+0x1D` — the same field one 16-byte record further on, so a two-slot object gets one
+pair per slot — each stored **high byte first**, the reverse of a word. It reads and tests nothing;
+the four values go down exactly as they arrive. `[code]`
 
 | off | meaning |
 |---|---|
@@ -784,6 +792,16 @@ slow-fly step, homes directly on the ship with `steerEnemyTowardShip`, and anima
 cycle. **The era binding is a property of that outer table, not of the bodies** — none of the five
 reads `0xAD04` itself. `[code]`
 
+★ **The fixed and ballistic object banks run a simpler ladder of their own.** Their per-slot servicer
+`serviceSlotByHeadByte` splits three ways on the record's head byte: `0x00` does nothing, `0xFF` flies
+the object one step along its stored velocity and retires it into the shared cooldown only once that
+step has landed it on a retire line, and any other value retires it on the spot without moving it
+first. `serviceFixedSlotInEra1` is that same servicer behind an era gate — it acts only while
+`ERA_INDEX 0xAD04` reads 1, seating the fixed record `0xA8E0` and sprite entry `0xAA2C` before handing
+off — and `flyAndRetireSlotCyclingShapeInEra4` is the fly-then-retire arm with one addition: in era 4
+alone it advances a fixed shape cycle before the object moves, so a shape written this tick may go out
+in the same breath. `[code]`
+
 ### An animation is a run of shape bytes, walked BACKWARDS by its own timer
 
 A record's animation is three bytes of the record and one table. The selector byte picks a run out
@@ -828,6 +846,14 @@ an object can get behind a camera that never moves. `[code]`
 more than three pixels a frame on the retiring axis can jump the line and go round again. Whether
 anything in the game is that fast is unresolved; the shot family notably uses its own explicit range
 test instead of this routine, which is suggestive and not proof.
+
+A second boundary test chooses its line from the object rather than from a fixed pair.
+`hasReachedBoundaryBandSelectedByHeading` reads the heading at record `+0x02`: half the compass hands
+the question straight to `hasDriftedOffTheField`, which owns the three-wide band nearest the wrap; the
+other half tests the adjacent band on the same entry coordinate `+0x31`, and only on a miss there does
+the question pass to the test on the other coordinate. The two halves ask about two adjacent,
+non-overlapping bands, so the direction an object is arriving from picks its own edge. It writes
+nothing and answers in carry; its caller frees the slot on a yes. `[code]`
 
 ### Two ways onto the screen — and shots use the second one
 
@@ -1160,8 +1186,10 @@ meter. `[code]`
 own a slot pool — they time-share the single three-slot bank at `0xA8C0` (records `0xA8C0`-`0xA8E0`,
 sprite entries from `0xAA28`), and which handler drives it changes with the era index. In era 0 the
 bank holds ordinary swept objects, walked a frame at a time by `sweepObjectSlotBankByHead` /
-`sweepObjectSlotBankServicingFirstSlot` (two interior entries of one loop, dispatched from
-`serviceEra0BallisticObjectBank`); in era 1 `armBomberSlotWhenTimerFires` arms the 1940 bomber into slot 0 on an even-frame
+`sweepObjectSlotBankServicingFirstSlot` / `advanceSlotThenSweepObjectBankByHead` (three interior
+entries of one loop, dispatched from `serviceEra0BallisticObjectBank`, which strides over an empty
+first slot with the advance entry, flies a ballistic `0xFF` one a frame, and hands any other marker to
+the servicing sweep); in era 1 `armBomberSlotWhenTimerFires` arms the 1940 bomber into slot 0 on an even-frame
 countdown; in era 2 `stepDriftingCountdownObjectByEraFrames` runs a world-drifting bonus craft in the
 same slot. Watched under MAME: which handler services slot 0 changes with the era index — read per
 era by tapping the bank's occupancy — and the era-1 occupant, isolated by a negative control, is the
@@ -1726,6 +1754,13 @@ codes `0x32`/`0x33` and the four-tile one laying `0x23`-`0x26`, both coloured `0
 `[seen]`. **The strip is fourteen positions long whatever the value**, padded out with the blanking
 glyph. The second posting site, the one that passes `ROUND_NUMBER`, still needs a completed round
 and no tape has finished one.
+
+A different ring command draws its strip the same way: command 5's handler
+`drawEmblemStripThenGuardImage` stamps up to six award emblems and then pads the rest of that row,
+`0xA783` down to the floor `0xA623`, with the blanking glyph — cell by cell through
+`paintGlyphOverBlankInColourThenStepCursor`, which writes the caller's glyph, drops the blank `0xF1`
+one address below it, lays the colour beside both in the plane, and steps the cursor (here the glyph is
+passed as `0xF1` too, so both cells come out blank). `[code]`
 
 ### A grid of empty boxes runs at power-on, and is wiped before the attract loop
 

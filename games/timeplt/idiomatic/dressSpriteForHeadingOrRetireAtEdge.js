@@ -9,7 +9,7 @@
  * tail leaves. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { loc_3cc4 } from "./loc_3cc4.js";
+import { hasReachedBoundaryBandSelectedByHeading } from "./hasReachedBoundaryBandSelectedByHeading.js";
 import { retireEntryPairIntoCooldown } from "./retireEntryPairIntoCooldown.js";
 import { offsetAddress } from "./offsetAddress.js";
 import { loc_44c9 } from "./loc_44c9.js";
@@ -41,7 +41,7 @@ export function dressSpriteForHeadingOrRetireAtEdge(m) {
   const record = regs.ix;
   const entry = regs.iy;
 
-  if (loc_3cc4(m)) return retireEntryPairIntoCooldown(m);
+  if (hasReachedBoundaryBandSelectedByHeading(m)) return retireEntryPairIntoCooldown(m);
 
   const era = mem8[ERA_INDEX];
 

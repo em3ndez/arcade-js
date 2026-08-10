@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3cc4 — answer whether an object has arrived at a boundary, choosing WHICH boundary from the
+/** hasReachedBoundaryBandSelectedByHeading — answer whether an object has arrived at a boundary, choosing WHICH boundary from the
  * heading in its record. Half the compass hands the question straight on to the test that owns the
  * band closest to the wrap; the other half tests the band of three that sits directly below it on
  * the same sprite-entry coordinate, and only when that misses does the question pass to the test
@@ -19,7 +19,7 @@ const STARTS_BELOW_WRAP = 19;
 const QUARTER_TURN = 64;
 const HALF_A_TURN = 128;
 
-export function loc_3cc4(m, object = m.regs.ix, spriteEntry = m.regs.iy) {
+export function hasReachedBoundaryBandSelectedByHeading(m, object = m.regs.ix, spriteEntry = m.regs.iy) {
   const { mem8, regs } = m;
   const turned = u8(mem8[u16(object + HEADING_IN_RECORD)] + QUARTER_TURN);
   if (turned >= HALF_A_TURN) return hasDriftedOffTheField(m, spriteEntry);

@@ -4,7 +4,7 @@
  * it, or hand any other first-slot marker to the servicing sweep; outside era zero do nothing.
  * LIVE-OUT: memory. */
 
-import { loc_400b } from "./loc_400b.js";
+import { advanceSlotThenSweepObjectBankByHead } from "./advanceSlotThenSweepObjectBankByHead.js";
 import { sweepObjectSlotBankServicingFirstSlot } from "./sweepObjectSlotBankServicingFirstSlot.js";
 import { flyAlongBallisticArc } from "./flyAlongBallisticArc.js";
 
@@ -24,8 +24,8 @@ export function serviceEra0BallisticObjectBank(m) {
   regs.b = BANK_SLOTS;
 
   const marker = mem8[regs.ix];
-  if (marker === EMPTY) return loc_400b(m);
+  if (marker === EMPTY) return advanceSlotThenSweepObjectBankByHead(m);
   if (marker !== BALLISTIC) return sweepObjectSlotBankServicingFirstSlot(m);
   flyAlongBallisticArc(m);
-  return loc_400b(m);
+  return advanceSlotThenSweepObjectBankByHead(m);
 }

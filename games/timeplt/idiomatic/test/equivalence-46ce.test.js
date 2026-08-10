@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_46ce — memory-equivalent to the frozen oracle at ROM 0x46CE.
+ * fileTwoPairsIntoObjectRecordHighByteFirst — memory-equivalent to the frozen oracle at ROM 0x46CE.
  *
  * WHAT IT IS. Four stores into an object's record: one register pair into two adjacent slots, a
  * second pair into two more sixteen slots further on, each high byte first. It reads nothing.
@@ -41,7 +41,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_46ce } from "../loc_46ce.js";
+import { fileTwoPairsIntoObjectRecordHighByteFirst } from "../fileTwoPairsIntoObjectRecordHighByteFirst.js";
 import { loc_46ce as oracle } from "../../translated/loc_46ce.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -95,7 +95,7 @@ function replaySession(candidate) {
 }
 
 let cache = null;
-const session = () => (cache ??= replaySession(loc_46ce));
+const session = () => (cache ??= replaySession(fileTwoPairsIntoObjectRecordHighByteFirst));
 
 let entry = null;
 function entryState() {
@@ -231,11 +231,11 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_46ce == oracle on the WHOLE dump", { skip }, () => {
+test("EQUAL at the real dispatch: fileTwoPairsIntoObjectRecordHighByteFirst == oracle on the WHOLE dump", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_46ce(b);
+  fileTwoPairsIntoObjectRecordHighByteFirst(b);
   assert.deepEqual(allDiffs(a, b), [], "RAM diverged with nothing masked");
   console.log(`  EQUAL: record=${hex4(entryState().regs.ix)}; identical, stack bytes included`);
 });
@@ -251,7 +251,7 @@ test("NOT VACUOUS: a no-op candidate FAILS, and the arm says where", { skip }, (
 });
 
 test("EXCLUDED, deliberately: pinned over the whole crafted space", { skip }, () => {
-  assert.deepEqual(movedRegisters(loc_46ce), EXCLUDED, "the excluded set changed shape");
+  assert.deepEqual(movedRegisters(fileTwoPairsIntoObjectRecordHighByteFirst), EXCLUDED, "the excluded set changed shape");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc — nothing else moves`);
 });
 
@@ -263,12 +263,12 @@ test("CORPUS: the real dispatches replay identically, and there is exactly one",
 });
 
 test("CRAFTED: four bytes swept on three record bases, one of which wraps", { skip }, () => {
-  assert.equal(sweepCaught(loc_46ce), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(fileTwoPairsIntoObjectRecordHighByteFirst), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  CRAFTED: ${SWEEP_SIZE} comparisons identical`);
 });
 
 test("WHOLE-MACHINE: the attract session differs only where the interrupt pushes", { skip }, () => {
-  const r = wholeRunCells(loc_46ce);
+  const r = wholeRunCells(fileTwoPairsIntoObjectRecordHighByteFirst);
   assert.equal(r.threw, null, `the run threw: ${r.threw}`);
   assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
   assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);

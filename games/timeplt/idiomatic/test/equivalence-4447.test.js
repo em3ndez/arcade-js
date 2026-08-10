@@ -15,7 +15,7 @@ import { makeMachine, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { dressSpriteForHeadingOrRetireAtEdge as candidate } from "../dressSpriteForHeadingOrRetireAtEdge.js";
 import { loc_4447 as oracle } from "../../translated/loc_4447.js";
-import { loc_3cc4 } from "../loc_3cc4.js";
+import { hasReachedBoundaryBandSelectedByHeading } from "../hasReachedBoundaryBandSelectedByHeading.js";
 import { retireEntryPairIntoCooldown } from "../retireEntryPairIntoCooldown.js";
 import { offsetAddress } from "../offsetAddress.js";
 import { loc_44c9 } from "../loc_44c9.js";
@@ -164,7 +164,7 @@ function twin(f) {
     const { regs, mem8 } = m;
     const record = regs.ix;
     const entry = regs.iy;
-    if (loc_3cc4(m)) { if (!f.skipRetire) retireEntryPairIntoCooldown(m); return; }
+    if (hasReachedBoundaryBandSelectedByHeading(m)) { if (!f.skipRetire) retireEntryPairIntoCooldown(m); return; }
     const era = mem8[ERA_INDEX];
     if (era === FLUTTER_ERA) {
       const seed = mem8[record + 4];

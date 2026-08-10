@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3cc4 — memory-equivalent to the frozen oracle at ROM 0x3CC4.
+ * hasReachedBoundaryBandSelectedByHeading — memory-equivalent to the frozen oracle at ROM 0x3CC4.
  *
  * GATE: strict unit-capture with NO exclusion — the frozen routine pushes nothing and writes
  *   nothing — plus a live-out comparison on the carry flag and the returned boolean, a sweep that
@@ -55,7 +55,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, romsPresent } from "./_harness.js";
-import { loc_3cc4 } from "../loc_3cc4.js";
+import { hasReachedBoundaryBandSelectedByHeading } from "../hasReachedBoundaryBandSelectedByHeading.js";
 import { loc_3cc4 as oracle } from "../../translated/loc_3cc4.js";
 import { unitEquivalence, wholeMachineEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS, F_C } from "../../../../core/cpu/z80.js";
@@ -365,7 +365,7 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("CONTRACT: the shared unit harness reaches the routine and RAM is identical", { skip }, () => {
-  const r = unitEquivalence(attractMachine, TARGET, oracle, loc_3cc4, { maxFrames: REACH_FRAMES });
+  const r = unitEquivalence(attractMachine, TARGET, oracle, hasReachedBoundaryBandSelectedByHeading, { maxFrames: REACH_FRAMES });
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   console.log(`  CONTRACT: reached within ${REACH_FRAMES} frames; RAM identical`);
 });
@@ -377,7 +377,7 @@ test("EQUAL at the real dispatch: the whole dump, the carry and the returned boo
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  const returned = loc_3cc4(b);
+  const returned = hasReachedBoundaryBandSelectedByHeading(b);
   assert.deepEqual(allDiffs(a, b), [], `a byte diverged — ${show(allDiffs(a, b)[0])}`);
   assert.equal(carry(a), carry(b), "the carry the answer rides in diverged");
   assert.equal(returned, carry(a), "the returned boolean disagrees with the carry");
@@ -435,7 +435,7 @@ test("ARM REACH: two arms are taken by real play and the third by none", { skip 
 });
 
 test("CORPUS: every captured dispatch of three sessions is identical", { skip }, () => {
-  const caught = corpusCaught(loc_3cc4);
+  const caught = corpusCaught(hasReachedBoundaryBandSelectedByHeading);
   const captured = sessions().map((s) => s.entries.length);
   console.log(`  CORPUS: ${captured.join("/")} captured dispatches, RAM and the answer identical`);
   assert.deepEqual(caught, [0, 0, 0], "the rewrite diverged on a real dispatch");
@@ -457,7 +457,7 @@ test("EXCLUDED, as a CEILING: no register outside the declared set moves", { ski
     a.mem8[u16(a.regs.iy + SECOND_COORDINATE)] = second;
     const b = a.clone();
     oracle(a);
-    loc_3cc4(b);
+    hasReachedBoundaryBandSelectedByHeading(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
   }
   const strays = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
@@ -474,13 +474,13 @@ test("HEADING SWEEP: all 256 headings choose the same arm", { skip }, () => {
     localArm(SPLIT_FIRST, SPLIT_SECOND),
     "the sweep's coordinate pair no longer separates the two arms, so this arm proves nothing",
   );
-  assert.equal(headingSweepCaught(loc_3cc4), 0, "the rewrite chose a different arm somewhere");
+  assert.equal(headingSweepCaught(hasReachedBoundaryBandSelectedByHeading), 0, "the rewrite chose a different arm somewhere");
   console.log(`  HEADING SWEEP: ${HEADINGS} headings, on a pair the two arms disagree about`);
 });
 
 test("PLANE SWEEP: all 65536 coordinate pairs, on a heading from EACH arm", { skip }, () => {
   for (const heading of [HEADING_FAR, HEADING_LOCAL]) {
-    assert.equal(planeSweepCaught(loc_3cc4, heading), 0, `diverged somewhere at heading ${heading}`);
+    assert.equal(planeSweepCaught(hasReachedBoundaryBandSelectedByHeading, heading), 0, `diverged somewhere at heading ${heading}`);
   }
   console.log(`  PLANE SWEEP: ${2 * PLANE} pairs across the two arms, carry and return identical`);
 });
@@ -494,9 +494,9 @@ test("THE REUSED MACHINES ARE SOUND: clone-per-point agrees on a sample", { skip
     m.mem8[u16(m.regs.ix + HEADING_IN_RECORD)] = heading;
     m.mem8[u16(m.regs.iy + FIRST_COORDINATE)] = first;
     m.mem8[u16(m.regs.iy + SECOND_COORDINATE)] = second;
-    assert.equal(unitDiff(loc_3cc4, m), null, `clone-per-point diverged at ${heading},${first},${second}`);
+    assert.equal(unitDiff(hasReachedBoundaryBandSelectedByHeading, m), null, `clone-per-point diverged at ${heading},${first},${second}`);
     assert.equal(
-      answerDiffers(loc_3cc4, heading, first, second),
+      answerDiffers(hasReachedBoundaryBandSelectedByHeading, heading, first, second),
       false,
       `the reused arena disagrees with clone-per-point at ${heading},${first},${second}`,
     );
@@ -505,7 +505,7 @@ test("THE REUSED MACHINES ARE SOUND: clone-per-point agrees on a sample", { skip
 });
 
 test("WHOLE-MACHINE: an undriven session is byte-identical with the rewrite wired", { skip }, () => {
-  const w = replay(loc_3cc4);
+  const w = replay(hasReachedBoundaryBandSelectedByHeading);
   assert.ok(w.invocations.get(TARGET) > 0, "vacuous: the override never dispatched");
   assert.equal(w.framesCompared, WHOLE_FRAMES, "the replay ran short of the frames asked for");
   assert.equal(w.equal, true, `forked at frame ${w.frame} on ${hex4(w.addr ?? 0)}`);

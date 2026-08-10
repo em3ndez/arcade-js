@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4dcf — memory-equivalent to the frozen oracle at ROM 0x4DCF.
+ * paintGlyphOverBlankInColourThenStepCursor — memory-equivalent to the frozen oracle at ROM 0x4DCF.
  *
  * WHAT IT IS. Four cells written — a caller's glyph, the blanking glyph one address below it, and
  * the caller's colour beside both — and then the cursor stepped one place along the line by the
@@ -45,7 +45,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4dcf } from "../loc_4dcf.js";
+import { paintGlyphOverBlankInColourThenStepCursor } from "../paintGlyphOverBlankInColourThenStepCursor.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
 import { loc_4dcf as oracle } from "../../translated/loc_4dcf.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -129,7 +129,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_4dcf);
+  if (entry === null) gate(paintGlyphOverBlankInColourThenStepCursor);
   return entry;
 }
 
@@ -212,7 +212,7 @@ function replaySession(factory, candidate) {
 let sessionCache = null;
 function sessions() {
   if (sessionCache) return sessionCache;
-  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, loc_4dcf) }));
+  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, paintGlyphOverBlankInColourThenStepCursor) }));
   return sessionCache;
 }
 
@@ -393,14 +393,14 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the scratch window", { skip }, () => {
-  gate(loc_4dcf);
+  gate(paintGlyphOverBlankInColourThenStepCursor);
   assert.notEqual(entry, null, "vacuous: the session never reached the routine");
   const e = entryState();
   const sp = e.regs.sp;
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_4dcf(b);
+  paintGlyphOverBlankInColourThenStepCursor(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -434,7 +434,7 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole cross"
     const a = craft(cursor, glyph, colour);
     const b = a.clone();
     oracle(a);
-    loc_4dcf(b);
+    paintGlyphOverBlankInColourThenStepCursor(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
@@ -466,14 +466,14 @@ test("CORPUS: every dispatch of three real sessions replays identically", { skip
 
 test("CRAFTED: every cursor x glyph x colour combination is identical", { skip }, () => {
   for (const [cursor, glyph, colour] of cross()) {
-    const d = unitDiff(loc_4dcf, craft(cursor, glyph, colour));
+    const d = unitDiff(paintGlyphOverBlankInColourThenStepCursor, craft(cursor, glyph, colour));
     assert.equal(d, null, `cursor ${hex4(cursor)} glyph ${glyph} colour ${colour}: ${show(d)}`);
   }
   console.log(`  CRAFTED: ${cross().length} entries identical`);
 });
 
 test("WHOLE-MACHINE: a driven session differs only in stack scratch", { skip }, () => {
-  const r = wholeRunCells(loc_4dcf);
+  const r = wholeRunCells(paintGlyphOverBlankInColourThenStepCursor);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,

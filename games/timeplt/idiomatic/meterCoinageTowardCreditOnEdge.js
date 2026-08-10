@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4911 — one tick of a phase-gated credit drip. A selector bit is rotated into a phase cell;
+/** meterCoinageTowardCreditOnEdge — one tick of a phase-gated credit drip. A selector bit is rotated into a phase cell;
  * unless its low three bits read 1 the tick does nothing. When they do it requests a sound, bumps a
  * counter, and steps a low/high byte pair: the low byte climbs by sixteen, and only while the high
  * byte trails it is the low byte pulled back and the credit-and-coin tail run. LIVE-OUT: memory. */
@@ -17,7 +17,7 @@ const STEP = 0x10;
 const PHASE_MASK = 0x07;
 const READY = 0x01;
 
-export function loc_4911(m) {
+export function meterCoinageTowardCreditOnEdge(m) {
   const { regs, mem8 } = m;
 
   regs.a = mem8[SELECTOR];

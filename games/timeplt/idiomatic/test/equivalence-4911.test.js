@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4911 — memory-equivalent to the frozen oracle at ROM 0x4911. Both tapes DO dispatch it (~1165
+ * meterCoinageTowardCreditOnEdge — memory-equivalent to the frozen oracle at ROM 0x4911. Both tapes DO dispatch it (~1165
  * times each) but always with the selector/phase cells at zero, so every real entry takes the first
  * ret nz and is a no-op; the crafted cross forces the phase gate open to exercise the sound request,
  * the counter bump, the low/high stepping and the credit-and-coin tail. RAM compared with the dead
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4911 as candidate } from "../loc_4911.js";
+import { meterCoinageTowardCreditOnEdge as candidate } from "../meterCoinageTowardCreditOnEdge.js";
 import { loc_4911 as oracle } from "../../translated/loc_4911.js";
 import { loc_57f1 } from "../loc_57f1.js";
 import { awardCoinCreditThenPulseCoinCounter as award } from "../awardCoinCreditThenPulseCoinCounter.js";

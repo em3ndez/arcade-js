@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_48e7 vs the frozen oracle at ROM 0x48E7. The shared tape reaches this address every frame but
+ * awardOneCreditOnDebouncedInputEdge vs the frozen oracle at ROM 0x48E7. The shared tape reaches this address every frame but
  * only ever in the quiet branch — the port mirror reads zero, so the leading edge never fires — so
  * the firing branch (sound + credit) is exercised from CRAFTED entries. The dissolved tail pushes a
  * return address and pops the caller's, so [floor, sp) is masked and a,f,h,l,sp are a ceiling.
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_48e7 } from "../loc_48e7.js";
+import { awardOneCreditOnDebouncedInputEdge } from "../awardOneCreditOnDebouncedInputEdge.js";
 import { loc_48e7 as oracle } from "../../translated/loc_48e7.js";
 import { loc_57f1 } from "../loc_57f1.js";
 import { awardCoinCreditThenPulseCoinCounter } from "../awardCoinCreditThenPulseCoinCounter.js";
@@ -112,7 +112,7 @@ test("REAL DISPATCH: the tape entry (quiet branch) is identical", { skip }, () =
   const e = base();
   assert.ok(!fires(e.mem8[IN0_MIRROR] >> INPUT_BIT, e.mem8[HISTORY]),
     "the tape entry unexpectedly fires; the quiet-branch account above is stale");
-  assert.equal(unitDiff(loc_48e7, e), null, "the tape dispatch diverged");
+  assert.equal(unitDiff(awardOneCreditOnDebouncedInputEdge, e), null, "the tape dispatch diverged");
   console.log(`  REAL DISPATCH: entry sp=${hex4(e.regs.sp)} input=${e.mem8[IN0_MIRROR]} identical`);
 });
 
@@ -120,7 +120,7 @@ test("CRAFTED EDGE: firing branch identical, and it actually moves memory", { sk
   for (const [label, fp] of [["paid", 0x00], ["free-play", 0x01]]) {
     const e = craft(1, 0x00, fp); // bit set, history clear -> low three bits become 001
     assert.ok(fires(1, 0x00), "the crafted edge does not fire; the craft is wrong");
-    assert.equal(unitDiff(loc_48e7, e), null, `${label}: firing branch diverged`);
+    assert.equal(unitDiff(awardOneCreditOnDebouncedInputEdge, e), null, `${label}: firing branch diverged`);
     const fp2 = footprint(e);
     assert.ok(fp2.real > 0, `${label}: the oracle moved nothing outside the stack — vacuous`);
     assert.ok(fp2.floor > DATA_TOP, `${label}: the stack window ${hex4(fp2.floor)} reached into data`);
@@ -133,7 +133,7 @@ test("EXHAUSTIVE: every history byte, both bit states, both free-play states", {
   for (let h = 0; h < 256; h++) {
     for (const bit of [0, 1]) {
       for (const fp of [0x00, 0x01]) {
-        const d = unitDiff(loc_48e7, craft(bit, h, fp));
+        const d = unitDiff(awardOneCreditOnDebouncedInputEdge, craft(bit, h, fp));
         assert.equal(d, null, `bit=${bit} history=${hex4(h)} free-play=${fp}: ${show(d)}`);
       }
       (fires(bit, h) ? fired++ : quiet++);
@@ -147,7 +147,7 @@ test("SP AND SCRATCH: the drift is two bytes and the floor sits above the data",
   const a = craft(1, 0x00, 0x00).clone();
   const b = a.clone();
   oracle(a);
-  loc_48e7(b);
+  awardOneCreditOnDebouncedInputEdge(b);
   assert.equal((a.regs.sp - b.regs.sp) & 0xffff, 2, "the oracle no longer re-seats two bytes higher");
   console.log(`  SP AND SCRATCH: spDiff 2, oracle sp=${hex4(a.regs.sp)} rewrite sp=${hex4(b.regs.sp)}`);
 });
@@ -212,7 +212,7 @@ function brokenWrongBit(m) {
 
 /** BUG: scribbles a register outside the ceiling; the control that proves the register check bites. */
 function brokenMovesSpareRegister(m) {
-  const r = loc_48e7(m);
+  const r = awardOneCreditOnDebouncedInputEdge(m);
   m.regs.d = (m.regs.d + 1) & 0xff;
   return r;
 }

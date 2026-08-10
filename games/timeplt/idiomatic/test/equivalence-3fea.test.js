@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { serviceEra0BallisticObjectBank as candidate } from "../serviceEra0BallisticObjectBank.js";
 import { loc_3fea as oracle } from "../../translated/loc_3fea.js";
-import { loc_400b } from "../loc_400b.js";
+import { advanceSlotThenSweepObjectBankByHead } from "../advanceSlotThenSweepObjectBankByHead.js";
 import { sweepObjectSlotBankServicingFirstSlot as sweep } from "../sweepObjectSlotBankServicingFirstSlot.js";
 import { flyAlongBallisticArc as fly } from "../flyAlongBallisticArc.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -131,10 +131,10 @@ function twinBody({ era = true, ix = 0xa8c0, iy = 0xaa28, b = 3, guardEmpty = tr
     if (era && mem8[ERA_INDEX] !== 0) return;
     regs.ix = ix; regs.iy = iy; regs.b = b;
     const marker = mem8[regs.ix];
-    if (guardEmpty && marker === EMPTY) return loc_400b(m);
+    if (guardEmpty && marker === EMPTY) return advanceSlotThenSweepObjectBankByHead(m);
     if (marker !== BALLISTIC) return sweep(m);
     if (flyBallistic) fly(m);
-    return loc_400b(m);
+    return advanceSlotThenSweepObjectBankByHead(m);
   };
 }
 
