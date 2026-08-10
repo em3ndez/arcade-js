@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_23e3 — advance the spawn-timing phase and, when it fires and no cooldown is running, seed
- * one object into a free slot of the six-slot bank; then move every live slot by the world scroll,
- * dropping any slot that leaves the field or whose head byte is stale. LIVE-OUT: memory. */
+/** fireAndSweepPlayerShots — on a fire-button rising edge arm and seed one shot into a free slot of the
+ * six-slot player-shot bank, aimed along the ship heading; then move every live shot by the world scroll,
+ * dropping any that leaves the field or whose head byte is stale. LIVE-OUT: memory. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { readPlayerControls } from "./readPlayerControls.js";
@@ -26,7 +26,7 @@ const AXIS2 = 5;
 const SEED1 = 10;
 const SEED2 = 12;
 
-export function loc_23e3(m) {
+export function fireAndSweepPlayerShots(m) {
   const { mem8, mem16 } = m;
   if (mem8[PLAYER_STATE] !== 0xff) return sweepSlots(m);
   if (mem8[SPAWN_INHIBIT] !== 0) return sweepSlots(m);

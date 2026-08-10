@@ -4,7 +4,7 @@
  *
  * ★ THIS IS NOT AN ORDINARY CALL TARGET. Nothing in the image executes `call 0x0174`. The vblank
  *   service at 0x00D9 does `ld hl,0x0174 / push hl` and then dispatches the phase arm through
- *   RST 0x30; the arm's own `ret` lands here, and loc_00d9's transcription follows that with a
+ *   RST 0x30; the arm's own `ret` lands here, and serviceVerticalBlankInterrupt's transcription follows that with a
  *   final `m.call(0x0174)`. So this address is reached as a CONTINUATION, and the stack it finds
  *   is the interrupt frame the service's prologue laid down — not a caller's return slot. That is
  *   why this rewrite ends in `m.ret()` where a normal one omits it, and why machine.js's

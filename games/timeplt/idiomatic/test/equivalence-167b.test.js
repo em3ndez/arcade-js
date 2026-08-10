@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_167b — memory-equivalent to the frozen oracle at ROM 0x167B.
+ * advanceSequenceElseStartFreePlayGame — memory-equivalent to the frozen oracle at ROM 0x167B.
  * GATE: every real coin-start dispatch plus a crafted entry for each of the four branches, on a
  *   MASKED memory diff that hides the body arm's two-byte return-address park (the dropped call to
  *   0x15b6). The register file is dropped; the void return value is asserted; teeth are caught
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, COIN_START_TAPE, romsPresent } from "./_harness.js";
-import { loc_167b } from "../loc_167b.js";
+import { advanceSequenceElseStartFreePlayGame } from "../advanceSequenceElseStartFreePlayGame.js";
 import { loc_167b as oracle } from "../../translated/loc_167b.js";
 import { advanceSequencePhase } from "../advanceSequencePhase.js";
 import { hideAllSprites } from "../hideAllSprites.js";
@@ -161,7 +161,7 @@ const TWINS = [
 test("REAL DISPATCHES: every coin-start dispatch is masked-identical", { skip }, () => {
   const entries = captureReal();
   for (const e of entries) {
-    const d = unitDiff(loc_167b, e);
+    const d = unitDiff(advanceSequenceElseStartFreePlayGame, e);
     assert.equal(d, null, `a real dispatch diverged: ${show(d)}`);
   }
   const writing = entries.filter((e) => footprint(e) > 0).length;
@@ -173,7 +173,7 @@ test("REAL DISPATCHES: every coin-start dispatch is masked-identical", { skip },
 
 test("CRAFTED ARMS: all four branches masked-identical, writing arms write", { skip }, () => {
   for (const [name, make] of Object.entries(ARMS)) {
-    assert.equal(unitDiff(loc_167b, make()), null, `arm ${name} diverged`);
+    assert.equal(unitDiff(advanceSequenceElseStartFreePlayGame, make()), null, `arm ${name} diverged`);
   }
   assert.equal(footprint(ARMS.A()), 2, "arm A no longer steps the sequence phase pair");
   assert.ok(footprint(ARMS.D()) > 2, "arm D no longer hides sprites and starts a game");
@@ -195,7 +195,7 @@ test("SP WINDOW: only the body arm parks, exactly two bytes above the data", { s
 test("LIVE-OUT: memory only — every arm returns undefined on both sides", { skip }, () => {
   for (const [name, make] of Object.entries(ARMS)) {
     assert.equal(oracle(make()), undefined, `arm ${name} oracle returned a value`);
-    assert.equal(loc_167b(make()), undefined, `arm ${name} rewrite returned a value`);
+    assert.equal(advanceSequenceElseStartFreePlayGame(make()), undefined, `arm ${name} rewrite returned a value`);
   }
   console.log("  LIVE-OUT: memory only; all four arms return undefined");
 });

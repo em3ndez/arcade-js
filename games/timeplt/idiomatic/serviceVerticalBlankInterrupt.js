@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_00d9 — the vertical-blank service. Stack both register banks, refresh the sprite banks and
+/** serviceVerticalBlankInterrupt — the vertical-blank service. Stack both register banks, refresh the sprite banks and
  * the deferred-cell lists, disarm the interrupt line and kick the watchdog, latch the five inverted
  * input/dip ports, step the frame and packed-decimal counters, wind three timers down toward zero,
  * run the per-frame subsystems, then dispatch one phase arm from an inline table and hand off to the
@@ -7,7 +7,7 @@
 
 import { publishSpriteShadow } from "./publishSpriteShadow.js";
 import { drainBothDeferredCellLists } from "./drainBothDeferredCellLists.js";
-import { loc_48be } from "./loc_48be.js";
+import { serviceCoinInputs } from "./serviceCoinInputs.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { sendOneQueuedSoundThenUnwindTheFrameInterrupt } from "./sendOneQueuedSoundThenUnwindTheFrameInterrupt.js";
 
@@ -38,7 +38,7 @@ const PHASE_INDEX = 0xa9ab;
 const PHASE_TABLE = 0x015f;
 const FRAME_EPILOGUE = 0x0174;
 
-export function loc_00d9(m) {
+export function serviceVerticalBlankInterrupt(m) {
   const { regs, mem8 } = m;
 
   m.push16(regs.bc);
@@ -76,7 +76,7 @@ export function loc_00d9(m) {
 
   for (const timer of TIMERS) if (mem8[timer] !== 0) mem8[timer] = mem8[timer] - 1;
 
-  loc_48be(m);
+  serviceCoinInputs(m);
 
   regs.a = mem8[PHASE_INDEX] & 0x03;
   regs.hl = PHASE_TABLE;

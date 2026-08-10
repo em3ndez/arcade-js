@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_00d9 — memory-equivalent to the frozen oracle at ROM 0x00d9, the vertical-blank service.
+ * serviceVerticalBlankInterrupt — memory-equivalent to the frozen oracle at ROM 0x00d9, the vertical-blank service.
  * GATE: unit-capture over a real corpus (the NMI dispatches this address once a frame), masking the
  * dead stack scratch and comparing RAM, every register, pc and the hardware latches. The mask width
  * is the oracle's own measured push depth; the floor is proved to sit above all game data, so the
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, START_FRAME, romsPresent } from "./_harness.js";
-import { loc_00d9 } from "../loc_00d9.js";
+import { serviceVerticalBlankInterrupt } from "../serviceVerticalBlankInterrupt.js";
 import { loc_00d9 as oracle } from "../../translated/loc_00d9.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -218,7 +218,7 @@ function brokenNoSubsystems(m) {
 
 /** BUG: scribbles an index register after unwinding — the control for the register arm. */
 function brokenMovesRegister(m) {
-  loc_00d9(m);
+  serviceVerticalBlankInterrupt(m);
   m.regs.iy = (m.regs.iy + 1) & 0xffff;
 }
 
@@ -235,7 +235,7 @@ const TWINS = [
 test("CORPUS: every captured dispatch replays identically outside the window", { skip }, () => {
   const entries = capture();
   for (const e of entries) {
-    const d = unitDiff(loc_00d9, e);
+    const d = unitDiff(serviceVerticalBlankInterrupt, e);
     assert.equal(d, null, show(d));
   }
   const foot = entries.map(footprint);
@@ -264,7 +264,7 @@ test("WINDOW: the mask is the oracle's push depth, its floor clears the data, in
 test("BOUNDARY: a byte below the window is caught, one inside is masked", { skip }, () => {
   const base = capture()[0];
   const scribbler = (offset) => (m) => {
-    loc_00d9(m);
+    serviceVerticalBlankInterrupt(m);
     const at = (base.regs.sp + offset) & 0xffff;
     m.mem8[at] = (m.mem8[at] + 1) & 0xff;
   };
@@ -280,7 +280,7 @@ test("BOUNDARY: a byte below the window is caught, one inside is masked", { skip
 
 test("REGISTERS: nothing moves, with a control twin that moves one", { skip }, () => {
   const base = capture()[0];
-  const clean = unitDiff(loc_00d9, base);
+  const clean = unitDiff(serviceVerticalBlankInterrupt, base);
   const control = unitDiff(brokenMovesRegister, base);
   assert.equal(clean, null, `a register moved: ${show(clean)}`);
   assert.notEqual(control, null,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4243 — on this object's one turn of the eight-frame round, and only once the shared spawn
+/** launchAttackerIntoFreeSlot — on this object's one turn of the eight-frame round, and only once the shared spawn
  * cooldown has run out, walk the object-record bank for a free slot; when one sits far enough from
  * either of two fixed lines, stash its record and paired-entry pointers, hand the caller's facing to
  * the launcher, and pick the aligned-facing launcher on era zero or the heading-follows one on the
@@ -25,7 +25,7 @@ const RECORD_STRIDE = 0x10;
 const FIRST_LINE = 0x78;
 const SECOND_LINE = 0x84;
 
-export function loc_4243(m) {
+export function launchAttackerIntoFreeSlot(m) {
   const { regs, mem8 } = m;
 
   if ((mem8[FRAME_COUNTER] & 7) + PHASE_BIAS !== mem8[regs.ix + 0x0f]) return;

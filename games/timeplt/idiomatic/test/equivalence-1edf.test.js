@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1edf — memory-equivalent to the frozen oracle at ROM 0x1edf. GATE: crafted-entry over real
+ * dispatchPlayerFrameByState — memory-equivalent to the frozen oracle at ROM 0x1edf. GATE: crafted-entry over real
  * captures; coin-start reaches the centred-scroll arm and the undriven demo reaches the no-play arm,
  * and pokes force the other three. Live-out is memory, so the diff is the whole dump outside the
  * masked stack scratch; the +2 ret re-seat is asserted and the dead register file is left alone.
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1edf as candidate } from "../loc_1edf.js";
+import { dispatchPlayerFrameByState as candidate } from "../dispatchPlayerFrameByState.js";
 import { loc_1edf as oracle } from "../../translated/loc_1edf.js";
 import { loc_2010 } from "../loc_2010.js";
 import { flyDemoShipByScript } from "../flyDemoShipByScript.js";

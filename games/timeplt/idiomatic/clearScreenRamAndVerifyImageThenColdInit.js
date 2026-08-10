@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_5866 — cold-start clear, then verify the program image and hand off to init.
+ * clearScreenRamAndVerifyImageThenColdInit — cold-start clear, then verify the program image and hand off to init.
  * Fills colour RAM with 0x10 and video RAM with 0xf1 (bases from two image pointers), then sums the
  * program image and subtracts the stored total: zero hands off to init, else derails into data.
  * LIVE-OUT: the two fills and the watchdog kicks (after fill one, then once per summed byte), then the handoff.
@@ -21,7 +21,7 @@ const DERAIL = 0x59d7;
 const u8 = (x) => x & 0xff;
 const u16 = (x) => x & 0xffff;
 
-export function loc_5866(m) {
+export function clearScreenRamAndVerifyImageThenColdInit(m) {
   const { mem8, mem16 } = m;
 
   const colourBase = mem16[COLOUR_BASE_PTR];

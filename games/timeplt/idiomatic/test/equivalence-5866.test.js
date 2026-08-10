@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_5866 — memory-equivalent to the frozen oracle at ROM 0x5866.
+ * clearScreenRamAndVerifyImageThenColdInit — memory-equivalent to the frozen oracle at ROM 0x5866.
  * GATE: crafted-boot-entry; the single boot dispatch replayed with the foreground loop (0x0B93)
  * severed to an empty coroutine so both arms stop at the same handover, comparing work RAM outside
  * the stack window, the LS259 and sound latches, and the watchdog kicks. The raw return is that
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_5866 as candidate } from "../loc_5866.js";
+import { clearScreenRamAndVerifyImageThenColdInit as candidate } from "../clearScreenRamAndVerifyImageThenColdInit.js";
 import { loc_5866 as oracle } from "../../translated/loc_5866.js";
 import { initColdStartRamThenSeedConfig } from "../initColdStartRamThenSeedConfig.js";
 import manifest from "../../manifest.js";

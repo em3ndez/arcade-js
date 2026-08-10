@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_167b — a shared tail of the sequence machine: on a nonzero credit count, step the outer
+/** advanceSequenceElseStartFreePlayGame — a shared tail of the sequence machine: on a nonzero credit count, step the outer
  * sequence phase and leave; otherwise, only under free play and while a start button is held, sweep every sprite off the picture and start a game charging no credit. LIVE-OUT: memory. */
 
 import { advanceSequencePhase } from "./advanceSequencePhase.js";
@@ -11,7 +11,7 @@ const FREE_PLAY = 0xa9c0;
 const IN0_MIRROR = 0xa9ae;
 const START_BUTTONS = 0x18;
 
-export function loc_167b(m) {
+export function advanceSequenceElseStartFreePlayGame(m) {
   const { mem8 } = m;
   if (mem8[CREDIT_COUNT] !== 0) return advanceSequencePhase(m);
   if (mem8[FREE_PLAY] === 0) return;

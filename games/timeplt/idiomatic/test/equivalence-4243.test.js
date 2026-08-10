@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4243 — memory-equivalent to the frozen oracle at ROM 0x4243.
+ * launchAttackerIntoFreeSlot — memory-equivalent to the frozen oracle at ROM 0x4243.
  * GATE: real coin-start dispatches replayed with the whole launcher chain running underneath, plus
  *   crafted entries forcing every internal exit and both dispatch targets, compared on the whole
  *   dump outside the dead stack scratch and then on registers against a measured ceiling. The frozen
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4243 } from "../loc_4243.js";
+import { launchAttackerIntoFreeSlot } from "../launchAttackerIntoFreeSlot.js";
 import { loc_4243 as oracle } from "../../translated/loc_4243.js";
 import { setTheLaunchFacingInsideOneAimWindow } from "../setTheLaunchFacingInsideOneAimWindow.js";
 import { loc_42b7 } from "../loc_42b7.js";
@@ -206,7 +206,7 @@ function makeTwin(defect) {
 
 /** BUG: scribbles IX, which both the routine and the launcher rely on; the register-only control. */
 function brokenMovesIx(m) {
-  loc_4243(m);
+  launchAttackerIntoFreeSlot(m);
   m.regs.ix = (m.regs.ix + 1) & 0xffff;
 }
 
@@ -226,7 +226,7 @@ test("CORPUS: every captured and crafted machine replays identically", { skip },
   const all = corpus();
   assert.ok(capture().length > 0, "vacuous: the tape never dispatched this address");
   for (const e of all) {
-    const d = unitDiff(loc_4243, e);
+    const d = unitDiff(launchAttackerIntoFreeSlot, e);
     assert.equal(d, null, show(d));
   }
   console.log(`  CORPUS: ${capture().length} captured + ${all.length - capture().length} crafted ` +
@@ -235,7 +235,7 @@ test("CORPUS: every captured and crafted machine replays identically", { skip },
 
 test("RETURN: the routine returns nothing, like the frozen tail", { skip }, () => {
   for (const e of [craftDispatch(0), craftDispatch(1), craftEarly("cooldown")]) {
-    assert.equal(loc_4243(e.clone()), undefined, "the rewrite returned a value");
+    assert.equal(launchAttackerIntoFreeSlot(e.clone()), undefined, "the rewrite returned a value");
   }
   console.log("  RETURN: undefined on both dispatch targets and an early exit");
 });
@@ -264,7 +264,7 @@ test("EXCLUDED, deliberately: no register outside the ceiling moves, with a cont
     }
     return moved;
   };
-  const moved = movedOver(loc_4243);
+  const moved = movedOver(launchAttackerIntoFreeSlot);
   const control = movedOver(brokenMovesIx);
   assert.ok(REG_FIELDS.some((k) => control.has(k) && !MOVED.includes(k)),
     "the measurement reports nothing outside the ceiling even for a twin that scribbles IX");

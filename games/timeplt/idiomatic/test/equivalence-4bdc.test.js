@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4bdc — memory-equivalent to the frozen oracle at ROM 0x4bdc.
+ * paintFiveLabelledNumericReadouts — memory-equivalent to the frozen oracle at ROM 0x4bdc.
  * GATE: the one attract dispatch plus crafted record contents; a MASKED diff excluding the stack
  * scratch the frozen side leaves below its seat, the two-byte SP drift asserted, F and SP the
  * register ceiling. The routine paints five readouts through loc_4c1f; the crafts vary the source
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_4bdc } from "../loc_4bdc.js";
+import { paintFiveLabelledNumericReadouts } from "../paintFiveLabelledNumericReadouts.js";
 import { loc_4bdc as oracle } from "../../translated/loc_4bdc.js";
 import { loc_4c1f } from "../loc_4c1f.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -89,7 +89,7 @@ function maskProbe(machine) {
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
-  loc_4bdc(b);
+  paintFiveLabelledNumericReadouts(b);
   return { low, seat, spDiff: (a.regs.sp - b.regs.sp) & 0xffff };
 }
 
@@ -117,7 +117,7 @@ function brokenNoOp() {}
 function brokenSkipLast(m) { paint(m, READOUTS.slice(0, 4)); }
 function brokenWrongPen(m) { paint(m, READOUTS.map(([s, c, p], i) => [s, c, i === 0 ? p ^ 1 : p])); }
 function brokenWrongCursor(m) { paint(m, READOUTS.map(([s, c, p], i) => [s, i === 0 ? c + 2 : c, p])); }
-function brokenMovesSpareRegister(m) { loc_4bdc(m); m.regs.b = (m.regs.b + 1) & 0xff; }
+function brokenMovesSpareRegister(m) { paintFiveLabelledNumericReadouts(m); m.regs.b = (m.regs.b + 1) & 0xff; }
 
 const TWINS = [
   ["no-op", brokenNoOp],
@@ -142,14 +142,14 @@ function movedOver(candidate) {
 test("REAL DISPATCH: the one attract dispatch, identical outside the scratch window", { skip }, () => {
   const entries = capture();
   assert.ok(entries.length > 0, "vacuous: nothing dispatched this address, so there is no real state to compare");
-  for (const e of entries) assert.equal(unitDiff(loc_4bdc, e), null, "a real dispatch diverged");
+  for (const e of entries) assert.equal(unitDiff(paintFiveLabelledNumericReadouts, e), null, "a real dispatch diverged");
   const footprints = entries.map(footprint);
   assert.ok(footprints.some((n) => n > 0), "the oracle wrote nothing, so a do-nothing rewrite would pass");
   console.log(`  REAL DISPATCH: ${entries.length} identical, footprints ${footprints.join(", ")} bytes`);
 });
 
 test("CRAFTED: varied record contents, identical outside the scratch window", { skip }, () => {
-  for (const p of PATTERNS) assert.equal(unitDiff(loc_4bdc, craft(p)), null, "a crafted entry diverged");
+  for (const p of PATTERNS) assert.equal(unitDiff(paintFiveLabelledNumericReadouts, craft(p)), null, "a crafted entry diverged");
   const s0 = (() => { const m = craft(PATTERNS[0]); oracle(m); return m.dumpState(); })();
   const s1 = (() => { const m = craft(PATTERNS[1]); oracle(m); return m.dumpState(); })();
   // Two record sets that paint the SAME RAM would make these crafts decoration.
@@ -165,12 +165,12 @@ test("SP AND SCRATCH: the drift is two bytes and the mask floor sits above the p
 });
 
 test("LIVE-OUT: memory-only, the routine returns nothing", { skip }, () => {
-  assert.equal(loc_4bdc(capture()[0].clone()), undefined, "the routine returned a value its callers do not read");
+  assert.equal(paintFiveLabelledNumericReadouts(capture()[0].clone()), undefined, "the routine returned a value its callers do not read");
   console.log("  LIVE-OUT: returns undefined");
 });
 
 test("EXCLUDED, deliberately: nothing moves outside the ceiling, with a control that does", { skip }, () => {
-  const moved = movedOver(loc_4bdc);
+  const moved = movedOver(paintFiveLabelledNumericReadouts);
   const control = movedOver(brokenMovesSpareRegister);
   // A clean reading proves nothing unless the same measurement flags a scribbled register.
   assert.ok(REG_FIELDS.some((k) => control.has(k) && !EXCLUDED.includes(k)),

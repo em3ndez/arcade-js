@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_23e3 — memory-equivalent to the frozen oracle at ROM 0x23e3.
+ * fireAndSweepPlayerShots — memory-equivalent to the frozen oracle at ROM 0x23e3.
  * GATE: masked-diff. The dissolved tail return drops the frozen side's push/ret, so [low, seat) is
  * masked and the two-byte drift asserted. Real dispatches idle (footprint zero), so crafted entries
  * force the spawn, table-full, integrate and cull paths; a scribble control keeps the idle arm honest.
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { u8, u16 } from "../../../../core/int.js";
-import { loc_23e3 } from "../loc_23e3.js";
+import { fireAndSweepPlayerShots } from "../fireAndSweepPlayerShots.js";
 import { loc_23e3 as oracle } from "../../translated/loc_23e3.js";
 import { queueTileStampForObject } from "../queueTileStampForObject.js";
 
@@ -92,7 +92,7 @@ function maskProbe(machine) {
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
-  const b = machine.clone(); loc_23e3(b);
+  const b = machine.clone(); fireAndSweepPlayerShots(b);
   return { low, seat, spDiff: a.regs.sp - b.regs.sp };
 }
 
@@ -107,8 +107,8 @@ function footprint(machine) {
 
 // ── broken twins ────────────────────────────────────────────────────────────
 function brokenNoOp() {}
-function brokenWrongCooldown(m) { loc_23e3(m); m.mem8[COOLDOWN] = u8(m.mem8[COOLDOWN] + 1); }
-function brokenWrongSlotHead(m) { loc_23e3(m); m.mem8[BANK] = u8(m.mem8[BANK] + 1); }
+function brokenWrongCooldown(m) { fireAndSweepPlayerShots(m); m.mem8[COOLDOWN] = u8(m.mem8[COOLDOWN] + 1); }
+function brokenWrongSlotHead(m) { fireAndSweepPlayerShots(m); m.mem8[BANK] = u8(m.mem8[BANK] + 1); }
 function brokenNeverCull(m) {
   const { mem8, mem16 } = m;
   if (mem8[COOLDOWN] !== 0) mem8[COOLDOWN] = u8(mem8[COOLDOWN] - 1);
@@ -130,7 +130,7 @@ function brokenNeverCull(m) {
 // ── the gate ────────────────────────────────────────────────────────────────
 test("REAL DISPATCHES: every captured entry identical, with a scribble control", { skip }, () => {
   const entries = captureReal();
-  for (const e of entries) assert.equal(unitDiff(loc_23e3, e), null, "a real dispatch diverged");
+  for (const e of entries) assert.equal(unitDiff(fireAndSweepPlayerShots, e), null, "a real dispatch diverged");
   const caught = entries.filter((e) => unitDiff(brokenWrongCooldown, e)).length;
   assert.ok(caught > 0, "the scribble twin passed every real entry, so this arm proves nothing");
   console.log(`  REAL: ${entries.length} identical; scribble control caught on ${caught}`);
@@ -139,7 +139,7 @@ test("REAL DISPATCHES: every captured entry identical, with a scribble control",
 test("CRAFTED PATHS: spawn, table-full, integrate and cull identical and non-vacuous", { skip }, () => {
   for (const [name, make] of Object.entries(CRAFTS)) {
     const e = make();
-    assert.equal(unitDiff(loc_23e3, e), null, `${name} diverged`);
+    assert.equal(unitDiff(fireAndSweepPlayerShots, e), null, `${name} diverged`);
     const fp = footprint(e);
     assert.ok(fp > 0, `${name} moves no memory, so its comparison is vacuous`);
     console.log(`  CRAFTED ${name}: identical, oracle moves ${fp} bytes`);

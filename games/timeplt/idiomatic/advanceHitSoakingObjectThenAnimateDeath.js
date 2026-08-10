@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3b94 — advance one object that is still soaking up hits. While HITS_REMAINING is left, spend
+/** advanceHitSoakingObjectThenAnimateDeath — advance one object that is still soaking up hits. While HITS_REMAINING is left, spend
  * one, keep the record live and re-request the pair of sounds, then hand off to the ordinary move.
  * Once no hits remain, run the record head down toward retirement, and at the values it crosses
  * reseat the sprite entry from the shape table. LIVE-OUT: memory. */
@@ -7,7 +7,7 @@
 import { u8 } from "../../../core/int.js";
 import { HITS_REMAINING } from "./names.js";
 import { requestTwoSounds } from "./requestTwoSounds.js";
-import { loc_3b77 } from "./loc_3b77.js";
+import { advanceTwoTileObjectThenTryAimedSpawn } from "./advanceTwoTileObjectThenTryAimedSpawn.js";
 import { retireObjectAndHold } from "./retireObjectAndHold.js";
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { postCommand } from "./postCommand.js";
@@ -15,7 +15,7 @@ import { fetchTableByte } from "./fetchTableByte.js";
 
 const SHAPE_TABLE = 0x3c09;
 
-export function loc_3b94(m) {
+export function advanceHitSoakingObjectThenAnimateDeath(m) {
   const { regs, mem8 } = m;
   const record = regs.ix;
   const entry = regs.iy;
@@ -25,7 +25,7 @@ export function loc_3b94(m) {
     mem8[HITS_REMAINING] = mem8[HITS_REMAINING] - 1;
     mem8[record] = 0xff;
     requestTwoSounds(m);
-    return loc_3b77(m);
+    return advanceTwoTileObjectThenTryAimedSpawn(m);
   }
 
   if (head >= 0x61) {

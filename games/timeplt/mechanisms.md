@@ -2376,9 +2376,9 @@ of that instruction; for the conditional jumps the flag byte is sampled at the f
 conditional that ran and fell through is never counted as a transfer. Heading writes are caught by a
 **write tap** attributed by `CURPC`, not by scanning operands.
 
-### ★ `loc_1f42` is not called by anything. It is the tail of `loc_1edf`.
+### ★ `loc_1f42` is not called by anything. It is the tail of `dispatchPlayerFrameByState`.
 
-`loc_1edf` is the player record's per-frame update. It takes two guards — the record's state byte
+`dispatchPlayerFrameByState` is the player record's per-frame update. It takes two guards — the record's state byte
 must be non-zero, and must be `0xFF` — and then splits into a stick arm and a demo arm. **Both arms
 end at `0x1F42`**, every time, and nothing else goes there.
 
@@ -2388,7 +2388,7 @@ residual is **zero** — 8425 against 8425 in **A**, 7006 against 7006 in **B** 
 against 6106 in **D**. Had anything reached `0x1F42` by a computed jump, a `call`, or a path nobody
 listed, the residual would have carried it. `[seen]`
 
-Callers of `loc_1edf` were counted the same way and also sum exactly: 7759 + 540 + 126 = 8425 in
+Callers of `dispatchPlayerFrameByState` were counted the same way and also sum exactly: 7759 + 540 + 126 = 8425 in
 **A**, 6177 + 1477 + 252 = 7906 in **B**, from `0x119C`, `0x16C3` and `0x56A9` respectively. All
 three are live. `[seen]`
 
@@ -2583,8 +2583,8 @@ methods, one answer. `[seen]`
 - **The fast turn rate in its own era.** Run **D** proves the arm and its step size. It does not
   prove that a player who reaches era 3 turns at 4, because no tape reached era 3 with a live
   player. The stage-poke driver §11 asks for would close this properly.
-- **Which caller of `loc_1edf` is the real per-frame one.** All three are live and their counts sum,
-  but nothing here says what the other two are for, and `loc_1edf` runs fewer times than there are
+- **Which caller of `dispatchPlayerFrameByState` is the real per-frame one.** All three are live and their counts sum,
+  but nothing here says what the other two are for, and `dispatchPlayerFrameByState` runs fewer times than there are
   frames.
 - **The heading's meaning at `+0x01`.** The record layout calls `+0x01` "the heading being turned
   toward", and `0x1A1F` clears it in the same breath as `0x1A1B` sets `+0x02` to `0x80`. The player's

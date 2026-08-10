@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_210e — memory-equivalent to the frozen oracle at ROM 0x210e.
+ * seedDemoAutopilotScript — memory-equivalent to the frozen oracle at ROM 0x210e.
  * GATE: crafted-entry. No tape reaches this seeder, so real machines captured at the frame NMI are
  * replayed with the demo selector and the two tamper cells poked to each arm, identically on both
  * sides. The return path is diffed on work RAM; the tamper path tails into the trap, whose first
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_210e } from "../loc_210e.js";
+import { seedDemoAutopilotScript } from "../seedDemoAutopilotScript.js";
 import { loc_210e as oracle } from "../../translated/loc_210e.js";
 import { loc_2251 } from "../loc_2251.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -133,7 +133,7 @@ function neverTraps(m) { // BUG: a failed readback returns instead of dropping i
 // ── the gate ──────────────────────────────────────────────────────────────────────────────
 test("RETURN PATH: every selector's seed matches, over real machines", { skip }, () => {
   const states = selectionStates();
-  assert.equal(count(loc_210e, states), 0, "a return-path crafted state diverged");
+  assert.equal(count(seedDemoAutopilotScript, states), 0, "a return-path crafted state diverged");
   assert.ok(footprint(states[0]) > 0, "the oracle writes nothing here, so the diff is vacuous");
   console.log(`  RETURN PATH: ${states.length} states identical; oracle footprint ${footprint(states[0])} bytes`);
 });
@@ -152,7 +152,7 @@ test("SEEDS: the seeder writes the counter and the selected pointer", { skip }, 
 
 test("TAMPER PATH: a failed readback drops into the trap and faults identically", { skip }, () => {
   const states = tamperStates();
-  assert.equal(count(loc_210e, states), 0, "a tamper-path crafted state diverged");
+  assert.equal(count(seedDemoAutopilotScript, states), 0, "a tamper-path crafted state diverged");
   const faulted = states.filter((s) => run(oracle, s).threw).length;
   assert.equal(faulted, states.length, "a tamper state did not fault, so the trap arm is vacuous");
   console.log(`  TAMPER PATH: ${states.length} states fault identically`);

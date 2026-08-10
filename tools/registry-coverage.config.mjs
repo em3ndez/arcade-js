@@ -8,7 +8,7 @@ export const UNWIRED = {
       "address, so no ROUTINES entry can name it, and it is not a dispatch target -- the frozen " +
       "layer never transfers to it; it reads m.beamPlan (recorded by the multiplexers) and drives " +
       "the machine's band accumulator, state-neutrally. A render support routine, not a ROM routine.",
-    "loc_00d9.js":
+    "serviceVerticalBlankInterrupt.js":
       "the vblank NMI SERVICE, reached only through the interrupt seam: loc_00d8 lands the NMI, " +
       "pushes AF and falls into it. It saves both register banks and unwinds the whole interrupt " +
       "frame, moving SP by 4 net. `withOmittedRet` seats a dispatch only where the rewrite leaves " +

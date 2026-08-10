@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_48be — memory-equivalent to the frozen oracle at ROM 0x48be. A five-call sequence whose ROM
+ * serviceCoinInputs — memory-equivalent to the frozen oracle at ROM 0x48be. A five-call sequence whose ROM
  * calls are all dissolved to direct imports, so the rewrite models no stack and omits its own ret.
  * Every dispatch of both tapes replays identically outside the masked stack scratch; crafted states
  * force each debounce edge and both coin-counter pulses; register drift is held to a measured
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_48be as candidate } from "../loc_48be.js";
+import { serviceCoinInputs as candidate } from "../serviceCoinInputs.js";
 import { loc_48be as oracle } from "../../translated/loc_48be.js";
 import { loc_48e7 } from "../loc_48e7.js";
 import { loc_4941 } from "../loc_4941.js";

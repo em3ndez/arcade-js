@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_210e — seed the attract-demo autopilot: pick a heading-command script by the demo selector,
+/** seedDemoAutopilotScript — seed the attract-demo autopilot: pick a heading-command script by the demo selector,
  * seat its dwell counter and little-endian pointer, then gate on the tamper readback. LIVE-OUT: memory-only. */
 
 import { u8 } from "../../../core/int.js";
 import { loc_2251 } from "./loc_2251.js";
 
-export function loc_210e(m) {
+export function seedDemoAutopilotScript(m) {
   const { regs, mem8 } = m;
 
   const selector = mem8[0xad14];

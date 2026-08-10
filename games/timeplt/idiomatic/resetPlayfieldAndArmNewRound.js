@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_19f0 — reset the whole playfield for a fresh round: clear the scroll and control cells, seat
+/** resetPlayfieldAndArmNewRound — reset the whole playfield for a fresh round: clear the scroll and control cells, seat
  * the ship sprite and shot slots, retire every object slot in its own way, clear four sprite
  * entries, seat the era's scenery band, then scatter one era-selected ten-byte record from a word
  * table into the cells that arm the round. LIVE-OUT: memory-only. */
@@ -27,7 +27,7 @@ const CLEARED_ENTRY_OFFSETS = [0, 2, 4, 6, 0x31, 0x33, 0x35, 0x37];
 const RECORD_TABLE = 0x1b04;
 const ERA_INDEX = 0xad04;
 
-export function loc_19f0(m) {
+export function resetPlayfieldAndArmNewRound(m) {
   const { regs, mem8, mem16 } = m;
 
   mem16[0xa808] = 0;

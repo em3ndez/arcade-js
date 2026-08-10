@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3b94 — memory-equivalent to the frozen oracle at ROM 0x3b94.
+ * advanceHitSoakingObjectThenAnimateDeath — memory-equivalent to the frozen oracle at ROM 0x3b94.
  * GATE: crafted-entry; no tape dispatches this address (its caller 0x3b5f runs but never takes the
  * branch), so entries are captured at that caller for a real SP and surrounding RAM, then one
  * object's hit count and record head are forced to walk each arm. The frozen side pushes and takes
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_3b94 } from "../loc_3b94.js";
+import { advanceHitSoakingObjectThenAnimateDeath } from "../advanceHitSoakingObjectThenAnimateDeath.js";
 import { loc_3b94 as oracle } from "../../translated/loc_3b94.js";
 import { HITS_REMAINING } from "../names.js";
 import { u8 } from "../../../../core/int.js";
@@ -110,7 +110,7 @@ function maskProbe(machine) {
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
-  loc_3b94(b);
+  advanceHitSoakingObjectThenAnimateDeath(b);
   return { low, seat, spDiff: a.regs.sp - b.regs.sp };
 }
 
@@ -142,7 +142,7 @@ function brokenNoOp() {}
 function brokenSkipHits(m) {
   const { regs, mem8 } = m;
   if (mem8[HITS_REMAINING] !== 0) { mem8[regs.ix] = 0xff; requestTwoSounds(m); return m.call(0x3b77); }
-  return loc_3b94(m);
+  return advanceHitSoakingObjectThenAnimateDeath(m);
 }
 
 function brokenSkipDrift(m) {
@@ -235,7 +235,7 @@ test("CRAFTED ARMS: the rewrite reproduces the oracle on every arm", { skip }, (
   for (const [label, hits, head, rich] of ARMS) {
     const machine = craft(hits, head, rich);
     assert.ok(footprint(machine) > 0, `the ${label} arm makes the oracle write nothing`);
-    const d = unitDiff(loc_3b94, machine);
+    const d = unitDiff(advanceHitSoakingObjectThenAnimateDeath, machine);
     assert.equal(d, null, `the ${label} arm diverged: ${d && (d.addr == null ? "" : hex4(d.addr) + " ")}${d && d.a}/${d && d.b}`);
   }
   console.log(`  CRAFTED ARMS: ${ARMS.length} arms identical`);

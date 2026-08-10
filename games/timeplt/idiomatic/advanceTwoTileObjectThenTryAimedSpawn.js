@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3b77 — advance a two-tile object one step: fly it along its stored velocity, then place its
+/** advanceTwoTileObjectThenTryAimedSpawn — advance a two-tile object one step: fly it along its stored velocity, then place its
  * second tile directly under the first (same X, Y dropped by sixteen). If it has reached a boundary,
  * retire it; otherwise dress the pair by heading and run the aimed-spawn attempt. LIVE-OUT: memory. */
 
@@ -16,7 +16,7 @@ const TILE_X = 0x00;
 const SECOND_TILE_X = 0x02;
 const TILE_DROP = 0x10;
 
-export function loc_3b77(m) {
+export function advanceTwoTileObjectThenTryAimedSpawn(m) {
   const { regs, mem8 } = m;
   const sprite = regs.iy;
 

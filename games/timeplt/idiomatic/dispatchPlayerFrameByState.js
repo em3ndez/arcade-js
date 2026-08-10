@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_1edf — seat the player record and its paired sprite entry, then route the frame on the
+/** dispatchPlayerFrameByState — seat the player record and its paired sprite entry, then route the frame on the
  * player-state byte: leave at once while it is clear, drive the multi-frame animation while it is
  * mid-count, and once it is fully wound either fly the demo pilot (no live play), turn the ship
  * toward the read stick, or just scroll the world when the stick is centred. LIVE-OUT: memory. */
@@ -14,7 +14,7 @@ import { PLAYER_STATE, PLAY_ACTIVE } from "./names.js";
 const PAIRED_ENTRY_SEAT = 0xaa10;
 const WOUND = 0xff;
 
-export function loc_1edf(m) {
+export function dispatchPlayerFrameByState(m) {
   const { regs, mem8 } = m;
   regs.ix = PLAYER_STATE;
   regs.iy = PAIRED_ENTRY_SEAT;
