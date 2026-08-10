@@ -8,6 +8,15 @@ export const UNWIRED = {
       "address, so no ROUTINES entry can name it, and it is not a dispatch target -- the frozen " +
       "layer never transfers to it; it reads m.beamPlan (recorded by the multiplexers) and drives " +
       "the machine's band accumulator, state-neutrally. A render support routine, not a ROM routine.",
+    "loc_00d9.js":
+      "the vblank NMI SERVICE, reached only through the interrupt seam: loc_00d8 lands the NMI, " +
+      "pushes AF and falls into it. It saves both register banks and unwinds the whole interrupt " +
+      "frame, moving SP by 4 net. `withOmittedRet` seats a dispatch only where the rewrite leaves " +
+      "SP where it found it or moves it by one return slot -- 0 or +2 -- so the seam cannot place " +
+      "this address, and wiring it in ROUTINES stops the generator on the first NMI (seam reports " +
+      "SP moved by 4, pc left at 0x0b93). Same class as sendOneQueuedSoundThenUnwindTheFrameInterrupt.js. " +
+      "The module and its equivalence-00d9 gate are correct and stay; the frozen layer runs it " +
+      "in-game via m.call (loc_00d8 -> 0x00d9, recorded in no-stale-mcall ALLOWED).",
     "sendOneQueuedSoundThenUnwindTheFrameInterrupt.js":
       "the vblank EPILOGUE: it unwinds the whole interrupt frame, so it legitimately moves SP by " +
       "22. `withOmittedRet` places a dispatch only where the rewrite leaves SP where it found it " +
