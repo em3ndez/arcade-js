@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_30a5 — memory-equivalent to the frozen oracle at ROM 0x30A5. The real coin dispatch is
+ * seatEraSceneryRowThenClearAndRunScenery — memory-equivalent to the frozen oracle at ROM 0x30A5. The real coin dispatch is
  * compared with the dead stack scratch masked and the two-byte tail drift asserted; a crafted era-
  * four entry drives the other branch; the seated stride-two run is read back; and teeth. The dropped
  * tail chain scrambles the scratch registers, so only RAM, the cursors and sp are compared.
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_30a5 as candidate } from "../loc_30a5.js";
+import { seatEraSceneryRowThenClearAndRunScenery as candidate } from "../seatEraSceneryRowThenClearAndRunScenery.js";
 import { loc_30a5 as oracle } from "../../translated/loc_30a5.js";
 import { sumByteRunAndCompareToExpected } from "../sumByteRunAndCompareToExpected.js";
 import { offsetAddress } from "../offsetAddress.js";

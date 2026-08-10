@@ -9,7 +9,7 @@
 
 import { runAllCollisionSweepsThisFrame } from "./runAllCollisionSweepsThisFrame.js";
 import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
-import { loc_4fe0 } from "./loc_4fe0.js";
+import { destroyMotherShipAndShotOnMutualHit } from "./destroyMotherShipAndShotOnMutualHit.js";
 import { FRAME_TICK, MOTHER_SHIP_ARMED, PLAYER_SHOT_ARRAY } from "./names.js";
 
 const TARGET_RECORDS = 0xa810;
@@ -42,7 +42,7 @@ export function dispatchEra4CollisionByFrameParity(m) {
 
   if (armed) {
     destroyTargetsHitByShots(m);
-    return loc_4fe0(m);
+    return destroyMotherShipAndShotOnMutualHit(m);
   }
   return destroyTargetsHitByShots(m);
 }

@@ -22,7 +22,7 @@ import { retireSlotIntoSharedCooldown } from "../retireSlotIntoSharedCooldown.js
 import { retireSlotIntoCooldown } from "../retireSlotIntoCooldown.js";
 import { retireSlotAndSubPixel } from "../retireSlotAndSubPixel.js";
 import { freeAndNumberEveryObjectSlot } from "../freeAndNumberEveryObjectSlot.js";
-import { loc_30a5 } from "../loc_30a5.js";
+import { seatEraSceneryRowThenClearAndRunScenery } from "../seatEraSceneryRowThenClearAndRunScenery.js";
 import { fetchTableWord } from "../fetchTableWord.js";
 import { u8 } from "../../../../core/int.js";
 
@@ -128,7 +128,7 @@ function runBody(m, { slots = 7, band = "shift", scatter = "full", clearEntries 
   }
   freeAndNumberEveryObjectSlot(m);
   if (clearEntries) for (const off of [0, 2, 4, 6, 0x31, 0x33, 0x35, 0x37]) mem8[0xaa28 + off] = 0;
-  loc_30a5(m);
+  seatEraSceneryRowThenClearAndRunScenery(m);
   const shifted = band === "shift" ? (mem8[ERA_INDEX] & 0x0f) << 4 : mem8[ERA_INDEX] & 0x0f;
   regs.a = u8(mem8[BAND_SOURCE] + shifted);
   regs.hl = RECORD_TABLE;

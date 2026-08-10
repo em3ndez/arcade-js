@@ -530,6 +530,11 @@ at three quarters and two at half. The fastest rung there carries the smallest m
 in the game. `[seen]` for the composition, from the dispatch counts of the era-4 run; `[code]`
 for reading the tile counts off the wrappers.
 
+The scenery band is seated once per round — not per frame — by `seatEraSceneryRowThenClearAndRunScenery`
+(`0x30A5`), whose only caller is the round-reset `resetPlayfieldAndArmNewRound`: it copies the
+eight-byte row the era indexes out of the `0x3176` table into the stride-two run at `0xAA31`, then
+tails into the scenery clear+run — filling `0x28` at the final era and `0xCC` at every other. `[code]`
+
 ### Depth tracks sprite size — strictly, in the eras we have watched
 
 Each handler places its object's tiles before stepping the slot, so the handler body records how
@@ -1432,7 +1437,11 @@ machine knows it through one flag. That flag is raised by the arming path and cl
 next round start or life start — so it stays up after the object dies, until the round turns over.
 Every reader of it reads it as "the last two craft slots are taken": the shot sweep
 takes an arm that runs FIVE craft instead of seven and then falls into a sweep against the
-Mother-Ship itself; a spawn walk shortens its own run to five; the two ordinary per-slot handlers
+Mother-Ship itself — `destroyMotherShipAndShotOnMutualHit` (`0x4FE0`), which sweeps the six shot
+slots and, for each live shot inside a box centred on the Mother-Ship (era-widened on its first axis
+for the first and last eras, fixed on the other), marks both that shot and the Mother-Ship destroyed
+and posts the chained score, sweeping on with the ship already dead so one pass can pay for several;
+a spawn walk shortens its own run to five; the two ordinary per-slot handlers
 for exactly those two records return early; and the parachutist spawn refuses outright. The
 arithmetic closes — the craft run's base plus five strides IS the Mother-Ship's record. `[code]`
 

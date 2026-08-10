@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4fe0 — sweep the six shot slots for one that a single roaming thing has reached, and destroy both. The
+/** destroyMotherShipAndShotOnMutualHit — sweep the six shot slots for one that a single roaming thing has reached, and destroy both. The
  * roamer has one state byte and one coordinate pair at fixed cells; unless its state is live the sweep doesn't run.
  * Each slot must be live too, with both coordinates inside a box centred on the roamer -- not square, and its first
  * axis widened by two of the era values (the only thing the era decides here). A slot that passes takes the destroyed
@@ -34,7 +34,7 @@ const SECOND_AXIS_SPAN = 31;
 /** Two coordinates are close enough when their wrapped difference lands inside the box. */
 const within = (a, b, reach, span) => u8(u8(a - b) + reach) < span;
 
-export function loc_4fe0(m) {
+export function destroyMotherShipAndShotOnMutualHit(m) {
   const { mem8 } = m;
   const wide = WIDE_ERAS.includes(mem8[ERA_INDEX]);
   const reach = wide ? FIRST_AXIS_REACH_WIDE : FIRST_AXIS_REACH;

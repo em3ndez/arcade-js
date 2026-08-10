@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_30a5 — seat one era-keyed object band, then hand the frame's scenery on. A fixed run is
+/** seatEraSceneryRowThenClearAndRunScenery — seat one era-keyed object band, then hand the frame's scenery on. A fixed run is
  * summed against a constant as a tamper tripwire whose answer is dropped, eight bytes of the row the
  * era indexes are copied into a stride-two cell run, and control transfers into the scenery clear +
  * run: at era four with the fill byte 0x28, otherwise 0xCC. LIVE-OUT: memory (the seated band and
@@ -23,7 +23,7 @@ const SEAT_COUNT = 8;
 const ERA_FOUR = 0x04;
 const FILL_BYTE = 0xcc;
 
-export function loc_30a5(m) {
+export function seatEraSceneryRowThenClearAndRunScenery(m) {
   const { regs, mem8 } = m;
 
   regs.hl = CHECK_BASE;

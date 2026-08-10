@@ -4,7 +4,7 @@
  *
  * THE DESTINATION REFUSES TO RUN, so this is a poked dispatch with negative controls, judged by a
  * hand-rolled two-clone run rather than unitEquivalence. 0x315B is three bytes, `jp 0x3176`, and
- * 0x3176 is a data table (loc_30a5 loads it `ld hl,0x3176` and indexes it with `rst 0x18`). Its
+ * 0x3176 is a data table (seatEraSceneryRowThenClearAndRunScenery loads it `ld hl,0x3176` and indexes it with `rst 0x18`). Its
  * transcription decodes DATA and throws on entry, so BOTH arms throw — unitEquivalence cannot catch.
  *
  * WHY A POKE, AND WHAT IT IS. Two guards jump here (0x30E9, 0x30F5), testing sentinel bytes in work
