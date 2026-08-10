@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_00b1 — tile the character plane with a lattice of boxes: fourteen bands of sixteen, each
+/** tileCharPlaneWithBoxLattice — tile the character plane with a lattice of boxes: fourteen bands of sixteen, each
  * box two cells wide and two lines deep, laid down by the stamp this hands the cursor to. The
  * cursor starts one line above the first band written and skips a line before each one, so the
  * lattice begins clear of the top lines and the bands it writes are contiguous. Every position is
@@ -13,7 +13,7 @@ const BANDS = 14;
 const BOXES_PER_BAND = 16;
 const BOX_CELLS = 2;
 
-export function loc_00b1(m) {
+export function tileCharPlaneWithBoxLattice(m) {
   let cursor = CURSOR_ORIGIN;
   for (let band = 0; band < BANDS; band++) {
     cursor += CELLS_PER_LINE;

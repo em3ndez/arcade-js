@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3074 — memory-equivalent to the frozen oracle at ROM 0x3074.
+ * placeTileAtTableSuppliedOffset — memory-equivalent to the frozen oracle at ROM 0x3074.
  *
  * ★ WHAT REACHES THIS ADDRESS, AND WHY NO REAL CAPTURE IS POSSIBLE HERE. Decoding the image from
  *   EVERY byte offset — which over-generates and cannot under-generate — finds exactly one
@@ -38,7 +38,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3074 } from "../loc_3074.js";
+import { placeTileAtTableSuppliedOffset } from "../placeTileAtTableSuppliedOffset.js";
 import { loc_3074 as oracle } from "../../translated/loc_3074.js";
 // The live entry the UNREACHED arm uses as its positive control -- a batch sibling, dispatched
 // by both sessions, so the rig can be shown able to reach something before a zero here counts.
@@ -176,7 +176,7 @@ test("UNREACHED: neither tape dispatches it, and the same apparatus DOES reach a
       );
 
       assert.throws(
-        () => unitEquivalence((ov) => makeMachine(ov, opts), TARGET, oracle, loc_3074, {
+        () => unitEquivalence((ov) => makeMachine(ov, opts), TARGET, oracle, placeTileAtTableSuppliedOffset, {
           maxFrames: ENTRY_FRAMES,
         }),
         /never entered/,
@@ -210,7 +210,7 @@ test("THE CROSS: every entry x record x pointer comparison is identical", { skip
   for (const entry of ENTRIES) {
     for (const record of RECORDS) {
       for (const table of TABLES) {
-        const d = unitDiff(loc_3074, () => craft(entry, record, table));
+        const d = unitDiff(placeTileAtTableSuppliedOffset, () => craft(entry, record, table));
         assert.equal(d, null, `${hex4(entry)}/${hex4(record)}/${hex4(table)}: ${show(d)}`);
       }
     }
@@ -220,7 +220,7 @@ test("THE CROSS: every entry x record x pointer comparison is identical", { skip
 
 test("EXHAUSTIVE over the displacement: all 256 values of the selected byte", { skip }, () => {
   for (let displacement = 0; displacement < 256; displacement++) {
-    const d = unitDiff(loc_3074, () => craftDisplacement(displacement));
+    const d = unitDiff(placeTileAtTableSuppliedOffset, () => craftDisplacement(displacement));
     assert.equal(d, null, `displacement ${displacement}: ${show(d)}`);
   }
   const wrapped = craftDisplacement(255);
@@ -235,7 +235,7 @@ test("EXCLUDED, deliberately: the flag byte, one register pair, sp and pc", { sk
   const a = craft(ENTRIES[0], RECORDS[0], PROLOGUE_TABLE);
   const b = a.clone();
   oracle(a);
-  loc_3074(b);
+  placeTileAtTableSuppliedOffset(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.ok(moved.every((k) => EXCLUDED.includes(k)), `a register outside the set moved: ${moved}`);
   assert.equal(a.regs.ix, b.regs.ix, "the record cursor is reproduced, not excluded");

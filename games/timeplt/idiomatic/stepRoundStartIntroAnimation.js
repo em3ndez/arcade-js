@@ -7,8 +7,8 @@
 import { flashPlayerWhiteEveryOtherFrame } from "./flashPlayerWhiteEveryOtherFrame.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { advanceScriptedCharPlaneBandTo2 } from "./advanceScriptedCharPlaneBandTo2.js";
-import { loc_1393 } from "./loc_1393.js";
-import { loc_13cc } from "./loc_13cc.js";
+import { cyclePlayerSpriteColourThenAdvanceStepAtZero } from "./cyclePlayerSpriteColourThenAdvanceStepAtZero.js";
+import { floodColourPlaneWithSavedPlayerColour } from "./floodColourPlaneWithSavedPlayerColour.js";
 import { advanceScriptedCharPlaneBandTo4 } from "./advanceScriptedCharPlaneBandTo4.js";
 import { loadActivePlayerContextAndPostRoundHud } from "./loadActivePlayerContextAndPostRoundHud.js";
 import { FRAME_TICK, SEQUENCE_SUBSTEP, SEQUENCE_DELAY } from "./names.js";
@@ -30,14 +30,14 @@ export function stepRoundStartIntroAnimation(m) {
       advanceScriptedCharPlaneBandTo2(m);
       return;
     case 2:
-      loc_1393(m);
+      cyclePlayerSpriteColourThenAdvanceStepAtZero(m);
       advanceScriptedCharPlaneBandTo4(m);
       return;
     case 3:
       advanceScriptedCharPlaneBandTo4(m);
       return;
     case 4:
-      loc_13cc(m);
+      floodColourPlaneWithSavedPlayerColour(m);
       return;
     default:
       mem8[SEQUENCE_DELAY] = WIND_DELAY;

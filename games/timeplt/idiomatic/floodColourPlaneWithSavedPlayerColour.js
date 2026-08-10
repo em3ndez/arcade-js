@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_13cc — flood the playfield's colour plane with one byte, then hand the sequence its next
+/** floodColourPlaneWithSavedPlayerColour — flood the playfield's colour plane with one byte, then hand the sequence its next
  * step. The byte comes from one of two parallel cells, picked by a selector that says which of
  * two players is up. The area covered is a rectangle inset from the plane's edges, painted a row
  * at a time; when the picture is turned round the painting runs from the far corner backwards
@@ -21,7 +21,7 @@ const ROW_STRIDE = 32;
 const ROWS = 28;
 const CELLS_PER_ROW = 27;
 
-export function loc_13cc(m) {
+export function floodColourPlaneWithSavedPlayerColour(m) {
   const { mem8 } = m;
   mem8[NEXT_STEP_CELL] = NEXT_STEP;
 

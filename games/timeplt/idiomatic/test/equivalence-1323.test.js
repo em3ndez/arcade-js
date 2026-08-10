@@ -19,8 +19,8 @@ import { loc_1323 as oracle } from "../../translated/loc_1323.js";
 import { flashPlayerWhiteEveryOtherFrame } from "../flashPlayerWhiteEveryOtherFrame.js";
 import { hideAllSprites } from "../hideAllSprites.js";
 import { advanceScriptedCharPlaneBandTo2 } from "../advanceScriptedCharPlaneBandTo2.js";
-import { loc_1393 } from "../loc_1393.js";
-import { loc_13cc } from "../loc_13cc.js";
+import { cyclePlayerSpriteColourThenAdvanceStepAtZero } from "../cyclePlayerSpriteColourThenAdvanceStepAtZero.js";
+import { floodColourPlaneWithSavedPlayerColour } from "../floodColourPlaneWithSavedPlayerColour.js";
 import { advanceScriptedCharPlaneBandTo4 } from "../advanceScriptedCharPlaneBandTo4.js";
 import { loadActivePlayerContextAndPostRoundHud } from "../loadActivePlayerContextAndPostRoundHud.js";
 import { FRAME_TICK, SEQUENCE_SUBSTEP, SEQUENCE_DELAY } from "../names.js";
@@ -130,9 +130,9 @@ function twin({ gate = true, arm1Tail = true, windDelay = WIND_DELAY, reload = t
     switch (mem8[ANIMATION_STEP]) {
       case 0: flashPlayerWhiteEveryOtherFrame(m); return;
       case 1: flashPlayerWhiteEveryOtherFrame(m); if (arm1Tail) advanceScriptedCharPlaneBandTo2(m); return;
-      case 2: loc_1393(m); advanceScriptedCharPlaneBandTo4(m); return;
-      case 3: if (step3Extra) loc_1393(m); advanceScriptedCharPlaneBandTo4(m); return;
-      case 4: loc_13cc(m); return;
+      case 2: cyclePlayerSpriteColourThenAdvanceStepAtZero(m); advanceScriptedCharPlaneBandTo4(m); return;
+      case 3: if (step3Extra) cyclePlayerSpriteColourThenAdvanceStepAtZero(m); advanceScriptedCharPlaneBandTo4(m); return;
+      case 4: floodColourPlaneWithSavedPlayerColour(m); return;
       default:
         mem8[SEQUENCE_DELAY] = windDelay;
         hideAllSprites(m);

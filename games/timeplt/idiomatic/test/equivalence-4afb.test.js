@@ -4,7 +4,7 @@
  *
  * WHAT IT IS. Three constants and a transfer: a pen colour, a first cell, and the address of one
  * packed byte, handed to the two-digit painter at ROM 0x0D81 — WHICH IS ALREADY DECOMPILED, so
- * the rewrite calls loc_0d81 directly and dissolving that transfer belongs to this caller's unit.
+ * the rewrite calls paintTwoUnsuppressedDigitsFromByte directly and dissolving that transfer belongs to this caller's unit.
  * Everything the caller was holding in those three registers is overwritten before it is read.
  *
  * ★ LIVE-OUT, DERIVED FROM THE ORACLE, NOT FROM THE MODULE. The call sites that reach this entry
@@ -65,7 +65,7 @@ import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_4afb } from "../loc_4afb.js";
-import { loc_0d81 } from "../loc_0d81.js";
+import { paintTwoUnsuppressedDigitsFromByte } from "../paintTwoUnsuppressedDigitsFromByte.js";
 import { loc_0da0 } from "../loc_0da0.js";
 import { paintUnsuppressedDigit } from "../paintUnsuppressedDigit.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
@@ -113,7 +113,7 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
  * that constant. The same predicate runs over the painter itself as a positive control, so the
  * absence is evidence only once the check is shown able to see the thing present.
  */
-const HELPER = ["loc_0d81", "../loc_0d81.js", "HIGH_DIGIT_SHIFT"];
+const HELPER = ["paintTwoUnsuppressedDigitsFromByte", "../paintTwoUnsuppressedDigitsFromByte.js", "HIGH_DIGIT_SHIFT"];
 
 function callsRatherThanRestates(text, [name, file, ownConstant]) {
   return text.includes(`from "./${file.slice(3)}"`) &&
@@ -365,7 +365,7 @@ function brokenWrongColour(m) {
   regs.c = PEN_COLOUR + 1;
   regs.de = FIRST_CELL;
   regs.hl = PACKED_BYTE;
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: whatever colour the caller was holding is used instead of the entry's own. */
@@ -373,7 +373,7 @@ function brokenKeepsCallerColour(m) {
   const { regs } = m;
   regs.de = FIRST_CELL;
   regs.hl = PACKED_BYTE;
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: whatever cursor the caller was holding is used, so the digits land elsewhere. */
@@ -381,7 +381,7 @@ function brokenKeepsCallerCursor(m) {
   const { regs } = m;
   regs.c = PEN_COLOUR;
   regs.hl = PACKED_BYTE;
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: whatever pointer the caller was holding is read, so the digits come from elsewhere. */
@@ -389,7 +389,7 @@ function brokenKeepsCallerPointer(m) {
   const { regs } = m;
   regs.c = PEN_COLOUR;
   regs.de = FIRST_CELL;
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: the field starts one cell along. */
@@ -398,7 +398,7 @@ function brokenCursorOneCellOn(m) {
   regs.c = PEN_COLOUR;
   regs.de = FIRST_CELL - CELL_STEP;
   regs.hl = PACKED_BYTE;
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: the byte next door is painted instead. */
@@ -407,7 +407,7 @@ function brokenSourceNextByte(m) {
   regs.c = PEN_COLOUR;
   regs.de = FIRST_CELL;
   regs.hl = PACKED_BYTE + 1;
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: the two digits change places. */
@@ -442,7 +442,7 @@ function brokenCursorLeftOffPlane(m) {
   regs.c = PEN_COLOUR;
   regs.de = FIRST_CELL;
   regs.hl = PACKED_BYTE;
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
   regs.de &= ~0x0400;
 }
 

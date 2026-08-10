@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_158c — gather one column of the character plane into a thirty-two byte run: the column's
+/** gatherCharColumnIntoBackingRun — gather one column of the character plane into a thirty-two byte run: the column's
  * twenty-eight cells first, a row apart, then the two two-cell columns beside it. Every address
  * is fixed here, so the column, the two stubs and the run are all this entry's choice, and the
  * run is overwritten whole rather than merged into. LIVE-OUT: memory-only. */
@@ -11,7 +11,7 @@ const COLUMN_CELLS = 28;
 const STUB_COLUMNS = [0xa5f0, 0xa5f2];
 const STUB_CELLS = 2;
 
-export function loc_158c(m) {
+export function gatherCharColumnIntoBackingRun(m) {
   const { mem8 } = m;
   let destination = RUN;
   for (let i = 0; i < COLUMN_CELLS; i++) mem8[destination++] = mem8[COLUMN + i * ROW];

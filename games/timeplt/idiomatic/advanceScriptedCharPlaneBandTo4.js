@@ -13,7 +13,7 @@ import { fillCellRun } from "./fillCellRun.js";
 import { restoreColumnFromSavedRun } from "./restoreColumnFromSavedRun.js";
 import { loc_56e4 } from "./loc_56e4.js";
 import { loc_4a9d } from "./loc_4a9d.js";
-import { loc_158c } from "./loc_158c.js";
+import { gatherCharColumnIntoBackingRun } from "./gatherCharColumnIntoBackingRun.js";
 
 const COUNTDOWN = 0xa9f4;
 const SCRIPT_POINTER = 0xa9f7;
@@ -67,7 +67,7 @@ export function advanceScriptedCharPlaneBandTo4(m) {
       mem8[0xa612] = u8(mem8[0xa612] - 1);
     }
 
-    loc_158c(m);
+    gatherCharColumnIntoBackingRun(m);
   }
 
   mem8[COUNTDOWN] = u8(mem8[COUNTDOWN] - 1);

@@ -4,7 +4,7 @@
  * colour, the cell the first digit lands in and the byte the digits are read from are constants
  * of this entry, and choosing those three is the whole of it. LIVE-OUT: the cells painted. */
 
-import { loc_0d81 } from "./loc_0d81.js";
+import { paintTwoUnsuppressedDigitsFromByte } from "./paintTwoUnsuppressedDigitsFromByte.js";
 
 const PEN_COLOUR = 16;
 const FIRST_CELL = 0xa47f;
@@ -15,5 +15,5 @@ export function loc_4afb(m) {
   regs.c = PEN_COLOUR;
   regs.de = FIRST_CELL;
   regs.hl = PACKED_BYTE;
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }

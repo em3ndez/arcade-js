@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_13cc — memory-equivalent to the frozen oracle at ROM 0x13CC.
+ * floodColourPlaneWithSavedPlayerColour — memory-equivalent to the frozen oracle at ROM 0x13CC.
  *
  * ★ NOT REACHED WITHOUT POKING, AND THE CONTROL SAYS SO. Nothing an undriven or a coin-and-start run
  *   does reaches this: it is one arm of a table indexed by a sequence cell, behind a second cell
@@ -39,7 +39,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_13cc } from "../loc_13cc.js";
+import { floodColourPlaneWithSavedPlayerColour } from "../floodColourPlaneWithSavedPlayerColour.js";
 import { loc_13cc as oracle } from "../../translated/loc_13cc.js";
 import {
   firstStateDiff,
@@ -107,7 +107,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_13cc);
+  if (entry === null) gate(floodColourPlaneWithSavedPlayerColour);
   return entry;
 }
 
@@ -264,15 +264,15 @@ const TWINS = [
 
 test("NEGATIVE CONTROL: without the pokes the game never dispatches it", { skip }, () => {
   assert.throws(
-    () => unitEquivalence((o) => factory(o, false), TARGET, oracle, loc_13cc, { maxFrames: FRAMES }),
+    () => unitEquivalence((o) => factory(o, false), TARGET, oracle, floodColourPlaneWithSavedPlayerColour, { maxFrames: FRAMES }),
     /never entered/,
     "an unpoked run reached this arm, so the pokes are not what makes it reachable",
   );
   console.log("  CONTROL: zero dispatches in an unpoked run of the same length");
 });
 
-test("EQUAL at the real dispatch: loc_13cc == oracle on the whole dump", { skip }, () => {
-  const r = gate(loc_13cc);
+test("EQUAL at the real dispatch: floodColourPlaneWithSavedPlayerColour == oracle on the whole dump", { skip }, () => {
+  const r = gate(floodColourPlaneWithSavedPlayerColour);
   assert.notEqual(entry, null, "vacuous: the poked run never reached the routine");
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   console.log(`  EQUAL: entry player/flip/colour ${shapeOf(entryState())}; identical`);
@@ -288,7 +288,7 @@ test("EXCLUDED, deliberately: the alternate register set, the scratch registers 
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_13cc(b);
+  floodColourPlaneWithSavedPlayerColour(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !MOVED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
@@ -306,14 +306,14 @@ test("CORPUS: every captured dispatch replays identically, from ONE corner", { s
       "covers a different hole than this file says",
   );
   for (const captured of entries) {
-    assert.equal(unitDiff(loc_13cc, captured), null, "a captured dispatch diverged");
+    assert.equal(unitDiff(floodColourPlaneWithSavedPlayerColour, captured), null, "a captured dispatch diverged");
   }
   console.log(`  CORPUS: ${entries.length} dispatches, all at ${[...shapes][0]}`);
 });
 
 test("CRAFTED: every flag and colour combination paints identically", { skip }, () => {
   for (const c of cross()) {
-    const d = unitDiff(loc_13cc, craft(...c));
+    const d = unitDiff(floodColourPlaneWithSavedPlayerColour, craft(...c));
     assert.equal(d, null, `${c.join("/")}: ${show(d)}`);
   }
   console.log(`  CRAFTED: ${SWEEP_SIZE} combinations identical`);
@@ -322,8 +322,8 @@ test("CRAFTED: every flag and colour combination paints identically", { skip }, 
 test("THE TWO DIRECTIONS COVER THE SAME CELLS", { skip }, () => {
   const forward = craft(0, 1, 0x3c, 0x3c);
   const backward = craft(0, 0, 0x3c, 0x3c);
-  loc_13cc(forward);
-  loc_13cc(backward);
+  floodColourPlaneWithSavedPlayerColour(forward);
+  floodColourPlaneWithSavedPlayerColour(backward);
   // The flag itself is a cell of the dump and the two machines were built holding different
   // values of it, so it is set back before the comparison; everything else must already agree.
   forward.mem8[SCREEN_UNFLIPPED] = 0;
@@ -351,7 +351,7 @@ test("THE AREA IS EXACT: the cells just outside the rectangle are untouched", { 
     LAST_CELL + ROW_STRIDE,
   ];
   for (const at of outside) m.mem8[at] = 0x99;
-  loc_13cc(m);
+  floodColourPlaneWithSavedPlayerColour(m);
   for (const at of outside) {
     assert.equal(m.mem8[at], 0x99, `${hex4(at)} was painted, so the rectangle is bigger than stated`);
   }
@@ -361,7 +361,7 @@ test("THE AREA IS EXACT: the cells just outside the rectangle are untouched", { 
 });
 
 test("WHOLE-MACHINE: the poked session is byte-identical with the rewrite wired", { skip }, () => {
-  const w = replay(loc_13cc);
+  const w = replay(floodColourPlaneWithSavedPlayerColour);
   assert.ok(w.invocations.get(TARGET) > 0, "vacuous: the override never dispatched");
   assert.equal(w.framesCompared, FRAMES, "the replay ran short");
   assert.equal(w.equal, true, `forked at frame ${w.frame} on ${hex4(w.addr ?? 0)}`);
@@ -371,7 +371,7 @@ test("WHOLE-MACHINE: the poked session is byte-identical with the rewrite wired"
 test("TEETH: removing the shim's return kills the run, so the shim is load-bearing", { skip }, () => {
   let died = null;
   try {
-    const w = wholeMachineEquivalence(factory, FRAMES, new Map([[TARGET, loc_13cc]]));
+    const w = wholeMachineEquivalence(factory, FRAMES, new Map([[TARGET, floodColourPlaneWithSavedPlayerColour]]));
     died = w.equal ? null : "forked";
   } catch (e) {
     died = String(e).slice(0, 80);

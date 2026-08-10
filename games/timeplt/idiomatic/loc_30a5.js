@@ -5,7 +5,7 @@
  * run: at era four with the fill byte 0x28, otherwise 0xCC. LIVE-OUT: memory (the seated band and
  * whatever the scenery chain leaves); control leaves through the tail and does not return. */
 
-import { loc_0b4c } from "./loc_0b4c.js";
+import { sumByteRunAndCompareToExpected } from "./sumByteRunAndCompareToExpected.js";
 import { offsetAddress } from "./offsetAddress.js";
 import { loc_3156 } from "./loc_3156.js";
 import { clearSceneryEntriesThenRunEraScenery } from "./clearSceneryEntriesThenRunEraScenery.js";
@@ -29,7 +29,7 @@ export function loc_30a5(m) {
   regs.hl = CHECK_BASE;
   regs.c = CHECK_EXPECTED;
   regs.b = CHECK_LEN;
-  loc_0b4c(m); // tamper checksum; its answer is discarded here
+  sumByteRunAndCompareToExpected(m); // tamper checksum; its answer is discarded here
 
   regs.a = u8(mem8[ERA_INDEX] * ROW_STRIDE);
   regs.c = regs.a;

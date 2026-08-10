@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2afc — memory-equivalent to the frozen oracle at ROM 0x2AFC.
+ * dressSpriteForCoarseHeading — memory-equivalent to the frozen oracle at ROM 0x2AFC.
  *
  * WHAT IT IS. A heading byte rounded to one of sixteen sectors, then two bytes copied out of two
  * parallel tables into an object's sprite entry. The table step is a restart into 0x0018, which is
@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_2afc } from "../loc_2afc.js";
+import { dressSpriteForCoarseHeading } from "../dressSpriteForCoarseHeading.js";
 import { ERA_INDEX } from "../names.js";
 import { loc_2afc as oracle } from "../../translated/loc_2afc.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -156,7 +156,7 @@ function replaySession(candidate) {
 }
 
 let cache = null;
-const session = () => (cache ??= replaySession(loc_2afc));
+const session = () => (cache ??= replaySession(dressSpriteForCoarseHeading));
 
 let entry = null;
 function entryState() {
@@ -271,12 +271,12 @@ test("UNREACHED: no plain tape dispatches this entry, which is why the era is pi
   console.log("  UNREACHED: shared, attract and the same turning tape unpinned all reach it 0 times");
 });
 
-test("EQUAL at the real dispatch: loc_2afc == oracle outside the scratch window", { skip }, () => {
+test("EQUAL at the real dispatch: dressSpriteForCoarseHeading == oracle outside the scratch window", { skip }, () => {
   const sp = entryState().regs.sp;
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2afc(b);
+  dressSpriteForCoarseHeading(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   console.log(`  EQUAL: heading=${headingOf(entryState())} sector=${sectorOf(entryState())}; identical`);
@@ -292,7 +292,7 @@ test("EXCLUDED, deliberately: registers and pc, and nothing else", { skip }, () 
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2afc(b);
+  dressSpriteForCoarseHeading(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
@@ -312,12 +312,12 @@ test("CORPUS: every dispatch of the pinned session replays identically", { skip 
 });
 
 test("EXHAUSTIVE: all 256 headings behave as the oracle", { skip }, () => {
-  assert.equal(sweepCaught(loc_2afc), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(dressSpriteForCoarseHeading), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${HEADINGS.length} headings identical, every sector covered`);
 });
 
 test("WHOLE-MACHINE: the pinned session differs only in the dead stack bytes", { skip }, () => {
-  const r = wholeRunCells(loc_2afc);
+  const r = wholeRunCells(dressSpriteForCoarseHeading);
   assert.equal(r.threw, null, `the run threw: ${r.threw}`);
   assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
   assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);

@@ -7,7 +7,7 @@
  * caller. LIVE-OUT: the cells painted, the cursor six cells on, and the pointer two bytes back. */
 
 import { u16 } from "../../../core/int.js";
-import { loc_0d81 } from "./loc_0d81.js";
+import { paintTwoUnsuppressedDigitsFromByte } from "./paintTwoUnsuppressedDigitsFromByte.js";
 import { loc_0da0 } from "./loc_0da0.js";
 
 export function loc_0d73(m) {
@@ -17,5 +17,5 @@ export function loc_0d73(m) {
   regs.hl = u16(regs.hl - 1);
   loc_0da0(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }

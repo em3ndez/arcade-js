@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_188a — the copyright screen's await-start step. GATE: real dispatches on two credit-loaded
+ * stepTwoCreditCopyrightScreenAwaitingStart — the copyright screen's await-start step. GATE: real dispatches on two credit-loaded
  * tapes (a two-player start and a one-player start both flow through here), plus crafted button
  * cases. RAM compared with the dead stack scratch below the seated SP masked out, the SP re-seat
  * and return value checked, registers held to a measured ceiling, and teeth.
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, COIN_FRAME, START_FRAME, romsPresent } from "./_harness.js";
-import { loc_188a as candidate } from "../loc_188a.js";
+import { stepTwoCreditCopyrightScreenAwaitingStart as candidate } from "../stepTwoCreditCopyrightScreenAwaitingStart.js";
 import { loc_188a as oracle } from "../../translated/loc_188a.js";
 import { stampCopyrightStrip } from "../stampCopyrightStrip.js";
 import { flashCopyrightLine } from "../flashCopyrightLine.js";
@@ -39,7 +39,7 @@ const EXCLUDED = ["a", "a_", "b", "c", "d", "e", "f", "f_", "h", "iy", "l", "sp"
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
-// Two credits then a start button. loc_188a is the two-credit copyright screen's await step; the
+// Two credits then a start button. stepTwoCreditCopyrightScreenAwaitingStart is the two-credit copyright screen's await step; the
 // default one-coin coin-start tape reaches the game by another route and never dispatches it.
 const twoCredits = (startBit) => [
   { frame: COIN_FRAME, port: IN0, bits: 0x01, dur: HOLD },

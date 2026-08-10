@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0f1f — memory-equivalent to the frozen oracle at ROM 0x0F1F.
+ * dispatchSequenceSubStepArm — memory-equivalent to the frozen oracle at ROM 0x0F1F.
  *
  * GATE: unit-capture with a MASKED diff, plus a sweep of every arm the table names.
  *
@@ -32,7 +32,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0f1f } from "../loc_0f1f.js";
+import { dispatchSequenceSubStepArm } from "../dispatchSequenceSubStepArm.js";
 import { PLAY_ACTIVE, SEQUENCE_SUBSTEP } from "../names.js";
 import { loc_0f1f as oracle } from "../../translated/loc_0f1f.js";
 
@@ -149,7 +149,7 @@ test("DISPATCHED: the tape reaches the routine, repeatedly", { skip }, () => {
 });
 
 test("EQUAL at the real dispatch: masked RAM identical", { skip }, () => {
-  const r = run(loc_0f1f);
+  const r = run(dispatchSequenceSubStepArm);
   assert.equal(r.faultA ?? r.faultB, undefined, "the real dispatch must not fault");
   assert.deepEqual(r.masked, [], `RAM diverged outside the dead window — ${show(r.masked)}`);
   console.log(`  EQUAL: masked RAM identical; raw difference ${show(r.all)}`);
@@ -159,7 +159,7 @@ test("SCRATCH: the whole raw difference lies inside the dead window", { skip }, 
   let deepest = 0;
   let seen = 0;
   for (let i = 0; i < ARM_COUNT; i++) {
-    const r = run(loc_0f1f, i);
+    const r = run(dispatchSequenceSubStepArm, i);
     if (r.faultA || r.faultB) continue;
     for (const d of r.all) {
       assert.ok(d.addr < r.spA, `arm ${i}: ${hex4(d.addr)} is at or above the exit pointer`);
@@ -182,7 +182,7 @@ test("SCRATCH: the whole raw difference lies inside the dead window", { skip }, 
 test("ARMS: every table entry runs identically, or faults identically", { skip }, () => {
   const faulted = [];
   for (let i = 0; i < ARM_COUNT; i++) {
-    const r = run(loc_0f1f, i);
+    const r = run(dispatchSequenceSubStepArm, i);
     if (r.faultA || r.faultB) {
       assert.equal(r.faultA, r.faultB, `arm ${i}: ${r.faultA} on one side, ${r.faultB} on the other`);
       faulted.push(i);
@@ -200,7 +200,7 @@ test("ARMS: every table entry runs identically, or faults identically", { skip }
 test("SELECTOR: the high nibble is ignored, over the cell's whole range", { skip }, () => {
   let swept = 0;
   for (let v = 0; v < 256; v++) {
-    const r = run(loc_0f1f, v);
+    const r = run(dispatchSequenceSubStepArm, v);
     if (r.faultA || r.faultB) {
       assert.equal(r.faultA, r.faultB, `selector ${v}: ${r.faultA} vs ${r.faultB}`);
     } else {
@@ -233,7 +233,7 @@ test("STACK: the rewrite drops exactly the tail return the oracle pops", { skip 
   // The dissolved advanceAttractTowardGameStart takes the play-active bail and returns without the tail pop the frozen
   // oracle does there, so the oracle's exit pointer sits two bytes higher on every completing arm.
   for (let i = 0; i < ARM_COUNT; i++) {
-    const r = run(loc_0f1f, i);
+    const r = run(dispatchSequenceSubStepArm, i);
     if (r.faultA || r.faultB) continue;
     assert.equal(r.spA - r.spB, 2, `arm ${i}: oracle ${hex4(r.spA)} rewrite ${hex4(r.spB)} — the ` +
       "dropped tail return is not exactly two bytes");

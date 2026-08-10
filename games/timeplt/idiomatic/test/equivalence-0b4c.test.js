@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0b4c — memory-equivalent to the frozen oracle at ROM 0x0B4C.
+ * sumByteRunAndCompareToExpected — memory-equivalent to the frozen oracle at ROM 0x0B4C.
  *
  * GATE: strict unit-capture, plus crafted sweeps over each argument in turn, plus teeth. What it exercises, holes stated:
  *
@@ -38,7 +38,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0b4c } from "../loc_0b4c.js";
+import { sumByteRunAndCompareToExpected } from "../sumByteRunAndCompareToExpected.js";
 import { loc_0b4c as oracle } from "../../translated/loc_0b4c.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -76,7 +76,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0b4c);
+  if (entry === null) gate(sumByteRunAndCompareToExpected);
   return entry;
 }
 
@@ -149,7 +149,7 @@ function baseSweepCaught(candidate) {
 /** BUG: reads the address its one caller happens to pass, ignoring the argument. */
 function brokenIgnoresBase(m) {
   m.regs.hl = REAL_BASE;
-  return loc_0b4c(m);
+  return sumByteRunAndCompareToExpected(m);
 }
 
 function replaySession(opts, candidate) {
@@ -174,7 +174,7 @@ function replaySession(opts, candidate) {
 let sessionCache = null;
 function sessions() {
   if (!sessionCache) {
-    sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, loc_0b4c) }));
+    sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, sumByteRunAndCompareToExpected) }));
   }
   return sessionCache;
 }
@@ -263,11 +263,11 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0b4c == oracle on RAM, registers and the answer", { skip }, () => {
-  const r = gate(loc_0b4c);
+test("EQUAL at the real dispatch: sumByteRunAndCompareToExpected == oracle on RAM, registers and the answer", { skip }, () => {
+  const r = gate(sumByteRunAndCompareToExpected);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
-  const d = unitDiff(loc_0b4c, entryState());
+  const d = unitDiff(sumByteRunAndCompareToExpected, entryState());
   assert.equal(d, null, `the contract diverged — ${JSON.stringify(d)}`);
   console.log(
     `  EQUAL: entry pointer=${hex4(entryState().regs.hl)} length=${entryState().regs.b} ` +
@@ -295,7 +295,7 @@ test("EXCLUDED, deliberately: the stack pointer, and nothing else", { skip }, ()
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0b4c(b);
+  sumByteRunAndCompareToExpected(b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     EXCLUDED,
@@ -325,13 +325,13 @@ test("CORPUS: every real dispatch replays identically, on a thin and uniform cor
 });
 
 test("EXHAUSTIVE: every expected byte, and a length sweep reaching the zero case", { skip }, () => {
-  assert.equal(sweepCaught(loc_0b4c), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(sumByteRunAndCompareToExpected), 0, "the rewrite diverged somewhere in the crafted space");
 
   // The zero-length case is the one the corpus can never show: a count of zero is a full run.
   const zero = craft(REAL_BASE, 0, 0);
   const none = craft(REAL_BASE, 0, 0);
   oracle(zero);
-  loc_0b4c(none);
+  sumByteRunAndCompareToExpected(none);
   assert.equal(zero.regs.hl, (REAL_BASE + 256) & 0xffff, "zero must walk a full 256 bytes");
   assert.equal(none.regs.hl, zero.regs.hl, "the rewrite must walk the same full run");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} crafted entries identical, the zero-length run included`);
@@ -346,7 +346,7 @@ for (const [label, twin, craftedCaught] of TWINS) {
 }
 
 test("THE BASE POINTER IS SWEPT: the answer follows the caller's pointer", { skip }, () => {
-  assert.equal(baseSweepCaught(loc_0b4c), 0, "the rewrite diverged at some base other than the real one");
+  assert.equal(baseSweepCaught(sumByteRunAndCompareToExpected), 0, "the rewrite diverged at some base other than the real one");
   // Anti-vacuity: the arm is only evidence if the bases actually produce different folds.
   const folds = new Set(BASE_SWEEP.map((b) => { const m = craft(b, REAL_LENGTH, 0x22); oracle(m); return m.regs.a; }));
   assert.ok(folds.size > 1, "every swept base folds to the same byte — this arm proves nothing");

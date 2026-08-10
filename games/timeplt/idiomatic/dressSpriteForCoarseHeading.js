@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_2afc — show an object pointing the way it is heading: its heading byte is rounded to one of
+/** dressSpriteForCoarseHeading — show an object pointing the way it is heading: its heading byte is rounded to one of
  * sixteen sectors, and that sector picks a shape and the byte beside it out of two parallel tables
  * in the program image, sixteen entries apart. The pair goes into the object's sprite entry, the
  * shape in one slot and the other byte in a slot further on. Rounding adds half a sector before
@@ -16,7 +16,7 @@ const SHAPE_IN_ENTRY = 1;
 const SECOND_BYTE_IN_ENTRY = 48;
 const HALF_SECTOR = 8;
 
-export function loc_2afc(m, object = m.regs.ix, sprite = m.regs.iy) {
+export function dressSpriteForCoarseHeading(m, object = m.regs.ix, sprite = m.regs.iy) {
   const { regs, mem8 } = m;
   const sector = u8(mem8[u16(object + HEADING_IN_RECORD)] + HALF_SECTOR) >> 4;
 

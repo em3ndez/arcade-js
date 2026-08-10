@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_1393 — one frame of an animation that counts down and, while it does, drives a sprite
+/** cyclePlayerSpriteColourThenAdvanceStepAtZero — one frame of an animation that counts down and, while it does, drives a sprite
  * entry's colour field from a single bit of the count, so the colour holds for four frames at a
  * time; the top two bits of that byte, where the shape's mirroring lives, are left alone. The
  * frame on which the count is found already at zero also moves the step cell on, and the count
@@ -18,7 +18,7 @@ const SECOND_COLOUR = 55;
 
 const NEXT_STEP = 3;
 
-export function loc_1393(m) {
+export function cyclePlayerSpriteColourThenAdvanceStepAtZero(m) {
   const { mem8 } = m;
   const remaining = mem8[COUNTDOWN];
 

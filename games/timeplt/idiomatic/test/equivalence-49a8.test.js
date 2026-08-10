@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { makeMachine, romsPresent } from "./_harness.js";
 import { finishBootSelfTestAndColdStart as candidate } from "../finishBootSelfTestAndColdStart.js";
 import { loc_49a8 as oracle } from "../../translated/loc_49a8.js";
-import { loc_00b1 } from "../loc_00b1.js";
+import { tileCharPlaneWithBoxLattice } from "../tileCharPlaneWithBoxLattice.js";
 import { loc_00d8 } from "../loc_00d8.js";
 import { loc_32eb } from "../loc_32eb.js";
 import manifest from "../../manifest.js";
@@ -143,7 +143,7 @@ function twin(opts) {
     mem.write8(WATCHDOG, regs.a, STORE);
     regs.a = mem.read8(LS259_SOURCE);
     mem.write8(LS259_LINE, opts.badLs ? regs.a ^ 1 : regs.a, STORE);
-    if (!opts.skipLattice) loc_00b1(m);
+    if (!opts.skipLattice) tileCharPlaneWithBoxLattice(m);
     let total = 0;
     for (let i = 0; i < CHECKSUM_SPAN; i++) total = (total + mem.read8((CHECKSUM_BASE + i) & 0xffff)) & 0xff;
     regs.a = (total - CHECKSUM_TOTAL) & 0xff;

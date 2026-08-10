@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_158c — memory-equivalent to the frozen oracle at ROM 0x158C.
+ * gatherCharColumnIntoBackingRun — memory-equivalent to the frozen oracle at ROM 0x158C.
  *
  * ★ NOT REACHED BY EITHER SESSION THIS FILE DRIVES. The two call sites sit inside steps of the
  *   sequence machine that neither an undriven attract run nor a driven one enters, which the
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { buildRoutines } from "../../routines.js";
-import { loc_158c } from "../loc_158c.js";
+import { gatherCharColumnIntoBackingRun } from "../gatherCharColumnIntoBackingRun.js";
 import { loc_158c as oracle } from "../../translated/loc_158c.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -229,13 +229,13 @@ test("NEGATIVE CONTROL: neither attract nor a driven session dispatches this add
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL from the crafted entry: loc_158c == oracle over the whole dump", { skip }, () => {
+test("EQUAL from the crafted entry: gatherCharColumnIntoBackingRun == oracle over the whole dump", { skip }, () => {
   for (const offset of SEEDS) {
     const m = seeded(offset);
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    loc_158c(b);
+    gatherCharColumnIntoBackingRun(b);
     assert.deepEqual(allDiffs(a, b), [], `seed ${offset}: the dumps must agree byte for byte`);
   }
   console.log(`  EQUAL: ${SEEDS.length} seeded entries, no byte differs on any`);
@@ -253,7 +253,7 @@ test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip 
   const a = m.clone();
   const b = m.clone();
   oracle(a);
-  loc_158c(b);
+  gatherCharColumnIntoBackingRun(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
@@ -268,7 +268,7 @@ test("THE GATHER LANDS: every source cell reaches its own byte, and no other mov
   const m = seeded(17);
   const sources = Array.from({ length: RUN_BYTES }, (_unused, i) => m.mem8[sourceOf(i)]);
   const before = m.clone();
-  loc_158c(m);
+  gatherCharColumnIntoBackingRun(m);
   for (let i = 0; i < RUN_BYTES; i++) {
     assert.equal(m.mem8[RUN + i], sources[i], `byte ${i} did not come from ${hex4(sourceOf(i))}`);
   }

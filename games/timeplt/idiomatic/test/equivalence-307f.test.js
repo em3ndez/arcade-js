@@ -2,7 +2,7 @@
 /**
  * loc_307f — memory-equivalent to the frozen oracle at ROM 0x307F. UNREACHED by both tapes, so the
  * entries are crafted from a real end-of-session machine over painted sprite-entry bands. The three
- * dissolved callees (loc_3074, fetchTableWord=0x0010, placeDiagonallyAbuttingTile=0x308a) drop the
+ * dissolved callees (placeTileAtTableSuppliedOffset, fetchTableWord=0x0010, placeDiagonallyAbuttingTile=0x308a) drop the
  * ROM `ret` chain and the register dance, so RAM is compared outside the measured dead-stack window
  * [low, seat), the +2 SP drift is asserted, the live-out cursors ix/iy and A are checked, and the
  * scrambled register set {f,b,c,d,e,h,l} is excluded with a control twin proving the check sees one.
@@ -222,7 +222,7 @@ const EXPECTED = {
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("wire the dissolved callees for the twins", { skip }, async () => {
-  ({ loc_3074: importStraight } = await import("../loc_3074.js"));
+  ({ placeTileAtTableSuppliedOffset: importStraight } = await import("../placeTileAtTableSuppliedOffset.js"));
   ({ placeDiagonallyAbuttingTile: importLast } = await import("../placeDiagonallyAbuttingTile.js"));
   ({ fetchTableWord: importFetch } = await import("../fetchTableWord.js"));
   assert.ok(importStraight && importLast && importFetch, "a dissolved callee did not import");

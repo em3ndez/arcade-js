@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_00b1 — memory-equivalent to the frozen oracle at ROM 0x00B1.
+ * tileCharPlaneWithBoxLattice — memory-equivalent to the frozen oracle at ROM 0x00B1.
  *
  * WHAT IT IS. Two counted loops around a stamp: fourteen bands of sixteen boxes, the cursor stepped
  * two cells along inside a band and a whole line skipped between them. The stamp at ROM 0x00C7 IS
@@ -74,7 +74,7 @@ import { readFileSync } from "node:fs";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_00b1 } from "../loc_00b1.js";
+import { tileCharPlaneWithBoxLattice } from "../tileCharPlaneWithBoxLattice.js";
 import { stampGridBox } from "../stampGridBox.js";
 import { loc_00b1 as oracle } from "../../translated/loc_00b1.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -205,7 +205,7 @@ function runSession(label, opts) {
   const m = makeMachine(new Map([[TARGET, (mm) => {
     dispatches++;
     if (!entries.has(label)) entries.set(label, mm.clone());
-    const r = diffOf(loc_00b1, mm);
+    const r = diffOf(tileCharPlaneWithBoxLattice, mm);
     if (r.informative) informative++;
     for (const k of r.moved) moved.add(k);
     if (r.caught) caught++;
@@ -298,7 +298,7 @@ function brokenNoOp() {}
 
 /** NOT A TWIN OF THIS ROUTINE: the positive control for the held-register instrument. */
 function clobbersAHeldRegister(m) {
-  loc_00b1(m);
+  tileCharPlaneWithBoxLattice(m);
   m.regs.a = (m.regs.a + 1) & 0xff;
 }
 
@@ -394,7 +394,7 @@ test("REACH: the dispatch count of each session, and the oracle's own span", { s
 
 test("EQUAL at the real dispatch of each session", { skip }, () => {
   for (const [label] of SESSIONS) {
-    const r = diffOf(loc_00b1, entryFor(label));
+    const r = diffOf(tileCharPlaneWithBoxLattice, entryFor(label));
     assert.equal(r.faultA, null, `${label}: the oracle faulted (${r.faultA})`);
     assert.equal(r.faultB, null, `${label}: the rewrite faulted (${r.faultB})`);
     assert.deepEqual(r.masked, [], `${label}: ${show(r.masked[0])}`);
@@ -420,7 +420,7 @@ test("SCRATCH: the window is the oracle's own deepest push, and nothing escapes 
   let seen = 0;
   for (const c of cross()) {
     deepestPush = Math.max(deepestPush, pushDepth(oracle, c.machine));
-    const r = diffOf(loc_00b1, c.machine);
+    const r = diffOf(tileCharPlaneWithBoxLattice, c.machine);
     for (const d of r.raw) {
       assert.ok(d.addr < r.sp, `${c.label} prior ${c.prior}: ${hex4(d.addr)} is at or above the seat`);
       deepestDiff = Math.max(deepestDiff, r.sp - d.addr);
@@ -446,7 +446,7 @@ test("SCRATCH: the window is the oracle's own deepest push, and nothing escapes 
 test("CRAFTED: every prior fill of both planes is identical outside the window", { skip }, () => {
   let informative = 0;
   for (const c of cross()) {
-    const r = diffOf(loc_00b1, c.machine);
+    const r = diffOf(tileCharPlaneWithBoxLattice, c.machine);
     assert.equal(r.faulted, false, `${c.label} prior ${c.prior}: ${r.faultA} vs ${r.faultB}`);
     assert.deepEqual(r.masked, [], `${c.label} prior ${c.prior}: ${show(r.masked[0])}`);
     assert.equal(r.spDiff, null, "the seam left SP adrift");
@@ -460,7 +460,7 @@ test("CRAFTED: every prior fill of both planes is identical outside the window",
 test("LATTICE: the cells written and the codes in them, taken from the oracle", { skip }, () => {
   for (const c of cross()) {
     const fromOracle = written(oracle, c.machine, c.prior);
-    const fromRewrite = written(loc_00b1, c.machine, c.prior);
+    const fromRewrite = written(tileCharPlaneWithBoxLattice, c.machine, c.prior);
     assert.deepEqual(fromRewrite, fromOracle, `${c.label} prior ${c.prior}: the rewrite writes a ` +
       "different set of cells, or different codes into them");
   }
@@ -487,7 +487,7 @@ test("LATTICE: the cells written and the codes in them, taken from the oracle", 
 });
 
 test("CALLS, NOT RESTATES: the module's text, with the stamp as a positive control", () => {
-  const module = read("../loc_00b1.js");
+  const module = read("../tileCharPlaneWithBoxLattice.js");
   assert.ok(callsRatherThanRestates(module, HELPER), `the module does not call ${HELPER[0]}`);
   assert.ok(!callsRatherThanRestates(read(HELPER[1]), HELPER), `the check passes ${HELPER[0]}'s ` +
     "OWN body, so it cannot tell a call from an inlined copy and proves nothing");
@@ -497,7 +497,7 @@ test("CALLS, NOT RESTATES: the module's text, with the stamp as a positive contr
 test("EXCLUDED: the registers that move, bounded by a ceiling", { skip }, () => {
   const moved = new Set();
   for (const s of sessions()) for (const k of s.moved) moved.add(k);
-  for (const c of cross()) for (const k of diffOf(loc_00b1, c.machine).moved) moved.add(k);
+  for (const c of cross()) for (const k of diffOf(tileCharPlaneWithBoxLattice, c.machine).moved) moved.add(k);
   const list = REG_FIELDS.filter((k) => moved.has(k));
   console.log(`  EXCLUDED (measured): ${list.join(", ")} — ceiling ${MAY_MOVE.join(", ")}`);
   // A CEILING, never `deepEqual`: an equality here would DEMAND the divergence and go red on a
@@ -512,7 +512,7 @@ test("EXCLUDED: the registers that move, bounded by a ceiling", { skip }, () => 
 
 test("WHOLE-MACHINE, CONVERGENT: the plane disagrees on the boundary frame only, and heals", { skip }, () => {
   for (const [label, opts] of SESSIONS) {
-    const r = wholeRun(loc_00b1, label, opts);
+    const r = wholeRun(tileCharPlaneWithBoxLattice, label, opts);
     assert.equal(r.threw, null, `${label}: the run threw: ${r.threw}`);
     assert.equal(r.stopped, null, `${label}: the run stopped early (${r.stopped})`);
     assert.equal(r.frames, CORPUS_FRAMES, `${label}: compared ${r.frames} of ${CORPUS_FRAMES} frames`);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1393 — memory-equivalent to the frozen oracle at ROM 0x1393.
+ * cyclePlayerSpriteColourThenAdvanceStepAtZero — memory-equivalent to the frozen oracle at ROM 0x1393.
  *
  * GATE: crafted-entry with NO exclusion at all — the frozen routine pushes nothing, so the whole
  *   state dump compares byte-identical. The strict gate CANNOT run here: neither the shared
@@ -34,7 +34,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1393 } from "../loc_1393.js";
+import { cyclePlayerSpriteColourThenAdvanceStepAtZero } from "../cyclePlayerSpriteColourThenAdvanceStepAtZero.js";
 import { loc_1393 as oracle } from "../../translated/loc_1393.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -71,7 +71,7 @@ function sessionRun() {
   let host = null;
   let threw = null;
   try {
-    unitEquivalence((overrides) => (host = makeMachine(overrides)), TARGET, oracle, loc_1393, {
+    unitEquivalence((overrides) => (host = makeMachine(overrides)), TARGET, oracle, cyclePlayerSpriteColourThenAdvanceStepAtZero, {
       maxFrames: ENTRY_FRAMES,
     });
   } catch (e) {
@@ -214,7 +214,7 @@ test("EXCLUDED, deliberately: registers and pc, and nothing else", { skip }, () 
   const a = craft(LIVE_POINT);
   const b = a.clone();
   oracle(a);
-  loc_1393(b);
+  cyclePlayerSpriteColourThenAdvanceStepAtZero(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
@@ -227,7 +227,7 @@ test("EXCLUDED, deliberately: registers and pc, and nothing else", { skip }, () 
 });
 
 test("EXHAUSTIVE: every count against five attribute priors, the whole input space", { skip }, () => {
-  assert.equal(sweepCaught(loc_1393), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(cyclePlayerSpriteColourThenAdvanceStepAtZero), 0, "the rewrite diverged somewhere in the crafted space");
   const colours = new Set();
   for (let remaining = 0; remaining < 256; remaining++) {
     const m = craft([remaining, 0x00]);
@@ -248,7 +248,7 @@ test("EXHAUSTIVE: every count against five attribute priors, the whole input spa
 
 test("THE COUNT STILL STEPS AT ZERO: it wraps below rather than stopping", { skip }, () => {
   const m = craft([0, 0x00]);
-  loc_1393(m);
+  cyclePlayerSpriteColourThenAdvanceStepAtZero(m);
   assert.equal(m.mem8[COUNTDOWN], 255, "the count did not wrap below zero");
   assert.equal(m.mem8[ANIMATION_STEP], NEXT_STEP, "the step cell was not moved on at zero");
   console.log("  AT ZERO: the count wraps to 255 and the step cell moves on, both in one frame");
@@ -256,7 +256,7 @@ test("THE COUNT STILL STEPS AT ZERO: it wraps below rather than stopping", { ski
 
 test("THE MIRRORING BITS SURVIVE: both are kept from a prior that has them set", { skip }, () => {
   const m = craft([4, 0xff]);
-  loc_1393(m);
+  cyclePlayerSpriteColourThenAdvanceStepAtZero(m);
   assert.equal(m.mem8[SPRITE_ATTRIBUTE] & MIRROR_BITS, MIRROR_BITS, "the mirroring bits were lost");
   assert.equal(m.mem8[SPRITE_ATTRIBUTE] & ~MIRROR_BITS, SECOND_COLOUR, "the colour is wrong");
   console.log(`  MIRRORING: 0xff -> ${hex4(m.mem8[SPRITE_ATTRIBUTE])}, top two bits intact`);

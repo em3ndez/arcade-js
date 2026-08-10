@@ -5,7 +5,7 @@
  * WHAT IT IS. A six-digit field: two packed bytes through the suppressing pair-painter at ROM
  * 0x0DA0, then one through the plain pair-painter at ROM 0x0D81, with the run pointer stepped
  * back a byte between them. BOTH PAINTERS ARE ALREADY DECOMPILED, so the rewrite calls loc_0da0
- * and loc_0d81 directly and dissolving those three transfers belongs to this caller's unit.
+ * and paintTwoUnsuppressedDigitsFromByte directly and dissolving those three transfers belongs to this caller's unit.
  *
  * ★ LIVE-OUT, DERIVED FROM THE ORACLE, NOT FROM THE MODULE. Four sites reach this entry. ROM
  *   0x4C1F CALLS it and returns to 0x4C4E, which immediately does `push hl` and then
@@ -69,7 +69,7 @@ import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_0d73 } from "../loc_0d73.js";
-import { loc_0d81 } from "../loc_0d81.js";
+import { paintTwoUnsuppressedDigitsFromByte } from "../paintTwoUnsuppressedDigitsFromByte.js";
 import { loc_0da0 } from "../loc_0da0.js";
 import { loc_0d73 as oracle } from "../../translated/loc_0d73.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -115,7 +115,7 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
  */
 const HELPERS = [
   ["loc_0da0", "../loc_0da0.js", "HIGH_DIGIT_SHIFT"],
-  ["loc_0d81", "../loc_0d81.js", "HIGH_DIGIT_SHIFT"],
+  ["paintTwoUnsuppressedDigitsFromByte", "../paintTwoUnsuppressedDigitsFromByte.js", "HIGH_DIGIT_SHIFT"],
 ];
 
 function callsRatherThanRestates(text, [name, file, ownConstant]) {
@@ -382,7 +382,7 @@ function brokenFlagNotCleared(m) {
   regs.hl = u16(regs.hl - 1);
   loc_0da0(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: the flag starts stepped on, so no leading zero is ever blanked. */
@@ -393,7 +393,7 @@ function brokenFlagStartsSet(m) {
   regs.hl = u16(regs.hl - 1);
   loc_0da0(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: the pointer never steps, so one byte is painted three times. */
@@ -402,7 +402,7 @@ function brokenPointerNotStepped(m) {
   regs.b = 0;
   loc_0da0(m);
   loc_0da0(m);
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: the pointer walks the other way. */
@@ -413,7 +413,7 @@ function brokenPointerStepsForward(m) {
   regs.hl = u16(regs.hl + 1);
   loc_0da0(m);
   regs.hl = u16(regs.hl + 1);
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: the pointer only steps once, so the last two pairs share a byte. */
@@ -423,7 +423,7 @@ function brokenPointerStepsOnce(m) {
   loc_0da0(m);
   regs.hl = u16(regs.hl - 1);
   loc_0da0(m);
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: the last pair suppresses too, so an all-zero field paints nothing at all. */
@@ -441,18 +441,18 @@ function brokenAllSuppressed(m) {
 function brokenNoneSuppressed(m) {
   const { regs } = m;
   regs.b = 0;
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: the plain pair is painted first, so the field reads back to front. */
 function brokenPlainPairFirst(m) {
   const { regs } = m;
   regs.b = 0;
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
   loc_0da0(m);
   regs.hl = u16(regs.hl - 1);
@@ -465,7 +465,7 @@ function brokenTwoPairsOnly(m) {
   regs.b = 0;
   loc_0da0(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 /** BUG: a fourth pair is painted past the end of the field. */
@@ -476,9 +476,9 @@ function brokenExtraPair(m) {
   regs.hl = u16(regs.hl - 1);
   loc_0da0(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
   regs.hl = u16(regs.hl - 1);
-  loc_0d81(m);
+  paintTwoUnsuppressedDigitsFromByte(m);
 }
 
 const TWINS = [

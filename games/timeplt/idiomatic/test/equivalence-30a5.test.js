@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_30a5 as candidate } from "../loc_30a5.js";
 import { loc_30a5 as oracle } from "../../translated/loc_30a5.js";
-import { loc_0b4c } from "../loc_0b4c.js";
+import { sumByteRunAndCompareToExpected } from "../sumByteRunAndCompareToExpected.js";
 import { offsetAddress } from "../offsetAddress.js";
 import { loc_3156 } from "../loc_3156.js";
 import { clearSceneryEntriesThenRunEraScenery } from "../clearSceneryEntriesThenRunEraScenery.js";
@@ -125,7 +125,7 @@ function variant({ rowTable = ROW_TABLE, rowStride = ROW_STRIDE, seatBase = SEAT
     regs.hl = 0x086b;
     regs.c = 0x22;
     regs.b = 0x10;
-    loc_0b4c(m);
+    sumByteRunAndCompareToExpected(m);
     regs.a = u8(mem8[ERA_INDEX] * rowStride);
     regs.c = regs.a;
     regs.hl = rowTable;

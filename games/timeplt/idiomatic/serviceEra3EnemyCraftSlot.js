@@ -9,7 +9,7 @@ import { loc_58a4 } from "./loc_58a4.js";
 import { hasReachedRetireLine } from "./hasReachedRetireLine.js";
 import { retireSlotAndSubPixel } from "./retireSlotAndSubPixel.js";
 import { launchBankEnemyWhenAimedNearPlayer } from "./launchBankEnemyWhenAimedNearPlayer.js";
-import { loc_2afc } from "./loc_2afc.js";
+import { dressSpriteForCoarseHeading } from "./dressSpriteForCoarseHeading.js";
 import { launchAttackerIntoFreeSlot } from "./launchAttackerIntoFreeSlot.js";
 import { releaseHeldObject } from "./releaseHeldObject.js";
 import { stepDyingObjectState } from "./stepDyingObjectState.js";
@@ -29,6 +29,6 @@ export function serviceEra3EnemyCraftSlot(m) {
   loc_58a4(m);
   if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
   launchBankEnemyWhenAimedNearPlayer(m);
-  loc_2afc(m);
+  dressSpriteForCoarseHeading(m);
   return launchAttackerIntoFreeSlot(m);
 }

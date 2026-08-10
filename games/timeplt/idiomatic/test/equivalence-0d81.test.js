@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0d81 — memory-equivalent to the frozen oracle at ROM 0x0D81.
+ * paintTwoUnsuppressedDigitsFromByte — memory-equivalent to the frozen oracle at ROM 0x0D81.
  *
  * WHAT IT IS. One packed byte painted as two digits: the high nibble, a cursor step, the low
  * nibble, another cursor step. Both the painter at ROM 0x0D90 and the cursor step at ROM 0x0020
@@ -70,7 +70,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0d81 } from "../loc_0d81.js";
+import { paintTwoUnsuppressedDigitsFromByte } from "../paintTwoUnsuppressedDigitsFromByte.js";
 import { paintUnsuppressedDigit } from "../paintUnsuppressedDigit.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
 import { loc_0d81 as oracle } from "../../translated/loc_0d81.js";
@@ -171,7 +171,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0d81);
+  if (entry === null) gate(paintTwoUnsuppressedDigitsFromByte);
   return entry;
 }
 
@@ -262,7 +262,7 @@ function replaySession(factory, candidate) {
 let sessionCache = null;
 function sessions() {
   if (sessionCache) return sessionCache;
-  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, loc_0d81) }));
+  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, paintTwoUnsuppressedDigitsFromByte) }));
   return sessionCache;
 }
 
@@ -437,14 +437,14 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the scratch window", { skip }, () => {
-  gate(loc_0d81);
+  gate(paintTwoUnsuppressedDigitsFromByte);
   assert.notEqual(entry, null, "vacuous: the session never reached the routine");
   const e = entryState();
   const sp = e.regs.sp;
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_0d81(b);
+  paintTwoUnsuppressedDigitsFromByte(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -471,7 +471,7 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole cross"
     const a = craft(value, cursor, colour);
     const b = a.clone();
     oracle(a);
-    loc_0d81(b);
+    paintTwoUnsuppressedDigitsFromByte(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
@@ -506,7 +506,7 @@ test("CORPUS: every dispatch of three real sessions replays identically", { skip
 
 test("EXHAUSTIVE: every packed byte against every crafted cursor and colour", { skip }, () => {
   for (const [value, cursor, colour] of cross()) {
-    const d = unitDiff(loc_0d81, craft(value, cursor, colour));
+    const d = unitDiff(paintTwoUnsuppressedDigitsFromByte, craft(value, cursor, colour));
     assert.equal(d, null, `byte ${value} cursor ${hex4(cursor)} colour ${colour}: ${show(d)}`);
   }
   console.log(`  EXHAUSTIVE: ${cross().length} byte x cursor x colour comparisons identical`);
@@ -532,7 +532,7 @@ test("TWO READS: the second digit follows a byte the first paint overwrote", { s
   assert.equal(after.mem8[(probe.regs.de & ~CHARACTER_PLANE_BIT) & 0xffff], 0x37, "the paint did " +
     "not reach the cell the run pointer names, so this arm proves nothing");
   for (const colour of [0x37, 0x5a, 0x00]) {
-    const d = unitDiff(loc_0d81, craftOverlapping(colour));
+    const d = unitDiff(paintTwoUnsuppressedDigitsFromByte, craftOverlapping(colour));
     assert.equal(d, null, `overlapping run pointer, colour ${colour}: ${show(d)}`);
   }
   assert.notEqual(unitDiff(brokenCachesTheByte, craftOverlapping(0x37)), null, "the cache-the-byte " +
@@ -566,7 +566,7 @@ test("ACCUMULATOR IS DEAD AT THE PAINT: poisoning it changes nothing observable"
   for (const [value, cursor, colour] of cross()) {
     const clean = craft(value, cursor, colour);
     const dirty = clean.clone();
-    loc_0d81(clean);
+    paintTwoUnsuppressedDigitsFromByte(clean);
     poisonedOracle(dirty);
     const strays = allDiffs(clean, dirty).filter((d) => !inScratch(d.addr, clean.regs.sp));
     assert.deepEqual(strays, [], `byte ${value} cursor ${hex4(cursor)}: ${show(strays[0])}`);
@@ -580,7 +580,7 @@ test("ACCUMULATOR IS DEAD AT THE PAINT: poisoning it changes nothing observable"
 });
 
 test("CALLS, NOT RESTATES: the module's text, with the helpers as positive controls", () => {
-  const module = read("../loc_0d81.js");
+  const module = read("../paintTwoUnsuppressedDigitsFromByte.js");
   for (const helper of HELPERS) {
     assert.ok(callsRatherThanRestates(module, helper), `the module does not call ${helper[0]}`);
     assert.ok(!callsRatherThanRestates(read(helper[1]), helper), `the check passes ${helper[0]}'s ` +
@@ -607,7 +607,7 @@ test("HANDOVER: the digits, in order, at the cursors the steps produce", { skip 
   };
   const probe = craft(0x47, entryState().regs.de, 16);
   const painted = probe.clone();
-  loc_0d81(painted);
+  paintTwoUnsuppressedDigitsFromByte(painted);
   stubbed(probe);
   assert.equal(painted.regs.de, probe.regs.de, "the rewrite and the composition leave different " +
     "cursors, so the handover this arm reads is not the rewrite's");
@@ -623,7 +623,7 @@ test("HANDOVER: the digits, in order, at the cursors the steps produce", { skip 
 });
 
 test("WHOLE-MACHINE: a driven session differs only in stack scratch", { skip }, () => {
-  const r = wholeRunCells(loc_0d81);
+  const r = wholeRunCells(paintTwoUnsuppressedDigitsFromByte);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,

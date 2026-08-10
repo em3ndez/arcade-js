@@ -5,7 +5,7 @@
  * and a mismatch derails into the frame handler; a good image cold-starts and does not return.
  * LIVE-OUT: memory, the LS259 latch, and the watchdog kicks. */
 
-import { loc_00b1 } from "./loc_00b1.js";
+import { tileCharPlaneWithBoxLattice } from "./tileCharPlaneWithBoxLattice.js";
 import { loc_00d8 } from "./loc_00d8.js";
 import { loc_32eb } from "./loc_32eb.js";
 
@@ -38,7 +38,7 @@ export function finishBootSelfTestAndColdStart(m) {
   regs.a = mem.read8(LS259_SOURCE);
   mem.write8(LS259_LINE, regs.a, STORE);
 
-  loc_00b1(m);
+  tileCharPlaneWithBoxLattice(m);
 
   let total = 0;
   for (let i = 0; i < CHECKSUM_SPAN; i++) {

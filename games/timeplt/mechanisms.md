@@ -1868,7 +1868,7 @@ completed round and a life lost while the round-over flag is set, and that flag 
 non-zero in a run covering boot, attract, the demo and a driven game. `[seen]` for the zeros;
 `[code]` for what it does.
 
-**`loc_13cc` is unreached AND unnamed, deliberately.** It floods a 27-by-28 rectangle of the colour
+**`floodColourPlaneWithSavedPlayerColour` is unreached AND unnamed, deliberately.** It floods a 27-by-28 rectangle of the colour
 plane with a byte the active-player selector picks, sets one sequence cell and counts another down.
 Neither of those two cells took a single write in a whole run, which is a second instrument agreeing
 with the zero dispatches. ★ And its two arms — chosen on the screen-flip flag — write **the identical

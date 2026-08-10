@@ -36,7 +36,7 @@ export const UNWIRED = {
       "directly and none of them calls this address -- so the route out is demonstrated, not " +
       "hoped for. The remaining four are frozen, and each dissolves it in its own unit by passing " +
       "the table address as an argument, at which point nothing here touches the stack.",
-    "loc_3074.js":
+    "placeTileAtTableSuppliedOffset.js":
       "Not a dispatch entry: it is an interior continuation. Decoding the image from EVERY byte " +
       "offset -- which over-generates and cannot under-generate -- finds exactly one transfer to " +
       "0x3074 in the whole 24KB, a `djnz` at 0x3081, and 0x307F..0x3089 is a CAPTION RECORD " +
