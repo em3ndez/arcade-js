@@ -842,6 +842,12 @@ off — and `flyAndRetireSlotCyclingShapeInEra4` is the fly-then-retire arm with
 alone it advances a fixed shape cycle before the object moves, so a shape written this tick may go out
 in the same breath. `[code]`
 
+★ **The four actor slots at `0xA810`–`0xA840` have their own per-slot servicer.** `stepFourActorSlots`
+walks the four records in turn and hands each to `dispatchObjectSlotByHeadByte` (`0x3E63`) — a sibling
+of `serviceSlotByHeadByte` above that likewise splits on the record's head byte (`0x00` does nothing)
+but carries a different arm pair: `0xFF` runs `flyAndRetireSlotCyclingShapeInEra4`, any other value
+runs `runSlotCountdownDriftAndAnimateElseRetire`. `[code]`
+
 ### An animation is a run of shape bytes, walked BACKWARDS by its own timer
 
 A record's animation is three bytes of the record and one table. The selector byte picks a run out

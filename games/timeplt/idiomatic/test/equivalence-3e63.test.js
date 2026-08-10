@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3e63 — memory-equivalent to the frozen oracle at ROM 0x3E63.
+ * dispatchObjectSlotByHeadByte — memory-equivalent to the frozen oracle at ROM 0x3E63.
  *
  * GATE: crafted-entry, because the strict one is VACUOUS here and this file proves it.
  *   The coin -> start tape reaches 0x3E63 in quantity (the routine is walked over four
@@ -13,7 +13,7 @@
  *
  *   1. DISPATCHED — the tape reaches the routine, and the entry is a real record base.
  *   2. BLIND      — the strict capture is asserted vacuous, with the no-op proving it.
- *   3. EXHAUSTIVE — heads 0..255, each arm run for real on both sides.
+ *   3. EXHAUSTIVE — heads 0..255, each arm real on both sides, minus the dead return scratch below sp.
  *   4. ARMS       — the sweep is shown to have covered all three exits, not just one.
  *   5. EXCLUDED   — registers and pc diverge by design; nothing outside the excluded set may.
  *   6. TEETH      — three broken twins, each caught by the same sweep.
@@ -32,7 +32,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3e63 } from "../loc_3e63.js";
+import { dispatchObjectSlotByHeadByte } from "../dispatchObjectSlotByHeadByte.js";
 import { loc_3e63 as oracle } from "../../translated/loc_3e63.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -63,19 +63,31 @@ function strict(candidate) {
 }
 
 function entryState() {
-  if (entry === null) strict(loc_3e63);
+  if (entry === null) strict(dispatchObjectSlotByHeadByte);
   return entry;
 }
 
-/** Oracle vs candidate from the captured entry with the head byte forced to `head`. */
+const SCRATCH_BYTES = 2;
+
+// Oracle vs candidate at the head, ignoring the 2-byte dead return scratch below sp: the oracle's arm
+// m.calls (parking a return address there), the rewrite calls directly. Both arms stack-pure, sp restored -> dead.
 function headDiff(candidate, head) {
   const a = entryState().clone();
   const b = entryState().clone();
   a.mem8[a.regs.ix] = head;
   b.mem8[b.regs.ix] = head;
+  const sp = a.regs.sp;
   oracle(a);
   candidate(b);
-  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  const da = a.dumpState();
+  const db = b.dumpState();
+  for (let i = 0; i < da.length; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr !== null && addr >= sp - SCRATCH_BYTES && addr < sp) continue;
+    return { addr, a: da[i], b: db[i] };
+  }
+  return null;
 }
 
 /** Does the oracle write anything at all for this head byte? */
@@ -131,7 +143,7 @@ test("DISPATCHED: the tape reaches the routine inside the harness budget", { ski
 });
 
 test("BLIND: the strict capture is VACUOUS here — a no-op passes it", { skip }, () => {
-  const real = strict(loc_3e63);
+  const real = strict(dispatchObjectSlotByHeadByte);
   assert.equal(real.ram, null, `RAM diverged on the real arm — ${show(real.ram)}`);
   assert.equal(
     entryState().mem8[entryState().regs.ix],
@@ -151,7 +163,7 @@ test("BLIND: the strict capture is VACUOUS here — a no-op passes it", { skip }
 test("EXHAUSTIVE: every head byte 0..255 splits the same way", { skip }, () => {
   let swept = 0;
   for (let head = 0; head < 256; head++) {
-    const d = headDiff(loc_3e63, head);
+    const d = headDiff(dispatchObjectSlotByHeadByte, head);
     assert.equal(d, null, `head=${head}: ${show(d)}`);
     swept++;
   }
@@ -171,7 +183,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_3e63(b);
+  dispatchObjectSlotByHeadByte(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(

@@ -1841,7 +1841,7 @@ export const ROUTINES = {
     why: "'four, unconditionally, every time' is the whole of the claim and a tap can refute it outright. Read tap on the record band gated to the step's own state read, on the real ROM: across 9000 frames of undriven attract each of the four records 0xA810, 0xA820, 0xA830, 0xA840 was read exactly 6584 times, and across 13200 frames of a coin-driven run exactly 9866 times each — four equal counts, which a routine that skipped free slots could not produce, and 22208 of the 26336 attract reads returned 0x00 (free). The four IX bases pair with the four IY bases the routine loads beside them, 0xAA12, 0xAA14, 0xAA16, 0xAA18, under the record/entry mapping mechanisms.md states independently — (0xA810-0xA800)/8 = 2 and (0xA840-0xA800)/8 = 8 against 0xAA10 — so 'slot' is the right unit and 'actor' is the band those four sit in. The state values seen are the lifecycle's and nothing else: 0x00 and 0xFF throughout, plus one sighting each of a dying countdown (0x14 at 0xA810, 0x28 at 0xA830, 0x32 at 0xA840) and none at all at 0xA820. It is entry fifteen of the round engine's per-frame service list at 0x1199, and 6584 dispatches in 9000 frames is the sub-every-frame cadence that list is documented to run at. NOT claimed: what the four slots hold, or why these four and not the rest of the actor band",
   },
   0x3e63: {
-    name: "loc_3e63",
+    name: "dispatchObjectSlotByHeadByte",
     role: "split three ways on the head byte of the record an index register points at: zero returns with nothing done, all-ones hands over to one continuation and every other value to another. One byte read, nothing written, and neither continuation is given anything this entry computed",
     cert: "code",
   },

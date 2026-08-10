@@ -1,29 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** stepFourActorSlots — run the same per-slot step over four slots in turn.
  *
- * ★ THE PARKED VALUE IS A DEBT, NOT A DESIGN. A slot whose record byte is not zero hands over,
- * through the step, to a tail that lifts one value off the stack before it finishes; a slot whose
- * record byte IS zero hands over to nothing and lifts nothing. So one value is parked for exactly
- * the slots that will take it, and the four parked values are the four resume points the same
- * hand-over would have carried. When that tail stops lifting, the park here goes with it.
- * LIVE-OUT: memory, plus the two cursors the fourth slot left. */
+ * The Z80 parked a resume address on the stack for each non-idle slot, because the frozen step it
+ * handed to returned through a tail that lifted one off. Now that the step (dispatchObjectSlotByHeadByte) is a direct
+ * call that lifts nothing, that park writes only dead scratch below the stack pointer, so it has
+ * been retired -- exactly as the note it used to carry said it would be, "when that tail stops
+ * lifting, the park goes with it." LIVE-OUT: memory, plus the two cursors the fourth slot left. */
 
-import { loc_3e63 } from "./loc_3e63.js";
-
-const IDLE = 0;
+import { dispatchObjectSlotByHeadByte } from "./dispatchObjectSlotByHeadByte.js";
 
 const SLOTS = [
-  [0xa810, 0xaa12, 0x3e41],
-  [0xa820, 0xaa14, 0x3e4c],
-  [0xa830, 0xaa16, 0x3e57],
-  [0xa840, 0xaa18, 0x3e62],
+  [0xa810, 0xaa12],
+  [0xa820, 0xaa14],
+  [0xa830, 0xaa16],
+  [0xa840, 0xaa18],
 ];
 
 export function stepFourActorSlots(m) {
-  for (const [record, entry, parked] of SLOTS) {
+  for (const [record, entry] of SLOTS) {
     m.regs.ix = record;
     m.regs.iy = entry;
-    if (m.mem8[record] !== IDLE) m.push16(parked);
-    loc_3e63(m);
+    dispatchObjectSlotByHeadByte(m);
   }
 }

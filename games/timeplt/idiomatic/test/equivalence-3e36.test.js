@@ -6,24 +6,19 @@
  *   session, and an EXHAUSTIVE sweep of the byte that decides what each of the four slots does.
  *   What it exercises, holes stated:
  *
- *   1. EQUAL at the real dispatch — everything outside a two-byte dead scratch window below the
- *      entry stack pointer. Every arm PINS the window, so it cannot quietly widen.
- *   2. THE PARK IS MEASURED, NOT ASSERTED BY TASTE. The rewrite parks one value on the stack for
- *      each slot that is not idle, because the step those slots hand over to leaves through a
- *      frozen tail that lifts one off. An arm below runs a twin with the park REMOVED and reports
- *      the stack-pointer error and the fact that the divergence then escapes ABOVE the entry
- *      stack pointer — into the caller's live stack — which is what makes the park load-bearing
- *      rather than decorative. When that tail stops lifting, this arm fails and the park goes.
- *   3. THE FOUR SLOTS ARE THE CONTENT — asserted by twins that visit three of them, one of them
+ *   1. EQUAL at the real dispatch — everything outside a four-byte dead scratch window below the
+ *      entry stack pointer, the two words the frozen oracle parks and calls through and the rewrite
+ *      no longer touches (the step is now a direct call that neither parks nor lifts).
+ *   2. THE FOUR SLOTS ARE THE CONTENT — asserted by twins that visit three of them, one of them
  *      twice, or the right records paired with the wrong entries, since nothing else about this
  *      entry is a decision.
- *   4. EXHAUSTIVE — the head byte of all four records swept 0..255 TOGETHER, which covers all
- *      three exits of the step and both sides of the park's condition, and then every MIXED
- *      pattern over a four-value alphabet, which is what discriminates the pairing of records to
- *      entries: with all four slots alike, every entry is written either way.
- *   5. CORPUS — every dispatch of a driven session, on a clone taken at the dispatch, with the
+ *   3. EXHAUSTIVE — the head byte of all four records swept 0..255 TOGETHER, which covers all
+ *      three exits of the step, and then every MIXED pattern over a four-value alphabet, which is
+ *      what discriminates the pairing of records to entries: with all four slots alike, every
+ *      entry is written either way.
+ *   4. CORPUS — every dispatch of a driven session, on a clone taken at the dispatch, with the
  *      head bytes the session actually presented reported rather than assumed.
- *   6. TEETH — six twins, each caught on its own exact count over the sweep.
+ *   5. TEETH — six twins, each caught on its own exact count over the sweep.
  *
  * HOLE: the ORDER the four slots are visited in is not observable to this gate and no twin
  * attacks it. The four act on disjoint records and disjoint entries, so any order leaves the same
@@ -42,32 +37,27 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { stepFourActorSlots } from "../stepFourActorSlots.js";
 import { loc_3e36 as oracle } from "../../translated/loc_3e36.js";
-import { loc_3e63 } from "../loc_3e63.js";
+import { dispatchObjectSlotByHeadByte } from "../dispatchObjectSlotByHeadByte.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x3e36;
 
-/** Record base, entry base, and the value the rewrite parks for a slot that is not idle. */
+/** Record base and entry base for each of the four slots. */
 const SLOTS = [
-  [0xa810, 0xaa12, 0x3e41],
-  [0xa820, 0xaa14, 0x3e4c],
-  [0xa830, 0xaa16, 0x3e57],
-  [0xa840, 0xaa18, 0x3e62],
+  [0xa810, 0xaa12],
+  [0xa820, 0xaa14],
+  [0xa830, 0xaa16],
+  [0xa840, 0xaa18],
 ];
 const IDLE = 0;
 
-/**
- * The dead stack scratch: one parked value, at the bottom of the frozen chain's own bracket.
- * Measured as an upper bound over the whole sweep, and pinned by every arm.
- */
-const SCRATCH_BYTES = 2;
+// Dead stack scratch below entry sp: the oracle parks a resume address (sp-2) and calls into the step
+// (sp-4); the direct-call rewrite touches neither. sp is restored, nothing reads below it -> four dead
+// bytes. Measured as the deepest divergence over every judged state; live writes all land in game RAM.
+const SCRATCH_BYTES = 4;
 
-/**
- * An upper BOUND on the register divergence, not a measurement of it: nothing outside this set may
- * move, and a rewrite that leaves fewer of these dirty is strictly better and still passes. The two
- * cursors are deliberately outside it — the fourth slot leaves them in the same place on both
- * sides, and the arm checks them as live-outs.
- */
+// Upper bound on register divergence: nothing outside this set may move (fewer dirty still passes). The
+// two cursors are outside it -- the fourth slot leaves them put on both sides, and EQUAL checks them.
 const EXCLUDED = ["a", "f", "sp"];
 
 /** Dispatches the shared tape produces in the harness budget. Measured; a move is a finding. */
@@ -130,11 +120,8 @@ function craft(head) {
   return m;
 }
 
-/**
- * The same, but each slot given its OWN head byte out of a four-value alphabet — the inert one,
- * the two the step splits on, and one that reaches the clamp. A uniform sweep cannot see which
- * entry base a record was paired with, because every slot ends up written either way.
- */
+// Each slot gets its OWN head byte from a four-value alphabet (inert, the two split values, one that
+// clamps). A uniform sweep can't see which entry a record was paired with -- every slot writes either way.
 const ALPHABET = [0, 1, 255, 60];
 
 function craftMixed(pattern) {
@@ -162,6 +149,7 @@ function sweepCaught(candidate) {
   return caught;
 }
 
+
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the scratch window", { skip }, () => {
@@ -183,47 +171,6 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
   assert.equal(a.regs.ix, b.regs.ix, "the record cursor diverged");
   assert.equal(a.regs.iy, b.regs.iy, "the entry cursor diverged");
   console.log(`  EQUAL: sp ${hex4(sp)}, cursors ${hex4(a.regs.ix)}/${hex4(a.regs.iy)}`);
-});
-
-test("THE PARK IS LOAD-BEARING: removing it drifts the stack into the caller's own", { skip }, () => {
-  const unparked = (m) => {
-    for (const [record, entry] of SLOTS) {
-      m.regs.ix = record;
-      m.regs.iy = entry;
-      loc_3e63(m);
-    }
-  };
-
-  let worstStackError = 0;
-  let escapedAbove = 0;
-  let anyDiff = 0;
-  for (let head = 0; head < 256; head++) {
-    const machine = craft(head);
-    const sp = machine.regs.sp;
-    const a = machine.clone();
-    const b = machine.clone();
-    oracle(a);
-    unparked(b);
-    worstStackError = Math.max(worstStackError, Math.abs(a.regs.sp - b.regs.sp));
-    const strays = outsideScratch(a, b, sp);
-    if (strays.length > 0) anyDiff++;
-    if (strays.some((d) => d.addr >= sp)) escapedAbove++;
-  }
-  assert.ok(
-    worstStackError > 0,
-    "removing the park no longer moves the stack pointer at all, so the tail this entry parks " +
-      "for has stopped lifting and the park should be removed from the rewrite",
-  );
-  assert.ok(
-    escapedAbove > 0,
-    "removing the park no longer disturbs anything at or above the entry stack pointer, so it " +
-      "is no longer load-bearing and this arm is the one that should be deleted",
-  );
-  assert.equal(sweepCaught(stepFourActorSlots), 0, "the parked rewrite must pass every judged state");
-  console.log(
-    `  PARK: without it the stack pointer is out by up to ${worstStackError} bytes, ` +
-      `${anyDiff} of 256 head bytes diverge and ${escapedAbove} escape into live stack`,
-  );
 });
 
 test("EXHAUSTIVE: every uniform head byte and every mixed pattern behaves alike", { skip }, () => {
@@ -268,23 +215,21 @@ test("CORPUS: every dispatch of a driven session replays identically", { skip },
 });
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────
-// Each twin visits a different set of slots, since choosing the four slots is the whole of
-// what this entry decides. All of them park exactly as the real one does, so a catch measures
-// the slot set and not the park.
+// Each twin visits a different set of slots (the whole of what this entry decides); none parks, so
+// a catch measures the slot set, nothing else.
 
 function visit(m, slots) {
-  for (const [record, entry, parked] of slots) {
+  for (const [record, entry] of slots) {
     m.regs.ix = record;
     m.regs.iy = entry;
-    if (m.mem8[record] !== IDLE) m.push16(parked);
-    loc_3e63(m);
+    dispatchObjectSlotByHeadByte(m);
   }
 }
 
 /** The same four records paired with the entry bases rotated by one. */
-const CROSSED = SLOTS.map(([record, , parked], i) => [record, SLOTS[(i + 1) % 4][1], parked]);
-const ONE_RECORD_ON = SLOTS.map(([record, entry, parked]) => [record + 16, entry, parked]);
-const ONE_ENTRY_ON = SLOTS.map(([record, entry, parked]) => [record, entry + 2, parked]);
+const CROSSED = SLOTS.map(([record], i) => [record, SLOTS[(i + 1) % 4][1]]);
+const ONE_RECORD_ON = SLOTS.map(([record, entry]) => [record + 16, entry]);
+const ONE_ENTRY_ON = SLOTS.map(([record, entry]) => [record, entry + 2]);
 
 const TWINS = [
   ["no-op", () => {}, 510],
