@@ -41,7 +41,7 @@ import { readFileSync } from "node:fs";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { startOnePlayerGame } from "../startOnePlayerGame.js";
 import { hideCaptionSprites } from "../hideCaptionSprites.js";
-import { loc_172a } from "../loc_172a.js";
+import { seatSequencePhase3AndResetSubStep } from "../seatSequencePhase3AndResetSubStep.js";
 import { paintCreditCountPanel } from "../paintCreditCountPanel.js";
 import { copyThreeTilemapCellsFromBothPlanes } from "../copyThreeTilemapCellsFromBothPlanes.js";
 import { loc_3215 as oracle } from "../../translated/loc_3215.js";
@@ -93,7 +93,7 @@ const HELPERS = [
   ["hideCaptionSprites", "../hideCaptionSprites.js", "SLOT_STRIDE"],
   ["paintCreditCountPanel", "../paintCreditCountPanel.js", "PEN_COLOUR"],
   ["copyThreeTilemapCellsFromBothPlanes", "../copyThreeTilemapCellsFromBothPlanes.js", "PLANE_GAP_HIGH"],
-  ["loc_172a", "../loc_172a.js", "LAST_PHASE"],
+  ["seatSequencePhase3AndResetSubStep", "../seatSequencePhase3AndResetSubStep.js", "LAST_PHASE"],
 ];
 
 function callsRatherThanRestates(text, [name, file, ownName]) {
@@ -287,7 +287,7 @@ function build(o = {}) {
       }
       copyThreeTilemapCellsFromBothPlanes(m);
     }
-    if (opt.jump) loc_172a(m);
+    if (opt.jump) seatSequencePhase3AndResetSubStep(m);
   };
 }
 

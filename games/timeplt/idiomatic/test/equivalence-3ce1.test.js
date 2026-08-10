@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3ce1 — memory-equivalent to the frozen oracle at ROM 0x3CE1.
+ * hasReachedHorizontalEdgeWindow — memory-equivalent to the frozen oracle at ROM 0x3CE1.
  *
  * ★ NO DRIVEN TAPE REACHES THIS ENTRY AT ALL. The shared tape presses only coin 1 and 1 player
  *   start; IT NEVER FIRES AND NEVER STEERS. A second tape that holds the trigger down and walks
@@ -65,7 +65,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, romsPresent } from "./_harness.js";
-import { loc_3ce1 } from "../loc_3ce1.js";
+import { hasReachedHorizontalEdgeWindow } from "../hasReachedHorizontalEdgeWindow.js";
 import { loc_3ce1 as oracle } from "../../translated/loc_3ce1.js";
 import {
   firstStateDiff,
@@ -175,7 +175,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_3ce1);
+  if (entry === null) gate(hasReachedHorizontalEdgeWindow);
   return entry;
 }
 
@@ -254,7 +254,7 @@ function replaySession(opts, candidate) {
 let sessionCache = null;
 function sessions() {
   if (sessionCache) return sessionCache;
-  sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, loc_3ce1) }));
+  sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, hasReachedHorizontalEdgeWindow) }));
   return sessionCache;
 }
 
@@ -363,14 +363,14 @@ test("BLIND: RAM is a TAUTOLOGY here — a bare no-op passes it too", { skip }, 
 });
 
 test("EQUAL at the real dispatch: carry and the returned boolean, excluded set bounded", { skip }, () => {
-  const r = gate(loc_3ce1);
+  const r = gate(hasReachedHorizontalEdgeWindow);
   assert.notEqual(entry, null, "vacuous: the attract run never reached the routine");
   assert.equal(r.ram, null, "RAM diverged");
 
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  const answer = loc_3ce1(b);
+  const answer = hasReachedHorizontalEdgeWindow(b);
 
   assert.equal(b.regs.fC, a.regs.fC, "the carry live-out");
   assert.equal(answer, a.regs.fC, "the returned boolean must mirror the carry");
@@ -422,7 +422,7 @@ test("DEGENERATE ENTRY: doubling the budget captures the SAME entry", { skip }, 
   let later = null;
   unitEquivalence(attractMachine, TARGET, oracle, (m) => {
     if (later === null) later = m.clone();
-    return loc_3ce1(m);
+    return hasReachedHorizontalEdgeWindow(m);
   }, { maxFrames: 2 * ENTRY_BUDGET });
   assert.notEqual(later, null, "vacuous: the doubled budget never reached the routine");
   assert.equal(later.regs.iy, first.regs.iy, "a longer run must not change which record it came from");
@@ -442,7 +442,7 @@ test("CORPUS: every real dispatch agrees on carry and on the returned boolean", 
 });
 
 test("EXHAUSTIVE: all 256 values of the one cell it reads answer as the oracle does", { skip }, () => {
-  const r = sweep(loc_3ce1, entryState().regs.iy);
+  const r = sweep(hasReachedHorizontalEdgeWindow, entryState().regs.iy);
   assert.deepEqual(r.contract, [], `the rewrite diverged on values ${r.contract.join(",")}`);
   const trues = everyValue.filter((v) => {
     const m = craft(v);
@@ -456,7 +456,7 @@ test("EXHAUSTIVE: all 256 values of the one cell it reads answer as the oracle d
 
 test("CRAFTED BASES: the same sweep at four further record bases", { skip }, () => {
   for (const base of CRAFT_BASES) {
-    const r = sweep(loc_3ce1, base);
+    const r = sweep(hasReachedHorizontalEdgeWindow, base);
     assert.deepEqual(r.contract, [], `base ${hex4(base)} diverged on ${r.contract.join(",")}`);
   }
   console.log(`  CRAFTED BASES: ${CRAFT_BASES.length * VALUES} further comparisons identical`);
@@ -466,8 +466,8 @@ test("HONEST SIGNATURE: the explicit base agrees with the register default", { s
   for (const value of [0, 1, 2, 49, 253, 254, 255]) {
     const viaRegister = craft(value);
     const viaArgument = craft(value);
-    const a = loc_3ce1(viaRegister);
-    const b = loc_3ce1(viaArgument, viaArgument.regs.iy);
+    const a = hasReachedHorizontalEdgeWindow(viaRegister);
+    const b = hasReachedHorizontalEdgeWindow(viaArgument, viaArgument.regs.iy);
     assert.equal(a, b, `value ${value}: the two entry forms disagree`);
     assert.equal(viaRegister.regs.fC, viaArgument.regs.fC, `value ${value}: carry disagrees`);
   }
@@ -514,7 +514,7 @@ test("TEETH: the hostile instrument is WIRED — flipping the carry forks the ru
 });
 
 test("WHOLE-MACHINE: the attract session is byte-identical with the rewrite wired", { skip }, () => {
-  const w = replay(loc_3ce1);
+  const w = replay(hasReachedHorizontalEdgeWindow);
   const fired = w.invocations.get(TARGET);
   assert.equal(fired, DISPATCHES.attract, "the replay's dispatch count moved");
   assert.equal(w.framesCompared, CORPUS_FRAMES, "the replay ran short of the frames asked for");

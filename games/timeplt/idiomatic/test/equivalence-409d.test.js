@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_409d — memory-equivalent to the frozen oracle at ROM 0x409D.
+ * stampObjectStateByte3bThenRequestSound — memory-equivalent to the frozen oracle at ROM 0x409D.
  *
  * WHAT IT IS. One byte stamped into an object's record, then a transfer into the sound-request
  * shim at ROM 0x568E, WHICH IS ALREADY DECOMPILED — so the rewrite calls loc_568e directly and
@@ -63,7 +63,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_409d } from "../loc_409d.js";
+import { stampObjectStateByte3bThenRequestSound } from "../stampObjectStateByte3bThenRequestSound.js";
 import { loc_568e } from "../loc_568e.js";
 import { ERA_INDEX, PLAY_ACTIVE } from "../names.js";
 import { loc_409d as oracle } from "../../translated/loc_409d.js";
@@ -364,7 +364,7 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_409d(b);
+  stampObjectStateByte3bThenRequestSound(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(`  EQUAL: ${all.length} differing bytes, ${strays.length} outside [SP-${SCRATCH_BYTES}, SP)`);
@@ -410,7 +410,7 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole cross"
     const a = craft(...entry);
     const b = a.clone();
     oracle(a);
-    loc_409d(b);
+    stampObjectStateByte3bThenRequestSound(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
@@ -421,7 +421,7 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole cross"
 });
 
 test("CALLS, NOT RESTATES: the module's text, with the shim as a positive control", () => {
-  const module = read("../loc_409d.js");
+  const module = read("../stampObjectStateByte3bThenRequestSound.js");
   for (const helper of HELPERS) {
     assert.ok(callsRatherThanRestates(module, helper), `the module does not call ${helper[0]}`);
     assert.ok(!callsRatherThanRestates(read(helper[1]), helper), `the check passes ${helper[0]}'s ` +
@@ -437,7 +437,7 @@ test("THE STAMP: the byte read back out of the record, on several bases", { skip
       const a = craft(base, prior, 0, 0xff, 2);
       const b = a.clone();
       oracle(a);
-      loc_409d(b);
+      stampObjectStateByte3bThenRequestSound(b);
       assert.equal(a.mem8[base + STATE], STAMPED_STATE, `the frozen side left ${a.mem8[base]}`);
       assert.equal(b.mem8[base + STATE], a.mem8[base + STATE], `record ${hex4(base)} prior ${prior}`);
     }
@@ -450,7 +450,7 @@ test("THE SOUND: the code appended to the queue, read back", { skip }, () => {
   const a = craft(entryState().regs.ix, 0xf0, 0, 0xff, 2);
   const b = a.clone();
   oracle(a);
-  loc_409d(b);
+  stampObjectStateByte3bThenRequestSound(b);
   assert.equal(a.mem8[QUEUE_LENGTH], 3, "the frozen side appended nothing under permission");
   assert.equal(b.mem8[QUEUE_LENGTH], a.mem8[QUEUE_LENGTH], "the rewrite appended a different count");
   assert.equal(b.mem8[QUEUE_LENGTH + 3], a.mem8[QUEUE_LENGTH + 3], "a different code was appended");
@@ -463,7 +463,7 @@ test("THE SOUND: the code appended to the queue, read back", { skip }, () => {
 
 test("GATE CROSS: era, permission, queue length and prior byte crossed", { skip }, () => {
   for (const entry of cross()) {
-    const d = unitDiff(loc_409d, craft(...entry));
+    const d = unitDiff(stampObjectStateByte3bThenRequestSound, craft(...entry));
     assert.equal(d, null, `base ${hex4(entry[0])} prior ${entry[1]} era ${entry[2]} play ${entry[3]} ` +
       `length ${entry[4]}: ${show(d)}`);
   }
@@ -473,14 +473,14 @@ test("GATE CROSS: era, permission, queue length and prior byte crossed", { skip 
 test("EXHAUSTIVE: all 256 prior values of the record byte", { skip }, () => {
   const base = entryState().regs.ix;
   for (const prior of everyByte) {
-    const d = unitDiff(loc_409d, craft(base, prior, 0, 0xff, 2));
+    const d = unitDiff(stampObjectStateByte3bThenRequestSound, craft(base, prior, 0, 0xff, 2));
     assert.equal(d, null, `prior ${prior}: ${show(d)}`);
   }
   console.log("  EXHAUSTIVE: 256 prior record bytes identical");
 });
 
 test("WHOLE-MACHINE: the driven session differs only in stack scratch", { skip }, () => {
-  const r = wholeRunCells(loc_409d);
+  const r = wholeRunCells(stampObjectStateByte3bThenRequestSound);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,

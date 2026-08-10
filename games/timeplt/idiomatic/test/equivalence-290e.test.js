@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_290e — memory-equivalent to the frozen oracle at ROM 0x290E.
+ * dispatchSeatedSlotByEraIndex — memory-equivalent to the frozen oracle at ROM 0x290E.
  *
  * WHAT IT IS. Three instructions: read the era index, keep its low three bits, and enter the
  * restart-vector dispatch with the address of the word table that follows. Nothing is pushed for
@@ -57,7 +57,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_290e } from "../loc_290e.js";
+import { dispatchSeatedSlotByEraIndex } from "../dispatchSeatedSlotByEraIndex.js";
 import { ERA_INDEX } from "../names.js";
 import { loc_290e as oracle } from "../../translated/loc_290e.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -134,7 +134,7 @@ function runSession(spec, candidate) {
     dispatches++;
     const selector = mm.mem8[ERA_INDEX] & ARM_MASK;
     spread.set(selector, (spread.get(selector) ?? 0) + 1);
-    const r = diffOf(candidate ?? loc_290e, mm);
+    const r = diffOf(candidate ?? dispatchSeatedSlotByEraIndex, mm);
     if (r.informative) {
       informative.set(selector, (informative.get(selector) ?? 0) + 1);
       if (!entries.has(selector)) entries.set(selector, mm.clone());
@@ -155,7 +155,7 @@ function runSession(spec, candidate) {
   return { dispatches, spread, informative, moved, caught, deepest, escaped };
 }
 
-function session(spec, candidate = loc_290e) {
+function session(spec, candidate = dispatchSeatedSlotByEraIndex) {
   const key = `${spec.label}/${candidate.name}`;
   if (!cache.has(key)) cache.set(key, runSession(spec, candidate));
   return cache.get(key);
@@ -314,7 +314,7 @@ for (const spec of SESSIONS) {
 
 test("EQUAL at a real dispatch of each live era: masked RAM identical", { skip }, () => {
   for (const selector of LIVE_SELECTORS) {
-    const r = diffOf(loc_290e, entryFor(selector));
+    const r = diffOf(dispatchSeatedSlotByEraIndex, entryFor(selector));
     assert.equal(r.faultA, null, `era ${selector}: the oracle faulted (${r.faultA})`);
     assert.equal(r.faultB, null, `era ${selector}: the rewrite faulted (${r.faultB})`);
     assert.deepEqual(r.masked, [], `era ${selector}: ${show(r.masked)}`);
@@ -338,7 +338,7 @@ test("SCRATCH: the whole raw difference lies below the exit pointer, inside the 
   let seen = 0;
   for (const live of LIVE_SELECTORS) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(loc_290e, craft(i, entryFor(live)));
+      const r = diffOf(dispatchSeatedSlotByEraIndex, craft(i, entryFor(live)));
       for (const d of r.raw) {
         assert.ok(d.addr < r.exitSp, `arm ${i}: ${hex4(d.addr)} is at or above the exit pointer`);
         deepest = Math.max(deepest, r.exitSp - d.addr);
@@ -388,7 +388,7 @@ test("ARMS: every table entry runs identically, or faults identically", { skip }
   let informative = 0;
   for (const live of LIVE_SELECTORS) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(loc_290e, craft(i, entryFor(live)));
+      const r = diffOf(dispatchSeatedSlotByEraIndex, craft(i, entryFor(live)));
       if (r.informative) informative++;
       if (r.faulted) {
         assert.equal(r.faultA, r.faultB, `arm ${i}: ${r.faultA} on one side, ${r.faultB} on the other`);
@@ -412,7 +412,7 @@ test("SELECTOR: the five high bits are ignored, over the cell's whole range", { 
   let informative = 0;
   for (const live of LIVE_SELECTORS) {
     for (const v of everySelector) {
-      const r = diffOf(loc_290e, craft(v, entryFor(live)));
+      const r = diffOf(dispatchSeatedSlotByEraIndex, craft(v, entryFor(live)));
       if (r.informative) informative++;
       if (r.faulted) {
         assert.equal(r.faultA, r.faultB, `selector ${v}: ${r.faultA} vs ${r.faultB}`);
@@ -430,7 +430,7 @@ test("STACK: the exit pointer and the program counter are identical", { skip }, 
   let completed = 0;
   for (const live of LIVE_SELECTORS) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(loc_290e, craft(i, entryFor(live)));
+      const r = diffOf(dispatchSeatedSlotByEraIndex, craft(i, entryFor(live)));
       if (r.faulted) continue;
       assert.equal(r.exitSp, r.spB, `arm ${i}: exit pointers ${hex4(r.exitSp)} and ${hex4(r.spB)}`);
       assert.equal(r.pcA, r.pcB, `arm ${i}: program counters ${hex4(r.pcA)} and ${hex4(r.pcB)}`);
@@ -446,7 +446,7 @@ test("EXCLUDED, deliberately: the registers that move, over every real dispatch"
   for (const spec of SESSIONS) for (const k of session(spec).moved) moved.add(k);
   for (const live of LIVE_SELECTORS) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      for (const k of diffOf(loc_290e, craft(i, entryFor(live))).moved) moved.add(k);
+      for (const k of diffOf(dispatchSeatedSlotByEraIndex, craft(i, entryFor(live))).moved) moved.add(k);
     }
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);

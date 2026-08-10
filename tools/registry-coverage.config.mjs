@@ -26,7 +26,7 @@ export const UNWIRED = {
       "the frame service PUSHES, so control RETURNS into it rather than calling it. The module " +
       "and its gate are correct and stay; what is missing is a seam that can model a routine " +
       "whose whole job is to dismantle the frame its caller is standing on.",
-    "loc_0030.js":
+    "dispatchInlineWordTableIndexedByA.js":
       "RST 0x30's argument IS the stack slot. The caller's transfer leaves the inline table's " +
       "address where a return address would sit, and the routine pops it -- consuming it is what " +
       "turns the caller's next bytes into a table instead of instructions. A dispatch entry takes " +

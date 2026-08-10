@@ -77,13 +77,13 @@ import assert from "node:assert/strict";
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
 import { stepSevenCraftSlots } from "../stepSevenCraftSlots.js";
-import { loc_28b7 } from "../loc_28b7.js";
-import { loc_28c2 } from "../loc_28c2.js";
-import { loc_28cd } from "../loc_28cd.js";
-import { loc_28d8 } from "../loc_28d8.js";
-import { loc_28e3 } from "../loc_28e3.js";
-import { loc_28ee } from "../loc_28ee.js";
-import { loc_28fe } from "../loc_28fe.js";
+import { seatCraftSlot0ThenDispatchByEra } from "../seatCraftSlot0ThenDispatchByEra.js";
+import { seatCraftSlot1ThenDispatchByEra } from "../seatCraftSlot1ThenDispatchByEra.js";
+import { seatCraftSlot2ThenDispatchByEra } from "../seatCraftSlot2ThenDispatchByEra.js";
+import { seatCraftSlot3ThenDispatchByEra } from "../seatCraftSlot3ThenDispatchByEra.js";
+import { seatCraftSlot4ThenDispatchByEra } from "../seatCraftSlot4ThenDispatchByEra.js";
+import { seatMotherShipSlotThenDispatchByEraUnlessArmed } from "../seatMotherShipSlotThenDispatchByEraUnlessArmed.js";
+import { seatCraftSlot6ThenDispatchByEraUnlessArmed } from "../seatCraftSlot6ThenDispatchByEraUnlessArmed.js";
 import { loc_28a1 as oracle } from "../../translated/loc_28a1.js";
 import { ERA_INDEX, MOTHER_SHIP_ARMED } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -94,13 +94,13 @@ const ARM_COUNT = 8;
 
 /** The chain the oracle runs: the sibling, its resume point, and whether it can stand down. */
 const LINKS = [
-  [loc_28b7, 0x28a4, false],
-  [loc_28c2, 0x28a7, false],
-  [loc_28cd, 0x28aa, false],
-  [loc_28d8, 0x28ad, false],
-  [loc_28e3, 0x28b0, false],
-  [loc_28ee, 0x28b3, true],
-  [loc_28fe, 0x28b6, true],
+  [seatCraftSlot0ThenDispatchByEra, 0x28a4, false],
+  [seatCraftSlot1ThenDispatchByEra, 0x28a7, false],
+  [seatCraftSlot2ThenDispatchByEra, 0x28aa, false],
+  [seatCraftSlot3ThenDispatchByEra, 0x28ad, false],
+  [seatCraftSlot4ThenDispatchByEra, 0x28b0, false],
+  [seatMotherShipSlotThenDispatchByEraUnlessArmed, 0x28b3, true],
+  [seatCraftSlot6ThenDispatchByEraUnlessArmed, 0x28b6, true],
 ];
 
 /** Bytes below the entry stack pointer the dissolved chain reaches. Measured by the SCRATCH arm. */

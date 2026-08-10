@@ -1473,7 +1473,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x12e7: {
-    name: "loc_12e7",
+    name: "passTurnToOtherPlayerIfLivesElseStepSequence",
     role: "hand the turn over to the other player when that player's saved lives count is non-zero, and otherwise step the inner sequence index; both exits are tails, so this entry chooses between two continuations rather than returning to anything",
     cert: "code",
   },
@@ -1515,7 +1515,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x15c2: {
-    name: "loc_15c2",
+    name: "dispatchSequencePhase0SubStepArm",
     role: "run the arm the LOW THREE BITS of the inner sequence step select out of a word table laid down inline just behind this entry; the arm is entered as a transfer with no place parked for it to come back to, so it returns past this entry and nothing here runs after it, and all eight indices are carried out through the machine's own arithmetic rather than assumed away",
     cert: "code",
   },
@@ -1536,7 +1536,7 @@ export const ROUTINES = {
     why: "the name predicts the routine is unreachable on a coin cabinet and reachable with no coin on a free-play one, and both halves were measured. On the default coinage a read tap counted zero across four driven MAME runs including a real two-player game, while the sibling coin start site ran; with the DSW0 port read forced to the value MAME's own driver calls Free Play -- proved by COINAGE_SETTINGS and FREE_PLAY both reading all-ones while the credit cell stayed zero -- it ran and started a game with nothing inserted. Which arm is which was then fixed by changing only the button: at mirror 0x08 only the one-player arm's program counters wrote, at 0x10 only the two-player arm's, and those are the masks the driver gives the one- and two-player start buttons. All three callers test the free-play cell before tail-jumping here, which is why this one takes no credit where startTwoPlayerGame subtracts two in packed BCD",
   },
   0x172a: {
-    name: "loc_172a",
+    name: "seatSequencePhase3AndResetSubStep",
     role: "jump the sequence machine to its last outer phase and restart the inner index at zero; both stores are constants and neither cell is read first, so this is an unconditional jump to a fixed place rather than a step",
     cert: "code",
   },
@@ -1583,7 +1583,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x1f55: {
-    name: "loc_1f55",
+    name: "negateVelocityIntoWorldScrollThenDressSprite",
     role: "negate both velocity components into the world scroll cells, so the world moves opposite the player, then dress the player's sprite for its heading",
     cert: "code",
   },
@@ -1604,42 +1604,42 @@ export const ROUTINES = {
     cert: "code",
   },
   0x28b7: {
-    name: "loc_28b7",
+    name: "seatCraftSlot0ThenDispatchByEra",
     role: "seat the record cursor and the sprite-entry cursor on one fixed object slot, then run the era-keyed dispatch over it; the pair of immediates is the whole of what distinguishes this entry from the four siblings that share its shape -- the two gated ones later in the chain differ by more",
     cert: "code",
   },
   0x28c2: {
-    name: "loc_28c2",
+    name: "seatCraftSlot1ThenDispatchByEra",
     role: "seat the record cursor and the sprite-entry cursor on one fixed object slot, then run the era-keyed dispatch over it; the pair of immediates is the whole of what distinguishes this entry from the four siblings that share its shape -- the two gated ones later in the chain differ by more",
     cert: "code",
   },
   0x28cd: {
-    name: "loc_28cd",
+    name: "seatCraftSlot2ThenDispatchByEra",
     role: "seat the record cursor and the sprite-entry cursor on one fixed object slot, then run the era-keyed dispatch over it; the pair of immediates is the whole of what distinguishes this entry from the four siblings that share its shape -- the two gated ones later in the chain differ by more",
     cert: "code",
   },
   0x28d8: {
-    name: "loc_28d8",
+    name: "seatCraftSlot3ThenDispatchByEra",
     role: "seat the record cursor and the sprite-entry cursor on one fixed object slot, then run the era-keyed dispatch over it; the pair of immediates is the whole of what distinguishes this entry from the four siblings that share its shape -- the two gated ones later in the chain differ by more",
     cert: "code",
   },
   0x28e3: {
-    name: "loc_28e3",
+    name: "seatCraftSlot4ThenDispatchByEra",
     role: "seat the record cursor and the sprite-entry cursor on one fixed object slot, then run the era-keyed dispatch over it, with no gate in front of it",
     cert: "code",
   },
   0x28ee: {
-    name: "loc_28ee",
+    name: "seatMotherShipSlotThenDispatchByEraUnlessArmed",
     role: "run the era-keyed dispatch over the mother ship's slot, but only while the armed cell is clear -- a set cell returns at once, leaving the slot unserviced for the frame",
     cert: "code",
   },
   0x28fe: {
-    name: "loc_28fe",
+    name: "seatCraftSlot6ThenDispatchByEraUnlessArmed",
     role: "run the era-keyed dispatch over one fixed object slot, but only while the mother ship's armed cell is clear -- a set cell returns at once, leaving the slot unserviced for the frame",
     cert: "code",
   },
   0x290e: {
-    name: "loc_290e",
+    name: "dispatchSeatedSlotByEraIndex",
     role: "run the arm the LOW THREE BITS of the ERA INDEX select out of a word table laid down inline just behind this entry; the arm is entered as a transfer with no place parked for it to come back to, so it returns past this entry and nothing here runs after it",
     cert: "code",
   },
@@ -1653,10 +1653,10 @@ export const ROUTINES = {
     name: "driftWithWorldScroll",
     role: "add the frame's world-scroll displacement to one object's two split 16-bit coordinates",
     cert: "code",
-    why: "loc_1f55 writes the displacement pair as the NEGATION of a velocity pair on its way into the routine that refreshes the player sprite from its heading, and gameplay.md records that the background moves opposite the plane -- so adding that pair to a world-static object is what streams it past a fixed ship",
+    why: "negateVelocityIntoWorldScrollThenDressSprite writes the displacement pair as the NEGATION of a velocity pair on its way into the routine that refreshes the player sprite from its heading, and gameplay.md records that the background moves opposite the plane -- so adding that pair to a world-static object is what streams it past a fixed ship",
   },
   0x2bb4: {
-    name: "loc_2bb4",
+    name: "decrementObjectStateThenFlyAtSlowestSpeed",
     role: "count an object's state byte down by one and let it fly on at the slowest of the velocity-table speeds; the countdown wraps at a byte and nothing here tests it, so reaching zero is the caller's business. Both entries into it are on the path a slot takes once its state byte is neither free, live nor held",
     cert: "code",
   },
@@ -1667,7 +1667,7 @@ export const ROUTINES = {
     why: "it clears the two sub-pixel remainders as well as the coordinates, which the sibling retire helper leaves standing; spawn paths differ on whether they reinitialise those cells, so which helper retired a slot can still be visible to its next occupant",
   },
   0x2c22: {
-    name: "loc_2c22",
+    name: "moveObjectByStateByteThenRunAppearance",
     role: "move one object for the frame according to its state byte, then run the shared appearance step over that same object: from thirty-two up it counts the state byte down and flies on at the slowest table speed, below thirty-two it only drifts with the world and the state byte is left alone; the appearance step runs on both paths",
     cert: "code",
   },
@@ -1703,7 +1703,7 @@ export const ROUTINES = {
     why: "the split point is the claim and it is refutable per era. Read taps on both tail targets under MAME: the high arm fired 7 times on the one tape that reaches the fourth era and ZERO on every tape that stops below it, including a poked run held at the first era, while a poked run held at the fifth took it on most dispatches. Had both arms queued the same byte the distinction would not exist; the two program bytes differ. 'Launch' rather than the object's name is deliberate and rests on the caller: its one caller is the tail of a spawner that finds a free slot and writes a fresh record -- velocity, shape and the live state code -- with nothing after this call able to abort it, so the request is one-to-one with something appearing. What that something IS stays unnamed, and a sibling launcher reaches the low arm directly even in the fifth era, so this selector belongs to its own caller and not to launches in general",
   },
   0x409d: {
-    name: "loc_409d",
+    name: "stampObjectStateByte3bThenRequestSound",
     role: "stamp one object's state byte to fifty-nine and ask for the sound that goes with it; the stamp is unconditional -- nothing here reads the byte first, and the ROM's test at this entry sends both of its answers to the same address",
     cert: "code",
   },
@@ -1801,7 +1801,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x3156: {
-    name: "loc_3156",
+    name: "seatSceneryFillByte0x28ThenClearEraScenery",
     role: "fix the fill byte and transfer to 0x30D1 without returning; choosing that one constant is the entire content of the entry, so whatever the caller carried in its place is discarded",
     cert: "code",
   },
@@ -1846,7 +1846,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x3ecb: {
-    name: "loc_3ecb",
+    name: "stampObjectStateByte3bThenRequestTwoSounds",
     role: "force the head byte of the record the index register points at to one fixed value and hand over; what that byte held is discarded unread, so this is a clamp and not a step",
     cert: "code",
   },
@@ -2141,7 +2141,7 @@ export const ROUTINES = {
     name: "velocityForHeading",
     role: "look up the velocity vector for a heading: two perpendicular components a quarter turn apart, read from the table the caller supplies",
     cert: "code",
-    why: "loc_1f55 negates the pair this returns into the very cells driftWithWorldScroll adds to every world-static object -- negated player velocity applied to everything else is the camera, which gameplay.md records independently; the selectable tables hold a near-constant magnitude around the heading circle, not an exact one, with anomalous words widening the spread",
+    why: "negateVelocityIntoWorldScrollThenDressSprite negates the pair this returns into the very cells driftWithWorldScroll adds to every world-static object -- negated player velocity applied to everything else is the camera, which gameplay.md records independently; the selectable tables hold a near-constant magnitude around the heading circle, not an exact one, with anomalous words widening the spread",
   },
   0x0bff: {
     name: "drawTextRun",
@@ -2245,7 +2245,7 @@ export const ROUTINES = {
     why: "the two arguments are 0x00 and 0x1F and the ROM says what they select: both records of the caption table at 0x0C50 give destination 0xA6BC and the SAME thirteen glyph codes, which decode through this board's character layout as a copyright mark, KONAMI and 1982 -- they differ in one byte, the colour, 0x10 against 0x05. So the pair cannot be two captions, and the only thing that can alternate is the colour. Watched under MAME on the real ROM: a write tap on the line's first colour cell 0xA2BC logged 58 writes from the shared caption painter's store at 0x0C07 across the first second of the title screen, 29 of 0x05 and 29 of 0x10, strictly alternating at 16.7 ms intervals apart from one repeat in the first three frames; over the same window the glyph cell 0xA6BC took the copyright mark 0x30 from that same store 17 times and no other value -- colour moves, shape does not. The two arms are attributed, not assumed: entry taps put this address and 0x0B46 on alternate frames, and the frame this routine's own arm ran produced the 0x10 write while the frame it tailed into 0x0B46 produced the 0x05 one. Command 1 is the caption drawer that takes the record's OWN colour byte (table 0x0BBC slot 1 -> 0x0BF2), which is why a colour difference in the record is the whole mechanism. 0x0B46 is reached from nowhere else in the image, so the pair is one act and not two entries.",
   },
   0x0b46: {
-    name: "loc_0b46",
+    name: "enqueueFixedCommandOnRing",
     role: "queue one fixed command, with its one fixed argument, in the command ring -- both bytes are chosen here and whatever the caller held is discarded; the pair is dropped when the slot the write cursor names has not been consumed, and this entry never learns that",
     cert: "code",
   },
@@ -2284,7 +2284,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x3ce1: {
-    name: "loc_3ce1",
+    name: "hasReachedHorizontalEdgeWindow",
     role: "answer whether the byte at the head of a sprite entry has reached its wrap point, testing a four-wide window that straddles zero -- so it measures a wrapped distance rather than bounding a range, which is what lets a byte stepping several units at a time land inside the window instead of over it",
     cert: "code",
   },
@@ -2767,7 +2767,7 @@ export const ROUTINES = {
     name: "loc_12e2",
     role: "run the sequence delay down by one and, on the frame it reaches zero and only then, let the sequence take its next decision; the countdown wraps rather than sticking, so a delay that starts at zero buys a full 256 frames before that decision comes round again, and on every other frame the one decremented cell is the whole effect",
     cert: "code",
-    why: "an English name was proposed and REFUSED; the refusal is recorded so it is not proposed again. It described the SHARED PROLOGUE and not this routine: a byte-pattern scan of the image finds `ld hl,0xA9EB / dec (hl)` at seven sites -- 0x12E2, 0x16D6, 0x174E, 0x1792, 0x196A, 0x330B and 0x56B8 -- so the countdown is an idiom the image reuses and any name built out of it names all seven. Two of the seven are arms of the SAME inline jump table at 0x0F29, 0x330B at arm 8 and this address at arm 11, so the table alone holds two routines a delay name could not tell apart. What is left once the prologue is subtracted is the single tail this entry chooses, loc_12e7, and loc_12e7's own entry already carries that decision",
+    why: "an English name was proposed and REFUSED; the refusal is recorded so it is not proposed again. It described the SHARED PROLOGUE and not this routine: a byte-pattern scan of the image finds `ld hl,0xA9EB / dec (hl)` at seven sites -- 0x12E2, 0x16D6, 0x174E, 0x1792, 0x196A, 0x330B and 0x56B8 -- so the countdown is an idiom the image reuses and any name built out of it names all seven. Two of the seven are arms of the SAME inline jump table at 0x0F29, 0x330B at arm 8 and this address at arm 11, so the table alone holds two routines a delay name could not tell apart. What is left once the prologue is subtracted is the single tail this entry chooses, passTurnToOtherPlayerIfLivesElseStepSequence, and passTurnToOtherPlayerIfLivesElseStepSequence's own entry already carries that decision",
   },
   0x1748: {
     name: "holdCopyrightThenEraseTheCoinInvitation",
@@ -2779,13 +2779,13 @@ export const ROUTINES = {
     name: "scrollWorldAtTheEraPace",
     role: "move the world past the ship at the pace the era sets, READING the heading rather than deciding it -- some paths in write it first, others arrive with whatever is already there: one of three fixed sample tables is picked from ERA_INDEX alone -- the opening era its own, the next two sharing a second, everything from the third era up sharing a third -- and the pair that table gives for the ship's heading is handed on to be negated into the world scroll cells. Choosing the table is the whole of what this entry decides",
     cert: "code",
-    why: "'pace' is the claim, and the three tables could have differed in shape rather than size and killed it. Read out of the image they are the same 256-sample turn at three amplitudes -- 256, 306 and 331 -- so the era buys speed and nothing else; a table that turned at a different rate, or a fourth read, would have shown here. That the pair becomes the WORLD's motion and not the ship's is fixed by the continuation rather than by this body: loc_1f55 negates both components into the scroll cells before dressing the ship, which is what makes 'scrollWorld' true and 'flyShip' false. ERA_INDEX is the only cell this entry reads",
+    why: "'pace' is the claim, and the three tables could have differed in shape rather than size and killed it. Read out of the image they are the same 256-sample turn at three amplitudes -- 256, 306 and 331 -- so the era buys speed and nothing else; a table that turned at a different rate, or a fourth read, would have shown here. That the pair becomes the WORLD's motion and not the ship's is fixed by the continuation rather than by this body: negateVelocityIntoWorldScrollThenDressSprite negates both components into the scroll cells before dressing the ship, which is what makes 'scrollWorld' true and 'flyShip' false. ERA_INDEX is the only cell this entry reads",
   },
   0x28a1: {
     name: "stepSevenCraftSlots",
     role: "work seven fixed object slots in one fixed order, each through the entry that seats its own pair of cursors; the order is the whole of what this entry decides, and nothing here reads or writes a slot itself. ★ Seven is the SET's size and not the per-frame count: the last two slots stand down while MOTHER_SHIP_ARMED is set, so on that arm only FIVE slots step. A resume value is laid down for each slot that will reach an arm, and not for the two that stand down, which reach none",
     cert: "code",
-    why: "the five-slot arm is the half of the name that has to be qualified rather than observed, because nothing we drive reaches it: across the two sessions the gates use -- coin-then-start, and the undriven demo, 2500 frames each through our own harness -- this entry ran 863 and 1379 times and MOTHER_SHIP_ARMED read zero at every one, so the taped evidence covers the seven-slot arm only. Which two stand down is checkable from the far side: loc_28ee and loc_28fe are the two gated entries and their own registry entries record that a set cell returns at once and leaves the slot unserviced, while destroyCraftAndMotherShipHitByShots's entry derives independently that the Mother-Ship holds the last two of the seven ordinary craft slots. A name saying 'step five' would be false on every frame the tapes actually run",
+    why: "the five-slot arm is the half of the name that has to be qualified rather than observed, because nothing we drive reaches it: across the two sessions the gates use -- coin-then-start, and the undriven demo, 2500 frames each through our own harness -- this entry ran 863 and 1379 times and MOTHER_SHIP_ARMED read zero at every one, so the taped evidence covers the seven-slot arm only. Which two stand down is checkable from the far side: seatMotherShipSlotThenDispatchByEraUnlessArmed and seatCraftSlot6ThenDispatchByEraUnlessArmed are the two gated entries and their own registry entries record that a set cell returns at once and leaves the slot unserviced, while destroyCraftAndMotherShipHitByShots's entry derives independently that the Mother-Ship holds the last two of the seven ordinary craft slots. A name saying 'step five' would be false on every frame the tapes actually run",
   },
   0x2cdb: {
     name: "blankOneLineThenGuardBlockOrDerailSequence",

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0b46 — memory-equivalent to the frozen oracle at ROM 0x0B46.
+ * enqueueFixedCommandOnRing — memory-equivalent to the frozen oracle at ROM 0x0B46.
  *
  * GATE: strict unit-capture with ONE exclusion, a replayed corpus from three tapes, an exhaustive
  *   crafted sweep of the ring priors, a whole-run masked diff, and teeth. What it exercises, with
@@ -57,7 +57,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0b46 } from "../loc_0b46.js";
+import { enqueueFixedCommandOnRing } from "../enqueueFixedCommandOnRing.js";
 import { postCommand } from "../postCommand.js";
 import { loc_0b46 as oracle } from "../../translated/loc_0b46.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -160,7 +160,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0b46);
+  if (entry === null) gate(enqueueFixedCommandOnRing);
   return entry;
 }
 
@@ -248,7 +248,7 @@ function replaySession(opts, candidate) {
 let sessionCache = null;
 function sessions() {
   if (sessionCache) return sessionCache;
-  sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, loc_0b46) }));
+  sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, enqueueFixedCommandOnRing) }));
   return sessionCache;
 }
 
@@ -395,15 +395,15 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0b46 == oracle outside the scratch window", { skip }, () => {
-  const r = gate(loc_0b46);
+test("EQUAL at the real dispatch: enqueueFixedCommandOnRing == oracle outside the scratch window", { skip }, () => {
+  const r = gate(enqueueFixedCommandOnRing);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
 
   const sp = entryState().regs.sp;
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0b46(b);
+  enqueueFixedCommandOnRing(b);
 
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the two-byte scratch window: ${show(strays[0])}`);
@@ -439,7 +439,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch push, and nothing ou
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0b46(b);
+  enqueueFixedCommandOnRing(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
@@ -492,7 +492,7 @@ test("CORPUS: every dispatch of three real sessions replays identically", { skip
 });
 
 test("EXHAUSTIVE: all 256 cursors against four guard bytes behave as the oracle", { skip }, () => {
-  assert.equal(sweepCaught(loc_0b46), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(enqueueFixedCommandOnRing), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} cursor x guard comparisons identical`);
 });
 
@@ -510,7 +510,7 @@ test("EXHAUSTIVE: the shim charges exactly what the oracle charges", { skip }, (
 });
 
 test("THE PAIR IS A LIVE-OUT: dropping it disturbs cells that keeping it does not", { skip }, () => {
-  const kept = wholeRunCells(hosted(loc_0b46), "shared", {});
+  const kept = wholeRunCells(hosted(enqueueFixedCommandOnRing), "shared", {});
   const dropped = wholeRunCells(hosted(brokenDropsThePair), "shared", {});
   assert.equal(kept.stopped, null, `a run stopped early (${kept.stopped})`);
   assert.ok(kept.fired > 0, "vacuous: the instrument never reached the routine");
@@ -529,7 +529,7 @@ test("THE PAIR IS A LIVE-OUT: dropping it disturbs cells that keeping it does no
 
 for (const [label, opts] of TAPES) {
   test(`WHOLE-MACHINE: the ${label} session differs only in the scratch window`, { skip }, () => {
-    const r = wholeRunCells(hosted(loc_0b46), label, opts);
+    const r = wholeRunCells(hosted(enqueueFixedCommandOnRing), label, opts);
     assert.equal(r.threw, null, `the run threw: ${r.threw}`);
     assert.equal(r.stopped, null, `a run stopped early (${r.stopped})`);
     assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);
@@ -543,7 +543,7 @@ for (const [label, opts] of TAPES) {
 }
 
 test("TEETH: removing the shim's return kills the run, so the shim is load-bearing", { skip }, () => {
-  const r = wholeRunCells((mm) => loc_0b46(mm), "shared", {});
+  const r = wholeRunCells((mm) => enqueueFixedCommandOnRing(mm), "shared", {});
   assert.ok(
     r.threw !== null || r.stopped !== null,
     "the run COMPLETED without the shim, so the callers of this address no longer expect a " +

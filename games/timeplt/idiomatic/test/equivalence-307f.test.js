@@ -16,7 +16,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_307f } from "../loc_307f.js";
 import { loc_307f as oracle } from "../../translated/loc_307f.js";
 // A batch sibling dispatched by both sessions -- the positive control for the UNREACHED arm.
-import { loc_290e as controlModule } from "../loc_290e.js";
+import { dispatchSeatedSlotByEraIndex as controlModule } from "../dispatchSeatedSlotByEraIndex.js";
 import { loc_290e as controlOracle } from "../../translated/loc_290e.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";

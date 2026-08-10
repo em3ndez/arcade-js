@@ -43,7 +43,7 @@ import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { scrollWorldAtTheEraPace } from "../scrollWorldAtTheEraPace.js";
-import { loc_1f55 } from "../loc_1f55.js";
+import { negateVelocityIntoWorldScrollThenDressSprite } from "../negateVelocityIntoWorldScrollThenDressSprite.js";
 import { velocityForHeading } from "../velocityForHeading.js";
 import { loc_1f42 as oracle } from "../../translated/loc_1f42.js";
 import { ERA_INDEX, WORLD_SCROLL_X, WORLD_SCROLL_Y } from "../names.js";
@@ -239,20 +239,20 @@ function brokenNoOp() {}
 /** BUG: every era gets the opening era's pace. */
 function brokenAlwaysOpening(m) {
   velocityForHeading(m, OPENING_ERA_PACE);
-  loc_1f55(m);
+  negateVelocityIntoWorldScrollThenDressSprite(m);
 }
 
 /** BUG: every era gets the last band's pace. */
 function brokenAlwaysLater(m) {
   velocityForHeading(m, LATER_ERA_PACE);
-  loc_1f55(m);
+  negateVelocityIntoWorldScrollThenDressSprite(m);
 }
 
 /** BUG: the opening era is folded in with the next two instead of having its own pace. */
 function brokenNoOpeningCase(m) {
   const era = m.mem8[ERA_INDEX];
   velocityForHeading(m, era < FIRST_LATER_ERA ? EARLY_ERA_PACE : LATER_ERA_PACE);
-  loc_1f55(m);
+  negateVelocityIntoWorldScrollThenDressSprite(m);
 }
 
 /** BUG: the second band ends one era early. */
@@ -260,7 +260,7 @@ function brokenBoundaryAtTwo(m) {
   const era = m.mem8[ERA_INDEX];
   velocityForHeading(m, era === 0 ? OPENING_ERA_PACE
     : era < FIRST_LATER_ERA - 1 ? EARLY_ERA_PACE : LATER_ERA_PACE);
-  loc_1f55(m);
+  negateVelocityIntoWorldScrollThenDressSprite(m);
 }
 
 /** BUG: the second band runs one era long. */
@@ -268,7 +268,7 @@ function brokenBoundaryAtFour(m) {
   const era = m.mem8[ERA_INDEX];
   velocityForHeading(m, era === 0 ? OPENING_ERA_PACE
     : era < FIRST_LATER_ERA + 1 ? EARLY_ERA_PACE : LATER_ERA_PACE);
-  loc_1f55(m);
+  negateVelocityIntoWorldScrollThenDressSprite(m);
 }
 
 /** BUG: the first and last paces change places, leaving the middle band alone. */
@@ -276,7 +276,7 @@ function brokenSwappedEnds(m) {
   const era = m.mem8[ERA_INDEX];
   velocityForHeading(m, era === 0 ? LATER_ERA_PACE
     : era < FIRST_LATER_ERA ? EARLY_ERA_PACE : OPENING_ERA_PACE);
-  loc_1f55(m);
+  negateVelocityIntoWorldScrollThenDressSprite(m);
 }
 
 /** BUG: looks the pace up and never moves the world with it. */
@@ -287,7 +287,7 @@ function brokenNoScroll(m) {
 /** BUG: uses the pointer the caller happened to be holding instead of choosing a table. */
 function brokenForwardsThePointer(m) {
   velocityForHeading(m, m.regs.hl);
-  loc_1f55(m);
+  negateVelocityIntoWorldScrollThenDressSprite(m);
 }
 
 /** BUG: the two halves of the pair change places on the way to the scroll step. */
@@ -297,7 +297,7 @@ function brokenPairSwapped(m) {
   const first = regs.de;
   regs.de = regs.bc;
   regs.bc = first;
-  loc_1f55(m);
+  negateVelocityIntoWorldScrollThenDressSprite(m);
 }
 
 const TWINS = [
@@ -323,7 +323,7 @@ function keepsThePointer(m) {
   const pace = paceFor(m.mem8[ERA_INDEX]);
   m.regs.iy = pace;
   velocityForHeading(m, pace);
-  loc_1f55(m);
+  negateVelocityIntoWorldScrollThenDressSprite(m);
 }
 
 /**
@@ -469,7 +469,7 @@ test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, 
 
 const CALLEES = [
   ["velocityForHeading", "./velocityForHeading.js"],
-  ["loc_1f55", "./loc_1f55.js"],
+  ["negateVelocityIntoWorldScrollThenDressSprite", "./negateVelocityIntoWorldScrollThenDressSprite.js"],
 ];
 
 function callsRatherThanDispatches(text) {

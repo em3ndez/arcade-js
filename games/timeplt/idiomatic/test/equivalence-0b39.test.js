@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
 import { flashCopyrightLine } from "../flashCopyrightLine.js";
-import { loc_0b46 } from "../loc_0b46.js";
+import { enqueueFixedCommandOnRing } from "../enqueueFixedCommandOnRing.js";
 import { postCommand } from "../postCommand.js";
 import { loc_0b39 as oracle } from "../../translated/loc_0b39.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -218,7 +218,7 @@ function brokenNoOp() {}
 
 /** BUG: always takes the other entry's pair, so the odd turn queues the wrong argument. */
 function brokenAlwaysOtherPair(m) {
-  loc_0b46(m);
+  enqueueFixedCommandOnRing(m);
 }
 
 /** BUG: always queues this entry's own pair, so the even turn queues the wrong argument. */
@@ -231,7 +231,7 @@ function brokenAlwaysOwnPair(m) {
 /** BUG: the arms are the right way round for the wrong bit — bit one instead of bit zero. */
 function brokenWrongBit(m) {
   if ((m.mem8[FRAME_TICK] & 2) === 0) {
-    loc_0b46(m);
+    enqueueFixedCommandOnRing(m);
     return;
   }
   brokenAlwaysOwnPair(m);
@@ -240,7 +240,7 @@ function brokenWrongBit(m) {
 /** BUG: the sense of the test is inverted, so each turn gets the other turn's pair. */
 function brokenInverted(m) {
   if ((m.mem8[FRAME_TICK] & 1) === 1) {
-    loc_0b46(m);
+    enqueueFixedCommandOnRing(m);
     return;
   }
   brokenAlwaysOwnPair(m);

@@ -8,7 +8,7 @@
  * over to the phase entry that starts the round engine. LIVE-OUT: memory. */
 
 import { IN0_MIRROR, PLAY_ACTIVE, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES } from "./names.js";
-import { loc_172a } from "./loc_172a.js";
+import { seatSequencePhase3AndResetSubStep } from "./seatSequencePhase3AndResetSubStep.js";
 
 const TWO_PLAYER_GAME = 0xad31;
 const LIVES_PER_GAME = 0xa9c1;
@@ -28,5 +28,5 @@ export function startGameOnFreePlay(m) {
   mem8[TWO_PLAYER_GAME] = twoPlayer ? SET : 0;
   mem8[PLAYER_ONE_LIVES] = allowance;
   mem8[PLAYER_TWO_LIVES] = twoPlayer ? allowance : 0;
-  loc_172a(m);
+  seatSequencePhase3AndResetSubStep(m);
 }

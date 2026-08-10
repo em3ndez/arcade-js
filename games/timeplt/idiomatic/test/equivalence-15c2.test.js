@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_15c2 — memory-equivalent to the frozen oracle at ROM 0x15C2.
+ * dispatchSequencePhase0SubStepArm — memory-equivalent to the frozen oracle at ROM 0x15C2.
  *
  * WHAT IT IS. Three instructions: read the inner sequence step, keep its low three bits, and enter
  * the restart-vector dispatch with the address of the word table that follows. Nothing is pushed
@@ -42,7 +42,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_15c2 } from "../loc_15c2.js";
+import { dispatchSequencePhase0SubStepArm } from "../dispatchSequencePhase0SubStepArm.js";
 import { SEQUENCE_SUBSTEP } from "../names.js";
 import { loc_15c2 as oracle } from "../../translated/loc_15c2.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -111,7 +111,7 @@ function runSession(candidate) {
 }
 
 function session() {
-  if (corpus === null) corpus = runSession(loc_15c2);
+  if (corpus === null) corpus = runSession(dispatchSequencePhase0SubStepArm);
   assert.notEqual(corpus.dispatches, 0, "vacuous: the session never reached the routine");
   return corpus;
 }
@@ -236,7 +236,7 @@ test("DISPATCHED: the session reaches this entry, presenting a measured spread",
 
 test("EQUAL at every real dispatch: masked RAM identical on each live selector", { skip }, () => {
   for (const selector of LIVE_SELECTORS) {
-    const r = diffOf(loc_15c2, entryFor(selector));
+    const r = diffOf(dispatchSequencePhase0SubStepArm, entryFor(selector));
     assert.equal(r.faultA, null, `selector ${selector}: the oracle faulted (${r.faultA})`);
     assert.equal(r.faultB, null, `selector ${selector}: the rewrite faulted (${r.faultB})`);
     assert.deepEqual(r.masked, [], `selector ${selector}: ${show(r.masked)}`);
@@ -261,7 +261,7 @@ test("SCRATCH: the dead window is real, and the instrument can see into it", { s
   let deepest = 0;
   for (const live of LIVE_SELECTORS) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(loc_15c2, craft(i, entryFor(live)));
+      const r = diffOf(dispatchSequencePhase0SubStepArm, craft(i, entryFor(live)));
       for (const d of r.raw) {
         assert.ok(d.addr < r.exitSp, `selector ${i}: ${hex4(d.addr)} is at or above the exit pointer`);
         deepest = Math.max(deepest, r.exitSp - d.addr);
@@ -277,7 +277,7 @@ test("SCRATCH: the dead window is real, and the instrument can see into it", { s
   let controlDeepest = 0;
   for (const live of LIVE_SELECTORS) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(loc_15c2, craft(i, entryFor(live), true));
+      const r = diffOf(dispatchSequencePhase0SubStepArm, craft(i, entryFor(live), true));
       for (const d of r.raw) {
         assert.ok(d.addr < r.exitSp, `control ${i}: ${hex4(d.addr)} is at or above the exit pointer`);
         controlDeepest = Math.max(controlDeepest, r.exitSp - d.addr);
@@ -310,7 +310,7 @@ test("ARMS: every table entry runs identically, or faults identically", { skip }
   let informative = 0;
   for (const live of LIVE_SELECTORS) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(loc_15c2, craft(i, entryFor(live)));
+      const r = diffOf(dispatchSequencePhase0SubStepArm, craft(i, entryFor(live)));
       if (r.informative) informative++;
       if (r.faulted) {
         assert.equal(r.faultA, r.faultB, `arm ${i}: ${r.faultA} on one side, ${r.faultB} on the other`);
@@ -333,7 +333,7 @@ test("ARMS: every table entry runs identically, or faults identically", { skip }
 test("SELECTOR: the five high bits are ignored, over the cell's whole range", { skip }, () => {
   for (const live of LIVE_SELECTORS) {
     for (const v of everySelector) {
-      const r = diffOf(loc_15c2, craft(v, entryFor(live)));
+      const r = diffOf(dispatchSequencePhase0SubStepArm, craft(v, entryFor(live)));
       if (r.faulted) {
         assert.equal(r.faultA, r.faultB, `selector ${v}: ${r.faultA} vs ${r.faultB}`);
       } else {
@@ -348,7 +348,7 @@ test("STACK: the exit pointer and the program counter are identical", { skip }, 
   let completed = 0;
   for (const live of LIVE_SELECTORS) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(loc_15c2, craft(i, entryFor(live)));
+      const r = diffOf(dispatchSequencePhase0SubStepArm, craft(i, entryFor(live)));
       if (r.faulted) continue;
       assert.equal(r.exitSp, r.spB, `arm ${i}: exit pointers ${hex4(r.exitSp)} and ${hex4(r.spB)}`);
       assert.equal(r.pcA, r.pcB, `arm ${i}: program counters ${hex4(r.pcA)} and ${hex4(r.pcB)}`);
@@ -363,7 +363,7 @@ test("EXCLUDED, deliberately: the registers that move, over every real dispatch"
   const moved = new Set(session().moved);
   for (const live of LIVE_SELECTORS) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      for (const k of diffOf(loc_15c2, craft(i, entryFor(live))).moved) moved.add(k);
+      for (const k of diffOf(dispatchSequencePhase0SubStepArm, craft(i, entryFor(live))).moved) moved.add(k);
     }
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);

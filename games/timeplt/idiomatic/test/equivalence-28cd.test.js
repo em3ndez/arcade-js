@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_28cd — memory-equivalent to the frozen oracle at ROM 0x28CD.
+ * seatCraftSlot2ThenDispatchByEra — memory-equivalent to the frozen oracle at ROM 0x28CD.
  *
  * WHAT IT IS. Three instructions: two immediates loaded into the index registers, then a transfer
  * to the era dispatch. It pushes nothing for that dispatch to come back to, so the arm the era
@@ -76,8 +76,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, romsPresent } from "./_harness.js";
-import { loc_28cd } from "../loc_28cd.js";
-import { loc_290e } from "../loc_290e.js";
+import { seatCraftSlot2ThenDispatchByEra } from "../seatCraftSlot2ThenDispatchByEra.js";
+import { dispatchSeatedSlotByEraIndex } from "../dispatchSeatedSlotByEraIndex.js";
 import { ERA_INDEX } from "../names.js";
 import { loc_28cd as oracle } from "../../translated/loc_28cd.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -185,7 +185,7 @@ const HELD = ["a", "b", "c", "ix", "iy", "sp"];
 const aimedAt = (record, entry) => (m) => {
   if (record !== undefined) m.regs.ix = record;
   if (entry !== undefined) m.regs.iy = entry;
-  return loc_290e(m);
+  return dispatchSeatedSlotByEraIndex(m);
 };
 
 /** BUG: does nothing — neither cursor, nor the arm. */
@@ -199,7 +199,7 @@ function brokenArmNotRun(m) {
 
 /** BUG: the arm runs on whatever the previous entry left in the cursors. */
 function brokenPointersNotSet(m) {
-  return loc_290e(m);
+  return dispatchSeatedSlotByEraIndex(m);
 }
 
 /** BUG: the early return the two odd siblings carry, grafted onto an entry that has none. */
@@ -207,7 +207,7 @@ function brokenGuarded(m) {
   if (m.mem8[GUARD_CELL] !== 0) return undefined;
   m.regs.ix = CRAFT_RECORD;
   m.regs.iy = DISPLAY_ENTRY;
-  return loc_290e(m);
+  return dispatchSeatedSlotByEraIndex(m);
 }
 
 /** BUG: the era is ignored and the first arm always taken. */
@@ -271,7 +271,7 @@ function probeReproducesTheChain(m) {
 
 const MODULE = "module";
 const PROBE = "cause-probe";
-const CANDIDATES = [[MODULE, loc_28cd], [PROBE, probeReproducesTheChain], ...TWINS.map(([l, f]) => [l, f])];
+const CANDIDATES = [[MODULE, seatCraftSlot2ThenDispatchByEra], [PROBE, probeReproducesTheChain], ...TWINS.map(([l, f]) => [l, f])];
 
 // ── the masked comparison ───────────────────────────────────────────────────────────────
 
@@ -494,7 +494,7 @@ for (const spec of SESSIONS) {
 
 test("EQUAL at every kept entry: masked RAM identical", { skip }, () => {
   for (const [label, base] of bases()) {
-    const r = diffOf(loc_28cd, base);
+    const r = diffOf(seatCraftSlot2ThenDispatchByEra, base);
     assert.equal(r.faultA, null, `${label}: the frozen side faulted (${r.faultA})`);
     assert.equal(r.faultB, null, `${label}: the rewrite faulted (${r.faultB})`);
     assert.deepEqual(r.masked, [], `${label}: ${show(r.masked)}`);
@@ -507,7 +507,7 @@ test("SCRATCH: the whole raw difference lies below the exit pointer, inside the 
   let seen = 0;
   for (const [label, base] of bases()) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(loc_28cd, craft(base, i));
+      const r = diffOf(seatCraftSlot2ThenDispatchByEra, craft(base, i));
       for (const d of r.raw) {
         assert.ok(d.addr < r.exitSp, `${label} arm ${i}: ${hex4(d.addr)} is at or above the exit pointer`);
         deepest = Math.max(deepest, r.exitSp - d.addr);
@@ -555,7 +555,7 @@ test("ARMS: every table entry runs identically, or faults identically", { skip }
   let total = 0;
   for (const [label, base] of bases()) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(loc_28cd, craft(base, i));
+      const r = diffOf(seatCraftSlot2ThenDispatchByEra, craft(base, i));
       total++;
       if (r.informative) informative++;
       if (r.faulted) {
@@ -578,7 +578,7 @@ test("SELECTOR: the five high bits are ignored, over the cell's whole range", { 
   let total = 0;
   for (const [label, base] of bases()) {
     for (let v = 0; v < SELECTOR_VALUES; v++) {
-      const r = diffOf(loc_28cd, craft(base, v));
+      const r = diffOf(seatCraftSlot2ThenDispatchByEra, craft(base, v));
       total++;
       if (r.informative) informative++;
       if (r.faulted) assert.equal(r.faultA, r.faultB, `${label} selector ${v}: ${r.faultA} vs ${r.faultB}`);
@@ -598,7 +598,7 @@ test("GUARD: this entry tests no cell before acting, and the instrument can see 
   let caughtWhenClear = 0;
   for (const [label, base] of seen) {
     for (const value of [0, GUARD_SET]) {
-      const mine = diffOf(loc_28cd, craft(base, undefined, value));
+      const mine = diffOf(seatCraftSlot2ThenDispatchByEra, craft(base, undefined, value));
       assert.deepEqual(mine.masked, [], `${label} with the cell at ${value}: ${show(mine.masked)}`);
       const guarded = diffOf(brokenGuarded, craft(base, undefined, value));
       if (guarded.caught) {
@@ -619,7 +619,7 @@ test("STACK: the exit pointer and the program counter are identical", { skip }, 
   let completed = 0;
   for (const [label, base] of bases()) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(loc_28cd, craft(base, i));
+      const r = diffOf(seatCraftSlot2ThenDispatchByEra, craft(base, i));
       if (r.faulted) continue;
       assert.equal(r.exitSp, r.spB, `${label} arm ${i}: exit pointers ${hex4(r.exitSp)} and ${hex4(r.spB)}`);
       assert.equal(r.pcA, r.pcB, `${label} arm ${i}: program counters ${hex4(r.pcA)} and ${hex4(r.pcB)}`);
@@ -639,7 +639,7 @@ test("EXCLUDED, deliberately: a CEILING on the registers that may diverge", { sk
   const moved = new Set();
   for (const [, s] of allSessions()) for (const k of s.moved) moved.add(k);
   for (const [, base] of bases()) {
-    for (let i = 0; i < ARM_COUNT; i++) for (const k of diffOf(loc_28cd, craft(base, i)).moved) moved.add(k);
+    for (let i = 0; i < ARM_COUNT; i++) for (const k of diffOf(seatCraftSlot2ThenDispatchByEra, craft(base, i)).moved) moved.add(k);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ") || "none"}`);
   // MOVED is a CEILING, not a set the rewrite is required to fill. An equality against it would
@@ -650,7 +650,7 @@ test("EXCLUDED, deliberately: a CEILING on the registers that may diverge", { sk
 });
 
 test("WHOLE RUN: dispatched for a session, cycle-matched, the state is byte-identical", { skip }, () => {
-  const matched = wholeRun(loc_28cd, true);
+  const matched = wholeRun(seatCraftSlot2ThenDispatchByEra, true);
   console.log(`  WHOLE RUN: ${matched.frames} frames, ${matched.fired} dispatches, differing cells ` +
     `[${matched.cells.map(hex4).join(" ")}]`);
   assert.equal(matched.threw, null, `the cycle-matched run threw: ${matched.threw}`);
@@ -660,7 +660,7 @@ test("WHOLE RUN: dispatched for a session, cycle-matched, the state is byte-iden
     "dispatch, so the compensation is not measuring what it claims");
   assert.deepEqual(matched.cells, [], "a cell diverged over a whole cycle-matched run");
 
-  const bare = wholeRun(loc_28cd, false);
+  const bare = wholeRun(seatCraftSlot2ThenDispatchByEra, false);
   console.log(`  WHOLE RUN (uncompensated): differing cells [${bare.cells.map(hex4).join(" ")}]`);
   assert.equal(bare.threw, null, `the uncompensated run threw: ${bare.threw}`);
   for (const cell of bare.cells) {

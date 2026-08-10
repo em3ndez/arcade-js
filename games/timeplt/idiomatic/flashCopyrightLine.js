@@ -5,7 +5,7 @@
  * names has not been consumed, and this entry never learns that.
  * LIVE-OUT: memory, plus the pair, left in the registers. */
 
-import { loc_0b46 } from "./loc_0b46.js";
+import { enqueueFixedCommandOnRing } from "./enqueueFixedCommandOnRing.js";
 import { postCommand } from "./postCommand.js";
 import { FRAME_TICK } from "./names.js";
 
@@ -14,7 +14,7 @@ const ARGUMENT_ON_THE_ODD_TURN = 0;
 
 export function flashCopyrightLine(m) {
   if ((m.mem8[FRAME_TICK] & 1) === 0) {
-    loc_0b46(m);
+    enqueueFixedCommandOnRing(m);
     return;
   }
   m.regs.d = COMMAND;

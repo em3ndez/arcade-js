@@ -7,7 +7,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { F_C } from "../../../core/cpu/z80.js";
-import { loc_3ce1 } from "./loc_3ce1.js";
+import { hasReachedHorizontalEdgeWindow } from "./hasReachedHorizontalEdgeWindow.js";
 
 const COORDINATE = 0x31;
 const BAND = 3;
@@ -16,7 +16,7 @@ const STARTS_BELOW_WRAP = 16;
 export function hasDriftedOffTheField(m, spriteEntry = m.regs.iy) {
   const { mem8, regs } = m;
   const arrived = u8(mem8[u16(spriteEntry + COORDINATE)] + STARTS_BELOW_WRAP) < BAND;
-  if (!arrived) return loc_3ce1(m, spriteEntry);
+  if (!arrived) return hasReachedHorizontalEdgeWindow(m, spriteEntry);
   regs.f |= F_C;
   return true;
 }

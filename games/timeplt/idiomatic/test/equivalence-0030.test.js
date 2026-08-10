@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0030 — memory-equivalent to the frozen oracle at ROM 0x0030.
+ * dispatchInlineWordTableIndexedByA — memory-equivalent to the frozen oracle at ROM 0x0030.
  *
  * ★ READ THIS FIRST: THIS ENTRY'S ARGUMENT IS ON THE STACK, and the rewrite therefore contains the
  *   one stack read in its batch. The transfer that reaches 0x0030 is one byte and leaves the
@@ -34,7 +34,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0030 } from "../loc_0030.js";
+import { dispatchInlineWordTableIndexedByA } from "../dispatchInlineWordTableIndexedByA.js";
 import { loc_0030 as oracle } from "../../translated/loc_0030.js";
 import { fetchTableWord } from "../fetchTableWord.js";
 import { u16, u8 } from "../../../../core/int.js";
@@ -190,7 +190,7 @@ function replaySession(opts, candidate, { form = transferDiff, limit = Infinity 
 
 let cache = null;
 function sessions() {
-  if (!cache) cache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, loc_0030) }));
+  if (!cache) cache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, dispatchInlineWordTableIndexedByA) }));
   return cache;
 }
 
@@ -238,7 +238,7 @@ test("TRANSFER FORM: every top-level dispatch of two tapes jumps to the same pla
 test("FULL FORM: the first sixty dispatches agree with the arms really running", { skip: SKIP }, () => {
   let compared = 0;
   for (const [label, opts] of TAPES) {
-    const r = replaySession(opts, loc_0030, { form: fullDiff, limit: FULL_FORM_LIMIT });
+    const r = replaySession(opts, dispatchInlineWordTableIndexedByA, { form: fullDiff, limit: FULL_FORM_LIMIT });
     assert.equal(r.compared, FULL_FORM_LIMIT, `the ${label} tape produced too few dispatches to compare`);
     assert.equal(r.caught, 0, `the rewrite diverged on ${r.caught} ${label} full-form dispatches`);
     compared += r.compared;
@@ -280,7 +280,7 @@ test("THE COUPLING IS TO FROZEN CALLERS ONLY: no idiomatic module transfers here
   assert.ok(modules.length > 1, "vacuous: the idiomatic layer scanned empty");
 
   const offenders = modules.filter(
-    (f) => f !== "loc_0030.js" && /0x0030|0x30\s*\)/.test(readFileSync(join(layer, f), "utf8")),
+    (f) => f !== "dispatchInlineWordTableIndexedByA.js" && /0x0030|0x30\s*\)/.test(readFileSync(join(layer, f), "utf8")),
   );
   assert.deepEqual(
     offenders,
@@ -295,7 +295,7 @@ test("THE COUPLING IS TO FROZEN CALLERS ONLY: no idiomatic module transfers here
 });
 
 test("EXHAUSTIVE: all 256 indices, where the doubling wraps at eight bits", { skip: SKIP }, () => {
-  assert.equal(sweepCaught(loc_0030), 0, "the rewrite diverged somewhere in the index sweep");
+  assert.equal(sweepCaught(dispatchInlineWordTableIndexedByA), 0, "the rewrite diverged somewhere in the index sweep");
 
   // THE WRAP IS REAL: index 128 doubles to zero, so it selects the head of the table.
   const real = buildRoutines();
@@ -305,8 +305,8 @@ test("EXHAUSTIVE: all 256 indices, where the doubling wraps at eight bits", { sk
   const rh = recorder(real);
   low.routines = rl.map;
   high.routines = rh.map;
-  loc_0030(low);
-  loc_0030(high);
+  dispatchInlineWordTableIndexedByA(low);
+  dispatchInlineWordTableIndexedByA(high);
   assert.equal(rh.seen.addr, rl.seen.addr, "index 128 no longer folds onto the head of the table");
   console.log(`  EXHAUSTIVE: 256 indices identical; 128 folds onto 0 at ${hex4(rl.seen.addr)}`);
 });

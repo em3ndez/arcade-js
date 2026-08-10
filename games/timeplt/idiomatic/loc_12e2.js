@@ -5,7 +5,7 @@
  * other frame that one decremented cell is the whole effect. LIVE-OUT: memory-only. */
 
 import { u8 } from "../../../core/int.js";
-import { loc_12e7 } from "./loc_12e7.js";
+import { passTurnToOtherPlayerIfLivesElseStepSequence } from "./passTurnToOtherPlayerIfLivesElseStepSequence.js";
 import { SEQUENCE_DELAY } from "./names.js";
 
 export function loc_12e2(m) {
@@ -13,5 +13,5 @@ export function loc_12e2(m) {
   const remaining = u8(mem8[SEQUENCE_DELAY] - 1);
   mem8[SEQUENCE_DELAY] = remaining;
   if (remaining !== 0) return;
-  loc_12e7(m);
+  passTurnToOtherPlayerIfLivesElseStepSequence(m);
 }

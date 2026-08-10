@@ -18,7 +18,7 @@ import { loc_189e as oracle } from "../../translated/loc_189e.js";
 import { hideCaptionSprites } from "../hideCaptionSprites.js";
 import { setUpTwoPlayerStartObjectOnce } from "../setUpTwoPlayerStartObjectOnce.js";
 import { paintCreditCountPanel } from "../paintCreditCountPanel.js";
-import { loc_172a } from "../loc_172a.js";
+import { seatSequencePhase3AndResetSubStep } from "../seatSequencePhase3AndResetSubStep.js";
 import { PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
@@ -157,7 +157,7 @@ function twin({ credit = "two", p2flag = ALL_BITS, p2lives = true, arm = true })
         : credit === "raw2" ? u8(mem8[CREDIT] - 2)
           : deductTwoBcd(mem8[CREDIT]);
     paintCreditCountPanel(m);
-    loc_172a(m);
+    seatSequencePhase3AndResetSubStep(m);
   };
 }
 

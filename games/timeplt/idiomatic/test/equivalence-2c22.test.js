@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2c22 — memory-equivalent to the frozen oracle at ROM 0x2C22.
+ * moveObjectByStateByteThenRunAppearance — memory-equivalent to the frozen oracle at ROM 0x2C22.
  *
  * WHAT IT IS. One record byte read, one two-way branch on it, and then a shared appearance step
  * that runs whichever way the branch went. All THREE routines it reaches ARE ALREADY DECOMPILED —
- * loc_2bb4, driftWithWorldScroll and loc_2c31 — so the rewrite calls them directly and dissolving
+ * decrementObjectStateThenFlyAtSlowestSpeed, driftWithWorldScroll and loc_2c31 — so the rewrite calls them directly and dissolving
  * those transfers belongs to this caller's unit.
  *
  * ★ THE DECLARED RANGE ENDS AT 0x2C30 AND THE CONTINUATION BEGINS AT 0x2C31. The frozen form
@@ -57,8 +57,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2c22 } from "../loc_2c22.js";
-import { loc_2bb4 } from "../loc_2bb4.js";
+import { moveObjectByStateByteThenRunAppearance } from "../moveObjectByStateByteThenRunAppearance.js";
+import { decrementObjectStateThenFlyAtSlowestSpeed } from "../decrementObjectStateThenFlyAtSlowestSpeed.js";
 import { loc_2c31 } from "../loc_2c31.js";
 import { driftWithWorldScroll } from "../driftWithWorldScroll.js";
 import { loc_2c22 as oracle } from "../../translated/loc_2c22.js";
@@ -111,7 +111,7 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
  * only evidence once the check is shown able to see the thing present.
  */
 const HELPERS = [
-  ["loc_2bb4", "../loc_2bb4.js", "flyAtSlowestSpeed"],
+  ["decrementObjectStateThenFlyAtSlowestSpeed", "../decrementObjectStateThenFlyAtSlowestSpeed.js", "flyAtSlowestSpeed"],
   ["loc_2c31", "../loc_2c31.js", "0x2c94"],
   ["driftWithWorldScroll", "../driftWithWorldScroll.js", "WORLD_SCROLL_X"],
 ];
@@ -151,7 +151,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_2c22);
+  if (entry === null) gate(moveObjectByStateByteThenRunAppearance);
   return entry;
 }
 
@@ -235,7 +235,7 @@ function replaySession(factory, candidate) {
 let sessionCache = null;
 function sessions() {
   if (sessionCache) return sessionCache;
-  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, loc_2c22) }));
+  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, moveObjectByStateByteThenRunAppearance) }));
   return sessionCache;
 }
 
@@ -302,14 +302,14 @@ function brokenNoOp() {}
 
 /** BUG: the threshold is one too low. */
 function brokenThresholdLow(m, object = m.regs.ix) {
-  if (m.mem8[object + STATE] >= COUNTDOWN_FROM - 1) loc_2bb4(m, object);
+  if (m.mem8[object + STATE] >= COUNTDOWN_FROM - 1) decrementObjectStateThenFlyAtSlowestSpeed(m, object);
   else driftWithWorldScroll(m);
   loc_2c31(m, object);
 }
 
 /** BUG: the threshold is one too high. */
 function brokenThresholdHigh(m, object = m.regs.ix) {
-  if (m.mem8[object + STATE] >= COUNTDOWN_FROM + 1) loc_2bb4(m, object);
+  if (m.mem8[object + STATE] >= COUNTDOWN_FROM + 1) decrementObjectStateThenFlyAtSlowestSpeed(m, object);
   else driftWithWorldScroll(m);
   loc_2c31(m, object);
 }
@@ -317,13 +317,13 @@ function brokenThresholdHigh(m, object = m.regs.ix) {
 /** BUG: the two arms change places. */
 function brokenArmsSwapped(m, object = m.regs.ix) {
   if (m.mem8[object + STATE] >= COUNTDOWN_FROM) driftWithWorldScroll(m);
-  else loc_2bb4(m, object);
+  else decrementObjectStateThenFlyAtSlowestSpeed(m, object);
   loc_2c31(m, object);
 }
 
 /** BUG: the appearance step never runs. */
 function brokenNoContinuation(m, object = m.regs.ix) {
-  if (m.mem8[object + STATE] >= COUNTDOWN_FROM) loc_2bb4(m, object);
+  if (m.mem8[object + STATE] >= COUNTDOWN_FROM) decrementObjectStateThenFlyAtSlowestSpeed(m, object);
   else driftWithWorldScroll(m);
 }
 
@@ -335,7 +335,7 @@ function brokenNoMovement(m, object = m.regs.ix) {
 /** BUG: the appearance step runs first, so it reads a record byte not yet counted down. */
 function brokenOrderSwapped(m, object = m.regs.ix) {
   loc_2c31(m, object);
-  if (m.mem8[object + STATE] >= COUNTDOWN_FROM) loc_2bb4(m, object);
+  if (m.mem8[object + STATE] >= COUNTDOWN_FROM) decrementObjectStateThenFlyAtSlowestSpeed(m, object);
   else driftWithWorldScroll(m);
 }
 
@@ -347,7 +347,7 @@ function brokenAlwaysDrifts(m, object = m.regs.ix) {
 
 /** BUG: every object counts down, and the drift arm is never taken. */
 function brokenAlwaysCounts(m, object = m.regs.ix) {
-  loc_2bb4(m, object);
+  decrementObjectStateThenFlyAtSlowestSpeed(m, object);
   loc_2c31(m, object);
 }
 
@@ -366,14 +366,14 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the scratch window", { skip }, () => {
-  gate(loc_2c22);
+  gate(moveObjectByStateByteThenRunAppearance);
   assert.notEqual(entry, null, "vacuous: the session never reached the routine");
   const e = entryState();
   const sp = e.regs.sp;
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_2c22(b);
+  moveObjectByStateByteThenRunAppearance(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -418,7 +418,7 @@ test("EXCLUDED, deliberately: the union of the callees' own declared sets", { sk
     const a = craft(state, request);
     const b = a.clone();
     oracle(a);
-    loc_2c22(b);
+    moveObjectByStateByteThenRunAppearance(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
@@ -454,14 +454,14 @@ test("CORPUS: every dispatch of two real sessions replays identically", { skip }
 
 test("EXHAUSTIVE: all 256 record bytes crossed with the outside request", { skip }, () => {
   for (const [state, request] of cross()) {
-    const d = unitDiff(loc_2c22, craft(state, request));
+    const d = unitDiff(moveObjectByStateByteThenRunAppearance, craft(state, request));
     assert.equal(d, null, `record byte ${state} request ${request}: ${show(d)}`);
   }
   console.log(`  EXHAUSTIVE: ${cross().length} record byte x request comparisons identical`);
 });
 
 test("CALLS, NOT RESTATES: the module's text, with each callee as a positive control", () => {
-  const module = read("../loc_2c22.js");
+  const module = read("../moveObjectByStateByteThenRunAppearance.js");
   for (const helper of HELPERS) {
     assert.ok(callsRatherThanRestates(module, helper), `the module does not call ${helper[0]}`);
     assert.ok(!callsRatherThanRestates(read(helper[1]), helper), `the check passes ${helper[0]}'s ` +
@@ -475,7 +475,7 @@ test("THE BRANCH: which arm a record byte takes, read back off the record", { sk
   const stepped = [];
   for (const [state, expected] of [[20, 20], [31, 31], [32, 31], [200, 199], [255, 254]]) {
     const after = craft(state, 0);
-    loc_2c22(after);
+    moveObjectByStateByteThenRunAppearance(after);
     assert.equal(after.mem8[after.regs.ix + STATE], expected, `record byte ${state} came back ` +
       `${after.mem8[after.regs.ix + STATE]}, so it took the other arm`);
     stepped.push(`${state}->${after.mem8[after.regs.ix + STATE]}`);
@@ -487,7 +487,7 @@ test("THE BRANCH: which arm a record byte takes, read back off the record", { sk
   const coords = (s) => [s.mem8[s.regs.iy], s.mem8[s.regs.ix + 5], s.mem8[s.regs.iy + 49],
     s.mem8[s.regs.ix + 3]];
   const before = coords(drifting);
-  loc_2c22(drifting);
+  moveObjectByStateByteThenRunAppearance(drifting);
   oracle(control);
   assert.notDeepEqual(coords(drifting), before, "with the world scrolling, the drift arm still " +
     "left both coordinates alone, so this arm cannot see it run");
@@ -496,7 +496,7 @@ test("THE BRANCH: which arm a record byte takes, read back off the record", { sk
 });
 
 test("WHOLE-MACHINE: a driven session leaves no cell differing", { skip }, () => {
-  const r = wholeRunCells(loc_2c22);
+  const r = wholeRunCells(moveObjectByStateByteThenRunAppearance);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,

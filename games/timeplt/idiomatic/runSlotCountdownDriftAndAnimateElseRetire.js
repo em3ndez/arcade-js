@@ -11,7 +11,7 @@
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { ERA_INDEX } from "./names.js";
 import { fetchTableByte } from "./fetchTableByte.js";
-import { loc_3ecb } from "./loc_3ecb.js";
+import { stampObjectStateByte3bThenRequestTwoSounds } from "./stampObjectStateByte3bThenRequestTwoSounds.js";
 import { retireSlot } from "./retireSlot.js";
 
 const LAST_ERA = 4;
@@ -40,7 +40,7 @@ export function runSlotCountdownDriftAndAnimateElseRetire(m) {
   }
 
   mem8[regs.ix + COUNTER] = wasAt - 1;
-  if (wasAt >= CLAMPED_FROM) loc_3ecb(m);
+  if (wasAt >= CLAMPED_FROM) stampObjectStateByte3bThenRequestTwoSounds(m);
   driftWithWorldScroll(m);
 
   const nowAt = mem8[regs.ix + COUNTER];

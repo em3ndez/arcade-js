@@ -52,7 +52,7 @@ import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { driftWithWorldScroll } from "../driftWithWorldScroll.js";
 import { ERA_INDEX } from "../names.js";
 import { fetchTableByte } from "../fetchTableByte.js";
-import { loc_3ecb } from "../loc_3ecb.js";
+import { stampObjectStateByte3bThenRequestTwoSounds } from "../stampObjectStateByte3bThenRequestTwoSounds.js";
 import { retireSlot } from "../retireSlot.js";
 import { buildRoutines } from "../../routines.js";
 
@@ -321,7 +321,7 @@ function step(m, o) {
     return;
   }
   mem8[regs.ix + COUNTER] = wasAt - (o.countStep ?? 1);
-  if (wasAt >= (o.clampFrom ?? CLAMPED_FROM)) loc_3ecb(m);
+  if (wasAt >= (o.clampFrom ?? CLAMPED_FROM)) stampObjectStateByte3bThenRequestTwoSounds(m);
   if (!o.dropDrift) driftWithWorldScroll(m);
   const nowAt = mem8[(o.rereads === false ? regs.ix : regs.ix) + COUNTER];
   const source = o.rereads === false ? wasAt - 1 : nowAt;

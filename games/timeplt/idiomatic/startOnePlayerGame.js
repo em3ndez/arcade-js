@@ -11,7 +11,7 @@
 
 import { u8 } from "../../../core/int.js";
 import { hideCaptionSprites } from "./hideCaptionSprites.js";
-import { loc_172a } from "./loc_172a.js";
+import { seatSequencePhase3AndResetSubStep } from "./seatSequencePhase3AndResetSubStep.js";
 import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { copyThreeTilemapCellsFromBothPlanes } from "./copyThreeTilemapCellsFromBothPlanes.js";
 import { PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE } from "./names.js";
@@ -49,5 +49,5 @@ export function startOnePlayerGame(m) {
 
   paintCreditCountPanel(m);
   copyThreeTilemapCellsFromBothPlanes(m);
-  loc_172a(m);
+  seatSequencePhase3AndResetSubStep(m);
 }

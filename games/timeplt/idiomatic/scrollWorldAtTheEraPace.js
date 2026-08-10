@@ -7,7 +7,7 @@
  * of pure scaling of one another, rungs on a ladder of six that climbs in steps of 25. What the era picks is a rung.
  * LIVE-OUT: memory. */
 
-import { loc_1f55 } from "./loc_1f55.js";
+import { negateVelocityIntoWorldScrollThenDressSprite } from "./negateVelocityIntoWorldScrollThenDressSprite.js";
 import { velocityForHeading } from "./velocityForHeading.js";
 import { ERA_INDEX } from "./names.js";
 
@@ -23,5 +23,5 @@ export function scrollWorldAtTheEraPace(m) {
   else if (era < FIRST_LATER_ERA) pace = EARLY_ERA_PACE;
 
   velocityForHeading(m, pace);
-  loc_1f55(m);
+  negateVelocityIntoWorldScrollThenDressSprite(m);
 }

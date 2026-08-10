@@ -3,7 +3,7 @@
  * count the counter down and either retire the slot when it hits zero, or drift it with the world
  * and drive its sprite shape from a table keyed on the counter. LIVE-OUT: memory only. */
 
-import { loc_409d } from "./loc_409d.js";
+import { stampObjectStateByte3bThenRequestSound } from "./stampObjectStateByte3bThenRequestSound.js";
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 
@@ -21,7 +21,7 @@ export function runOneShotAnimatedObjectSlot(m) {
   const object = regs.ix;
   const sprite = regs.iy;
 
-  if (mem8[object + COUNTER] >= REARM_AT) loc_409d(m);
+  if (mem8[object + COUNTER] >= REARM_AT) stampObjectStateByte3bThenRequestSound(m);
 
   mem8[object + COUNTER] = (mem8[object + COUNTER] - 1) & 0xff;
   if (mem8[object + COUNTER] === 0) {

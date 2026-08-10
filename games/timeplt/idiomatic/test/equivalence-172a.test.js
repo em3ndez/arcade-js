@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_172a — memory-equivalent to the frozen oracle at ROM 0x172A.
+ * seatSequencePhase3AndResetSubStep — memory-equivalent to the frozen oracle at ROM 0x172A.
  *
  * GATE: strict unit-capture through unitEquivalence, on the real dispatch the shared
  *   coin -> start tape produces when the start press is taken. The routine reads nothing
@@ -30,7 +30,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_172a } from "../loc_172a.js";
+import { seatSequencePhase3AndResetSubStep } from "../seatSequencePhase3AndResetSubStep.js";
 import { SEQUENCE_PHASE, SEQUENCE_SUBSTEP } from "../names.js";
 import { loc_172a as oracle } from "../../translated/loc_172a.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
@@ -57,7 +57,7 @@ function strict(candidate) {
 }
 
 function entryState() {
-  if (entry === null) strict(loc_172a);
+  if (entry === null) strict(seatSequencePhase3AndResetSubStep);
   return entry;
 }
 
@@ -110,8 +110,8 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_172a == oracle on RAM", { skip }, () => {
-  const r = strict(loc_172a);
+test("EQUAL at the real dispatch: seatSequencePhase3AndResetSubStep == oracle on RAM", { skip }, () => {
+  const r = strict(seatSequencePhase3AndResetSubStep);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const e = entryState();
@@ -125,7 +125,7 @@ test("STORES: both cells really carry the constants afterwards", { skip }, () =>
   const mm = entryState().clone();
   mm.mem8[SEQUENCE_PHASE] = 0xa5;
   mm.mem8[SEQUENCE_SUBSTEP] = 0x5a;
-  loc_172a(mm);
+  seatSequencePhase3AndResetSubStep(mm);
   assert.equal(mm.mem8[SEQUENCE_PHASE], LAST_PHASE, "the phase cell was not entered");
   assert.equal(mm.mem8[SEQUENCE_SUBSTEP], 0, "the inner index was not restarted");
   console.log(`  STORES: phase -> ${LAST_PHASE}, inner index -> 0, from arbitrary priors`);
@@ -135,7 +135,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_172a(b);
+  seatSequencePhase3AndResetSubStep(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !["a", "f", "sp"].includes(k));
   assert.deepEqual(
@@ -152,8 +152,8 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
 test("EXHAUSTIVE: every prior of both cells lands the same way", { skip }, () => {
   let swept = 0;
   for (let v = 0; v < 256; v++) {
-    assert.equal(sweepDiff(loc_172a, v, v), null, `prior=${v},${v}`);
-    assert.equal(sweepDiff(loc_172a, v, 255 - v), null, `prior=${v},${255 - v}`);
+    assert.equal(sweepDiff(seatSequencePhase3AndResetSubStep, v, v), null, `prior=${v},${v}`);
+    assert.equal(sweepDiff(seatSequencePhase3AndResetSubStep, v, 255 - v), null, `prior=${v},${255 - v}`);
     swept += 2;
   }
   assert.equal(swept, 512, "must have swept every prior, in step and crossed");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_12e7 — memory-equivalent to the frozen oracle at ROM 0x12E7.
+ * passTurnToOtherPlayerIfLivesElseStepSequence — memory-equivalent to the frozen oracle at ROM 0x12E7.
  *
  * GATE: strict unit-capture with NO exclusion — the frozen routine pushes nothing, so the whole
  *   dump including the stack is compared — plus a captured real corpus from four sessions, a
@@ -60,7 +60,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, romsPresent } from "./_harness.js";
-import { loc_12e7 } from "../loc_12e7.js";
+import { passTurnToOtherPlayerIfLivesElseStepSequence } from "../passTurnToOtherPlayerIfLivesElseStepSequence.js";
 import { loc_12e7 as oracle } from "../../translated/loc_12e7.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -392,7 +392,7 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("CONTRACT: the shared unit harness reaches the routine and the dump is identical", { skip }, () => {
-  const r = unitEquivalence(sharedMachine, TARGET, oracle, loc_12e7, { maxFrames: REACH_FRAMES });
+  const r = unitEquivalence(sharedMachine, TARGET, oracle, passTurnToOtherPlayerIfLivesElseStepSequence, { maxFrames: REACH_FRAMES });
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   console.log(`  CONTRACT: reached within ${REACH_FRAMES} frames; the whole dump is identical`);
 });
@@ -426,7 +426,7 @@ test("EQUAL at the real dispatch: the whole dump, stack included", { skip }, () 
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_12e7(b);
+  passTurnToOtherPlayerIfLivesElseStepSequence(b);
   assert.deepEqual(allDiffs(a, b), [], `a byte diverged — ${show(allDiffs(a, b)[0])}`);
   console.log(
     `  EQUAL: index ${e.mem8[ACTIVE_PLAYER]} counts ${e.mem8[PLAYER_ONE_LIVES]}/` +
@@ -464,7 +464,7 @@ test("ARM REACH: how scarce this entry is, and which arm each session takes", { 
 });
 
 test("CORPUS: every captured dispatch of four sessions is identical", { skip }, () => {
-  const caught = corpusCaught(loc_12e7);
+  const caught = corpusCaught(passTurnToOtherPlayerIfLivesElseStepSequence);
   const captured = sessions().map((s) => s.entries.length);
   console.log(`  CORPUS: ${captured.join("/")} captured dispatches, the whole dump identical`);
   assert.deepEqual(caught, [0, 0, 0, 0], "the rewrite diverged on a real dispatch");
@@ -483,7 +483,7 @@ test("EXCLUDED, as a CEILING: no register outside the declared set moves", { ski
         a.mem8[PLAYER_TWO_LIVES] = second;
         const b = a.clone();
         oracle(a);
-        loc_12e7(b);
+        passTurnToOtherPlayerIfLivesElseStepSequence(b);
         for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
         points++;
       }
@@ -506,13 +506,13 @@ test("INDEX SWEEP: all 256 player-index values choose the same branch", { skip }
   b.mem8[ACTIVE_PLAYER] = INDEX_SECOND;
   assert.notEqual(handsOver(a), handsOver(b), "the sweep's count pair no longer separates the two " +
     "branches, so this arm proves nothing");
-  assert.equal(indexSweepCaught(loc_12e7), 0, "the rewrite chose a different branch somewhere");
+  assert.equal(indexSweepCaught(passTurnToOtherPlayerIfLivesElseStepSequence), 0, "the rewrite chose a different branch somewhere");
   console.log(`  INDEX SWEEP: ${INDEXES} indexes, on a count pair the two branches disagree about`);
 });
 
 test("COUNT PLANE: all 65536 count pairs, at one index from EACH branch", { skip }, () => {
   for (const index of [INDEX_FIRST, INDEX_SECOND]) {
-    assert.equal(planeCaught(loc_12e7, index), 0, `diverged somewhere at index ${index}`);
+    assert.equal(planeCaught(passTurnToOtherPlayerIfLivesElseStepSequence, index), 0, `diverged somewhere at index ${index}`);
   }
   console.log(`  COUNT PLANE: ${2 * PLANE} pairs across both branches, the written cells identical`);
 });
@@ -526,9 +526,9 @@ test("THE REUSED MACHINES ARE SOUND: clone-per-point agrees on a sample", { skip
     m.mem8[ACTIVE_PLAYER] = index;
     m.mem8[PLAYER_ONE_LIVES] = first;
     m.mem8[PLAYER_TWO_LIVES] = second;
-    assert.equal(unitDiff(loc_12e7, m), null, `clone-per-point diverged at ${index},${first},${second}`);
+    assert.equal(unitDiff(passTurnToOtherPlayerIfLivesElseStepSequence, m), null, `clone-per-point diverged at ${index},${first},${second}`);
     assert.equal(
-      pointDiffers(loc_12e7, index, first, second),
+      pointDiffers(passTurnToOtherPlayerIfLivesElseStepSequence, index, first, second),
       false,
       `the reused arena disagrees with clone-per-point at ${index},${first},${second}`,
     );
@@ -537,7 +537,7 @@ test("THE REUSED MACHINES ARE SOUND: clone-per-point agrees on a sample", { skip
 });
 
 test("WHOLE-MACHINE: the two-player session is byte-identical with the rewrite wired", { skip }, () => {
-  const r = wholeRunCells(loc_12e7);
+  const r = wholeRunCells(passTurnToOtherPlayerIfLivesElseStepSequence);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,

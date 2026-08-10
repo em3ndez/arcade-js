@@ -157,6 +157,13 @@ sub-step (`SEQUENCE_SUBSTEP`, 0xa9ac) as a RAW byte index into an inline word ta
 arm named there, then this mode's shared tail at 0x181d — a bare `ret` — so every arm it dispatches
 simply ends. Its phase-3 sibling `dispatchSequenceSubStepArm` does mask, to four bits. `[code]`
 
+Both of those siblings — and phase 0's arm `dispatchSequencePhase0SubStepArm` (0x15c2), which masks the
+sub-step to `&7` and dispatches an inline table at 0x15c8 — reach that word table through one shared
+primitive: `dispatchInlineWordTableIndexedByA` (0x0030, the `rst 0x30` vector), which pops its own
+return address as the table base, indexes it by `A`, and `jp (hl)`s. The era/slot dispatcher of §4
+(`dispatchSeatedSlotByEraIndex`, 0x290e) is the same primitive on `(ERA_INDEX)&7`. Only phase 1's arm
+(0x1651) is not yet lifted. `[code]`
+
 The registry declined for two passes to say what these sequences were. **They are now established
 by observation of the real machine, in two independent captures:** `[seen]`
 
@@ -374,7 +381,7 @@ instruction.
 ### The camera is the player's own velocity, negated
 
 `scrollWorldAtTheEraPace` reads the era index, picks a velocity table, and calls the
-heading→velocity lookup for the player's current heading. Its continuation, `loc_1f55`, writes that
+heading→velocity lookup for the player's current heading. Its continuation, `negateVelocityIntoWorldScrollThenDressSprite`, writes that
 vector **negated** into `WORLD_SCROLL_Y` and `WORLD_SCROLL_X`. Every world-static object then has
 that pair added to its position once a frame. The ship's sprite entry is pinned and never rewritten,
 so the ship cannot move; adding the negated player velocity to everything else is what turns the
@@ -804,6 +811,16 @@ slow-fly step, homes directly on the ship with `steerEnemyTowardShip`, and anima
 cycle. **The era binding is a property of that outer table, not of the bodies** — none of the five
 reads `0xAD04` itself. `[code]`
 
+★ **Whatever record that dispatch runs on is seated by a family of seven near-identical seaters.**
+`seatCraftSlot0ThenDispatchByEra` through `seatCraftSlot4` each load their slot's record/entry cursors —
+`CRAFT_RECORD_SLOT0`–`SLOT4` at `0xA850`–`0xA890`, `CRAFT_ENTRY_SLOT0`–`SLOT4` at `0xAA1A`–`0xAA22` —
+into `ix`/`iy` and tail straight into `dispatchSeatedSlotByEraIndex` (0x290e), the
+`ld a,(0xAD04); and 0x07; rst 0x30` dispatcher above. Two more seat the Mother-Ship's two records —
+`seatMotherShipSlotThenDispatchByEraUnlessArmed` (`0xA8A0`/`0xAA24`) and
+`seatCraftSlot6ThenDispatchByEraUnlessArmed` (`0xA8B0`/`0xAA26`) — but RETURN without dispatching once
+the ship is live (`MOTHER_SHIP_ARMED 0xAD0D` ≠ 0), so those two slots run the era ladder only before it
+is armed. `[code]`
+
 ★ **The fixed and ballistic object banks run a simpler ladder of their own.** Their per-slot servicer
 `serviceSlotByHeadByte` splits three ways on the record's head byte: `0x00` does nothing, `0xFF` flies
 the object one step along its stored velocity and retires it into the shared cooldown only once that
@@ -873,6 +890,11 @@ other half tests the adjacent band on the same entry coordinate `+0x31`, and onl
 the question pass to the test on the other coordinate. The two halves ask about two adjacent,
 non-overlapping bands, so the direction an object is arriving from picks its own edge. It writes
 nothing and answers in carry; its caller frees the slot on a yes. `[code]`
+
+That fallback "test on the other coordinate" is `hasReachedHorizontalEdgeWindow` (0x3ce1), the
+horizontal companion of `hasDriftedOffTheField`: it biases the entry's head byte (`iy+0`) by 2 and
+compares against 4, so the carry marks the same narrow straddle-the-wrap window — the values `−2..+1` —
+one coordinate over. `hasDriftedOffTheField` itself falls through to it on a miss. `[code]`
 
 ### Two ways onto the screen — and shots use the second one
 
@@ -1181,6 +1203,16 @@ three-phase explosion plays, and **the wreck keeps flying through the first phas
 ★ **The countdown is shorter than it looks.** While the value is still high the object is
 decremented *twice* per frame, so the elapsed time is not the state value in frames — it is about
 forty-six. Reading the state byte as a frame count overstates the explosion's length. `[code]`
+
+That double decrement is now named. `moveObjectByStateByteThenRunAppearance` (0x2c22) reads the state
+byte and, while it is at or above `0x20`, routes the object through
+`decrementObjectStateThenFlyAtSlowestSpeed` (0x2bb4) — which decrements it a *second* time and flies the
+wreck on at the slowest velocity table (0x5840); below `0x20` it hands off to 0x2b60 instead, one
+decrement a frame. Starting the countdown at its top is a separate pair of stampers that write `0x3b`
+into the state byte and request the explosion sound: `stampObjectStateByte3bThenRequestTwoSounds` (0x3ecb,
+two requests via 0x5683) and `stampObjectStateByte3bThenRequestSound` (0x409d, one via 0x568e). From
+`0x3b` down through the `0x20` gate that two-then-one schedule is exactly what produces the ~46-frame
+figure above. `[code]`
 
 The kill is also **paid in two places at two times**: the score posts at the instant of collision,
 while the sound and the quota decrement happen one frame later, in the handler. `[code]`

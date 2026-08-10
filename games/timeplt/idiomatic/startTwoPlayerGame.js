@@ -9,7 +9,7 @@ import { u8 } from "../../../core/int.js";
 import { hideCaptionSprites } from "./hideCaptionSprites.js";
 import { setUpTwoPlayerStartObjectOnce } from "./setUpTwoPlayerStartObjectOnce.js";
 import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
-import { loc_172a } from "./loc_172a.js";
+import { seatSequencePhase3AndResetSubStep } from "./seatSequencePhase3AndResetSubStep.js";
 import { PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE } from "./names.js";
 
 const SECOND_PLAYER_FLAG = 0xad31;
@@ -47,5 +47,5 @@ export function startTwoPlayerGame(m) {
   mem8[PANEL_COUNT] = stepPackedDecimalDownByTwo(mem8[PANEL_COUNT]);
 
   paintCreditCountPanel(m);
-  loc_172a(m);
+  seatSequencePhase3AndResetSubStep(m);
 }

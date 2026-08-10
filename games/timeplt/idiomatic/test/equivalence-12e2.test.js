@@ -4,7 +4,7 @@
  *
  * WHAT IT IS. Three instructions: point at the sequence delay, decrement it in place, and return
  * unless it has just reached zero. When it has, control falls through into ROM 0x12E7, WHICH IS
- * ALREADY DECOMPILED, so the rewrite calls loc_12e7 directly and dissolving that fall-through
+ * ALREADY DECOMPILED, so the rewrite calls passTurnToOtherPlayerIfLivesElseStepSequence directly and dissolving that fall-through
  * belongs to this caller's unit. The decrement wraps rather than sticking, so the cell held at
  * zero buys a full 256 frames before the next decision.
  *
@@ -56,7 +56,7 @@ import { readFileSync } from "node:fs";
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { buildRoutines } from "../../routines.js";
 import { loc_12e2 } from "../loc_12e2.js";
-import { loc_12e7 } from "../loc_12e7.js";
+import { passTurnToOtherPlayerIfLivesElseStepSequence } from "../passTurnToOtherPlayerIfLivesElseStepSequence.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 import {
   ACTIVE_PLAYER,
@@ -372,7 +372,7 @@ function brokenNoOp() {}
 /** BUG: never spends the delay, so the decision arrives only when the cell is already spent. */
 function brokenNeverDecrements(m) {
   if (m.mem8[SEQUENCE_DELAY] !== 0) return;
-  loc_12e7(m);
+  passTurnToOtherPlayerIfLivesElseStepSequence(m);
 }
 
 /** BUG: counts down and never lets the decision happen. */
@@ -383,7 +383,7 @@ function brokenNeverFallsThrough(m) {
 /** BUG: counts down and takes the decision every single frame. */
 function brokenAlwaysFallsThrough(m) {
   m.mem8[SEQUENCE_DELAY] = u8(m.mem8[SEQUENCE_DELAY] - 1);
-  loc_12e7(m);
+  passTurnToOtherPlayerIfLivesElseStepSequence(m);
 }
 
 /** BUG: tests the value the cell held BEFORE the decrement, so the decision is one frame late. */
@@ -391,7 +391,7 @@ function brokenTestsBeforeTheStore(m) {
   const was = m.mem8[SEQUENCE_DELAY];
   m.mem8[SEQUENCE_DELAY] = u8(was - 1);
   if (was !== 0) return;
-  loc_12e7(m);
+  passTurnToOtherPlayerIfLivesElseStepSequence(m);
 }
 
 /** BUG: the countdown sticks at zero instead of wrapping, so it fires once and then every frame. */
@@ -399,7 +399,7 @@ function brokenClampsAtZero(m) {
   const remaining = m.mem8[SEQUENCE_DELAY] === 0 ? 0 : m.mem8[SEQUENCE_DELAY] - 1;
   m.mem8[SEQUENCE_DELAY] = remaining;
   if (remaining !== 0) return;
-  loc_12e7(m);
+  passTurnToOtherPlayerIfLivesElseStepSequence(m);
 }
 
 /** BUG: the count runs the other way. */
@@ -407,7 +407,7 @@ function brokenCountsUp(m) {
   const remaining = u8(m.mem8[SEQUENCE_DELAY] + 1);
   m.mem8[SEQUENCE_DELAY] = remaining;
   if (remaining !== 0) return;
-  loc_12e7(m);
+  passTurnToOtherPlayerIfLivesElseStepSequence(m);
 }
 
 /** BUG: spends the cell next door. */
@@ -415,7 +415,7 @@ function brokenCellNextDoor(m) {
   const remaining = u8(m.mem8[SEQUENCE_DELAY + 1] - 1);
   m.mem8[SEQUENCE_DELAY + 1] = remaining;
   if (remaining !== 0) return;
-  loc_12e7(m);
+  passTurnToOtherPlayerIfLivesElseStepSequence(m);
 }
 
 /** BUG: steps the sequence on directly, skipping the choice about handing the turn over. */
@@ -428,7 +428,7 @@ function brokenSkipsTheChoice(m) {
 
 /** BUG: takes the decision first and spends the delay after, which the hand-over branch notices. */
 function brokenFallsThroughFirst(m) {
-  if (u8(m.mem8[SEQUENCE_DELAY] - 1) === 0) loc_12e7(m);
+  if (u8(m.mem8[SEQUENCE_DELAY] - 1) === 0) passTurnToOtherPlayerIfLivesElseStepSequence(m);
   m.mem8[SEQUENCE_DELAY] = u8(m.mem8[SEQUENCE_DELAY] - 1);
 }
 
@@ -458,7 +458,7 @@ const TWINS = [
  * the mistake the check exists to catch — so the absence below is evidence only once the same
  * predicate has been shown rejecting the thing present.
  */
-const HELPER = ["loc_12e7", "../loc_12e7.js", "handPlayOverToOtherPlayer"];
+const HELPER = ["passTurnToOtherPlayerIfLivesElseStepSequence", "../passTurnToOtherPlayerIfLivesElseStepSequence.js", "handPlayOverToOtherPlayer"];
 const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
 
 function callsRatherThanRestates(text, [name, file, ownName]) {

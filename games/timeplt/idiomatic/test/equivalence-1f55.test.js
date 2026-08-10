@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1f55 — memory-equivalent to the frozen oracle at ROM 0x1F55.
+ * negateVelocityIntoWorldScrollThenDressSprite — memory-equivalent to the frozen oracle at ROM 0x1F55.
  *
  * GATE: unit-capture with ONE measured exclusion, a captured real corpus from three sessions, a
  *   sweep that is exhaustive over the routine's whole input space by decomposition, and teeth.
@@ -62,7 +62,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1f55 } from "../loc_1f55.js";
+import { negateVelocityIntoWorldScrollThenDressSprite } from "../negateVelocityIntoWorldScrollThenDressSprite.js";
 import { dressPlayerSpriteForHeading } from "../dressPlayerSpriteForHeading.js";
 import { loc_1f55 as oracle } from "../../translated/loc_1f55.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -375,7 +375,7 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("CONTRACT: the shared unit harness reaches the routine", { skip }, () => {
-  const r = unitEquivalence(sharedMachine, TARGET, oracle, loc_1f55, { maxFrames: ENTRY_FRAMES });
+  const r = unitEquivalence(sharedMachine, TARGET, oracle, negateVelocityIntoWorldScrollThenDressSprite, { maxFrames: ENTRY_FRAMES });
   const onlyScratch = r.ram === null || r.ram.addr === null ||
     (r.ram.addr >= STACK_FLOOR && r.ram.addr < STACK_TOP);
   console.log(`  CONTRACT: reached within ${ENTRY_FRAMES} frames; first byte ${show(r.ram)}`);
@@ -417,7 +417,7 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_1f55(b);
+  negateVelocityIntoWorldScrollThenDressSprite(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -447,7 +447,7 @@ test("TAPE REACH: dispatches per session, measured", { skip }, () => {
 });
 
 test("CORPUS: every captured dispatch of three sessions is identical", { skip }, () => {
-  const caught = corpusCaught(loc_1f55);
+  const caught = corpusCaught(negateVelocityIntoWorldScrollThenDressSprite);
   const captured = sessions().map((s) => s.entries.length);
   console.log(`  CORPUS: ${captured.join("/")} captured dispatches, identical outside the window`);
   assert.deepEqual(caught, [0, 0, 0], "the rewrite diverged on a real dispatch");
@@ -466,7 +466,7 @@ test("EXCLUDED, as a CEILING: no register outside the declared set moves", { ski
         a.mem8[PLAYER_HEADING] = heading;
         const b = a.clone();
         oracle(a);
-        loc_1f55(b);
+        negateVelocityIntoWorldScrollThenDressSprite(b);
         for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
         points++;
       }
@@ -481,12 +481,12 @@ test("EXCLUDED, as a CEILING: no register outside the declared set moves", { ski
 });
 
 test("COMPONENT SWEEP: all 65536 values of each component in turn", { skip }, () => {
-  assert.equal(componentSweepCaught(loc_1f55), 0, "the rewrite diverged somewhere in the sweep");
+  assert.equal(componentSweepCaught(negateVelocityIntoWorldScrollThenDressSprite), 0, "the rewrite diverged somewhere in the sweep");
   console.log(`  COMPONENT SWEEP: ${2 * COMPONENTS} points, identical outside the window`);
 });
 
 test("HEADING SWEEP: all 256 headings the shape lookup can be handed", { skip }, () => {
-  assert.equal(headingSweepCaught(loc_1f55), 0, "the rewrite diverged at some heading");
+  assert.equal(headingSweepCaught(negateVelocityIntoWorldScrollThenDressSprite), 0, "the rewrite diverged at some heading");
   console.log(`  HEADING SWEEP: ${HEADINGS} headings, identical outside the window`);
 });
 
@@ -500,9 +500,9 @@ test("THE REUSED MACHINES ARE SOUND: clone-per-point agrees on a sample", { skip
     m.regs.de = alongY;
     m.regs.bc = alongX;
     m.mem8[PLAYER_HEADING] = heading;
-    assert.equal(unitDiff(loc_1f55, m), null, `clone-per-point diverged at ${alongY},${alongX}`);
+    assert.equal(unitDiff(negateVelocityIntoWorldScrollThenDressSprite, m), null, `clone-per-point diverged at ${alongY},${alongX}`);
     assert.equal(
-      pointDiffers(loc_1f55, alongY, alongX, heading),
+      pointDiffers(negateVelocityIntoWorldScrollThenDressSprite, alongY, alongX, heading),
       false,
       `the reused arena disagrees with clone-per-point at ${alongY},${alongX},${heading}`,
     );
@@ -511,7 +511,7 @@ test("THE REUSED MACHINES ARE SOUND: clone-per-point agrees on a sample", { skip
 });
 
 test("WHOLE-MACHINE: a driven session is byte-identical with the rewrite wired", { skip }, () => {
-  const r = wholeRunCells(loc_1f55);
+  const r = wholeRunCells(negateVelocityIntoWorldScrollThenDressSprite);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,

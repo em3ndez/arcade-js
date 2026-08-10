@@ -10,7 +10,7 @@
 import { u8, u16 } from "../../../core/int.js";
 import { F_C } from "../../../core/cpu/z80.js";
 import { hasDriftedOffTheField } from "./hasDriftedOffTheField.js";
-import { loc_3ce1 } from "./loc_3ce1.js";
+import { hasReachedHorizontalEdgeWindow } from "./hasReachedHorizontalEdgeWindow.js";
 
 const HEADING_IN_RECORD = 2;
 const COORDINATE = 0x31;
@@ -25,7 +25,7 @@ export function hasReachedBoundaryBandSelectedByHeading(m, object = m.regs.ix, s
   if (turned >= HALF_A_TURN) return hasDriftedOffTheField(m, spriteEntry);
 
   const arrived = u8(mem8[u16(spriteEntry + COORDINATE)] + STARTS_BELOW_WRAP) < BAND;
-  if (!arrived) return loc_3ce1(m, spriteEntry);
+  if (!arrived) return hasReachedHorizontalEdgeWindow(m, spriteEntry);
   regs.f |= F_C;
   return true;
 }

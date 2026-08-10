@@ -6,7 +6,7 @@
  *   phase and inner index; a measured stack window with a boundary control; a register ceiling and teeth.
  *
  * ★ THE ADDRESS IS DISPATCHED ONCE PER SESSION, and the arm that says so measures it rather than
- *   assuming it. It is arm 0 of the inline word table loc_15c2 dispatches through, reached during
+ *   assuming it. It is arm 0 of the inline word table dispatchSequencePhase0SubStepArm dispatches through, reached during
  *   the boot self-test at frame 236 of both the coin-then-start tape and the undriven attract loop.
  *   One entry per session is thin evidence on its own, which is why the crafted sweeps below carry
  *   most of the weight — and why the CRAFTED-MATTERS arm exists at all.

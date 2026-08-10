@@ -16,8 +16,8 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { stepDyingObjectState as candidate } from "../stepDyingObjectState.js";
 import { loc_2b93 as oracle } from "../../translated/loc_2b93.js";
 import { countTheKillAndGrantTheSharedToken as countKill } from "../countTheKillAndGrantTheSharedToken.js";
-import { loc_2bb4 } from "../loc_2bb4.js";
-import { loc_2c22 } from "../loc_2c22.js";
+import { decrementObjectStateThenFlyAtSlowestSpeed } from "../decrementObjectStateThenFlyAtSlowestSpeed.js";
+import { moveObjectByStateByteThenRunAppearance } from "../moveObjectByStateByteThenRunAppearance.js";
 import { retireSlotAndSubPixel as retire } from "../retireSlotAndSubPixel.js";
 import { u8 } from "../../../../core/int.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -125,10 +125,10 @@ function brokenRearmWrongValue(m, o = m.regs.ix) {
   const s = m.mem8[o + STATE];
   if (s === REARM) { m.mem8[o + STATE] = REARMED_TO - 1; return countKill(m, o); }
   if (s === DEATH) countKill(m, o);
-  if (s >= DEATH) return loc_2bb4(m, o);
+  if (s >= DEATH) return decrementObjectStateThenFlyAtSlowestSpeed(m, o);
   const st = u8(s - 1); m.mem8[o + STATE] = st;
   if (st === 0) return retire(m, o);
-  return loc_2c22(m, o);
+  return moveObjectByStateByteThenRunAppearance(m, o);
 }
 
 /** BUG: re-arms but never begins the death. */
@@ -136,10 +136,10 @@ function brokenRearmSkipsCount(m, o = m.regs.ix) {
   const s = m.mem8[o + STATE];
   if (s === REARM) { m.mem8[o + STATE] = REARMED_TO; return; }
   if (s === DEATH) countKill(m, o);
-  if (s >= DEATH) return loc_2bb4(m, o);
+  if (s >= DEATH) return decrementObjectStateThenFlyAtSlowestSpeed(m, o);
   const st = u8(s - 1); m.mem8[o + STATE] = st;
   if (st === 0) return retire(m, o);
-  return loc_2c22(m, o);
+  return moveObjectByStateByteThenRunAppearance(m, o);
 }
 
 /** BUG: the threshold is exclusive, so the death-begin value falls into the countdown. */
@@ -147,10 +147,10 @@ function brokenThresholdExclusive(m, o = m.regs.ix) {
   const s = m.mem8[o + STATE];
   if (s === REARM) { m.mem8[o + STATE] = REARMED_TO; return countKill(m, o); }
   if (s === DEATH) countKill(m, o);
-  if (s > DEATH) return loc_2bb4(m, o);
+  if (s > DEATH) return decrementObjectStateThenFlyAtSlowestSpeed(m, o);
   const st = u8(s - 1); m.mem8[o + STATE] = st;
   if (st === 0) return retire(m, o);
-  return loc_2c22(m, o);
+  return moveObjectByStateByteThenRunAppearance(m, o);
 }
 
 /** BUG: the countdown never writes the stepped byte back. */
@@ -158,9 +158,9 @@ function brokenSkipDecrement(m, o = m.regs.ix) {
   const s = m.mem8[o + STATE];
   if (s === REARM) { m.mem8[o + STATE] = REARMED_TO; return countKill(m, o); }
   if (s === DEATH) countKill(m, o);
-  if (s >= DEATH) return loc_2bb4(m, o);
+  if (s >= DEATH) return decrementObjectStateThenFlyAtSlowestSpeed(m, o);
   if (u8(s - 1) === 0) return retire(m, o);
-  return loc_2c22(m, o);
+  return moveObjectByStateByteThenRunAppearance(m, o);
 }
 
 /** BUG: everything below the threshold is flown on instead of counted down. */
@@ -168,7 +168,7 @@ function brokenFliesBelow(m, o = m.regs.ix) {
   const s = m.mem8[o + STATE];
   if (s === REARM) { m.mem8[o + STATE] = REARMED_TO; return countKill(m, o); }
   if (s === DEATH) countKill(m, o);
-  return loc_2bb4(m, o);
+  return decrementObjectStateThenFlyAtSlowestSpeed(m, o);
 }
 
 const TWINS = [

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2bb4 — memory-equivalent to the frozen oracle at ROM 0x2BB4.
+ * decrementObjectStateThenFlyAtSlowestSpeed — memory-equivalent to the frozen oracle at ROM 0x2BB4.
  *
  * GATE: strict unit-capture replayed over every dispatch of the shared coin -> start tape, plus an
  *   exhaustive crafted sweep over the byte the routine counts down, plus teeth. Two instructions:
@@ -32,7 +32,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_2bb4 } from "../loc_2bb4.js";
+import { decrementObjectStateThenFlyAtSlowestSpeed } from "../decrementObjectStateThenFlyAtSlowestSpeed.js";
 import { flyAtSlowestSpeed } from "../flyAtSlowestSpeed.js";
 import { loc_2bb4 as oracle } from "../../translated/loc_2bb4.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -97,7 +97,7 @@ function replay(candidate) {
 }
 
 function entryState() {
-  if (entry === null) replay(loc_2bb4);
+  if (entry === null) replay(decrementObjectStateThenFlyAtSlowestSpeed);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   return entry;
 }
@@ -156,11 +156,11 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_2bb4 == oracle over the whole dump", { skip }, () => {
+test("EQUAL at the real dispatch: decrementObjectStateThenFlyAtSlowestSpeed == oracle over the whole dump", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2bb4(b);
+  decrementObjectStateThenFlyAtSlowestSpeed(b);
   assert.deepEqual(allDiffs(a, b), [], "the dumps must agree byte for byte, the stack included");
   console.log(`  EQUAL: sp=${hex4(entryState().regs.sp)}, no byte differs`);
 });
@@ -176,7 +176,7 @@ test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip 
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2bb4(b);
+  decrementObjectStateThenFlyAtSlowestSpeed(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
@@ -184,16 +184,16 @@ test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip 
 });
 
 test("CORPUS: every dispatch of a real session replays identically", { skip }, () => {
-  const r = replay(loc_2bb4);
+  const r = replay(decrementObjectStateThenFlyAtSlowestSpeed);
   assert.equal(r.dispatches, DISPATCHES, "the dispatch count moved");
   assert.equal(r.caught, 0, "the rewrite diverged on a real dispatch");
   console.log(`  CORPUS: ${r.dispatches} dispatches, ${r.states.size} distinct counted values`);
 });
 
 test("EXHAUSTIVE: all 256 crafted values of the counted byte", { skip }, () => {
-  assert.equal(sweepCaught(loc_2bb4), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(decrementObjectStateThenFlyAtSlowestSpeed), 0, "the rewrite diverged somewhere in the crafted space");
   const wrapped = craft(0);
-  loc_2bb4(wrapped);
+  decrementObjectStateThenFlyAtSlowestSpeed(wrapped);
   assert.equal(wrapped.mem8[wrapped.regs.ix + STATE], 255, "the countdown must WRAP, not saturate");
   console.log(`  EXHAUSTIVE: ${STATES.length} values identical, and zero wraps to 255`);
 });

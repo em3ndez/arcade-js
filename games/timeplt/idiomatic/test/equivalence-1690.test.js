@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { startGameOnFreePlay } from "../startGameOnFreePlay.js";
-import { loc_172a } from "../loc_172a.js";
+import { seatSequencePhase3AndResetSubStep } from "../seatSequencePhase3AndResetSubStep.js";
 import { IN0_MIRROR, PLAY_ACTIVE, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES } from "../names.js";
 import { loc_1690 as oracle } from "../../translated/loc_1690.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -154,7 +154,7 @@ function start(m, {
   mem8[TWO_PLAYER_GAME] = twoPlayer ? SET : 0;
   mem8[PLAYER_ONE_LIVES] = stock;
   if (stockSecond) mem8[PLAYER_TWO_LIVES] = twoPlayer ? stock : 0;
-  if (handOver) loc_172a(m);
+  if (handOver) seatSequencePhase3AndResetSubStep(m);
 }
 
 /** BUG: does nothing at all. */
@@ -194,7 +194,7 @@ function brokenStartsOnAnything(m) {
   mem8[TWO_PLAYER_GAME] = twoPlayer ? SET : 0;
   mem8[PLAYER_ONE_LIVES] = stock;
   mem8[PLAYER_TWO_LIVES] = twoPlayer ? stock : 0;
-  loc_172a(m);
+  seatSequencePhase3AndResetSubStep(m);
 }
 
 const TWINS = [

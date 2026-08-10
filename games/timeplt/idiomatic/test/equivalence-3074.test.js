@@ -42,7 +42,7 @@ import { placeTileAtTableSuppliedOffset } from "../placeTileAtTableSuppliedOffse
 import { loc_3074 as oracle } from "../../translated/loc_3074.js";
 // The live entry the UNREACHED arm uses as its positive control -- a batch sibling, dispatched
 // by both sessions, so the rig can be shown able to reach something before a zero here counts.
-import { loc_290e as controlModule } from "../loc_290e.js";
+import { dispatchSeatedSlotByEraIndex as controlModule } from "../dispatchSeatedSlotByEraIndex.js";
 import { loc_290e as controlOracle } from "../../translated/loc_290e.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";

@@ -6,7 +6,7 @@
  * on the era index — and that frame plus a fixed sprite state are written to the sprite entry.
  * LIVE-OUT: memory, and the object/sprite cursors the caller keeps walking. */
 
-import { loc_409d } from "./loc_409d.js";
+import { stampObjectStateByte3bThenRequestSound } from "./stampObjectStateByte3bThenRequestSound.js";
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { retireSlot } from "./retireSlot.js";
 import { fetchTableByte } from "./fetchTableByte.js";
@@ -27,7 +27,7 @@ export function stepDriftingCountdownObjectByEraFrames(m) {
   const { regs, mem8 } = m;
   const object = regs.ix;
 
-  if (mem8[object + COUNT] >= RESET_MARK) loc_409d(m);
+  if (mem8[object + COUNT] >= RESET_MARK) stampObjectStateByte3bThenRequestSound(m);
   driftWithWorldScroll(m);
 
   const count = (mem8[object + COUNT] - 1) & 0xff;

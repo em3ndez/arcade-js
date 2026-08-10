@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_28ee — memory-equivalent to the frozen oracle at ROM 0x28EE.
+ * seatMotherShipSlotThenDispatchByEraUnlessArmed — memory-equivalent to the frozen oracle at ROM 0x28EE.
  *
  * WHAT IT IS. A one-byte gate, then two instructions that load an object record and a sprite entry,
  * then a tail jump into the era-keyed per-slot handler at 0x290E, which is ALREADY DECOMPILED — so
@@ -81,8 +81,8 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_28ee } from "../loc_28ee.js";
-import { loc_290e } from "../loc_290e.js";
+import { seatMotherShipSlotThenDispatchByEraUnlessArmed } from "../seatMotherShipSlotThenDispatchByEraUnlessArmed.js";
+import { dispatchSeatedSlotByEraIndex } from "../dispatchSeatedSlotByEraIndex.js";
 import { loc_28ee as oracle } from "../../translated/loc_28ee.js";
 import { ERA_INDEX, MOTHER_SHIP_ARMED, MOTHER_SHIP_STATE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -207,7 +207,7 @@ function runSession(label, opts) {
     eras.set(era, (eras.get(era) ?? 0) + 1);
     const gate = mm.mem8[MOTHER_SHIP_ARMED];
     gateBytes.set(gate, (gateBytes.get(gate) ?? 0) + 1);
-    const r = diffOf(loc_28ee, mm);
+    const r = diffOf(seatMotherShipSlotThenDispatchByEraUnlessArmed, mm);
     if (r.informative) {
       informative++;
       if (!entries.has(label)) entries.set(label, mm.clone());
@@ -346,7 +346,7 @@ function brokenNeighbourRecord(m) {
   if (closed(m)) return;
   m.regs.ix = CRAFT_RECORD - RECORD_STRIDE;
   m.regs.iy = SPRITE_ENTRY;
-  return loc_290e(m);
+  return dispatchSeatedSlotByEraIndex(m);
 }
 
 /** BUG: the sprite entry one place back, so the craft is drawn into its neighbour's entry. */
@@ -354,7 +354,7 @@ function brokenNeighbourEntry(m) {
   if (closed(m)) return;
   m.regs.ix = CRAFT_RECORD;
   m.regs.iy = SPRITE_ENTRY - ENTRY_STRIDE;
-  return loc_290e(m);
+  return dispatchSeatedSlotByEraIndex(m);
 }
 
 /** BUG: the two halves of the pair change places. */
@@ -362,21 +362,21 @@ function brokenSwappedPair(m) {
   if (closed(m)) return;
   m.regs.ix = SPRITE_ENTRY;
   m.regs.iy = CRAFT_RECORD;
-  return loc_290e(m);
+  return dispatchSeatedSlotByEraIndex(m);
 }
 
 /** BUG: only the record is chosen; the sprite entry is whatever the caller was holding. */
 function brokenRecordOnly(m) {
   if (closed(m)) return;
   m.regs.ix = CRAFT_RECORD;
-  return loc_290e(m);
+  return dispatchSeatedSlotByEraIndex(m);
 }
 
 /** BUG: only the sprite entry is chosen; the record is whatever the caller was holding. */
 function brokenEntryOnly(m) {
   if (closed(m)) return;
   m.regs.iy = SPRITE_ENTRY;
-  return loc_290e(m);
+  return dispatchSeatedSlotByEraIndex(m);
 }
 
 /** BUG: the pair is right but the first arm always runs, so the era stops choosing. */
@@ -391,7 +391,7 @@ function brokenFixedFirstArm(m) {
 function brokenGateDropped(m) {
   m.regs.ix = CRAFT_RECORD;
   m.regs.iy = SPRITE_ENTRY;
-  return loc_290e(m);
+  return dispatchSeatedSlotByEraIndex(m);
 }
 
 /** BUG: the gate reads the right cell the wrong way round. */
@@ -399,7 +399,7 @@ function brokenGateInverted(m) {
   if (!closed(m)) return;
   m.regs.ix = CRAFT_RECORD;
   m.regs.iy = SPRITE_ENTRY;
-  return loc_290e(m);
+  return dispatchSeatedSlotByEraIndex(m);
 }
 
 /** BUG: the gate reads the era selector instead of the cell that says the slot is taken. */
@@ -407,12 +407,12 @@ function brokenGateOnTheEraCell(m) {
   if (m.mem8[ERA_INDEX] !== 0) return;
   m.regs.ix = CRAFT_RECORD;
   m.regs.iy = SPRITE_ENTRY;
-  return loc_290e(m);
+  return dispatchSeatedSlotByEraIndex(m);
 }
 
 /** NOT A TWIN OF THIS ROUTINE: the positive control for the held-register instrument. */
 function clobbersAHeldRegister(m) {
-  loc_28ee(m);
+  seatMotherShipSlotThenDispatchByEraUnlessArmed(m);
   m.regs.b = (m.regs.b + 1) & 0xff;
 }
 
@@ -468,7 +468,7 @@ test("REACH: dispatch counts, the eras presented, and the gate byte presented", 
 test("EQUAL at the first informative dispatch of each session", { skip }, () => {
   for (const [label] of SESSIONS) {
     const e = entryFor(label);
-    const r = diffOf(loc_28ee, e);
+    const r = diffOf(seatMotherShipSlotThenDispatchByEraUnlessArmed, e);
     assert.equal(r.faultA, null, `${label}: the oracle faulted (${r.faultA})`);
     assert.equal(r.faultB, null, `${label}: the rewrite faulted (${r.faultB})`);
     assert.deepEqual(r.masked, [], `${label}: ${show(r.masked[0])}`);
@@ -495,7 +495,7 @@ test("GATE: a raised gate byte writes nothing on either side, a clear one writes
   let raisedWrote = 0;
   let clearWrote = 0;
   for (const c of cross()) {
-    const r = diffOf(loc_28ee, craft(...c));
+    const r = diffOf(seatMotherShipSlotThenDispatchByEraUnlessArmed, craft(...c));
     if (r.faulted) continue;
     if (c[1] !== 0) {
       raised++;
@@ -540,7 +540,7 @@ test("SCRATCH: every raw difference is below the entry pointer and inside the wi
   let deepest = 0;
   let seen = 0;
   for (const c of cross()) {
-    const r = diffOf(loc_28ee, craft(...c));
+    const r = diffOf(seatMotherShipSlotThenDispatchByEraUnlessArmed, craft(...c));
     for (const d of r.raw) {
       assert.ok(d.addr < r.sp, `${c}: ${hex4(d.addr)} is at or above the entry pointer`);
       deepest = Math.max(deepest, r.sp - d.addr);
@@ -572,7 +572,7 @@ test("CROSS: every crafted entry is identical, or faults identically", { skip },
   let informative = 0;
   let faulted = 0;
   for (const c of cross()) {
-    const r = diffOf(loc_28ee, craft(...c));
+    const r = diffOf(seatMotherShipSlotThenDispatchByEraUnlessArmed, craft(...c));
     if (r.informative) informative++;
     if (r.faulted) {
       assert.equal(r.faultA, r.faultB, `${c}: ${r.faultA} on one side, ${r.faultB} on the other`);
@@ -595,7 +595,7 @@ test("ARMS: the untranscribed handler words fault identically, the rest run", { 
   const missing = words.map((w) => !base.routines.has(w));
   for (const [label] of SESSIONS) {
     for (let i = 0; i < ARM_COUNT; i++) {
-      const r = diffOf(loc_28ee, craft(label, 0, i));
+      const r = diffOf(seatMotherShipSlotThenDispatchByEraUnlessArmed, craft(label, 0, i));
       assert.equal(r.faulted, missing[i], `arm ${i} at ${hex4(words[i])}: faulted ${r.faulted}, ` +
         "which is not what the handler table's own registration says");
       if (r.faulted) assert.equal(r.faultA, r.faultB, `arm ${i}: ${r.faultA} vs ${r.faultB}`);
@@ -612,7 +612,7 @@ test("EXCLUDED: the registers that move, bounded by a ceiling; the pair is held"
   const realMoved = new Set();
   for (const s of sessions()) for (const k of s.moved) { moved.add(k); realMoved.add(k); }
   for (const c of cross()) {
-    const r = diffOf(loc_28ee, craft(...c));
+    const r = diffOf(seatMotherShipSlotThenDispatchByEraUnlessArmed, craft(...c));
     if (r.faulted) continue;
     for (const k of r.moved) moved.add(k);
   }
@@ -638,7 +638,7 @@ test("EXCLUDED: the registers that move, bounded by a ceiling; the pair is held"
 
 test("WHOLE-MACHINE: a wired session of each tape differs only in dead stack bytes", { skip }, () => {
   for (const [label, opts] of SESSIONS) {
-    const r = wholeRunCells(loc_28ee, label, opts);
+    const r = wholeRunCells(seatMotherShipSlotThenDispatchByEraUnlessArmed, label, opts);
     assert.equal(r.threw, null, `${label}: the run threw: ${r.threw}`);
     assert.equal(r.stopped, null, `${label}: the run stopped early (${r.stopped})`);
     assert.equal(r.frames, CORPUS_FRAMES, `${label}: compared ${r.frames} of ${CORPUS_FRAMES} frames`);

@@ -4,8 +4,8 @@
  * higher value; below it the byte counts down, retiring the slot at zero, else moving it. LIVE-OUT: memory. */
 
 import { countTheKillAndGrantTheSharedToken } from "./countTheKillAndGrantTheSharedToken.js";
-import { loc_2bb4 } from "./loc_2bb4.js";
-import { loc_2c22 } from "./loc_2c22.js";
+import { decrementObjectStateThenFlyAtSlowestSpeed } from "./decrementObjectStateThenFlyAtSlowestSpeed.js";
+import { moveObjectByStateByteThenRunAppearance } from "./moveObjectByStateByteThenRunAppearance.js";
 import { retireSlotAndSubPixel } from "./retireSlotAndSubPixel.js";
 import { u8 } from "../../../core/int.js";
 
@@ -25,10 +25,10 @@ export function stepDyingObjectState(m, object = m.regs.ix) {
 
   // At the threshold the kill is counted first; no reachable object wins a claim, so the count leaves the carry clear and every value at or above the threshold flies on.
   if (state === DEATH_BEGINS) countTheKillAndGrantTheSharedToken(m, object);
-  if (state >= DEATH_BEGINS) return loc_2bb4(m, object);
+  if (state >= DEATH_BEGINS) return decrementObjectStateThenFlyAtSlowestSpeed(m, object);
 
   const stepped = u8(state - 1);
   mem8[object + STATE] = stepped;
   if (stepped === 0) return retireSlotAndSubPixel(m, object);
-  return loc_2c22(m, object);
+  return moveObjectByStateByteThenRunAppearance(m, object);
 }
