@@ -2,44 +2,26 @@
 /**
  * loc_4fe0 — memory-equivalent to the frozen oracle at ROM 0x4FE0.
  *
- * WHAT IT IS. A sweep of six slots for one a single roaming thing has reached: both must be live,
- * and both coordinates must fall inside a box whose first axis is widened by two of the era values.
- * A slot that passes is destroyed with the roamer and the chained hit score is posted for it. That
- * score routine is ALREADY decompiled, so the rewrite calls postChainedHitScore directly and
+ * WHAT IT IS. A sweep of six slots to see which one a single roaming thing has reached: both must be
+ * live, and both coordinates must fall inside a box whose first axis is widened by two of the era
+ * values. A slot that passes is destroyed with the roamer and the chained hit score is posted for it.
+ * That score routine is ALREADY decompiled, so the rewrite calls postChainedHitScore directly —
  * dissolving that call belongs to this caller's unit.
  *
- * ★ NO TAPE REACHES THIS ENTRY, and the UNREACHED arm asserts it: the shared tape, undriven attract
- *   and a driven turning tape each dispatch it ZERO times in the corpus budget — the arm above it
- *   sends control the other way on every pass. So the corpus here is REAL MACHINE STATES sampled at
- *   the dispatches of the routine whose body this entry is the tail of. Every arm below is a
- *   crafted entry on one of those states, and nothing here claims a natural dispatch.
+ * ★ NO TAPE REACHES THIS ENTRY, and the UNREACHED arm asserts it: shared, attract and a turning tape
+ *   each dispatch it ZERO times — the arm above sends control the other way. So the corpus here is REAL
+ *   MACHINE STATES sampled at dispatches of the routine this entry is the tail of; every arm below is a
+ *   crafted entry on one, and nothing here claims a natural dispatch.
  *
- * ★ THE FROZEN LAYER TRANSCRIBES THIS BODY TWICE — once as its own routine and once inside the
- *   routine that falls into it — so the oracle this file compares against is the standalone one,
- *   which is the only one the registry can dispatch.
+ * ★ THE FROZEN LAYER TRANSCRIBES THIS BODY TWICE — once standalone, once inside the routine that falls
+ *   into it — so the oracle this file compares against is the standalone one, the only one the registry
+ *   can dispatch.
  *
- * GATE: crafted entries on real machine states, sweeping each axis of the box exhaustively. What it
- *   exercises, holes stated:
- *
- *   1. UNREACHED — three tapes, zero dispatches each, asserted.
- *   2. EQUAL on real states — RAM identical outside the dead stack bytes, at every sampled state.
- *   3. NOT VACUOUS — a candidate that does nothing FAILS somewhere in the crafted space.
- *   4. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      space, BOUNDED by a measured set rather than pinned to it: a register diverging outside
- *      that set fails the arm, and a rewrite that diverges on fewer still passes.
- *   5. CRAFTED — each axis swept over all 256 wrapped differences, on BOTH widths of the box, plus
- *      the four combinations of the two liveness gates. The axis sweeps are what pin the window
- *      edges; the gate combinations are what pin the two early exits.
- *   6. BOTH WIDTHS ARE REAL — the sweep is asserted to contain a difference that the wide box
- *      admits and the narrow one does not, so the era dimension is not decorative.
- *   7. TEETH — seven twins, each with an exact catch count.
- *
- * HOLE: there is no whole-machine arm, because no session dispatches this entry; wiring the rewrite
- * over the address would pass vacuously. Nothing here speaks for whether the registers it leaves
- * are dead — arm 4 bounds WHICH ones may move, not that nothing reads them.
- * HOLE: the sweep moves the roamer against slots that all hold the same coordinates, so it cannot
- * distinguish which of the six slots a hit came from; the multiple-hit twin is what covers the
- * sweep not stopping at the first.
+ * HOLE: no whole-machine arm — no session dispatches this entry, so wiring the rewrite over the address
+ *   would pass vacuously; and nothing here speaks for whether the registers it leaves are dead (arm 4
+ *   bounds WHICH ones may move, not that nothing reads them).
+ * HOLE: the sweep moves the roamer against slots that all hold the same coordinates, so it cannot tell
+ *   which of the six a hit came from — the multiple-hit twin covers the sweep not stopping at the first.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-4fe0.test.js
  */
@@ -85,14 +67,11 @@ const SCRATCH_BYTES = 8;
 
 /**
  * Every register the oracle moves and the rewrite does not, read off the ROM body: the two box
- * dimensions land in H/L and D/E, the slot count lands in B and is counted down to zero, A and F
- * carry each comparison, the slot cursor lives in IY, and the closing `ret` lifts SP by two. C is
- * NOT among them — nothing between 0x4FE0 and 0x5031 writes it, and neither does the chained-score
- * routine the hit arm calls. IX and the shadow bank are untouched on both sides.
- *
- * A BOUND, not an exact list: a register diverging outside this set fails the arm below, and a
- * rewrite that diverges on fewer of them still passes. It is a UNION over the crafted space, so
- * every member is known to have moved SOMEWHERE in it, not at every entry.
+ * dimensions in H/L and D/E, the slot count in B (counted to zero), A and F carrying each comparison,
+ * the slot cursor in IY, and the closing `ret` lifting SP by two. C is NOT among them — nothing from
+ * 0x4FE0 to 0x5031 writes it, nor does the chained-score routine; IX and the shadow bank are untouched.
+ * A BOUND, not an exact list: a register diverging outside this set fails the arm below, one that
+ * diverges on fewer still passes. It is a UNION over the crafted space, so each member moved SOMEWHERE.
  */
 const EXCLUDED = ["a", "f", "b", "d", "e", "h", "l", "iy", "sp"];
 
@@ -142,7 +121,6 @@ function realStates() {
   return samples;
 }
 
-/** A sampled real state with the era, both liveness gates and the roamer's position forced. */
 const ANCHOR = 100;
 function craft(era, firstDiff, secondDiff, roamerLive, slotLive) {
   const m = realStates()[0].clone();
@@ -193,8 +171,6 @@ function movedRegisters(candidate) {
   return REG_FIELDS.filter((k) => moved.has(k));
 }
 
-// ── the twins ───────────────────────────────────────────────────────────────────────────
-
 const within = (a, b, reach, span) => u8(u8(a - b) + reach) < span;
 
 /** The shape every twin varies, so each differs from the rewrite in exactly one decision. */
@@ -244,23 +220,15 @@ const brokenStopsAtFirst = (m) => sweep(m, { stopAtFirst: true });
 const brokenOneAxis = (m) => sweep(m, { secondAxis: false });
 
 /**
- * The catch counts, derived from the shape of the crafted space rather than read off a run. Each
- * era contributes 256 first-axis entries (second axis parked at a difference the box admits), 256
- * second-axis entries (first axis parked likewise) and the 4 gate combinations. The wide first-axis
- * box admits 17 of the 256 wrapped differences, the narrow one 13 — a subset — so 4 differences
- * separate them; the second-axis box admits 31. Every slot in a crafted entry carries the same
- * coordinates, so a pass either takes all six or none.
- *
- *   no-op          — caught wherever the oracle writes at all, i.e. wherever a hit lands:
- *                    wide 17 + 31 + 1 gate combination, narrow 13 + 31 + 1.
- *   always-wide    — only the narrow era can disagree, and only on the 4 differences the wide box
- *   always-narrow    admits and the narrow one does not; likewise the wide era for its twin.
- *   no-roamer-gate — the one gate combination per era with the roamer dead and the slots live.
- *   no-slot-gate   — the one gate combination per era with the roamer live and the slots dead.
- *   stops-at-first — caught wherever a hit lands, same as the no-op: the five slots it never
- *                    reaches keep the live code the oracle clears.
- *   one-axis       — caught on every second-axis entry the second box REJECTS, both eras:
- *                    2 x (256 - 31).
+ * The catch counts derive from the crafted space's shape, not a run. Each era contributes 256
+ * first-axis entries (second axis parked where the box admits), 256 second-axis entries (first axis
+ * parked likewise) and the 4 gate combinations. The wide first-axis box admits 17 of the 256 wrapped
+ * differences, the narrow one 13 — a subset, so 4 separate them; the second-axis box admits 31. Every
+ * slot in a crafted entry carries the same coordinates, so a pass takes all six or none. Hence:
+ *   no-op / stops-at-first — caught wherever a hit lands (wide 17+31+1, narrow 13+31+1 = 94 each).
+ *   always-wide / always-narrow — only on the 4 differences one box admits and the other rejects.
+ *   no-roamer-gate / no-slot-gate — the one gate combination per era each mishandles (2).
+ *   one-axis — every second-axis entry the second box REJECTS, both eras: 2 x (256 - 31) = 450.
  */
 const TWINS = [
   ["no-op", brokenNoOp, 94],
@@ -271,8 +239,6 @@ const TWINS = [
   ["stops-at-first", brokenStopsAtFirst, 94],
   ["one-axis", brokenOneAxis, 450],
 ];
-
-// ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("UNREACHED: no tape dispatches this entry, which is why the states are sampled", { skip }, () => {
   const IN0 = 0xc300;
@@ -326,8 +292,6 @@ test("CRAFTED: both axes swept whole, on both box widths, plus the four gate com
   assert.equal(sweepCaught(loc_4fe0), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  CRAFTED: ${SWEEP_SIZE()} comparisons identical`);
 });
-
-// ── teeth ───────────────────────────────────────────────────────────────────────────────
 
 for (const [label, twin, craftedCaught] of TWINS) {
   test(`TEETH: the ${label} twin is caught on an exact count of crafted entries`, { skip }, () => {
