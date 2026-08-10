@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3fea vs the frozen oracle at ROM 0x3fea: real coin-start dispatches, the four decision
+ * serviceEra0BallisticObjectBank vs the frozen oracle at ROM 0x3fea: real coin-start dispatches, the four decision
  * branches crafted, and a three-slot occupancy x era sweep, each masked for the dead stack scratch
  * the dissolved tails leave and held to a register ceiling. Run:
  *   node --test games/timeplt/idiomatic/test/equivalence-3fea.test.js
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3fea as candidate } from "../loc_3fea.js";
+import { serviceEra0BallisticObjectBank as candidate } from "../serviceEra0BallisticObjectBank.js";
 import { loc_3fea as oracle } from "../../translated/loc_3fea.js";
 import { loc_400b } from "../loc_400b.js";
 import { sweepObjectSlotBankServicingFirstSlot as sweep } from "../sweepObjectSlotBankServicingFirstSlot.js";

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2984 — memory-equivalent to the frozen oracle at ROM 0x2984.
+ * serviceEra2EnemyCraftSlot — memory-equivalent to the frozen oracle at ROM 0x2984.
  * GATE: crafted-entry. No plain tape reaches this handler, so the corpus is a driven session with
  * the era index pinned; equality is masked over the frozen side's own stack pushes, which the
  * ret-free rewrite never writes. Held (0xFE) never occurs live, so the four state branches are
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, romsPresent } from "./_harness.js";
-import { loc_2984 } from "../loc_2984.js";
+import { serviceEra2EnemyCraftSlot } from "../serviceEra2EnemyCraftSlot.js";
 import { loc_2984 as oracle } from "../../translated/loc_2984.js";
 import { ERA_INDEX, FRAME_TICK } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -106,7 +106,7 @@ function maskProbe(machine) {
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
-  loc_2984(b);
+  serviceEra2EnemyCraftSlot(b);
   return { low, seat, spDiff: a.regs.sp - b.regs.sp };
 }
 
@@ -241,7 +241,7 @@ function loc_2984Active(m) {
   if (hasReachedRetireLine(m)) return retireSlotAndSubPixel(m);
   loc_3ed6(m); dressSpriteForFineHeading(m); launchAttackerIntoFreeSlot(m);
 }
-function twinMovesIx(m) { loc_2984(m); m.regs.ix = (m.regs.ix + 1) & 0xffff; }
+function twinMovesIx(m) { serviceEra2EnemyCraftSlot(m); m.regs.ix = (m.regs.ix + 1) & 0xffff; }
 
 /** [name, twin, {idle, active, held, dying}] — which crafted branch each twin parts company on. */
 const TWINS = [
@@ -267,7 +267,7 @@ test("UNREACHED: no plain tape dispatches this handler, which is why the era is 
 
 test("CORPUS: every dispatch of the pinned session replays identically", { skip }, () => {
   const c = captureCorpus();
-  const r = replayAll(loc_2984);
+  const r = replayAll(serviceEra2EnemyCraftSlot);
   assert.equal(r.dispatches, DISPATCHES, "the dispatch count moved");
   assert.equal(r.caught, 0, `a real dispatch diverged: ${show(r.first)}`);
   assert.ok(c.states.get(EMPTY) > 0, "no empty slot occurred");
@@ -293,7 +293,7 @@ test("SP AND SCRATCH: the drift is two bytes and the mask floor sits above the d
 });
 
 test("EXCLUDED, deliberately: nothing outside the ceiling moves, ix and iy held", { skip }, () => {
-  const moved = movedOver(loc_2984);
+  const moved = movedOver(serviceEra2EnemyCraftSlot);
   const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.ok(!moved.has("ix") && !moved.has("iy"), "the slot pointers moved, breaking the threading");
@@ -306,7 +306,7 @@ test("CRAFTED BRANCHES: all four state branches replay identically and each acts
   for (const [label, state, acts] of [["empty", EMPTY, false], ["active", ACTIVE, true],
     ["held", HELD, true], ["dying", DYING, true]]) {
     const m = craft(state);
-    assert.equal(unitDiff(loc_2984, m), null, `the ${label} branch diverged`);
+    assert.equal(unitDiff(serviceEra2EnemyCraftSlot, m), null, `the ${label} branch diverged`);
     assert.equal(footprint(m) > 0, acts, `the ${label} branch's footprint contradicts its arm`);
   }
   console.log("  CRAFTED BRANCHES: empty (idle), active, held, dying all identical");

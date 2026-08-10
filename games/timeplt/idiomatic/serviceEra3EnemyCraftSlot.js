@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_29b0 — the era-3 step for one object slot, dispatched on the slot's lifecycle byte at ix+0:
+/** serviceEra3EnemyCraftSlot — the era-3 step for one object slot, dispatched on the slot's lifecycle byte at ix+0:
  * an idle slot does nothing; a live slot (0xff) is steered, dressed, then either retired at the
  * line or flown on and given a spawn attempt; 0xfe releases a held slot; a lower value is a death
  * countdown step. LIVE-OUT: memory. */
@@ -18,7 +18,7 @@ const IDLE = 0;
 const LIVE = 0xff;
 const HELD = 0xfe;
 
-export function loc_29b0(m) {
+export function serviceEra3EnemyCraftSlot(m) {
   const state = m.mem8[m.regs.ix];
   if (state === IDLE) return;
   if (state !== LIVE) {

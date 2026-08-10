@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_29b0 — memory-equivalent to the frozen oracle at ROM 0x29b0.
+ * serviceEra3EnemyCraftSlot — memory-equivalent to the frozen oracle at ROM 0x29b0.
  * GATE: crafted-entry. No tape reaches this era, so the corpus is poked real dispatches (ERA_INDEX
  * forced to 3) plus per-branch crafts off a plain era-0 neighbour; masked RAM diff, live-out memory.
  * HOLE: the poked run forces an era the cabinet would not enter on its own.
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_29b0 } from "../loc_29b0.js";
+import { serviceEra3EnemyCraftSlot } from "../serviceEra3EnemyCraftSlot.js";
 import { loc_29b0 as oracle } from "../../translated/loc_29b0.js";
 import { steerTowardAimHeading } from "../steerTowardAimHeading.js";
 import { loc_58a4 } from "../loc_58a4.js";
@@ -68,7 +68,7 @@ function spProbe(machine) {
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
-  loc_29b0(b);
+  serviceEra3EnemyCraftSlot(b);
   return { seat, low, spDiff: (a.regs.sp - b.regs.sp) & 0xffff };
 }
 
@@ -188,7 +188,7 @@ test("POKED DISPATCH: era forced to 3, the ROM reaches the address itself", { sk
   const entries = capturePoked();
   assert.ok(entries.length > 0, "vacuous: forcing the era no longer makes the ROM reach this address");
   for (const e of entries) {
-    const d = maskedDiff(loc_29b0, e);
+    const d = maskedDiff(serviceEra3EnemyCraftSlot, e);
     assert.equal(d, null, `a poked dispatch diverged: ${show(d)}`);
   }
   assert.ok(entries.slice(0, 200).some((e) => footprint(e) > 0),
@@ -199,7 +199,7 @@ test("POKED DISPATCH: era forced to 3, the ROM reaches the address itself", { sk
 test("CRAFTED BRANCHES: every arm of the lifecycle dispatch, identical and covered", { skip }, () => {
   for (const [label, state, retire, wantsWrite] of BRANCHES) {
     const m = craft(state, retire);
-    assert.equal(maskedDiff(loc_29b0, m), null, `the ${label} arm diverged`);
+    assert.equal(maskedDiff(serviceEra3EnemyCraftSlot, m), null, `the ${label} arm diverged`);
     const f = footprint(m);
     if (wantsWrite) assert.ok(f > 0, `the ${label} arm wrote nothing, so it exercises no work`);
     else assert.equal(f, 0, `the ${label} arm wrote ${f} bytes but idle must be inert`);

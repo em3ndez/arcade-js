@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_29d5 — memory-equivalent to the frozen oracle at ROM 0x29d5.
+ * serviceEra4EnemyCraftSlot — memory-equivalent to the frozen oracle at ROM 0x29d5.
  * GATE: crafted-entry. Neither tape reaches this arm's era within the frame budget, so a run pokes
  * the era index to 4 and lets the rom's own dispatcher reach the address; real dispatches cover the
  * free and live states, and crafted state bytes cover the held, dying and retire branches. Memory
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_29d5 } from "../loc_29d5.js";
+import { serviceEra4EnemyCraftSlot } from "../serviceEra4EnemyCraftSlot.js";
 import { loc_29d5 as oracle } from "../../translated/loc_29d5.js";
 import { loc_290e as dispatcher } from "../../translated/loc_290e.js";
 import { hasReachedRetireLine } from "../hasReachedRetireLine.js";
@@ -121,7 +121,7 @@ function maskProbe(machine) {
   const p = a.push16.bind(a);
   a.push16 = (v) => { p(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
-  loc_29d5(b);
+  serviceEra4EnemyCraftSlot(b);
   return { low, seat, spDiff: (a.regs.sp - b.regs.sp) & 0xffff };
 }
 
@@ -237,7 +237,7 @@ test("POKED DISPATCH: real dispatches after the era is forced", { skip }, () => 
   const entries = capturePoked();
   assert.ok(entries.length > 0, "vacuous: forcing the era no longer reaches this address");
   for (const e of entries) {
-    const d = unitDiff(loc_29d5, e);
+    const d = unitDiff(serviceEra4EnemyCraftSlot, e);
     assert.equal(d, null, `a poked dispatch diverged: ${show(d)}`);
   }
   const states = new Set(entries.map((e) => e.mem8[e.regs.ix]));
@@ -249,7 +249,7 @@ test("POKED DISPATCH: real dispatches after the era is forced", { skip }, () => 
 
 test("STATE ARMS: free, held, dying and live all reproduce", { skip }, () => {
   for (const s of [FREE, 0x01, 0x3c, 0x80, 0xf0, HELD, LIVE]) {
-    assert.equal(unitDiff(loc_29d5, craft(s)), null, `state ${hex4(s)} diverged`);
+    assert.equal(unitDiff(serviceEra4EnemyCraftSlot, craft(s)), null, `state ${hex4(s)} diverged`);
   }
   assert.equal(footprint(craft(FREE)), 0, "the free arm should move nothing");
   assert.ok(footprint(craft(LIVE)) > 0, "the live arm should move memory");
@@ -260,7 +260,7 @@ test("RETIRE BRANCH: a live slot on the line clears rather than animates", { ski
   const onLine = craft(LIVE, true);
   assert.ok(hasReachedRetireLine(onLine.clone()), "the crafted slot is not actually on a retire line");
   assert.ok(!hasReachedRetireLine(craft(LIVE).clone()), "the plain live slot is already on the line");
-  assert.equal(unitDiff(loc_29d5, onLine), null, "the retire branch diverged");
+  assert.equal(unitDiff(serviceEra4EnemyCraftSlot, onLine), null, "the retire branch diverged");
   console.log("  RETIRE BRANCH: on-line slot reproduces the clear");
 });
 

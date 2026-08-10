@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3fea — in era zero only, run one frame of the three-slot ballistic-object bank from the top:
+/** serviceEra0BallisticObjectBank — in era zero only, run one frame of the three-slot ballistic-object bank from the top:
  * seat the cursors, then step an empty first slot, fly a ballistic (0xFF) first slot before stepping
  * it, or hand any other first-slot marker to the servicing sweep; outside era zero do nothing.
  * LIVE-OUT: memory. */
@@ -15,7 +15,7 @@ const BANK_SLOTS = 0x03;
 const EMPTY = 0x00;
 const BALLISTIC = 0xff;
 
-export function loc_3fea(m) {
+export function serviceEra0BallisticObjectBank(m) {
   const { regs, mem8 } = m;
   if (mem8[ERA_INDEX] !== 0) return;
 

@@ -751,6 +751,18 @@ object slot are attract-dark (grounding pinned them to RAM without ever seeing t
 while `flyLiveSlotAndTickCountdown` does run in attract's later eras yet its object family was still
 not mapped slot→sprite.
 
+★ **The five arms that share the ladder are the five eras.** The round engine reaches them through
+`ld a,(0xAD04); and 0x07; rst 0x30` — the era-dispatch table at ROM `0x2914`, whose entries 0–4 are
+`serviceEra0EnemyCraftSlot`, the era-1 arm (`0x294c`, not yet lifted), `serviceEra2EnemyCraftSlot`,
+`serviceEra3EnemyCraftSlot` and `serviceEra4EnemyCraftSlot`. Each runs the identical
+free/held/dying/live ladder above on whatever record its caller seated, and they diverge only inside
+the **live** arm: era 0 steers toward its aim heading every frame and dresses from
+`refreshSpriteFromHeading`; era 2 throttles the steer to three frames in four and dresses via
+`dressSpriteForFineHeading`; era 3 swaps in its own mover and dresser; era 4 alone drops the
+slow-fly step, homes directly on the ship with `steerEnemyTowardShip`, and animates a selected shape
+cycle. **The era binding is a property of that outer table, not of the bodies** — none of the five
+reads `0xAD04` itself. `[code]`
+
 ### An animation is a run of shape bytes, walked BACKWARDS by its own timer
 
 A record's animation is three bytes of the record and one table. The selector byte picks a run out
@@ -1118,7 +1130,7 @@ own a slot pool — they time-share the single three-slot bank at `0xA8C0` (reco
 sprite entries from `0xAA28`), and which handler drives it changes with the era index. In era 0 the
 bank holds ordinary swept objects, walked a frame at a time by `sweepObjectSlotBankByHead` /
 `sweepObjectSlotBankServicingFirstSlot` (two interior entries of one loop, dispatched from
-`loc_3fea`); in era 1 `armBomberSlotWhenTimerFires` arms the 1940 bomber into slot 0 on an even-frame
+`serviceEra0BallisticObjectBank`); in era 1 `armBomberSlotWhenTimerFires` arms the 1940 bomber into slot 0 on an even-frame
 countdown; in era 2 `stepDriftingCountdownObjectByEraFrames` runs a world-drifting bonus craft in the
 same slot. Watched under MAME: which handler services slot 0 changes with the era index — read per
 era by tapping the bank's occupancy — and the era-1 occupant, isolated by a negative control, is the
@@ -1127,6 +1139,12 @@ for the era-1 occupant; `[code]` for the per-era handler set and the era-0/era-2
 isolated by a control — the era-0 sprite was never pinned, and era-2's 413c is the same reason it
 stays `[code]`). (So a name
 like "the projectile bank" would over-fit one era's use of it.)
+
+★ **The era arms that select the bank's occupant are themselves era-gated dispatchers.**
+`serviceEra0BallisticObjectBank`, `serviceEra1BomberObject` and `sweepEra2PlusObjectBank` each
+return at once outside their era (0, 1, and 2-and-up respectively) and otherwise seat the
+`0xA8C0`/`0xAA28` cursors before handing to the occupant handlers above — the era-2+ arm runs the
+whole bank through the sweep loop rather than dispatching a single slot. `[code]`
 
 ★ **And that settles the last open question in the public record about the screen furniture.** The
 bar along the bottom is a direct rendering of the quota cell — its run length is the cell shifted,

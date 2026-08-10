@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_31b4 — memory-equivalent to the frozen oracle at ROM 0x31b4.
+ * reaimAndAnimateEnemyCraftOnPhaseTick — memory-equivalent to the frozen oracle at ROM 0x31b4.
  * GATE: natural dispatches under the coin-start tape plus every decision branch crafted, each masked
  * for the dead stack scratch the dissolved tails leave and held to an ix/iy ceiling; spDiff pinned at
  * two, returns compared. Run: node --test games/timeplt/idiomatic/test/equivalence-31b4.test.js
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_31b4 as candidate } from "../loc_31b4.js";
+import { reaimAndAnimateEnemyCraftOnPhaseTick as candidate } from "../reaimAndAnimateEnemyCraftOnPhaseTick.js";
 import { loc_31b4 as oracle } from "../../translated/loc_31b4.js";
 import { loc_326c } from "../loc_326c.js";
 import { stepShapeAnimation } from "../stepShapeAnimation.js";

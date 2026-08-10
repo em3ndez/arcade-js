@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_2927 — the era-0 per-object update, branched on the object's status byte: an empty slot is
+/** serviceEra0EnemyCraftSlot — the era-0 per-object update, branched on the object's status byte: an empty slot is
  * left alone, a held object is released, a dying one is stepped, and an active craft is steered,
  * flown and refreshed then allowed to spawn, or retired the frame it reaches the line. LIVE-OUT: memory. */
 
@@ -17,7 +17,7 @@ const EMPTY = 0;
 const HELD = 0xfe;
 const ACTIVE = 0xff;
 
-export function loc_2927(m) {
+export function serviceEra0EnemyCraftSlot(m) {
   const status = m.mem8[m.regs.ix];
   if (status === EMPTY) return;
   if (status === HELD) return releaseHeldObject(m);

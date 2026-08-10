@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_31b4 — service one enemy-craft slot chosen by the packed-decimal life phase. On the 00s and
+/** reaimAndAnimateEnemyCraftOnPhaseTick — service one enemy-craft slot chosen by the packed-decimal life phase. On the 00s and
  * 30s tenths, take the tenth's units digit as a slot (only 0-6, and only when its record head reads
  * occupied), advance that record's shape animation, and unless its state byte is 0x10 re-aim its
  * heading at a point the state byte indexes out of a small aim table (state 0x11 aims at the table
@@ -23,7 +23,7 @@ const REAIM_THEN_HOLD = 0x11;
 const TENTHS_00 = 0x00;
 const TENTHS_30 = 0x30;
 
-export function loc_31b4(m) {
+export function reaimAndAnimateEnemyCraftOnPhaseTick(m) {
   const { regs, mem8 } = m;
   const phase = mem8[PHASE];
   regs.c = phase;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_36af — while the wave-hold cell is clear, drive the enemy-wave work for the current life
+/** driveEnemyWaveForLifePhase — while the wave-hold cell is clear, drive the enemy-wave work for the current life
  * phase. Era four and the three low phases each hand off to a dedicated spawner; phase nine and up,
  * with the low tick spent, spawn a fresh wave inline across the craft band from a heading-biased
  * shape run, then request a sound once enough slots ended up filled. LIVE-OUT: memory. */
@@ -41,7 +41,7 @@ const PRIMED_TIMER = 0x20;
 const AIM_OFFSET = 0x80;
 const READY_STATUS = 0xe4;
 
-export function loc_36af(m) {
+export function driveEnemyWaveForLifePhase(m) {
   const { regs, mem8 } = m;
   if (mem8[WAVE_HOLD] !== 0) return;
   if (mem8[ERA_INDEX] === BOSS_ERA) return spawnEnemyWaveIntoFreeSlots(m);

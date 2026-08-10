@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_29d5 — service one object slot by its lifecycle byte: idle when free, release when held,
+/** serviceEra4EnemyCraftSlot — service one object slot by its lifecycle byte: idle when free, release when held,
  * step when dying, and when live steer it, retire it on the line, else animate and try a launch. */
 
 import { releaseHeldObject } from "./releaseHeldObject.js";
@@ -15,7 +15,7 @@ const FREE = 0;
 const HELD = 0xfe;
 const LIVE = 0xff;
 
-export function loc_29d5(m) {
+export function serviceEra4EnemyCraftSlot(m) {
   const state = m.mem8[m.regs.ix];
   if (state === FREE) return;
   if (state === HELD) return releaseHeldObject(m);

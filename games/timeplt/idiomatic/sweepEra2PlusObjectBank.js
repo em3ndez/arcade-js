@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_40d6 — enter the per-slot sweep of an object bank: below era 2, or with the bank's slot count
+/** sweepEra2PlusObjectBank — enter the per-slot sweep of an object bank: below era 2, or with the bank's slot count
  * zero, do nothing; else seat both cursors and the turn count and run the sweep body. LIVE-OUT: memory. */
 
 const FIRST_SWEPT_ERA = 2;
@@ -9,7 +9,7 @@ const RECORD_CURSOR_SEAT = 0xa8c0;
 const ENTRY_CURSOR_SEAT = 0xaa28;
 const SWEEP_BODY = 0x40ea;
 
-export function loc_40d6(m) {
+export function sweepEra2PlusObjectBank(m) {
   const { regs, mem8 } = m;
   if (mem8[ERA_INDEX] < FIRST_SWEPT_ERA) return;
 

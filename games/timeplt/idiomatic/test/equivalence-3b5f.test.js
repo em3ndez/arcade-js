@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3b5f — memory-equivalent to the frozen oracle at ROM 0x3b5f. GATE: masked strict — real
+ * serviceEra1BomberObject — memory-equivalent to the frozen oracle at ROM 0x3b5f. GATE: masked strict — real
  * dispatches under the tape plus crafted entries forcing each head arm; the dissolved arms drop the
  * oracle's tail return, so [low, seat) stack scratch is masked and the two-byte SP drift asserted.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-3b5f.test.js
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3b5f } from "../loc_3b5f.js";
+import { serviceEra1BomberObject } from "../serviceEra1BomberObject.js";
 import { loc_3b5f as oracle } from "../../translated/loc_3b5f.js";
 import { ERA_INDEX } from "../names.js";
 import { armBomberSlotWhenTimerFires } from "../armBomberSlotWhenTimerFires.js";
@@ -85,7 +85,7 @@ function spProbe(machine) {
   const push = a.push16.bind(a);
   a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
-  loc_3b5f(b);
+  serviceEra1BomberObject(b);
   return { low, seat, spDiff: a.regs.sp - b.regs.sp };
 }
 
@@ -148,7 +148,7 @@ test("REAL DISPATCHES: every captured entry under the tape is identical", { skip
   const entries = capture();
   assert.ok(entries.length > 0, "vacuous: the tape never dispatched this address");
   for (const e of entries) {
-    const d = unitDiff(loc_3b5f, e);
+    const d = unitDiff(serviceEra1BomberObject, e);
     assert.equal(d, null, `a real dispatch diverged: ${show(d)}`);
   }
   console.log(`  REAL DISPATCHES: ${entries.length} captured, all identical`);
@@ -157,7 +157,7 @@ test("REAL DISPATCHES: every captured entry under the tape is identical", { skip
 test("HEAD ARMS: each crafted head is identical, and the writing arms actually write",
   { skip }, () => {
     for (const [label, head] of [["live", HEAD_LIVE], ["hit", HEAD_HIT], ["empty", HEAD_EMPTY]]) {
-      const d = unitDiff(loc_3b5f, craft(ACTIVE_ERA, head));
+      const d = unitDiff(serviceEra1BomberObject, craft(ACTIVE_ERA, head));
       assert.equal(d, null, `the ${label} arm diverged: ${show(d)}`);
     }
     const live = footprint(craft(ACTIVE_ERA, HEAD_LIVE));
@@ -169,7 +169,7 @@ test("HEAD ARMS: each crafted head is identical, and the writing arms actually w
 
 test("OTHER ERA: outside era one nothing is dispatched", { skip }, () => {
   const m = craft(OTHER_ERA, HEAD_LIVE);
-  assert.equal(unitDiff(loc_3b5f, m), null, "the era gate diverged");
+  assert.equal(unitDiff(serviceEra1BomberObject, m), null, "the era gate diverged");
   assert.equal(footprint(m), 0, "the oracle writes memory outside era one, so this arm is wrong");
   console.log("  OTHER ERA: identical, oracle moves 0 bytes");
 });
@@ -200,6 +200,6 @@ test("TEETH: broken twins are caught", { skip }, () => {
   assert.ok(unitDiff(brokenNoEraGate, craft(OTHER_ERA, HEAD_LIVE)),
     "the no-era-gate twin escaped outside era one");
   // ★ the correct routine must PASS the same entries the twins fail, or catching is vacuous.
-  for (const m of [live, hit, empty]) assert.equal(unitDiff(loc_3b5f, m), null, "loc_3b5f itself diverged");
+  for (const m of [live, hit, empty]) assert.equal(unitDiff(serviceEra1BomberObject, m), null, "serviceEra1BomberObject itself diverged");
   console.log("  TEETH: no-op, swapped-arms, empty-moves, no-era-gate all caught");
 });

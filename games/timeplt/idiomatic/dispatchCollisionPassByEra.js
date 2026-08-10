@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4e4f — dispatch one round's collision pass by era, then by frame parity: era 4 and era 1 each
+/** dispatchCollisionPassByEra — dispatch one round's collision pass by era, then by frame parity: era 4 and era 1 each
  * take a dedicated tail, every other era splits on the low bit of the frame tick. LIVE-OUT: memory. */
 
 import { loc_4f2a } from "./loc_4f2a.js";
@@ -8,7 +8,7 @@ import { loc_4f35 } from "./loc_4f35.js";
 import { runAllCollisionSweepsThisFrame } from "./runAllCollisionSweepsThisFrame.js";
 import { ERA_INDEX, FRAME_TICK } from "./names.js";
 
-export function loc_4e4f(m) {
+export function dispatchCollisionPassByEra(m) {
   const { mem8 } = m;
   const era = mem8[ERA_INDEX];
   if (era === 4) return loc_4f2a(m);

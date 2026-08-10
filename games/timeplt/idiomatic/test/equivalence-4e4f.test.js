@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4e4f — memory-equivalent to the frozen oracle at ROM 0x4E4F, the four-arm era/parity collision
+ * dispatchCollisionPassByEra — memory-equivalent to the frozen oracle at ROM 0x4E4F, the four-arm era/parity collision
  * dispatcher. GATE: a real corpus (coin-start runs era 0, attract era 1) plus crafted era-4 and even
  * era-1 entries poked from real captures, since neither tape reaches those two arms. Every arm
  * dissolves to a direct import, so the rewrite omits its ret and re-seats SP two bytes low; the RAM
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4e4f as candidate } from "../loc_4e4f.js";
+import { dispatchCollisionPassByEra as candidate } from "../dispatchCollisionPassByEra.js";
 import { loc_4e4f as oracle } from "../../translated/loc_4e4f.js";
 import { loc_4f2a } from "../loc_4f2a.js";
 import { loc_4f35 } from "../loc_4f35.js";

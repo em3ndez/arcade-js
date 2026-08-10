@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_36af vs the frozen oracle: natural dispatches, every decision branch crafted, and a full
+ * driveEnemyWaveForLifePhase vs the frozen oracle: natural dispatches, every decision branch crafted, and a full
  * occupancy sweep of the wave body, each masked for the dead stack scratch the dissolved tails leave
  * and held to a shadow-AF ceiling. Run:
  *   node --test games/timeplt/idiomatic/test/equivalence-36af.test.js
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_36af as candidate } from "../loc_36af.js";
+import { driveEnemyWaveForLifePhase as candidate } from "../driveEnemyWaveForLifePhase.js";
 import { loc_36af as oracle } from "../../translated/loc_36af.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { drawRandomByte } from "../drawRandomByte.js";

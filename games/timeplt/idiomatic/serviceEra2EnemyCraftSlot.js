@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_2984 — run one object slot, dispatched on its state byte (ix+0): the empty value does
+/** serviceEra2EnemyCraftSlot — run one object slot, dispatched on its state byte (ix+0): the empty value does
  * nothing; the active value flies it — steered toward its aim three frames in four, moved at the
  * slow speed, retired once it reaches a retire line, else its sprite is dressed and two launch
  * attempts run; the held value releases it; any other value steps its dying state. LIVE-OUT: memory. */
@@ -19,7 +19,7 @@ const ACTIVE = 0xff;
 const HELD = 0xfe;
 const STEER_MASK = 3;
 
-export function loc_2984(m) {
+export function serviceEra2EnemyCraftSlot(m) {
   const { regs, mem8 } = m;
   const state = mem8[regs.ix];
   if (state === 0) return;

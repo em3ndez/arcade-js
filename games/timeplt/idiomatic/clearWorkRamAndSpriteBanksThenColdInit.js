@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0069 — cold-start clear: kick the watchdog, wipe two sprite-bank runs and the whole 2 KB of
+/** clearWorkRamAndSpriteBanksThenColdInit — cold-start clear: kick the watchdog, wipe two sprite-bank runs and the whole 2 KB of
  * work RAM, then fold a fixed program run into one total; anything but a genuine image's total runs
  * the frame service out of band, and either way it hands off to the screen-RAM clear and verify.
  * LIVE-OUT: memory. */
@@ -18,7 +18,7 @@ const CHECK_BLOCK = 0x00d8;
 const CHECK_BYTES = 0x100;
 const GENUINE_TOTAL = 0x87;
 
-export function loc_0069(m) {
+export function clearWorkRamAndSpriteBanksThenColdInit(m) {
   const { mem8 } = m;
 
   mem8[WATCHDOG] = 0;

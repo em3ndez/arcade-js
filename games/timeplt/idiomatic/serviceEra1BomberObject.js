@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3b5f — in era one, advance the game's single era-one object by its record head byte: an empty
+/** serviceEra1BomberObject — in era one, advance the game's single era-one object by its record head byte: an empty
  * head arms its fire timer, a live head runs the two-tile move, else it soaks hits toward death. LIVE-OUT: memory. */
 
 import { u8 } from "../../../core/int.js";
@@ -11,7 +11,7 @@ const ERA_INDEX = 0xad04;
 const RECORD = 0xa8c0;
 const ENTRY = 0xaa28;
 
-export function loc_3b5f(m) {
+export function serviceEra1BomberObject(m) {
   const { regs, mem8 } = m;
   if (mem8[ERA_INDEX] !== 1) return;
 

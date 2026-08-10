@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2927 — memory-equivalent to the frozen oracle at ROM 0x2927, run through the dispatch seam so
+ * serviceEra0EnemyCraftSlot — memory-equivalent to the frozen oracle at ROM 0x2927, run through the dispatch seam so
  * SP and pc are compared for equality. GATE: every real dispatch of the coin-start tape across the
  * empty/active/dying status classes, a crafted held (0xFE) entry the tape never presents, a masked
  * stack window proven above game data, and teeth. Run: node --test .../equivalence-2927.test.js
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_2927 } from "../loc_2927.js";
+import { serviceEra0EnemyCraftSlot } from "../serviceEra0EnemyCraftSlot.js";
 import { loc_2927 as oracle } from "../../translated/loc_2927.js";
 import { releaseHeldObject } from "../releaseHeldObject.js";
 import { stepDyingObjectState } from "../stepDyingObjectState.js";
@@ -148,7 +148,7 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("REACHED: the coin-start tape dispatches every status class; attract reaches none", { skip }, () => {
-  const [driven, attract] = SESSIONS.map(([label, opts]) => ({ label, ...replaySession(opts, loc_2927) }));
+  const [driven, attract] = SESSIONS.map(([label, opts]) => ({ label, ...replaySession(opts, serviceEra0EnemyCraftSlot) }));
   assert.ok(driven.dispatches > 0, "vacuous: the coin-start tape never reached the routine");
   assert.equal(driven.caught, 0, `the rewrite diverged on ${driven.caught} driven dispatches`);
   assert.equal(attract.dispatches, 0,
@@ -163,7 +163,7 @@ test("EQUAL at every captured and crafted entry; a no-op FAILS the same comparis
   const e = allEntries();
   for (const k of CLASSES) {
     for (const entry of e[k]) {
-      const d = unitDiff(loc_2927, entry);
+      const d = unitDiff(serviceEra0EnemyCraftSlot, entry);
       assert.equal(d, null, `a ${k} entry diverged: ${show(d)}`);
     }
   }

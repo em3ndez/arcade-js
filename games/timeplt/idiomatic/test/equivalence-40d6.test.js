@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_40d6 — memory-equivalent to the frozen oracle at ROM 0x40d6.
+ * sweepEra2PlusObjectBank — memory-equivalent to the frozen oracle at ROM 0x40d6.
  * GATE: strict full-RAM diff + return value. Every real dispatch is era 0, so the tape exercises
  * only the era guard; crafted era>=2 entries over an occupied bank exercise the sweep body. SP is
  * excluded and asserted separately: the early return omits the oracle's ret (2-byte drift), the
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_40d6 } from "../loc_40d6.js";
+import { sweepEra2PlusObjectBank } from "../sweepEra2PlusObjectBank.js";
 import { loc_40d6 as oracle } from "../../translated/loc_40d6.js";
 
 const TARGET = 0x40d6;
@@ -160,7 +160,7 @@ test("REAL DISPATCHES: every captured dispatch is identical, and the comparison 
     const entries = captureDispatches();
     assert.ok(entries.length > 0, "vacuous: nothing dispatched this address");
     for (const e of entries) {
-      const d = unitDiff(loc_40d6, e);
+      const d = unitDiff(sweepEra2PlusObjectBank, e);
       assert.equal(d, null, `a captured dispatch diverged: ${d && (d.addr == null ? d.a : hex4(d.addr))}`);
     }
     // Every capture is era<2 and writes nothing, so a rewrite that just returns passes trivially;
@@ -176,7 +176,7 @@ test("CRAFTED SWEEP: era>=2 over an occupied bank runs the body identically", { 
   const base = captureDispatches()[0];
   for (const era of [2, 3, 4]) {
     const c = craftSweep(base, era);
-    assert.equal(unitDiff(loc_40d6, c), null, `era ${era} diverged`);
+    assert.equal(unitDiff(sweepEra2PlusObjectBank, c), null, `era ${era} diverged`);
     assert.ok(footprint(c) > 0, `era ${era} wrote nothing, so this arm is vacuous`);
   }
   console.log(`  CRAFTED: era 2/3/4 identical, footprint ${footprint(craftSweep(base, 3))} bytes`);
@@ -188,12 +188,12 @@ test("SP: the omitted ret drifts on the early return and not on the full sweep",
   const ec = base.clone();
   const seat = eo.regs.sp;
   oracle(eo);
-  loc_40d6(ec);
+  sweepEra2PlusObjectBank(ec);
   assert.equal(eo.regs.sp - ec.regs.sp, 2, "the early return no longer drops the oracle's ret");
   const fo = craftSweep(base, 3);
   const fc = fo.clone();
   oracle(fo);
-  loc_40d6(fc);
+  sweepEra2PlusObjectBank(fc);
   assert.equal(fo.regs.sp, fc.regs.sp, "the full path no longer pops through the sweep body");
   console.log(`  SP: early drift ${eo.regs.sp - ec.regs.sp}, full drift ${fo.regs.sp - fc.regs.sp}, seat ${hex4(seat)}`);
 });

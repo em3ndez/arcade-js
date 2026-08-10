@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * loc_400b — memory-equivalent to the frozen oracle at ROM 0x400B, the advance-step entry of the
- * object-bank sweep. REACHED: the coin-start tape dispatches this address (via loc_3fea's empty-slot0
- * tail jump); the crafted sweep varies the two slots this entry reads, seated exactly as loc_3fea
+ * object-bank sweep. REACHED: the coin-start tape dispatches this address (via serviceEra0BallisticObjectBank's empty-slot0
+ * tail jump); the crafted sweep varies the two slots this entry reads, seated exactly as serviceEra0BallisticObjectBank
  * seats them. The oracle brackets services with pushed returns the rewrite never writes, so RAM is
  * compared with the dead stack scratch below the seat masked out, the SP drift asserted, registers
  * not compared, and teeth. Run: node --test games/timeplt/idiomatic/test/equivalence-400b.test.js
@@ -30,7 +30,7 @@ const EMPTY = 0x00;
 const BALLISTIC = 0xff;
 const LIVE = 0x50;
 const HEADS = [EMPTY, BALLISTIC, LIVE];
-// Advancing first, this entry reads slots 1 and 2; loc_3fea has already consumed slot 0 as empty.
+// Advancing first, this entry reads slots 1 and 2; serviceEra0BallisticObjectBank has already consumed slot 0 as empty.
 const READ_SLOTS = [1, 2];
 
 const DATA_TOP = 0xadff;
@@ -38,7 +38,7 @@ const DATA_TOP = 0xadff;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
-/** What loc_3fea seats before jumping here. */
+/** What serviceEra0BallisticObjectBank seats before jumping here. */
 function seat(mm) {
   mm.regs.ix = IX0;
   mm.regs.iy = IY0;
