@@ -23,6 +23,8 @@ export const ALLOWED = {
 
     "loc_00d8.js": [0x00d9],
     "loc_1651.js": [0x167b],
+    "seatTheStackAndSettleTheControlLatch.js": [0x0069],
+    "armThePenRouteThenColdStartOnATamperedImage.js": [0x0069],
   },
 };
 

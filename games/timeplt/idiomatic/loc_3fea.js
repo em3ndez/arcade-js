@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/** loc_3fea — in era zero only, run one frame of the three-slot ballistic-object bank from the top:
+ * seat the cursors, then step an empty first slot, fly a ballistic (0xFF) first slot before stepping
+ * it, or hand any other first-slot marker to the servicing sweep; outside era zero do nothing.
+ * LIVE-OUT: memory. */
+
+import { loc_400b } from "./loc_400b.js";
+import { sweepObjectSlotBankServicingFirstSlot } from "./sweepObjectSlotBankServicingFirstSlot.js";
+import { flyAlongBallisticArc } from "./flyAlongBallisticArc.js";
+
+const ERA_INDEX = 0xad04;
+const RECORD_SEAT = 0xa8c0;
+const SPRITE_SEAT = 0xaa28;
+const BANK_SLOTS = 0x03;
+const EMPTY = 0x00;
+const BALLISTIC = 0xff;
+
+export function loc_3fea(m) {
+  const { regs, mem8 } = m;
+  if (mem8[ERA_INDEX] !== 0) return;
+
+  regs.ix = RECORD_SEAT;
+  regs.iy = SPRITE_SEAT;
+  regs.b = BANK_SLOTS;
+
+  const marker = mem8[regs.ix];
+  if (marker === EMPTY) return loc_400b(m);
+  if (marker !== BALLISTIC) return sweepObjectSlotBankServicingFirstSlot(m);
+  flyAlongBallisticArc(m);
+  return loc_400b(m);
+}
