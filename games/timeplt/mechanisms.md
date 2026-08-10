@@ -128,6 +128,13 @@ handlers, the shot sweeps, the chained-hit window, the base-sixty counter, the m
 cloud multiplexer, in that order. Each member has exactly one transfer-in and they sit three
 bytes apart, so membership is not inferred: it is the instruction stream.
 
+★ **That arm is `serviceRoundThenResolvePlayerState` (0x1199), substep 7 of the phase-3 dispatch at
+0x0F29.** After the fixed run of calls it reads the player-state byte at 0xa800 and resolves the
+round in one place: `0xFF` (alive) polls `advanceRoundWhenFieldCleared`, which itself only fires
+once the field is empty; `0` (dead) runs `loseLifeAndHandOver`; any other value returns and lets
+the frame continue. So the whole "keep playing / round won / life lost" decision is this one tail,
+downstream of the service run. `[code]`
+
 **It does not run once a frame, and prose calling it a "once-per-frame list" is wrong.** Read
 taps on four of its members returned identical counts to each other in every run and well short
 of the frame count — 13094 against 17764 frames on undriven attract, 11712 driven, 8040 on a tape

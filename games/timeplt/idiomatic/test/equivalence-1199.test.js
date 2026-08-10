@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1199 vs the frozen oracle at ROM 0x1199 — the per-frame service list then a player-state tail.
+ * serviceRoundThenResolvePlayerState vs the frozen oracle at ROM 0x1199 — the per-frame service list then a player-state tail.
  * GATE: masked strict. Real captures run the tape; crafted 0xA800 forces each tail arm. The dissolved
  * calls drop the callees' pushed return words, so the oracle's [low, seat) stack scratch is masked and
  * the two-byte drift asserted; the mask floor is proven to sit above data.
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1199 as candidate } from "../loc_1199.js";
+import { serviceRoundThenResolvePlayerState as candidate } from "../serviceRoundThenResolvePlayerState.js";
 import { loc_1199 as oracle } from "../../translated/loc_1199.js";
 
 import { reaimAndAnimateEnemyCraftOnPhaseTick } from "../reaimAndAnimateEnemyCraftOnPhaseTick.js";

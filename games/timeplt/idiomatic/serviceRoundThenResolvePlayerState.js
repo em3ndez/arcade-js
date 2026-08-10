@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_1199 — the round engine's per-frame service list: run every subsystem in fixed order,
- * then read the player-state byte and either advance the round, hand a life over, or do nothing. */
+/** serviceRoundThenResolvePlayerState — the round engine's service list: run every subsystem in
+ * fixed order, then read the player-state byte and resolve the round — advance when the player is
+ * alive (0xff), lose a life when the state is 0 (dead), else continue. */
 
 import { reaimAndAnimateEnemyCraftOnPhaseTick } from "./reaimAndAnimateEnemyCraftOnPhaseTick.js";
 import { dispatchPlayerFrameByState } from "./dispatchPlayerFrameByState.js";
@@ -26,9 +27,9 @@ import { advanceRoundWhenFieldCleared } from "./advanceRoundWhenFieldCleared.js"
 import { loseLifeAndHandOver } from "./loseLifeAndHandOver.js";
 
 const PLAYER_STATE = 0xa800;
-const DEAD = 0xff;
+const ALIVE = 0xff;
 
-export function loc_1199(m) {
+export function serviceRoundThenResolvePlayerState(m) {
   // These two callees return through a stack word, so the call site supplies one, as a real call
   // would; the rest are plain functions. The seat is restored either way, so the value is a filler.
   const spriteFixup = () => { m.push16(0); multiplexSpriteSlotsSkipping(m); };
@@ -61,7 +62,7 @@ export function loc_1199(m) {
   multiplexSpriteSlots(m);
 
   const state = m.mem.read8(PLAYER_STATE);
-  if (state === DEAD) return advanceRoundWhenFieldCleared(m);
+  if (state === ALIVE) return advanceRoundWhenFieldCleared(m);
   if (state !== 0) return;
   return loseLifeAndHandOver(m);
 }
