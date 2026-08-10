@@ -6,7 +6,7 @@
  * LIVE-OUT: memory only. */
 
 import { u8 } from "../../../core/int.js";
-import { loc_4daf } from "./loc_4daf.js";
+import { stampTwoByTwoTileBlock } from "./stampTwoByTwoTileBlock.js";
 import { paintGlyphOverBlankInColourThenStepCursor } from "./paintGlyphOverBlankInColourThenStepCursor.js";
 
 const ENABLE = 0xad30;
@@ -30,7 +30,7 @@ export function drawEmblemStripThenGuardImage(m, count = m.regs.a) {
   if (emblems !== 0) {
     regs.b = EMBLEM_BASE;
     regs.c = EMBLEM_COLOUR;
-    for (; emblems !== 0; emblems--) loc_4daf(m);
+    for (; emblems !== 0; emblems--) stampTwoByTwoTileBlock(m);
   }
 
   regs.b = BLANK_GLYPH;

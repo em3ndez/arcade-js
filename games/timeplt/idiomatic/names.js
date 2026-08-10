@@ -1227,7 +1227,7 @@ export const ROUTINES = {
   },
   0x4d72: {
     name: "drawEmblemStripThenGuardImage",
-    role: "ring command 5's handler (word-table slot 5 at 0x0BBC; reached on coin-start, never in attract): while 0xAD30 is nonzero, stamp up to six 2x2 award emblems leftward from 0xA783 via loc_4daf, blank the rest of that row down to 0xA623 via paintGlyphOverBlankInColourThenStepCursor, then XOR-verify program bytes 0x0711-0x0810 -- memory only",
+    role: "ring command 5's handler (word-table slot 5 at 0x0BBC; reached on coin-start, never in attract): while 0xAD30 is nonzero, stamp up to six 2x2 award emblems leftward from 0xA783 via stampTwoByTwoTileBlock, blank the rest of that row down to 0xA623 via paintGlyphOverBlankInColourThenStepCursor, then XOR-verify program bytes 0x0711-0x0810 -- memory only",
     cert: "code",
   },
   0x4e63: {
@@ -1541,7 +1541,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x17e2: {
-    name: "loc_17e2",
+    name: "foldImageBlockIntoSignatureThenAdvanceSequence",
     role: "raise one flag cell to all bits, fold a fixed block of the program image into a running total seeded from an image byte and bank the result, then step the inner sequence index -- one step of the tamper-check sequence",
     cert: "code",
   },
@@ -2017,7 +2017,7 @@ export const ROUTINES = {
   },
   0x4dcf: {
     name: "paintGlyphOverBlankInColourThenStepCursor",
-    role: "write the caller's glyph into the character cell the cursor names and the blanking glyph into the cell one address below it, lay the caller's colour beside both in the colour plane, and step the cursor one cell along the line -- the same two-address pair loc_4daf writes as one column of its two-by-two emblem. Its one call site in the image is the loop at 0x4D9A inside drawEmblemStripThenGuardImage, the handler for ring command 5, which runs it from 0xA783 down to 0xA623 to clear the tail of that row after the emblems it has drawn, and passes 0xF1 as the glyph as well, so in that use both cells come out blank. Returning from the colour plane is a SET and not a restore, so a cursor that arrived on the colour side would write its glyph there and come back on the glyph side; nothing checked here supplies such a cursor",
+    role: "write the caller's glyph into the character cell the cursor names and the blanking glyph into the cell one address below it, lay the caller's colour beside both in the colour plane, and step the cursor one cell along the line -- the same two-address pair stampTwoByTwoTileBlock writes as one column of its two-by-two emblem. Its one call site in the image is the loop at 0x4D9A inside drawEmblemStripThenGuardImage, the handler for ring command 5, which runs it from 0xA783 down to 0xA623 to clear the tail of that row after the emblems it has drawn, and passes 0xF1 as the glyph as well, so in that use both cells come out blank. Returning from the colour plane is a SET and not a restore, so a cursor that arrived on the colour side would write its glyph there and come back on the glyph side; nothing checked here supplies such a cursor",
     cert: "code",
   },
   0x4dde: {
@@ -2484,7 +2484,7 @@ export const ROUTINES = {
     cert: "seen",
   },
   0x4a9d: {
-    name: "loc_4a9d",
+    name: "stepThirteenScriptedGlyphCells",
     role: "step thirteen cells of the character plane on by one shape each, but only where a script says so, walking that script through one shared cursor cell that is left wherever the walk ended; two bits of one incoming byte set the directions independently -- the low bit reads the script backwards and steps the shape DOWN, the next bit takes the cells a row up instead of a row down",
     cert: "code",
   },
@@ -2701,7 +2701,7 @@ export const ROUTINES = {
     why: "base sixty rather than base a hundred is the claim, and the value histogram of a MAME write tap could have refuted it: the cell it steps took writes at 00-09, 10-19, 20-29, 30-39, 40-49, 50-59 and 60 and at no other value -- no invalid packed-decimal nibble ever appeared -- and the wrap store fired exactly as often as the value 60 was written. The inverted carry is what its caller consumes: the caller chains it over three neighbouring cells and stops at the first that does not wrap, so the flag and not the byte is the product, and the carry into the second place was one-to-one with the first place's wrap in every run. ★ The counter it serves is NOT a clock, and the name says 'sexagesimal' rather than 'seconds' because of it: one wrap took 84, 95, 120 and 140 frames on four different tapes, because the caller runs once per dispatch of the round engine's service block and that block does not run every frame",
   },
   0x4daf: {
-    name: "loc_4daf",
+    name: "stampTwoByTwoTileBlock",
     role: "stamp one two-cell-square emblem at the cursor, colour all four cells walking back across the square, and leave the cursor past it",
     cert: "code",
   },

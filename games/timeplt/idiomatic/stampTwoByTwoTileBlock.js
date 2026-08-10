@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4daf — stamp one two-cell-square emblem at the cursor and leave the cursor past it.
+/** stampTwoByTwoTileBlock — stamp one two-cell-square emblem at the cursor and leave the cursor past it.
  *
  * Four consecutive shape codes, counted up from the base the caller supplies, fill the square: the
  * two higher ones on the line the cursor is on and the two lower ones on the line beside it. Every
@@ -15,7 +15,7 @@ import { advanceCharCursor } from "./advanceCharCursor.js";
 const COLOUR_PLANE_GAP = 0x0400;
 const NEXT_LINE = 32;
 
-export function loc_4daf(m, base = m.regs.b, colour = m.regs.c) {
+export function stampTwoByTwoTileBlock(m, base = m.regs.b, colour = m.regs.c) {
   const { regs, mem8 } = m;
 
   mem8[regs.de] = base + 3;

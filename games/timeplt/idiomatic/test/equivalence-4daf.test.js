@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4daf — memory-equivalent to the frozen oracle at ROM 0x4DAF.
+ * stampTwoByTwoTileBlock — memory-equivalent to the frozen oracle at ROM 0x4DAF.
  *
  * WHAT IT IS. Eight writes: four consecutive shape codes into a two-cell square of the character
  * plane, then one colour into the same four cells of the plane beside it, walking back across the
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_4daf } from "../loc_4daf.js";
+import { stampTwoByTwoTileBlock } from "../stampTwoByTwoTileBlock.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
 import { loc_4daf as oracle } from "../../translated/loc_4daf.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -107,7 +107,7 @@ function replaySession(candidate) {
 }
 
 let cache = null;
-const session = () => (cache ??= replaySession(loc_4daf));
+const session = () => (cache ??= replaySession(stampTwoByTwoTileBlock));
 
 let entry = null;
 function entryState() {
@@ -251,12 +251,12 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_4daf == oracle outside the scratch window", { skip }, () => {
+test("EQUAL at the real dispatch: stampTwoByTwoTileBlock == oracle outside the scratch window", { skip }, () => {
   const sp = entryState().regs.sp;
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_4daf(b);
+  stampTwoByTwoTileBlock(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   assert.equal(a.regs.de, b.regs.de, "the stepped cursor left behind");
@@ -273,7 +273,7 @@ test("NOT VACUOUS: a no-op candidate FAILS the same masked comparison", { skip }
 });
 
 test("EXCLUDED, deliberately: bounded over the whole crafted space", { skip }, () => {
-  const moved = movedRegisters(loc_4daf);
+  const moved = movedRegisters(stampTwoByTwoTileBlock);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc; the cursor is a live-out`);
@@ -292,7 +292,7 @@ test("CORPUS: all three real dispatches replay identically", { skip }, () => {
 });
 
 test("CRAFTED: 256 bases x three colours x five cursors, two of which carry", { skip }, () => {
-  assert.equal(sweepCaught(loc_4daf), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(stampTwoByTwoTileBlock), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  CRAFTED: ${SWEEP_SIZE} comparisons identical`);
 });
 
@@ -308,7 +308,7 @@ test("THE CARRY IS REACHED, MEASURED: the narrow-walk twin needs one of the craf
 });
 
 test("WHOLE-MACHINE: the session differs only in the dead stack bytes", { skip }, () => {
-  const r = wholeRunCells(loc_4daf);
+  const r = wholeRunCells(stampTwoByTwoTileBlock);
   assert.equal(r.threw, null, `the run threw: ${r.threw}`);
   assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
   assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);

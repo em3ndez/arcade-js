@@ -328,6 +328,14 @@ image into the **sequence sub-step**. On a genuine image the trailing constants 
 the value the sequence actually wanted, so the cell behaves; on a patched one the machine walks
 into a different phase instead of failing. `[code]`
 
+★ **One member of that family is itself a sequence sub-step.** `foldImageBlockIntoSignatureThenAdvanceSequence`
+(`0x17e2`) raises a flag cell (`0xAA3F`), folds a block of the image into a running signature it banks
+in a separate cell (`0xAA6F`) it never reads back, then steps the inner sub-step on like any other arm.
+Here the self-check is a *producer* riding inside the sequence machine, not a fold onto a live-state
+cell. Nothing reads the flag `0xAA3F`; the signature `0xAA6F` is read at a single site (`0x2730`),
+which compares it to `0x76` and derails to `0x2530` on a mismatch — the desync point is static, its
+live reachability grounding-pending. `[code]`
+
 ★ The reader's hazard is not the trap, it is the naming. **These cells have writers that are not
 about what the cell is for**, so a name derived from the obvious writer will be right about the
 role and wrong about the cell — and any claim of the form "nothing else writes it" is false here.
@@ -1782,7 +1790,8 @@ glyph. The second posting site, the one that passes `ROUND_NUMBER`, still needs 
 and no tape has finished one.
 
 A different ring command draws its strip the same way: command 5's handler
-`drawEmblemStripThenGuardImage` stamps up to six award emblems and then pads the rest of that row,
+`drawEmblemStripThenGuardImage` stamps up to six award emblems (each a 2×2 square of four consecutive shape codes stamped by
+`stampTwoByTwoTileBlock`, coloured a plane `0x400` away and the cursor left past it) and then pads the rest of that row,
 `0xA783` down to the floor `0xA623`, with the blanking glyph — cell by cell through
 `paintGlyphOverBlankInColourThenStepCursor`, which writes the caller's glyph, drops the blank `0xF1`
 one address below it, lays the colour beside both in the plane, and steps the cursor (here the glyph is
@@ -1861,6 +1870,12 @@ player block and then writes that sub-step directly (`loseLifeAndHandOver`, and
 that arms the round HUD. So this is the **inter-round / player-change transition** — NOT the title,
 whose logo is a caption strip — and a demo that never finishes a round never performs one. `[seen]`
 for the zero dispatches and the sub-step observation, `[code]` for the arming path.
+
+Each drawing pass of those band steps does its shape work through another sibling behind the same
+door, `stepThirteenScriptedGlyphCells` (`0x4a9d`): it walks thirteen character-plane cells under one
+shared script cursor (`0xa9f7`), stepping each by ±1 glyph where the script reads non-zero, with two
+bits of one incoming byte choosing the script's direction and whether the cells are taken a row down
+or a row up. `[code]`
 
 ### A whole animation machine sits behind the same door
 

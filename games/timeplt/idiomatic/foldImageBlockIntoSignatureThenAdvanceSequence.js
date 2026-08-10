@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_17e2 — raise one flag cell to all bits set, take a signature of a block of the program image,
+/** foldImageBlockIntoSignatureThenAdvanceSequence — raise one flag cell to all bits set, take a signature of a block of the program image,
  * and step the inner sequence index on. The block and its length are chosen elsewhere; the running
  * total starts from a single image byte, and where it lands is a second cell this file writes and
  * never reads. A second pointer is walked in step with the block and contributes nothing to the
@@ -15,7 +15,7 @@ const SECOND_WALK_START = 0x17b9;
 const SEED_BYTE = 0x27c0;
 const SIGNATURE_CELL = 0xaa6f;
 
-export function loc_17e2(m) {
+export function foldImageBlockIntoSignatureThenAdvanceSequence(m) {
   const { mem8, regs } = m;
   mem8[FLAG_CELL] = ALL_BITS;
 

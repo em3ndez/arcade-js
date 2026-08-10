@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { drawEmblemStripThenGuardImage as candidate } from "../drawEmblemStripThenGuardImage.js";
 import { loc_4d72 as oracle } from "../../translated/loc_4d72.js";
-import { loc_4daf } from "../loc_4daf.js";
+import { stampTwoByTwoTileBlock } from "../stampTwoByTwoTileBlock.js";
 import { paintGlyphOverBlankInColourThenStepCursor } from "../paintGlyphOverBlankInColourThenStepCursor.js";
 import { u8 } from "../../../../core/int.js";
 
@@ -128,7 +128,7 @@ function variant({ enable = true, clamp = true, base = EMBLEM_BASE, colour = EMB
     if (emblems !== 0) {
       regs.b = base;
       regs.c = colour;
-      for (; emblems !== 0; emblems--) loc_4daf(m);
+      for (; emblems !== 0; emblems--) stampTwoByTwoTileBlock(m);
     }
     regs.b = blankGlyph;
     regs.c = blankColour;

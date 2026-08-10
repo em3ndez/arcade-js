@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4a9d — step thirteen cells of the character plane on by one shape each, but only where a
+/** stepThirteenScriptedGlyphCells — step thirteen cells of the character plane on by one shape each, but only where a
  * script says so. The script is walked through one shared cursor cell, a byte per plane cell, and
  * a byte of zero leaves its cell alone; the cursor is left where the walk ended rather than
  * rewound, so a caller wanting those thirteen bytes again must put it back itself. Two bits of
@@ -16,7 +16,7 @@ const ROW = 0x20;
 const BACKWARDS = 0x01;
 const UPWARDS = 0x02;
 
-export function loc_4a9d(m, firstCell = m.regs.de, directions = m.regs.c) {
+export function stepThirteenScriptedGlyphCells(m, firstCell = m.regs.de, directions = m.regs.c) {
   const { mem8, mem16 } = m;
   const shapeStep = (directions & BACKWARDS) !== 0 ? -1 : 1;
   const rowStep = (directions & UPWARDS) !== 0 ? -ROW : ROW;

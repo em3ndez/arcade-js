@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4a9d — memory-equivalent to the frozen oracle at ROM 0x4A9D.
+ * stepThirteenScriptedGlyphCells — memory-equivalent to the frozen oracle at ROM 0x4A9D.
  *
  * ★ NOT REACHED BY EITHER SESSION THIS FILE DRIVES. Both call sites sit inside a step of the
  *   sequence machine that neither an undriven attract run nor a driven one enters, which the
@@ -41,7 +41,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { buildRoutines } from "../../routines.js";
-import { loc_4a9d } from "../loc_4a9d.js";
+import { stepThirteenScriptedGlyphCells } from "../stepThirteenScriptedGlyphCells.js";
 import { loc_4a9d as oracle } from "../../translated/loc_4a9d.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -247,13 +247,13 @@ test("NEGATIVE CONTROL: neither attract nor a driven session dispatches this add
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL from the crafted entry: loc_4a9d == oracle over the whole dump", { skip }, () => {
+test("EQUAL from the crafted entry: stepThirteenScriptedGlyphCells == oracle over the whole dump", { skip }, () => {
   for (const walkBits of WALKS) {
     const m = craft(walkBits, A_SCRIPT);
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    loc_4a9d(b);
+    stepThirteenScriptedGlyphCells(b);
     assert.deepEqual(allDiffs(a, b), [], `walk ${walkBits}: the dumps must agree byte for byte`);
   }
   console.log(`  EQUAL: ${WALKS.length} walk directions, no byte differs on any`);
@@ -271,7 +271,7 @@ test("EXCLUDED, deliberately: nothing diverges outside the declared register set
   const a = m.clone();
   const b = m.clone();
   oracle(a);
-  loc_4a9d(b);
+  stepThirteenScriptedGlyphCells(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
@@ -279,20 +279,20 @@ test("EXCLUDED, deliberately: nothing diverges outside the declared register set
 });
 
 test("EXHAUSTIVE: all 256 direction bytes and five scripts behave as the oracle", { skip }, () => {
-  assert.equal(sweepCaught(loc_4a9d), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(stepThirteenScriptedGlyphCells), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} crafted entries identical`);
 });
 
 test("SCRIPTS: an all-zero script steps nothing and an all-one script steps everything", { skip }, () => {
   const none = craft(0, SCRIPTS[0]);
   const before = none.clone();
-  loc_4a9d(none);
+  stepThirteenScriptedGlyphCells(none);
   const untouched = allDiffs(before, none).map((d) => d.addr);
   assert.deepEqual(untouched, [SCRIPT_CURSOR], "an all-zero script must move only the cursor");
 
   const all = craft(0, SCRIPTS[1]);
   const wasAll = all.clone();
-  loc_4a9d(all);
+  stepThirteenScriptedGlyphCells(all);
   const moved = allDiffs(wasAll, all).map((d) => d.addr).filter((a) => a !== SCRIPT_CURSOR);
   assert.equal(moved.length, CELLS, "an all-one script must step every cell of the run");
   console.log(`  SCRIPTS: zero script moves only the cursor; one script steps ${moved.length}`);
@@ -304,7 +304,7 @@ test("WHAT MOVED: the stepped cells and the final cursor match the script", { sk
     const before = m.clone();
     const shapeStep = (walkBits & BACKWARDS) !== 0 ? -1 : 1;
     const rowStep = (walkBits & UPWARDS) !== 0 ? -ROW : ROW;
-    loc_4a9d(m);
+    stepThirteenScriptedGlyphCells(m);
     for (let i = 0; i < CELLS; i++) {
       const cell = (FIRST_CELL + i * rowStep) & 0xffff;
       const scriptByte = m.mem8[(SCRIPT_AT + i * shapeStep) & 0xffff];

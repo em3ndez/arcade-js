@@ -9,7 +9,7 @@
 
 import { fillCellRun } from "./fillCellRun.js";
 import { restoreColumnFromSavedRun } from "./restoreColumnFromSavedRun.js";
-import { loc_4a9d } from "./loc_4a9d.js";
+import { stepThirteenScriptedGlyphCells } from "./stepThirteenScriptedGlyphCells.js";
 import { gatherCharColumnIntoBackingRun } from "./gatherCharColumnIntoBackingRun.js";
 
 const PASS_COUNTER = 0xa9f2;
@@ -57,9 +57,9 @@ export function advanceScriptedCharPlaneBandTo2(m) {
       mem8[0xa611] = mem8[0xa611] + 1;
     }
 
-    loc_4a9d(m, 0xa5d1, 2);
+    stepThirteenScriptedGlyphCells(m, 0xa5d1, 2);
     mem16[SCRIPT_CURSOR] = mem16[SCRIPT_CURSOR] - 13;
-    loc_4a9d(m, 0xa631, 0);
+    stepThirteenScriptedGlyphCells(m, 0xa631, 0);
     gatherCharColumnIntoBackingRun(m);
   }
 

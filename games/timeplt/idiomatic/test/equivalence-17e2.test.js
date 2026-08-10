@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_17e2 — memory-equivalent to the frozen oracle at ROM 0x17E2.
+ * foldImageBlockIntoSignatureThenAdvanceSequence — memory-equivalent to the frozen oracle at ROM 0x17E2.
  *
  * GATE: unit-capture with ONE measured exclusion, a captured real corpus from four sessions, a
  *   sweep that is exhaustive over the routine's whole varying input by decomposition, a
@@ -78,7 +78,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, romsPresent } from "./_harness.js";
-import { loc_17e2 } from "../loc_17e2.js";
+import { foldImageBlockIntoSignatureThenAdvanceSequence } from "../foldImageBlockIntoSignatureThenAdvanceSequence.js";
 import { foldBlockIntoTotal } from "../foldBlockIntoTotal.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 import { loc_17e2 as oracle } from "../../translated/loc_17e2.js";
@@ -446,7 +446,7 @@ const INVISIBLE_TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("CONTRACT: the shared unit harness reaches the routine", { skip }, () => {
-  const r = unitEquivalence(attractMachine, TARGET, oracle, loc_17e2, { maxFrames: REACH_FRAMES });
+  const r = unitEquivalence(attractMachine, TARGET, oracle, foldImageBlockIntoSignatureThenAdvanceSequence, { maxFrames: REACH_FRAMES });
   const onlyScratch = r.ram === null || r.ram.addr === null ||
     (r.ram.addr >= STACK_FLOOR && r.ram.addr < STACK_TOP);
   console.log(`  CONTRACT: reached within ${REACH_FRAMES} frames; first byte ${show(r.ram)}`);
@@ -488,7 +488,7 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_17e2(b);
+  foldImageBlockIntoSignatureThenAdvanceSequence(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -523,7 +523,7 @@ test("ENTRY REACH: dispatches per session, and what each entry arrives holding",
 });
 
 test("CORPUS: every captured dispatch of four sessions is identical", { skip }, () => {
-  const caught = corpusCaught(loc_17e2);
+  const caught = corpusCaught(foldImageBlockIntoSignatureThenAdvanceSequence);
   const captured = sessions().map((s) => s.entries.length);
   console.log(`  CORPUS: ${captured.join("/")} captured dispatches, identical outside the window`);
   assert.deepEqual(caught, [0, 0, 0, 0], "the rewrite diverged on a real dispatch");
@@ -538,7 +538,7 @@ test("EXCLUDED, as a CEILING: no register outside the declared set moves", { ski
       a.regs[k] = v;
       const b = a.clone();
       oracle(a);
-      loc_17e2(b);
+      foldImageBlockIntoSignatureThenAdvanceSequence(b);
       for (const q of REG_FIELDS) if (a.regs[q] !== b.regs[q]) moved.add(q);
       points++;
     }
@@ -565,12 +565,12 @@ test("DEAD STORE: the frozen routine's own constant store is overwritten before 
 });
 
 test("CELL SWEEP: all 256 prior values of each of the three written cells", { skip }, () => {
-  assert.equal(cellSweepCaught(loc_17e2), 0, "the rewrite diverged at some prior cell value");
+  assert.equal(cellSweepCaught(foldImageBlockIntoSignatureThenAdvanceSequence), 0, "the rewrite diverged at some prior cell value");
   console.log(`  CELL SWEEP: ${WRITTEN.length * VALUES} points, the written cells identical`);
 });
 
 test("REGISTER SWEEP: all 256 entry values of each byte register, and a pair cross", { skip }, () => {
-  assert.equal(registerSweepCaught(loc_17e2), 0, "the rewrite diverged at some entry register");
+  assert.equal(registerSweepCaught(foldImageBlockIntoSignatureThenAdvanceSequence), 0, "the rewrite diverged at some entry register");
   console.log(
     `  REGISTER SWEEP: ${BYTE_REGISTERS.length * VALUES + 25} points, the written cells identical`,
   );
@@ -584,15 +584,15 @@ test("THE REUSED MACHINES ARE SOUND: clone-per-point agrees on a sample", { skip
     const m = entryState().clone();
     for (const [addr, v] of cells) m.mem8[addr] = v;
     for (const [k, v] of regs) m.regs[k] = v;
-    assert.equal(unitDiff(loc_17e2, m), null, `clone-per-point diverged at point ${i}`);
-    assert.equal(pointDiffers(loc_17e2, cells, regs), false,
+    assert.equal(unitDiff(foldImageBlockIntoSignatureThenAdvanceSequence, m), null, `clone-per-point diverged at point ${i}`);
+    assert.equal(pointDiffers(foldImageBlockIntoSignatureThenAdvanceSequence, cells, regs), false,
       `the reused arena disagrees with clone-per-point at point ${i}`);
   }
   console.log(`  SOUND: ${CROSS_CHECK_POINTS} points agree between the arena and clone-per-point`);
 });
 
 test("WHOLE-MACHINE: an undriven session is byte-identical with the rewrite wired", { skip }, () => {
-  const r = wholeRunCells(loc_17e2);
+  const r = wholeRunCells(foldImageBlockIntoSignatureThenAdvanceSequence);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,

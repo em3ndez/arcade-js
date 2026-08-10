@@ -12,7 +12,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { fillCellRun } from "./fillCellRun.js";
 import { restoreColumnFromSavedRun } from "./restoreColumnFromSavedRun.js";
 import { loc_56e4 } from "./loc_56e4.js";
-import { loc_4a9d } from "./loc_4a9d.js";
+import { stepThirteenScriptedGlyphCells } from "./stepThirteenScriptedGlyphCells.js";
 import { gatherCharColumnIntoBackingRun } from "./gatherCharColumnIntoBackingRun.js";
 
 const COUNTDOWN = 0xa9f4;
@@ -47,9 +47,9 @@ export function advanceScriptedCharPlaneBandTo4(m) {
     }
     restoreColumnFromSavedRun(m);
 
-    loc_4a9d(m, 0xa451, 0x01);
+    stepThirteenScriptedGlyphCells(m, 0xa451, 0x01);
     mem16[SCRIPT_POINTER] = u16(mem16[SCRIPT_POINTER] + SCRIPT_STRIDE);
-    loc_4a9d(m, 0xa7b1, 0x03);
+    stepThirteenScriptedGlyphCells(m, 0xa7b1, 0x03);
 
     let lower = mem8[mem16[SCRIPT_POINTER]] & 1;
     mem16[SCRIPT_POINTER] = u16(mem16[SCRIPT_POINTER] - 1);
