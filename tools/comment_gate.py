@@ -1,64 +1,22 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Comment gate — two mechanical rules about comments.
+"""Comment gate — two mechanical rules; rationale, history, and known limitations: docs/comment-gate.md.
 
-DENSITY: comment lines may not exceed half the code lines, in .js, .mjs, .py and .lua under
-boards/ games/ tools/ core/ web/, minus node_modules. A line carrying code AND a trailing comment
-counts as both. Prose that outgrows its code becomes a second, unverified account of the program
-that goes stale silently.
+DENSITY: comment lines may not exceed code // DENSITY_DIVISOR + DENSITY_FLOOR, in .js/.mjs/.py/.lua
+under boards/ games/ tools/ core/ web/ (minus node_modules); a line with code and a trailing comment
+counts as both. NOTHING is exempt by KIND (not this file); one file is exempt by POSITION --
+games/<game>/idiomatic/names.js. WHOLE-FILE: an over-cap file is frozen against every edit, so bring
+it under the cap as its own prerequisite unit and do not park the fix.
 
-NOTHING IS EXEMPT BY KIND -- not the transcription layer, not generated files, not this file.
-Every kind-exemption that was here began as an assumption about what the rule would do to a class
-of files, and each was wrong when the class was finally measured.
+REFERENCE (games/<game>/idiomatic/ only): a comment describes the file it sits in, not the ROM, MAME,
+the oracle, a sibling, a test, a doc, or a to-do. Exempt: translated/**, names.js, tests.
 
-THE RULE IS WHOLE-FILE, SO AN OVER-CAP FILE IS FROZEN AGAINST EVERY EDIT. `density_violations`
-recomputes `comment > code // 2` per file with no delta awareness, so a commit REMOVING fifty
-comment lines from an over-cap file blocks exactly as one adding a line does. There is no partial
-credit and no escape hatch. The consequence is procedural rather than technical: when a one-line
-correction lands on a file that is already over, bringing that file under the cap becomes a
-prerequisite UNIT, sequenced first and reviewed on its own. Do not park the correction in the
-working tree meanwhile -- a parked edit makes a tree-wide grep report the fix as already made,
-and it is the state that most tempts a `--no-verify`.
+  check              STAGED files pass both rules (the pre-commit hook)
+  scan / density     that rule over the working tree [PATH ...]
+  selftest           known-bad and known-good cases
 
-One file is exempt by POSITION: `games/<game>/idiomatic/names.js`, the address-to-name map, whose
-comments are each entry's own content rather than commentary on code.
-
-`translated/` is governed like everywhere else, and a trailing mnemonic is a comment. It restates
-the line it sits beside, so when a transcription trips the cap the remedy is to delete it.
-
-Counting comments needs a lexer for the host language, and a wrong one fails in both directions
--- blocking an honest file, or letting prose through. Python uses `tokenize`, which ships with
-the interpreter and IS the reference lexer. Lua is hand-written, because the repo takes no
-third-party Python; what it rests on, and what that does and does not cover, is set out at
-`_scan_lua`. Shell stays out -- no second implementation to check a hand-written one against,
-and the hand-written one WAS measured wrong.
-
-REFERENCE (games/<game>/idiomatic/ only): a comment describes the file it sits in — not the ROM,
-MAME, the oracle, a sibling module, a test, a doc, or a to-do. Exempt: translated/**, names.js
-and tests, whose job IS the cross-file map.
-
-Both are decidable by a script. Whether a comment is TRUE is the reviewer's job.
-
-  check              exit 0 iff STAGED files pass both rules (the pre-commit hook)
-  scan [PATH ...]    reference rule over the working tree
-  density [PATH ...] density rule over the working tree
-  selftest           known-bad and known-good cases through both rules
-
-FAIL CLOSED on a git error, and on any file the scanner cannot lex. `check` is VACUOUS when
-nothing in scope is staged. The reference rule catches citations by form, not meaning.
-
-Telling a JS regex literal from division needs a parser, not a scanner. Guessing it wrong failed
-OPEN in both directions at once -- a quote inside the regex body opened a phantom string that
-swallowed the following comment lines AND inflated the code count, so the cap rose while the
-prose it was meant to catch went invisible.
-
-It is not guessed at any more. After a keyword the reading is decided; after `)`, `]` or `}` the
-file is scanned BOTH ways and refused if the readings disagree. An earlier attempt only caught
-the case where the phantom string ran off the end of the line, which made the gate's correctness
-depend on the parity of apostrophes in the prose it was measuring: one `don't` in a trailing
-comment closed the string and the comment vanished. Both rules now share one scanner, so neither
-can be fixed without the other. A gate that refuses a file it cannot read is recoverable; one
-that waves it through is not.
+FAIL CLOSED on git error or an unlexable file; `check` is VACUOUS with nothing staged. Counting uses a
+real lexer (Python tokenize, Lua _scan_lua, shell excluded); JS regex-vs-division is scanned both ways.
 """
 import argparse
 import io
@@ -74,12 +32,9 @@ class GitError(RuntimeError):
 
 
 class LexError(RuntimeError):
-    """The scanner cannot decide — callers turn this into a BLOCK (fail closed).
-
-    Two triggers, both DETECTED rather than guessed at: a `'` or `"` string that opens and
-    never closes, and a `/` at an ambiguous position whose two readings disagree about which
-    lines are comments. Neither is a judgement about the file's prose; both mean no verdict
-    is defensible, so no verdict is given.
+    """The scanner cannot decide — callers turn this into a BLOCK (fail closed). Two triggers, both
+    DETECTED not guessed: an unterminated `'`/`"` string, and a `/` at an ambiguous position whose
+    two readings disagree. Neither judges the prose; no verdict is defensible, so none is given.
     """
 
 
@@ -98,8 +53,7 @@ def repo_root():
 
 
 def blob(ref, path):
-    """Staged content (ref ':0'). RAISES rather than returning '' — an empty string scans
-    clean, which would be fail-OPEN."""
+    """Staged content (ref ':0'). RAISES rather than returning '' -- an empty string scans clean (fail-OPEN)."""
     r = subprocess.run(["git", "show", f"{ref}:{path}"], capture_output=True, text=True)
     if r.returncode != 0:
         raise GitError(r.stderr.strip() or f"cannot read {ref}:{path}")
@@ -107,9 +61,7 @@ def blob(ref, path):
 
 
 # ── what a comment may not name ───────────────────────────────────────────────────────────────
-#
-# (label, regex). The label names the RULE broken, not the token that tripped it. Four hex digits
-# is an address; two is data. Hex in CODE is untouched.
+# (label, regex): the label names the RULE broken, not the token. Four hex digits is an address, two data.
 FORBIDDEN = [
     ("cites an address", re.compile(r"0x[0-9a-f]{4}", re.I)),
     ("cites an address", re.compile(r"\$[0-9a-f]{4}(?![0-9a-f])", re.I)),
@@ -122,24 +74,20 @@ FORBIDDEN = [
     ("cites the frozen oracle", re.compile(r"(?<![A-Za-z])oracles?(?![A-Za-z])", re.I)),
     ("cites another file", re.compile(r"[A-Za-z0-9_./-]*\.(?:js|mjs|md|py|lua|cpp)(?![A-Za-z0-9])")),
     ("cites another directory", re.compile(r"(?<![A-Za-z0-9_])(?:\.\./|translated/|idiomatic/)")),
-    # A to-do claims work that has not happened; the loc_<addr> filename already says it, and
-    # unlike a sentence it cannot contradict itself once the promotion lands.
+    # A to-do claims work not done; the loc_<addr> filename already says it and cannot self-contradict.
     ("carries a to-do", re.compile(r"(?<![A-Za-z])(?:TODO|FIXME|XXX)(?![A-Za-z])")),
     ("carries a to-do", re.compile(r"promote once|once corroborated|a later understanding pass|for a later understanding pass|name kept neutral", re.I)),
-    # Status words describe the PORT, not the code, and the port's purpose is to falsify them.
-    # UNWIRED is case-SENSITIVE: lowercase "unwired" is ordinary English about hardware.
+    # Status words describe the PORT not the code. UNWIRED is case-SENSITIVE (lowercase = ordinary English).
     ("cites the port's state", re.compile(r"(?<![A-Za-z])(?:still[- ](?:un)?translated|untranslated|not yet (?:wired|translated|decompiled|named|promoted)|still[- ]oracle)(?![A-Za-z])", re.I)),
     ("cites the port's state", re.compile(r"(?<![A-Za-z])UNWIRED(?![A-Za-z])")),
 ]
 
-# Exempt by exact position, not by basename: the registry is games/<game>/idiomatic/names.js and
-# nothing else. A basename test would silently exempt a future idiomatic/sub/names.js.
+# Exempt by exact position, not basename -- a basename test would exempt a future idiomatic/sub/names.js.
 EXEMPT_LEAF = "names.js"
 
 
 def in_scope(path):
-    """True for a file this gate governs: games/<game>/idiomatic/**.js, minus the three exemptions
-    documented in the module docstring (the registry, tests, and everything under translated/)."""
+    """True for a file this gate governs: games/<game>/idiomatic/**.js, minus the registry, tests, and translated/."""
     parts = path.split("/")
     if len(parts) < 4 or parts[0] != "games" or parts[2] != "idiomatic":
         return False
@@ -150,49 +98,30 @@ def in_scope(path):
     return parts[3:] != [EXEMPT_LEAF]
 
 
-# ── density: prose may not exceed half the code ───────────────────────────────────────────────
+# ── density: prose may not exceed code // DENSITY_DIVISOR + DENSITY_FLOOR ──────────────────────────────
 
-DENSITY_DIVISOR = 2  # comment lines allowed = code lines // DENSITY_DIVISOR
+DENSITY_DIVISOR = 4  # comment lines allowed = code lines // DENSITY_DIVISOR + DENSITY_FLOOR
+DENSITY_FLOOR = 4  # >=4 comment lines always allowed. Cap history (0.50 -> /4 -> +floor) and why cutting
+# elaboration catches false claims that no gate can see: docs/comment-gate.md. Checks STAGED files only.
 
 _ROOTS = ("boards", "games", "tools", "core", "web")
-# Counting comments needs a REAL lexer for the host language. Three review rounds found the
-# hand-written ones wrong on Python string prefixes, shell parameter expansion and `<<` in
-# shell arithmetic, each time either blocking an honest file or letting prose through.
-#
-# The fix for Python was never to hand-write one: `tokenize` IS the reference lexer and ships
-# with the interpreter. Narrowing the rule to JS instead was a scope cut dressed as a
-# principle, and it exempted this very file from the rule it enforces.
-#
-# Lua and shell stay out, and now for the true reason rather than that one: no lexer for them
-# is available here, and a hand-written approximation was measured wrong three times.
+# Counting needs a real lexer: Python tokenize, Lua _scan_lua, shell excluded. Why: docs/comment-gate.md.
 _EXTS = (".js", ".mjs", ".py", ".lua")
-# A closed STRING ends a value too, so `"10" / 2` is division and its trailing `//` is a
-# comment. Leaving the quotes out ate the comment on any line dividing by a string result.
+# A closed STRING ends a value, so `"10" / 2` is division and its trailing `//` a comment.
 _REGEX_OK_BEFORE = re.compile("[)\\]}A-Za-z0-9_$'\"`]$")
-# Keywords a VALUE may follow, so the `/` after one opens a REGEX. `)`, `]` and `}` cannot be
-# settled this way -- `if (x) /re/` is a regex and `(a+b) / c` is division -- and are handled by
-# scanning both ways instead; see `_both_ways`.
-#
-# The test is on the SPELLING of the preceding token, so a variable or property spelled like a
-# keyword and then divided reads as a regex and the trailing comment is lost. `in` and `of` are
-# left out for that reason: both are ordinary identifiers in real code and neither meaningfully
-# precedes a regex. The ones kept are words nobody names a variable after.
+# Keywords a VALUE may follow, so `/` after one opens a REGEX. `)`/`]`/`}` are settled by scanning
+# both ways instead (see `_both_ways`). Test is on token SPELLING; `in`/`of` are left out as
+# ordinary identifiers. Details: docs/comment-gate.md.
 _VALUE_KEYWORDS = frozenset(
     "return typeof instanceof delete void throw new yield await case".split()
 )
 
 
 def _regex_reading_possible(text, i):
-    """Could the `/` at `i` plausibly OPEN a regex literal?
-
-    Only asked at the ambiguous positions (`)`, `]`, `}`). Without this, `(a+b) / c; // halve it`
-    counts as ambiguous, the two readings disagree, and the gate refuses ordinary division with a
-    trailing comment — fail-closed, but so noisily that the rule would be unusable.
-
-    Two cheap facts settle almost every real line. A regex literal must CLOSE on its own line, and
-    it never opens on whitespace: `/ c` is division, `/[abc]/` is not. A leading space is legal in
-    a regex and is written `\\s` by everyone, so this trades a vanishing false-negative for not
-    blocking a common construct.
+    """Could the `/` at `i` plausibly OPEN a regex literal? Only asked at ambiguous positions
+    (`)`, `]`, `}`); without it, `(a+b) / c; // x` reads ambiguous and the gate would refuse
+    ordinary division with a trailing comment. Two cheap facts settle almost every line: a regex
+    must CLOSE on its own line, and never opens on whitespace (`/ c` is division). Details: docs/comment-gate.md.
     """
     eol = text.find("\n", i)
     eol = len(text) if eol < 0 else eol
@@ -202,18 +131,10 @@ def _regex_reading_possible(text, i):
 
 
 def density_scope(path):
-    """True for a source file the density rule governs.
-
-    Nothing is exempt by KIND. `translated/` is included, generated files are included, and so
-    is this file. Every kind-exemption written here began as an assumption about what the rule
-    would do to a class of files, and each was wrong when the class was finally measured.
-
-    ONE file is exempt, by position and for a measured reason: `games/<game>/idiomatic/names.js`.
-    It is the address-to-name map, and its comments are not commentary ON code -- each one is
-    the entry's own content, which is the same reason the reference rule already exempts it.
-    Both registries run well over the cap, and the overage is the per-entry documentation
-    itself: deleting every section banner in either one still leaves it over. There is nothing
-    to cut that is not a name's meaning.
+    """True for a source file the density rule governs. Nothing is exempt by KIND (translated/,
+    generated files, and this file included). ONE file is exempt by POSITION:
+    games/<game>/idiomatic/names.js, the address-to-name map, whose comments are each entry's own
+    content, not commentary on code -- see docs/comment-gate.md.
     """
     parts = path.split("/")
     if parts[0] not in _ROOTS or "node_modules" in parts:
@@ -226,19 +147,10 @@ def density_scope(path):
 def _scan(path, text, amb_regex):
     """(code, comment, spans) for one JS file, from a string-aware left-to-right scan.
 
-    `amb_regex` decides the ONE case a scanner cannot: a `/` after `)`, `]` or `}`, which is
-    a regex in `if (x) /re/` and division in `(a+b) / c`. Callers run this both ways and
-    refuse the file when the two readings disagree — see `count_lines`. Do not call directly.
-
-    A line is COMMENT if any comment sits on it and CODE if any non-comment, non-blank
-    text does, so a line carrying both is charged to both. Prefix matching fails BOTH
-    ways: a `//` inside a template literal is not a comment, and blocking a script for
-    the banner it PRINTS cannot be complied with; a trailing `// <claim>` is prose a
-    prefix test never sees. Quotes, template literals and regex literals are tracked for
-    that reason.
-
-    Blank lines, a shebang and ONE SPDX line are neither: mandatory or empty, so charging
-    them would move the ratio with nothing written.
+    `amb_regex` decides the ONE case a scanner cannot: a `/` after `)`, `]` or `}` (regex in
+    `if (x) /re/`, division in `(a+b) / c`); callers run both ways and refuse on disagreement.
+    A line is COMMENT if any comment sits on it and CODE if any non-comment text does (both if both);
+    a shebang and one SPDX line are neither. Why prefix matching fails: docs/comment-gate.md.
     """
     nlines = len(text.splitlines())
     is_comment = [False] * (nlines + 1)
@@ -379,14 +291,9 @@ def _scan(path, text, amb_regex):
 
 
 def _scan_python(path, text):
-    """(code, comment, spans) for one .py file, via the stdlib `tokenize`.
-
-    No hand-written scanner and no ambiguity to resolve: this is the same lexer the
-    interpreter uses, so it cannot disagree with how the file actually parses.
-
-    A triple-quoted string is PROSE when it opens a statement (a docstring) and CODE when it
-    is a value -- the same distinction the JS side draws for a block comment versus a template
-    literal. A line carrying both is charged to both, as everywhere else.
+    """(code, comment, spans) for one .py file, via the stdlib `tokenize` -- the same lexer the
+    interpreter uses, so no ambiguity to resolve. A triple-quoted string is PROSE as a docstring
+    (opens a statement) and CODE as a value; a line carrying both is charged to both.
     """
     comment, code, prose = set(), set(), set()
     spdx_free = [True]
@@ -427,25 +334,11 @@ _LUA_LONG = re.compile(r"\[(=*)\[")
 def _scan_lua(path, text):
     """(code, comment, spans) for one .lua file.
 
-    Lua's comment grammar is the whole of it: `--` to end of line, `--[=*[ ... ]=*]` for a long
-    comment, and `'`/`"`/`[=*[ ... ]=*]` for strings. The long bracket is what a naive scanner
-    gets wrong in both directions -- a `[[...]]` STRING containing `--` is not a comment, and a
-    `--[==[...]==]` comment is not one line. Both are handled by matching the closing bracket at
-    the same `=` level that opened it.
-
-    This is hand-written because the repo takes no third-party Python, so it needs an argument
-    for being trusted. That argument is in two parts, and the parts cover different things.
-
-    The corpus cross-check against Pygments' Lua lexer, over every .lua file in the tree, agrees
-    exactly. But it says nothing about the paragraph above: **no file in this repo contains a
-    long bracket of any kind** -- no `[[`, no `[=[`, no `--[[`. The corpus establishes agreement
-    on the forms the tree actually uses, and the long-bracket handling is carried entirely by
-    the fixtures in `DENSITY_CASES`. Re-running the corpus check after widening this function
-    would validate nothing about the change.
-
-    And agreement is not the standard of correctness. Pygments is WRONG on an unterminated
-    `--[[` at EOF -- it emits the first line as a comment and the rest as code, where Lua runs
-    the comment to EOF. This scanner is right there, so agreeing would have made it wrong.
+    Lua comments: `--` to EOL, `--[=*[ ... ]=*]` long comment; strings `'`/`"`/`[=*[...]=*]`. The
+    long bracket is what a naive scanner gets both ways -- a `[[...]]` STRING with `--` is not a
+    comment, a `--[==[...]==]` comment is not one line -- handled by matching the closing bracket
+    at the opening `=` level. Hand-written (no third-party Python); the corpus/Pygments cross-check,
+    its limits, and Pygments' EOF `--[[` bug this scanner is right on: docs/comment-gate.md.
     """
     n, i, ln = len(text), 0, 1
     comment, code, spans = set(), set(), []
@@ -513,18 +406,10 @@ def _scan_lua(path, text):
 
 
 def _both_ways(path, text):
-    """Scan twice, resolving the ambiguous `/` each way, and REFUSE if the readings differ.
-
-    The earlier backstop only caught a mis-lex that left a string UNTERMINATED, which made the
-    gate's correctness depend on the parity of apostrophes in the prose it was measuring: one
-    `don't` in a trailing comment closed the phantom string that a regex body had opened, and
-    the comment vanished silently. Even parity sailed through, odd parity blocked.
-
-    Scanning both ways removes the guess. Where the two readings agree the ambiguity did not
-    matter and the file is judged normally; where they disagree no answer is defensible, so the
-    file is refused. Both rules go through here, so neither can be fixed without the other.
-
-    Python takes none of this: `tokenize` is exact, so there is nothing to resolve.
+    """Scan twice, resolving the ambiguous `/` each way, and REFUSE if the readings differ. Where
+    they agree the ambiguity did not matter; where they disagree no answer is defensible, so the
+    file is refused. Both rules go through here, so neither can be fixed without the other. Python
+    takes none of it (`tokenize` is exact). The apostrophe-parity bug this replaced: docs/comment-gate.md.
     """
     ext = os.path.splitext(path)[1]
     if ext == ".py":
@@ -563,7 +448,7 @@ def density_violations(paths, read):
     out = []
     for p in paths:
         code, comment = count_lines(p, read(p))
-        cap = code // DENSITY_DIVISOR
+        cap = code // DENSITY_DIVISOR + DENSITY_FLOOR
         if comment > cap:
             out.append((p, code, comment, cap))
     return out
@@ -585,10 +470,8 @@ _MARKER = re.compile(r"^\s*(?:/\*+|\*/|\*)\s?")
 
 
 def blocks(spans):
-    """Join runs of consecutive-line comments into (first_line, joined_text, member_spans).
-
-    Claims wrap across lines inside a header, and a per-line scan splits the sentence and matches
-    neither half.
+    """Join runs of consecutive-line comments into (first_line, joined_text, member_spans) -- a claim
+    wraps across lines in a header, and a per-line scan splits the sentence and matches neither half.
     """
     out, run, prev = [], [], None
     for span in spans:
@@ -620,11 +503,9 @@ SELF_EXEMPT_LABELS = {"cites another routine", "cites another file"}
 
 
 def violations(path, text):
-    """[(path, lineno, label, matched_text)] — one per comment block per rule broken.
-
-    Reports WHICH comments to fix; prints no tree-wide total, because a printed count gets quoted
-    into prose where nothing invalidates it. The line is the one the match is ON, not the block's
-    first line.
+    """[(path, lineno, label, matched_text)] — one per comment block per rule broken. Prints no
+    tree-wide total (a printed count gets quoted into prose where nothing invalidates it). The line
+    is the one the match is ON, not the block's first.
     """
     mine = _self_names(path)
     hits = []
@@ -679,7 +560,8 @@ def cmd_check(_args):
     if dense:
         failed = True
         print(
-            "comment_gate: BLOCKED — comments may not exceed half the code lines.\n"
+            "comment_gate: BLOCKED — comments may not exceed code lines // "
+            f"{DENSITY_DIVISOR} + {DENSITY_FLOOR}.\n"
             "  Cut the prose; do not raise the cap.\n",
             file=sys.stderr,
         )
@@ -946,11 +828,12 @@ def cmd_selftest(_args):
         if density_scope(path) != want:
             failures.append(f"DENSITY-SCOPE {path}: got {not want}, want {want}")
     # Teeth: a file over the cap must be reported, one at the cap must not.
+    _over = "".join(f"// c{i}\n" for i in range(DENSITY_FLOOR + 2))  # 2+F comments clear the 1+F cap for D code
     ratio = density_violations(
-        ["x.js"], lambda _p: "// a\n// b\n// c\nlet a=1;\nlet b=2;\nlet c=3;\nlet d=4;\n"
+        ["x.js"], lambda _p: _over + "".join(f"let v{i}={i};\n" for i in range(DENSITY_DIVISOR))
     )
     if not ratio:
-        failures.append("DENSITY: 3 comment against 4 code must exceed the HALF cap")
+        failures.append("DENSITY: comments over the code // DENSITY_DIVISOR + DENSITY_FLOOR cap must be reported")
     for path, src, why in LEX_CASES:
         try:
             got = count_lines(path, src)
@@ -962,8 +845,14 @@ def cmd_selftest(_args):
             failures.append(f"LEX-SPANS {path} ({why}): returned, must raise LexError")
         except LexError:
             pass
-    over = density_violations(["x.js"], lambda _p: "// a\n// b\nlet a = 1;\n")
-    at = density_violations(["x.js"], lambda _p: "// a\nlet a = 1;\nlet b = 2;\n")
+    # Fixtures DERIVE from DENSITY_DIVISOR and DENSITY_FLOOR rather than hardcoding them: encoding a
+    # constant in the literals turns the selftest RED whenever the constant is tuned and looks like a
+    # defect in the tuning. A test that breaks when you adjust the thing it tests is testing the wrong
+    # thing. At divisor D and floor F: D code lines give cap 1+F, so 1+F comments is AT and 2+F is OVER.
+    _code = "".join(f"let v{i} = {i};\n" for i in range(DENSITY_DIVISOR))
+    _com = lambda n: "".join(f"// c{i}\n" for i in range(n))
+    over = density_violations(["x.js"], lambda _p: _com(DENSITY_FLOOR + 2) + _code)
+    at = density_violations(["x.js"], lambda _p: _com(DENSITY_FLOOR + 1) + _code)
     if not over:
         failures.append("DENSITY: a file over the cap was not reported")
     if at:
