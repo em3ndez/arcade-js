@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_32eb — memory-equivalent to the frozen oracle at ROM 0x32EB, and KICK-equivalent to it.
+ * petWatchdogThroughStartupDelayThenStartMachine — memory-equivalent to the frozen oracle at ROM 0x32EB, and KICK-equivalent to it.
  *
  * GATE: crafted-entry, with the ring drain SEVERED on both arms. What it exercises, holes stated:
  *
@@ -40,7 +40,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_32eb } from "../loc_32eb.js";
+import { petWatchdogThroughStartupDelayThenStartMachine } from "../petWatchdogThroughStartupDelayThenStartMachine.js";
 import { loc_32eb as oracle } from "../../translated/loc_32eb.js";
 import manifest from "../../manifest.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -300,7 +300,7 @@ test("★ THE STATE DUMP IS BLIND: a rewrite that under-kicks passes a RAM compa
 });
 
 test("EQUAL at the captured entry: RAM, latch, kicks, registers and handover", { skip }, () => {
-  assert.equal(show(unitDiff(loc_32eb, entryState())), "identical");
+  assert.equal(show(unitDiff(petWatchdogThroughStartupDelayThenStartMachine, entryState())), "identical");
 });
 
 test("the collapse keeps every kick the oracle makes", { skip }, () => {
@@ -308,14 +308,14 @@ test("the collapse keeps every kick the oracle makes", { skip }, () => {
   const b = severed(entryState(), []);
   const before = a.io.watchdogKicks;
   drive(oracle, a);
-  drive(loc_32eb, b);
+  drive(petWatchdogThroughStartupDelayThenStartMachine, b);
   assert.equal(a.io.watchdogKicks - before, EXPECTED_KICKS, "the ORACLE's kick count moved");
   assert.equal(b.io.watchdogKicks - before, EXPECTED_KICKS, "the rewrite's kick count moved");
 });
 
 test("EXHAUSTIVE over the carried value: the byte in A reaches only the ignored watchdog data", { skip }, () => {
   for (const value of CARRIED) {
-    assert.equal(show(unitDiff(loc_32eb, entryState(), value)), "identical", `carried 0x${value.toString(16)}`);
+    assert.equal(show(unitDiff(petWatchdogThroughStartupDelayThenStartMachine, entryState(), value)), "identical", `carried 0x${value.toString(16)}`);
   }
 });
 

@@ -8,7 +8,7 @@
  * DE/IY, each stage continuing where the last left off, so those two are set only where the run
  * restarts and otherwise carry over. LIVE-OUT: memory, plus the cursors the final mark leaves. */
 
-import { loc_4f5d } from "./loc_4f5d.js";
+import { stagePlayerShotSweepAgainstTargetsAndRun } from "./stagePlayerShotSweepAgainstTargetsAndRun.js";
 import { destroyPlayerAndObjectsTouchingIt } from "./destroyPlayerAndObjectsTouchingIt.js";
 import { destroySlotsAndPlayerOnContact } from "./destroySlotsAndPlayerOnContact.js";
 import { ramTestPlayerVsMotherShip } from "./ramTestPlayerVsMotherShip.js";
@@ -18,7 +18,7 @@ import { MOTHER_SHIP_ARMED } from "./names.js";
 
 export function runAllCollisionSweepsThisFrame(m) {
   const { regs, mem8 } = m;
-  loc_4f5d(m);
+  stagePlayerShotSweepAgainstTargetsAndRun(m);
 
   regs.b = 4;
   regs.de = 0xa810;

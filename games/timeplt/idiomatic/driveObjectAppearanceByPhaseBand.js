@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2c31 — drive one object's appearance from a phase byte in its own record, in three bands.
+ * driveObjectAppearanceByPhaseBand — drive one object's appearance from a phase byte in its own record, in three bands.
  *
  * At 42+ only the tint moves: the sprite's top two attribute bits are kept and a free-running
  * counter's low nibble dropped beneath them, cycling sixteen tints while the shape holds.
@@ -41,7 +41,7 @@ const FIRST_PHASE = 1;
 const COMMAND = 4;
 const ARGUMENT = 12;
 
-export function loc_2c31(m, object = m.regs.ix, sprite = m.regs.iy) {
+export function driveObjectAppearanceByPhaseBand(m, object = m.regs.ix, sprite = m.regs.iy) {
   const { mem8 } = m;
   const phase = mem8[object + PHASE];
 

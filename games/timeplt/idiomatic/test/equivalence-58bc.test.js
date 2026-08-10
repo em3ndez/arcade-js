@@ -10,7 +10,7 @@
  * LIVE-OUT is memory only, derived from the CALLERS rather than from the instruction sequence.
  *   Every path in is a tail transfer, so the `ret` lands on a continuation further up. The ones
  *   reached from the direct callers are `call 0x2B83`, whose first act is `ld a,(iy+0x31)`, and
- *   loc_2c31, which opens `ld a,(ix+0x00)`: both load the accumulator from memory before reading
+ *   driveObjectAppearanceByPhaseBand, which opens `ld a,(ix+0x00)`: both load the accumulator from memory before reading
  *   anything, and neither branches on a flag this routine set. Longer tail chains are NOT traced
  *   by hand — the WHOLE-MACHINE arm is what covers them, and it is the falsifiable version of the
  *   whole claim, since a register some caller really consumed would fork the run.

@@ -7,7 +7,7 @@
 
 import { tileCharPlaneWithBoxLattice } from "./tileCharPlaneWithBoxLattice.js";
 import { loc_00d8 } from "./loc_00d8.js";
-import { loc_32eb } from "./loc_32eb.js";
+import { petWatchdogThroughStartupDelayThenStartMachine } from "./petWatchdogThroughStartupDelayThenStartMachine.js";
 
 const CONFIG_LOW3 = 0xa9c4;
 const CONFIG_BIT = 0xa9c6;
@@ -46,5 +46,5 @@ export function finishBootSelfTestAndColdStart(m) {
   }
   regs.a = (total - CHECKSUM_TOTAL) & 0xff;
   if (regs.a !== 0) return loc_00d8(m); // tampered image: derail into the frame handler
-  return loc_32eb(m);
+  return petWatchdogThroughStartupDelayThenStartMachine(m);
 }

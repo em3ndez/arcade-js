@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { runAllCollisionSweepsThisFrame as candidate } from "../runAllCollisionSweepsThisFrame.js";
 import { loc_4e63 as oracle } from "../../translated/loc_4e63.js";
-import { loc_4f5d } from "../loc_4f5d.js";
+import { stagePlayerShotSweepAgainstTargetsAndRun } from "../stagePlayerShotSweepAgainstTargetsAndRun.js";
 import { destroyPlayerAndObjectsTouchingIt } from "../destroyPlayerAndObjectsTouchingIt.js";
 import { destroySlotsAndPlayerOnContact } from "../destroySlotsAndPlayerOnContact.js";
 import { ramTestPlayerVsMotherShip } from "../ramTestPlayerVsMotherShip.js";
@@ -162,7 +162,7 @@ function twin({ skipShots = false, invertBranch = false, skipMark = false, break
   };
   return (m) => {
     const { regs, mem8 } = m;
-    if (!skipShots) loc_4f5d(m);
+    if (!skipShots) stagePlayerShotSweepAgainstTargetsAndRun(m);
     regs.b = 4;
     regs.de = 0xa810;
     regs.iy = 0xaa12;

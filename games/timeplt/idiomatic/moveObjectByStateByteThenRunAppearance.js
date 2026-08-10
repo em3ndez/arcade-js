@@ -7,7 +7,7 @@
 
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { decrementObjectStateThenFlyAtSlowestSpeed } from "./decrementObjectStateThenFlyAtSlowestSpeed.js";
-import { loc_2c31 } from "./loc_2c31.js";
+import { driveObjectAppearanceByPhaseBand } from "./driveObjectAppearanceByPhaseBand.js";
 
 const STATE = 0;
 const COUNTDOWN_FROM = 32;
@@ -16,5 +16,5 @@ export function moveObjectByStateByteThenRunAppearance(m, object = m.regs.ix) {
   if (m.mem8[object + STATE] >= COUNTDOWN_FROM) decrementObjectStateThenFlyAtSlowestSpeed(m, object);
   else driftWithWorldScroll(m);
 
-  loc_2c31(m, object);
+  driveObjectAppearanceByPhaseBand(m, object);
 }

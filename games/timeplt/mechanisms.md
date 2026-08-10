@@ -121,6 +121,12 @@ its sibling arm. What is NOT established is the ORDER — the ROM frees the pair
 arm, so a command may re-use the pair it arrived in, and a read two frames later cannot see that.
 `[seen]`, except the ordering, which stays `[code]`
 
+Boot reaches that drain along a fixed chain whose last stop before the game is
+`petWatchdogThroughStartupDelayThenStartMachine` (`0x32EB`). Reached by a tail jump from the boot-time
+DIP unpack, it holds the board still — twelve passes counted down in `SEQUENCE_DELAY` (`0xA9EB`), each
+petting the watchdog 256 times so nothing resets the machine while it idles — then quiets the sound CPU
+(via `0x55F8`) and tail-jumps through `0x00A8` back into that drain (`0x0B93`). `[code]`
+
 ### ★ The round engine's service list is not a per-frame list
 
 The round phase's arm is a straight run of `call`s — a scenery dispatcher, several per-slot
@@ -1187,6 +1193,12 @@ two biggest targets in the game — the Mother-Ship and the 1940 bomber — are 
 open-coded inline loops that share no code with it. **Most of them kill the player**; the rest mark
 only the other object, and one of those is the pickup test. `[code]`
 
+That shot-versus-target sweep is staged by `stagePlayerShotSweepAgainstTargetsAndRun` (`0x4F5D`): every
+argument is a constant — the six player shots at `PLAYER_SHOT_ARRAY` (`0xAA80`), three targets read from
+the parallel tables at `0xA8C0`/`0xAA28` (the era special-craft trio), and the two box numbers (reach 7,
+span 15) — and it seats the cursor pair (`0xA991`/`0xA993`) the body reloads between passes before
+tail-jumping into `destroyTargetsHitByShots` (`0x5211`), which restarts the target run for every shot. `[code]`
+
 Any statement of the form "kills happen in *the* collision routine" is wrong about this machine, and
 a reader who instruments one path will under-count.
 
@@ -1289,7 +1301,12 @@ one tick of `WAVE_KILL_COUNTDOWN` — every qualifying death, not only the last 
 brings it to zero writes its slot ordinal, top bit set, into the single-holder cell `CLAIM_TOKEN`
 (`0xA821`). `[code]`
 
-`CLAIM_TOKEN` is a request, consumed once: the object driver `loc_2c31` keeps alive whichever object's
+`driveObjectAppearanceByPhaseBand` reads each object's phase byte (`ix+0`) and bands it three ways: at
+or above `0x2a` only the tint moves — the sprite attribute's top two bits (`0xC0`) are kept and a
+free-running counter's low nibble added beneath them, so the tint cycles while the shape holds; from
+`0x0a` to `0x29` the phase, less `0x0a` and halved, indexes a sixteen-entry shape table at `0x2c94`
+under one fixed tint; and below `0x0a` it runs the `CLAIM_TOKEN` path, tail-jumping to the retire
+(`0x2bde`) unless the object holds the token. That token is a request, consumed once: the driver keeps alive whichever object's
 record number matches the low seven bits, holds a fixed shape and tint, and on that object's first
 phase posts a command and clears the cell. So the plumbing is "clear the wave inside the window → name
 one object → that object posts a command once". What the posted command yields in play is not yet

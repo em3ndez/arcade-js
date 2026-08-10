@@ -16,7 +16,7 @@ import { finishBootSelfTestAndColdStart as candidate } from "../finishBootSelfTe
 import { loc_49a8 as oracle } from "../../translated/loc_49a8.js";
 import { tileCharPlaneWithBoxLattice } from "../tileCharPlaneWithBoxLattice.js";
 import { loc_00d8 } from "../loc_00d8.js";
-import { loc_32eb } from "../loc_32eb.js";
+import { petWatchdogThroughStartupDelayThenStartMachine } from "../petWatchdogThroughStartupDelayThenStartMachine.js";
 import manifest from "../../manifest.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -149,7 +149,7 @@ function twin(opts) {
     regs.a = (total - CHECKSUM_TOTAL) & 0xff;
     if (opts.derail) return loc_00d8(m);
     if (opts.skipStart) return undefined;
-    return loc_32eb(m);
+    return petWatchdogThroughStartupDelayThenStartMachine(m);
   };
 }
 

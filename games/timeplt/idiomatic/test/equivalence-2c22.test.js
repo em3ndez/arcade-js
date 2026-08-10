@@ -4,7 +4,7 @@
  *
  * WHAT IT IS. One record byte read, one two-way branch on it, and then a shared appearance step
  * that runs whichever way the branch went. All THREE routines it reaches ARE ALREADY DECOMPILED —
- * decrementObjectStateThenFlyAtSlowestSpeed, driftWithWorldScroll and loc_2c31 — so the rewrite calls them directly and dissolving
+ * decrementObjectStateThenFlyAtSlowestSpeed, driftWithWorldScroll and driveObjectAppearanceByPhaseBand — so the rewrite calls them directly and dissolving
  * those transfers belongs to this caller's unit.
  *
  * ★ THE DECLARED RANGE ENDS AT 0x2C30 AND THE CONTINUATION BEGINS AT 0x2C31. The frozen form
@@ -59,7 +59,7 @@ import { readFileSync } from "node:fs";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { moveObjectByStateByteThenRunAppearance } from "../moveObjectByStateByteThenRunAppearance.js";
 import { decrementObjectStateThenFlyAtSlowestSpeed } from "../decrementObjectStateThenFlyAtSlowestSpeed.js";
-import { loc_2c31 } from "../loc_2c31.js";
+import { driveObjectAppearanceByPhaseBand } from "../driveObjectAppearanceByPhaseBand.js";
 import { driftWithWorldScroll } from "../driftWithWorldScroll.js";
 import { loc_2c22 as oracle } from "../../translated/loc_2c22.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -112,7 +112,7 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
  */
 const HELPERS = [
   ["decrementObjectStateThenFlyAtSlowestSpeed", "../decrementObjectStateThenFlyAtSlowestSpeed.js", "flyAtSlowestSpeed"],
-  ["loc_2c31", "../loc_2c31.js", "0x2c94"],
+  ["driveObjectAppearanceByPhaseBand", "../driveObjectAppearanceByPhaseBand.js", "0x2c94"],
   ["driftWithWorldScroll", "../driftWithWorldScroll.js", "WORLD_SCROLL_X"],
 ];
 
@@ -304,21 +304,21 @@ function brokenNoOp() {}
 function brokenThresholdLow(m, object = m.regs.ix) {
   if (m.mem8[object + STATE] >= COUNTDOWN_FROM - 1) decrementObjectStateThenFlyAtSlowestSpeed(m, object);
   else driftWithWorldScroll(m);
-  loc_2c31(m, object);
+  driveObjectAppearanceByPhaseBand(m, object);
 }
 
 /** BUG: the threshold is one too high. */
 function brokenThresholdHigh(m, object = m.regs.ix) {
   if (m.mem8[object + STATE] >= COUNTDOWN_FROM + 1) decrementObjectStateThenFlyAtSlowestSpeed(m, object);
   else driftWithWorldScroll(m);
-  loc_2c31(m, object);
+  driveObjectAppearanceByPhaseBand(m, object);
 }
 
 /** BUG: the two arms change places. */
 function brokenArmsSwapped(m, object = m.regs.ix) {
   if (m.mem8[object + STATE] >= COUNTDOWN_FROM) driftWithWorldScroll(m);
   else decrementObjectStateThenFlyAtSlowestSpeed(m, object);
-  loc_2c31(m, object);
+  driveObjectAppearanceByPhaseBand(m, object);
 }
 
 /** BUG: the appearance step never runs. */
@@ -329,12 +329,12 @@ function brokenNoContinuation(m, object = m.regs.ix) {
 
 /** BUG: the object never moves; only the appearance step runs. */
 function brokenNoMovement(m, object = m.regs.ix) {
-  loc_2c31(m, object);
+  driveObjectAppearanceByPhaseBand(m, object);
 }
 
 /** BUG: the appearance step runs first, so it reads a record byte not yet counted down. */
 function brokenOrderSwapped(m, object = m.regs.ix) {
-  loc_2c31(m, object);
+  driveObjectAppearanceByPhaseBand(m, object);
   if (m.mem8[object + STATE] >= COUNTDOWN_FROM) decrementObjectStateThenFlyAtSlowestSpeed(m, object);
   else driftWithWorldScroll(m);
 }
@@ -342,13 +342,13 @@ function brokenOrderSwapped(m, object = m.regs.ix) {
 /** BUG: every object drifts, and the countdown arm is never taken. */
 function brokenAlwaysDrifts(m, object = m.regs.ix) {
   driftWithWorldScroll(m);
-  loc_2c31(m, object);
+  driveObjectAppearanceByPhaseBand(m, object);
 }
 
 /** BUG: every object counts down, and the drift arm is never taken. */
 function brokenAlwaysCounts(m, object = m.regs.ix) {
   decrementObjectStateThenFlyAtSlowestSpeed(m, object);
-  loc_2c31(m, object);
+  driveObjectAppearanceByPhaseBand(m, object);
 }
 
 const TWINS = [

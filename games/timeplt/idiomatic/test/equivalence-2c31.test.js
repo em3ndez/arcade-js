@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2c31 — memory-equivalent to the frozen oracle at ROM 0x2C31.
+ * driveObjectAppearanceByPhaseBand — memory-equivalent to the frozen oracle at ROM 0x2C31.
  *
  * GATE: strict unit-capture replayed over every dispatch of the shared coin -> start tape, plus an
  *   exhaustive crafted sweep over the phase byte crossed with the request byte and the counter,
@@ -42,7 +42,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_2c31 } from "../loc_2c31.js";
+import { driveObjectAppearanceByPhaseBand } from "../driveObjectAppearanceByPhaseBand.js";
 import { loc_2c31 as oracle } from "../../translated/loc_2c31.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { COMMAND_RING, FRAME_TICK } from "../names.js";
@@ -122,7 +122,7 @@ function replay(candidate) {
 }
 
 function entryState() {
-  if (entry === null) replay(loc_2c31);
+  if (entry === null) replay(driveObjectAppearanceByPhaseBand);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   return entry;
 }
@@ -282,12 +282,12 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_2c31 == oracle outside the scratch window", { skip }, () => {
+test("EQUAL at the real dispatch: driveObjectAppearanceByPhaseBand == oracle outside the scratch window", { skip }, () => {
   const sp = entryState().regs.sp;
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2c31(b);
+  driveObjectAppearanceByPhaseBand(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   console.log(`  EQUAL: sp=${hex4(sp)}; identical outside ${SCRATCH_BYTES} scratch bytes`);
@@ -304,7 +304,7 @@ test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip 
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2c31(b);
+  driveObjectAppearanceByPhaseBand(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
@@ -312,7 +312,7 @@ test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip 
 });
 
 test("CORPUS: every dispatch of a real session replays identically", { skip }, () => {
-  const r = replay(loc_2c31);
+  const r = replay(driveObjectAppearanceByPhaseBand);
   assert.equal(r.dispatches, DISPATCHES, "the dispatch count moved");
   assert.equal(r.caught, 0, "the rewrite diverged on a real dispatch");
   const bands = new Set([...r.phases].map((p) =>
@@ -323,7 +323,7 @@ test("CORPUS: every dispatch of a real session replays identically", { skip }, (
 });
 
 test("EXHAUSTIVE: every phase against four requests and two counter positions", { skip }, () => {
-  assert.equal(sweepCaught(loc_2c31), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(driveObjectAppearanceByPhaseBand), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE()} crafted entries identical`);
 });
 
@@ -333,7 +333,7 @@ test("EVERY BAND IS ENTERED: the sweep really takes all four paths", { skip }, (
     const m = craft(phase, request, counter);
     const before = m.mem8[m.regs.iy + SHAPE];
     const cursor = m.mem8[WRITE_CURSOR];
-    loc_2c31(m);
+    driveObjectAppearanceByPhaseBand(m);
     if (phase >= TINT_ONLY_FROM) taken.add("tint");
     else if (phase >= SHAPE_RUN_FROM) taken.add("run");
     else if (m.mem8[m.regs.ix] === 0 && m.mem8[m.regs.iy] === 0) taken.add("retire");

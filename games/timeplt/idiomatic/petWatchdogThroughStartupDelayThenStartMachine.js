@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_32eb — hold the machine still at power-on, then hand it to the foreground. Twelve passes
+/** petWatchdogThroughStartupDelayThenStartMachine — hold the machine still at power-on, then hand it to the foreground. Twelve passes
  *  count down in a work-RAM cell, each petting the watchdog 256 times; cell, pass and tick
  *  registers end at zero, the audio processor is told to go quiet, and control falls through into
  *  the routine that starts the machine. COLLAPSED: each tick spun a register zero-to-zero, which
@@ -17,7 +17,7 @@ const PASSES = 0x0c;
 const TICKS_PER_PASS = 0x100;
 const INTERRUPT_ENABLE_SOURCE = 0x4c87;
 
-export function loc_32eb(m, value = m.regs.a) {
+export function petWatchdogThroughStartupDelayThenStartMachine(m, value = m.regs.a) {
   const { regs, mem, mem8 } = m;
 
   mem.write8(WATCHDOG, value, STORE_TO_A_FIXED_ADDRESS);

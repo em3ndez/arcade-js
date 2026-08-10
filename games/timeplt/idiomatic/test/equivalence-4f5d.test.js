@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4f5d — memory-equivalent to the frozen oracle at ROM 0x4F5D.
+ * stagePlayerShotSweepAgainstTargetsAndRun — memory-equivalent to the frozen oracle at ROM 0x4F5D.
  *
  * Strict unit-capture, a corpus replay of every dispatch of a driven session, and a crafted arm
  * that puts targets under the shots so the sweep this entry starts actually does something.
@@ -26,7 +26,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4f5d } from "../loc_4f5d.js";
+import { stagePlayerShotSweepAgainstTargetsAndRun } from "../stagePlayerShotSweepAgainstTargetsAndRun.js";
 import { loc_4f5d as oracle } from "../../translated/loc_4f5d.js";
 import { destroyTargetsHitByShots } from "../destroyTargetsHitByShots.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -120,7 +120,7 @@ function stagedByOracle(machine) {
 /** What the REWRITE hands the sweep: it leaves every staged register standing, so read them off. */
 function stagedByRewrite(machine) {
   const m = machine.clone();
-  loc_4f5d(m);
+  stagePlayerShotSweepAgainstTargetsAndRun(m);
   return Object.fromEntries([...STAGED, "de", "ix", "iy"].map((k) => [k, m.regs[k]]));
 }
 
@@ -141,7 +141,7 @@ function replay(candidate) {
 }
 
 function entryState() {
-  if (captured === null) replay(loc_4f5d);
+  if (captured === null) replay(stagePlayerShotSweepAgainstTargetsAndRun);
   return captured;
 }
 
@@ -198,7 +198,7 @@ test("EQUAL at the real dispatch: every byte identical, the stack scratch includ
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_4f5d(b);
+  stagePlayerShotSweepAgainstTargetsAndRun(b);
   assert.deepEqual(allDiffs(a, b), [], `a byte diverged — ${show(allDiffs(a, b)[0])}`);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
@@ -235,7 +235,7 @@ test("THE SWEEP REALLY RUNS: a crafted overlap destroys both slots, on both side
   const b = craftHit();
   const sp = a.regs.sp;
   oracle(a);
-  loc_4f5d(b);
+  stagePlayerShotSweepAgainstTargetsAndRun(b);
   assert.equal(a.mem8[TARGET_RECORDS], DESTROYED, "the crafted overlap did not destroy the target");
   assert.equal(a.mem8[SHOT_RECORDS], DESTROYED, "the crafted overlap did not spend the shot");
   assert.deepEqual(
@@ -247,7 +247,7 @@ test("THE SWEEP REALLY RUNS: a crafted overlap destroys both slots, on both side
 });
 
 test("CORPUS: every dispatch of a driven session replays identically", { skip }, () => {
-  const r = replay(loc_4f5d);
+  const r = replay(stagePlayerShotSweepAgainstTargetsAndRun);
   assert.equal(r.dispatches, DISPATCHES, "the dispatch count moved");
   assert.equal(r.caught, 0, `the rewrite diverged on ${r.caught} real dispatches`);
   console.log(`  CORPUS: ${r.dispatches} dispatches identical`);
@@ -298,7 +298,7 @@ for (const [label, twin, expected] of TWINS) {
 }
 
 test("THE JUDGING SET IS NOT VACUOUS: the rewrite passes every state in it", { skip }, () => {
-  assert.equal(twinCaught(loc_4f5d), 0, "the rewrite itself fails one of the judging states");
+  assert.equal(twinCaught(stagePlayerShotSweepAgainstTargetsAndRun), 0, "the rewrite itself fails one of the judging states");
   const hits = judgingStates().filter((machine) => {
     const m = machine.clone();
     oracle(m);
