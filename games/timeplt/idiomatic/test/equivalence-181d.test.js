@@ -1,84 +1,39 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_181d — memory-equivalent to the frozen oracle at ROM 0x181D.
+ * loc_181d — the frozen routine at ROM 0x181D is one byte, 0xC9: a bare `ret`. The rewrite is an
+ * empty function, because the idiomatic layer models no stack and the return is the host language's.
+ * The work is proving that empty function RIGHT, not merely green: that the routine really is
+ * reached, and that the instruments can see a routine that does something.
  *
- * WHAT IT IS. One byte, 0xC9: a bare `ret`. The rewrite is therefore an empty function, because
- * the idiomatic layer models no stack and a return is the host language's. Everything hard about
- * this file is proving that the empty function is RIGHT rather than merely green, and the two
- * halves of that are (a) the routine really is reached, and (b) the instruments really can see a
- * routine that does something.
+ * WHO REACHES IT. No `call`, `jp` or `jr 0x181d` exists in the image, yet the routine runs on every
+ * driven pass. The whole reference set is one `ld hl,0x181d` / `push hl` at 0x17FE, parking this as
+ * the address the RST 0x30 jump-table returns THROUGH: every arm returns through this byte, and its
+ * `ret` carries control on to 0x17FE's caller. One reference means one way in and one way out —
+ * every dispatch arrives with the SAME return address on the stack, and the CORPUS arm asserts it.
  *
- * WHO REACHES IT — the question a mnemonic grep answers wrongly. No `call 0x181d`, `jp 0x181d` or
- * `jr 0x181d` exists anywhere in the image, yet the routine executes on every driven run. The
- * whole reference set is one `ld hl,0x181d` / `push hl` at 0x17FE, which parks this address as the
- * place the RST 0x30 jump-table dispatch three instructions later should come back to; every arm
- * of that table returns THROUGH this byte, and its `ret` carries control on to 0x17FE's caller.
- * `translated/loc_17fe.js` transcribes that as `m.call(0x181d)`, which is exactly why the address
- * scores zero by one grep form and thousands by the other.
- *   Two scans of the ROM image back this up, and neither is a grep of our own prose. Searching the
- * whole image for the little-endian word 0x181D finds two occurrences: 0x17FF, preceded by opcode
- * 0x21 (`ld hl,nn`), and 0x02D2, which lies inside a run of (0x1D, n) byte pairs and is preceded by
- * 0x17 — not an nn-operand opcode, so it is table data and not a reference. Searching every
- * relative-jump opcode within displacement range finds nothing landing on 0x181D. The corpus arm
- * below asserts the shape a single caller implies: every dispatch arrives with the SAME return
- * address on top of the stack, so there is one way in and one way out and the run prints it.
+ * The shared driven tape presses only COIN 1 and 1-PLAYER START; it never fires and never turns, and
+ * the undriven attract demo never reaches this routine at all (zero dispatches, asserted below). So
+ * the corpus is driven-only by necessity, with a second two-player tape beside it only to widen the
+ * register spread. Neither limit binds behaviour here: the routine reads no input, and the crafted
+ * arm drives the whole register file to values no tape produces.
  *
- * ★ THE SHARED DRIVEN TAPE PRESSES ONLY COIN 1 AND 1 PLAYER START — IT NEVER FIRES AND NEVER
- *   CHANGES DIRECTION. ★ AND THE UNDRIVEN ATTRACT DEMO, WHICH RUNS REAL GAME LOGIC, NEVER REACHES
- *   THIS ROUTINE AT ALL — zero dispatches over the whole attract run, asserted below. So the
- *   corpus is driven-only by necessity, and a second two-player tape runs beside the shared one
- *   for no reason but to widen the register spread at entry. Neither limitation binds on behaviour here:
- *   the routine reads no input, no coordinate and no heading, and the crafted arm drives the whole
- *   register file to values no tape produces.
+ * GATE: a unit capture at the real dispatch, a pass-through sweep over every dispatch of two driven
+ * tapes, a crafted hostile-register arm, a measured live-out probe, and two whole-machine replays.
+ * Each arm names itself below and states its own hole in its assertions. SP is excluded and pinned:
+ * the frozen return advances it by two and the rewrite leaves it alone — the no-stack model as an
+ * assertion, and what catches a rewrite that models the stack (the pass-through sweep cannot, since
+ * such a rewrite lands on the oracle's own stack pointer). Two arms turn on a measurement: the RAM
+ * diff is BLIND but not DEAD — a no-op passes it, so the arm measures the diff's sensitivity (a twin
+ * writing one byte fails) rather than assuming it; and LIVE-OUT is MEASURED and NEGATIVE — forcing
+ * any register hostile after every dispatch leaves a driven session bit-identical, so the
+ * pass-through claim is CONSERVATIVE, while the same done to SP does break it, proving the
+ * instrument is not simply blind.
  *
- * GATE: unit capture at the real dispatch, a pass-through sweep over every dispatch of two driven
- *   tapes, a crafted hostile-register arm, a measured live-out probe, and two whole-machine
- *   replays. What it exercises, holes stated:
- *
- *   1. EQUAL at the real dispatch — RAM byte-identical, and the stack pointer is the only register
- *      that moves. It must MOVE, too: a rewrite that popped the stack the way the frozen return
- *      does would leave every register equal, and this arm fails on exactly that.
- *   2. RAM IS BLIND, BUT IT IS NOT DEAD. A candidate that writes nothing passes the RAM diff, and
- *      the correct routine is such a candidate, so RAM cannot be the whole gate. The arm therefore
- *      MEASURES the diff's sensitivity instead of assuming it: a twin that writes one byte fails
- *      at this same dispatch.
- *   3. DEAD FIRST DISPATCH — the capture is the first entry, so the run is repeated at a doubled
- *      frame budget and the two entry states are asserted byte-identical.
- *   4. DEGENERATE ENTRY — named, not hoped away. B is zero at every dispatch of both tapes, and B,
- *      IX and one shadow half never vary at all, so a twin zeroing B or nudging IX by nothing is
- *      invisible in the captured corpus; the run prints both sets, and the crafted arm covers them
- *      by driving every register to four fills including zero.
- *   5. UNIFORM CORPUS — two tapes, every dispatch of each replayed rather than a sample, plus the
- *      crafted arm. The attract case is not a third corpus but a zero, and is asserted as one.
- *   6. PASS-THROUGH — the real content of the claim. RAM and every register except SP must come
- *      out of the candidate exactly as they came out of the oracle, and the returned value must be
- *      nothing on both sides.
- *   7. SP IS EXCLUDED, DELIBERATELY, and pinned: the oracle's return advances it by exactly two
- *      and the rewrite leaves it alone, which is the no-stack model stated as an assertion. That
- *      pin is what catches a rewrite modelling the stack — the pass-through sweep cannot, because
- *      such a rewrite lands on the oracle's own stack pointer.
- *   8. LIVE-OUT IS MEASURED, AND THE MEASUREMENT IS NEGATIVE. Forcing any single register hostile
- *      after EVERY dispatch of a whole driven session leaves the session bit-identical — for all
- *      eighteen of them. Nothing this routine passes through is consumed downstream on either
- *      tape, so arm 6 is CONSERVATIVE and the corpus cannot punish a register clobber. The arm
- *      asserts the instrument is not simply blind by doing the same to the stack pointer, which
- *      does break the session.
- *   9. WHOLE-MACHINE, SHIMMED — ★ VACUOUS FOR THE REAL CANDIDATE AND SAID SO OUT LOUD. The host
- *      engine is stack-driven, so the shim pays the return the rewrite no longer takes; applied to
- *      an empty function the shim IS the oracle instruction for instruction, and this arm could
- *      not fail. It earns its place by counting dispatches and by carrying the twins.
- *  10. WHOLE-MACHINE IS SENSITIVE — the unshimmed empty candidate destroys the session, which is
- *      what licenses reading arm 9's twins as evidence rather than as noise.
- *  11. TEETH — a twin per resource the routine could touch, scored on two instruments with a
- *      declared split. No single instrument catches them all, and the file says which catches
- *      which rather than reporting one total.
- *
- * ★ HOLE, and it is the important one: this routine's register pass-through is UNFALSIFIABLE on
- * the corpus. Arm 8 shows the game does not read back a single register this routine crosses, so a
- * rewrite that clobbered any of them would still play the game correctly; arm 6 rejects one
- * anyway, because "leaves the machine as it found it" is what the byte means. A second hole: the
- * captured entries all share one stack pointer and one IX, so the crafted arm rather than the tape
- * is what varies those.
+ * ★ HOLE, the important one: the register pass-through is UNFALSIFIABLE on the corpus. The game
+ * reads back none of the registers this routine crosses, so a rewrite clobbering any of them would
+ * still play correctly; the pass-through arm rejects one anyway, because "leaves the machine as it
+ * found it" is what the byte means. A second hole: the captured entries share one stack pointer and
+ * one IX, so the crafted arm, not the tape, is what varies those.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-181d.test.js
  */

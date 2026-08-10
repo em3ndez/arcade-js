@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** startOnePlayerGame — stock the machine for a game with only the FIRST player's context filled in.
- *
  * The caption sprites are parked and PLAY_ACTIVE is raised to all bits. PLAYER_TWO_LIVES and the
  * byte beside PLAY_ACTIVE are both cleared; PLAYER_ONE_LIVES is loaded from the settings cell that
  * carries the starting count. One is then taken off the packed-decimal count the panel field

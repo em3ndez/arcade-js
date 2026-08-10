@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** loc_49d6 — drive one hardware output line as a train of square pulses, one pulse per unit of a
  * pending count, and stop when the count reaches zero.
- *
  * With nothing pending it does nothing at all. With something pending and no pulse under way it
  * arms a fixed-length phase counter and raises the line. Otherwise it counts that phase down one
  * per call: at exactly the halfway value it drops the line again, so the line is high for the

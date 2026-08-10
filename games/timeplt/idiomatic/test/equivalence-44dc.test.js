@@ -9,8 +9,7 @@
  *   attract and a driven turning tape each dispatch it ZERO times in the corpus budget. So there is
  *   no captured entry of its own, and the corpus here is REAL MACHINE STATES sampled at the
  *   dispatches of the routine it falls out of — the same machine, one routine earlier, with a real
- *   sprite entry and a real counter. Every arm below is a crafted entry in that sense, and the file
- *   claims nothing about a natural dispatch, because there is none to claim anything about.
+ *   sprite entry and a real counter. Every arm below is a crafted entry in that sense.
  *
  * GATE: crafted entries on real machine states, exhaustive in the one cell the entry reads. What it
  *   exercises, holes stated:
@@ -19,17 +18,15 @@
  *   2. EQUAL on real states — RAM byte-identical with nothing masked, at every sampled state.
  *   3. NOT VACUOUS — a candidate that does nothing FAILS the same comparison.
  *   4. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      space, asserted to stay inside the allowed set: a register diverging outside it fails the
- *      arm, and a rewrite diverging on fewer still passes.
+ *      space, asserted inside the allowed set: diverging outside it fails, diverging on fewer passes.
  *   5. EXHAUSTIVE — all 256 counter values, which is the entry's whole input space, on three
  *      sprite-entry bases: the real one and two chosen.
  *   6. BOTH ARMS — the sweep is asserted to present both states of the deciding bit.
  *   7. TEETH — six twins, each with an exact catch count.
  *
- * HOLE: there is no whole-machine arm, because no session dispatches this entry: wiring the rewrite
- * over the address would change nothing and pass vacuously. Nothing here therefore speaks for the
- * registers the entry leaves behind beyond the crafted comparison, which is why arm 4 is a set
- * bounding the whole space rather than a claim that they are dead.
+ * HOLE: there is no whole-machine arm — no session dispatches this entry, so wiring the rewrite over
+ * the address would pass vacuously. Nothing here speaks for the registers the entry leaves behind
+ * beyond the crafted comparison, which is why arm 4 bounds the whole space rather than calling them dead.
  * HOLE: the sampled states all come from one routine's dispatches in one session, so the sprite
  * entry base is nearly constant across them; the two chosen bases stand in for that.
  *
