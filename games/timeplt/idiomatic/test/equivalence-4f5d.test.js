@@ -2,32 +2,22 @@
 /**
  * loc_4f5d — memory-equivalent to the frozen oracle at ROM 0x4F5D.
  *
- * GATE: strict unit-capture and a corpus replay of every dispatch of a driven session, plus a
- *   crafted arm that puts targets under the shots so the sweep this entry starts actually does
- *   something. What it exercises, holes stated:
+ * Strict unit-capture, a corpus replay of every dispatch of a driven session, and a crafted arm
+ * that puts targets under the shots so the sweep this entry starts actually does something.
  *
- *   1. EQUAL at the real dispatch — the state dump agrees byte for byte, the stack scratch
- *      included, so this file names NO exclusion and asserts the empty one. It can: everything
- *      this entry hands over to is already stack-free.
- *   2. THE HAND-OVER IS HARVESTED AT THE HAND-OVER, by a spy wired in place of the sweep on the
- *      frozen side and read straight off the registers on the rewrite's. Comparing registers
- *      AFTERWARDS could not answer it: the frozen sweep runs two of them down while the
- *      stack-free one keeps its cursors in locals, so an after-the-fact comparison would be
- *      measuring the sweep instead of this entry.
- *   3. THE CURSOR CELLS — the two the sweep reloads between passes — compared as memory, which
- *      the state dump does cover.
- *   4. THE SWEEP REALLY RUNS, crafted: a target is placed on top of a shot and both are shown
- *      destroyed. Without this the whole file could pass on a machine where nothing ever hits,
- *      and the destroying arm would be untested.
- *   5. CORPUS — every dispatch of a driven session, on a clone taken at the dispatch.
- *   6. TEETH — eight twins, one per staged constant, each caught on its own exact count over
- *      a judging set of nine states: the real dispatch and eight crafted placements whose slots
- *      and whose distance apart are chosen to discriminate the counts and the box.
+ * EQUAL at the real dispatch agrees byte for byte, the stack scratch INCLUDED, so this file names
+ * NO exclusion and asserts the empty one — everything this entry hands over to is already stack-free.
+ * The HAND-OVER is harvested AT the hand-over, by a spy wired in place of the sweep on the frozen
+ * side and read straight off the registers on the rewrite's; comparing registers AFTERWARDS could
+ * not answer it, because the frozen sweep runs two of them down while the stack-free one keeps its
+ * cursors in locals. The two CURSOR CELLS the sweep reloads between passes are compared as memory.
+ * THE SWEEP REALLY RUNS is crafted: a target placed on top of a shot, both shown destroyed —
+ * without it the file could pass on a machine where nothing ever hits. TEETH: eight twins, one per
+ * staged constant, each on an exact count over nine judging states (the real dispatch and eight
+ * crafted placements chosen to discriminate the counts and the box).
  *
- * HOLE: what the sweep DOES is gated elsewhere. This file fixes the eight things this entry
- * chooses and the fact that it then runs the sweep, and claims nothing about the sweep's rules.
- * HOLE: the crafted hit arm forces ONE overlap at one slot; it shows the destroying arm is live,
- * not that every slot pairing behaves.
+ * HOLE: what the sweep DOES is gated elsewhere; this file fixes the eight things this entry chooses
+ * and that it then runs the sweep. HOLE: the crafted hit forces ONE overlap at one slot.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-4f5d.test.js
  */
@@ -71,15 +61,11 @@ const SWEEP = 0x5211;
 const SCRATCH_BYTES = 8;
 
 /**
- * The registers allowed to diverge. A BOUND, not an exact list: a register diverging outside this
- * set fails the arm below, and a rewrite that diverges on fewer of them still passes. The count and
- * the shot cursor are the SWEEP's leftovers — the frozen sweep runs them down and the stack-free
- * one keeps its cursors in locals — so they belong to the sweep's own contract and not to this
- * entry's. Most of what this entry STAGES is deliberately absent from the set — but not all of it:
- * `c` is both STAGED and excluded here, and `ix` is in the harvested set too. Neither is excused,
- * because THE STAGED REGISTERS arm asserts them equal directly; this bound is simply not what
- * guards them. (An earlier draft of this comment claimed every staged register was absent, which
- * the `STAGED` literal above contradicts outright.)
+ * The registers allowed to diverge — a BOUND, not an exact list: one diverging outside this set
+ * fails the arm below, and a rewrite diverging on fewer still passes. The count and the shot cursor
+ * are the SWEEP's leftovers (frozen runs them down, stack-free keeps cursors in locals), so they
+ * belong to the sweep's contract. `c` is both STAGED and excluded here and `ix` is in the harvested
+ * set too; neither is excused, because THE STAGED REGISTERS arm asserts them equal directly.
  */
 const EXCLUDED = ["a", "f", "c", "ix", "sp"];
 

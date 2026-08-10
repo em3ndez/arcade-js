@@ -2,71 +2,44 @@
 /**
  * loc_44c9 — memory-equivalent to the frozen oracle at ROM 0x44C9.
  *
- * WHAT IT IS. An arm, not an entry: control arrives by a branch, with an object record, a sprite
- * entry and a counter already in hand. It masks the counter, may zero the record's counter cell,
- * writes both attribute slots of the sprite entry, and falls through into the two-frame flutter at
- * ROM 0x44DC, WHICH IS ALREADY DECOMPILED — so the rewrite calls loc_44dc directly and dissolving
- * that fall-through belongs to this caller's unit.
+ * An arm, not an entry: control arrives by a branch with an object record, a sprite entry and a
+ * counter in hand. It masks the counter, may zero the record's counter cell, writes both attribute
+ * slots of the sprite entry, and falls through into the two-frame flutter at ROM 0x44DC (already
+ * decompiled). The rewrite calls loc_44dc directly; dissolving that fall-through is this unit.
  *
- * ★ NOTHING REACHES IT ON EITHER TAPE, AND THAT IS MEASURED HERE. The REACH arm counts ZERO
- *   dispatches over 2500 frames of both sessions and carries a positive control in the same
- *   breath: the identical collector, in the identical run, counts the routine that seats this
- *   object's cursors and reports a four-figure number. So the zero is the tapes, not the
- *   instrument. Every comparison below therefore runs on a CRAFTED entry — a real captured machine
- *   with the three values the branch would have arrived with poked in — and the whole-machine arm
- *   the sibling gates carry is absent because there is no dispatch to wire.
+ * NOTHING REACHES IT ON EITHER TAPE, measured here: the REACH arm counts ZERO dispatches over 2500
+ * frames of both sessions, with a positive control in the same run — the identical collector counts
+ * the routine that seats this object's cursors and reports a four-figure number. So the zero is the
+ * tapes, not the instrument. Every comparison runs on a CRAFTED entry — a real captured machine
+ * with the branch's three arrived-with values poked in — and there is no whole-machine arm because
+ * there is no dispatch to wire.
  *
- * ★ HOW THE LIVE-OUT WAS DERIVED, AND IT IS FROM THE ORACLE. The oracle's only exit is the
- *   fall-through, and the routine it falls into returns — past this arm, because this arm was
- *   itself reached by a branch that parked nothing. So control lands on the return address the
- *   branch's own caller laid down, and what is live there is what that successor reads before
- *   writing. Read off the frozen successor, its first two instructions load the accumulator from
- *   the record and set the flags from it, and it loads all four of the scratch bytes before it
- *   reads any of them — which is why the rewrite lets those six go. What it DOES read on arrival
- *   is the two cursors, and those the rewrite leaves exactly as it found them.
+ * THE LIVE-OUT IS DERIVED FROM THE ORACLE. Its only exit is the fall-through, and the routine it
+ * falls into returns past this arm (the branch parked nothing), landing on the return address the
+ * branch's caller laid down. Read off that frozen successor: its first two instructions load the
+ * accumulator from the record and set flags from it, and it loads all four scratch bytes before
+ * reading any — which is why the rewrite lets those six go. What it DOES read on arrival is the two
+ * cursors, and those the rewrite leaves exactly as found.
  *
- * ★ THE SUCCESSOR ARM, AND HONESTLY WHAT IT CAN SEE. Both sides are continued through the frozen
- *   successor and the resulting memory compared. Its power is MEASURED by clobbering each register
- *   in turn: it reports the two cursors and NOTHING ELSE, on an exact count. So this arm is the
- *   evidence for the cursors being live and held; it is BLIND to the six the rewrite drops, and
- *   their deadness rests on the reading above rather than on this arm. Saying which half the arm
- *   covers is the point of measuring its power rather than assuming it.
+ * THE SUCCESSOR ARM continues both sides through the frozen successor and compares memory. Its
+ * power is MEASURED by clobbering each register in turn: it reports the two cursors and NOTHING
+ * ELSE. So it is the evidence for the cursors being live and held; it is BLIND to the six the
+ * rewrite drops, whose deadness rests on the reading above.
  *
- * ★ NO STACK IS MASKED, AND THE ARM SAYS SO WITH A MEASUREMENT. The oracle pushes nothing on this
- *   path, so the comparison is the WHOLE dump, scratch included. The NO SCRATCH arm instruments
- *   the oracle's own `push16` over the entire sweep and requires it to move the pointer by zero —
- *   with a control that the same instrument reports a nonzero when a push really happens.
+ * NO STACK IS MASKED: the oracle pushes nothing on this path, so the comparison is the WHOLE dump.
+ * The NO SCRATCH arm instruments the oracle's own `push16` over the whole sweep and requires zero,
+ * with a control that the same instrument reports nonzero when a push happens. SP and pc belong to
+ * the dispatch seam: the oracle nets one return, the rewrite performs none, so the candidate is run
+ * through `withOmittedRet` and SP and pc compared for EQUALITY.
  *
- * ★ SP AND pc BELONG TO THE DISPATCH SEAM. The oracle nets one return, taken by the routine it
- *   falls into; the rewrite performs none. The candidate is run THROUGH `withOmittedRet`, and SP
- *   and pc are then compared for EQUALITY. Nothing here asserts the candidate DIFFERS anywhere.
- *
- * GATE: crafted-entry, over real captured machines from two sessions crossed with four cursor
- *   pairs and all 256 counter values.
- *
- *   1. REACH — the zero, with its positive control.
- *   2. EQUAL — the whole dump identical on a crafted entry, SP and pc included.
- *   3. NOT VACUOUS — a candidate that does nothing FAILS the same comparison.
- *   4. NO SCRATCH — the oracle's own push depth over the whole sweep, with a control.
- *   5. CROSS — every crafted entry identical, and shown to be informative.
- *   6. BOTH ARMS — the counter's two branches are both exercised, they leave DIFFERENT memory, and
- *      the boundary is where this file says: two below the mark leaves the cell, three clears it.
- *   7. SUCCESSOR — both sides continued through the frozen successor leave the same memory, with
- *      the arm's power measured register by register so what it cannot see is on the record.
- *   8. EXCLUDED — the registers that move, bounded by a CEILING asserted as a subset, plus the
- *      cursors and the counter asserted HELD, with a positive control.
- *   9. TEETH — eight twins, each on an exact crafted count.
- *
- * WHY THE CRAFTED ENTRIES ARE POISONED. Every cell this arm writes already holds the value it is
+ * WHY THE CRAFTED ENTRIES ARE POISONED: every cell this arm writes already holds the value it is
  * about to be given on a real machine, so an unpoisoned comparison would pass a rewrite that wrote
- * nothing at all in those cells. Measured: three of the twins below are caught on ZERO entries
- * without the marker and on an exact nonzero count with it.
+ * nothing there. Measured: three twins below are caught on ZERO entries without the marker.
  *
- * HOLE: no natural dispatch anywhere in this file. The cursor pairs and counters are poked onto
- * real machines; the machines are real, the register triple is not.
+ * HOLE: no natural dispatch anywhere; the cursor pairs and counters are poked onto real machines,
+ * so the machines are real, the register triple is not.
  * HOLE: the SUCCESSOR arm runs ONE successor — the one the branch's caller returns into. A path
- * that reached this arm from somewhere else would return somewhere else, and nothing here covers
- * that. It is the only inbound branch this port has transcribed.
+ * reaching this arm from elsewhere would return elsewhere; it is the only inbound branch transcribed.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-44c9.test.js
  */

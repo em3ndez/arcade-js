@@ -2,66 +2,31 @@
 /**
  * chaseOneAimPointAndRetireAtTheLine — memory-equivalent to the frozen oracle at ROM 0x4117.
  *
- * GATE: strict unit-capture over every dispatch of a long undriven attract session, one measured
- *   stack exclusion, crafted sweeps over both branch tests, and teeth.
+ * Strict unit-capture over every dispatch of a long undriven attract session, one measured stack
+ * exclusion, crafted sweeps over both branch tests, and teeth. The session is LONG because the
+ * shared gates' frame budget never reaches this entry — the era its objects belong to has not
+ * begun; six thousand frames of undriven attract do reach it, and nothing is poked to get there.
  *
- * WHY THE SESSION IS LONG. The shared gates' frame budget never reaches this entry: the era the
- *   objects belong to has not begun. Six thousand frames of undriven attract do reach it, and
- *   nothing is poked to get there.
+ * WHERE THE LIVE-OUT COMES FROM. The caller is 0x40EA, and both exits — the `ret nc` and the tail
+ * jump to the retire routine — land on 0x4106, which does `jr 0x410B` at once. 0x410B reads exactly
+ * three things: the object record pointer, the sprite entry pointer, and the loop counter (ix, iy,
+ * b). Those are the LIVE_OUT, and the rewrite AGREES on all three — measured, not asserted — which
+ * is why none appears in the ceiling. Everything else 0x410B leaves is overwritten or re-read from
+ * memory, so a, f, the two scratch pairs and the alternate accumulator are dead across the boundary.
  *
- * ★ WHERE THE LIVE-OUT COMES FROM. The oracle's caller is ROM 0x40EA, and BOTH exits — the
- *   `ret nc` and the tail jump to the retire routine, whose own return carries it — land on
- *   0x4106, which does `jr 0x410B` at once. 0x410B reads exactly three things: the object record
- *   pointer, the sprite entry pointer, and the loop counter it decrements. Those three are the
- *   live-out, and the rewrite AGREES on all three — measured, not asserted — which is why none of
- *   them appears in the ceiling below. Everything 0x410B leaves is then either overwritten
- *   (`ld de,0x0010`) or re-read from memory: the loop head reads the record byte into the
- *   accumulator, and on the loop's own exit the next routine in the caller's chain, 0x0F97, opens
- *   with `ld a,(0xB411)`. So the accumulator, the flags, the two scratch pairs and the alternate
- *   accumulator are all dead across the boundary.
+ * THE COUNTER PAIR IS PART OF THE CONTRACT. The oracle brackets three calls with a save and restore
+ * of the counter pair, and the rewrite does the same with a local. The counter is OUTSIDE the
+ * ceiling, so the `counter-not-restored` twin is caught by the EXCLUDED arm — a gated property, not
+ * a coincidence.
  *
- * ★ THE COUNTER PAIR IS PART OF THE CONTRACT, NOT AN ACCIDENT. The oracle brackets three calls
- *   with a save and restore of the counter pair, and the rewrite does the same with a local. The
- *   `counter-not-restored` twin is what makes that a gated property rather than a coincidence:
- *   the loop counter is OUTSIDE the ceiling, so the EXCLUDED arm is what catches it.
+ * Six callees reached through the registry leave dead scratch below the seat; the window is
+ * MEASURED, not assumed. Every register in the ceiling already sits in the declared moved set of a
+ * callee's own landed gate (0x3FAF's {a,f,d,e,l,sp} and 0x33B8's {f,b,c,d,e,sp,a_}), so this
+ * routine introduces no divergence of its own and the INHERITED arm asserts that containment.
  *
- * ★ THE ORACLE PUSHES AND THE REWRITE DOES NOT. Six callees reached through the registry leave
- *   dead scratch below the entry seat. The window is MEASURED — the WINDOW arm instruments the
- *   oracle's own `push16` over this file's whole sweep — never assumed and never copied.
- *
- * ★ WHAT THE MOVED SET IS INHERITED FROM. Every register in the ceiling is already in the declared
- *   moved set of a callee's own landed gate — 0x3FAF's is {a, f, d, e, l, sp} and 0x33B8's is
- *   {f, b, c, d, e, sp, a_}. So this routine introduces no divergence of its own, and the arm
- *   below asserts that containment rather than leaving it as a remark.
- *
- * What it exercises, holes stated:
- *   1. EQUAL      — identical across the whole state dump outside the measured window, at the
- *                   first captured dispatch.
- *   2. WINDOW     — the oracle's own deepest push, measured over the whole sweep and PINNED.
- *   3. BOUNDARY   — a planted divergence one byte BELOW the window is caught, one AT the entry
- *                   seat is caught, and one INSIDE is masked. The third is what shows the first
- *                   two are not simply the instrument catching everything.
- *   4. CORPUS     — every dispatch of the session, replayed from its own captured machine, with
- *                   the count of each of the three arms reported and each asserted present:
- *                   re-aiming, not re-aiming, and retiring.
- *   5. PHASE      — the phase byte crafted over all sixteen values against a fixed frame counter,
- *                   so both sides of the re-aim test are walked rather than sampled. The crafted
- *                   machine also carries a STALE stored aim, because at the state it is built
- *                   from the stored aim already equals what the computation returns — so without
- *                   that the sweep caught neither re-aim twin. The arm asserts the marker is
- *                   replaced on the matching phase and stands on the others.
- *   6. LIVE-OUT   — the three registers the exit successor reads are compared DIRECTLY against
- *                   the oracle, over the whole sweep, because a live register live-out is exactly
- *                   what a memory gate cannot see.
- *   7. INHERITED  — the ceiling is contained in the union of two callees' own declared sets.
- *   8. EXCLUDED   — no register outside the ceiling moves, with a twin that moves one as the
- *                   in-arm control that the measurement can see one.
- *   9. TEETH      — six twins with their exact catch counts over the crafted sweep.
- *
- * HOLE: the six callees are gated by their own files. What this file gates is that all six are
- * reached, in order, under the right conditions, and that the counter pair survives them.
- * HOLE: the retire arm fires on ONE captured dispatch. The crafted sweep does not force it, so
- * the retire twin's catch count comes from that single state and the arm says so.
+ * HOLE: the six callees are gated by their own files; this file gates that all six are reached, in
+ * order, under the right conditions, and that the counter pair survives them.
+ * HOLE: the retire arm fires on ONE captured dispatch; the crafted sweep does not force it.
  * HOLE: nothing here establishes what the point being aimed at IS.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-4117.test.js

@@ -2,59 +2,34 @@
 /**
  * startOnePlayerGame — memory-equivalent to the frozen oracle at ROM 0x3215.
  *
- * WHAT IT IS. A handful of stores, one packed-decimal subtraction, and transfers into routines
- * that are ALREADY DECOMPILED — the caption park at 0x0B2B, the panel repaint at 0x4AFB, the
- * tilemap keep copy at 0x4B30 and the sequence jump at 0x172A — so the rewrite calls each of them
- * directly and dissolving those transfers belongs to this caller's unit.
+ * A handful of stores, one packed-decimal subtraction, and transfers into already-decompiled
+ * routines — the caption park at 0x0B2B, the panel repaint at 0x4AFB, the tilemap keep copy at
+ * 0x4B30 and the sequence jump at 0x172A. The rewrite calls each directly; dissolving those
+ * transfers is this caller's unit, each callee is gated by its own file, so what this file gates is
+ * the CHOICE of what is stored, the order relative to the repaint, and the dissolve.
  *
- * ★ THE ORACLE PUSHES AND RETURNS, AND THE REWRITE DOES NEITHER. The transfers reached by `call`
- *   are each bracketed with a pushed return address below the entry seat, and the tail jump's
- *   callee takes a return the direct call never takes. That
- *   leaves DEAD STACK SCRATCH below the seat and moves several registers, the stack pointer and
- *   pc. The window is MEASURED — the WINDOW arm instruments the oracle's own `push16` over this
- *   file's whole sweep and reports the deepest stack pointer it reaches — never assumed and never
- *   copied from another gate. Every other arm walks the whole dump and masks ONLY that window.
+ * The transfers reached by `call` each bracket a pushed return below the entry seat, and the tail
+ * jump's callee takes a return the direct call never takes — leaving DEAD STACK SCRATCH below the
+ * seat and moving several registers, sp and pc (the declared ceiling). The window is MEASURED: the
+ * WINDOW arm instruments the oracle's own `push16` over the whole sweep and reports the deepest
+ * stack pointer reached. Every other arm walks the whole dump and masks ONLY that window.
  *
- * WHY THE LIVE-OUT IS MEMORY ONLY, derived from the ORACLE's exit successors and not from the
- *   module: the oracle's last act is a tail jump to 0x172A, whose `ret` lands on 0x181D — which is
- *   a bare `ret` — so no register this entry leaves is read before it is overwritten. Confirmed by
- *   running the tape: the oracle's pc after the captured dispatch is 0x181D.
+ * The live-out is MEMORY ONLY, derived from the ORACLE's exit successors: its last act is a tail
+ * jump to 0x172A, whose `ret` lands on the bare `ret` at 0x181D, so no register this entry leaves
+ * is read before it is overwritten. Confirmed by the tape: the oracle's pc after the dispatch is
+ * 0x181D.
  *
- * GATE: strict unit-capture at the real dispatch with one measured exclusion, plus a POISONED
- *   machine, because the strict arm alone would rest on the wrong evidence. At the captured
- *   dispatch most of the cells this entry stores to already hold what it stores, so a broken twin
- *   could only show up in stack scratch — which is exactly what is masked. Filling work RAM below
- *   the window and both tilemap planes with a marker first makes every write visible, and loading
- *   the two cells this entry READS with different values is what makes a twin reading the wrong
- *   one diverge at a stored cell.
+ * A POISONED machine backs the strict arm, which alone would rest on wrong evidence: most cells
+ * this entry stores to already hold what it stores, so a broken twin shows only in masked scratch.
+ * Work RAM below the window is filled with one marker and the two tilemap planes with a SECOND —
+ * it must be distinct, because the keep copy moves plane bytes into work RAM, so one shared marker
+ * would make a copied byte indistinguishable from a cell nothing wrote (how the no-keep-copy twin
+ * first went uncaught). The two cells this entry READS are loaded apart, so a twin taking the wrong
+ * one diverges at a stored cell. One twin is memory-equivalent by construction and is caught on a
+ * REGISTER alone — the marshalling leak a memory gate cannot see.
  *
- *   1. EQUAL      — identical across the whole state dump outside the measured window, at the
- *                   real dispatch, over every dispatch the tape produces.
- *   2. WINDOW     — the oracle's own deepest push, measured over the whole sweep and PINNED, so a
- *                   change that deepens its stack traffic turns this gate red instead of being
- *                   absorbed by a wider mask.
- *   3. BOUNDARY   — the exclusion is exactly as wide as it declares: a planted divergence one byte
- *                   BELOW the window is caught, one AT the entry seat is caught, and one INSIDE is
- *                   masked. The last is what shows the first two are not the instrument catching
- *                   everything.
- *   4. STORES     — over the poisoned machine the oracle really writes every cell the twins below
- *                   are built to break, so their catches rest on writes rather than on scratch.
- *   5. EXCLUDED   — no register outside the declared CEILING moves, with a two-sided control: a
- *                   planted move OUTSIDE the ceiling is reported and one INSIDE is not.
- *   6. PRIORS     — every value of the packed-decimal count, crossed with a spread of the starting
- *                   count, since what is stored and painted depends on those two and on nothing
- *                   else this entry controls.
- *   7. CALLS, NOT RESTATES — the module's text: it must name each callee's file and call it rather
- *                   than carry that callee's body, with each callee's own body as a control.
- *   8. TEETH      — broken twins, each built the way the module is built, with a measured catch
- *                   count over the sweep. One of them is memory-equivalent by construction and is
- *                   caught on a REGISTER alone, which is the marshalling leak a memory gate cannot
- *                   see.
- *
- * HOLE: every callee is gated by its own file. What this file gates is the CHOICE of what
- * is stored and of the order relative to the repaint, and the dissolve of every transfer.
- * HOLE: this gate pins the candidate's pc but leaves sp inside the excluded set, so a rewrite that
- * leaked stack without writing memory would pass here. assembled-swap.test.js owns that.
+ * HOLE: this gate pins pc but leaves sp in the excluded set, so a rewrite that leaked stack without
+ * writing memory passes here — assembled-swap.test.js owns that.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-3215.test.js
  */
@@ -87,11 +62,7 @@ const KEEPS = 3;
 /** Measured by the WINDOW arm: the deepest the oracle's own pushes reach below the entry seat. */
 const SCRATCH_BYTES = 10;
 
-/**
- * The ceiling on register divergence, and the whole of it: the oracle marshals its callees through
- * registers and takes returns the dissolved calls do not. Not a set the rewrite is REQUIRED to
- * fill — a rewrite that diverged on fewer still passes, so this can never refuse a fix.
- */
+/** The ceiling on register divergence: a BOUND, not a demand — a rewrite diverging on fewer still passes. */
 const CEILING = ["a", "f", "d", "e", "h", "l", "sp", "a_", "f_"];
 /** Outside the ceiling, so the EXCLUDED arm can show the measurement reports one. */
 const OUTSIDE = "b";
@@ -101,11 +72,7 @@ const WORK_RAM = 0xa800;
 const PLANES_END = 0xa800;
 /** No value this entry can store, so any write into work RAM is visible. */
 const POISON = 0x5a;
-/**
- * A SECOND marker for the tilemap planes, and it has to be a second one: the keep copy moves plane
- * bytes into work RAM, so one shared marker would make a copied byte indistinguishable from a cell
- * nothing wrote — which is exactly how the no-keep-copy twin first went uncaught.
- */
+/** A distinct SECOND marker for the tilemap planes (see the header: it disambiguates copied bytes). */
 const PLANE_POISON = 0x5b;
 /** Two READ cells loaded apart, so a twin taking the wrong one diverges at a stored cell. */
 const POISON_STARTING_LIVES = 0x03;

@@ -33,28 +33,10 @@
  *   twin that drops the copy is recorded as caught by the crafted cross and by no real dispatch.
  *
  * GATE: crafted-entry over the four things this entry reads or overwrites, plus the single real
- *   dispatch and a whole-machine replay. What it exercises, holes stated:
- *
- *   1. REACHED — nothing branches to this address; the table word is shown to be it; the second
- *      spelling is shown to be a straddle; and the corpus arm counts the dispatches the game makes.
- *   2. EQUAL at the real dispatch — RAM outside the dead stack window, SP and pc all identical.
- *   3. NOT VACUOUS — a do-nothing twin FAILS that same comparison at the real entry.
- *   4. IDEMPOTENT — the sample write is asserted invisible at the real entry, so the crafted
- *      cross is known to be load-bearing rather than assumed to be.
- *   5. SEAM — SP and pc agree on the real dispatch and on every crafted entry.
- *   6. EXCLUDED — the registers that move are reported and bounded by a CEILING, asserted as a
- *      subset rather than an equality so a rewrite agreeing MORE closely cannot fail. SP, pc and
- *      both index registers are asserted to be outside it.
- *   7. CRAFTED — a cross over the sampled cell's two bytes, what the record already held, what the
- *      sprite band already held, the index being stepped (the wrap included) and what the wipe
- *      cells already held.
- *   8. EFFECTS — the oracle is shown to reach all four of its parts on the cross, so a crafted
- *      entry that exercised only one of them could not pass for coverage.
- *   9. CORPUS — the one real dispatch, with the demo asserted to make none.
- *  10. WHOLE-MACHINE — a driven session with the rewrite wired through the seam, differing only in
- *      dead stack bytes, and the same instrument shown CATCHING a do-nothing twin.
- *  11. TEETH — eight twins, each with an exact crafted catch count and its verdict on the one real
- *      dispatch recorded, the one the real dispatch cannot see included.
+ *   dispatch, a whole-machine replay wired through the seam, and teeth. The crafted CROSS carries a
+ *   subset-bounded register CEILING (SP, pc and both index registers asserted outside it), and the
+ *   EFFECTS arm shows the oracle reaches all four of its parts so no one-part entry passes for
+ *   coverage.
  *
  * HOLE: one captured machine and one dispatch. What the sequence does either side of this step is
  * not exercised, and neither is a second visit — the game makes exactly one in the corpus budget.

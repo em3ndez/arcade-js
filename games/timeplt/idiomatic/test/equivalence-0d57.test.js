@@ -2,61 +2,30 @@
 /**
  * loc_0d57 — memory-equivalent to the frozen oracle at ROM 0x0D57.
  *
- * WHAT IT IS. Three constants and a tail transfer: the character-plane cell a run of digits
- * starts from, the high end of the packed-decimal field it walks down, and the pen colour —
- * handed to the shared digit painter at ROM 0x0D73, WHICH IS ALREADY DECOMPILED, so the rewrite
- * calls loc_0d73 directly and dissolving that transfer belongs to this caller's unit.
+ * Three constants and a tail transfer to the shared digit painter at ROM 0x0D73 (already
+ * decompiled): the first character-plane cell, the high end of the packed-decimal field walked
+ * downward, and the pen colour. The rewrite calls loc_0d73 directly; dissolving that transfer is
+ * this caller's unit, and the painter is gated by its own file, so what this file gates is the
+ * CHOICE of the three arguments and the dissolve.
  *
- * ★ THE ORACLE PUSHES AND RETURNS, AND THE REWRITE DOES NEITHER. The oracle reaches the painter
- *   through `m.call`, so the painter's own body pushes return addresses below the entry seat and
- *   then takes a return the direct call never takes. That leaves DEAD STACK SCRATCH below the
- *   seat, and moves the accumulator, the flags, the stack pointer and pc. The window is MEASURED
- *   — the WINDOW arm instruments the oracle's own `push16` over this file's whole sweep and
- *   reports the deepest stack pointer it reaches — never assumed, and never taken from another
- *   gate. A diff-derived window could not see a pushed byte that already held its own value.
- *   Every other arm walks the whole dump and masks ONLY that window.
+ * The oracle reaches the painter through `m.call`, so the painter's body pushes return addresses
+ * below the entry seat and takes a return the direct call never takes — leaving DEAD STACK SCRATCH
+ * below the seat and moving a, f, sp and pc (the declared ceiling). The window is MEASURED, not
+ * assumed: the WINDOW arm instruments the oracle's own `push16` over the whole sweep and reports
+ * the deepest stack pointer reached; a diff-derived window could not see a pushed byte that already
+ * held its own value. Every other arm walks the whole dump and masks ONLY that window.
  *
- * GATE: strict unit-capture with one measured exclusion, PLUS a poisoned-plane comparison,
- *   because the strict one alone would rest on the wrong evidence. At the captured dispatch the
- *   run being painted is identical to what is already on screen, so no plane cell CHANGES and a
- *   broken twin could only show up in stack scratch — which is exactly what is masked. Filling
- *   both tilemap planes with a marker first makes every cell the painter WRITES visible, and
- *   loading the two adjacent packed-decimal fields with different digits is what makes a twin
- *   reading the wrong field diverge at a painted cell. Every twin below is required to be caught
- *   inside the planes, not merely somewhere.
+ * A poisoned-plane comparison backs the strict one, which alone would rest on wrong evidence: at
+ * the captured dispatch the run painted already matches the screen, so no plane cell changes and a
+ * broken twin shows only in masked scratch. Filling both planes with a marker makes every written
+ * cell visible; loading the two adjacent fields with different digits makes a wrong-field twin
+ * diverge at a painted cell. Every twin is required to be caught inside the planes.
  *
- *   1. EQUAL      — identical across the whole state dump outside the measured window, at the
- *                   real dispatch.
- *   2. WINDOW     — the oracle's own deepest push, measured over the whole sweep and PINNED, so
- *                   a change that deepens the oracle's stack traffic turns this gate red instead
- *                   of being absorbed by a wider mask.
- *   3. BOUNDARY   — the exclusion is exactly as wide as it declares: a planted divergence one
- *                   byte BELOW the window is caught, one AT the entry seat is caught, and one
- *                   INSIDE is masked. The last is what shows the first two are not simply the
- *                   instrument catching everything.
- *   4. PAINTS     — over the poisoned planes a run really appears in both of them, and every
- *                   colour cell written carries the colour this entry fixes.
- *   5. EXCLUDED   — no register outside the declared ceiling moves, with a twin that moves one
- *                   as the in-arm control that the measurement can see one.
- *   6. PRIORS     — the packed-decimal field swept over a spread of values, since what is
- *                   painted depends on it and on nothing else this routine controls.
- *   7. CALLS, NOT RESTATES — the module's text: it must name the painter's file and call it
- *                   rather than carry the painter's own body, with that body as a control.
- *   8. TEETH      — four broken twins, each built the way the module is built — a direct call to
- *                   the painter with one argument wrong — and each caught AT A PLANE CELL.
- *
- * The painter itself is gated by its own file, so what this file gates is the CHOICE of the three
- * arguments handed to it, and the dissolve of the transfer.
- *
- * HOLE: one captured machine. The prior sweep covers the content of the field, not the
- * surrounding machine, and the run's position and colour are constants that cannot be swept at
- * all — the twins vary them instead.
+ * HOLE: one captured machine; the run's position and colour are constants that cannot be swept, so
+ * the twins vary them instead. This gate pins pc but leaves sp in the excluded set, so a rewrite
+ * that leaked stack without writing memory passes here — assembled-swap.test.js owns that.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-0d57.test.js
- * WHERE THE STACK POINTER IS OWNED. This gate pins the candidate's pc but leaves sp inside the
- * excluded set, so a rewrite that silently leaked stack without writing memory would pass here.
- * assembled-swap.test.js owns that and carries an arm for it; this gate does not, and says so
- * rather than implying a coverage it does not have.
  */
 
 import test from "node:test";
@@ -81,11 +50,7 @@ const COLOUR = 0x10;
 /** Measured by the WINDOW arm: the deepest the oracle's own pushes reach below the entry seat. */
 const SCRATCH_BYTES = 8;
 
-/**
- * The ceiling on divergence, and the whole of it: the oracle takes a return the dissolved call
- * does not. Not a set the rewrite is required to fill — a rewrite that diverged on fewer still
- * passes, so this can never refuse a fix.
- */
+/** The ceiling on divergence: a BOUND, not a demand — a rewrite diverging on fewer still passes. */
 const MOVED = ["a", "f", "sp"];
 
 /** The two 1KB tilemap planes the painter writes, colour first in the address space. */
@@ -135,11 +100,8 @@ function entryState() {
 }
 
 /**
- * A clone of the captured entry with both planes filled with a marker byte, and the two
- * adjacent packed-decimal fields loaded with DIFFERENT digits. Both are needed: the marker
- * makes every cell written visible, and distinct fields are what let a twin reading the
- * wrong one diverge at a painted cell rather than only in stack scratch — at the captured
- * entry the two fields hold the same digits, so a wrong-field twin paints the same run.
+ * The captured entry with both planes marked and the two adjacent fields loaded with DIFFERENT
+ * digits, so a wrong-field twin diverges at a painted cell rather than only in masked scratch.
  */
 function poisoned() {
   const mm = entryState().clone();
@@ -174,10 +136,8 @@ function inScratch(addr, sp) {
 }
 
 /**
- * Oracle vs candidate on clones of `machine`: the whole state dump masked to the measured window,
- * then every register outside the ceiling. A candidate that raises rather than writing counts as
- * caught; only the candidate's side is wrapped, because a raise from the oracle is a harness fault
- * and must not be swallowed.
+ * Oracle vs candidate on clones: the whole dump masked to the window, then registers outside the
+ * ceiling. A raising candidate is caught; only its side is wrapped (an oracle raise is a harness fault).
  */
 function unitDiff(candidate, machine) {
   const sp = machine.regs.sp;
@@ -232,10 +192,8 @@ function sweep() {
 }
 
 // ── broken twins ────────────────────────────────────────────────────────────────────────
-// Each is the module with one constant wrong, transferring the way the module transfers —
-// a DIRECT call to the painter. A twin reaching it by `m.call` would match the oracle's stack
-// traffic exactly and so would never be masked, which would let the teeth pass without ever
-// exercising the exclusion.
+// Each is the module with one constant wrong, via a DIRECT call to the painter — not `m.call`,
+// which would match the oracle's stack traffic, never be masked, and let the teeth pass unexercised.
 
 /** BUG: does nothing — the twin that proves the comparison sees a real dispatch. */
 function brokenNoOp() {}
@@ -275,10 +233,8 @@ const TWINS = [
 ];
 
 /**
- * The BOUNDARY arm's probe: the ORACLE ITSELF, plus one byte flipped at `sp + offset`. Built on
- * the oracle rather than on the rewrite so that what the arm reports is a property of the MASK
- * alone — a broken rewrite must fail the arms that judge the rewrite, not be re-reported here as
- * a mis-placed window.
+ * The BOUNDARY probe: the ORACLE ITSELF plus one byte flipped at `sp + offset`, so what the arm
+ * reports is a property of the MASK alone, not of any rewrite.
  */
 function scribbler(offset) {
   return (m) => {

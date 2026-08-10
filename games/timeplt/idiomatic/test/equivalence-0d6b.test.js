@@ -2,63 +2,34 @@
 /**
  * loc_0d6b — memory-equivalent to the frozen oracle at ROM 0x0D6B.
  *
- * WHAT IT IS. Three constants and a fall-through: the tally to print, taken from its highest byte
- * because the printer walks downward; the cell its leftmost digit lands in; and the colour every
- * digit is given — handed to the six-digit readout printer at ROM 0x0D73, WHICH IS ALREADY
- * DECOMPILED, so the rewrite calls loc_0d73 directly and dissolving that transfer belongs to this
- * caller's unit.
+ * Three constants and a fall-through into the six-digit readout printer at ROM 0x0D73 (already
+ * decompiled): the tally to print (from its highest byte, because the printer walks downward), the
+ * cell its leftmost digit lands in, and the digit colour. The rewrite calls loc_0d73 directly;
+ * dissolving that transfer is this caller's unit, and the printer is gated by its own file, so what
+ * this file gates is the CHOICE of the three arguments and the dissolve.
  *
- * ★ THE ORACLE PUSHES AND RETURNS, AND THE REWRITE DOES NEITHER. The oracle reaches the printer
- *   through `m.call`, so the printer's own body pushes return addresses below the entry seat and
- *   then takes a return the direct call never takes. That leaves DEAD STACK SCRATCH below the
- *   seat, and moves the accumulator, the flags, the stack pointer and pc. The window is MEASURED
- *   — the WINDOW arm instruments the oracle's own `push16` at the captured entry and at every
- *   dispatch of both sessions, and reports the deepest stack pointer it reaches — never assumed,
- *   and never taken from another gate. A diff-derived window could not see a pushed byte that
- *   already held its own value. Every other arm walks the whole dump and masks ONLY that window.
+ * The oracle reaches the printer through `m.call`, so the printer's body pushes return addresses
+ * below the entry seat and takes a return the direct call never takes — leaving DEAD STACK SCRATCH
+ * below the seat and moving a, f, sp and pc (the declared ceiling). The window is MEASURED, not
+ * assumed: the WINDOW arm instruments the oracle's own `push16` at the captured entry and every
+ * dispatch and reports the deepest stack pointer reached. Every other arm walks the whole dump and
+ * masks ONLY that window.
  *
- * GATE: strict unit-capture with one measured exclusion and the printer RUNNING, plus the ROM's
- *   argument triple pinned as values, plus a corpus, plus teeth. What it exercises, holes stated:
+ * Strict unit-capture at the real dispatch with the printer RUNNING, plus the argument triple
+ * PINNED as values, plus a corpus and teeth. The PINNED arm records the triple off the ORACLE by
+ * replacing the printer in the routine registry, and requires the module's own text to name the
+ * same three constants (a sibling entry's text is the control).
+ *   ★ HOLE: the registry recorder reaches the ORACLE only. The rewrite's transfer is a direct call
+ *   no registry entry can intercept, so the candidate side of the argument comparison is carried by
+ *   the masked whole-RAM diff at the real dispatch and over the corpus — the printer runs for real
+ *   on both arms and every cell it touches is compared — and by the twins.
  *
- *   1. EQUAL at the real dispatch with the printer running — identical across the whole state
- *      dump outside the measured window, and every register outside the declared ceiling.
- *   2. WINDOW — the oracle's own deepest push, measured over the captured entry and every real
- *      dispatch and PINNED, so a change that deepens the oracle's stack traffic turns this gate
- *      red instead of being absorbed by a wider mask.
- *   3. BOUNDARY — the exclusion is exactly as wide as it declares: a planted divergence one byte
- *      BELOW the window is caught, one AT the entry seat is caught, and one INSIDE is masked. The
- *      last is what shows the first two are not simply the instrument catching everything.
- *   4. PINNED — the argument triple is asserted AS VALUES, recorded off the ORACLE by replacing
- *      the printer in the routine registry, and the module's own text is required to name the
- *      same three constants, with a sibling entry's text as the control that the check can tell
- *      one module from another. Together these are what stop a rewrite, a twin and this file's
- *      constants from drifting together.
- *      ★ HOLE, AND IT IS THE DISSOLVE'S: the registry recorder reaches the ORACLE only. The
- *      rewrite's transfer is a direct call and no registry entry can intercept it, so the
- *      candidate side of the argument comparison is carried by the masked whole-RAM diff at the
- *      real dispatch and over the corpus — the printer runs for real on both arms and every cell
- *      it touches is compared — and by the twins below.
- *   5. EXCLUDED — no register outside the declared ceiling moves, with a twin that moves one as
- *      the in-arm control that the measurement can see one.
- *   6. CORPUS — every dispatch of the driven tape and of the undriven demo. ★ THIS ENTRY FIRES
- *      ONCE PER SESSION and the corpus arm asserts that count, so a change is a finding.
- *   7. CALLS, NOT RESTATES — the module's text: it must name the printer's file and call it
- *      rather than carry the printer's own body, with that body as a control.
- *   8. TEETH — a twin for each way this entry could be wrong: doing nothing, each of the three
- *      arguments taken from the wrong place, the field walked from the wrong end, and the
- *      transfer skipped. Each is built the way the module is built, a direct call to the printer
- *      with one argument wrong, and each must be caught at a real cell rather than in scratch.
- *
- * HOLE: one dispatch per session, at one point in the sequence, so nothing here exercises the
- * printer against a different screen state.
- * HOLE: nothing here establishes what the tally being printed IS. This entry chooses a source
- * and a destination; what lives at that source is the printer's business and its caller's.
+ * HOLE: one dispatch per session, at one point in the sequence, so nothing exercises the printer
+ * against a different screen state. HOLE: nothing here establishes what the tally being printed IS.
+ * This gate pins pc but leaves sp in the excluded set, so a rewrite that leaked stack without
+ * writing memory passes here — assembled-swap.test.js owns that.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-0d6b.test.js
- * WHERE THE STACK POINTER IS OWNED. This gate pins the candidate's pc but leaves sp inside the
- * excluded set, so a rewrite that silently leaked stack without writing memory would pass here.
- * assembled-swap.test.js owns that and carries an arm for it; this gate does not, and says so
- * rather than implying a coverage it does not have.
  */
 
 import test from "node:test";
@@ -86,11 +57,7 @@ const DIGIT_COLOUR = 0x10;
 /** Measured by the WINDOW arm: the deepest the oracle's own pushes reach below the entry seat. */
 const SCRATCH_BYTES = 8;
 
-/**
- * The ceiling on divergence, and the whole of it: the oracle takes a return the dissolved call
- * does not. Not a set the rewrite is required to fill — a rewrite that diverged on fewer still
- * passes, so this can never refuse a fix.
- */
+/** The ceiling on divergence: a BOUND, not a demand — a rewrite diverging on fewer still passes. */
 const MOVED = ["a", "f", "sp"];
 
 const TAPES = [
@@ -241,10 +208,8 @@ function sessions() {
 }
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────
-// Each is the module with one thing wrong, transferring the way the module transfers — a DIRECT
-// call to the printer. A twin reaching it by `m.call` would match the oracle's stack traffic
-// exactly and so would never be masked, which would let the teeth pass without ever exercising
-// the exclusion.
+// Each is the module with one thing wrong, via a DIRECT call to the printer — not `m.call`, which
+// would match the oracle's stack traffic, never be masked, and let the teeth pass unexercised.
 
 /** BUG: does nothing at all — the tell that a gate is measuring an unreached routine. */
 function brokenNoOp() {}
