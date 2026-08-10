@@ -14,7 +14,7 @@ import { freeAndNumberEveryObjectSlot } from "./freeAndNumberEveryObjectSlot.js"
 import { loc_30a5 } from "./loc_30a5.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { u8 } from "../../../core/int.js";
-import { ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, SCRIPT_PICK_THRESHOLD } from "./names.js";
+import { ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, SCRIPT_PICK_THRESHOLD, SHOT_BURST_PENDING } from "./names.js";
 
 const SUBPIXEL_SLOTS = 7;
 const RECORD_STRIDE = 16;
@@ -39,7 +39,7 @@ export function resetPlayfieldAndArmNewRound(m) {
   mem8[0xad05] = 0;
   mem8[0xa9d7] = mem8[0xa9d6];
   mem8[0xacc0] = mem8[0xad0a];
-  mem8[0xaa81] = 0;
+  mem8[SHOT_BURST_PENDING] = 0;
   mem8[ROUND_TRANSITION_HOLD] = 0;
   mem8[0xa802] = 0x80;
   mem8[0xa801] = 0;

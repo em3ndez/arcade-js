@@ -6,9 +6,8 @@
 
 import { destroyCraftAndMotherShipHitByShots } from "./destroyCraftAndMotherShipHitByShots.js";
 import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
-import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, MOTHER_SHIP_ARMED } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, MOTHER_SHIP_ARMED, PLAYER_SHOT_ARRAY } from "./names.js";
 
-const SHOT_RECORDS = 0xaa80;
 const SHOTS = 6;
 const TARGETS = 7;
 const REACH = 7;
@@ -27,7 +26,7 @@ export function loc_4f35(m) {
   mem16[TARGET_RECORD_CURSOR] = CRAFT_RECORD_SLOT0;
   mem16[TARGET_ENTRY_CURSOR] = CRAFT_ENTRY_SLOT0;
   destroyTargetsHitByShots(
-    m, SHOT_RECORDS, CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0,
+    m, PLAYER_SHOT_ARRAY, CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0,
     TARGETS, TARGETS, SHOTS, REACH, SPAN,
   );
 }

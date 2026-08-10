@@ -16,6 +16,7 @@ import { loc_5664 } from "./loc_5664.js";
 import { loc_5674 } from "./loc_5674.js";
 import { requestTwoSoundsWhilePlaying } from "./requestTwoSoundsWhilePlaying.js";
 import { u8 } from "../../../core/int.js";
+import { ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
 
 const NEW_RECORD = 0xa991;
 const NEW_ENTRY = 0xa993;
@@ -23,7 +24,6 @@ const ERA = 0xad04;
 const COOLDOWN_SRC = 0xa8f6;
 const COOLDOWN = 0xa8f4;
 const ERA4_EXTRA_SRC = 0xa8e6;
-const AIM_POINT = 0xac7f;
 const OFFSET_STEP = 0x1a;
 
 export function loc_42b7(m, spawnerRecord = m.regs.ix, spawnerEntry = m.regs.iy) {
@@ -82,7 +82,7 @@ export function loc_42b7(m, spawnerRecord = m.regs.ix, spawnerEntry = m.regs.iy)
     return tailOff(requestTwoSoundsWhilePlaying);
   }
 
-  regs.hl = AIM_POINT;
+  regs.hl = ENEMY_STANDOFF_AIM_MAIN;
   headingToward(m);
   mem8[record + 0x01] = regs.a;
   if (era >= 3) {

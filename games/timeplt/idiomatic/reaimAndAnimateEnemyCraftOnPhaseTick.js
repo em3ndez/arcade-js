@@ -11,10 +11,9 @@ import { loc_326c } from "./loc_326c.js";
 import { stepShapeAnimation } from "./stepShapeAnimation.js";
 import { headingToward } from "./headingToward.js";
 import { offsetAddress } from "./offsetAddress.js";
-import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0 } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ENEMY_AIM_POINT_TABLE } from "./names.js";
 
 const PHASE = 0xad05;
-const AIM_POINTS = 0xac65;
 const SLOT_COUNT = 7;
 const OCCUPIED = 0xff;
 const HELD = 0x10;
@@ -44,7 +43,7 @@ export function reaimAndAnimateEnemyCraftOnPhaseTick(m) {
   if (state === HELD) return;
 
   if (state === REAIM_THEN_HOLD) {
-    regs.hl = AIM_POINTS;
+    regs.hl = ENEMY_AIM_POINT_TABLE;
     headingToward(m);
     mem8[record + 1] = u8(regs.a + 0x80);
     mem8[record + 8] = HELD;
@@ -53,7 +52,7 @@ export function reaimAndAnimateEnemyCraftOnPhaseTick(m) {
   }
 
   regs.a = u8(state + state);
-  regs.hl = AIM_POINTS;
+  regs.hl = ENEMY_AIM_POINT_TABLE;
   offsetAddress(m);
   headingToward(m);
   mem8[record + 1] = regs.a;

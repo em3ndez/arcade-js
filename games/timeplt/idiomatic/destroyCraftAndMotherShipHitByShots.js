@@ -13,10 +13,9 @@
 
 import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
-import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ERA_INDEX, MOTHER_SHIP_STATE } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ERA_INDEX, MOTHER_SHIP_STATE, PLAYER_SHOT_ARRAY } from "./names.js";
 import { u8 } from "../../../core/int.js";
 
-const SHOT_RECORDS = 0xaa80;
 const SHOTS = 6;
 const RECORD_STRIDE = 16;
 const TARGETS = 5;
@@ -54,7 +53,7 @@ export function destroyCraftAndMotherShipHitByShots(m) {
   mem16[TARGET_RECORD_CURSOR] = CRAFT_RECORD_SLOT0;
   mem16[TARGET_ENTRY_CURSOR] = CRAFT_ENTRY_SLOT0;
   destroyTargetsHitByShots(
-    m, SHOT_RECORDS, CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0,
+    m, PLAYER_SHOT_ARRAY, CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0,
     TARGETS, TARGETS, SHOTS, TARGET_REACH, TARGET_SPAN,
   );
 
@@ -63,7 +62,7 @@ export function destroyCraftAndMotherShipHitByShots(m) {
   const span = wide ? WIDE_SPAN : NARROW_SPAN;
   if (mem8[MOTHER_SHIP_STATE] !== LIVE) return;
 
-  let shot = SHOT_RECORDS;
+  let shot = PLAYER_SHOT_ARRAY;
   for (let left = SHOTS; left !== 0; left--) {
     if (mem8[shot + STATE] === LIVE &&
       within(mem8[STANDING_FIRST_AXIS], mem8[shot + SHOT_FIRST_AXIS], reach, span) &&

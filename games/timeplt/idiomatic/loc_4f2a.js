@@ -10,9 +10,8 @@
 import { runAllCollisionSweepsThisFrame } from "./runAllCollisionSweepsThisFrame.js";
 import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
 import { loc_4fe0 } from "./loc_4fe0.js";
-import { FRAME_TICK, MOTHER_SHIP_ARMED } from "./names.js";
+import { FRAME_TICK, MOTHER_SHIP_ARMED, PLAYER_SHOT_ARRAY } from "./names.js";
 
-const SHOT_SLOTS = 0xaa80;
 const TARGET_RECORDS = 0xa810;
 const TARGET_ENTRIES = 0xaa12;
 const TARGET_ENTRY_CURSOR = 0xa991;
@@ -32,7 +31,7 @@ export function loc_4f2a(m) {
 
   regs.de = TARGET_RECORDS;
   regs.iy = TARGET_ENTRIES;
-  regs.ix = SHOT_SLOTS;
+  regs.ix = PLAYER_SHOT_ARRAY;
   regs.a_ = targets;
   regs.b = targets;
   regs.c = SHOTS;

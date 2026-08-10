@@ -8,12 +8,8 @@ import { readPlayerControls } from "./readPlayerControls.js";
 import { loc_567e } from "./loc_567e.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
 import { queueTileStampForObject } from "./queueTileStampForObject.js";
-import { PLAYER_HEADING, PLAYER_STATE, PLAY_ACTIVE, ROUND_TRANSITION_HOLD, WORLD_SCROLL_X, WORLD_SCROLL_Y } from "./names.js";
+import { FIRE_BUTTON_EDGE_SHIFT, PLAYER_HEADING, PLAYER_SHOT_ARRAY, PLAYER_STATE, PLAY_ACTIVE, ROUND_TRANSITION_HOLD, SHOT_BURST_PENDING, SHOT_SPAWN_COOLDOWN, WORLD_SCROLL_X, WORLD_SCROLL_Y } from "./names.js";
 
-const PHASE_SHIFT_REG = 0xa98e;
-const SPAWNS_ARMED = 0xaa81;
-const SPAWN_COOLDOWN = 0xaa82;
-const SLOT_BANK = 0xaa80;
 const SLOT_COUNT = 6;
 const RECORD_STRIDE = 16;
 const SEARCH_STRIDE_SRC = 0x0d46;
@@ -31,13 +27,13 @@ export function fireAndSweepPlayerShots(m) {
   if (mem8[ROUND_TRANSITION_HOLD] !== 0) return sweepSlots(m);
 
   const controls = readPlayerControls(m);
-  mem8[PHASE_SHIFT_REG] = u8((mem8[PHASE_SHIFT_REG] << 1) | ((controls >> 4) & 1));
-  if ((mem8[PHASE_SHIFT_REG] & 0x03) === 1) mem8[SPAWNS_ARMED] = 3;
+  mem8[FIRE_BUTTON_EDGE_SHIFT] = u8((mem8[FIRE_BUTTON_EDGE_SHIFT] << 1) | ((controls >> 4) & 1));
+  if ((mem8[FIRE_BUTTON_EDGE_SHIFT] & 0x03) === 1) mem8[SHOT_BURST_PENDING] = 3;
 
-  if (mem8[PLAY_ACTIVE] !== 0 && mem8[SPAWNS_ARMED] === 0) return sweepSlots(m);
-  if (mem8[SPAWN_COOLDOWN] !== 0) return sweepSlots(m);
+  if (mem8[PLAY_ACTIVE] !== 0 && mem8[SHOT_BURST_PENDING] === 0) return sweepSlots(m);
+  if (mem8[SHOT_SPAWN_COOLDOWN] !== 0) return sweepSlots(m);
 
-  let slot = SLOT_BANK;
+  let slot = PLAYER_SHOT_ARRAY;
   for (let i = 0; i < SLOT_COUNT; i++) {
     if (mem8[slot] === 0) { spawnIntoFreeSlot(m, slot); break; }
     slot = u16(slot + mem16[SEARCH_STRIDE_SRC]);
@@ -63,16 +59,16 @@ function spawnIntoFreeSlot(m, slot) {
   mem8[slot + AXIS2] = 0;
   mem8[slot + AXIS2 + 1] = velocity >> 8;
 
-  mem8[SPAWNS_ARMED] = u8(mem8[SPAWNS_ARMED] - 1);
-  mem8[SPAWN_COOLDOWN] = 6;
+  mem8[SHOT_BURST_PENDING] = u8(mem8[SHOT_BURST_PENDING] - 1);
+  mem8[SHOT_SPAWN_COOLDOWN] = 6;
 }
 
 function sweepSlots(m) {
   const { mem8, mem16 } = m;
-  if (mem8[SPAWN_COOLDOWN] !== 0) mem8[SPAWN_COOLDOWN] = u8(mem8[SPAWN_COOLDOWN] - 1);
+  if (mem8[SHOT_SPAWN_COOLDOWN] !== 0) mem8[SHOT_SPAWN_COOLDOWN] = u8(mem8[SHOT_SPAWN_COOLDOWN] - 1);
 
   for (let i = 0; i < SLOT_COUNT; i++) {
-    const slot = SLOT_BANK + i * RECORD_STRIDE;
+    const slot = PLAYER_SHOT_ARRAY + i * RECORD_STRIDE;
     const head = mem8[slot + OCC];
     if (head === 0) continue;
     if (u8(head + 1) !== 0) { cullSlot(m, slot); continue; }

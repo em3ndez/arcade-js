@@ -1075,6 +1075,16 @@ grounding, but no run here followed the block to a reader, and none tested the p
 player doing anything in particular. What is settled is that six of them exist, at two distances,
 and that they move.
 
+★ **The readers are now identified from the code — though still not watched under MAME.** The enemy
+steerers load these points into `headingToward`: `flyTowardShipStandoffThenEndApproach` picks between
+`ENEMY_STANDOFF_AIM_SET` (`0xAC75`) and `ENEMY_STANDOFF_AIM_CLEAR` (`0xAC79`) by a craft record's
+selector bit, while the chase steerer, the era spawners and the Mother-Ship stepper all read
+`ENEMY_STANDOFF_AIM_MAIN` (`0xAC7F`); the reaim pass indexes the table base `ENEMY_AIM_POINT_TABLE`
+(`0xAC65`) by twice a craft's state byte. So the block IS the enemy aim table. `[code]` for the reader
+role — the block's values, centre and movement remain the `[seen]` facts above, and no run has yet
+watched an enemy steer to one of these points, so "aims at the player" stays unproven; the points stand
+OFF the ship, not on it.
+
 ---
 
 ## §6 Killing, and being killed

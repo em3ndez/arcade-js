@@ -1,20 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4fe0 — sweep six slots for one that a single roaming thing has reached, and destroy both.
- *
- * The roaming thing has one state byte and one pair of coordinates, all at fixed cells; unless its
- * state byte holds the live code the sweep does not run at all. Each slot must hold the live code
- * too, and both of its coordinates must fall inside a box centred on the roamer. The box is not
- * square and its first axis is not constant: two of the era values widen that axis, which is the
- * only thing the era decides here. A slot that passes takes the destroyed code, the roamer takes
- * it as well, and the chained hit score is posted for it. The sweep does NOT stop there — it runs
- * the remaining slots with the roamer already destroyed, so one pass can pay for several. Slots
- * are stepped a record at a time WITHOUT leaving their page. LIVE-OUT: memory. */
+/** loc_4fe0 — sweep the six shot slots for one that a single roaming thing has reached, and destroy both. The
+ * roamer has one state byte and one coordinate pair at fixed cells; unless its state is live the sweep doesn't run.
+ * Each slot must be live too, with both coordinates inside a box centred on the roamer -- not square, and its first
+ * axis widened by two of the era values (the only thing the era decides here). A slot that passes takes the destroyed
+ * code, the roamer takes it too, and the chained hit score is posted. The sweep runs the remaining slots with the
+ * roamer already destroyed, so one pass can pay for several. Slots step a record at a time without leaving their page.
+ * LIVE-OUT: memory. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { ERA_INDEX, MOTHER_SHIP_STATE } from "./names.js";
+import { ERA_INDEX, MOTHER_SHIP_STATE, PLAYER_SHOT_ARRAY } from "./names.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
 
-const SLOTS = 0xaa80;
 const SLOT_COUNT = 6;
 const RECORD_STRIDE = 16;
 const STATE = 0;
@@ -46,7 +42,7 @@ export function loc_4fe0(m) {
 
   if (mem8[MOTHER_SHIP_STATE] !== LIVE) return;
 
-  let slot = SLOTS;
+  let slot = PLAYER_SHOT_ARRAY;
   for (let left = SLOT_COUNT; left !== 0; left--) {
     if (
       mem8[u16(slot + STATE)] === LIVE &&

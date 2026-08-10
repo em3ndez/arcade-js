@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** loc_3d25 — spawn one aimed enemy, but only when the spawn slot is free, the cooldown at
  * SPAWN_COOLDOWN is clear, the era count is live, and some object in the caller's two-slot bank sits
- * inside a doubled window. Draws a heading toward the player at PLAYER_TRACK, alternates the aim's
+ * inside a doubled window. Draws a heading toward the player at ENEMY_STANDOFF_AIM_MAIN, alternates the aim's
  * side each spawn via SIDE_TOGGLE, then seats coords, the doubled velocity pair, a script and a
  * shape into the era's fixed record+sprite bank and reloads the cooldown. LIVE-OUT: memory. */
 
@@ -9,6 +9,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { loc_565f } from "./loc_565f.js";
 import { headingToward } from "./headingToward.js";
 import { loc_59c5 } from "./loc_59c5.js";
+import { ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
 
 const SPAWN_COOLDOWN = 0xa8f4;
 const COOLDOWN_RELOAD = 0xa8f6;
@@ -17,7 +18,6 @@ const SCAN_BANK_FLAG = 0xa8e0;
 const BANK_A_FLAG = 0xa840;
 const WINDOW_HALF = 0xa8d6;
 const SIDE_TOGGLE = 0xa8d4;
-const PLAYER_TRACK = 0xac7f;
 
 const SLOT_FREE = 0xff;
 const SEARCH_SLOTS = 2;
@@ -63,7 +63,7 @@ export function loc_3d25(m) {
   if (!hit) return;
 
   loc_565f(m);
-  regs.hl = PLAYER_TRACK;
+  regs.hl = ENEMY_STANDOFF_AIM_MAIN;
   const heading = headingToward(m);
   mem8[SIDE_TOGGLE] = u8(mem8[SIDE_TOGGLE] + 1);
   const turn = mem8[SIDE_TOGGLE] & 1 ? TURN : u8(-TURN);

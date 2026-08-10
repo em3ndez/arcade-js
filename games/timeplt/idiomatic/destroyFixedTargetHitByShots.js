@@ -1,18 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** destroyFixedTargetHitByShots — run one fixed target against a six-slot array of shots and destroy
- * the ones that have reached it. The target's own state byte must still read live before the sweep
- * starts, and that test is taken ONCE, ahead of the loop, never again inside it; each live slot is
- * then tested on both axes, as a wrapped window a few units wide around the target, and a slot
- * inside both windows is marked destroyed along with the target, and its score posted. The sweep
- * does not stop there — it runs on through the remaining slots, so however many shots overlap the
- * target, every one of them is spent in the one call and every one of them scores. Slot addressing
- * steps the LOW half of the cursor only, so a wide enough array would wrap back inside its own page
- * rather than run past it. LIVE-OUT: memory only. */
+/** destroyFixedTargetHitByShots — run one fixed target against the six-slot shot array and destroy the shots that
+ * reached it. The target's state byte must read live before the sweep (tested once, ahead of the loop); each live
+ * slot is then tested on both axes as a wrapped window around the target, and a slot inside both is marked destroyed
+ * with the target and its score posted. The sweep runs on through the remaining slots, so every overlapping shot is
+ * spent and scores in the one call. Slot addressing steps only the low half of the cursor, so a wide enough array
+ * would wrap inside its page. LIVE-OUT: memory only. */
 
 import { postChainedHitScore } from "./postChainedHitScore.js";
 import { u8 } from "../../../core/int.js";
+import { PLAYER_SHOT_ARRAY } from "./names.js";
 
-const SHOT_SLOTS = 0xaa80;
 const SLOTS = 6;
 const SLOT_STRIDE = 0x10;
 
@@ -35,7 +32,7 @@ export function destroyFixedTargetHitByShots(m) {
   const { mem8 } = m;
   if (mem8[TARGET_STATE] !== LIVE) return;
 
-  let slot = SHOT_SLOTS;
+  let slot = PLAYER_SHOT_ARRAY;
   for (let i = 0; i < SLOTS; i++) {
     if (mem8[slot + OCCUPANCY] === LIVE) {
       const across = u8(mem8[TARGET_FIRST_AXIS] - mem8[slot + SHOT_FIRST_AXIS] + FIRST_AXIS_SLACK);

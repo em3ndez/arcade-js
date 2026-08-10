@@ -12,7 +12,7 @@ import { loadDifficultyRecord } from "./loadDifficultyRecord.js";
 import { seedRandomRegister } from "./seedRandomRegister.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8 } from "../../../core/int.js";
-import { PLAY_ACTIVE } from "./names.js";
+import { ENEMY_AIM_POINT_TABLE, PLAYER_SHOT_ARRAY, PLAY_ACTIVE } from "./names.js";
 
 const SEED_A9CD = 0xa9cd;
 const START_RUNG_SOURCE = 0xa9d3;
@@ -30,7 +30,7 @@ export function loc_27b1(m) {
   loc_5834(m);
 
   mem8[0xac64] = 0x78;
-  mem8[0xac65] = 0x84;
+  mem8[ENEMY_AIM_POINT_TABLE] = 0x84;
   mem16[0xad16] = 0x0000;
   mem16[0xad26] = 0x0000;
 
@@ -75,7 +75,7 @@ export function loc_27b1(m) {
   mem8[0xa9cf] = 0x00;
   seedRandomRegister(m);
 
-  for (let cell = 0xaa80; cell <= 0xaadf; cell++) mem8[cell] = 0x00;
+  for (let cell = PLAYER_SHOT_ARRAY; cell <= 0xaadf; cell++) mem8[cell] = 0x00;
   for (let cell = 0xa800; cell <= 0xa97f; cell++) mem8[cell] = 0x00;
 
   regs.a = 0x02;

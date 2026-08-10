@@ -955,6 +955,80 @@ export const CRAFT_ENTRY_SLOT4 = 0xaa22;
  */
 export const CRAFT_ENTRY_SLOT6 = 0xaa26;
 
+/*
+ * Player shots: a SEPARATE six-slot record array at 0xAA80 (0xAA80-0xAADF, stride 0x10) with NO sprite entries --
+ * the object-array 8:1 mapping does not apply. Slot +0 head/occupancy, +3/+5 velocity, +10/+12 position. See §4/§5.
+ */
+
+/**
+ * Base of the player's six-slot shot record array. [code]
+ *
+ * A POINTER BASE, not a scalar: the shot engine seeds and sweeps six 16-byte records here, and the four target
+ * sweeps read this run to test each shot against what it might hit. Shots carry their own whole coordinates, so
+ * this base is loaded into both index registers (the "iy = sprite entry" convention is inverted for shots).
+ */
+export const PLAYER_SHOT_ARRAY = 0xaa80;
+
+/**
+ * Countdown of shots still owed from the current fire press. [code]
+ *
+ * A fire-button rising edge loads three; each shot seeded decrements it; during credited play no shot is seeded
+ * while it is zero -- so a press fires at most a three-shot burst. (The attract demo ignores this gate.)
+ */
+export const SHOT_BURST_PENDING = 0xaa81;
+
+/**
+ * Inter-shot fire-rate cooldown: frames left before the next player shot may seed. [code]
+ *
+ * Reloaded to six the moment a shot fires and wound down once per sweep; while nonzero no new shot seeds, so shots
+ * leave no faster than one every six frames. (Distinct from the enemy spawn cooldowns.)
+ */
+export const SHOT_SPAWN_COOLDOWN = 0xaa82;
+
+/**
+ * Fire-button edge-detect shift register. [code]
+ *
+ * Each frame the fire bit (bit 4 of the read control panel) is shifted into bit 0; the low two bits hold
+ * {previous, current}, and the value 0b01 -- released-then-pressed -- is the rising edge that arms a burst. It is
+ * NOT a sequence phase: the local names PHASE_SHIFT_REG / PHASE were a misnomer this pass corrects.
+ */
+export const FIRE_BUTTON_EDGE_SHIFT = 0xa98e;
+
+/*
+ * Enemy aim points: a block at 0xAC64-0xAC7F the object driver rewrites every phase-tick -- entry 0 (0xAC64=Y 0x78,
+ * 0xAC65=X 0x84) is the ship anchor, and six standoff points stand off the ship on its heading. The block's values
+ * and movement are [seen] (mechanisms.md §5, write-tap); that the enemy steerers READ them to aim is [code].
+ */
+
+/**
+ * Base of the enemy aim-point table, and byte-wise entry 0's X = the ship anchor point (0xAC64 = Y). [code]
+ *
+ * The reaim pass indexes this base by twice a craft's state byte to pick which aim point that craft steers toward;
+ * state 0x11 uses the anchor here (aim at the ship's pinned point) then latches to a hold. A pointer base doubling
+ * as the anchor scalar. Block values [seen] (§5); the aim-reader role is [code].
+ */
+export const ENEMY_AIM_POINT_TABLE = 0xac65;
+
+/**
+ * X byte of one of the two selectable ship-standoff aim points (pair 0xAC74 = Y). [code]
+ *
+ * The approach steerer aims a craft here when that craft's record selector bit (ix+0x0f bit 0) is SET; the point
+ * stands off the ship (it is not the ship's own point) and is rewritten with the block each phase-tick.
+ */
+export const ENEMY_STANDOFF_AIM_SET = 0xac75;
+
+/** X byte of the sibling standoff aim point (pair 0xAC78 = Y), chosen when that selector bit is CLEAR. [code] */
+export const ENEMY_STANDOFF_AIM_CLEAR = 0xac79;
+
+/**
+ * X byte of the most-referenced ship-standoff aim point (pair 0xAC7E = Y). [code]
+ *
+ * The chase steerer, the era spawners and the Mother-Ship stepper all read this point as the heading target for a
+ * new or homing enemy. It stands off the ship (not the ship's own point, which is the anchor at 0xAC65), so a name
+ * implying it IS the player's position, or that it LEADS the target, would over-claim.
+ */
+export const ENEMY_STANDOFF_AIM_MAIN = 0xac7f;
+
 export const ROUTINES = {
   0x43b7: { name: "armMotherShipOrStep", role: "once-in-eight-frames gate for the Mother-Ship: while the wave-hold flag 0xacc6 is clear, defer to the deep-state stepper (stepMotherShip) if it is already live (MOTHER_SHIP_ARMED 0xad0d != 0), else -- only when the kill quota (KILLS_REMAINING 0xad02) is spent and both records of its two-slot bank (0xa8a0/0xa8b0) read empty -- arm it (0xad0d=0xff), seed the lead record's seven-hit counter (ix+0x04=0x07), and retire the matching entry pair into cooldown to spawn it", cert: "code" },
   0x1199: { name: "serviceRoundThenResolvePlayerState", role: "the round engine's service list (substep 7 of the phase-3 dispatch at 0x0f29; runs per dispatch, short of the frame count): run each subsystem service in fixed order, then read the player-state byte at 0xa800 and advance the round when it is 0xff (alive), hand a life over when it is 0 (dead), else return", cert: "code" },

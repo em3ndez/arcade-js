@@ -6,7 +6,7 @@
  * through. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { FRAME_TICK } from "./names.js";
+import { ENEMY_STANDOFF_AIM_CLEAR, ENEMY_STANDOFF_AIM_SET, FRAME_TICK } from "./names.js";
 import { headingToward } from "./headingToward.js";
 import { endApproachNow } from "./endApproachNow.js";
 import { steerTowardAimAtFixedRate } from "./steerTowardAimAtFixedRate.js";
@@ -16,8 +16,6 @@ import { hasReachedRetireLine } from "./hasReachedRetireLine.js";
 
 const REAIM_MASK = 0x0f;
 const AIM_SELECTOR = 15;
-const AIM_POINT_IF_SET = 0xac75;
-const AIM_POINT_IF_CLEAR = 0xac79;
 const AIM_HEADING = 1;
 const SECOND_COORD = 49;
 const ARRIVED = 16;
@@ -27,7 +25,7 @@ export function flyTowardShipStandoffThenEndApproach(m) {
   const held = regs.bc;
 
   if ((mem8[FRAME_TICK] & REAIM_MASK) === 0) {
-    const point = mem8[u16(regs.ix + AIM_SELECTOR)] & 1 ? AIM_POINT_IF_SET : AIM_POINT_IF_CLEAR;
+    const point = mem8[u16(regs.ix + AIM_SELECTOR)] & 1 ? ENEMY_STANDOFF_AIM_SET : ENEMY_STANDOFF_AIM_CLEAR;
     mem8[u16(regs.ix + AIM_HEADING)] = headingToward(m, point);
     // headingToward drops the two axis gaps it measures; recompute them to spot arrival.
     const firstGap = Math.abs(mem8[point] - mem8[regs.iy]);

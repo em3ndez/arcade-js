@@ -22,7 +22,7 @@ import { requestTwoSounds } from "./requestTwoSounds.js";
 import { loc_56d2 } from "./loc_56d2.js";
 import { loc_57f7 } from "./loc_57f7.js";
 import { loc_580b } from "./loc_580b.js";
-import { ROUND_TRANSITION_HOLD } from "./names.js";
+import { ENEMY_STANDOFF_AIM_MAIN, ROUND_TRANSITION_HOLD } from "./names.js";
 
 const RECORD_BANK = 0xa8a0;
 const SPRITE_BANK = 0xaa24;
@@ -72,7 +72,6 @@ const FREE_RECORD_BAND = 0xa830;
 const FREE_SPRITE_BAND = 0xaa16;
 const NEW_RECORD_PTR = 0xa991;
 const NEW_SPRITE_PTR = 0xa993;
-const HEADING_ANCHOR = 0xac7f;
 const HEADING_TOGGLE = 0xa8b4;
 const STAGE = 0xad04;
 const ARM_TABLE = 0x478b;
@@ -407,7 +406,7 @@ export function loc_43f0_474c(m) {
 
   loc_565f(m);
 
-  regs.hl = HEADING_ANCHOR;
+  regs.hl = ENEMY_STANDOFF_AIM_MAIN;
   headingToward(m);
 
   regs.h = regs.a;

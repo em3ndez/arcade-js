@@ -14,6 +14,7 @@ import { headingToward } from "./headingToward.js";
 import { requestEraKeyedLaunchSound } from "./requestEraKeyedLaunchSound.js";
 import { loc_59cb } from "./loc_59cb.js";
 import { loc_59d1 } from "./loc_59d1.js";
+import { ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
 
 const SPAWN_PHASE = 0xa980;
 const SPAWN_GUARD = 0xa817;
@@ -28,7 +29,6 @@ const NEAR_MARGIN_Y = 0xa827;
 const SCROLL_ANGLE = 0xa802;
 const NEAR_MARGIN_X = 0xa837;
 const ALT_MARGIN = 0xa8e6;
-const AIM_POINT = 0xac7f;
 const VELOCITY_SELECT = 0xad04;
 
 const PHASE_KEY = 0x0f;
@@ -106,7 +106,7 @@ export function loc_3ed6(m) {
     if (regs.fNC) return;
   }
 
-  regs.hl = AIM_POINT;
+  regs.hl = ENEMY_STANDOFF_AIM_MAIN;
   const heading = headingToward(m);
   regs.sub(mem8[u16(regs.ix + OBJ_X)]);
   regs.add(0x10);
