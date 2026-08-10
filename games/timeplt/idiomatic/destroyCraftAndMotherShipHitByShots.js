@@ -1,31 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * destroyCraftAndMotherShipHitByShots — run this era's two shot sweeps: the six shots against the five ordinary targets
- * first, then the same six shots against the one standing object that keeps its state byte and
- * its screen position apart from every record.
+ * destroyCraftAndMotherShipHitByShots — run this era's two shot sweeps: six shots against the five
+ * ordinary targets, then the same six against the one standing object (which keeps its state byte and
+ * screen position apart from every record).
  *
- * The first sweep is handed its runs, its counts and its box outright, and the two cursor cells
- * it reloads between passes are staged here beforehand so the runs it restarts on are the ones
- * chosen here.
- *
- * The second sweep runs only while the standing object's state byte holds the live code, and its
- * box is not the first's: far wider on the second axis, always, but on the first axis a shade
- * NARROWER than the first sweep's — except in the first and last eras, where that one axis is
- * widened past it instead. A shot that reaches the object marks BOTH as destroyed and posts a
- * score, and then the sweep carries on through the remaining shots without re-testing the
- * object, so several shots arriving in one frame are each paid for. LIVE-OUT: memory-only.
+ * The first sweep gets its runs, counts and box outright, with the two cursor cells it reloads between
+ * passes staged here first. The second runs only while the standing object is live, with a different box
+ * (wider on axis 2; on axis 1 a shade narrower, except first/last eras where it is widened past). A shot
+ * reaching the object marks both destroyed, posts a score, then carries on without re-testing it, so
+ * several shots in one frame are each paid for. LIVE-OUT: memory-only.
  */
 
 import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
-import { ERA_INDEX, MOTHER_SHIP_STATE } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ERA_INDEX, MOTHER_SHIP_STATE } from "./names.js";
 import { u8 } from "../../../core/int.js";
 
 const SHOT_RECORDS = 0xaa80;
 const SHOTS = 6;
 const RECORD_STRIDE = 16;
-const TARGET_RECORDS = 0xa850;
-const TARGET_ENTRIES = 0xaa1a;
 const TARGETS = 5;
 const TARGET_REACH = 7;
 const TARGET_SPAN = 15;
@@ -58,10 +51,10 @@ const nextRecord = (cursor) => (cursor & 0xff00) | u8(cursor + RECORD_STRIDE);
 
 export function destroyCraftAndMotherShipHitByShots(m) {
   const { mem8, mem16 } = m;
-  mem16[TARGET_RECORD_CURSOR] = TARGET_RECORDS;
-  mem16[TARGET_ENTRY_CURSOR] = TARGET_ENTRIES;
+  mem16[TARGET_RECORD_CURSOR] = CRAFT_RECORD_SLOT0;
+  mem16[TARGET_ENTRY_CURSOR] = CRAFT_ENTRY_SLOT0;
   destroyTargetsHitByShots(
-    m, SHOT_RECORDS, TARGET_ENTRIES, TARGET_RECORDS,
+    m, SHOT_RECORDS, CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0,
     TARGETS, TARGETS, SHOTS, TARGET_REACH, TARGET_SPAN,
   );
 

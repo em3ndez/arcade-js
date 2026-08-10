@@ -889,6 +889,72 @@ export const MOTHER_SHIP_ARMED = 0xad0d;
  */
 export const DEFERRED_BLANK_CURSOR = 0xae80;
 
+/*
+ * Enemy-craft slots: the 7-slot actor sub-band. Records at 0xA850 (stride 0x10) paired to sprite entries
+ * at 0xAA1A (stride 0x02), lockstep 8:1 (entry = 0xAA10 + (record-0xA800)/8). Slots 0-6; slot 5 is the
+ * Mother-Ship (MOTHER_SHIP_STATE 0xA8A0 / entry 0xAA24). Each cell below is the BASE of a whole record or
+ * entry, not a scalar: record +0x00 = state head (0x00 free / 0xFF live / 0xFE held / dying-count), entry
+ * +0x00 = X, +0x01 = tile, +0x30 = attribute, +0x31 = Y. See mechanisms.md §4.
+ */
+
+/**
+ * Slot 0's record, and the iteration base of the whole 7-slot craft band. [code]
+ *
+ * Every whole-band walker seats ix/hl here and strides +0x10 -- the wave builder, the reaim/animate pass,
+ * the wave spawner, the kill sweep, the animation-stop -- and the slot-0 per-slot handler also seats it.
+ */
+export const CRAFT_RECORD_SLOT0 = 0xa850;
+
+/** Slot 1's record head; its per-slot handler seats it and tails into the era body. [code] */
+export const CRAFT_RECORD_SLOT1 = 0xa860;
+
+/** Slot 2's record head. [code] */
+export const CRAFT_RECORD_SLOT2 = 0xa870;
+
+/** Slot 3's record head. [code] */
+export const CRAFT_RECORD_SLOT3 = 0xa880;
+
+/**
+ * Slot 4's record head, and the seat of the "cleared" free-slot spawn search. [code]
+ *
+ * When the kill quota is spent the search runs a fixed five slots starting here (spilling past the band's
+ * end through the Mother-Ship slot into the era-special bank).
+ */
+export const CRAFT_RECORD_SLOT4 = 0xa890;
+
+/**
+ * Slot 6's record head (the last ordinary craft slot), with two extra duties. [code]
+ *
+ * It seats the "owed" free-slot spawn search (run length = ROUND_CRAFT_COUNT), and it is the Mother-Ship's
+ * SECOND record when the boss is armed -- so slot 6's per-slot handler stands down while MOTHER_SHIP_ARMED
+ * is set. (Slot 5, between slot 4 and this, is MOTHER_SHIP_STATE.)
+ */
+export const CRAFT_RECORD_SLOT6 = 0xa8b0;
+
+/**
+ * Slot 0's sprite entry, and the iteration base of the whole entry band; paired with CRAFT_RECORD_SLOT0
+ * in every whole-band walk (entry stride +0x02). [code]
+ */
+export const CRAFT_ENTRY_SLOT0 = 0xaa1a;
+
+/** Slot 1's sprite entry (paired with CRAFT_RECORD_SLOT1). [code] */
+export const CRAFT_ENTRY_SLOT1 = 0xaa1c;
+
+/** Slot 2's sprite entry. [code] */
+export const CRAFT_ENTRY_SLOT2 = 0xaa1e;
+
+/** Slot 3's sprite entry. [code] */
+export const CRAFT_ENTRY_SLOT3 = 0xaa20;
+
+/** Slot 4's sprite entry, and the "cleared" spawn-search entry-cursor seat (parallel to CRAFT_RECORD_SLOT4). [code] */
+export const CRAFT_ENTRY_SLOT4 = 0xaa22;
+
+/**
+ * Slot 6's sprite entry: the "owed" spawn-search entry-cursor seat, and the Mother-Ship's second sprite
+ * entry when armed (parallel to CRAFT_RECORD_SLOT6). [code]
+ */
+export const CRAFT_ENTRY_SLOT6 = 0xaa26;
+
 export const ROUTINES = {
   0x43b7: { name: "armMotherShipOrStep", role: "once-in-eight-frames gate for the Mother-Ship: while the wave-hold flag 0xacc6 is clear, defer to the deep-state stepper (stepMotherShip) if it is already live (MOTHER_SHIP_ARMED 0xad0d != 0), else -- only when the kill quota (KILLS_REMAINING 0xad02) is spent and both records of its two-slot bank (0xa8a0/0xa8b0) read empty -- arm it (0xad0d=0xff), seed the lead record's seven-hit counter (ix+0x04=0x07), and retire the matching entry pair into cooldown to spawn it", cert: "code" },
   0x1199: { name: "serviceRoundThenResolvePlayerState", role: "the round engine's service list (substep 7 of the phase-3 dispatch at 0x0f29; runs per dispatch, short of the frame count): run each subsystem service in fixed order, then read the player-state byte at 0xa800 and advance the round when it is 0xff (alive), hand a life over when it is 0 (dead), else return", cert: "code" },

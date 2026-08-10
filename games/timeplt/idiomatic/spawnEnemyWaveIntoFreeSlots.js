@@ -10,10 +10,8 @@ import { drawRandomByte } from "./drawRandomByte.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { stepShapeAnimation } from "./stepShapeAnimation.js";
 import { u8, u16 } from "../../../core/int.js";
-import { MOTHER_SHIP_ARMED, ROUND_CRAFT_COUNT, WAVE_CLAIM_TIMER } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, MOTHER_SHIP_ARMED, ROUND_CRAFT_COUNT, WAVE_CLAIM_TIMER } from "./names.js";
 
-const SLOT_BANK = 0xa850;
-const ENTRY_BANK = 0xaa1a;
 const SLOT_STRIDE = 0x10;
 const DEFAULT_COUNT = 5;
 const SHAPE_TABLE = 0x3a3b;
@@ -25,8 +23,8 @@ export function spawnEnemyWaveIntoFreeSlots(m) {
   const configuredCount = mem8[ROUND_CRAFT_COUNT];
   const count = mem8[MOTHER_SHIP_ARMED] === 0 ? configuredCount : DEFAULT_COUNT;
 
-  let slot = SLOT_BANK;
-  let entry = ENTRY_BANK;
+  let slot = CRAFT_RECORD_SLOT0;
+  let entry = CRAFT_ENTRY_SLOT0;
   // A count of zero walks the whole bank 256 times, not none: the loop steps then wraps at 8 bits.
   let remaining = count;
   do {

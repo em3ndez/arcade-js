@@ -15,7 +15,7 @@ import { stopFiveSlotAnimations } from "./stopFiveSlotAnimations.js";
 import { gateTheFreeSlotSearchAndPickItsRun } from "./gateTheFreeSlotSearchAndPickItsRun.js";
 import { loc_379f } from "./loc_379f.js";
 import { loc_5817 } from "./loc_5817.js";
-import { ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, WAVE_CLAIM_TIMER, WAVE_DESCRIPTOR_INDEX, WAVE_KILL_COUNTDOWN } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, WAVE_CLAIM_TIMER, WAVE_DESCRIPTOR_INDEX, WAVE_KILL_COUNTDOWN } from "./names.js";
 
 const ERA_INDEX = 0xad04;
 const LIFE_PHASE = 0xad06;
@@ -24,8 +24,6 @@ const KILLS_REMAINING = 0xad02;
 const PLAYER_HEADING = 0xa802;
 const WAVE_MARK = 0xacc2;
 
-const CRAFT_BAND = 0xa850;
-const ENTRY_BAND = 0xaa1a;
 const BIAS_TABLE = 0x38d9;
 const DESCRIPTOR_TABLE = 0x397b;
 const SHAPE_TABLE = 0x38e9;
@@ -64,8 +62,8 @@ export function driveEnemyWaveForLifePhase(m) {
 
   const count = mem8[KILLS_REMAINING] !== 0 ? mem8[ROUND_CRAFT_COUNT] : DEFAULT_COUNT;
   mem8[WAVE_KILL_COUNTDOWN] = 0;
-  let record = CRAFT_BAND;
-  let entry = ENTRY_BAND;
+  let record = CRAFT_RECORD_SLOT0;
+  let entry = CRAFT_ENTRY_SLOT0;
 
   let remaining = count;
   do {

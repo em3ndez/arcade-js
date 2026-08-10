@@ -662,6 +662,11 @@ and several routines put a sprite-entry base in the record register.)
 Player shots are the exception: a **separate** six-slot array at `0xAA80` with no sprite entries at
 all. `[code]`
 
+The six ordinary enemy-craft slots of the actor band are named `CRAFT_RECORD_SLOT0`–`SLOT6` (records) and
+`CRAFT_ENTRY_SLOT0`–`SLOT6` (entries) in the registry — slot 5 is the Mother-Ship (`MOTHER_SHIP_STATE`), so
+the six are 0–4 and 6. Slot 0 is the band's iteration base, and slots 4 and 6 double as the seats of the
+"cleared" and "owed" free-slot spawn searches; slot 6 is also the Mother-Ship's second record. `[code]`
+
 ### A coordinate is split across both tables
 
 An actor's position is 16-bit 8.8 fixed point whose **whole byte lives in the sprite entry** and

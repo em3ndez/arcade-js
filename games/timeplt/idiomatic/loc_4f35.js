@@ -1,22 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4f35 — run this stretch of a round's shot sweep against the FULL run of seven targets.
- *
- * MOTHER_SHIP_ARMED decides which of two sweeps runs, and choosing between them plus supplying the
- * seven-target run's arguments is the whole of this entry. While it is set the sweep that also
- * covers the standing object runs instead, and that one stages its own runs. While it is clear the
- * two cursor cells the shared sweep reloads between passes are staged here first, so every pass
- * restarts on the run chosen here, and the shared sweep then runs six shots against seven targets
- * inside one box. Both counts it is handed are seven, so the first pass is no shorter than the
- * rest. LIVE-OUT: memory only. */
+/** loc_4f35 — run this stretch of a round's shot sweep against the full run of seven targets.
+ * MOTHER_SHIP_ARMED picks which of two sweeps runs: while set, the sweep that also covers the standing
+ * object runs (staging its own runs); while clear, this stages the shared sweep's two cursor cells and
+ * hands it the seven-target run (both counts seven). LIVE-OUT: memory only. */
 
 import { destroyCraftAndMotherShipHitByShots } from "./destroyCraftAndMotherShipHitByShots.js";
 import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
-import { MOTHER_SHIP_ARMED } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, MOTHER_SHIP_ARMED } from "./names.js";
 
 const SHOT_RECORDS = 0xaa80;
 const SHOTS = 6;
-const TARGET_RECORDS = 0xa850;
-const TARGET_ENTRIES = 0xaa1a;
 const TARGETS = 7;
 const REACH = 7;
 const SPAN = 15;
@@ -31,10 +24,10 @@ export function loc_4f35(m) {
     return;
   }
 
-  mem16[TARGET_RECORD_CURSOR] = TARGET_RECORDS;
-  mem16[TARGET_ENTRY_CURSOR] = TARGET_ENTRIES;
+  mem16[TARGET_RECORD_CURSOR] = CRAFT_RECORD_SLOT0;
+  mem16[TARGET_ENTRY_CURSOR] = CRAFT_ENTRY_SLOT0;
   destroyTargetsHitByShots(
-    m, SHOT_RECORDS, TARGET_ENTRIES, TARGET_RECORDS,
+    m, SHOT_RECORDS, CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0,
     TARGETS, TARGETS, SHOTS, REACH, SPAN,
   );
 }

@@ -7,16 +7,13 @@
 
 import { loc_3793 } from "./loc_3793.js";
 import { spawnEnemyIntoFreeSlotElseStepSearch } from "./spawnEnemyIntoFreeSlotElseStepSearch.js";
-import { ROUND_CRAFT_COUNT } from "./names.js";
+import { CRAFT_ENTRY_SLOT6, CRAFT_RECORD_SLOT0, CRAFT_RECORD_SLOT6, ROUND_CRAFT_COUNT } from "./names.js";
 
-const CRAFT_BAND = 0xa850;
 const RECORD_STRIDE = 0x10;
 const BAND_SLOTS = 0x07;
 const BUSY_CEILING = 0x02;
 const OPEN_PHASE = 0x30;
 const OWED_KILLS = 0xad02;
-const OWED_RECORD = 0xa8b0;
-const OWED_ENTRY = 0xaa26;
 
 export function loc_379f(m) {
   const { regs, mem8 } = m;
@@ -28,7 +25,7 @@ export function loc_379f(m) {
     if (regs.a !== OPEN_PHASE) return; // neither the idle nor the open phase
   }
 
-  regs.hl = CRAFT_BAND;
+  regs.hl = CRAFT_RECORD_SLOT0;
   regs.de = RECORD_STRIDE;
   regs.b = BAND_SLOTS;
   regs.c = 0x00;
@@ -49,7 +46,7 @@ export function loc_379f(m) {
 
   regs.a = mem8[ROUND_CRAFT_COUNT];
   regs.b = regs.a;
-  regs.ix = OWED_RECORD;
-  regs.iy = OWED_ENTRY;
+  regs.ix = CRAFT_RECORD_SLOT6;
+  regs.iy = CRAFT_ENTRY_SLOT6;
   return spawnEnemyIntoFreeSlotElseStepSearch(m);
 }

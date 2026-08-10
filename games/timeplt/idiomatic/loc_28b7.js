@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_28b7 — aim the record cursor at one craft's state block and the display cursor at the two
- * bytes that block drives, then run the arm the era selects. Nothing here reads or writes memory;
- * the pair of cursors is the whole of what this entry contributes. LIVE-OUT: memory, and the arm's. */
+/** loc_28b7 — seat slot 0's craft record + entry cursors, then run the era arm. LIVE-OUT: memory. */
 
 import { loc_290e } from "./loc_290e.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0 } from "./names.js";
 
-const CRAFT_RECORD = 0xa850;
-const DISPLAY_ENTRY = 0xaa1a;
 
 export function loc_28b7(m) {
   const { regs } = m;
-  regs.ix = CRAFT_RECORD;
-  regs.iy = DISPLAY_ENTRY;
+  regs.ix = CRAFT_RECORD_SLOT0;
+  regs.iy = CRAFT_ENTRY_SLOT0;
   return loc_290e(m);
 }
