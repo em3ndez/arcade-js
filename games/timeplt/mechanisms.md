@@ -167,8 +167,10 @@ Both of those siblings — and phase 0's arm `dispatchSequencePhase0SubStepArm` 
 sub-step to `&7` and dispatches an inline table at 0x15c8 — reach that word table through one shared
 primitive: `dispatchInlineWordTableIndexedByA` (0x0030, the `rst 0x30` vector), which pops its own
 return address as the table base, indexes it by `A`, and `jp (hl)`s. The era/slot dispatcher of §4
-(`dispatchSeatedSlotByEraIndex`, 0x290e) is the same primitive on `(ERA_INDEX)&7`. Only phase 1's arm
-(0x1651) is not yet lifted. `[code]`
+(`dispatchSeatedSlotByEraIndex`, 0x290e) is the same primitive on `(ERA_INDEX)&7`. Phase 1's arm,
+`dispatchSequencePhase1SubStepArm` (0x1651), reaches its own table at 0x1659 through that primitive
+too, on a RAW sub-step (the doubling wraps at eight bits, so a large index folds onto the head), and
+ends by running a shared tail — the advance-or-free-play epilogue at 0x167b. `[code]`
 
 The registry declined for two passes to say what these sequences were. **They are now established
 by observation of the real machine, in two independent captures:** `[seen]`

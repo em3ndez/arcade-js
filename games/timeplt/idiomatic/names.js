@@ -1252,7 +1252,7 @@ export const ROUTINES = {
   },
   0x074b: {
     name: "erasePenRouteThenAdvanceStep",
-    role: "attract-sequence arm (phase 1, sub-step 0, reached by rst-30 computed dispatch from loc_1651): fold the fixed 256-byte run at 0x4AA0 into an eight-bit total and derail into the checksum-failure landing 0x08FA on any total but 0xB8; otherwise set the pen colour 0xAD0C to 5 and the stamp glyph 0xAD0B to the blanking glyph 0xF1 (so the pen erases), re-arm the pen route via 0x01E1, then step the sequence sub-step 0x0F1A -- twice when the pen colour already held 5",
+    role: "attract-sequence arm (phase 1, sub-step 0, reached by rst-30 computed dispatch from dispatchSequencePhase1SubStepArm): fold the fixed 256-byte run at 0x4AA0 into an eight-bit total and derail into the checksum-failure landing 0x08FA on any total but 0xB8; otherwise set the pen colour 0xAD0C to 5 and the stamp glyph 0xAD0B to the blanking glyph 0xF1 (so the pen erases), re-arm the pen route via 0x01E1, then step the sequence sub-step 0x0F1A -- twice when the pen colour already held 5",
     cert: "code",
   },
   0x0f8d: {
@@ -1525,7 +1525,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x1651: {
-    name: "loc_1651",
+    name: "dispatchSequencePhase1SubStepArm",
     role: "the inner level of the two-level sequence machine for one outer mode: run the arm the RAW inner index selects out of a word table laid inline just after this entry, then this mode's shared tail at 0x167B; the doubling that turns the index into an offset wraps at eight bits, so a large index folds back onto the head of the table",
     cert: "code",
   },
@@ -2343,7 +2343,7 @@ export const ROUTINES = {
     name: "guardBlockOrBlankDisplay",
     role: "fold a block of the program image and let the sequence step on only if it still adds up; otherwise switch the display off and copy one character cell into TAMPER_WITNESS",
     cert: "code",
-    why: "two things outside the routine could have refuted it and did not. The block it folds is 51 bytes from 0x0B06, which is the entry of stampCopyrightStrip -- the guard covers a routine, not an arbitrary span -- and the fold over the real image comes to exactly the value compared, while shifting the seed by one takes the other arm. Its address also sits in the word table at 0x1659 that loc_1651 dispatches, at the eighth entry, so the sequence really is what it gates",
+    why: "two things outside the routine could have refuted it and did not. The block it folds is 51 bytes from 0x0B06, which is the entry of stampCopyrightStrip -- the guard covers a routine, not an arbitrary span -- and the fold over the real image comes to exactly the value compared, while shifting the seed by one takes the other arm. Its address also sits in the word table at 0x1659 that dispatchSequencePhase1SubStepArm dispatches, at the eighth entry, so the sequence really is what it gates",
   },
   0x308a: {
     name: "placeDiagonallyAbuttingTile",
@@ -2498,7 +2498,7 @@ export const ROUTINES = {
     name: "stepSequenceUnderChecksum",
     role: "step the sequence's inner sub-step on, folding a block of the program image on the way; a total that does not match advances the outer phase instead, which derails the sequence rather than halting it",
     cert: "code",
-    why: "the name says the mismatch arm cannot run on a genuine image, and a measurement could have contradicted it: read taps under MAME counted zero dispatches at advanceSequencePhase's entry across both runs while this routine's own entry was reached in both, and the fold over the real image comes to exactly the byte it is compared with. This entry has no static call site anywhere in the image -- it is reached only as the eleventh entry of the word table at 0x1659 that loc_1651 dispatches -- so what it is FOR is fixed by that table and by nothing that could be mistaken for a caller",
+    why: "the name says the mismatch arm cannot run on a genuine image, and a measurement could have contradicted it: read taps under MAME counted zero dispatches at advanceSequencePhase's entry across both runs while this routine's own entry was reached in both, and the fold over the real image comes to exactly the byte it is compared with. This entry has no static call site anywhere in the image -- it is reached only as the eleventh entry of the word table at 0x1659 that dispatchSequencePhase1SubStepArm dispatches -- so what it is FOR is fixed by that table and by nothing that could be mistaken for a caller",
   },
   0x51b3: {
     name: "markObjectsTouchingPlayer",

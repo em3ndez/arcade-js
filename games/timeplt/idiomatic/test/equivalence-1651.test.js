@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1651 — memory-equivalent to the frozen oracle at ROM 0x1651.
+ * dispatchSequencePhase1SubStepArm — memory-equivalent to the frozen oracle at ROM 0x1651.
  *
  * GATE: strict unit-capture with ONE exclusion, a replayed corpus of every dispatch, an
  *   exhaustive crafted sweep of the index, an arm that severs the arms themselves, and teeth.
@@ -16,11 +16,11 @@
  *      One arm below runs the rewrite WITHOUT that park and asserts that the stack pointer then
  *      ends two bytes adrift — which is what makes keeping it a measured requirement rather than
  *      a habit carried over from the transcription.
- *   3. EXCLUDED, deliberately: nothing but the stack window, OF THE THINGS THIS GATE CAN SEE.
- *      Every register agrees, the stack pointer included, and the arm below pins that as an exact
- *      empty set. It does NOT see time: `clone()` seats nextNmi at Infinity so no NMI can fire,
- *      and the cycle count is in neither the state dump nor REG_FIELDS. That exclusion is the
- *      fidelity contract's, not this file's choice — the rewrite charges no T-states by design.
+ *   3. EXCLUDED, deliberately: nothing but the stack window and the register file the shared tail
+ *      drops. Only sp is live-out (the tail's ret restores it, and the arm below pins it to the
+ *      oracle); every other register is the tail's dead leftover. It does NOT see time: `clone()`
+ *      seats nextNmi at Infinity so no NMI can fire, and the cycle count is in neither the state
+ *      dump nor REG_FIELDS — the rewrite charges no T-states by design.
  *   4. DISPATCH IS PROVED, not assumed: a severing arm replaces every address the table can
  *      select with a recorder on both sides and asserts that the SAME arm was chosen and handed
  *      the same lookup by-products it records — the accumulator and the two pairs, not the flags.
@@ -30,9 +30,9 @@
  *      way to reach the indices past the end of the table — the index is used raw, so a large one
  *      selects bytes that are not an arm address at all.
  *   7. TEETH — six twins. Each twin's verdict on the real corpus is recorded exactly, INCLUDING
- *      the two that the corpus cannot see well: one the demo's index set never exercises at all,
- *      which the crafted sweep catches instead, and one that does not merely diverge but stops
- *      the session outright by selecting a word that is not a routine.
+ *      the two the corpus cannot see — one the demo's index set never exercises, and one whose only
+ *      divergence is residue the shared tail then drops — which the crafted sweep catches at the
+ *      arm's input instead; and one that stops the session outright by selecting a non-routine word.
  *
  * HOLE: what each arm DOES is not exercised here beyond the indices the two sessions present.
  * HOLE: this file does not establish how long the table is. It asserts what the ROM bytes select
@@ -45,7 +45,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1651 } from "../loc_1651.js";
+import { dispatchSequencePhase1SubStepArm } from "../dispatchSequencePhase1SubStepArm.js";
 import { fetchTableWord } from "../fetchTableWord.js";
 import { SEQUENCE_SUBSTEP } from "../names.js";
 import { loc_1651 as oracle } from "../../translated/loc_1651.js";
@@ -64,6 +64,12 @@ const CORPUS_FRAMES = 2500;
  * pointer. Measured, and asserted as an exact ceiling rather than assumed.
  */
 const SCRATCH_BYTES = 6;
+
+// The shared tail's own gate DROPS the register file (its LIVE-OUT is memory), so once dispatchSequencePhase1SubStepArm ends
+// in that tail every register it leaves is a dead leftover -- EXCEPT sp, which the tail's ret restores
+// structurally and which the PARKED-RETURN arm holds to the oracle. So the divergence checks ignore
+// every register but sp; the arm's input residue (hl/de) is still pinned by the severed recorder.
+const DEAD_REGS = REG_FIELDS.filter((k) => k !== "sp");
 
 const TAPES = [
   ["attract", { tape: [] }],
@@ -90,7 +96,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_1651);
+  if (entry === null) gate(dispatchSequencePhase1SubStepArm);
   return entry;
 }
 
@@ -119,15 +125,16 @@ function unitDiff(candidate, machine) {
   candidate(b);
   const ram = allDiffs(a, b).find((d) => !inScratch(d.addr, sp));
   if (ram) return ram;
-  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k] && !DEAD_REGS.includes(k));
   if (moved.length) return { addr: null, reg: moved[0], a: a.regs[moved[0]], b: b.regs[moved[0]] };
   return null;
 }
 
 /**
- * A clone in which every address the table can select is a recorder, and so is the shared tail,
- * on both arms. Each recorder returns through the stack exactly as the routine it stands in for
- * does, so the stack accounting this file is about is preserved.
+ * A clone in which every address the table can select is a recorder. The shared tail is NOT severed:
+ * it is reached by a direct call now, not a dispatch, so there is nothing to prove about its
+ * selection — only the arm the table picks is. Each recorder returns through the stack exactly as the
+ * routine it stands in for does, so the stack accounting this file is about is preserved.
  */
 function severed(machine, log) {
   const c = machine.clone();
@@ -139,10 +146,6 @@ function severed(machine, log) {
       mm.ret();
     });
   }
-  c.routines.set(SHARED_TAIL, (mm) => {
-    log.push({ kind: "tail", arm: SHARED_TAIL, a: mm.regs.a, hl: mm.regs.hl, de: mm.regs.de });
-    mm.ret();
-  });
   return c;
 }
 
@@ -192,7 +195,7 @@ function replaySession(opts, candidate) {
         if (d.addr !== null && d.addr < sp) widest = Math.max(widest, sp - d.addr);
       }
       const stray = diffs.find((d) => !inScratch(d.addr, sp));
-      const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+      const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k] && !DEAD_REGS.includes(k));
       if (stray || moved.length) caught++;
       return oracle(mm);
     }]]),
@@ -218,7 +221,7 @@ function replaySession(opts, candidate) {
 let sessionCache = null;
 function sessions() {
   if (!sessionCache) {
-    sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, loc_1651) }));
+    sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, dispatchSequencePhase1SubStepArm) }));
   }
   return sessionCache;
 }
@@ -312,21 +315,22 @@ const CAUGHT = {
   // The demo only ever presents indices this mask leaves alone, so the corpus is blind to it and
   // the crafted sweep below is what catches it. Recorded rather than hidden.
   "masks-the-index": 0,
-  // Caught on a small minority: most arms overwrite the lookup's by-products before reading them.
-  "drops-lookup-residue": 3,
+  // The residue it drops lands only in registers the shared tail then drops (dead), so the corpus --
+  // which compares live state -- is blind to it; the crafted sweep catches it at the arm's input (256).
+  "drops-lookup-residue": 0,
   "off-by-one-entry": "KILLS",
 };
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the dead stack window", { skip }, () => {
-  gate(loc_1651);
+  gate(dispatchSequencePhase1SubStepArm);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const sp = entryState().regs.sp;
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_1651(b);
+  dispatchSequencePhase1SubStepArm(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   console.log(
@@ -346,7 +350,7 @@ test("★ THE PARKED RETURN IS LOAD-BEARING: dropping it leaves the stack two by
   const withoutPark = entryState().clone();
   const reference = entryState().clone();
   oracle(reference);
-  loc_1651(withPark);
+  dispatchSequencePhase1SubStepArm(withPark);
   brokenNoParkedReturn(withoutPark);
   assert.equal(
     withPark.regs.sp,
@@ -365,31 +369,31 @@ test("★ THE PARKED RETURN IS LOAD-BEARING: dropping it leaves the stack two by
   );
 });
 
-test("EXCLUDED, deliberately: nothing but the stack window — every register agrees", { skip }, () => {
+test("EXCLUDED, deliberately: only the shared tail's dropped registers and the stack window differ", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_1651(b);
+  dispatchSequencePhase1SubStepArm(b);
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
+    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k] && !DEAD_REGS.includes(k)),
     [],
-    "a register moved: this routine's own return is performed by the shared tail on both sides, " +
-      "so nothing at all may differ outside the dead stack window",
+    "a register the tail does NOT drop moved: the tail's LIVE-OUT is memory (its own gate drops the " +
+      "register file), so only sp is live here and it must still match the oracle via the ret",
   );
-  console.log("  EXCLUDED: no register at all, sp included — only the dead scratch differs");
+  console.log("  EXCLUDED: only the tail's dropped registers and the dead scratch differ; sp matches");
 });
 
-test("DISPATCH: both sides choose the same arm, hand it the same residue, and run the tail", { skip }, () => {
+test("DISPATCH: both sides choose the same arm and hand it the same residue", { skip }, () => {
   const logA = [];
   const a = severed(craft(4), logA);
   oracle(a);
   assert.deepEqual(
     logA.map((x) => x.kind),
-    ["arm", "tail"],
-    "the oracle must run the selected arm and then the shared tail, in that order",
+    ["arm"],
+    "the oracle must run the arm the table selects (the tail is a fixed direct call, not dispatched)",
   );
   for (const index of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
-    assert.equal(dispatchDiff(loc_1651, index), null, `index ${index} dispatched differently`);
+    assert.equal(dispatchDiff(dispatchSequencePhase1SubStepArm, index), null, `index ${index} dispatched differently`);
   }
   console.log(
     `  DISPATCH: arm then tail; indices 0..12 select ` +
@@ -425,7 +429,7 @@ test("CORPUS: every dispatch of both sessions replays identically", { skip }, ()
 
 test("EXHAUSTIVE: all 256 indices select the same arm on both sides", { skip }, () => {
   for (let index = 0; index < 256; index++) {
-    assert.equal(dispatchDiff(loc_1651, index), null, `index ${index} dispatched differently`);
+    assert.equal(dispatchDiff(dispatchSequencePhase1SubStepArm, index), null, `index ${index} dispatched differently`);
   }
   assert.equal(armFor(entryState(), 128), armFor(entryState(), 0), "128 must fold onto 0");
   assert.equal(armFor(entryState(), 200), armFor(entryState(), 72), "200 must fold onto 72");
@@ -447,13 +451,15 @@ for (const [label, twin] of TWINS) {
   });
 }
 
-test("TEETH: the index twins are caught by the crafted sweep the corpus cannot reach", { skip }, () => {
+test("TEETH: the twins the corpus cannot reach are caught by the crafted sweep", { skip }, () => {
   const masked = [...Array(256).keys()].filter((i) => dispatchDiff(brokenMasksTheIndex, i));
   const offByOne = [...Array(256).keys()].filter((i) => dispatchDiff(brokenOffByOneEntry, i));
+  const dropsResidue = [...Array(256).keys()].filter((i) => dispatchDiff(brokenDropsLookupResidue, i));
   assert.equal(masked.length, 224, "the masks-the-index twin's crafted catch count moved");
   assert.equal(offByOne.length, 256, "the off-by-one twin's crafted catch count moved");
+  assert.equal(dropsResidue.length, 256, "the drops-lookup-residue twin's crafted catch count moved");
   console.log(
-    `  TEETH/crafted: masks-the-index caught on ${masked.length} of 256 indices, ` +
-      `off-by-one-entry on ${offByOne.length}`,
+    `  TEETH/crafted: masks-the-index caught on ${masked.length} of 256, off-by-one on ` +
+      `${offByOne.length}, drops-lookup-residue on ${dropsResidue.length}`,
   );
 });
