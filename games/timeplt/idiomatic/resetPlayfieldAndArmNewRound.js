@@ -14,7 +14,7 @@ import { freeAndNumberEveryObjectSlot } from "./freeAndNumberEveryObjectSlot.js"
 import { loc_30a5 } from "./loc_30a5.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { u8 } from "../../../core/int.js";
-import { ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, SCRIPT_PICK_THRESHOLD, SHOT_BURST_PENDING } from "./names.js";
+import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, SCRIPT_PICK_THRESHOLD, SHOT_BURST_PENDING } from "./names.js";
 
 const SUBPIXEL_SLOTS = 7;
 const RECORD_STRIDE = 16;
@@ -75,14 +75,14 @@ export function resetPlayfieldAndArmNewRound(m) {
   regs.hl = RECORD_TABLE;
   const src = fetchTableWord(m);
 
-  mem8[0xa844] = mem8[src];
-  mem8[0xa837] = mem8[src + 1];
-  mem8[0xa827] = mem8[src + 2];
-  mem8[0xa814] = mem8[0xa817] = mem8[src + 3]; // one source byte into two cells
+  mem8[BANK_LAUNCH_SLOT_COUNT] = mem8[src];
+  mem8[BANK_LAUNCH_NEAR_HALF_X] = mem8[src + 1];
+  mem8[BANK_LAUNCH_NEAR_HALF_Y] = mem8[src + 2];
+  mem8[BANK_LAUNCH_COOLDOWN_PERIOD] = mem8[BANK_LAUNCH_COOLDOWN] = mem8[src + 3]; // one source byte into two cells
   mem8[ROUND_CRAFT_COUNT] = mem8[src + 4];
   mem8[SCRIPT_PICK_THRESHOLD] = mem8[src + 5];
-  mem8[0xa8c6] = mem8[src + 6];
-  mem8[0xa8d6] = mem8[src + 7];
-  mem8[0xa8e6] = mem8[src + 8];
-  mem8[0xa8f4] = mem8[0xa8f6] = mem8[src + 9]; // one source byte into two cells
+  mem8[ATTACKER_SPAWN_SLOT_COUNT] = mem8[src + 6];
+  mem8[ATTACKER_SPAWN_WINDOW_HALF] = mem8[src + 7];
+  mem8[ATTACKER_SPAWN_AIM_WINDOW_HALF] = mem8[src + 8];
+  mem8[ATTACKER_SPAWN_COOLDOWN] = mem8[ATTACKER_SPAWN_COOLDOWN_PERIOD] = mem8[src + 9]; // one source byte into two cells
 }

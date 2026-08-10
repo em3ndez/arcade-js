@@ -22,7 +22,7 @@ import { requestTwoSounds } from "./requestTwoSounds.js";
 import { loc_56d2 } from "./loc_56d2.js";
 import { loc_57f7 } from "./loc_57f7.js";
 import { loc_580b } from "./loc_580b.js";
-import { ENEMY_STANDOFF_AIM_MAIN, ROUND_TRANSITION_HOLD } from "./names.js";
+import { BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, ROUND_TRANSITION_HOLD } from "./names.js";
 
 const RECORD_BANK = 0xa8a0;
 const SPRITE_BANK = 0xaa24;
@@ -60,9 +60,6 @@ const RESTART_MATCH = 0x7c;
 const RESTART_LOW = 0x10;
 const RESTART_HIGH = 0x05;
 
-const COOLDOWN = 0xa817;
-const COOLDOWN_RELOAD = 0xa814;
-const HALF_WIDTH = 0xa827;
 const NEAR_X = 0x84;
 const NEAR_Y = 0x78;
 const ON_SCREEN_X = 0x28;
@@ -333,12 +330,12 @@ export function loc_43f0_46f0(m) {
 
   regs.a = regs.inc8(mem8[X(STATE)]);
   if (regs.fNZ) return; // not live
-  regs.a = mem8[COOLDOWN];
+  regs.a = mem8[BANK_LAUNCH_COOLDOWN];
   regs.and(regs.a);
   if (regs.fNZ) return; // cooling down
 
   regs.b = 0x02;
-  regs.a = mem8[HALF_WIDTH];
+  regs.a = mem8[BANK_LAUNCH_NEAR_HALF_Y];
   regs.d = regs.a;
   regs.add(regs.a);
   regs.e = regs.a;
@@ -441,6 +438,6 @@ export function loc_43f0_474c(m) {
   mem8[Y(0x01)] = 0x4d;
   mem8[Y(SECOND_ENTRY)] = 0x62;
   regs.decMem8(mem, X(STATE)); // 0x00 -> 0xFF: the entry is live
-  regs.a = mem8[COOLDOWN_RELOAD];
-  mem8[COOLDOWN] = regs.a; // re-arm the cooldown
+  regs.a = mem8[BANK_LAUNCH_COOLDOWN_PERIOD];
+  mem8[BANK_LAUNCH_COOLDOWN] = regs.a; // re-arm the cooldown
 }

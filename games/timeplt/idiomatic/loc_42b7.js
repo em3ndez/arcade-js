@@ -16,14 +16,11 @@ import { loc_5664 } from "./loc_5664.js";
 import { loc_5674 } from "./loc_5674.js";
 import { requestTwoSoundsWhilePlaying } from "./requestTwoSoundsWhilePlaying.js";
 import { u8 } from "../../../core/int.js";
-import { ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
+import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
 
 const NEW_RECORD = 0xa991;
 const NEW_ENTRY = 0xa993;
 const ERA = 0xad04;
-const COOLDOWN_SRC = 0xa8f6;
-const COOLDOWN = 0xa8f4;
-const ERA4_EXTRA_SRC = 0xa8e6;
 const OFFSET_STEP = 0x1a;
 
 export function loc_42b7(m, spawnerRecord = m.regs.ix, spawnerEntry = m.regs.iy) {
@@ -50,7 +47,7 @@ export function loc_42b7(m, spawnerRecord = m.regs.ix, spawnerEntry = m.regs.iy)
 
   const tailOff = (tail) => {
     mem8[record + 0x00] = u8(mem8[record + 0x00] - 1);
-    mem8[COOLDOWN] = mem8[COOLDOWN_SRC];
+    mem8[ATTACKER_SPAWN_COOLDOWN] = mem8[ATTACKER_SPAWN_COOLDOWN_PERIOD];
     regs.ix = spawnerRecord;
     regs.iy = spawnerEntry;
     return tail(m);
@@ -66,7 +63,7 @@ export function loc_42b7(m, spawnerRecord = m.regs.ix, spawnerEntry = m.regs.iy)
     return tailOff(loc_5664);
   }
 
-  if (era === 4) mem8[record + 0x04] = mem8[ERA4_EXTRA_SRC];
+  if (era === 4) mem8[record + 0x04] = mem8[ATTACKER_SPAWN_AIM_WINDOW_HALF];
 
   if (era === 3) {
     const backHalf = (facing + 0x40) & 0x80; // which half of the circle the facing lies in

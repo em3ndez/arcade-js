@@ -14,21 +14,15 @@ import { headingToward } from "./headingToward.js";
 import { requestEraKeyedLaunchSound } from "./requestEraKeyedLaunchSound.js";
 import { loc_59cb } from "./loc_59cb.js";
 import { loc_59d1 } from "./loc_59d1.js";
-import { ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
+import { ATTACKER_SPAWN_AIM_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
 
 const SPAWN_PHASE = 0xa980;
-const SPAWN_GUARD = 0xa817;
-const ARM_SOURCE = 0xa814;
 const SPRITE_STATE = 0x30;
-const FLIGHT_COUNT = 0xa844;
 const RECORD_BANK = 0xa810;
 const ENTRY_BANK = 0xaa12;
 const FREE_RECORD = 0xa991;
 const FREE_ENTRY = 0xa993;
-const NEAR_MARGIN_Y = 0xa827;
 const SCROLL_ANGLE = 0xa802;
-const NEAR_MARGIN_X = 0xa837;
-const ALT_MARGIN = 0xa8e6;
 const VELOCITY_SELECT = 0xad04;
 
 const PHASE_KEY = 0x0f;
@@ -45,12 +39,12 @@ export function loc_3ed6(m) {
   regs.add(0x05);
   regs.cp(mem8[u16(regs.ix + PHASE_KEY)]);
   if (regs.fNZ) return; // wrong bank phase this frame
-  if (mem8[SPAWN_GUARD] !== 0) return; // launch already armed
+  if (mem8[BANK_LAUNCH_COOLDOWN] !== 0) return; // launch already armed
 
   regs.hl = RECORD_BANK;
   regs.de = ENTRY_BANK;
-  if (mem8[FLIGHT_COUNT] === 0) return;
-  regs.b = mem8[FLIGHT_COUNT];
+  if (mem8[BANK_LAUNCH_SLOT_COUNT] === 0) return;
+  regs.b = mem8[BANK_LAUNCH_SLOT_COUNT];
 
   let freeSlot = false;
   do {
@@ -66,7 +60,7 @@ export function loc_3ed6(m) {
   mem.write16(FREE_ENTRY, regs.de);
 
   // margin window against the player entry: vertical, and horizontal only if the vertical is close
-  regs.a = mem8[NEAR_MARGIN_Y];
+  regs.a = mem8[BANK_LAUNCH_NEAR_HALF_Y];
   regs.b = regs.a;
   regs.add(regs.a);
   regs.c = regs.a;
@@ -82,7 +76,7 @@ export function loc_3ed6(m) {
     if (regs.fC) return;
   }
 
-  regs.a = mem8[NEAR_MARGIN_X];
+  regs.a = mem8[BANK_LAUNCH_NEAR_HALF_X];
   regs.b = regs.a;
   regs.add(regs.a);
   regs.c = regs.a;
@@ -95,7 +89,7 @@ export function loc_3ed6(m) {
   // d is ENTRY_BANK's high byte (0xaa) and nothing rewrites it, so this window never fires; kept
   // as a faithful mirror of the detached block
   if (regs.d === 0x02) {
-    regs.a = mem8[ALT_MARGIN];
+    regs.a = mem8[ATTACKER_SPAWN_AIM_WINDOW_HALF];
     regs.b = regs.a;
     regs.add(regs.a);
     regs.c = regs.a;
@@ -134,8 +128,8 @@ export function loc_3ed6(m) {
   mem8[u16(regs.ix + VELOCITY + 3)] = regs.b;
   mem8[u16(regs.iy + 0x01)] = 0x4d;
   mem8[u16(regs.iy + SPRITE_STATE)] = 0x62;
-  regs.a = mem8[ARM_SOURCE];
-  mem8[SPAWN_GUARD] = regs.a;
+  regs.a = mem8[BANK_LAUNCH_COOLDOWN_PERIOD];
+  mem8[BANK_LAUNCH_COOLDOWN] = regs.a;
   mem8[regs.ix] = u8(mem8[regs.ix] - 1);
   regs.iy = savedIy;
   regs.ix = savedIx;

@@ -605,6 +605,15 @@ never reaches the clamp is seeing only the bottom of that ramp. What each of the
 governs is not fully settled: most are read by spawners, aim windows and fire cooldowns, two are
 read by paths this pass did not tie to attacking. `[code]`
 
+★ **The twelve cells are now mapped to their readers, in two parallel spawn-config families.** One
+routine writes the row; its readers split into `BANK_LAUNCH_*` (read by the loc_3ed6 bank-launch arm and
+the Mother-Ship stepper) and `ATTACKER_SPAWN_*` (read by the per-era attacker/craft-bank spawners), each
+family the same shape: a live per-vblank cooldown and its reload period, one or two near-band / aim-window
+half-widths, and a bank slot count. `[code]` for the per-cell roles (which reader consumes which byte);
+the row's values climbing a difficulty ladder stays the `[seen]` fact above, and which direction each knob
+turns difficulty is still not pinned. One cooldown cell (`BANK_LAUNCH_COOLDOWN`) is also borrowed as the
+boot/attract tamper-check scratch — a separate life of the same byte.
+
 ### ★ One of those twelve cells, followed from its writer to its reader
 
 The row applier scatters the row over twelve cells. One of them — the draw threshold — has now been

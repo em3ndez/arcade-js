@@ -5,10 +5,10 @@
 
 import { drawInterpolatedPenRun } from "./drawInterpolatedPenRun.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
+import { BANK_LAUNCH_COOLDOWN } from "./names.js";
 
 const GUARDED_BLOCK = 0x1748;
 const GUARDED_LEN = 0x22;
-const GUARD_CELL = 0xa817;
 
 export function advancePenRunAnimationStep(m) {
   const { regs, mem8 } = m;
@@ -17,6 +17,6 @@ export function advancePenRunAnimationStep(m) {
 
   let sum = 0;
   for (let i = 0; i < GUARDED_LEN; i++) sum = (sum - mem8[GUARDED_BLOCK + i]) & 0xff;
-  mem8[GUARD_CELL] = sum;
+  mem8[BANK_LAUNCH_COOLDOWN] = sum;
   return advanceSequenceSubStep(m);
 }

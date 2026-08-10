@@ -1029,6 +1029,77 @@ export const ENEMY_STANDOFF_AIM_CLEAR = 0xac79;
  */
 export const ENEMY_STANDOFF_AIM_MAIN = 0xac7f;
 
+/*
+ * Era-rung spawn difficulty config: applyEraRungSettings scatters a ten-byte (era<<4 | rung) row into twelve cells
+ * (these ten plus ROUND_CRAFT_COUNT and SCRIPT_PICK_THRESHOLD). Two parallel spawn-config families, same shape --
+ * a live per-vblank cooldown + its reload period + proximity/aim window half-widths + a bank slot count. Family
+ * BANK_LAUNCH is read by the loc_3ed6 bank-launch arm and the Mother-Ship stepper; family ATTACKER_SPAWN by the
+ * per-era attacker/craft-bank spawners. §3 watched the row's values climb a difficulty ladder [seen]; the specific
+ * per-cell role here is [code]. Row byte order: 0->a844, 1->a837, 2->a827, 3->a817+a814, 6->a8c6, 7->a8d6, 8->a8e6, 9->a8f4+a8f6.
+ */
+
+/**
+ * Live per-vblank cooldown for the bank-launch arm (loc_3ed6) and the Mother-Ship's homing spawn. [code]
+ *
+ * Nonzero blocks the arm; wound down once per frame (it is one of the three vblank timers) and re-armed from its
+ * reload period BANK_LAUNCH_COOLDOWN_PERIOD after each launch. NOTE this cell is MULTIPLEXED: in boot/attract the
+ * tamper self-check writes an image checksum here and the credit line reads it as a verdict -- a separate life,
+ * unrelated to difficulty. The name is the in-game spawn-cooldown role only.
+ */
+export const BANK_LAUNCH_COOLDOWN = 0xa817;
+
+/** Reload period (interval constant) that re-arms BANK_LAUNCH_COOLDOWN after a launch; never decremented. [code] */
+export const BANK_LAUNCH_COOLDOWN_PERIOD = 0xa814;
+
+/**
+ * Near-band proximity half-width gating a bank launch, one axis. [code]
+ *
+ * Doubled into a full admit window; loc_3ed6 tests it on one axis (its local name calls it Y), and the Mother-Ship
+ * stepper reuses this single cell for both axes. A bigger window admits a launch from farther.
+ */
+export const BANK_LAUNCH_NEAR_HALF_Y = 0xa827;
+
+/** The other-axis near-band proximity half-width for the bank launch (loc_3ed6 only; its local name calls it X). [code] */
+export const BANK_LAUNCH_NEAR_HALF_X = 0xa837;
+
+/** Count of records the bank-launch arm scans for a free slot (loop bound; zero disables the arm). [code] */
+export const BANK_LAUNCH_SLOT_COUNT = 0xa844;
+
+/**
+ * Per-era count of enemy slots the attacker / craft-bank spawner fields -- §3's "spawner cap 0, 1, 2". [code]
+ *
+ * A hard gate (zero disables the arm) and the sweep loop bound, read by loc_3d25, launchAttackerIntoFreeSlot and the
+ * era-bank sweep. Distinct from ROUND_CRAFT_COUNT (the wave quota): this is the era bank's size.
+ */
+export const ATTACKER_SPAWN_SLOT_COUNT = 0xa8c6;
+
+/** Half-width of the proximity window deciding WHETHER the era attacker bank spawns (doubled into a window). [code] */
+export const ATTACKER_SPAWN_WINDOW_HALF = 0xa8d6;
+
+/**
+ * Half-width of the final launch-facing window for the attacker spawn. [code]
+ *
+ * Outside the window the launch is abandoned; inside, the object's other coordinate picks its facing side. NOTE a
+ * dual use: in era four the same value also seeds a spawned record's countdown byte (record +0x04). The window is the dominant role.
+ */
+export const ATTACKER_SPAWN_AIM_WINDOW_HALF = 0xa8e6;
+
+/**
+ * Live shared per-vblank cooldown for the era attacker-bank spawn arms. [code]
+ *
+ * Nonzero blocks a spawn; wound down each frame (a vblank timer) and re-armed from ATTACKER_SPAWN_COOLDOWN_PERIOD
+ * after each spawn. launchAttackerIntoFreeSlot also decrements it inline.
+ */
+export const ATTACKER_SPAWN_COOLDOWN = 0xa8f4;
+
+/**
+ * Reload period (interval constant) for ATTACKER_SPAWN_COOLDOWN; never decremented. [code]
+ *
+ * Read to re-arm the live timer, and also stocked into a retired slot's record byte 14 so a recycled slot re-enters
+ * carrying the same interval.
+ */
+export const ATTACKER_SPAWN_COOLDOWN_PERIOD = 0xa8f6;
+
 export const ROUTINES = {
   0x43b7: { name: "armMotherShipOrStep", role: "once-in-eight-frames gate for the Mother-Ship: while the wave-hold flag 0xacc6 is clear, defer to the deep-state stepper (stepMotherShip) if it is already live (MOTHER_SHIP_ARMED 0xad0d != 0), else -- only when the kill quota (KILLS_REMAINING 0xad02) is spent and both records of its two-slot bank (0xa8a0/0xa8b0) read empty -- arm it (0xad0d=0xff), seed the lead record's seven-hit counter (ix+0x04=0x07), and retire the matching entry pair into cooldown to spawn it", cert: "code" },
   0x1199: { name: "serviceRoundThenResolvePlayerState", role: "the round engine's service list (substep 7 of the phase-3 dispatch at 0x0f29; runs per dispatch, short of the frame count): run each subsystem service in fixed order, then read the player-state byte at 0xa800 and advance the round when it is 0xff (alive), hand a life over when it is 0 (dead), else return", cert: "code" },

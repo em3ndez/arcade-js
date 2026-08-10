@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /** loc_3d25 — spawn one aimed enemy, but only when the spawn slot is free, the cooldown at
- * SPAWN_COOLDOWN is clear, the era count is live, and some object in the caller's two-slot bank sits
+ * ATTACKER_SPAWN_COOLDOWN is clear, the era count is live, and some object in the caller's two-slot bank sits
  * inside a doubled window. Draws a heading toward the player at ENEMY_STANDOFF_AIM_MAIN, alternates the aim's
  * side each spawn via SIDE_TOGGLE, then seats coords, the doubled velocity pair, a script and a
  * shape into the era's fixed record+sprite bank and reloads the cooldown. LIVE-OUT: memory. */
@@ -9,14 +9,10 @@ import { u8, u16 } from "../../../core/int.js";
 import { loc_565f } from "./loc_565f.js";
 import { headingToward } from "./headingToward.js";
 import { loc_59c5 } from "./loc_59c5.js";
-import { ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
+import { ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
 
-const SPAWN_COOLDOWN = 0xa8f4;
-const COOLDOWN_RELOAD = 0xa8f6;
-const ERA_COUNT = 0xa8c6;
 const SCAN_BANK_FLAG = 0xa8e0;
 const BANK_A_FLAG = 0xa840;
-const WINDOW_HALF = 0xa8d6;
 const SIDE_TOGGLE = 0xa8d4;
 
 const SLOT_FREE = 0xff;
@@ -37,17 +33,17 @@ const NEW_SCRIPT = 0x4d;
 const NEW_SHAPE = 0x62;
 
 // era count != 1 with the scan flag clear selects the second bank; the guard and the seat both ask.
-const useSecondBank = (m) => m.mem8[ERA_COUNT] !== 1 && m.mem8[SCAN_BANK_FLAG] === 0;
+const useSecondBank = (m) => m.mem8[ATTACKER_SPAWN_SLOT_COUNT] !== 1 && m.mem8[SCAN_BANK_FLAG] === 0;
 
 export function loc_3d25(m) {
   const { regs, mem8 } = m;
 
   if (mem8[regs.ix] !== SLOT_FREE) return;
-  if (mem8[SPAWN_COOLDOWN] !== 0) return;
-  if (mem8[ERA_COUNT] === 0) return;
+  if (mem8[ATTACKER_SPAWN_COOLDOWN] !== 0) return;
+  if (mem8[ATTACKER_SPAWN_SLOT_COUNT] === 0) return;
   if (!useSecondBank(m) && mem8[BANK_A_FLAG] !== 0) return;
 
-  const half = mem8[WINDOW_HALF];
+  const half = mem8[ATTACKER_SPAWN_WINDOW_HALF];
   regs.d = half;
   regs.e = u8(2 * half);
   regs.b = SEARCH_SLOTS;
@@ -90,6 +86,6 @@ export function loc_3d25(m) {
   mem8[regs.iy + 0x01] = NEW_SCRIPT;
   mem8[regs.iy + 0x30] = NEW_SHAPE;
   mem8[regs.ix] = u8(mem8[regs.ix] - 1);
-  regs.a = mem8[COOLDOWN_RELOAD];
-  mem8[SPAWN_COOLDOWN] = regs.a;
+  regs.a = mem8[ATTACKER_SPAWN_COOLDOWN_PERIOD];
+  mem8[ATTACKER_SPAWN_COOLDOWN] = regs.a;
 }

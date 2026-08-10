@@ -9,15 +9,13 @@
 import { setTheLaunchFacingInsideOneAimWindow } from "./setTheLaunchFacingInsideOneAimWindow.js";
 import { loc_42b7 } from "./loc_42b7.js";
 import { u8 } from "../../../core/int.js";
+import { ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF } from "./names.js";
 
 const FRAME_COUNTER = 0xa980;
-const COOLDOWN = 0xa8f4;
 const RECORD_BASE = 0xa8c0;
 const ENTRY_BASE = 0xaa28;
-const SLOT_COUNT = 0xa8c6;
 const NEW_RECORD = 0xa991;
 const NEW_ENTRY = 0xa993;
-const MARGIN = 0xa8d6;
 const ERA = 0xad04;
 
 const PHASE_BIAS = 5;
@@ -30,12 +28,12 @@ export function launchAttackerIntoFreeSlot(m) {
 
   if ((mem8[FRAME_COUNTER] & 7) + PHASE_BIAS !== mem8[regs.ix + 0x0f]) return;
 
-  if (mem8[COOLDOWN] !== 0) {
-    mem8[COOLDOWN] = mem8[COOLDOWN] - 1;
+  if (mem8[ATTACKER_SPAWN_COOLDOWN] !== 0) {
+    mem8[ATTACKER_SPAWN_COOLDOWN] = mem8[ATTACKER_SPAWN_COOLDOWN] - 1;
     return;
   }
 
-  let count = mem8[SLOT_COUNT];
+  let count = mem8[ATTACKER_SPAWN_SLOT_COUNT];
   if (count === 0) return;
 
   let record = RECORD_BASE;
@@ -51,7 +49,7 @@ export function launchAttackerIntoFreeSlot(m) {
   m.mem16[NEW_RECORD] = record;
   m.mem16[NEW_ENTRY] = entry;
 
-  const margin = mem8[MARGIN];
+  const margin = mem8[ATTACKER_SPAWN_WINDOW_HALF];
   const window = u8(margin + margin);
   const along = u8(FIRST_LINE - mem8[regs.iy + 0x31] + margin);
   if (along < window) {
