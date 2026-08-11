@@ -92,8 +92,9 @@ READ it is the scanline counter, a different device behind the same number. The 
 scattered through the raster-wait code are not reading back what the sound path wrote. `[code]`
 
 ★ **The main CPU does not write that latch directly — it QUEUES.** A sound effect is requested by
-appending a one-byte code to the pending-sound queue at `0xAC43` (through one of three permission
-wrappers — game-in-progress, game-or-attract, or unconditional); `sendOldestQueuedSoundCommand` drains
+appending a one-byte code to the pending-sound queue (`SOUND_QUEUE_COUNT` `0xAC43`, its body based at
+`SOUND_QUEUE_HEAD` `0xAC44`) (through one of three permission wrappers — game-in-progress, game-or-attract,
+or unconditional); `sendOldestQueuedSoundCommand` drains
 one code per frame to the latch, where the separate sound Z80's two AY-3-8910s turn it into sound.
 WHICH sound each code is is read off the NAMED caller: `requestCoinSound` from the coin handlers,
 `requestPlayerShotSound` from the shot spawner, and `requestEnemyLaunchSound`, `requestEnemyWaveSound`,
@@ -395,11 +396,19 @@ into a different phase instead of failing. `[code]`
 
 ★ **One member of that family is itself a sequence sub-step.** `foldImageBlockIntoSignatureThenAdvanceSequence`
 (`0x17e2`) raises a flag cell (`0xAA3F`), folds a block of the image into a running signature it banks
-in a separate cell (`0xAA6F`) it never reads back, then steps the inner sub-step on like any other arm.
-Here the self-check is a *producer* riding inside the sequence machine, not a fold onto a live-state
-cell. Nothing reads the flag `0xAA3F`; the signature `0xAA6F` is read at a single site (`0x2730`),
-which compares it to `0x76` and derails to `0x2530` on a mismatch — the desync point is static, its
-live reachability grounding-pending. `[code]`
+in a separate cell (`TAMPER_IMAGE_SIGNATURE`, `0xAA6F`) it never reads back, then steps the inner sub-step
+on like any other arm. Here the self-check is a *producer* riding inside the sequence machine, not a fold
+onto a live-state cell. Nothing reads the flag `0xAA3F` (so it keeps no name); the signature
+`TAMPER_IMAGE_SIGNATURE` is read at a single site (`0x2730`), which compares it to `0x76` and derails to
+`0x2530` on a mismatch — the desync point is static, its live reachability grounding-pending. `[code]`
+
+A related idiom guards specific caption glyphs rather than a whole block: a two-byte sampler copies a
+screen cell's glyph and colour into a witness pair, which a later phase compares against the genuine values
+and derails on a mismatch. Three such witnesses are named — `TAMPER_GLYPH_STRIP` / `TAMPER_COLOUR_STRIP`
+(`0xABFE`/`0xABFF`, checked by the player animation strip against `0xA5` and `0x05`/`0x10`) and
+`TAMPER_GLYPH_KONAMI` (`0xACC7`, the "(c) KONAMI 1982" caption 'N' at cell `0xA63C`) — joining
+`TAMPER_GLYPH_READBACK`/`TAMPER_COLOUR_READBACK` and `TAMPER_GLYPH_COPY`. Several sibling samples are written
+but never read back (e.g. `0xACBE`), so they carry no name. `[code]`
 
 ★ The reader's hazard is not the trap, it is the naming. **These cells have writers that are not
 about what the cell is for**, so a name derived from the obvious writer will be right about the

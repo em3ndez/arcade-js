@@ -9,21 +9,20 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { sendSoundCommand } from "./sendSoundCommand.js";
+import { SOUND_QUEUE_COUNT, SOUND_QUEUE_HEAD } from "./names.js";
 
-const PENDING_COUNT = 0xac43;
-const FIRST_PENDING = 0xac44;
 
 export function sendOldestQueuedSoundCommand(m) {
   const { mem8 } = m;
-  const pending = mem8[PENDING_COUNT];
+  const pending = mem8[SOUND_QUEUE_COUNT];
   if (pending === 0) return;
 
   const remaining = u8(pending - 1);
-  mem8[PENDING_COUNT] = remaining;
-  sendSoundCommand(m, mem8[FIRST_PENDING]);
+  mem8[SOUND_QUEUE_COUNT] = remaining;
+  sendSoundCommand(m, mem8[SOUND_QUEUE_HEAD]);
   if (remaining === 0) return;
 
   for (let slot = 0; slot < remaining; slot++) {
-    mem8[u16(FIRST_PENDING + slot)] = mem8[u16(FIRST_PENDING + slot + 1)];
+    mem8[u16(SOUND_QUEUE_HEAD + slot)] = mem8[u16(SOUND_QUEUE_HEAD + slot + 1)];
   }
 }

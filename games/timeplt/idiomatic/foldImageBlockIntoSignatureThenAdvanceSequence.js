@@ -8,12 +8,12 @@
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { foldBlockIntoTotal } from "./foldBlockIntoTotal.js";
 import { loc_4bd9 } from "./loc_4bd9.js";
+import { TAMPER_IMAGE_SIGNATURE } from "./names.js";
 
 const FLAG_CELL = 0xaa3f;
 const ALL_BITS = 255;
 const SECOND_WALK_START = 0x17b9;
 const SEED_BYTE = 0x27c0;
-const SIGNATURE_CELL = 0xaa6f;
 
 export function foldImageBlockIntoSignatureThenAdvanceSequence(m) {
   const { mem8, regs } = m;
@@ -22,7 +22,7 @@ export function foldImageBlockIntoSignatureThenAdvanceSequence(m) {
   loc_4bd9(m);
   const blockStart = regs.hl;
   const blockLength = regs.b;
-  mem8[SIGNATURE_CELL] = foldBlockIntoTotal(
+  mem8[TAMPER_IMAGE_SIGNATURE] = foldBlockIntoTotal(
     m,
     mem8[SEED_BYTE],
     blockStart,

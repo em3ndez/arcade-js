@@ -5,12 +5,12 @@
  * queue's length. Nothing tests for room, and the count wraps at a byte. LIVE-OUT: memory. */
 
 import { u8, u16 } from "../../../core/int.js";
+import { SOUND_QUEUE_COUNT } from "./names.js";
 
-const QUEUE_LENGTH = 0xac43;
 
 export function loc_562a(m, command) {
   const { mem8 } = m;
-  const length = u8(mem8[QUEUE_LENGTH] + 1);
-  mem8[QUEUE_LENGTH] = length;
-  mem8[u16(QUEUE_LENGTH + length)] = command;
+  const length = u8(mem8[SOUND_QUEUE_COUNT] + 1);
+  mem8[SOUND_QUEUE_COUNT] = length;
+  mem8[u16(SOUND_QUEUE_COUNT + length)] = command;
 }

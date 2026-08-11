@@ -11,6 +11,7 @@ import { loc_1f2e } from "./loc_1f2e.js";
 import { requestLateEraProgressSound } from "./requestLateEraProgressSound.js";
 import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
 import { offsetAddress } from "./offsetAddress.js";
+import { TAMPER_COLOUR_STRIP, TAMPER_GLYPH_STRIP } from "./names.js";
 
 const PHASE = 0x00; // record byte holding the animation phase
 const PAIR_FLAG = 0x01; // paired-entry byte flagged on the opening frame
@@ -18,8 +19,6 @@ const FIRST_FRAME = 0xb4; // phases at or above this are the opening frame; clam
 const PAIR_MARK = 0xff;
 const LEVEL_CELL = 0xad04;
 const EXTRA_CUE_LEVEL = 0x02;
-const STATE_HI = 0xabfe;
-const STATE_LO = 0xabff;
 const RUNNING = 0xa5;
 const STATE_DRAW_A = 0x05;
 const STATE_DRAW_B = 0x10;
@@ -54,11 +53,11 @@ export function advancePlayerAnimationStrip(m) {
     if (!regs.fC) requestLateEraProgressSound(m);
     requestRoundIntroSoundBurst(m);
 
-    regs.a = mem8[STATE_HI];
+    regs.a = mem8[TAMPER_GLYPH_STRIP];
     regs.cp(RUNNING);
     if (regs.fNZ) return loc_1f2e(m);
 
-    regs.de = STATE_LO;
+    regs.de = TAMPER_COLOUR_STRIP;
     regs.a = mem8[regs.de];
     regs.cp(STATE_DRAW_A);
     if (regs.fNZ) {

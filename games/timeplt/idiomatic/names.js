@@ -1368,6 +1368,41 @@ export const DEFERRED_WRITE_LIST = 0xae04;
 export const DEFERRED_BLANK_LIST = 0xae84;
 
 /*
+ * Final tail cells (G3-12): the ROM-image fold signature, two anti-tamper caption glyph/colour witnesses, the KONAMI
+ * copyright witness, and the low-level sound-command FIFO. (Six neighbouring cells carry no scalar role and are not
+ * exported here -- write-only flags, always-zero sentinels, and array-tail block-clear bounds: 0xaa3f, 0xa97f, 0xaadf,
+ * 0xacbe, 0xacc2, 0xacc5.)
+ */
+
+/**
+ * The folded byte-signature of a program-image block (the self-check's checksum); written by the image-fold step and
+ * read once at ROM 0x2730 as cp 0x76, deraling to the power-on wipe on mismatch -- an anti-tamper cell. [code]
+ * (The same RAM byte is reused IY-indexed as a scenery sprite byte in-round; that use is not a bare literal.)
+ */
+export const TAMPER_IMAGE_SIGNATURE = 0xaa6f;
+
+/**
+ * Anti-tamper caption witness -- the glyph sampled from a copyright-caption cell (0xA61C), re-checked each await-start
+ * frame by the animation strip (cp 0xa5); a mismatch diverts the strip's special path. Sibling of TAMPER_GLYPH_COPY. [code]
+ */
+export const TAMPER_GLYPH_STRIP = 0xabfe;
+
+/** The colour byte of the TAMPER_GLYPH_STRIP sample (from the colour-RAM mirror); checked cp 0x05 / cp 0x10. [code] */
+export const TAMPER_COLOUR_STRIP = 0xabff;
+
+/** Count of queued sound-code bytes in the low-level sound FIFO; the enqueuer increments it, the drain decrements it (0 = empty). [code] */
+export const SOUND_QUEUE_COUNT = 0xac43;
+
+/** Head (oldest byte) and base of the sound-code FIFO body; the drain sends it, then slides the remaining bytes down. Distinct from the high-level command ring. [code] */
+export const SOUND_QUEUE_HEAD = 0xac44;
+
+/**
+ * Anti-tamper caption witness -- the glyph sampled from the "(c) KONAMI 1982" caption cell 0xA63C ('N'); checked by the
+ * scenery/era arm as cp 0x3b, deraling into a data-run trap (0x315b) on mismatch. Its colour companion is 0xacc8. [code]
+ */
+export const TAMPER_GLYPH_KONAMI = 0xacc7;
+
+/*
  * Player shots: a SEPARATE six-slot record array at 0xAA80 (0xAA80-0xAADF, stride 0x10) with NO sprite entries --
  * the object-array 8:1 mapping does not apply. Slot +0 head/occupancy, +3/+5 velocity, +10/+12 position. See §4/§5.
  */

@@ -10,12 +10,11 @@ import { sampleCellGlyphAndColour } from "./sampleCellGlyphAndColour.js";
 import { startOnePlayerGame } from "./startOnePlayerGame.js";
 import { postCommand } from "./postCommand.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { CREDIT_COUNT } from "./names.js";
+import { CREDIT_COUNT, TAMPER_GLYPH_STRIP } from "./names.js";
 
 const IN0_MIRROR = 0xa9ae;
 const ONE_PLAYER_START = 0x08;
 const SAMPLE_CELL = 0xa61c;
-const SAMPLE_RECORD = 0xabfe;
 const COMMAND = 1;
 const ARGUMENT = 25;
 
@@ -23,7 +22,7 @@ export function stepCopyrightScreenAwaitingStart(m) {
   const { mem8 } = m;
   stampCopyrightStrip(m);
   flashCopyrightLine(m);
-  sampleCellGlyphAndColour(m, SAMPLE_CELL, SAMPLE_RECORD);
+  sampleCellGlyphAndColour(m, SAMPLE_CELL, TAMPER_GLYPH_STRIP);
   if (mem8[IN0_MIRROR] & ONE_PLAYER_START) return startOnePlayerGame(m);
   if (mem8[CREDIT_COUNT] === 1) return;
   postCommand(m, COMMAND, ARGUMENT);
