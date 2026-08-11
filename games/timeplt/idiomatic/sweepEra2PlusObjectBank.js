@@ -1,20 +1,18 @@
-import { ATTACKER_SPAWN_SLOT_COUNT } from "./names.js";
+import { ATTACKER_SPAWN_SLOT_COUNT, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0 } from "./names.js";
 // SPDX-License-Identifier: GPL-3.0-only
 /** sweepEra2PlusObjectBank — enter the per-slot sweep of an object bank: below era 2, or with the bank's slot count
  * zero, do nothing; else seat both cursors and the turn count and run the sweep body. LIVE-OUT: memory. */
 
 const FIRST_SWEPT_ERA = 2;
 const ERA_INDEX = 0xad04;
-const RECORD_CURSOR_SEAT = 0xa8c0;
-const ENTRY_CURSOR_SEAT = 0xaa28;
 const SWEEP_BODY = 0x40ea;
 
 export function sweepEra2PlusObjectBank(m) {
   const { regs, mem8 } = m;
   if (mem8[ERA_INDEX] < FIRST_SWEPT_ERA) return;
 
-  regs.ix = RECORD_CURSOR_SEAT;
-  regs.iy = ENTRY_CURSOR_SEAT;
+  regs.ix = ERA_OBJECT_RECORD_SLOT0;
+  regs.iy = ERA_OBJECT_ENTRY_SLOT0;
 
   const count = mem8[ATTACKER_SPAWN_SLOT_COUNT];
   if (count === 0) return;

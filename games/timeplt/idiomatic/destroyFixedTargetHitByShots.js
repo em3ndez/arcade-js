@@ -8,7 +8,7 @@
 
 import { postChainedHitScore } from "./postChainedHitScore.js";
 import { u8 } from "../../../core/int.js";
-import { PLAYER_SHOT_ARRAY } from "./names.js";
+import { ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0, PLAYER_SHOT_ARRAY } from "./names.js";
 
 const SLOTS = 6;
 const SLOT_STRIDE = 0x10;
@@ -17,28 +17,26 @@ const OCCUPANCY = 0;
 const SHOT_FIRST_AXIS = 6;
 const SHOT_SECOND_AXIS = 4;
 
-const TARGET_FIRST_AXIS = 0xaa28;
 const TARGET_SECOND_AXIS = 0xaa59;
 const FIRST_AXIS_SLACK = 6;
 const FIRST_AXIS_WINDOW = 0x0d;
 const SECOND_AXIS_SLACK = 0x17;
 const SECOND_AXIS_WINDOW = 0x1f;
 
-const TARGET_STATE = 0xa8c0;
 const LIVE = 0xff;
 const DESTROYED = 0xf0;
 
 export function destroyFixedTargetHitByShots(m) {
   const { mem8 } = m;
-  if (mem8[TARGET_STATE] !== LIVE) return;
+  if (mem8[ERA_OBJECT_RECORD_SLOT0] !== LIVE) return;
 
   let slot = PLAYER_SHOT_ARRAY;
   for (let i = 0; i < SLOTS; i++) {
     if (mem8[slot + OCCUPANCY] === LIVE) {
-      const across = u8(mem8[TARGET_FIRST_AXIS] - mem8[slot + SHOT_FIRST_AXIS] + FIRST_AXIS_SLACK);
+      const across = u8(mem8[ERA_OBJECT_ENTRY_SLOT0] - mem8[slot + SHOT_FIRST_AXIS] + FIRST_AXIS_SLACK);
       const along = u8(mem8[TARGET_SECOND_AXIS] - mem8[slot + SHOT_SECOND_AXIS] + SECOND_AXIS_SLACK);
       if (across < FIRST_AXIS_WINDOW && along < SECOND_AXIS_WINDOW) {
-        mem8[TARGET_STATE] = DESTROYED;
+        mem8[ERA_OBJECT_RECORD_SLOT0] = DESTROYED;
         mem8[slot + OCCUPANCY] = DESTROYED;
         postChainedHitScore(m);
       }

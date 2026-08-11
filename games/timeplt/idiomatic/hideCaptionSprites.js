@@ -3,11 +3,11 @@
  * one. The run is chosen here and a caller cannot redirect it; whatever those four bytes held is
  * discarded unread, so this clears rather than steps. LIVE-OUT: those four bytes. */
 
-const FIRST_SLOT = 0xaa41;
+import { PLAYER_SPRITE_Y } from "./names.js";
 const SLOT_STRIDE = 2;
 const SLOTS = 4;
 
 export function hideCaptionSprites(m) {
   const { mem8 } = m;
-  for (let i = 0; i < SLOTS; i++) mem8[FIRST_SLOT + i * SLOT_STRIDE] = 0;
+  for (let i = 0; i < SLOTS; i++) mem8[PLAYER_SPRITE_Y + i * SLOT_STRIDE] = 0;
 }

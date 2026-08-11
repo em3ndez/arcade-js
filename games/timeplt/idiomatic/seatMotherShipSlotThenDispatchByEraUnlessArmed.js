@@ -5,13 +5,12 @@
  * LIVE-OUT: memory, and whatever the handler leaves behind. */
 
 import { dispatchSeatedSlotByEraIndex } from "./dispatchSeatedSlotByEraIndex.js";
-import { MOTHER_SHIP_ARMED, MOTHER_SHIP_STATE } from "./names.js";
+import { MOTHER_SHIP_ARMED, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE } from "./names.js";
 
-const SPRITE_ENTRY = 0xaa24;
 
 export function seatMotherShipSlotThenDispatchByEraUnlessArmed(m) {
   if (m.mem8[MOTHER_SHIP_ARMED] !== 0) return;
   m.regs.ix = MOTHER_SHIP_STATE;
-  m.regs.iy = SPRITE_ENTRY;
+  m.regs.iy = MOTHER_SHIP_ENTRY;
   return dispatchSeatedSlotByEraIndex(m);
 }

@@ -5,7 +5,7 @@
  * sprite takes the next shape the frame tick selects; any value between drifts with the world and
  * then either posts its bonus, shows its award, or counts down and retires at zero. LIVE-OUT: memory. */
 
-import { ERA_INDEX, FRAME_TICK } from "./names.js";
+import { ERA_INDEX, FRAME_TICK, PARACHUTIST_ENTRY, PARACHUTIST_RECORD } from "./names.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { flyAlongStoredVelocity } from "./flyAlongStoredVelocity.js";
@@ -15,8 +15,6 @@ import { postNextParachutistBonus } from "./postNextParachutistBonus.js";
 import { showParachutistAward } from "./showParachutistAward.js";
 import { retireSlotIntoCooldown } from "./retireSlotIntoCooldown.js";
 
-const PARACHUTIST_RECORD = 0xa8f0;
-const PARACHUTIST_SPRITE = 0xaa2e;
 const ERA_WITH_NO_PARACHUTISTS = 4;
 
 const FREE_SLOT = 0x00;
@@ -34,7 +32,7 @@ export function runParachutistSlot(m) {
   if (mem8[ERA_INDEX] === ERA_WITH_NO_PARACHUTISTS) return;
 
   regs.ix = PARACHUTIST_RECORD;
-  regs.iy = PARACHUTIST_SPRITE;
+  regs.iy = PARACHUTIST_ENTRY;
   const state = mem8[PARACHUTIST_RECORD];
   if (state === FREE_SLOT) return spawnAtEdgeAhead(m);
 
@@ -51,6 +49,6 @@ export function runParachutistSlot(m) {
   if (hasReachedRetireLine(m)) return retireSlotIntoCooldown(m);
   regs.hl = SHAPE_TABLE;
   regs.a = (mem8[FRAME_TICK] >> 4) & 7;
-  mem8[PARACHUTIST_SPRITE + SHAPE_OFFSET] = fetchTableByte(m);
-  mem8[PARACHUTIST_SPRITE + CONTROL_OFFSET] = CONTROL_BYTE;
+  mem8[PARACHUTIST_ENTRY + SHAPE_OFFSET] = fetchTableByte(m);
+  mem8[PARACHUTIST_ENTRY + CONTROL_OFFSET] = CONTROL_BYTE;
 }

@@ -5,12 +5,12 @@
  * the entry with nothing done. Nothing is written here on either path — the whole content is the
  * four tests and the request they gate. LIVE-OUT: memory, through the request. */
 
-import { ERA_INDEX, FRAME_TICK } from "./names.js";
+import { ERA_INDEX, ERA_OBJECT_RECORD_SLOT0, ERA_OBJECT_RECORD_SLOT1, ERA_OBJECT_RECORD_SLOT2, FRAME_TICK } from "./names.js";
 import { requestLateEraProgressSound } from "./requestLateEraProgressSound.js";
 
 const FIRST_ERA_THAT_ASKS = 2;
 const ONE_FRAME_IN = 32;
-const WATCHED = [0xa8c0, 0xa8d0, 0xa8e0];
+const WATCHED = [ERA_OBJECT_RECORD_SLOT0, ERA_OBJECT_RECORD_SLOT1, ERA_OBJECT_RECORD_SLOT2];
 const ALL_ONES = 255;
 
 export function askForSoundWhileTheGroupIsClear(m) {

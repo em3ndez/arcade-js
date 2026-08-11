@@ -6,18 +6,17 @@ import { u8 } from "../../../core/int.js";
 import { armBomberSlotWhenTimerFires } from "./armBomberSlotWhenTimerFires.js";
 import { advanceHitSoakingObjectThenAnimateDeath } from "./advanceHitSoakingObjectThenAnimateDeath.js";
 import { advanceTwoTileObjectThenTryAimedSpawn } from "./advanceTwoTileObjectThenTryAimedSpawn.js";
+import { ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0 } from "./names.js";
 
 const ERA_INDEX = 0xad04;
-const RECORD = 0xa8c0;
-const ENTRY = 0xaa28;
 
 export function serviceEra1BomberObject(m) {
   const { regs, mem8 } = m;
   if (mem8[ERA_INDEX] !== 1) return;
 
-  regs.ix = RECORD;
-  regs.iy = ENTRY;
-  const head = mem8[RECORD];
+  regs.ix = ERA_OBJECT_RECORD_SLOT0;
+  regs.iy = ERA_OBJECT_ENTRY_SLOT0;
+  const head = mem8[ERA_OBJECT_RECORD_SLOT0];
   if (head === 0) return armBomberSlotWhenTimerFires(m);
 
   regs.a = u8(head + 1);

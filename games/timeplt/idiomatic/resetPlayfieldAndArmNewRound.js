@@ -14,15 +14,12 @@ import { freeAndNumberEveryObjectSlot } from "./freeAndNumberEveryObjectSlot.js"
 import { seatEraSceneryRowThenClearAndRunScenery } from "./seatEraSceneryRowThenClearAndRunScenery.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { u8 } from "../../../core/int.js";
-import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, SCRIPT_PICK_THRESHOLD, SHOT_BURST_PENDING } from "./names.js";
+import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_ENTRY_SLOT2, ERA_OBJECT_RECORD_SLOT0, ERA_OBJECT_RECORD_SLOT2, PARACHUTIST_ENTRY, PARACHUTIST_RECORD, PLAYER_ENTRY, PLAYER_SPRITE_Y, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, SCRIPT_PICK_THRESHOLD, SHOT_BURST_PENDING } from "./names.js";
 
 const SUBPIXEL_SLOTS = 7;
 const RECORD_STRIDE = 16;
 const ENTRY_STRIDE = 2;
-const SUBPIXEL_FIRST_RECORD = 0xa8f0;
-const SUBPIXEL_FIRST_ENTRY = 0xaa2e;
 
-const CLEARED_ENTRY_BASE = 0xaa28;
 const CLEARED_ENTRY_OFFSETS = [0, 2, 4, 6, 0x31, 0x33, 0x35, 0x37];
 
 const RECORD_TABLE = 0x1b04;
@@ -44,21 +41,21 @@ export function resetPlayfieldAndArmNewRound(m) {
   mem8[0xa802] = 0x80;
   mem8[0xa801] = 0;
   mem8[0xa800] = 0xff;
-  mem8[0xaa41] = 0x78;
-  mem8[0xaa10] = 0x84;
+  mem8[PLAYER_SPRITE_Y] = 0x78;
+  mem8[PLAYER_ENTRY] = 0x84;
 
   dressPlayerSpriteForHeading(m);
   freeAllShotSlots(m);
-  retireObjectAndHold(m, 0xa8c0, 0xaa28);
+  retireObjectAndHold(m, ERA_OBJECT_RECORD_SLOT0, ERA_OBJECT_ENTRY_SLOT0);
 
-  regs.ix = 0xa8e0;
-  regs.iy = 0xaa2c;
+  regs.ix = ERA_OBJECT_RECORD_SLOT2;
+  regs.iy = ERA_OBJECT_ENTRY_SLOT2;
   retireSlotIntoSharedCooldown(m);
 
-  retireSlotIntoCooldown(m, SUBPIXEL_FIRST_RECORD, SUBPIXEL_FIRST_ENTRY);
+  retireSlotIntoCooldown(m, PARACHUTIST_RECORD, PARACHUTIST_ENTRY);
 
-  let record = SUBPIXEL_FIRST_RECORD;
-  let entry = SUBPIXEL_FIRST_ENTRY;
+  let record = PARACHUTIST_RECORD;
+  let entry = PARACHUTIST_ENTRY;
   for (let i = 0; i < SUBPIXEL_SLOTS; i++) {
     retireSlotAndSubPixel(m, record, entry);
     record += RECORD_STRIDE;
@@ -66,7 +63,7 @@ export function resetPlayfieldAndArmNewRound(m) {
   }
 
   freeAndNumberEveryObjectSlot(m);
-  for (const off of CLEARED_ENTRY_OFFSETS) mem8[CLEARED_ENTRY_BASE + off] = 0;
+  for (const off of CLEARED_ENTRY_OFFSETS) mem8[ERA_OBJECT_ENTRY_SLOT0 + off] = 0;
 
   seatEraSceneryRowThenClearAndRunScenery(m);
 

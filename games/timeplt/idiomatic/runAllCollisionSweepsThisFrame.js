@@ -14,15 +14,15 @@ import { destroySlotsAndPlayerOnContact } from "./destroySlotsAndPlayerOnContact
 import { ramTestPlayerVsMotherShip } from "./ramTestPlayerVsMotherShip.js";
 import { destroyTargetsReachedByFixedAttacker } from "./destroyTargetsReachedByFixedAttacker.js";
 import { markObjectsTouchingPlayer } from "./markObjectsTouchingPlayer.js";
-import { MOTHER_SHIP_ARMED } from "./names.js";
+import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0, MOTHER_SHIP_ARMED } from "./names.js";
 
 export function runAllCollisionSweepsThisFrame(m) {
   const { regs, mem8 } = m;
   stagePlayerShotSweepAgainstTargetsAndRun(m);
 
   regs.b = 4;
-  regs.de = 0xa810;
-  regs.iy = 0xaa12;
+  regs.de = ACTOR_RECORD_SLOT0;
+  regs.iy = ACTOR_ENTRY_SLOT0;
   regs.l = 5;
   regs.h = 11;
   destroyPlayerAndObjectsTouchingIt(m);
@@ -35,8 +35,8 @@ export function runAllCollisionSweepsThisFrame(m) {
     ramTestPlayerVsMotherShip(m);
 
     regs.b = 3;
-    regs.de = 0xa8c0;
-    regs.iy = 0xaa28;
+    regs.de = ERA_OBJECT_RECORD_SLOT0;
+    regs.iy = ERA_OBJECT_ENTRY_SLOT0;
     regs.l = 6;
     regs.h = 13;
     destroyTargetsReachedByFixedAttacker(m);

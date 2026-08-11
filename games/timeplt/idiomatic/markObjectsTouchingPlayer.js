@@ -12,10 +12,8 @@
  * is what the count register means rather than a special case. LIVE-OUT: the state bytes. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { PLAYER_STATE } from "./names.js";
+import { PLAYER_ENTRY, PLAYER_SPRITE_Y, PLAYER_STATE } from "./names.js";
 
-const REFERENCE_FIRST_AXIS = 0xaa10;
-const REFERENCE_SECOND_AXIS = 0xaa41;
 const SECOND_AXIS_OFFSET = 49;
 const ENTRY_STRIDE = 2;
 const STATE_STRIDE = 16;
@@ -38,8 +36,8 @@ export function markObjectsTouchingPlayer(m) {
   do {
     if (
       mem8[page + index] === IN_PLAY &&
-      withinReach(REFERENCE_FIRST_AXIS, entry) &&
-      withinReach(REFERENCE_SECOND_AXIS, entry + SECOND_AXIS_OFFSET)
+      withinReach(PLAYER_ENTRY, entry) &&
+      withinReach(PLAYER_SPRITE_Y, entry + SECOND_AXIS_OFFSET)
     ) {
       mem8[page + index] = MARKED;
     }

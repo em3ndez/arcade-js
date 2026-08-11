@@ -11,10 +11,8 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
-import { PLAYER_STATE } from "./names.js";
+import { PLAYER_ENTRY, PLAYER_SPRITE_Y, PLAYER_STATE } from "./names.js";
 
-const PLAYER_FIRST = 0xaa10;
-const PLAYER_SECOND = 0xaa41;
 
 const WHOLE = 0xff;
 const HIT = 0xf0;
@@ -42,8 +40,8 @@ export function destroySlotsAndPlayerOnContact(
   let entry = entries;
   let left = slots;
   do {
-    const acrossFirst = u8(mem8[PLAYER_FIRST] - mem8[u16(entry + FIRST_COORDINATE)]);
-    const acrossSecond = u8(mem8[PLAYER_SECOND] - mem8[u16(entry + SECOND_COORDINATE)]);
+    const acrossFirst = u8(mem8[PLAYER_ENTRY] - mem8[u16(entry + FIRST_COORDINATE)]);
+    const acrossSecond = u8(mem8[PLAYER_SPRITE_Y] - mem8[u16(entry + SECOND_COORDINATE)]);
     if (
       mem8[record] === WHOLE &&
       u8(acrossFirst + bias) < width &&

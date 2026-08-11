@@ -22,16 +22,14 @@ import { requestTwoSounds } from "./requestTwoSounds.js";
 import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
 import { requestCurrentEraSound } from "./requestCurrentEraSound.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
-import { BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, ROUND_TRANSITION_HOLD } from "./names.js";
+import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, MOTHER_SHIP_ENTRY, ROUND_TRANSITION_HOLD } from "./names.js";
 
 const RECORD_BANK = 0xa8a0;
-const SPRITE_BANK = 0xaa24;
 
 const CLEAR_CELL = 0xa8dc;
 const SCROLL_X = 0xa808;
 const SCROLL_Y = 0xa80a;
 
-const SLOT_BAND = 0xa810;
 const SLOT_STRIDE = 0x0010;
 const SLOT_COUNT = 0x0f;
 const FIRST_SLOT_CODE = 0x14;
@@ -65,8 +63,6 @@ const NEAR_Y = 0x78;
 const ON_SCREEN_X = 0x28;
 const ON_SCREEN_Y = 0x20;
 
-const FREE_RECORD_BAND = 0xa830;
-const FREE_SPRITE_BAND = 0xaa16;
 const NEW_RECORD_PTR = 0xa991;
 const NEW_SPRITE_PTR = 0xa993;
 const HEADING_TOGGLE = 0xa8b4;
@@ -77,7 +73,7 @@ const SECOND_ENTRY = 0x30; // second sprite entry's base offset off iy (mirrors 
 export function stepMotherShip(m) {
   const { regs, mem8 } = m;
   regs.ix = RECORD_BANK;
-  regs.iy = SPRITE_BANK;
+  regs.iy = MOTHER_SHIP_ENTRY;
   regs.a = mem8[u16(regs.ix + STATE)];
   regs.and(regs.a);
   if (regs.fZ) return loc_43f0_4535(m); // idle
@@ -157,7 +153,7 @@ export function loc_43f0_4554(m) {
   loc_5634(m);
   requestRoundIntroSoundBurst(m);
 
-  regs.hl = SLOT_BAND;
+  regs.hl = ACTOR_RECORD_SLOT0;
   regs.de = SLOT_STRIDE;
   regs.b = SLOT_COUNT;
   regs.c = FIRST_SLOT_CODE;
@@ -374,9 +370,9 @@ export function loc_43f0_46f0(m) {
 export function loc_43f0_4734(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = FREE_RECORD_BAND;
+  regs.hl = ACTOR_RECORD_SLOT2;
   regs.exx();
-  regs.hl = FREE_SPRITE_BAND;
+  regs.hl = ACTOR_ENTRY_SLOT2;
   regs.b = 0x02;
   do {
     regs.exx(); // back to the record band pointer

@@ -5,16 +5,14 @@
  * pair. What servicing amounts to is not decided here. LIVE-OUT: memory. */
 
 import { serviceSlotByHeadByte } from "./serviceSlotByHeadByte.js";
-import { ERA_INDEX } from "./names.js";
+import { ERA_INDEX, ERA_OBJECT_ENTRY_SLOT2, ERA_OBJECT_RECORD_SLOT2 } from "./names.js";
 
 const SERVICED_ERA = 1;
-const SLOT_RECORD = 0xa8e0;
-const SPRITE_ENTRY = 0xaa2c;
 
 export function serviceFixedSlotInEra1(m) {
   const { regs, mem8 } = m;
   if (mem8[ERA_INDEX] !== SERVICED_ERA) return;
-  regs.ix = SLOT_RECORD;
-  regs.iy = SPRITE_ENTRY;
+  regs.ix = ERA_OBJECT_RECORD_SLOT2;
+  regs.iy = ERA_OBJECT_ENTRY_SLOT2;
   serviceSlotByHeadByte(m);
 }

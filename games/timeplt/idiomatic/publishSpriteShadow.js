@@ -12,11 +12,11 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { SCREEN_UNFLIPPED, SEQUENCE_PHASE, SEQUENCE_SUBSTEP } from "./names.js";
+import { PLAYER_ENTRY, PLAYER_SPRITE_ATTRIBUTE, SCREEN_UNFLIPPED, SEQUENCE_PHASE, SEQUENCE_SUBSTEP } from "./names.js";
 
 
-const BANK_0 = { at: 0xb010, runs: [[0xaa30, 6], [0xaa10, 32], [0xaa36, 10]] };
-const BANK_1 = { at: 0xb410, runs: [[0xaa60, 6], [0xaa40, 32], [0xaa66, 10]] };
+const BANK_0 = { at: 0xb010, runs: [[0xaa30, 6], [PLAYER_ENTRY, 32], [0xaa36, 10]] };
+const BANK_1 = { at: 0xb410, runs: [[0xaa60, 6], [PLAYER_SPRITE_ATTRIBUTE, 32], [0xaa66, 10]] };
 
 const keep = (byte) => byte;
 const complementPast = (bias) => (byte) => u8(~u8(byte + bias));

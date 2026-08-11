@@ -9,15 +9,14 @@ import { flyDemoShipByScript } from "./flyDemoShipByScript.js";
 import { readPlayerControls } from "./readPlayerControls.js";
 import { turnShipTowardTargetHeading } from "./turnShipTowardTargetHeading.js";
 import { scrollWorldAtTheEraPace } from "./scrollWorldAtTheEraPace.js";
-import { PLAYER_STATE, PLAY_ACTIVE } from "./names.js";
+import { PLAYER_ENTRY, PLAYER_STATE, PLAY_ACTIVE } from "./names.js";
 
-const PAIRED_ENTRY_SEAT = 0xaa10;
 const WOUND = 0xff;
 
 export function dispatchPlayerFrameByState(m) {
   const { regs, mem8 } = m;
   regs.ix = PLAYER_STATE;
-  regs.iy = PAIRED_ENTRY_SEAT;
+  regs.iy = PLAYER_ENTRY;
 
   const state = mem8[PLAYER_STATE];
   if (state === 0) return;

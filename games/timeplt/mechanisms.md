@@ -758,6 +758,19 @@ The six ordinary enemy-craft slots of the actor band are named `CRAFT_RECORD_SLO
 the six are 0–4 and 6. Slot 0 is the band's iteration base, and slots 4 and 6 double as the seats of the
 "cleared" and "owed" free-slot spawn searches; slot 6 is also the Mother-Ship's second record. `[code]`
 
+The rest of the numbered array is named now, in the same band-local `SLOTn` scheme. The four actor/target
+slots ahead of the craft band — `ACTOR_RECORD_SLOT0`–`SLOT3` (`0xA810`–`0xA840`) with entries
+`ACTOR_ENTRY_SLOT0`–`SLOT3` (`0xAA12`–`0xAA18`) — are the slots `stepFourActorSlots` steps each frame;
+`ACTOR_RECORD_SLOT0` is also the base the whole-array init and the player-shot-vs-target sweep walk from,
+and slot 3 doubles as the aimed-spawn "bank A" seat. The three slots after the Mother-Ship —
+`ERA_OBJECT_RECORD_SLOT0`–`SLOT2` (`0xA8C0`/`0xA8D0`/`0xA8E0`) with entries `ERA_OBJECT_ENTRY_SLOT0`–`SLOT2`
+(`0xAA28`/`0xAA2A`/`0xAA2C`) — are the per-era special-object bank the "…ObjectBank" services run over as one
+group (their spawn config lives in the base record's own interior, `ATTACKER_SPAWN_SLOT_COUNT` at `+6`), with
+slot 2 doubling as the aimed-spawn "bank B" seat. The last slot is the parachutist,
+`PARACHUTIST_RECORD`/`PARACHUTIST_ENTRY` (`0xA8F0`/`0xAA2E`, its `+7` the already-named `PARACHUTIST_RUNG`).
+The player's own entry is `PLAYER_ENTRY` (`0xAA10`) and the Mother-Ship's is `MOTHER_SHIP_ENTRY` (`0xAA24`).
+`[code]` (which enemy class occupies each band is MAME-grounding pending; the addressing is opcode-proven.)
+
 ### A coordinate is split across both tables
 
 An actor's position is 16-bit 8.8 fixed point whose **whole byte lives in the sprite entry** and
@@ -804,8 +817,8 @@ and `0x42`, `0x48`, `0x4E` across a driven game, restamped six times by the era 
 reading the offsets table as "every byte of a record belongs to that record" will misread these.
 
 ★ **The ordinal at `+0x0F` is stamped by ONE routine, on the whole array at once, at life start.**
-It walks twenty-three records sixteen bytes apart from `0xA810` — which is the actor band and the
-scenery band entire, every slot but the player's — clearing each occupancy byte and writing that
+It walks twenty-three records sixteen bytes apart from `ACTOR_RECORD_SLOT0` (`0xA810`) — which is the
+actor band and the scenery band entire, every slot but the player's — clearing each occupancy byte and writing that
 record's position from one. Read back on the real ROM under MAME in the frame it ran, three times
 in one driven game, the twenty-three bytes held 1 through 23 and the twenty-three occupancy bytes
 held zero. `[seen]`
@@ -819,7 +832,10 @@ token, granted to one slot at a time, and the ordinal is how a slot recognises t
 that the same dispatch posts a ring command.
 
 The record holds **no** whole coordinate for actors, no sprite code and no colour. Those are in the
-entry: X, tile code, attribute (colour plus two flip bits), Y. `[code]`
+entry: X, tile code, attribute (colour plus two flip bits), Y. `[code]` The second bank's two bytes carry
+registry names at slot 0: `PLAYER_SPRITE_ATTRIBUTE` (`0xAA40`, the attribute byte, and the base of the
+32-byte bank-1 run `publishSpriteShadow` copies to hardware) and `PLAYER_SPRITE_Y` (`0xAA41`, the Y byte,
+and the base of the band `hideAllSprites`/`hideCaptionSprites` zero to park every sprite off-screen). `[code]`
 
 ### The lifecycle of a slot
 
@@ -885,7 +901,8 @@ is armed. `[code]`
 the object one step along its stored velocity and retires it into the shared cooldown only once that
 step has landed it on a retire line, and any other value retires it on the spot without moving it
 first. `serviceFixedSlotInEra1` is that same servicer behind an era gate — it acts only while
-`ERA_INDEX 0xAD04` reads 1, seating the fixed record `0xA8E0` and sprite entry `0xAA2C` before handing
+`ERA_INDEX 0xAD04` reads 1, seating the fixed record `ERA_OBJECT_RECORD_SLOT2` (`0xA8E0`) and sprite entry
+`ERA_OBJECT_ENTRY_SLOT2` (`0xAA2C`) before handing
 off — and `flyAndRetireSlotCyclingShapeInEra4` is the fly-then-retire arm with one addition: in era 4
 alone it advances a fixed shape cycle before the object moves, so a shape written this tick may go out
 in the same breath. `[code]`

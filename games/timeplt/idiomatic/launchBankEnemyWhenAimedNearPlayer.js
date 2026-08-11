@@ -14,12 +14,10 @@ import { headingToward } from "./headingToward.js";
 import { requestEraKeyedLaunchSound } from "./requestEraKeyedLaunchSound.js";
 import { loc_59cb } from "./loc_59cb.js";
 import { loc_59d1 } from "./loc_59d1.js";
-import { ATTACKER_SPAWN_AIM_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
+import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, ATTACKER_SPAWN_AIM_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
 
 const SPAWN_PHASE = 0xa980;
 const SPRITE_STATE = 0x30;
-const RECORD_BANK = 0xa810;
-const ENTRY_BANK = 0xaa12;
 const FREE_RECORD = 0xa991;
 const FREE_ENTRY = 0xa993;
 const SCROLL_ANGLE = 0xa802;
@@ -41,8 +39,8 @@ export function launchBankEnemyWhenAimedNearPlayer(m) {
   if (regs.fNZ) return; // wrong bank phase this frame
   if (mem8[BANK_LAUNCH_COOLDOWN] !== 0) return; // launch already armed
 
-  regs.hl = RECORD_BANK;
-  regs.de = ENTRY_BANK;
+  regs.hl = ACTOR_RECORD_SLOT0;
+  regs.de = ACTOR_ENTRY_SLOT0;
   if (mem8[BANK_LAUNCH_SLOT_COUNT] === 0) return;
   regs.b = mem8[BANK_LAUNCH_SLOT_COUNT];
 
@@ -86,7 +84,7 @@ export function launchBankEnemyWhenAimedNearPlayer(m) {
   regs.cp(regs.c);
   if (regs.fNC) return;
 
-  // d is ENTRY_BANK's high byte (0xaa) and nothing rewrites it, so this window never fires; kept
+  // d is ACTOR_ENTRY_SLOT0's high byte (0xaa) and nothing rewrites it, so this window never fires; kept
   // as a faithful mirror of the detached block
   if (regs.d === 0x02) {
     regs.a = mem8[ATTACKER_SPAWN_AIM_WINDOW_HALF];

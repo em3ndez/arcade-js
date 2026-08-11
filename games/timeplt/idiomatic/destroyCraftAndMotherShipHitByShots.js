@@ -13,7 +13,7 @@
 
 import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
-import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ERA_INDEX, MOTHER_SHIP_STATE, PLAYER_SHOT_ARRAY } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ERA_INDEX, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_SHOT_ARRAY } from "./names.js";
 import { u8 } from "../../../core/int.js";
 
 const SHOTS = 6;
@@ -25,7 +25,6 @@ const TARGET_SPAN = 15;
 const TARGET_ENTRY_CURSOR = 0xa991;
 const TARGET_RECORD_CURSOR = 0xa993;
 
-const STANDING_FIRST_AXIS = 0xaa24;
 const STANDING_SECOND_AXIS = 0xaa55;
 
 const STATE = 0;
@@ -65,7 +64,7 @@ export function destroyCraftAndMotherShipHitByShots(m) {
   let shot = PLAYER_SHOT_ARRAY;
   for (let left = SHOTS; left !== 0; left--) {
     if (mem8[shot + STATE] === LIVE &&
-      within(mem8[STANDING_FIRST_AXIS], mem8[shot + SHOT_FIRST_AXIS], reach, span) &&
+      within(mem8[MOTHER_SHIP_ENTRY], mem8[shot + SHOT_FIRST_AXIS], reach, span) &&
       within(mem8[STANDING_SECOND_AXIS], mem8[shot + SHOT_SECOND_AXIS],
         SECOND_AXIS_REACH, SECOND_AXIS_SPAN)) {
       mem8[MOTHER_SHIP_STATE] = DESTROYED;

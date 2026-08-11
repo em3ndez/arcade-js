@@ -6,14 +6,13 @@
 
 import { offsetAddress } from "./offsetAddress.js";
 import { u8 } from "../../../core/int.js";
-import { PLAYER_HEADING } from "./names.js";
+import { PLAYER_HEADING, PLAYER_SPRITE_ATTRIBUTE } from "./names.js";
 
 const SHAPE_BY_SECTOR = 0x20ce;
 const SECTORS = 32;
 const STEPS_PER_SECTOR = 256 / SECTORS;
 const SECOND_TABLE = SECTORS;
 const SHAPE_CELL = 0xaa11;
-const ATTRIBUTE_CELL = 0xaa40;
 
 export function dressPlayerSpriteForHeading(m) {
   const { mem8, regs } = m;
@@ -22,5 +21,5 @@ export function dressPlayerSpriteForHeading(m) {
   regs.a = sector;
   const entry = offsetAddress(m);
   mem8[SHAPE_CELL] = mem8[entry];
-  mem8[ATTRIBUTE_CELL] = mem8[entry + SECOND_TABLE];
+  mem8[PLAYER_SPRITE_ATTRIBUTE] = mem8[entry + SECOND_TABLE];
 }

@@ -1159,6 +1159,101 @@ export const CRAFT_ENTRY_SLOT4 = 0xaa22;
 export const CRAFT_ENTRY_SLOT6 = 0xaa26;
 
 /*
+ * The object array's OTHER banks (same 24-slot array as the craft band above; record = 0xA800 + 0x10*i,
+ * sprite entry = 0xAA10 + 0x02*i): the four actor/target slots (array 1-4), the three era-object-bank slots
+ * (array 12-14), the lone parachutist slot (array 15), plus the player (slot 0) and Mother-Ship (slot 10)
+ * sprite entries and the two second-bank band bases. SLOTn is band-local (0-based within each KIND), matching
+ * CRAFT_*_SLOTn above. See mechanisms.md §4.
+ */
+
+/**
+ * Actor slot 0's record head -- first of the four actor/target object slots (array slots 1-4). [code]
+ *
+ * stepFourActorSlots seats ix here and strides +0x10 across the four; the same band is the base of the
+ * player-shot-vs-target sweep and of the 15-slot "field cleared" scan. Interior fields already named
+ * (WAVE_KILL_COUNTDOWN 0xa811, WAVE_CLAIM_TIMER 0xa812). MAME-grounding pending for the gameplay role.
+ */
+export const ACTOR_RECORD_SLOT0 = 0xa810;
+
+/** Actor slot 1's record head. [code] */
+export const ACTOR_RECORD_SLOT1 = 0xa820;
+
+/** Actor slot 2's record head; also the free-slot-search band base. [code] */
+export const ACTOR_RECORD_SLOT2 = 0xa830;
+
+/** Actor slot 3's record head; also doubles as the aimed-spawn era "bank A" record seat. [code] */
+export const ACTOR_RECORD_SLOT3 = 0xa840;
+
+/**
+ * Era-object bank slot 0's record head -- base of the three-slot per-era special-object bank (array 12-14). [code]
+ *
+ * The era services (serviceEra0BallisticObjectBank / serviceEra1BomberObject / sweepEra2PlusObjectBank) seat ix
+ * here with count 3; askForSoundWhileTheGroupIsClear tests the three heads together as one group. The bank's
+ * spawn config lives in its own interior (ATTACKER_SPAWN_SLOT_COUNT 0xa8c6 = +6). MAME-grounding pending.
+ */
+export const ERA_OBJECT_RECORD_SLOT0 = 0xa8c0;
+
+/** Era-object bank slot 1's record head (second of the grouped three). [code] */
+export const ERA_OBJECT_RECORD_SLOT1 = 0xa8d0;
+
+/** Era-object bank slot 2's record head; also doubles as the aimed-spawn era "bank B" record seat. [code] */
+export const ERA_OBJECT_RECORD_SLOT2 = 0xa8e0;
+
+/** The parachutist's record head (array slot 15); its +7 is PARACHUTIST_RUNG 0xa8f7. [code] */
+export const PARACHUTIST_RECORD = 0xa8f0;
+
+/**
+ * The player's sprite entry (array slot 0's X-seat), and the iteration base of the whole entry band. [code]
+ *
+ * dispatchPlayerFrameByState seats iy here paired with PLAYER_STATE 0xa800; it is also the base of
+ * publishSpriteShadow's 32-byte bank-0 run.
+ */
+export const PLAYER_ENTRY = 0xaa10;
+
+/** Actor slot 0's sprite entry (paired with ACTOR_RECORD_SLOT0). [code] */
+export const ACTOR_ENTRY_SLOT0 = 0xaa12;
+
+/** Actor slot 1's sprite entry. [code] */
+export const ACTOR_ENTRY_SLOT1 = 0xaa14;
+
+/** Actor slot 2's sprite entry; free-slot-search entry seat. [code] */
+export const ACTOR_ENTRY_SLOT2 = 0xaa16;
+
+/** Actor slot 3's sprite entry; also the aimed-spawn "bank A" entry seat. [code] */
+export const ACTOR_ENTRY_SLOT3 = 0xaa18;
+
+/** The Mother-Ship's sprite entry (array slot 10), paired with MOTHER_SHIP_STATE 0xa8a0. [code] */
+export const MOTHER_SHIP_ENTRY = 0xaa24;
+
+/** Era-object bank slot 0's sprite entry (paired with ERA_OBJECT_RECORD_SLOT0). [code] */
+export const ERA_OBJECT_ENTRY_SLOT0 = 0xaa28;
+
+/** Era-object bank slot 1's sprite entry. [code] */
+export const ERA_OBJECT_ENTRY_SLOT1 = 0xaa2a;
+
+/** Era-object bank slot 2's sprite entry; also the aimed-spawn "bank B" entry seat. [code] */
+export const ERA_OBJECT_ENTRY_SLOT2 = 0xaa2c;
+
+/** The parachutist's sprite entry (array slot 15), paired with PARACHUTIST_RECORD. [code] */
+export const PARACHUTIST_ENTRY = 0xaa2e;
+
+/**
+ * The player's sprite attribute byte (colour + flip bits), and the base of the second bank's 32-byte
+ * colour/flip run publishSpriteShadow copies to hardware. [code]
+ *
+ * Slot 0's +0x30 descriptor byte (the code's own local alias here is SPRITE_ATTRIBUTE / ATTRIBUTE_CELL).
+ */
+export const PLAYER_SPRITE_ATTRIBUTE = 0xaa40;
+
+/**
+ * The player's sprite Y (vertical) byte, and the base of the Y band hideAllSprites / hideCaptionSprites zero
+ * to park every sprite off-screen. [code]
+ *
+ * Slot 0's +0x31 descriptor byte; distinct from the world-scroll WORLD_SCROLL_Y 0xa808.
+ */
+export const PLAYER_SPRITE_Y = 0xaa41;
+
+/*
  * Player shots: a SEPARATE six-slot record array at 0xAA80 (0xAA80-0xAADF, stride 0x10) with NO sprite entries --
  * the object-array 8:1 mapping does not apply. Slot +0 head/occupancy, +3/+5 velocity, +10/+12 position. See §4/§5.
  */

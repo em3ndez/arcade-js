@@ -7,13 +7,11 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
-import { PLAYER_STATE, MOTHER_SHIP_STATE } from "./names.js";
+import { MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_ENTRY, PLAYER_STATE } from "./names.js";
 
-const ENTRY = 0xaa10;
 const ENTRY_SECOND_AXIS = 49;
 
 const CLEARED_BESIDE = 0xa8a4;
-const SECOND_FIRST_AXIS = 0xaa24;
 const SECOND_SECOND_AXIS = 0xaa55;
 
 const LIVE = 255;
@@ -31,9 +29,9 @@ export function destroyPlayerAndMotherShipOnContact(m) {
   const { mem8 } = m;
   if (mem8[PLAYER_STATE] !== LIVE) return;
   if (mem8[MOTHER_SHIP_STATE] !== LIVE) return;
-  if (!within(mem8[SECOND_FIRST_AXIS], mem8[ENTRY], FIRST_AXIS_REACH, FIRST_AXIS_SPAN)) return;
+  if (!within(mem8[MOTHER_SHIP_ENTRY], mem8[PLAYER_ENTRY], FIRST_AXIS_REACH, FIRST_AXIS_SPAN)) return;
   if (
-    !within(mem8[SECOND_SECOND_AXIS], mem8[u16(ENTRY + ENTRY_SECOND_AXIS)],
+    !within(mem8[SECOND_SECOND_AXIS], mem8[u16(PLAYER_ENTRY + ENTRY_SECOND_AXIS)],
       SECOND_AXIS_REACH, SECOND_AXIS_SPAN)
   ) {
     return;

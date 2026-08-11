@@ -10,12 +10,8 @@ import { destroySlotsAndPlayerOnContact } from "./destroySlotsAndPlayerOnContact
 import { ramTestPlayerVsMotherShip } from "./ramTestPlayerVsMotherShip.js";
 import { destroyFixedTargetReachedByPlayer } from "./destroyFixedTargetReachedByPlayer.js";
 import { markObjectsTouchingPlayer } from "./markObjectsTouchingPlayer.js";
-import { FRAME_TICK, MOTHER_SHIP_ARMED } from "./names.js";
+import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, ERA_OBJECT_ENTRY_SLOT2, ERA_OBJECT_RECORD_SLOT2, FRAME_TICK, MOTHER_SHIP_ARMED } from "./names.js";
 
-const FIRST_SWEEP_RECORDS = 0xa810;
-const FIRST_SWEEP_ENTRIES = 0xaa12;
-const SECOND_SWEEP_RECORDS = 0xa8e0;
-const SECOND_SWEEP_ENTRIES = 0xaa2c;
 
 export function splitCollisionWorkByFrameParity(m) {
   const { mem8, regs } = m;
@@ -24,8 +20,8 @@ export function splitCollisionWorkByFrameParity(m) {
   destroyFixedTargetHitByShots(m);
 
   regs.b = 4;
-  regs.de = FIRST_SWEEP_RECORDS;
-  regs.iy = FIRST_SWEEP_ENTRIES;
+  regs.de = ACTOR_RECORD_SLOT0;
+  regs.iy = ACTOR_ENTRY_SLOT0;
   regs.l = 5;
   regs.h = 11;
   destroyPlayerAndObjectsTouchingIt(m);
@@ -40,8 +36,8 @@ export function splitCollisionWorkByFrameParity(m) {
   destroyFixedTargetReachedByPlayer(m);
 
   regs.b = 1;
-  regs.de = SECOND_SWEEP_RECORDS;
-  regs.iy = SECOND_SWEEP_ENTRIES;
+  regs.de = ERA_OBJECT_RECORD_SLOT2;
+  regs.iy = ERA_OBJECT_ENTRY_SLOT2;
   regs.l = 5;
   regs.h = 11;
   destroyPlayerAndObjectsTouchingIt(m);

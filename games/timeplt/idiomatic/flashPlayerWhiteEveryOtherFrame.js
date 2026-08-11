@@ -7,9 +7,8 @@
 
 import { u8 } from "../../../core/int.js";
 import { requestPlayerSpawnFlashSound } from "./requestPlayerSpawnFlashSound.js";
-import { INTRO_ANIMATION_STEP, PLAYER_FLASH_TICK } from "./names.js";
+import { INTRO_ANIMATION_STEP, PLAYER_FLASH_TICK, PLAYER_SPRITE_ATTRIBUTE } from "./names.js";
 
-const SPRITE_ATTRIBUTE = 0xaa40;
 
 const MIRROR_BITS = 0xc0;
 const ALTERNATING_BIT = 0x01;
@@ -28,6 +27,6 @@ export function flashPlayerWhiteEveryOtherFrame(m) {
   }
 
   const colour = (mem8[PLAYER_FLASH_TICK] & ALTERNATING_BIT) === 0 ? FIRST_COLOUR : SECOND_COLOUR;
-  mem8[SPRITE_ATTRIBUTE] = (mem8[SPRITE_ATTRIBUTE] & MIRROR_BITS) + colour;
+  mem8[PLAYER_SPRITE_ATTRIBUTE] = (mem8[PLAYER_SPRITE_ATTRIBUTE] & MIRROR_BITS) + colour;
   mem8[PLAYER_FLASH_TICK] = u8(mem8[PLAYER_FLASH_TICK] + 1);
 }

@@ -9,10 +9,8 @@ import { u8, u16 } from "../../../core/int.js";
 import { requestEnemyLaunchSound } from "./requestEnemyLaunchSound.js";
 import { headingToward } from "./headingToward.js";
 import { loc_59c5 } from "./loc_59c5.js";
-import { ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
+import { ACTOR_ENTRY_SLOT3, ACTOR_RECORD_SLOT3, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, ENEMY_STANDOFF_AIM_MAIN, ERA_OBJECT_ENTRY_SLOT2, ERA_OBJECT_RECORD_SLOT2 } from "./names.js";
 
-const SCAN_BANK_FLAG = 0xa8e0;
-const BANK_A_FLAG = 0xa840;
 const SIDE_TOGGLE = 0xa8d4;
 
 const SLOT_FREE = 0xff;
@@ -25,15 +23,11 @@ const X_ORIGIN = 0x84;
 const Y_ORIGIN = 0x78;
 const TURN = 0x18;
 
-const BANK_A_RECORD = 0xa840;
-const BANK_A_ENTRY = 0xaa18;
-const BANK_B_RECORD = 0xa8e0;
-const BANK_B_ENTRY = 0xaa2c;
 const NEW_SCRIPT = 0x4d;
 const NEW_SHAPE = 0x62;
 
 // era count != 1 with the scan flag clear selects the second bank; the guard and the seat both ask.
-const useSecondBank = (m) => m.mem8[ATTACKER_SPAWN_SLOT_COUNT] !== 1 && m.mem8[SCAN_BANK_FLAG] === 0;
+const useSecondBank = (m) => m.mem8[ATTACKER_SPAWN_SLOT_COUNT] !== 1 && m.mem8[ERA_OBJECT_RECORD_SLOT2] === 0;
 
 export function spawnAimedEnemyIntoEraBankWhenInWindow(m) {
   const { regs, mem8 } = m;
@@ -41,7 +35,7 @@ export function spawnAimedEnemyIntoEraBankWhenInWindow(m) {
   if (mem8[regs.ix] !== SLOT_FREE) return;
   if (mem8[ATTACKER_SPAWN_COOLDOWN] !== 0) return;
   if (mem8[ATTACKER_SPAWN_SLOT_COUNT] === 0) return;
-  if (!useSecondBank(m) && mem8[BANK_A_FLAG] !== 0) return;
+  if (!useSecondBank(m) && mem8[ACTOR_RECORD_SLOT3] !== 0) return;
 
   const half = mem8[ATTACKER_SPAWN_WINDOW_HALF];
   regs.d = half;
@@ -68,11 +62,11 @@ export function spawnAimedEnemyIntoEraBankWhenInWindow(m) {
   regs.b = mem8[u16(regs.iy + ENTRY_Y)];
   regs.c = mem8[u16(regs.iy + ENTRY_X)];
   if (useSecondBank(m)) {
-    regs.ix = BANK_B_RECORD;
-    regs.iy = BANK_B_ENTRY;
+    regs.ix = ERA_OBJECT_RECORD_SLOT2;
+    regs.iy = ERA_OBJECT_ENTRY_SLOT2;
   } else {
-    regs.ix = BANK_A_RECORD;
-    regs.iy = BANK_A_ENTRY;
+    regs.ix = ACTOR_RECORD_SLOT3;
+    regs.iy = ACTOR_ENTRY_SLOT3;
   }
 
   mem8[regs.iy + ENTRY_Y] = regs.b;

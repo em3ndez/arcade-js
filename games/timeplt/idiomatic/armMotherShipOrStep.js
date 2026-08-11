@@ -6,14 +6,13 @@
  */
 
 import { retireEntryPairIntoCooldown } from "./retireEntryPairIntoCooldown.js";
-import { ROUND_TRANSITION_HOLD } from "./names.js";
+import { MOTHER_SHIP_ENTRY, ROUND_TRANSITION_HOLD } from "./names.js";
 
 const SPECIAL_ACTIVE = 0xad0d;
 const FRAME_TICK = 0xa980;
 const SPAWN_GATE = 0xad02;
 const RECORD = 0xa8a0;
 const RECORD_STRIDE = 0x10;
-const ENTRY = 0xaa24;
 const HELD = 0xff;
 const PHASE_MASK = 0x07;
 const PHASE_DUE = 0x05;
@@ -31,7 +30,7 @@ export function armMotherShipOrStep(m) {
   if ((mem8[FRAME_TICK] & PHASE_MASK) !== PHASE_DUE) return;
 
   regs.ix = RECORD;
-  regs.iy = ENTRY;
+  regs.iy = MOTHER_SHIP_ENTRY;
   if ((mem8[SPAWN_GATE] | mem8[RECORD] | mem8[RECORD + RECORD_STRIDE]) !== 0) return;
 
   mem8[SPECIAL_ACTIVE] = HELD;

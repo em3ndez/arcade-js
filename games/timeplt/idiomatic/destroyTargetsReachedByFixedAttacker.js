@@ -15,7 +15,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
-import { PLAYER_STATE } from "./names.js";
+import { PLAYER_ENTRY, PLAYER_STATE } from "./names.js";
 
 const STATE = 0;
 const LIVE = 255;
@@ -24,7 +24,6 @@ const RECORD_STRIDE = 16;
 const ENTRY_STRIDE = 2;
 const ENTRY_SECOND_AXIS = 49;
 
-const ATTACKER_ENTRY = 0xaa10;
 
 /** Two coordinates are close enough when their wrapped difference lands inside the box. */
 const within = (a, b, reach, span) => u8(u8(a - b) + reach) < span;
@@ -49,9 +48,9 @@ export function destroyTargetsReachedByFixedAttacker(
   do {
     if (
       mem8[targetCursor + STATE] === LIVE &&
-      within(mem8[ATTACKER_ENTRY], mem8[entryCursor], reach, span) &&
+      within(mem8[PLAYER_ENTRY], mem8[entryCursor], reach, span) &&
       within(
-        mem8[ATTACKER_ENTRY + ENTRY_SECOND_AXIS],
+        mem8[PLAYER_ENTRY + ENTRY_SECOND_AXIS],
         mem8[entryCursor + ENTRY_SECOND_AXIS],
         reach,
         span,

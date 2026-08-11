@@ -8,12 +8,13 @@
  * lifting, the park goes with it." LIVE-OUT: memory, plus the two cursors the fourth slot left. */
 
 import { dispatchObjectSlotByHeadByte } from "./dispatchObjectSlotByHeadByte.js";
+import { ACTOR_ENTRY_SLOT0, ACTOR_ENTRY_SLOT1, ACTOR_ENTRY_SLOT2, ACTOR_ENTRY_SLOT3, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT1, ACTOR_RECORD_SLOT2, ACTOR_RECORD_SLOT3 } from "./names.js";
 
 const SLOTS = [
-  [0xa810, 0xaa12],
-  [0xa820, 0xaa14],
-  [0xa830, 0xaa16],
-  [0xa840, 0xaa18],
+  [ACTOR_RECORD_SLOT0, ACTOR_ENTRY_SLOT0],
+  [ACTOR_RECORD_SLOT1, ACTOR_ENTRY_SLOT1],
+  [ACTOR_RECORD_SLOT2, ACTOR_ENTRY_SLOT2],
+  [ACTOR_RECORD_SLOT3, ACTOR_ENTRY_SLOT3],
 ];
 
 export function stepFourActorSlots(m) {

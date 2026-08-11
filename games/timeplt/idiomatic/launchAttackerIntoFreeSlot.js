@@ -9,11 +9,9 @@
 import { setTheLaunchFacingInsideOneAimWindow } from "./setTheLaunchFacingInsideOneAimWindow.js";
 import { commissionStagedAttackerByEra } from "./commissionStagedAttackerByEra.js";
 import { u8 } from "../../../core/int.js";
-import { ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF } from "./names.js";
+import { ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0 } from "./names.js";
 
 const FRAME_COUNTER = 0xa980;
-const RECORD_BASE = 0xa8c0;
-const ENTRY_BASE = 0xaa28;
 const NEW_RECORD = 0xa991;
 const NEW_ENTRY = 0xa993;
 const ERA = 0xad04;
@@ -36,8 +34,8 @@ export function launchAttackerIntoFreeSlot(m) {
   let count = mem8[ATTACKER_SPAWN_SLOT_COUNT];
   if (count === 0) return;
 
-  let record = RECORD_BASE;
-  let entry = ENTRY_BASE;
+  let record = ERA_OBJECT_RECORD_SLOT0;
+  let entry = ERA_OBJECT_ENTRY_SLOT0;
   let free = false;
   for (; count > 0; count--) {
     if (mem8[record] === 0) { free = true; break; }

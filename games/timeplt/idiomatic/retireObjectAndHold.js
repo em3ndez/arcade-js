@@ -7,11 +7,11 @@
  * deliberately not part of the wipe; what it gates is not decided here.
  * LIVE-OUT: those seven bytes. */
 
+import { ERA_OBJECT_ENTRY_SLOT1 } from "./names.js";
 const RECORD_STRIDE = 16;
 const SECOND_AXIS_OFFSET = 49;
 const HELD_BYTE = 14;
 const HELD_AT = 128;
-const FIXED_ENTRY = 0xaa2a;
 
 export function retireObjectAndHold(m, record = m.regs.ix, entry = m.regs.iy) {
   const { mem8 } = m;
@@ -19,7 +19,7 @@ export function retireObjectAndHold(m, record = m.regs.ix, entry = m.regs.iy) {
   mem8[record + RECORD_STRIDE] = 0;
   mem8[entry] = 0;
   mem8[entry + SECOND_AXIS_OFFSET] = 0;
-  mem8[FIXED_ENTRY + SECOND_AXIS_OFFSET] = 0;
-  mem8[FIXED_ENTRY] = 0;
+  mem8[ERA_OBJECT_ENTRY_SLOT1 + SECOND_AXIS_OFFSET] = 0;
+  mem8[ERA_OBJECT_ENTRY_SLOT1] = 0;
   mem8[record + HELD_BYTE] = HELD_AT;
 }

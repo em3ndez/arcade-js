@@ -8,7 +8,7 @@
  * every call and a second call changes nothing the first did not.
  * LIVE-OUT: memory only. */
 
-const FIRST_ENTRY = 0xaa10;
+import { PLAYER_ENTRY } from "./names.js";
 const PIECES = 4;
 const ENTRY_STRIDE = 2;
 const SHAPE = 1;
@@ -24,7 +24,7 @@ const PIECE_PITCH = 16;
 export function stampCopyrightStrip(m) {
   const { mem8 } = m;
   for (let piece = 0; piece < PIECES; piece++) {
-    const entry = FIRST_ENTRY + piece * ENTRY_STRIDE;
+    const entry = PLAYER_ENTRY + piece * ENTRY_STRIDE;
     mem8[entry] = FIXED_AXIS_VALUE;
     mem8[entry + SHAPE] = FIRST_SHAPE + piece;
     mem8[entry + CONTROL] = CONTROL_VALUE;

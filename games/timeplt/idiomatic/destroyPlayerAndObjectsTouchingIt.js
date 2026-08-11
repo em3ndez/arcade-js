@@ -13,15 +13,13 @@
  * LIVE-OUT: memory, plus the two cursors. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { PLAYER_STATE } from "./names.js";
+import { PLAYER_ENTRY, PLAYER_SPRITE_Y, PLAYER_STATE } from "./names.js";
 
 const OCCUPANCY_STRIDE = 0x10;
 const ENTRY_STRIDE = 2;
 
 const ENTRY_FIRST_AXIS = 0;
 const ENTRY_SECOND_AXIS = 0x31;
-const MOVER_FIRST_AXIS = 0xaa10;
-const MOVER_SECOND_AXIS = 0xaa41;
 
 const LIVE = 0xff;
 const DESTROYED = 0xf0;
@@ -43,8 +41,8 @@ export function destroyPlayerAndObjectsTouchingIt(
   let left = targets === 0 ? COUNT_ZERO_MEANS : targets;
   while (left-- > 0) {
     if (mem8[occupancyAt] === LIVE) {
-      const across = u8(mem8[MOVER_FIRST_AXIS] - mem8[entryAt + ENTRY_FIRST_AXIS] + slack);
-      const along = u8(mem8[MOVER_SECOND_AXIS] - mem8[entryAt + ENTRY_SECOND_AXIS] + slack);
+      const across = u8(mem8[PLAYER_ENTRY] - mem8[entryAt + ENTRY_FIRST_AXIS] + slack);
+      const along = u8(mem8[PLAYER_SPRITE_Y] - mem8[entryAt + ENTRY_SECOND_AXIS] + slack);
       if (across < reach && along < reach) {
         mem8[PLAYER_STATE] = DESTROYED;
         mem8[occupancyAt] = DESTROYED;
