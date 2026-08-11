@@ -1,19 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Time Pilot I/O, from MAME src/mame/konami/timeplt.cpp.
- *
- * THE READ AND THE WRITE AT ONE ADDRESS ARE DIFFERENT DEVICES:
- *   0xC000  read -> scanline counter        write -> sound data to the audio Z80
- *   0xC200  read -> DSW1                    write -> watchdog reset
- *
- * INPUTS ARE ACTIVE LOW, idle 0xFF; a press CLEARS its bit. Audio is recorded for the
- * write-diff, not modelled.
+ * Time Pilot I/O (MAME konami/timeplt.cpp). READ and WRITE at one address are different devices:
+ *   0xC000  R scanline counter / W sound data to the audio Z80   ·   0xC200  R DSW1 / W watchdog reset.
+ * Inputs ACTIVE LOW, idle 0xFF (a press clears its bit). Audio is recorded for the write-diff, not modelled.
  */
 
-/**
- * Thrown where the model has no answer yet. Loud beats plausible: a stub returning 0 is a
- * value the ROM computes with, and the state diff then blames the CPU.
- */
+/** Thrown where the model has no answer yet. Loud beats plausible: a stub 0 makes the state diff blame the CPU. */
 export class NotImplemented extends Error {
   constructor(what) {
     super(`not implemented: ${what}`);
@@ -49,22 +41,21 @@ export class Io {
     this.dsw0 = IDLE_DSW0;
     this.dsw1 = IDLE_DSW1;
 
-    // LS259 outputs, all clear at power-on. That is the real part's behaviour, not an
-    // assumption about the ROM: 74259.cpp device_reset clears every output. The ROM
-    // writes only bits 0-4 at boot and 5-6 on coins; bit 7 never.
+    // LS259 outputs, all clear at power-on (74259 device_reset); the ROM writes bits 0-4 at boot, 5-6 on coins, 7 never.
     this.latch = new Uint8Array(8);
 
     this.soundData = 0;
     this.watchdogKicks = 0;
 
-    // Read at 0xC000, and NOT advanced here: the Machine replaces this accessor with one
-    // derived from cycle position. Alone, this object reports a frozen counter, so a
-    // caller comparing one routine in isolation must supply the raster phase.
+    // Set by the web worker to the audio sink; the 0xC000 write is notified through it to play a clip. null offline -> plain store.
+    this.onSoundWrite = null;
+
+    // Read at 0xC000; NOT advanced here -- the Machine supplies a cycle-derived accessor, so a routine
+    // compared in isolation must set the raster phase itself.
     this.scanline = 0;
   }
 
-  // Pressed bits per port, set per frame by Machine.applyInputs and inverted here, so a
-  // tape reads as the MAME lua one does. An unknown key is rejected, not a silent no-op.
+  // Pressed bits per port (set per frame by Machine.applyInputs), inverted here so a tape reads as MAME's; an unknown key throws.
   inputAssert = null;
 
   _pressed(addr) {
@@ -98,17 +89,18 @@ export class Io {
     this.inputAssert = other.inputAssert;
   }
 
-  writeSoundData(value) { this.soundData = value & 0xff; }
+  writeSoundData(value) {
+    this.soundData = value & 0xff;
+    // Notify the audio layer (the player keys off this 0xC000 write; the ROM's paired 0xC304 edge is not needed here). Inert offline.
+    if (this.onSoundWrite) this.onSoundWrite(0xc000, this.soundData);
+  }
   kickWatchdog() { this.watchdogKicks++; }
 
   writeControlLatch(bit, value) { this.latch[bit & 7] = value & 1; }
 
-  /**
-   * NMI is asserted on vblank only while this bit is set (timeplt_state::vblank_irq). SPELLED
-   * `nmiMask` as on every other board, because the shared engines read the gate by that name and
-   * under any other spelling it reads `undefined` -- falsy -- so a cycle-free run returns 0 frames
-   * and throws nothing. Measured; one name, not two, is the whole point.
-   */
+  /** NMI asserted on vblank while this bit is set (timeplt vblank_irq). MUST be spelled `nmiMask`: the
+   * shared engines read the gate by that name; any other spelling reads undefined/falsy, so a cycle-free
+   * run silently returns 0 frames. Measured -- one name, not two. */
   get nmiMask() { return this.latch[LATCH_NMI_ENABLE] === 1; }
 
   get flipScreen() { return this.latch[LATCH_FLIPSCREEN] === 0; }

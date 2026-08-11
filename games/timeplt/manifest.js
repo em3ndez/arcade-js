@@ -48,6 +48,17 @@ export default {
     },
   },
 
+  // Audio: the "clips" model — one recorded clip per soundlatch command, played ABOVE the
+  // emulation (the 2nd Z80 `tpsound` + its 2x AY-3-8910 are NOT emulated). The main CPU writes
+  // the command to 0xC000 and pulses 0xC304 to wake the audio CPU; the player keys off the
+  // 0xC000 write. `map` is the committed, data-only model (audio/sounds.js); `samples` is the
+  // gitignored directory the recorder fills (games/timeplt/tools/record_samples.py) with one
+  // WAV per command plus an index.json. Omit both and the game is silent.
+  audio: {
+    map: "audio/sounds.js",
+    samples: "audio/samples",
+  },
+
   // ALL BITS ARE ACTIVE LOW -- a pressed control clears its bit, so IN0/IN1/IN2 idle at 0xFF.
   // DSW0 also reads 0xFF, but DSW1 reads 0x4B: that is its default SETTINGS, not an idle-high
   // port (see the dips block). Bit assignments are KONAMI8_SYSTEM_10 and KONAMI8_MONO_8WAY.
