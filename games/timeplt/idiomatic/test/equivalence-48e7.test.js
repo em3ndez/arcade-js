@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { awardOneCreditOnDebouncedInputEdge } from "../awardOneCreditOnDebouncedInputEdge.js";
 import { loc_48e7 as oracle } from "../../translated/loc_48e7.js";
-import { loc_57f1 } from "../loc_57f1.js";
+import { requestCoinSound } from "../requestCoinSound.js";
 import { awardCoinCreditThenPulseCoinCounter } from "../awardCoinCreditThenPulseCoinCounter.js";
 import { IN0_MIRROR, FREE_PLAY } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -172,7 +172,7 @@ function brokenNoOp() {}
 function brokenNoHistoryWrite(m) {
   const bit = (m.mem8[IN0_MIRROR] >> INPUT_BIT) & 1;
   if (((((m.mem8[HISTORY]) << 1) | bit) & 0x07) !== 0x01) return;
-  loc_57f1(m);
+  requestCoinSound(m);
   m.regs.c = 0x01;
   return awardCoinCreditThenPulseCoinCounter(m);
 }
@@ -183,7 +183,7 @@ function brokenWrongThreshold(m) {
   const h = ((m.mem8[HISTORY] << 1) | bit) & 0xff;
   m.mem8[HISTORY] = h;
   if ((h & 0x07) !== 0x00) return;
-  loc_57f1(m);
+  requestCoinSound(m);
   m.regs.c = 0x01;
   return awardCoinCreditThenPulseCoinCounter(m);
 }
@@ -194,7 +194,7 @@ function brokenWrongCredit(m) {
   const h = ((m.mem8[HISTORY] << 1) | bit) & 0xff;
   m.mem8[HISTORY] = h;
   if ((h & 0x07) !== 0x01) return;
-  loc_57f1(m);
+  requestCoinSound(m);
   m.regs.c = 0x02;
   return awardCoinCreditThenPulseCoinCounter(m);
 }
@@ -205,7 +205,7 @@ function brokenWrongBit(m) {
   const h = ((m.mem8[HISTORY] << 1) | bit) & 0xff;
   m.mem8[HISTORY] = h;
   if ((h & 0x07) !== 0x01) return;
-  loc_57f1(m);
+  requestCoinSound(m);
   m.regs.c = 0x01;
   return awardCoinCreditThenPulseCoinCounter(m);
 }

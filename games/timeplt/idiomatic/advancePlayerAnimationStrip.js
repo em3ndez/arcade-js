@@ -8,8 +8,8 @@
  * LIVE-OUT: the phase and paired-entry cells, the drawn strip, or whatever the divert leaves. */
 
 import { loc_1f2e } from "./loc_1f2e.js";
-import { loc_5679 } from "./loc_5679.js";
-import { loc_56d2 } from "./loc_56d2.js";
+import { requestLateEraProgressSound } from "./requestLateEraProgressSound.js";
+import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
 import { offsetAddress } from "./offsetAddress.js";
 
 const PHASE = 0x00; // record byte holding the animation phase
@@ -51,8 +51,8 @@ export function advancePlayerAnimationStrip(m) {
     mem8[(regs.iy + PAIR_FLAG) & 0xffff] = PAIR_MARK;
     regs.a = mem8[LEVEL_CELL];
     regs.cp(EXTRA_CUE_LEVEL);
-    if (!regs.fC) loc_5679(m);
-    loc_56d2(m);
+    if (!regs.fC) requestLateEraProgressSound(m);
+    requestRoundIntroSoundBurst(m);
 
     regs.a = mem8[STATE_HI];
     regs.cp(RUNNING);

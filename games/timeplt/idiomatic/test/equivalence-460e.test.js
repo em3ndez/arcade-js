@@ -16,7 +16,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { setUpTwoPlayerStartObjectOnce as candidate } from "../setUpTwoPlayerStartObjectOnce.js";
 import { loc_460e as oracle } from "../../translated/loc_460e.js";
-import { loc_580b } from "../loc_580b.js";
+import { requestMotherShipWarpSound } from "../requestMotherShipWarpSound.js";
 import { postCommand } from "../postCommand.js";
 
 const TARGET = 0x460e;
@@ -131,7 +131,7 @@ function twin(o) {
       mem8[(regs.iy + 0x30) & 0xffff] = 0x6c;
       mem8[(regs.iy + 0x32) & 0xffff] = 0x6c;
     }
-    if (!o.noSound && mem8[SOUND_TRIGGER] === 0xff) loc_580b(m);
+    if (!o.noSound && mem8[SOUND_TRIGGER] === 0xff) requestMotherShipWarpSound(m);
     return postCommand(m, 0x04, 0x0d);
   };
 }

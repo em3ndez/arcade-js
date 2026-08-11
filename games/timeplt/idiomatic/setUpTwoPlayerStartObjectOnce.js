@@ -4,7 +4,7 @@
  * cell is armed, and queue one display command. When the pair still agrees it does nothing.
  * LIVE-OUT: memory. */
 
-import { loc_580b } from "./loc_580b.js";
+import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
 import { postCommand } from "./postCommand.js";
 
 const WATCHED = 0xa67c;
@@ -25,6 +25,6 @@ export function setUpTwoPlayerStartObjectOnce(m, counterBase = m.regs.ix, slotBa
   mem8[(slotBase + SLOT_GLYPH_A) & 0xffff] = 0x6c;
   mem8[(slotBase + SLOT_GLYPH_B) & 0xffff] = 0x6c;
 
-  if (mem8[SOUND_TRIGGER] === 0xff) loc_580b(m);
+  if (mem8[SOUND_TRIGGER] === 0xff) requestMotherShipWarpSound(m);
   return postCommand(m, 0x04, 0x0d);
 }

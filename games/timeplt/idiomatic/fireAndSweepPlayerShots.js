@@ -5,7 +5,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { readPlayerControls } from "./readPlayerControls.js";
-import { loc_567e } from "./loc_567e.js";
+import { requestPlayerShotSound } from "./requestPlayerShotSound.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
 import { queueTileStampForObject } from "./queueTileStampForObject.js";
 import { FIRE_BUTTON_EDGE_SHIFT, PLAYER_HEADING, PLAYER_SHOT_ARRAY, PLAYER_STATE, PLAY_ACTIVE, ROUND_TRANSITION_HOLD, SHOT_BURST_PENDING, SHOT_SPAWN_COOLDOWN, WORLD_SCROLL_X, WORLD_SCROLL_Y } from "./names.js";
@@ -43,7 +43,7 @@ export function fireAndSweepPlayerShots(m) {
 
 function spawnIntoFreeSlot(m, slot) {
   const { regs, mem8, mem16 } = m;
-  loc_567e(m);
+  requestPlayerShotSound(m);
 
   mem16[slot + SEED1] = u16(-4 * mem16[WORLD_SCROLL_Y]);
   mem16[slot + SEED2] = u16(-4 * mem16[WORLD_SCROLL_X]);

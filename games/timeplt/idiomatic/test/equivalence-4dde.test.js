@@ -4,7 +4,7 @@
  *
  * WHAT IT IS. A one-shot award fired when a tally's top byte matches one of a list of marks. Two
  * of the things it does are ALREADY decompiled — the ring append and the sound request it leaves
- * by — so the rewrite calls postCommand and loc_5805 directly and both dissolves belong here.
+ * by — so the rewrite calls postCommand and requestBonusLifeSound directly and both dissolves belong here.
  *
  * ★ THE SEARCH IS AN EQUALITY, NOT A THRESHOLD, and that is what the crafted sweep is for. Every
  *   one of the 256 possible tally bytes is tried against both mark lists, so the arm covers the
@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
 import { awardBonusLifeAtScoreMark } from "../awardBonusLifeAtScoreMark.js";
-import { loc_5805 } from "../loc_5805.js";
+import { requestBonusLifeSound } from "../requestBonusLifeSound.js";
 import { postCommand } from "../postCommand.js";
 import { PLAY_ACTIVE, ACTIVE_PLAYER, LIVES_REMAINING } from "../names.js";
 import { loc_4dde as oracle } from "../../translated/loc_4dde.js";
@@ -269,7 +269,7 @@ function award(m, marksOf, matches, latchCheck, argument, sound) {
   const before = mem8[LIVES_REMAINING];
   mem8[LIVES_REMAINING] = before + 1;
   postCommand(m, AWARD_COMMAND, argument(before));
-  if (sound) loc_5805(m);
+  if (sound) requestBonusLifeSound(m);
 }
 
 const chosenMarks = (m) => ((m.mem8[SETTING] & 1) === 0 ? MARKS_WHEN_CLEAR : MARKS_WHEN_SET);
@@ -301,7 +301,7 @@ function brokenAlwaysFirstTally(m) {
   const before = mem8[LIVES_REMAINING];
   mem8[LIVES_REMAINING] = before + 1;
   postCommand(m, AWARD_COMMAND, before);
-  loc_5805(m);
+  requestBonusLifeSound(m);
 }
 
 /** BUG: a mark is treated as a threshold, so everything past it awards. */
@@ -330,7 +330,7 @@ function brokenNeverRearms(m) {
   const before = mem8[LIVES_REMAINING];
   mem8[LIVES_REMAINING] = before + 1;
   postCommand(m, AWARD_COMMAND, before);
-  loc_5805(m);
+  requestBonusLifeSound(m);
 }
 
 /** BUG: the count goes out AFTER the step rather than before it. */

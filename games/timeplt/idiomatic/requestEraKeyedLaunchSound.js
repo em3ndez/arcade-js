@@ -5,15 +5,15 @@
  * carry the code and the permission they carry anywhere. LIVE-OUT: memory, through the request. */
 
 import { ERA_INDEX } from "./names.js";
-import { loc_565f } from "./loc_565f.js";
-import { loc_5669 } from "./loc_5669.js";
+import { requestEnemyLaunchSound } from "./requestEnemyLaunchSound.js";
+import { requestEnemyLaunchSoundLateEra } from "./requestEnemyLaunchSoundLateEra.js";
 
 const FIRST_LATE_ERA = 3;
 
 export function requestEraKeyedLaunchSound(m) {
   if (m.mem8[ERA_INDEX] < FIRST_LATE_ERA) {
-    loc_565f(m);
+    requestEnemyLaunchSound(m);
     return;
   }
-  loc_5669(m);
+  requestEnemyLaunchSoundLateEra(m);
 }

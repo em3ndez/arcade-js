@@ -11,7 +11,7 @@
 import { u8, u16 } from "../../../core/int.js";
 import { fillCellRun } from "./fillCellRun.js";
 import { restoreColumnFromSavedRun } from "./restoreColumnFromSavedRun.js";
-import { loc_56e4 } from "./loc_56e4.js";
+import { requestInterRoundSoundPair } from "./requestInterRoundSoundPair.js";
 import { stepThirteenScriptedGlyphCells } from "./stepThirteenScriptedGlyphCells.js";
 import { gatherCharColumnIntoBackingRun } from "./gatherCharColumnIntoBackingRun.js";
 
@@ -41,7 +41,7 @@ export function advanceScriptedCharPlaneBandTo4(m) {
     if ((mem8[mem16[SCRIPT_POINTER]] & 0xfe) !== 0) {
       mem8[COUNTDOWN] = 0;
       mem8[NEXT_STEP_CELL] = NEXT_STEP;
-      loc_56e4(m);
+      requestInterRoundSoundPair(m);
       mem16[SCRIPT_POINTER] = u16(mem16[SCRIPT_POINTER] + 1);
       return;
     }

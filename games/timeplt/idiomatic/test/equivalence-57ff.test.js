@@ -1,19 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_57ff — memory-equivalent to the frozen oracle at ROM 0x57FF.
+ * requestParachutistAwardSound — memory-equivalent to the frozen oracle at ROM 0x57FF.
  *
- * WHAT IT IS. Two instructions: load one byte of the program image into A, then transfer to the
- * shared request body at ROM 0x560C, WHICH IS ALREADY DECOMPILED — so the rewrite calls it
- * directly with the byte as an argument, and dissolving that transfer belongs to this caller's
- * unit. The whole content of the entry is therefore WHICH sound code it asks for and WHICH
- * permission it asks under, and this gate is built to see both: the permission is the play-active flag alone,
- * and the code is fetched at run time rather than carried as an immediate.
+ * WHAT IT IS. Two instructions: load one program-image byte into A, then transfer to the shared
+ * request body at 0x560C (already decompiled -> a direct call with the byte as arg). The content is
+ * WHICH code it asks for (fetched at run time) and WHICH permission (the play-active flag).
  *
- * ★ NOT REACHED BY THE SHARED TAPE. This entry is dispatched through a path the coin -> start
- *   tape does not drive, so there is no real capture OF IT and the arms below run from a real
- *   machine state captured at its tail at ROM 0x560C instead — a genuine in-play state with a
- *   surgical entry, not a fabrication. The header says so rather than letting "EQUAL at the real
- *   dispatch" imply a dispatch that never happened.
+ * ★ NOT REACHED BY THE SHARED TAPE. The coin->start tape never dispatches this entry, so the arms
+ *   below run from a real in-play state captured at its tail at 0x560C -- a surgical entry, not a fabrication.
  *
  * ★ THE TWIN THAT A GENUINE IMAGE CANNOT DISCRIMINATE. A rewrite that hard-codes the sound code
  *   instead of reading it is byte-for-byte identical to the real one on an unmodified image —
@@ -57,7 +51,7 @@ import {
   show,
   withPokedImage,
 } from "./_soundQueue.js";
-import { loc_57ff } from "../loc_57ff.js";
+import { requestParachutistAwardSound } from "../requestParachutistAwardSound.js";
 import { loc_560c } from "../loc_560c.js";
 import { loc_562a } from "../loc_562a.js";
 import { PLAY_ACTIVE } from "../names.js";
@@ -118,12 +112,12 @@ function codeAppendedByOracle() {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("CRAFTED ENTRY: from a real capture taken at the tail: loc_57ff == oracle on RAM", { skip }, () => {
+test("CRAFTED ENTRY: from a real capture taken at the tail: requestParachutistAwardSound == oracle on RAM", { skip }, () => {
   const entry = entryState();
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_57ff(b);
+  requestParachutistAwardSound(b);
   const d = realDiff(a, b, entry.regs.sp, SCRATCH_BYTES);
   assert.equal(d, null, `RAM diverged — ${show(d)}`);
   assert.ok(allDiffs(a, b).length > 0, "no divergence at all — the scratch push vanished");
@@ -138,7 +132,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch window and nothing e
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_57ff(b);
+  requestParachutistAwardSound(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.ok(moved.includes("sp"), "the oracle's return must move the stack pointer");
   assert.ok(
@@ -164,7 +158,7 @@ test("IT READS THE IMAGE: the requested code follows a poked source byte", { ski
   assert.notEqual(POKED_CODE, EXPECTED_CODE, "the poke must actually change the byte");
   withPokedImage(entry, SOUND_CODE_CELL, POKED_CODE, () => {
     assert.equal(codeAppendedByOracle(), POKED_CODE, "the oracle ignored the poked source byte");
-    const d = craftedDiff(loc_57ff, 0xff, 0x01, 3);
+    const d = craftedDiff(requestParachutistAwardSound, 0xff, 0x01, 3);
     assert.equal(d, null, `the rewrite diverged under the poke — ${show(d)}`);
   });
   assert.equal(codeAppendedByOracle(), EXPECTED_CODE, "the poke leaked past its own scope");
@@ -174,7 +168,7 @@ test("IT READS THE IMAGE: the requested code follows a poked source byte", { ski
 test("GATE CROSS: both permission cells swept, including the drop branch", { skip }, () => {
   for (const play of PLAY_VALUES) {
     for (const demo of DEMO_VALUES) {
-      const d = craftedDiff(loc_57ff, play, demo, 3);
+      const d = craftedDiff(requestParachutistAwardSound, play, demo, 3);
       assert.equal(d, null, `play=${play} demo=${demo}: ${show(d)}`);
     }
   }
@@ -183,7 +177,7 @@ test("GATE CROSS: both permission cells swept, including the drop branch", { ski
 
 test("EXHAUSTIVE over the queue length", { skip }, () => {
   for (let length = 0; length < 256; length++) {
-    const d = craftedDiff(loc_57ff, 0xff, 0x01, length);
+    const d = craftedDiff(requestParachutistAwardSound, 0xff, 0x01, length);
     assert.equal(d, null, `length=${length}: ${show(d)}`);
   }
   console.log("  EXHAUSTIVE: 256 queue lengths identical");

@@ -6,7 +6,7 @@
  * shape into the era's fixed record+sprite bank and reloads the cooldown. LIVE-OUT: memory. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { loc_565f } from "./loc_565f.js";
+import { requestEnemyLaunchSound } from "./requestEnemyLaunchSound.js";
 import { headingToward } from "./headingToward.js";
 import { loc_59c5 } from "./loc_59c5.js";
 import { ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
@@ -58,7 +58,7 @@ export function spawnAimedEnemyIntoEraBankWhenInWindow(m) {
   } while (regs.b !== 0);
   if (!hit) return;
 
-  loc_565f(m);
+  requestEnemyLaunchSound(m);
   regs.hl = ENEMY_STANDOFF_AIM_MAIN;
   const heading = headingToward(m);
   mem8[SIDE_TOGGLE] = u8(mem8[SIDE_TOGGLE] + 1);

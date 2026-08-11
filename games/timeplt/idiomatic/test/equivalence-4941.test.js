@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { tallyCoinSlot1AndAwardCredit as candidate } from "../tallyCoinSlot1AndAwardCredit.js";
 import { loc_4941 as oracle } from "../../translated/loc_4941.js";
-import { loc_57f1 } from "../loc_57f1.js";
+import { requestCoinSound } from "../requestCoinSound.js";
 import { paintCreditCountPanel } from "../paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "../pulseSlot1CoinCounter.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -124,7 +124,7 @@ function twin(o) {
     regs.and(0x07);
     regs.cp(cpVal);
     if (regs.fNZ) return;
-    loc_57f1(m);
+    requestCoinSound(m);
     mem8[COIN_TALLY] = mem8[COIN_TALLY] + 1;
     regs.hl = COINS_INSERTED;
     regs.a = mem8[regs.hl];

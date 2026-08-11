@@ -41,7 +41,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { flashPlayerWhiteEveryOtherFrame } from "../flashPlayerWhiteEveryOtherFrame.js";
-import { loc_5811 } from "../loc_5811.js";
+import { requestPlayerSpawnFlashSound } from "../requestPlayerSpawnFlashSound.js";
 import { loc_1367 as oracle } from "../../translated/loc_1367.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -156,7 +156,7 @@ function frame(m, {
   const { mem8 } = m;
   if (mem8[ANIMATION_TICK] === soundTick) {
     mem8[ANIMATION_STEP] = NEXT_STEP;
-    if (sound) loc_5811(m);
+    if (sound) requestPlayerSpawnFlashSound(m);
   }
   const colour = (mem8[ANIMATION_TICK] & bit) === 0 ? first : second;
   mem8[SPRITE_ATTRIBUTE] = (mem8[SPRITE_ATTRIBUTE] & mask) + colour;

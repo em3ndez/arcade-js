@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_57f7 — memory-equivalent to the frozen oracle at ROM 0x57F7.
+ * requestCurrentEraSound — memory-equivalent to the frozen oracle at ROM 0x57F7.
  *
  * WHAT IT IS, AND WHY IT GETS ITS OWN GATE RATHER THAN THE FAMILY'S. Every other entry in this
  * family loads a FIXED byte of the program image and hands it to a shared request body. This one
  * loads the era index out of work RAM and ADDS a constant to it, so the sound it asks for is
  * chosen by how far into the game the player has got. That makes its input space a live RAM cell
- * rather than an immutable byte, which is a far better thing to gate: the sweep below drives the
- * cell through all 256 values and checks the requested code against every one of them, so a
- * rewrite that hard-coded any single code — or dropped the addition, or applied it to the wrong
- * cell — dies immediately. No image poke is needed to make the read live.
+ * rather than an immutable byte, so the sweep below drives the cell through all 256 values and
+ * checks the requested code against each -- a hard-coded code, or a dropped/misapplied add, dies. No poke needed.
  *
  * ★ NOT REACHED BY THE SHARED TAPE. It is dispatched through a path the coin -> start tape does
  *   not drive, so the arms run from a real machine state captured at its tail at ROM 0x560C — a
@@ -57,7 +55,7 @@ import {
   realDiff,
   show,
 } from "./_soundQueue.js";
-import { loc_57f7 } from "../loc_57f7.js";
+import { requestCurrentEraSound } from "../requestCurrentEraSound.js";
 import { loc_560c } from "../loc_560c.js";
 import { loc_562a } from "../loc_562a.js";
 import { ERA_INDEX, PLAY_ACTIVE } from "../names.js";
@@ -117,12 +115,12 @@ function eraSweepCaught(cand) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("CRAFTED ENTRY: loc_57f7 == oracle on RAM", { skip }, () => {
+test("CRAFTED ENTRY: requestCurrentEraSound == oracle on RAM", { skip }, () => {
   const entry = entryState();
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_57f7(b);
+  requestCurrentEraSound(b);
   const d = realDiff(a, b, entry.regs.sp, SCRATCH_BYTES);
   assert.equal(d, null, `RAM diverged — ${show(d)}`);
   assert.ok(allDiffs(a, b).length > 0, "no divergence at all — the scratch push vanished");
@@ -137,7 +135,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch window and nothing e
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_57f7(b);
+  requestCurrentEraSound(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.ok(
     moved.every((k) => ["a", "f", "sp"].includes(k)),
@@ -155,7 +153,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch window and nothing e
 
 test("EXHAUSTIVE over the era cell: 0..255, arms agree and the code tracks the era", { skip }, () => {
   for (let era = 0; era < 256; era++) {
-    const d = craftedDiff(loc_57f7, era, 0xff, 0x01, 3);
+    const d = craftedDiff(requestCurrentEraSound, era, 0xff, 0x01, 3);
     assert.equal(d, null, `era=${era}: ${show(d)}`);
     assert.equal(codeForEra(era), u8(era + FIRST_ERA_CODE), `era=${era}: wrong code appended`);
   }
@@ -174,7 +172,7 @@ test("A CONTIGUOUS RUN: the eras the game reaches map to consecutive codes", { s
 test("GATE CROSS: both permission cells swept, including the drop branch", { skip }, () => {
   for (const play of PLAY_VALUES) {
     for (const demo of DEMO_VALUES) {
-      const d = craftedDiff(loc_57f7, 3, play, demo, 3);
+      const d = craftedDiff(requestCurrentEraSound, 3, play, demo, 3);
       assert.equal(d, null, `play=${play} demo=${demo}: ${show(d)}`);
     }
   }
@@ -183,7 +181,7 @@ test("GATE CROSS: both permission cells swept, including the drop branch", { ski
 
 test("EXHAUSTIVE over the queue length", { skip }, () => {
   for (let length = 0; length < 256; length++) {
-    const d = craftedDiff(loc_57f7, 2, 0xff, 0x01, length);
+    const d = craftedDiff(requestCurrentEraSound, 2, 0xff, 0x01, length);
     assert.equal(d, null, `length=${length}: ${show(d)}`);
   }
   console.log("  EXHAUSTIVE: 256 queue lengths identical");

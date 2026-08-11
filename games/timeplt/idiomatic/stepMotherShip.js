@@ -17,11 +17,11 @@ import { dressSpriteForHeadingOrRetireAtEdge } from "./dressSpriteForHeadingOrRe
 import { stepMotherShipWarpFlashFrame } from "./stepMotherShipWarpFlashFrame.js";
 import { setMotherShipVelocityFromHeading } from "./setMotherShipVelocityFromHeading.js";
 import { loc_5634 } from "./loc_5634.js";
-import { loc_565f } from "./loc_565f.js";
+import { requestEnemyLaunchSound } from "./requestEnemyLaunchSound.js";
 import { requestTwoSounds } from "./requestTwoSounds.js";
-import { loc_56d2 } from "./loc_56d2.js";
-import { loc_57f7 } from "./loc_57f7.js";
-import { loc_580b } from "./loc_580b.js";
+import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
+import { requestCurrentEraSound } from "./requestCurrentEraSound.js";
+import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
 import { BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, ROUND_TRANSITION_HOLD } from "./names.js";
 
 const RECORD_BANK = 0xa8a0;
@@ -155,7 +155,7 @@ export function loc_43f0_4554(m) {
   regs.xor(regs.a);
   mem8[CLEAR_CELL] = regs.a;
   loc_5634(m);
-  loc_56d2(m);
+  requestRoundIntroSoundBurst(m);
 
   regs.hl = SLOT_BAND;
   regs.de = SLOT_STRIDE;
@@ -255,7 +255,7 @@ export function loc_43f0_4623(m) {
   mem8[Y(0x32)] = 0x6c;
 
   regs.a = regs.inc8(mem8[WARP_SENTINEL]);
-  if (regs.fZ) loc_580b(m);
+  if (regs.fZ) requestMotherShipWarpSound(m);
   regs.de = WARP_SOUND;
   return postCommand(m);
 }
@@ -320,7 +320,7 @@ export function loc_43f0_4663(m) {
   regs.cp(0x06);
   if (regs.fC) mem8[X(HOLD_COUNTER)] = 0x05; // floor
   mem8[X(STATE)] = 0xff; // go live
-  return loc_57f7(m);
+  return requestCurrentEraSound(m);
 }
 
 export function loc_43f0_46f0(m) {
@@ -401,7 +401,7 @@ export function loc_43f0_474c(m) {
   regs.exx();
   mem.write16(NEW_SPRITE_PTR, regs.hl);
 
-  loc_565f(m);
+  requestEnemyLaunchSound(m);
 
   regs.hl = ENEMY_STANDOFF_AIM_MAIN;
   headingToward(m);

@@ -5,7 +5,7 @@
  * WHAT IT IS. Put an object into a fixed state, ask for the sound that goes with it, and dress its
  * sprite entry from a four-entry shape table chosen by a byte of the object's own record — with a
  * single fixed shape used instead when that byte is at or past the end of the table. The sound
- * request and the table fetch are BOTH already decompiled, so the rewrite calls loc_57ff and
+ * request and the table fetch are BOTH already decompiled, so the rewrite calls requestParachutistAwardSound and
  * fetchTableByte directly and dissolving those two transfers belongs to this caller's unit.
  *
  * ★ THE CLAMP IS THE INTERESTING PART AND NO TAPE EXERCISES IT. Undriven attract dispatches this
@@ -43,7 +43,7 @@ import assert from "node:assert/strict";
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
 import { showParachutistAward } from "../showParachutistAward.js";
-import { loc_57ff } from "../loc_57ff.js";
+import { requestParachutistAwardSound } from "../requestParachutistAwardSound.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { loc_4809 as oracle } from "../../translated/loc_4809.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -204,7 +204,7 @@ function brokenNoOp() {}
 /** BUG: the index is not clamped, so an out-of-range one reads on past the table. */
 function brokenNoClamp(m) {
   m.mem8[record(m, STATE_IN_RECORD)] = STATE_CODE;
-  loc_57ff(m);
+  requestParachutistAwardSound(m);
   const index = m.mem8[record(m, INDEX_IN_RECORD)];
   m.mem8[sprite(m, SHAPE_IN_ENTRY)] = m.mem8[(SHAPE_TABLE + index) & 0xffff];
   m.mem8[sprite(m, SECOND_BYTE_IN_ENTRY)] = SECOND_BYTE;
@@ -232,7 +232,7 @@ function brokenSilent(m) {
 /** BUG: the state code is one out. */
 function brokenWrongState(m) {
   m.mem8[record(m, STATE_IN_RECORD)] = STATE_CODE + 1;
-  loc_57ff(m);
+  requestParachutistAwardSound(m);
   const index = m.mem8[record(m, INDEX_IN_RECORD)];
   m.mem8[sprite(m, SHAPE_IN_ENTRY)] =
     index < SHAPE_TABLE_LENGTH ? m.mem8[SHAPE_TABLE + index] : SHAPE_PAST_THE_END;
@@ -242,14 +242,14 @@ function brokenWrongState(m) {
 /** BUG: the out-of-range shape is used for everything. */
 function brokenAlwaysFallback(m) {
   m.mem8[record(m, STATE_IN_RECORD)] = STATE_CODE;
-  loc_57ff(m);
+  requestParachutistAwardSound(m);
   m.mem8[sprite(m, SHAPE_IN_ENTRY)] = SHAPE_PAST_THE_END;
   m.mem8[sprite(m, SECOND_BYTE_IN_ENTRY)] = SECOND_BYTE;
 }
 
 function body(m, inRange, tableShift) {
   m.mem8[record(m, STATE_IN_RECORD)] = STATE_CODE;
-  loc_57ff(m);
+  requestParachutistAwardSound(m);
   const index = m.mem8[record(m, INDEX_IN_RECORD)];
   m.mem8[sprite(m, SHAPE_IN_ENTRY)] = inRange
     ? m.mem8[(SHAPE_TABLE + tableShift + index) & 0xffff]

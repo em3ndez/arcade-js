@@ -7,7 +7,7 @@
  * is added to the packed-decimal credit count (saturated at 99) and its panel repainted. Either way
  * the mechanical coin counter is pulsed. LIVE-OUT: memory, plus the latched counter line. */
 
-import { loc_57f1 } from "./loc_57f1.js";
+import { requestCoinSound } from "./requestCoinSound.js";
 import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "./pulseSlot1CoinCounter.js";
 
@@ -31,7 +31,7 @@ export function tallyCoinSlot1AndAwardCredit(m) {
   regs.cp(0x01);
   if (regs.fNZ) return; // not the clean rising edge
 
-  loc_57f1(m);
+  requestCoinSound(m);
   mem8[COIN_TALLY] = mem8[COIN_TALLY] + 1;
 
   regs.hl = COINS_INSERTED;

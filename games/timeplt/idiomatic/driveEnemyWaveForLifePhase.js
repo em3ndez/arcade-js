@@ -14,7 +14,7 @@ import { spawnEnemyWaveIntoFreeSlots } from "./spawnEnemyWaveIntoFreeSlots.js";
 import { stopFiveSlotAnimations } from "./stopFiveSlotAnimations.js";
 import { gateTheFreeSlotSearchAndPickItsRun } from "./gateTheFreeSlotSearchAndPickItsRun.js";
 import { spawnEnemyCraftWhenBandUnderTwo } from "./spawnEnemyCraftWhenBandUnderTwo.js";
-import { loc_5817 } from "./loc_5817.js";
+import { requestEnemyWaveSound } from "./requestEnemyWaveSound.js";
 import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, WAVE_CLAIM_TIMER, WAVE_DESCRIPTOR_INDEX, WAVE_KILL_COUNTDOWN } from "./names.js";
 
 const ERA_INDEX = 0xad04;
@@ -97,8 +97,8 @@ export function driveEnemyWaveForLifePhase(m) {
   mem8[WAVE_MARK] = 0;
   mem8[WAVE_CLAIM_TIMER] = READY_STATUS;
   const filled = mem8[WAVE_KILL_COUNTDOWN];
-  if (filled >= DEFAULT_COUNT) return loc_5817(m);
+  if (filled >= DEFAULT_COUNT) return requestEnemyWaveSound(m);
   const owed = mem8[ROUND_CRAFT_COUNT];
   mem8[WAVE_KILL_COUNTDOWN] = owed;
-  if (filled >= owed) return loc_5817(m);
+  if (filled >= owed) return requestEnemyWaveSound(m);
 }

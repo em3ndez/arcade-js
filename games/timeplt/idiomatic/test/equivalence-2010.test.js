@@ -14,8 +14,8 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { advancePlayerAnimationStrip as candidate } from "../advancePlayerAnimationStrip.js";
 import { loc_2010 as oracle } from "../../translated/loc_2010.js";
 import { loc_1f2e } from "../loc_1f2e.js";
-import { loc_5679 } from "../loc_5679.js";
-import { loc_56d2 } from "../loc_56d2.js";
+import { requestLateEraProgressSound } from "../requestLateEraProgressSound.js";
+import { requestRoundIntroSoundBurst } from "../requestRoundIntroSoundBurst.js";
 import { offsetAddress } from "../offsetAddress.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -149,8 +149,8 @@ function makeBody(o = {}) {
       mem8[(regs.iy + 1) & 0xffff] = 0xff;
       regs.a = mem8[LEVEL_CELL];
       regs.cp(0x02);
-      if (!regs.fC) loc_5679(m);
-      loc_56d2(m);
+      if (!regs.fC) requestLateEraProgressSound(m);
+      requestRoundIntroSoundBurst(m);
       regs.a = mem8[STATE_HI];
       regs.cp(RUNNING);
       if (regs.fNZ) return o.dropDivert ? undefined : loc_1f2e(m);

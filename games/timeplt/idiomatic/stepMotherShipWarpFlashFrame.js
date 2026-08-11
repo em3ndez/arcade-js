@@ -12,7 +12,7 @@ import { u16 } from "../../../core/int.js";
 import { loseLifeAndHandOver } from "./loseLifeAndHandOver.js";
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { fetchTableByte } from "./fetchTableByte.js";
-import { loc_580b } from "./loc_580b.js";
+import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
 import { postCommand } from "./postCommand.js";
 import { ROUND_TRANSITION_HOLD } from "./names.js";
 
@@ -83,7 +83,7 @@ export function stepMotherShipWarpFlashFrame(m) {
       mem8[Y(SPRITE_STATE)] = 0x6c;
       mem8[Y(0x32)] = 0x6c;
       regs.a = regs.inc8(mem8[WARP_SENTINEL]);
-      if (regs.fZ) loc_580b(m);
+      if (regs.fZ) requestMotherShipWarpSound(m);
       regs.de = 0x040d;
       return postCommand(m);
     }

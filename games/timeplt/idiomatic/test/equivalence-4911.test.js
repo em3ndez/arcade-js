@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { meterCoinageTowardCreditOnEdge as candidate } from "../meterCoinageTowardCreditOnEdge.js";
 import { loc_4911 as oracle } from "../../translated/loc_4911.js";
-import { loc_57f1 } from "../loc_57f1.js";
+import { requestCoinSound } from "../requestCoinSound.js";
 import { awardCoinCreditThenPulseCoinCounter as award } from "../awardCoinCreditThenPulseCoinCounter.js";
 
 const TARGET = 0x4911;
@@ -126,7 +126,7 @@ function brokenSkipBody(m) { gate(m); }
 function brokenNoTick(m) {
   const { regs, mem8 } = m;
   if (!gate(m)) return;
-  loc_57f1(m);
+  requestCoinSound(m);
   const s = (mem8[LOW] + STEP) & 0xff; mem8[LOW] = s;
   if (mem8[HIGH] >= s) return;
   regs.c = mem8[HIGH]; mem8[LOW] = (s - ((mem8[HIGH] & 0xf0) + STEP)) & 0xff;
@@ -137,7 +137,7 @@ function brokenNoTick(m) {
 function brokenWrongCreditReg(m) {
   const { regs, mem8 } = m;
   if (!gate(m)) return;
-  loc_57f1(m); mem8[TICK] = (mem8[TICK] + 1) & 0xff;
+  requestCoinSound(m); mem8[TICK] = (mem8[TICK] + 1) & 0xff;
   const s = (mem8[LOW] + STEP) & 0xff; mem8[LOW] = s;
   if (mem8[HIGH] >= s) return;
   regs.c = mem8[LOW]; mem8[LOW] = (s - ((mem8[HIGH] & 0xf0) + STEP)) & 0xff;
@@ -148,7 +148,7 @@ function brokenWrongCreditReg(m) {
 function brokenInvertCatch(m) {
   const { regs, mem8 } = m;
   if (!gate(m)) return;
-  loc_57f1(m); mem8[TICK] = (mem8[TICK] + 1) & 0xff;
+  requestCoinSound(m); mem8[TICK] = (mem8[TICK] + 1) & 0xff;
   const s = (mem8[LOW] + STEP) & 0xff; mem8[LOW] = s;
   if (mem8[HIGH] < s) return;
   regs.c = mem8[HIGH]; mem8[LOW] = (s - ((mem8[HIGH] & 0xf0) + STEP)) & 0xff;

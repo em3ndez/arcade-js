@@ -12,8 +12,8 @@
 import { loc_598e } from "./loc_598e.js";
 import { dressSpriteShapeAndAttributeForHeadingSector } from "./dressSpriteShapeAndAttributeForHeadingSector.js";
 import { headingToward } from "./headingToward.js";
-import { loc_5664 } from "./loc_5664.js";
-import { loc_5674 } from "./loc_5674.js";
+import { requestAttackerSpawnSoundEra0 } from "./requestAttackerSpawnSoundEra0.js";
+import { requestAttackerSpawnSoundLateEra } from "./requestAttackerSpawnSoundLateEra.js";
 import { requestTwoSoundsWhilePlaying } from "./requestTwoSoundsWhilePlaying.js";
 import { u8 } from "../../../core/int.js";
 import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
@@ -60,7 +60,7 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
     mem8[entry + 0x30] = ((a & 0xc0) + 0x0b) & 0xff;
     mem8[record + 0x07] = 0x00;
     mem8[record + 0x08] = 0xff;
-    return tailOff(loc_5664);
+    return tailOff(requestAttackerSpawnSoundEra0);
   }
 
   if (era === 4) mem8[record + 0x04] = mem8[ATTACKER_SPAWN_AIM_WINDOW_HALF];
@@ -91,5 +91,5 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
   }
   dressSpriteShapeAndAttributeForHeadingSector(m);
   mem8[record + 0x0e] = 0x00;
-  return tailOff(era >= 3 ? loc_5674 : requestTwoSoundsWhilePlaying);
+  return tailOff(era >= 3 ? requestAttackerSpawnSoundLateEra : requestTwoSoundsWhilePlaying);
 }

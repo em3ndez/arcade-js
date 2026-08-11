@@ -6,7 +6,7 @@
  * clears two RAM banks and paints the star field. Both arms tail-advance the sequence
  * sub-step. LIVE-OUT: memory (registers and the dead stack scratch aside). */
 
-import { loc_5834 } from "./loc_5834.js";
+import { requestRoundStartSound } from "./requestRoundStartSound.js";
 import { postCommand } from "./postCommand.js";
 import { loadDifficultyRecord } from "./loadDifficultyRecord.js";
 import { seedRandomRegister } from "./seedRandomRegister.js";
@@ -27,7 +27,7 @@ const ONE_CELLS = [0xad11, 0xad21, 0xad1e, 0xad2e];
 export function armRoundStartThenStepSequence(m) {
   const { mem8, mem16, regs } = m;
 
-  loc_5834(m);
+  requestRoundStartSound(m);
 
   mem8[0xac64] = 0x78;
   mem8[ENEMY_AIM_POINT_TABLE] = 0x84;

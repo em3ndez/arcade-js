@@ -6,7 +6,7 @@
  * four tests and the request they gate. LIVE-OUT: memory, through the request. */
 
 import { ERA_INDEX, FRAME_TICK } from "./names.js";
-import { loc_5679 } from "./loc_5679.js";
+import { requestLateEraProgressSound } from "./requestLateEraProgressSound.js";
 
 const FIRST_ERA_THAT_ASKS = 2;
 const ONE_FRAME_IN = 32;
@@ -18,5 +18,5 @@ export function askForSoundWhileTheGroupIsClear(m) {
   if (mem8[ERA_INDEX] < FIRST_ERA_THAT_ASKS) return;
   if (mem8[FRAME_TICK] % ONE_FRAME_IN !== 0) return;
   if (WATCHED.some((cell) => mem8[cell] === ALL_ONES)) return;
-  loc_5679(m);
+  requestLateEraProgressSound(m);
 }

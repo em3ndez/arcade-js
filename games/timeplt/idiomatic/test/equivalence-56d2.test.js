@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_56d2 — memory-equivalent to the frozen oracle at ROM 0x56D2.
+ * requestRoundIntroSoundBurst — memory-equivalent to the frozen oracle at ROM 0x56D2.
  *
  * WHAT IT IS. Three sound codes, each fetched from a byte of the program image and offered to the
  * IN-PLAY-ONLY permission test at ROM 0x560C, and then a fall-through into ROM 0x56E4, which asks
  * for two more under a LOOSER test. ALL OF THOSE ARE ALREADY DECOMPILED, so the rewrite calls
- * loc_560c three times and loc_56e4 once, and dissolving all four transfers belongs to this
+ * loc_560c three times and requestInterRoundSoundPair once, and dissolving all four transfers belongs to this
  * caller's unit. The fall-through is a plain call here, which is the same thing under
  * memory-equivalence.
  *
@@ -72,11 +72,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_56d2 } from "../loc_56d2.js";
+import { requestRoundIntroSoundBurst } from "../requestRoundIntroSoundBurst.js";
 import { loc_560c } from "../loc_560c.js";
 import { loc_5617 } from "../loc_5617.js";
 import { loc_562a } from "../loc_562a.js";
-import { loc_56e4 } from "../loc_56e4.js";
+import { requestInterRoundSoundPair } from "../requestInterRoundSoundPair.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { loc_56d2 as oracle } from "../../translated/loc_56d2.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -129,7 +129,7 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
  */
 const HELPERS = [
   ["loc_560c", "../loc_560c.js", "PLAY_ACTIVE"],
-  ["loc_56e4", "../loc_56e4.js", "0x27cb"],
+  ["requestInterRoundSoundPair", "../requestInterRoundSoundPair.js", "0x27cb"],
 ];
 
 function callsRatherThanRestates(text, [name, file, ownConstant]) {
@@ -184,7 +184,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_56d2);
+  if (entry === null) gate(requestRoundIntroSoundBurst);
   return entry;
 }
 
@@ -298,7 +298,7 @@ function replaySession(factory, candidate) {
 let sessionCache = null;
 function sessions() {
   if (sessionCache) return sessionCache;
-  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, loc_56d2) }));
+  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, requestRoundIntroSoundBurst) }));
   return sessionCache;
 }
 
@@ -374,7 +374,7 @@ function brokenLoosePermissionThroughout(m) {
   loc_5617(m, mem8[FIRST_CODE_CELL]);
   loc_5617(m, mem8[SECOND_CODE_CELL]);
   loc_5617(m, mem8[THIRD_CODE_CELL]);
-  loc_56e4(m);
+  requestInterRoundSoundPair(m);
 }
 
 /** BUG: the trailing pair goes through the STRICTER test, so it is dropped where it should land. */
@@ -397,7 +397,7 @@ function brokenDropsTheTail(m) {
 
 /** BUG: only the tail runs. */
 function brokenTailOnly(m) {
-  loc_56e4(m);
+  requestInterRoundSoundPair(m);
 }
 
 /** BUG: the three go out back to front. */
@@ -406,7 +406,7 @@ function brokenOrderReversed(m) {
   loc_560c(m, mem8[THIRD_CODE_CELL]);
   loc_560c(m, mem8[SECOND_CODE_CELL]);
   loc_560c(m, mem8[FIRST_CODE_CELL]);
-  loc_56e4(m);
+  requestInterRoundSoundPair(m);
 }
 
 /** BUG: the first code is fetched one byte along. */
@@ -415,7 +415,7 @@ function brokenWrongFirstCode(m) {
   loc_560c(m, mem8[WRONG_CODE_CELL]);
   loc_560c(m, mem8[SECOND_CODE_CELL]);
   loc_560c(m, mem8[THIRD_CODE_CELL]);
-  loc_56e4(m);
+  requestInterRoundSoundPair(m);
 }
 
 /** BUG: only two of the three are asked for. */
@@ -423,7 +423,7 @@ function brokenTwoCodesOnly(m) {
   const { mem8 } = m;
   loc_560c(m, mem8[FIRST_CODE_CELL]);
   loc_560c(m, mem8[SECOND_CODE_CELL]);
-  loc_56e4(m);
+  requestInterRoundSoundPair(m);
 }
 
 /** BUG: the same code goes out three times. */
@@ -432,7 +432,7 @@ function brokenSameCodeThrice(m) {
   loc_560c(m, mem8[FIRST_CODE_CELL]);
   loc_560c(m, mem8[FIRST_CODE_CELL]);
   loc_560c(m, mem8[FIRST_CODE_CELL]);
-  loc_56e4(m);
+  requestInterRoundSoundPair(m);
 }
 
 /** BUG: no permission is asked at all, so the codes go out whatever the cabinet is doing. */
@@ -441,7 +441,7 @@ function brokenBypassesPermission(m) {
   loc_562a(m, mem8[FIRST_CODE_CELL]);
   loc_562a(m, mem8[SECOND_CODE_CELL]);
   loc_562a(m, mem8[THIRD_CODE_CELL]);
-  loc_56e4(m);
+  requestInterRoundSoundPair(m);
 }
 
 const TWINS = [
@@ -460,14 +460,14 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the measured window", { skip }, () => {
-  gate(loc_56d2);
+  gate(requestRoundIntroSoundBurst);
   assert.notEqual(entry, null, "vacuous: the session never reached the routine");
   const e = entryState();
   const sp = e.regs.sp;
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_56d2(b);
+  requestRoundIntroSoundBurst(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -514,10 +514,10 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
-  const moved = movedOver(loc_56d2);
+  const moved = movedOver(requestRoundIntroSoundBurst);
   // The absence is evidence only if the measurement CAN report a register outside the ceiling.
   const control = movedOver((m) => {
-    loc_56d2(m);
+    requestRoundIntroSoundBurst(m);
     m.regs.b = u8(m.regs.b + 1);
   });
   assert.ok(control.has("b"), "the measurement misses a candidate that plainly moves a register, " +
@@ -557,7 +557,7 @@ test("CORPUS: every dispatch of every session replays identically", { skip }, ()
 
 test("CRAFTED CROSS: every permission x queue-length combination is identical", { skip }, () => {
   for (const [playing, demo, n] of cross()) {
-    const d = unitDiff(loc_56d2, craft(playing, demo, n));
+    const d = unitDiff(requestRoundIntroSoundBurst, craft(playing, demo, n));
     assert.equal(d, null, `permission ${playing}/${demo} length ${n}: ${show(d)}`);
   }
   console.log(`  CRAFTED CROSS: ${cross().length} entries identical`);
@@ -567,7 +567,7 @@ test("SPLIT: play inactive with attract sounds on drops the three and keeps the 
   const m = craft(0, 255, 0);
   const codes = [m.mem8[TAIL_FIRST_CODE_CELL], m.mem8[TAIL_SECOND_CODE_CELL]];
   const after = m.clone();
-  loc_56d2(after);
+  requestRoundIntroSoundBurst(after);
   const landed = queued(after, 0);
   console.log(`  SPLIT: with play inactive and attract sounds on, ${landed.grown} codes land ` +
     `[${landed.codes.join(",")}], and the tail's own codes are [${codes.join(",")}]`);
@@ -576,7 +576,7 @@ test("SPLIT: play inactive with attract sounds on drops the three and keeps the 
   // Control: with play ACTIVE and attract sounds off, all five land instead.
   const active = craft(255, 0, 0);
   const both = active.clone();
-  loc_56d2(both);
+  requestRoundIntroSoundBurst(both);
   const all = queued(both, 0);
   assert.equal(all.grown, 5, `with a game in progress ${all.grown} codes land, not all five, so ` +
     "the comparison above cannot be attributed to the permission split");
@@ -592,7 +592,7 @@ test("THE DROPPED CASE: with both permission cells clear, nothing is written", {
   for (const n of LENGTHS) {
     const before = craft(0, 0, n);
     const after = before.clone();
-    loc_56d2(after);
+    requestRoundIntroSoundBurst(after);
     const strays = allDiffs(before, after).filter((d) => !inScratch(d.addr, before.regs.sp));
     assert.deepEqual(strays, [], `length ${n}: a dropped burst still wrote ${show(strays[0])}`);
     checked++;
@@ -609,7 +609,7 @@ test("THE DROPPED CASE: with both permission cells clear, nothing is written", {
 });
 
 test("CALLS, NOT RESTATES: the module's text, with the callees as positive controls", () => {
-  const module = read("../loc_56d2.js");
+  const module = read("../requestRoundIntroSoundBurst.js");
   for (const helper of HELPERS) {
     assert.ok(callsRatherThanRestates(module, helper), `the module does not call ${helper[0]}`);
     assert.ok(!callsRatherThanRestates(read(helper[1]), helper), `the check passes ${helper[0]}'s ` +
@@ -620,7 +620,7 @@ test("CALLS, NOT RESTATES: the module's text, with the callees as positive contr
 });
 
 test("WHOLE-MACHINE: a driven session differs only in stack scratch", { skip }, () => {
-  const r = wholeRunCells(loc_56d2);
+  const r = wholeRunCells(requestRoundIntroSoundBurst);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,

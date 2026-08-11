@@ -2,7 +2,7 @@
 /** awardOneCreditOnDebouncedInputEdge — debounce bit 2 of the input-port mirror through a rolling history cell, and only on a
  * clean leading edge (its low three bits reading 001) request a sound and award one credit. LIVE-OUT: the history cell, and on the edge the credit count, the sound queue and the coin-counter latch. */
 
-import { loc_57f1 } from "./loc_57f1.js";
+import { requestCoinSound } from "./requestCoinSound.js";
 import { awardCoinCreditThenPulseCoinCounter } from "./awardCoinCreditThenPulseCoinCounter.js";
 import { IN0_MIRROR } from "./names.js";
 
@@ -18,7 +18,7 @@ export function awardOneCreditOnDebouncedInputEdge(m) {
   const history = ((mem8[HISTORY] << 1) | bit) & 0xff;
   mem8[HISTORY] = history;
   if ((history & LOW3) !== EDGE) return;
-  loc_57f1(m);
+  requestCoinSound(m);
   regs.c = ONE_CREDIT;
   return awardCoinCreditThenPulseCoinCounter(m);
 }

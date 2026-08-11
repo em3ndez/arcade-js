@@ -6,7 +6,7 @@
  * The counter is stepped last and wraps at eight bits. LIVE-OUT: memory. */
 
 import { u8 } from "../../../core/int.js";
-import { loc_5811 } from "./loc_5811.js";
+import { requestPlayerSpawnFlashSound } from "./requestPlayerSpawnFlashSound.js";
 
 const ANIMATION_STEP = 0xa9f0;
 const ANIMATION_TICK = 0xa9f1;
@@ -25,7 +25,7 @@ export function flashPlayerWhiteEveryOtherFrame(m) {
 
   if (mem8[ANIMATION_TICK] === SOUND_AT_TICK) {
     mem8[ANIMATION_STEP] = NEXT_STEP;
-    loc_5811(m);
+    requestPlayerSpawnFlashSound(m);
   }
 
   const colour = (mem8[ANIMATION_TICK] & ALTERNATING_BIT) === 0 ? FIRST_COLOUR : SECOND_COLOUR;

@@ -91,6 +91,15 @@ read tap at the routine's entry counted the same number of dispatches as there w
 READ it is the scanline counter, a different device behind the same number. The load-from-it sites
 scattered through the raster-wait code are not reading back what the sound path wrote. `[code]`
 
+★ **The main CPU does not write that latch directly — it QUEUES.** A sound effect is requested by
+appending a one-byte code to the pending-sound queue at `0xAC43` (through one of three permission
+wrappers — game-in-progress, game-or-attract, or unconditional); `sendOldestQueuedSoundCommand` drains
+one code per frame to the latch, where the separate sound Z80's two AY-3-8910s turn it into sound.
+WHICH sound each code is is read off the NAMED caller: `requestCoinSound` from the coin handlers,
+`requestPlayerShotSound` from the shot spawner, and `requestEnemyLaunchSound`, `requestEnemyWaveSound`,
+`requestMotherShipWarpSound`, `requestBonusLifeSound`, `requestParachutistAwardSound`,
+`requestRoundStartSound` and `requestCurrentEraSound` each from the event its name states. `[code]`
+
 **The foreground program is not a game loop.** Boot ends by jumping into a command-ring drain that
 spins on an empty ring, takes a (command, argument) pair, marks the slot free, and dispatches the
 low nibble through a sixteen-way table — for ever. All game logic hangs off the interrupt; the

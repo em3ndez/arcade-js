@@ -9,7 +9,7 @@
 import { u16 } from "../../../core/int.js";
 import { PLAY_ACTIVE, ACTIVE_PLAYER, LIVES_REMAINING } from "./names.js";
 import { postCommand } from "./postCommand.js";
-import { loc_5805 } from "./loc_5805.js";
+import { requestBonusLifeSound } from "./requestBonusLifeSound.js";
 
 const SETTING = 0xa9c3;
 const MARKS_WHEN_CLEAR = 0x4e1b;
@@ -43,5 +43,5 @@ export function awardBonusLifeAtScoreMark(m) {
   const awardsSoFar = mem8[LIVES_REMAINING];
   mem8[LIVES_REMAINING] = awardsSoFar + 1;
   postCommand(m, AWARD_COMMAND, awardsSoFar);
-  loc_5805(m);
+  requestBonusLifeSound(m);
 }

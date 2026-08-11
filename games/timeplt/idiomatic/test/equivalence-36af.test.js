@@ -22,7 +22,7 @@ import { spawnEnemyWaveIntoFreeSlots } from "../spawnEnemyWaveIntoFreeSlots.js";
 import { stopFiveSlotAnimations } from "../stopFiveSlotAnimations.js";
 import { gateTheFreeSlotSearchAndPickItsRun } from "../gateTheFreeSlotSearchAndPickItsRun.js";
 import { spawnEnemyCraftWhenBandUnderTwo } from "../spawnEnemyCraftWhenBandUnderTwo.js";
-import { loc_5817 } from "../loc_5817.js";
+import { requestEnemyWaveSound } from "../requestEnemyWaveSound.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x36af;
@@ -213,10 +213,10 @@ function twin(opts) {
     mem8[WAVE_MARK] = o.clearMark ? 0 : 0xff;
     mem8[WAVE_STATUS] = 0xe4;
     const filled = mem8[FILLED_SLOTS];
-    if (filled >= SLOTS) return loc_5817(m);
+    if (filled >= SLOTS) return requestEnemyWaveSound(m);
     const owed = mem8[ROUND_CRAFT_COUNT];
     mem8[FILLED_SLOTS] = owed;
-    if (filled >= owed) return loc_5817(m);
+    if (filled >= owed) return requestEnemyWaveSound(m);
   };
 }
 

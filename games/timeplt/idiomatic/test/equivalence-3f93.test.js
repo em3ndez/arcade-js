@@ -11,10 +11,9 @@
  *      does not. Every arm PINS the window.
  *   2. EXHAUSTIVE — all 256 values of the deciding cell against three permission values, each
  *      poked identically on both sides.
- *   3. BOTH ARMS REACHED, and shown DISTINGUISHABLE: the two requests differ in the byte they
- *      queue, so the sweep is checked to contain values that queue one and values that queue the
- *      other, and the two bytes are asserted to be different. Without that check a gate could
- *      pass a rewrite that always took the same arm.
+ *   3. BOTH ARMS REACHED, and shown DISTINGUISHABLE: the two requests queue different bytes, so the
+ *      sweep must contain values that queue each, and the two bytes are asserted different -- else a
+ *      gate could pass a rewrite that always took the same arm.
  *   4. THE SPLIT POINT IS PINNED — the highest value taking the low arm and the lowest taking the
  *      high one are located inside the sweep and named.
  *   5. CORPUS — every dispatch of a driven session, on a clone taken at the dispatch.
@@ -33,8 +32,8 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { requestEraKeyedLaunchSound } from "../requestEraKeyedLaunchSound.js";
 import { loc_3f93 as oracle } from "../../translated/loc_3f93.js";
-import { loc_565f } from "../loc_565f.js";
-import { loc_5669 } from "../loc_5669.js";
+import { requestEnemyLaunchSound } from "../requestEnemyLaunchSound.js";
+import { requestEnemyLaunchSoundLateEra } from "../requestEnemyLaunchSoundLateEra.js";
 import { ERA_INDEX, PLAY_ACTIVE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -205,17 +204,17 @@ test("CORPUS: every dispatch of a driven session replays identically", { skip },
 
 const TWINS = [
   ["no-op", () => {}, 512],
-  ["always-the-low-arm", (m) => loc_565f(m), 506],
-  ["always-the-high-arm", (m) => loc_5669(m), 6],
-  ["arms-swapped", (m) => (m.mem8[ERA_INDEX] < SPLIT_AT ? loc_5669(m) : loc_565f(m)), 512],
+  ["always-the-low-arm", (m) => requestEnemyLaunchSound(m), 506],
+  ["always-the-high-arm", (m) => requestEnemyLaunchSoundLateEra(m), 6],
+  ["arms-swapped", (m) => (m.mem8[ERA_INDEX] < SPLIT_AT ? requestEnemyLaunchSoundLateEra(m) : requestEnemyLaunchSound(m)), 512],
   [
     "split-one-low",
-    (m) => (m.mem8[ERA_INDEX] < SPLIT_AT - 1 ? loc_565f(m) : loc_5669(m)),
+    (m) => (m.mem8[ERA_INDEX] < SPLIT_AT - 1 ? requestEnemyLaunchSound(m) : requestEnemyLaunchSoundLateEra(m)),
     2,
   ],
   [
     "split-one-high",
-    (m) => (m.mem8[ERA_INDEX] < SPLIT_AT + 1 ? loc_565f(m) : loc_5669(m)),
+    (m) => (m.mem8[ERA_INDEX] < SPLIT_AT + 1 ? requestEnemyLaunchSound(m) : requestEnemyLaunchSoundLateEra(m)),
     2,
   ],
 ];

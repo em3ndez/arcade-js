@@ -7,7 +7,7 @@
 
 import { u16 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
-import { loc_57ff } from "./loc_57ff.js";
+import { requestParachutistAwardSound } from "./requestParachutistAwardSound.js";
 
 const STATE_IN_RECORD = 0;
 const INDEX_IN_RECORD = 7;
@@ -22,7 +22,7 @@ const SECOND_BYTE = 0x6c;
 export function showParachutistAward(m, record = m.regs.ix, sprite = m.regs.iy) {
   const { regs, mem8 } = m;
   mem8[u16(record + STATE_IN_RECORD)] = STATE_CODE;
-  loc_57ff(m);
+  requestParachutistAwardSound(m);
 
   const index = mem8[u16(record + INDEX_IN_RECORD)];
   let shape = SHAPE_PAST_THE_END;
