@@ -1,62 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//
-// Live in-browser engine driver — game-agnostic.
-//
-// The init message names a game id. The worker reads games/<id>/manifest.js to
-// learn its board + ROM images, dynamically imports the game's machine and the
-// board's Inputs, takes the ROM binaries from the init message when the page
-// supplied them (assembled + sha256-verified in the page from the visitor's own
-// zip — see web/romzip.js) and otherwise fetches the locally-built ones, then
-// runs the REAL engine with zero edits: LiveMachine subclasses the game's Machine
-// and overrides
-// only the two per-frame seams the run loop already calls — applyInputs() (read
-// live keys from the shared control buffer) and finishRasterFrame() (publish the
-// frame to the shared framebuffer + pace to 60fps).
+// Live in-browser engine driver — game-agnostic. Reads games/<id>/manifest.js, imports
+// the game's machine + board Inputs, takes the page's sha256-verified ROMs (web/romzip.js)
+// or fetches the built .bin, and runs the real engine unedited.
 
-// ctrl Int32Array indices (shared with the page):
 const C_IN0 = 0, C_IN1 = 1, C_IN2 = 2, C_PAUSED = 3, C_COUNTER = 4,
       C_RUNNING = 5, C_RESET = 6, C_SLEEP = 7;
 
-let ctrl = null;   // Int32Array over the shared control buffer
-let fb = null;     // Uint8Array over the shared (double-buffered) framebuffer
+let ctrl = null;
+let fb = null;
 let FRAME_BYTES = 0;
 let PORTS = null;  // {in0,in1,in2} input port addresses, from manifest.inputs.ports
 
-// ---------------------------------------------------------------------------
-// SOUND EVENTS. The engine emits nothing by itself; the board exposes an
-// optional tap (io.onSoundWrite) and this file is the only thing that ever sets
-// it. Two rules keep it honest:
-//
-//   1. OPT-IN. The tap is installed only after the page says it actually has
-//      samples to play, so the default browser run — and every non-browser run
-//      — leaves the engine byte-for-byte as it was.
-//   2. EDGES ONLY. The ROM's sound service routine rewrites all nine latches
-//      EVERY frame (see games/dkong/audio/README.md), so the raw stream is ~600
-//      writes/second of mostly-nothing. Only a CHANGE is an event, which is also
-//      exactly what a player needs: a level-driven trigger's 0→1 and 1→0.
-//
-// No audio data crosses this boundary — just (addr, value) pairs, flushed once
-// per frame alongside the framebuffer publish.
-// ---------------------------------------------------------------------------
-//
-// THE THIRD SURFACE, 0x7D80, IS POLLED RATHER THAN TAPPED. It carries the death
-// tune (see games/dkong/audio/sounds.js `irq`), but it shares its ls259 with
-// flipscreen / NMI-mask / DRQ and the board exposes no write tap for it — only
-// the stored bit, io.audioIrq. So it is read once per frame here, on exactly the
-// same edge rule as the tapped surfaces. Frame granularity is sufficient and
-// that is a measurement, not a hope: the ROM's sound service routine holds this
-// line for THREE frames (0x6088 is loaded with 3 and decremented per frame), so
-// a per-frame poll sees the 0→1 and the 1→0 with two frames to spare. A pulse
-// shorter than one frame could be missed; this ROM never writes one.
-// ---------------------------------------------------------------------------
+// SOUND EVENTS. The board exposes an optional write tap (io.onSoundWrite), armed here only
+// when the page has samples (default/headless runs stay byte-identical). Only a CHANGED latch
+// value ships -- the ROM rewrites every latch each frame (~600/s), and an edge is what a player
+// needs. DK's 0x7D80 death-tune surface has no tap (shared ls259), so it is POLLED once per
+// frame on the same rule (safe: the ROM holds it 3 frames). Only (addr,value) pairs cross here.
 let audioOn = false;
 let live = null;               // the LiveMachine currently running, for re-arming
-// Edge dedup keyed by the raw write address, so it is game-agnostic: DK taps
-// several latch surfaces (0x7C00, 0x7D00..0x7D07, the polled 0x7D80), The Pit a
-// single soundlatch (0xB800). Only a CHANGED value at an address ships downstream.
-const soundLast = new Map();   // addr -> last value emitted
-const IRQ_ADDR = 0x7d80;       // DK's polled sound-IRQ surface (see below)
-let soundQueue = [];           // [addr, value, addr, value, ...] for this frame
+const soundLast = new Map();   // addr -> last value emitted (edge dedup, game-agnostic)
+const IRQ_ADDR = 0x7d80;
+let soundQueue = [];           // [addr, value, ...] for this frame
 
 function emitSound(addr, value) {
   if (soundLast.get(addr) === value) return; // unchanged at this address -> no edge
@@ -70,35 +34,29 @@ function syncSoundTap() {
   live.io.onSoundWrite = audioOn ? emitSound : null;
 }
 
-// ---------------------------------------------------------------------------
-// PER-FRAME SEAMS, shared by both runtimes. The cycle-driven runtime (LiveMachine
-// + runFrames, e.g. DK) calls these from the two engine seams runFrames already
-// invokes; the idiomatic runtime (runIdiomaticGame, e.g. The Pit) calls them from
-// its once-per-frame onFrame. Same live-key read, same framebuffer publish, same
-// sound flush, same 60fps pace — only the engine that drives them differs.
-// ---------------------------------------------------------------------------
+// PER-FRAME SEAMS, shared by both runtimes (cycle-driven runFrames seams and the idiomatic
+// onFrame): live-key read, framebuffer publish, sound flush, 60fps pace.
 
-/** Latch the live keys into the machine's input ports; a reset request unwinds the run. */
 function readInputsInto(machine) {
   if (Atomics.load(ctrl, C_RESET) === 1) {
     Atomics.store(ctrl, C_RESET, 0);
     throw new Error("__reset__"); // unwinds the run; worker reboots to attract
   }
   machine.io.inputAssert = {
-    [PORTS.in0]: Atomics.load(ctrl, C_IN0) & 0xff, // IN0 joystick + jump (P1)
-    [PORTS.in1]: Atomics.load(ctrl, C_IN1) & 0xff, // IN1 (P2 / cocktail)
-    [PORTS.in2]: Atomics.load(ctrl, C_IN2) & 0xff, // IN2 coin / start
+    [PORTS.in0]: Atomics.load(ctrl, C_IN0) & 0xff,
+    [PORTS.in1]: Atomics.load(ctrl, C_IN1) & 0xff,
+    [PORTS.in2]: Atomics.load(ctrl, C_IN2) & 0xff,
   };
 }
 
-/** Publish an RGB frame to the shared double-buffered framebuffer (page reads the front). */
+/** Publish an RGB frame to the shared double-buffered framebuffer. */
 function publishFrame(frame) {
   const counter = Atomics.load(ctrl, C_COUNTER);
-  fb.set(frame, (counter % 2) * FRAME_BYTES); // write the back slot
-  Atomics.store(ctrl, C_COUNTER, counter + 1); // publish
+  fb.set(frame, (counter % 2) * FRAME_BYTES);
+  Atomics.store(ctrl, C_COUNTER, counter + 1);
 }
 
-/** Ship this frame's accumulated sound edges (+ the polled IRQ surface for boards that have one). */
+/** Ship this frame's sound edges (+ the polled IRQ surface for boards that have one). */
 function flushSound(machine) {
   if (audioOn && machine.io.audioIrq !== undefined) emitSound(IRQ_ADDR, machine.io.audioIrq & 1);
   if (soundQueue.length) {
@@ -120,7 +78,7 @@ function pace(machine) {
   const now = performance.now();
   if (machine._next === undefined) machine._next = now;
   const delay = machine._next - now;
-  if (delay > 1) Atomics.wait(ctrl, C_SLEEP, 0, delay); // precise sleep, no busy-wait
+  if (delay > 1) Atomics.wait(ctrl, C_SLEEP, 0, delay);
   machine._next += 1000 / 60;
   if (performance.now() - machine._next > 500) machine._next = performance.now();
 }
@@ -141,13 +99,17 @@ function makeLive(Machine) {
   };
 }
 
-// The idiomatic runtime's per-frame seam. runIdiomaticGame calls this at each frame boundary
-// (the vblank-poll yield, BEFORE the NMI). The state here is the just-completed frame, so render
-// and publish it; then latch the live keys for the coming frame's NMI to read; ship sound; pace.
-// Frame 0 is power-on (nothing drawn yet), so only latch + pace there.
+// The idiomatic runtime's per-frame seam, called at each vblank-poll yield (pre-NMI) for the
+// just-finished frame. Frame 0 is power-on -- latch + pace only.
 function serviceIdiomaticFrame(machine, frameIndex) {
   readInputsInto(machine);
-  if (frameIndex > 0) publishFrame(machine.renderFrame());
+  // Beam-sync render (generic, opt-in): a game that changes video mid-frame (Time Pilot's cloud
+  // multiplexer) accumulates bands during the frame -- publish the assembled buffer and open the
+  // next; no beam methods -> a single snapshot. See docs/beam-sync.md.
+  const beam =
+    typeof machine.startBeamFrame === "function" && typeof machine.finishBeamFrame === "function";
+  if (frameIndex > 0) publishFrame(beam ? machine.finishBeamFrame() : machine.renderFrame());
+  if (beam) machine.startBeamFrame();
   flushSound(machine);
   pace(machine);
 }
@@ -160,38 +122,30 @@ async function fetchBin(url) {
 
 async function run(gameId, provided) {
   const manifest = (await import(`../games/${gameId}/manifest.js`)).default;
-  PORTS = manifest.inputs.ports; // input port addresses -> inputAssert slots (IN0/IN1/IN2)
+  PORTS = manifest.inputs.ports;
   const machineMod = await import(`../games/${gameId}/machine.js`);
   const { Machine } = machineMod;
   const { Inputs } = await import(`../boards/${manifest.board}/io.js`);
 
-  // Live runtime (manifest.runtime): "idiomatic" runs the whole readable idiomatic layer on the
-  // coroutine engine (the control spine is generators that yield at each vblank; runGeneratorGame
-  // drives the current main generator one frame at a time and swaps it on a warm restart, so the
-  // host stack stays flat); absent/other runs the faithful translated layer on the cycle-driven
-  // engine. The idiomatic runtime is validated byte-for-byte vs the translated oracle over game
-  // state (idiomatic/test/{golive,tape,transition}.test.js).
+  // manifest.runtime "idiomatic" runs the readable idiomatic layer on the coroutine engine
+  // (generators yielding at each vblank); absent/other runs the translated layer on the
+  // cycle-driven engine. Idiomatic is validated byte-for-byte vs the oracle (idiomatic/test/).
   const idiomatic = manifest.runtime === "idiomatic";
   const golive = manifest.convergence?.golive;
   if (idiomatic && !golive) throw new Error(`${gameId}: runtime "idiomatic" needs manifest.convergence.golive`);
   const runGeneratorGame = idiomatic ? (await import("../core/frame-stepped.js")).runGeneratorGame : null;
   const LiveMachine = idiomatic ? null : makeLive(Machine);
 
-  // The override set, resolved ONCE and reused for every (re)boot below. Idiomatic: every routine
-  // wired to its idiomatic/<name>.js (machine.resolveAllIdiomatic). Cycle-driven: the game's
-  // declarative manifest.optimized (proven-equal optimized routines; absent -> an empty Map =
-  // pure translated). The Machine constructor cannot resolve the { module, export } form itself.
+  // Resolved ONCE and reused for every (re)boot: idiomatic wires every routine to its
+  // idiomatic/<name>.js; cycle-driven uses manifest.optimized (proven-equal routines).
   const overrides = idiomatic
     ? await machineMod.resolveAllIdiomatic(new URL(`../games/${gameId}/machine.js`, import.meta.url))
     : await machineMod.resolveOverrides(manifest.optimized, new URL(`../games/${gameId}/manifest.js`, import.meta.url));
 
-  // Every declared ROM image, per image: use the one the page handed us (already
-  // size- and sha256-checked there) if present, else fetch the locally-built
-  // .bin — so the `make rom` developer path keeps working untouched.
+  // Each declared ROM image: the page's sha256-checked copy if supplied, else the built .bin.
   const names = Object.keys(manifest.rom.images);
   const bins = await Promise.all(names.map((n) => {
     const supplied = provided && provided[n];
-    // Transferred as ArrayBuffers; a Uint8Array copies just as happily.
     if (supplied) return new Uint8Array(supplied);
     return fetchBin(`../games/${gameId}/rom/${n}.bin`);
   }));
@@ -208,8 +162,8 @@ async function run(gameId, provided) {
       : new LiveMachine(maincpu, { inputs: new Inputs(), ...gfx, overrides });
     if (!idiomatic) m.captureVideo = true; // idiomatic renders on demand in serviceIdiomaticFrame
     m._next = performance.now();
-    // A fresh machine has fresh latches, so the remembered edge state has to go
-    // with it, or the first frame after a reboot would suppress real events.
+    // A fresh machine has fresh latches -- clear the remembered edge state or the first frame
+    // after a reboot would suppress real events.
     live = m;
     soundLast.clear();
     soundQueue = [];
@@ -217,10 +171,8 @@ async function run(gameId, provided) {
     let reason = null;
     try {
       if (idiomatic) {
-        // The coroutine engine resumes the current main generator to its next vblank yield and calls
-        // serviceIdiomaticFrame at each boundary (PRE-NMI, exactly where the game state is sampled by
-        // the gates). It catches its own unwinds — the reset() long-jump and the mid-frame warm
-        // restart (RESTART sentinel) — so inspect the returned stop reason rather than relying on a throw.
+        // runGeneratorGame drives the main generator frame by frame, calling serviceIdiomaticFrame
+        // at each pre-NMI yield; it catches its own unwinds, so read the returned stop reason.
         const r = runGeneratorGame(m, {
           nmiReturnPC: golive.nmiReturnPC,
           onFrame: serviceIdiomaticFrame,
@@ -232,7 +184,7 @@ async function run(gameId, provided) {
           reason = r.stop;
         }
       } else {
-        m.runFrames(5_000_000); // huge budget; every frame is paced to 1/60s
+        m.runFrames(5_000_000); // huge budget; every frame paced to 1/60s
         reason = m.stoppedBy || "budget reached";
       }
     } catch (e) {
@@ -253,9 +205,7 @@ onmessage = (e) => {
     run(d.game, d.images).catch((err) =>
       postMessage({ type: "error", reason: String((err && err.stack) || err) }));
   } else if (d.type === "audio") {
-    // The page owns the AudioContext and knows whether any sample actually
-    // loaded; it tells us here. Until it does (and forever, if it never does)
-    // the board tap stays unset and the engine is untouched.
+    // The page owns the AudioContext and tells us when samples load; until then the tap stays off.
     audioOn = !!d.enabled;
     soundLast.clear(); // re-announce the current latch state on the next write
     soundQueue = [];
