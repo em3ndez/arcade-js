@@ -8,12 +8,11 @@ import { u8, u16 } from "../../../core/int.js";
 import { loc_08fa } from "./loc_08fa.js";
 import { armThePenRouteThenColdStartOnATamperedImage } from "./armThePenRouteThenColdStartOnATamperedImage.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { PEN_COLOUR } from "./names.js";
+import { PEN_COLOUR, PEN_GLYPH } from "./names.js";
 
 const CHECKED_BLOCK = 0x4aa0;
 const CHECKED_BYTES = 0x100;
 const GENUINE_TOTAL = 0xb8;
-const STAMP_GLYPH = 0xad0b;
 const BLANKING_GLYPH = 0xf1;
 const PEN_COLOUR_VALUE = 5;
 
@@ -28,7 +27,7 @@ export function erasePenRouteThenAdvanceStep(m) {
 
   const penColourWasSet = mem8[PEN_COLOUR] === PEN_COLOUR_VALUE;
   mem8[PEN_COLOUR] = PEN_COLOUR_VALUE;
-  mem8[STAMP_GLYPH] = BLANKING_GLYPH;
+  mem8[PEN_GLYPH] = BLANKING_GLYPH;
   armThePenRouteThenColdStartOnATamperedImage(m);
   if (penColourWasSet) advanceSequenceSubStep(m);
   return advanceSequenceSubStep(m);

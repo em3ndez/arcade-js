@@ -7,13 +7,9 @@
  * leave the plane identical. A separate countdown is stepped down by one on the way out.
  * LIVE-OUT: memory only. */
 
-import { SCREEN_UNFLIPPED, ACTIVE_PLAYER } from "./names.js";
+import { ACTIVE_PLAYER, COLOUR_FLOOD_COUNTDOWN, INTRO_ANIMATION_STEP, PLAYER_ONE_PEN_COLOUR, PLAYER_TWO_PEN_COLOUR, SCREEN_UNFLIPPED } from "./names.js";
 
-const NEXT_STEP_CELL = 0xa9f0;
 const NEXT_STEP = 5;
-const FIRST_PLAYER_COLOUR = 0xad1c;
-const SECOND_PLAYER_COLOUR = 0xad2c;
-const COUNTDOWN = 0xa9f6;
 
 const FIRST_CELL = 0xa044;
 const LAST_CELL = 0xa3be;
@@ -23,9 +19,9 @@ const CELLS_PER_ROW = 27;
 
 export function floodColourPlaneWithSavedPlayerColour(m) {
   const { mem8 } = m;
-  mem8[NEXT_STEP_CELL] = NEXT_STEP;
+  mem8[INTRO_ANIMATION_STEP] = NEXT_STEP;
 
-  const source = mem8[ACTIVE_PLAYER] === 0 ? FIRST_PLAYER_COLOUR : SECOND_PLAYER_COLOUR;
+  const source = mem8[ACTIVE_PLAYER] === 0 ? PLAYER_ONE_PEN_COLOUR : PLAYER_TWO_PEN_COLOUR;
   const colour = mem8[source];
   const backwards = mem8[SCREEN_UNFLIPPED] === 0;
 
@@ -36,5 +32,5 @@ export function floodColourPlaneWithSavedPlayerColour(m) {
     }
   }
 
-  mem8[COUNTDOWN] = mem8[COUNTDOWN] - 1;
+  mem8[COLOUR_FLOOD_COUNTDOWN] = mem8[COLOUR_FLOOD_COUNTDOWN] - 1;
 }

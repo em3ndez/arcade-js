@@ -8,21 +8,18 @@
  * LIVE-OUT: the two cells written, plus the address in HL and the colour in A. */
 
 import { u8 } from "../../../core/int.js";
-import { PEN_COLOUR } from "./names.js";
+import { PEN_COLOUR, PEN_COLUMN_CELL, PEN_GLYPH, PEN_ROW_CELL } from "./names.js";
 
 const CHARACTER_PLANE = 0xa400;
 const COLOUR_PLANE_BIT = 0x0400;
-const PLOT_ROW = 0xa9e4;
-const PLOT_COLUMN = 0xa9e6;
-const GLYPH = 0xad0b;
 const CELLS_PER_ROW = 32;
 const ROWS_BEFORE_FOLD = 32;
 
 export function plotPenCell(m) {
   const { mem8, regs } = m;
-  const rowStart = (mem8[PLOT_ROW] & (ROWS_BEFORE_FOLD - 1)) * CELLS_PER_ROW;
-  const cell = (CHARACTER_PLANE + (rowStart & 0xff00)) | u8(rowStart + mem8[PLOT_COLUMN]);
-  mem8[cell] = mem8[GLYPH];
+  const rowStart = (mem8[PEN_ROW_CELL] & (ROWS_BEFORE_FOLD - 1)) * CELLS_PER_ROW;
+  const cell = (CHARACTER_PLANE + (rowStart & 0xff00)) | u8(rowStart + mem8[PEN_COLUMN_CELL]);
+  mem8[cell] = mem8[PEN_GLYPH];
   mem8[cell & ~COLOUR_PLANE_BIT] = mem8[PEN_COLOUR];
   regs.hl = cell;
   regs.a = mem8[PEN_COLOUR];

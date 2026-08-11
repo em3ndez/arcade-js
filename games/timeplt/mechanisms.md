@@ -1821,6 +1821,27 @@ The source cell is not a frame counter. It is written from a ROM table on the se
 takes a handful of values in an attract loop, and never reaches the wrap its four-bit mask implies.
 `[seen]` for the values, `[code]` for the writers.
 
+### The tracing pen walks a fixed route as a fixed-point interpolator
+
+Some captions are not posted whole but *drawn* by a tracing pen that walks an L-shaped route. The route
+is a table of legs indexed by `PEN_ROUTE_LEG`; between a leg's endpoints the pen's position is a 16-bit
+8.8 fixed point in `PEN_ROW_POS`/`PEN_COLUMN_POS`, stepped toward the leg's target by a signed per-cell
+increment (`PEN_ROW_STEP`/`PEN_COLUMN_STEP`, the remaining distance over sixteen). Each step `plotPenCell`
+reads the whole-cell halves (`PEN_ROW_CELL`/`PEN_COLUMN_CELL`), addresses the plane — the row masked to
+five bits and multiplied by the 32-cell stride, which is what fixes the 0xA9E3 pair as the ROW and not
+the column — and stamps `PEN_GLYPH` into the character plane and `PEN_COLOUR` into the paired colour
+plane; the erase pass stamps the blank glyph 0xF1 instead. `[code]`
+
+### The round-start intro is a five-step hand-off machine
+
+`INTRO_ANIMATION_STEP` (0..5) selects which sub-animation runs each frame, and each one advances the step
+when its own work is done: the player-ship white flash (counted by `PLAYER_FLASH_TICK`) hands to a
+scripted character-plane band drawn in passes (`BAND_TO2_PASS_COUNTDOWN`), then a sprite-colour cycle
+(`SPRITE_COLOUR_CYCLE_COUNTDOWN`), a second band (`BAND_TO4_PASS_COUNTDOWN`), and a colour-plane flood
+(`COLOUR_FLOOD_COUNTDOWN`); the band drawers share one script cursor (`BAND_SCRIPT_CURSOR`). The
+self-test screen, another phase of the same sequence, reuses those same bytes (0xA9F0-0xA9F8) as a
+transient eight-byte object control block rather than as steps. `[code]`
+
 ### The progress meter is the quota, drawn
 
 The bar along the bottom is a direct rendering of the kill-quota cell: its run length is the cell
@@ -2595,7 +2616,7 @@ These need someone's attention, not a new capture and not a new lift.
   holds the value they are about to store, gating a sequence step on it — still the pen colour, only used as
   a has-it-changed signal. It takes four values in an attract loop and two in a driven game, never
   approaching the wrap its four-bit mask implies. `PEN_COLOUR` survives every use; the naming is `[code]`, the
-  value observations `[seen]`. Only the saved per-player copies at `0xAD1C`/`0xAD2C` are still unnamed.
+  value observations `[seen]`. Its saved per-player copies are `PLAYER_ONE_PEN_COLOUR`/`PLAYER_TWO_PEN_COLOUR`.
 
 ### The states no instrument has visited
 

@@ -10,12 +10,8 @@
 
 import { plotPenCell } from "./plotPenCell.js";
 import { fetchTableWord } from "./fetchTableWord.js";
+import { PEN_COLUMN_POS, PEN_COLUMN_STEP, PEN_ROUTE_LEG, PEN_ROW_POS, PEN_ROW_STEP } from "./names.js";
 
-const ROW_POS = 0xa9e3;
-const COL_POS = 0xa9e5;
-const ROW_STEP = 0xa9e7;
-const COL_STEP = 0xa9e9;
-const RUN_INDEX = 0xa9e2;
 const ROW_TARGET = 0x32f5;
 const COL_TARGET = 0x0b45;
 const END_CELL = 0x14b2;
@@ -32,24 +28,24 @@ export function drawInterpolatedPenRun(m) {
   const { regs, mem8, mem16 } = m;
 
   plotPenCell(m);
-  mem16[ROW_STEP] = stepToward(mem16[ROW_TARGET], mem16[ROW_POS]);
-  mem16[COL_STEP] = stepToward(mem16[COL_TARGET], mem16[COL_POS]);
+  mem16[PEN_ROW_STEP] = stepToward(mem16[ROW_TARGET], mem16[PEN_ROW_POS]);
+  mem16[PEN_COLUMN_STEP] = stepToward(mem16[COL_TARGET], mem16[PEN_COLUMN_POS]);
 
   do {
-    mem16[ROW_POS] = mem16[ROW_POS] + mem16[ROW_STEP];
-    mem16[COL_POS] = mem16[COL_POS] + mem16[COL_STEP];
+    mem16[PEN_ROW_POS] = mem16[PEN_ROW_POS] + mem16[PEN_ROW_STEP];
+    mem16[PEN_COLUMN_POS] = mem16[PEN_COLUMN_POS] + mem16[PEN_COLUMN_STEP];
     plotPenCell(m);
   } while (regs.hl !== mem16[END_CELL]);
 
-  mem8[RUN_INDEX] = mem8[RUN_INDEX] + 1;
-  regs.a = mem8[RUN_INDEX];
+  mem8[PEN_ROUTE_LEG] = mem8[PEN_ROUTE_LEG] + 1;
+  regs.a = mem8[PEN_ROUTE_LEG];
   regs.hl = RUN_TABLE;
   fetchTableWord(m);
 
-  mem8[ROW_POS] = 0;
-  mem8[ROW_POS + 1] = regs.e;
-  mem8[COL_POS] = 0;
-  mem8[COL_POS + 1] = regs.d;
+  mem8[PEN_ROW_POS] = 0;
+  mem8[PEN_ROW_POS + 1] = regs.e;
+  mem8[PEN_COLUMN_POS] = 0;
+  mem8[PEN_COLUMN_POS + 1] = regs.d;
 
   regs.a = regs.e;
   regs.and(regs.a);

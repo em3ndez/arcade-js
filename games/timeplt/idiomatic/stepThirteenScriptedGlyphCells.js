@@ -9,8 +9,8 @@
  * LIVE-OUT: memory-only. */
 
 import { u8, u16 } from "../../../core/int.js";
+import { BAND_SCRIPT_CURSOR } from "./names.js";
 
-const SCRIPT_CURSOR = 0xa9f7;
 const CELLS = 13;
 const ROW = 0x20;
 const BACKWARDS = 0x01;
@@ -22,9 +22,9 @@ export function stepThirteenScriptedGlyphCells(m, firstCell = m.regs.de, directi
   const rowStep = (directions & UPWARDS) !== 0 ? -ROW : ROW;
   let cell = firstCell;
   for (let i = 0; i < CELLS; i++) {
-    const cursor = mem16[SCRIPT_CURSOR];
+    const cursor = mem16[BAND_SCRIPT_CURSOR];
     if (mem8[cursor] !== 0) mem8[cell] = u8(mem8[cell] + shapeStep);
     cell = u16(cell + rowStep);
-    mem16[SCRIPT_CURSOR] = u16(cursor + shapeStep);
+    mem16[BAND_SCRIPT_CURSOR] = u16(cursor + shapeStep);
   }
 }

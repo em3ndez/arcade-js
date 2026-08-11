@@ -854,6 +854,25 @@ export const PLAYER_TWO_ROUND_ARMED = 0xad2e;
  * offset by +5/+10 and masked to the low nibble) as the colour to draw in. [code] */
 export const PEN_COLOUR = 0xad0c;
 
+/** The active caption/pen glyph (active context +0x0B, companion of PEN_COLOUR at +0x0C). plotPenCell stamps
+ * it into the character plane while PEN_COLOUR goes to the colour plane; the erase paths set it to the blank
+ * glyph 0xF1. Its saved per-player copies are PLAYER_ONE_PEN_GLYPH / PLAYER_TWO_PEN_GLYPH. [code] */
+export const PEN_GLYPH = 0xad0b;
+
+/** Player one's saved copy of PEN_GLYPH (saved context +0x0B). setSavedPenFromEra fills it from the
+ * era-indexed glyph/colour record; the context load copies it back into PEN_GLYPH. [code] */
+export const PLAYER_ONE_PEN_GLYPH = 0xad1b;
+
+/** Player two's saved copy of PEN_GLYPH; the twin of PLAYER_ONE_PEN_GLYPH, the other block. [code] */
+export const PLAYER_TWO_PEN_GLYPH = 0xad2b;
+
+/** Player one's saved copy of PEN_COLOUR (saved context +0x0C); the source floodColourPlaneWithSavedPlayerColour
+ * reads when ACTIVE_PLAYER selects player one. [code] */
+export const PLAYER_ONE_PEN_COLOUR = 0xad1c;
+
+/** Player two's saved copy of PEN_COLOUR; the twin of PLAYER_ONE_PEN_COLOUR. [code] */
+export const PLAYER_TWO_PEN_COLOUR = 0xad2c;
+
 /**
  * The sequence machine's shared one-shot delay: frames still to wait before its next step. [code]
  *
@@ -875,6 +894,67 @@ export const PEN_COLOUR = 0xad0c;
  * to the tidier version of that claim.
  */
 export const SEQUENCE_DELAY = 0xa9eb;
+
+/* ── The tracing pen's fixed route and the round-start intro animation (0xA9E2-0xA9F7) ──
+ * The pen draws captions by walking an L-shaped route as an 8.8 fixed-point interpolator: drawInterpolatedPenRun
+ * steps a position toward each leg's target and plotPenCell stamps the whole cell. */
+
+/** Leg index into the pen's fixed L-shaped route table; incremented each run to select the next leg. [code] */
+export const PEN_ROUTE_LEG = 0xa9e2;
+
+/** The pen's row position as 8.8 fixed point (read as mem16 at 0xA9E3; its whole-cell high byte is PEN_ROW_CELL
+ * at 0xA9E4). Interpolated toward the leg's row target by adding PEN_ROW_STEP each cell. [code] */
+export const PEN_ROW_POS = 0xa9e3;
+
+/** The pen's whole-cell row -- the high byte of PEN_ROW_POS -- which plotPenCell masks to five bits and
+ * multiplies by the 32-cell row stride to address the plane. (The x32 stride is what fixes this as the ROW,
+ * not the column; the frozen oracle's informal "X" comment does not.) [code] */
+export const PEN_ROW_CELL = 0xa9e4;
+
+/** The pen's column position as 8.8 fixed point (mem16 at 0xA9E5; whole-cell high byte PEN_COLUMN_CELL at
+ * 0xA9E6). Interpolated toward the leg's column target by adding PEN_COLUMN_STEP each cell. [code] */
+export const PEN_COLUMN_POS = 0xa9e5;
+
+/** The pen's whole-cell column -- the high byte of PEN_COLUMN_POS -- added within the row by plotPenCell. [code] */
+export const PEN_COLUMN_CELL = 0xa9e6;
+
+/** Signed 8.8 per-step row increment ((target - PEN_ROW_POS)/16, sign kept), added to PEN_ROW_POS each step. [code] */
+export const PEN_ROW_STEP = 0xa9e7;
+
+/** Signed 8.8 per-step column increment, added to PEN_COLUMN_POS each step. [code] */
+export const PEN_COLUMN_STEP = 0xa9e9;
+
+/** The round-start intro animation's step selector (0..5): stepRoundStartIntroAnimation dispatches on it and each
+ * sub-animation writes the next step to hand off (flash->1, band-to-2->2, colour-cycle->3, band-to-4->4, flood->5).
+ * paintSelfTestScreenPhaseThenStepSequence reuses 0xA9F0-0xA9F8 as an eight-byte scratch control block (offset 0 =
+ * a shape byte) within the same sequence subsystem -- so the "step" reading holds for the intro, while those bytes
+ * are transient object scratch during the self-test phase, where that routine keeps its own local CONTROL_BLOCK
+ * alias for the base rather than this name. [code] */
+export const INTRO_ANIMATION_STEP = 0xa9f0;
+
+/** Frame tick of the player-ship white flash (intro step 0/1): bit 0 alternates the sprite colour; at tick 8 it
+ * advances INTRO_ANIMATION_STEP and requests the spawn-flash sound. Wraps at eight bits. [code] */
+export const PLAYER_FLASH_TICK = 0xa9f1;
+
+/** Per-pass countdown for advanceScriptedCharPlaneBandTo2 (bit 0 selects a blank vs draw pass), decremented each
+ * pass and zeroed at the script's end, which sets INTRO_ANIMATION_STEP to 2. [code] */
+export const BAND_TO2_PASS_COUNTDOWN = 0xa9f2;
+
+/** Countdown driving a sprite's colour field during the colour-cycle step (bit 2 holds each colour four frames);
+ * advances INTRO_ANIMATION_STEP when it reaches zero, wrapping below zero. [code] */
+export const SPRITE_COLOUR_CYCLE_COUNTDOWN = 0xa9f3;
+
+/** Per-pass countdown for advanceScriptedCharPlaneBandTo4 (bit 0 selects blank vs draw), zeroed at the script's
+ * end, which sets INTRO_ANIMATION_STEP to 4. [code] */
+export const BAND_TO4_PASS_COUNTDOWN = 0xa9f4;
+
+/** Countdown stepped down once as floodColourPlaneWithSavedPlayerColour finishes painting the colour plane
+ * (intro step 4). [code] */
+export const COLOUR_FLOOD_COUNTDOWN = 0xa9f6;
+
+/** 16-bit cursor walking the char-plane band script (a byte per plane cell); shared by the band-to-2 / band-to-4
+ * drawers and stepThirteenScriptedGlyphCells, left where it ended. [code] */
+export const BAND_SCRIPT_CURSOR = 0xa9f7;
 
 /**
  * Which of the eight Difficulty DIP positions the cabinet is set to, 0-7. [seen]

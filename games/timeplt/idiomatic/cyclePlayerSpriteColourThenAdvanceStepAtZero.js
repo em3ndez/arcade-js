@@ -6,9 +6,8 @@
  * still steps that frame, wrapping below zero. LIVE-OUT: memory. */
 
 import { u8 } from "../../../core/int.js";
+import { INTRO_ANIMATION_STEP, SPRITE_COLOUR_CYCLE_COUNTDOWN } from "./names.js";
 
-const ANIMATION_STEP = 0xa9f0;
-const COUNTDOWN = 0xa9f3;
 const SPRITE_ATTRIBUTE = 0xaa40;
 
 const MIRROR_BITS = 0xc0;
@@ -20,11 +19,11 @@ const NEXT_STEP = 3;
 
 export function cyclePlayerSpriteColourThenAdvanceStepAtZero(m) {
   const { mem8 } = m;
-  const remaining = mem8[COUNTDOWN];
+  const remaining = mem8[SPRITE_COLOUR_CYCLE_COUNTDOWN];
 
-  if (remaining === 0) mem8[ANIMATION_STEP] = NEXT_STEP;
+  if (remaining === 0) mem8[INTRO_ANIMATION_STEP] = NEXT_STEP;
 
   const colour = (remaining & ALTERNATING_BIT) === 0 ? FIRST_COLOUR : SECOND_COLOUR;
   mem8[SPRITE_ATTRIBUTE] = (mem8[SPRITE_ATTRIBUTE] & MIRROR_BITS) + colour;
-  mem8[COUNTDOWN] = u8(remaining - 1);
+  mem8[SPRITE_COLOUR_CYCLE_COUNTDOWN] = u8(remaining - 1);
 }

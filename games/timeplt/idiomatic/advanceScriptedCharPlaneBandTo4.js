@@ -14,10 +14,8 @@ import { restoreColumnFromSavedRun } from "./restoreColumnFromSavedRun.js";
 import { requestInterRoundSoundPair } from "./requestInterRoundSoundPair.js";
 import { stepThirteenScriptedGlyphCells } from "./stepThirteenScriptedGlyphCells.js";
 import { gatherCharColumnIntoBackingRun } from "./gatherCharColumnIntoBackingRun.js";
+import { BAND_SCRIPT_CURSOR, BAND_TO4_PASS_COUNTDOWN, INTRO_ANIMATION_STEP } from "./names.js";
 
-const COUNTDOWN = 0xa9f4;
-const SCRIPT_POINTER = 0xa9f7;
-const NEXT_STEP_CELL = 0xa9f0;
 const NEXT_STEP = 0x04;
 const FILL = 0xf1;
 const SCRIPT_STRIDE = 13;
@@ -25,7 +23,7 @@ const SCRIPT_STRIDE = 13;
 export function advanceScriptedCharPlaneBandTo4(m) {
   const { regs, mem8, mem16 } = m;
 
-  if ((mem8[COUNTDOWN] & 1) === 0) {
+  if ((mem8[BAND_TO4_PASS_COUNTDOWN] & 1) === 0) {
     regs.a = FILL;
     regs.hl = 0xa7b1;
     fillCellRun(m);
@@ -38,28 +36,28 @@ export function advanceScriptedCharPlaneBandTo4(m) {
     mem8[0xa612] = FILL;
     mem8[0xa5f2] = FILL;
   } else {
-    if ((mem8[mem16[SCRIPT_POINTER]] & 0xfe) !== 0) {
-      mem8[COUNTDOWN] = 0;
-      mem8[NEXT_STEP_CELL] = NEXT_STEP;
+    if ((mem8[mem16[BAND_SCRIPT_CURSOR]] & 0xfe) !== 0) {
+      mem8[BAND_TO4_PASS_COUNTDOWN] = 0;
+      mem8[INTRO_ANIMATION_STEP] = NEXT_STEP;
       requestInterRoundSoundPair(m);
-      mem16[SCRIPT_POINTER] = u16(mem16[SCRIPT_POINTER] + 1);
+      mem16[BAND_SCRIPT_CURSOR] = u16(mem16[BAND_SCRIPT_CURSOR] + 1);
       return;
     }
     restoreColumnFromSavedRun(m);
 
     stepThirteenScriptedGlyphCells(m, 0xa451, 0x01);
-    mem16[SCRIPT_POINTER] = u16(mem16[SCRIPT_POINTER] + SCRIPT_STRIDE);
+    mem16[BAND_SCRIPT_CURSOR] = u16(mem16[BAND_SCRIPT_CURSOR] + SCRIPT_STRIDE);
     stepThirteenScriptedGlyphCells(m, 0xa7b1, 0x03);
 
-    let lower = mem8[mem16[SCRIPT_POINTER]] & 1;
-    mem16[SCRIPT_POINTER] = u16(mem16[SCRIPT_POINTER] - 1);
+    let lower = mem8[mem16[BAND_SCRIPT_CURSOR]] & 1;
+    mem16[BAND_SCRIPT_CURSOR] = u16(mem16[BAND_SCRIPT_CURSOR] - 1);
     if (lower) {
       mem8[0xa5f1] = u8(mem8[0xa5f1] - 1);
       mem8[0xa611] = u8(mem8[0xa611] - 1);
     }
 
-    lower = mem8[mem16[SCRIPT_POINTER]] & 1;
-    mem16[SCRIPT_POINTER] = u16(mem16[SCRIPT_POINTER] - 1);
+    lower = mem8[mem16[BAND_SCRIPT_CURSOR]] & 1;
+    mem16[BAND_SCRIPT_CURSOR] = u16(mem16[BAND_SCRIPT_CURSOR] - 1);
     if (lower) {
       mem8[0xa5f0] = u8(mem8[0xa5f0] - 1);
       mem8[0xa610] = u8(mem8[0xa610] - 1);
@@ -70,5 +68,5 @@ export function advanceScriptedCharPlaneBandTo4(m) {
     gatherCharColumnIntoBackingRun(m);
   }
 
-  mem8[COUNTDOWN] = u8(mem8[COUNTDOWN] - 1);
+  mem8[BAND_TO4_PASS_COUNTDOWN] = u8(mem8[BAND_TO4_PASS_COUNTDOWN] - 1);
 }

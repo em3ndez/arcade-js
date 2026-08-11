@@ -11,9 +11,8 @@ import { cyclePlayerSpriteColourThenAdvanceStepAtZero } from "./cyclePlayerSprit
 import { floodColourPlaneWithSavedPlayerColour } from "./floodColourPlaneWithSavedPlayerColour.js";
 import { advanceScriptedCharPlaneBandTo4 } from "./advanceScriptedCharPlaneBandTo4.js";
 import { loadActivePlayerContextAndPostRoundHud } from "./loadActivePlayerContextAndPostRoundHud.js";
-import { FRAME_TICK, SEQUENCE_SUBSTEP, SEQUENCE_DELAY } from "./names.js";
+import { FRAME_TICK, INTRO_ANIMATION_STEP, SEQUENCE_DELAY, SEQUENCE_SUBSTEP } from "./names.js";
 
-const ANIMATION_STEP = 0xa9f0;
 const SUBSTEP_RELOAD = 0x2750;
 const WIND_DELAY = 90;
 
@@ -21,7 +20,7 @@ export function stepRoundStartIntroAnimation(m) {
   const { mem8 } = m;
   if (mem8[FRAME_TICK] & 2) return;
 
-  switch (mem8[ANIMATION_STEP]) {
+  switch (mem8[INTRO_ANIMATION_STEP]) {
     case 0:
       flashPlayerWhiteEveryOtherFrame(m);
       return;
