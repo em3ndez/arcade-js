@@ -1,16 +1,14 @@
 ![The Pit](thepit.jpg)
 
-# The Pit
-
 >>> deploy:<br>
 >>>   +thepit.jpg<br>
 >>>   Hardware.md<br>
 >>>   RAMUse.md<br>
->>>   Code.md<br>
-
-**Disassembled by Karl Stiefvater**
+>>>   %Code.md<br>
 
 # The Pit
+
+**Disassembled by Karl Stiefvater**
 
 **The Pit** (Zilec Electronics / Centuri / Taito, 1982) is a dig-and-escape game. You
 play an **astronaut-explorer** stranded on a forbidden planet. You **dig down** through

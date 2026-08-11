@@ -1,6 +1,6 @@
 ![Donkey Kong](dkong.jpg)
 
-# Donkey Kong Main CPU (Z80)
+# Donkey Kong
 
 >>> cpu Z80
 

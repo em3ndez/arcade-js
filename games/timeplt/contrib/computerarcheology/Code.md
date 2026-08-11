@@ -1,6 +1,6 @@
 ![Time Pilot](timeplt.jpg)
 
-# Time Pilot Main CPU (Z80)
+# Time Pilot
 
 >>> cpu Z80
 

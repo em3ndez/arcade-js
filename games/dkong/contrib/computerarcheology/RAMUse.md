@@ -1,6 +1,6 @@
 ![Donkey Kong](dkong.jpg)
 
-# Donkey Kong — Work RAM
+# RAM Usage
 
 Work RAM lives at `0x6000`–`0x6BFF` (`0x6C00`–`0x6FFF` is not populated). Each name below
 describes the cell by its role in the running game; the hex address is the stable identity.

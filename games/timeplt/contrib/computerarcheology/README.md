@@ -1,12 +1,12 @@
 ![Time Pilot](timeplt.jpg)
 
-# Time Pilot
-
 >>> deploy:<br>
 >>>   +timeplt.jpg<br>
 >>>   Hardware.md<br>
 >>>   RAMUse.md<br>
->>>   Code.md<br>
+>>>   %Code.md<br>
+
+# Time Pilot
 
 **Disassembled by Karl Stiefvater**
 

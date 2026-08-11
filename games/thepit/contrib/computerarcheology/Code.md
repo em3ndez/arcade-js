@@ -1,6 +1,6 @@
 ![The Pit](thepit.jpg)
 
-# The Pit Main CPU (Z80)
+# The Pit
 
 >>> cpu Z80
 

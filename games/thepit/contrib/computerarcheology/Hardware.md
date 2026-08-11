@@ -1,6 +1,6 @@
 ![The Pit](thepit.jpg)
 
-# The Pit — Hardware
+# Hardware
 
 **The Pit** runs on Zilec Electronics' "roundup"-family board (MAME driver
 `taito/roundup.cpp`, machine `thepitu1`). The main CPU is a **Zilog Z80** clocked at

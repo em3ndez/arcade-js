@@ -1,6 +1,6 @@
 ![Donkey Kong](dkong.jpg)
 
-# Donkey Kong — Hardware
+# Hardware
 
 **Donkey Kong** runs on Nintendo's TKG-04 two-board set (MAME driver `nintendo/dkong.cpp`,
 machine `dkong`). The main CPU is a **Zilog Z80** clocked at **3.072 MHz**

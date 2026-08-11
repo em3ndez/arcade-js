@@ -1,16 +1,14 @@
 ![Donkey Kong](dkong.jpg)
 
-# Donkey Kong
-
 >>> deploy:<br>
 >>>   +dkong.jpg<br>
 >>>   Hardware.md<br>
 >>>   RAMUse.md<br>
->>>   Code.md<br>
-
-**Disassembled by Karl Stiefvater**
+>>>   %Code.md<br>
 
 # Donkey Kong
+
+**Disassembled by Karl Stiefvater**
 
 **Donkey Kong** (Nintendo, 1981) is a climbing game. A giant ape has carried a woman —
 Pauline — to the top of a half-built construction site, and you play **Mario**, the carpenter

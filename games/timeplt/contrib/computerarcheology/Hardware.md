@@ -1,6 +1,6 @@
 ![Time Pilot](timeplt.jpg)
 
-# Time Pilot — Hardware
+# Hardware
 
 **Time Pilot** runs on Konami's Time Pilot board (MAME driver `konami/timeplt.cpp`,
 machine `timeplt`). The main CPU is a **Zilog Z80** clocked at **3.072 MHz** (the

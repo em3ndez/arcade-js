@@ -294,7 +294,7 @@ def gen_ramuse(meta, cells, wr_lo, wr_hi):
     game_img = meta["_game"] + ".jpg"
     out.append(f"![{meta['title']}]({game_img})")
     out.append("")
-    out.append(f"# {meta['title']} — Work RAM")
+    out.append("# RAM Usage")
     out.append("")
     out.append(f"Work RAM lives at `0x{lo:04X}`–`0x{hi:04X}`. Each name below describes "
                "the cell by its role in")
@@ -380,7 +380,7 @@ def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi):
     head = []
     head.append(f"![{meta['title']}]({game}.jpg)")
     head.append("")
-    head.append(f"# {meta['title']} Main CPU ({meta['cpu']})")
+    head.append(f"# {meta['title']}")
     head.append("")
     head.append(f">>> cpu {meta['cpu']}")
     head.append("")

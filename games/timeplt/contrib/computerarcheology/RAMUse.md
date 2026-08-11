@@ -1,6 +1,6 @@
 ![Time Pilot](timeplt.jpg)
 
-# Time Pilot — Work RAM
+# RAM Usage
 
 Work RAM lives at `0xA800`–`0xAFFF`. Each name below describes the cell by its role in
 the running game; the hex address is the stable identity. Cells that share a byte, or
