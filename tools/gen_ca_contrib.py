@@ -247,6 +247,31 @@ def build_routines(names_path):
     return m
 
 
+def clean_role(text):
+    """A ROUTINES role cleaned for the clean-room CA header (drop ★, tags, §, MAME/LIVE-OUT;
+    loc_XXXX -> $XXXX so no raw disassembler label leaks into the prose)."""
+    t = text.replace("★", "")
+    t = TAG_RE.sub("", t)
+    t = re.sub(r"\bgrounded in MAME\b\s*(?:as|by|in|:)?\s*", "", t, flags=re.I)
+    t = re.sub(r"§\S*", "", t)
+    t = re.sub(r"[;,]?\s*\blive-?out\b.*", "", t, flags=re.I)
+    t = re.sub(r"\bloc_([0-9a-f]{4})\b", lambda mm: "$" + mm.group(1).upper(), t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def build_notes(gdir):
+    """addr -> per-instruction clean-room gloss from <game>/ca-lines.md (`ADDR<TAB>text`
+    per line), else {}. See docs/contributing-disassembly.md."""
+    path = os.path.join(gdir, "ca-lines.md")
+    notes = {}
+    if os.path.exists(path):
+        for ln in open(path).read().split("\n"):
+            a, tab, txt = ln.partition("\t")
+            if tab and re.fullmatch(r"[0-9a-fA-F]{4}", a.strip()) and txt.strip():
+                notes[int(a.strip(), 16)] = txt.strip()
+    return notes
+
+
 def work_ram_region(game):
     """(lo, hi) of the work-RAM region, from boards/<game>/hardware.json's `work`
     stateRegion -- the board layer's own source of truth, so a game whose work RAM
@@ -342,7 +367,7 @@ def token_for(mnem, operand, routines, labels, wr_lo, wr_hi, rom_hi):
     return None
 
 
-def xform_instr(raw, routines, labels, wr_lo, wr_hi, rom_hi):
+def xform_instr(raw, routines, labels, wr_lo, wr_hi, rom_hi, notes):
     code, _, comment = raw.partition(";")
     m = re.match(r"\s*([0-9a-f]+)\s+([0-9a-f ]+?)\s*$", comment)
     addr = m.group(1).upper()
@@ -353,9 +378,11 @@ def xform_instr(raw, routines, labels, wr_lo, wr_hi, rom_hi):
     operand = parts[1].strip() if len(parts) > 1 else ""
     op_out = fmt_operand(operand)
     tok = token_for(mnem, operand, routines, labels, wr_lo, wr_hi, rom_hi)
+    gloss = notes.get(int(m.group(1), 16))
     line = f"{addr}: {rawbytes.ljust(BYTES_W)}{mnem.upper().ljust(MNEM_W)}{op_out.ljust(OPER_W)}"
-    if tok:
-        line += "; " + tok
+    tail = " ".join(x for x in (tok, gloss) if x)
+    if tail:
+        line += "; " + tail
     return line
 
 
@@ -368,7 +395,7 @@ def emit_data(body, start, end, data, label):
         body.append("%04X: %s" % (start + k, " ".join("%02X" % b for b in row)))
 
 
-def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi):
+def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi, notes):
     labels = set()
     for l in raw_lines:
         lm = re.match(r"^loc_([0-9a-f]+):\s*$", l)
@@ -418,15 +445,9 @@ def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi):
         who = rn[0] if (rn and not rn[0].startswith("loc_")) else "loc_%04x" % reset_tgt
         arch = (f"Architecture: on reset ($0000) the CPU jumps to {who} "
                 f"(${reset_tgt:04X}). ")
-    cov = ""
-    for l in raw_lines[:8]:
-        cm = re.search(r"coverage:\s*([0-9.]+%)", l)
-        if cm:
-            cov = f"{cm.group(1)} of the ROM "
-            break
-    arch += (f"What follows is a reachability-driven disassembly ({cov}reached from the "
-             "traced entry points): reachable code is shown as instructions, and spans "
-             'never reached are shown as data (the "---- data ----" blocks).')
+    arch += ('What follows is the code reached from the reset and interrupt entry points, '
+             'shown as instructions; spans never reached appear as data (the "---- data '
+             '----" blocks).')
     dlines.append(";")
     dlines += ["; " + w for w in textwrap.wrap(arch, 76)]
 
@@ -453,7 +474,7 @@ def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi):
             sep()
             rn = routines.get(addr)
             if rn and not rn[0].startswith("loc_"):
-                for w in textwrap.wrap(rn[1], ROLE_WRAP):
+                for w in textwrap.wrap(clean_role(rn[1]), ROLE_WRAP):
                     body.append("; " + w)
                 body.append(rn[0] + ":")
             else:
@@ -499,7 +520,7 @@ def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi):
             emit_data(body, start, end, data, "jump table")
             continue
         if re.match(r"^    [a-z]", line):
-            body.append(xform_instr(line, routines, labels, wr_lo, wr_hi, rom_hi))
+            body.append(xform_instr(line, routines, labels, wr_lo, wr_hi, rom_hi, notes))
             j += 1
             continue
         j += 1  # anything else (should not occur) is dropped
@@ -536,7 +557,8 @@ def main():
     raw_lines = open(raw_path).read().split("\n")
 
     ramuse = gen_ramuse(meta, cells, wr_lo, wr_hi)
-    code = gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi)
+    notes = build_notes(gdir)
+    code = gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi, notes)
 
     with open(os.path.join(out_dir, "RAMUse.md"), "w") as fh:
         fh.write(ramuse)
