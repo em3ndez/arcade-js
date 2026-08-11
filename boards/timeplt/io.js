@@ -33,6 +33,10 @@ export const IDLE_IN2 = 0xff;
 export const IDLE_DSW0 = 0xff;
 export const IDLE_DSW1 = 0x4b;
 
+// Live-input marker the web worker constructs and hands to the Machine; timeplt drives
+// keys onto io.inputAssert, so it is unread (mirrors The Pit's boards/thepit/io.js).
+export class Inputs {}
+
 export class Io {
   constructor() {
     this.in0 = IDLE_IN0;

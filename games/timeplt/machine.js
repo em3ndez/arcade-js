@@ -49,6 +49,15 @@ export class FramesComplete extends Error {
 
 export class Machine {
   constructor(rom, routines, opts = {}) {
+    // Two forms. Legacy (internal): (rom, routinesMap, opts). Browser worker / The Pit
+    // convention: (rom, opts) -- when the 2nd arg is not a routines Map, treat it as opts
+    // and build routines here (oracle table + opts.overrides), so web/worker.js can call
+    // `new Machine(rom, {inputs, ...gfx, overrides})` synchronously.
+    if (!(routines instanceof Map)) {
+      opts = routines || {};
+      routines = buildRoutines();
+      if (opts.overrides) for (const [addr, fn] of opts.overrides) routines.set(Number(addr), fn);
+    }
     this.io = new Io();
     this.mem = new AddressSpace(rom, this.io);
     this.regs = new Regs();
