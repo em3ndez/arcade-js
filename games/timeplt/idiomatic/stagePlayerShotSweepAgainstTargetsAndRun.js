@@ -6,15 +6,13 @@
  * the staged registers the sweep consumes. */
 
 import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
-import { ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0, PLAYER_SHOT_ARRAY } from "./names.js";
+import { ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0, PLAYER_SHOT_ARRAY, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
 const TARGETS = 3;
 const SHOTS = 6;
 const REACH = 7;
 const SPAN = 15;
 
-const TARGET_ENTRY_CURSOR = 0xa991;
-const TARGET_RECORD_CURSOR = 0xa993;
 
 export function stagePlayerShotSweepAgainstTargetsAndRun(m) {
   const { mem16, regs } = m;
@@ -24,8 +22,8 @@ export function stagePlayerShotSweepAgainstTargetsAndRun(m) {
   regs.a_ = TARGETS;
   regs.b = TARGETS;
   regs.c = SHOTS;
-  mem16[TARGET_RECORD_CURSOR] = ERA_OBJECT_RECORD_SLOT0;
-  mem16[TARGET_ENTRY_CURSOR] = ERA_OBJECT_ENTRY_SLOT0;
+  mem16[SCRATCH_PTR_B] = ERA_OBJECT_RECORD_SLOT0;
+  mem16[SCRATCH_PTR_A] = ERA_OBJECT_ENTRY_SLOT0;
   regs.l = REACH;
   regs.h = SPAN;
   destroyTargetsHitByShots(m);

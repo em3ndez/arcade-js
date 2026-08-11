@@ -9,9 +9,8 @@
 
 import { u8 } from "../../../core/int.js";
 import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
+import { SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
-const TARGET_ENTRY_CURSOR = 0xa991;
-const TARGET_RECORD_CURSOR = 0xa993;
 const RECORD_STRIDE = 16;
 
 export function loc_5254(
@@ -29,8 +28,8 @@ export function loc_5254(
   destroyTargetsHitByShots(
     m,
     nextShot,
-    mem16[TARGET_ENTRY_CURSOR],
-    mem16[TARGET_RECORD_CURSOR],
+    mem16[SCRATCH_PTR_A],
+    mem16[SCRATCH_PTR_B],
     targetsPerPass,
     targetsPerPass,
     shotsLeft,

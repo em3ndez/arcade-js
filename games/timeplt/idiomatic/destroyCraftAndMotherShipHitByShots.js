@@ -13,7 +13,7 @@
 
 import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
-import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ERA_INDEX, MOTHER_SHIP_ENTRY, MOTHER_SHIP_SPRITE_Y, MOTHER_SHIP_STATE, PLAYER_SHOT_ARRAY } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ERA_INDEX, MOTHER_SHIP_ENTRY, MOTHER_SHIP_SPRITE_Y, MOTHER_SHIP_STATE, PLAYER_SHOT_ARRAY, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 import { u8 } from "../../../core/int.js";
 
 const SHOTS = 6;
@@ -22,8 +22,6 @@ const TARGETS = 5;
 const TARGET_REACH = 7;
 const TARGET_SPAN = 15;
 
-const TARGET_ENTRY_CURSOR = 0xa991;
-const TARGET_RECORD_CURSOR = 0xa993;
 
 
 const STATE = 0;
@@ -48,8 +46,8 @@ const nextRecord = (cursor) => (cursor & 0xff00) | u8(cursor + RECORD_STRIDE);
 
 export function destroyCraftAndMotherShipHitByShots(m) {
   const { mem8, mem16 } = m;
-  mem16[TARGET_RECORD_CURSOR] = CRAFT_RECORD_SLOT0;
-  mem16[TARGET_ENTRY_CURSOR] = CRAFT_ENTRY_SLOT0;
+  mem16[SCRATCH_PTR_B] = CRAFT_RECORD_SLOT0;
+  mem16[SCRATCH_PTR_A] = CRAFT_ENTRY_SLOT0;
   destroyTargetsHitByShots(
     m, PLAYER_SHOT_ARRAY, CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0,
     TARGETS, TARGETS, SHOTS, TARGET_REACH, TARGET_SPAN,

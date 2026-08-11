@@ -9,7 +9,7 @@
 
 import { isScoreBelow } from "./isScoreBelow.js";
 import { fetchTableByte } from "./fetchTableByte.js";
-import { HIGH_SCORE_REC0_SCORE_HI, HIGH_SCORE_SLIDE_SRC, HIGH_SCORE_TABLE_BASE, HIGH_SCORE_TABLE_END, PLAYER1_SCORE_HI, PLAYER2_SCORE_HI } from "./names.js";
+import { HIGH_SCORE_REC0_SCORE_HI, HIGH_SCORE_SLIDE_SRC, HIGH_SCORE_TABLE_BASE, HIGH_SCORE_TABLE_END, PLAYER1_SCORE_HI, PLAYER2_SCORE_HI, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
 const ACTIVE_PLAYER = 0xad32;
 
@@ -18,9 +18,7 @@ const RECORD_STRIDE = 0x08;
 
 
 const NAME_SENTINEL = 0xf1;
-const SLOT_PTR = 0xa991;
 const GLYPH_ROW_TABLE = 0xa531;
-const GLYPH_ROW_PTR = 0xa993;
 
 export function fileScoreIntoHighScoreTable(m) {
   const { regs, mem } = m;
@@ -68,7 +66,7 @@ export function fileScoreIntoHighScoreTable(m) {
     regs.hl = (regs.hl - 1) & 0xffff;
     mem.write8(regs.hl, NAME_SENTINEL);
   }
-  mem.write16(SLOT_PTR, regs.hl);
+  mem.write16(SCRATCH_PTR_A, regs.hl);
   regs.hl = (regs.hl - 1) & 0xffff;
   regs.de = savedDe;
   regs.bc = 0x0003;
@@ -79,7 +77,7 @@ export function fileScoreIntoHighScoreTable(m) {
   regs.hl = GLYPH_ROW_TABLE;
   regs.add(regs.a);
   fetchTableByte(m);
-  mem.write16(GLYPH_ROW_PTR, regs.hl);
+  mem.write16(SCRATCH_PTR_B, regs.hl);
 
   regs.hl = HIGH_SCORE_TABLE_BASE;
   regs.de = RECORD_STRIDE;

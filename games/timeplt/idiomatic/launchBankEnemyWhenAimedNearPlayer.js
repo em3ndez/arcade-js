@@ -14,12 +14,10 @@ import { headingToward } from "./headingToward.js";
 import { requestEraKeyedLaunchSound } from "./requestEraKeyedLaunchSound.js";
 import { loc_59cb } from "./loc_59cb.js";
 import { loc_59d1 } from "./loc_59d1.js";
-import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, ATTACKER_SPAWN_AIM_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
+import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, ATTACKER_SPAWN_AIM_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ENEMY_STANDOFF_AIM_MAIN, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
 const SPAWN_PHASE = 0xa980;
 const SPRITE_STATE = 0x30;
-const FREE_RECORD = 0xa991;
-const FREE_ENTRY = 0xa993;
 const SCROLL_ANGLE = 0xa802;
 const VELOCITY_SELECT = 0xad04;
 
@@ -54,8 +52,8 @@ export function launchBankEnemyWhenAimedNearPlayer(m) {
   } while (regs.b !== 0);
   if (!freeSlot) return; // bank full
 
-  mem.write16(FREE_RECORD, regs.hl);
-  mem.write16(FREE_ENTRY, regs.de);
+  mem.write16(SCRATCH_PTR_A, regs.hl);
+  mem.write16(SCRATCH_PTR_B, regs.de);
 
   // margin window against the player entry: vertical, and horizontal only if the vertical is close
   regs.a = mem8[BANK_LAUNCH_NEAR_HALF_Y];
@@ -111,8 +109,8 @@ export function launchBankEnemyWhenAimedNearPlayer(m) {
   const savedIy = regs.iy;
   regs.d = mem8[u16(savedIy + COORD_Y)];
   regs.e = mem8[savedIy];
-  regs.ix = mem.read16(FREE_RECORD);
-  regs.iy = mem.read16(FREE_ENTRY);
+  regs.ix = mem.read16(SCRATCH_PTR_A);
+  regs.iy = mem.read16(SCRATCH_PTR_B);
   mem8[u16(regs.iy + COORD_Y)] = regs.d;
   mem8[regs.iy] = regs.e;
 

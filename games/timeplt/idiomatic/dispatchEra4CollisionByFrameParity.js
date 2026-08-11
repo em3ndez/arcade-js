@@ -10,10 +10,8 @@
 import { runAllCollisionSweepsThisFrame } from "./runAllCollisionSweepsThisFrame.js";
 import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
 import { destroyMotherShipAndShotOnMutualHit } from "./destroyMotherShipAndShotOnMutualHit.js";
-import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, FRAME_TICK, MOTHER_SHIP_ARMED, PLAYER_SHOT_ARRAY } from "./names.js";
+import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, FRAME_TICK, MOTHER_SHIP_ARMED, PLAYER_SHOT_ARRAY, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
-const TARGET_ENTRY_CURSOR = 0xa991;
-const TARGET_RECORD_CURSOR = 0xa993;
 const SHOTS = 0x06;
 const REACH = 0x07;
 const SPAN = 0x0f;
@@ -33,8 +31,8 @@ export function dispatchEra4CollisionByFrameParity(m) {
   regs.a_ = targets;
   regs.b = targets;
   regs.c = SHOTS;
-  mem16[TARGET_RECORD_CURSOR] = ACTOR_RECORD_SLOT0;
-  mem16[TARGET_ENTRY_CURSOR] = ACTOR_ENTRY_SLOT0;
+  mem16[SCRATCH_PTR_B] = ACTOR_RECORD_SLOT0;
+  mem16[SCRATCH_PTR_A] = ACTOR_ENTRY_SLOT0;
   regs.l = REACH;
   regs.h = SPAN;
 

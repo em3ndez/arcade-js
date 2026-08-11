@@ -18,6 +18,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
+import { SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
 const STATE = 0;
 const SHOT_FIRST_AXIS = 6;
@@ -27,10 +28,6 @@ const LIVE = 255;
 const DESTROYED = 240;
 const RECORD_STRIDE = 16;
 const ENTRY_STRIDE = 2;
-
-// The run's two cursors are restaged in these cells for the pass after this one.
-const TARGET_ENTRY_CURSOR = 0xa991;
-const TARGET_RECORD_CURSOR = 0xa993;
 
 // A coordinate this close to zero is not a position yet: on the first axis the 8 values below
 // zero through the 16 above it, on the second the 16 below zero and zero itself.
@@ -89,8 +86,8 @@ export function destroyTargetsHitByShots(
         left = u8(left - 1);
       } while (left !== 0);
     }
-    entryCursor = mem16[TARGET_ENTRY_CURSOR];
-    targetCursor = mem16[TARGET_RECORD_CURSOR];
+    entryCursor = mem16[SCRATCH_PTR_A];
+    targetCursor = mem16[SCRATCH_PTR_B];
     targets = targetsPerPass;
     shotSlot = nextRecord(shotSlot);
     shotsLeft = u8(shotsLeft - 1);

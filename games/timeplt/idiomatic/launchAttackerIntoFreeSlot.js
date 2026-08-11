@@ -9,11 +9,9 @@
 import { setTheLaunchFacingInsideOneAimWindow } from "./setTheLaunchFacingInsideOneAimWindow.js";
 import { commissionStagedAttackerByEra } from "./commissionStagedAttackerByEra.js";
 import { u8 } from "../../../core/int.js";
-import { ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0 } from "./names.js";
+import { ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
 const FRAME_COUNTER = 0xa980;
-const NEW_RECORD = 0xa991;
-const NEW_ENTRY = 0xa993;
 const ERA = 0xad04;
 
 const PHASE_BIAS = 5;
@@ -44,8 +42,8 @@ export function launchAttackerIntoFreeSlot(m) {
   }
   if (!free) return;
 
-  m.mem16[NEW_RECORD] = record;
-  m.mem16[NEW_ENTRY] = entry;
+  m.mem16[SCRATCH_PTR_A] = record;
+  m.mem16[SCRATCH_PTR_B] = entry;
 
   const margin = mem8[ATTACKER_SPAWN_WINDOW_HALF];
   const window = u8(margin + margin);

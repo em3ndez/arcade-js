@@ -22,7 +22,7 @@ import { requestTwoSounds } from "./requestTwoSounds.js";
 import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
 import { requestCurrentEraSound } from "./requestCurrentEraSound.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
-import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, ROUND_TRANSITION_HOLD } from "./names.js";
+import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, ROUND_TRANSITION_HOLD, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
 const RECORD_BANK = 0xa8a0;
 
@@ -63,8 +63,6 @@ const NEAR_Y = 0x78;
 const ON_SCREEN_X = 0x28;
 const ON_SCREEN_Y = 0x20;
 
-const NEW_RECORD_PTR = 0xa991;
-const NEW_SPRITE_PTR = 0xa993;
 const STAGE = 0xad04;
 const ARM_TABLE = 0x478b;
 const SECOND_ENTRY = 0x30; // second sprite entry's base offset off iy (mirrors fields 0x00-0x03)
@@ -392,9 +390,9 @@ export function loc_43f0_474c(m) {
   const X = (d) => u16(regs.ix + d);
   const Y = (d) => u16(regs.iy + d);
 
-  mem.write16(NEW_RECORD_PTR, regs.hl);
+  mem.write16(SCRATCH_PTR_A, regs.hl);
   regs.exx();
-  mem.write16(NEW_SPRITE_PTR, regs.hl);
+  mem.write16(SCRATCH_PTR_B, regs.hl);
 
   requestEnemyLaunchSound(m);
 
@@ -413,8 +411,8 @@ export function loc_43f0_474c(m) {
 
   regs.b = mem8[Y(0x31)];
   regs.c = mem8[Y(0x00)];
-  regs.ix = mem.read16(NEW_RECORD_PTR); // retarget at the new entry
-  regs.iy = mem.read16(NEW_SPRITE_PTR);
+  regs.ix = mem.read16(SCRATCH_PTR_A); // retarget at the new entry
+  regs.iy = mem.read16(SCRATCH_PTR_B);
   mem8[X(0x02)] = regs.a; // heading
   mem8[Y(0x31)] = regs.b;
   mem8[Y(0x00)] = regs.c;

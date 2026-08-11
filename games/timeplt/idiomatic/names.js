@@ -1403,6 +1403,19 @@ export const SOUND_QUEUE_HEAD = 0xac44;
 export const TAMPER_GLYPH_KONAMI = 0xacc7;
 
 /*
+ * A general reusable pair of 16-bit little-endian scratch pointers (0xA991-A992 / 0xA993-A994), used as working cursors
+ * across ~11 spawn / collision / high-score routines. The record/entry roles SWAP by caller family (spawn: A=record,
+ * B=entry; collision: A=entry, B=record; high-score: slot / glyph-row), so only the positional distinction is stable --
+ * hence subsystem-neutral names.
+ */
+
+/** General 16-bit scratch pointer (first of the pair, 0xA991-A992); dereferenced as a live working cursor, role varies by caller. [code] */
+export const SCRATCH_PTR_A = 0xa991;
+
+/** General 16-bit scratch pointer (second of the pair, 0xA993-A994); sometimes used alone (e.g. as a video-write destination). [code] */
+export const SCRATCH_PTR_B = 0xa993;
+
+/*
  * Player shots: a SEPARATE six-slot record array at 0xAA80 (0xAA80-0xAADF, stride 0x10) with NO sprite entries --
  * the object-array 8:1 mapping does not apply. Slot +0 head/occupancy, +3/+5 velocity, +10/+12 position. See §4/§5.
  */

@@ -16,10 +16,8 @@ import { requestAttackerSpawnSoundEra0 } from "./requestAttackerSpawnSoundEra0.j
 import { requestAttackerSpawnSoundLateEra } from "./requestAttackerSpawnSoundLateEra.js";
 import { requestTwoSoundsWhilePlaying } from "./requestTwoSoundsWhilePlaying.js";
 import { u8 } from "../../../core/int.js";
-import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ENEMY_STANDOFF_AIM_MAIN } from "./names.js";
+import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ENEMY_STANDOFF_AIM_MAIN, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
-const NEW_RECORD = 0xa991;
-const NEW_ENTRY = 0xa993;
 const ERA = 0xad04;
 const OFFSET_STEP = 0x1a;
 
@@ -32,8 +30,8 @@ export function commissionStagedAttackerByEra(m, spawnerRecord = m.regs.ix, spaw
   const l = mem8[spawnerRecord + 0x05];
   const facing = regs.c;
 
-  const record = m.mem16[NEW_RECORD];
-  const entry = m.mem16[NEW_ENTRY];
+  const record = m.mem16[SCRATCH_PTR_A];
+  const entry = m.mem16[SCRATCH_PTR_B];
   regs.ix = record;
   regs.iy = entry;
 

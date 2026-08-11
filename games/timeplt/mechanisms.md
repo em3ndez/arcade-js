@@ -1306,13 +1306,17 @@ only the other object, and one of those is the pickup test. `[code]`
 That shot-versus-target sweep is staged by `stagePlayerShotSweepAgainstTargetsAndRun` (`0x4F5D`): every
 argument is a constant — the six player shots at `PLAYER_SHOT_ARRAY` (`0xAA80`), three targets read from
 the parallel tables at `0xA8C0`/`0xAA28` (the era special-craft trio), and the two box numbers (reach 7,
-span 15) — and it seats the cursor pair (`0xA991`/`0xA993`) the body reloads between passes before
-tail-jumping into `destroyTargetsHitByShots` (`0x5211`), which restarts the target run for every shot. `[code]`
+span 15) — and it seats the general scratch-pointer pair `SCRATCH_PTR_A` / `SCRATCH_PTR_B` (`0xA991`/`0xA993`) the
+body reloads between passes before tail-jumping into `destroyTargetsHitByShots` (`0x5211`), which restarts the target
+run for every shot. `[code]` That pair is the game's general-purpose 16-bit scratch cursor pair: which of the two holds
+the record and which the entry is NOT fixed — the spawn family seats the record in `SCRATCH_PTR_A`, the collision family
+swaps them, and the high-score filer reuses the pair as slot / glyph-row pointers — so the names are positional, not
+role-based. `[code]`
 
 A sibling stager runs that same sweep body over a larger target set, and it is what the per-frame
 collision pass dispatches to. On odd frames the collision dispatchers pick
 `dispatchShotSweepByMotherShipArmed` (`0x4F35`): while `MOTHER_SHIP_ARMED` is clear it seats the same
-cursor pair (`0xA991`/`0xA993`) onto the seven-long craft run (`CRAFT_RECORD_SLOT0`/`CRAFT_ENTRY_SLOT0`)
+scratch pair `SCRATCH_PTR_A`/`SCRATCH_PTR_B` (`0xA991`/`0xA993`) onto the seven-long craft run (`CRAFT_RECORD_SLOT0`/`CRAFT_ENTRY_SLOT0`)
 and hands `destroyTargetsHitByShots` six shots against seven targets; while it is set it hands off to
 `destroyCraftAndMotherShipHitByShots` instead, the sweep that also covers the standing object. `[code]`
 
