@@ -1314,6 +1314,60 @@ export const MOTHER_SHIP_SPRITE_Y = 0xaa55;
 export const ERA_OBJECT_SPRITE_Y_SLOT0 = 0xaa59;
 
 /*
+ * Game-flow state (G3-11): the active game-context fields the per-player work left bare, the two-player flag, the
+ * attract-demo autopilot's script state and its tile-image tamper tripwire, and the two deferred-paint list heads.
+ */
+
+/** Active context +3: the once-per-mark bonus-life award latch (bit 0); mirrors the saved PLAYER_ONE/TWO_BONUS_LIFE_LATCH. [code] */
+export const BONUS_LIFE_LATCH = 0xad03;
+
+/** Active context +0xA: the difficulty rung the round opens on (copied into ERA_RUNG 0xacc0 at reset); mirrors PLAYER_ONE/TWO_START_RUNG. [code] */
+export const START_RUNG = 0xad0a;
+
+/** Active context +0xE: the round-armed gate (0xFF armed; cleared to 0 once the intro sound sequence completes); mirrors PLAYER_ONE/TWO_ROUND_ARMED. [code] */
+export const ROUND_ARMED = 0xad0e;
+
+/**
+ * Two-player-game flag: 0xFF for a two-player game, 0x00 for one player / attract. Written alongside PLAY_ACTIVE by every
+ * start path; awardScoreToPlayer reads it to draw the 2-UP readout. A boolean -- distinct from ACTIVE_PLAYER 0xad32, the
+ * current player index. [code]
+ */
+export const TWO_PLAYER_GAME = 0xad31;
+
+/**
+ * Attract-demo autopilot: the packed dwell/steer byte -- low 6 bits are the frame countdown, top 2 bits the steering
+ * command; reloaded from the next script byte when the dwell expires. [code]
+ */
+export const DEMO_SCRIPT_DWELL = 0xadf2;
+
+/** Attract-demo autopilot: low byte of the little-endian cursor into the ROM heading-command script. [code] */
+export const DEMO_SCRIPT_POINTER_LO = 0xadf3;
+
+/** Attract-demo autopilot: high byte of the DEMO_SCRIPT_POINTER_LO cursor. [code] */
+export const DEMO_SCRIPT_POINTER_HI = 0xadf4;
+
+/**
+ * Tile-image tamper tripwire: the glyph read back from video cell 0xA5DC; the demo start derails into a data-run trap
+ * unless it reads 0xFD. Sibling of TAMPER_GLYPH_COPY 0xab43 / TAMPER_WITNESS 0xad39. [code]
+ */
+export const TAMPER_GLYPH_READBACK = 0xadfb;
+
+/** Tile-image tamper tripwire: the colour read back from cell 0xA1DC; the demo proceeds only if it is 0x10 or 0x05. [code] */
+export const TAMPER_COLOUR_READBACK = 0xadfc;
+
+/**
+ * Head of the deferred-PAINT list -- 4-byte records {addr lo, addr hi, tile, colour} that DEFERRED_WRITE_CURSOR 0xae00
+ * fills and paintDeferredCells drains into both planes; a cursor still == this head means the list is empty. [code]
+ */
+export const DEFERRED_WRITE_LIST = 0xae04;
+
+/**
+ * Head of the deferred-BLANK list (same 4-byte record layout) that DEFERRED_BLANK_CURSOR 0xae80 fills and
+ * blankCellsPaintedLastPass drains, stamping the blank glyph 0x20 into the character plane only. [code]
+ */
+export const DEFERRED_BLANK_LIST = 0xae84;
+
+/*
  * Player shots: a SEPARATE six-slot record array at 0xAA80 (0xAA80-0xAADF, stride 0x10) with NO sprite entries --
  * the object-array 8:1 mapping does not apply. Slot +0 head/occupancy, +3/+5 velocity, +10/+12 position. See §4/§5.
  */

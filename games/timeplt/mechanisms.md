@@ -352,8 +352,8 @@ positive control** — neither zero can be the instrument, because the same tap 
 firing in the other run. `[seen]`
 
 Their stores were watched, and they differ in exactly the places that should differ: the one-player
-start CLEARS the two-player flag and zeroes player two's lives, the two-player start SETS the flag
-and stocks both players' lives from the same value, and both raise the play flag. Each ends by
+start CLEARS the two-player flag `TWO_PLAYER_GAME` (`0xAD31`) and zeroes player two's lives, the
+two-player start SETS it and stocks both players' lives from the same value, and both raise the play flag. Each ends by
 writing the credit count to zero — from 1 in the one-player run, from 2 in the two-player one, with
 the count itself watched going 0→1→2 at the coins and 2→0 at the press. **Neither run separates a
 subtraction from a clear**, because in both the bank held exactly what the game cost. `[seen]`
@@ -726,6 +726,18 @@ The demo is not a canned replay — it runs the real play arm, and the era index
 `[seen]` Anything that attributes a dispatch to "a game being played" on the strength of the era
 index or the play arm alone will count the demo as a game. See §2 and §10.
 
+The demo autopilot's own state now has names: `DEMO_SCRIPT_DWELL` (`0xADF2`) packs a per-command frame
+countdown in its low six bits and the steering command in its top two, and `DEMO_SCRIPT_POINTER_LO` /
+`DEMO_SCRIPT_POINTER_HI` (`0xADF3` / `0xADF4`) are the little-endian cursor it walks through the ROM
+heading-command script. The demo only STARTS, though, if a tile-image tamper tripwire passes: one routine
+samples a fixed video cell's glyph and colour into `TAMPER_GLYPH_READBACK` (`0xADFB`) and
+`TAMPER_COLOUR_READBACK` (`0xADFC`), and the demo-seed derails into the data-run trap unless the glyph reads
+`0xFD` and the colour `0x10` or `0x05` — another member of the anti-tamper family. The active per-player
+context block (whose saved copies §10 names) carries three more named live fields: `BONUS_LIFE_LATCH`
+(`0xAD03`, the once-per-mark award one-shot), `START_RUNG` (`0xAD0A`, the difficulty rung the round opens on,
+copied into `ERA_RUNG` at reset), and `ROUND_ARMED` (`0xAD0E`, the 0xFF/0 gate a round arms and the
+intro-sound sequence clears). `[code]`
+
 ---
 
 ## §4 Objects: one array, two tables, and two ways onto the screen
@@ -1037,8 +1049,8 @@ pass's off the pending list, after which the pending list is copied wholesale on
 and the pending cursor is reset. The copy runs **one way on every pass** — `0xAE00` onto `0xAE80`,
 never back — and the two walkers are asymmetric: the blanking one writes only the character plane
 and leaves colour exactly as it was, the painting one writes both planes, and their entries even
-start at different offsets, `0xAE84` against `0xAE04`. So the halves cannot exchange roles the way a
-double buffer's do. Both walkers test the cell's colour-RAM priority bit and **skip the cell if it
+start at different offsets, `DEFERRED_BLANK_LIST` (`0xAE84`) against `DEFERRED_WRITE_LIST` (`0xAE04`). So
+the halves cannot exchange roles the way a double buffer's do. Both walkers test the cell's colour-RAM priority bit and **skip the cell if it
 is set**, so the shot layer refuses to scribble over foreground and HUD cells. `[code]`
 
 ### Multi-tile objects are not a structure

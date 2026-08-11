@@ -13,10 +13,9 @@ import { paintHighScoreReadout } from "./paintHighScoreReadout.js";
 import { drawTextRunByIndex } from "./drawTextRunByIndex.js";
 import { eraseTextRunByIndex } from "./eraseTextRunByIndex.js";
 import { advanceCharCursor } from "./advanceCharCursor.js";
-import { HIGH_SCORE_HI, PLAYER1_SCORE_LO, PLAYER2_SCORE_LO } from "./names.js";
+import { HIGH_SCORE_HI, PLAYER1_SCORE_LO, PLAYER2_SCORE_LO, TWO_PLAYER_GAME } from "./names.js";
 
 const SCORING_ENABLED = 0xad30;
-const PLAYER_COUNT = 0xad31;
 const CURRENT_PLAYER = 0xad32;
 const AWARD_TABLE = 0x0d27;
 const SCORE_BYTES = 3;
@@ -67,7 +66,7 @@ export function awardScoreToPlayer(m) {
 
 function repaintScores(m) {
   const { regs, mem8 } = m;
-  if (mem8[PLAYER_COUNT] !== 0) {
+  if (mem8[TWO_PLAYER_GAME] !== 0) {
     drawTextRunByIndex(m, P1_LABEL);
     paintPlayerOneScoreReadout(m);
     drawTextRunByIndex(m, P2_LABEL);

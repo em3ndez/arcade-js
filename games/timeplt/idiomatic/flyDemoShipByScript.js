@@ -7,9 +7,8 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { scrollWorldAtTheEraPace } from "./scrollWorldAtTheEraPace.js";
+import { DEMO_SCRIPT_DWELL, DEMO_SCRIPT_POINTER_LO } from "./names.js";
 
-const COUNTDOWN = 0xadf2;
-const SCRIPT_PTR = 0xadf3;
 const HEADING = 0xa802;
 const DWELL_BITS = 0x3f;
 const TURN_STEP = 3;
@@ -19,15 +18,15 @@ export function flyDemoShipByScript(m) {
 
   let command;
   for (;;) {
-    const countByte = mem8[COUNTDOWN];
+    const countByte = mem8[DEMO_SCRIPT_DWELL];
     if ((countByte & DWELL_BITS) > 1) {
       command = u8(countByte - 1);
-      mem8[COUNTDOWN] = command;
+      mem8[DEMO_SCRIPT_DWELL] = command;
       break;
     }
-    const next = u16(mem16[SCRIPT_PTR] + 1);
-    mem16[SCRIPT_PTR] = next;
-    mem8[COUNTDOWN] = u8(mem8[next] + 1);
+    const next = u16(mem16[DEMO_SCRIPT_POINTER_LO] + 1);
+    mem16[DEMO_SCRIPT_POINTER_LO] = next;
+    mem8[DEMO_SCRIPT_DWELL] = u8(mem8[next] + 1);
   }
 
   const turn = (command >> 6) & 3;

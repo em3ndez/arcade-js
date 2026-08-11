@@ -12,9 +12,8 @@ import { hideCaptionSprites } from "./hideCaptionSprites.js";
 import { seatSequencePhase3AndResetSubStep } from "./seatSequencePhase3AndResetSubStep.js";
 import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { copyThreeTilemapCellsFromBothPlanes } from "./copyThreeTilemapCellsFromBothPlanes.js";
-import { CREDIT_COUNT, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE, STARTING_LIVES } from "./names.js";
+import { CREDIT_COUNT, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE, STARTING_LIVES, TWO_PLAYER_GAME } from "./names.js";
 
-const SECOND_PLAYER_FLAG = 0xad31;
 const ALL_BITS = 255;
 
 const LOW_DIGIT = 0x0f;
@@ -37,7 +36,7 @@ export function startOnePlayerGame(m) {
   const { mem8 } = m;
   hideCaptionSprites(m);
 
-  mem8[SECOND_PLAYER_FLAG] = 0;
+  mem8[TWO_PLAYER_GAME] = 0;
   mem8[PLAYER_TWO_LIVES] = 0;
   mem8[PLAY_ACTIVE] = ALL_BITS;
   mem8[PLAYER_ONE_LIVES] = mem8[STARTING_LIVES];

@@ -10,10 +10,9 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { DEFERRED_WRITE_CURSOR, PEN_COLOUR } from "./names.js";
+import { DEFERRED_WRITE_CURSOR, DEFERRED_WRITE_LIST, PEN_COLOUR } from "./names.js";
 
 const TINT_BIAS_BITS = 0x0f;
-const FIRST_ENTRY = 0xae04;
 const ENTRY_BYTES = 4;
 const HEADER_BYTES = 4;
 const ENTRY_COUNT_BITS = 0x1f;
@@ -29,7 +28,7 @@ export function paintDeferredCells(m) {
   const filled = u8(u8(mem16[DEFERRED_WRITE_CURSOR]) - HEADER_BYTES);
   if (filled === 0) return;
 
-  let cursor = FIRST_ENTRY;
+  let cursor = DEFERRED_WRITE_LIST;
   let left = Math.floor(filled / ENTRY_BYTES) & ENTRY_COUNT_BITS;
   do {
     const low = mem8[cursor];

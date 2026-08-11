@@ -10,9 +10,8 @@
  * LIVE-OUT: memory-only. */
 
 import { u8 } from "../../../core/int.js";
-import { DEFERRED_BLANK_CURSOR } from "./names.js";
+import { DEFERRED_BLANK_CURSOR, DEFERRED_BLANK_LIST } from "./names.js";
 
-const FIRST_ENTRY = 0xae84;
 const CURSOR_BITS = 0x7f;
 const ENTRY_BYTES = 4;
 const HEADER_BYTES = 4;
@@ -29,7 +28,7 @@ export function blankCellsPaintedLastPass(m) {
   const filled = u8((u8(mem16[DEFERRED_BLANK_CURSOR]) & CURSOR_BITS) - HEADER_BYTES);
   if (filled === 0) return;
 
-  let cursor = FIRST_ENTRY;
+  let cursor = DEFERRED_BLANK_LIST;
   let left = Math.floor(filled / ENTRY_BYTES) & ENTRY_COUNT_BITS;
   do {
     const low = mem8[cursor];
