@@ -9,9 +9,9 @@
 import { u16 } from "../../../core/int.js";
 import { drawTextRun } from "./drawTextRun.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
+import { PEN_COLOUR } from "./names.js";
 
 const RECORD_TABLE = 0x0c50;
-const COLOUR = 0xad0c;
 const COLOUR_FIELD = 0x0f;
 const GLYPHS_START = 3;
 
@@ -22,6 +22,6 @@ export function drawCaptionInPenColour(m) {
   const record = regs.de;
   regs.de = m.mem16[record];
   regs.hl = u16(record + GLYPHS_START);
-  regs.c = mem8[COLOUR] & COLOUR_FIELD;
+  regs.c = mem8[PEN_COLOUR] & COLOUR_FIELD;
   drawTextRun(m);
 }

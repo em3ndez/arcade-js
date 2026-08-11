@@ -8,11 +8,11 @@ import { u8, u16 } from "../../../core/int.js";
 import { loc_08fa } from "./loc_08fa.js";
 import { armThePenRouteThenColdStartOnATamperedImage } from "./armThePenRouteThenColdStartOnATamperedImage.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
+import { PEN_COLOUR } from "./names.js";
 
 const CHECKED_BLOCK = 0x4aa0;
 const CHECKED_BYTES = 0x100;
 const GENUINE_TOTAL = 0xb8;
-const PEN_COLOUR = 0xad0c;
 const STAMP_GLYPH = 0xad0b;
 const BLANKING_GLYPH = 0xf1;
 const PEN_COLOUR_VALUE = 5;

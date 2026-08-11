@@ -9,11 +9,11 @@ import { u8, u16 } from "../../../core/int.js";
 import { fillCellRun } from "./fillCellRun.js";
 import { setSavedPenFromEra } from "./setSavedPenFromEra.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
+import { PEN_COLOUR } from "./names.js";
 
 const HEAD_RUN = 13;
 const TAIL_RUN = 4;
 const TAIL_FILL = 0x0e;
-const BASE_COLOUR = 0xad0c;
 const ROW = 0x20;
 
 // The two colour-RAM row heads and the three scattered cells, each already through the res-2,h
@@ -34,7 +34,7 @@ export function paintCaptionColourBandAndStepSequence(m) {
   for (let i = 0; i < HEAD_RUN; i++) mem8[cur = u16(cur + 1)] = body;
   for (let i = 0; i < TAIL_RUN; i++) mem8[cur = u16(cur + 1)] = TAIL_FILL;
 
-  const base = mem8[BASE_COLOUR];
+  const base = mem8[PEN_COLOUR];
 
   regs.hl = ROW_A;
   regs.a = u8(0xa0 + base);

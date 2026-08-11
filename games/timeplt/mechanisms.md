@@ -2587,13 +2587,15 @@ These need someone's attention, not a new capture and not a new lift.
 - Whether the ship's **nose** is drawn along its direction of travel. The travel direction itself is
   settled (§5); which way `spriteForHeading` points the sprite for a given heading is not, and a
   16×16 sprite eyeballed off a snapshot is not the instrument for it.
-- **What the per-player colour byte at `0xAD0C` IS.** Every reader treats it as a colour — three
-  caption handlers at offsets 0, 5 and 10, the round-number digits, a colour-plane fill, a straight
-  store into the colour plane — but it is byte 12 of the sixteen-byte per-player context block,
-  `[seen]` being saved and restored by the two block copies, and one writer uses it as a
-  has-this-changed marker that steps the sequence when the ROM table it walks stops changing. It
-  takes four values in an attract loop and two in a driven game, and never approaches the wrap its
-  four-bit mask implies. A name has to survive all of that and none of ours does yet.
+- **The per-player colour byte at `0xAD0C`, now named `PEN_COLOUR` from code.** Every reader treats it as a
+  colour — three caption handlers at offsets 0, 5 and 10, the round-number digits, a colour-plane fill, a
+  straight store into the colour plane — and it is byte 12 of the sixteen-byte per-player context block,
+  `[seen]` saved and restored by the two block copies. The two writers that read it back first
+  (`erasePenRouteThenAdvanceStep`, `seatCaptionPenFromEraFoldingTamperIntoPhase`) test whether it already
+  holds the value they are about to store, gating a sequence step on it — still the pen colour, only used as
+  a has-it-changed signal. It takes four values in an attract loop and two in a driven game, never
+  approaching the wrap its four-bit mask implies. `PEN_COLOUR` survives every use; the naming is `[code]`, the
+  value observations `[seen]`. Only the saved per-player copies at `0xAD1C`/`0xAD2C` are still unnamed.
 
 ### The states no instrument has visited
 

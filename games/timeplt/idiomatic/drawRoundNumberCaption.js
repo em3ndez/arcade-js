@@ -8,13 +8,12 @@
  * means the bytes were altered, and this throws rather than run on. LIVE-OUT: memory. */
 
 import { u8 } from "../../../core/int.js";
-import { ROUND_NUMBER } from "./names.js";
+import { PEN_COLOUR, ROUND_NUMBER } from "./names.js";
 import { drawCaptionInPenColour } from "./drawCaptionInPenColour.js";
 import { retreatCharCursor } from "./retreatCharCursor.js";
 import { advanceCharCursor } from "./advanceCharCursor.js";
 import { paintDigitDroppingLeadingZero } from "./paintDigitDroppingLeadingZero.js";
 
-const COLOUR = 0xad0c;
 const FIELD_CAPTION = 0x0e;
 const CHECK_BASE = 0x1748;
 const CHECK_LEN = 16;
@@ -30,7 +29,7 @@ export function drawRoundNumberCaption(m) {
   retreatCharCursor(m);
   retreatCharCursor(m);
 
-  const colour = mem8[COLOUR];
+  const colour = mem8[PEN_COLOUR];
   paintDigitDroppingLeadingZero(m, Math.floor(value / 10), 1, colour);
   advanceCharCursor(m);
   paintDigitDroppingLeadingZero(m, value % 10, regs.b, colour);

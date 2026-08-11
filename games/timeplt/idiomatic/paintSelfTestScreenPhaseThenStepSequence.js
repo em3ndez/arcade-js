@@ -10,12 +10,12 @@ import { u8, u16 } from "../../../core/int.js";
 import { fillCellRun } from "./fillCellRun.js";
 import { setSavedPenFromEra } from "./setSavedPenFromEra.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
+import { PEN_COLOUR } from "./names.js";
 
 const SHAPE_BYTE = 0x3213;
 const PARKED_POINTER = 0x56f1;
 const CONTROL_BLOCK = 0xa9f0;
 const ATTR_RUN = 0xa400;
-const BASE_COLOUR = 0xad0c;
 const ROW_STEP = -32;
 
 const toColour = (cell) => cell & 0xfbff; // clear bit 10: attribute plane -> colour plane
@@ -39,7 +39,7 @@ export function paintSelfTestScreenPhaseThenStepSequence(m) {
   for (let i = 0; i < 13; i++) mem8[cur++] = 0x14;
   for (let i = 0; i < 4; i++) mem8[cur++] = 0x0e;
 
-  const base = mem8[BASE_COLOUR];
+  const base = mem8[PEN_COLOUR];
 
   regs.hl = toColour(0xa7b1);
   regs.a = u8(0xa0 + base);

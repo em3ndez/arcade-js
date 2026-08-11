@@ -786,6 +786,74 @@ export const PLAYER_ONE_LIVES = 0xad10;
  */
 export const PLAYER_TWO_LIVES = 0xad20;
 
+/* ── The rest of the two per-player saved contexts (0xAD10-1F player one, 0xAD20-2F player two) ──
+ * Each is a sixteen-byte mirror of the live context at 0xAD00. loadActivePlayerContextAndPostRoundHud
+ * copies the ACTIVE_PLAYER-selected block into 0xAD00 byte for byte (CONTEXT_BYTES = 16) and
+ * loseLifeAndHandOver copies it back, so every cell below is its active sibling at the same low nibble.
+ * armRoundStartThenStepSequence seeds both blocks at a round arm. All [code]: the meanings come from the
+ * active siblings (several themselves [seen]); the saved copies were not independently observed. */
+
+/** Player one's copy of ROUND_NUMBER (0xAD01), the unwrapped round ordinal. Seeded 1 at a fresh round
+ * arm; the attract arm overloads it to attract-stage + 1. [code] */
+export const PLAYER_ONE_ROUND_NUMBER = 0xad11;
+
+/** Player one's copy of KILLS_REMAINING (0xAD02): craft still to destroy this round, seeded from
+ * KILL_QUOTA (0xA9CD). [code] */
+export const PLAYER_ONE_KILLS_REMAINING = 0xad12;
+
+/** Player one's copy of the bonus-life award one-shot latch (active 0xAD03, bit 0, set by
+ * awardBonusLifeAtScoreMark once the score mark is passed). Cleared at a round arm. [code] */
+export const PLAYER_ONE_BONUS_LIFE_LATCH = 0xad13;
+
+/** Player one's copy of ERA_INDEX (0xAD04): which era/round is in force -- the key setSavedPenFromEra and
+ * seatCaptionPen use for the caption pen. The attract arm overloads it as the demo-script selector. [code] */
+export const PLAYER_ONE_ERA_INDEX = 0xad14;
+
+/** Player one's copy of LIFE_TICKS_MID (0xAD06). armRoundStart's mem16 write clears this and
+ * PLAYER_ONE_LIFE_TICKS_HIGH (0xAD17) together as the mid/high of the play-time counter. [code] */
+export const PLAYER_ONE_LIFE_TICKS_MID = 0xad16;
+
+/** Player one's copy of the round start rung (active 0xAD0A) -- the difficulty rung the round opens on,
+ * later copied into ERA_RUNG. Seeded from START_RUNG_ROUNDS_1_5 (0xA9D3). [code] */
+export const PLAYER_ONE_START_RUNG = 0xad1a;
+
+/** Player one's copy of MOTHER_SHIP_ARMED (0xAD0D). Cleared at a round arm. [code] */
+export const PLAYER_ONE_MOTHER_SHIP_ARMED = 0xad1d;
+
+/** Player one's copy of the round-armed gate (active 0xAD0E, which startNextRound sets to 0xFF and the
+ * ROM tests as a boolean `and a; ret z`). Seeded 1 (nonzero = armed) at a round arm. [code] */
+export const PLAYER_ONE_ROUND_ARMED = 0xad1e;
+
+/** Player two's copy of ROUND_NUMBER -- the same field as PLAYER_ONE_ROUND_NUMBER, the other block. [code] */
+export const PLAYER_TWO_ROUND_NUMBER = 0xad21;
+
+/** Player two's copy of KILLS_REMAINING; the twin of PLAYER_ONE_KILLS_REMAINING, seeded from KILL_QUOTA. [code] */
+export const PLAYER_TWO_KILLS_REMAINING = 0xad22;
+
+/** Player two's copy of the bonus-life award latch; the twin of PLAYER_ONE_BONUS_LIFE_LATCH. [code] */
+export const PLAYER_TWO_BONUS_LIFE_LATCH = 0xad23;
+
+/** Player two's copy of ERA_INDEX; the twin of PLAYER_ONE_ERA_INDEX (the caption-pen era key). [code] */
+export const PLAYER_TWO_ERA_INDEX = 0xad24;
+
+/** Player two's copy of LIFE_TICKS_MID; the twin of PLAYER_ONE_LIFE_TICKS_MID (mem16 clears the mid/high
+ * pair 0xAD26/0xAD27). [code] */
+export const PLAYER_TWO_LIFE_TICKS_MID = 0xad26;
+
+/** Player two's copy of the round start rung; the twin of PLAYER_ONE_START_RUNG. [code] */
+export const PLAYER_TWO_START_RUNG = 0xad2a;
+
+/** Player two's copy of MOTHER_SHIP_ARMED; the twin of PLAYER_ONE_MOTHER_SHIP_ARMED. [code] */
+export const PLAYER_TWO_MOTHER_SHIP_ARMED = 0xad2d;
+
+/** Player two's copy of the round-armed gate; the twin of PLAYER_ONE_ROUND_ARMED. [code] */
+export const PLAYER_TWO_ROUND_ARMED = 0xad2e;
+
+/** The live caption/pen colour attribute (active context +0x0C; the saved per-player copies are at
+ * 0xAD1C/0xAD2C). The pen plotter stamps it into the colour plane and the caption drawers read it (some
+ * offset by +5/+10 and masked to the low nibble) as the colour to draw in. [code] */
+export const PEN_COLOUR = 0xad0c;
+
 /**
  * The sequence machine's shared one-shot delay: frames still to wait before its next step. [code]
  *
@@ -1083,6 +1151,21 @@ export const ENEMY_STANDOFF_AIM_CLEAR = 0xac79;
  * implying it IS the player's position, or that it LEADS the target, would over-claim.
  */
 export const ENEMY_STANDOFF_AIM_MAIN = 0xac7f;
+
+/** The enemy aim ANCHOR point's paired coordinate byte -- the Y of the pair whose X is
+ * ENEMY_AIM_POINT_TABLE (0xAC65). armRoundStart seats it to 0x78, and layOutEnemyAimPointsFromScrollAngle
+ * uses 0xAC64 as the object base it writes the six standoff pairs from. Axis (Y) per the §5 [seen] block
+ * map; the cell identity is [code]. (layOut's own ACROSS/DOWN vars are the transcriber's guess, not §5.) */
+export const ENEMY_AIM_ANCHOR_Y = 0xac64;
+
+/** The SET standoff aim point's Y pair byte (its X is ENEMY_STANDOFF_AIM_SET at 0xAC75; names.js already
+ * documents "pair 0xAC74 = Y"). Also the base of the sixteen-byte aim-coordinate record armRoundStart
+ * clears to 0x80 each round arm. [code] (axis per §5 [seen]). */
+export const ENEMY_STANDOFF_AIM_SET_Y = 0xac74;
+
+/** The last byte (base + 0x0F) of that sixteen-byte aim-coordinate record; used only as the inclusive
+ * terminator of armRoundStart's 0x80 clear loop `cell <= 0xAC83`. [code] */
+export const ENEMY_STANDOFF_AIM_BLOCK_END = 0xac83;
 
 /*
  * Era-rung spawn difficulty config: applyEraRungSettings scatters a ten-byte (era<<4 | rung) row into twelve cells

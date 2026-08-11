@@ -10,6 +10,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { armThePenRouteThenColdStartOnATamperedImage } from "./armThePenRouteThenColdStartOnATamperedImage.js";
+import { PEN_COLOUR, PLAYER_ONE_ERA_INDEX, PLAYER_TWO_ERA_INDEX } from "./names.js";
 
 const PHASE_ACCUMULATOR = 0xa9ab;
 const IMAGE_BLOCK = 0x178c;
@@ -18,13 +19,10 @@ const GENUINE_BIAS = 0x2c;
 
 const ACTIVE_PLAYER = 0xad32;
 const SAVED_PEN_ONE = 0xad1b;
-const SAVED_ERA_ONE = 0xad14;
 const SAVED_PEN_TWO = 0xad2b;
-const SAVED_ERA_TWO = 0xad24;
 
 const GLYPH_COLOUR_TABLE = 0x0f8d;
 const LIVE_PEN_GLYPH = 0xad0b;
-const LIVE_PEN_COLOUR = 0xad0c;
 
 export function seatCaptionPenFromEraFoldingTamperIntoPhase(m) {
   const { regs, mem8 } = m;
@@ -35,7 +33,7 @@ export function seatCaptionPenFromEraFoldingTamperIntoPhase(m) {
 
   const playerTwo = mem8[ACTIVE_PLAYER] !== 0;
   const savedPen = playerTwo ? SAVED_PEN_TWO : SAVED_PEN_ONE;
-  const era = playerTwo ? mem8[SAVED_ERA_TWO] : mem8[SAVED_ERA_ONE];
+  const era = playerTwo ? mem8[PLAYER_TWO_ERA_INDEX] : mem8[PLAYER_ONE_ERA_INDEX];
 
   regs.a = u8(era * 2);
   regs.hl = GLYPH_COLOUR_TABLE;
@@ -45,8 +43,8 @@ export function seatCaptionPenFromEraFoldingTamperIntoPhase(m) {
 
   const colour = mem8[u16(regs.hl + 1)];
   mem8[savedPen + 1] = colour;
-  const penColourHeld = colour === mem8[LIVE_PEN_COLOUR];
-  mem8[LIVE_PEN_COLOUR] = colour;
+  const penColourHeld = colour === mem8[PEN_COLOUR];
+  mem8[PEN_COLOUR] = colour;
 
   if (penColourHeld) advanceSequenceSubStep(m);
   armThePenRouteThenColdStartOnATamperedImage(m);

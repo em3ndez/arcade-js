@@ -4,11 +4,12 @@
 
 import { u8 } from "../../../core/int.js";
 import { loc_2251 } from "./loc_2251.js";
+import { PLAYER_ONE_ERA_INDEX } from "./names.js";
 
 export function seedDemoAutopilotScript(m) {
   const { regs, mem8 } = m;
 
-  const selector = mem8[0xad14];
+  const selector = mem8[PLAYER_ONE_ERA_INDEX];
   const script =
     selector === 0 || selector === 3 ? 0x218c
     : selector === 1 ? 0x2251

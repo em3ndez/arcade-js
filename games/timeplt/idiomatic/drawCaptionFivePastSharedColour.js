@@ -10,11 +10,11 @@
 import { drawTextRun } from "./drawTextRun.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
 import { u16 } from "../../../core/int.js";
+import { PEN_COLOUR } from "./names.js";
 
 const RECORDS = 0x0c50;
 const DESTINATION_BYTES = 2;
 const STORED_COLOUR_BYTES = 1;
-const COLOUR_CLOCK = 0xad0c;
 const COLOUR_PHASE = 5;
 const COLOUR_MASK = 0x0f;
 
@@ -26,6 +26,6 @@ export function drawCaptionFivePastSharedColour(m) {
 
   regs.de = mem16[record];
   regs.hl = u16(record + DESTINATION_BYTES + STORED_COLOUR_BYTES);
-  regs.c = (mem8[COLOUR_CLOCK] + COLOUR_PHASE) & COLOUR_MASK;
+  regs.c = (mem8[PEN_COLOUR] + COLOUR_PHASE) & COLOUR_MASK;
   drawTextRun(m);
 }
