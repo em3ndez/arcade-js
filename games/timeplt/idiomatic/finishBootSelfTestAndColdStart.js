@@ -8,9 +8,9 @@
 import { tileCharPlaneWithBoxLattice } from "./tileCharPlaneWithBoxLattice.js";
 import { loc_00d8 } from "./loc_00d8.js";
 import { petWatchdogThroughStartupDelayThenStartMachine } from "./petWatchdogThroughStartupDelayThenStartMachine.js";
+import { DEMO_SOUNDS_ENABLE } from "./names.js";
 
 const CONFIG_LOW3 = 0xa9c4;
-const CONFIG_BIT = 0xa9c6;
 const WATCHDOG = 0xc200;
 const LS259_LINE = 0xc302;
 const LS259_SOURCE = 0x0c3e;
@@ -32,7 +32,7 @@ export function finishBootSelfTestAndColdStart(m) {
   regs.rrca();
   regs.rrca();
   regs.and(0x01);
-  mem.write8(CONFIG_BIT, regs.a);
+  mem.write8(DEMO_SOUNDS_ENABLE, regs.a);
   mem.write8(WATCHDOG, regs.a, STORE);
 
   regs.a = mem.read8(LS259_SOURCE);

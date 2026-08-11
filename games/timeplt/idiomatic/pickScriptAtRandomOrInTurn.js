@@ -6,9 +6,8 @@
 
 import { u8 } from "../../../core/int.js";
 import { drawRandomByte } from "./drawRandomByte.js";
-import { SCRIPT_PICK_THRESHOLD } from "./names.js";
+import { SCRIPT_CYCLE_COUNTER, SCRIPT_PICK_THRESHOLD } from "./names.js";
 
-const CYCLE_COUNTER = 0xa9cf;
 
 const BAND_SIZE = 4;
 const FIRST_IN_BAND = 5;
@@ -23,8 +22,8 @@ export function pickScriptAtRandomOrInTurn(m) {
     return regs.a;
   }
 
-  const stepped = u8(mem8[CYCLE_COUNTER] + 1);
+  const stepped = u8(mem8[SCRIPT_CYCLE_COUNTER] + 1);
   regs.a = stepped < CYCLE_LENGTH ? stepped : 0;
-  mem8[CYCLE_COUNTER] = regs.a;
+  mem8[SCRIPT_CYCLE_COUNTER] = regs.a;
   return regs.a;
 }

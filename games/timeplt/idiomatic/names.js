@@ -89,6 +89,38 @@ export const COIN_ACCEPTED = 0xa981;
  */
 export const COINAGE_SETTINGS = 0xa9b1;
 
+// ── Coin/credit pipeline. Two symmetric slots: each debounces its IN0 coin line through a shift
+// register, accumulates +0x10 per coin until it crosses that slot's BCD coinage RATIO, then folds
+// credits into the shared packed-BCD CREDIT_COUNT; a per-slot ACCEPTED count drives the mechanical
+// coin counter (an LS259 line) through a pulse-width TIMER. IN0 bit 2 (service) awards one credit. [code]
+export const COIN_ACCEPTED_SLOT_2 = 0xa982; // slot-2 twin of COIN_ACCEPTED (0xa981)
+export const SERVICE_CREDIT_DEBOUNCE = 0xa983; // IN0 bit-2 debounce; a clean edge awards one credit (service-bit identity MAME-pending)
+export const COIN_PULSE_TIMER_SLOT_2 = 0xa985; // slot-2 twin of COIN_PULSE_TIMER (0xa984)
+export const CREDIT_COUNT = 0xa986; // packed-BCD on-screen credit total (saturates at 0x99)
+export const COIN_SLOT_1_DEBOUNCE = 0xa9c7; // slot-1 coin-line debounce shift register
+export const COIN_SLOT_1_ACCUMULATOR = 0xa9c8; // slot-1 coins-inserted accumulator (+0x10/coin vs COIN_SLOT_1_RATIO 0xa9c9)
+export const COIN_SLOT_2_DEBOUNCE = 0xa9ca; // slot-2 debounce (the idiomatic layer mislabels it "PHASE")
+export const COIN_SLOT_2_ACCUMULATOR = 0xa9cb; // slot-2 accumulator (+0x10/coin vs COIN_SLOT_2_RATIO 0xa9cc)
+
+// ── DSW1 gameplay config, unpacked bit-by-bit at boot (the coinage half is COINAGE_SETTINGS above). [code]
+export const STARTING_LIVES = 0xa9c1; // lives per game (3/4/5/0xff), loaded into PLAYER_ONE/TWO_LIVES at start
+export const COCKTAIL_MODE = 0xa9c2; // cabinet type; gates screen flip (exact polarity MAME-pending)
+export const BONUS_LIFE_SETTING = 0xa9c3; // selects the bonus-life mark list + the attract bonus captions
+export const DEMO_SOUNDS_ENABLE = 0xa9c6; // attract-sound gate: a queued request is dropped unless set or a game is active
+
+// ── Per-frame inverted port mirrors, latched each vblank alongside IN0_MIRROR/COINAGE_SETTINGS. [code]
+export const DIP1_MIRROR = 0xa9ad; // inverted mirror of DSW 0xC200 (the gameplay dip bank)
+export const IN1_MIRROR = 0xa9af; // inverted mirror of IN1 0xC320 (main / player-1 controls)
+export const IN2_MIRROR = 0xa9b0; // inverted mirror of IN2 0xC340 (cocktail / player-2 controls)
+
+// ── Cursors and counters that sit in this address range but belong to other subsystems. [code]
+// (0xA991/0xA993 -- a general 16-bit scratch-pointer pair used across object spawn, collision, and
+//  high-score filing -- are DEFERRED: too general for a single subsystem name; naming needs its own pass.)
+export const COMMAND_WRITE_CURSOR = 0xa9b2; // SOUND: write index into the 64-cell command ring (pairs 0xa9b3)
+export const BCD_FRAME_COUNTER = 0xa9ce; // free-running packed-decimal frame counter (inc+daa each vblank)
+export const SCRIPT_CYCLE_COUNTER = 0xa9cf; // 0..4 round-robin index for in-turn demo-script selection
+export const ATTRACT_STAGE_COUNTER = 0xa9d0; // attract scene counter cycling 1->2->3->1
+
 /**
  * Set while the cabinet is on free play, so a coin never has to buy a credit. [seen]
  *

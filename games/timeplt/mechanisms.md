@@ -278,6 +278,24 @@ accumulator and no ratio. `[code]`
 Free play is not a price. Either slot set to it raises `FREE_PLAY`, and the accept path then skips
 the credit arithmetic entirely rather than charging zero. `[seen]`
 
+### The gameplay-config bank and the per-frame port mirrors
+
+The DSW1 bank at 0xC200 is read once at boot and unpacked bit by bit into its own cells: `STARTING_LIVES`
+(3/4/5/∞), `COCKTAIL_MODE`, `BONUS_LIFE_SETTING`, the difficulty rung (named elsewhere), and
+`DEMO_SOUNDS_ENABLE` — the coinage half of the dips lives in the sibling `COINAGE_SETTINGS`.
+`STARTING_LIVES` is what a game start copies into `PLAYER_ONE_LIVES` / `PLAYER_TWO_LIVES`;
+`BONUS_LIFE_SETTING` selects both the bonus-life score-mark list and the attract bonus captions;
+`DEMO_SOUNDS_ENABLE` is the gate a queued sound request must clear (that, or a live game) to reach the
+audio queue. `[code]` (`COCKTAIL_MODE`'s exact polarity is MAME-pending.)
+
+Alongside those, every vblank latches an INVERTED copy of each hardware input port into a mirror the game
+reads instead of the live port: `DIP1_MIRROR` (the 0xC200 dip bank), `IN1_MIRROR` (the main / P1 controls)
+and `IN2_MIRROR` (the cocktail / P2 controls), beside the already-named IN0 / coinage mirrors;
+`readPlayerControls` returns IN1 or IN2 by whether the screen is flipped. The coin cells this batch also
+names — `COIN_ACCEPTED_SLOT_2` / `COIN_PULSE_TIMER_SLOT_2`, the per-slot `COIN_SLOT_1/2_DEBOUNCE` and
+`_ACCUMULATOR`, the shared `CREDIT_COUNT`, and `SERVICE_CREDIT_DEBOUNCE` — are the cells the two-slot
+pipeline above runs on. `[code]`
+
 ### Free play is a different start button, not a discount
 
 There are two start paths and they are not the same routine. The coin path debits the credit

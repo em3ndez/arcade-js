@@ -10,11 +10,9 @@ import { hideCaptionSprites } from "./hideCaptionSprites.js";
 import { setUpTwoPlayerStartObjectOnce } from "./setUpTwoPlayerStartObjectOnce.js";
 import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { seatSequencePhase3AndResetSubStep } from "./seatSequencePhase3AndResetSubStep.js";
-import { PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE } from "./names.js";
+import { CREDIT_COUNT, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE, STARTING_LIVES } from "./names.js";
 
 const SECOND_PLAYER_FLAG = 0xad31;
-const STARTING_LIVES = 0xa9c1;
-const PANEL_COUNT = 0xa986;
 const ALL_BITS = 255;
 const TWO_CREDITS = 2;
 
@@ -44,7 +42,7 @@ export function startTwoPlayerGame(m) {
 
   setUpTwoPlayerStartObjectOnce(m);
 
-  mem8[PANEL_COUNT] = stepPackedDecimalDownByTwo(mem8[PANEL_COUNT]);
+  mem8[CREDIT_COUNT] = stepPackedDecimalDownByTwo(mem8[CREDIT_COUNT]);
 
   paintCreditCountPanel(m);
   seatSequencePhase3AndResetSubStep(m);

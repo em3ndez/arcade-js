@@ -10,10 +10,10 @@ import { sampleCellGlyphAndColour } from "./sampleCellGlyphAndColour.js";
 import { startOnePlayerGame } from "./startOnePlayerGame.js";
 import { postCommand } from "./postCommand.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
+import { CREDIT_COUNT } from "./names.js";
 
 const IN0_MIRROR = 0xa9ae;
 const ONE_PLAYER_START = 0x08;
-const CREDIT_COUNT = 0xa986;
 const SAMPLE_CELL = 0xa61c;
 const SAMPLE_RECORD = 0xabfe;
 const COMMAND = 1;

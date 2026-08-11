@@ -4,11 +4,10 @@
  * add, saturated at 99) and its two-digit field repainted; then the coin-counter pulse runs either
  * way. LIVE-OUT: memory, plus the latched counter line. */
 
-import { FREE_PLAY } from "./names.js";
+import { CREDIT_COUNT, FREE_PLAY } from "./names.js";
 import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "./pulseSlot1CoinCounter.js";
 
-const CREDIT_COUNT = 0xa986;
 const CREDIT_CAP = 0x99;
 const DIGIT_MASK = 0x0f;
 

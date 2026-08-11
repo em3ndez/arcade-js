@@ -10,7 +10,7 @@ import { drainBothDeferredCellLists } from "./drainBothDeferredCellLists.js";
 import { serviceCoinInputs } from "./serviceCoinInputs.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { sendOneQueuedSoundThenUnwindTheFrameInterrupt } from "./sendOneQueuedSoundThenUnwindTheFrameInterrupt.js";
-import { ATTACKER_SPAWN_COOLDOWN, BANK_LAUNCH_COOLDOWN, WAVE_CLAIM_TIMER } from "./names.js";
+import { ATTACKER_SPAWN_COOLDOWN, BANK_LAUNCH_COOLDOWN, BCD_FRAME_COUNTER, COCKTAIL_MODE, DIP1_MIRROR, IN1_MIRROR, IN2_MIRROR, WAVE_CLAIM_TIMER } from "./names.js";
 
 const NMI_ENABLE = 0xc300;
 const WATCHDOG = 0xc200;
@@ -23,16 +23,11 @@ const DIP0 = 0xc360;
 
 const SERVICE_FLAG = 0xa987;
 const PRIMARY_GATE = 0xad32;
-const SECONDARY_GATE = 0xa9c2;
 
-const DIP1_MIRROR = 0xa9ad;
 const IN0_MIRROR = 0xa9ae;
-const IN1_MIRROR = 0xa9af;
-const IN2_MIRROR = 0xa9b0;
 const DIP0_MIRROR = 0xa9b1;
 
 const FRAME_COUNTER = 0xa980;
-const DECIMAL_COUNTER = 0xa9ce;
 const TIMERS = [BANK_LAUNCH_COOLDOWN, WAVE_CLAIM_TIMER, ATTACKER_SPAWN_COOLDOWN];
 
 const PHASE_INDEX = 0xa9ab;
@@ -60,7 +55,7 @@ export function serviceVerticalBlankInterrupt(m) {
   mem8[NMI_ENABLE] = 0;
   mem8[WATCHDOG] = 0;
   // Cleared only when the primary gate is armed while the secondary one reads clear.
-  mem8[SERVICE_FLAG] = mem8[PRIMARY_GATE] !== 0 && mem8[SECONDARY_GATE] === 0 ? 0 : 1;
+  mem8[SERVICE_FLAG] = mem8[PRIMARY_GATE] !== 0 && mem8[COCKTAIL_MODE] === 0 ? 0 : 1;
   mem8[SERVICE_LATCH] = mem8[SERVICE_FLAG];
 
   mem8[DIP1_MIRROR] = mem8[DIP1] ^ 0xff;
@@ -71,9 +66,9 @@ export function serviceVerticalBlankInterrupt(m) {
 
   mem8[FRAME_COUNTER] = mem8[FRAME_COUNTER] + 1;
 
-  regs.a = regs.inc8(mem8[DECIMAL_COUNTER]);
+  regs.a = regs.inc8(mem8[BCD_FRAME_COUNTER]);
   regs.daa();
-  mem8[DECIMAL_COUNTER] = regs.a;
+  mem8[BCD_FRAME_COUNTER] = regs.a;
 
   for (const timer of TIMERS) if (mem8[timer] !== 0) mem8[timer] = mem8[timer] - 1;
 

@@ -4,6 +4,7 @@
  * sequence counter twice on the high branch and once on the low. LIVE-OUT: memory. */
 
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
+import { BONUS_LIFE_SETTING, CREDIT_COUNT } from "./names.js";
 
 export function postAttractInfoCaptions(m) {
   const { mem8, regs } = m;
@@ -17,13 +18,13 @@ export function postAttractInfoCaptions(m) {
   post(0x14);
   post(0x15);
 
-  const flip = mem8[0xa9c3] === 0 ? 0x0f : 0x11;
+  const flip = mem8[BONUS_LIFE_SETTING] === 0 ? 0x0f : 0x11;
   post(flip);
   post(flip + 1);
   post(0x16);
   post(0x00);
 
-  if (mem8[0xa986] >= 2) {
+  if (mem8[CREDIT_COUNT] >= 2) {
     post(0x19);
     call(0x0f1a);
     return advanceSequenceSubStep(m);

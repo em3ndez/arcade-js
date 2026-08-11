@@ -6,11 +6,9 @@
 
 import { requestCoinSound } from "./requestCoinSound.js";
 import { awardCoinCreditThenPulseCoinCounter } from "./awardCoinCreditThenPulseCoinCounter.js";
+import { COIN_ACCEPTED_SLOT_2, COIN_SLOT_2_ACCUMULATOR, COIN_SLOT_2_DEBOUNCE } from "./names.js";
 
 const SELECTOR = 0xa9ae;
-const PHASE = 0xa9ca;
-const TICK = 0xa982;
-const LOW = 0xa9cb;
 const HIGH = 0xa9cc;
 
 const STEP = 0x10;
@@ -23,17 +21,17 @@ export function meterCoinageTowardCreditOnEdge(m) {
   regs.a = mem8[SELECTOR];
   regs.rrca();
   regs.rrca();
-  mem8[PHASE] = regs.rl(mem8[PHASE]); // selector bit shifted in as the low bit
-  if ((mem8[PHASE] & PHASE_MASK) !== READY) return;
+  mem8[COIN_SLOT_2_DEBOUNCE] = regs.rl(mem8[COIN_SLOT_2_DEBOUNCE]); // selector bit shifted in as the low bit
+  if ((mem8[COIN_SLOT_2_DEBOUNCE] & PHASE_MASK) !== READY) return;
 
   requestCoinSound(m);
-  mem8[TICK] = (mem8[TICK] + 1) & 0xff;
+  mem8[COIN_ACCEPTED_SLOT_2] = (mem8[COIN_ACCEPTED_SLOT_2] + 1) & 0xff;
 
-  const stepped = (mem8[LOW] + STEP) & 0xff;
-  mem8[LOW] = stepped;
+  const stepped = (mem8[COIN_SLOT_2_ACCUMULATOR] + STEP) & 0xff;
+  mem8[COIN_SLOT_2_ACCUMULATOR] = stepped;
   if (mem8[HIGH] >= stepped) return; // stop once the high byte has caught up
 
   regs.c = mem8[HIGH];
-  mem8[LOW] = (stepped - ((mem8[HIGH] & 0xf0) + STEP)) & 0xff;
+  mem8[COIN_SLOT_2_ACCUMULATOR] = (stepped - ((mem8[HIGH] & 0xf0) + STEP)) & 0xff;
   return awardCoinCreditThenPulseCoinCounter(m);
 }

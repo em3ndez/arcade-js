@@ -7,11 +7,10 @@
  * stocks the second player, where the one-player arm clears both of those. Either arm then hands
  * over to the phase entry that starts the round engine. LIVE-OUT: memory. */
 
-import { IN0_MIRROR, PLAY_ACTIVE, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES } from "./names.js";
+import { IN0_MIRROR, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE, STARTING_LIVES } from "./names.js";
 import { seatSequencePhase3AndResetSubStep } from "./seatSequencePhase3AndResetSubStep.js";
 
 const TWO_PLAYER_GAME = 0xad31;
-const LIVES_PER_GAME = 0xa9c1;
 
 const START_TWO_PLAYER = 0x10;
 const START_ONE_PLAYER = 0x08;
@@ -23,7 +22,7 @@ export function startGameOnFreePlay(m) {
   if ((panel & (START_TWO_PLAYER | START_ONE_PLAYER)) === 0) return;
 
   const twoPlayer = (panel & START_TWO_PLAYER) !== 0;
-  const allowance = mem8[LIVES_PER_GAME];
+  const allowance = mem8[STARTING_LIVES];
   mem8[PLAY_ACTIVE] = SET;
   mem8[TWO_PLAYER_GAME] = twoPlayer ? SET : 0;
   mem8[PLAYER_ONE_LIVES] = allowance;

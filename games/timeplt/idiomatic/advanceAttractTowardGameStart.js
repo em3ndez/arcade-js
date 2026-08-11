@@ -3,13 +3,14 @@
  * sub-step/phase on a pending flag, or on free-play + two input bits hide the sprites and start a game. LIVE-OUT: memory + stack. */
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startGameOnFreePlay } from "./startGameOnFreePlay.js";
+import { CREDIT_COUNT } from "./names.js";
 
 export function advanceAttractTowardGameStart(m) {
   const { mem8 } = m;
 
   if (mem8[0xad30] !== 0) return;
 
-  if (mem8[0xa986] !== 0) {
+  if (mem8[CREDIT_COUNT] !== 0) {
     mem8[0xa9ac] = 0;
     mem8[0xa9ab] = mem8[0x1736];
     return;

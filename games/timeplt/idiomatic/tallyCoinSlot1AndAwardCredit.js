@@ -10,20 +10,18 @@
 import { requestCoinSound } from "./requestCoinSound.js";
 import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "./pulseSlot1CoinCounter.js";
+import { COIN_SLOT_1_ACCUMULATOR, COIN_SLOT_1_DEBOUNCE, CREDIT_COUNT } from "./names.js";
 
 const COIN_SAMPLE = 0xa9ae;
-const DEBOUNCE = 0xa9c7;
 const COIN_TALLY = 0xa981;
-const COINS_INSERTED = 0xa9c8;
 const COINAGE = 0xa9c9;
 const NO_CREDIT = 0xa9c0;
-const CREDIT_COUNT = 0xa986;
 
 export function tallyCoinSlot1AndAwardCredit(m) {
   const { regs, mem8 } = m;
 
   regs.a = mem8[COIN_SAMPLE];
-  regs.hl = DEBOUNCE;
+  regs.hl = COIN_SLOT_1_DEBOUNCE;
   regs.rrca();
   mem8[regs.hl] = regs.rl(mem8[regs.hl]);
   regs.a = mem8[regs.hl];
@@ -34,7 +32,7 @@ export function tallyCoinSlot1AndAwardCredit(m) {
   requestCoinSound(m);
   mem8[COIN_TALLY] = mem8[COIN_TALLY] + 1;
 
-  regs.hl = COINS_INSERTED;
+  regs.hl = COIN_SLOT_1_ACCUMULATOR;
   regs.a = mem8[regs.hl];
   regs.add(0x10);
   mem8[regs.hl] = regs.a;
@@ -48,7 +46,7 @@ export function tallyCoinSlot1AndAwardCredit(m) {
   regs.c = regs.a; // the whole coinage byte
   regs.and(0xf0);
   regs.add(0x10);
-  regs.hl = COINS_INSERTED;
+  regs.hl = COIN_SLOT_1_ACCUMULATOR;
   regs.neg();
   regs.add(mem8[regs.hl]);
   mem8[regs.hl] = regs.a; // carry the overshoot forward

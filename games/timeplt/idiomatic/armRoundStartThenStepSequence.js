@@ -12,12 +12,11 @@ import { loadDifficultyRecord } from "./loadDifficultyRecord.js";
 import { seedRandomRegister } from "./seedRandomRegister.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8 } from "../../../core/int.js";
-import { ENEMY_AIM_POINT_TABLE, PLAYER1_SCORE_LO, PLAYER1_SCORE_MID, PLAYER2_SCORE_LO, PLAYER2_SCORE_MID, PLAYER_SHOT_ARRAY, PLAY_ACTIVE } from "./names.js";
+import { ATTRACT_STAGE_COUNTER, BCD_FRAME_COUNTER, ENEMY_AIM_POINT_TABLE, PLAYER1_SCORE_LO, PLAYER1_SCORE_MID, PLAYER2_SCORE_LO, PLAYER2_SCORE_MID, PLAYER_SHOT_ARRAY, PLAY_ACTIVE, SCRIPT_CYCLE_COUNTER } from "./names.js";
 
 const SEED_A9CD = 0xa9cd;
 const START_RUNG_SOURCE = 0xa9d3;
 const SOUND_LATCH = 0xc308;
-const STAGE_COUNTER = 0xa9d0;
 const SUB_CHECKSUM_CELL = 0xa9ab;
 const SEQUENCE_MODE = 0xa9eb;
 
@@ -64,15 +63,15 @@ export function armRoundStartThenStepSequence(m) {
     return advanceSequenceSubStep(m);
   }
 
-  let stage = u8(mem8[STAGE_COUNTER] + 1);
+  let stage = u8(mem8[ATTRACT_STAGE_COUNTER] + 1);
   if (stage >= 0x04) stage = 0x01;
-  mem8[STAGE_COUNTER] = stage;
+  mem8[ATTRACT_STAGE_COUNTER] = stage;
   mem8[0xad14] = stage;
   mem8[0xad11] = u8(stage + 1);
 
   mem8[0xa980] = 0x00;
-  mem8[0xa9ce] = 0x00;
-  mem8[0xa9cf] = 0x00;
+  mem8[BCD_FRAME_COUNTER] = 0x00;
+  mem8[SCRIPT_CYCLE_COUNTER] = 0x00;
   seedRandomRegister(m);
 
   for (let cell = PLAYER_SHOT_ARRAY; cell <= 0xaadf; cell++) mem8[cell] = 0x00;

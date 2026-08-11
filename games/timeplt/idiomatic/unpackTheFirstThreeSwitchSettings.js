@@ -6,18 +6,18 @@
 
 import { u8 } from "../../../core/int.js";
 import { finishBootSelfTestAndColdStart } from "./finishBootSelfTestAndColdStart.js";
+import { BONUS_LIFE_SETTING, COCKTAIL_MODE, STARTING_LIVES } from "./names.js";
 
-const WHOLE_BYTE_CELL = 0xa9c1;
 const SINGLE_BIT_CELLS = [
-  { cell: 0xa9c2, bit: 2 },
-  { cell: 0xa9c3, bit: 3 },
+  { cell: COCKTAIL_MODE, bit: 2 },
+  { cell: BONUS_LIFE_SETTING, bit: 3 },
 ];
 const LAST_BIT_SPENT = SINGLE_BIT_CELLS[SINGLE_BIT_CELLS.length - 1].bit;
 const BITS_IN_A_BYTE = 8;
 
 export function unpackTheFirstThreeSwitchSettings(m, whole = m.regs.a, packed = m.regs.c) {
   const { mem8, regs } = m;
-  mem8[WHOLE_BYTE_CELL] = whole;
+  mem8[STARTING_LIVES] = whole;
   for (const { cell, bit } of SINGLE_BIT_CELLS) mem8[cell] = (packed >> bit) & 1;
   const unspent = u8((packed >> LAST_BIT_SPENT) | (packed << (BITS_IN_A_BYTE - LAST_BIT_SPENT)));
   regs.a = unspent;

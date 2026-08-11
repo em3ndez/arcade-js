@@ -2,11 +2,9 @@
 /** startOnePlayerGame — stock the machine for a game with only the FIRST player's context filled in.
  * The caption sprites are parked and PLAY_ACTIVE is raised to all bits. PLAYER_TWO_LIVES and the
  * byte beside PLAY_ACTIVE are both cleared; PLAYER_ONE_LIVES is loaded from the settings cell that
- * carries the starting count. One is then taken off the packed-decimal count the panel field
- * shows, that field is repainted from it, a fixed set of tilemap cells is copied into its keeps,
- * and the sequence machine is sent to its last phase. Nothing read here is written first and nothing
- * written is read back, so the order of the stores carries no meaning. What reads the byte beside
- * PLAY_ACTIVE is not established here.
+ * carries the starting count. One is then taken off the packed-decimal credit count, the panel
+ * repainted, tilemap cells copied into its keeps, and the sequence machine sent to its last phase.
+ * The store order carries no meaning; what reads the byte beside PLAY_ACTIVE is not established here.
  * LIVE-OUT: memory only. */
 
 import { u8 } from "../../../core/int.js";
@@ -14,11 +12,9 @@ import { hideCaptionSprites } from "./hideCaptionSprites.js";
 import { seatSequencePhase3AndResetSubStep } from "./seatSequencePhase3AndResetSubStep.js";
 import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { copyThreeTilemapCellsFromBothPlanes } from "./copyThreeTilemapCellsFromBothPlanes.js";
-import { PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE } from "./names.js";
+import { CREDIT_COUNT, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE, STARTING_LIVES } from "./names.js";
 
 const SECOND_PLAYER_FLAG = 0xad31;
-const STARTING_LIVES = 0xa9c1;
-const PANEL_COUNT = 0xa986;
 const ALL_BITS = 255;
 
 const LOW_DIGIT = 0x0f;
@@ -45,7 +41,7 @@ export function startOnePlayerGame(m) {
   mem8[PLAYER_TWO_LIVES] = 0;
   mem8[PLAY_ACTIVE] = ALL_BITS;
   mem8[PLAYER_ONE_LIVES] = mem8[STARTING_LIVES];
-  mem8[PANEL_COUNT] = stepPackedDecimalDown(mem8[PANEL_COUNT]);
+  mem8[CREDIT_COUNT] = stepPackedDecimalDown(mem8[CREDIT_COUNT]);
 
   paintCreditCountPanel(m);
   copyThreeTilemapCellsFromBothPlanes(m);
