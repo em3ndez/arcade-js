@@ -1,46 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_562a — memory-equivalent to the frozen oracle at ROM 0x562A.
- *
- * WHAT IT IS, AND WHY THE SIGNATURE HAS A PARAMETER. 0x562A is not a callable routine: it is the
- * CONTINUATION of three entries (0x5628 falls into it, 0x560C and 0x5617 tail-jump into it), each
- * of which has already done `push hl` / `push af`. Read on its own it is unbalanced — it pops two
- * pairs it never pushed. The `pop af` recovers the COMMAND BYTE its entry spilled across the
- * `rst 0x08` that clobbers A, so under the no-stack contract that spill is not stack behaviour at
- * all; it is a register save, and the rewrite carries it in a JS local reached through a
- * parameter. `pop hl` restores the caller's address register and is dead. That is the whole of
- * the difference between the two arms, and it is why the candidate side of every comparison here
- * reads the byte off the captured stack (`spilledCommand`) before calling the rewrite.
- *
- * THE DISCARDED FETCH. The oracle reaches its store address through `rst 0x08`, which adds A to
- * HL *and* loads the byte there — and that byte is immediately overwritten by the `pop af` on the
- * next instruction. Only the address arithmetic survives, so the rewrite computes the address and
- * does not call the restart. That is memory-equivalent because a work-RAM read has no side
- * effect, and the EQUAL arm below is what checks it rather than the argument.
- *
- * GATE: strict unit-capture at the real dispatch, plus exhaustive crafted sweeps over the routine's
- *   whole input space. What it exercises, holes stated:
- *
- *   1. EQUAL at the real dispatch — every byte of the state dump agrees except inside the
- *      two-byte scratch window named in 2.
- *   2. THE DEAD SCRATCH IS THE ONE EXCLUSION, and it is PINNED: the walk asserts no divergence
- *      lies outside [SP-2, SP). The window is an upper bound, not a prediction.
- *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to a fixed shape. The oracle pops
- *      six bytes it never pushed (two pairs plus its return address), so SP is expected to differ
- *      by exactly that, and the test says so rather than letting any SP delta through.
- *   4. EXHAUSTIVE over the queue length, 0..255. This is the routine's whole state space and it
- *      is the only arm that reaches the byte wrap of the count and the walk of the write address
- *      across the entire block. The real dispatch presents a length of 0.
- *   5. EXHAUSTIVE over the command byte.
- *   6. NON-VACUOUS — the arm reads back what the oracle actually did: the count steps by one and
- *      the code lands in the cell the NEW count selects, one past the previous tail.
- *   7. TEETH — five twins at five distinct behaviours, each caught at a real cell and never on a
- *      scratch ghost.
- *
- * HOLE: one dispatch state. Beyond the count and the command byte, the machine is fixed at the
- * captured entry; nothing here varies which entry spilled the command, because all three spill it
- * identically.
- *
+ * appendSoundCommandToQueue — memory-equivalent to the frozen oracle at ROM 0x562A.
+ * WHAT IT IS, AND WHY THE SIGNATURE HAS A PARAMETER. 0x562A is not a callable routine: it is the CONTINUATION
+ * of three entries (0x5628 falls into it, 0x560C and 0x5617 tail-jump into it), each of which has already
+ * done `push hl` / `push af`. Read on its own it is unbalanced — it pops two pairs it never pushed. The `pop
+ * af` recovers the COMMAND BYTE its entry spilled across the `rst 0x08` that clobbers A, so under the
+ * no-stack contract that spill is not stack behaviour at all; it is a register save, and the rewrite carries
+ * it in a JS local reached through a parameter. `pop hl` restores the caller's address register and is dead.
+ * THE DISCARDED FETCH. The oracle reaches its store address through `rst 0x08`, which adds A to HL *and*
+ * loads the byte there — and that byte is immediately overwritten by the `pop af` on the next instruction.
+ * Only the address arithmetic survives, so the rewrite computes the address and does not call the restart.
+ * That is memory-equivalent because a work-RAM read has no side effect.
+ * GATE: strict unit-capture at the real dispatch, plus exhaustive crafted sweeps over the routine's whole
+ * input space; what it exercises, holes stated. 1. EQUAL at the real dispatch — every byte of the state dump
+ * agrees except inside the two-byte scratch window named in 2. 2. THE DEAD SCRATCH IS THE ONE EXCLUSION, and
+ * it is PINNED: the walk asserts no divergence lies outside [SP-2, SP). The window is an upper bound, not a
+ * prediction. 3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to a fixed shape. The oracle pops
+ * six bytes it never pushed (two pairs plus its return address), so SP is expected to differ by exactly that.
+ * 4. EXHAUSTIVE over the queue length, 0..255 — the routine's whole state space, the only arm reaching the
+ * byte wrap of the count and the walk of the write address across the entire block. The real dispatch
+ * presents a length of 0. 5. EXHAUSTIVE over the command byte. 6. NON-VACUOUS — the arm reads back what the
+ * oracle actually did: the count steps by one and the code lands in the cell the NEW count selects, one past
+ * the previous tail. 7. TEETH — five twins at five distinct behaviours, each caught at a real cell and never
+ * on a scratch ghost.
+ * HOLE: one dispatch state. Beyond the count and the command byte, the machine is fixed at the captured
+ * entry; nothing here varies which entry spilled the command, because all three spill it identically.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-562a.test.js
  */
 
@@ -58,7 +42,7 @@ import {
   spilledCommand,
   hex4,
 } from "./_soundQueue.js";
-import { loc_562a } from "../loc_562a.js";
+import { appendSoundCommandToQueue } from "../appendSoundCommandToQueue.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x562a;
@@ -69,7 +53,7 @@ const skip = romsPresent() ? false : "ROM images are absent from this checkout";
 const oracle = oracleAt(TARGET);
 
 /** The candidate under the oracle's own calling convention: the byte the entry spilled. */
-const candidate = (m) => loc_562a(m, spilledCommand(m));
+const candidate = (m) => appendSoundCommandToQueue(m, spilledCommand(m));
 
 function entryState() {
   const e = captureEntry(TARGET);
@@ -100,7 +84,7 @@ function sweepCaught(cand) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_562a == oracle on RAM", { skip }, () => {
+test("EQUAL at the real dispatch: appendSoundCommandToQueue == oracle on RAM", { skip }, () => {
   const entry = entryState();
   const a = entry.clone();
   const b = entry.clone();

@@ -56,8 +56,8 @@ import {
   show,
 } from "./_soundQueue.js";
 import { requestCurrentEraSound } from "../requestCurrentEraSound.js";
-import { loc_560c } from "../loc_560c.js";
-import { loc_562a } from "../loc_562a.js";
+import { enqueueSoundIfGameInProgress } from "../enqueueSoundIfGameInProgress.js";
+import { appendSoundCommandToQueue } from "../appendSoundCommandToQueue.js";
 import { ERA_INDEX, PLAY_ACTIVE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8 } from "../../../../core/int.js";
@@ -194,27 +194,27 @@ function brokenNoOp() {}
 
 /** BUG: asks for one fixed sound, ignoring the era — what the sibling entries legitimately do. */
 function brokenFixedCode(m) {
-  loc_560c(m, FIRST_ERA_CODE);
+  enqueueSoundIfGameInProgress(m, FIRST_ERA_CODE);
 }
 
 /** BUG: hands the era index over raw, dropping the offset that places the run. */
 function brokenNoOffset(m) {
-  loc_560c(m, m.mem8[ERA_INDEX]);
+  enqueueSoundIfGameInProgress(m, m.mem8[ERA_INDEX]);
 }
 
 /** BUG: reads the cell beside the era index, so the sound stops tracking the era. */
 function brokenNeighbouringCell(m) {
-  loc_560c(m, u8(m.mem8[ERA_INDEX + 1] + FIRST_ERA_CODE));
+  enqueueSoundIfGameInProgress(m, u8(m.mem8[ERA_INDEX + 1] + FIRST_ERA_CODE));
 }
 
 /** Lets the sum widen past a byte instead of wrapping. See the arm below: NOT a catchable bug. */
 function widenedSum(m) {
-  loc_560c(m, m.mem8[ERA_INDEX] + FIRST_ERA_CODE);
+  enqueueSoundIfGameInProgress(m, m.mem8[ERA_INDEX] + FIRST_ERA_CODE);
 }
 
 /** BUG: asks unconditionally, so the era sound plays with no game in progress. */
 function brokenUngated(m) {
-  loc_562a(m, u8(m.mem8[ERA_INDEX] + FIRST_ERA_CODE));
+  appendSoundCommandToQueue(m, u8(m.mem8[ERA_INDEX] + FIRST_ERA_CODE));
 }
 
 const TWINS = [

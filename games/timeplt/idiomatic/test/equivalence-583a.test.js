@@ -9,21 +9,17 @@
  * permission it asks under, and this gate is built to see both: the permission is the play-active flag alone,
  * and the code is fetched at run time rather than carried as an immediate.
  *
- * ★ NOT REACHED BY THE SHARED TAPE. This entry is dispatched through a path the coin -> start
- *   tape does not drive, so there is no real capture OF IT and the arms below run from a real
- *   machine state captured at its tail at ROM 0x560C instead — a genuine in-play state with a
- *   surgical entry, not a fabrication. The header says so rather than letting "EQUAL at the real
- *   dispatch" imply a dispatch that never happened.
+ * ★ NOT REACHED BY THE SHARED TAPE. This entry is dispatched through a path the coin -> start tape does not
+ *   drive, so there is no real capture OF IT and the arms below run from a real machine state captured at its
+ *   tail at ROM 0x560C instead — a genuine in-play state with a surgical entry, not a fabrication. The
+ *   header says so rather than letting "EQUAL at the real dispatch" imply a dispatch that never happened.
  *
- * ★ THE TWIN THAT A GENUINE IMAGE CANNOT DISCRIMINATE. A rewrite that hard-codes the sound code
- *   instead of reading it is byte-for-byte identical to the real one on an unmodified image —
- *   the check that would "prove" the read is live cannot fail. So one arm POKES the source byte
- *   and re-runs both sides: the routine must follow the poke and the baked-constant twin must
- *   not. That twin is asserted to be INVISIBLE without the poke and caught with it, so its
- *   agreement on a genuine image is never read as reassurance.
- *
+ * ★ THE TWIN THAT A GENUINE IMAGE CANNOT DISCRIMINATE. A rewrite that hard-codes the sound code instead of
+ *   reading it is byte-for-byte identical to the real one on an unmodified image — the check that would
+ *   "prove" the read is live cannot fail. So one arm POKES the source byte and re-runs both sides: the
+ *   routine must follow the poke and the baked-constant twin must not. That twin is asserted to be INVISIBLE
+ *   without the poke and caught with it, so its agreement on a genuine image is never read as reassurance.
  * GATE: crafted entry, plus exhaustive crafted sweeps. What it exercises, holes stated:
- *
  *   1. CRAFTED ENTRY: from a real capture taken at the tail — every byte of the state dump agrees except inside
  *      the scratch window named in 2.
  *   2. THE DEAD SCRATCH IS THE ONE EXCLUSION, PINNED to [SP-6, SP): the body's two pushed pairs
@@ -35,10 +31,8 @@
  *      of the drop branch; no tape state reaches it.
  *   7. EXHAUSTIVE over the queue length, 0..255.
  *   8. TEETH — four twins, with the baked-constant one's blindness pinned.
- *
  * HOLE: WHAT the sound is. Nothing on this CPU can say; the code is a byte handed to a second
  * processor. This gate fixes which byte and under what permission, and claims nothing more.
- *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-583a.test.js
  */
 
@@ -58,8 +52,8 @@ import {
   withPokedImage,
 } from "./_soundQueue.js";
 import { loc_583a } from "../loc_583a.js";
-import { loc_560c } from "../loc_560c.js";
-import { loc_562a } from "../loc_562a.js";
+import { enqueueSoundIfGameInProgress } from "../enqueueSoundIfGameInProgress.js";
+import { appendSoundCommandToQueue } from "../appendSoundCommandToQueue.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -196,18 +190,18 @@ function brokenNoOp() {}
 
 /** BUG: carries the sound code as an immediate instead of reading the image for it. */
 function brokenBakedConstant(m) {
-  loc_560c(m, EXPECTED_CODE);
+  enqueueSoundIfGameInProgress(m, EXPECTED_CODE);
 }
 
 /** BUG: reads a neighbouring byte of the image, so it asks for a different sound. */
 function brokenWrongSource(m) {
-  loc_560c(m, m.mem8[WRONG_SOURCE]);
+  enqueueSoundIfGameInProgress(m, m.mem8[WRONG_SOURCE]);
 }
 
 /** BUG: asks under the wrong permission — the behaviour of a different shared body. */
 function brokenMisgated(m) {
   if (m.mem8[PLAY_ACTIVE] === 0 && m.mem8[DEMO_SOUNDS] === 0) return;
-  loc_562a(m, m.mem8[SOUND_CODE_CELL]);
+  appendSoundCommandToQueue(m, m.mem8[SOUND_CODE_CELL]);
 }
 
 const TWINS = [

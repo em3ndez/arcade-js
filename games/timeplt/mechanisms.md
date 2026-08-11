@@ -92,10 +92,12 @@ READ it is the scanline counter, a different device behind the same number. The 
 scattered through the raster-wait code are not reading back what the sound path wrote. `[code]`
 
 ★ **The main CPU does not write that latch directly — it QUEUES.** A sound effect is requested by
-appending a one-byte code to the pending-sound queue (`SOUND_QUEUE_COUNT` `0xAC43`, its body based at
-`SOUND_QUEUE_HEAD` `0xAC44`) (through one of three permission wrappers — game-in-progress, game-or-attract,
-or unconditional); `sendOldestQueuedSoundCommand` drains
-one code per frame to the latch, where the separate sound Z80's two AY-3-8910s turn it into sound.
+`appendSoundCommandToQueue` adding a one-byte code to the tail of the pending-sound queue
+(`SOUND_QUEUE_COUNT` `0xAC43` holds the length, its body based at `SOUND_QUEUE_HEAD` `0xAC44`), reached
+through one of three permission wrappers — `enqueueSoundIfGameInProgress` (dropped unless a game is
+live), `enqueueSoundIfGameOrAttract` (also admits the demo-sound switch) and `enqueueSoundUnconditional`
+(no test at all); `sendOldestQueuedSoundCommand` drains one code per frame to the latch, where the
+separate sound Z80's two AY-3-8910s turn it into sound.
 WHICH sound each code is is read off the NAMED caller: `requestCoinSound` from the coin handlers,
 `requestPlayerShotSound` from the shot spawner, and `requestEnemyLaunchSound`, `requestEnemyWaveSound`,
 `requestMotherShipWarpSound`, `requestBonusLifeSound`, `requestParachutistAwardSound`,

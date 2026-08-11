@@ -5,7 +5,7 @@
  * WHAT IT IS. Three sound codes, each fetched from a byte of the program image and offered to the
  * IN-PLAY-ONLY permission test at ROM 0x560C, and then a fall-through into ROM 0x56E4, which asks
  * for two more under a LOOSER test. ALL OF THOSE ARE ALREADY DECOMPILED, so the rewrite calls
- * loc_560c three times and requestInterRoundSoundPair once, and dissolving all four transfers belongs to this
+ * enqueueSoundIfGameInProgress three times and requestInterRoundSoundPair once, and dissolving all four transfers belongs to this
  * caller's unit. The fall-through is a plain call here, which is the same thing under
  * memory-equivalence.
  *
@@ -73,9 +73,9 @@ import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { requestRoundIntroSoundBurst } from "../requestRoundIntroSoundBurst.js";
-import { loc_560c } from "../loc_560c.js";
-import { loc_5617 } from "../loc_5617.js";
-import { loc_562a } from "../loc_562a.js";
+import { enqueueSoundIfGameInProgress } from "../enqueueSoundIfGameInProgress.js";
+import { enqueueSoundIfGameOrAttract } from "../enqueueSoundIfGameOrAttract.js";
+import { appendSoundCommandToQueue } from "../appendSoundCommandToQueue.js";
 import { requestInterRoundSoundPair } from "../requestInterRoundSoundPair.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { loc_56d2 as oracle } from "../../translated/loc_56d2.js";
@@ -128,7 +128,7 @@ const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
  * evidence only once the check is shown able to see the thing present.
  */
 const HELPERS = [
-  ["loc_560c", "../loc_560c.js", "PLAY_ACTIVE"],
+  ["enqueueSoundIfGameInProgress", "../enqueueSoundIfGameInProgress.js", "PLAY_ACTIVE"],
   ["requestInterRoundSoundPair", "../requestInterRoundSoundPair.js", "0x27cb"],
 ];
 
@@ -371,28 +371,28 @@ function brokenNoOp() {}
 /** BUG: the three go through the LOOSER test, so the attract loop makes sounds it must not. */
 function brokenLoosePermissionThroughout(m) {
   const { mem8 } = m;
-  loc_5617(m, mem8[FIRST_CODE_CELL]);
-  loc_5617(m, mem8[SECOND_CODE_CELL]);
-  loc_5617(m, mem8[THIRD_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, mem8[THIRD_CODE_CELL]);
   requestInterRoundSoundPair(m);
 }
 
 /** BUG: the trailing pair goes through the STRICTER test, so it is dropped where it should land. */
 function brokenStrictPermissionForThePair(m) {
   const { mem8 } = m;
-  loc_560c(m, mem8[FIRST_CODE_CELL]);
-  loc_560c(m, mem8[SECOND_CODE_CELL]);
-  loc_560c(m, mem8[THIRD_CODE_CELL]);
-  loc_560c(m, mem8[TAIL_FIRST_CODE_CELL]);
-  loc_560c(m, mem8[TAIL_SECOND_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[THIRD_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[TAIL_FIRST_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[TAIL_SECOND_CODE_CELL]);
 }
 
 /** BUG: the entry stops at its own three and never runs on. */
 function brokenDropsTheTail(m) {
   const { mem8 } = m;
-  loc_560c(m, mem8[FIRST_CODE_CELL]);
-  loc_560c(m, mem8[SECOND_CODE_CELL]);
-  loc_560c(m, mem8[THIRD_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[THIRD_CODE_CELL]);
 }
 
 /** BUG: only the tail runs. */
@@ -403,44 +403,44 @@ function brokenTailOnly(m) {
 /** BUG: the three go out back to front. */
 function brokenOrderReversed(m) {
   const { mem8 } = m;
-  loc_560c(m, mem8[THIRD_CODE_CELL]);
-  loc_560c(m, mem8[SECOND_CODE_CELL]);
-  loc_560c(m, mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[THIRD_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[FIRST_CODE_CELL]);
   requestInterRoundSoundPair(m);
 }
 
 /** BUG: the first code is fetched one byte along. */
 function brokenWrongFirstCode(m) {
   const { mem8 } = m;
-  loc_560c(m, mem8[WRONG_CODE_CELL]);
-  loc_560c(m, mem8[SECOND_CODE_CELL]);
-  loc_560c(m, mem8[THIRD_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[WRONG_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[THIRD_CODE_CELL]);
   requestInterRoundSoundPair(m);
 }
 
 /** BUG: only two of the three are asked for. */
 function brokenTwoCodesOnly(m) {
   const { mem8 } = m;
-  loc_560c(m, mem8[FIRST_CODE_CELL]);
-  loc_560c(m, mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[SECOND_CODE_CELL]);
   requestInterRoundSoundPair(m);
 }
 
 /** BUG: the same code goes out three times. */
 function brokenSameCodeThrice(m) {
   const { mem8 } = m;
-  loc_560c(m, mem8[FIRST_CODE_CELL]);
-  loc_560c(m, mem8[FIRST_CODE_CELL]);
-  loc_560c(m, mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[FIRST_CODE_CELL]);
   requestInterRoundSoundPair(m);
 }
 
 /** BUG: no permission is asked at all, so the codes go out whatever the cabinet is doing. */
 function brokenBypassesPermission(m) {
   const { mem8 } = m;
-  loc_562a(m, mem8[FIRST_CODE_CELL]);
-  loc_562a(m, mem8[SECOND_CODE_CELL]);
-  loc_562a(m, mem8[THIRD_CODE_CELL]);
+  appendSoundCommandToQueue(m, mem8[FIRST_CODE_CELL]);
+  appendSoundCommandToQueue(m, mem8[SECOND_CODE_CELL]);
+  appendSoundCommandToQueue(m, mem8[THIRD_CODE_CELL]);
   requestInterRoundSoundPair(m);
 }
 

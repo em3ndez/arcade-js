@@ -1,20 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_5628 — memory-equivalent to the frozen oracle at ROM 0x5628.
- *
- * WHAT IT IS. Two instructions, `push hl` / `push af`, and then it FALLS INTO the enqueue body at
- * 0x562A. Under the no-stack contract neither push is stack behaviour: the AF push is the spill
- * that carries the command byte across the body's register-clobbering restart, and the HL push is
- * the save half of a save/restore — the body clobbers HL and the `pop hl` at 0x5632 hands the
- * caller its own HL back, so the PAIR is a no-op in aggregate, which the stack-free rewrite
- * reproduces by never writing HL at all. So the rewrite is a forward, and the entire content of
- * this entry is the ABSENCE of a permission test — it is the only way into the queue that posts
- * whether or not a game is being played. That is the property the twin list attacks: twins gate it
- * the way its siblings do, and each must be caught.
- *
+ * enqueueSoundUnconditional — memory-equivalent to the frozen oracle at ROM 0x5628.
+ * WHAT IT IS. Two instructions, `push hl` / `push af`, and then it FALLS INTO the enqueue body at 0x562A.
+ * Under the no-stack contract neither push is stack behaviour: the AF push is the spill that carries the
+ * command byte across the body's register-clobbering restart, and the HL push is the save half of a
+ * save/restore — the body clobbers HL and the `pop hl` at 0x5632 hands the caller its own HL back, so the
+ * PAIR is a no-op in aggregate, which the stack-free rewrite reproduces by never writing HL at all. So the
+ * rewrite is a forward, and the entire content of this entry is the ABSENCE of a permission test — it is
+ * the only way into the queue that posts whether or not a game is being played. That is the property the
+ * twin list attacks: twins gate it the way its siblings do, and each must be caught.
  * GATE: strict unit-capture at the real dispatch, plus crafted crosses over both permission cells
  *   and over the command byte. What it exercises, holes stated:
- *
  *   1. EQUAL at the real dispatch — RAM identical outside the scratch window named in 2.
  *   2. THE DEAD SCRATCH IS THE ONE EXCLUSION and it is PINNED to [SP-6, SP): two pairs pushed
  *      here and by the body, plus the body's return address for its restart. Upper bound, not a
@@ -25,17 +21,14 @@
  *      difference to what the ORACLE does. That second assertion is what makes "unconditional"
  *      a measured property of this entry rather than a reading of its two instructions.
  *   5. EXHAUSTIVE over the queue length, 0..255.
- *   6. THE COMMAND BYTE IS SWEPT, high bit included. The captured entry always arrives with the
- *      same command, so without this any transform that is the identity at that one value would
- *      escape the whole gate — and it would not be academic: the entry at 0x565D reaches here via
- *      `add a,0x8c`, so real callers post codes with the high bit set, exactly what a mask bug
- *      would corrupt.
+ *   6. THE COMMAND BYTE IS SWEPT, high bit included. The captured entry always arrives with the same
+ *      command, so without this any transform that is the identity at that one value would escape the whole
+ *      gate — and it would not be academic: the entry at 0x565D reaches here via `add a,0x8c`, so real
+ *      callers post codes with the high bit set, exactly what a mask bug would corrupt.
  *   7. TEETH — twins that gate the way the sibling entries do, plus a fixed-command twin.
  *      The twin cross is SAMPLED over the permission cells, not exhaustive; catching a twin needs
  *      one discriminating combination, and the exhaustive arms above are where coverage is claimed.
- *
  * HOLE: this gate never sees the queue drained. It measures one append against one append.
- *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-5628.test.js
  */
 
@@ -53,7 +46,7 @@ import {
   realDiff,
   show,
 } from "./_soundQueue.js";
-import { loc_5628 } from "../loc_5628.js";
+import { enqueueSoundUnconditional } from "../enqueueSoundUnconditional.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -69,10 +62,8 @@ function entryState() {
   return e;
 }
 
-/**
- * Both arms from the real entry, with the two permission cells and the count forced. A non-null
- * `command` also forces the accumulator, which is where this entry takes the code from.
- */
+// Both arms from the real entry, with the two permission cells and the count forced. A non-null
+// `command` also forces the accumulator, which is where this entry takes the code from.
 function craftedDiff(cand, play, demo, length, command = null) {
   const entry = entryState();
   const arms = [entry.clone(), entry.clone()];
@@ -89,10 +80,8 @@ function craftedDiff(cand, play, demo, length, command = null) {
 
 const DEMO_VALUES = [0x00, 0x01];
 
-// The twin cross is SAMPLED: catching a twin needs one discriminating combination, not coverage.
 const SAMPLED_PLAY = [0x00, 0x01, 0x7f, 0xff];
 
-// High-bit codes are the point: 0x565D reaches this entry through `add a,0x8c`.
 const COMMANDS = [0x00, 0x01, 0x0b, 0x7f, 0x80, 0x86, 0xa0, 0xff];
 
 function crossCaught(cand) {
@@ -109,12 +98,12 @@ const CROSS_SIZE = SAMPLED_PLAY.length * DEMO_VALUES.length * 3;
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_5628 == oracle on RAM", { skip }, () => {
+test("EQUAL at the real dispatch: enqueueSoundUnconditional == oracle on RAM", { skip }, () => {
   const entry = entryState();
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_5628(b);
+  enqueueSoundUnconditional(b);
   const d = realDiff(a, b, entry.regs.sp, SCRATCH_BYTES);
   assert.equal(d, null, `RAM diverged — ${show(d)}`);
   assert.ok(allDiffs(a, b).length > 0, "no divergence at all — the scratch push vanished");
@@ -129,7 +118,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch window and nothing e
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_5628(b);
+  enqueueSoundUnconditional(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved, ["sp"], "the excluded set changed shape: only the stack pointer may move");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
@@ -145,7 +134,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch window and nothing e
 test("EXHAUSTIVE over both permission cells: the cross is identical", { skip }, () => {
   for (let play = 0; play < 256; play++) {
     for (const demo of DEMO_VALUES) {
-      const d = craftedDiff(loc_5628, play, demo, 3);
+      const d = craftedDiff(enqueueSoundUnconditional, play, demo, 3);
       assert.equal(d, null, `play=${play} demo=${demo}: ${show(d)}`);
     }
   }
@@ -155,11 +144,10 @@ test("EXHAUSTIVE over both permission cells: the cross is identical", { skip }, 
 test("SWEPT over the command byte, high bit included", { skip }, () => {
   for (const command of COMMANDS) {
     for (const length of [0, 3, 255]) {
-      const d = craftedDiff(loc_5628, 0x00, 0x00, length, command);
+      const d = craftedDiff(enqueueSoundUnconditional, 0x00, 0x00, length, command);
       assert.equal(d, null, `command=${hex4(command)} length=${length}: ${show(d)}`);
     }
   }
-  // Anti-vacuity: a mask bug is only catchable if some swept code actually has the high bit set.
   assert.ok(COMMANDS.some((c) => c & 0x80), "the sweep cannot catch a mask bug without a high code");
   console.log("  SWEPT: the command byte varies, and codes with bit 7 set are among them");
 });
@@ -180,7 +168,7 @@ test("UNCONDITIONAL: the oracle appends on every permission-cell combination", {
 
 test("EXHAUSTIVE over the queue length", { skip }, () => {
   for (let length = 0; length < 256; length++) {
-    const d = craftedDiff(loc_5628, 0x00, 0x00, length);
+    const d = craftedDiff(enqueueSoundUnconditional, 0x00, 0x00, length);
     assert.equal(d, null, `length=${length}: ${show(d)}`);
   }
   console.log("  EXHAUSTIVE: 256 queue lengths identical");
@@ -194,24 +182,24 @@ function brokenNoOp() {}
 /** BUG: gates on the play flag, which is the neighbouring entry's behaviour, not this one's. */
 function brokenGatesOnPlay(m) {
   if (m.mem8[PLAY_ACTIVE] === 0) return;
-  loc_5628(m);
+  enqueueSoundUnconditional(m);
 }
 
 /** BUG: gates on the demo-sound switch. */
 function brokenGatesOnDemo(m) {
   if (m.mem8[DEMO_SOUNDS] === 0) return;
-  loc_5628(m);
+  enqueueSoundUnconditional(m);
 }
 
 /** BUG: gates on either cell, which is the OTHER neighbouring entry's behaviour. */
 function brokenGatesOnEither(m) {
   if (m.mem8[PLAY_ACTIVE] === 0 && m.mem8[DEMO_SOUNDS] === 0) return;
-  loc_5628(m);
+  enqueueSoundUnconditional(m);
 }
 
 /** BUG: appends a fixed code instead of the one the caller is holding. */
 function brokenFixedCommand(m) {
-  loc_5628(m, 0x86);
+  enqueueSoundUnconditional(m, 0x86);
 }
 
 const TWINS = [

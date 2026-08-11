@@ -2,10 +2,10 @@
 /** requestPlayerShotSound — request one sound, admitted while a game runs or the cabinet may sound in attract.
  * Its code is fetched from a byte of the program image. LIVE-OUT: memory. */
 
-import { loc_5617 } from "./loc_5617.js";
+import { enqueueSoundIfGameOrAttract } from "./enqueueSoundIfGameOrAttract.js";
 
 const SOUND_CODE_CELL = 0x3270;
 
 export function requestPlayerShotSound(m) {
-  loc_5617(m, m.mem8[SOUND_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[SOUND_CODE_CELL]);
 }

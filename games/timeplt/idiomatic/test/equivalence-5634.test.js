@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { loc_5634 } from "../loc_5634.js";
-import { loc_5628 } from "../loc_5628.js";
+import { enqueueSoundUnconditional } from "../enqueueSoundUnconditional.js";
 import { ERA_INDEX } from "../names.js";
 import { loc_5634 as oracle } from "../../translated/loc_5634.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -154,7 +154,7 @@ function brokenNoOp() {}
 
 /** BUG: one request short. */
 function brokenSixRequests(m) {
-  for (const source of FIXED_CODE_SOURCES) loc_5628(m, m.mem8[source]);
+  for (const source of FIXED_CODE_SOURCES) enqueueSoundUnconditional(m, m.mem8[source]);
 }
 
 /**
@@ -170,26 +170,26 @@ function bakeCodes(m) {
 
 /** BUG: bakes the six fixed codes in instead of reading them out of the image. */
 function brokenBakedCodes(m) {
-  for (const code of bakeCodes(m)) loc_5628(m, code);
-  loc_5628(m, (m.mem8[ERA_INDEX] + ERA_CODE_BASE) & 0xff);
+  for (const code of bakeCodes(m)) enqueueSoundUnconditional(m, code);
+  enqueueSoundUnconditional(m, (m.mem8[ERA_INDEX] + ERA_CODE_BASE) & 0xff);
 }
 
 /** BUG: queues the six the other way round, so the order on the queue is reversed. */
 function brokenReversedOrder(m) {
-  for (const source of [...FIXED_CODE_SOURCES].reverse()) loc_5628(m, m.mem8[source]);
-  loc_5628(m, (m.mem8[ERA_INDEX] + ERA_CODE_BASE) & 0xff);
+  for (const source of [...FIXED_CODE_SOURCES].reverse()) enqueueSoundUnconditional(m, m.mem8[source]);
+  enqueueSoundUnconditional(m, (m.mem8[ERA_INDEX] + ERA_CODE_BASE) & 0xff);
 }
 
 /** BUG: the era code forgets its base, so every era asks for the wrong thing. */
 function brokenNoBase(m) {
-  for (const source of FIXED_CODE_SOURCES) loc_5628(m, m.mem8[source]);
-  loc_5628(m, m.mem8[ERA_INDEX]);
+  for (const source of FIXED_CODE_SOURCES) enqueueSoundUnconditional(m, m.mem8[source]);
+  enqueueSoundUnconditional(m, m.mem8[ERA_INDEX]);
 }
 
 /** BUG: the era code ignores the era, so it is the same in every one. */
 function brokenIgnoresEra(m) {
-  for (const source of FIXED_CODE_SOURCES) loc_5628(m, m.mem8[source]);
-  loc_5628(m, ERA_CODE_BASE);
+  for (const source of FIXED_CODE_SOURCES) enqueueSoundUnconditional(m, m.mem8[source]);
+  enqueueSoundUnconditional(m, ERA_CODE_BASE);
 }
 
 /** Each twin's exact catch count over the 256 crafted eras. Measured; a move is a finding. */

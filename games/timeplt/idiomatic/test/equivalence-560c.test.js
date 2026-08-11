@@ -1,18 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/**
- * loc_560c — memory-equivalent to the frozen oracle at ROM 0x560C.
+/** enqueueSoundIfGameInProgress — memory-equivalent to the frozen oracle at ROM 0x560C.
  *
  * WHAT IT IS. It spills the command byte, tests ONE permission cell — the play-active flag — and
  * tail-jumps into the enqueue body at 0x562A when it is set. With it clear it pops back and
  * returns, so the request is dropped and nothing records that it happened. The rewrite calls the
  * body directly, which is this caller's own dissolve, and the spill becomes a parameter.
  *
- * ★ THE HOLE THIS GATE EXISTS TO FILL. The play flag is SET at every dispatch the shared tape
- *   produces — the sound requests that reach this entry come from a game in progress — so the
- *   DROP branch never once executes on real data. Identical-on-the-real-dispatch therefore says
- *   nothing about half of this routine, and the crafted cross below is not a supplement to the
- *   real arm; it is the only thing testing the branch. A test asserts that blindness explicitly,
- *   so "the corpus agrees" can never be read here as reassurance.
+ * ★ THE HOLE THIS GATE EXISTS TO FILL. The play flag is SET at every dispatch the shared tape produces — the
+ *   sound requests that reach this entry come from a game in progress — so the DROP branch never once
+ *   executes on real data. Identical-on-the-real-dispatch therefore says nothing about half of this routine,
+ *   and the crafted cross below is not a supplement to the real arm; it is the only thing testing the branch.
+ *   A test asserts that blindness explicitly, so "the corpus agrees" can never be read here as reassurance.
  *
  * ★ WHAT SEPARATES IT FROM ITS SIBLING at 0x5617, which is otherwise the same shape: this entry
  *   consults ONE cell and is BLIND to the demo-sound switch. The cross varies both cells
@@ -56,8 +54,8 @@ import {
   realDiff,
   show,
 } from "./_soundQueue.js";
-import { loc_560c } from "../loc_560c.js";
-import { loc_562a } from "../loc_562a.js";
+import { enqueueSoundIfGameInProgress } from "../enqueueSoundIfGameInProgress.js";
+import { appendSoundCommandToQueue } from "../appendSoundCommandToQueue.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -86,7 +84,6 @@ function craftedDiff(cand, play, demo, length) {
   return realDiff(arms[0], arms[1], entry.regs.sp, SCRATCH_BYTES);
 }
 
-/** Oracle vs candidate at the ONE state the shared tape actually produces. */
 function realDispatchDiff(cand) {
   const entry = entryState();
   const a = entry.clone();
@@ -110,14 +107,14 @@ const CROSS_SIZE = 256 * DEMO_VALUES.length;
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_560c == oracle on RAM", { skip }, () => {
+test("EQUAL at the real dispatch: enqueueSoundIfGameInProgress == oracle on RAM", { skip }, () => {
   const entry = entryState();
   assert.notEqual(entry.mem8[PLAY_ACTIVE], 0, "the real dispatch takes the POSTING branch");
-  assert.equal(realDispatchDiff(loc_560c), null, "RAM diverged at the real dispatch");
+  assert.equal(realDispatchDiff(enqueueSoundIfGameInProgress), null, "RAM diverged at the real dispatch");
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_560c(b);
+  enqueueSoundIfGameInProgress(b);
   assert.ok(allDiffs(a, b).length > 0, "no divergence at all — the scratch push vanished");
   console.log(
     `  EQUAL: entry sp=${hex4(entry.regs.sp)} play=${entry.mem8[PLAY_ACTIVE]} ` +
@@ -130,7 +127,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch window and nothing e
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_560c(b);
+  enqueueSoundIfGameInProgress(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved, ["sp"], "the excluded set changed shape: only the stack pointer may move");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
@@ -145,7 +142,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch window and nothing e
 test("EXHAUSTIVE over the play flag: all 256 values, both demo settings", { skip }, () => {
   for (let play = 0; play < 256; play++) {
     for (const demo of DEMO_VALUES) {
-      const d = craftedDiff(loc_560c, play, demo, 3);
+      const d = craftedDiff(enqueueSoundIfGameInProgress, play, demo, 3);
       assert.equal(d, null, `play=${play} demo=${demo}: ${show(d)}`);
     }
   }
@@ -188,7 +185,7 @@ test("BOTH BRANCHES REALLY DIFFER: set posts, clear leaves the queue untouched",
 
 test("EXHAUSTIVE over the queue length", { skip }, () => {
   for (let length = 0; length < 256; length++) {
-    const d = craftedDiff(loc_560c, 0xff, 0x01, length);
+    const d = craftedDiff(enqueueSoundIfGameInProgress, 0xff, 0x01, length);
     assert.equal(d, null, `length=${length}: ${show(d)}`);
   }
   console.log("  EXHAUSTIVE: 256 queue lengths identical on the posting branch");
@@ -201,25 +198,25 @@ function brokenNoOp() {}
 
 /** BUG: posts unconditionally, which is the neighbouring entry's behaviour, not this one's. */
 function brokenUngated(m) {
-  loc_562a(m, m.regs.a);
+  appendSoundCommandToQueue(m, m.regs.a);
 }
 
 /** BUG: reads the flag the wrong way round, so it sounds only in attract. */
 function brokenInverted(m) {
   if (m.mem8[PLAY_ACTIVE] !== 0) return;
-  loc_562a(m, m.regs.a);
+  appendSoundCommandToQueue(m, m.regs.a);
 }
 
 /** BUG: also lets the demo-sound switch through, which is the OTHER sibling's behaviour. */
 function brokenAlsoDemo(m) {
   if (m.mem8[PLAY_ACTIVE] === 0 && m.mem8[DEMO_SOUNDS] === 0) return;
-  loc_562a(m, m.regs.a);
+  appendSoundCommandToQueue(m, m.regs.a);
 }
 
 /** BUG: requires BOTH cells, so a genuine in-game request is dropped when demo sound is off. */
 function brokenRequiresBoth(m) {
   if (m.mem8[PLAY_ACTIVE] === 0 || m.mem8[DEMO_SOUNDS] === 0) return;
-  loc_562a(m, m.regs.a);
+  appendSoundCommandToQueue(m, m.regs.a);
 }
 
 const TWINS = [

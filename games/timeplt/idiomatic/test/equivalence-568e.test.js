@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { allDiffs, hex4, oracleAt, realDiff, show, withPokedImage } from "./_soundQueue.js";
 import { loc_568e } from "../loc_568e.js";
-import { loc_560c } from "../loc_560c.js";
+import { enqueueSoundIfGameInProgress } from "../enqueueSoundIfGameInProgress.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -229,14 +229,14 @@ test("EXHAUSTIVE over the queue length", { skip }, () => {
 
 const TWINS = [
   ["no-op", () => {}, 6],
-  ["wrong-source", (m) => loc_560c(m, m.mem8[WRONG_SOURCE]), 6],
+  ["wrong-source", (m) => enqueueSoundIfGameInProgress(m, m.mem8[WRONG_SOURCE]), 6],
   ["ungated", (m) => {
     const was = m.mem8[PLAY_ACTIVE];
     m.mem8[PLAY_ACTIVE] = 0xff;
     loc_568e(m);
     m.mem8[PLAY_ACTIVE] = was;
   }, 3],
-  ["code-off-by-one", (m) => loc_560c(m, m.mem8[SOUND_CODE_CELL] + 1), 6],
+  ["code-off-by-one", (m) => enqueueSoundIfGameInProgress(m, m.mem8[SOUND_CODE_CELL] + 1), 6],
 ];
 
 for (const [label, twin, expected] of TWINS) {
@@ -248,7 +248,7 @@ for (const [label, twin, expected] of TWINS) {
 
 test("TEETH: the baked-constant twin is BLIND on a genuine image and caught under the poke", { skip }, () => {
   const genuine = codeAppendedByOracle();
-  const baked = (m) => loc_560c(m, genuine);
+  const baked = (m) => enqueueSoundIfGameInProgress(m, genuine);
   assert.equal(
     crossCaught(baked),
     0,

@@ -4,7 +4,7 @@
  *
  * WHAT IT IS. Two sound requests in a row, each with a code fetched from a byte of the program
  * image, each routed through the permission test at 0x5617 — WHICH IS ALREADY DECOMPILED, so the
- * rewrite calls loc_5617 directly twice and dissolving both transfers belongs to this caller's
+ * rewrite calls enqueueSoundIfGameOrAttract directly twice and dissolving both transfers belongs to this caller's
  * unit. The second transfer is a tail jump in the image and a plain call here, which is the same
  * thing under memory-equivalence.
  *
@@ -43,8 +43,8 @@ import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { requestInterRoundSoundPair } from "../requestInterRoundSoundPair.js";
-import { loc_5617 } from "../loc_5617.js";
-import { loc_562a } from "../loc_562a.js";
+import { enqueueSoundIfGameOrAttract } from "../enqueueSoundIfGameOrAttract.js";
+import { appendSoundCommandToQueue } from "../appendSoundCommandToQueue.js";
 import { loc_56e4 as oracle } from "../../translated/loc_56e4.js";
 import { PLAY_ACTIVE } from "../names.js";
 import {
@@ -239,36 +239,36 @@ function brokenNoOp() {}
 
 /** BUG: only the first of the two requests goes out. */
 function brokenFirstOnly(m) {
-  loc_5617(m, m.mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[FIRST_CODE_CELL]);
 }
 
 /** BUG: only the second goes out. */
 function brokenSecondOnly(m) {
-  loc_5617(m, m.mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[SECOND_CODE_CELL]);
 }
 
 /** BUG: the two requests go out in the other order, so the queue holds them reversed. */
 function brokenOrderSwapped(m) {
-  loc_5617(m, m.mem8[SECOND_CODE_CELL]);
-  loc_5617(m, m.mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[FIRST_CODE_CELL]);
 }
 
 /** BUG: the first code is fetched one byte along. */
 function brokenWrongFirstCode(m) {
-  loc_5617(m, m.mem8[WRONG_CODE_CELL]);
-  loc_5617(m, m.mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[WRONG_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[SECOND_CODE_CELL]);
 }
 
 /** BUG: both requests carry the same code. */
 function brokenSameCodeTwice(m) {
-  loc_5617(m, m.mem8[FIRST_CODE_CELL]);
-  loc_5617(m, m.mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[FIRST_CODE_CELL]);
 }
 
 /** BUG: skips the permission test, so the attract loop makes sounds it must not. */
 function brokenBypassesPermission(m) {
-  loc_562a(m, m.mem8[FIRST_CODE_CELL]);
-  loc_562a(m, m.mem8[SECOND_CODE_CELL]);
+  appendSoundCommandToQueue(m, m.mem8[FIRST_CODE_CELL]);
+  appendSoundCommandToQueue(m, m.mem8[SECOND_CODE_CELL]);
 }
 
 /** The fourteen crafted entries with both permission cells clear drop everything, so a twin that

@@ -55,7 +55,7 @@ import {
   withPokedImage,
 } from "./_soundQueue.js";
 import { requestTwoSounds } from "../requestTwoSounds.js";
-import { loc_5617 } from "../loc_5617.js";
+import { enqueueSoundIfGameOrAttract } from "../enqueueSoundIfGameOrAttract.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -217,36 +217,36 @@ function brokenNoOp() {}
 
 /** BUG: asks for the first sound only. */
 function brokenFirstOnly(m) {
-  loc_5617(m, m.mem8[FIRST_SOUND_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[FIRST_SOUND_CODE_CELL]);
 }
 
 /** BUG: asks for the second sound only. */
 function brokenSecondOnly(m) {
-  loc_5617(m, m.mem8[SECOND_SOUND_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[SECOND_SOUND_CODE_CELL]);
 }
 
 /** BUG: the two go out the other way round. */
 function brokenSwapped(m) {
-  loc_5617(m, m.mem8[SECOND_SOUND_CODE_CELL]);
-  loc_5617(m, m.mem8[FIRST_SOUND_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[SECOND_SOUND_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[FIRST_SOUND_CODE_CELL]);
 }
 
 /** BUG: asks for the first sound twice. */
 function brokenSameTwice(m) {
-  loc_5617(m, m.mem8[FIRST_SOUND_CODE_CELL]);
-  loc_5617(m, m.mem8[FIRST_SOUND_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[FIRST_SOUND_CODE_CELL]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[FIRST_SOUND_CODE_CELL]);
 }
 
 /** BUG: reads the bytes beside the two sources. */
 function brokenWrongSources(m) {
-  loc_5617(m, m.mem8[FIRST_SOUND_CODE_CELL + 1]);
-  loc_5617(m, m.mem8[SECOND_SOUND_CODE_CELL + 1]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[FIRST_SOUND_CODE_CELL + 1]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[SECOND_SOUND_CODE_CELL + 1]);
 }
 
 /** BUG: carries both codes as immediates instead of reading the image for them. */
 function brokenBakedConstants(m) {
-  loc_5617(m, EXPECTED_FIRST);
-  loc_5617(m, EXPECTED_SECOND);
+  enqueueSoundIfGameOrAttract(m, EXPECTED_FIRST);
+  enqueueSoundIfGameOrAttract(m, EXPECTED_SECOND);
 }
 
 for (const [label, twin] of [

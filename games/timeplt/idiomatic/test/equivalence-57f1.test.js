@@ -52,8 +52,8 @@ import {
   withPokedImage,
 } from "./_soundQueue.js";
 import { requestCoinSound } from "../requestCoinSound.js";
-import { loc_5628 } from "../loc_5628.js";
-import { loc_562a } from "../loc_562a.js";
+import { enqueueSoundUnconditional } from "../enqueueSoundUnconditional.js";
+import { appendSoundCommandToQueue } from "../appendSoundCommandToQueue.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -190,18 +190,18 @@ function brokenNoOp() {}
 
 /** BUG: carries the sound code as an immediate instead of reading the image for it. */
 function brokenBakedConstant(m) {
-  loc_5628(m, EXPECTED_CODE);
+  enqueueSoundUnconditional(m, EXPECTED_CODE);
 }
 
 /** BUG: reads a neighbouring byte of the image, so it asks for a different sound. */
 function brokenWrongSource(m) {
-  loc_5628(m, m.mem8[WRONG_SOURCE]);
+  enqueueSoundUnconditional(m, m.mem8[WRONG_SOURCE]);
 }
 
 /** BUG: asks under the wrong permission — the behaviour of a different shared body. */
 function brokenMisgated(m) {
   if (m.mem8[PLAY_ACTIVE] === 0) return;
-  loc_562a(m, m.mem8[SOUND_CODE_CELL]);
+  appendSoundCommandToQueue(m, m.mem8[SOUND_CODE_CELL]);
 }
 
 const TWINS = [

@@ -14,9 +14,8 @@
  *   makes no claim about what that tape reaches -- an earlier note asserting one had no arm behind
  *   it and none is added: nothing here would go red if it changed.
  *
- * GATE: unit-capture at that real dispatch with an eight-byte scratch exclusion, plus crafted
- *   sweeps over the permission cell and the whole queue length, plus a poked-image arm. What it
- *   exercises, holes stated:
+ * GATE: unit-capture at that real dispatch with an eight-byte scratch exclusion, plus crafted sweeps over the
+ *   permission cell and the whole queue length, plus a poked-image arm. What it exercises, holes stated:
  *
  *   1. EQUAL at the real dispatch, outside the scratch window.
  *   2. THE ONE REAL DISPATCH IS ON THE DROP PATH AND WRITES NOTHING. Measured: the play-active
@@ -37,7 +36,6 @@
  * HOLE: REGISTERS ARE EXCLUDED AND THE ACCUMULATOR IS AMONG THEM. The oracle leaves it holding
  * the second code; the rewrite passes both codes as arguments and never assigns it. Nothing here
  * watches a caller read it, so this is a deliberate drop and not a measured dead value.
- *
  * HOLE: WHAT the two sounds are. Nothing on this CPU can say; the codes are bytes handed to a
  * second processor. This gate fixes which bytes, in which order, and under what permission.
  *
@@ -58,8 +56,8 @@ import {
   withPokedImage,
 } from "./_soundQueue.js";
 import { requestTwoSoundsWhilePlaying } from "../requestTwoSoundsWhilePlaying.js";
-import { loc_560c } from "../loc_560c.js";
-import { loc_562a } from "../loc_562a.js";
+import { enqueueSoundIfGameInProgress } from "../enqueueSoundIfGameInProgress.js";
+import { appendSoundCommandToQueue } from "../appendSoundCommandToQueue.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -276,43 +274,37 @@ test("EXCLUDED, deliberately: registers, pc and the scratch window and nothing e
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────
 
-/** BUG: does nothing at all. */
 function brokenNoOp() {}
 
-/** BUG: carries the first code as an immediate instead of reading the image for it. */
 function brokenBakedFirstCode(m) {
-  loc_560c(m, FIRST_CODE);
-  loc_560c(m, m.mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, FIRST_CODE);
+  enqueueSoundIfGameInProgress(m, m.mem8[SECOND_CODE_CELL]);
 }
 
-/** BUG: asks for the first sound only, so the second never reaches the queue. */
 function brokenFirstOnly(m) {
-  loc_560c(m, m.mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, m.mem8[FIRST_CODE_CELL]);
 }
 
-/** BUG: asks for the second sound only. */
 function brokenSecondOnly(m) {
-  loc_560c(m, m.mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, m.mem8[SECOND_CODE_CELL]);
 }
 
-/** BUG: the two requests go in the other way round. */
 function brokenSwapsOrder(m) {
-  loc_560c(m, m.mem8[SECOND_CODE_CELL]);
-  loc_560c(m, m.mem8[FIRST_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, m.mem8[SECOND_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, m.mem8[FIRST_CODE_CELL]);
 }
 
-/** BUG: skips the permission test, so the pair is queued even when a game is not being played. */
 function brokenUngated(m) {
-  loc_562a(m, m.mem8[FIRST_CODE_CELL]);
-  loc_562a(m, m.mem8[SECOND_CODE_CELL]);
+  appendSoundCommandToQueue(m, m.mem8[FIRST_CODE_CELL]);
+  appendSoundCommandToQueue(m, m.mem8[SECOND_CODE_CELL]);
 }
 
 /**
- * Per twin: how many of the four permission values catch it. One of the four REFUSES and three
- * ADMIT, so a twin that gets the queued pair wrong is caught on three and `ungated`, which queues
- * where the oracle refuses, on one. `baked-first-code` is invisible on a genuine image at every
- * one of them; the poked arm above is the only thing that sees it, and its zero is asserted here
- * so that blindness can never be mistaken for coverage.
+ * Per twin: how many of the four permission values catch it. One of the four REFUSES and three ADMIT, so a
+ * twin that gets the queued pair wrong is caught on three and `ungated`, which queues where the oracle
+ * refuses, on one. `baked-first-code` is invisible on a genuine image at every one of them; the poked arm
+ * above is the only thing that sees it, and its zero is asserted here so that blindness can never be mistaken
+ * for coverage.
  */
 const TWINS = [
   ["no-op", brokenNoOp, 3],

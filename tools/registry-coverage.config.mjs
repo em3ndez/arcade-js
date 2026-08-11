@@ -61,7 +61,7 @@ export const UNWIRED = {
       "0xA993 and the inner count from the shadow accumulator between passes, which is the whole " +
       "of what this module does -- so a ROUTINES entry would claim an entry point the image does " +
       "not have and override an address the enclosing routine's rewrite already covers.",
-    "loc_562a.js":
+    "appendSoundCommandToQueue.js":
       "Not a dispatch entry at all. The little-endian word for its address occurs nowhere in the " +
       "ROM image, so no table can name it, and every path in reaches it from a point interior to " +
       "another routine -- two conditional branches and a fall-through, all three of which have " +

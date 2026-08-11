@@ -52,8 +52,8 @@ import {
   withPokedImage,
 } from "./_soundQueue.js";
 import { requestPlayerShotSound } from "../requestPlayerShotSound.js";
-import { loc_5617 } from "../loc_5617.js";
-import { loc_562a } from "../loc_562a.js";
+import { enqueueSoundIfGameOrAttract } from "../enqueueSoundIfGameOrAttract.js";
+import { appendSoundCommandToQueue } from "../appendSoundCommandToQueue.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -190,18 +190,18 @@ function brokenNoOp() {}
 
 /** BUG: carries the sound code as an immediate instead of reading the image for it. */
 function brokenBakedConstant(m) {
-  loc_5617(m, EXPECTED_CODE);
+  enqueueSoundIfGameOrAttract(m, EXPECTED_CODE);
 }
 
 /** BUG: reads a neighbouring byte of the image, so it asks for a different sound. */
 function brokenWrongSource(m) {
-  loc_5617(m, m.mem8[WRONG_SOURCE]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[WRONG_SOURCE]);
 }
 
 /** BUG: asks under the wrong permission — the behaviour of a different shared body. */
 function brokenMisgated(m) {
   if (m.mem8[PLAY_ACTIVE] === 0) return;
-  loc_562a(m, m.mem8[SOUND_CODE_CELL]);
+  appendSoundCommandToQueue(m, m.mem8[SOUND_CODE_CELL]);
 }
 
 const TWINS = [

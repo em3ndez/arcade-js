@@ -1,22 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_5617 — memory-equivalent to the frozen oracle at ROM 0x5617.
- *
- * WHAT IT IS, AND WHAT SEPARATES IT FROM 0x560C. Same shape as its sibling — spill the command
- * byte, test permission, tail-jump into the enqueue body at 0x562A — but it tests TWO cells and
- * either one on its own admits the request. The first is the play-active flag its sibling uses.
- * The second is 0xA9C6, and the two entries are otherwise interchangeable, so what that cell IS
- * is the whole of the difference between them:
- *
- *   0xA9C6 is written exactly once in the image, by the boot-time switch unpack, and read exactly
- *   once, here. The unpack rotates the COMPLEMENT of the DSW1 byte and lands bit 7 in this cell.
- *   MAME's own port table for this driver gives DSW1 bit 7 as Demo Sounds, active low — and the
- *   same unpack's neighbouring fields corroborate that layout from the code side rather than by
- *   citation: bits 0-1 go through `and 3 / add 3 / cp 6 -> 255`, which is exactly the 3 / 4 / 5 /
- *   255 lives ladder the same table lists. So the second gate is the demo-sound switch, and the
- *   routine reads: sound during a game, or in attract when the cabinet is set to make noise.
- *   That is a claim the gate can test as behaviour, and the cross below does.
- *
+ * enqueueSoundIfGameOrAttract — memory-equivalent to the frozen oracle at ROM 0x5617.
+ * WHAT IT IS, AND WHAT SEPARATES IT FROM 0x560C. Same shape as its sibling — spill the command byte, test
+ * permission, tail-jump into the enqueue body at 0x562A — but it tests TWO cells and either one on its own
+ * admits the request. The first is the play-active flag its sibling uses. The second is 0xA9C6, and the two
+ * entries are otherwise interchangeable, so what that cell IS is the whole of the difference between them:
+ *   0xA9C6 is written exactly once in the image, by the boot-time switch unpack, and read exactly once, here.
+ *   The unpack rotates the COMPLEMENT of the DSW1 byte and lands bit 7 in this cell. MAME's own port table
+ *   for this driver gives DSW1 bit 7 as Demo Sounds, active low — and the same unpack's neighbouring fields
+ *   corroborate that layout from the code side rather than by citation: bits 0-1 go through `and 3 / add 3 /
+ *   cp 6 -> 255`, which is exactly the 3 / 4 / 5 / 255 lives ladder the same table lists. So the second gate
+ *   is the demo-sound switch, and the routine reads: sound during a game, or in attract when the cabinet is
+ *   set to make noise. That is a claim the gate can test as behaviour, and the cross below does.
  * ★ THE HOLE. Every dispatch the shared tape produces has the play flag SET and the demo switch
  *   ON, so neither the drop branch nor the second-cell-only branch ever executes on real data.
  *   With both cells admitting, every twin that differs only in WHICH cell it consults behaves
@@ -27,7 +22,6 @@
  *
  * GATE: strict unit-capture at the real dispatch, plus an exhaustive crafted cross. What it
  *   exercises, holes stated:
- *
  *   1. EQUAL at the real dispatch — RAM identical outside the scratch window named in 2.
  *   2. THE DEAD SCRATCH IS THE ONE EXCLUSION, PINNED to [SP-6, SP), an upper bound: at the real
  *      entry only one byte inside it actually differs, because the pushed bytes happened to match
@@ -39,7 +33,6 @@
  *      been ignored, and it is what makes the sibling distinction a measurement.
  *   6. EXHAUSTIVE over the queue length, 0..255.
  *   7. TEETH — five twins, plus the pinned list of which the real dispatch cannot see.
- *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-5617.test.js
  */
 
@@ -57,8 +50,8 @@ import {
   realDiff,
   show,
 } from "./_soundQueue.js";
-import { loc_5617 } from "../loc_5617.js";
-import { loc_562a } from "../loc_562a.js";
+import { enqueueSoundIfGameOrAttract } from "../enqueueSoundIfGameOrAttract.js";
+import { appendSoundCommandToQueue } from "../appendSoundCommandToQueue.js";
 import { PLAY_ACTIVE } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -119,13 +112,13 @@ function oraclePosts(play, demo) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_5617 == oracle on RAM", { skip }, () => {
+test("EQUAL at the real dispatch: enqueueSoundIfGameOrAttract == oracle on RAM", { skip }, () => {
   const entry = entryState();
-  assert.equal(realDispatchDiff(loc_5617), null, "RAM diverged at the real dispatch");
+  assert.equal(realDispatchDiff(enqueueSoundIfGameOrAttract), null, "RAM diverged at the real dispatch");
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_5617(b);
+  enqueueSoundIfGameOrAttract(b);
   assert.ok(allDiffs(a, b).length > 0, "no divergence at all — the scratch push vanished");
   console.log(
     `  EQUAL: entry sp=${hex4(entry.regs.sp)} play=${entry.mem8[PLAY_ACTIVE]} ` +
@@ -139,7 +132,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch window and nothing e
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_5617(b);
+  enqueueSoundIfGameOrAttract(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved, ["sp"], "the excluded set changed shape: only the stack pointer may move");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
@@ -154,7 +147,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch window and nothing e
 test("EXHAUSTIVE over both permission cells: the full cross is identical", { skip }, () => {
   for (let play = 0; play < 256; play++) {
     for (const demo of DEMO_VALUES) {
-      const d = craftedDiff(loc_5617, play, demo, 3);
+      const d = craftedDiff(enqueueSoundIfGameOrAttract, play, demo, 3);
       assert.equal(d, null, `play=${play} demo=${demo}: ${show(d)}`);
     }
   }
@@ -171,7 +164,7 @@ test("THE TRUTH TABLE: either cell admits the request; only both clear drops it"
 
 test("EXHAUSTIVE over the queue length", { skip }, () => {
   for (let length = 0; length < 256; length++) {
-    const d = craftedDiff(loc_5617, 0x00, 0x01, length);
+    const d = craftedDiff(enqueueSoundIfGameOrAttract, 0x00, 0x01, length);
     assert.equal(d, null, `length=${length}: ${show(d)}`);
   }
   console.log("  EXHAUSTIVE: 256 queue lengths identical on the second cell's branch alone");
@@ -185,24 +178,24 @@ function brokenNoOp() {}
 /** BUG: consults only the play flag, which is the sibling entry's behaviour, not this one's. */
 function brokenIgnoresDemo(m) {
   if (m.mem8[PLAY_ACTIVE] === 0) return;
-  loc_562a(m, m.regs.a);
+  appendSoundCommandToQueue(m, m.regs.a);
 }
 
 /** BUG: consults only the switch, so an in-game sound is lost when demo sound is off. */
 function brokenIgnoresPlay(m) {
   if (m.mem8[DEMO_SOUNDS] === 0) return;
-  loc_562a(m, m.regs.a);
+  appendSoundCommandToQueue(m, m.regs.a);
 }
 
 /** BUG: requires BOTH, turning an either-way permission into a conjunction. */
 function brokenRequiresBoth(m) {
   if (m.mem8[PLAY_ACTIVE] === 0 || m.mem8[DEMO_SOUNDS] === 0) return;
-  loc_562a(m, m.regs.a);
+  appendSoundCommandToQueue(m, m.regs.a);
 }
 
 /** BUG: posts unconditionally, so attract sounds with the switch off. */
 function brokenUngated(m) {
-  loc_562a(m, m.regs.a);
+  appendSoundCommandToQueue(m, m.regs.a);
 }
 
 const TWINS = [
