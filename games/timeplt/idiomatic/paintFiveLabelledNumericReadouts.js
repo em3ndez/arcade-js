@@ -3,13 +3,14 @@
  * record, cursor cell and pen colour before handing it to the column painter. LIVE-OUT: memory-only. */
 
 import { paintLabelledNumericReadoutColumn } from "./paintLabelledNumericReadoutColumn.js";
+import { HIGH_SCORE_REC1_BASE, HIGH_SCORE_REC2_BASE, HIGH_SCORE_REC3_BASE, HIGH_SCORE_REC4_BASE, HIGH_SCORE_TABLE_BASE } from "./names.js";
 
 const READOUTS = [
-  { source: 0xab08, cursor: 0xa711, pen: 0x14 },
-  { source: 0xab10, cursor: 0xa713, pen: 0x16 },
-  { source: 0xab18, cursor: 0xa715, pen: 0x12 },
-  { source: 0xab20, cursor: 0xa717, pen: 0x15 },
-  { source: 0xab28, cursor: 0xa719, pen: 0x13 },
+  { source: HIGH_SCORE_TABLE_BASE, cursor: 0xa711, pen: 0x14 },
+  { source: HIGH_SCORE_REC1_BASE, cursor: 0xa713, pen: 0x16 },
+  { source: HIGH_SCORE_REC2_BASE, cursor: 0xa715, pen: 0x12 },
+  { source: HIGH_SCORE_REC3_BASE, cursor: 0xa717, pen: 0x15 },
+  { source: HIGH_SCORE_REC4_BASE, cursor: 0xa719, pen: 0x13 },
 ];
 
 export function paintFiveLabelledNumericReadouts(m) {

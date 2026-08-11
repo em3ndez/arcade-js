@@ -686,6 +686,29 @@ export const ROUND_NUMBER = 0xad01;
  */
 export const ACTIVE_PLAYER = 0xad32;
 
+// ── Scoring. Each player's score is three packed-BCD bytes, low byte first. Awards add at the LO end;
+// the display and the high-score compare read from the HI end (the most significant byte). [code]
+export const PLAYER1_SCORE_LO = 0xad33;
+export const PLAYER1_SCORE_MID = 0xad34;
+export const PLAYER1_SCORE_HI = 0xad35;
+export const PLAYER2_SCORE_LO = 0xad36;
+export const PLAYER2_SCORE_MID = 0xad37;
+export const PLAYER2_SCORE_HI = 0xad38;
+
+// ── High score. HIGH_SCORE_HI is the MSB of the single displayed high score (0xA98B/8C/8D), seeded at
+// boot and promoted when a game beats it. The high-score TABLE is five records of eight bytes at
+// 0xAB08..0xAB2F: per record +0 rank, +1..+3 score lo/mid/hi, +4..+7 name glyphs. A new score inserts
+// top-first and the records below it slide down (lddr) from SLIDE_SRC toward TABLE_END. [code]
+export const HIGH_SCORE_HI = 0xa98d;
+export const HIGH_SCORE_TABLE_BASE = 0xab08;
+export const HIGH_SCORE_REC0_SCORE_HI = 0xab0b;
+export const HIGH_SCORE_REC1_BASE = 0xab10;
+export const HIGH_SCORE_REC2_BASE = 0xab18;
+export const HIGH_SCORE_REC3_BASE = 0xab20;
+export const HIGH_SCORE_SLIDE_SRC = 0xab27;
+export const HIGH_SCORE_REC4_BASE = 0xab28;
+export const HIGH_SCORE_TABLE_END = 0xab2f;
+
 /**
  * Lives the ACTIVE player has left, in the live context block. [seen]
  *

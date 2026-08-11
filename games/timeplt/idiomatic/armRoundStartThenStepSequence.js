@@ -12,7 +12,7 @@ import { loadDifficultyRecord } from "./loadDifficultyRecord.js";
 import { seedRandomRegister } from "./seedRandomRegister.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8 } from "../../../core/int.js";
-import { ENEMY_AIM_POINT_TABLE, PLAYER_SHOT_ARRAY, PLAY_ACTIVE } from "./names.js";
+import { ENEMY_AIM_POINT_TABLE, PLAYER1_SCORE_LO, PLAYER1_SCORE_MID, PLAYER2_SCORE_LO, PLAYER2_SCORE_MID, PLAYER_SHOT_ARRAY, PLAY_ACTIVE } from "./names.js";
 
 const SEED_A9CD = 0xa9cd;
 const START_RUNG_SOURCE = 0xa9d3;
@@ -42,10 +42,10 @@ export function armRoundStartThenStepSequence(m) {
   for (const cell of ONE_CELLS) mem8[cell] = 0x01;
 
   if (mem8[PLAY_ACTIVE] !== 0) {
-    mem8[0xad33] = 0x00;
-    mem16[0xad34] = 0x0000;
-    mem8[0xad36] = 0x00;
-    mem16[0xad37] = 0x0000;
+    mem8[PLAYER1_SCORE_LO] = 0x00;
+    mem16[PLAYER1_SCORE_MID] = 0x0000;
+    mem8[PLAYER2_SCORE_LO] = 0x00;
+    mem16[PLAYER2_SCORE_MID] = 0x0000;
 
     regs.de = 0x0400;
     postCommand(m);

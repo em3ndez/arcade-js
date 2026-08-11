@@ -9,18 +9,13 @@
 
 import { isScoreBelow } from "./isScoreBelow.js";
 import { fetchTableByte } from "./fetchTableByte.js";
+import { HIGH_SCORE_REC0_SCORE_HI, HIGH_SCORE_SLIDE_SRC, HIGH_SCORE_TABLE_BASE, HIGH_SCORE_TABLE_END, PLAYER1_SCORE_HI, PLAYER2_SCORE_HI } from "./names.js";
 
 const ACTIVE_PLAYER = 0xad32;
-const P1_SCORE = 0xad35;
-const P2_SCORE = 0xad38;
 
-const STANDING_SCORE = 0xab0b; // most-significant score cell of the top record
 const RECORD_COUNT = 0x05;
 const RECORD_STRIDE = 0x08;
 
-const RANK_COLUMN = 0xab08; // rank cell of the top record
-const SLIDE_SRC = 0xab27; // last cell of the record above the tail
-const BOARD_END = 0xab2f; // last cell of the bottom record
 
 const NAME_SENTINEL = 0xf1;
 const SLOT_PTR = 0xa991;
@@ -30,11 +25,11 @@ const GLYPH_ROW_PTR = 0xa993;
 export function fileScoreIntoHighScoreTable(m) {
   const { regs, mem } = m;
 
-  regs.hl = STANDING_SCORE;
+  regs.hl = HIGH_SCORE_REC0_SCORE_HI;
   regs.b = RECORD_COUNT;
   regs.a = mem.read8(ACTIVE_PLAYER);
   regs.and(regs.a);
-  regs.de = regs.fZ ? P1_SCORE : P2_SCORE;
+  regs.de = regs.fZ ? PLAYER1_SCORE_HI : PLAYER2_SCORE_HI;
 
   let savedDe = regs.de;
   let filed = false;
@@ -55,10 +50,10 @@ export function fileScoreIntoHighScoreTable(m) {
 
   regs.b = regs.dec8(regs.b);
   if (regs.fZ) {
-    regs.hl = BOARD_END; // slot is the bottom record; nothing to slide
+    regs.hl = HIGH_SCORE_TABLE_END; // slot is the bottom record; nothing to slide
   } else {
-    regs.hl = SLIDE_SRC;
-    regs.de = BOARD_END;
+    regs.hl = HIGH_SCORE_SLIDE_SRC;
+    regs.de = HIGH_SCORE_TABLE_END;
     regs.a = regs.b;
     regs.add(regs.a);
     regs.add(regs.a);
@@ -86,7 +81,7 @@ export function fileScoreIntoHighScoreTable(m) {
   fetchTableByte(m);
   mem.write16(GLYPH_ROW_PTR, regs.hl);
 
-  regs.hl = RANK_COLUMN;
+  regs.hl = HIGH_SCORE_TABLE_BASE;
   regs.de = RECORD_STRIDE;
   regs.b = RECORD_COUNT;
   regs.xor(regs.a);

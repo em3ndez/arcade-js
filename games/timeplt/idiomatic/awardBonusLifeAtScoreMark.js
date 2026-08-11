@@ -7,15 +7,13 @@
  * pre-step count going out with the request. LIVE-OUT: memory. */
 
 import { u16 } from "../../../core/int.js";
-import { PLAY_ACTIVE, ACTIVE_PLAYER, LIVES_REMAINING } from "./names.js";
+import { ACTIVE_PLAYER, LIVES_REMAINING, PLAYER1_SCORE_HI, PLAYER2_SCORE_HI, PLAY_ACTIVE } from "./names.js";
 import { postCommand } from "./postCommand.js";
 import { requestBonusLifeSound } from "./requestBonusLifeSound.js";
 
 const SETTING = 0xa9c3;
 const MARKS_WHEN_CLEAR = 0x4e1b;
 const MARKS_WHEN_SET = 0x4e30;
-const FIRST_TALLY_TOP = 0xad35;
-const SECOND_TALLY_TOP = 0xad38;
 const LATCH = 0xad03;
 const LATCH_BIT = 0x01;
 const AWARD_COMMAND = 5;
@@ -28,7 +26,7 @@ export function awardBonusLifeAtScoreMark(m) {
   const marks = (mem8[SETTING] & 1) === 0 ? MARKS_WHEN_CLEAR : MARKS_WHEN_SET;
   const length = mem8[marks];
   const span = length === 0 ? A_ZERO_LENGTH_MEANS : length;
-  const reached = mem8[mem8[ACTIVE_PLAYER] === 0 ? FIRST_TALLY_TOP : SECOND_TALLY_TOP];
+  const reached = mem8[mem8[ACTIVE_PLAYER] === 0 ? PLAYER1_SCORE_HI : PLAYER2_SCORE_HI];
 
   let matched = false;
   for (let i = 1; i <= span && !matched; i++) matched = mem8[u16(marks + i)] === reached;

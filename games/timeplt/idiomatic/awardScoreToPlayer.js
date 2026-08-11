@@ -13,13 +13,11 @@ import { paintHighScoreReadout } from "./paintHighScoreReadout.js";
 import { drawTextRunByIndex } from "./drawTextRunByIndex.js";
 import { eraseTextRunByIndex } from "./eraseTextRunByIndex.js";
 import { advanceCharCursor } from "./advanceCharCursor.js";
+import { HIGH_SCORE_HI, PLAYER1_SCORE_LO, PLAYER2_SCORE_LO } from "./names.js";
 
 const SCORING_ENABLED = 0xad30;
 const PLAYER_COUNT = 0xad31;
 const CURRENT_PLAYER = 0xad32;
-const PLAYER1_SCORE = 0xad33;
-const PLAYER2_SCORE = 0xad36;
-const HIGH_SCORE_TOP = 0xa98d;
 const AWARD_TABLE = 0x0d27;
 const SCORE_BYTES = 3;
 
@@ -36,7 +34,7 @@ export function awardScoreToPlayer(m) {
 
   // add the award's three packed-decimal bytes into the player's score, least significant first
   let hl = u16(AWARD_TABLE + SCORE_BYTES * award);
-  let de = mem8[CURRENT_PLAYER] === 0 ? PLAYER1_SCORE : PLAYER2_SCORE;
+  let de = mem8[CURRENT_PLAYER] === 0 ? PLAYER1_SCORE_LO : PLAYER2_SCORE_LO;
   regs.a = mem8[de]; regs.add(mem8[hl]); regs.daa(); mem8[de] = regs.a;
   de = u16(de + 1); hl = u16(hl + 1);
   regs.a = mem8[de]; regs.adc(mem8[hl]); regs.daa(); mem8[de] = regs.a;
@@ -44,7 +42,7 @@ export function awardScoreToPlayer(m) {
   regs.a = mem8[de]; regs.adc(mem8[hl]); regs.daa(); mem8[de] = regs.a;
 
   // compare the new score with the high score from the top byte down; on a win copy it in
-  hl = HIGH_SCORE_TOP;
+  hl = HIGH_SCORE_HI;
   let count = SCORE_BYTES;
   let promote = false;
   for (;;) {

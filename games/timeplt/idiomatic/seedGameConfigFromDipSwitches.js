@@ -9,11 +9,10 @@
 import { u8 } from "../../../core/int.js";
 import { unpackCoinage } from "./unpackCoinage.js";
 import { unpackTheFirstThreeSwitchSettings } from "./unpackTheFirstThreeSwitchSettings.js";
-import { COINAGE_SETTINGS, KILL_QUOTA } from "./names.js";
+import { COINAGE_SETTINGS, HIGH_SCORE_HI, KILL_QUOTA } from "./names.js";
 
 const BOOT_BYTE_A = 0x08c9;
 const BOOT_BYTE_B = 0x0874;
-const SEEDED_CELL = 0xa98d;
 const SWITCH_BANK_0 = 0xc360;
 const SWITCH_BANK_1 = 0xc200;
 const LIVES_BASE = 3;
@@ -22,7 +21,7 @@ const ALL_ONES = 0xff;
 
 export function seedGameConfigFromDipSwitches(m) {
   const { mem8, regs } = m;
-  mem8[SEEDED_CELL] = mem8[BOOT_BYTE_A];
+  mem8[HIGH_SCORE_HI] = mem8[BOOT_BYTE_A];
   mem8[KILL_QUOTA] = mem8[BOOT_BYTE_B];
   mem8[COINAGE_SETTINGS] = u8(~mem8[SWITCH_BANK_0]);
   unpackCoinage(m);

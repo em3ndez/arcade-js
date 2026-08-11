@@ -84,8 +84,11 @@ function callsRatherThanRestates(text, [name, file, ownName]) {
 
 /** The module must name all three of the ROM's constants, not merely some of them. */
 function namesTheTriple(text) {
-  return [TALLY_TOP_BYTE, FIRST_DIGIT_CELL, DIGIT_COLOUR]
-    .every((v) => text.includes("0x" + v.toString(16)));
+  // The tally byte 0xA98D is now imported by its goal-3 name HIGH_SCORE_HI, so accept either form;
+  // the destination cell and the colour are still literals in the module. The sibling readout names a
+  // DIFFERENT tally (its own player-score cell), so it matches neither form and still fails the check.
+  const hasTally = text.includes("HIGH_SCORE_HI") || text.includes("0x" + TALLY_TOP_BYTE.toString(16));
+  return hasTally && [FIRST_DIGIT_CELL, DIGIT_COLOUR].every((v) => text.includes("0x" + v.toString(16)));
 }
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");

@@ -301,6 +301,25 @@ The consequence for anyone measuring this game: **a reachability sweep run on th
 cannot see the free-play half of the machine at all**, and a zero there means the cabinet, not
 the code.
 
+### Scoring and the high-score table
+
+Each player keeps a **three-byte packed-BCD score, low byte first**: `PLAYER1_SCORE_LO`/`_MID`/`_HI`
+at `0xAD33`-`0xAD35` and `PLAYER2_SCORE_*` at `0xAD36`-`0xAD38`. Awards add in at the LO end and carry
+upward; the on-screen readout and the high-score comparison both read from the HI end, the most
+significant byte. `[code]`
+
+One **displayed high score** is held separately at `0xA98B`-`0xA98D` (`HIGH_SCORE_HI` its MSB), seeded
+at boot and promoted when a game's score passes it.
+
+The **high-score table** is five records of eight bytes, `HIGH_SCORE_TABLE_BASE` (`0xAB08`) through
+`HIGH_SCORE_TABLE_END` (`0xAB2F`). Each record is `+0` a rank cell, `+1..+3` the score low/mid/high,
+`+4..+7` the initials glyphs; the record bases are `HIGH_SCORE_REC1_BASE`..`REC4_BASE` (record 0 is the
+table base itself). A finished game is filed by `fileScoreIntoHighScoreTable`: it walks the standing
+records top-first, comparing the new score's HI byte against each record's score MSB
+(`HIGH_SCORE_REC0_SCORE_HI` is the top record's), and at the first slot the new score is not below, it
+slides every record beneath down one place with an `lddr` from `HIGH_SCORE_SLIDE_SRC` (the last cell of
+the record above the tail) toward `HIGH_SCORE_TABLE_END`, then writes the new record into the gap. `[code]`
+
 ### Two start buttons, two routines, and each is the other's control
 
 The credited start is not one routine with a player count in it either. Two separate routines exist,
