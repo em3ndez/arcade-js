@@ -8,7 +8,7 @@
 import { loc_5634 } from "./loc_5634.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startNextRound } from "./startNextRound.js";
-import { ACTOR_RECORD_SLOT0, ROUND_TRANSITION_HOLD } from "./names.js";
+import { ACTOR_RECORD_SLOT0, ACTOR_SPRITE_Y_SLOT0, ROUND_TRANSITION_HOLD } from "./names.js";
 
 export function advanceRoundWhenFieldCleared(m) {
   const { mem8 } = m;
@@ -31,7 +31,7 @@ export function advanceRoundWhenFieldCleared(m) {
     return;
   }
 
-  for (let i = 0; i < 23; i++) mem8[0xaa43 + i * 2] = 0;
+  for (let i = 0; i < 23; i++) mem8[ACTOR_SPRITE_Y_SLOT0 + i * 2] = 0;
   startNextRound(m);
   const dest = mem8[0xad32] === 0 ? 0xad10 : 0xad20;
   for (let i = 0; i < 16; i++) mem8[dest + i] = mem8[0xad00 + i];

@@ -10,6 +10,7 @@ import { offsetAddress } from "./offsetAddress.js";
 import { seatSceneryFillByte0x28ThenClearEraScenery } from "./seatSceneryFillByte0x28ThenClearEraScenery.js";
 import { clearSceneryEntriesThenRunEraScenery } from "./clearSceneryEntriesThenRunEraScenery.js";
 import { u8, u16 } from "../../../core/int.js";
+import { SCENERY_SPRITE_CODE_SLOT0 } from "./names.js";
 
 const CHECK_BASE = 0x086b;
 const CHECK_LEN = 0x10;
@@ -17,7 +18,6 @@ const CHECK_EXPECTED = 0x22;
 const ERA_INDEX = 0xad04;
 const ROW_TABLE = 0x3176;
 const ROW_STRIDE = 8;
-const SEAT_BASE = 0xaa31;
 const SEAT_STRIDE = 2;
 const SEAT_COUNT = 8;
 const ERA_FOUR = 0x04;
@@ -36,7 +36,7 @@ export function seatEraSceneryRowThenClearAndRunScenery(m) {
   regs.hl = ROW_TABLE;
   offsetAddress(m); // hl = ROW_TABLE + 8*era
 
-  regs.de = SEAT_BASE;
+  regs.de = SCENERY_SPRITE_CODE_SLOT0;
   regs.b = SEAT_COUNT;
   do {
     regs.a = mem8[regs.hl];

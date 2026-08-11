@@ -8,7 +8,7 @@
  * LIVE-OUT: memory. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { ERA_INDEX, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_SHOT_ARRAY } from "./names.js";
+import { ERA_INDEX, MOTHER_SHIP_ENTRY, MOTHER_SHIP_SPRITE_Y, MOTHER_SHIP_STATE, PLAYER_SHOT_ARRAY } from "./names.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
 
 const SLOT_COUNT = 6;
@@ -17,7 +17,6 @@ const STATE = 0;
 const SLOT_FIRST_AXIS = 6;
 const SLOT_SECOND_AXIS = 4;
 
-const ROAMER_SECOND_AXIS = 0xaa55;
 
 const LIVE = 255;
 const DESTROYED = 240;
@@ -46,7 +45,7 @@ export function destroyMotherShipAndShotOnMutualHit(m) {
     if (
       mem8[u16(slot + STATE)] === LIVE &&
       within(mem8[MOTHER_SHIP_ENTRY], mem8[u16(slot + SLOT_FIRST_AXIS)], reach, span) &&
-      within(mem8[ROAMER_SECOND_AXIS], mem8[u16(slot + SLOT_SECOND_AXIS)],
+      within(mem8[MOTHER_SHIP_SPRITE_Y], mem8[u16(slot + SLOT_SECOND_AXIS)],
         SECOND_AXIS_REACH, SECOND_AXIS_SPAN)
     ) {
       mem8[MOTHER_SHIP_STATE] = DESTROYED;

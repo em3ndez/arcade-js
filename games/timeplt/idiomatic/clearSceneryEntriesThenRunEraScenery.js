@@ -8,8 +8,8 @@
 import { seedSceneryEntriesThenRunScenery } from "./seedSceneryEntriesThenRunScenery.js";
 import { loc_315b } from "./loc_315b.js";
 import { runSceneryForEra } from "./runSceneryForEra.js";
+import { SCENERY_ENTRY_SLOT0, SCENERY_SPRITE_ATTRIBUTE_SLOT0 } from "./names.js";
 
-const CLEAR_BASE = 0xaa60;
 const CLEAR_COUNT = 8;
 const ERA_FLOOR = 0x04;
 const GUARD = 0xacc7;
@@ -17,13 +17,12 @@ const GUARD_OK = 0x3b;
 const SUBGUARD_A = 0x05;
 const SUBGUARD_B = 0x10;
 const SEAT_TABLE = 0x315e;
-const FIRST_ENTRY = 0xaa30;
 const SEAT_COUNT = 8;
 
 export function clearSceneryEntriesThenRunEraScenery(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = CLEAR_BASE;
+  regs.hl = SCENERY_SPRITE_ATTRIBUTE_SLOT0;
   regs.de = 0x0002;
   regs.b = CLEAR_COUNT;
   do {
@@ -50,7 +49,7 @@ export function clearSceneryEntriesThenRunEraScenery(m) {
   }
 
   regs.b = SEAT_COUNT;
-  regs.iy = FIRST_ENTRY;
+  regs.iy = SCENERY_ENTRY_SLOT0;
   regs.hl = SEAT_TABLE;
   do {
     regs.a = mem8[regs.hl];

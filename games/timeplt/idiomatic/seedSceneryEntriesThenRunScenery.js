@@ -7,10 +7,10 @@
 
 import { loc_3114 } from "./loc_3114.js";
 import { runSceneryForEra } from "./runSceneryForEra.js";
+import { SCENERY_ENTRY_SLOT0 } from "./names.js";
 
 const SENTINEL = 0xad39;
 const OBJECT_TABLE = 0x316e;
-const FIRST_ENTRY = 0xaa30;
 const OBJECTS = 4;
 
 export function seedSceneryEntriesThenRunScenery(m) {
@@ -26,7 +26,7 @@ export function seedSceneryEntriesThenRunScenery(m) {
   if (regs.a !== 0x10 && regs.a !== 0x05) return loc_3114(m);
 
   regs.hl = OBJECT_TABLE;
-  regs.iy = FIRST_ENTRY;
+  regs.iy = SCENERY_ENTRY_SLOT0;
   regs.b = OBJECTS;
   do {
     const tint = mem8[regs.hl];

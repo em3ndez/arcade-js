@@ -5,7 +5,7 @@
  * shared by everything between — including an index past the fifth, which falls to that middle
  * order rather than being refused. LIVE-OUT: memory, plus the two cursors. */
 
-import { ERA_INDEX } from "./names.js";
+import { ERA_INDEX, SCENERY_ENTRY_SLOT0, SCENERY_RECORD_SLOT0 } from "./names.js";
 import { driftThreeTileSceneryAtFiveQuarters } from "./driftThreeTileSceneryAtFiveQuarters.js";
 import { stepTwoTileSceneryAtFiveQuarters } from "./stepTwoTileSceneryAtFiveQuarters.js";
 import { driftTwoTileSceneryAtThreeQuarters } from "./driftTwoTileSceneryAtThreeQuarters.js";
@@ -13,8 +13,6 @@ import { driftOneTileSceneryAtThreeQuarters } from "./driftOneTileSceneryAtThree
 import { driftOneTileSceneryAtHalf } from "./driftOneTileSceneryAtHalf.js";
 import { driftNearestSceneryTriTile } from "./driftNearestSceneryTriTile.js";
 
-const FIRST_RECORD = 0xa900;
-const FIRST_ENTRY = 0xaa30;
 
 const FIRST_ERA = 0;
 const LAST_ERA = 4;
@@ -35,8 +33,8 @@ const CLOSING_ORDER = [stepTwoTileSceneryAtFiveQuarters, stepTwoTileSceneryAtFiv
 
 export function runSceneryForEra(m) {
   const { regs, mem8 } = m;
-  regs.ix = FIRST_RECORD;
-  regs.iy = FIRST_ENTRY;
+  regs.ix = SCENERY_RECORD_SLOT0;
+  regs.iy = SCENERY_ENTRY_SLOT0;
 
   const era = mem8[ERA_INDEX];
   const order = era === FIRST_ERA ? OPENING_ORDER : era === LAST_ERA ? CLOSING_ORDER : MIDDLE_ORDER;

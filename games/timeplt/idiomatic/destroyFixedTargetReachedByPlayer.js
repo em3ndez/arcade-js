@@ -8,12 +8,11 @@
 
 import { postChainedHitScore } from "./postChainedHitScore.js";
 import { u8 } from "../../../core/int.js";
-import { ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0, HITS_REMAINING, PLAYER_ENTRY, PLAYER_STATE } from "./names.js";
+import { ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0, ERA_OBJECT_SPRITE_Y_SLOT0, HITS_REMAINING, PLAYER_ENTRY, PLAYER_STATE } from "./names.js";
 
 const TARGET_FIRST_AXIS = 0;
 const TARGET_SECOND_AXIS = 0x31;
 
-const MOVER_SECOND_AXIS = 0xaa59;
 const FIRST_AXIS_SLACK = 6;
 const FIRST_AXIS_WINDOW = 0x0d;
 const SECOND_AXIS_SLACK = 0x18;
@@ -29,7 +28,7 @@ export function destroyFixedTargetReachedByPlayer(m) {
 
   const across = u8(mem8[ERA_OBJECT_ENTRY_SLOT0] - mem8[PLAYER_ENTRY + TARGET_FIRST_AXIS] + FIRST_AXIS_SLACK);
   if (across >= FIRST_AXIS_WINDOW) return;
-  const along = u8(mem8[MOVER_SECOND_AXIS] - mem8[PLAYER_ENTRY + TARGET_SECOND_AXIS] + SECOND_AXIS_SLACK);
+  const along = u8(mem8[ERA_OBJECT_SPRITE_Y_SLOT0] - mem8[PLAYER_ENTRY + TARGET_SECOND_AXIS] + SECOND_AXIS_SLACK);
   if (along >= SECOND_AXIS_WINDOW) return;
 
   mem8[PLAYER_STATE] = DESTROYED;

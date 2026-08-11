@@ -22,7 +22,7 @@ import { requestTwoSounds } from "./requestTwoSounds.js";
 import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
 import { requestCurrentEraSound } from "./requestCurrentEraSound.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
-import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, MOTHER_SHIP_ENTRY, ROUND_TRANSITION_HOLD } from "./names.js";
+import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, ROUND_TRANSITION_HOLD } from "./names.js";
 
 const RECORD_BANK = 0xa8a0;
 
@@ -65,7 +65,6 @@ const ON_SCREEN_Y = 0x20;
 
 const NEW_RECORD_PTR = 0xa991;
 const NEW_SPRITE_PTR = 0xa993;
-const HEADING_TOGGLE = 0xa8b4;
 const STAGE = 0xad04;
 const ARM_TABLE = 0x478b;
 const SECOND_ENTRY = 0x30; // second sprite entry's base offset off iy (mirrors fields 0x00-0x03)
@@ -404,7 +403,7 @@ export function loc_43f0_474c(m) {
 
   regs.h = regs.a;
   regs.exDeHl(); // park the heading byte in DE
-  regs.hl = HEADING_TOGGLE;
+  regs.hl = MOTHER_SHIP_AIM_SIDE_TOGGLE;
   regs.incMem8(mem, regs.hl);
   regs.a = 0x18;
   regs.bit(0, mem8[regs.hl]);

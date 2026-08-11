@@ -1254,6 +1254,66 @@ export const PLAYER_SPRITE_ATTRIBUTE = 0xaa40;
 export const PLAYER_SPRITE_Y = 0xaa41;
 
 /*
+ * Object-array completion (G3-10): the scenery/parallax band (array slots 16-23, driven by runSceneryForEra --
+ * a SEPARATE driver from the active-object handlers, same array structure), plus the record field-interiors and
+ * Y-band cells the active slots left unnamed. Scenery SLOTn is band-local (0-based within the scenery band):
+ * SLOT0 = array slot 16, SLOT3 = array slot 19 (the two publishSpriteShadow run heads). See mechanisms.md §4.
+ */
+
+/** Scenery record base, scenery slot 0 (array slot 16); the ix cursor runSceneryForEra seats (paired with SCENERY_ENTRY_SLOT0). [code] */
+export const SCENERY_RECORD_SLOT0 = 0xa900;
+
+/** Scenery sprite-entry X seat, scenery slot 0 (array slot 16); base of publishSpriteShadow's bank-0 head run [.,6] (slots 16-18). [code] */
+export const SCENERY_ENTRY_SLOT0 = 0xaa30;
+
+/** Scenery sprite code/shape byte, scenery slot 0 (= SCENERY_ENTRY_SLOT0 +1); base of the era-keyed 8-slot code fill (stride 2). [code] */
+export const SCENERY_SPRITE_CODE_SLOT0 = 0xaa31;
+
+/** Scenery sprite-entry X seat, scenery slot 3 (array slot 19); base of publishSpriteShadow's bank-0 tail run [.,10] (slots 19-23). [code] */
+export const SCENERY_ENTRY_SLOT3 = 0xaa36;
+
+/** Scenery attribute (colour+flip) band base, scenery slot 0 (= SCENERY_ENTRY_SLOT0 +0x30); base of the bank-1 head run [.,6]. [code] */
+export const SCENERY_SPRITE_ATTRIBUTE_SLOT0 = 0xaa60;
+
+/** Scenery attribute band, scenery slot 3 (array slot 19); base of publishSpriteShadow's bank-1 tail run [.,10]. [code] */
+export const SCENERY_SPRITE_ATTRIBUTE_SLOT3 = 0xaa66;
+
+/**
+ * Mother-Ship record +4 (the code's own alias is HOLD_COUNTER): a countdown decremented each mid-phase frame while
+ * the ship is kept live, reaching 0 ends the phase; zeroed on the player-contact kill. NOT a hit counter -- that is
+ * HITS_REMAINING 0xa8dc. [code] -- the exact phase it holds is MAME-grounding pending.
+ */
+export const MOTHER_SHIP_HOLD_COUNTER = 0xa8a4;
+
+/**
+ * The Mother-Ship's homing-launch aim-side toggle: inc'd each launch, bit 0 picks the +0x18 / -0x18 side of the aim.
+ * Physically CRAFT_RECORD_SLOT6 +4 -- the mother-ship's documented second-record scratch, touched only by its own step. [code]
+ */
+export const MOTHER_SHIP_AIM_SIDE_TOGGLE = 0xa8b4;
+
+/**
+ * The attacker (era-bank) aimed-spawn aim-side toggle: inc'd each spawn, bit 0 picks the +/- side of the aim window
+ * whose magnitude is ATTACKER_SPAWN_WINDOW_HALF (0xa8d6, this record's +6). ERA_OBJECT_RECORD_SLOT1 +4. [code]
+ */
+export const ATTACKER_SPAWN_AIM_SIDE_TOGGLE = 0xa8d4;
+
+/** The player's sprite code/shape byte = PLAYER_ENTRY +1; written from a heading-indexed table (the descriptor's 2nd byte). [code] */
+export const PLAYER_SPRITE_CODE = 0xaa11;
+
+/**
+ * Actor slot 0's sprite Y (array slot 1; = ACTOR_ENTRY_SLOT0 +0x31, one step of the PLAYER_SPRITE_Y band). [code]
+ *
+ * The literal base of the "park all non-player sprites" Y-clear loop (mem8[base + i*2] over 23 slots).
+ */
+export const ACTOR_SPRITE_Y_SLOT0 = 0xaa43;
+
+/** The Mother-Ship's sprite Y (array slot 10; = MOTHER_SHIP_ENTRY +0x31); read as a scalar in the contact/collision windows. [code] */
+export const MOTHER_SHIP_SPRITE_Y = 0xaa55;
+
+/** Era-object bank slot 0's sprite Y (array slot 12; = ERA_OBJECT_ENTRY_SLOT0 +0x31); read as a scalar in fixed-target collision. [code] */
+export const ERA_OBJECT_SPRITE_Y_SLOT0 = 0xaa59;
+
+/*
  * Player shots: a SEPARATE six-slot record array at 0xAA80 (0xAA80-0xAADF, stride 0x10) with NO sprite entries --
  * the object-array 8:1 mapping does not apply. Slot +0 head/occupancy, +3/+5 velocity, +10/+12 position. See §4/§5.
  */

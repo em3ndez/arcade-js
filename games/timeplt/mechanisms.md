@@ -771,6 +771,19 @@ slot 2 doubling as the aimed-spawn "bank B" seat. The last slot is the parachuti
 The player's own entry is `PLAYER_ENTRY` (`0xAA10`) and the Mother-Ship's is `MOTHER_SHIP_ENTRY` (`0xAA24`).
 `[code]` (which enemy class occupies each band is MAME-grounding pending; the addressing is opcode-proven.)
 
+The scenery band (array slots 16-23) has names too, in a scenery-local `SCENERY_*_SLOTn` scheme: `SCENERY_RECORD_SLOT0`
+(`0xA900`) with entry `SCENERY_ENTRY_SLOT0` (`0xAA30`), code `SCENERY_SPRITE_CODE_SLOT0` (`0xAA31`) and attribute
+`SCENERY_SPRITE_ATTRIBUTE_SLOT0` (`0xAA60`); the tail run's head is `SCENERY_ENTRY_SLOT3` (`0xAA36`) /
+`SCENERY_SPRITE_ATTRIBUTE_SLOT3` (`0xAA66`) — the SLOT0/SLOT3 split is the 3-slot head run `[.,6]` and 5-slot tail run
+`[.,10]` `publishSpriteShadow` renders at two priorities. A handful of record and sprite INTERIORS the active slots
+left bare are named for their field: `MOTHER_SHIP_HOLD_COUNTER` (`0xA8A4`, the ship record's `+4` phase countdown —
+NOT a hit tally; that is `HITS_REMAINING`), the two aimed-launch side toggles `MOTHER_SHIP_AIM_SIDE_TOGGLE` (`0xA8B4`,
+the ship's launch, stashed in its second record) and `ATTACKER_SPAWN_AIM_SIDE_TOGGLE` (`0xA8D4`, the era-bank aimed
+spawn, beside `ATTACKER_SPAWN_WINDOW_HALF`), the player's sprite code `PLAYER_SPRITE_CODE` (`0xAA11`), and the three
+literal-referenced Y-band cells `ACTOR_SPRITE_Y_SLOT0` / `MOTHER_SHIP_SPRITE_Y` / `ERA_OBJECT_SPRITE_Y_SLOT0`
+(`0xAA43` / `0xAA55` / `0xAA59`). One cell stays deliberately unnamed: `0xA801` (player record `+1`) is only ever
+zeroed and never read, so it has no honest name. `[code]`
+
 ### A coordinate is split across both tables
 
 An actor's position is 16-bit 8.8 fixed point whose **whole byte lives in the sprite entry** and
