@@ -196,6 +196,18 @@ Two rules for when you do dissolve, at the caller:
   `m.call(ACTOR_UPDATE)` is a const-alias evasion that hides a stale call from a lint that only
   greps for `m.call(0x…)`.
 
+**A callee that is a bare-return no-op module dissolves to nothing, and the module is deleted.** Some
+`loc_<addr>` files are not routines at all — they are a range boundary the transcription turned into a
+file: a label the ROM's own `jp`/`ret` lands on, whose whole body reads and writes nothing (the
+*routine-is-a-range-not-a-filename* trap). Do not preserve the call. Inline it — a tail
+`return callee(m)` becomes `return;`, a mid-body call is deleted — then delete the module, its
+`ROUTINES` entry, and its `equivalence-<addr>.test.js`. The frozen `translated/` twin stays as the
+oracle, and the address harmlessly falls back to it since nothing dispatches it. Worked case: Time
+Pilot's `loc_0ce8` was `awardScoreToPlayer`'s own exit label, removed this way. **A bare-return
+idiomatic module should be forbidden by a gate**, the way `registry-coverage` forbids an undispatched
+one — a rule no gate checks decays (see *A check that cannot fail*, and the registry-coverage
+history, above).
+
 ## Then the mechanisms file
 
 **Every understanding pass finishes by rewriting `games/<game>/mechanisms.md` from scratch, in the
@@ -667,7 +679,12 @@ equivalence again isolates real logic bugs.
   reviewer, who must reject it.
 - **Memory access is indexed:** `mem8[ADDR]` / `mem16[ADDR]`, never `mem.read8`/`write8`. Pure sugar
   over the same accessors, so they wrap and diff identically. A still-hex address is fine at
-  decompile time; the understanding pass swaps the literal for a name later.
+  decompile time; the understanding pass swaps the literal for a name later. **Every accessed address
+  earns a name, not only RAM cells** — a shared RAM or hardware cell through the `names.js` registry,
+  a ROM table or constant this routine reads through a named local `const` (registry if a sibling
+  reads it too). No bare `mem8[0x….]` survives the understanding pass whatever region it points at: a
+  hex literal in a `mem8[]` is unnamed data, the same legibility hole as an unnamed register, and the
+  region is not an excuse — a ROM constant is as nameable as a work-RAM cell.
 - **Name locals by meaning, never by register.** A local that survives from a Z80 register keeps the
   register's *value*, not its name: `const b = OBJ_X + 3` is `probeX`. Single-letter locals are the
   variable-level version of the assembly-comment smell, and the understanding pass's variable naming
