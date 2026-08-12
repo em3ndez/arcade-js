@@ -715,6 +715,9 @@ equivalence again isolates real logic bugs.
 - **Honest signatures by default.** Register live-ins become named parameters, live-outs become
   returns, a routine that only maps inputs to outputs becomes a pure function. Keep register-passing
   only at a genuine oracle boundary.
+- **Extremely limited comments until understanding is done.** While routines are still `loc_` and
+  addresses bare, understanding is in flux — comment only what correctness needs, no walk-throughs.
+  The full explanatory pass waits until as many routines and addresses are named as possible.
 - **Comments describe behaviour, not the assembly it came from.** No register names, no mnemonics, no
   "the Z80 does X." Name methods directly — "the entropy pin", "the caller-skip idiom" — never a doc
   number or `.md` path; citations rot.
