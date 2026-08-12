@@ -170,6 +170,9 @@ def main():
     p.add_argument("--rompath", default=os.path.join(GAME, "rom"))
     p.add_argument("--frames", type=int, default=GOLDEN_FRAMES - 1)
     p.add_argument("--work", default=os.path.join(GAME, "out", "pixelwork"))
+    p.add_argument("--layer", choices=("idiomatic", "oracle"), default=None,
+                   help="which layer to render vs MAME. Default reads manifest.runtime; the pixel "
+                        "gate passes this explicitly, chosen from which layer's files changed.")
     a = p.parse_args()
 
     try:
@@ -184,10 +187,11 @@ def main():
 
     os.makedirs(a.work, exist_ok=True)
     go, jo = os.path.join(a.work, "golden"), os.path.join(a.work, "js")
-    idiomatic = runtime() == "idiomatic"
+    idiomatic = (a.layer == "idiomatic") if a.layer else (runtime() == "idiomatic")
     offset = GEN_OFFSET if idiomatic else FROZEN_OFFSET
+    src = "--layer" if a.layer else "manifest.runtime"
     print(f"  layer: {'IDIOMATIC (generator engine)' if idiomatic else 'oracle (cycle-driven)'}"
-          f"; golden offset {offset}")
+          f"; golden offset {offset} (from {src})")
     capture_golden(a.rompath, go, lua_tape(os.path.join(a.work, "tape.lua")))
     render_js(jo, a.frames, idiomatic)
 

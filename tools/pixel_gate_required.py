@@ -50,6 +50,7 @@ RENDER_AFFECTING = re.compile(
 BOARD_PATH = re.compile(r"^boards/([^/]+)/")
 
 IDIOMATIC_ONLY = re.compile(r"^games/([^/]+)/idiomatic/")
+TRANSLATED_ONLY = re.compile(r"^games/([^/]+)/translated/")
 
 MANIFEST_RUNTIME = re.compile(r'^\s*runtime:\s*"([^"]+)"', re.M)
 MANIFEST_BOARD = re.compile(r'^\s*board:\s*"([^"]+)"', re.M)
@@ -134,6 +135,39 @@ def affected_games(paths):
                 if game not in seen:
                     seen.append(game)
     return seen
+
+
+def layers_for_game(game, paths):
+    """Which layer(s) the pixel gate must render for this game, from WHICH FILES changed -- so the
+    gate tests the layer you touched, not whatever `manifest.runtime` names. `idiomatic/` -> render
+    "idiomatic"; `translated/` -> render "oracle"; every other RENDER_AFFECTING path (machine.js,
+    manifest.js, render.js, routines.js, pixel_suite.py) and any board path is SHARED by both
+    layers, so it asks for both. Order idiomatic-before-oracle, stable. Non-empty whenever `game`
+    is in affected_games(paths)."""
+    want_idio = want_oracle = False
+    boards = None
+    for p in paths:
+        m = RENDER_AFFECTING.match(p)
+        if m and m.group(1) == game:
+            if IDIOMATIC_ONLY.match(p):
+                want_idio = True
+            elif TRANSLATED_ONLY.match(p):
+                want_oracle = True
+            else:
+                want_idio = want_oracle = True   # shared infra renders under both layers
+            continue
+        b = BOARD_PATH.match(p)
+        if b:
+            if boards is None:
+                boards = board_to_games()
+            if game in boards.get(b.group(1), []):
+                want_idio = want_oracle = True   # the board is shared by both layers
+    layers = []
+    if want_idio:
+        layers.append("idiomatic")
+    if want_oracle:
+        layers.append("oracle")
+    return layers
 
 
 def game_runtime(game):
@@ -240,16 +274,19 @@ def cmd_check(_args=None):
                   file=sys.stderr)
             failed.append(game)
             continue
+        layers = layers_for_game(game, paths)
         for argv, pattern in SUITES[game]:
-            print(f"pixel_gate_required: {game} -- running {' '.join(argv)}")
-            ok, out = run_suite(argv, pattern)
-            tail = "\n".join(out.strip().splitlines()[-12:])
-            if ok:
-                print(f"  {game}: PASS{dormancy_caveat(game, paths)}\n{tail}")
-            else:
-                print(f"  {game}: REFUSED -- the suite did not print its PASS line.\n{tail}",
-                      file=sys.stderr)
-                failed.append(game)
+            for layer in layers:
+                full = argv + ["--layer", layer]
+                print(f"pixel_gate_required: {game} [{layer}] -- running {' '.join(full)}")
+                ok, out = run_suite(full, pattern)
+                tail = "\n".join(out.strip().splitlines()[-12:])
+                if ok:
+                    print(f"  {game} [{layer}]: PASS{dormancy_caveat(game, paths)}\n{tail}")
+                else:
+                    print(f"  {game} [{layer}]: REFUSED -- the suite did not print its PASS "
+                          f"line.\n{tail}", file=sys.stderr)
+                    failed.append(game)
 
     if failed:
         print(
@@ -466,6 +503,12 @@ def cmd_selftest(_args=None):
                 ("cmd_check: idiomatic staged, suite passes -> allow",
                  ["games/timeplt/idiomatic/loc_1.js"],
                  {"timeplt": [(_fixture(tmp, "ok.py", "pixel_suite: PASS\n", 0), PIXEL_SUITE_PASS)]}, 0),
+                ("cmd_check: translated staged -> runs the oracle layer, passes -> allow",
+                 ["games/timeplt/translated/loc_1.js"],
+                 {"timeplt": [(_fixture(tmp, "oracle_ok.py", "pixel_suite: PASS\n", 0), PIXEL_SUITE_PASS)]}, 0),
+                ("cmd_check: both layers staged -> runs both, both pass -> allow",
+                 ["games/timeplt/idiomatic/a.js", "games/timeplt/translated/b.js"],
+                 {"timeplt": [(_fixture(tmp, "both_ok.py", "pixel_suite: PASS\n", 0), PIXEL_SUITE_PASS)]}, 0),
                 ("cmd_check: idiomatic staged, suite SKIPs -> REFUSE",
                  ["games/timeplt/idiomatic/loc_1.js"],
                  {"timeplt": [(_fixture(tmp, "skip.py", "pixel_suite: SKIP\n", 0), PIXEL_SUITE_PASS)]}, 1),
@@ -517,6 +560,23 @@ def cmd_selftest(_args=None):
         mark = "ok " if got_game == want_game else "BAD"
         bad += got_game != want_game
         print(f"  [{mark}] {path} -> {got_game} (expected {want_game})")
+
+    # layers_for_game: the layer(s) to render come from WHICH files changed, not the manifest.
+    for lpaths, want in [
+        (["games/timeplt/idiomatic/loc_1.js"], ["idiomatic"]),
+        (["games/timeplt/translated/loc_1.js"], ["oracle"]),
+        (["games/timeplt/idiomatic/a.js", "games/timeplt/translated/b.js"], ["idiomatic", "oracle"]),
+        (["games/timeplt/machine.js"], ["idiomatic", "oracle"]),      # shared infra -> both
+        (["games/timeplt/manifest.js"], ["idiomatic", "oracle"]),
+        (["games/timeplt/tools/render.js"], ["idiomatic", "oracle"]),
+        (["games/timeplt/tools/pixel_suite.py"], ["idiomatic", "oracle"]),
+        (["games/timeplt/routines.js"], ["idiomatic", "oracle"]),
+        (["games/timeplt/idiomatic/a.js", "games/dkong/idiomatic/b.js"], ["idiomatic"]),  # this game only
+    ]:
+        got = layers_for_game("timeplt", lpaths)
+        mark = "ok " if got == want else "BAD"
+        bad += got != want
+        print(f"  [{mark}] layers_for_game(timeplt, {lpaths}) -> {got} (expected {want})")
 
     # ⛔ SYNTHETIC games: corpus-keyed arms were blind to the predicate and went red when a real
     # game became compliant. See _selftest_predicate_terms.
