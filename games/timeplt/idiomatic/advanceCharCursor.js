@@ -4,7 +4,8 @@
 
 import { u16 } from "../../../core/int.js";
 
-export function advanceCharCursor(m) {
-  const { regs } = m;
-  regs.de = u16(regs.de - 32);
+export function advanceCharCursor(m, cursor = m.regs.de) {
+  const next = u16(cursor - 32);
+  m.regs.de = next;
+  return next;
 }

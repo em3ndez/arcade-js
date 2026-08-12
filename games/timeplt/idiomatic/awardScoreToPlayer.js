@@ -5,7 +5,6 @@
  * and, in a one-player game, blanks the absent second score. A flag can veto the whole command.
  * LIVE-OUT: memory. */
 
-import { loc_0ce8 } from "./loc_0ce8.js";
 import { paintPlayerOneScoreReadout } from "./paintPlayerOneScoreReadout.js";
 import { paintPlayerTwoScoreReadout } from "./paintPlayerTwoScoreReadout.js";
 import { paintHighScoreReadout } from "./paintHighScoreReadout.js";
@@ -28,10 +27,9 @@ const BLANK = 0xf1;
 const fromPackedDecimal = (b) => (b >> 4) * 10 + (b & 0x0f);
 const toPackedDecimal = (n) => ((n / 10) << 4) | (n % 10);
 
-export function awardScoreToPlayer(m) {
+export function awardScoreToPlayer(m, award = m.regs.a) {
   const { mem8 } = m;
-  const award = m.regs.a;
-  if (mem8[PLAY_ACTIVE] === 0) return loc_0ce8(m);
+  if (mem8[PLAY_ACTIVE] === 0) return;
   if (award === 0) return repaintScores(m);
 
   const scoreBase = mem8[ACTIVE_PLAYER] === 0 ? PLAYER1_SCORE_LO : PLAYER2_SCORE_LO;
@@ -40,7 +38,7 @@ export function awardScoreToPlayer(m) {
 
   if (mem8[ACTIVE_PLAYER] !== 0) paintPlayerTwoScoreReadout(m);
   else paintPlayerOneScoreReadout(m);
-  return loc_0ce8(m);
+  return;
 }
 
 /** Add the packed-decimal award the argument selects into the score, least significant byte first. */
@@ -70,7 +68,7 @@ function promoteHighScoreIfBeaten(m, scoreBase) {
 }
 
 function repaintScores(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   if (mem8[TWO_PLAYER_GAME] !== 0) {
     drawTextRunByIndex(m, P1_LABEL);
     paintPlayerOneScoreReadout(m);
@@ -81,11 +79,11 @@ function repaintScores(m) {
   drawTextRunByIndex(m, mem8[SOLE_LABEL_INDEX_CELL]);
   paintPlayerOneScoreReadout(m);
   eraseTextRunByIndex(m, mem8[ABSENT_LABEL_INDEX_CELL]);
-  // blank the six cells of the vanished second player's score; regs.de is the cursor
-  // advanceCharCursor reads and steps, so it stays a register.
-  regs.de = SECOND_SCORE_CELL;
+  // blank the six cells of the vanished second player's score, stepping the cursor per cell.
+  // advanceCharCursor takes the cursor and returns the next cell, so no register is threaded here.
+  let cursor = SECOND_SCORE_CELL;
   for (let i = 0; i < SECOND_SCORE_DIGITS; i++) {
-    mem8[regs.de] = BLANK;
-    advanceCharCursor(m);
+    mem8[cursor] = BLANK;
+    cursor = advanceCharCursor(m, cursor);
   }
 }

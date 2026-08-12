@@ -46,7 +46,6 @@ import { readFileSync } from "node:fs";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { awardScoreToPlayer } from "../awardScoreToPlayer.js";
 import { loc_0c90 as oracle } from "../../translated/loc_0c90.js";
-import { loc_0ce8 } from "../loc_0ce8.js";
 import { paintPlayerOneScoreReadout } from "../paintPlayerOneScoreReadout.js";
 import { paintPlayerTwoScoreReadout } from "../paintPlayerTwoScoreReadout.js";
 import { paintHighScoreReadout } from "../paintHighScoreReadout.js";
@@ -219,7 +218,7 @@ function brokenNoVeto(m) {
 /** BUG: always credits player one, whoever is playing. */
 function brokenWrongPlayer(m) {
   const { regs, mem8 } = m;
-  if (mem8[SCORING_ENABLED] === 0) return loc_0ce8(m);
+  if (mem8[SCORING_ENABLED] === 0) return;
   if (regs.a === 0) return;
   addAward(m, regs.a, PLAYER1_SCORE);
   return paintPlayerOneScoreReadout(m);
@@ -228,7 +227,7 @@ function brokenWrongPlayer(m) {
 /** BUG: credits the award selected by the wrong argument. */
 function brokenWrongAward(m) {
   const { regs, mem8 } = m;
-  if (mem8[SCORING_ENABLED] === 0) return loc_0ce8(m);
+  if (mem8[SCORING_ENABLED] === 0) return;
   if (regs.a === 0) return;
   addAward(m, u8(regs.a + 1), mem8[CURRENT_PLAYER] === 0 ? PLAYER1_SCORE : PLAYER2_SCORE);
   return paintPlayerOneScoreReadout(m);
@@ -237,21 +236,21 @@ function brokenWrongAward(m) {
 /** BUG: never promotes a new high score. */
 function brokenNoPromote(m) {
   const { regs, mem8 } = m;
-  if (mem8[SCORING_ENABLED] === 0) return loc_0ce8(m);
+  if (mem8[SCORING_ENABLED] === 0) return;
   if (regs.a === 0) return;
   addAward(m, regs.a, mem8[CURRENT_PLAYER] === 0 ? PLAYER1_SCORE : PLAYER2_SCORE);
   if (mem8[CURRENT_PLAYER] !== 0) paintPlayerTwoScoreReadout(m);
   else paintPlayerOneScoreReadout(m);
-  return loc_0ce8(m);
+  return;
 }
 
 /** BUG: awards but never repaints the score. */
 function brokenNoRepaint(m) {
   const { regs, mem8 } = m;
-  if (mem8[SCORING_ENABLED] === 0) return loc_0ce8(m);
+  if (mem8[SCORING_ENABLED] === 0) return;
   if (regs.a === 0) return;
   addAward(m, regs.a, mem8[CURRENT_PLAYER] === 0 ? PLAYER1_SCORE : PLAYER2_SCORE);
-  return loc_0ce8(m);
+  return;
 }
 
 const TWINS = [
@@ -368,13 +367,12 @@ test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, 
 });
 
 const DISSOLVED_CALLEES = [
-  ["loc_0ce8", "loc_0ce8(m)"],
   ["paintPlayerOneScoreReadout", "paintPlayerOneScoreReadout(m)"],
   ["paintPlayerTwoScoreReadout", "paintPlayerTwoScoreReadout(m)"],
   ["paintHighScoreReadout", "paintHighScoreReadout(m)"],
   ["drawTextRunByIndex", "drawTextRunByIndex(m"],
   ["eraseTextRunByIndex", "eraseTextRunByIndex(m"],
-  ["advanceCharCursor", "advanceCharCursor(m)"],
+  ["advanceCharCursor", "advanceCharCursor(m"],
 ];
 
 test("DISSOLVED: every decompiled callee is called directly and no m.call survives", () => {

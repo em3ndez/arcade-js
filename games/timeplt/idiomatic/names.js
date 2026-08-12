@@ -2747,12 +2747,6 @@ export const ROUTINES = {
     cert: "seen",
     why: "the discriminating claim is erase-not-repaint, and one cell settles it from outside: on a driven tape the video-RAM cell 0xA4E0 took three writes of the blank code from THIS routine's store, while on the attract tape the same cell took six writes of a glyph from drawTextRun's store -- one cell, one painter, one eraser. No colour-plane write was ever attributed to it, which a repaint would have produced. The ring's sixteen-way handler table at 0x0BBC seats drawTextRunByIndex at slot 1 and this at slot 3, and its one direct caller uses it in the arm where the second player's label must be absent while the two-player arm draws that same caption -- so a name saying merely 'blank a run' would drop the half that makes it the draw handler's inverse. Its store fired about a dozen times per dispatch on every tape: a caption's length, not a screen's and not one cell",
   },
-  0x0ce8: {
-    name: "loc_0ce8",
-    role: "an exit with nothing left to do: no cell is read or written and no register moves",
-    cert: "code",
-    why: "it is not a routine, and an English name would have to say it is. The word 0x0CE8 occurs exactly ONCE in the whole 24 KB program image, at 0x0C98 -- which is the operand of awardScoreToPlayer's own `jp z,0x0ce8`. So no table dispatches it, nothing outside awardScoreToPlayer transfers to it, and the sixteen-way command table at 0x0BBC does not hold it: the bare-`ret` slot that table uses six times is 0x0BDC, a different address. What 0x0CE8 actually is is the last byte of awardScoreToPlayer (0x0C90-0x0D1A minus its second half), the label its early-out and its normal end both land on -- a range boundary that the transcription turned into a filename, which is the trap routine-is-a-range-not-a-filename names. It runs: an entry tap gated on the program counter caught it three times in 30 s of undriven attract under MAME on the real ROM, so it is live code and not data; that measurement says it is reached, and reaching a `ret` is not a role. Any name by EFFECT would have to be the effect of awardScoreToPlayer's exit, which is awardScoreToPlayer's to carry.",
-  },
   0x181d: {
     name: "loc_181d",
     role: "an arrival point with nothing to do: no cell is read or written and no register moves",
