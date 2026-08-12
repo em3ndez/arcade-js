@@ -159,10 +159,12 @@ For each DECOMPILE batch:
    not put it in `names.js`. A name that one agent derived and no second agent challenged is the
    sprite-record trap with a batch's worth of downstream work about to trust it.
 6. **Land the batch as a DECOMPILE commit**, reviewed — and **run the whole suite yourself
-   first**. The `names.js` retrofit belongs to the understanding pass that promotes the names,
-   not here; what this commit adds to the registry is the address-to-module wiring. A per-agent
-   "green" self-report is not the gate; a later dissolve in the same batch can break an earlier
-   agent's routine after it reported.
+   first**. What this commit adds is the address-to-module wiring in `ROUTINES` *and*, as a
+   separate registry, a `loc_<addr>` name constant in `names.js` for every data address the batch
+   accesses (Part IV — the data-name registry is seeded from first access, ROM included). What
+   waits for the understanding pass is the *promotion* of those placeholders to descriptive names,
+   not their creation. A per-agent "green" self-report is not the gate; a later dissolve in the
+   same batch can break an earlier agent's routine after it reported.
 
 ### Dissolving belongs to the CALLER's unit, not the callee's
 
@@ -678,13 +680,23 @@ equivalence again isolates real logic bugs.
   the equivalence gate does **not** catch — both paths are memory-equivalent — so it survives to the
   reviewer, who must reject it.
 - **Memory access is indexed:** `mem8[ADDR]` / `mem16[ADDR]`, never `mem.read8`/`write8`. Pure sugar
-  over the same accessors, so they wrap and diff identically. A still-hex address is fine at
-  decompile time; the understanding pass swaps the literal for a name later. **Every accessed address
-  earns a name, not only RAM cells** — a shared RAM or hardware cell through the `names.js` registry,
-  a ROM table or constant this routine reads through a named local `const` (registry if a sibling
-  reads it too). No bare `mem8[0x….]` survives the understanding pass whatever region it points at: a
-  hex literal in a `mem8[]` is unnamed data, the same legibility hole as an unnamed register, and the
-  region is not an excuse — a ROM constant is as nameable as a work-RAM cell.
+  over the same accessors, so they wrap and diff identically. `ADDR` is **always a name from
+  `names.js`** — a `loc_<addr>` placeholder until the naming pass promotes it, exactly as an
+  un-decompiled routine is `loc_<addr>`. Neither a bare `mem8[0x….]` nor a routine-local
+  `const NAME = 0x….` survives — both are unnamed data, the same legibility hole as an unnamed
+  register, and both hide the address from the registry that is meant to list it. `names.js` is the
+  **worklist**: a `loc_<addr>` entry is an address still needing a name, a descriptive name is one
+  that earned it — so populate it with a `loc_<addr>` for every accessed address from first access,
+  and the naming pass draws its work from there.
+- **Every region, ROM included.** The old pass named RAM and silently dropped reads of ROM tables and
+  constants, which is why raw ROM addresses survive; the region is no excuse — a ROM constant is as
+  nameable as a work-RAM cell. To find them, trace each `mem8[]`/`mem16[]` base back to its source; a
+  base born from a raw `= 0x….` is an address wherever the literal hides (a local `const`, the origin
+  of a computed offset). A name is earned the way a routine's is — blind convergence, a confirmer
+  (Part V) — so a name one agent assigned locally is only a *proposal*: it enters as `loc_<addr>` and
+  must pass the naming pass before it is trusted. The namespace is shared with routines on purpose: an
+  address is a routine OR a data cell, never both, so a `loc_<addr>` collision flags a location read
+  *and* jumped to — surface it, do not hide it.
 - **Name locals by meaning, never by register.** A local that survives from a Z80 register keeps the
   register's *value*, not its name: `const b = OBJ_X + 3` is `probeX`. Single-letter locals are the
   variable-level version of the assembly-comment smell, and the understanding pass's variable naming
