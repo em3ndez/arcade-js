@@ -1,0 +1,347 @@
+# Runbook — porting an arcade game, start to finish
+
+**This is the authoritative, self-contained procedure.** Execute it top to bottom. It absorbs the
+load-bearing steps and decisions rather than pointing elsewhere; where it conflicts with any other
+`docs/` file, **this runbook wins**, and it is where the process is tweaked going forward. The goal:
+turn a ROM into validated, *understood* JavaScript that renders pixel-exact against MAME — with no
+decision kicked to a human.
+
+## The two governing rules
+
+- **Novel decision (no rule below covers it):** ground it in **MAME** (never the JS engine), pick the
+  **truthful/conservative** reading, **act** — do not park it (a parked decision is a dropped
+  decision) — and **write the new rule into this runbook** so it sticks.
+- **Feedback loop:** every process miss found on a port becomes a baked-in step here *before* the next
+  port. This document is the living method; it gets sharper each game, never stale.
+
+## Standing discipline (applies to every step)
+
+Set the idle-timer first. Commit **locally**; a human gates the push. ROM is **never** committed
+(bring-your-own, sha256-verified). Stage **explicit paths** (never `git add -A`); python not sed for
+identifier renames; never `--no-verify` without per-commit approval. Work **~20 routines per batch,
+one commit per batch, single-threaded** (don't author the next batch while one is under review). Every
+commit gets an **independent reviewer** — a gate is not a review; run the repo's gates *before* the
+reviewer, and verify a reviewer's *reasons*, not just its ruling. **Grounding always uses MAME, never
+the JS engine** (self-grounding is circular). **Author ≠ checker** — mutation-test every routine.
+**Quote from a command you just ran, never recollection; no derived counts in commits/docs/prose.**
+
+---
+
+## 0 — Set up and know the game
+
+- Build a properly-named, `-verifyroms`-verified romset first (a loose chip dump lacks the `.icNN`
+  names verify needs). Symlink/read the MAME driver locally
+  (`mame-src/src/mame/<manufacturer>/<driver>.cpp`) — never a web summary.
+- Stand up the MAME observation rig (per-frame RAM dump + poke/input harness) on day zero.
+- Write `games/<game>/gameplay.md` — outside-in, from **public sources only, blind to the ROM**
+  (objective, cast, controls, win/lose, boards). Flag single-source/contradictory items and expect
+  play to overturn some of them. This adjudicates mechanics the code can't settle later; skipping it
+  costs many wrong names downstream.
+- Do the behavioural grounding **day-zero, before any naming** — running it late forces a heavy
+  re-derivation of every name chosen at partial understanding.
+
+## 1 — Identify the machine
+
+Three layers: **CPU** (`core/cpu/<chip>.js` — reuse or new), **board** (`boards/<driver>/`, named
+after the **MAME driver**, shared by games on that PCB), **game** (`games/<id>/` = manifest + lift).
+
+- Read the driver `.cpp` for the memory map, I/O ports (active-low vs -high), interrupts/watchdog,
+  palette/PROM decode, DMA. Get **every address and offset** from the driver's memory-map *and* its
+  video/draw code — never by inference (a guessed sprite base / scroll base / plane order / mirror
+  mask is where subtle bugs hide). Verify every hardware fact against MAME source, not a listing.
+- **★ Copy the exact MAME `ROT` into the manifest — never a `"vertical"`/`"horizontal"` boolean.**
+  `ROT90` = 90° CW, `ROT270` = 90° CCW; a boolean keeps "portrait" but throws away *which way* and
+  renders the display 180° wrong.
+- A **read and a write at one address are different devices**; a read may have a side effect
+  (watchdog kick, coin-counter clock); an LS259 control latch is **one address per bit**. State these
+  invariants in the board source up front.
+- Model the board from the ROM's own accesses; pin video addressing against the driver's draw routine
+  and **cite it in the board source** — a render-addressing offset is invisible to the state diff and
+  only the pixel gate catches it. Pin reset facts (CPU reset registers, IX/IY) and `cyclesPerFrame`
+  from the pixel clock. The frame origin is the **vblank point** (the interrupt lands at frame
+  N.000x); don't confuse the first visible raster line with the vblank offset.
+- Model the **WHEN**, not just the WHAT: a DMA sprite transfer **costs the CPU time** (bus stolen —
+  derive the per-byte cost), or the CPU reaches later routines early. Derive device
+  direction/behaviour from the ROM (which region it writes heavily vs once), not the datasheet.
+- `boards/<driver>/hardware.json` declares state-dump regions, MMIO, screen size, driver name, frame
+  timing; a drift test asserts it matches `memory.js`/`io.js`.
+
+## 2 — Skeleton first
+
+Stand up a bootable machine and its gates *before* any routine work, so every later gate measures the
+real running game, not attract mode.
+
+- Manifest: cpu, board, ROM images + sha256, `inputs` (ports/actions/keys — **coin/start are not
+  always the same port**), `entropyPin`, exact ROT. Register the id in `games/registry.js`. Makefile
+  `rom` target.
+- Board layer (`memory.js`/`io.js`/`video.js`/`hardware.json`): **every unimplemented I/O stub
+  THROWS, never returns 0** — a silent 0 is indistinguishable from correct until a pixel diff fails
+  hundreds of frames later; throwing turns "not implemented" into a self-naming coverage signal. State
+  lives at its real address (the RAM arrays are what gets diffed vs MAME).
+- **The game runs on the born-live engine `runIdiomaticGame` from the start** — a clock-free engine
+  whose frame boundary is the ROM's own vblank-wait yield. Until routines are rewritten it runs
+  **entirely on the translated fallback** (`resolveAllIdiomatic` supplies the translated routine for
+  anything not yet done), so it is always a complete runnable game. There is no separate "make it
+  live" milestone later. Declare `manifest.convergence.idiomatic.nmiReturnPC` (the ROM PC the vblank
+  NMI returns to — the main-loop top): the engine sets it before firing each NMI, and the browser
+  worker refuses `runtime: "idiomatic"` without it.
+- **Plumb `--input`, `--poke`, and `--pin` into `render.js` in this first pass**, not once the layer
+  "looks done." `io.inputAssert` = `{portAddr: pressedBits}`; apply inputs/pokes at the frame boundary
+  before the state dump; `emit.js` forwards tape/pokes. Tapes in **pressed-bit** form even on
+  active-low hardware; rebuild the assert map each frame; apply inputs for frame 0 too. The
+  MAME-vs-JS frame origin differs, so the same tape lands at a different emulated frame per side — the
+  offset is a per-game **constant you MEASURE** and write beside the tape. Find input bits empirically
+  (press each bit, diff the whole run vs a no-input baseline of identical call structure).
+- `mame_golden.py` captures the reference (video/sound off, no throttle/frameskip, fresh nvram+cfg,
+  no autosave; self-checked, fails closed); `emit.js` emits the same three formats from the JS machine
+  and exits non-zero on a partial run. **Diff order = state → writes → pixels** (state differs ⇒
+  CPU/logic; state matches but pixels differ ⇒ video model; writes catch timing the snapshots miss).
+- **Build the whole-machine equivalence gate in the FIRST unit** (while there's one routine to
+  bisect) and **commission it to FAIL** — break it deliberately (a plausible wrong twin, one wrong
+  byte, a leak under a loose window, the seam adapter removed) and keep the teeth running. A gate
+  scoped to one routine cannot observe an assembled-system property — a leak in a shared helper or a
+  dropped return at the dispatch seam is invisible to it; build it whole-machine, and a gate built to
+  pass is decoration.
+- **Run the whole-machine state diff continuously — it is the worklist**: boot, see where it diverges,
+  fix that routine, boot again (`emit.js` names the next boot gap). There is no standalone CPU
+  interpreter, so the only way to execute is the running layer → the gate is forced boot-first.
+- **Turn the pixel gate on now and keep it green for the layer's life** (a precondition, not a
+  capstone). Declare the game's suite in `tools/pixel_gate_required.py` (an undeclared game's commit
+  is refused). The interlock requires the literal `PASS` line; SKIP/INCOMPLETE/FAIL/crash/timeout all
+  count as refusal — **never trust the suite's exit code** (it exits 0 when it can't run). Which layer
+  the gate renders vs MAME is a **CLI switch** (`render.js --idiomatic` vs the translated path), never
+  `manifest.runtime` — "which layer the player runs" is not "which layer I'm validating vs MAME right
+  now." Confirm the render path paints **sprites**, not just the tilemap.
+- `make verify` is **not** the pixel gate (it is a disassembly decoder check for another game's ROM).
+
+## 3 — Translation pass (disassemble + faithful lift → the frozen oracle)
+
+- Disassemble with **reachability-driven recursive descent** from the real entries (reset and NMI
+  vectors) — a linear sweep decodes data as garbage. Cross-check the tracer against **what MAME proves
+  is code** (a coin+play executed-instruction trace); the tracer alone can miss executed addresses.
+- Translate each routine one instruction at a time via `m.step(addr, tstates)` — `addr` is the
+  **next** instruction (where execution lands). Charge T-states exactly (video depends on *when* each
+  write lands; `stepcheck`/`stepaudit` audit it). Keep flags exact (BCD/half-carry/parity/signed);
+  pin each flag helper against the reference CPU before use. Model control flow honestly (a tail-jump
+  discarding the return → return to the caller's caller; an rst-dispatch → switch on the state byte).
+- Name every translated routine **`loc_<addr>`** — no `sub_`/`handler_` prefixes, no English. **One
+  file per routine** (`loc_<addr>.js` + `equivalence-<addr>.test.js`). **Export every routine from
+  line one** (the idiomatic rewrite reuses the oracle's copy of any un-rewritten callee — exactly one
+  copy). Write every call as **`m.call(0xADDR)`** (the registry seam is what makes a routine isolable
+  for capture/replay); keep `push16`/`step` at the call site.
+- Boundaries: an externally-entered `loc_<addr>` is a routine boundary → one file; the parent stops at
+  boundary-1 and **delegates** (`return m.call(0xBOUNDARY)`), never inlines across it. Partition the
+  lift by **range, not filename** (walk control flow to a real terminator; subtract vs tracer
+  **coverage**, never filenames). An interior branch target is not an entry point.
+- **Evaluate a conditional's guard before believing its target** — a self-checksum ROM aims its dead
+  failure arm into **data**; model the trap (aimed at data → `throw`; aimed at real re-entered code →
+  delegate); what the guard READS decides severity (a ROM-sum guard firing ⇒ the image is wrong; a
+  work-RAM guard firing ⇒ the port has a bug).
+- Faithful lift = **memory-equivalent + mutation-tested, validated in isolation off the live game**.
+  The translated layer carries **no prose** (SPDX, a one-line identity, per-instruction address/
+  mnemonic comments; a trailing `--` clause names what bytes *are*, never a mechanism). ~20
+  routines/batch while the next is written; regenerate the registry after batches land
+  (`gen-registry.mjs`), not per batch.
+
+## 4 — Idiomatic pass (the spiral)
+
+Rewrite the lift into readable JavaScript **and** recover what it means, spiralling up the call graph.
+The spiral has two alternating halves — **decompile** (correctness) and **understand** (meaning) —
+run as separate commits (never two decompile commits in a row); understanding compounds batch over
+batch and feeds the next batch's targets.
+
+### The decompile half
+
+- **Batches of ~10 leaf routines, leaves-first** — a caller decompiled before its callee has to
+  hand-marshal the callee's register ABI, an assembly leak the equivalence gate can't see. Re-derive
+  the leaf set **each batch** by closing the call graph over current `m.call` targets.
+- Per routine ship all **four**: module + `equivalence-<addr>.test.js` + `ROUTINES` entry + green
+  gate. **Done only when DISPATCHED** — `resolveAllIdiomatic` walks `ROUTINES`, so a module no entry
+  names is never overridden. Unwired is legitimate **only as a recorded decision** (`UNWIRED`/`DEBT`
+  with a reason); silence reads as oversight.
+- Fidelity = **memory-equivalence**: RAM minus stack scratch + `pc` + `SP` + declared live-out;
+  **never the full register file, never cycles**. **Derive live-out from the oracle, never the module
+  header** (a gate whose excluded set matches its module asserts the divergence — green on broken,
+  red on correct). When a routine's live-out **is** a register, add a **standing register-comparison
+  arm** — a memory-only gate passes a register-valued rewrite that is wholly wrong. Every gate carries
+  teeth. Test by **capture-clone-replay** (hook the address, `m.clone()` at each real dispatch, replay
+  in isolation); for arms the run never reaches, craft an entry — a real captured state with one
+  variable poked identically on both sides.
+- **Dissolve an `m.call` when you write the CALLER**, not when the callee lands. Before writing
+  `m.call(0xADDR)`, check whether the callee is already decompiled (a stale marshalled call is
+  memory-equivalent → the gate misses it, it reaches the reviewer). The `no-stale-mcall` lint must
+  resolve file-local `const NAME = 0x…` aliases, not just literal hex. A bare-return no-op module
+  dissolves to nothing (inline + delete module/entry/test). A strongly-connected cycle lands as one
+  unit. Partition caller files across agents; don't run a rename pass while authoring agents are live.
+- Idiomatic rewrite = routine-**local** rules + routine-**wide** rules (input-register → optional
+  param defaulting to the register `fn(m, x = m.regs.a)`; interface-register → explicit value/return;
+  phantom no-op → inline+delete). Never weaken an assertion. **Address-retrofit:** no idiomatic routine
+  references a data address by raw hex or a routine-local const — import it from `names.js`; use the
+  **`_ADDR` convention** when an address is also a routine entry. The goal is **all CPU registers gone**
+  from the idiomatic layer (named vars/params/returns), enforced by a gate.
+
+### The understand half
+
+- **Confidence-tag every claim:** `[seen]` (chain ends in a MAME observation), `[code]` (from a
+  translated routine's behaviour — harness replay), `[guess]`. A confidently-wrong role is worse than
+  a neutral `loc_`.
+- **Front-load RAM/variable naming before routine naming** — named memory is the biggest legibility
+  lever, and routine names derive from what a routine does to memory. Variable names = consensus of
+  every routine touching an address (never one routine's local view); routine names = mechanism +
+  callers.
+- Both get **three looks**: two BLIND independent derivations (from body + callers, neither sees the
+  other), promote **only on convergence**, then a third **adversarial** re-derivation — two blind
+  derivers can converge on the same wrong reading. The lead edits `names.js`, never a proposer. A name
+  isn't done until code **uses** it (`names.js` + retrofit in one commit).
+- **Name by EFFECT**, not internal mechanism — trace each live-out to its final consumer and name the
+  verb it causes (`steer`/`spawn`, not `classify`/`detect`); if the output is read in place of another
+  input, the routine *generates* that input. Name a routine whose **mechanism** is confident even if
+  its game-purpose is open (purpose as `[guess]`); `loc_` is reserved for an unclear mechanism.
+- **A wrong name is worse than none.** When derivers diverge or the reading is underdetermined, stay
+  hex and flag. **Recorded keep-hex decisions are binding:** a routine with no absolute entry point
+  stays hex (a range fragment isn't its own routine); a refused name is not re-proposed; **read the
+  `names.js` `why` and `mechanisms.md` before renaming** — a regex scan of the `why` is a broken
+  instrument.
+- **Ground a load-bearing, code-undecidable pick IN-LOOP before committing the name** — deferring
+  propagates the wrong pick into everything built on it. Take four **theory-free** measurements first:
+  does it execute and where; write-set (clone+diff vs the memory map); who calls it and what they do
+  with the result; what changes on screen. Experiment: hypothesis → reach the state → watch → A/B with
+  a **negative control** (the control is the proof) → prefer a natural run; verify a positive control
+  actually moved pixels (a no-op write reads like an invisible one). On a write tap the reported PC is
+  the **next** instruction.
+- **Sweep reachability before deciding anything is blocked** ("unnamed" ≠ "unreachable"). A hit count
+  is not a dispatch count for a routine that WAITS; tap a known-executing address first and confirm
+  it's non-zero; without a driver the sweep measures attract only. A search's zero is not absence
+  until the instrument is shown working on something known-present.
+- **Rewrite `mechanisms.md` from scratch every understanding pass** — blind to prior naming, a
+  player-facing model (read `gameplay.md`, re-derive, recount by measuring); never patch it
+  (`understanding_gate` enforces, and it fires on **additions** too, by design, so new machinery gets
+  documented). Sweep falsified prose by **claim family** (existence/counts/only-sole/status), never
+  token. `names.js` is the single source for a cell's name/role/tag; prose cites it, never contradicts
+  it (`names_consistency`). Promotion requires a proposer≠confirmer who **independently re-derives** —
+  a prose review is not a confirmation.
+
+### ★ The clock-free block — handle these four together
+
+The idiomatic layer charges no cycles, so anything the real hardware ties to time or the beam needs
+deliberate handling. These four are one problem and are decided together, once, per game:
+
+- **Vblank / interrupt handling.** Running clock-free means a cycle-driven vblank busy-wait would
+  never tick — so the frame boundary *is* the ROM's vblank-wait yield, and the interrupt is fired
+  **at that yield** (the real machine only accepts it when the main loop idles). Spine routines that
+  can reach a vblank wait become `function*` (callers use `yield*`; the classic bug is a `function*`
+  called without `yield*`, which silently skips the wait); the vblank wait becomes `yield`; a warm
+  restart is a boundary sentinel, **not** a `yield*`; leave the emulated CPU stack ops alone.
+- **Entropy pinning.** Most arcade RNG seeds from a spin counter the main loop increments while
+  waiting for vblank — timing-derived, so a clock-free layer forks it within a few frames and every
+  RNG-driven sprite drifts. **Pin it for testing only** (it forfeits falsifiability): discover the
+  set by attract-diffing the two engines per frame (the spin counter forks first), declare
+  `manifest.entropyPin`, express the pin **twice** (a JS seam and a cycle-neutral ROM operand patch)
+  so the two check each other, and **never pin the shipped game.**
+- **Loose (convergent) pixel gating.** With entropy pinned, RNG- and DMA-driven pixels don't land
+  byte-identical — they **converge**. Gate them with an **align-tolerant diff** (each frame vs its
+  nearest golden frame): small deviations allowed, but the residual must **reconverge, never
+  diverge**. **Never lower the floor to reach green** — the tolerance is a hardware-jitter property,
+  calibrated once and committed, not a knob.
+- **Scan-line tricks (sprite multiplexing, split-scroll, status/palette splits).** Wherever the game
+  mutates video state mid-frame in step with the raster, a single end-of-frame snapshot can't
+  reproduce it. Use a **beam-sync band accumulator** (`startBeamFrame` / `paintBeamBand(row)` /
+  `finishBeamFrame`) painting each band from current RAM, driven once per frame by a per-game beam
+  routine; declare `manifest.convergence.beam`. It is **state-neutral** (final RAM identical);
+  non-beam games cost nothing; validate with a positive control forcing the single-snapshot path so
+  the residual returns.
+
+### Driving coverage
+
+- **Poke-tapes are required per game** — they pixel-validate the DISTANT routines (later levels, 2P,
+  game-over, boss) the base tape never reaches, moving them `[code]`→`[seen]`. Key pokes on the
+  **NMI ordinal**, never a raw frame index; use `POKE_OFFSET = 0` (a direct RAM poke has no
+  input-debounce pipeline); poke the **trigger** then play in — poking a raw end-state renders
+  coherent-looking garbage on both sides, a weak check.
+- **Run a long continuous idiomatic run** (many minutes) diffed vs a matching golden, RAM first — the
+  base and poke tapes are each too short to catch time-accumulated bugs that surface only deep into a
+  session.
+- The dispatch **seam leaks two stack bytes** — MEASURE per dispatch what heals it (SP unmoved ⇒ the
+  resolver supplies the `ret`; SP up two with `pc` on the held slot ⇒ the transfer did it; anything
+  else ⇒ raise, naming the routine). Bound the stack exclusion by the **measured** stack, not the
+  game-state ceiling. Attract-only gates are blind — gates must **replay input tapes and assert the
+  game responds** (banks credits, starts at the contract frame, player moves/scores), plus
+  idiomatic==translated through the sequence and video RAM byte-identical, including **forced
+  transitions the tapes never reach** (poke the ROM's own trigger).
+
+## 5 — Ship
+
+- **Web-worker contract** (get each right the first time): (1) register the id in `games/registry.js`
+  or it never appears in the selector; (2) assemble **every** declared ROM image to `games/<id>/rom/`
+  **honoring `offsets`** — a gapped image otherwise assembles to wrong bytes, fails sha256, and the
+  others silently never build; (3) build the registry with **static imports** — never `node:fs`/
+  `file://` (the browser rejects both); no `node:` builtin anywhere on the browser load path; (4) the
+  Machine satisfies the worker contract — synchronous constructor, exported `resolveOverrides()`,
+  live-render interface (`captureVideo`/`videoFrames`/`finishRasterFrame()`), exported `Inputs` class
+  in the board io; (5) inputs manifest-driven across IN0/IN1/IN2; (6) exact ROT (step 1); (7) unported
+  audio → silent, not broken; (8) `runtime: "idiomatic"` reads `manifest.convergence.idiomatic.nmiReturnPC`
+  (§2) — the worker throws without it.
+- **Audio by record/replay** (don't emulate the second CPU): tap the soundlatch write and play a
+  recorded clip per command (the tap is a nullable field, runs after the store, return discarded, must
+  not throw). **Record, don't extract** — a game's sound may be discrete-analog or only exist once the
+  audio CPU runs; nothing is a "rip samples from ROM" job. A recorder drives real MAME headless,
+  injects each command, captures a clip + an `index.json`. Gotchas: **mute the ROM's own soundlatch
+  writes while injecting** (prove it with the silent-gap residual); **read the driver for how a
+  command triggers** (a latch write may not raise the audio IRQ — the audio CPU can poll it on its
+  own VSYNC IRQ, so "trigger" is *hold the byte ≥1 frame*); **★ do NOT loop off the recorder's `loop`
+  flag** — it can't tell a looping tune from a sustained one-shot, so model **one voice** (a new
+  command stops the previous and plays once) and earn looping only by detecting a real loop point via
+  autocorrelation; **median-center** each segment (a PSG idle DC bias steps by thousands of LSB, and
+  mean-centering reads silent tails as signal); isolate commands by pulse-vs-sustain stop timing, not
+  by reset (a soft reset re-runs the autoboot). Committed = `manifest.audio.map` (data-only,
+  evidence-based names, no invented sound names, no file paths); the WAVs + `index.json` are
+  **gitignored copyright** (silence in a fresh clone is the point). Web side: dedup by raw write
+  **address**, forward only changed edges; guard any polled surface behind a board-capability check.
+  **Report evidence disagreements — never silently pick a winner**; when the driver and the measured
+  hardware disagree, ship what the hardware does.
+- **ROM stays out:** bring-your-own — tests guard on ROM presence and skip when absent; a rom-guard
+  clone verifies a no-ROM checkout still passes. The manifest lists part filenames + sha256; `make
+  rom` assembles from the user's dump and verifies.
+- The standing whole-game gates (`idiomatic.test.js` boot→attract, `tape.test.js` coin/start/play,
+  `transition.test.js` level/round/game-over) have run since the skeleton and gate the ship as-is.
+
+---
+
+## Cross-cutting — the "plausible-but-wrong" class
+
+The failure hardest to distrust is a **recognizable-but-wrong** image or a check that **passes for the
+wrong reason**. Guard against it everywhere:
+
+- Render **pens before RGB** so a pixel diff attributes to one half; **say which coordinate zero**
+  every time (frame-origin vs raster line vs visible row differ by fixed offsets — the ambiguity
+  breeds mislabels and cycle bugs). A **wrong constant can produce a perfect match** by hiding the
+  pixels that would falsify it — any "is this displayed?" probe must write a value known to differ.
+  **Raster-time the renderer** where a mid-frame write splits the frame. Carry MAME's own "this is
+  wrong" notes faithfully rather than inventing a fix.
+- **A gate arm that cannot fail is decoration; a gate that mandates the defect** (asserting a faithful
+  rewrite's divergence) must be changed — measure the exclusion from the oracle. **A property with no
+  owner AND no record of being unowned is a trap** (T-states, the full register file, DMA sub-frame
+  position are deliberately unowned — write it down). While a review is in flight **nothing stages the
+  index** (the review token binds to the exact staged diff).
+- **Treat a stall/contradiction as a claim about the instrument first.** An empty capture/comparison
+  directory is not a pass (0 comparisons and 0 failures share the success exit code). Retain **every**
+  Lua tap token in a global (a GC'd tap flatlines and reads as a stall). A class fix by scripted
+  string-replace propagates a per-site fact wrongly — **script the finding, never the fix.** A
+  labelled-wrong constant beats a plausible unlabelled one; an UNVERIFIED placeholder says so and
+  names where the real value comes from.
+- Small language traps that read as data: a default parameter is a landmine for a `.map(fn)` callback
+  (arg 2 is the index → a NaN that looks like data); integer division truncates toward zero (use
+  `Math.trunc`, not `Math.floor`, on signed values). Numbers base-10 (hex only for irreducible bit
+  ops); `u8()`/`u16()` for a load-bearing wrap. `comment_gate`: comments ≤ code//4 + 4, each describes
+  *this* file only — when it trips, cut prose (whole-file freeze). `doc_gate` caps markdown at 150
+  lines (**this runbook is exempt by name**); commit messages ≤ 10 lines.
+
+---
+
+## Legacy games — do not be surprised they diverge
+
+The ports already in `games/` were built under earlier iterations of this method and **do not yet
+follow this runbook**. They work and are pixel-validated against MAME, but their test names, gate
+wiring, and configuration predate the process here, so expect inconsistencies. **This is known, not a
+defect to chase.** The runbook is the go-forward spec; the existing ports are legacy it supersedes.
+**Do not retrofit them** — reconcile them only once this process is proven on a new game.
