@@ -7,14 +7,14 @@
  * tail is now a direct call then its ret; its gate drops the register file, so sp (restored by the
  * ret) is the only live-out register. LIVE-OUT: memory and sp. */
 
-import { SEQUENCE_SUBSTEP, advanceSequenceElseStartFreePlayGame_ADDR, loc_1659 } from "./names.js";
+import { SEQUENCE_SUBSTEP, advanceSequenceElseStartFreePlayGame_ADDR, PHASE1_SUBSTEP_DISPATCH_TABLE } from "./names.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { advanceSequenceElseStartFreePlayGame } from "./advanceSequenceElseStartFreePlayGame.js";
 
 export function dispatchSequencePhase1SubStepArm(m) {
   const { regs, mem8 } = m;
   regs.a = mem8[SEQUENCE_SUBSTEP];
-  regs.hl = loc_1659;
+  regs.hl = PHASE1_SUBSTEP_DISPATCH_TABLE;
   const arm = fetchTableWord(m);
   regs.de = regs.hl;
   regs.hl = arm;

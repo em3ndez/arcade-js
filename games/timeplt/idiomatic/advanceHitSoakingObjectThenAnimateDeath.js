@@ -5,7 +5,7 @@
  * reseat the sprite entry from the shape table. LIVE-OUT: memory. */
 
 import { u8 } from "../../../core/int.js";
-import { HITS_REMAINING, loc_3c09 } from "./names.js";
+import { HITS_REMAINING, DEATH_ANIMATION_SHAPE_TABLE } from "./names.js";
 import { requestTwoSounds } from "./requestTwoSounds.js";
 import { advanceTwoTileObjectThenTryAimedSpawn } from "./advanceTwoTileObjectThenTryAimedSpawn.js";
 import { retireObjectAndHold } from "./retireObjectAndHold.js";
@@ -53,7 +53,7 @@ export function advanceHitSoakingObjectThenAnimateDeath(m) {
   if (level < 0x40) return;
   if (((level - 0x40) & 0x07) !== 0) return;
 
-  regs.hl = loc_3c09;
+  regs.hl = DEATH_ANIMATION_SHAPE_TABLE;
   regs.a = ((level - 0x40) >> 3) - 1;
   const shape = fetchTableByte(m);
   mem8[entry + 0x03] = shape;

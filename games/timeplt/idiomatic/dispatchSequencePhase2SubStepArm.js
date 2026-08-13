@@ -7,14 +7,14 @@
  * ends. The lookup's by-products are left standing for the arm to read. Nothing is written.
  * LIVE-OUT: memory and registers, all of them the arm's. */
 
-import { SEQUENCE_SUBSTEP, loc_1806 } from "./names.js";
+import { SEQUENCE_SUBSTEP, PHASE2_SUBSTEP_DISPATCH_TABLE } from "./names.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { loc_181d } from "./loc_181d.js";
 
 export function dispatchSequencePhase2SubStepArm(m) {
   const { regs, mem8 } = m;
   regs.a = mem8[SEQUENCE_SUBSTEP];
-  regs.hl = loc_1806;
+  regs.hl = PHASE2_SUBSTEP_DISPATCH_TABLE;
   const arm = fetchTableWord(m);
   regs.de = regs.hl;
   regs.hl = arm;

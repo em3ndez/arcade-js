@@ -16,7 +16,7 @@ import { fetchTableByte } from "./fetchTableByte.js";
 import { postCommand } from "./postCommand.js";
 import { retireSlotAndSubPixel } from "./retireSlotAndSubPixel.js";
 import { u8 } from "../../../core/int.js";
-import { CLAIM_TOKEN, FRAME_TICK, loc_2c94 } from "./names.js";
+import { CLAIM_TOKEN, FRAME_TICK, OBJECT_PHASE_SHAPE_TABLE } from "./names.js";
 
 const PHASE = 0;
 const RECORD_NUMBER = 15;
@@ -74,7 +74,7 @@ export function driveObjectAppearanceByPhaseBand(m, object = m.regs.ix, sprite =
 
 /** The table fetch wants its base and its index in the registers it reads them from. */
 function shapeForStep(m, step) {
-  m.regs.hl = loc_2c94;
+  m.regs.hl = OBJECT_PHASE_SHAPE_TABLE;
   m.regs.a = step;
   return fetchTableByte(m);
 }

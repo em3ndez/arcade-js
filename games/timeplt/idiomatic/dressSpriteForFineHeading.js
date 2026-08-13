@@ -9,7 +9,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { offsetAddress } from "./offsetAddress.js";
-import { FRAME_TICK, loc_2abc } from "./names.js";
+import { FRAME_TICK, FINE_HEADING_SHAPE_TABLE } from "./names.js";
 
 const HEADING = 2;
 const SECTORS = 32;
@@ -26,7 +26,7 @@ export function dressSpriteForFineHeading(m) {
   const heading = mem8[u16(regs.ix + HEADING)];
   const sector = Math.floor(u8(heading + STEPS_PER_SECTOR / 2) / STEPS_PER_SECTOR);
 
-  regs.hl = loc_2abc;
+  regs.hl = FINE_HEADING_SHAPE_TABLE;
   regs.a = sector * ENTRY_WIDTH;
   const selected = offsetAddress(m);
 

@@ -6,15 +6,15 @@
  * their own top bit is set; the hold before each trade is dropped. LIVE-OUT: memory only. */
 
 import { loc_10f8 } from "./loc_10f8.js";
-import { loc_b437, loc_b036, loc_c000, loc_b439, loc_b038, loc_b43b, loc_b03a, loc_b43d, loc_b03c, loc_b43f, loc_b03e } from "./names.js";
+import { SPRITE_BANK1_SLOT19_Y, SPRITE_BANK0_SLOT19_X, loc_c000, SPRITE_BANK1_SLOT20_Y, SPRITE_BANK0_SLOT20_X, SPRITE_BANK1_SLOT21_Y, SPRITE_BANK0_SLOT21_X, SPRITE_BANK1_SLOT22_Y, SPRITE_BANK0_SLOT22_X, SPRITE_BANK1_SLOT23_Y, SPRITE_BANK0_SLOT23_X } from "./names.js";
 
 const HALF_RANGE = 128;
 
 const TAIL_SLOTS = [
-  { request: loc_b439, partner: loc_b038 },
-  { request: loc_b43b, partner: loc_b03a },
-  { request: loc_b43d, partner: loc_b03c },
-  { request: loc_b43f, partner: loc_b03e },
+  { request: SPRITE_BANK1_SLOT20_Y, partner: SPRITE_BANK0_SLOT20_X },
+  { request: SPRITE_BANK1_SLOT21_Y, partner: SPRITE_BANK0_SLOT21_X },
+  { request: SPRITE_BANK1_SLOT22_Y, partner: SPRITE_BANK0_SLOT22_X },
+  { request: SPRITE_BANK1_SLOT23_Y, partner: SPRITE_BANK0_SLOT23_X },
 ];
 
 export function spinRemainingSpriteMultiplexSlots(m) {
@@ -22,9 +22,9 @@ export function spinRemainingSpriteMultiplexSlots(m) {
   const held = regs.a;
   if (!regs.fZ) {
     if (((held + mem8[loc_c000]) & 0x100) === 0) return loc_10f8(m);
-    mem8[loc_b437] = held & 0x7f;
-    mem8[loc_b036] = mem8[loc_b036] + HALF_RANGE;
-    if (m.beamPlan) m.beamPlan.push({ y: loc_b437, x: loc_b036 }); // beam-sync render
+    mem8[SPRITE_BANK1_SLOT19_Y] = held & 0x7f;
+    mem8[SPRITE_BANK0_SLOT19_X] = mem8[SPRITE_BANK0_SLOT19_X] + HALF_RANGE;
+    if (m.beamPlan) m.beamPlan.push({ y: SPRITE_BANK1_SLOT19_Y, x: SPRITE_BANK0_SLOT19_X }); // beam-sync render
   }
   for (const slot of TAIL_SLOTS) {
     const request = mem8[slot.request];

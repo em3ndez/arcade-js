@@ -111,6 +111,11 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   cells. Two dual-mapped ports (0xC300 = NMI-enable on write / IN0 on read; 0xC000 = sound-command
   on write / scanline counter on read) are deferred to a grouped split-commit alongside 0xC200; one
   write-only sentinel stays a placeholder.
+- **Batch 8** — sprite slots 19-23 (X in bank 0, Y in bank 1 — the tail slots of the sprite
+  multiplex), the kills-remaining meter (its era-keyed glyph row table and bar start cell), the
+  phase-1 and phase-2 sub-step dispatch tables (completing the phase-0/1/2/3 set), the player /
+  fine / coarse heading-to-shape tables, the mid-band object-phase shape table, the era-4 scenery
+  seed table, and the death-animation shape table.
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for

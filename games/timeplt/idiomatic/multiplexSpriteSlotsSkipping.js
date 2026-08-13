@@ -10,11 +10,11 @@ import {
   SPRITE_BANK1_SLOT0_Y, SPRITE_BANK0_BASE,
   loc_b413, loc_b012,
   loc_b415, loc_b014,
-  loc_b437, loc_b036,
-  loc_b439, loc_b038,
-  loc_b43b, loc_b03a,
-  loc_b43d, loc_b03c,
-  loc_b43f, loc_b03e,
+  SPRITE_BANK1_SLOT19_Y, SPRITE_BANK0_SLOT19_X,
+  SPRITE_BANK1_SLOT20_Y, SPRITE_BANK0_SLOT20_X,
+  SPRITE_BANK1_SLOT21_Y, SPRITE_BANK0_SLOT21_X,
+  SPRITE_BANK1_SLOT22_Y, SPRITE_BANK0_SLOT22_X,
+  SPRITE_BANK1_SLOT23_Y, SPRITE_BANK0_SLOT23_X,
 } from "./names.js";
 
 const DISARM_MASK = 0x7f;
@@ -25,11 +25,11 @@ const SLOTS = [
   [SPRITE_BANK1_SLOT0_Y, SPRITE_BANK0_BASE],
   [loc_b413, loc_b012],
   [loc_b415, loc_b014],
-  [loc_b437, loc_b036],
-  [loc_b439, loc_b038],
-  [loc_b43b, loc_b03a],
-  [loc_b43d, loc_b03c],
-  [loc_b43f, loc_b03e],
+  [SPRITE_BANK1_SLOT19_Y, SPRITE_BANK0_SLOT19_X],
+  [SPRITE_BANK1_SLOT20_Y, SPRITE_BANK0_SLOT20_X],
+  [SPRITE_BANK1_SLOT21_Y, SPRITE_BANK0_SLOT21_X],
+  [SPRITE_BANK1_SLOT22_Y, SPRITE_BANK0_SLOT22_X],
+  [SPRITE_BANK1_SLOT23_Y, SPRITE_BANK0_SLOT23_X],
 ];
 
 function serviceSlot(m, yAddr, xAddr) {

@@ -1770,16 +1770,16 @@ export const loc_c000 = 0xc000; // proposal: spinRemainingSpriteMultiplexSlots R
 export const TAMPER_GLYPH_SOURCE_CELL = 0xa67c; // char-plane glyph cell copied to TAMPER_GLYPH_COPY (0xab43) and later compared against it -- anti-tamper witness (expected glyph 0x7c)
 export const loc_acc5 = 0xacc5; // proposal: spawnEnemyIntoFreeSlotElseStepSearch SHARED_ZERO
 export const COPYRIGHT_GLYPH_SAMPLE_CELL = 0xa61c; // copyright-caption glyph cell sampled (glyph+colour) into TAMPER_GLYPH_STRIP each attract frame (stepCopyrightScreenAwaitingStart)
-export const loc_b437 = 0xb437; // proposal: spinRemainingSpriteMultiplexSlots FIRST_REQUEST
-export const loc_b036 = 0xb036; // proposal: spinRemainingSpriteMultiplexSlots FIRST_PARTNER
-export const loc_b439 = 0xb439; // proposal: spinRemainingSpriteMultiplexSlots slot request
-export const loc_b038 = 0xb038; // proposal: spinRemainingSpriteMultiplexSlots slot partner
-export const loc_b43b = 0xb43b; // proposal: spinRemainingSpriteMultiplexSlots slot request
-export const loc_b03a = 0xb03a; // proposal: spinRemainingSpriteMultiplexSlots slot partner
-export const loc_b43d = 0xb43d; // proposal: spinRemainingSpriteMultiplexSlots slot request
-export const loc_b03c = 0xb03c; // proposal: spinRemainingSpriteMultiplexSlots slot partner
-export const loc_b43f = 0xb43f; // proposal: spinRemainingSpriteMultiplexSlots slot request
-export const loc_b03e = 0xb03e; // proposal: spinRemainingSpriteMultiplexSlots slot partner
+export const SPRITE_BANK1_SLOT19_Y = 0xb437; // sprite-attribute bank 1 (spriteram2) slot 19 Y byte (bit7=multiplex arm, low7=trigger scanline)
+export const SPRITE_BANK0_SLOT19_X = 0xb036; // sprite-attribute bank 0 (spriteram) slot 19 X byte; multiplex pair with SPRITE_BANK1_SLOT19_Y
+export const SPRITE_BANK1_SLOT20_Y = 0xb439; // sprite bank 1 slot 20 Y byte
+export const SPRITE_BANK0_SLOT20_X = 0xb038; // sprite bank 0 slot 20 X byte; pair with SPRITE_BANK1_SLOT20_Y
+export const SPRITE_BANK1_SLOT21_Y = 0xb43b; // sprite bank 1 slot 21 Y byte
+export const SPRITE_BANK0_SLOT21_X = 0xb03a; // sprite bank 0 slot 21 X byte; pair with SPRITE_BANK1_SLOT21_Y
+export const SPRITE_BANK1_SLOT22_Y = 0xb43d; // sprite bank 1 slot 22 Y byte
+export const SPRITE_BANK0_SLOT22_X = 0xb03c; // sprite bank 0 slot 22 X byte; pair with SPRITE_BANK1_SLOT22_Y
+export const SPRITE_BANK1_SLOT23_Y = 0xb43f; // sprite bank 1 slot 23 Y byte (last slot)
+export const SPRITE_BANK0_SLOT23_X = 0xb03e; // sprite bank 0 slot 23 X byte (last slot); pair with SPRITE_BANK1_SLOT23_Y
 
 // Batch 7 (address-retrofit): table/data-block bases lifted out of routine-local consts in 18 files.
 // Each is a ROM-image data-table base loaded into regs.hl then read by fetchTableByte/fetchTableWord/
@@ -1787,16 +1787,16 @@ export const loc_b03e = 0xb03e; // proposal: spinRemainingSpriteMultiplexSlots s
 // address checked against ROUTINES keys: no collision. 0xc200/0xc300/0x1b04 already existed and are
 // reused, not re-added.
 export const CAPTION_RECORD_TABLE = 0x0c50; // caption-record table {start-cell word, colour, glyph run}, indexed by caption id; shared by 5 caption routines
-export const loc_087c = 0x087c; // proposal: drawKillMeter ROWS
-export const loc_a79f = 0xa79f; // proposal: drawKillMeter BAR_START_CELL
-export const loc_1659 = 0x1659; // proposal: dispatchSequencePhase1SubStepArm ARM_TABLE
-export const loc_1806 = 0x1806; // proposal: dispatchSequencePhase2SubStepArm ARM_TABLE
-export const loc_20ce = 0x20ce; // proposal: dressPlayerSpriteForHeading SHAPE_BY_SECTOR
-export const loc_2abc = 0x2abc; // proposal: dressSpriteForFineHeading SHAPE_TABLE
-export const loc_2b18 = 0x2b18; // proposal: dressSpriteForCoarseHeading SHAPE_TABLE
-export const loc_2c94 = 0x2c94; // proposal: driveObjectAppearanceByPhaseBand SHAPE_BY_STEP
-export const loc_315e = 0x315e; // proposal: clearSceneryEntriesThenRunEraScenery SEAT_TABLE
-export const loc_3c09 = 0x3c09; // proposal: advanceHitSoakingObjectThenAnimateDeath SHAPE_TABLE
+export const KILL_METER_GLYPH_ROW_TABLE = 0x087c; // ROM table indexed 10*ERA_INDEX → 10-byte per-era rows (2 bar glyphs + 8 end glyphs) for the kills-remaining meter (drawKillMeter)
+export const KILL_METER_BAR_START_CELL = 0xa79f; // fixed VRAM start cell of the kill-meter bar; cells written stepping -0x20 (drawKillMeter)
+export const PHASE1_SUBSTEP_DISPATCH_TABLE = 0x1659; // inline word jump table of phase-1 sub-step arms keyed on SEQUENCE_SUBSTEP (dispatchSequencePhase1SubStepArm)
+export const PHASE2_SUBSTEP_DISPATCH_TABLE = 0x1806; // inline word jump table of phase-2 sub-step arms keyed on SEQUENCE_SUBSTEP (dispatchSequencePhase2SubStepArm)
+export const PLAYER_HEADING_SHAPE_TABLE = 0x20ce; // ROM table indexed by player heading rounded to 32 sectors → PLAYER_SPRITE_CODE, +32 = parallel attribute table (dressPlayerSpriteForHeading)
+export const FINE_HEADING_SHAPE_TABLE = 0x2abc; // ROM 2-byte (shape,attr) table over 32 heading sectors; shape flutters +8 on alternate frames (dressSpriteForFineHeading)
+export const COARSE_HEADING_SHAPE_TABLE = 0x2b18; // ROM shape table indexed by heading rounded to 16 sectors (top nibble); +16 = parallel attr table (dressSpriteForCoarseHeading)
+export const OBJECT_PHASE_SHAPE_TABLE = 0x2c94; // 16-entry ROM shape table indexed by phase step (phase-10)/2 for the mid-band object animation (driveObjectAppearanceByPhaseBand)
+export const ERA4_SCENERY_SEED_TABLE = 0x315e; // ROM 8x2-byte packed table seeding SCENERY_ENTRY_SLOT0 (byte0→+0x31, byte1→+0) on the era>=4 path; inline data after loc_315b's jp, NOT a call target (clearSceneryEntriesThenRunEraScenery)
+export const DEATH_ANIMATION_SHAPE_TABLE = 0x3c09; // ROM shape table indexed ((level-0x40)>>3)-1, reseated every 8 steps as a dying object counts down (advanceHitSoakingObjectThenAnimateDeath)
 export const loc_3fca = 0x3fca; // proposal: dressSpriteShapeAndAttributeForHeadingSector SHAPE_TABLE
 export const loc_44f1 = 0x44f1; // proposal: dressSpriteForHeadingOrRetireAtEdge SHAPE_PAIRS
 export const loc_4531 = 0x4531; // proposal: dressSpriteForHeadingOrRetireAtEdge COLOUR_TABLE
