@@ -2,7 +2,7 @@
 /**
  * Cycle-free ("frame-stepped") engines — run a game with NO T-state clock by firing the vblank NMI
  * at the game's vblank yield rather than an absolute cycle count. Three, in order of generality:
- * runCycleFree (poll-PC, translated only), runIdiomaticGame (watchdog read), runGeneratorGame
+ * runCycleFree (poll-PC, translated only), runWatchdogGame (watchdog read), runIdiomaticGame
  * (coroutine — the model for a new game). TEST seams; the shipped game stays cycle-driven.
  *
  * The price, choosing poll PCs, and the go-live traps: docs/idiomatic-generation.md; runbook in
@@ -87,16 +87,16 @@ export function runCycleFree(machine, { pollPCs, maxFrames = Infinity, onFrame, 
 }
 
 /**
- * runIdiomaticGame — the whole game idiomatic, with no T-state clock. Idiomatic poll routines never
+ * runWatchdogGame — the whole game idiomatic, with no T-state clock. Idiomatic poll routines never
  * call `m.step`, so runCycleFree's seam is unavailable; this treats the once-per-frame WATCHDOG
- * KICK (a read of `watchdogPort`) as the vblank yield. Superseded by runGeneratorGame — see below.
+ * KICK (a read of `watchdogPort`) as the vblank yield. Superseded by runIdiomaticGame — see below.
  *
  * @param {object} machine  a Machine with the FULL idiomatic override set wired (opts.overrides)
  * @param {object} opts  { watchdogPort, nmiReturnPC, maxFrames, onFrame, readBudget (per-frame) }
  * @returns {{frames:number, stop:string, stopError:(Error|null)}}
  */
-export function runIdiomaticGame(machine, { watchdogPort, nmiReturnPC, maxFrames = Infinity, onFrame, readBudget = 5e6 } = {}) {
-  if (watchdogPort == null || nmiReturnPC == null) throw new Error("runIdiomaticGame needs watchdogPort and nmiReturnPC");
+export function runWatchdogGame(machine, { watchdogPort, nmiReturnPC, maxFrames = Infinity, onFrame, readBudget = 5e6 } = {}) {
+  if (watchdogPort == null || nmiReturnPC == null) throw new Error("runWatchdogGame needs watchdogPort and nmiReturnPC");
 
   machine.nextBoundary = Infinity;
   machine.maxFrames = Infinity;
@@ -121,7 +121,7 @@ export function runIdiomaticGame(machine, { watchdogPort, nmiReturnPC, maxFrames
       // stack means that handler LONG-JUMPED into a new forever loop (the coin path). Those are
       // genuine frame boundaries and MUST fire, or the game freezes on the credit screen. Safe
       // because the handler never READS the watchdog. Cost: the abandoned handler stays on the
-      // host stack, one frame per warm restart — the leak runGeneratorGame removes.
+      // host stack, one frame per warm restart — the leak runIdiomaticGame removes.
       frame += 1;
       readsSinceFrame = 0;
       if (onFrame) onFrame(machine, frame);
@@ -150,19 +150,19 @@ export function runIdiomaticGame(machine, { watchdogPort, nmiReturnPC, maxFrames
 }
 
 /**
- * runGeneratorGame — the COROUTINE go-live engine, and the model for a new game. The idiomatic
+ * runIdiomaticGame — the COROUTINE engine, and the model for a new game. The idiomatic
  * spine (boot, main loops, wait/hold loops) are GENERATORS that `yield` at each vblank wait. The
  * engine resumes the current one to its next yield, samples pre-NMI, then fires the NMI. A
  * coin/start/level/game-over transition is a WARM RESTART: the handler sets `machine.nextMain` to a
  * factory and the engine swaps it, letting the abandoned generator be collected — so the JS host
- * stack stays flat forever, removing runIdiomaticGame's per-restart growth. The yield can sit
+ * stack stays flat forever, removing runWatchdogGame's per-restart growth. The yield can sit
  * anywhere, so it ports with no per-game "find the forever loops" analysis.
  *
  * @param {object} machine  a Machine with idiomatic overrides wired (the spine must be generators)
  * @param {object} opts  { bootAddr, nmiReturnPC, maxFrames, onFrame }
  * @returns {{frames:number, stop:string, stopError:(Error|null)}}
  */
-export function runGeneratorGame(machine, { bootAddr = 0x0000, nmiReturnPC, maxFrames = Infinity, onFrame } = {}) {
+export function runIdiomaticGame(machine, { bootAddr = 0x0000, nmiReturnPC, maxFrames = Infinity, onFrame } = {}) {
   machine.nextBoundary = Infinity;
   machine.maxFrames = Infinity;
   machine.maxCycles = Infinity;

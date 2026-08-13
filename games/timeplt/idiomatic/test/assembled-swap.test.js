@@ -6,7 +6,7 @@
  * after this block is written in the present tense about a gate that no longer executes — it
  * "runs the whole thing twice", "observes itself failing", "skips loudly without ROMs". None of
  * that happens now; the file skips unconditionally. The reason and the measurement are at the
- * `const test =` binding below, and golive.test.js is what replaced it. The description is kept
+ * `const test =` binding below, and idiomatic.test.js is what replaced it. The description is kept
  * because the harness is kept, not because it is still true.
  *
  * WHAT IT COVERED, while it ran:
@@ -88,7 +88,7 @@ const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
 const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(ROM_PATH)) : null;
 const test = (name, fn) =>
-  nodeTest(name, { skip: "retired: swap-era gate on runCycleFree, which cannot drive the coroutine spine; superseded by golive.test.js" }, fn);
+  nodeTest(name, { skip: "retired: swap-era gate on runCycleFree, which cannot drive the coroutine spine; superseded by idiomatic.test.js" }, fn);
 
 const { pollPCs, stateExclude } = manifest.convergence;
 const [STACK_LO, STACK_HI] = stateExclude.stack;

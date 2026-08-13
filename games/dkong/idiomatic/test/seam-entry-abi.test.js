@@ -36,7 +36,7 @@
  * The documented LIVE-OUT ONLY where reproducing the residuals would mean restating the
  * routine inside its own wrapper (0x2333, 0x1783); each of those two modules' seam-entry
  * headers carries the call-site evidence that the dropped residuals are dead, and the
- * whole-machine gates (tools/swap_check.mjs --all, golive.test.js) stand behind it.
+ * whole-machine gates (tools/swap_check.mjs --all, idiomatic.test.js) stand behind it.
  *
  * COVERAGE NOTE worth stating rather than implying: under the FULL flip only 0x2333's entry
  * is dispatched at all (measured: 957 dispatches over 1500 attract frames), because the
@@ -119,8 +119,8 @@ function seededMachine(seed, overrides) {
 /** Resolve ONE address the way the shipped resolvers do: module from `name`, export from
  *  `entry ?? name`. ★ NOTE THE LIMIT, so nobody over-reads this file: it RE-IMPLEMENTS that rule
  *  rather than calling resolveAllIdiomatic, so regressing the SHIPPED resolver (e.g. back to
- *  `export: meta.name`) leaves every test here green — golive.test.js is what catches that.
- *  This file gates the ADAPTERS; golive gates the WIRING. Neither substitutes for the other. */
+ *  `export: meta.name`) leaves every test here green — idiomatic.test.js is what catches that.
+ *  This file gates the ADAPTERS; idiomatic gates the WIRING. Neither substitutes for the other. */
 function wire(addr, exportName) {
   const meta = ROUTINES[addr];
   return resolveOverrides(

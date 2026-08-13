@@ -46,7 +46,7 @@
  *      removed something, so the control cannot silently become a second copy of the candidate.
  *      A second control hooks the same seam with the ORACLE
  *      to show the hook itself moves nothing. Both sides cross vblank at the same logical point
- *      under runGeneratorGame, so there is no NMI to shift and no cycle cost to restore.
+ *      under runIdiomaticGame, so there is no NMI to shift and no cycle cost to restore.
  *
  *   4. TEETH — five broken twins, and the arm that catches each is asserted, not assumed. One is
  *      caught only by a crafted arm (attract never reaches the board-won abandon, so the natural
@@ -70,7 +70,7 @@ import { runGameplayFrame } from "../runGameplayFrame.js";
 import { Machine, resolveAllIdiomatic } from "../../machine.js";
 import manifest from "../../manifest.js";
 import { installEntropyPin } from "../../../../core/entropy-pin.js";
-import { runGeneratorGame } from "../../../../core/frame-stepped.js";
+import { runIdiomaticGame } from "../../../../core/frame-stepped.js";
 import {
   BONUS_EXPIRED_STEP, MARIO_ACTIVE, MARIO_AIRBORNE, MARIO_Y, SND_TRIGGER, STACK_SCRATCH,
 } from "../names.js";
@@ -88,7 +88,7 @@ const CRAFT_FRAMES = 2000; // the shorter run the crafted arms take their real e
 const CRAFT_ENTRIES = 120; // how many real entry states the crafted arms are built on
 const LIVE_FRAMES = 3000; // the live-wire run and its two references
 
-const { nmiReturnPC } = manifest.convergence.golive;
+const { nmiReturnPC } = manifest.convergence.idiomatic;
 const hx = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const inStack = (addr) => addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 
@@ -336,7 +336,7 @@ function liveRun(overrides, candidate, frames = LIVE_FRAMES) {
   installEntropyPin(m, manifest.entropyPin);
   const trace = [];
   const sps = new Set();
-  const r = runGeneratorGame(m, {
+  const r = runIdiomaticGame(m, {
     bootAddr: 0x0000,
     nmiReturnPC,
     maxFrames: frames,

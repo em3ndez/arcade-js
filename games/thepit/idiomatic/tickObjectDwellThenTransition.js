@@ -50,7 +50,7 @@ export function tickObjectDwellThenTransition(m) {
   // The tick that reaches zero ends the wait: hand off to the round/state-boundary transition.
   // The frozen oracle tail-jumps into a fresh never-returning main loop; in the coroutine model
   // that is a mid-frame warm restart — abandon this frame and swap the whole main generator
-  // (m.restartMain throws RESTART, caught by runGeneratorGame).
+  // (m.restartMain throws RESTART, caught by runIdiomaticGame).
   if (remaining === 0) return m.restartMain(() => dockManAndDispatchRoundBoundary(m));
 
   // Otherwise act only on every fourth tick; all other ticks just let the timer run.

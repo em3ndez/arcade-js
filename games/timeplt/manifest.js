@@ -86,9 +86,9 @@ export default {
   },
 
   convergence: {
-    // golive -- nmiReturnPC is what the interrupt PUSHES; at a yield the counter is stale, so the
+    // idiomatic -- nmiReturnPC is what the interrupt PUSHES; at a yield the counter is stale, so the
     // engine is told where control ACTUALLY is. It lands in the excluded stack window.
-    golive: { nmiReturnPC: 0x0b93 },
+    idiomatic: { nmiReturnPC: 0x0b93 },
     pollPCs: [0x0b93],
     stateExclude: { stack: [0xafd6, 0xb000] }, // [start, end) -- the measured stack, nothing more
   },

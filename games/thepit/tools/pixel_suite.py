@@ -6,7 +6,7 @@ the gameplay half: it drives coin -> start -> dig into BOTH MAME (the oracle) an
 renderer on the SAME entropy-pinned input, and asserts the JS frame buffer is byte-identical
 to MAME's, pixel-for-pixel, all the way through the tunnelling gameplay. The translated layer
 is the render source (render.js/runFrames); the idiomatic coroutine layer is separately proven
-byte-identical to it over video RAM (idiomatic/test/{golive,tape,transition}.test.js), so this
+byte-identical to it over video RAM (idiomatic/test/{idiomatic,tape,transition}.test.js), so this
 validates both.
 
 BYO-ROM: the golden is captured live from your own thepitu1 romset (copyrighted, never committed,

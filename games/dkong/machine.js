@@ -96,7 +96,7 @@ export class FramesComplete extends Error {
  * +4 on its `false` path in an instrumented 600-frame pure-oracle attract run, or
  * (b) has the two-word discard literally in its oracle body immediately before the
  * `ret` that precedes `return false`. Membership is re-derived and asserted by
- * `idiomatic/test/golive.test.js` ("the caller-skip table matches the frozen
+ * `idiomatic/test/idiomatic.test.js` ("the caller-skip table matches the frozen
  * oracle"), so the table cannot drift away from the oracle silently.
  *
  * WHAT THIS TABLE CANNOT EXPRESS, stated plainly rather than left implicit: a few
@@ -182,7 +182,7 @@ const SEAM_CALLER_SKIP = new Set([
  * over the ATTRACT sequence only (900 frames, every tail-entered dispatch). A
  * gameplay-only tail chain that likewise never rets would not be in this set and
  * would over-pop. It would not pass silently — the whole-flip gate in
- * idiomatic/test/golive.test.js asserts SP is unchanged at every vblank yield, and
+ * idiomatic/test/idiomatic.test.js asserts SP is unchanged at every vblank yield, and
  * an over-pop drives SP UP, which that assertion catches on the first frame.
  */
 const SEAM_TAIL_NO_RET = new Set([
@@ -331,7 +331,7 @@ function consumeBracketAtSp(m, seam) {
  */
 function seamWrap(addr, fn, seam) {
   // A generator is the engine-driven control spine (boot/mainLoop). It is entered by
-  // runGeneratorGame, never by a translated caller, and opens no bracket. Leave it be.
+  // runIdiomaticGame, never by a translated caller, and opens no bracket. Leave it be.
   if (fn.constructor && fn.constructor.name === "GeneratorFunction") return fn;
   const skips = SEAM_CALLER_SKIP.has(addr);
   const tailRets = !SEAM_TAIL_NO_RET.has(addr);
@@ -420,7 +420,7 @@ function seamWrap(addr, fn, seam) {
  * CONSTRUCTION rather than by argument. (The shipped DK player is NOT on this path:
  * manifest.js sets `runtime: "idiomatic"`,
  * so web/worker.js hands the player `resolveAllIdiomatic(...)` — the full override
- * map, seam installed. The player's cover is idiomatic/test/golive.test.js test 2.)
+ * map, seam installed. The player's cover is idiomatic/test/idiomatic.test.js test 2.)
  *
  * @param {object|Map} [spec]
  * @param {Machine} [machine] the Machine these overrides are being built for

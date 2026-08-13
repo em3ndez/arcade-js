@@ -26,7 +26,7 @@ import { fileURLToPath } from "node:url";
 
 import { Machine, CYCLES_PER_FRAME, resolveAllIdiomatic } from "../machine.js";
 import { buildRoutines } from "../routines.js";
-import { runGeneratorGame } from "../../../core/frame-stepped.js";
+import { runIdiomaticGame } from "../../../core/frame-stepped.js";
 import manifest from "../manifest.js";
 import { SCREEN_W, SCREEN_H } from "../../../boards/timeplt/video.js";
 import { parseEmitArgs, hex4 } from "../../../tools/emit-core.js";
@@ -187,7 +187,7 @@ async function main() {
 }
 
 /**
- * Paint `want` frames of the idiomatic game under runGeneratorGame.
+ * Paint `want` frames of the idiomatic game under runIdiomaticGame.
  *
  * PAINTED WHOLE AT THE VBLANK YIELD: there is no beam on this clock, and the cycle-driven painter
  * publishes on a boundary this engine sets to Infinity. ⚠ The whole-frame tolerance does NOT settle
@@ -197,8 +197,8 @@ async function main() {
 function runGeneratorFrames(machine, want, tapeOrigin) {
   const states = [];
   machine.startBeamFrame(); // open frame 1's band buffer before the boot foreground runs
-  const r = runGeneratorGame(machine, {
-    nmiReturnPC: manifest.convergence.golive.nmiReturnPC,
+  const r = runIdiomaticGame(machine, {
+    nmiReturnPC: manifest.convergence.idiomatic.nmiReturnPC,
     maxFrames: want,
     onFrame: (m, f) => {
       if (f === 0) return; // power-on, before the boot generator runs: no golden frame matches it

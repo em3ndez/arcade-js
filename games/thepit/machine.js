@@ -207,7 +207,7 @@ export class Machine {
     // on-demand hook — nothing is captured during runFrames().
     this.video = gfx && proms ? { gfx, pal: decodePalette(proms) } : null;
 
-    // Coroutine go-live (runGeneratorGame): the current main generator hands the engine a
+    // Coroutine go-live (runIdiomaticGame): the current main generator hands the engine a
     // successor loop by setting nextMain (a warm restart). RESTART is the sentinel thrown by
     // restartMain() for a MID-FRAME restart — see the method below. Per-instance so a clone's
     // throw/catch pair share one identity.
@@ -222,7 +222,7 @@ export class Machine {
    * model that is a non-local exit: abandon this frame's remaining work and swap the whole main
    * generator. So the service records the successor in nextMain and throws RESTART, which unwinds
    * up through the plain call tree (nothing there catches it) out of the mainLoop generator's
-   * .next(); runGeneratorGame catches RESTART, swaps in the successor, and the abandoned frame is
+   * .next(); runIdiomaticGame catches RESTART, swaps in the successor, and the abandoned frame is
    * never resumed. `factory` is a thunk that builds the successor generator, e.g.
    *   () => advanceToNextLevel(m). No-op outside the coroutine engine (the throw would escape), so
    * only the live idiomatic layer uses it.
@@ -602,7 +602,7 @@ export async function resolveOverrides(spec = {}, baseUrl = import.meta.url) {
 /**
  * Resolve the WHOLE idiomatic layer to an override Map<addr,fn> — every routine in ROUTINES
  * wired to its `idiomatic/<name>.js`. This is the go-live override set the frame-stepped engine
- * (core/frame-stepped.js runIdiomaticGame) runs live: with it wired, `machine.reset()` enters the
+ * (core/frame-stepped.js runWatchdogGame) runs live: with it wired, `machine.reset()` enters the
  * idiomatic boot at 0x0000 and the assembled game runs entirely in the readable JS layer. Every
  * one of The Pit's routines has an idiomatic file, so this resolves all of them; a missing file
  * would throw at import (loud, not silent). Used by the browser worker for the idiomatic runtime.

@@ -54,7 +54,7 @@ export function dispatchObjectFrameByStateTimer(m) {
   // Countdown just reached zero: the timed state is over. The frozen oracle tail-jumps from here
   // into a fresh, never-returning main loop; in the coroutine model that is a mid-frame warm
   // restart — abandon this frame and swap the whole main generator (m.restartMain throws RESTART,
-  // caught by runGeneratorGame). The post-timer mode selector picks which boundary loop runs.
+  // caught by runIdiomaticGame). The post-timer mode selector picks which boundary loop runs.
   if (mem8[POST_TRANSITION_MODE] === 0) return m.restartMain(() => dockManAndDispatchRoundBoundary(m));
   return m.restartMain(() => advanceToNextLevel(m));
 }

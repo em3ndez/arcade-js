@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// golive — the Donkey Kong go-live gates. Tests 1 and 2 run the ASSEMBLED game under the cycle-free
-// coroutine engine (core/frame-stepped.js runGeneratorGame) and compare it against the pure-
+// idiomatic — the Donkey Kong go-live gates. Tests 1 and 2 run the ASSEMBLED game under the cycle-free
+// coroutine engine (core/frame-stepped.js runIdiomaticGame) and compare it against the pure-
 // translated oracle run under runCycleFree with the SAME frame boundary — the vblank wait at ROM
 // 0x02BD — so both runs cross vblank at the same logical point. Test 3 runs no game at all (it is a
 // structural check on the Machine) and test 4 runs only the oracle. ROM-guarded (skips without the
@@ -86,7 +86,7 @@ import {
 } from "../../machine.js";
 import manifest from "../../manifest.js";
 import { installEntropyPin } from "../../../../core/entropy-pin.js";
-import { runGeneratorGame, runCycleFree } from "../../../../core/frame-stepped.js";
+import { runIdiomaticGame, runCycleFree } from "../../../../core/frame-stepped.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -127,7 +127,7 @@ const FRAMES = 600; // enough to boot and run the attract sequence
 //
 // ★ THIS BUDGET IS NOW A COVERAGE CHOICE, NOT A DEFECT. With that class fixed there is no known
 // wall at any budget. Raised to 6000 on measurement, by the lead, on review — not as a side effect
-// of the fix: the full flip under runGeneratorGame was compared live-cell against the oracle for
+// of the fix: the full flip under runIdiomaticGame was compared live-cell against the oracle for
 // 6000 frames with ZERO divergences and SP pinned at 0x6C00 on every frame (distinct SP values
 // observed: exactly one), and `swap_check --all` is TRANSPARENT to 12000. 6000 costs ~0.6s against
 // ~0.26s at 700, so the coverage is nearly free; raise it further if a defect is ever suspected to
@@ -141,8 +141,8 @@ const FRAMES = 600; // enough to boot and run the attract sequence
 // the only things that see them.
 const FLIP_FRAMES = 6000;
 
-const { pollPCs, stateExclude, golive } = manifest.convergence;
-const { nmiReturnPC } = golive;
+const { pollPCs, stateExclude, idiomatic } = manifest.convergence;
+const { nmiReturnPC } = idiomatic;
 const [STACK_LO, STACK_HI] = stateExclude.stack; // dead stack scratch, excluded (memory-equivalence)
 const hex = (v) => `0x${(v & 0xffff).toString(16).padStart(4, "0")}`;
 
@@ -186,7 +186,7 @@ test("the idiomatic spine reproduces the translated oracle (coroutine go-live)",
   const mi = new Machine(ROM, { overrides });
   installEntropyPin(mi, manifest.entropyPin);
   const idi = [];
-  const ri = runGeneratorGame(mi, {
+  const ri = runIdiomaticGame(mi, {
     bootAddr: 0x0000,
     nmiReturnPC,
     maxFrames: FRAMES,
@@ -246,7 +246,7 @@ test("the FULL FLIP: all idiomatic routines live, guest stack balanced every fra
   let prevSp = null;
   const spFaults = [];
   const floorFaults = [];
-  const ri = runGeneratorGame(mi, {
+  const ri = runIdiomaticGame(mi, {
     bootAddr: 0x0000,
     nmiReturnPC,
     maxFrames: FLIP_FRAMES,

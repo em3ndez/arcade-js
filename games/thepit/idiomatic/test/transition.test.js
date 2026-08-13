@@ -30,7 +30,7 @@ import { GAME_STATE, LEVEL, MEN_LEFT, TRANSITION_TIMER, POST_TRANSITION_MODE,
 // 0x8048 = the rank a submitted score landed at (0 = did not place). A submitPlayerHighScore local,
 // deliberately NOT a names.js export (names.js's 0x8048 carries a different tentative round-setup name).
 const LANDED_RANK = 0x8048;
-import { runIdiomaticGame, runGeneratorGame } from "../../../../core/frame-stepped.js";
+import { runWatchdogGame, runIdiomaticGame } from "../../../../core/frame-stepped.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -41,8 +41,8 @@ const test = ROM_PRESENT
 
 const FRAMES = 760;
 const FORCE_AT = 620; // a settled in-game frame (dig starts at 480)
-const { stateExclude, golive } = manifest.convergence;
-const { watchdogPort, nmiReturnPC, gameStateHi } = golive;
+const { stateExclude, idiomatic } = manifest.convergence;
+const { watchdogPort, nmiReturnPC, gameStateHi } = idiomatic;
 
 // coin @ 402, start @ 462 (IN1 active-high), then hold Down + pulse Dig (IN0, io-inverted).
 function tapeInput(fi) {
@@ -73,8 +73,8 @@ async function play(useIdiomatic, postMode, { lastLife = false } = {}) {
     frames.push(Buffer.from(mm.dumpState()));
   };
   const r = useIdiomatic
-    ? runGeneratorGame(m, { nmiReturnPC, maxFrames: FRAMES, onFrame })
-    : runIdiomaticGame(m, { watchdogPort, nmiReturnPC, maxFrames: FRAMES, onFrame });
+    ? runIdiomaticGame(m, { nmiReturnPC, maxFrames: FRAMES, onFrame })
+    : runWatchdogGame(m, { watchdogPort, nmiReturnPC, maxFrames: FRAMES, onFrame });
   return { frames, r, level: m.mem.read8(LEVEL), men: m.mem.read8(MEN_LEFT), state: m.mem.read8(GAME_STATE) };
 }
 
@@ -140,8 +140,8 @@ async function playColourTest(useIdiomatic) {
     frames.push(Buffer.from(mm.dumpState()));
   };
   const r = useIdiomatic
-    ? runGeneratorGame(m, { nmiReturnPC, maxFrames: 40, onFrame })
-    : runIdiomaticGame(m, { watchdogPort, nmiReturnPC, maxFrames: 40, onFrame });
+    ? runIdiomaticGame(m, { nmiReturnPC, maxFrames: 40, onFrame })
+    : runWatchdogGame(m, { watchdogPort, nmiReturnPC, maxFrames: 40, onFrame });
   return { frames, r, state: m.mem.read8(GAME_STATE) };
 }
 
@@ -169,8 +169,8 @@ async function playColdReset(useIdiomatic) {
     frames.push(Buffer.from(mm.dumpState()));
   };
   const r = useIdiomatic
-    ? runGeneratorGame(m, { nmiReturnPC, maxFrames: 360, onFrame })
-    : runIdiomaticGame(m, { watchdogPort, nmiReturnPC, maxFrames: 360, onFrame });
+    ? runIdiomaticGame(m, { nmiReturnPC, maxFrames: 360, onFrame })
+    : runWatchdogGame(m, { watchdogPort, nmiReturnPC, maxFrames: 360, onFrame });
   return { frames, r };
 }
 
@@ -210,8 +210,8 @@ async function playHighScore(useIdiomatic) {
     frames.push(Buffer.from(mm.dumpState()));
   };
   const r = useIdiomatic
-    ? runGeneratorGame(m, { nmiReturnPC, maxFrames: 880, onFrame })
-    : runIdiomaticGame(m, { watchdogPort, nmiReturnPC, maxFrames: 880, onFrame });
+    ? runIdiomaticGame(m, { nmiReturnPC, maxFrames: 880, onFrame })
+    : runWatchdogGame(m, { watchdogPort, nmiReturnPC, maxFrames: 880, onFrame });
   return { frames, r, placedRank, minInitials };
 }
 

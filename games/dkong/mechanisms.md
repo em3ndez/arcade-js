@@ -88,10 +88,10 @@ Three things are true at once, and only the first is "done":
 1. **Lifting is complete.** All 429 ROM routines the disassembler emits have a readable module,
    and 427 have their own memory-equivalence gate against the frozen oracle. The two without are
    `boot` (ROM 0x0000) and `mainLoop` (ROM 0x02BD) — the coroutine spine, gated whole by
-   `idiomatic/test/golive.test.js` instead. `[code]`
+   `idiomatic/test/idiomatic.test.js` instead. `[code]`
 
 2. **Wiring is not.** `resolveAllIdiomatic()` — what the shipping player uses (`manifest.js`
-   declares `runtime: "idiomatic"`, and `web/worker.js` runs it under `runGeneratorGame`) — builds
+   declares `runtime: "idiomatic"`, and `web/worker.js` runs it under `runIdiomaticGame`) — builds
    its override map by iterating `ROUTINES` and nothing else (`games/dkong/machine.js:1107`).
    Registration *is* the wiring. The 31 modules absent from `ROUTINES` are therefore not executed:
    at those addresses the live machine still runs the frozen oracle. They are written, reviewed and
@@ -185,7 +185,7 @@ work, then spins comparing `FRAME` against its own latched copy `FRAME_SEEN` —
 the NMI's decrement releases. `SPIN_COUNT` is bumped once per loop pass (~140×/frame; its *jitter*
 with workload is the point, because it feeds the PRNG). In this port `mainLoop` is a **generator**:
 it `yield`s exactly where the oracle's cycle-driven engine fires the NMI, which is what makes the
-readable layer runnable without a cycle model. `[code]` — and note what `golive.test.js` compares:
+readable layer runnable without a cycle model. `[code]` — and note what `idiomatic.test.js` compares:
 the idiomatic spine against the frozen oracle, our JS against our JS, over 600 attract frames. That
 is a fact about this port's internal consistency, not an observation of the arcade machine.
 

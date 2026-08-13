@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// golive — the WHOLE-GAME idiomatic gate. Wires EVERY idiomatic routine live and runs the
-// assembled game under the cycle-free go-live engine (core/frame-stepped.js runIdiomaticGame,
+// idiomatic — the WHOLE-GAME idiomatic gate. Wires EVERY idiomatic routine live and runs the
+// assembled game under the cycle-free go-live engine (core/frame-stepped.js runWatchdogGame,
 // which fires the vblank NMI on the once-per-frame watchdog kick since the idiomatic poll
 // routines never call m.step). It then asserts the idiomatic game is byte-identical to the pure
 // translated game across the whole run, over the used game-state region [0x8000, gameStateHi]
@@ -22,7 +22,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine, resolveOverrides } from "../../machine.js";
 import manifest from "../../manifest.js";
 import { ROUTINES, GAME_STATE } from "../names.js";
-import { runCycleFree, runGeneratorGame } from "../../../../core/frame-stepped.js";
+import { runCycleFree, runIdiomaticGame } from "../../../../core/frame-stepped.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -32,8 +32,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const FRAMES = 700; // enough to boot, run attract setup, and enter the playable demo
-const { pollPCs, stateExclude, golive } = manifest.convergence;
-const { nmiReturnPC, gameStateHi } = golive;
+const { pollPCs, stateExclude, idiomatic } = manifest.convergence;
+const { nmiReturnPC, gameStateHi } = idiomatic;
 
 test("the whole idiomatic game reproduces the translated oracle (all 169 routines live)", async () => {
   // Wire EVERY idiomatic routine that has a file.
@@ -47,7 +47,7 @@ test("the whole idiomatic game reproduces the translated oracle (all 169 routine
   // Idiomatic run (all routines live) via the watchdog-kick go-live engine.
   const mi = await Machine.create(ROM, { overrides });
   const idi = [];
-  const ri = runGeneratorGame(mi, { nmiReturnPC, maxFrames: FRAMES, onFrame: (m) => idi.push(Buffer.from(m.dumpState())) });
+  const ri = runIdiomaticGame(mi, { nmiReturnPC, maxFrames: FRAMES, onFrame: (m) => idi.push(Buffer.from(m.dumpState())) });
   assert.equal(ri.stopError, null, `idiomatic run errored: ${ri.stop}`);
   assert.ok(ri.frames >= FRAMES, `idiomatic run covered only ${ri.frames}/${FRAMES} frames (${ri.stop})`);
 

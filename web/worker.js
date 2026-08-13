@@ -131,9 +131,9 @@ async function run(gameId, provided) {
   // (generators yielding at each vblank); absent/other runs the translated layer on the
   // cycle-driven engine. Idiomatic is validated byte-for-byte vs the oracle (idiomatic/test/).
   const idiomatic = manifest.runtime === "idiomatic";
-  const golive = manifest.convergence?.golive;
-  if (idiomatic && !golive) throw new Error(`${gameId}: runtime "idiomatic" needs manifest.convergence.golive`);
-  const runGeneratorGame = idiomatic ? (await import("../core/frame-stepped.js")).runGeneratorGame : null;
+  const liveCfg = manifest.convergence?.idiomatic;
+  if (idiomatic && !liveCfg) throw new Error(`${gameId}: runtime "idiomatic" needs manifest.convergence.idiomatic`);
+  const runIdiomaticGame = idiomatic ? (await import("../core/frame-stepped.js")).runIdiomaticGame : null;
   const LiveMachine = idiomatic ? null : makeLive(Machine);
 
   // Resolved ONCE and reused for every (re)boot: idiomatic wires every routine to its
@@ -171,10 +171,10 @@ async function run(gameId, provided) {
     let reason = null;
     try {
       if (idiomatic) {
-        // runGeneratorGame drives the main generator frame by frame, calling serviceIdiomaticFrame
+        // runIdiomaticGame drives the main generator frame by frame, calling serviceIdiomaticFrame
         // at each pre-NMI yield; it catches its own unwinds, so read the returned stop reason.
-        const r = runGeneratorGame(m, {
-          nmiReturnPC: golive.nmiReturnPC,
+        const r = runIdiomaticGame(m, {
+          nmiReturnPC: liveCfg.nmiReturnPC,
           onFrame: serviceIdiomaticFrame,
         });
         if (r.stopError) {

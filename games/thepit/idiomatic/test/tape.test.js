@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
 // tape — replay the INPUT TAPES through the whole idiomatic game and gate them against the
-// translated oracle. This is the half the attract gates (golive) never exercised: real input.
+// translated oracle. This is the half the attract gates (idiomatic) never exercised: real input.
 // The attract/demo run takes no input, so a broken input path (or a coin/warm-restart flow that
-// freezes the frame-stepped engine) passes golive but fails the moment a player inserts a coin.
+// freezes the frame-stepped engine) passes idiomatic but fails the moment a player inserts a coin.
 //
 // tapes/coin_start.lua is the pinned contract (coin IN1 bit0 @ lua frame 400, start IN1 bit2 @
 // 460; the JS io.inputAssert mirror presses the same bits +2 frames later — coin@402, start@462).
-// Both modes run under runIdiomaticGame (the browser's go-live engine); the translated layer runs
+// Both modes run under runWatchdogGame (the browser's go-live engine); the translated layer runs
 // under the SAME engine with no overrides, as the oracle. We assert (a) the game actually RESPONDS
 // — a credit banks, the game starts (GAME_STATE 3->1 at the contract frame 464), and in dig mode
 // the player tunnels (PLAYER_X advances) — and (b) the idiomatic game reproduces the translated
@@ -21,7 +21,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine, resolveAllIdiomatic } from "../../machine.js";
 import manifest from "../../manifest.js";
 import { GAME_STATE, CREDIT_COUNT, PLAYER_X } from "../names.js";
-import { runIdiomaticGame, runGeneratorGame } from "../../../../core/frame-stepped.js";
+import { runWatchdogGame, runIdiomaticGame } from "../../../../core/frame-stepped.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -31,8 +31,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const FRAMES = 900; // boot -> attract -> coin(402) -> start(462) -> in-game -> dig(480+)
-const { stateExclude, golive } = manifest.convergence;
-const { watchdogPort, nmiReturnPC, gameStateHi } = golive;
+const { stateExclude, idiomatic } = manifest.convergence;
+const { watchdogPort, nmiReturnPC, gameStateHi } = idiomatic;
 
 // coin_start.lua, JS +2 mirror. IN1 @ 0xa800 ACTIVE HIGH: b0=Coin1, b2=Start1. IN0 @ 0xa000: the
 // worker's "press these physical bits" contract — b2=Down, b4=Dig (io inverts the active-low port).
@@ -63,8 +63,8 @@ async function play(overrides, mode) {
   // The idiomatic layer is generators -> the coroutine engine; the translated oracle is plain
   // functions -> the watchdog engine (which also handles the coin/warm-restart for translated).
   const r = overrides
-    ? runGeneratorGame(m, { nmiReturnPC, maxFrames: FRAMES, onFrame })
-    : runIdiomaticGame(m, { watchdogPort, nmiReturnPC, maxFrames: FRAMES, onFrame });
+    ? runIdiomaticGame(m, { nmiReturnPC, maxFrames: FRAMES, onFrame })
+    : runWatchdogGame(m, { watchdogPort, nmiReturnPC, maxFrames: FRAMES, onFrame });
   assert.equal(r.stopError, null, `${mode} run errored: ${r.stop}`);
   return { frames, t };
 }

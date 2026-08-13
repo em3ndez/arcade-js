@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// golive — the WHOLE-GAME gate for the coroutine runtime: the wired idiomatic layer under
-// runGeneratorGame must reproduce the translated oracle byte for byte over game state, through
+// idiomatic — the WHOLE-GAME gate for the coroutine runtime: the wired idiomatic layer under
+// runIdiomaticGame must reproduce the translated oracle byte for byte over game state, through
 // boot, attract, coin, start and play. This is what lets assembled-swap retire.
 //
 // ⛔ THE ORACLE IS THE CYCLE-DRIVEN RUN. Under runCycleFree the drain takes one command per
@@ -22,7 +22,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine, CYCLES_PER_FRAME, resolveAllIdiomatic } from "../../machine.js";
 import manifest from "../../manifest.js";
 import { COIN_ACCEPTED, PLAY_ACTIVE } from "../names.js";
-import { runGeneratorGame } from "../../../../core/frame-stepped.js";
+import { runIdiomaticGame } from "../../../../core/frame-stepped.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -32,7 +32,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "ROM absent at games/timeplt/rom/maincpu.bin (BYO)" }, fn);
 
 const [STACK_LO, STACK_HI] = manifest.convergence.stateExclude.stack;
-const { nmiReturnPC } = manifest.convergence.golive;
+const { nmiReturnPC } = manifest.convergence.idiomatic;
 const { actions } = manifest.inputs;
 
 const NMIS = 600;
@@ -101,7 +101,7 @@ async function runIdiomatic(live) {
   // ⚠ WATCHED DURING THE RUN: both are transient, and read at the end they said zero on a run that
   // had demonstrably taken the coin.
   const everSet = { coin: false, play: false };
-  const r = runGeneratorGame(m, {
+  const r = runIdiomaticGame(m, {
     nmiReturnPC,
     maxFrames: NMIS,
     onFrame: (mm, f) => {

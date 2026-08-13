@@ -25,7 +25,7 @@ export default {
   mameDriver: "dkong.cpp",     // the board is named after its MAME driver
 
   // Live runtime: "idiomatic" runs the whole game on the readable idiomatic layer under the
-  // COROUTINE engine (web/worker.js: runGeneratorGame + machine.js resolveAllIdiomatic), instead
+  // COROUTINE engine (web/worker.js: runIdiomaticGame + machine.js resolveAllIdiomatic), instead
   // of the faithful translated layer on the cycle-driven engine.
   // ★ NOTE FOR ANYONE FLIPPING A GAME TO THIS RUNTIME: the two runtimes RENDER DIFFERENTLY. The
   // cycle-driven one captures per scanline and adds a sprite post-pass; this one calls
@@ -154,11 +154,11 @@ export default {
   // Cycle-free / coroutine convergence config (core/frame-stepped.js). The idiomatic layer is
   // cycle-free (never calls m.step), so its frame boundary is the vblank WAIT — DK's task-scheduler
   // main loop busy-waits at 0x02BD (`cp (0x6383); jr z,0x02BD`) until the NMI advances the frame
-  // counter 0x601A. That is the yield point for the coroutine go-live engine (runGeneratorGame) AND
+  // counter 0x601A. That is the yield point for the coroutine go-live engine (runIdiomaticGame) AND
   // the poll PC where the translated oracle (runCycleFree) fires its once-per-frame NMI, so both
   // runs cross the frame boundary at the same logical point and reproduce each other on every live
   // cell (work + sprite + video RAM) — except the dead stack scratch (see below and
-  // idiomatic/test/golive.test.js).
+  // idiomatic/test/idiomatic.test.js).
   convergence: {
     pollPCs: [0x02bd],
     // The go-live gate compares the idiomatic run against the poll-PC oracle over the whole dumped
@@ -170,7 +170,7 @@ export default {
     // — so they are excluded; every LIVE cell (incl. the rendered sprite/video output) is still
     // compared byte-for-byte. STACK_SCRATCH = [0x6BE0, 0x6C00) (SP inits at 0x6C00).
     stateExclude: { stack: [0x6be0, 0x6c00] }, // [start, end) — dead stack scratch below SP
-    golive: { nmiReturnPC: 0x02bd },
+    idiomatic: { nmiReturnPC: 0x02bd },
   },
 
 };
