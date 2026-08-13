@@ -22,7 +22,7 @@ import { requestTwoSounds } from "./requestTwoSounds.js";
 import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
 import { requestCurrentEraSound } from "./requestCurrentEraSound.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
-import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_HEADING, PLAYER_STATE, ROUND_TRANSITION_HOLD, SCRATCH_PTR_A, SCRATCH_PTR_B, TAMPER_GLYPH_COPY, WORLD_SCROLL_X, WORLD_SCROLL_Y, HEADING_SHAPE_TABLE, loc_461b, loc_478b } from "./names.js";
+import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_HEADING, PLAYER_STATE, ROUND_TRANSITION_HOLD, SCRATCH_PTR_A, SCRATCH_PTR_B, TAMPER_GLYPH_COPY, WORLD_SCROLL_X, WORLD_SCROLL_Y, HEADING_SHAPE_TABLE, MOTHER_SHIP_WARP_SHAPE_TABLE, MOTHER_SHIP_STAGE_ARM_TABLE } from "./names.js";
 
 const SLOT_STRIDE = 0x0010;
 const SLOT_COUNT = 0x0f;
@@ -206,7 +206,7 @@ export function loc_43f0_45b3(m) {
     regs.rrca();
     regs.a = regs.dec8(regs.a);
     regs.and(0x07);
-    regs.hl = loc_461b;
+    regs.hl = MOTHER_SHIP_WARP_SHAPE_TABLE;
     fetchTableByte(m);
     mem8[Y(0x03)] = regs.a;
     regs.a = regs.inc8(regs.a);
@@ -404,7 +404,7 @@ export function loc_43f0_474c(m) {
   mem8[Y(0x00)] = regs.c;
 
   regs.a = mem8[ERA_INDEX];
-  regs.hl = loc_478b; // the stage-vector arms sit inline just below
+  regs.hl = MOTHER_SHIP_STAGE_ARM_TABLE; // the stage-vector arms sit inline just below
   const arm = fetchTableWord(m);
   regs.de = regs.hl;
   regs.hl = arm;

@@ -8,7 +8,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { armWholePlaneWipeThenDerailOnATamperedImage } from "./armWholePlaneWipeThenDerailOnATamperedImage.js";
-import { SEQUENCE_PHASE, SEQUENCE_SUBSTEP, loc_1749, loc_5648 } from "./names.js";
+import { SEQUENCE_PHASE, SEQUENCE_SUBSTEP, WIPE_SUBSTEP_SEED, SEQUENCE_PHASE_TAMPER_SPAN_BASE } from "./names.js";
 
 const FOLD_BYTES = 256;
 const FOLD_KEY = 0x4e;
@@ -17,9 +17,9 @@ export function startTheWholePlaneWipeAndFoldAnImageBlockIntoThePhase(m) {
   const { mem8 } = m;
   armWholePlaneWipeThenDerailOnATamperedImage(m);
 
-  mem8[SEQUENCE_SUBSTEP] = mem8[loc_1749];
+  mem8[SEQUENCE_SUBSTEP] = mem8[WIPE_SUBSTEP_SEED];
 
   let folded = mem8[SEQUENCE_PHASE];
-  for (let i = 0; i < FOLD_BYTES; i++) folded = u8(folded - mem8[u16(loc_5648 + i)]);
+  for (let i = 0; i < FOLD_BYTES; i++) folded = u8(folded - mem8[u16(SEQUENCE_PHASE_TAMPER_SPAN_BASE + i)]);
   mem8[SEQUENCE_PHASE] = folded ^ FOLD_KEY;
 }

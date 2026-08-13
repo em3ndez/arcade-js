@@ -12,7 +12,7 @@ import { fetchTableByte } from "./fetchTableByte.js";
 import { pickScriptAtRandomOrInTurn } from "./pickScriptAtRandomOrInTurn.js";
 import { stepShapeAnimation } from "./stepShapeAnimation.js";
 import { u8, u16 } from "../../../core/int.js";
-import { PLAYER_HEADING, loc_39fb, loc_3a3b, loc_acc5 } from "./names.js";
+import { PLAYER_HEADING, ENEMY_SPAWN_DIRECTION_INDEX_TABLE, ENEMY_SPAWN_RECORD_TABLE, loc_acc5 } from "./names.js";
 
 const DIRECTION_MASK = 0x3f;
 const JITTER_MASK = 0x0f;
@@ -29,9 +29,9 @@ export function spawnEnemyIntoFreeSlotElseStepSearch(m, record = m.regs.ix, entr
   const jitter = (drawRandomByte(m) & JITTER_MASK) - JITTER_BIAS;
   regs.a = (base + jitter) & DIRECTION_MASK;
 
-  regs.hl = loc_39fb;
+  regs.hl = ENEMY_SPAWN_DIRECTION_INDEX_TABLE;
   regs.a = u8(fetchTableByte(m) * VELOCITY_STRIDE);
-  regs.hl = loc_3a3b;
+  regs.hl = ENEMY_SPAWN_RECORD_TABLE;
   mem8[entry + 0x31] = fetchTableByte(m);
   regs.hl = u16(regs.hl + 1);
   regs.a = mem8[regs.hl];

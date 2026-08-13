@@ -9,7 +9,7 @@
 import { advanceSequencePhase } from "./advanceSequencePhase.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8, u16 } from "../../../core/int.js";
-import { loc_0bcc, EXPECTED_CHECKSUM_TOTAL } from "./names.js";
+import { SEQUENCE_CHECKSUM_SPAN_BASE, EXPECTED_CHECKSUM_TOTAL } from "./names.js";
 
 const BLOCK_BYTES = 256;
 const STARTING_TOTAL = 137;
@@ -17,7 +17,7 @@ const STARTING_TOTAL = 137;
 export function stepSequenceUnderChecksum(m) {
   const { mem8 } = m;
   let total = STARTING_TOTAL;
-  for (let i = 0; i < BLOCK_BYTES; i++) total = u8(total + mem8[u16(loc_0bcc + i)]);
+  for (let i = 0; i < BLOCK_BYTES; i++) total = u8(total + mem8[u16(SEQUENCE_CHECKSUM_SPAN_BASE + i)]);
 
   if (total !== mem8[EXPECTED_CHECKSUM_TOTAL]) advanceSequencePhase(m);
   advanceSequenceSubStep(m);

@@ -14,7 +14,7 @@ import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
 import { postCommand } from "./postCommand.js";
-import { PLAYER_STATE, ROUND_TRANSITION_HOLD, TAMPER_GLYPH_COPY, loc_461b } from "./names.js";
+import { PLAYER_STATE, ROUND_TRANSITION_HOLD, TAMPER_GLYPH_COPY, MOTHER_SHIP_WARP_SHAPE_TABLE } from "./names.js";
 
 const STATE = 0x00;
 const HEADING = 0x31;
@@ -92,7 +92,7 @@ export function stepMotherShipWarpFlashFrame(m) {
       regs.rrca();
       regs.a = regs.dec8(regs.a);
       regs.and(0x07);
-      regs.hl = loc_461b;
+      regs.hl = MOTHER_SHIP_WARP_SHAPE_TABLE;
       fetchTableByte(m);
       mem8[Y(0x03)] = regs.a;
       regs.a = regs.inc8(regs.a);

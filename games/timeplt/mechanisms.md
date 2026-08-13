@@ -104,6 +104,13 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   attract-restart fold byte, and the per-phase vblank arm dispatch table. Three addresses stay
   placeholders: a write-only player-record spare cell, and two code addresses read as data (a
   checksum-over-code span and a called routine that doubles as a data table).
+- **Batch 7** — the enemy-spawn direction/record tables and the mother-ship velocity/warp/stage
+  tables, the two per-heading-sector sprite tables (shape + mirror), two more sequence
+  checksum/phase-tamper spans and two SEQUENCE_SUBSTEP seeds, the single-direction hardware ports
+  (the flip-screen latch and the IN1 / IN2 / DSW0 read ports), and two anti-tamper glyph witness
+  cells. Two dual-mapped ports (0xC300 = NMI-enable on write / IN0 on read; 0xC000 = sound-command
+  on write / scanline counter on read) are deferred to a grouped split-commit alongside 0xC200; one
+  write-only sentinel stays a placeholder.
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for

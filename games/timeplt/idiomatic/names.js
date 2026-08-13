@@ -1749,27 +1749,27 @@ export const RANDOM_REGISTER_SEED_SOURCE = 0x4b84; // base of the fixed 17-byte 
 export const RANDOM_SEED_GUARD_WORD0 = 0x086d; // ROM word (1st of two) summed into seedRandomRegister's image-tamper guard total (must net to 0)
 export const RANDOM_SEED_GUARD_WORD1 = 0x0870; // ROM word (2nd) of the same seed image-tamper guard total
 export const SEQUENCE_PHASE_ARM_TABLE = 0x015f; // 4-word ROM table of per-phase arm-handler code addresses, indexed by SEQUENCE_PHASE&3 and m.call'd each vblank (serviceVerticalBlankInterrupt)
-export const loc_46c4 = 0x46c4; // proposal: setMotherShipVelocityFromHeading ARM_TABLE (dispatch table base)
-export const loc_39fb = 0x39fb; // proposal: spawnEnemyIntoFreeSlotElseStepSearch HEADING_TABLE
-export const loc_3a3b = 0x3a3b; // proposal: spawnEnemyIntoFreeSlotElseStepSearch VELOCITY_TABLE
-export const loc_2a77 = 0x2a77; // proposal: spriteForHeading SHAPE_BY_SECTOR
-export const loc_2a87 = 0x2a87; // proposal: spriteForHeading MIRROR_BY_SECTOR
-export const loc_1749 = 0x1749; // proposal: startTheWholePlaneWipeAndFoldAnImageBlockIntoThePhase SUBSTEP_SOURCE
-export const loc_5648 = 0x5648; // proposal: startTheWholePlaneWipeAndFoldAnImageBlockIntoThePhase FOLD_BLOCK
-export const loc_461b = 0x461b; // proposal: stepMotherShip SHAPE_TABLE
-export const loc_478b = 0x478b; // proposal: stepMotherShip ARM_TABLE (stage-vector dispatch table base)
-export const loc_2750 = 0x2750; // proposal: stepRoundStartIntroAnimation SUBSTEP_RELOAD
-export const loc_0bcc = 0x0bcc; // proposal: stepSequenceUnderChecksum BLOCK_START (checksum block base)
-export const EXPECTED_CHECKSUM_TOTAL = 0x1a50; // anti-tamper reference total; stepSequenceUnderChecksum derails if the 256-byte sum from loc_0bcc mismatches
+export const MOTHER_SHIP_VELOCITY_ARM_TABLE = 0x46c4; // ROM word dispatch table, m.call'd arm by era&7 (setMotherShipVelocityFromHeading); each arm sets the velocity vector
+export const ENEMY_SPAWN_DIRECTION_INDEX_TABLE = 0x39fb; // ROM byte table: spawn direction (scroll angle+jitter, 0-63) -> *4 record index into ENEMY_SPAWN_RECORD_TABLE (spawnEnemyIntoFreeSlot...)
+export const ENEMY_SPAWN_RECORD_TABLE = 0x3a3b; // ROM stride-4 enemy records (shape/facing/velocity) selected by ENEMY_SPAWN_DIRECTION_INDEX_TABLE or random
+export const SPRITE_SHAPE_BY_SECTOR_TABLE = 0x2a77; // 16-entry ROM table: sprite shape code by heading sector (+8 on alternate frames) (spriteForHeading)
+export const SPRITE_MIRROR_BY_SECTOR_TABLE = 0x2a87; // 16-entry ROM table parallel to the shape table: sprite mirror/flip attribute by heading sector
+export const WIPE_SUBSTEP_SEED = 0x1749; // ROM byte (=0x06, a code operand reused as data) seeding SEQUENCE_SUBSTEP for the whole-plane wipe (startTheWholePlaneWipeAndFoldAnImageBlockIntoThePhase)
+export const SEQUENCE_PHASE_TAMPER_SPAN_BASE = 0x5648; // base of a 256-byte ROM block sub-folded into SEQUENCE_PHASE then XOR 0x4e -- anti-tamper (corrupts the phase on a modified image)
+export const MOTHER_SHIP_WARP_SHAPE_TABLE = 0x461b; // 8-entry ROM shape table for the mother-ship warp/flash animation (stepMotherShip/stepMotherShipWarpFlashFrame)
+export const MOTHER_SHIP_STAGE_ARM_TABLE = 0x478b; // ROM word dispatch table, per-era stage arms m.call'd by stepMotherShip
+export const INTRO_SUBSTEP_RELOAD = 0x2750; // ROM byte (=3) reloading SEQUENCE_SUBSTEP after the round-start intro animation (stepRoundStartIntroAnimation)
+export const SEQUENCE_CHECKSUM_SPAN_BASE = 0x0bcc; // base of the 256-byte ROM block summed vs EXPECTED_CHECKSUM_TOTAL -> derail on mismatch (stepSequenceUnderChecksum)
+export const EXPECTED_CHECKSUM_TOTAL = 0x1a50; // anti-tamper reference total; stepSequenceUnderChecksum derails if the 256-byte sum from SEQUENCE_CHECKSUM_SPAN_BASE mismatches
 export const loc_c300 = 0xc300; // proposal: serviceVerticalBlankInterrupt NMI_ENABLE / IN0 port
-export const loc_c302 = 0xc302; // proposal: serviceVerticalBlankInterrupt SERVICE_LATCH
-export const loc_c320 = 0xc320; // proposal: serviceVerticalBlankInterrupt IN1 port
-export const loc_c340 = 0xc340; // proposal: serviceVerticalBlankInterrupt IN2 port
-export const loc_c360 = 0xc360; // proposal: serviceVerticalBlankInterrupt DIP0 switch bank
+export const FLIPSCREEN_LATCH = 0xc302; // hardware LS259 bit 1 = flipscreen (board LATCH_FLIPSCREEN, inverted); write-only in the layer
+export const IN1_PORT = 0xc320; // hardware read: input port 1 (player-1 stick+fire); serviceVBI mirrors it inverted to IN1_MIRROR
+export const IN2_PORT = 0xc340; // hardware read: input port 2 (cocktail player-2 stick); mirrored to IN2_MIRROR
+export const DSW0_PORT = 0xc360; // hardware read: dip-switch bank 0 (coinage); complemented into COINAGE_SETTINGS (seedGameConfigFromDipSwitches)
 export const loc_c000 = 0xc000; // proposal: spinRemainingSpriteMultiplexSlots RASTER
-export const loc_a67c = 0xa67c; // proposal: setUpTwoPlayerStartObjectOnce WATCHED
+export const TAMPER_GLYPH_SOURCE_CELL = 0xa67c; // char-plane glyph cell copied to TAMPER_GLYPH_COPY (0xab43) and later compared against it -- anti-tamper witness (expected glyph 0x7c)
 export const loc_acc5 = 0xacc5; // proposal: spawnEnemyIntoFreeSlotElseStepSearch SHARED_ZERO
-export const loc_a61c = 0xa61c; // proposal: stepCopyrightScreenAwaitingStart SAMPLE_CELL
+export const COPYRIGHT_GLYPH_SAMPLE_CELL = 0xa61c; // copyright-caption glyph cell sampled (glyph+colour) into TAMPER_GLYPH_STRIP each attract frame (stepCopyrightScreenAwaitingStart)
 export const loc_b437 = 0xb437; // proposal: spinRemainingSpriteMultiplexSlots FIRST_REQUEST
 export const loc_b036 = 0xb036; // proposal: spinRemainingSpriteMultiplexSlots FIRST_PARTNER
 export const loc_b439 = 0xb439; // proposal: spinRemainingSpriteMultiplexSlots slot request
@@ -1834,7 +1834,7 @@ export const loc_0bbc = 0x0bbc; // proposal: runCommandRingDrainLoop HANDLERS
 // expansion-probe / picture-enable image byte -- data, not code. Two §3 collisions (a routine's own code
 // read as data) named with the _ADDR convention. Every address checked against ROUTINES keys: no collision
 // beyond those two. Existing entries (PLAYER_STATE 0xa800, TAMPER_WITNESS 0xad39, loc_0f8d_ADDR,
-// loc_c000/c200/c300/c308, loc_3a3b) are reused, not re-added.
+// loc_c000/c200/c300/c308, ENEMY_SPAWN_RECORD_TABLE) are reused, not re-added.
 export const seatCaptionPenFromEraFoldingTamperIntoPhase_ADDR = 0x335e; // §3 collision: routine 0x335e's own code read as data by selectFoldBlock
 export const loc_1f2e_ADDR = 0x1f2e; // §3 collision: routine 0x1f2e's own code read as data by turnShipTowardTargetHeading
 export const loc_4094 = 0x4094; // proposal: runOneShotAnimatedObjectSlot SHAPE_TABLE

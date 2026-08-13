@@ -6,7 +6,7 @@
 
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
 import { postCommand } from "./postCommand.js";
-import { PLAYER_STATE, TAMPER_GLYPH_COPY, loc_a67c } from "./names.js";
+import { PLAYER_STATE, TAMPER_GLYPH_COPY, TAMPER_GLYPH_SOURCE_CELL } from "./names.js";
 
 const SLOT_VERTICAL_A = 0x01;
 const SLOT_VERTICAL_B = 0x03;
@@ -15,7 +15,7 @@ const SLOT_GLYPH_B = 0x32;
 
 export function setUpTwoPlayerStartObjectOnce(m, counterBase = m.regs.ix, slotBase = m.regs.iy) {
   const { mem8 } = m;
-  if (mem8[TAMPER_GLYPH_COPY] === mem8[loc_a67c]) return;
+  if (mem8[TAMPER_GLYPH_COPY] === mem8[TAMPER_GLYPH_SOURCE_CELL]) return;
 
   mem8[counterBase] = mem8[counterBase] - 1;
   mem8[(slotBase + SLOT_VERTICAL_A) & 0xffff] = 0xfe;

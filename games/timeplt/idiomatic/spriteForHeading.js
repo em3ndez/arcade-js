@@ -8,7 +8,7 @@
  * LIVE-OUT: the pair, left standing for the caller to store into the object's sprite entry; nothing is written. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { FRAME_TICK, loc_2a77, loc_2a87 } from "./names.js";
+import { FRAME_TICK, SPRITE_SHAPE_BY_SECTOR_TABLE, SPRITE_MIRROR_BY_SECTOR_TABLE } from "./names.js";
 
 const HEADING = 2;
 const SECTORS = 16;
@@ -21,6 +21,6 @@ export function spriteForHeading(m, object = m.regs.ix) {
   const heading = mem8[u16(object + HEADING)];
   const sector = Math.floor(u8(heading + STEPS_PER_SECTOR / 2) / STEPS_PER_SECTOR);
   const farHalf = (mem8[FRAME_TICK] & FAR_HALF_BIT) !== 0;
-  regs.b = mem8[loc_2a77 + sector] + (farHalf ? SHAPES_PER_HALF : 0);
-  regs.c = mem8[loc_2a87 + sector];
+  regs.b = mem8[SPRITE_SHAPE_BY_SECTOR_TABLE + sector] + (farHalf ? SHAPES_PER_HALF : 0);
+  regs.c = mem8[SPRITE_MIRROR_BY_SECTOR_TABLE + sector];
 }

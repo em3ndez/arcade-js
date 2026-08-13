@@ -11,7 +11,7 @@ import { cyclePlayerSpriteColourThenAdvanceStepAtZero } from "./cyclePlayerSprit
 import { floodColourPlaneWithSavedPlayerColour } from "./floodColourPlaneWithSavedPlayerColour.js";
 import { advanceScriptedCharPlaneBandTo4 } from "./advanceScriptedCharPlaneBandTo4.js";
 import { loadActivePlayerContextAndPostRoundHud } from "./loadActivePlayerContextAndPostRoundHud.js";
-import { FRAME_TICK, INTRO_ANIMATION_STEP, SEQUENCE_DELAY, SEQUENCE_SUBSTEP, loc_2750 } from "./names.js";
+import { FRAME_TICK, INTRO_ANIMATION_STEP, SEQUENCE_DELAY, SEQUENCE_SUBSTEP, INTRO_SUBSTEP_RELOAD } from "./names.js";
 
 const WIND_DELAY = 90;
 
@@ -41,6 +41,6 @@ export function stepRoundStartIntroAnimation(m) {
       mem8[SEQUENCE_DELAY] = WIND_DELAY;
       hideAllSprites(m);
       loadActivePlayerContextAndPostRoundHud(m);
-      mem8[SEQUENCE_SUBSTEP] = mem8[loc_2750];
+      mem8[SEQUENCE_SUBSTEP] = mem8[INTRO_SUBSTEP_RELOAD];
   }
 }
