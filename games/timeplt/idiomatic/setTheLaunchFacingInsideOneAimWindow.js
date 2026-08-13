@@ -4,13 +4,12 @@
  * baked in) -- outside it nothing launches; inside, the other coordinate's side of a second line is handed over as the facing bit. LIVE-OUT: memory + that byte. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { ATTACKER_SPAWN_AIM_WINDOW_HALF } from "./names.js";
+import { ATTACKER_SPAWN_AIM_WINDOW_HALF, commissionStagedAttackerByEra_ADDR } from "./names.js";
 
 const WINDOW_CENTRE = 0x84;
 const FACING_LINE = 0x78;
 
 const ENTRY_OTHER_COORD = 0x31;
-const LAUNCHER = 0x42b7;
 
 export function setTheLaunchFacingInsideOneAimWindow(m) {
   const { regs, mem8 } = m;
@@ -19,5 +18,5 @@ export function setTheLaunchFacingInsideOneAimWindow(m) {
   if (intoWindow >= u8(half + half)) return;
 
   regs.c = mem8[u16(regs.iy + ENTRY_OTHER_COORD)] > FACING_LINE ? 1 : 0;
-  return m.call(LAUNCHER);
+  return m.call(commissionStagedAttackerByEra_ADDR);
 }

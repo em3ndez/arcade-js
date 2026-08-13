@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_00d8 — memory-equivalent to the frozen oracle at ROM 0x00D8.
+ * saveAccumulatorForFrameInterrupt — memory-equivalent to the frozen oracle at ROM 0x00D8.
  *
  * The entry is ONE INSTRUCTION, `push af`, and then a fall-through into 0x00D9. It has a name of
  * its own because control ARRIVES here rather than at 0x00D9 — three code-shaped arrivals, not one:
@@ -52,7 +52,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_00d8 } from "../loc_00d8.js";
+import { saveAccumulatorForFrameInterrupt } from "../saveAccumulatorForFrameInterrupt.js";
 import { loc_00d8 as oracle } from "../../translated/loc_00d8.js";
 import { buildRoutines } from "../../routines.js";
 import { firstStateDiff, wholeMachineEquivalence } from "../../../../core/equivalence.js";
@@ -328,12 +328,12 @@ function brokenNeverHandsOn(m) {
 /** BUG: quiets the watchdog on the way past — the control that the device tap can see one. */
 function brokenKicksWatchdog(m) {
   m.mem.write8(0xc200, 0, 10);
-  return loc_00d8(m);
+  return saveAccumulatorForFrameInterrupt(m);
 }
 
 /** BUG: scribbles on an index register — the control for the EXCLUDED ceiling. */
 function brokenMovesIndex(m) {
-  const r = loc_00d8(m);
+  const r = saveAccumulatorForFrameInterrupt(m);
   m.regs.ix = (m.regs.ix + 1) & 0xffff;
   return r;
 }
@@ -382,7 +382,7 @@ test("SEAM: every captured entry agrees at the fall-through", { skip }, () => {
   for (const [label, opts] of TAPES) {
     const entries = capture(label, opts);
     assert.notEqual(entries[0] ?? null, null, `vacuous: the ${label} tape never reached the routine`);
-    for (const e of entries) assert.equal(seamDiff(loc_00d8, e), null, `${label}: ${seamDiff(loc_00d8, e)}`);
+    for (const e of entries) assert.equal(seamDiff(saveAccumulatorForFrameInterrupt, e), null, `${label}: ${seamDiff(saveAccumulatorForFrameInterrupt, e)}`);
     total += entries.length;
   }
   console.log(`  SEAM: ${total} captured entries identical at the fall-through`);
@@ -391,22 +391,22 @@ test("SEAM: every captured entry agrees at the fall-through", { skip }, () => {
 test("FULL: the frame's whole service agrees end to end", { skip }, () => {
   const entries = capture("coin-start", {}).slice(0, FULL_FORM_LIMIT);
   assert.ok(entries.length > 0, "vacuous: nothing was captured to run in full");
-  for (const e of entries) assert.equal(fullDiff(loc_00d8, e), null, String(fullDiff(loc_00d8, e)));
+  for (const e of entries) assert.equal(fullDiff(saveAccumulatorForFrameInterrupt, e), null, String(fullDiff(saveAccumulatorForFrameInterrupt, e)));
   console.log(`  FULL: ${entries.length} entries run through the whole service, identical`);
 });
 
 test("ACCUMULATOR: all 256 values against four flag words", { skip }, () => {
-  assert.equal(sweepAccumulator(loc_00d8), 0, "an accumulator or flag value diverged");
+  assert.equal(sweepAccumulator(saveAccumulatorForFrameInterrupt), 0, "an accumulator or flag value diverged");
   console.log(`  ACCUMULATOR: ${SWEEP_RUNS.accumulator} value-and-flag points identical`);
 });
 
 test("SEAT: the stack seat walked across work RAM and past both edges", { skip }, () => {
-  assert.equal(sweepSeat(loc_00d8), 0, "a stack seat diverged");
+  assert.equal(sweepSeat(saveAccumulatorForFrameInterrupt), 0, "a stack seat diverged");
   const edge = firstEntry().clone();
   edge.regs.sp = 0xa800;
   edge.regs.af = 0x1234;
   edge.routines = stopAtSeam(edge.routines, { hits: 0 });
-  loc_00d8(edge);
+  saveAccumulatorForFrameInterrupt(edge);
   // Proof the walk really leaves work RAM: this seat puts the pair in the tile plane.
   assert.equal(edge.mem.read8(0xa7fe), 0x34, "the low half must land below the seat");
   assert.equal(edge.mem.read8(0xa7ff), 0x12, "the high half must land above the low one");
@@ -432,7 +432,7 @@ test("TIME: the entry's own T-states, measured over the corpus", { skip }, () =>
 test("WHOLE-MACHINE: both tapes are byte-identical with the rewrite wired", { skip }, () => {
   for (const [label, opts] of TAPES) {
     const mk = (ov) => makeMachine(ov, opts);
-    const w = wholeMachineEquivalence(mk, WHOLE_FRAMES, new Map([[TARGET, hosted(loc_00d8)]]));
+    const w = wholeMachineEquivalence(mk, WHOLE_FRAMES, new Map([[TARGET, hosted(saveAccumulatorForFrameInterrupt)]]));
     assert.ok(w.invocations.get(TARGET) > 0, `vacuous: the override never dispatched under ${label}`);
     assert.equal(w.framesCompared, WHOLE_FRAMES, `the ${label} replay ran short`);
     assert.equal(w.equal, true, `${label} forked at frame ${w.frame} on ${hex4(w.addr ?? 0)}`);
@@ -453,7 +453,7 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED: nothing moves, and the measurement is shown able to see movement", { skip }, () => {
-  const moved = movedOver(loc_00d8);
+  const moved = movedOver(saveAccumulatorForFrameInterrupt);
   const control = movedOver(brokenMovesIndex);
   assert.ok(REG_FIELDS.some((k) => control.has(k) && !MOVED.includes(k)),
     "the control twin scribbles on an index register and this measurement did not notice, so a " +
@@ -467,7 +467,7 @@ test("EXCLUDED: nothing moves, and the measurement is shown able to see movement
 
 test("DEVICES: the device tap is shown able to see a write this entry never makes", { skip }, () => {
   const entry = firstEntry();
-  const clean = runToSeam(entry, loc_00d8);
+  const clean = runToSeam(entry, saveAccumulatorForFrameInterrupt);
   const control = runToSeam(entry, brokenKicksWatchdog);
   assert.notEqual(deviceSignature(clean.c), deviceSignature(control.c),
     "a twin that quiets the watchdog reads the same as the rewrite, so the device comparison in " +

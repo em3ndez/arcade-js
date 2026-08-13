@@ -10,15 +10,15 @@
 import { u16 } from "../../../core/int.js";
 import { advanceCharCursor } from "./advanceCharCursor.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
+import { CAPTION_RECORD_TABLE } from "./names.js";
 
-const RECORD_TABLE = 0x0c50;
 const RUN_STARTS_AT = 3;
 const END_OF_TEXT = 185;
 const BLANK = 241;
 
 export function eraseTextRunByIndex(m, recordNumber = m.regs.a) {
   const { mem8, mem16, regs } = m;
-  regs.hl = RECORD_TABLE;
+  regs.hl = CAPTION_RECORD_TABLE;
   regs.a = recordNumber;
   fetchWideTableWord(m);
 

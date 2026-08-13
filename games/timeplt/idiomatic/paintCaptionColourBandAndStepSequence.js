@@ -9,7 +9,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { fillCellRun } from "./fillCellRun.js";
 import { setSavedPenFromEra } from "./setSavedPenFromEra.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { PEN_COLOUR } from "./names.js";
+import { PEN_COLOUR, loc_a3b1, loc_a1d1, loc_a210, loc_a211, loc_a212 } from "./names.js";
 
 const HEAD_RUN = 13;
 const TAIL_RUN = 4;
@@ -18,11 +18,6 @@ const ROW = 0x20;
 
 // The two colour-RAM row heads and the three scattered cells, each already through the res-2,h
 // that folds a tilemap address down into colour RAM; the low copies sit one row (ROW) back.
-const ROW_A = 0xa3b1;
-const ROW_B = 0xa1d1;
-const CELL_HI = 0xa210;
-const CELL_MID = 0xa211;
-const CELL_LO = 0xa212;
 
 export function paintCaptionColourBandAndStepSequence(m) {
   const { regs, mem8 } = m;
@@ -36,19 +31,19 @@ export function paintCaptionColourBandAndStepSequence(m) {
 
   const base = mem8[PEN_COLOUR];
 
-  regs.hl = ROW_A;
+  regs.hl = loc_a3b1;
   regs.a = u8(0xa0 + base);
   fillCellRun(m);
-  regs.hl = ROW_B;
+  regs.hl = loc_a1d1;
   regs.a = u8(0x20 + base);
   fillCellRun(m);
 
-  mem8[CELL_HI] = u8(0xa0 + base);
-  mem8[u16(CELL_HI - ROW)] = u8(0x20 + base);
-  mem8[CELL_LO] = u8(0xe0 + base);
-  mem8[u16(CELL_LO - ROW)] = u8(0x60 + base);
-  mem8[CELL_MID] = u8(0xa0 + base);
-  mem8[u16(CELL_MID - ROW)] = u8(0x20 + base);
+  mem8[loc_a210] = u8(0xa0 + base);
+  mem8[u16(loc_a210 - ROW)] = u8(0x20 + base);
+  mem8[loc_a212] = u8(0xe0 + base);
+  mem8[u16(loc_a212 - ROW)] = u8(0x60 + base);
+  mem8[loc_a211] = u8(0xa0 + base);
+  mem8[u16(loc_a211 - ROW)] = u8(0x20 + base);
 
   setSavedPenFromEra(m);
   advanceSequenceSubStep(m);

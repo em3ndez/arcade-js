@@ -22,13 +22,7 @@ import { requestTwoSounds } from "./requestTwoSounds.js";
 import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
 import { requestCurrentEraSound } from "./requestCurrentEraSound.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
-import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, ROUND_TRANSITION_HOLD, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
-
-const RECORD_BANK = 0xa8a0;
-
-const CLEAR_CELL = 0xa8dc;
-const SCROLL_X = 0xa808;
-const SCROLL_Y = 0xa80a;
+import { ACTOR_ENTRY_SLOT2, ACTOR_RECORD_SLOT0, ACTOR_RECORD_SLOT2, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_Y, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_AIM_SIDE_TOGGLE, MOTHER_SHIP_ENTRY, MOTHER_SHIP_STATE, PLAYER_HEADING, PLAYER_STATE, ROUND_TRANSITION_HOLD, SCRATCH_PTR_A, SCRATCH_PTR_B, TAMPER_GLYPH_COPY, WORLD_SCROLL_X, WORLD_SCROLL_Y, HEADING_SHAPE_TABLE, loc_461b, loc_478b } from "./names.js";
 
 const SLOT_STRIDE = 0x0010;
 const SLOT_COUNT = 0x0f;
@@ -44,16 +38,10 @@ const IDLE_DELAY = 0x0e;
 const HOLD_COUNTER = 0x04;
 const STATE = 0x00;
 
-const PLAYER_HEADING = 0xa802;
-const FRAME_COUNTER = 0xa980;
-const HEADING_TABLE = 0x3c84;
-const SHAPE_TABLE = 0x461b;
-const WARP_SENTINEL = 0xa800;
 const WARP_SOUND = 0x040d;
 
 const FLASH_STATE = 0xb4;
 const SPENT_HOLD = 0x5a;
-const RESTART_IMAGE = 0xab43;
 const RESTART_MATCH = 0x7c;
 const RESTART_LOW = 0x10;
 const RESTART_HIGH = 0x05;
@@ -63,13 +51,11 @@ const NEAR_Y = 0x78;
 const ON_SCREEN_X = 0x28;
 const ON_SCREEN_Y = 0x20;
 
-const STAGE = 0xad04;
-const ARM_TABLE = 0x478b;
 const SECOND_ENTRY = 0x30; // second sprite entry's base offset off iy (mirrors fields 0x00-0x03)
 
 export function stepMotherShip(m) {
   const { regs, mem8 } = m;
-  regs.ix = RECORD_BANK;
+  regs.ix = MOTHER_SHIP_STATE;
   regs.iy = MOTHER_SHIP_ENTRY;
   regs.a = mem8[u16(regs.ix + STATE)];
   regs.and(regs.a);
@@ -86,7 +72,7 @@ export function loc_43f0_4403(m) {
 
   regs.h = mem8[X(0x0c)];
   regs.l = mem8[X(0x0d)];
-  regs.de = mem.read16(SCROLL_X);
+  regs.de = mem.read16(WORLD_SCROLL_Y);
   regs.addHl(regs.de);
   regs.d = mem8[Y(0x31)];
   regs.e = mem8[X(0x03)];
@@ -96,7 +82,7 @@ export function loc_43f0_4403(m) {
 
   regs.h = mem8[X(0x1c)];
   regs.l = mem8[X(0x1d)];
-  regs.de = mem.read16(SCROLL_Y);
+  regs.de = mem.read16(WORLD_SCROLL_X);
   regs.addHl(regs.de);
   regs.d = mem8[Y(0x00)];
   regs.e = mem8[X(0x05)];
@@ -146,7 +132,7 @@ export function loc_43f0_4554(m) {
   if (regs.fNZ) return loc_43f0_45b3(m);
 
   regs.xor(regs.a);
-  mem8[CLEAR_CELL] = regs.a;
+  mem8[HITS_REMAINING] = regs.a;
   loc_5634(m);
   requestRoundIntroSoundBurst(m);
 
@@ -220,7 +206,7 @@ export function loc_43f0_45b3(m) {
     regs.rrca();
     regs.a = regs.dec8(regs.a);
     regs.and(0x07);
-    regs.hl = SHAPE_TABLE;
+    regs.hl = loc_461b;
     fetchTableByte(m);
     mem8[Y(0x03)] = regs.a;
     regs.a = regs.inc8(regs.a);
@@ -247,7 +233,7 @@ export function loc_43f0_4623(m) {
   mem8[Y(SECOND_ENTRY)] = 0x6c;
   mem8[Y(0x32)] = 0x6c;
 
-  regs.a = regs.inc8(mem8[WARP_SENTINEL]);
+  regs.a = regs.inc8(mem8[PLAYER_STATE]);
   if (regs.fZ) requestMotherShipWarpSound(m);
   regs.de = WARP_SOUND;
   return postCommand(m);
@@ -260,7 +246,7 @@ export function loc_43f0_4646(m) {
   regs.a = 0xff;
   mem8[ROUND_TRANSITION_HOLD] = regs.a;
   mem8[X(STATE)] = 0x00; // idle
-  regs.hl = RESTART_IMAGE;
+  regs.hl = TAMPER_GLYPH_COPY;
   regs.a = mem8[regs.hl];
   regs.cp(RESTART_MATCH);
   if (regs.fZ) {
@@ -285,7 +271,7 @@ export function loc_43f0_4663(m) {
 
   regs.a = mem8[PLAYER_HEADING];
   regs.b = regs.a;
-  regs.a = mem8[FRAME_COUNTER];
+  regs.a = mem8[FRAME_TICK];
   regs.c = regs.a;
   regs.a = 0x10;
   regs.bit(3, regs.c);
@@ -295,7 +281,7 @@ export function loc_43f0_4663(m) {
   regs.rrca();
   regs.rrca();
   regs.and(0x3e);
-  regs.hl = HEADING_TABLE;
+  regs.hl = HEADING_SHAPE_TABLE;
   fetchTableByte(m);
   mem8[Y(0x31)] = regs.a;
   regs.hl = u16(regs.hl + 1);
@@ -417,8 +403,8 @@ export function loc_43f0_474c(m) {
   mem8[Y(0x31)] = regs.b;
   mem8[Y(0x00)] = regs.c;
 
-  regs.a = mem8[STAGE];
-  regs.hl = ARM_TABLE; // the stage-vector arms sit inline just below
+  regs.a = mem8[ERA_INDEX];
+  regs.hl = loc_478b; // the stage-vector arms sit inline just below
   const arm = fetchTableWord(m);
   regs.de = regs.hl;
   regs.hl = arm;

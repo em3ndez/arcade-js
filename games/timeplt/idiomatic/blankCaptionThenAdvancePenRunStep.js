@@ -9,14 +9,12 @@ import { drawInterpolatedPenRun } from "./drawInterpolatedPenRun.js";
 import { advanceSequencePhase } from "./advanceSequencePhase.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8 } from "../../../core/int.js";
+import { advancePenRunAnimationStep_ADDR, loc_0bdd, SEQUENCE_PHASE } from "./names.js";
 
-const XOR_BLOCK = 0x0bdd;
 const XOR_LEN = 256;
 const XOR_TARGET = 0x1c;
-const SUM_BLOCK = 0x1734;
 const SUM_LEN = 20;
 const SUM_BIAS = 0x77;
-const GUARD_CELL = 0xa9ab;
 
 export function blankCaptionThenAdvancePenRunStep(m) {
   const { regs, mem8 } = m;
@@ -25,12 +23,12 @@ export function blankCaptionThenAdvancePenRunStep(m) {
   if (regs.fNZ) return;
 
   let fold = 0;
-  for (let i = 0; i < XOR_LEN; i++) fold ^= mem8[XOR_BLOCK + i];
+  for (let i = 0; i < XOR_LEN; i++) fold ^= mem8[loc_0bdd + i];
   if (fold !== XOR_TARGET) advanceSequencePhase(m);
 
-  let acc = mem8[GUARD_CELL];
-  for (let i = 0; i < SUM_LEN; i++) acc = u8(acc + mem8[SUM_BLOCK + i]);
-  mem8[GUARD_CELL] = u8(acc + SUM_BIAS);
+  let acc = mem8[SEQUENCE_PHASE];
+  for (let i = 0; i < SUM_LEN; i++) acc = u8(acc + mem8[advancePenRunAnimationStep_ADDR + i]);
+  mem8[SEQUENCE_PHASE] = u8(acc + SUM_BIAS);
 
   return advanceSequenceSubStep(m);
 }

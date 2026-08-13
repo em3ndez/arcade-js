@@ -47,6 +47,19 @@ working one cluster is not positioned to reproduce them — replacing them from 
 evidence would have destroyed the wider derivation to look tidy. **A whole rewrite is therefore
 OWED, and this note is the record of that debt** rather than a licence to keep folding.
 
+★ **Descriptive-naming pass — pilot landed (2026-08-12).** The idiomatic layer's address-naming
+retrofit is complete: every accessed memory and code address is now a named constant in `names.js`
+(bare placeholders until promoted, with an `_ADDR` suffix for the handful of addresses that are BOTH
+a routine's entry AND read as data by an anti-tamper checksum-over-code). A first PILOT of 13
+addresses has then been promoted to descriptive names through blind two-agent convergence — among
+them the score-award table, the caption-record table, the enemy heading/shape table, the anti-tamper
+checksum total, and the world-scroll vector, whose two halves this pass resolved to native **Y at
+0xA808 and X at 0xA80A**, settling an axis mislabel carried differently by two earlier
+reverse-engineering efforts. None of these names appears in the prose below, so nothing here is out
+of sync — but **the whole rewrite already owed above now also owes weaving the descriptive names
+into the text.** The bulk (~240 remaining addresses/routines) waits on review; this note records
+that the map has not yet been rebuilt around the names.
+
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for
 the observations, which exist nowhere else. So the topics that previously had sections were known;
@@ -804,8 +817,8 @@ NOT a hit tally; that is `HITS_REMAINING`), the two aimed-launch side toggles `M
 the ship's launch, stashed in its second record) and `ATTACKER_SPAWN_AIM_SIDE_TOGGLE` (`0xA8D4`, the era-bank aimed
 spawn, beside `ATTACKER_SPAWN_WINDOW_HALF`), the player's sprite code `PLAYER_SPRITE_CODE` (`0xAA11`), and the three
 literal-referenced Y-band cells `ACTOR_SPRITE_Y_SLOT0` / `MOTHER_SHIP_SPRITE_Y` / `ERA_OBJECT_SPRITE_Y_SLOT0`
-(`0xAA43` / `0xAA55` / `0xAA59`). One cell stays deliberately unnamed: `0xA801` (player record `+1`) is only ever
-zeroed and never read, so it has no honest name. `[code]`
+(`0xAA43` / `0xAA55` / `0xAA59`). `0xA801` (player record `+1`, named `loc_a801`) is only ever
+zeroed and never read — the naming pass keeps it a bare placeholder rather than inventing a role. `[code]`
 
 ### A coordinate is split across both tables
 

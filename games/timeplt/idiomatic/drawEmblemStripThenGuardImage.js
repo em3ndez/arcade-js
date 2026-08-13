@@ -8,24 +8,21 @@
 import { u8 } from "../../../core/int.js";
 import { stampTwoByTwoTileBlock } from "./stampTwoByTwoTileBlock.js";
 import { paintGlyphOverBlankInColourThenStepCursor } from "./paintGlyphOverBlankInColourThenStepCursor.js";
+import { PLAY_ACTIVE, loc_0711, EMBLEM_STRIP_FLOOR, loc_a783 } from "./names.js";
 
-const ENABLE = 0xad30;
-const CURSOR_START = 0xa783;
-const ROW_FLOOR = 0xa623;
 const MAX_EMBLEMS = 6;
 const EMBLEM_BASE = 9;
 const EMBLEM_COLOUR = 24;
 const BLANK_GLYPH = 241;
 const BLANK_COLOUR = 16;
-const CHECK_START = 0x0711;
 const CHECK_LEN = 256;
 const CHECK_BIAS = 25;
 
 export function drawEmblemStripThenGuardImage(m, count = m.regs.a) {
   const { regs, mem8 } = m;
-  if (mem8[ENABLE] === 0) return;
+  if (mem8[PLAY_ACTIVE] === 0) return;
 
-  regs.de = CURSOR_START;
+  regs.de = loc_a783;
   let emblems = count > MAX_EMBLEMS ? MAX_EMBLEMS : count;
   if (emblems !== 0) {
     regs.b = EMBLEM_BASE;
@@ -35,9 +32,9 @@ export function drawEmblemStripThenGuardImage(m, count = m.regs.a) {
 
   regs.b = BLANK_GLYPH;
   regs.c = BLANK_COLOUR;
-  while (regs.de >= ROW_FLOOR) paintGlyphOverBlankInColourThenStepCursor(m);
+  while (regs.de >= EMBLEM_STRIP_FLOOR) paintGlyphOverBlankInColourThenStepCursor(m);
 
   let check = 0;
-  for (let i = 0; i < CHECK_LEN; i++) check ^= mem8[CHECK_START + i];
+  for (let i = 0; i < CHECK_LEN; i++) check ^= mem8[loc_0711 + i];
   if (u8(check + CHECK_BIAS) !== 0) throw new Error("Time Pilot: program image altered");
 }

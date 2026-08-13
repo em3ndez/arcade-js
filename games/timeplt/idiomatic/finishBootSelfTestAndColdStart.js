@@ -6,16 +6,11 @@
  * LIVE-OUT: memory, the LS259 latch, and the watchdog kicks. */
 
 import { tileCharPlaneWithBoxLattice } from "./tileCharPlaneWithBoxLattice.js";
-import { loc_00d8 } from "./loc_00d8.js";
+import { saveAccumulatorForFrameInterrupt } from "./saveAccumulatorForFrameInterrupt.js";
 import { petWatchdogThroughStartupDelayThenStartMachine } from "./petWatchdogThroughStartupDelayThenStartMachine.js";
-import { DEMO_SOUNDS_ENABLE } from "./names.js";
+import { DEMO_SOUNDS_ENABLE, DIFFICULTY_SETTING, loc_c200, loc_c302, loc_0c3e, loc_27de } from "./names.js";
 
-const CONFIG_LOW3 = 0xa9c4;
-const WATCHDOG = 0xc200;
-const LS259_LINE = 0xc302;
-const LS259_SOURCE = 0x0c3e;
 const STORE = 10;
-const CHECKSUM_BASE = 0x27de;
 const CHECKSUM_SPAN = 0x100;
 const CHECKSUM_TOTAL = 0xc5;
 
@@ -25,7 +20,7 @@ export function finishBootSelfTestAndColdStart(m) {
   regs.rrca();
   const rolled = regs.a;
   regs.and(0x07);
-  mem.write8(CONFIG_LOW3, regs.a);
+  mem.write8(DIFFICULTY_SETTING, regs.a);
 
   regs.a = rolled;
   regs.rrca();
@@ -33,18 +28,18 @@ export function finishBootSelfTestAndColdStart(m) {
   regs.rrca();
   regs.and(0x01);
   mem.write8(DEMO_SOUNDS_ENABLE, regs.a);
-  mem.write8(WATCHDOG, regs.a, STORE);
+  mem.write8(loc_c200, regs.a, STORE);
 
-  regs.a = mem.read8(LS259_SOURCE);
-  mem.write8(LS259_LINE, regs.a, STORE);
+  regs.a = mem.read8(loc_0c3e);
+  mem.write8(loc_c302, regs.a, STORE);
 
   tileCharPlaneWithBoxLattice(m);
 
   let total = 0;
   for (let i = 0; i < CHECKSUM_SPAN; i++) {
-    total = (total + mem.read8((CHECKSUM_BASE + i) & 0xffff)) & 0xff;
+    total = (total + mem.read8((loc_27de + i) & 0xffff)) & 0xff;
   }
   regs.a = (total - CHECKSUM_TOTAL) & 0xff;
-  if (regs.a !== 0) return loc_00d8(m); // tampered image: derail into the frame handler
+  if (regs.a !== 0) return saveAccumulatorForFrameInterrupt(m); // tampered image: derail into the frame handler
   return petWatchdogThroughStartupDelayThenStartMachine(m);
 }

@@ -15,7 +15,7 @@ import { makeMachine, romsPresent } from "./_harness.js";
 import { finishBootSelfTestAndColdStart as candidate } from "../finishBootSelfTestAndColdStart.js";
 import { loc_49a8 as oracle } from "../../translated/loc_49a8.js";
 import { tileCharPlaneWithBoxLattice } from "../tileCharPlaneWithBoxLattice.js";
-import { loc_00d8 } from "../loc_00d8.js";
+import { saveAccumulatorForFrameInterrupt } from "../saveAccumulatorForFrameInterrupt.js";
 import { petWatchdogThroughStartupDelayThenStartMachine } from "../petWatchdogThroughStartupDelayThenStartMachine.js";
 import manifest from "../../manifest.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -147,7 +147,7 @@ function twin(opts) {
     let total = 0;
     for (let i = 0; i < CHECKSUM_SPAN; i++) total = (total + mem.read8((CHECKSUM_BASE + i) & 0xffff)) & 0xff;
     regs.a = (total - CHECKSUM_TOTAL) & 0xff;
-    if (opts.derail) return loc_00d8(m);
+    if (opts.derail) return saveAccumulatorForFrameInterrupt(m);
     if (opts.skipStart) return undefined;
     return petWatchdogThroughStartupDelayThenStartMachine(m);
   };

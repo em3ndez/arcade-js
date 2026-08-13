@@ -7,6 +7,8 @@
  * The pointer is pushed once and one cell is decremented, so those are the only bytes it writes.
  * LIVE-OUT: the pushed word and the decremented cell in memory; the transfer it hands control to. */
 
+import { loc_1fcf, loc_f1eb, loc_f1f1 } from "./names.js";
+
 export function loc_1f99(m) {
   const { regs, mem, mem8 } = m;
 
@@ -42,7 +44,7 @@ export function loc_1f99(m) {
   regs.af = m.pop16();
   regs.b = regs.l;
 
-  if (regs.fZ) return m.call(0xf1f1);
+  if (regs.fZ) return m.call(loc_f1f1);
 
   regs.af = m.pop16();
   regs.add(0x2c);
@@ -61,8 +63,8 @@ export function loc_1f99(m) {
 
   // sign-positive: park a return slot and transfer off the map, then resume here
   if (regs.fP) {
-    m.push16(0x1fcf);
-    m.call(0xf1eb);
+    m.push16(loc_1fcf);
+    m.call(loc_f1eb);
   }
 
   regs.af = m.pop16();

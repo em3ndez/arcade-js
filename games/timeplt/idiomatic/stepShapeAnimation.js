@@ -11,11 +11,11 @@
 
 import { fetchTableByte } from "./fetchTableByte.js";
 import { fetchTableWord } from "./fetchTableWord.js";
+import { loc_3438 } from "./names.js";
 
 const STEP_TIMER = 9;
 const RUN_SELECTOR = 10;
 const SHAPE_BYTE = 8;
-const RUN_POINTERS = 0x3438;
 
 export function stepShapeAnimation(m, record = m.regs.ix) {
   const { mem8, regs } = m;
@@ -27,7 +27,7 @@ export function stepShapeAnimation(m, record = m.regs.ix) {
   regs.c = step;
 
   regs.a = mem8[record + RUN_SELECTOR];
-  regs.hl = RUN_POINTERS;
+  regs.hl = loc_3438;
   fetchTableWord(m);
   regs.exDeHl();
 

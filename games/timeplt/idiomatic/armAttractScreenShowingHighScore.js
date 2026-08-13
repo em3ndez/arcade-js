@@ -7,20 +7,17 @@
 
 import { paintHighScoreReadout } from "./paintHighScoreReadout.js";
 import { postCommand } from "./postCommand.js";
-
-// the countdown guard is still frozen, reached through the dispatch registry
-const COUNTDOWN = 0x01c2;
+import { FREE_PLAY, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, blankNextLine_ADDR, loc_163f, loc_1601, loc_a6e1, loc_a701 } from "./names.js";
 
 const CELL_SEED = 0x13;
-const PATCH_LIST = 0x163f;
 const PATCH_COUNT = 6;
 const PATCH_MARKER = 0x05;
 
 export function armAttractScreenShowingHighScore(m) {
   const { regs, mem8 } = m;
 
-  m.push16(0x1601);
-  m.call(COUNTDOWN);
+  m.push16(loc_1601);
+  m.call(blankNextLine_ADDR);
   if (regs.fNZ) return;
 
   regs.de = 0x0105; postCommand(m);
@@ -28,10 +25,10 @@ export function armAttractScreenShowingHighScore(m) {
   regs.de = 0x0107; postCommand(m);
   regs.de = 0x0601; postCommand(m);
 
-  mem8[0xa701] = CELL_SEED;
-  mem8[0xa6e1] = CELL_SEED;
+  mem8[loc_a701] = CELL_SEED;
+  mem8[loc_a6e1] = CELL_SEED;
 
-  let cursor = PATCH_LIST;
+  let cursor = loc_163f;
   for (let i = 0; i < PATCH_COUNT; i++) {
     const dest = mem8[cursor] | (mem8[cursor + 1] << 8);
     mem8[dest] = mem8[cursor + 2];
@@ -41,9 +38,9 @@ export function armAttractScreenShowingHighScore(m) {
 
   paintHighScoreReadout(m);
 
-  mem8[0xa9ab] = 1;
-  mem8[0xa9ac] = 2;
-  if (mem8[0xa9c0] === 0) return;
+  mem8[SEQUENCE_PHASE] = 1;
+  mem8[SEQUENCE_SUBSTEP] = 2;
+  if (mem8[FREE_PLAY] === 0) return;
 
   regs.de = 0x010d; postCommand(m);
 }

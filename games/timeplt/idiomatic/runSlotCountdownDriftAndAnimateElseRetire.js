@@ -9,7 +9,7 @@
  * goes into the sprite entry together with one fixed byte beside it. LIVE-OUT: memory. */
 
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
-import { ERA_INDEX } from "./names.js";
+import { ERA_INDEX, loc_3ec3 } from "./names.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { stampObjectStateByte3bThenRequestTwoSounds } from "./stampObjectStateByte3bThenRequestTwoSounds.js";
 import { retireSlot } from "./retireSlot.js";
@@ -21,7 +21,6 @@ const CLAMPED_FROM = 60;
 const SHAPES_FROM = 28;
 const HELD_FOR = 4;
 const SHAPES = 8;
-const SHAPE_TABLE = 0x3ec3;
 const SHAPE_IN_ENTRY = 1;
 const BESIDE_IT_IN_ENTRY = 48;
 const BESIDE_IT = 3;
@@ -46,7 +45,7 @@ export function runSlotCountdownDriftAndAnimateElseRetire(m) {
   const nowAt = mem8[regs.ix + COUNTER];
   if (nowAt < SHAPES_FROM) return;
 
-  regs.hl = SHAPE_TABLE;
+  regs.hl = loc_3ec3;
   regs.a = Math.floor((nowAt - SHAPES_FROM) / HELD_FOR) % SHAPES;
   mem8[regs.iy + SHAPE_IN_ENTRY] = fetchTableByte(m);
   mem8[regs.iy + BESIDE_IT_IN_ENTRY] = BESIDE_IT;

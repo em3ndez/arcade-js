@@ -8,9 +8,9 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
+import { loc_3fca } from "./names.js";
 
 const HEADING_IN_RECORD = 2;
-const SHAPE_TABLE = 0x3fca;
 const SECOND_TABLE_GAP = 16;
 const SHAPE_IN_ENTRY = 1;
 const SECOND_BYTE_IN_ENTRY = 48;
@@ -20,7 +20,7 @@ export function dressSpriteShapeAndAttributeForHeadingSector(m, object = m.regs.
   const { regs, mem8 } = m;
   const sector = u8(mem8[u16(object + HEADING_IN_RECORD)] + HALF_SECTOR) >> 4;
 
-  regs.hl = SHAPE_TABLE;
+  regs.hl = loc_3fca;
   regs.a = sector;
   mem8[u16(sprite + SHAPE_IN_ENTRY)] = fetchTableByte(m);
   mem8[u16(sprite + SECOND_BYTE_IN_ENTRY)] = mem8[u16(regs.hl + SECOND_TABLE_GAP)];

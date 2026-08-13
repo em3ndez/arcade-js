@@ -5,12 +5,10 @@
  * the shadow cell above it, stepping the entry cursor by four a row, and control hands on to the
  * scenery run. LIVE-OUT: memory. */
 
-import { loc_3114 } from "./loc_3114.js";
+import { trampolineToLoc_307f } from "./trampolineToLoc_307f.js";
 import { runSceneryForEra } from "./runSceneryForEra.js";
-import { SCENERY_ENTRY_SLOT0 } from "./names.js";
+import { SCENERY_ENTRY_SLOT0, TAMPER_WITNESS, loc_316e } from "./names.js";
 
-const SENTINEL = 0xad39;
-const OBJECT_TABLE = 0x316e;
 const OBJECTS = 4;
 
 export function seedSceneryEntriesThenRunScenery(m) {
@@ -18,14 +16,14 @@ export function seedSceneryEntriesThenRunScenery(m) {
 
   // The sentinel pointer and the byte under it both ride on into the transfer, which reads them,
   // so walk the pair with the real cursor and value.
-  regs.hl = SENTINEL;
+  regs.hl = TAMPER_WITNESS;
   regs.a = mem8[regs.hl];
-  if (regs.a !== 0x68) return loc_3114(m);
+  if (regs.a !== 0x68) return trampolineToLoc_307f(m);
   regs.hl = (regs.hl + 1) & 0xffff;
   regs.a = mem8[regs.hl];
-  if (regs.a !== 0x10 && regs.a !== 0x05) return loc_3114(m);
+  if (regs.a !== 0x10 && regs.a !== 0x05) return trampolineToLoc_307f(m);
 
-  regs.hl = OBJECT_TABLE;
+  regs.hl = loc_316e;
   regs.iy = SCENERY_ENTRY_SLOT0;
   regs.b = OBJECTS;
   do {

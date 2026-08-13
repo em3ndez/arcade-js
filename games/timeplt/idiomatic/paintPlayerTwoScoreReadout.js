@@ -5,14 +5,13 @@
  * whatever a caller was holding is discarded. LIVE-OUT: memory -- the cells the painter fills. */
 
 import { paintSixDigitFieldSuppressingLeadingZeros } from "./paintSixDigitFieldSuppressingLeadingZeros.js";
-import { PLAYER2_SCORE_HI } from "./names.js";
+import { PLAYER2_SCORE_HI, loc_a501 } from "./names.js";
 
-const FIRST_CELL = 0xa501;
 const COLOUR = 0x10;
 
 export function paintPlayerTwoScoreReadout(m) {
   const { regs } = m;
-  regs.de = FIRST_CELL;
+  regs.de = loc_a501;
   regs.hl = PLAYER2_SCORE_HI;
   regs.c = COLOUR;
   return paintSixDigitFieldSuppressingLeadingZeros(m);

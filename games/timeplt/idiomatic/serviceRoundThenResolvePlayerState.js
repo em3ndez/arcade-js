@@ -25,8 +25,8 @@ import { drawKillMeter } from "./drawKillMeter.js";
 import { multiplexSpriteSlots } from "./multiplexSpriteSlots.js";
 import { advanceRoundWhenFieldCleared } from "./advanceRoundWhenFieldCleared.js";
 import { loseLifeAndHandOver } from "./loseLifeAndHandOver.js";
+import { PLAYER_STATE, armMotherShipOrStep_ADDR } from "./names.js";
 
-const PLAYER_STATE = 0xa800;
 const ALIVE = 0xff;
 
 export function serviceRoundThenResolvePlayerState(m) {
@@ -41,7 +41,7 @@ export function serviceRoundThenResolvePlayerState(m) {
   spriteFixup();
   runParachutistSlot(m);
   m.push16(0);
-  m.call(0x43b7);
+  m.call(armMotherShipOrStep_ADDR);
   stepSevenCraftSlots(m);
   spriteFixup();
   runSceneryForEra(m);

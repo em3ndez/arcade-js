@@ -8,14 +8,13 @@
 import { seedSceneryEntriesThenRunScenery } from "./seedSceneryEntriesThenRunScenery.js";
 import { loc_315b } from "./loc_315b.js";
 import { runSceneryForEra } from "./runSceneryForEra.js";
-import { SCENERY_ENTRY_SLOT0, SCENERY_SPRITE_ATTRIBUTE_SLOT0, TAMPER_GLYPH_KONAMI } from "./names.js";
+import { SCENERY_ENTRY_SLOT0, SCENERY_SPRITE_ATTRIBUTE_SLOT0, TAMPER_GLYPH_KONAMI, loc_315e } from "./names.js";
 
 const CLEAR_COUNT = 8;
 const ERA_FLOOR = 0x04;
 const GUARD_OK = 0x3b;
 const SUBGUARD_A = 0x05;
 const SUBGUARD_B = 0x10;
-const SEAT_TABLE = 0x315e;
 const SEAT_COUNT = 8;
 
 export function clearSceneryEntriesThenRunEraScenery(m) {
@@ -49,7 +48,7 @@ export function clearSceneryEntriesThenRunEraScenery(m) {
 
   regs.b = SEAT_COUNT;
   regs.iy = SCENERY_ENTRY_SLOT0;
-  regs.hl = SEAT_TABLE;
+  regs.hl = loc_315e;
   do {
     regs.a = mem8[regs.hl];
     mem8[(regs.iy + 0x31) & 0xffff] = regs.a;

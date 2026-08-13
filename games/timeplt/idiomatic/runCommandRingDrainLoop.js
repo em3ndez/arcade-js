@@ -12,14 +12,12 @@
 import { u16, u8 } from "../../../core/int.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
 import { replayCloudBands } from "./replayCloudBands.js";
-import { COMMAND_READ_CURSOR, COMMAND_RING } from "./names.js";
+import { COMMAND_READ_CURSOR, COMMAND_RING, enterCommandRingDrain_ADDR, loc_0bbc } from "./names.js";
 
 const RING_CELLS = 64;
 const FREE = 255;
 const OCCUPIED_BIT = 0x80;
-const HANDLERS = 0x0bbc;
 const HANDLER_BITS = 0x0f;
-const COME_BACK_TO = 0x0b90;
 
 export function* runCommandRingDrainLoop(m) {
   const { regs, mem8 } = m;
@@ -38,7 +36,7 @@ export function* runCommandRingDrainLoop(m) {
     mem8[argumentCell] = FREE;
     mem8[COMMAND_READ_CURSOR] = u8(argumentCell + 1) & (RING_CELLS - 1);
 
-    regs.hl = HANDLERS;
+    regs.hl = loc_0bbc;
     regs.a = command;
     regs.and(HANDLER_BITS);
     fetchWideTableWord(m);
@@ -47,12 +45,12 @@ export function* runCommandRingDrainLoop(m) {
     regs.c = command;
     regs.b = argument;
     regs.a = argument;
-    regs.de = COME_BACK_TO;
+    regs.de = enterCommandRingDrain_ADDR;
     regs.hl = handler;
-    m.push16(COME_BACK_TO);
+    m.push16(enterCommandRingDrain_ADDR);
     m.call(handler);
     // ⚠ ASK what came back: a blind return strands a coroutine nobody drives, silently.
-    if (m.pc !== COME_BACK_TO) {
+    if (m.pc !== enterCommandRingDrain_ADDR) {
       const wentTo = m.call(m.pc);
       return wentTo && typeof wentTo.next === "function" ? yield* wentTo : wentTo;
     }

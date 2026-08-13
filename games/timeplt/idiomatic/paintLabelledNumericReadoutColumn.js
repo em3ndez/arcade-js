@@ -10,8 +10,8 @@ import { advanceCharCursor } from "./advanceCharCursor.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { paintSixDigitFieldSuppressingLeadingZeros } from "./paintSixDigitFieldSuppressingLeadingZeros.js";
 import { u8, u16 } from "../../../core/int.js";
+import { loc_4cb4 } from "./names.js";
 
-const PICTOGRAM_TABLE = 0x4cb4;
 const RECORD_STRIDE = 3;
 const COLOUR_PLANE_BIT = 0x04; // bit 2 of D drops the cursor onto the paired colour cell
 const PICTOGRAM_TO_FIELD = 0x80;
@@ -32,7 +32,7 @@ export function paintLabelledNumericReadoutColumn(m) {
   const source = regs.hl;
 
   regs.a = u8(mem8[source] * RECORD_STRIDE);
-  regs.hl = PICTOGRAM_TABLE;
+  regs.hl = loc_4cb4;
   stamp(m, fetchTableByte(m));
   regs.hl = u16(regs.hl + 1);
   advanceCharCursor(m);

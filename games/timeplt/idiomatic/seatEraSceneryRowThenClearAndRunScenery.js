@@ -10,13 +10,10 @@ import { offsetAddress } from "./offsetAddress.js";
 import { seatSceneryFillByte0x28ThenClearEraScenery } from "./seatSceneryFillByte0x28ThenClearEraScenery.js";
 import { clearSceneryEntriesThenRunEraScenery } from "./clearSceneryEntriesThenRunEraScenery.js";
 import { u8, u16 } from "../../../core/int.js";
-import { SCENERY_SPRITE_CODE_SLOT0 } from "./names.js";
+import { SCENERY_SPRITE_CODE_SLOT0, ERA_INDEX, loc_086b, loc_3176 } from "./names.js";
 
-const CHECK_BASE = 0x086b;
 const CHECK_LEN = 0x10;
 const CHECK_EXPECTED = 0x22;
-const ERA_INDEX = 0xad04;
-const ROW_TABLE = 0x3176;
 const ROW_STRIDE = 8;
 const SEAT_STRIDE = 2;
 const SEAT_COUNT = 8;
@@ -26,15 +23,15 @@ const FILL_BYTE = 0xcc;
 export function seatEraSceneryRowThenClearAndRunScenery(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = CHECK_BASE;
+  regs.hl = loc_086b;
   regs.c = CHECK_EXPECTED;
   regs.b = CHECK_LEN;
   sumByteRunAndCompareToExpected(m); // tamper checksum; its answer is discarded here
 
   regs.a = u8(mem8[ERA_INDEX] * ROW_STRIDE);
   regs.c = regs.a;
-  regs.hl = ROW_TABLE;
-  offsetAddress(m); // hl = ROW_TABLE + 8*era
+  regs.hl = loc_3176;
+  offsetAddress(m); // hl = row table + 8*era
 
   regs.de = SCENERY_SPRITE_CODE_SLOT0;
   regs.b = SEAT_COUNT;

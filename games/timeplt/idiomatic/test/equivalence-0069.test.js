@@ -15,7 +15,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { clearWorkRamAndSpriteBanksThenColdInit as candidate } from "../clearWorkRamAndSpriteBanksThenColdInit.js";
 import { loc_0069 as oracle } from "../../translated/loc_0069.js";
 import { clearScreenRamAndVerifyImageThenColdInit } from "../clearScreenRamAndVerifyImageThenColdInit.js";
-import { loc_00d8 } from "../loc_00d8.js";
+import { saveAccumulatorForFrameInterrupt } from "../saveAccumulatorForFrameInterrupt.js";
 import manifest from "../../manifest.js";
 import { u8 } from "../../../../core/int.js";
 
@@ -129,7 +129,7 @@ function body({ clearHigh = true, clearLow = true, clearWork = true, fillVal = 0
     kick();
     let total = 0;
     for (let i = 0; i < CHECK_BYTES; i++) total = u8(total + mem8[(CHECK_BLOCK + i) & 0xffff]);
-    if (u8(total - GENUINE_TOTAL) !== 0) loc_00d8(m);
+    if (u8(total - GENUINE_TOTAL) !== 0) saveAccumulatorForFrameInterrupt(m);
     if (handoff) return clearScreenRamAndVerifyImageThenColdInit(m);
   };
 }

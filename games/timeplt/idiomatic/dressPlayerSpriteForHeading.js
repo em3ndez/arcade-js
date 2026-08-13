@@ -6,9 +6,8 @@
 
 import { offsetAddress } from "./offsetAddress.js";
 import { u8 } from "../../../core/int.js";
-import { PLAYER_HEADING, PLAYER_SPRITE_ATTRIBUTE, PLAYER_SPRITE_CODE } from "./names.js";
+import { PLAYER_HEADING, PLAYER_SPRITE_ATTRIBUTE, PLAYER_SPRITE_CODE, loc_20ce } from "./names.js";
 
-const SHAPE_BY_SECTOR = 0x20ce;
 const SECTORS = 32;
 const STEPS_PER_SECTOR = 256 / SECTORS;
 const SECOND_TABLE = SECTORS;
@@ -16,7 +15,7 @@ const SECOND_TABLE = SECTORS;
 export function dressPlayerSpriteForHeading(m) {
   const { mem8, regs } = m;
   const sector = Math.floor(u8(mem8[PLAYER_HEADING] + STEPS_PER_SECTOR / 2) / STEPS_PER_SECTOR);
-  regs.hl = SHAPE_BY_SECTOR;
+  regs.hl = loc_20ce;
   regs.a = sector;
   const entry = offsetAddress(m);
   mem8[PLAYER_SPRITE_CODE] = mem8[entry];

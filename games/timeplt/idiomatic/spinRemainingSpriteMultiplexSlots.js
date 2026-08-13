@@ -6,27 +6,25 @@
  * their own top bit is set; the hold before each trade is dropped. LIVE-OUT: memory only. */
 
 import { loc_10f8 } from "./loc_10f8.js";
+import { loc_b437, loc_b036, loc_c000, loc_b439, loc_b038, loc_b43b, loc_b03a, loc_b43d, loc_b03c, loc_b43f, loc_b03e } from "./names.js";
 
-const FIRST_REQUEST = 0xb437;
-const FIRST_PARTNER = 0xb036;
-const RASTER = 0xc000;
 const HALF_RANGE = 128;
 
 const TAIL_SLOTS = [
-  { request: 0xb439, partner: 0xb038 },
-  { request: 0xb43b, partner: 0xb03a },
-  { request: 0xb43d, partner: 0xb03c },
-  { request: 0xb43f, partner: 0xb03e },
+  { request: loc_b439, partner: loc_b038 },
+  { request: loc_b43b, partner: loc_b03a },
+  { request: loc_b43d, partner: loc_b03c },
+  { request: loc_b43f, partner: loc_b03e },
 ];
 
 export function spinRemainingSpriteMultiplexSlots(m) {
   const { regs, mem8 } = m;
   const held = regs.a;
   if (!regs.fZ) {
-    if (((held + mem8[RASTER]) & 0x100) === 0) return loc_10f8(m);
-    mem8[FIRST_REQUEST] = held & 0x7f;
-    mem8[FIRST_PARTNER] = mem8[FIRST_PARTNER] + HALF_RANGE;
-    if (m.beamPlan) m.beamPlan.push({ y: FIRST_REQUEST, x: FIRST_PARTNER }); // beam-sync render
+    if (((held + mem8[loc_c000]) & 0x100) === 0) return loc_10f8(m);
+    mem8[loc_b437] = held & 0x7f;
+    mem8[loc_b036] = mem8[loc_b036] + HALF_RANGE;
+    if (m.beamPlan) m.beamPlan.push({ y: loc_b437, x: loc_b036 }); // beam-sync render
   }
   for (const slot of TAIL_SLOTS) {
     const request = mem8[slot.request];

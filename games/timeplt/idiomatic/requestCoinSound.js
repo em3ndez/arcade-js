@@ -3,9 +3,8 @@
  * Its code is fetched from a byte of the program image. LIVE-OUT: memory. */
 
 import { enqueueSoundUnconditional } from "./enqueueSoundUnconditional.js";
-
-const SOUND_CODE_CELL = 0x322e;
+import { loc_322e } from "./names.js";
 
 export function requestCoinSound(m) {
-  enqueueSoundUnconditional(m, m.mem8[SOUND_CODE_CELL]);
+  enqueueSoundUnconditional(m, m.mem8[loc_322e]);
 }

@@ -12,12 +12,11 @@ import { postCommand } from "./postCommand.js";
 import {
   ACTIVE_PLAYER, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES,
   LIVES_REMAINING, ROUND_NUMBER, PLAY_ACTIVE,
+  loc_5b50, loc_c308,
 } from "./names.js";
 
 const CONTEXT_BYTES = 16;
-const CHECKSUM_FIRST = 0x5b50;
 const CHECKSUM_BYTES = 256;
-const PICTURE_ENABLE = 0xc308;
 const LATCH_WRITE_OFFSET = 10;
 const ROUND_COMMAND = 6;
 const LIVES_COMMAND = 5;
@@ -35,8 +34,8 @@ export function loadActivePlayerContextAndPostRoundHud(m) {
   postCommand(m, LIVES_COMMAND, u8(mem8[LIVES_REMAINING] - 1));
 
   let checksum = 0;
-  for (let i = 0; i < CHECKSUM_BYTES; i++) checksum ^= mem8[CHECKSUM_FIRST + i];
-  m.mem.write8(PICTURE_ENABLE, u8(checksum - 1), LATCH_WRITE_OFFSET);
+  for (let i = 0; i < CHECKSUM_BYTES; i++) checksum ^= mem8[loc_5b50 + i];
+  m.mem.write8(loc_c308, u8(checksum - 1), LATCH_WRITE_OFFSET);
 
   return advanceSequenceSubStep(m);
 }

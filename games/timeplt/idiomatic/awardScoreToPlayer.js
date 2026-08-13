@@ -12,15 +12,12 @@ import { drawTextRunByIndex } from "./drawTextRunByIndex.js";
 import { eraseTextRunByIndex } from "./eraseTextRunByIndex.js";
 import { advanceCharCursor } from "./advanceCharCursor.js";
 import { HIGH_SCORE_HI, PLAYER1_SCORE_LO, PLAYER2_SCORE_LO, TWO_PLAYER_GAME, PLAY_ACTIVE, ACTIVE_PLAYER } from "./names.js";
+import { SCORE_AWARD_TABLE, loc_0b31, loc_15c6, loc_a501 } from "./names.js";
 
-const AWARD_TABLE = 0x0d27;
 const SCORE_BYTES = 3;
 
 const P1_LABEL = 0x06;
 const P2_LABEL = 0x07;
-const SOLE_LABEL_INDEX_CELL = 0x0b31;
-const ABSENT_LABEL_INDEX_CELL = 0x15c6;
-const SECOND_SCORE_CELL = 0xa501;
 const SECOND_SCORE_DIGITS = 6;
 const BLANK = 0xf1;
 
@@ -44,7 +41,7 @@ export function awardScoreToPlayer(m, award = m.regs.a) {
 /** Add the packed-decimal award the argument selects into the score, least significant byte first. */
 function addAwardToScore(m, scoreBase, award) {
   const { mem8 } = m;
-  const awardBase = AWARD_TABLE + SCORE_BYTES * award;
+  const awardBase = SCORE_AWARD_TABLE + SCORE_BYTES * award;
   let carry = 0;
   for (let i = 0; i < SCORE_BYTES; i++) {
     const sum = fromPackedDecimal(mem8[scoreBase + i]) + fromPackedDecimal(mem8[awardBase + i]) + carry;
@@ -76,12 +73,12 @@ function repaintScores(m) {
     paintPlayerTwoScoreReadout(m);
     return;
   }
-  drawTextRunByIndex(m, mem8[SOLE_LABEL_INDEX_CELL]);
+  drawTextRunByIndex(m, mem8[loc_0b31]);
   paintPlayerOneScoreReadout(m);
-  eraseTextRunByIndex(m, mem8[ABSENT_LABEL_INDEX_CELL]);
+  eraseTextRunByIndex(m, mem8[loc_15c6]);
   // blank the six cells of the vanished second player's score, stepping the cursor per cell.
   // advanceCharCursor takes the cursor and returns the next cell, so no register is threaded here.
-  let cursor = SECOND_SCORE_CELL;
+  let cursor = loc_a501;
   for (let i = 0; i < SECOND_SCORE_DIGITS; i++) {
     mem8[cursor] = BLANK;
     cursor = advanceCharCursor(m, cursor);

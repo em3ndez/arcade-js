@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3114 — memory-equivalent to the frozen oracle at ROM 0x3114, a bare `jp 0x307F` tail transfer.
+ * trampolineToLoc_307f — memory-equivalent to the frozen oracle at ROM 0x3114, a bare `jp 0x307F` tail transfer.
  * The dissolution calls the lifted 0x307F directly, which drops the ROM `ret` chain and the register
  * dance, so RAM is compared outside the measured dead-stack window, the +2 SP drift is asserted, the
  * live-out A and cursors checked, and the scrambled register set excluded with an A-scribble control.
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3114 } from "../loc_3114.js";
+import { trampolineToLoc_307f } from "../trampolineToLoc_307f.js";
 import { loc_3114 as oracle } from "../../translated/loc_3114.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { TAMPER_WITNESS } from "../names.js";
@@ -117,7 +117,7 @@ function brokenTransfersElsewhere(m) {
 
 /** Control: everything right, then scribbles the live-out accumulator the check must see. */
 function brokenMovesLiveReg(m) {
-  loc_3114(m);
+  trampolineToLoc_307f(m);
   m.regs.a = (m.regs.a + 1) & 0xff;
 }
 
@@ -137,7 +137,7 @@ test("NEGATIVE CONTROL: with the sentinel intact the game never dispatches it", 
 test("EQUAL at the poked dispatch: RAM identical outside the mask, A and cursors carried, SP +2",
   { skip: SKIP }, () => {
     assert.notEqual(entryState(), null, "vacuous: the poke never drove a dispatch");
-    const r = compare(loc_3114, entryState());
+    const r = compare(trampolineToLoc_307f, entryState());
     assert.equal(r.escaped, null, `a divergence escaped the mask — ${show(r.escaped)}`);
     assert.deepEqual(r.regMoved, [], `a live register moved: ${r.regMoved}`);
     assert.ok(r.ixMatch && r.iyMatch, "the bare transfer did not carry the cursors");

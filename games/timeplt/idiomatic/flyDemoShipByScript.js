@@ -7,9 +7,8 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { scrollWorldAtTheEraPace } from "./scrollWorldAtTheEraPace.js";
-import { DEMO_SCRIPT_DWELL, DEMO_SCRIPT_POINTER_LO } from "./names.js";
+import { DEMO_SCRIPT_DWELL, DEMO_SCRIPT_POINTER_LO, PLAYER_HEADING } from "./names.js";
 
-const HEADING = 0xa802;
 const DWELL_BITS = 0x3f;
 const TURN_STEP = 3;
 
@@ -30,8 +29,8 @@ export function flyDemoShipByScript(m) {
   }
 
   const turn = (command >> 6) & 3;
-  if (turn === 1) mem8[HEADING] = u8(mem8[HEADING] - TURN_STEP);
-  else if (turn !== 0) mem8[HEADING] = u8(mem8[HEADING] + TURN_STEP);
+  if (turn === 1) mem8[PLAYER_HEADING] = u8(mem8[PLAYER_HEADING] - TURN_STEP);
+  else if (turn !== 0) mem8[PLAYER_HEADING] = u8(mem8[PLAYER_HEADING] + TURN_STEP);
 
   regs.exx(); // the mover runs on the alternate register bank; this pass never swaps back
   return scrollWorldAtTheEraPace(m);

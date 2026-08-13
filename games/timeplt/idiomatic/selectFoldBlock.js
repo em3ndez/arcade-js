@@ -3,11 +3,12 @@
  * take. Both are constants chosen here, so the whole content of this entry is WHICH block, and
  * whatever a caller held in the two registers that carry them is discarded. LIVE-OUT: the pair. */
 
-const BLOCK_START = 0x335e;
+import { seatCaptionPenFromEraFoldingTamperIntoPhase_ADDR } from "./names.js";
+
 const BLOCK_BYTES = 30;
 
 export function selectFoldBlock(m) {
   const { regs } = m;
-  regs.hl = BLOCK_START;
+  regs.hl = seatCaptionPenFromEraFoldingTamperIntoPhase_ADDR;
   regs.b = BLOCK_BYTES;
 }

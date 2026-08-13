@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { enterVblankInterrupt } from "../enterVblankInterrupt.js";
 import { loc_0066 as oracle } from "../../translated/loc_0066.js";
-import { loc_00d8 } from "../loc_00d8.js";
+import { saveAccumulatorForFrameInterrupt } from "../saveAccumulatorForFrameInterrupt.js";
 import { buildRoutines } from "../../routines.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -196,8 +196,8 @@ function brokenSkipsPush(m) {
 
 /** BUG: runs the whole frame service twice. */
 function brokenDoubleService(m) {
-  loc_00d8(m);
-  return loc_00d8(m);
+  saveAccumulatorForFrameInterrupt(m);
+  return saveAccumulatorForFrameInterrupt(m);
 }
 
 /** BUG: scribbles on an index register — the control for the EXCLUDED ceiling. */

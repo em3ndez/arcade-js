@@ -5,9 +5,8 @@
 
 import { drawInterpolatedPenRun } from "./drawInterpolatedPenRun.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { BANK_LAUNCH_COOLDOWN } from "./names.js";
+import { BANK_LAUNCH_COOLDOWN, holdCopyrightThenEraseTheCoinInvitation_ADDR } from "./names.js";
 
-const GUARDED_BLOCK = 0x1748;
 const GUARDED_LEN = 0x22;
 
 export function advancePenRunAnimationStep(m) {
@@ -16,7 +15,7 @@ export function advancePenRunAnimationStep(m) {
   if (regs.fNZ) return;
 
   let sum = 0;
-  for (let i = 0; i < GUARDED_LEN; i++) sum = (sum - mem8[GUARDED_BLOCK + i]) & 0xff;
+  for (let i = 0; i < GUARDED_LEN; i++) sum = (sum - mem8[holdCopyrightThenEraseTheCoinInvitation_ADDR + i]) & 0xff;
   mem8[BANK_LAUNCH_COOLDOWN] = sum;
   return advanceSequenceSubStep(m);
 }

@@ -11,33 +11,41 @@ import { loc_1f2e } from "./loc_1f2e.js";
 import { requestLateEraProgressSound } from "./requestLateEraProgressSound.js";
 import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
 import { offsetAddress } from "./offsetAddress.js";
-import { TAMPER_COLOUR_STRIP, TAMPER_GLYPH_STRIP } from "./names.js";
+import {
+  TAMPER_COLOUR_STRIP,
+  TAMPER_GLYPH_STRIP,
+  ERA_INDEX,
+  loc_337a,
+  loc_4902,
+  loc_a5af,
+  loc_1f76,
+  loc_1f94,
+  loc_1fb2,
+  loc_1fd0,
+  loc_1fee,
+} from "./names.js";
 
 const PHASE = 0x00; // record byte holding the animation phase
 const PAIR_FLAG = 0x01; // paired-entry byte flagged on the opening frame
 const FIRST_FRAME = 0xb4; // phases at or above this are the opening frame; clamp to it
 const PAIR_MARK = 0xff;
-const LEVEL_CELL = 0xad04;
 const EXTRA_CUE_LEVEL = 0x02;
 const RUNNING = 0xa5;
 const STATE_DRAW_A = 0x05;
 const STATE_DRAW_B = 0x10;
-const VIDEO_BASE = 0xa5af;
 const COLOUR_BIAS = 0xc1; // added to the level to pick the strip's colour attribute
-const OUTER_COUNT = 0x337a; // rows in the strip
-const INNER_COUNT = 0x4902; // tiles per row
 const ROW_ADVANCE = 0x1b; // step from the last tile of a row to the first of the next
 const COLOUR_RAM_BIT = 2; // clearing this bit of H maps video into colour memory
 
 // phase after the decrement -> base of the strip's shape data, in keyframe order
 const FRAME_ARMS = [
-  [0xb3, 0x1f76],
-  [0xab, 0x1f94],
-  [0xa3, 0x1fb2],
-  [0x9b, 0x1fd0],
-  [0x93, 0x1fd0],
-  [0x8b, 0x1fb2],
-  [0x83, 0x1fee],
+  [0xb3, loc_1f76],
+  [0xab, loc_1f94],
+  [0xa3, loc_1fb2],
+  [0x9b, loc_1fd0],
+  [0x93, loc_1fd0],
+  [0x8b, loc_1fb2],
+  [0x83, loc_1fee],
 ];
 
 export function advancePlayerAnimationStrip(m) {
@@ -48,7 +56,7 @@ export function advancePlayerAnimationStrip(m) {
   if (!regs.fC) {
     mem8[(regs.ix + PHASE) & 0xffff] = FIRST_FRAME;
     mem8[(regs.iy + PAIR_FLAG) & 0xffff] = PAIR_MARK;
-    regs.a = mem8[LEVEL_CELL];
+    regs.a = mem8[ERA_INDEX];
     regs.cp(EXTRA_CUE_LEVEL);
     if (!regs.fC) requestLateEraProgressSound(m);
     requestRoundIntroSoundBurst(m);
@@ -77,17 +85,17 @@ export function advancePlayerAnimationStrip(m) {
   if (base === null) return; // phase between keyframes
 
   regs.de = base;
-  regs.hl = VIDEO_BASE;
+  regs.hl = loc_a5af;
   regs.b = COLOUR_BIAS;
-  regs.a = mem8[LEVEL_CELL];
+  regs.a = mem8[ERA_INDEX];
   regs.add(regs.b);
   regs.c = regs.a;
   regs.exx();
-  regs.a = mem8[OUTER_COUNT];
+  regs.a = mem8[loc_337a];
   regs.b = regs.a;
   do {
     regs.exx();
-    regs.a = mem8[INNER_COUNT];
+    regs.a = mem8[loc_4902];
     regs.b = regs.a;
     do {
       regs.a = mem8[regs.de];

@@ -10,12 +10,10 @@ import { drawRandomByte } from "./drawRandomByte.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { stepShapeAnimation } from "./stepShapeAnimation.js";
 import { u8, u16 } from "../../../core/int.js";
-import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, MOTHER_SHIP_ARMED, ROUND_CRAFT_COUNT, WAVE_CLAIM_TIMER } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, MOTHER_SHIP_ARMED, ROUND_CRAFT_COUNT, WAVE_CLAIM_TIMER, loc_3a3b, loc_38d2 } from "./names.js";
 
 const SLOT_STRIDE = 0x10;
 const DEFAULT_COUNT = 5;
-const SHAPE_TABLE = 0x3a3b;
-const ORDINAL_TABLE = 0x38d2;
 const STATUS_VALUE = 0xe4;
 
 export function spawnEnemyWaveIntoFreeSlots(m) {
@@ -30,7 +28,7 @@ export function spawnEnemyWaveIntoFreeSlots(m) {
   do {
     if (mem8[slot] === 0) {
       regs.a = drawRandomByte(m) & 0xfc;
-      regs.hl = SHAPE_TABLE;
+      regs.hl = loc_3a3b;
       const shapeIndex = fetchTableByte(m);
       const record = regs.hl;
       mem8[entry + 0x31] = shapeIndex;
@@ -40,7 +38,7 @@ export function spawnEnemyWaveIntoFreeSlots(m) {
       mem8[slot + 0x02] = slotField;
 
       regs.a = u8(configuredCount - remaining);
-      regs.hl = ORDINAL_TABLE;
+      regs.hl = loc_38d2;
       mem8[slot + 0x0a] = fetchTableByte(m);
       mem8[slot + 0x09] = 0x20;
 

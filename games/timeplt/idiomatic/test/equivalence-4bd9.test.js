@@ -1,36 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4bd9 — memory-equivalent to the frozen oracle at ROM 0x4BD9.
+ * trampolineToSelectFoldBlock — memory-equivalent to the frozen oracle at ROM 0x4BD9.
  *
- * GATE: unit-capture on a REAL dispatch, memory-equivalent with the stack pointer excluded — and
- *   the RAM half of it is VACUOUS, which this file measures rather than assumes. Three bytes,
- *   `jp 0x08AE`, and 0x08AE loads a fixed address and a fixed count and returns. Nothing anywhere
- *   on that path writes memory, so the state dump cannot tell a correct rewrite from one that does
- *   nothing at all. The LIVE-OUT COMPARISON is the whole gate here; the RAM arm is kept only to
- *   prove the routine is inert, and the VACUITY test below asserts that a no-op twin passes the
- *   RAM diff, so the hole is pinned rather than described.
+ * Three bytes, `jp 0x08AE`; 0x08AE loads a fixed address and count and returns. Nothing on that
+ * path writes memory, so the RAM diff is VACUOUS — it cannot tell a correct rewrite from a no-op.
+ * This file MEASURES that: the LIVE-OUT comparison (address in hl, count in b, against the frozen
+ * original) is the whole gate, and the VACUITY test asserts a no-op twin PASSES RAM but FAILS
+ * live-out, so the hole is pinned rather than described. The EQUAL arm also pins the excluded set
+ * to {sp} and the offset to the two bytes the guest `ret` no longer pops.
  *
- * THE TAPE IS UNDRIVEN ATTRACT. 0x4BD9 is reached by exactly one site, `call 0x4BD9` at 0x17EC,
- *   inside the routine at 0x17E2 that entry nine of the inline word table after the `rst 0x30` at
- *   0x1658 names. Attract steps that sequence and dispatches it at frame 787; the shared
- *   coin -> start tape starts a game instead and does not reach it until frame 3072, past the
- *   shared budget. Both facts are asserted below.
+ * THE TAPE IS UNDRIVEN ATTRACT. 0x4BD9 is reached by one site, `call 0x4BD9` at 0x17EC; attract
+ * dispatches it at frame 787, while the shared coin -> start tape does not reach it inside the
+ * budget (both asserted below). TEETH: no-op, transfers-elsewhere, and address/count off-by-one
+ * twins, each caught by the live-out.
  *
- * What it exercises, holes stated:
- *   1. EQUAL at the real dispatch — RAM identical, and every register but the stack pointer. The
- *      destination is reached as a direct JS call, so the guest `ret` that ended it became a JS
- *      return and the two bytes it would have popped stay put. The same arm PINS the excluded
- *      set to {sp} and pins the offset to exactly those two bytes, so neither can widen.
- *   2. LIVE-OUT — the address and the count, compared against the frozen original explicitly,
- *      because that is the only channel this routine has.
- *   3. VACUITY, MEASURED — a no-op twin is asserted to PASS the RAM diff and to FAIL the live-out
- *      comparison. That is the honest statement of what each arm can see.
- *   4. TEETH — the no-op twin, a transfer-elsewhere twin, and twins that get the address or the
- *      count wrong by one. Each is caught by the live-out comparison.
- *
- * HOLE: this gate says nothing about what the address and count are FOR. The caller walks a
- * thirty-byte run from 0x335E and folds it into a byte it stores at 0xAA6F, which is a checksum
- * shape, but no arm here observes that and this file does not claim it.
+ * HOLE: this says nothing about what the address and count are FOR — the caller folds a 30-byte
+ * run from 0x335E into a byte at 0xAA6F, a checksum shape, but no arm here observes that.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-4bd9.test.js
  */
@@ -39,7 +24,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4bd9 } from "../loc_4bd9.js";
+import { trampolineToSelectFoldBlock } from "../trampolineToSelectFoldBlock.js";
 import { loc_4bd9 as oracle } from "../../translated/loc_4bd9.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -75,7 +60,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_4bd9);
+  if (entry === null) gate(trampolineToSelectFoldBlock);
   return entry;
 }
 
@@ -93,14 +78,14 @@ function liveOutOf(candidate) {
 // ── the gate ────────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: RAM, and every register but the stack pointer", { skip: SKIP }, () => {
-  const r = gate(loc_4bd9);
+  const r = gate(trampolineToSelectFoldBlock);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
 
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_4bd9(b);
+  trampolineToSelectFoldBlock(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved, ["sp"], "the excluded register set changed shape");
@@ -126,7 +111,7 @@ test("THE SHARED TAPE DOES NOT REACH IT, and that is why attract is used", { ski
 });
 
 test("LIVE-OUT: the address and the count match the frozen original", { skip: SKIP }, () => {
-  const { oracle: o, candidate: c } = liveOutOf(loc_4bd9);
+  const { oracle: o, candidate: c } = liveOutOf(trampolineToSelectFoldBlock);
   assert.deepEqual(c, o, "the two live-outs must match exactly");
   console.log(`  LIVE-OUT: address ${hex4(o.address)}, count ${o.count}`);
 });

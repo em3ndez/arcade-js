@@ -6,27 +6,24 @@
 import { u8 } from "../../../core/int.js";
 import { advanceSexagesimalDigit } from "./advanceSexagesimalDigit.js";
 import { applyEraRungSettings } from "./applyEraRungSettings.js";
+import { ERA_RUNG, ERA_RUNG_PERIOD, ERA_RUNG_TIMER, LIFE_TICKS_LOW } from "./names.js";
 
-const COUNTER = 0xad05;
-const RELOAD_TIMER = 0xa9d7;
-const RELOAD_VALUE = 0xa9d6;
-const ESCALATION_RUNG = 0xacc0;
 const TOP_RUNG = 0x0f;
 
 export function escalateDifficultyRungOnCounterWrap(m) {
   const { mem8 } = m;
 
   // carry into the next place only while a place rolls over; a place that holds ends the whole pass
-  if (!advanceSexagesimalDigit(m, COUNTER)) return;
-  if (advanceSexagesimalDigit(m, COUNTER + 1)) advanceSexagesimalDigit(m, COUNTER + 2);
+  if (!advanceSexagesimalDigit(m, LIFE_TICKS_LOW)) return;
+  if (advanceSexagesimalDigit(m, LIFE_TICKS_LOW + 1)) advanceSexagesimalDigit(m, LIFE_TICKS_LOW + 2);
 
-  if (mem8[RELOAD_TIMER] === 0) return;
-  mem8[RELOAD_TIMER] = u8(mem8[RELOAD_TIMER] - 1);
-  if (mem8[RELOAD_TIMER] !== 0) return;
+  if (mem8[ERA_RUNG_TIMER] === 0) return;
+  mem8[ERA_RUNG_TIMER] = u8(mem8[ERA_RUNG_TIMER] - 1);
+  if (mem8[ERA_RUNG_TIMER] !== 0) return;
 
-  mem8[RELOAD_TIMER] = mem8[RELOAD_VALUE];
-  const rung = u8(mem8[ESCALATION_RUNG] + 1);
-  mem8[ESCALATION_RUNG] = rung > TOP_RUNG ? TOP_RUNG : rung;
+  mem8[ERA_RUNG_TIMER] = mem8[ERA_RUNG_PERIOD];
+  const rung = u8(mem8[ERA_RUNG] + 1);
+  mem8[ERA_RUNG] = rung > TOP_RUNG ? TOP_RUNG : rung;
 
   return applyEraRungSettings(m);
 }

@@ -7,10 +7,9 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { offsetAddress } from "./offsetAddress.js";
-import { ACTIVE_PLAYER, PLAYER_ONE_ERA_INDEX, PLAYER_ONE_PEN_GLYPH, PLAYER_TWO_ERA_INDEX, PLAYER_TWO_PEN_GLYPH } from "./names.js";
+import { ACTIVE_PLAYER, PLAYER_ONE_ERA_INDEX, PLAYER_ONE_PEN_GLYPH, PLAYER_TWO_ERA_INDEX, PLAYER_TWO_PEN_GLYPH, loc_0f8d_ADDR } from "./names.js";
 
 
-const FIELD_TABLE = 0x0f8d;
 const FIELD_WIDTH = 2;
 
 export function setSavedPenFromEra(m) {
@@ -19,7 +18,7 @@ export function setSavedPenFromEra(m) {
   const field = secondPlayer ? PLAYER_TWO_PEN_GLYPH : PLAYER_ONE_PEN_GLYPH;
   const round = mem8[secondPlayer ? PLAYER_TWO_ERA_INDEX : PLAYER_ONE_ERA_INDEX];
 
-  regs.hl = FIELD_TABLE;
+  regs.hl = loc_0f8d_ADDR;
   regs.a = u8(round * FIELD_WIDTH);
   const entry = offsetAddress(m);
 

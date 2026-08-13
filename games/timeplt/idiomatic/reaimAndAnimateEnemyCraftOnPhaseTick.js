@@ -11,9 +11,8 @@ import { layOutEnemyAimPointsFromScrollAngle } from "./layOutEnemyAimPointsFromS
 import { stepShapeAnimation } from "./stepShapeAnimation.js";
 import { headingToward } from "./headingToward.js";
 import { offsetAddress } from "./offsetAddress.js";
-import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ENEMY_AIM_POINT_TABLE } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ENEMY_AIM_POINT_TABLE, LIFE_TICKS_LOW } from "./names.js";
 
-const PHASE = 0xad05;
 const SLOT_COUNT = 7;
 const OCCUPIED = 0xff;
 const HELD = 0x10;
@@ -23,7 +22,7 @@ const TENTHS_30 = 0x30;
 
 export function reaimAndAnimateEnemyCraftOnPhaseTick(m) {
   const { regs, mem8 } = m;
-  const phase = mem8[PHASE];
+  const phase = mem8[LIFE_TICKS_LOW];
   regs.c = phase;
 
   const tens = phase & 0xf0;

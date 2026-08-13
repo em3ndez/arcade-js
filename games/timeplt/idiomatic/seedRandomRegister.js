@@ -7,20 +7,17 @@
  * LIVE-OUT: memory — the seventeen seed bytes — plus the zero the total comes to. */
 
 import { u8 } from "../../../core/int.js";
-import { RANDOM_REGISTER } from "./names.js";
+import { RANDOM_REGISTER, loc_4b84, loc_086d, loc_0870 } from "./names.js";
 
-const SEED_SOURCE = 0x4b84;
 const SEED_BYTES = 17;
-const GUARD_WORD_A = 0x086d;
-const GUARD_WORD_B = 0x0870;
 const GUARD_BIAS = 0x44;
 
 export function seedRandomRegister(m) {
   const { mem8, mem16, regs } = m;
-  for (let i = 0; i < SEED_BYTES; i++) mem8[RANDOM_REGISTER + i] = mem8[SEED_SOURCE + i];
+  for (let i = 0; i < SEED_BYTES; i++) mem8[RANDOM_REGISTER + i] = mem8[loc_4b84 + i];
 
-  const a = mem16[GUARD_WORD_A];
-  const b = mem16[GUARD_WORD_B];
+  const a = mem16[loc_086d];
+  const b = mem16[loc_0870];
   regs.a = u8((a & 0xff) + (a >> 8) + (b & 0xff) + GUARD_BIAS);
   if (regs.a !== 0) {
     throw new Error(

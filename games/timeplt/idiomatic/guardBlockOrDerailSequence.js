@@ -10,15 +10,15 @@
 import { advanceSequencePhase } from "./advanceSequencePhase.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8, u16 } from "../../../core/int.js";
+import { fetchTableByte_ADDR } from "./names.js";
 
-const GUARDED_FROM = 0x0008;
 const GUARDED_BYTES = 768;
 const EXPECTED_COMPLEMENT = 0x52;
 
 export function guardBlockOrDerailSequence(m) {
   const { mem8 } = m;
   let fold = 0;
-  for (let i = 0; i < GUARDED_BYTES; i++) fold ^= mem8[u16(GUARDED_FROM + i)];
+  for (let i = 0; i < GUARDED_BYTES; i++) fold ^= mem8[u16(fetchTableByte_ADDR + i)];
 
   if (u8(EXPECTED_COMPLEMENT + fold) !== 0) {
     advanceSequencePhase(m);

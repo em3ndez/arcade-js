@@ -7,11 +7,10 @@
 
 import { loc_59d1 } from "./loc_59d1.js";
 import { u8, u16 } from "../../../core/int.js";
-import { ENEMY_AIM_ANCHOR_Y } from "./names.js";
+import { ENEMY_AIM_ANCHOR_Y, PLAYER_HEADING } from "./names.js";
 
 const SUBMODE_MASK = 0x0f;
 const SUBMODE = 0x07;
-const SCROLL_ANGLE = 0xa802;
 const QUARTER_TURN = 0x40;
 const ACROSS = 0x78;
 const DOWN = 0x84;
@@ -33,12 +32,12 @@ export function layOutEnemyAimPointsFromScrollAngle(m) {
   if ((regs.c & SUBMODE_MASK) !== SUBMODE) return;
   regs.ix = ENEMY_AIM_ANCHOR_Y;
 
-  regs.a = u8(mem8[SCROLL_ANGLE] + QUARTER_TURN);
+  regs.a = u8(mem8[PLAYER_HEADING] + QUARTER_TURN);
   loc_59d1(m);
   plot(m, regs.de, ACROSS, 0x10, 0x12, true);
   plot(m, regs.bc, DOWN, 0x11, 0x13, true);
 
-  regs.a = mem8[SCROLL_ANGLE];
+  regs.a = mem8[PLAYER_HEADING];
   loc_59d1(m);
   plot(m, regs.de, ACROSS, 0x18, 0x1a, false);
   plot(m, regs.bc, DOWN, 0x19, 0x1b, false);

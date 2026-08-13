@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { seedSceneryEntriesThenRunScenery as candidate } from "../seedSceneryEntriesThenRunScenery.js";
 import { loc_3117 as oracle } from "../../translated/loc_3117.js";
-import { loc_3114 } from "../loc_3114.js";
+import { trampolineToLoc_307f } from "../trampolineToLoc_307f.js";
 import { runSceneryForEra } from "../runSceneryForEra.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -128,10 +128,10 @@ function variant({ shadow = true, tintOff = 0x10, count = 4, stride = 4, transfe
     const { regs, mem8 } = m;
     regs.hl = SENTINEL;
     regs.a = mem8[regs.hl];
-    if (regs.a !== 0x68) return loc_3114(m);
+    if (regs.a !== 0x68) return trampolineToLoc_307f(m);
     regs.hl = (regs.hl + 1) & 0xffff;
     regs.a = mem8[regs.hl];
-    if (regs.a !== 0x10 && regs.a !== 0x05) return loc_3114(m);
+    if (regs.a !== 0x10 && regs.a !== 0x05) return trampolineToLoc_307f(m);
     regs.hl = 0x316e;
     regs.iy = 0xaa30;
     regs.b = count;

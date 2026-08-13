@@ -5,7 +5,7 @@
  * sprite takes the next shape the frame tick selects; any value between drifts with the world and
  * then either posts its bonus, shows its award, or counts down and retires at zero. LIVE-OUT: memory. */
 
-import { ERA_INDEX, FRAME_TICK, PARACHUTIST_ENTRY, PARACHUTIST_RECORD } from "./names.js";
+import { ERA_INDEX, FRAME_TICK, PARACHUTIST_ENTRY, PARACHUTIST_RECORD, loc_47ea } from "./names.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { flyAlongStoredVelocity } from "./flyAlongStoredVelocity.js";
@@ -22,7 +22,6 @@ const IN_FLIGHT = 0xff;
 const POST_BONUS_STATE = 0x10;
 const SHOW_AWARD_FROM = 0x3c;
 
-const SHAPE_TABLE = 0x47ea;
 const SHAPE_OFFSET = 0x01;
 const CONTROL_OFFSET = 0x30;
 const CONTROL_BYTE = 0x75;
@@ -47,7 +46,7 @@ export function runParachutistSlot(m) {
 
   flyAlongStoredVelocity(m);
   if (hasReachedRetireLine(m)) return retireSlotIntoCooldown(m);
-  regs.hl = SHAPE_TABLE;
+  regs.hl = loc_47ea;
   regs.a = (mem8[FRAME_TICK] >> 4) & 7;
   mem8[PARACHUTIST_ENTRY + SHAPE_OFFSET] = fetchTableByte(m);
   mem8[PARACHUTIST_ENTRY + CONTROL_OFFSET] = CONTROL_BYTE;

@@ -5,16 +5,14 @@
  * arithmetic the machine uses keeps that case honest rather than assuming it away. Every arm
  * leaves through a stack slot, so the slot is laid down for it first. LIVE-OUT: memory. */
 
-import { ERA_INDEX } from "./names.js";
+import { ERA_INDEX, fileTwoPairsIntoObjectRecordHighByteFirst_ADDR, loc_46c4 } from "./names.js";
 import { fileTwoPairsIntoObjectRecordHighByteFirst } from "./fileTwoPairsIntoObjectRecordHighByteFirst.js";
 
-const ARM_TABLE = 0x46c4;
 const ARM_MASK = 0x07;
-const AFTER_ARM = 0x46ce;
 
 export function setMotherShipVelocityFromHeading(m) {
-  const arm = m.mem16[ARM_TABLE + 2 * (m.mem8[ERA_INDEX] & ARM_MASK)];
-  m.push16(AFTER_ARM);
+  const arm = m.mem16[loc_46c4 + 2 * (m.mem8[ERA_INDEX] & ARM_MASK)];
+  m.push16(fileTwoPairsIntoObjectRecordHighByteFirst_ADDR);
   m.call(arm);
   fileTwoPairsIntoObjectRecordHighByteFirst(m);
 }

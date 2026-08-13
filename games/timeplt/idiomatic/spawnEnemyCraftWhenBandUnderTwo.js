@@ -7,13 +7,12 @@
 
 import { loc_3793 } from "./loc_3793.js";
 import { spawnEnemyIntoFreeSlotElseStepSearch } from "./spawnEnemyIntoFreeSlotElseStepSearch.js";
-import { CRAFT_ENTRY_SLOT6, CRAFT_RECORD_SLOT0, CRAFT_RECORD_SLOT6, ROUND_CRAFT_COUNT } from "./names.js";
+import { CRAFT_ENTRY_SLOT6, CRAFT_RECORD_SLOT0, CRAFT_RECORD_SLOT6, KILLS_REMAINING, ROUND_CRAFT_COUNT } from "./names.js";
 
 const RECORD_STRIDE = 0x10;
 const BAND_SLOTS = 0x07;
 const BUSY_CEILING = 0x02;
 const OPEN_PHASE = 0x30;
-const OWED_KILLS = 0xad02;
 
 export function spawnEnemyCraftWhenBandUnderTwo(m) {
   const { regs, mem8 } = m;
@@ -40,7 +39,7 @@ export function spawnEnemyCraftWhenBandUnderTwo(m) {
   regs.cp(BUSY_CEILING);
   if (regs.a >= BUSY_CEILING) return; // two or more slots already busy
 
-  regs.a = mem8[OWED_KILLS];
+  regs.a = mem8[KILLS_REMAINING];
   regs.and(regs.a);
   if (regs.a === 0x00) return loc_3793(m);
 

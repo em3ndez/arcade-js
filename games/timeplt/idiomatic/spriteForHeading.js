@@ -5,17 +5,14 @@
  * shape and the second the byte that mirrors it — eight shapes cover the circle because the rest
  * reuse them mirrored, and the tint those bytes carry is the same in every entry. Every other
  * pair of frames the shape moves on by eight, so each direction alternates between two.
- * LIVE-OUT: the pair, left standing for the caller to store into the object's sprite entry.
- * Nothing is written. */
+ * LIVE-OUT: the pair, left standing for the caller to store into the object's sprite entry; nothing is written. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { FRAME_TICK } from "./names.js";
+import { FRAME_TICK, loc_2a77, loc_2a87 } from "./names.js";
 
 const HEADING = 2;
 const SECTORS = 16;
 const STEPS_PER_SECTOR = 256 / SECTORS;
-const SHAPE_BY_SECTOR = 0x2a77;
-const MIRROR_BY_SECTOR = 0x2a87;
 const FAR_HALF_BIT = 2;
 const SHAPES_PER_HALF = 8;
 
@@ -24,6 +21,6 @@ export function spriteForHeading(m, object = m.regs.ix) {
   const heading = mem8[u16(object + HEADING)];
   const sector = Math.floor(u8(heading + STEPS_PER_SECTOR / 2) / STEPS_PER_SECTOR);
   const farHalf = (mem8[FRAME_TICK] & FAR_HALF_BIT) !== 0;
-  regs.b = mem8[SHAPE_BY_SECTOR + sector] + (farHalf ? SHAPES_PER_HALF : 0);
-  regs.c = mem8[MIRROR_BY_SECTOR + sector];
+  regs.b = mem8[loc_2a77 + sector] + (farHalf ? SHAPES_PER_HALF : 0);
+  regs.c = mem8[loc_2a87 + sector];
 }

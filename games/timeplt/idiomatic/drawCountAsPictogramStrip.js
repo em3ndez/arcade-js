@@ -7,13 +7,12 @@
  * LIVE-OUT: the painted row and its colour; a failed sum hands off to the cold-start entry.
  */
 
-import { loc_0000 } from "./loc_0000.js";
+import { trampolineToSeatTheStackAndSettleTheControlLatch } from "./trampolineToSeatTheStackAndSettleTheControlLatch.js";
 import { drawSlotWithOneGlyph } from "./drawSlotWithOneGlyph.js";
 import { paintDoubleTile } from "./paintDoubleTile.js";
 import { paintQuadTile } from "./paintQuadTile.js";
+import { loc_009d, loc_00a0, loc_00a3, loc_a463, EMBLEM_STRIP_FLOOR } from "./names.js";
 
-const ROW_START = 0xa463;
-const ROW_END = 0xa623;
 const BLANK_GLYPH = 0xf1;
 const BLANK_COLOUR = 0x10;
 const CHECKSUM_TARGET = 0x69;
@@ -34,7 +33,7 @@ export function drawCountAsPictogramStrip(m) {
     [thirties, 0x23, 0x11, paintQuadTile],
   ];
 
-  regs.de = ROW_START;
+  regs.de = loc_a463;
   for (const [count, glyph, colour, paint] of denominations) {
     if (!count) continue;
     regs.b = glyph;
@@ -44,16 +43,16 @@ export function drawCountAsPictogramStrip(m) {
 
   regs.b = BLANK_GLYPH;
   regs.c = BLANK_COLOUR;
-  while (regs.de < ROW_END) drawSlotWithOneGlyph(m);
+  while (regs.de < EMBLEM_STRIP_FLOOR) drawSlotWithOneGlyph(m);
 
   regs.xor(regs.a);
-  regs.hl = mem16[0x00a0];
-  regs.de = mem16[0x00a3];
-  regs.bc = mem16[0x009d];
+  regs.hl = mem16[loc_00a0];
+  regs.de = mem16[loc_00a3];
+  regs.bc = mem16[loc_009d];
   regs.addHl(regs.de);
   regs.addHl(regs.bc);
   regs.add(regs.l);
   regs.add(regs.h);
   regs.sub(CHECKSUM_TARGET);
-  if (regs.fNZ) return loc_0000(m);
+  if (regs.fNZ) return trampolineToSeatTheStackAndSettleTheControlLatch(m);
 }

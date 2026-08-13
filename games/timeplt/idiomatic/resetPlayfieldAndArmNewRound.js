@@ -14,7 +14,7 @@ import { freeAndNumberEveryObjectSlot } from "./freeAndNumberEveryObjectSlot.js"
 import { seatEraSceneryRowThenClearAndRunScenery } from "./seatEraSceneryRowThenClearAndRunScenery.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { u8 } from "../../../core/int.js";
-import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_ENTRY_SLOT2, ERA_OBJECT_RECORD_SLOT0, ERA_OBJECT_RECORD_SLOT2, PARACHUTIST_ENTRY, PARACHUTIST_RECORD, PLAYER_ENTRY, PLAYER_SPRITE_Y, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, SCRIPT_PICK_THRESHOLD, SHOT_BURST_PENDING, START_RUNG } from "./names.js";
+import { ATTACKER_SPAWN_AIM_WINDOW_HALF, ATTACKER_SPAWN_COOLDOWN, ATTACKER_SPAWN_COOLDOWN_PERIOD, ATTACKER_SPAWN_SLOT_COUNT, ATTACKER_SPAWN_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_ENTRY_SLOT2, ERA_OBJECT_RECORD_SLOT0, ERA_OBJECT_RECORD_SLOT2, PARACHUTIST_ENTRY, PARACHUTIST_RECORD, PLAYER_ENTRY, PLAYER_SPRITE_Y, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, SCRIPT_PICK_THRESHOLD, SHOT_BURST_PENDING, START_RUNG, ERA_INDEX, WORLD_SCROLL_Y, WORLD_SCROLL_X, LIFE_TICKS_MID, LIFE_TICKS_LOW, MOTHER_SHIP_ARMED, PARACHUTIST_RUNG, ERA_RUNG_TIMER, ERA_RUNG_PERIOD, ERA_RUNG, PLAYER_HEADING, PLAYER_STATE, loc_a801, loc_1b04 } from "./names.js";
 
 const SUBPIXEL_SLOTS = 7;
 const RECORD_STRIDE = 16;
@@ -22,25 +22,22 @@ const ENTRY_STRIDE = 2;
 
 const CLEARED_ENTRY_OFFSETS = [0, 2, 4, 6, 0x31, 0x33, 0x35, 0x37];
 
-const RECORD_TABLE = 0x1b04;
-const ERA_INDEX = 0xad04;
-
 export function resetPlayfieldAndArmNewRound(m) {
   const { regs, mem8, mem16 } = m;
 
-  mem16[0xa808] = 0;
-  mem16[0xa80a] = 0;
-  mem16[0xad06] = 0;
-  mem8[0xad0d] = 0;
-  mem8[0xa8f7] = 0;
-  mem8[0xad05] = 0;
-  mem8[0xa9d7] = mem8[0xa9d6];
-  mem8[0xacc0] = mem8[START_RUNG];
+  mem16[WORLD_SCROLL_Y] = 0;
+  mem16[WORLD_SCROLL_X] = 0;
+  mem16[LIFE_TICKS_MID] = 0;
+  mem8[MOTHER_SHIP_ARMED] = 0;
+  mem8[PARACHUTIST_RUNG] = 0;
+  mem8[LIFE_TICKS_LOW] = 0;
+  mem8[ERA_RUNG_TIMER] = mem8[ERA_RUNG_PERIOD];
+  mem8[ERA_RUNG] = mem8[START_RUNG];
   mem8[SHOT_BURST_PENDING] = 0;
   mem8[ROUND_TRANSITION_HOLD] = 0;
-  mem8[0xa802] = 0x80;
-  mem8[0xa801] = 0;
-  mem8[0xa800] = 0xff;
+  mem8[PLAYER_HEADING] = 0x80;
+  mem8[loc_a801] = 0;
+  mem8[PLAYER_STATE] = 0xff;
   mem8[PLAYER_SPRITE_Y] = 0x78;
   mem8[PLAYER_ENTRY] = 0x84;
 
@@ -68,8 +65,8 @@ export function resetPlayfieldAndArmNewRound(m) {
   seatEraSceneryRowThenClearAndRunScenery(m);
 
   const band = (mem8[ERA_INDEX] & 0x0f) << 4; // era in the high nibble, index into the word table
-  regs.a = u8(mem8[0xacc0] + band);
-  regs.hl = RECORD_TABLE;
+  regs.a = u8(mem8[ERA_RUNG] + band);
+  regs.hl = loc_1b04;
   const src = fetchTableWord(m);
 
   mem8[BANK_LAUNCH_SLOT_COUNT] = mem8[src];

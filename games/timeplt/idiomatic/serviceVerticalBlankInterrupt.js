@@ -10,29 +10,9 @@ import { drainBothDeferredCellLists } from "./drainBothDeferredCellLists.js";
 import { serviceCoinInputs } from "./serviceCoinInputs.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { sendOneQueuedSoundThenUnwindTheFrameInterrupt } from "./sendOneQueuedSoundThenUnwindTheFrameInterrupt.js";
-import { ATTACKER_SPAWN_COOLDOWN, BANK_LAUNCH_COOLDOWN, BCD_FRAME_COUNTER, COCKTAIL_MODE, DIP1_MIRROR, IN1_MIRROR, IN2_MIRROR, WAVE_CLAIM_TIMER } from "./names.js";
+import { ACTIVE_PLAYER, ATTACKER_SPAWN_COOLDOWN, BANK_LAUNCH_COOLDOWN, BCD_FRAME_COUNTER, COCKTAIL_MODE, COINAGE_SETTINGS, DIP1_MIRROR, FRAME_TICK, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR, SCREEN_UNFLIPPED, SEQUENCE_PHASE, WAVE_CLAIM_TIMER, loc_0174, loc_015f, loc_c200, loc_c300, loc_c302, loc_c320, loc_c340, loc_c360 } from "./names.js";
 
-const NMI_ENABLE = 0xc300;
-const WATCHDOG = 0xc200;
-const SERVICE_LATCH = 0xc302;
-const DIP1 = 0xc200;
-const IN0 = 0xc300;
-const IN1 = 0xc320;
-const IN2 = 0xc340;
-const DIP0 = 0xc360;
-
-const SERVICE_FLAG = 0xa987;
-const PRIMARY_GATE = 0xad32;
-
-const IN0_MIRROR = 0xa9ae;
-const DIP0_MIRROR = 0xa9b1;
-
-const FRAME_COUNTER = 0xa980;
 const TIMERS = [BANK_LAUNCH_COOLDOWN, WAVE_CLAIM_TIMER, ATTACKER_SPAWN_COOLDOWN];
-
-const PHASE_INDEX = 0xa9ab;
-const PHASE_TABLE = 0x015f;
-const FRAME_EPILOGUE = 0x0174;
 
 export function serviceVerticalBlankInterrupt(m) {
   const { regs, mem8 } = m;
@@ -52,19 +32,19 @@ export function serviceVerticalBlankInterrupt(m) {
   publishSpriteShadow(m);
   drainBothDeferredCellLists(m);
 
-  mem8[NMI_ENABLE] = 0;
-  mem8[WATCHDOG] = 0;
+  mem8[loc_c300] = 0;
+  mem8[loc_c200] = 0;
   // Cleared only when the primary gate is armed while the secondary one reads clear.
-  mem8[SERVICE_FLAG] = mem8[PRIMARY_GATE] !== 0 && mem8[COCKTAIL_MODE] === 0 ? 0 : 1;
-  mem8[SERVICE_LATCH] = mem8[SERVICE_FLAG];
+  mem8[SCREEN_UNFLIPPED] = mem8[ACTIVE_PLAYER] !== 0 && mem8[COCKTAIL_MODE] === 0 ? 0 : 1;
+  mem8[loc_c302] = mem8[SCREEN_UNFLIPPED];
 
-  mem8[DIP1_MIRROR] = mem8[DIP1] ^ 0xff;
-  mem8[IN0_MIRROR] = mem8[IN0] ^ 0xff;
-  mem8[IN1_MIRROR] = mem8[IN1] ^ 0xff;
-  mem8[IN2_MIRROR] = mem8[IN2] ^ 0xff;
-  mem8[DIP0_MIRROR] = mem8[DIP0] ^ 0xff;
+  mem8[DIP1_MIRROR] = mem8[loc_c200] ^ 0xff;
+  mem8[IN0_MIRROR] = mem8[loc_c300] ^ 0xff;
+  mem8[IN1_MIRROR] = mem8[loc_c320] ^ 0xff;
+  mem8[IN2_MIRROR] = mem8[loc_c340] ^ 0xff;
+  mem8[COINAGE_SETTINGS] = mem8[loc_c360] ^ 0xff;
 
-  mem8[FRAME_COUNTER] = mem8[FRAME_COUNTER] + 1;
+  mem8[FRAME_TICK] = mem8[FRAME_TICK] + 1;
 
   regs.a = regs.inc8(mem8[BCD_FRAME_COUNTER]);
   regs.daa();
@@ -74,12 +54,12 @@ export function serviceVerticalBlankInterrupt(m) {
 
   serviceCoinInputs(m);
 
-  regs.a = mem8[PHASE_INDEX] & 0x03;
-  regs.hl = PHASE_TABLE;
+  regs.a = mem8[SEQUENCE_PHASE] & 0x03;
+  regs.hl = loc_015f;
   const arm = fetchTableWord(m);
   regs.de = regs.hl;
   regs.hl = arm;
-  m.push16(FRAME_EPILOGUE); // the arm returns here, and the epilogue unwinds from there
+  m.push16(loc_0174); // the arm returns here, and the epilogue unwinds from there
   m.call(arm);
   return sendOneQueuedSoundThenUnwindTheFrameInterrupt(m);
 }

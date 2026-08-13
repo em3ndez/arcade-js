@@ -9,11 +9,13 @@ import { loc_5634 } from "./loc_5634.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startNextRound } from "./startNextRound.js";
 import { ACTOR_RECORD_SLOT0, ACTOR_SPRITE_Y_SLOT0, ROUND_TRANSITION_HOLD } from "./names.js";
+import { KILLS_REMAINING, PLAY_ACTIVE, ACTIVE_PLAYER, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, LIVES_REMAINING, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES } from "./names.js";
+import { loc_07d1, loc_16d3, loc_4a35 } from "./names.js";
 
 export function advanceRoundWhenFieldCleared(m) {
   const { mem8 } = m;
 
-  if (mem8[0xad02] !== 0) return;
+  if (mem8[KILLS_REMAINING] !== 0) return;
   if (mem8[ROUND_TRANSITION_HOLD] === 0) return;
   for (let slot = ACTOR_RECORD_SLOT0; slot < ACTOR_RECORD_SLOT0 + 15 * 0x10; slot += 0x10) {
     if (mem8[slot] !== 0) return;
@@ -21,19 +23,19 @@ export function advanceRoundWhenFieldCleared(m) {
 
   loc_5634(m);
 
-  if (mem8[0xad30] === 0) {
-    mem8[ROUND_TRANSITION_HOLD] = mem8[0x07d1];
+  if (mem8[PLAY_ACTIVE] === 0) {
+    mem8[ROUND_TRANSITION_HOLD] = mem8[loc_07d1];
     hideAllSprites(m);
-    mem8[0xad30] = 0;
-    mem8[0xad32] = 0;
-    mem8[0xa9ab] = mem8[0x16d3];
-    mem8[0xa9ac] = 0;
+    mem8[PLAY_ACTIVE] = 0;
+    mem8[ACTIVE_PLAYER] = 0;
+    mem8[SEQUENCE_PHASE] = mem8[loc_16d3];
+    mem8[SEQUENCE_SUBSTEP] = 0;
     return;
   }
 
   for (let i = 0; i < 23; i++) mem8[ACTOR_SPRITE_Y_SLOT0 + i * 2] = 0;
   startNextRound(m);
-  const dest = mem8[0xad32] === 0 ? 0xad10 : 0xad20;
-  for (let i = 0; i < 16; i++) mem8[dest + i] = mem8[0xad00 + i];
-  mem8[0xa9ac] = mem8[0x4a35];
+  const dest = mem8[ACTIVE_PLAYER] === 0 ? PLAYER_ONE_LIVES : PLAYER_TWO_LIVES;
+  for (let i = 0; i < 16; i++) mem8[dest + i] = mem8[LIVES_REMAINING + i];
+  mem8[SEQUENCE_SUBSTEP] = mem8[loc_4a35];
 }

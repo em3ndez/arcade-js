@@ -6,12 +6,16 @@
  */
 
 import { retireEntryPairIntoCooldown } from "./retireEntryPairIntoCooldown.js";
-import { MOTHER_SHIP_ENTRY, ROUND_TRANSITION_HOLD } from "./names.js";
+import {
+  FRAME_TICK,
+  KILLS_REMAINING,
+  MOTHER_SHIP_ARMED,
+  MOTHER_SHIP_ENTRY,
+  MOTHER_SHIP_STATE,
+  ROUND_TRANSITION_HOLD,
+  loc_43f0,
+} from "./names.js";
 
-const SPECIAL_ACTIVE = 0xad0d;
-const FRAME_TICK = 0xa980;
-const SPAWN_GATE = 0xad02;
-const RECORD = 0xa8a0;
 const RECORD_STRIDE = 0x10;
 const HELD = 0xff;
 const PHASE_MASK = 0x07;
@@ -24,16 +28,16 @@ export function armMotherShipOrStep(m) {
 
   if (mem8[ROUND_TRANSITION_HOLD] === HELD) return;
 
-  regs.a = mem8[SPECIAL_ACTIVE];
-  if (regs.a !== 0) return m.call(0x43f0);
+  regs.a = mem8[MOTHER_SHIP_ARMED];
+  if (regs.a !== 0) return m.call(loc_43f0);
 
   if ((mem8[FRAME_TICK] & PHASE_MASK) !== PHASE_DUE) return;
 
-  regs.ix = RECORD;
+  regs.ix = MOTHER_SHIP_STATE;
   regs.iy = MOTHER_SHIP_ENTRY;
-  if ((mem8[SPAWN_GATE] | mem8[RECORD] | mem8[RECORD + RECORD_STRIDE]) !== 0) return;
+  if ((mem8[KILLS_REMAINING] | mem8[MOTHER_SHIP_STATE] | mem8[MOTHER_SHIP_STATE + RECORD_STRIDE]) !== 0) return;
 
-  mem8[SPECIAL_ACTIVE] = HELD;
-  mem8[RECORD + FIRE_BYTE] = FIRE_ARMED;
+  mem8[MOTHER_SHIP_ARMED] = HELD;
+  mem8[MOTHER_SHIP_STATE + FIRE_BYTE] = FIRE_ARMED;
   return retireEntryPairIntoCooldown(m);
 }

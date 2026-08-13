@@ -6,9 +6,7 @@ import { u8 } from "../../../core/int.js";
 import { armBomberSlotWhenTimerFires } from "./armBomberSlotWhenTimerFires.js";
 import { advanceHitSoakingObjectThenAnimateDeath } from "./advanceHitSoakingObjectThenAnimateDeath.js";
 import { advanceTwoTileObjectThenTryAimedSpawn } from "./advanceTwoTileObjectThenTryAimedSpawn.js";
-import { ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0 } from "./names.js";
-
-const ERA_INDEX = 0xad04;
+import { ERA_INDEX, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0 } from "./names.js";
 
 export function serviceEra1BomberObject(m) {
   const { regs, mem8 } = m;

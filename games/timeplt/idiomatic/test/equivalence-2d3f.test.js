@@ -559,7 +559,7 @@ test("CALLS, NOT RESTATES: the module's text, with each callee as a positive con
       "OWN body, so it cannot tell a call from an inlined copy and proves nothing");
   }
   // The seventh transfer has no file to import, so the module must reach it through the registry.
-  assert.match(module, /m\.call\(\s*TRAP\s*\)/, "the module does not reach the trap through the " +
+  assert.match(module, /m\.call\(\s*loc_2e3e\s*\)/, "the module does not reach the trap through the " +
     "dispatch registry, which is the only way a transfer into a place holding no routine can be " +
     "reproduced rather than repaired");
   console.log(`  CALLS, NOT RESTATES: ${HELPERS.map((h) => h[0]).join(", ")} called, each of ` +

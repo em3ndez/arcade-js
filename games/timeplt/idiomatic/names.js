@@ -1575,6 +1575,314 @@ export const ATTACKER_SPAWN_COOLDOWN = 0xa8f4;
  */
 export const ATTACKER_SPAWN_COOLDOWN_PERIOD = 0xa8f6;
 
+/**
+ * Address-retrofit pilot data addresses (§4). Neutral loc_<addr> placeholders (loc_<addr> === the
+ * raw hex); `proposal:` records the descriptive routine-local name a file used, for the naming pass
+ * to re-derive under full rigor -- never promoted to the identifier here. Several sit below the
+ * 0xA800 work-RAM range: 0x0d27/0x0b31/0x15c6/0x07d1/0x16d3/0x4a35 are ROM-image data, 0xa501 is
+ * screen RAM.
+ */
+export const loc_07d1 = 0x07d1;
+export const loc_0b31 = 0x0b31; // proposal: SOLE_LABEL_INDEX_CELL
+export const SCORE_AWARD_TABLE = 0x0d27; // 3-byte packed-BCD score increments, indexed by award id (awardScoreToPlayer)
+export const loc_15c6 = 0x15c6; // proposal: ABSENT_LABEL_INDEX_CELL
+export const loc_16d3 = 0x16d3;
+export const loc_4a35 = 0x4a35;
+export const loc_a501 = 0xa501; // proposal: SECOND_SCORE_CELL
+
+// Batch 1: sound-request shims -- each reads one (or more) program-image byte(s) as a sound code.
+// proposal records the routine that reads the cell and its routine-local const name.
+export const PARACHUTIST_AWARD_SOUND = 0x079b; // ROM cell holding the sound code enqueued on a parachutist award (requestParachutistAwardSound)
+export const loc_07a2 = 0x07a2; // proposal: requestEnemyLaunchSound SOUND_CODE_CELL
+export const loc_07a6 = 0x07a6; // proposal: requestTwoSounds FIRST_SOUND_CODE_CELL
+export const loc_07a9 = 0x07a9; // proposal: requestPlayerSpawnFlashSound SOUND_CODE_CELL
+export const loc_07d8 = 0x07d8; // proposal: requestTwoSoundsWhilePlaying SOUND_CODE_CELL
+export const loc_07fe = 0x07fe; // proposal: requestLateEraProgressSound SOUND_CODE_CELL
+export const loc_0855 = 0x0855; // proposal: requestRoundIntroSoundBurst SECOND_CODE_CELL
+export const loc_0c5b = 0x0c5b; // proposal: requestRoundIntroSoundBurst FIRST_CODE_CELL
+export const loc_1675 = 0x1675; // proposal: requestRoundIntroSoundBurst THIRD_CODE_CELL
+export const loc_16de = 0x16de; // proposal: requestAttackerSpawnSoundEra0 SOUND_CODE_CELL
+export const loc_1767 = 0x1767; // proposal: requestRoundStartSound SOUND_CODE_CELL
+export const loc_18fa = 0x18fa; // proposal: loc_583a SOUND_CODE_CELL
+export const loc_273a = 0x273a; // proposal: requestEnemyWaveSound SOUND_CODE_CELL
+export const loc_276b = 0x276b; // proposal: requestAttackerSpawnSoundLateEra SOUND_CODE_CELL
+export const loc_27cb = 0x27cb; // proposal: requestInterRoundSoundPair FIRST_CODE_CELL
+export const loc_2d4e = 0x2d4e; // proposal: requestBonusLifeSound SOUND_CODE_CELL
+export const loc_2d87 = 0x2d87; // proposal: loc_568e SOUND_CODE_CELL
+export const loc_3270 = 0x3270; // proposal: requestPlayerShotSound SOUND_CODE_CELL
+export const loc_322e = 0x322e; // proposal: requestCoinSound SOUND_CODE_CELL
+export const loc_33a0 = 0x33a0; // proposal: requestInterRoundSoundPair SECOND_CODE_CELL
+export const loc_49ee = 0x49ee; // proposal: requestMotherShipWarpSound SOUND_CODE_CELL
+export const loc_4c9f = 0x4c9f; // proposal: requestEnemyLaunchSoundLateEra SOUND_CODE_CELL
+export const loc_4cda = 0x4cda; // proposal: requestTwoSounds SECOND_SOUND_CODE_CELL
+
+// Batch 2: mixed data addresses lifted out of routine-local consts / raw hex.
+// ROM-image cells (below 0xA800) read as data; the rest are work/screen RAM cells,
+// script-column starts, and shape-strip bases. Every address checked against ROUTINES keys: no collision.
+export const loc_0ccd = 0x0ccd; // proposal: armLineWipeFromFifthLine LINE_COUNT_SOURCE
+export const loc_163f = 0x163f; // proposal: armAttractScreenShowingHighScore PATCH_LIST
+export const loc_1736 = 0x1736; // proposal: advanceAttractTowardGameStart SEQUENCE_PHASE image seed
+export const holdCopyrightThenEraseTheCoinInvitation_ADDR = 0x1748; // §3 collision: routine 0x1748's own code, read as data by advancePenRunAnimationStep's anti-tamper checksum
+export const saveAccumulatorForFrameInterrupt_ADDR = 0x00d8; // §3 collision: routine 0x00d8's own code, checksummed as data by clearWorkRamAndSpriteBanksThenColdInit (which also calls saveAccumulatorForFrameInterrupt)
+export const guardBlockOrBlankDisplay_ADDR = 0x17b9; // §3 collision: routine 0x17b9's own code, walked as data by foldImageBlockIntoSignatureThenAdvanceSequence's tamper signature
+export const loc_0f8d_ADDR = 0x0f8d; // §3 collision: routine 0x0f8d's own code, read as a glyph/colour table by seatCaptionPenFromEraFoldingTamperIntoPhase
+export const loc_1f76 = 0x1f76; // proposal: advancePlayerAnimationStrip FRAME_ARMS strip base
+export const loc_1f94 = 0x1f94; // proposal: advancePlayerAnimationStrip FRAME_ARMS strip base
+export const loc_1fb2 = 0x1fb2; // proposal: advancePlayerAnimationStrip FRAME_ARMS strip base
+export const loc_1fd0 = 0x1fd0; // proposal: advancePlayerAnimationStrip FRAME_ARMS strip base
+export const loc_1fee = 0x1fee; // proposal: advancePlayerAnimationStrip FRAME_ARMS strip base
+export const loc_337a = 0x337a; // proposal: advancePlayerAnimationStrip OUTER_COUNT
+export const HEADING_SHAPE_TABLE = 0x3c84; // 2-byte sprite-shape records indexed by heading; shared by armBomberSlotWhenTimerFires + stepMotherShip
+export const loc_4902 = 0x4902; // proposal: advancePlayerAnimationStrip INNER_COUNT
+export const loc_a404 = 0xa404; // proposal: armLineWipeFromFifthLine FIRST_CELL (stored pointer)
+export const loc_a451 = 0xa451;
+export const loc_a5af = 0xa5af; // proposal: advancePlayerAnimationStrip VIDEO_BASE
+export const loc_a5d1 = 0xa5d1;
+export const loc_a5f0 = 0xa5f0;
+export const loc_a5f1 = 0xa5f1;
+export const loc_a5f2 = 0xa5f2;
+export const loc_a610 = 0xa610;
+export const loc_a611 = 0xa611;
+export const loc_a612 = 0xa612;
+export const loc_a631 = 0xa631;
+export const loc_a6e1 = 0xa6e1;
+export const loc_a701 = 0xa701;
+export const loc_a7b1 = 0xa7b1;
+
+// Batch 3: data addresses lifted out of routine-local consts / raw hex in 11 files.
+// ROM-image cells (below 0xA800) read as data (checksum blocks, coordinate/route tables),
+// the rest work/screen RAM cells. Every address checked against ROUTINES keys: no collision
+// except 0x00D8 (routine saveAccumulatorForFrameInterrupt), which is LEFT as a routine-local const in
+// clearWorkRamAndSpriteBanksThenColdInit -- flagged for the coordinator (see report).
+export const loc_c308 = 0xc308; // proposal: armRoundStartThenStepSequence SOUND_LATCH (picture/control latch)
+export const loc_1550 = 0x1550; // proposal: armRoundStartThenStepSequence checksum block base
+export const loc_3310 = 0x3310; // proposal: armRoundStartThenStepSequence checksum block base
+export const loc_aadf = 0xaadf; // proposal: armRoundStartThenStepSequence PLAYER_SHOT_ARRAY clear end (inclusive)
+export const loc_a97f = 0xa97f; // proposal: armRoundStartThenStepSequence work-RAM clear end (inclusive)
+export const loc_0d45 = 0x0d45; // proposal: armThePenRouteThenColdStartOnATamperedImage FIRST_AXIS_START
+export const loc_280c = 0x280c; // proposal: armThePenRouteThenColdStartOnATamperedImage SECOND_AXIS_START
+export const loc_0e33 = 0x0e33; // proposal: armThePenRouteThenColdStartOnATamperedImage CHECKED_BLOCK
+export const loc_4980 = 0x4980; // proposal: blankOneLineThenGuardBlockOrDerailSequence BLOCK_START
+export const loc_c200 = 0xc200; // HELD un-promoted for Karl (adversarial call): dual-mapped Konami port -- WRITE=watchdog kick, READ=DSW1 dip bank. Recommendation on file: split WATCHDOG/DSW1
+export const loc_b411 = 0xb411; // proposal: clearWorkRamAndSpriteBanksThenColdInit SPRITE_RUN_HIGH
+export const loc_b410 = 0xb410; // proposal: clearWorkRamAndSpriteBanksThenColdInit SPRITE_RUN_LOW
+export const loc_a463 = 0xa463; // proposal: drawCountAsPictogramStrip ROW_START
+export const loc_009d = 0x009d; // proposal: drawCountAsPictogramStrip integrity-sum word cell
+export const loc_00a0 = 0x00a0; // proposal: drawCountAsPictogramStrip integrity-sum word cell
+export const loc_00a3 = 0x00a3; // proposal: drawCountAsPictogramStrip integrity-sum word cell
+export const EMBLEM_STRIP_FLOOR = 0xa623; // VRAM boundary dividing count strip [a463,a623) from emblem strip [a623,a783]; inclusive floor (drawEmblemStrip) / exclusive top (drawCountAsPictogramStrip)
+export const loc_a783 = 0xa783; // proposal: drawEmblemStripThenGuardImage CURSOR_START
+export const loc_0711 = 0x0711; // proposal: drawEmblemStripThenGuardImage CHECK_START (image-check block)
+export const loc_32f5 = 0x32f5; // proposal: drawInterpolatedPenRun ROW_TARGET
+export const loc_0b45 = 0x0b45; // proposal: drawInterpolatedPenRun COL_TARGET
+export const loc_14b2 = 0x14b2; // proposal: drawInterpolatedPenRun END_CELL
+export const PEN_ROUTE_TABLE = 0x0290; // word table of pen route-leg endpoints (drawInterpolatedPenRun)
+
+// COLLISION batch: data addresses lifted out of routine-local consts / raw hex in 6 files.
+// Five §3 collisions (a routine's own code read as data by an anti-tamper checksum) named with the
+// _ADDR convention; the rest ordinary ROM-image / work-RAM data cells (0x1748 collision + 0xc200 /
+// 0xc308 latches + 0xa9ab SEQUENCE_PHASE already existed and are reused, not re-added).
+export const trampolineToSeatTheStackAndSettleTheControlLatch_ADDR = 0x0000; // §3 collision: routine 0x0000's own code, read as data by clearScreenRamAndVerifyImageThenColdInit's anti-tamper checksum
+export const fetchTableByte_ADDR = 0x0008; // §3 collision: routine 0x0008's own code, read as data by guardBlockOrDerailSequence's anti-tamper checksum
+export const stampCopyrightStrip_ADDR = 0x0b06; // §3 collision: routine 0x0b06's own code, read as data by guardBlockOrBlankDisplay's anti-tamper checksum
+export const advancePenRunAnimationStep_ADDR = 0x1734; // §3 collision: routine 0x1734's own code, read as data by blankCaptionThenAdvancePenRunStep's anti-tamper checksum
+export const loadDefaultHighScores_ADDR = 0x4ba5; // §3 collision: routine 0x4ba5's own code, read as data by armWholePlaneWipeThenDerailOnATamperedImage's anti-tamper checksum
+export const loc_2581 = 0x2581; // proposal: clearScreenRamAndVerifyImageThenColdInit COLOUR_BASE_PTR
+export const loc_4a37 = 0x4a37; // proposal: clearScreenRamAndVerifyImageThenColdInit VIDEO_BASE_PTR
+export const loc_4a40 = 0x4a40; // proposal: guardBlockOrBlankDisplay TOTAL_SEED
+export const loc_4c89 = 0x4c89; // proposal: guardBlockOrBlankDisplay BLANKING_VALUE
+export const loc_a65c = 0xa65c; // proposal: guardBlockOrBlankDisplay SAMPLED_CELL
+export const loc_0bdd = 0x0bdd; // proposal: blankCaptionThenAdvancePenRunStep XOR_BLOCK
+export const loc_a400 = 0xa400; // proposal: armWholePlaneWipeThenDerailOnATamperedImage PLANE_FIRST_CELL
+
+// Batch 4: data addresses lifted out of routine-local consts / raw hex in the batch-4 files.
+// ROM-image cells/tables (below 0xA800) read as data (velocity/bias/descriptor/shape tables,
+// checksum + memcpy sources); the rest work/screen RAM cells. Every address checked against
+// ROUTINES keys: no collision except 0x17b9 (routine guardBlockOrBlankDisplay), which is LEFT as a
+// routine-local const in foldImageBlockIntoSignatureThenAdvanceSequence -- flagged for the coordinator.
+export const loc_0861 = 0x0861; // proposal: freeAllShotSlots STRIDE_LOW_SOURCE
+export const loc_0d46 = 0x0d46; // proposal: fireAndSweepPlayerShots SEARCH_STRIDE_SRC
+export const loc_2771 = 0x2771; // proposal: fireAndSweepPlayerShots VELOCITY_TABLE
+export const loc_27c0 = 0x27c0; // proposal: foldImageBlockIntoSignatureThenAdvanceSequence SEED_BYTE
+export const loc_38d9 = 0x38d9; // proposal: driveEnemyWaveForLifePhase BIAS_TABLE
+export const loc_38e9 = 0x38e9; // proposal: driveEnemyWaveForLifePhase SHAPE_TABLE
+export const loc_397b = 0x397b; // proposal: driveEnemyWaveForLifePhase DESCRIPTOR_TABLE
+export const loc_4b52 = 0x4b52; // proposal: handPlayOverToOtherPlayer SUBSTEP_SOURCE
+export const loc_4bb1 = 0x4bb1; // proposal: loadDefaultHighScores SOURCE (memcpy source block)
+export const loc_5b50 = 0x5b50; // proposal: loadActivePlayerContextAndPostRoundHud CHECKSUM_FIRST
+export const loc_5c01 = 0x5c01; // proposal: freeAllShotSlots FILL_SOURCE
+export const loc_a23c = 0xa23c; // proposal: holdCopyrightThenEraseTheCoinInvitation SAMPLED_COLOUR_CELL
+export const loc_a63c = 0xa63c; // proposal: holdCopyrightThenEraseTheCoinInvitation SAMPLED_GLYPH_CELL
+export const loc_aa3f = 0xaa3f; // proposal: foldImageBlockIntoSignatureThenAdvanceSequence FLAG_CELL
+export const loc_acc2 = 0xacc2; // proposal: driveEnemyWaveForLifePhase WAVE_MARK
+
+// Address-retrofit batch 5 data addresses (§4).
+export const loc_2914 = 0x2914; // proposal: dispatchSeatedSlotByEraIndex ARM_TABLE
+export const loc_15c8 = 0x15c8; // proposal: dispatchSequencePhase0SubStepArm ARM_TABLE
+export const loc_0f29 = 0x0f29; // proposal: dispatchSequenceSubStepArm ARM_TABLE
+export const loc_2f01 = 0x2f01; // proposal: loc_08fa store-target cell
+export const loc_a210 = 0xa210; // proposal: paintCaptionColourBandAndStepSequence CELL_HI
+export const loc_a211 = 0xa211; // proposal: paintCaptionColourBandAndStepSequence CELL_MID
+export const loc_a212 = 0xa212; // proposal: paintCaptionColourBandAndStepSequence CELL_LO
+export const loc_a3b1 = 0xa3b1; // proposal: paintCaptionColourBandAndStepSequence ROW_A
+export const loc_a1d1 = 0xa1d1; // proposal: paintCaptionColourBandAndStepSequence ROW_B
+export const loc_3213 = 0x3213; // proposal: paintSelfTestScreenPhaseThenStepSequence SHAPE_BYTE
+export const loc_0dcc = 0x0dcc; // proposal: paintSuppressedDigit GLYPHS
+export const loc_3246 = 0x3246; // proposal: paintSuppressedDigit BLANK_ENTRY_CELL
+export const loc_b010 = 0xb010; // proposal: publishSpriteShadow BANK_0
+export const loc_0832 = 0x0832; // proposal: publishSpriteShadow RAISE_STEP_FLOOR_CELL
+export const loc_a801 = 0xa801; // proposal: resetPlayfieldAndArmNewRound cleared player cell
+export const loc_1b04 = 0x1b04; // proposal: resetPlayfieldAndArmNewRound RECORD_TABLE
+export const loc_4901 = 0x4901; // proposal: restartAttractSequence FOLD_STEP
+export const loc_178c = 0x178c; // proposal: seatCaptionPenFromEraFoldingTamperIntoPhase IMAGE_BLOCK
+export const loc_086b = 0x086b; // proposal: seatEraSceneryRowThenClearAndRunScenery CHECK_BASE
+export const loc_3176 = 0x3176; // proposal: seatEraSceneryRowThenClearAndRunScenery ROW_TABLE
+
+// Batch 6 (final data batch): data addresses lifted out of routine-local consts / raw hex in 19 files.
+// ROM-image cells + dispatch/data-table bases (below 0xA800) read as data via mem8/mem16 or handed to
+// fetchTableWord/fetchTableByte through regs.hl; I/O-port hardware registers (0xC000/0xC3xx); the rest
+// work/screen/sprite RAM cells. Every address checked against ROUTINES keys: no collision.
+// (Many cells reused an existing data name under a different local label -- see report; not re-added.)
+export const loc_08c9 = 0x08c9; // proposal: seedGameConfigFromDipSwitches BOOT_BYTE_A
+export const loc_0874 = 0x0874; // proposal: seedGameConfigFromDipSwitches BOOT_BYTE_B
+export const loc_4b84 = 0x4b84; // proposal: seedRandomRegister SEED_SOURCE
+export const loc_086d = 0x086d; // proposal: seedRandomRegister GUARD_WORD_A
+export const loc_0870 = 0x0870; // proposal: seedRandomRegister GUARD_WORD_B
+export const loc_015f = 0x015f; // proposal: serviceVerticalBlankInterrupt PHASE_TABLE (dispatch table base)
+export const loc_46c4 = 0x46c4; // proposal: setMotherShipVelocityFromHeading ARM_TABLE (dispatch table base)
+export const loc_39fb = 0x39fb; // proposal: spawnEnemyIntoFreeSlotElseStepSearch HEADING_TABLE
+export const loc_3a3b = 0x3a3b; // proposal: spawnEnemyIntoFreeSlotElseStepSearch VELOCITY_TABLE
+export const loc_2a77 = 0x2a77; // proposal: spriteForHeading SHAPE_BY_SECTOR
+export const loc_2a87 = 0x2a87; // proposal: spriteForHeading MIRROR_BY_SECTOR
+export const loc_1749 = 0x1749; // proposal: startTheWholePlaneWipeAndFoldAnImageBlockIntoThePhase SUBSTEP_SOURCE
+export const loc_5648 = 0x5648; // proposal: startTheWholePlaneWipeAndFoldAnImageBlockIntoThePhase FOLD_BLOCK
+export const loc_461b = 0x461b; // proposal: stepMotherShip SHAPE_TABLE
+export const loc_478b = 0x478b; // proposal: stepMotherShip ARM_TABLE (stage-vector dispatch table base)
+export const loc_2750 = 0x2750; // proposal: stepRoundStartIntroAnimation SUBSTEP_RELOAD
+export const loc_0bcc = 0x0bcc; // proposal: stepSequenceUnderChecksum BLOCK_START (checksum block base)
+export const EXPECTED_CHECKSUM_TOTAL = 0x1a50; // anti-tamper reference total; stepSequenceUnderChecksum derails if the 256-byte sum from loc_0bcc mismatches
+export const loc_c300 = 0xc300; // proposal: serviceVerticalBlankInterrupt NMI_ENABLE / IN0 port
+export const loc_c302 = 0xc302; // proposal: serviceVerticalBlankInterrupt SERVICE_LATCH
+export const loc_c320 = 0xc320; // proposal: serviceVerticalBlankInterrupt IN1 port
+export const loc_c340 = 0xc340; // proposal: serviceVerticalBlankInterrupt IN2 port
+export const loc_c360 = 0xc360; // proposal: serviceVerticalBlankInterrupt DIP0 switch bank
+export const loc_c000 = 0xc000; // proposal: spinRemainingSpriteMultiplexSlots RASTER
+export const loc_a67c = 0xa67c; // proposal: setUpTwoPlayerStartObjectOnce WATCHED
+export const loc_acc5 = 0xacc5; // proposal: spawnEnemyIntoFreeSlotElseStepSearch SHARED_ZERO
+export const loc_a61c = 0xa61c; // proposal: stepCopyrightScreenAwaitingStart SAMPLE_CELL
+export const loc_b437 = 0xb437; // proposal: spinRemainingSpriteMultiplexSlots FIRST_REQUEST
+export const loc_b036 = 0xb036; // proposal: spinRemainingSpriteMultiplexSlots FIRST_PARTNER
+export const loc_b439 = 0xb439; // proposal: spinRemainingSpriteMultiplexSlots slot request
+export const loc_b038 = 0xb038; // proposal: spinRemainingSpriteMultiplexSlots slot partner
+export const loc_b43b = 0xb43b; // proposal: spinRemainingSpriteMultiplexSlots slot request
+export const loc_b03a = 0xb03a; // proposal: spinRemainingSpriteMultiplexSlots slot partner
+export const loc_b43d = 0xb43d; // proposal: spinRemainingSpriteMultiplexSlots slot request
+export const loc_b03c = 0xb03c; // proposal: spinRemainingSpriteMultiplexSlots slot partner
+export const loc_b43f = 0xb43f; // proposal: spinRemainingSpriteMultiplexSlots slot request
+export const loc_b03e = 0xb03e; // proposal: spinRemainingSpriteMultiplexSlots slot partner
+
+// Batch 7 (address-retrofit): table/data-block bases lifted out of routine-local consts in 18 files.
+// Each is a ROM-image data-table base loaded into regs.hl then read by fetchTableByte/fetchTableWord/
+// fetchWideTableWord/offsetAddress, or a cell walked directly via mem8/mem16 -- data, not code. Every
+// address checked against ROUTINES keys: no collision. 0xc200/0xc300/0x1b04 already existed and are
+// reused, not re-added.
+export const CAPTION_RECORD_TABLE = 0x0c50; // caption-record table {start-cell word, colour, glyph run}, indexed by caption id; shared by 5 caption routines
+export const loc_087c = 0x087c; // proposal: drawKillMeter ROWS
+export const loc_a79f = 0xa79f; // proposal: drawKillMeter BAR_START_CELL
+export const loc_1659 = 0x1659; // proposal: dispatchSequencePhase1SubStepArm ARM_TABLE
+export const loc_1806 = 0x1806; // proposal: dispatchSequencePhase2SubStepArm ARM_TABLE
+export const loc_20ce = 0x20ce; // proposal: dressPlayerSpriteForHeading SHAPE_BY_SECTOR
+export const loc_2abc = 0x2abc; // proposal: dressSpriteForFineHeading SHAPE_TABLE
+export const loc_2b18 = 0x2b18; // proposal: dressSpriteForCoarseHeading SHAPE_TABLE
+export const loc_2c94 = 0x2c94; // proposal: driveObjectAppearanceByPhaseBand SHAPE_BY_STEP
+export const loc_315e = 0x315e; // proposal: clearSceneryEntriesThenRunEraScenery SEAT_TABLE
+export const loc_3c09 = 0x3c09; // proposal: advanceHitSoakingObjectThenAnimateDeath SHAPE_TABLE
+export const loc_3fca = 0x3fca; // proposal: dressSpriteShapeAndAttributeForHeadingSector SHAPE_TABLE
+export const loc_44f1 = 0x44f1; // proposal: dressSpriteForHeadingOrRetireAtEdge SHAPE_PAIRS
+export const loc_4531 = 0x4531; // proposal: dressSpriteForHeadingOrRetireAtEdge COLOUR_TABLE
+export const loc_a2bc = 0xa2bc; // proposal: checkTheCopyrightLineColoursOrDerail FIRST_CELL
+
+// Batch 8 (address-retrofit): more data-address bases lifted out of routine-local consts in 18 files.
+// Each is a ROM-image table/data-block base loaded into regs.hl then read by a table helper, a cell
+// walked directly via mem8/mem16, or a hardware-port line -- data, not code. Every address checked
+// against ROUTINES keys: no collision. Existing entries (0x0c50, ACTIVE_PLAYER, DIFFICULTY_SETTING,
+// 0xc200/0xc302/0xc000, the sprite-slot loc_b4xx/loc_b0xx, 0xa501, 0x0dcc) are reused, not re-added.
+export const loc_4aa0 = 0x4aa0; // proposal: erasePenRouteThenAdvanceStep CHECKED_BLOCK
+export const loc_a531 = 0xa531; // proposal: fileScoreIntoHighScoreTable GLYPH_ROW_TABLE
+export const loc_0c3e = 0x0c3e; // proposal: finishBootSelfTestAndColdStart LS259_SOURCE
+export const loc_27de = 0x27de; // proposal: finishBootSelfTestAndColdStart CHECKSUM_BASE
+export const loc_341d = 0x341d; // proposal: headingToward DIAGONAL_HEADINGS
+export const loc_3415 = 0x3415; // proposal: headingToward SECTOR_HEADINGS
+export const loc_b413 = 0xb413; // proposal: multiplexSpriteSlotsSkipping slot request
+export const loc_b012 = 0xb012; // proposal: multiplexSpriteSlotsSkipping slot partner
+export const loc_b415 = 0xb415; // proposal: multiplexSpriteSlotsSkipping slot request
+export const loc_b014 = 0xb014; // proposal: multiplexSpriteSlotsSkipping slot partner
+export const loc_a47f = 0xa47f; // proposal: paintCreditCountPanel FIRST_CELL
+export const loc_0f06 = 0x0f06; // proposal: paintDigitDroppingLeadingZero GLYPHS
+export const loc_a641 = 0xa641; // proposal: paintHighScoreReadout FIRST_DIGIT_CELL
+export const loc_4cb4 = 0x4cb4; // proposal: paintLabelledNumericReadoutColumn PICTOGRAM_TABLE
+export const loc_a781 = 0xa781; // proposal: paintPlayerOneScoreReadout FIRST_CELL
+export const loc_4c87 = 0x4c87; // proposal: petWatchdogThroughStartupDelayThenStartMachine INTERRUPT_ENABLE_SOURCE
+export const loc_484f = 0x484f; // proposal: postNextParachutistBonus STEP_TABLE
+export const loc_c30a = 0xc30a; // proposal: pulseSlot1CoinCounter COUNTER_LINE
+export const loc_c30c = 0xc30c; // proposal: pulseSlot2CoinCounter OUTPUT_LINE
+export const loc_0bbc = 0x0bbc; // proposal: runCommandRingDrainLoop HANDLERS
+
+// Batch 9 (final data batch): data-address bases lifted out of routine-local consts / raw hex in 17 files.
+// Each is a ROM-image table/data-block base loaded into regs.hl then read by a table helper, a cell walked
+// directly via mem8/mem16, an I/O-port hardware register (0xC000/0xC2xx/0xC3xx), the stack seat, or an
+// expansion-probe / picture-enable image byte -- data, not code. Two §3 collisions (a routine's own code
+// read as data) named with the _ADDR convention. Every address checked against ROUTINES keys: no collision
+// beyond those two. Existing entries (PLAYER_STATE 0xa800, TAMPER_WITNESS 0xad39, loc_0f8d_ADDR,
+// loc_c000/c200/c300/c308, loc_3a3b) are reused, not re-added.
+export const seatCaptionPenFromEraFoldingTamperIntoPhase_ADDR = 0x335e; // §3 collision: routine 0x335e's own code read as data by selectFoldBlock
+export const loc_1f2e_ADDR = 0x1f2e; // §3 collision: routine 0x1f2e's own code read as data by turnShipTowardTargetHeading
+export const loc_4094 = 0x4094; // proposal: runOneShotAnimatedObjectSlot SHAPE_TABLE
+export const loc_47ea = 0x47ea; // proposal: runParachutistSlot SHAPE_TABLE
+export const loc_3ec3 = 0x3ec3; // proposal: runSlotCountdownDriftAndAnimateElseRetire SHAPE_TABLE
+export const loc_6000 = 0x6000; // proposal: seatTheStackAndSettleTheControlLatch EXPANSION_SOCKET
+export const loc_b000 = 0xb000; // proposal: seatTheStackAndSettleTheControlLatch STACK_SEAT
+export const loc_2d4b = 0x2d4b; // proposal: seatTheStackAndSettleTheControlLatch PICTURE_ENABLE_SETTING
+export const loc_316e = 0x316e; // proposal: seedSceneryEntriesThenRunScenery OBJECT_TABLE
+export const loc_1600 = 0x1600; // proposal: sendOneQueuedSoundThenUnwindTheFrameInterrupt GATE_OPEN_BYTE
+export const loc_c304 = 0xc304; // proposal: sendSoundCommand AUDIO_ATTENTION
+export const loc_482d = 0x482d; // proposal: showParachutistAward SHAPE_TABLE
+export const loc_488d = 0x488d; // proposal: spawnAtEdgeAhead EDGE_POSITIONS
+export const loc_38d2 = 0x38d2; // proposal: spawnEnemyWaveIntoFreeSlots ORDINAL_TABLE
+export const loc_2c1d = 0x2c1d; // proposal: steerTowardAimHeading TURN_RATE_TABLE
+export const loc_3438 = 0x3438; // proposal: stepShapeAnimation RUN_POINTERS
+export const loc_4b95 = 0x4b95; // proposal: unpackCoinage VALUES
+
+// §code address-retrofit (phase 2). Routine entries used as call/push16/return targets kept as
+// <name>_ADDR with the deep-dissolve deferred to Karl; non-routine code targets (derail / return /
+// trap / parked-return slots) named loc_<addr>. Every value is the raw hex; behaviour is unchanged.
+export const blankNextLine_ADDR = 0x01c2; // §code: routine 0x01c2 as a call/return target (deep-dissolve deferred to Karl)
+export const advanceAttractTowardGameStart_ADDR = 0x0f54; // §code: routine 0x0f54 as a call/return target (deep-dissolve deferred to Karl)
+export const fileTwoPairsIntoObjectRecordHighByteFirst_ADDR = 0x46ce; // §code: routine 0x46ce as a call/return target (deep-dissolve deferred to Karl)
+export const advanceSequenceElseStartFreePlayGame_ADDR = 0x167b; // §code: routine 0x167b as a call/return target (deep-dissolve deferred to Karl)
+export const enterCommandRingDrain_ADDR = 0x0b90; // §code: routine 0x0b90 as a call/return target (deep-dissolve deferred to Karl)
+export const runCommandRingDrainLoop_ADDR = 0x0b93; // §code: routine 0x0b93 as a call/return target (deep-dissolve deferred to Karl)
+export const armMotherShipOrStep_ADDR = 0x43b7; // §code: routine 0x43b7 as a call/return target (deep-dissolve deferred to Karl)
+export const clearWorkRamAndSpriteBanksThenColdInit_ADDR = 0x0069; // §code: routine 0x0069 as a call/return target (dissolve reverted -- the equivalence seam measures the m.call)
+export const commissionStagedAttackerByEra_ADDR = 0x42b7; // §code: routine 0x42b7 as a call/return target (dissolve reverted -- the equivalence seam measures the m.call)
+export const parkTheImageTotalForTheTamperVerdict_ADDR = 0x07ad; // §code: routine 0x07ad as a call/return target (dissolve reverted -- the equivalence seam measures the m.call)
+export const loc_43f0 = 0x43f0; // §code: Mother-Ship deep-state stepper transfer target (armMotherShipOrStep)
+export const loc_de00 = 0xde00; // §code: anti-tamper derail target into unmapped space -- faults (loc_08fa)
+export const loc_c600 = 0xc600; // §code: anti-tamper derail target into unmapped space -- faults (loc_08fa)
+export const loc_bc00 = 0xbc00; // §code: anti-tamper derail target into unmapped space -- faults (loc_08fa)
+export const loc_f1f1 = 0xf1f1; // §code: off-map transfer target (loc_1f99)
+export const loc_f1eb = 0xf1eb; // §code: off-map transfer target (loc_1f99)
+export const loc_1601 = 0x1601; // §code: parked return slot for the countdown call (armAttractScreenShowingHighScore)
+export const loc_0f6d = 0x0f6d; // §code: parked return slot for the dissolved sprite-hide call (advanceAttractTowardGameStart)
+export const loc_1fcf = 0x1fcf; // §code: parked return slot for the off-map transfer (loc_1f99)
+export const loc_0174 = 0x0174; // §code: frame-epilogue return code target (serviceVerticalBlankInterrupt)
+export const loc_40ea = 0x40ea; // §code: object-bank sweep-body code target (sweepEra2PlusObjectBank)
+export const loc_2e3e = 0x2e3e; // §code: tamper-trap transfer target carrying no routine (showCreditLine)
+export const loc_2cd1 = 0x2cd1; // §code: parked return slot for the diagonal-pair scenery step (runSceneryForEra)
+export const loc_00d9 = 0x00d9; // §code: fall-through continuation of the frame-interrupt prologue (saveAccumulatorForFrameInterrupt)
+export const loc_59d7 = 0x59d7; // §code: anti-tamper derail target into data (clearScreenRamAndVerifyImageThenColdInit)
+export const loc_49fa = 0x49fa; // §code: derail into a caption record decoded as code (checkTheCopyrightLineColoursOrDerail)
+
 export const ROUTINES = {
   0x43b7: { name: "armMotherShipOrStep", role: "once-in-eight-frames gate for the Mother-Ship: while the wave-hold flag 0xacc6 is clear, defer to the deep-state stepper (stepMotherShip) if it is already live (MOTHER_SHIP_ARMED 0xad0d != 0), else -- only when the kill quota (KILLS_REMAINING 0xad02) is spent and both records of its two-slot bank (0xa8a0/0xa8b0) read empty -- arm it (0xad0d=0xff), seed the lead record's seven-hit counter (ix+0x04=0x07), and retire the matching entry pair into cooldown to spawn it", cert: "code" },
   0x1199: { name: "serviceRoundThenResolvePlayerState", role: "the round engine's service list (substep 7 of the phase-3 dispatch at 0x0f29; runs per dispatch, short of the frame count): run each subsystem service in fixed order, then read the player-state byte at 0xa800 and advance the round when it is 0xff (alive), hand a life over when it is 0 (dead), else return", cert: "code" },
@@ -2271,7 +2579,7 @@ export const ROUTINES = {
     why: "placeAbuttingTile uses it to step onto a further tile of the sprite it has just placed, while driftOneTileSceneryAtThreeQuarters and loc_2d68 use it to reach a different entity -- the callers disagree about what the next slot holds, so the unit it advances is the slot index, not the object",
   },
   0x3114: {
-    name: "loc_3114",
+    name: "trampolineToLoc_307f",
     role: "a bare transfer to 0x307F and no return; no cell is read or written and no register moves",
     cert: "code",
   },
@@ -2486,7 +2794,7 @@ export const ROUTINES = {
     why: "the rung byte it indexes by is (IX+0x07), and IX is 0xA8F0 from its only caller, so that byte is 0xA8F7 -- the cell names.js already calls PARACHUTIST_RUNG, 'how many rescue awards this life has already been paid'. That registry entry's claim that the first four rungs each select their own value and every rung after them takes the same top value IS this table: ROM 0x482D holds f9 fc 8d 8e and the out-of-range arm writes a single 0x8F. Under MAME, 300 driven seconds gave 2 PC-gated dispatches, both with IX = 0xA8F0 and IY = 0xAA2E; the rung read at entry was 0x00 then 0x01 -- so it steps between collections, and it is read before that step, which is why the first award of a life pays the bottom rung -- and the glyph actually written to (IY+0x01) was 0xF9 then 0xFC, matching ROM[0x482D + rung] on both, 2 of 2, with no writes matching neither arm. A glyph off by one, or a rung that did not move between the two, would have refuted the reading. The other two stores are constants: 0x3B into the state byte, which is the TOP of mechanisms.md's 0x01-0x3B dying-countdown band, and 0x6C into (IY+0x30). The sound is ROM[0x079B] = 0x16, asked for through the permission-gated request shim at 0x57FF; which sound that is has not been established here",
   },
   0x4bd9: {
-    name: "loc_4bd9",
+    name: "trampolineToSelectFoldBlock",
     role: "a bare transfer to 0x08AE and no return; no cell is read or written and no register moves",
     cert: "code",
   },
@@ -3329,16 +3637,16 @@ export const ROUTINES = {
     why: "kept hex for the same reason as loc_598e, which it is byte-for-byte apart from the table address: the same five landed siblings of this shape are hex, and the only fact an English name could add here is what the pace means, which no shim settles",
   },
   0x0000: {
-    name: "loc_0000",
+    name: "trampolineToSeatTheStackAndSettleTheControlLatch",
     role: "a bare transfer to 0x07B1 and no return; no cell is read or written and no register moves",
     cert: "code",
-    why: "kept hex, and the precedent is byte-shaped: loc_4bd9 is `c3 ae 08` where this is `c3 b1 07`, the same three-byte transfer with a different operand -- this one's operand is seatTheStackAndSettleTheControlLatch's entry -- and the house already registered that one hex with the role this entry reuses word for word. An English name here would have to be about RESET, and reset is a property of the Z80 and of the board's wiring rather than of these three bytes -- what the bytes establish is the transfer and nothing else. Naming this one and leaving its twin hex would also claim a distinction the two bodies do not carry. A scan of the whole 24 KB for the little-endian word 0x07B1, at every alignment, finds one occurrence, this jump's own operand at 0x0001; that is an operand scan and not a dispatch tap, so it is a fact about the image and no exclusivity claim",
+    why: "named by its transfer target under the trampolineTo convention: the three bytes `c3 b1 07` are a bare `jp 0x07B1` whose entire content is the jump to seatTheStackAndSettleTheControlLatch, so the name states exactly what the bytes do. This supersedes the earlier keep-hex note, which rejected a RESET-flavoured name -- rightly, since reset is a property of the Z80 and the board wiring, not of these three bytes -- but never considered naming by the transfer target, which claims nothing beyond the jump. Its twin at 0x4BD9 (`c3 ae 08`) takes the parallel trampolineToSelectFoldBlock; the two transfer to different routines, so naming both asserts no false distinction",
   },
   0x00d8: {
-    name: "loc_00d8",
+    name: "saveAccumulatorForFrameInterrupt",
     role: "one byte, `push af`, falling into the register-save prologue at 0x00D9 that owns the rest of the frame service and the frame's work; the two bytes it stacks land in work RAM, so they are part of what the machine leaves behind",
     cert: "code",
-    why: "kept hex on ONE reason, the one-byte idiom, and the reason is structural: the frozen layer heads this address ROM 0x00D8-0x00D8 and gives 0x00D9-0x015E to a separate routine, so the only thing this entry does that 0x00D9 does not is the `push af` that opens the prologue 0x00D9 owns. An English name would name the idiom, and any name of the form 'enter the frame interrupt' would put the frame service's identity on the one byte that is not the frame service. ★ A SECOND objection was proposed and is WITHDRAWN, recorded here so it is not proposed again: it ran that an interrupt name is false at the sites that crash into this address, and that the epilogue then unwinds bytes that were never pushed. Neither half survives. There are THREE code-shaped arrivals, not four -- `c3 d8 00` at 0x0066, the NMI vector, and `c4 d8 00` at 0x00A2 and at 0x49D0; the fourth code-shaped hit, `21 d8 00` at 0x0098, is a `ld hl` that seeds a checksum and is not an arrival, and the remaining four occurrences of the word -- 0x0940, 0x0AB2, 0x5C16 and 0x5DE8 -- each carry a 0x00 byte in front of them rather than a transfer opcode, so none of them is code-shaped either. And the stack BALANCES: 0x00D9 pushes nine words on top of this one's, ten in all, 0x0174 pops exactly those ten in mirror order, and a `call nz` deposits its return address in the slot the NMI's pushed program counter would occupy -- equivalence-0174.test.js's SEAT arm measures SP landing exactly 22 above where it started, which is those ten words plus that return and cannot be reconciled with anything unwound that was never given. Both guarding sums pass on the shipped image, sum(0x00D8,256) = 0x87 against the `sub 0x87` at 0x00A0 and sum(0x27DE,256) = 0xC5 against the `sub 0xc5` at 0x49CE, so what a patched image buys at those two sites is one whole frame service run out of band and returned from normally: corruption, not a crash",
+    why: "named saveAccumulatorForFrameInterrupt for the one thing this entry does that 0x00D9 does not -- the `push af` that opens the prologue 0x00D9 owns. The frozen layer heads this address ROM 0x00D8-0x00D8 and gives 0x00D9-0x015E to a separate routine, so the name is deliberately about the accumulator save and is NOT of the form 'enter the frame interrupt', which would put the frame service's identity on the one byte that is not the service. ★ A SECOND objection was proposed and is WITHDRAWN, recorded here so it is not proposed again: it ran that an interrupt name is false at the sites that crash into this address, and that the epilogue then unwinds bytes that were never pushed. Neither half survives. There are THREE code-shaped arrivals, not four -- `c3 d8 00` at 0x0066, the NMI vector, and `c4 d8 00` at 0x00A2 and at 0x49D0; the fourth code-shaped hit, `21 d8 00` at 0x0098, is a `ld hl` that seeds a checksum and is not an arrival, and the remaining four occurrences of the word -- 0x0940, 0x0AB2, 0x5C16 and 0x5DE8 -- each carry a 0x00 byte in front of them rather than a transfer opcode, so none of them is code-shaped either. And the stack BALANCES: 0x00D9 pushes nine words on top of this one's, ten in all, 0x0174 pops exactly those ten in mirror order, and a `call nz` deposits its return address in the slot the NMI's pushed program counter would occupy -- equivalence-0174.test.js's SEAT arm measures SP landing exactly 22 above where it started, which is those ten words plus that return and cannot be reconciled with anything unwound that was never given. Both guarding sums pass on the shipped image, sum(0x00D8,256) = 0x87 against the `sub 0x87` at 0x00A0 and sum(0x27DE,256) = 0xC5 against the `sub 0xc5` at 0x49CE, so what a patched image buys at those two sites is one whole frame service run out of band and returned from normally: corruption, not a crash",
   },
   0x019a: {
     name: "armWholePlaneWipeThenDerailOnATamperedImage",

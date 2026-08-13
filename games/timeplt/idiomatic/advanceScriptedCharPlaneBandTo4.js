@@ -14,7 +14,20 @@ import { restoreColumnFromSavedRun } from "./restoreColumnFromSavedRun.js";
 import { requestInterRoundSoundPair } from "./requestInterRoundSoundPair.js";
 import { stepThirteenScriptedGlyphCells } from "./stepThirteenScriptedGlyphCells.js";
 import { gatherCharColumnIntoBackingRun } from "./gatherCharColumnIntoBackingRun.js";
-import { BAND_SCRIPT_CURSOR, BAND_TO4_PASS_COUNTDOWN, INTRO_ANIMATION_STEP } from "./names.js";
+import {
+  BAND_SCRIPT_CURSOR,
+  BAND_TO4_PASS_COUNTDOWN,
+  INTRO_ANIMATION_STEP,
+  loc_a451,
+  loc_a5d1,
+  loc_a5f0,
+  loc_a5f1,
+  loc_a5f2,
+  loc_a610,
+  loc_a611,
+  loc_a612,
+  loc_a7b1,
+} from "./names.js";
 
 const NEXT_STEP = 0x04;
 const FILL = 0xf1;
@@ -25,16 +38,16 @@ export function advanceScriptedCharPlaneBandTo4(m) {
 
   if ((mem8[BAND_TO4_PASS_COUNTDOWN] & 1) === 0) {
     regs.a = FILL;
-    regs.hl = 0xa7b1;
+    regs.hl = loc_a7b1;
     fillCellRun(m);
-    regs.hl = 0xa5d1;
+    regs.hl = loc_a5d1;
     fillCellRun(m);
-    mem8[0xa610] = FILL;
-    mem8[0xa5f0] = FILL;
-    mem8[0xa611] = FILL;
-    mem8[0xa5f1] = FILL;
-    mem8[0xa612] = FILL;
-    mem8[0xa5f2] = FILL;
+    mem8[loc_a610] = FILL;
+    mem8[loc_a5f0] = FILL;
+    mem8[loc_a611] = FILL;
+    mem8[loc_a5f1] = FILL;
+    mem8[loc_a612] = FILL;
+    mem8[loc_a5f2] = FILL;
   } else {
     if ((mem8[mem16[BAND_SCRIPT_CURSOR]] & 0xfe) !== 0) {
       mem8[BAND_TO4_PASS_COUNTDOWN] = 0;
@@ -45,24 +58,24 @@ export function advanceScriptedCharPlaneBandTo4(m) {
     }
     restoreColumnFromSavedRun(m);
 
-    stepThirteenScriptedGlyphCells(m, 0xa451, 0x01);
+    stepThirteenScriptedGlyphCells(m, loc_a451, 0x01);
     mem16[BAND_SCRIPT_CURSOR] = u16(mem16[BAND_SCRIPT_CURSOR] + SCRIPT_STRIDE);
-    stepThirteenScriptedGlyphCells(m, 0xa7b1, 0x03);
+    stepThirteenScriptedGlyphCells(m, loc_a7b1, 0x03);
 
     let lower = mem8[mem16[BAND_SCRIPT_CURSOR]] & 1;
     mem16[BAND_SCRIPT_CURSOR] = u16(mem16[BAND_SCRIPT_CURSOR] - 1);
     if (lower) {
-      mem8[0xa5f1] = u8(mem8[0xa5f1] - 1);
-      mem8[0xa611] = u8(mem8[0xa611] - 1);
+      mem8[loc_a5f1] = u8(mem8[loc_a5f1] - 1);
+      mem8[loc_a611] = u8(mem8[loc_a611] - 1);
     }
 
     lower = mem8[mem16[BAND_SCRIPT_CURSOR]] & 1;
     mem16[BAND_SCRIPT_CURSOR] = u16(mem16[BAND_SCRIPT_CURSOR] - 1);
     if (lower) {
-      mem8[0xa5f0] = u8(mem8[0xa5f0] - 1);
-      mem8[0xa610] = u8(mem8[0xa610] - 1);
-      mem8[0xa5f2] = u8(mem8[0xa5f2] - 1);
-      mem8[0xa612] = u8(mem8[0xa612] - 1);
+      mem8[loc_a5f0] = u8(mem8[loc_a5f0] - 1);
+      mem8[loc_a610] = u8(mem8[loc_a610] - 1);
+      mem8[loc_a5f2] = u8(mem8[loc_a5f2] - 1);
+      mem8[loc_a612] = u8(mem8[loc_a612] - 1);
     }
 
     gatherCharColumnIntoBackingRun(m);

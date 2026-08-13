@@ -9,16 +9,13 @@
 
 import { isScoreBelow } from "./isScoreBelow.js";
 import { fetchTableByte } from "./fetchTableByte.js";
-import { HIGH_SCORE_REC0_SCORE_HI, HIGH_SCORE_SLIDE_SRC, HIGH_SCORE_TABLE_BASE, HIGH_SCORE_TABLE_END, PLAYER1_SCORE_HI, PLAYER2_SCORE_HI, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
-
-const ACTIVE_PLAYER = 0xad32;
+import { ACTIVE_PLAYER, HIGH_SCORE_REC0_SCORE_HI, HIGH_SCORE_SLIDE_SRC, HIGH_SCORE_TABLE_BASE, HIGH_SCORE_TABLE_END, PLAYER1_SCORE_HI, PLAYER2_SCORE_HI, SCRATCH_PTR_A, SCRATCH_PTR_B, loc_a531 } from "./names.js";
 
 const RECORD_COUNT = 0x05;
 const RECORD_STRIDE = 0x08;
 
 
 const NAME_SENTINEL = 0xf1;
-const GLYPH_ROW_TABLE = 0xa531;
 
 export function fileScoreIntoHighScoreTable(m) {
   const { regs, mem } = m;
@@ -74,7 +71,7 @@ export function fileScoreIntoHighScoreTable(m) {
   m.lddrAt(0x4d09, 0x4d0b); // copy the three score cells in
 
   regs.a = mem.read8(regs.de); // the rank the copy uncovered
-  regs.hl = GLYPH_ROW_TABLE;
+  regs.hl = loc_a531;
   regs.add(regs.a);
   fetchTableByte(m);
   mem.write16(SCRATCH_PTR_B, regs.hl);

@@ -5,7 +5,7 @@
  * shared by everything between — including an index past the fifth, which falls to that middle
  * order rather than being refused. LIVE-OUT: memory, plus the two cursors. */
 
-import { ERA_INDEX, SCENERY_ENTRY_SLOT0, SCENERY_RECORD_SLOT0 } from "./names.js";
+import { ERA_INDEX, SCENERY_ENTRY_SLOT0, SCENERY_RECORD_SLOT0, loc_2cd1 } from "./names.js";
 import { driftThreeTileSceneryAtFiveQuarters } from "./driftThreeTileSceneryAtFiveQuarters.js";
 import { stepTwoTileSceneryAtFiveQuarters } from "./stepTwoTileSceneryAtFiveQuarters.js";
 import { driftTwoTileSceneryAtThreeQuarters } from "./driftTwoTileSceneryAtThreeQuarters.js";
@@ -17,12 +17,10 @@ import { driftNearestSceneryTriTile } from "./driftNearestSceneryTriTile.js";
 const FIRST_ERA = 0;
 const LAST_ERA = 4;
 
-const AFTER_DIAGONAL_PAIR = 0x2cd1;
-
 /** The one step still reached by transfer. The parked slot is a real stack write the frozen step's
  *  tail return consumed; the lifted step drops that return, so it is laid down and popped here. */
 function diagonalPair(m) {
-  m.push16(AFTER_DIAGONAL_PAIR);
+  m.push16(loc_2cd1);
   driftNearestSceneryTriTile(m);
   m.ret();
 }

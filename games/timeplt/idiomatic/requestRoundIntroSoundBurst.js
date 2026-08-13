@@ -7,15 +7,12 @@
 
 import { enqueueSoundIfGameInProgress } from "./enqueueSoundIfGameInProgress.js";
 import { requestInterRoundSoundPair } from "./requestInterRoundSoundPair.js";
-
-const FIRST_CODE_CELL = 0x0c5b;
-const SECOND_CODE_CELL = 0x0855;
-const THIRD_CODE_CELL = 0x1675;
+import { loc_0c5b, loc_0855, loc_1675 } from "./names.js";
 
 export function requestRoundIntroSoundBurst(m) {
   const { mem8 } = m;
-  enqueueSoundIfGameInProgress(m, mem8[FIRST_CODE_CELL]);
-  enqueueSoundIfGameInProgress(m, mem8[SECOND_CODE_CELL]);
-  enqueueSoundIfGameInProgress(m, mem8[THIRD_CODE_CELL]);
+  enqueueSoundIfGameInProgress(m, mem8[loc_0c5b]);
+  enqueueSoundIfGameInProgress(m, mem8[loc_0855]);
+  enqueueSoundIfGameInProgress(m, mem8[loc_1675]);
   requestInterRoundSoundPair(m);
 }

@@ -8,9 +8,9 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { offsetAddress } from "./offsetAddress.js";
+import { loc_2b18 } from "./names.js";
 
 const HEADING_IN_RECORD = 2;
-const SHAPE_TABLE = 0x2b18;
 const SECOND_TABLE_GAP = 16;
 const SHAPE_IN_ENTRY = 1;
 const SECOND_BYTE_IN_ENTRY = 48;
@@ -20,7 +20,7 @@ export function dressSpriteForCoarseHeading(m, object = m.regs.ix, sprite = m.re
   const { regs, mem8 } = m;
   const sector = u8(mem8[u16(object + HEADING_IN_RECORD)] + HALF_SECTOR) >> 4;
 
-  regs.hl = SHAPE_TABLE;
+  regs.hl = loc_2b18;
   regs.a = sector;
   const shapeEntry = offsetAddress(m);
 

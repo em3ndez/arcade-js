@@ -282,7 +282,7 @@ test("DISSOLVED: the printer and the enqueue are called directly, only the guard
   assert.ok(!module.includes("m.call(ENQUEUE)"),
     "an enqueue still goes through the registry; it should be a direct postCommand");
   assert.ok(!module.includes("m.call(0x"), "a raw-hex m.call survived; the frozen guard goes by name");
-  assert.ok(module.includes("m.call(COUNTDOWN)"),
+  assert.ok(module.includes("m.call(blankNextLine_ADDR)"),
     "the still-frozen guard is no longer reached through the registry");
   // the text check can tell files apart: a sibling that does not call the printer must fail it.
   assert.ok(!readFileSync(new URL("../paintSixDigitFieldSuppressingLeadingZeros.js", import.meta.url), "utf8").includes("paintHighScoreReadout(m)"),

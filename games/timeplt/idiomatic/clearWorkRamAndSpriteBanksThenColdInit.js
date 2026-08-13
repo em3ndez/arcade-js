@@ -6,33 +6,29 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { clearScreenRamAndVerifyImageThenColdInit } from "./clearScreenRamAndVerifyImageThenColdInit.js";
-import { loc_00d8 } from "./loc_00d8.js";
+import { saveAccumulatorForFrameInterrupt } from "./saveAccumulatorForFrameInterrupt.js";
+import { PLAYER_STATE, loc_b410, loc_b411, loc_c200, saveAccumulatorForFrameInterrupt_ADDR } from "./names.js";
 
-const WATCHDOG = 0xc200;
-const SPRITE_RUN_HIGH = 0xb411;
-const SPRITE_RUN_LOW = 0xb410;
 const SPRITE_RUN_BYTES = 0x30;
-const WORK_RAM = 0xa800;
 const WORK_RAM_BYTES = 0x800;
-const CHECK_BLOCK = 0x00d8;
 const CHECK_BYTES = 0x100;
 const GENUINE_TOTAL = 0x87;
 
 export function clearWorkRamAndSpriteBanksThenColdInit(m) {
   const { mem8 } = m;
 
-  mem8[WATCHDOG] = 0;
-  for (let i = 0; i < SPRITE_RUN_BYTES; i++) mem8[u16(SPRITE_RUN_HIGH + i)] = 0;
-  mem8[WATCHDOG] = 0;
-  for (let i = 0; i < SPRITE_RUN_BYTES; i++) mem8[u16(SPRITE_RUN_LOW + i)] = 0;
-  mem8[WATCHDOG] = 0;
+  mem8[loc_c200] = 0;
+  for (let i = 0; i < SPRITE_RUN_BYTES; i++) mem8[u16(loc_b411 + i)] = 0;
+  mem8[loc_c200] = 0;
+  for (let i = 0; i < SPRITE_RUN_BYTES; i++) mem8[u16(loc_b410 + i)] = 0;
+  mem8[loc_c200] = 0;
 
-  for (let i = 0; i < WORK_RAM_BYTES; i++) mem8[u16(WORK_RAM + i)] = 0;
-  mem8[WATCHDOG] = 0;
+  for (let i = 0; i < WORK_RAM_BYTES; i++) mem8[u16(PLAYER_STATE + i)] = 0;
+  mem8[loc_c200] = 0;
 
   let total = 0;
-  for (let i = 0; i < CHECK_BYTES; i++) total = u8(total + mem8[u16(CHECK_BLOCK + i)]);
-  if (u8(total - GENUINE_TOTAL) !== 0) loc_00d8(m);
+  for (let i = 0; i < CHECK_BYTES; i++) total = u8(total + mem8[u16(saveAccumulatorForFrameInterrupt_ADDR + i)]);
+  if (u8(total - GENUINE_TOTAL) !== 0) saveAccumulatorForFrameInterrupt(m);
 
   return clearScreenRamAndVerifyImageThenColdInit(m);
 }

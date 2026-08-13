@@ -10,7 +10,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
-import { FRAME_TICK, MOTHER_SHIP_ARMED, PLAYER_HEADING } from "./names.js";
+import { FRAME_TICK, MOTHER_SHIP_ARMED, PLAYER_HEADING, loc_488d } from "./names.js";
 
 const EVERY_OTHER_FRAME = 0x01;
 
@@ -19,7 +19,6 @@ const STATE = 0x00;
 const LIVE = 0xff;
 const RESET_FIELDS = [[0x0a, 0], [0x0b, 0], [0x0c, 64], [0x0d, 0]];
 
-const EDGE_POSITIONS = 0x488d;
 const SECTORS = 16;
 const STEPS_PER_SECTOR = 256 / SECTORS;
 const PAIR_WIDTH = 2;
@@ -37,7 +36,7 @@ export function spawnAtEdgeAhead(m, record = m.regs.ix, entry = m.regs.iy) {
   if (delay !== 0) return;
 
   const sector = u8(mem8[PLAYER_HEADING] + STEPS_PER_SECTOR / 2) >> 4;
-  regs.hl = EDGE_POSITIONS;
+  regs.hl = loc_488d;
   regs.a = sector * PAIR_WIDTH;
   mem8[u16(entry + SECOND_COORDINATE)] = fetchTableByte(m);
   regs.hl = u16(regs.hl + 1);

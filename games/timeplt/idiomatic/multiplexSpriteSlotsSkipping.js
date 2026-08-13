@@ -5,20 +5,31 @@
  * trigger the Y byte's bit 7 is cleared, quieting the slot, and the X byte's bit 7 is toggled.
  * LIVE-OUT: the touched sprite bytes, plus the accumulator, C and flags left by the last slot. */
 
-const SCANLINE_COUNTER = 0xc000;
+import {
+  loc_c000,
+  loc_b411, loc_b010,
+  loc_b413, loc_b012,
+  loc_b415, loc_b014,
+  loc_b437, loc_b036,
+  loc_b439, loc_b038,
+  loc_b43b, loc_b03a,
+  loc_b43d, loc_b03c,
+  loc_b43f, loc_b03e,
+} from "./names.js";
+
 const DISARM_MASK = 0x7f;
 const TOGGLE_X_BIT7 = 0x80;
 
 // [Y byte, X byte] for each of the eight slots this pass covers.
 const SLOTS = [
-  [0xb411, 0xb010],
-  [0xb413, 0xb012],
-  [0xb415, 0xb014],
-  [0xb437, 0xb036],
-  [0xb439, 0xb038],
-  [0xb43b, 0xb03a],
-  [0xb43d, 0xb03c],
-  [0xb43f, 0xb03e],
+  [loc_b411, loc_b010],
+  [loc_b413, loc_b012],
+  [loc_b415, loc_b014],
+  [loc_b437, loc_b036],
+  [loc_b439, loc_b038],
+  [loc_b43b, loc_b03a],
+  [loc_b43d, loc_b03c],
+  [loc_b43f, loc_b03e],
 ];
 
 function serviceSlot(m, yAddr, xAddr) {
@@ -27,7 +38,7 @@ function serviceSlot(m, yAddr, xAddr) {
   regs.bit(7, regs.a);
   if (regs.fZ) return;
   regs.c = regs.a;
-  regs.a = mem.read8(SCANLINE_COUNTER);
+  regs.a = mem.read8(loc_c000);
   regs.add(regs.c);
   if (regs.fNC) return; // beam not past the trigger line yet
   regs.a = regs.c;

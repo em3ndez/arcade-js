@@ -9,14 +9,14 @@
 import { drawTextRun } from "./drawTextRun.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
 import { u16 } from "../../../core/int.js";
+import { CAPTION_RECORD_TABLE } from "./names.js";
 
-const CAPTION_TABLE = 0x0c50;
 const HEADER_BYTES = 3;
 
 export function drawTextRunByIndex(m, caption = m.regs.a) {
   const { regs, mem8 } = m;
   regs.a = caption;
-  regs.hl = CAPTION_TABLE;
+  regs.hl = CAPTION_RECORD_TABLE;
   fetchWideTableWord(m);
 
   const record = regs.de;

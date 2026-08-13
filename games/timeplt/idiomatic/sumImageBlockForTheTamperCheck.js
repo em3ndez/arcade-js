@@ -7,9 +7,9 @@
  * LIVE-OUT: memory, whatever the chain writes; plus the total and the pointer, handed on. */
 
 import { u8, u16 } from "../../../core/int.js";
+import { parkTheImageTotalForTheTamperVerdict_ADDR } from "./names.js";
 
 const LENGTH_ZERO_MEANS = 256;
-const CONTINUATION = 0x07ad;
 
 export function sumImageBlockForTheTamperCheck(m, base = m.regs.hl, length = m.regs.b) {
   const { regs, mem8 } = m;
@@ -19,5 +19,5 @@ export function sumImageBlockForTheTamperCheck(m, base = m.regs.hl, length = m.r
   regs.a = total;
   regs.hl = u16(base + run);
   regs.b = 0;
-  return m.call(CONTINUATION);
+  return m.call(parkTheImageTotalForTheTamperVerdict_ADDR);
 }

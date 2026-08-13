@@ -1,40 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** seatTheStackAndSettleTheControlLatch — power-on, and the first code the machine runs that decides anything.
- *
- * It asks the expansion socket whether a board is fitted. An empty socket floats the bus high,
- * which is not the answer a fitted board gives, so on this machine the question always comes back
- * "no" and the rest below always runs; answered "yes", control would belong in the expansion and
- * none of it would happen. Then: seat the stack just under sprite memory so it grows down through work RAM, quiet the watchdog,
- * drive every control line the latch carries low, and set the one that lets the picture out. The
- * latch takes its data from the low bit written and its line number from the address, TWO
- * ADDRESSES TO A LINE, so the walk of eight settles four lines, each written twice, and the ninth
- * address is a fifth line and not a ninth. That last setting is read out of the program image
- * rather than written as a literal, so patching the image can leave the machine dark. Nothing here
- * touches work memory: the whole effect is the seated stack and the latched lines. It leaves by a
- * jump, and the cursor and counter its walk leaves behind are not reproduced — the continuation
- * seats both before reading either. LIVE-OUT: the stack seat, the latched lines, the accumulator. */
+/** seatTheStackAndSettleTheControlLatch — power-on, the first code that decides anything. It probes the
+ * expansion socket: an empty socket floats the bus high, never a fitted board's answer, so the question
+ * always returns "no" and the rest runs; a "yes" would hand control to the expansion. Then it seats the
+ * stack just under sprite memory (growing down through work RAM), quiets the watchdog, drives the control
+ * lines low, and enables the picture. The latch takes data from the low bit and its line from the address,
+ * TWO ADDRESSES TO A LINE, so the eight-address walk settles FOUR lines (each written twice) and the ninth
+ * address is a fifth line, not a ninth; that last setting is read from the program image, not a literal, so
+ * patching it can leave the machine dark. No work memory is touched. LIVE-OUT: stack seat, latched lines, accumulator. */
 
-const EXPANSION_SOCKET = 0x6000;
+import { loc_6000, loc_b000, loc_c200, loc_c300, loc_c308, loc_2d4b, clearWorkRamAndSpriteBanksThenColdInit_ADDR } from "./names.js";
+
 const EXPANSION_FITTED = 0x55;
 
-const STACK_SEAT = 0xb000;
-const WATCHDOG = 0xc200;
-
-const CONTROL_LINES = 0xc300;
 const CONTROL_LINE_ADDRESSES = 8;
-const PICTURE_ENABLE = 0xc308;
-const PICTURE_ENABLE_SETTING = 0x2d4b;
 
 /** Where in the instruction the write bus cycle falls; a recorder of hardware writes wants it. */
 const STORE_TO_A_FIXED_ADDRESS = 10;
 const STORE_THROUGH_A_POINTER = 7;
 
-const CONTINUATION = 0x0069;
-
 export function seatTheStackAndSettleTheControlLatch(m) {
   const { regs, mem } = m;
 
-  regs.a = mem.read8(EXPANSION_SOCKET);
+  regs.a = mem.read8(loc_6000);
   regs.cp(EXPANSION_FITTED);
   if (regs.fZ) {
     throw new Error(
@@ -44,14 +31,14 @@ export function seatTheStackAndSettleTheControlLatch(m) {
     );
   }
 
-  regs.sp = STACK_SEAT;
-  mem.write8(WATCHDOG, regs.a, STORE_TO_A_FIXED_ADDRESS);
+  regs.sp = loc_b000;
+  mem.write8(loc_c200, regs.a, STORE_TO_A_FIXED_ADDRESS);
   for (let i = 0; i < CONTROL_LINE_ADDRESSES; i++) {
-    mem.write8(CONTROL_LINES + i, 0, STORE_THROUGH_A_POINTER);
+    mem.write8(loc_c300 + i, 0, STORE_THROUGH_A_POINTER);
   }
 
-  regs.a = mem.read8(PICTURE_ENABLE_SETTING);
-  mem.write8(PICTURE_ENABLE, regs.a, STORE_TO_A_FIXED_ADDRESS);
+  regs.a = mem.read8(loc_2d4b);
+  mem.write8(loc_c308, regs.a, STORE_TO_A_FIXED_ADDRESS);
 
-  return m.call(CONTINUATION);
+  return m.call(clearWorkRamAndSpriteBanksThenColdInit_ADDR);
 }

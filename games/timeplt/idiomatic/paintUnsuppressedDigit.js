@@ -8,15 +8,15 @@
  * LIVE-OUT: the two cells, the cursor, and the run pointer, unchanged. A is dead but matched. */
 
 import { fetchTableByte } from "./fetchTableByte.js";
+import { loc_0dcc } from "./names.js";
 
-const GLYPHS = 0x0dcc;
 const DIGIT_BITS = 0x0f;
 const CHARACTER_PLANE_BIT = 0x0400;
 
 export function paintUnsuppressedDigit(m) {
   const { regs, mem8 } = m;
   const runPointer = regs.hl;
-  regs.hl = GLYPHS;
+  regs.hl = loc_0dcc;
   regs.a = regs.a & DIGIT_BITS;
   const glyph = fetchTableByte(m);
   regs.hl = runPointer;

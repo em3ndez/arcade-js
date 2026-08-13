@@ -10,23 +10,22 @@
  * LIVE-OUT: memory; on the derail, everything the transfer leaves behind as well. */
 
 import { u16 } from "../../../core/int.js";
+import { loc_49fa, loc_a2bc } from "./names.js";
 
-const FIRST_CELL = 0xa2bc;
 const CELLS = 13;
 const STRIDE_BACK = 0xffe0;
 const EITHER_COLOUR = [0x10, 0x05];
-const DERAIL = 0x49fa;
 
 export function checkTheCopyrightLineColoursOrDerail(m) {
   const { regs, mem8 } = m;
-  let cell = FIRST_CELL;
+  let cell = loc_a2bc;
   for (let owed = CELLS; owed > 0; owed--) {
     const colour = mem8[cell];
     if (!EITHER_COLOUR.includes(colour)) {
       regs.a = colour;
       regs.hl = cell;
       regs.b = owed;
-      return m.call(DERAIL);
+      return m.call(loc_49fa);
     }
     regs.de = STRIDE_BACK;
     cell = u16(cell + STRIDE_BACK);

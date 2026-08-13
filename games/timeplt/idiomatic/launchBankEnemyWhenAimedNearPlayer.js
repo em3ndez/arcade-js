@@ -14,12 +14,9 @@ import { headingToward } from "./headingToward.js";
 import { requestEraKeyedLaunchSound } from "./requestEraKeyedLaunchSound.js";
 import { loc_59cb } from "./loc_59cb.js";
 import { loc_59d1 } from "./loc_59d1.js";
-import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, ATTACKER_SPAWN_AIM_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ENEMY_STANDOFF_AIM_MAIN, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
+import { ACTOR_ENTRY_SLOT0, ACTOR_RECORD_SLOT0, ATTACKER_SPAWN_AIM_WINDOW_HALF, BANK_LAUNCH_COOLDOWN, BANK_LAUNCH_COOLDOWN_PERIOD, BANK_LAUNCH_NEAR_HALF_X, BANK_LAUNCH_NEAR_HALF_Y, BANK_LAUNCH_SLOT_COUNT, ENEMY_STANDOFF_AIM_MAIN, ERA_INDEX, FRAME_TICK, PLAYER_HEADING, SCRATCH_PTR_A, SCRATCH_PTR_B } from "./names.js";
 
-const SPAWN_PHASE = 0xa980;
 const SPRITE_STATE = 0x30;
-const SCROLL_ANGLE = 0xa802;
-const VELOCITY_SELECT = 0xad04;
 
 const PHASE_KEY = 0x0f;
 const OBJ_X = 0x02;
@@ -30,7 +27,7 @@ const RECORD_STRIDE = 0x10;
 export function launchBankEnemyWhenAimedNearPlayer(m) {
   const { regs, mem8, mem } = m;
 
-  regs.a = mem8[SPAWN_PHASE];
+  regs.a = mem8[FRAME_TICK];
   regs.and(0x07);
   regs.add(0x05);
   regs.cp(mem8[u16(regs.ix + PHASE_KEY)]);
@@ -76,7 +73,7 @@ export function launchBankEnemyWhenAimedNearPlayer(m) {
   regs.b = regs.a;
   regs.add(regs.a);
   regs.c = regs.a;
-  regs.a = mem8[SCROLL_ANGLE];
+  regs.a = mem8[PLAYER_HEADING];
   regs.sub(mem8[u16(regs.ix + OBJ_X)]);
   regs.add(regs.b);
   regs.cp(regs.c);
@@ -115,7 +112,7 @@ export function launchBankEnemyWhenAimedNearPlayer(m) {
   mem8[regs.iy] = regs.e;
 
   regs.a = heading;
-  if (mem8[VELOCITY_SELECT] !== 0) loc_59d1(m);
+  if (mem8[ERA_INDEX] !== 0) loc_59d1(m);
   else loc_59cb(m);
 
   mem8[u16(regs.ix + VELOCITY + 0)] = regs.e;

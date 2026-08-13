@@ -11,14 +11,12 @@
  * LIVE-OUT: memory only. */
 
 import { u16, u8 } from "../../../core/int.js";
-import { ERA_INDEX, KILLS_REMAINING } from "./names.js";
+import { ERA_INDEX, KILLS_REMAINING, loc_087c, loc_a79f } from "./names.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { offsetAddress } from "./offsetAddress.js";
 
-const ROWS = 0x087c;
 const ROW_BYTES = 10;
 const END_GLYPHS = 8;
-const BAR_START_CELL = 0xa79f;
 const CELL_STEP = -32;
 const KILLS_PER_CELL = 4;
 const LONGEST_BAR = 31;
@@ -26,7 +24,7 @@ const BLANK_GLYPH = 241;
 
 export function drawKillMeter(m) {
   const { regs, mem8 } = m;
-  regs.hl = ROWS;
+  regs.hl = loc_087c;
   regs.a = u8(ROW_BYTES * mem8[ERA_INDEX]);
   const row = offsetAddress(m);
   const barGlyphs = [mem8[row], mem8[u16(row + 1)]];
@@ -36,7 +34,7 @@ export function drawKillMeter(m) {
   regs.a = owed & (END_GLYPHS - 1);
   const endGlyph = fetchTableByte(m);
 
-  let cursor = BAR_START_CELL;
+  let cursor = loc_a79f;
   const cells = Math.floor(owed / KILLS_PER_CELL) & LONGEST_BAR;
   for (let cell = 0; cell < cells; cell++) {
     mem8[cursor] = barGlyphs[cell % 2];

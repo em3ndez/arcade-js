@@ -11,16 +11,15 @@
 import { u8, u16 } from "../../../core/int.js";
 import { drawTextRun } from "./drawTextRun.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
-import { PEN_COLOUR } from "./names.js";
+import { PEN_COLOUR, CAPTION_RECORD_TABLE } from "./names.js";
 
-const RECORD_TABLE = 0x0c50;
 const GLYPHS_FROM = 3;
 const COLOUR_BIAS = 10;
 const COLOUR_MASK = 0x0f;
 
 export function drawCaptionTenPastSharedColour(m) {
   const { regs, mem8, mem16 } = m;
-  regs.hl = RECORD_TABLE;
+  regs.hl = CAPTION_RECORD_TABLE;
   fetchWideTableWord(m);
   const record = regs.de;
   regs.de = mem16[record];

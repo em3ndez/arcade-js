@@ -12,11 +12,11 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { PLAYER_ENTRY, PLAYER_SPRITE_ATTRIBUTE, SCENERY_ENTRY_SLOT0, SCENERY_ENTRY_SLOT3, SCENERY_SPRITE_ATTRIBUTE_SLOT0, SCENERY_SPRITE_ATTRIBUTE_SLOT3, SCREEN_UNFLIPPED, SEQUENCE_PHASE, SEQUENCE_SUBSTEP } from "./names.js";
+import { PLAYER_ENTRY, PLAYER_SPRITE_ATTRIBUTE, SCENERY_ENTRY_SLOT0, SCENERY_ENTRY_SLOT3, SCENERY_SPRITE_ATTRIBUTE_SLOT0, SCENERY_SPRITE_ATTRIBUTE_SLOT3, SCREEN_UNFLIPPED, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, loc_b010, loc_b410, loc_0832 } from "./names.js";
 
 
-const BANK_0 = { at: 0xb010, runs: [[SCENERY_ENTRY_SLOT0, 6], [PLAYER_ENTRY, 32], [SCENERY_ENTRY_SLOT3, 10]] };
-const BANK_1 = { at: 0xb410, runs: [[SCENERY_SPRITE_ATTRIBUTE_SLOT0, 6], [PLAYER_SPRITE_ATTRIBUTE, 32], [SCENERY_SPRITE_ATTRIBUTE_SLOT3, 10]] };
+const BANK_0 = { at: loc_b010, runs: [[SCENERY_ENTRY_SLOT0, 6], [PLAYER_ENTRY, 32], [SCENERY_ENTRY_SLOT3, 10]] };
+const BANK_1 = { at: loc_b410, runs: [[SCENERY_SPRITE_ATTRIBUTE_SLOT0, 6], [PLAYER_SPRITE_ATTRIBUTE, 32], [SCENERY_SPRITE_ATTRIBUTE_SLOT3, 10]] };
 
 const keep = (byte) => byte;
 const complementPast = (bias) => (byte) => u8(~u8(byte + bias));
@@ -29,7 +29,6 @@ const TURNED_ROUND = [[complementPast(15), keep], [toggleTopTwoBits, stepOn]];
 
 const RAISE_PHASE = 3;
 const RAISE_STEP_CEILING = 8;
-const RAISE_STEP_FLOOR_CELL = 0x0832;
 const TOP_BIT = 0x80;
 
 /** The eight sprites the raise reaches: the three of the first run and the five of the third. */
@@ -49,7 +48,7 @@ function raiseEightSprites(m) {
   const { mem8 } = m;
   if (mem8[SEQUENCE_PHASE] !== RAISE_PHASE) return;
   const step = mem8[SEQUENCE_SUBSTEP];
-  if (step < mem8[RAISE_STEP_FLOOR_CELL] || step >= RAISE_STEP_CEILING) return;
+  if (step < mem8[loc_0832] || step >= RAISE_STEP_CEILING) return;
   for (const sprite of RAISED_SPRITES) {
     const second = mem8[BANK_1.at + sprite + 1];
     if ((second & TOP_BIT) !== 0) continue;

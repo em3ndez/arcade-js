@@ -13,8 +13,8 @@
 import { u8 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { retreatCharCursor } from "./retreatCharCursor.js";
+import { loc_0f06 } from "./names.js";
 
-const GLYPHS = 0x0f06;
 const DIGIT_BITS = 0x0f;
 const CHARACTER_PLANE_BIT = 0x0400;
 
@@ -30,7 +30,7 @@ export function paintDigitDroppingLeadingZero(m, value = m.regs.a, allowance = m
   regs.b = 0;
 
   const runPointer = regs.hl;
-  regs.hl = GLYPHS;
+  regs.hl = loc_0f06;
   regs.a = digit;
   const glyph = fetchTableByte(m);
   regs.hl = runPointer;

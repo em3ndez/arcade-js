@@ -12,11 +12,7 @@ import { fetchTableByte } from "./fetchTableByte.js";
 import { pickScriptAtRandomOrInTurn } from "./pickScriptAtRandomOrInTurn.js";
 import { stepShapeAnimation } from "./stepShapeAnimation.js";
 import { u8, u16 } from "../../../core/int.js";
-
-const SCROLL_ANGLE = 0xa802;
-const HEADING_TABLE = 0x39fb;
-const VELOCITY_TABLE = 0x3a3b;
-const SHARED_ZERO = 0xacc5;
+import { PLAYER_HEADING, loc_39fb, loc_3a3b, loc_acc5 } from "./names.js";
 
 const DIRECTION_MASK = 0x3f;
 const JITTER_MASK = 0x0f;
@@ -29,25 +25,25 @@ export function spawnEnemyIntoFreeSlotElseStepSearch(m, record = m.regs.ix, entr
   if (mem8[record + 0x00] !== 0) return closeOneTurnOfTheFreeSlotSearch(m);
   mem8[record + 0x00] = 0xff; // claim the slot for this turn
 
-  const base = mem8[SCROLL_ANGLE] >> 2;
+  const base = mem8[PLAYER_HEADING] >> 2;
   const jitter = (drawRandomByte(m) & JITTER_MASK) - JITTER_BIAS;
   regs.a = (base + jitter) & DIRECTION_MASK;
 
-  regs.hl = HEADING_TABLE;
+  regs.hl = loc_39fb;
   regs.a = u8(fetchTableByte(m) * VELOCITY_STRIDE);
-  regs.hl = VELOCITY_TABLE;
+  regs.hl = loc_3a3b;
   mem8[entry + 0x31] = fetchTableByte(m);
   regs.hl = u16(regs.hl + 1);
   regs.a = mem8[regs.hl];
   mem8[entry + 0x00] = regs.a;
 
-  regs.a = u8(mem8[SCROLL_ANGLE] + 0x80);
+  regs.a = u8(mem8[PLAYER_HEADING] + 0x80);
   mem8[record + 0x01] = regs.a;
   mem8[record + 0x02] = regs.a;
 
   mem8[record + 0x0a] = pickScriptAtRandomOrInTurn(m);
   regs.a = 0;
-  mem8[SHARED_ZERO] = regs.a;
+  mem8[loc_acc5] = regs.a;
   mem8[record + 0x03] = 0x00;
   mem8[record + 0x05] = 0x00;
   mem8[record + 0x09] = 0x20;

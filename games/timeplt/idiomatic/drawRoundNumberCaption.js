@@ -8,14 +8,13 @@
  * means the bytes were altered, and this throws rather than run on. LIVE-OUT: memory. */
 
 import { u8 } from "../../../core/int.js";
-import { PEN_COLOUR, ROUND_NUMBER } from "./names.js";
+import { PEN_COLOUR, ROUND_NUMBER, holdCopyrightThenEraseTheCoinInvitation_ADDR } from "./names.js";
 import { drawCaptionInPenColour } from "./drawCaptionInPenColour.js";
 import { retreatCharCursor } from "./retreatCharCursor.js";
 import { advanceCharCursor } from "./advanceCharCursor.js";
 import { paintDigitDroppingLeadingZero } from "./paintDigitDroppingLeadingZero.js";
 
 const FIELD_CAPTION = 0x0e;
-const CHECK_BASE = 0x1748;
 const CHECK_LEN = 16;
 const CHECK_SEED = 0x8c;
 
@@ -36,6 +35,6 @@ export function drawRoundNumberCaption(m) {
   advanceCharCursor(m);
 
   let checksum = CHECK_SEED;
-  for (let i = 0; i < CHECK_LEN; i++) checksum = u8(checksum + mem8[CHECK_BASE + i]);
+  for (let i = 0; i < CHECK_LEN; i++) checksum = u8(checksum + mem8[holdCopyrightThenEraseTheCoinInvitation_ADDR + i]);
   if (checksum !== 0) throw new Error("Time Pilot: program block did not sum to zero; the image was altered.");
 }

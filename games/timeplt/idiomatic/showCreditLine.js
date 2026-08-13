@@ -11,11 +11,10 @@ import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { postCommand } from "./postCommand.js";
 import { stampCopyrightStrip } from "./stampCopyrightStrip.js";
 import { sumImageBlockForTheTamperCheck } from "./sumImageBlockForTheTamperCheck.js";
-import { BANK_LAUNCH_COOLDOWN, FREE_PLAY } from "./names.js";
+import { BANK_LAUNCH_COOLDOWN, FREE_PLAY, loc_2e3e } from "./names.js";
 
 const CAPTION_COMMAND = 1;
 const CAPTION_RECORD = 8;
-const TRAP = 0x2e3e;
 const BLOCK_START = 0x086b;
 const BLOCK_BYTES = 20;
 
@@ -28,7 +27,7 @@ export function showCreditLine(m) {
 
   paintCreditCountPanel(m);
   postCommand(m, CAPTION_COMMAND, CAPTION_RECORD);
-  if (mem8[BANK_LAUNCH_COOLDOWN] !== 0) return m.call(TRAP);
+  if (mem8[BANK_LAUNCH_COOLDOWN] !== 0) return m.call(loc_2e3e);
 
   stampCopyrightStrip(m);
   flashCopyrightLine(m);

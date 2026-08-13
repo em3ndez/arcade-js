@@ -3,24 +3,24 @@
  * sub-step/phase on a pending flag, or on free-play + two input bits hide the sprites and start a game. LIVE-OUT: memory + stack. */
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startGameOnFreePlay } from "./startGameOnFreePlay.js";
-import { CREDIT_COUNT } from "./names.js";
+import { CREDIT_COUNT, FREE_PLAY, IN0_MIRROR, PLAY_ACTIVE, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, loc_0f6d, loc_1736 } from "./names.js";
 
 export function advanceAttractTowardGameStart(m) {
   const { mem8 } = m;
 
-  if (mem8[0xad30] !== 0) return;
+  if (mem8[PLAY_ACTIVE] !== 0) return;
 
   if (mem8[CREDIT_COUNT] !== 0) {
-    mem8[0xa9ac] = 0;
-    mem8[0xa9ab] = mem8[0x1736];
+    mem8[SEQUENCE_SUBSTEP] = 0;
+    mem8[SEQUENCE_PHASE] = mem8[loc_1736];
     return;
   }
 
-  if (mem8[0xa9c0] === 0) return;
-  if ((mem8[0xa9ae] & 0x18) === 0) return;
+  if (mem8[FREE_PLAY] === 0) return;
+  if ((mem8[IN0_MIRROR] & 0x18) === 0) return;
 
   // the park is the dissolved sprite-hide call's return slot; the first ret pops it, the last the caller's.
-  m.push16(0x0f6d);
+  m.push16(loc_0f6d);
   hideAllSprites(m);
   m.ret();
   startGameOnFreePlay(m);

@@ -5,10 +5,8 @@
 import { advanceSequencePhase } from "./advanceSequencePhase.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startGameOnFreePlay } from "./startGameOnFreePlay.js";
-import { CREDIT_COUNT } from "./names.js";
+import { CREDIT_COUNT, FREE_PLAY, IN0_MIRROR } from "./names.js";
 
-const FREE_PLAY = 0xa9c0;
-const IN0_MIRROR = 0xa9ae;
 const START_BUTTONS = 0x18;
 
 export function advanceSequenceElseStartFreePlayGame(m) {

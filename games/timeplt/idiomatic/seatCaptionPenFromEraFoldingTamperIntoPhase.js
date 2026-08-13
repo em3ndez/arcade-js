@@ -10,30 +10,24 @@ import { u8, u16 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { armThePenRouteThenColdStartOnATamperedImage } from "./armThePenRouteThenColdStartOnATamperedImage.js";
-import { PEN_COLOUR, PEN_GLYPH, PLAYER_ONE_ERA_INDEX, PLAYER_ONE_PEN_GLYPH, PLAYER_TWO_ERA_INDEX, PLAYER_TWO_PEN_GLYPH } from "./names.js";
+import { PEN_COLOUR, PEN_GLYPH, PLAYER_ONE_ERA_INDEX, PLAYER_ONE_PEN_GLYPH, PLAYER_TWO_ERA_INDEX, PLAYER_TWO_PEN_GLYPH, SEQUENCE_PHASE, ACTIVE_PLAYER, loc_178c, loc_0f8d_ADDR } from "./names.js";
 
-const PHASE_ACCUMULATOR = 0xa9ab;
-const IMAGE_BLOCK = 0x178c;
 const IMAGE_BYTES = 0x1e;
 const GENUINE_BIAS = 0x2c;
-
-const ACTIVE_PLAYER = 0xad32;
-
-const GLYPH_COLOUR_TABLE = 0x0f8d;
 
 export function seatCaptionPenFromEraFoldingTamperIntoPhase(m) {
   const { regs, mem8 } = m;
 
-  let total = mem8[PHASE_ACCUMULATOR];
-  for (let i = 0; i < IMAGE_BYTES; i++) total = u8(total + mem8[u16(IMAGE_BLOCK + i)]);
-  mem8[PHASE_ACCUMULATOR] = u8(total + GENUINE_BIAS);
+  let total = mem8[SEQUENCE_PHASE];
+  for (let i = 0; i < IMAGE_BYTES; i++) total = u8(total + mem8[u16(loc_178c + i)]);
+  mem8[SEQUENCE_PHASE] = u8(total + GENUINE_BIAS);
 
   const playerTwo = mem8[ACTIVE_PLAYER] !== 0;
   const savedPen = playerTwo ? PLAYER_TWO_PEN_GLYPH : PLAYER_ONE_PEN_GLYPH;
   const era = playerTwo ? mem8[PLAYER_TWO_ERA_INDEX] : mem8[PLAYER_ONE_ERA_INDEX];
 
   regs.a = u8(era * 2);
-  regs.hl = GLYPH_COLOUR_TABLE;
+  regs.hl = loc_0f8d_ADDR;
   const glyph = fetchTableByte(m);
   mem8[savedPen] = glyph;
   mem8[PEN_GLYPH] = glyph;

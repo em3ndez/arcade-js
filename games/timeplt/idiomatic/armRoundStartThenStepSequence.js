@@ -12,15 +12,9 @@ import { loadDifficultyRecord } from "./loadDifficultyRecord.js";
 import { seedRandomRegister } from "./seedRandomRegister.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8 } from "../../../core/int.js";
-import { ATTRACT_STAGE_COUNTER, BCD_FRAME_COUNTER, ENEMY_AIM_ANCHOR_Y, ENEMY_AIM_POINT_TABLE, ENEMY_STANDOFF_AIM_BLOCK_END, ENEMY_STANDOFF_AIM_SET_Y, PEN_COLOUR, PLAYER1_SCORE_LO, PLAYER1_SCORE_MID, PLAYER2_SCORE_LO, PLAYER2_SCORE_MID, PLAYER_ONE_BONUS_LIFE_LATCH, PLAYER_ONE_ERA_INDEX, PLAYER_ONE_KILLS_REMAINING, PLAYER_ONE_LIFE_TICKS_MID, PLAYER_ONE_MOTHER_SHIP_ARMED, PLAYER_ONE_ROUND_ARMED, PLAYER_ONE_ROUND_NUMBER, PLAYER_ONE_START_RUNG, PLAYER_SHOT_ARRAY, PLAYER_TWO_BONUS_LIFE_LATCH, PLAYER_TWO_ERA_INDEX, PLAYER_TWO_KILLS_REMAINING, PLAYER_TWO_LIFE_TICKS_MID, PLAYER_TWO_MOTHER_SHIP_ARMED, PLAYER_TWO_ROUND_ARMED, PLAYER_TWO_ROUND_NUMBER, PLAYER_TWO_START_RUNG, PLAY_ACTIVE, SCRIPT_CYCLE_COUNTER } from "./names.js";
+import { ACTIVE_PLAYER, ATTRACT_STAGE_COUNTER, BCD_FRAME_COUNTER, DIFFICULTY_SETTING, ENEMY_AIM_ANCHOR_Y, ENEMY_AIM_POINT_TABLE, ENEMY_STANDOFF_AIM_BLOCK_END, ENEMY_STANDOFF_AIM_SET_Y, FRAME_TICK, KILL_QUOTA, PEN_COLOUR, PLAYER1_SCORE_LO, PLAYER1_SCORE_MID, PLAYER2_SCORE_LO, PLAYER2_SCORE_MID, PLAYER_ONE_BONUS_LIFE_LATCH, PLAYER_ONE_ERA_INDEX, PLAYER_ONE_KILLS_REMAINING, PLAYER_ONE_LIFE_TICKS_MID, PLAYER_ONE_MOTHER_SHIP_ARMED, PLAYER_ONE_ROUND_ARMED, PLAYER_ONE_ROUND_NUMBER, PLAYER_ONE_START_RUNG, PLAYER_SHOT_ARRAY, PLAYER_STATE, PLAYER_TWO_BONUS_LIFE_LATCH, PLAYER_TWO_ERA_INDEX, PLAYER_TWO_KILLS_REMAINING, PLAYER_TWO_LIFE_TICKS_MID, PLAYER_TWO_MOTHER_SHIP_ARMED, PLAYER_TWO_ROUND_ARMED, PLAYER_TWO_ROUND_NUMBER, PLAYER_TWO_START_RUNG, PLAY_ACTIVE, SCRIPT_CYCLE_COUNTER, SEQUENCE_DELAY, SEQUENCE_PHASE, START_RUNG_ROUNDS_1_5, loc_1550, loc_3310, loc_a97f, loc_aadf, loc_c308 } from "./names.js";
 
-const SEED_A9CD = 0xa9cd;
-const START_RUNG_SOURCE = 0xa9d3;
-const SOUND_LATCH = 0xc308;
-const SUB_CHECKSUM_CELL = 0xa9ab;
-const SEQUENCE_MODE = 0xa9eb;
-
-const ZERO_CELLS = [PLAYER_ONE_ERA_INDEX, PLAYER_TWO_ERA_INDEX, 0xad32, PLAYER_ONE_BONUS_LIFE_LATCH, PLAYER_TWO_BONUS_LIFE_LATCH, PLAYER_ONE_MOTHER_SHIP_ARMED, PLAYER_TWO_MOTHER_SHIP_ARMED, PEN_COLOUR];
+const ZERO_CELLS = [PLAYER_ONE_ERA_INDEX, PLAYER_TWO_ERA_INDEX, ACTIVE_PLAYER, PLAYER_ONE_BONUS_LIFE_LATCH, PLAYER_TWO_BONUS_LIFE_LATCH, PLAYER_ONE_MOTHER_SHIP_ARMED, PLAYER_TWO_MOTHER_SHIP_ARMED, PEN_COLOUR];
 const ONE_CELLS = [PLAYER_ONE_ROUND_NUMBER, PLAYER_TWO_ROUND_NUMBER, PLAYER_ONE_ROUND_ARMED, PLAYER_TWO_ROUND_ARMED];
 
 export function armRoundStartThenStepSequence(m) {
@@ -33,7 +27,7 @@ export function armRoundStartThenStepSequence(m) {
   mem16[PLAYER_ONE_LIFE_TICKS_MID] = 0x0000;
   mem16[PLAYER_TWO_LIFE_TICKS_MID] = 0x0000;
 
-  const shared = mem8[SEED_A9CD];
+  const shared = mem8[KILL_QUOTA];
   mem8[PLAYER_ONE_KILLS_REMAINING] = shared;
   mem8[PLAYER_TWO_KILLS_REMAINING] = shared;
 
@@ -49,17 +43,17 @@ export function armRoundStartThenStepSequence(m) {
     regs.de = 0x0400;
     postCommand(m);
 
-    regs.a = mem8[0xa9c4];
+    regs.a = mem8[DIFFICULTY_SETTING];
     loadDifficultyRecord(m);
 
     let a = 0;
-    for (let hl = 0x1550, i = 0; i < 256; i++, hl++) a ^= mem8[hl];
-    mem8[SOUND_LATCH] = u8(a + 1);
+    for (let hl = loc_1550, i = 0; i < 256; i++, hl++) a ^= mem8[hl];
+    mem8[loc_c308] = u8(a + 1);
 
-    const r = mem8[START_RUNG_SOURCE];
+    const r = mem8[START_RUNG_ROUNDS_1_5];
     mem8[PLAYER_ONE_START_RUNG] = r;
     mem8[PLAYER_TWO_START_RUNG] = r;
-    mem8[SEQUENCE_MODE] = 0x96;
+    mem8[SEQUENCE_DELAY] = 0x96;
     return advanceSequenceSubStep(m);
   }
 
@@ -69,26 +63,26 @@ export function armRoundStartThenStepSequence(m) {
   mem8[PLAYER_ONE_ERA_INDEX] = stage;
   mem8[PLAYER_ONE_ROUND_NUMBER] = u8(stage + 1);
 
-  mem8[0xa980] = 0x00;
+  mem8[FRAME_TICK] = 0x00;
   mem8[BCD_FRAME_COUNTER] = 0x00;
   mem8[SCRIPT_CYCLE_COUNTER] = 0x00;
   seedRandomRegister(m);
 
-  for (let cell = PLAYER_SHOT_ARRAY; cell <= 0xaadf; cell++) mem8[cell] = 0x00;
-  for (let cell = 0xa800; cell <= 0xa97f; cell++) mem8[cell] = 0x00;
+  for (let cell = PLAYER_SHOT_ARRAY; cell <= loc_aadf; cell++) mem8[cell] = 0x00;
+  for (let cell = PLAYER_STATE; cell <= loc_a97f; cell++) mem8[cell] = 0x00;
 
   regs.a = 0x02;
   loadDifficultyRecord(m);
 
-  const r = mem8[START_RUNG_SOURCE];
+  const r = mem8[START_RUNG_ROUNDS_1_5];
   mem8[PLAYER_ONE_START_RUNG] = r;
   mem8[PLAYER_TWO_START_RUNG] = r;
 
-  let sum = mem8[SUB_CHECKSUM_CELL];
-  for (let hl = 0x3310, i = 0; i < 256; i++, hl++) sum = u8(sum - mem8[hl]);
-  mem8[SUB_CHECKSUM_CELL] = sum ^ 0x90;
+  let sum = mem8[SEQUENCE_PHASE];
+  for (let hl = loc_3310, i = 0; i < 256; i++, hl++) sum = u8(sum - mem8[hl]);
+  mem8[SEQUENCE_PHASE] = sum ^ 0x90;
 
   for (let cell = ENEMY_STANDOFF_AIM_SET_Y; cell <= ENEMY_STANDOFF_AIM_BLOCK_END; cell++) mem8[cell] = 0x80;
-  mem8[SEQUENCE_MODE] = 0x5a;
+  mem8[SEQUENCE_DELAY] = 0x5a;
   return advanceSequenceSubStep(m);
 }

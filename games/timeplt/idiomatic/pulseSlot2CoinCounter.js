@@ -10,11 +10,10 @@
  * LIVE-OUT: memory, plus the output line. */
 
 import { u8 } from "../../../core/int.js";
-import { COIN_ACCEPTED_SLOT_2, COIN_PULSE_TIMER_SLOT_2 } from "./names.js";
+import { COIN_ACCEPTED_SLOT_2, COIN_PULSE_TIMER_SLOT_2, loc_c30c } from "./names.js";
 
 const PHASE_LENGTH = 48;
 const HALFWAY = 24;
-const OUTPUT_LINE = 0xc30c;
 const WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE = 10;
 
 export function pulseSlot2CoinCounter(m) {
@@ -23,7 +22,7 @@ export function pulseSlot2CoinCounter(m) {
 
   if (mem8[COIN_PULSE_TIMER_SLOT_2] === 0) {
     mem8[COIN_PULSE_TIMER_SLOT_2] = PHASE_LENGTH;
-    m.mem.write8(OUTPUT_LINE, 1, WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE);
+    m.mem.write8(loc_c30c, 1, WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE);
     return;
   }
 
@@ -33,5 +32,5 @@ export function pulseSlot2CoinCounter(m) {
     mem8[COIN_ACCEPTED_SLOT_2] = u8(mem8[COIN_ACCEPTED_SLOT_2] - 1);
     return;
   }
-  if (phase === HALFWAY) m.mem.write8(OUTPUT_LINE, 0, WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE);
+  if (phase === HALFWAY) m.mem.write8(loc_c30c, 0, WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE);
 }

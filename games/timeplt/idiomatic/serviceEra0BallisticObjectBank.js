@@ -7,9 +7,8 @@
 import { advanceSlotThenSweepObjectBankByHead } from "./advanceSlotThenSweepObjectBankByHead.js";
 import { sweepObjectSlotBankServicingFirstSlot } from "./sweepObjectSlotBankServicingFirstSlot.js";
 import { flyAlongBallisticArc } from "./flyAlongBallisticArc.js";
-import { ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0 } from "./names.js";
+import { ERA_INDEX, ERA_OBJECT_ENTRY_SLOT0, ERA_OBJECT_RECORD_SLOT0 } from "./names.js";
 
-const ERA_INDEX = 0xad04;
 const BANK_SLOTS = 0x03;
 const EMPTY = 0x00;
 const BALLISTIC = 0xff;

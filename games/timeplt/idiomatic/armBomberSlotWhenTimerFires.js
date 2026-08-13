@@ -7,12 +7,7 @@
 import { u8, u16 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { loc_5942 } from "./loc_5942.js";
-
-const FRAME_TICK = 0xa980;
-const PLAYER_HEADING = 0xa802;
-const MOTHER_SHIP_ARMED = 0xad0d;
-const HITS_REMAINING = 0xa8dc;
-const SHAPE_TABLE = 0x3c84;
+import { FRAME_TICK, HITS_REMAINING, MOTHER_SHIP_ARMED, PLAYER_HEADING, HEADING_SHAPE_TABLE } from "./names.js";
 
 export function armBomberSlotWhenTimerFires(m) {
   const { regs, mem8 } = m;
@@ -32,7 +27,7 @@ export function armBomberSlotWhenTimerFires(m) {
   }
 
   // shape record: rotate the heading to an even table offset, take its two bytes
-  regs.hl = SHAPE_TABLE;
+  regs.hl = HEADING_SHAPE_TABLE;
   regs.a = ((index >> 2) | (index << 6)) & 0x3e;
   mem8[(regs.iy + 0x31) & 0xffff] = fetchTableByte(m);
   mem8[(regs.iy + 0x00) & 0xffff] = mem8[u16(regs.hl + 1)];

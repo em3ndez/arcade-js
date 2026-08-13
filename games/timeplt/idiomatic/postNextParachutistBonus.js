@@ -9,10 +9,10 @@
 
 import { offsetAddress } from "./offsetAddress.js";
 import { postCommand } from "./postCommand.js";
+import { loc_484f } from "./names.js";
 
 const COUNTDOWN = 0;
 const STEP = 7;
-const STEP_TABLE = 0x484f;
 const STEPS = 4;
 const COMMAND = 4;
 const PAST_THE_LAST_STEP = 15;
@@ -27,7 +27,7 @@ export function postNextParachutistBonus(m) {
 
   let argument = PAST_THE_LAST_STEP;
   if (step < STEPS) {
-    regs.hl = STEP_TABLE;
+    regs.hl = loc_484f;
     regs.a = step;
     argument = mem8[offsetAddress(m)];
   }

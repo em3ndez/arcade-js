@@ -4,17 +4,17 @@
  * is fixed here, so the column, the two stubs and the run are all this entry's choice, and the
  * run is overwritten whole rather than merged into. LIVE-OUT: memory-only. */
 
-const RUN = 0xa400;
-const COLUMN = 0xa451;
+import { loc_a400, loc_a451, loc_a5f0, loc_a5f2 } from "./names.js";
+
 const ROW = 0x20;
 const COLUMN_CELLS = 28;
-const STUB_COLUMNS = [0xa5f0, 0xa5f2];
+const STUB_COLUMNS = [loc_a5f0, loc_a5f2];
 const STUB_CELLS = 2;
 
 export function gatherCharColumnIntoBackingRun(m) {
   const { mem8 } = m;
-  let destination = RUN;
-  for (let i = 0; i < COLUMN_CELLS; i++) mem8[destination++] = mem8[COLUMN + i * ROW];
+  let destination = loc_a400;
+  for (let i = 0; i < COLUMN_CELLS; i++) mem8[destination++] = mem8[loc_a451 + i * ROW];
   for (const stub of STUB_COLUMNS) {
     for (let i = 0; i < STUB_CELLS; i++) mem8[destination++] = mem8[stub + i * ROW];
   }

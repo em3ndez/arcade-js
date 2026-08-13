@@ -14,15 +14,12 @@ import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { requestMotherShipWarpSound } from "./requestMotherShipWarpSound.js";
 import { postCommand } from "./postCommand.js";
-import { ROUND_TRANSITION_HOLD } from "./names.js";
+import { PLAYER_STATE, ROUND_TRANSITION_HOLD, TAMPER_GLYPH_COPY, loc_461b } from "./names.js";
 
 const STATE = 0x00;
 const HEADING = 0x31;
 const SPRITE_STATE = 0x30;
 const TRIGGER = 0xb4;
-const SHAPE_TABLE = 0x461b;
-const RESTART = 0xab43;
-const WARP_SENTINEL = 0xa800;
 
 export function stepMotherShipWarpFlashFrame(m) {
   const { regs, mem, mem8 } = m;
@@ -82,7 +79,7 @@ export function stepMotherShipWarpFlashFrame(m) {
       mem8[Y(0x03)] = 0xfd;
       mem8[Y(SPRITE_STATE)] = 0x6c;
       mem8[Y(0x32)] = 0x6c;
-      regs.a = regs.inc8(mem8[WARP_SENTINEL]);
+      regs.a = regs.inc8(mem8[PLAYER_STATE]);
       if (regs.fZ) requestMotherShipWarpSound(m);
       regs.de = 0x040d;
       return postCommand(m);
@@ -95,7 +92,7 @@ export function stepMotherShipWarpFlashFrame(m) {
       regs.rrca();
       regs.a = regs.dec8(regs.a);
       regs.and(0x07);
-      regs.hl = SHAPE_TABLE;
+      regs.hl = loc_461b;
       fetchTableByte(m);
       mem8[Y(0x03)] = regs.a;
       regs.a = regs.inc8(regs.a);
@@ -108,7 +105,7 @@ export function stepMotherShipWarpFlashFrame(m) {
       regs.a = 0xff;
       mem8[ROUND_TRANSITION_HOLD] = regs.a;
       mem8[X(STATE)] = 0x00;
-      regs.hl = RESTART;
+      regs.hl = TAMPER_GLYPH_COPY;
       regs.a = mem8[regs.hl];
       regs.cp(0x7c);
       if (regs.fZ) {

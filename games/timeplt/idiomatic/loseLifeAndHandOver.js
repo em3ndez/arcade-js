@@ -11,18 +11,11 @@ import { loc_5634 } from "./loc_5634.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startNextRound } from "./startNextRound.js";
 import { postGameOverBanner } from "./postGameOverBanner.js";
-import { ROUND_TRANSITION_HOLD } from "./names.js";
+import { ROUND_TRANSITION_HOLD, LIVES_REMAINING, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, ACTIVE_PLAYER, SEQUENCE_DELAY, SEQUENCE_SUBSTEP, loc_4b52 } from "./names.js";
 
-const RECORD = 0xad00;
-const SLOT_A = 0xad10;
-const SLOT_B = 0xad20;
-const SELECTOR = 0xad32;
 const RECORD_LEN = 16;
 
-const STAMP_CELL = 0xa9eb;
 const STAMP_VALUE = 90;
-const IMAGE_TARGET = 0xa9ac;
-const IMAGE_BYTE = 0x4b52;
 
 export function loseLifeAndHandOver(m) {
   const { mem8 } = m;
@@ -31,15 +24,15 @@ export function loseLifeAndHandOver(m) {
   if (mem8[ROUND_TRANSITION_HOLD] !== 0) startNextRound(m);
   loc_5634(m);
 
-  const count = u8(mem8[RECORD] - 1);
-  mem8[RECORD] = count;
-  const dest = mem8[SELECTOR] === 0 ? SLOT_A : SLOT_B;
-  for (let i = 0; i < RECORD_LEN; i++) mem8[dest + i] = mem8[RECORD + i];
+  const count = u8(mem8[LIVES_REMAINING] - 1);
+  mem8[LIVES_REMAINING] = count;
+  const dest = mem8[ACTIVE_PLAYER] === 0 ? PLAYER_ONE_LIVES : PLAYER_TWO_LIVES;
+  for (let i = 0; i < RECORD_LEN; i++) mem8[dest + i] = mem8[LIVES_REMAINING + i];
   if (count === 0) return postGameOverBanner(m);
 
-  const other = mem8[SELECTOR] === 0 ? SLOT_B : SLOT_A;
-  if (mem8[other] !== 0) mem8[SELECTOR] = (mem8[SELECTOR] + 1) & 1;
+  const other = mem8[ACTIVE_PLAYER] === 0 ? PLAYER_TWO_LIVES : PLAYER_ONE_LIVES;
+  if (mem8[other] !== 0) mem8[ACTIVE_PLAYER] = (mem8[ACTIVE_PLAYER] + 1) & 1;
 
-  mem8[STAMP_CELL] = STAMP_VALUE;
-  mem8[IMAGE_TARGET] = mem8[IMAGE_BYTE];
+  mem8[SEQUENCE_DELAY] = STAMP_VALUE;
+  mem8[SEQUENCE_SUBSTEP] = mem8[loc_4b52];
 }

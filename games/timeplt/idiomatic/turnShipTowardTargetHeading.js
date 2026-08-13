@@ -8,9 +8,8 @@
 import { u8 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { scrollWorldAtTheEraPace } from "./scrollWorldAtTheEraPace.js";
-import { PLAYER_HEADING, ERA_INDEX } from "./names.js";
+import { PLAYER_HEADING, ERA_INDEX, loc_1f2e_ADDR } from "./names.js";
 
-const WANTED_HEADING_TABLE = 0x1f2e;
 const FAST_DIGIT = 3;
 const FAST_STEP = 4;
 const SLOW_STEP = 3;
@@ -19,7 +18,7 @@ const HALF_TURN = 128;
 
 export function turnShipTowardTargetHeading(m) {
   const { regs, mem8 } = m;
-  regs.hl = WANTED_HEADING_TABLE;
+  regs.hl = loc_1f2e_ADDR;
   const wanted = fetchTableByte(m);
   const heading = mem8[PLAYER_HEADING];
   if (heading !== wanted) {

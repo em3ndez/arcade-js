@@ -6,11 +6,11 @@
 import { stampObjectStateByte3bThenRequestSound } from "./stampObjectStateByte3bThenRequestSound.js";
 import { driftWithWorldScroll } from "./driftWithWorldScroll.js";
 import { fetchTableByte } from "./fetchTableByte.js";
+import { loc_4094 } from "./names.js";
 
 const COUNTER = 0;
 const REARM_AT = 0x3c;
 const SHAPE_FLOOR = 0x1c;
-const SHAPE_TABLE = 0x4094;
 const SPRITE_SHAPE = 1;
 const SPRITE_ATTR = 0x30;
 const SPRITE_TAIL = 0x31;
@@ -36,7 +36,7 @@ export function runOneShotAnimatedObjectSlot(m) {
   if (counter < SHAPE_FLOOR) return;
   // counter above the floor, rotated right twice, low nibble: the shape-table index.
   regs.a = ((((counter - SHAPE_FLOOR) & 0xff) >> 2) | (((counter - SHAPE_FLOOR) & 0xff) << 6)) & 0x0f;
-  regs.hl = SHAPE_TABLE;
+  regs.hl = loc_4094;
   fetchTableByte(m);
   mem8[sprite + SPRITE_SHAPE] = regs.a;
   mem8[sprite + SPRITE_ATTR] = SHAPE_ATTR;
