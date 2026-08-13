@@ -1797,32 +1797,32 @@ export const COARSE_HEADING_SHAPE_TABLE = 0x2b18; // ROM shape table indexed by 
 export const OBJECT_PHASE_SHAPE_TABLE = 0x2c94; // 16-entry ROM shape table indexed by phase step (phase-10)/2 for the mid-band object animation (driveObjectAppearanceByPhaseBand)
 export const ERA4_SCENERY_SEED_TABLE = 0x315e; // ROM 8x2-byte packed table seeding SCENERY_ENTRY_SLOT0 (byte0→+0x31, byte1→+0) on the era>=4 path; inline data after loc_315b's jp, NOT a call target (clearSceneryEntriesThenRunEraScenery)
 export const DEATH_ANIMATION_SHAPE_TABLE = 0x3c09; // ROM shape table indexed ((level-0x40)>>3)-1, reseated every 8 steps as a dying object counts down (advanceHitSoakingObjectThenAnimateDeath)
-export const loc_3fca = 0x3fca; // proposal: dressSpriteShapeAndAttributeForHeadingSector SHAPE_TABLE
-export const loc_44f1 = 0x44f1; // proposal: dressSpriteForHeadingOrRetireAtEdge SHAPE_PAIRS
-export const loc_4531 = 0x4531; // proposal: dressSpriteForHeadingOrRetireAtEdge COLOUR_TABLE
-export const loc_a2bc = 0xa2bc; // proposal: checkTheCopyrightLineColoursOrDerail FIRST_CELL
+export const HEADING_SECTOR_SHAPE_TABLE = 0x3fca; // 16-entry ROM shape table indexed by heading sector; +16 = parallel attribute table (dressSpriteShapeAndAttributeForHeadingSector)
+export const HEADING_SHAPE_PAIR_TABLE = 0x44f1; // ROM table of 2-byte shape pairs indexed by quadrant*4 + era/frame (dressSpriteForHeadingOrRetireAtEdge)
+export const ERA_SPRITE_COLOUR_TABLE = 0x4531; // ROM per-era sprite colour byte table (dressSpriteForHeadingOrRetireAtEdge)
+export const COPYRIGHT_LINE_FIRST_COLOUR_CELL = 0xa2bc; // first colour-RAM cell of the copyright caption line; 13-cell walk (stride -0x20) each must be 0x10/0x05 else derail (checkTheCopyrightLineColoursOrDerail)
 
 // Batch 8 (address-retrofit): more data-address bases lifted out of routine-local consts in 18 files.
 // Each is a ROM-image table/data-block base loaded into regs.hl then read by a table helper, a cell
 // walked directly via mem8/mem16, or a hardware-port line -- data, not code. Every address checked
 // against ROUTINES keys: no collision. Existing entries (0x0c50, ACTIVE_PLAYER, DIFFICULTY_SETTING,
 // 0xc200/0xc302/0xc000, the sprite-slot loc_b4xx/loc_b0xx, 0xa501, 0x0dcc) are reused, not re-added.
-export const loc_4aa0 = 0x4aa0; // proposal: erasePenRouteThenAdvanceStep CHECKED_BLOCK
-export const loc_a531 = 0xa531; // proposal: fileScoreIntoHighScoreTable GLYPH_ROW_TABLE
-export const loc_0c3e = 0x0c3e; // proposal: finishBootSelfTestAndColdStart LS259_SOURCE
-export const loc_27de = 0x27de; // proposal: finishBootSelfTestAndColdStart CHECKSUM_BASE
-export const loc_341d = 0x341d; // proposal: headingToward DIAGONAL_HEADINGS
-export const loc_3415 = 0x3415; // proposal: headingToward SECTOR_HEADINGS
-export const loc_b413 = 0xb413; // proposal: multiplexSpriteSlotsSkipping slot request
-export const loc_b012 = 0xb012; // proposal: multiplexSpriteSlotsSkipping slot partner
-export const loc_b415 = 0xb415; // proposal: multiplexSpriteSlotsSkipping slot request
-export const loc_b014 = 0xb014; // proposal: multiplexSpriteSlotsSkipping slot partner
-export const loc_a47f = 0xa47f; // proposal: paintCreditCountPanel FIRST_CELL
-export const loc_0f06 = 0x0f06; // proposal: paintDigitDroppingLeadingZero GLYPHS
-export const loc_a641 = 0xa641; // proposal: paintHighScoreReadout FIRST_DIGIT_CELL
-export const loc_4cb4 = 0x4cb4; // proposal: paintLabelledNumericReadoutColumn PICTOGRAM_TABLE
-export const loc_a781 = 0xa781; // proposal: paintPlayerOneScoreReadout FIRST_CELL
-export const loc_4c87 = 0x4c87; // proposal: petWatchdogThroughStartupDelayThenStartMachine INTERRUPT_ENABLE_SOURCE
+export const ATTRACT_CHECKSUM_BLOCK_BASE = 0x4aa0; // base of a 256-byte ROM anti-tamper block summed vs 0xb8 -> derail (erasePenRouteThenAdvanceStep, attract phase-1 arm)
+export const HIGH_SCORE_INITIALS_CELL_BASE = 0xa531; // glyph-plane base of per-rank high-score initials cells (stride 2*rank), saved to SCRATCH_PTR_B (fileScoreIntoHighScoreTable) [guess]
+export const FLIPSCREEN_INIT_BYTE = 0x0c3e; // fixed ROM byte written to FLIPSCREEN_LATCH at cold start (finishBootSelfTestAndColdStart)
+export const BOOT_SELFTEST_CHECKSUM_BASE = 0x27de; // base of the boot self-test 256-byte ROM anti-tamper block summed vs 0xc5 -> derail (finishBootSelfTestAndColdStart)
+export const DIAGONAL_HEADING_TABLE = 0x341d; // 4-entry ROM table of the diagonal headings for equal-leg targets (headingToward)
+export const OCTANT_BASE_HEADING_TABLE = 0x3415; // 8-entry ROM table of octant base headings (multiples of 32; bit5 = count-backwards) (headingToward)
+export const SPRITE_BANK1_SLOT1_Y = 0xb413; // sprite bank 1 slot 1 Y byte (0xb411+2)
+export const SPRITE_BANK0_SLOT1_X = 0xb012; // sprite bank 0 slot 1 X byte (0xb010+2); multiplex pair with SPRITE_BANK1_SLOT1_Y
+export const SPRITE_BANK1_SLOT2_Y = 0xb415; // sprite bank 1 slot 2 Y byte
+export const SPRITE_BANK0_SLOT2_X = 0xb014; // sprite bank 0 slot 2 X byte; multiplex pair with SPRITE_BANK1_SLOT2_Y
+export const CREDIT_COUNT_READOUT_CELL = 0xa47f; // char-plane first (tens) digit cell of the two-digit credit-count panel (paintCreditCountPanel)
+export const DIGIT_GLYPH_TABLE_2 = 0x0f06; // second ROM digit-glyph table (digit low-nibble -> glyph), used by paintDigitDroppingLeadingZero; a distinct copy from DIGIT_GLYPH_TABLE (0x0dcc)
+export const HIGH_SCORE_READOUT_BASE = 0xa641; // char-plane leftmost digit cell of the six-digit high-score readout (paintHighScoreReadout)
+export const READOUT_PICTOGRAM_TABLE = 0x4cb4; // ROM table of stride-3 pictogram records keyed by source lead byte (paintLabelledNumericReadoutColumn)
+export const PLAYER1_SCORE_READOUT_BASE = 0xa781; // char-plane leftmost digit cell of the player-1 six-digit score readout (paintPlayerOneScoreReadout); parallels PLAYER2_SCORE_READOUT_BASE
+export const NMI_ENABLE_BYTE = 0x4c87; // fixed ROM byte (=0x01) read at startup and written to the NMI-enable latch 0xC300 to arm interrupts (petWatchdog.../enableInterrupt...)
 export const loc_484f = 0x484f; // proposal: postNextParachutistBonus STEP_TABLE
 export const loc_c30a = 0xc30a; // proposal: pulseSlot1CoinCounter COUNTER_LINE
 export const loc_c30c = 0xc30c; // proposal: pulseSlot2CoinCounter OUTPUT_LINE

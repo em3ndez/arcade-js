@@ -8,7 +8,7 @@
 import { tileCharPlaneWithBoxLattice } from "./tileCharPlaneWithBoxLattice.js";
 import { saveAccumulatorForFrameInterrupt } from "./saveAccumulatorForFrameInterrupt.js";
 import { petWatchdogThroughStartupDelayThenStartMachine } from "./petWatchdogThroughStartupDelayThenStartMachine.js";
-import { DEMO_SOUNDS_ENABLE, DIFFICULTY_SETTING, loc_c200, FLIPSCREEN_LATCH, loc_0c3e, loc_27de } from "./names.js";
+import { DEMO_SOUNDS_ENABLE, DIFFICULTY_SETTING, loc_c200, FLIPSCREEN_LATCH, FLIPSCREEN_INIT_BYTE, BOOT_SELFTEST_CHECKSUM_BASE } from "./names.js";
 
 const STORE = 10;
 const CHECKSUM_SPAN = 0x100;
@@ -30,14 +30,14 @@ export function finishBootSelfTestAndColdStart(m) {
   mem.write8(DEMO_SOUNDS_ENABLE, regs.a);
   mem.write8(loc_c200, regs.a, STORE);
 
-  regs.a = mem.read8(loc_0c3e);
+  regs.a = mem.read8(FLIPSCREEN_INIT_BYTE);
   mem.write8(FLIPSCREEN_LATCH, regs.a, STORE);
 
   tileCharPlaneWithBoxLattice(m);
 
   let total = 0;
   for (let i = 0; i < CHECKSUM_SPAN; i++) {
-    total = (total + mem.read8((loc_27de + i) & 0xffff)) & 0xff;
+    total = (total + mem.read8((BOOT_SELFTEST_CHECKSUM_BASE + i) & 0xffff)) & 0xff;
   }
   regs.a = (total - CHECKSUM_TOTAL) & 0xff;
   if (regs.a !== 0) return saveAccumulatorForFrameInterrupt(m); // tampered image: derail into the frame handler

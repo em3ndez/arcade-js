@@ -12,7 +12,7 @@
 import { u8, u16 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 import { offsetAddress } from "./offsetAddress.js";
-import { loc_341d, loc_3415 } from "./names.js";
+import { DIAGONAL_HEADING_TABLE, OCTANT_BASE_HEADING_TABLE } from "./names.js";
 
 const FIRST_COORDINATE = 0x00;
 const SECOND_COORDINATE = 0x31;
@@ -36,7 +36,7 @@ export function headingToward(m, point = m.regs.hl, object = m.regs.iy) {
   const secondLeg = Math.abs(secondReach);
 
   if (firstLeg === secondLeg) {
-    regs.hl = loc_341d;
+    regs.hl = DIAGONAL_HEADING_TABLE;
     regs.a = sector;
     return fetchTableByte(m);
   }
@@ -46,7 +46,7 @@ export function headingToward(m, point = m.regs.hl, object = m.regs.iy) {
   const longer = Math.max(firstLeg, secondLeg);
   let rung = Math.floor((shorter * RUNGS_PER_SECTOR) / longer);
 
-  regs.hl = loc_3415;
+  regs.hl = OCTANT_BASE_HEADING_TABLE;
   regs.a = sector;
   const heading = mem8[offsetAddress(m)];
   if (heading & COUNTS_BACKWARDS) rung = RUNGS_PER_SECTOR - 1 - rung;

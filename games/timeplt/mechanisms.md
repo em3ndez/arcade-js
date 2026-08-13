@@ -116,6 +116,11 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   phase-1 and phase-2 sub-step dispatch tables (completing the phase-0/1/2/3 set), the player /
   fine / coarse heading-to-shape tables, the mid-band object-phase shape table, the era-4 scenery
   seed table, and the death-animation shape table.
+- **Batch 9** — more heading/shape tables (the heading-sector shape table, the heading shape-pair
+  table, the per-era sprite-colour table, and the diagonal + octant base-heading tables), the
+  copyright-line colour-check cell, two more anti-tamper checksum blocks (attract and boot
+  self-test), sprite slots 1-2, the score/credit readout base cells (high-score, player-1, credit
+  count), a second digit-glyph table, the readout pictogram table, and the NMI-enable init byte.
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for

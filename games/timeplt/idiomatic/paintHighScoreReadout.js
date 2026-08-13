@@ -6,13 +6,13 @@
  * discarded. LIVE-OUT: memory — the digits and their colours, written by the printer. */
 
 import { paintSixDigitFieldSuppressingLeadingZeros } from "./paintSixDigitFieldSuppressingLeadingZeros.js";
-import { HIGH_SCORE_HI, loc_a641 } from "./names.js";
+import { HIGH_SCORE_HI, HIGH_SCORE_READOUT_BASE } from "./names.js";
 
 const DIGIT_COLOUR = 0x10;
 
 export function paintHighScoreReadout(m) {
   const { regs } = m;
-  regs.de = loc_a641;
+  regs.de = HIGH_SCORE_READOUT_BASE;
   regs.hl = HIGH_SCORE_HI;
   regs.c = DIGIT_COLOUR;
   return paintSixDigitFieldSuppressingLeadingZeros(m);

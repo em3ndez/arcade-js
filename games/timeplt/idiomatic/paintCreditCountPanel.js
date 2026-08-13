@@ -5,14 +5,14 @@
  * of this entry, and choosing those three is the whole of it. LIVE-OUT: the cells painted. */
 
 import { paintTwoUnsuppressedDigitsFromByte } from "./paintTwoUnsuppressedDigitsFromByte.js";
-import { CREDIT_COUNT, loc_a47f } from "./names.js";
+import { CREDIT_COUNT, CREDIT_COUNT_READOUT_CELL } from "./names.js";
 
 const PEN_COLOUR = 16;
 
 export function paintCreditCountPanel(m) {
   const { regs } = m;
   regs.c = PEN_COLOUR;
-  regs.de = loc_a47f;
+  regs.de = CREDIT_COUNT_READOUT_CELL;
   regs.hl = CREDIT_COUNT;
   paintTwoUnsuppressedDigitsFromByte(m);
 }

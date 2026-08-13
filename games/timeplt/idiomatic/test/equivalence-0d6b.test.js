@@ -89,7 +89,7 @@ function namesTheTriple(text) {
   // each; the colour is still a literal in the module. The sibling readout names a DIFFERENT tally (its
   // own player-score cell) and a different destination, so it matches no form and still fails the check.
   const hasTally = text.includes("HIGH_SCORE_HI") || text.includes("0x" + TALLY_TOP_BYTE.toString(16));
-  const hasCell = text.includes("loc_a641") || text.includes("0x" + FIRST_DIGIT_CELL.toString(16));
+  const hasCell = text.includes("HIGH_SCORE_READOUT_BASE") || text.includes("0x" + FIRST_DIGIT_CELL.toString(16));
   return hasTally && hasCell && text.includes("0x" + DIGIT_COLOUR.toString(16));
 }
 

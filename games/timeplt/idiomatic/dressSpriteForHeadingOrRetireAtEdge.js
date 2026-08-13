@@ -14,7 +14,7 @@ import { retireEntryPairIntoCooldown } from "./retireEntryPairIntoCooldown.js";
 import { offsetAddress } from "./offsetAddress.js";
 import { restartAnimationCounterThenDressFlutterSprite } from "./restartAnimationCounterThenDressFlutterSprite.js";
 import { dressSpriteFlutterShapesByFrameTickBit } from "./dressSpriteFlutterShapesByFrameTickBit.js";
-import { ERA_INDEX, FRAME_TICK, loc_44f1, loc_4531 } from "./names.js";
+import { ERA_INDEX, FRAME_TICK, HEADING_SHAPE_PAIR_TABLE, ERA_SPRITE_COLOUR_TABLE } from "./names.js";
 
 const FLUTTER_ERA = 0x04;
 const SETTLED = 0x07;
@@ -58,12 +58,12 @@ export function dressSpriteForHeadingOrRetireAtEdge(m) {
 
   const index = u8(u8(era * 16) + (mem8[FRAME_TICK] & 0x02));
   const quadrant = (u8(SETTLED - mem8[record + QUADRANT_SEED]) >> 1) & 0x03;
-  regs.hl = loc_44f1;
+  regs.hl = HEADING_SHAPE_PAIR_TABLE;
   regs.a = u8(quadrant * 4 + index);
   offsetAddress(m);
   const shapeLo = mem8[regs.hl];
   const shapeHi = mem8[u16(regs.hl + 1)];
-  regs.hl = loc_4531;
+  regs.hl = ERA_SPRITE_COLOUR_TABLE;
   regs.a = era;
   offsetAddress(m);
   const colour = mem8[regs.hl];
