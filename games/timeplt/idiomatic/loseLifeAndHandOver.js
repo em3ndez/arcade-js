@@ -7,7 +7,7 @@
  * constant into one cell and a program-image byte into another. LIVE-OUT: memory. */
 
 import { u8 } from "../../../core/int.js";
-import { loc_5634 } from "./loc_5634.js";
+import { enqueueTransitionSoundBurst } from "./enqueueTransitionSoundBurst.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startNextRound } from "./startNextRound.js";
 import { postGameOverBanner } from "./postGameOverBanner.js";
@@ -22,7 +22,7 @@ export function loseLifeAndHandOver(m) {
 
   hideAllSprites(m);
   if (mem8[ROUND_TRANSITION_HOLD] !== 0) startNextRound(m);
-  loc_5634(m);
+  enqueueTransitionSoundBurst(m);
 
   const count = u8(mem8[LIVES_REMAINING] - 1);
   mem8[LIVES_REMAINING] = count;

@@ -9,7 +9,7 @@
 
 import { SEQUENCE_SUBSTEP, PHASE2_SUBSTEP_DISPATCH_TABLE } from "./names.js";
 import { fetchTableWord } from "./fetchTableWord.js";
-import { loc_181d } from "./loc_181d.js";
+import { noOpSequencePhase2Tail } from "./noOpSequencePhase2Tail.js";
 
 export function dispatchSequencePhase2SubStepArm(m) {
   const { regs, mem8 } = m;
@@ -19,5 +19,5 @@ export function dispatchSequencePhase2SubStepArm(m) {
   regs.de = regs.hl;
   regs.hl = arm;
   m.call(arm);
-  return loc_181d(m);
+  return noOpSequencePhase2Tail(m);
 }

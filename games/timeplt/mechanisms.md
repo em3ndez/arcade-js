@@ -144,6 +144,18 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   (read is the raster counter the sprite multiplexer watches). Both consts of a pair hold the same
   value, so the split changes only which name a site reads — behaviour is byte-identical, and the
   suite cannot witness a direction error: the reviewer checks each site's direction by hand.
+- **Routine names, batch 1** — the first of the un-named routines (`name:"loc_XXXX"` in the doc-map)
+  get descriptive names where two blind derivers agreed the entry is a real routine and the record
+  does not already keep it as hex: a bare-transfer trampoline (`trampolineToAdvanceSequenceSubStep`),
+  a do-nothing phase-2 sub-step tail (`noOpSequencePhase2Tail`), and a fixed sound-request burst fired
+  at round transitions (`enqueueTransitionSoundBurst`). The rest stay `loc_`: the anti-tamper and
+  data-as-code derail targets (0x2251, 0x0167, 0x08fa, 0x1f99, 0x1f2e, 0x0f8d — the last two keep
+  their `_ADDR` collision consts); 0x307f, a caption record the translated layer misdecodes as code
+  rather than a real routine; 0x12e2, whose descriptive name was tried and refused in the record
+  because its countdown prologue is an idiom seven sites share and its one tail
+  (`passTurnToOtherPlayerIfLivesElseStepSequence`) already carries the decision; and the entries kept
+  as hex because no absolute reference reaches them — 0x15b5 (a table slot no tape ever dispatches)
+  and 0x10f8, 0x3793 (reached only by an interior branch — a routine-is-a-range, not its own job).
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for

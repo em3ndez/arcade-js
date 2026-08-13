@@ -2332,7 +2332,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x17fb: {
-    name: "loc_17fb",
+    name: "trampolineToAdvanceSequenceSubStep",
     role: "a sequence step that does no work of its own -- it only moves the inner index on, so reaching it costs one turn and changes nothing else",
     cert: "code",
   },
@@ -3059,7 +3059,7 @@ export const ROUTINES = {
     why: "the discriminating claim is erase-not-repaint, and one cell settles it from outside: on a driven tape the video-RAM cell 0xA4E0 took three writes of the blank code from THIS routine's store, while on the attract tape the same cell took six writes of a glyph from drawTextRun's store -- one cell, one painter, one eraser. No colour-plane write was ever attributed to it, which a repaint would have produced. The ring's sixteen-way handler table at 0x0BBC seats drawTextRunByIndex at slot 1 and this at slot 3, and its one direct caller uses it in the arm where the second player's label must be absent while the two-player arm draws that same caption -- so a name saying merely 'blank a run' would drop the half that makes it the draw handler's inverse. Its store fired about a dozen times per dispatch on every tape: a caption's length, not a screen's and not one cell",
   },
   0x181d: {
-    name: "loc_181d",
+    name: "noOpSequencePhase2Tail",
     role: "an arrival point with nothing to do: no cell is read or written and no register moves",
     cert: "code",
   },
@@ -3287,7 +3287,7 @@ export const ROUTINES = {
     why: "that the reference is the PLAYER is what the name adds over the mechanism, and it rests on evidence outside the routine: three sibling sweeps read the same guard cell and the same reference pair, and the write tap behind destroyTargetsReachedByFixedAttacker already attributed that pair to the ship held at one screen position through a driven game. What separates this entry is what it does NOT do -- the other three also write the destroyed code into the player's own state. Only two of those three go on to post a score: destroyPlayerAndObjectsTouchingIt does not. Under MAME it marked ten times in 300 s of attract, every mark on the same record, which is the single object every one of its four call sites leaves the cursor on",
   },
   0x5634: {
-    name: "loc_5634",
+    name: "enqueueTransitionSoundBurst",
     role: "queue seven sound codes back to back with no play test: six fetched one each from its own cell of the program image, so an edit to the image changes what is asked for, and a seventh formed by adding the era index to a fixed base",
     cert: "code",
   },

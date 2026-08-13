@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_181d — the frozen routine at ROM 0x181D is one byte, 0xC9: a bare `ret`. The rewrite is an
+ * noOpSequencePhase2Tail — the frozen routine at ROM 0x181D is one byte, 0xC9: a bare `ret`. The rewrite is an
  * empty function, because the idiomatic layer models no stack and the return is the host language's.
  * The work is proving that empty function RIGHT, not merely green: that the routine really is
  * reached, and that the instruments can see a routine that does something.
@@ -42,7 +42,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_START_TAPE, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_181d } from "../loc_181d.js";
+import { noOpSequencePhase2Tail } from "../noOpSequencePhase2Tail.js";
 import { loc_181d as oracle } from "../../translated/loc_181d.js";
 import { PLAYER_STATE } from "../names.js";
 import {
@@ -216,7 +216,7 @@ function replay(factory, override, frames = WHOLE_FRAMES) {
 // ── the gate ────────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: the rewrite matches the frozen routine", { skip }, () => {
-  const r = unitEquivalence(makeMachine, TARGET, oracle, loc_181d, { maxFrames: ENTRY_FRAMES });
+  const r = unitEquivalence(makeMachine, TARGET, oracle, noOpSequencePhase2Tail, { maxFrames: ENTRY_FRAMES });
   assert.equal(r.ram, null, `RAM diverged — ${JSON.stringify(r.ram)}`);
   assert.notEqual(r.regs, null, "nothing moved at all — the rewrite took the frozen return");
   assert.equal(r.regs.reg, EXCLUDED, "a register other than the stack pointer moved");
@@ -275,7 +275,7 @@ test("DEGENERATE ENTRY: the captured spread is reported, not assumed away", { sk
 
 test("PASS-THROUGH: every dispatch of both tapes comes out identical", { skip }, () => {
   for (const [name, list] of entries()) {
-    const r = sweep(loc_181d, list);
+    const r = sweep(noOpSequencePhase2Tail, list);
     assert.ok(r.trials > 0, `vacuous: the ${name} tape captured nothing`);
     assert.equal(r.caught, 0, `${name}: ${r.caught} of ${r.trials} dispatches diverged`);
     assert.equal(r.returned, 0, `${name}: something was handed back`);
@@ -284,13 +284,13 @@ test("PASS-THROUGH: every dispatch of both tapes comes out identical", { skip },
 });
 
 test("EXCLUDED: the stack pointer moves by two, and nothing else moves at all", { skip }, () => {
-  const r = sweep(loc_181d);
+  const r = sweep(noOpSequencePhase2Tail);
   assert.deepEqual([...r.moved], [EXCLUDED], `the excluded set widened to ${[...r.moved]}`);
   for (const captured of allEntries()) {
     const a = captured.clone();
     const b = captured.clone();
     oracle(a);
-    loc_181d(b);
+    noOpSequencePhase2Tail(b);
     assert.equal(a.regs.sp, (captured.regs.sp + 2) & 0xffff, "the frozen return popped no word");
     assert.equal(b.regs.sp, captured.regs.sp, "the rewrite touched the stack");
   }
@@ -308,7 +308,7 @@ test("CRAFTED: a hostile register file still comes out untouched", { skip }, () 
       a.regs.sp = HOSTILE_SP;
       const b = a.clone();
       oracle(a);
-      loc_181d(b);
+      noOpSequencePhase2Tail(b);
       assert.equal(firstStateDiff(a.dumpState(), b.dumpState()), null, `fill ${fill}: RAM moved`);
       for (const k of KEPT) assert.equal(b.regs[k], a.regs[k], `fill ${fill}: ${k} moved`);
       trials++;
@@ -342,7 +342,7 @@ test("LIVE-OUT IS MEASURED, AND IT IS EMPTY", { skip }, () => {
 
 test("WHOLE-MACHINE, SHIMMED: identical — and vacuous for the real candidate", { skip }, () => {
   for (const [name, factory] of TAPES) {
-    const r = replay(factory, hosted(loc_181d));
+    const r = replay(factory, hosted(noOpSequencePhase2Tail));
     assert.equal(r.forked, false, `${name}: the session forked at frame ${r.frame}`);
     assert.equal(r.dispatches, DISPATCHES_PER_DRIVEN_TAPE, `${name}: dispatch count moved`);
     console.log(`  WHOLE-MACHINE/${name}: ${r.dispatches} dispatches, session identical`);
@@ -350,7 +350,7 @@ test("WHOLE-MACHINE, SHIMMED: identical — and vacuous for the real candidate",
 });
 
 test("WHOLE-MACHINE IS SENSITIVE: unshimmed, the empty rewrite wrecks the host", { skip }, () => {
-  const r = replay(drivenMachine, loc_181d);
+  const r = replay(drivenMachine, noOpSequencePhase2Tail);
   assert.ok(r.forked, "leaking two stack bytes per dispatch left the session intact — impossible");
   console.log(`  SENSITIVE: unshimmed run ${r.died ? `died — ${r.died}` : `forked at ${r.frame}`}`);
 });

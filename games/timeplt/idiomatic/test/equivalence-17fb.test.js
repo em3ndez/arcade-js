@@ -1,36 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_17fb — memory-equivalent to the frozen oracle at ROM 0x17FB.
+ * trampolineToAdvanceSequenceSubStep — memory-equivalent to the frozen oracle at ROM 0x17FB.
  *
- * GATE: strict unit-capture through unitEquivalence on a REAL dispatch, plus an exhaustive sweep
- *   of the one cell the routine touches. Three bytes, `jp 0x0F1A`, and 0x0F1A is already
- *   decompiled as advanceSequenceSubStep — so the transfer is dissolved into a direct call here,
- *   which is this caller's own unit of work, and the gate is what proves the dissolve faithful.
+ * GATE: unit-capture through unitEquivalence on a REAL dispatch, plus an exhaustive 0..255 sweep of
+ *   the one cell the routine touches. Three bytes, `jp 0x0F1A`; 0x0F1A is already decompiled as
+ *   advanceSequenceSubStep, so the transfer is dissolved into a direct call and the gate proves that
+ *   dissolve faithful.
  *
- * THE TAPE IS UNDRIVEN ATTRACT, NOT THE SHARED COIN -> START TAPE, and that is a measurement, not
- *   a preference. 0x17FB has NO transfer site anywhere in the image: it is entry eleven of the
- *   inline word table that follows the `rst 0x30` at 0x1658, dispatched on SEQUENCE_SUBSTEP, so
- *   grepping for `call`/`jp 0x17fb` finds nothing and only the table reaches it. Attract steps
- *   that sequence and dispatches it at frame 789; the shared coin -> start tape starts a game
- *   instead and does not reach it until frame 3074, past the shared budget. Undriven attract is
- *   therefore the tape that produces a real entry inside the budget.
+ * Tape is UNDRIVEN ATTRACT, not the shared coin -> start tape — a measurement: 0x17FB has no
+ *   transfer site in the image (entry eleven of the inline word table after `rst 0x30` at 0x1658,
+ *   dispatched on SEQUENCE_SUBSTEP), and attract reaches it at frame 789 while the coin -> start
+ *   tape does not reach it until frame 3074, past the shared budget.
  *
- * What it exercises, holes stated:
- *   1. EQUAL at the real dispatch — RAM byte-identical across the whole state dump.
- *   2. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY. Memory-equivalence drops the register trace:
- *      the frozen original loads the cell's address, its increment sets the flag byte and its
- *      `ret` pops the stack pointer, none of which the rewrite does. `equal` is therefore false
- *      for a CORRECT routine. The divergence is bounded by {f, h, l, sp} plus pc so "excluded"
- *      cannot quietly widen; a rewrite that clobbers fewer of them is an improvement, not a
- *      failure.
- *   3. EXHAUSTIVE over priors — the stepped cell swept 0..255 on the real entry, which is the only
- *      way the 255 -> 0 wrap is covered; the captured entry holds one low value.
- *   4. TEETH — a no-op twin, a steps-by-two twin and a wrong-cell twin, each caught by both the
- *      capture arm and every prior in the sweep.
- *
- * HOLE: one dispatch state, and it is enough for this routine and no more — it reads only the cell
- * it writes, so the sweep covers its whole input space; everything else in the machine is fixed at
- * the captured entry. Nothing here establishes WHICH sequence the index steps.
+ * Holes stated: RAM is byte-identical at the real dispatch; registers and pc are EXCLUDED
+ *   deliberately (memory-equivalence drops the register trace, divergence bounded by {f,h,l,sp}+pc
+ *   so "excluded" cannot widen); the cell is swept 0..255 to cover the 255 -> 0 wrap; teeth are a
+ *   no-op, a steps-by-two and a wrong-cell twin, each caught by the capture arm and every prior.
+ *   One dispatch state is enough — the routine reads only the cell it writes; nothing here
+ *   establishes WHICH sequence the index steps.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-17fb.test.js
  */
@@ -39,7 +26,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_17fb } from "../loc_17fb.js";
+import { trampolineToAdvanceSequenceSubStep } from "../trampolineToAdvanceSequenceSubStep.js";
 import { loc_17fb as oracle } from "../../translated/loc_17fb.js";
 import { SEQUENCE_SUBSTEP } from "../names.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
@@ -69,7 +56,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_17fb);
+  if (entry === null) gate(trampolineToAdvanceSequenceSubStep);
   return entry;
 }
 
@@ -86,8 +73,8 @@ function sweepDiff(candidate, prior) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_17fb == oracle on RAM", { skip: SKIP }, () => {
-  const r = gate(loc_17fb);
+test("EQUAL at the real dispatch: trampolineToAdvanceSequenceSubStep == oracle on RAM", { skip: SKIP }, () => {
+  const r = gate(trampolineToAdvanceSequenceSubStep);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   console.log(
@@ -107,7 +94,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_17fb(b);
+  trampolineToAdvanceSequenceSubStep(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   const unexpected = moved.filter((k) => !["f", "h", "l", "sp"].includes(k));
@@ -125,7 +112,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
 test("EXHAUSTIVE over priors: every value 0..255 steps as the original steps it", { skip: SKIP }, () => {
   let swept = 0;
   for (let prior = 0; prior < 256; prior++) {
-    const d = sweepDiff(loc_17fb, prior);
+    const d = sweepDiff(trampolineToAdvanceSequenceSubStep, prior);
     assert.equal(d, null, `prior=${prior}: ${show(d)}`);
     swept++;
   }
@@ -133,7 +120,7 @@ test("EXHAUSTIVE over priors: every value 0..255 steps as the original steps it"
 
   const wrapped = entryState().clone();
   wrapped.mem8[SEQUENCE_SUBSTEP] = 255;
-  loc_17fb(wrapped);
+  trampolineToAdvanceSequenceSubStep(wrapped);
   assert.equal(wrapped.mem8[SEQUENCE_SUBSTEP], 0, "255 must round to 0, not widen to 256");
   console.log(`  EXHAUSTIVE: ${swept} priors identical, including the 255 -> 0 wrap`);
 });

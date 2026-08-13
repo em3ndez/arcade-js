@@ -16,7 +16,7 @@ import { headingToward } from "./headingToward.js";
 import { dressSpriteForHeadingOrRetireAtEdge } from "./dressSpriteForHeadingOrRetireAtEdge.js";
 import { stepMotherShipWarpFlashFrame } from "./stepMotherShipWarpFlashFrame.js";
 import { setMotherShipVelocityFromHeading } from "./setMotherShipVelocityFromHeading.js";
-import { loc_5634 } from "./loc_5634.js";
+import { enqueueTransitionSoundBurst } from "./enqueueTransitionSoundBurst.js";
 import { requestEnemyLaunchSound } from "./requestEnemyLaunchSound.js";
 import { requestTwoSounds } from "./requestTwoSounds.js";
 import { requestRoundIntroSoundBurst } from "./requestRoundIntroSoundBurst.js";
@@ -133,7 +133,7 @@ export function loc_43f0_4554(m) {
 
   regs.xor(regs.a);
   mem8[HITS_REMAINING] = regs.a;
-  loc_5634(m);
+  enqueueTransitionSoundBurst(m);
   requestRoundIntroSoundBurst(m);
 
   regs.hl = ACTOR_RECORD_SLOT0;

@@ -5,7 +5,7 @@
  * fixed table sum collapses one of them to zero); the other blanks a strided run, copies a
  * sixteen-byte record into one of two banks a cell selects, and marks a phase cell. LIVE-OUT: memory. */
 
-import { loc_5634 } from "./loc_5634.js";
+import { enqueueTransitionSoundBurst } from "./enqueueTransitionSoundBurst.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startNextRound } from "./startNextRound.js";
 import { ACTOR_RECORD_SLOT0, ACTOR_SPRITE_Y_SLOT0, ROUND_TRANSITION_HOLD } from "./names.js";
@@ -21,7 +21,7 @@ export function advanceRoundWhenFieldCleared(m) {
     if (mem8[slot] !== 0) return;
   }
 
-  loc_5634(m);
+  enqueueTransitionSoundBurst(m);
 
   if (mem8[PLAY_ACTIVE] === 0) {
     mem8[ROUND_TRANSITION_HOLD] = mem8[ROUND_TRANSITION_HOLD_SEED];
