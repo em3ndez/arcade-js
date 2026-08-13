@@ -12,7 +12,7 @@
 import { u16, u8 } from "../../../core/int.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
 import { replayCloudBands } from "./replayCloudBands.js";
-import { COMMAND_READ_CURSOR, COMMAND_RING, enterCommandRingDrain_ADDR, loc_0bbc } from "./names.js";
+import { COMMAND_READ_CURSOR, COMMAND_RING, enterCommandRingDrain_ADDR, COMMAND_HANDLER_TABLE } from "./names.js";
 
 const RING_CELLS = 64;
 const FREE = 255;
@@ -36,7 +36,7 @@ export function* runCommandRingDrainLoop(m) {
     mem8[argumentCell] = FREE;
     mem8[COMMAND_READ_CURSOR] = u8(argumentCell + 1) & (RING_CELLS - 1);
 
-    regs.hl = loc_0bbc;
+    regs.hl = COMMAND_HANDLER_TABLE;
     regs.a = command;
     regs.and(HANDLER_BITS);
     fetchWideTableWord(m);

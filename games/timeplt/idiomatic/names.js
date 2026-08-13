@@ -1823,10 +1823,10 @@ export const HIGH_SCORE_READOUT_BASE = 0xa641; // char-plane leftmost digit cell
 export const READOUT_PICTOGRAM_TABLE = 0x4cb4; // ROM table of stride-3 pictogram records keyed by source lead byte (paintLabelledNumericReadoutColumn)
 export const PLAYER1_SCORE_READOUT_BASE = 0xa781; // char-plane leftmost digit cell of the player-1 six-digit score readout (paintPlayerOneScoreReadout); parallels PLAYER2_SCORE_READOUT_BASE
 export const NMI_ENABLE_BYTE = 0x4c87; // fixed ROM byte (=0x01) read at startup and written to the NMI-enable latch 0xC300 to arm interrupts (petWatchdog.../enableInterrupt...)
-export const loc_484f = 0x484f; // proposal: postNextParachutistBonus STEP_TABLE
-export const loc_c30a = 0xc30a; // proposal: pulseSlot1CoinCounter COUNTER_LINE
-export const loc_c30c = 0xc30c; // proposal: pulseSlot2CoinCounter OUTPUT_LINE
-export const loc_0bbc = 0x0bbc; // proposal: runCommandRingDrainLoop HANDLERS
+export const PARACHUTIST_BONUS_ARG_TABLE = 0x484f; // 4-entry ROM table of per-step argument bytes for the parachutist-bonus sound command run (postNextParachutistBonus)
+export const COIN_COUNTER_0_LATCH = 0xc30a; // hardware LS259 bit 5 = slot-1 mechanical coin counter (board LATCH_COIN_COUNTER_0); write-only pulse (pulseSlot1CoinCounter)
+export const COIN_COUNTER_1_LATCH = 0xc30c; // hardware LS259 bit 6 = slot-2 coin counter (LATCH_COIN_COUNTER_1); write-only pulse (pulseSlot2CoinCounter)
+export const COMMAND_HANDLER_TABLE = 0x0bbc; // 16-entry ROM word table of ring-command handler code addresses, indexed by command&0x0f and m.call'd (runCommandRingDrainLoop)
 
 // Batch 9 (final data batch): data-address bases lifted out of routine-local consts / raw hex in 17 files.
 // Each is a ROM-image table/data-block base loaded into regs.hl then read by a table helper, a cell walked
@@ -1837,21 +1837,21 @@ export const loc_0bbc = 0x0bbc; // proposal: runCommandRingDrainLoop HANDLERS
 // loc_c000/c200/c300/c308, ENEMY_SPAWN_RECORD_TABLE) are reused, not re-added.
 export const seatCaptionPenFromEraFoldingTamperIntoPhase_ADDR = 0x335e; // §3 collision: routine 0x335e's own code read as data by selectFoldBlock
 export const loc_1f2e_ADDR = 0x1f2e; // §3 collision: routine 0x1f2e's own code read as data by turnShipTowardTargetHeading
-export const loc_4094 = 0x4094; // proposal: runOneShotAnimatedObjectSlot SHAPE_TABLE
-export const loc_47ea = 0x47ea; // proposal: runParachutistSlot SHAPE_TABLE
-export const loc_3ec3 = 0x3ec3; // proposal: runSlotCountdownDriftAndAnimateElseRetire SHAPE_TABLE
-export const loc_6000 = 0x6000; // proposal: seatTheStackAndSettleTheControlLatch EXPANSION_SOCKET
-export const loc_b000 = 0xb000; // proposal: seatTheStackAndSettleTheControlLatch STACK_SEAT
-export const loc_2d4b = 0x2d4b; // proposal: seatTheStackAndSettleTheControlLatch PICTURE_ENABLE_SETTING
-export const loc_316e = 0x316e; // proposal: seedSceneryEntriesThenRunScenery OBJECT_TABLE
-export const loc_1600 = 0x1600; // proposal: sendOneQueuedSoundThenUnwindTheFrameInterrupt GATE_OPEN_BYTE
-export const loc_c304 = 0xc304; // proposal: sendSoundCommand AUDIO_ATTENTION
-export const loc_482d = 0x482d; // proposal: showParachutistAward SHAPE_TABLE
-export const loc_488d = 0x488d; // proposal: spawnAtEdgeAhead EDGE_POSITIONS
-export const loc_38d2 = 0x38d2; // proposal: spawnEnemyWaveIntoFreeSlots ORDINAL_TABLE
-export const loc_2c1d = 0x2c1d; // proposal: steerTowardAimHeading TURN_RATE_TABLE
-export const loc_3438 = 0x3438; // proposal: stepShapeAnimation RUN_POINTERS
-export const loc_4b95 = 0x4b95; // proposal: unpackCoinage VALUES
+export const ONE_SHOT_OBJECT_SHAPE_TABLE = 0x4094; // ROM sprite-shape byte table keyed on the slot's countdown (runOneShotAnimatedObjectSlot)
+export const PARACHUTIST_FLIGHT_SHAPE_TABLE = 0x47ea; // 8-entry ROM in-flight parachutist sprite-shape table keyed on FRAME_TICK (runParachutistSlot)
+export const COUNTDOWN_SLOT_SHAPE_TABLE = 0x3ec3; // 8-shape ROM animation table (each held 4 counts) for the countdown/drift object slot (runSlotCountdownDriftAndAnimateElseRetire)
+export const EXPANSION_SOCKET_PROBE = 0x6000; // power-on probe of the expansion-ROM socket at the 0x6000 ROM-region boundary (read cp 0x55; empty socket floats high) (seatTheStackAndSettleTheControlLatch)
+export const SPRITE_RAM_BASE = 0xb000; // base of sprite RAM (0xb000), seated as the initial stack top at boot; the stack grows down below it (seatTheStackAndSettleTheControlLatch)
+export const DISPLAY_ON_VALUE = 0x2d4b; // ROM byte (=0x01) written to VIDEO_ENABLE_LATCH at boot to turn the picture on; parallels DISPLAY_OFF_VALUE (seatTheStackAndSettleTheControlLatch)
+export const SCENERY_SEED_TABLE = 0x316e; // 4-entry packed ROM (tint,shape) table seating the four scenery objects (seedSceneryEntriesThenRunScenery)
+export const NMI_REENABLE_BYTE = 0x1600; // ROM byte (=0x01) written to the NMI-enable latch 0xc300 to reopen the interrupt gate in the vblank epilogue (sendOneQueuedSoundThenUnwindTheFrameInterrupt); distinct from NMI_ENABLE_BYTE 0x4c87
+export const AUDIO_IRQ_LATCH = 0xc304; // hardware LS259 bit 2 = audio IRQ (board LATCH_AUDIO_IRQ); write-only 1/0 pulse waking the audio Z80 after the 0xc000 sound-latch write (sendSoundCommand)
+export const PARACHUTIST_AWARD_SHAPE_TABLE = 0x482d; // 4-entry ROM sprite-shape table for the parachutist award pose (showParachutistAward)
+export const EDGE_SPAWN_COORD_TABLE = 0x488d; // 16x2-byte (X,Y) ROM coordinate-pair table of edge spawn positions by heading sector (spawnAtEdgeAhead)
+export const WAVE_RUN_SELECTOR_TABLE = 0x38d2; // ROM table mapping a craft's wave ordinal to its shape-run selector (slot+0x0a) (spawnEnemyWaveIntoFreeSlots)
+export const TURN_RATE_BY_ERA_TABLE = 0x2c1d; // 5-entry per-era ROM turn-rate (heading step size) table (steerTowardAimHeading)
+export const SHAPE_RUN_POINTER_TABLE = 0x3438; // ROM word-pointer table; each entry points to a shape-byte run the record animates through, keyed by RUN_SELECTOR (stepShapeAnimation)
+export const COINAGE_VALUE_TABLE = 0x4b95; // 16-entry ROM table turning a DIP coinage nibble into a coin-per-credit value (unpackCoinage)
 
 // §code address-retrofit (phase 2). Routine entries used as call/push16/return targets kept as
 // <name>_ADDR with the deep-dissolve deferred to Karl; non-routine code targets (derail / return /

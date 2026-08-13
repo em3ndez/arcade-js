@@ -7,7 +7,7 @@
 
 import { trampolineToLoc_307f } from "./trampolineToLoc_307f.js";
 import { runSceneryForEra } from "./runSceneryForEra.js";
-import { SCENERY_ENTRY_SLOT0, TAMPER_WITNESS, loc_316e } from "./names.js";
+import { SCENERY_ENTRY_SLOT0, TAMPER_WITNESS, SCENERY_SEED_TABLE } from "./names.js";
 
 const OBJECTS = 4;
 
@@ -23,7 +23,7 @@ export function seedSceneryEntriesThenRunScenery(m) {
   regs.a = mem8[regs.hl];
   if (regs.a !== 0x10 && regs.a !== 0x05) return trampolineToLoc_307f(m);
 
-  regs.hl = loc_316e;
+  regs.hl = SCENERY_SEED_TABLE;
   regs.iy = SCENERY_ENTRY_SLOT0;
   regs.b = OBJECTS;
   do {

@@ -6,7 +6,7 @@
  * fixed table through one global cell, so every object turning this frame turns by the same
  * amount. LIVE-OUT: memory only, one byte, and nothing at all once the aim is reached. */
 
-import { ERA_INDEX, loc_2c1d } from "./names.js";
+import { ERA_INDEX, TURN_RATE_BY_ERA_TABLE } from "./names.js";
 import { u8, u16 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
 
@@ -30,7 +30,7 @@ export function steerTowardAimHeading(m, object = m.regs.ix) {
 
 /** The table fetch wants its base and its index in the registers it reads them from. */
 function turnRate(m, index) {
-  m.regs.hl = loc_2c1d;
+  m.regs.hl = TURN_RATE_BY_ERA_TABLE;
   m.regs.a = index;
   return fetchTableByte(m);
 }

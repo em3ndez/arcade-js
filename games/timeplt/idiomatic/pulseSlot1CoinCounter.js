@@ -8,14 +8,14 @@
  * The line is a latch, not memory, so nothing here reads back what it wrote.
  * LIVE-OUT: memory, plus the latched line. */
 
-import { COIN_ACCEPTED, COIN_PULSE_TIMER, loc_c30a } from "./names.js";
+import { COIN_ACCEPTED, COIN_PULSE_TIMER, COIN_COUNTER_0_LATCH } from "./names.js";
 
 const PULSE_FRAMES = 48;
 const LINE_DROPS_AT = 24;
 const WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE = 10;
 
 const drive = (m, level) =>
-  m.mem.write8(loc_c30a, level, WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE);
+  m.mem.write8(COIN_COUNTER_0_LATCH, level, WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE);
 
 export function pulseSlot1CoinCounter(m) {
   const { mem8 } = m;

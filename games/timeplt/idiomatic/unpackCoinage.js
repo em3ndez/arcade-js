@@ -8,7 +8,7 @@
  * the table pointer, and the last byte read. */
 
 import { fetchTableByte } from "./fetchTableByte.js";
-import { COINAGE_SETTINGS, COIN_SLOT_1_RATIO, COIN_SLOT_2_RATIO, FREE_PLAY, loc_4b95 } from "./names.js";
+import { COINAGE_SETTINGS, COIN_SLOT_1_RATIO, COIN_SLOT_2_RATIO, FREE_PLAY, COINAGE_VALUE_TABLE } from "./names.js";
 
 const NIBBLE = 0x0f;
 const RAISING_VALUE = 15;
@@ -17,7 +17,7 @@ const RAISED = 255;
 function unpackNibble(m, setting, destination) {
   const { mem8, regs } = m;
   if (setting === RAISING_VALUE) mem8[FREE_PLAY] = RAISED;
-  regs.hl = loc_4b95;
+  regs.hl = COINAGE_VALUE_TABLE;
   regs.a = setting;
   mem8[destination] = fetchTableByte(m);
 }

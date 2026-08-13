@@ -121,6 +121,12 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   copyright-line colour-check cell, two more anti-tamper checksum blocks (attract and boot
   self-test), sprite slots 1-2, the score/credit readout base cells (high-score, player-1, credit
   count), a second digit-glyph table, the readout pictogram table, and the NMI-enable init byte.
+- **Batch 10** — the object shape/animation tables (one-shot, countdown-slot, parachutist flight
+  and award), the command-handler and shape-run pointer tables, the edge-spawn coordinate and
+  wave-run-selector tables, the per-era turn-rate and coinage-value tables, the coin-counter and
+  audio-IRQ hardware latches, and the boot cells (the expansion-socket probe, the sprite-RAM base
+  used as the boot stack seat, and the display-on and NMI-re-enable ROM values). One address — a
+  bare m.call code target — stays a placeholder for the routine-naming pass.
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for
