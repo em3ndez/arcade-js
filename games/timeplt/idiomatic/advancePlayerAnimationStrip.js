@@ -15,14 +15,14 @@ import {
   TAMPER_COLOUR_STRIP,
   TAMPER_GLYPH_STRIP,
   ERA_INDEX,
-  loc_337a,
-  loc_4902,
+  PLAYER_ANIM_ROW_COUNT,
+  PLAYER_ANIM_COL_COUNT,
   loc_a5af,
-  loc_1f76,
-  loc_1f94,
-  loc_1fb2,
-  loc_1fd0,
-  loc_1fee,
+  PLAYER_ANIM_STRIP_0,
+  PLAYER_ANIM_STRIP_1,
+  PLAYER_ANIM_STRIP_2,
+  PLAYER_ANIM_STRIP_3,
+  PLAYER_ANIM_STRIP_4,
 } from "./names.js";
 
 const PHASE = 0x00; // record byte holding the animation phase
@@ -39,13 +39,13 @@ const COLOUR_RAM_BIT = 2; // clearing this bit of H maps video into colour memor
 
 // phase after the decrement -> base of the strip's shape data, in keyframe order
 const FRAME_ARMS = [
-  [0xb3, loc_1f76],
-  [0xab, loc_1f94],
-  [0xa3, loc_1fb2],
-  [0x9b, loc_1fd0],
-  [0x93, loc_1fd0],
-  [0x8b, loc_1fb2],
-  [0x83, loc_1fee],
+  [0xb3, PLAYER_ANIM_STRIP_0],
+  [0xab, PLAYER_ANIM_STRIP_1],
+  [0xa3, PLAYER_ANIM_STRIP_2],
+  [0x9b, PLAYER_ANIM_STRIP_3],
+  [0x93, PLAYER_ANIM_STRIP_3],
+  [0x8b, PLAYER_ANIM_STRIP_2],
+  [0x83, PLAYER_ANIM_STRIP_4],
 ];
 
 export function advancePlayerAnimationStrip(m) {
@@ -91,11 +91,11 @@ export function advancePlayerAnimationStrip(m) {
   regs.add(regs.b);
   regs.c = regs.a;
   regs.exx();
-  regs.a = mem8[loc_337a];
+  regs.a = mem8[PLAYER_ANIM_ROW_COUNT];
   regs.b = regs.a;
   do {
     regs.exx();
-    regs.a = mem8[loc_4902];
+    regs.a = mem8[PLAYER_ANIM_COL_COUNT];
     regs.b = regs.a;
     do {
       regs.a = mem8[regs.de];

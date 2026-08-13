@@ -18,7 +18,7 @@ import {
   BAND_SCRIPT_CURSOR,
   BAND_TO4_PASS_COUNTDOWN,
   INTRO_ANIMATION_STEP,
-  loc_a451,
+  CHAR_PLANE_COLUMN_BASE,
   loc_a5d1,
   loc_a5f0,
   loc_a5f1,
@@ -58,7 +58,7 @@ export function advanceScriptedCharPlaneBandTo4(m) {
     }
     restoreColumnFromSavedRun(m);
 
-    stepThirteenScriptedGlyphCells(m, loc_a451, 0x01);
+    stepThirteenScriptedGlyphCells(m, CHAR_PLANE_COLUMN_BASE, 0x01);
     mem16[BAND_SCRIPT_CURSOR] = u16(mem16[BAND_SCRIPT_CURSOR] + SCRIPT_STRIDE);
     stepThirteenScriptedGlyphCells(m, loc_a7b1, 0x03);
 

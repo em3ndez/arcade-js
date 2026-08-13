@@ -3,8 +3,8 @@
  * fetched from a byte of the program image. LIVE-OUT: memory. */
 
 import { enqueueSoundIfGameInProgress } from "./enqueueSoundIfGameInProgress.js";
-import { loc_2d4e } from "./names.js";
+import { BONUS_LIFE_SOUND } from "./names.js";
 
 export function requestBonusLifeSound(m) {
-  enqueueSoundIfGameInProgress(m, m.mem8[loc_2d4e]);
+  enqueueSoundIfGameInProgress(m, m.mem8[BONUS_LIFE_SOUND]);
 }

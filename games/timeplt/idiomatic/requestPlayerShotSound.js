@@ -3,8 +3,8 @@
  * Its code is fetched from a byte of the program image. LIVE-OUT: memory. */
 
 import { enqueueSoundIfGameOrAttract } from "./enqueueSoundIfGameOrAttract.js";
-import { loc_3270 } from "./names.js";
+import { PLAYER_SHOT_SOUND } from "./names.js";
 
 export function requestPlayerShotSound(m) {
-  enqueueSoundIfGameOrAttract(m, m.mem8[loc_3270]);
+  enqueueSoundIfGameOrAttract(m, m.mem8[PLAYER_SHOT_SOUND]);
 }

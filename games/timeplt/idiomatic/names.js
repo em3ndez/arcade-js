@@ -1605,37 +1605,37 @@ export const ATTACKER_SPAWN_SOUND_ERA0 = 0x16de; // sound-command code, requestA
 export const ROUND_START_SOUND = 0x1767; // sound-command code enqueued by requestRoundStartSound
 export const loc_18fa = 0x18fa; // proposal: loc_583a SOUND_CODE_CELL
 export const ENEMY_WAVE_SOUND = 0x273a; // sound-command code enqueued by requestEnemyWaveSound
-export const ATTACKER_SPAWN_SOUND_LATE_ERA = 0x276b; // sound-command code, requestAttackerSpawnSoundLateEra (era>=3)
+export const ATTACKER_SPAWN_SOUND_LATE_ERA = 0x276b; // sound-command code, requestAttackerSpawnSoundLateEra (only era 4 reaches it; era 3 folds into the mid-era path)
 export const INTER_ROUND_SOUND_1 = 0x27cb; // 1st of the inter-round sound pair (requestInterRoundSoundPair)
-export const loc_2d4e = 0x2d4e; // proposal: requestBonusLifeSound SOUND_CODE_CELL
-export const loc_2d87 = 0x2d87; // proposal: loc_568e SOUND_CODE_CELL
-export const loc_3270 = 0x3270; // proposal: requestPlayerShotSound SOUND_CODE_CELL
-export const loc_322e = 0x322e; // proposal: requestCoinSound SOUND_CODE_CELL
-export const loc_33a0 = 0x33a0; // proposal: requestInterRoundSoundPair SECOND_CODE_CELL
-export const loc_49ee = 0x49ee; // proposal: requestMotherShipWarpSound SOUND_CODE_CELL
-export const loc_4c9f = 0x4c9f; // proposal: requestEnemyLaunchSoundLateEra SOUND_CODE_CELL
-export const loc_4cda = 0x4cda; // proposal: requestTwoSounds SECOND_SOUND_CODE_CELL
+export const BONUS_LIFE_SOUND = 0x2d4e; // sound-command code enqueued by requestBonusLifeSound
+export const OBJECT_STATE_3B_SOUND = 0x2d87; // sound requested when a one-shot/countdown object is stamped to state 0x3b (animate-out onset); named by the state, not 'death', since callers include non-combat objects [guess]
+export const PLAYER_SHOT_SOUND = 0x3270; // sound-command code enqueued by requestPlayerShotSound
+export const COIN_SOUND = 0x322e; // sound-command code enqueued unconditionally by requestCoinSound
+export const INTER_ROUND_SOUND_2 = 0x33a0; // 2nd of the inter-round sound pair (requestInterRoundSoundPair)
+export const MOTHER_SHIP_WARP_SOUND = 0x49ee; // sound-command code enqueued by requestMotherShipWarpSound
+export const ENEMY_LAUNCH_SOUND_LATE_ERA = 0x4c9f; // late-era enemy-launch sound code (requestEnemyLaunchSoundLateEra)
+export const TWO_SOUND_REQUEST_SECOND_CODE = 0x4cda; // 2nd of the two sound codes requestTwoSounds enqueues
 
 // Batch 2: mixed data addresses lifted out of routine-local consts / raw hex.
 // ROM-image cells (below 0xA800) read as data; the rest are work/screen RAM cells,
 // script-column starts, and shape-strip bases. Every address checked against ROUTINES keys: no collision.
-export const loc_0ccd = 0x0ccd; // proposal: armLineWipeFromFifthLine LINE_COUNT_SOURCE
-export const loc_163f = 0x163f; // proposal: armAttractScreenShowingHighScore PATCH_LIST
-export const loc_1736 = 0x1736; // proposal: advanceAttractTowardGameStart SEQUENCE_PHASE image seed
+export const BLANK_LINES_COUNT = 0x0ccd; // ROM byte copied into BLANK_LINES_LEFT — number of lines the wipe runs (armLineWipeFromFifthLine)
+export const HIGH_SCORE_PATCH_TABLE = 0x163f; // six 3-byte {dest-lo,dest-hi,value} patch records for the attract high-score screen (armAttractScreenShowingHighScore)
+export const SEQUENCE_PHASE_ON_CREDIT = 0x1736; // ROM byte SEQUENCE_PHASE jumps to when CREDIT_COUNT != 0 (advanceAttractTowardGameStart)
 export const holdCopyrightThenEraseTheCoinInvitation_ADDR = 0x1748; // §3 collision: routine 0x1748's own code, read as data by advancePenRunAnimationStep's anti-tamper checksum
 export const saveAccumulatorForFrameInterrupt_ADDR = 0x00d8; // §3 collision: routine 0x00d8's own code, checksummed as data by clearWorkRamAndSpriteBanksThenColdInit (which also calls saveAccumulatorForFrameInterrupt)
 export const guardBlockOrBlankDisplay_ADDR = 0x17b9; // §3 collision: routine 0x17b9's own code, walked as data by foldImageBlockIntoSignatureThenAdvanceSequence's tamper signature
 export const loc_0f8d_ADDR = 0x0f8d; // §3 collision: routine 0x0f8d's own code, read as a glyph/colour table by seatCaptionPenFromEraFoldingTamperIntoPhase
-export const loc_1f76 = 0x1f76; // proposal: advancePlayerAnimationStrip FRAME_ARMS strip base
-export const loc_1f94 = 0x1f94; // proposal: advancePlayerAnimationStrip FRAME_ARMS strip base
-export const loc_1fb2 = 0x1fb2; // proposal: advancePlayerAnimationStrip FRAME_ARMS strip base
-export const loc_1fd0 = 0x1fd0; // proposal: advancePlayerAnimationStrip FRAME_ARMS strip base
-export const loc_1fee = 0x1fee; // proposal: advancePlayerAnimationStrip FRAME_ARMS strip base
-export const loc_337a = 0x337a; // proposal: advancePlayerAnimationStrip OUTER_COUNT
+export const PLAYER_ANIM_STRIP_0 = 0x1f76; // player-animation keyframe tile shape-strip base (advancePlayerAnimationStrip FRAME_ARMS)
+export const PLAYER_ANIM_STRIP_1 = 0x1f94; // player-animation keyframe shape-strip base
+export const PLAYER_ANIM_STRIP_2 = 0x1fb2; // player-animation keyframe shape-strip base (reused on the ping-pong)
+export const PLAYER_ANIM_STRIP_3 = 0x1fd0; // player-animation keyframe shape-strip base (reused)
+export const PLAYER_ANIM_STRIP_4 = 0x1fee; // player-animation final keyframe shape-strip base
+export const PLAYER_ANIM_ROW_COUNT = 0x337a; // outer djnz count of the strip blit = tile rows (advancePlayerAnimationStrip)
 export const HEADING_SHAPE_TABLE = 0x3c84; // 2-byte sprite-shape records indexed by heading; shared by armBomberSlotWhenTimerFires + stepMotherShip
-export const loc_4902 = 0x4902; // proposal: advancePlayerAnimationStrip INNER_COUNT
-export const loc_a404 = 0xa404; // proposal: armLineWipeFromFifthLine FIRST_CELL (stored pointer)
-export const loc_a451 = 0xa451;
+export const PLAYER_ANIM_COL_COUNT = 0x4902; // inner djnz count = tiles per row (advancePlayerAnimationStrip; also read as a word by restartAttractSequence's image-tamper fold)
+export const BLANK_LINE_START_CELL = 0xa404; // VRAM cell the line-wipe starts at, stored into BLANK_LINE_CURSOR (armLineWipeFromFifthLine)
+export const CHAR_PLANE_COLUMN_BASE = 0xa451; // top cell of the scripted working character-plane column, walked by +0x20 (gatherCharColumnIntoBackingRun/restoreColumnFromSavedRun)
 export const loc_a5af = 0xa5af; // proposal: advancePlayerAnimationStrip VIDEO_BASE
 export const loc_a5d1 = 0xa5d1;
 export const loc_a5f0 = 0xa5f0;

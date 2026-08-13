@@ -4,10 +4,10 @@
  * instead of being carried as one, so an edit to the image moves it. Neither staged cell is
  * read here, and nothing a caller was holding survives into either. LIVE-OUT: memory-only. */
 
-import { BLANK_LINES_LEFT, BLANK_LINE_CURSOR, loc_0ccd, loc_a404 } from "./names.js";
+import { BLANK_LINES_LEFT, BLANK_LINE_CURSOR, BLANK_LINES_COUNT, BLANK_LINE_START_CELL } from "./names.js";
 
 export function armLineWipeFromFifthLine(m) {
   const { mem8, mem16 } = m;
-  mem16[BLANK_LINE_CURSOR] = loc_a404;
-  mem8[BLANK_LINES_LEFT] = mem8[loc_0ccd];
+  mem16[BLANK_LINE_CURSOR] = BLANK_LINE_START_CELL;
+  mem8[BLANK_LINES_LEFT] = mem8[BLANK_LINES_COUNT];
 }

@@ -3,8 +3,8 @@
  * fetched from a byte of the program image. LIVE-OUT: memory. */
 
 import { enqueueSoundIfGameInProgress } from "./enqueueSoundIfGameInProgress.js";
-import { loc_49ee } from "./names.js";
+import { MOTHER_SHIP_WARP_SOUND } from "./names.js";
 
 export function requestMotherShipWarpSound(m) {
-  enqueueSoundIfGameInProgress(m, m.mem8[loc_49ee]);
+  enqueueSoundIfGameInProgress(m, m.mem8[MOTHER_SHIP_WARP_SOUND]);
 }

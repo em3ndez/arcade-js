@@ -69,6 +69,14 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   ABSENT_SCORE_LABEL_INDEX, ATTRACT_SEQUENCE_START_PHASE, NEXT_ROUND_START_SUBSTEP,
   ROUND_TRANSITION_HOLD_SEED, PLAYER2_SCORE_READOUT_BASE. One cell was left a bare placeholder
   because its only reader is an unwired routine.
+- **Batch 2** — more sound cells (BONUS_LIFE_SOUND, PLAYER_SHOT_SOUND, COIN_SOUND,
+  MOTHER_SHIP_WARP_SOUND, ENEMY_LAUNCH_SOUND_LATE_ERA, INTER_ROUND_SOUND_2,
+  TWO_SOUND_REQUEST_SECOND_CODE, and OBJECT_STATE_3B_SOUND — named by its state code, not "death",
+  since its callers are one-shot/countdown objects); the player-animation keyframe strip bases and
+  their blit counts (PLAYER_ANIM_STRIP_0..4, PLAYER_ANIM_ROW_COUNT, PLAYER_ANIM_COL_COUNT); the
+  line-wipe count and start cell (BLANK_LINES_COUNT, BLANK_LINE_START_CELL); the attract
+  high-score patch table (HIGH_SCORE_PATCH_TABLE); the credit-insert sequence phase
+  (SEQUENCE_PHASE_ON_CREDIT); and the scripted char-plane column base (CHAR_PLANE_COLUMN_BASE).
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for
