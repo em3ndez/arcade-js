@@ -127,6 +127,14 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   audio-IRQ hardware latches, and the boot cells (the expansion-socket probe, the sprite-RAM base
   used as the boot stack seat, and the display-on and NMI-re-enable ROM values). One address — a
   bare m.call code target — stays a placeholder for the routine-naming pass.
+- **Batch 11** — the remaining phase-2 code-address placeholders. Two of them hold the entry
+  address of a real named idiomatic routine used as a code operand: the vertical-blank service the
+  `push af` entry falls into (`serviceVerticalBlankInterrupt`, `m.call`'d from that entry) and the
+  frame-service epilogue the service `push16`s as its own arm-return slot
+  (`sendOneQueuedSoundThenUnwindTheFrameInterrupt`). Those take the routine's name with the `_ADDR`
+  collision suffix and join the call/return-target group, deep-dissolve deferred to Karl. The rest
+  name no routine — off-map and derail-into-data anti-tamper targets, and intra-routine parked
+  return slots — and stay `loc_` placeholders. This closes the const-placeholder naming.
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for

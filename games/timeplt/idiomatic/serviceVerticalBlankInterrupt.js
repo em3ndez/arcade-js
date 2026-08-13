@@ -10,7 +10,7 @@ import { drainBothDeferredCellLists } from "./drainBothDeferredCellLists.js";
 import { serviceCoinInputs } from "./serviceCoinInputs.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { sendOneQueuedSoundThenUnwindTheFrameInterrupt } from "./sendOneQueuedSoundThenUnwindTheFrameInterrupt.js";
-import { ACTIVE_PLAYER, ATTACKER_SPAWN_COOLDOWN, BANK_LAUNCH_COOLDOWN, BCD_FRAME_COUNTER, COCKTAIL_MODE, COINAGE_SETTINGS, DIP1_MIRROR, FRAME_TICK, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR, SCREEN_UNFLIPPED, SEQUENCE_PHASE, WAVE_CLAIM_TIMER, loc_0174, SEQUENCE_PHASE_ARM_TABLE, loc_c200, loc_c300, FLIPSCREEN_LATCH, IN1_PORT, IN2_PORT, DSW0_PORT } from "./names.js";
+import { ACTIVE_PLAYER, ATTACKER_SPAWN_COOLDOWN, BANK_LAUNCH_COOLDOWN, BCD_FRAME_COUNTER, COCKTAIL_MODE, COINAGE_SETTINGS, DIP1_MIRROR, FRAME_TICK, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR, SCREEN_UNFLIPPED, SEQUENCE_PHASE, WAVE_CLAIM_TIMER, sendOneQueuedSoundThenUnwindTheFrameInterrupt_ADDR, SEQUENCE_PHASE_ARM_TABLE, loc_c200, loc_c300, FLIPSCREEN_LATCH, IN1_PORT, IN2_PORT, DSW0_PORT } from "./names.js";
 
 const TIMERS = [BANK_LAUNCH_COOLDOWN, WAVE_CLAIM_TIMER, ATTACKER_SPAWN_COOLDOWN];
 
@@ -59,7 +59,7 @@ export function serviceVerticalBlankInterrupt(m) {
   const arm = fetchTableWord(m);
   regs.de = regs.hl;
   regs.hl = arm;
-  m.push16(loc_0174); // the arm returns here, and the epilogue unwinds from there
+  m.push16(sendOneQueuedSoundThenUnwindTheFrameInterrupt_ADDR); // the arm returns here, and the epilogue unwinds from there
   m.call(arm);
   return sendOneQueuedSoundThenUnwindTheFrameInterrupt(m);
 }

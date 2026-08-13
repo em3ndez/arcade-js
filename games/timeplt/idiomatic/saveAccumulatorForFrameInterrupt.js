@@ -3,10 +3,10 @@
  * into the body that saves everything else and does the frame's work. The two bytes stacked sit
  * in work memory, so they are part of what the machine leaves behind. LIVE-OUT: memory. */
 
-import { loc_00d9 } from "./names.js";
+import { serviceVerticalBlankInterrupt_ADDR } from "./names.js";
 
 export function saveAccumulatorForFrameInterrupt(m) {
   const { regs } = m;
   m.push16(regs.af);
-  return m.call(loc_00d9);
+  return m.call(serviceVerticalBlankInterrupt_ADDR);
 }
