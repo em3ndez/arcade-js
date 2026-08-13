@@ -8,7 +8,7 @@
  * address is a fifth line, not a ninth; that last setting is read from the program image, not a literal, so
  * patching it can leave the machine dark. No work memory is touched. LIVE-OUT: stack seat, latched lines, accumulator. */
 
-import { loc_6000, loc_b000, loc_c200, loc_c300, loc_c308, loc_2d4b, clearWorkRamAndSpriteBanksThenColdInit_ADDR } from "./names.js";
+import { loc_6000, loc_b000, loc_c200, loc_c300, VIDEO_ENABLE_LATCH, loc_2d4b, clearWorkRamAndSpriteBanksThenColdInit_ADDR } from "./names.js";
 
 const EXPANSION_FITTED = 0x55;
 
@@ -38,7 +38,7 @@ export function seatTheStackAndSettleTheControlLatch(m) {
   }
 
   regs.a = mem.read8(loc_2d4b);
-  mem.write8(loc_c308, regs.a, STORE_TO_A_FIXED_ADDRESS);
+  mem.write8(VIDEO_ENABLE_LATCH, regs.a, STORE_TO_A_FIXED_ADDRESS);
 
   return m.call(clearWorkRamAndSpriteBanksThenColdInit_ADDR);
 }

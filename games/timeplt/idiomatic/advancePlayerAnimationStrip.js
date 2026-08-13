@@ -17,7 +17,7 @@ import {
   ERA_INDEX,
   PLAYER_ANIM_ROW_COUNT,
   PLAYER_ANIM_COL_COUNT,
-  loc_a5af,
+  PLAYER_ANIM_VRAM_BASE,
   PLAYER_ANIM_STRIP_0,
   PLAYER_ANIM_STRIP_1,
   PLAYER_ANIM_STRIP_2,
@@ -85,7 +85,7 @@ export function advancePlayerAnimationStrip(m) {
   if (base === null) return; // phase between keyframes
 
   regs.de = base;
-  regs.hl = loc_a5af;
+  regs.hl = PLAYER_ANIM_VRAM_BASE;
   regs.b = COLOUR_BIAS;
   regs.a = mem8[ERA_INDEX];
   regs.add(regs.b);

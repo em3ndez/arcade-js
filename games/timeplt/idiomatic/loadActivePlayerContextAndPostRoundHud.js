@@ -12,7 +12,7 @@ import { postCommand } from "./postCommand.js";
 import {
   ACTIVE_PLAYER, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES,
   LIVES_REMAINING, ROUND_NUMBER, PLAY_ACTIVE,
-  loc_5b50, loc_c308,
+  loc_5b50, VIDEO_ENABLE_LATCH,
 } from "./names.js";
 
 const CONTEXT_BYTES = 16;
@@ -35,7 +35,7 @@ export function loadActivePlayerContextAndPostRoundHud(m) {
 
   let checksum = 0;
   for (let i = 0; i < CHECKSUM_BYTES; i++) checksum ^= mem8[loc_5b50 + i];
-  m.mem.write8(loc_c308, u8(checksum - 1), LATCH_WRITE_OFFSET);
+  m.mem.write8(VIDEO_ENABLE_LATCH, u8(checksum - 1), LATCH_WRITE_OFFSET);
 
   return advanceSequenceSubStep(m);
 }

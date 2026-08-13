@@ -19,14 +19,14 @@ import {
   BAND_TO4_PASS_COUNTDOWN,
   INTRO_ANIMATION_STEP,
   CHAR_PLANE_COLUMN_BASE,
-  loc_a5d1,
-  loc_a5f0,
-  loc_a5f1,
-  loc_a5f2,
-  loc_a610,
-  loc_a611,
-  loc_a612,
-  loc_a7b1,
+  CHAR_PLANE_UPPER_RUN_BOTTOM,
+  CHAR_PLANE_STUB_LEFT_TOP,
+  CHAR_PLANE_COLUMN_MID_TOP,
+  CHAR_PLANE_STUB_RIGHT_TOP,
+  CHAR_PLANE_STUB_LEFT_BOTTOM,
+  CHAR_PLANE_COLUMN_MID_BOTTOM,
+  CHAR_PLANE_STUB_RIGHT_BOTTOM,
+  CHAR_PLANE_LOWER_RUN_BOTTOM,
 } from "./names.js";
 
 const NEXT_STEP = 0x04;
@@ -38,16 +38,16 @@ export function advanceScriptedCharPlaneBandTo4(m) {
 
   if ((mem8[BAND_TO4_PASS_COUNTDOWN] & 1) === 0) {
     regs.a = FILL;
-    regs.hl = loc_a7b1;
+    regs.hl = CHAR_PLANE_LOWER_RUN_BOTTOM;
     fillCellRun(m);
-    regs.hl = loc_a5d1;
+    regs.hl = CHAR_PLANE_UPPER_RUN_BOTTOM;
     fillCellRun(m);
-    mem8[loc_a610] = FILL;
-    mem8[loc_a5f0] = FILL;
-    mem8[loc_a611] = FILL;
-    mem8[loc_a5f1] = FILL;
-    mem8[loc_a612] = FILL;
-    mem8[loc_a5f2] = FILL;
+    mem8[CHAR_PLANE_STUB_LEFT_BOTTOM] = FILL;
+    mem8[CHAR_PLANE_STUB_LEFT_TOP] = FILL;
+    mem8[CHAR_PLANE_COLUMN_MID_BOTTOM] = FILL;
+    mem8[CHAR_PLANE_COLUMN_MID_TOP] = FILL;
+    mem8[CHAR_PLANE_STUB_RIGHT_BOTTOM] = FILL;
+    mem8[CHAR_PLANE_STUB_RIGHT_TOP] = FILL;
   } else {
     if ((mem8[mem16[BAND_SCRIPT_CURSOR]] & 0xfe) !== 0) {
       mem8[BAND_TO4_PASS_COUNTDOWN] = 0;
@@ -60,22 +60,22 @@ export function advanceScriptedCharPlaneBandTo4(m) {
 
     stepThirteenScriptedGlyphCells(m, CHAR_PLANE_COLUMN_BASE, 0x01);
     mem16[BAND_SCRIPT_CURSOR] = u16(mem16[BAND_SCRIPT_CURSOR] + SCRIPT_STRIDE);
-    stepThirteenScriptedGlyphCells(m, loc_a7b1, 0x03);
+    stepThirteenScriptedGlyphCells(m, CHAR_PLANE_LOWER_RUN_BOTTOM, 0x03);
 
     let lower = mem8[mem16[BAND_SCRIPT_CURSOR]] & 1;
     mem16[BAND_SCRIPT_CURSOR] = u16(mem16[BAND_SCRIPT_CURSOR] - 1);
     if (lower) {
-      mem8[loc_a5f1] = u8(mem8[loc_a5f1] - 1);
-      mem8[loc_a611] = u8(mem8[loc_a611] - 1);
+      mem8[CHAR_PLANE_COLUMN_MID_TOP] = u8(mem8[CHAR_PLANE_COLUMN_MID_TOP] - 1);
+      mem8[CHAR_PLANE_COLUMN_MID_BOTTOM] = u8(mem8[CHAR_PLANE_COLUMN_MID_BOTTOM] - 1);
     }
 
     lower = mem8[mem16[BAND_SCRIPT_CURSOR]] & 1;
     mem16[BAND_SCRIPT_CURSOR] = u16(mem16[BAND_SCRIPT_CURSOR] - 1);
     if (lower) {
-      mem8[loc_a5f0] = u8(mem8[loc_a5f0] - 1);
-      mem8[loc_a610] = u8(mem8[loc_a610] - 1);
-      mem8[loc_a5f2] = u8(mem8[loc_a5f2] - 1);
-      mem8[loc_a612] = u8(mem8[loc_a612] - 1);
+      mem8[CHAR_PLANE_STUB_LEFT_TOP] = u8(mem8[CHAR_PLANE_STUB_LEFT_TOP] - 1);
+      mem8[CHAR_PLANE_STUB_LEFT_BOTTOM] = u8(mem8[CHAR_PLANE_STUB_LEFT_BOTTOM] - 1);
+      mem8[CHAR_PLANE_STUB_RIGHT_TOP] = u8(mem8[CHAR_PLANE_STUB_RIGHT_TOP] - 1);
+      mem8[CHAR_PLANE_STUB_RIGHT_BOTTOM] = u8(mem8[CHAR_PLANE_STUB_RIGHT_BOTTOM] - 1);
     }
 
     gatherCharColumnIntoBackingRun(m);

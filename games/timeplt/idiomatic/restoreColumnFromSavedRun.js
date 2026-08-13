@@ -4,11 +4,11 @@
  * own, each byte again a row below the one before it. Every address is fixed here, so the run,
  * the column and the two stubs are all this entry's choice. LIVE-OUT: memory-only. */
 
-import { loc_a400, CHAR_PLANE_COLUMN_BASE, loc_a5f0, loc_a5f2 } from "./names.js";
+import { loc_a400, CHAR_PLANE_COLUMN_BASE, CHAR_PLANE_STUB_LEFT_TOP, CHAR_PLANE_STUB_RIGHT_TOP } from "./names.js";
 
 const ROW = 0x20;
 const COLUMN_CELLS = 28;
-const STUB_COLUMNS = [loc_a5f0, loc_a5f2];
+const STUB_COLUMNS = [CHAR_PLANE_STUB_LEFT_TOP, CHAR_PLANE_STUB_RIGHT_TOP];
 const STUB_CELLS = 2;
 
 export function restoreColumnFromSavedRun(m) {

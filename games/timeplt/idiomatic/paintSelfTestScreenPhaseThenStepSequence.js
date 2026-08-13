@@ -10,7 +10,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { fillCellRun } from "./fillCellRun.js";
 import { setSavedPenFromEra } from "./setSavedPenFromEra.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { PEN_COLOUR, INTRO_ANIMATION_STEP, loc_a400, loc_3213, loc_a7b1, loc_a5d1, loc_a610, loc_a611, loc_a612 } from "./names.js";
+import { PEN_COLOUR, INTRO_ANIMATION_STEP, loc_a400, loc_3213, CHAR_PLANE_LOWER_RUN_BOTTOM, CHAR_PLANE_UPPER_RUN_BOTTOM, CHAR_PLANE_STUB_LEFT_BOTTOM, CHAR_PLANE_COLUMN_MID_BOTTOM, CHAR_PLANE_STUB_RIGHT_BOTTOM } from "./names.js";
 
 const PARKED_POINTER = 0x56f1;
 const ROW_STEP = -32;
@@ -38,18 +38,18 @@ export function paintSelfTestScreenPhaseThenStepSequence(m) {
 
   const base = mem8[PEN_COLOUR];
 
-  regs.hl = toColour(loc_a7b1);
+  regs.hl = toColour(CHAR_PLANE_LOWER_RUN_BOTTOM);
   regs.a = u8(0xa0 + base);
   fillCellRun(m);
 
-  regs.hl = toColour(loc_a5d1);
+  regs.hl = toColour(CHAR_PLANE_UPPER_RUN_BOTTOM);
   regs.a = u8(0x20 + base);
   fillCellRun(m);
 
   // three columns of the colour plane, each a cell and the cell one row above it
-  paintColumn(mem8, toColour(loc_a610), u8(0xa0 + base), u8(0x20 + base));
-  paintColumn(mem8, toColour(loc_a612), u8(0xe0 + base), u8(0x60 + base));
-  paintColumn(mem8, toColour(loc_a611), u8(0xa0 + base), u8(0x20 + base));
+  paintColumn(mem8, toColour(CHAR_PLANE_STUB_LEFT_BOTTOM), u8(0xa0 + base), u8(0x20 + base));
+  paintColumn(mem8, toColour(CHAR_PLANE_STUB_RIGHT_BOTTOM), u8(0xe0 + base), u8(0x60 + base));
+  paintColumn(mem8, toColour(CHAR_PLANE_COLUMN_MID_BOTTOM), u8(0xa0 + base), u8(0x20 + base));
 
   setSavedPenFromEra(m);
   return advanceSequenceSubStep(m);

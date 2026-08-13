@@ -77,6 +77,12 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   line-wipe count and start cell (BLANK_LINES_COUNT, BLANK_LINE_START_CELL); the attract
   high-score patch table (HIGH_SCORE_PATCH_TABLE); the credit-insert sequence phase
   (SEQUENCE_PHASE_ON_CREDIT); and the scripted char-plane column base (CHAR_PLANE_COLUMN_BASE).
+- **Batch 3** — the rest of the scripted char-plane working column anchored at CHAR_PLANE_COLUMN_BASE
+  (the 28-cell column's run-ends, center cells and two flanking 2-cell stub columns), the
+  player-animation blit base, the high-score attract marker cells, the hardware picture latch
+  (VIDEO_ENABLE_LATCH — corrected from a stale "sound latch" proposal), the three anti-tamper ROM
+  checksum bases that feed it / the sequence phase / the pen-route arm, the fresh-round RAM-clear
+  end markers (PLAYER_SHOT_ARRAY_END, PLAYER_STATE_BLOCK_END), and the pen-route start row/column.
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for

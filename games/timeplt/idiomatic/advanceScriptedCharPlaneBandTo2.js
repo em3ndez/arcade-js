@@ -15,15 +15,15 @@ import {
   BAND_SCRIPT_CURSOR,
   BAND_TO2_PASS_COUNTDOWN,
   INTRO_ANIMATION_STEP,
-  loc_a5d1,
-  loc_a5f0,
-  loc_a5f1,
-  loc_a5f2,
-  loc_a610,
-  loc_a611,
-  loc_a612,
-  loc_a631,
-  loc_a7b1,
+  CHAR_PLANE_UPPER_RUN_BOTTOM,
+  CHAR_PLANE_STUB_LEFT_TOP,
+  CHAR_PLANE_COLUMN_MID_TOP,
+  CHAR_PLANE_STUB_RIGHT_TOP,
+  CHAR_PLANE_STUB_LEFT_BOTTOM,
+  CHAR_PLANE_COLUMN_MID_BOTTOM,
+  CHAR_PLANE_STUB_RIGHT_BOTTOM,
+  CHAR_PLANE_LOWER_RUN_TOP,
+  CHAR_PLANE_LOWER_RUN_BOTTOM,
 } from "./names.js";
 
 const BLANK_TILE = 0xf1;
@@ -35,9 +35,9 @@ export function advanceScriptedCharPlaneBandTo2(m) {
 
   if ((mem8[BAND_TO2_PASS_COUNTDOWN] & 1) === 0) {
     regs.a = BLANK_TILE;
-    regs.hl = loc_a7b1; fillCellRun(m);
-    regs.hl = loc_a5d1; fillCellRun(m);
-    for (const cell of [loc_a610, loc_a611, loc_a612]) {
+    regs.hl = CHAR_PLANE_LOWER_RUN_BOTTOM; fillCellRun(m);
+    regs.hl = CHAR_PLANE_UPPER_RUN_BOTTOM; fillCellRun(m);
+    for (const cell of [CHAR_PLANE_STUB_LEFT_BOTTOM, CHAR_PLANE_COLUMN_MID_BOTTOM, CHAR_PLANE_STUB_RIGHT_BOTTOM]) {
       mem8[cell] = BLANK_TILE;
       mem8[cell - ROW] = BLANK_TILE;
     }
@@ -54,23 +54,23 @@ export function advanceScriptedCharPlaneBandTo2(m) {
     const firstBit = mem8[cursor] & 1;
     mem16[BAND_SCRIPT_CURSOR] = cursor + 1;
     if (firstBit !== 0) {
-      mem8[loc_a5f0] = mem8[loc_a5f0] + 1;
-      mem8[loc_a610] = mem8[loc_a610] + 1;
-      mem8[loc_a5f2] = mem8[loc_a5f2] + 1;
-      mem8[loc_a612] = mem8[loc_a612] + 1;
+      mem8[CHAR_PLANE_STUB_LEFT_TOP] = mem8[CHAR_PLANE_STUB_LEFT_TOP] + 1;
+      mem8[CHAR_PLANE_STUB_LEFT_BOTTOM] = mem8[CHAR_PLANE_STUB_LEFT_BOTTOM] + 1;
+      mem8[CHAR_PLANE_STUB_RIGHT_TOP] = mem8[CHAR_PLANE_STUB_RIGHT_TOP] + 1;
+      mem8[CHAR_PLANE_STUB_RIGHT_BOTTOM] = mem8[CHAR_PLANE_STUB_RIGHT_BOTTOM] + 1;
     }
 
     cursor = mem16[BAND_SCRIPT_CURSOR];
     const secondBit = mem8[cursor] & 1;
     mem16[BAND_SCRIPT_CURSOR] = cursor + 1;
     if (secondBit !== 0) {
-      mem8[loc_a5f1] = mem8[loc_a5f1] + 1;
-      mem8[loc_a611] = mem8[loc_a611] + 1;
+      mem8[CHAR_PLANE_COLUMN_MID_TOP] = mem8[CHAR_PLANE_COLUMN_MID_TOP] + 1;
+      mem8[CHAR_PLANE_COLUMN_MID_BOTTOM] = mem8[CHAR_PLANE_COLUMN_MID_BOTTOM] + 1;
     }
 
-    stepThirteenScriptedGlyphCells(m, loc_a5d1, 2);
+    stepThirteenScriptedGlyphCells(m, CHAR_PLANE_UPPER_RUN_BOTTOM, 2);
     mem16[BAND_SCRIPT_CURSOR] = mem16[BAND_SCRIPT_CURSOR] - 13;
-    stepThirteenScriptedGlyphCells(m, loc_a631, 0);
+    stepThirteenScriptedGlyphCells(m, CHAR_PLANE_LOWER_RUN_TOP, 0);
     gatherCharColumnIntoBackingRun(m);
   }
 

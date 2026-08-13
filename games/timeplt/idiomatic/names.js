@@ -1636,32 +1636,32 @@ export const HEADING_SHAPE_TABLE = 0x3c84; // 2-byte sprite-shape records indexe
 export const PLAYER_ANIM_COL_COUNT = 0x4902; // inner djnz count = tiles per row (advancePlayerAnimationStrip; also read as a word by restartAttractSequence's image-tamper fold)
 export const BLANK_LINE_START_CELL = 0xa404; // VRAM cell the line-wipe starts at, stored into BLANK_LINE_CURSOR (armLineWipeFromFifthLine)
 export const CHAR_PLANE_COLUMN_BASE = 0xa451; // top cell of the scripted working character-plane column, walked by +0x20 (gatherCharColumnIntoBackingRun/restoreColumnFromSavedRun)
-export const loc_a5af = 0xa5af; // proposal: advancePlayerAnimationStrip VIDEO_BASE
-export const loc_a5d1 = 0xa5d1;
-export const loc_a5f0 = 0xa5f0;
-export const loc_a5f1 = 0xa5f1;
-export const loc_a5f2 = 0xa5f2;
-export const loc_a610 = 0xa610;
-export const loc_a611 = 0xa611;
-export const loc_a612 = 0xa612;
-export const loc_a631 = 0xa631;
-export const loc_a6e1 = 0xa6e1;
-export const loc_a701 = 0xa701;
-export const loc_a7b1 = 0xa7b1;
+export const PLAYER_ANIM_VRAM_BASE = 0xa5af; // char-plane blit destination (row13,col15) for the animated player figure (advancePlayerAnimationStrip)
+export const CHAR_PLANE_UPPER_RUN_BOTTOM = 0xa5d1; // bottom cell (row14,col0x11) of the working column's upper 13-run; fillCellRun/stepThirteen walk up to CHAR_PLANE_COLUMN_BASE
+export const CHAR_PLANE_STUB_LEFT_TOP = 0xa5f0; // top cell of the left flanking 2-cell stub column (row15,col0x10); LEFT/RIGHT side is [guess] (90deg-rotated video)
+export const CHAR_PLANE_COLUMN_MID_TOP = 0xa5f1; // column-center cell (row15,col0x11), index 13 of the 28-cell gather/restore walk
+export const CHAR_PLANE_STUB_RIGHT_TOP = 0xa5f2; // top cell of the right flanking stub column (row15,col0x12); side is [guess]
+export const CHAR_PLANE_STUB_LEFT_BOTTOM = 0xa610; // bottom cell of the left stub column (row16,col0x10); side is [guess]
+export const CHAR_PLANE_COLUMN_MID_BOTTOM = 0xa611; // column-center cell (row16,col0x11), index 14 of the 28-cell walk; paired with the mid-top under the script's second bit
+export const CHAR_PLANE_STUB_RIGHT_BOTTOM = 0xa612; // bottom cell of the right stub column (row16,col0x12); side is [guess]
+export const CHAR_PLANE_LOWER_RUN_TOP = 0xa631; // top cell (row17,col0x11) of the working column's lower 13-run; stepThirteen walks down to the run bottom
+export const HIGH_SCORE_MARKER_CELL_UPPER = 0xa6e1; // marker glyph 0x13 cell (col1,row23) written when arming the high-score attract screen [guess]
+export const HIGH_SCORE_MARKER_CELL_LOWER = 0xa701; // marker glyph 0x13 cell (col1,row24), one row below the upper marker [guess]
+export const CHAR_PLANE_LOWER_RUN_BOTTOM = 0xa7b1; // bottom cell (row29,col0x11) of the lower run and of the 28-cell column; fillCellRun starts here
 
 // Batch 3: data addresses lifted out of routine-local consts / raw hex in 11 files.
 // ROM-image cells (below 0xA800) read as data (checksum blocks, coordinate/route tables),
 // the rest work/screen RAM cells. Every address checked against ROUTINES keys: no collision
 // except 0x00D8 (routine saveAccumulatorForFrameInterrupt), which is LEFT as a routine-local const in
 // clearWorkRamAndSpriteBanksThenColdInit -- flagged for the coordinator (see report).
-export const loc_c308 = 0xc308; // proposal: armRoundStartThenStepSequence SOUND_LATCH (picture/control latch)
-export const loc_1550 = 0x1550; // proposal: armRoundStartThenStepSequence checksum block base
-export const loc_3310 = 0x3310; // proposal: armRoundStartThenStepSequence checksum block base
-export const loc_aadf = 0xaadf; // proposal: armRoundStartThenStepSequence PLAYER_SHOT_ARRAY clear end (inclusive)
-export const loc_a97f = 0xa97f; // proposal: armRoundStartThenStepSequence work-RAM clear end (inclusive)
-export const loc_0d45 = 0x0d45; // proposal: armThePenRouteThenColdStartOnATamperedImage FIRST_AXIS_START
-export const loc_280c = 0x280c; // proposal: armThePenRouteThenColdStartOnATamperedImage SECOND_AXIS_START
-export const loc_0e33 = 0x0e33; // proposal: armThePenRouteThenColdStartOnATamperedImage CHECKED_BLOCK
+export const VIDEO_ENABLE_LATCH = 0xc308; // hardware LS259 picture-enable latch (board LATCH_VIDEO_ENABLE); write-only on/off; anti-tamper checksums fold into it to blank a patched image
+export const DISPLAY_LATCH_CHECKSUM_BASE = 0x1550; // base of a 256-byte ROM anti-tamper block XOR-folded into VIDEO_ENABLE_LATCH on the mid-game round arm [guess]
+export const SEQUENCE_PHASE_CHECKSUM_BASE = 0x3310; // base of a 256-byte ROM anti-tamper block subtract-folded into SEQUENCE_PHASE on the fresh-round arm [guess]
+export const PLAYER_SHOT_ARRAY_END = 0xaadf; // inclusive top of the player-shot RAM block cleared from PLAYER_SHOT_ARRAY on a fresh round
+export const PLAYER_STATE_BLOCK_END = 0xa97f; // inclusive top of the player/actor-state RAM block cleared from PLAYER_STATE on a fresh round
+export const PEN_ROUTE_START_ROW = 0x0d45; // ROM word (8.8) copied into PEN_ROW_POS to reset the pen to its route's first-point row
+export const PEN_ROUTE_START_COLUMN = 0x280c; // ROM word (8.8) copied into PEN_COLUMN_POS to reset the pen to its route's first-point column
+export const PEN_ROUTE_CHECKSUM_BASE = 0x0e33; // base of a 256-byte ROM anti-tamper block summed vs 0xfd in armThePenRoute; mismatch cold-starts [guess]
 export const loc_4980 = 0x4980; // proposal: blankOneLineThenGuardBlockOrDerailSequence BLOCK_START
 export const loc_c200 = 0xc200; // HELD un-promoted for Karl (adversarial call): dual-mapped Konami port -- WRITE=watchdog kick, READ=DSW1 dip bank. Recommendation on file: split WATCHDOG/DSW1
 export const loc_b411 = 0xb411; // proposal: clearWorkRamAndSpriteBanksThenColdInit SPRITE_RUN_HIGH

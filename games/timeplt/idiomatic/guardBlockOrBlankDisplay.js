@@ -8,7 +8,7 @@
 
 import { u8 } from "../../../core/int.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { TAMPER_WITNESS, stampCopyrightStrip_ADDR, loc_4a40, loc_4c89, loc_c308, loc_a65c } from "./names.js";
+import { TAMPER_WITNESS, stampCopyrightStrip_ADDR, loc_4a40, loc_4c89, VIDEO_ENABLE_LATCH, loc_a65c } from "./names.js";
 
 const GUARDED_BYTES = 51;
 const EXPECTED_TOTAL = 239;
@@ -24,7 +24,7 @@ export function guardBlockOrBlankDisplay(m) {
     advanceSequenceSubStep(m);
     return;
   }
-  m.mem.write8(loc_c308, mem8[loc_4c89], LATCH_WRITE_OFFSET);
+  m.mem.write8(VIDEO_ENABLE_LATCH, mem8[loc_4c89], LATCH_WRITE_OFFSET);
   mem8[TAMPER_WITNESS] = mem8[loc_a65c];
   mem8[TAMPER_WITNESS + 1] = mem8[loc_a65c & ~CHARACTER_PLANE_BIT];
 }

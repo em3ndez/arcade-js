@@ -8,7 +8,7 @@
  * anything but a genuine image's value hands to the cold-start entry, which wipes all state and never returns. LIVE-OUT: memory only. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { PEN_COLUMN_POS, PEN_ROUTE_LEG, PEN_ROW_POS, loc_0d45, loc_0e33, loc_280c } from "./names.js";
+import { PEN_COLUMN_POS, PEN_ROUTE_LEG, PEN_ROW_POS, PEN_ROUTE_START_ROW, PEN_ROUTE_CHECKSUM_BASE, PEN_ROUTE_START_COLUMN } from "./names.js";
 
 const CHECKED_BYTES = 0x100;
 const GENUINE_TOTAL = 0xfd;
@@ -17,10 +17,10 @@ const COLD_START = 0x0069;
 export function armThePenRouteThenColdStartOnATamperedImage(m) {
   const { mem8, mem16 } = m;
   mem8[PEN_ROUTE_LEG] = 0;
-  mem16[PEN_ROW_POS] = mem16[loc_0d45];
-  mem16[PEN_COLUMN_POS] = mem16[loc_280c];
+  mem16[PEN_ROW_POS] = mem16[PEN_ROUTE_START_ROW];
+  mem16[PEN_COLUMN_POS] = mem16[PEN_ROUTE_START_COLUMN];
 
   let total = 0;
-  for (let i = 0; i < CHECKED_BYTES; i++) total = u8(total + mem8[u16(loc_0e33 + i)]);
+  for (let i = 0; i < CHECKED_BYTES; i++) total = u8(total + mem8[u16(PEN_ROUTE_CHECKSUM_BASE + i)]);
   if (total !== GENUINE_TOTAL) return m.call(COLD_START);
 }
