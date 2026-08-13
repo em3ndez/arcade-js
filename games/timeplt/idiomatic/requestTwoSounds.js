@@ -5,10 +5,10 @@
  * here and not a run walked through. LIVE-OUT: memory. */
 
 import { enqueueSoundIfGameOrAttract } from "./enqueueSoundIfGameOrAttract.js";
-import { loc_07a6, loc_4cda } from "./names.js";
+import { TWO_SOUND_REQUEST_FIRST_CODE, loc_4cda } from "./names.js";
 
 export function requestTwoSounds(m) {
   const { mem8 } = m;
-  enqueueSoundIfGameOrAttract(m, mem8[loc_07a6]);
+  enqueueSoundIfGameOrAttract(m, mem8[TWO_SOUND_REQUEST_FIRST_CODE]);
   enqueueSoundIfGameOrAttract(m, mem8[loc_4cda]);
 }

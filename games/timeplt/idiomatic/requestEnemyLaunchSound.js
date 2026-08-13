@@ -3,8 +3,8 @@
  * fetched from a byte of the program image. LIVE-OUT: memory. */
 
 import { enqueueSoundIfGameInProgress } from "./enqueueSoundIfGameInProgress.js";
-import { loc_07a2 } from "./names.js";
+import { ENEMY_LAUNCH_SOUND } from "./names.js";
 
 export function requestEnemyLaunchSound(m) {
-  enqueueSoundIfGameInProgress(m, m.mem8[loc_07a2]);
+  enqueueSoundIfGameInProgress(m, m.mem8[ENEMY_LAUNCH_SOUND]);
 }

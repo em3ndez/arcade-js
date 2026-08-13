@@ -12,7 +12,7 @@ import { drawTextRunByIndex } from "./drawTextRunByIndex.js";
 import { eraseTextRunByIndex } from "./eraseTextRunByIndex.js";
 import { advanceCharCursor } from "./advanceCharCursor.js";
 import { HIGH_SCORE_HI, PLAYER1_SCORE_LO, PLAYER2_SCORE_LO, TWO_PLAYER_GAME, PLAY_ACTIVE, ACTIVE_PLAYER } from "./names.js";
-import { SCORE_AWARD_TABLE, loc_0b31, loc_15c6, loc_a501 } from "./names.js";
+import { SCORE_AWARD_TABLE, SOLO_SCORE_LABEL_INDEX, ABSENT_SCORE_LABEL_INDEX, PLAYER2_SCORE_READOUT_BASE } from "./names.js";
 
 const SCORE_BYTES = 3;
 
@@ -73,12 +73,12 @@ function repaintScores(m) {
     paintPlayerTwoScoreReadout(m);
     return;
   }
-  drawTextRunByIndex(m, mem8[loc_0b31]);
+  drawTextRunByIndex(m, mem8[SOLO_SCORE_LABEL_INDEX]);
   paintPlayerOneScoreReadout(m);
-  eraseTextRunByIndex(m, mem8[loc_15c6]);
+  eraseTextRunByIndex(m, mem8[ABSENT_SCORE_LABEL_INDEX]);
   // blank the six cells of the vanished second player's score, stepping the cursor per cell.
   // advanceCharCursor takes the cursor and returns the next cell, so no register is threaded here.
-  let cursor = loc_a501;
+  let cursor = PLAYER2_SCORE_READOUT_BASE;
   for (let i = 0; i < SECOND_SCORE_DIGITS; i++) {
     mem8[cursor] = BLANK;
     cursor = advanceCharCursor(m, cursor);

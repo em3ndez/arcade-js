@@ -3,8 +3,8 @@
  * fetched from a byte of the program image. LIVE-OUT: memory. */
 
 import { enqueueSoundIfGameInProgress } from "./enqueueSoundIfGameInProgress.js";
-import { loc_07fe } from "./names.js";
+import { LATE_ERA_PROGRESS_SOUND } from "./names.js";
 
 export function requestLateEraProgressSound(m) {
-  enqueueSoundIfGameInProgress(m, m.mem8[loc_07fe]);
+  enqueueSoundIfGameInProgress(m, m.mem8[LATE_ERA_PROGRESS_SOUND]);
 }

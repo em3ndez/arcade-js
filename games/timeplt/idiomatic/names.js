@@ -1582,31 +1582,31 @@ export const ATTACKER_SPAWN_COOLDOWN_PERIOD = 0xa8f6;
  * 0xA800 work-RAM range: 0x0d27/0x0b31/0x15c6/0x07d1/0x16d3/0x4a35 are ROM-image data, 0xa501 is
  * screen RAM.
  */
-export const loc_07d1 = 0x07d1;
-export const loc_0b31 = 0x0b31; // proposal: SOLE_LABEL_INDEX_CELL
+export const ROUND_TRANSITION_HOLD_SEED = 0x07d1; // ROM constant reloaded into ROUND_TRANSITION_HOLD when the field clears in attract
+export const SOLO_SCORE_LABEL_INDEX = 0x0b31; // caption index of the sole-player score label (the 2P path uses literals 0x06/0x07)
 export const SCORE_AWARD_TABLE = 0x0d27; // 3-byte packed-BCD score increments, indexed by award id (awardScoreToPlayer)
-export const loc_15c6 = 0x15c6; // proposal: ABSENT_LABEL_INDEX_CELL
-export const loc_16d3 = 0x16d3;
-export const loc_4a35 = 0x4a35;
-export const loc_a501 = 0xa501; // proposal: SECOND_SCORE_CELL
+export const ABSENT_SCORE_LABEL_INDEX = 0x15c6; // caption index of the absent 2nd-player label, erased in a one-player game
+export const ATTRACT_SEQUENCE_START_PHASE = 0x16d3; // ROM constant seeding SEQUENCE_PHASE when the attract sequence (re)starts
+export const NEXT_ROUND_START_SUBSTEP = 0x4a35; // ROM constant seeding SEQUENCE_SUBSTEP for the next round after startNextRound
+export const PLAYER2_SCORE_READOUT_BASE = 0xa501; // VRAM base cell of the player-two on-screen score digits
 
 // Batch 1: sound-request shims -- each reads one (or more) program-image byte(s) as a sound code.
 // proposal records the routine that reads the cell and its routine-local const name.
 export const PARACHUTIST_AWARD_SOUND = 0x079b; // ROM cell holding the sound code enqueued on a parachutist award (requestParachutistAwardSound)
-export const loc_07a2 = 0x07a2; // proposal: requestEnemyLaunchSound SOUND_CODE_CELL
-export const loc_07a6 = 0x07a6; // proposal: requestTwoSounds FIRST_SOUND_CODE_CELL
-export const loc_07a9 = 0x07a9; // proposal: requestPlayerSpawnFlashSound SOUND_CODE_CELL
-export const loc_07d8 = 0x07d8; // proposal: requestTwoSoundsWhilePlaying SOUND_CODE_CELL
-export const loc_07fe = 0x07fe; // proposal: requestLateEraProgressSound SOUND_CODE_CELL
-export const loc_0855 = 0x0855; // proposal: requestRoundIntroSoundBurst SECOND_CODE_CELL
-export const loc_0c5b = 0x0c5b; // proposal: requestRoundIntroSoundBurst FIRST_CODE_CELL
-export const loc_1675 = 0x1675; // proposal: requestRoundIntroSoundBurst THIRD_CODE_CELL
-export const loc_16de = 0x16de; // proposal: requestAttackerSpawnSoundEra0 SOUND_CODE_CELL
-export const loc_1767 = 0x1767; // proposal: requestRoundStartSound SOUND_CODE_CELL
+export const ENEMY_LAUNCH_SOUND = 0x07a2; // sound-command code enqueued by requestEnemyLaunchSound
+export const TWO_SOUND_REQUEST_FIRST_CODE = 0x07a6; // 1st of the two sound codes requestTwoSounds enqueues; its 5 sites are mixed combat impacts (hit/kill/retire) so named generically, not 'death'
+export const PLAYER_SPAWN_FLASH_SOUND = 0x07a9; // sound-command code enqueued by requestPlayerSpawnFlashSound
+export const ATTACKER_SPAWN_SOUND_MID_ERA_1 = 0x07d8; // 1st code of the mid-era (1-3) attacker-spawn sound; requestTwoSoundsWhilePlaying reads it then tails into the late-era code
+export const LATE_ERA_PROGRESS_SOUND = 0x07fe; // sound-command code enqueued by requestLateEraProgressSound
+export const ROUND_INTRO_SOUND_2 = 0x0855; // 2nd of three round-intro sound codes (requestRoundIntroSoundBurst)
+export const ROUND_INTRO_SOUND_1 = 0x0c5b; // 1st of three round-intro sound codes (requestRoundIntroSoundBurst)
+export const ROUND_INTRO_SOUND_3 = 0x1675; // 3rd of three round-intro sound codes (requestRoundIntroSoundBurst)
+export const ATTACKER_SPAWN_SOUND_ERA0 = 0x16de; // sound-command code, requestAttackerSpawnSoundEra0 (era-0 branch)
+export const ROUND_START_SOUND = 0x1767; // sound-command code enqueued by requestRoundStartSound
 export const loc_18fa = 0x18fa; // proposal: loc_583a SOUND_CODE_CELL
-export const loc_273a = 0x273a; // proposal: requestEnemyWaveSound SOUND_CODE_CELL
-export const loc_276b = 0x276b; // proposal: requestAttackerSpawnSoundLateEra SOUND_CODE_CELL
-export const loc_27cb = 0x27cb; // proposal: requestInterRoundSoundPair FIRST_CODE_CELL
+export const ENEMY_WAVE_SOUND = 0x273a; // sound-command code enqueued by requestEnemyWaveSound
+export const ATTACKER_SPAWN_SOUND_LATE_ERA = 0x276b; // sound-command code, requestAttackerSpawnSoundLateEra (era>=3)
+export const INTER_ROUND_SOUND_1 = 0x27cb; // 1st of the inter-round sound pair (requestInterRoundSoundPair)
 export const loc_2d4e = 0x2d4e; // proposal: requestBonusLifeSound SOUND_CODE_CELL
 export const loc_2d87 = 0x2d87; // proposal: loc_568e SOUND_CODE_CELL
 export const loc_3270 = 0x3270; // proposal: requestPlayerShotSound SOUND_CODE_CELL

@@ -57,8 +57,18 @@ checksum total, and the world-scroll vector, whose two halves this pass resolved
 0xA808 and X at 0xA80A**, settling an axis mislabel carried differently by two earlier
 reverse-engineering efforts. None of these names appears in the prose below, so nothing here is out
 of sync — but **the whole rewrite already owed above now also owes weaving the descriptive names
-into the text.** The bulk (~240 remaining addresses/routines) waits on review; this note records
-that the map has not yet been rebuilt around the names.
+into the text.** The bulk (~240 remaining addresses/routines) is now rolling in batches; this note
+records that the map has not yet been rebuilt around the names.
+
+Bulk naming progress (running record; the whole-map weave is still owed):
+- **Batch 1** — the sound-request cells plus a few score/sequence-seed cells. The sound codes:
+  ENEMY_LAUNCH_SOUND, PLAYER_SPAWN_FLASH_SOUND, LATE_ERA_PROGRESS_SOUND, ROUND_INTRO_SOUND_1/2/3,
+  ROUND_START_SOUND, ENEMY_WAVE_SOUND, the era-keyed ATTACKER_SPAWN_SOUND_ERA0 / _MID_ERA_1 /
+  _LATE_ERA, INTER_ROUND_SOUND_1, and TWO_SOUND_REQUEST_FIRST_CODE (kept generic — its five sites
+  are mixed hits/kills/retires, not purely fatal). The non-sound cells: SOLO_SCORE_LABEL_INDEX,
+  ABSENT_SCORE_LABEL_INDEX, ATTRACT_SEQUENCE_START_PHASE, NEXT_ROUND_START_SUBSTEP,
+  ROUND_TRANSITION_HOLD_SEED, PLAYER2_SCORE_READOUT_BASE. One cell was left a bare placeholder
+  because its only reader is an unwired routine.
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for

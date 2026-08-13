@@ -5,10 +5,10 @@
  * same permission test, so both can be refused together. LIVE-OUT: memory. */
 
 import { enqueueSoundIfGameOrAttract } from "./enqueueSoundIfGameOrAttract.js";
-import { loc_27cb, loc_33a0 } from "./names.js";
+import { INTER_ROUND_SOUND_1, loc_33a0 } from "./names.js";
 
 export function requestInterRoundSoundPair(m) {
   const { mem8 } = m;
-  enqueueSoundIfGameOrAttract(m, mem8[loc_27cb]);
+  enqueueSoundIfGameOrAttract(m, mem8[INTER_ROUND_SOUND_1]);
   enqueueSoundIfGameOrAttract(m, mem8[loc_33a0]);
 }

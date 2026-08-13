@@ -10,7 +10,7 @@ import { hideAllSprites } from "./hideAllSprites.js";
 import { startNextRound } from "./startNextRound.js";
 import { ACTOR_RECORD_SLOT0, ACTOR_SPRITE_Y_SLOT0, ROUND_TRANSITION_HOLD } from "./names.js";
 import { KILLS_REMAINING, PLAY_ACTIVE, ACTIVE_PLAYER, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, LIVES_REMAINING, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES } from "./names.js";
-import { loc_07d1, loc_16d3, loc_4a35 } from "./names.js";
+import { ROUND_TRANSITION_HOLD_SEED, ATTRACT_SEQUENCE_START_PHASE, NEXT_ROUND_START_SUBSTEP } from "./names.js";
 
 export function advanceRoundWhenFieldCleared(m) {
   const { mem8 } = m;
@@ -24,11 +24,11 @@ export function advanceRoundWhenFieldCleared(m) {
   loc_5634(m);
 
   if (mem8[PLAY_ACTIVE] === 0) {
-    mem8[ROUND_TRANSITION_HOLD] = mem8[loc_07d1];
+    mem8[ROUND_TRANSITION_HOLD] = mem8[ROUND_TRANSITION_HOLD_SEED];
     hideAllSprites(m);
     mem8[PLAY_ACTIVE] = 0;
     mem8[ACTIVE_PLAYER] = 0;
-    mem8[SEQUENCE_PHASE] = mem8[loc_16d3];
+    mem8[SEQUENCE_PHASE] = mem8[ATTRACT_SEQUENCE_START_PHASE];
     mem8[SEQUENCE_SUBSTEP] = 0;
     return;
   }
@@ -37,5 +37,5 @@ export function advanceRoundWhenFieldCleared(m) {
   startNextRound(m);
   const dest = mem8[ACTIVE_PLAYER] === 0 ? PLAYER_ONE_LIVES : PLAYER_TWO_LIVES;
   for (let i = 0; i < 16; i++) mem8[dest + i] = mem8[LIVES_REMAINING + i];
-  mem8[SEQUENCE_SUBSTEP] = mem8[loc_4a35];
+  mem8[SEQUENCE_SUBSTEP] = mem8[NEXT_ROUND_START_SUBSTEP];
 }

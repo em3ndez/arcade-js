@@ -5,9 +5,9 @@
 
 import { enqueueSoundIfGameInProgress } from "./enqueueSoundIfGameInProgress.js";
 import { requestAttackerSpawnSoundLateEra } from "./requestAttackerSpawnSoundLateEra.js";
-import { loc_07d8 } from "./names.js";
+import { ATTACKER_SPAWN_SOUND_MID_ERA_1 } from "./names.js";
 
 export function requestTwoSoundsWhilePlaying(m) {
-  enqueueSoundIfGameInProgress(m, m.mem8[loc_07d8]);
+  enqueueSoundIfGameInProgress(m, m.mem8[ATTACKER_SPAWN_SOUND_MID_ERA_1]);
   requestAttackerSpawnSoundLateEra(m);
 }
