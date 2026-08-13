@@ -6,7 +6,7 @@
  * their own top bit is set; the hold before each trade is dropped. LIVE-OUT: memory only. */
 
 import { loc_10f8 } from "./loc_10f8.js";
-import { SPRITE_BANK1_SLOT19_Y, SPRITE_BANK0_SLOT19_X, loc_c000, SPRITE_BANK1_SLOT20_Y, SPRITE_BANK0_SLOT20_X, SPRITE_BANK1_SLOT21_Y, SPRITE_BANK0_SLOT21_X, SPRITE_BANK1_SLOT22_Y, SPRITE_BANK0_SLOT22_X, SPRITE_BANK1_SLOT23_Y, SPRITE_BANK0_SLOT23_X } from "./names.js";
+import { SPRITE_BANK1_SLOT19_Y, SPRITE_BANK0_SLOT19_X, SCANLINE_COUNTER, SPRITE_BANK1_SLOT20_Y, SPRITE_BANK0_SLOT20_X, SPRITE_BANK1_SLOT21_Y, SPRITE_BANK0_SLOT21_X, SPRITE_BANK1_SLOT22_Y, SPRITE_BANK0_SLOT22_X, SPRITE_BANK1_SLOT23_Y, SPRITE_BANK0_SLOT23_X } from "./names.js";
 
 const HALF_RANGE = 128;
 
@@ -21,7 +21,7 @@ export function spinRemainingSpriteMultiplexSlots(m) {
   const { regs, mem8 } = m;
   const held = regs.a;
   if (!regs.fZ) {
-    if (((held + mem8[loc_c000]) & 0x100) === 0) return loc_10f8(m);
+    if (((held + mem8[SCANLINE_COUNTER]) & 0x100) === 0) return loc_10f8(m);
     mem8[SPRITE_BANK1_SLOT19_Y] = held & 0x7f;
     mem8[SPRITE_BANK0_SLOT19_X] = mem8[SPRITE_BANK0_SLOT19_X] + HALF_RANGE;
     if (m.beamPlan) m.beamPlan.push({ y: SPRITE_BANK1_SLOT19_Y, x: SPRITE_BANK0_SLOT19_X }); // beam-sync render

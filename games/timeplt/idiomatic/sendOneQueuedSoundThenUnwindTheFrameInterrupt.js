@@ -9,7 +9,7 @@
  * last and is where control resumes — the one entry that unwinds more than it was given. LIVE-OUT: every register in both banks, the interrupt gate, and what the send leaves latched. */
 
 import { sendOldestQueuedSoundCommand } from "./sendOldestQueuedSoundCommand.js";
-import { loc_c300, NMI_REENABLE_BYTE } from "./names.js";
+import { NMI_ENABLE_LATCH, NMI_REENABLE_BYTE } from "./names.js";
 
 const WRITE_BUS_CYCLE = 10;
 
@@ -30,7 +30,7 @@ export function sendOneQueuedSoundThenUnwindTheFrameInterrupt(m) {
   regs.hl = m.pop16();
   regs.de = m.pop16();
   regs.bc = m.pop16();
-  mem.write8(loc_c300, mem.read8(NMI_REENABLE_BYTE), WRITE_BUS_CYCLE);
+  mem.write8(NMI_ENABLE_LATCH, mem.read8(NMI_REENABLE_BYTE), WRITE_BUS_CYCLE);
   regs.af = m.pop16();
 
   m.ret();

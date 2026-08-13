@@ -135,6 +135,15 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   collision suffix and join the call/return-target group, deep-dissolve deferred to Karl. The rest
   name no routine — off-map and derail-into-data anti-tamper targets, and intra-routine parked
   return slots — and stay `loc_` placeholders. This closes the const-placeholder naming.
+- **Dual-port split** — three Konami I/O addresses each name a *different* device by direction, so
+  one `loc_` const misread as one thing. Each becomes two consts at the same address, chosen per
+  call site by read vs write, grounded in `boards/timeplt/memory.js`: 0xC200 → `WATCHDOG_RESET`
+  (write kicks the watchdog) / `DSW1_PORT` (read is dip-bank 1); 0xC300 → `NMI_ENABLE_LATCH` (write
+  is LS259 bit 0, and the base the boot clear-walk steps through) / `IN0_PORT` (read is player-1
+  input); 0xC000 → `SOUND_COMMAND_LATCH` (write hands the audio Z80 a command) / `SCANLINE_COUNTER`
+  (read is the raster counter the sprite multiplexer watches). Both consts of a pair hold the same
+  value, so the split changes only which name a site reads — behaviour is byte-identical, and the
+  suite cannot witness a direction error: the reviewer checks each site's direction by hand.
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for

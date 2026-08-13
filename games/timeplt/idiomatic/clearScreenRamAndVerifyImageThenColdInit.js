@@ -7,7 +7,7 @@
  */
 
 import { initColdStartRamThenSeedConfig } from "./initColdStartRamThenSeedConfig.js";
-import { trampolineToSeatTheStackAndSettleTheControlLatch_ADDR, COLOUR_RAM_BASE_WORD, VIDEO_RAM_BASE_WORD, loc_59d7, loc_c200 } from "./names.js";
+import { trampolineToSeatTheStackAndSettleTheControlLatch_ADDR, COLOUR_RAM_BASE_WORD, VIDEO_RAM_BASE_WORD, loc_59d7, WATCHDOG_RESET } from "./names.js";
 
 const COLOUR_FILL = 0x10;
 const VIDEO_FILL = 0xf1;
@@ -23,7 +23,7 @@ export function clearScreenRamAndVerifyImageThenColdInit(m) {
 
   const colourBase = mem16[COLOUR_RAM_BASE_WORD];
   for (let i = 0; i < FILL_BYTES; i++) mem8[u16(colourBase + i)] = COLOUR_FILL;
-  mem8[loc_c200] = 0;
+  mem8[WATCHDOG_RESET] = 0;
 
   const videoBase = mem16[VIDEO_RAM_BASE_WORD];
   for (let i = 0; i < FILL_BYTES; i++) mem8[u16(videoBase + i)] = VIDEO_FILL;
@@ -34,7 +34,7 @@ export function clearScreenRamAndVerifyImageThenColdInit(m) {
     total = u8(total + mem8[addr]);
     addr = u16(addr + 1);
     if (((addr >> 8) & 0xff) >= FIRST_PAGE_PAST_ROM) break;
-    mem8[loc_c200] = total; // ⚠ the watchdog port ignores this value; only the kick counts
+    mem8[WATCHDOG_RESET] = total; // ⚠ the watchdog port ignores this value; only the kick counts
   }
 
   if (u8(total - GENUINE_TOTAL) !== 0) return m.call(loc_59d7);

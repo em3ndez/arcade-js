@@ -1663,7 +1663,6 @@ export const PEN_ROUTE_START_ROW = 0x0d45; // ROM word (8.8) copied into PEN_ROW
 export const PEN_ROUTE_START_COLUMN = 0x280c; // ROM word (8.8) copied into PEN_COLUMN_POS to reset the pen to its route's first-point column
 export const PEN_ROUTE_CHECKSUM_BASE = 0x0e33; // base of a 256-byte ROM anti-tamper block summed vs 0xfd in armThePenRoute; mismatch cold-starts [guess]
 export const IMAGE_GUARD_BLOCK_4980_BASE = 0x4980; // base of a 1024-byte ROM span XOR-folded (==0x43) as an anti-tamper check by blankOneLineThenGuardBlockOrDerailSequence; mid-code data span, not a routine entry
-export const loc_c200 = 0xc200; // HELD un-promoted for Karl (adversarial call): dual-mapped Konami port -- WRITE=watchdog kick, READ=DSW1 dip bank. Recommendation on file: split WATCHDOG/DSW1
 export const SPRITE_BANK1_SLOT0_Y = 0xb411; // sprite bank-1 (0xb400 spriteram2) slot-0 Y byte (bit7=multiplex arm); = SPRITE_BANK1_BASE+1
 export const SPRITE_BANK1_BASE = 0xb410; // base of hardware sprite-attribute bank 1 (0xb400 spriteram2); 48 bytes gathered by publishSpriteShadow, cleared at cold init
 export const COUNT_PICTOGRAM_STRIP_START = 0xa463; // first VRAM cell of the count/denomination strip [0xa463, EMBLEM_STRIP_FLOOR) (drawCountAsPictogramStrip)
@@ -1761,12 +1760,16 @@ export const MOTHER_SHIP_STAGE_ARM_TABLE = 0x478b; // ROM word dispatch table, p
 export const INTRO_SUBSTEP_RELOAD = 0x2750; // ROM byte (=3) reloading SEQUENCE_SUBSTEP after the round-start intro animation (stepRoundStartIntroAnimation)
 export const SEQUENCE_CHECKSUM_SPAN_BASE = 0x0bcc; // base of the 256-byte ROM block summed vs EXPECTED_CHECKSUM_TOTAL -> derail on mismatch (stepSequenceUnderChecksum)
 export const EXPECTED_CHECKSUM_TOTAL = 0x1a50; // anti-tamper reference total; stepSequenceUnderChecksum derails if the 256-byte sum from SEQUENCE_CHECKSUM_SPAN_BASE mismatches
-export const loc_c300 = 0xc300; // proposal: serviceVerticalBlankInterrupt NMI_ENABLE / IN0 port
+export const NMI_ENABLE_LATCH = 0xc300; // W side of dual-mapped 0xc300: LS259 control-latch bit 0 (NMI enable), and the latch-bank base the boot clear-walk steps through; READ side = IN0_PORT
+export const IN0_PORT = 0xc300; // R side of dual-mapped 0xc300: player-1 input port, complemented on read into IN0_MIRROR (serviceVBI); WRITE side = NMI_ENABLE_LATCH
 export const FLIPSCREEN_LATCH = 0xc302; // hardware LS259 bit 1 = flipscreen (board LATCH_FLIPSCREEN, inverted); write-only in the layer
 export const IN1_PORT = 0xc320; // hardware read: input port 1 (player-1 stick+fire); serviceVBI mirrors it inverted to IN1_MIRROR
 export const IN2_PORT = 0xc340; // hardware read: input port 2 (cocktail player-2 stick); mirrored to IN2_MIRROR
 export const DSW0_PORT = 0xc360; // hardware read: dip-switch bank 0 (coinage); complemented into COINAGE_SETTINGS (seedGameConfigFromDipSwitches)
-export const loc_c000 = 0xc000; // proposal: spinRemainingSpriteMultiplexSlots RASTER
+export const DSW1_PORT = 0xc200; // R side of dual-mapped 0xc200: dip-switch bank 1, complemented on read (seedGameConfig; serviceVBI -> DIP1_MIRROR); WRITE side = WATCHDOG_RESET
+export const WATCHDOG_RESET = 0xc200; // W side of dual-mapped 0xc200: writing kicks (resets) the watchdog, value ignored; READ side = DSW1_PORT
+export const SCANLINE_COUNTER = 0xc000; // R side of dual-mapped 0xc000: raster/scanline counter, read for the sprite-multiplex carry (multiplexSpriteSlotsSkipping, spinRemainingSpriteMultiplexSlots); WRITE side = SOUND_COMMAND_LATCH
+export const SOUND_COMMAND_LATCH = 0xc000; // W side of dual-mapped 0xc000: sound-command byte handed to the audio Z80 (sendSoundCommand); READ side = SCANLINE_COUNTER
 export const TAMPER_GLYPH_SOURCE_CELL = 0xa67c; // char-plane glyph cell copied to TAMPER_GLYPH_COPY (0xab43) and later compared against it -- anti-tamper witness (expected glyph 0x7c)
 export const loc_acc5 = 0xacc5; // proposal: spawnEnemyIntoFreeSlotElseStepSearch SHARED_ZERO
 export const COPYRIGHT_GLYPH_SAMPLE_CELL = 0xa61c; // copyright-caption glyph cell sampled (glyph+colour) into TAMPER_GLYPH_STRIP each attract frame (stepCopyrightScreenAwaitingStart)
@@ -1834,7 +1837,7 @@ export const COMMAND_HANDLER_TABLE = 0x0bbc; // 16-entry ROM word table of ring-
 // expansion-probe / picture-enable image byte -- data, not code. Two §3 collisions (a routine's own code
 // read as data) named with the _ADDR convention. Every address checked against ROUTINES keys: no collision
 // beyond those two. Existing entries (PLAYER_STATE 0xa800, TAMPER_WITNESS 0xad39, loc_0f8d_ADDR,
-// loc_c000/c200/c300/c308, ENEMY_SPAWN_RECORD_TABLE) are reused, not re-added.
+// 0xC000/0xC200/0xC300/0xC308, ENEMY_SPAWN_RECORD_TABLE) are reused, not re-added.
 export const seatCaptionPenFromEraFoldingTamperIntoPhase_ADDR = 0x335e; // §3 collision: routine 0x335e's own code read as data by selectFoldBlock
 export const loc_1f2e_ADDR = 0x1f2e; // §3 collision: routine 0x1f2e's own code read as data by turnShipTowardTargetHeading
 export const ONE_SHOT_OBJECT_SHAPE_TABLE = 0x4094; // ROM sprite-shape byte table keyed on the slot's countdown (runOneShotAnimatedObjectSlot)

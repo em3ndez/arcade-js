@@ -10,7 +10,7 @@ import { drainBothDeferredCellLists } from "./drainBothDeferredCellLists.js";
 import { serviceCoinInputs } from "./serviceCoinInputs.js";
 import { fetchTableWord } from "./fetchTableWord.js";
 import { sendOneQueuedSoundThenUnwindTheFrameInterrupt } from "./sendOneQueuedSoundThenUnwindTheFrameInterrupt.js";
-import { ACTIVE_PLAYER, ATTACKER_SPAWN_COOLDOWN, BANK_LAUNCH_COOLDOWN, BCD_FRAME_COUNTER, COCKTAIL_MODE, COINAGE_SETTINGS, DIP1_MIRROR, FRAME_TICK, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR, SCREEN_UNFLIPPED, SEQUENCE_PHASE, WAVE_CLAIM_TIMER, sendOneQueuedSoundThenUnwindTheFrameInterrupt_ADDR, SEQUENCE_PHASE_ARM_TABLE, loc_c200, loc_c300, FLIPSCREEN_LATCH, IN1_PORT, IN2_PORT, DSW0_PORT } from "./names.js";
+import { ACTIVE_PLAYER, ATTACKER_SPAWN_COOLDOWN, BANK_LAUNCH_COOLDOWN, BCD_FRAME_COUNTER, COCKTAIL_MODE, COINAGE_SETTINGS, DIP1_MIRROR, FRAME_TICK, IN0_MIRROR, IN1_MIRROR, IN2_MIRROR, SCREEN_UNFLIPPED, SEQUENCE_PHASE, WAVE_CLAIM_TIMER, sendOneQueuedSoundThenUnwindTheFrameInterrupt_ADDR, SEQUENCE_PHASE_ARM_TABLE, WATCHDOG_RESET, DSW1_PORT, NMI_ENABLE_LATCH, IN0_PORT, FLIPSCREEN_LATCH, IN1_PORT, IN2_PORT, DSW0_PORT } from "./names.js";
 
 const TIMERS = [BANK_LAUNCH_COOLDOWN, WAVE_CLAIM_TIMER, ATTACKER_SPAWN_COOLDOWN];
 
@@ -32,14 +32,14 @@ export function serviceVerticalBlankInterrupt(m) {
   publishSpriteShadow(m);
   drainBothDeferredCellLists(m);
 
-  mem8[loc_c300] = 0;
-  mem8[loc_c200] = 0;
+  mem8[NMI_ENABLE_LATCH] = 0;
+  mem8[WATCHDOG_RESET] = 0;
   // Cleared only when the primary gate is armed while the secondary one reads clear.
   mem8[SCREEN_UNFLIPPED] = mem8[ACTIVE_PLAYER] !== 0 && mem8[COCKTAIL_MODE] === 0 ? 0 : 1;
   mem8[FLIPSCREEN_LATCH] = mem8[SCREEN_UNFLIPPED];
 
-  mem8[DIP1_MIRROR] = mem8[loc_c200] ^ 0xff;
-  mem8[IN0_MIRROR] = mem8[loc_c300] ^ 0xff;
+  mem8[DIP1_MIRROR] = mem8[DSW1_PORT] ^ 0xff;
+  mem8[IN0_MIRROR] = mem8[IN0_PORT] ^ 0xff;
   mem8[IN1_MIRROR] = mem8[IN1_PORT] ^ 0xff;
   mem8[IN2_MIRROR] = mem8[IN2_PORT] ^ 0xff;
   mem8[COINAGE_SETTINGS] = mem8[DSW0_PORT] ^ 0xff;

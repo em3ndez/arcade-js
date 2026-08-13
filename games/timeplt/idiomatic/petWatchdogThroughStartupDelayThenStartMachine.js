@@ -9,7 +9,7 @@
 
 import { enableInterruptAndEnterForegroundLoop } from "./enableInterruptAndEnterForegroundLoop.js";
 import { sendSoundCommand } from "./sendSoundCommand.js";
-import { SEQUENCE_DELAY, loc_c200, NMI_ENABLE_BYTE } from "./names.js";
+import { SEQUENCE_DELAY, WATCHDOG_RESET, NMI_ENABLE_BYTE } from "./names.js";
 
 const STORE_TO_A_FIXED_ADDRESS = 10;
 const PASSES = 0x0c;
@@ -18,13 +18,13 @@ const TICKS_PER_PASS = 0x100;
 export function petWatchdogThroughStartupDelayThenStartMachine(m, value = m.regs.a) {
   const { regs, mem, mem8 } = m;
 
-  mem.write8(loc_c200, value, STORE_TO_A_FIXED_ADDRESS);
+  mem.write8(WATCHDOG_RESET, value, STORE_TO_A_FIXED_ADDRESS);
   regs.hl = SEQUENCE_DELAY;
   mem8[SEQUENCE_DELAY] = PASSES;
 
   for (let pass = PASSES; pass > 0; pass--) {
     for (let tick = TICKS_PER_PASS; tick > 0; tick--) {
-      mem.write8(loc_c200, value, STORE_TO_A_FIXED_ADDRESS);
+      mem.write8(WATCHDOG_RESET, value, STORE_TO_A_FIXED_ADDRESS);
     }
     mem8[SEQUENCE_DELAY] = pass - 1;
   }

@@ -8,7 +8,7 @@ import { seedRandomRegister } from "./seedRandomRegister.js";
 import { loadDefaultHighScores } from "./loadDefaultHighScores.js";
 import { emptyBothDeferredCellLists } from "./emptyBothDeferredCellLists.js";
 import { seedGameConfigFromDipSwitches } from "./seedGameConfigFromDipSwitches.js";
-import { COMMAND_RING, loc_c200 } from "./names.js";
+import { COMMAND_RING, WATCHDOG_RESET } from "./names.js";
 
 const FILL_BYTES = 64;
 
@@ -17,11 +17,11 @@ export function initColdStartRamThenSeedConfig(m) {
   for (let i = 0; i < FILL_BYTES; i++) mem8[COMMAND_RING + i] = 0xff;
 
   seedRandomRegister(m);
-  mem8[loc_c200] = regs.a;
+  mem8[WATCHDOG_RESET] = regs.a;
   loadDefaultHighScores(m);
-  mem8[loc_c200] = regs.a;
+  mem8[WATCHDOG_RESET] = regs.a;
   emptyBothDeferredCellLists(m);
-  mem8[loc_c200] = regs.a;
+  mem8[WATCHDOG_RESET] = regs.a;
 
   return seedGameConfigFromDipSwitches(m);
 }

@@ -6,7 +6,7 @@
  * LIVE-OUT: the touched sprite bytes, plus the accumulator, C and flags left by the last slot. */
 
 import {
-  loc_c000,
+  SCANLINE_COUNTER,
   SPRITE_BANK1_SLOT0_Y, SPRITE_BANK0_BASE,
   SPRITE_BANK1_SLOT1_Y, SPRITE_BANK0_SLOT1_X,
   SPRITE_BANK1_SLOT2_Y, SPRITE_BANK0_SLOT2_X,
@@ -38,7 +38,7 @@ function serviceSlot(m, yAddr, xAddr) {
   regs.bit(7, regs.a);
   if (regs.fZ) return;
   regs.c = regs.a;
-  regs.a = mem.read8(loc_c000);
+  regs.a = mem.read8(SCANLINE_COUNTER);
   regs.add(regs.c);
   if (regs.fNC) return; // beam not past the trigger line yet
   regs.a = regs.c;

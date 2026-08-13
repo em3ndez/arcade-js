@@ -8,7 +8,7 @@
 import { tileCharPlaneWithBoxLattice } from "./tileCharPlaneWithBoxLattice.js";
 import { saveAccumulatorForFrameInterrupt } from "./saveAccumulatorForFrameInterrupt.js";
 import { petWatchdogThroughStartupDelayThenStartMachine } from "./petWatchdogThroughStartupDelayThenStartMachine.js";
-import { DEMO_SOUNDS_ENABLE, DIFFICULTY_SETTING, loc_c200, FLIPSCREEN_LATCH, FLIPSCREEN_INIT_BYTE, BOOT_SELFTEST_CHECKSUM_BASE } from "./names.js";
+import { DEMO_SOUNDS_ENABLE, DIFFICULTY_SETTING, WATCHDOG_RESET, FLIPSCREEN_LATCH, FLIPSCREEN_INIT_BYTE, BOOT_SELFTEST_CHECKSUM_BASE } from "./names.js";
 
 const STORE = 10;
 const CHECKSUM_SPAN = 0x100;
@@ -28,7 +28,7 @@ export function finishBootSelfTestAndColdStart(m) {
   regs.rrca();
   regs.and(0x01);
   mem.write8(DEMO_SOUNDS_ENABLE, regs.a);
-  mem.write8(loc_c200, regs.a, STORE);
+  mem.write8(WATCHDOG_RESET, regs.a, STORE);
 
   regs.a = mem.read8(FLIPSCREEN_INIT_BYTE);
   mem.write8(FLIPSCREEN_LATCH, regs.a, STORE);
