@@ -8,7 +8,7 @@
 import { u8 } from "../../../core/int.js";
 import { stampTwoByTwoTileBlock } from "./stampTwoByTwoTileBlock.js";
 import { paintGlyphOverBlankInColourThenStepCursor } from "./paintGlyphOverBlankInColourThenStepCursor.js";
-import { PLAY_ACTIVE, loc_0711, EMBLEM_STRIP_FLOOR, loc_a783 } from "./names.js";
+import { PLAY_ACTIVE, IMAGE_GUARD_BLOCK_0711_BASE, EMBLEM_STRIP_FLOOR, EMBLEM_STRIP_TOP } from "./names.js";
 
 const MAX_EMBLEMS = 6;
 const EMBLEM_BASE = 9;
@@ -22,7 +22,7 @@ export function drawEmblemStripThenGuardImage(m, count = m.regs.a) {
   const { regs, mem8 } = m;
   if (mem8[PLAY_ACTIVE] === 0) return;
 
-  regs.de = loc_a783;
+  regs.de = EMBLEM_STRIP_TOP;
   let emblems = count > MAX_EMBLEMS ? MAX_EMBLEMS : count;
   if (emblems !== 0) {
     regs.b = EMBLEM_BASE;
@@ -35,6 +35,6 @@ export function drawEmblemStripThenGuardImage(m, count = m.regs.a) {
   while (regs.de >= EMBLEM_STRIP_FLOOR) paintGlyphOverBlankInColourThenStepCursor(m);
 
   let check = 0;
-  for (let i = 0; i < CHECK_LEN; i++) check ^= mem8[loc_0711 + i];
+  for (let i = 0; i < CHECK_LEN; i++) check ^= mem8[IMAGE_GUARD_BLOCK_0711_BASE + i];
   if (u8(check + CHECK_BIAS) !== 0) throw new Error("Time Pilot: program image altered");
 }

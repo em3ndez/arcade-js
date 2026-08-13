@@ -7,7 +7,7 @@
 
 import {
   loc_c000,
-  loc_b411, loc_b010,
+  SPRITE_BANK1_SLOT0_Y, loc_b010,
   loc_b413, loc_b012,
   loc_b415, loc_b014,
   loc_b437, loc_b036,
@@ -22,7 +22,7 @@ const TOGGLE_X_BIT7 = 0x80;
 
 // [Y byte, X byte] for each of the eight slots this pass covers.
 const SLOTS = [
-  [loc_b411, loc_b010],
+  [SPRITE_BANK1_SLOT0_Y, loc_b010],
   [loc_b413, loc_b012],
   [loc_b415, loc_b014],
   [loc_b437, loc_b036],

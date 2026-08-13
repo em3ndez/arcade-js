@@ -7,7 +7,7 @@
  */
 
 import { initColdStartRamThenSeedConfig } from "./initColdStartRamThenSeedConfig.js";
-import { trampolineToSeatTheStackAndSettleTheControlLatch_ADDR, loc_2581, loc_4a37, loc_59d7, loc_c200 } from "./names.js";
+import { trampolineToSeatTheStackAndSettleTheControlLatch_ADDR, COLOUR_RAM_BASE_WORD, VIDEO_RAM_BASE_WORD, loc_59d7, loc_c200 } from "./names.js";
 
 const COLOUR_FILL = 0x10;
 const VIDEO_FILL = 0xf1;
@@ -21,11 +21,11 @@ const u16 = (x) => x & 0xffff;
 export function clearScreenRamAndVerifyImageThenColdInit(m) {
   const { mem8, mem16 } = m;
 
-  const colourBase = mem16[loc_2581];
+  const colourBase = mem16[COLOUR_RAM_BASE_WORD];
   for (let i = 0; i < FILL_BYTES; i++) mem8[u16(colourBase + i)] = COLOUR_FILL;
   mem8[loc_c200] = 0;
 
-  const videoBase = mem16[loc_4a37];
+  const videoBase = mem16[VIDEO_RAM_BASE_WORD];
   for (let i = 0; i < FILL_BYTES; i++) mem8[u16(videoBase + i)] = VIDEO_FILL;
 
   let addr = trampolineToSeatTheStackAndSettleTheControlLatch_ADDR;

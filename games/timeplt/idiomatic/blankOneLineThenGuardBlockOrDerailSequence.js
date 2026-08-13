@@ -11,7 +11,7 @@
 import { advanceSequencePhase } from "./advanceSequencePhase.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { blankNextLine } from "./blankNextLine.js";
-import { loc_4980 } from "./names.js";
+import { IMAGE_GUARD_BLOCK_4980_BASE } from "./names.js";
 
 const BLOCK_BYTES = 1024;
 const UNTAMPERED_TOTAL = 0x43;
@@ -21,7 +21,7 @@ export function blankOneLineThenGuardBlockOrDerailSequence(m) {
   if (!blankNextLine(m)) return;
 
   let total = 0;
-  for (let i = 0; i < BLOCK_BYTES; i++) total ^= mem8[loc_4980 + i];
+  for (let i = 0; i < BLOCK_BYTES; i++) total ^= mem8[IMAGE_GUARD_BLOCK_4980_BASE + i];
 
   if (total !== UNTAMPERED_TOTAL) {
     advanceSequencePhase(m);

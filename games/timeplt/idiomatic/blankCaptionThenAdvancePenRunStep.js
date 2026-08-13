@@ -9,7 +9,7 @@ import { drawInterpolatedPenRun } from "./drawInterpolatedPenRun.js";
 import { advanceSequencePhase } from "./advanceSequencePhase.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8 } from "../../../core/int.js";
-import { advancePenRunAnimationStep_ADDR, loc_0bdd, SEQUENCE_PHASE } from "./names.js";
+import { advancePenRunAnimationStep_ADDR, IMAGE_GUARD_BLOCK_0BDD_BASE, SEQUENCE_PHASE } from "./names.js";
 
 const XOR_LEN = 256;
 const XOR_TARGET = 0x1c;
@@ -23,7 +23,7 @@ export function blankCaptionThenAdvancePenRunStep(m) {
   if (regs.fNZ) return;
 
   let fold = 0;
-  for (let i = 0; i < XOR_LEN; i++) fold ^= mem8[loc_0bdd + i];
+  for (let i = 0; i < XOR_LEN; i++) fold ^= mem8[IMAGE_GUARD_BLOCK_0BDD_BASE + i];
   if (fold !== XOR_TARGET) advanceSequencePhase(m);
 
   let acc = mem8[SEQUENCE_PHASE];

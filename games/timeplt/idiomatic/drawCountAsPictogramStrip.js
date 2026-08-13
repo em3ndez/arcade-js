@@ -11,7 +11,7 @@ import { trampolineToSeatTheStackAndSettleTheControlLatch } from "./trampolineTo
 import { drawSlotWithOneGlyph } from "./drawSlotWithOneGlyph.js";
 import { paintDoubleTile } from "./paintDoubleTile.js";
 import { paintQuadTile } from "./paintQuadTile.js";
-import { loc_009d, loc_00a0, loc_00a3, loc_a463, EMBLEM_STRIP_FLOOR } from "./names.js";
+import { IMAGE_CHECKSUM_WORD_009D, IMAGE_CHECKSUM_WORD_00A0, IMAGE_CHECKSUM_WORD_00A3, COUNT_PICTOGRAM_STRIP_START, EMBLEM_STRIP_FLOOR } from "./names.js";
 
 const BLANK_GLYPH = 0xf1;
 const BLANK_COLOUR = 0x10;
@@ -33,7 +33,7 @@ export function drawCountAsPictogramStrip(m) {
     [thirties, 0x23, 0x11, paintQuadTile],
   ];
 
-  regs.de = loc_a463;
+  regs.de = COUNT_PICTOGRAM_STRIP_START;
   for (const [count, glyph, colour, paint] of denominations) {
     if (!count) continue;
     regs.b = glyph;
@@ -46,9 +46,9 @@ export function drawCountAsPictogramStrip(m) {
   while (regs.de < EMBLEM_STRIP_FLOOR) drawSlotWithOneGlyph(m);
 
   regs.xor(regs.a);
-  regs.hl = mem16[loc_00a0];
-  regs.de = mem16[loc_00a3];
-  regs.bc = mem16[loc_009d];
+  regs.hl = mem16[IMAGE_CHECKSUM_WORD_00A0];
+  regs.de = mem16[IMAGE_CHECKSUM_WORD_00A3];
+  regs.bc = mem16[IMAGE_CHECKSUM_WORD_009D];
   regs.addHl(regs.de);
   regs.addHl(regs.bc);
   regs.add(regs.l);

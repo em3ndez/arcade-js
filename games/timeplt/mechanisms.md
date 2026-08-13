@@ -83,6 +83,13 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   (VIDEO_ENABLE_LATCH — corrected from a stale "sound latch" proposal), the three anti-tamper ROM
   checksum bases that feed it / the sequence phase / the pen-route arm, the fresh-round RAM-clear
   end markers (PLAYER_SHOT_ARRAY_END, PLAYER_STATE_BLOCK_END), and the pen-route start row/column.
+- **Batch 4** — the second hardware sprite-attribute bank (SPRITE_BANK1_BASE + its slot-0 Y), the
+  count/emblem strip bounds (COUNT_PICTOGRAM_STRIP_START, EMBLEM_STRIP_TOP), the char-plane base
+  (CHAR_PLANE_BASE) and the ROM operand words seeding the screen fills (COLOUR_RAM_BASE_WORD,
+  VIDEO_RAM_BASE_WORD), the pen-run interpolation targets (PEN_ROW_TARGET, PEN_COLUMN_TARGET,
+  PEN_RUN_END_CELL), the player-shot slot stride, and a cluster of anti-tamper artifacts — three
+  XOR-guard ROM block bases, three image-checksum words, the copyright-strip check seed, the
+  display-off value, and the tamper-witness sample cell.
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for

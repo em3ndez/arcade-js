@@ -1662,20 +1662,20 @@ export const PLAYER_STATE_BLOCK_END = 0xa97f; // inclusive top of the player/act
 export const PEN_ROUTE_START_ROW = 0x0d45; // ROM word (8.8) copied into PEN_ROW_POS to reset the pen to its route's first-point row
 export const PEN_ROUTE_START_COLUMN = 0x280c; // ROM word (8.8) copied into PEN_COLUMN_POS to reset the pen to its route's first-point column
 export const PEN_ROUTE_CHECKSUM_BASE = 0x0e33; // base of a 256-byte ROM anti-tamper block summed vs 0xfd in armThePenRoute; mismatch cold-starts [guess]
-export const loc_4980 = 0x4980; // proposal: blankOneLineThenGuardBlockOrDerailSequence BLOCK_START
+export const IMAGE_GUARD_BLOCK_4980_BASE = 0x4980; // base of a 1024-byte ROM span XOR-folded (==0x43) as an anti-tamper check by blankOneLineThenGuardBlockOrDerailSequence; mid-code data span, not a routine entry
 export const loc_c200 = 0xc200; // HELD un-promoted for Karl (adversarial call): dual-mapped Konami port -- WRITE=watchdog kick, READ=DSW1 dip bank. Recommendation on file: split WATCHDOG/DSW1
-export const loc_b411 = 0xb411; // proposal: clearWorkRamAndSpriteBanksThenColdInit SPRITE_RUN_HIGH
-export const loc_b410 = 0xb410; // proposal: clearWorkRamAndSpriteBanksThenColdInit SPRITE_RUN_LOW
-export const loc_a463 = 0xa463; // proposal: drawCountAsPictogramStrip ROW_START
-export const loc_009d = 0x009d; // proposal: drawCountAsPictogramStrip integrity-sum word cell
-export const loc_00a0 = 0x00a0; // proposal: drawCountAsPictogramStrip integrity-sum word cell
-export const loc_00a3 = 0x00a3; // proposal: drawCountAsPictogramStrip integrity-sum word cell
+export const SPRITE_BANK1_SLOT0_Y = 0xb411; // sprite bank-1 (0xb400 spriteram2) slot-0 Y byte (bit7=multiplex arm); = SPRITE_BANK1_BASE+1
+export const SPRITE_BANK1_BASE = 0xb410; // base of hardware sprite-attribute bank 1 (0xb400 spriteram2); 48 bytes gathered by publishSpriteShadow, cleared at cold init
+export const COUNT_PICTOGRAM_STRIP_START = 0xa463; // first VRAM cell of the count/denomination strip [0xa463, EMBLEM_STRIP_FLOOR) (drawCountAsPictogramStrip)
+export const IMAGE_CHECKSUM_WORD_009D = 0x009d; // low-ROM word (code bytes read as data) folded into drawCountAsPictogramStrip's 3-word integrity sum (vs 0x69)
+export const IMAGE_CHECKSUM_WORD_00A0 = 0x00a0; // 2nd word of that 3-word image integrity sum
+export const IMAGE_CHECKSUM_WORD_00A3 = 0x00a3; // 3rd word of that 3-word image integrity sum
 export const EMBLEM_STRIP_FLOOR = 0xa623; // VRAM boundary dividing count strip [a463,a623) from emblem strip [a623,a783]; inclusive floor (drawEmblemStrip) / exclusive top (drawCountAsPictogramStrip)
-export const loc_a783 = 0xa783; // proposal: drawEmblemStripThenGuardImage CURSOR_START
-export const loc_0711 = 0x0711; // proposal: drawEmblemStripThenGuardImage CHECK_START (image-check block)
-export const loc_32f5 = 0x32f5; // proposal: drawInterpolatedPenRun ROW_TARGET
-export const loc_0b45 = 0x0b45; // proposal: drawInterpolatedPenRun COL_TARGET
-export const loc_14b2 = 0x14b2; // proposal: drawInterpolatedPenRun END_CELL
+export const EMBLEM_STRIP_TOP = 0xa783; // inclusive top VRAM cell of the emblem strip [EMBLEM_STRIP_FLOOR, 0xa783]; drawEmblemStripThenGuardImage cursor start
+export const IMAGE_GUARD_BLOCK_0711_BASE = 0x0711; // base of a 256-byte ROM span XOR-folded (+25==0) as an anti-tamper check by drawEmblemStripThenGuardImage; mid-code data span
+export const PEN_ROW_TARGET = 0x32f5; // ROM word: interpolation target row fed to stepToward against PEN_ROW_POS (drawInterpolatedPenRun)
+export const PEN_COLUMN_TARGET = 0x0b45; // ROM word: interpolation target column vs PEN_COLUMN_POS
+export const PEN_RUN_END_CELL = 0x14b2; // ROM word: terminating VRAM cell address the pen run plots until (drawInterpolatedPenRun)
 export const PEN_ROUTE_TABLE = 0x0290; // word table of pen route-leg endpoints (drawInterpolatedPenRun)
 
 // COLLISION batch: data addresses lifted out of routine-local consts / raw hex in 6 files.
@@ -1687,20 +1687,20 @@ export const fetchTableByte_ADDR = 0x0008; // §3 collision: routine 0x0008's ow
 export const stampCopyrightStrip_ADDR = 0x0b06; // §3 collision: routine 0x0b06's own code, read as data by guardBlockOrBlankDisplay's anti-tamper checksum
 export const advancePenRunAnimationStep_ADDR = 0x1734; // §3 collision: routine 0x1734's own code, read as data by blankCaptionThenAdvancePenRunStep's anti-tamper checksum
 export const loadDefaultHighScores_ADDR = 0x4ba5; // §3 collision: routine 0x4ba5's own code, read as data by armWholePlaneWipeThenDerailOnATamperedImage's anti-tamper checksum
-export const loc_2581 = 0x2581; // proposal: clearScreenRamAndVerifyImageThenColdInit COLOUR_BASE_PTR
-export const loc_4a37 = 0x4a37; // proposal: clearScreenRamAndVerifyImageThenColdInit VIDEO_BASE_PTR
-export const loc_4a40 = 0x4a40; // proposal: guardBlockOrBlankDisplay TOTAL_SEED
-export const loc_4c89 = 0x4c89; // proposal: guardBlockOrBlankDisplay BLANKING_VALUE
-export const loc_a65c = 0xa65c; // proposal: guardBlockOrBlankDisplay SAMPLED_CELL
-export const loc_0bdd = 0x0bdd; // proposal: blankCaptionThenAdvancePenRunStep XOR_BLOCK
-export const loc_a400 = 0xa400; // proposal: armWholePlaneWipeThenDerailOnATamperedImage PLANE_FIRST_CELL
+export const COLOUR_RAM_BASE_WORD = 0x2581; // ROM operand word = 0xa000, base for the colour-RAM fill in clearScreenRamAndVerifyImageThenColdInit
+export const VIDEO_RAM_BASE_WORD = 0x4a37; // ROM operand word = 0xa400, base for the video-RAM fill (== CHAR_PLANE_BASE)
+export const COPYRIGHT_STRIP_CHECK_SEED = 0x4a40; // ROM seed byte guardBlockOrBlankDisplay adds 51 stampCopyrightStrip bytes onto (checksum ==239)
+export const DISPLAY_OFF_VALUE = 0x4c89; // ROM byte (0x00) guardBlockOrBlankDisplay writes to VIDEO_ENABLE_LATCH to blank the picture on a failed tamper check
+export const TAMPER_WITNESS_SAMPLE_CELL = 0xa65c; // char-plane VRAM cell (glyph + colour counterpart 0xa25c) copied into TAMPER_WITNESS on a failed check
+export const IMAGE_GUARD_BLOCK_0BDD_BASE = 0x0bdd; // base of a 256-byte ROM span XOR-folded (==0x1c) as an anti-tamper check by blankCaptionThenAdvancePenRunStep; mid-code data span
+export const CHAR_PLANE_BASE = 0xa400; // first cell (0xa400) of the character/video RAM plane: whole-plane wipe start, self-test paint base, saved-column backing run
 
 // Batch 4: data addresses lifted out of routine-local consts / raw hex in the batch-4 files.
 // ROM-image cells/tables (below 0xA800) read as data (velocity/bias/descriptor/shape tables,
 // checksum + memcpy sources); the rest work/screen RAM cells. Every address checked against
 // ROUTINES keys: no collision except 0x17b9 (routine guardBlockOrBlankDisplay), which is LEFT as a
 // routine-local const in foldImageBlockIntoSignatureThenAdvanceSequence -- flagged for the coordinator.
-export const loc_0861 = 0x0861; // proposal: freeAllShotSlots STRIDE_LOW_SOURCE
+export const PLAYER_SHOT_SLOT_STRIDE = 0x0861; // ROM byte (16) = stride between the 6 player-shot slots (freeAllShotSlots); pairs with PLAYER_SHOT_ARRAY
 export const loc_0d46 = 0x0d46; // proposal: fireAndSweepPlayerShots SEARCH_STRIDE_SRC
 export const loc_2771 = 0x2771; // proposal: fireAndSweepPlayerShots VELOCITY_TABLE
 export const loc_27c0 = 0x27c0; // proposal: foldImageBlockIntoSignatureThenAdvanceSequence SEED_BYTE

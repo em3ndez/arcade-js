@@ -4,7 +4,7 @@
  * is fixed here, so the column, the two stubs and the run are all this entry's choice, and the
  * run is overwritten whole rather than merged into. LIVE-OUT: memory-only. */
 
-import { loc_a400, CHAR_PLANE_COLUMN_BASE, CHAR_PLANE_STUB_LEFT_TOP, CHAR_PLANE_STUB_RIGHT_TOP } from "./names.js";
+import { CHAR_PLANE_BASE, CHAR_PLANE_COLUMN_BASE, CHAR_PLANE_STUB_LEFT_TOP, CHAR_PLANE_STUB_RIGHT_TOP } from "./names.js";
 
 const ROW = 0x20;
 const COLUMN_CELLS = 28;
@@ -13,7 +13,7 @@ const STUB_CELLS = 2;
 
 export function gatherCharColumnIntoBackingRun(m) {
   const { mem8 } = m;
-  let destination = loc_a400;
+  let destination = CHAR_PLANE_BASE;
   for (let i = 0; i < COLUMN_CELLS; i++) mem8[destination++] = mem8[CHAR_PLANE_COLUMN_BASE + i * ROW];
   for (const stub of STUB_COLUMNS) {
     for (let i = 0; i < STUB_CELLS; i++) mem8[destination++] = mem8[stub + i * ROW];

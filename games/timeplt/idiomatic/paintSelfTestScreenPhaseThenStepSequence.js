@@ -10,7 +10,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { fillCellRun } from "./fillCellRun.js";
 import { setSavedPenFromEra } from "./setSavedPenFromEra.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { PEN_COLOUR, INTRO_ANIMATION_STEP, loc_a400, loc_3213, CHAR_PLANE_LOWER_RUN_BOTTOM, CHAR_PLANE_UPPER_RUN_BOTTOM, CHAR_PLANE_STUB_LEFT_BOTTOM, CHAR_PLANE_COLUMN_MID_BOTTOM, CHAR_PLANE_STUB_RIGHT_BOTTOM } from "./names.js";
+import { PEN_COLOUR, INTRO_ANIMATION_STEP, CHAR_PLANE_BASE, loc_3213, CHAR_PLANE_LOWER_RUN_BOTTOM, CHAR_PLANE_UPPER_RUN_BOTTOM, CHAR_PLANE_STUB_LEFT_BOTTOM, CHAR_PLANE_COLUMN_MID_BOTTOM, CHAR_PLANE_STUB_RIGHT_BOTTOM } from "./names.js";
 
 const PARKED_POINTER = 0x56f1;
 const ROW_STEP = -32;
@@ -29,7 +29,7 @@ export function paintSelfTestScreenPhaseThenStepSequence(m) {
   mem8[INTRO_ANIMATION_STEP + 0x7] = PARKED_POINTER & 0xff;
   mem8[INTRO_ANIMATION_STEP + 0x8] = PARKED_POINTER >> 8;
 
-  let cur = loc_a400;
+  let cur = CHAR_PLANE_BASE;
   for (let i = 0; i < 13; i++) mem8[cur++] = 0x14;
   mem8[cur++] = 0x00;
   mem8[cur++] = 0x00;

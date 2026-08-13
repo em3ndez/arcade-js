@@ -10,7 +10,7 @@
 
 import { plotPenCell } from "./plotPenCell.js";
 import { fetchTableWord } from "./fetchTableWord.js";
-import { PEN_COLUMN_POS, PEN_COLUMN_STEP, PEN_ROUTE_LEG, PEN_ROW_POS, PEN_ROW_STEP, PEN_ROUTE_TABLE, loc_0b45, loc_14b2, loc_32f5 } from "./names.js";
+import { PEN_COLUMN_POS, PEN_COLUMN_STEP, PEN_ROUTE_LEG, PEN_ROW_POS, PEN_ROW_STEP, PEN_ROUTE_TABLE, PEN_COLUMN_TARGET, PEN_RUN_END_CELL, PEN_ROW_TARGET } from "./names.js";
 
 /** (target - current) times sixteen, keeping only the signed high byte: the per-step increment. */
 function stepToward(target, current) {
@@ -23,14 +23,14 @@ export function drawInterpolatedPenRun(m) {
   const { regs, mem8, mem16 } = m;
 
   plotPenCell(m);
-  mem16[PEN_ROW_STEP] = stepToward(mem16[loc_32f5], mem16[PEN_ROW_POS]);
-  mem16[PEN_COLUMN_STEP] = stepToward(mem16[loc_0b45], mem16[PEN_COLUMN_POS]);
+  mem16[PEN_ROW_STEP] = stepToward(mem16[PEN_ROW_TARGET], mem16[PEN_ROW_POS]);
+  mem16[PEN_COLUMN_STEP] = stepToward(mem16[PEN_COLUMN_TARGET], mem16[PEN_COLUMN_POS]);
 
   do {
     mem16[PEN_ROW_POS] = mem16[PEN_ROW_POS] + mem16[PEN_ROW_STEP];
     mem16[PEN_COLUMN_POS] = mem16[PEN_COLUMN_POS] + mem16[PEN_COLUMN_STEP];
     plotPenCell(m);
-  } while (regs.hl !== mem16[loc_14b2]);
+  } while (regs.hl !== mem16[PEN_RUN_END_CELL]);
 
   mem8[PEN_ROUTE_LEG] = mem8[PEN_ROUTE_LEG] + 1;
   regs.a = mem8[PEN_ROUTE_LEG];

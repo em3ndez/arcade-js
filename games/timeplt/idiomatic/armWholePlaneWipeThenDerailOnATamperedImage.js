@@ -5,7 +5,7 @@
  * step, returning to a non-address; the wipe is armed either way. LIVE-OUT: memory only. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { BLANK_LINES_LEFT, BLANK_LINE_CURSOR, loadDefaultHighScores_ADDR, loc_a400 } from "./names.js";
+import { BLANK_LINES_LEFT, BLANK_LINE_CURSOR, loadDefaultHighScores_ADDR, CHAR_PLANE_BASE } from "./names.js";
 import { loc_0167 } from "./loc_0167.js";
 
 const WHOLE_PLANE = 0x20;
@@ -15,7 +15,7 @@ const GENUINE_TOTAL = 0x11;
 
 export function armWholePlaneWipeThenDerailOnATamperedImage(m) {
   const { mem8, mem16 } = m;
-  mem16[BLANK_LINE_CURSOR] = loc_a400;
+  mem16[BLANK_LINE_CURSOR] = CHAR_PLANE_BASE;
   mem8[BLANK_LINES_LEFT] = WHOLE_PLANE;
 
   let total = 0;
