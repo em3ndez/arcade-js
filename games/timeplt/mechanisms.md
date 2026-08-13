@@ -96,6 +96,14 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   the caption colour-band cells, the sampled copyright glyph/colour cells, and two more anti-tamper
   artifacts (a signature seed and a checksum span). One address — a store target on a dead-code
   checksum-failure trap path — was left a bare placeholder (no genuine data semantics).
+- **Batch 6** — the caption colour-band's remaining cells (its 3rd scattered cell and the two
+  colour-plane run-bottoms that fold CHAR_PLANE_UPPER/LOWER_RUN_BOTTOM), the digit-glyph table and
+  its leading-zero blank index, sprite bank 0's base and the sprite-raise step floor, the era/rung
+  settings pointer table, the boot-config/seed anti-tamper cells (the RNG seed source and its two
+  guard words, the boot-config checksum base, the default high-score and kill-quota bytes), the
+  attract-restart fold byte, and the per-phase vblank arm dispatch table. Three addresses stay
+  placeholders: a write-only player-record spare cell, and two code addresses read as data (a
+  checksum-over-code span and a called routine that doubles as a data table).
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for

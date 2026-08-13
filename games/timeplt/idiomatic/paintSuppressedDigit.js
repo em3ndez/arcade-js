@@ -11,7 +11,7 @@
  * LIVE-OUT: the two cells painted, the flag, the cursor, and the colour. */
 
 import { fetchTableByte } from "./fetchTableByte.js";
-import { loc_0dcc, loc_3246 } from "./names.js";
+import { DIGIT_GLYPH_TABLE, LEADING_ZERO_BLANK_GLYPH_INDEX } from "./names.js";
 
 const CHARACTER_PLANE_BIT = 0x0400;
 const LOW_NIBBLE = 0x0f;
@@ -25,11 +25,11 @@ export function paintSuppressedDigit(m) {
     regs.b = regs.b + 1;
     entry = digit;
   } else {
-    entry = regs.b === 0 ? mem8[loc_3246] : 0;
+    entry = regs.b === 0 ? mem8[LEADING_ZERO_BLANK_GLYPH_INDEX] : 0;
   }
 
   const held = regs.hl;
-  regs.hl = loc_0dcc;
+  regs.hl = DIGIT_GLYPH_TABLE;
   regs.a = entry;
   const glyph = fetchTableByte(m);
   regs.hl = held;

@@ -10,7 +10,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { fillCellRun } from "./fillCellRun.js";
 import { setSavedPenFromEra } from "./setSavedPenFromEra.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { PEN_COLOUR, INTRO_ANIMATION_STEP, CHAR_PLANE_BASE, loc_3213, CHAR_PLANE_LOWER_RUN_BOTTOM, CHAR_PLANE_UPPER_RUN_BOTTOM, CHAR_PLANE_STUB_LEFT_BOTTOM, CHAR_PLANE_COLUMN_MID_BOTTOM, CHAR_PLANE_STUB_RIGHT_BOTTOM } from "./names.js";
+import { PEN_COLOUR, INTRO_ANIMATION_STEP, CHAR_PLANE_BASE, SELFTEST_INTRO_SHAPE_SEED, CHAR_PLANE_LOWER_RUN_BOTTOM, CHAR_PLANE_UPPER_RUN_BOTTOM, CHAR_PLANE_STUB_LEFT_BOTTOM, CHAR_PLANE_COLUMN_MID_BOTTOM, CHAR_PLANE_STUB_RIGHT_BOTTOM } from "./names.js";
 
 const PARKED_POINTER = 0x56f1;
 const ROW_STEP = -32;
@@ -20,7 +20,7 @@ const toColour = (cell) => cell & 0xfbff; // clear bit 10: attribute plane -> co
 export function paintSelfTestScreenPhaseThenStepSequence(m) {
   const { regs, mem8 } = m;
 
-  mem8[INTRO_ANIMATION_STEP + 0x0] = mem8[loc_3213];
+  mem8[INTRO_ANIMATION_STEP + 0x0] = mem8[SELFTEST_INTRO_SHAPE_SEED];
   mem8[INTRO_ANIMATION_STEP + 0x1] = 0x00;
   mem8[INTRO_ANIMATION_STEP + 0x2] = 0xff;
   mem8[INTRO_ANIMATION_STEP + 0x3] = 0x04;

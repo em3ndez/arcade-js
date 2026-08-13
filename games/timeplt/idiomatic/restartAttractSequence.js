@@ -8,7 +8,7 @@
  * the sequence restarts at some other step. LIVE-OUT: memory only. */
 
 import { u8 } from "../../../core/int.js";
-import { PLAY_ACTIVE, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, ACTIVE_PLAYER, ATTRACT_SEQUENCE_START_PHASE, loc_4901, PLAYER_ANIM_COL_COUNT } from "./names.js";
+import { PLAY_ACTIVE, SEQUENCE_PHASE, SEQUENCE_SUBSTEP, ACTIVE_PLAYER, ATTRACT_SEQUENCE_START_PHASE, ATTRACT_RESTART_FOLD_BYTE, PLAYER_ANIM_COL_COUNT } from "./names.js";
 import { offsetAddress } from "./offsetAddress.js";
 
 const FOLD_BIAS = 155;
@@ -20,7 +20,7 @@ export function restartAttractSequence(m) {
   mem8[ACTIVE_PLAYER] = 0;
   mem8[SEQUENCE_PHASE] = mem8[ATTRACT_SEQUENCE_START_PHASE];
 
-  regs.a = mem8[loc_4901];
+  regs.a = mem8[ATTRACT_RESTART_FOLD_BYTE];
   regs.hl = mem16[PLAYER_ANIM_COL_COUNT];
   offsetAddress(m);
   mem8[SEQUENCE_SUBSTEP] = u8(regs.a ^ (regs.hl >> 8)) - FOLD_BIAS;

@@ -8,7 +8,7 @@
  * LIVE-OUT: the two cells, the cursor, and the run pointer, unchanged. A is dead but matched. */
 
 import { fetchTableByte } from "./fetchTableByte.js";
-import { loc_0dcc } from "./names.js";
+import { DIGIT_GLYPH_TABLE } from "./names.js";
 
 const DIGIT_BITS = 0x0f;
 const CHARACTER_PLANE_BIT = 0x0400;
@@ -16,7 +16,7 @@ const CHARACTER_PLANE_BIT = 0x0400;
 export function paintUnsuppressedDigit(m) {
   const { regs, mem8 } = m;
   const runPointer = regs.hl;
-  regs.hl = loc_0dcc;
+  regs.hl = DIGIT_GLYPH_TABLE;
   regs.a = regs.a & DIGIT_BITS;
   const glyph = fetchTableByte(m);
   regs.hl = runPointer;

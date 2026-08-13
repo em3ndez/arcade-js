@@ -1723,19 +1723,19 @@ export const PHASE3_SUBSTEP_DISPATCH_TABLE = 0x0f29; // inline 16-entry word jum
 export const loc_2f01 = 0x2f01; // proposal: loc_08fa store-target cell
 export const CAPTION_BAND_COLOUR_CELL0 = 0xa210; // 1st of three scattered colour-RAM cells filled with the caption colour band (paintCaptionColourBandAndStepSequence)
 export const CAPTION_BAND_COLOUR_CELL1 = 0xa211; // 2nd caption colour-band colour-RAM cell (the 3rd, a212, is a later batch)
-export const loc_a212 = 0xa212; // proposal: paintCaptionColourBandAndStepSequence CELL_LO
-export const loc_a3b1 = 0xa3b1; // proposal: paintCaptionColourBandAndStepSequence ROW_A
-export const loc_a1d1 = 0xa1d1; // proposal: paintCaptionColourBandAndStepSequence ROW_B
-export const loc_3213 = 0x3213; // proposal: paintSelfTestScreenPhaseThenStepSequence SHAPE_BYTE
-export const loc_0dcc = 0x0dcc; // proposal: paintSuppressedDigit GLYPHS
-export const loc_3246 = 0x3246; // proposal: paintSuppressedDigit BLANK_ENTRY_CELL
-export const loc_b010 = 0xb010; // proposal: publishSpriteShadow BANK_0
-export const loc_0832 = 0x0832; // proposal: publishSpriteShadow RAISE_STEP_FLOOR_CELL
+export const CAPTION_BAND_COLOUR_CELL2 = 0xa212; // 3rd scattered caption colour-RAM cell (0xe0+base / -row 0x60+base), with CAPTION_BAND_COLOUR_CELL0/1 (paintCaptionColourBandAndStepSequence)
+export const CAPTION_COLOUR_LOWER_RUN_BOTTOM = 0xa3b1; // colour-plane counterpart (res 2,h fold) of CHAR_PLANE_LOWER_RUN_BOTTOM (0xa7b1); fillCellRun base for the caption's lower colour run
+export const CAPTION_COLOUR_UPPER_RUN_BOTTOM = 0xa1d1; // colour-plane counterpart of CHAR_PLANE_UPPER_RUN_BOTTOM (0xa5d1); fillCellRun base for the caption's upper colour run
+export const SELFTEST_INTRO_SHAPE_SEED = 0x3213; // ROM byte seeding INTRO_ANIMATION_STEP[0] (the intro/self-test control block's shape byte) (paintSelfTestScreenPhaseThenStepSequence) [guess]
+export const DIGIT_GLYPH_TABLE = 0x0dcc; // ROM table mapping a digit (0-9) to its glyph; paint(Un)SuppressedDigit fetchTableByte
+export const LEADING_ZERO_BLANK_GLYPH_INDEX = 0x3246; // ROM byte: glyph-table index used for a suppressed leading zero (paintSuppressedDigit)
+export const SPRITE_BANK0_BASE = 0xb010; // base of hardware sprite-attribute bank 0 (0xb000 spriteram); sibling of SPRITE_BANK1_BASE (publishSpriteShadow)
+export const SPRITE_RAISE_STEP_FLOOR = 0x0832; // ROM byte: lower bound of the sub-step window in which publishSpriteShadow raises 8 sprites' top bit
 export const loc_a801 = 0xa801; // proposal: resetPlayfieldAndArmNewRound cleared player cell
-export const loc_1b04 = 0x1b04; // proposal: resetPlayfieldAndArmNewRound RECORD_TABLE
-export const loc_4901 = 0x4901; // proposal: restartAttractSequence FOLD_STEP
+export const ERA_RUNG_SETTINGS_POINTER_TABLE = 0x1b04; // ROM table indexed (era<<4)+rung via fetchTableWord -> pointer to a ~10-byte settings row scattered into spawn/launch cells (applyEraRungSettings)
+export const ATTRACT_RESTART_FOLD_BYTE = 0x4901; // ROM byte folded with PLAYER_ANIM_COL_COUNT to recompute SEQUENCE_SUBSTEP (nets to 0 on a genuine image) -- anti-tamper (restartAttractSequence) [guess]
 export const loc_178c = 0x178c; // proposal: seatCaptionPenFromEraFoldingTamperIntoPhase IMAGE_BLOCK
-export const loc_086b = 0x086b; // proposal: seatEraSceneryRowThenClearAndRunScenery CHECK_BASE
+export const BOOT_CONFIG_CHECKSUM_BASE = 0x086b; // base of the 16-byte boot-config ROM block (holds the RNG seed guard words + default kill quota) summed as a tamper tripwire (seatEraSceneryRowThenClearAndRunScenery) [guess]
 export const loc_3176 = 0x3176; // proposal: seatEraSceneryRowThenClearAndRunScenery ROW_TABLE
 
 // Batch 6 (final data batch): data addresses lifted out of routine-local consts / raw hex in 19 files.
@@ -1743,12 +1743,12 @@ export const loc_3176 = 0x3176; // proposal: seatEraSceneryRowThenClearAndRunSce
 // fetchTableWord/fetchTableByte through regs.hl; I/O-port hardware registers (0xC000/0xC3xx); the rest
 // work/screen/sprite RAM cells. Every address checked against ROUTINES keys: no collision.
 // (Many cells reused an existing data name under a different local label -- see report; not re-added.)
-export const loc_08c9 = 0x08c9; // proposal: seedGameConfigFromDipSwitches BOOT_BYTE_A
-export const loc_0874 = 0x0874; // proposal: seedGameConfigFromDipSwitches BOOT_BYTE_B
-export const loc_4b84 = 0x4b84; // proposal: seedRandomRegister SEED_SOURCE
-export const loc_086d = 0x086d; // proposal: seedRandomRegister GUARD_WORD_A
-export const loc_0870 = 0x0870; // proposal: seedRandomRegister GUARD_WORD_B
-export const loc_015f = 0x015f; // proposal: serviceVerticalBlankInterrupt PHASE_TABLE (dispatch table base)
+export const DEFAULT_HIGH_SCORE_HI = 0x08c9; // ROM boot-default byte copied into HIGH_SCORE_HI (seedGameConfigFromDipSwitches)
+export const DEFAULT_KILL_QUOTA = 0x0874; // ROM boot-default byte copied into KILL_QUOTA (seedGameConfigFromDipSwitches)
+export const RANDOM_REGISTER_SEED_SOURCE = 0x4b84; // base of the fixed 17-byte ROM seed run copied into RANDOM_REGISTER (seedRandomRegister)
+export const RANDOM_SEED_GUARD_WORD0 = 0x086d; // ROM word (1st of two) summed into seedRandomRegister's image-tamper guard total (must net to 0)
+export const RANDOM_SEED_GUARD_WORD1 = 0x0870; // ROM word (2nd) of the same seed image-tamper guard total
+export const SEQUENCE_PHASE_ARM_TABLE = 0x015f; // 4-word ROM table of per-phase arm-handler code addresses, indexed by SEQUENCE_PHASE&3 and m.call'd each vblank (serviceVerticalBlankInterrupt)
 export const loc_46c4 = 0x46c4; // proposal: setMotherShipVelocityFromHeading ARM_TABLE (dispatch table base)
 export const loc_39fb = 0x39fb; // proposal: spawnEnemyIntoFreeSlotElseStepSearch HEADING_TABLE
 export const loc_3a3b = 0x3a3b; // proposal: spawnEnemyIntoFreeSlotElseStepSearch VELOCITY_TABLE

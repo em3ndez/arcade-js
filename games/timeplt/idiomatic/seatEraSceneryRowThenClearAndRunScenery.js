@@ -10,7 +10,7 @@ import { offsetAddress } from "./offsetAddress.js";
 import { seatSceneryFillByte0x28ThenClearEraScenery } from "./seatSceneryFillByte0x28ThenClearEraScenery.js";
 import { clearSceneryEntriesThenRunEraScenery } from "./clearSceneryEntriesThenRunEraScenery.js";
 import { u8, u16 } from "../../../core/int.js";
-import { SCENERY_SPRITE_CODE_SLOT0, ERA_INDEX, loc_086b, loc_3176 } from "./names.js";
+import { SCENERY_SPRITE_CODE_SLOT0, ERA_INDEX, BOOT_CONFIG_CHECKSUM_BASE, loc_3176 } from "./names.js";
 
 const CHECK_LEN = 0x10;
 const CHECK_EXPECTED = 0x22;
@@ -23,7 +23,7 @@ const FILL_BYTE = 0xcc;
 export function seatEraSceneryRowThenClearAndRunScenery(m) {
   const { regs, mem8 } = m;
 
-  regs.hl = loc_086b;
+  regs.hl = BOOT_CONFIG_CHECKSUM_BASE;
   regs.c = CHECK_EXPECTED;
   regs.b = CHECK_LEN;
   sumByteRunAndCompareToExpected(m); // tamper checksum; its answer is discarded here
