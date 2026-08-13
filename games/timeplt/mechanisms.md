@@ -90,6 +90,12 @@ Bulk naming progress (running record; the whole-map weave is still owed):
   PEN_RUN_END_CELL), the player-shot slot stride, and a cluster of anti-tamper artifacts — three
   XOR-guard ROM block bases, three image-checksum words, the copyright-strip check seed, the
   display-off value, and the tamper-witness sample cell.
+- **Batch 5** — the player-shot velocity table and slot stride/fill bytes, the enemy-wave tables
+  (heading-bias, shape, descriptor), the three inline dispatch jump-tables (era-slot, phase-0
+  sub-step, phase-3 sub-step), the default high-score table, the sequence-substep hand-over seed,
+  the caption colour-band cells, the sampled copyright glyph/colour cells, and two more anti-tamper
+  artifacts (a signature seed and a checksum span). One address — a store target on a dead-code
+  checksum-failure trap path — was left a bare placeholder (no genuine data semantics).
 
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for

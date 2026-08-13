@@ -11,7 +11,7 @@ import { loc_5634 } from "./loc_5634.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startNextRound } from "./startNextRound.js";
 import { postGameOverBanner } from "./postGameOverBanner.js";
-import { ROUND_TRANSITION_HOLD, LIVES_REMAINING, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, ACTIVE_PLAYER, SEQUENCE_DELAY, SEQUENCE_SUBSTEP, loc_4b52 } from "./names.js";
+import { ROUND_TRANSITION_HOLD, LIVES_REMAINING, PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, ACTIVE_PLAYER, SEQUENCE_DELAY, SEQUENCE_SUBSTEP, HANDOVER_SUBSTEP_SEED } from "./names.js";
 
 const RECORD_LEN = 16;
 
@@ -34,5 +34,5 @@ export function loseLifeAndHandOver(m) {
   if (mem8[other] !== 0) mem8[ACTIVE_PLAYER] = (mem8[ACTIVE_PLAYER] + 1) & 1;
 
   mem8[SEQUENCE_DELAY] = STAMP_VALUE;
-  mem8[SEQUENCE_SUBSTEP] = mem8[loc_4b52];
+  mem8[SEQUENCE_SUBSTEP] = mem8[HANDOVER_SUBSTEP_SEED];
 }

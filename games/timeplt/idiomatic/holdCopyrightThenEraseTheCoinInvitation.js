@@ -10,7 +10,7 @@
  * LIVE-OUT: memory only. */
 
 import { u8 } from "../../../core/int.js";
-import { SEQUENCE_DELAY, TAMPER_GLYPH_KONAMI, loc_a23c, loc_a63c } from "./names.js";
+import { SEQUENCE_DELAY, TAMPER_GLYPH_KONAMI, COPYRIGHT_SAMPLE_COLOUR_CELL, COPYRIGHT_SAMPLE_GLYPH_CELL } from "./names.js";
 import { stampCopyrightStrip } from "./stampCopyrightStrip.js";
 import { flashCopyrightLine } from "./flashCopyrightLine.js";
 import { postCommand } from "./postCommand.js";
@@ -28,8 +28,8 @@ export function holdCopyrightThenEraseTheCoinInvitation(m) {
   mem8[SEQUENCE_DELAY] = left;
   if (left !== 0) return;
 
-  mem8[TAMPER_GLYPH_KONAMI] = mem8[loc_a63c];
-  mem8[TAMPER_GLYPH_KONAMI + 1] = mem8[loc_a23c];
+  mem8[TAMPER_GLYPH_KONAMI] = mem8[COPYRIGHT_SAMPLE_GLYPH_CELL];
+  mem8[TAMPER_GLYPH_KONAMI + 1] = mem8[COPYRIGHT_SAMPLE_COLOUR_CELL];
 
   postCommand(m, COMMAND, FIRST_ARGUMENT);
   postCommand(m, COMMAND, FIRST_ARGUMENT + 1);

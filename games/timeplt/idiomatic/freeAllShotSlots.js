@@ -3,7 +3,7 @@
  * and slot stride are read from program space (on this image fill=0, stride=16). LIVE-OUT: memory + the record cursor past the last slot. */
 
 import { u16 } from "../../../core/int.js";
-import { PLAYER_SHOT_ARRAY, PLAYER_SHOT_SLOT_STRIDE, loc_5c01 } from "./names.js";
+import { PLAYER_SHOT_ARRAY, PLAYER_SHOT_SLOT_STRIDE, SHOT_SLOT_FILL_BYTE } from "./names.js";
 
 const SLOTS = 6;
 const SECOND_CLEARED_BYTE = 4;
@@ -11,7 +11,7 @@ const SECOND_CLEARED_BYTE = 4;
 // Two program-space bytes: the fill (also the stride's high half) and the stride's low half.
 export function freeAllShotSlots(m) {
   const { regs, mem8 } = m;
-  const fill = mem8[loc_5c01];
+  const fill = mem8[SHOT_SLOT_FILL_BYTE];
   const stride = mem8[PLAYER_SHOT_SLOT_STRIDE] | (fill << 8);
 
   let slot = PLAYER_SHOT_ARRAY;

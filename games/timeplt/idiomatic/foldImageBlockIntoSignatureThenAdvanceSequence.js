@@ -8,20 +8,20 @@
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { foldBlockIntoTotal } from "./foldBlockIntoTotal.js";
 import { trampolineToSelectFoldBlock } from "./trampolineToSelectFoldBlock.js";
-import { TAMPER_IMAGE_SIGNATURE, loc_27c0, loc_aa3f, guardBlockOrBlankDisplay_ADDR } from "./names.js";
+import { TAMPER_IMAGE_SIGNATURE, TAMPER_SIGNATURE_SEED_BYTE, TAMPER_FOLD_FLAG, guardBlockOrBlankDisplay_ADDR } from "./names.js";
 
 const ALL_BITS = 255;
 
 export function foldImageBlockIntoSignatureThenAdvanceSequence(m) {
   const { mem8, regs } = m;
-  mem8[loc_aa3f] = ALL_BITS;
+  mem8[TAMPER_FOLD_FLAG] = ALL_BITS;
 
   trampolineToSelectFoldBlock(m);
   const blockStart = regs.hl;
   const blockLength = regs.b;
   mem8[TAMPER_IMAGE_SIGNATURE] = foldBlockIntoTotal(
     m,
-    mem8[loc_27c0],
+    mem8[TAMPER_SIGNATURE_SEED_BYTE],
     blockStart,
     guardBlockOrBlankDisplay_ADDR,
     blockLength,

@@ -9,7 +9,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { fillCellRun } from "./fillCellRun.js";
 import { setSavedPenFromEra } from "./setSavedPenFromEra.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
-import { PEN_COLOUR, loc_a3b1, loc_a1d1, loc_a210, loc_a211, loc_a212 } from "./names.js";
+import { PEN_COLOUR, loc_a3b1, loc_a1d1, CAPTION_BAND_COLOUR_CELL0, CAPTION_BAND_COLOUR_CELL1, loc_a212 } from "./names.js";
 
 const HEAD_RUN = 13;
 const TAIL_RUN = 4;
@@ -38,12 +38,12 @@ export function paintCaptionColourBandAndStepSequence(m) {
   regs.a = u8(0x20 + base);
   fillCellRun(m);
 
-  mem8[loc_a210] = u8(0xa0 + base);
-  mem8[u16(loc_a210 - ROW)] = u8(0x20 + base);
+  mem8[CAPTION_BAND_COLOUR_CELL0] = u8(0xa0 + base);
+  mem8[u16(CAPTION_BAND_COLOUR_CELL0 - ROW)] = u8(0x20 + base);
   mem8[loc_a212] = u8(0xe0 + base);
   mem8[u16(loc_a212 - ROW)] = u8(0x60 + base);
-  mem8[loc_a211] = u8(0xa0 + base);
-  mem8[u16(loc_a211 - ROW)] = u8(0x20 + base);
+  mem8[CAPTION_BAND_COLOUR_CELL1] = u8(0xa0 + base);
+  mem8[u16(CAPTION_BAND_COLOUR_CELL1 - ROW)] = u8(0x20 + base);
 
   setSavedPenFromEra(m);
   advanceSequenceSubStep(m);

@@ -8,7 +8,7 @@ import { readPlayerControls } from "./readPlayerControls.js";
 import { requestPlayerShotSound } from "./requestPlayerShotSound.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
 import { queueTileStampForObject } from "./queueTileStampForObject.js";
-import { FIRE_BUTTON_EDGE_SHIFT, PLAYER_HEADING, PLAYER_SHOT_ARRAY, PLAYER_STATE, PLAY_ACTIVE, ROUND_TRANSITION_HOLD, SHOT_BURST_PENDING, SHOT_SPAWN_COOLDOWN, WORLD_SCROLL_X, WORLD_SCROLL_Y, loc_0d46, loc_2771 } from "./names.js";
+import { FIRE_BUTTON_EDGE_SHIFT, PLAYER_HEADING, PLAYER_SHOT_ARRAY, PLAYER_STATE, PLAY_ACTIVE, ROUND_TRANSITION_HOLD, SHOT_BURST_PENDING, SHOT_SPAWN_COOLDOWN, WORLD_SCROLL_X, WORLD_SCROLL_Y, PLAYER_SHOT_SLOT_STRIDE_WORD, PLAYER_SHOT_VELOCITY_TABLE } from "./names.js";
 
 const SLOT_COUNT = 6;
 const RECORD_STRIDE = 16;
@@ -34,7 +34,7 @@ export function fireAndSweepPlayerShots(m) {
   let slot = PLAYER_SHOT_ARRAY;
   for (let i = 0; i < SLOT_COUNT; i++) {
     if (mem8[slot] === 0) { spawnIntoFreeSlot(m, slot); break; }
-    slot = u16(slot + mem16[loc_0d46]);
+    slot = u16(slot + mem16[PLAYER_SHOT_SLOT_STRIDE_WORD]);
   }
   return sweepSlots(m);
 }
@@ -46,7 +46,7 @@ function spawnIntoFreeSlot(m, slot) {
   mem16[slot + SEED1] = u16(-4 * mem16[WORLD_SCROLL_Y]);
   mem16[slot + SEED2] = u16(-4 * mem16[WORLD_SCROLL_X]);
 
-  regs.hl = loc_2771;
+  regs.hl = PLAYER_SHOT_VELOCITY_TABLE;
   regs.a = (u8(mem8[PLAYER_HEADING] + 4) >> 3) & 0x1f;
   fetchWideTableWord(m);
   const velocity = regs.de;

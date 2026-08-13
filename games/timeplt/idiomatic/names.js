@@ -1701,28 +1701,28 @@ export const CHAR_PLANE_BASE = 0xa400; // first cell (0xa400) of the character/v
 // ROUTINES keys: no collision except 0x17b9 (routine guardBlockOrBlankDisplay), which is LEFT as a
 // routine-local const in foldImageBlockIntoSignatureThenAdvanceSequence -- flagged for the coordinator.
 export const PLAYER_SHOT_SLOT_STRIDE = 0x0861; // ROM byte (16) = stride between the 6 player-shot slots (freeAllShotSlots); pairs with PLAYER_SHOT_ARRAY
-export const loc_0d46 = 0x0d46; // proposal: fireAndSweepPlayerShots SEARCH_STRIDE_SRC
-export const loc_2771 = 0x2771; // proposal: fireAndSweepPlayerShots VELOCITY_TABLE
-export const loc_27c0 = 0x27c0; // proposal: foldImageBlockIntoSignatureThenAdvanceSequence SEED_BYTE
-export const loc_38d9 = 0x38d9; // proposal: driveEnemyWaveForLifePhase BIAS_TABLE
-export const loc_38e9 = 0x38e9; // proposal: driveEnemyWaveForLifePhase SHAPE_TABLE
-export const loc_397b = 0x397b; // proposal: driveEnemyWaveForLifePhase DESCRIPTOR_TABLE
-export const loc_4b52 = 0x4b52; // proposal: handPlayOverToOtherPlayer SUBSTEP_SOURCE
-export const loc_4bb1 = 0x4bb1; // proposal: loadDefaultHighScores SOURCE (memcpy source block)
-export const loc_5b50 = 0x5b50; // proposal: loadActivePlayerContextAndPostRoundHud CHECKSUM_FIRST
-export const loc_5c01 = 0x5c01; // proposal: freeAllShotSlots FILL_SOURCE
-export const loc_a23c = 0xa23c; // proposal: holdCopyrightThenEraseTheCoinInvitation SAMPLED_COLOUR_CELL
-export const loc_a63c = 0xa63c; // proposal: holdCopyrightThenEraseTheCoinInvitation SAMPLED_GLYPH_CELL
-export const loc_aa3f = 0xaa3f; // proposal: foldImageBlockIntoSignatureThenAdvanceSequence FLAG_CELL
-export const loc_acc2 = 0xacc2; // proposal: driveEnemyWaveForLifePhase WAVE_MARK
+export const PLAYER_SHOT_SLOT_STRIDE_WORD = 0x0d46; // ROM word (16) = stride to the next slot in the 6-slot shot bank (fireAndSweepPlayerShots); word form of PLAYER_SHOT_SLOT_STRIDE
+export const PLAYER_SHOT_VELOCITY_TABLE = 0x2771; // 32-entry ROM word table: shot velocity vector by heading ((heading+4)>>3 & 0x1f) (fireAndSweepPlayerShots)
+export const TAMPER_SIGNATURE_SEED_BYTE = 0x27c0; // ROM seed byte for the image-signature fold (foldImageBlockIntoSignatureThenAdvanceSequence -> TAMPER_IMAGE_SIGNATURE)
+export const WAVE_HEADING_BIAS_TABLE = 0x38d9; // 16-entry ROM byte table: per-heading bias added to wave shape indices ((PLAYER_HEADING+8)>>4) (driveEnemyWaveForLifePhase)
+export const WAVE_SHAPE_TABLE = 0x38e9; // ROM 2-byte (attr,shape) table indexed 2*(descriptor+bias) (driveEnemyWaveForLifePhase)
+export const WAVE_DESCRIPTOR_TABLE = 0x397b; // ROM table of 16-byte wave descriptor rows (16*WAVE_DESCRIPTOR_INDEX), 2 bytes/slot (driveEnemyWaveForLifePhase)
+export const HANDOVER_SUBSTEP_SEED = 0x4b52; // ROM byte reseating SEQUENCE_SUBSTEP on a player hand-over (handPlayOverToOtherPlayer/loseLifeAndHandOver)
+export const DEFAULT_HIGH_SCORE_TABLE = 0x4bb1; // ROM source block (40 bytes) of default high scores copied to HIGH_SCORE_TABLE_BASE (loadDefaultHighScores); also a tamper-path derail target, not a routine entry
+export const TAMPER_CHECKSUM_SPAN_BASE = 0x5b50; // base of a 256-byte checksum-over-code span XOR-folded -> VIDEO_ENABLE_LATCH (loadActivePlayerContextAndPostRoundHud tamper guard); not a routine entry
+export const SHOT_SLOT_FILL_BYTE = 0x5c01; // ROM byte (0) zero-filling each shot slot's bytes 0/4 + high half of the stride word (freeAllShotSlots)
+export const COPYRIGHT_SAMPLE_COLOUR_CELL = 0xa23c; // colour-plane cell sampled into TAMPER_GLYPH_KONAMI+1 (holdCopyrightThenEraseTheCoinInvitation); pairs with the glyph cell at +0x400
+export const COPYRIGHT_SAMPLE_GLYPH_CELL = 0xa63c; // video/glyph-plane cell sampled into TAMPER_GLYPH_KONAMI (holdCopyrightThenEraseTheCoinInvitation)
+export const TAMPER_FOLD_FLAG = 0xaa3f; // work-RAM flag set 0xff before the image-signature fold, never read in the layer [guess] (foldImageBlockIntoSignatureThenAdvanceSequence)
+export const WAVE_SPAWN_BUSY_FLAG = 0xacc2; // work-RAM busy/lock flag =0xff around the inline wave-build loop, =0 after (driveEnemyWaveForLifePhase)
 
 // Address-retrofit batch 5 data addresses (§4).
-export const loc_2914 = 0x2914; // proposal: dispatchSeatedSlotByEraIndex ARM_TABLE
-export const loc_15c8 = 0x15c8; // proposal: dispatchSequencePhase0SubStepArm ARM_TABLE
-export const loc_0f29 = 0x0f29; // proposal: dispatchSequenceSubStepArm ARM_TABLE
+export const ERA_SLOT_DISPATCH_TABLE = 0x2914; // inline 8-entry word jump table selecting a seated-slot handler by era (dispatchSeatedSlotByEraIndex, mem16[here+2*(ERA_INDEX&7)])
+export const PHASE0_SUBSTEP_DISPATCH_TABLE = 0x15c8; // inline 8-entry word jump table of phase-0 sub-step arms (dispatchSequencePhase0SubStepArm)
+export const PHASE3_SUBSTEP_DISPATCH_TABLE = 0x0f29; // inline 16-entry word jump table of the phase-3 (round-engine) sub-step arms, keyed on SEQUENCE_SUBSTEP&0x0f (dispatchSequenceSubStepArm)
 export const loc_2f01 = 0x2f01; // proposal: loc_08fa store-target cell
-export const loc_a210 = 0xa210; // proposal: paintCaptionColourBandAndStepSequence CELL_HI
-export const loc_a211 = 0xa211; // proposal: paintCaptionColourBandAndStepSequence CELL_MID
+export const CAPTION_BAND_COLOUR_CELL0 = 0xa210; // 1st of three scattered colour-RAM cells filled with the caption colour band (paintCaptionColourBandAndStepSequence)
+export const CAPTION_BAND_COLOUR_CELL1 = 0xa211; // 2nd caption colour-band colour-RAM cell (the 3rd, a212, is a later batch)
 export const loc_a212 = 0xa212; // proposal: paintCaptionColourBandAndStepSequence CELL_LO
 export const loc_a3b1 = 0xa3b1; // proposal: paintCaptionColourBandAndStepSequence ROW_A
 export const loc_a1d1 = 0xa1d1; // proposal: paintCaptionColourBandAndStepSequence ROW_B

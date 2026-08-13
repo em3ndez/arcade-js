@@ -15,7 +15,7 @@ import { stopFiveSlotAnimations } from "./stopFiveSlotAnimations.js";
 import { gateTheFreeSlotSearchAndPickItsRun } from "./gateTheFreeSlotSearchAndPickItsRun.js";
 import { spawnEnemyCraftWhenBandUnderTwo } from "./spawnEnemyCraftWhenBandUnderTwo.js";
 import { requestEnemyWaveSound } from "./requestEnemyWaveSound.js";
-import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ERA_INDEX, KILLS_REMAINING, LIFE_TICKS_LOW, LIFE_TICKS_MID, PLAYER_HEADING, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, WAVE_CLAIM_TIMER, WAVE_DESCRIPTOR_INDEX, WAVE_KILL_COUNTDOWN, loc_38d9, loc_38e9, loc_397b, loc_acc2 } from "./names.js";
+import { CRAFT_ENTRY_SLOT0, CRAFT_RECORD_SLOT0, ERA_INDEX, KILLS_REMAINING, LIFE_TICKS_LOW, LIFE_TICKS_MID, PLAYER_HEADING, ROUND_CRAFT_COUNT, ROUND_TRANSITION_HOLD, WAVE_CLAIM_TIMER, WAVE_DESCRIPTOR_INDEX, WAVE_KILL_COUNTDOWN, WAVE_HEADING_BIAS_TABLE, WAVE_SHAPE_TABLE, WAVE_DESCRIPTOR_TABLE, WAVE_SPAWN_BUSY_FLAG } from "./names.js";
 
 const BOSS_ERA = 4;
 const DEFAULT_COUNT = 5;
@@ -37,16 +37,16 @@ export function driveEnemyWaveForLifePhase(m) {
   if (mem8[LIFE_TICKS_LOW] !== 0) return;
 
   const parityBit = drawRandomByte(m) & 1;
-  mem8[loc_acc2] = 0xff;
+  mem8[WAVE_SPAWN_BUSY_FLAG] = 0xff;
   mem8[WAVE_DESCRIPTOR_INDEX] = u8(2 * mem8[ERA_INDEX] + parityBit);
 
   const headingIndex = u8(mem8[PLAYER_HEADING] + 8) >> 4;
-  regs.hl = loc_38d9;
+  regs.hl = WAVE_HEADING_BIAS_TABLE;
   regs.a = headingIndex;
   const bias = mem8[offsetAddress(m)];
 
   regs.a = u8(16 * mem8[WAVE_DESCRIPTOR_INDEX]);
-  regs.hl = loc_397b;
+  regs.hl = WAVE_DESCRIPTOR_TABLE;
   let descriptor = offsetAddress(m); // two-byte entries, one consumed per filled slot
 
   const count = mem8[KILLS_REMAINING] !== 0 ? mem8[ROUND_CRAFT_COUNT] : DEFAULT_COUNT;
@@ -58,7 +58,7 @@ export function driveEnemyWaveForLifePhase(m) {
   do {
     if (mem8[record] === 0) {
       regs.a = u8(2 * (mem8[descriptor] + bias));
-      regs.hl = loc_38e9;
+      regs.hl = WAVE_SHAPE_TABLE;
       mem8[entry + 0x31] = fetchTableByte(m);
       mem8[entry] = mem8[regs.hl + 1];
 
@@ -83,7 +83,7 @@ export function driveEnemyWaveForLifePhase(m) {
     remaining = u8(remaining - 1);
   } while (remaining !== 0);
 
-  mem8[loc_acc2] = 0;
+  mem8[WAVE_SPAWN_BUSY_FLAG] = 0;
   mem8[WAVE_CLAIM_TIMER] = READY_STATUS;
   const filled = mem8[WAVE_KILL_COUNTDOWN];
   if (filled >= DEFAULT_COUNT) return requestEnemyWaveSound(m);
