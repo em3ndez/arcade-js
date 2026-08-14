@@ -21,6 +21,11 @@ import { loc_07d9 } from "./loc_07d9.js";
 import { loc_07e6 } from "./loc_07e6.js";
 import { loc_0804 } from "./loc_0804.js";
 import { loc_0822 } from "./loc_0822.js";
+import { loc_085b } from "./loc_085b.js";
+import { loc_0870 } from "./loc_0870.js";
+import { loc_08e0 } from "./loc_08e0.js";
+import { loc_09aa } from "./loc_09aa.js";
+import { loc_09db } from "./loc_09db.js";
 import { loc_0a16 } from "./loc_0a16.js";
 import { loc_0a48 } from "./loc_0a48.js";
 import { loc_0a84 } from "./loc_0a84.js";
@@ -32,21 +37,27 @@ import { loc_0b95 } from "./loc_0b95.js";
 import { loc_0b9b } from "./loc_0b9b.js";
 import { loc_0ba0 } from "./loc_0ba0.js";
 import { loc_0ba9 } from "./loc_0ba9.js";
+import { loc_0c3d } from "./loc_0c3d.js";
 import { loc_0c4a } from "./loc_0c4a.js";
+import { loc_0d4c } from "./loc_0d4c.js";
 import { loc_0db9 } from "./loc_0db9.js";
 import { loc_0e74 } from "./loc_0e74.js";
 import { loc_0e7a } from "./loc_0e7a.js";
 import { loc_0f3e } from "./loc_0f3e.js";
+import { loc_0f59 } from "./loc_0f59.js";
+import { loc_0f69 } from "./loc_0f69.js";
 import { loc_0faf } from "./loc_0faf.js";
 import { loc_1048 } from "./loc_1048.js";
 import { loc_14b7 } from "./loc_14b7.js";
 import { loc_1802 } from "./loc_1802.js";
 import { loc_19e2 } from "./loc_19e2.js";
 import { loc_1fc7 } from "./loc_1fc7.js";
+import { loc_1fd6 } from "./loc_1fd6.js";
 import { loc_223d } from "./loc_223d.js";
 import { loc_230f } from "./loc_230f.js";
 import { loc_2341 } from "./loc_2341.js";
 import { loc_2cf0 } from "./loc_2cf0.js";
+import { loc_2d88 } from "./loc_2d88.js";
 
 export const ROUTINE_ENTRIES = [
   [0x0000, loc_0000],
@@ -66,6 +77,11 @@ export const ROUTINE_ENTRIES = [
   [0x07e6, loc_07e6],
   [0x0804, loc_0804],
   [0x0822, loc_0822],
+  [0x085b, loc_085b],
+  [0x0870, loc_0870],
+  [0x08e0, loc_08e0],
+  [0x09aa, loc_09aa],
+  [0x09db, loc_09db],
   [0x0a16, loc_0a16],
   [0x0a48, loc_0a48],
   [0x0a84, loc_0a84],
@@ -77,19 +93,25 @@ export const ROUTINE_ENTRIES = [
   [0x0b9b, loc_0b9b],
   [0x0ba0, loc_0ba0],
   [0x0ba9, loc_0ba9],
+  [0x0c3d, loc_0c3d],
   [0x0c4a, loc_0c4a],
+  [0x0d4c, loc_0d4c],
   [0x0db9, loc_0db9],
   [0x0e74, loc_0e74],
   [0x0e7a, loc_0e7a],
   [0x0f3e, loc_0f3e],
+  [0x0f59, loc_0f59],
+  [0x0f69, loc_0f69],
   [0x0faf, loc_0faf],
   [0x1048, loc_1048],
   [0x14b7, loc_14b7],
   [0x1802, loc_1802],
   [0x19e2, loc_19e2],
   [0x1fc7, loc_1fc7],
+  [0x1fd6, loc_1fd6],
   [0x223d, loc_223d],
   [0x230f, loc_230f],
   [0x2341, loc_2341],
   [0x2cf0, loc_2cf0],
+  [0x2d88, loc_2d88],
 ];
