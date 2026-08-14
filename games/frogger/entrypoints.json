@@ -88,5 +88,360 @@
     "addr": "0x2338",
     "why": "loc_230f fall-through after the 0x0faf dispatcher call at 0x2335 (ld a,0x01; ld (0x825b),a; ld (0x829b),a; ret)",
     "provenance": "return-site the static tracer could not follow past the jp(hl) in loc_0faf; loc_0faf is a `call` that returns"
+  },
+  {
+    "addr": "0x0fd4",
+    "why": "loc_0faf jp(hl) at 0x0fbd, frog-anim index (0x8000)&0xff = 0 -> ptr (0x0fbe+2*0)=0x0fd4",
+    "provenance": "computed 16-bit pointer table (base 0x0fbe, 11 entries), bounded by loc_0faf (0x0faf-0x0fbd); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1058",
+    "why": "loc_0faf jp(hl) at 0x0fbd, frog-anim index (0x8000)&0xff = 1 -> ptr (0x0fbe+2*1)=0x1058",
+    "provenance": "computed 16-bit pointer table (base 0x0fbe, 11 entries), bounded by loc_0faf (0x0faf-0x0fbd); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x107b",
+    "why": "loc_0faf jp(hl) at 0x0fbd, frog-anim index (0x8000)&0xff = 2 -> ptr (0x0fbe+2*2)=0x107b",
+    "provenance": "computed 16-bit pointer table (base 0x0fbe, 11 entries), bounded by loc_0faf (0x0faf-0x0fbd); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x109b",
+    "why": "loc_0faf jp(hl) at 0x0fbd, frog-anim index (0x8000)&0xff = 3 -> ptr (0x0fbe+2*3)=0x109b",
+    "provenance": "computed 16-bit pointer table (base 0x0fbe, 11 entries), bounded by loc_0faf (0x0faf-0x0fbd); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x10bb",
+    "why": "loc_0faf jp(hl) at 0x0fbd, frog-anim index (0x8000)&0xff = 4 -> ptr (0x0fbe+2*4)=0x10bb",
+    "provenance": "computed 16-bit pointer table (base 0x0fbe, 11 entries), bounded by loc_0faf (0x0faf-0x0fbd); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x10db",
+    "why": "loc_0faf jp(hl) at 0x0fbd, frog-anim index (0x8000)&0xff = 5 -> ptr (0x0fbe+2*5)=0x10db",
+    "provenance": "computed 16-bit pointer table (base 0x0fbe, 11 entries), bounded by loc_0faf (0x0faf-0x0fbd); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x10f8",
+    "why": "loc_0faf jp(hl) at 0x0fbd, frog-anim index (0x8000)&0xff = 6 -> ptr (0x0fbe+2*6)=0x10f8",
+    "provenance": "computed 16-bit pointer table (base 0x0fbe, 11 entries), bounded by loc_0faf (0x0faf-0x0fbd); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1118",
+    "why": "loc_0faf jp(hl) at 0x0fbd, frog-anim index (0x8000)&0xff = 7 -> ptr (0x0fbe+2*7)=0x1118",
+    "provenance": "computed 16-bit pointer table (base 0x0fbe, 11 entries), bounded by loc_0faf (0x0faf-0x0fbd); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1138",
+    "why": "loc_0faf jp(hl) at 0x0fbd, frog-anim index (0x8000)&0xff = 8 -> ptr (0x0fbe+2*8)=0x1138",
+    "provenance": "computed 16-bit pointer table (base 0x0fbe, 11 entries), bounded by loc_0faf (0x0faf-0x0fbd); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1158",
+    "why": "loc_0faf jp(hl) at 0x0fbd, frog-anim index (0x8000)&0xff = 9 -> ptr (0x0fbe+2*9)=0x1158",
+    "provenance": "computed 16-bit pointer table (base 0x0fbe, 11 entries), bounded by loc_0faf (0x0faf-0x0fbd); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1178",
+    "why": "loc_0faf jp(hl) at 0x0fbd, frog-anim index (0x8000)&0xff = 10 -> ptr (0x0fbe+2*10)=0x1178",
+    "provenance": "computed 16-bit pointer table (base 0x0fbe, 11 entries), bounded by loc_0faf (0x0faf-0x0fbd); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1209",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 0 -> ptr (0x11e9+2*0)=0x1209 (also the (0x8047)&0x0f>=9 fast-path via jp 0x1209)",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x120c",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 1 -> ptr (0x11e9+2*1)=0x120c",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x120f",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 2 -> ptr (0x11e9+2*2)=0x120f",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1212",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 3 -> ptr (0x11e9+2*3)=0x1212",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x121a",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 4 -> ptr (0x11e9+2*4)=0x121a",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1222",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 5 -> ptr (0x11e9+2*5)=0x1222",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x122a",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 6 -> ptr (0x11e9+2*6)=0x122a",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1232",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 7 -> ptr (0x11e9+2*7)=0x1232",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x123a",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 8 -> ptr (0x11e9+2*8)=0x123a",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1242",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 9 -> ptr (0x11e9+2*9)=0x1242",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x124a",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 10 -> ptr (0x11e9+2*10)=0x124a",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1252",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 11 -> ptr (0x11e9+2*11)=0x1252",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x125a",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 12 -> ptr (0x11e9+2*12)=0x125a",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1262",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 13 -> ptr (0x11e9+2*13)=0x1262",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x126a",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 14 -> ptr (0x11e9+2*14)=0x126a",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x126d",
+    "why": "loc_11bf jp(hl) at 0x11e8, hi-nibble of frog-X (0x8047) = 15 -> ptr (0x11e9+2*15)=0x126d",
+    "provenance": "computed 16-bit pointer table (base 0x11e9, 16 entries), bounded by loc_11bf (0x11bf-0x1208); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x132b",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 0 -> ptr (0x130b+2*0)=0x132b (also the low-nibble<5 fast-path via jp 0x132b)",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x132e",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 1 -> ptr (0x130b+2*1)=0x132e",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1331",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 2 -> ptr (0x130b+2*2)=0x1331",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1334",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 3 -> ptr (0x130b+2*3)=0x1334",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x133c",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 4 -> ptr (0x130b+2*4)=0x133c",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1344",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 5 -> ptr (0x130b+2*5)=0x1344",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x134c",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 6 -> ptr (0x130b+2*6)=0x134c",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1354",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 7 -> ptr (0x130b+2*7)=0x1354",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x135c",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 8 -> ptr (0x130b+2*8)=0x135c",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1364",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 9 -> ptr (0x130b+2*9)=0x1364",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x136c",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 10 -> ptr (0x130b+2*10)=0x136c",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1374",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 11 -> ptr (0x130b+2*11)=0x1374",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x137c",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 12 -> ptr (0x130b+2*12)=0x137c",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x1384",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 13 -> ptr (0x130b+2*13)=0x1384",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x138c",
+    "why": "loc_12e4 jp(hl) at 0x130a, hi-nibble of ((0x8047)+0x0f) = 14 -> ptr (0x130b+2*14)=0x138c",
+    "provenance": "computed 16-bit pointer table (base 0x130b, 16 entries), bounded by loc_12e4 (0x12e4-0x132a); loc_12e4 is the loc_11bf sibling reached via jp nc,0x1209->0x12e4; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x14dd",
+    "why": "loc_14b7 jp(hl) at 0x14c6, object index (0x80ff) = 0 -> ptr (0x14c7+2*0)=0x14dd",
+    "provenance": "computed 16-bit pointer table (base 0x14c7, 11 entries), bounded by loc_14b7 (0x14b7-0x14c6); arm bodies 0x14dd-0x1597; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x14ee",
+    "why": "loc_14b7 jp(hl) at 0x14c6, object index (0x80ff) = 1 -> ptr (0x14c7+2*1)=0x14ee",
+    "provenance": "computed 16-bit pointer table (base 0x14c7, 11 entries), bounded by loc_14b7 (0x14b7-0x14c6); arm bodies 0x14dd-0x1597; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x14ff",
+    "why": "loc_14b7 jp(hl) at 0x14c6, object index (0x80ff) = 2 -> ptr (0x14c7+2*2)=0x14ff",
+    "provenance": "computed 16-bit pointer table (base 0x14c7, 11 entries), bounded by loc_14b7 (0x14b7-0x14c6); arm bodies 0x14dd-0x1597; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1510",
+    "why": "loc_14b7 jp(hl) at 0x14c6, object index (0x80ff) = 3 -> ptr (0x14c7+2*3)=0x1510",
+    "provenance": "computed 16-bit pointer table (base 0x14c7, 11 entries), bounded by loc_14b7 (0x14b7-0x14c6); arm bodies 0x14dd-0x1597; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1521",
+    "why": "loc_14b7 jp(hl) at 0x14c6, object index (0x80ff) = 4 -> ptr (0x14c7+2*4)=0x1521",
+    "provenance": "computed 16-bit pointer table (base 0x14c7, 11 entries), bounded by loc_14b7 (0x14b7-0x14c6); arm bodies 0x14dd-0x1597; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1532",
+    "why": "loc_14b7 jp(hl) at 0x14c6, object index (0x80ff) = 5 -> ptr (0x14c7+2*5)=0x1532",
+    "provenance": "computed 16-bit pointer table (base 0x14c7, 11 entries), bounded by loc_14b7 (0x14b7-0x14c6); arm bodies 0x14dd-0x1597; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1543",
+    "why": "loc_14b7 jp(hl) at 0x14c6, object index (0x80ff) = 6 -> ptr (0x14c7+2*6)=0x1543",
+    "provenance": "computed 16-bit pointer table (base 0x14c7, 11 entries), bounded by loc_14b7 (0x14b7-0x14c6); arm bodies 0x14dd-0x1597; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1554",
+    "why": "loc_14b7 jp(hl) at 0x14c6, object index (0x80ff) = 7 -> ptr (0x14c7+2*7)=0x1554",
+    "provenance": "computed 16-bit pointer table (base 0x14c7, 11 entries), bounded by loc_14b7 (0x14b7-0x14c6); arm bodies 0x14dd-0x1597; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1565",
+    "why": "loc_14b7 jp(hl) at 0x14c6, object index (0x80ff) = 8 -> ptr (0x14c7+2*8)=0x1565",
+    "provenance": "computed 16-bit pointer table (base 0x14c7, 11 entries), bounded by loc_14b7 (0x14b7-0x14c6); arm bodies 0x14dd-0x1597; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1576",
+    "why": "loc_14b7 jp(hl) at 0x14c6, object index (0x80ff) = 9 -> ptr (0x14c7+2*9)=0x1576",
+    "provenance": "computed 16-bit pointer table (base 0x14c7, 11 entries), bounded by loc_14b7 (0x14b7-0x14c6); arm bodies 0x14dd-0x1597; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x1587",
+    "why": "loc_14b7 jp(hl) at 0x14c6, object index (0x80ff) = 10 -> ptr (0x14c7+2*10)=0x1587",
+    "provenance": "computed 16-bit pointer table (base 0x14c7, 11 entries), bounded by loc_14b7 (0x14b7-0x14c6); arm bodies 0x14dd-0x1597; MAME-play-confirmed"
+  },
+  {
+    "addr": "0x0cc0",
+    "why": "loc_0c6d jp(hl) at 0x0c81, (0x83d7)=0 -> HL=0x0c82+2*0 -> jr 0x0cc0",
+    "provenance": "computed jr-trampoline (base 0x0c82, 5 slots), bounded by loc_0c6d (0x0c6d-0x0c81); reached from loc_0d11 when (0x83d6)==4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0c51",
+    "why": "loc_0c6d jp(hl) at 0x0c81, (0x83d7)=1 -> HL=0x0c82+2*1 -> jr 0x0c51",
+    "provenance": "computed jr-trampoline (base 0x0c82, 5 slots), bounded by loc_0c6d (0x0c6d-0x0c81); reached from loc_0d11 when (0x83d6)==4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0ceb",
+    "why": "loc_0c6d jp(hl) at 0x0c81, (0x83d7)=2 -> HL=0x0c82+2*2 -> jr 0x0ceb",
+    "provenance": "computed jr-trampoline (base 0x0c82, 5 slots), bounded by loc_0c6d (0x0c6d-0x0c81); reached from loc_0d11 when (0x83d6)==4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0cc6",
+    "why": "loc_0c6d jp(hl) at 0x0c81, (0x83d7)=3 -> HL=0x0c82+2*3 -> jr 0x0cc6",
+    "provenance": "computed jr-trampoline (base 0x0c82, 5 slots), bounded by loc_0c6d (0x0c6d-0x0c81); reached from loc_0d11 when (0x83d6)==4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0c8a",
+    "why": "loc_0c6d jp(hl) at 0x0c81, (0x83d7)=4 -> HL=0x0c82+2*4=0x0c8a arm body direct (no jr)",
+    "provenance": "computed jr-trampoline (base 0x0c82, 5 slots), bounded by loc_0c6d (0x0c6d-0x0c81); reached from loc_0d11 when (0x83d6)==4; NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0e49",
+    "why": "loc_0de0 jp(hl) at 0x0e00, phase (0x83d7)=1 -> HL=0x0dff+2*1 -> jr 0x0e49",
+    "provenance": "computed jr-trampoline (base 0x0dff, phases 1..7), bounded by loc_0de0 (0x0de0-0x0e00); reached from loc_0e7a jp nz,0x0de0 (attract phase>2); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0e3f",
+    "why": "loc_0de0 jp(hl) at 0x0e00, phase (0x83d7)=2 -> HL=0x0dff+2*2 -> jr 0x0e3f",
+    "provenance": "computed jr-trampoline (base 0x0dff, phases 1..7), bounded by loc_0de0 (0x0de0-0x0e00); reached from loc_0e7a jp nz,0x0de0 (attract phase>2); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0e35",
+    "why": "loc_0de0 jp(hl) at 0x0e00, phase (0x83d7)=3 -> HL=0x0dff+2*3 -> jr 0x0e35",
+    "provenance": "computed jr-trampoline (base 0x0dff, phases 1..7), bounded by loc_0de0 (0x0de0-0x0e00); reached from loc_0e7a jp nz,0x0de0 (attract phase>2); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0e2b",
+    "why": "loc_0de0 jp(hl) at 0x0e00, phase (0x83d7)=4 -> HL=0x0dff+2*4 -> jr 0x0e2b",
+    "provenance": "computed jr-trampoline (base 0x0dff, phases 1..7), bounded by loc_0de0 (0x0de0-0x0e00); reached from loc_0e7a jp nz,0x0de0 (attract phase>2); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0e21",
+    "why": "loc_0de0 jp(hl) at 0x0e00, phase (0x83d7)=5 -> HL=0x0dff+2*5 -> jr 0x0e21",
+    "provenance": "computed jr-trampoline (base 0x0dff, phases 1..7), bounded by loc_0de0 (0x0de0-0x0e00); reached from loc_0e7a jp nz,0x0de0 (attract phase>2); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0e17",
+    "why": "loc_0de0 jp(hl) at 0x0e00, phase (0x83d7)=6 -> HL=0x0dff+2*6 -> jr 0x0e17",
+    "provenance": "computed jr-trampoline (base 0x0dff, phases 1..7), bounded by loc_0de0 (0x0de0-0x0e00); reached from loc_0e7a jp nz,0x0de0 (attract phase>2); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0e0d",
+    "why": "loc_0de0 jp(hl) at 0x0e00, phase (0x83d7)=7 -> HL=0x0dff+2*7=0x0e0d arm body direct (no jr)",
+    "provenance": "computed jr-trampoline (base 0x0dff, phases 1..7), bounded by loc_0de0 (0x0de0-0x0e00); reached from loc_0e7a jp nz,0x0de0 (attract phase>2); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x0bb3",
+    "why": "loc_0d11 cp-ladder on mode (0x83d6): case 3 -> 0x0bb3",
+    "provenance": "cp/jp-z ladder in loc_0d11 (0x0d11-0x0d4b), gated by (0x83d8)==0; not a jp(hl); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x0c6d",
+    "why": "loc_0d11 cp-ladder on mode (0x83d6): case 4 -> 0x0c6d",
+    "provenance": "cp/jp-z ladder in loc_0d11 (0x0d11-0x0d4b), gated by (0x83d8)==0; not a jp(hl); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x2d88",
+    "why": "loc_0d11 cp-ladder on mode (0x83d6): case 2 -> 0x2d88",
+    "provenance": "cp/jp-z ladder in loc_0d11 (0x0d11-0x0d4b), gated by (0x83d8)==0; not a jp(hl); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x0d4c",
+    "why": "loc_0d11 cp-ladder on mode (0x83d6): case credits-present (0x83e1!=0) -> 0x0d4c",
+    "provenance": "cp/jp-z ladder in loc_0d11 (0x0d11-0x0d4b), gated by (0x83d8)==0; not a jp(hl); MAME-play-confirmed"
+  },
+  {
+    "addr": "0x0d35",
+    "why": "loc_0d11 cp-ladder on mode (0x83d6): case 5 (inline, no jump) -> 0x0d35",
+    "provenance": "cp/jp-z ladder in loc_0d11 (0x0d11-0x0d4b), gated by (0x83d8)==0; not a jp(hl); NOT reached in MAME play-trace"
+  },
+  {
+    "addr": "0x09a6",
+    "why": "loc_0942 fall-through after the 0x0faf dispatcher call at 0x09a3 (xor a; ld (0x825a),a)",
+    "provenance": "return-site the static tracer could not follow past the jp(hl) in loc_0faf; loc_0faf is a `call` that returns"
   }
 ]
