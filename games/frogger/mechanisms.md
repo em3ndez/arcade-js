@@ -12,6 +12,18 @@ the frog-object lifecycle — but **not yet** the road/river gameplay (traffic, 
 frog's own hop handling). So the map is deep on the HUD and the turn/player structure and largely
 silent on the play objects; those arrive in later batches.
 
+**Batch 2** has since lifted 27 further pure-leaf routines (idiomatic modules + equivalence gates, each
+`[code]` self-verified against the frozen oracle on crafted or captured entries). They keep their
+`loc_<addr>` names and are **not yet named or grounded** — understanding-pass-2 will name them by blind
+convergence and then ground each against MAME, and this map will be rewritten to cover them at that
+point. Until then this document describes only the batch-1 machinery below; the batch-2 routines exist
+in the code but are deliberately not yet written into this narrative (a `[code]` role stated before
+grounding is exactly the confident-but-wrong claim the tags guard against). (Three routines were held back from
+batch 2: two spine-invoked game-start routines, `0x0b0a` and `0x07d9`, which need the go-live spine's
+`m.call` dissolved deliberately; and `0x0f3e`, which pops its caller's return for a two-level
+caller-skip — a stack manipulation that cannot be idiomatized as a plain return while its callers are
+still translated. Each needs deliberate handling, not a bulk leaf lift.)
+
 **Confidence tags, not decoration:**
 - **`[seen]`** — observed on the real ROM under MAME (a captured frame, a VRAM/RAM read, a control
   poke, or a write tap). Where an observation was reached by poking a cell rather than natural play,
