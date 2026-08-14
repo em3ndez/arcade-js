@@ -117,7 +117,11 @@ real running game, not attract mode.
   otherwise be refused. Add a TEMPORARY, checkable `EXEMPT` entry for the game in
   `pixel_gate_required.py` (reason: mid-translation, no rendered frame yet — a reviewer verifies by
   booting it to an unregistered-routine gap) and **REMOVE it, declaring the real suite, at the first
-  rendered frame.**
+  rendered frame.** That removal trigger is a **live checklist item, not a code comment** — re-test the
+  render precondition every batch (does the boot reach a drawn frame yet?); a temporary waiver turns
+  permanent the moment its exit condition stops being watched. Track it by *does it render vs MAME yet*,
+  **never by routines translated** — the primary-goal gate outranks lift throughput, and stacking batches
+  on an unvalidated renderer defers the first MAME diff to when the most code rides on the error.
 - `make verify` is **not** the pixel gate (it is a disassembly decoder check for another game's ROM).
 
 ## 3 — Translation pass (disassemble + faithful lift → the frozen oracle)
@@ -161,6 +165,8 @@ real running game, not attract mode.
   pre-assigned ranges (so two agents don't disagree on a boundary) plus a style/ABI-consistency check at
   review. Shared files (the registry, board files) stay under serial control. This parallelism is *within*
   a batch — the across-batch rule still holds (don't open the next batch while this one is under review).
+  **Before opening the next batch, re-check any waived gate's removal trigger** — a pixel-gate waiver comes
+  off the instant the game first renders, not once the lift is finished.
 
 ## 4 — Idiomatic pass (the spiral)
 
