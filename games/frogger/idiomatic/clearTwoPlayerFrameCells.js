@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2856 — zero five cells, but only when the play-mode cell holds 2.
+ * clearTwoPlayerFrameCells — zero five cells, but only when the play-mode cell holds 2.
  * LIVE-OUT: memory-only.
  */
 import { PLAY_FLAG, loc_814f, loc_814e, loc_8145, loc_8146, loc_8147 } from "./names.js";
 
 const TWO_PLAYER = 2;
 
-export function loc_2856(m) {
+export function clearTwoPlayerFrameCells(m) {
   const { mem8 } = m;
   if (mem8[PLAY_FLAG] !== TWO_PLAYER) return;
   mem8[loc_814f] = 0;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0e74 — memory-equivalent to the frozen oracle at ROM 0x0E74.
+ * setAttractIdleMode — memory-equivalent to the frozen oracle at ROM 0x0E74.
  * GATE: crafted-entry. Attract never dispatches this attract-idle sequencer tail (probe: 0 dispatches
  * over ENTRY_FRAMES), so a post-boot attract machine is cloned and its game-mode cell (0x83D6) poked
  * to a non-5 value so the forced store is observable. Live-out is memory-only (A=5 is dead — the
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0e74 } from "../loc_0e74.js";
+import { setAttractIdleMode } from "../setAttractIdleMode.js";
 import { loc_0e74 as oracle } from "../../translated/loc_0e74.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -48,12 +48,12 @@ function brokenNoOp() {}
 function brokenWrongValue(m) { m.mem8[GAME_MODE] = 4; }
 function brokenWrongAddr(m) { m.mem8[GAME_MODE + 1] = 5; }
 
-test("EQUAL (crafted): loc_0e74 == oracle on every mode value", { skip }, () => {
+test("EQUAL (crafted): setAttractIdleMode == oracle on every mode value", { skip }, () => {
   const entries = MODES.map(entry);
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_0e74, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(setAttractIdleMode, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entry(3)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted mode values, loc_0e74 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted mode values, setAttractIdleMode == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1a02 — memory-equivalent to the frozen oracle at ROM 0x1A02.
+ * seedObjectAnimationState — memory-equivalent to the frozen oracle at ROM 0x1A02.
  * GATE: crafted-entry. Attract never dispatches this board-init seed (probe: 0 dispatches over
  * ENTRY_FRAMES). It reads no live-in, so a post-boot attract machine is cloned; a second entry
  * pre-dirties the two seed blocks to 0xEE so every seeded cell is observable. Live-out is
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1a02 } from "../loc_1a02.js";
+import { seedObjectAnimationState } from "../seedObjectAnimationState.js";
 import { loc_1a02 as oracle } from "../../translated/loc_1a02.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -63,11 +63,11 @@ function brokenShortCount(m) {
   for (let i = 0; i < 9; i++) mem8[(STATE_BASE + 2 * i) & 0xffff] = STATE_SEEDS[i]; // BUG: one cell short
 }
 
-test("EQUAL (crafted): loc_1a02 == oracle from post-boot and dirtied entries", { skip }, () => {
+test("EQUAL (crafted): seedObjectAnimationState == oracle from post-boot and dirtied entries", { skip }, () => {
   const entries = [entry(), dirtyEntry()];
-  for (const e of entries) assert.equal(ramDiff(loc_1a02, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(seedObjectAnimationState, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, dirtyEntry()), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted entries, loc_1a02 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted entries, seedObjectAnimationState == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

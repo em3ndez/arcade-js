@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0c4a — stamp tile E into the intro digit page at row (D - C); a zero offset (C == 0) draws nothing.
+ * loc_0c4a — store byte E into RAM page H at row (D - C); C == 0 stores nothing. The sole caller passes
+ * H=0x80, so this writes WORK RAM, not a tilemap tile (grounded).
  * LIVE-OUT: memory-only.
  */
 export function loc_0c4a(m) {

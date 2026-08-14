@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_223d — load the active player's 33-byte lane-parameter block: read the difficulty index for
+ * loadActivePlayerLaneParams — load the active player's 33-byte lane-parameter block: read the difficulty index for
  * player 1 or 2, follow the pointer table to that difficulty's block, and copy it into the
  * lane-parameter cells.
  * LIVE-OUT: memory-only.
@@ -11,7 +11,7 @@ const PLAYER_ONE = 1;
 const BLOCK_SIZE = 33;
 const POINTER_WIDTH = 2;
 
-export function loc_223d(m) {
+export function loadActivePlayerLaneParams(m) {
   const { mem8, mem16 } = m;
   const indexCell = mem8[loc_83fd] === PLAYER_ONE ? loc_8293 : loc_8294;
   const difficulty = mem8[indexCell];

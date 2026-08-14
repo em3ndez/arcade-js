@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_272f — memory-equivalent to the frozen oracle at ROM 0x272F.
+ * driveFlyPatrol — memory-equivalent to the frozen oracle at ROM 0x272F.
  * GATE: crafted-entry + attract-state capture. Plain attract does not dispatch the fly driver
  * within ENTRY_FRAMES, so realistic states are harvested via a high-frequency neighbour (0x0028)
- * and driven directly — valid because loc_272f takes no register live-in (it reads only work RAM).
+ * and driven directly — valid because driveFlyPatrol takes no register live-in (it reads only work RAM).
  * The timer (0x833E) and direction/step byte (0x833D) are poked to reach every path: countdown
  * re-render, midpoint sprite (both directions), step advance forward/backward, endpoint wrap, and
  * hold. The routine pushes a transient return slot for a folded add helper, so the diff masks the
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_272f } from "../loc_272f.js";
+import { driveFlyPatrol } from "../driveFlyPatrol.js";
 import { loc_272f as oracle } from "../../translated/loc_272f.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -111,17 +111,17 @@ function brokenWrapNoDirFlip(m) { // endpoint wrap forgets to reverse the direct
   mem8[XPOS] = (v + mem8[LANE]) & 0xff;
 }
 
-test("CAPTURE: loc_272f == oracle on real attract states (timer-0 advance path)", { skip }, () => {
+test("CAPTURE: driveFlyPatrol == oracle on real attract states (timer-0 advance path)", { skip }, () => {
   const entries = capture();
   assert.ok(entries.length > 0, "vacuous: no attract states harvested");
-  for (const e of entries) assert.equal(ramDiff(loc_272f, e), null, "a captured machine diverged");
-  console.log(`  CAPTURE: ${entries.length} states, loc_272f == oracle`);
+  for (const e of entries) assert.equal(ramDiff(driveFlyPatrol, e), null, "a captured machine diverged");
+  console.log(`  CAPTURE: ${entries.length} states, driveFlyPatrol == oracle`);
 });
 
 test("PATHS: every branch equals the oracle", { skip }, () => {
   const base = capture()[0];
   for (const [name, kv] of Object.entries(PATHS)) {
-    assert.equal(ramDiff(loc_272f, poked(base, kv)), null, `path diverged: ${name}`);
+    assert.equal(ramDiff(driveFlyPatrol, poked(base, kv)), null, `path diverged: ${name}`);
   }
   console.log(`  PATHS: ${Object.keys(PATHS).length} branches all equal`);
 });

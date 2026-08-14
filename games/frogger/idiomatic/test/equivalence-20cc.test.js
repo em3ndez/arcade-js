@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_20cc — memory-equivalent to the frozen oracle at ROM 0x20CC.
+ * blitScrollTileGrid — memory-equivalent to the frozen oracle at ROM 0x20CC.
  * GATE: crafted-entry. Attract never dispatches this in-play scroll-copy engine (probe: 0 dispatches
  * over ENTRY_FRAMES), so a post-boot attract machine is cloned and its live-in registers poked —
  * DE (source pointer, aimed at a real ROM data table), B (row count), C (column count) — plus the
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_20cc } from "../loc_20cc.js";
+import { blitScrollTileGrid } from "../blitScrollTileGrid.js";
 import { loc_20cc as oracle } from "../../translated/loc_20cc.js";
 
 const STRIDE_CELL = 0x81b1;
@@ -112,15 +112,15 @@ function brokenNoRowCountZero(m) { // treats a row count of 0 as 0 iterations, n
   }
 }
 
-test("EQUAL (crafted): loc_20cc == oracle on every grid/edge path", { skip }, () => {
+test("EQUAL (crafted): blitScrollTileGrid == oracle on every grid/edge path", { skip }, () => {
   const entries = CASES.map(([rr, cc, st, src]) => entryWith(rr, cc, st, src));
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
   for (let i = 0; i < entries.length; i++) {
-    assert.equal(ramDiff(loc_20cc, entries[i]), null, `crafted entry diverged: ${CASES[i][4]}`);
+    assert.equal(ramDiff(blitScrollTileGrid, entries[i]), null, `crafted entry diverged: ${CASES[i][4]}`);
   }
   // non-vacuous: the no-op twin must diverge (the oracle really writes VRAM + scratch).
   assert.ok(ramDiff(brokenNoOp, entryWith(3, 2, 2, SRC_A)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_20cc == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, blitScrollTileGrid == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

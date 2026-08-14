@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1198 — register-C-equivalent to the frozen oracle at ROM 0x1198.
+ * computeVramColumnIndex — register-C-equivalent to the frozen oracle at ROM 0x1198.
  * GATE: crafted-entry. Attract never dispatches this coord/column compute (probe: 0 dispatches over
  * ENTRY_FRAMES), so a post-boot attract machine is cloned and its HL pointer and incoming carry
  * poked to drive it. The routine writes no RAM and the caller saves/restores HL/DE/BC around the
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1198 } from "../loc_1198.js";
+import { computeVramColumnIndex } from "../computeVramColumnIndex.js";
 import { loc_1198 as oracle } from "../../translated/loc_1198.js";
 import manifest from "../../manifest.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -93,15 +93,15 @@ function brokenIgnoreCarry(m) {
   regs.c = acc;
 }
 
-test("EQUAL (crafted): loc_1198 == oracle on register C over HL x carry", { skip }, () => {
+test("EQUAL (crafted): computeVramColumnIndex == oracle on register C over HL x carry", { skip }, () => {
   let n = 0;
   for (const hl of HLS) for (const carry of [false, true]) {
-    assert.equal(unitDiff(loc_1198, entryWith(hl, carry)), null, `diverged at hl=0x${hl.toString(16)} carry=${carry}`);
+    assert.equal(unitDiff(computeVramColumnIndex, entryWith(hl, carry)), null, `diverged at hl=0x${hl.toString(16)} carry=${carry}`);
     n++;
   }
   // non-vacuous: the no-op twin diverges, proving the oracle actually sets C on a sample entry.
   assert.ok(unitDiff(brokenNoOp, entryWith(0xa87e, false)), "vacuous: oracle left C unchanged");
-  console.log(`  EQUAL: ${n} crafted (HL,carry) entries, loc_1198 == oracle on C`);
+  console.log(`  EQUAL: ${n} crafted (HL,carry) entries, computeVramColumnIndex == oracle on C`);
 });
 
 test("TEETH: broken twins are caught on register C", { skip }, () => {

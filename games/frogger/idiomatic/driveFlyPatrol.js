@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_272f — drive the fly's horizontal patrol: run its tongue timer, pick its sprite code, and
+ * driveFlyPatrol — drive the fly's horizontal patrol: run its tongue timer, pick its sprite code, and
  * walk its X-offset path table into the sprite X position.
  *
  * While the timer counts down it re-renders X each frame and flips the sprite at the midpoint; at
@@ -16,7 +16,7 @@ const FLY_SPRITE = 33;
 const FLIP = 0x80; // sprite-code high bit = horizontal flip, and the direction bit shares it
 const STEP_MASK = 0x7f;
 
-export function loc_272f(m) {
+export function driveFlyPatrol(m) {
   const { mem8 } = m;
   const timer = mem8[loc_833e];
   if (timer === 0) return advance(m);

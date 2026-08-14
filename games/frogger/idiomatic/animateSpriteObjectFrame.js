@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_29c9 — IX sprite-object animation arm. Counts down the (IX+8) frame timer; on expiry it steps
+ * animateSpriteObjectFrame — IX sprite-object animation arm. Counts down the (IX+8) frame timer; on expiry it steps
  * the (IX+6) phase (counting down, 1 wrapping to 4), reads the phase-tile table, folds in the (IX+5)
  * flip bits, and stages the IY sprite tile/attr pair. LIVE-OUT: memory-only (the sprite-object dispatcher).
  */
@@ -10,7 +10,7 @@ const FRAME_RELOAD = 12;
 const PHASE_WRAP = 4;
 const SPRITE_ATTR = 4;
 
-export function loc_29c9(m) {
+export function animateSpriteObjectFrame(m) {
   const { regs, mem8 } = m;
   const obj = regs.ix;
   const spr = regs.iy;

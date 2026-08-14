@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_29c9 — memory-equivalent to the frozen oracle at ROM 0x29C9.
+ * animateSpriteObjectFrame — memory-equivalent to the frozen oracle at ROM 0x29C9.
  * GATE: crafted-entry. Attract NEVER dispatches this IX sprite-object animation arm (probe: 0 over
  * 5000 frames; it runs only in the in-play cluster 0x2970 -> 0x29b9), so a post-boot attract clone gets
  * IX/IY at a descriptor pair (0x8440 / 0x8048) and the timer / phase / flip cells poked for each path
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_29c9 } from "../loc_29c9.js";
+import { animateSpriteObjectFrame } from "../animateSpriteObjectFrame.js";
 import { loc_29c9 as oracle } from "../../translated/loc_29c9.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -58,7 +58,7 @@ function brokenSkipArm(m) { // arms (iy+1) but omits the paired (iy+5)/(iy+2)/(i
   m.mem.write8(iy + 1, m.mem.read8((0x2cd5 + nx) & 0xffff) | m.mem.read8(ix + 5));
 }
 
-test("EQUAL (crafted): loc_29c9 == oracle on every path", { skip }, () => {
+test("EQUAL (crafted): animateSpriteObjectFrame == oracle on every path", { skip }, () => {
   const entries = [
     entry({ [o(8)]: 5 }), // timer not expired
     entry({ [o(8)]: 0 }), // timer 0 -> 255 edge
@@ -68,9 +68,9 @@ test("EQUAL (crafted): loc_29c9 == oracle on every path", { skip }, () => {
     entry({ [o(8)]: 1, [o(6)]: 5, [o(5)]: 0x80 }), // phase 5 -> 4, flip bit
   ];
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_29c9, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(animateSpriteObjectFrame, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entries[3]), "vacuous: oracle wrote nothing on the full-write path");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_29c9 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, animateSpriteObjectFrame == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

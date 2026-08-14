@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_219c — blit a scrolling tile band into video RAM from a 3-byte descriptor (column, unit count,
+ * blitScrollBand — blit a scrolling tile band into video RAM from a 3-byte descriptor (column, unit count,
  * row count), choosing one of three source rows by the scroll-phase mode and toggling the wrap-latch.
  * LIVE-OUT: memory-only.
  */
@@ -17,7 +17,7 @@ const PHASE_ROW_A = [0, 112];
 const PHASE_ROW_B = [48, 96];
 const PHASE_ROW_C = 80;
 
-export function loc_219c(m) {
+export function blitScrollBand(m) {
   const { mem8 } = m;
   const column = mem8[loc_827c];
   const units = mem8[(loc_827c + 1) & 0xffff];

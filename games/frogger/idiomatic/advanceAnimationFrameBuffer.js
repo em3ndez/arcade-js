@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1802 — step the frame-cell animation: gate on two busy latches and a countdown timer, then
+ * advanceAnimationFrameBuffer — step the frame-cell animation: gate on two busy latches and a countdown timer, then
  * copy the next indexed frame into the animation buffer.
  * LIVE-OUT: memory-only.
  */
@@ -10,7 +10,7 @@ const TIMER_RELOAD = 21;
 const TABLE_LEN = 10;
 const FRAME_BYTES = 11;
 
-export function loc_1802(m) {
+export function advanceAnimationFrameBuffer(m) {
   const { mem8, mem16 } = m;
 
   if (mem8[loc_814f] !== 0) return;

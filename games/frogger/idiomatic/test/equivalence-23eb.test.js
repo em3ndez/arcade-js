@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * loc_23eb — memory + A equivalent to the frozen oracle at ROM 0x23EB.
- * GATE: crafted-entry. Attract never dispatches this river-object phase counter (probe: 0 dispatches
- * over ENTRY_FRAMES; its callers are in-play lane handlers attract does not reach), so a post-boot
+ * GATE: crafted-entry. Attract never dispatches this home-bay slot cursor (probe: 0 dispatches
+ * over ENTRY_FRAMES; its callers are in-play home-bay handlers attract does not reach), so a post-boot
  * attract machine is cloned and the counter cell (0x8123) is poked across the wrap edge. LIVE-OUT is
  * memory + register A: two callers reload A but a third reaches this on a tail path that returns the
  * counter in A, so A is compared as well as RAM. The routine pushes nothing, so no stack window is

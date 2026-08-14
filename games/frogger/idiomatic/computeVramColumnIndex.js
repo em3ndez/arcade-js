@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1198 — coordinate/column compute for the tile render loop. Take HL's distance from the
+ * computeVramColumnIndex — coordinate/column compute for the tile render loop. Take HL's distance from the
  * VRAM base (less the incoming borrow), keep its top three column bits, then run six passes that
  * fold one probed H bit and the shifted column bits into an accumulator, and three final rotates.
  * The accumulator is the result and it is returned in C; no memory is touched.
@@ -15,7 +15,7 @@ const H_PROBE_BIT = 0x04;
 
 const rotateLeft = (v) => ((v << 1) | (v >> 7)) & 0xff;
 
-export function loc_1198(m) {
+export function computeVramColumnIndex(m) {
   const { regs } = m;
   const borrow = regs.fC ? 1 : 0;
   const offset = (regs.hl - loc_a800 - borrow) & 0xffff;

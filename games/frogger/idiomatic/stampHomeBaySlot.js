@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_25ce — stamp a frog-home slot's 2x2 tile block, then clear the pending-slot selector.
+ * stampHomeBaySlot — stamp a frog-home slot's 2x2 tile block, then clear the pending-slot selector.
  *
  * A per-player occupancy cell gates the stamp; the selector pair is cleared afterward unless
  * the hold flag is set.
@@ -26,7 +26,7 @@ const SLOTS = {
   5: [loc_a864, loc_8262, loc_8267],
 };
 
-export function loc_25ce(m) {
+export function stampHomeBaySlot(m) {
   const { mem8 } = m;
   const slot = SLOTS[mem8[loc_8121]];
   if (!slot) return; // selector out of 1..5 -> nothing to stamp

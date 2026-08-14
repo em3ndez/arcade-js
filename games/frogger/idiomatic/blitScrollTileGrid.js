@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_20cc — stamp a source block into VRAM as a grid of two-byte column pairs.
+ * blitScrollTileGrid — stamp a source block into VRAM as a grid of two-byte column pairs.
  *
  * Saves the source pointer and row count into scratch, then walks C columns: each column
  * copies B rows of a two-byte pair from the source down the destination at a 32-byte row
@@ -14,7 +14,7 @@ const ROW_PITCH = 32;
 const PAIR = 2;
 const FULL_RUN = 256;
 
-export function loc_20cc(m) {
+export function blitScrollTileGrid(m) {
   const { regs, mem8, mem16 } = m;
   const source = regs.de;
   const rowCount = regs.b;

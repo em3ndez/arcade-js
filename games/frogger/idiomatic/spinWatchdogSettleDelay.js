@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1048 — a power-on settle delay: each pass reads the watchdog port to keep the dog fed.
+ * spinWatchdogSettleDelay — a power-on settle delay: each pass reads the watchdog port to keep the dog fed.
  * COLLAPSED the time-only pass counter; the reads stay, their count being io state no dump holds.
  * LIVE-OUT: the watchdog read count (io); memory unchanged.
  */
@@ -8,7 +8,7 @@ import { loc_8800 } from "./names.js";
 
 const SETTLE_PASSES = 61439;
 
-export function loc_1048(m) {
+export function spinWatchdogSettleDelay(m) {
   const { mem } = m;
   for (let pass = 0; pass < SETTLE_PASSES; pass++) mem.read8(loc_8800);
 }

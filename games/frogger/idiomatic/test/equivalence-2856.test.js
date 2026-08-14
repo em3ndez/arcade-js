@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2856 — memory-equivalent to the frozen oracle at ROM 0x2856.
+ * clearTwoPlayerFrameCells — memory-equivalent to the frozen oracle at ROM 0x2856.
  * GATE: crafted-entry. Attract never dispatches this conditional clear (probe: 0 dispatches over
  * ENTRY_FRAMES), so a post-boot attract machine is cloned, the play-mode cell (0x83FE) poked to each
  * mode, and the five target cells dirtied so the zeroing is observable. Both callers reload HL right
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2856 } from "../loc_2856.js";
+import { clearTwoPlayerFrameCells } from "../clearTwoPlayerFrameCells.js";
 import { loc_2856 as oracle } from "../../translated/loc_2856.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -60,12 +60,12 @@ function brokenNoGuard(m) { // clears regardless of mode -> writes when the orac
   for (const c of CELLS) mem8[c] = 0;
 }
 
-test("EQUAL (crafted): loc_2856 == oracle on every mode path", { skip }, () => {
+test("EQUAL (crafted): clearTwoPlayerFrameCells == oracle on every mode path", { skip }, () => {
   const entries = MODES.map(entryWithMode);
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_2856, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(clearTwoPlayerFrameCells, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entryWithMode(2)), "vacuous: oracle wrote nothing in mode 2");
-  console.log(`  EQUAL: ${entries.length} crafted mode paths, loc_2856 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted mode paths, clearTwoPlayerFrameCells == oracle`);
 });
 
 test("TEETH: broken twins are caught across the clear and the guard", { skip }, () => {

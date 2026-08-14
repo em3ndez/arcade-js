@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_19e2 — memory-equivalent to the frozen oracle at ROM 0x19E2.
+ * blitFourTileGroupColumn — memory-equivalent to the frozen oracle at ROM 0x19E2.
  * GATE: crafted-entry. Attract never dispatches this VRAM blit (probe: 0 dispatches over
  * ENTRY_FRAMES), so a post-boot attract machine is cloned and HL — the destination base, the
  * routine's one live-in — poked to each real caller base. Live-out is memory-only, so registers/SP
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_19e2 } from "../loc_19e2.js";
+import { blitFourTileGroupColumn } from "../blitFourTileGroupColumn.js";
 import { loc_19e2 as oracle } from "../../translated/loc_19e2.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -69,12 +69,12 @@ function brokenShortRows(m) {
   }
 }
 
-test("EQUAL (crafted): loc_19e2 == oracle on every destination base", { skip }, () => {
+test("EQUAL (crafted): blitFourTileGroupColumn == oracle on every destination base", { skip }, () => {
   const entries = BASES.map(entry);
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_19e2, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(blitFourTileGroupColumn, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entry(0xa850)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted destination bases, loc_19e2 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted destination bases, blitFourTileGroupColumn == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

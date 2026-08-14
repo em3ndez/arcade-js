@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0ba9 — memory-equivalent to the frozen oracle at ROM 0x0BA9.
+ * writeScoreDigitStepUp — memory-equivalent to the frozen oracle at ROM 0x0BA9.
  * GATE: captured-entry. The score-header redraw dispatches this digit-writer constantly in attract, so
  * a corpus of REAL entry states is captured by hooking its address (each carries the caller's real A
  * digit and HL pointer). Live-out is NOT memory-only: loc_0ba0 chains two calls without reloading HL,
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0ba9 } from "../loc_0ba9.js";
+import { writeScoreDigitStepUp } from "../writeScoreDigitStepUp.js";
 import { loc_0ba9 as oracle } from "../../translated/loc_0ba9.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -57,10 +57,10 @@ function brokenStaleHL(m) { m.mem8[m.regs.hl] = m.regs.a & 0x0f; } // correct RA
 test("CAPTURED: over real attract dispatches, oracle == rewrite (RAM + HL)", { skip }, () => {
   const c = corpus();
   assert.ok(c.length > 0, "vacuous: no dispatches were captured");
-  for (const s of c) assert.equal(breach(loc_0ba9, s), null, `diverged (hl=0x${s.regs.hl.toString(16)} a=0x${s.regs.a.toString(16)})`);
+  for (const s of c) assert.equal(breach(writeScoreDigitStepUp, s), null, `diverged (hl=0x${s.regs.hl.toString(16)} a=0x${s.regs.a.toString(16)})`);
   // non-vacuous: the no-op twin diverging proves the oracle actually writes on the sample.
   assert.ok(breach(brokenNoOp, c[0]), "vacuous: oracle wrote nothing");
-  console.log(`  CAPTURED: ${c.length} real dispatches, loc_0ba9 == oracle (RAM + HL)`);
+  console.log(`  CAPTURED: ${c.length} real dispatches, writeScoreDigitStepUp == oracle (RAM + HL)`);
 });
 
 test("TEETH: RAM twins are caught", { skip }, () => {

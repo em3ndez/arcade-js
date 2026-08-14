@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2496 — memory-equivalent to the frozen oracle at ROM 0x2496.
- * GATE: crafted-entry. Plain attract never dispatches this lane-marker setup (measured: 0 dispatches
+ * stampHomeBayGatorEmerging — memory-equivalent to the frozen oracle at ROM 0x2496.
+ * GATE: crafted-entry. Plain attract never dispatches this home-bay stamp (measured: 0 dispatches
  * over ENTRY_FRAMES). A corpus of REAL attract machine states is captured at the column-copy
- * primitive (0x0028, which fires constantly); on each, the scroll-source cell, the count cell and the
- * two flag banks are poked to drive every path — mirror-only (lane out of range), each lane 1..5
+ * primitive (0x0028, which fires constantly); on each, the slot-cursor cell, the count cell and the
+ * two flag banks are poked to drive every path — mirror-only (slot out of range), each slot 1..5
  * stamping through the primary bank (count 1) and the alternate bank (count != 1), and the
- * object-present skip — identically on both sides. The lane home block and the mirror cell are
+ * object-present skip — identically on both sides. The home-bay VRAM block and the mirror cell are
  * pre-painted with a sentinel so every write is observable. The routine reads no live register and
  * its live-out is memory-only, so registers/SP are not compared. Teeth: four broken twins.
  */
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_2496 } from "../loc_2496.js";
+import { stampHomeBayGatorEmerging } from "../stampHomeBayGatorEmerging.js";
 import { loc_2496 as oracle } from "../../translated/loc_2496.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -23,7 +23,7 @@ const STATE_SOURCE = 0x0028;
 const CAP = 60;
 const STRIDE = 90;
 
-const SCROLL_SOURCE = 0x8123;
+const SLOT_CURSOR = 0x8123;
 const MIRROR = 0x8120;
 const COUNT_CELL = 0x83fd;
 const TILES = [16, 16, 208, 209];
@@ -50,17 +50,17 @@ function corpus() {
   return states;
 }
 
-// Every scenario: lane index, the count that picks the bank, and each flag bank's value.
+// Every scenario: slot index, the count that picks the bank, and each flag bank's value.
 function scenarios() {
   const out = [];
-  for (let lane = 1; lane <= 5; lane++) {
-    out.push({ lane, count: 1, primary: 0, alt: 9 }); // primary bank -> stamp
-    out.push({ lane, count: 2, primary: 9, alt: 0 }); // alternate bank -> stamp
-    out.push({ lane, count: 1, primary: 7, alt: 0 }); // primary bank, object present -> skip
-    out.push({ lane, count: 2, primary: 0, alt: 7 }); // alternate bank, object present -> skip
+  for (let slot = 1; slot <= 5; slot++) {
+    out.push({ slot, count: 1, primary: 0, alt: 9 }); // primary bank -> stamp
+    out.push({ slot, count: 2, primary: 9, alt: 0 }); // alternate bank -> stamp
+    out.push({ slot, count: 1, primary: 7, alt: 0 }); // primary bank, object present -> skip
+    out.push({ slot, count: 2, primary: 0, alt: 7 }); // alternate bank, object present -> skip
   }
-  out.push({ lane: 0, count: 1, primary: 0, alt: 0 }); // below range -> mirror only
-  out.push({ lane: 6, count: 1, primary: 0, alt: 0 }); // above range -> mirror only
+  out.push({ slot: 0, count: 1, primary: 0, alt: 0 }); // below range -> mirror only
+  out.push({ slot: 6, count: 1, primary: 0, alt: 0 }); // above range -> mirror only
   return out;
 }
 
@@ -70,9 +70,9 @@ function crafted(state, s) {
   const e = state.clone();
   const { mem8 } = e;
   mem8[COUNT_CELL] = s.count;
-  mem8[SCROLL_SOURCE] = s.lane;
+  mem8[SLOT_CURSOR] = s.slot;
   mem8[MIRROR] = SENTINEL;
-  const i = s.lane - 1;
+  const i = s.slot - 1;
   if (i >= 0 && i < 5) {
     mem8[FLAGS_PRIMARY[i]] = s.primary;
     mem8[FLAGS_ALT[i]] = s.alt;
@@ -101,22 +101,22 @@ function stampAt(mem8, i, tiles) {
 }
 function brokenWrongTile(m) { // right structure, wrong bottom-left tile
   const { mem8 } = m;
-  const lane = mem8[SCROLL_SOURCE]; mem8[MIRROR] = lane;
-  if (lane < 1 || lane > 5) return; const i = lane - 1;
+  const slot = mem8[SLOT_CURSOR]; mem8[MIRROR] = slot;
+  if (slot < 1 || slot > 5) return; const i = slot - 1;
   const flag = mem8[COUNT_CELL] === 1 ? FLAGS_PRIMARY[i] : FLAGS_ALT[i];
   if (mem8[flag] !== 0) return;
   stampAt(mem8, i, [TILES[0], TILES[1], TILES[2] + 1, TILES[3]]);
 }
 function brokenIgnoreFlag(m) { // wrong arm: stamps even when the object is present
   const { mem8 } = m;
-  const lane = mem8[SCROLL_SOURCE]; mem8[MIRROR] = lane;
-  if (lane < 1 || lane > 5) return; const i = lane - 1;
+  const slot = mem8[SLOT_CURSOR]; mem8[MIRROR] = slot;
+  if (slot < 1 || slot > 5) return; const i = slot - 1;
   stampAt(mem8, i, TILES);
 }
 function brokenWrongBank(m) { // wrong arm: always reads the primary bank
   const { mem8 } = m;
-  const lane = mem8[SCROLL_SOURCE]; mem8[MIRROR] = lane;
-  if (lane < 1 || lane > 5) return; const i = lane - 1;
+  const slot = mem8[SLOT_CURSOR]; mem8[MIRROR] = slot;
+  if (slot < 1 || slot > 5) return; const i = slot - 1;
   if (mem8[FLAGS_PRIMARY[i]] !== 0) return;
   stampAt(mem8, i, TILES);
 }
@@ -125,17 +125,17 @@ test("CRAFTED: over real attract states x every path, oracle == rewrite", { skip
   const c = corpus();
   const scen = scenarios();
   assert.ok(c.length > 0, "vacuous: no attract states were captured");
-  for (const st of c) for (const s of scen) assert.equal(ramDiff(loc_2496, crafted(st, s)), null, `diverged: lane=${s.lane} count=${s.count}`);
+  for (const st of c) for (const s of scen) assert.equal(ramDiff(stampHomeBayGatorEmerging, crafted(st, s)), null, `diverged: slot=${s.slot} count=${s.count}`);
   // non-vacuous: the no-op twin diverges on a stamp path, proving the oracle actually writes.
-  assert.ok(ramDiff(brokenNoOp, crafted(c[0], { lane: 1, count: 1, primary: 0, alt: 9 })), "vacuous: oracle wrote nothing");
+  assert.ok(ramDiff(brokenNoOp, crafted(c[0], { slot: 1, count: 1, primary: 0, alt: 9 })), "vacuous: oracle wrote nothing");
   console.log(`  CRAFTED: ${c.length} states x ${scen.length} paths, oracle == rewrite`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {
   const c = corpus();
-  const stampState = crafted(c[0], { lane: 2, count: 1, primary: 0, alt: 9 });
-  const skipState = crafted(c[0], { lane: 2, count: 1, primary: 7, alt: 0 });
-  const altStampState = crafted(c[0], { lane: 3, count: 2, primary: 9, alt: 0 });
+  const stampState = crafted(c[0], { slot: 2, count: 1, primary: 0, alt: 9 });
+  const skipState = crafted(c[0], { slot: 2, count: 1, primary: 7, alt: 0 });
+  const altStampState = crafted(c[0], { slot: 3, count: 2, primary: 9, alt: 0 });
   assert.ok(ramDiff(brokenNoOp, stampState), "the no-op twin escaped");
   assert.ok(ramDiff(brokenWrongTile, stampState), "the wrong-tile twin escaped");
   assert.ok(ramDiff(brokenIgnoreFlag, skipState), "the ignore-flag arm twin escaped");

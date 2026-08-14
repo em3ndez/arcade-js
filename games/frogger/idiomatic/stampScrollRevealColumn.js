@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_20fb — stamp a scroll-reveal column into VRAM for the scroll object.
+ * stampScrollRevealColumn — stamp a scroll-reveal column into VRAM for the scroll object.
  *
  * Builds a VRAM address from the object's row, column and row-count fields, then picks a
  * stamp table by the scroll-phase byte: two phases share one table, two share another and
@@ -15,7 +15,7 @@ const PAIR = 2;
 const COLUMN_PAIRS = 2;
 const ROWS_PER_STAMP = 2;
 
-export function loc_20fb(m) {
+export function stampScrollRevealColumn(m) {
   const { mem8 } = m;
   const rowField = mem8[loc_8273];
   const colField = mem8[(loc_8273 + 1) & 0xffff];

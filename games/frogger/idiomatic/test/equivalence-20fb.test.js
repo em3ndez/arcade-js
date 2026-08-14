@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_20fb — memory-equivalent to the frozen oracle at ROM 0x20FB.
+ * stampScrollRevealColumn — memory-equivalent to the frozen oracle at ROM 0x20FB.
  * GATE: crafted-entry. Attract never dispatches this in-play scroll-wrap handler (probe: 0 dispatches
  * over ENTRY_FRAMES), so a post-boot attract machine is cloned and its scroll object's row/column/
  * row-count fields (0x8273+0/+1/+2), the scroll-phase selector (0x8110) and the edge flag (0x8107)
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_20fb } from "../loc_20fb.js";
+import { stampScrollRevealColumn } from "../stampScrollRevealColumn.js";
 import { loc_20fb as oracle } from "../../translated/loc_20fb.js";
 
 const OBJ = 0x8273; // scroll object: +0 row, +1 column, +2 row count
@@ -123,15 +123,15 @@ function brokenNoTail(m) { // never writes the tail mirror
   else if (phase === 160) { stampInto(m, base, T_2198); mem8[FLAG] = 1; }
 }
 
-test("EQUAL (crafted): loc_20fb == oracle on every dispatch arm", { skip }, () => {
+test("EQUAL (crafted): stampScrollRevealColumn == oracle on every dispatch arm", { skip }, () => {
   const entries = CASES.map(([r, c, rc, ph, fl]) => entryWith(r, c, rc, ph, fl));
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
   for (let i = 0; i < entries.length; i++) {
-    assert.equal(ramDiff(loc_20fb, entries[i]), null, `crafted entry diverged: ${CASES[i][5]}`);
+    assert.equal(ramDiff(stampScrollRevealColumn, entries[i]), null, `crafted entry diverged: ${CASES[i][5]}`);
   }
   // non-vacuous: the no-op twin must diverge (the oracle really stamps VRAM + writes the tail).
   assert.ok(ramDiff(brokenNoOp, entryWith(4, 1, 3, 160, 0)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted arms, loc_20fb == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted arms, stampScrollRevealColumn == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

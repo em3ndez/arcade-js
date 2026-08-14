@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2b58 — memory-equivalent to the frozen oracle at ROM 0x2B58.
+ * flagSpriteObjectFrogHit — memory-equivalent to the frozen oracle at ROM 0x2B58.
  * GATE: crafted-entry. Attract NEVER dispatches this IX sprite-object hit-test arm (probe: 0 over 5000
  * frames; it runs only in the in-play cluster 0x2970 -> 0x29b9), so a post-boot attract clone gets IX/IY
  * at a descriptor pair (0x8440 / 0x8048) and cells poked for every branch: inactive, wrong-row, a hit
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2b58 } from "../loc_2b58.js";
+import { flagSpriteObjectFrogHit } from "../flagSpriteObjectFrogHit.js";
 import { loc_2b58 as oracle } from "../../translated/loc_2b58.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -67,7 +67,7 @@ function brokenNoBias(m) { // ignores the +16 direction bias -> misjudges the di
   m.mem.write8(HIT_FLAG, 1); m.mem.write8(GATE, 1);
 }
 
-test("EQUAL (crafted): loc_2b58 == oracle on every path", { skip }, () => {
+test("EQUAL (crafted): flagSpriteObjectFrogHit == oracle on every path", { skip }, () => {
   const entries = [
     entry({ [o(6)]: 0 }), // inactive
     entry({ [o(6)]: 1, [o(4)]: 0x10, [FROG_ROW]: 0x20 }), // wrong row
@@ -79,9 +79,9 @@ test("EQUAL (crafted): loc_2b58 == oracle on every path", { skip }, () => {
     entry({ [o(6)]: 1, [o(4)]: 0x10, [FROG_ROW]: 0x12, [o(5)]: 0, [s(0)]: 0x57, [FROG_POS]: 0x48 }), // window==15 (hit)
   ];
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_2b58, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(flagSpriteObjectFrogHit, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entries[2]), "vacuous: oracle wrote nothing on the hit path");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_2b58 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, flagSpriteObjectFrogHit == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_29f9 — IX sprite-object motion arm. Active while (IX+6)!=0 and the global gate cell is 0;
+ * steerSpriteObjectTowardFrog — IX sprite-object motion arm. Active while (IX+6)!=0 and the global gate cell is 0;
  * counts down the (IX+9) move timer. On expiry it either — past sprite row 96 — steps (IX+3) by +/-2,
  * or drifts (IX+2) toward/away from the frog X, flipping the direction bit at the turn.
  * LIVE-OUT: memory-only (the sprite-object dispatcher).
@@ -10,7 +10,7 @@ import { loc_842c, loc_8014 } from "./names.js";
 const MOVE_RELOAD = 8;
 const ROW_THRESHOLD = 96; // rows at/below take the (IX+3) step, above drift to the frog
 
-export function loc_29f9(m) {
+export function steerSpriteObjectTowardFrog(m) {
   const { regs, mem8 } = m;
   const obj = regs.ix;
   const spr = regs.iy;

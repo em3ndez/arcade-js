@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_291d — advance the two-pair figure animation: idle-clears the phase, or when
+ * animateTwoPairFigure — advance the two-pair figure animation: idle-clears the phase, or when
  * armed steps it and blits a figure at phases 64 and 112 (the latter restarts it).
  * LIVE-OUT: memory-only.
  */
@@ -12,7 +12,7 @@ const PHASE_BLIT_B = 112;
 const FRAME_A_FIRST_TILE = 104;
 const FRAME_B_FIRST_TILE = 208;
 
-export function loc_291d(m) {
+export function animateTwoPairFigure(m) {
   const { mem8 } = m;
 
   if (mem8[loc_8101] === 0) {

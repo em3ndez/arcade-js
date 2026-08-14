@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_27cb — memory-equivalent to the frozen oracle at ROM 0x27CB.
+ * armHomeGoalSprite — memory-equivalent to the frozen oracle at ROM 0x27CB.
  * GATE: crafted-entry. Attract never dispatches this block-arm (probe: 0 dispatches over
  * ENTRY_FRAMES), so a post-boot attract machine is cloned and the lead byte poked into register B
  * (the routine's one live-in, which the callers set before calling). The four-cell block and the arm
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_27cb } from "../loc_27cb.js";
+import { armHomeGoalSprite } from "../armHomeGoalSprite.js";
 import { loc_27cb as oracle } from "../../translated/loc_27cb.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -61,12 +61,12 @@ function brokenNoArm(m, lead = m.regs.b) { // fills the block but never arms the
   mem8[BLOCK_BASE] = lead; mem8[BLOCK_BASE + 1] = 25; mem8[BLOCK_BASE + 2] = 3; mem8[BLOCK_BASE + 3] = 16;
 }
 
-test("EQUAL (crafted): loc_27cb == oracle on every lead byte", { skip }, () => {
+test("EQUAL (crafted): armHomeGoalSprite == oracle on every lead byte", { skip }, () => {
   const entries = LEADS.map(entryWithLead);
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_27cb, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(armHomeGoalSprite, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entryWithLead(0x18)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted lead bytes, loc_27cb == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted lead bytes, armHomeGoalSprite == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

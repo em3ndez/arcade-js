@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0f8c — memory-equivalent to the frozen oracle at ROM 0x0F8C.
+ * blitFrogAnimColumnOnTrigger — memory-equivalent to the frozen oracle at ROM 0x0F8C.
  * GATE: crafted-entry. Attract never dispatches this frog-anim pre-helper (probe: 0 dispatches over
  * ENTRY_FRAMES), so a post-boot attract machine is cloned and its trigger cell (0x8118) poked to
  * drive the blit path (several non-zero triggers) and the clear-trigger early-return (trigger 0).
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0f8c } from "../loc_0f8c.js";
+import { blitFrogAnimColumnOnTrigger } from "../blitFrogAnimColumnOnTrigger.js";
 import { loc_0f8c as oracle } from "../../translated/loc_0f8c.js";
 import manifest from "../../manifest.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -90,13 +90,13 @@ function brokenNoClear(m) {
   // BUG: never clears the trigger, so the blit would fire again
 }
 
-test("EQUAL (crafted): loc_0f8c == oracle on every trigger path", { skip }, () => {
+test("EQUAL (crafted): blitFrogAnimColumnOnTrigger == oracle on every trigger path", { skip }, () => {
   const entries = TRIGGERS.map(entryWithTrigger);
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_0f8c, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(blitFrogAnimColumnOnTrigger, e), null, "a crafted entry diverged");
   // non-vacuous: the no-op twin diverging proves the oracle actually writes on a blit entry.
   assert.ok(ramDiff(brokenNoOp, entryWithTrigger(1)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted trigger paths, loc_0f8c == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted trigger paths, blitFrogAnimColumnOnTrigger == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

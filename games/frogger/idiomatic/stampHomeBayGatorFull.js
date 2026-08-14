@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2532 — stamp a lane's scroll marker into video RAM.
+ * stampHomeBayGatorFull — stamp the surfaced crocodile into a home bay.
  *
- * Mirror the scroll timer, then for lane 1..5 stamp a 2x2 tile marker into that lane's home cell
- * when the lane has no object present; the count cell selects which flag bank is read.
+ * For home slot 1..5 (from the slot cursor), when that bay's occupancy flag is clear, stamp the 2x2
+ * surfaced crocodile tiles into the bay's video-RAM base; the active-player cell selects the occupancy bank.
  * LIVE-OUT: memory-only.
  */
 import {
@@ -13,30 +13,30 @@ import {
   loc_8263, loc_8264, loc_8265, loc_8266, loc_8267,
 } from "./names.js";
 
-const LANE_HOME = [loc_ab64, loc_aaa4, loc_a9e4, loc_a924, loc_a864];
+const HOME_BAY = [loc_ab64, loc_aaa4, loc_a9e4, loc_a924, loc_a864];
 const FLAGS_PRIMARY = [loc_825e, loc_825f, loc_8260, loc_8261, loc_8262];
 const FLAGS_ALT = [loc_8263, loc_8264, loc_8265, loc_8266, loc_8267];
 
-const FIRST_LANE = 1;
-const LAST_LANE = 5;
+const FIRST_SLOT = 1;
+const LAST_SLOT = 5;
 const ROW_STRIDE = 32;
 const TILE_TL = 208;
 const TILE_TR = 209;
 const TILE_BL = 210;
 const TILE_BR = 211;
 
-export function loc_2532(m) {
+export function stampHomeBayGatorFull(m) {
   const { mem8 } = m;
-  const lane = mem8[loc_8120];
-  mem8[loc_8121] = lane; // mirror the scroll cell
+  const slot = mem8[loc_8120];
+  mem8[loc_8121] = slot; // publish the slot cursor
 
-  if (lane < FIRST_LANE || lane > LAST_LANE) return;
-  const i = lane - 1;
+  if (slot < FIRST_SLOT || slot > LAST_SLOT) return;
+  const i = slot - 1;
 
   const flag = mem8[loc_83fd] === 1 ? FLAGS_PRIMARY[i] : FLAGS_ALT[i];
-  if (mem8[flag] !== 0) return; // lane object present -> no marker
+  if (mem8[flag] !== 0) return; // bay occupied -> skip
 
-  let p = LANE_HOME[i];
+  let p = HOME_BAY[i];
   mem8[p] = TILE_TL;
   mem8[(p + 1) & 0xffff] = TILE_TR;
   p = (p + ROW_STRIDE) & 0xffff;

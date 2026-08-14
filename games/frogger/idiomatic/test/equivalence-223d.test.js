@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_223d — memory-equivalent to the frozen oracle at ROM 0x223D.
+ * loadActivePlayerLaneParams — memory-equivalent to the frozen oracle at ROM 0x223D.
  * GATE: crafted-entry. Attract never dispatches this per-difficulty block loader (probe: 0 dispatches
  * over ENTRY_FRAMES; every caller is a game-start/board-init path attract does not enter), so a
  * post-boot attract machine is cloned and the active-player number (0x83FD) plus the P1/P2 difficulty
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_223d } from "../loc_223d.js";
+import { loadActivePlayerLaneParams } from "../loadActivePlayerLaneParams.js";
 import { loc_223d as oracle } from "../../translated/loc_223d.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -75,13 +75,13 @@ function brokenShortCopy(m) { // copies 32 bytes, one short
   for (let i = 0; i < BLOCK_SIZE - 1; i++) mem8[(DEST + i) & 0xffff] = mem8[(block + i) & 0xffff];
 }
 
-test("EQUAL (crafted): loc_223d == oracle on both player branches and several table entries", { skip }, () => {
+test("EQUAL (crafted): loadActivePlayerLaneParams == oracle on both player branches and several table entries", { skip }, () => {
   assert.ok(CASES.length > 0, "vacuous: no crafted entries");
   for (const [name, ...args] of CASES) {
-    assert.equal(ramDiff(loc_223d, craft(...args)), null, `diverged: ${name}`);
+    assert.equal(ramDiff(loadActivePlayerLaneParams, craft(...args)), null, `diverged: ${name}`);
   }
   assert.ok(ramDiff(brokenNoOp, craft(1, 1, 0)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${CASES.length} crafted player/index paths, loc_223d == oracle`);
+  console.log(`  EQUAL: ${CASES.length} crafted player/index paths, loadActivePlayerLaneParams == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

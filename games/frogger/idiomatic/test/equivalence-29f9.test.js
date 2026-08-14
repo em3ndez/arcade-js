@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_29f9 — memory-equivalent to the frozen oracle at ROM 0x29F9.
+ * steerSpriteObjectTowardFrog — memory-equivalent to the frozen oracle at ROM 0x29F9.
  * GATE: crafted-entry. Attract NEVER dispatches this IX sprite-object motion arm (probe: 0 over 5000
  * frames; it runs only in the in-play cluster 0x2970 -> 0x29b9), so a post-boot attract clone gets IX/IY
  * at a descriptor pair (0x8440 / 0x8048) and cells poked for every branch: inactive, gated (0x842c),
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_29f9 } from "../loc_29f9.js";
+import { steerSpriteObjectTowardFrog } from "../steerSpriteObjectTowardFrog.js";
 import { loc_29f9 as oracle } from "../../translated/loc_29f9.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -80,7 +80,7 @@ function brokenSkipArm(m) { // does the turn but forgets the (ix+7)=1 arm
   }
 }
 
-test("EQUAL (crafted): loc_29f9 == oracle on every path", { skip }, () => {
+test("EQUAL (crafted): steerSpriteObjectTowardFrog == oracle on every path", { skip }, () => {
   const entries = [
     entry({ [o(6)]: 0 }), // inactive
     entry({ [o(6)]: 1, [GATE]: 1 }), // gated off
@@ -95,9 +95,9 @@ test("EQUAL (crafted): loc_29f9 == oracle on every path", { skip }, () => {
     entry({ [o(6)]: 1, [GATE]: 0, [o(9)]: 1, [s(3)]: 0x20, [o(5)]: 0x80, [o(1)]: 0x40, [FROG_X]: 0x60, [s(0)]: 0x08, [o(2)]: 5, [o(7)]: 0 }), // facing1 step away
   ];
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_29f9, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(steerSpriteObjectTowardFrog, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entry(TURN)), "vacuous: oracle wrote nothing on the turn path");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_29f9 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, steerSpriteObjectTowardFrog == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

@@ -5,131 +5,99 @@ routines the idiomatic layer has rewritten, and the real machine under MAME. Its
 `gameplay.md`, which describes the same game from the outside, blind to the code. This document
 answers what the code can settle and is honest about what it cannot.
 
-This is the **first** map, written after the first decompile batch and grounded against MAME. That
-batch lifted the machine's **status/display and game-state plumbing** — the score/lives row, the time
-indicator, the home-row display, the extra-life award, the sound trigger, the two-player handoff, and
-the frog-object lifecycle — but **not yet** the road/river gameplay (traffic, logs, turtles, or the
-frog's own hop handling). So the map is deep on the HUD and the turn/player structure and largely
-silent on the play objects; those arrive in later batches.
-
-**Batch 2** has since lifted 27 further pure-leaf routines (idiomatic modules + equivalence gates, each
-`[code]` self-verified against the frozen oracle on crafted or captured entries). They keep their
-`loc_<addr>` names and are **not yet named or grounded** — understanding-pass-2 will name them by blind
-convergence and then ground each against MAME, and this map will be rewritten to cover them at that
-point. Until then this document describes only the batch-1 machinery below; the batch-2 routines exist
-in the code but are deliberately not yet written into this narrative (a `[code]` role stated before
-grounding is exactly the confident-but-wrong claim the tags guard against). (Three routines were held back from
-batch 2: two spine-invoked game-start routines, `0x0b0a` and `0x07d9`, which need the go-live spine's
-`m.call` dissolved deliberately; and `0x0f3e`, which pops its caller's return for a two-level
-caller-skip — a stack manipulation that cannot be idiomatized as a plain return while its callers are
-still translated. Each needs deliberate handling, not a bulk leaf lift.)
+Two decompile batches are lifted and grounded: batch 1 (the status/display and game-state plumbing)
+and batch 2 (the scroll engine, the home-bay animations, and the sprite-object arms). The frog's own
+hop handling and the road/river vehicle/log movement are still translated-only, so the map is quiet on
+those. This revision was **folded**, not rewritten whole from `gameplay.md` — a full blind rewrite is
+owed and this note records that debt.
 
 **Confidence tags, not decoration:**
-- **`[seen]`** — observed on the real ROM under MAME (a captured frame, a VRAM/RAM read, a control
-  poke, or a write tap). Where an observation was reached by poking a cell rather than natural play,
-  this says **`[seen,poked]`** — the reading is real but the trigger was forced.
-- **`[code]`** — derived from a translated routine's behaviour; the mechanics are exact, the role is
-  inference, and MAME did not (or could not) exercise it this pass.
+- **`[seen]`** — observed on the real ROM under MAME; **`[seen,poked]`** when the trigger was forced by
+  a memory poke rather than natural play (the reading is real, the path was forced).
+- **`[code]`** — from a translated routine's behaviour; mechanics exact, role inference, MAME did not
+  exercise it.
 - **`[guess]`** — plausible, unverified.
 
-A role is `[seen]` only if its evidence terminates in MAME, never in our own engine. This pass grounded
-all twenty batch-1 leaves; two overturned a `[code]` reading (below), two settled a refusal, and one
-had a `[code]` branch MAME could not reach.
+A role is `[seen]` only if its evidence terminates in MAME, never our own engine. Where grounding
+overturned a code-only reading, the map says so.
 
 ## The frame and the engine — `[code]`; rendering fidelity `[seen]`
 
-Frogger runs on Galaxian/Scramble-derived Konami hardware: a tilemap background with hardware sprites,
-an 8255 PPI for inputs/DIPs and the sound-command latch, and a second Z80 + AY-3-8910 for sound. The
-idiomatic layer runs its rewritten routines in place of the frozen translated oracle, born live. The
-frame boundary is a vblank **yield**, not a cycle count; each in-play pass hands control back at the
-pace tail (`0x0368`). Rendered idiomatic frames match a fresh MAME golden to **0px** at the
-boot-collapse landmark — `[seen]` that the port is pixel-faithful there.
+Galaxian/Scramble-derived Konami hardware: a tilemap background with hardware sprites, an 8255 PPI for
+inputs/DIPs and the sound-command latch, and a second Z80 + AY-3-8910 for sound. The idiomatic layer
+runs its rewritten routines in place of the frozen translated oracle, born live; the frame boundary is
+a vblank yield, not a cycle count, re-entering at the pace tail (`0x0368`). Rendered idiomatic frames
+match a fresh MAME golden to **0px** at the boot landmark — `[seen]` the port is pixel-faithful there.
+At cold boot **`spinWatchdogSettleDelay`** feeds the watchdog by strobing the I/O port at `0x8800`
+(non-RAM: writes read back `0xFF`) from a `BC=0xEFFF` settle loop — `[seen,poked]`.
 
-## The status/display area — `[seen]`
+## The scrolling background — `[seen]`
 
-- **`renderLivesRow`** draws up to **fifteen** reserve-frog markers (tile `0x4C`) down the column at
-  `0xA87E`, one 32-cell row apart — count = `(0x83B7)`, clamped at 15. `[seen,poked]`: poking
-  `0x83B7=4` produced exactly four markers (rows 3–6), value 1 → one, and the bottom-left reserve-frog
-  icons grew to match.
-- **`renderTimeBar`** draws the small **column-30** time indicator: `(active time byte 0x83E5 P1 /
-  0x83E6 P2)` copies of tile `0x4D` up the column at `0xABBE`. `[seen]`: the tile count equalled the
-  time byte every frame (2→2, 1→1, 0→empty). **The prominent draining green time bar** (columns 28/29,
-  tiles `0x48`–`0x4B`, the one that empties to kill the frog) is a **separate routine not yet lifted** —
-  the on-screen time display is multi-part.
-- **`renderFilledHomeSlots`** stamps the four home-frog tiles (`0x6C`–`0x6F`) at a filled slot's fixed
-  VRAM base. `[seen]`: a played frog reached a home and exactly that slot's 2×2 block appeared, the
-  other four bases still blank — the visual record of "fill all five homes."
-- The block/column fills lay down the background and status blocks — `[seen]` by write-trace at exact
-  geometry: **`fillTilemapBlock28x32`** (base `0xA802`), **`fillTilemapBlock22x32`** (base `0xA808`),
-  **`fillTwoByTwoTileBlock`**, **`fillTenCellRun`**, and **`copyRunUpTileColumn`** (destination steps
-  up one row per byte, values varying — a copy, not a fill).
+The river/road background scrolls, driven from an NMI scroll handler. **`blitScrollTileGrid`** stamps
+tile pairs (`0x34`–`0x37`) down VRAM columns from base `0xA808` at a 32-byte row pitch;
+**`stampScrollRevealColumn`** writes the newly-revealed edge column into the `0xA800` VRAM block; and
+**`blitScrollBand`** writes the scrolling tile-band rows. All three fire together during the attract
+scroll burst — `[seen]` by write-tap. **`blitFourTileGroupColumn`** paints 14-row two-wide columns of
+the four-tile group (tiles `72`–`75`) — the **river-log** graphics (`[seen]` in a demo frame).
 
-## Lives and the extra frog — `[seen,poked]`
+## The home bays — `[seen]`
 
-**`awardExtraLife`** is reached on **board completion — all five frogs home** (via `loc_06A2`, which
-tests `A == 0x10`, → `loc_0670`), **not a score threshold**. It bumps the active player's life count
-(`0x83B8`/`0x83B9`), mirrors it to `0x83B7`, and — unless the marker count is already **fifteen** on
-screen — stamps another reserve-frog marker; the value `16` (`0x10`) caps the **marker**, while the
-count itself runs past it. `gameplay.md`'s "extra frog at a score threshold" is **refuted for this
-routine** (whether a separate score-based award exists elsewhere is unobserved).
+The five top bays are the goal, and the code that decorates them is a small animation engine keyed by a
+slot cursor. **`loc_23eb`** advances the `loc_8123` slot cursor mod-6, read by the stampers as the
+home-slot index 1..5 (grounding **overturned** the earlier "river/lane-scroll phase" reading). Into a
+bay whose occupancy flag is clear, the engine stamps one of several creatures at that bay's fixed VRAM
+base (`0xA864`/`0xA924`/`0xA9E4`/`0xAAA4`/`0xAB64`): **`stampHomeBayFly`** the fly bonus creature
+(tiles `0x2C`/`0x2D`), **`stampHomeBayGatorEmerging`** then **`stampHomeBayGatorFull`** the crocodile
+hazard surfacing (tiles `0xD0`–`0xD3`) across two phases. All `[seen,poked]` (forced a game to reach
+them). When the frog reaches a bay, **`stampHomeBaySlot`** stamps the resting-frog block and
+**`armHomeGoalSprite`** arms the goal/bonus sprite (writes the bay-Y descriptor to `0x8040`, arm timer
+`0x8340=160`, the "200" bonus shown) — `[seen]`/`[seen,poked]`. These settle `gameplay.md`'s fly, the
+crocodile, and the home-bay scoring; the earlier code-only readings had mislabeled these as scroll markers.
 
-## The time limit — `[seen]`
+## The sprite objects — `[seen,poked]`
 
-Two distinct things this batch can separate. The **col-30 indicator** is `renderTimeBar` (above),
-driven by the per-player time byte `0x83E5`/`0x83E6`. **`loc_0292`** — still `loc_`, but its role is
-now grounded — is **NOT** that time clock: it is a short one-shot **frog-spawn/ready delay**. `[seen]`
-(played): `0x829D` was seeded to `0x20` (32) at frog/game start and decremented once per frame to zero
-(~0.5s, never re-seeded), at which point `loc_0066` spawns the frog. The earlier `[guess]` that this
-countdown drove the time bar is overturned.
+An IX/IY sprite-object engine drives moving objects. **`animateSpriteObjectFrame`** counts the frame
+timer at `(IX+8)`, steps the phase `(IX+6)`, and indexes the phase-tile table at `0x2CD5` with the flip
+bits into the sprite tile/attr pair. **`steerSpriteObjectTowardFrog`** drifts the object's X `(IX+2)`
+toward the frog's X (`0x8014`) and flips its direction bit at the turn. **`flagSpriteObjectFrogHit`**
+is the hit test: on frog-row/X overlap it raises the hit flag `0x8004` and the global gate `0x842C`.
+The **fly** has its own patrol, **`driveFlyPatrol`**, which runs the tongue timer, flips the sprite
+code (codes `0x30`–`0x33`) at the midpoint, and walks an X-offset path table into the fly sprite.
+**`animateTwoPairFigure`** and **`blitFrogAnimColumnOnTrigger`**/**`advanceAnimationFrameBuffer`** are
+the smaller animation clocks (a gated 2×2 figure blit, and a trigger-driven frog-anim tile-pair blit
+whose 11-byte indexed frame advances each in-play frame). All `[seen]`/`[seen,poked]`.
 
-## Two players and the cabinet — `[seen]`
+## Board setup — `[seen]`
 
-**`raiseTwoPlayerStartFlag`** and **`swapOutActivePlayerPages`** fire during a real two-player game
-(the latter right after each handoff to player two). **`handOffToOtherPlayer`** toggles the active
-player (`0x83FD` flips 1↔2 in lockstep) and — when the **cocktail** shadow `0x83C2` is set —
-sets `0x83CB=1` and writes **flip_x `0xB810=01` + flip_y `0xB80C=01`**, and the captured frame shows
-player two's screen rotated **180°** (score row to the bottom, TIME to the top). `[seen]` for the
-player toggle by natural play; `[seen,poked]` for the cocktail branch (the Cabinet DIP had to be poked).
+At board start **`loadActivePlayerLaneParams`** follows the difficulty pointer table at `0x2260` and
+LDIRs the active player's 33-byte lane-parameter block into `0x8270`; **`seedObjectAnimationState`**
+fills the object seed tables at `0x800D`/`0x8021` with fixed coded values (zero before board start).
+**`clearFourByteCounterBlock`** zeroes `0x805C`–`0x805F` and **`clearTwoPlayerFrameCells`** — only in a
+real two-player game (`0x83FE==2`) — zeroes five per-frame animation cells at a player switch.
+**`tickGatedCountdown`** decrements `0x826A` while its enable flag `0x826C` is set, clearing the flag at
+zero. **`setAttractIdleMode`** forces `GAME_MODE (0x83D6)=5` when a credit is present, dropping the
+demo out of attract. `[seen]`/`[seen,poked]`.
 
-## The frog object — `[seen]` (with a `[code]` branch)
+## Status, scoring, and sound — `[seen]` (batch 1)
 
-**`activateFrogObject`** marks the frog object active — `[seen]` write tap `PC=0808 W 8044=01`, and
-`0x8045`/`0x8047` cleared. Its conditional two-player timer-seed (`0x83D2`/`0x83DA ← 0x0040`)
-**never fired**, even in a real 2P game, because the routine is only called with `PLAY_FLAG (0x83FE)=0`
-— that branch stays `[code]`, unreached, not refuted. **`resetFrogObject`** writes the frog object's
-four bytes (`OBJECT_INIT [80,1E,03,E0]` at `0x8044`) and raises a ready flag — `[seen]` at frog spawn,
-the visible player frog appearing at the start position.
+`renderLivesRow` draws up to fifteen reserve-frog markers; `renderTimeBar` the small col-30 time
+indicator (the main draining green bar is separate, unlifted); `renderFilledHomeSlots` the filled-bay
+frogs. `awardExtraLife` awards the extra frog on **board completion** (all five homes), not a score
+threshold. The five-entry descending table at `0x83F2` is the **high-score ranking**
+(`insertHighScoreEntry`), matching the attract SCORE RANKING. **`writeScoreDigitStepUp`** writes one BCD
+score digit and steps the VRAM pointer up a 32-cell row (its callers are the score routines).
+`issueSoundCommand` latches a byte to `0xD000` and pulses `0xD002` bit 3 for the sound CPU's `/INT`.
+`nextSpawnRandomByte` is the spawn PRNG. `handOffToOtherPlayer` toggles players (cocktail flips the
+screen 180°). See the batch-1 detail preserved in the routine roles in `names.js`.
 
-## Sound — `[seen]`
+## Not yet named / open
 
-**`issueSoundCommand`** latches a command byte to `0xD000`, then pulses `0xD002` bit 3 **low (the
-falling edge is the sound CPU's `/INT`) then high** — `[seen]` by write tap, firing with many distinct
-command bytes during play. Which byte selects which sound is not decoded here.
-
-## Object bookkeeping and scoring — `[seen]`
-
-**`clearObjectBlocksAndMirrorToObjRam`** zeroes a work-RAM object block, mirrors the zeroed head into
-OBJRAM, and zeroes a sprite block — `[seen]` executing at setup. **`insertHighScoreEntry`** inserts a
-16-bit key into the **five-entry descending high-score table** ending at `0x83F2`: `[seen]` that
-`0x83F1`–`0x83FA` holds exactly the attract **SCORE RANKING** (04630/02050/01970/01580/01270, BCD ÷10),
-`0x83F2` the top slot — the table identity is dispositive, though a live insert was not observed.
-**`nextSpawnRandomByte`** steps a ring XOR-fold over the `0x8400` buffer, returning a byte its callers
-(`loc_2A6A`/`loc_2C13`, object arms gated on `(0x83B7) ≥ 3`) consume to place object spawns — `[seen,
-poked]` a continuously churning high-entropy source feeding spawn placement: a **PRNG, not a checksum**.
-
-## One routine still `loc_`, role grounded
-
-- **`loc_05d3`** — `[seen,poked]` per-player **board-completion re-arm** (all five frogs home): it
-  writes `0x826D`/`0x825A`/`0x83CD=1`, clears `0x825B`/`0x83EA`, sets `0x8297=0xFF`/`0x8298=0x40`, and
-  `0x8298` then times the board-complete animation. It **never fires in attract** (the demo-arming
-  reading is refuted) and fired in a one-player game (not 2P-specific). The role is grounded, but no
-  blind proposer converged on a name for it, so it stays `loc_` and earns a name in the next pass.
-
-## Open questions (what this pass did not settle)
-
-- The routine that draws the **main draining green time bar** (`0x48`–`0x4B`, cols 28/29) — not lifted.
-- Whether a **score-based** extra frog exists (this batch's `awardExtraLife` fires on board completion).
-- A live **high-score insert**, a **natural board completion**, and `activateFrogObject`'s **2P
-  timer-seed** — all unobserved; the high-score/board/cocktail/PRNG triggers here were poke-reached.
-- The frog's hop handling, collision, and the road/river objects (traffic, logs, turtles) — not lifted.
-- Diving turtles, the lady frog, the fly, the crocodile, the snake — ground in MAME when lifted.
+- **`loc_0c4a`** — `[seen]` a work-RAM store (writes `E` to page `0x80` at `0x80(D-C)`); grounding
+  overturned the "intro digit tile" reading. Kept `loc_` (grounded role, no converged name).
+- **`loc_23eb`** — `[seen]` the home-bay slot cursor above; kept `loc_` (both blind proposers misread it
+  as river/scroll, so no name is trusted yet).
+- **`computeVramColumnIndex`** (`0x1198`) — a pure-register leaf returning only `C`; `[code]`, its role
+  is code-consistent but produced no runtime-observable effect to ground.
+- Held back from batch 2 (deliberate handling, not bulk lifts): `0x0b0a`/`0x07d9` (spine-`m.call`ed),
+  `0x0f3e` (pops its caller's return — a caller-skip).
+- Still translated-only: the frog's hop handling, and the road/river vehicle and log **movement**.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1048 — memory-equivalent to the frozen oracle at ROM 0x1048, and watchdog-count-equivalent.
+ * spinWatchdogSettleDelay — memory-equivalent to the frozen oracle at ROM 0x1048, and watchdog-count-equivalent.
  * GATE: captured boot entry. The boot chain dispatches this settle delay exactly once (probe: 1
  * dispatch within 64 frames), so the entry is captured by hooking the address and cloning the live
  * state on first arrival. The routine writes no RAM; its only effect is that each pass reads the
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_1048 } from "../loc_1048.js";
+import { spinWatchdogSettleDelay } from "../spinWatchdogSettleDelay.js";
 import { loc_1048 as oracle } from "../../translated/loc_1048.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -54,9 +54,9 @@ test("WITNESSED: boot really does reach the settle delay", { skip }, () => {
   assert.equal(dispatched, 1, "expected exactly one boot dispatch");
 });
 
-test("EQUAL (captured): loc_1048 == oracle on RAM and the watchdog read count", { skip }, () => {
+test("EQUAL (captured): spinWatchdogSettleDelay == oracle on RAM and the watchdog read count", { skip }, () => {
   const a = entryState().clone(); oracle(a);
-  const b = entryState().clone(); loc_1048(b);
+  const b = entryState().clone(); spinWatchdogSettleDelay(b);
   assert.equal(ramDiff(a, b), null, "RAM diverged (neither should write RAM)");
   const base = entryState().mem.watchdogReads;
   assert.equal(a.mem.watchdogReads - base, EXPECTED_READS, "the ORACLE's read count moved");

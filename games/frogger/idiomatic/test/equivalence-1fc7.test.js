@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1fc7 — memory-equivalent to the frozen oracle at ROM 0x1FC7.
+ * tickGatedCountdown — memory-equivalent to the frozen oracle at ROM 0x1FC7.
  * GATE: crafted-entry. Attract never dispatches this in-play countdown tick (probe: 0 dispatches
  * over ENTRY_FRAMES), so a post-boot attract machine is cloned and its enable flag (0x826C) and
  * counter (0x826A) poked to drive each path — flag-clear no-op, a plain decrement, the decrement
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1fc7 } from "../loc_1fc7.js";
+import { tickGatedCountdown } from "../tickGatedCountdown.js";
 import { loc_1fc7 as oracle } from "../../translated/loc_1fc7.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -69,15 +69,15 @@ function brokenAlwaysDec(m) { // drops the flag gate: decrements even while the 
   mem8[FLAG] = 0;
 }
 
-test("EQUAL (crafted): loc_1fc7 == oracle on every gate/countdown path", { skip }, () => {
+test("EQUAL (crafted): tickGatedCountdown == oracle on every gate/countdown path", { skip }, () => {
   const entries = CASES.map(([f, c]) => entryWith(f, c));
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
   for (let i = 0; i < entries.length; i++) {
-    assert.equal(ramDiff(loc_1fc7, entries[i]), null, `crafted entry diverged: ${CASES[i][2]}`);
+    assert.equal(ramDiff(tickGatedCountdown, entries[i]), null, `crafted entry diverged: ${CASES[i][2]}`);
   }
   // non-vacuous: the no-op twin must diverge on a path that actually writes.
   assert.ok(ramDiff(brokenNoOp, entryWith(1, 1)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_1fc7 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, tickGatedCountdown == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

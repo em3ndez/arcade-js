@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1802 — memory-equivalent to the frozen oracle at ROM 0x1802.
+ * advanceAnimationFrameBuffer — memory-equivalent to the frozen oracle at ROM 0x1802.
  * GATE: crafted-entry. Attract never dispatches this in-play animation stepper (probe: 0 dispatches
  * over ENTRY_FRAMES), so a post-boot attract machine is cloned and its gate cells poked to drive each
  * path — either busy latch set (early return), the timer-tick branch, the frame-copy branch at
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1802 } from "../loc_1802.js";
+import { advanceAnimationFrameBuffer } from "../advanceAnimationFrameBuffer.js";
 import { loc_1802 as oracle } from "../../translated/loc_1802.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -86,12 +86,12 @@ function brokenNoWrap(m) {
   for (let k = 0; k < 11; k++) mem8[(FRAME_DST + k) & 0xffff] = mem8[(src + k) & 0xffff];
 }
 
-test("EQUAL (crafted): loc_1802 == oracle on every gate path", { skip }, () => {
+test("EQUAL (crafted): advanceAnimationFrameBuffer == oracle on every gate path", { skip }, () => {
   const entries = PATHS.map(entry);
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_1802, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(advanceAnimationFrameBuffer, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entry({ index: 1 })), "vacuous: oracle wrote nothing on the copy path");
-  console.log(`  EQUAL: ${entries.length} crafted gate paths, loc_1802 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted gate paths, advanceAnimationFrameBuffer == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_291d — memory-equivalent to the frozen oracle at ROM 0x291D.
+ * animateTwoPairFigure — memory-equivalent to the frozen oracle at ROM 0x291D.
  * GATE: crafted-entry. Attract never dispatches this figure-animation step (probe: 0 dispatches over
  * ENTRY_FRAMES), so a post-boot attract machine is cloned and its four gate cells poked to drive each
  * path: the idle clear, the two early-out guards, the plain phase bump, and the two blit phases (64
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_291d } from "../loc_291d.js";
+import { animateTwoPairFigure } from "../animateTwoPairFigure.js";
 import { loc_291d as oracle } from "../../translated/loc_291d.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -80,12 +80,12 @@ const brokenWrongTile = (m) => step(m, 99, 208, true, true); // wrong frame-A ti
 const brokenNoBusyGuard = (m) => step(m, 104, 208, false, true); // ignores the busy guard
 const brokenNoReset = (m) => step(m, 104, 208, true, false); // blit B forgets to restart the phase
 
-test("EQUAL (crafted): loc_291d == oracle on every path", { skip }, () => {
+test("EQUAL (crafted): animateTwoPairFigure == oracle on every path", { skip }, () => {
   const entries = PATHS.map(([, cfg]) => craft(cfg));
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (let i = 0; i < entries.length; i++) assert.equal(ramDiff(loc_291d, entries[i]), null, `diverged: ${PATHS[i][0]}`);
+  for (let i = 0; i < entries.length; i++) assert.equal(ramDiff(animateTwoPairFigure, entries[i]), null, `diverged: ${PATHS[i][0]}`);
   assert.ok(ramDiff(brokenNoOp, craft(PATHS[0][1])), "vacuous: oracle wrote nothing on the idle path");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_291d == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, animateTwoPairFigure == oracle`);
 });
 
 test("TEETH: broken twins are caught across blit, busy guard, and reset", { skip }, () => {

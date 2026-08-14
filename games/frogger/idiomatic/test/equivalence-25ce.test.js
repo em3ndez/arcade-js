@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_25ce — memory-equivalent to the frozen oracle at ROM 0x25CE.
+ * stampHomeBaySlot — memory-equivalent to the frozen oracle at ROM 0x25CE.
  * GATE: crafted-entry. Plain attract does not dispatch this home-slot stamp within ENTRY_FRAMES
  * (probe: 0), and each arm is gated by the selector cell (0x8121, 1..5), so a post-boot attract
  * clone is poked to drive every selector (1..5 plus out-of-range), both players (0x83FD), the
- * clear/occupied gate cell, and the hold flag (0x8004). loc_25ce reads only work RAM (no register
+ * clear/occupied gate cell, and the hold flag (0x8004). stampHomeBaySlot reads only work RAM (no register
  * live-in) and its live-out is memory-only, so registers/SP are not compared. Teeth: four broken
  * twins (no-op, wrong tile, forgets to clear the selector pair, ignores the hold flag).
  */
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_25ce } from "../loc_25ce.js";
+import { stampHomeBaySlot } from "../stampHomeBaySlot.js";
 import { loc_25ce as oracle } from "../../translated/loc_25ce.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -83,7 +83,7 @@ function stamp(m) {
 function brokenNoClear(m) { stamp(m); } // stamps but never clears the selector pair
 function brokenIgnoreHold(m) { stamp(m); m.mem8[SELECTOR] = 0; m.mem8[SELECTOR_COMPANION] = 0; }
 
-test("EQUAL (crafted): loc_25ce == oracle on every selector/player/occupancy/hold path", { skip }, () => {
+test("EQUAL (crafted): stampHomeBaySlot == oracle on every selector/player/occupancy/hold path", { skip }, () => {
   const entries = [];
   for (const sel of [0, 1, 2, 3, 4, 5, 6]) {
     for (const player of [1, 2]) {
@@ -93,8 +93,8 @@ test("EQUAL (crafted): loc_25ce == oracle on every selector/player/occupancy/hol
     }
   }
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_25ce, e), null, "a crafted entry diverged");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_25ce == oracle`);
+  for (const e of entries) assert.equal(ramDiff(stampHomeBaySlot, e), null, "a crafted entry diverged");
+  console.log(`  EQUAL: ${entries.length} crafted paths, stampHomeBaySlot == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

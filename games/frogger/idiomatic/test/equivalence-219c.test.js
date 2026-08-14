@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_219c — memory-equivalent to the frozen oracle at ROM 0x219C.
+ * blitScrollBand — memory-equivalent to the frozen oracle at ROM 0x219C.
  * GATE: crafted-entry. Attract never dispatches this scroll-band blitter (probe: 0 dispatches over
  * ENTRY_FRAMES, and its only caller 0x2005 is likewise never reached), so a post-boot attract machine
  * is cloned and its descriptor (0x827C column / unit / row), scroll-phase mode (0x8111) and wrap-latch
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_219c } from "../loc_219c.js";
+import { blitScrollBand } from "../blitScrollBand.js";
 import { loc_219c as oracle } from "../../translated/loc_219c.js";
 
 const DESCRIPTOR = 0x827c; // column, unit count, row count
@@ -77,7 +77,7 @@ const CASES = [
 
 // broken twins.
 function brokenNoOp() {}
-function brokenWrongTail(m) { loc_219c(m); m.mem8[TAIL] = (m.mem8[TAIL] + 1) & 0xff; } // wrong 0x8119
+function brokenWrongTail(m) { blitScrollBand(m); m.mem8[TAIL] = (m.mem8[TAIL] + 1) & 0xff; } // wrong 0x8119
 function brokenSkipLatch(m) { // blits but never touches the wrap-latch
   const { mem8 } = m;
   const column = mem8[DESCRIPTOR], units = mem8[(DESCRIPTOR + 1) & 0xffff], rows = mem8[(DESCRIPTOR + 2) & 0xffff];
@@ -117,13 +117,13 @@ function brokenWrongRow(m) { // mode-B reads row A instead of row B
   mem8[TAIL] = (rows - 1) & 0xff;
 }
 
-test("EQUAL (crafted): loc_219c == oracle on every mode arm and count edge", { skip }, () => {
+test("EQUAL (crafted): blitScrollBand == oracle on every mode arm and count edge", { skip }, () => {
   assert.ok(CASES.length > 0, "vacuous: no crafted entries");
   for (const [name, ...args] of CASES) {
-    assert.equal(ramDiff(loc_219c, craft(...args)), null, `diverged: ${name}`);
+    assert.equal(ramDiff(blitScrollBand, craft(...args)), null, `diverged: ${name}`);
   }
   assert.ok(ramDiff(brokenNoOp, craft(4, 1, 2, 0, 0)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${CASES.length} crafted arms/edges, loc_219c == oracle (RAM minus stack scratch)`);
+  console.log(`  EQUAL: ${CASES.length} crafted arms/edges, blitScrollBand == oracle (RAM minus stack scratch)`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {
