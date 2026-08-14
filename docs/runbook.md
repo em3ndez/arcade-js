@@ -124,6 +124,51 @@ real running game, not attract mode.
   on an unvalidated renderer defers the first MAME diff to when the most code rides on the error.
 - `make verify` is **not** the pixel gate (it is a disassembly decoder check for another game's ROM).
 
+### ★ Building the pixel gate (the mechanics behind "turn it on now")
+
+The gate is a JS render diffed byte-for-byte against a freshly captured, self-certified MAME golden.
+Stand up these pieces in the skeleton; none of them needs a finished layer.
+
+- **The JS render emitter (`games/<id>/tools/render.js`).** Instantiate the machine, run the frames,
+  and write a raw frame dump `frames.rgb` (screen_w × screen_h × 3 bytes per frame, RGB888, no header)
+  plus a `frames.json` manifest carrying a per-frame sha256. **Paint at the point the player sees** —
+  the vblank yield for the idiomatic layer, the plain frame loop for the translated oracle — and exit
+  **non-zero** on any boot gap, dropped frame, or short run, so a truncated artifact is never diffed.
+- **The certified golden (`tools/mame_golden.py`, shared).** It drives MAME headless with a pinned,
+  determinism-controlled command line (video/sound off, no throttle, `-frameskip 0`, fresh empty
+  nvram+cfg per run, no autosave — two runs must be byte-identical) and converts the AVI to the same
+  raw `frames.rgb`. Two ffmpeg conversions are mandatory: MAME's AVI is **bgr24**, so `-pix_fmt rgb24`
+  is required or every frame differs by a swapped R/B that looks like a palette bug; and `-map 0:v:0`
+  is required because MAME writes an audio stream even under `-sound none`. The tool **self-certifies
+  and fails closed** — a frame-count mismatch or a mid-capture watchdog reset (the boot image
+  recurring *after* content first appears) exits non-zero rather than hand back quietly-wrong data.
+  The golden is ROM-derived; **never commit it.**
+- **Per-game capture inputs.** `mame_golden.py` is game-agnostic: it takes the board from
+  `--hardware boards/<board>/hardware.json` and the RAM dumpers from `--lua-dir games/<id>/tools/lua/`.
+  Write a `dump_state.lua` that dumps the state that gets diffed (work RAM + VRAM + sprite/object RAM at
+  their real addresses). **Ground the board's I/O in `hardware.json`** — the control-latch byte and DSW
+  expected values read off MAME, input idle values from the dip-switch defaults — and enforce each where
+  it is checked: the board unit tests assert the input/DSW values, and `mame_golden.py`'s config probe
+  rejects any capture whose control byte disagrees (a wrong control byte silently poisons every golden).
+- **Measure the frame offset; never hardcode it.** MAME's AVI lags the JS render by a per-game
+  constant (one frame is typical: `render[N] == golden[N+1]`). Sweep a small window of offsets and pick
+  the one that minimises total differing pixels, so a drift either way shows up instead of being
+  assumed.
+- **One tight band, fail-closed.** After aligning, the verdict is a single full-frame pixel budget set
+  just above the measured **correct-layer floor** (a few pixels of mid-frame beam residual) and far
+  below one 8×8 tile — loose enough for the known residual, tight enough that a wrong sprite blows past
+  it. Guard it with a positive control: require a minimum count of **distinct** frames on both sides so
+  a frozen or black screen cannot pass by matching nothing. Print the literal `pixel_suite: PASS` only
+  on a clean comparison; every cannot-compare path exits non-zero.
+- **Wire it in and drop the waiver.** Declare the suite in `SUITES` in `pixel_gate_required.py` and
+  remove the game's `EXEMPT` entry. The gate invokes each suite with `--layer {oracle,idiomatic}`; a
+  translated-only game accepts the flag and renders the oracle for both until an idiomatic render
+  exists.
+- **Gotcha — the comment cap can block the golden edit.** `mame_golden.py` is a shared tool that
+  documents external-system quirks, so it can sit over the comment-density cap; editing an over-cap
+  file trips the whole-file freeze by design. Bring it under the cap first (relocate the long rationale
+  to a doc, preserving every load-bearing note) as its own prerequisite unit, then make the change.
+
 ## 3 — Translation pass (disassemble + faithful lift → the frozen oracle)
 
 - Disassemble with **reachability-driven recursive descent** from the real entries (reset and NMI
