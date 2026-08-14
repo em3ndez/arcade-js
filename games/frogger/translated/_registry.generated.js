@@ -22,14 +22,16 @@ import { loc_07e6 } from "./loc_07e6.js";
 import { loc_0804 } from "./loc_0804.js";
 import { loc_0822 } from "./loc_0822.js";
 import { loc_085b } from "./loc_085b.js";
-import { loc_0870 } from "./loc_0870.js";
+import { loc_0870, loc_08c5 } from "./loc_0870.js";
 import { loc_08e0 } from "./loc_08e0.js";
+import { loc_0942 } from "./loc_0942.js";
 import { loc_09aa } from "./loc_09aa.js";
 import { loc_09db } from "./loc_09db.js";
 import { loc_0a16 } from "./loc_0a16.js";
 import { loc_0a48 } from "./loc_0a48.js";
 import { loc_0a84 } from "./loc_0a84.js";
 import { loc_0aba } from "./loc_0aba.js";
+import { loc_0aee } from "./loc_0aee.js";
 import { loc_0b0a } from "./loc_0b0a.js";
 import { loc_0b1f } from "./loc_0b1f.js";
 import { loc_0b67 } from "./loc_0b67.js";
@@ -39,6 +41,7 @@ import { loc_0ba0 } from "./loc_0ba0.js";
 import { loc_0ba9 } from "./loc_0ba9.js";
 import { loc_0c3d } from "./loc_0c3d.js";
 import { loc_0c4a } from "./loc_0c4a.js";
+import { loc_0d11 } from "./loc_0d11.js";
 import { loc_0d4c } from "./loc_0d4c.js";
 import { loc_0db9 } from "./loc_0db9.js";
 import { loc_0e74 } from "./loc_0e74.js";
@@ -46,16 +49,72 @@ import { loc_0e7a } from "./loc_0e7a.js";
 import { loc_0f3e } from "./loc_0f3e.js";
 import { loc_0f59 } from "./loc_0f59.js";
 import { loc_0f69 } from "./loc_0f69.js";
+import { loc_0f8c } from "./loc_0f8c.js";
 import { loc_0faf } from "./loc_0faf.js";
+import { loc_0fd4, loc_0ff1, loc_1029 } from "./loc_0fd4.js";
 import { loc_1048 } from "./loc_1048.js";
+import { loc_1058, loc_107b, loc_109b, loc_10bb, loc_10db } from "./loc_1058.js";
+import { loc_10f8, loc_1118, loc_1138, loc_1158, loc_1178 } from "./loc_10f8.js";
+import { loc_1198 } from "./loc_1198.js";
+import { loc_11bf, loc_12d0 } from "./loc_11bf.js";
+import { loc_12e4 } from "./loc_12e4.js";
 import { loc_14b7 } from "./loc_14b7.js";
+import { loc_14dd, loc_14ee, loc_14ff, loc_1510, loc_1521, loc_1532, loc_1543, loc_1554, loc_1565, loc_1576, loc_1587 } from "./loc_14dd.js";
+import { loc_1598, loc_15ab, loc_15de } from "./loc_1598.js";
+import { loc_163e, loc_16d4 } from "./loc_163e.js";
+import { loc_16f8 } from "./loc_16f8.js";
 import { loc_1802 } from "./loc_1802.js";
+import { loc_1952 } from "./loc_1952.js";
 import { loc_19e2 } from "./loc_19e2.js";
+import { loc_1a02 } from "./loc_1a02.js";
+import { loc_1a55 } from "./loc_1a55.js";
+import { loc_1acb } from "./loc_1acb.js";
+import { loc_1b8b, loc_1bba, loc_1be4, loc_1c0d } from "./loc_1b8b.js";
+import { loc_1c41, loc_1c76, loc_1ca0, loc_1cd5 } from "./loc_1c41.js";
+import { loc_1cff } from "./loc_1cff.js";
+import { loc_1d77, loc_1d87 } from "./loc_1d77.js";
+import { loc_1dd8, loc_1e29 } from "./loc_1dd8.js";
+import { loc_1e7a, loc_1ecb } from "./loc_1e7a.js";
+import { loc_1f1c } from "./loc_1f1c.js";
 import { loc_1fc7 } from "./loc_1fc7.js";
 import { loc_1fd6 } from "./loc_1fd6.js";
+import { loc_2005 } from "./loc_2005.js";
+import { loc_20bf, loc_20cc } from "./loc_20cc.js";
+import { loc_20fb } from "./loc_20fb.js";
+import { loc_219c } from "./loc_219c.js";
 import { loc_223d } from "./loc_223d.js";
 import { loc_230f } from "./loc_230f.js";
 import { loc_2341 } from "./loc_2341.js";
+import { loc_23eb } from "./loc_23eb.js";
+import { loc_23fa } from "./loc_23fa.js";
+import { loc_2496 } from "./loc_2496.js";
+import { loc_2532 } from "./loc_2532.js";
+import { loc_25ce } from "./loc_25ce.js";
+import { loc_2673 } from "./loc_2673.js";
+import { loc_269a } from "./loc_269a.js";
+import { loc_26a6 } from "./loc_26a6.js";
+import { loc_272f } from "./loc_272f.js";
+import { loc_27b3, loc_27bc } from "./loc_27b3.js";
+import { loc_27cb, loc_27de } from "./loc_27cb.js";
+import { loc_27ea, loc_27fe, loc_281b } from "./loc_27ea.js";
+import { loc_2856 } from "./loc_2856.js";
+import { loc_286d, loc_2873, loc_2874, loc_287e, loc_288c, loc_28b0 } from "./loc_287e.js";
+import { loc_28bb } from "./loc_28bb.js";
+import { loc_2906 } from "./loc_2906.js";
+import { loc_291d } from "./loc_291d.js";
+import { loc_2970 } from "./loc_2970.js";
+import { loc_29b9 } from "./loc_29b9.js";
+import { loc_29c9 } from "./loc_29c9.js";
+import { loc_29f9 } from "./loc_29f9.js";
+import { loc_2a6a, loc_2ae6 } from "./loc_2a6a.js";
+import { loc_2af3 } from "./loc_2af3.js";
+import { loc_2b58 } from "./loc_2b58.js";
+import { loc_2b83 } from "./loc_2b83.js";
+import { loc_2b93 } from "./loc_2b93.js";
+import { loc_2bab } from "./loc_2bab.js";
+import { loc_2bfb } from "./loc_2bfb.js";
+import { loc_2c13 } from "./loc_2c13.js";
+import { loc_2ca8 } from "./loc_2ca8.js";
 import { loc_2cf0 } from "./loc_2cf0.js";
 import { loc_2d88 } from "./loc_2d88.js";
 
@@ -79,13 +138,16 @@ export const ROUTINE_ENTRIES = [
   [0x0822, loc_0822],
   [0x085b, loc_085b],
   [0x0870, loc_0870],
+  [0x08c5, loc_08c5],
   [0x08e0, loc_08e0],
+  [0x0942, loc_0942],
   [0x09aa, loc_09aa],
   [0x09db, loc_09db],
   [0x0a16, loc_0a16],
   [0x0a48, loc_0a48],
   [0x0a84, loc_0a84],
   [0x0aba, loc_0aba],
+  [0x0aee, loc_0aee],
   [0x0b0a, loc_0b0a],
   [0x0b1f, loc_0b1f],
   [0x0b67, loc_0b67],
@@ -95,6 +157,7 @@ export const ROUTINE_ENTRIES = [
   [0x0ba9, loc_0ba9],
   [0x0c3d, loc_0c3d],
   [0x0c4a, loc_0c4a],
+  [0x0d11, loc_0d11],
   [0x0d4c, loc_0d4c],
   [0x0db9, loc_0db9],
   [0x0e74, loc_0e74],
@@ -102,16 +165,116 @@ export const ROUTINE_ENTRIES = [
   [0x0f3e, loc_0f3e],
   [0x0f59, loc_0f59],
   [0x0f69, loc_0f69],
+  [0x0f8c, loc_0f8c],
   [0x0faf, loc_0faf],
+  [0x0fd4, loc_0fd4],
+  [0x0ff1, loc_0ff1],
+  [0x1029, loc_1029],
   [0x1048, loc_1048],
+  [0x1058, loc_1058],
+  [0x107b, loc_107b],
+  [0x109b, loc_109b],
+  [0x10bb, loc_10bb],
+  [0x10db, loc_10db],
+  [0x10f8, loc_10f8],
+  [0x1118, loc_1118],
+  [0x1138, loc_1138],
+  [0x1158, loc_1158],
+  [0x1178, loc_1178],
+  [0x1198, loc_1198],
+  [0x11bf, loc_11bf],
+  [0x12d0, loc_12d0],
+  [0x12e4, loc_12e4],
   [0x14b7, loc_14b7],
+  [0x14dd, loc_14dd],
+  [0x14ee, loc_14ee],
+  [0x14ff, loc_14ff],
+  [0x1510, loc_1510],
+  [0x1521, loc_1521],
+  [0x1532, loc_1532],
+  [0x1543, loc_1543],
+  [0x1554, loc_1554],
+  [0x1565, loc_1565],
+  [0x1576, loc_1576],
+  [0x1587, loc_1587],
+  [0x1598, loc_1598],
+  [0x15ab, loc_15ab],
+  [0x15de, loc_15de],
+  [0x163e, loc_163e],
+  [0x16d4, loc_16d4],
+  [0x16f8, loc_16f8],
   [0x1802, loc_1802],
+  [0x1952, loc_1952],
   [0x19e2, loc_19e2],
+  [0x1a02, loc_1a02],
+  [0x1a55, loc_1a55],
+  [0x1acb, loc_1acb],
+  [0x1b8b, loc_1b8b],
+  [0x1bba, loc_1bba],
+  [0x1be4, loc_1be4],
+  [0x1c0d, loc_1c0d],
+  [0x1c41, loc_1c41],
+  [0x1c76, loc_1c76],
+  [0x1ca0, loc_1ca0],
+  [0x1cd5, loc_1cd5],
+  [0x1cff, loc_1cff],
+  [0x1d77, loc_1d77],
+  [0x1d87, loc_1d87],
+  [0x1dd8, loc_1dd8],
+  [0x1e29, loc_1e29],
+  [0x1e7a, loc_1e7a],
+  [0x1ecb, loc_1ecb],
+  [0x1f1c, loc_1f1c],
   [0x1fc7, loc_1fc7],
   [0x1fd6, loc_1fd6],
+  [0x2005, loc_2005],
+  [0x20bf, loc_20bf],
+  [0x20cc, loc_20cc],
+  [0x20fb, loc_20fb],
+  [0x219c, loc_219c],
   [0x223d, loc_223d],
   [0x230f, loc_230f],
   [0x2341, loc_2341],
+  [0x23eb, loc_23eb],
+  [0x23fa, loc_23fa],
+  [0x2496, loc_2496],
+  [0x2532, loc_2532],
+  [0x25ce, loc_25ce],
+  [0x2673, loc_2673],
+  [0x269a, loc_269a],
+  [0x26a6, loc_26a6],
+  [0x272f, loc_272f],
+  [0x27b3, loc_27b3],
+  [0x27bc, loc_27bc],
+  [0x27cb, loc_27cb],
+  [0x27de, loc_27de],
+  [0x27ea, loc_27ea],
+  [0x27fe, loc_27fe],
+  [0x281b, loc_281b],
+  [0x2856, loc_2856],
+  [0x286d, loc_286d],
+  [0x2873, loc_2873],
+  [0x2874, loc_2874],
+  [0x287e, loc_287e],
+  [0x288c, loc_288c],
+  [0x28b0, loc_28b0],
+  [0x28bb, loc_28bb],
+  [0x2906, loc_2906],
+  [0x291d, loc_291d],
+  [0x2970, loc_2970],
+  [0x29b9, loc_29b9],
+  [0x29c9, loc_29c9],
+  [0x29f9, loc_29f9],
+  [0x2a6a, loc_2a6a],
+  [0x2ae6, loc_2ae6],
+  [0x2af3, loc_2af3],
+  [0x2b58, loc_2b58],
+  [0x2b83, loc_2b83],
+  [0x2b93, loc_2b93],
+  [0x2bab, loc_2bab],
+  [0x2bfb, loc_2bfb],
+  [0x2c13, loc_2c13],
+  [0x2ca8, loc_2ca8],
   [0x2cf0, loc_2cf0],
   [0x2d88, loc_2d88],
 ];

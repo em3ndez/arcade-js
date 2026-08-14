@@ -55,7 +55,7 @@ export function loc_0870(m) {
     m.step(0x088e, 4);
     if (regs.fNZ) {
       m.step(0x08c5, 12);
-      return block_08c5();
+      return loc_08c5(m);
     }
     m.step(0x0890, 7);
     regs.hl = 0x83dc;
@@ -148,39 +148,43 @@ export function loc_0870(m) {
     m.step(0x08c4, 7);
     m.ret();
   }
+}
 
-  function block_08c5() {
-    regs.a = mem.read8(0x83e0);
-    m.step(0x08c8, 13);
-    regs.or(regs.a);
-    m.step(0x08c9, 4);
-    if (regs.fNZ) {
-      m.ret(11);
-      return;
-    }
-    m.step(0x08ca, 5);
-    regs.a = regs.inc8(regs.a);
-    m.step(0x08cb, 4);
-    mem.write8(0x83e0, regs.a);
-    m.step(0x08ce, 13); // (0x83e0) = 1
-    regs.hl = 0xaa51;
-    m.step(0x08d1, 10);
-    regs.de = 0x2f6e;
-    m.step(0x08d4, 10);
-    regs.b = 0x05;
-    m.step(0x08d6, 7);
-    m.push16(0x08d7);
-    m.step(0x0028, 11); // rst 0x28 -- blit B=5 from 0x2f6e to 0xaa51
-    m.call(0x0028);
-    regs.a = mem.read8(0x83de);
-    m.step(0x08da, 13);
-    regs.e = regs.a;
-    m.step(0x08db, 4);
-    regs.d = 0x00;
-    m.step(0x08dd, 7); // DE = (0x83de)
-    m.push16(0x08e0);
-    m.step(0x0ba0, 17);
-    m.call(0x0ba0);
-    return m.call(0x08e0); // fall-through into loc_08e0
+// loc_08C5  (ROM 0x08C5-0x08DF) — the (0x83DF)!=0 arm of loc_0870, also a standalone call target
+// (loc_1F1C does m.call(0x08C5)). Seeds (0x83E0), blits B=5 tiles 0x2F6E->0xAA51, then falls into loc_08E0.
+export function loc_08c5(m) {
+  const { regs, mem } = m;
+
+  regs.a = mem.read8(0x83e0);
+  m.step(0x08c8, 13);
+  regs.or(regs.a);
+  m.step(0x08c9, 4);
+  if (regs.fNZ) {
+    m.ret(11);
+    return;
   }
+  m.step(0x08ca, 5);
+  regs.a = regs.inc8(regs.a);
+  m.step(0x08cb, 4);
+  mem.write8(0x83e0, regs.a);
+  m.step(0x08ce, 13); // (0x83e0) = 1
+  regs.hl = 0xaa51;
+  m.step(0x08d1, 10);
+  regs.de = 0x2f6e;
+  m.step(0x08d4, 10);
+  regs.b = 0x05;
+  m.step(0x08d6, 7);
+  m.push16(0x08d7);
+  m.step(0x0028, 11); // rst 0x28 -- blit B=5 from 0x2f6e to 0xaa51
+  m.call(0x0028);
+  regs.a = mem.read8(0x83de);
+  m.step(0x08da, 13);
+  regs.e = regs.a;
+  m.step(0x08db, 4);
+  regs.d = 0x00;
+  m.step(0x08dd, 7); // DE = (0x83de)
+  m.push16(0x08e0);
+  m.step(0x0ba0, 17);
+  m.call(0x0ba0);
+  return m.call(0x08e0); // fall-through into loc_08e0
 }
