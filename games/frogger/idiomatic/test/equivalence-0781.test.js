@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0781 — memory-equivalent to the frozen oracle at ROM 0x0781.
+ * fillTilemapBlock22x32 — memory-equivalent to the frozen oracle at ROM 0x0781.
  * GATE: crafted-entry. This fixed-block fill runs in mode-3 board setup, which plain attract never
  * reaches (measured: 0 dispatches in 6000 attract frames), so there is no real dispatch to capture.
  * Instead a corpus of REAL attract machine states is captured (snapshotted at the column-copy
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0781 } from "../loc_0781.js";
+import { fillTilemapBlock22x32 } from "../fillTilemapBlock22x32.js";
 import { loc_0781 as oracle } from "../../translated/loc_0781.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -68,7 +68,7 @@ function brokenWrongWidth(m) {
 test("CRAFTED: over real attract states, oracle == rewrite", { skip }, () => {
   const c = corpus();
   assert.ok(c.length > 0, "vacuous: no attract states were captured");
-  for (const s of c) assert.equal(ramDiff(loc_0781, s), null, "a crafted entry diverged");
+  for (const s of c) assert.equal(ramDiff(fillTilemapBlock22x32, s), null, "a crafted entry diverged");
   console.log(`  CRAFTED: ${c.length} real attract states, oracle == rewrite`);
 });
 

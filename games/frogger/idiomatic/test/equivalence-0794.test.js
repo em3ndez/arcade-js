@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0794 — IO-equivalent to the frozen oracle at ROM 0x0794.
+ * issueSoundCommand — IO-equivalent to the frozen oracle at ROM 0x0794.
  * GATE: real-capture. Plain attract dispatches this sound-command issuer at boot (loc_02a3 issues
  * command 0 then 0xFF); each captured machine is replayed through oracle and rewrite.
  *
- * ★ LIVE-OUT IS IO, NOT RAM. loc_0794's effect is on the two sound PPI ports — 0xD000 (command latch)
+ * ★ LIVE-OUT IS IO, NOT RAM. issueSoundCommand's effect is on the two sound PPI ports — 0xD000 (command latch)
  *   and 0xD002 (control, whose bit-3 falling edge asserts the audio /INT). Those writes route to
  *   io.ppiWrite, NOT work/video/obj RAM, so dumpState() cannot see them and a pure RAM diff passes
  *   VACUOUSLY (even a no-op twin). So this gate compares the io sound surface explicitly: io.soundData,
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0794 } from "../loc_0794.js";
+import { issueSoundCommand } from "../issueSoundCommand.js";
 import { loc_0794 as oracle } from "../../translated/loc_0794.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -74,8 +74,8 @@ function brokenNoEdge(m) { // latches the command but never pulses bit 3 low -> 
 
 test("CAPTURE: attract dispatches the sound issue; oracle == rewrite on every state", { skip }, () => {
   const entries = capture();
-  assert.ok(entries.length > 0, "vacuous: loc_0794 was never dispatched in attract");
-  for (const e of entries) assert.equal(ioDiff(loc_0794, e), null, "a captured machine diverged");
+  assert.ok(entries.length > 0, "vacuous: issueSoundCommand was never dispatched in attract");
+  for (const e of entries) assert.equal(ioDiff(issueSoundCommand, e), null, "a captured machine diverged");
   console.log(`  CAPTURE: ${entries.length} dispatches, oracle == rewrite (io + RAM)`);
 });
 

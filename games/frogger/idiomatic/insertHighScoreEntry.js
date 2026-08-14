@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0a84 — insert a 16-bit key (D high, E low) into the 5-entry descending table.
+ * insertHighScoreEntry — insert a 16-bit key (D high, E low) into the 5-entry descending table.
  * LIVE-OUT: memory + register A — the slot-index code, or 0 when nothing was inserted.
  */
 import { loc_83f2 } from "./names.js";
@@ -9,7 +9,7 @@ const SLOTS = 5;
 const STRIDE = 2; // 2 bytes/entry: key-high at the slot, key-low just below
 const NO_SLOT = 0;
 
-export function loc_0a84(m) {
+export function insertHighScoreEntry(m) {
   const { regs, mem8 } = m;
   const dHi = regs.d;
   const eLo = regs.e;

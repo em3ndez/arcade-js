@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0028 — memory-equivalent to the frozen oracle at ROM 0x0028.
+ * copyRunUpTileColumn — memory-equivalent to the frozen oracle at ROM 0x0028.
  * GATE: real-capture. Attract dispatches this column-copy primitive thousands of times; each captured
  * machine is replayed through oracle and rewrite and their RAM compared. This routine's live-out is
  * NOT memory-only: it leaves both pointers advanced and callers read them back, so a register arm
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0028 } from "../loc_0028.js";
+import { copyRunUpTileColumn } from "../copyRunUpTileColumn.js";
 import { loc_0028 as oracle } from "../../translated/loc_0028.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -61,13 +61,13 @@ function brokenShort(m) { // copies one byte fewer
   do { mem8[d] = mem8[s]; d = (d - 32) & 0xffff; s = (s + 1) & 0xffff; n = (n - 1) & 0xff; } while (n !== 0);
   m.regs.hl = d; m.regs.de = s;
 }
-function brokenStaleHL(m) { const dst = m.regs.hl; loc_0028(m); m.regs.hl = dst; } // correct RAM, HL not advanced
-function brokenStaleDE(m) { const src = m.regs.de; loc_0028(m); m.regs.de = src; } // correct RAM, DE not advanced
+function brokenStaleHL(m) { const dst = m.regs.hl; copyRunUpTileColumn(m); m.regs.hl = dst; } // correct RAM, HL not advanced
+function brokenStaleDE(m) { const src = m.regs.de; copyRunUpTileColumn(m); m.regs.de = src; } // correct RAM, DE not advanced
 
 test("CAPTURE: attract dispatches the copy; oracle == rewrite on every state", { skip }, () => {
   const entries = capture();
   assert.ok(entries.length > 0, "vacuous: the copy was never dispatched in attract");
-  for (const e of entries) assert.equal(breach(loc_0028, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(breach(copyRunUpTileColumn, e), null, "a captured machine diverged");
   console.log(`  CAPTURE: ${entries.length} dispatches, oracle == rewrite (RAM + HL + DE)`);
 });
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0a16 — memory-equivalent to the frozen oracle at ROM 0x0a16.
+ * renderTimeBar — memory-equivalent to the frozen oracle at ROM 0x0a16.
  * GATE: crafted-entry. Attract never dispatches this time-bar render (probe: 0 over ENTRY_FRAMES).
  * The routine reads no live-in registers — it selects a countdown cell from work RAM — so entries are
  * cloned from a booted attract machine and the countdown cells are seeded to cover each branch: the
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0a16 } from "../loc_0a16.js";
+import { renderTimeBar } from "../renderTimeBar.js";
 import { loc_0a16 as oracle } from "../../translated/loc_0a16.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -68,7 +68,7 @@ function drawBar(m, tile, extra) {
 test("CRAFTED: time-bar render is RAM-equivalent across the branch set", { skip }, () => {
   const es = entries();
   assert.ok(es.length > 0, "vacuous: no crafted entry");
-  for (const e of es) assert.equal(ramDiff(loc_0a16, e), null, "a crafted entry diverged");
+  for (const e of es) assert.equal(ramDiff(renderTimeBar, e), null, "a crafted entry diverged");
   console.log(`  CRAFTED: ${es.length} branch entries, oracle == rewrite`);
 });
 

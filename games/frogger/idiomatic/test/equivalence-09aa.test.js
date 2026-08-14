@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_09aa — memory+A-equivalent to the frozen oracle at ROM 0x09aa.
+ * resetFrogObject — memory+A-equivalent to the frozen oracle at ROM 0x09aa.
  * GATE: crafted-entry. Attract never dispatches this frog-reset leaf (probe: 0 over ENTRY_FRAMES),
  * so entries are cloned from a booted attract machine and seeded with varied pre-state. The routine
  * reads no live-in (it loads its own pointer and zeroes A), so any post-boot state is a valid
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_09aa } from "../loc_09aa.js";
+import { resetFrogObject } from "../resetFrogObject.js";
 import { loc_09aa as oracle } from "../../translated/loc_09aa.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -48,14 +48,14 @@ function diff(cand, machine) {
 }
 
 // broken twins. Each stays faithful then mutates one output the diff must catch.
-function brokenWrongObject(m) { loc_09aa(m); m.mem8[OBJ] = 129; }
-function brokenWrongFlag(m) { loc_09aa(m); m.mem8[READY] = 2; }
-function brokenWrongReg(m) { loc_09aa(m); m.regs.a = (m.regs.a + 1) & 0xff; }
+function brokenWrongObject(m) { resetFrogObject(m); m.mem8[OBJ] = 129; }
+function brokenWrongFlag(m) { resetFrogObject(m); m.mem8[READY] = 2; }
+function brokenWrongReg(m) { resetFrogObject(m); m.regs.a = (m.regs.a + 1) & 0xff; }
 
 test("CRAFTED: frog-reset is memory+A equivalent on every entry", { skip }, () => {
   const es = entries();
   assert.ok(es.length > 0, "vacuous: no crafted entry");
-  for (const e of es) assert.equal(diff(loc_09aa, e), null, "a crafted entry diverged");
+  for (const e of es) assert.equal(diff(resetFrogObject, e), null, "a crafted entry diverged");
   console.log(`  CRAFTED: ${es.length} entries, oracle == rewrite (memory + A)`);
 });
 

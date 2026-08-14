@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0a48 — memory-equivalent to the frozen oracle at ROM 0x0A48.
+ * renderLivesRow — memory-equivalent to the frozen oracle at ROM 0x0A48.
  * GATE: crafted-entry. Attract never dispatches this board-setup render (probe: 0 dispatches over
  * ENTRY_FRAMES), so a post-boot attract machine is cloned and its count cell (0x83B7) poked to drive
  * each path — a short run, the clamp above 0x0F, and the zero->full-run djnz edge. The lives-row
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0a48 } from "../loc_0a48.js";
+import { renderLivesRow } from "../renderLivesRow.js";
 import { loc_0a48 as oracle } from "../../translated/loc_0a48.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -65,13 +65,13 @@ function brokenNoClamp(m) {
   for (let i = 0; i < n; i++) { mem8[p] = 76; p = (p + ROW_STRIDE) & 0xffff; }
 }
 
-test("EQUAL (crafted): loc_0a48 == oracle on every count path", { skip }, () => {
+test("EQUAL (crafted): renderLivesRow == oracle on every count path", { skip }, () => {
   const entries = COUNTS.map(entryWithCount);
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_0a48, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(renderLivesRow, e), null, "a crafted entry diverged");
   // non-vacuous: the no-op twin diverging proves the oracle actually writes on the sample entry.
   assert.ok(ramDiff(brokenNoOp, entryWithCount(5)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted count paths, loc_0a48 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted count paths, renderLivesRow == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

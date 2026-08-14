@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0a5f — memory-equivalent to the frozen oracle at ROM 0x0A5F.
+ * awardExtraLife — memory-equivalent to the frozen oracle at ROM 0x0A5F.
  * GATE: crafted-entry. Attract never dispatches this extra-life award (probe: 0 dispatches over
  * ENTRY_FRAMES), so a post-boot attract machine is cloned and its player-number (0x83FD) and the
  * player's life counter poked to drive each path — player 1, player 2, and the 0x10 cap that skips
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0a5f } from "../loc_0a5f.js";
+import { awardExtraLife } from "../awardExtraLife.js";
 import { loc_0a5f as oracle } from "../../translated/loc_0a5f.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -84,12 +84,12 @@ function brokenNoMarker(m) {
   mem8[cell] = c; mem8[MIRROR] = c; // BUG: never stamps the marker
 }
 
-test("EQUAL (crafted): loc_0a5f == oracle on every award path", { skip }, () => {
+test("EQUAL (crafted): awardExtraLife == oracle on every award path", { skip }, () => {
   const entries = CASES.map(([, p, cell, v]) => entry(p, cell, v));
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_0a5f, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(awardExtraLife, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entry(1, P1_LIVES, 3)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted award paths, loc_0a5f == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted award paths, awardExtraLife == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

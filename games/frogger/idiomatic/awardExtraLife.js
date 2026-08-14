@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0a5f — award an extra life: bump the active player's life count and stamp its marker.
+ * awardExtraLife — award an extra life: bump the active player's life count and stamp its marker.
  * LIVE-OUT: memory-only.
  */
 import { loc_83cc, loc_83fd, loc_83b8, loc_83b9, loc_83b7, loc_a85e } from "./names.js";
@@ -10,7 +10,7 @@ const LIFE_CAP = 16;
 const MARKER_TILE = 76;
 const ROW_STRIDE = 32;
 
-export function loc_0a5f(m) {
+export function awardExtraLife(m) {
   const { mem8 } = m;
   mem8[loc_83cc] = 0;
 

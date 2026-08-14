@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_064b — memory-equivalent to the frozen oracle at ROM 0x064b.
+ * clearObjectBlocksAndMirrorToObjRam — memory-equivalent to the frozen oracle at ROM 0x064b.
  * GATE: real-capture + seeded entry. Attract dispatches this once, but on that state the three
  * cleared regions are already zero, so the clear is a no-op there and equivalence would be vacuous.
  * The real dispatch is still replayed (oracle == rewrite), and a seeded twin marks the three regions
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_064b } from "../loc_064b.js";
+import { clearObjectBlocksAndMirrorToObjRam } from "../clearObjectBlocksAndMirrorToObjRam.js";
 import { loc_064b as oracle } from "../../translated/loc_064b.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -72,9 +72,9 @@ function brokenSkipMirror(m) {
 test("CAPTURE: attract dispatches the clear; oracle == rewrite on real + seeded states", { skip }, () => {
   const entries = capture();
   assert.ok(entries.length > 0, "vacuous: the clear was never dispatched in attract");
-  for (const e of entries) assert.equal(ramDiff(loc_064b, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(ramDiff(clearObjectBlocksAndMirrorToObjRam, e), null, "a captured machine diverged");
   const dirty = craftDirty(entries[0]);
-  assert.equal(ramDiff(loc_064b, dirty), null, "the rewrite diverged on the seeded entry");
+  assert.equal(ramDiff(clearObjectBlocksAndMirrorToObjRam, dirty), null, "the rewrite diverged on the seeded entry");
   assert.notDeepEqual(oracled(dirty), dirty.dumpState(), "seeded entry vacuous: oracle changed nothing");
   console.log(`  CAPTURE: ${entries.length} real dispatch(es) + seeded entry, oracle == rewrite`);
 });

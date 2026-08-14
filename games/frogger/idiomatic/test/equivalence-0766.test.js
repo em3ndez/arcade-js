@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0766 — memory-equivalent to the frozen oracle at ROM 0x0766.
+ * fillTilemapBlock28x32 — memory-equivalent to the frozen oracle at ROM 0x0766.
  * GATE: real-capture. Attract dispatches this fixed-block tilemap fill; each captured machine is
  * replayed through oracle and rewrite and their RAM compared. The routine reads no live-in and its
  * live-out is memory-only, so registers and SP are not compared (the fill writes VRAM, never the
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0766 } from "../loc_0766.js";
+import { fillTilemapBlock28x32 } from "../fillTilemapBlock28x32.js";
 import { loc_0766 as oracle } from "../../translated/loc_0766.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -58,7 +58,7 @@ function brokenShortRow(m) {
 test("CAPTURE: attract dispatches the fill; oracle == rewrite on every state", { skip }, () => {
   const entries = capture();
   assert.ok(entries.length > 0, "vacuous: the fill was never dispatched in attract");
-  for (const e of entries) assert.equal(ramDiff(loc_0766, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(ramDiff(fillTilemapBlock28x32, e), null, "a captured machine diverged");
   console.log(`  CAPTURE: ${entries.length} dispatches, oracle == rewrite`);
 });
 

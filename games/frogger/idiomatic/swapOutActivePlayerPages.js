@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0726 — swap the active player's work pages OUT: bank the live pages, restore the other bank.
+ * swapOutActivePlayerPages — swap the active player's work pages OUT: bank the live pages, restore the other bank.
  *
  * Saves the two live work pages into one bank, restores them from another, sets the swap-done flag,
  * then — unless the init latch is already set — clears one cell and latches it.
@@ -18,7 +18,7 @@ function copy(mem8, dst, src, n) {
   for (let i = 0; i < n; i++) mem8[dst + i] = mem8[src + i];
 }
 
-export function loc_0726(m) {
+export function swapOutActivePlayerPages(m) {
   const { mem8 } = m;
   copy(mem8, loc_8500, loc_80ff, PAGE_BYTES);
   copy(mem8, loc_86c0, loc_800c, OBJECT_BYTES);

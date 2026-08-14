@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0aee — memory + A equivalent to the frozen oracle at ROM 0x0AEE.
+ * nextSpawnRandomByte — memory + A equivalent to the frozen oracle at ROM 0x0AEE.
  * GATE: crafted-entry. Attract never dispatches this ring-XOR step (probe: 0 dispatches over
  * ENTRY_FRAMES), so a post-boot attract machine is cloned, its cursor cell (0x8400) and ring
  * elements poked to a known pattern (a valid entry: this leaf reads the whole ring out of its own
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0aee } from "../loc_0aee.js";
+import { nextSpawnRandomByte } from "../nextSpawnRandomByte.js";
 import { loc_0aee as oracle } from "../../translated/loc_0aee.js";
 
 const RING_BASE = 0x8400;
@@ -68,7 +68,7 @@ const CASES = [
 
 // broken twins.
 function brokenNoOp() {}
-function brokenWrongA(m) { loc_0aee(m); m.regs.a = (m.regs.a + 1) & 0xff; } // correct RAM, wrong A
+function brokenWrongA(m) { nextSpawnRandomByte(m); m.regs.a = (m.regs.a + 1) & 0xff; } // correct RAM, wrong A
 function brokenNoFold(m) {
   const { regs, mem8 } = m;
   let cursor = (mem8[RING_BASE] - 1) & 0xff;
@@ -80,13 +80,13 @@ function brokenNoFold(m) {
   regs.a = v;
 }
 
-test("EQUAL (crafted): loc_0aee == oracle on RAM + A for every ring path", { skip }, () => {
+test("EQUAL (crafted): nextSpawnRandomByte == oracle on RAM + A for every ring path", { skip }, () => {
   assert.ok(CASES.length > 0, "vacuous: no crafted entries");
   for (const [name, cs] of CASES) {
-    assert.equal(unitDiff(loc_0aee, craft(cs)), null, `diverged: ${name}`);
+    assert.equal(unitDiff(nextSpawnRandomByte, craft(cs)), null, `diverged: ${name}`);
   }
   assert.ok(unitDiff(brokenNoOp, craft(5)), "vacuous: oracle changed nothing");
-  console.log(`  EQUAL: ${CASES.length} crafted ring paths, loc_0aee == oracle (RAM + A)`);
+  console.log(`  EQUAL: ${CASES.length} crafted ring paths, nextSpawnRandomByte == oracle (RAM + A)`);
 });
 
 test("TEETH: broken twins are caught across memory, fold, and the A arm", { skip }, () => {

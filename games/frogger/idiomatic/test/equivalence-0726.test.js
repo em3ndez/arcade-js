@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0726 — memory-equivalent to the frozen oracle at ROM 0x0726.
+ * swapOutActivePlayerPages — memory-equivalent to the frozen oracle at ROM 0x0726.
  * GATE: crafted-entry. Attract never dispatches this player-page swap-out, so coherent post-boot
  * states are captured at the per-frame score redraw (0x0b1f) and replayed through both sides; the
  * routine reads all its inputs from memory (no register live-in), so any such state is a valid entry.
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0726 } from "../loc_0726.js";
+import { swapOutActivePlayerPages } from "../swapOutActivePlayerPages.js";
 import { loc_0726 as oracle } from "../../translated/loc_0726.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -81,15 +81,15 @@ function brokenSkipLatch(m) {
 
 test("REAL: oracle == rewrite on every captured neighbour state", { skip }, () => {
   const entries = captureNeighbours();
-  for (const e of entries) assert.equal(ramDiff(loc_0726, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(ramDiff(swapOutActivePlayerPages, e), null, "a captured machine diverged");
   console.log(`  REAL: ${entries.length} neighbour states, oracle == rewrite`);
 });
 
 test("CRAFTED: oracle == rewrite on the swap and early-return arms", { skip }, () => {
   const base = captureNeighbours()[0];
   const swap = craftSwap(base), inited = craftInited(base);
-  assert.equal(ramDiff(loc_0726, swap), null, "diverged on the full swap arm");
-  assert.equal(ramDiff(loc_0726, inited), null, "diverged on the already-inited (early-return) arm");
+  assert.equal(ramDiff(swapOutActivePlayerPages, swap), null, "diverged on the full swap arm");
+  assert.equal(ramDiff(swapOutActivePlayerPages, inited), null, "diverged on the already-inited (early-return) arm");
   assert.notDeepEqual(oracled(swap), swap.dumpState(), "swap entry vacuous: oracle changed nothing");
   console.log("  CRAFTED: full-swap and early-return arms, oracle == rewrite");
 });

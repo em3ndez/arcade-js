@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0a16 — render the time-remaining bar.
+ * renderTimeBar — render the time-remaining bar.
  *
  * Selects the active countdown byte, draws that many bar tiles up a fixed column capped with a
  * terminator, or returns without drawing when the countdown is inactive.
@@ -12,7 +12,7 @@ const BAR_TILE = 77;
 const CAP_TILE = 16;
 const ROW_UP = 32;
 
-export function loc_0a16(m) {
+export function renderTimeBar(m) {
   const { mem8 } = m;
   if (mem8[loc_83e4] === 255) return;
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0822 — hand play to the other player, and when cocktail is enabled toggle the screen flip.
+ * handOffToOtherPlayer — hand play to the other player, and when cocktail is enabled toggle the screen flip.
  *
  * Returns early in a one-player game. Otherwise toggles the active-player bits, loads that player's
  * lives, resets two per-player cells, and — when cocktail is enabled — toggles the flip latch and
@@ -12,7 +12,7 @@ import {
   loc_83b6, loc_825a, loc_83c2, loc_83cb, loc_b810, loc_b80c,
 } from "./names.js";
 
-export function loc_0822(m) {
+export function handOffToOtherPlayer(m) {
   const { mem8 } = m;
   mem8[loc_8371] = 0;
   if (mem8[PLAY_FLAG] === 1) return;

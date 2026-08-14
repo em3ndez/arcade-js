@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0695 — memory-equivalent to the frozen oracle at ROM 0x0695.
+ * fillTwoByTwoTileBlock — memory-equivalent to the frozen oracle at ROM 0x0695.
  * GATE: crafted-entry. This 2-by-2 marker stamp runs in home-marker setup, which plain attract never
  * reaches (measured: 0 dispatches in 6000 attract frames). A corpus of REAL attract machine states is
  * captured (snapshotted at the column-copy primitive, which fires constantly); on each, the base is
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0695 } from "../loc_0695.js";
+import { fillTwoByTwoTileBlock } from "../fillTwoByTwoTileBlock.js";
 import { loc_0695 as oracle } from "../../translated/loc_0695.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -69,7 +69,7 @@ function brokenMissBottom(m, base = m.regs.hl) { // stamps only the top row
 test("CRAFTED: over real attract states x real bases, oracle == rewrite", { skip }, () => {
   const c = corpus();
   assert.ok(c.length > 0, "vacuous: no attract states were captured");
-  for (const s of c) for (const base of BASES) assert.equal(ramDiff(loc_0695, s, base), null, `diverged at base 0x${base.toString(16)}`);
+  for (const s of c) for (const base of BASES) assert.equal(ramDiff(fillTwoByTwoTileBlock, s, base), null, `diverged at base 0x${base.toString(16)}`);
   console.log(`  CRAFTED: ${c.length} states x ${BASES.length} bases, oracle == rewrite`);
 });
 

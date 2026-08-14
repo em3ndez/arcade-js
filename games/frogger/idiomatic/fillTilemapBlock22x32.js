@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0781 — fill a 22-wide by 32-tall tilemap block with a fixed tile.
+ * fillTilemapBlock22x32 — fill a 22-wide by 32-tall tilemap block with a fixed tile.
  *
  * Writes 22 cells per row across 32 rows from a fixed base, skipping 10 cells between rows.
  * LIVE-OUT: memory-only.
@@ -12,7 +12,7 @@ const ROWS = 32;
 const CELLS_PER_ROW = 22;
 const ROW_SKIP = 10;
 
-export function loc_0781(m) {
+export function fillTilemapBlock22x32(m) {
   const { mem8 } = m;
   let p = loc_a808;
   for (let row = 0; row < ROWS; row++) {

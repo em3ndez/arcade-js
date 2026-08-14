@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0822 — memory-equivalent to the frozen oracle at ROM 0x0822.
+ * handOffToOtherPlayer — memory-equivalent to the frozen oracle at ROM 0x0822.
  * GATE: crafted-entry. Attract never dispatches this player-swap, so coherent post-boot states are
  * captured at the per-frame score redraw (0x0b1f) and replayed through both sides; the routine reads
  * all its inputs from memory (no register live-in), so any such state is a valid entry. Real states
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0822 } from "../loc_0822.js";
+import { handOffToOtherPlayer } from "../handOffToOtherPlayer.js";
 import { loc_0822 as oracle } from "../../translated/loc_0822.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -86,15 +86,15 @@ function brokenSkipFlipLatch(m) {
 
 test("REAL: oracle == rewrite on every captured neighbour state", { skip }, () => {
   const entries = captureNeighbours();
-  for (const e of entries) assert.equal(ramDiff(loc_0822, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(ramDiff(handOffToOtherPlayer, e), null, "a captured machine diverged");
   console.log(`  REAL: ${entries.length} neighbour states, oracle == rewrite`);
 });
 
 test("CRAFTED: oracle == rewrite on the cocktail and one-player arms", { skip }, () => {
   const base = captureNeighbours()[0];
   const cocktail = craftCocktail(base), one = craft1p(base);
-  assert.equal(ramDiff(loc_0822, cocktail), null, "diverged on the cocktail flip arm");
-  assert.equal(ramDiff(loc_0822, one), null, "diverged on the one-player early-return arm");
+  assert.equal(ramDiff(handOffToOtherPlayer, cocktail), null, "diverged on the cocktail flip arm");
+  assert.equal(ramDiff(handOffToOtherPlayer, one), null, "diverged on the one-player early-return arm");
   assert.notDeepEqual(oracled(cocktail), cocktail.dumpState(), "cocktail entry vacuous: oracle changed nothing");
   console.log("  CRAFTED: cocktail-flip and one-player arms, oracle == rewrite");
 });

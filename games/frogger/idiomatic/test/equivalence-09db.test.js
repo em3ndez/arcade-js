@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_09db — memory-equivalent to the frozen oracle at ROM 0x09db.
+ * renderFilledHomeSlots — memory-equivalent to the frozen oracle at ROM 0x09db.
  * GATE: crafted-entry. Attract never dispatches this home-marker render (probe: 0 over ENTRY_FRAMES).
  * HL is live-in — the render caller passes the occupancy-list pointer — so entries are cloned from a
  * booted attract machine, HL is pointed at that list address, and several occupancy patterns are
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_09db } from "../loc_09db.js";
+import { renderFilledHomeSlots } from "../renderFilledHomeSlots.js";
 import { loc_09db as oracle } from "../../translated/loc_09db.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -50,13 +50,13 @@ function ramDiff(cand, machine) {
 
 // broken twins: a no-op that stamps nothing, and two twins writing a wrong tile value.
 function brokenNoOp() {}
-function brokenWrongTop(m) { loc_09db(m); m.mem8[SLOT_BASES[0]] = 200; }
-function brokenWrongBottom(m) { loc_09db(m); m.mem8[(SLOT_BASES[2] + 33) & 0xffff] = 201; }
+function brokenWrongTop(m) { renderFilledHomeSlots(m); m.mem8[SLOT_BASES[0]] = 200; }
+function brokenWrongBottom(m) { renderFilledHomeSlots(m); m.mem8[(SLOT_BASES[2] + 33) & 0xffff] = 201; }
 
 test("CRAFTED: home-marker render is RAM-equivalent on every occupancy pattern", { skip }, () => {
   const es = entries();
   assert.ok(es.length > 0, "vacuous: no crafted entry");
-  for (const e of es) assert.equal(ramDiff(loc_09db, e), null, "a crafted entry diverged");
+  for (const e of es) assert.equal(ramDiff(renderFilledHomeSlots, e), null, "a crafted entry diverged");
   console.log(`  CRAFTED: ${es.length} patterns, oracle == rewrite`);
 });
 

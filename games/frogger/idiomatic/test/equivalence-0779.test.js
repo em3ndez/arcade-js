@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0779 — memory-equivalent to the frozen oracle at ROM 0x0779.
+ * fillTenCellRun — memory-equivalent to the frozen oracle at ROM 0x0779.
  * GATE: crafted-entry. This ten-cell fill runs in score-display setup, which plain attract never
  * reaches (measured: 0 dispatches in 6000 attract frames). A corpus of REAL attract machine states is
  * captured (snapshotted at the column-copy primitive, which fires constantly); on each, the base is
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0779 } from "../loc_0779.js";
+import { fillTenCellRun } from "../fillTenCellRun.js";
 import { loc_0779 as oracle } from "../../translated/loc_0779.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -75,13 +75,13 @@ function brokenWrongTile(m, base = m.regs.hl) {
   for (let i = 0; i < 10; i++) { mem8[p] = 17; p = (p + 1) & 0xffff; }
   m.regs.hl = p; m.regs.b = 0;
 }
-function brokenStaleHL(m, base = m.regs.hl) { loc_0779(m, base); m.regs.hl = base; }   // correct RAM+B, HL not advanced
-function brokenNonzeroB(m, base = m.regs.hl) { loc_0779(m, base); m.regs.b = 5; }        // correct RAM+HL, counter not drained
+function brokenStaleHL(m, base = m.regs.hl) { fillTenCellRun(m, base); m.regs.hl = base; }   // correct RAM+B, HL not advanced
+function brokenNonzeroB(m, base = m.regs.hl) { fillTenCellRun(m, base); m.regs.b = 5; }        // correct RAM+HL, counter not drained
 
 test("CRAFTED: over real attract states x real bases, oracle == rewrite", { skip }, () => {
   const c = corpus();
   assert.ok(c.length > 0, "vacuous: no attract states were captured");
-  for (const s of c) for (const base of BASES) assert.equal(breach(loc_0779, s, base), null, `diverged at base 0x${base.toString(16)}`);
+  for (const s of c) for (const base of BASES) assert.equal(breach(fillTenCellRun, s, base), null, `diverged at base 0x${base.toString(16)}`);
   console.log(`  CRAFTED: ${c.length} states x ${BASES.length} bases, oracle == rewrite (RAM + HL + B)`);
 });
 

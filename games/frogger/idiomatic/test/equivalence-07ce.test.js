@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_07ce — memory-equivalent to the frozen oracle at ROM 0x07CE.
+ * raiseTwoPlayerStartFlag — memory-equivalent to the frozen oracle at ROM 0x07CE.
  * GATE: real-state capture. Plain attract NEVER dispatches this routine (the 2-player start-flag
  * helper, tail-called from loc_07c1 only when (0x83fd)==1), so we harvest real attract STATES via a
- * high-frequency neighbour (0x0028) and drive loc_07ce directly. Valid because it takes NO register
+ * high-frequency neighbour (0x0028) and drive raiseTwoPlayerStartFlag directly. Valid because it takes NO register
  * live-in (it reads only work-RAM cell 0x826d).
- * loc_07ce is GUARDED: writes (0x825b)=1 only when (0x826d)!=0; the BRANCH test seeds 0x826d to 0 and 1.
+ * raiseTwoPlayerStartFlag is GUARDED: writes (0x825b)=1 only when (0x826d)!=0; the BRANCH test seeds 0x826d to 0 and 1.
  * LIVE-OUT: memory-only; A/flags are clobbered but not live-out. RAM is compared; three twins.
  */
 import test from "node:test";
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_07ce } from "../loc_07ce.js";
+import { raiseTwoPlayerStartFlag } from "../raiseTwoPlayerStartFlag.js";
 import { loc_07ce as oracle } from "../../translated/loc_07ce.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -44,7 +44,7 @@ function ramDiff(cand, machine) {
   return d ? `0x${(d.addr ?? 0).toString(16)}: ${d.a} vs ${d.b}` : null;
 }
 
-const OUT = 0x825b; // the start flag loc_07ce conditionally sets
+const OUT = 0x825b; // the start flag raiseTwoPlayerStartFlag conditionally sets
 
 // Clone `machine` with the guard cell forced to `v` before comparing.
 function ramDiffSeeded(cand, machine, v) {
@@ -70,15 +70,15 @@ function brokenWrongVal(m) { if (m.mem.read8(GUARD) !== 0) m.mem.write8(OUT, 0x0
 test("CAPTURE: oracle == rewrite on every real attract state", { skip }, () => {
   const entries = capture();
   assert.ok(entries.length > 0, "vacuous: no attract states were harvested");
-  for (const e of entries) assert.equal(ramDiff(loc_07ce, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(ramDiff(raiseTwoPlayerStartFlag, e), null, "a captured machine diverged");
   console.log(`  CAPTURE: ${entries.length} states, oracle == rewrite`);
 });
 
 test("BRANCH: both guard paths equal (0x826d = 0 and = 1)", { skip }, () => {
   const e = capture()[0];
   assert.ok(e, "no capture to seed");
-  assert.equal(ramDiffSeeded(loc_07ce, e, 0x00), null, "guard==0 (no-write path) diverged");
-  assert.equal(ramDiffSeeded(loc_07ce, e, 0x01), null, "guard!=0 (write path) diverged");
+  assert.equal(ramDiffSeeded(raiseTwoPlayerStartFlag, e, 0x00), null, "guard==0 (no-write path) diverged");
+  assert.equal(ramDiffSeeded(raiseTwoPlayerStartFlag, e, 0x01), null, "guard!=0 (write path) diverged");
   console.log("  BRANCH: both (0x826d)==0 and !=0 paths equal");
 });
 

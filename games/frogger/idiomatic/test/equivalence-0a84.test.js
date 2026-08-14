@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0a84 — memory + A equivalent to the frozen oracle at ROM 0x0A84.
+ * insertHighScoreEntry — memory + A equivalent to the frozen oracle at ROM 0x0A84.
  * GATE: crafted-entry. Attract never dispatches this sorted-table insert, so a post-boot machine is
  * cloned, its five-entry table poked to a descending order, and D/E poked to the key (this leaf takes
  * the key in D/E and walks its own table in RAM). LIVE-OUT is memory + register A: the caller consumes
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0a84 } from "../loc_0a84.js";
+import { insertHighScoreEntry } from "../insertHighScoreEntry.js";
 import { loc_0a84 as oracle } from "../../translated/loc_0a84.js";
 
 const TABLE_TOP_HI = 0x83f2; // key-high of the first (highest-address-walked) slot
@@ -74,18 +74,18 @@ function brokenNoShift(m) {
   const { regs, mem8 } = m; // BUG: stores at the slot but never shifts the tail down
   mem8[0x83f4] = regs.d; mem8[0x83f3] = regs.e; regs.a = 13;
 }
-function brokenWrongA(m) { loc_0a84(m); m.regs.a = (m.regs.a + 1) & 0xff; } // correct RAM, wrong A
+function brokenWrongA(m) { insertHighScoreEntry(m); m.regs.a = (m.regs.a + 1) & 0xff; } // correct RAM, wrong A
 
-test("EQUAL (crafted): loc_0a84 == oracle on RAM + A for every insert path", { skip }, () => {
+test("EQUAL (crafted): insertHighScoreEntry == oracle on RAM + A for every insert path", { skip }, () => {
   assert.ok(CASES.length > 0, "vacuous: no crafted entries");
   for (const [name, d, e, expA] of CASES) {
     const entry = craft(d, e);
-    assert.equal(unitDiff(loc_0a84, entry), null, `diverged: ${name}`);
+    assert.equal(unitDiff(insertHighScoreEntry, entry), null, `diverged: ${name}`);
     const chk = entry.clone(); oracle(chk);
     assert.equal(chk.regs.a, expA, `oracle A mismatch on ${name}`); // pin the encoding
   }
   assert.ok(unitDiff(brokenNoOp, craft(45, 0)), "vacuous: oracle changed nothing");
-  console.log(`  EQUAL: ${CASES.length} crafted insert paths, loc_0a84 == oracle (RAM + A)`);
+  console.log(`  EQUAL: ${CASES.length} crafted insert paths, insertHighScoreEntry == oracle (RAM + A)`);
 });
 
 test("TEETH: broken twins are caught across memory, shift, and the A arm", { skip }, () => {
