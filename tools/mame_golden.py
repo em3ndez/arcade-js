@@ -2,24 +2,20 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Capture golden reference frames + state dumps from MAME.
 
-This is the ground-truth side of the arcade-js validation harness. It runs MAME
-under a pinned, determinism-controlled command line and emits artifacts in
-exactly the formats the translated JS also emits, so comparison is a memcmp.
+Ground-truth side of the arcade-js validation harness: runs MAME under a pinned,
+determinism-controlled command line and emits artifacts byte-identical in layout
+to the translated JS, so comparison is a memcmp. All rationale (determinism,
+MAME-flag gotchas, frame-count formula, config/reset certification, poison
+policy) lives in docs/mame-golden.md.
 
-DETERMINISM (proven, see docs/integration-testing.md): two independent runs under
-this command line produce BYTE-IDENTICAL AVI output. The controls that matter
-are a fresh empty -nvram_directory per run (DK writes high scores), -nonvram_save,
--nocheat, -noautosave, -frameskip 0, -nothrottle.
-
-This tool is GAME-AGNOSTIC: the board driver/screen/refresh come from --hardware
-(boards/<board>/hardware.json) and the Lua dumpers from --lua-dir; neither is
-defaulted. The game-specific caller (games/<id>/tools/*) supplies both.
+GAME-AGNOSTIC: board driver/screen/refresh come from --hardware
+(boards/<board>/hardware.json), Lua dumpers from --lua-dir; neither is defaulted.
 
 Usage:
   mame_golden.py --hardware boards/dkong/hardware.json \
                  --lua-dir games/dkong/tools/lua --out DIR --seconds 3
-  mame_golden.py --hardware ... --lua-dir ... --out DIR --seconds 30 --playback tape.inp
-  mame_golden.py --hardware ... --lua-dir ... --out DIR --seconds 30 --record tape.inp
+  mame_golden.py --hardware ... --out DIR --seconds 30 --playback tape.inp
+  mame_golden.py --hardware ... --out DIR --seconds 30 --record tape.inp
 """
 
 import argparse
@@ -41,10 +37,6 @@ import stateio  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# The board driver, screen size and refresh come from --hardware; the Lua dumpers
-# (game-specific) come from --lua-dir. Neither is defaulted: a shared tool must be
-# told which board it is capturing. Both are resolved in main() into args.
-
 
 def lua_paths(lua_dir):
     """The three dumper scripts inside a --lua-dir (game-specific Lua)."""
@@ -56,21 +48,15 @@ def lua_paths(lua_dir):
 
 
 def build_mame_argv(args, hw, workdir, avi_name="out"):
-    """The known-good command line. Every flag here is load-bearing -- see docs/integration-testing.md.
-
-    Gotchas encoded here so nobody rediscovers them:
-      * MAME boolean options take the -noX form. '-nocheat 0' is a parse error.
-      * -aviwrite appends '.avi' itself, so pass 'out', not 'out.avi'.
-      * -aviwrite's path is relative to -snapshot_directory.
-    """
+    """The known-good command line. Every flag is load-bearing; MAME-flag gotchas: docs/mame-golden.md."""
     argv = [
         args.mame,
-        hw.driver,  # romset/driver name, from hardware.json
+        hw.driver,
         "-rompath",
         args.rompath,
         "-norotate",  # frame contract: compare unrotated WxH
         "-video",
-        "none",  # headless; proven byte-identical to -video soft
+        "none",
         "-sound",
         "none",
         "-nothrottle",
@@ -79,18 +65,15 @@ def build_mame_argv(args, hw, workdir, avi_name="out"):
         "-snapshot_directory",
         workdir,
         "-snapsize",
-        f"{hw.screen_width}x{hw.screen_height}",  # from hardware.json screen
+        f"{hw.screen_width}x{hw.screen_height}",
         "-snapview",
         "native",
         "-nvram_directory",
         os.path.join(workdir, "nvram"),  # fresh + empty per run
-        # SAME HAZARD CLASS AS NVRAM, and proven not theoretical: MAME persists
-        # DIPSWITCH changes to cfg/<game>.cfg and defaults cfg_directory to "cfg"
-        # relative to cwd. A stray cfg silently changes what the golden ran with,
-        # and the value never appears in the capture. Measured: with a cfg setting
-        # the Lives switch, DSW0 (0x7D80) read 0x83 instead of 0x80.
+        # -cfg_directory: same NVRAM-class hazard, and proven real -- a stray cfg
+        # silently changes the machine config, invisibly. See docs/mame-golden.md.
         "-cfg_directory",
-        os.path.join(workdir, "cfg"),  # fresh + empty per run
+        os.path.join(workdir, "cfg"),
         "-nonvram_save",
         "-nocheat",
         "-noautosave",
@@ -99,18 +82,12 @@ def build_mame_argv(args, hw, workdir, avi_name="out"):
     ]
     if not args.no_frames:
         argv += ["-aviwrite", avi_name]
-    # A Lua script is ALWAYS installed, because it is what certifies the machine
-    # configuration (DSW0). Skipping it on some paths made those captures certify
-    # green with DSW0 unverified.
+    # A Lua script is ALWAYS installed: it certifies DSW0. Skipping it on some
+    # paths certified captures green with DSW0 unverified.
     if args.tape:
         # A Lua TAPE drives input; the instrument script records. MAME takes ONE
-        # -autoboot_script, so they are composed into a generated shim rather
-        # than chosen between -- capturing golden for a tape previously meant
-        # giving up the instrument, which is why no authored tape had a golden.
-        #
-        # The shim dofile()s both. Order matters: the tape installs its input
-        # notifier first so its frame numbering starts at the same frame the
-        # instrument samples.
+        # -autoboot_script, so a generated shim dofile()s both -- tape FIRST so its
+        # input notifier's frame numbering matches the frame the instrument samples.
         inner = (
             args.lua_writes
             if args.writes
@@ -118,8 +95,7 @@ def build_mame_argv(args, hw, workdir, avi_name="out"):
         )
         shim = os.path.join(workdir, "tape_shim.lua")
         with open(shim, "w") as fh:
-            # TEST-ONLY entropy pin FIRST: it patches ROM at load, before the CPU runs and
-            # before the tape's input notifier, so the RNG is pinned for the whole run.
+            # TEST-ONLY entropy pin FIRST: patches ROM at load, before CPU + tape notifier, so RNG is pinned all run.
             if args.pin_entropy:
                 pin_lua = os.path.join(args.lua_dir, "pin_entropy.lua")
                 fh.write("dofile(%r)\n" % os.path.abspath(pin_lua))
@@ -127,12 +103,10 @@ def build_mame_argv(args, hw, workdir, avi_name="out"):
             fh.write("dofile(%r)\n" % inner)
         argv += ["-autoboot_script", shim]
     elif args.writes:
-        # Hardware write trace: gates the control latches, i8257
-        # programming and sound latch -- the surface the state dump never covered.
+        # Hardware write trace: gates control latches, i8257, sound latch -- surface the state dump never covered.
         argv += ["-autoboot_script", args.lua_writes]
     elif args.at_pc:
-        # PC-exact capture (closes the frame-boundary sampling gap): emits a
-        # single state frame at the moment PC first reaches the target address.
+        # PC-exact capture: one state frame when PC first reaches the target (closes the frame-boundary gap).
         argv += ["-autoboot_script", args.lua_at_pc]
     else:
         argv += ["-autoboot_script", args.lua_state]
@@ -145,13 +119,7 @@ def build_mame_argv(args, hw, workdir, avi_name="out"):
 
 def extract_frames(avi_path, out_dir):
     """AVI -> frames.rgb in the frame contract's RGB888 layout.
-
-    CRITICAL: MAME's AVI is bgr24. Dumping it raw silently swaps R and B, which
-    makes every frame differ for a reason that looks like a palette bug. The
-    explicit -pix_fmt rgb24 is what prevents that.
-
-    Also: -map 0:v:0 is required. MAME writes an AUDIO stream into the AVI even
-    under -sound none, and unfiltered ffmpeg output interleaves both streams.
+    bgr24 swap + audio-stream gotchas (why -pix_fmt rgb24 and -map 0:v:0): docs/mame-golden.md.
     """
     rgb_path = os.path.join(out_dir, "frames.rgb")
     cmd = [
@@ -161,11 +129,11 @@ def extract_frames(avi_path, out_dir):
         "-i",
         avi_path,
         "-map",
-        "0:v:0",  # video only; MAME writes audio even with -sound none
+        "0:v:0",
         "-fps_mode",
         "passthrough",  # no frame duplication/drop; 1:1 with emulated frames
         "-pix_fmt",
-        "rgb24",  # source is bgr24 -- this conversion is mandatory
+        "rgb24",
         "-f",
         "rawvideo",
         "-y",
@@ -190,9 +158,7 @@ def extract_frames(avi_path, out_dir):
 
 def finalize_state(raw_path, out_dir):
     """Index the Lua state dump, truncating any partial trailing frame.
-
-    MAME exits without running a Lua stop hook, so the dumper writes unbuffered
-    and the final frame may be a partial write. Whole frames only.
+    MAME exits without a Lua stop hook, so the last frame may be a partial write; keep whole frames only.
     """
     size = os.path.getsize(raw_path)
     count = size // stateio.BYTES_PER_FRAME
@@ -212,19 +178,19 @@ def finalize_state(raw_path, out_dir):
 def watchdog_check(hashes, guard_from=10):
     """Detect a mid-capture watchdog reset, which silently poisons golden data.
 
-    Reading 0x7D00 kicks DK's watchdog (dkong_in2_r calls watchdog_reset), and the
-    NMI reads it every frame. If our model ever drops that kick MAME resets while
-    the JS sails on. More urgently for THIS side: a reset inside a golden capture
-    re-runs boot, so the reference frames themselves become wrong -- and quietly
-    wrong reference data is worse than none.
-
-    Signature: the distinctive frame-0 image (zeroed-VRAM stripes) reappearing
-    well after boot. Once the ROM clears VRAM it should never recur.
+    A reset re-runs boot, so reference frames become quietly wrong (worse than none).
+    Signature: the frame-0 image (zeroed-VRAM stripes) reappearing well after boot.
     """
     if not hashes:
         return []
     boot_sig = hashes[0]
-    return [i for i, h in enumerate(hashes) if h == boot_sig and i >= guard_from]
+    # A long uniform boot-fill (galaxian/frogger: ~50 frames of a character-tile fill while RAM
+    # loads) can PERSIST as a leading run -- not a reset. A real reset reverts to boot AFTER content
+    # shows, so only a recurrence PAST first_div (the first frame != boot) counts.
+    first_div = next((i for i, h in enumerate(hashes) if h != boot_sig), None)
+    if first_div is None:
+        return []  # never left the boot image; the length/zero-frame checks catch a dead capture
+    return [i for i, h in enumerate(hashes) if h == boot_sig and i > first_div and i >= guard_from]
 
 
 def main():
@@ -238,8 +204,7 @@ def main():
         "dump_at_pc.lua, dump_writes.lua). Game-specific; the caller supplies it.",
     )
     p.add_argument("--out", required=True, help="output directory for artifacts")
-    # int, not float: MAME's -seconds_to_run truncates, so a float would make the
-    # manifest's provenance record disagree with what actually ran.
+    # int, not float: -seconds_to_run truncates, so a float would desync the manifest's provenance record.
     p.add_argument("--seconds", type=int, default=3, help="emulated seconds to run")
     p.add_argument(
         "--tape",
@@ -277,12 +242,10 @@ def main():
     if args.writes and args.at_pc:
         p.error("--writes and --at-pc are different capture modes; pick one")
     if args.at_pc and args.no_state:
-        # The PC sample IS state; skipping the state block would make the
-        # never-reached poison unreachable and certify an empty capture green.
+        # The PC sample IS state; skipping the state block would certify an empty capture green.
         p.error("--at-pc emits a state frame, so it cannot be combined with --no-state")
 
-    # Load the board hardware map and configure the shared modules from it, then
-    # resolve the game-specific Lua dumpers from --lua-dir.
+    # Load the board hardware map, configure the shared modules, then resolve the Lua dumpers.
     hw = hardware.load_from_args(args)
     frameio.configure(hw)
     scope.configure(hw)
@@ -325,16 +288,8 @@ def main():
             "record": args.record,
         }
 
-        # THE TAPE'S PARAMETERS TRAVEL WITH THE GOLDEN, NOT ONLY WITH THE TAPE.
-        #
-        # A Lua tape reads its timings from the environment so they can be SWEPT
-        # without editing the contract. That means a golden captured from one is
-        # uninterpretable without the values it was captured under -- "coin at
-        # frame 10" is a property of THIS ARTIFACT, and env defaults are exactly
-        # the kind of thing that drifts silently.
-        #
-        # Same argument that refused to re-time coin_start.lua rather than add a
-        # second tape, applied to the artifact instead of the source.
+        # The tape's parameters travel WITH the golden, not only with the tape: a
+        # tape's env timings drift silently, so record them here. See docs/mame-golden.md.
         if args.tape:
             manifest["tape"] = os.path.abspath(args.tape)
             manifest["tape_sha256"] = hashlib.sha256(
@@ -344,11 +299,7 @@ def main():
                 k: v for k, v in sorted(os.environ.items()) if k.startswith("TAPE_")
             }
 
-        # Poison conditions. A capture we have ourselves
-        # identified as suspect must HARD-FAIL, not warn and exit 0. Quietly
-        # wrong reference data is worse than no reference data, and in a
-        # `mame_golden.py && framediff.py` pipeline a warning flows straight
-        # through to the consumer.
+        # Poison conditions: a suspect capture must HARD-FAIL, never warn. Rationale: docs/mame-golden.md.
         poison = []
 
         if not args.no_frames:
@@ -362,36 +313,9 @@ def main():
             if n == 0:
                 poison.append("capture produced 0 frames")
             else:
-                # avi_frame_count = floor(refresh * seconds) + 2.
-                #
-                # DERIVATION, because the obvious one is wrong. MAME appends one AVI frame
-                # per video update at t = 0, T, 2T, ... and exits at the FIRST update at or
-                # after t = seconds -- and that frame is still recorded. So the last frame
-                # lands PAST t = seconds, not on it (measured: timeplt at 2s ends at
-                # 2.0167s, dkong at 3s at 3.0030s), and the count is ceil(seconds/T) + 1.
-                #
-                # The step from there to floor(hz*sec)+2 is the part worth writing down.
-                # T is the frame period in whole attoseconds, and on every board here it
-                # lands strictly BELOW the ideal period, so seconds/T sits a shade above
-                # hz*sec and off an exact integer. That makes ceil(seconds/T) equal
-                # floor(hz*sec)+1 for a fractional AND a whole-number product alike --
-                # hence the uniform +2. Measured: timeplt's T is 16666666666666666 as,
-                # under the exact 1/60; its frame 120 lands at 1.99999999999999992 s and so
-                # does NOT end a 2-second run, while frame 121 at 2.0166... does.
-                #
-                # SCOPED DELIBERATELY: "below the ideal period" is a property of these
-                # boards, not a law. dkong's ideal period IS a whole attosecond count
-                # (16500000000000000) and is saved only by MAME's per-tick rounding pushing
-                # the stored value down to 16499999999932416. A board whose period divides
-                # 1e18 evenly -- a plain 50Hz set_refresh_hz would -- puts seconds/T exactly
-                # on an integer and costs this formula one frame. Re-measure T before
-                # trusting the +2 on a fourth board.
-                #
-                # NOT ceil(hz*sec)+1: that is short by one whenever hz*sec is a whole
-                # number, which a 60.000000Hz board hits at every integer duration. It
-                # agrees for a fractional product, which is why it survived two games.
-                # A capture that misses this was truncated or mis-run, and is the
-                # exact input that makes a short-run false PASS possible downstream.
+                # avi_frame_count = floor(refresh*seconds) + 2. The obvious formula is
+                # wrong; the full derivation (and why NOT ceil(hz*sec)+1, and the per-board
+                # scoping caveat -- re-measure T on a 4th board) is in docs/mame-golden.md.
                 expect = math.floor(hw.refresh_hz * args.seconds) + 2
                 manifest["expected_frame_count"] = expect
                 if n != expect:
@@ -419,8 +343,7 @@ def main():
                 n_w = sum(1 for ln in open(dst) if ln.strip())
             manifest["write_count"] = n_w
             print(f"[writes] {n_w} writes -> {args.out}/writes.txt")
-            # Absence must never read as success. A capture that emits no
-            # writes has verified nothing.
+            # Absence must never read as success: a no-write capture verifies nothing.
             if n_w == 0:
                 poison.append(
                     "write trace is EMPTY -- no hardware writes captured, so this "
@@ -444,24 +367,15 @@ def main():
                     + (f" -- PC {args.at_pc} was never reached" if args.at_pc else "")
                 )
             elif args.at_pc:
-                # A PC-triggered capture is one sample by design, so the
-                # floor(refresh*seconds)+2 frame-count invariant does not apply.
+                # A PC-triggered capture is one sample by design; the frame-count invariant does not apply.
                 manifest["at_pc"] = args.at_pc
                 if n != 1:
                     poison.append(
                         f"--at-pc produced {n} state frames, expected exactly 1"
                     )
             else:
-                # The +2 is one power-on sample taken at Lua script load, before any
-                # instruction runs, plus the floor(hz*sec)+1 samples the frame notifier
-                # supplies. That power-on sample is what makes state[N] mean "after N
-                # frames" rather than "after N+1".
-                #
-                # This check must NOT live under `if not args.no_frames` -- a
-                # state-only capture would then have no length validation at all,
-                # and the Lua dumper's documented failure mode (GC-unsubscribe ->
-                # exactly one frame, plausible-looking truncated file) would sail
-                # through certified.
+                # Same floor(hz*sec)+2 as AVI (power-on sample + notifier samples), and it
+                # must NOT live under `if not args.no_frames`. Why: docs/mame-golden.md.
                 expect_state = math.floor(hw.refresh_hz * args.seconds) + 2
                 manifest["expected_state_count"] = expect_state
                 if n != expect_state:
@@ -470,8 +384,7 @@ def main():
                         f"floor({hw.refresh_hz}*{args.seconds})+2 = {expect_state} "
                         f"(truncated dump, or the Lua notifier unsubscribed)"
                     )
-                # Verified power-on invariant. If this is false the
-                # capture is by definition not ground truth.
+                # Verified power-on invariant: if false, this is by definition not ground truth.
                 zero_ok = (
                     stateio.StateSet(args.out).read(0)
                     == b"\x00" * stateio.BYTES_PER_FRAME
@@ -482,8 +395,7 @@ def main():
                         "state[0] is NOT all zero -- the verified power-on RAM "
                         "invariant is broken, so this is not ground truth"
                     )
-                # The state dump is scannable for a mid-capture reset too, so a
-                # --no-frames capture is not left without poisoning detection.
+                # Scan the state dump for a mid-capture reset too, so --no-frames still has poison detection.
                 shits = watchdog_check(sh)
                 manifest["state_watchdog_suspect_frames"] = shits
                 if shits:
@@ -492,13 +404,11 @@ def main():
                         f"{shits[:10]} -- likely a mid-capture reset"
                     )
 
-        # Certify the machine CONFIGURATION, not just the data. A capture taken
-        # with a stray dipswitch cfg is wrong in a way nothing downstream can see.
+        # Certify the machine CONFIGURATION, not just the data (a stray dipswitch cfg is invisible downstream).
         cfg_path = os.path.join(workdir, "config.txt")
         if args.writes:
             # The writes script does not probe config; DSW0 is certified by the
-            # separate state capture. Record honestly rather than implying it was
-            # checked here.
+            # separate state capture. Record honestly rather than imply a check.
             manifest["dsw0_verified"] = False
             manifest["dsw0_note"] = "not probed on --writes captures"
         elif not os.path.exists(cfg_path):
@@ -532,11 +442,8 @@ def main():
             else:
                 manifest["dsw0_verified"] = True
 
-            # Certify the CPU RESET STATE too. It is an input to everything the
-            # ROM computes, exactly like DSW0 -- and only IX/IY are ever
-            # observable, because the ROM overwrites every other register before
-            # the first NMI. So a drifted AF or SP would be invisible in the data
-            # and wrong wherever it eventually mattered.
+            # Certify the CPU RESET STATE too -- an input like DSW0. Only IX/IY are
+            # observable (ROM overwrites the rest before NMI). See docs/mame-golden.md.
             regs = {k[4:]: int(v, 16) for k, v in cfg.items() if k.startswith("reg_")}
             if regs:
                 manifest["z80_reset"] = {k: f"0x{v:04X}" for k, v in regs.items()}
@@ -569,13 +476,8 @@ def main():
                 f"[note  ] AVI frames={manifest['frame_count']} "
                 f"emulated frames={manifest['state_count']} (delta={delta})"
             )
-            # Delta 0, not 1. AVI frame 0 is the machine-init framebuffer and
-            # state[0] is the power-on sample -- the SAME instant -- so the two
-            # clocks are aligned. The delta of 1 this check originally enforced
-            # was an artifact of the state dump being off by one frame (the Lua
-            # frame notifier fires at the END of frame N, so sampling only on the
-            # notifier made state[0] mean "after one frame"). Fixed in
-            # lua/dump_state.lua; the clocks agreeing is now a positive signal.
+            # Delta 0, not 1: AVI frame 0 and state[0] are the same instant, so the
+            # clocks are aligned (the old delta-of-1 was a since-fixed off-by-one). Why: docs/mame-golden.md.
             if args.at_pc:
                 print("[note  ] --at-pc: one PC-triggered sample, delta check N/A")
             elif delta != 0:
