@@ -647,6 +647,19 @@ def main():
     print(f"workRAM: 0x{wr_lo:04X}-0x{wr_hi:04X}   ROM: 0x0000-0x{rom_hi:04X}")
     print(f"routines: {len(routines)} total, {named} English-named, {len(routines)-named} loc_")
 
+    # Guardrail: a DEFB is the disassembler's undefined-opcode fallback -- off-convention for a
+    # CA submission (it chokes the deploy tool). Fail loud so each is resolved before submitting.
+    defbs = [ln.strip() for ln in code.split("\n") if re.search(r"\bDEFB\b", ln)]
+    if defbs:
+        print("\n*** Code.md still contains DEFB (undefined-opcode fallback), off-convention:",
+              file=sys.stderr)
+        for ln in defbs:
+            print("      " + ln, file=sys.stderr)
+        print("    Resolve each before submitting -- add its span to FORCE_DATA (anti-tamper / data "
+              "misdecoded as code) or fix the disassembler. See scratchpad/CA-topher-459b-followup.md.",
+              file=sys.stderr)
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
