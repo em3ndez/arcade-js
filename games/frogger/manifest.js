@@ -69,12 +69,12 @@ export default {
   // sides once identified (core/entropy-pin.js, [[entropy-pinning-strategy]]).
   entropyPin: null,
 
-  // ★ TODO (BLOCKED on a MAME golden boot), all measured on the first boot trace, never guessed:
-  // nmiReturnPC = main-loop top the vblank NMI returns to; pollPCs = vblank-yield PC(s) the oracle fires the
-  // NMI at; stateExclude.stack = dead Z80 stack-scratch window below SP. Until then the gate stops at 0x0000.
+  // Idiomatic go-live (runIdiomaticGame). nmiReturnPC = the pace tail 0x0368, where control sits at the
+  // vblank yield; the foreground FREE-RUNS (no poll), so pollPCs mirrors it only for manifest shape.
+  // stateExclude.stack [start,end) is the measured Z80 stack below SP=0x8800 (deepest push 0x87e2).
   convergence: {
-    idiomatic: { nmiReturnPC: null },
-    pollPCs: [],
-    stateExclude: { stack: null },
+    idiomatic: { nmiReturnPC: 0x0368 },
+    pollPCs: [0x0368],
+    stateExclude: { stack: [0x87e0, 0x8800] },
   },
 };

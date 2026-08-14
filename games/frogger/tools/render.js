@@ -11,8 +11,10 @@ import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync, writeSync 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { Machine, CYCLES_PER_FRAME } from "../machine.js";
+import { Machine, CYCLES_PER_FRAME, resolveAllIdiomatic } from "../machine.js";
 import { buildRoutines } from "../routines.js";
+import { runIdiomaticGame } from "../../../core/frame-stepped.js";
+import manifest from "../manifest.js";
 import { SCREEN_W, SCREEN_H } from "../../../boards/frogger/video.js";
 import { parseEmitArgs, hex4 } from "../../../tools/emit-core.js";
 
@@ -45,6 +47,8 @@ async function main() {
         case "--gfx": a.gfx = next(); return true;
         case "--proms": a.proms = next(); return true;
         case "--frames-out": a.framesOut = next(); return true;
+        case "--idiomatic": a.idiomatic = true; return true;
+        case "--tape-origin": a.tapeOrigin = Number(next()); return true;
         default: return false;
       }
     },
@@ -57,7 +61,13 @@ async function main() {
   const proms = loadRegion("proms", args.proms);
   const romImage = new Uint8Array(readFileSync(args.rom));
 
-  const machine = new Machine(romImage, buildRoutines(), { gfx, proms });
+  // --idiomatic renders the IDIOMATIC spine THROUGH runIdiomaticGame, the coroutine engine that ships.
+  // It swaps the routine map AND the clock: frames advance on a vblank YIELD, not a cycle count, so a
+  // module that spends no T-states cannot drift the frame boundary. The default path is the oracle.
+  const overrides = args.idiomatic ? await resolveAllIdiomatic() : null;
+  const machine = args.idiomatic
+    ? await Machine.create(romImage, { gfx, proms, overrides })
+    : new Machine(romImage, buildRoutines(), { gfx, proms });
   machine.inputTape = args.inputs.length ? args.inputs : null;
   machine.pokes = args.pokes.length ? args.pokes : null;
 
@@ -65,14 +75,16 @@ async function main() {
   const rgbPath = join(args.framesOut, "frames.rgb");
   const fd = openSync(rgbPath, "w");
   const hashes = [];
-  machine.captureVideo = true;
+  machine.captureVideo = !args.idiomatic; // raster is cycle-driven; the generator paints whole frames
   machine.onVideoFrame = (buf) => {
     writeSync(fd, buf, 0, buf.length);
     hashes.push(createHash("sha256").update(buf).digest("hex"));
   };
 
   const want = args.frames;
-  const states = machine.runFrames(want);
+  const states = args.idiomatic
+    ? runGeneratorFrames(machine, want, args.tapeOrigin ?? 0)
+    : machine.runFrames(want);
   closeSync(fd);
 
   writeFileSync(
@@ -120,12 +132,37 @@ async function main() {
     return 1;
   }
 
+  const clock = args.idiomatic
+    ? "vblank yields"
+    : `${(machine.cycles / CYCLES_PER_FRAME).toFixed(1)} frames of cycles`;
   console.log(
-    `\nCLEAN: painted ${hashes.length} frames ` +
-      `(${(machine.cycles / CYCLES_PER_FRAME).toFixed(1)} frames of cycles) with no gap, ` +
+    `\nCLEAN: painted ${hashes.length} frames (${clock}) with no gap, ` +
       `taking ${machine.nmiCount} NMI(s). Now pixel-diff frames.rgb against the MAME golden.`,
   );
   return 0;
+}
+
+/**
+ * Paint `want` frames of the idiomatic game under runIdiomaticGame. There is no beam on this clock,
+ * so each frame is snapshotted WHOLE at the vblank yield — the instant the game's video RAM is stable
+ * and the NMI is about to fire — via renderFrame(). Inputs/pokes are applied at f + tapeOrigin so a
+ * driven tape rides the golden's frame numbering (boot burns no frames here; the oracle spends some).
+ */
+function runGeneratorFrames(machine, want, tapeOrigin) {
+  const states = [];
+  const r = runIdiomaticGame(machine, {
+    nmiReturnPC: manifest.convergence.idiomatic.nmiReturnPC,
+    maxFrames: want,
+    onFrame: (m, f) => {
+      if (f === 0) return; // power-on, before the boot chain runs: no golden frame matches it
+      m.applyInputs(f + tapeOrigin);
+      m.applyPokes(f + tapeOrigin);
+      states.push(m.mem.dumpState());
+      if (m.onVideoFrame) m.onVideoFrame(m.renderFrame());
+    },
+  });
+  machine.stoppedBy = r.stopError ?? null;
+  return states;
 }
 
 process.exit(await main());

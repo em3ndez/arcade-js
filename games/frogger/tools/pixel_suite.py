@@ -2,14 +2,11 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Frogger ATTRACT pixel gate: JS render vs a fresh MAME golden, byte-for-byte.
 
-Attract-only (no tape/coin/entropy pin): frogger's attract is a rich deterministic animation, so
-reproducing it pixel-exact IS the test. main() SWEEPS a window of offsets and picks the min-diff one
-(it comes out +1, the AVI lag -- render[N] == golden[N+1]); nothing is hardcoded. BAND_MAX_PX is one
-tight single band just above the measured correct-layer floor (a mid-frame beam residual of ~3px on
-one frame) -- any real regression blows past it, a loose 5% band would swallow wrong sprites.
-FAIL-CLOSED: `pixel_suite: PASS` prints ONLY on a clean comparison; no mame, no romset, a poisoned
-golden, a short/stalled render, a frozen screen, or any over-band frame all print non-PASS and exit
-nonzero (the gate treats any non-PASS, SKIP included, as refusal).
+Attract's deterministic animation makes reproducing it pixel-exact the test. main() SWEEPS offsets and
+picks the min-diff one (nothing hardcoded); BAND_MAX_PX is one tight band above the measured floor, so
+a real regression blows past it. FAIL-CLOSED: `pixel_suite: PASS` prints ONLY on a clean comparison;
+no mame/romset, a poisoned golden, a short/frozen render, or any over-band frame exits nonzero (the
+gate treats any non-PASS, SKIP included, as refusal).
 """
 import argparse
 import json
@@ -40,6 +37,13 @@ BAND_MAX_PX = 16
 # A frozen/black screen (distinct ~1) lets two dead frames match and PASS over nothing; require motion.
 MIN_DISTINCT = 10
 
+# Idiomatic go-live alignment, MEASURED: the "ignore the clock" boot collapses ~49 frames, so idio
+# render frame i matches golden i+GEN_OFFSET, and the first GEN_BOOT_SKIP frames are the boot transient
+# (no golden match, excluded). Past it, idio is PIXEL-EXACT (0px) to MAME -- the DK --tape-origin case.
+GEN_OFFSET = 49
+GEN_BOOT_SKIP = 51
+GEN_OFFSETS = range(GEN_OFFSET - 3, GEN_OFFSET + 4)   # straddle it: a drift is measured, not assumed
+
 
 def capture_golden(rompath, out):
     """Fresh certified golden via the shared capturer. Attract only -- no --tape.
@@ -54,11 +58,13 @@ def capture_golden(rompath, out):
     return r.returncode == 0
 
 
-def render_js(out, frames):
-    """Fresh JS render. render.js exits nonzero on a boot gap / dropped frame / short run."""
-    r = subprocess.run(
-        ["node", os.path.join(HERE, "render.js"),
-         "--frames", str(frames), "--frames-out", out])
+def render_js(out, frames, idiomatic):
+    """Fresh JS render (nonzero on a boot gap / dropped frame). idiomatic = the born-live spine via
+    runIdiomaticGame; oracle = the cycle-driven translated layer. The gate picks by the changed files."""
+    cmd = ["node", os.path.join(HERE, "render.js"), "--frames", str(frames), "--frames-out", out]
+    if idiomatic:
+        cmd.append("--idiomatic")
+    r = subprocess.run(cmd)
     return r.returncode == 0
 
 
@@ -74,17 +80,18 @@ def frame_bytes():
     return bpf
 
 
-def total_diff(js_rgb, golden_rgb, bpf, offset):
+def total_diff(js_rgb, golden_rgb, bpf, offset, from_frame=0):
     """(total differing px, worst per-frame px, worst frame, frames compared) for js[i] vs g[i+off].
 
-    Skips i where i+offset falls outside the golden -- so negative offsets never seek before 0."""
+    Skips i where i+offset falls outside the golden -- so negative offsets never seek before 0.
+    from_frame drops the leading render frames (the idiomatic boot transient has no golden match)."""
     njs = os.path.getsize(js_rgb) // bpf
     ngd = os.path.getsize(golden_rgb) // bpf
     total = worst = 0
     worst_at = None
     n = 0
     with open(js_rgb, "rb") as jf, open(golden_rgb, "rb") as gf:
-        for i in range(njs):
+        for i in range(from_frame, njs):
             j = i + offset
             if j < 0 or j >= ngd:
                 continue
@@ -107,14 +114,14 @@ def main():
     # Cover the whole golden (~refresh*SECONDS frames) with margin; render.js paints frames-1.
     p.add_argument("--frames", type=int, default=math.ceil(60.606061 * SECONDS) + 34)
     p.add_argument("--work", default=os.path.join(GAME, "out", "pixelwork"))
-    # The gate invokes every suite with --layer {oracle,idiomatic}. Frogger is translated-only today
-    # (no render.js --idiomatic yet), so accept the flag and render the oracle for both; branch later.
+    # The gate invokes every suite with --layer {oracle,idiomatic}, chosen from which layer's files changed.
     p.add_argument("--layer", default="oracle", choices=["oracle", "idiomatic"],
-                   help="gate contract; frogger is translated-only today, so both render the oracle.")
+                   help="which layer to render vs MAME (the pixel gate passes this explicitly).")
     a = p.parse_args()
-    if a.layer == "idiomatic":
-        print("  note: frogger has no idiomatic layer yet -- validating the translated (shipping) "
-              "render, which is what the player runs.")
+    idiomatic = a.layer == "idiomatic"
+    offsets = GEN_OFFSETS if idiomatic else OFFSETS
+    from_frame = GEN_BOOT_SKIP if idiomatic else 0
+    print(f"  layer: {'IDIOMATIC (runIdiomaticGame)' if idiomatic else 'oracle (cycle-driven)'}")
 
     # --- can we compare at all? every "no" below exits NONZERO (fail-closed). ---
     try:
@@ -133,7 +140,7 @@ def main():
     if not capture_golden(a.rompath, go):
         print("pixel_suite: FAIL -- mame_golden refused to certify the capture (poisoned golden).")
         return 1
-    if not render_js(jo, a.frames):
+    if not render_js(jo, a.frames, idiomatic):
         print("pixel_suite: FAIL -- render.js stopped early (boot gap / dropped frame); "
               "a short artifact must not be diffed.")
         return 1
@@ -153,17 +160,17 @@ def main():
         return 1
 
     # --- MEASURE the offset: minimise total differing pixels over the overlap. ---
-    sweep = {off: total_diff(j_rgb, g_rgb, bpf, off) for off in OFFSETS}
-    for off in OFFSETS:
+    sweep = {off: total_diff(j_rgb, g_rgb, bpf, off, from_frame) for off in offsets}
+    for off in offsets:
         tot, wst, _at, nn = sweep[off]
-        mark = ""
-        print(f"    offset {off:+d}: total={tot:>8d}px  worst={wst:>6d}px  frames={nn}{mark}")
-    offset = min(OFFSETS, key=lambda o: sweep[o][0])
+        print(f"    offset {off:+d}: total={tot:>8d}px  worst={wst:>6d}px  frames={nn}")
+    offset = min(offsets, key=lambda o: sweep[o][0])
     total, worst, worst_at, n = sweep[offset]
-    print(f"  measured offset: {offset:+d} (minimises total diff; expected +1, the AVI lag)")
+    expect = f"expected +{GEN_OFFSET}, the boot collapse" if idiomatic else "expected +1, the AVI lag"
+    print(f"  measured offset: {offset:+d} (minimises total diff; {expect})")
 
     # --- did we actually compare the whole attract? render must span the full golden overlap. ---
-    need = n_g - offset
+    need = n_g - offset - from_frame
     if n < need:
         print(f"pixel_suite: FAIL -- compared only {n} of {need} overlapping frames; "
               "render did not cover the full golden attract.")
