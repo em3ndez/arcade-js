@@ -48,6 +48,7 @@ whose role is only partly pinned, carry a terse caveat.
 | a8f6 | attackerSpawnCooldownPeriod | Reload period (interval constant) for ATTACKER_SPAWN_COOLDOWN; never decremented. |
 | a8f7 | parachutistRung | How many rescue awards this life has already been paid, which is the rung the next one takes. |
 | a900 | sceneryRecordSlot0 | Scenery record base, scenery slot 0 (array slot 16); the ix cursor runSceneryForEra seats (paired with SCENERY_ENTRY_SLOT0). |
+| a97f | playerStateBlockEnd | inclusive top of the player/actor-state RAM block cleared from PLAYER_STATE on a fresh round |
 | a980 | frameTick | Free-running frame counter, advanced once per vblank service. |
 | a981 | coinAccepted | Coin-counter pulses the machine still OWES the mechanical counter. |
 | a982 | coinAcceptedSlot2 | slot-2 twin of COIN_ACCEPTED (0xa981) |
@@ -129,6 +130,7 @@ whose role is only partly pinned, carry a terse caveat.
 | aa30 | sceneryEntrySlot0 | Scenery sprite-entry X seat, scenery slot 0 (array slot 16); base of publishSpriteShadow's bank-0 head run [.,6] (slots 16-18). |
 | aa31 | scenerySpriteCodeSlot0 | Scenery sprite code/shape byte, scenery slot 0 (= SCENERY_ENTRY_SLOT0 +1); base of the era-keyed 8-slot code fill (stride 2). |
 | aa36 | sceneryEntrySlot3 | Scenery sprite-entry X seat, scenery slot 3 (array slot 19); base of publishSpriteShadow's bank-0 tail run [.,10] (slots 19-23). |
+| aa3f | tamperFoldFlag | work-RAM flag set 0xff before the image-signature fold, never read in the layer (foldImageBlockIntoSignatureThenAdvanceSequence) |
 | aa40 | playerSpriteAttribute | The player's sprite attribute byte (colour + flip bits), and the base of the second bank's 32-byte colour/flip run publishSpriteShadow copies to hardware. |
 | aa41 | playerSpriteY | The player's sprite Y (vertical) byte, and the base of the Y band hideAllSprites / hideCaptionSprites zero to park every sprite off-screen. |
 | aa43 | actorSpriteYSlot0 | Actor slot 0's sprite Y (array slot 1; = ACTOR_ENTRY_SLOT0 +0x31, one step of the PLAYER_SPRITE_Y band). |
@@ -140,6 +142,7 @@ whose role is only partly pinned, carry a terse caveat.
 | aa80 | playerShotArray | Base of the player's six-slot shot record array. |
 | aa81 | shotBurstPending | Countdown of shots still owed from the current fire press. |
 | aa82 | shotSpawnCooldown | Inter-shot fire-rate cooldown: frames left before the next player shot may seed. |
+| aadf | playerShotArrayEnd | inclusive top of the player-shot RAM block cleared from PLAYER_SHOT_ARRAY on a fresh round |
 | ab08 | highScoreTableBase | The high-score TABLE is five records of eight bytes at 0xAB08..0xAB2F: per record +0 rank, +1..+3 score lo/mid/hi, +4..+7 name glyphs. |
 | ab0b | highScoreRec0ScoreHi | The high-score TABLE is five records of eight bytes at 0xAB08..0xAB2F: per record +0 rank, +1..+3 score lo/mid/hi, +4..+7 name glyphs. |
 | ab10 | highScoreRec1Base | The high-score TABLE is five records of eight bytes at 0xAB08..0xAB2F: per record +0 rank, +1..+3 score lo/mid/hi, +4..+7 name glyphs. |
@@ -164,6 +167,7 @@ whose role is only partly pinned, carry a terse caveat.
 | ac83 | enemyStandoffAimBlockEnd | The last byte (base + 0x0F) of that sixteen-byte aim-coordinate record; used only as the inclusive terminator of armRoundStart's 0x80 clear loop `cell <= 0xAC83`. |
 | acc0 | eraRung | The escalation rung inside the current era: the LOW half of the composite ERA_INDEX describes. |
 | acc1 | roundCraftCount | Per-round enemy-craft quota: how many craft a round should field. |
+| acc2 | waveSpawnBusyFlag | work-RAM busy/lock flag =0xff around the inline wave-build loop, =0 after (driveEnemyWaveForLifePhase) |
 | acc3 | waveDescriptorIndex | Descriptor-table selector for the current inline wave: (2 * era) + a random parity bit. |
 | acc4 | scriptPickThreshold | Per-round threshold that decides how each spawning craft's movement script is chosen. |
 | acc6 | roundTransitionHold | Nonzero while a round / wave / Mother-Ship transition sequence is underway. |

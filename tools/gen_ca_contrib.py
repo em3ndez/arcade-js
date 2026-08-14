@@ -36,6 +36,26 @@ GAME_DESC = {
     ),
 }
 
+# Reached spans that are actually anti-tamper obfuscation: a deliberately misaligned
+# "wrong-glyph" derail entry whose bytes execute as harmless NOPs / stray-stack POPs.
+# Decoding them as code yields off-convention DEFBs (undefined opcodes) that choke the
+# deploy tool, so we render them as CA data blocks and move the routine name+role to the
+# real entry. Tuple: (start, end, block-label, lead-comment, name_src) -- name_src is a
+# names.js routine addr whose name+role is shown at END+1 (the real entry) instead of at
+# start, or None. See scratchpad/CA-topher-459b-followup.md.
+FORCE_DATA = {
+    "timeplt": [
+        (0x459b, 0x45b2, "misaligned anti-tamper entry",
+         'reached only via the "wrong-glyph" derail ($1772) and the loop-back ($4660); the '
+         "bytes run as harmless NOPs and stray-stack POPs. The real routine is at $45B3.",
+         0x459b),
+        (0x49fa, 0x4a0e, "misaligned anti-tamper entry",
+         'reached only via the "wrong-glyph" derail ($19E6); the bytes run as harmless NOPs and '
+         "stray-stack POPs. The real routine is at $4A0F.",
+         None),
+    ],
+}
+
 
 # --------------------------------------------------------------------- helpers
 def camel(name):
@@ -386,6 +406,28 @@ def xform_instr(raw, routines, labels, wr_lo, wr_hi, rom_hi, notes):
     return line
 
 
+def _line_addr(line):
+    """The address a dk.asm line sits at (label or instruction), or None."""
+    m = re.match(r"^loc_([0-9a-f]+):\s*$", line)
+    if m:
+        return int(m.group(1), 16)
+    if re.match(r"^    [a-z]", line):
+        _, sep_, comment = line.partition(";")
+        am = re.match(r"\s*([0-9a-f]+)\s", comment) if sep_ else None
+        if am:
+            return int(am.group(1), 16)
+    return None
+
+
+def _line_bytes(line):
+    """The raw bytes of a dk.asm instruction line (from its `; addr b b ...`), or None."""
+    _, sep_, comment = line.partition(";")
+    if not sep_:
+        return None
+    bm = re.match(r"\s*[0-9a-f]+\s+([0-9a-f ]+?)\s*$", comment)
+    return [int(b, 16) for b in bm.group(1).split()] if bm else None
+
+
 def emit_data(body, start, end, data, label):
     """A thepit-style data block: `; ---- $A-$B: <label> ----` + 16-byte rows
     (region-relative, uppercase hex)."""
@@ -401,6 +443,21 @@ def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi, notes):
         lm = re.match(r"^loc_([0-9a-f]+):\s*$", l)
         if lm:
             labels.add(int(lm.group(1), 16))
+
+    # Anti-tamper obfuscation spans -> data blocks. `eff` is `routines` with the covered
+    # bytes removed (they are data, not named routines) and each block's name+role moved
+    # to the real entry (END+1); references into a block then render as a raw $addr.
+    force = FORCE_DATA.get(meta["_game"], [])
+    force_start = {f[0]: f for f in force}
+    force_addrs = set()
+    eff = dict(routines)
+    for (s, e, _lbl, _cmt, src) in force:
+        if src is not None and src in routines:
+            eff[e + 1] = routines[src]
+        for a in range(s, e + 1):
+            eff.pop(a, None)
+            force_addrs.add(a)
+    labels = labels - force_addrs
 
     # ---- top matter (mirrors thepit/Code.md) ----
     game = meta["_game"]
@@ -468,11 +525,29 @@ def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi, notes):
         if line.strip() == "":
             j += 1
             continue
+        ah = _line_addr(line)
+        if ah is not None and ah in force_start:
+            s, e, lbl, cmt, _src = force_start[ah]
+            data = []
+            while j < n:
+                a = _line_addr(raw_lines[j])
+                if a is not None and a > e:
+                    break
+                bs = _line_bytes(raw_lines[j])
+                if bs:
+                    data += bs
+                j += 1
+            assert len(data) == e - s + 1, f"force-data 0x{s:04x}: got {len(data)} != {e - s + 1}"
+            sep()
+            for w in textwrap.wrap(cmt, ROLE_WRAP):
+                body.append("; " + w)
+            emit_data(body, s, e, data, lbl)
+            continue
         lm = re.match(r"^loc_([0-9a-f]+):\s*$", line)
         if lm:
             addr = int(lm.group(1), 16)
             sep()
-            rn = routines.get(addr)
+            rn = eff.get(addr)
             if rn and not rn[0].startswith("loc_"):
                 for w in textwrap.wrap(clean_role(rn[1]), ROLE_WRAP):
                     body.append("; " + w)
@@ -520,7 +595,7 @@ def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi, notes):
             emit_data(body, start, end, data, "jump table")
             continue
         if re.match(r"^    [a-z]", line):
-            body.append(xform_instr(line, routines, labels, wr_lo, wr_hi, rom_hi, notes))
+            body.append(xform_instr(line, eff, labels, wr_lo, wr_hi, rom_hi, notes))
             j += 1
             continue
         j += 1  # anything else (should not occur) is dropped

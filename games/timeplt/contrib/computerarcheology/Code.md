@@ -29,7 +29,9 @@
 ; spans never reached appear as data (the "---- data ----" blocks).
 
 
-loc_0000:
+; a bare transfer to 0x07B1 and no return; no cell is read or written and
+; no register moves
+trampolineToSeatTheStackAndSettleTheControlLatch:
 0000: C3 B1 07        JP      $07B1               ; {code.seatTheStackAndSettleTheControlLatch}
 
 ; ---- $0003-$0007: data ----
@@ -140,7 +142,7 @@ loc_004d:
 ; interrupt and it transfers straight to the frame-service handler at
 ; 0x00d8, writing nothing of its own
 enterVblankInterrupt:
-0066: C3 D8 00        JP      $00D8               ; {code.loc_00d8} hand the per-frame interrupt straight on to the frame-service handler
+0066: C3 D8 00        JP      $00D8               ; {code.saveAccumulatorForFrameInterrupt} hand the per-frame interrupt straight on to the frame-service handler
 
 ; cold-start clear reached once at boot via 0x07B1: kicks the watchdog
 ; four times, zeroes the 0xB410 sprite-bank run and the whole 2 KB work
@@ -180,7 +182,7 @@ loc_009c:
 009D: 23              INC     HL                  
 009E: 10 FC           DJNZ    $009C               ; {code.loc_009c} on across all two hundred fifty-six bytes
 00A0: D6 87           SUB     $87                 ; weigh the total against a genuine image's value
-00A2: C4 D8 00        CALL    NZ,$00D8            ; {code.loc_00d8} on a tampered image, run the frame service out of band
+00A2: C4 D8 00        CALL    NZ,$00D8            ; {code.saveAccumulatorForFrameInterrupt} on a tampered image, run the frame service out of band
 00A5: C3 66 58        JP      $5866               ; {code.clearScreenRamAndVerifyImageThenColdInit} hand off to the screen-RAM clear and image verify
 
 ; bring the machine up and never come back: set the interrupt-enable bit
@@ -233,7 +235,11 @@ stampGridBox:
 00D6: E1              POP     HL                  ; put the cursor back where it was found
 00D7: C9              RET                         
 
-loc_00d8:
+; one byte, `push af`, falling into the register-save prologue at 0x00D9
+; that owns the rest of the frame service and the frame's work; the two
+; bytes it stacks land in work RAM, so they are part of what the machine
+; leaves behind
+saveAccumulatorForFrameInterrupt:
 00D8: F5              PUSH    AF                  ; save the interrupted program's registers -- both banks and the index pair
 
 loc_00d9:
@@ -2096,7 +2102,7 @@ loc_0e66:
 0E68: 85              ADD     A,L                 ; add in the low half
 0E69: 84              ADD     A,H                 ; add in the high half
 0E6A: D6 69           SUB     $69                 ; a genuine image nets to this constant
-0E6C: C2 00 00        JP      NZ,$0000            ; {code.loc_0000} tampered: restart the machine from the reset entry
+0E6C: C2 00 00        JP      NZ,$0000            ; {code.trampolineToSeatTheStackAndSettleTheControlLatch} tampered: restart the machine from the reset entry
 0E6F: C9              RET                         
 
 ; lay one four-tile block into the character plane from a base code the
@@ -2639,7 +2645,7 @@ loseLifeAndHandOver:
 11F0: 3A C6 AC        LD      A,($ACC6)           ; {hard.workRam+4C6} read the pending round-advance flag
 11F3: A7              AND     A                   ; is it set?
 11F4: C4 B8 2D        CALL    NZ,$2DB8            ; {code.startNextRound} set -- start the next round
-11F7: CD 34 56        CALL    $5634               ; {code.loc_5634} queue this frame's fixed sound requests
+11F7: CD 34 56        CALL    $5634               ; {code.enqueueTransitionSoundBurst} queue this frame's fixed sound requests
 11FA: 21 00 AD        LD      HL,$AD00            ; point at the live context block -- its first byte is the lives count
 11FD: 35              DEC     (HL)                ; drop the lives count by one
 11FE: F5              PUSH    AF                  ; remember whether that reached zero
@@ -2730,7 +2736,7 @@ loc_1283:
 1285: C0              RET     NZ                  ; a slot is still occupied -- the field isn't clear, return
 1286: 19              ADD     HL,DE               
 1287: 10 FA           DJNZ    $1283               ; {code.loc_1283} check every one of the fifteen slots
-1289: CD 34 56        CALL    $5634               ; {code.loc_5634} queue this frame's fixed sound requests
+1289: CD 34 56        CALL    $5634               ; {code.enqueueTransitionSoundBurst} queue this frame's fixed sound requests
 128C: 3A 30 AD        LD      A,($AD30)           ; {hard.workRam+530} read the in-play flag
 128F: A7              AND     A                   ; is a game running?
 1290: 28 29           JR      Z,$12BB             ; {code.loc_12bb} attract mode -- take the reset arm
@@ -3634,7 +3640,7 @@ loc_176a:
 176A: CD DA 19        CALL    $19DA               ; {code.checkTheCopyrightLineColoursOrDerail} verify the copyright line's colours -- derail if wrong
 176D: 3A 7C A6        LD      A,($A67C)           ; read a caption cell
 1770: FE 7C           CP      $7C                 ; is its glyph the expected one?
-1772: C2 9B 45        JP      NZ,$459B            ; {code.stepMotherShipWarpFlashFrame} wrong glyph: derail into the mother-ship warp-flash handler
+1772: C2 9B 45        JP      NZ,$459B            ; wrong glyph: derail into the mother-ship warp-flash handler
 1775: 11 13 01        LD      DE,$0113            ; command 1, argument 0x13
 1778: FF              RST     $38                 ; queue it
 1779: CD DC 4B        CALL    $4BDC               ; {code.paintFiveLabelledNumericReadouts} paint the five labelled numeric readouts
@@ -3709,13 +3715,15 @@ foldImageBlockIntoSignatureThenAdvanceSequence:
 17E4: 32 3F AA        LD      ($AA3F),A           ; {hard.workRam+23F} raise a flag cell to all bits set
 17E7: 11 B9 17        LD      DE,$17B9            ; point a second pointer at a block of the program image
 17EA: 0E 08           LD      C,$08               
-17EC: CD D9 4B        CALL    $4BD9               ; {code.loc_4bd9} select the guarded block -- its start and thirty-byte length
+17EC: CD D9 4B        CALL    $4BD9               ; {code.trampolineToSelectFoldBlock} select the guarded block -- its start and thirty-byte length
 17EF: 3A C0 27        LD      A,($27C0)           ; {hard.rom+27C0} seed the running total from a program byte
 17F2: CD 1E 29        CALL    $291E               ; {code.foldBlockIntoTotal} fold the block into the total
 17F5: 32 6F AA        LD      ($AA6F),A           ; {hard.workRam+26F} bank the result as the image signature
 17F8: C3 1A 0F        JP      $0F1A               ; {code.advanceSequenceSubStep} step the sequence sub-index
 
-loc_17fb:
+; a sequence step that does no work of its own -- it only moves the inner
+; index on, so reaching it costs one turn and changes nothing else
+trampolineToAdvanceSequenceSubStep:
 17FB: C3 1A 0F        JP      $0F1A               ; {code.advanceSequenceSubStep} step the sequence sub-index
 
 ; the inner level of the two-level sequence machine for one outer mode:
@@ -3734,7 +3742,9 @@ dispatchSequencePhase2SubStepArm:
 ; ---- $1810-$181C: data ----
 1810: 72 A6 14 7D A5 38 34 F1 68 0E 34 D7 B9
 
-loc_181d:
+; an arrival point with nothing to do: no cell is read or written and no
+; register moves
+noOpSequencePhase2Tail:
 181D: C9              RET                         ; the mode's tail -- return at once, nothing runs after the arm
 
 ; one step of a screen-clearing sequence: park every sprite out of sight,
@@ -3944,7 +3954,7 @@ loc_1963:
 loc_1975:
 1975: 3E 3C           LD      A,$3C               
 1977: 32 EB A9        LD      ($A9EB),A           ; {hard.workRam+1EB} reload the cursor-blink timer -- sixty frames
-197A: CD 34 56        CALL    $5634               ; {code.loc_5634}
+197A: CD 34 56        CALL    $5634               ; {code.enqueueTransitionSoundBurst}
 197D: C3 1A 0F        JP      $0F1A               ; {code.advanceSequenceSubStep} step the sequence machine on
 
 ; clear the one-bit press history a caller points at, and hand back a
@@ -4027,7 +4037,7 @@ loc_19df:
 19E0: FE 10           CP      $10                 ; is it the first accepted colour?
 19E2: 28 05           JR      Z,$19E9             ; {code.loc_19e9} yes: on to the next cell
 19E4: FE 05           CP      $05                 ; is it the second accepted colour?
-19E6: C2 FA 49        JP      NZ,$49FA            ; {code.loc_49fa} anything else: the line has been tampered -- transfer away and never return
+19E6: C2 FA 49        JP      NZ,$49FA            ; anything else: the line has been tampered -- transfer away and never return
 
 loc_19e9:
 19E9: 11 E0 FF        LD      DE,$FFE0            ; the stride back one cell along the line
@@ -6358,7 +6368,9 @@ loc_3101:
 310F: 10 F0           DJNZ    $3101               ; {code.loc_3101} repeat for all eight
 3111: C3 BC 2C        JP      $2CBC               ; {code.runSceneryForEra} run the frame's scenery
 
-loc_3114:
+; a bare transfer to 0x307F and no return; no cell is read or written and
+; no register moves
+trampolineToLoc_307f:
 3114: C3 7F 30        JP      $307F               ; {code.loc_307f} hand off to the fill path at 0x307F
 
 ; when a sentinel pair reads 0x68 then 0x10-or-0x05, seat four objects
@@ -6369,13 +6381,13 @@ seedSceneryEntriesThenRunScenery:
 3117: 21 39 AD        LD      HL,$AD39            ; point at the first sentinel byte
 311A: 7E              LD      A,(HL)              ; read it
 311B: FE 68           CP      $68                 ; is it the expected 0x68?
-311D: C2 14 31        JP      NZ,$3114            ; {code.loc_3114} no: seat nothing, hand off to the derail path
+311D: C2 14 31        JP      NZ,$3114            ; {code.trampolineToLoc_307f} no: seat nothing, hand off to the derail path
 3120: 23              INC     HL                  ; step to the second sentinel byte
 3121: 7E              LD      A,(HL)              ; read it
 3122: FE 10           CP      $10                 ; is it 16?
 3124: CA 2C 31        JP      Z,$312C             ; {code.loc_312c} yes: seat the objects
 3127: FE 05           CP      $05                 ; or 5?
-3129: C2 14 31        JP      NZ,$3114            ; {code.loc_3114} neither: seat nothing, hand off to the derail path
+3129: C2 14 31        JP      NZ,$3114            ; {code.trampolineToLoc_307f} neither: seat nothing, hand off to the derail path
 
 loc_312c:
 312C: 21 6E 31        LD      HL,$316E            ; point at the packed four-object table
@@ -8889,10 +8901,10 @@ loc_4540:
 loc_4554:
 4554: 79              LD      A,C                 ; recall the state value
 4555: FE F0           CP      $F0                 ; is the flash sequence over?
-4557: C2 B3 45        JP      NZ,$45B3            ; {code.loc_45b3} not yet: step the warp/flash frame
+4557: C2 B3 45        JP      NZ,$45B3            ; {code.stepMotherShipWarpFlashFrame} not yet: step the warp/flash frame
 455A: AF              XOR     A                   ; clear the mother-ship progress cell
 455B: 32 DC A8        LD      ($A8DC),A           ; {hard.workRam+DC}
-455E: CD 34 56        CALL    $5634               ; {code.loc_5634} quiet the running sound
+455E: CD 34 56        CALL    $5634               ; {code.enqueueTransitionSoundBurst} quiet the running sound
 4561: CD D2 56        CALL    $56D2               ; {code.requestRoundIntroSoundBurst} sound the round-clear fanfare
 4564: 21 10 A8        LD      HL,$A810            ; point at the object bank
 4567: 11 10 00        LD      DE,$0010            ; record stride
@@ -8929,35 +8941,22 @@ loc_4594:
 4597: 36 00           LD      (HL),$00            ; clear it
 4599: 18 DE           JR      $4579               ; {code.loc_4579} move on
 
+; reached only via the "wrong-glyph" derail ($1772) and the loop-back
+; ($4660); the bytes run as harmless NOPs and stray-stack POPs. The real
+; routine is at $45B3.
+; ---- $459B-$45B2: misaligned anti-tamper entry ----
+459B: 16 A7 13 96 ED DC F1 8C 68 3B 0D ED F1 9B 13 13
+45AB: 13 13 F1 88 DC ED 11 B9
+
 ; step one object's timed warp/flash sequence: drift it with the world,
 ; seed the sprite's heading and shape from angle/Y-gated tables, then
 ; count a state byte down — the 0xB4 frame flags the sprite, bumps the
-; 0xA800 sentinel and posts sound de=0x040D, above-trigger frames step an
+; 0xA800 sentinel (which requests the warp sound at 0x580B when it wraps)
+; and posts command 0x04/0x0D to the ring, above-trigger frames step an
 ; eight-shape ROM cycle, and a spent counter resets to idle then loops or
 ; returns on two program-image gates; reached through a misaligned
 ; prologue (two POP AF, DEC SP) whose stray carry can fold in a life-loss
 stepMotherShipWarpFlashFrame:
-459B: 16 A7           LD      D,$A7               
-459D: 13              INC     DE                  
-459E: 96              SUB     (HL)                
-459F: ED DC           DEFB    $ED,$DC             
-45A1: F1              POP     AF                  ; pull a stray word off the stack -- the misaligned entry
-45A2: 8C              ADC     A,H                 
-45A3: 68              LD      L,B                 
-45A4: 3B              DEC     SP                  ; leave the stack pointer odd
-45A5: 0D              DEC     C                   
-45A6: ED F1           DEFB    $ED,$F1             
-45A8: 9B              SBC     A,E                 
-45A9: 13              INC     DE                  
-45AA: 13              INC     DE                  
-45AB: 13              INC     DE                  
-45AC: 13              INC     DE                  
-45AD: F1              POP     AF                  ; pull a second stray word, taking the flags from it
-45AE: 88              ADC     A,B                 
-45AF: DC ED 11        CALL    C,$11ED             ; {code.loseLifeAndHandOver} on the stray carry -- rarely -- drop into the life-loss handover
-45B2: B9              CP      C                   
-
-loc_45b3:
 45B3: CD 60 2B        CALL    $2B60               ; {code.driftWithWorldScroll} drift the object along with the world scroll
 45B6: FD 7E 31        LD      A,(IY+$31)          ; take its first coordinate
 45B9: 47              LD      B,A                 
@@ -9061,7 +9060,7 @@ loc_4646:
 465F: C8              RET     Z                   ; yes: end here
 
 loc_4660:
-4660: C3 9B 45        JP      $459B               ; {code.stepMotherShipWarpFlashFrame} run the warp/flash stepper again
+4660: C3 9B 45        JP      $459B               ; run the warp/flash stepper again
 
 loc_4663:
 4663: 3A C6 AC        LD      A,($ACC6)           ; {hard.workRam+4C6} is a round transition holding?
@@ -9593,7 +9592,7 @@ loc_49ca:
 49CB: 23              INC     HL                  
 49CC: 10 FC           DJNZ    $49CA               ; {code.loc_49ca} over all 256 bytes
 49CE: D6 C5           SUB     $C5                 ; compare the sum against its expected total (0xC5)
-49D0: C4 D8 00        CALL    NZ,$00D8            ; {code.loc_00d8} a tampered image derails into the frame handler
+49D0: C4 D8 00        CALL    NZ,$00D8            ; {code.saveAccumulatorForFrameInterrupt} a tampered image derails into the frame handler
 49D3: C3 EB 32        JP      $32EB               ; {code.petWatchdogThroughStartupDelayThenStartMachine} a good image cold-starts the machine and does not return
 
 ; drive one hardware output line as a train of square pulses, one pulse
@@ -9626,21 +9625,11 @@ loc_49f5:
 49F8: 35              DEC     (HL)                ; take one coin off it so the next pulse can start
 49F9: C9              RET                         
 
-loc_49fa:
-49FA: EE A6           XOR     $A6                 
-49FC: 14              INC     D                   
-49FD: A5              AND     L                   
-49FE: 3B              DEC     SP                  
-49FF: 87              ADD     A,A                 
-4A00: F1              POP     AF                  
-4A01: DC D7 BF        CALL    C,$BFD7             
-4A04: F1              POP     AF                  
-4A05: DC C4 FD        CALL    C,$FDC4             
-4A08: ED F1           DEFB    $ED,$F1             
-4A0A: 7D              LD      A,L                 
-4A0B: A5              AND     L                   
-4A0C: 38 34           JR      C,$4A42             ; {code.paintCaptionColourBandAndStepSequence}
-4A0E: B9              CP      C                   
+; reached only via the "wrong-glyph" derail ($19E6); the bytes run as
+; harmless NOPs and stray-stack POPs. The real routine is at $4A0F.
+; ---- $49FA-$4A0E: misaligned anti-tamper entry ----
+49FA: EE A6 14 A5 3B 87 F1 DC D7 BF F1 DC C4 FD ED F1
+4A0A: 7D A5 38 34 B9
 
 ; lay out one phase of the sequenced intro/self-test screen: stock an
 ; 8-byte control block at 0xA9F0 (ROM shape byte 0x3213, fixed fields,
@@ -9939,7 +9928,9 @@ loadDefaultHighScores:
 4BC1: 02 60 84 00 38 11 FD F1 03 20 65 00 68 11 68 F1
 4BD1: 04 00 43 00 BF 11 A5 F1
 
-loc_4bd9:
+; a bare transfer to 0x08AE and no return; no cell is read or written and
+; no register moves
+trampolineToSelectFoldBlock:
 4BD9: C3 AE 08        JP      $08AE               ; {code.selectFoldBlock} hand on to the routine that picks a program block to fold
 
 ; paint five labelled numeric readouts up the tile plane: seat each of
@@ -11409,7 +11400,11 @@ loc_562a:
 5632: E1              POP     HL                  
 5633: C9              RET                         
 
-loc_5634:
+; queue seven sound codes back to back with no play test: six fetched one
+; each from its own cell of the program image, so an edit to the image
+; changes what is asked for, and a seventh formed by adding the era index
+; to a fixed base
+enqueueTransitionSoundBurst:
 5634: 3A 7C 16        LD      A,($167C)           ; {hard.rom+167C} a sound code from the program image
 5637: CD 28 56        CALL    $5628               ; {code.enqueueSoundUnconditional} queue it, no permission test
 563A: 3A 9C 0A        LD      A,($0A9C)           ; {hard.rom+A9C} the next code
