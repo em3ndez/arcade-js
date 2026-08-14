@@ -252,6 +252,28 @@ batch and feeds the next batch's targets.
 
 ### The understand half
 
+**★ An understanding pass is TWO stages, and the second is MANDATORY. Naming is stage A; GROUNDING is
+stage B; a pass that stops after stage A is not finished and MUST NOT be committed as done.** Stage A
+(name from body + callers, two blind derivers, promote on convergence) produces `[code]` *proposals* —
+a self-consistent reading of the code, nothing more. Stage B plays and pokes each proposal on the
+**real ROM under MAME** — never our own engine, which is our own model, so grounding against it is
+circular — to lift it `[code]`→`[seen]` or to OVERTURN it. **A batch of fresh `[code]` names plus a
+`[code]`/`[guess]` `mechanisms.md` is a grounding WORK-LIST, not a finished map**; the pass completes
+only when that list is grounded-or-accounted-for, under **proposer≠confirmer** (whoever grounds a name
+is not who proposed it — a prose review is not grounding). Honestly tagging an uncertain item `[guess]`
+does **not** discharge stage B: a `[code]` name is a proposal that owes a grounding, not a finished
+label. If you did not run MAME this pass, you have not grounded, and the pass is not done. (Full
+formula and method in `understanding.md`; it is not optional there and not optional here.)
+
+**Why stage B gets skipped — the failure mode this rule exists to stop.** Grounding leaves almost no
+*diff* artifacts: it is `[seen]` tags, notes, and the occasional overturned name — not `git mv`
+renames. So reconstructing "how an understanding pass works" from a past commit's diff shows only stage
+A (the renames + the map) and silently omits stage B. **Derive the method from this runbook and
+`understanding.md`, never from the shape of an old commit.** (Recorded, 2026-08-14: a frogger
+understanding pass reconstructed its method from a prior commit's diff, named + mapped everything at
+`[code]`, and was one review away from shipping stage-A-only — the map read as finished because every
+tag was honest; honest tags are not grounding.)
+
 - **Confidence-tag every claim:** `[seen]` (chain ends in a MAME observation), `[code]` (from a
   translated routine's behaviour — harness replay), `[guess]`. A confidently-wrong role is worse than
   a neutral `loc_`.
@@ -263,6 +285,20 @@ batch and feeds the next batch's targets.
   other), promote **only on convergence**, then a third **adversarial** re-derivation — two blind
   derivers can converge on the same wrong reading. The lead edits `names.js`, never a proposer. A name
   isn't done until code **uses** it (`names.js` + retrofit in one commit).
+- **Promoting an idiomatic name = a rename retrofit in ONE commit — the concrete steps** (they live
+  here so no one reverse-engineers them from a past commit's diff): `git mv
+  games/<game>/idiomatic/loc_<addr>.js <name>.js`; rename the **exported function** to match the file
+  (`resolveAllIdiomatic` imports `mod[name]`, so export name = the ROUTINES `name` = the filename); in
+  the equivalence gate, repoint the **idiomatic** import + its usages to `../<name>.js` but **leave the
+  frozen oracle import `../../translated/loc_<addr>.js as oracle` untouched** — the translated layer
+  keeps `loc_` forever, and the gate file itself keeps its `equivalence-<addr>` address name; update the
+  `names.js` ROUTINES `name` field (and prose that cites the routine); rewrite `mechanisms.md` in the
+  **same** commit (`understanding_gate` CHECK A binds a names.js change to a staged `mechanisms.md`;
+  CHECK B forbids any **retired** `loc_` name from appearing in the map). Do the identifier swap with a
+  **word-boundary script**, never a blanket replace — a blanket replace rewrites the frozen oracle
+  import and the shared data-name consts. `git mv` stages the OLD blob, so `git add` the edited file and
+  `git diff --cached` to confirm the rename **and** the content landed. The commit subject is
+  `<game>: understanding pass N — …` (classifies UNDERSTANDING for R1).
 - **Name by EFFECT**, not internal mechanism — trace each live-out to its final consumer and name the
   verb it causes (`steer`/`spawn`, not `classify`/`detect`); if the output is read in place of another
   input, the routine *generates* that input. Name a routine whose **mechanism** is confident even if
