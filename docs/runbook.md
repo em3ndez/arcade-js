@@ -111,7 +111,13 @@ real running game, not attract mode.
   count as refusal — **never trust the suite's exit code** (it exits 0 when it can't run). Which layer
   the gate renders vs MAME is a **CLI switch** (`render.js --idiomatic` vs the translated path), never
   `manifest.runtime` — "which layer the player runs" is not "which layer I'm validating vs MAME right
-  now." Confirm the render path paints **sprites**, not just the tilemap.
+  now." Confirm the render path paints **sprites**, not just the tilemap. **Bootstrapping a NEW
+  game:** it cannot render a frame matching MAME until translation reaches a rendering state (the
+  boot must clear its computed-jump dispatchers), so committing the early translation batches would
+  otherwise be refused. Add a TEMPORARY, checkable `EXEMPT` entry for the game in
+  `pixel_gate_required.py` (reason: mid-translation, no rendered frame yet — a reviewer verifies by
+  booting it to an unregistered-routine gap) and **REMOVE it, declaring the real suite, at the first
+  rendered frame.**
 - `make verify` is **not** the pixel gate (it is a disassembly decoder check for another game's ROM).
 
 ## 3 — Translation pass (disassemble + faithful lift → the frozen oracle)
@@ -139,8 +145,13 @@ real running game, not attract mode.
   work-RAM guard firing ⇒ the port has a bug).
 - Faithful lift = **memory-equivalent + mutation-tested, validated in isolation off the live game**.
   The translated layer carries **no prose** (SPDX, a one-line identity, per-instruction address/
-  mnemonic comments; a trailing `--` clause names what bytes *are*, never a mechanism). ~20
-  routines/batch while the next is written; regenerate the registry after batches land
+  mnemonic comments; a trailing `--` clause names what bytes *are*, never a mechanism). **Write it
+  UNDER the `comment_gate` density cap (comments ≤ code//4 + 4) from the first draft** — keep the
+  checkable `--` clauses, drop mnemonic-only restatements (an address/mnemonic line with no `--` clause
+  is usually cuttable, and a two-line JSDoc that fits on one should be one). A batch that lands under cap
+  needs no pruning pass. This binds **boards, manifests and test files too** — Time Pilot is the quality
+  model (its files predate the cap and are grandfathered, so match their KIND, not their higher density).
+  ~20 routines/batch while the next is written; regenerate the registry after batches land
   (`gen-registry.mjs`), not per batch.
 
 ## 4 — Idiomatic pass (the spiral)
@@ -345,3 +356,23 @@ follow this runbook**. They work and are pixel-validated against MAME, but their
 wiring, and configuration predate the process here, so expect inconsistencies. **This is known, not a
 defect to chase.** The runbook is the go-forward spec; the existing ports are legacy it supersedes.
 **Do not retrofit them** — reconcile them only once this process is proven on a new game.
+
+---
+
+## Autonomous process decisions — review-pending
+
+Process decisions made autonomously while porting a new game under the "entirely without my input"
+directive that RESHAPE this process or touch a rigor gate are logged here so the accumulated set is
+reviewable in one place — reverse any that would have been called differently.
+
+- **2026-08-13 — New-game pixel-gate bootstrapping** (§2): a temporary, checkable `EXEMPT` entry in
+  `pixel_gate_required.py` for a game mid-translation (it cannot render a frame matching MAME until the
+  boot clears its computed-jump dispatchers), removed at the first rendered frame. Uses the gate's own
+  sanctioned "cannot-run + checkable reason" mechanism — not a gate disable.
+- **2026-08-13 — comment_gate on a new-game foundation:** the density cap trips the whole new foundation
+  (board JSDoc + per-instruction oracle comments) because the shipped games are grandfathered. Resolved
+  by TRIMMING under the cap — drop mnemonic-only + verbose restating, keep the load-bearing rationale,
+  checkable clauses, and mutation anchors — NOT by exempting. Consistent with "cut prose, don't raise the
+  cap" and this doc's own sanction to drop mnemonic-only oracle comments when a file trips the cap.
+  Karl's follow-up directive: instruct the translation/board agents to write UNDER the cap from the first
+  draft (§3 bullet) so no pruning pass is needed on future ports.
