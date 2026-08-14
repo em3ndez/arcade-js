@@ -153,6 +153,14 @@ real running game, not attract mode.
   model (its files predate the cap and are grandfathered, so match their KIND, not their higher density).
   ~20 routines/batch while the next is written; regenerate the registry after batches land
   (`gen-registry.mjs`), not per batch.
+- **Fan out the batch whenever the routines are disjoint** — parallelise whenever possible. A batch of
+  independent routines is a serial→parallel→serial sandwich: ONE setup (fold the entrypoints, re-trace to a
+  single stable `dk.asm`, pre-assign each routine's RANGE), **N parallel translators — one routine each**,
+  then ONE merge (regenerate the registry, run the boot gate + stepcheck on the assembled set). Distinct
+  `loc_<addr>.js`/`<addr>.test.js` files never merge-conflict; the only cross-agent care is those
+  pre-assigned ranges (so two agents don't disagree on a boundary) plus a style/ABI-consistency check at
+  review. Shared files (the registry, board files) stay under serial control. This parallelism is *within*
+  a batch — the across-batch rule still holds (don't open the next batch while this one is under review).
 
 ## 4 — Idiomatic pass (the spiral)
 
@@ -374,5 +382,5 @@ reviewable in one place — reverse any that would have been called differently.
   by TRIMMING under the cap — drop mnemonic-only + verbose restating, keep the load-bearing rationale,
   checkable clauses, and mutation anchors — NOT by exempting. Consistent with "cut prose, don't raise the
   cap" and this doc's own sanction to drop mnemonic-only oracle comments when a file trips the cap.
-  Karl's follow-up directive: instruct the translation/board agents to write UNDER the cap from the first
-  draft (§3 bullet) so no pruning pass is needed on future ports.
+  Follow-up (§3): translation/board agents now write UNDER the cap from the first draft, so no pruning pass
+  is needed on future ports.
