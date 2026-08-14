@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//
-// The dissolve invariant, as a game-agnostic scan: no idiomatic routine may m.call() an address
-// already decompiled in the same game. A stale m.call and a direct call are memory-equivalent, so
-// the per-routine gate and its reviewer both pass one; only a cross-file scan catches it. A callee
-// with no idiomatic file is a genuine oracle boundary and stays m.call.
+// The dissolve invariant, game-agnostic: no idiomatic routine may m.call() an address already
+// decompiled in the same game -- a stale m.call is memory-equivalent to a direct call, so only a
+// cross-file scan catches it. A callee with no idiomatic file is a genuine oracle boundary.
 import { readdirSync, readFileSync, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { ALLOWED, DEBT } from "./no-stale-mcall.config.mjs";
+import { ALLOWED, DEBT, SPINE } from "./no-stale-mcall.config.mjs";
 
 /** Addresses with a committed idiomatic file, identified by their equivalence gate. */
 export function decompiledAddresses(idiomaticDir) {
@@ -16,8 +14,7 @@ export function decompiledAddresses(idiomaticDir) {
   const out = new Set();
   if (!existsSync(testDir)) return out;
   for (const t of readdirSync(testDir)) {
-    // The gate filename is the one unambiguous signal; scanning sources for an address
-    // false-positives on prose naming an oracle-boundary callee.
+    // The gate filename is the one unambiguous signal; source prose false-positives on boundaries.
     const m = t.match(/^equivalence-([0-9a-f]{4})\.test\.js$/);
     if (m) out.add(parseInt(m[1], 16));
   }
@@ -25,34 +22,31 @@ export function decompiledAddresses(idiomaticDir) {
 }
 
 /**
- * Every stale m.call in one game's idiomatic layer.
- *
- * `allow` maps a caller filename to targets it may legitimately keep as m.call: never-returning
- * boundaries whose tails cannot be dissolved, because the harness stubs them through the registry
- * and that only works via m.call.
- *
- * ★ REFUSES TO JUDGE rather than reporting clean: an empty decompiled set makes every m.call
- * invisible, so a layer with routines but no gates would score zero leaks and read as a pass --
- * this lint's own disease. It takes EVERY routine ahead of every gate, not merely some, so a
- * batch landing mid-flight does not trip it; a layer with no gate at all breaches R12 anyway.
+ * Every stale m.call in one game's idiomatic layer. `allow` maps a caller file to m.call targets it
+ * may keep (never-returning boundaries the harness stubs through the registry, which needs m.call).
+ * REFUSES to score ungated files against an empty decompiled set -- that reads clean while seeing
+ * nothing. The lone legit exception is the go-live foundation, whose only files are the coroutine
+ * SPINE (no equivalence gate by design): excused from seeding the set, still scanned, so a spine
+ * m.call to a later-decompiled leaf is still caught. `spine` overrides the config, for the selftest.
  */
-export function findStaleMcalls(idiomaticDir, allow = new Map()) {
+export function findStaleMcalls(idiomaticDir, allow = new Map(), spine = null) {
   const decompiled = decompiledAddresses(idiomaticDir);
   const files = existsSync(idiomaticDir)
     ? readdirSync(idiomaticDir).filter((f) => f.endsWith(".js") && f !== "names.js")
     : [];
-  if (files.length > 0 && decompiled.size === 0) {
+  const spineFiles = spine ?? new Set(SPINE[basename(dirname(idiomaticDir))] ?? []);
+  const ungated = files.filter((f) => !spineFiles.has(f));
+  if (ungated.length > 0 && decompiled.size === 0) {
     throw new Error(
-      `${idiomaticDir}: ${files.length} idiomatic file(s) but no equivalence gate names an ` +
-        "address, so no call can be recognised as stale. This is not a clean scan.",
+      `${idiomaticDir}: ${ungated.length} non-spine idiomatic file(s) but no equivalence gate ` +
+        "names an address, so no call can be recognised as stale. This is not a clean scan.",
     );
   }
 
   const leaks = [];
   for (const f of files) {
     const src = readFileSync(join(idiomaticDir, f), "utf8");
-    // Resolve file-local `const NAME = 0x....;` aliases first: otherwise `m.call(ACTOR_UPDATE)`
-    // is a const-alias evasion invisible to a scan matching only literal hex.
+    // Resolve file-local `const NAME = 0x..;` aliases: m.call(NAME) else evades a literal-hex scan.
     const alias = new Map();
     for (const c of src.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*0x([0-9a-f]{2,4})\b/gi)) {
       alias.set(c[1], parseInt(c[2], 16));
@@ -87,21 +81,11 @@ export function toAllowMap(spec = {}) {
   return new Map(Object.entries(spec).map(([f, addrs]) => [f, new Set(addrs)]));
 }
 
-// ── running this file as a command ──────────────────────────────────────────────────────
-//
-// ★ WITHOUT THIS BLOCK, `node tools/no-stale-mcall.mjs` EXITED 0 ON ANY TREE. The file was
-// exports only, so running it proved that it parses and nothing else -- and a command that
-// returns success for every input gets quoted as evidence by whoever has not been caught by it
-// yet. It was cited as a passing check for a whole session while the real gate,
-// tools/test/no-stale-mcall.test.js, was the thing catching leaks. The trap does not announce
-// itself, so the fix is to make the command DO the scan and exit NON-ZERO when it finds one.
+// Run as a command: DO the scan and exit non-zero. Without this the file was exports only, so
+// `node <this>` exited 0 on any tree -- a check that always passes gets quoted as evidence.
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const games = join(dirname(fileURLToPath(import.meta.url)), "..", "games");
   const scanned = gamesWithIdiomaticLayer(games);
-  // ★ REFUSE TO REPORT SUCCESS HAVING MEASURED NOTHING -- the same disease, one corner in. An
-  // empty game list, or a game whose idiomatic/ holds no files, would otherwise print a clean
-  // line and exit 0. The test carries these two assertions; without them the command is LAXER
-  // than the gate it stands in for, which is how the original defect got here.
   if (!scanned.length) {
     console.error(`no game under ${games} has an idiomatic layer: nothing was scanned`);
     process.exit(2);

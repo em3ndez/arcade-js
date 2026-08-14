@@ -368,3 +368,9 @@ never reaches the converted routines. Skip them with a pointer here (keep the fi
 harness + rationale); the leaf/gameplay `equivalence-<addr>.test.js` that DON'T touch the spine stay live.
 `manifest.idiomatic` + `tools/swap_check.mjs` (the one-leaf-at-a-time promotion set/classifier) are retired
 with them — the whole idiomatic layer now runs live, so there is no promotion subset to track.
+
+Because a spine routine has no `equivalence-<addr>.test.js`, a go-live foundation whose idiomatic layer
+holds ONLY spine files names no decompiled address, and the dissolve lint (`tools/no-stale-mcall.mjs`)
+would otherwise refuse to score it. List those files under `SPINE` in `tools/no-stale-mcall.config.mjs`:
+they are excused from seeding the decompiled set, but still scanned, so a spine `m.call` to a leaf
+decompiled in a later batch is still caught.

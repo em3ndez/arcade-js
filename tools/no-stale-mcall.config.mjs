@@ -1,5 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
+/**
+ * SPINE: the go-live coroutine spine files, which carry no equivalence-<addr> gate by design (the
+ * coroutine and pixel gates subsume it; docs/integration-testing.md). A layer of only spine files
+ * names no decompiled address; they are exempt from SEEDING the set but still scanned for leaks.
+ */
+export const SPINE = {
+  frogger: ["drainForegroundThenYieldEachVblank.js", "endForegroundPassAtPaceTail.js"],
+};
+
 export const ALLOWED = {
   thepit: {
     "initRoundAndEnterMainLoop.js": [0x0348], // -> mainLoop

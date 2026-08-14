@@ -16,6 +16,8 @@
 // from that config is scanned strictly.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -49,3 +51,57 @@ for (const game of gamesWithIdiomaticLayer(GAMES)) {
     console.log(`  ${game}: no new leaks${carried}`);
   });
 }
+
+// The SPINE exemption, on synthetic fixtures so it does not ride real game state. A go-live spine
+// layer names no gate legitimately; the exemption must stay NARROW and must not blind the leak scan.
+function fixture(files, gates = []) {
+  const root = mkdtempSync(join(tmpdir(), "stalemcall-"));
+  const dir = join(root, "idiomatic");
+  mkdirSync(dir);
+  for (const [name, src] of Object.entries(files)) writeFileSync(join(dir, name), src);
+  if (gates.length) {
+    mkdirSync(join(dir, "test"));
+    for (const a of gates) writeFileSync(join(dir, "test", `equivalence-${a}.test.js`), "");
+  }
+  return { dir, cleanup: () => rmSync(root, { recursive: true, force: true }) };
+}
+
+test("SPINE: a spine-only layer names no decompiled address and is NOT refused", () => {
+  const spine = new Set(["driveSpine.js"]);
+  const { dir, cleanup } = fixture({ "driveSpine.js": "export function* driveSpine(m){ m.call(0x0d11); }" });
+  try {
+    const { leaks, files } = findStaleMcalls(dir, new Map(), spine);
+    assert.deepEqual(leaks, [], "a spine call to an un-decompiled oracle boundary is not a leak");
+    assert.equal(files.length, 1, "the spine file is still among the files scanned");
+  } finally {
+    cleanup();
+  }
+});
+
+test("SPINE: a NON-spine file with no gate STILL refuses -- the exemption is narrow", () => {
+  const spine = new Set(["driveSpine.js"]);
+  const { dir, cleanup } = fixture({
+    "driveSpine.js": "export function* driveSpine(){}",
+    "someLeaf.js": "export function someLeaf(m){ m.call(0x1234); }",
+  });
+  try {
+    assert.throws(() => findStaleMcalls(dir, new Map(), spine), /no equivalence gate/);
+  } finally {
+    cleanup();
+  }
+});
+
+test("SPINE: a spine file's m.call to a DECOMPILED leaf is still caught", () => {
+  const spine = new Set(["driveSpine.js"]);
+  const { dir, cleanup } = fixture(
+    { "driveSpine.js": "export function* driveSpine(m){ m.call(0x1234); }" },
+    ["1234"],
+  );
+  try {
+    const { leaks } = findStaleMcalls(dir, new Map(), spine);
+    assert.equal(leaks.length, 1, "a spine's stale m.call to a decompiled leaf must be flagged");
+    assert.equal(leaks[0].addr, 0x1234);
+  } finally {
+    cleanup();
+  }
+});
