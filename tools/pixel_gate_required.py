@@ -60,6 +60,7 @@ PIXEL_SUITE_PASS = re.compile(r"^pixel_suite: PASS", re.M)
 SUITES = {
     "timeplt": [(["python3", "games/timeplt/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "thepit": [(["python3", "games/thepit/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
+    "frogger": [(["python3", "games/frogger/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
 }
 
 MANUAL = {
@@ -75,13 +76,7 @@ MANUAL = {
 #: ★ AN ENTRY EXEMPTS THE GAME UNTIL REMOVED, waiving every later commit silently. Kept NEAR-EMPTY
 #: by design: legitimate ONLY when the gate cannot run and the reason is one a reviewer can check --
 #: the canonical case is a NEW game mid-translation that cannot render a frame yet (see docs/runbook.md).
-EXEMPT = {
-    # ★ TEMPORARY -- remove at frogger's FIRST rendered frame, then declare its pixel_suite in SUITES.
-    "frogger": "mid-translation new game: the boot stalls at the jp(hl) dispatcher wall before it "
-               "draws a full frame, so there is no rendered output to diff against MAME yet -- a "
-               "reviewer verifies this by booting it (it reaches an unregistered-routine gap, not a "
-               "frame). Remove this waiver and add a frogger pixel_suite the moment it renders.",
-}
+EXEMPT = {}
 
 
 def staged_paths():

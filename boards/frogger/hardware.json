@@ -7,10 +7,11 @@
     "inputs@5228, gfx layouts@7391; and galaxian_v.cpp: galaxian_palette@238, RGB_MAXIMUM@229.",
     "Numbers are decimal (JSON has no 0x); '_hex'/'_note' fields are annotations the loader ignores.",
     "",
-    "★ ROM-DEPENDENT / BOOT-DEPENDENT FIELDS NOT YET MEASURED (validated only by synthetic unit",
-    "tests, no MAME golden run yet): the IN1/IN2 idle values (derived from DIPSETTING defaults,",
-    "not measured), controlByte, landmarks. Flagged below; set from a MAME -noreadconfig run",
-    "before any gate that reads them is trusted."
+    "★ MEASURED from a MAME run (SDL_VIDEODRIVER=dummy, fresh -cfg_directory, -noreadconfig defaults):",
+    "controlByte=0x3A (ROM[0x0000]), IN1=0xFC, IN2=0xF1, and the Z80 reset state, all at t=0 -- and the",
+    "IN1/IN2 program-space reads equal the direct ioport reads. STILL UNMEASURED: landmarks (need boot-",
+    "init-done + first-vblank-NMI cycles). dsw0 below points at IN2 because galaxian interleaves the dips",
+    "into IN1/IN2 with no standalone DSW port; the shared checker certifies one port (IN2)."
   ],
 
   "driver": "frogger",
@@ -45,13 +46,15 @@
   "_inputs_note": "There is NO separate DSW port: the dip bits are interleaved into IN1/IN2 (galaxian.cpp:5228-5269). All input bits are IP_ACTIVE_LOW (idle high). Idle values below are DERIVED from the DIPSETTING defaults (all 0x00), NOT measured from MAME.",
   "inputs": {
     "IN0": { "addr": 57344, "idle": 255, "_hex_addr": "0xE000 (PPI0.A)", "_bits": "b0=UP(cocktail,4way) b2=SERVICE1 b4=RIGHT(4way) b5=LEFT(4way) b6=COIN2 b7=COIN1; b1,b3 unused. idle 0xFF." },
-    "IN1": { "addr": 57346, "idle": 252, "_hex_addr": "0xE002 (PPI0.B)", "_hex_idle": "0xFC", "_bits": "b0-1=DSW Lives(default 0x00=3) b4=RIGHT(cocktail) b5=LEFT(cocktail) b6=START2 b7=START1; b2,b3 unused. idle = 0xFF & ~0x03 (Lives default) = 0xFC. ★ DERIVED not measured -- CONFIRM." },
-    "IN2": { "addr": 57348, "idle": 241, "_hex_addr": "0xE004 (PPI0.C)", "_hex_idle": "0xF1", "_bits": "b0=DOWN(cocktail) b1-2=DSW Coinage(default 0x00=1/1) b3=DSW Cabinet(default 0x00=upright) b4=UP(4way) b6=DOWN(4way); b5,b7 unused. idle = 0xFF & ~0x0E = 0xF1. ★ DERIVED not measured -- CONFIRM." },
+    "IN1": { "addr": 57346, "idle": 252, "_hex_addr": "0xE002 (PPI0.B)", "_hex_idle": "0xFC", "_bits": "b0-1=DSW Lives(default 0x00=3) b4=RIGHT(cocktail) b5=LEFT(cocktail) b6=START2 b7=START1; b2,b3 unused. idle = 0xFF & ~0x03 (Lives default) = 0xFC. ✓ MEASURED 0xFC at t=0 (== direct ioport read)." },
+    "IN2": { "addr": 57348, "idle": 241, "_hex_addr": "0xE004 (PPI0.C)", "_hex_idle": "0xF1", "_bits": "b0=DOWN(cocktail) b1-2=DSW Coinage(default 0x00=1/1) b3=DSW Cabinet(default 0x00=upright) b4=UP(4way) b6=DOWN(4way); b5,b7 unused. idle = 0xFF & ~0x0E = 0xF1. ✓ MEASURED 0xF1 at t=0 (== direct ioport read)." },
     "IN3": { "addr": 53252, "idle": 0, "_hex_addr": "0xD004 (PPI1.C)", "_bits": "IPT_UNUSED, all bits 0x00. 'need for some PPI accesses'. galaxian.cpp:5267." }
   },
 
-  "controlByte": 0,
-  "_controlByte_TODO": "★ PLACEHOLDER 0 -- UNMEASURED. ROM[0x0000] first byte (config-probe that the program ROM loaded). Set from the real frogger.26 maincpu ROM before trusting.",
+  "dsw0": { "addr": 57348, "expected": 241, "_hex_addr": "0xE004 (IN2/PPI0.C)", "_hex_expected": "0xF1 -- MEASURED at t=0 from a MAME -noreadconfig run, all dips default. Galaxian has NO standalone DSW port; the shared config-probe certifies IN2 = Coinage(b1-2)+Cabinet(b3, screen-flip), the config most able to corrupt a golden. IN1/Lives (0xE002=0xFC) is recorded as dsw1 by the dumpers but NOT verified by the shared single-DSW0 checker." },
+
+  "controlByte": 58,
+  "_controlByte_hex": "0x3A -- ROM[0x0000] first byte (LD A,(nn)); config-probe that the program ROM loaded. MEASURED from a MAME run (== games/frogger/rom/maincpu.bin byte 0). Non-0xFF, so it distinguishes a real read from this board's 0xFF unmapped-read float.",
 
   "z80Reset": {
     "AF": 64, "BC": 0, "DE": 0, "HL": 0, "IX": 65535, "IY": 65535, "SP": 0,
