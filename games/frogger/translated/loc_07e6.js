@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 // loc_07e6  (ROM 0x07E6-0x0803) — clear the current player's work RAM: return in a 1-player game
-// ((0x83FE)==1), else zero 0x8044-0x8063 and 0x8420-0x842B via two LDIRs. Called at game-start and
-// from loc_0457.
+// ((0x83FE)==1), else fall through into loc_07eb (below) which does the clear. Called at game-start
+// and from loc_0457.
 export function loc_07e6(m) {
   const { regs, mem } = m;
 
@@ -14,7 +14,14 @@ export function loc_07e6(m) {
     m.ret(11);
     return;
   }
-  m.step(0x07eb, 5);
+  m.step(0x07eb, 5); // ret z not taken -- fall through into loc_07eb
+  return m.call(0x07eb);
+}
+
+// loc_07eb  (ROM 0x07EB-0x0803) — force the clear: zero 0x8044-0x8063 and 0x8420-0x842B via two
+// LDIRs, unconditionally. loc_0567 (B4) enters here directly to skip the single-player check.
+export function loc_07eb(m) {
+  const { regs, mem } = m;
 
   regs.xor(regs.a);
   m.step(0x07ec, 4);

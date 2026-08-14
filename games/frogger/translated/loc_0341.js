@@ -6,75 +6,84 @@
 // `call nz,0x0b67` and `call 0x230f`. After a spin-delay on (0x83C7) it either jumps to the in-play
 // entry loc_040b (when 0x83FE set) or, on a START press with enough credits, deducts a credit and
 // runs the one-time new-game setup (0x03A7-0x040A) before falling into loc_040b.
-export function loc_0341(m) {
+// loc_0368 is a mid-entry (spin-delay tail 0x0368-0x040A) that five in-play units `jp 0x0368` into to
+// skip the head; both entries run loc0341From, keeping the attract loop a single flat for(;;) — a
+// stack-safety requirement (runFrames does not unwind per frame; recursion would overflow at 640f).
+export function loc_0341(m) { return loc0341From(m, 0x0341); }
+export function loc_0368(m) { return loc0341From(m, 0x0368); }
+
+function loc0341From(m, entry) {
   const { regs, mem } = m;
 
   for (;;) {
-    // loc_0341:
-    regs.a = mem.read8(0x83d6);
-    m.step(0x0344, 13); // A = (0x83d6) mode byte
+    if (entry === 0x0341) {
+      // loc_0341:
+      regs.a = mem.read8(0x83d6);
+      m.step(0x0344, 13); // A = (0x83d6) mode byte
 
-    regs.cp(0x02);
-    m.step(0x0346, 7);
+      regs.cp(0x02);
+      m.step(0x0346, 7);
 
-    if (regs.fNC) {
-      m.push16(0x0349);
-      m.step(0x0d11, 17); // call nc,0x0d11 -- mode>=2 attract/mode dispatcher
-      m.call(0x0d11);
-    } else {
-      m.step(0x0349, 10);
+      if (regs.fNC) {
+        m.push16(0x0349);
+        m.step(0x0d11, 17); // call nc,0x0d11 -- mode>=2 attract/mode dispatcher
+        m.call(0x0d11);
+      } else {
+        m.step(0x0349, 10);
+      }
+
+      m.push16(0x034c);
+      m.step(0x0b1f, 17); // call 0x0b1f
+      m.call(0x0b1f);
+
+      regs.a = mem.read8(0x83d6);
+      m.step(0x034f, 13);
+
+      regs.a = regs.dec8(regs.a);
+      m.step(0x0350, 4); // Z iff mode == 1
+
+      if (regs.fNZ) {
+        m.push16(0x0353);
+        m.step(0x0b67, 17); // call nz,0x0b67
+        m.call(0x0b67);
+      } else {
+        m.step(0x0353, 10);
+      }
+
+      m.push16(0x0356);
+      m.step(0x230f, 17); // call 0x230f
+      m.call(0x230f);
+
+      regs.a = 0x02;
+      m.step(0x0358, 7);
+      regs.hl = 0x8254;
+      m.step(0x035b, 10);
+      mem.write8(regs.hl, regs.a);
+      m.step(0x035c, 7); // (0x8254)=0x02
+      regs.hl = (regs.hl + 1) & 0xffff;
+      m.step(0x035d, 6);
+      mem.write8(regs.hl, regs.a);
+      m.step(0x035e, 7); // (0x8255)=0x02
+      regs.a = 0x09;
+      m.step(0x0360, 7);
+      regs.hl = (regs.hl + 1) & 0xffff;
+      m.step(0x0361, 6);
+      mem.write8(regs.hl, regs.a);
+      m.step(0x0362, 7); // (0x8256)=0x09
+      regs.hl = (regs.hl + 1) & 0xffff;
+      m.step(0x0363, 6);
+      mem.write8(regs.hl, regs.a);
+      m.step(0x0364, 7);
+      regs.hl = (regs.hl + 1) & 0xffff;
+      m.step(0x0365, 6);
+      mem.write8(regs.hl, regs.a);
+      m.step(0x0366, 7);
+      regs.hl = (regs.hl + 1) & 0xffff;
+      m.step(0x0367, 6);
+      mem.write8(regs.hl, regs.a);
+      m.step(0x0368, 7); // (0x8254..0x8259) = 02 02 09 09 09 09
     }
-
-    m.push16(0x034c);
-    m.step(0x0b1f, 17); // call 0x0b1f
-    m.call(0x0b1f);
-
-    regs.a = mem.read8(0x83d6);
-    m.step(0x034f, 13);
-
-    regs.a = regs.dec8(regs.a);
-    m.step(0x0350, 4); // Z iff mode == 1
-
-    if (regs.fNZ) {
-      m.push16(0x0353);
-      m.step(0x0b67, 17); // call nz,0x0b67
-      m.call(0x0b67);
-    } else {
-      m.step(0x0353, 10);
-    }
-
-    m.push16(0x0356);
-    m.step(0x230f, 17); // call 0x230f
-    m.call(0x230f);
-
-    regs.a = 0x02;
-    m.step(0x0358, 7);
-    regs.hl = 0x8254;
-    m.step(0x035b, 10);
-    mem.write8(regs.hl, regs.a);
-    m.step(0x035c, 7); // (0x8254)=0x02
-    regs.hl = (regs.hl + 1) & 0xffff;
-    m.step(0x035d, 6);
-    mem.write8(regs.hl, regs.a);
-    m.step(0x035e, 7); // (0x8255)=0x02
-    regs.a = 0x09;
-    m.step(0x0360, 7);
-    regs.hl = (regs.hl + 1) & 0xffff;
-    m.step(0x0361, 6);
-    mem.write8(regs.hl, regs.a);
-    m.step(0x0362, 7); // (0x8256)=0x09
-    regs.hl = (regs.hl + 1) & 0xffff;
-    m.step(0x0363, 6);
-    mem.write8(regs.hl, regs.a);
-    m.step(0x0364, 7);
-    regs.hl = (regs.hl + 1) & 0xffff;
-    m.step(0x0365, 6);
-    mem.write8(regs.hl, regs.a);
-    m.step(0x0366, 7);
-    regs.hl = (regs.hl + 1) & 0xffff;
-    m.step(0x0367, 6);
-    mem.write8(regs.hl, regs.a);
-    m.step(0x0368, 7); // (0x8254..0x8257) = 02 02 09 09 09 09
+    entry = 0x0341; // subsequent passes (jr 0x0341 loop-backs) always run the head
 
     // loc_0368:
     regs.hl = mem.read16(0x83c7);

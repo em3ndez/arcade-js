@@ -5,10 +5,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Machine } from "../../machine.js";
-import { loc_07e6 } from "../loc_07e6.js";
+import { loc_07e6, loc_07eb } from "../loc_07e6.js";
 
 function mk(players) {
-  const m = new Machine(new Uint8Array(0x4000), new Map());
+  const m = new Machine(new Uint8Array(0x4000), new Map([[0x07eb, loc_07eb]]));
   m.nextNmi = Infinity; m.nextBoundary = Infinity; m.maxCycles = Infinity; m.maxFrames = Infinity;
   m.regs.sp = 0x8800; m.push16(0xbeef);
   m.mem.workRam[0x3fe] = players;
