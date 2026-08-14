@@ -1,0 +1,92 @@
+[
+  {
+    "addr": "0x2d23",
+    "why": "loc_2cf0 jp(hl) at 0x2d22, coinage index DE=(0x83d4)=0 -> jr 0x2d49",
+    "provenance": "computed jr-trampoline table, bounded by loc_2cf0 (0x2cf0-0x2d87); DE in {0,2,4,6}"
+  },
+  {
+    "addr": "0x2d25",
+    "why": "loc_2cf0 jp(hl) at 0x2d22, coinage index DE=2 -> jr 0x2d42",
+    "provenance": "computed jr-trampoline table, bounded by loc_2cf0"
+  },
+  {
+    "addr": "0x2d27",
+    "why": "loc_2cf0 jp(hl) at 0x2d22, coinage index DE=4 -> jr 0x2d42",
+    "provenance": "computed jr-trampoline table, bounded by loc_2cf0"
+  },
+  {
+    "addr": "0x2d29",
+    "why": "loc_2cf0 jp(hl) at 0x2d22, coinage index DE=6 -> jr 0x2d49",
+    "provenance": "computed jr-trampoline table, bounded by loc_2cf0"
+  },
+  {
+    "addr": "0x2d3a",
+    "why": "loc_2cf0 jp(hl) at 0x2d39, coinage index DE=0 -> jr 0x2d49",
+    "provenance": "computed jr-trampoline table, bounded by loc_2cf0"
+  },
+  {
+    "addr": "0x2d3c",
+    "why": "loc_2cf0 jp(hl) at 0x2d39, coinage index DE=2 -> jr 0x2d42",
+    "provenance": "computed jr-trampoline table, bounded by loc_2cf0"
+  },
+  {
+    "addr": "0x2d3e",
+    "why": "loc_2cf0 jp(hl) at 0x2d39, coinage index DE=4 -> jr 0x2d51",
+    "provenance": "computed jr-trampoline table, bounded by loc_2cf0"
+  },
+  {
+    "addr": "0x2d40",
+    "why": "loc_2cf0 jp(hl) at 0x2d39, coinage index DE=6 -> jr 0x2d55",
+    "provenance": "computed jr-trampoline table, bounded by loc_2cf0"
+  },
+  {
+    "addr": "0x011c",
+    "why": "loc_0066 fall-through after the 0x14b7 dispatcher call at 0x0119 (call 0x1802; jp 0x0245)",
+    "provenance": "return-site the static tracer could not follow past the jp(hl) in loc_14b7; loc_14b7 is a `call` that returns"
+  },
+  {
+    "addr": "0x0235",
+    "why": "loc_0066 fall-through after the 0x14b7 dispatcher call at 0x0232 (call 0x2970; call 0x1fc7; call 0x0292; call nz,0x06a2; -> 0x0245)",
+    "provenance": "return-site the static tracer could not follow past the jp(hl) in loc_14b7; loc_14b7 is a `call` that returns"
+  },
+  {
+    "addr": "0x0ec3",
+    "why": "loc_0e7a jp(hl) at 0x0ec2, phase (0x83d7)=1 -> HL=0x0ec1+2 -> jr 0x0ef9",
+    "provenance": "computed jr-trampoline table (base 0x0ec1, index 2*(0x83d7), phases 1..7), bounded by loc_0e7a"
+  },
+  {
+    "addr": "0x0ec5",
+    "why": "loc_0e7a jp(hl) at 0x0ec2, phase (0x83d7)=2 -> HL=0x0ec1+4 -> jr 0x0ef2",
+    "provenance": "computed jr-trampoline table (base 0x0ec1, index 2*(0x83d7), phases 1..7), bounded by loc_0e7a"
+  },
+  {
+    "addr": "0x0ec7",
+    "why": "loc_0e7a jp(hl) at 0x0ec2, phase (0x83d7)=3 -> HL=0x0ec1+6 -> jr 0x0eeb",
+    "provenance": "computed jr-trampoline table (base 0x0ec1, index 2*(0x83d7), phases 1..7), bounded by loc_0e7a"
+  },
+  {
+    "addr": "0x0ec9",
+    "why": "loc_0e7a jp(hl) at 0x0ec2, phase (0x83d7)=4 -> HL=0x0ec1+8 -> jr 0x0ee4",
+    "provenance": "computed jr-trampoline table (base 0x0ec1, index 2*(0x83d7), phases 1..7), bounded by loc_0e7a"
+  },
+  {
+    "addr": "0x0ecb",
+    "why": "loc_0e7a jp(hl) at 0x0ec2, phase (0x83d7)=5 -> HL=0x0ec1+10 -> jr 0x0edd",
+    "provenance": "computed jr-trampoline table (base 0x0ec1, index 2*(0x83d7), phases 1..7), bounded by loc_0e7a"
+  },
+  {
+    "addr": "0x0ecd",
+    "why": "loc_0e7a jp(hl) at 0x0ec2, phase (0x83d7)=6 -> HL=0x0ec1+12 -> jr 0x0ed6",
+    "provenance": "computed jr-trampoline table (base 0x0ec1, index 2*(0x83d7), phases 1..7), bounded by loc_0e7a"
+  },
+  {
+    "addr": "0x0ecf",
+    "why": "loc_0e7a jp(hl) at 0x0ec2, phase (0x83d7)=7 (boot INIT sets 7) -> HL=0x0ec1+14 -> arm body ld hl,0x8040 direct (no jr)",
+    "provenance": "computed jr-trampoline table (base 0x0ec1, index 2*(0x83d7), phases 1..7), bounded by loc_0e7a"
+  },
+  {
+    "addr": "0x2338",
+    "why": "loc_230f fall-through after the 0x0faf dispatcher call at 0x2335 (ld a,0x01; ld (0x825b),a; ld (0x829b),a; ret)",
+    "provenance": "return-site the static tracer could not follow past the jp(hl) in loc_0faf; loc_0faf is a `call` that returns"
+  }
+]

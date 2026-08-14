@@ -1,0 +1,72 @@
+{
+  "_comment": [
+    "Tool-facing hardware/address declaration for the Konami Frogger board (parent set `frogger`).",
+    "This is the Galaxian/Scramble family (MAME src/mame/galaxian/galaxian.cpp), NOT the konami/",
+    "driver our pooyan/timeplt boards come from -- a genuinely NEW board, not a fork. Read from",
+    "galaxian.cpp: frogger_map@2416, frogger_ppi8255_r/w@1142, irq_enable_w@779, GAME()@17072,",
+    "inputs@5228, gfx layouts@7391; and galaxian_v.cpp: galaxian_palette@238, RGB_MAXIMUM@229.",
+    "Numbers are decimal (JSON has no 0x); '_hex'/'_note' fields are annotations the loader ignores.",
+    "",
+    "★ ROM-DEPENDENT / BOOT-DEPENDENT FIELDS NOT YET MEASURED (validated only by synthetic unit",
+    "tests, no MAME golden run yet): the IN1/IN2 idle values (derived from DIPSETTING defaults,",
+    "not measured), controlByte, landmarks. Flagged below; set from a MAME -noreadconfig run",
+    "before any gate that reads them is trusted."
+  ],
+
+  "driver": "frogger",
+  "screen": { "width": 256, "height": 224, "_note": "galaxian_base set_raw(PIXEL_CLOCK=18.432MHz, HTOTAL=1152, HBEND 0, HBSTART 768, VTOTAL 264, VBEND 16, VBSTART 240) -> visible 256x224. ROT90 (portrait), same orientation as timeplt/pooyan. XSCALE=3 internal render is IGNORABLE for Frogger (no starfield); render native 256 wide. galaxian.cpp:7498-7501, galaxian.h:47-56." },
+  "refreshHz": 60.606061,
+  "_refresh_note": "18.432e6 / (HTOTAL 1152 * VTOTAL 264) = 60.6060... -- the dkong/pooyan figure, NOT timeplt's exact 60. galaxian.cpp:7498.",
+  "cpuHz": 3072000,
+  "_cpu_note": "Z80 at GALAXIAN_PIXEL_CLOCK/3/2 = 18.432MHz/3/2 = 3.072MHz. galaxian.cpp:7489, galaxian.h:32,37,41.",
+  "cyclesPerFrame": 50688,
+  "_cycles_note": "3072000 / 60.606061 = 50688. Same as pooyan/dkong (shared refresh), differs from timeplt (51200).",
+
+  "stateDumpSize": 3328,
+  "stateRegions": [
+    { "name": "ram",    "base": 32768, "size": 2048, "_hex": "0x8000-0x87FF work RAM -- frogger_map@2419" },
+    { "name": "vram",   "base": 43008, "size": 1024, "_hex": "0xA800-0xABFF VIDEORAM (tile codes; galaxian_videoram_w) mirror 0x0400 -- frogger_map@2421" },
+    { "name": "objram", "base": 45056, "size": 256,  "_hex": "0xB000-0xB0FF OBJRAM/spriteram (per-column scroll+color 0x00-0x3F, 8 sprites 0x40-0x5F, bullets 0x60-0x7F) mirror 0x0700 -- frogger_map@2422" }
+  ],
+
+  "writeRanges": [
+    { "name": "videoram",   "start": 43008, "end": 44031, "_hex": "0xA800-0xABFF galaxian_videoram_w (mirror MASK 0x0400) -- frogger_map@2421" },
+    { "name": "objram",     "start": 45056, "end": 45311, "_hex": "0xB000-0xB0FF galaxian_objram_w (mirror MASK 0x0700) -- frogger_map@2422" },
+    { "name": "irq_enable",  "start": 47112, "end": 47112, "_hex": "0xB808 irq_enable_w D0 = NMI-ON latch (mirror MASK 0x07E3 -> decode addr&0xF81C==0xB808) -- frogger_map@2423, irq_enable_w@779" },
+    { "name": "flip_y",      "start": 47116, "end": 47116, "_hex": "0xB80C galaxian_flip_screen_y_w D0 (mirror 0x07E3) -- frogger_map@2424" },
+    { "name": "flip_x",      "start": 47120, "end": 47120, "_hex": "0xB810 galaxian_flip_screen_x_w D0 (mirror 0x07E3) -- frogger_map@2425" },
+    { "name": "coin_count_0","start": 47128, "end": 47128, "_hex": "0xB818 coin_count_0_w D0 (mirror 0x07E3) -- frogger_map@2426" },
+    { "name": "coin_count_1","start": 47132, "end": 47132, "_hex": "0xB81C coin_count_1_w D0 (mirror 0x07E3) -- frogger_map@2427" },
+    { "name": "ppi_window",  "start": 49152, "end": 65535, "_hex": "0xC000-0xFFFF frogger_ppi8255_w: A13(0x2000)->PPI0, A12(0x1000)->PPI1, port=(off>>1)&3. Sound latch=0xD000(PPI1.A), sound ctrl=0xD002(PPI1.B). -- frogger_map@2428, frogger_ppi8255_w@1152" }
+  ],
+
+  "_watchdog_note": "0x8800 mirror 0x07FF is a READ (watchdog reset_r), not a write; reset_r pets the dog and returns space.unmap()=0xFF (unmap_value_high). frogger_map@2420.",
+
+  "_inputs_note": "There is NO separate DSW port: the dip bits are interleaved into IN1/IN2 (galaxian.cpp:5228-5269). All input bits are IP_ACTIVE_LOW (idle high). Idle values below are DERIVED from the DIPSETTING defaults (all 0x00), NOT measured from MAME.",
+  "inputs": {
+    "IN0": { "addr": 57344, "idle": 255, "_hex_addr": "0xE000 (PPI0.A)", "_bits": "b0=UP(cocktail,4way) b2=SERVICE1 b4=RIGHT(4way) b5=LEFT(4way) b6=COIN2 b7=COIN1; b1,b3 unused. idle 0xFF." },
+    "IN1": { "addr": 57346, "idle": 252, "_hex_addr": "0xE002 (PPI0.B)", "_hex_idle": "0xFC", "_bits": "b0-1=DSW Lives(default 0x00=3) b4=RIGHT(cocktail) b5=LEFT(cocktail) b6=START2 b7=START1; b2,b3 unused. idle = 0xFF & ~0x03 (Lives default) = 0xFC. ★ DERIVED not measured -- CONFIRM." },
+    "IN2": { "addr": 57348, "idle": 241, "_hex_addr": "0xE004 (PPI0.C)", "_hex_idle": "0xF1", "_bits": "b0=DOWN(cocktail) b1-2=DSW Coinage(default 0x00=1/1) b3=DSW Cabinet(default 0x00=upright) b4=UP(4way) b6=DOWN(4way); b5,b7 unused. idle = 0xFF & ~0x0E = 0xF1. ★ DERIVED not measured -- CONFIRM." },
+    "IN3": { "addr": 53252, "idle": 0, "_hex_addr": "0xD004 (PPI1.C)", "_bits": "IPT_UNUSED, all bits 0x00. 'need for some PPI accesses'. galaxian.cpp:5267." }
+  },
+
+  "controlByte": 0,
+  "_controlByte_TODO": "★ PLACEHOLDER 0 -- UNMEASURED. ROM[0x0000] first byte (config-probe that the program ROM loaded). Set from the real frogger.26 maincpu ROM before trusting.",
+
+  "z80Reset": {
+    "AF": 64, "BC": 0, "DE": 0, "HL": 0, "IX": 65535, "IY": 65535, "SP": 0,
+    "_hex": "MAME Z80 reset: AF=0x0040 (Z flag set), IX=IY=0xFFFF, rest 0 -- same for every MAME Z80"
+  },
+
+  "writeTimestamp": "write-bus-cycle",
+
+  "interrupt": {
+    "kind": "NMI",
+    "vector": 102,
+    "_hex_vector": "0x0066",
+    "_note": "vblank_interrupt_w asserts INPUT_LINE_NMI only while irq_enable_w's D0 latch (0xB808) is set; clearing it clears the line. Same model as timeplt/dkong. galaxian.cpp:761-767,779-787, galaxian.h:435."
+  },
+
+  "landmarks": [],
+  "_landmarks_todo": "★ EMPTY -- boot-init-done and first-vblank-NMI cycles need a MAME golden run with the romset. BLOCKED on a golden run."
+}
