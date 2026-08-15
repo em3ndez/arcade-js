@@ -177,6 +177,100 @@ export const loc_a806 = 0xa806; // [code] VRAM destination base for blitFrogAnim
 export const loc_a80e = 0xa80e; // [code] scroll-band video-RAM base; blitScrollBand offsets it by stride*rowSteps to reach the band's top cell
 export const loc_a846 = 0xa846; // [code] first tile cell of the two-pair figure animateTwoPairFigure blits (second pair one row / +32 below at 0xA866)
 
+// ── batch-3 cells: status/frog/scroll renders, sprite-object arms, attract demo, intro/score, sound queue ──
+export const loc_8000 = 0x8000; // [code] work-RAM page-0x80 base; loc_2c13 reads the placement seed at 0x8000|low, loc_2bab/loc_2b93 read a per-object target/table byte at 0x8000|(IX+0x0b) (loc_0faf reads the CELL 0x8000 as the frog-anim index -- page-base vs cell use, naming pass to reconcile)
+export const loc_8007 = 0x8007; // [code] object-ready flag; loc_1952 sets it to 1 after the frog render (with 0x8009/0x800b)
+export const loc_8009 = 0x8009; // [code] object-ready flag; loc_1952 sets it to 1 after the frog render
+export const loc_800b = 0x800b; // [code] object-ready flag; loc_1952 sets it to 1 after the frog render
+export const loc_800f = 0x800f; // [code] demo scroll register; loc_0de0 writes 3 here (paired with loc_800d) each dwell tick
+export const loc_801b = 0x801b; // [code] intro counter; loc_2d88 seeds it to 5 during the mode-2 setup
+export const loc_8023 = 0x8023; // [code] credit/1UP header state marker; loc_0db9 sets it to 3 in the multi-credit arm
+export const loc_802b = 0x802b; // [code] intro counter; loc_2d88 seeds it to 3 (also the store target of loc_0c4a)
+export const loc_802f = 0x802f; // [code] lane low-bound selector; loc_12e4 branches on it (<128 vs >=128) to pick the lane low-bound offset (12 vs 3) added to the frog base loc_8044
+export const loc_8058 = 0x8058; // [code] shared 4-byte sprite-object block; loc_2bab clears it (with the 16-byte IX struct) when an object reaches its target and despawns
+export const loc_8109 = 0x8109; // [code] loc_12e4 scans it as a lane object list (count byte then object X positions, band width 31); loc_1058 arms both plot cursors (IX/IY) to it for the frog-anim render loop
+export const loc_8112 = 0x8112; // [code] lane object list (count byte then object X positions), band width 92; loc_12e4 scans it for an object in the frog's move band
+export const loc_811b = 0x811b; // [code] lane object list (count byte then object X positions), band width 44; loc_12e4 scans it for an object in the frog's move band
+export const loc_8124 = 0x8124; // [code] lane object list (count byte then object X positions), band width 47; loc_12e4 scans it for an object in the frog's move band
+export const loc_8134 = 0x8134; // [code] collision sub-flag; loc_27b3 zeroes it before falling through to the clear helper (loc_27bc)
+export const loc_8135 = 0x8135; // [code] collision-latched flag; loc_27b3 returns early when 0, else clears it via the clear helper (also read by loc_26a6)
+export const loc_8136 = 0x8136; // [code] loc_12e4 scans it as a lane object list (band width 34); loc_10f8 uses it as the frog-anim arm-6 plot-cursor base
+export const loc_813f = 0x813f; // [code] lane object list (count byte then object X positions), band width 18; loc_12e4 scans it for an object in the frog's move band
+export const loc_8148 = 0x8148; // [code] lane object list (count byte then object X positions), band width 18; loc_12e4 scans it for an object in the frog's move band
+export const loc_8151 = 0x8151; // [code] lane object list (count byte then object X positions), band width 18; loc_12e4 scans it for an object in the frog's move band
+export const loc_815a = 0x815a; // [code] lane object list (count byte then object X positions), band width 18; loc_12e4 scans it for an object in the frog's move band
+export const loc_8248 = 0x8248; // [code] river lane-0 direction flag; loc_23b7 tails to the lane-0 commit handler when set, else clears the lane-0 mirror loc_824c
+export const loc_8249 = 0x8249; // [code] river lane-1 direction flag; loc_23b7 tails to the lane-1 commit handler when set, else clears the lane-1 mirror loc_824d
+export const loc_824a = 0x824a; // [code] river lane-2 direction flag; loc_23b7 tails to the lane-2 commit handler when set, else clears the lane-2 mirror loc_824e
+export const loc_824b = 0x824b; // [code] river lane-3 direction flag; loc_23b7 tails to the lane-3 commit handler when set, else clears the lane-3 mirror loc_824f
+export const loc_824c = 0x824c; // [code] river lane-0 arrival mirror flag; loc_23b7 clears it when the lane-0 direction flag loc_8248 is clear
+export const loc_824d = 0x824d; // [code] river lane-1 arrival mirror flag; loc_23b7 clears it when the lane-1 direction flag loc_8249 is clear
+export const loc_824e = 0x824e; // [code] river lane-2 arrival mirror flag; loc_23b7 clears it when the lane-2 direction flag loc_824a is clear
+export const loc_824f = 0x824f; // [code] river lane-3 arrival mirror flag; loc_23b7 clears it when the lane-3 direction flag loc_824b is clear
+export const loc_825c = 0x825c; // [code] player-1 slot byte; loc_0534 zeros it before the cold-start pre-clear (loc_048f's P1-init later sets it to 1)
+export const loc_826e = 0x826e; // [code] scroll phase counter; loc_2005 steps it each NMI and runs a lane block at 16/32/48, clearing it to 0 at phase 48
+export const loc_8274 = 0x8274; // [code] scroll object A descriptor +1 (row count); loc_2005 loads it as the grid copy engine's B row-count at phase 16/32/48
+export const loc_827d = 0x827d; // [code] scroll object B descriptor +1 (row count); loc_2005 loads it as the band copy entry's B row-count
+export const loc_8282 = 0x8282; // [code] frog-anim arm-6 sprite triple code byte; loc_10f8 reads it into A and stashes it at loc_81b1 for the render loop
+export const loc_8283 = 0x8283; // [code] frog-anim arm-6 row count; loc_10f8 loads it as the render loop's B (rows per pass)
+export const loc_8284 = 0x8284; // [code] frog-anim arm-6 outer-pass count; loc_10f8 loads it as the render loop's C (passes, 0=>256)
+export const loc_829b = 0x829b; // [code] intro counter; loc_2d88 zeroes it during the mode-2 setup
+export const loc_8300 = 0x8300; // [code] pending sound-command count; loc_07ac returns when it is 0, else decrements it, issues the command at loc_8300+1, and shifts loc_8300+2.. down one slot
+export const loc_83bb = 0x83bb; // [code] attract sequencer state cell; loc_0de0 clears it to 0 after placing the last cell
+export const loc_83bc = 0x83bc; // [code] attract demo dwell counter; loc_0de0 decrements it and reloads 32 on expiry
+export const loc_83bf = 0x83bf; // [code] attract sequencer phase byte; loc_0de0 clears it to 0 after placing the last cell
+export const loc_83d7 = 0x83d7; // [code] attract demo phase counter (1..7); loc_0de0 dispatches the cell arm on it, decrements it, and reloads 7 when drained
+export const loc_83d8 = 0x83d8; // [code] mode-2 intro state cell; loc_2d88 stores 0xff here at the intro setup
+export const loc_83dc = 0x83dc; // [code] 16-bit scroll/state cell; loc_0aba seeds it to 0x3C20 during the one-time layout setup
+export const loc_83de = 0x83de; // [code] scroll/state cell; loc_0aba seeds it to 0x60 during the one-time layout setup
+export const loc_83e0 = 0x83e0; // [code] display-field cell; loc_0aba zeroes it during the one-time layout setup
+export const loc_83eb = 0x83eb; // [code] player-2 score word (16-bit); loc_0f69 reads it as one of the two words to rank and pack
+export const loc_83ed = 0x83ed; // [code] high score word (16-bit); loc_0f69 reads it as the other word to rank and pack
+export const loc_83fb = 0x83fb; // [code] two-byte score display / intro digit field (0x83fb low, 0x83fc high); loc_0c3d reads the pair to draw the two intro digits, loc_0f69 stores the larger word's rank code at 0x83fb and the smaller's at 0x83fc
+export const loc_842f = 0x842f; // [code] home-column state cell; loc_0670 clears it to 0 before tailing into the extra-life award
+// ROM tables/sources read by the batch-3 routines
+export const loc_130b = 0x130b; // [code] arm-pointer table (ROM); loc_12e4 indexes it by 2*(high nibble of frogX+15) to select the lane-scan arm
+export const loc_13f9 = 0x13f9; // [code] frog-anim arm-6 render destination pointer (ROM word); loc_10f8 loads HL from it as the render loop's VRAM base
+export const loc_1423 = 0x1423; // [code] ROM tile source; loc_2005 passes it in DE as the phase-16 scroll-grid source (object A), loc_1058 loads it as the frog-anim tile source (DE) and stashes it at loc_8001
+export const loc_142b = 0x142b; // [code] ROM scroll-grid source for phase 32 (object A); loc_2005 passes it in DE to the copy engine
+export const loc_1433 = 0x1433; // [code] ROM scroll-grid source for phase 48 (object A); loc_2005 passes it in DE to the copy engine
+export const loc_145f = 0x145f; // [code] ROM scroll-band source for phase 16 (object B); loc_2005 passes it in DE to the band copy entry
+export const loc_1473 = 0x1473; // [code] ROM scroll-band source for phase 32 (object B); loc_2005 passes it in DE to the band copy entry
+export const loc_1487 = 0x1487; // [code] ROM scroll-band source for phase 48 (object B); loc_2005 passes it in DE to the band copy entry
+export const loc_149f = 0x149f; // [code] frog-anim arm-6 tile source base (ROM); loc_10f8 sets DE to it and stashes it at loc_8001 for the render loop's row copy
+export const loc_19f6 = 0x19f6; // [code] ROM 4-byte frog tile group (column set 1) read by loc_1952
+export const loc_19fa = 0x19fa; // [code] ROM 4-byte frog tile group (column set 2) read by loc_1952
+export const loc_19fe = 0x19fe; // [code] ROM 4-byte frog tile group (column set 3) read by loc_1952
+export const loc_2cd9 = 0x2cd9; // [code] object-state -> sprite attribute table (ROM); loc_2bfb indexes it by the object state byte (ix+6), ORs (ix+5), and writes the result to the IY slot (iy+1)
+export const loc_2cdc = 0x2cdc; // [code] spawn pointer table (ROM); loc_2c13 reads a little-endian pointer at 2*variant, then derives the two placement spans
+export const loc_2ce6 = 0x2ce6; // [code] spawn variant table (ROM); loc_2c13 indexes it by 2*variant for a subtract-loop span (even byte) and the low byte of a page-0x80 seed cell (odd byte, stored to ix+0x0b)
+export const loc_2f0e = 0x2f0e; // [code] ROM source of the 9-tile string loc_0f59 blits via rst 0x28
+export const loc_2f12 = 0x2f12; // [code] ROM 5-tile strip source; loc_085b's second blit copies from here
+export const loc_2f5c = 0x2f5c; // [code] ROM tile-strip source for loc_2d88's 11-tile main title blit
+export const loc_2f6e = 0x2f6e; // [code] ROM 4-tile strip source; loc_0aba blits it up the loc_a8bf column (rst 0x28), loc_085b's first blit copies it up the loc_aa51 column
+export const loc_2f73 = 0x2f73; // [code] ROM tile-strip source blitted by loc_2d88 (4 tiles) on the time<10 arm
+export const loc_2f88 = 0x2f88; // [code] ROM tile-source base for loc_0db9's first header blit (used by both credit arms)
+export const loc_2f92 = 0x2f92; // [code] ROM tile-strip source blitted by loc_2d88 (7 tiles) on the time<10 arm
+export const loc_2f93 = 0x2f93; // [code] ROM tile-source for loc_0db9's one-credit second header blit
+export const loc_2fae = 0x2fae; // [code] ROM tile-strip source blitted by loc_2d88 (7 tiles) on the time<10 arm
+// VRAM bases the batch-3 routines touch
+export const loc_a843 = 0xa843; // [code] frog-render VRAM column base (group 1); loc_1952 copies four tiles from loc_19f6 down it, 5 columns +0x40 apart
+export const loc_a844 = 0xa844; // [code] frog-render box top-left VRAM corner; loc_1952 writes corner tiles 65,66 here and 69,70 at +0x360
+export const loc_a850 = 0xa850; // [code] VRAM status-row base; loc_0f59 clears it via the 4-tile-group column blit
+export const loc_a85c = 0xa85c; // [code] frog-render home-marker string VRAM base; loc_1952 loads HL with it before the tile-string blit
+export const loc_a8a4 = 0xa8a4; // [code] frog-render VRAM column base (group 2); loc_1952 copies four tiles from loc_19fa down it, 4 columns
+export const loc_a8a5 = 0xa8a5; // [code] frog-render VRAM column base (group 3); loc_1952 copies four tiles from loc_19fe down it, 4 columns
+export const loc_a8bf = 0xa8bf; // [code] VRAM cell loc_0aba blits a 4-tile strip up into (rst 0x28 dest) during the one-time layout setup
+export const loc_a8c3 = 0xa8c3; // [code] frog-render banner VRAM column base; loc_1952 stamps tile 71 four times stepping +0x20 then +0xa0
+export const loc_a8c6 = 0xa8c6; // [code] attract demo cell VRAM corner base (phase 1); loc_0de0 stamps a 2x2 tile block at base + 96*(phase-1)
+export const loc_a8df = 0xa8df; // [code] VRAM cell loc_0aba fills 15 tile rows of tile 12 down from (+32/row) during the one-time layout setup
+export const loc_aa51 = 0xaa51; // [code] no-more-frogs VRAM column start; loc_085b blits the 4-tile then 5-tile strips up from here
+export const loc_aa70 = 0xaa70; // [code] VRAM destination loc_0f59 stamps the 9-tile string into (rst 0x28 dest)
+export const loc_aa8d = 0xaa8d; // [code] VRAM tilemap column base for loc_2d88's main title strip
+export const loc_aaf1 = 0xaaf1; // [code] VRAM column base for loc_0db9's one-credit "1UP" header blit
+export const loc_ab11 = 0xab11; // [code] VRAM column base for loc_0db9's multi-credit header blit
+export const loc_ab15 = 0xab15; // [code] VRAM tilemap base for loc_2d88's score-digit draw on the time<10 arm
+
 export const ROUTINES = {
   0x0341: {
     name: "drainForegroundThenYieldEachVblank",
@@ -239,4 +333,35 @@ export const ROUTINES = {
   0x29c9: { name: "animateSpriteObjectFrame", role: "[code] IX sprite-object animation arm: counts down the (IX+8) frame timer, on expiry reloads it (12), steps the (IX+6) phase (counting down, 1 wrapping to 4), reads the 0x2cd5 phase-tile table, folds in the (IX+5) flip bits, and stages the IY sprite tile/attr pair (iy+1,iy+5=+1,iy+2=iy+6=4); memory-only live-out", cert: "seen" },
   0x29f9: { name: "steerSpriteObjectTowardFrog", role: "[code] IX sprite-object motion arm: active while (IX+6)!=0 and the global gate 0x842c==0, counts down the (IX+9) move timer (reload 8); on expiry, past sprite row 96 it steps (IX+3) by +/-2, else drifts (IX+2) toward/away from the frog X (0x8014) along (IX+0/+1) and flips the direction bit (IX+5)/(IY+1) at the turn; memory-only live-out", cert: "seen" },
   0x2b58: { name: "flagSpriteObjectFrogHit", role: "[code] IX sprite-object hit-test arm (leaf): gated on (IX+6), fires only when (IX+4)+2 == frog row (0x8047), then measures |(IY+0)[+16 when (IX+5)!=0] - (0x8044)| and, when it lands in [0,16), raises the hit flag 0x8004 and the global gate 0x842c (both =1); memory-only live-out", cert: "seen" },
+  // ── batch-3 routines ──
+  0x0534: { name: "loc_0534", role: "clear the player-1 slot byte (0x825C) and the five occupancy gates (0x825E-0x8262), then transfer to the shared cold-start mid-entry 0x0567; no register live-in, memory-only live-out", cert: "code" },
+  0x0670: { name: "loc_0670", role: "stamp all five home-slot markers: for each slot base (0xAB64/0xAAA4/0xA9E4/0xA924/0xA864) load HL and call 0x0695 to fill its 2x2 marker block, clear 0x842F, then tail into the extra-life award 0x0A5F (whose result it returns); no register live-in, memory-only live-out", cert: "code" },
+  0x06ee: { name: "loc_06ee", role: "swap the active player's work pages IN for player 1 — four bank copies (object+work pages saved to one bank, restored from another) plus the swap-done flag; any other player number tails to the swap-OUT path 0x0726; memory-only live-out; code-level, MAME-grounding pending", cert: "code" },
+  0x07ac: { name: "loc_07ac", role: "drain one queued sound command: when the pending count at 0x8300 is non-zero, decrement it, issue the front command byte (0x8301) via the sound issuer 0x0794, then shift the queue down one slot (a count-length copy from 0x8302); reached only from the in-game NMI branch 0x0103; live-out memory (count + queue) + sound IO", cert: "code" },
+  0x07c1: { name: "loc_07c1", role: "2-player start-flag helper: if (0x83fd)==1 delegate to 0x07ce (raise start flag under the 0x826d guard), else set (0x825b)=1; memory-only live-out", cert: "code" },
+  0x085b: { name: "loc_085b", role: "[code] no-more-frogs tail (from the 0x0870 score driver's jp z): blits a 4-tile then a 5-tile strip up the VRAM column at 0xaa51 via the tile-column blit 0x0028 (the second continuing the destination the first left in HL), then raises the hold flag 0x8004; memory-only live-out", cert: "code" },
+  0x0aba: { name: "loc_0aba", role: "one-time display-field setup, guarded by 0x842D: when 0x842D is 0 set it to 1, write 0x803F=3 and 0x83E0=0, blit a 4-tile strip up a column via rst 0x28 (HL=0xA8BF, DE=0x2F6E, B=4), fill 15 tile rows of tile 12 down the column from 0xA8DF (+32/row), then seed 0x83DC=0x3C20 and 0x83DE=0x60; non-zero 0x842D returns immediately; no register live-in, memory-only live-out", cert: "code" },
+  0x0ba0: { name: "loc_0ba0", role: "print one packed-BCD byte as two tilemap digits (high nibble then low) via the digit-writer 0x0ba9: write the high nibble, then TAIL-call the writer for the low nibble so the writer's ret returns to loc_0ba0's caller; the writer steps the destination up one 32-cell row per digit; live-out memory + HL (destination stepped up two rows). Non-leaf; code-level, MAME-grounding pending", cert: "code" },
+  0x0c3d: { name: "loc_0c3d", role: "draw the two-digit intro pair: load the digit pair (low byte 0x83FB, high byte 0x83FC) with a fixed row base and stamped byte, then run the row-draw helper 0x0c4a twice -- once for the low digit, then (fall-through tail) for the high digit; a zero digit draws nothing; memory-only live-out; code-level, MAME-grounding pending", cert: "code" },
+  0x0db9: { name: "loc_0db9", role: "queue the credit/1UP header tiles: with exactly one credit blit the 1UP strips (a 4-tile column then an 11-tile column from a second tile source); otherwise set the header-state marker (0x8023)=3, blit a 4-tile then a 13-tile column and cap the advanced cursor with tile 35; both columns advance the shared HL/DE pointers via m.call(0x0028) which the routine reads back; memory-only live-out; code-level, MAME-grounding pending", cert: "code" },
+  0x0de0: { name: "loc_0de0", role: "the attract board-demo cell assembler: on each dwell expiry (0x83BC), place one river-object cell for the current phase (0x83D7) -- stamp its 2x2 tile corner in VRAM (0xA8C6 + 96*(phase-1)) and clear its 4-byte object block (0x8040 + 4*(7-phase)) -- then step the phase counter, and when all seven are placed reload it to 7, reset the attract sequencer (0x83BF/0x83BB=0), and tail-call the attract-idle tail 0x0E74; no register live-in, memory-only live-out", cert: "code" },
+  0x0f59: { name: "loc_0f59", role: "redraw one status line: clear its 4-tile-group VRAM column via 0x19E2, then stamp a 9-tile string via rst 0x28 from a fixed source; no register live-in, memory-only live-out", cert: "code" },
+  0x0f69: { name: "loc_0f69", role: "pack the player-2 score (0x83EB) and the high score (0x83ED) into the score display field 0x83FB: order the two 16-bit words larger-first, run each through the score-rank helper 0x0A84 (D,E key -> A rank code), and store the larger word's rank code at 0x83FB and the smaller's at 0x83FC; no register live-in, memory-only live-out", cert: "code" },
+  0x1058: { name: "loc_1058", role: "[code] frog-animation render arm (a 0x0faf jp-table target): runs the guarded pre-blit 0x0f8c, loads the 0x8273 sprite triple and 0x13ef pattern pointer, arms both 0x8109 plot cursors, stores the plot byte at 0x81b1 and source pointer at 0x8001, then tail-calls the shared render loop 0x0ff1; memory-only live-out", cert: "code" },
+  0x10f8: { name: "loc_10f8", role: "frog-animation arm 6: read the arm's sprite triple, arm the shared render loop's cursors/pointers/counts and stash the code+source it rereads, then enter the loop 0x0ff1; memory-only live-out; code-level, MAME-grounding pending", cert: "code" },
+  0x12e4: { name: "loc_12e4", role: "upper-half horizontal-move dispatcher: return if the move is already resolved (0x8004!=0), else pick one of 16 arms by the frog-X high nibble through the pointer table at 0x130B -- 5 arms scan no lane, 10 scan a lane object list for an object inside the frog's move band; an in-band object sets the block flag 0x8004=1, a clear lane transfers to the frog-kill tail 0x12D0 when the frog is not yet across; memory-only live-out", cert: "code" },
+  0x1952: { name: "loc_1952", role: "frog sprite render: copy three ROM 4-tile groups (0x19f6/0x19fa/0x19fe) down VRAM columns, stamp the banner column + four box corners, blit the home-marker string (0x19e2), set 0x8007/0x8009/0x800b=1, then tail-chain object-anim init (0x1a02); memory-only live-out", cert: "code" },
+  0x2005: { name: "loc_2005", role: "NMI scroll driver: copy each scroll object's byte into its shadow, step object A's counter by 1 (>=80 runs the reveal-column stamp 0x20fb) and object B's by 2 (<160 runs the band blit 0x219c), then advance the phase counter and at 16/32/48 feed each object's descriptor into the scroll copy engine (0x20cc grid + 0x20bf band entry), phase 48 also clearing the counter to 0; callees reached via m.call, memory-only live-out; code-level, MAME-grounding pending", cert: "code" },
+  0x23b7: { name: "loc_23b7", role: "per-vblank river-lane arrival setup: point the cursors at the frog X/Y cells, then for each of the four ride lanes tail to that lane's commit handler (0x1bba/0x1c0d/0x1c76/0x1cd5) when its direction flag is set, else clear the lane's mirror flag; memory-only live-out; code-level, MAME-grounding pending", cert: "code" },
+  0x27b3: { name: "loc_27b3", role: "collision-flag reset (guarded entry): if (0x8135)==0 return, else zero (0x8134) and fall through to 0x27bc, which clears 0x8040-0x8043 and (0x8135); memory-only live-out", cert: "code" },
+  0x27ea: { name: "loc_27ea", role: "dive/turtle animation driver: dispatch on the dive phase (0x83B7) -- below 2 hands to the idle arm 0x2873, at/above 5 to arm 0x2874; the middle band reloads 0x8101 and when it is 0 runs 0x288c (with 0x27FE pushed as its return) before continuing into the shared surface-timer step 0x27FE; no register live-in, memory-only live-out", cert: "code" },
+  0x287e: { name: "loc_287e", role: "arm the frame-cell block once: when the busy latch 0x814f is clear, set 0x8150=1 and seed 0x8146/0x8147 from (0x819b & 0x0f)*8, then raise 0x814f so a later pass does not re-seed (folds the shared 0x289c seed helper inline as a JS helper); memory-only live-out, [code]-level, MAME-grounding pending", cert: "code" },
+  0x28bb: { name: "loc_28bb", role: "frog-vs-diver collision test gated on 0x8150 bit0 and dive phase 0x83b7>=2: box-checks the frog (0x8047 Y, 0x8044 X) against the diver's Y band and the X window around 0x8101 -- inner overlap tail-calls the frog-kill routine 0x12d0, outer overlap stamps the 2x2 mounted-frog tile quad (0x68..0x6b) at 0xa846 and sets 0x8004=1; memory-only live-out, [code]-level, MAME-grounding pending", cert: "code" },
+  0x2af3: { name: "loc_2af3", role: "IX sprite-object motion arm: skipped when the record's active flag (ix+6) is 0; else run the arm helper 0x2ae6, derive on-screen X into iy+0 from ix+4 vs 0x60 (either 0x8014-(ix+2) or ix+3), mirror ix+4 into iy+3/iy+7, set iy+4 from a +15/-15 bias on ix+5, and on the fold (bias wraps to 0) plus retire flag (ix+7) clear ix[0..15]/iy[0..7] and set ix+0x0a=0x20; one of the five per-slot arms run by dispatcher 0x29b9; memory-only live-out", cert: "code" },
+  0x2b93: { name: "loc_2b93", role: "IX sprite-object arm: when (IX+6)!=0, read the 0x80-page table byte indexed by (IX+0x0b), store (table byte - (IX+2)) to (IY+0) and (IX+4) to (IY+3); live-in IX (object struct) + IY (sprite slot), memory-only live-out, [code]-level, MAME-grounding pending", cert: "code" },
+  0x2bab: { name: "loc_2bab", role: "[code] IX sprite-object motion arm (from the sprite dispatcher 0x2b83): active while (IX+6)!=0, counts down the (IX+9) move timer (reload 8); on expiry reads the per-object target at 0x80(IX+0x0b) and steps (IX+2) one toward it along (IX+0) (facing!=0) or (IX+1) (facing==0) by comparing the 8-bit gap to (IY+0), or on reaching the target despawns -- clearing the 16-byte struct at IX and the 4-byte block at 0x8058 -- unless the hold flag 0x8004 is set; memory-only live-out", cert: "code" },
+  0x2bfb: { name: "loc_2bfb", role: "stage an active IX sprite-object's attribute + code into its IY sprite slot: when the object-state byte (ix+6) is non-zero, index the 0x2cd9 attribute table by that state, OR in the object flag bits (ix+5), write the result to (iy+1) and set (iy+2)=2; an inactive object (state 0) returns untouched; live-in IX/IY (oracle boundary), memory-only live-out. Leaf; code-level, MAME-grounding pending", cert: "code" },
+  0x2c13: { name: "loc_2c13", role: "spawn an inactive IX sprite-object: gated on the level count 0x83b7>=3 and the slot being idle (ix+6==0). Four spawn-PRNG draws (0x0aee) density-gate the spawn (u8(8*count+128) >= roll), pick 1 of 5 variants and its tile/attribute (ix+4 = variant*16+48), and set orientation (ix+3/ix+5); two fixed tables (0x2ce6 spans/seed, 0x2cdc pointer) feed a repeated-subtraction loop that resolves the position bytes (ix+0/1/2); on success arms the object with (ix+6)=1,(ix+9)=8. Memory-only live-out. Non-leaf; code-level, MAME-grounding pending", cert: "code" },
+  0x2ca8: { name: "loc_2ca8", role: "IX sprite-object proximity arm (leaf): when the object is active ((IX+6)!=0) and on the frog row ((IX+4)==(0x8047)), adjust the sprite Y ((IY+0)) by +20 when the direction bit (IX+5) is clear else -4, and if the result lands in [0,16) ahead of the frog X (0x8044) raise the hit flag (0x8004)=1 and mark the object hit-consumed (IX+6)=2; live-in IX record / IY slot, memory-only live-out", cert: "code" },
+  0x2d88: { name: "loc_2d88", role: "mode-2 intro: set 0x83d8=0xff, fill the play-field tilemap (0x0766), seed 0x829b=0/0x8021=0/0x801b=5/0x802b=3, blit the 11-tile title strip from 0x2f5c to 0xaa8d (rst 0x28); if the shared time byte 0x83e4 is >=10 return, else draw one score digit (0x0ba9) at 0xab15 and blit three more strips (0x2fae/0x2f73/0x2f92); tail-called from the mode dispatcher 0x0d11; memory-only live-out", cert: "code" },
 };

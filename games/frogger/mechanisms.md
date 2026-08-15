@@ -11,6 +11,12 @@ hop handling and the road/river vehicle/log movement are still translated-only, 
 those. This revision was **folded**, not rewritten whole from `gameplay.md` — a full blind rewrite is
 owed and this note records that debt.
 
+**Batch 3** has since lifted a further set of routines — the first NON-LEAF batch (routines that call
+already-lifted callees). They keep their `loc_<addr>` names and are **not yet named or grounded**;
+understanding-pass-3 will name them by blind convergence, ground each against MAME, and rewrite this
+map to cover them. Until then they exist in the code but are deliberately absent from this narrative —
+a `[code]` role stated before grounding is exactly the confident-but-wrong claim the tags guard against.
+
 **Confidence tags, not decoration:**
 - **`[seen]`** — observed on the real ROM under MAME; **`[seen,poked]`** when the trigger was forced by
   a memory poke rather than natural play (the reading is real, the path was forced).
