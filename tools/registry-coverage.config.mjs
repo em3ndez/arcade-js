@@ -1,6 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 export const UNWIRED = {
+  frogger: {
+    "tickAttractCellFrameClock.js":
+      "the attract cell frame clock, a DOUBLE caller-skip. Its not-elapsed exit (the common frame) " +
+      "drops both its own saved-pointer slot and the arm's return and rets to the arm's caller, " +
+      "moving SP by two return slots -- net +4 from the seam's seat. `withOmittedRet` seats a " +
+      "dispatch only where the rewrite leaves SP where it found it or moves it by one return slot " +
+      "-- 0 or +2 -- so the seam cannot place this address, and wiring it in ROUTINES throws " +
+      "(SP moved by 4) on the first not-elapsed frame of the attract animator. Same class as " +
+      "timeplt's serviceVerticalBlankInterrupt.js. Nothing reaches it as a decompiled call either: " +
+      "its sole caller, the attract sequencer at 0x0e7a, is still translated and drives the two " +
+      "call sites with `if (!m.call(0x0f3e)) return;`, so the frozen oracle serves the in-game " +
+      "call. The module and its equivalence-0f3e gate are correct (memory + SP/PC/return + the " +
+      "register live-out compared against the oracle on both exits, six teeth) and stay; the seam " +
+      "refusal is asserted directly in that gate. Wireable only once 0x0e7a is itself lifted and " +
+      "the caller-skip dissolves into a boolean at the call site.",
+  },
   timeplt: {
     "replayCloudBands.js":
       "the beam-sync render step (docs/beam-sync.md): runCommandRingDrainLoop calls it directly before its vblank " +
