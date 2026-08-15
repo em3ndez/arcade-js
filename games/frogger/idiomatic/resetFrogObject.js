@@ -5,7 +5,7 @@
  * Writes the four object bytes, clears four state cells, sets the ready flag.
  * LIVE-OUT: memory + A (the ready-flag value, consumed by the render caller).
  */
-import { FROG_X, loc_83cd, loc_842d, loc_842c, loc_8269, loc_83c3 } from "./names.js";
+import { FROG_X, loc_83cd, loc_842d, loc_842c, FROG_FURTHEST_ROW, loc_83c3 } from "./names.js";
 
 const OBJECT_INIT = [128, 30, 3, 224];
 
@@ -15,7 +15,7 @@ export function resetFrogObject(m) {
   mem8[loc_83cd] = 0;
   mem8[loc_842d] = 0;
   mem8[loc_842c] = 0;
-  mem8[loc_8269] = 0;
+  mem8[FROG_FURTHEST_ROW] = 0;
   mem8[loc_83c3] = 1;
   m.regs.a = 1;
 }

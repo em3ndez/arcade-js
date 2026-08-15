@@ -89,6 +89,21 @@ commit handler when the lane's direction flag (`RIVER_LANE0_DIR`, `0x8248`–`0x
 the lane's arrival mirror (`RIVER_LANE0_ARRIVAL`, `0x824c`–`0x824f`) — this is how a log/turtle carries
 the frog. All `[seen]`.
 
+## The river-lane ride handlers — `[code]`
+
+**`rideRiverLaneAndCommitArrival`** is the eight per-lane begin/commit handlers `commitRiverLaneArrivals`
+dispatches (each of the four ride lanes has a begin half that starts a ride and a commit half that advances
+it). A begin guards on the frog's position, emits the ride sound, stamps the frog's ride tile into
+`FROG_SPRITE_CODE`, and primes that lane's `RIVER_LANE*_RIDE_COUNTER` from its `RIVER_LANE*_RIDE_RELOAD`. A
+commit ticks the counter down and, on drain, marks the lane's arrival and stamps the home tile; otherwise it
+carries the riding frog by `RIVER_VERTICAL_RIDE_DELTA` (lanes 0/1 → `FROG_Y`) or `RIVER_HORIZONTAL_RIDE_DELTA`
+(lanes 2/3 → `FROG_X`). Lane 1's commit also steps the home-slot cursor (`loc_23eb`) and scores via
+**`scoreFrogRowProgress`** (0x1fd6), which range-checks `FROG_Y` to [0x30,0xd0] and awards a point when the
+frog reaches a new furthest (`FROG_FURTHEST_ROW`) row through the unlifted score routine (`0x08e0`, kept
+`m.call`). `[code]` — equivalence-verified against the oracle (carry branches exercised with poked ride
+state + teeth); live-ride integration pending a riding-frog tape (the idle golden's frog never reaches the
+river).
+
 ## The home bays — `[seen]`
 
 The five top bays are the goal, and the code that decorates them is a small animation engine keyed by a

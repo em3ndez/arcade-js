@@ -5,10 +5,12 @@
  * since its caller only runs in active play; a coherent post-boot state captured at the per-frame
  * score redraw (0x0b1f) is cloned and the four lane direction flags poked. The clear entry (all flags
  * 0, mirrors pre-set nonzero) exercises the four mirror-clear writes; each lane entry sets one flag so
- * the routine tails to that lane's commit handler (0x1bba/0x1c0d/0x1c76/0x1cd5), which both sides
- * reach via m.call with the frog X/Y cursors armed and run on a fresh clone. Live-out is memory-only,
- * so RAM is compared and registers/SP are not. Teeth: three broken twins (no-op, wrong mirror value,
- * skip the lane-0 commit call).
+ * the routine hands off to that lane's commit handler (0x1bba/0x1c0d/0x1c76/0x1cd5), with the frog X/Y
+ * cursors armed and run on a fresh clone: the oracle reaches the frozen handlers via m.call, the rewrite
+ * calls the lifted handlers directly. Live-out is memory-only, so RAM is compared and registers/SP are
+ * not; the dead stack scratch [0x87e0,0x8800) is masked, since the lifted handlers no longer model the
+ * oracle's internal return-address push (e.g. the lane-1 slot-cursor call). Teeth: three broken twins
+ * (no-op, wrong mirror value, skip the lane-0 commit call).
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -17,7 +19,6 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { commitRiverLaneArrivals } from "../commitRiverLaneArrivals.js";
 import { loc_23b7 as oracle } from "../../translated/loc_23b7.js";
-import { firstStateDiff } from "../../../../core/equivalence.js";
 
 const NEIGHBOUR = 0x0b1f;
 const DIR_FLAGS = 0x8248; // four lane direction flags 0x8248..0x824b
@@ -55,12 +56,21 @@ function craftLane(lane) {
   return c;
 }
 
-// null == RAM-equivalent. Memory-only live-out: compare RAM, not registers or SP.
+const STACK_LO = 0x87e0, STACK_HI = 0x8800; // dead stack scratch, masked
+
+// null == RAM-equivalent. Memory-only live-out: compare RAM, mask the dead stack scratch.
 function ramDiff(cand, machine) {
   const a = machine.clone(); oracle(a);
   const b = machine.clone(); cand(b);
-  const d = firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
-  return d ? `0x${(d.addr ?? 0).toString(16)}: ${d.a} vs ${d.b}` : null;
+  const A = a.dumpState(), B = b.dumpState();
+  const n = Math.min(A.length, B.length);
+  for (let i = 0; i < n; i++) {
+    if (A[i] === B[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= STACK_LO && addr < STACK_HI) continue;
+    return `0x${(addr ?? 0).toString(16)}: ${A[i]} vs ${B[i]}`;
+  }
+  return null;
 }
 
 // broken twins the RAM diff must catch.
