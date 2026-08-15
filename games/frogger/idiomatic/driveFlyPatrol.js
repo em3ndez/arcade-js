@@ -7,7 +7,7 @@
  * zero it advances one path step, reversing at an endpoint (table 0) or holding (table 1).
  * LIVE-OUT: memory-only.
  */
-import { loc_833d, loc_833e, loc_8040, loc_8041, loc_811c, loc_279f } from "./names.js";
+import { loc_833d, loc_833e, FLY_SPRITE_X, loc_8041, loc_811c, loc_279f } from "./names.js";
 
 const TIMER_RELOAD = 60;
 const MID_TIME = TIMER_RELOAD / 2;
@@ -52,5 +52,5 @@ function advance(m) {
 
 function writeX(m, offset) {
   const { mem8 } = m;
-  mem8[loc_8040] = (offset + mem8[loc_811c]) & 0xff;
+  mem8[FLY_SPRITE_X] = (offset + mem8[loc_811c]) & 0xff;
 }

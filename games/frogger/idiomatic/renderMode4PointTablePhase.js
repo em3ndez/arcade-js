@@ -11,9 +11,9 @@
 import { NotImplemented } from "../../../boards/frogger/io.js";
 import {
   loc_83d7, loc_83d8,
-  loc_ab76, loc_ab77, loc_ab73, loc_ab74, loc_ab70, loc_ab71, loc_ab6d,
-  loc_2f9e, loc_2fba, loc_2f39, loc_2fae, loc_2f43, loc_2f17, loc_2f2a, loc_2ed1,
-  loc_801d, loc_8023, loc_8029, loc_802f, loc_801b, loc_8021, loc_8027, loc_802d,
+  POINT_TABLE_PHASE1_STRIP_VRAM, POINT_TABLE_PHASE1_VALUE_VRAM, POINT_TABLE_PHASE2_VALUE_VRAM, POINT_TABLE_PHASE2_STRIP_VRAM, POINT_TABLE_PHASE3_VALUE_VRAM, loc_ab71, POINT_TABLE_PHASE4_VALUE_VRAM,
+  loc_2f9e, PTS_SUFFIX_STRIP, loc_2f39, loc_2fae, loc_2f43, loc_2f17, loc_2f2a, loc_2ed1,
+  loc_801d, loc_8023, loc_8029, loc_802f, loc_801b, OBJECT_ANIM_STATE_8021, loc_8027, loc_802d,
 } from "./names.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writePackedBcdWord } from "./writePackedBcdWord.js";
@@ -37,29 +37,29 @@ export function renderMode4PointTablePhase(m) {
       return;
 
     case 1:
-      copyRunUpTileColumn(m, loc_ab76, loc_2f9e, 10);
+      copyRunUpTileColumn(m, POINT_TABLE_PHASE1_STRIP_VRAM, loc_2f9e, 10);
       regs.a = 0x10;
-      regs.hl = loc_ab77;
+      regs.hl = POINT_TABLE_PHASE1_VALUE_VRAM;
       writePackedBcdByte(m);
-      copyRunUpTileColumn(m, regs.hl, loc_2fba, 4);
+      copyRunUpTileColumn(m, regs.hl, PTS_SUFFIX_STRIP, 4);
       copyRunUpTileColumn(m, regs.hl, regs.de, 19);
       break;
 
     case 2:
-      regs.hl = loc_ab73;
+      regs.hl = POINT_TABLE_PHASE2_VALUE_VRAM;
       regs.de = 0x1000;
       writePackedBcdWord(m);
-      copyRunUpTileColumn(m, regs.hl, loc_2fba, 4);
+      copyRunUpTileColumn(m, regs.hl, PTS_SUFFIX_STRIP, 4);
       copyRunUpTileColumn(m, regs.hl, loc_2f39, 10);
       copyRunUpTileColumn(m, regs.hl, loc_2fae, 6);
-      copyRunUpTileColumn(m, loc_ab74, loc_2f2a, 15);
+      copyRunUpTileColumn(m, POINT_TABLE_PHASE2_STRIP_VRAM, loc_2f2a, 15);
       break;
 
     case 3:
       regs.a = 0x50;
-      regs.hl = loc_ab70;
+      regs.hl = POINT_TABLE_PHASE3_VALUE_VRAM;
       writePackedBcdByte(m);
-      copyRunUpTileColumn(m, regs.hl, loc_2fba, 4);
+      copyRunUpTileColumn(m, regs.hl, PTS_SUFFIX_STRIP, 4);
       copyRunUpTileColumn(m, regs.hl, loc_2f43, 10);
       copyRunUpTileColumn(m, regs.hl, loc_2fae, 5);
       copyRunUpTileColumn(m, loc_ab71, loc_2f17, 19);
@@ -71,13 +71,13 @@ export function renderMode4PointTablePhase(m) {
       mem8[loc_8029] = 6;
       mem8[loc_802f] = 6;
       mem8[loc_801b] = 3;
-      mem8[loc_8021] = 3;
+      mem8[OBJECT_ANIM_STATE_8021] = 3;
       mem8[loc_8027] = 3;
       mem8[loc_802d] = 3;
       regs.a = 0x10;
-      regs.hl = loc_ab6d;
+      regs.hl = POINT_TABLE_PHASE4_VALUE_VRAM;
       writePackedBcdByte(m);
-      copyRunUpTileColumn(m, regs.hl, loc_2fba, 4);
+      copyRunUpTileColumn(m, regs.hl, PTS_SUFFIX_STRIP, 4);
       copyRunUpTileColumn(m, regs.hl, loc_2ed1, 14);
       break;
 

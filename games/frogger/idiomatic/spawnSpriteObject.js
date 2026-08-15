@@ -4,7 +4,7 @@
  * derive its tile/attribute and a table-indexed position, then arm it (active flag + move timer).
  * LIVE-OUT: memory-only (the IX record fields + the PRNG ring the draws advance).
  */
-import { loc_83b7, loc_2ce6, loc_2cdc, loc_8000 } from "./names.js";
+import { loc_83b7, SPAWN_VARIANT_TABLE, loc_2cdc, loc_8000 } from "./names.js";
 import { nextSpawnRandomByte } from "./nextSpawnRandomByte.js";
 
 const MIN_COUNT = 3;
@@ -29,8 +29,8 @@ export function spawnSpriteObject(m) {
   mem8[(record + 4) & 0xffff] = variant * 16 + 48;
 
   nextSpawnRandomByte(m);
-  const spanA = mem8[(loc_2ce6 + 2 * variant) & 0xffff];
-  const workLow = mem8[(loc_2ce6 + 2 * variant + 1) & 0xffff];
+  const spanA = mem8[(SPAWN_VARIANT_TABLE + 2 * variant) & 0xffff];
+  const workLow = mem8[(SPAWN_VARIANT_TABLE + 2 * variant + 1) & 0xffff];
   mem8[(record + 11) & 0xffff] = workLow;
   const seedPos = mem8[(loc_8000 + workLow) & 0xffff];
 

@@ -4,13 +4,13 @@
  * the collision latch and falls through to the cell-clearing helper.
  * LIVE-OUT: memory-only (both callers reload A / return right after).
  */
-import { loc_8134, loc_8135 } from "./names.js";
+import { COLLISION_SUBFLAG, COLLISION_LATCH } from "./names.js";
 
 const CLEAR_COLLISION_CELLS = 0x27bc;
 
 export function clearLatchedCollision(m) {
   const { mem8 } = m;
-  if (mem8[loc_8135] === 0) return;
-  mem8[loc_8134] = 0;
+  if (mem8[COLLISION_LATCH] === 0) return;
+  mem8[COLLISION_SUBFLAG] = 0;
   return m.call(CLEAR_COLLISION_CELLS);
 }

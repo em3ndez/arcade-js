@@ -6,7 +6,7 @@
  * is set, clearing the 16-byte struct and the shared 4-byte block.
  * LIVE-OUT: memory-only.
  */
-import { loc_8000, HOLD_FLAG, loc_8058 } from "./names.js";
+import { loc_8000, HOLD_FLAG, SPRITE_OBJECT_SLOT_B } from "./names.js";
 
 const MOVE_RELOAD = 8;
 const STRUCT_BYTES = 16;
@@ -38,6 +38,6 @@ export function steerSpriteObjectTowardTarget(m) {
   function despawn() {
     if (mem8[HOLD_FLAG] !== 0) return; // held: keep the struct
     for (let i = 0; i < STRUCT_BYTES; i++) mem8[(obj + i) & 0xffff] = 0;
-    for (let i = 0; i < SHARED_BLOCK_BYTES; i++) mem8[(loc_8058 + i) & 0xffff] = 0;
+    for (let i = 0; i < SHARED_BLOCK_BYTES; i++) mem8[(SPRITE_OBJECT_SLOT_B + i) & 0xffff] = 0;
   }
 }

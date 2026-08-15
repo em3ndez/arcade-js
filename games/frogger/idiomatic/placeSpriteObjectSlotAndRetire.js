@@ -6,7 +6,7 @@
  * lands on the fold value and the record's retire flag is set) it clears the record and sprite slot.
  * LIVE-OUT: memory-only (the sprite-slot bytes, and on the wrap the cleared record and slot).
  */
-import { loc_8014 } from "./names.js";
+import { FREE_RUNNING_POS_COUNTER } from "./names.js";
 
 const ARM_HELPER = 0x2ae6; // raise the one-shot and queue the arm sound
 
@@ -24,7 +24,7 @@ export function placeSpriteObjectSlotAndRetire(m) {
   if (attr >= 0x60) {
     onScreenX = mem8[(record + 3) & 0xffff];
   } else {
-    onScreenX = (mem8[loc_8014] - mem8[(record + 2) & 0xffff]) & 0xff; // drift toward the free-running counter
+    onScreenX = (mem8[FREE_RUNNING_POS_COUNTER] - mem8[(record + 2) & 0xffff]) & 0xff; // drift toward the free-running counter
   }
   mem8[slot & 0xffff] = onScreenX;
   mem8[(slot + 3) & 0xffff] = attr;

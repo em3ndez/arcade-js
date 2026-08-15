@@ -6,7 +6,7 @@
  */
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writePackedBcdByte } from "./writePackedBcdByte.js";
-import { CREDIT_BCD, OBJRAM_COL3F_ATTR_SHADOW, loc_83b4, CREDIT_LABEL_STRIP } from "./names.js";
+import { CREDIT_BCD, OBJRAM_COL3F_ATTR_SHADOW, CREDIT_COLUMN_CLEAR_LATCH, CREDIT_LABEL_STRIP } from "./names.js";
 
 const COLUMN_TOP = 0xa81f;
 const CLEAR_TILE = 0x10;
@@ -19,8 +19,8 @@ const COUNT_DST = 0xa89f;
 export function renderCreditLine(m) {
   const { regs, mem8 } = m;
 
-  if (mem8[loc_83b4] === 0) {
-    mem8[loc_83b4] = 1;
+  if (mem8[CREDIT_COLUMN_CLEAR_LATCH] === 0) {
+    mem8[CREDIT_COLUMN_CLEAR_LATCH] = 1;
     let cell = COLUMN_TOP;
     for (let n = COLUMN_CELLS; n !== 0; n--) {
       mem8[cell] = CLEAR_TILE;

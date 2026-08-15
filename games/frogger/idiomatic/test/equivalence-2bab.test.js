@@ -7,7 +7,7 @@
  * running, the 0->255 timer edge, the two facings' step toward/away, and both despawn arms (clear vs
  * held by 0x8004). The oracle pushes/pops IX once on the despawn path, so the dead [SP-8,SP) stack
  * scratch is masked; live-out is otherwise memory-only. Teeth: four broken twins. NOTE: links once
- * names.js exports loc_8000, loc_8058 (added in a later pass).
+ * names.js exports loc_8000, SPRITE_OBJECT_SLOT_B (added in a later pass).
  */
 import test from "node:test";
 import assert from "node:assert/strict";

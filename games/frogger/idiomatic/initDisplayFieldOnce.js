@@ -7,7 +7,7 @@
  * LIVE-OUT: memory-only.
  */
 import {
-  loc_842d, OBJRAM_COL3F_ATTR_SHADOW, loc_83e0, loc_a8bf, loc_2f6e, loc_a8df, loc_83dc, loc_83de,
+  loc_842d, OBJRAM_COL3F_ATTR_SHADOW, loc_83e0, LAYOUT_SETUP_STRIP_VRAM, loc_2f6e, loc_a8df, loc_83dc, loc_83de,
 } from "./names.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 
@@ -23,7 +23,7 @@ export function initDisplayFieldOnce(m) {
   mem8[OBJRAM_COL3F_ATTR_SHADOW] = 3;
   mem8[loc_83e0] = 0;
 
-  copyRunUpTileColumn(m, loc_a8bf, loc_2f6e, 4);
+  copyRunUpTileColumn(m, LAYOUT_SETUP_STRIP_VRAM, loc_2f6e, 4);
 
   let cell = loc_a8df;
   for (let row = 0; row < FILL_ROWS; row++) {

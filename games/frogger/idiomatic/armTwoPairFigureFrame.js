@@ -4,23 +4,23 @@
  * two frame cells from the low nibble of the shared source cell (times 8), then set the busy latch so a
  * later pass does not re-seed. LIVE-OUT: memory-only (the sole caller reloads from memory).
  */
-import { loc_814f, loc_8150, loc_819b, loc_8146, loc_8147 } from "./names.js";
+import { SPRITE_FRAME_BUSY_LATCH1, FIGURE_ANIM_STEP_GATE, ANIM_FRAME_BUFFER, TWOPLAYER_FRAME_CELL_8146, TWOPLAYER_FRAME_CELL_8147 } from "./names.js";
 
 const LOW_NIBBLE = 0x0f;
 const SEED_SCALE = 8;
 
 export function armTwoPairFigureFrame(m) {
   const { mem8 } = m;
-  if (mem8[loc_814f] !== 0) return; // busy latch already set -> seeded this cycle
-  mem8[loc_8150] = 1;
+  if (mem8[SPRITE_FRAME_BUSY_LATCH1] !== 0) return; // busy latch already set -> seeded this cycle
+  mem8[FIGURE_ANIM_STEP_GATE] = 1;
   seedFrameCells(m);
 }
 
 // seed the two frame cells from the shared source cell's low nibble, then raise the busy latch.
 function seedFrameCells(m) {
   const { mem8 } = m;
-  const seed = (mem8[loc_819b] & LOW_NIBBLE) * SEED_SCALE;
-  mem8[loc_8146] = seed;
-  mem8[loc_8147] = seed;
-  mem8[loc_814f] = 1;
+  const seed = (mem8[ANIM_FRAME_BUFFER] & LOW_NIBBLE) * SEED_SCALE;
+  mem8[TWOPLAYER_FRAME_CELL_8146] = seed;
+  mem8[TWOPLAYER_FRAME_CELL_8147] = seed;
+  mem8[SPRITE_FRAME_BUSY_LATCH1] = 1;
 }

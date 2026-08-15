@@ -9,23 +9,23 @@
  */
 import {
   HOLD_FLAG, FROG_Y, loc_802f, FROG_X, loc_130b,
-  loc_8100, loc_8109, loc_8112, loc_811b, loc_8124, loc_8136, loc_813f, loc_8148, loc_8151, loc_815a,
+  SPRITE_BLOCK2_BASE, LANE_OBJLIST_8109, LANE_OBJLIST_8112, LANE_OBJLIST_811B, LANE_OBJLIST_8124, LANE_OBJLIST_8136, LANE_OBJLIST_813F, LANE_OBJLIST_8148, LANE_OBJLIST_8151, LANE_OBJLIST_815A,
 } from "./names.js";
 
 const KILL_TAIL = 0x12d0; // frog-kill tail: raises the blocked flag and, mid-band, the kill cell
 
 // arm value (from the pointer table) -> [lane object-list base, band width]; others scan no lane.
 const LANES = new Map([
-  [0x1334, [loc_8100, 60]],
-  [0x133c, [loc_8109, 31]],
-  [0x1344, [loc_8112, 92]],
-  [0x134c, [loc_811b, 44]],
-  [0x1354, [loc_8124, 47]],
-  [0x1364, [loc_8136, 34]],
-  [0x136c, [loc_813f, 18]],
-  [0x1374, [loc_8148, 18]],
-  [0x137c, [loc_8151, 18]],
-  [0x1384, [loc_815a, 18]],
+  [0x1334, [SPRITE_BLOCK2_BASE, 60]],
+  [0x133c, [LANE_OBJLIST_8109, 31]],
+  [0x1344, [LANE_OBJLIST_8112, 92]],
+  [0x134c, [LANE_OBJLIST_811B, 44]],
+  [0x1354, [LANE_OBJLIST_8124, 47]],
+  [0x1364, [LANE_OBJLIST_8136, 34]],
+  [0x136c, [LANE_OBJLIST_813F, 18]],
+  [0x1374, [LANE_OBJLIST_8148, 18]],
+  [0x137c, [LANE_OBJLIST_8151, 18]],
+  [0x1384, [LANE_OBJLIST_815A, 18]],
 ]);
 
 export function resolveFrogMoveAgainstLanes(m) {

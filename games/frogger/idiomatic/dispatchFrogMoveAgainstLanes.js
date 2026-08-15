@@ -9,7 +9,7 @@
  */
 import {
   loc_83cd, HOLD_FLAG, FROG_Y, FROG_X,
-  loc_8100, loc_8109, loc_8112, loc_811b, loc_8124, loc_8136, loc_813f, loc_8148, loc_8151, loc_815a,
+  SPRITE_BLOCK2_BASE, LANE_OBJLIST_8109, LANE_OBJLIST_8112, LANE_OBJLIST_811B, LANE_OBJLIST_8124, LANE_OBJLIST_8136, LANE_OBJLIST_813F, LANE_OBJLIST_8148, LANE_OBJLIST_8151, LANE_OBJLIST_815A,
 } from "./names.js";
 import { resolveFrogMoveAgainstLanes } from "./resolveFrogMoveAgainstLanes.js";
 
@@ -17,9 +17,9 @@ const KILL_TAIL = 0x12d0; // frog-kill tail: raises the blocked flag and, mid-ba
 
 // frog position high nibble -> [lane object-list base, band width]; the other six nibbles delegate.
 const LANE_BY_NIBBLE = new Map([
-  [3, [loc_8100, 60]], [4, [loc_8109, 31]], [5, [loc_8112, 92]], [6, [loc_811b, 44]],
-  [7, [loc_8124, 47]], [9, [loc_8136, 34]], [10, [loc_813f, 18]], [11, [loc_8148, 18]],
-  [12, [loc_8151, 18]], [13, [loc_815a, 18]],
+  [3, [SPRITE_BLOCK2_BASE, 60]], [4, [LANE_OBJLIST_8109, 31]], [5, [LANE_OBJLIST_8112, 92]], [6, [LANE_OBJLIST_811B, 44]],
+  [7, [LANE_OBJLIST_8124, 47]], [9, [LANE_OBJLIST_8136, 34]], [10, [LANE_OBJLIST_813F, 18]], [11, [LANE_OBJLIST_8148, 18]],
+  [12, [LANE_OBJLIST_8151, 18]], [13, [LANE_OBJLIST_815A, 18]],
 ]);
 
 export function dispatchFrogMoveAgainstLanes(m) {

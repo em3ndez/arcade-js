@@ -5,7 +5,7 @@
  * step the phase counter, reloading it and resetting the attract sequencer when all seven are placed.
  * LIVE-OUT: memory-only.
  */
-import { loc_800d, loc_800f, loc_83bc, loc_83d7, loc_83bf, loc_83bb, loc_8040, loc_a8c6 } from "./names.js";
+import { OBJECT_ANIM_STATE_800D, loc_800f, ATTRACT_DEMO_DWELL, loc_83d7, loc_83bf, loc_83bb, FLY_SPRITE_X, ATTRACT_DEMO_CORNER_VRAM } from "./names.js";
 import { setAttractIdleMode } from "./setAttractIdleMode.js";
 
 const DWELL_RELOAD = 32;
@@ -21,16 +21,16 @@ const BASE_TILE = [0, 216, 248, 244, 244, 220, 216, 212];
 export function stampAttractDemoCell(m) {
   const { mem8 } = m;
 
-  mem8[loc_800d] = 3;
+  mem8[OBJECT_ANIM_STATE_800D] = 3;
   mem8[loc_800f] = 3;
 
-  mem8[loc_83bc] = (mem8[loc_83bc] - 1) & 0xff;
-  if (mem8[loc_83bc] !== 0) return; // still dwelling
-  mem8[loc_83bc] = DWELL_RELOAD;
+  mem8[ATTRACT_DEMO_DWELL] = (mem8[ATTRACT_DEMO_DWELL] - 1) & 0xff;
+  if (mem8[ATTRACT_DEMO_DWELL] !== 0) return; // still dwelling
+  mem8[ATTRACT_DEMO_DWELL] = DWELL_RELOAD;
 
   const phase = mem8[loc_83d7];
-  const src = (loc_a8c6 + CELL_VRAM_STRIDE * (phase - 1)) & 0xffff;
-  const obj = (loc_8040 + OBJ_CELL_STRIDE * (PHASE_COUNT - phase)) & 0xffff;
+  const src = (ATTRACT_DEMO_CORNER_VRAM + CELL_VRAM_STRIDE * (phase - 1)) & 0xffff;
+  const obj = (FLY_SPRITE_X + OBJ_CELL_STRIDE * (PHASE_COUNT - phase)) & 0xffff;
   const tile = BASE_TILE[phase];
 
   mem8[src] = tile;

@@ -5,9 +5,9 @@
  * For each non-zero entry in the occupancy list at HL, stamp four home tiles at its base.
  * LIVE-OUT: memory-only.
  */
-import { loc_ab64, loc_aaa4, loc_a9e4, loc_a924, loc_a864 } from "./names.js";
+import { HOME_SLOT1_VRAM, HOME_SLOT2_VRAM, HOME_SLOT3_VRAM, HOME_SLOT4_VRAM, HOME_SLOT5_VRAM } from "./names.js";
 
-const SLOT_BASES = [loc_ab64, loc_aaa4, loc_a9e4, loc_a924, loc_a864];
+const SLOT_BASES = [HOME_SLOT1_VRAM, HOME_SLOT2_VRAM, HOME_SLOT3_VRAM, HOME_SLOT4_VRAM, HOME_SLOT5_VRAM];
 const ROW_BELOW = 32;
 
 export function renderFilledHomeSlots(m) {

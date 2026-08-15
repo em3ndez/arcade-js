@@ -7,7 +7,7 @@
  * then a 13-tile column), and cap the advanced cursor. Both columns advance the shared pointers.
  * LIVE-OUT: memory-only.
  */
-import { CREDIT_BCD, loc_8023, loc_2f88, loc_2f93, loc_aaf1, loc_ab11 } from "./names.js";
+import { CREDIT_BCD, loc_8023, loc_2f88, loc_2f93, ONE_PLAYER_ONLY_PROMPT_VRAM, ONE_OR_TWO_PLAYERS_PROMPT_VRAM } from "./names.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 
 const ONE_CREDIT = 1;
@@ -20,7 +20,7 @@ export function blitPlayerSelectPrompt(m) {
   if (mem8[CREDIT_BCD] === ONE_CREDIT) return blitOnePlayerOnly(m);
 
   mem8[loc_8023] = SCREEN_STATE;
-  regs.hl = loc_ab11;
+  regs.hl = ONE_OR_TWO_PLAYERS_PROMPT_VRAM;
   regs.b = 4;
   copyRunUpTileColumn(m);
   regs.b = 13;
@@ -31,7 +31,7 @@ export function blitPlayerSelectPrompt(m) {
 // The one-credit prompt: two columns, the second from a second tile source; no cursor cap.
 function blitOnePlayerOnly(m) {
   const { regs } = m;
-  regs.hl = loc_aaf1;
+  regs.hl = ONE_PLAYER_ONLY_PROMPT_VRAM;
   regs.b = 4;
   copyRunUpTileColumn(m);
   regs.de = loc_2f93;

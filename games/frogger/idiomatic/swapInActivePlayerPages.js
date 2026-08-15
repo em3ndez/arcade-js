@@ -6,7 +6,7 @@
  * and write the per-column object-attribute shadow byte. Any other player number tails to the swap-OUT path instead.
  * LIVE-OUT: memory-only.
  */
-import { ACTIVE_PLAYER, loc_800c, loc_85c0, loc_80ff, loc_8600, loc_86c0, OBJRAM_COL3F_ATTR_SHADOW, loc_8500 } from "./names.js";
+import { ACTIVE_PLAYER, LIVE_OBJECT_PAGE, OTHER_PLAYER_OBJECT_PAGE, LIVE_WORK_PAGE, OTHER_PLAYER_WORK_PAGE, loc_86c0, OBJRAM_COL3F_ATTR_SHADOW, loc_8500 } from "./names.js";
 import { swapOutActivePlayerPages } from "./swapOutActivePlayerPages.js";
 
 const PLAYER_ONE = 1;
@@ -21,9 +21,9 @@ export function swapInActivePlayerPages(m) {
   const { mem8 } = m;
   if (mem8[ACTIVE_PLAYER] !== PLAYER_ONE) return swapOutActivePlayerPages(m);
 
-  copy(mem8, loc_85c0, loc_800c, OBJECT_BYTES);
-  copy(mem8, loc_8600, loc_80ff, PAGE_BYTES);
-  copy(mem8, loc_800c, loc_86c0, OBJECT_BYTES);
+  copy(mem8, OTHER_PLAYER_OBJECT_PAGE, LIVE_OBJECT_PAGE, OBJECT_BYTES);
+  copy(mem8, OTHER_PLAYER_WORK_PAGE, LIVE_WORK_PAGE, PAGE_BYTES);
+  copy(mem8, LIVE_OBJECT_PAGE, loc_86c0, OBJECT_BYTES);
   mem8[OBJRAM_COL3F_ATTR_SHADOW] = 1;
-  copy(mem8, loc_80ff, loc_8500, PAGE_BYTES);
+  copy(mem8, LIVE_WORK_PAGE, loc_8500, PAGE_BYTES);
 }

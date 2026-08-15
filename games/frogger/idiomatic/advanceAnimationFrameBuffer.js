@@ -4,7 +4,7 @@
  * copy the next indexed frame into the animation buffer.
  * LIVE-OUT: memory-only.
  */
-import { loc_814f, loc_815b, loc_81b3, loc_81b4, loc_1841, loc_819b } from "./names.js";
+import { SPRITE_FRAME_BUSY_LATCH1, loc_815b, loc_81b3, loc_81b4, loc_1841, ANIM_FRAME_BUFFER } from "./names.js";
 
 const TIMER_RELOAD = 21;
 const TABLE_LEN = 10;
@@ -13,7 +13,7 @@ const FRAME_BYTES = 11;
 export function advanceAnimationFrameBuffer(m) {
   const { mem8, mem16 } = m;
 
-  if (mem8[loc_814f] !== 0) return;
+  if (mem8[SPRITE_FRAME_BUSY_LATCH1] !== 0) return;
   if (mem8[loc_815b] !== 0) return;
 
   if (mem8[loc_81b4] !== 0) {
@@ -33,6 +33,6 @@ export function advanceAnimationFrameBuffer(m) {
   mem8[loc_81b3] = nextIndex;
 
   for (let i = 0; i < FRAME_BYTES; i++) {
-    mem8[(loc_819b + i) & 0xffff] = mem8[(src + i) & 0xffff];
+    mem8[(ANIM_FRAME_BUFFER + i) & 0xffff] = mem8[(src + i) & 0xffff];
   }
 }

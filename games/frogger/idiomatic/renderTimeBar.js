@@ -6,7 +6,7 @@
  * terminator, or returns without drawing when the countdown is inactive.
  * LIVE-OUT: memory-only.
  */
-import { loc_83e4, loc_83e5, loc_83e6, PLAY_FLAG, ACTIVE_PLAYER, loc_abbe } from "./names.js";
+import { SHARED_TIME_BYTE, loc_83e5, loc_83e6, PLAY_FLAG, ACTIVE_PLAYER, loc_abbe } from "./names.js";
 
 const BAR_TILE = 77;
 const CAP_TILE = 16;
@@ -14,9 +14,9 @@ const ROW_UP = 32;
 
 export function renderTimeBar(m) {
   const { mem8 } = m;
-  if (mem8[loc_83e4] === 255) return;
+  if (mem8[SHARED_TIME_BYTE] === 255) return;
 
-  let src = loc_83e4;
+  let src = SHARED_TIME_BYTE;
   if (mem8[PLAY_FLAG] !== 0) src = mem8[ACTIVE_PLAYER] === 1 ? loc_83e5 : loc_83e6;
 
   let count = mem8[src];

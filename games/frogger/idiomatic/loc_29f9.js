@@ -5,7 +5,7 @@
  * or drifts (IX+2) toward/away from the free-running counter, flipping the direction bit at the turn.
  * LIVE-OUT: memory-only (the sprite-object dispatcher).
  */
-import { loc_842c, loc_8014 } from "./names.js";
+import { loc_842c, FREE_RUNNING_POS_COUNTER } from "./names.js";
 
 const MOVE_RELOAD = 8;
 const ROW_THRESHOLD = 96; // rows at/below take the (IX+3) step, above drift toward the free-running counter
@@ -32,7 +32,7 @@ export function loc_29f9(m) {
     return;
   }
 
-  const trackX = mem8[loc_8014];
+  const trackX = mem8[FREE_RUNNING_POS_COUNTER];
   if (facing === 0) {
     const anchor = mem8[(obj + 0x00) & 0xffff];
     if (trackX < anchor) return; // past the target, hold

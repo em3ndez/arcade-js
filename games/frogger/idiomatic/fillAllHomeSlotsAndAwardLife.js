@@ -5,19 +5,19 @@
  * home-column state cell, then hands off to the award routine (whose result it returns).
  * LIVE-OUT: memory-only.
  */
-import { loc_ab64, loc_aaa4, loc_a9e4, loc_a924, loc_a864, loc_842f } from "./names.js";
+import { HOME_SLOT1_VRAM, HOME_SLOT2_VRAM, HOME_SLOT3_VRAM, HOME_SLOT4_VRAM, HOME_SLOT5_VRAM, HOME_COLUMN_STATE } from "./names.js";
 import { fillTwoByTwoTileBlock } from "./fillTwoByTwoTileBlock.js";
 import { awardExtraLife } from "./awardExtraLife.js";
 
 export function fillAllHomeSlotsAndAwardLife(m) {
   const { mem8 } = m;
 
-  fillTwoByTwoTileBlock(m, loc_ab64);
-  fillTwoByTwoTileBlock(m, loc_aaa4);
-  fillTwoByTwoTileBlock(m, loc_a9e4);
-  fillTwoByTwoTileBlock(m, loc_a924);
-  fillTwoByTwoTileBlock(m, loc_a864);
+  fillTwoByTwoTileBlock(m, HOME_SLOT1_VRAM);
+  fillTwoByTwoTileBlock(m, HOME_SLOT2_VRAM);
+  fillTwoByTwoTileBlock(m, HOME_SLOT3_VRAM);
+  fillTwoByTwoTileBlock(m, HOME_SLOT4_VRAM);
+  fillTwoByTwoTileBlock(m, HOME_SLOT5_VRAM);
 
-  mem8[loc_842f] = 0;
+  mem8[HOME_COLUMN_STATE] = 0;
   return awardExtraLife(m);
 }

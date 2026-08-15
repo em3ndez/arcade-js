@@ -8,9 +8,9 @@
  */
 import {
   ACTIVE_PLAYER, loc_8121, loc_8120, HOLD_FLAG,
-  loc_825e, loc_825f, loc_8260, loc_8261, loc_8262,
+  HOME_BAY1_OCCUPANCY_PRIMARY, HOME_BAY2_OCCUPANCY_PRIMARY, HOME_BAY3_OCCUPANCY_PRIMARY, HOME_BAY4_OCCUPANCY_PRIMARY, HOME_BAY5_OCCUPANCY_PRIMARY,
   loc_8263, loc_8264, loc_8265, loc_8266, loc_8267,
-  loc_ab64, loc_aaa4, loc_a9e4, loc_a924, loc_a864,
+  HOME_SLOT1_VRAM, HOME_SLOT2_VRAM, HOME_SLOT3_VRAM, HOME_SLOT4_VRAM, HOME_SLOT5_VRAM,
 } from "./names.js";
 
 const PLAYER_ONE = 1;
@@ -19,11 +19,11 @@ const ROW_STRIDE = 32;
 
 // selector value 1..5 -> [VRAM base, player-1 occupancy cell, player-2 occupancy cell]
 const SLOTS = {
-  1: [loc_ab64, loc_825e, loc_8263],
-  2: [loc_aaa4, loc_825f, loc_8264],
-  3: [loc_a9e4, loc_8260, loc_8265],
-  4: [loc_a924, loc_8261, loc_8266],
-  5: [loc_a864, loc_8262, loc_8267],
+  1: [HOME_SLOT1_VRAM, HOME_BAY1_OCCUPANCY_PRIMARY, loc_8263],
+  2: [HOME_SLOT2_VRAM, HOME_BAY2_OCCUPANCY_PRIMARY, loc_8264],
+  3: [HOME_SLOT3_VRAM, HOME_BAY3_OCCUPANCY_PRIMARY, loc_8265],
+  4: [HOME_SLOT4_VRAM, HOME_BAY4_OCCUPANCY_PRIMARY, loc_8266],
+  5: [HOME_SLOT5_VRAM, HOME_BAY5_OCCUPANCY_PRIMARY, loc_8267],
 };
 
 export function stampHomeBaySlot(m) {

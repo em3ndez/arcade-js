@@ -8,7 +8,7 @@
  * the column stride between columns. A count of zero runs its 8-bit loop a full 256 times.
  * LIVE-OUT: memory-only.
  */
-import { loc_13ef, loc_8001, loc_8003, loc_81b1 } from "./names.js";
+import { loc_13ef, SCROLL_COPY_SRC_PTR, loc_8003, loc_81b1 } from "./names.js";
 
 const ROW_PITCH = 32;
 const PAIR = 2;
@@ -20,7 +20,7 @@ export function blitScrollTileGrid(m) {
   const rowCount = regs.b;
   const colCount = regs.c;
 
-  mem16[loc_8001] = source;
+  mem16[SCROLL_COPY_SRC_PTR] = source;
   mem8[loc_8003] = rowCount;
 
   const rows = rowCount === 0 ? FULL_RUN : rowCount;

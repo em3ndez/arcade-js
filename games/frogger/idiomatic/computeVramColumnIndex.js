@@ -6,7 +6,7 @@
  * The accumulator is the result and it is returned in C; no memory is touched.
  * LIVE-OUT: register C.
  */
-import { loc_a800 } from "./names.js";
+import { VRAM_BASE } from "./names.js";
 
 const PASSES = 6;
 const FINAL_ROTATES = 3;
@@ -18,7 +18,7 @@ const rotateLeft = (v) => ((v << 1) | (v >> 7)) & 0xff;
 export function computeVramColumnIndex(m) {
   const { regs } = m;
   const borrow = regs.fC ? 1 : 0;
-  const offset = (regs.hl - loc_a800 - borrow) & 0xffff;
+  const offset = (regs.hl - VRAM_BASE - borrow) & 0xffff;
   let low = offset & COLUMN_BITS;
   let high = (offset >> 8) & 0xff;
   let acc = 0;

@@ -4,7 +4,7 @@
  * row count), choosing one of three source rows by the scroll-phase mode and toggling the wrap-latch.
  * LIVE-OUT: memory-only.
  */
-import { loc_827c, loc_8111, loc_8108, loc_8119, loc_a80e, loc_2231, loc_2235, loc_2239 } from "./names.js";
+import { loc_827c, SCROLL_BAND_PHASE, loc_8108, SCROLL_BAND_ROWSPAN, loc_a80e, loc_2231, loc_2235, loc_2239 } from "./names.js";
 
 const UNIT_SPAN = 32; // each descriptor unit shifts the band base one tile row
 const ROW_STRIDE = 32;
@@ -27,7 +27,7 @@ export function blitScrollBand(m) {
   const rowSteps = ((rows - 1) & 0xff) || ZERO_RUNS_FULL;
   const bandTop = (loc_a80e + stride * rowSteps) & 0xffff;
 
-  const mode = mem8[loc_8111];
+  const mode = mem8[SCROLL_BAND_PHASE];
   let source = -1;
   if (PHASE_ROW_A.includes(mode)) source = loc_2231;
   else if (PHASE_ROW_B.includes(mode)) source = loc_2235;
@@ -47,5 +47,5 @@ export function blitScrollBand(m) {
       mem8[loc_8108] = 1;
     }
   }
-  mem8[loc_8119] = (rows - 1) & 0xff;
+  mem8[SCROLL_BAND_ROWSPAN] = (rows - 1) & 0xff;
 }

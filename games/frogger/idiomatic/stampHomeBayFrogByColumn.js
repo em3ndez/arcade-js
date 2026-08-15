@@ -6,18 +6,18 @@
  * threshold; the fill-all selector delegates to fillAllHomeSlotsAndAwardLife (which resets the bays to
  * the empty home tile and awards the life); any other value does nothing. LIVE-OUT: memory-only.
  */
-import { loc_ab64, loc_aaa4, loc_a9e4, loc_a924, loc_a864 } from "./names.js";
+import { HOME_SLOT1_VRAM, HOME_SLOT2_VRAM, HOME_SLOT3_VRAM, HOME_SLOT4_VRAM, HOME_SLOT5_VRAM } from "./names.js";
 import { fillAllHomeSlotsAndAwardLife } from "./fillAllHomeSlotsAndAwardLife.js";
 
 const ROW = 32;
 const FROG_TILE = 252; // first of four consecutive frog-in-home tiles
 
 const BAY_BASE_BY_COLUMN = new Map([
-  [192, loc_ab64],
-  [144, loc_aaa4],
-  [112, loc_a9e4],
-  [80, loc_a924],
-  [48, loc_a864],
+  [192, HOME_SLOT1_VRAM],
+  [144, HOME_SLOT2_VRAM],
+  [112, HOME_SLOT3_VRAM],
+  [80, HOME_SLOT4_VRAM],
+  [48, HOME_SLOT5_VRAM],
 ]);
 const FILL_ALL_COLUMN = 16;
 

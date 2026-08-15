@@ -5,7 +5,7 @@
  * so the blit runs once. A clear trigger returns at once, touching nothing.
  * LIVE-OUT: memory-only.
  */
-import { loc_8118, loc_a806, loc_1413 } from "./names.js";
+import { loc_8118, FROG_ANIM_COLUMN_VRAM, loc_1413 } from "./names.js";
 
 const ROWS = 8;
 const ROW_STRIDE = 32; // dest steps a full column each row (one byte advance + the 31-byte add)
@@ -15,7 +15,7 @@ export function blitFrogAnimColumnOnTrigger(m) {
   const { mem, mem8 } = m;
   if (mem8[loc_8118] === 0) return;
   for (let row = 0; row < ROWS; row++) {
-    const dest = (loc_a806 + row * ROW_STRIDE) & 0xffff;
+    const dest = (FROG_ANIM_COLUMN_VRAM + row * ROW_STRIDE) & 0xffff;
     const src = (loc_1413 + row * PAIR_BYTES) & 0xffff;
     mem8[dest] = mem.read8(src);
     mem8[(dest + 1) & 0xffff] = mem.read8((src + 1) & 0xffff);
