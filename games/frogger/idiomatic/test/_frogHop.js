@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Shared capture + diff for the river-ride handler equivalence gates. The lane handlers fire only when
- * the frog is riding, which plain attract never reaches, so a coherent post-boot state is captured at
- * the per-frame score-header redraw (0x0b1f) and the ride cells are poked to drive each branch. Both
+ * Shared capture + diff for the frog-hop handler equivalence gates. The hop handlers fire only when
+ * the frog is mid-hop, which plain attract never reaches, so a coherent post-boot state is captured at
+ * the per-frame score-header redraw (0x0b1f) and the hop cells are poked to drive each branch. Both
  * sides run on a fresh clone with the frog X/Y cursors armed (HL=FROG_X, DE=FROG_Y), as the real callers
  * arm them; live-out is memory-only so RAM is compared with the dead stack scratch [0x87e0,0x8800) masked.
  */
@@ -15,8 +15,8 @@ export { romsPresent };
 export const FROG_X = 0x8044, FROG_SPRITE = 0x8045, FROG_Y = 0x8047;
 export const PLAY_FLAG = 0x83fe, FURTHEST = 0x8269;
 
-// Per-lane cell bases (index by lane 0..3).
-export const DIR = [0x8248, 0x8249, 0x824a, 0x824b];
+// Per-direction cell bases (index by direction 0=DOWN,1=UP,2=RIGHT,3=LEFT).
+export const ACTIVE = [0x8248, 0x8249, 0x824a, 0x824b];
 export const ARRIVAL = [0x824c, 0x824d, 0x824e, 0x824f];
 export const COUNTER = [0x8250, 0x8251, 0x8252, 0x8253];
 export const RELOAD = [0x8256, 0x8257, 0x8258, 0x8259];

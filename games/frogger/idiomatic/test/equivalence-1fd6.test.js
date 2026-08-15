@@ -10,7 +10,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { romsPresent, craft, ramDiff, FROG_Y, PLAY_FLAG, FURTHEST } from "./_riverRide.js";
+import { romsPresent, craft, ramDiff, FROG_Y, PLAY_FLAG, FURTHEST } from "./_frogHop.js";
 import { scoreFrogRowProgress as cand } from "../scoreFrogRowProgress.js";
 import { loc_1fd6 as oracle } from "../../translated/loc_1fd6.js";
 

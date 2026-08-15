@@ -1,36 +1,36 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * beginRiverLane3Ride — memory-equivalent to the frozen oracle at ROM 0x1CA0.
- * GATE: crafted-entry. The lane-3 begin guards on frog Y and frog X, and on a fresh ride emits the ride
- * sound + stamps the ride sprite, primes the ride counter, then falls into the lane-3 (horizontal) commit.
- * From a captured post-boot state the lane cells are poked to drive: the two position guards, fresh ride,
+ * beginFrogHopLeft — memory-equivalent to the frozen oracle at ROM 0x1CA0.
+ * GATE: crafted-entry. The LEFT begin guards on frog Y and frog X, and on a fresh hop emits the hop
+ * sound + stamps the rest sprite, primes the hop counter, then falls into the LEFT (horizontal) advance.
+ * From a captured post-boot state the hop cells are poked to drive: the two position guards, fresh hop,
  * fresh with the sprite already set, in-progress, and the counter-wrap bail. Live-out memory-only; RAM
- * compared, stack masked. Teeth: no-op, wrong counter, wrong sprite; positive control the ride sprite stamps.
+ * compared, stack masked. Teeth: no-op, wrong counter, wrong sprite; positive control the rest sprite stamps.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { romsPresent, craft, ramDiff, FROG_X, FROG_Y, FROG_SPRITE, ARRIVAL, COUNTER, RELOAD, HDELTA } from "./_riverRide.js";
-import { beginRiverLane3Ride as cand } from "../rideRiverLaneAndCommitArrival.js";
+import { romsPresent, craft, ramDiff, FROG_X, FROG_Y, FROG_SPRITE, ARRIVAL, COUNTER, RELOAD, HDELTA } from "./_frogHop.js";
+import { beginFrogHopLeft as cand } from "../animateFrogHop.js";
 import { loc_1ca0 as oracle } from "../../translated/loc_1c41.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
-const RIDE_CODE = 0x21;
+const REST_CODE = 0x21;
 
 const base = (mem) => { mem[FROG_Y] = 0x50; mem[FROG_X] = 0x60; mem[ARRIVAL[3]] = 0; mem[RELOAD[3]] = 2; mem[HDELTA] = 3; };
 const fresh = () => craft((mem) => { base(mem); mem[COUNTER[3]] = 0; mem[FROG_SPRITE] = 0x00; });
-const freshSpriteSet = () => craft((mem) => { base(mem); mem[COUNTER[3]] = 0; mem[FROG_SPRITE] = RIDE_CODE; });
+const freshSpriteSet = () => craft((mem) => { base(mem); mem[COUNTER[3]] = 0; mem[FROG_SPRITE] = REST_CODE; });
 const inProgress = () => craft((mem) => { base(mem); mem[COUNTER[3]] = 5; });
 const wrap = () => craft((mem) => { base(mem); mem[COUNTER[3]] = 0xff; });
 const guardY = () => craft((mem) => { base(mem); mem[FROG_Y] = 0x20; mem[COUNTER[3]] = 0; });
 const guardX = () => craft((mem) => { base(mem); mem[FROG_X] = 0x10; mem[COUNTER[3]] = 0; });
 
-test("EQUAL (crafted): beginRiverLane3Ride == oracle on guards/fresh/re-prime/in-progress/wrap", { skip }, () => {
+test("EQUAL (crafted): beginFrogHopLeft == oracle on guards/fresh/re-prime/in-progress/wrap", { skip }, () => {
   for (const [name, mk] of [["guard-Y", guardY], ["guard-X", guardX], ["fresh", fresh], ["sprite-set", freshSpriteSet], ["in-progress", inProgress], ["wrap", wrap]]) {
     assert.equal(ramDiff(oracle, cand, mk()), null, `the ${name} path diverged`);
   }
   const e = fresh(); const before = e.mem8[FROG_SPRITE]; const a = e.clone(); oracle(a);
-  assert.notEqual(a.mem8[FROG_SPRITE], before, "fresh-ride not exercised: ride sprite never stamped");
+  assert.notEqual(a.mem8[FROG_SPRITE], before, "fresh-hop not exercised: rest sprite never stamped");
   console.log(`  EQUAL: guards/fresh/sprite-set/in-progress/wrap; fresh stamped sprite ${before}->${a.mem8[FROG_SPRITE]}`);
 });
 

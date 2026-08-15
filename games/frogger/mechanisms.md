@@ -8,9 +8,9 @@ answers what the code can settle and is honest about what it cannot.
 Three decompile batches are lifted and grounded: batch 1 (the status/display and game-state plumbing),
 batch 2 (the scroll engine, the home-bay animations, and the sprite-object arms), and batch 3 (the
 sprite-object spawn/motion engine, the frog's horizontal-move resolver and render, the per-frame scroll
-and river-lane commit, player-swap and board lifecycle, and the score/HUD tile builders). The frog's own
-hop input and the road/river vehicle/log movement are still translated-only, so the map is quiet on
-those. This revision was **folded**, not rewritten whole from `gameplay.md` — a full blind rewrite is
+and frog-hop continuation, player-swap and board lifecycle, and the score/HUD tile builders). The frog's
+hop input *scan* (`0x1acb`, which reads the stick and dispatches the hop begins) and the road/river
+vehicle/log movement are still translated-only, so the map is quiet on those. This revision was **folded**, not rewritten whole from `gameplay.md` — a full blind rewrite is
 owed and this note records that debt.
 
 **Batch 4** lifted and grounded the four ready dispatchers, now named: **`stampHomeBayFrogByColumn`**
@@ -83,26 +83,32 @@ scroll phase, and at phase 16/32/48 re-blits both lane tile grids via **`blitScr
 also zeroes the phase). `blitScrollTileGrid` stamps tile pairs (`0x34`–`0x37`) down VRAM columns from
 `0xA808`; `stampScrollRevealColumn` writes the newly-revealed edge column into `VRAM_BASE`; `blitScrollBand`
 writes the scrolling band rows. **`blitFourTileGroupColumn`** paints 14-row two-wide columns of the
-four-tile group (tiles `72`–`75`) — the **river-log** graphics. **`commitRiverLaneArrivals`** runs each
-frame with HL/DE pointed at the frog X/Y cells: for each of four ride lanes it tail-calls that lane's
-commit handler when the lane's direction flag (`RIVER_LANE0_DIR`, `0x8248`–`0x824b`) is set, else clears
-the lane's arrival mirror (`RIVER_LANE0_ARRIVAL`, `0x824c`–`0x824f`) — this is how a log/turtle carries
-the frog. All `[seen]`.
+four-tile group (tiles `72`–`75`) — the **river-log** graphics. **`advanceActiveFrogHops`** runs each
+frame with HL/DE pointed at the frog X/Y cells: for each of the four hop directions it tail-calls that
+direction's advance handler when the direction's hop-active flag (`FROG_HOP_DOWN_ACTIVE`, `0x8248`–`0x824b`)
+is set, else clears that direction's arrival mirror (`FROG_HOP_DOWN_ARRIVAL`, `0x824c`–`0x824f`) — it
+continues an in-progress frog hop (see The frog hop), NOT a log/turtle carry; the carry is
+**`moveLaneObjectsAndCarryFrog`** (see The lane-object mover). All `[seen]`.
 
-## The river-lane ride handlers — `[code]`
+## The frog hop — `[seen]` (vertical + right); DOWN/LEFT `[code]`
 
-**`rideRiverLaneAndCommitArrival`** is the eight per-lane begin/commit handlers `commitRiverLaneArrivals`
-dispatches (each of the four ride lanes has a begin half that starts a ride and a commit half that advances
-it). A begin guards on the frog's position, emits the ride sound, stamps the frog's ride tile into
-`FROG_SPRITE_CODE`, and primes that lane's `RIVER_LANE*_RIDE_COUNTER` from its `RIVER_LANE*_RIDE_RELOAD`. A
-commit ticks the counter down and, on drain, marks the lane's arrival and stamps the home tile; otherwise it
-carries the riding frog by `RIVER_VERTICAL_RIDE_DELTA` (lanes 0/1 → `FROG_Y`) or `RIVER_HORIZONTAL_RIDE_DELTA`
-(lanes 2/3 → `FROG_X`). Lane 1's commit also steps the home-slot cursor (`loc_23eb`) and scores via
-**`scoreFrogRowProgress`** (0x1fd6), which range-checks `FROG_Y` to [0x30,0xd0] and awards a point when the
-frog reaches a new furthest (`FROG_FURTHEST_ROW`) row through the unlifted score routine (`0x08e0`, kept
-`m.call`). `[code]` — equivalence-verified against the oracle (carry branches exercised with poked ride
-state + teeth); live-ride integration pending a riding-frog tape (the idle golden's frog never reaches the
-river).
+The joystick input scan (`0x1acb`) reads the input ports and, on a directional press, dispatches one of
+four **begin** handlers in **`animateFrogHop`** — DOWN (`0x1b8b`), UP (`0x1be4`), RIGHT (`0x1c41`),
+LEFT (`0x1ca0`). A begin guards on the frog's position (screen edges), emits the hop sound, stamps the
+direction's rest tile into `FROG_SPRITE_CODE`, and primes that direction's `FROG_HOP_*_ANIM_COUNTER` from
+its `FROG_HOP_*_ANIM_RELOAD`, then falls into the matching **advance** half. An advance ticks the counter
+down and, on drain, marks the hop's arrival and stamps the rest tile; otherwise it steps the hopping frog
+by `FROG_HOP_VERTICAL_DELTA` (DOWN → `FROG_Y +`, UP → `FROG_Y -`) or `FROG_HOP_HORIZONTAL_DELTA` (RIGHT →
+`FROG_X +`, LEFT → `FROG_X -`) and stamps the moving tile. Over the reload count of frames the frog advances
+one 16px cell (~2px/frame). **`advanceActiveFrogHops`** (`0x23b7`) is dispatched each vblank and continues
+any in-progress hop by tailing to the active direction's advance half. The UP advance also steps the
+home-slot cursor (`loc_23eb`) and scores via **`scoreFrogRowProgress`** (`0x1fd6`), which range-checks
+`FROG_Y` to [0x30,0xd0] and awards a point when the frog reaches a new furthest (`FROG_FURTHEST_ROW`) row
+through the unlifted score routine (`0x08e0`, kept `m.call`). `[seen]` for the vertical hop (golden_hop: the
+UP hop steps `FROG_Y` 0xe0→0xd0 at -2/frame over 8 frames, counter 8→0, arrival set) and the right hop
+(golden_hop2: the RIGHT hop steps `FROG_X` 0x80→0x8e at +2/frame, cut short by a road collision before
+drain); the DOWN and LEFT directions share the same handler body but were not exercised in the goldens, so
+they stay `[code]`. Every branch is equivalence-verified against the oracle (poked hop state + teeth).
 
 ## The home bays — `[seen]`
 
