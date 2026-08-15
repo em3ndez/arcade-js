@@ -11,18 +11,19 @@
 import {
   GAME_MODE, PLAY_FLAG, START_LATCH, CREDIT_BCD, IN1_PORT, MAIN_LOOP_HEAD, PACE_TAIL,
 } from "./names.js";
+import { renderScoreHeader } from "./renderScoreHeader.js";
+import { renderCreditLine } from "./renderCreditLine.js";
+import { initNewGameScoreAndTimers } from "./initNewGameScoreAndTimers.js";
+import { clearSoundQueue } from "./clearSoundQueue.js";
+import { loadActivePlayerLaneParams } from "./loadActivePlayerLaneParams.js";
 
-// Leaf routines the body drives, each reached via m.call.
+// Targets the body drives via m.call.
 const ATTRACT_DISPATCH = 0x0d11;   // mode>=2 attract/mode dispatcher (call nc)
-const SERVICE_A = 0x0b1f;
-const SERVICE_B = 0x0b67;           // skipped when mode==1 (call nz)
 const SERVICE_C = 0x230f;
 const IN_PLAY_TREE = 0x040b;        // board-start / life-loss dispatcher — the whole in-play family
-const NEW_GAME_HUD = 0x0b0a;
-const NEW_GAME_BOARD = 0x07d9;
 const ENQUEUE_SOUND = 0x0018;       // rst 0x18
 const CLEAR_TILEMAP = 0x0038;       // rst 0x38
-const NEW_GAME_SEED_D = 0x07e6, NEW_GAME_SEED_E = 0x223d;
+const NEW_GAME_SEED_D = 0x07e6;
 
 export function* drainForegroundThenYieldEachVblank(m) {
   let entry = MAIN_LOOP_HEAD;
@@ -42,10 +43,10 @@ export function runOneForegroundPass(m, entry) {
     regs.a = mem.read8(GAME_MODE);
     regs.cp(0x02);
     if (regs.fNC) { m.push16(0x0349); m.call(ATTRACT_DISPATCH); }
-    m.push16(0x034c); m.call(SERVICE_A);
+    renderScoreHeader(m);
     regs.a = mem.read8(GAME_MODE);
     regs.a = regs.dec8(regs.a);
-    if (regs.fNZ) { m.push16(0x0353); m.call(SERVICE_B); }
+    if (regs.fNZ) renderCreditLine(m);
     m.push16(0x0356); m.call(SERVICE_C);
     mem.write8(0x8254, 0x02); mem.write8(0x8255, 0x02);
     mem.write8(0x8256, 0x09); mem.write8(0x8257, 0x09);
@@ -108,10 +109,10 @@ function startNewGame(m, players) {
   mem.write8(0x83b7, regs.a);
   mem.write16(0x83b8, regs.hl);
 
-  m.push16(0x03bd); m.call(NEW_GAME_HUD);
+  initNewGameScoreAndTimers(m);
   regs.a = 0x03;
   mem.write8(0x803d, regs.a);
-  m.push16(0x03c5); m.call(NEW_GAME_BOARD);
+  clearSoundQueue(m);
   regs.xor(regs.a);
   mem.write8(0x8071, regs.a);
 
@@ -126,7 +127,7 @@ function startNewGame(m, players) {
 
   m.push16(0x03e8); m.call(NEW_GAME_SEED_D);
   m.push16(0x03e9); m.call(CLEAR_TILEMAP);
-  m.push16(0x03ec); m.call(NEW_GAME_SEED_E);
+  loadActivePlayerLaneParams(m);
 
   regs.xor(regs.a);
   regs.h = regs.a; regs.l = regs.a;
