@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_06a2 — memory-equivalent to the frozen oracle at ROM 0x06A2.
- * GATE: crafted-entry. Attract never dispatches this home-slot marker dispatcher (probe: 0 dispatches
+ * stampHomeBayFrogByColumn — memory-equivalent to the frozen oracle at ROM 0x06A2.
+ * GATE: crafted-entry. Attract never dispatches this board-complete home-reveal dispatcher (probe: 0 dispatches
  * over ENTRY_FRAMES; it fires only when a frog reaches home), so a post-boot attract machine is cloned
  * and its home-column selector poked. Every dispatch arm is swept: the five per-slot stamp selectors,
  * the fill-all-plus-award selector, and a no-match selector that must return without writing. Attract
@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { fillAllHomeSlotsAndAwardLife } from "../fillAllHomeSlotsAndAwardLife.js";
-import { loc_06a2 } from "../loc_06a2.js";
+import { stampHomeBayFrogByColumn } from "../stampHomeBayFrogByColumn.js";
 import { loc_06a2 as oracle } from "../../translated/loc_06a2.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -25,7 +25,7 @@ const ACTIVE_PLAYER = 0x83fd;
 const LIFE_COUNT_P1 = 0x83b8;
 const HOME_COLUMN_STATE = 0x842f; // fill-all clears this
 const SLOT_BASES = [0xab64, 0xaaa4, 0xa9e4, 0xa924, 0xa864];
-const MARKER = [252, 253, 254, 255]; // empty-slot 2x2 marker tiles
+const FROG_TILES = [252, 253, 254, 255]; // frog-in-home 2x2 graphic tiles
 const FILL_TILE = 16; // fill-all stamps this into all four cells of every slot
 const STAMP_ARMS = [[192, 0xab64], [144, 0xaaa4], [112, 0xa9e4], [80, 0xa924], [48, 0xa864]];
 const FILL_ALL = 16;
@@ -66,7 +66,7 @@ function ramDiff(cand, machine) {
 
 // broken twins.
 function brokenNoOp() {}
-function brokenWrongTile(m) { // right slot, wrong marker tiles (all zero)
+function brokenWrongTile(m) { // right slot, wrong frog tiles (all zero)
   const { mem8 } = m;
   const b = 0xab64;
   mem8[b] = 0; mem8[b + 1] = 0; mem8[b + 32] = 0; mem8[b + 33] = 0;
@@ -74,7 +74,7 @@ function brokenWrongTile(m) { // right slot, wrong marker tiles (all zero)
 function brokenWrongSlot(m) { // stamps slot 2 when selector 192 asks for slot 1
   const { mem8 } = m;
   const b = 0xaaa4;
-  mem8[b] = MARKER[0]; mem8[b + 1] = MARKER[1]; mem8[b + 32] = MARKER[2]; mem8[b + 33] = MARKER[3];
+  mem8[b] = FROG_TILES[0]; mem8[b + 1] = FROG_TILES[1]; mem8[b + 32] = FROG_TILES[2]; mem8[b + 33] = FROG_TILES[3];
 }
 function brokenSkipAwardTail(m) { // fills all five slots but drops the award hand-off
   const { mem8 } = m;
@@ -85,30 +85,30 @@ function brokenSkipAwardTail(m) { // fills all five slots but drops the award ha
 function brokenWriteOnNoMatch(m) { // stamps slot 1 for a selector that should write nothing
   const { mem8 } = m;
   const b = 0xab64;
-  mem8[b] = MARKER[0]; mem8[b + 1] = MARKER[1]; mem8[b + 32] = MARKER[2]; mem8[b + 33] = MARKER[3];
+  mem8[b] = FROG_TILES[0]; mem8[b + 1] = FROG_TILES[1]; mem8[b + 32] = FROG_TILES[2]; mem8[b + 33] = FROG_TILES[3];
 }
 
-test("EQUAL (crafted): loc_06a2 == oracle on every dispatch arm", { skip }, () => {
+test("EQUAL (crafted): stampHomeBayFrogByColumn == oracle on every dispatch arm", { skip }, () => {
   for (const [sel, base] of STAMP_ARMS) {
     const e = craft(sel);
-    assert.equal(ramDiff(loc_06a2, e), null, `stamp selector 0x${sel.toString(16)} diverged`);
+    assert.equal(ramDiff(stampHomeBayFrogByColumn, e), null, `stamp selector 0x${sel.toString(16)} diverged`);
     assert.ok(ramDiff(brokenNoOp, e), `vacuous: oracle wrote nothing for selector 0x${sel.toString(16)}`);
     const chk = e.clone(); oracle(chk);
-    assert.equal(chk.mem8[base], MARKER[0], `oracle did not stamp slot base 0x${base.toString(16)}`);
+    assert.equal(chk.mem8[base], FROG_TILES[0], `oracle did not stamp slot base 0x${base.toString(16)}`);
   }
 
   const fa = craft(FILL_ALL);
-  assert.equal(ramDiff(loc_06a2, fa), null, "fill-all selector diverged");
+  assert.equal(ramDiff(stampHomeBayFrogByColumn, fa), null, "fill-all selector diverged");
   const fchk = fa.clone(); oracle(fchk);
   assert.equal(fchk.mem8[0xab64], FILL_TILE, "fill-all did not stamp slot 1");
   assert.equal(fchk.mem8[0xa864], FILL_TILE, "fill-all did not stamp slot 5");
   assert.equal(fchk.mem8[LIFE_COUNT_P1], 4, "fill-all award did not bump the life count");
 
   const nm = craft(NO_MATCH);
-  assert.equal(ramDiff(loc_06a2, nm), null, "no-match selector diverged");
+  assert.equal(ramDiff(stampHomeBayFrogByColumn, nm), null, "no-match selector diverged");
   assert.equal(ramDiff(brokenNoOp, nm), null, "no-match arm unexpectedly wrote memory");
 
-  console.log("  EQUAL: five stamp arms, fill-all + award, no-match, loc_06a2 == oracle");
+  console.log("  EQUAL: five stamp arms, fill-all + award, no-match, stampHomeBayFrogByColumn == oracle");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2b83 — memory-equivalent to the frozen oracle at ROM 0x2B83.
+ * updateSpriteObject — memory-equivalent to the frozen oracle at ROM 0x2B83.
  * GATE: crafted-entry. Attract never dispatches this sprite-object dispatcher (probe: 0 dispatches
  * over ENTRY_FRAMES), so a post-boot attract machine is cloned and IX/IY are pointed at a sprite-object
  * record and its sprite slot. An ACTIVE entry (object flag set, spawn gated off by a low count)
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2b83 } from "../loc_2b83.js";
+import { updateSpriteObject } from "../updateSpriteObject.js";
 import { loc_2b83 as oracle } from "../../translated/loc_2b83.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { spawnSpriteObject } from "../spawnSpriteObject.js";
@@ -96,18 +96,18 @@ function brokenDropSpawn(m) {
   writeSpriteObjectSlotAttr(m);
 }
 
-test("EQUAL (crafted): loc_2b83 == oracle on the active-object entry", { skip }, () => {
+test("EQUAL (crafted): updateSpriteObject == oracle on the active-object entry", { skip }, () => {
   const e = craftActive();
-  assert.equal(ramDiff(loc_2b83, e), null, "the active entry diverged");
+  assert.equal(ramDiff(updateSpriteObject, e), null, "the active entry diverged");
   assert.ok(ramDiff(brokenNoOp, e), "vacuous: oracle wrote nothing on the active entry");
-  console.log("  EQUAL: active object, loc_2b83 == oracle");
+  console.log("  EQUAL: active object, updateSpriteObject == oracle");
 });
 
-test("EQUAL (crafted): loc_2b83 == oracle on the spawn entry", { skip }, () => {
+test("EQUAL (crafted): updateSpriteObject == oracle on the spawn entry", { skip }, () => {
   const e = craftSpawn();
-  assert.equal(ramDiff(loc_2b83, e), null, "the spawn entry diverged");
+  assert.equal(ramDiff(updateSpriteObject, e), null, "the spawn entry diverged");
   assert.ok(ramDiff(brokenNoOp, e), "vacuous: oracle wrote nothing on the spawn entry");
-  console.log("  EQUAL: spawn arm, loc_2b83 == oracle");
+  console.log("  EQUAL: spawn arm, updateSpriteObject == oracle");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

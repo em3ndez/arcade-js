@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_11bf — memory-equivalent to the frozen oracle at ROM 0x11BF.
+ * dispatchFrogMoveAgainstLanes — memory-equivalent to the frozen oracle at ROM 0x11BF.
  * GATE: crafted-entry (probe: 0 over ENTRY_FRAMES). A post-boot clone sweeps every frog position 0..255
  * (both guards clear) — the low-nibble short-circuit, the six delegate nibbles, the ten lane nibbles from
  * the ROM arm table — then crafted entries force each path: the guards, an in-band kill (tail 0x12D0),
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_11bf } from "../loc_11bf.js";
+import { dispatchFrogMoveAgainstLanes } from "../dispatchFrogMoveAgainstLanes.js";
 import { resolveFrogMoveAgainstLanes } from "../resolveFrogMoveAgainstLanes.js";
 import { loc_11bf as oracle } from "../../translated/loc_11bf.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -78,16 +78,16 @@ function laneEntry(x, lane, base, obj) {
   return e;
 }
 
-test("EQUAL (broad): loc_11bf == oracle on every frog X 0..255", { skip }, () => {
+test("EQUAL (broad): dispatchFrogMoveAgainstLanes == oracle on every frog X 0..255", { skip }, () => {
   let lanes = 0, delegates = 0;
   for (let x = 0; x <= 255; x++) {
     const e = seedMachine().clone(); e.mem8[GUARD] = 0; e.mem8[HOLD] = 0; e.mem8[FROG_X] = x;
-    assert.equal(ramDiff(loc_11bf, e), null, `broad frog X=${x} diverged`);
+    assert.equal(ramDiff(dispatchFrogMoveAgainstLanes, e), null, `broad frog X=${x} diverged`);
     const arm = seedMachine().mem16[(ARM_TABLE + 2 * (x >> 4)) & 0xffff];
     if ((x & 0x0f) < 9 && LANES.has(arm)) lanes++; else delegates++;
   }
   assert.ok(lanes > 0 && delegates > 0, `sweep did not cover both arm kinds (lanes=${lanes}, delegates=${delegates})`);
-  console.log(`  EQUAL: 256 frog-X sweep values (${lanes} lane, ${delegates} delegate), loc_11bf == oracle`);
+  console.log(`  EQUAL: 256 frog-X sweep values (${lanes} lane, ${delegates} delegate), dispatchFrogMoveAgainstLanes == oracle`);
 });
 
 test("EQUAL (crafted): guard / block / delegate / kill / wrap paths", { skip }, () => {
@@ -99,15 +99,15 @@ test("EQUAL (crafted): guard / block / delegate / kill / wrap paths", { skip }, 
 
   // guard set (either flag) -> immediate return, no change on either side.
   const g1 = seedMachine().clone(); g1.mem8[GUARD] = 1; g1.mem8[FROG_X] = 0x80;
-  assert.equal(ramDiff(loc_11bf, g1), null, "83cd guard path diverged");
+  assert.equal(ramDiff(dispatchFrogMoveAgainstLanes, g1), null, "83cd guard path diverged");
   assert.ok(!oracleWrote(g1), "83cd guard path unexpectedly wrote memory");
   const g2 = seedMachine().clone(); g2.mem8[GUARD] = 0; g2.mem8[HOLD] = 1; g2.mem8[FROG_X] = 0x80;
-  assert.equal(ramDiff(loc_11bf, g2), null, "8004 guard path diverged");
+  assert.equal(ramDiff(dispatchFrogMoveAgainstLanes, g2), null, "8004 guard path diverged");
   assert.ok(!oracleWrote(g2), "8004 guard path unexpectedly wrote memory");
 
   // block: upper-band frog (0x8047>=128), object inside the band -> kill tail raises HOLD.
   const be = laneEntry(bx, blane, 0x40, (blow + Math.min(blane[1] - 1, 5)) & 0xff);
-  assert.equal(ramDiff(loc_11bf, be), null, "block path diverged");
+  assert.equal(ramDiff(dispatchFrogMoveAgainstLanes, be), null, "block path diverged");
   const bchk = be.clone(); oracle(bchk);
   assert.equal(bchk.mem8[HOLD], 1, "block path did not raise HOLD");
 
@@ -115,29 +115,29 @@ test("EQUAL (crafted): guard / block / delegate / kill / wrap paths", { skip }, 
   const [dx, darm] = lanes.find(([x]) => x < 128);
   const dlane = LANES.get(darm); const dlow = (0x40 + 12) & 0xff; // lower band -> offset 12
   const de = laneEntry(dx, dlane, 0x40, (dlow + Math.min(dlane[1] - 1, 5)) & 0xff);
-  assert.equal(ramDiff(loc_11bf, de), null, "in-band delegate path diverged");
+  assert.equal(ramDiff(dispatchFrogMoveAgainstLanes, de), null, "in-band delegate path diverged");
 
   // kill: lower-band frog in [0x30,0x80), lane clear -> kill tail writes HOLD and the mid-band cell.
   const [kx, karm] = lanes.find(([x]) => x >= 0x30 && x < 0x80);
   const ke = laneEntry(kx, LANES.get(karm), 0x40, 0); // object at 0 is below the low bound
-  assert.equal(ramDiff(loc_11bf, ke), null, "kill path diverged");
+  assert.equal(ramDiff(dispatchFrogMoveAgainstLanes, ke), null, "kill path diverged");
   const kchk = ke.clone(); oracle(kchk);
   assert.equal(kchk.mem8[HOLD], 1, "kill path did not reach the tail");
   assert.equal(kchk.mem8[KILL_CELL], 1, "kill path did not write the mid-band cell");
 
   // lane-clear delegate: upper-band frog, lane clear -> the upper half resolves it.
   const ce = laneEntry(bx, blane, 0x40, 0);
-  assert.equal(ramDiff(loc_11bf, ce), null, "lane-clear delegate path diverged");
+  assert.equal(ramDiff(dispatchFrogMoveAgainstLanes, ce), null, "lane-clear delegate path diverged");
 
   const ee = laneEntry(bx, blane, 0x40, (blow + blane[1] - 1) & 0xff);
-  assert.equal(ramDiff(loc_11bf, ee), null, "width-edge path diverged");
+  assert.equal(ramDiff(dispatchFrogMoveAgainstLanes, ee), null, "width-edge path diverged");
 
   const we = laneEntry(bx, blane, 0xf8, 1);
-  assert.equal(ramDiff(loc_11bf, we), null, "wrap path diverged");
+  assert.equal(ramDiff(dispatchFrogMoveAgainstLanes, we), null, "wrap path diverged");
   const wchk = we.clone(); oracle(wchk);
   assert.equal(wchk.mem8[HOLD], 1, "wrap path did not see the object through the band wrap");
 
-  console.log(`  EQUAL: guard x2, block (X=${bx}), in-band delegate (X=${dx}), kill (X=${kx}), lane-clear delegate, width-edge, wrap, loc_11bf == oracle`);
+  console.log(`  EQUAL: guard x2, block (X=${bx}), in-band delegate (X=${dx}), kill (X=${kx}), lane-clear delegate, width-edge, wrap, dispatchFrogMoveAgainstLanes == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {
@@ -177,7 +177,7 @@ test("TEETH: broken twins are caught", { skip }, () => {
     seenLanes.add(arm);
     const lane = LANES.get(arm);
     const le = laneEntry(x, lane, 0x40, (((0x40 + 12) & 0xff) + lane[1] - 1) & 0xff);
-    assert.equal(ramDiff(loc_11bf, le), null, `width base entry (lane 0x${arm.toString(16)}) diverged`);
+    assert.equal(ramDiff(dispatchFrogMoveAgainstLanes, le), null, `width base entry (lane 0x${arm.toString(16)}) diverged`);
     assert.ok(ramDiff(brokenNarrowBand, le), `the narrow-band (width-1) twin escaped on lane 0x${arm.toString(16)}`);
     widthLanes++;
   }
@@ -187,7 +187,7 @@ test("TEETH: broken twins are caught", { skip }, () => {
 });
 
 // A width-1 regression of the scan: the boundary object at low+width-1 falls out of the band, flipping
-// a lower-band in-band delegate into a lane-clear kill. Mirrors loc_11bf's dispatch + scan otherwise.
+// a lower-band in-band delegate into a lane-clear kill. Mirrors dispatchFrogMoveAgainstLanes's dispatch + scan otherwise.
 function brokenNarrowBand(m) {
   const { mem8, mem16 } = m;
   if (mem8[GUARD] !== 0 || mem8[HOLD] !== 0) return;

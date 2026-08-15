@@ -13,11 +13,10 @@ hop input and the road/river vehicle/log movement are still translated-only, so 
 those. This revision was **folded**, not rewritten whole from `gameplay.md` — a full blind rewrite is
 owed and this note records that debt.
 
-**Batch 4** has since lifted the four ready dispatchers — the home-fill dispatcher (`loc_06a2`), the
-score-field printer (`loc_0b9b`), the horizontal-move dispatcher (`loc_11bf`), and the sprite-object
-dispatcher-B (`loc_2b83`) — non-leaves that dissolve their calls into the already-lifted arms. They keep
-their `loc_<addr>` names and are **not yet named or grounded**; understanding-pass-4 will name them by
-blind convergence and ground each against MAME, and this map will be updated then.
+**Batch 4** lifted and grounded the four ready dispatchers, now named: **`stampHomeBayFrogByColumn`**
+(the board-complete home reveal), **`writePackedBcdWord`** (the four-digit BCD field printer),
+**`dispatchFrogMoveAgainstLanes`** (the lower-half move dispatcher), and **`updateSpriteObject`** (the
+sprite-object dispatcher-B). They dissolve their calls into the already-lifted arms.
 
 **Confidence tags, not decoration:**
 - **`[seen]`** — observed on the real ROM under MAME; **`[seen,poked]`** when the trigger was forced by
@@ -63,14 +62,17 @@ bay whose occupancy flag is clear, the engine stamps one of several creatures at
 base (`0xA864`/`0xA924`/`0xA9E4`/`0xAAA4`/`0xAB64`): **`stampHomeBayFly`** the fly bonus creature,
 **`stampHomeBayGatorEmerging`** then **`stampHomeBayGatorFull`** the crocodile hazard across two phases.
 When the frog reaches a bay, **`stampHomeBaySlot`** stamps the resting-frog block and **`armHomeGoalSprite`**
-arms the goal/bonus sprite. On board completion **`fillAllHomeSlotsAndAwardLife`** (the `A==0x10` final
-phase of the `0x06a2` home-fill dispatcher) stamps the resting-frog marker (tile `0x10`) into all five
-bay bases, clears the home-column cell `0x842f`, and tails into `awardExtraLife`. All `[seen]`/`[seen,poked]`.
+arms the goal/bonus sprite. On board completion **`stampHomeBayFrogByColumn`** reveals the five homes in sequence: driven by the
+reveal countdown `0x8297` (set to 255 by `loc_05d3`, decremented each frame), each selector threshold
+stamps the 2x2 frog-in-home graphic (tiles `0xFC`-`0xFF`) into the next bay; the final `A==0x10` selector
+delegates to **`fillAllHomeSlotsAndAwardLife`**, which resets all five bays to the empty home tile `0x10`
+and awards the extra life. Grounding inverted the code-only reading — `0xFC`-`0xFF` is the frog graphic,
+`0x10` the empty bay. All `[seen]`/`[seen,poked]`.
 
 ## The frog — move resolution and render — `[seen]`
 
-**`resolveFrogMoveAgainstLanes`** is the upper half of the horizontal-move dispatcher (`loc_11bf` jumps
-here): the frog X selects one of sixteen arms through the `0x130b` pointer table; ten arms scan a lane's
+**`resolveFrogMoveAgainstLanes`** is the upper half of the horizontal-move dispatcher
+(**`dispatchFrogMoveAgainstLanes`**, the lower half, dispatches here): the frog X selects one of sixteen arms through the `0x130b` pointer table; ten arms scan a lane's
 object list for an object inside the frog's move band and set the block/hit flag `0x8004`, while a clear
 lane with the frog not-yet-across tail-calls the frog-kill routine `0x12d0`. **`renderFrogAndArmObjects`**
 draws the frog figure into the tilemap (three 4-tile column groups, the banner column, four box corners,
@@ -84,7 +86,7 @@ code at `0x81b1`, and enters the shared render loop `0x0ff1` (arm 1 first runs t
 ## The sprite-object engine — `[seen,poked]`
 
 An IX/IY sprite-object engine drives the moving hazards through two dispatchers. Dispatcher-B
-(`loc_2b83`) is a spawn-and-run pipeline: **`spawnSpriteObject`** (gated on level count `0x83b7>=3` and an
+(**`updateSpriteObject`**) is a spawn-and-run pipeline: **`spawnSpriteObject`** (gated on level count `0x83b7>=3` and an
 idle record) makes four **`nextSpawnRandomByte`** draws to density-gate the spawn, pick one of five
 variants, and fill the record's tile/attribute/position/direction, then arms it; **`steerSpriteObjectTowardTarget`**
 counts down the move timer and drifts the object one step toward its per-object target (despawning —

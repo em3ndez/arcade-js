@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_11bf — resolve a frog move against the object lanes (lower half of the move dispatcher).
+ * dispatchFrogMoveAgainstLanes — resolve a frog move against the object lanes (lower half of the move dispatcher).
  * Returns at once when the demo/state guard is set or the move is already resolved; otherwise the
  * frog position byte's low nibble (>=9) or high nibble picks one of sixteen arms, six delegating to
  * the upper half and ten scanning a lane object list. In the upper position band an in-band object
@@ -22,7 +22,7 @@ const LANE_BY_NIBBLE = new Map([
   [12, [loc_8151, 18]], [13, [loc_815a, 18]],
 ]);
 
-export function loc_11bf(m) {
+export function dispatchFrogMoveAgainstLanes(m) {
   const { mem8 } = m;
   if (mem8[loc_83cd] !== 0) return;
   if (mem8[loc_8004] !== 0) return;

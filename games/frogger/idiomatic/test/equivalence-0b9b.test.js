@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0b9b — memory-equivalent to the frozen oracle at ROM 0x0B9B.
+ * writePackedBcdWord — memory-equivalent to the frozen oracle at ROM 0x0B9B.
  * GATE: captured-entry + crafted sweep. Attract prints scores through this four-digit BCD field
  * writer, so real dispatches are captured at 0x0B9B and replayed on fresh clones of each; the two
  * writePackedBcdByte calls run identically on both sides, so their memory effect is part of the
@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0b9b } from "../loc_0b9b.js";
+import { writePackedBcdWord } from "../writePackedBcdWord.js";
 import { writePackedBcdByte } from "../writePackedBcdByte.js";
 import { loc_0b9b as oracle } from "../../translated/loc_0b9b.js";
 
@@ -79,7 +79,7 @@ function brokenSkipSecond(m) {
 
 test("REAL: oracle == rewrite on every captured 0x0b9b dispatch", { skip }, () => {
   const entries = captureEntries();
-  for (const e of entries) assert.equal(diff(loc_0b9b, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(diff(writePackedBcdWord, e), null, "a captured machine diverged");
   console.log(`  REAL: ${entries.length} captured dispatches, oracle == rewrite (memory + HL)`);
 });
 
@@ -89,7 +89,7 @@ test("CRAFTED: oracle == rewrite across every-nibble DE on a real destination", 
   for (const de of values) {
     const e = base.clone();
     e.regs.de = de;
-    assert.equal(diff(loc_0b9b, e), null, `crafted DE=0x${de.toString(16)} diverged`);
+    assert.equal(diff(writePackedBcdWord, e), null, `crafted DE=0x${de.toString(16)} diverged`);
   }
   console.log(`  CRAFTED: ${values.length} DE values, oracle == rewrite (memory + HL)`);
 });
