@@ -255,9 +255,10 @@ batch and feeds the next batch's targets.
 **★ An understanding pass is TWO stages, and the second is MANDATORY. Naming is stage A; GROUNDING is
 stage B; a pass that stops after stage A is not finished and MUST NOT be committed as done.** Stage A
 (name from body + callers, two blind derivers, promote on convergence) produces `[code]` *proposals* —
-a self-consistent reading of the code, nothing more. Stage B plays and pokes each proposal on the
-**real ROM under MAME** — never our own engine, which is our own model, so grounding against it is
-circular — to lift it `[code]`→`[seen]` or to OVERTURN it. **A batch of fresh `[code]` names plus a
+a self-consistent reading of the code, nothing more. Stage B plays and pokes each proposal — **both a
+routine's role AND a data address's role** (grounding is not routines-only; see *Ground addresses, not
+just routines* below) — on the **real ROM under MAME** — never our own engine, which is our own model,
+so grounding against it is circular — to lift it `[code]`→`[seen]` or to OVERTURN it. **A batch of fresh `[code]` names plus a
 `[code]`/`[guess]` `mechanisms.md` is a grounding WORK-LIST, not a finished map**; the pass completes
 only when that list is grounded-or-accounted-for, under **proposer≠confirmer** (whoever grounds a name
 is not who proposed it — a prose review is not grounding). Honestly tagging an uncertain item `[guess]`
@@ -281,6 +282,17 @@ tag was honest; honest tags are not grounding.)
   lever, and routine names derive from what a routine does to memory. Variable names = consensus of
   every routine touching an address (never one routine's local view); routine names = mechanism +
   callers.
+- **Ground addresses, not just routines — stage B applies to every claim in `names.js`, cells
+  included.** A data address carries a confidence tag exactly as a routine does, and a fresh batch's
+  data-name cells land at `[code]` (a code-only reading) until grounded. Lift a **RAM cell**
+  `[code]`→`[seen]` by watching it under MAME — the value change, poke, or write-tap that confirms its
+  role (a countdown draining to zero at frog-spawn; a slot cursor advancing 1..5). A **ROM address** (a
+  constant, a table base) is grounded by confirming what the machine *reads* from it and does with it,
+  not by watching it change — it never changes; this is the harder, still-open case, so tag it `[code]`
+  honestly when the chain cannot yet terminate in a MAME observation. Ground the cells a routine touches
+  in the SAME pass as the routine — never lift the routine roles to `[seen]` and leave their cells at
+  `[code]`. (Recorded, 2026-08-14: frogger UP-1/UP-2 grounded the routines but left every data-name cell
+  at `[code]`, including cells watched directly under MAME — the exact gap this rule closes.)
 - Both get **three looks**: two BLIND independent derivations (from body + callers, neither sees the
   other), promote **only on convergence**, then a third **adversarial** re-derivation — two blind
   derivers can converge on the same wrong reading. The lead edits `names.js`, never a proposer. A name
