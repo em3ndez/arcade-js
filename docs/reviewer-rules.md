@@ -122,6 +122,19 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   away from the proposer's wording, precisely because the confirmer refused it. Grepping for the
   final name then finds nothing, and the rule reads as violated exactly when the process worked. A
   recipe that fails on correct behaviour and passes on rubber-stamping is inverted.*
+
+- **R4b [ALL]** A cell that is `[code]` **or** `[seen]` must be exported by a DESCRIPTIVE identifier,
+  not `loc_<addr>` — a cell earns its name at the `[guess]`→`[code]` transition, not at grounding
+  (runbook: "A cell earns its DESCRIPTIVE identifier the moment it reaches `[code]`"; the only sanctioned
+  forms are a descriptive `export const` or keep-hex, never `export const loc_<addr>`). **Verify:** for
+  each cell the commit adds/touches whose tag is `[code]` or `[seen]`, grep its `names.js` line — if the
+  `export const` is still `loc_<addr>`, the naming is half-done and the unit is not finished. The rename
+  is value-identical (address unchanged) and must update every importer, so also confirm
+  `git grep "loc_<addr>" games/<game>/idiomatic` returns nothing for a now-renamed cell (a stale import
+  would fail to load). Fire on `[code]` and `[seen]`; a `[guess]`/unknown cell correctly stays keep-hex
+  (a bare literal, no const) — do not force a name before the reading is confident. (Recorded
+  2026-08-15: the frogger pipeline left most of its confident cells — `[code]` and `[seen]` — named
+  `loc_<addr>` until Karl caught it: "when a cell changes guess→code, that's when it should be renamed.")
 - **R5 [ALL]** Every name promoted loc_<addr>→English **in the commit under review** is corroborated
   by evidence OUTSIDE the routine itself (a named cell it touches, an idiomatic caller/callee,
   mechanisms.md, or a sibling), and **that routine's `ROUTINES` entry in `names.js` states the

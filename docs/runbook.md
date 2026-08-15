@@ -282,6 +282,20 @@ tag was honest; honest tags are not grounding.)
   lever, and routine names derive from what a routine does to memory. Variable names = consensus of
   every routine touching an address (never one routine's local view); routine names = mechanism +
   callers.
+- **★ A cell earns its DESCRIPTIVE identifier the moment it reaches `[code]` — the `[guess]`→`[code]`
+  transition — not at grounding.** As soon as a cell's reading is confident enough to be `[code]`
+  (understood from the routines, consistent across the ones that touch it), RENAME its `names.js`
+  `export const` from `loc_<addr>` to a DESCRIPTIVE name (the `PLAYER_X`/`CREDIT_BCD` style — see
+  `names-registry.md`) and update every importer. This is **value-identical** — the address never
+  changes, only the identifier. A `[guess]`/unknown cell stays **keep-hex** (a bare literal, no const);
+  `loc_<addr>` as an *idiomatic* cell identifier is never a valid form (it is the translated layer's).
+  Grounding (`[code]`→`[seen]`) then only CONFIRMS the name — or OVERTURNS it, forcing a re-rename — it
+  does not *first* bestow it. A confidently-read cell (`[code]` **or** `[seen]`) still named
+  `loc_<addr>` is an unfinished job: the tag says we understand the byte, the symbol the code runs on
+  says we don't, and every reader pays the `mem16[loc_83ef]`-vs-`mem16[HIGH_SCORE]` legibility tax the
+  idiomatic layer exists to remove. (Recorded 2026-08-15: the frogger pipeline left the bulk of its
+  confident cells — `[code]` and `[seen]` alike — named `loc_<addr>`; Karl: "when a cell changes
+  guess→code, that's when it should be renamed." Grading the role without promoting the name is half the job.)
 - **Ground addresses, not just routines — stage B applies to every claim in `names.js`, cells
   included.** A data address carries a confidence tag exactly as a routine does, and a fresh batch's
   data-name cells land at `[code]` (a code-only reading) until grounded. Lift a **RAM cell**

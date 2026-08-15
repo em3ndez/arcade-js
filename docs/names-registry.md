@@ -44,6 +44,19 @@ that touches the address** — never one routine's local view (one routine sees 
 the ~18 that stage it reveal `PLOT_RUN_LENGTH`). How broadly a name is corroborated is stated in the
 cell's prose ("used across N routines"), not as a separate grade (see [the single vocabulary](#one-confidence-vocabulary-seen--code--guess)).
 
+**A cell's IDENTIFIER tracks its confidence, and `loc_<addr>` is not one of the forms.** `loc_<addr>`
+is the *translated* layer's identifier (one file per routine there); an idiomatic RAM cell is either a
+**descriptive** `export const` (named) or **keep-hex** (a bare literal, no const) — never
+`export const loc_<addr> = 0x<addr>`. The descriptive name is earned at the **`[guess]`→`[code]`
+transition**: as soon as the reading is confident enough to be `[code]`, rename the const from
+`loc_<addr>` (or promote from keep-hex) to the descriptive name and update every importer —
+value-identical, the address is unchanged. Grounding (`[code]`→`[seen]`) then only confirms or overturns
+that name; it does not first bestow it. So **both `[code]` and `[seen]` cells must be descriptively
+named**; only `[guess]`/unknown stays keep-hex. A `[code]`-or-`[seen]` cell still exported as
+`loc_<addr>` is a half-finished job: the tag claims we know what the byte is while the symbol the code
+runs on still says we don't. (See the runbook's rule "A cell earns its DESCRIPTIVE identifier the moment
+it reaches `[code]`"; enforced by reviewer-rules R4b.)
+
 ### Routines — the `ROUTINES` map
 
 Every named ROM routine is one entry in a single exported map, keyed by its entry address:
