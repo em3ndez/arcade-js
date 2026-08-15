@@ -7,19 +7,16 @@
  * each flanked by a fixed tile strip. Falls through into the shared final-strip tail.
  * LIVE-OUT: memory-only (VRAM plus the reset work cells).
  */
-import { loc_83d7, loc_83d8, START_LATCH } from "./names.js";
+import { loc_83d7, loc_83d8, START_LATCH, loc_8019, loc_801f, loc_83f1, loc_2ee5, loc_2fba } from "./names.js";
 import { fillTilemapBlock22x32 } from "./fillTilemapBlock22x32.js";
 import { placeScoreRankMarkers } from "./placeScoreRankMarkers.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writeScoreDigitStepUp } from "./writeScoreDigitStepUp.js";
 import { writeScoreField } from "./writeScoreField.js";
 
-const HISCORE_ROW = 0x83ef; // rank r's score word is (HISCORE_ROW + 2*r), r = 1..5
 const HEADER_DST = 0xaaac;
-const HEADER_SRC = 0x2ee5;
 const HEADER_LEN = 0x0d;
 const RANK_STRIP_LEN = 0x03;
-const SCORE_STRIP_SRC = 0x2fba;
 const SCORE_STRIP_LEN = 0x04;
 
 export function renderMode3ScoreRankingScreen(m) {
@@ -31,12 +28,12 @@ export function renderMode3ScoreRankingScreen(m) {
 
   fillTilemapBlock22x32(m);
 
-  mem8[0x8019] = 3;
-  for (let p = 0x801f, i = 0; i < 5; i++, p += 4) mem8[p] = 0;
+  mem8[loc_8019] = 3;
+  for (let p = loc_801f, i = 0; i < 5; i++, p += 4) mem8[p] = 0;
 
   placeScoreRankMarkers(m);
 
-  copyRunUpTileColumn(m, HEADER_DST, HEADER_SRC, HEADER_LEN);
+  copyRunUpTileColumn(m, HEADER_DST, loc_2ee5, HEADER_LEN);
   let stripSrc = regs.de; // the running strip source walks forward across the five rank rows
 
   for (let rank = 1; rank <= 5; rank++) {
@@ -44,10 +41,11 @@ export function renderMode3ScoreRankingScreen(m) {
     copyRunUpTileColumn(m, regs.hl, stripSrc, RANK_STRIP_LEN);
     stripSrc = regs.de;
 
-    regs.de = mem8[HISCORE_ROW + 2 * rank] | (mem8[HISCORE_ROW + 2 * rank + 1] << 8);
+    const scoreWord = loc_83f1 + 2 * (rank - 1); // rank r's high-score word, r = 1..5
+    regs.de = mem8[scoreWord] | (mem8[scoreWord + 1] << 8);
     regs.hl = 0xa900 | ((2 * rank + 0xed) & 0xff);
     writeScoreField(m);
-    copyRunUpTileColumn(m, regs.hl, SCORE_STRIP_SRC, SCORE_STRIP_LEN);
+    copyRunUpTileColumn(m, regs.hl, loc_2fba, SCORE_STRIP_LEN);
   }
 
   return m.call(0x0c17);

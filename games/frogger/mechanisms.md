@@ -25,6 +25,17 @@ the FROGGER logo, 10/50/1000 PTS lines, KONAMI (c) 1981 — stepping a phase cou
 confirmed the reused cells `0x83d7`/`0x83d8`/`0x801b`/`0x8021`/`0x8023`/`0x802f` are genuine MULTI-PURPOSE
 reuse — the same work RAM used differently per game mode, not misreads — so each keeps both roles in `names.js`.
 
+**Batch 6 + UP-6** lifted and grounded the last near-leaf routine: **`renderMode3ScoreRankingScreen`**
+(draws the mode-3 attract "SCORE RANKING" screen in one call — the FROGGER logo, the "SCORE RANKING"
+header, five ranked high scores (1ST 04630 PTS .. 5TH 01270 PTS) read from the high-score word table
+`0x83f1`-`0x83fa`, KONAMI (c) 1981). It dissolves its five lifted callees and keeps a single `m.call`
+to the shared final-strip tail — the layer's first kept `m.call`, legitimate because that tail is
+unlifted and independently entered by the mode dispatcher. Grounding confirmed the " PTS" suffix strip
+`loc_2fba` is SHARED across the mode-3 ranking and mode-4 point-table screens (lifted `[code]`→`[seen]`,
+role generalized), and grounded the work cells it touches (`0x8019` seed; the `0x801f`-based 4-strided
+object-clear; the `0x2ee5` header source). With this the near-leaf frontier is exhausted — what remains
+is the spine core.
+
 **Confidence tags, not decoration:**
 - **`[seen]`** — observed on the real ROM under MAME; **`[seen,poked]`** when the trigger was forced by
   a memory poke rather than natural play (the reading is real, the path was forced).
