@@ -185,7 +185,7 @@ strip and raises the hold flag `HOLD_FLAG` to halt the score-display driver, **`
 tile-group column and blits the fixed 9-tile line, and **`renderMode2IntroScreen`** fills the 28×32
 playfield and blits the mode-2 title strips. `handOffToOtherPlayer` toggles players. `[seen]`/`[seen,poked]`.
 
-## The lane-object mover — `[code]`
+## The lane-object mover — `[seen]`
 
 Each frame **`moveLaneObjectsAndCarryFrog`** walks the eleven lane objects (`LANE_OBJECT_INDEX`, 0..10; the
 sixth is a spacer), shifting each object's sprite run and lead sprite by its lane's speed — right or left
@@ -194,8 +194,10 @@ countdown is running, which holds it (letting lanes step at a sub-frame rate). W
 moving object's row band and cell-column the shift is applied to `FROG_X` too, so it rides the log/turtle;
 `HOLD_FLAG` is raised if the ride carries it off either edge. The eleven arms collapse to an 11-row
 parameter table over a shared right/left mover; the ROM's mutual recursion (advance the index, re-enter the
-dispatcher) becomes a `for` loop over the objects. `[code]` — equivalence-verified against the oracle and
-behavior-neutral live over the gameplay tape; MAME grounding pending.
+dispatcher) becomes a `for` loop over the objects. `[seen]` — grounded vs MAME (golden_broad, gameplay
+f212+): all eleven objects step per frame at their lane's control-nibble sub-rate, the
+`LANE_OBJECT_PHASE_TABLE` countdowns reload to nibble−1 and move-on-drain, directions match, and the motion
+reaches OBJRAM; the frog-carry branch was not exercised (idle-frog golden) — code-level, not-refuted.
 
 ## Not yet named / open
 
