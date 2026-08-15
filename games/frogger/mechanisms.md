@@ -9,9 +9,9 @@ Three decompile batches are lifted and grounded: batch 1 (the status/display and
 batch 2 (the scroll engine, the home-bay animations, and the sprite-object arms), and batch 3 (the
 sprite-object spawn/motion engine, the frog's horizontal-move resolver and render, the per-frame scroll
 and frog-hop continuation, player-swap and board lifecycle, and the score/HUD tile builders). The frog's
-hop input *scan* (`0x1acb`, which reads the stick and dispatches the hop begins) and the road/river
-vehicle/log movement are still translated-only, so the map is quiet on those. This revision was **folded**, not rewritten whole from `gameplay.md` — a full blind rewrite is
-owed and this note records that debt.
+hop input *scan* (`0x1acb`) is now lifted as **`scanFrogInputAndDispatchHop`** (see The frog hop),
+dissolving the eight hop handlers and the home-slot cursor. This revision was **folded**, not rewritten
+whole from `gameplay.md` — a full blind rewrite is owed and this note records that debt.
 
 **Batch 4** lifted and grounded the four ready dispatchers, now named: **`stampHomeBayFrogByColumn`**
 (the board-complete home reveal), **`writePackedBcdWord`** (the four-digit BCD field printer),
@@ -92,9 +92,16 @@ continues an in-progress frog hop (see The frog hop), NOT a log/turtle carry; th
 
 ## The frog hop — `[seen]` (vertical + right); DOWN/LEFT `[code]`
 
-The joystick input scan (`0x1acb`) reads the input ports and, on a directional press, dispatches one of
-four **begin** handlers in **`animateFrogHop`** — DOWN (`0x1b8b`), UP (`0x1be4`), RIGHT (`0x1c41`),
-LEFT (`0x1ca0`). A begin guards on the frog's position (screen edges), emits the hop sound, stamps the
+The joystick input scan — **`scanFrogInputAndDispatchHop`** (`0x1acb`) — reads the input ports each
+vblank with the frog X/Y cursors armed and, on a directional press, dispatches one of four **begin**
+handlers in **`animateFrogHop`** — DOWN (`0x1b8b`), UP (`0x1be4`), RIGHT (`0x1c41`), LEFT (`0x1ca0`) —
+while a direction already mid-hop tail-dispatches its **advance** half instead and an idle direction has
+its arrival + animation-counter cells cleared. UP is skipped once RIGHT or LEFT is already hopping.
+Player routing keys on `IN2` bit 3 (cocktail) together with `ACTIVE_PLAYER`: RIGHT/LEFT read the player's
+main port (P1 `IN0`, P2 `IN1`) bits 4/5, while DOWN/UP sit on `IN2` for P1 (bits 6/4) but cross to `IN2`
+bit 0 / `IN0` bit 0 for P2. While the hop-input lock timer (`FROG_HOP_INPUT_TIMER`, `0x8268`) counts it
+decrements the timer and ticks the home-slot cursor (`loc_23eb`) instead, locking new input; a set
+`loc_826c` or `HOLD_FLAG` returns at once. The lift dissolves all eight hop handlers and `loc_23eb`. A begin guards on the frog's position (screen edges), emits the hop sound, stamps the
 direction's rest tile into `FROG_SPRITE_CODE`, and primes that direction's `FROG_HOP_*_ANIM_COUNTER` from
 its `FROG_HOP_*_ANIM_RELOAD`, then falls into the matching **advance** half. An advance ticks the counter
 down and, on drain, marks the hop's arrival and stamps the rest tile; otherwise it steps the hopping frog
@@ -231,5 +238,5 @@ reaches OBJRAM; the frog-carry branch was not exercised (idle-frog golden) — c
 - **`computeVramColumnIndex`** (`0x1198`) — a pure-register leaf returning only `C`; `[code]`, no
   runtime-observable effect to ground.
 - Held back (deliberate handling, not bulk lifts): `0x0f3e` (pops its caller's return — a caller-skip).
-- Still translated-only: the frog's hop input. (The road/river vehicle and log **movement** is now lifted
-  — see the lane-object mover above.)
+- Now lifted: the frog's hop input scan (**`scanFrogInputAndDispatchHop`**, see The frog hop) and the
+  road/river vehicle and log **movement** (see the lane-object mover above).

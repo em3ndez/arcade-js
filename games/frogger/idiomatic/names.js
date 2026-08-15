@@ -37,6 +37,14 @@ export const CREDIT_BCD = 0x83e1;
 // out of it to decide a 1- or 2-player start.
 export const IN1_PORT = 0xe002;
 
+// IN0 input port. [code] scanFrogInputAndDispatchHop reads it as player 1's joystick (RIGHT bit 4,
+// LEFT bit 5) and as player 2's UP direction (bit 0).
+export const IN0_PORT = 0xe000;
+
+// IN2 input port. [code] scanFrogInputAndDispatchHop reads bit 3 (cocktail / 2-player routing select),
+// player 1 DOWN (bit 6) / UP (bit 4), and player 2 DOWN (bit 0).
+export const IN2_PORT = 0xe004;
+
 // The two ROM entry points into the loop body (see the header).
 export const MAIN_LOOP_HEAD = 0x0341;
 export const PACE_TAIL = 0x0368;
@@ -221,6 +229,7 @@ export const FROG_HOP_DOWN_ANIM_RELOAD = 0x8256; // [code] down-hop animation-le
 export const FROG_HOP_UP_ANIM_RELOAD = 0x8257; // [seen] up-hop animation-length reload; beginFrogHopUp copies it into FROG_HOP_UP_ANIM_COUNTER to prime the hop. golden_hop: constant 9 (counter reloads then the first advance decrements it to 8 at frame 302)
 export const FROG_HOP_RIGHT_ANIM_RELOAD = 0x8258; // [seen] right-hop animation-length reload; beginFrogHopRight copies it into FROG_HOP_RIGHT_ANIM_COUNTER to prime the hop. golden_hop2: constant 9
 export const FROG_HOP_LEFT_ANIM_RELOAD = 0x8259; // [code] left-hop animation-length reload; beginFrogHopLeft copies it into FROG_HOP_LEFT_ANIM_COUNTER to prime the hop. Not observed in the goldens
+export const FROG_HOP_INPUT_TIMER = 0x8268; // [code] hop-input lock timer; scanFrogInputAndDispatchHop decrements it and ticks the home-bay slot cursor (loc_23eb) each frame while it counts, locking new joystick input until it drains to 0
 export const PLAYER1_SLOT = 0x825c; // [seen,poked] player-1 slot byte; loc_0534 zeros it before the cold-start pre-clear (loc_048f's P1-init later sets it to 1)
 export const SCROLL_PHASE_COUNTER = 0x826e; // [seen] scroll phase counter; loc_2005 steps it each NMI and runs a lane block at 16/32/48, clearing it to 0 at phase 48
 export const loc_8274 = 0x8274; // [code] scroll object A descriptor +1 (row count); loc_2005 loads it as the grid copy engine's B row-count at phase 16/32/48
@@ -438,6 +447,7 @@ export const ROUTINES = {
   // scoreFrogRowProgress.js. Reached with the frog X/Y cursors armed by the input scan (0x1acb) and 0x236d
   // (begin halves, dispatched on a directional press) and advanceActiveFrogHops (0x23b7, continues an
   // in-progress hop each vblank). DIRECTION MAP: lane 0=DOWN, 1=UP, 2=RIGHT, 3=LEFT.
+  0x1acb: { name: "scanFrogInputAndDispatchHop", role: "[code] per-vblank frog input scan + directional hop dispatcher: returns early while input is locked (loc_826c set; or the hop-input timer FROG_HOP_INPUT_TIMER counting, in which case decrement it and tick the home-bay slot cursor loc_23eb; or HOLD_FLAG set). Else, with the frog cursors armed (HL=FROG_X, DE=FROG_Y), reads the active player's joystick and for DOWN/UP/RIGHT/LEFT tail-dispatches that direction's advance handler when its *_ACTIVE flag (0x8248-0x824b) is set, its begin handler on a fresh press, else clears the direction's *_ARRIVAL (0x824c-0x824f) + *_ANIM_COUNTER (0x8250-0x8253); UP is skipped once RIGHT or LEFT is already active. Player routing keys on IN2 bit3 (cocktail) with ACTIVE_PLAYER: RIGHT/LEFT read the player's main port (P1 IN0, P2 IN1) bits 4/5, DOWN/UP read IN2 for P1 (bits 6/4) but cross to IN2 bit0 / IN0 bit0 for P2. Dissolves all eight hop handlers + loc_23eb (no m.call). Reached each vblank in play; memory-only live-out; MAME-grounding pending", cert: "code" },
   0x1b8b: { name: "animateFrogHop", entry: "beginFrogHopDown", role: "[code] begin a DOWN hop: guard frog Y<0xF0 (bottom edge), on a fresh hop emit the hop sound + stamp rest sprite 0xDE onto the frog, prime FROG_HOP_DOWN_ANIM_COUNTER from FROG_HOP_DOWN_ANIM_RELOAD, then fall into advanceFrogHopDown. Reached from 0x1acb/0x236d. Memory-only live-out. DOWN not hopped in golden_hop/golden_hop2; shares the beginHop body grounded via the UP/RIGHT hops", cert: "code" },
   0x1bba: { name: "animateFrogHop", entry: "advanceFrogHopDown", role: "[code] advance a DOWN hop one frame: return if already arrived (FROG_HOP_DOWN_ARRIVAL), else raise FROG_HOP_DOWN_ACTIVE and tick FROG_HOP_DOWN_ANIM_COUNTER down; on drain mark arrived + stamp rest sprite 0xDE, else step the frog FROG_Y += FROG_HOP_VERTICAL_DELTA + stamp moving sprite 0xDC. Reached from 0x23b7/0x1acb + the down begin fall-through. Memory-only live-out. DOWN not hopped in the goldens; shares the advanceHop body grounded via UP/RIGHT", cert: "code" },
   0x1be4: { name: "animateFrogHop", entry: "beginFrogHopUp", role: "[seen] begin an UP hop: no position guard, fresh hop emits the hop sound + stamps rest sprite 0x1E, primes FROG_HOP_UP_ANIM_COUNTER from FROG_HOP_UP_ANIM_RELOAD (=9), then falls into advanceFrogHopUp. Reached from 0x1acb/0x236d. Memory-only live-out. golden_hop: the live UP hop primes near frame 302 (counter seeded, sprite/motion follow)", cert: "seen" },
