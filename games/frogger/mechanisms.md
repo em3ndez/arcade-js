@@ -18,6 +18,12 @@ owed and this note records that debt.
 **`dispatchFrogMoveAgainstLanes`** (the lower-half move dispatcher), and **`updateSpriteObject`** (the
 sprite-object dispatcher-B). They dissolve their calls into the already-lifted arms.
 
+**Batch 5** lifted the last two ready near-leaf routines — `loc_0b95` (a score-field printer) and
+`loc_0c6d` (the score/logo/marquee renderer) — dissolving their calls into the already-lifted BCD/tile
+helpers. They keep their `loc_` names and are **not yet grounded**; understanding-pass-5 will name and
+ground them, and reconcile the cells `0x801b`/`0x8021`/`0x8023`/`0x802f` that `loc_0c6d`'s marquee arm
+reuses under roles their other callers do not (a role clash MAME must settle).
+
 **Confidence tags, not decoration:**
 - **`[seen]`** — observed on the real ROM under MAME; **`[seen,poked]`** when the trigger was forced by
   a memory poke rather than natural play (the reading is real, the path was forced).

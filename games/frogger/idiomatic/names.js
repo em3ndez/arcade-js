@@ -271,6 +271,26 @@ export const loc_aaf1 = 0xaaf1; // [seen] VRAM column base for blitPlayerSelectP
 export const loc_ab11 = 0xab11; // [seen] VRAM column base for blitPlayerSelectPrompt's "ONE OR TWO PLAYERS" prompt
 export const loc_ab15 = 0xab15; // [code] VRAM tilemap base for loc_2d88's score-digit draw on the time<10 arm
 
+// ── batch-5 cells: the mode-4 attract marquee (loc_0c6d) VRAM columns, ROM tile-strip sources, and sprite records ──
+export const loc_ab6d = 0xab6d; // [code] phase-4 marquee points-value VRAM base; loc_0c6d writes the packed-BCD points byte here then blits the strip up the column
+export const loc_ab70 = 0xab70; // [code] phase-3 marquee points-value VRAM base; loc_0c6d writes the packed-BCD points byte here
+export const loc_ab71 = 0xab71; // [code] phase-3 marquee second VRAM column base; loc_0c6d stamps a 19-tile strip up from here
+export const loc_ab73 = 0xab73; // [code] phase-2 marquee points-value VRAM base; loc_0c6d writes the packed-BCD points word here
+export const loc_ab74 = 0xab74; // [code] phase-2 marquee second VRAM column base; loc_0c6d stamps a 15-tile strip up from here
+export const loc_ab76 = 0xab76; // [code] phase-1 marquee VRAM column base; loc_0c6d stamps a 10-tile strip up from here
+export const loc_ab77 = 0xab77; // [code] phase-1 marquee points-value VRAM base; loc_0c6d writes the packed-BCD points byte here then continues the strips up the column
+export const loc_2ed1 = 0x2ed1; // [code] ROM tile-strip source for loc_0c6d's phase-4 marquee column
+export const loc_2f17 = 0x2f17; // [code] ROM tile-strip source for loc_0c6d's phase-3 marquee second column
+export const loc_2f2a = 0x2f2a; // [code] ROM tile-strip source for loc_0c6d's phase-2 marquee second column
+export const loc_2f39 = 0x2f39; // [code] ROM tile-strip source for loc_0c6d's phase-2 marquee column
+export const loc_2f43 = 0x2f43; // [code] ROM tile-strip source for loc_0c6d's phase-3 marquee column
+export const loc_2f9e = 0x2f9e; // [code] ROM tile-strip source for loc_0c6d's phase-1 marquee column
+export const loc_2fba = 0x2fba; // [code] ROM 4-tile strip source loc_0c6d blits after the packed-BCD points value in every marquee draw phase (1-4)
+export const loc_801d = 0x801d; // [code] marquee sprite record cell; loc_0c6d phase 4 seeds it to 6
+export const loc_8027 = 0x8027; // [code] marquee sprite record cell; loc_0c6d phase 4 seeds it to 3
+export const loc_8029 = 0x8029; // [code] marquee sprite record cell; loc_0c6d phase 4 seeds it to 6
+export const loc_802d = 0x802d; // [code] marquee sprite record cell; loc_0c6d phase 4 seeds it to 3
+
 export const ROUTINES = {
   0x0341: {
     name: "drainForegroundThenYieldEachVblank",
@@ -369,4 +389,7 @@ export const ROUTINES = {
   0x0b9b: { name: "writePackedBcdWord", role: "writePackedBcdWord -- writes a 16-bit packed-BCD value from DE as four consecutive tilemap digit-cells: the high byte (D)'s two nibbles then the low byte (E)'s two, via writePackedBcdByte twice, stepping HL up one 32-cell tilemap row (-0x20, with 16-bit borrow) per digit so it returns HL advanced four rows for the caller's next field. LIVE-OUT: VRAM + HL.", cert: "seen" },
   0x11bf: { name: "dispatchFrogMoveAgainstLanes", role: "Lower-half entry + dispatcher of the frog's per-frame position-vs-lanes resolution. Guarded by (0x83cd)==0 and (0x8004)==0; dispatches on frog Y (0x8047): low nibble>=9 or a high nibble not in the lane map delegates to the upper half resolveFrogMoveAgainstLanes (0x12e4), the other high nibbles select a scan arm that walks a per-lane object-X list (count byte + X positions) for an object inside the frog's band [frogX+off,+width). Road band (Y>=0x80): in-band object => KILL via 0x12d0 (0x8004<-1); clear lane => delegate/safe. River band (Y<0x80): in-band object (log) => delegate/ride; clear lane => KILL(drown). Effect: kill-or-survive the frog by lane occupancy. Alt scanFrogLaneForCollision names the same routine.", cert: "seen" },
   0x2b83: { name: "updateSpriteObject", role: "[seen,poked] Sprite-object dispatcher-B. Once per frame (60Hz) the sole caller loc_2970 enters with IX=0x8480 (record base) / IY=0x8058 (sprite-slot base) and this routine runs the five arms in fixed order -- spawnSpriteObject(0x2c13), steerSpriteObjectTowardTarget(0x2bab), writeSpriteObjectSlotX(0x2b93), flagSpriteObjectFrogHitAhead(0x2ca8), writeSpriteObjectSlotAttr(0x2bfb) -- then RET, advancing that one IX record / IY slot one step per frame. No register live-out; memory-only. Observed effect: spawns an object into record 0x8480, steers it (move timer +9 drains, position drifts, despawns on reaching target), stages X/attr/code into slot 0x8058, which is DMA-copied to hardware OBJRAM 0xB058 as a real on-screen sprite.", cert: "seen,poked" },
+  // ── batch-5 routines ──
+  0x0b95: { name: "loc_0b95", role: "draw a score field: print the caller's packed-BCD word (DE) at the tilemap pointer (HL) as four digits via writePackedBcdWord, then a trailing zero digit via writeScoreDigitStepUp (the score's always-zero ones place); memory-only live-out; code-level, MAME-grounding pending", cert: "code" },
+  0x0c6d: { name: "loc_0c6d", role: "attract mode-4 marquee assembler (tail-called from loc_0d11 when GAME_MODE==4). Steps the phase counter loc_83d7 (reload 5 when drained, then count down) so successive calls cycle phases 4,3,2,1,0; draws one phase per call: phase 0 parks the state cell loc_83d8 to the idle marker (0xc0); phases 1-4 blit score/logo tile strips up VRAM columns via copyRunUpTileColumn (three arms lead with a packed-BCD points value from writePackedBcdByte/Word) and park loc_83d8 to the drawn marker (0x80); phase 4 also seeds four sprite records (loc_801b..loc_802f). Memory-only live-out.", cert: "code" },
 };
