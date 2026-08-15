@@ -47,8 +47,10 @@ export function findStaleMcalls(idiomaticDir, allow = new Map(), spine = null) {
   for (const f of files) {
     const src = readFileSync(join(idiomaticDir, f), "utf8");
     // Resolve file-local `const NAME = 0x..;` aliases: m.call(NAME) else evades a literal-hex scan.
+    // The leading `,` branch catches every declarator of a comma-separated `const A = 0x.., B = 0x..;`
+    // (a `\bconst` anchor alone captured only the first, silently missing the rest).
     const alias = new Map();
-    for (const c of src.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*0x([0-9a-f]{2,4})\b/gi)) {
+    for (const c of src.matchAll(/(?:\bconst\s+|,\s*)([A-Za-z_$][\w$]*)\s*=\s*0x([0-9a-f]{2,4})\b/gi)) {
       alias.set(c[1], parseInt(c[2], 16));
     }
     for (const mm of src.matchAll(/m\.call\(\s*(0x[0-9a-f]{2,4}|[A-Za-z_$][\w$]*)/gi)) {

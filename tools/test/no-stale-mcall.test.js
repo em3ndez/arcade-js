@@ -105,3 +105,20 @@ test("SPINE: a spine file's m.call to a DECOMPILED leaf is still caught", () => 
     cleanup();
   }
 });
+
+// A comma-separated `const A = 0x.., B = 0x..;` must resolve EVERY declarator, not just the first --
+// a real leak (drainForeground's m.call to loc_0x223d via the 2nd declarator) hid behind this once.
+test("a m.call via the 2nd alias of a comma-separated const is resolved, not missed", () => {
+  const { dir, cleanup } = fixture(
+    { "leaf.js": "const A = 0x07e6, B = 0x1234;\nexport function leaf(m){ m.call(A); m.call(B); }" },
+    ["1234"], // 0x1234 is decompiled (has a gate); 0x07e6 is not
+  );
+  try {
+    const { leaks } = findStaleMcalls(dir, new Map());
+    assert.equal(leaks.length, 1, "the 2nd comma-declarator alias (B) must be resolved and its stale m.call flagged");
+    assert.equal(leaks[0].addr, 0x1234, "B resolves to 0x1234");
+    assert.match(leaks[0].via, /const B/, "the leak is attributed to the B alias");
+  } finally {
+    cleanup();
+  }
+});
