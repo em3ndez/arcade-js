@@ -22,7 +22,7 @@ const TIME_P1 = 0x83e5;
 const TIME_P2 = 0x83e6;
 const EXTRA_LIFE = 0x83e7; // word 0x83e7/0x83e8
 const SCORE_P2 = 0x83eb; // word 0x83eb/0x83ec
-const HIGH_SCORE = 0x83ed; // word 0x83ed/0x83ee
+const P1_SCORE = 0x83ed; // word 0x83ed/0x83ee
 const CLEARED = [0x83e7, 0x83e8, 0x83eb, 0x83ec, 0x83ed, 0x83ee];
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
@@ -66,7 +66,7 @@ function brokenNoOp() {}
 // wrong count: forgets to clear the extra-life-flag word.
 function brokenSkipExtraLife(m) {
   const { mem8, mem16 } = m;
-  mem16[HIGH_SCORE] = 0;
+  mem16[P1_SCORE] = 0;
   mem16[SCORE_P2] = 0;
   const t = mem8[START_TIME];
   mem16[TIME_P1] = (t << 8) | t;
@@ -74,7 +74,7 @@ function brokenSkipExtraLife(m) {
 // dropped low-byte copy: seeds only the P2 time byte (mirrors the oracle test's dropped `ld l,a`).
 function brokenHalfSeed(m) {
   const { mem8, mem16 } = m;
-  mem16[HIGH_SCORE] = 0;
+  mem16[P1_SCORE] = 0;
   mem16[SCORE_P2] = 0;
   mem16[EXTRA_LIFE] = 0;
   const t = mem8[START_TIME];
@@ -83,7 +83,7 @@ function brokenHalfSeed(m) {
 // wrong source: seeds the time bytes with a constant instead of the start-time byte.
 function brokenConstSeed(m) {
   const { mem16 } = m;
-  mem16[HIGH_SCORE] = 0;
+  mem16[P1_SCORE] = 0;
   mem16[SCORE_P2] = 0;
   mem16[EXTRA_LIFE] = 0;
   mem16[TIME_P1] = 0x0000; // BUG: ignores 0x83e4
@@ -91,7 +91,7 @@ function brokenConstSeed(m) {
 // wrong address: clears 0x83e9 instead of the extra-life word at 0x83e7.
 function brokenWrongAddr(m) {
   const { mem8, mem16 } = m;
-  mem16[HIGH_SCORE] = 0;
+  mem16[P1_SCORE] = 0;
   mem16[SCORE_P2] = 0;
   mem16[0x83e9] = 0; // BUG: wrong cell
   const t = mem8[START_TIME];

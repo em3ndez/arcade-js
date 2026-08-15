@@ -19,7 +19,7 @@ import { loc_0f69 as oracle } from "../../translated/loc_0f69.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
 const P2_SCORE = 0x83eb;
-const HIGH_SCORE = 0x83ed;
+const P1_SCORE = 0x83ed;
 const DISPLAY = 0x83fb;
 const STACK_SCRATCH = 32; // bytes below the seated SP the pushes may touch
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -37,7 +37,7 @@ function seedMachine() {
 function entryWithScores(p2, high) {
   const e = seedMachine().clone();
   e.mem.write8(P2_SCORE, p2 & 0xff); e.mem.write8(P2_SCORE + 1, (p2 >> 8) & 0xff);
-  e.mem.write8(HIGH_SCORE, high & 0xff); e.mem.write8(HIGH_SCORE + 1, (high >> 8) & 0xff);
+  e.mem.write8(P1_SCORE, high & 0xff); e.mem.write8(P1_SCORE + 1, (high >> 8) & 0xff);
   return e;
 }
 
@@ -64,9 +64,9 @@ function brokenSkipSecond(m) { pack(m, { skipSecond: true }); }
 function brokenWrongOrder(m) { pack(m, { wrongOrder: true }); }
 function pack(m, { swapStore = false, skipSecond = false, wrongOrder = false } = {}) {
   const { regs, mem16 } = m;
-  const high = mem16[HIGH_SCORE], p2 = mem16[P2_SCORE];
-  const larger = wrongOrder ? (p2 < high ? p2 : high) : (p2 < high ? high : p2);
-  const smaller = wrongOrder ? (p2 < high ? high : p2) : (p2 < high ? p2 : high);
+  const p1 = mem16[P1_SCORE], p2 = mem16[P2_SCORE];
+  const larger = wrongOrder ? (p2 < p1 ? p2 : p1) : (p2 < p1 ? p1 : p2);
+  const smaller = wrongOrder ? (p2 < p1 ? p1 : p2) : (p2 < p1 ? p2 : p1);
   regs.d = (larger >> 8) & 0xff; regs.e = larger & 0xff;
   m.push16(0x0f80); m.call(0x0a84);
   const firstRank = regs.a;

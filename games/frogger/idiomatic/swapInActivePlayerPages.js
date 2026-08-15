@@ -3,7 +3,7 @@
  * swapInActivePlayerPages — swap the active player's work pages IN for player 1; any other player tails to swap-OUT.
  *
  * For player 1: bank the two live pages into one save area, restore this player's pages from another,
- * and raise the swap-done flag. Any other player number tails to the swap-OUT path instead.
+ * and write the per-column object-attribute shadow byte. Any other player number tails to the swap-OUT path instead.
  * LIVE-OUT: memory-only.
  */
 import { loc_83fd, loc_800c, loc_85c0, loc_80ff, loc_8600, loc_86c0, loc_803f, loc_8500 } from "./names.js";

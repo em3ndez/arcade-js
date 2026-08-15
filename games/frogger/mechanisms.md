@@ -36,6 +36,22 @@ role generalized), and grounded the work cells it touches (`0x8019` seed; the `0
 object-clear; the `0x2ee5` header source). With this the near-leaf frontier is exhausted — what remains
 is the spine core.
 
+**Batch 7 + UP-7** lifted and grounded the four held-back service routines: **`renderScoreHeader`**
+(redraws the three-column score header each frame — the HI-SCORE column, the "1-UP" player-1 column, and,
+in two-player mode, the "2-UP" player-2 column), **`renderCreditLine`** (draws the "CREDIT" line — a
+one-time column clear latched by `0x83b4`, the "CREDIT" label from `0x2f68`, and the packed-BCD credit
+count `0x83e1`), **`initNewGameScoreAndTimers`** (new-game reset: zeros both players' score words and the
+extra-life-awarded flags `0x83e7`/`0x83e8`, then copies the start-time byte `0x83e4` into both
+time-remaining bytes so both time bars begin full), and **`clearSoundQueue`** (zeros the 48-byte
+sound-command queue `0x8300`-`0x832f` at game start). Grounding **corrected the score layout**: the
+on-screen "HI-SCORE" and "1-UP" glyphs pin `0x83ef` as the **high score** and `0x83ed` as the
+**player-1** score — the two were swapped in the code-only reading (`0x83eb` is player 2, already right) —
+so `packScoreRankPair` ranks *both players'* scores, not "P2 + high". It also **overturned** `0x803f`:
+not a page-swap/display flag but the work-RAM shadow of the object RAM's per-column attribute byte
+`0xB03F`, DMA-copied into object RAM each frame and only ever *written* by the display routines. A
+grounder's proposal that `0x83e5`/`0x83e6` are **lives** was **rejected** — `renderTimeBar` reads them to
+draw the time bar, so they are the per-player time-remaining bytes (the real lives are `0x83b7`-`0x83b9`).
+
 **Confidence tags, not decoration:**
 - **`[seen]`** — observed on the real ROM under MAME; **`[seen,poked]`** when the trigger was forced by
   a memory poke rather than natural play (the reading is real, the path was forced).
@@ -140,7 +156,8 @@ into `0x8270`; **`seedObjectAnimationState`** fills the object seed tables; **`i
 (guarded by `0x842d`) lays out the score/bonus display field once (blits a strip, fills a tile-12 column,
 seeds the countdown pair `0x83dc`/`0x83de`). In a two-player game the turn transition swaps banks:
 **`swapInActivePlayerPages`** banks the live object/work pages out to a save area and restores this
-player's pages, raising swap-done `0x803f`; **`clearPlayerOneHomeBayGates`** zeros player 1's slot byte
+player's pages, writing the OBJRAM per-column attribute shadow `0x803f` (the work-RAM copy of `0xB03F`,
+DMA-blitted to object RAM each frame — not a swap/display flag); **`clearPlayerOneHomeBayGates`** zeros player 1's slot byte
 `0x825c` and its five occupancy gates `0x825e`–`0x8262` on the cold board re-init. **`raiseActivePlayerStartFlag`**
 raises the start flag for the active player. `clearFourByteCounterBlock`, `clearTwoPlayerFrameCells`,
 `tickGatedCountdown`, `setAttractIdleMode` remain as described in `names.js`. **`stampAttractDemoCell`**
@@ -154,7 +171,7 @@ when all seven phases are placed. `[seen]`/`[seen,poked]`.
 The five-entry descending table at `0x83F2` is the high-score ranking (`insertHighScoreEntry`).
 **`writeScoreDigitStepUp`** writes one BCD score digit and steps the VRAM pointer up a row;
 **`writePackedBcdByte`** prints one packed-BCD byte as two digits (high nibble then low) via that helper,
-leaving HL advanced. **`packScoreRankPair`** ranks the P2 and high scores through `insertHighScoreEntry`
+leaving HL advanced. **`packScoreRankPair`** ranks both players' scores (`0x83ed` player 1, `0x83eb` player 2) through `insertHighScoreEntry`
 and packs the two rank codes into display field `0x83fb`, which **`placeScoreRankMarkers`** then reads,
 writing a value-to-position marker (tile 4) into work-RAM page `0x80` — not a rendered numeral (grounding
 overturned the "draw digit pair" reading). **`dequeueSoundCommand`** pops the sound-command queue at
@@ -176,6 +193,5 @@ playfield and blits the mode-2 title strips. `handOffToOtherPlayer` toggles play
 - **`loc_23eb`** — `[seen]` the home-bay slot cursor above; kept `loc_` (both blind proposers misread it).
 - **`computeVramColumnIndex`** (`0x1198`) — a pure-register leaf returning only `C`; `[code]`, no
   runtime-observable effect to ground.
-- Held back (deliberate handling, not bulk lifts): `0x0b0a`/`0x07d9` (spine-`m.call`ed),
-  `0x0f3e` (pops its caller's return — a caller-skip).
+- Held back (deliberate handling, not bulk lifts): `0x0f3e` (pops its caller's return — a caller-skip).
 - Still translated-only: the frog's hop input, and the road/river vehicle and log **movement**.

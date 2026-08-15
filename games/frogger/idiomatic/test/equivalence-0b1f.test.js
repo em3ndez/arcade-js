@@ -11,7 +11,7 @@
  * runs one-player, so a crafted entry pokes the player-count cell to two to exercise the player-2 arm,
  * and crafted score words widen digit coverage past the few attract displays. Teeth: no-op (redraw
  * suppressed), surviving-push16 (SP off its seat), wrong-count (one extra label tile), wrong-cell
- * (player-1 field reads the high-score word), wrong-digit (high column's leading digit), drop-player-2
+ * (HI-SCORE field reads the player-1 score), wrong-digit (1-UP column's leading digit), drop-player-2
  * (omits the two-player arm).
  */
 import test from "node:test";
@@ -32,14 +32,14 @@ const STACK_MASK = 8;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 // Cells and destinations, mirrored from the module for the mutation twins.
-const PLAYER1_SCORE = 0x83ef;
+const HIGH_SCORE = 0x83ef;
 const PLAYER_COUNT = 0x8370;
-const P1_LABEL_SRC = 0x2ee2;
+const HISCORE_LABEL_SRC = 0x2ee2;
 const SIDE_LABEL_SRC = 0x2edf;
-const P1_LABEL_DST = 0xaa60;
-const P1_SCORE_DST = 0xaa41;
-const HI_DIGIT_DST = 0xab20;
-const HI_SCORE_DST = 0xab41;
+const HISCORE_LABEL_DST = 0xaa60;
+const HISCORE_VALUE_DST = 0xaa41;
+const P1_DIGIT_DST = 0xab20;
+const P1_SCORE_DST = 0xab41;
 const P2_DIGIT_DST = 0xa900;
 const P2_SCORE_DST = 0xa921;
 const P1_LABEL_LEN = 8;
@@ -96,11 +96,11 @@ function brokenSurvivingPush16(m) {
 
 function brokenWrongCount(m) {
   const { regs, mem8, mem16 } = m;
-  copyRunUpTileColumn(m, P1_LABEL_DST, P1_LABEL_SRC, P1_LABEL_LEN + 1); // BUG: one extra tile
-  regs.hl = P1_SCORE_DST; regs.de = mem16[PLAYER1_SCORE]; writeScoreField(m);
-  writeScoreDigitStepUp(m, 1, HI_DIGIT_DST);
+  copyRunUpTileColumn(m, HISCORE_LABEL_DST, HISCORE_LABEL_SRC, P1_LABEL_LEN + 1); // BUG: one extra tile
+  regs.hl = HISCORE_VALUE_DST; regs.de = mem16[HIGH_SCORE]; writeScoreField(m);
+  writeScoreDigitStepUp(m, 1, P1_DIGIT_DST);
   copyRunUpTileColumn(m, regs.hl, SIDE_LABEL_SRC, SIDE_LABEL_LEN);
-  regs.hl = HI_SCORE_DST; regs.de = mem16[loc_83ed]; writeScoreField(m);
+  regs.hl = P1_SCORE_DST; regs.de = mem16[loc_83ed]; writeScoreField(m);
   if (mem8[PLAYER_COUNT] === 1) return;
   writeScoreDigitStepUp(m, 2, P2_DIGIT_DST);
   copyRunUpTileColumn(m, regs.hl, SIDE_LABEL_SRC, SIDE_LABEL_LEN);
@@ -109,11 +109,11 @@ function brokenWrongCount(m) {
 
 function brokenWrongCell(m) {
   const { regs, mem8, mem16 } = m;
-  copyRunUpTileColumn(m, P1_LABEL_DST, P1_LABEL_SRC, P1_LABEL_LEN);
-  regs.hl = P1_SCORE_DST; regs.de = mem16[loc_83ed]; writeScoreField(m); // BUG: P1 field reads the high score
-  writeScoreDigitStepUp(m, 1, HI_DIGIT_DST);
+  copyRunUpTileColumn(m, HISCORE_LABEL_DST, HISCORE_LABEL_SRC, P1_LABEL_LEN);
+  regs.hl = HISCORE_VALUE_DST; regs.de = mem16[loc_83ed]; writeScoreField(m); // BUG: HI-SCORE field reads the P1 score
+  writeScoreDigitStepUp(m, 1, P1_DIGIT_DST);
   copyRunUpTileColumn(m, regs.hl, SIDE_LABEL_SRC, SIDE_LABEL_LEN);
-  regs.hl = HI_SCORE_DST; regs.de = mem16[loc_83ed]; writeScoreField(m);
+  regs.hl = P1_SCORE_DST; regs.de = mem16[loc_83ed]; writeScoreField(m);
   if (mem8[PLAYER_COUNT] === 1) return;
   writeScoreDigitStepUp(m, 2, P2_DIGIT_DST);
   copyRunUpTileColumn(m, regs.hl, SIDE_LABEL_SRC, SIDE_LABEL_LEN);
@@ -122,11 +122,11 @@ function brokenWrongCell(m) {
 
 function brokenWrongDigit(m) {
   const { regs, mem8, mem16 } = m;
-  copyRunUpTileColumn(m, P1_LABEL_DST, P1_LABEL_SRC, P1_LABEL_LEN);
-  regs.hl = P1_SCORE_DST; regs.de = mem16[PLAYER1_SCORE]; writeScoreField(m);
-  writeScoreDigitStepUp(m, 7, HI_DIGIT_DST); // BUG: wrong leading digit
+  copyRunUpTileColumn(m, HISCORE_LABEL_DST, HISCORE_LABEL_SRC, P1_LABEL_LEN);
+  regs.hl = HISCORE_VALUE_DST; regs.de = mem16[HIGH_SCORE]; writeScoreField(m);
+  writeScoreDigitStepUp(m, 7, P1_DIGIT_DST); // BUG: wrong leading digit
   copyRunUpTileColumn(m, regs.hl, SIDE_LABEL_SRC, SIDE_LABEL_LEN);
-  regs.hl = HI_SCORE_DST; regs.de = mem16[loc_83ed]; writeScoreField(m);
+  regs.hl = P1_SCORE_DST; regs.de = mem16[loc_83ed]; writeScoreField(m);
   if (mem8[PLAYER_COUNT] === 1) return;
   writeScoreDigitStepUp(m, 2, P2_DIGIT_DST);
   copyRunUpTileColumn(m, regs.hl, SIDE_LABEL_SRC, SIDE_LABEL_LEN);
@@ -135,11 +135,11 @@ function brokenWrongDigit(m) {
 
 function brokenDropP2(m) {
   const { regs, mem16 } = m;
-  copyRunUpTileColumn(m, P1_LABEL_DST, P1_LABEL_SRC, P1_LABEL_LEN);
-  regs.hl = P1_SCORE_DST; regs.de = mem16[PLAYER1_SCORE]; writeScoreField(m);
-  writeScoreDigitStepUp(m, 1, HI_DIGIT_DST);
+  copyRunUpTileColumn(m, HISCORE_LABEL_DST, HISCORE_LABEL_SRC, P1_LABEL_LEN);
+  regs.hl = HISCORE_VALUE_DST; regs.de = mem16[HIGH_SCORE]; writeScoreField(m);
+  writeScoreDigitStepUp(m, 1, P1_DIGIT_DST);
   copyRunUpTileColumn(m, regs.hl, SIDE_LABEL_SRC, SIDE_LABEL_LEN);
-  regs.hl = HI_SCORE_DST; regs.de = mem16[loc_83ed]; return writeScoreField(m); // BUG: always stops here
+  regs.hl = P1_SCORE_DST; regs.de = mem16[loc_83ed]; return writeScoreField(m); // BUG: always stops here
 }
 
 // A tooth entry the mutations are observable against: dirty the first label and score cells so a no-op
@@ -147,14 +147,14 @@ function brokenDropP2(m) {
 function toothEntry(players) {
   const e = captureEntries()[0].clone();
   e.mem8[PLAYER_COUNT] = players;
-  e.mem16[PLAYER1_SCORE] = 0x1234;
+  e.mem16[HIGH_SCORE] = 0x1234;
   e.mem16[loc_83ed] = 0x5678;
   e.mem16[loc_83eb] = 0x9abc;
-  e.mem8[P1_LABEL_DST] = 0xee;
-  e.mem8[P1_SCORE_DST] = 0xee;
-  e.mem8[HI_DIGIT_DST] = 0xee;
+  e.mem8[HISCORE_LABEL_DST] = 0xee;
+  e.mem8[HISCORE_VALUE_DST] = 0xee;
+  e.mem8[P1_DIGIT_DST] = 0xee;
   e.mem8[P2_DIGIT_DST] = 0xee;
-  e.mem8[(P1_LABEL_DST - P1_LABEL_LEN * 32) & 0xffff] = 0xee; // the cell an off-by-one label count reaches
+  e.mem8[(HISCORE_LABEL_DST - P1_LABEL_LEN * 32) & 0xffff] = 0xee; // the cell an off-by-one label count reaches
   return e;
 }
 
@@ -169,7 +169,7 @@ test("CRAFTED 1P: oracle == rewrite across poked score words", { skip }, () => {
   for (const w of words) {
     const e = captureEntries()[0].clone();
     e.mem8[PLAYER_COUNT] = 1;
-    e.mem16[PLAYER1_SCORE] = w;
+    e.mem16[HIGH_SCORE] = w;
     e.mem16[loc_83ed] = (w ^ 0x2222) & 0xffff;
     assert.equal(diff(renderScoreHeader, e), null, `crafted 1P word=0x${w.toString(16)} diverged`);
   }
@@ -181,7 +181,7 @@ test("CRAFTED 2P: oracle == rewrite on the two-player arm attract never reaches"
   for (const w of words) {
     const e = captureEntries()[0].clone();
     e.mem8[PLAYER_COUNT] = 2;
-    e.mem16[PLAYER1_SCORE] = w;
+    e.mem16[HIGH_SCORE] = w;
     e.mem16[loc_83ed] = (w ^ 0x1111) & 0xffff;
     e.mem16[loc_83eb] = (w ^ 0x3333) & 0xffff;
     assert.equal(diff(renderScoreHeader, e), null, `crafted 2P word=0x${w.toString(16)} diverged`);

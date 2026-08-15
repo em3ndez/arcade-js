@@ -1,48 +1,45 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * renderScoreHeader — redraw the score header each frame: player-1 label + score, the high-score
- * column (leading digit, side strip, score), and in two-player mode the player-2 column likewise.
+ * renderScoreHeader — redraw the three-column score header each frame: the HI-SCORE column (its label
+ * then the high score), the 1-UP column (a "1" digit, the shared "-UP" strip, then player 1's score),
+ * and — only in two-player mode — the 2-UP column (a "2" digit, "-UP", then player 2's score).
  * LIVE-OUT: memory-only (score-header tilemap cells).
  */
-import { loc_83ed, loc_83eb } from "./names.js";
+import { loc_83ef, loc_83ed, loc_83eb, loc_8370, loc_2ee2, loc_2edf } from "./names.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writeScoreField } from "./writeScoreField.js";
 import { writeScoreDigitStepUp } from "./writeScoreDigitStepUp.js";
 
-const PLAYER1_SCORE = 0x83ef;
-const PLAYER_COUNT = 0x8370;
-const P1_LABEL_SRC = 0x2ee2;
-const SIDE_LABEL_SRC = 0x2edf;
-const P1_LABEL_DST = 0xaa60;
-const P1_SCORE_DST = 0xaa41;
-const HI_DIGIT_DST = 0xab20;
-const HI_SCORE_DST = 0xab41;
+const HISCORE_LABEL_DST = 0xaa60;
+const HISCORE_VALUE_DST = 0xaa41;
+const P1_DIGIT_DST = 0xab20;
+const P1_SCORE_DST = 0xab41;
 const P2_DIGIT_DST = 0xa900;
 const P2_SCORE_DST = 0xa921;
 
-const P1_LABEL_LEN = 8;
+const HISCORE_LABEL_LEN = 8;
 const SIDE_LABEL_LEN = 3;
 const ONE_PLAYER = 1;
 
 export function renderScoreHeader(m) {
   const { regs, mem8, mem16 } = m;
 
-  copyRunUpTileColumn(m, P1_LABEL_DST, P1_LABEL_SRC, P1_LABEL_LEN);
-  regs.hl = P1_SCORE_DST;
-  regs.de = mem16[PLAYER1_SCORE];
+  copyRunUpTileColumn(m, HISCORE_LABEL_DST, loc_2ee2, HISCORE_LABEL_LEN);
+  regs.hl = HISCORE_VALUE_DST;
+  regs.de = mem16[loc_83ef];
   writeScoreField(m);
 
-  // side strips go up from the pointer each digit-write leaves in HL
-  writeScoreDigitStepUp(m, 1, HI_DIGIT_DST);
-  copyRunUpTileColumn(m, regs.hl, SIDE_LABEL_SRC, SIDE_LABEL_LEN);
-  regs.hl = HI_SCORE_DST;
+  // each column's side strip runs up from the pointer the digit-write leaves in HL
+  writeScoreDigitStepUp(m, 1, P1_DIGIT_DST);
+  copyRunUpTileColumn(m, regs.hl, loc_2edf, SIDE_LABEL_LEN);
+  regs.hl = P1_SCORE_DST;
   regs.de = mem16[loc_83ed];
   writeScoreField(m);
 
-  if (mem8[PLAYER_COUNT] === ONE_PLAYER) return;
+  if (mem8[loc_8370] === ONE_PLAYER) return;
 
   writeScoreDigitStepUp(m, 2, P2_DIGIT_DST);
-  copyRunUpTileColumn(m, regs.hl, SIDE_LABEL_SRC, SIDE_LABEL_LEN);
+  copyRunUpTileColumn(m, regs.hl, loc_2edf, SIDE_LABEL_LEN);
   regs.hl = P2_SCORE_DST;
   regs.de = mem16[loc_83eb];
   return writeScoreField(m);

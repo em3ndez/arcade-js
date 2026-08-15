@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * initDisplayFieldOnce — one-time display-field setup, guarded so it runs only once.
- * Returns immediately once the layout-done guard is set; otherwise sets the guard and two mode
- * cells, blits a 4-tile strip up one column, fills a 15-row run of a single tile down another
- * column, and seeds two scroll/state cells.
+ * Returns immediately once the layout-done guard is set; otherwise sets the guard, writes the
+ * per-column object-attribute shadow byte, clears a display-field cell, blits a 4-tile strip up one
+ * column, fills a 15-row run of a single tile down another column, and seeds two scroll/state cells.
  * LIVE-OUT: memory-only.
  */
 import {

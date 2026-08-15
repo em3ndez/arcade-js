@@ -2,8 +2,8 @@
 /**
  * swapOutActivePlayerPages — swap the active player's work pages OUT: bank the live pages, restore the other bank.
  *
- * Saves the two live work pages into one bank, restores them from another, sets the swap-done flag,
- * then — unless the init latch is already set — clears one cell and latches it.
+ * Saves the two live work pages into one bank, restores them from another, writes the per-column
+ * object-attribute shadow byte, then — unless the init latch is already set — clears one cell and latches it.
  * LIVE-OUT: memory-only.
  */
 import {
