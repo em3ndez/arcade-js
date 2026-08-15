@@ -22,9 +22,9 @@ import {
 } from "./names.js";
 import { loc_23eb } from "./loc_23eb.js";
 import { scoreFrogRowProgress } from "./scoreFrogRowProgress.js";
+import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 
 const HOP_SOUND = 0x04;         // sound command emitted when a hop begins
-const SOUND_ENQUEUE = 0x0018;  // enqueues the byte in A into the sound-command ring
 
 // Per-direction frog sprite codes: the rest code (hop-begin and arrived) and the moving code (mid-hop).
 const HOP_DOWN_REST_CODE = 0xde, HOP_DOWN_MOVE_CODE = 0xdc;
@@ -32,18 +32,17 @@ const HOP_UP_REST_CODE = 0x1e, HOP_UP_MOVE_CODE = 0x1c;
 const HOP_RIGHT_REST_CODE = 0xa1, HOP_RIGHT_MOVE_CODE = 0x9f;
 const HOP_LEFT_REST_CODE = 0x21, HOP_LEFT_MOVE_CODE = 0x1f;
 
-// Emit the hop-start sound: A holds the command, then the ring enqueue runs; `ret` is where it returns.
-function enqueueHopSound(m, ret) {
+// Emit the hop-start sound: A holds the command, then the ring enqueue runs.
+function enqueueHopSound(m) {
   m.regs.a = HOP_SOUND;
-  m.push16(ret);
-  m.call(SOUND_ENQUEUE);
+  enqueueSoundCommand(m);
 }
 
 // Shared begin body: fresh hop primes the sprite + counter, else the counter just re-primes, then advance.
-function beginHop(m, counter, reload, restCode, soundRet, advance) {
+function beginHop(m, counter, reload, restCode, advance) {
   const mem = m.mem8;
   if (mem[counter] === 0) {
-    enqueueHopSound(m, soundRet);
+    enqueueHopSound(m);
     if (mem[FROG_SPRITE_CODE] === restCode) {
       mem[counter] = mem[reload]; // frog already showing the rest sprite: re-prime and advance, no bump
       return advance(m);
@@ -86,14 +85,14 @@ const stepHopLeft = (m) => {
 
 export function beginFrogHopDown(m) {
   if (m.mem8[FROG_Y] >= 0xf0) return; // frog at the bottom edge: no down-hop
-  return beginHop(m, FROG_HOP_DOWN_ANIM_COUNTER, FROG_HOP_DOWN_ANIM_RELOAD, HOP_DOWN_REST_CODE, 0x1b9a, advanceFrogHopDown);
+  return beginHop(m, FROG_HOP_DOWN_ANIM_COUNTER, FROG_HOP_DOWN_ANIM_RELOAD, HOP_DOWN_REST_CODE, advanceFrogHopDown);
 }
 export function advanceFrogHopDown(m) {
   advanceHop(m, FROG_HOP_DOWN_ARRIVAL, FROG_HOP_DOWN_ACTIVE, FROG_HOP_DOWN_ANIM_COUNTER, HOP_DOWN_REST_CODE, HOP_DOWN_MOVE_CODE, stepHopDown);
 }
 
 export function beginFrogHopUp(m) {
-  return beginHop(m, FROG_HOP_UP_ANIM_COUNTER, FROG_HOP_UP_ANIM_RELOAD, HOP_UP_REST_CODE, 0x1bed, advanceFrogHopUp);
+  return beginHop(m, FROG_HOP_UP_ANIM_COUNTER, FROG_HOP_UP_ANIM_RELOAD, HOP_UP_REST_CODE, advanceFrogHopUp);
 }
 export function advanceFrogHopUp(m) {
   const mem = m.mem8;
@@ -117,7 +116,7 @@ export function beginFrogHopRight(m) {
   const mem = m.mem8;
   if (mem[FROG_Y] < 0x30) return; // frog above the field top: no hop
   if (mem[FROG_X] >= 0xe0) return; // frog at the right edge: no right-hop
-  return beginHop(m, FROG_HOP_RIGHT_ANIM_COUNTER, FROG_HOP_RIGHT_ANIM_RELOAD, HOP_RIGHT_REST_CODE, 0x1c56, advanceFrogHopRight);
+  return beginHop(m, FROG_HOP_RIGHT_ANIM_COUNTER, FROG_HOP_RIGHT_ANIM_RELOAD, HOP_RIGHT_REST_CODE, advanceFrogHopRight);
 }
 export function advanceFrogHopRight(m) {
   advanceHop(m, FROG_HOP_RIGHT_ARRIVAL, FROG_HOP_RIGHT_ACTIVE, FROG_HOP_RIGHT_ANIM_COUNTER, HOP_RIGHT_REST_CODE, HOP_RIGHT_MOVE_CODE, stepHopRight);
@@ -127,7 +126,7 @@ export function beginFrogHopLeft(m) {
   const mem = m.mem8;
   if (mem[FROG_Y] < 0x30) return; // frog above the field top: no hop
   if (mem[FROG_X] < 0x20) return; // frog at the left edge: no left-hop
-  return beginHop(m, FROG_HOP_LEFT_ANIM_COUNTER, FROG_HOP_LEFT_ANIM_RELOAD, HOP_LEFT_REST_CODE, 0x1cb5, advanceFrogHopLeft);
+  return beginHop(m, FROG_HOP_LEFT_ANIM_COUNTER, FROG_HOP_LEFT_ANIM_RELOAD, HOP_LEFT_REST_CODE, advanceFrogHopLeft);
 }
 export function advanceFrogHopLeft(m) {
   advanceHop(m, FROG_HOP_LEFT_ARRIVAL, FROG_HOP_LEFT_ACTIVE, FROG_HOP_LEFT_ANIM_COUNTER, HOP_LEFT_REST_CODE, HOP_LEFT_MOVE_CODE, stepHopLeft);

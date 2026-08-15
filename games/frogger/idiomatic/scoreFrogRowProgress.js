@@ -6,9 +6,10 @@
  * LIVE-OUT: memory-only.
  */
 import { FROG_Y, FROG_FURTHEST_ROW } from "./names.js";
+import { addScoreAndAwardExtraLife } from "./addScoreAndAwardExtraLife.js";
 
 const ROW_MIN = 0x30, ROW_MAX = 0xd0, ROW_MID = 0x80, SEED_ABOVE_BAND = 0xe0;
-const AWARD_POINTS = 0x08e0, AWARD_RET = 0x1ff6, PROGRESS_DELTA = 0x0001;
+const PROGRESS_DELTA = 0x0001;
 
 export function scoreFrogRowProgress(m) {
   const { regs, mem8 } = m;
@@ -21,8 +22,7 @@ export function scoreFrogRowProgress(m) {
   mem8[FROG_FURTHEST_ROW] = row;
   regs.de = PROGRESS_DELTA;
   if (row === ROW_MID) return; // the mid row awards nothing
-  m.push16(regs.hl);
-  m.push16(AWARD_RET);
-  m.call(AWARD_POINTS);
-  regs.hl = m.pop16();
+  const savedHl = regs.hl;
+  addScoreAndAwardExtraLife(m);
+  regs.hl = savedHl;
 }

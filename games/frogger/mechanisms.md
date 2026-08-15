@@ -160,7 +160,14 @@ state-indexed attribute/code into the IY sprite slot; **`flagSpriteObjectFrogHit
 on the frog's row, a direction-adjusted position within 16px ahead of the frog X raises `HOLD_FLAG` and marks
 the object hit-consumed (state 2). Dispatcher-A's **`placeSpriteObjectSlotAndRetire`** runs the arm helper
 (one-shot + arm sound), writes the slot X/attribute/fold-biased position, and on the fold with the retire
-flag clears the record and slot. The batch-2 arms **`animateSpriteObjectFrame`**, **`loc_29f9`** (a motion
+flag clears the record and slot. **`driveSpriteObjectCluster`** is the per-frame cluster entry: below
+three slots (`loc_83b7`) it skips to dispatcher-B, else it runs dispatcher-A **`dispatchSpriteObjectArmsA`**
+on the active player's record — a second pass advancing to the next record/slot only at six slots — then
+dispatcher-B. Dispatcher-A runs its five arms in order, the first being **`spawnSpriteObjectArmA`** (the
+spawn arm: on the spawn-timer expiry with an idle object it rolls the spawn PRNG against `8*count+0x80`
+and walks the `loc_8276`/`loc_8278` placement bands down from `FREE_RUNNING_POS_COUNTER` to land the object
+on-screen or park it off-screen, seeds its timers, then falls into the shared arm tail); `[code]`. The
+batch-2 arms **`animateSpriteObjectFrame`**, **`loc_29f9`** (a motion
 arm whose earlier toward-the-frog name was reverted — `FREE_RUNNING_POS_COUNTER` grounded as a free-running
 counter, not the frog X, so the object drifts toward that counter), **`flagSpriteObjectFrogHit`** and the
 fly's **`driveFlyPatrol`** remain as described in `names.js`. All
@@ -184,7 +191,14 @@ sub-flag `COLLISION_SUBFLAG` and clears the collision cells `0x8040`–`0x8043`.
 At board start **`loadActivePlayerLaneParams`** LDIRs the active player's 33-byte lane-parameter block
 into `0x8270`; **`seedObjectAnimationState`** fills the object seed tables; **`initDisplayFieldOnce`**
 (guarded by `0x842d`) lays out the score/bonus display field once (blits a strip, fills a tile-12 column,
-seeds the countdown pair `0x83dc`/`0x83de`). In a two-player game the turn transition swaps banks:
+seeds the countdown pair `0x83dc`/`0x83de`). **`initInPlayBoardOnce`** is the one-shot in-play board setup
+(guarded by `loc_83ba`): it clears the difficulty indices and two board-state cells, runs that lane/object/
+field setup, and blits the HUD strings and score-target digits. **`clearActivePlayerWorkRam`** clears the
+active player's work RAM (the frog object block and home-bay gates) except in a one-player game, and
+**`clearTilemapToTile16`** (the rst-0x38 primitive) blanks the whole 32×32 tilemap. On board advance
+**`advanceBoardForeground`** queues two sound cues, bumps the active player's mod-5 difficulty index,
+reseeds the score field and lays out the new board, then tails into the score adder with a `0x0100` delta.
+`[code]`. In a two-player game the turn transition swaps banks:
 **`swapInActivePlayerPages`** banks the live object/work pages out to a save area and restores this
 player's pages, writing the OBJRAM per-column attribute shadow `OBJRAM_COL3F_ATTR_SHADOW` (the work-RAM copy of `0xB03F`,
 DMA-blitted to object RAM each frame — not a swap/display flag); **`clearPlayerOneHomeBayGates`** zeros player 1's slot byte
@@ -206,6 +220,20 @@ and packs the two rank codes into display field `0x83fb`, which **`placeScoreRan
 writing a value-to-position marker (tile 4) into work-RAM page `0x80` — not a rendered numeral (grounding
 overturned the "draw digit pair" reading). **`dequeueSoundCommand`** pops the sound-command queue at
 `SOUND_QUEUE_COUNT` and issues the front byte through `issueSoundCommand` (latches `SOUND_CMD_LATCH`, pulses `SOUND_CTRL_PORT` bit 3).
+**`enqueueSoundCommand`** is the enqueue side (the rst-0x18 primitive): while in play it bumps the ring
+head `SOUND_QUEUE_COUNT` and stores the command in `A`, dropping it in attract; the hop, the board-advance
+cues, the score-display driver, and **`queueFrogOnLogEdgeBlit`** (the frog-on-log edge blit, gated on the
+phase `loc_81a2` and the busy gate `loc_8140`) all feed it. **`scanCoinInputAndCredit`** — run first each
+NMI — latches the coin input `COIN_INPUT_LATCH` in attract and credits on the release edge, pulsing the
+slot's hardware coin counter (`COIN_COUNTER_0`/`COIN_COUNTER_1`) and adding the `COINAGE_WORD`-indexed
+amount to the packed-BCD total `CREDIT_BCD` (clamped at `0x99`), then forces the player-select mode unless
+already playing. **`addScoreAndAwardExtraLife`** adds the `DE` BCD delta to the active player's score and,
+the first frame it reaches the target `EXTRA_LIFE_SCORE_TARGET` with the award flag
+(`PLAYER1_EXTRA_LIFE_AWARDED`/`PLAYER2_EXTRA_LIFE_AWARDED`) clear, awards the one-time bonus (bumping the
+`0x83e5`/`0x83e6` counter and stamping the bonus tile up the HUD column). **`driveScoreDisplayCountdown`**
+is the per-frame score-display driver, walking a BCD counter down, animating one bar tile, and taking
+`blitEndStripAndSetHold`'s end-strip tail on drain. **`clearAndSeedScoreField`** resets the score field for
+a new board. `[code]`.
 The tile builders: **`blitPlayerSelectPrompt`** draws the player-select prompt — "ONE PLAYER ONLY" on one
 credit, else "ONE OR TWO PLAYERS" (grounding overturned the earlier credit/1UP-header reading),
 **`blitEndStripAndSetHold`** blits a terminal

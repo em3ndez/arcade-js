@@ -16,14 +16,14 @@ import { renderCreditLine } from "./renderCreditLine.js";
 import { initNewGameScoreAndTimers } from "./initNewGameScoreAndTimers.js";
 import { clearSoundQueue } from "./clearSoundQueue.js";
 import { loadActivePlayerLaneParams } from "./loadActivePlayerLaneParams.js";
+import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
+import { clearTilemapToTile16 } from "./clearTilemapToTile16.js";
+import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
 
 // Targets the body drives via m.call.
 const ATTRACT_DISPATCH = 0x0d11;   // mode>=2 attract/mode dispatcher (call nc)
 const SERVICE_C = 0x230f;
 const IN_PLAY_TREE = 0x040b;        // board-start / life-loss dispatcher — the whole in-play family
-const ENQUEUE_SOUND = 0x0018;       // rst 0x18
-const CLEAR_TILEMAP = 0x0038;       // rst 0x38
-const NEW_GAME_SEED_D = 0x07e6;
 
 export function* drainForegroundThenYieldEachVblank(m) {
   let entry = MAIN_LOOP_HEAD;
@@ -116,17 +116,17 @@ function startNewGame(m, players) {
   regs.xor(regs.a);
   mem.write8(0x8071, regs.a);
 
-  m.push16(0x03ca); m.call(ENQUEUE_SOUND); // A=0
-  regs.a = 0x09; m.push16(0x03cd); m.call(ENQUEUE_SOUND);
-  regs.a = 0x0a; m.push16(0x03d0); m.call(ENQUEUE_SOUND);
-  regs.a = 0x0b; m.push16(0x03d3); m.call(ENQUEUE_SOUND);
+  enqueueSoundCommand(m); // A=0
+  regs.a = 0x09; enqueueSoundCommand(m);
+  regs.a = 0x0a; enqueueSoundCommand(m);
+  regs.a = 0x0b; enqueueSoundCommand(m);
 
   regs.hl = 0x0020; mem.write16(0x829d, regs.hl);
   regs.hl = 0x01a0; mem.write16(0x8382, regs.hl);
   regs.hl = 0x0000; mem.write16(0x83d2, regs.hl);
 
-  m.push16(0x03e8); m.call(NEW_GAME_SEED_D);
-  m.push16(0x03e9); m.call(CLEAR_TILEMAP);
+  clearActivePlayerWorkRam(m);
+  clearTilemapToTile16(m);
   loadActivePlayerLaneParams(m);
 
   regs.xor(regs.a);

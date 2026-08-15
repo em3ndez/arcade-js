@@ -1,0 +1,90 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * driveScoreDisplayCountdown — the per-frame score-display driver. Returns while the display guard or
+ * the hold flag is set; on first entry seeds its flag and queues a tile, lays out the field, then either
+ * takes the bonus arm (armScoreBonusStrip) or runs the step countdown that walks a BCD counter down and
+ * animates one tile of the bar. Draining the counter to zero takes the end-strip tail. armScoreBonusStrip
+ * is also a standalone entry: it blits its strip once, prints the counter byte, then scores. LIVE-OUT:
+ * memory-only.
+ */
+import {
+  loc_83cd, HOLD_FLAG, loc_83ae, loc_83df, loc_83dc,
+  loc_83dd, loc_83de, loc_83e0, OBJRAM_COL3F_ATTR_SHADOW,
+} from "./names.js";
+import { initDisplayFieldOnce } from "./initDisplayFieldOnce.js";
+import { blitEndStripAndSetHold } from "./blitEndStripAndSetHold.js";
+import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
+import { writePackedBcdByte } from "./writePackedBcdByte.js";
+import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
+import { addScoreAndAwardExtraLife } from "./addScoreAndAwardExtraLife.js";
+
+const COUNTDOWN_RELOAD = 0x20;
+const BAR_BASE = 0xa8df;
+
+export function driveScoreDisplayCountdown(m) {
+  const { regs, mem8 } = m;
+
+  if (mem8[loc_83cd] !== 0) return;
+  if (mem8[HOLD_FLAG] !== 0) return;
+
+  if (mem8[loc_83ae] === 0) {
+    mem8[loc_83ae] = 1;
+    regs.a = 0x06;
+    enqueueSoundCommand(m);
+  }
+
+  initDisplayFieldOnce(m);
+
+  if (mem8[loc_83df] !== 0) return armScoreBonusStrip(m);
+
+  const left = (mem8[loc_83dc] - 1) & 0xff;
+  mem8[loc_83dc] = left;
+  if (left !== 0) return;
+  mem8[loc_83dc] = COUNTDOWN_RELOAD;
+
+  regs.a = mem8[loc_83dd];
+  regs.or(regs.a); // clears carry for the BCD correction below
+  if (regs.fZ) return blitEndStripAndSetHold(m);
+  regs.a = regs.dec8(regs.a);
+  mem8[loc_83dd] = regs.a;
+
+  regs.a = mem8[loc_83de];
+  regs.a = regs.dec8(regs.a);
+  regs.daa();
+  mem8[loc_83de] = regs.a;
+
+  if (regs.a === 0x10) {
+    regs.a = 0x05;
+    enqueueSoundCommand(m);
+    mem8[OBJRAM_COL3F_ATTR_SHADOW] = 0;
+  }
+  return stepScoreBarTile(m);
+}
+
+// Stamp one cell of the bar: index from the counter's high bits, value 0x10 minus its low two bits.
+function stepScoreBarTile(m) {
+  const { mem8 } = m;
+  const dd = mem8[loc_83dd];
+  const c = dd & 0x03;
+  let a = dd & 0xfc;
+  a = ((a << 2) | (a >> 6)) & 0xff; // rotate left by two
+  const dst = (BAR_BASE + ((a + a) & 0xffff)) & 0xffff;
+  mem8[dst] = (0x10 - c) & 0xff;
+}
+
+export function armScoreBonusStrip(m) {
+  const { regs, mem8 } = m;
+
+  if (mem8[loc_83e0] !== 0) return;
+  mem8[loc_83e0] = 1;
+
+  regs.hl = 0xaa51; regs.de = 0x2f6e; regs.b = 0x05;
+  copyRunUpTileColumn(m);
+
+  regs.a = mem8[loc_83de];
+  regs.e = regs.a;
+  regs.d = 0; // de is the counter byte for the score adder
+  writePackedBcdByte(m);
+
+  return addScoreAndAwardExtraLife(m);
+}
