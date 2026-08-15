@@ -185,6 +185,18 @@ strip and raises the hold flag `HOLD_FLAG` to halt the score-display driver, **`
 tile-group column and blits the fixed 9-tile line, and **`renderMode2IntroScreen`** fills the 28×32
 playfield and blits the mode-2 title strips. `handOffToOtherPlayer` toggles players. `[seen]`/`[seen,poked]`.
 
+## The lane-object mover — `[code]`
+
+Each frame **`moveLaneObjectsAndCarryFrog`** walks the eleven lane objects (`LANE_OBJECT_INDEX`, 0..10; the
+sixth is a spacer), shifting each object's sprite run and lead sprite by its lane's speed — right or left
+per lane, the low nibble of the lane's control byte — unless that object's `LANE_OBJECT_PHASE_TABLE`
+countdown is running, which holds it (letting lanes step at a sub-frame rate). When the frog sits in a
+moving object's row band and cell-column the shift is applied to `FROG_X` too, so it rides the log/turtle;
+`HOLD_FLAG` is raised if the ride carries it off either edge. The eleven arms collapse to an 11-row
+parameter table over a shared right/left mover; the ROM's mutual recursion (advance the index, re-enter the
+dispatcher) becomes a `for` loop over the objects. `[code]` — equivalence-verified against the oracle and
+behavior-neutral live over the gameplay tape; MAME grounding pending.
+
 ## Not yet named / open
 
 - **`loc_27ea`** — `[seen,poked]` the two-pair-figure per-frame driver above; kept `loc_` (blind derivers
@@ -196,4 +208,5 @@ playfield and blits the mode-2 title strips. `handOffToOtherPlayer` toggles play
 - **`computeVramColumnIndex`** (`0x1198`) — a pure-register leaf returning only `C`; `[code]`, no
   runtime-observable effect to ground.
 - Held back (deliberate handling, not bulk lifts): `0x0f3e` (pops its caller's return — a caller-skip).
-- Still translated-only: the frog's hop input, and the road/river vehicle and log **movement**.
+- Still translated-only: the frog's hop input. (The road/river vehicle and log **movement** is now lifted
+  — see the lane-object mover above.)

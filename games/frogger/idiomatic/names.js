@@ -51,7 +51,7 @@ export const OBJRAM_COL3F_ATTR_SHADOW = 0x803f; // [seen] work-RAM shadow of OBJ
 export const FROG_X = 0x8044; // [seen] frog X (game-space horizontal position, grounded: watched incrementing 0x84->0x90 as the demo frog moved right); frog object block base -- activateFrogObject sets it active, resetFrogObject writes the four object bytes from here, the move dispatcher scans lane objects against it
 export const loc_8045 = 0x8045; // [code] frog object sub-field; activateFrogObject clears it when activating the frog
 export const FROG_Y = 0x8047; // [seen] frog Y / row (game-space vertical position, grounded: watched E0=bottom -> 40=top as the frog climbed); frog object sub-field -- activateFrogObject clears it when activating the frog, the move dispatcher keys its lane-scan arm on it
-export const LIVE_WORK_PAGE = 0x80ff; // [seen] live work page base; swapOutActivePlayerPages banks 183 bytes from here and restores them from the other bank
+export const LANE_OBJECT_INDEX = 0x80ff; // [seen] lane-object walk index (0..10); moveLaneObjectsAndCarryFrog reads/increments it per object, wraps to 0 after object 10. Also the base of the 183-byte per-player object work page swapIn/swapOutActivePlayerPages bank from/to (this index byte leads that page).
 export const SPRITE_BLOCK2_BASE = 0x8100; // [seen] second work-RAM sprite block base; clearObjectBlocksAndMirrorToObjRam zeroes 99 bytes from here
 export const loc_8269 = 0x8269; // [code] frog state cell; resetFrogObject clears it during the frog-object reset
 export const loc_825a = 0x825a; // [code] per-player start/demo flag; loc_05d3 sets it to 1, handOffToOtherPlayer sets it to 1 on the player hand-off
@@ -136,6 +136,7 @@ export const SPRITE_FRAME_BUSY_LATCH1 = 0x814f; // [seen,poked] sprite-frame bus
 export const FIGURE_ANIM_STEP_GATE = 0x8150; // [seen] animateTwoPairFigure gates its step on bit0 of this cell
 export const loc_815b = 0x815b; // [code] sprite-frame busy latch 2; advanceAnimationFrameBuffer returns without stepping while it is non-zero
 export const ANIM_FRAME_BUFFER = 0x819b; // [seen,poked] animation frame buffer; advanceAnimationFrameBuffer copies 11 bytes of the current frame source into it
+export const LANE_OBJECT_PHASE_TABLE = 0x81a6; // [code] 11-byte per-object phase-countdown table (0x81a6+i for lane object i); moveLaneObjectsAndCarryFrog holds object i while its countdown drains, moving one pixel and clearing it when it reaches 1
 export const loc_81b1 = 0x81b1; // [seen] scroll-copy column stride; blitScrollTileGrid advances the destination by this between columns
 export const loc_81b3 = 0x81b3; // [code] animation frame index; advanceAnimationFrameBuffer advances it into the loc_1841 pointer table, wrapping to 0 at index 10
 export const loc_81b4 = 0x81b4; // [code] animation frame timer; advanceAnimationFrameBuffer ticks it down each pass and reloads it to 21 when it reaches 0
@@ -414,4 +415,11 @@ export const ROUTINES = {
   0x0b0a: { name: "initNewGameScoreAndTimers", role: "[seen] new-game reset: zeros the player-1 score word (0x83ed), the player-2 score word (0x83eb) and the P1/P2 extra-life-awarded flags (0x83e7/0x83e8), then copies the starting-time byte (0x83e4) into both time-remaining bytes (0x83e5/0x83e6) so both time bars start full; does NOT touch the high score (0x83ef). Pure leaf, memory-only live-out; caller loc_0341 (new-game setup)", cert: "seen" },
   0x0b1f: { name: "renderScoreHeader", role: "[seen] redraw the 3-column score header each frame: HI-SCORE (label 0x2ee2 \"HI-SCORE\" -> 0xaa60, high score 0x83ef -> 0xaa41), \"1-UP\" (digit 1 -> 0xab20, shared \"-UP\" strip 0x2edf, P1 score 0x83ed -> 0xab41), and when 0x8370!=1 \"2-UP\" (digit 2 -> 0xa900, \"-UP\", P2 score 0x83eb -> 0xa921); 0x8370==1 skips the 2-UP arm", cert: "seen" },
   0x0b67: { name: "renderCreditLine", role: "[seen] draws the \"CREDIT\" line: label ROM 0x2f68 \"CREDIT\" -> 0xa97f, first-call-only credit-column clear latched by 0x83b4, then the packed-BCD credit count 0x83e1 -> 0xa89f; also writes the 0x803f OBJRAM per-column attribute shadow", cert: "seen" },
+
+  // ── frog-movement cluster: the per-frame lane-object mover ──
+  0x14b7: {
+    name: "moveLaneObjectsAndCarryFrog",
+    role: "[code] per-frame lane-object mover: walks the 11 lane objects keyed on the index cell 0x80FF (0..10), and for each shifts its sprite run (0x8100+9i) + lead sprite (0x800C+4i) by the lane control byte's (0x819B+i) low-nibble speed -- rightward (objects 0/2/3/7/9) or leftward (1/4/6/8/10) -- or, when a phase countdown (0x81A6+i) is running or the control byte's bit4 is set, ticks that countdown so the lane steps at a sub-frame rate; when the frog (row 0x8047 in [0x30,0x73), column matched to the object index) shares a moving object's cell it carries the frog X (0x8044) along and flags it lost (0x8004=1) if the ride runs it off an edge. Object 5 is a spacer (advance only). The walk advances 0x80FF and, past 0x0B, wraps it to 0 and returns -- replacing the ROM's tail-recursion (0x15DE/0x167C -> 0x14B7) with a for-loop. Dissolves the whole cluster (dispatcher 0x14B7, 11 arms 0x14DD-0x1587, mover-right 0x1598, mover-left 0x163E, phase tail 0x16D4) into one module; no external callees. Runs only during gameplay (not attract). [code]-level, MAME-grounding pending",
+    cert: "code",
+  },
 };
