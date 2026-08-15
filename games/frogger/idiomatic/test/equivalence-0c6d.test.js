@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0c6d — memory-equivalent to the frozen oracle at ROM 0x0C6D.
- * Crafted-entry: attract never dispatches the mode-4 marquee within ENTRY_FRAMES (probe: 0), so a
+ * renderMode4PointTablePhase — memory-equivalent to the frozen oracle at ROM 0x0C6D.
+ * Crafted-entry: attract never dispatches the mode-4 point-table screen within ENTRY_FRAMES (probe: 0), so a
  * post-boot clone is poked at the phase counter (0x83D7) across 0..5 to drive every arm (idle park,
  * three strip phases, sprite-seeding phase) and both counter branches. Live-out is memory-only; the
  * rewrite's dissolved calls omit the oracle's push16 return residue in [SP-8,SP), masked before the
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0c6d } from "../loc_0c6d.js";
+import { renderMode4PointTablePhase } from "../renderMode4PointTablePhase.js";
 import { loc_0c6d as oracle } from "../../translated/loc_0c6d.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -67,14 +67,14 @@ function brokenFrozenCounter(m) {
   m.mem8[PHASE_COUNTER] = before; // BUG: the phase never advances to the next call
 }
 
-test("EQUAL (crafted): loc_0c6d == oracle across every phase and both counter branches", { skip }, () => {
+test("EQUAL (crafted): renderMode4PointTablePhase == oracle across every phase and both counter branches", { skip }, () => {
   for (const v of [0, 1, 2, 3, 4, 5]) {
-    assert.equal(ramDiff(loc_0c6d, entryWithCounter(v)), null, `counter=${v} diverged`);
+    assert.equal(ramDiff(renderMode4PointTablePhase, entryWithCounter(v)), null, `counter=${v} diverged`);
   }
   // non-vacuous: the idle park and the sprite-seeding phase both write RAM.
   assert.ok(ramDiff(brokenNoOp, entryWithCounter(1)), "vacuous: the idle phase wrote nothing");
   assert.ok(ramDiff(brokenNoOp, entryWithCounter(5)), "vacuous: the sprite phase wrote nothing");
-  console.log("  EQUAL: phases 0-4 + reload branch, loc_0c6d == oracle");
+  console.log("  EQUAL: phases 0-4 + reload branch, renderMode4PointTablePhase == oracle");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

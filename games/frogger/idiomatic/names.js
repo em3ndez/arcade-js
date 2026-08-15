@@ -109,7 +109,7 @@ export const loc_8003 = 0x8003; // [code] scroll-copy row-count scratch; blitScr
 export const loc_8004 = 0x8004; // [seen] hold flag / object-frog hit flag; stampHomeBaySlot stamps the slot but leaves the selector pending when non-zero, flagSpriteObjectFrogHit sets it to 1 (with gate loc_842c) when a sprite object overlaps the frog
 export const loc_800d = 0x800d; // [seen] object-animation state block base; seedObjectAnimationState seeds 10 stride-2 cells (0x800d-0x801f) from a fixed table at board init
 export const loc_8014 = 0x8014; // [seen] free-running position counter (rises +1/frame, wraps 0xff->0x00, independent of the frog); sprite-object motion arms drift each object toward it -- NOT the frog X (frog X is 0x8044/0x8047; grounding overturned the earlier reading)
-export const loc_8021 = 0x8021; // [seen] object-animation cell block base; seedObjectAnimationState seeds 14 stride-2 cells (0x8021-0x803b) from a fixed table at board init
+export const loc_8021 = 0x8021; // [seen] object-animation cell block base; seedObjectAnimationState seeds 14 stride-2 cells (0x8021-0x803b) from a fixed table at board init -- renderMode4PointTablePhase writes a mode-4 sprite CODE (=3) into this same object table [seen]
 export const loc_8040 = 0x8040; // [seen,poked] fly sprite X position / base of the four-cell block armHomeGoalSprite arms; driveFlyPatrol writes path base loc_811c + path-table offset, armHomeGoalSprite arms it with the lead byte + fixed tail 25,3,16 (sibling loc_27de zeroes 0x8040-0x8043)
 export const loc_8041 = 0x8041; // [code] fly sprite code; driveFlyPatrol sets it at the timer midpoint (33 or flipped 0xA1) and to the turn sprite (30) at an endpoint
 export const loc_805c = 0x805c; // [code] base of the 4-byte timer/counter block clearFourByteCounterBlock clears to zero (0x805C-0x805F)
@@ -183,10 +183,10 @@ export const loc_8007 = 0x8007; // [seen] object-ready flag; loc_1952 sets it to
 export const loc_8009 = 0x8009; // [seen] object-ready flag; loc_1952 sets it to 1 after the frog render
 export const loc_800b = 0x800b; // [seen] object-ready flag; loc_1952 sets it to 1 after the frog render
 export const loc_800f = 0x800f; // [seen] demo scroll register; loc_0de0 writes 3 here (paired with loc_800d) each dwell tick
-export const loc_801b = 0x801b; // [seen] intro counter; loc_2d88 seeds it to 5 during the mode-2 setup
-export const loc_8023 = 0x8023; // [seen] screen/mode state byte; blitPlayerSelectPrompt sets it to 3 on the two-player prompt arm
+export const loc_801b = 0x801b; // [seen] intro counter; loc_2d88 seeds it to 5 during the mode-2 setup -- ALSO a mode-4 sprite-record CODE cell renderMode4PointTablePhase seeds =3 (-> OBJRAM); shared work RAM, per-mode use [seen]
+export const loc_8023 = 0x8023; // [seen] screen/mode state byte; blitPlayerSelectPrompt sets it to 3 on the two-player prompt arm -- ALSO a mode-4 sprite-record ATTR/Y field renderMode4PointTablePhase seeds =6 (-> OBJRAM); shared, per-mode use [seen]
 export const loc_802b = 0x802b; // [seen] intro counter; loc_2d88 seeds it to 3 (also the store target of loc_0c4a)
-export const loc_802f = 0x802f; // [code] lane low-bound selector; loc_12e4 branches on it (<128 vs >=128) to pick the lane low-bound offset (12 vs 3) added to the frog base loc_8044
+export const loc_802f = 0x802f; // [code] lane low-bound selector; loc_12e4 branches on it (<128 vs >=128) to pick the lane low-bound offset (12 vs 3) added to the frog base loc_8044 -- ALSO a mode-4 sprite-record ATTR/Y field renderMode4PointTablePhase seeds =6 (-> OBJRAM 0xB02f); shared cell, per-mode use [seen]
 export const loc_8058 = 0x8058; // [seen,poked] shared 4-byte sprite-object block; loc_2bab clears it (with the 16-byte IX struct) when an object reaches its target and despawns
 export const loc_8109 = 0x8109; // [seen] loc_12e4 scans it as a lane object list (count byte then object X positions, band width 31); loc_1058 arms both plot cursors (IX/IY) to it for the frog-anim render loop
 export const loc_8112 = 0x8112; // [seen] lane object list (count byte then object X positions), band width 92; loc_12e4 scans it for an object in the frog's move band
@@ -219,8 +219,8 @@ export const loc_8300 = 0x8300; // [seen] pending sound-command count; loc_07ac 
 export const loc_83bb = 0x83bb; // [code] attract sequencer state cell; loc_0de0 clears it to 0 after placing the last cell
 export const loc_83bc = 0x83bc; // [seen] attract demo dwell counter; loc_0de0 decrements it and reloads 32 on expiry
 export const loc_83bf = 0x83bf; // [code] attract sequencer phase byte; loc_0de0 clears it to 0 after placing the last cell
-export const loc_83d7 = 0x83d7; // [seen] attract demo phase counter (1..7); loc_0de0 dispatches the cell arm on it, decrements it, and reloads 7 when drained
-export const loc_83d8 = 0x83d8; // [seen] mode-2 intro state cell; loc_2d88 stores 0xff here at the intro setup
+export const loc_83d7 = 0x83d7; // [seen] attract demo phase counter (1..7); loc_0de0 dispatches the cell arm on it, decrements it, and reloads 7 when drained -- ALSO the mode-4 sub-phase counter (reload 5, counts 4..0) for renderMode4PointTablePhase; same cell, mode-dependent reload [seen]
+export const loc_83d8 = 0x83d8; // [seen] mode-2 intro state cell; loc_2d88 stores 0xff here at the intro setup -- ALSO the shared attract frame-pacing/drawn-state gate loc_0d11 checks; renderMode4PointTablePhase parks it 0xC0 idle / 0x80 drawn [seen]
 export const loc_83dc = 0x83dc; // [seen] 16-bit scroll/state cell; loc_0aba seeds it to 0x3C20 during the one-time layout setup
 export const loc_83de = 0x83de; // [seen] scroll/state cell; loc_0aba seeds it to 0x60 during the one-time layout setup
 export const loc_83e0 = 0x83e0; // [seen] display-field cell; loc_0aba zeroes it during the one-time layout setup
@@ -271,25 +271,25 @@ export const loc_aaf1 = 0xaaf1; // [seen] VRAM column base for blitPlayerSelectP
 export const loc_ab11 = 0xab11; // [seen] VRAM column base for blitPlayerSelectPrompt's "ONE OR TWO PLAYERS" prompt
 export const loc_ab15 = 0xab15; // [code] VRAM tilemap base for loc_2d88's score-digit draw on the time<10 arm
 
-// ── batch-5 cells: the mode-4 attract marquee (loc_0c6d) VRAM columns, ROM tile-strip sources, and sprite records ──
-export const loc_ab6d = 0xab6d; // [code] phase-4 marquee points-value VRAM base; loc_0c6d writes the packed-BCD points byte here then blits the strip up the column
-export const loc_ab70 = 0xab70; // [code] phase-3 marquee points-value VRAM base; loc_0c6d writes the packed-BCD points byte here
-export const loc_ab71 = 0xab71; // [code] phase-3 marquee second VRAM column base; loc_0c6d stamps a 19-tile strip up from here
-export const loc_ab73 = 0xab73; // [code] phase-2 marquee points-value VRAM base; loc_0c6d writes the packed-BCD points word here
-export const loc_ab74 = 0xab74; // [code] phase-2 marquee second VRAM column base; loc_0c6d stamps a 15-tile strip up from here
-export const loc_ab76 = 0xab76; // [code] phase-1 marquee VRAM column base; loc_0c6d stamps a 10-tile strip up from here
-export const loc_ab77 = 0xab77; // [code] phase-1 marquee points-value VRAM base; loc_0c6d writes the packed-BCD points byte here then continues the strips up the column
-export const loc_2ed1 = 0x2ed1; // [code] ROM tile-strip source for loc_0c6d's phase-4 marquee column
-export const loc_2f17 = 0x2f17; // [code] ROM tile-strip source for loc_0c6d's phase-3 marquee second column
-export const loc_2f2a = 0x2f2a; // [code] ROM tile-strip source for loc_0c6d's phase-2 marquee second column
-export const loc_2f39 = 0x2f39; // [code] ROM tile-strip source for loc_0c6d's phase-2 marquee column
-export const loc_2f43 = 0x2f43; // [code] ROM tile-strip source for loc_0c6d's phase-3 marquee column
-export const loc_2f9e = 0x2f9e; // [code] ROM tile-strip source for loc_0c6d's phase-1 marquee column
-export const loc_2fba = 0x2fba; // [code] ROM 4-tile strip source loc_0c6d blits after the packed-BCD points value in every marquee draw phase (1-4)
-export const loc_801d = 0x801d; // [code] marquee sprite record cell; loc_0c6d phase 4 seeds it to 6
-export const loc_8027 = 0x8027; // [code] marquee sprite record cell; loc_0c6d phase 4 seeds it to 3
-export const loc_8029 = 0x8029; // [code] marquee sprite record cell; loc_0c6d phase 4 seeds it to 6
-export const loc_802d = 0x802d; // [code] marquee sprite record cell; loc_0c6d phase 4 seeds it to 3
+// ── batch-5 cells: the mode-4 attract point-table (renderMode4PointTablePhase) VRAM columns, ROM tile-strip sources, and sprite records ──
+export const loc_ab6d = 0xab6d; // [seen] phase-4 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points byte here then blits the strip up the column
+export const loc_ab70 = 0xab70; // [seen] phase-3 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points byte here
+export const loc_ab71 = 0xab71; // [code] phase-3 point-table second VRAM column base; renderMode4PointTablePhase stamps a 19-tile strip up from here
+export const loc_ab73 = 0xab73; // [seen] phase-2 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points word here
+export const loc_ab74 = 0xab74; // [seen] phase-2 point-table second VRAM column base; renderMode4PointTablePhase stamps a 15-tile strip up from here
+export const loc_ab76 = 0xab76; // [seen] phase-1 point-table VRAM column base; renderMode4PointTablePhase stamps a 10-tile strip up from here
+export const loc_ab77 = 0xab77; // [seen] phase-1 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points byte here then continues the strips up the column
+export const loc_2ed1 = 0x2ed1; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-4 point-table column
+export const loc_2f17 = 0x2f17; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-3 point-table second column
+export const loc_2f2a = 0x2f2a; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-2 point-table second column
+export const loc_2f39 = 0x2f39; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-2 point-table column
+export const loc_2f43 = 0x2f43; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-3 point-table column
+export const loc_2f9e = 0x2f9e; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-1 point-table column
+export const loc_2fba = 0x2fba; // [code] ROM 4-tile strip source renderMode4PointTablePhase blits after the packed-BCD points value in every point-table draw phase (1-4)
+export const loc_801d = 0x801d; // [seen] mode-4 point-table sprite-record ATTR/Y field; renderMode4PointTablePhase phase 4 seeds it 6 (-> OBJRAM 0xB01d)
+export const loc_8027 = 0x8027; // [seen] mode-4 point-table sprite-record CODE field; renderMode4PointTablePhase phase 4 seeds it 3 (-> OBJRAM 0xB027)
+export const loc_8029 = 0x8029; // [seen] mode-4 point-table sprite-record ATTR/Y field; renderMode4PointTablePhase phase 4 seeds it 6 (-> OBJRAM 0xB029)
+export const loc_802d = 0x802d; // [seen] mode-4 point-table sprite-record CODE field; renderMode4PointTablePhase phase 4 seeds it 3 (-> OBJRAM 0xB02d)
 
 export const ROUTINES = {
   0x0341: {
@@ -390,6 +390,6 @@ export const ROUTINES = {
   0x11bf: { name: "dispatchFrogMoveAgainstLanes", role: "Lower-half entry + dispatcher of the frog's per-frame position-vs-lanes resolution. Guarded by (0x83cd)==0 and (0x8004)==0; dispatches on frog Y (0x8047): low nibble>=9 or a high nibble not in the lane map delegates to the upper half resolveFrogMoveAgainstLanes (0x12e4), the other high nibbles select a scan arm that walks a per-lane object-X list (count byte + X positions) for an object inside the frog's band [frogX+off,+width). Road band (Y>=0x80): in-band object => KILL via 0x12d0 (0x8004<-1); clear lane => delegate/safe. River band (Y<0x80): in-band object (log) => delegate/ride; clear lane => KILL(drown). Effect: kill-or-survive the frog by lane occupancy. Alt scanFrogLaneForCollision names the same routine.", cert: "seen" },
   0x2b83: { name: "updateSpriteObject", role: "[seen,poked] Sprite-object dispatcher-B. Once per frame (60Hz) the sole caller loc_2970 enters with IX=0x8480 (record base) / IY=0x8058 (sprite-slot base) and this routine runs the five arms in fixed order -- spawnSpriteObject(0x2c13), steerSpriteObjectTowardTarget(0x2bab), writeSpriteObjectSlotX(0x2b93), flagSpriteObjectFrogHitAhead(0x2ca8), writeSpriteObjectSlotAttr(0x2bfb) -- then RET, advancing that one IX record / IY slot one step per frame. No register live-out; memory-only. Observed effect: spawns an object into record 0x8480, steers it (move timer +9 drains, position drifts, despawns on reaching target), stages X/attr/code into slot 0x8058, which is DMA-copied to hardware OBJRAM 0xB058 as a real on-screen sprite.", cert: "seen,poked" },
   // ── batch-5 routines ──
-  0x0b95: { name: "loc_0b95", role: "draw a score field: print the caller's packed-BCD word (DE) at the tilemap pointer (HL) as four digits via writePackedBcdWord, then a trailing zero digit via writeScoreDigitStepUp (the score's always-zero ones place); memory-only live-out; code-level, MAME-grounding pending", cert: "code" },
-  0x0c6d: { name: "loc_0c6d", role: "attract mode-4 marquee assembler (tail-called from loc_0d11 when GAME_MODE==4). Steps the phase counter loc_83d7 (reload 5 when drained, then count down) so successive calls cycle phases 4,3,2,1,0; draws one phase per call: phase 0 parks the state cell loc_83d8 to the idle marker (0xc0); phases 1-4 blit score/logo tile strips up VRAM columns via copyRunUpTileColumn (three arms lead with a packed-BCD points value from writePackedBcdByte/Word) and park loc_83d8 to the drawn marker (0x80); phase 4 also seeds four sprite records (loc_801b..loc_802f). Memory-only live-out.", cert: "code" },
+  0x0b95: { name: "writeScoreField", role: "[seen] Score/point-value field printer: prints the caller's 16-bit packed-BCD word (DE) as four tilemap digit cells at the caller's pointer (HL) via writePackedBcdWord, then appends one fixed trailing-zero digit via writeScoreDigitStepUp(m,0) -- a 5-cell readout implementing the Frogger 'score/10 stored + literal ones-place 0' convention. Each cell steps the pointer up one 32-cell tilemap row. Live-out: VRAM (5 cells). Callers: loc_0b1f (P1/high/P2 scores), loc_0d4c (score-target), loc_0bb3 (per-level point targets).", cert: "seen" },
+  0x0c6d: { name: "renderMode4PointTablePhase", role: "[seen] Draws one phase per frame-cycle of the mode-4 (GAME_MODE 0x83d6==4) attract POINT-TABLE screen. Under MAME this screen is literally Frogger's \"-POINT TABLE-\" attract page (FROGGER logo, \"10 PTS FOR EACH STEP\", \"50 PTS FOR EVERY FROG ARRIVED HOME SAFELY\", \"1000 PTS BY SAVING FROGS INTO FIVE HOMES\", KONAMI (c) 1981). Steps the shared attract sub-phase counter 0x83d7 (reload 5 when drained, then count down) so successive calls cycle phases 4,3,2,1,0; phase 0 parks the pacing/state gate 0x83d8=0xC0 (idle), phases 1-4 blit their tile strips + a packed-BCD point value (0x10/0x1000/0x50/0x10) up VRAM columns and park 0x83d8=0x80 (drawn); phase 4 also seeds four object/sprite records (code=3, attr/Y=6) into the 0x801b-0x802f work table which propagate to hardware OBJRAM. Memory-only live-out (VRAM 0xA800-0xABFF, object work table 0x8010-0x803f).", cert: "seen" },
 };

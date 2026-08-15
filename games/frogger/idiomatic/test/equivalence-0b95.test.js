@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0b95 — memory-equivalent to the frozen oracle at ROM 0x0B95.
+ * writeScoreField — memory-equivalent to the frozen oracle at ROM 0x0B95.
  * GATE: captured-entry + crafted sweep. Attract redraws the score header through this field writer,
  * so real dispatches are captured at 0x0B95 and replayed on fresh clones of each; the writePackedBcdWord
  * and writeScoreDigitStepUp callees run identically on both sides, so their memory effect is part of the
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0b95 } from "../loc_0b95.js";
+import { writeScoreField } from "../writeScoreField.js";
 import { writePackedBcdWord } from "../writePackedBcdWord.js";
 import { writeScoreDigitStepUp } from "../writeScoreDigitStepUp.js";
 import { loc_0b95 as oracle } from "../../translated/loc_0b95.js";
@@ -78,7 +78,7 @@ function brokenSkipTrailer(m) {
 
 test("REAL: oracle == rewrite on every captured 0x0b95 dispatch", { skip }, () => {
   const entries = captureEntries();
-  for (const e of entries) assert.equal(diff(loc_0b95, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(diff(writeScoreField, e), null, "a captured machine diverged");
   console.log(`  REAL: ${entries.length} captured dispatches, oracle == rewrite (memory-only)`);
 });
 
@@ -88,7 +88,7 @@ test("CRAFTED: oracle == rewrite across every-nibble DE on a real field", { skip
   for (const de of values) {
     const e = base.clone();
     e.regs.de = de;
-    assert.equal(diff(loc_0b95, e), null, `crafted DE=0x${de.toString(16)} diverged`);
+    assert.equal(diff(writeScoreField, e), null, `crafted DE=0x${de.toString(16)} diverged`);
   }
   console.log(`  CRAFTED: ${values.length} DE values, oracle == rewrite (memory-only)`);
 });

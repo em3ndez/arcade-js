@@ -18,11 +18,12 @@ owed and this note records that debt.
 **`dispatchFrogMoveAgainstLanes`** (the lower-half move dispatcher), and **`updateSpriteObject`** (the
 sprite-object dispatcher-B). They dissolve their calls into the already-lifted arms.
 
-**Batch 5** lifted the last two ready near-leaf routines — `loc_0b95` (a score-field printer) and
-`loc_0c6d` (the score/logo/marquee renderer) — dissolving their calls into the already-lifted BCD/tile
-helpers. They keep their `loc_` names and are **not yet grounded**; understanding-pass-5 will name and
-ground them, and reconcile the cells `0x801b`/`0x8021`/`0x8023`/`0x802f` that `loc_0c6d`'s marquee arm
-reuses under roles their other callers do not (a role clash MAME must settle).
+**Batch 5 + UP-5** lifted and grounded the last two ready near-leaf routines: **`writeScoreField`**
+(prints a packed-BCD score word plus a fixed trailing zero as a 5-cell tilemap readout) and
+**`renderMode4PointTablePhase`** (draws one phase per call of the mode-4 attract "-POINT TABLE-" screen —
+the FROGGER logo, 10/50/1000 PTS lines, KONAMI (c) 1981 — stepping a phase counter 4..0). Grounding
+confirmed the reused cells `0x83d7`/`0x83d8`/`0x801b`/`0x8021`/`0x8023`/`0x802f` are genuine MULTI-PURPOSE
+reuse — the same work RAM used differently per game mode, not misreads — so each keeps both roles in `names.js`.
 
 **Confidence tags, not decoration:**
 - **`[seen]`** — observed on the real ROM under MAME; **`[seen,poked]`** when the trigger was forced by

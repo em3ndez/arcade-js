@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0c6d — attract marquee assembler: draw one phase of the score/logo strip layout per call.
+ * renderMode4PointTablePhase — mode-4 attract POINT-TABLE screen renderer: draw one phase per call.
  * Steps a phase counter that reloads to 5 and counts down, so successive calls cycle phases 4,3,2,1,0.
- * Phase 0 parks the marquee state cell; phases 1-4 blit their tile strips (one leading a packed-BCD
- * points value), and phase 4 also seeds four sprite records. Every drawing phase parks the state cell
- * to the drawn marker; the idle phase parks it to the idle marker. The point values pass through the
- * packed-BCD writers as hex so each nibble reads as one displayed digit.
- * LIVE-OUT: memory-only (the tilemap/VRAM strips, the sprite band cells, and the two state cells).
+ * Phase 0 parks the state/pacing cell to idle; phases 1-4 blit the point-table tile strips (three
+ * leading a packed-BCD point value, 10/50/1000 PTS), and phase 4 also seeds four sprite records. Every
+ * drawing phase parks the state cell to the drawn marker; the idle phase parks it to the idle marker.
+ * The point values pass through the packed-BCD writers as hex so each nibble reads as one displayed digit.
+ * LIVE-OUT: memory-only (the tilemap/VRAM strips, the sprite record cells, and the two state cells).
  */
 import { NotImplemented } from "../../../boards/frogger/io.js";
 import {
@@ -19,10 +19,10 @@ import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writePackedBcdWord } from "./writePackedBcdWord.js";
 import { writePackedBcdByte } from "./writePackedBcdByte.js";
 
-const MARQUEE_IDLE = 0xc0;
-const MARQUEE_DRAWN = 0x80;
+const STATE_IDLE = 0xc0;
+const STATE_DRAWN = 0x80;
 
-export function loc_0c6d(m) {
+export function renderMode4PointTablePhase(m) {
   const { regs, mem8 } = m;
 
   // reload the counter when it drains, then count down: the low value selects this call's phase
@@ -33,7 +33,7 @@ export function loc_0c6d(m) {
 
   switch (phase) {
     case 0:
-      mem8[loc_83d8] = MARQUEE_IDLE;
+      mem8[loc_83d8] = STATE_IDLE;
       return;
 
     case 1:
@@ -82,8 +82,8 @@ export function loc_0c6d(m) {
       break;
 
     default:
-      throw new NotImplemented(`loc_0c6d: phase ${phase} outside 0..4`);
+      throw new NotImplemented(`renderMode4PointTablePhase: phase ${phase} outside 0..4`);
   }
 
-  mem8[loc_83d8] = MARQUEE_DRAWN;
+  mem8[loc_83d8] = STATE_DRAWN;
 }
