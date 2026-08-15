@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1952 — memory-equivalent to the frozen oracle at ROM 0x1952.
+ * renderFrogAndArmObjects — memory-equivalent to the frozen oracle at ROM 0x1952.
  * GATE: crafted-entry (attract-state capture). Plain attract never dispatches this frog render within
  * ENTRY_FRAMES (probe: 0), so coherent states are harvested at the high-frequency neighbour 0x230f and
- * driven directly — valid because loc_1952 takes no register live-in and reads no control-flow RAM
+ * driven directly — valid because renderFrogAndArmObjects takes no register live-in and reads no control-flow RAM
  * (it is a straight-line render), so any coherent state exercises the whole body. The routine issues a
  * blit (0x19e2) and tail-chains object-anim init (0x1a02); both run on each side's own clone, so their
  * writes are part of the compared live-out. The oracle's inner loops push BC transiently, so the diff
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_1952 } from "../loc_1952.js";
+import { renderFrogAndArmObjects } from "../renderFrogAndArmObjects.js";
 import { loc_1952 as oracle } from "../../translated/loc_1952.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -97,13 +97,13 @@ function brokenSkipTail(m) {
   m.mem8[0x8007] = 1; m.mem8[0x8009] = 1; m.mem8[0x800b] = 1; // BUG: never chains 0x1a02
 }
 
-test("CAPTURE: loc_1952 == oracle on every harvested attract state", { skip }, () => {
+test("CAPTURE: renderFrogAndArmObjects == oracle on every harvested attract state", { skip }, () => {
   const entries = capture();
   assert.ok(entries.length > 0, "vacuous: no attract states harvested");
-  for (const e of entries) assert.equal(ramDiff(loc_1952, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(ramDiff(renderFrogAndArmObjects, e), null, "a captured machine diverged");
   // non-vacuous: the no-op twin diverging proves the oracle actually writes on the sample entry.
   assert.ok(ramDiff(brokenNoOp, entries[0]), "vacuous: oracle wrote nothing");
-  console.log(`  CAPTURE: ${entries.length} attract states, loc_1952 == oracle`);
+  console.log(`  CAPTURE: ${entries.length} attract states, renderFrogAndArmObjects == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

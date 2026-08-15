@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_12e4 — resolve a horizontal frog move against the object lanes (upper half of the dispatcher).
+ * resolveFrogMoveAgainstLanes — resolve a horizontal frog move against the object lanes (upper half of the dispatcher).
  * Returns at once when the move is already resolved. Otherwise the frog X picks one of sixteen arms
  * through a pointer table: five scan no lane, ten seed a lane object list + band width. An object in
  * the frog's move band blocks the move; a clear lane kills the frog when it has not yet crossed.
@@ -27,7 +27,7 @@ const LANES = new Map([
   [0x1384, [loc_815a, 18]],
 ]);
 
-export function loc_12e4(m) {
+export function resolveFrogMoveAgainstLanes(m) {
   const { mem8, mem16 } = m;
   if (mem8[loc_8004] !== 0) return; // the move is already resolved this frame
 

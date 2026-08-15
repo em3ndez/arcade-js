@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_23b7 — per-vblank river-lane arrival setup: commit arrivals lane by lane.
+ * commitRiverLaneArrivals — per-vblank river-lane arrival setup: commit arrivals lane by lane.
  *
  * Points the cursors at the frog X/Y cells, then for each of the four ride lanes: if the lane's
  * direction flag is set, tail to that lane's commit handler; otherwise clear the lane's mirror flag.
@@ -19,7 +19,7 @@ const LANE1_COMMIT = 0x1c0d;
 const LANE2_COMMIT = 0x1c76;
 const LANE3_COMMIT = 0x1cd5;
 
-export function loc_23b7(m) {
+export function commitRiverLaneArrivals(m) {
   const { regs, mem8 } = m;
   regs.hl = FROG_X;
   regs.de = FROG_Y;

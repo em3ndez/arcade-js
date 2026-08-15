@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2d88 — mode-2 intro screen: raise the intro-state cell, fill the play-field tilemap, seed a
+ * renderMode2IntroScreen — mode-2 intro screen: raise the intro-state cell, fill the play-field tilemap, seed a
  * handful of counters, and blit the title strip. When the shared time byte is under 10 it also draws
  * one digit and three more title strips.
  * LIVE-OUT: memory-only (the seeded cells and the tilemap/VRAM the fill and blits write).
@@ -13,7 +13,7 @@ import { fillTilemapBlock28x32 } from "./fillTilemapBlock28x32.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writeScoreDigitStepUp } from "./writeScoreDigitStepUp.js";
 
-export function loc_2d88(m) {
+export function renderMode2IntroScreen(m) {
   const { regs, mem8 } = m;
 
   mem8[loc_83d8] = 0xff;

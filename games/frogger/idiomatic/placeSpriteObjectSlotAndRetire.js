@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2af3 — IX sprite-object motion arm. Skipped when the record's active flag is clear; otherwise
+ * placeSpriteObjectSlotAndRetire — IX sprite-object motion arm. Skipped when the record's active flag is clear; otherwise
  * runs the shared arm helper, derives the object's on-screen X into the sprite slot, mirrors its
  * attribute byte, and sets a position byte from a +15 / -15 bias. On the wrap condition (the bias
  * lands on the fold value and the record's retire flag is set) it clears the record and sprite slot.
@@ -10,7 +10,7 @@ import { loc_8014 } from "./names.js";
 
 const ARM_HELPER = 0x2ae6; // raise the one-shot and queue the arm sound
 
-export function loc_2af3(m) {
+export function placeSpriteObjectSlotAndRetire(m) {
   const { regs, mem8 } = m;
 
   if (mem8[(regs.ix + 6) & 0xffff] === 0) return; // inactive object
@@ -24,7 +24,7 @@ export function loc_2af3(m) {
   if (attr >= 0x60) {
     onScreenX = mem8[(record + 3) & 0xffff];
   } else {
-    onScreenX = (mem8[loc_8014] - mem8[(record + 2) & 0xffff]) & 0xff; // drift toward the frog
+    onScreenX = (mem8[loc_8014] - mem8[(record + 2) & 0xffff]) & 0xff; // drift toward the free-running counter
   }
   mem8[slot & 0xffff] = onScreenX;
   mem8[(slot + 3) & 0xffff] = attr;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_06ee — swap the active player's work pages IN for player 1; any other player tails to swap-OUT.
+ * swapInActivePlayerPages — swap the active player's work pages IN for player 1; any other player tails to swap-OUT.
  *
  * For player 1: bank the two live pages into one save area, restore this player's pages from another,
  * and raise the swap-done flag. Any other player number tails to the swap-OUT path instead.
@@ -17,7 +17,7 @@ function copy(mem8, dst, src, n) {
   for (let i = 0; i < n; i++) mem8[dst + i] = mem8[src + i];
 }
 
-export function loc_06ee(m) {
+export function swapInActivePlayerPages(m) {
   const { mem8 } = m;
   if (mem8[loc_83fd] !== PLAYER_ONE) return swapOutActivePlayerPages(m);
 

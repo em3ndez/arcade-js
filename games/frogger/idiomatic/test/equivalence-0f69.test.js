@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0f69 — memory-equivalent to the frozen oracle at ROM 0x0F69.
+ * packScoreRankPair — memory-equivalent to the frozen oracle at ROM 0x0F69.
  * GATE: crafted-entry, stack-masked. Attract runs this score-packer only at cold-start (0x0567), so a
  * post-boot attract clone gets the two score words (0x83EB, 0x83ED) poked to drive both orderings and
  * the equal / high-byte-tie edges, then both sides run through the same real 0x0A84 rank helper. That
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0f69 } from "../loc_0f69.js";
+import { packScoreRankPair } from "../packScoreRankPair.js";
 import { loc_0f69 as oracle } from "../../translated/loc_0f69.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -87,13 +87,13 @@ const CASES = [
   [0x5010, 0x5020], // same high byte, low byte decides
 ];
 
-test("EQUAL (crafted): loc_0f69 == oracle on every ordering", { skip }, () => {
+test("EQUAL (crafted): packScoreRankPair == oracle on every ordering", { skip }, () => {
   const entries = CASES.map(([p2, high]) => entryWithScores(p2, high));
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_0f69, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(packScoreRankPair, e), null, "a crafted entry diverged");
   const e = entryWithScores(0x9abc, 0x1111);
   assert.notDeepEqual(oracled(e), e.dumpState(), "vacuous: oracle changed nothing");
-  console.log(`  EQUAL: ${entries.length} crafted orderings, loc_0f69 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted orderings, packScoreRankPair == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

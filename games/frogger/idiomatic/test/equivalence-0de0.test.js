@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0de0 — memory-equivalent to the frozen oracle at ROM 0x0DE0.
+ * stampAttractDemoCell — memory-equivalent to the frozen oracle at ROM 0x0DE0.
  * GATE: crafted-entry. Attract reaches this attract board-demo assembler only through its own dwell
  * gate, so a post-boot attract clone gets the dwell counter (0x83BC) and phase counter (0x83D7) poked
  * for every branch: dwell not yet expired, the 0->0xFF wrap that keeps dwelling, each of the seven
@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0de0 } from "../loc_0de0.js";
+import { stampAttractDemoCell } from "../stampAttractDemoCell.js";
 import { loc_0de0 as oracle } from "../../translated/loc_0de0.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -71,7 +71,7 @@ function runBroken(m, { tile = 0, skipTail = false }) {
   if (!skipTail) m.call(0x0e74);
 }
 
-test("EQUAL (crafted): loc_0de0 == oracle on every path", { skip }, () => {
+test("EQUAL (crafted): stampAttractDemoCell == oracle on every path", { skip }, () => {
   const entries = [
     entry({ [DWELL]: 5, [PHASE]: 3 }), // dwell not yet expired
     entry({ [DWELL]: 0, [PHASE]: 4 }), // dwell 0 -> 0xFF, still dwelling
@@ -79,9 +79,9 @@ test("EQUAL (crafted): loc_0de0 == oracle on every path", { skip }, () => {
   for (let phase = 2; phase <= 7; phase++) entries.push(entry({ [DWELL]: 1, [PHASE]: phase })); // cells remain
   entries.push(entry({ [DWELL]: 1, [PHASE]: 1 })); // last cell -> reload + tail into 0x0E74
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_0de0, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(stampAttractDemoCell, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entry({ [DWELL]: 1, [PHASE]: 3 })), "vacuous: oracle wrote nothing on a placement path");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_0de0 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, stampAttractDemoCell == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

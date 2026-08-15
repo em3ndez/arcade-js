@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_28bb — frog-vs-diver collision test, gated on the arm bit and dive phase >= 2. Box-checks the
+ * mountOrKillFrogOnTwoPairFigure — frog-vs-diver collision test, gated on the arm bit and dive phase >= 2. Box-checks the
  * frog Y/X against the diver's Y band and X window: an inner overlap tail-calls the frog-kill routine,
  * an outer overlap stamps the mounted-frog tile quad and raises the mount flag. LIVE-OUT: memory-only.
  */
@@ -15,7 +15,7 @@ const BIAS = 8; // half-tile bias on the frog Y/X and diver X edges
 const MOUNT_TILE = 104; // first of the 2x2 mounted-frog tile quad (104..107)
 const ROW_STRIDE = 32;
 
-export function loc_28bb(m) {
+export function mountOrKillFrogOnTwoPairFigure(m) {
   const { mem8 } = m;
 
   if ((mem8[loc_8150] & 1) === 0) return;

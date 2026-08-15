@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0ba0 — memory-equivalent to the frozen oracle at ROM 0x0BA0.
+ * writePackedBcdByte — memory-equivalent to the frozen oracle at ROM 0x0BA0.
  * GATE: captured-entry. Attract prints scores and the credit count through this two-digit BCD writer,
  * so real dispatches are captured at 0x0BA0 and replayed on fresh clones of each — the two 0x0BA9
  * digit-writer calls run identically on both sides, so their memory effect is part of the compared
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_0ba0 } from "../loc_0ba0.js";
+import { writePackedBcdByte } from "../writePackedBcdByte.js";
 import { loc_0ba0 as oracle } from "../../translated/loc_0ba0.js";
 
 const TARGET = 0x0ba0;
@@ -77,7 +77,7 @@ function brokenSkipSecond(m) {
 
 test("REAL: oracle == rewrite on every captured 0x0ba0 dispatch", { skip }, () => {
   const entries = captureEntries();
-  for (const e of entries) assert.equal(diff(loc_0ba0, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(diff(writePackedBcdByte, e), null, "a captured machine diverged");
   console.log(`  REAL: ${entries.length} captured dispatches, oracle == rewrite (memory + HL)`);
 });
 

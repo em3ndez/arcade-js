@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2b93 — memory-equivalent to the frozen oracle at ROM 0x2B93.
+ * writeSpriteObjectSlotX — memory-equivalent to the frozen oracle at ROM 0x2B93.
  * GATE: crafted-entry. Attract NEVER dispatches this IX sprite-object arm (probe: 0 dispatches over
  * ENTRY_FRAMES; it runs only from the in-play sprite dispatcher 0x2b83), so a post-boot attract clone
  * gets IX/IY at a descriptor pair (0x8490 / 0x8058) and the struct + 0x80-page table cells poked for
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2b93 } from "../loc_2b93.js";
+import { writeSpriteObjectSlotX } from "../writeSpriteObjectSlotX.js";
 import { loc_2b93 as oracle } from "../../translated/loc_2b93.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -84,12 +84,12 @@ function brokenNoGuard(m) { // BUG: ignores the active gate, always writes (wron
   mem8[(regs.iy + 0x03) & 0xffff] = mem8[(regs.ix + 0x04) & 0xffff];
 }
 
-test("EQUAL (crafted): loc_2b93 == oracle on every path", { skip }, () => {
+test("EQUAL (crafted): writeSpriteObjectSlotX == oracle on every path", { skip }, () => {
   const entries = PATHS.map(([, cfg]) => craft(cfg));
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (let i = 0; i < entries.length; i++) assert.equal(ramDiff(loc_2b93, entries[i]), null, `diverged: ${PATHS[i][0]}`);
+  for (let i = 0; i < entries.length; i++) assert.equal(ramDiff(writeSpriteObjectSlotX, entries[i]), null, `diverged: ${PATHS[i][0]}`);
   assert.ok(ramDiff(brokenNoOp, craft(ACTIVE)), "vacuous: oracle wrote nothing on the active path");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_2b93 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, writeSpriteObjectSlotX == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

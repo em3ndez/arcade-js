@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0de0 — the attract board-demo cell assembler: once the dwell counter expires, place one
+ * stampAttractDemoCell — the attract board-demo cell assembler: once the dwell counter expires, place one
  * river-object cell for the current phase (stamp its 2x2 tile corner, clear its object block), then
  * step the phase counter, reloading it and resetting the attract sequencer when all seven are placed.
  * LIVE-OUT: memory-only.
@@ -18,7 +18,7 @@ const ROW = 32; // one tilemap row down
 // base tile per phase 1..7 (index 0 unused); several phases repeat a value, so it is a table
 const BASE_TILE = [0, 216, 248, 244, 244, 220, 216, 212];
 
-export function loc_0de0(m) {
+export function stampAttractDemoCell(m) {
   const { mem8 } = m;
 
   mem8[loc_800d] = 3;

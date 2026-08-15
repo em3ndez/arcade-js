@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2bfb — memory-equivalent to the frozen oracle at ROM 0x2BFB.
+ * writeSpriteObjectSlotAttr — memory-equivalent to the frozen oracle at ROM 0x2BFB.
  * GATE: crafted-entry. Attract never dispatches this in-play sprite-slot stager (probe: 0 dispatches
  * over ENTRY_FRAMES), so a post-boot attract machine is cloned and pointed at the object record /
  * sprite slot its caller uses (IX=0x8480, IY=0x8058), with the object-state byte poked across the
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2bfb } from "../loc_2bfb.js";
+import { writeSpriteObjectSlotAttr } from "../writeSpriteObjectSlotAttr.js";
 import { loc_2bfb as oracle } from "../../translated/loc_2bfb.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -71,12 +71,12 @@ function brokenNoGate(m) {
   mem8[(regs.iy + 2) & 0xffff] = 2;
 }
 
-test("EQUAL (crafted): loc_2bfb == oracle on every object-state path", { skip }, () => {
+test("EQUAL (crafted): writeSpriteObjectSlotAttr == oracle on every object-state path", { skip }, () => {
   const entries = STATES.map(entryWithState);
-  for (const e of entries) assert.equal(ramDiff(loc_2bfb, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(writeSpriteObjectSlotAttr, e), null, "a crafted entry diverged");
   // non-vacuous: the no-op twin diverging proves the oracle actually stages on an active state.
   assert.ok(ramDiff(brokenNoOp, entryWithState(3)), "vacuous: oracle wrote nothing on an active state");
-  console.log(`  EQUAL: ${entries.length} crafted state paths, loc_2bfb == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted state paths, writeSpriteObjectSlotAttr == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

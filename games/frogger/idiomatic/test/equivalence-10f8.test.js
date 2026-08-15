@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_10f8 — memory-equivalent to the frozen oracle at ROM 0x10F8.
+ * renderFrogAnimArm6 — memory-equivalent to the frozen oracle at ROM 0x10F8.
  * GATE: crafted-entry. Attract never dispatches this frog-anim arm (probe: 0 over ENTRY_FRAMES), so
  * coherent post-boot states are captured at the per-frame score redraw (0x0b1f) and replayed through
  * both sides. The routine reads all its inputs from memory (no register live-in), so any such state
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_10f8 } from "../loc_10f8.js";
+import { renderFrogAnimArm6 } from "../renderFrogAnimArm6.js";
 import { loc_10f8 as oracle } from "../../translated/loc_10f8.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -77,11 +77,11 @@ function brokenSkipRender(m) {
   // BUG: never enters the render loop
 }
 
-test("REAL: loc_10f8 == oracle on every captured, arm-rendered state", { skip }, () => {
+test("REAL: renderFrogAnimArm6 == oracle on every captured, arm-rendered state", { skip }, () => {
   const entries = captureNeighbours().map(craft);
-  for (const e of entries) assert.equal(ramDiff(loc_10f8, e), null, "a captured machine diverged");
+  for (const e of entries) assert.equal(ramDiff(renderFrogAnimArm6, e), null, "a captured machine diverged");
   assert.ok(ramDiff(brokenNoOp, entries[0]), "vacuous: oracle wrote nothing on the sample entry");
-  console.log(`  REAL: ${entries.length} rendered arm states, loc_10f8 == oracle`);
+  console.log(`  REAL: ${entries.length} rendered arm states, renderFrogAnimArm6 == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

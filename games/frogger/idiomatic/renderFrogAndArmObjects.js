@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1952 — frog sprite render: copy three 4-tile groups down VRAM columns, stamp the banner column
+ * renderFrogAndArmObjects — frog sprite render: copy three 4-tile groups down VRAM columns, stamp the banner column
  * and four box corners, blit the home-marker tile string, raise three object flags, and tail-chain
  * the object-anim init. LIVE-OUT: memory-only (both callers reload A right after).
  */
@@ -17,7 +17,7 @@ const BANNER_PAIR_GAP = 160;
 const CORNER_SPAN = 864;
 const BANNER_TILE = 71;
 
-export function loc_1952(m) {
+export function renderFrogAndArmObjects(m) {
   const { mem8, regs } = m;
 
   copyTileColumns(m, loc_a843, loc_19f6, 5);

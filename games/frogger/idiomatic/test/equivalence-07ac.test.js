@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_07ac — memory-equivalent to the frozen oracle at ROM 0x07AC.
+ * dequeueSoundCommand — memory-equivalent to the frozen oracle at ROM 0x07AC.
  * GATE: crafted-entry. Attract never dispatches this sound-queue consumer within ENTRY_FRAMES (probe:
  * 0 — it runs only from the in-game NMI branch), so a post-boot attract machine is cloned and its
  * queue seeded: the count cell (0x8300) and the command slots above it. Both sides run the real sound
@@ -16,7 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_07ac } from "../loc_07ac.js";
+import { dequeueSoundCommand } from "../dequeueSoundCommand.js";
 import { loc_07ac as oracle } from "../../translated/loc_07ac.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -74,16 +74,16 @@ function brokenShiftNoIssue(m) {
   for (let i = 0; i < p; i++) mem8[(QUEUE_COUNT + 1 + i) & 0xffff] = mem8[(QUEUE_COUNT + 2 + i) & 0xffff]; // BUG: sound never issued
 }
 
-test("EQUAL (crafted): loc_07ac == oracle on every queue depth", { skip }, () => {
+test("EQUAL (crafted): dequeueSoundCommand == oracle on every queue depth", { skip }, () => {
   const one = entryWithQueue([0x07, 0x11]);
   const many = entryWithQueue([0x07, 0x08, 0x09, 0x0a, 0x22]);
   const empty = entryWithQueue([]);
-  assert.equal(ioRamDiff(loc_07ac, one), null, "single-command queue diverged");
-  assert.equal(ioRamDiff(loc_07ac, many), null, "multi-command queue diverged");
-  assert.equal(ioRamDiff(loc_07ac, empty), null, "empty-queue early return diverged");
+  assert.equal(ioRamDiff(dequeueSoundCommand, one), null, "single-command queue diverged");
+  assert.equal(ioRamDiff(dequeueSoundCommand, many), null, "multi-command queue diverged");
+  assert.equal(ioRamDiff(dequeueSoundCommand, empty), null, "empty-queue early return diverged");
   // non-vacuous: on a filled queue the oracle actually issues sound and shifts.
   assert.ok(ioRamDiff(brokenNoOp, many), "vacuous: oracle did nothing on a filled queue");
-  console.log("  EQUAL: depth 1/many/0, loc_07ac == oracle (io + RAM)");
+  console.log("  EQUAL: depth 1/many/0, dequeueSoundCommand == oracle (io + RAM)");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

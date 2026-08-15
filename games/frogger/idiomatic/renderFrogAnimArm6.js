@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_10f8 — frog-animation arm 6: arm the shared render loop for this sprite, then enter it.
+ * renderFrogAnimArm6 — frog-animation arm 6: arm the shared render loop for this sprite, then enter it.
  * Reads the arm's triple, points the cursors and pattern pointer, stashes code and source where the
  * render loop rereads them, then runs it. LIVE-OUT: memory-only.
  */
@@ -8,7 +8,7 @@ import { loc_8282, loc_8283, loc_8284, loc_13f9, loc_149f, loc_8136, loc_81b1, l
 
 const RENDER_LOOP = 0x0ff1;
 
-export function loc_10f8(m) {
+export function renderFrogAnimArm6(m) {
   const { regs, mem8, mem16 } = m;
 
   regs.a = mem8[loc_8282];

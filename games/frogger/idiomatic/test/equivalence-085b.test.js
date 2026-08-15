@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_085b — memory-equivalent to the frozen oracle at ROM 0x085B.
+ * blitEndStripAndSetHold — memory-equivalent to the frozen oracle at ROM 0x085B.
  * GATE: crafted-entry. Attract never dispatches this no-more-frogs tail (probe: 0 over ENTRY_FRAMES;
  * its sole caller is the score driver 0x0870), so a post-boot attract clone has its target VRAM column
  * pre-cleared and the hold flag 0x8004 zeroed, then both sides run. The routine sets all its own
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_085b } from "../loc_085b.js";
+import { blitEndStripAndSetHold } from "../blitEndStripAndSetHold.js";
 import { loc_085b as oracle } from "../../translated/loc_085b.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -76,12 +76,12 @@ function brokenWrongCount(m) {
   mem8[HOLD] = 1;
 }
 
-test("EQUAL (crafted): loc_085b == oracle", { skip }, () => {
+test("EQUAL (crafted): blitEndStripAndSetHold == oracle", { skip }, () => {
   const e = entry();
-  assert.equal(ramDiff(loc_085b, e), null, "the crafted entry diverged");
+  assert.equal(ramDiff(blitEndStripAndSetHold, e), null, "the crafted entry diverged");
   // non-vacuous: the no-op twin diverging proves the oracle actually writes.
   assert.ok(ramDiff(brokenNoOp, entry()), "vacuous: oracle wrote nothing");
-  console.log("  EQUAL: crafted no-more-frogs tail, loc_085b == oracle");
+  console.log("  EQUAL: crafted no-more-frogs tail, blitEndStripAndSetHold == oracle");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

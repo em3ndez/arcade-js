@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1058 — memory-equivalent to the frozen oracle at ROM 0x1058.
+ * renderFrogAnimArm1 — memory-equivalent to the frozen oracle at ROM 0x1058.
  * GATE: crafted-entry. Attract never dispatches this frog-animation arm (probe: 0 over ENTRY_FRAMES),
  * so a post-boot attract clone is poked into a coherent arm state: a small sprite triple at 0x8273,
  * the anim index 0x8000 set to 0x0a so the render loop's tail wraps without re-cascading, and the
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1058 } from "../loc_1058.js";
+import { renderFrogAnimArm1 } from "../renderFrogAnimArm1.js";
 import { loc_1058 as oracle } from "../../translated/loc_1058.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -84,12 +84,12 @@ function brokenWrongCount(m) {
   return m.call(0x0ff1);
 }
 
-test("EQUAL (crafted): loc_1058 == oracle on the pre-blit off/on paths", { skip }, () => {
+test("EQUAL (crafted): renderFrogAnimArm1 == oracle on the pre-blit off/on paths", { skip }, () => {
   const entries = [entry(0x00), entry(0x01)];
-  for (const e of entries) assert.equal(ramDiff(loc_1058, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(renderFrogAnimArm1, e), null, "a crafted entry diverged");
   // non-vacuous: the no-op twin diverging proves the oracle actually writes on the sample entry.
   assert.ok(ramDiff(brokenNoOp, entry(0x01)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_1058 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, renderFrogAnimArm1 == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

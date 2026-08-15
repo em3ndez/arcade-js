@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2af3 — memory-equivalent to the frozen oracle at ROM 0x2AF3.
+ * placeSpriteObjectSlotAndRetire — memory-equivalent to the frozen oracle at ROM 0x2AF3.
  * GATE: crafted-entry (probe: 0 within ENTRY_FRAMES). A post-boot clone has IX/IY set to a real object
  * record (0x8440) and sprite slot (0x8048) — the pair the ROM's dispatcher uses — then the record
  * fields poked to drive every path: inactive skip, both X sources, both bias arms, the wrap-clear. The
@@ -12,13 +12,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2af3 } from "../loc_2af3.js";
+import { placeSpriteObjectSlotAndRetire } from "../placeSpriteObjectSlotAndRetire.js";
 import { loc_2af3 as oracle } from "../../translated/loc_2af3.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
 const RECORD = 0x8440; // an IX object-record base the dispatcher uses
 const SLOT = 0x8048;   // the paired IY sprite slot
-const FROG_X = 0x8014;
+const TRACK_X = 0x8014;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 let seed = null;
@@ -32,12 +32,12 @@ function seedMachine() {
 }
 
 // A post-boot machine with IX/IY set and the record fields (offsets from RECORD) poked.
-function craft(fields, frogX) {
+function craft(fields, trackX) {
   const e = seedMachine().clone();
   e.regs.ix = RECORD;
   e.regs.iy = SLOT;
   for (const [off, v] of Object.entries(fields)) e.mem8[(RECORD + Number(off)) & 0xffff] = v;
-  if (frogX !== undefined) e.mem8[FROG_X] = frogX;
+  if (trackX !== undefined) e.mem8[TRACK_X] = trackX;
   return e;
 }
 
@@ -71,7 +71,7 @@ function brokenSkipHelper(m) {
   if (mem8[(regs.ix + 6) & 0xffff] === 0) return;
   const record = regs.ix, slot = regs.iy; // BUG: never calls the arm helper (0x8371 latch missing)
   const attr = mem8[(record + 4) & 0xffff];
-  let x; if (attr >= 0x60) x = mem8[(record + 3) & 0xffff]; else x = (mem8[FROG_X] - mem8[(record + 2) & 0xffff]) & 0xff;
+  let x; if (attr >= 0x60) x = mem8[(record + 3) & 0xffff]; else x = (mem8[TRACK_X] - mem8[(record + 2) & 0xffff]) & 0xff;
   mem8[slot & 0xffff] = x; mem8[(slot + 3) & 0xffff] = attr; mem8[(slot + 7) & 0xffff] = attr;
   mem8[(slot + 4) & 0xffff] = mem8[(record + 5) & 0xffff] !== 0 ? (0xf1 + x) & 0xff : (0x0f + x) & 0xff;
 }
@@ -86,16 +86,16 @@ function brokenNoClear(m) {
   mem8[(slot + 4) & 0xffff] = (0xf1 + x) & 0xff; // BUG: reaches the wrap but never clears record/slot
 }
 
-test("EQUAL (crafted): loc_2af3 == oracle on every arm", { skip }, () => {
+test("EQUAL (crafted): placeSpriteObjectSlotAndRetire == oracle on every arm", { skip }, () => {
   for (const [name, mk] of [
     ["inactive", inactive], ["pathA", pathA], ["pathB", pathB],
     ["highArm", highArm], ["foldNoRetire", foldNoRetire], ["wrap", wrap],
   ]) {
-    assert.equal(ramDiffMaskStack(loc_2af3, mk()), null, `the ${name} arm diverged`);
+    assert.equal(ramDiffMaskStack(placeSpriteObjectSlotAndRetire, mk()), null, `the ${name} arm diverged`);
   }
   // non-vacuous: the wrap arm actually rewrites RAM.
   assert.ok(ramDiffMaskStack(brokenNoOp, wrap()), "vacuous: oracle wrote nothing on the wrap arm");
-  console.log("  EQUAL: inactive/pathA/pathB/highArm/foldNoRetire/wrap, loc_2af3 == oracle");
+  console.log("  EQUAL: inactive/pathA/pathB/highArm/foldNoRetire/wrap, placeSpriteObjectSlotAndRetire == oracle");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

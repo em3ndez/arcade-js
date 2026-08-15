@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_23b7 — memory-equivalent to the frozen oracle at ROM 0x23B7.
+ * commitRiverLaneArrivals — memory-equivalent to the frozen oracle at ROM 0x23B7.
  * GATE: crafted-entry. Attract never dispatches this in-play lane setup (probe: 0 over ENTRY_FRAMES),
  * since its caller only runs in active play; a coherent post-boot state captured at the per-frame
  * score redraw (0x0b1f) is cloned and the four lane direction flags poked. The clear entry (all flags
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_23b7 } from "../loc_23b7.js";
+import { commitRiverLaneArrivals } from "../commitRiverLaneArrivals.js";
 import { loc_23b7 as oracle } from "../../translated/loc_23b7.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -82,12 +82,12 @@ function brokenSkipCommit(m) {
   regs.a = mem8[0x824b]; if (regs.a !== 0) return m.call(0x1cd5); mem8[0x824f] = 0;
 }
 
-test("EQUAL (crafted): loc_23b7 == oracle on the clear path and each lane arm", { skip }, () => {
-  assert.equal(ramDiff(loc_23b7, craftClear()), null, "the clear path diverged");
-  for (let l = 0; l < 4; l++) assert.equal(ramDiff(loc_23b7, craftLane(l)), null, `lane ${l} diverged`);
+test("EQUAL (crafted): commitRiverLaneArrivals == oracle on the clear path and each lane arm", { skip }, () => {
+  assert.equal(ramDiff(commitRiverLaneArrivals, craftClear()), null, "the clear path diverged");
+  for (let l = 0; l < 4; l++) assert.equal(ramDiff(commitRiverLaneArrivals, craftLane(l)), null, `lane ${l} diverged`);
   assert.ok(ramDiff(brokenNoOp, craftClear()), "vacuous: oracle wrote nothing on the clear path");
   assert.ok(ramDiff(brokenNoOp, craftLane(0)), "vacuous: oracle wrote nothing on the lane-0 arm");
-  console.log("  EQUAL: clear path + four lane commit arms, loc_23b7 == oracle");
+  console.log("  EQUAL: clear path + four lane commit arms, commitRiverLaneArrivals == oracle");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

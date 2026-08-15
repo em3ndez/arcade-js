@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0db9 — memory-equivalent to the frozen oracle at ROM 0x0DB9.
+ * blitPlayerSelectPrompt — memory-equivalent to the frozen oracle at ROM 0x0DB9.
  * GATE: crafted-entry. Attract never dispatches this board-init header-tile queue (probe: 0
  * dispatches over ENTRY_FRAMES), so a post-boot attract machine is cloned and its credit-count cell
  * (0x83E1) poked to drive the one-credit "1UP" arm and the multi-credit arm. Each arm blits tile
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0db9 } from "../loc_0db9.js";
+import { blitPlayerSelectPrompt } from "../blitPlayerSelectPrompt.js";
 import { loc_0db9 as oracle } from "../../translated/loc_0db9.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -30,7 +30,7 @@ function seedMachine() {
   return seed;
 }
 
-// A post-boot machine with a specific credit count; a valid entry, loc_0db9 reads it from RAM.
+// A post-boot machine with a specific credit count; a valid entry, blitPlayerSelectPrompt reads it from RAM.
 function entryWithCredit(credit) {
   const e = seedMachine().clone();
   e.mem8[CREDIT] = credit;
@@ -69,13 +69,13 @@ function brokenSkipSecondBlit(m) {
   mem8[regs.hl] = 35; // BUG: omits the 13-tile column, so the cursor cap also lands wrong
 }
 
-test("EQUAL (crafted): loc_0db9 == oracle on both credit arms", { skip }, () => {
+test("EQUAL (crafted): blitPlayerSelectPrompt == oracle on both credit arms", { skip }, () => {
   const entries = CREDITS.map(entryWithCredit);
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_0db9, e), null, "a crafted credit arm diverged");
+  for (const e of entries) assert.equal(ramDiff(blitPlayerSelectPrompt, e), null, "a crafted credit arm diverged");
   // non-vacuous: the no-op twin diverging proves the oracle writes on the sample entry.
   assert.ok(ramDiff(brokenNoOp, entryWithCredit(2)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted credit arms, loc_0db9 == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted credit arms, blitPlayerSelectPrompt == oracle`);
 });
 
 test("TEETH: broken twins are caught on the multi-credit arm", { skip }, () => {

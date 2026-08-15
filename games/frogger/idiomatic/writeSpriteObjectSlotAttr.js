@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2bfb — stage an active sprite-object's attribute + code into its IY sprite slot.
+ * writeSpriteObjectSlotAttr — stage an active sprite-object's attribute + code into its IY sprite slot.
  * LIVE-OUT: memory-only (writes the two IY slot bytes; IX object record read-only).
  */
 import { loc_2cd9 } from "./names.js";
 
-export function loc_2bfb(m) {
+export function writeSpriteObjectSlotAttr(m) {
   const { regs, mem8 } = m;
   const record = regs.ix;
   const slot = regs.iy;

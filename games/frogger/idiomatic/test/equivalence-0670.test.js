@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0670 — memory-equivalent to the frozen oracle at ROM 0x0670.
+ * fillAllHomeSlotsAndAwardLife — memory-equivalent to the frozen oracle at ROM 0x0670.
  * GATE: crafted-entry. Attract never dispatches this all-home-slots stamp (probe: 0 dispatches over
  * ENTRY_FRAMES; it is reached only on board completion, which attract does not play), so a post-boot
  * attract machine is cloned. The routine takes no live-in — it stamps the five fixed slot bases
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0670 } from "../loc_0670.js";
+import { fillAllHomeSlotsAndAwardLife } from "../fillAllHomeSlotsAndAwardLife.js";
 import { loc_0670 as oracle } from "../../translated/loc_0670.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -79,11 +79,11 @@ function brokenSkipTail(m) { // stamps all five but drops the award hand-off
   // BUG: omit the award tail
 }
 
-test("EQUAL (crafted): loc_0670 == oracle on the stamp-all-plus-award entry", { skip }, () => {
+test("EQUAL (crafted): fillAllHomeSlotsAndAwardLife == oracle on the stamp-all-plus-award entry", { skip }, () => {
   const e = craft();
-  assert.equal(ramDiff(loc_0670, e), null, "the crafted entry diverged");
+  assert.equal(ramDiff(fillAllHomeSlotsAndAwardLife, e), null, "the crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, e), "vacuous: oracle wrote nothing");
-  console.log("  EQUAL: stamp-all + award, loc_0670 == oracle");
+  console.log("  EQUAL: stamp-all + award, fillAllHomeSlotsAndAwardLife == oracle");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

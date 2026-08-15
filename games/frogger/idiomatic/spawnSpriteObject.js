@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2c13 — spawn an inactive IX sprite-object: gate on the level count and four spawn-PRNG draws,
+ * spawnSpriteObject — spawn an inactive IX sprite-object: gate on the level count and four spawn-PRNG draws,
  * derive its tile/attribute and a table-indexed position, then arm it (active flag + move timer).
  * LIVE-OUT: memory-only (the IX record fields + the PRNG ring the draws advance).
  */
@@ -10,7 +10,7 @@ import { nextSpawnRandomByte } from "./nextSpawnRandomByte.js";
 const MIN_COUNT = 3;
 const VARIANTS = 5;
 
-export function loc_2c13(m) {
+export function spawnSpriteObject(m) {
   const { regs, mem8, mem16 } = m;
   const record = regs.ix;
 

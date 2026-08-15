@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0f59 — memory-equivalent to the frozen oracle at ROM 0x0F59.
+ * blitGameOverLine — memory-equivalent to the frozen oracle at ROM 0x0F59.
  * GATE: crafted-entry. Attract never dispatches this status-line redraw (probe: 0 dispatches over
  * ENTRY_FRAMES), so a post-boot attract machine is cloned and the two VRAM regions the routine
  * touches are pre-filled with markers so the clear (0x19E2) and the 9-tile stamp (0x0028) are
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0f59 } from "../loc_0f59.js";
+import { blitGameOverLine } from "../blitGameOverLine.js";
 import { loc_0f59 as oracle } from "../../translated/loc_0f59.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -68,11 +68,11 @@ function brokenWrongCount(m) {
   regs.hl = STAMP_BASE; regs.de = 0x2f0e; regs.b = 8; m.push16(0x0f68); m.call(0x0028); // BUG: 8 not 9
 }
 
-test("EQUAL (crafted): loc_0f59 == oracle on every marker fill", { skip }, () => {
+test("EQUAL (crafted): blitGameOverLine == oracle on every marker fill", { skip }, () => {
   const entries = MARKS.map(entry);
-  for (const e of entries) assert.equal(ramDiff(loc_0f59, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(blitGameOverLine, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entry(0x55)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} marker fills, loc_0f59 == oracle`);
+  console.log(`  EQUAL: ${entries.length} marker fills, blitGameOverLine == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

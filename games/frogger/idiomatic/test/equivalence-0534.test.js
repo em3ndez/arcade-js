@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0534 — memory-equivalent to the frozen oracle at ROM 0x0534.
+ * clearPlayerOneHomeBayGates — memory-equivalent to the frozen oracle at ROM 0x0534.
  * GATE: crafted-entry (probe: 0 dispatches over ENTRY_FRAMES). Its tail transfers to the cold-start
  * entry 0x0567, which never returns in a unit context, so 0x0567 is overridden with a sentinel stub
  * installed identically on both sides; the compared live-out is the routine's own clears (0x825C,
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0534 } from "../loc_0534.js";
+import { clearPlayerOneHomeBayGates } from "../clearPlayerOneHomeBayGates.js";
 import { loc_0534 as oracle } from "../../translated/loc_0534.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -63,14 +63,14 @@ function brokenSkipCall(m) {
   m.mem8[SLOT] = 0; for (let i = 0; i < 5; i++) m.mem8[GATES + i] = 0; // BUG: never enters cold-start
 }
 
-test("EQUAL (crafted): loc_0534 == oracle on every marker value", { skip }, () => {
+test("EQUAL (crafted): clearPlayerOneHomeBayGates == oracle on every marker value", { skip }, () => {
   const entries = VALUES.map(entry);
-  for (const e of entries) assert.equal(ramDiff(loc_0534, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(clearPlayerOneHomeBayGates, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entry(0xff)), "vacuous: oracle wrote nothing");
   // the routine must leave 0x825D untouched.
   const chk = entry(0xff).clone(); oracle(chk);
   assert.equal(chk.mem8[GAP], 0x99, "oracle unexpectedly wrote 0x825D");
-  console.log(`  EQUAL: ${entries.length} marker values, loc_0534 == oracle; 0x825D preserved`);
+  console.log(`  EQUAL: ${entries.length} marker values, clearPlayerOneHomeBayGates == oracle; 0x825D preserved`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

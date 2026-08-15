@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_287e — memory-equivalent to the frozen oracle at ROM 0x287E.
+ * armTwoPairFigureFrame — memory-equivalent to the frozen oracle at ROM 0x287E.
  * GATE: crafted-entry. Attract NEVER dispatches this arm (probe: 0 dispatches over ENTRY_FRAMES; it
  * runs only in the in-play diver cluster), so a post-boot attract clone gets its busy latch (0x814f)
  * and nibble source (0x819b) poked for each path: the busy no-op, and the active seed across nibble
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_287e } from "../loc_287e.js";
+import { armTwoPairFigureFrame } from "../armTwoPairFigureFrame.js";
 import { loc_287e as oracle } from "../../translated/loc_287e.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -88,12 +88,12 @@ function brokenNoGuard(m) { // BUG: ignores the busy guard, always seeds
   mem8[CELL_A] = s; mem8[CELL_B] = s; mem8[BUSY] = 1;
 }
 
-test("EQUAL (crafted): loc_287e == oracle on every path", { skip }, () => {
+test("EQUAL (crafted): armTwoPairFigureFrame == oracle on every path", { skip }, () => {
   const entries = PATHS.map(([, cfg]) => craft(cfg));
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (let i = 0; i < entries.length; i++) assert.equal(ramDiff(loc_287e, entries[i]), null, `diverged: ${PATHS[i][0]}`);
+  for (let i = 0; i < entries.length; i++) assert.equal(ramDiff(armTwoPairFigureFrame, entries[i]), null, `diverged: ${PATHS[i][0]}`);
   assert.ok(ramDiff(brokenNoOp, craft(PATHS[1][1])), "vacuous: oracle wrote nothing on the active path");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_287e == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, armTwoPairFigureFrame == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

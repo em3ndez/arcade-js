@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * steerSpriteObjectTowardFrog — IX sprite-object motion arm. Active while (IX+6)!=0 and the global gate cell is 0;
+ * loc_29f9 — IX sprite-object motion arm. Active while (IX+6)!=0 and the global gate cell is 0;
  * counts down the (IX+9) move timer. On expiry it either — past sprite row 96 — steps (IX+3) by +/-2,
- * or drifts (IX+2) toward/away from the frog X, flipping the direction bit at the turn.
+ * or drifts (IX+2) toward/away from the free-running counter, flipping the direction bit at the turn.
  * LIVE-OUT: memory-only (the sprite-object dispatcher).
  */
 import { loc_842c, loc_8014 } from "./names.js";
 
 const MOVE_RELOAD = 8;
-const ROW_THRESHOLD = 96; // rows at/below take the (IX+3) step, above drift to the frog
+const ROW_THRESHOLD = 96; // rows at/below take the (IX+3) step, above drift toward the free-running counter
 
-export function steerSpriteObjectTowardFrog(m) {
+export function loc_29f9(m) {
   const { regs, mem8 } = m;
   const obj = regs.ix;
   const spr = regs.iy;
@@ -32,15 +32,15 @@ export function steerSpriteObjectTowardFrog(m) {
     return;
   }
 
-  const frogX = mem8[loc_8014];
+  const trackX = mem8[loc_8014];
   if (facing === 0) {
     const anchor = mem8[(obj + 0x00) & 0xffff];
-    if (frogX < anchor) return; // past the frog, hold
-    if (((frogX - anchor) & 0xff) >= mem8[(spr + 0x00) & 0xffff]) return turn();
+    if (trackX < anchor) return; // past the target, hold
+    if (((trackX - anchor) & 0xff) >= mem8[(spr + 0x00) & 0xffff]) return turn();
     mem8[(obj + 0x02) & 0xffff] = (mem8[(obj + 0x02) & 0xffff] + 1) & 0xff; // step toward
   } else {
     const anchor = mem8[(obj + 0x01) & 0xffff];
-    if (((frogX - anchor) & 0xff) < mem8[(spr + 0x00) & 0xffff]) return turn();
+    if (((trackX - anchor) & 0xff) < mem8[(spr + 0x00) & 0xffff]) return turn();
     mem8[(obj + 0x02) & 0xffff] = (mem8[(obj + 0x02) & 0xffff] - 1) & 0xff;
   }
 

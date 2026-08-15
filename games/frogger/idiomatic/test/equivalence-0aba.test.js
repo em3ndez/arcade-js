@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0aba — memory-equivalent to the frozen oracle at ROM 0x0ABA.
+ * initDisplayFieldOnce — memory-equivalent to the frozen oracle at ROM 0x0ABA.
  * GATE: crafted-entry. Attract never dispatches this one-time display-field setup (probe: 0
  * dispatches over ENTRY_FRAMES; its callers are the board-layout handlers attract does not reach),
  * so a post-boot attract machine is cloned and the layout-done guard (0x842D) is poked to drive both
@@ -16,7 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0aba } from "../loc_0aba.js";
+import { initDisplayFieldOnce } from "../initDisplayFieldOnce.js";
 import { loc_0aba as oracle } from "../../translated/loc_0aba.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -81,12 +81,12 @@ function brokenSkipBlit(m) {
   mem16[0x83dc] = 0x3c20; mem8[0x83de] = 96;
 }
 
-test("EQUAL (crafted): loc_0aba == oracle on the body and the guard", { skip }, () => {
-  assert.equal(ramDiff(loc_0aba, craft(0)), null, "the full-body path diverged");
-  assert.equal(ramDiff(loc_0aba, craft(1)), null, "the guard path diverged");
+test("EQUAL (crafted): initDisplayFieldOnce == oracle on the body and the guard", { skip }, () => {
+  assert.equal(ramDiff(initDisplayFieldOnce, craft(0)), null, "the full-body path diverged");
+  assert.equal(ramDiff(initDisplayFieldOnce, craft(1)), null, "the guard path diverged");
   assert.ok(ramDiff(brokenNoOp, craft(0)), "vacuous: oracle wrote nothing on the body path");
   assert.equal(ramDiff(brokenNoOp, craft(1)), null, "guard path should be a no-op on both sides");
-  console.log("  EQUAL: body + guard paths, loc_0aba == oracle");
+  console.log("  EQUAL: body + guard paths, initDisplayFieldOnce == oracle");
 });
 
 test("TEETH: broken twins are caught on the body path", { skip }, () => {

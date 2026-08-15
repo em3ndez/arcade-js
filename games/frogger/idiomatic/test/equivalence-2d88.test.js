@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2d88 — memory-equivalent to the frozen oracle at ROM 0x2D88.
+ * renderMode2IntroScreen — memory-equivalent to the frozen oracle at ROM 0x2D88.
  * GATE: crafted-entry. Attract never dispatches this mode-2 intro within ENTRY_FRAMES (probe: 0), so
  * a post-boot attract machine is cloned and the shared time byte (0x83E4) poked to drive both exits:
  * >=10 returns after the field fill and first title strip; <10 draws a digit and three more strips.
@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2d88 } from "../loc_2d88.js";
+import { renderMode2IntroScreen } from "../renderMode2IntroScreen.js";
 import { loc_2d88 as oracle } from "../../translated/loc_2d88.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -76,14 +76,14 @@ function brokenDropLastStrip(m) {
   regs.de = 0x2f73; regs.b = 4; m.push16(0x2dc2); m.call(0x0028); // BUG: never blits the 4th strip
 }
 
-test("EQUAL (crafted): loc_2d88 == oracle on both time-byte exits", { skip }, () => {
+test("EQUAL (crafted): renderMode2IntroScreen == oracle on both time-byte exits", { skip }, () => {
   const splash = entryWithTime(20);
   const full = entryWithTime(3);
-  assert.equal(ramDiff(loc_2d88, splash), null, "the splash (time>=10) exit diverged");
-  assert.equal(ramDiff(loc_2d88, full), null, "the full (time<10) exit diverged");
+  assert.equal(ramDiff(renderMode2IntroScreen, splash), null, "the splash (time>=10) exit diverged");
+  assert.equal(ramDiff(renderMode2IntroScreen, full), null, "the full (time<10) exit diverged");
   // non-vacuous: the intro actually writes RAM/VRAM.
   assert.ok(ramDiff(brokenNoOp, full), "vacuous: oracle wrote nothing");
-  console.log("  EQUAL: splash + full exits, loc_2d88 == oracle");
+  console.log("  EQUAL: splash + full exits, renderMode2IntroScreen == oracle");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2bab — memory-equivalent to the frozen oracle at ROM 0x2BAB.
+ * steerSpriteObjectTowardTarget — memory-equivalent to the frozen oracle at ROM 0x2BAB.
  * GATE: crafted-entry. Attract never dispatches this IX sprite-object motion arm (probe: 0 over
  * ENTRY_FRAMES; it runs only in the in-play sprite dispatcher 0x2b83), so a post-boot attract clone
  * gets IX/IY at a descriptor pair (0x8440 / 0x8048) and cells poked for every branch: inactive, timer
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2bab } from "../loc_2bab.js";
+import { steerSpriteObjectTowardTarget } from "../steerSpriteObjectTowardTarget.js";
 import { loc_2bab as oracle } from "../../translated/loc_2bab.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -102,7 +102,7 @@ function brokenWrongDir(m) { // facing!=0 step decrements instead of increments
   mem8[(obj + 2) & 0xffff] = (mem8[(obj + 2) & 0xffff] - 1) & 0xff;
 }
 
-test("EQUAL (crafted): loc_2bab == oracle on every path", { skip }, () => {
+test("EQUAL (crafted): steerSpriteObjectTowardTarget == oracle on every path", { skip }, () => {
   const entries = [
     entry({ [o(6)]: 0 }), // inactive
     entry({ [o(6)]: 1, [o(9)]: 5 }), // timer running
@@ -113,9 +113,9 @@ test("EQUAL (crafted): loc_2bab == oracle on every path", { skip }, () => {
     entry(CLEAR), // reached, cleared
   ];
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_2bab, e), null, "a crafted entry diverged");
+  for (const e of entries) assert.equal(ramDiff(steerSpriteObjectTowardTarget, e), null, "a crafted entry diverged");
   assert.ok(ramDiff(brokenNoOp, entry(CLEAR)), "vacuous: oracle wrote nothing on the clear path");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_2bab == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, steerSpriteObjectTowardTarget == oracle`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

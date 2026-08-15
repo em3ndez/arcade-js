@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1058 — a frog-animation render arm. Runs the guarded pre-blit, loads this arm's sprite
+ * renderFrogAnimArm1 — a frog-animation render arm. Runs the guarded pre-blit, loads this arm's sprite
  * triple and pattern pointers, arms the plot cursors, then hands off to the shared render loop.
  * LIVE-OUT: memory-only.
  */
@@ -9,7 +9,7 @@ import { blitFrogAnimColumnOnTrigger } from "./blitFrogAnimColumnOnTrigger.js";
 
 const RENDER_LOOP = 0x0ff1; // shared frog-anim tile render loop, not yet idiomatized
 
-export function loc_1058(m) {
+export function renderFrogAnimArm1(m) {
   const { regs, mem8, mem16 } = m;
 
   blitFrogAnimColumnOnTrigger(m);

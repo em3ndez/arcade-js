@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2005 — advance the two scroll objects one frame and, on three phase marks, restamp their lanes.
+ * advanceScrollLaneObjects — advance the two scroll objects one frame and, on three phase marks, restamp their lanes.
  *
  * Copies each object's scroll byte into its shadow, steps object A's counter by 1 (wrapping a reveal
  * stamp in when it reaches 80) and object B's by 2 (wrapping a band blit in when it drops below 160),
@@ -26,7 +26,7 @@ const PHASE_LANE_A = 16;
 const PHASE_LANE_B = 32;
 const PHASE_LANE_C = 48;
 
-export function loc_2005(m) {
+export function advanceScrollLaneObjects(m) {
   const { mem8 } = m;
 
   mem8[loc_811a] = mem8[(loc_8273 + SCROLL_BYTE) & 0xffff];

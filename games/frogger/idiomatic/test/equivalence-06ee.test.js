@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_06ee — memory-equivalent to the frozen oracle at ROM 0x06EE.
+ * swapInActivePlayerPages — memory-equivalent to the frozen oracle at ROM 0x06EE.
  * GATE: crafted-entry. Attract never dispatches this page swap-in (probe: 0 over ENTRY_FRAMES), so a
  * coherent post-boot state captured at the per-frame score redraw (0x0b1f) is cloned and its active-
  * player cell poked to drive both arms: player 1 runs the four bank copies here, any other value
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_06ee } from "../loc_06ee.js";
+import { swapInActivePlayerPages } from "../swapInActivePlayerPages.js";
 import { loc_06ee as oracle } from "../../translated/loc_06ee.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -90,11 +90,11 @@ function brokenWrongBranch(m) {
   copy(mem8, 0x80ff, 0x8500, 183);
 }
 
-test("EQUAL (crafted): loc_06ee == oracle on both player arms", { skip }, () => {
-  for (const p of [1, 2]) assert.equal(ramDiff(loc_06ee, craft(p)), null, `player ${p} diverged`);
+test("EQUAL (crafted): swapInActivePlayerPages == oracle on both player arms", { skip }, () => {
+  for (const p of [1, 2]) assert.equal(ramDiff(swapInActivePlayerPages, craft(p)), null, `player ${p} diverged`);
   assert.ok(ramDiff(brokenNoOp, craft(1)), "vacuous: oracle wrote nothing on player 1");
   assert.ok(ramDiff(brokenNoOp, craft(2)), "vacuous: oracle wrote nothing on player 2");
-  console.log("  EQUAL: player-1 swap-in and player-2 swap-out arms, loc_06ee == oracle");
+  console.log("  EQUAL: player-1 swap-in and player-2 swap-out arms, swapInActivePlayerPages == oracle");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

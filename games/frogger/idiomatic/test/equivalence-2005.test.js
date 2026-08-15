@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2005 — memory-equivalent to the frozen oracle at ROM 0x2005.
+ * advanceScrollLaneObjects — memory-equivalent to the frozen oracle at ROM 0x2005.
  * GATE: crafted-entry. Attract never dispatches this NMI scroll driver (probe: 0 dispatches over
  * ENTRY_FRAMES — its caller guards are dead in attract), so a post-boot attract machine is cloned and
  * its scroll counters (0x8110/0x8111), phase counter (0x826E) and two object descriptors
@@ -16,7 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2005 } from "../loc_2005.js";
+import { advanceScrollLaneObjects } from "../advanceScrollLaneObjects.js";
 import { loc_2005 as oracle } from "../../translated/loc_2005.js";
 
 const COUNTER_A = 0x8110, COUNTER_B = 0x8111, PHASE = 0x826e;
@@ -34,7 +34,7 @@ function seedMachine() {
 }
 
 // A post-boot machine with coherent (small) scroll descriptors so the copy engine is bounded, and the
-// counters/phase poked to the requested arm. A valid entry: loc_2005 reads all its inputs from RAM.
+// counters/phase poked to the requested arm. A valid entry: advanceScrollLaneObjects reads all its inputs from RAM.
 function entry(opts = {}) {
   const { a = 0, b = 158, phase = 0 } = opts;
   const e = seedMachine().clone();
@@ -92,11 +92,11 @@ function brokenSkipCalls(m) {
   mem8[PHASE] = (mem8[PHASE] + 1) & 0xff; // BUG: never runs the wrap handlers or lane blocks
 }
 
-test("EQUAL (crafted): loc_2005 == oracle on every arm", { skip }, () => {
+test("EQUAL (crafted): advanceScrollLaneObjects == oracle on every arm", { skip }, () => {
   const entries = ARMS.map(entry);
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_2005, e), null, "a crafted arm diverged");
-  console.log(`  EQUAL: ${entries.length} crafted arms, loc_2005 == oracle`);
+  for (const e of entries) assert.equal(ramDiff(advanceScrollLaneObjects, e), null, "a crafted arm diverged");
+  console.log(`  EQUAL: ${entries.length} crafted arms, advanceScrollLaneObjects == oracle`);
 });
 
 test("TEETH: broken twins are caught on the lane+wraps arm", { skip }, () => {

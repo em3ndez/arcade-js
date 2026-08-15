@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_07c1 — memory-equivalent to the frozen oracle at ROM 0x07C1.
+ * raiseActivePlayerStartFlag — memory-equivalent to the frozen oracle at ROM 0x07C1.
  * GATE: crafted-entry (probe: 0 within ENTRY_FRAMES). A coherent state is harvested at neighbour
  * 0x230f and the active-player cell (0x83fd) poked to reach both branches (delegate to 0x07ce vs the
  * direct raise); the 0x07ce callee runs on each side's clone so its writes join the compared live-out.
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_07c1 } from "../loc_07c1.js";
+import { raiseActivePlayerStartFlag } from "../raiseActivePlayerStartFlag.js";
 import { loc_07c1 as oracle } from "../../translated/loc_07c1.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -55,14 +55,14 @@ function brokenNoOp() {}
 function brokenNoSet(m) { const { mem8 } = m; if (mem8[ACTIVE] === 1) return m.call(DELEGATE); /* BUG: never sets the flag */ }
 function brokenWrongBranch(m) { const { mem8 } = m; if (mem8[ACTIVE] === 1) { mem8[FLAG] = 1; return; } return m.call(DELEGATE); } // BUG: raises unconditionally on the delegate path
 
-test("EQUAL (crafted): loc_07c1 == oracle on every branch", { skip }, () => {
-  assert.equal(ramDiff(loc_07c1, delegateRaise()), null, "the delegate/raise path diverged");
-  assert.equal(ramDiff(loc_07c1, delegateLeave()), null, "the delegate/leave path diverged");
-  assert.equal(ramDiff(loc_07c1, direct()), null, "the direct path diverged");
+test("EQUAL (crafted): raiseActivePlayerStartFlag == oracle on every branch", { skip }, () => {
+  assert.equal(ramDiff(raiseActivePlayerStartFlag, delegateRaise()), null, "the delegate/raise path diverged");
+  assert.equal(ramDiff(raiseActivePlayerStartFlag, delegateLeave()), null, "the delegate/leave path diverged");
+  assert.equal(ramDiff(raiseActivePlayerStartFlag, direct()), null, "the direct path diverged");
   // non-vacuous: two paths actually raise the flag.
   assert.ok(ramDiff(brokenNoOp, delegateRaise()), "vacuous: oracle wrote nothing on delegate/raise");
   assert.ok(ramDiff(brokenNoOp, direct()), "vacuous: oracle wrote nothing on direct");
-  console.log("  EQUAL: delegate/raise + delegate/leave + direct, loc_07c1 == oracle");
+  console.log("  EQUAL: delegate/raise + delegate/leave + direct, raiseActivePlayerStartFlag == oracle");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {

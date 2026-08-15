@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0aba — one-time display-field setup, guarded so it runs only once.
+ * initDisplayFieldOnce — one-time display-field setup, guarded so it runs only once.
  * Returns immediately once the layout-done guard is set; otherwise sets the guard and two mode
  * cells, blits a 4-tile strip up one column, fills a 15-row run of a single tile down another
  * column, and seeds two scroll/state cells.
@@ -15,7 +15,7 @@ const FILL_TILE = 12;
 const FILL_ROWS = 15;
 const ROW_STRIDE = 32;
 
-export function loc_0aba(m) {
+export function initDisplayFieldOnce(m) {
   const { mem8, mem16 } = m;
 
   if (mem8[loc_842d] !== 0) return; // already laid out

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2c13 — memory-equivalent to the frozen oracle at ROM 0x2C13.
+ * spawnSpriteObject — memory-equivalent to the frozen oracle at ROM 0x2C13.
  * GATE: crafted-entry, masked. Attract never dispatches this in-play spawn arm (probe: 0 dispatches
  * over ENTRY_FRAMES), so a post-boot attract machine is cloned, pointed at the object record / sprite
  * slot its caller uses (IX=0x8480/0x8490, IY=0x8058), and driven across every path: below the level-
@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2c13 } from "../loc_2c13.js";
+import { spawnSpriteObject } from "../spawnSpriteObject.js";
 import { loc_2c13 as oracle } from "../../translated/loc_2c13.js";
 
 const RECORDS = [0x8480, 0x8490]; // object record bases its caller loads into IX
@@ -84,7 +84,7 @@ function armedByOracle(machine) {
 // broken twins.
 function brokenNoOp() {}
 function brokenWrongTile(m) {
-  loc_2c13(m);
+  spawnSpriteObject(m);
   const { regs, mem8 } = m;
   mem8[(regs.ix + 4) & 0xffff] = (mem8[(regs.ix + 4) & 0xffff] + 1) & 0xff; // BUG: wrong tile/attribute
 }
@@ -129,20 +129,20 @@ function brokenSkipDraw(m) {
   mem8[(record + 9) & 0xffff] = 8;
 }
 
-test("EQUAL (crafted): loc_2c13 == oracle on the gate and full-arm paths", { skip }, () => {
+test("EQUAL (crafted): spawnSpriteObject == oracle on the gate and full-arm paths", { skip }, () => {
   let n = 0, armed = 0;
   for (const record of RECORDS) {
     for (const count of COUNTS) {
       for (const forceArm of [false, true]) {
         const e = craft(record, count, { forceArm });
-        assert.equal(maskedDiff(loc_2c13, e), null, `diverged (record=0x${record.toString(16)}, count=${count}, forceArm=${forceArm})`);
+        assert.equal(maskedDiff(spawnSpriteObject, e), null, `diverged (record=0x${record.toString(16)}, count=${count}, forceArm=${forceArm})`);
         if (armedByOracle(e)) armed++;
         n++;
       }
     }
   }
   assert.ok(armed > 0, "vacuous: no crafted entry reached the full spawn-and-arm path");
-  console.log(`  EQUAL: ${n} crafted paths, ${armed} fully armed, loc_2c13 == oracle (masked stack scratch)`);
+  console.log(`  EQUAL: ${n} crafted paths, ${armed} fully armed, spawnSpriteObject == oracle (masked stack scratch)`);
 });
 
 test("TEETH: broken twins are caught on a fully-armed entry", { skip }, () => {

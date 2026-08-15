@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_27b3 — memory-equivalent to the frozen oracle at ROM 0x27B3.
+ * clearLatchedCollision — memory-equivalent to the frozen oracle at ROM 0x27B3.
  * GATE: crafted-entry. Attract never dispatches this collision-flag reset within ENTRY_FRAMES
  * (probe: 0), so a coherent state is harvested at the neighbour 0x230f and the guard cell (0x8135)
  * is poked to reach both paths: zero -> immediate return, non-zero -> clear (0x8134) and fall through
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_27b3 } from "../loc_27b3.js";
+import { clearLatchedCollision } from "../clearLatchedCollision.js";
 import { loc_27b3 as oracle } from "../../translated/loc_27b3.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -55,12 +55,12 @@ function brokenNoOp() {}
 function brokenNoClear(m) { const { mem8 } = m; if (mem8[LATCH] === 0) return; mem8[SUBFLAG] = 0; /* BUG: never calls 0x27bc */ }
 function brokenWrongValue(m) { const { mem8 } = m; if (mem8[LATCH] === 0) return; mem8[SUBFLAG] = 1; return m.call(CLEAR_TAIL); /* BUG: 0x8134=1 */ }
 
-test("EQUAL (crafted): loc_27b3 == oracle on both guard paths", { skip }, () => {
-  assert.equal(ramDiff(loc_27b3, noReset()), null, "the ret path diverged");
-  assert.equal(ramDiff(loc_27b3, reset()), null, "the reset path diverged");
+test("EQUAL (crafted): clearLatchedCollision == oracle on both guard paths", { skip }, () => {
+  assert.equal(ramDiff(clearLatchedCollision, noReset()), null, "the ret path diverged");
+  assert.equal(ramDiff(clearLatchedCollision, reset()), null, "the reset path diverged");
   // non-vacuous: the reset path actually mutates RAM.
   assert.ok(ramDiff(brokenNoOp, reset()), "vacuous: oracle wrote nothing on the reset path");
-  console.log("  EQUAL: ret path + reset path, loc_27b3 == oracle");
+  console.log("  EQUAL: ret path + reset path, clearLatchedCollision == oracle");
 });
 
 test("TEETH: broken twins are caught on the reset path", { skip }, () => {

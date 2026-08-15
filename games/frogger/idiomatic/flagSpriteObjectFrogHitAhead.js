@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2ca8 — IX sprite-object proximity arm (leaf): when the object is active and on the frog's row,
+ * flagSpriteObjectFrogHitAhead — IX sprite-object proximity arm (leaf): when the object is active and on the frog's row,
  * flag a hit if its direction-adjusted position lands within a half-tile window ahead of the frog X,
  * marking the object hit-consumed. LIVE-OUT: memory-only.
  */
@@ -11,7 +11,7 @@ const BEHIND_BIAS = 4; // subtracted when the direction bit is set
 const HIT_WINDOW = 16;
 const HIT_STATE = 2;
 
-export function loc_2ca8(m) {
+export function flagSpriteObjectFrogHitAhead(m) {
   const { regs, mem8 } = m;
   const obj = regs.ix;
   const spr = regs.iy;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2bab — an IX sprite-object motion arm. While active and past its move-timer reload, it
+ * steerSpriteObjectTowardTarget — an IX sprite-object motion arm. While active and past its move-timer reload, it
  * reads the object's per-object target coordinate and drifts (IX+2) one step toward it along
  * (IX+0) or (IX+1) by facing; on reaching the target it despawns the object unless the hold flag
  * is set, clearing the 16-byte struct and the shared 4-byte block.
@@ -12,7 +12,7 @@ const MOVE_RELOAD = 8;
 const STRUCT_BYTES = 16;
 const SHARED_BLOCK_BYTES = 4;
 
-export function loc_2bab(m) {
+export function steerSpriteObjectTowardTarget(m) {
   const { mem8 } = m;
   const obj = m.regs.ix;
   const spr = m.regs.iy;

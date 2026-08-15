@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_28bb — memory-equivalent to the frozen oracle at ROM 0x28BB.
+ * mountOrKillFrogOnTwoPairFigure — memory-equivalent to the frozen oracle at ROM 0x28BB.
  * GATE: crafted-entry. Attract NEVER dispatches this frog-vs-diver test (probe: 0 dispatches over
  * ENTRY_FRAMES; it runs only from the in-play collision orchestrator 0x1a55), so a post-boot attract
  * clone gets the arm bit (0x8150), dive phase (0x83b7), frog Y/X (0x8047/0x8044) and diver X (0x8101)
@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_28bb } from "../loc_28bb.js";
+import { mountOrKillFrogOnTwoPairFigure } from "../mountOrKillFrogOnTwoPairFigure.js";
 import { loc_28bb as oracle } from "../../translated/loc_28bb.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -80,13 +80,13 @@ function brokenAlwaysRide(m) { // BUG: rides instead of the kill tail (wrong bra
   mem8[(QUAD + 32) & 0xffff] = 0x6a; mem8[(QUAD + 33) & 0xffff] = 0x6b;
 }
 
-test("EQUAL (crafted): loc_28bb == oracle on every path", { skip }, () => {
+test("EQUAL (crafted): mountOrKillFrogOnTwoPairFigure == oracle on every path", { skip }, () => {
   const entries = PATHS.map(([, cfg]) => craft(cfg));
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (let i = 0; i < entries.length; i++) assert.equal(ramDiff(loc_28bb, entries[i]), null, `diverged: ${PATHS[i][0]}`);
+  for (let i = 0; i < entries.length; i++) assert.equal(ramDiff(mountOrKillFrogOnTwoPairFigure, entries[i]), null, `diverged: ${PATHS[i][0]}`);
   assert.ok(ramDiff(brokenNoOp, craft(RIDE)), "vacuous: oracle wrote nothing on the ride path");
   assert.ok(ramDiff(brokenNoOp, craft(KILL)), "vacuous: the kill callee 0x12d0 wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted paths, loc_28bb == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted paths, mountOrKillFrogOnTwoPairFigure == oracle`);
 });
 
 test("TEETH: broken twins are caught across ride, tile, and branch", { skip }, () => {

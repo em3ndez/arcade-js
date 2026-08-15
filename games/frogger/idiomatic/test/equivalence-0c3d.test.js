@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0c3d — memory-equivalent to the frozen oracle at ROM 0x0C3D.
+ * placeScoreRankMarkers — memory-equivalent to the frozen oracle at ROM 0x0C3D.
  * GATE: crafted-entry (probe: 0 over ENTRY_FRAMES). A post-boot clone has the digit-pair source
  * (0x83FB/0x83FC) poked to drive both-drawn, either-zero (draws nothing), and both-zero. It calls the
  * row-draw helper twice on a fresh clone per side, so the real callee runs identically and its writes
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0c3d } from "../loc_0c3d.js";
+import { placeScoreRankMarkers } from "../placeScoreRankMarkers.js";
 import { loc_0c3d as oracle } from "../../translated/loc_0c3d.js";
 
 const DIGIT_LOW = 0x83fb, DIGIT_HIGH = 0x83fc;
@@ -29,7 +29,7 @@ function seedMachine() {
   return seed;
 }
 
-// A post-boot machine with a specific digit pair; a valid entry, loc_0c3d reads it from RAM.
+// A post-boot machine with a specific digit pair; a valid entry, placeScoreRankMarkers reads it from RAM.
 function entryWithDigits(low, high) {
   const e = seedMachine().clone();
   e.mem8[DIGIT_LOW] = low;
@@ -66,13 +66,13 @@ function brokenSkipPass2(m) {
   m.push16(0x0c49); m.call(DRAW); // BUG: omits the high-digit pass
 }
 
-test("EQUAL (crafted): loc_0c3d == oracle on every digit pair", { skip }, () => {
+test("EQUAL (crafted): placeScoreRankMarkers == oracle on every digit pair", { skip }, () => {
   const entries = PAIRS.map(([lo, hi]) => entryWithDigits(lo, hi));
   assert.ok(entries.length > 0, "vacuous: no crafted entries");
-  for (const e of entries) assert.equal(ramDiff(loc_0c3d, e), null, "a crafted digit pair diverged");
+  for (const e of entries) assert.equal(ramDiff(placeScoreRankMarkers, e), null, "a crafted digit pair diverged");
   // non-vacuous: the no-op twin diverging proves the oracle writes on the both-drawn entry.
   assert.ok(ramDiff(brokenNoOp, entryWithDigits(5, 7)), "vacuous: oracle wrote nothing");
-  console.log(`  EQUAL: ${entries.length} crafted digit pairs, loc_0c3d == oracle`);
+  console.log(`  EQUAL: ${entries.length} crafted digit pairs, placeScoreRankMarkers == oracle`);
 });
 
 test("TEETH: broken twins are caught on the both-digits-drawn entry", { skip }, () => {
