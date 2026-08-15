@@ -4,7 +4,7 @@
  * column (the second continues where the first left the destination), then raises the hold flag.
  * LIVE-OUT: memory-only.
  */
-import { loc_aa51, loc_2f6e, loc_2f12, loc_8004 } from "./names.js";
+import { loc_aa51, loc_2f6e, loc_2f12, HOLD_FLAG } from "./names.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 
 export function blitEndStripAndSetHold(m) {
@@ -13,5 +13,5 @@ export function blitEndStripAndSetHold(m) {
   copyRunUpTileColumn(m, loc_aa51, loc_2f6e, 4);
   copyRunUpTileColumn(m, regs.hl, loc_2f12, 5);
 
-  mem8[loc_8004] = 1;
+  mem8[HOLD_FLAG] = 1;
 }

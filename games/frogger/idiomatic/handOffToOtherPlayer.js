@@ -8,7 +8,7 @@
  * LIVE-OUT: memory-only.
  */
 import {
-  loc_8371, PLAY_FLAG, loc_83fd, loc_83b8, loc_83b9, loc_83b7,
+  loc_8371, PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_LIVES, PLAYER2_LIVES, loc_83b7,
   loc_83b6, loc_825a, loc_83c2, loc_83cb, loc_b810, loc_b80c,
 } from "./names.js";
 
@@ -17,9 +17,9 @@ export function handOffToOtherPlayer(m) {
   mem8[loc_8371] = 0;
   if (mem8[PLAY_FLAG] === 1) return;
 
-  const player = mem8[loc_83fd] ^ 0x03;
-  mem8[loc_83fd] = player;
-  mem8[loc_83b7] = mem8[player === 1 ? loc_83b8 : loc_83b9];
+  const player = mem8[ACTIVE_PLAYER] ^ 0x03;
+  mem8[ACTIVE_PLAYER] = player;
+  mem8[loc_83b7] = mem8[player === 1 ? PLAYER1_LIVES : PLAYER2_LIVES];
   mem8[loc_83b6] = 0;
   mem8[loc_825a] = 1;
   if (mem8[loc_83c2] === 0) return;

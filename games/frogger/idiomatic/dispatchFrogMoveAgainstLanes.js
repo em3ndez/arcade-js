@@ -8,7 +8,7 @@
  * LIVE-OUT: memory-only (the move-blocked flag, plus the kill tail's own cells).
  */
 import {
-  loc_83cd, loc_8004, loc_8047, loc_8044,
+  loc_83cd, HOLD_FLAG, FROG_Y, FROG_X,
   loc_8100, loc_8109, loc_8112, loc_811b, loc_8124, loc_8136, loc_813f, loc_8148, loc_8151, loc_815a,
 } from "./names.js";
 import { resolveFrogMoveAgainstLanes } from "./resolveFrogMoveAgainstLanes.js";
@@ -25,9 +25,9 @@ const LANE_BY_NIBBLE = new Map([
 export function dispatchFrogMoveAgainstLanes(m) {
   const { mem8 } = m;
   if (mem8[loc_83cd] !== 0) return;
-  if (mem8[loc_8004] !== 0) return;
+  if (mem8[HOLD_FLAG] !== 0) return;
 
-  const frogPos = mem8[loc_8047];
+  const frogPos = mem8[FROG_Y];
   if ((frogPos & 0x0f) >= 9) return resolveFrogMoveAgainstLanes(m);
 
   const lane = LANE_BY_NIBBLE.get(frogPos >> 4);
@@ -37,8 +37,8 @@ export function dispatchFrogMoveAgainstLanes(m) {
 
 function scanLane(m, laneBase, width) {
   const { mem8 } = m;
-  const upperBand = mem8[loc_8047] >= 128;
-  const low = (mem8[loc_8044] + (upperBand ? 3 : 12)) & 0xff;
+  const upperBand = mem8[FROG_Y] >= 128;
+  const low = (mem8[FROG_X] + (upperBand ? 3 : 12)) & 0xff;
   const highRaw = low + width;
   const wrapped = highRaw > 0xff;
   const top = highRaw & 0xff;

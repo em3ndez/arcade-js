@@ -6,7 +6,7 @@
  */
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writePackedBcdByte } from "./writePackedBcdByte.js";
-import { CREDIT_BCD, loc_803f, loc_83b4, loc_2f68 } from "./names.js";
+import { CREDIT_BCD, OBJRAM_COL3F_ATTR_SHADOW, loc_83b4, CREDIT_LABEL_STRIP } from "./names.js";
 
 const COLUMN_TOP = 0xa81f;
 const CLEAR_TILE = 0x10;
@@ -28,9 +28,9 @@ export function renderCreditLine(m) {
     }
   }
 
-  copyRunUpTileColumn(m, LABEL_DST, loc_2f68, LABEL_LEN);
+  copyRunUpTileColumn(m, LABEL_DST, CREDIT_LABEL_STRIP, LABEL_LEN);
 
-  mem8[loc_803f] = 1;
+  mem8[OBJRAM_COL3F_ATTR_SHADOW] = 1;
   regs.hl = COUNT_DST;
   regs.a = mem8[CREDIT_BCD];
   return writePackedBcdByte(m);

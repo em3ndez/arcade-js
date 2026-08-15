@@ -8,7 +8,7 @@
  */
 import {
   loc_80ff, loc_8500, loc_800c, loc_86c0, loc_8600, loc_85c0,
-  loc_803f, loc_8295, loc_825b,
+  OBJRAM_COL3F_ATTR_SHADOW, loc_8295, loc_825b,
 } from "./names.js";
 
 const PAGE_BYTES = 183;
@@ -24,7 +24,7 @@ export function swapOutActivePlayerPages(m) {
   copy(mem8, loc_86c0, loc_800c, OBJECT_BYTES);
   copy(mem8, loc_80ff, loc_8600, PAGE_BYTES);
   copy(mem8, loc_800c, loc_85c0, OBJECT_BYTES);
-  mem8[loc_803f] = 1;
+  mem8[OBJRAM_COL3F_ATTR_SHADOW] = 1;
   if (mem8[loc_8295] !== 0) return;
   mem8[loc_825b] = 0;
   mem8[loc_8295] = 1;

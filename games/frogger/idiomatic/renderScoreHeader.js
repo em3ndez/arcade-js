@@ -5,7 +5,7 @@
  * and — only in two-player mode — the 2-UP column (a "2" digit, "-UP", then player 2's score).
  * LIVE-OUT: memory-only (score-header tilemap cells).
  */
-import { loc_83ef, loc_83ed, loc_83eb, loc_8370, loc_2ee2, loc_2edf } from "./names.js";
+import { HIGH_SCORE, PLAYER1_SCORE, PLAYER2_SCORE, NUM_PLAYERS, HI_SCORE_LABEL_STRIP, UP_LABEL_STRIP } from "./names.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writeScoreField } from "./writeScoreField.js";
 import { writeScoreDigitStepUp } from "./writeScoreDigitStepUp.js";
@@ -24,23 +24,23 @@ const ONE_PLAYER = 1;
 export function renderScoreHeader(m) {
   const { regs, mem8, mem16 } = m;
 
-  copyRunUpTileColumn(m, HISCORE_LABEL_DST, loc_2ee2, HISCORE_LABEL_LEN);
+  copyRunUpTileColumn(m, HISCORE_LABEL_DST, HI_SCORE_LABEL_STRIP, HISCORE_LABEL_LEN);
   regs.hl = HISCORE_VALUE_DST;
-  regs.de = mem16[loc_83ef];
+  regs.de = mem16[HIGH_SCORE];
   writeScoreField(m);
 
   // each column's side strip runs up from the pointer the digit-write leaves in HL
   writeScoreDigitStepUp(m, 1, P1_DIGIT_DST);
-  copyRunUpTileColumn(m, regs.hl, loc_2edf, SIDE_LABEL_LEN);
+  copyRunUpTileColumn(m, regs.hl, UP_LABEL_STRIP, SIDE_LABEL_LEN);
   regs.hl = P1_SCORE_DST;
-  regs.de = mem16[loc_83ed];
+  regs.de = mem16[PLAYER1_SCORE];
   writeScoreField(m);
 
-  if (mem8[loc_8370] === ONE_PLAYER) return;
+  if (mem8[NUM_PLAYERS] === ONE_PLAYER) return;
 
   writeScoreDigitStepUp(m, 2, P2_DIGIT_DST);
-  copyRunUpTileColumn(m, regs.hl, loc_2edf, SIDE_LABEL_LEN);
+  copyRunUpTileColumn(m, regs.hl, UP_LABEL_STRIP, SIDE_LABEL_LEN);
   regs.hl = P2_SCORE_DST;
-  regs.de = mem16[loc_83eb];
+  regs.de = mem16[PLAYER2_SCORE];
   return writeScoreField(m);
 }

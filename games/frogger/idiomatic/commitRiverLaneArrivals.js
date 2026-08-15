@@ -7,13 +7,11 @@
  * LIVE-OUT: memory-only.
  */
 import {
-  loc_8044, loc_8047,
-  loc_8248, loc_8249, loc_824a, loc_824b,
-  loc_824c, loc_824d, loc_824e, loc_824f,
+  FROG_X, FROG_Y,
+  RIVER_LANE0_DIR, loc_8249, RIVER_LANE2_DIR, loc_824b,
+  RIVER_LANE0_ARRIVAL, loc_824d, RIVER_LANE2_ARRIVAL, RIVER_LANE3_ARRIVAL,
 } from "./names.js";
 
-const FROG_X = loc_8044;
-const FROG_Y = loc_8047;
 const LANE0_COMMIT = 0x1bba;
 const LANE1_COMMIT = 0x1c0d;
 const LANE2_COMMIT = 0x1c76;
@@ -24,19 +22,19 @@ export function commitRiverLaneArrivals(m) {
   regs.hl = FROG_X;
   regs.de = FROG_Y;
 
-  regs.a = mem8[loc_8248];
+  regs.a = mem8[RIVER_LANE0_DIR];
   if (regs.a !== 0) return m.call(LANE0_COMMIT);
-  mem8[loc_824c] = 0;
+  mem8[RIVER_LANE0_ARRIVAL] = 0;
 
   regs.a = mem8[loc_8249];
   if (regs.a !== 0) return m.call(LANE1_COMMIT);
   mem8[loc_824d] = 0;
 
-  regs.a = mem8[loc_824a];
+  regs.a = mem8[RIVER_LANE2_DIR];
   if (regs.a !== 0) return m.call(LANE2_COMMIT);
-  mem8[loc_824e] = 0;
+  mem8[RIVER_LANE2_ARRIVAL] = 0;
 
   regs.a = mem8[loc_824b];
   if (regs.a !== 0) return m.call(LANE3_COMMIT);
-  mem8[loc_824f] = 0;
+  mem8[RIVER_LANE3_ARRIVAL] = 0;
 }

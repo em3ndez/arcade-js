@@ -47,10 +47,10 @@ export const loc_a802 = 0xa802;
 // Work-RAM, video-RAM, and IO-port cells the batch-1 leaves touch. Each is defined ONCE; shared
 // cells note every leaf that uses them. Evidence is [code] (understood from the touching routines).
 export const loc_800c = 0x800c; // [seen] demo object block base; clearObjectBlocksAndMirrorToObjRam clears 44 bytes here + mirrors 43 to OBJRAM, swapOutActivePlayerPages banks/restores its 43-byte object page
-export const loc_803f = 0x803f; // [seen] work-RAM shadow of OBJRAM per-column attribute byte 0xB03F (NMI DMAs 0x8007-0x803f -> 0xb007-0xb03f each frame); written (never read as a flag) by display routines to set column 0x3f's attribute -- renderCreditLine/swapInActivePlayerPages/swapOutActivePlayerPages write 1, initDisplayFieldOnce 3, others clear/set (corrects the earlier page-swap-done misread)
-export const loc_8044 = 0x8044; // [seen] frog object block base; activateFrogObject sets it active, resetFrogObject writes the four object bytes from here
+export const OBJRAM_COL3F_ATTR_SHADOW = 0x803f; // [seen] work-RAM shadow of OBJRAM per-column attribute byte 0xB03F (NMI DMAs 0x8007-0x803f -> 0xb007-0xb03f each frame); written (never read as a flag) by display routines to set column 0x3f's attribute -- renderCreditLine/swapInActivePlayerPages/swapOutActivePlayerPages write 1, initDisplayFieldOnce 3, others clear/set (corrects the earlier page-swap-done misread)
+export const FROG_X = 0x8044; // [seen] frog X (game-space horizontal position, grounded: watched incrementing 0x84->0x90 as the demo frog moved right); frog object block base -- activateFrogObject sets it active, resetFrogObject writes the four object bytes from here, the move dispatcher scans lane objects against it
 export const loc_8045 = 0x8045; // [code] frog object sub-field; activateFrogObject clears it when activating the frog
-export const loc_8047 = 0x8047; // [seen] frog object sub-field; activateFrogObject clears it when activating the frog
+export const FROG_Y = 0x8047; // [seen] frog Y / row (game-space vertical position, grounded: watched E0=bottom -> 40=top as the frog climbed); frog object sub-field -- activateFrogObject clears it when activating the frog, the move dispatcher keys its lane-scan arm on it
 export const loc_80ff = 0x80ff; // [seen] live work page base; swapOutActivePlayerPages banks 183 bytes from here and restores them from the other bank
 export const loc_8100 = 0x8100; // [seen] second work-RAM sprite block base; clearObjectBlocksAndMirrorToObjRam zeroes 99 bytes from here
 export const loc_8269 = 0x8269; // [code] frog state cell; resetFrogObject clears it during the frog-object reset
@@ -65,8 +65,8 @@ export const loc_8371 = 0x8371; // [code] per-turn scratch cell; handOffToOtherP
 export const loc_83ae = 0x83ae; // [code] countdown-expiry flag; loc_0292 clears it when the countdown word reaches zero
 export const loc_83b6 = 0x83b6; // [code] per-player reset cell; handOffToOtherPlayer clears it when handing play to the other player
 export const loc_83b7 = 0x83b7; // [seen,poked] life/level count; renderLivesRow clamps it to draw the lives row, awardExtraLife mirrors the new count here, handOffToOtherPlayer loads the other player's into it
-export const loc_83b8 = 0x83b8; // [seen,poked] player 1 life count; awardExtraLife increments it, handOffToOtherPlayer reads it
-export const loc_83b9 = 0x83b9; // [seen] player 2 life count; awardExtraLife increments it, handOffToOtherPlayer reads it
+export const PLAYER1_LIVES = 0x83b8; // [seen,poked] player 1 life count; awardExtraLife increments it, handOffToOtherPlayer reads it
+export const PLAYER2_LIVES = 0x83b9; // [seen] player 2 life count; awardExtraLife increments it, handOffToOtherPlayer reads it
 export const loc_83c2 = 0x83c2; // [code] cocktail-enabled flag; handOffToOtherPlayer toggles the screen flip only when it is non-zero
 export const loc_83c3 = 0x83c3; // [code] frog-ready flag; resetFrogObject sets it to 1 at the end of the frog-object reset
 export const loc_83cb = 0x83cb; // [code] screen-flip latch (work-RAM shadow); handOffToOtherPlayer toggles bit 0 and mirrors it to the flip IO ports
@@ -81,7 +81,7 @@ export const loc_83e6 = 0x83e6; // [code] player-2 time-remaining byte; renderTi
 export const loc_83ea = 0x83ea; // [code] demo start flag; loc_05d3 clears it to 0
 export const loc_83f1 = 0x83f1; // [seen] high-score word table base (5 rank words 0x83f1-0x83fa, read at 0x83ef+2r); renderMode3ScoreRankingScreen reads it for the on-screen ranking scores; maintained by insertHighScoreEntry
 export const loc_83f2 = 0x83f2; // [code] key-high of the first slot of the 5-entry descending table; insertHighScoreEntry inserts into it
-export const loc_83fd = 0x83fd; // [seen] active player number (1/2); awardExtraLife and renderTimeBar pick the active player's counter, handOffToOtherPlayer toggles it
+export const ACTIVE_PLAYER = 0x83fd; // [seen] active player number (1/2); awardExtraLife and renderTimeBar pick the active player's counter, handOffToOtherPlayer toggles it
 export const loc_8400 = 0x8400; // [code] ring cursor cell + buffer base; nextSpawnRandomByte decrements the cursor and XOR-folds two ring cells
 export const loc_842c = 0x842c; // [code] frog state cell; resetFrogObject clears it during the frog-object reset
 export const loc_842d = 0x842d; // [seen] frog state cell; resetFrogObject clears it during the frog-object reset
@@ -107,7 +107,7 @@ export const loc_d002 = 0xd002; // [seen] sound-control port (PPI1.B); issueSoun
 // ── batch-2 cells: scroll engine, home-bay animations, fly patrol, sprite-object arms, animation clocks, game-start clears ──
 export const loc_8001 = 0x8001; // [seen] scroll-copy source-pointer scratch (word); blitScrollTileGrid saves the source pointer here and the per-column loop reloads it
 export const loc_8003 = 0x8003; // [code] scroll-copy row-count scratch; blitScrollTileGrid saves the row count here and the per-column loop reloads it
-export const loc_8004 = 0x8004; // [seen] hold flag / object-frog hit flag; stampHomeBaySlot stamps the slot but leaves the selector pending when non-zero, flagSpriteObjectFrogHit sets it to 1 (with gate loc_842c) when a sprite object overlaps the frog
+export const HOLD_FLAG = 0x8004; // [seen] hold flag / object-frog hit flag; stampHomeBaySlot stamps the slot but leaves the selector pending when non-zero, flagSpriteObjectFrogHit sets it to 1 (with gate loc_842c) when a sprite object overlaps the frog
 export const loc_800d = 0x800d; // [seen] object-animation state block base; seedObjectAnimationState seeds 10 stride-2 cells (0x800d-0x801f) from a fixed table at board init
 export const loc_8014 = 0x8014; // [seen] free-running position counter (rises +1/frame, wraps 0xff->0x00, independent of the frog); sprite-object motion arms drift each object toward it -- NOT the frog X (frog X is 0x8044/0x8047; grounding overturned the earlier reading)
 export const loc_8019 = 0x8019; // [seen] object/animation-state cell in the 0x800d-0x801f block; renderMode3ScoreRankingScreen seeds it =3 at the mode-3 ranking-screen draw (a work cell, not a screen-id)
@@ -189,7 +189,7 @@ export const loc_800f = 0x800f; // [seen] demo scroll register; loc_0de0 writes 
 export const loc_801b = 0x801b; // [seen] intro counter; loc_2d88 seeds it to 5 during the mode-2 setup -- ALSO a mode-4 sprite-record CODE cell renderMode4PointTablePhase seeds =3 (-> OBJRAM); shared work RAM, per-mode use [seen]
 export const loc_8023 = 0x8023; // [seen] screen/mode state byte; blitPlayerSelectPrompt sets it to 3 on the two-player prompt arm -- ALSO a mode-4 sprite-record ATTR/Y field renderMode4PointTablePhase seeds =6 (-> OBJRAM); shared, per-mode use [seen]
 export const loc_802b = 0x802b; // [seen] intro counter; loc_2d88 seeds it to 3 (also the store target of loc_0c4a) -- ALSO re-stamped =4 by placeScoreRankMarkers on the mode-3 ranking screen (rank-marker tile) [seen]
-export const loc_802f = 0x802f; // [code] lane low-bound selector; loc_12e4 branches on it (<128 vs >=128) to pick the lane low-bound offset (12 vs 3) added to the frog base loc_8044 -- ALSO a mode-4 sprite-record ATTR/Y field renderMode4PointTablePhase seeds =6 (-> OBJRAM 0xB02f); shared cell, per-mode use [seen]
+export const loc_802f = 0x802f; // [code] lane low-bound selector; loc_12e4 branches on it (<128 vs >=128) to pick the lane low-bound offset (12 vs 3) added to the frog base FROG_X -- ALSO a mode-4 sprite-record ATTR/Y field renderMode4PointTablePhase seeds =6 (-> OBJRAM 0xB02f); shared cell, per-mode use [seen]
 export const loc_8058 = 0x8058; // [seen,poked] shared 4-byte sprite-object block; loc_2bab clears it (with the 16-byte IX struct) when an object reaches its target and despawns
 export const loc_8109 = 0x8109; // [seen] loc_12e4 scans it as a lane object list (count byte then object X positions, band width 31); loc_1058 arms both plot cursors (IX/IY) to it for the frog-anim render loop
 export const loc_8112 = 0x8112; // [seen] lane object list (count byte then object X positions), band width 92; loc_12e4 scans it for an object in the frog's move band
@@ -202,14 +202,14 @@ export const loc_813f = 0x813f; // [seen] lane object list (count byte then obje
 export const loc_8148 = 0x8148; // [seen] lane object list (count byte then object X positions), band width 18; loc_12e4 scans it for an object in the frog's move band
 export const loc_8151 = 0x8151; // [seen] lane object list (count byte then object X positions), band width 18; loc_12e4 scans it for an object in the frog's move band
 export const loc_815a = 0x815a; // [seen] lane object list (count byte then object X positions), band width 18; loc_12e4 scans it for an object in the frog's move band
-export const loc_8248 = 0x8248; // [seen] river lane-0 direction flag; loc_23b7 tails to the lane-0 commit handler when set, else clears the lane-0 mirror loc_824c
+export const RIVER_LANE0_DIR = 0x8248; // [seen] river lane-0 direction flag; loc_23b7 tails to the lane-0 commit handler when set, else clears the lane-0 mirror RIVER_LANE0_ARRIVAL
 export const loc_8249 = 0x8249; // [code] river lane-1 direction flag; loc_23b7 tails to the lane-1 commit handler when set, else clears the lane-1 mirror loc_824d
-export const loc_824a = 0x824a; // [seen] river lane-2 direction flag; loc_23b7 tails to the lane-2 commit handler when set, else clears the lane-2 mirror loc_824e
-export const loc_824b = 0x824b; // [code] river lane-3 direction flag; loc_23b7 tails to the lane-3 commit handler when set, else clears the lane-3 mirror loc_824f
-export const loc_824c = 0x824c; // [seen] river lane-0 arrival mirror flag; loc_23b7 clears it when the lane-0 direction flag loc_8248 is clear
+export const RIVER_LANE2_DIR = 0x824a; // [seen] river lane-2 direction flag; loc_23b7 tails to the lane-2 commit handler when set, else clears the lane-2 mirror RIVER_LANE2_ARRIVAL
+export const loc_824b = 0x824b; // [code] river lane-3 direction flag; loc_23b7 tails to the lane-3 commit handler when set, else clears the lane-3 mirror RIVER_LANE3_ARRIVAL
+export const RIVER_LANE0_ARRIVAL = 0x824c; // [seen] river lane-0 arrival mirror flag; loc_23b7 clears it when the lane-0 direction flag RIVER_LANE0_DIR is clear
 export const loc_824d = 0x824d; // [code] river lane-1 arrival mirror flag; loc_23b7 clears it when the lane-1 direction flag loc_8249 is clear
-export const loc_824e = 0x824e; // [seen] river lane-2 arrival mirror flag; loc_23b7 clears it when the lane-2 direction flag loc_824a is clear
-export const loc_824f = 0x824f; // [seen] river lane-3 arrival mirror flag; loc_23b7 clears it when the lane-3 direction flag loc_824b is clear
+export const RIVER_LANE2_ARRIVAL = 0x824e; // [seen] river lane-2 arrival mirror flag; loc_23b7 clears it when the lane-2 direction flag RIVER_LANE2_DIR is clear
+export const RIVER_LANE3_ARRIVAL = 0x824f; // [seen] river lane-3 arrival mirror flag; loc_23b7 clears it when the lane-3 direction flag loc_824b is clear
 export const loc_825c = 0x825c; // [seen,poked] player-1 slot byte; loc_0534 zeros it before the cold-start pre-clear (loc_048f's P1-init later sets it to 1)
 export const loc_826e = 0x826e; // [seen] scroll phase counter; loc_2005 steps it each NMI and runs a lane block at 16/32/48, clearing it to 0 at phase 48
 export const loc_8274 = 0x8274; // [code] scroll object A descriptor +1 (row count); loc_2005 loads it as the grid copy engine's B row-count at phase 16/32/48
@@ -227,8 +227,8 @@ export const loc_83d8 = 0x83d8; // [seen] mode-2 intro state cell; loc_2d88 stor
 export const loc_83dc = 0x83dc; // [seen] 16-bit scroll/state cell; loc_0aba seeds it to 0x3C20 during the one-time layout setup
 export const loc_83de = 0x83de; // [seen] scroll/state cell; loc_0aba seeds it to 0x60 during the one-time layout setup
 export const loc_83e0 = 0x83e0; // [seen] display-field cell; loc_0aba zeroes it during the one-time layout setup
-export const loc_83eb = 0x83eb; // [seen,poked] player-2 score word (16-bit); loc_0f69 reads it as one of the two players' scores to rank and pack
-export const loc_83ed = 0x83ed; // [seen,poked] player-1 score word (16-bit); loc_0f69 reads it as one of the two players' scores to rank and pack, renderScoreHeader draws it in the 1-UP column (swapped from the earlier high-score reading -- 0x83ef is the high score)
+export const PLAYER2_SCORE = 0x83eb; // [seen,poked] player-2 score word (16-bit); loc_0f69 reads it as one of the two players' scores to rank and pack
+export const PLAYER1_SCORE = 0x83ed; // [seen,poked] player-1 score word (16-bit); loc_0f69 reads it as one of the two players' scores to rank and pack, renderScoreHeader draws it in the 1-UP column (swapped from the earlier high-score reading -- 0x83ef is the high score)
 export const loc_83fb = 0x83fb; // [seen] two-byte score display / intro digit field (0x83fb low, 0x83fc high); loc_0c3d reads the pair to draw the two intro digits, loc_0f69 stores the larger word's rank code at 0x83fb and the smaller's at 0x83fc
 export const loc_842f = 0x842f; // [seen,poked] home-column state cell; loc_0670 clears it to 0 before tailing into the extra-life award
 // ROM tables/sources read by the batch-3 routines
@@ -296,13 +296,13 @@ export const loc_8029 = 0x8029; // [seen] mode-4 point-table sprite-record ATTR/
 export const loc_802d = 0x802d; // [seen] mode-4 point-table sprite-record CODE field; renderMode4PointTablePhase phase 4 seeds it 3 (-> OBJRAM 0xB02d)
 
 // ── batch-7 cells: score-header + credit-line readouts (renderScoreHeader/renderCreditLine/initNewGameScoreAndTimers) ──
-export const loc_2edf = 0x2edf; // [seen] ROM 3-tile "-UP" label strip; renderScoreHeader shares it for both the 1-UP and 2-UP columns
-export const loc_2ee2 = 0x2ee2; // [seen] ROM 8-tile "HI-SCORE" label strip; renderScoreHeader blits it above the high-score column
-export const loc_2f68 = 0x2f68; // [seen] ROM 6-tile "CREDIT" label strip; renderCreditLine blits it as the credit-line label
-export const loc_8370 = 0x8370; // [seen] number-of-players; renderScoreHeader draws the 2-UP column only when it is not 1 (==1 -> single player)
+export const UP_LABEL_STRIP = 0x2edf; // [seen] ROM 3-tile "-UP" label strip; renderScoreHeader shares it for both the 1-UP and 2-UP columns
+export const HI_SCORE_LABEL_STRIP = 0x2ee2; // [seen] ROM 8-tile "HI-SCORE" label strip; renderScoreHeader blits it above the high-score column
+export const CREDIT_LABEL_STRIP = 0x2f68; // [seen] ROM 6-tile "CREDIT" label strip; renderCreditLine blits it as the credit-line label
+export const NUM_PLAYERS = 0x8370; // [seen] number-of-players; renderScoreHeader draws the 2-UP column only when it is not 1 (==1 -> single player)
 export const loc_83b4 = 0x83b4; // [seen] renderCreditLine one-time credit-column-clear latch; set to 1 on the first call after clearing the credit column, then checked to skip the clear thereafter
-export const loc_83e7 = 0x83e7; // [seen] player-1 extra-life-awarded flag (0x83e7 P1 / 0x83e8 P2 pair); loc_08e0 sets it when the extra life is awarded, initNewGameScoreAndTimers clears the pair at new-game start
-export const loc_83ef = 0x83ef; // [seen] high-score word (16-bit), entry[0] of the ranking table read at 0x83ef+2r; renderScoreHeader draws it in the HI-SCORE column, initNewGameScoreAndTimers does NOT touch it
+export const PLAYER1_EXTRA_LIFE_AWARDED = 0x83e7; // [seen] player-1 extra-life-awarded flag (0x83e7 P1 / 0x83e8 P2 pair); loc_08e0 sets it when the extra life is awarded, initNewGameScoreAndTimers clears the pair at new-game start
+export const HIGH_SCORE = 0x83ef; // [seen] high-score word (16-bit), entry[0] of the ranking table read at 0x83ef+2r; renderScoreHeader draws it in the HI-SCORE column, initNewGameScoreAndTimers does NOT touch it
 
 export const ROUTINES = {
   0x0341: {

@@ -39,14 +39,15 @@ is the spine core.
 **Batch 7 + UP-7** lifted and grounded the four held-back service routines: **`renderScoreHeader`**
 (redraws the three-column score header each frame — the HI-SCORE column, the "1-UP" player-1 column, and,
 in two-player mode, the "2-UP" player-2 column), **`renderCreditLine`** (draws the "CREDIT" line — a
-one-time column clear latched by `0x83b4`, the "CREDIT" label from `0x2f68`, and the packed-BCD credit
+one-time column clear latched by `0x83b4`, the "CREDIT" label from `CREDIT_LABEL_STRIP`, and the packed-BCD credit
 count `0x83e1`), **`initNewGameScoreAndTimers`** (new-game reset: zeros both players' score words and the
-extra-life-awarded flags `0x83e7`/`0x83e8`, then copies the start-time byte `0x83e4` into both
+extra-life-awarded flags `PLAYER1_EXTRA_LIFE_AWARDED`/`0x83e8`, then copies the start-time byte `0x83e4` into both
 time-remaining bytes so both time bars begin full), and **`clearSoundQueue`** (zeros the 48-byte
 sound-command queue `0x8300`-`0x832f` at game start). Grounding **corrected the score layout**: the
-on-screen "HI-SCORE" and "1-UP" glyphs pin `0x83ef` as the **high score** and `0x83ed` as the
-**player-1** score — the two were swapped in the code-only reading (`0x83eb` is player 2, already right) —
-so `packScoreRankPair` ranks *both players'* scores, not "P2 + high". It also **overturned** `0x803f`:
+on-screen "HI-SCORE" and "1-UP" glyphs pin `HIGH_SCORE` (`0x83ef`) as the **high score** and
+`PLAYER1_SCORE` (`0x83ed`) as the **player-1** score — the two were swapped in the code-only reading
+(`PLAYER2_SCORE` is player 2, already right) — so `packScoreRankPair` ranks *both players'* scores, not
+"P2 + high". It also **overturned** `OBJRAM_COL3F_ATTR_SHADOW`:
 not a page-swap/display flag but the work-RAM shadow of the object RAM's per-column attribute byte
 `0xB03F`, DMA-copied into object RAM each frame and only ever *written* by the display routines. A
 grounder's proposal that `0x83e5`/`0x83e6` are **lives** was **rejected** — `renderTimeBar` reads them to
@@ -84,8 +85,9 @@ also zeroes the phase). `blitScrollTileGrid` stamps tile pairs (`0x34`–`0x37`)
 writes the scrolling band rows. **`blitFourTileGroupColumn`** paints 14-row two-wide columns of the
 four-tile group (tiles `72`–`75`) — the **river-log** graphics. **`commitRiverLaneArrivals`** runs each
 frame with HL/DE pointed at the frog X/Y cells: for each of four ride lanes it tail-calls that lane's
-commit handler when the lane's direction flag (`0x8248`–`0x824b`) is set, else clears the lane's arrival
-mirror (`0x824c`–`0x824f`) — this is how a log/turtle carries the frog. All `[seen]`.
+commit handler when the lane's direction flag (`RIVER_LANE0_DIR`, `0x8248`–`0x824b`) is set, else clears
+the lane's arrival mirror (`RIVER_LANE0_ARRIVAL`, `0x824c`–`0x824f`) — this is how a log/turtle carries
+the frog. All `[seen]`.
 
 ## The home bays — `[seen]`
 
@@ -107,7 +109,7 @@ and awards the extra life. Grounding inverted the code-only reading — `0xFC`-`
 
 **`resolveFrogMoveAgainstLanes`** is the upper half of the horizontal-move dispatcher
 (**`dispatchFrogMoveAgainstLanes`**, the lower half, dispatches here): the frog X selects one of sixteen arms through the `0x130b` pointer table; ten arms scan a lane's
-object list for an object inside the frog's move band and set the block/hit flag `0x8004`, while a clear
+object list for an object inside the frog's move band and set the block/hit flag `HOLD_FLAG`, while a clear
 lane with the frog not-yet-across tail-calls the frog-kill routine `0x12d0`. **`renderFrogAndArmObjects`**
 draws the frog figure into the tilemap (three 4-tile column groups, the banner column, four box corners,
 the home-marker string via `blitFourTileGroupColumn`), raises the three object-ready flags
@@ -124,10 +126,10 @@ An IX/IY sprite-object engine drives the moving hazards through two dispatchers.
 idle record) makes four **`nextSpawnRandomByte`** draws to density-gate the spawn, pick one of five
 variants, and fill the record's tile/attribute/position/direction, then arms it; **`steerSpriteObjectTowardTarget`**
 counts down the move timer and drifts the object one step toward its per-object target (despawning —
-clearing the 16-byte record and the shared block `0x8058` — on arrival unless the hold flag `0x8004` is
+clearing the 16-byte record and the shared block `0x8058` — on arrival unless the hold flag `HOLD_FLAG` is
 set); **`writeSpriteObjectSlotX`**, **`writeSpriteObjectSlotAttr`** stage the on-screen X and the
 state-indexed attribute/code into the IY sprite slot; **`flagSpriteObjectFrogHitAhead`** is the hit test —
-on the frog's row, a direction-adjusted position within 16px ahead of the frog X raises `0x8004` and marks
+on the frog's row, a direction-adjusted position within 16px ahead of the frog X raises `HOLD_FLAG` and marks
 the object hit-consumed (state 2). Dispatcher-A's **`placeSpriteObjectSlotAndRetire`** runs the arm helper
 (one-shot + arm sound), writes the slot X/attribute/fold-biased position, and on the fold with the retire
 flag clears the record and slot. The batch-2 arms **`animateSpriteObjectFrame`**, **`loc_29f9`** (a motion
@@ -145,7 +147,7 @@ per-frame driver, dispatching on the count `0x83b7` to two dedicated arms at the
 the two blind derivers split on whether it is turtle-dive-specific or a generic figure clock, and MAME
 did not settle which). **`mountOrKillFrogOnTwoPairFigure`** (gated on `0x8150` bit0 and phase `0x83b7>=2`)
 box-tests the frog against the figure: an inner overlap tail-kills the frog (`0x12d0`), an outer overlap
-mounts it — stamps the 2×2 mount-tile quad (104..107) at `0xa846` and sets the ride flag `0x8004`.
+mounts it — stamps the 2×2 mount-tile quad (104..107) at `0xa846` and sets the ride flag `HOLD_FLAG`.
 **`clearLatchedCollision`** is the guarded reset: when the collision latch `0x8135` is set it zeroes the
 sub-flag `0x8134` and clears the collision cells `0x8040`–`0x8043`. `[seen,poked]`.
 
@@ -156,7 +158,7 @@ into `0x8270`; **`seedObjectAnimationState`** fills the object seed tables; **`i
 (guarded by `0x842d`) lays out the score/bonus display field once (blits a strip, fills a tile-12 column,
 seeds the countdown pair `0x83dc`/`0x83de`). In a two-player game the turn transition swaps banks:
 **`swapInActivePlayerPages`** banks the live object/work pages out to a save area and restores this
-player's pages, writing the OBJRAM per-column attribute shadow `0x803f` (the work-RAM copy of `0xB03F`,
+player's pages, writing the OBJRAM per-column attribute shadow `OBJRAM_COL3F_ATTR_SHADOW` (the work-RAM copy of `0xB03F`,
 DMA-blitted to object RAM each frame — not a swap/display flag); **`clearPlayerOneHomeBayGates`** zeros player 1's slot byte
 `0x825c` and its five occupancy gates `0x825e`–`0x8262` on the cold board re-init. **`raiseActivePlayerStartFlag`**
 raises the start flag for the active player. `clearFourByteCounterBlock`, `clearTwoPlayerFrameCells`,
@@ -171,7 +173,7 @@ when all seven phases are placed. `[seen]`/`[seen,poked]`.
 The five-entry descending table at `0x83F2` is the high-score ranking (`insertHighScoreEntry`).
 **`writeScoreDigitStepUp`** writes one BCD score digit and steps the VRAM pointer up a row;
 **`writePackedBcdByte`** prints one packed-BCD byte as two digits (high nibble then low) via that helper,
-leaving HL advanced. **`packScoreRankPair`** ranks both players' scores (`0x83ed` player 1, `0x83eb` player 2) through `insertHighScoreEntry`
+leaving HL advanced. **`packScoreRankPair`** ranks both players' scores (`PLAYER1_SCORE` player 1, `PLAYER2_SCORE` player 2) through `insertHighScoreEntry`
 and packs the two rank codes into display field `0x83fb`, which **`placeScoreRankMarkers`** then reads,
 writing a value-to-position marker (tile 4) into work-RAM page `0x80` — not a rendered numeral (grounding
 overturned the "draw digit pair" reading). **`dequeueSoundCommand`** pops the sound-command queue at
@@ -179,7 +181,7 @@ overturned the "draw digit pair" reading). **`dequeueSoundCommand`** pops the so
 The tile builders: **`blitPlayerSelectPrompt`** draws the player-select prompt — "ONE PLAYER ONLY" on one
 credit, else "ONE OR TWO PLAYERS" (grounding overturned the earlier credit/1UP-header reading),
 **`blitEndStripAndSetHold`** blits a terminal
-strip and raises the hold flag `0x8004` to halt the score-display driver, **`blitGameOverLine`** clears a
+strip and raises the hold flag `HOLD_FLAG` to halt the score-display driver, **`blitGameOverLine`** clears a
 tile-group column and blits the fixed 9-tile line, and **`renderMode2IntroScreen`** fills the 28×32
 playfield and blits the mode-2 title strips. `handOffToOtherPlayer` toggles players. `[seen]`/`[seen,poked]`.
 

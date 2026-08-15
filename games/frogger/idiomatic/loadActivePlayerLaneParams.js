@@ -5,7 +5,7 @@
  * lane-parameter cells.
  * LIVE-OUT: memory-only.
  */
-import { loc_83fd, loc_8293, loc_8294, loc_2260, loc_8270 } from "./names.js";
+import { ACTIVE_PLAYER, loc_8293, loc_8294, loc_2260, loc_8270 } from "./names.js";
 
 const PLAYER_ONE = 1;
 const BLOCK_SIZE = 33;
@@ -13,7 +13,7 @@ const POINTER_WIDTH = 2;
 
 export function loadActivePlayerLaneParams(m) {
   const { mem8, mem16 } = m;
-  const indexCell = mem8[loc_83fd] === PLAYER_ONE ? loc_8293 : loc_8294;
+  const indexCell = mem8[ACTIVE_PLAYER] === PLAYER_ONE ? loc_8293 : loc_8294;
   const difficulty = mem8[indexCell];
   const block = mem16[(loc_2260 + POINTER_WIDTH * difficulty) & 0xffff];
   for (let i = 0; i < BLOCK_SIZE; i++) {

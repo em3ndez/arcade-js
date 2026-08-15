@@ -4,7 +4,7 @@
  * frog Y/X against the diver's Y band and X window: an inner overlap tail-calls the frog-kill routine,
  * an outer overlap stamps the mounted-frog tile quad and raises the mount flag. LIVE-OUT: memory-only.
  */
-import { loc_8150, loc_83b7, loc_8047, loc_8044, loc_8101, loc_8004, loc_a846 } from "./names.js";
+import { loc_8150, loc_83b7, FROG_Y, FROG_X, loc_8101, HOLD_FLAG, loc_a846 } from "./names.js";
 
 const KILL_TAIL = 0x12d0;
 
@@ -21,16 +21,16 @@ export function mountOrKillFrogOnTwoPairFigure(m) {
   if ((mem8[loc_8150] & 1) === 0) return;
   if (mem8[loc_83b7] < DIVE_PHASE_MIN) return;
 
-  const frogTop = (mem8[loc_8047] + BIAS) & 0xff;
+  const frogTop = (mem8[FROG_Y] + BIAS) & 0xff;
   if (frogTop < BOX_Y_LOW || frogTop >= BOX_Y_HIGH) return;
 
-  const frogRight = (mem8[loc_8044] + BIAS) & 0xff;
+  const frogRight = (mem8[FROG_X] + BIAS) & 0xff;
   const diverX = mem8[loc_8101];
   if (((diverX + BIAS) & 0xff) < frogRight) return;
   if (((diverX - X_WINDOW) & 0xff) >= frogRight) return;
 
   if (((diverX - BIAS) & 0xff) >= frogRight) { // outer overlap -> ride the diver
-    mem8[loc_8004] = 1;
+    mem8[HOLD_FLAG] = 1;
     mem8[loc_a846] = MOUNT_TILE;
     mem8[(loc_a846 + 1) & 0xffff] = MOUNT_TILE + 1;
     mem8[(loc_a846 + ROW_STRIDE) & 0xffff] = MOUNT_TILE + 2;

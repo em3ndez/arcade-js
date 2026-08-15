@@ -7,7 +7,7 @@
  * LIVE-OUT: memory-only.
  */
 import {
-  loc_8123, loc_8120, loc_83fd,
+  loc_8123, loc_8120, ACTIVE_PLAYER,
   loc_ab64, loc_aaa4, loc_a9e4, loc_a924, loc_a864,
   loc_825e, loc_825f, loc_8260, loc_8261, loc_8262,
   loc_8263, loc_8264, loc_8265, loc_8266, loc_8267,
@@ -33,7 +33,7 @@ export function stampHomeBayGatorEmerging(m) {
   if (slot < FIRST_SLOT || slot > LAST_SLOT) return;
   const i = slot - 1;
 
-  const flag = mem8[loc_83fd] === 1 ? FLAGS_PRIMARY[i] : FLAGS_ALT[i];
+  const flag = mem8[ACTIVE_PLAYER] === 1 ? FLAGS_PRIMARY[i] : FLAGS_ALT[i];
   if (mem8[flag] !== 0) return; // bay occupied -> skip
 
   let p = HOME_BAY[i];
