@@ -13,6 +13,12 @@ hop input and the road/river vehicle/log movement are still translated-only, so 
 those. This revision was **folded**, not rewritten whole from `gameplay.md` — a full blind rewrite is
 owed and this note records that debt.
 
+**Batch 4** has since lifted the four ready dispatchers — the home-fill dispatcher (`loc_06a2`), the
+score-field printer (`loc_0b9b`), the horizontal-move dispatcher (`loc_11bf`), and the sprite-object
+dispatcher-B (`loc_2b83`) — non-leaves that dissolve their calls into the already-lifted arms. They keep
+their `loc_<addr>` names and are **not yet named or grounded**; understanding-pass-4 will name them by
+blind convergence and ground each against MAME, and this map will be updated then.
+
 **Confidence tags, not decoration:**
 - **`[seen]`** — observed on the real ROM under MAME; **`[seen,poked]`** when the trigger was forced by
   a memory poke rather than natural play (the reading is real, the path was forced).
