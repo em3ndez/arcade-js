@@ -18,8 +18,10 @@ decision kicked to a human.
 
 Set the idle-timer first. Commit **locally**; a human gates the push. ROM is **never** committed
 (bring-your-own, sha256-verified). Stage **explicit paths** (never `git add -A`); python not sed for
-identifier renames; never `--no-verify` without per-commit approval. Work **~20 routines per batch,
-one commit per batch, single-threaded** (don't author the next batch while one is under review). Every
+identifier renames; never `--no-verify` without per-commit approval. Work **in batches — 10 agents ×
+3 routines each** (≈30/batch; per-agent spin-up is too high for one, so 20×1 is retired), **one commit
+per batch, single-threaded** (don't author the next batch while one is under review). **Parallelise as
+much as possible — never retreat to one-routine-at-a-time when a batchable pool exists.** Every
 commit gets an **independent reviewer** — a gate is not a review; run the repo's gates *before* the
 reviewer, and verify a reviewer's *reasons*, not just its ruling. **Grounding always uses MAME, never
 the JS engine** (self-grounding is circular). **Author ≠ checker** — mutation-test every routine.
@@ -200,16 +202,27 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
   is usually cuttable, and a two-line JSDoc that fits on one should be one). A batch that lands under cap
   needs no pruning pass. This binds **boards, manifests and test files too** — Time Pilot is the quality
   model (its files predate the cap and are grandfathered, so match their KIND, not their higher density).
-  ~20 routines/batch while the next is written; regenerate the registry after batches land
+  ≈30 routines/batch (10 agents × 3) while the next is written; regenerate the registry after batches land
   (`gen-registry.mjs`), not per batch.
-- **Fan out the batch whenever the routines are disjoint** — parallelise whenever possible. A batch of
-  independent routines is a serial→parallel→serial sandwich: ONE setup (fold the entrypoints, re-trace to a
-  single stable `dk.asm`, pre-assign each routine's RANGE), **N parallel translators — one routine each**,
-  then ONE merge (regenerate the registry, run the boot gate + stepcheck on the assembled set). Distinct
-  `loc_<addr>.js`/`<addr>.test.js` files never merge-conflict; the only cross-agent care is those
-  pre-assigned ranges (so two agents don't disagree on a boundary) plus a style/ABI-consistency check at
-  review. Shared files (the registry, board files) stay under serial control. This parallelism is *within*
-  a batch — the across-batch rule still holds (don't open the next batch while this one is under review).
+- **Fan out every batch — parallelise as much as possible; do NOT get scared and start one-by-one.**
+  Serial pace is the failure mode, not the safe default: when a batchable pool exists, going one-at-a-time
+  is the mistake. A batch is a serial→parallel→serial sandwich: ONE setup (fold the entrypoints, re-trace to a single
+  stable disassembly, pre-assign each routine's RANGE), **~10 agents × 3 routines each** (one-per-agent
+  wastes spin-up; scale the agent count to the pool — a 13-routine pool is 4–5 agents, not 13), then ONE
+  merge (regenerate the registry, run the boot gate + stepcheck on the assembled set). Distinct
+  `loc_<addr>.js`/`<addr>.test.js` (and idiomatic module/test) files never merge-conflict; the only
+  cross-agent care is those pre-assigned ranges (so two agents don't disagree on a boundary) plus a
+  style/ABI check at review.
+  Shared files (the registry, `names.js`, board files) stay under serial control — agents RETURN their
+  `names.js`/registry additions, the coordinator merges them. This parallelism is *within* a batch — the
+  across-batch rule still holds (don't open the next batch while this one is under review).
+- **Even the hard spine parallelises — in clusters, not one-by-one.** "Hard" means each unit needs a
+  bespoke fixture (tape/golden, pixel gate) or careful grounding, NOT that authoring conflicts. Group the
+  interdependent routines into coherent CLUSTERS (siblings sharing state, a render group sharing the pixel
+  gate) and run ~1 agent per cluster in parallel; born-live `m.call` fallback decouples the authoring, and
+  equivalence gates correctness regardless of order. Keep the GROUNDING careful (the spine is where
+  grounding-overturns hide) and **wire the spine dispatchers LAST, validating them serially** (a bad
+  dispatcher wire breaks the whole live game — the pixel/live gate is what catches it).
   **Before opening the next batch, re-check any waived gate's removal trigger** — a pixel-gate waiver comes
   off the instant the game first renders, not once the lift is finished.
 
