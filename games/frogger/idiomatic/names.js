@@ -171,6 +171,7 @@ export const FLY_ATTACK_TIMER = 0x833e; // [seen] fly tongue/attack timer; drive
 export const TWO_PAIR_FIGURE_ANIM_PHASE = 0x833f; // [seen] figure-animation phase animateTwoPairFigure increments; blits at 64 and 112, clears it at 112 and whenever idle
 // ROM tables read by the batch-2 routines
 export const SCROLL_COPY_DEST_PTR = 0x13ef; // [seen] scroll-copy destination-base pointer (ROM); blitScrollTileGrid loads the VRAM destination base from here (0xa808)
+export const SCROLL_COPY_DEST_PTR_ALT = 0x13f5; // [code] alt scroll-copy destination-base pointer (ROM); the 0x20BF 2nd entry (blitScrollTileGridAlt) loads its VRAM destination base from here
 export const FROG_ANIM_TILE_PAIR_SRC = 0x1413; // [seen] ROM tile-pair pattern source read by blitFrogAnimColumnOnTrigger, two bytes per row for 8 rows
 export const ANIM_FRAME_SRC_PTR_TABLE = 0x1841; // [seen] ROM table of 16-bit frame-source pointers; advanceAnimationFrameBuffer reads entry (ANIM_FRAME_INDEX) to find the 11-byte frame to copy
 export const SCROLL_STAMP_TABLE_80_208 = 0x2190; // [seen] scroll stamp table (ROM) for the 80/208 phase arm; stampScrollRevealColumn copies its bytes into VRAM
@@ -356,8 +357,22 @@ export const SCORE_DISPLAY_COUNTER_HI = 0x83dd; // [seen] score-display counter 
 export const BOARD_ADVANCE_DONE_FLAG = 0x8380; // [seen] set to 1 by board-advance foreground once the new board is laid out (advanceBoardForeground)
 
 export const ROUTINES = {
-  // frame dispatchers seated after a pixel/live + goal-band seatability check (normal-return routers;
-  // 0x1a55/0x2341 stay UNWIRED -- they tail into the 0x2673 goal-award caller-skip, net SP +4)
+  // --- gameplay spine wired 2026-08-16 after LIVE input-tape seatability: coin/play/hop/death/game-over/
+  //     goal/board-advance all seat with no seam throw. The 0x2673 goal-award caller-skip and the
+  //     unbalanced tail-calls 0x20bf/0x27bc/0x12d0 were dissolved into direct JS calls, so 0x1a55/0x2341
+  //     no longer drift SP +4 on the goal path. [code]: equivalence-tested, MAME grounding (stage B) pending.
+  0x0000: { name: "seatStackAndEnterColdBoot", role: "[code] reset vector: dead self-check arm, watchdog kick, seat the stack, then hand back the boot/main-loop driver coroutine; memory-only live-out", cert: "code" },
+  0x02a3: { name: "initColdBootAndEnterMainLoop", role: "[code] cold-boot init from the reset vector: disable NMI + flip latches, clear work RAM + OBJRAM page, seed lives/cabinet/coinage, enter the main loop; memory-only live-out", cert: "code" },
+  0x0066: { name: "serviceVblankNmi", role: "[code] vblank NMI handler: ack, scan coins, blit the sprite shadow (nibble-swap) into OBJRAM, tick coin-pulse timers, run the play/mode dispatch tree; memory-only live-out", cert: "code" },
+  0x048f: { name: "runIntroTimerThenInitGame", role: "[code] intro/game-over entry: redraw the GAME-OVER line, play two jingles, spin the 16-bit intro timer to zero, then dispatch by configuration; memory-only live-out", cert: "code" },
+  0x04f3: { name: "setUpPlayerTwoContinue", role: "[code] player-2 continue setup: mark the 2nd continue flag; if the 1st is already set jump to the shared cold-start mid-entry, else clear timers and continue; memory-only live-out", cert: "code" },
+  0x0547: { name: "coldStartClearSlotGates", role: "[code] cold-start new-game init part one: zero the P1 slot byte and the five primary-bank home-bay occupancy gates, then fall into the shared cold-start mid-entry; memory-only live-out", cert: "code" },
+  0x0faf: { name: "dispatchFrogAnimationArm", role: "[code] frog-animation jump-table dispatcher: the anim-index low byte selects one of eleven arm pointers in a jump table; read that pointer and jump to it; memory-only live-out", cert: "code" },
+  0x1a55: { name: "orchestrateCollisionsAndFrogInput", role: "[code] master collision/scoring orchestrator: clear play flag tails to exit; set, runs the collision sub-engines, an interior timing arm, and the frog input scan; memory-only live-out", cert: "code" },
+  0x1cff: { name: "selectHomeBayGoalHandler", role: "[code] home-bay column dispatcher: read the frog X and route to the goal handler for the bay whose column band contains it, or to the reject handler; memory-only live-out", cert: "code" },
+  0x1dd8: { name: "awardHomeBayGoal", entry: "awardHomeBay2Goal", role: "[code] home-bay-2 goal handler: returns if that bay's occupancy gate is already set, else awards the bay and hands to the input scan; memory-only live-out", cert: "code" },
+  0x1e7a: { name: "awardHomeBayGoal", entry: "awardHomeBay4Goal", role: "[code] home-bay-4 goal handler (structural twin of the bay-2 handler); memory-only live-out", cert: "code" },
+  0x2341: { name: "driveInPlayFrameUpdate", role: "[code] in-play per-frame update dispatcher: bare return in attract/boot, else drives the in-play sub-engines; memory-only live-out", cert: "code" },
   0x040b: {
     name: "setUpBoardOrContinueLife",
     role: "[seen] board-start / life-loss dispatcher: continue-flag set tail-hands to the next-life path, else lays a fresh board (tilemap/pages/score header/board build/time bar/HUD/start flag) and tail-enters the play loop -- grounded via MAME read-tap (wave-4): read-tap 4303x GM5/PF1 (active play), 0 attract",

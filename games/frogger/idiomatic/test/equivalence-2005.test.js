@@ -8,8 +8,8 @@
  * phase-lane blocks, and the counter 8-bit wraps. The routine runs its callees on a fresh clone per
  * side, so the real callees execute identically on both sides and their writes are part of the compared
  * live-out. Live-out is memory-only (both callers reload registers after the call); the rewrite
- * dissolves the three idiomatized callees (stamp/band/grid) into direct JS calls while the alt-base
- * copy stays an m.call, so their push16 return-continuations no longer land on the stack — the dead
+ * dissolves all four idiomatized callees (stamp/band/grid + the alt-base grid copy) into direct JS
+ * calls, so their push16 return-continuations no longer land on the stack — the dead
  * [SP-8, SP) scratch is masked and the rest of RAM is compared. Teeth: three broken RAM twins.
  */
 import test from "node:test";

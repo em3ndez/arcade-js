@@ -38,6 +38,6 @@ export function mountOrKillFrogOnTwoPairFigure(m) {
     return;
   }
 
-  m.push16(0x28ee); // inner overlap -> frog-kill tail
+  m.push16(0x28ee); // inner overlap -> frog-kill tail (returns into block_28ef; kept dispatch)
   m.call(KILL_TAIL);
 }

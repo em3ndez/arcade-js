@@ -28,11 +28,11 @@ const WORK_PAGE_LEN = 0xb7;
 const OBJECT_PAGE_LEN = 0x2b;
 
 export function runIntroTimerThenInitGame(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   blitGameOverLine(m);
-  regs.a = 0x0c; enqueueSoundCommand(m);
-  regs.a = 0x0d; enqueueSoundCommand(m);
+  enqueueSoundCommand(m, 0x0c);
+  enqueueSoundCommand(m, 0x0d);
 
   let hl = mem16[INTRO_TIMER];
   do {

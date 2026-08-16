@@ -6,15 +6,25 @@
  * copies B rows of a two-byte pair from the source down the destination at a 32-byte row
  * pitch, restarting the source at the top of every column, and advances the destination by
  * the column stride between columns. A count of zero runs its 8-bit loop a full 256 times.
+ * The default entry takes its destination base from SCROLL_COPY_DEST_PTR; blitScrollTileGridAlt is the
+ * alt entry into the same loop, differing only in the alt destination-base cell.
  * LIVE-OUT: memory-only.
  */
-import { SCROLL_COPY_DEST_PTR, SCROLL_COPY_SRC_PTR, SCROLL_COPY_ROWCOUNT, SCROLL_COPY_COLUMN_STRIDE } from "./names.js";
+import { SCROLL_COPY_DEST_PTR, SCROLL_COPY_DEST_PTR_ALT, SCROLL_COPY_SRC_PTR, SCROLL_COPY_ROWCOUNT, SCROLL_COPY_COLUMN_STRIDE } from "./names.js";
 
 const ROW_PITCH = 32;
 const PAIR = 2;
 const FULL_RUN = 256;
 
 export function blitScrollTileGrid(m) {
+  return copyScrollTileGrid(m, SCROLL_COPY_DEST_PTR);
+}
+
+export function blitScrollTileGridAlt(m) {
+  return copyScrollTileGrid(m, SCROLL_COPY_DEST_PTR_ALT);
+}
+
+function copyScrollTileGrid(m, destBaseCell) {
   const { regs, mem8, mem16 } = m;
   const source = regs.de;
   const rowCount = regs.b;
@@ -25,7 +35,7 @@ export function blitScrollTileGrid(m) {
 
   const rows = rowCount === 0 ? FULL_RUN : rowCount;
   const cols = colCount === 0 ? FULL_RUN : colCount;
-  let dst = mem16[SCROLL_COPY_DEST_PTR];
+  let dst = mem16[destBaseCell];
   for (let col = 0; col < cols; col++) {
     let d = dst;
     let s = source;

@@ -15,9 +15,7 @@ import {
 } from "./names.js";
 import { stampScrollRevealColumn } from "./stampScrollRevealColumn.js";
 import { blitScrollBand } from "./blitScrollBand.js";
-import { blitScrollTileGrid } from "./blitScrollTileGrid.js";
-
-const COPY_SCROLL_GRID_ALT = 0x20bf;
+import { blitScrollTileGrid, blitScrollTileGridAlt } from "./blitScrollTileGrid.js";
 
 const SCROLL_BYTE = 2; // +2 field of each 3-byte object descriptor
 const COUNTER_A_STAMP = 80;
@@ -62,5 +60,5 @@ function stampLanes(m, gridSource, bandSource, wrapPhase) {
   regs.c = mem8[SCROLL_BAND_ROWSPAN];
   regs.de = bandSource;
   mem8[SCROLL_COPY_COLUMN_STRIDE] = mem8[SCROLL_BAND_DESCRIPTOR_BASE];
-  return m.call(COPY_SCROLL_GRID_ALT);
+  return blitScrollTileGridAlt(m);
 }

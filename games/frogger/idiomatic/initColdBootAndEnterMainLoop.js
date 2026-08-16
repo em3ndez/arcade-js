@@ -2,9 +2,8 @@
 /**
  * initColdBootAndEnterMainLoop — the cold-boot init reached from the reset vector. Disables the NMI and
  * the flip latches, clears work RAM and the OBJRAM page, seeds the lives count / cabinet / coinage from
- * the DSW input reads, copies two boot-state blocks out of program memory, settles, re-enables the NMI,
- * programs both i8255 PPIs, primes the sound port with a mute-then-unmute pulse, and tail-hands to the
- * main loop. Runs once at power-on; the tail returns the driver generator. LIVE-OUT: memory.
+ * the DSW reads, copies two boot-state blocks, re-enables the NMI, programs both i8255 PPIs, pulses the
+ * sound port (mute/unmute), and tail-hands to the main loop as the driver generator. LIVE-OUT: memory.
  */
 import { IN1_PORT, IN2_PORT, MAIN_LOOP_HEAD } from "./names.js";
 import { spinWatchdogSettleDelay } from "./spinWatchdogSettleDelay.js";
@@ -63,15 +62,13 @@ export function initColdBootAndEnterMainLoop(m) {
   mem8[SOUND_CTRL_SHADOW] = 0x18;
   mem8[SOUND_CTRL_PORT] = 0x18;
 
-  m.regs.a = 0x00;
-  issueSoundCommand(m);
+  issueSoundCommand(m, 0x00); // mute-pulse command 0
 
   const unmuted = mem8[SOUND_CTRL_SHADOW] & 0xef; // clear the mute bit
   mem8[SOUND_CTRL_SHADOW] = unmuted;
   mem8[SOUND_CTRL_PORT] = unmuted;
 
-  m.regs.a = 0xff;
-  issueSoundCommand(m);
+  issueSoundCommand(m, 0xff); // unmute-pulse command 0xff
 
   return m.call(MAIN_LOOP_HEAD); // fall through into the attract/main loop
 }

@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * awardHomeBayGoal — the goal handler for two of the five home bays (bay 2 and bay 4). It returns
- * when the active player's occupancy gate for that bay is already set, and hands off to the input
- * scan when the frog has not fully reached the home row. Otherwise it awards the bay: bonus points
- * when the pending-slot key matches, the shared home-goal fill/reset, then — on a latched collision —
- * arming the goal sprite and clearing the latch, and finally setting the occupancy gate and bumping
- * this player's home count. Bay 2 and bay 4 share this body, differing only in gate cells, bay row,
- * key, and goal slot. LIVE-OUT: memory-only.
+ * awardHomeBayGoal — the goal handler for two home bays (bay 2 and bay 4, sharing this body). Returns
+ * when that bay's occupancy gate is already set; hands to the input scan when the frog has not fully
+ * reached the home row. Otherwise it awards the bay — bonus points on a pending-slot key match, the
+ * shared home-goal fill/reset, on a latched collision the goal sprite + latch clear, and finally the
+ * occupancy gate + this player's home count. LIVE-OUT: memory-only.
  */
 import {
   ACTIVE_PLAYER, FROG_Y, COLLISION_SUBFLAG, PENDING_HOME_BAY_SLOT, PLAYER1_SLOT,
@@ -14,11 +12,11 @@ import {
 } from "./names.js";
 import { scanFrogInputAndDispatchHop } from "./scanFrogInputAndDispatchHop.js";
 import { armHomeGoalSprite } from "./armHomeGoalSprite.js";
+import { awardBonusPoints } from "./awardBonusPoints.js";
 
 const PLAYER2_SLOT = 0x825d;  // player-2 home count (sibling of the player-1 slot cell)
 const HOME_ROW_Y = 0x2a;      // a frog Y at or past this has not fully reached the home row
 
-const AWARD_POINTS = 0x2673;  // bonus-points helper (kept dispatch)
 const HOME_GOAL_FILL = 0x1f1c; // shared home-goal fill/reset, a cluster sibling (kept dispatch)
 
 const BAY2 = { doneP1: HOME_BAY2_OCCUPANCY_PRIMARY, doneP2: HOME_BAY2_OCCUPANCY_ALT, bayY: 0x48, key: 0x02, slot: 0xaaa4, r1: 0x1df5, r2: 0x1dfb };
@@ -30,9 +28,8 @@ function awardHomeBayGoal(m, p) {
   if (mem8[mem8[ACTIVE_PLAYER] === 1 ? p.doneP1 : p.doneP2] !== 0) return;
   if (mem8[FROG_Y] >= HOME_ROW_Y) return scanFrogInputAndDispatchHop(m);
 
-  regs.b = p.bayY;
-  regs.a = (mem8[PENDING_HOME_BAY_SLOT] - p.key) & 0xff;
-  if (regs.a === 0) { m.push16(p.r1); m.call(AWARD_POINTS); }
+  // key match -> award bonus; the hold arm signals us to skip the rest of the goal handler.
+  if (((mem8[PENDING_HOME_BAY_SLOT] - p.key) & 0xff) === 0 && awardBonusPoints(m, p.bayY)) return;
 
   regs.hl = p.slot;
   m.push16(p.r2); m.call(HOME_GOAL_FILL);

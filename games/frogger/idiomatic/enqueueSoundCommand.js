@@ -5,9 +5,8 @@
  */
 import { PLAY_FLAG, SOUND_QUEUE_COUNT } from "./names.js";
 
-export function enqueueSoundCommand(m) {
-  const { regs, mem8 } = m;
-  const cmd = regs.a;
+export function enqueueSoundCommand(m, cmd = m.regs.a) {
+  const { mem8 } = m;
   if (mem8[PLAY_FLAG] === 0) return; // not playing: drop the command
   const head = (mem8[SOUND_QUEUE_COUNT] + 1) & 0xff;
   mem8[SOUND_QUEUE_COUNT] = head;

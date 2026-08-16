@@ -37,7 +37,7 @@ const COLLISION_ORCH = 0x1a55;
 const swapNibbles = (v) => ((v >> 4) | (v << 4)) & 0xff;
 
 export function serviceVblankNmi(m) {
-  const { regs, mem } = m;
+  const { mem } = m;
 
   mem.write8(NMI_ENABLE, 0); // ack; the register save + watchdog read are dead here
   scanCoinInputAndCredit(m);
@@ -112,8 +112,8 @@ export function serviceVblankNmi(m) {
     const dec = (w - 1) & 0xffff;
     mem.write16(0x8382, dec);
     if (dec !== 0) return b_018a();
-    regs.a = 0x0f; enqueueSoundCommand(m);
-    regs.a = 0xb0; enqueueSoundCommand(m);
+    enqueueSoundCommand(m, 0x0f);
+    enqueueSoundCommand(m, 0xb0);
     mem.write8(0x8371, 0);
     return b_018a();
   }
@@ -141,8 +141,7 @@ export function serviceVblankNmi(m) {
     if (mem.read8(0x8380) === 0) return b_01e2();
     mem.write8(0x8380, 0);
     mem.write16(0x8382, 0x0040);
-    regs.de = 0x2f7b; regs.hl = 0xaa51; regs.b = 0x07;
-    copyRunUpTileColumn(m);
+    copyRunUpTileColumn(m, 0xaa51, 0x2f7b, 0x07);
     return b_01e2();
   }
 
@@ -184,7 +183,7 @@ export function serviceVblankNmi(m) {
     tickGatedCountdown(m);
     loc_0292(m);
     const sel = mem.read8(0x8297);
-    if (sel !== 0) { regs.a = sel; stampHomeBayFrogByColumn(m); }
+    if (sel !== 0) stampHomeBayFrogByColumn(m, sel);
     return epilogue();
   }
 

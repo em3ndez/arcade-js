@@ -17,6 +17,7 @@ import { stampHomeBaySlot } from "./stampHomeBaySlot.js";
 import { activateFrogObject } from "./activateFrogObject.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { clearTwoPlayerFrameCells } from "./clearTwoPlayerFrameCells.js";
+import { clearLatchedCollision } from "./clearLatchedCollision.js";
 
 const loc_8046 = 0x8046;             // frog object sub-byte set to 7 as the death phase advances
 const DEATH_PHASE = 0x81b2;          // death-phase index, bumped each time the counter reaches 0x10
@@ -27,10 +28,6 @@ const DEATH_WORD = 0x8382;           // death-anim word poke operand
 const loc_83ce = 0x83ce;             // board-advance ready flag set by the reset arm
 
 const COUNTER_TARGET = 0x10;
-// clearLatchedCollision is a mixed 0/+2 tail (it can transfer into a still-frozen helper); calling it
-// through the seam with a sentinel return keeps the surrounding SP net-zero.
-const CLEAR_COLLISION = 0x27b3;
-const CLEAR_COLLISION_RET = 0x1718;
 
 export function driveFrogDeathAnimation(m) {
   const { mem8 } = m;
@@ -40,8 +37,7 @@ export function driveFrogDeathAnimation(m) {
   if (mem8[HOME_BAY_SLOT_CURSOR_MIRROR] !== 0) mem8[PENDING_HOME_BAY_SLOT] = mem8[HOME_BAY_SLOT_CURSOR_MIRROR];
 
   stampHomeBaySlot(m);
-  m.push16(CLEAR_COLLISION_RET);
-  m.call(CLEAR_COLLISION);
+  clearLatchedCollision(m);
 
   const cnt = (mem8[HOP_FRAME_COUNTER] + 1) & 0xff;
   mem8[HOP_FRAME_COUNTER] = cnt;

@@ -68,9 +68,19 @@ is `[seen]` once MAME confirms its role (see the data-name registry in `names.js
 
 Galaxian/Scramble-derived Konami hardware: a tilemap background with hardware sprites, an 8255 PPI for
 inputs/DIPs and the sound-command latch, and a second Z80 + AY-3-8910 for sound. The idiomatic layer
-runs its rewritten routines in place of the frozen translated oracle, born live; the frame boundary is
-a vblank yield, not a cycle count, re-entering at the pace tail (`0x0368`). Rendered idiomatic frames
-match a fresh MAME golden to **0px** at the boot landmark — `[seen]` the port is pixel-faithful there.
+runs its rewritten routines in place of the frozen translated oracle, born live: the whole gameplay
+spine — the vblank NMI handler **`serviceVblankNmi`** (`0x0066`), the boot chain, the in-play update
+**`driveInPlayFrameUpdate`**, the collision orchestrator **`orchestrateCollisionsAndFrogInput`**, and the
+home-bay goal handlers **`selectHomeBayGoalHandler`**/**`awardHomeBayGoal`** — is wired as live overrides
+and seats through coin/play/hop/death/game-over/goal under an input-tape replay. Seating a routine as an
+override needs its net stack effect to be one `ret` (or a caller-skip that lands on the caller's slot);
+several routines reached that only after their **unbalanced tail-calls into still-translated helpers**
+(the scroll-copy alt entry, the collision-cell clear, the frog-kill tail, and the goal-award caller-skip)
+were **dissolved** — the helper lifted and the tail-call turned into a direct JS call so no stray `ret`
+drifts the stack. Balanced trampolines (a `push16` sentinel the callee's `ret` consumes) correctly stay
+dispatched by address. The frame boundary is a vblank yield, not a cycle count, re-entering at the pace
+tail (`0x0368`). Rendered idiomatic frames match a fresh MAME golden to **0px** at the boot landmark —
+`[seen]` the port is pixel-faithful there.
 At cold boot **`spinWatchdogSettleDelay`** feeds the watchdog by strobing the I/O port at `0x8800`
 (non-RAM: writes read back `0xFF`) from a `BC=0xEFFF` settle loop — `[seen,poked]`.
 
@@ -79,8 +89,9 @@ At cold boot **`spinWatchdogSettleDelay`** feeds the watchdog by strobing the I/
 The river/road background scrolls, driven from the NMI. **`advanceScrollLaneObjects`** is the per-vblank
 scroll tick: it copies each of the two scroll descriptors into its shadow, steps counter A by 1 (firing
 **`stampScrollRevealColumn`** at its threshold) and B by 2 (firing **`blitScrollBand`**), advances the
-scroll phase, and at phase 16/32/48 re-blits both lane tile grids via **`blitScrollTileGrid`** (phase 48
-also zeroes the phase). `blitScrollTileGrid` stamps tile pairs (`0x34`–`0x37`) down VRAM columns from
+scroll phase, and at phase 16/32/48 feeds object A's descriptor into **`blitScrollTileGrid`** and object
+B's into its alt entry **`blitScrollTileGridAlt`** (the same copy loop, differing only in the alt
+destination-base cell; phase 48 also zeroes the phase). `blitScrollTileGrid` stamps tile pairs (`0x34`–`0x37`) down VRAM columns from
 `0xA808`; `stampScrollRevealColumn` writes the newly-revealed edge column into `VRAM_BASE`; `blitScrollBand`
 writes the scrolling band rows. **`blitFourTileGroupColumn`** paints 14-row two-wide columns of the
 four-tile group (tiles `72`–`75`) — the **river-log** graphics. **`advanceAttractDemoFrogHop`** (`0x23b7`, a
@@ -141,7 +152,8 @@ and awards the extra life. Grounding inverted the code-only reading — `0xFC`-`
 **`resolveFrogMoveAgainstLanes`** is the upper half of the horizontal-move dispatcher
 (**`dispatchFrogMoveAgainstLanes`**, the lower half, dispatches here): the frog X selects one of sixteen arms through the `0x130b` pointer table; ten arms scan a lane's
 object list for an object inside the frog's move band and set the block/hit flag `HOLD_FLAG`, while a clear
-lane with the frog not-yet-across tail-calls the frog-kill routine `0x12d0`. **`renderFrogAndArmObjects`**
+lane with the frog not-yet-across calls the lifted **`killFrogAtLane`** (the `0x12d0` kill tail: raise
+`HOLD_FLAG`, and in the mid-river band also set the second-bank kill cell). **`renderFrogAndArmObjects`**
 draws the frog figure into the tilemap (three 4-tile column groups, the banner column, four box corners,
 the home-marker string via `blitFourTileGroupColumn`), raises the three object-ready flags
 (`OBJECT_READY_0`/`OBJECT_READY_1`/`OBJECT_READY_2`), then tail-chains `seedObjectAnimationState`. **`renderFrogAnimArm1`** and

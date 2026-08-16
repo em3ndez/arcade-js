@@ -13,7 +13,18 @@ import {
 } from "./names.js";
 import { resolveFrogMoveAgainstLanes } from "./resolveFrogMoveAgainstLanes.js";
 
-const KILL_TAIL = 0x12d0; // frog-kill tail: raises the blocked flag and, mid-band, the kill cell
+const SECOND_BANK = 0x829c; // second-bank / mid-river kill cell
+
+// killFrogAtLane — the shared frog-kill tail: raise the hold/kill flag, and in the mid-river band
+// (0x30 <= Y < 0x80) also set the second-bank kill cell; road band and above-river just flag.
+export function killFrogAtLane(m) {
+  const { mem8 } = m;
+  mem8[HOLD_FLAG] = 1;
+  const y = mem8[FROG_Y];
+  if (y >= 0x80) return;
+  if (y < 0x30) return;
+  mem8[SECOND_BANK] = 1;
+}
 
 // frog position high nibble -> [lane object-list base, band width]; the other six nibbles delegate.
 const LANE_BY_NIBBLE = new Map([
@@ -52,12 +63,12 @@ function scanLane(m, laneBase, width) {
     if (inBand) {
       // object in the band: kill in the upper band, else let the upper half resolve the move
       if (!upperBand) return resolveFrogMoveAgainstLanes(m);
-      return m.call(KILL_TAIL);
+      return killFrogAtLane(m);
     }
     remaining = (remaining - 1) & 0xff;
     if (remaining !== 0) continue;
     // lane clear: kill in the lower band, else let the upper half resolve the move
-    if (!upperBand) return m.call(KILL_TAIL);
+    if (!upperBand) return killFrogAtLane(m);
     return resolveFrogMoveAgainstLanes(m);
   }
 }

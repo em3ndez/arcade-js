@@ -14,7 +14,7 @@ export function seatStackAndEnterColdBoot(m) {
   if (m.mem8[SELF_CHECK_ARM] === 0x55) {
     throw new Error("seatStackAndEnterColdBoot: self-check jump armed -- 0x4000 read 0x55 (must float 0xFF)");
   }
-  m.regs.a = m.mem8[WATCHDOG];
+  m.mem.read8(WATCHDOG);
   m.regs.sp = STACK_TOP;
   return m.call(COLD_BOOT_INIT);
 }

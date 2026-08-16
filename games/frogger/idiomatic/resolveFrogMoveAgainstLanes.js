@@ -12,7 +12,7 @@ import {
   SPRITE_BLOCK2_BASE, LANE_OBJLIST_8109, LANE_OBJLIST_8112, LANE_OBJLIST_811B, LANE_OBJLIST_8124, LANE_OBJLIST_8136, LANE_OBJLIST_813F, LANE_OBJLIST_8148, LANE_OBJLIST_8151, LANE_OBJLIST_815A,
 } from "./names.js";
 
-const KILL_TAIL = 0x12d0; // frog-kill tail: raises the blocked flag and, mid-band, the kill cell
+import { killFrogAtLane } from "./dispatchFrogMoveAgainstLanes.js";
 
 // arm value (from the pointer table) -> [lane object-list base, band width]; others scan no lane.
 const LANES = new Map([
@@ -62,7 +62,7 @@ function scanLane(m, laneBase, width) {
     }
     remaining = (remaining - 1) & 0xff;
     if (remaining !== 0) continue;
-    if (mem8[FROG_Y] < 128) return m.call(KILL_TAIL); // lane clear, frog not across -> kill
+    if (mem8[FROG_Y] < 128) return killFrogAtLane(m); // lane clear, frog not across -> kill
     return;
   }
 }
