@@ -5,7 +5,7 @@
  * step when a secondary counter is zero, then continues into the shared surface-timer step.
  * LIVE-OUT: memory-only.
  */
-import { loc_83b7, FIGURE_ANIM_PHASE } from "./names.js";
+import { LIVES_COUNT, FIGURE_ANIM_PHASE } from "./names.js";
 
 const DIVE_PHASE_LOW = 0x2873;
 const DIVE_PHASE_HIGH = 0x2874;
@@ -15,7 +15,7 @@ const SURFACE_TIMER_STEP = 0x27fe;
 export function loc_27ea(m) {
   const { mem8 } = m;
 
-  const phase = mem8[loc_83b7];
+  const phase = mem8[LIVES_COUNT];
   if (phase < 2) return m.call(DIVE_PHASE_LOW);
   if (phase >= 5) return m.call(DIVE_PHASE_HIGH);
 

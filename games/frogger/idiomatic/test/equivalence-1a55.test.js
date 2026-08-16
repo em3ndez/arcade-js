@@ -2,7 +2,7 @@
 /**
  * orchestrateCollisionsAndFrogInput — memory-equivalent to the frozen oracle at ROM 0x1a55.
  * GATE: crafted-entry (spine dispatcher). PLAY_FLAG 0x83fe clear tails straight to the shared exit; set,
- * it runs the collision sub-engines, the loc_8340 timing arm, the slot tick, then the loc_83b7-bit0
+ * it runs the collision sub-engines, the HOME_GOAL_SPRITE_ARM_CELL timing arm, the slot tick, then the LIVES_COUNT-bit0
  * scroll stage (inline fly/slot arm, or the gator/slot arm), and finally the shared exit — a low frog
  * row (0x8047<0x31) tails to the still-translated goal scan 0x1cff, else the input scan. Dissolves the
  * moved-0 leaves; keeps m.call for the tail-transferring dive driver 0x27ea, goal scan 0x1cff, and the

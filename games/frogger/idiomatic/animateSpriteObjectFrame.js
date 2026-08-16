@@ -4,7 +4,7 @@
  * the (IX+6) phase (counting down, 1 wrapping to 4), reads the phase-tile table, folds in the (IX+5)
  * flip bits, and stages the IY sprite tile/attr pair. LIVE-OUT: memory-only (the sprite-object dispatcher).
  */
-import { loc_2cd5 } from "./names.js";
+import { SPRITE_OBJECT_PHASE_TILE_TABLE } from "./names.js";
 
 const FRAME_RELOAD = 12;
 const PHASE_WRAP = 4;
@@ -26,7 +26,7 @@ export function animateSpriteObjectFrame(m) {
   const next = phase === 1 ? PHASE_WRAP : phase - 1;
   mem8[(obj + 0x06) & 0xffff] = next;
 
-  const tile = mem8[(loc_2cd5 + next) & 0xffff] | mem8[(obj + 0x05) & 0xffff];
+  const tile = mem8[(SPRITE_OBJECT_PHASE_TILE_TABLE + next) & 0xffff] | mem8[(obj + 0x05) & 0xffff];
   mem8[(spr + 0x01) & 0xffff] = tile;
   mem8[(spr + 0x05) & 0xffff] = (tile + 1) & 0xff;
   mem8[(spr + 0x02) & 0xffff] = SPRITE_ATTR;

@@ -7,7 +7,7 @@
  * each flanked by a fixed tile strip. Falls through into the shared final-strip tail.
  * LIVE-OUT: memory-only (VRAM plus the reset work cells).
  */
-import { loc_83d7, loc_83d8, START_LATCH, OBJECT_ANIM_STATE_8019, OBJECT_ANIM_STATE_801F, HIGH_SCORE_TABLE_BASE, SCORE_RANKING_HEADER_STRIP, PTS_SUFFIX_STRIP } from "./names.js";
+import { ATTRACT_DEMO_PHASE_COUNTER, POINT_TABLE_DRAW_STATE, START_LATCH, OBJECT_ANIM_STATE_8019, OBJECT_ANIM_STATE_801F, HIGH_SCORE_TABLE_BASE, SCORE_RANKING_HEADER_STRIP, PTS_SUFFIX_STRIP } from "./names.js";
 import { fillTilemapBlock22x32 } from "./fillTilemapBlock22x32.js";
 import { placeScoreRankMarkers } from "./placeScoreRankMarkers.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
@@ -22,8 +22,8 @@ const SCORE_STRIP_LEN = 0x04;
 export function renderMode3ScoreRankingScreen(m) {
   const { regs, mem8 } = m;
 
-  mem8[loc_83d8] = (mem8[loc_83d8] - 1) & 0xff;
-  mem8[loc_83d7] = 0;
+  mem8[POINT_TABLE_DRAW_STATE] = (mem8[POINT_TABLE_DRAW_STATE] - 1) & 0xff;
+  mem8[ATTRACT_DEMO_PHASE_COUNTER] = 0;
   mem8[START_LATCH] = 0;
 
   fillTilemapBlock22x32(m);

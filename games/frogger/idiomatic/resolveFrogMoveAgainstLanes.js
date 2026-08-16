@@ -8,7 +8,7 @@
  * LIVE-OUT: memory-only (the move-blocked flag, plus the kill tail's own cells).
  */
 import {
-  HOLD_FLAG, FROG_Y, loc_802f, FROG_X, loc_130b,
+  HOLD_FLAG, FROG_Y, LANE_LOW_BOUND_SELECTOR, FROG_X, LANE_SCAN_ARM_TABLE,
   SPRITE_BLOCK2_BASE, LANE_OBJLIST_8109, LANE_OBJLIST_8112, LANE_OBJLIST_811B, LANE_OBJLIST_8124, LANE_OBJLIST_8136, LANE_OBJLIST_813F, LANE_OBJLIST_8148, LANE_OBJLIST_8151, LANE_OBJLIST_815A,
 } from "./names.js";
 
@@ -34,7 +34,7 @@ export function resolveFrogMoveAgainstLanes(m) {
 
   const key = (mem8[FROG_Y] + 15) & 0xff;
   if ((key & 0x0f) < 5) return; // low nibble < 5 -> the no-lane arm 0
-  const arm = mem16[(loc_130b + 2 * ((key & 0xf0) >> 4)) & 0xffff];
+  const arm = mem16[(LANE_SCAN_ARM_TABLE + 2 * ((key & 0xf0) >> 4)) & 0xffff];
   const lane = LANES.get(arm);
   if (!lane) return;
 
@@ -43,7 +43,7 @@ export function resolveFrogMoveAgainstLanes(m) {
 
 function scanLane(m, laneBase, width) {
   const { mem8 } = m;
-  const offset = mem8[loc_802f] < 128 ? 12 : 3;
+  const offset = mem8[LANE_LOW_BOUND_SELECTOR] < 128 ? 12 : 3;
   const low = (mem8[FROG_X] + offset) & 0xff;
   const highRaw = low + width;
   const wrapped = highRaw > 0xff;

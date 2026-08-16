@@ -20,7 +20,7 @@ import { placeScoreRankMarkers } from "../placeScoreRankMarkers.js";
 import { copyRunUpTileColumn } from "../copyRunUpTileColumn.js";
 import { writeScoreDigitStepUp } from "../writeScoreDigitStepUp.js";
 import { writeScoreField } from "../writeScoreField.js";
-import { loc_83d7, loc_83d8, START_LATCH } from "../names.js";
+import { ATTRACT_DEMO_PHASE_COUNTER, POINT_TABLE_DRAW_STATE, START_LATCH } from "../names.js";
 
 const RANK_CODES = 0x83fb;
 const HISCORE_ROW = 0x83ef; // rank r's score word is (HISCORE_ROW + 2*r), r = 1..5
@@ -76,8 +76,8 @@ function brokenPerturbScore(m) { oracle(m); m.mem8[0xa9ef] ^= 0xff; } // BUG: co
 // Structural twin: forgets to carry the running strip source across the five rank rows.
 function brokenStaticStripSource(m) {
   const { regs, mem8 } = m;
-  mem8[loc_83d8] = (mem8[loc_83d8] - 1) & 0xff;
-  mem8[loc_83d7] = 0;
+  mem8[POINT_TABLE_DRAW_STATE] = (mem8[POINT_TABLE_DRAW_STATE] - 1) & 0xff;
+  mem8[ATTRACT_DEMO_PHASE_COUNTER] = 0;
   mem8[START_LATCH] = 0;
   fillTilemapBlock22x32(m);
   mem8[0x8019] = 3;
@@ -99,8 +99,8 @@ function brokenStaticStripSource(m) {
 // Structural twin: draws four rank rows instead of five.
 function brokenShortLoop(m) {
   const { regs, mem8 } = m;
-  mem8[loc_83d8] = (mem8[loc_83d8] - 1) & 0xff;
-  mem8[loc_83d7] = 0;
+  mem8[POINT_TABLE_DRAW_STATE] = (mem8[POINT_TABLE_DRAW_STATE] - 1) & 0xff;
+  mem8[ATTRACT_DEMO_PHASE_COUNTER] = 0;
   mem8[START_LATCH] = 0;
   fillTilemapBlock22x32(m);
   mem8[0x8019] = 3;

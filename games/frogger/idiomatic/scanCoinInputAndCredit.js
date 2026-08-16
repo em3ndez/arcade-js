@@ -12,7 +12,7 @@
 import {
   IN0_PORT, COIN_INPUT_LATCH, COINAGE_WORD, COIN_PAIR_TOGGLE,
   COIN_COUNTER_0, COIN_COUNTER_1, COIN_PULSE_TIMER_0, COIN_PULSE_TIMER_1,
-  CREDIT_BCD, PLAY_FLAG, GAME_MODE, loc_83d8, FLY_SPRITE_X,
+  CREDIT_BCD, PLAY_FLAG, GAME_MODE, POINT_TABLE_DRAW_STATE, FLY_SPRITE_X,
 } from "./names.js";
 import { issueSoundCommand } from "./issueSoundCommand.js";
 import { blitPlayerSelectPrompt } from "./blitPlayerSelectPrompt.js";
@@ -100,7 +100,7 @@ function addCreditAndMaybeStart(m, credit) {
 
   if (mem8[GAME_MODE] === SELECT_MODE) blitPlayerSelectPrompt(m);
   mem8[GAME_MODE] = SELECT_MODE;
-  mem8[loc_83d8] = 0;
+  mem8[POINT_TABLE_DRAW_STATE] = 0;
   for (let i = 0; i < WORK_BLOCK_LEN; i++) mem8[(FLY_SPRITE_X + i) & 0xffff] = 0;
   return renderCreditLine(m);
 }

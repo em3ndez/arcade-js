@@ -6,7 +6,7 @@
  * the collision orchestrator and the two lane engines that tail-transfer are dispatched by address so
  * the seam keeps a balanced stack. LIVE-OUT: memory-only.
  */
-import { GAME_MODE, loc_829b } from "./names.js";
+import { GAME_MODE, INTRO_COUNTER_829B } from "./names.js";
 import { driveExtraFrogHopAcross } from "./driveExtraFrogHopAcross.js";
 import { advanceActiveFrogHops } from "./advanceActiveFrogHops.js";
 import { renderFrogSceneAndTickTimer } from "./renderFrogSceneAndTickTimer.js";
@@ -16,7 +16,7 @@ import { driveFrogDeathAnimation } from "./driveFrogDeathAnimation.js";
 import { tickGatedCountdown } from "./tickGatedCountdown.js";
 import { moveLaneObjectsAndCarryFrog } from "./moveLaneObjectsAndCarryFrog.js";
 
-const RUN_FLAG = loc_829b;
+const RUN_FLAG = INTRO_COUNTER_829B;
 const COLLISION_ORCH = 0x1a55, SCROLL_ENGINE = 0x2005, MOVE_DISPATCHER = 0x11bf;
 
 export function driveInPlayFrameUpdate(m) {

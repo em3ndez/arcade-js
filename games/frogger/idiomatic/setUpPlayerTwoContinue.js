@@ -8,7 +8,7 @@
  */
 import {
   PLAY_FLAG, LIVE_OBJECT_PAGE, LANE_OBJECT_INDEX, OBJRAM_COL3F_ATTR_SHADOW,
-  loc_8263, loc_86c0, loc_8500, PACE_TAIL,
+  HOME_BAY1_OCCUPANCY_ALT, OBJECT_PAGE_SAVE_BANK, WORK_PAGE_SAVE_BANK, PACE_TAIL,
 } from "./names.js";
 import { clearTilemapToTile16 } from "./clearTilemapToTile16.js";
 import { handOffToOtherPlayer } from "./handOffToOtherPlayer.js";
@@ -30,9 +30,9 @@ export function setUpPlayerTwoContinue(m) {
   handOffToOtherPlayer(m);
   mem8[PLAY_FLAG] = 1;
   mem8[PLAYER2_SLOT] = 1;
-  for (let i = 0; i < 5; i++) mem8[loc_8263 + i] = 0;
-  for (let i = 0; i < OBJECT_PAGE_LEN; i++) mem8[LIVE_OBJECT_PAGE + i] = mem8[loc_86c0 + i];
+  for (let i = 0; i < 5; i++) mem8[HOME_BAY1_OCCUPANCY_ALT + i] = 0;
+  for (let i = 0; i < OBJECT_PAGE_LEN; i++) mem8[LIVE_OBJECT_PAGE + i] = mem8[OBJECT_PAGE_SAVE_BANK + i];
   mem8[OBJRAM_COL3F_ATTR_SHADOW] = 1;
-  for (let i = 0; i < WORK_PAGE_LEN; i++) mem8[LANE_OBJECT_INDEX + i] = mem8[loc_8500 + i];
+  for (let i = 0; i < WORK_PAGE_LEN; i++) mem8[LANE_OBJECT_INDEX + i] = mem8[WORK_PAGE_SAVE_BANK + i];
   return m.call(PACE_TAIL);
 }

@@ -3,7 +3,7 @@
  * insertHighScoreEntry — insert a 16-bit key (D high, E low) into the 5-entry descending table.
  * LIVE-OUT: memory + register A — the slot-index code, or 0 when nothing was inserted.
  */
-import { loc_83f2 } from "./names.js";
+import { HIGH_SCORE_TABLE_TOP_HI } from "./names.js";
 
 const SLOTS = 5;
 const STRIDE = 2; // 2 bytes/entry: key-high at the slot, key-low just below
@@ -15,7 +15,7 @@ export function insertHighScoreEntry(m) {
   const eLo = regs.e;
 
   for (let k = 0; k < SLOTS; k++) {
-    const hi = (loc_83f2 + STRIDE * k) & 0xffff;
+    const hi = (HIGH_SCORE_TABLE_TOP_HI + STRIDE * k) & 0xffff;
     const lo = (hi - 1) & 0xffff;
     const slotHi = mem8[hi];
 
@@ -29,7 +29,7 @@ export function insertHighScoreEntry(m) {
   function insert(k, hi, lo) {
     const above = SLOTS - 1 - k;
     for (let j = 0; j < above; j++) {
-      const from = (loc_83f2 + STRIDE * (SLOTS - 2 - j)) & 0xffff; // shift the tail down one slot
+      const from = (HIGH_SCORE_TABLE_TOP_HI + STRIDE * (SLOTS - 2 - j)) & 0xffff; // shift the tail down one slot
       mem8[(from + STRIDE) & 0xffff] = mem8[from];
       mem8[(from + STRIDE - 1) & 0xffff] = mem8[(from - 1) & 0xffff];
     }

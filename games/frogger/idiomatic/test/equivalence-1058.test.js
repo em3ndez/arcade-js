@@ -7,7 +7,7 @@
  * pre-blit trigger 0x8118 driven both off and on. Both sides m.call the frozen pre-blit (0x0f8c) and
  * render loop (0x0ff1) on their own clone, so those callees run identically and their writes are part
  * of the compared live-out. Live-out is memory-only, so RAM is compared, not registers/SP. Teeth: four
- * broken twins. NOTE: links once names.js exports LANE_OBJLIST_8109, loc_1423 (added in a later pass).
+ * broken twins. NOTE: links once names.js exports LANE_OBJLIST_8109, SCROLL_GRID_SRC_PHASE16 (added in a later pass).
  */
 import test from "node:test";
 import assert from "node:assert/strict";

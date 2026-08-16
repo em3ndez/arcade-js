@@ -6,8 +6,8 @@
  * score-target digits. LIVE-OUT: memory-only.
  */
 import {
-  loc_83ba, loc_8293, loc_8294,
-  TWO_PLAYER_START_FLAG, loc_81b3, loc_829a, loc_801b, loc_8029,
+  IN_PLAY_BOARD_INIT_GUARD, PLAYER1_DIFFICULTY_INDEX, PLAYER2_DIFFICULTY_INDEX,
+  TWO_PLAYER_START_FLAG, ANIM_FRAME_INDEX, IN_PLAY_BOARD_STATE_BYTE, INTRO_COUNTER_801B, POINT_TABLE_SPRITE_ATTR_8029,
 } from "./names.js";
 import { loadActivePlayerLaneParams } from "./loadActivePlayerLaneParams.js";
 import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
@@ -23,22 +23,22 @@ export function initInPlayBoardOnce(m) {
 
   clearActivePlayerWorkRam(m);
 
-  if (mem8[loc_83ba] !== 0) return;
+  if (mem8[IN_PLAY_BOARD_INIT_GUARD] !== 0) return;
 
-  mem8[loc_8293] = 0;
-  mem8[loc_8294] = 0;
-  m.mem16[loc_81b3] = 0;
+  mem8[PLAYER1_DIFFICULTY_INDEX] = 0;
+  mem8[PLAYER2_DIFFICULTY_INDEX] = 0;
+  m.mem16[ANIM_FRAME_INDEX] = 0;
   mem8[TWO_PLAYER_START_FLAG] = 0;
-  mem8[loc_829a] = 0;
-  mem8[loc_83ba] = 1;
+  mem8[IN_PLAY_BOARD_STATE_BYTE] = 0;
+  mem8[IN_PLAY_BOARD_INIT_GUARD] = 1;
 
   loadActivePlayerLaneParams(m);
   activateFrogObject(m);
   fillTilemapBlock28x32(m);
   clearObjectBlocksAndMirrorToObjRam(m);
 
-  mem8[loc_801b] = 0x04;
-  mem8[loc_8029] = 0x06;
+  mem8[INTRO_COUNTER_801B] = 0x04;
+  mem8[POINT_TABLE_SPRITE_ATTR_8029] = 0x06;
 
   regs.hl = 0xaa28; regs.de = 0x2f77; regs.b = 0x04;
   copyRunUpTileColumn(m);

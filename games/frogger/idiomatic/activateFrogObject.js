@@ -6,7 +6,7 @@
  * seed the pair of 16-bit timers.
  * LIVE-OUT: memory-only.
  */
-import { FROG_X, FROG_SPRITE_CODE, FROG_Y, PLAY_FLAG, loc_83d2, loc_83da } from "./names.js";
+import { FROG_X, FROG_SPRITE_CODE, FROG_Y, PLAY_FLAG, FROG_TIMER_A, FROG_TIMER_B } from "./names.js";
 
 const TWO_PLAYER = 2;
 const TIMER_INIT = 64;
@@ -17,6 +17,6 @@ export function activateFrogObject(m) {
   mem8[FROG_SPRITE_CODE] = 0;
   mem8[FROG_Y] = 0;
   if (mem8[PLAY_FLAG] !== TWO_PLAYER) return;
-  mem16[loc_83d2] = TIMER_INIT;
-  mem16[loc_83da] = TIMER_INIT;
+  mem16[FROG_TIMER_A] = TIMER_INIT;
+  mem16[FROG_TIMER_B] = TIMER_INIT;
 }

@@ -10,7 +10,7 @@
 import {
   PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_SCORE, PLAYER2_SCORE,
   PLAYER1_EXTRA_LIFE_AWARDED, PLAYER2_EXTRA_LIFE_AWARDED,
-  loc_83e5, loc_83e6, loc_83cf, EXTRA_LIFE_SCORE_TARGET, HIGH_SCORE,
+  TIME_REMAINING_P1, TIME_REMAINING_P2, loc_83cf, EXTRA_LIFE_SCORE_TARGET, HIGH_SCORE,
 } from "./names.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 
@@ -43,7 +43,7 @@ export function addScoreAndAwardExtraLife(m) {
   if (mem8[awardCell] === 0 && score >= mem16[EXTRA_LIFE_SCORE_TARGET]) {
     mem8[loc_83cf] = 0;
     mem8[awardCell] = 1;
-    const counterCell = p1 ? loc_83e5 : loc_83e6;
+    const counterCell = p1 ? TIME_REMAINING_P1 : TIME_REMAINING_P2;
     const count = (mem8[counterCell] + 1) & 0xff;
     mem8[counterCell] = count;
 

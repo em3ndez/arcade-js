@@ -7,7 +7,7 @@
  * zero it advances one path step, reversing at an endpoint (table 0) or holding (table 1).
  * LIVE-OUT: memory-only.
  */
-import { loc_833d, loc_833e, FLY_SPRITE_X, loc_8041, loc_811c, loc_279f } from "./names.js";
+import { FLY_TRAVEL_DIR_STEP, FLY_ATTACK_TIMER, FLY_SPRITE_X, FLY_SPRITE_CODE, FLY_PATH_X_BASE, FLY_PATH_OFFSET_TABLE } from "./names.js";
 
 const TIMER_RELOAD = 60;
 const MID_TIME = TIMER_RELOAD / 2;
@@ -18,39 +18,39 @@ const STEP_MASK = 0x7f;
 
 export function driveFlyPatrol(m) {
   const { mem8 } = m;
-  const timer = mem8[loc_833e];
+  const timer = mem8[FLY_ATTACK_TIMER];
   if (timer === 0) return advance(m);
 
   const t = (timer - 1) & 0xff;
-  mem8[loc_833e] = t;
+  mem8[FLY_ATTACK_TIMER] = t;
   if (t === MID_TIME) {
-    mem8[loc_8041] = FLY_SPRITE | (mem8[loc_833d] & FLIP);
+    mem8[FLY_SPRITE_CODE] = FLY_SPRITE | (mem8[FLY_TRAVEL_DIR_STEP] & FLIP);
     return;
   }
-  const index = (mem8[loc_833d] & STEP_MASK) + 1;
-  writeX(m, mem8[(loc_279f + index) & 0xffff]);
+  const index = (mem8[FLY_TRAVEL_DIR_STEP] & STEP_MASK) + 1;
+  writeX(m, mem8[(FLY_PATH_OFFSET_TABLE + index) & 0xffff]);
 }
 
 function advance(m) {
   const { mem8 } = m;
-  if (mem8[loc_833d] & FLIP) { // backward: two steps back before the shared step forward
-    mem8[loc_833d] = (mem8[loc_833d] - 1) & 0xff;
-    mem8[loc_833d] = (mem8[loc_833d] - 1) & 0xff;
+  if (mem8[FLY_TRAVEL_DIR_STEP] & FLIP) { // backward: two steps back before the shared step forward
+    mem8[FLY_TRAVEL_DIR_STEP] = (mem8[FLY_TRAVEL_DIR_STEP] - 1) & 0xff;
+    mem8[FLY_TRAVEL_DIR_STEP] = (mem8[FLY_TRAVEL_DIR_STEP] - 1) & 0xff;
   }
-  mem8[loc_833d] = (mem8[loc_833d] + 1) & 0xff;
+  mem8[FLY_TRAVEL_DIR_STEP] = (mem8[FLY_TRAVEL_DIR_STEP] + 1) & 0xff;
 
-  const value = mem8[(loc_279f + (mem8[loc_833d] & STEP_MASK)) & 0xffff];
+  const value = mem8[(FLY_PATH_OFFSET_TABLE + (mem8[FLY_TRAVEL_DIR_STEP] & STEP_MASK)) & 0xffff];
   if (value === 0) { // endpoint: reverse direction, reload the timer, show the turn sprite
-    mem8[loc_833d] = mem8[loc_833d] ^ FLIP;
-    mem8[loc_833e] = TIMER_RELOAD;
-    mem8[loc_8041] = TURN_SPRITE;
+    mem8[FLY_TRAVEL_DIR_STEP] = mem8[FLY_TRAVEL_DIR_STEP] ^ FLIP;
+    mem8[FLY_ATTACK_TIMER] = TIMER_RELOAD;
+    mem8[FLY_SPRITE_CODE] = TURN_SPRITE;
     return;
   }
-  if (value === 1) { mem8[loc_833e] = TIMER_RELOAD; return; } // hold in place
+  if (value === 1) { mem8[FLY_ATTACK_TIMER] = TIMER_RELOAD; return; } // hold in place
   writeX(m, value);
 }
 
 function writeX(m, offset) {
   const { mem8 } = m;
-  mem8[FLY_SPRITE_X] = (offset + mem8[loc_811c]) & 0xff;
+  mem8[FLY_SPRITE_X] = (offset + mem8[FLY_PATH_X_BASE]) & 0xff;
 }

@@ -8,8 +8,8 @@
  * the frog. LIVE-OUT: memory-only.
  */
 import {
-  FROG_X, FROG_Y, FROG_SPRITE_CODE, FLY_SPRITE_X, loc_8041, loc_811c,
-  loc_833d, loc_833e, COLLISION_SUBFLAG, COLLISION_LATCH,
+  FROG_X, FROG_Y, FROG_SPRITE_CODE, FLY_SPRITE_X, FLY_SPRITE_CODE, FLY_PATH_X_BASE,
+  FLY_TRAVEL_DIR_STEP, FLY_ATTACK_TIMER, COLLISION_SUBFLAG, COLLISION_LATCH,
 } from "./names.js";
 import { clearLatchedCollision } from "./clearLatchedCollision.js";
 import { driveFlyPatrol } from "./driveFlyPatrol.js";
@@ -24,7 +24,7 @@ export function animateFlyEatCollision(m) {
   const { mem8 } = m;
 
   if (mem8[COLLISION_SUBFLAG] !== 0) return trackFlyOntoFrog(m);
-  if (mem8[loc_811c] === 0) armFlyTongue(m);
+  if (mem8[FLY_PATH_X_BASE] === 0) armFlyTongue(m);
   if (mem8[FLY_EAT_PHASE] & 0x01) return clearLatchedCollision(m);
   if (mem8[COLLISION_LATCH] !== 0) return boxTestFlyVsFrog(m);
   return;
@@ -54,7 +54,7 @@ function boxTestFlyVsFrog(m) {
 function trackFlyOntoFrog(m) {
   const { mem8 } = m;
   mem8[FLY_SPRITE_X] = mem8[FROG_X];
-  mem8[loc_8041] = mem8[FROG_SPRITE_CODE];
+  mem8[FLY_SPRITE_CODE] = mem8[FROG_SPRITE_CODE];
   mem8[FLY_SPRITE_Y] = (mem8[FROG_Y] + 0x02) & 0xff;
 }
 
@@ -63,10 +63,10 @@ function armFlyTongue(m) {
   const { mem8 } = m;
   if (mem8[COLLISION_LATCH] !== 0) return;
   mem8[FLY_EAT_PHASE] = (mem8[FLY_EAT_PHASE] + 1) & 0xff;
-  mem8[loc_8041] = 0x1e;
+  mem8[FLY_SPRITE_CODE] = 0x1e;
   mem8[FLY_SPRITE_ATTR] = 0x04;
   mem8[FLY_SPRITE_Y] = 0x60;
   mem8[COLLISION_LATCH] = 0x01;
-  mem8[loc_833d] = 0x01;
-  mem8[loc_833e] = 0x3c;
+  mem8[FLY_TRAVEL_DIR_STEP] = 0x01;
+  mem8[FLY_ATTACK_TIMER] = 0x3c;
 }

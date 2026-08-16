@@ -15,7 +15,7 @@ import {
   FROG_X, FROG_Y, FROG_SPRITE, ACTIVE, ARRIVAL, COUNTER, RELOAD, VDELTA, HDELTA,
 } from "./_frogHop.js";
 import {
-  loc_826c, FROG_HOP_INPUT_TIMER, HOLD_FLAG, ACTIVE_PLAYER, loc_8123,
+  GATED_COUNTDOWN_ENABLE_FLAG, FROG_HOP_INPUT_TIMER, HOLD_FLAG, ACTIVE_PLAYER, HOME_BAY_SLOT_CURSOR,
 } from "../names.js";
 import { scanFrogInputAndDispatchHop as cand } from "../scanFrogInputAndDispatchHop.js";
 import { advanceFrogHopUp } from "../animateFrogHop.js";
@@ -24,7 +24,7 @@ import { loc_1acb as oracle } from "../../translated/loc_1acb.js";
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const IDLE_IN0 = 0xff, IDLE_IN1 = 0xfc, IDLE_IN2 = 0xf1;
-const GATE = loc_826c, TIMER = FROG_HOP_INPUT_TIMER, HOLD = HOLD_FLAG, PLAYER = ACTIVE_PLAYER;
+const GATE = GATED_COUNTDOWN_ENABLE_FLAG, TIMER = FROG_HOP_INPUT_TIMER, HOLD = HOLD_FLAG, PLAYER = ACTIVE_PLAYER;
 
 // A clean unlocked main-body state: gates open, player 1, idle sticks, all lane flags clear and the
 // arrival/counter cells pre-dirtied to 0xff so any clear the scan performs is observable.
@@ -36,7 +36,7 @@ function base(mem, m) {
 
 const gate = () => craft((mem, m) => { base(mem, m); mem[GATE] = 1; });
 const held = () => craft((mem, m) => { base(mem, m); mem[HOLD] = 1; });
-const timer = () => craft((mem, m) => { base(mem, m); mem[TIMER] = 5; mem[loc_8123] = 2; });
+const timer = () => craft((mem, m) => { base(mem, m); mem[TIMER] = 5; mem[HOME_BAY_SLOT_CURSOR] = 2; });
 const idle = () => craft((mem, m) => { base(mem, m); mem[FROG_X] = 0x80; mem[FROG_Y] = 0x80; });
 
 // A DOWN hop in progress: the scan tail-dispatches the DOWN advance and returns.
@@ -50,7 +50,7 @@ const advanceDown = () => craft((mem, m) => {
 const beginUpP1 = () => craft((mem, m) => {
   base(mem, m); m.io.in2 = IDLE_IN2 & ~0x10;
   mem[ARRIVAL[1]] = 0; mem[COUNTER[1]] = 0; mem[RELOAD[1]] = 9; mem[VDELTA] = 2;
-  mem[FROG_Y] = 0x80; mem[FROG_SPRITE] = 0x00; mem[loc_8123] = 2;
+  mem[FROG_Y] = 0x80; mem[FROG_SPRITE] = 0x00; mem[HOME_BAY_SLOT_CURSOR] = 2;
 });
 
 // A fresh RIGHT press on player 1 (IN0 bit 4 = register-C bit 4 cleared): clears DOWN + UP, begins RIGHT.
@@ -64,7 +64,7 @@ const beginRightP1 = () => craft((mem, m) => {
 const beginUpP2 = () => craft((mem, m) => {
   base(mem, m); mem[PLAYER] = 2; m.io.in2 = IDLE_IN2 | 0x08; m.io.in0 = IDLE_IN0 & ~0x01;
   mem[ARRIVAL[1]] = 0; mem[COUNTER[1]] = 0; mem[RELOAD[1]] = 9; mem[VDELTA] = 2;
-  mem[FROG_Y] = 0x80; mem[FROG_SPRITE] = 0x00; mem[loc_8123] = 2;
+  mem[FROG_Y] = 0x80; mem[FROG_SPRITE] = 0x00; mem[HOME_BAY_SLOT_CURSOR] = 2;
 });
 
 // RIGHT active + idle sticks: UP-begin is skipped ((RIGHT|LEFT)_ACTIVE != 0), UP flags stay, RIGHT advances.

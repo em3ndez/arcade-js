@@ -9,8 +9,8 @@
  * key, and goal slot. LIVE-OUT: memory-only.
  */
 import {
-  ACTIVE_PLAYER, FROG_Y, COLLISION_SUBFLAG, loc_8121, PLAYER1_SLOT,
-  HOME_BAY2_OCCUPANCY_PRIMARY, loc_8264, HOME_BAY4_OCCUPANCY_PRIMARY, loc_8266,
+  ACTIVE_PLAYER, FROG_Y, COLLISION_SUBFLAG, PENDING_HOME_BAY_SLOT, PLAYER1_SLOT,
+  HOME_BAY2_OCCUPANCY_PRIMARY, HOME_BAY2_OCCUPANCY_ALT, HOME_BAY4_OCCUPANCY_PRIMARY, HOME_BAY4_OCCUPANCY_ALT,
 } from "./names.js";
 import { scanFrogInputAndDispatchHop } from "./scanFrogInputAndDispatchHop.js";
 import { armHomeGoalSprite } from "./armHomeGoalSprite.js";
@@ -21,8 +21,8 @@ const HOME_ROW_Y = 0x2a;      // a frog Y at or past this has not fully reached 
 const AWARD_POINTS = 0x2673;  // bonus-points helper (kept dispatch)
 const HOME_GOAL_FILL = 0x1f1c; // shared home-goal fill/reset, a cluster sibling (kept dispatch)
 
-const BAY2 = { doneP1: HOME_BAY2_OCCUPANCY_PRIMARY, doneP2: loc_8264, bayY: 0x48, key: 0x02, slot: 0xaaa4, r1: 0x1df5, r2: 0x1dfb };
-const BAY4 = { doneP1: HOME_BAY4_OCCUPANCY_PRIMARY, doneP2: loc_8266, bayY: 0xa8, key: 0x04, slot: 0xa924, r1: 0x1e97, r2: 0x1e9d };
+const BAY2 = { doneP1: HOME_BAY2_OCCUPANCY_PRIMARY, doneP2: HOME_BAY2_OCCUPANCY_ALT, bayY: 0x48, key: 0x02, slot: 0xaaa4, r1: 0x1df5, r2: 0x1dfb };
+const BAY4 = { doneP1: HOME_BAY4_OCCUPANCY_PRIMARY, doneP2: HOME_BAY4_OCCUPANCY_ALT, bayY: 0xa8, key: 0x04, slot: 0xa924, r1: 0x1e97, r2: 0x1e9d };
 
 function awardHomeBayGoal(m, p) {
   const { regs, mem8 } = m;
@@ -31,7 +31,7 @@ function awardHomeBayGoal(m, p) {
   if (mem8[FROG_Y] >= HOME_ROW_Y) return scanFrogInputAndDispatchHop(m);
 
   regs.b = p.bayY;
-  regs.a = (mem8[loc_8121] - p.key) & 0xff;
+  regs.a = (mem8[PENDING_HOME_BAY_SLOT] - p.key) & 0xff;
   if (regs.a === 0) { m.push16(p.r1); m.call(AWARD_POINTS); }
 
   regs.hl = p.slot;

@@ -8,9 +8,9 @@
  * LIVE-OUT: memory-only.
  */
 import {
-  HOLD_FLAG, FIGURE_ANIM_STEP_GATE, loc_8118, loc_8120, loc_8121, FROG_SPRITE_CODE,
+  HOLD_FLAG, FIGURE_ANIM_STEP_GATE, FROG_ANIM_BLIT_TRIGGER, HOME_BAY_SLOT_CURSOR_MIRROR, PENDING_HOME_BAY_SLOT, FROG_SPRITE_CODE,
   FROG_FURTHEST_ROW, FROG_HOP_DOWN_ACTIVE, FROG_HOP_LEFT_ANIM_COUNTER, GAME_MODE, PLAY_FLAG,
-  TWO_PLAYER_START_FLAG, loc_829a, loc_83ae, SCROLL_STAMP_PHASE, loc_8107, SCROLL_STAMP_ROWCOUNT,
+  TWO_PLAYER_START_FLAG, IN_PLAY_BOARD_STATE_BYTE, COUNTDOWN_EXPIRY_FLAG, SCROLL_STAMP_PHASE, SCROLL_EDGE_FLAG, SCROLL_STAMP_ROWCOUNT,
   SCROLL_BAND_ROWSPAN,
 } from "./names.js";
 import { stampHomeBaySlot } from "./stampHomeBaySlot.js";
@@ -36,8 +36,8 @@ export function driveFrogDeathAnimation(m) {
   const { mem8 } = m;
   if (mem8[HOLD_FLAG] === 0) return;
 
-  if (mem8[FIGURE_ANIM_STEP_GATE] & 0x01) mem8[loc_8118] = 1;
-  if (mem8[loc_8120] !== 0) mem8[loc_8121] = mem8[loc_8120];
+  if (mem8[FIGURE_ANIM_STEP_GATE] & 0x01) mem8[FROG_ANIM_BLIT_TRIGGER] = 1;
+  if (mem8[HOME_BAY_SLOT_CURSOR_MIRROR] !== 0) mem8[PENDING_HOME_BAY_SLOT] = mem8[HOME_BAY_SLOT_CURSOR_MIRROR];
 
   stampHomeBaySlot(m);
   m.push16(CLEAR_COLLISION_RET);
@@ -75,7 +75,7 @@ function advanceBoardAndReset(m) {
   if (mem8[GAME_MODE] === 1 && mem8[PLAY_FLAG] === 0) {
     mem8[GAME_MODE] = 0;
     mem8[loc_8299] = 0;
-    mem8[loc_829a] = 0;
+    mem8[IN_PLAY_BOARD_STATE_BYTE] = 0;
     mem8[TWO_PLAYER_START_FLAG] = 0;
   }
 }
@@ -95,9 +95,9 @@ function stampDeathTile(m, phase) {
     if (phase === 2) { mem8[FROG_SPRITE_CODE] = 0x23; return; }
     if (phase === 3) { mem8[FROG_SPRITE_CODE] = 0x24; return; }
     mem8[FROG_SPRITE_CODE] = 0x3c;
-    mem8[loc_83ae] = 0;
+    mem8[COUNTDOWN_EXPIRY_FLAG] = 0;
     mem8[SCROLL_STAMP_PHASE] = 0;
-    mem8[loc_8107] = 0;
+    mem8[SCROLL_EDGE_FLAG] = 0;
     mem8[SCROLL_STAMP_ROWCOUNT] = 0;
     mem8[SCROLL_BAND_ROWSPAN] = 0;
     regs.a = 0; clearTwoPlayerFrameCells(m);
@@ -115,7 +115,7 @@ function stampDeathTile(m, phase) {
   if (phase === 3) { mem8[FROG_SPRITE_CODE] = 0x3a; return; }
   if (phase === 4) { mem8[FROG_SPRITE_CODE] = 0x3b; return; }
   mem8[FROG_SPRITE_CODE] = 0x3c;
-  mem8[loc_83ae] = 0;
+  mem8[COUNTDOWN_EXPIRY_FLAG] = 0;
   regs.a = 0; clearTwoPlayerFrameCells(m);
   mem16[DEATH_WORD] = 0x00d8;
 }

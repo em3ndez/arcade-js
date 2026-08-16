@@ -7,7 +7,7 @@
  * into the reset arm: reseed the pacing timer, clear the sub-phase and a scratch cell, blit a strip, and
  * tail into the shared final-strip tail (kept dispatch). LIVE-OUT: memory-only.
  */
-import { loc_83d8, GAME_MODE, CREDIT_BCD, loc_83d7 } from "./names.js";
+import { POINT_TABLE_DRAW_STATE, GAME_MODE, CREDIT_BCD, ATTRACT_DEMO_PHASE_COUNTER } from "./names.js";
 import { renderMode3ScoreRankingScreen } from "./renderMode3ScoreRankingScreen.js";
 import { initInPlayBoardOnce } from "./initInPlayBoardOnce.js";
 import { renderMode4PointTablePhase } from "./renderMode4PointTablePhase.js";
@@ -23,7 +23,7 @@ const FINAL_STRIP_TAIL = 0x0c17; // shared final-strip tail (kept m.call, dispat
 export function dispatchGameModeFrame(m) {
   const { mem8 } = m;
 
-  if (mem8[loc_83d8] !== 0) return;
+  if (mem8[POINT_TABLE_DRAW_STATE] !== 0) return;
 
   if (mem8[GAME_MODE] === MODE_SCORE_RANKING) return renderMode3ScoreRankingScreen(m);
   if (mem8[CREDIT_BCD] !== 0) return initInPlayBoardOnce(m);
@@ -31,8 +31,8 @@ export function dispatchGameModeFrame(m) {
   if (mem8[GAME_MODE] === MODE_INTRO) return renderMode2IntroScreen(m);
   if (mem8[GAME_MODE] !== MODE_RESET) return;
 
-  mem8[loc_83d8] = TIMER_RELOAD;
-  mem8[loc_83d7] = 0;
+  mem8[POINT_TABLE_DRAW_STATE] = TIMER_RELOAD;
+  mem8[ATTRACT_DEMO_PHASE_COUNTER] = 0;
   mem8[loc_8015] = 0;
   copyRunUpTileColumn(m, RESET_STRIP_DST, RESET_STRIP_SRC, RESET_STRIP_LEN);
   return m.call(FINAL_STRIP_TAIL);

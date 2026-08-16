@@ -11,7 +11,7 @@
  * for P1 (bits 6/4) and cross to IN2 bit 0 / IN0 bit 0 for P2. LIVE-OUT: memory-only.
  */
 import {
-  FROG_X, FROG_Y, HOLD_FLAG, ACTIVE_PLAYER, loc_826c, FROG_HOP_INPUT_TIMER,
+  FROG_X, FROG_Y, HOLD_FLAG, ACTIVE_PLAYER, GATED_COUNTDOWN_ENABLE_FLAG, FROG_HOP_INPUT_TIMER,
   IN0_PORT, IN1_PORT, IN2_PORT,
   FROG_HOP_DOWN_ACTIVE, FROG_HOP_UP_ACTIVE, FROG_HOP_RIGHT_ACTIVE, FROG_HOP_LEFT_ACTIVE,
   FROG_HOP_DOWN_ARRIVAL, FROG_HOP_UP_ARRIVAL, FROG_HOP_RIGHT_ARRIVAL, FROG_HOP_LEFT_ARRIVAL,
@@ -31,7 +31,7 @@ const RIGHT_BIT = 0x10, LEFT_BIT = 0x20;
 export function scanFrogInputAndDispatchHop(m) {
   const { regs, mem8 } = m;
 
-  if (mem8[loc_826c] !== 0) return;
+  if (mem8[GATED_COUNTDOWN_ENABLE_FLAG] !== 0) return;
 
   if (mem8[FROG_HOP_INPUT_TIMER] !== 0) {
     mem8[FROG_HOP_INPUT_TIMER] = (mem8[FROG_HOP_INPUT_TIMER] - 1) & 0xff;

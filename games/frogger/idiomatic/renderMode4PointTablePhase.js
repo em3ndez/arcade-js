@@ -10,10 +10,10 @@
  */
 import { NotImplemented } from "../../../boards/frogger/io.js";
 import {
-  loc_83d7, loc_83d8,
-  POINT_TABLE_PHASE1_STRIP_VRAM, POINT_TABLE_PHASE1_VALUE_VRAM, POINT_TABLE_PHASE2_VALUE_VRAM, POINT_TABLE_PHASE2_STRIP_VRAM, POINT_TABLE_PHASE3_VALUE_VRAM, loc_ab71, POINT_TABLE_PHASE4_VALUE_VRAM,
-  loc_2f9e, PTS_SUFFIX_STRIP, loc_2f39, loc_2fae, loc_2f43, loc_2f17, loc_2f2a, loc_2ed1,
-  loc_801d, loc_8023, loc_8029, loc_802f, loc_801b, OBJECT_ANIM_STATE_8021, loc_8027, loc_802d,
+  ATTRACT_DEMO_PHASE_COUNTER, POINT_TABLE_DRAW_STATE,
+  POINT_TABLE_PHASE1_STRIP_VRAM, POINT_TABLE_PHASE1_VALUE_VRAM, POINT_TABLE_PHASE2_VALUE_VRAM, POINT_TABLE_PHASE2_STRIP_VRAM, POINT_TABLE_PHASE3_VALUE_VRAM, POINT_TABLE_PHASE3_STRIP_VRAM, POINT_TABLE_PHASE4_VALUE_VRAM,
+  POINT_TABLE_PHASE1_STRIP_ROM, PTS_SUFFIX_STRIP, POINT_TABLE_PHASE2_VALUE_ROM, INTRO_TITLE_STRIP2_SRC, POINT_TABLE_PHASE3_VALUE_ROM, POINT_TABLE_PHASE3_STRIP_ROM, POINT_TABLE_PHASE2_STRIP_ROM, POINT_TABLE_PHASE4_VALUE_ROM,
+  POINT_TABLE_SPRITE_ATTR_801D, SCREEN_MODE_STATE, POINT_TABLE_SPRITE_ATTR_8029, LANE_LOW_BOUND_SELECTOR, INTRO_COUNTER_801B, OBJECT_ANIM_STATE_8021, POINT_TABLE_SPRITE_CODE_8027, POINT_TABLE_SPRITE_CODE_802D,
 } from "./names.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writePackedBcdWord } from "./writePackedBcdWord.js";
@@ -26,18 +26,18 @@ export function renderMode4PointTablePhase(m) {
   const { regs, mem8 } = m;
 
   // reload the counter when it drains, then count down: the low value selects this call's phase
-  let phase = mem8[loc_83d7];
+  let phase = mem8[ATTRACT_DEMO_PHASE_COUNTER];
   if (phase === 0) phase = 5;
   phase -= 1;
-  mem8[loc_83d7] = phase;
+  mem8[ATTRACT_DEMO_PHASE_COUNTER] = phase;
 
   switch (phase) {
     case 0:
-      mem8[loc_83d8] = STATE_IDLE;
+      mem8[POINT_TABLE_DRAW_STATE] = STATE_IDLE;
       return;
 
     case 1:
-      copyRunUpTileColumn(m, POINT_TABLE_PHASE1_STRIP_VRAM, loc_2f9e, 10);
+      copyRunUpTileColumn(m, POINT_TABLE_PHASE1_STRIP_VRAM, POINT_TABLE_PHASE1_STRIP_ROM, 10);
       regs.a = 0x10;
       regs.hl = POINT_TABLE_PHASE1_VALUE_VRAM;
       writePackedBcdByte(m);
@@ -50,9 +50,9 @@ export function renderMode4PointTablePhase(m) {
       regs.de = 0x1000;
       writePackedBcdWord(m);
       copyRunUpTileColumn(m, regs.hl, PTS_SUFFIX_STRIP, 4);
-      copyRunUpTileColumn(m, regs.hl, loc_2f39, 10);
-      copyRunUpTileColumn(m, regs.hl, loc_2fae, 6);
-      copyRunUpTileColumn(m, POINT_TABLE_PHASE2_STRIP_VRAM, loc_2f2a, 15);
+      copyRunUpTileColumn(m, regs.hl, POINT_TABLE_PHASE2_VALUE_ROM, 10);
+      copyRunUpTileColumn(m, regs.hl, INTRO_TITLE_STRIP2_SRC, 6);
+      copyRunUpTileColumn(m, POINT_TABLE_PHASE2_STRIP_VRAM, POINT_TABLE_PHASE2_STRIP_ROM, 15);
       break;
 
     case 3:
@@ -60,30 +60,30 @@ export function renderMode4PointTablePhase(m) {
       regs.hl = POINT_TABLE_PHASE3_VALUE_VRAM;
       writePackedBcdByte(m);
       copyRunUpTileColumn(m, regs.hl, PTS_SUFFIX_STRIP, 4);
-      copyRunUpTileColumn(m, regs.hl, loc_2f43, 10);
-      copyRunUpTileColumn(m, regs.hl, loc_2fae, 5);
-      copyRunUpTileColumn(m, loc_ab71, loc_2f17, 19);
+      copyRunUpTileColumn(m, regs.hl, POINT_TABLE_PHASE3_VALUE_ROM, 10);
+      copyRunUpTileColumn(m, regs.hl, INTRO_TITLE_STRIP2_SRC, 5);
+      copyRunUpTileColumn(m, POINT_TABLE_PHASE3_STRIP_VRAM, POINT_TABLE_PHASE3_STRIP_ROM, 19);
       break;
 
     case 4:
-      mem8[loc_801d] = 6;
-      mem8[loc_8023] = 6;
-      mem8[loc_8029] = 6;
-      mem8[loc_802f] = 6;
-      mem8[loc_801b] = 3;
+      mem8[POINT_TABLE_SPRITE_ATTR_801D] = 6;
+      mem8[SCREEN_MODE_STATE] = 6;
+      mem8[POINT_TABLE_SPRITE_ATTR_8029] = 6;
+      mem8[LANE_LOW_BOUND_SELECTOR] = 6;
+      mem8[INTRO_COUNTER_801B] = 3;
       mem8[OBJECT_ANIM_STATE_8021] = 3;
-      mem8[loc_8027] = 3;
-      mem8[loc_802d] = 3;
+      mem8[POINT_TABLE_SPRITE_CODE_8027] = 3;
+      mem8[POINT_TABLE_SPRITE_CODE_802D] = 3;
       regs.a = 0x10;
       regs.hl = POINT_TABLE_PHASE4_VALUE_VRAM;
       writePackedBcdByte(m);
       copyRunUpTileColumn(m, regs.hl, PTS_SUFFIX_STRIP, 4);
-      copyRunUpTileColumn(m, regs.hl, loc_2ed1, 14);
+      copyRunUpTileColumn(m, regs.hl, POINT_TABLE_PHASE4_VALUE_ROM, 14);
       break;
 
     default:
       throw new NotImplemented(`renderMode4PointTablePhase: phase ${phase} outside 0..4`);
   }
 
-  mem8[loc_83d8] = STATE_DRAWN;
+  mem8[POINT_TABLE_DRAW_STATE] = STATE_DRAWN;
 }

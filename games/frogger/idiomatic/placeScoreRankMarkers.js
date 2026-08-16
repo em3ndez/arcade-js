@@ -5,7 +5,7 @@
  * via the row helper twice (low code then high). A zero code stamps nothing — the value is encoded as a
  * position, not a rendered numeral. LIVE-OUT: memory-only.
  */
-import { loc_83fb } from "./names.js";
+import { INTRO_DIGIT_FIELD } from "./names.js";
 import { loc_0c4a } from "./loc_0c4a.js";
 
 const RAM_PAGE = 0x80;
@@ -15,7 +15,7 @@ const MARKER_TILE = 4;
 export function placeScoreRankMarkers(m) {
   const { regs, mem16 } = m;
   regs.h = RAM_PAGE;
-  regs.bc = mem16[loc_83fb];
+  regs.bc = mem16[INTRO_DIGIT_FIELD];
   regs.d = ROW_BASE;
   regs.e = MARKER_TILE;
 

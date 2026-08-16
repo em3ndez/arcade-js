@@ -9,9 +9,9 @@
  * LIVE-OUT: memory-only.
  */
 import {
-  loc_8273, loc_8274, loc_827c, loc_827d, SCROLL_STAMP_ROWCOUNT, SCROLL_BAND_ROWSPAN,
-  SCROLL_STAMP_PHASE, SCROLL_BAND_PHASE, SCROLL_PHASE_COUNTER, loc_81b1,
-  loc_1423, loc_145f, loc_142b, loc_1473, loc_1433, loc_1487,
+  SCROLL_OBJECT_BLOCK_BASE, SCROLL_OBJ_A_ROW_COUNT, SCROLL_BAND_DESCRIPTOR_BASE, SCROLL_OBJ_B_ROW_COUNT, SCROLL_STAMP_ROWCOUNT, SCROLL_BAND_ROWSPAN,
+  SCROLL_STAMP_PHASE, SCROLL_BAND_PHASE, SCROLL_PHASE_COUNTER, SCROLL_COPY_COLUMN_STRIDE,
+  SCROLL_GRID_SRC_PHASE16, SCROLL_BAND_SRC_PHASE16, SCROLL_GRID_SRC_PHASE32, SCROLL_BAND_SRC_PHASE32, SCROLL_GRID_SRC_PHASE48, SCROLL_BAND_SRC_PHASE48,
 } from "./names.js";
 import { stampScrollRevealColumn } from "./stampScrollRevealColumn.js";
 import { blitScrollBand } from "./blitScrollBand.js";
@@ -29,21 +29,21 @@ const PHASE_LANE_C = 48;
 export function advanceScrollLaneObjects(m) {
   const { mem8 } = m;
 
-  mem8[SCROLL_STAMP_ROWCOUNT] = mem8[(loc_8273 + SCROLL_BYTE) & 0xffff];
+  mem8[SCROLL_STAMP_ROWCOUNT] = mem8[(SCROLL_OBJECT_BLOCK_BASE + SCROLL_BYTE) & 0xffff];
   const a = (mem8[SCROLL_STAMP_PHASE] + 1) & 0xff;
   mem8[SCROLL_STAMP_PHASE] = a;
   if (a >= COUNTER_A_STAMP) stampScrollRevealColumn(m);
 
-  mem8[SCROLL_BAND_ROWSPAN] = mem8[(loc_827c + SCROLL_BYTE) & 0xffff];
+  mem8[SCROLL_BAND_ROWSPAN] = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + SCROLL_BYTE) & 0xffff];
   const b = (mem8[SCROLL_BAND_PHASE] + 2) & 0xff;
   mem8[SCROLL_BAND_PHASE] = b;
   if (b < COUNTER_B_FLOOR) blitScrollBand(m);
 
   const phase = (mem8[SCROLL_PHASE_COUNTER] + 1) & 0xff;
   mem8[SCROLL_PHASE_COUNTER] = phase;
-  if (phase === PHASE_LANE_A) return stampLanes(m, loc_1423, loc_145f, false);
-  if (phase === PHASE_LANE_B) return stampLanes(m, loc_142b, loc_1473, false);
-  if (phase === PHASE_LANE_C) return stampLanes(m, loc_1433, loc_1487, true);
+  if (phase === PHASE_LANE_A) return stampLanes(m, SCROLL_GRID_SRC_PHASE16, SCROLL_BAND_SRC_PHASE16, false);
+  if (phase === PHASE_LANE_B) return stampLanes(m, SCROLL_GRID_SRC_PHASE32, SCROLL_BAND_SRC_PHASE32, false);
+  if (phase === PHASE_LANE_C) return stampLanes(m, SCROLL_GRID_SRC_PHASE48, SCROLL_BAND_SRC_PHASE48, true);
 }
 
 // Feed object A's descriptor into the grid copy engine, then object B's into the alt-base engine;
@@ -51,16 +51,16 @@ export function advanceScrollLaneObjects(m) {
 function stampLanes(m, gridSource, bandSource, wrapPhase) {
   const { regs, mem8 } = m;
 
-  regs.b = mem8[(loc_8273 + 1) & 0xffff];
+  regs.b = mem8[(SCROLL_OBJECT_BLOCK_BASE + 1) & 0xffff];
   regs.c = mem8[SCROLL_STAMP_ROWCOUNT];
   regs.de = gridSource;
-  mem8[loc_81b1] = mem8[loc_8273];
+  mem8[SCROLL_COPY_COLUMN_STRIDE] = mem8[SCROLL_OBJECT_BLOCK_BASE];
   if (wrapPhase) mem8[SCROLL_PHASE_COUNTER] = 0;
   blitScrollTileGrid(m);
 
-  regs.b = mem8[(loc_827c + 1) & 0xffff];
+  regs.b = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + 1) & 0xffff];
   regs.c = mem8[SCROLL_BAND_ROWSPAN];
   regs.de = bandSource;
-  mem8[loc_81b1] = mem8[loc_827c];
+  mem8[SCROLL_COPY_COLUMN_STRIDE] = mem8[SCROLL_BAND_DESCRIPTOR_BASE];
   return m.call(COPY_SCROLL_GRID_ALT);
 }

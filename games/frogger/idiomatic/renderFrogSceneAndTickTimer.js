@@ -9,8 +9,8 @@
  * bare return, else the shared reset delegate's A.
  */
 import {
-  loc_83cd, loc_83cf, PLAY_FLAG, ACTIVE_PLAYER, loc_83e5, loc_83e6, loc_826c,
-  HOME_BAY1_OCCUPANCY_PRIMARY, loc_8263, loc_825a, STATUS_ROW_VRAM_BASE,
+  FROG_STATE_DEMO_FLAG, loc_83cf, PLAY_FLAG, ACTIVE_PLAYER, TIME_REMAINING_P1, TIME_REMAINING_P2, GATED_COUNTDOWN_ENABLE_FLAG,
+  HOME_BAY1_OCCUPANCY_PRIMARY, HOME_BAY1_OCCUPANCY_ALT, PLAYER_START_DEMO_FLAG, STATUS_ROW_VRAM_BASE,
 } from "./names.js";
 import { renderFrogAndArmObjects } from "./renderFrogAndArmObjects.js";
 import { blitFourTileGroupColumn } from "./blitFourTileGroupColumn.js";
@@ -27,36 +27,36 @@ export function renderFrogSceneAndTickTimer(m) {
   const { regs, mem8 } = m;
 
   mem8[loc_83ce] = 0;
-  if (mem8[loc_83cd] === 0) mem8[loc_83cf] = 0;
+  if (mem8[FROG_STATE_DEMO_FLAG] === 0) mem8[loc_83cf] = 0;
 
   if (mem8[PLAY_FLAG] === 0) {
-    if (mem8[loc_83cd] === 0) { regs.a = 0; return; }
+    if (mem8[FROG_STATE_DEMO_FLAG] === 0) { regs.a = 0; return; }
     return resetFrogObject(m);
   }
 
-  const timerCell = mem8[ACTIVE_PLAYER] === 1 ? loc_83e5 : loc_83e6;
-  if (mem8[loc_83cd] === 0) {
+  const timerCell = mem8[ACTIVE_PLAYER] === 1 ? TIME_REMAINING_P1 : TIME_REMAINING_P2;
+  if (mem8[FROG_STATE_DEMO_FLAG] === 0) {
     const t = (mem8[timerCell] - 1) & 0xff;
     mem8[timerCell] = t;
     if (t === 0) mem8[loc_83cf] = 1;
   }
 
   renderFrogAndArmObjects(m);
-  if (mem8[loc_83cd] === 0) {
+  if (mem8[FROG_STATE_DEMO_FLAG] === 0) {
     mem8[loc_83b5] = 1;
     regs.hl = STATUS_ROW_VRAM_BASE;
     blitFourTileGroupColumn(m);
   }
 
-  mem8[loc_83b5] = mem8[loc_826c] ^ 1;
-  regs.hl = mem8[ACTIVE_PLAYER] === 1 ? HOME_BAY1_OCCUPANCY_PRIMARY : loc_8263;
+  mem8[loc_83b5] = mem8[GATED_COUNTDOWN_ENABLE_FLAG] ^ 1;
+  regs.hl = mem8[ACTIVE_PLAYER] === 1 ? HOME_BAY1_OCCUPANCY_PRIMARY : HOME_BAY1_OCCUPANCY_ALT;
   renderFilledHomeSlots(m);
 
-  if (mem8[loc_825a] === 0) return resetFrogObject(m);
+  if (mem8[PLAYER_START_DEMO_FLAG] === 0) return resetFrogObject(m);
   loadActivePlayerLaneParams(m);
   m.push16(FROG_ANIM_RET);
   m.call(FROG_ANIM_DISPATCH);
 
-  mem8[loc_825a] = 0;
+  mem8[PLAYER_START_DEMO_FLAG] = 0;
   return resetFrogObject(m);
 }

@@ -8,7 +8,7 @@
  * scan runs. Plain leaves dissolve; the tail-transferring dive driver, goal scan, and dive-counter
  * arm are dispatched by address so the seam keeps a balanced stack. LIVE-OUT: memory-only.
  */
-import { PLAY_FLAG, loc_8340, loc_83b7, FROG_Y } from "./names.js";
+import { PLAY_FLAG, HOME_GOAL_SPRITE_ARM_CELL, LIVES_COUNT, FROG_Y } from "./names.js";
 import { mountOrKillFrogOnTwoPairFigure } from "./mountOrKillFrogOnTwoPairFigure.js";
 import { animateTwoPairFigure } from "./animateTwoPairFigure.js";
 import { animateFlyEatCollision } from "./animateFlyEatCollision.js";
@@ -35,10 +35,10 @@ export function orchestrateCollisionsAndFrogInput(m) {
   animateFlyEatCollision(m);
   queueFrogOnLogEdgeBlit(m);
 
-  if (mem8[loc_8340] !== 0) interiorTimingArm(m);
+  if (mem8[HOME_GOAL_SPRITE_ARM_CELL] !== 0) interiorTimingArm(m);
   loc_23eb(m);
 
-  if ((mem8[loc_83b7] & 0x01) === 0) return gatorSlotArm(m);
+  if ((mem8[LIVES_COUNT] & 0x01) === 0) return gatorSlotArm(m);
 
   const v = (mem8[SCROLL_TIMER_COUNTER] + 1) & 0xff;
   mem8[SCROLL_TIMER_COUNTER] = v;
@@ -50,8 +50,8 @@ export function orchestrateCollisionsAndFrogInput(m) {
 // Tick the arm cell down; only when it reaches 1, clear the counter block and run the dive-counter arm.
 function interiorTimingArm(m) {
   const mem8 = m.mem8;
-  const v = (mem8[loc_8340] - 1) & 0xff;
-  mem8[loc_8340] = v;
+  const v = (mem8[HOME_GOAL_SPRITE_ARM_CELL] - 1) & 0xff;
+  mem8[HOME_GOAL_SPRITE_ARM_CELL] = v;
   if (v !== 1) return;
   clearFourByteCounterBlock(m);
   m.push16(0x1aac); m.call(DIVE_COUNTER_ARM);

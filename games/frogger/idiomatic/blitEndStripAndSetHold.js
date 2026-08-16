@@ -4,14 +4,14 @@
  * column (the second continues where the first left the destination), then raises the hold flag.
  * LIVE-OUT: memory-only.
  */
-import { loc_aa51, loc_2f6e, loc_2f12, HOLD_FLAG } from "./names.js";
+import { NO_MORE_FROGS_COLUMN_VRAM, LAYOUT_SETUP_STRIP_SRC, FIVE_TILE_STRIP_SRC, HOLD_FLAG } from "./names.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 
 export function blitEndStripAndSetHold(m) {
   const { regs, mem8 } = m;
 
-  copyRunUpTileColumn(m, loc_aa51, loc_2f6e, 4);
-  copyRunUpTileColumn(m, regs.hl, loc_2f12, 5);
+  copyRunUpTileColumn(m, NO_MORE_FROGS_COLUMN_VRAM, LAYOUT_SETUP_STRIP_SRC, 4);
+  copyRunUpTileColumn(m, regs.hl, FIVE_TILE_STRIP_SRC, 5);
 
   mem8[HOLD_FLAG] = 1;
 }

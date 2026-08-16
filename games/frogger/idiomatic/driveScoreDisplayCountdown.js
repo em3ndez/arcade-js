@@ -8,8 +8,8 @@
  * memory-only.
  */
 import {
-  loc_83cd, HOLD_FLAG, loc_83ae, loc_83df, loc_83dc,
-  loc_83dd, loc_83de, loc_83e0, OBJRAM_COL3F_ATTR_SHADOW,
+  FROG_STATE_DEMO_FLAG, HOLD_FLAG, COUNTDOWN_EXPIRY_FLAG, SCORE_DISPLAY_ARM_SELECT, loc_83dc,
+  SCORE_DISPLAY_COUNTER_HI, loc_83de, loc_83e0, OBJRAM_COL3F_ATTR_SHADOW,
 } from "./names.js";
 import { initDisplayFieldOnce } from "./initDisplayFieldOnce.js";
 import { blitEndStripAndSetHold } from "./blitEndStripAndSetHold.js";
@@ -24,29 +24,29 @@ const BAR_BASE = 0xa8df;
 export function driveScoreDisplayCountdown(m) {
   const { regs, mem8 } = m;
 
-  if (mem8[loc_83cd] !== 0) return;
+  if (mem8[FROG_STATE_DEMO_FLAG] !== 0) return;
   if (mem8[HOLD_FLAG] !== 0) return;
 
-  if (mem8[loc_83ae] === 0) {
-    mem8[loc_83ae] = 1;
+  if (mem8[COUNTDOWN_EXPIRY_FLAG] === 0) {
+    mem8[COUNTDOWN_EXPIRY_FLAG] = 1;
     regs.a = 0x06;
     enqueueSoundCommand(m);
   }
 
   initDisplayFieldOnce(m);
 
-  if (mem8[loc_83df] !== 0) return armScoreBonusStrip(m);
+  if (mem8[SCORE_DISPLAY_ARM_SELECT] !== 0) return armScoreBonusStrip(m);
 
   const left = (mem8[loc_83dc] - 1) & 0xff;
   mem8[loc_83dc] = left;
   if (left !== 0) return;
   mem8[loc_83dc] = COUNTDOWN_RELOAD;
 
-  regs.a = mem8[loc_83dd];
+  regs.a = mem8[SCORE_DISPLAY_COUNTER_HI];
   regs.or(regs.a); // clears carry for the BCD correction below
   if (regs.fZ) return blitEndStripAndSetHold(m);
   regs.a = regs.dec8(regs.a);
-  mem8[loc_83dd] = regs.a;
+  mem8[SCORE_DISPLAY_COUNTER_HI] = regs.a;
 
   regs.a = mem8[loc_83de];
   regs.a = regs.dec8(regs.a);
@@ -64,7 +64,7 @@ export function driveScoreDisplayCountdown(m) {
 // Stamp one cell of the bar: index from the counter's high bits, value 0x10 minus its low two bits.
 function stepScoreBarTile(m) {
   const { mem8 } = m;
-  const dd = mem8[loc_83dd];
+  const dd = mem8[SCORE_DISPLAY_COUNTER_HI];
   const c = dd & 0x03;
   let a = dd & 0xfc;
   a = ((a << 2) | (a >> 6)) & 0xff; // rotate left by two

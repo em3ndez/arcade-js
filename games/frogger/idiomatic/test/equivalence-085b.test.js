@@ -8,7 +8,7 @@
  * tile-column blit directly while the oracle runs the frozen one, so their tile writes match; the
  * compared RAM is memory-only and excludes the dead [SP-8, SP) stack scratch the direct call leaves
  * unpushed. Teeth: four broken twins, each caught at a real cell. NOTE: links once names.js exports
- * loc_aa51, loc_2f6e, loc_2f12 (added in a later pass).
+ * NO_MORE_FROGS_COLUMN_VRAM, LAYOUT_SETUP_STRIP_SRC, FIVE_TILE_STRIP_SRC (added in a later pass).
  */
 import test from "node:test";
 import assert from "node:assert/strict";

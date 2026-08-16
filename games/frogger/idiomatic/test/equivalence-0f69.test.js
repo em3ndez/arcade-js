@@ -8,7 +8,7 @@
  * locals, so the two leave different DEAD residue in the top-of-stack scratch — masked off; every
  * live cell (the display field 0x83FB/0x83FC and the rank table 0x83F1-0x83FA the helper edits) is
  * compared. Live-out is memory-only. Teeth: four broken twins.
- * NOTE: links once names.js exports loc_83eb/loc_83ed/loc_83fb, added in the naming pass.
+ * NOTE: links once names.js exports loc_83eb/loc_83ed/INTRO_DIGIT_FIELD, added in the naming pass.
  */
 import test from "node:test";
 import assert from "node:assert/strict";

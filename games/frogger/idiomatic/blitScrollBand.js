@@ -4,7 +4,7 @@
  * row count), choosing one of three source rows by the scroll-phase mode and toggling the wrap-latch.
  * LIVE-OUT: memory-only.
  */
-import { loc_827c, SCROLL_BAND_PHASE, loc_8108, SCROLL_BAND_ROWSPAN, loc_a80e, loc_2231, loc_2235, loc_2239 } from "./names.js";
+import { SCROLL_BAND_DESCRIPTOR_BASE, SCROLL_BAND_PHASE, SCROLL_WRAP_LATCH, SCROLL_BAND_ROWSPAN, SCROLL_BAND_VRAM_BASE, SCROLL_BAND_ROW_A, SCROLL_BAND_ROW_B, SCROLL_BAND_ROW_C } from "./names.js";
 
 const UNIT_SPAN = 32; // each descriptor unit shifts the band base one tile row
 const ROW_STRIDE = 32;
@@ -19,19 +19,19 @@ const PHASE_ROW_C = 80;
 
 export function blitScrollBand(m) {
   const { mem8 } = m;
-  const column = mem8[loc_827c];
-  const units = mem8[(loc_827c + 1) & 0xffff];
-  const rows = mem8[(loc_827c + 2) & 0xffff];
+  const column = mem8[SCROLL_BAND_DESCRIPTOR_BASE];
+  const units = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + 1) & 0xffff];
+  const rows = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + 2) & 0xffff];
 
   const stride = (column + ((UNIT_SPAN * units) & 0xff)) & 0xffff;
   const rowSteps = ((rows - 1) & 0xff) || ZERO_RUNS_FULL;
-  const bandTop = (loc_a80e + stride * rowSteps) & 0xffff;
+  const bandTop = (SCROLL_BAND_VRAM_BASE + stride * rowSteps) & 0xffff;
 
   const mode = mem8[SCROLL_BAND_PHASE];
   let source = -1;
-  if (PHASE_ROW_A.includes(mode)) source = loc_2231;
-  else if (PHASE_ROW_B.includes(mode)) source = loc_2235;
-  else if (mode === PHASE_ROW_C) source = loc_2239;
+  if (PHASE_ROW_A.includes(mode)) source = SCROLL_BAND_ROW_A;
+  else if (PHASE_ROW_B.includes(mode)) source = SCROLL_BAND_ROW_B;
+  else if (mode === PHASE_ROW_C) source = SCROLL_BAND_ROW_C;
 
   if (source >= 0) {
     let dst = bandTop;
@@ -42,9 +42,9 @@ export function blitScrollBand(m) {
       dst = (dst + ROW_STRIDE) & 0xffff;
     }
     if (PHASE_ROW_B.includes(mode)) {
-      if (mem8[loc_8108] !== 0) mem8[loc_8108] = 0;
+      if (mem8[SCROLL_WRAP_LATCH] !== 0) mem8[SCROLL_WRAP_LATCH] = 0;
     } else if (mode === PHASE_ROW_C) {
-      mem8[loc_8108] = 1;
+      mem8[SCROLL_WRAP_LATCH] = 1;
     }
   }
   mem8[SCROLL_BAND_ROWSPAN] = (rows - 1) & 0xff;

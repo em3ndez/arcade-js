@@ -101,7 +101,7 @@ Player routing keys on `IN2` bit 3 (cocktail) together with `ACTIVE_PLAYER`: RIG
 main port (P1 `IN0`, P2 `IN1`) bits 4/5, while DOWN/UP sit on `IN2` for P1 (bits 6/4) but cross to `IN2`
 bit 0 / `IN0` bit 0 for P2. While the hop-input lock timer (`FROG_HOP_INPUT_TIMER`, `0x8268`) counts it
 decrements the timer and ticks the home-slot cursor (`loc_23eb`) instead, locking new input; a set
-`loc_826c` or `HOLD_FLAG` returns at once. The lift dissolves all eight hop handlers and `loc_23eb`. A begin guards on the frog's position (screen edges), emits the hop sound, stamps the
+`GATED_COUNTDOWN_ENABLE_FLAG` or `HOLD_FLAG` returns at once. The lift dissolves all eight hop handlers and `loc_23eb`. A begin guards on the frog's position (screen edges), emits the hop sound, stamps the
 direction's rest tile into `FROG_SPRITE_CODE`, and primes that direction's `FROG_HOP_*_ANIM_COUNTER` from
 its `FROG_HOP_*_ANIM_RELOAD`, then falls into the matching **advance** half. An advance ticks the counter
 down and, on drain, marks the hop's arrival and stamps the rest tile; otherwise it steps the hopping frog
@@ -120,7 +120,7 @@ they stay `[code]`. Every branch is equivalence-verified against the oracle (pok
 ## The home bays — `[seen]`
 
 The five top bays are the goal, and the code that decorates them is a small animation engine keyed by a
-slot cursor. **`loc_23eb`** advances the `loc_8123` slot cursor mod-6, read by the stampers as the
+slot cursor. **`loc_23eb`** advances the `HOME_BAY_SLOT_CURSOR` slot cursor mod-6, read by the stampers as the
 home-slot index 1..5 (grounding **overturned** the earlier "river/lane-scroll phase" reading). Into a
 bay whose occupancy flag is clear, the engine stamps one of several creatures at that bay's fixed VRAM
 base (`HOME_SLOT5_VRAM`/`HOME_SLOT4_VRAM`/`HOME_SLOT3_VRAM`/`HOME_SLOT2_VRAM`/`HOME_SLOT1_VRAM`): **`stampHomeBayFly`** the fly bonus creature,
@@ -161,11 +161,11 @@ on the frog's row, a direction-adjusted position within 16px ahead of the frog X
 the object hit-consumed (state 2). Dispatcher-A's **`placeSpriteObjectSlotAndRetire`** runs the arm helper
 (one-shot + arm sound), writes the slot X/attribute/fold-biased position, and on the fold with the retire
 flag clears the record and slot. **`driveSpriteObjectCluster`** is the per-frame cluster entry: below
-three slots (`loc_83b7`) it skips to dispatcher-B, else it runs dispatcher-A **`dispatchSpriteObjectArmsA`**
+three slots (`LIVES_COUNT`) it skips to dispatcher-B, else it runs dispatcher-A **`dispatchSpriteObjectArmsA`**
 on the active player's record — a second pass advancing to the next record/slot only at six slots — then
 dispatcher-B. Dispatcher-A runs its five arms in order, the first being **`spawnSpriteObjectArmA`** (the
 spawn arm: on the spawn-timer expiry with an idle object it rolls the spawn PRNG against `8*count+0x80`
-and walks the `loc_8276`/`loc_8278` placement bands down from `FREE_RUNNING_POS_COUNTER` to land the object
+and walks the `SPRITE_SPAWN_X_STRIDE`/`SPRITE_SPAWN_BAND_SCAN_COUNT` placement bands down from `FREE_RUNNING_POS_COUNTER` to land the object
 on-screen or park it off-screen, seeds its timers, then falls into the shared arm tail); `[code]`. The
 batch-2 arms **`animateSpriteObjectFrame`**, **`loc_29f9`** (a motion
 arm whose earlier toward-the-frog name was reverted — `FREE_RUNNING_POS_COUNTER` grounded as a free-running
@@ -192,7 +192,7 @@ At board start **`loadActivePlayerLaneParams`** LDIRs the active player's 33-byt
 into `0x8270`; **`seedObjectAnimationState`** fills the object seed tables; **`initDisplayFieldOnce`**
 (guarded by `0x842d`) lays out the score/bonus display field once (blits a strip, fills a tile-12 column,
 seeds the countdown pair `0x83dc`/`0x83de`). **`initInPlayBoardOnce`** is the one-shot in-play board setup
-(guarded by `loc_83ba`): it clears the difficulty indices and two board-state cells, runs that lane/object/
+(guarded by `IN_PLAY_BOARD_INIT_GUARD`): it clears the difficulty indices and two board-state cells, runs that lane/object/
 field setup, and blits the HUD strings and score-target digits. **`clearActivePlayerWorkRam`** clears the
 active player's work RAM (the frog object block and home-bay gates) except in a one-player game, and
 **`clearTilemapToTile16`** (the rst-0x38 primitive) blanks the whole 32×32 tilemap. On board advance
@@ -223,7 +223,7 @@ overturned the "draw digit pair" reading). **`dequeueSoundCommand`** pops the so
 **`enqueueSoundCommand`** is the enqueue side (the rst-0x18 primitive): while in play it bumps the ring
 head `SOUND_QUEUE_COUNT` and stores the command in `A`, dropping it in attract; the hop, the board-advance
 cues, the score-display driver, and **`queueFrogOnLogEdgeBlit`** (the frog-on-log edge blit, gated on the
-phase `loc_81a2` and the busy gate `loc_8140`) all feed it. **`scanCoinInputAndCredit`** — run first each
+phase `FROG_ON_LOG_ANIM_PHASE` and the busy gate `FROG_ON_LOG_BLIT_BUSY_GATE`) all feed it. **`scanCoinInputAndCredit`** — run first each
 NMI — latches the coin input `COIN_INPUT_LATCH` in attract and credits on the release edge, pulsing the
 slot's hardware coin counter (`COIN_COUNTER_0`/`COIN_COUNTER_1`) and adding the `COINAGE_WORD`-indexed
 amount to the packed-BCD total `CREDIT_BCD` (clamped at `0x99`), then forces the player-select mode unless

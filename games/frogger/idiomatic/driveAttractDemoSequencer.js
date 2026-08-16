@@ -9,7 +9,7 @@ import { NotImplemented } from "../../../boards/frogger/io.js";
  * on its not-elapsed branch it returns straight to our caller, so we just return and the seam reads the
  * two-byte delta it leaves. LIVE-OUT: memory-only.
  */
-import { CREDIT_BCD, loc_83bf, loc_83d7, ATTRACT_DEMO_DWELL, FLY_SPRITE_X } from "./names.js";
+import { CREDIT_BCD, ATTRACT_SEQUENCER_PHASE, ATTRACT_DEMO_PHASE_COUNTER, ATTRACT_DEMO_DWELL, FLY_SPRITE_X } from "./names.js";
 import { fillTilemapBlock28x32 } from "./fillTilemapBlock28x32.js";
 import { clearObjectBlocksAndMirrorToObjRam } from "./clearObjectBlocksAndMirrorToObjRam.js";
 import { setAttractIdleMode } from "./setAttractIdleMode.js";
@@ -30,7 +30,7 @@ export function driveAttractDemoSequencer(m) {
 
   if (mem8[CREDIT_BCD] !== 0) return setAttractIdleMode(m);
 
-  const phase = mem8[loc_83bf];
+  const phase = mem8[ATTRACT_SEQUENCER_PHASE];
   if (phase !== 0) return dispatchPhase(m, phase);
 
   // phase 0: seed the demo, laying out 7 cells (+0=0, +2=3, +3=0x81)
@@ -51,13 +51,13 @@ export function driveAttractDemoSequencer(m) {
 // Arm the animator: phase counter 7 (boot enters the last cell), dwell 0x20, then advance the phase.
 function seedAnimator(m) {
   const mem8 = m.mem8;
-  mem8[loc_83d7] = 0x07;
+  mem8[ATTRACT_DEMO_PHASE_COUNTER] = 0x07;
   mem8[ATTRACT_DEMO_DWELL] = 0x20;
   return advancePhase(m);
 }
 
 function advancePhase(m) {
-  m.mem8[loc_83bf] = (m.mem8[loc_83bf] + 1) & 0xff;
+  m.mem8[ATTRACT_SEQUENCER_PHASE] = (m.mem8[ATTRACT_SEQUENCER_PHASE] + 1) & 0xff;
 }
 
 function dispatchPhase(m, phase) {
@@ -65,7 +65,7 @@ function dispatchPhase(m, phase) {
   if (a !== 0) return dispatchPhase2Plus(m, a);
 
   // phase 1: the scroll animator; a computed jump on the phase counter picks the arm
-  const p = m.mem8[loc_83d7];
+  const p = m.mem8[ATTRACT_DEMO_PHASE_COUNTER];
   const hl = (0x0ec1 + ((p + p) & 0xff)) & 0xffff;
   const arm = ANIM_ARMS[hl];
   if (!arm) {
@@ -89,10 +89,10 @@ function animatorTail(m, cellBase, limit) {
   if (scrolled >= limit) return;
 
   mem8[(cellBase + 1) & 0xffff] = 0x1e;
-  const left = (mem8[loc_83d7] - 1) & 0xff;
-  mem8[loc_83d7] = left;
+  const left = (mem8[ATTRACT_DEMO_PHASE_COUNTER] - 1) & 0xff;
+  mem8[ATTRACT_DEMO_PHASE_COUNTER] = left;
   if (left !== 0) return;
-  mem8[loc_83d7] = 0x14;
+  mem8[ATTRACT_DEMO_PHASE_COUNTER] = 0x14;
   return advancePhase(m);
 }
 
@@ -105,7 +105,7 @@ function dispatchPhase2Plus(m, a) {
   if (!m.call(FRAME_CLOCK)) return;
   const c = (m.regs.a - 0x03) & 0xff;
 
-  const d7 = mem8[loc_83d7];
+  const d7 = mem8[ATTRACT_DEMO_PHASE_COUNTER];
   if (d7 === 0) return seedAnimator(m);
 
   let hi = 0x8043;
@@ -114,5 +114,5 @@ function dispatchPhase2Plus(m, a) {
     mem8[(hi - 2) & 0xffff] = c;
     hi = (hi + 4) & 0xffff;
   }
-  mem8[loc_83d7] = (d7 - 1) & 0xff;
+  mem8[ATTRACT_DEMO_PHASE_COUNTER] = (d7 - 1) & 0xff;
 }

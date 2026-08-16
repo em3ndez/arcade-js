@@ -12,7 +12,7 @@ import {
   COLLISION_SUBFLAG, PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_SLOT, HOME_COLUMN_STATE,
   FROG_X, FROG_SPRITE_CODE, FROG_Y,
   FROG_HOP_UP_ARRIVAL, FROG_HOP_UP_ACTIVE, FROG_HOP_UP_ANIM_COUNTER, FROG_HOP_INPUT_TIMER,
-  loc_826a, loc_826c, loc_83cd, loc_829b, loc_83ea,
+  GATED_COUNTDOWN_COUNTER, GATED_COUNTDOWN_ENABLE_FLAG, FROG_STATE_DEMO_FLAG, INTRO_COUNTER_829B, loc_83ea,
 } from "./names.js";
 import { addScoreAndAwardExtraLife } from "./addScoreAndAwardExtraLife.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
@@ -76,19 +76,19 @@ export function stampHomeGoalAndResetFrog(m) {
     }
   }
 
-  mem8[loc_826a] = 0x20;
+  mem8[GATED_COUNTDOWN_COUNTER] = 0x20;
   regs.a = 0x80; enqueueSoundCommand(m);
   mem8[FROG_X] = 0;
   mem8[FROG_SPRITE_CODE] = 0;
   mem8[FROG_OBJ_ATTR] = 0;
   mem8[FROG_Y] = 0xf0;
   regs.de = savedDe; regs.hl = savedHl;
-  mem8[loc_829b] = 0;
+  mem8[INTRO_COUNTER_829B] = 0;
   mem8[loc_83ea] = 0;
   mem8[FROG_HOP_UP_ARRIVAL] = 0;
   mem8[FROG_HOP_UP_ACTIVE] = 0;
   mem8[FROG_HOP_UP_ANIM_COUNTER] = 0;
-  mem8[loc_826c] = 1;
-  mem8[loc_83cd] = 1;
+  mem8[GATED_COUNTDOWN_ENABLE_FLAG] = 1;
+  mem8[FROG_STATE_DEMO_FLAG] = 1;
   mem8[FROG_HOP_INPUT_TIMER] = 0x10;
 }

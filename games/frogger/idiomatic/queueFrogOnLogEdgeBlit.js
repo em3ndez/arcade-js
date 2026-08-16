@@ -4,7 +4,7 @@
  * Bails unless the game is in play, the phase index is in range, and the busy gate is clear.
  * LIVE-OUT: memory-only (the command ring the enqueue writes).
  */
-import { PLAY_FLAG, loc_81a2, loc_8140 } from "./names.js";
+import { PLAY_FLAG, FROG_ON_LOG_ANIM_PHASE, FROG_ON_LOG_BLIT_BUSY_GATE } from "./names.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 
 const PHASE_HI = 0x0f;         // phase must be below this ...
@@ -15,9 +15,9 @@ export function queueFrogOnLogEdgeBlit(m) {
   const { regs, mem8 } = m;
   if (mem8[PLAY_FLAG] === 0) return;
 
-  const phase = mem8[loc_81a2];
+  const phase = mem8[FROG_ON_LOG_ANIM_PHASE];
   if (phase >= PHASE_HI || phase < PHASE_LO) return;
-  if (mem8[loc_8140] !== 0) return;
+  if (mem8[FROG_ON_LOG_BLIT_BUSY_GATE] !== 0) return;
 
   regs.a = BLIT_CMD;
   enqueueSoundCommand(m);

@@ -8,7 +8,7 @@
  * the three board-start HUD cells, raises the 2-player start flag, clears the request cell, mirrors the
  * demo flag, redraws the lives row, then tail-enters the play loop. LIVE-OUT: memory-only.
  */
-import { loc_83ea, loc_83cd, PLAY_FLAG, loc_826d, loc_83b6, PACE_TAIL } from "./names.js";
+import { loc_83ea, FROG_STATE_DEMO_FLAG, PLAY_FLAG, TWO_PLAYER_MODE_FLAG, PER_PLAYER_RESET_CELL, PACE_TAIL } from "./names.js";
 import { beginNextLifeOrIntro } from "./beginNextLifeOrIntro.js";
 import { clearTilemapToTile16 } from "./clearTilemapToTile16.js";
 import { swapInActivePlayerPages } from "./swapInActivePlayerPages.js";
@@ -27,7 +27,7 @@ export function setUpBoardOrContinueLife(m) {
 
   if (mem8[loc_83ea] !== 0) return beginNextLifeOrIntro(m);
 
-  if (mem8[loc_83cd] === 0) {
+  if (mem8[FROG_STATE_DEMO_FLAG] === 0) {
     if (mem8[PLAY_FLAG] !== ONE_PLAYER) {
       clearTilemapToTile16(m);
       swapInActivePlayerPages(m);
@@ -35,7 +35,7 @@ export function setUpBoardOrContinueLife(m) {
     renderScoreHeader(m);
   }
 
-  if (mem8[loc_826d] !== 0) advanceBoardForeground(m);
+  if (mem8[TWO_PLAYER_MODE_FLAG] !== 0) advanceBoardForeground(m);
 
   m.push16(BUILD_BOARD_RET);
   m.call(BUILD_BOARD);
@@ -49,8 +49,8 @@ export function setUpBoardOrContinueLife(m) {
 
   if (mem8[PLAY_FLAG] !== ONE_PLAYER) raiseActivePlayerStartFlag(m);
 
-  mem8[loc_826d] = 0;
-  mem8[loc_83b6] = mem8[loc_83cd];
+  mem8[TWO_PLAYER_MODE_FLAG] = 0;
+  mem8[PER_PLAYER_RESET_CELL] = mem8[FROG_STATE_DEMO_FLAG];
 
   renderLivesRow(m);
 

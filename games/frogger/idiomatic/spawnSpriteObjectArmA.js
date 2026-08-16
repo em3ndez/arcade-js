@@ -6,7 +6,7 @@
  * land the object on-screen or park it, seeds its timers, and falls into the shared arm tail (raise
  * the one-shot + queue the spawn sound). Reads regs.ix as the 16-byte record base. LIVE-OUT: memory-only.
  */
-import { loc_83b7, FREE_RUNNING_POS_COUNTER, loc_8276, loc_8278 } from "./names.js";
+import { LIVES_COUNT, FREE_RUNNING_POS_COUNTER, SPRITE_SPAWN_X_STRIDE, SPRITE_SPAWN_BAND_SCAN_COUNT } from "./names.js";
 import { nextSpawnRandomByte } from "./nextSpawnRandomByte.js";
 
 const ARM_TAIL = 0x2ae6;   // shared tail: one-shot + spawn sound (kept as a direct dispatch)
@@ -17,7 +17,7 @@ export function spawnSpriteObjectArmA(m) {
   const { regs, mem8 } = m;
   const ix = regs.ix;
 
-  const count = mem8[loc_83b7];
+  const count = mem8[LIVES_COUNT];
   if (count < MIN_SLOTS) return;
   const timer = (mem8[(ix + 0x0a) & 0xffff] - 1) & 0xff;
   mem8[(ix + 0x0a) & 0xffff] = timer;
@@ -30,9 +30,9 @@ export function spawnSpriteObjectArmA(m) {
   nextSpawnRandomByte(m);
   if ((regs.a & 0x03) === 0) return parkOrReveal();
 
-  const seed = mem8[loc_8276];
+  const seed = mem8[SPRITE_SPAWN_X_STRIDE];
   const stride = ((((seed >> 2) | ((seed & 0x03) << 6)) & 0xff) + 0x24) & 0xff;
-  let bands = mem8[loc_8278];
+  let bands = mem8[SPRITE_SPAWN_BAND_SCAN_COUNT];
   if (mem8[FREE_RUNNING_POS_COUNTER] < 0x10) return parkOrReveal();
   let a = (mem8[FREE_RUNNING_POS_COUNTER] - 0x10) & 0xff;
   for (;;) {

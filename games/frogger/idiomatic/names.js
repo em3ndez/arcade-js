@@ -50,7 +50,7 @@ export const MAIN_LOOP_HEAD = 0x0341;
 export const PACE_TAIL = 0x0368;
 
 // Tilemap base fillTilemapBlock28x32 fills from. [code] fillTilemapBlock28x32 loads it as the fixed start of a 28x32 block fill.
-export const loc_a802 = 0xa802;
+export const TILEMAP_FILL_BASE_28X32 = 0xa802;
 
 // Work-RAM, video-RAM, and IO-port cells the batch-1 leaves touch. Each is defined ONCE; shared
 // cells note every leaf that uses them. Evidence is [code] (understood from the touching routines).
@@ -62,131 +62,131 @@ export const FROG_Y = 0x8047; // [seen] frog Y / row (game-space vertical positi
 export const LANE_OBJECT_INDEX = 0x80ff; // [seen] lane-object walk index (0..10); moveLaneObjectsAndCarryFrog reads/increments it per object, wraps to 0 after object 10. Also the base of the 183-byte per-player object work page swapIn/swapOutActivePlayerPages bank from/to (this index byte leads that page). Walk role grounded by consequence (11 objects each step per frame); vblank snapshots read the post-wrap 0, not 1..10.
 export const SPRITE_BLOCK2_BASE = 0x8100; // [seen] second work-RAM sprite block base; clearObjectBlocksAndMirrorToObjRam zeroes 99 bytes from here
 export const FROG_FURTHEST_ROW = 0x8269; // [code] frog row-progress high-water mark; scoreFrogRowProgress seeds/updates it as the furthest (nearest-top) row the frog has reached, resetFrogObject clears it on frog reset
-export const loc_825a = 0x825a; // [code] per-player start/demo flag; loc_05d3 sets it to 1, handOffToOtherPlayer sets it to 1 on the player hand-off
+export const PLAYER_START_DEMO_FLAG = 0x825a; // [code] per-player start/demo flag; loc_05d3 sets it to 1, handOffToOtherPlayer sets it to 1 on the player hand-off
 export const TWO_PLAYER_START_FLAG = 0x825b; // [seen] 2-player start flag; loc_05d3 clears it, raiseTwoPlayerStartFlag raises it, swapOutActivePlayerPages restores it under the init guard
-export const loc_826d = 0x826d; // [code] 2-player mode flag; loc_05d3 sets it to 1, raiseTwoPlayerStartFlag reads it to decide whether to raise the start flag
-export const loc_8295 = 0x8295; // [code] one-shot init guard latch; swapOutActivePlayerPages returns early when set, else latches it to 1
+export const TWO_PLAYER_MODE_FLAG = 0x826d; // [code] 2-player mode flag; loc_05d3 sets it to 1, raiseTwoPlayerStartFlag reads it to decide whether to raise the start flag
+export const INIT_GUARD_LATCH = 0x8295; // [code] one-shot init guard latch; swapOutActivePlayerPages returns early when set, else latches it to 1
 export const HOME_REVEAL_COUNTDOWN = 0x8297; // [seen,poked] board-complete "all frogs home" reveal countdown / home-column selector; loc_05d3 sets 255, decremented each frame, fed to stampHomeBayFrogByColumn as the selector (grounding overturned the "demo start-flag" reading)
 export const HOME_REVEAL_DELAY_TIMER = 0x8298; // [seen,poked] board-complete reveal delay timer; loc_05d3 sets it to 0x40, it drains before the 0x8297 reveal countdown starts (grounding overturned the "demo start-flag" reading)
-export const loc_829d = 0x829d; // [code] NMI in-play countdown word; loc_0292 decrements it each pass
-export const loc_8371 = 0x8371; // [code] per-turn scratch cell; handOffToOtherPlayer clears it at the top of the player hand-off
-export const loc_83ae = 0x83ae; // [code] countdown-expiry flag; loc_0292 clears it when the countdown word reaches zero
-export const loc_83b6 = 0x83b6; // [code] per-player reset cell; handOffToOtherPlayer clears it when handing play to the other player
-export const loc_83b7 = 0x83b7; // [seen,poked] life/level count; renderLivesRow clamps it to draw the lives row, awardExtraLife mirrors the new count here, handOffToOtherPlayer loads the other player's into it
+export const INPLAY_COUNTDOWN_WORD = 0x829d; // [code] NMI in-play countdown word; loc_0292 decrements it each pass
+export const PER_TURN_SCRATCH = 0x8371; // [code] per-turn scratch cell; handOffToOtherPlayer clears it at the top of the player hand-off
+export const COUNTDOWN_EXPIRY_FLAG = 0x83ae; // [code] countdown-expiry flag; loc_0292 clears it when the countdown word reaches zero
+export const PER_PLAYER_RESET_CELL = 0x83b6; // [code] per-player reset cell; handOffToOtherPlayer clears it when handing play to the other player
+export const LIVES_COUNT = 0x83b7; // [seen,poked] life/level count; renderLivesRow clamps it to draw the lives row, awardExtraLife mirrors the new count here, handOffToOtherPlayer loads the other player's into it
 export const PLAYER1_LIVES = 0x83b8; // [seen,poked] player 1 life count; awardExtraLife increments it, handOffToOtherPlayer reads it
 export const PLAYER2_LIVES = 0x83b9; // [seen] player 2 life count; awardExtraLife increments it, handOffToOtherPlayer reads it
-export const loc_83c2 = 0x83c2; // [code] cocktail-enabled flag; handOffToOtherPlayer toggles the screen flip only when it is non-zero
-export const loc_83c3 = 0x83c3; // [code] frog-ready flag; resetFrogObject sets it to 1 at the end of the frog-object reset
-export const loc_83cb = 0x83cb; // [code] screen-flip latch (work-RAM shadow); handOffToOtherPlayer toggles bit 0 and mirrors it to the flip IO ports
+export const COCKTAIL_ENABLED_FLAG = 0x83c2; // [code] cocktail-enabled flag; handOffToOtherPlayer toggles the screen flip only when it is non-zero
+export const FROG_READY_FLAG = 0x83c3; // [code] frog-ready flag; resetFrogObject sets it to 1 at the end of the frog-object reset
+export const SCREEN_FLIP_LATCH = 0x83cb; // [code] screen-flip latch (work-RAM shadow); handOffToOtherPlayer toggles bit 0 and mirrors it to the flip IO ports
 export const loc_83cc = 0x83cc; // [seen,poked] awardExtraLife clears this to 0 when awarding an extra life
-export const loc_83cd = 0x83cd; // [code] frog-state / demo flag; loc_05d3 sets it to 1, resetFrogObject clears it during the frog-object reset
-export const loc_83d2 = 0x83d2; // [code] frog 16-bit timer A; activateFrogObject seeds it to 64 in a two-player game
-export const loc_83d9 = 0x83d9; // [code] sound-control byte RAM shadow; issueSoundCommand reads it to pulse bit 3 of the sound-control port
-export const loc_83da = 0x83da; // [code] frog 16-bit timer B; activateFrogObject seeds it to 64 in a two-player game
+export const FROG_STATE_DEMO_FLAG = 0x83cd; // [code] frog-state / demo flag; loc_05d3 sets it to 1, resetFrogObject clears it during the frog-object reset
+export const FROG_TIMER_A = 0x83d2; // [code] frog 16-bit timer A; activateFrogObject seeds it to 64 in a two-player game
+export const SOUND_CTRL_SHADOW = 0x83d9; // [code] sound-control byte RAM shadow; issueSoundCommand reads it to pulse bit 3 of the sound-control port
+export const FROG_TIMER_B = 0x83da; // [code] frog 16-bit timer B; activateFrogObject seeds it to 64 in a two-player game
 export const SHARED_TIME_BYTE = 0x83e4; // [seen] shared time byte / inactive sentinel; renderTimeBar returns without drawing when it holds 255, else uses it as the fallback time source
-export const loc_83e5 = 0x83e5; // [code] player-1 time-remaining byte; renderTimeBar uses it as the bar length when player 1 is active
-export const loc_83e6 = 0x83e6; // [code] player-2 time-remaining byte; renderTimeBar uses it as the bar length when player 2 is active
+export const TIME_REMAINING_P1 = 0x83e5; // [code] player-1 time-remaining byte; renderTimeBar uses it as the bar length when player 1 is active
+export const TIME_REMAINING_P2 = 0x83e6; // [code] player-2 time-remaining byte; renderTimeBar uses it as the bar length when player 2 is active
 export const loc_83ea = 0x83ea; // [code] demo start flag; loc_05d3 clears it to 0
 export const HIGH_SCORE_TABLE_BASE = 0x83f1; // [seen] high-score word table base (5 rank words 0x83f1-0x83fa, read at 0x83ef+2r); renderMode3ScoreRankingScreen reads it for the on-screen ranking scores; maintained by insertHighScoreEntry
-export const loc_83f2 = 0x83f2; // [code] key-high of the first slot of the 5-entry descending table; insertHighScoreEntry inserts into it
+export const HIGH_SCORE_TABLE_TOP_HI = 0x83f2; // [code] key-high of the first slot of the 5-entry descending table; insertHighScoreEntry inserts into it
 export const ACTIVE_PLAYER = 0x83fd; // [seen] active player number (1/2); awardExtraLife and renderTimeBar pick the active player's counter, handOffToOtherPlayer toggles it
-export const loc_8400 = 0x8400; // [code] ring cursor cell + buffer base; nextSpawnRandomByte decrements the cursor and XOR-folds two ring cells
+export const SPAWN_RNG_RING_BASE = 0x8400; // [code] ring cursor cell + buffer base; nextSpawnRandomByte decrements the cursor and XOR-folds two ring cells
 export const loc_842c = 0x842c; // [code] frog state cell; resetFrogObject clears it during the frog-object reset
 export const loc_842d = 0x842d; // [seen] frog state cell; resetFrogObject clears it during the frog-object reset
-export const loc_8500 = 0x8500; // [code] work-page save bank base; swapOutActivePlayerPages banks 183 live bytes into here
+export const WORK_PAGE_SAVE_BANK = 0x8500; // [code] work-page save bank base; swapOutActivePlayerPages banks 183 live bytes into here
 export const OTHER_PLAYER_OBJECT_PAGE = 0x85c0; // [seen] other player's saved object page; swapOutActivePlayerPages restores 43 object bytes from here
 export const OTHER_PLAYER_WORK_PAGE = 0x8600; // [seen] other player's saved work page; swapOutActivePlayerPages restores 183 bytes from here
-export const loc_86c0 = 0x86c0; // [code] object save bank base; swapOutActivePlayerPages banks 43 live object bytes into here
-export const loc_a808 = 0xa808; // [code] tilemap fill base; fillTilemapBlock22x32 loads it as the fixed start of a 22x32 block fill
+export const OBJECT_PAGE_SAVE_BANK = 0x86c0; // [code] object save bank base; swapOutActivePlayerPages banks 43 live object bytes into here
+export const TILEMAP_FILL_BASE_22X32 = 0xa808; // [code] tilemap fill base; fillTilemapBlock22x32 loads it as the fixed start of a 22x32 block fill
 export const LIVES_ROW_MARKER_BASE = 0xa85e; // [seen,poked] lives-row marker base; awardExtraLife stamps the new life marker at base + count*0x20
 export const HOME_SLOT5_VRAM = 0xa864; // [seen,poked] home-slot VRAM base (slot 5); renderFilledHomeSlots stamps the four frog-home tiles here when its occupancy entry is set
-export const loc_a87e = 0xa87e; // [code] lives/level row column base; renderLivesRow stamps the marker tile down it stepping +0x20
+export const LIVES_ROW_COLUMN_VRAM = 0xa87e; // [code] lives/level row column base; renderLivesRow stamps the marker tile down it stepping +0x20
 export const HOME_SLOT4_VRAM = 0xa924; // [seen,poked] home-slot VRAM base (slot 4); renderFilledHomeSlots stamps the four frog-home tiles here when its occupancy entry is set
 export const HOME_SLOT3_VRAM = 0xa9e4; // [seen,poked] home-slot VRAM base (slot 3); renderFilledHomeSlots stamps the four frog-home tiles here when its occupancy entry is set
 export const HOME_SLOT2_VRAM = 0xaaa4; // [seen,poked] home-slot VRAM base (slot 2); renderFilledHomeSlots stamps the four frog-home tiles here when its occupancy entry is set
 export const HOME_SLOT1_VRAM = 0xab64; // [seen,poked] home-slot VRAM base (slot 1); renderFilledHomeSlots stamps the four frog-home tiles here when its occupancy entry is set
-export const loc_abbe = 0xabbe; // [code] time-bar column base (VRAM); renderTimeBar draws the bar up the column from here stepping -0x20
-export const loc_b00c = 0xb00c; // [code] OBJRAM object mirror base; clearObjectBlocksAndMirrorToObjRam copies the zeroed 43-byte object head into here
-export const loc_b80c = 0xb80c; // [code] flip_y IO latch; handOffToOtherPlayer mirrors the screen-flip bit to it when cocktail is enabled
-export const loc_b810 = 0xb810; // [code] flip_x IO latch; handOffToOtherPlayer mirrors the screen-flip bit to it when cocktail is enabled
+export const TIME_BAR_COLUMN_VRAM = 0xabbe; // [code] time-bar column base (VRAM); renderTimeBar draws the bar up the column from here stepping -0x20
+export const OBJRAM_OBJECT_MIRROR_BASE = 0xb00c; // [code] OBJRAM object mirror base; clearObjectBlocksAndMirrorToObjRam copies the zeroed 43-byte object head into here
+export const FLIP_Y_LATCH = 0xb80c; // [code] flip_y IO latch; handOffToOtherPlayer mirrors the screen-flip bit to it when cocktail is enabled
+export const FLIP_X_LATCH = 0xb810; // [code] flip_x IO latch; handOffToOtherPlayer mirrors the screen-flip bit to it when cocktail is enabled
 export const SOUND_CMD_LATCH = 0xd000; // [seen] sound-command latch port (PPI1.A); issueSoundCommand writes register A here to issue a sound command
 export const SOUND_CTRL_PORT = 0xd002; // [seen] sound-control port (PPI1.B); issueSoundCommand pulses bit 3 low-then-high to raise the audio /INT
 
 // ── batch-2 cells: scroll engine, home-bay animations, fly patrol, sprite-object arms, animation clocks, game-start clears ──
 export const SCROLL_COPY_SRC_PTR = 0x8001; // [seen] scroll-copy source-pointer scratch (word); blitScrollTileGrid saves the source pointer here and the per-column loop reloads it
-export const loc_8003 = 0x8003; // [code] scroll-copy row-count scratch; blitScrollTileGrid saves the row count here and the per-column loop reloads it
+export const SCROLL_COPY_ROWCOUNT = 0x8003; // [code] scroll-copy row-count scratch; blitScrollTileGrid saves the row count here and the per-column loop reloads it
 export const HOLD_FLAG = 0x8004; // [seen] hold flag / object-frog hit flag; stampHomeBaySlot stamps the slot but leaves the selector pending when non-zero, flagSpriteObjectFrogHit sets it to 1 (with gate loc_842c) when a sprite object overlaps the frog
 export const OBJECT_ANIM_STATE_800D = 0x800d; // [seen] object-animation state block base; seedObjectAnimationState seeds 10 stride-2 cells (0x800d-0x801f) from a fixed table at board init
 export const FREE_RUNNING_POS_COUNTER = 0x8014; // [seen] free-running position counter (rises +1/frame, wraps 0xff->0x00, independent of the frog); sprite-object motion arms drift each object toward it -- NOT the frog X (frog X is 0x8044/0x8047; grounding overturned the earlier reading)
 export const OBJECT_ANIM_STATE_8019 = 0x8019; // [seen] object/animation-state cell in the 0x800d-0x801f block; renderMode3ScoreRankingScreen seeds it =3 at the mode-3 ranking-screen draw (a work cell, not a screen-id)
 export const OBJECT_ANIM_STATE_801F = 0x801f; // [seen] top of the 0x800d-0x801f object/animation work block; base of renderMode3ScoreRankingScreen's 5-cell 4-strided clear (0x801f/8023/8027/802b/802f) that wipes leftover attract-demo objects off the ranking page
 export const OBJECT_ANIM_STATE_8021 = 0x8021; // [seen] object-animation cell block base; seedObjectAnimationState seeds 14 stride-2 cells (0x8021-0x803b) from a fixed table at board init -- renderMode4PointTablePhase writes a mode-4 sprite CODE (=3) into this same object table [seen]
-export const FLY_SPRITE_X = 0x8040; // [seen,poked] fly sprite X position / base of the four-cell block armHomeGoalSprite arms; driveFlyPatrol writes path base loc_811c + path-table offset, armHomeGoalSprite arms it with the lead byte + fixed tail 25,3,16 (sibling loc_27de zeroes 0x8040-0x8043)
-export const loc_8041 = 0x8041; // [code] fly sprite code; driveFlyPatrol sets it at the timer midpoint (33 or flipped 0xA1) and to the turn sprite (30) at an endpoint
-export const loc_805c = 0x805c; // [code] base of the 4-byte timer/counter block clearFourByteCounterBlock clears to zero (0x805C-0x805F)
+export const FLY_SPRITE_X = 0x8040; // [seen,poked] fly sprite X position / base of the four-cell block armHomeGoalSprite arms; driveFlyPatrol writes path base FLY_PATH_X_BASE + path-table offset, armHomeGoalSprite arms it with the lead byte + fixed tail 25,3,16 (sibling loc_27de zeroes 0x8040-0x8043)
+export const FLY_SPRITE_CODE = 0x8041; // [code] fly sprite code; driveFlyPatrol sets it at the timer midpoint (33 or flipped 0xA1) and to the turn sprite (30) at an endpoint
+export const FOUR_BYTE_COUNTER_BASE = 0x805c; // [code] base of the 4-byte timer/counter block clearFourByteCounterBlock clears to zero (0x805C-0x805F)
 export const FIGURE_ANIM_PHASE = 0x8101; // [seen] animateTwoPairFigure idle-clears the figure-animation phase when this is 0, else runs the animation
-export const loc_8107 = 0x8107; // [code] scroll edge flag; stampScrollRevealColumn clears it on the 128/176 arm and sets it to 1 on the 160 arm
-export const loc_8108 = 0x8108; // [code] scroll wrap-latch; blitScrollBand raises it to 1 on the mode-80 phase and clears it on the mode-48/96 phases
+export const SCROLL_EDGE_FLAG = 0x8107; // [code] scroll edge flag; stampScrollRevealColumn clears it on the 128/176 arm and sets it to 1 on the 160 arm
+export const SCROLL_WRAP_LATCH = 0x8108; // [code] scroll wrap-latch; blitScrollBand raises it to 1 on the mode-80 phase and clears it on the mode-48/96 phases
 export const SCROLL_STAMP_PHASE = 0x8110; // [seen] scroll-phase selector; stampScrollRevealColumn dispatches on it (80/208, 128/176, 160) to pick the stamp table
 export const SCROLL_BAND_PHASE = 0x8111; // [seen] scroll-phase mode; blitScrollBand dispatches the source-row choice on it (0/112->A, 48/96->B, 80->C), loc_2005 steps it by 2
-export const loc_8118 = 0x8118; // [code] frog-anim blit trigger; blitFrogAnimColumnOnTrigger blits the tile pair when non-zero then clears it to 0, else returns at once
+export const FROG_ANIM_BLIT_TRIGGER = 0x8118; // [code] frog-anim blit trigger; blitFrogAnimColumnOnTrigger blits the tile pair when non-zero then clears it to 0, else returns at once
 export const SCROLL_BAND_ROWSPAN = 0x8119; // [seen] scroll row-span shadow; blitScrollBand stores row count - 1 here at exit
 export const SCROLL_STAMP_ROWCOUNT = 0x811a; // [seen] scroll-object row-count mirror; stampScrollRevealColumn writes (row-count field - 1) here before returning
-export const loc_811c = 0x811c; // [code] fly path X base; driveFlyPatrol adds it to the path-table offset to form the sprite X at FLY_SPRITE_X
-export const loc_8120 = 0x8120; // [code] home-bay slot cursor mirror; stampHomeBayGatorEmerging writes the slot value here, stampHomeBayGatorFull reads it as its 1..5 home-slot index, stampHomeBaySlot clears it with loc_8121
-export const loc_8121 = 0x8121; // [code] pending home-bay slot selector (1..5); stampHomeBayFly/stampHomeBayGatorFull write it, stampHomeBaySlot dispatches on it to pick a bay and clears it after stamping
-export const loc_8123 = 0x8123; // [code] home-bay slot cursor (mod 6); loc_23eb increments-and-wraps it, stampHomeBayFly/stampHomeBayGatorEmerging read it as the 1..5 home-slot index and mirror it (grounded; not a river/scroll phase)
+export const FLY_PATH_X_BASE = 0x811c; // [code] fly path X base; driveFlyPatrol adds it to the path-table offset to form the sprite X at FLY_SPRITE_X
+export const HOME_BAY_SLOT_CURSOR_MIRROR = 0x8120; // [code] home-bay slot cursor mirror; stampHomeBayGatorEmerging writes the slot value here, stampHomeBayGatorFull reads it as its 1..5 home-slot index, stampHomeBaySlot clears it with PENDING_HOME_BAY_SLOT
+export const PENDING_HOME_BAY_SLOT = 0x8121; // [code] pending home-bay slot selector (1..5); stampHomeBayFly/stampHomeBayGatorFull write it, stampHomeBaySlot dispatches on it to pick a bay and clears it after stamping
+export const HOME_BAY_SLOT_CURSOR = 0x8123; // [code] home-bay slot cursor (mod 6); loc_23eb increments-and-wraps it, stampHomeBayFly/stampHomeBayGatorEmerging read it as the 1..5 home-slot index and mirror it (grounded; not a river/scroll phase)
 export const TWOPLAYER_FRAME_CELL_8145 = 0x8145; // [seen,poked] one of five cells clearTwoPlayerFrameCells zeroes in play-mode 2
 export const TWOPLAYER_FRAME_CELL_8146 = 0x8146; // [seen,poked] one of five cells clearTwoPlayerFrameCells zeroes in play-mode 2
 export const TWOPLAYER_FRAME_CELL_8147 = 0x8147; // [seen,poked] one of five cells clearTwoPlayerFrameCells zeroes in play-mode 2
 export const TWOPLAYER_FRAME_CELL_814E = 0x814e; // [seen,poked] one of five cells clearTwoPlayerFrameCells zeroes in play-mode 2
 export const SPRITE_FRAME_BUSY_LATCH1 = 0x814f; // [seen,poked] sprite-frame busy latch 1; advanceAnimationFrameBuffer returns without stepping while non-zero, animateTwoPairFigure reads it as a busy gate that must be 0, clearTwoPlayerFrameCells zeroes it in play-mode 2
 export const FIGURE_ANIM_STEP_GATE = 0x8150; // [seen] animateTwoPairFigure gates its step on bit0 of this cell
-export const loc_815b = 0x815b; // [code] sprite-frame busy latch 2; advanceAnimationFrameBuffer returns without stepping while it is non-zero
+export const SPRITE_FRAME_BUSY_LATCH2 = 0x815b; // [code] sprite-frame busy latch 2; advanceAnimationFrameBuffer returns without stepping while it is non-zero
 export const ANIM_FRAME_BUFFER = 0x819b; // [seen,poked] animation frame buffer; advanceAnimationFrameBuffer copies 11 bytes of the current frame source into it
 export const LANE_OBJECT_PHASE_TABLE = 0x81a6; // [seen] 11-byte per-object phase-countdown table (0x81a6+i for lane object i); moveLaneObjectsAndCarryFrog holds object i while its countdown drains, moving one pixel and clearing it when it reaches 1. Grounded (golden_broad gameplay f263+): each cell counts down 1/frame, reloads to its lane control-nibble minus one, its lead sprite stepping one pixel on the frame the countdown reads 0
-export const loc_81b1 = 0x81b1; // [seen] scroll-copy column stride; blitScrollTileGrid advances the destination by this between columns
-export const loc_81b3 = 0x81b3; // [code] animation frame index; advanceAnimationFrameBuffer advances it into the loc_1841 pointer table, wrapping to 0 at index 10
-export const loc_81b4 = 0x81b4; // [code] animation frame timer; advanceAnimationFrameBuffer ticks it down each pass and reloads it to 21 when it reaches 0
+export const SCROLL_COPY_COLUMN_STRIDE = 0x81b1; // [seen] scroll-copy column stride; blitScrollTileGrid advances the destination by this between columns
+export const ANIM_FRAME_INDEX = 0x81b3; // [code] animation frame index; advanceAnimationFrameBuffer advances it into the ANIM_FRAME_SRC_PTR_TABLE pointer table, wrapping to 0 at index 10
+export const ANIM_FRAME_TIMER = 0x81b4; // [code] animation frame timer; advanceAnimationFrameBuffer ticks it down each pass and reloads it to 21 when it reaches 0
 export const HOME_BAY1_OCCUPANCY_PRIMARY = 0x825e; // [seen,poked] home-bay-1 occupancy gate, primary bank (used when (0x83FD)==1); the home-bay stampers skip that bay when non-zero
 export const HOME_BAY2_OCCUPANCY_PRIMARY = 0x825f; // [seen,poked] home-bay-2 occupancy gate, primary bank ((0x83FD)==1); skipped when non-zero
 export const HOME_BAY3_OCCUPANCY_PRIMARY = 0x8260; // [seen,poked] home-bay-3 occupancy gate, primary bank ((0x83FD)==1); skipped when non-zero
 export const HOME_BAY4_OCCUPANCY_PRIMARY = 0x8261; // [seen,poked] home-bay-4 occupancy gate, primary bank ((0x83FD)==1); skipped when non-zero
 export const HOME_BAY5_OCCUPANCY_PRIMARY = 0x8262; // [seen,poked] home-bay-5 occupancy gate, primary bank ((0x83FD)==1); skipped when non-zero
-export const loc_8263 = 0x8263; // [code] home-bay-1 occupancy gate, alternate bank (used when (0x83FD)!=1); skipped when non-zero
-export const loc_8264 = 0x8264; // [code] home-bay-2 occupancy gate, alternate bank ((0x83FD)!=1); skipped when non-zero
-export const loc_8265 = 0x8265; // [code] home-bay-3 occupancy gate, alternate bank ((0x83FD)!=1); skipped when non-zero
-export const loc_8266 = 0x8266; // [code] home-bay-4 occupancy gate, alternate bank ((0x83FD)!=1); skipped when non-zero
-export const loc_8267 = 0x8267; // [code] home-bay-5 occupancy gate, alternate bank ((0x83FD)!=1); skipped when non-zero
-export const loc_826a = 0x826a; // [code] gated countdown counter; tickGatedCountdown decrements it and, when it reaches 0, clears the enable flag loc_826c
-export const loc_826c = 0x826c; // [code] countdown enable flag; tickGatedCountdown returns early while it is 0 and clears it to 0 once loc_826a reaches 0
-export const loc_8270 = 0x8270; // [code] active player's lane-parameter block (33 bytes); loadActivePlayerLaneParams copies the selected difficulty block into here
-export const loc_8273 = 0x8273; // [seen] scroll-object block base; stampScrollRevealColumn reads its row/column/row-count fields (+0/+1/+2) to build the VRAM stamp address
-export const loc_827c = 0x827c; // [code] scroll-band descriptor base; blitScrollBand reads column (+0), unit count (+1), row count (+2) to place the video band
-export const loc_8293 = 0x8293; // [code] player 1 difficulty index; loadActivePlayerLaneParams reads it to index the lane-parameter pointer table
-export const loc_8294 = 0x8294; // [code] player 2 difficulty index; loadActivePlayerLaneParams reads it when the active player (0x83FD) is not 1
-export const loc_8340 = 0x8340; // [code] arm cell armHomeGoalSprite sets to 160 alongside the four-cell block
-export const loc_833d = 0x833d; // [code] fly travel direction/step byte; bit7 = direction (also the sprite flip bit), low 7 bits = path-table step index, walked by driveFlyPatrol
-export const loc_833e = 0x833e; // [code] fly tongue/attack timer; driveFlyPatrol counts it down each frame and reloads it to 60 at a path endpoint or hold
-export const loc_833f = 0x833f; // [code] figure-animation phase animateTwoPairFigure increments; blits at 64 and 112, clears it at 112 and whenever idle
+export const HOME_BAY1_OCCUPANCY_ALT = 0x8263; // [code] home-bay-1 occupancy gate, alternate bank (used when (0x83FD)!=1); skipped when non-zero
+export const HOME_BAY2_OCCUPANCY_ALT = 0x8264; // [code] home-bay-2 occupancy gate, alternate bank ((0x83FD)!=1); skipped when non-zero
+export const HOME_BAY3_OCCUPANCY_ALT = 0x8265; // [code] home-bay-3 occupancy gate, alternate bank ((0x83FD)!=1); skipped when non-zero
+export const HOME_BAY4_OCCUPANCY_ALT = 0x8266; // [code] home-bay-4 occupancy gate, alternate bank ((0x83FD)!=1); skipped when non-zero
+export const HOME_BAY5_OCCUPANCY_ALT = 0x8267; // [code] home-bay-5 occupancy gate, alternate bank ((0x83FD)!=1); skipped when non-zero
+export const GATED_COUNTDOWN_COUNTER = 0x826a; // [code] gated countdown counter; tickGatedCountdown decrements it and, when it reaches 0, clears the enable flag GATED_COUNTDOWN_ENABLE_FLAG
+export const GATED_COUNTDOWN_ENABLE_FLAG = 0x826c; // [code] countdown enable flag; tickGatedCountdown returns early while it is 0 and clears it to 0 once GATED_COUNTDOWN_COUNTER reaches 0
+export const ACTIVE_LANE_PARAM_BLOCK = 0x8270; // [code] active player's lane-parameter block (33 bytes); loadActivePlayerLaneParams copies the selected difficulty block into here
+export const SCROLL_OBJECT_BLOCK_BASE = 0x8273; // [seen] scroll-object block base; stampScrollRevealColumn reads its row/column/row-count fields (+0/+1/+2) to build the VRAM stamp address
+export const SCROLL_BAND_DESCRIPTOR_BASE = 0x827c; // [code] scroll-band descriptor base; blitScrollBand reads column (+0), unit count (+1), row count (+2) to place the video band
+export const PLAYER1_DIFFICULTY_INDEX = 0x8293; // [code] player 1 difficulty index; loadActivePlayerLaneParams reads it to index the lane-parameter pointer table
+export const PLAYER2_DIFFICULTY_INDEX = 0x8294; // [code] player 2 difficulty index; loadActivePlayerLaneParams reads it when the active player (0x83FD) is not 1
+export const HOME_GOAL_SPRITE_ARM_CELL = 0x8340; // [code] arm cell armHomeGoalSprite sets to 160 alongside the four-cell block
+export const FLY_TRAVEL_DIR_STEP = 0x833d; // [code] fly travel direction/step byte; bit7 = direction (also the sprite flip bit), low 7 bits = path-table step index, walked by driveFlyPatrol
+export const FLY_ATTACK_TIMER = 0x833e; // [code] fly tongue/attack timer; driveFlyPatrol counts it down each frame and reloads it to 60 at a path endpoint or hold
+export const TWO_PAIR_FIGURE_ANIM_PHASE = 0x833f; // [code] figure-animation phase animateTwoPairFigure increments; blits at 64 and 112, clears it at 112 and whenever idle
 // ROM tables read by the batch-2 routines
-export const loc_13ef = 0x13ef; // [code] scroll-copy destination-base pointer (ROM); blitScrollTileGrid loads the VRAM destination base from here (0xa808)
-export const loc_1413 = 0x1413; // [code] ROM tile-pair pattern source read by blitFrogAnimColumnOnTrigger, two bytes per row for 8 rows
-export const loc_1841 = 0x1841; // [code] ROM table of 16-bit frame-source pointers; advanceAnimationFrameBuffer reads entry (loc_81b3) to find the 11-byte frame to copy
-export const loc_2190 = 0x2190; // [code] scroll stamp table (ROM) for the 80/208 phase arm; stampScrollRevealColumn copies its bytes into VRAM
-export const loc_2194 = 0x2194; // [code] scroll stamp table (ROM) for the 128/176 phase arm; stampScrollRevealColumn copies its bytes into VRAM
-export const loc_2198 = 0x2198; // [code] scroll stamp table (ROM) for the 160 phase arm; stampScrollRevealColumn copies its bytes into VRAM
-export const loc_2231 = 0x2231; // [code] scroll source tile row A (4 bytes); blitScrollBand blits it on modes 0 and 112
-export const loc_2235 = 0x2235; // [code] scroll source tile row B (4 bytes); blitScrollBand blits it on modes 48 and 96
-export const loc_2239 = 0x2239; // [code] scroll source tile row C (4 bytes); blitScrollBand blits it on mode 80
-export const loc_2260 = 0x2260; // [code] lane-parameter pointer table (little-endian block pointers); loadActivePlayerLaneParams indexes it by 2*difficulty to reach the selected block
-export const loc_279f = 0x279f; // [code] ROM base of the fly X-offset path table indexed by driveFlyPatrol (entry value 0 = endpoint/reverse, 1 = hold, >=2 = X offset)
-export const loc_2cd5 = 0x2cd5; // [code] phase-tile table (ROM); animateSpriteObjectFrame indexes it by the stepped phase for the sprite tile the animation arm stages
+export const SCROLL_COPY_DEST_PTR = 0x13ef; // [code] scroll-copy destination-base pointer (ROM); blitScrollTileGrid loads the VRAM destination base from here (0xa808)
+export const FROG_ANIM_TILE_PAIR_SRC = 0x1413; // [code] ROM tile-pair pattern source read by blitFrogAnimColumnOnTrigger, two bytes per row for 8 rows
+export const ANIM_FRAME_SRC_PTR_TABLE = 0x1841; // [code] ROM table of 16-bit frame-source pointers; advanceAnimationFrameBuffer reads entry (ANIM_FRAME_INDEX) to find the 11-byte frame to copy
+export const SCROLL_STAMP_TABLE_80_208 = 0x2190; // [code] scroll stamp table (ROM) for the 80/208 phase arm; stampScrollRevealColumn copies its bytes into VRAM
+export const SCROLL_STAMP_TABLE_128_176 = 0x2194; // [code] scroll stamp table (ROM) for the 128/176 phase arm; stampScrollRevealColumn copies its bytes into VRAM
+export const SCROLL_STAMP_TABLE_160 = 0x2198; // [code] scroll stamp table (ROM) for the 160 phase arm; stampScrollRevealColumn copies its bytes into VRAM
+export const SCROLL_BAND_ROW_A = 0x2231; // [code] scroll source tile row A (4 bytes); blitScrollBand blits it on modes 0 and 112
+export const SCROLL_BAND_ROW_B = 0x2235; // [code] scroll source tile row B (4 bytes); blitScrollBand blits it on modes 48 and 96
+export const SCROLL_BAND_ROW_C = 0x2239; // [code] scroll source tile row C (4 bytes); blitScrollBand blits it on mode 80
+export const LANE_PARAM_PTR_TABLE = 0x2260; // [code] lane-parameter pointer table (little-endian block pointers); loadActivePlayerLaneParams indexes it by 2*difficulty to reach the selected block
+export const FLY_PATH_OFFSET_TABLE = 0x279f; // [code] ROM base of the fly X-offset path table indexed by driveFlyPatrol (entry value 0 = endpoint/reverse, 1 = hold, >=2 = X offset)
+export const SPRITE_OBJECT_PHASE_TILE_TABLE = 0x2cd5; // [code] phase-tile table (ROM); animateSpriteObjectFrame indexes it by the stepped phase for the sprite tile the animation arm stages
 // IO + VRAM bases the batch-2 routines touch
-export const loc_8800 = 0x8800; // [code] watchdog reset_r port; spinWatchdogSettleDelay reads it once per settle pass to keep the dog fed (the read count is the io live-out)
+export const WATCHDOG_RESET_PORT = 0x8800; // [code] watchdog reset_r port; spinWatchdogSettleDelay reads it once per settle pass to keep the dog fed (the read count is the io live-out)
 export const VRAM_BASE = 0xa800; // [seen] VRAM base; computeVramColumnIndex computes HL minus this (less the incoming borrow) as the render offset it folds into the column index returned in C
 export const FROG_ANIM_COLUMN_VRAM = 0xa806; // [seen,poked] VRAM destination base for blitFrogAnimColumnOnTrigger's 8-row tile-pair blit (two bytes per row, dest steps +32 per row)
-export const loc_a80e = 0xa80e; // [code] scroll-band video-RAM base; blitScrollBand offsets it by stride*rowSteps to reach the band's top cell
+export const SCROLL_BAND_VRAM_BASE = 0xa80e; // [code] scroll-band video-RAM base; blitScrollBand offsets it by stride*rowSteps to reach the band's top cell
 export const TWO_PAIR_FIGURE_VRAM = 0xa846; // [seen,poked] first tile cell of the two-pair figure animateTwoPairFigure blits (second pair one row / +32 below at 0xA866)
 
 // ── batch-3 cells: status/frog/scroll renders, sprite-object arms, attract demo, intro/score, sound queue ──
@@ -194,11 +194,11 @@ export const loc_8000 = 0x8000; // [seen] work-RAM page-0x80 base; loc_2c13 read
 export const OBJECT_READY_0 = 0x8007; // [seen] object-ready flag; loc_1952 sets it to 1 after the frog render (with 0x8009/0x800b)
 export const OBJECT_READY_1 = 0x8009; // [seen] object-ready flag; loc_1952 sets it to 1 after the frog render
 export const OBJECT_READY_2 = 0x800b; // [seen] object-ready flag; loc_1952 sets it to 1 after the frog render
-export const loc_800f = 0x800f; // [seen] demo scroll register; loc_0de0 writes 3 here (paired with OBJECT_ANIM_STATE_800D) each dwell tick
-export const loc_801b = 0x801b; // [seen] intro counter; loc_2d88 seeds it to 5 during the mode-2 setup -- ALSO a mode-4 sprite-record CODE cell renderMode4PointTablePhase seeds =3 (-> OBJRAM); shared work RAM, per-mode use [seen]
-export const loc_8023 = 0x8023; // [seen] screen/mode state byte; blitPlayerSelectPrompt sets it to 3 on the two-player prompt arm -- ALSO a mode-4 sprite-record ATTR/Y field renderMode4PointTablePhase seeds =6 (-> OBJRAM); shared, per-mode use [seen]
-export const loc_802b = 0x802b; // [seen] intro counter; loc_2d88 seeds it to 3 (also the store target of loc_0c4a) -- ALSO re-stamped =4 by placeScoreRankMarkers on the mode-3 ranking screen (rank-marker tile) [seen]
-export const loc_802f = 0x802f; // [code] lane low-bound selector; loc_12e4 branches on it (<128 vs >=128) to pick the lane low-bound offset (12 vs 3) added to the frog base FROG_X -- ALSO a mode-4 sprite-record ATTR/Y field renderMode4PointTablePhase seeds =6 (-> OBJRAM 0xB02f); shared cell, per-mode use [seen]
+export const DEMO_SCROLL_REGISTER = 0x800f; // [seen] demo scroll register; loc_0de0 writes 3 here (paired with OBJECT_ANIM_STATE_800D) each dwell tick
+export const INTRO_COUNTER_801B = 0x801b; // [seen] intro counter; loc_2d88 seeds it to 5 during the mode-2 setup -- ALSO a mode-4 sprite-record CODE cell renderMode4PointTablePhase seeds =3 (-> OBJRAM); shared work RAM, per-mode use [seen]
+export const SCREEN_MODE_STATE = 0x8023; // [seen] screen/mode state byte; blitPlayerSelectPrompt sets it to 3 on the two-player prompt arm -- ALSO a mode-4 sprite-record ATTR/Y field renderMode4PointTablePhase seeds =6 (-> OBJRAM); shared, per-mode use [seen]
+export const INTRO_COUNTER_802B = 0x802b; // [seen] intro counter; loc_2d88 seeds it to 3 (also the store target of loc_0c4a) -- ALSO re-stamped =4 by placeScoreRankMarkers on the mode-3 ranking screen (rank-marker tile) [seen]
+export const LANE_LOW_BOUND_SELECTOR = 0x802f; // [code] lane low-bound selector; loc_12e4 branches on it (<128 vs >=128) to pick the lane low-bound offset (12 vs 3) added to the frog base FROG_X -- ALSO a mode-4 sprite-record ATTR/Y field renderMode4PointTablePhase seeds =6 (-> OBJRAM 0xB02f); shared cell, per-mode use [seen]
 export const SPRITE_OBJECT_SLOT_B = 0x8058; // [seen,poked] shared 4-byte sprite-object block; loc_2bab clears it (with the 16-byte IX struct) when an object reaches its target and despawns
 export const LANE_OBJLIST_8109 = 0x8109; // [seen] loc_12e4 scans it as a lane object list (count byte then object X positions, band width 31); loc_1058 arms both plot cursors (IX/IY) to it for the frog-anim render loop
 export const LANE_OBJLIST_8112 = 0x8112; // [seen] lane object list (count byte then object X positions), band width 92; loc_12e4 scans it for an object in the frog's move band
@@ -232,88 +232,88 @@ export const FROG_HOP_LEFT_ANIM_RELOAD = 0x8259; // [code] left-hop animation-le
 export const FROG_HOP_INPUT_TIMER = 0x8268; // [code] hop-input lock timer; scanFrogInputAndDispatchHop decrements it and ticks the home-bay slot cursor (loc_23eb) each frame while it counts, locking new joystick input until it drains to 0
 export const PLAYER1_SLOT = 0x825c; // [seen,poked] player-1 slot byte; loc_0534 zeros it before the cold-start pre-clear (loc_048f's P1-init later sets it to 1)
 export const SCROLL_PHASE_COUNTER = 0x826e; // [seen] scroll phase counter; loc_2005 steps it each NMI and runs a lane block at 16/32/48, clearing it to 0 at phase 48
-export const loc_8274 = 0x8274; // [code] scroll object A descriptor +1 (row count); loc_2005 loads it as the grid copy engine's B row-count at phase 16/32/48
-export const loc_827d = 0x827d; // [code] scroll object B descriptor +1 (row count); loc_2005 loads it as the band copy entry's B row-count
-export const FROG_ANIM_ARM6_SPRITE_CODE = 0x8282; // [seen] frog-anim arm-6 sprite triple code byte; loc_10f8 reads it into A and stashes it at loc_81b1 for the render loop
-export const loc_8283 = 0x8283; // [code] frog-anim arm-6 row count; loc_10f8 loads it as the render loop's B (rows per pass)
-export const loc_8284 = 0x8284; // [code] frog-anim arm-6 outer-pass count; loc_10f8 loads it as the render loop's C (passes, 0=>256)
-export const loc_829b = 0x829b; // [seen] intro counter; loc_2d88 zeroes it during the mode-2 setup
+export const SCROLL_OBJ_A_ROW_COUNT = 0x8274; // [code] scroll object A descriptor +1 (row count); loc_2005 loads it as the grid copy engine's B row-count at phase 16/32/48
+export const SCROLL_OBJ_B_ROW_COUNT = 0x827d; // [code] scroll object B descriptor +1 (row count); loc_2005 loads it as the band copy entry's B row-count
+export const FROG_ANIM_ARM6_SPRITE_CODE = 0x8282; // [seen] frog-anim arm-6 sprite triple code byte; loc_10f8 reads it into A and stashes it at SCROLL_COPY_COLUMN_STRIDE for the render loop
+export const FROG_ANIM_ARM6_ROW_COUNT = 0x8283; // [code] frog-anim arm-6 row count; loc_10f8 loads it as the render loop's B (rows per pass)
+export const FROG_ANIM_ARM6_PASS_COUNT = 0x8284; // [code] frog-anim arm-6 outer-pass count; loc_10f8 loads it as the render loop's C (passes, 0=>256)
+export const INTRO_COUNTER_829B = 0x829b; // [seen] intro counter; loc_2d88 zeroes it during the mode-2 setup
 export const SOUND_QUEUE_COUNT = 0x8300; // [seen] pending sound-command count; loc_07ac returns when it is 0, else decrements it, issues the command at SOUND_QUEUE_COUNT+1, and shifts SOUND_QUEUE_COUNT+2.. down one slot
-export const loc_83bb = 0x83bb; // [code] attract sequencer state cell; loc_0de0 clears it to 0 after placing the last cell
+export const ATTRACT_SEQUENCER_STATE = 0x83bb; // [code] attract sequencer state cell; loc_0de0 clears it to 0 after placing the last cell
 export const ATTRACT_DEMO_DWELL = 0x83bc; // [seen] attract demo dwell counter; loc_0de0 decrements it and reloads 32 on expiry
-export const loc_83bf = 0x83bf; // [code] attract sequencer phase byte; loc_0de0 clears it to 0 after placing the last cell
-export const loc_83d7 = 0x83d7; // [seen] attract demo phase counter (1..7); loc_0de0 dispatches the cell arm on it, decrements it, and reloads 7 when drained -- ALSO the mode-4 sub-phase counter (reload 5, counts 4..0) for renderMode4PointTablePhase; same cell, mode-dependent reload [seen]
-export const loc_83d8 = 0x83d8; // [seen] mode-2 intro state cell; loc_2d88 stores 0xff here at the intro setup -- ALSO the shared attract frame-pacing/drawn-state gate loc_0d11 checks; renderMode4PointTablePhase parks it 0xC0 idle / 0x80 drawn [seen]
+export const ATTRACT_SEQUENCER_PHASE = 0x83bf; // [code] attract sequencer phase byte; loc_0de0 clears it to 0 after placing the last cell
+export const ATTRACT_DEMO_PHASE_COUNTER = 0x83d7; // [seen] attract demo phase counter (1..7); loc_0de0 dispatches the cell arm on it, decrements it, and reloads 7 when drained -- ALSO the mode-4 sub-phase counter (reload 5, counts 4..0) for renderMode4PointTablePhase; same cell, mode-dependent reload [seen]
+export const POINT_TABLE_DRAW_STATE = 0x83d8; // [seen] mode-2 intro state cell; loc_2d88 stores 0xff here at the intro setup -- ALSO the shared attract frame-pacing/drawn-state gate loc_0d11 checks; renderMode4PointTablePhase parks it 0xC0 idle / 0x80 drawn [seen]
 export const loc_83dc = 0x83dc; // [seen] 16-bit scroll/state cell; loc_0aba seeds it to 0x3C20 during the one-time layout setup
 export const loc_83de = 0x83de; // [seen] scroll/state cell; loc_0aba seeds it to 0x60 during the one-time layout setup
 export const loc_83e0 = 0x83e0; // [seen] display-field cell; loc_0aba zeroes it during the one-time layout setup
 export const PLAYER2_SCORE = 0x83eb; // [seen,poked] player-2 score word (16-bit); loc_0f69 reads it as one of the two players' scores to rank and pack
 export const PLAYER1_SCORE = 0x83ed; // [seen,poked] player-1 score word (16-bit); loc_0f69 reads it as one of the two players' scores to rank and pack, renderScoreHeader draws it in the 1-UP column (swapped from the earlier high-score reading -- 0x83ef is the high score)
-export const loc_83fb = 0x83fb; // [seen] two-byte score display / intro digit field (0x83fb low, 0x83fc high); loc_0c3d reads the pair to draw the two intro digits, loc_0f69 stores the larger word's rank code at 0x83fb and the smaller's at 0x83fc
+export const INTRO_DIGIT_FIELD = 0x83fb; // [seen] two-byte score display / intro digit field (0x83fb low, 0x83fc high); loc_0c3d reads the pair to draw the two intro digits, loc_0f69 stores the larger word's rank code at 0x83fb and the smaller's at 0x83fc
 export const HOME_COLUMN_STATE = 0x842f; // [seen,poked] home-column state cell; loc_0670 clears it to 0 before tailing into the extra-life award
 // ROM tables/sources read by the batch-3 routines
-export const loc_130b = 0x130b; // [code] arm-pointer table (ROM); loc_12e4 indexes it by 2*(high nibble of frogX+15) to select the lane-scan arm
-export const loc_13f9 = 0x13f9; // [code] frog-anim arm-6 render destination pointer (ROM word); loc_10f8 loads HL from it as the render loop's VRAM base
-export const loc_1423 = 0x1423; // [code] ROM tile source; loc_2005 passes it in DE as the phase-16 scroll-grid source (object A), loc_1058 loads it as the frog-anim tile source (DE) and stashes it at SCROLL_COPY_SRC_PTR
-export const loc_142b = 0x142b; // [code] ROM scroll-grid source for phase 32 (object A); loc_2005 passes it in DE to the copy engine
-export const loc_1433 = 0x1433; // [code] ROM scroll-grid source for phase 48 (object A); loc_2005 passes it in DE to the copy engine
-export const loc_145f = 0x145f; // [code] ROM scroll-band source for phase 16 (object B); loc_2005 passes it in DE to the band copy entry
-export const loc_1473 = 0x1473; // [code] ROM scroll-band source for phase 32 (object B); loc_2005 passes it in DE to the band copy entry
-export const loc_1487 = 0x1487; // [code] ROM scroll-band source for phase 48 (object B); loc_2005 passes it in DE to the band copy entry
-export const loc_149f = 0x149f; // [code] frog-anim arm-6 tile source base (ROM); loc_10f8 sets DE to it and stashes it at SCROLL_COPY_SRC_PTR for the render loop's row copy
-export const loc_19f6 = 0x19f6; // [code] ROM 4-byte frog tile group (column set 1) read by loc_1952
-export const loc_19fa = 0x19fa; // [code] ROM 4-byte frog tile group (column set 2) read by loc_1952
-export const loc_19fe = 0x19fe; // [code] ROM 4-byte frog tile group (column set 3) read by loc_1952
+export const LANE_SCAN_ARM_TABLE = 0x130b; // [code] arm-pointer table (ROM); loc_12e4 indexes it by 2*(high nibble of frogX+15) to select the lane-scan arm
+export const FROG_ANIM_ARM6_DEST_PTR = 0x13f9; // [code] frog-anim arm-6 render destination pointer (ROM word); loc_10f8 loads HL from it as the render loop's VRAM base
+export const SCROLL_GRID_SRC_PHASE16 = 0x1423; // [code] ROM tile source; loc_2005 passes it in DE as the phase-16 scroll-grid source (object A), loc_1058 loads it as the frog-anim tile source (DE) and stashes it at SCROLL_COPY_SRC_PTR
+export const SCROLL_GRID_SRC_PHASE32 = 0x142b; // [code] ROM scroll-grid source for phase 32 (object A); loc_2005 passes it in DE to the copy engine
+export const SCROLL_GRID_SRC_PHASE48 = 0x1433; // [code] ROM scroll-grid source for phase 48 (object A); loc_2005 passes it in DE to the copy engine
+export const SCROLL_BAND_SRC_PHASE16 = 0x145f; // [code] ROM scroll-band source for phase 16 (object B); loc_2005 passes it in DE to the band copy entry
+export const SCROLL_BAND_SRC_PHASE32 = 0x1473; // [code] ROM scroll-band source for phase 32 (object B); loc_2005 passes it in DE to the band copy entry
+export const SCROLL_BAND_SRC_PHASE48 = 0x1487; // [code] ROM scroll-band source for phase 48 (object B); loc_2005 passes it in DE to the band copy entry
+export const FROG_ANIM_ARM6_SRC_BASE = 0x149f; // [code] frog-anim arm-6 tile source base (ROM); loc_10f8 sets DE to it and stashes it at SCROLL_COPY_SRC_PTR for the render loop's row copy
+export const FROG_RENDER_TILES_G1 = 0x19f6; // [code] ROM 4-byte frog tile group (column set 1) read by loc_1952
+export const FROG_RENDER_TILES_G2 = 0x19fa; // [code] ROM 4-byte frog tile group (column set 2) read by loc_1952
+export const FROG_RENDER_TILES_G3 = 0x19fe; // [code] ROM 4-byte frog tile group (column set 3) read by loc_1952
 export const OBJECT_STATE_ATTR_TABLE = 0x2cd9; // [seen] object-state -> sprite attribute table (ROM); loc_2bfb indexes it by the object state byte (ix+6), ORs (ix+5), and writes the result to the IY slot (iy+1)
-export const loc_2cdc = 0x2cdc; // [code] spawn pointer table (ROM); loc_2c13 reads a little-endian pointer at 2*variant, then derives the two placement spans
+export const SPAWN_POINTER_TABLE = 0x2cdc; // [code] spawn pointer table (ROM); loc_2c13 reads a little-endian pointer at 2*variant, then derives the two placement spans
 export const SPAWN_VARIANT_TABLE = 0x2ce6; // [seen] spawn variant table (ROM); loc_2c13 indexes it by 2*variant for a subtract-loop span (even byte) and the low byte of a page-0x80 seed cell (odd byte, stored to ix+0x0b)
-export const loc_2f0e = 0x2f0e; // [code] ROM source of the 9-tile string loc_0f59 blits via rst 0x28
-export const loc_2f12 = 0x2f12; // [code] ROM 5-tile strip source; loc_085b's second blit copies from here
-export const loc_2f5c = 0x2f5c; // [code] ROM tile-strip source for loc_2d88's 11-tile main title blit
-export const loc_2f6e = 0x2f6e; // [code] ROM 4-tile strip source; loc_0aba blits it up the LAYOUT_SETUP_STRIP_VRAM column (rst 0x28), loc_085b's first blit copies it up the loc_aa51 column
-export const loc_2f73 = 0x2f73; // [code] ROM tile-strip source blitted by loc_2d88 (4 tiles) on the time<10 arm
-export const loc_2f88 = 0x2f88; // [code] ROM tile-source base for blitPlayerSelectPrompt's first prompt blit (used by both arms)
-export const loc_2f92 = 0x2f92; // [code] ROM tile-strip source blitted by loc_2d88 (7 tiles) on the time<10 arm
-export const loc_2f93 = 0x2f93; // [code] ROM tile-source for blitPlayerSelectPrompt's one-credit second prompt blit
-export const loc_2fae = 0x2fae; // [code] ROM tile-strip source blitted by loc_2d88 (7 tiles) on the time<10 arm
+export const NINE_TILE_STRING_SRC = 0x2f0e; // [code] ROM source of the 9-tile string loc_0f59 blits via rst 0x28
+export const FIVE_TILE_STRIP_SRC = 0x2f12; // [code] ROM 5-tile strip source; loc_085b's second blit copies from here
+export const MAIN_TITLE_STRIP_SRC = 0x2f5c; // [code] ROM tile-strip source for loc_2d88's 11-tile main title blit
+export const LAYOUT_SETUP_STRIP_SRC = 0x2f6e; // [code] ROM 4-tile strip source; loc_0aba blits it up the LAYOUT_SETUP_STRIP_VRAM column (rst 0x28), loc_085b's first blit copies it up the NO_MORE_FROGS_COLUMN_VRAM column
+export const INTRO_TITLE_STRIP3_SRC = 0x2f73; // [code] ROM tile-strip source blitted by loc_2d88 (4 tiles) on the time<10 arm
+export const PLAYER_SELECT_PROMPT_SRC = 0x2f88; // [code] ROM tile-source base for blitPlayerSelectPrompt's first prompt blit (used by both arms)
+export const INTRO_TITLE_STRIP4_SRC = 0x2f92; // [code] ROM tile-strip source blitted by loc_2d88 (7 tiles) on the time<10 arm
+export const PLAYER_SELECT_PROMPT_1CREDIT_SRC = 0x2f93; // [code] ROM tile-source for blitPlayerSelectPrompt's one-credit second prompt blit
+export const INTRO_TITLE_STRIP2_SRC = 0x2fae; // [code] ROM tile-strip source blitted by loc_2d88 (7 tiles) on the time<10 arm
 // VRAM bases the batch-3 routines touch
-export const FROG_RENDER_VRAM_COL_G1 = 0xa843; // [seen] frog-render VRAM column base (group 1); loc_1952 copies four tiles from loc_19f6 down it, 5 columns +0x40 apart
+export const FROG_RENDER_VRAM_COL_G1 = 0xa843; // [seen] frog-render VRAM column base (group 1); loc_1952 copies four tiles from FROG_RENDER_TILES_G1 down it, 5 columns +0x40 apart
 export const FROG_RENDER_BOX_VRAM_CORNER = 0xa844; // [seen] frog-render box top-left VRAM corner; loc_1952 writes corner tiles 65,66 here and 69,70 at +0x360
 export const STATUS_ROW_VRAM_BASE = 0xa850; // [seen,poked] VRAM status-row base; loc_0f59 clears it via the 4-tile-group column blit
-export const loc_a85c = 0xa85c; // [code] frog-render home-marker string VRAM base; loc_1952 loads HL with it before the tile-string blit
-export const loc_a8a4 = 0xa8a4; // [code] frog-render VRAM column base (group 2); loc_1952 copies four tiles from loc_19fa down it, 4 columns
-export const loc_a8a5 = 0xa8a5; // [code] frog-render VRAM column base (group 3); loc_1952 copies four tiles from loc_19fe down it, 4 columns
+export const FROG_RENDER_HOME_MARKER_VRAM = 0xa85c; // [code] frog-render home-marker string VRAM base; loc_1952 loads HL with it before the tile-string blit
+export const FROG_RENDER_VRAM_COL_G2 = 0xa8a4; // [code] frog-render VRAM column base (group 2); loc_1952 copies four tiles from FROG_RENDER_TILES_G2 down it, 4 columns
+export const FROG_RENDER_VRAM_COL_G3 = 0xa8a5; // [code] frog-render VRAM column base (group 3); loc_1952 copies four tiles from FROG_RENDER_TILES_G3 down it, 4 columns
 export const LAYOUT_SETUP_STRIP_VRAM = 0xa8bf; // [seen] VRAM cell loc_0aba blits a 4-tile strip up into (rst 0x28 dest) during the one-time layout setup
 export const FROG_RENDER_BANNER_VRAM = 0xa8c3; // [seen] frog-render banner VRAM column base; loc_1952 stamps tile 71 four times stepping +0x20 then +0xa0
 export const ATTRACT_DEMO_CORNER_VRAM = 0xa8c6; // [seen] attract demo cell VRAM corner base (phase 1); loc_0de0 stamps a 2x2 tile block at base + 96*(phase-1)
-export const loc_a8df = 0xa8df; // [code] VRAM cell loc_0aba fills 15 tile rows of tile 12 down from (+32/row) during the one-time layout setup
-export const loc_aa51 = 0xaa51; // [code] no-more-frogs VRAM column start; loc_085b blits the 4-tile then 5-tile strips up from here
+export const LAYOUT_SETUP_COLUMN_VRAM = 0xa8df; // [code] VRAM cell loc_0aba fills 15 tile rows of tile 12 down from (+32/row) during the one-time layout setup
+export const NO_MORE_FROGS_COLUMN_VRAM = 0xaa51; // [code] no-more-frogs VRAM column start; loc_085b blits the 4-tile then 5-tile strips up from here
 export const NINE_TILE_STRING_VRAM = 0xaa70; // [seen,poked] VRAM destination loc_0f59 stamps the 9-tile string into (rst 0x28 dest)
 export const MAIN_TITLE_STRIP_VRAM = 0xaa8d; // [seen] VRAM tilemap column base for loc_2d88's main title strip
 export const ONE_PLAYER_ONLY_PROMPT_VRAM = 0xaaf1; // [seen] VRAM column base for blitPlayerSelectPrompt's one-credit "ONE PLAYER ONLY" prompt
 export const ONE_OR_TWO_PLAYERS_PROMPT_VRAM = 0xab11; // [seen] VRAM column base for blitPlayerSelectPrompt's "ONE OR TWO PLAYERS" prompt
-export const loc_ab15 = 0xab15; // [code] VRAM tilemap base for loc_2d88's score-digit draw on the time<10 arm
+export const SCORE_DIGIT_TIME_LOW_VRAM = 0xab15; // [code] VRAM tilemap base for loc_2d88's score-digit draw on the time<10 arm
 
 // ── batch-5 cells: the mode-4 attract point-table (renderMode4PointTablePhase) VRAM columns, ROM tile-strip sources, and sprite records ──
 export const POINT_TABLE_PHASE4_VALUE_VRAM = 0xab6d; // [seen] phase-4 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points byte here then blits the strip up the column
 export const POINT_TABLE_PHASE3_VALUE_VRAM = 0xab70; // [seen] phase-3 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points byte here
-export const loc_ab71 = 0xab71; // [code] phase-3 point-table second VRAM column base; renderMode4PointTablePhase stamps a 19-tile strip up from here
+export const POINT_TABLE_PHASE3_STRIP_VRAM = 0xab71; // [code] phase-3 point-table second VRAM column base; renderMode4PointTablePhase stamps a 19-tile strip up from here
 export const POINT_TABLE_PHASE2_VALUE_VRAM = 0xab73; // [seen] phase-2 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points word here
 export const POINT_TABLE_PHASE2_STRIP_VRAM = 0xab74; // [seen] phase-2 point-table second VRAM column base; renderMode4PointTablePhase stamps a 15-tile strip up from here
 export const POINT_TABLE_PHASE1_STRIP_VRAM = 0xab76; // [seen] phase-1 point-table VRAM column base; renderMode4PointTablePhase stamps a 10-tile strip up from here
 export const POINT_TABLE_PHASE1_VALUE_VRAM = 0xab77; // [seen] phase-1 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points byte here then continues the strips up the column
-export const loc_2ed1 = 0x2ed1; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-4 point-table column
+export const POINT_TABLE_PHASE4_VALUE_ROM = 0x2ed1; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-4 point-table column
 export const SCORE_RANKING_HEADER_STRIP = 0x2ee5; // [seen] ROM 13-tile "SCORE RANKING" header strip source; renderMode3ScoreRankingScreen blits it to VRAM 0xaaac as the mode-3 ranking-screen header
-export const loc_2f17 = 0x2f17; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-3 point-table second column
-export const loc_2f2a = 0x2f2a; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-2 point-table second column
-export const loc_2f39 = 0x2f39; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-2 point-table column
-export const loc_2f43 = 0x2f43; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-3 point-table column
-export const loc_2f9e = 0x2f9e; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-1 point-table column
+export const POINT_TABLE_PHASE3_STRIP_ROM = 0x2f17; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-3 point-table second column
+export const POINT_TABLE_PHASE2_STRIP_ROM = 0x2f2a; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-2 point-table second column
+export const POINT_TABLE_PHASE2_VALUE_ROM = 0x2f39; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-2 point-table column
+export const POINT_TABLE_PHASE3_VALUE_ROM = 0x2f43; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-3 point-table column
+export const POINT_TABLE_PHASE1_STRIP_ROM = 0x2f9e; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-1 point-table column
 export const PTS_SUFFIX_STRIP = 0x2fba; // [seen] ROM 4-tile " PTS" suffix strip source, blitted after a packed-BCD points value; SHARED -- renderMode4PointTablePhase uses it per point-table phase (1-4), renderMode3ScoreRankingScreen uses it after each ranking-row score
-export const loc_801d = 0x801d; // [seen] mode-4 point-table sprite-record ATTR/Y field; renderMode4PointTablePhase phase 4 seeds it 6 (-> OBJRAM 0xB01d)
-export const loc_8027 = 0x8027; // [seen] mode-4 point-table sprite-record CODE field; renderMode4PointTablePhase phase 4 seeds it 3 (-> OBJRAM 0xB027)
-export const loc_8029 = 0x8029; // [seen] mode-4 point-table sprite-record ATTR/Y field; renderMode4PointTablePhase phase 4 seeds it 6 (-> OBJRAM 0xB029)
-export const loc_802d = 0x802d; // [seen] mode-4 point-table sprite-record CODE field; renderMode4PointTablePhase phase 4 seeds it 3 (-> OBJRAM 0xB02d)
+export const POINT_TABLE_SPRITE_ATTR_801D = 0x801d; // [seen] mode-4 point-table sprite-record ATTR/Y field; renderMode4PointTablePhase phase 4 seeds it 6 (-> OBJRAM 0xB01d)
+export const POINT_TABLE_SPRITE_CODE_8027 = 0x8027; // [seen] mode-4 point-table sprite-record CODE field; renderMode4PointTablePhase phase 4 seeds it 3 (-> OBJRAM 0xB027)
+export const POINT_TABLE_SPRITE_ATTR_8029 = 0x8029; // [seen] mode-4 point-table sprite-record ATTR/Y field; renderMode4PointTablePhase phase 4 seeds it 6 (-> OBJRAM 0xB029)
+export const POINT_TABLE_SPRITE_CODE_802D = 0x802d; // [seen] mode-4 point-table sprite-record CODE field; renderMode4PointTablePhase phase 4 seeds it 3 (-> OBJRAM 0xB02d)
 
 // ── batch-7 cells: score-header + credit-line readouts (renderScoreHeader/renderCreditLine/initNewGameScoreAndTimers) ──
 export const UP_LABEL_STRIP = 0x2edf; // [seen] ROM 3-tile "-UP" label strip; renderScoreHeader shares it for both the 1-UP and 2-UP columns
@@ -330,8 +330,8 @@ export const HIGH_SCORE = 0x83ef; // [seen] high-score word (16-bit), entry[0] o
 export const loc_83cf = 0x83cf; // [code] scratch byte addScoreAndAwardExtraLife clears to 0 when it awards the threshold bonus
 export const EXTRA_LIFE_SCORE_TARGET = 0x2e08; // [code] ROM word (=0x2000): the BCD score threshold at which addScoreAndAwardExtraLife awards the one-time bonus
 // frog-on-log edge blit (queueFrogOnLogEdgeBlit)
-export const loc_81a2 = 0x81a2; // [code] frog-on-log animation phase; queueFrogOnLogEdgeBlit enqueues the edge blit only while it is in [0x02,0x0E]
-export const loc_8140 = 0x8140; // [code] frog-on-log blit-busy gate; queueFrogOnLogEdgeBlit skips the enqueue while it is non-zero
+export const FROG_ON_LOG_ANIM_PHASE = 0x81a2; // [code] frog-on-log animation phase; queueFrogOnLogEdgeBlit enqueues the edge blit only while it is in [0x02,0x0E]
+export const FROG_ON_LOG_BLIT_BUSY_GATE = 0x8140; // [code] frog-on-log blit-busy gate; queueFrogOnLogEdgeBlit skips the enqueue while it is non-zero
 // coin / credit scanner (scanCoinInputAndCredit)
 export const COIN_INPUT_LATCH = 0x83e2; // [code] coin/service input latch; scanCoinInputAndCredit stores ~IN0 & 0xC4 here on the attract pass and credits on the release edge
 export const COINAGE_WORD = 0x83d4; // [code] coinage-select word in {0,2,4,6}; scanCoinInputAndCredit indexes the per-slot credit amount by it
@@ -341,19 +341,19 @@ export const COIN_COUNTER_1 = 0xb81c; // [code] hardware coin-counter-1 latch (D
 export const COIN_PULSE_TIMER_0 = 0x837e; // [code] coin-counter-0 pulse timer; scanCoinInputAndCredit seeds it to 4 when pulsing counter 0
 export const COIN_PULSE_TIMER_1 = 0x837f; // [code] coin-counter-1 pulse timer; scanCoinInputAndCredit seeds it to 4 when pulsing counter 1
 // sprite-object arm-A spawn placement (spawnSpriteObjectArmA)
-export const loc_8276 = 0x8276; // [code] sprite-spawn placement pair (spawnSpriteObjectArmA): rotated right twice + 0x24 gives the per-band X stride walked to place a new object
-export const loc_8278 = 0x8278; // [code] sprite-spawn placement pair (spawnSpriteObjectArmA): band-scan count for the placement djnz walk
+export const SPRITE_SPAWN_X_STRIDE = 0x8276; // [code] sprite-spawn placement pair (spawnSpriteObjectArmA): rotated right twice + 0x24 gives the per-band X stride walked to place a new object
+export const SPRITE_SPAWN_BAND_SCAN_COUNT = 0x8278; // [code] sprite-spawn placement pair (spawnSpriteObjectArmA): band-scan count for the placement djnz walk
 // score-field seed cursor (clearAndSeedScoreField)
-export const loc_839a = 0x839a; // [code] score-display cursor low byte; zeroed with 0x839b when the score field is cleared and seeded (clearAndSeedScoreField)
-export const loc_839b = 0x839b; // [code] score-display cursor high byte; zeroed with 0x839a at score-field seed
+export const SCORE_DISPLAY_CURSOR_LO = 0x839a; // [code] score-display cursor low byte; zeroed with 0x839b when the score field is cleared and seeded (clearAndSeedScoreField)
+export const SCORE_DISPLAY_CURSOR_HI = 0x839b; // [code] score-display cursor high byte; zeroed with 0x839a at score-field seed
 // in-play board init (initInPlayBoardOnce)
-export const loc_83ba = 0x83ba; // [code] once-per-board in-play-init guard; set to 1 after the board is initialised, checked on entry to skip re-init (initInPlayBoardOnce)
-export const loc_829a = 0x829a; // [code] board-state byte cleared at in-play board init (initInPlayBoardOnce)
+export const IN_PLAY_BOARD_INIT_GUARD = 0x83ba; // [code] once-per-board in-play-init guard; set to 1 after the board is initialised, checked on entry to skip re-init (initInPlayBoardOnce)
+export const IN_PLAY_BOARD_STATE_BYTE = 0x829a; // [code] board-state byte cleared at in-play board init (initInPlayBoardOnce)
 // score-display countdown driver (driveScoreDisplayCountdown)
-export const loc_83df = 0x83df; // [code] score-display arm select; nonzero routes the driver into its bonus-strip arm (driveScoreDisplayCountdown)
-export const loc_83dd = 0x83dd; // [code] score-display counter high byte; when zero the driver takes the end-strip tail, else decremented, and its bits index the bar tile
+export const SCORE_DISPLAY_ARM_SELECT = 0x83df; // [code] score-display arm select; nonzero routes the driver into its bonus-strip arm (driveScoreDisplayCountdown)
+export const SCORE_DISPLAY_COUNTER_HI = 0x83dd; // [code] score-display counter high byte; when zero the driver takes the end-strip tail, else decremented, and its bits index the bar tile
 // board-advance foreground (advanceBoardForeground)
-export const loc_8380 = 0x8380; // [code] set to 1 by board-advance foreground once the new board is laid out (advanceBoardForeground)
+export const BOARD_ADVANCE_DONE_FLAG = 0x8380; // [code] set to 1 by board-advance foreground once the new board is laid out (advanceBoardForeground)
 
 export const ROUTINES = {
   0x0341: {
@@ -399,9 +399,9 @@ export const ROUTINES = {
   0x1802: { name: "advanceAnimationFrameBuffer", role: "step the frame-cell animation: return early while either busy latch (0x814f/0x815b) is set; else tick the frame timer (0x81b4) down, and when it reaches 0 reload it to 21, advance the frame index (0x81b3) wrapping to 0 at 10, and copy 11 bytes of the indexed frame (via the 0x1841 pointer table) into the 0x819b buffer; memory-only live-out", cert: "seen" },
   0x19e2: { name: "blitFourTileGroupColumn", role: "blit a 14-row VRAM column of the 4-tile group (tiles 72/73 across the top of each row pair, 74/75 across the row below) from the caller-supplied HL base, advancing 64 bytes per pair; HL live-in, memory-only live-out", cert: "seen" },
   0x1a02: { name: "seedObjectAnimationState", role: "seed the object-animation state at board init: fill 14 stride-2 cells from base 0x8021 and 10 stride-2 cells from base 0x800d with fixed value tables (cell i takes seed i); no live-in, memory-only live-out", cert: "seen" },
-  0x1fc7: { name: "tickGatedCountdown", role: "tick a gated countdown: while the enable flag loc_826c is 0 do nothing, else decrement counter loc_826a and clear the enable flag when it reaches 0; no register live-in, memory-only live-out; code-level, MAME-grounding pending", cert: "seen" },
-  0x20cc: { name: "blitScrollTileGrid", role: "scroll-copy engine: stamp a source block into VRAM as a grid of two-byte column pairs -- save source/row-count to scratch (SCROLL_COPY_SRC_PTR/loc_8003), then for C columns copy B rows of a pair from the source (restarted each column) down the destination at a 32-byte row pitch, advancing by the column stride loc_81b1 between columns; count 0 runs 256; live-in DE source/B rows/C columns, memory-only live-out; code-level, MAME-grounding pending", cert: "seen" },
-  0x20fb: { name: "stampScrollRevealColumn", role: "scroll-reveal column stamp: build a VRAM address from the scroll object's row/column/row-count fields (loc_8273 +0/+1/+2), then dispatch on the scroll-phase byte SCROLL_STAMP_PHASE -- phases 80/208 use table loc_2190, 128/176 use loc_2194 and clear edge flag loc_8107, 160 uses loc_2198 and sets loc_8107, any other stamps nothing -- and always write the row-count-minus-one mirror SCROLL_STAMP_ROWCOUNT; no register live-in, memory-only live-out; code-level, MAME-grounding pending", cert: "seen" },
+  0x1fc7: { name: "tickGatedCountdown", role: "tick a gated countdown: while the enable flag GATED_COUNTDOWN_ENABLE_FLAG is 0 do nothing, else decrement counter GATED_COUNTDOWN_COUNTER and clear the enable flag when it reaches 0; no register live-in, memory-only live-out; code-level, MAME-grounding pending", cert: "seen" },
+  0x20cc: { name: "blitScrollTileGrid", role: "scroll-copy engine: stamp a source block into VRAM as a grid of two-byte column pairs -- save source/row-count to scratch (SCROLL_COPY_SRC_PTR/SCROLL_COPY_ROWCOUNT), then for C columns copy B rows of a pair from the source (restarted each column) down the destination at a 32-byte row pitch, advancing by the column stride SCROLL_COPY_COLUMN_STRIDE between columns; count 0 runs 256; live-in DE source/B rows/C columns, memory-only live-out; code-level, MAME-grounding pending", cert: "seen" },
+  0x20fb: { name: "stampScrollRevealColumn", role: "scroll-reveal column stamp: build a VRAM address from the scroll object's row/column/row-count fields (SCROLL_OBJECT_BLOCK_BASE +0/+1/+2), then dispatch on the scroll-phase byte SCROLL_STAMP_PHASE -- phases 80/208 use table SCROLL_STAMP_TABLE_80_208, 128/176 use SCROLL_STAMP_TABLE_128_176 and clear edge flag SCROLL_EDGE_FLAG, 160 uses SCROLL_STAMP_TABLE_160 and sets SCROLL_EDGE_FLAG, any other stamps nothing -- and always write the row-count-minus-one mirror SCROLL_STAMP_ROWCOUNT; no register live-in, memory-only live-out; code-level, MAME-grounding pending", cert: "seen" },
   0x219c: { name: "blitScrollBand", role: "scroll-band blitter: from the 3-byte descriptor at 0x827C (column/units/rows) compute a video-RAM band base (0xA80E + stride*rowSteps), then the scroll-phase mode (0x8111) selects one of three 4-byte source rows (0x2231/0x2235/0x2239) blitted 6 rows down the band; raises the wrap-latch (0x8108) on the mode-80 phase, clears it on modes 48/96, and stores rows-1 to (0x8119); memory-only live-out", cert: "seen" },
   0x223d: { name: "loadActivePlayerLaneParams", role: "load the active player's per-difficulty lane-parameter block: read the difficulty index (0x8293 for player 1, else 0x8294, chosen by 0x83FD), follow the little-endian pointer table at 0x2260 indexed by 2*difficulty, and copy 33 bytes of that block into 0x8270; runs under EXX so caller BC/DE/HL are preserved; memory-only live-out", cert: "seen" },
   0x23eb: { name: "loc_23eb", role: "[seen] home-bay animation slot cursor: (0x8123) += 1 wrapping to 0 at 6 (mod-6), read by the home-bay stampers as the home-slot index 1..5 -- NOT a river/lane-scroll phase (overturned); live-out memory + A", cert: "seen" },
@@ -478,7 +478,7 @@ export const ROUTINES = {
   // scoreFrogRowProgress.js. Reached with the frog X/Y cursors armed by the input scan (0x1acb) and 0x236d
   // (begin halves, dispatched on a directional press) and advanceActiveFrogHops (0x23b7, continues an
   // in-progress hop each vblank). DIRECTION MAP: lane 0=DOWN, 1=UP, 2=RIGHT, 3=LEFT.
-  0x1acb: { name: "scanFrogInputAndDispatchHop", role: "[code] per-vblank frog input scan + directional hop dispatcher: returns early while input is locked (loc_826c set; or the hop-input timer FROG_HOP_INPUT_TIMER counting, in which case decrement it and tick the home-bay slot cursor loc_23eb; or HOLD_FLAG set). Else, with the frog cursors armed (HL=FROG_X, DE=FROG_Y), reads the active player's joystick and for DOWN/UP/RIGHT/LEFT tail-dispatches that direction's advance handler when its *_ACTIVE flag (0x8248-0x824b) is set, its begin handler on a fresh press, else clears the direction's *_ARRIVAL (0x824c-0x824f) + *_ANIM_COUNTER (0x8250-0x8253); UP is skipped once RIGHT or LEFT is already active. Player routing keys on IN2 bit3 (cocktail) with ACTIVE_PLAYER: RIGHT/LEFT read the player's main port (P1 IN0, P2 IN1) bits 4/5, DOWN/UP read IN2 for P1 (bits 6/4) but cross to IN2 bit0 / IN0 bit0 for P2. Dissolves all eight hop handlers + loc_23eb (no m.call). Reached each vblank in play; memory-only live-out; MAME-grounding pending", cert: "code" },
+  0x1acb: { name: "scanFrogInputAndDispatchHop", role: "[code] per-vblank frog input scan + directional hop dispatcher: returns early while input is locked (GATED_COUNTDOWN_ENABLE_FLAG set; or the hop-input timer FROG_HOP_INPUT_TIMER counting, in which case decrement it and tick the home-bay slot cursor loc_23eb; or HOLD_FLAG set). Else, with the frog cursors armed (HL=FROG_X, DE=FROG_Y), reads the active player's joystick and for DOWN/UP/RIGHT/LEFT tail-dispatches that direction's advance handler when its *_ACTIVE flag (0x8248-0x824b) is set, its begin handler on a fresh press, else clears the direction's *_ARRIVAL (0x824c-0x824f) + *_ANIM_COUNTER (0x8250-0x8253); UP is skipped once RIGHT or LEFT is already active. Player routing keys on IN2 bit3 (cocktail) with ACTIVE_PLAYER: RIGHT/LEFT read the player's main port (P1 IN0, P2 IN1) bits 4/5, DOWN/UP read IN2 for P1 (bits 6/4) but cross to IN2 bit0 / IN0 bit0 for P2. Dissolves all eight hop handlers + loc_23eb (no m.call). Reached each vblank in play; memory-only live-out; MAME-grounding pending", cert: "code" },
   0x1b8b: { name: "animateFrogHop", entry: "beginFrogHopDown", role: "[code] begin a DOWN hop: guard frog Y<0xF0 (bottom edge), on a fresh hop emit the hop sound + stamp rest sprite 0xDE onto the frog, prime FROG_HOP_DOWN_ANIM_COUNTER from FROG_HOP_DOWN_ANIM_RELOAD, then fall into advanceFrogHopDown. Reached from 0x1acb/0x236d. Memory-only live-out. DOWN not hopped in golden_hop/golden_hop2; shares the beginHop body grounded via the UP/RIGHT hops", cert: "code" },
   0x1bba: { name: "animateFrogHop", entry: "advanceFrogHopDown", role: "[code] advance a DOWN hop one frame: return if already arrived (FROG_HOP_DOWN_ARRIVAL), else raise FROG_HOP_DOWN_ACTIVE and tick FROG_HOP_DOWN_ANIM_COUNTER down; on drain mark arrived + stamp rest sprite 0xDE, else step the frog FROG_Y += FROG_HOP_VERTICAL_DELTA + stamp moving sprite 0xDC. Reached from 0x23b7/0x1acb + the down begin fall-through. Memory-only live-out. DOWN not hopped in the goldens; shares the advanceHop body grounded via UP/RIGHT", cert: "code" },
   0x1be4: { name: "animateFrogHop", entry: "beginFrogHopUp", role: "[seen] begin an UP hop: no position guard, fresh hop emits the hop sound + stamps rest sprite 0x1E, primes FROG_HOP_UP_ANIM_COUNTER from FROG_HOP_UP_ANIM_RELOAD (=9), then falls into advanceFrogHopUp. Reached from 0x1acb/0x236d. Memory-only live-out. golden_hop: the live UP hop primes near frame 302 (counter seeded, sprite/motion follow)", cert: "seen" },

@@ -4,7 +4,7 @@
  * frog Y/X against the diver's Y band and X window: an inner overlap tail-calls the frog-kill routine,
  * an outer overlap stamps the mounted-frog tile quad and raises the mount flag. LIVE-OUT: memory-only.
  */
-import { FIGURE_ANIM_STEP_GATE, loc_83b7, FROG_Y, FROG_X, FIGURE_ANIM_PHASE, HOLD_FLAG, TWO_PAIR_FIGURE_VRAM } from "./names.js";
+import { FIGURE_ANIM_STEP_GATE, LIVES_COUNT, FROG_Y, FROG_X, FIGURE_ANIM_PHASE, HOLD_FLAG, TWO_PAIR_FIGURE_VRAM } from "./names.js";
 
 const KILL_TAIL = 0x12d0;
 
@@ -19,7 +19,7 @@ export function mountOrKillFrogOnTwoPairFigure(m) {
   const { mem8 } = m;
 
   if ((mem8[FIGURE_ANIM_STEP_GATE] & 1) === 0) return;
-  if (mem8[loc_83b7] < DIVE_PHASE_MIN) return;
+  if (mem8[LIVES_COUNT] < DIVE_PHASE_MIN) return;
 
   const frogTop = (mem8[FROG_Y] + BIAS) & 0xff;
   if (frogTop < BOX_Y_LOW || frogTop >= BOX_Y_HIGH) return;

@@ -5,7 +5,7 @@
  * Writes 28 cells per row across 32 rows from a fixed base, skipping 4 cells between rows.
  * LIVE-OUT: memory-only.
  */
-import { loc_a802 } from "./names.js";
+import { TILEMAP_FILL_BASE_28X32 } from "./names.js";
 
 const FILL_TILE = 16;
 const ROWS = 32;
@@ -14,7 +14,7 @@ const ROW_SKIP = 4;
 
 export function fillTilemapBlock28x32(m) {
   const { mem8 } = m;
-  let p = loc_a802;
+  let p = TILEMAP_FILL_BASE_28X32;
   for (let row = 0; row < ROWS; row++) {
     for (let cell = 0; cell < CELLS_PER_ROW; cell++) {
       mem8[p] = FILL_TILE;

@@ -5,7 +5,7 @@
  * 5000 frames; it runs only in the in-play cluster 0x2970 -> 0x29b9), so a post-boot attract clone gets
  * IX/IY at a descriptor pair (0x8440 / 0x8048) and the timer / phase / flip cells poked for each path
  * (timer, 0->255 edge, phase 0, the 1->4 wrap, step-downs). Live-in IX/IY + RAM; LIVE-OUT memory-only.
- * NOTE: links once names.js exports loc_2cd5 (the phase-tile table), added in the naming pass.
+ * NOTE: links once names.js exports SPRITE_OBJECT_PHASE_TILE_TABLE (the phase-tile table), added in the naming pass.
  */
 import test from "node:test";
 import assert from "node:assert/strict";

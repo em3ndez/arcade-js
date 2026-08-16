@@ -8,7 +8,7 @@
  * LIVE-OUT: memory-only (the move-blocked flag, plus the kill tail's own cells).
  */
 import {
-  loc_83cd, HOLD_FLAG, FROG_Y, FROG_X,
+  FROG_STATE_DEMO_FLAG, HOLD_FLAG, FROG_Y, FROG_X,
   SPRITE_BLOCK2_BASE, LANE_OBJLIST_8109, LANE_OBJLIST_8112, LANE_OBJLIST_811B, LANE_OBJLIST_8124, LANE_OBJLIST_8136, LANE_OBJLIST_813F, LANE_OBJLIST_8148, LANE_OBJLIST_8151, LANE_OBJLIST_815A,
 } from "./names.js";
 import { resolveFrogMoveAgainstLanes } from "./resolveFrogMoveAgainstLanes.js";
@@ -24,7 +24,7 @@ const LANE_BY_NIBBLE = new Map([
 
 export function dispatchFrogMoveAgainstLanes(m) {
   const { mem8 } = m;
-  if (mem8[loc_83cd] !== 0) return;
+  if (mem8[FROG_STATE_DEMO_FLAG] !== 0) return;
   if (mem8[HOLD_FLAG] !== 0) return;
 
   const frogPos = mem8[FROG_Y];

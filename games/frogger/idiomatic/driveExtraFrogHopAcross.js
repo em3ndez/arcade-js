@@ -8,7 +8,7 @@
  * LIVE-OUT: memory-only.
  */
 import { NotImplemented } from "../../../boards/frogger/io.js";
-import { FROG_X, FROG_Y, HOLD_FLAG, TWO_PLAYER_START_FLAG, loc_826c, loc_829a } from "./names.js";
+import { FROG_X, FROG_Y, HOLD_FLAG, TWO_PLAYER_START_FLAG, GATED_COUNTDOWN_ENABLE_FLAG, IN_PLAY_BOARD_STATE_BYTE } from "./names.js";
 import {
   beginFrogHopLeft, beginFrogHopRight, beginFrogHopUp, beginFrogHopDown,
 } from "./animateFrogHop.js";
@@ -20,7 +20,7 @@ const DWELL_RELOAD = 0x30;
 export function driveExtraFrogHopAcross(m) {
   const { regs, mem8 } = m;
 
-  if (mem8[loc_826c] !== 0) return;
+  if (mem8[GATED_COUNTDOWN_ENABLE_FLAG] !== 0) return;
   if (mem8[HOLD_FLAG] !== 0) return;
 
   const dwell = mem8[SPAWN_DWELL];
@@ -31,8 +31,8 @@ export function driveExtraFrogHopAcross(m) {
 
   regs.de = FROG_Y; // hop-begin handler live-ins (armed as the caller does)
   mem8[SPAWN_DWELL] = DWELL_RELOAD;
-  const phase = (mem8[loc_829a] + 1) & 0xff;
-  mem8[loc_829a] = phase;
+  const phase = (mem8[IN_PLAY_BOARD_STATE_BYTE] + 1) & 0xff;
+  mem8[IN_PLAY_BOARD_STATE_BYTE] = phase;
 
   const code = mem8[HOP_FRAME_TABLE + phase];
   if (code === 0xff) return resetExtraFrog(m);
@@ -54,7 +54,7 @@ export function driveExtraFrogHopAcross(m) {
 // End-of-script frame: reset the phase index and clear the driver's flags.
 function resetExtraFrog(m) {
   const { mem8 } = m;
-  mem8[loc_829a] = 0;
+  mem8[IN_PLAY_BOARD_STATE_BYTE] = 0;
   mem8[SPAWN_DWELL] = 0;
   mem8[TWO_PLAYER_START_FLAG] = 0;
 }

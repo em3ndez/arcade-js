@@ -8,7 +8,7 @@
  * tail-calls the attract-idle tail 0x0E74. The routine reads its inputs from RAM (no register
  * live-in) and its live-out is memory-only, so RAM is compared and registers/SP are not. On the tail
  * path both sides run the same real 0x0E74 callee. Teeth: three broken twins.
- * NOTE: links once names.js exports loc_800f/ATTRACT_DEMO_DWELL/loc_83d7/loc_83bf/loc_83bb/ATTRACT_DEMO_CORNER_VRAM, added in
+ * NOTE: links once names.js exports DEMO_SCROLL_REGISTER/ATTRACT_DEMO_DWELL/ATTRACT_DEMO_PHASE_COUNTER/ATTRACT_SEQUENCER_PHASE/ATTRACT_SEQUENCER_STATE/ATTRACT_DEMO_CORNER_VRAM, added in
  * the naming pass.
  */
 import test from "node:test";

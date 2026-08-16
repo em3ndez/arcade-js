@@ -5,8 +5,8 @@
  * the object-anim init. LIVE-OUT: memory-only (both callers reload A right after).
  */
 import {
-  FROG_RENDER_VRAM_COL_G1, loc_a8a4, loc_a8a5, FROG_RENDER_BANNER_VRAM, FROG_RENDER_BOX_VRAM_CORNER, loc_a85c,
-  loc_19f6, loc_19fa, loc_19fe, OBJECT_READY_0, OBJECT_READY_1, OBJECT_READY_2,
+  FROG_RENDER_VRAM_COL_G1, FROG_RENDER_VRAM_COL_G2, FROG_RENDER_VRAM_COL_G3, FROG_RENDER_BANNER_VRAM, FROG_RENDER_BOX_VRAM_CORNER, FROG_RENDER_HOME_MARKER_VRAM,
+  FROG_RENDER_TILES_G1, FROG_RENDER_TILES_G2, FROG_RENDER_TILES_G3, OBJECT_READY_0, OBJECT_READY_1, OBJECT_READY_2,
 } from "./names.js";
 import { blitFourTileGroupColumn } from "./blitFourTileGroupColumn.js";
 import { seedObjectAnimationState } from "./seedObjectAnimationState.js";
@@ -20,9 +20,9 @@ const BANNER_TILE = 71;
 export function renderFrogAndArmObjects(m) {
   const { mem8, regs } = m;
 
-  copyTileColumns(m, FROG_RENDER_VRAM_COL_G1, loc_19f6, 5);
-  copyTileColumns(m, loc_a8a4, loc_19fa, 4);
-  copyTileColumns(m, loc_a8a5, loc_19fe, 4);
+  copyTileColumns(m, FROG_RENDER_VRAM_COL_G1, FROG_RENDER_TILES_G1, 5);
+  copyTileColumns(m, FROG_RENDER_VRAM_COL_G2, FROG_RENDER_TILES_G2, 4);
+  copyTileColumns(m, FROG_RENDER_VRAM_COL_G3, FROG_RENDER_TILES_G3, 4);
 
   let hl = FROG_RENDER_BANNER_VRAM;
   for (let i = 0; i < 4; i++) {
@@ -34,7 +34,7 @@ export function renderFrogAndArmObjects(m) {
   const bottom = (FROG_RENDER_BOX_VRAM_CORNER + CORNER_SPAN) & 0xffff;
   mem8[bottom] = 69; mem8[(bottom + 1) & 0xffff] = 70;
 
-  regs.hl = loc_a85c;
+  regs.hl = FROG_RENDER_HOME_MARKER_VRAM;
   blitFourTileGroupColumn(m);
 
   mem8[OBJECT_READY_0] = 1; mem8[OBJECT_READY_1] = 1; mem8[OBJECT_READY_2] = 1;

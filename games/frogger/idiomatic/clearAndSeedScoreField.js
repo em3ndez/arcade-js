@@ -5,7 +5,7 @@
  * 0x20 rows, two ten-cell runs per row separated by a two-cell gap, stepping down one row per pass.
  * LIVE-OUT: memory-only.
  */
-import { loc_839a, loc_839b, loc_83cc } from "./names.js";
+import { SCORE_DISPLAY_CURSOR_LO, SCORE_DISPLAY_CURSOR_HI, loc_83cc } from "./names.js";
 import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
 import { fillTenCellRun } from "./fillTenCellRun.js";
 
@@ -20,8 +20,8 @@ export function clearAndSeedScoreField(m) {
 
   clearActivePlayerWorkRam(m);
 
-  mem8[loc_839a] = 0;
-  mem8[loc_839b] = 0;
+  mem8[SCORE_DISPLAY_CURSOR_LO] = 0;
+  mem8[SCORE_DISPLAY_CURSOR_HI] = 0;
   mem8[loc_83cc] = 1;
 
   let p = FIELD_BASE;

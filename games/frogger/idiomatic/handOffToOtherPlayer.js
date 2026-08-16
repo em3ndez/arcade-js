@@ -8,24 +8,24 @@
  * LIVE-OUT: memory-only.
  */
 import {
-  loc_8371, PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_LIVES, PLAYER2_LIVES, loc_83b7,
-  loc_83b6, loc_825a, loc_83c2, loc_83cb, loc_b810, loc_b80c,
+  PER_TURN_SCRATCH, PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_LIVES, PLAYER2_LIVES, LIVES_COUNT,
+  PER_PLAYER_RESET_CELL, PLAYER_START_DEMO_FLAG, COCKTAIL_ENABLED_FLAG, SCREEN_FLIP_LATCH, FLIP_X_LATCH, FLIP_Y_LATCH,
 } from "./names.js";
 
 export function handOffToOtherPlayer(m) {
   const { mem8 } = m;
-  mem8[loc_8371] = 0;
+  mem8[PER_TURN_SCRATCH] = 0;
   if (mem8[PLAY_FLAG] === 1) return;
 
   const player = mem8[ACTIVE_PLAYER] ^ 0x03;
   mem8[ACTIVE_PLAYER] = player;
-  mem8[loc_83b7] = mem8[player === 1 ? PLAYER1_LIVES : PLAYER2_LIVES];
-  mem8[loc_83b6] = 0;
-  mem8[loc_825a] = 1;
-  if (mem8[loc_83c2] === 0) return;
+  mem8[LIVES_COUNT] = mem8[player === 1 ? PLAYER1_LIVES : PLAYER2_LIVES];
+  mem8[PER_PLAYER_RESET_CELL] = 0;
+  mem8[PLAYER_START_DEMO_FLAG] = 1;
+  if (mem8[COCKTAIL_ENABLED_FLAG] === 0) return;
 
-  const flip = mem8[loc_83cb] ^ 0x01;
-  mem8[loc_83cb] = flip;
-  mem8[loc_b810] = flip;
-  mem8[loc_b80c] = flip;
+  const flip = mem8[SCREEN_FLIP_LATCH] ^ 0x01;
+  mem8[SCREEN_FLIP_LATCH] = flip;
+  mem8[FLIP_X_LATCH] = flip;
+  mem8[FLIP_Y_LATCH] = flip;
 }

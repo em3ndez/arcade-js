@@ -4,7 +4,7 @@
  * triple and pattern pointers, arms the plot cursors, then hands off to the shared render loop.
  * LIVE-OUT: memory-only.
  */
-import { loc_8273, loc_13ef, LANE_OBJLIST_8109, loc_81b1, SCROLL_COPY_SRC_PTR, loc_1423 } from "./names.js";
+import { SCROLL_OBJECT_BLOCK_BASE, SCROLL_COPY_DEST_PTR, LANE_OBJLIST_8109, SCROLL_COPY_COLUMN_STRIDE, SCROLL_COPY_SRC_PTR, SCROLL_GRID_SRC_PHASE16 } from "./names.js";
 import { blitFrogAnimColumnOnTrigger } from "./blitFrogAnimColumnOnTrigger.js";
 
 const RENDER_LOOP = 0x0ff1; // shared frog-anim tile render loop, not yet idiomatized
@@ -14,18 +14,18 @@ export function renderFrogAnimArm1(m) {
 
   blitFrogAnimColumnOnTrigger(m);
 
-  const spriteCode = mem8[loc_8273];
-  const rowCount = mem8[(loc_8273 + 1) & 0xffff];
-  const columnIndex = mem8[(loc_8273 + 2) & 0xffff];
+  const spriteCode = mem8[SCROLL_OBJECT_BLOCK_BASE];
+  const rowCount = mem8[(SCROLL_OBJECT_BLOCK_BASE + 1) & 0xffff];
+  const columnIndex = mem8[(SCROLL_OBJECT_BLOCK_BASE + 2) & 0xffff];
 
-  mem8[loc_81b1] = spriteCode;
-  mem16[SCROLL_COPY_SRC_PTR] = loc_1423;
+  mem8[SCROLL_COPY_COLUMN_STRIDE] = spriteCode;
+  mem16[SCROLL_COPY_SRC_PTR] = SCROLL_GRID_SRC_PHASE16;
 
   regs.a = spriteCode;
   regs.b = rowCount;
   regs.c = columnIndex;
-  regs.hl = mem16[loc_13ef];
-  regs.de = loc_1423;
+  regs.hl = mem16[SCROLL_COPY_DEST_PTR];
+  regs.de = SCROLL_GRID_SRC_PHASE16;
   regs.ix = LANE_OBJLIST_8109;
   regs.iy = LANE_OBJLIST_8109;
   return m.call(RENDER_LOOP);

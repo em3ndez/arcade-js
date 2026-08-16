@@ -3,7 +3,7 @@
  * awardExtraLife — award an extra life: bump the active player's life count and stamp its marker.
  * LIVE-OUT: memory-only.
  */
-import { loc_83cc, ACTIVE_PLAYER, PLAYER1_LIVES, PLAYER2_LIVES, loc_83b7, LIVES_ROW_MARKER_BASE } from "./names.js";
+import { loc_83cc, ACTIVE_PLAYER, PLAYER1_LIVES, PLAYER2_LIVES, LIVES_COUNT, LIVES_ROW_MARKER_BASE } from "./names.js";
 
 const PLAYER_ONE = 1;
 const LIFE_CAP = 16;
@@ -17,7 +17,7 @@ export function awardExtraLife(m) {
   const countCell = mem8[ACTIVE_PLAYER] === PLAYER_ONE ? PLAYER1_LIVES : PLAYER2_LIVES;
   const count = (mem8[countCell] + 1) & 0xff;
   mem8[countCell] = count;
-  mem8[loc_83b7] = count;
+  mem8[LIVES_COUNT] = count;
 
   if (count >= LIFE_CAP) return; // capped -> no new marker
   mem8[(LIVES_ROW_MARKER_BASE + count * ROW_STRIDE) & 0xffff] = MARKER_TILE;
