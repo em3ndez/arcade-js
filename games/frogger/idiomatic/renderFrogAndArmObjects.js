@@ -18,7 +18,7 @@ const CORNER_SPAN = 864;
 const BANNER_TILE = 71;
 
 export function renderFrogAndArmObjects(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   copyTileColumns(m, FROG_RENDER_VRAM_COL_G1, FROG_RENDER_TILES_G1, 5);
   copyTileColumns(m, FROG_RENDER_VRAM_COL_G2, FROG_RENDER_TILES_G2, 4);
@@ -34,8 +34,7 @@ export function renderFrogAndArmObjects(m) {
   const bottom = (FROG_RENDER_BOX_VRAM_CORNER + CORNER_SPAN) & 0xffff;
   mem8[bottom] = 69; mem8[(bottom + 1) & 0xffff] = 70;
 
-  regs.hl = FROG_RENDER_HOME_MARKER_VRAM;
-  blitFourTileGroupColumn(m);
+  blitFourTileGroupColumn(m, FROG_RENDER_HOME_MARKER_VRAM);
 
   mem8[OBJECT_READY_0] = 1; mem8[OBJECT_READY_1] = 1; mem8[OBJECT_READY_2] = 1;
 

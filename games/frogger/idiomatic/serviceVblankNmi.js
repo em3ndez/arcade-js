@@ -150,7 +150,7 @@ export function serviceVblankNmi(m) {
     if (mem.read8(0x8384) === 0) return b_01f2();
     const d = (mem.read8(0x8384) - 1) & 0xff;
     mem.write8(0x8384, d);
-    if (d === 0) { regs.hl = 0xa850; blitFourTileGroupColumn(m); }
+    if (d === 0) { blitFourTileGroupColumn(m, 0xa850); }
     return b_01f2();
   }
 

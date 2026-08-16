@@ -8,10 +8,7 @@ import { blitFourTileGroupColumn } from "./blitFourTileGroupColumn.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 
 export function blitGameOverLine(m) {
-  const { regs } = m;
-
-  regs.hl = STATUS_ROW_VRAM_BASE;
-  blitFourTileGroupColumn(m);
+  blitFourTileGroupColumn(m, STATUS_ROW_VRAM_BASE);
 
   copyRunUpTileColumn(m, NINE_TILE_STRING_VRAM, NINE_TILE_STRING_SRC, 9);
 }

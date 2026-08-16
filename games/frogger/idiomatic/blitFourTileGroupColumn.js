@@ -11,9 +11,8 @@ const TILE_TOP_RIGHT = 73;
 const TILE_BOTTOM_LEFT = 74;
 const TILE_BOTTOM_RIGHT = 75;
 
-export function blitFourTileGroupColumn(m) {
-  const { regs, mem8 } = m;
-  let dst = regs.hl;
+export function blitFourTileGroupColumn(m, dst = m.regs.hl) {
+  const { mem8 } = m;
 
   for (let row = 0; row < ROWS; row++) {
     mem8[dst] = TILE_TOP_LEFT;

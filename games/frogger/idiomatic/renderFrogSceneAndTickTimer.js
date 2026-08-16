@@ -44,8 +44,7 @@ export function renderFrogSceneAndTickTimer(m) {
   renderFrogAndArmObjects(m);
   if (mem8[FROG_STATE_DEMO_FLAG] === 0) {
     mem8[loc_83b5] = 1;
-    regs.hl = STATUS_ROW_VRAM_BASE;
-    blitFourTileGroupColumn(m);
+    blitFourTileGroupColumn(m, STATUS_ROW_VRAM_BASE);
   }
 
   mem8[loc_83b5] = mem8[GATED_COUNTDOWN_ENABLE_FLAG] ^ 1;

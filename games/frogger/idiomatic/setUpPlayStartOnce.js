@@ -16,11 +16,11 @@ import { blitFourTileGroupColumn } from "./blitFourTileGroupColumn.js";
 import { resetFrogObject } from "./resetFrogObject.js";
 
 const MODE_ACTIVE_PLAY = 1;
-const HOME_GROUP_VRAM = 0xa850;    // HL live-in for blitFourTileGroupColumn
+const HOME_GROUP_VRAM = 0xa850;
 const FROG_ANIM_DISPATCH = 0x0faf, FROG_ANIM_RET = 0x2338; // jp(hl) dispatcher (kept m.call)
 
 export function setUpPlayStartOnce(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[GAME_MODE] !== MODE_ACTIVE_PLAY) return;
   if (mem8[INTRO_COUNTER_829B] !== 0) return;
@@ -32,8 +32,7 @@ export function setUpPlayStartOnce(m) {
   loadActivePlayerLaneParams(m);
   mem8[TWO_PLAYER_START_FLAG] = 0;
   renderFrogAndArmObjects(m);
-  regs.hl = HOME_GROUP_VRAM;
-  blitFourTileGroupColumn(m);
+  blitFourTileGroupColumn(m, HOME_GROUP_VRAM);
   resetFrogObject(m);
   m.push16(FROG_ANIM_RET);
   m.call(FROG_ANIM_DISPATCH);

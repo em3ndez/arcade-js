@@ -10,7 +10,8 @@ A BURNDOWN RATCHET, not a zero-check (a game mid-conversion still holds hundreds
 reads a committed per-game budget (tools/register-budget.txt) and blocks only when a game's STAGED
 count EXCEEDS it - a regression. Budgets only tighten; the goal is 0, then a hard floor. Fail-closed
 on a missing/malformed budget. Legacy games are absent from the budget, so it no-ops there. Scope:
-`games/<game>/idiomatic/*.js`, minus names.js and the test/ subdir (tests set up register state).
+`games/<game>/idiomatic/*.js`, minus names.js, the test/ subdir, and param-defaults on function
+signatures (`fn(m, x = m.regs.a)` is the converted form + the frozen-translated dispatch bridge).
 
 Subcommands: worklist (per-module worklist + histogram), check (the ratchet), selftest.
 """
@@ -26,6 +27,21 @@ BUDGET_FILE = "tools/register-budget.txt"
 # `regs.<name>`/`m.regs.<name>` - a data register OR an ALU-op helper method; both are machine
 # surface. `const { regs, mem8 } = m;` has no dot after regs and is never matched.
 REF = re.compile(r"\b(?:m\.)?regs\.([A-Za-z][A-Za-z0-9]*)")
+
+# A named-function signature line. Register refs here are PARAMETER DEFAULTS (`fn(m, x = m.regs.a)`)
+# - the runbook's prescribed input-register form AND the load-bearing bridge for register-based
+# `m.call` dispatch from the frozen translated layer, which can never pass named args. Exempt.
+SIG = re.compile(r"\bfunction\s+\w+\s*\(")
+
+
+def ref_hits(text):
+    """Register names referenced OUTSIDE a function-signature line (param-defaults are exempt)."""
+    hits = []
+    for line in text.splitlines():
+        if SIG.search(line):
+            continue
+        hits.extend(REF.findall(line))
+    return hits
 
 # Data registers; everything else `regs.` exposes is an ALU-op helper. Split only for reporting.
 DATA_REGS = {
@@ -43,7 +59,7 @@ def scan(game):
     for path in sorted(glob.glob(os.path.join(idir, "*.js"))):
         if os.path.basename(path) == "names.js":
             continue
-        hits = REF.findall(open(path, encoding="utf-8").read())
+        hits = ref_hits(open(path, encoding="utf-8").read())
         if hits:
             per_module[os.path.basename(path)] = hits
             for r in hits:
@@ -77,7 +93,7 @@ def count_in_index(game):
             blob = git(["show", f":{path}"])
         except GitError:
             continue
-        total += len(REF.findall(blob))
+        total += len(ref_hits(blob))
     return total
 
 
@@ -139,6 +155,11 @@ def selftest():
             print(f"selftest FAIL: unexpected match: {s!r}", file=sys.stderr); ok = False
     if "a" not in DATA_REGS or "cp" in DATA_REGS:
         print("selftest FAIL: DATA_REGS membership wrong", file=sys.stderr); ok = False
+    # ref_hits exempts param-defaults on a signature line but counts body refs (even multi on a line)
+    if ref_hits("export function f(m, x = m.regs.a, y = m.regs.hl) {") != []:
+        print("selftest FAIL: signature param-defaults not exempt", file=sys.stderr); ok = False
+    if ref_hits("  regs.a = 1;\n  x = m.regs.hl;") != ["a", "hl"]:
+        print("selftest FAIL: body refs miscounted", file=sys.stderr); ok = False
     print("selftest OK" if ok else "selftest FAILED")
     return 0 if ok else 1
 
