@@ -1,0 +1,7 @@
+# Register-elimination burndown ratchet (tools/register_gate.py check).
+# <game> <max-allowed regs. references in games/<game>/idiomatic/*.js, excl names.js>
+# The budget only tightens: lower it as you convert registers to named vars/params/returns.
+# A staged count ABOVE budget is a regression and is refused. The goal for a converted game is 0.
+# Legacy games (dkong/thepit/timeplt) are intentionally absent: the runbook forbids retrofitting
+# them until the process is proven on a new game, so they are not policed here.
+frogger 402

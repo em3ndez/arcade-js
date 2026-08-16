@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Pre-commit gates: understanding_gate, names_consistency, comment_gate, review_gate,
-# pixel_gate_required. Each refuses the commit rather than warning. Do NOT --no-verify around them.
+# Pre-commit gates: understanding_gate, names_consistency, comment_gate, register_gate,
+# review_gate, pixel_gate_required. Each refuses the commit rather than warning. Do NOT
+# --no-verify around them.
 set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
 python3 "$root/tools/understanding_gate.py" check
 python3 "$root/tools/names_consistency.py" check
 python3 "$root/tools/comment_gate.py" check
+python3 "$root/tools/register_gate.py" check
 python3 "$root/tools/review_gate.py" check
 # Last because it is the only slow one: it runs a game's pixel suite against MAME (~7s for
 # timeplt) and only when the staged diff touches a render-affecting path for that game. Ordered
