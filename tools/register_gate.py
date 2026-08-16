@@ -6,12 +6,14 @@ Runbook goal: "all CPU registers gone from the idiomatic layer (named vars/param
 enforced by a gate." A finished module never touches the raw Z80 register file (`regs.a`,
 `m.regs.hl`) nor its flag-carrying ALU helpers (`regs.cp(v)`, `regs.daa()`).
 
-A BURNDOWN RATCHET, not a zero-check (a game mid-conversion still holds hundreds of refs): `check`
-reads a committed per-game budget (tools/register-budget.txt) and blocks only when a game's STAGED
-count EXCEEDS it - a regression. Budgets only tighten; the goal is 0, then a hard floor. Fail-closed
-on a missing/malformed budget. Legacy games are absent from the budget, so it no-ops there. Scope:
-`games/<game>/idiomatic/*.js`, minus names.js, the test/ subdir, and param-defaults on function
-signatures (`fn(m, x = m.regs.a)` is the converted form + the frozen-translated dispatch bridge).
+FAIL-CLOSED by default: `check` enumerates EVERY `games/*/idiomatic/` and holds each to an implicit
+budget of 0 unless it appears in the allowlist (tools/register-budget.txt) — so a NEW game is refused
+from its first module. The allowlist is a shrinking set of grandfathered exceptions only: a game
+mid-burndown (budget tightening toward 0) and legacy games (frozen at their count). It blocks when a
+game's STAGED count EXCEEDS its budget. Fail-closed on a missing/malformed allowlist. Scope:
+`games/<game>/idiomatic/*.js`, minus names.js, the test/ subdir, and the two declared-exempt register
+forms — a param-default on a signature (`fn(m, x = m.regs.a)`, incoming) and a register write that
+rides a `return` (`return (m.regs.a = v)`, load-bearing outgoing); every other body `regs.` is debt.
 
 Subcommands: worklist (per-module worklist + histogram), check (the ratchet), selftest.
 """
@@ -32,14 +34,23 @@ REF = re.compile(r"\b(?:m\.)?regs\.([A-Za-z][A-Za-z0-9]*)")
 # - the runbook's prescribed input-register form AND the load-bearing bridge for register-based
 # `m.call` dispatch from the frozen translated layer, which can never pass named args. Exempt.
 SIG = re.compile(r"\bfunction\s+\w+\s*\(")
+RET = re.compile(r"\breturn\b")
+# A register WRITE that rides a `return` (`return (m.regs.a = v)` / `return [m.regs.a=x, m.regs.hl=y]`)
+# is the sanctioned load-bearing OUTGOING form; exempt the written register, still count reads.
+WRITE = re.compile(r"\b(?:m\.)?regs\.[A-Za-z][A-Za-z0-9]*\s*=(?!=)")
 
 
 def ref_hits(text):
-    """Register names referenced OUTSIDE a function-signature line (param-defaults are exempt)."""
+    """Register names in a body, minus the declared-exempt forms: param-defaults (a signature line)
+    and register writes that ride a `return` EXPRESSION (the load-bearing outgoing form). A write that
+    merely shares a line with a later `return` (`regs.hl = x; return f(m)`) is still debt."""
     hits = []
     for line in text.splitlines():
         if SIG.search(line):
             continue
+        m = RET.search(line)
+        if m:  # exempt `regs.X =` writes only in the return expression (after the keyword)
+            line = line[:m.end()] + WRITE.sub("", line[m.end():])
         hits.extend(REF.findall(line))
     return hits
 
@@ -160,6 +171,15 @@ def selftest():
         print("selftest FAIL: signature param-defaults not exempt", file=sys.stderr); ok = False
     if ref_hits("  regs.a = 1;\n  x = m.regs.hl;") != ["a", "hl"]:
         print("selftest FAIL: body refs miscounted", file=sys.stderr); ok = False
+    # a register WRITE riding a `return` is the exempt outgoing form; reads on a return still count
+    if ref_hits("return (m.regs.a = value);") != []:
+        print("selftest FAIL: return-assignment not exempt", file=sys.stderr); ok = False
+    if ref_hits("return [ m.regs.a = foo, m.regs.hl = bar ];") != []:
+        print("selftest FAIL: multi return-assignment not exempt", file=sys.stderr); ok = False
+    if ref_hits("return regs.a;") != ["a"] or ref_hits("if (m.regs.a === b) return x;") != ["a"]:
+        print("selftest FAIL: a return-read / comparison must still count", file=sys.stderr); ok = False
+    if ref_hits("regs.hl = x; return f(m);") != ["hl"]:  # a write BEFORE a return is still debt
+        print("selftest FAIL: pre-return write wrongly exempted", file=sys.stderr); ok = False
     print("selftest OK" if ok else "selftest FAILED")
     return 0 if ok else 1
 
@@ -178,21 +198,27 @@ def main():
         print_worklist(per_module, histogram)
         return 0
 
+    # Enumerate EVERY game with an idiomatic layer; a game absent from the allowlist is held at an
+    # implicit budget of 0 (fail-closed), so a new game must be born registers-as-params.
     try:
         budgets = read_budgets()
         worst = 0
-        for game, budget in sorted(budgets.items()):
+        for gd in sorted(glob.glob("games/*/idiomatic")):
+            game = os.path.basename(os.path.dirname(gd))
+            budget = budgets.get(game, 0)
             count = count_in_index(game)
             worst = max(worst, count - budget)
             flag = "OK " if count <= budget else "OVER"
-            print(f"  [{flag}] {game}: {count} register refs (budget {budget})")
+            tag = "" if game in budgets else " (implicit 0)"
+            print(f"  [{flag}] {game}: {count} register refs (budget {budget}{tag})")
     except GitError as e:
         print(f"BLOCK: register gate failed closed: {e}", file=sys.stderr)
         return 1
     if worst > 0:
-        print(f"\nBLOCK: a game's idiomatic layer gained CPU-register references above its budget. "
-              f"The runbook requires them converted to named vars/params/returns, never added; "
-              f"lower the count or, if you genuinely reduced it, tighten {BUDGET_FILE}.",
+        print(f"\nBLOCK: a game's idiomatic layer holds CPU-register references above its budget. "
+              f"The runbook requires them authored as named params/vars/returns from module one, "
+              f"never added; a game absent from {BUDGET_FILE} is held at 0. Convert them, or (only if "
+              f"you genuinely reduced a mid-burndown game) tighten its allowlist line.",
               file=sys.stderr)
         return 1
     return 0
