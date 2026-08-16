@@ -6,7 +6,8 @@ A game is shippable only when EVERY completion subsystem is green under its own 
 all for one game and reports per-subsystem; exit 0 iff all pass. It exists because frogger was
 declared "done" three times over with grounding, registers, and audio all still open - each a
 subsystem with no gate guarding the done-claim. Subsystems:
-  registers   - tools/register_gate.py: the idiomatic layer holds ZERO countable register refs.
+  idiomatic   - tools/idiomatic_gate.py: the idiomatic layer holds ZERO CPU/memory cruft — no
+                registers, no m.call, no m.push*, no raw 0xHHHH addresses.
   grounding   - no ungrounded [code]/[guess] proposals remain in names.js (the registry).
   audio       - tools/audio_gate.py: a wired, tested audio layer.
   pixel       - the game's idiomatic pixel suite matches MAME golden.
@@ -33,15 +34,16 @@ def run(cmd):
         return -1, f"launch failed: {e}"
 
 
-def check_registers(game):
-    rc, out = run(["python3", "tools/register_gate.py", "worklist", "--game", game])
+def check_idiomatic(game):
+    rc, out = run(["python3", "tools/idiomatic_gate.py", "worklist", game])
     if rc != 0:
-        return False, "register_gate worklist errored"
-    m = re.search(r"register-elimination:\s*(\d+)\s+references", out)
+        return False, "idiomatic_gate worklist errored"
+    m = re.search(rf"{re.escape(game)}:\s*total\s+(\d+)", out)
     if not m:
-        return False, "could not read register count"
+        return False, "could not read idiomatic cruft count"
     n = int(m.group(1))
-    return (n == 0), f"{n} register references remain" if n else "0 register refs"
+    return (n == 0), (f"{n} CPU/memory cruft refs remain (registers + m.call + m.push* + raw 0xHHHH)"
+                      if n else "0 cruft — the layer is idiomatic")
 
 
 FIRST_TAG = re.compile(r"\[(seen|code|guess)\]")
@@ -91,7 +93,7 @@ def check_wholegame(game):
 
 
 SUBSYSTEMS = [
-    ("registers", check_registers),
+    ("idiomatic", check_idiomatic),
     ("grounding", check_grounding),
     ("audio", check_audio),
     ("pixel", check_pixel),

@@ -266,11 +266,12 @@ batch and feeds the next batch's targets.
   idiomatic call site. (The `= m.regs.X` in a param default is the one sanctioned exception — it is the
   load-bearing bridge for register-based `m.call` dispatch from the *frozen* translated layer, which
   cannot pass named args, so it stays; it is exempt from the count.) **Enforced by
-  `tools/register_gate.py` (pre-commit), which holds every `games/*/idiomatic/` to an implicit budget
-  of 0** — so a NEW game is fail-closed from its first module and an author literally cannot commit a
-  body register reference. `tools/register-budget.txt` is a **shrinking allowlist of grandfathered
-  exceptions only** (a game mid-burndown; legacy games frozen at their count); a game absent from it is
-  held at 0. ⚠ frogger was authored register-full and is being retrofitted down after the fact — the
+  `tools/idiomatic_gate.py` (pre-commit)** — the single gate that counts ALL idiomatic-layer cruft
+  (register refs + `m.call` + `m.push*` + raw `0xHHHH`) and holds every `games/*/idiomatic/` to a
+  per-game budget (implicit 0), so a NEW game is fail-closed from its first module and an author
+  literally cannot commit new cruft. `tools/idiomatic-budget.txt` is a **shrinking allowlist of
+  grandfathered exceptions only** (a game mid-burndown; legacy games frozen at their count); a game
+  absent from it is held at 0, and a game is IDIOMATIC (a done requirement) only at 0. ⚠ frogger was authored register-full and is being retrofitted down after the fact — the
   debt this rule exists to prevent. Do not repeat it: on the next game, the gate is green only if every
   module was born with its registers already named.
 - **Outgoing registers: `return` by default; a return-assignment for the load-bearing case.** The gate
@@ -485,11 +486,52 @@ deliberate handling. These four are one problem and are decided together, once, 
 - **Definition of done — a named gate, not a claim.** *Done* means a named gate ran and passed
   (`how-the-agents-worked.md`), never "it looks finished." A game is shippable only when **every**
   completion subsystem is green under its own gate — the live pixel gate (§2), stage-B grounding
-  complete (zero ungrounded `[code]`), the register gate at budget 0, the whole-game gates above, the
+  complete (zero ungrounded `[code]`), the idiomatic gate at 0 (no registers/m.call/m.push*/raw
+  addresses), the whole-game gates above, the
   external disassembly if in scope, and **audio**. Each is executed, not reasoned about; the ship is
   refused while any is red. This ledger exists because frogger shipped "done" three times over with
   grounding, registers, *and* audio all still open — every one a subsystem with no gate guarding the
   done-claim.
+- **A fully idiomatic layer is required — zero translated routines, zero `m.call()`, zero `m.push*()`,
+  zero register references.** The idiomatic layer REPLACES the frozen oracle; a game is not done while
+  any reachable routine still runs as translated code in the live game, or while the idiomatic layer
+  still holds Z80-level primitives. Concretely: **(a)** every reachable routine is lifted AND wired as a
+  live override — no `m.call` into the still-translated layer. Dissolve an unbalanced tail-call
+  (`return m.call(<translated>)`, whose translated `ret` drifts SP and throws at the override seam) into
+  a **direct JS call**, and a caller-skip into a **boolean skip-signal** the caller early-returns on; the
+  seam throwing at dispatch is the signal to DISSOLVE, never to leave the routine translated "by design".
+  **(b)** zero `m.push16`/`m.push*` — the ROM's stack trampolines become JS control flow; a
+  coroutine/main-loop handoff uses the generator engine (`yield*`), not an `m.call`. **(c)** zero register
+  references (`m.regs.*`/`regs.*`) in the body, and **(d)** zero raw `0xHHHH` addresses — every cell is
+  a named import from names.js. Enforced mechanically and fail-closed by `tools/idiomatic_gate.py`: it
+  counts all four (registers + `m.call` + `m.push*` + raw `0xHHHH`) on a per-game ratchet toward 0 and
+  is folded into `done_gate` as the **idiomatic** subsystem, so any surviving primitive refuses the
+  ship. dkong is the model: no translated routines, no stack ops, no registers, no raw addresses.
+  (Balanced legacy trampolines are not an exception — they too must be dissolved before done; the seam
+  merely tolerates them meanwhile.)
+- **Gameplay must be validated by INPUT-TAPE REPLAY — an attract-only gate does not count as done.** A
+  pixel or whole-game gate that runs only boot→attract is BLIND to every in-play routine: the gameplay
+  layer renders and runs identically whether it is correct, un-wired, or broken, because gameplay never
+  executes. So done REQUIRES the pixel gate and the whole-game gate to **replay a coin/start/play input
+  tape** through the *idiomatic* layer and assert it matches the MAME golden AND the oracle in
+  GAMEPLAY, plus the **forced transitions the tapes never reach** (life loss, level/round advance,
+  game-over). A boot→attract-only gate must NOT be counted green for done. This is the §4 "Driving
+  coverage" rule — *"attract-only gates are blind … gates must replay input tapes and assert the game
+  responds"* — promoted into the definition of done so it cannot be skipped; frogger's attract-only
+  `pixel_suite.py` and lone `idiomatic.test.js` (whose idiomatic-vs-oracle and vs-MAME arms are still
+  "TODO") are the exact hole this names.
+- **A game is NOT done until an independent adversarial agent agrees it is done.** The gates are
+  necessary but not sufficient: a gate can be green while *blind* — measuring too little (an
+  attract-only pixel/whole-game gate never exercises gameplay) or not covering a criterion at all
+  (lifting/wiring, `m.call` dissolution, `loc_` cell naming). So the FINAL, MANDATORY step of done is a
+  fresh **adversarial reviewer agent**, handed this runbook, that audits the game against *every*
+  completion criterion and must independently conclude it is done — proposer≠confirmer applied to the
+  done-claim itself, never the author's word and never "the gates are green." If it finds any open
+  criterion, OR any gate that passes while validating too little, the game is not done. Record its
+  verdict; a game with no adversarial done-audit on record is not done. (This step exists because an
+  adversarial done-audit of frogger found not only registers and audio open but that the pixel and
+  whole-game gates were attract-only — blind to the entire gameplay layer — a hole no green gate would
+  ever have surfaced.)
 - **Audio-coverage gate — the one that was missing.** Audio was the only ship step with no gate ("by
   ear, no oracle"), so it is the step that silently gets skipped. Fix: `tools/audio_gate.py`, a
   completion gate requiring the committed artifacts a complete audio layer has (the model is dkong):

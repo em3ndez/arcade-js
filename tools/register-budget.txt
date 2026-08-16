@@ -1,9 +1,0 @@
-# Register-elimination allowlist (tools/register_gate.py check).
-# Grandfathered EXCEPTIONS only: "<game> <max-allowed>". A game ABSENT from this file is held at
-# budget 0 (fail-closed) -- so a new game must be authored registers-as-params from module one.
-# Budgets only tighten; the goal for a converted game is 0. Legacy games predate the runbook and are
-# frozen at their count (the runbook forbids retrofitting them until the process is proven on a new game).
-frogger 387
-dkong 1068
-thepit 69
-timeplt 2098
