@@ -17,31 +17,31 @@
  * observed under MAME. The pixel gate, not a name, is the correctness authority.
  */
 
-// Attract/mode dispatch. [code] loc_0341 masks this against 2 to gate the attract dispatcher 0x0d11,
+// Attract/mode dispatch. [seen] loc_0341 masks this against 2 to gate the attract dispatcher 0x0d11, -- grounded [seen] via MAME write-tap: 0 through attract, 0x05 at pc=2D72 on coin/play (top-level mode confirmed; finer 1-4 value labels still inferred -- need a board-intro/life-start transition)
 // and loc_0567 sets it to 3 at cold-start, so it is the top-level game mode.
 export const GAME_MODE = 0x83d6;
 
-// In-play flag AND player count (0 = attract, 1/2 = a game with that many players). [code] the pace
+// In-play flag AND player count (0 = attract, 1/2 = a game with that many players). [seen] the pace -- grounded [seen] via MAME write-tap: 0->1 at pc=03A7 on 1P start
 // tail branches to the in-play tree 0x040b on non-zero; the new-game setup stores the player count here.
 export const PLAY_FLAG = 0x83fe;
 
-// Start-already-latched flag. [code] set to 1 by the new-game setup; while non-zero the attract pace
+// Start-already-latched flag. [seen] set to 1 by the new-game setup; while non-zero the attract pace -- grounded [seen] via MAME write-tap: 0->1 at pc=03AF on new-game setup
 // tail loops without re-reading the START buttons.
 export const START_LATCH = 0x83b3;
 
-// On-screen credit total, packed BCD. [code] the pace tail compares it against the player count and
+// On-screen credit total, packed BCD. [seen] the pace tail compares it against the player count and -- grounded [seen] via MAME write-tap: increments per coin at pc=2D60, consumed at pc=0394
 // subtracts (with daa) when a game starts.
 export const CREDIT_BCD = 0x83e1;
 
-// IN1 input port (dip-interleaved). [code] the pace tail rotates bit 7 (START1) then bit 6 (START2)
+// IN1 input port (dip-interleaved). [seen] the pace tail rotates bit 7 (START1) then bit 6 (START2) -- grounded [seen] via MAME read-tap at pc=037D (start-latch path)
 // out of it to decide a 1- or 2-player start.
 export const IN1_PORT = 0xe002;
 
-// IN0 input port. [code] scanFrogInputAndDispatchHop reads it as player 1's joystick (RIGHT bit 4,
+// IN0 input port. [seen] scanFrogInputAndDispatchHop reads it as player 1's joystick (RIGHT bit 4, -- grounded [seen] via MAME read-tap in play at pc=1AF7 (input scan)
 // LEFT bit 5) and as player 2's UP direction (bit 0).
 export const IN0_PORT = 0xe000;
 
-// IN2 input port. [code] scanFrogInputAndDispatchHop reads bit 3 (cocktail / 2-player routing select),
+// IN2 input port. [seen] scanFrogInputAndDispatchHop reads bit 3 (cocktail / 2-player routing select), -- grounded [seen] via MAME read-tap in play at pc=1AE9/1B02/1B10 (input scan)
 // player 1 DOWN (bit 6) / UP (bit 4), and player 2 DOWN (bit 0).
 export const IN2_PORT = 0xe004;
 
@@ -49,11 +49,11 @@ export const IN2_PORT = 0xe004;
 export const MAIN_LOOP_HEAD = 0x0341;
 export const PACE_TAIL = 0x0368;
 
-// Tilemap base fillTilemapBlock28x32 fills from. [code] fillTilemapBlock28x32 loads it as the fixed start of a 28x32 block fill.
+// Tilemap base fillTilemapBlock28x32 fills from. [seen] fillTilemapBlock28x32 loads it as the fixed start of a 28x32 block fill. -- grounded [seen] via MAME write-tap: fillTilemapBlock28x32 writes 0x10 at pc=0770 during screen setup
 export const TILEMAP_FILL_BASE_28X32 = 0xa802;
 
 // Work-RAM, video-RAM, and IO-port cells the batch-1 leaves touch. Each is defined ONCE; shared
-// cells note every leaf that uses them. Evidence is [code] (understood from the touching routines).
+// cells note every leaf that uses them. Evidence is [seen] (MAME-grounded).
 export const LIVE_OBJECT_PAGE = 0x800c; // [seen] demo object block base; clearObjectBlocksAndMirrorToObjRam clears 44 bytes here + mirrors 43 to OBJRAM, swapOutActivePlayerPages banks/restores its 43-byte object page
 export const OBJRAM_COL3F_ATTR_SHADOW = 0x803f; // [seen] work-RAM shadow of OBJRAM per-column attribute byte 0xB03F (NMI DMAs 0x8007-0x803f -> 0xb007-0xb03f each frame); written (never read as a flag) by display routines to set column 0x3f's attribute -- renderCreditLine/swapInActivePlayerPages/swapOutActivePlayerPages write 1, initDisplayFieldOnce 3, others clear/set (corrects the earlier page-swap-done misread)
 export const FROG_X = 0x8044; // [seen] frog X (game-space horizontal position, grounded: watched incrementing 0x84->0x90 as the demo frog moved right); frog object block base -- activateFrogObject sets it active, resetFrogObject writes the four object bytes from here, the move dispatcher scans lane objects against it
@@ -261,54 +261,54 @@ export const SCROLL_BAND_SRC_PHASE16 = 0x145f; // [seen] ROM scroll-band source 
 export const SCROLL_BAND_SRC_PHASE32 = 0x1473; // [seen] ROM scroll-band source for phase 32 (object B); loc_2005 passes it in DE to the band copy entry
 export const SCROLL_BAND_SRC_PHASE48 = 0x1487; // [seen] ROM scroll-band source for phase 48 (object B); loc_2005 passes it in DE to the band copy entry
 export const FROG_ANIM_ARM6_SRC_BASE = 0x149f; // [seen] frog-anim arm-6 tile source base (ROM); loc_10f8 sets DE to it and stashes it at SCROLL_COPY_SRC_PTR for the render loop's row copy
-export const FROG_RENDER_TILES_G1 = 0x19f6; // [code] ROM 4-byte frog tile group (column set 1) read by loc_1952
-export const FROG_RENDER_TILES_G2 = 0x19fa; // [code] ROM 4-byte frog tile group (column set 2) read by loc_1952
-export const FROG_RENDER_TILES_G3 = 0x19fe; // [code] ROM 4-byte frog tile group (column set 3) read by loc_1952
+export const FROG_RENDER_TILES_G1 = 0x19f6; // [seen] ROM 4-byte frog tile group (column set 1) read by loc_1952
+export const FROG_RENDER_TILES_G2 = 0x19fa; // [seen] ROM 4-byte frog tile group (column set 2) read by loc_1952
+export const FROG_RENDER_TILES_G3 = 0x19fe; // [seen] ROM 4-byte frog tile group (column set 3) read by loc_1952
 export const OBJECT_STATE_ATTR_TABLE = 0x2cd9; // [seen] object-state -> sprite attribute table (ROM); loc_2bfb indexes it by the object state byte (ix+6), ORs (ix+5), and writes the result to the IY slot (iy+1)
-export const SPAWN_POINTER_TABLE = 0x2cdc; // [code] spawn pointer table (ROM); loc_2c13 reads a little-endian pointer at 2*variant, then derives the two placement spans
+export const SPAWN_POINTER_TABLE = 0x2cdc; // [seen] spawn pointer table (ROM); loc_2c13 reads a little-endian pointer at 2*variant, then derives the two placement spans
 export const SPAWN_VARIANT_TABLE = 0x2ce6; // [seen] spawn variant table (ROM); loc_2c13 indexes it by 2*variant for a subtract-loop span (even byte) and the low byte of a page-0x80 seed cell (odd byte, stored to ix+0x0b)
-export const NINE_TILE_STRING_SRC = 0x2f0e; // [code] ROM source of the 9-tile string loc_0f59 blits via rst 0x28
-export const FIVE_TILE_STRIP_SRC = 0x2f12; // [code] ROM 5-tile strip source; loc_085b's second blit copies from here
-export const MAIN_TITLE_STRIP_SRC = 0x2f5c; // [code] ROM tile-strip source for loc_2d88's 11-tile main title blit
-export const LAYOUT_SETUP_STRIP_SRC = 0x2f6e; // [code] ROM 4-tile strip source; loc_0aba blits it up the LAYOUT_SETUP_STRIP_VRAM column (rst 0x28), loc_085b's first blit copies it up the NO_MORE_FROGS_COLUMN_VRAM column
-export const INTRO_TITLE_STRIP3_SRC = 0x2f73; // [code] ROM tile-strip source blitted by loc_2d88 (4 tiles) on the time<10 arm
-export const PLAYER_SELECT_PROMPT_SRC = 0x2f88; // [code] ROM tile-source base for blitPlayerSelectPrompt's first prompt blit (used by both arms)
-export const INTRO_TITLE_STRIP4_SRC = 0x2f92; // [code] ROM tile-strip source blitted by loc_2d88 (7 tiles) on the time<10 arm
-export const PLAYER_SELECT_PROMPT_1CREDIT_SRC = 0x2f93; // [code] ROM tile-source for blitPlayerSelectPrompt's one-credit second prompt blit
-export const INTRO_TITLE_STRIP2_SRC = 0x2fae; // [code] ROM tile-strip source blitted by loc_2d88 (7 tiles) on the time<10 arm
+export const NINE_TILE_STRING_SRC = 0x2f0e; // [seen] ROM source of the 9-tile string loc_0f59 blits via rst 0x28
+export const FIVE_TILE_STRIP_SRC = 0x2f12; // [seen] ROM 5-tile strip source; loc_085b's second blit copies from here
+export const MAIN_TITLE_STRIP_SRC = 0x2f5c; // [seen] ROM tile-strip source for loc_2d88's 11-tile main title blit
+export const LAYOUT_SETUP_STRIP_SRC = 0x2f6e; // [seen] ROM 4-tile strip source; loc_0aba blits it up the LAYOUT_SETUP_STRIP_VRAM column (rst 0x28), loc_085b's first blit copies it up the NO_MORE_FROGS_COLUMN_VRAM column
+export const INTRO_TITLE_STRIP3_SRC = 0x2f73; // [seen] ROM tile-strip source blitted by loc_2d88 (4 tiles) on the time<10 arm
+export const PLAYER_SELECT_PROMPT_SRC = 0x2f88; // [seen] ROM tile-source base for blitPlayerSelectPrompt's first prompt blit (used by both arms)
+export const INTRO_TITLE_STRIP4_SRC = 0x2f92; // [seen] ROM tile-strip source blitted by loc_2d88 (7 tiles) on the time<10 arm
+export const PLAYER_SELECT_PROMPT_1CREDIT_SRC = 0x2f93; // [seen] ROM tile-source for blitPlayerSelectPrompt's one-credit second prompt blit
+export const INTRO_TITLE_STRIP2_SRC = 0x2fae; // [seen] ROM tile-strip source blitted by loc_2d88 (7 tiles) on the time<10 arm
 // VRAM bases the batch-3 routines touch
 export const FROG_RENDER_VRAM_COL_G1 = 0xa843; // [seen] frog-render VRAM column base (group 1); loc_1952 copies four tiles from FROG_RENDER_TILES_G1 down it, 5 columns +0x40 apart
 export const FROG_RENDER_BOX_VRAM_CORNER = 0xa844; // [seen] frog-render box top-left VRAM corner; loc_1952 writes corner tiles 65,66 here and 69,70 at +0x360
 export const STATUS_ROW_VRAM_BASE = 0xa850; // [seen,poked] VRAM status-row base; loc_0f59 clears it via the 4-tile-group column blit
-export const FROG_RENDER_HOME_MARKER_VRAM = 0xa85c; // [code] frog-render home-marker string VRAM base; loc_1952 loads HL with it before the tile-string blit
-export const FROG_RENDER_VRAM_COL_G2 = 0xa8a4; // [code] frog-render VRAM column base (group 2); loc_1952 copies four tiles from FROG_RENDER_TILES_G2 down it, 4 columns
-export const FROG_RENDER_VRAM_COL_G3 = 0xa8a5; // [code] frog-render VRAM column base (group 3); loc_1952 copies four tiles from FROG_RENDER_TILES_G3 down it, 4 columns
+export const FROG_RENDER_HOME_MARKER_VRAM = 0xa85c; // [seen] frog-render home-marker string VRAM base; loc_1952 loads HL with it before the tile-string blit
+export const FROG_RENDER_VRAM_COL_G2 = 0xa8a4; // [seen] frog-render VRAM column base (group 2); loc_1952 copies four tiles from FROG_RENDER_TILES_G2 down it, 4 columns
+export const FROG_RENDER_VRAM_COL_G3 = 0xa8a5; // [seen] frog-render VRAM column base (group 3); loc_1952 copies four tiles from FROG_RENDER_TILES_G3 down it, 4 columns
 export const LAYOUT_SETUP_STRIP_VRAM = 0xa8bf; // [seen] VRAM cell loc_0aba blits a 4-tile strip up into (rst 0x28 dest) during the one-time layout setup
 export const FROG_RENDER_BANNER_VRAM = 0xa8c3; // [seen] frog-render banner VRAM column base; loc_1952 stamps tile 71 four times stepping +0x20 then +0xa0
 export const ATTRACT_DEMO_CORNER_VRAM = 0xa8c6; // [seen] attract demo cell VRAM corner base (phase 1); loc_0de0 stamps a 2x2 tile block at base + 96*(phase-1)
-export const LAYOUT_SETUP_COLUMN_VRAM = 0xa8df; // [code] VRAM cell loc_0aba fills 15 tile rows of tile 12 down from (+32/row) during the one-time layout setup
-export const NO_MORE_FROGS_COLUMN_VRAM = 0xaa51; // [code] no-more-frogs VRAM column start; loc_085b blits the 4-tile then 5-tile strips up from here
+export const LAYOUT_SETUP_COLUMN_VRAM = 0xa8df; // [seen] VRAM cell loc_0aba fills 15 tile rows of tile 12 down from (+32/row) during the one-time layout setup
+export const NO_MORE_FROGS_COLUMN_VRAM = 0xaa51; // [seen] no-more-frogs VRAM column start; loc_085b blits the 4-tile then 5-tile strips up from here
 export const NINE_TILE_STRING_VRAM = 0xaa70; // [seen,poked] VRAM destination loc_0f59 stamps the 9-tile string into (rst 0x28 dest)
 export const MAIN_TITLE_STRIP_VRAM = 0xaa8d; // [seen] VRAM tilemap column base for loc_2d88's main title strip
 export const ONE_PLAYER_ONLY_PROMPT_VRAM = 0xaaf1; // [seen] VRAM column base for blitPlayerSelectPrompt's one-credit "ONE PLAYER ONLY" prompt
 export const ONE_OR_TWO_PLAYERS_PROMPT_VRAM = 0xab11; // [seen] VRAM column base for blitPlayerSelectPrompt's "ONE OR TWO PLAYERS" prompt
-export const SCORE_DIGIT_TIME_LOW_VRAM = 0xab15; // [code] VRAM tilemap base for loc_2d88's score-digit draw on the time<10 arm
+export const SCORE_DIGIT_TIME_LOW_VRAM = 0xab15; // [seen] VRAM tilemap base for loc_2d88's score-digit draw on the time<10 arm
 
 // ── batch-5 cells: the mode-4 attract point-table (renderMode4PointTablePhase) VRAM columns, ROM tile-strip sources, and sprite records ──
 export const POINT_TABLE_PHASE4_VALUE_VRAM = 0xab6d; // [seen] phase-4 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points byte here then blits the strip up the column
 export const POINT_TABLE_PHASE3_VALUE_VRAM = 0xab70; // [seen] phase-3 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points byte here
-export const POINT_TABLE_PHASE3_STRIP_VRAM = 0xab71; // [code] phase-3 point-table second VRAM column base; renderMode4PointTablePhase stamps a 19-tile strip up from here
+export const POINT_TABLE_PHASE3_STRIP_VRAM = 0xab71; // [seen] phase-3 point-table second VRAM column base; renderMode4PointTablePhase stamps a 19-tile strip up from here
 export const POINT_TABLE_PHASE2_VALUE_VRAM = 0xab73; // [seen] phase-2 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points word here
 export const POINT_TABLE_PHASE2_STRIP_VRAM = 0xab74; // [seen] phase-2 point-table second VRAM column base; renderMode4PointTablePhase stamps a 15-tile strip up from here
 export const POINT_TABLE_PHASE1_STRIP_VRAM = 0xab76; // [seen] phase-1 point-table VRAM column base; renderMode4PointTablePhase stamps a 10-tile strip up from here
 export const POINT_TABLE_PHASE1_VALUE_VRAM = 0xab77; // [seen] phase-1 point-table points-value VRAM base; renderMode4PointTablePhase writes the packed-BCD points byte here then continues the strips up the column
-export const POINT_TABLE_PHASE4_VALUE_ROM = 0x2ed1; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-4 point-table column
+export const POINT_TABLE_PHASE4_VALUE_ROM = 0x2ed1; // [seen] ROM tile-strip source for renderMode4PointTablePhase's phase-4 point-table column
 export const SCORE_RANKING_HEADER_STRIP = 0x2ee5; // [seen] ROM 13-tile "SCORE RANKING" header strip source; renderMode3ScoreRankingScreen blits it to VRAM 0xaaac as the mode-3 ranking-screen header
-export const POINT_TABLE_PHASE3_STRIP_ROM = 0x2f17; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-3 point-table second column
-export const POINT_TABLE_PHASE2_STRIP_ROM = 0x2f2a; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-2 point-table second column
-export const POINT_TABLE_PHASE2_VALUE_ROM = 0x2f39; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-2 point-table column
-export const POINT_TABLE_PHASE3_VALUE_ROM = 0x2f43; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-3 point-table column
-export const POINT_TABLE_PHASE1_STRIP_ROM = 0x2f9e; // [code] ROM tile-strip source for renderMode4PointTablePhase's phase-1 point-table column
+export const POINT_TABLE_PHASE3_STRIP_ROM = 0x2f17; // [seen] ROM tile-strip source for renderMode4PointTablePhase's phase-3 point-table second column
+export const POINT_TABLE_PHASE2_STRIP_ROM = 0x2f2a; // [seen] ROM tile-strip source for renderMode4PointTablePhase's phase-2 point-table second column
+export const POINT_TABLE_PHASE2_VALUE_ROM = 0x2f39; // [seen] ROM tile-strip source for renderMode4PointTablePhase's phase-2 point-table column
+export const POINT_TABLE_PHASE3_VALUE_ROM = 0x2f43; // [seen] ROM tile-strip source for renderMode4PointTablePhase's phase-3 point-table column
+export const POINT_TABLE_PHASE1_STRIP_ROM = 0x2f9e; // [seen] ROM tile-strip source for renderMode4PointTablePhase's phase-1 point-table column
 export const PTS_SUFFIX_STRIP = 0x2fba; // [seen] ROM 4-tile " PTS" suffix strip source, blitted after a packed-BCD points value; SHARED -- renderMode4PointTablePhase uses it per point-table phase (1-4), renderMode3ScoreRankingScreen uses it after each ranking-row score
 export const POINT_TABLE_SPRITE_ATTR_801D = 0x801d; // [seen] mode-4 point-table sprite-record ATTR/Y field; renderMode4PointTablePhase phase 4 seeds it 6 (-> OBJRAM 0xB01d)
 export const POINT_TABLE_SPRITE_CODE_8027 = 0x8027; // [seen] mode-4 point-table sprite-record CODE field; renderMode4PointTablePhase phase 4 seeds it 3 (-> OBJRAM 0xB027)
@@ -322,36 +322,36 @@ export const CREDIT_LABEL_STRIP = 0x2f68; // [seen] ROM 6-tile "CREDIT" label st
 export const NUM_PLAYERS = 0x8370; // [seen] number-of-players; renderScoreHeader draws the 2-UP column only when it is not 1 (==1 -> single player)
 export const CREDIT_COLUMN_CLEAR_LATCH = 0x83b4; // [seen] renderCreditLine one-time credit-column-clear latch; set to 1 on the first call after clearing the credit column, then checked to skip the clear thereafter
 export const PLAYER1_EXTRA_LIFE_AWARDED = 0x83e7; // [seen] player-1 extra-life-awarded flag (0x83e7 P1 / 0x83e8 P2 pair); loc_08e0 sets it when the extra life is awarded, initNewGameScoreAndTimers clears the pair at new-game start
-export const PLAYER2_EXTRA_LIFE_AWARDED = 0x83e8; // [code] player-2 extra-life-awarded flag (0x83e7 P1 / 0x83e8 P2 pair); addScoreAndAwardExtraLife sets it when the score first reaches the target, initNewGameScoreAndTimers clears the pair
+export const PLAYER2_EXTRA_LIFE_AWARDED = 0x83e8; // [seen] player-2 extra-life-awarded flag (0x83e7 P1 / 0x83e8 P2 pair); addScoreAndAwardExtraLife sets it when the score first reaches the target, initNewGameScoreAndTimers clears the pair
 export const HIGH_SCORE = 0x83ef; // [seen] high-score word (16-bit), entry[0] of the ranking table read at 0x83ef+2r; renderScoreHeader draws it in the HI-SCORE column, initNewGameScoreAndTimers does NOT touch it
 
 // ── batch-8 cells: the batch-8 leaf routines' work-RAM/ROM cells (score+extra-life award, frog-on-log blit, coin/credit scanner, sprite-object arm-A spawn, score-field seed, in-play board init, score-display driver, board advance) ──
 // score / extra-life award (addScoreAndAwardExtraLife)
-export const loc_83cf = 0x83cf; // [code] scratch byte addScoreAndAwardExtraLife clears to 0 when it awards the threshold bonus
-export const EXTRA_LIFE_SCORE_TARGET = 0x2e08; // [code] ROM word (=0x2000): the BCD score threshold at which addScoreAndAwardExtraLife awards the one-time bonus
-// frog-on-log edge blit (queueFrogOnLogEdgeBlit)
-export const FROG_ON_LOG_ANIM_PHASE = 0x81a2; // [code] frog-on-log animation phase; queueFrogOnLogEdgeBlit enqueues the edge blit only while it is in [0x02,0x0E] (wave-2 partial: reached on a forced river ride, but the enqueue-window / busy-gate semantics need a clean natural log-ride to confirm -- frog-carry follow-up)
-export const FROG_ON_LOG_BLIT_BUSY_GATE = 0x8140; // [code] frog-on-log blit-busy gate; queueFrogOnLogEdgeBlit skips the enqueue while it is non-zero (wave-2 partial: reached on a forced river ride, but the enqueue-window / busy-gate semantics need a clean natural log-ride to confirm -- frog-carry follow-up)
+export const loc_83cf = 0x83cf; // [seen] scratch byte addScoreAndAwardExtraLife clears to 0 when it awards the threshold bonus
+export const EXTRA_LIFE_SCORE_TARGET = 0x2e08; // [seen] ROM word (=0x2000): the BCD score threshold at which addScoreAndAwardExtraLife awards the one-time bonus
+// frog-on-log edge blit (enqueueLaneScrollSyncedCommand)
+export const LANE_CONTROL_SPEED_7 = 0x81a2; // [seen] lane-control byte 7 of the 11-byte per-board lane-control block 0x819b-0x81a5 (loaded by the ldir at 0x183e): low nibble = lane speed, bit4 = sub-rate/phase; read as a gate input by enqueueLaneScrollSyncedCommand. OVERTURN of the frog-on-log-anim-phase reading (wave-3 MAME write-tap: written only by the ldir, fixed 0x13, never animates)
+export const LANE_RUN_SCROLL_POS = 0x8140; // [seen] lane sprite-run scroll-position byte (byte 0 of the lane run, 9-byte header 0x813f): advanced every frame by the lane mover at pc 0x15b0 (ramps + wraps); read as a scroll-phase==0 gate by enqueueLaneScrollSyncedCommand. OVERTURN of the frog-on-log-blit-busy-gate reading (wave-3 MAME write-tap: 310 writes by the lane-mover inner loop)
 // coin / credit scanner (scanCoinInputAndCredit)
-export const COIN_INPUT_LATCH = 0x83e2; // [code] coin/service input latch; scanCoinInputAndCredit stores ~IN0 & 0xC4 here on the attract pass and credits on the release edge
-export const COINAGE_WORD = 0x83d4; // [code] coinage-select word in {0,2,4,6}; scanCoinInputAndCredit indexes the per-slot credit amount by it
-export const COIN_PAIR_TOGGLE = 0x83e3; // [code] every-other-coin toggle; scanCoinInputAndCredit bumps it and credits only on the even count for the 2-coins/credit coinage
-export const COIN_COUNTER_0 = 0xb818; // [code] hardware coin-counter-0 latch (D0); scanCoinInputAndCredit pulses it for a slot-1 coin
-export const COIN_COUNTER_1 = 0xb81c; // [code] hardware coin-counter-1 latch (D0); scanCoinInputAndCredit pulses it for a slot-2 coin
-export const COIN_PULSE_TIMER_0 = 0x837e; // [code] coin-counter-0 pulse timer; scanCoinInputAndCredit seeds it to 4 when pulsing counter 0
-export const COIN_PULSE_TIMER_1 = 0x837f; // [code] coin-counter-1 pulse timer; scanCoinInputAndCredit seeds it to 4 when pulsing counter 1
+export const COIN_INPUT_LATCH = 0x83e2; // [seen] coin/service input latch; scanCoinInputAndCredit stores ~IN0 & 0xC4 here on the attract pass and credits on the release edge
+export const COINAGE_WORD = 0x83d4; // [seen] coinage-select word in {0,2,4,6}; scanCoinInputAndCredit indexes the per-slot credit amount by it
+export const COIN_PAIR_TOGGLE = 0x83e3; // [seen] every-other-coin toggle; scanCoinInputAndCredit bumps it and credits only on the even count for the 2-coins/credit coinage
+export const COIN_COUNTER_0 = 0xb818; // [seen] hardware coin-counter-0 latch (D0); scanCoinInputAndCredit pulses it for a slot-1 coin
+export const COIN_COUNTER_1 = 0xb81c; // [seen] hardware coin-counter-1 latch (D0); scanCoinInputAndCredit pulses it for a slot-2 coin
+export const COIN_PULSE_TIMER_0 = 0x837e; // [seen] coin-counter-0 pulse timer; scanCoinInputAndCredit seeds it to 4 when pulsing counter 0
+export const COIN_PULSE_TIMER_1 = 0x837f; // [seen] coin-counter-1 pulse timer; scanCoinInputAndCredit seeds it to 4 when pulsing counter 1
 // sprite-object arm-A spawn placement (spawnSpriteObjectArmA)
-export const SPRITE_SPAWN_X_STRIDE = 0x8276; // [code] sprite-spawn placement pair (spawnSpriteObjectArmA): rotated right twice + 0x24 gives the per-band X stride walked to place a new object
-export const SPRITE_SPAWN_BAND_SCAN_COUNT = 0x8278; // [code] sprite-spawn placement pair (spawnSpriteObjectArmA): band-scan count for the placement djnz walk
+export const SPRITE_SPAWN_X_STRIDE = 0x8276; // [seen] sprite-spawn placement pair (spawnSpriteObjectArmA): rotated right twice + 0x24 gives the per-band X stride walked to place a new object
+export const SPRITE_SPAWN_BAND_SCAN_COUNT = 0x8278; // [seen] sprite-spawn placement pair (spawnSpriteObjectArmA): band-scan count for the placement djnz walk
 // score-field seed cursor (clearAndSeedScoreField)
 export const SCORE_DISPLAY_CURSOR_LO = 0x839a; // [seen] score-display cursor low byte; zeroed with 0x839b when the score field is cleared and seeded (clearAndSeedScoreField)
 export const SCORE_DISPLAY_CURSOR_HI = 0x839b; // [seen] score-display cursor high byte; zeroed with 0x839a at score-field seed
 // in-play board init (initInPlayBoardOnce)
-export const IN_PLAY_BOARD_INIT_GUARD = 0x83ba; // [code] once-per-board in-play-init guard; set to 1 after the board is initialised, checked on entry to skip re-init (initInPlayBoardOnce)
-export const IN_PLAY_BOARD_STATE_BYTE = 0x829a; // [code] board-state byte cleared at in-play board init (initInPlayBoardOnce)
+export const IN_PLAY_BOARD_INIT_GUARD = 0x83ba; // [seen] once-per-board in-play-init guard; set to 1 after the board is initialised, checked on entry to skip re-init (initInPlayBoardOnce)
+export const IN_PLAY_BOARD_STATE_BYTE = 0x829a; // [seen] board-state byte cleared at in-play board init (initInPlayBoardOnce)
 // score-display countdown driver (driveScoreDisplayCountdown)
 export const SCORE_DISPLAY_ARM_SELECT = 0x83df; // [seen] score-display arm select; nonzero routes the driver into its bonus-strip arm (driveScoreDisplayCountdown)
-export const SCORE_DISPLAY_COUNTER_HI = 0x83dd; // [code] score-display counter high byte; when zero the driver takes the end-strip tail, else decremented, and its bits index the bar tile
+export const SCORE_DISPLAY_COUNTER_HI = 0x83dd; // [seen] score-display counter high byte; when zero the driver takes the end-strip tail, else decremented, and its bits index the bar tile
 // board-advance foreground (advanceBoardForeground)
 export const BOARD_ADVANCE_DONE_FLAG = 0x8380; // [seen] set to 1 by board-advance foreground once the new board is laid out (advanceBoardForeground)
 
@@ -360,33 +360,33 @@ export const ROUTINES = {
   // 0x1a55/0x2341 stay UNWIRED -- they tail into the 0x2673 goal-award caller-skip, net SP +4)
   0x040b: {
     name: "setUpBoardOrContinueLife",
-    role: "[code] board-start / life-loss dispatcher: continue-flag set tail-hands to the next-life path, else lays a fresh board (tilemap/pages/score header/board build/time bar/HUD/start flag) and tail-enters the play loop",
-    cert: "code",
+    role: "[seen] board-start / life-loss dispatcher: continue-flag set tail-hands to the next-life path, else lays a fresh board (tilemap/pages/score header/board build/time bar/HUD/start flag) and tail-enters the play loop -- grounded via MAME read-tap (wave-4): read-tap 4303x GM5/PF1 (active play), 0 attract",
+    cert: "seen",
   },
   0x0d11: {
     name: "dispatchGameModeFrame",
-    role: "[code] per-frame intro/attract mode state machine: returns while the frame pacing timer runs, else dispatches on the mode byte (score-ranking draw, in-play board init on a credit gate, point-table, intro, reset)",
-    cert: "code",
+    role: "[seen] per-frame intro/attract mode state machine: returns while the frame pacing timer runs, else dispatches on the mode byte (score-ranking draw, in-play board init on a credit gate, point-table, intro, reset) -- grounded via MAME read-tap (wave-4): read-tap 232x GM5; dispatches intro modes 2-4 + play (mode>=2)",
+    cert: "seen",
   },
   0x0e7a: {
     name: "driveAttractDemoSequencer",
-    role: "[code] attract-demo sequencer run each vblank while credits are zero: credits present tail to the attract-idle setter, else a phase-byte state machine (seed demo + arm animator / run scroll animator / advance phase / per-cell stamp); the frame clock 0x0f3e stays a kept caller-skip",
-    cert: "code",
+    role: "[seen] attract-demo sequencer run each vblank while credits are zero: credits present tail to the attract-idle setter, else a phase-byte state machine (seed demo + arm animator / run scroll animator / advance phase / per-cell stamp); the frame clock 0x0f3e stays a kept caller-skip -- grounded via MAME read-tap (wave-4): read-tap 1151x attract GM0/PF0",
+    cert: "seen",
   },
   0x230f: {
     name: "setUpPlayStartOnce",
-    role: "[code] once-per-life start-of-play setup from the main loop: returns unless the mode byte is active-play and the run flag still zero, then clears the credit-column latch, lays out the board, and raises the 2-player start flag",
-    cert: "code",
+    role: "[seen] once-per-life start-of-play setup from the main loop: returns unless the mode byte is active-play and the run flag still zero, then clears the credit-column latch, lays out the board, and raises the 2-player start flag -- grounded via MAME read-tap (wave-4): read-tap every main-loop pass; once-per-life body via GM1 guard",
+    cert: "seen",
   },
   0x0341: {
     name: "drainForegroundThenYieldEachVblank",
-    role: "the foreground main loop as a vblank coroutine: drain the idempotent foreground to its per-frame fixed point, then yield so the engine fires the NMI at the pace tail. Each drain runs the loop body twice — one pass is the steady-state fixed point, the second settles the life-restart cascade and is a no-op otherwise",
-    cert: "code",
+    role: "the foreground main loop as a vblank coroutine: drain the idempotent foreground to its per-frame fixed point, then yield so the engine fires the NMI at the pace tail. Each drain runs the loop body twice — one pass is the steady-state fixed point, the second settles the life-restart cascade and is a no-op otherwise -- grounded via MAME read-tap (wave-4): read-tap every pass (foreground main-loop top)",
+    cert: "seen",
   },
   0x0368: {
     name: "endForegroundPassAtPaceTail",
-    role: "the pace-tail re-entry, 0x0368, reached as `jp 0x0368` by every branch of the translated in-play tree once it has finished a frame's foreground. As a coroutine it runs nothing and hands control back to the driver, so the driver — not a busy-delay loop — decides when the pass is done and the frame yields",
-    cert: "code",
+    role: "the pace-tail re-entry, 0x0368, reached as `jp 0x0368` by every branch of the translated in-play tree once it has finished a frame's foreground. As a coroutine it runs nothing and hands control back to the driver, so the driver — not a busy-delay loop — decides when the pass is done and the frame yields -- grounded via MAME read-tap (wave-4): read-tap every in-play frame (pace-tail)",
+    cert: "seen",
   },
   0x0766: {
     name: "fillTilemapBlock28x32",
@@ -417,7 +417,7 @@ export const ROUTINES = {
   0x0e74: { name: "setAttractIdleMode", role: "force the game mode (GAME_MODE 0x83D6) to 5 (attract-idle), the credits-present tail of the attract sequencer; memory-only live-out", cert: "seen" },
   0x0f8c: { name: "blitFrogAnimColumnOnTrigger", role: "frog-anim pre-helper: when the trigger cell is set, blit an 8-row two-byte-per-row tile pair from a fixed pattern source down a VRAM column (+32 per row) then clear the trigger; a clear trigger returns at once; memory-only live-out", cert: "seen" },
   0x1048: { name: "spinWatchdogSettleDelay", role: "power-on settle delay: feed the watchdog once per pass across a long count; the counter spin is pure time (collapsed away), the watchdog read count is the io live-out, memory unchanged", cert: "seen" },
-  0x1198: { name: "computeVramColumnIndex", role: "coord/column compute for the tile render loop: from HL's distance to the VRAM base (less incoming borrow) fold one probed H bit and the shifted top column bits across 6 passes plus 3 final rotates into an accumulator; live-in HL+carry, live-out register C", cert: "code" },
+  0x1198: { name: "computeVramColumnIndex", role: "coord/column compute for the tile render loop: from HL's distance to the VRAM base (less incoming borrow) fold one probed H bit and the shifted top column bits across 6 passes plus 3 final rotates into an accumulator; live-in HL+carry, live-out register C -- grounded via MAME read-tap (wave-4): read-tap 28x GM5 render path (pure-compute VRAM column helper)", cert: "seen" },
   0x1802: { name: "advanceAnimationFrameBuffer", role: "step the frame-cell animation: return early while either busy latch (0x814f/0x815b) is set; else tick the frame timer (0x81b4) down, and when it reaches 0 reload it to 21, advance the frame index (0x81b3) wrapping to 0 at 10, and copy 11 bytes of the indexed frame (via the 0x1841 pointer table) into the 0x819b buffer; memory-only live-out", cert: "seen" },
   0x19e2: { name: "blitFourTileGroupColumn", role: "blit a 14-row VRAM column of the 4-tile group (tiles 72/73 across the top of each row pair, 74/75 across the row below) from the caller-supplied HL base, advancing 64 bytes per pair; HL live-in, memory-only live-out", cert: "seen" },
   0x1a02: { name: "seedObjectAnimationState", role: "seed the object-animation state at board init: fill 14 stride-2 cells from base 0x8021 and 10 stride-2 cells from base 0x800d with fixed value tables (cell i takes seed i); no live-in, memory-only live-out", cert: "seen" },
@@ -509,30 +509,30 @@ export const ROUTINES = {
   0x1c76: { name: "animateFrogHop", entry: "advanceFrogHopRight", role: "[seen] advance a RIGHT hop one frame: return if arrived (FROG_HOP_RIGHT_ARRIVAL), else raise FROG_HOP_RIGHT_ACTIVE and tick FROG_HOP_RIGHT_ANIM_COUNTER down; on drain mark arrived + stamp sprite 0xA1, else step the frog FROG_X += FROG_HOP_HORIZONTAL_DELTA + stamp moving sprite 0x9F. Reached from 0x23b7/0x1acb + the right begin fall-through. Memory-only live-out. golden_hop2: FROG_X 0x80->0x8e at +2/frame over frames 342-348, counter 8->2 (hop cut short by a road collision at frame 348, 0x8004=1)", cert: "seen" },
   0x1ca0: { name: "animateFrogHop", entry: "beginFrogHopLeft", role: "[seen] begin a LEFT hop: guard frog Y>=0x30 (field top) and frog X>=0x20 (left edge), fresh hop emits the hop sound + stamps rest sprite 0x21, primes FROG_HOP_LEFT_ANIM_COUNTER from FROG_HOP_LEFT_ANIM_RELOAD, then falls into advanceFrogHopLeft. Reached from 0x1acb/0x236d. Memory-only live-out. Grounded [seen] via the MAME land-hop run", cert: "seen" },
   0x1cd5: { name: "animateFrogHop", entry: "advanceFrogHopLeft", role: "[seen] advance a LEFT hop one frame: return if arrived (FROG_HOP_LEFT_ARRIVAL), else raise FROG_HOP_LEFT_ACTIVE and tick FROG_HOP_LEFT_ANIM_COUNTER down; on drain mark arrived + stamp sprite 0x21, else step the frog FROG_X -= FROG_HOP_HORIZONTAL_DELTA + stamp moving sprite 0x1F. Reached from 0x23b7/0x1acb + the left begin fall-through. Memory-only live-out. Grounded [seen] via the MAME land-hop run", cert: "seen" },
-  0x1fd6: { name: "scoreFrogRowProgress", role: "[seen] award a progress point when the frog reaches a new furthest row: range-check FROG_Y to [0x30,0xd0]; the 0xd0 edge seeds the high-water mark (FROG_FURTHEST_ROW) above the band on the first crossing; a row nearer the top than the recorded furthest updates it and awards the BCD delta 1 via the score routine addScoreAndAwardExtraLife (0x08e0, now lifted -- called directly, HL preserved across it), except the mid row 0x80. Reached only from the UP-hop advance (advanceFrogHopUp). Memory-only live-out. MAME-grounding pending", cert: "seen" },
+  0x1fd6: { name: "scoreFrogRowProgress", role: "[seen] award a progress point when the frog reaches a new furthest row: range-check FROG_Y to [0x30,0xd0]; the 0xd0 edge seeds the high-water mark (FROG_FURTHEST_ROW) above the band on the first crossing; a row nearer the top than the recorded furthest updates it and awards the BCD delta 1 via the score routine addScoreAndAwardExtraLife (0x08e0, now lifted -- called directly, HL preserved across it), except the mid row 0x80. Reached only from the UP-hop advance (advanceFrogHopUp). Memory-only live-out. MAME-grounded", cert: "seen" },
 
   // ── batch-8 routines: near-leaf primitives + service/dispatch routines ──
-  0x0018: { name: "enqueueSoundCommand", role: "[code] rst 0x18 sound-command enqueue primitive: A holds the command; returns while not playing (PLAY_FLAG=0, dropping it), else bumps the ring head count at SOUND_QUEUE_COUNT (0x8300) and stores the command at 0x83<newhead> (L=head, the page byte stays fixed). Widely called (hop sound, foreground-drain jingle). Memory-only live-out; MAME-grounding pending", cert: "code" },
-  0x0038: { name: "clearTilemapToTile16", role: "[seen] rst 0x38 tilemap-clear primitive: fills the 32x32 tilemap (1024 contiguous cells, VRAM_BASE 0xa800 through 0xabff) with the blank tile 0x10; the ROM's per-row nested busy delay is timing-only (no memory effect). Memory-only live-out; MAME-grounding pending", cert: "seen" },
-  0x07e6: { name: "clearActivePlayerWorkRam", role: "[seen] clear the active player's work RAM: returns in a one-player game (PLAY_FLAG=1), else (PLAY_FLAG 0 or 2) falls into the unconditional clear at 0x07eb (KEPT as m.call, not yet lifted) that zeroes the frog object block 0x8044-0x8063 and the home-bay gate bytes 0x8420-0x842b. Memory-only live-out; MAME-grounding pending", cert: "seen" },
-  0x08e0: { name: "addScoreAndAwardExtraLife", role: "[seen] add the BCD delta in DE to the active player's score word (0x83ED P1 / 0x83EB P2), gated off while PLAY_FLAG 0x83FE is 0; the low-byte daa carry propagates into the high byte, leaving DE = the updated score. On the first frame the score reaches the target word (0x2E08=0x2000) with the player's award flag (0x83E7/0x83E8) clear, clears 0x83CF, sets the flag, bumps the active player's 0x83E5/0x83E6 counter, stamps tile 0x4D up the HUD column from 0xABDE (one 0x20 row per count), and queues the tile update via rst 0x18 (dissolved to enqueueSoundCommand). Then trails the high score at 0x83EF. Callers scoreFrogRowProgress + in-play score sites; memory-only live-out. NOTE 0x83E5/0x83E6 is the time-remaining byte per renderTimeBar, so the award likely extends the time bar; MAME-grounding pending", cert: "seen" },
-  0x2906: { name: "queueFrogOnLogEdgeBlit", role: "[code] enqueue the frog-on-log edge blit command 0xD0 via rst 0x18 (dissolved to enqueueSoundCommand); bails unless PLAY_FLAG 0x83FE is set, the phase index 0x81A2 is in [0x02,0x0E], and the busy gate 0x8140 is 0. Memory-only live-out (the command ring); MAME-grounding pending (wave-2 partial: reached on the ride but enqueue-window unconfirmed -- frog-carry follow-up)", cert: "code" },
-  0x2cf0: { name: "scanCoinInputAndCredit", role: "[seen] the coin/credit scanner the vblank NMI calls first: on the attract pass (0x83E2==0) latch ~IN0 & 0xC4 and return; once armed, wait for the release edge then issue the coin sound (issueSoundCommand), pulse the hardware coin counter for the slot (bit6 of 0x83E2 picks 0xB818/0x837E vs 0xB81C/0x837F), add the coinage-indexed credit (word 0x83D4 in {0,2,4,6}; the 2-coin coinage credits only every other coin via 0x83E3) to the packed-BCD total 0x83E1 clamped at 0x99, and -- unless already playing (0x83FE) -- force GAME_MODE 0x83D6 to 5 (blitPlayerSelectPrompt when it was already 5), clear 0x83D8, clear the fly/object block 0x8040-0x805F, and tail into renderCreditLine. Dissolves issueSoundCommand/blitPlayerSelectPrompt/renderCreditLine (no m.call). Memory-only live-out; MAME-grounding pending", cert: "seen" },
-  0x2a6a: { name: "spawnSpriteObjectArmA", role: "[code] dispatcher-A sprite-object spawn arm, live once the slot count (0x83B7)>=3: counts down the (IX+0x0A) spawn timer, and on expiry with the object idle rolls the spawn PRNG (0x0AEE) against 8*count+0x80, then walks the 0x8276/0x8278 placement bands down from the free-running counter (0x8014) to place the object on-screen (block_2abe) or park it off-screen (block_2aaa), seeds its sprite code + frame/move timers, and falls into the shared arm tail 0x2AE6 (raise the one-shot 0x8371 + queue sound 0x90); memory-only live-out", cert: "code" },
+  0x0018: { name: "enqueueSoundCommand", role: "[seen] rst 0x18 sound-command enqueue primitive: A holds the command; returns while not playing (PLAY_FLAG=0, dropping it), else bumps the ring head count at SOUND_QUEUE_COUNT (0x8300) and stores the command at 0x83<newhead> (L=head, the page byte stays fixed). Widely called (hop sound, foreground-drain jingle). Memory-only live-out; MAME-grounded", cert: "seen" },
+  0x0038: { name: "clearTilemapToTile16", role: "[seen] rst 0x38 tilemap-clear primitive: fills the 32x32 tilemap (1024 contiguous cells, VRAM_BASE 0xa800 through 0xabff) with the blank tile 0x10; the ROM's per-row nested busy delay is timing-only (no memory effect). Memory-only live-out; MAME-grounded", cert: "seen" },
+  0x07e6: { name: "clearActivePlayerWorkRam", role: "[seen] clear the active player's work RAM: returns in a one-player game (PLAY_FLAG=1), else (PLAY_FLAG 0 or 2) falls into the unconditional clear at 0x07eb (KEPT as m.call, not yet lifted) that zeroes the frog object block 0x8044-0x8063 and the home-bay gate bytes 0x8420-0x842b. Memory-only live-out; MAME-grounded", cert: "seen" },
+  0x08e0: { name: "addScoreAndAwardExtraLife", role: "[seen] add the BCD delta in DE to the active player's score word (0x83ED P1 / 0x83EB P2), gated off while PLAY_FLAG 0x83FE is 0; the low-byte daa carry propagates into the high byte, leaving DE = the updated score. On the first frame the score reaches the target word (0x2E08=0x2000) with the player's award flag (0x83E7/0x83E8) clear, clears 0x83CF, sets the flag, bumps the active player's 0x83E5/0x83E6 counter, stamps tile 0x4D up the HUD column from 0xABDE (one 0x20 row per count), and queues the tile update via rst 0x18 (dissolved to enqueueSoundCommand). Then trails the high score at 0x83EF. Callers scoreFrogRowProgress + in-play score sites; memory-only live-out. NOTE 0x83E5/0x83E6 is the time-remaining byte per renderTimeBar, so the award likely extends the time bar; MAME-grounded", cert: "seen" },
+  0x2906: { name: "enqueueLaneScrollSyncedCommand", role: "[seen] play-mode lane-scroll-synced command enqueue: pushes command 0xD0 via rst 0x18 into the 0x8300 command ring when PLAY_FLAG set AND lane-control byte LANE_CONTROL_SPEED_7 in [0x02,0x0e] AND lane-scroll byte LANE_RUN_SCROLL_POS==0. OVERTURN of the frog-on-log-edge-blit reading (wave-3 MAME: gate inputs are LANE data, not frog state)", cert: "seen" },
+  0x2cf0: { name: "scanCoinInputAndCredit", role: "[seen] the coin/credit scanner the vblank NMI calls first: on the attract pass (0x83E2==0) latch ~IN0 & 0xC4 and return; once armed, wait for the release edge then issue the coin sound (issueSoundCommand), pulse the hardware coin counter for the slot (bit6 of 0x83E2 picks 0xB818/0x837E vs 0xB81C/0x837F), add the coinage-indexed credit (word 0x83D4 in {0,2,4,6}; the 2-coin coinage credits only every other coin via 0x83E3) to the packed-BCD total 0x83E1 clamped at 0x99, and -- unless already playing (0x83FE) -- force GAME_MODE 0x83D6 to 5 (blitPlayerSelectPrompt when it was already 5), clear 0x83D8, clear the fly/object block 0x8040-0x805F, and tail into renderCreditLine. Dissolves issueSoundCommand/blitPlayerSelectPrompt/renderCreditLine (no m.call). Memory-only live-out; MAME-grounded", cert: "seen" },
+  0x2a6a: { name: "spawnSpriteObjectArmA", role: "[seen] dispatcher-A sprite-object spawn arm, live once the slot count (0x83B7)>=3: counts down the (IX+0x0A) spawn timer, and on expiry with the object idle rolls the spawn PRNG (0x0AEE) against 8*count+0x80, then walks the 0x8276/0x8278 placement bands down from the free-running counter (0x8014) to place the object on-screen (block_2abe) or park it off-screen (block_2aaa), seeds its sprite code + frame/move timers, and falls into the shared arm tail 0x2AE6 (raise the one-shot 0x8371 + queue sound 0x90); memory-only live-out", cert: "seen" },
   0x29b9: { name: "dispatchSpriteObjectArmsA", role: "[seen] sprite-object dispatcher A: runs the five IX/IY per-slot arms in ROM order -- spawnSpriteObjectArmA(0x2A6A), animateSpriteObjectFrame(0x29C9), loc_29f9(0x29F9), placeSpriteObjectSlotAndRetire(0x2AF3), flagSpriteObjectFrogHit(0x2B58) -- then returns; memory-only live-out", cert: "seen" },
-  0x2970: { name: "driveSpriteObjectCluster", role: "[code] sprite-object cluster entry, run once per frame: (0x83B7)<3 skips to dispatcher B; >=3 runs dispatcher A (0x29B9) on the active player's (0x83FD) record 0x8440/0x8460 (slot 0x8048), then a 2nd dispatcher-A pass that advances IX by 0x10 / IY to 0x8050 only when (0x83B7)>=6 (else the overlapping-code arm reuses the first pass's IX/IY), then dispatcher B updateSpriteObject(0x2B83) on record 0x8480/0x8490 (slot 0x8058); memory-only live-out", cert: "code" },
+  0x2970: { name: "driveSpriteObjectCluster", role: "[seen] sprite-object cluster entry, run once per frame: (0x83B7)<3 skips to dispatcher B; >=3 runs dispatcher A (0x29B9) on the active player's (0x83FD) record 0x8440/0x8460 (slot 0x8048), then a 2nd dispatcher-A pass that advances IX by 0x10 / IY to 0x8050 only when (0x83B7)>=6 (else the overlapping-code arm reuses the first pass's IX/IY), then dispatcher B updateSpriteObject(0x2B83) on record 0x8480/0x8490 (slot 0x8058); memory-only live-out", cert: "seen" },
   0x0629: { name: "clearAndSeedScoreField", role: "[seen] reset the score field for a new board: clear the active player's work RAM, zero the score-display cursor pair, mark the field seeded, tile 0x20 rows with two ten-cell blank runs each; memory-only live-out", cert: "seen" },
   0x0d4c: { name: "initInPlayBoardOnce", role: "[seen] one-shot in-play board setup (guarded by 0x83ba): clear the difficulty indices and two board-state cells, run the lane/object/field setup, seed two object cells, blit the HUD strings and score-target digits; memory-only live-out", cert: "seen" },
   0x0870: { name: "driveScoreDisplayCountdown", role: "[seen] per-frame score-display driver (guards 0x83cd/0x8004): first-entry seed, field layout, then the bonus arm or the step countdown that walks a BCD counter down, animates a bar tile, and takes the end-strip tail on drain; memory-only live-out", cert: "seen" },
   0x05f0: { name: "advanceBoardForeground", role: "[seen] board-advance foreground: queue two sound cues, bump the active player's mod-5 difficulty index (wrap at 5), reseed the score field and lay out the new board, raise the laid-out flag, tail into the score adder with a 0x0100 delta; memory-only live-out", cert: "seen" },
 
   // ── batch-9 spine assembly: seatable leaf/render/life-cycle routines wired live (dispatchers held) ──
-  0x1d77: { name: "holdFrogMissedHomeBay", role: "[code] home-row reject handler: when the frog reached the home row (FROG_Y below threshold) over no bay, raise HOLD_FLAG (losing the frog); either way tail-dispatch the frog input scan (scanFrogInputAndDispatchHop). Memory-only live-out; MAME-grounding pending", cert: "code" },
-  0x0fd4: { name: "renderFrogAnimArm0", role: "[seen] frog-animation render arm 0 (jp-table target of the 0x0FAF dispatcher, sibling of arms 1/6): loads row-advance/row-count/column from the lane-param block, points the dest+pattern pointers, arms the IX/IY plot cursors, stashes the row-advance + tile source where the shared render loop 0x0FF1 rereads them, then enters that loop (kept m.call to the still-frozen loop). Memory-only live-out; MAME-grounding pending", cert: "seen" },
-  0x0942: { name: "renderFrogSceneAndTickTimer", role: "[seen] per-frame frog-scene render core: ticks the active player's game-timer (unless the demo/frame gate), flagging expiry; renders the frog+object banner, lays the home-marker column when not in the demo gate, mirrors the countdown-enable flag, stamps the active player's occupied home slots, then either resets the frog object or loads lane params and runs the frog-animation dispatcher (0x0FAF, kept balanced push16+m.call, its arm's ret consumes the sentinel) before the reset. Live-out: memory + A (caller 0x040B stores it into continue flag 0x83EA; 0 on the demo-clear bare return, else the shared reset delegate's A); MAME-grounding pending", cert: "seen" },
-  0x1f1c: { name: "stampHomeGoalAndResetFrog", role: "[seen] shared home-goal fill + frog reset (reached once a home bay is awarded): on a latched collision adds bonus score and clears the sprite block (kept push16+m.call), stamps the 2x2 home tiles at the caller's slot HL, adds the home bonus and refreshes the score display; in play mode queues the arrival jingle and on this player's fourth home clears the work RAM + a board strip, else selects the next fanfare pointer; finally reseeds the frog object + up-hop/countdown state. Memory-only live-out; MAME-grounding pending", cert: "seen" },
-  0x0457: { name: "beginNextLifeOrIntro", role: "[code] continue / next-life path: redraws the score header; if no life remains (restart gate 0) resumes at the pace-tail coroutine, else re-activates the frog, clears the active player's work RAM, zeroes the per-life HUD cells + 14-byte slot block, plays the restart jingle, then either runs the intro countdown (0x048f) or hands to the other player before resuming at the pace tail. Memory-only live-out; MAME-grounding pending", cert: "code" },
+  0x1d77: { name: "holdFrogMissedHomeBay", role: "[seen] home-row reject handler: when the frog reached the home row (FROG_Y below threshold) over no bay, raise HOLD_FLAG (losing the frog); either way tail-dispatch the frog input scan (scanFrogInputAndDispatchHop). Memory-only live-out; MAME-grounded", cert: "seen" },
+  0x0fd4: { name: "renderFrogAnimArm0", role: "[seen] frog-animation render arm 0 (jp-table target of the 0x0FAF dispatcher, sibling of arms 1/6): loads row-advance/row-count/column from the lane-param block, points the dest+pattern pointers, arms the IX/IY plot cursors, stashes the row-advance + tile source where the shared render loop 0x0FF1 rereads them, then enters that loop (kept m.call to the still-frozen loop). Memory-only live-out; MAME-grounded", cert: "seen" },
+  0x0942: { name: "renderFrogSceneAndTickTimer", role: "[seen] per-frame frog-scene render core: ticks the active player's game-timer (unless the demo/frame gate), flagging expiry; renders the frog+object banner, lays the home-marker column when not in the demo gate, mirrors the countdown-enable flag, stamps the active player's occupied home slots, then either resets the frog object or loads lane params and runs the frog-animation dispatcher (0x0FAF, kept balanced push16+m.call, its arm's ret consumes the sentinel) before the reset. Live-out: memory + A (caller 0x040B stores it into continue flag 0x83EA; 0 on the demo-clear bare return, else the shared reset delegate's A); MAME-grounded", cert: "seen" },
+  0x1f1c: { name: "stampHomeGoalAndResetFrog", role: "[seen] shared home-goal fill + frog reset (reached once a home bay is awarded): on a latched collision adds bonus score and clears the sprite block (kept push16+m.call), stamps the 2x2 home tiles at the caller's slot HL, adds the home bonus and refreshes the score display; in play mode queues the arrival jingle and on this player's fourth home clears the work RAM + a board strip, else selects the next fanfare pointer; finally reseeds the frog object + up-hop/countdown state. Memory-only live-out; MAME-grounded", cert: "seen" },
+  0x0457: { name: "beginNextLifeOrIntro", role: "[seen] continue / next-life path: redraws the score header; if no life remains (restart gate 0) resumes at the pace-tail coroutine, else re-activates the frog, clears the active player's work RAM, zeroes the per-life HUD cells + 14-byte slot block, plays the restart jingle, then either runs the intro countdown (0x048f) or hands to the other player before resuming at the pace tail. Memory-only live-out; MAME-grounded", cert: "seen" },
   0x236d: { name: "driveAttractDemoFrogHop", role: "[seen] ATTRACT-DEMO scripted hop-begin driver (GAME_MODE==1, PLAY_FLAG==0): reached only from the mode-1 dispatcher 0x2341 during the attract demo -- drives the auto-frog across road+river via the script table 0x2E68 (dwell 0x8299, phase 0x829a, gate 0x829b). OVERTURN of the in-play extra-frog reading: grounded via wave-2 MAME with ALL entry hits in GM1/PF0 (attract demo) and 0 in real play; paired 1:1 with advanceAttractDemoFrogHop", cert: "seen" },
-  0x16f8: { name: "driveFrogDeathAnimation", role: "[seen] frog death / hop-complete animation driver, gated by the hold flag (idle frog returns at once): mirrors a couple of anim latches, runs the home-bay stamp + the collision reset (0x27b3 clearLatchedCollision, kept balanced push16+m.call for its mixed 0/+2 tail), ticks the hop-frame counter, and only when it reaches 0x10 advances the death phase and dispatches -- the board-advance/reset arm or a per-phase death-sprite poke (second-bank flag picks the poke set). Memory-only live-out; MAME-grounding pending", cert: "seen" },
-  0x26a6: { name: "animateFlyEatCollision", role: "[seen] fly-eat collision/animation step, run each vblank: while an eat is in progress only tracks the fly sprite onto the frog; else arms the tongue once (fly path idle), bails to the retract reset (clearLatchedCollision) when the retract bit is set, and while the tongue is out runs the fly patrol mover + box-tests the fly against the frog (fly X within +/-4 of frog X, frog Y in [0x5a,0x68)); a hit latches the eat, fires the eat sound, tracks the fly onto the frog. Memory-only live-out; MAME-grounding pending", cert: "seen" },
+  0x16f8: { name: "driveFrogDeathAnimation", role: "[seen] frog death / hop-complete animation driver, gated by the hold flag (idle frog returns at once): mirrors a couple of anim latches, runs the home-bay stamp + the collision reset (0x27b3 clearLatchedCollision, kept balanced push16+m.call for its mixed 0/+2 tail), ticks the hop-frame counter, and only when it reaches 0x10 advances the death phase and dispatches -- the board-advance/reset arm or a per-phase death-sprite poke (second-bank flag picks the poke set). Memory-only live-out; MAME-grounded", cert: "seen" },
+  0x26a6: { name: "animateFlyEatCollision", role: "[seen] fly-eat collision/animation step, run each vblank: while an eat is in progress only tracks the fly sprite onto the frog; else arms the tongue once (fly path idle), bails to the retract reset (clearLatchedCollision) when the retract bit is set, and while the tongue is out runs the fly patrol mover + box-tests the fly against the frog (fly X within +/-4 of frog X, frog Y in [0x5a,0x68)); a hit latches the eat, fires the eat sound, tracks the fly onto the frog. Memory-only live-out; MAME-grounded", cert: "seen" },
 };

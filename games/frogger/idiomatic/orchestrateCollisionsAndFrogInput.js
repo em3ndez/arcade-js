@@ -12,7 +12,7 @@ import { PLAY_FLAG, HOME_GOAL_SPRITE_ARM_CELL, LIVES_COUNT, FROG_Y } from "./nam
 import { mountOrKillFrogOnTwoPairFigure } from "./mountOrKillFrogOnTwoPairFigure.js";
 import { animateTwoPairFigure } from "./animateTwoPairFigure.js";
 import { animateFlyEatCollision } from "./animateFlyEatCollision.js";
-import { queueFrogOnLogEdgeBlit } from "./queueFrogOnLogEdgeBlit.js";
+import { enqueueLaneScrollSyncedCommand } from "./enqueueLaneScrollSyncedCommand.js";
 import { clearFourByteCounterBlock } from "./clearFourByteCounterBlock.js";
 import { loc_23eb } from "./loc_23eb.js";
 import { stampHomeBayFly } from "./stampHomeBayFly.js";
@@ -33,7 +33,7 @@ export function orchestrateCollisionsAndFrogInput(m) {
   animateTwoPairFigure(m);
   m.push16(0x1a64); m.call(DIVE_DRIVER);
   animateFlyEatCollision(m);
-  queueFrogOnLogEdgeBlit(m);
+  enqueueLaneScrollSyncedCommand(m);
 
   if (mem8[HOME_GOAL_SPRITE_ARM_CELL] !== 0) interiorTimingArm(m);
   loc_23eb(m);

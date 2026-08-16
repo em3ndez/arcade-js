@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * queueFrogOnLogEdgeBlit — memory-equivalent to the frozen oracle at ROM 0x2906.
+ * enqueueLaneScrollSyncedCommand — memory-equivalent to the frozen oracle at ROM 0x2906.
  * GATE: crafted-entry. From a captured post-boot state the play gate, the phase index (0x81A2) and the
  * busy gate (0x8140) are poked to drive: the not-playing early return; the phase-too-high and
  * phase-too-low rejects; the busy reject; and the in-range enqueue of command 0xD0 via rst 0x18. The
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { romsPresent, craft, ramDiff } from "./_frogHop.js";
-import { queueFrogOnLogEdgeBlit as cand } from "../queueFrogOnLogEdgeBlit.js";
+import { enqueueLaneScrollSyncedCommand as cand } from "../enqueueLaneScrollSyncedCommand.js";
 import { loc_2906 as oracle } from "../../translated/loc_2906.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -24,7 +24,7 @@ const phaseHi = () => craft((mem) => { mem[PLAY] = 1; mem[PHASE] = 0x0f; mem[BUS
 const phaseLo = () => craft((mem) => { mem[PLAY] = 1; mem[PHASE] = 0x01; mem[BUSY] = 0; });
 const busy = () => craft((mem) => { mem[PLAY] = 1; mem[PHASE] = 0x08; mem[BUSY] = 1; });
 
-test("EQUAL (crafted): queueFrogOnLogEdgeBlit == oracle on enqueue/gate/phase/busy", { skip }, () => {
+test("EQUAL (crafted): enqueueLaneScrollSyncedCommand == oracle on enqueue/gate/phase/busy", { skip }, () => {
   for (const [name, mk] of [["enqueue", enqueue], ["gate", gate], ["phase-hi", phaseHi], ["phase-lo", phaseLo], ["busy", busy]]) {
     assert.equal(ramDiff(oracle, cand, mk()), null, `the ${name} path diverged`);
   }

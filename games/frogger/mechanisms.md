@@ -236,8 +236,9 @@ overturned the "draw digit pair" reading). **`dequeueSoundCommand`** pops the so
 `SOUND_QUEUE_COUNT` and issues the front byte through `issueSoundCommand` (latches `SOUND_CMD_LATCH`, pulses `SOUND_CTRL_PORT` bit 3).
 **`enqueueSoundCommand`** is the enqueue side (the rst-0x18 primitive): while in play it bumps the ring
 head `SOUND_QUEUE_COUNT` and stores the command in `A`, dropping it in attract; the hop, the board-advance
-cues, the score-display driver, and **`queueFrogOnLogEdgeBlit`** (the frog-on-log edge blit, gated on the
-phase `FROG_ON_LOG_ANIM_PHASE` and the busy gate `FROG_ON_LOG_BLIT_BUSY_GATE`) all feed it. **`scanCoinInputAndCredit`** — run first each
+cues, the score-display driver, and **`enqueueLaneScrollSyncedCommand`** (a play-mode enqueue of command
+`0xD0`, gated on the lane-control byte `LANE_CONTROL_SPEED_7` and the lane scroll position
+`LANE_RUN_SCROLL_POS` — MAME-grounded 2026-08-16 as lane data, NOT frog-on-log state) all feed it. **`scanCoinInputAndCredit`** — run first each
 NMI — latches the coin input `COIN_INPUT_LATCH` in attract and credits on the release edge, pulsing the
 slot's hardware coin counter (`COIN_COUNTER_0`/`COIN_COUNTER_1`) and adding the `COINAGE_WORD`-indexed
 amount to the packed-BCD total `CREDIT_BCD` (clamped at `0x99`), then forces the player-select mode unless
