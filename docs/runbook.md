@@ -491,14 +491,16 @@ deliberate handling. These four are one problem and are decided together, once, 
   grounding, registers, *and* audio all still open — every one a subsystem with no gate guarding the
   done-claim.
 - **Audio-coverage gate — the one that was missing.** Audio was the only ship step with no gate ("by
-  ear, no oracle"), so it is the step that silently gets skipped. Fix: a gate that enumerates the sound
-  commands the game actually emits (the `enqueueSoundCommand`/soundlatch call sites are statically
-  discoverable) and requires each to be **mapped-or-accounted-for** in `manifest.audio.map`, plus a
-  wiring test that the soundlatch tap reaches the sample player. Fail-closed when a game emits commands
-  but the map is absent or incomplete. It **cannot** check correctness — no audio oracle exists, so
-  "does it sound right" stays a recorded by-ear sign-off — but a *missing or partial* audio layer
-  becomes impossible to ship. (Coverage, not a claim: the same grounded-or-accounted-for discipline the
-  understand half uses on `[code]`.)
+  ear, no oracle"), so it is the step that silently gets skipped. Fix: `tools/audio_gate.py`, a
+  completion gate requiring the committed artifacts a complete audio layer has (the model is dkong):
+  `manifest.audio.map` + the map file; for a clips model, a `soundLatch` matching names.js
+  `SOUND_CMD_LATCH`; and BOTH `test/audio-map.test.js` (coverage — every emitted command has a mapped
+  clip) and `test/audio-wiring.test.js` (the soundlatch tap reaches the player). Those two committed
+  tests do the enumeration/verification in the standing suite — the WAVs + index.json are gitignored
+  copyright, so the gate cannot parse coverage itself; it guarantees the tests were not skipped.
+  Fail-closed when the layer or a test is absent. It **cannot** check correctness — no oracle — so "does
+  it sound right" stays a recorded by-ear sign-off, but a *missing or untested* audio layer becomes
+  impossible to ship.
 
 ---
 
