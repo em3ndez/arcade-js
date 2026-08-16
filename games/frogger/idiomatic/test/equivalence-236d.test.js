@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * driveExtraFrogHopAcross — memory-equivalent to the frozen oracle at ROM 0x236D.
+ * driveAttractDemoFrogHop — memory-equivalent to the frozen oracle at ROM 0x236D.
  * GATE: crafted-entry. The extra-frog driver returns on the suppress/hold gates, ticks a running spawn
  * dwell, else re-arms the dwell, advances the phase, and dispatches the ROM script's frame code. From a
  * captured post-boot state the gate pokes the gate cells, the dwell, and the phase index to hit every
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { romsPresent, craft, ramDiff, PLAY_FLAG, FROG_X, FROG_Y } from "./_frogHop.js";
-import { driveExtraFrogHopAcross as cand } from "../driveExtraFrogHopAcross.js";
+import { driveAttractDemoFrogHop as cand } from "../driveAttractDemoFrogHop.js";
 import { loc_236d as oracle } from "../../translated/loc_236d.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -24,7 +24,7 @@ const base = (mem) => { mem[PLAY_FLAG] = 1; mem[FROG_X] = 0x50; mem[FROG_Y] = 0x
 // 0x0c->no-op, 0x1f->reset. Dwell 0 forces the advance path.
 const disp = (phase) => craft((mem) => { base(mem); mem[DWELL] = 0; mem[PHASE] = phase; });
 
-test("EQUAL (crafted): driveExtraFrogHopAcross == oracle on gates/dwell/every dispatch code", { skip }, () => {
+test("EQUAL (crafted): driveAttractDemoFrogHop == oracle on gates/dwell/every dispatch code", { skip }, () => {
   const cases = [
     ["suppress", craft((mem) => { base(mem); mem[SUPPRESS] = 1; })],
     ["hold", craft((mem) => { base(mem); mem[HOLD] = 1; })],

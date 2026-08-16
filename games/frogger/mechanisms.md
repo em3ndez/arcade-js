@@ -83,14 +83,14 @@ scroll phase, and at phase 16/32/48 re-blits both lane tile grids via **`blitScr
 also zeroes the phase). `blitScrollTileGrid` stamps tile pairs (`0x34`–`0x37`) down VRAM columns from
 `0xA808`; `stampScrollRevealColumn` writes the newly-revealed edge column into `VRAM_BASE`; `blitScrollBand`
 writes the scrolling band rows. **`blitFourTileGroupColumn`** paints 14-row two-wide columns of the
-four-tile group (tiles `72`–`75`) — the **river-log** graphics. **`advanceActiveFrogHops`** (`0x23b7`) has the
-code shape of a per-direction hop continuer (hop-active flag `0x8248`–`0x824b` set → tail that direction's
-advance handler; else clear its arrival mirror `0x824c`–`0x824f`), but a MAME re-grounding (2026-08-16)
-recorded it running **zero** times across full DOWN/UP/LEFT/RIGHT land hops: the land-hop continuation is
-actually done by **`scanFrogInputAndDispatchHop`** calling the advance handlers directly. Its prior `[seen]`
-was a per-frame-snapshot mis-attribution (a snapshot cannot name the writer) — now `[code]`, and it likely
-fires only on a river-object carry (owes a river-ride grounding to settle). The log/turtle carry is
-**`moveLaneObjectsAndCarryFrog`** (see The lane-object mover).
+four-tile group (tiles `72`–`75`) — the **river-log** graphics. **`advanceAttractDemoFrogHop`** (`0x23b7`, a
+wave-1 misnomer now corrected) is the ATTRACT-DEMO scripted-hop continuation. MAME grounding
+(2026-08-16, wave 2) recorded it running **zero** times across real land hops but on every attract-demo
+frame (GAME_MODE==1, PLAY_FLAG==0), paired 1:1 with **`driveAttractDemoFrogHop`** (`0x236d`)
+which begins the demo frog's scripted hops via the script table at `0x2E68`.
+So in *real* play the hop continuation is done by **`scanFrogInputAndDispatchHop`** calling the advance
+handlers directly (the wave-1 river-object-carry hypothesis is falsified — `0x23b7`/`0x236d` drive only the
+attract demo). The log/turtle carry is **`moveLaneObjectsAndCarryFrog`** (see The lane-object mover).
 
 ## The frog hop — `[seen]` (all four directions MAME-grounded 2026-08-16)
 
@@ -110,8 +110,8 @@ down and, on drain, marks the hop's arrival and stamps the rest tile; otherwise 
 by `FROG_HOP_VERTICAL_DELTA` (DOWN → `FROG_Y +`, UP → `FROG_Y -`) or `FROG_HOP_HORIZONTAL_DELTA` (RIGHT →
 `FROG_X +`, LEFT → `FROG_X -`) and stamps the moving tile. Over the reload count of frames the frog advances
 one 16px cell (~2px/frame). The hop continuation is driven by `scanFrogInputAndDispatchHop` itself, which
-tails to the active direction's advance half each vblank (the separate `advanceActiveFrogHops` at `0x23b7`
-did NOT fire across land hops under MAME — see the render section). The UP advance also steps the
+tails to the active direction's advance half each vblank (the separate `advanceAttractDemoFrogHop` at
+`0x23b7` drives only the attract-demo frog, not real play — see the render section). The UP advance also steps the
 home-slot cursor (`loc_23eb`) and scores via **`scoreFrogRowProgress`** (`0x1fd6`), which range-checks
 `FROG_Y` to [0x30,0xd0] and awards a point when the frog reaches a new furthest (`FROG_FURTHEST_ROW`) row
 through the unlifted score routine (`0x08e0`, kept `m.call`). `[seen]` for the vertical hop (golden_hop: the

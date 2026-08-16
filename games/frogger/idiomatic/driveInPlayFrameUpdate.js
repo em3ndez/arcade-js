@@ -7,8 +7,8 @@
  * the seam keeps a balanced stack. LIVE-OUT: memory-only.
  */
 import { GAME_MODE, INTRO_COUNTER_829B } from "./names.js";
-import { driveExtraFrogHopAcross } from "./driveExtraFrogHopAcross.js";
-import { advanceActiveFrogHops } from "./advanceActiveFrogHops.js";
+import { driveAttractDemoFrogHop } from "./driveAttractDemoFrogHop.js";
+import { advanceAttractDemoFrogHop } from "./advanceAttractDemoFrogHop.js";
 import { renderFrogSceneAndTickTimer } from "./renderFrogSceneAndTickTimer.js";
 import { driveScoreDisplayCountdown } from "./driveScoreDisplayCountdown.js";
 import { advanceAnimationFrameBuffer } from "./advanceAnimationFrameBuffer.js";
@@ -25,9 +25,9 @@ export function driveInPlayFrameUpdate(m) {
   if (mem8[GAME_MODE] !== 1) return;
   if (mem8[RUN_FLAG] === 0) return;
 
-  driveExtraFrogHopAcross(m);
+  driveAttractDemoFrogHop(m);
   m.push16(0x2351); m.call(COLLISION_ORCH);
-  advanceActiveFrogHops(m);
+  advanceAttractDemoFrogHop(m);
   renderFrogSceneAndTickTimer(m);
   driveScoreDisplayCountdown(m);
   m.push16(0x235d); m.call(SCROLL_ENGINE);

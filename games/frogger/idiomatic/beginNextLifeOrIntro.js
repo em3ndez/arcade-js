@@ -6,7 +6,7 @@
  * HUD slot block, plays the restart jingle, and either runs the intro countdown (when the intro gate
  * is set) or hands play to the other player before resuming. LIVE-OUT: memory-only.
  */
-import { SCORE_DISPLAY_CURSOR_LO, SCORE_DISPLAY_CURSOR_HI, loc_83cc, loc_83ea, loc_83cf, PACE_TAIL } from "./names.js";
+import { SCORE_DISPLAY_CURSOR_LO, SCORE_DISPLAY_CURSOR_HI, loc_83cc, BOARD_LAYOUT_GATE, loc_83cf, PACE_TAIL } from "./names.js";
 import { renderScoreHeader } from "./renderScoreHeader.js";
 import { activateFrogObject } from "./activateFrogObject.js";
 import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
@@ -29,7 +29,7 @@ export function beginNextLifeOrIntro(m) {
   mem8[SCORE_DISPLAY_CURSOR_LO] = 0;
   mem8[SCORE_DISPLAY_CURSOR_HI] = 0;
   mem8[loc_83cc] = 0;
-  mem8[loc_83ea] = 0;
+  mem8[BOARD_LAYOUT_GATE] = 0;
   for (let i = 0; i < 14; i++) mem8[PER_LIFE_HUD_BASE + i] = 0;
 
   regs.a = RESTART_SOUND;

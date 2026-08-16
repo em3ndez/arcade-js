@@ -5,7 +5,7 @@
  * score. With the cursor set it raises the hold flag and pops the caller's return instead, returning to
  * the caller's caller and skipping its remainder. LIVE-OUT: memory-only.
  */
-import { HOME_BAY_SLOT_CURSOR_MIRROR, FOUR_BYTE_COUNTER_BASE, HOME_GOAL_SPRITE_ARM_CELL, HOLD_FLAG } from "./names.js";
+import { HOME_BAY_SLOT_CURSOR_MIRROR, GOAL_AWARD_RECORD, HOME_GOAL_SPRITE_ARM_CELL, HOLD_FLAG } from "./names.js";
 import { addScoreAndAwardExtraLife } from "./addScoreAndAwardExtraLife.js";
 
 const SCORE_DELTA = 0x0020;
@@ -15,10 +15,10 @@ export function awardBonusPoints(m) {
 
   if (mem8[HOME_BAY_SLOT_CURSOR_MIRROR] !== 0) return skipCaller(m);
 
-  mem8[FOUR_BYTE_COUNTER_BASE] = regs.b; // B = popup screen position
-  mem8[FOUR_BYTE_COUNTER_BASE + 1] = 0x19;
-  mem8[FOUR_BYTE_COUNTER_BASE + 2] = 0x03;
-  mem8[FOUR_BYTE_COUNTER_BASE + 3] = 0x20;
+  mem8[GOAL_AWARD_RECORD] = regs.b; // B = popup screen position
+  mem8[GOAL_AWARD_RECORD + 1] = 0x19;
+  mem8[GOAL_AWARD_RECORD + 2] = 0x03;
+  mem8[GOAL_AWARD_RECORD + 3] = 0x20;
   mem8[HOME_GOAL_SPRITE_ARM_CELL] = 0xa0;
   regs.de = SCORE_DELTA;
   addScoreAndAwardExtraLife(m);

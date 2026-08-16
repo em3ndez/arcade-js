@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceActiveFrogHops — per-vblank continuation of any in-progress directional hop.
+ * advanceAttractDemoFrogHop — per-vblank continuation of any in-progress directional hop.
  *
  * Points the cursors at the frog X/Y cells, then for each of the four hop directions: if the
  * direction's hop-active flag is set, hand off to that direction's advance handler to step the hop
@@ -16,7 +16,7 @@ import {
   advanceFrogHopRight, advanceFrogHopLeft,
 } from "./animateFrogHop.js";
 
-export function advanceActiveFrogHops(m) {
+export function advanceAttractDemoFrogHop(m) {
   const { regs, mem8 } = m;
   regs.hl = FROG_X;
   regs.de = FROG_Y;

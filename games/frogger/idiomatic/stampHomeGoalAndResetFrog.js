@@ -12,7 +12,7 @@ import {
   COLLISION_SUBFLAG, PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_SLOT, HOME_COLUMN_STATE,
   FROG_X, FROG_SPRITE_CODE, FROG_Y,
   FROG_HOP_UP_ARRIVAL, FROG_HOP_UP_ACTIVE, FROG_HOP_UP_ANIM_COUNTER, FROG_HOP_INPUT_TIMER,
-  GATED_COUNTDOWN_COUNTER, GATED_COUNTDOWN_ENABLE_FLAG, FROG_STATE_DEMO_FLAG, INTRO_COUNTER_829B, loc_83ea,
+  GATED_COUNTDOWN_COUNTER, GATED_COUNTDOWN_ENABLE_FLAG, FROG_STATE_DEMO_FLAG, INTRO_COUNTER_829B, BOARD_LAYOUT_GATE,
 } from "./names.js";
 import { addScoreAndAwardExtraLife } from "./addScoreAndAwardExtraLife.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
@@ -84,7 +84,7 @@ export function stampHomeGoalAndResetFrog(m) {
   mem8[FROG_Y] = 0xf0;
   regs.de = savedDe; regs.hl = savedHl;
   mem8[INTRO_COUNTER_829B] = 0;
-  mem8[loc_83ea] = 0;
+  mem8[BOARD_LAYOUT_GATE] = 0;
   mem8[FROG_HOP_UP_ARRIVAL] = 0;
   mem8[FROG_HOP_UP_ACTIVE] = 0;
   mem8[FROG_HOP_UP_ANIM_COUNTER] = 0;

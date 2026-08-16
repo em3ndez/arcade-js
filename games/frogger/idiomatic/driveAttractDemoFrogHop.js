@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * driveExtraFrogHopAcross — the in-play extra-frog hop-across spawn/animate driver, run each vblank.
+ * driveAttractDemoFrogHop — the in-play extra-frog hop-across spawn/animate driver, run each vblank.
  * Returns unless the suppress flag, the hold flag, and the spawn-dwell counter are all clear; a running
  * dwell just ticks down. Otherwise it re-arms the dwell, advances the phase index, reads that phase's
  * frame code from the script table and dispatches it: 0x02/05/08/0b re-run one directional hop-begin
@@ -17,7 +17,7 @@ const SPAWN_DWELL = 0x8299;
 const HOP_FRAME_TABLE = 0x2e68;
 const DWELL_RELOAD = 0x30;
 
-export function driveExtraFrogHopAcross(m) {
+export function driveAttractDemoFrogHop(m) {
   const { regs, mem8 } = m;
 
   if (mem8[GATED_COUNTDOWN_ENABLE_FLAG] !== 0) return;
@@ -46,7 +46,7 @@ export function driveExtraFrogHopAcross(m) {
     case 0x0e: return; // trailing no-op frame slot
     default:
       throw new NotImplemented(
-        `driveExtraFrogHopAcross: frame code 0x${code.toString(16)} at phase ${phase} is not a dispatch slot`,
+        `driveAttractDemoFrogHop: frame code 0x${code.toString(16)} at phase ${phase} is not a dispatch slot`,
       );
   }
 }

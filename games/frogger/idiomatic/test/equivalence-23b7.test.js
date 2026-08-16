@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceActiveFrogHops — memory-equivalent to the frozen oracle at ROM 0x23B7.
+ * advanceAttractDemoFrogHop — memory-equivalent to the frozen oracle at ROM 0x23B7.
  * GATE: crafted-entry. Attract never dispatches this in-play hop continuation (probe: 0 over ENTRY_FRAMES),
  * since its caller only runs in active play; a coherent post-boot state captured at the per-frame
  * score redraw (0x0b1f) is cloned and the four hop-active flags poked. The clear entry (all flags
@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { advanceActiveFrogHops } from "../advanceActiveFrogHops.js";
+import { advanceAttractDemoFrogHop } from "../advanceAttractDemoFrogHop.js";
 import { loc_23b7 as oracle } from "../../translated/loc_23b7.js";
 
 const NEIGHBOUR = 0x0b1f;
@@ -92,12 +92,12 @@ function brokenSkipAdvance(m) {
   regs.a = mem8[0x824b]; if (regs.a !== 0) return m.call(0x1cd5); mem8[0x824f] = 0;
 }
 
-test("EQUAL (crafted): advanceActiveFrogHops == oracle on the clear path and each direction arm", { skip }, () => {
-  assert.equal(ramDiff(advanceActiveFrogHops, craftClear()), null, "the clear path diverged");
-  for (let d = 0; d < 4; d++) assert.equal(ramDiff(advanceActiveFrogHops, craftDirection(d)), null, `direction ${d} diverged`);
+test("EQUAL (crafted): advanceAttractDemoFrogHop == oracle on the clear path and each direction arm", { skip }, () => {
+  assert.equal(ramDiff(advanceAttractDemoFrogHop, craftClear()), null, "the clear path diverged");
+  for (let d = 0; d < 4; d++) assert.equal(ramDiff(advanceAttractDemoFrogHop, craftDirection(d)), null, `direction ${d} diverged`);
   assert.ok(ramDiff(brokenNoOp, craftClear()), "vacuous: oracle wrote nothing on the clear path");
   assert.ok(ramDiff(brokenNoOp, craftDirection(0)), "vacuous: oracle wrote nothing on the DOWN arm");
-  console.log("  EQUAL: clear path + four direction advance arms, advanceActiveFrogHops == oracle");
+  console.log("  EQUAL: clear path + four direction advance arms, advanceAttractDemoFrogHop == oracle");
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {
