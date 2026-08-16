@@ -2,6 +2,72 @@
 
 export const UNWIRED = {
   frogger: {
+    // ── batch-9 spine assembly: cannot-seat (hard), dispatchers held, and empirically-unverifiable ──
+    "serviceVblankNmi.js":
+      "the vblank NMI interrupt SERVICE (0x0066): it unwinds the interrupt frame, moving SP by more " +
+      "than one return slot (net SP not 0/+2), so `withOmittedRet` cannot seat it and a ROUTINES " +
+      "entry throws on the first NMI. Same class as timeplt's serviceVerticalBlankInterrupt.js. The " +
+      "module and its equivalence-0066 gate are correct and stay; the frozen layer runs it in-game " +
+      "through the interrupt seam.",
+    "awardBonusPoints.js":
+      "a CALLER-SKIP (its own JSDoc): it pops the caller's return, so its net SP delta is +4 from the " +
+      "seam's seat, and `withOmittedRet` places only a 0/+2 rewrite -- a ROUTINES entry throws. The " +
+      "module and equivalence-2673 gate are correct and stay; the frozen oracle serves the in-game call.",
+    "awardHomeBayGoal.js":
+      "the home-bay goal award (twin entry 0x1dd8/0x1e7a, one module): its goal-hit path m.calls the " +
+      "0x2673 caller-skip (awardBonusPoints), inheriting the +4 SP move, so the seam cannot seat it. " +
+      "The module and its equivalence-1dd8/1e7a gates are correct and stay; oracle-served live.",
+    "selectHomeBayGoalHandler.js":
+      "routes into the 0x2673 caller-skip path (awardBonusPoints) via the goal scan, inheriting its " +
+      "net +4 SP move, so `withOmittedRet` cannot seat it. Module and equivalence-1cff gate correct " +
+      "and stay; oracle-served live.",
+    "seatStackAndEnterColdBoot.js":
+      "cold-boot entry (0x0000): it SEATS the stack (writes m.regs.sp) and never returns normally, so " +
+      "there is no net `ret` for the seam to place. Module and equivalence-0000 gate correct and stay; " +
+      "the boot chain runs it in the frozen layer.",
+    "initColdBootAndEnterMainLoop.js":
+      "cold-boot main-loop entry (0x02a3): does not return normally (falls into the main loop), so the " +
+      "seam has no net `ret` to seat. Module and equivalence-02a3 gate correct and stay; frozen-layer " +
+      "boot serves it.",
+    "setUpBoardOrContinueLife.js":
+      "dispatcher HELD for serial post-assembly wiring -- a bad dispatcher wire passes the per-routine " +
+      "gates but breaks the live game, so Jimmy wires it one-by-one with a pixel/live check after each. " +
+      "Module and equivalence-040b gate correct and stay; oracle-served live.",
+    "dispatchGameModeFrame.js":
+      "dispatcher HELD for serial post-assembly wiring (pixel/live check per wire). Module and " +
+      "equivalence-0d11 gate correct and stay; oracle-served live.",
+    "driveAttractDemoSequencer.js":
+      "dispatcher HELD for serial post-assembly wiring (pixel/live check per wire). Module and " +
+      "equivalence-0e7a gate correct and stay; oracle-served live.",
+    "dispatchFrogAnimationArm.js":
+      "the frog-animation jp-table dispatcher (0x0faf) HELD for serial post-assembly wiring (pixel/live " +
+      "check per wire). Module and equivalence-0faf gate correct and stay; oracle-served live.",
+    "orchestrateCollisionsAndFrogInput.js":
+      "dispatcher HELD for serial post-assembly wiring (pixel/live check per wire). Module and " +
+      "equivalence-1a55 gate correct and stay; oracle-served live.",
+    "driveInPlayFrameUpdate.js":
+      "dispatcher HELD for serial post-assembly wiring (pixel/live check per wire). Module and " +
+      "equivalence-2341 gate correct and stay; oracle-served live.",
+    "setUpPlayStartOnce.js":
+      "dispatcher HELD for serial post-assembly wiring (pixel/live check per wire). Module and " +
+      "equivalence-230f gate correct and stay; oracle-served live.",
+    "runIntroTimerThenInitGame.js":
+      "author-complete, equivalence-048f green, but empirically UNVERIFIABLE here: no available input " +
+      "tape (attract, 1-player play+death, 2-player start) ever live-dispatches it, so wiring it cannot " +
+      "get a pixel/live confirmation. Its exits tail into the cold-start siblings 0x0547/0x04f3 (both " +
+      "UNWIRED), clearPlayerOneHomeBayGates, and PACE_TAIL 0x0368 (a wired coroutine) -- the same seam " +
+      "shape as the wired beginNextLifeOrIntro, so it is plausibly seatable. Held conservative-UNWIRED " +
+      "(oracle-served, equivalence-proven) until a game-over/new-game tape reaches it and pixel/live passes.",
+    "setUpPlayerTwoContinue.js":
+      "author-complete, equivalence-04f3 green, but empirically UNVERIFIABLE here: not live-dispatched " +
+      "even by a 2-coin + 2-player-start tape, so its `return m.call(0x0557)` bare tail into the still-" +
+      "TRANSLATED cold-start-mid cannot be confirmed seatable live. Conservative-UNWIRED (oracle-served, " +
+      "equivalence-proven); wire once a tape reaches it and a pixel/live check passes.",
+    "coldStartClearSlotGates.js":
+      "author-complete, equivalence-0547 green, but empirically UNVERIFIABLE here: not live-dispatched " +
+      "by any available tape, so its `return m.call(0x0557)` bare tail into the still-TRANSLATED cold-" +
+      "start-mid cannot be confirmed seatable live. Conservative-UNWIRED (oracle-served, equivalence-" +
+      "proven); wire once a tape reaches it and a pixel/live check passes.",
     "tickAttractCellFrameClock.js":
       "the attract cell frame clock, a DOUBLE caller-skip. Its not-elapsed exit (the common frame) " +
       "drops both its own saved-pointer slot and the arm's return and rets to the arm's caller, " +

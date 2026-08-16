@@ -47,6 +47,27 @@ export const ALLOWED = {
  * indebted callee still fails. Re-derive with `findStaleMcalls`; never hand-edit.
  */
 export const DEBT = {
+  frogger: {
+    // Spine + held/frozen dispatchers + hard-unwired boot/NMI/caller-skip callers keep these m.calls:
+    // each target is a still-frozen/oracle-served address (kept dispatch / caller-skip / coroutine tail /
+    // balanced push16+m.call), so the m.call is the born-live mechanism, not a dissolvable stale call.
+    // Re-derived from `node tools/no-stale-mcall.mjs`; never hand-edit -- keyed by caller AND target.
+    "awardHomeBayGoal.js": [0x2673, 0x1f1c],
+    "beginNextLifeOrIntro.js": [0x48f],
+    "drainForegroundThenYieldEachVblank.js": [0xd11, 0x230f, 0x40b],
+    "driveAttractDemoSequencer.js": [0xf3e],
+    "driveFrogDeathAnimation.js": [0x27b3],
+    "driveInPlayFrameUpdate.js": [0x1a55, 0x2005, 0x11bf],
+    "orchestrateCollisionsAndFrogInput.js": [0x27ea, 0x1cff],
+    "renderFrogSceneAndTickTimer.js": [0xfaf],
+    "runIntroTimerThenInitGame.js": [0x547, 0x4f3],
+    "seatStackAndEnterColdBoot.js": [0x2a3],
+    // 0x1dd8/0x1e7a via computed m.call(b.handler) (awardHomeBayGoal, kept +4 caller-skip); tool-invisible, by hand.
+    "selectHomeBayGoalHandler.js": [0x1d77, 0x1dd8, 0x1e7a],
+    "serviceVblankNmi.js": [0xe7a, 0x2341, 0x1a55, 0x16f8],
+    "setUpBoardOrContinueLife.js": [0x942],
+    "setUpPlayStartOnce.js": [0xfaf],
+  },
   dkong: {
     "advanceBarrelMotion.js": [0x1fac, 0x1fe5, 0x1fef, 0x2053, 0x20ec],
     "advanceBarrelTileAnimation.js": [0x21ba],
