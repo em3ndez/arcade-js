@@ -7,7 +7,7 @@
  * zero it advances one path step, reversing at an endpoint (table 0) or holding (table 1).
  * LIVE-OUT: memory-only.
  */
-import { FLY_TRAVEL_DIR_STEP, FLY_ATTACK_TIMER, FLY_SPRITE_X, FLY_SPRITE_CODE, FLY_PATH_X_BASE, FLY_PATH_OFFSET_TABLE } from "./names.js";
+import { FLY_TRAVEL_DIR_STEP, FLY_ATTACK_TIMER, FLY_SPRITE_X, FLY_SPRITE_CODE, FLY_DRIFT_COUNTER, FLY_PATH_OFFSET_TABLE } from "./names.js";
 
 const TIMER_RELOAD = 60;
 const MID_TIME = TIMER_RELOAD / 2;
@@ -52,5 +52,5 @@ function advance(m) {
 
 function writeX(m, offset) {
   const { mem8 } = m;
-  mem8[FLY_SPRITE_X] = (offset + mem8[FLY_PATH_X_BASE]) & 0xff;
+  mem8[FLY_SPRITE_X] = (offset + mem8[FLY_DRIFT_COUNTER]) & 0xff;
 }

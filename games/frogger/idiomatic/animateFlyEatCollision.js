@@ -8,7 +8,7 @@
  * the frog. LIVE-OUT: memory-only.
  */
 import {
-  FROG_X, FROG_Y, FROG_SPRITE_CODE, FLY_SPRITE_X, FLY_SPRITE_CODE, FLY_PATH_X_BASE,
+  FROG_X, FROG_Y, FROG_SPRITE_CODE, FLY_SPRITE_X, FLY_SPRITE_CODE, FLY_DRIFT_COUNTER,
   FLY_TRAVEL_DIR_STEP, FLY_ATTACK_TIMER, COLLISION_SUBFLAG, COLLISION_LATCH,
 } from "./names.js";
 import { clearLatchedCollision } from "./clearLatchedCollision.js";
@@ -24,7 +24,7 @@ export function animateFlyEatCollision(m) {
   const { mem8 } = m;
 
   if (mem8[COLLISION_SUBFLAG] !== 0) return trackFlyOntoFrog(m);
-  if (mem8[FLY_PATH_X_BASE] === 0) armFlyTongue(m);
+  if (mem8[FLY_DRIFT_COUNTER] === 0) armFlyTongue(m);
   if (mem8[FLY_EAT_PHASE] & 0x01) return clearLatchedCollision(m);
   if (mem8[COLLISION_LATCH] !== 0) return boxTestFlyVsFrog(m);
   return;

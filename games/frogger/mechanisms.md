@@ -176,6 +176,17 @@ counter, not the frog X, so the object drifts toward that counter), **`flagSprit
 fly's **`driveFlyPatrol`** remain as described in `names.js`. All
 `[seen]`/`[seen,poked]` (a game poked to reach the spawn).
 
+**Fly appearance is clocked by a drifting counter (`FLY_DRIFT_COUNTER`, `0x811c`)** — grounded 2026-08-16
+under MAME (stage-B, wave 1). The generic block-mover advances the byte +1 roughly every six frames,
+wrapping `0xFF`→`0x00` on a ~1536-frame (~25.6 s) period; **`animateFlyEatCollision`** arms the fly tongue
+exactly when it reads `0`, so the wrap **is** the fly's spawn trigger, and `driveFlyPatrol` then adds the
+same drifting byte as the fly sprite's X base (the patrol anchors to it). This overturns the earlier
+`[code]` reading of `0x811c` as a static "fly path X base". (Also grounded this wave and now `[seen]`: the
+frog-object/reset/score cells, the scroll/lane-render and animation-frame cells, and the countdown/HUD
+cells — via the real-ROM write/read taps in `scratchpad/*gnd*.lua`. Attract companion `0x83bb` is
+write-only-to-0 with no functional read — the only read is the cold-boot LDIR work-RAM zero-fill (0x02ba)
+that sweeps it as a source — so it carries no sequencer state.)
+
 ## The two-pair figure (rideable) — `[seen,poked]`
 
 A rideable "two-pair" figure at VRAM `TWO_PAIR_FIGURE_VRAM` has its own small state machine. **`armTwoPairFigureFrame`**

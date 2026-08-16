@@ -5,7 +5,7 @@
  * step the phase counter, reloading it and resetting the attract sequencer when all seven are placed.
  * LIVE-OUT: memory-only.
  */
-import { OBJECT_ANIM_STATE_800D, DEMO_SCROLL_REGISTER, ATTRACT_DEMO_DWELL, ATTRACT_DEMO_PHASE_COUNTER, ATTRACT_SEQUENCER_PHASE, ATTRACT_SEQUENCER_STATE, FLY_SPRITE_X, ATTRACT_DEMO_CORNER_VRAM } from "./names.js";
+import { OBJECT_ANIM_STATE_800D, DEMO_SCROLL_REGISTER, ATTRACT_DEMO_DWELL, ATTRACT_DEMO_PHASE_COUNTER, ATTRACT_SEQUENCER_PHASE, ATTRACT_PHASE_COMPANION, FLY_SPRITE_X, ATTRACT_DEMO_CORNER_VRAM } from "./names.js";
 import { setAttractIdleMode } from "./setAttractIdleMode.js";
 
 const DWELL_RELOAD = 32;
@@ -45,6 +45,6 @@ export function stampAttractDemoCell(m) {
 
   mem8[ATTRACT_DEMO_PHASE_COUNTER] = PHASE_COUNT;
   mem8[ATTRACT_SEQUENCER_PHASE] = 0;
-  mem8[ATTRACT_SEQUENCER_STATE] = 0;
+  mem8[ATTRACT_PHASE_COMPANION] = 0;
   setAttractIdleMode(m); // tail into the credits-present attract-idle tail
 }
