@@ -260,8 +260,38 @@ batch and feeds the next batch's targets.
   param defaulting to the register `fn(m, x = m.regs.a)`; interface-register → explicit value/return;
   phantom no-op → inline+delete). Never weaken an assertion. **Address-retrofit:** no idiomatic routine
   references a data address by raw hex or a routine-local const — import it from `names.js`; use the
-  **`_ADDR` convention** when an address is also a routine entry. The goal is **all CPU registers gone**
-  from the idiomatic layer (named vars/params/returns), enforced by a gate.
+  **`_ADDR` convention** when an address is also a routine entry.
+- **Registers become params/vars/returns AS YOU AUTHOR each idiomatic module — never as a later
+  sweep.** The goal is **all CPU registers gone** from the idiomatic layer: no `regs.*` in a body or an
+  idiomatic call site. (The `= m.regs.X` in a param default is the one sanctioned exception — it is the
+  load-bearing bridge for register-based `m.call` dispatch from the *frozen* translated layer, which
+  cannot pass named args, so it stays; it is exempt from the count.) **Enforced by
+  `tools/register_gate.py` (pre-commit), which holds every `games/*/idiomatic/` to an implicit budget
+  of 0** — so a NEW game is fail-closed from its first module and an author literally cannot commit a
+  body register reference. `tools/register-budget.txt` is a **shrinking allowlist of grandfathered
+  exceptions only** (a game mid-burndown; legacy games frozen at their count); a game absent from it is
+  held at 0. ⚠ frogger was authored register-full and is being retrofitted down after the fact — the
+  debt this rule exists to prevent. Do not repeat it: on the next game, the gate is green only if every
+  module was born with its registers already named.
+- **Outgoing registers: `return` by default; a return-assignment for the load-bearing case.** The gate
+  cannot infer input-vs-output from a `regs.a = value` write, and it does not try — **the author
+  declares intent in the form and the gate enforces the form.** A routine that produces an interface
+  register **returns it**; idiomatic callers use the return, no `regs.*` write, gate-clean by
+  construction — the default for a born-idiomatic game. Several idiomatic outputs return a tuple
+  (`return [a, hl];` → `const [a, hl] = fn(m);`). The one exception is a **load-bearing** register-out:
+  the routine is register-dispatched via `m.call` from the *frozen* translated layer, whose caller
+  reads the result straight out of the register, so a plain `return` is invisible to it. Write those as
+  a **return-assignment** — `return (m.regs.a = value);` — which sets the register (for the translated
+  dispatch) *and* returns the value (for idiomatic callers); never a bare `regs.a = value;`. So the
+  exempt forms are: a param-default (incoming), a `return`/tuple (idiomatic outgoing), and a `regs.X`
+  write that is **part of a `return`** (load-bearing outgoing); the gate flags **every other** body
+  register reference as debt, and the **reviewer audits** each return-assignment as a genuine
+  dispatch-out under proposer≠confirmer. Multiple load-bearing outputs generalize the same way —
+  `return [ m.regs.a = foo, m.regs.hl = bar ];` sets every register (for the dispatch) *and* returns the
+  tuple (for idiomatic callers); each write still sits inside the `return`, so the one gate rule covers
+  it with no special case. (An assignment evaluates to its RHS *before* the register's width mask, so
+  the returned value equals the stored register only for an in-range output — always true for a genuine
+  register-out.)
 
 ### The understand half
 
@@ -452,6 +482,23 @@ deliberate handling. These four are one problem and are decided together, once, 
   rom` assembles from the user's dump and verifies.
 - The standing whole-game gates (`idiomatic.test.js` boot→attract, `tape.test.js` coin/start/play,
   `transition.test.js` level/round/game-over) have run since the skeleton and gate the ship as-is.
+- **Definition of done — a named gate, not a claim.** *Done* means a named gate ran and passed
+  (`how-the-agents-worked.md`), never "it looks finished." A game is shippable only when **every**
+  completion subsystem is green under its own gate — the live pixel gate (§2), stage-B grounding
+  complete (zero ungrounded `[code]`), the register gate at budget 0, the whole-game gates above, the
+  external disassembly if in scope, and **audio**. Each is executed, not reasoned about; the ship is
+  refused while any is red. This ledger exists because frogger shipped "done" three times over with
+  grounding, registers, *and* audio all still open — every one a subsystem with no gate guarding the
+  done-claim.
+- **Audio-coverage gate — the one that was missing.** Audio was the only ship step with no gate ("by
+  ear, no oracle"), so it is the step that silently gets skipped. Fix: a gate that enumerates the sound
+  commands the game actually emits (the `enqueueSoundCommand`/soundlatch call sites are statically
+  discoverable) and requires each to be **mapped-or-accounted-for** in `manifest.audio.map`, plus a
+  wiring test that the soundlatch tap reaches the sample player. Fail-closed when a game emits commands
+  but the map is absent or incomplete. It **cannot** check correctness — no audio oracle exists, so
+  "does it sound right" stays a recorded by-ear sign-off — but a *missing or partial* audio layer
+  becomes impossible to ship. (Coverage, not a claim: the same grounded-or-accounted-for discipline the
+  understand half uses on `[code]`.)
 
 ---
 
