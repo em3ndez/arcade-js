@@ -356,6 +356,28 @@ export const SCORE_DISPLAY_COUNTER_HI = 0x83dd; // [code] score-display counter 
 export const BOARD_ADVANCE_DONE_FLAG = 0x8380; // [code] set to 1 by board-advance foreground once the new board is laid out (advanceBoardForeground)
 
 export const ROUTINES = {
+  // frame dispatchers seated after a pixel/live + goal-band seatability check (normal-return routers;
+  // 0x1a55/0x2341 stay UNWIRED -- they tail into the 0x2673 goal-award caller-skip, net SP +4)
+  0x040b: {
+    name: "setUpBoardOrContinueLife",
+    role: "[code] board-start / life-loss dispatcher: continue-flag set tail-hands to the next-life path, else lays a fresh board (tilemap/pages/score header/board build/time bar/HUD/start flag) and tail-enters the play loop",
+    cert: "code",
+  },
+  0x0d11: {
+    name: "dispatchGameModeFrame",
+    role: "[code] per-frame intro/attract mode state machine: returns while the frame pacing timer runs, else dispatches on the mode byte (score-ranking draw, in-play board init on a credit gate, point-table, intro, reset)",
+    cert: "code",
+  },
+  0x0e7a: {
+    name: "driveAttractDemoSequencer",
+    role: "[code] attract-demo sequencer run each vblank while credits are zero: credits present tail to the attract-idle setter, else a phase-byte state machine (seed demo + arm animator / run scroll animator / advance phase / per-cell stamp); the frame clock 0x0f3e stays a kept caller-skip",
+    cert: "code",
+  },
+  0x230f: {
+    name: "setUpPlayStartOnce",
+    role: "[code] once-per-life start-of-play setup from the main loop: returns unless the mode byte is active-play and the run flag still zero, then clears the credit-column latch, lays out the board, and raises the 2-player start flag",
+    cert: "code",
+  },
   0x0341: {
     name: "drainForegroundThenYieldEachVblank",
     role: "the foreground main loop as a vblank coroutine: drain the idempotent foreground to its per-frame fixed point, then yield so the engine fires the NMI at the pace tail. Each drain runs the loop body twice — one pass is the steady-state fixed point, the second settles the life-restart cascade and is a no-op otherwise",

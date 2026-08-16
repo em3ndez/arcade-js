@@ -29,28 +29,21 @@ export const UNWIRED = {
       "cold-boot main-loop entry (0x02a3): does not return normally (falls into the main loop), so the " +
       "seam has no net `ret` to seat. Module and equivalence-02a3 gate correct and stay; frozen-layer " +
       "boot serves it.",
-    "setUpBoardOrContinueLife.js":
-      "dispatcher HELD for serial post-assembly wiring -- a bad dispatcher wire passes the per-routine " +
-      "gates but breaks the live game, so Jimmy wires it one-by-one with a pixel/live check after each. " +
-      "Module and equivalence-040b gate correct and stay; oracle-served live.",
-    "dispatchGameModeFrame.js":
-      "dispatcher HELD for serial post-assembly wiring (pixel/live check per wire). Module and " +
-      "equivalence-0d11 gate correct and stay; oracle-served live.",
-    "driveAttractDemoSequencer.js":
-      "dispatcher HELD for serial post-assembly wiring (pixel/live check per wire). Module and " +
-      "equivalence-0e7a gate correct and stay; oracle-served live.",
     "dispatchFrogAnimationArm.js":
       "the frog-animation jp-table dispatcher (0x0faf) HELD for serial post-assembly wiring (pixel/live " +
       "check per wire). Module and equivalence-0faf gate correct and stay; oracle-served live.",
     "orchestrateCollisionsAndFrogInput.js":
-      "dispatcher HELD for serial post-assembly wiring (pixel/live check per wire). Module and " +
-      "equivalence-1a55 gate correct and stay; oracle-served live.",
+      "the collision/scoring orchestrator (0x1a55): on the goal-award path it tail-transfers " +
+      "`return m.call(0x1cff)` into the home-row goal scan, whose 0x1cff->0x1dd8/0x1e7a->0x2673 subtree " +
+      "hits loc_2673's caller-skip arm (fires when HOME_BAY_SLOT_CURSOR_MIRROR 0x8120 != 0): it pops the " +
+      "caller's return, so a seated 1a55 moves SP by +4 on that path and `withOmittedRet` throws (verified " +
+      "by scratchpad goal-band sweep). Raw idio==oracle on every path -- the defect is purely seatability; " +
+      "same class as the 1cff/1dd8/1e7a/2673 subtree it tails into, all UNWIRED. Module and equivalence-1a55 " +
+      "gate correct and stay; oracle-served live. Wireable once the goal-scan caller-skip dissolves.",
     "driveInPlayFrameUpdate.js":
-      "dispatcher HELD for serial post-assembly wiring (pixel/live check per wire). Module and " +
-      "equivalence-2341 gate correct and stay; oracle-served live.",
-    "setUpPlayStartOnce.js":
-      "dispatcher HELD for serial post-assembly wiring (pixel/live check per wire). Module and " +
-      "equivalence-230f gate correct and stay; oracle-served live.",
+      "the in-play per-frame update dispatcher (0x2341): it push16+m.calls 0x1a55 every in-play frame, so " +
+      "it inherits 1a55's goal-award +4 seam throw (see orchestrateCollisionsAndFrogInput). Held UNWIRED " +
+      "with 1a55. Module and equivalence-2341 gate correct and stay; oracle-served live.",
     "runIntroTimerThenInitGame.js":
       "author-complete, equivalence-048f green, but empirically UNVERIFIABLE here: no available input " +
       "tape (attract, 1-player play+death, 2-player start) ever live-dispatches it, so wiring it cannot " +
