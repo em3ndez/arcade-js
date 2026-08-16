@@ -83,14 +83,16 @@ scroll phase, and at phase 16/32/48 re-blits both lane tile grids via **`blitScr
 also zeroes the phase). `blitScrollTileGrid` stamps tile pairs (`0x34`–`0x37`) down VRAM columns from
 `0xA808`; `stampScrollRevealColumn` writes the newly-revealed edge column into `VRAM_BASE`; `blitScrollBand`
 writes the scrolling band rows. **`blitFourTileGroupColumn`** paints 14-row two-wide columns of the
-four-tile group (tiles `72`–`75`) — the **river-log** graphics. **`advanceActiveFrogHops`** runs each
-frame with HL/DE pointed at the frog X/Y cells: for each of the four hop directions it tail-calls that
-direction's advance handler when the direction's hop-active flag (`FROG_HOP_DOWN_ACTIVE`, `0x8248`–`0x824b`)
-is set, else clears that direction's arrival mirror (`FROG_HOP_DOWN_ARRIVAL`, `0x824c`–`0x824f`) — it
-continues an in-progress frog hop (see The frog hop), NOT a log/turtle carry; the carry is
-**`moveLaneObjectsAndCarryFrog`** (see The lane-object mover). All `[seen]`.
+four-tile group (tiles `72`–`75`) — the **river-log** graphics. **`advanceActiveFrogHops`** (`0x23b7`) has the
+code shape of a per-direction hop continuer (hop-active flag `0x8248`–`0x824b` set → tail that direction's
+advance handler; else clear its arrival mirror `0x824c`–`0x824f`), but a MAME re-grounding (2026-08-16)
+recorded it running **zero** times across full DOWN/UP/LEFT/RIGHT land hops: the land-hop continuation is
+actually done by **`scanFrogInputAndDispatchHop`** calling the advance handlers directly. Its prior `[seen]`
+was a per-frame-snapshot mis-attribution (a snapshot cannot name the writer) — now `[code]`, and it likely
+fires only on a river-object carry (owes a river-ride grounding to settle). The log/turtle carry is
+**`moveLaneObjectsAndCarryFrog`** (see The lane-object mover).
 
-## The frog hop — `[seen]` (vertical + right); DOWN/LEFT `[code]`
+## The frog hop — `[seen]` (all four directions MAME-grounded 2026-08-16)
 
 The joystick input scan — **`scanFrogInputAndDispatchHop`** (`0x1acb`) — reads the input ports each
 vblank with the frog X/Y cursors armed and, on a directional press, dispatches one of four **begin**
@@ -107,8 +109,9 @@ its `FROG_HOP_*_ANIM_RELOAD`, then falls into the matching **advance** half. An 
 down and, on drain, marks the hop's arrival and stamps the rest tile; otherwise it steps the hopping frog
 by `FROG_HOP_VERTICAL_DELTA` (DOWN → `FROG_Y +`, UP → `FROG_Y -`) or `FROG_HOP_HORIZONTAL_DELTA` (RIGHT →
 `FROG_X +`, LEFT → `FROG_X -`) and stamps the moving tile. Over the reload count of frames the frog advances
-one 16px cell (~2px/frame). **`advanceActiveFrogHops`** (`0x23b7`) is dispatched each vblank and continues
-any in-progress hop by tailing to the active direction's advance half. The UP advance also steps the
+one 16px cell (~2px/frame). The hop continuation is driven by `scanFrogInputAndDispatchHop` itself, which
+tails to the active direction's advance half each vblank (the separate `advanceActiveFrogHops` at `0x23b7`
+did NOT fire across land hops under MAME — see the render section). The UP advance also steps the
 home-slot cursor (`loc_23eb`) and scores via **`scoreFrogRowProgress`** (`0x1fd6`), which range-checks
 `FROG_Y` to [0x30,0xd0] and awards a point when the frog reaches a new furthest (`FROG_FURTHEST_ROW`) row
 through the unlifted score routine (`0x08e0`, kept `m.call`). `[seen]` for the vertical hop (golden_hop: the
