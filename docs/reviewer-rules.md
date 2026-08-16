@@ -879,3 +879,17 @@ very next commit repaired by title. Time Pilot's layer WAS executed by nothing, 
 reason this rule does not catch: `manifest.runtime` said `"translated"`, so the player never called
 `resolveAllIdiomatic`. Registry coverage and a live layer are different properties. Prompted by
 qarl asking how the docs change so the layer gets wired and used immediately.*
+
+- **R31 [ALL]** A confidently-read idiomatic cell owes a DESCRIPTIVE name (runbook: a cell earns its
+  identifier at the `[guess]`→`[code]` transition, not at grounding). FAIL any `export const loc_<addr>
+  = 0x...` in a game's idiomatic `names.js` — `loc_<addr>` is the translated layer's identifier and is
+  never a valid idiomatic CELL name; a confident cell (`[code]` **or** `[seen]`) still named `loc_<addr>`
+  is an unfinished job, and an unknown-role cell is keep-hex (a bare literal, no const), so a `loc_` cell
+  const is always the violation. Every reader pays the `mem16[loc_83ef]`-vs-`mem16[HIGH_SCORE]` tax the
+  idiomatic layer exists to remove. (Idiomatic ROUTINE modules kept `loc_<addr>` are a separate question,
+  not this rule.) *Recorded 2026-08-15: role-understood `[code]` cells persisted as `loc_<addr>` in the
+  frogger `names.js` because the `[code]`-level naming pass was never run as its own step and nothing
+  enforced it (most such cells predated the session); qarl: "code cells should have descriptive names
+  too." Backfill owed -- a value-identical naming sweep over the cells grandfathered in `names-debt.txt`;
+  the `names_consistency` gate rule (B) now FAILs any new `loc_` cell, and becomes fully debt-free once the
+  sweep runs.*

@@ -1,0 +1,187 @@
+# names-debt.txt — grandfathered idiomatic `loc_` CELL consts (KNOWN SHRINKING DEBT).
+#
+# The rule (docs/runbook.md "A cell earns its DESCRIPTIVE identifier…" / reviewer-rules.md R31):
+# `loc_<addr>` is the TRANSLATED layer's identifier and is NEVER a valid idiomatic CELL const
+# name. A confidently-read cell owes a DESCRIPTIVE name (PLAYER_X / HIGH_SCORE style); an
+# unknown-role cell is keep-hex (a bare literal, no const). So every top-level
+# `export const loc_<hex> = 0x<hex>;` in a game's games/<game>/idiomatic/names.js is a violation,
+# enforced mechanically by tools/names_consistency.py.
+#
+# This file grandfathers the loc_ cell consts that ALREADY existed when the gate landed, so the
+# gate does not block current work. It is an allowlist of SPECIFIC (game, address) pairs — NOT a
+# whole-game exemption — so a NEW loc_ cell (in frogger, timeplt, or any game) still FAILS
+# immediately, and a new game starts with zero entries here (enforced from routine #1).
+#
+# ★ REMOVAL TRIGGER: empty this file as the loc_->descriptive naming sweep renames each cell
+#   (value-identical rename + update importers). NEVER add a new line here — this set only
+#   SHRINKS. The file MUST reach zero; when it does, the rule is fully enforced with no debt.
+#
+# Format: one `<game> 0x<addr>` per line. `#` comments and blank lines are ignored.
+# Auto-populated 2026-08-15 from the then-current loc_ cells (frogger + timeplt).
+#
+frogger 0x130b
+frogger 0x13ef
+frogger 0x13f9
+frogger 0x1413
+frogger 0x1423
+frogger 0x142b
+frogger 0x1433
+frogger 0x145f
+frogger 0x1473
+frogger 0x1487
+frogger 0x149f
+frogger 0x1841
+frogger 0x19f6
+frogger 0x19fa
+frogger 0x19fe
+frogger 0x2190
+frogger 0x2194
+frogger 0x2198
+frogger 0x2231
+frogger 0x2235
+frogger 0x2239
+frogger 0x2260
+frogger 0x279f
+frogger 0x2cd5
+frogger 0x2cdc
+frogger 0x2ed1
+frogger 0x2f0e
+frogger 0x2f12
+frogger 0x2f17
+frogger 0x2f2a
+frogger 0x2f39
+frogger 0x2f43
+frogger 0x2f5c
+frogger 0x2f6e
+frogger 0x2f73
+frogger 0x2f88
+frogger 0x2f92
+frogger 0x2f93
+frogger 0x2f9e
+frogger 0x2fae
+frogger 0x8000
+frogger 0x8003
+frogger 0x800f
+frogger 0x801b
+frogger 0x801d
+frogger 0x8023
+frogger 0x8027
+frogger 0x8029
+frogger 0x802b
+frogger 0x802d
+frogger 0x802f
+frogger 0x8041
+frogger 0x805c
+frogger 0x8107
+frogger 0x8108
+frogger 0x8118
+frogger 0x811c
+frogger 0x8120
+frogger 0x8121
+frogger 0x8123
+frogger 0x8140
+frogger 0x815b
+frogger 0x81a2
+frogger 0x81b1
+frogger 0x81b3
+frogger 0x81b4
+frogger 0x825a
+frogger 0x8263
+frogger 0x8264
+frogger 0x8265
+frogger 0x8266
+frogger 0x8267
+frogger 0x826a
+frogger 0x826c
+frogger 0x826d
+frogger 0x8270
+frogger 0x8273
+frogger 0x8274
+frogger 0x8276
+frogger 0x8278
+frogger 0x827c
+frogger 0x827d
+frogger 0x8283
+frogger 0x8284
+frogger 0x8293
+frogger 0x8294
+frogger 0x8295
+frogger 0x829a
+frogger 0x829b
+frogger 0x829d
+frogger 0x833d
+frogger 0x833e
+frogger 0x833f
+frogger 0x8340
+frogger 0x8371
+frogger 0x8380
+frogger 0x839a
+frogger 0x839b
+frogger 0x83ae
+frogger 0x83b6
+frogger 0x83b7
+frogger 0x83ba
+frogger 0x83bb
+frogger 0x83bf
+frogger 0x83c2
+frogger 0x83c3
+frogger 0x83cb
+frogger 0x83cc
+frogger 0x83cd
+frogger 0x83cf
+frogger 0x83d2
+frogger 0x83d7
+frogger 0x83d8
+frogger 0x83d9
+frogger 0x83da
+frogger 0x83dc
+frogger 0x83dd
+frogger 0x83de
+frogger 0x83df
+frogger 0x83e0
+frogger 0x83e5
+frogger 0x83e6
+frogger 0x83ea
+frogger 0x83f2
+frogger 0x83fb
+frogger 0x8400
+frogger 0x842c
+frogger 0x842d
+frogger 0x8500
+frogger 0x86c0
+frogger 0x8800
+frogger 0xa802
+frogger 0xa808
+frogger 0xa80e
+frogger 0xa85c
+frogger 0xa87e
+frogger 0xa8a4
+frogger 0xa8a5
+frogger 0xa8df
+frogger 0xaa51
+frogger 0xab15
+frogger 0xab71
+frogger 0xabbe
+frogger 0xb00c
+frogger 0xb80c
+frogger 0xb810
+timeplt 0x0f6d
+timeplt 0x1601
+timeplt 0x178c
+timeplt 0x18fa
+timeplt 0x1fcf
+timeplt 0x2cd1
+timeplt 0x2e3e
+timeplt 0x2f01
+timeplt 0x3176
+timeplt 0x40ea
+timeplt 0x43f0
+timeplt 0x49fa
+timeplt 0x59d7
+timeplt 0xa801
+timeplt 0xacc5
+timeplt 0xbc00
+timeplt 0xc600
+timeplt 0xde00
+timeplt 0xf1eb
+timeplt 0xf1f1

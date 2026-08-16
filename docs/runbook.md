@@ -309,6 +309,9 @@ tag was honest; honest tags are not grounding.)
   idiomatic layer exists to remove. (Recorded 2026-08-15: the frogger pipeline left the bulk of its
   confident cells — `[code]` and `[seen]` alike — named `loc_<addr>`; Karl: "when a cell changes
   guess→code, that's when it should be renamed." Grading the role without promoting the name is half the job.)
+  **Enforced** at review by `reviewer-rules.md` R31 (a `loc_<addr>` idiomatic cell const FAILs) and
+  mechanically now by the `names_consistency` gate rule (B): it FAILs any new `loc_` cell while
+  grandfathering the existing debt (`names-debt.txt`); fully debt-free once the backfill clears.
 - **Ground addresses, not just routines — stage B applies to every claim in `names.js`, cells
   included.** A data address carries a confidence tag exactly as a routine does, and a fresh batch's
   data-name cells land at `[code]` (a code-only reading) until grounded. Lift a **RAM cell**

@@ -1,69 +1,31 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Names-consistency gate — names.js is the SINGLE source of truth for whether a work-RAM
-cell is named; no prose may contradict it.
+"""Names-consistency gate - names.js is the single source of truth for whether a work-RAM
+cell is named; no prose may contradict it. Two rules, both under `check`:
 
-The boundary (see docs/names-registry.md "One source per fact"): a cell's name, role, and
-confidence live in ONE place — games/<game>/idiomatic/names.js. games/<game>/mechanisms.md
-describes MECHANISMS (and tags mechanism *claims*), and routine-file comments describe the
-routine — NEITHER re-states a cell's registry status. The specific, drift-prone violation
-this gate forbids: prose that calls a names.js-NAMED work-RAM address "unnamed / no names.js
-name / not in names.js / stays hex / kept hex / stays local". Such a claim must be TRUE — the
-address it is about must genuinely be ABSENT from names.js.
+  (A) PROSE-vs-registry: no staged clause may call a names.js-NAMED work-RAM cell hex/unnamed.
+      Binds to the INDEX, runs per staged game; checks mechanisms.md (all lines) and idiomatic
+      routine files (comment lines only). Block- then clause-scoped: a run of relevant lines is
+      joined (so a claim wrapped across a line-break is caught), split into clauses, and a named
+      address is flagged only if its clause does NOT also spell that address's registry name (so
+      an honest raw/different-role use ("BOARD_MODE (0x8057), reused raw") passes). The work-RAM
+      window is DERIVED per game (manifest board -> boards/<board>/memory.js WORK_RAM_BASE/SIZE),
+      never hardcoded: a hardcoded 0x8000-0x87FF once matched nothing for DK (0x6000-0x6BFF) and
+      the gate passed while inspecting nothing.
 
-Why a gate: 2026-07-31, after 31 cells were promoted into names.js, dozens of routine comments
-still read "0x8083 … has no names.js name yet / stays hex" — a stale second copy of a fact
-names.js already owns. THREE separate sync bugs this session traced to the same duplicated-fact
-root (a mechanisms.md tag contradicting names.js, a stale "backups stay hex" note, the comment
-drift). Memory and docs can't enforce single-source; a fail-closed hook can.
+  (B) IDIOMATIC loc_ CELL rule (reviewer-rules.md R31): loc_<addr> is the translated layer's
+      identifier and is NEVER a valid idiomatic CELL const name, so every top-level
+      `export const loc_<hex> = 0x<hex>;` in a game's names.js is a violation. Scans the WORKING
+      TREE across ALL games (not just staged); routine modules and ROUTINES-map entries are out
+      of scope. Existing debt is grandfathered by an enumerated allowlist in tools/names-debt.txt
+      - each non-blank, non-`#` line exactly `<game> 0x<addr>`, a shrinking set; fail-closed if
+      that file is missing or malformed.
 
-Precision (block- then clause-scoped, name-acknowledged carve-out). Comment/prose wraps constantly,
-so a per-LINE scan misses a claim split across a wrap ("... 0x8055 is\n the count (unnamed)"). The
-gate first JOINS each run of consecutive relevant lines — a comment block, or a blank-line-delimited
-paragraph — into one string, then splits THAT into clauses on ';' or a sentence end ('. '); 'names.js'
-survives the split (no space after its dot). Within a hex-claim clause, a NAMED address is a violation
-only if that clause does NOT also spell the address's registry name. Three consequences: (1) a claim
-wrapped across a line-break is caught; (2) a hex-claim about a genuinely-unnamed cell riding beside a
-named sibling ("the facing 0x8092 has no name and stays hex; the position byte is ENEMY_WORK_Y
-(0x8086)") passes — the clause split isolates it; (3) honestly acknowledging a deliberate raw /
-different-role use passes ("0x8057 is BOARD_MODE, reused raw here"), while the bare false "0x8057 stays
-hex" does not.
-
-Scope. Runs per game touched by the commit; reads the STAGED (index) content so it binds to
-exactly what will be committed. Checks the game's mechanisms.md (all lines) and its idiomatic
-routine files (comment lines only). Fail-closed: any git error blocks the commit.
-
-WORK-RAM WINDOW: DERIVED PER GAME, NOT HARDCODED. The gate only cares about WORK-RAM cells, so it
-needs each game's work-RAM range. That range has exactly one source of truth already — the board's
-address map, `boards/<board>/memory.js`, which exports WORK_RAM_BASE and WORK_RAM_SIZE — and the
-game's manifest names its board. So the window is read from there (games/<game>/manifest.js
-`board:` -> boards/<board>/memory.js), and there is no second copy to drift.
-
-Why this is called out: the window was hardcoded `0x8000-0x87FF` with an address regex of
-`0x8[0-9a-f]{3}`, which is THE PIT's work RAM. Donkey Kong's is 0x6000-0x6BFF, so for DK this gate
-matched no addresses at all and had been exiting 0 on every DK commit while inspecting nothing — a
-gate that cannot fail is not a gate. Adding a second magic range would have left the same trap for
-game #3, so the range is derived instead.
-
-Subcommands:  check   exit 0 iff no staged clause contradicts names.js (the hook calls this)
-
-KNOWN LIMITATIONS — a green from this gate means less than it looks like. Recorded here
-because "names gate clean" has been over-reported off this tool before:
-
-  * VACUOUS WHEN NO games/ FILE IS STAGED. games_touched() reads the staged name list; a
-    commit touching only tools/ or docs/ makes it empty and check() returns 0 having
-    inspected NOTHING. Running it against an unstaged working tree is likewise vacuous.
-    Green here is evidence only when a games/<game>/ file is in the index.
-  * TRAILING COMMENTS ESCAPE ENTIRELY. is_comment() matches only lines whose FIRST
-    non-space characters are '//', '*' or '/*', so `const v = m.read8(0x601a); // 0x601a
-    stays hex` is never scanned, while the identical sentence as a leading comment is
-    caught. Verified 2026-08-02.
-  * ADDR matches the first four hex digits of a LONGER literal, so a 5+ digit constant can
-    present as an in-window address.
-
-The first is a property of binding to the index and is intended; the last two are real
-holes, left for a change that can carry its own negative test rather than riding along here.
+Fail-closed on any git error. VACUOUS when no games/ file is staged; trailing comments escape
+is_comment() so are never scanned. Subcommands: check (the hook), selftest (fixtures for rule B).
 """
+import glob
+import os
 import re
 import subprocess
 import sys
@@ -88,8 +50,7 @@ def repo_root():
 
 
 def blob(ref, path):
-    """Staged (ref=':0' — stage 0 of the index) or committed (ref='HEAD') content, or '' if absent.
-    Note ':0' not ':' — the f-string below would turn a bare ':' into a broken '::path'."""
+    """Staged (ref=':0') or committed (ref='HEAD') content, or '' if absent. Use ':0' not ':' - a bare ':' would make a broken '::path'."""
     r = subprocess.run(["git", "show", f"{ref}:{path}"], capture_output=True, text=True)
     return r.stdout if r.returncode == 0 else ""
 
@@ -99,18 +60,13 @@ HEX_CLAIM = re.compile(
     re.I,
 )
 ADDR = re.compile(r"0x[0-9a-f]{4}", re.I)
-# re.I is LOAD-BEARING, not tidiness: without it a cell declared with an uppercase hex
-# digit (`export const FRAME = 0x601A;`) does not match, so the gate treats it as UNNAMED
-# and every false "0x601a stays hex" about it passes. Measured 2026-08-02: 33 of Donkey
-# Kong's 168 registry cells (20%) were invisible this way, including FRAME. ADDR below
-# always had re.I, so the two regexes disagreed about what an address looks like — the
-# gate read a SMALLER registry than the one it was checking prose against.
-#
-# 168, not the 184 `export const NAME = 0x…;` lines in names.js: 16 of those are FIELD OFFSETS
-# (SPRITE_X = 0x00, OBJ_ACTIVE = 0x00, OBJ_WALK_PTR_HI = 0x1b …), not addresses. They
-# fall outside the work-RAM window and neither regex ever matched them. Counting them
-# as cells is the offset-namespace confusion this codebase keeps re-committing.
+# re.I on EXPORT is load-bearing: without it an uppercase-hex cell decl (`= 0x601A`) is missed,
+# read as UNNAMED, and every false "0x601a stays hex" about it then passes. ADDR always had re.I.
 EXPORT = re.compile(r"^export const ([A-Z_0-9]+) = (0x[0-9a-f]{4});", re.M | re.I)
+
+# Rule (B): a top-level idiomatic CELL const `loc_<hex>`. Anchored (re.M) so only decls match - not
+# a comment mention or a ROUTINES-map key - and NOT address-windowed (loc_ is invalid at any addr).
+EXPORT_LOC = re.compile(r"^export const (loc_[0-9a-f]+)\s*=\s*(0x[0-9a-f]+)\s*;", re.M | re.I)
 
 BOARD = re.compile(r"^\s*board:\s*[\"']([A-Za-z0-9_]+)[\"']", re.M)
 RAM_BASE = re.compile(r"^export const WORK_RAM_BASE = (0x[0-9a-f]+);", re.M | re.I)
@@ -118,13 +74,7 @@ RAM_SIZE = re.compile(r"^export const WORK_RAM_SIZE = (0x[0-9a-f]+);", re.M | re
 
 
 def workram_window(game):
-    """(lo, hi) inclusive work-RAM bounds for `game`, read from its board's address map.
-
-    games/<game>/manifest.js names the board; boards/<board>/memory.js is the single place the
-    address map lives (WORK_RAM_BASE / WORK_RAM_SIZE, which AddressSpace itself decodes with).
-    Returns None when either file cannot be read or does not declare the pair — the caller then
-    SKIPS that game rather than silently inspecting the wrong range, and says so.
-    """
+    """(lo, hi) inclusive work-RAM bounds for `game`, from its board's memory.js; None if unreadable (caller SKIPS, never guesses)."""
     manifest = blob(":0", f"games/{game}/manifest.js") or blob("HEAD", f"games/{game}/manifest.js")
     m = BOARD.search(manifest or "")
     if not m:
@@ -161,20 +111,8 @@ COMMENT_MARK = re.compile(r"^\s*(?:/\*+|\*/|\*|//)\s?")
 
 
 def scan(text, named, comments_only):
-    """Violations: a hex-claim clause that calls a names.js-NAMED address hex/unnamed WITHOUT
-    spelling that address's registry name in the same clause.
-
-    Acknowledging the name is allowed ("BOARD_MODE (0x8057) is used raw here, kept hex") — the
-    address is honestly labelled. What is forbidden is the bare "0x8057 stays hex", which reads
-    as "0x8057 is unnamed" and contradicts names.js.
-
-    BLOCK-scoped, then clause-scoped. Comment/prose wraps constantly ("... 0x8055 is\n the count
-    (unnamed)"), so a per-LINE scan misses a claim split across a wrap. So we first join each run
-    of consecutive relevant lines (a comment block, or a blank-line-delimited paragraph) into one
-    string — stripping comment markers — then split it into clauses on ';' or a sentence end ('. ';
-    'names.js' survives, no space after its dot). A named address is flagged only if its clause does
-    NOT also spell its registry name — so a hex-claim about a genuinely-unnamed sibling, or an
-    honest name-acknowledged raw use, both pass."""
+    """Violations: a hex-claim clause that calls a names.js-NAMED address hex/unnamed WITHOUT also
+    spelling that address's registry name in the same clause (an honest name-acknowledged raw use passes)."""
     hits = []
     lines = text.splitlines()
     n = len(lines)
@@ -198,7 +136,6 @@ def scan(text, named, comments_only):
             bad = [int(a, 16) for a in ADDR.findall(clause)
                    if int(a, 16) in named and not _mentions(named[int(a, 16)], clause)]
             if bad:
-                # point at the block line that actually holds the first flagged address
                 tok = "0x%04x" % bad[0]
                 srcline = next((j + 1 for j in range(block_start, i) if tok in lines[j].lower()), block_start + 1)
                 hits.append((srcline, bad, clause.strip()))
@@ -215,24 +152,89 @@ def games_touched():
     return gs
 
 
+NAMING_DEBT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "names-debt.txt")
+
+
+def load_naming_debt(path=NAMING_DEBT_FILE):
+    """{(game, addr_int)} grandfathered loc_ cell consts from tools/names-debt.txt. Each non-blank,
+    non-`#` line must be exactly `<game> 0x<addr>`; a missing or malformed file raises GitError (fail-closed)."""
+    try:
+        text = open(path, encoding="utf-8").read()
+    except OSError as e:
+        raise GitError(f"cannot read naming-debt allowlist {path}: {e}")
+    debt = set()
+    for i, raw in enumerate(text.splitlines(), 1):
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        parts = line.split()
+        if len(parts) != 2 or not re.fullmatch(r"0x[0-9a-f]+", parts[1], re.I):
+            raise GitError(f"malformed naming-debt line {i} in {path}: {raw!r}")
+        debt.add((parts[0], int(parts[1], 16)))
+    return debt
+
+
+def loc_cell_violations_in_text(game, text, allowlist):
+    """[(identifier, addr_int, lineno)] for each top-level `export const loc_<hex> = 0x<hex>;` whose (game, addr) is not grandfathered."""
+    hits = []
+    for m in EXPORT_LOC.finditer(text):
+        addr = int(m.group(2), 16)
+        if (game, addr) in allowlist:
+            continue
+        lineno = text.count("\n", 0, m.start()) + 1
+        hits.append((m.group(1), addr, lineno))
+    return hits
+
+
+def loc_cell_check():
+    """Rule (B): no un-grandfathered idiomatic loc_ CELL const anywhere in the WORKING TREE (all games, not the index)."""
+    root = repo_root()
+    debt = load_naming_debt()
+    failures = []
+    for f in sorted(glob.glob(os.path.join(root, "games", "*", "idiomatic", "names.js"))):
+        rel = os.path.relpath(f, root)
+        game = rel.split(os.sep)[1]
+        try:
+            text = open(f, encoding="utf-8").read()
+        except OSError as e:
+            raise GitError(f"cannot read {rel}: {e}")
+        for name, addr, ln in loc_cell_violations_in_text(game, text, debt):
+            failures.append(f"    {rel}:{ln}  {name} = 0x{addr:04x}  (game {game})")
+    if failures:
+        sys.stderr.write(
+            "\nCOMMIT BLOCKED — names-consistency gate, idiomatic loc_ cell rule\n"
+            "  (docs/runbook.md \"A cell earns its DESCRIPTIVE identifier…\" / reviewer-rules.md R31):\n"
+            "  `loc_<addr>` is the TRANSLATED layer's identifier and is never a valid idiomatic CELL const\n"
+            "  name. A confidently-read cell owes a DESCRIPTIVE name; an unknown-role cell is keep-hex (a\n"
+            "  bare literal, no const). These idiomatic names.js cell consts are named loc_ and are NOT\n"
+            "  grandfathered in tools/names-debt.txt:\n\n"
+            + "\n".join(failures)
+            + "\n\n  Fix: rename each to a DESCRIPTIVE name (value-identical — the address never changes) and\n"
+            "  update its importers, or drop the const and keep-hex the literal if the role is unknown.\n"
+            "  Do NOT add it to names-debt.txt — that set only SHRINKS. Do NOT --no-verify around this.\n\n"
+        )
+        return 1
+    return 0
+
+
 def check():
+    # Rule (B) first: it scans the whole tree and must NOT sit behind the `if not games` early-return below.
+    rc = loc_cell_check()
     games = games_touched()
     if not games:
-        return 0
+        return rc
     failures = []
     unwindowed = []
     for game in sorted(games):
         window = workram_window(game)
         if window is None:
-            # Do NOT fall back to a guessed range: inspecting the wrong window is what made this
-            # gate vacuous for DK. Report it instead so the omission is visible.
+            # No guessed fallback range: inspecting the wrong window is what made this gate vacuous for DK.
             unwindowed.append(game)
             continue
         ram = blob(":0", f"games/{game}/idiomatic/names.js") or blob("HEAD", f"games/{game}/idiomatic/names.js")
         named = named_workram(ram, window)
         if not named:
             continue
-        # mechanisms.md (all lines) + every idiomatic routine file (comment lines), from the index.
         targets = [(f"games/{game}/mechanisms.md", False)]
         listing = git(["ls-files", "--", f"games/{game}/idiomatic/"]).splitlines()
         for p in listing:
@@ -264,18 +266,71 @@ def check():
             "  Do NOT --no-verify around this.\n\n"
         )
         return 1
+    return rc  # rule (A) clean; propagate rule (B)'s result
+
+
+def selftest():
+    """Synthetic fixtures for rule (B); loc_cell_violations_in_text is the pure, tree-independent core."""
+    G = "selftestgame"
+    failures = []
+
+    hits = loc_cell_violations_in_text(G, "export const loc_1234 = 0x1234;\n", set())
+    if [(n, a) for n, a, _ in hits] != [("loc_1234", 0x1234)]:
+        failures.append(f"un-listed loc_ cell: want [('loc_1234', 0x1234)], got {[(n, a) for n, a, _ in hits]}")
+
+    if loc_cell_violations_in_text(G, "export const loc_1234 = 0x1234;\n", {(G, 0x1234)}):
+        failures.append("allowlisted loc_ cell must PASS")
+
+    if not loc_cell_violations_in_text("othergame", "export const loc_1234 = 0x1234;\n", {(G, 0x1234)}):
+        failures.append("allowlist must be per-game: loc_1234 in othergame must FAIL when only (selftestgame,0x1234) is listed")
+
+    if loc_cell_violations_in_text(G, "export const HIGH_SCORE = 0x83ef;\n", set()):
+        failures.append("descriptive-named cell must PASS")
+
+    routine = (
+        'export const ROUTINES = {\n'
+        '  0x1234: { name: "loc_1234", cert: "code" },\n'
+        '};\n'
+        '// loc_5678 masks this against 2\n'
+    )
+    if loc_cell_violations_in_text(G, routine, set()):
+        failures.append("ROUTINES-map entry / comment loc_ mention must PASS (not a cell const)")
+
+    multi = "// header\nexport const HIGH_SCORE = 0x83ef;\nexport const loc_9abc = 0x9abc;\n"
+    if loc_cell_violations_in_text(G, multi, set()) != [("loc_9abc", 0x9abc, 3)]:
+        failures.append(f"line attribution: want [('loc_9abc', 0x9abc, 3)], got {loc_cell_violations_in_text(G, multi, set())}")
+
+    if not loc_cell_violations_in_text(G, "export const loc_130b = 0x130b;\n", set()):
+        failures.append("a loc_ cell at a ROM address must FAIL (rule B is not work-RAM-windowed)")
+
+    try:
+        debt = load_naming_debt()
+        if not all(isinstance(g, str) and isinstance(a, int) for g, a in debt):
+            failures.append("names-debt.txt parsed to a non (str, int) tuple")
+    except GitError as e:
+        failures.append(f"names-debt.txt failed to parse: {e}")
+
+    if failures:
+        sys.stderr.write("names_consistency selftest: FAIL\n")
+        for f in failures:
+            sys.stderr.write(f"  {f}\n")
+        return 1
+    sys.stdout.write("names_consistency selftest: PASS (7 rule-(B) cases: teeth, allowlist, per-game, absent, scope, line#, ROM addr, debt-file well-formed)\n")
     return 0
 
 
 def main():
+    if len(sys.argv) < 2 or sys.argv[1] not in ("check", "selftest"):
+        sys.stderr.write("usage: names_consistency.py {check|selftest}\n")
+        return 2
+    # selftest is pure-logic (synthetic fixtures + the debt file); no git tree, so it runs before repo_root.
+    if sys.argv[1] == "selftest":
+        return selftest()
     try:
         repo_root()
     except GitError:
         sys.stderr.write("COMMIT BLOCKED — names-consistency gate: not in a git work tree (failing closed).\n")
         return 1
-    if len(sys.argv) < 2 or sys.argv[1] != "check":
-        sys.stderr.write("usage: names_consistency.py check\n")
-        return 2
     try:
         return check()
     except GitError as e:
