@@ -7,6 +7,7 @@
  */
 import { NotImplemented } from "../../../boards/frogger/io.js";
 import { loc_8000 } from "./names.js";
+import { advanceFrogAnimIndexAndRedispatch } from "./advanceFrogAnimIndexAndRedispatch.js";
 import { renderFrogAnimArm0 } from "./renderFrogAnimArm0.js";
 import { renderFrogAnimArm1 } from "./renderFrogAnimArm1.js";
 import { renderFrogAnimArm2 } from "./renderFrogAnimArm2.js";
@@ -30,7 +31,7 @@ export function dispatchFrogAnimationArm(m) {
     case 0x107b: return renderFrogAnimArm2(m);
     case 0x109b: return renderFrogAnimArm3(m);
     case 0x10bb: return renderFrogAnimArm4(m);
-    case 0x10db: return m.call(0x10db);
+    case 0x10db: return advanceFrogAnimIndexAndRedispatch(m); // arm 5 renders nothing — straight to the index advance
     case 0x10f8: return renderFrogAnimArm6(m);
     case 0x1118: return renderFrogAnimArm7(m);
     case 0x1138: return renderFrogAnimArm8(m);

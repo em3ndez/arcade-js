@@ -165,7 +165,16 @@ pattern pointers (`FROG_ANIM_ARM0_DEST_PTR`/`FROG_ANIM_ARM0_SRC_BASE`) are named
 Arms 2,3,4,7,8,9,10 (`0x107b`/`0x109b`/`0x10bb`/`0x1118`/`0x1138`/`0x1158`/`0x1178`) are now lifted on the
 arm-0 template, each reading its triple as an offset into the lane block; arms 2/3/7-10 name their own
 `FROG_ANIM_ARM<n>_DEST_PTR`/`SRC_BASE` pointers, arm 4 reuses the scroll subsystem's shared-block names.
-`[code]` (MAME-grounding pending). Only arm 5 (a bare `jp 0x1029`) stays frozen.
+`[code]` (MAME-grounding pending). The shared render loop **`renderFrogAnimTileColumns`** (`0x0ff1`) and the
+index-advance driver **`advanceFrogAnimIndexAndRedispatch`** (`0x1029`) are lifted together: the loop draws
+`C` columns of `B` tile-rows, computing each column index through the pure `computeVramColumnIndex` directly
+(the `0x1198` push/pop register-preservation trampolines dropped) and stamping the negated index at `(IX+1)`
+unless `TWO_PLAYER_START_FLAG` (`0x825b`) suppresses it; the advance driver bumps the anim index and either
+re-dispatches the next arm (a direct JS self-call into `0x0faf`) or, at the arm count, wraps to 0 and returns
+so the top dispatcher performs the cluster's single net `ret`. Arm 5 (the bare `jp 0x1029`) folds into a
+direct call to the advance driver. The arms still `m.call(FROG_ANIM_RENDER_LOOP)` (the loop's params default
+to the registers they set); dissolving that last register bridge into a direct call is a separate cleanup.
+`[code]` (MAME-grounding pending).
 
 ## The sprite-object engine — `[seen,poked]`
 
