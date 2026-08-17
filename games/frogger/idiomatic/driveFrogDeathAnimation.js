@@ -12,6 +12,7 @@ import {
   FROG_FURTHEST_ROW, FROG_HOP_DOWN_ACTIVE, FROG_HOP_LEFT_ANIM_COUNTER, GAME_MODE, PLAY_FLAG,
   TWO_PLAYER_START_FLAG, IN_PLAY_BOARD_STATE_BYTE, COUNTDOWN_EXPIRY_FLAG, SCROLL_STAMP_PHASE, SCROLL_EDGE_FLAG, SCROLL_STAMP_ROWCOUNT,
   SCROLL_BAND_ROWSPAN,
+  HOP_FRAME_COUNTER,
 } from "./names.js";
 import { stampHomeBaySlot } from "./stampHomeBaySlot.js";
 import { activateFrogObject } from "./activateFrogObject.js";
@@ -21,7 +22,6 @@ import { clearLatchedCollision } from "./clearLatchedCollision.js";
 
 const loc_8046 = 0x8046;             // frog object sub-byte set to 7 as the death phase advances
 const DEATH_PHASE = 0x81b2;          // death-phase index, bumped each time the counter reaches 0x10
-const HOP_FRAME_COUNTER = 0x8247;    // per-frame hop/death counter; the phase advances when it reaches 0x10
 const SECOND_BANK = 0x829c;          // second-bank select for the death-sprite poke set
 const loc_8299 = 0x8299;             // board-state byte cleared on board advance
 const DEATH_WORD = 0x8382;           // death-anim word poke operand

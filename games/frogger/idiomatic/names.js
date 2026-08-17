@@ -87,6 +87,11 @@ export const FROG_STATE_DEMO_FLAG = 0x83cd; // [seen] frog-state / demo flag; lo
 export const FROG_TIMER_A = 0x83d2; // [seen] frog 16-bit timer A; activateFrogObject seeds it to 64 in a two-player game
 export const SOUND_CTRL_SHADOW = 0x83d9; // [seen] sound-control byte RAM shadow; issueSoundCommand reads it to pulse bit 3 of the sound-control port
 export const FROG_TIMER_B = 0x83da; // [seen] frog 16-bit timer B; activateFrogObject seeds it to 64 in a two-player game
+export const INTRO_TIMER = 0x83c5; // [code] intro/game-over countdown timer; runIntroTimerThenInitGame counts it down before init
+export const CONTINUE_FLAG = 0x83c9; // [code] player-1-path continue flag; set by runIntroTimerThenInitGame, checked by setUpPlayerTwoContinue
+export const CONTINUE_FLAG_2P = 0x83ca; // [code] player-2-path continue flag; set by setUpPlayerTwoContinue, checked by runIntroTimerThenInitGame
+export const LIFE_RESTART_FLAG = 0x83ce; // [code] life-restart gate: read by beginNextLifeOrIntro (0 resumes play), set by driveFrogDeathAnimation's reset arm, cleared each frame by renderFrogSceneAndTickTimer
+export const HOP_FRAME_COUNTER = 0x8247; // [code] per-frame hop/death counter; driveFrogDeathAnimation advances the phase when it reaches 0x10
 export const SHARED_TIME_BYTE = 0x83e4; // [seen] shared time byte / inactive sentinel; renderTimeBar returns without drawing when it holds 255, else uses it as the fallback time source
 export const TIME_REMAINING_P1 = 0x83e5; // [seen] player-1 time-remaining byte; renderTimeBar uses it as the bar length when player 1 is active
 export const TIME_REMAINING_P2 = 0x83e6; // [seen] player-2 time-remaining byte; renderTimeBar uses it as the bar length when player 2 is active
@@ -395,7 +400,7 @@ export const ROUTINES = {
   },
   0x0e7a: {
     name: "driveAttractDemoSequencer",
-    role: "[seen] attract-demo sequencer run each vblank while credits are zero: credits present tail to the attract-idle setter, else a phase-byte state machine (seed demo + arm animator / run scroll animator / advance phase / per-cell stamp); the frame clock 0x0f3e stays a kept caller-skip -- grounded via MAME read-tap (wave-4): read-tap 1151x attract GM0/PF0",
+    role: "[seen] attract-demo sequencer run each vblank while credits are zero: credits present tail to the attract-idle setter, else a phase-byte state machine (seed demo + arm animator / run scroll animator / advance phase / per-cell stamp); the frame clock (tickAttractCellFrameClock) is dissolved to a direct boolean call -- grounded via MAME read-tap (wave-4): read-tap 1151x attract GM0/PF0",
     cert: "seen",
   },
   0x230f: {

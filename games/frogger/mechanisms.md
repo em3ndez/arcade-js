@@ -293,6 +293,11 @@ reaches OBJRAM; the frog-carry branch was not exercised (idle-frog golden) — c
 - **`loc_23eb`** — `[seen]` the home-bay slot cursor above; kept `loc_` (both blind proposers misread it).
 - **`computeVramColumnIndex`** (`0x1198`) — a pure-register leaf returning only `C`; `[code]`, no
   runtime-observable effect to ground.
-- Held back (deliberate handling, not bulk lifts): `0x0f3e` (pops its caller's return — a caller-skip).
+- `0x0f3e` (`tickAttractCellFrameClock`, a double caller-skip) is now DISSOLVED to a direct boolean call
+  by `driveAttractDemoSequencer`, not a kept caller-skip.
+- Promoted 5 work-RAM cell names from per-file local consts to names.js exports so each raw literal lives
+  once in the registry (`[code]`, grounding pending): `INTRO_TIMER` 0x83c5, `CONTINUE_FLAG` 0x83c9,
+  `CONTINUE_FLAG_2P` 0x83ca, `LIFE_RESTART_FLAG` 0x83ce, `HOP_FRAME_COUNTER` 0x8247. (0x83c7 left a local
+  const — its role is unconfirmed, write-only in the layer.)
 - Now lifted: the frog's hop input scan (**`scanFrogInputAndDispatchHop`**, see The frog hop) and the
   road/river vehicle and log **movement** (see the lane-object mover above).

@@ -6,14 +6,13 @@
  * HUD slot block, plays the restart jingle, and either runs the intro countdown (when the intro gate
  * is set) or hands play to the other player before resuming. LIVE-OUT: memory-only.
  */
-import { SCORE_DISPLAY_CURSOR_LO, SCORE_DISPLAY_CURSOR_HI, loc_83cc, BOARD_LAYOUT_GATE, loc_83cf, PACE_TAIL } from "./names.js";
+import { SCORE_DISPLAY_CURSOR_LO, SCORE_DISPLAY_CURSOR_HI, loc_83cc, BOARD_LAYOUT_GATE, loc_83cf, PACE_TAIL, LIFE_RESTART_FLAG } from "./names.js";
 import { renderScoreHeader } from "./renderScoreHeader.js";
 import { activateFrogObject } from "./activateFrogObject.js";
 import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { handOffToOtherPlayer } from "./handOffToOtherPlayer.js";
 
-const LIFE_RESTART_FLAG = 0x83ce; // zero resumes play, non-zero runs the next-life setup
 const PER_LIFE_HUD_BASE = 0x83a0;
 const RUN_INTRO_TIMER = 0x048f; // intro-countdown entry, still served by the frozen layer
 const RESTART_SOUND = 0x80;

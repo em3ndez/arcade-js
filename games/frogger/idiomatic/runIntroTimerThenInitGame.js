@@ -12,6 +12,7 @@ import {
   PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_SLOT, HOME_BAY1_OCCUPANCY_PRIMARY,
   OTHER_PLAYER_WORK_PAGE, OTHER_PLAYER_OBJECT_PAGE, LANE_OBJECT_INDEX, LIVE_OBJECT_PAGE,
   OBJRAM_COL3F_ATTR_SHADOW, PACE_TAIL,
+  INTRO_TIMER, CONTINUE_FLAG, CONTINUE_FLAG_2P,
 } from "./names.js";
 import { blitGameOverLine } from "./blitGameOverLine.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
@@ -19,9 +20,6 @@ import { clearTilemapToTile16 } from "./clearTilemapToTile16.js";
 import { handOffToOtherPlayer } from "./handOffToOtherPlayer.js";
 import { clearPlayerOneHomeBayGates } from "./clearPlayerOneHomeBayGates.js";
 
-const INTRO_TIMER = 0x83c5; // sixteen-bit intro/game-over countdown, spun to zero before dispatch
-const CONTINUE_FLAG = 0x83c9;
-const CONTINUE_FLAG_2P = 0x83ca; // second continue flag, the player-2 path
 const COLD_START = 0x0547; // cold-start entry (still served by the frozen layer)
 const PLAYER_TWO_CONTINUE = 0x04f3; // player-2 continue entry (still served by the frozen layer)
 const WORK_PAGE_LEN = 0xb7;
