@@ -13,8 +13,8 @@ export function insertHighScoreEntry(m, dHi = m.regs.d, eLo = m.regs.e) {
   const { mem8 } = m;
 
   for (let k = 0; k < SLOTS; k++) {
-    const hi = (HIGH_SCORE_TABLE_TOP_HI + STRIDE * k) & 0xffff;
-    const lo = (hi - 1) & 0xffff;
+    const hi = HIGH_SCORE_TABLE_TOP_HI + STRIDE * k;
+    const lo = hi - 1;
     const slotHi = mem8[hi];
 
     // insert when the new key outranks this slot (higher high byte, or equal high and higher low)
@@ -27,7 +27,7 @@ export function insertHighScoreEntry(m, dHi = m.regs.d, eLo = m.regs.e) {
   function insert(k, hi, lo) {
     const above = SLOTS - 1 - k;
     for (let j = 0; j < above; j++) {
-      const from = (HIGH_SCORE_TABLE_TOP_HI + STRIDE * (SLOTS - 2 - j)) & 0xffff; // shift the tail down one slot
+      const from = HIGH_SCORE_TABLE_TOP_HI + STRIDE * (SLOTS - 2 - j); // shift the tail down one slot
       mem8[(from + STRIDE)] = mem8[from];
       mem8[(from + STRIDE - 1)] = mem8[(from - 1)];
     }

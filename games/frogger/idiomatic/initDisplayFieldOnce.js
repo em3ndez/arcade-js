@@ -28,7 +28,7 @@ export function initDisplayFieldOnce(m) {
   let cell = LAYOUT_SETUP_COLUMN_VRAM;
   for (let row = 0; row < FILL_ROWS; row++) {
     mem8[cell] = FILL_TILE;
-    cell = (cell + ROW_STRIDE) & 0xffff;
+    cell = cell + ROW_STRIDE;
   }
 
   mem16[loc_83dc] = 0x3c20;

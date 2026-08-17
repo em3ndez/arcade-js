@@ -10,5 +10,5 @@ export function enqueueSoundCommand(m, cmd = m.regs.a) {
   if (mem8[PLAY_FLAG] === 0) return; // not playing: drop the command
   const head = (mem8[SOUND_QUEUE_COUNT] + 1) & 0xff;
   mem8[SOUND_QUEUE_COUNT] = head;
-  mem8[(SOUND_QUEUE_COUNT & 0xff00) | head] = cmd;
+  mem8[SOUND_QUEUE_COUNT + head] = cmd;
 }

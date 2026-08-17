@@ -17,9 +17,9 @@ export function blitFourTileGroupColumn(m, dst = m.regs.hl) {
   for (let row = 0; row < ROWS; row++) {
     mem8[dst] = TILE_TOP_LEFT;
     mem8[(dst + 1)] = TILE_TOP_RIGHT;
-    const lower = (dst + ROW_STRIDE) & 0xffff;
+    const lower = dst + ROW_STRIDE;
     mem8[lower] = TILE_BOTTOM_LEFT;
     mem8[(lower + 1)] = TILE_BOTTOM_RIGHT;
-    dst = (dst + 2 * ROW_STRIDE) & 0xffff;
+    dst = dst + 2 * ROW_STRIDE;
   }
 }

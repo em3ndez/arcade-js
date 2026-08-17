@@ -32,10 +32,9 @@ const HOP_UP_REST_CODE = 0x1e, HOP_UP_MOVE_CODE = 0x1c;
 const HOP_RIGHT_REST_CODE = 0xa1, HOP_RIGHT_MOVE_CODE = 0x9f;
 const HOP_LEFT_REST_CODE = 0x21, HOP_LEFT_MOVE_CODE = 0x1f;
 
-// Emit the hop-start sound: A holds the command, then the ring enqueue runs.
+// Emit the hop-start sound.
 function enqueueHopSound(m) {
-  m.regs.a = HOP_SOUND;
-  enqueueSoundCommand(m);
+  enqueueSoundCommand(m, HOP_SOUND);
 }
 
 // Shared begin body: fresh hop primes the sprite + counter, else the counter just re-primes, then advance.

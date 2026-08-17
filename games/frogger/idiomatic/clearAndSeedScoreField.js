@@ -27,10 +27,10 @@ export function clearAndSeedScoreField(m) {
   let p = FIELD_BASE;
   for (let row = ROWS; row !== 0; row = (row - 1) & 0xff) {
     fillTenCellRun(m, p);
-    p = (p + RUN) & 0xffff;
+    p = p + RUN;
     p = (p & 0xff00) | ((p + GAP) & 0xff); // step the low byte only, no carry into the page
     fillTenCellRun(m, p);
-    p = (p + RUN) & 0xffff;
-    p = (p + ROW_STEP) & 0xffff;
+    p = p + RUN;
+    p = p + ROW_STEP;
   }
 }

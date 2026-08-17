@@ -16,8 +16,8 @@ import { driveFlyPatrol } from "./driveFlyPatrol.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 
 const FLY_EAT_PHASE = 0x813d;   // tongue-out/eat phase; bit0 set means retract this frame
-const FLY_SPRITE_ATTR = 0x8042;
-const FLY_SPRITE_Y = 0x8043;
+const FLY_SPRITE_ATTR = FLY_SPRITE_X + 2;
+const FLY_SPRITE_Y = FLY_SPRITE_X + 3;
 const EAT_SOUND = 0x18;
 
 export function animateFlyEatCollision(m) {
@@ -32,7 +32,7 @@ export function animateFlyEatCollision(m) {
 
 // Move the fly, then latch an eat when it lands in the frog's row/column window.
 function boxTestFlyVsFrog(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[COLLISION_SUBFLAG] !== 0) return trackFlyOntoFrog(m);
   driveFlyPatrol(m);
@@ -45,8 +45,7 @@ function boxTestFlyVsFrog(m) {
   if (((mem8[FROG_X] - 0x04) & 0xff) >= flyX) return;
 
   mem8[COLLISION_SUBFLAG] = 0x01;
-  regs.a = EAT_SOUND;
-  enqueueSoundCommand(m);
+  enqueueSoundCommand(m, EAT_SOUND);
   return trackFlyOntoFrog(m);
 }
 

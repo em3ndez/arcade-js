@@ -12,5 +12,5 @@ export function loc_23eb(m) {
   const next = (mem8[HOME_BAY_SLOT_CURSOR] + 1) & 0xff;
   const phase = next < SLOT_CYCLE ? next : 0;
   mem8[HOME_BAY_SLOT_CURSOR] = phase;
-  regs.a = phase;
+  return (regs.a = phase);
 }

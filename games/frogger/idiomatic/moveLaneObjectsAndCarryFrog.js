@@ -93,7 +93,7 @@ function rightShift(m, control, run, lead, phase, c) {
   let de = run;
   let n = mem[de]; // run length; a zero count means a full 256-byte run
   do {
-    de = (de + 1) & 0xffff;
+    de = de + 1;
     mem[de] = (mem[de] + c) & 0xff;
     n = (n - 1) & 0xff;
   } while (n !== 0);
@@ -155,7 +155,7 @@ function leftShift(m, control, run, lead, phase, c) {
   let de = run;
   let n = mem[de];
   do {
-    de = (de + 1) & 0xffff;
+    de = de + 1;
     mem[de] = (mem[de] - c) & 0xff;
     n = (n - 1) & 0xff;
   } while (n !== 0);

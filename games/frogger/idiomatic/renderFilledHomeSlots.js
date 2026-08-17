@@ -10,9 +10,8 @@ import { HOME_SLOT1_VRAM, HOME_SLOT2_VRAM, HOME_SLOT3_VRAM, HOME_SLOT4_VRAM, HOM
 const SLOT_BASES = [HOME_SLOT1_VRAM, HOME_SLOT2_VRAM, HOME_SLOT3_VRAM, HOME_SLOT4_VRAM, HOME_SLOT5_VRAM];
 const ROW_BELOW = 32;
 
-export function renderFilledHomeSlots(m) {
+export function renderFilledHomeSlots(m, list = m.regs.hl) {
   const { mem8 } = m;
-  const list = m.regs.hl;
   for (let i = 0; i < SLOT_BASES.length; i++) {
     if (mem8[(list + i)] === 0) continue;
     const base = SLOT_BASES[i];

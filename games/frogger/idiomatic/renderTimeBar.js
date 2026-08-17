@@ -23,7 +23,7 @@ export function renderTimeBar(m) {
   let p = TIME_BAR_COLUMN_VRAM;
   while (count-- > 0) {
     mem8[p] = BAR_TILE;
-    p = (p - ROW_UP) & 0xffff;
+    p -= ROW_UP;
   }
   mem8[p] = CAP_TILE;
 }

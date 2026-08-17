@@ -23,7 +23,7 @@ export function stampScrollRevealColumn(m) {
 
   const step = rowField + ((ROW_PITCH * colField) & 0xff);
   const spans = rowCount === 0 ? 255 : rowCount === 1 ? 256 : rowCount - 1;
-  const base = (step * spans + TILEMAP_FILL_BASE_22X32) & 0xffff;
+  const base = step * spans + TILEMAP_FILL_BASE_22X32;
 
   const phase = mem8[SCROLL_STAMP_PHASE];
   if (phase === 80 || phase === 208) {
@@ -44,8 +44,8 @@ export function stampScrollRevealColumn(m) {
       for (let row = 0; row < ROWS_PER_STAMP; row++) {
         mem8[hl] = mem8[de];
         mem8[(hl + 1)] = mem8[(de + 1)];
-        hl = (hl + ROW_PITCH) & 0xffff;
-        de = (de + PAIR) & 0xffff;
+        hl = hl + ROW_PITCH;
+        de = de + PAIR;
       }
     }
   }

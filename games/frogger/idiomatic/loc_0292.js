@@ -9,7 +9,7 @@ export function loc_0292(m) {
   const { mem8, mem16 } = m;
   const count = mem16[INPLAY_COUNTDOWN_WORD];
   if (count === 0) return; // already at zero: nothing to count down
-  const next = (count - 1) & 0xffff;
+  const next = count - 1;
   mem16[INPLAY_COUNTDOWN_WORD] = next;
   if (next === 0) mem8[COUNTDOWN_EXPIRY_FLAG] = 0;
 }

@@ -50,7 +50,7 @@ export function initInPlayBoardOnce(m) {
   copyRunUpTileColumn(m, POINT_TABLE_PHASE2_STRIP_VRAM, PLAYER_SELECT_PROMPT_SRC, 0x03);
   copyRunUpTileColumn(m, regs.hl, 0x2fa8, 0x06);
   copyRunUpTileColumn(m, regs.hl, INTRO_TITLE_STRIP2_SRC, 0x05);
-  copyRunUpTileColumn(m, regs.hl, (regs.de + 1) & 0xffff, 0x07);
+  copyRunUpTileColumn(m, regs.hl, regs.de + 1, 0x07);
 
   regs.hl = 0xa994; regs.de = m.mem16[EXTRA_LIFE_SCORE_TARGET];
   writeScoreField(m);

@@ -11,10 +11,8 @@ const BEHIND_BIAS = 4; // subtracted when the direction bit is set
 const HIT_WINDOW = 16;
 const HIT_STATE = 2;
 
-export function flagSpriteObjectFrogHitAhead(m) {
-  const { regs, mem8 } = m;
-  const obj = regs.ix;
-  const spr = regs.iy;
+export function flagSpriteObjectFrogHitAhead(m, obj = m.regs.ix, spr = m.regs.iy) {
+  const { mem8 } = m;
 
   if (mem8[(obj + 0x06)] === 0) return;
   if (mem8[(obj + 0x04)] !== mem8[FROG_Y]) return;

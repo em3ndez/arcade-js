@@ -11,7 +11,7 @@
  * for P1 (bits 6/4) and cross to IN2 bit 0 / IN0 bit 0 for P2. LIVE-OUT: memory-only.
  */
 import {
-  FROG_X, FROG_Y, HOLD_FLAG, ACTIVE_PLAYER, GATED_COUNTDOWN_ENABLE_FLAG, FROG_HOP_INPUT_TIMER,
+  HOLD_FLAG, ACTIVE_PLAYER, GATED_COUNTDOWN_ENABLE_FLAG, FROG_HOP_INPUT_TIMER,
   IN0_PORT, IN1_PORT, IN2_PORT,
   FROG_HOP_DOWN_ACTIVE, FROG_HOP_UP_ACTIVE, FROG_HOP_RIGHT_ACTIVE, FROG_HOP_LEFT_ACTIVE,
   FROG_HOP_DOWN_ARRIVAL, FROG_HOP_UP_ARRIVAL, FROG_HOP_RIGHT_ARRIVAL, FROG_HOP_LEFT_ARRIVAL,
@@ -29,7 +29,7 @@ const DOWN_BIT_P2 = 0x01, UP_BIT_P2 = 0x01;
 const RIGHT_BIT = 0x10, LEFT_BIT = 0x20;
 
 export function scanFrogInputAndDispatchHop(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[GATED_COUNTDOWN_ENABLE_FLAG] !== 0) return;
 
@@ -40,10 +40,7 @@ export function scanFrogInputAndDispatchHop(m) {
 
   if (mem8[HOLD_FLAG] !== 0) return;
 
-  regs.hl = FROG_X;
-  regs.de = FROG_Y;
-
-  const p2 = (mem8[IN2_PORT] & IN2_COCKTAIL_BIT) !== 0 && mem8[ACTIVE_PLAYER] !== 1;
+  const p2 =(mem8[IN2_PORT] & IN2_COCKTAIL_BIT) !== 0 && mem8[ACTIVE_PLAYER] !== 1;
   const joy = p2 ? mem8[IN1_PORT] : mem8[IN0_PORT];
 
   if (mem8[FROG_HOP_DOWN_ACTIVE] !== 0) return advanceFrogHopDown(m);

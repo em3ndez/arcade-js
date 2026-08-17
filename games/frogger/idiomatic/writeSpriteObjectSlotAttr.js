@@ -5,10 +5,8 @@
  */
 import { OBJECT_STATE_ATTR_TABLE } from "./names.js";
 
-export function writeSpriteObjectSlotAttr(m) {
-  const { regs, mem8 } = m;
-  const record = regs.ix;
-  const slot = regs.iy;
+export function writeSpriteObjectSlotAttr(m, record = m.regs.ix, slot = m.regs.iy) {
+  const { mem8 } = m;
 
   const state = mem8[(record + 6)];
   if (state === 0) return;

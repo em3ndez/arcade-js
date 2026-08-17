@@ -25,7 +25,7 @@ export function addScoreAndAwardExtraLife(m, delta = m.regs.de) {
 
   const p1 = mem8[ACTIVE_PLAYER] === 1;
   const scoreLo = p1 ? PLAYER1_SCORE : PLAYER2_SCORE;
-  const scoreHi = (scoreLo + 1) & 0xffff;
+  const scoreHi = scoreLo + 1;
 
   regs.a = delta & 0xff;
   regs.add(mem8[scoreLo]);
@@ -46,7 +46,7 @@ export function addScoreAndAwardExtraLife(m, delta = m.regs.de) {
     mem8[counterCell] = count;
 
     let slot = HUD_SLOT_TOP, n = count;
-    do { slot = (slot - HUD_ROW_STEP) & 0xffff; n = (n - 1) & 0xff; } while (n !== 0);
+    do { slot = slot - HUD_ROW_STEP; n = (n - 1) & 0xff; } while (n !== 0);
     mem8[slot] = BONUS_TILE;
 
     enqueueSoundCommand(m, TILE_UPDATE_CMD);

@@ -15,7 +15,7 @@ const TIMER_RELOAD = 8;
 const INDEX_WRAP = 4;
 
 export function tickAttractCellFrameClock(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   const timer = u8(mem8[FRAME_TIMER] - 1);
   mem8[FRAME_TIMER] = timer;
@@ -27,6 +27,6 @@ export function tickAttractCellFrameClock(m) {
   if (index === 0) index = INDEX_WRAP;
   mem8[FRAME_INDEX] = index;
 
-  regs.a = mem8[(TILE_TABLE & 0xff00) | u8((TILE_TABLE & 0xff) + index)];
-  return true;
+  const tile = mem8[(TILE_TABLE & 0xff00) | u8((TILE_TABLE & 0xff) + index)];
+  return (m.regs.a = tile, true);
 }

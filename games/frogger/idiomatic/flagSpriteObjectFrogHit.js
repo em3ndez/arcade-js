@@ -9,10 +9,8 @@ const ROW_BIAS = 2; // (IX+4) sits two rows above the frog row it must match
 const DIR_OFFSET = 0x10; // half-tile bias when the direction bit is set
 const HIT_WINDOW = 16;
 
-export function flagSpriteObjectFrogHit(m) {
-  const { regs, mem8 } = m;
-  const obj = regs.ix;
-  const spr = regs.iy;
+export function flagSpriteObjectFrogHit(m, obj = m.regs.ix, spr = m.regs.iy) {
+  const { mem8 } = m;
 
   if (mem8[(obj + 0x06)] === 0) return; // inactive
   if (((mem8[(obj + 0x04)] + ROW_BIAS) & 0xff) !== mem8[FROG_Y]) return; // wrong row

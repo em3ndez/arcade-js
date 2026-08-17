@@ -13,8 +13,8 @@ export function fillTenCellRun(m, base = m.regs.hl) {
   let p = base;
   for (let i = 0; i < RUN; i++) {
     mem8[p] = FILL_TILE;
-    p = (p + 1) & 0xffff;
+    p++;
   }
-  m.regs.hl = p;
   m.regs.b = 0;
+  return (m.regs.hl = p);
 }

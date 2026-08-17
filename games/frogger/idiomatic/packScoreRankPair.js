@@ -17,5 +17,5 @@ export function packScoreRankPair(m) {
   const largerRank = insertHighScoreEntry(m, (larger >> 8) & 0xff, larger & 0xff);
   const smallerRank = insertHighScoreEntry(m, (smaller >> 8) & 0xff, smaller & 0xff);
 
-  mem16[INTRO_DIGIT_FIELD] = ((smallerRank << 8) | largerRank) & 0xffff;
+  mem16[INTRO_DIGIT_FIELD] = (smallerRank << 8) | largerRank;
 }

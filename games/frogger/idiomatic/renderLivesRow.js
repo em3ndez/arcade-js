@@ -17,6 +17,6 @@ export function renderLivesRow(m) {
   let p = LIVES_ROW_COLUMN_VRAM;
   for (let i = 0; i < markers; i++) {
     mem8[p] = MARKER_TILE;
-    p = (p + ROW_STRIDE) & 0xffff;
+    p += ROW_STRIDE;
   }
 }

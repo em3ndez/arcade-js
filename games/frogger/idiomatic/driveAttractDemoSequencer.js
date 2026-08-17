@@ -20,8 +20,10 @@ const CELL_BASE = FLY_SPRITE_X;     // the seven four-byte attract cells
 
 // Animator phase 1..7 -> [cell base, scroll floor], indexed by the computed jump slot.
 const ANIM_ARMS = {
-  0x0ec3: [0x8058, 0xc1], 0x0ec5: [0x8054, 0xa9], 0x0ec7: [0x8050, 0x91], 0x0ec9: [0x804c, 0x79],
-  0x0ecb: [0x8048, 0x61], 0x0ecd: [0x8044, 0x49], 0x0ecf: [0x8040, 0x31],
+  0x0ec3: [FLY_SPRITE_X + 0x18, 0xc1], 0x0ec5: [FLY_SPRITE_X + 0x14, 0xa9],
+  0x0ec7: [FLY_SPRITE_X + 0x10, 0x91], 0x0ec9: [FLY_SPRITE_X + 0x0c, 0x79],
+  0x0ecb: [FLY_SPRITE_X + 0x08, 0x61], 0x0ecd: [FLY_SPRITE_X + 0x04, 0x49],
+  0x0ecf: [FLY_SPRITE_X, 0x31],
 };
 
 export function driveAttractDemoSequencer(m) {
@@ -40,7 +42,7 @@ export function driveAttractDemoSequencer(m) {
     mem8[p] = 0x00;
     mem8[(p + 2)] = 0x03;
     mem8[(p + 3)] = 0x81;
-    p = (p + 4) & 0xffff;
+    p = p + 4;
   }
   mem8[ATTRACT_FRAME_TIMER] = 0x04;
   mem8[(ATTRACT_FRAME_TIMER + 1)] = 0x05;
@@ -65,7 +67,7 @@ function dispatchPhase(m, phase) {
 
   // phase 1: the scroll animator; a computed jump on the phase counter picks the arm
   const p = m.mem8[ATTRACT_DEMO_PHASE_COUNTER];
-  const hl = (0x0ec1 + ((p + p) & 0xff)) & 0xffff;
+  const hl = 0x0ec1 + ((p + p) & 0xff);
   const arm = ANIM_ARMS[hl];
   if (!arm) {
     throw new NotImplemented(
@@ -105,11 +107,11 @@ function dispatchPhase2Plus(m, a) {
   const d7 = mem8[ATTRACT_DEMO_PHASE_COUNTER];
   if (d7 === 0) return seedAnimator(m);
 
-  let hi = 0x8043;
+  let hi = FLY_SPRITE_X + 3;
   for (let i = 0; i < 7; i++) {
     mem8[hi] = (mem8[hi] - 4) & 0xff;
     mem8[(hi - 2)] = c;
-    hi = (hi + 4) & 0xffff;
+    hi = hi + 4;
   }
   mem8[ATTRACT_DEMO_PHASE_COUNTER] = (d7 - 1) & 0xff;
 }

@@ -12,13 +12,12 @@ const PHASE_LO = 0x02;         // ... and at or above this
 const BLIT_CMD = 0xd0;
 
 export function enqueueLaneScrollSyncedCommand(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
   if (mem8[PLAY_FLAG] === 0) return;
 
   const phase = mem8[LANE_CONTROL_SPEED_7];
   if (phase >= PHASE_HI || phase < PHASE_LO) return;
   if (mem8[LANE_RUN_SCROLL_POS] !== 0) return;
 
-  regs.a = BLIT_CMD;
-  enqueueSoundCommand(m);
+  enqueueSoundCommand(m, BLIT_CMD);
 }

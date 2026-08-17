@@ -16,7 +16,7 @@ const H_PROBE_BIT = 0x04;
 const rotateLeft = (v) => ((v << 1) | (v >> 7)) & 0xff;
 
 export function computeVramColumnIndex(m, hl = m.regs.hl, borrow = m.regs.fC ? 1 : 0) {
-  const offset = (hl - VRAM_BASE - borrow) & 0xffff;
+  const offset = hl - VRAM_BASE - borrow;
   let low = offset & COLUMN_BITS;
   let high = (offset >> 8) & 0xff;
   let acc = 0;

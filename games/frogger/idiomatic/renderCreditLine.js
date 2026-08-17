@@ -24,7 +24,7 @@ export function renderCreditLine(m) {
     let cell = COLUMN_TOP;
     for (let n = COLUMN_CELLS; n !== 0; n--) {
       mem8[cell] = CLEAR_TILE;
-      cell = (cell + ROW_STEP) & 0xffff;
+      cell = cell + ROW_STEP;
     }
   }
 

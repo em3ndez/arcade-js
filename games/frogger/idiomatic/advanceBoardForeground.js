@@ -16,10 +16,10 @@ import { addScoreAndAwardExtraLife } from "./addScoreAndAwardExtraLife.js";
 const MOD5_WRAP = 5;
 
 export function advanceBoardForeground(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.a = 0x10; enqueueSoundCommand(m);
-  regs.a = 0x30; enqueueSoundCommand(m);
+  enqueueSoundCommand(m, 0x10);
+  enqueueSoundCommand(m, 0x30);
 
   const cell = mem8[ACTIVE_PLAYER] === 1 ? PLAYER1_DIFFICULTY_INDEX : PLAYER2_DIFFICULTY_INDEX;
   let v = (mem8[cell] + 1) & 0xff;
@@ -32,6 +32,5 @@ export function advanceBoardForeground(m) {
   seedObjectAnimationState(m);
 
   mem8[BOARD_ADVANCE_DONE_FLAG] = 1;
-  regs.de = 0x0100;
-  return addScoreAndAwardExtraLife(m);
+  return addScoreAndAwardExtraLife(m, 0x0100);
 }

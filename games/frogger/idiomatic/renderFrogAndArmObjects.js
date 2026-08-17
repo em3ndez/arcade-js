@@ -26,12 +26,12 @@ export function renderFrogAndArmObjects(m) {
 
   let hl = FROG_RENDER_BANNER_VRAM;
   for (let i = 0; i < 4; i++) {
-    mem8[hl] = BANNER_TILE; hl = (hl + ROW_STRIDE) & 0xffff;
-    mem8[hl] = BANNER_TILE; hl = (hl + BANNER_PAIR_GAP) & 0xffff;
+    mem8[hl] = BANNER_TILE; hl = hl + ROW_STRIDE;
+    mem8[hl] = BANNER_TILE; hl = hl + BANNER_PAIR_GAP;
   }
 
   mem8[FROG_RENDER_BOX_VRAM_CORNER] = 65; mem8[(FROG_RENDER_BOX_VRAM_CORNER + 1)] = 66;
-  const bottom = (FROG_RENDER_BOX_VRAM_CORNER + CORNER_SPAN) & 0xffff;
+  const bottom = FROG_RENDER_BOX_VRAM_CORNER + CORNER_SPAN;
   mem8[bottom] = 69; mem8[(bottom + 1)] = 70;
 
   blitFourTileGroupColumn(m, FROG_RENDER_HOME_MARKER_VRAM);
@@ -49,9 +49,9 @@ function copyTileColumns(m, base, src, columns) {
     let de = src;
     for (let row = 0; row < 4; row++) {
       mem8[hl] = mem8[de];
-      de = (de + 1) & 0xffff;
-      hl = (hl + ROW_STRIDE) & 0xffff;
+      de = de + 1;
+      hl = hl + ROW_STRIDE;
     }
-    hl = (hl + COLUMN_GAP) & 0xffff;
+    hl = hl + COLUMN_GAP;
   }
 }

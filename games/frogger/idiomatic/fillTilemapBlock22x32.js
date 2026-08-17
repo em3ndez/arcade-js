@@ -18,8 +18,8 @@ export function fillTilemapBlock22x32(m) {
   for (let row = 0; row < ROWS; row++) {
     for (let cell = 0; cell < CELLS_PER_ROW; cell++) {
       mem8[p] = FILL_TILE;
-      p = (p + 1) & 0xffff;
+      p = p + 1;
     }
-    p = (p + ROW_SKIP) & 0xffff;
+    p = p + ROW_SKIP;
   }
 }

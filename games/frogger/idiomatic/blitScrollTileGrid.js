@@ -39,9 +39,9 @@ function copyScrollTileGrid(m, destBaseCell, source, rowCount, colCount) {
     for (let r = 0; r < rows; r++) {
       mem8[d] = mem8[s];
       mem8[(d + 1)] = mem8[(s + 1)];
-      d = (d + ROW_PITCH) & 0xffff;
-      s = (s + PAIR) & 0xffff;
+      d = d + ROW_PITCH;
+      s = s + PAIR;
     }
-    dst = (d + mem8[SCROLL_COPY_COLUMN_STRIDE]) & 0xffff;
+    dst = d + mem8[SCROLL_COPY_COLUMN_STRIDE];
   }
 }

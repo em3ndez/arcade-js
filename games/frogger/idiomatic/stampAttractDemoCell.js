@@ -29,8 +29,8 @@ export function stampAttractDemoCell(m) {
   mem8[ATTRACT_DEMO_DWELL] = DWELL_RELOAD;
 
   const phase = mem8[ATTRACT_DEMO_PHASE_COUNTER];
-  const src = (ATTRACT_DEMO_CORNER_VRAM + CELL_VRAM_STRIDE * (phase - 1)) & 0xffff;
-  const obj = (FLY_SPRITE_X + OBJ_CELL_STRIDE * (PHASE_COUNT - phase)) & 0xffff;
+  const src = ATTRACT_DEMO_CORNER_VRAM + CELL_VRAM_STRIDE * (phase - 1);
+  const obj = FLY_SPRITE_X + OBJ_CELL_STRIDE * (PHASE_COUNT - phase);
   const tile = BASE_TILE[phase];
 
   mem8[src] = tile;

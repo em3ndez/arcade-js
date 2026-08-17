@@ -57,7 +57,7 @@ function scanLane(m, laneBase, width) {
   let remaining = mem8[laneBase] || 256; // object count; 0 scans the full 256
   let p = laneBase;
   for (;;) {
-    p = (p + 1) & 0xffff;
+    p = p + 1;
     const objX = mem8[p];
     const inBand = wrapped ? objX >= low || objX < top : objX >= low && objX < top;
     if (inBand) {

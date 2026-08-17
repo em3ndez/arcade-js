@@ -7,7 +7,7 @@
 import { HOME_BAY_SLOT_CURSOR_MIRROR, GOAL_AWARD_RECORD, HOME_GOAL_SPRITE_ARM_CELL, HOLD_FLAG } from "./names.js";
 import { addScoreAndAwardExtraLife } from "./addScoreAndAwardExtraLife.js";
 
-const SCORE_DELTA = 0x0020;
+const SCORE_DELTA = 0x20;
 
 export function awardBonusPoints(m, popupPos = m.regs.b) {
   const { mem8 } = m;
@@ -22,7 +22,6 @@ export function awardBonusPoints(m, popupPos = m.regs.b) {
   mem8[GOAL_AWARD_RECORD + 2] = 0x03;
   mem8[GOAL_AWARD_RECORD + 3] = 0x20;
   mem8[HOME_GOAL_SPRITE_ARM_CELL] = 0xa0;
-  m.regs.de = SCORE_DELTA; // bridge: the register-reading score routine consumes DE
-  addScoreAndAwardExtraLife(m);
+  addScoreAndAwardExtraLife(m, SCORE_DELTA);
   return false;
 }

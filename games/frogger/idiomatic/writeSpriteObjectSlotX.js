@@ -5,10 +5,8 @@
  */
 import { loc_8000 } from "./names.js";
 
-export function writeSpriteObjectSlotX(m) {
-  const { regs, mem8 } = m;
-  const obj = regs.ix;
-  const spr = regs.iy;
+export function writeSpriteObjectSlotX(m, obj = m.regs.ix, spr = m.regs.iy) {
+  const { mem8 } = m;
 
   if (mem8[(obj + 0x06)] === 0) return; // inactive object
 

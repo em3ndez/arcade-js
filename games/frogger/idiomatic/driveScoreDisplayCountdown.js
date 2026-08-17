@@ -67,7 +67,7 @@ function stepScoreBarTile(m) {
   const c = dd & 0x03;
   let a = dd & 0xfc;
   a = ((a << 2) | (a >> 6)) & 0xff; // rotate left by two
-  const dst = (BAR_BASE + ((a + a) & 0xffff)) & 0xffff;
+  const dst = BAR_BASE + (a + a);
   mem8[dst] = (0x10 - c) & 0xff;
 }
 

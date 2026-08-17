@@ -8,7 +8,7 @@
  * LIVE-OUT: memory-only.
  */
 import { NotImplemented } from "../../../boards/frogger/io.js";
-import { FROG_X, FROG_Y, HOLD_FLAG, TWO_PLAYER_START_FLAG, GATED_COUNTDOWN_ENABLE_FLAG, IN_PLAY_BOARD_STATE_BYTE } from "./names.js";
+import { HOLD_FLAG, TWO_PLAYER_START_FLAG, GATED_COUNTDOWN_ENABLE_FLAG, IN_PLAY_BOARD_STATE_BYTE } from "./names.js";
 import {
   beginFrogHopLeft, beginFrogHopRight, beginFrogHopUp, beginFrogHopDown,
 } from "./animateFrogHop.js";
@@ -18,7 +18,7 @@ const HOP_FRAME_TABLE = 0x2e68;
 const DWELL_RELOAD = 0x30;
 
 export function driveAttractDemoFrogHop(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[GATED_COUNTDOWN_ENABLE_FLAG] !== 0) return;
   if (mem8[HOLD_FLAG] !== 0) return;
@@ -29,7 +29,6 @@ export function driveAttractDemoFrogHop(m) {
     return;
   }
 
-  regs.de = FROG_Y; // hop-begin handler live-ins (armed as the caller does)
   mem8[SPAWN_DWELL] = DWELL_RELOAD;
   const phase = (mem8[IN_PLAY_BOARD_STATE_BYTE] + 1) & 0xff;
   mem8[IN_PLAY_BOARD_STATE_BYTE] = phase;
@@ -37,7 +36,6 @@ export function driveAttractDemoFrogHop(m) {
   const code = mem8[HOP_FRAME_TABLE + phase];
   if (code === 0xff) return resetExtraFrog(m);
 
-  regs.hl = FROG_X;
   switch (code) {
     case 0x02: return beginFrogHopLeft(m);
     case 0x05: return beginFrogHopRight(m);

@@ -40,22 +40,22 @@ export function renderMode4PointTablePhase(m) {
       copyRunUpTileColumn(m, POINT_TABLE_PHASE1_STRIP_VRAM, POINT_TABLE_PHASE1_STRIP_ROM, 10);
       regs.hl = POINT_TABLE_PHASE1_VALUE_VRAM;
       copyRunUpTileColumn(m, writePackedBcdByte(m, 0x10), PTS_SUFFIX_STRIP, 4);
-      copyRunUpTileColumn(m, regs.hl, regs.de, 19);
+      copyRunUpTileColumn(m, undefined, undefined, 19);
       break;
 
     case 2:
       regs.hl = POINT_TABLE_PHASE2_VALUE_VRAM;
       copyRunUpTileColumn(m, writePackedBcdWord(m, 0x1000), PTS_SUFFIX_STRIP, 4);
-      copyRunUpTileColumn(m, regs.hl, POINT_TABLE_PHASE2_VALUE_ROM, 10);
-      copyRunUpTileColumn(m, regs.hl, INTRO_TITLE_STRIP2_SRC, 6);
+      copyRunUpTileColumn(m, undefined, POINT_TABLE_PHASE2_VALUE_ROM, 10);
+      copyRunUpTileColumn(m, undefined, INTRO_TITLE_STRIP2_SRC, 6);
       copyRunUpTileColumn(m, POINT_TABLE_PHASE2_STRIP_VRAM, POINT_TABLE_PHASE2_STRIP_ROM, 15);
       break;
 
     case 3:
       regs.hl = POINT_TABLE_PHASE3_VALUE_VRAM;
       copyRunUpTileColumn(m, writePackedBcdByte(m, 0x50), PTS_SUFFIX_STRIP, 4);
-      copyRunUpTileColumn(m, regs.hl, POINT_TABLE_PHASE3_VALUE_ROM, 10);
-      copyRunUpTileColumn(m, regs.hl, INTRO_TITLE_STRIP2_SRC, 5);
+      copyRunUpTileColumn(m, undefined, POINT_TABLE_PHASE3_VALUE_ROM, 10);
+      copyRunUpTileColumn(m, undefined, INTRO_TITLE_STRIP2_SRC, 5);
       copyRunUpTileColumn(m, POINT_TABLE_PHASE3_STRIP_VRAM, POINT_TABLE_PHASE3_STRIP_ROM, 19);
       break;
 
@@ -70,7 +70,7 @@ export function renderMode4PointTablePhase(m) {
       mem8[POINT_TABLE_SPRITE_CODE_802D] = 3;
       regs.hl = POINT_TABLE_PHASE4_VALUE_VRAM;
       copyRunUpTileColumn(m, writePackedBcdByte(m, 0x10), PTS_SUFFIX_STRIP, 4);
-      copyRunUpTileColumn(m, regs.hl, POINT_TABLE_PHASE4_VALUE_ROM, 14);
+      copyRunUpTileColumn(m, undefined, POINT_TABLE_PHASE4_VALUE_ROM, 14);
       break;
 
     default:

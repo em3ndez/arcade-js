@@ -16,6 +16,5 @@ export function copyRunUpTileColumn(m, dst = m.regs.hl, src = m.regs.de, count =
     s = (s + 1) & 0xffff;
     n = (n - 1) & 0xff;
   } while (n !== 0);
-  m.regs.hl = d;
-  m.regs.de = s;
+  return (m.regs.hl = d, m.regs.de = s);
 }

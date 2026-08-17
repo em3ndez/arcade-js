@@ -11,7 +11,7 @@ import { dispatchSpriteObjectArmsA } from "./dispatchSpriteObjectArmsA.js";
 import { LIVES_COUNT, ACTIVE_PLAYER, SPRITE_OBJECT_SLOT_B } from "./names.js";
 
 const MIN_SLOTS = 3, TWO_SLOTS = 6;
-const RECORD_A_P1 = 0x8440, RECORD_A_P2 = 0x8460, RECORD_ADVANCE = 0x0010;
+const RECORD_A_P1 = 0x8440, RECORD_A_P2 = 0x8460, RECORD_ADVANCE = 0x10;
 const SLOT_A_FIRST = 0x8048, SLOT_A_SECOND = 0x8050;
 const RECORD_B_P1 = 0x8480, RECORD_B_P2 = 0x8490;
 
@@ -23,7 +23,7 @@ export function driveSpriteObjectCluster(m) {
     regs.iy = SLOT_A_FIRST;
     dispatchSpriteObjectArmsA(m);
     if (mem8[LIVES_COUNT] >= TWO_SLOTS) {
-      regs.ix = (regs.ix + RECORD_ADVANCE) & 0xffff;
+      regs.ix = regs.ix + RECORD_ADVANCE;
       regs.iy = SLOT_A_SECOND;
     }
     dispatchSpriteObjectArmsA(m);
