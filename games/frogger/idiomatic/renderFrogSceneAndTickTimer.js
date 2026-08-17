@@ -10,7 +10,7 @@
  */
 import {
   FROG_STATE_DEMO_FLAG, loc_83cf, PLAY_FLAG, ACTIVE_PLAYER, TIME_REMAINING_P1, TIME_REMAINING_P2, GATED_COUNTDOWN_ENABLE_FLAG,
-  HOME_BAY1_OCCUPANCY_PRIMARY, HOME_BAY1_OCCUPANCY_ALT, PLAYER_START_DEMO_FLAG, STATUS_ROW_VRAM_BASE,
+  HOME_BAY1_OCCUPANCY_PRIMARY, HOME_BAY1_OCCUPANCY_ALT, PLAYER_START_DEMO_FLAG, STATUS_ROW_VRAM_BASE, LIFE_RESTART_FLAG,
 } from "./names.js";
 import { renderFrogAndArmObjects } from "./renderFrogAndArmObjects.js";
 import { blitFourTileGroupColumn } from "./blitFourTileGroupColumn.js";
@@ -18,7 +18,6 @@ import { renderFilledHomeSlots } from "./renderFilledHomeSlots.js";
 import { loadActivePlayerLaneParams } from "./loadActivePlayerLaneParams.js";
 import { resetFrogObject } from "./resetFrogObject.js";
 
-const loc_83ce = 0x83ce;           // cleared to 0 on entry each frame
 const loc_83b5 = 0x83b5;           // countdown-enable mirror
 const FROG_ANIM_DISPATCH = 0x0faf; // the frog-animation dispatcher, a sibling in this batch
 const FROG_ANIM_RET = 0x09a6;      // return address pushed ahead of the dispatcher
@@ -26,7 +25,7 @@ const FROG_ANIM_RET = 0x09a6;      // return address pushed ahead of the dispatc
 export function renderFrogSceneAndTickTimer(m) {
   const { regs, mem8 } = m;
 
-  mem8[loc_83ce] = 0;
+  mem8[LIFE_RESTART_FLAG] = 0;
   if (mem8[FROG_STATE_DEMO_FLAG] === 0) mem8[loc_83cf] = 0;
 
   if (mem8[PLAY_FLAG] === 0) {

@@ -12,7 +12,7 @@ import {
   FROG_FURTHEST_ROW, FROG_HOP_DOWN_ACTIVE, FROG_HOP_LEFT_ANIM_COUNTER, GAME_MODE, PLAY_FLAG,
   TWO_PLAYER_START_FLAG, IN_PLAY_BOARD_STATE_BYTE, COUNTDOWN_EXPIRY_FLAG, SCROLL_STAMP_PHASE, SCROLL_EDGE_FLAG, SCROLL_STAMP_ROWCOUNT,
   SCROLL_BAND_ROWSPAN,
-  HOP_FRAME_COUNTER,
+  HOP_FRAME_COUNTER, LIFE_RESTART_FLAG,
 } from "./names.js";
 import { stampHomeBaySlot } from "./stampHomeBaySlot.js";
 import { activateFrogObject } from "./activateFrogObject.js";
@@ -25,7 +25,6 @@ const DEATH_PHASE = 0x81b2;          // death-phase index, bumped each time the 
 const SECOND_BANK = 0x829c;          // second-bank select for the death-sprite poke set
 const loc_8299 = 0x8299;             // board-state byte cleared on board advance
 const DEATH_WORD = 0x8382;           // death-anim word poke operand
-const loc_83ce = 0x83ce;             // board-advance ready flag set by the reset arm
 
 const COUNTER_TARGET = 0x10;
 
@@ -67,7 +66,7 @@ function advanceBoardAndReset(m) {
   mem8[FROG_FURTHEST_ROW] = 0;
   mem8[SECOND_BANK] = 0;
   for (let a = FROG_HOP_DOWN_ACTIVE; a <= FROG_HOP_LEFT_ANIM_COUNTER; a++) mem8[a] = 0;
-  mem8[loc_83ce] = 1;
+  mem8[LIFE_RESTART_FLAG] = 1;
   if (mem8[GAME_MODE] === 1 && mem8[PLAY_FLAG] === 0) {
     mem8[GAME_MODE] = 0;
     mem8[loc_8299] = 0;

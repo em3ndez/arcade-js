@@ -19,7 +19,7 @@ import {
   SCROLL_WRAP_LATCH, LANE_OBJLIST_8109, LANE_OBJLIST_8124, HOME_COLUMN_STATE, FROG_STATE_DEMO_FLAG,
   loc_83cf, PLAYER1_DIFFICULTY_INDEX, HOME_BAY1_OCCUPANCY_PRIMARY, HOME_BAY5_OCCUPANCY_PRIMARY,
   HOME_BAY1_OCCUPANCY_ALT, HOME_BAY5_OCCUPANCY_ALT, COIN_COUNTER_0, COIN_COUNTER_1,
-  STATUS_ROW_VRAM_BASE, NO_MORE_FROGS_COLUMN_VRAM,
+  STATUS_ROW_VRAM_BASE, NO_MORE_FROGS_COLUMN_VRAM, COLLISION_ORCH_ENTRY,
 } from "./names.js";
 import { scanCoinInputAndCredit } from "./scanCoinInputAndCredit.js";
 import { dequeueSoundCommand } from "./dequeueSoundCommand.js";
@@ -41,7 +41,6 @@ const NMI_ENABLE = 0xb808;   // NMI enable latch (io): 0 acks, 1 re-enables
 const ATTRACT_SEQ = 0x0e7a;
 const IN_PLAY_UPDATE = 0x2341;
 const DEATH_DRIVER = 0x16f8;
-const COLLISION_ORCH = 0x1a55;
 
 const swapNibbles = (v) => ((v >> 4) | (v << 4)) & 0xff;
 
@@ -143,7 +142,7 @@ export function serviceVblankNmi(m) {
     if (mem.read8(HOME_REVEAL_COUNTDOWN) !== 0) return b_0257();
     if (mem.read16(INPLAY_COUNTDOWN_WORD) !== 0) return b_01e2();
     driveScoreDisplayCountdown(m);
-    m.push16(0x01ba); m.call(COLLISION_ORCH); // kept: collision orchestrator
+    m.push16(0x01ba); m.call(COLLISION_ORCH_ENTRY); // kept: collision orchestrator
     if (mem.read8(0x83b5) !== 0) return b_01e2();
     mem.write8(0x83b5, 1);
     mem.write8(0x8384, 0xff);
