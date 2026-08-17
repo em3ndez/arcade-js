@@ -397,8 +397,11 @@ export const ROUTINES = {
   0x0faf: { name: "dispatchFrogAnimationArm", role: "[code] frog-animation jump-table dispatcher: the anim-index low byte selects one of eleven arm pointers in a jump table; read that pointer and jump to it; memory-only live-out", cert: "code" },
   0x1a55: { name: "orchestrateCollisionsAndFrogInput", role: "[code] master collision/scoring orchestrator: clear play flag tails to exit; set, runs the collision sub-engines, an interior timing arm, and the frog input scan; memory-only live-out", cert: "code" },
   0x1cff: { name: "selectHomeBayGoalHandler", role: "[code] home-bay column dispatcher: read the frog X and route to the goal handler for the bay whose column band contains it, or to the reject handler; memory-only live-out", cert: "code" },
+  0x1d87: { name: "awardHomeBayGoal", entry: "awardHomeBay1Goal", role: "[code] home-bay-1 goal handler (structural twin of the bay-2 handler); memory-only live-out", cert: "code" },
   0x1dd8: { name: "awardHomeBayGoal", entry: "awardHomeBay2Goal", role: "[code] home-bay-2 goal handler: returns if that bay's occupancy gate is already set, else awards the bay and hands to the input scan; memory-only live-out", cert: "code" },
+  0x1e29: { name: "awardHomeBayGoal", entry: "awardHomeBay3Goal", role: "[code] home-bay-3 goal handler (structural twin of the bay-2 handler); memory-only live-out", cert: "code" },
   0x1e7a: { name: "awardHomeBayGoal", entry: "awardHomeBay4Goal", role: "[code] home-bay-4 goal handler (structural twin of the bay-2 handler); memory-only live-out", cert: "code" },
+  0x1ecb: { name: "awardHomeBayGoal", entry: "awardHomeBay5Goal", role: "[code] home-bay-5 goal handler (structural twin of the bay-2 handler); memory-only live-out", cert: "code" },
   0x2341: { name: "driveInPlayFrameUpdate", role: "[code] in-play per-frame update dispatcher: bare return in attract/boot, else drives the in-play sub-engines; memory-only live-out", cert: "code" },
   0x040b: {
     name: "setUpBoardOrContinueLife",
