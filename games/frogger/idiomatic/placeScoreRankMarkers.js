@@ -13,14 +13,7 @@ const ROW_BASE = 48;
 const MARKER_TILE = 4;
 
 export function placeScoreRankMarkers(m) {
-  const { regs, mem16 } = m;
-  regs.h = RAM_PAGE;
-  regs.bc = mem16[INTRO_DIGIT_FIELD];
-  regs.d = ROW_BASE;
-  regs.e = MARKER_TILE;
-
-  loc_0c4a(m);
-
-  regs.c = regs.b;
-  return loc_0c4a(m);
+  const field = m.mem16[INTRO_DIGIT_FIELD];
+  loc_0c4a(m, field & 0xff, ROW_BASE, RAM_PAGE, MARKER_TILE);
+  loc_0c4a(m, field >> 8, ROW_BASE, RAM_PAGE, MARKER_TILE);
 }

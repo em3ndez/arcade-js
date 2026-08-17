@@ -22,5 +22,5 @@ export function nextSpawnRandomByte(m) {
 
   const value = mem8[(SPAWN_RNG_RING_BASE + cursor)] ^ mem8[(SPAWN_RNG_RING_BASE + j)];
   mem8[(SPAWN_RNG_RING_BASE + j)] = value;
-  regs.a = value;
+  return (regs.a = value);
 }

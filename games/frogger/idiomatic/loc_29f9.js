@@ -10,17 +10,15 @@ import { loc_842c, FREE_RUNNING_POS_COUNTER } from "./names.js";
 const MOVE_RELOAD = 8;
 const ROW_THRESHOLD = 96; // rows at/below take the (IX+3) step, above drift toward the free-running counter
 
-export function loc_29f9(m) {
-  const { regs, mem8 } = m;
-  const obj = regs.ix;
-  const spr = regs.iy;
+export function loc_29f9(m, obj = m.regs.ix, spr = m.regs.iy) {
+  const { mem8 } = m;
 
-  if (mem8[(obj + 0x06)] === 0) return; // inactive
-  if (mem8[loc_842c] !== 0) return; // gated off
+  if (mem8[(obj + 0x06)] === 0) return;
+  if (mem8[loc_842c] !== 0) return;
 
   const timer = (mem8[(obj + 0x09)] - 1) & 0xff;
   mem8[(obj + 0x09)] = timer;
-  if (timer !== 0) return; // move timer still running
+  if (timer !== 0) return;
   mem8[(obj + 0x09)] = MOVE_RELOAD;
 
   const facing = mem8[(obj + 0x05)];

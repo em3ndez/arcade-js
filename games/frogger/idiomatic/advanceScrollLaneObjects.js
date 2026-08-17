@@ -47,18 +47,16 @@ export function advanceScrollLaneObjects(m) {
 // Feed object A's descriptor into the grid copy engine, then object B's into the alt-base engine;
 // the wrapping phase (48) also clears the phase counter before the copy.
 function stampLanes(m, gridSource, bandSource, wrapPhase) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  regs.b = mem8[(SCROLL_OBJECT_BLOCK_BASE + 1)];
-  regs.c = mem8[SCROLL_STAMP_ROWCOUNT];
-  regs.de = gridSource;
+  const gridRows = mem8[(SCROLL_OBJECT_BLOCK_BASE + 1)];
+  const gridCols = mem8[SCROLL_STAMP_ROWCOUNT];
   mem8[SCROLL_COPY_COLUMN_STRIDE] = mem8[SCROLL_OBJECT_BLOCK_BASE];
   if (wrapPhase) mem8[SCROLL_PHASE_COUNTER] = 0;
-  blitScrollTileGrid(m);
+  blitScrollTileGrid(m, gridSource, gridRows, gridCols);
 
-  regs.b = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + 1)];
-  regs.c = mem8[SCROLL_BAND_ROWSPAN];
-  regs.de = bandSource;
+  const bandRows = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + 1)];
+  const bandCols = mem8[SCROLL_BAND_ROWSPAN];
   mem8[SCROLL_COPY_COLUMN_STRIDE] = mem8[SCROLL_BAND_DESCRIPTOR_BASE];
-  return blitScrollTileGridAlt(m);
+  return blitScrollTileGridAlt(m, bandSource, bandRows, bandCols);
 }

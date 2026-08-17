@@ -12,24 +12,22 @@
  * LIVE-OUT: memory-only.
  */
 import { NotImplemented } from "../../../boards/frogger/io.js";
-import { FROG_X, FROG_Y, HOLD_FLAG, LANE_OBJECT_INDEX } from "./names.js";
+import {
+  FROG_X, FROG_Y, HOLD_FLAG, LANE_OBJECT_INDEX,
+  LIVE_OBJECT_PAGE, SPRITE_BLOCK2_BASE, ANIM_FRAME_BUFFER, LANE_OBJECT_PHASE_TABLE,
+} from "./names.js";
 
-// Per-object parameters: the lane control byte, the sprite run (count byte then sprite Xs), the lead
-// sprite cell, the phase-countdown cell, and which mover to run. The sixth object (index 5) has no
-// mover — it is the shortcut that advances the walk without moving anything.
-const LANE_OBJECTS = [
-  { move: moverRight, control: 0x819b, run: 0x8100, lead: 0x800c, phase: 0x81a6 },
-  { move: moverLeft, control: 0x819c, run: 0x8109, lead: 0x8010, phase: 0x81a7 },
-  { move: moverRight, control: 0x819d, run: 0x8112, lead: 0x8014, phase: 0x81a8 },
-  { move: moverRight, control: 0x819e, run: 0x811b, lead: 0x8018, phase: 0x81a9 },
-  { move: moverLeft, control: 0x819f, run: 0x8124, lead: 0x801c, phase: 0x81aa },
-  { move: null }, // index 5 — spacer, advance only
-  { move: moverLeft, control: 0x81a1, run: 0x8136, lead: 0x8024, phase: 0x81ac },
-  { move: moverRight, control: 0x81a2, run: 0x813f, lead: 0x8028, phase: 0x81ad },
-  { move: moverLeft, control: 0x81a3, run: 0x8148, lead: 0x802c, phase: 0x81ae },
-  { move: moverRight, control: 0x81a4, run: 0x8151, lead: 0x8030, phase: 0x81af },
-  { move: moverLeft, control: 0x81a5, run: 0x815a, lead: 0x8034, phase: 0x81b0 },
+// Which mover runs for each of the eleven lane objects, in fixed order. The sixth (index 5) is a
+// spacer with no mover — the shortcut that advances the walk without moving anything.
+const LANE_MOVERS = [
+  moverRight, moverLeft, moverRight, moverRight, moverLeft,
+  null,
+  moverLeft, moverRight, moverLeft, moverRight, moverLeft,
 ];
+
+// Each object's control byte, sprite run, and lead sprite cell sit at a fixed stride off its base.
+const RUN_STRIDE = 9;
+const LEAD_STRIDE = 4;
 
 const OBJECT_COUNT = 0x0b; // eleven objects, then the index wraps
 
@@ -42,8 +40,16 @@ export function moveLaneObjectsAndCarryFrog(m) {
         `moveLaneObjectsAndCarryFrog: lane-object index ${i} is past the eleven-object table`,
       );
     }
-    const o = LANE_OBJECTS[i];
-    if (o.move) o.move(m, o.control, o.run, o.lead, o.phase);
+    const move = LANE_MOVERS[i];
+    if (move) {
+      move(
+        m,
+        ANIM_FRAME_BUFFER + i,
+        SPRITE_BLOCK2_BASE + i * RUN_STRIDE,
+        LIVE_OBJECT_PAGE + i * LEAD_STRIDE,
+        LANE_OBJECT_PHASE_TABLE + i,
+      );
+    }
 
     // Advance the walk. The mover never touches the index cell, so it still reads i here.
     const next = (mem[LANE_OBJECT_INDEX] + 1) & 0xff;

@@ -4,9 +4,9 @@
  * H=0x80, so this writes WORK RAM, not a tilemap tile (grounded).
  * LIVE-OUT: memory-only.
  */
-export function loc_0c4a(m) {
-  const { regs, mem8 } = m;
-  if (regs.c === 0) return;
-  const row = (regs.d - regs.c) & 0xff;
-  mem8[(regs.h << 8) | row] = regs.e;
+export function loc_0c4a(m, c = m.regs.c, d = m.regs.d, h = m.regs.h, e = m.regs.e) {
+  const { mem8 } = m;
+  if (c === 0) return;
+  const row = (d - c) & 0xff;
+  mem8[(h << 8) | row] = e;
 }

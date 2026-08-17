@@ -11,7 +11,7 @@ import { CREDIT_BCD, OBJRAM_COL3F_ATTR_SHADOW, CREDIT_COLUMN_CLEAR_LATCH, CREDIT
 const COLUMN_TOP = 0xa81f;
 const CLEAR_TILE = 0x10;
 const COLUMN_CELLS = 0x20;
-const ROW_STEP = 0x0020; // one 32-cell tilemap row
+const ROW_STEP = 32; // one 32-cell tilemap row
 const LABEL_DST = 0xa97f;
 const LABEL_LEN = 0x06;
 const COUNT_DST = 0xa89f;

@@ -11,18 +11,16 @@ const MIN_COUNT = 3;
 const VARIANTS = 5;
 
 export function spawnSpriteObject(m, record = m.regs.ix) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   const count = mem8[LIVES_COUNT];
   if (count < MIN_COUNT) return;
   if (mem8[(record + 6)] !== 0) return; // already active
 
-  nextSpawnRandomByte(m);
-  const densityRoll = regs.a;
+  const densityRoll = nextSpawnRandomByte(m);
   if (((8 * count + 128) & 0xff) < densityRoll) return; // density gate
 
-  nextSpawnRandomByte(m);
-  const variant = regs.a & 0x07;
+  const variant = nextSpawnRandomByte(m) & 0x07;
   if (variant >= VARIANTS) return;
 
   mem8[(record + 4)] = variant * 16 + 48;
@@ -55,8 +53,7 @@ export function spawnSpriteObject(m, record = m.regs.ix) {
   mem8[(record + 1)] = (seedPos - remainder) & 0xff;
   mem8[record] = (seedPos - remainder + spanB) & 0xff;
 
-  nextSpawnRandomByte(m);
-  if (regs.a & 1) {
+  if (nextSpawnRandomByte(m) & 1) {
     mem8[(record + 5)] = 0;
     mem8[(record + 3)] = 0;
   } else {

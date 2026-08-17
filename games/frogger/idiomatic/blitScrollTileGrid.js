@@ -16,19 +16,16 @@ const ROW_PITCH = 32;
 const PAIR = 2;
 const FULL_RUN = 256;
 
-export function blitScrollTileGrid(m) {
-  return copyScrollTileGrid(m, SCROLL_COPY_DEST_PTR);
+export function blitScrollTileGrid(m, source = m.regs.de, rowCount = m.regs.b, colCount = m.regs.c) {
+  return copyScrollTileGrid(m, SCROLL_COPY_DEST_PTR, source, rowCount, colCount);
 }
 
-export function blitScrollTileGridAlt(m) {
-  return copyScrollTileGrid(m, SCROLL_COPY_DEST_PTR_ALT);
+export function blitScrollTileGridAlt(m, source = m.regs.de, rowCount = m.regs.b, colCount = m.regs.c) {
+  return copyScrollTileGrid(m, SCROLL_COPY_DEST_PTR_ALT, source, rowCount, colCount);
 }
 
-function copyScrollTileGrid(m, destBaseCell) {
-  const { regs, mem8, mem16 } = m;
-  const source = regs.de;
-  const rowCount = regs.b;
-  const colCount = regs.c;
+function copyScrollTileGrid(m, destBaseCell, source, rowCount, colCount) {
+  const { mem8, mem16 } = m;
 
   mem16[SCROLL_COPY_SRC_PTR] = source;
   mem8[SCROLL_COPY_ROWCOUNT] = rowCount;
