@@ -10,7 +10,12 @@ import { loc_8000 } from "./names.js";
 import { renderFrogAnimArm0 } from "./renderFrogAnimArm0.js";
 import { renderFrogAnimArm1 } from "./renderFrogAnimArm1.js";
 import { renderFrogAnimArm2 } from "./renderFrogAnimArm2.js";
+import { renderFrogAnimArm3 } from "./renderFrogAnimArm3.js";
 import { renderFrogAnimArm6 } from "./renderFrogAnimArm6.js";
+import { renderFrogAnimArm7 } from "./renderFrogAnimArm7.js";
+import { renderFrogAnimArm8 } from "./renderFrogAnimArm8.js";
+import { renderFrogAnimArm9 } from "./renderFrogAnimArm9.js";
+import { renderFrogAnimArm10 } from "./renderFrogAnimArm10.js";
 
 const ARM_TABLE = 0x0fbe; // base of the eleven arm entry pointers
 
@@ -22,14 +27,14 @@ export function dispatchFrogAnimationArm(m) {
     case 0x0fd4: return renderFrogAnimArm0(m);
     case 0x1058: return renderFrogAnimArm1(m);
     case 0x107b: return renderFrogAnimArm2(m);
-    case 0x109b: return m.call(0x109b);
+    case 0x109b: return renderFrogAnimArm3(m);
     case 0x10bb: return m.call(0x10bb);
     case 0x10db: return m.call(0x10db);
     case 0x10f8: return renderFrogAnimArm6(m);
-    case 0x1118: return m.call(0x1118);
-    case 0x1138: return m.call(0x1138);
-    case 0x1158: return m.call(0x1158);
-    case 0x1178: return m.call(0x1178);
+    case 0x1118: return renderFrogAnimArm7(m);
+    case 0x1138: return renderFrogAnimArm8(m);
+    case 0x1158: return renderFrogAnimArm9(m);
+    case 0x1178: return renderFrogAnimArm10(m);
     default:
       throw new NotImplemented(
         `dispatchFrogAnimationArm: target 0x${target.toString(16)} outside the arm table ` +
