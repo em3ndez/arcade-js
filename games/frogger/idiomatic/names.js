@@ -49,6 +49,10 @@ export const IN2_PORT = 0xe004;
 export const MAIN_LOOP_HEAD = 0x0341;
 export const PACE_TAIL = 0x0368;
 
+// Shared frog-animation tile render loop entry (still frozen/translated). Arms 0/1/6 load the
+// row-advance/count/column plus HL/DE/IX/IY and the SCROLL_COPY_* stashes, then enter this loop.
+export const FROG_ANIM_RENDER_LOOP = 0x0ff1; // [seen] frog-anim render loop (0x0FF1); frozen -- arms 0/1/6 enter it after loading registers
+
 // Tilemap base fillTilemapBlock28x32 fills from. [seen] fillTilemapBlock28x32 loads it as the fixed start of a 28x32 block fill. -- grounded [seen] via MAME write-tap: fillTilemapBlock28x32 writes 0x10 at pc=0770 during screen setup
 export const TILEMAP_FILL_BASE_28X32 = 0xa802;
 
@@ -232,6 +236,7 @@ export const FROG_HOP_RIGHT_ANIM_RELOAD = 0x8258; // [seen] right-hop animation-
 export const FROG_HOP_LEFT_ANIM_RELOAD = 0x8259; // [seen] left-hop animation-length reload; beginFrogHopLeft copies it into FROG_HOP_LEFT_ANIM_COUNTER to prime the hop. Grounded [seen] via MAME land-hop run (writer PCs + value trajectory).
 export const FROG_HOP_INPUT_TIMER = 0x8268; // [seen,poked] hop-input lock timer; scanFrogInputAndDispatchHop decrements it and ticks the home-bay slot cursor (loc_23eb) each frame while it counts, locking new joystick input until it drains to 0. Grounded by POKE (scratchpad/frog_hop_gnd2.lua): poked =8 at f400, loc_1acb decremented it 8->0 at pc=1AD7 over f400-407; LEFT held during the count (f401-406) gave NO hop (negative control), LEFT after drain (f431) hopped (positive). Never armed in ordinary land play (arm site is stampHomeGoalAndResetFrog on the home-goal path)
 export const PLAYER1_SLOT = 0x825c; // [seen,poked] player-1 slot byte; loc_0534 zeros it before the cold-start pre-clear (loc_048f's P1-init later sets it to 1)
+export const PLAYER2_SLOT = 0x825d; // player-2 home count (sibling of PLAYER1_SLOT); awardHomeBayGoal / stampHomeGoalAndResetFrog use it for the inactive-slot home tally
 export const SCROLL_PHASE_COUNTER = 0x826e; // [seen] scroll phase counter; loc_2005 steps it each NMI and runs a lane block at 16/32/48, clearing it to 0 at phase 48
 export const SCROLL_OBJ_A_ROW_COUNT = 0x8274; // [seen] scroll object A descriptor +1 (row count); loc_2005 loads it as the grid copy engine's B row-count at phase 16/32/48
 export const SCROLL_OBJ_B_ROW_COUNT = 0x827d; // [seen] scroll object B descriptor +1 (row count); loc_2005 loads it as the band copy entry's B row-count
@@ -254,7 +259,9 @@ export const INTRO_DIGIT_FIELD = 0x83fb; // [seen] two-byte score display / intr
 export const HOME_COLUMN_STATE = 0x842f; // [seen,poked] home-column state cell; loc_0670 clears it to 0 before tailing into the extra-life award
 // ROM tables/sources read by the batch-3 routines
 export const LANE_SCAN_ARM_TABLE = 0x130b; // [seen] arm-pointer table (ROM); loc_12e4 indexes it by 2*(high nibble of frogX+15) to select the lane-scan arm
+export const FROG_ANIM_ARM0_DEST_PTR = 0x13ed; // [seen] frog-anim arm-0 render destination pointer (ROM word); renderFrogAnimArm0 loads HL from it as the render loop's VRAM base
 export const FROG_ANIM_ARM6_DEST_PTR = 0x13f9; // [seen] frog-anim arm-6 render destination pointer (ROM word); loc_10f8 loads HL from it as the render loop's VRAM base
+export const FROG_ANIM_ARM0_SRC_BASE = 0x1403; // [seen] frog-anim arm-0 tile source base (ROM); renderFrogAnimArm0 sets DE to it and stashes it at SCROLL_COPY_SRC_PTR for the render loop's row copy
 export const SCROLL_GRID_SRC_PHASE16 = 0x1423; // [seen] ROM tile source; loc_2005 passes it in DE as the phase-16 scroll-grid source (object A), loc_1058 loads it as the frog-anim tile source (DE) and stashes it at SCROLL_COPY_SRC_PTR
 export const SCROLL_GRID_SRC_PHASE32 = 0x142b; // [seen] ROM scroll-grid source for phase 32 (object A); loc_2005 passes it in DE to the copy engine
 export const SCROLL_GRID_SRC_PHASE48 = 0x1433; // [seen] ROM scroll-grid source for phase 48 (object A); loc_2005 passes it in DE to the copy engine
@@ -355,6 +362,9 @@ export const SCORE_DISPLAY_ARM_SELECT = 0x83df; // [seen] score-display arm sele
 export const SCORE_DISPLAY_COUNTER_HI = 0x83dd; // [seen] score-display counter high byte; when zero the driver takes the end-strip tail, else decremented, and its bits index the bar tile
 // board-advance foreground (advanceBoardForeground)
 export const BOARD_ADVANCE_DONE_FLAG = 0x8380; // [seen] set to 1 by board-advance foreground once the new board is laid out (advanceBoardForeground)
+// in-play frame update dispatcher (driveInPlayFrameUpdate) — collision orchestrator kept as an address-dispatched trampoline
+export const COLLISION_ORCH_ENTRY = 0x1a55; // [code] entry address of orchestrateCollisionsAndFrogInput; driveInPlayFrameUpdate keeps m.call here because the goal-award path tail-transfers into still-translated home-bay handlers (0x1d87/0x1e29/0x1ecb) via a caller-skip
+export const COLLISION_ORCH_TRAMPOLINE_RETURN = 0x2351; // [code] ROM resume PC after the `call 0x1a55` in loc_2341; pushed as the stack buffer the collision orchestrator's goal-award caller-skip pops (dropping it corrupts the caller's return on the bay-1/3/5 goal path)
 
 export const ROUTINES = {
   // --- gameplay spine wired 2026-08-16 after LIVE input-tape seatability: coin/play/hop/death/game-over/

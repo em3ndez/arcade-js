@@ -3,10 +3,12 @@
  * driveInPlayFrameUpdate — memory-equivalent to the frozen oracle at ROM 0x2341.
  * GATE: crafted-entry (spine dispatcher). Guarded twice: returns unless GAME_MODE 0x83d6==1 and the run
  * flag 0x829b!=0. Then it drives the frame through the sub-engine sequence, dissolving the moved-0
- * leaves and keeping m.call for the collision orchestrator 0x1a55 and the two tail-transferring lane
- * engines (0x2005, 0x11bf), all still oracle-served here. Live-out memory-only; RAM compared, stack
- * masked. Teeth: no-op, skipped engine effect, wrong engine effect. Positive control: the free-running
- * counter 0x8014 arms 0->1 when the body runs.
+ * leaves to direct calls (the scroll driver 0x2005 and the frog-move dispatcher 0x11bf among them) and
+ * keeping m.call only for the collision orchestrator 0x1a55 — its goal-award path tail-transfers into
+ * still-translated home-bay handlers via a caller-skip that pops the pushed continuation — still
+ * oracle-served here. Live-out memory-only; RAM compared, stack masked. Teeth: no-op, skipped engine
+ * effect, wrong engine effect. Positive control: the free-running counter 0x8014 arms 0->1 when the
+ * body runs.
  */
 import test from "node:test";
 import assert from "node:assert/strict";

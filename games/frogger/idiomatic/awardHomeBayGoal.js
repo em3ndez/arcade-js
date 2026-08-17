@@ -3,24 +3,23 @@
  * awardHomeBayGoal — the goal handler for two home bays (bay 2 and bay 4, sharing this body). Returns
  * when that bay's occupancy gate is already set; hands to the input scan when the frog has not fully
  * reached the home row. Otherwise it awards the bay — bonus points on a pending-slot key match, the
- * shared home-goal fill/reset, on a latched collision the goal sprite + latch clear, and finally the
- * occupancy gate + this player's home count. LIVE-OUT: memory-only.
+ * shared home-goal fill/reset (stampHomeGoalAndResetFrog), on a latched collision the goal sprite +
+ * latch clear, and finally the occupancy gate + this player's home count. LIVE-OUT: memory-only.
  */
 import {
-  ACTIVE_PLAYER, FROG_Y, COLLISION_SUBFLAG, PENDING_HOME_BAY_SLOT, PLAYER1_SLOT,
+  ACTIVE_PLAYER, FROG_Y, COLLISION_SUBFLAG, PENDING_HOME_BAY_SLOT, PLAYER1_SLOT, PLAYER2_SLOT,
   HOME_BAY2_OCCUPANCY_PRIMARY, HOME_BAY2_OCCUPANCY_ALT, HOME_BAY4_OCCUPANCY_PRIMARY, HOME_BAY4_OCCUPANCY_ALT,
+  HOME_SLOT2_VRAM, HOME_SLOT4_VRAM,
 } from "./names.js";
 import { scanFrogInputAndDispatchHop } from "./scanFrogInputAndDispatchHop.js";
 import { armHomeGoalSprite } from "./armHomeGoalSprite.js";
 import { awardBonusPoints } from "./awardBonusPoints.js";
+import { stampHomeGoalAndResetFrog } from "./stampHomeGoalAndResetFrog.js";
 
-const PLAYER2_SLOT = 0x825d;  // player-2 home count (sibling of the player-1 slot cell)
 const HOME_ROW_Y = 0x2a;      // a frog Y at or past this has not fully reached the home row
 
-const HOME_GOAL_FILL = 0x1f1c; // shared home-goal fill/reset, a cluster sibling (kept dispatch)
-
-const BAY2 = { doneP1: HOME_BAY2_OCCUPANCY_PRIMARY, doneP2: HOME_BAY2_OCCUPANCY_ALT, bayY: 0x48, key: 0x02, slot: 0xaaa4, r1: 0x1df5, r2: 0x1dfb };
-const BAY4 = { doneP1: HOME_BAY4_OCCUPANCY_PRIMARY, doneP2: HOME_BAY4_OCCUPANCY_ALT, bayY: 0xa8, key: 0x04, slot: 0xa924, r1: 0x1e97, r2: 0x1e9d };
+const BAY2 = { doneP1: HOME_BAY2_OCCUPANCY_PRIMARY, doneP2: HOME_BAY2_OCCUPANCY_ALT, bayY: 0x48, key: 0x02, slot: HOME_SLOT2_VRAM };
+const BAY4 = { doneP1: HOME_BAY4_OCCUPANCY_PRIMARY, doneP2: HOME_BAY4_OCCUPANCY_ALT, bayY: 0xa8, key: 0x04, slot: HOME_SLOT4_VRAM };
 
 function awardHomeBayGoal(m, p) {
   const { regs, mem8 } = m;
@@ -31,12 +30,14 @@ function awardHomeBayGoal(m, p) {
   // key match -> award bonus; the hold arm signals us to skip the rest of the goal handler.
   if (((mem8[PENDING_HOME_BAY_SLOT] - p.key) & 0xff) === 0 && awardBonusPoints(m, p.bayY)) return;
 
+  // Stamp the 2x2 home tiles at this bay's slot base + reset the frog. The slot base is handed over in
+  // HL: a bridge into stampHomeGoalAndResetFrog, which still reads HL directly (its own CPU-cruft
+  // burn-down is pending). Once that module takes an HL param this write dissolves to a direct argument.
   regs.hl = p.slot;
-  m.push16(p.r2); m.call(HOME_GOAL_FILL);
+  stampHomeGoalAndResetFrog(m);
 
   if (mem8[COLLISION_SUBFLAG] !== 0) {
-    regs.b = p.bayY;
-    armHomeGoalSprite(m);
+    armHomeGoalSprite(m, p.bayY);
     mem8[COLLISION_SUBFLAG] = 0;
   }
 
