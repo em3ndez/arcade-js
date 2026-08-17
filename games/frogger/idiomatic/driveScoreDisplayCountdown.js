@@ -18,12 +18,13 @@ import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writePackedBcdByte } from "./writePackedBcdByte.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { addScoreAndAwardExtraLife } from "./addScoreAndAwardExtraLife.js";
+import { bcdSubByte } from "../../../core/bcd.js";
 
 const COUNTDOWN_RELOAD = 0x20;
 const BAR_BASE = LAYOUT_SETUP_COLUMN_VRAM;
 
 export function driveScoreDisplayCountdown(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[FROG_STATE_DEMO_FLAG] !== 0) return;
   if (mem8[HOLD_FLAG] !== 0) return;
@@ -42,18 +43,14 @@ export function driveScoreDisplayCountdown(m) {
   if (left !== 0) return;
   mem8[loc_83dc] = COUNTDOWN_RELOAD;
 
-  regs.a = mem8[SCORE_DISPLAY_COUNTER_HI];
-  regs.or(regs.a); // clears carry for the BCD correction below
-  if (regs.fZ) return blitEndStripAndSetHold(m);
-  regs.a = regs.dec8(regs.a);
-  mem8[SCORE_DISPLAY_COUNTER_HI] = regs.a;
+  const counterHi = mem8[SCORE_DISPLAY_COUNTER_HI];
+  if (counterHi === 0) return blitEndStripAndSetHold(m);
+  mem8[SCORE_DISPLAY_COUNTER_HI] = (counterHi - 1) & 0xff;
 
-  regs.a = mem8[loc_83de];
-  regs.a = regs.dec8(regs.a);
-  regs.daa();
-  mem8[loc_83de] = regs.a;
+  const stepped = bcdSubByte(mem8[loc_83de], 1).value; // BCD decrement
+  mem8[loc_83de] = stepped;
 
-  if (regs.a === 0x10) {
+  if (stepped === 0x10) {
     enqueueSoundCommand(m, 0x05);
     mem8[OBJRAM_COL3F_ATTR_SHADOW] = 0;
   }

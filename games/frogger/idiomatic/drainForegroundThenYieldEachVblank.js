@@ -11,6 +11,7 @@
 import {
   GAME_MODE, PLAY_FLAG, START_LATCH, CREDIT_BCD, IN1_PORT, MAIN_LOOP_HEAD, PACE_TAIL,
 } from "./names.js";
+import { bcdSubByte } from "../../../core/bcd.js";
 import { renderScoreHeader } from "./renderScoreHeader.js";
 import { renderCreditLine } from "./renderCreditLine.js";
 import { initNewGameScoreAndTimers } from "./initNewGameScoreAndTimers.js";
@@ -90,12 +91,8 @@ export function runOneForegroundPass(m, entry) {
 function startNewGame(m, players) {
   const { regs, mem } = m;
 
-  regs.a = mem.read8(CREDIT_BCD);
-  regs.c = players;
-  regs.sub(regs.c); regs.daa();
-  mem.write8(CREDIT_BCD, regs.a);
-  regs.a = regs.c;
-  mem.write8(0x8370, regs.a);
+  mem.write8(CREDIT_BCD, bcdSubByte(mem.read8(CREDIT_BCD), players).value); // BCD deduct
+  mem.write8(0x8370, players);
 
   regs.hl = 0x8500; regs.de = 0x8501; regs.bc = 0x01ff;
   mem.write8(regs.hl, regs.l);

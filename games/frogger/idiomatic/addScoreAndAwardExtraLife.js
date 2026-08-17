@@ -13,6 +13,7 @@ import {
   TIME_REMAINING_P1, TIME_REMAINING_P2, loc_83cf, EXTRA_LIFE_SCORE_TARGET, HIGH_SCORE,
 } from "./names.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
+import { bcdAddByte } from "../../../core/bcd.js";
 
 const HUD_SLOT_TOP = 0xabde;   // base the bonus tile walks back from, one row per counter step
 const HUD_ROW_STEP = 0x20;
@@ -20,21 +21,17 @@ const BONUS_TILE = 0x4d;
 const TILE_UPDATE_CMD = 0x07;
 
 export function addScoreAndAwardExtraLife(m, delta = m.regs.de) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
   if (mem8[PLAY_FLAG] === 0) return; // not in play: no scoring
 
   const p1 = mem8[ACTIVE_PLAYER] === 1;
   const scoreLo = p1 ? PLAYER1_SCORE : PLAYER2_SCORE;
   const scoreHi = scoreLo + 1;
 
-  regs.a = delta & 0xff;
-  regs.add(mem8[scoreLo]);
-  regs.daa();
-  mem8[scoreLo] = regs.a;
-  regs.a = delta >> 8;
-  regs.adc(mem8[scoreHi]);
-  regs.daa();
-  mem8[scoreHi] = regs.a;
+  const lo = bcdAddByte(delta & 0xff, mem8[scoreLo]);
+  mem8[scoreLo] = lo.value;
+  const hi = bcdAddByte(delta >> 8, mem8[scoreHi], lo.carry);
+  mem8[scoreHi] = hi.value;
   const score = mem16[scoreLo];
 
   const awardCell = p1 ? PLAYER1_EXTRA_LIFE_AWARDED : PLAYER2_EXTRA_LIFE_AWARDED;

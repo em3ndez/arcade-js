@@ -15,6 +15,7 @@ import {
   CREDIT_BCD, PLAY_FLAG, GAME_MODE, POINT_TABLE_DRAW_STATE, FLY_SPRITE_X,
 } from "./names.js";
 import { issueSoundCommand } from "./issueSoundCommand.js";
+import { bcdAddByte } from "../../../core/bcd.js";
 import { blitPlayerSelectPrompt } from "./blitPlayerSelectPrompt.js";
 import { renderCreditLine } from "./renderCreditLine.js";
 
@@ -88,12 +89,9 @@ function creditForSlot2(m, coinage) {
 
 // Add the BCD credit (clamped at 99), then start the player-select flow unless already playing.
 function addCreditAndMaybeStart(m, credit) {
-  const { regs, mem8 } = m;
-  regs.a = mem8[CREDIT_BCD];
-  regs.add(credit);
-  regs.daa();
-  if (regs.fC) regs.a = CREDIT_CLAMP;
-  mem8[CREDIT_BCD] = regs.a;
+  const { mem8 } = m;
+  const sum = bcdAddByte(mem8[CREDIT_BCD], credit);
+  mem8[CREDIT_BCD] = sum.carry ? CREDIT_CLAMP : sum.value; // clamp at 99 on BCD carry
 
   if (mem8[PLAY_FLAG] !== 0) return; // a game is already in play
 
