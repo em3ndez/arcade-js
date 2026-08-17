@@ -10,13 +10,14 @@
  */
 import {
   COLLISION_SUBFLAG, PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_SLOT, PLAYER2_SLOT, HOME_COLUMN_STATE,
-  FROG_X, FROG_SPRITE_CODE, FROG_Y,
+  FLY_SPRITE_X, FROG_X, FROG_SPRITE_CODE, FROG_Y,
   FROG_HOP_UP_ARRIVAL, FROG_HOP_UP_ACTIVE, FROG_HOP_UP_ANIM_COUNTER, FROG_HOP_INPUT_TIMER,
   GATED_COUNTDOWN_COUNTER, GATED_COUNTDOWN_ENABLE_FLAG, FROG_STATE_DEMO_FLAG, INTRO_COUNTER_829B, BOARD_LAYOUT_GATE,
 } from "./names.js";
 import { addScoreAndAwardExtraLife } from "./addScoreAndAwardExtraLife.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
+import { clearCollisionSpriteBlock } from "./clearCollisionSpriteBlock.js";
 
 const FROG_OBJ_ATTR = 0x8046;  // frog object attribute byte (between the sprite code and Y)
 const FANFARE_INDEX = 0x8381;  // arrival-fanfare index, reloaded on wrap
@@ -24,7 +25,6 @@ const FANFARE_PTR = 0x8382;    // arrival-fanfare pointer word
 
 const FANFARE_TABLE = 0x2e87;  // fanfare pointer table base
 const BOARD_CLEAR_STRIP = 0xb040;
-const CLEAR_COLLISION = 0x27bc; // clears the sprite/collision block (kept dispatch)
 const REFRESH_DISPLAY = 0x08c5; // score-display refresh, interior entry (kept dispatch)
 const BONUS_DELTA = 0x0020, HOME_DELTA = 0x0005;
 
@@ -34,7 +34,8 @@ export function stampHomeGoalAndResetFrog(m) {
   if (mem8[COLLISION_SUBFLAG] !== 0) {
     regs.de = BONUS_DELTA;
     addScoreAndAwardExtraLife(m);
-    m.push16(0x1f2b); m.call(CLEAR_COLLISION);
+    clearCollisionSpriteBlock(m);
+    regs.hl = (FLY_SPRITE_X + 3) & 0xffff; // the clear walks HL to the block's last cell; the stamp reads it here
   }
 
   mem8[regs.hl] = 0x6c;
@@ -60,7 +61,7 @@ export function stampHomeGoalAndResetFrog(m) {
       mem8[HOME_COLUMN_STATE] = mem8[countCell];
       clearActivePlayerWorkRam(m);
       for (let i = 0; i < 0x18; i++) mem8[(BOARD_CLEAR_STRIP + i)] = 0;
-      m.push16(0x1f94); m.call(CLEAR_COLLISION);
+      clearCollisionSpriteBlock(m);
     } else {
       regs.a = 0x08; enqueueSoundCommand(m);
       regs.a = 0x0e; enqueueSoundCommand(m);

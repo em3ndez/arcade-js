@@ -211,7 +211,9 @@ did not settle which). **`mountOrKillFrogOnTwoPairFigure`** (gated on `FIGURE_AN
 box-tests the frog against the figure: an inner overlap tail-kills the frog (`0x12d0`), an outer overlap
 mounts it — stamps the 2×2 mount-tile quad (104..107) at `TWO_PAIR_FIGURE_VRAM` and sets the ride flag `HOLD_FLAG`.
 **`clearLatchedCollision`** is the guarded reset: when the collision latch `COLLISION_LATCH` is set it zeroes the
-sub-flag `COLLISION_SUBFLAG` and clears the collision cells `0x8040`–`0x8043`. `[seen,poked]`.
+sub-flag `COLLISION_SUBFLAG` and falls into **`clearCollisionSpriteBlock`**, the shared cell-clearing helper (now
+lifted and dispatched) that zeroes the four-byte fly/goal sprite block `0x8040`–`0x8043` and the collision latch;
+`stampHomeGoalAndResetFrog` dispatches the same helper directly after a latched hit is scored. `[seen,poked]`.
 
 ## Board setup and player lifecycle — `[seen]`
 
