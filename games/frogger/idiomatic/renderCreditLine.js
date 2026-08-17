@@ -17,7 +17,7 @@ const LABEL_LEN = 0x06;
 const COUNT_DST = 0xa89f;
 
 export function renderCreditLine(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[CREDIT_COLUMN_CLEAR_LATCH] === 0) {
     mem8[CREDIT_COLUMN_CLEAR_LATCH] = 1;
@@ -31,6 +31,5 @@ export function renderCreditLine(m) {
   copyRunUpTileColumn(m, LABEL_DST, CREDIT_LABEL_STRIP, LABEL_LEN);
 
   mem8[OBJRAM_COL3F_ATTR_SHADOW] = 1;
-  regs.hl = COUNT_DST;
-  return writePackedBcdByte(m, mem8[CREDIT_BCD]);
+  return writePackedBcdByte(m, mem8[CREDIT_BCD], COUNT_DST);
 }

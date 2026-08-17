@@ -20,7 +20,7 @@ const RANK_STRIP_LEN = 0x03;
 const SCORE_STRIP_LEN = 0x04;
 
 export function renderMode3ScoreRankingScreen(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[POINT_TABLE_DRAW_STATE] = (mem8[POINT_TABLE_DRAW_STATE] - 1) & 0xff;
   mem8[ATTRACT_DEMO_PHASE_COUNTER] = 0;
@@ -42,9 +42,7 @@ export function renderMode3ScoreRankingScreen(m) {
     stripSrc += RANK_STRIP_LEN;
 
     const scoreWord = HIGH_SCORE_TABLE_BASE + 2 * (rank - 1); // rank r's high-score word, r = 1..5
-    regs.de = mem8[scoreWord] | (mem8[scoreWord + 1] << 8);
-    regs.hl = 0xa900 | ((2 * rank + 0xed) & 0xff);
-    const fieldPtr = writeScoreField(m);
+    const fieldPtr = writeScoreField(m, mem8[scoreWord] | (mem8[scoreWord + 1] << 8), 0xa900 | ((2 * rank + 0xed) & 0xff));
     copyRunUpTileColumn(m, fieldPtr, PTS_SUFFIX_STRIP, SCORE_STRIP_LEN);
   }
 

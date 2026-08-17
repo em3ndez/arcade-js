@@ -22,25 +22,19 @@ const SIDE_LABEL_LEN = 3;
 const ONE_PLAYER = 1;
 
 export function renderScoreHeader(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   copyRunUpTileColumn(m, HISCORE_LABEL_DST, HI_SCORE_LABEL_STRIP, HISCORE_LABEL_LEN);
-  regs.hl = HISCORE_VALUE_DST;
-  regs.de = mem16[HIGH_SCORE];
-  writeScoreField(m);
+  writeScoreField(m, mem16[HIGH_SCORE], HISCORE_VALUE_DST);
 
   // each column's side strip runs up from the pointer the digit-write leaves in HL
   const p1Ptr = writeScoreDigitStepUp(m, 1, P1_DIGIT_DST);
   copyRunUpTileColumn(m, p1Ptr, UP_LABEL_STRIP, SIDE_LABEL_LEN);
-  regs.hl = P1_SCORE_DST;
-  regs.de = mem16[PLAYER1_SCORE];
-  writeScoreField(m);
+  writeScoreField(m, mem16[PLAYER1_SCORE], P1_SCORE_DST);
 
   if (mem8[NUM_PLAYERS] === ONE_PLAYER) return;
 
   const p2Ptr = writeScoreDigitStepUp(m, 2, P2_DIGIT_DST);
   copyRunUpTileColumn(m, p2Ptr, UP_LABEL_STRIP, SIDE_LABEL_LEN);
-  regs.hl = P2_SCORE_DST;
-  regs.de = mem16[PLAYER2_SCORE];
-  return writeScoreField(m);
+  return writeScoreField(m, mem16[PLAYER2_SCORE], P2_SCORE_DST);
 }

@@ -20,7 +20,7 @@ import { blitPlayerSelectPrompt } from "./blitPlayerSelectPrompt.js";
 import { writeScoreField } from "./writeScoreField.js";
 
 export function initInPlayBoardOnce(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   clearActivePlayerWorkRam(m);
 
@@ -53,8 +53,7 @@ export function initInPlayBoardOnce(m) {
   const promptRun3 = copyRunUpTileColumn(m, promptRun2.hl, INTRO_TITLE_STRIP2_SRC, 0x05);
   copyRunUpTileColumn(m, promptRun3.hl, promptRun3.de + 1, 0x07);
 
-  regs.hl = 0xa994; regs.de = m.mem16[EXTRA_LIFE_SCORE_TARGET];
-  const scoreTargetPtr = writeScoreField(m);
+  const scoreTargetPtr = writeScoreField(m, m.mem16[EXTRA_LIFE_SCORE_TARGET], 0xa994);
 
   copyRunUpTileColumn(m, scoreTargetPtr, PTS_SUFFIX_STRIP, 0x04);
 }
