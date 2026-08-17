@@ -213,7 +213,9 @@ mounts it — stamps the 2×2 mount-tile quad (104..107) at `TWO_PAIR_FIGURE_VRA
 **`clearLatchedCollision`** is the guarded reset: when the collision latch `COLLISION_LATCH` is set it zeroes the
 sub-flag `COLLISION_SUBFLAG` and falls into **`clearCollisionSpriteBlock`**, the shared cell-clearing helper (now
 lifted and dispatched) that zeroes the four-byte fly/goal sprite block `0x8040`–`0x8043` and the collision latch;
-`stampHomeGoalAndResetFrog` dispatches the same helper directly after a latched hit is scored. `[seen,poked]`.
+`stampHomeGoalAndResetFrog` dispatches the same helper directly after a latched hit is scored. Its latch-preserving
+sibling **`clearFlySpriteBlock`** (`0x27de`) zeroes only the four-byte block, run by the collision orchestrator's
+goal-sprite timing arm when the arm counter `HOME_GOAL_SPRITE_ARM_CELL` drains. `[seen,poked]`/`[code]`.
 
 ## Board setup and player lifecycle — `[seen]`
 

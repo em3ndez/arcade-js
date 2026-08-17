@@ -5,8 +5,8 @@
  * it runs the collision sub-engines, the HOME_GOAL_SPRITE_ARM_CELL timing arm, the slot tick, then the LIVES_COUNT-bit0
  * scroll stage (inline fly/slot arm, or the gator/slot arm), and finally the shared exit — a low frog
  * row (0x8047<0x31) tails to the still-translated goal scan 0x1cff, else the input scan. Dissolves the
- * moved-0 leaves; keeps m.call for the tail-transferring dive driver 0x27ea, goal scan 0x1cff, and the
- * un-lifted 0x27de. Live-out memory-only; RAM compared, stack masked. Teeth: no-op, skipped/ wrong
+ * moved-0 leaves and the fly-sprite clear 0x27de; keeps m.call for the tail-transferring dive driver
+ * 0x27ea and goal scan 0x1cff. Live-out memory-only; RAM compared, stack masked. Teeth: no-op, skipped/ wrong
  * scroll-counter effect. Positive control: the scroll counter 0x8122 arms 0->1 when the body runs.
  */
 import test from "node:test";
