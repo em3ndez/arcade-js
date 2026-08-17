@@ -4,9 +4,7 @@
  * Reads the arm's triple, points the cursors and pattern pointer, stashes code and source where the
  * render loop rereads them, then runs it. LIVE-OUT: memory-only.
  */
-import { FROG_ANIM_ARM6_SPRITE_CODE, FROG_ANIM_ARM6_ROW_COUNT, FROG_ANIM_ARM6_PASS_COUNT, FROG_ANIM_ARM6_DEST_PTR, FROG_ANIM_ARM6_SRC_BASE, LANE_OBJLIST_8136, SCROLL_COPY_COLUMN_STRIDE, SCROLL_COPY_SRC_PTR } from "./names.js";
-
-const RENDER_LOOP = 0x0ff1;
+import { FROG_ANIM_ARM6_SPRITE_CODE, FROG_ANIM_ARM6_ROW_COUNT, FROG_ANIM_ARM6_PASS_COUNT, FROG_ANIM_ARM6_DEST_PTR, FROG_ANIM_ARM6_SRC_BASE, LANE_OBJLIST_8136, SCROLL_COPY_COLUMN_STRIDE, SCROLL_COPY_SRC_PTR, FROG_ANIM_RENDER_LOOP } from "./names.js";
 
 export function renderFrogAnimArm6(m) {
   const { regs, mem8, mem16 } = m;
@@ -22,5 +20,5 @@ export function renderFrogAnimArm6(m) {
   mem8[SCROLL_COPY_COLUMN_STRIDE] = regs.a;
   mem16[SCROLL_COPY_SRC_PTR] = regs.de;
 
-  return m.call(RENDER_LOOP);
+  return m.call(FROG_ANIM_RENDER_LOOP);
 }

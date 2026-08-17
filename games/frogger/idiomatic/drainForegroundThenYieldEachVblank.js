@@ -10,6 +10,10 @@
 
 import {
   GAME_MODE, PLAY_FLAG, START_LATCH, CREDIT_BCD, IN1_PORT, MAIN_LOOP_HEAD, PACE_TAIL,
+  FROG_HOP_VERTICAL_DELTA, FROG_HOP_HORIZONTAL_DELTA, FROG_HOP_DOWN_ANIM_RELOAD,
+  FROG_HOP_UP_ANIM_RELOAD, FROG_HOP_RIGHT_ANIM_RELOAD, FROG_HOP_LEFT_ANIM_RELOAD, NUM_PLAYERS,
+  ACTIVE_PLAYER, LIVES_COUNT, PLAYER1_LIVES, INPLAY_COUNTDOWN_WORD, FROG_TIMER_A, HOME_COLUMN_STATE,
+  loc_842d, PLAYER1_DIFFICULTY_INDEX, HOLD_FLAG, PLAYER_START_DEMO_FLAG,
 } from "./names.js";
 import { bcdSubByte } from "../../../core/bcd.js";
 import { renderScoreHeader } from "./renderScoreHeader.js";
@@ -49,9 +53,9 @@ export function runOneForegroundPass(m, entry) {
     regs.a = regs.dec8(regs.a);
     if (regs.fNZ) renderCreditLine(m);
     m.push16(0x0356); m.call(SERVICE_C);
-    mem.write8(0x8254, 0x02); mem.write8(0x8255, 0x02);
-    mem.write8(0x8256, 0x09); mem.write8(0x8257, 0x09);
-    mem.write8(0x8258, 0x09); mem.write8(0x8259, 0x09);
+    mem.write8(FROG_HOP_VERTICAL_DELTA, 0x02); mem.write8(FROG_HOP_HORIZONTAL_DELTA, 0x02);
+    mem.write8(FROG_HOP_DOWN_ANIM_RELOAD, 0x09); mem.write8(FROG_HOP_UP_ANIM_RELOAD, 0x09);
+    mem.write8(FROG_HOP_RIGHT_ANIM_RELOAD, 0x09); mem.write8(FROG_HOP_LEFT_ANIM_RELOAD, 0x09);
   }
 
   // pace tail — the busy-delay is skipped: it writes no state.
@@ -92,7 +96,7 @@ function startNewGame(m, players) {
   const { regs, mem } = m;
 
   mem.write8(CREDIT_BCD, bcdSubByte(mem.read8(CREDIT_BCD), players).value); // BCD deduct
-  mem.write8(0x8370, players);
+  mem.write8(NUM_PLAYERS, players);
 
   regs.hl = 0x8500; regs.de = 0x8501; regs.bc = 0x01ff;
   mem.write8(regs.hl, regs.l);
@@ -100,11 +104,11 @@ function startNewGame(m, players) {
 
   mem.write8(PLAY_FLAG, regs.a); // = player count: a game is now in progress
   regs.a = 0x01;
-  mem.write8(0x83fd, regs.a);
+  mem.write8(ACTIVE_PLAYER, regs.a);
   mem.write8(START_LATCH, regs.a);
   regs.h = regs.a; regs.l = regs.a;
-  mem.write8(0x83b7, regs.a);
-  mem.write16(0x83b8, regs.hl);
+  mem.write8(LIVES_COUNT, regs.a);
+  mem.write16(PLAYER1_LIVES, regs.hl);
 
   initNewGameScoreAndTimers(m);
   regs.a = 0x03;
@@ -118,9 +122,9 @@ function startNewGame(m, players) {
   regs.a = 0x0a; enqueueSoundCommand(m);
   regs.a = 0x0b; enqueueSoundCommand(m);
 
-  regs.hl = 0x0020; mem.write16(0x829d, regs.hl);
+  regs.hl = 0x0020; mem.write16(INPLAY_COUNTDOWN_WORD, regs.hl);
   regs.hl = 0x01a0; mem.write16(0x8382, regs.hl);
-  regs.hl = 0x0000; mem.write16(0x83d2, regs.hl);
+  regs.hl = 0x0000; mem.write16(FROG_TIMER_A, regs.hl);
 
   clearActivePlayerWorkRam(m);
   clearTilemapToTile16(m);
@@ -128,15 +132,15 @@ function startNewGame(m, players) {
 
   regs.xor(regs.a);
   regs.h = regs.a; regs.l = regs.a;
-  mem.write8(0x842f, regs.a);
-  mem.write8(0x842d, regs.a);
-  mem.write16(0x8293, regs.hl);
+  mem.write8(HOME_COLUMN_STATE, regs.a);
+  mem.write8(loc_842d, regs.a);
+  mem.write16(PLAYER1_DIFFICULTY_INDEX, regs.hl);
 
   regs.hl = 0x8440; regs.de = 0x8441; regs.bc = 0x004f;
   mem.write8(regs.hl, regs.b);
   m.ldirAt(0x0402, 0x0404); // clear a second play-RAM block
 
-  mem.write8(0x8004, regs.a);
+  mem.write8(HOLD_FLAG, regs.a);
   regs.a = regs.inc8(regs.a);
-  mem.write8(0x825a, regs.a);
+  mem.write8(PLAYER_START_DEMO_FLAG, regs.a);
 }

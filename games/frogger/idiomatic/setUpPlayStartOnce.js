@@ -7,7 +7,7 @@
  * run the frog-animation dispatcher (kept dispatch), then raise the 2-player start flag and the
  * run flag so the layout happens exactly once. LIVE-OUT: memory-only.
  */
-import { GAME_MODE, INTRO_COUNTER_829B, CREDIT_COLUMN_CLEAR_LATCH, TWO_PLAYER_START_FLAG } from "./names.js";
+import { GAME_MODE, INTRO_COUNTER_829B, CREDIT_COLUMN_CLEAR_LATCH, TWO_PLAYER_START_FLAG, STATUS_ROW_VRAM_BASE } from "./names.js";
 import { initDisplayFieldOnce } from "./initDisplayFieldOnce.js";
 import { clearAndSeedScoreField } from "./clearAndSeedScoreField.js";
 import { loadActivePlayerLaneParams } from "./loadActivePlayerLaneParams.js";
@@ -16,7 +16,6 @@ import { blitFourTileGroupColumn } from "./blitFourTileGroupColumn.js";
 import { resetFrogObject } from "./resetFrogObject.js";
 
 const MODE_ACTIVE_PLAY = 1;
-const HOME_GROUP_VRAM = 0xa850;
 const FROG_ANIM_DISPATCH = 0x0faf, FROG_ANIM_RET = 0x2338; // jp(hl) dispatcher (kept m.call)
 
 export function setUpPlayStartOnce(m) {
@@ -32,7 +31,7 @@ export function setUpPlayStartOnce(m) {
   loadActivePlayerLaneParams(m);
   mem8[TWO_PLAYER_START_FLAG] = 0;
   renderFrogAndArmObjects(m);
-  blitFourTileGroupColumn(m, HOME_GROUP_VRAM);
+  blitFourTileGroupColumn(m, STATUS_ROW_VRAM_BASE);
   resetFrogObject(m);
   m.push16(FROG_ANIM_RET);
   m.call(FROG_ANIM_DISPATCH);

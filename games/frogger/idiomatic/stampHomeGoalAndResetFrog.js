@@ -9,7 +9,7 @@
  * countdown state so the next frog starts fresh. LIVE-OUT: memory-only.
  */
 import {
-  COLLISION_SUBFLAG, PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_SLOT, HOME_COLUMN_STATE,
+  COLLISION_SUBFLAG, PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_SLOT, PLAYER2_SLOT, HOME_COLUMN_STATE,
   FROG_X, FROG_SPRITE_CODE, FROG_Y,
   FROG_HOP_UP_ARRIVAL, FROG_HOP_UP_ACTIVE, FROG_HOP_UP_ANIM_COUNTER, FROG_HOP_INPUT_TIMER,
   GATED_COUNTDOWN_COUNTER, GATED_COUNTDOWN_ENABLE_FLAG, FROG_STATE_DEMO_FLAG, INTRO_COUNTER_829B, BOARD_LAYOUT_GATE,
@@ -18,7 +18,6 @@ import { addScoreAndAwardExtraLife } from "./addScoreAndAwardExtraLife.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
 
-const PLAYER2_SLOT = 0x825d;   // player-2 home count (sibling of the player-1 slot cell)
 const FROG_OBJ_ATTR = 0x8046;  // frog object attribute byte (between the sprite code and Y)
 const FANFARE_INDEX = 0x8381;  // arrival-fanfare index, reloaded on wrap
 const FANFARE_PTR = 0x8382;    // arrival-fanfare pointer word

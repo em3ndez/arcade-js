@@ -9,13 +9,13 @@
 import {
   PLAY_FLAG, LIVE_OBJECT_PAGE, LANE_OBJECT_INDEX, OBJRAM_COL3F_ATTR_SHADOW,
   HOME_BAY1_OCCUPANCY_ALT, OBJECT_PAGE_SAVE_BANK, WORK_PAGE_SAVE_BANK, PACE_TAIL,
+  PLAYER2_SLOT,
 } from "./names.js";
 import { clearTilemapToTile16 } from "./clearTilemapToTile16.js";
 import { handOffToOtherPlayer } from "./handOffToOtherPlayer.js";
 
 const CONTINUE_FLAG = 0x83c9;
 const CONTINUE_FLAG_2P = 0x83ca;
-const PLAYER2_SLOT = 0x825d; // alternate-bank slot byte
 const COLD_START_MID = 0x0557; // shared cold-start mid-entry (still served by the frozen layer)
 const WORK_PAGE_LEN = 0xb7;
 const OBJECT_PAGE_LEN = 0x2b;
