@@ -29,8 +29,7 @@ export function driveScoreDisplayCountdown(m) {
 
   if (mem8[COUNTDOWN_EXPIRY_FLAG] === 0) {
     mem8[COUNTDOWN_EXPIRY_FLAG] = 1;
-    regs.a = 0x06;
-    enqueueSoundCommand(m);
+    enqueueSoundCommand(m, 0x06);
   }
 
   initDisplayFieldOnce(m);
@@ -54,8 +53,7 @@ export function driveScoreDisplayCountdown(m) {
   mem8[loc_83de] = regs.a;
 
   if (regs.a === 0x10) {
-    regs.a = 0x05;
-    enqueueSoundCommand(m);
+    enqueueSoundCommand(m, 0x05);
     mem8[OBJRAM_COL3F_ATTR_SHADOW] = 0;
   }
   return stepScoreBarTile(m);
@@ -73,18 +71,15 @@ function stepScoreBarTile(m) {
 }
 
 export function armScoreBonusStrip(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[loc_83e0] !== 0) return;
   mem8[loc_83e0] = 1;
 
-  regs.hl = 0xaa51; regs.de = 0x2f6e; regs.b = 0x05;
-  copyRunUpTileColumn(m);
+  copyRunUpTileColumn(m, 0xaa51, 0x2f6e, 0x05);
 
-  regs.a = mem8[loc_83de];
-  regs.e = regs.a;
-  regs.d = 0; // de is the counter byte for the score adder
-  writePackedBcdByte(m);
+  const counter = mem8[loc_83de];
+  writePackedBcdByte(m, counter);
 
-  return addScoreAndAwardExtraLife(m);
+  return addScoreAndAwardExtraLife(m, counter);
 }

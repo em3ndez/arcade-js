@@ -10,10 +10,8 @@ const FRAME_RELOAD = 12;
 const PHASE_WRAP = 4;
 const SPRITE_ATTR = 4;
 
-export function animateSpriteObjectFrame(m) {
-  const { regs, mem8 } = m;
-  const obj = regs.ix;
-  const spr = regs.iy;
+export function animateSpriteObjectFrame(m, obj = m.regs.ix, spr = m.regs.iy) {
+  const { mem8 } = m;
 
   const timer = (mem8[(obj + 0x08)] - 1) & 0xff;
   mem8[(obj + 0x08)] = timer;

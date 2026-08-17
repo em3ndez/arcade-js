@@ -2,6 +2,6 @@
 # cruft = register refs + m.call( + m.push*( + raw 0xHHHH, in the idiomatic layer (minus names.js/test).
 # A game is IDIOMATIC (a hard done requirement) only when its count reaches 0. Absent -> implicit 0.
 dkong 2090
-frogger 889
+frogger 840
 thepit 401
 timeplt 2367

@@ -10,9 +10,8 @@ import { nextSpawnRandomByte } from "./nextSpawnRandomByte.js";
 const MIN_COUNT = 3;
 const VARIANTS = 5;
 
-export function spawnSpriteObject(m) {
+export function spawnSpriteObject(m, record = m.regs.ix) {
   const { regs, mem8, mem16 } = m;
-  const record = regs.ix;
 
   const count = mem8[LIVES_COUNT];
   if (count < MIN_COUNT) return;

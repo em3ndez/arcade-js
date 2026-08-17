@@ -5,13 +5,7 @@
  */
 import { writeScoreDigitStepUp } from "./writeScoreDigitStepUp.js";
 
-export function writePackedBcdByte(m) {
-  const { regs } = m;
-  const packed = regs.a;
-
-  regs.a = packed >> 4;
-  writeScoreDigitStepUp(m);
-
-  regs.a = packed;
-  return writeScoreDigitStepUp(m);
+export function writePackedBcdByte(m, packed = m.regs.a) {
+  writeScoreDigitStepUp(m, packed >> 4);
+  return writeScoreDigitStepUp(m, packed);
 }

@@ -32,6 +32,5 @@ export function renderCreditLine(m) {
 
   mem8[OBJRAM_COL3F_ATTR_SHADOW] = 1;
   regs.hl = COUNT_DST;
-  regs.a = mem8[CREDIT_BCD];
-  return writePackedBcdByte(m);
+  return writePackedBcdByte(m, mem8[CREDIT_BCD]);
 }

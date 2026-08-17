@@ -12,10 +12,8 @@ const MOVE_RELOAD = 8;
 const STRUCT_BYTES = 16;
 const SHARED_BLOCK_BYTES = 4;
 
-export function steerSpriteObjectTowardTarget(m) {
+export function steerSpriteObjectTowardTarget(m, obj = m.regs.ix, spr = m.regs.iy) {
   const { mem8 } = m;
-  const obj = m.regs.ix;
-  const spr = m.regs.iy;
 
   if (mem8[(obj + 0x06)] === 0) return; // inactive
 

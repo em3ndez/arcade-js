@@ -5,13 +5,7 @@
  */
 import { writePackedBcdByte } from "./writePackedBcdByte.js";
 
-export function writePackedBcdWord(m) {
-  const { regs } = m;
-  const value = regs.de;
-
-  regs.a = value >> 8;
-  writePackedBcdByte(m);
-
-  regs.a = value & 0xff;
-  return writePackedBcdByte(m);
+export function writePackedBcdWord(m, value = m.regs.de) {
+  writePackedBcdByte(m, value >> 8);
+  return writePackedBcdByte(m, value & 0xff);
 }

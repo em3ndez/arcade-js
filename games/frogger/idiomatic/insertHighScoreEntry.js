@@ -9,10 +9,8 @@ const SLOTS = 5;
 const STRIDE = 2; // 2 bytes/entry: key-high at the slot, key-low just below
 const NO_SLOT = 0;
 
-export function insertHighScoreEntry(m) {
-  const { regs, mem8 } = m;
-  const dHi = regs.d;
-  const eLo = regs.e;
+export function insertHighScoreEntry(m, dHi = m.regs.d, eLo = m.regs.e) {
+  const { mem8 } = m;
 
   for (let k = 0; k < SLOTS; k++) {
     const hi = (HIGH_SCORE_TABLE_TOP_HI + STRIDE * k) & 0xffff;
@@ -22,9 +20,9 @@ export function insertHighScoreEntry(m) {
     // insert when the new key outranks this slot (higher high byte, or equal high and higher low)
     if (dHi > slotHi || (dHi === slotHi && mem8[lo] < eLo)) return insert(k, hi, lo);
     // an exact duplicate at the last slot is reported but not stored
-    if (dHi === slotHi && mem8[lo] === eLo && k === SLOTS - 1) { regs.a = 1; return; }
+    if (dHi === slotHi && mem8[lo] === eLo && k === SLOTS - 1) return (m.regs.a = 1);
   }
-  regs.a = NO_SLOT; // walked every slot, new key ranks below them all
+  return (m.regs.a = NO_SLOT); // walked every slot, new key ranks below them all
 
   function insert(k, hi, lo) {
     const above = SLOTS - 1 - k;
@@ -35,6 +33,6 @@ export function insertHighScoreEntry(m) {
     }
     mem8[hi] = dHi;
     mem8[lo] = eLo;
-    regs.a = 4 * above + 1;
+    return (m.regs.a = 4 * above + 1);
   }
 }

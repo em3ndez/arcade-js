@@ -10,5 +10,5 @@ const ROW_UP = 32;
 export function writeScoreDigitStepUp(m, digit = m.regs.a, ptr = m.regs.hl) {
   const { mem8 } = m;
   mem8[ptr] = digit & LOW_NIBBLE;
-  m.regs.hl = (ptr - ROW_UP) & 0xffff;
+  return (m.regs.hl = (ptr - ROW_UP) & 0xffff);
 }

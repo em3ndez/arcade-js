@@ -15,14 +15,11 @@ export function scoreFrogRowProgress(m) {
   const { regs, mem8 } = m;
   const row = mem8[FROG_Y];
   if (row < ROW_MIN || row > ROW_MAX) return;
-  regs.c = row;
   if (row === ROW_MAX && mem8[FROG_FURTHEST_ROW] === 0) mem8[FROG_FURTHEST_ROW] = SEED_ABOVE_BAND;
   const furthest = mem8[FROG_FURTHEST_ROW];
   if (furthest <= row) return; // not nearer the top than the record
   mem8[FROG_FURTHEST_ROW] = row;
   regs.de = PROGRESS_DELTA;
   if (row === ROW_MID) return; // the mid row awards nothing
-  const savedHl = regs.hl;
   addScoreAndAwardExtraLife(m);
-  regs.hl = savedHl;
 }

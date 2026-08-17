@@ -28,10 +28,8 @@ export function renderMode2IntroScreen(m) {
 
   if (mem8[SHARED_TIME_BYTE] >= 10) return; // splash-only when the shared time byte is at 10 or above
 
-  writeScoreDigitStepUp(m, mem8[SHARED_TIME_BYTE], SCORE_DIGIT_TIME_LOW_VRAM);
-
-  // strips 2-4 continue up the column from the write pointer each blit advances (regs.hl)
-  copyRunUpTileColumn(m, regs.hl, INTRO_TITLE_STRIP2_SRC, 7);
+  // strips 2-4 continue up the column from the write pointer each blit advances
+  copyRunUpTileColumn(m, writeScoreDigitStepUp(m, mem8[SHARED_TIME_BYTE], SCORE_DIGIT_TIME_LOW_VRAM), INTRO_TITLE_STRIP2_SRC, 7);
   copyRunUpTileColumn(m, regs.hl, INTRO_TITLE_STRIP3_SRC, 4);
   copyRunUpTileColumn(m, regs.hl, INTRO_TITLE_STRIP4_SRC, 7);
 }
