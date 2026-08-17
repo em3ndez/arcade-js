@@ -38,8 +38,8 @@ export function stampHomeBayGatorFull(m) {
 
   let p = HOME_BAY[i];
   mem8[p] = TILE_TL;
-  mem8[(p + 1) & 0xffff] = TILE_TR;
+  mem8[(p + 1)] = TILE_TR;
   p = (p + ROW_STRIDE) & 0xffff;
   mem8[p] = TILE_BL;
-  mem8[(p + 1) & 0xffff] = TILE_BR;
+  mem8[(p + 1)] = TILE_BR;
 }

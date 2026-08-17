@@ -93,7 +93,7 @@ function rightShift(m, control, run, lead, phase, c) {
   } while (n !== 0);
   const x = (mem[lead] + c) & 0xff;
   mem[lead] = x;
-  mem[(lead + 2) & 0xffff] = x;
+  mem[(lead + 2)] = x;
 
   const row = mem[FROG_Y];
   if (row < 0x30 || row >= 0x73) return clearPhase(m, phase);
@@ -155,7 +155,7 @@ function leftShift(m, control, run, lead, phase, c) {
   } while (n !== 0);
   const x = (mem[lead] - c) & 0xff;
   mem[lead] = x;
-  mem[(lead + 2) & 0xffff] = x;
+  mem[(lead + 2)] = x;
 
   const row = mem[FROG_Y];
   if (row >= 0x73) return clearPhase(m, phase);

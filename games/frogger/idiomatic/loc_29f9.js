@@ -15,38 +15,38 @@ export function loc_29f9(m) {
   const obj = regs.ix;
   const spr = regs.iy;
 
-  if (mem8[(obj + 0x06) & 0xffff] === 0) return; // inactive
+  if (mem8[(obj + 0x06)] === 0) return; // inactive
   if (mem8[loc_842c] !== 0) return; // gated off
 
-  const timer = (mem8[(obj + 0x09) & 0xffff] - 1) & 0xff;
-  mem8[(obj + 0x09) & 0xffff] = timer;
+  const timer = (mem8[(obj + 0x09)] - 1) & 0xff;
+  mem8[(obj + 0x09)] = timer;
   if (timer !== 0) return; // move timer still running
-  mem8[(obj + 0x09) & 0xffff] = MOVE_RELOAD;
+  mem8[(obj + 0x09)] = MOVE_RELOAD;
 
-  const facing = mem8[(obj + 0x05) & 0xffff];
-  mem8[(obj + 0x07) & 0xffff] = 1;
+  const facing = mem8[(obj + 0x05)];
+  mem8[(obj + 0x07)] = 1;
 
-  if (mem8[(spr + 0x03) & 0xffff] >= ROW_THRESHOLD) {
+  if (mem8[(spr + 0x03)] >= ROW_THRESHOLD) {
     const step = facing === 0 ? -2 : 2;
-    mem8[(obj + 0x03) & 0xffff] = (mem8[(obj + 0x03) & 0xffff] + step) & 0xff;
+    mem8[(obj + 0x03)] = (mem8[(obj + 0x03)] + step) & 0xff;
     return;
   }
 
   const trackX = mem8[FREE_RUNNING_POS_COUNTER];
   if (facing === 0) {
-    const anchor = mem8[(obj + 0x00) & 0xffff];
+    const anchor = mem8[(obj + 0x00)];
     if (trackX < anchor) return; // past the target, hold
-    if (((trackX - anchor) & 0xff) >= mem8[(spr + 0x00) & 0xffff]) return turn();
-    mem8[(obj + 0x02) & 0xffff] = (mem8[(obj + 0x02) & 0xffff] + 1) & 0xff; // step toward
+    if (((trackX - anchor) & 0xff) >= mem8[(spr + 0x00)]) return turn();
+    mem8[(obj + 0x02)] = (mem8[(obj + 0x02)] + 1) & 0xff; // step toward
   } else {
-    const anchor = mem8[(obj + 0x01) & 0xffff];
-    if (((trackX - anchor) & 0xff) < mem8[(spr + 0x00) & 0xffff]) return turn();
-    mem8[(obj + 0x02) & 0xffff] = (mem8[(obj + 0x02) & 0xffff] - 1) & 0xff;
+    const anchor = mem8[(obj + 0x01)];
+    if (((trackX - anchor) & 0xff) < mem8[(spr + 0x00)]) return turn();
+    mem8[(obj + 0x02)] = (mem8[(obj + 0x02)] - 1) & 0xff;
   }
 
   function turn() {
-    mem8[(obj + 0x05) & 0xffff] = mem8[(obj + 0x05) & 0xffff] ^ 0x80; // flip direction + sprite flip bits
-    mem8[(spr + 0x00) & 0xffff] = mem8[(spr + 0x04) & 0xffff];
-    mem8[(spr + 0x01) & 0xffff] = mem8[(spr + 0x01) & 0xffff] ^ 0x80;
+    mem8[(obj + 0x05)] = mem8[(obj + 0x05)] ^ 0x80; // flip direction + sprite flip bits
+    mem8[(spr + 0x00)] = mem8[(spr + 0x04)];
+    mem8[(spr + 0x01)] = mem8[(spr + 0x01)] ^ 0x80;
   }
 }

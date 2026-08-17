@@ -20,5 +20,5 @@ export function awardExtraLife(m) {
   mem8[LIVES_COUNT] = count;
 
   if (count >= LIFE_CAP) return; // capped -> no new marker
-  mem8[(LIVES_ROW_MARKER_BASE + count * ROW_STRIDE) & 0xffff] = MARKER_TILE;
+  mem8[(LIVES_ROW_MARKER_BASE + count * ROW_STRIDE)] = MARKER_TILE;
 }

@@ -15,8 +15,8 @@ export function renderFrogAnimArm1(m) {
   blitFrogAnimColumnOnTrigger(m);
 
   const spriteCode = mem8[SCROLL_OBJECT_BLOCK_BASE];
-  const rowCount = mem8[(SCROLL_OBJECT_BLOCK_BASE + 1) & 0xffff];
-  const columnIndex = mem8[(SCROLL_OBJECT_BLOCK_BASE + 2) & 0xffff];
+  const rowCount = mem8[(SCROLL_OBJECT_BLOCK_BASE + 1)];
+  const columnIndex = mem8[(SCROLL_OBJECT_BLOCK_BASE + 2)];
 
   mem8[SCROLL_COPY_COLUMN_STRIDE] = spriteCode;
   mem16[SCROLL_COPY_SRC_PTR] = SCROLL_GRID_SRC_PHASE16;

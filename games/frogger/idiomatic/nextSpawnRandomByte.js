@@ -20,7 +20,7 @@ export function nextSpawnRandomByte(m) {
   let j = (cursor + FOLD_OFFSET) & 0xff;
   if (j >= RING_SIZE) j -= FOLD_BACK;
 
-  const value = mem8[(SPAWN_RNG_RING_BASE + cursor) & 0xffff] ^ mem8[(SPAWN_RNG_RING_BASE + j) & 0xffff];
-  mem8[(SPAWN_RNG_RING_BASE + j) & 0xffff] = value;
+  const value = mem8[(SPAWN_RNG_RING_BASE + cursor)] ^ mem8[(SPAWN_RNG_RING_BASE + j)];
+  mem8[(SPAWN_RNG_RING_BASE + j)] = value;
   regs.a = value;
 }

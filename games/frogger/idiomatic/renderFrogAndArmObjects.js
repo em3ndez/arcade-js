@@ -30,9 +30,9 @@ export function renderFrogAndArmObjects(m) {
     mem8[hl] = BANNER_TILE; hl = (hl + BANNER_PAIR_GAP) & 0xffff;
   }
 
-  mem8[FROG_RENDER_BOX_VRAM_CORNER] = 65; mem8[(FROG_RENDER_BOX_VRAM_CORNER + 1) & 0xffff] = 66;
+  mem8[FROG_RENDER_BOX_VRAM_CORNER] = 65; mem8[(FROG_RENDER_BOX_VRAM_CORNER + 1)] = 66;
   const bottom = (FROG_RENDER_BOX_VRAM_CORNER + CORNER_SPAN) & 0xffff;
-  mem8[bottom] = 69; mem8[(bottom + 1) & 0xffff] = 70;
+  mem8[bottom] = 69; mem8[(bottom + 1)] = 70;
 
   blitFourTileGroupColumn(m, FROG_RENDER_HOME_MARKER_VRAM);
 

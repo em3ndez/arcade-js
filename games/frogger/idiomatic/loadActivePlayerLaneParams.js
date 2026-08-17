@@ -15,8 +15,8 @@ export function loadActivePlayerLaneParams(m) {
   const { mem8, mem16 } = m;
   const indexCell = mem8[ACTIVE_PLAYER] === PLAYER_ONE ? PLAYER1_DIFFICULTY_INDEX : PLAYER2_DIFFICULTY_INDEX;
   const difficulty = mem8[indexCell];
-  const block = mem16[(LANE_PARAM_PTR_TABLE + POINTER_WIDTH * difficulty) & 0xffff];
+  const block = mem16[(LANE_PARAM_PTR_TABLE + POINTER_WIDTH * difficulty)];
   for (let i = 0; i < BLOCK_SIZE; i++) {
-    mem8[(ACTIVE_LANE_PARAM_BLOCK + i) & 0xffff] = mem8[(block + i) & 0xffff];
+    mem8[(ACTIVE_LANE_PARAM_BLOCK + i)] = mem8[(block + i)];
   }
 }

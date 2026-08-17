@@ -18,8 +18,8 @@ const ROWS_PER_STAMP = 2;
 export function stampScrollRevealColumn(m) {
   const { mem8 } = m;
   const rowField = mem8[SCROLL_OBJECT_BLOCK_BASE];
-  const colField = mem8[(SCROLL_OBJECT_BLOCK_BASE + 1) & 0xffff];
-  const rowCount = mem8[(SCROLL_OBJECT_BLOCK_BASE + 2) & 0xffff];
+  const colField = mem8[(SCROLL_OBJECT_BLOCK_BASE + 1)];
+  const rowCount = mem8[(SCROLL_OBJECT_BLOCK_BASE + 2)];
 
   const step = rowField + ((ROW_PITCH * colField) & 0xff);
   const spans = rowCount === 0 ? 255 : rowCount === 1 ? 256 : rowCount - 1;
@@ -43,7 +43,7 @@ export function stampScrollRevealColumn(m) {
       let de = table;
       for (let row = 0; row < ROWS_PER_STAMP; row++) {
         mem8[hl] = mem8[de];
-        mem8[(hl + 1) & 0xffff] = mem8[(de + 1) & 0xffff];
+        mem8[(hl + 1)] = mem8[(de + 1)];
         hl = (hl + ROW_PITCH) & 0xffff;
         de = (de + PAIR) & 0xffff;
       }

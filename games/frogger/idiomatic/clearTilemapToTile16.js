@@ -10,5 +10,5 @@ const TILEMAP_CELLS = 0x400;
 
 export function clearTilemapToTile16(m) {
   const { mem8 } = m;
-  for (let i = 0; i < TILEMAP_CELLS; i++) mem8[(VRAM_BASE + i) & 0xffff] = FILL_TILE;
+  for (let i = 0; i < TILEMAP_CELLS; i++) mem8[(VRAM_BASE + i)] = FILL_TILE;
 }

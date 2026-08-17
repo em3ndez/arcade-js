@@ -36,9 +36,9 @@ export function stampHomeBaySlot(m) {
   if (mem8[occupancy] !== 0) return; // slot already filled -> leave it
 
   mem8[base] = HOME_TILE;
-  mem8[(base + 1) & 0xffff] = HOME_TILE;
-  mem8[(base + ROW_STRIDE) & 0xffff] = HOME_TILE;
-  mem8[(base + ROW_STRIDE + 1) & 0xffff] = HOME_TILE;
+  mem8[(base + 1)] = HOME_TILE;
+  mem8[(base + ROW_STRIDE)] = HOME_TILE;
+  mem8[(base + ROW_STRIDE + 1)] = HOME_TILE;
 
   if (mem8[HOLD_FLAG] !== 0) return; // held -> keep the selector pending
   mem8[PENDING_HOME_BAY_SLOT] = 0;

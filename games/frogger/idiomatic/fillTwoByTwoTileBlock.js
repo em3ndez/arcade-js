@@ -10,7 +10,7 @@ const ROW = 32;
 export function fillTwoByTwoTileBlock(m, base = m.regs.hl) {
   const { mem8 } = m;
   mem8[base] = MARKER_TILE;
-  mem8[(base + 1) & 0xffff] = MARKER_TILE;
-  mem8[(base + ROW) & 0xffff] = MARKER_TILE;
-  mem8[(base + ROW + 1) & 0xffff] = MARKER_TILE;
+  mem8[(base + 1)] = MARKER_TILE;
+  mem8[(base + ROW)] = MARKER_TILE;
+  mem8[(base + ROW + 1)] = MARKER_TILE;
 }

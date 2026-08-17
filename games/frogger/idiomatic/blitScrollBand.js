@@ -20,8 +20,8 @@ const PHASE_ROW_C = 80;
 export function blitScrollBand(m) {
   const { mem8 } = m;
   const column = mem8[SCROLL_BAND_DESCRIPTOR_BASE];
-  const units = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + 1) & 0xffff];
-  const rows = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + 2) & 0xffff];
+  const units = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + 1)];
+  const rows = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + 2)];
 
   const stride = (column + ((UNIT_SPAN * units) & 0xff)) & 0xffff;
   const rowSteps = ((rows - 1) & 0xff) || ZERO_RUNS_FULL;
@@ -38,7 +38,7 @@ export function blitScrollBand(m) {
     for (let row = 0; row < BAND_ROWS; row++) {
       const src = (source + (row % 2) * PAIR_WIDTH) & 0xffff;
       mem8[dst] = mem8[src];
-      mem8[(dst + 1) & 0xffff] = mem8[(src + 1) & 0xffff];
+      mem8[(dst + 1)] = mem8[(src + 1)];
       dst = (dst + ROW_STRIDE) & 0xffff;
     }
     if (PHASE_ROW_B.includes(mode)) {

@@ -13,9 +13,9 @@ export function seedObjectAnimationState(m) {
   const { mem8 } = m;
 
   for (let i = 0; i < ANIM_CELL_SEEDS.length; i++) {
-    mem8[(OBJECT_ANIM_STATE_8021 + 2 * i) & 0xffff] = ANIM_CELL_SEEDS[i];
+    mem8[(OBJECT_ANIM_STATE_8021 + 2 * i)] = ANIM_CELL_SEEDS[i];
   }
   for (let i = 0; i < ANIM_STATE_SEEDS.length; i++) {
-    mem8[(OBJECT_ANIM_STATE_800D + 2 * i) & 0xffff] = ANIM_STATE_SEEDS[i];
+    mem8[(OBJECT_ANIM_STATE_800D + 2 * i)] = ANIM_STATE_SEEDS[i];
   }
 }

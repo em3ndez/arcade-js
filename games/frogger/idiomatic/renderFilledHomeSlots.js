@@ -14,11 +14,11 @@ export function renderFilledHomeSlots(m) {
   const { mem8 } = m;
   const list = m.regs.hl;
   for (let i = 0; i < SLOT_BASES.length; i++) {
-    if (mem8[(list + i) & 0xffff] === 0) continue;
+    if (mem8[(list + i)] === 0) continue;
     const base = SLOT_BASES[i];
     mem8[base] = 108;
-    mem8[(base + 1) & 0xffff] = 109;
-    mem8[(base + ROW_BELOW) & 0xffff] = 110;
-    mem8[(base + ROW_BELOW + 1) & 0xffff] = 111;
+    mem8[(base + 1)] = 109;
+    mem8[(base + ROW_BELOW)] = 110;
+    mem8[(base + ROW_BELOW + 1)] = 111;
   }
 }

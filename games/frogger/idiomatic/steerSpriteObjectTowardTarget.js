@@ -17,27 +17,27 @@ export function steerSpriteObjectTowardTarget(m) {
   const obj = m.regs.ix;
   const spr = m.regs.iy;
 
-  if (mem8[(obj + 0x06) & 0xffff] === 0) return; // inactive
+  if (mem8[(obj + 0x06)] === 0) return; // inactive
 
-  const timer = (mem8[(obj + 0x09) & 0xffff] - 1) & 0xff;
-  mem8[(obj + 0x09) & 0xffff] = timer;
+  const timer = (mem8[(obj + 0x09)] - 1) & 0xff;
+  mem8[(obj + 0x09)] = timer;
   if (timer !== 0) return; // move timer still running
-  mem8[(obj + 0x09) & 0xffff] = MOVE_RELOAD;
+  mem8[(obj + 0x09)] = MOVE_RELOAD;
 
-  const target = mem8[loc_8000 | mem8[(obj + 0x0b) & 0xffff]];
-  const span = mem8[(spr + 0x00) & 0xffff];
+  const target = mem8[loc_8000 | mem8[(obj + 0x0b)]];
+  const span = mem8[(spr + 0x00)];
 
-  if (mem8[(obj + 0x05) & 0xffff] !== 0) {
-    if (((target - mem8[(obj + 0x00) & 0xffff]) & 0xff) >= span) return despawn();
-    mem8[(obj + 0x02) & 0xffff] = (mem8[(obj + 0x02) & 0xffff] + 1) & 0xff;
+  if (mem8[(obj + 0x05)] !== 0) {
+    if (((target - mem8[(obj + 0x00)]) & 0xff) >= span) return despawn();
+    mem8[(obj + 0x02)] = (mem8[(obj + 0x02)] + 1) & 0xff;
     return;
   }
-  if (((target - mem8[(obj + 0x01) & 0xffff]) & 0xff) < span) return despawn();
-  mem8[(obj + 0x02) & 0xffff] = (mem8[(obj + 0x02) & 0xffff] - 1) & 0xff;
+  if (((target - mem8[(obj + 0x01)]) & 0xff) < span) return despawn();
+  mem8[(obj + 0x02)] = (mem8[(obj + 0x02)] - 1) & 0xff;
 
   function despawn() {
     if (mem8[HOLD_FLAG] !== 0) return; // held: keep the struct
-    for (let i = 0; i < STRUCT_BYTES; i++) mem8[(obj + i) & 0xffff] = 0;
-    for (let i = 0; i < SHARED_BLOCK_BYTES; i++) mem8[(SPRITE_OBJECT_SLOT_B + i) & 0xffff] = 0;
+    for (let i = 0; i < STRUCT_BYTES; i++) mem8[(obj + i)] = 0;
+    for (let i = 0; i < SHARED_BLOCK_BYTES; i++) mem8[(SPRITE_OBJECT_SLOT_B + i)] = 0;
   }
 }

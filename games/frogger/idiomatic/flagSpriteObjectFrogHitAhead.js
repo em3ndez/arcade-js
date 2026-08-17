@@ -16,16 +16,16 @@ export function flagSpriteObjectFrogHitAhead(m) {
   const obj = regs.ix;
   const spr = regs.iy;
 
-  if (mem8[(obj + 0x06) & 0xffff] === 0) return;
-  if (mem8[(obj + 0x04) & 0xffff] !== mem8[FROG_Y]) return;
+  if (mem8[(obj + 0x06)] === 0) return;
+  if (mem8[(obj + 0x04)] !== mem8[FROG_Y]) return;
 
-  let pos = mem8[(spr + 0x00) & 0xffff];
-  pos = mem8[(obj + 0x05) & 0xffff] !== 0 ? (pos - BEHIND_BIAS) & 0xff : (pos + AHEAD_BIAS) & 0xff;
+  let pos = mem8[(spr + 0x00)];
+  pos = mem8[(obj + 0x05)] !== 0 ? (pos - BEHIND_BIAS) & 0xff : (pos + AHEAD_BIAS) & 0xff;
 
   const anchor = mem8[FROG_X];
   if (pos < anchor) return;
   if (((pos - anchor) & 0xff) >= HIT_WINDOW) return;
 
   mem8[HOLD_FLAG] = 1;
-  mem8[(obj + 0x06) & 0xffff] = HIT_STATE;
+  mem8[(obj + 0x06)] = HIT_STATE;
 }

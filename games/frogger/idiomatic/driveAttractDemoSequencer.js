@@ -39,12 +39,12 @@ export function driveAttractDemoSequencer(m) {
   let p = CELL_BASE;
   for (let i = 0; i < 7; i++) {
     mem8[p] = 0x00;
-    mem8[(p + 2) & 0xffff] = 0x03;
-    mem8[(p + 3) & 0xffff] = 0x81;
+    mem8[(p + 2)] = 0x03;
+    mem8[(p + 3)] = 0x81;
     p = (p + 4) & 0xffff;
   }
   mem8[ATTRACT_FRAME_TIMER] = 0x04;
-  mem8[(ATTRACT_FRAME_TIMER + 1) & 0xffff] = 0x05;
+  mem8[(ATTRACT_FRAME_TIMER + 1)] = 0x05;
   return seedAnimator(m);
 }
 
@@ -85,10 +85,10 @@ function animatorTail(m, cellBase, limit) {
 
   const scrolled = (mem8[cellBase] - 4) & 0xff;
   mem8[cellBase] = scrolled;
-  mem8[(cellBase + 1) & 0xffff] = tile;
+  mem8[(cellBase + 1)] = tile;
   if (scrolled >= limit) return;
 
-  mem8[(cellBase + 1) & 0xffff] = 0x1e;
+  mem8[(cellBase + 1)] = 0x1e;
   const left = (mem8[ATTRACT_DEMO_PHASE_COUNTER] - 1) & 0xff;
   mem8[ATTRACT_DEMO_PHASE_COUNTER] = left;
   if (left !== 0) return;
@@ -111,7 +111,7 @@ function dispatchPhase2Plus(m, a) {
   let hi = 0x8043;
   for (let i = 0; i < 7; i++) {
     mem8[hi] = (mem8[hi] - 4) & 0xff;
-    mem8[(hi - 2) & 0xffff] = c;
+    mem8[(hi - 2)] = c;
     hi = (hi + 4) & 0xffff;
   }
   mem8[ATTRACT_DEMO_PHASE_COUNTER] = (d7 - 1) & 0xff;

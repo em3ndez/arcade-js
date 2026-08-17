@@ -15,7 +15,7 @@ const ARM_TABLE = 0x0fbe; // base of the eleven arm entry pointers
 
 export function dispatchFrogAnimationArm(m) {
   const index = m.mem8[loc_8000]; // anim index 0..10
-  const target = m.mem16[(ARM_TABLE + 2 * index) & 0xffff];
+  const target = m.mem16[(ARM_TABLE + 2 * index)];
 
   switch (target) {
     case 0x0fd4: return renderFrogAnimArm0(m);

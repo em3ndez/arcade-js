@@ -30,8 +30,8 @@ export function insertHighScoreEntry(m) {
     const above = SLOTS - 1 - k;
     for (let j = 0; j < above; j++) {
       const from = (HIGH_SCORE_TABLE_TOP_HI + STRIDE * (SLOTS - 2 - j)) & 0xffff; // shift the tail down one slot
-      mem8[(from + STRIDE) & 0xffff] = mem8[from];
-      mem8[(from + STRIDE - 1) & 0xffff] = mem8[(from - 1) & 0xffff];
+      mem8[(from + STRIDE)] = mem8[from];
+      mem8[(from + STRIDE - 1)] = mem8[(from - 1)];
     }
     mem8[hi] = dHi;
     mem8[lo] = eLo;

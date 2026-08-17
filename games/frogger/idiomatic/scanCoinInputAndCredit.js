@@ -101,6 +101,6 @@ function addCreditAndMaybeStart(m, credit) {
   if (mem8[GAME_MODE] === SELECT_MODE) blitPlayerSelectPrompt(m);
   mem8[GAME_MODE] = SELECT_MODE;
   mem8[POINT_TABLE_DRAW_STATE] = 0;
-  for (let i = 0; i < WORK_BLOCK_LEN; i++) mem8[(FLY_SPRITE_X + i) & 0xffff] = 0;
+  for (let i = 0; i < WORK_BLOCK_LEN; i++) mem8[(FLY_SPRITE_X + i)] = 0;
   return renderCreditLine(m);
 }

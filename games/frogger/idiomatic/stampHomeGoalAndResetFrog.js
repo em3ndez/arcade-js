@@ -60,7 +60,7 @@ export function stampHomeGoalAndResetFrog(m) {
     if (mem8[countCell] === 0x04) {
       mem8[HOME_COLUMN_STATE] = mem8[countCell];
       clearActivePlayerWorkRam(m);
-      for (let i = 0; i < 0x18; i++) mem8[(BOARD_CLEAR_STRIP + i) & 0xffff] = 0;
+      for (let i = 0; i < 0x18; i++) mem8[(BOARD_CLEAR_STRIP + i)] = 0;
       m.push16(0x1f94); m.call(CLEAR_COLLISION);
     } else {
       regs.a = 0x08; enqueueSoundCommand(m);

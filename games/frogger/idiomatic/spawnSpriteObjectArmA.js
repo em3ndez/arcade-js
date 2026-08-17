@@ -19,10 +19,10 @@ export function spawnSpriteObjectArmA(m) {
 
   const count = mem8[LIVES_COUNT];
   if (count < MIN_SLOTS) return;
-  const timer = (mem8[(ix + 0x0a) & 0xffff] - 1) & 0xff;
-  mem8[(ix + 0x0a) & 0xffff] = timer;
+  const timer = (mem8[(ix + 0x0a)] - 1) & 0xff;
+  mem8[(ix + 0x0a)] = timer;
   if (timer !== 0) return;                        // spawn timer still counting
-  if (mem8[(ix + 0x06) & 0xffff] !== 0) return;   // object already active
+  if (mem8[(ix + 0x06)] !== 0) return;   // object already active
 
   nextSpawnRandomByte(m);
   if (((count * 8 + 0x80) & 0xff) < regs.a) return; // probability gate
@@ -46,33 +46,33 @@ export function spawnSpriteObjectArmA(m) {
 
   function placeOnScreen(band) {
     const pos = mem8[FREE_RUNNING_POS_COUNTER];
-    mem8[(ix + 0x02) & 0xffff] = pos;
+    mem8[(ix + 0x02)] = pos;
     const rel = (pos - band) & 0xff;
-    mem8[(ix + 0x01) & 0xffff] = rel;
-    mem8[(ix + 0x00) & 0xffff] = (rel + BAND_PITCH) & 0xff;
-    mem8[(ix + 0x04) & 0xffff] = 0x4e;
+    mem8[(ix + 0x01)] = rel;
+    mem8[(ix + 0x00)] = (rel + BAND_PITCH) & 0xff;
+    mem8[(ix + 0x04)] = 0x4e;
     return revealSlot();
   }
 
   function parkOrReveal() {
-    mem8[(ix + 0x04) & 0xffff] = 0x7e;
+    mem8[(ix + 0x04)] = 0x7e;
     nextSpawnRandomByte(m);
     if ((regs.a & 0x01) !== 0) return revealSlot();
-    mem8[(ix + 0x05) & 0xffff] = 0x00;
-    mem8[(ix + 0x03) & 0xffff] = 0xf0; // parked off-screen
+    mem8[(ix + 0x05)] = 0x00;
+    mem8[(ix + 0x03)] = 0xf0; // parked off-screen
     return armTimers();
   }
 
   function revealSlot() {
-    mem8[(ix + 0x05) & 0xffff] = 0x80;
-    mem8[(ix + 0x03) & 0xffff] = 0x00;
+    mem8[(ix + 0x05)] = 0x80;
+    mem8[(ix + 0x03)] = 0x00;
     return armTimers();
   }
 
   function armTimers() {
-    mem8[(ix + 0x06) & 0xffff] = 0x01;
-    mem8[(ix + 0x08) & 0xffff] = 0x0b;
-    mem8[(ix + 0x09) & 0xffff] = 0x08;
+    mem8[(ix + 0x06)] = 0x01;
+    mem8[(ix + 0x08)] = 0x0b;
+    mem8[(ix + 0x09)] = 0x08;
     m.push16(0x2af2);
     m.call(ARM_TAIL);
   }

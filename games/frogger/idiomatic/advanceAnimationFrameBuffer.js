@@ -22,7 +22,7 @@ export function advanceAnimationFrameBuffer(m) {
   }
 
   const index = mem8[ANIM_FRAME_INDEX];
-  const src = mem16[(ANIM_FRAME_SRC_PTR_TABLE + 2 * index) & 0xffff];
+  const src = mem16[(ANIM_FRAME_SRC_PTR_TABLE + 2 * index)];
   const nextIndex = (index + 1) & 0xff;
   mem8[ANIM_FRAME_TIMER] = TIMER_RELOAD;
 
@@ -33,6 +33,6 @@ export function advanceAnimationFrameBuffer(m) {
   mem8[ANIM_FRAME_INDEX] = nextIndex;
 
   for (let i = 0; i < FRAME_BYTES; i++) {
-    mem8[(ANIM_FRAME_BUFFER + i) & 0xffff] = mem8[(src + i) & 0xffff];
+    mem8[(ANIM_FRAME_BUFFER + i)] = mem8[(src + i)];
   }
 }

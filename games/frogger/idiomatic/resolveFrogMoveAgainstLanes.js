@@ -34,7 +34,7 @@ export function resolveFrogMoveAgainstLanes(m) {
 
   const key = (mem8[FROG_Y] + 15) & 0xff;
   if ((key & 0x0f) < 5) return; // low nibble < 5 -> the no-lane arm 0
-  const arm = mem16[(LANE_SCAN_ARM_TABLE + 2 * ((key & 0xf0) >> 4)) & 0xffff];
+  const arm = mem16[(LANE_SCAN_ARM_TABLE + 2 * ((key & 0xf0) >> 4))];
   const lane = LANES.get(arm);
   if (!lane) return;
 

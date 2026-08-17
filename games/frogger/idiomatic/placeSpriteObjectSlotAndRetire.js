@@ -13,36 +13,36 @@ const ARM_HELPER = 0x2ae6; // raise the one-shot and queue the arm sound
 export function placeSpriteObjectSlotAndRetire(m) {
   const { regs, mem8 } = m;
 
-  if (mem8[(regs.ix + 6) & 0xffff] === 0) return; // inactive object
+  if (mem8[(regs.ix + 6)] === 0) return; // inactive object
 
   m.push16(0x2afb); m.call(ARM_HELPER);
   const record = regs.ix;
   const slot = regs.iy;
 
-  const attr = mem8[(record + 4) & 0xffff];
+  const attr = mem8[(record + 4)];
   let onScreenX;
   if (attr >= 0x60) {
-    onScreenX = mem8[(record + 3) & 0xffff];
+    onScreenX = mem8[(record + 3)];
   } else {
-    onScreenX = (mem8[FREE_RUNNING_POS_COUNTER] - mem8[(record + 2) & 0xffff]) & 0xff; // drift toward the free-running counter
+    onScreenX = (mem8[FREE_RUNNING_POS_COUNTER] - mem8[(record + 2)]) & 0xff; // drift toward the free-running counter
   }
-  mem8[slot & 0xffff] = onScreenX;
-  mem8[(slot + 3) & 0xffff] = attr;
-  mem8[(slot + 7) & 0xffff] = attr;
+  mem8[slot] = onScreenX;
+  mem8[(slot + 3)] = attr;
+  mem8[(slot + 7)] = attr;
 
   let reachedFold;
-  if (mem8[(record + 5) & 0xffff] !== 0) {
-    mem8[(slot + 4) & 0xffff] = (0xf1 + onScreenX) & 0xff;
+  if (mem8[(record + 5)] !== 0) {
+    mem8[(slot + 4)] = (0xf1 + onScreenX) & 0xff;
     reachedFold = onScreenX === 0;
   } else {
     const biased = (0x0f + onScreenX) & 0xff;
-    mem8[(slot + 4) & 0xffff] = biased;
+    mem8[(slot + 4)] = biased;
     reachedFold = ((biased + 1) & 0xff) === 0;
   }
   if (!reachedFold) return;
-  if (mem8[(record + 7) & 0xffff] === 0) return;
+  if (mem8[(record + 7)] === 0) return;
 
-  for (let i = 0; i < 16; i++) mem8[(record + i) & 0xffff] = 0;
-  for (let i = 0; i < 8; i++) mem8[(slot + i) & 0xffff] = 0;
-  mem8[(record + 10) & 0xffff] = 0x20;
+  for (let i = 0; i < 16; i++) mem8[(record + i)] = 0;
+  for (let i = 0; i < 8; i++) mem8[(slot + i)] = 0;
+  mem8[(record + 10)] = 0x20;
 }

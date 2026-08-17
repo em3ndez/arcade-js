@@ -28,7 +28,7 @@ export function driveFlyPatrol(m) {
     return;
   }
   const index = (mem8[FLY_TRAVEL_DIR_STEP] & STEP_MASK) + 1;
-  writeX(m, mem8[(FLY_PATH_OFFSET_TABLE + index) & 0xffff]);
+  writeX(m, mem8[(FLY_PATH_OFFSET_TABLE + index)]);
 }
 
 function advance(m) {
@@ -39,7 +39,7 @@ function advance(m) {
   }
   mem8[FLY_TRAVEL_DIR_STEP] = (mem8[FLY_TRAVEL_DIR_STEP] + 1) & 0xff;
 
-  const value = mem8[(FLY_PATH_OFFSET_TABLE + (mem8[FLY_TRAVEL_DIR_STEP] & STEP_MASK)) & 0xffff];
+  const value = mem8[(FLY_PATH_OFFSET_TABLE + (mem8[FLY_TRAVEL_DIR_STEP] & STEP_MASK))];
   if (value === 0) { // endpoint: reverse direction, reload the timer, show the turn sprite
     mem8[FLY_TRAVEL_DIR_STEP] = mem8[FLY_TRAVEL_DIR_STEP] ^ FLIP;
     mem8[FLY_ATTACK_TIMER] = TIMER_RELOAD;

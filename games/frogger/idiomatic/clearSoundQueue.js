@@ -8,5 +8,5 @@ import { SOUND_QUEUE_COUNT } from "./names.js";
 
 export function clearSoundQueue(m) {
   const { mem8 } = m;
-  for (let i = 0; i < 48; i++) mem8[(SOUND_QUEUE_COUNT + i) & 0xffff] = 0;
+  for (let i = 0; i < 48; i++) mem8[(SOUND_QUEUE_COUNT + i)] = 0;
 }

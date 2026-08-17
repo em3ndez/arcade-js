@@ -31,7 +31,7 @@ export function stampHomeBayFrogByColumn(m, homeColumn = m.regs.a) {
 function stampBayFrog(m, base) {
   const { mem8 } = m;
   mem8[base] = FROG_TILE;
-  mem8[(base + 1) & 0xffff] = FROG_TILE + 1;
-  mem8[(base + ROW) & 0xffff] = FROG_TILE + 2;
-  mem8[(base + ROW + 1) & 0xffff] = FROG_TILE + 3;
+  mem8[(base + 1)] = FROG_TILE + 1;
+  mem8[(base + ROW)] = FROG_TILE + 2;
+  mem8[(base + ROW + 1)] = FROG_TILE + 3;
 }

@@ -14,10 +14,10 @@ export function dequeueSoundCommand(m) {
   if (pending === 0) return;
 
   mem8[SOUND_QUEUE_COUNT] = pending - 1;
-  regs.a = mem8[(SOUND_QUEUE_COUNT + 1) & 0xffff]; // front command byte
+  regs.a = mem8[(SOUND_QUEUE_COUNT + 1)]; // front command byte
   issueSoundCommand(m);
 
   for (let i = 0; i < pending; i++) {
-    mem8[(SOUND_QUEUE_COUNT + 1 + i) & 0xffff] = mem8[(SOUND_QUEUE_COUNT + 2 + i) & 0xffff];
+    mem8[(SOUND_QUEUE_COUNT + 1 + i)] = mem8[(SOUND_QUEUE_COUNT + 2 + i)];
   }
 }

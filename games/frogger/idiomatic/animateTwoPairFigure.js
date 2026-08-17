@@ -33,8 +33,8 @@ export function animateTwoPairFigure(m) {
 
   function blitFigure(firstTile) {
     mem8[TWO_PAIR_FIGURE_VRAM] = firstTile;
-    mem8[(TWO_PAIR_FIGURE_VRAM + 1) & 0xffff] = firstTile + 1;
-    mem8[(TWO_PAIR_FIGURE_VRAM + FIGURE_STRIDE) & 0xffff] = firstTile + 2;
-    mem8[(TWO_PAIR_FIGURE_VRAM + FIGURE_STRIDE + 1) & 0xffff] = firstTile + 3;
+    mem8[(TWO_PAIR_FIGURE_VRAM + 1)] = firstTile + 1;
+    mem8[(TWO_PAIR_FIGURE_VRAM + FIGURE_STRIDE)] = firstTile + 2;
+    mem8[(TWO_PAIR_FIGURE_VRAM + FIGURE_STRIDE + 1)] = firstTile + 3;
   }
 }

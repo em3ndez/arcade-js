@@ -11,8 +11,8 @@ const ARM_VALUE = 160;
 export function armHomeGoalSprite(m, leadByte = m.regs.b) {
   const { mem8 } = m;
   mem8[FLY_SPRITE_X] = leadByte;
-  mem8[(FLY_SPRITE_X + 1) & 0xffff] = TAIL[0];
-  mem8[(FLY_SPRITE_X + 2) & 0xffff] = TAIL[1];
-  mem8[(FLY_SPRITE_X + 3) & 0xffff] = TAIL[2];
+  mem8[(FLY_SPRITE_X + 1)] = TAIL[0];
+  mem8[(FLY_SPRITE_X + 2)] = TAIL[1];
+  mem8[(FLY_SPRITE_X + 3)] = TAIL[2];
   mem8[HOME_GOAL_SPRITE_ARM_CELL] = ARM_VALUE;
 }

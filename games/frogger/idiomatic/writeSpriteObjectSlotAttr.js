@@ -10,10 +10,10 @@ export function writeSpriteObjectSlotAttr(m) {
   const record = regs.ix;
   const slot = regs.iy;
 
-  const state = mem8[(record + 6) & 0xffff];
+  const state = mem8[(record + 6)];
   if (state === 0) return;
 
-  const attr = mem8[(OBJECT_STATE_ATTR_TABLE + state) & 0xffff] | mem8[(record + 5) & 0xffff];
-  mem8[(slot + 1) & 0xffff] = attr;
-  mem8[(slot + 2) & 0xffff] = 2;
+  const attr = mem8[(OBJECT_STATE_ATTR_TABLE + state)] | mem8[(record + 5)];
+  mem8[(slot + 1)] = attr;
+  mem8[(slot + 2)] = 2;
 }

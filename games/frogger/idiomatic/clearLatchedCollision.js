@@ -18,8 +18,8 @@ export function clearLatchedCollision(m) {
 export function clearCollisionSpriteBlock(m) {
   const { mem8 } = m;
   mem8[FLY_SPRITE_X] = 0;
-  mem8[(FLY_SPRITE_X + 1) & 0xffff] = 0;
-  mem8[(FLY_SPRITE_X + 2) & 0xffff] = 0;
-  mem8[(FLY_SPRITE_X + 3) & 0xffff] = 0;
+  mem8[(FLY_SPRITE_X + 1)] = 0;
+  mem8[(FLY_SPRITE_X + 2)] = 0;
+  mem8[(FLY_SPRITE_X + 3)] = 0;
   mem8[COLLISION_LATCH] = 0;
 }

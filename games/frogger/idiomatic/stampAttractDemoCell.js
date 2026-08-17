@@ -34,11 +34,11 @@ export function stampAttractDemoCell(m) {
   const tile = BASE_TILE[phase];
 
   mem8[src] = tile;
-  mem8[(src + 1) & 0xffff] = (tile + 1) & 0xff;
-  mem8[(src + ROW) & 0xffff] = (tile + 2) & 0xff;
-  mem8[(src + ROW + 1) & 0xffff] = (tile + 3) & 0xff;
+  mem8[(src + 1)] = (tile + 1) & 0xff;
+  mem8[(src + ROW)] = (tile + 2) & 0xff;
+  mem8[(src + ROW + 1)] = (tile + 3) & 0xff;
 
-  for (let i = 0; i < CLEAR_BYTES; i++) mem8[(obj + i) & 0xffff] = 0;
+  for (let i = 0; i < CLEAR_BYTES; i++) mem8[(obj + i)] = 0;
 
   mem8[ATTRACT_DEMO_PHASE_COUNTER] = (mem8[ATTRACT_DEMO_PHASE_COUNTER] - 1) & 0xff;
   if (mem8[ATTRACT_DEMO_PHASE_COUNTER] !== 0) return; // cells remain

@@ -27,12 +27,12 @@ const PHASE_LANE_C = 48;
 export function advanceScrollLaneObjects(m) {
   const { mem8 } = m;
 
-  mem8[SCROLL_STAMP_ROWCOUNT] = mem8[(SCROLL_OBJECT_BLOCK_BASE + SCROLL_BYTE) & 0xffff];
+  mem8[SCROLL_STAMP_ROWCOUNT] = mem8[(SCROLL_OBJECT_BLOCK_BASE + SCROLL_BYTE)];
   const a = (mem8[SCROLL_STAMP_PHASE] + 1) & 0xff;
   mem8[SCROLL_STAMP_PHASE] = a;
   if (a >= COUNTER_A_STAMP) stampScrollRevealColumn(m);
 
-  mem8[SCROLL_BAND_ROWSPAN] = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + SCROLL_BYTE) & 0xffff];
+  mem8[SCROLL_BAND_ROWSPAN] = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + SCROLL_BYTE)];
   const b = (mem8[SCROLL_BAND_PHASE] + 2) & 0xff;
   mem8[SCROLL_BAND_PHASE] = b;
   if (b < COUNTER_B_FLOOR) blitScrollBand(m);
@@ -49,14 +49,14 @@ export function advanceScrollLaneObjects(m) {
 function stampLanes(m, gridSource, bandSource, wrapPhase) {
   const { regs, mem8 } = m;
 
-  regs.b = mem8[(SCROLL_OBJECT_BLOCK_BASE + 1) & 0xffff];
+  regs.b = mem8[(SCROLL_OBJECT_BLOCK_BASE + 1)];
   regs.c = mem8[SCROLL_STAMP_ROWCOUNT];
   regs.de = gridSource;
   mem8[SCROLL_COPY_COLUMN_STRIDE] = mem8[SCROLL_OBJECT_BLOCK_BASE];
   if (wrapPhase) mem8[SCROLL_PHASE_COUNTER] = 0;
   blitScrollTileGrid(m);
 
-  regs.b = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + 1) & 0xffff];
+  regs.b = mem8[(SCROLL_BAND_DESCRIPTOR_BASE + 1)];
   regs.c = mem8[SCROLL_BAND_ROWSPAN];
   regs.de = bandSource;
   mem8[SCROLL_COPY_COLUMN_STRIDE] = mem8[SCROLL_BAND_DESCRIPTOR_BASE];

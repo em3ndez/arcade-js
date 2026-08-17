@@ -32,9 +32,9 @@ export function mountOrKillFrogOnTwoPairFigure(m) {
   if (((diverX - BIAS) & 0xff) >= frogRight) { // outer overlap -> ride the diver
     mem8[HOLD_FLAG] = 1;
     mem8[TWO_PAIR_FIGURE_VRAM] = MOUNT_TILE;
-    mem8[(TWO_PAIR_FIGURE_VRAM + 1) & 0xffff] = MOUNT_TILE + 1;
-    mem8[(TWO_PAIR_FIGURE_VRAM + ROW_STRIDE) & 0xffff] = MOUNT_TILE + 2;
-    mem8[(TWO_PAIR_FIGURE_VRAM + ROW_STRIDE + 1) & 0xffff] = MOUNT_TILE + 3;
+    mem8[(TWO_PAIR_FIGURE_VRAM + 1)] = MOUNT_TILE + 1;
+    mem8[(TWO_PAIR_FIGURE_VRAM + ROW_STRIDE)] = MOUNT_TILE + 2;
+    mem8[(TWO_PAIR_FIGURE_VRAM + ROW_STRIDE + 1)] = MOUNT_TILE + 3;
     return;
   }
 

@@ -15,20 +15,20 @@ export function animateSpriteObjectFrame(m) {
   const obj = regs.ix;
   const spr = regs.iy;
 
-  const timer = (mem8[(obj + 0x08) & 0xffff] - 1) & 0xff;
-  mem8[(obj + 0x08) & 0xffff] = timer;
+  const timer = (mem8[(obj + 0x08)] - 1) & 0xff;
+  mem8[(obj + 0x08)] = timer;
   if (timer !== 0) return; // not yet expired
 
-  mem8[(obj + 0x08) & 0xffff] = FRAME_RELOAD;
-  const phase = mem8[(obj + 0x06) & 0xffff];
+  mem8[(obj + 0x08)] = FRAME_RELOAD;
+  const phase = mem8[(obj + 0x06)];
   if (phase === 0) return; // phase 0 is inactive
 
   const next = phase === 1 ? PHASE_WRAP : phase - 1;
-  mem8[(obj + 0x06) & 0xffff] = next;
+  mem8[(obj + 0x06)] = next;
 
-  const tile = mem8[(SPRITE_OBJECT_PHASE_TILE_TABLE + next) & 0xffff] | mem8[(obj + 0x05) & 0xffff];
-  mem8[(spr + 0x01) & 0xffff] = tile;
-  mem8[(spr + 0x05) & 0xffff] = (tile + 1) & 0xff;
-  mem8[(spr + 0x02) & 0xffff] = SPRITE_ATTR;
-  mem8[(spr + 0x06) & 0xffff] = SPRITE_ATTR;
+  const tile = mem8[(SPRITE_OBJECT_PHASE_TILE_TABLE + next)] | mem8[(obj + 0x05)];
+  mem8[(spr + 0x01)] = tile;
+  mem8[(spr + 0x05)] = (tile + 1) & 0xff;
+  mem8[(spr + 0x02)] = SPRITE_ATTR;
+  mem8[(spr + 0x06)] = SPRITE_ATTR;
 }

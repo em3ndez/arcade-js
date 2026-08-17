@@ -18,7 +18,7 @@ export function blitFrogAnimColumnOnTrigger(m) {
     const dest = (FROG_ANIM_COLUMN_VRAM + row * ROW_STRIDE) & 0xffff;
     const src = (FROG_ANIM_TILE_PAIR_SRC + row * PAIR_BYTES) & 0xffff;
     mem8[dest] = mem.read8(src);
-    mem8[(dest + 1) & 0xffff] = mem.read8((src + 1) & 0xffff);
+    mem8[(dest + 1)] = mem.read8((src + 1) & 0xffff);
   }
   mem8[FROG_ANIM_BLIT_TRIGGER] = 0;
 }

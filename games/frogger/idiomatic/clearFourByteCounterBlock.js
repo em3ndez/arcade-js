@@ -9,5 +9,5 @@ const BLOCK_LEN = 4;
 
 export function clearFourByteCounterBlock(m) {
   const { mem8 } = m;
-  for (let i = 0; i < BLOCK_LEN; i++) mem8[(GOAL_AWARD_RECORD + i) & 0xffff] = 0;
+  for (let i = 0; i < BLOCK_LEN; i++) mem8[(GOAL_AWARD_RECORD + i)] = 0;
 }

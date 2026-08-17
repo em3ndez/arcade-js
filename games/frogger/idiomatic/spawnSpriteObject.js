@@ -16,7 +16,7 @@ export function spawnSpriteObject(m) {
 
   const count = mem8[LIVES_COUNT];
   if (count < MIN_COUNT) return;
-  if (mem8[(record + 6) & 0xffff] !== 0) return; // already active
+  if (mem8[(record + 6)] !== 0) return; // already active
 
   nextSpawnRandomByte(m);
   const densityRoll = regs.a;
@@ -26,15 +26,15 @@ export function spawnSpriteObject(m) {
   const variant = regs.a & 0x07;
   if (variant >= VARIANTS) return;
 
-  mem8[(record + 4) & 0xffff] = variant * 16 + 48;
+  mem8[(record + 4)] = variant * 16 + 48;
 
   nextSpawnRandomByte(m);
-  const spanA = mem8[(SPAWN_VARIANT_TABLE + 2 * variant) & 0xffff];
-  const workLow = mem8[(SPAWN_VARIANT_TABLE + 2 * variant + 1) & 0xffff];
-  mem8[(record + 11) & 0xffff] = workLow;
-  const seedPos = mem8[(loc_8000 + workLow) & 0xffff];
+  const spanA = mem8[(SPAWN_VARIANT_TABLE + 2 * variant)];
+  const workLow = mem8[(SPAWN_VARIANT_TABLE + 2 * variant + 1)];
+  mem8[(record + 11)] = workLow;
+  const seedPos = mem8[(loc_8000 + workLow)];
 
-  const ptr = mem16[(SPAWN_POINTER_TABLE + 2 * variant) & 0xffff];
+  const ptr = mem16[(SPAWN_POINTER_TABLE + 2 * variant)];
   const cell = mem8[ptr];
   const spanB = ((((cell >> 2) | (cell << 6)) & 0xff) - 16) & 0xff;
   const spanCount = mem8[(ptr & 0xff00) | ((ptr + 2) & 0xff)] || 256; // 0 runs the loop 256 times
@@ -52,19 +52,19 @@ export function spawnSpriteObject(m) {
   }
   const remainder = (armAcc + spanB) & 0xff;
 
-  mem8[(record + 2) & 0xffff] = seedPos;
-  mem8[(record + 1) & 0xffff] = (seedPos - remainder) & 0xff;
-  mem8[record & 0xffff] = (seedPos - remainder + spanB) & 0xff;
+  mem8[(record + 2)] = seedPos;
+  mem8[(record + 1)] = (seedPos - remainder) & 0xff;
+  mem8[record] = (seedPos - remainder + spanB) & 0xff;
 
   nextSpawnRandomByte(m);
   if (regs.a & 1) {
-    mem8[(record + 5) & 0xffff] = 0;
-    mem8[(record + 3) & 0xffff] = 0;
+    mem8[(record + 5)] = 0;
+    mem8[(record + 3)] = 0;
   } else {
-    mem8[(record + 5) & 0xffff] = 0x80;
-    mem8[(record + 3) & 0xffff] = 0xf0;
+    mem8[(record + 5)] = 0x80;
+    mem8[(record + 3)] = 0xf0;
   }
 
-  mem8[(record + 6) & 0xffff] = 1;
-  mem8[(record + 9) & 0xffff] = 8;
+  mem8[(record + 6)] = 1;
+  mem8[(record + 9)] = 8;
 }
