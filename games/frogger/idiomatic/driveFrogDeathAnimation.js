@@ -79,13 +79,13 @@ function advanceBoardAndReset(m) {
 // Stamp the phase's death sprite (bank chosen by the second-bank flag); two phases also queue sound and
 // reset the scroll/frame cells.
 function stampDeathTile(m, phase) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
   if (mem8[SECOND_BANK] !== 0) {
     if (phase === 1) {
       mem8[FROG_SPRITE_CODE] = 0x22;
       mem16[DEATH_WORD] = 0;
-      regs.a = 0; enqueueSoundCommand(m);
-      regs.a = 0x02; enqueueSoundCommand(m);
+      enqueueSoundCommand(m, 0);
+      enqueueSoundCommand(m, 0x02);
       return;
     }
     if (phase === 2) { mem8[FROG_SPRITE_CODE] = 0x23; return; }
@@ -96,15 +96,15 @@ function stampDeathTile(m, phase) {
     mem8[SCROLL_EDGE_FLAG] = 0;
     mem8[SCROLL_STAMP_ROWCOUNT] = 0;
     mem8[SCROLL_BAND_ROWSPAN] = 0;
-    regs.a = 0; clearTwoPlayerFrameCells(m);
+    clearTwoPlayerFrameCells(m);
     mem16[DEATH_WORD] = 0x00d8;
     return;
   }
   if (phase === 1) {
     mem8[FROG_SPRITE_CODE] = 0x39;
     mem16[DEATH_WORD] = 0;
-    regs.a = 0; enqueueSoundCommand(m);
-    regs.a = 0x03; enqueueSoundCommand(m);
+    enqueueSoundCommand(m, 0);
+    enqueueSoundCommand(m, 0x03);
     return;
   }
   if (phase === 2) { mem8[FROG_SPRITE_CODE] = 0x39; return; }
@@ -112,6 +112,6 @@ function stampDeathTile(m, phase) {
   if (phase === 4) { mem8[FROG_SPRITE_CODE] = 0x3b; return; }
   mem8[FROG_SPRITE_CODE] = 0x3c;
   mem8[COUNTDOWN_EXPIRY_FLAG] = 0;
-  regs.a = 0; clearTwoPlayerFrameCells(m);
+  clearTwoPlayerFrameCells(m);
   mem16[DEATH_WORD] = 0x00d8;
 }

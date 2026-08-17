@@ -15,10 +15,8 @@ const H_PROBE_BIT = 0x04;
 
 const rotateLeft = (v) => ((v << 1) | (v >> 7)) & 0xff;
 
-export function computeVramColumnIndex(m) {
-  const { regs } = m;
-  const borrow = regs.fC ? 1 : 0;
-  const offset = (regs.hl - VRAM_BASE - borrow) & 0xffff;
+export function computeVramColumnIndex(m, hl = m.regs.hl, borrow = m.regs.fC ? 1 : 0) {
+  const offset = (hl - VRAM_BASE - borrow) & 0xffff;
   let low = offset & COLUMN_BITS;
   let high = (offset >> 8) & 0xff;
   let acc = 0;
@@ -30,5 +28,5 @@ export function computeVramColumnIndex(m) {
     high = ((high << 1) | carry) & 0xff;
   }
   for (let i = 0; i < FINAL_ROTATES; i++) acc = rotateLeft(acc);
-  regs.c = acc;
+  return (m.regs.c = acc);
 }

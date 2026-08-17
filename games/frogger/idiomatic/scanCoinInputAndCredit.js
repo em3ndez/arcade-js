@@ -35,8 +35,7 @@ export function scanCoinInputAndCredit(m) {
   }
   if ((notIn0 & COIN_SERVICE_MASK) !== 0) return; // a coin/service bit is still held
 
-  regs.a = 1;
-  issueSoundCommand(m); // coin sound
+  issueSoundCommand(m, 1); // coin sound
 
   const coinage = mem16[COINAGE_WORD];
   const latch = mem8[COIN_INPUT_LATCH];

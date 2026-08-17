@@ -8,6 +8,7 @@
 import {
   IN_PLAY_BOARD_INIT_GUARD, PLAYER1_DIFFICULTY_INDEX, PLAYER2_DIFFICULTY_INDEX,
   TWO_PLAYER_START_FLAG, ANIM_FRAME_INDEX, IN_PLAY_BOARD_STATE_BYTE, INTRO_COUNTER_801B, POINT_TABLE_SPRITE_ATTR_8029,
+  POINT_TABLE_PHASE2_STRIP_VRAM, PLAYER_SELECT_PROMPT_SRC, INTRO_TITLE_STRIP2_SRC, PTS_SUFFIX_STRIP, EXTRA_LIFE_SCORE_TARGET,
 } from "./names.js";
 import { loadActivePlayerLaneParams } from "./loadActivePlayerLaneParams.js";
 import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
@@ -40,25 +41,19 @@ export function initInPlayBoardOnce(m) {
   mem8[INTRO_COUNTER_801B] = 0x04;
   mem8[POINT_TABLE_SPRITE_ATTR_8029] = 0x06;
 
-  regs.hl = 0xaa28; regs.de = 0x2f77; regs.b = 0x04;
-  copyRunUpTileColumn(m);
-  regs.hl = 0xaaad; regs.e = (regs.e + 1) & 0xff; regs.b = 0x0c; // e advanced by the blit
-  copyRunUpTileColumn(m);
+  copyRunUpTileColumn(m, 0xaa28, 0x2f77, 0x04);
+  regs.e = (regs.e + 1) & 0xff;
+  copyRunUpTileColumn(m, 0xaaad, regs.de, 0x0c);
 
   blitPlayerSelectPrompt(m);
 
-  regs.hl = 0xab74; regs.de = 0x2f88; regs.b = 0x03;
-  copyRunUpTileColumn(m);
-  regs.de = 0x2fa8; regs.b = 0x06; // hl carries from the prior blit
-  copyRunUpTileColumn(m);
-  regs.de = 0x2fae; regs.b = 0x05;
-  copyRunUpTileColumn(m);
-  regs.de = (regs.de + 1) & 0xffff; regs.b = 0x07;
-  copyRunUpTileColumn(m);
+  copyRunUpTileColumn(m, POINT_TABLE_PHASE2_STRIP_VRAM, PLAYER_SELECT_PROMPT_SRC, 0x03);
+  copyRunUpTileColumn(m, regs.hl, 0x2fa8, 0x06);
+  copyRunUpTileColumn(m, regs.hl, INTRO_TITLE_STRIP2_SRC, 0x05);
+  copyRunUpTileColumn(m, regs.hl, (regs.de + 1) & 0xffff, 0x07);
 
-  regs.hl = 0xa994; regs.de = m.mem16[0x2e08];
+  regs.hl = 0xa994; regs.de = m.mem16[EXTRA_LIFE_SCORE_TARGET];
   writeScoreField(m);
 
-  regs.de = 0x2fba; regs.b = 0x04; // hl carries from the score field
-  copyRunUpTileColumn(m);
+  copyRunUpTileColumn(m, regs.hl, PTS_SUFFIX_STRIP, 0x04);
 }

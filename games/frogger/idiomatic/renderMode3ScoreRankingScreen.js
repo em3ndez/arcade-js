@@ -34,18 +34,18 @@ export function renderMode3ScoreRankingScreen(m) {
   placeScoreRankMarkers(m);
 
   copyRunUpTileColumn(m, HEADER_DST, SCORE_RANKING_HEADER_STRIP, HEADER_LEN);
-  let stripSrc = regs.de; // the running strip source walks forward across the five rank rows
+  let stripSrc = SCORE_RANKING_HEADER_STRIP + HEADER_LEN;
 
   for (let rank = 1; rank <= 5; rank++) {
-    writeScoreDigitStepUp(m, rank, 0xaa00 | ((2 * rank + 0xcd) & 0xff));
-    copyRunUpTileColumn(m, regs.hl, stripSrc, RANK_STRIP_LEN);
-    stripSrc = regs.de;
+    const rankPtr = writeScoreDigitStepUp(m, rank, 0xaa00 | ((2 * rank + 0xcd) & 0xff));
+    copyRunUpTileColumn(m, rankPtr, stripSrc, RANK_STRIP_LEN);
+    stripSrc += RANK_STRIP_LEN;
 
     const scoreWord = HIGH_SCORE_TABLE_BASE + 2 * (rank - 1); // rank r's high-score word, r = 1..5
     regs.de = mem8[scoreWord] | (mem8[scoreWord + 1] << 8);
     regs.hl = 0xa900 | ((2 * rank + 0xed) & 0xff);
-    writeScoreField(m);
-    copyRunUpTileColumn(m, regs.hl, PTS_SUFFIX_STRIP, SCORE_STRIP_LEN);
+    const fieldPtr = writeScoreField(m);
+    copyRunUpTileColumn(m, fieldPtr, PTS_SUFFIX_STRIP, SCORE_STRIP_LEN);
   }
 
   return m.call(0x0c17);

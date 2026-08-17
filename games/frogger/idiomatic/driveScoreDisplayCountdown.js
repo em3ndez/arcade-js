@@ -10,6 +10,7 @@
 import {
   FROG_STATE_DEMO_FLAG, HOLD_FLAG, COUNTDOWN_EXPIRY_FLAG, SCORE_DISPLAY_ARM_SELECT, loc_83dc,
   SCORE_DISPLAY_COUNTER_HI, loc_83de, loc_83e0, OBJRAM_COL3F_ATTR_SHADOW,
+  LAYOUT_SETUP_COLUMN_VRAM, NO_MORE_FROGS_COLUMN_VRAM, LAYOUT_SETUP_STRIP_SRC,
 } from "./names.js";
 import { initDisplayFieldOnce } from "./initDisplayFieldOnce.js";
 import { blitEndStripAndSetHold } from "./blitEndStripAndSetHold.js";
@@ -19,7 +20,7 @@ import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { addScoreAndAwardExtraLife } from "./addScoreAndAwardExtraLife.js";
 
 const COUNTDOWN_RELOAD = 0x20;
-const BAR_BASE = 0xa8df;
+const BAR_BASE = LAYOUT_SETUP_COLUMN_VRAM;
 
 export function driveScoreDisplayCountdown(m) {
   const { regs, mem8 } = m;
@@ -76,7 +77,7 @@ export function armScoreBonusStrip(m) {
   if (mem8[loc_83e0] !== 0) return;
   mem8[loc_83e0] = 1;
 
-  copyRunUpTileColumn(m, 0xaa51, 0x2f6e, 0x05);
+  copyRunUpTileColumn(m, NO_MORE_FROGS_COLUMN_VRAM, LAYOUT_SETUP_STRIP_SRC, 0x05);
 
   const counter = mem8[loc_83de];
   writePackedBcdByte(m, counter);
