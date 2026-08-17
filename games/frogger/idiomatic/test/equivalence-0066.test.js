@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * serviceVblankNmi — memory-equivalent to the frozen oracle at ROM 0x0066 (the vblank NMI handler).
- * GATE: crafted-entry. UNWIRED by design (interrupt-frame unwind: the handler ends in `retn`; the engine's
- * own NMI fire serves the oracle live) — this gate documents the handler and pins the dissolutions. The
+ * GATE: crafted-entry. WIRED: the engine's NMI fire is `this.call(0x0066)`, which runs this idiomatic
+ * override (it seats through withOmittedRet — the JS handler leaves SP balanced; the raw `retn` is the
+ * oracle's form). This gate documents the handler and pins the dissolutions. The
  * handler acks the NMI, scans coins, blits the sprite shadow into OBJRAM with the nibble-swap, ticks the
  * coin timers, then dispatches on the play/mode flags. A post-attract seed is cloned, SP seated at 0x8800,
  * and cells poked to drive: attract (mode 0), attract mode>=2, in-play minimal (frog-freeze countdown), and

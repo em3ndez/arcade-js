@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * awardBonusPoints — memory-equivalent to the frozen oracle at ROM 0x2673 (a caller-skip; the module
- * ships unwired and the oracle serves it live, so this gate is its only correctness check).
+ * awardBonusPoints — memory-equivalent to the frozen oracle at ROM 0x2673 (a caller-skip DISSOLVED to a
+ * boolean skip-signal, direct-called by awardHomeBayGoal — runs as JS, not oracle-served; this gate is
+ * its memory-equivalence check against the ROM routine).
  * With the slot cursor clear it seeds the score popup + arms the timer + adds BCD 0x20; with it set it
  * raises the hold flag and pops the caller's return. Both arms are driven from a captured post-boot
  * state with B armed and PLAY_FLAG set. Teeth: no-op, wrong popup position, wrong arm; positive control

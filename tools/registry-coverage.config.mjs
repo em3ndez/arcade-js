@@ -2,79 +2,18 @@
 
 export const UNWIRED = {
   frogger: {
-    // ── batch-9 spine assembly: cannot-seat (hard), dispatchers held, and empirically-unverifiable ──
-    "serviceVblankNmi.js":
-      "the vblank NMI interrupt SERVICE (0x0066): it unwinds the interrupt frame, moving SP by more " +
-      "than one return slot (net SP not 0/+2), so `withOmittedRet` cannot seat it and a ROUTINES " +
-      "entry throws on the first NMI. Same class as timeplt's serviceVerticalBlankInterrupt.js. The " +
-      "module and its equivalence-0066 gate are correct and stay; the frozen layer runs it in-game " +
-      "through the interrupt seam.",
+    // DISSOLVED caller-skips, NOT oracle-served. A caller-skip pops the caller's return (net SP +4), which is
+    // outside the withOmittedRet seam's 0/+2 window, so it cannot be a ROUTINES override. Per the runbook it is
+    // dissolved into a boolean skip-signal the caller early-returns on, called DIRECTLY by a sibling (runs as JS,
+    // never the frozen oracle). Recorded so the coverage gate knows they are intentionally not ROUTINES-dispatched.
     "awardBonusPoints.js":
-      "a CALLER-SKIP (its own JSDoc): it pops the caller's return, so its net SP delta is +4 from the " +
-      "seam's seat, and `withOmittedRet` places only a 0/+2 rewrite -- a ROUTINES entry throws. The " +
-      "module and equivalence-2673 gate are correct and stay; the frozen oracle serves the in-game call.",
-    "awardHomeBayGoal.js":
-      "the home-bay goal award (twin entry 0x1dd8/0x1e7a, one module): its goal-hit path m.calls the " +
-      "0x2673 caller-skip (awardBonusPoints), inheriting the +4 SP move, so the seam cannot seat it. " +
-      "The module and its equivalence-1dd8/1e7a gates are correct and stay; oracle-served live.",
-    "selectHomeBayGoalHandler.js":
-      "routes into the 0x2673 caller-skip path (awardBonusPoints) via the goal scan, inheriting its " +
-      "net +4 SP move, so `withOmittedRet` cannot seat it. Module and equivalence-1cff gate correct " +
-      "and stay; oracle-served live.",
-    "seatStackAndEnterColdBoot.js":
-      "cold-boot entry (0x0000): it SEATS the stack (writes m.regs.sp) and never returns normally, so " +
-      "there is no net `ret` for the seam to place. Module and equivalence-0000 gate correct and stay; " +
-      "the boot chain runs it in the frozen layer.",
-    "initColdBootAndEnterMainLoop.js":
-      "cold-boot main-loop entry (0x02a3): does not return normally (falls into the main loop), so the " +
-      "seam has no net `ret` to seat. Module and equivalence-02a3 gate correct and stay; frozen-layer " +
-      "boot serves it.",
-    "dispatchFrogAnimationArm.js":
-      "the frog-animation jp-table dispatcher (0x0faf) HELD for serial post-assembly wiring (pixel/live " +
-      "check per wire). Module and equivalence-0faf gate correct and stay; oracle-served live.",
-    "orchestrateCollisionsAndFrogInput.js":
-      "the collision/scoring orchestrator (0x1a55): on the goal-award path it tail-transfers " +
-      "`return m.call(0x1cff)` into the home-row goal scan, whose 0x1cff->0x1dd8/0x1e7a->0x2673 subtree " +
-      "hits loc_2673's caller-skip arm (fires when HOME_BAY_SLOT_CURSOR_MIRROR 0x8120 != 0): it pops the " +
-      "caller's return, so a seated 1a55 moves SP by +4 on that path and `withOmittedRet` throws (verified " +
-      "by scratchpad goal-band sweep). Raw idio==oracle on every path -- the defect is purely seatability; " +
-      "same class as the 1cff/1dd8/1e7a/2673 subtree it tails into, all UNWIRED. Module and equivalence-1a55 " +
-      "gate correct and stay; oracle-served live. Wireable once the goal-scan caller-skip dissolves.",
-    "driveInPlayFrameUpdate.js":
-      "the in-play per-frame update dispatcher (0x2341): it push16+m.calls 0x1a55 every in-play frame, so " +
-      "it inherits 1a55's goal-award +4 seam throw (see orchestrateCollisionsAndFrogInput). Held UNWIRED " +
-      "with 1a55. Module and equivalence-2341 gate correct and stay; oracle-served live.",
-    "runIntroTimerThenInitGame.js":
-      "author-complete, equivalence-048f green, but empirically UNVERIFIABLE here: no available input " +
-      "tape (attract, 1-player play+death, 2-player start) ever live-dispatches it, so wiring it cannot " +
-      "get a pixel/live confirmation. Its exits tail into the cold-start siblings 0x0547/0x04f3 (both " +
-      "UNWIRED), clearPlayerOneHomeBayGates, and PACE_TAIL 0x0368 (a wired coroutine) -- the same seam " +
-      "shape as the wired beginNextLifeOrIntro, so it is plausibly seatable. Held conservative-UNWIRED " +
-      "(oracle-served, equivalence-proven) until a game-over/new-game tape reaches it and pixel/live passes.",
-    "setUpPlayerTwoContinue.js":
-      "author-complete, equivalence-04f3 green, but empirically UNVERIFIABLE here: not live-dispatched " +
-      "even by a 2-coin + 2-player-start tape, so its `return m.call(0x0557)` bare tail into the still-" +
-      "TRANSLATED cold-start-mid cannot be confirmed seatable live. Conservative-UNWIRED (oracle-served, " +
-      "equivalence-proven); wire once a tape reaches it and a pixel/live check passes.",
-    "coldStartClearSlotGates.js":
-      "author-complete, equivalence-0547 green, but empirically UNVERIFIABLE here: not live-dispatched " +
-      "by any available tape, so its `return m.call(0x0557)` bare tail into the still-TRANSLATED cold-" +
-      "start-mid cannot be confirmed seatable live. Conservative-UNWIRED (oracle-served, equivalence-" +
-      "proven); wire once a tape reaches it and a pixel/live check passes.",
+      "DISSOLVED caller-skip -> boolean: returns true (cursor set) to make the goal-award caller skip its " +
+      "remainder, else adds the score and returns false. Direct-called by awardHomeBayGoal (runs as JS, not " +
+      "oracle-served). Not a ROUTINES override: the +4 SP move is outside the seam's 0/+2 window.",
     "tickAttractCellFrameClock.js":
-      "the attract cell frame clock, a DOUBLE caller-skip. Its not-elapsed exit (the common frame) " +
-      "drops both its own saved-pointer slot and the arm's return and rets to the arm's caller, " +
-      "moving SP by two return slots -- net +4 from the seam's seat. `withOmittedRet` seats a " +
-      "dispatch only where the rewrite leaves SP where it found it or moves it by one return slot " +
-      "-- 0 or +2 -- so the seam cannot place this address, and wiring it in ROUTINES throws " +
-      "(SP moved by 4) on the first not-elapsed frame of the attract animator. Same class as " +
-      "timeplt's serviceVerticalBlankInterrupt.js. Nothing reaches it as a decompiled call either: " +
-      "its sole caller, the attract sequencer at 0x0e7a, is still translated and drives the two " +
-      "call sites with `if (!m.call(0x0f3e)) return;`, so the frozen oracle serves the in-game " +
-      "call. The module and its equivalence-0f3e gate are correct (memory + SP/PC/return + the " +
-      "register live-out compared against the oracle on both exits, six teeth) and stay; the seam " +
-      "refusal is asserted directly in that gate. Wireable only once 0x0e7a is itself lifted and " +
-      "the caller-skip dissolves into a boolean at the call site.",
+      "DISSOLVED double caller-skip -> boolean: false = tick not elapsed (caller skips its remainder), true = " +
+      "elapsed (frame tile in A). Direct-called by driveAttractDemoSequencer (runs as JS, not oracle-served). " +
+      "Not a ROUTINES override: the double-skip's +4 SP move is outside the seam's 0/+2 window.",
   },
   timeplt: {
     "replayCloudBands.js":

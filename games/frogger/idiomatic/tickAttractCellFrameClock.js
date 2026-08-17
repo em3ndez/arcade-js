@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * tickAttractCellFrameClock — advance one attract cell's animation frame on its tick clock.
- * While the per-cell tick timer has not run out this reports false via a double caller-skip: it
- * drops its saved pointer and the caller's return and rets to the caller's caller. On the tick it
- * reloads, steps the frame cursor down (wrapping at zero), and returns that frame's table tile in
- * the accumulator with the saved pointer restored.
- * LIVE-OUT: memory; on the true return also the accumulator tile and the restored pointer.
+ * While the per-cell tick timer has not run out, returns false so the caller skips its remainder.
+ * On the tick it reloads, steps the frame cursor down (wrapping at zero), sets that frame's table
+ * tile in the accumulator, and returns true.
+ * LIVE-OUT: memory; on the true return also the accumulator tile in A.
  */
 import { u8 } from "../../../core/int.js";
 
@@ -18,16 +17,9 @@ const INDEX_WRAP = 4;
 export function tickAttractCellFrameClock(m) {
   const { regs, mem8 } = m;
 
-  m.push16(regs.hl);
-
   const timer = u8(mem8[FRAME_TIMER] - 1);
   mem8[FRAME_TIMER] = timer;
-  if (timer !== 0) {
-    m.pop16();
-    m.pop16();
-    m.ret();
-    return false;
-  }
+  if (timer !== 0) return false;
 
   mem8[FRAME_TIMER] = TIMER_RELOAD;
 
@@ -36,7 +28,5 @@ export function tickAttractCellFrameClock(m) {
   mem8[FRAME_INDEX] = index;
 
   regs.a = mem8[(TILE_TABLE & 0xff00) | u8((TILE_TABLE & 0xff) + index)];
-  regs.hl = m.pop16();
-  m.ret();
   return true;
 }

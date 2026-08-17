@@ -240,8 +240,13 @@ batch and feeds the next batch's targets.
   the leaf set **each batch** by closing the call graph over current `m.call` targets.
 - Per routine ship all **four**: module + `equivalence-<addr>.test.js` + `ROUTINES` entry + green
   gate. **Done only when DISPATCHED** — `resolveAllIdiomatic` walks `ROUTINES`, so a module no entry
-  names is never overridden. Unwired is legitimate **only as a recorded decision** (`UNWIRED`/`DEBT`
-  with a reason); silence reads as oversight.
+  names is never overridden. Done requires that **no routine runs as the frozen oracle in the live
+  game**: every reachable routine is either wired as a live override (in `ROUTINES`) OR — for a genuine
+  caller-skip whose net +4 SP move the withOmittedRet seam cannot seat — DISSOLVED into a direct-called
+  boolean and recorded in the config with a `DISSOLVED ... not oracle-served` reason. An `UNWIRED`/`DEBT`
+  entry that means "oracle-served, can't-seat, left translated by design" is a **transient debt state,
+  never done** — a seam throw is the signal to DISSOLVE, never to leave the routine translated. Silence
+  reads as oversight.
 - Fidelity = **memory-equivalence**: RAM minus stack scratch + `pc` + `SP` + declared live-out;
   **never the full register file, never cycles**. **Derive live-out from the oracle, never the module
   header** (a gate whose excluded set matches its module asserts the divergence — green on broken,
@@ -495,8 +500,10 @@ deliberate handling. These four are one problem and are decided together, once, 
 - **A fully idiomatic layer is required — zero translated routines, zero `m.call()`, zero `m.push*()`,
   zero register references.** The idiomatic layer REPLACES the frozen oracle; a game is not done while
   any reachable routine still runs as translated code in the live game, or while the idiomatic layer
-  still holds Z80-level primitives. Concretely: **(a)** every reachable routine is lifted AND wired as a
-  live override — no `m.call` into the still-translated layer. Dissolve an unbalanced tail-call
+  still holds Z80-level primitives. Concretely: **(a)** every reachable routine runs as JS in the live game — wired as a
+  live override, or dissolved to a direct-called boolean for a caller-skip that cannot seat; the game's
+  `UNWIRED` map in `tools/registry-coverage.config.mjs` holds **only such DISSOLVED entries**, never an
+  "oracle-served / can't-seat" one, and there is no `m.call` into the still-translated layer. Dissolve an unbalanced tail-call
   (`return m.call(<translated>)`, whose translated `ret` drifts SP and throws at the override seam) into
   a **direct JS call**, and a caller-skip into a **boolean skip-signal** the caller early-returns on; the
   seam throwing at dispatch is the signal to DISSOLVE, never to leave the routine translated "by design".

@@ -5,19 +5,18 @@ import { NotImplemented } from "../../../boards/frogger/io.js";
  * zero. Credits present tails to the attract-idle setter; otherwise a state machine on the phase byte:
  * 0 seeds the demo and arms the animator, 1 runs the scroll animator (a computed jump picks the cell
  * and its scroll floor, then the shared tail scrolls it left four pixels through the frame clock), 2
- * rewinds the seven cells, higher tails to the per-cell demo stamp. The frame clock is a caller-skip:
- * on its not-elapsed branch it returns straight to our caller, so we just return and the seam reads the
- * two-byte delta it leaves. LIVE-OUT: memory-only.
+ * rewinds the seven cells, higher tails to the per-cell demo stamp. The frame clock returns false on
+ * its not-elapsed branch, so we just return. LIVE-OUT: memory-only.
  */
 import { CREDIT_BCD, ATTRACT_SEQUENCER_PHASE, ATTRACT_DEMO_PHASE_COUNTER, ATTRACT_DEMO_DWELL, FLY_SPRITE_X } from "./names.js";
 import { fillTilemapBlock28x32 } from "./fillTilemapBlock28x32.js";
 import { clearObjectBlocksAndMirrorToObjRam } from "./clearObjectBlocksAndMirrorToObjRam.js";
 import { setAttractIdleMode } from "./setAttractIdleMode.js";
 import { stampAttractDemoCell } from "./stampAttractDemoCell.js";
+import { tickAttractCellFrameClock } from "./tickAttractCellFrameClock.js";
 
 const ATTRACT_FRAME_TIMER = 0x83bd; // frame timer byte; the next byte is the frame index
 const CELL_BASE = FLY_SPRITE_X;     // the seven four-byte attract cells
-const FRAME_CLOCK = 0x0f3e;         // caller-skip: keep it dispatched by address
 
 // Animator phase 1..7 -> [cell base, scroll floor], indexed by the computed jump slot.
 const ANIM_ARMS = {
@@ -79,8 +78,7 @@ function dispatchPhase(m, phase) {
 // Run the frame clock (caller-skip), scroll this cell left four pixels, clamp and advance at the floor.
 function animatorTail(m, cellBase, limit) {
   const mem8 = m.mem8;
-  m.push16(0x0f01);
-  if (!m.call(FRAME_CLOCK)) return;
+  if (!tickAttractCellFrameClock(m)) return;
   const tile = m.regs.a;
 
   const scrolled = (mem8[cellBase] - 4) & 0xff;
@@ -101,8 +99,7 @@ function dispatchPhase2Plus(m, a) {
   if (((a - 1) & 0xff) !== 0) return stampAttractDemoCell(m);
 
   // phase 2: rewind the seven cells
-  m.push16(0x0f1d);
-  if (!m.call(FRAME_CLOCK)) return;
+  if (!tickAttractCellFrameClock(m)) return;
   const c = (m.regs.a - 0x03) & 0xff;
 
   const d7 = mem8[ATTRACT_DEMO_PHASE_COUNTER];
