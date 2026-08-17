@@ -156,12 +156,14 @@ lane with the frog not-yet-across calls the lifted **`killFrogAtLane`** (the `0x
 `HOLD_FLAG`, and in the mid-river band also set the second-bank kill cell). **`renderFrogAndArmObjects`**
 draws the frog figure into the tilemap (three 4-tile column groups, the banner column, four box corners,
 the home-marker string via `blitFourTileGroupColumn`), raises the three object-ready flags
-(`OBJECT_READY_0`/`OBJECT_READY_1`/`OBJECT_READY_2`), then tail-chains `seedObjectAnimationState`. **`renderFrogAnimArm0`**, **`renderFrogAnimArm1`** and
+(`OBJECT_READY_0`/`OBJECT_READY_1`/`OBJECT_READY_2`), then tail-chains `seedObjectAnimationState`. **`renderFrogAnimArm0`**, **`renderFrogAnimArm1`**, **`renderFrogAnimArm2`** and
 **`renderFrogAnimArm6`** are arms of the `0x0faf` frog-animation dispatcher: each loads its sprite
 triple, points at the pattern table, arms the IX/IY plot cursors at a lane list, stashes the sprite
 code, and enters the shared render loop `FROG_ANIM_RENDER_LOOP` (arm 1 first runs the guarded pre-blit
 `blitFrogAnimColumnOnTrigger`). Arm 0's outgoing register ABI to that loop is a return-bridge and its
 pattern pointers (`FROG_ANIM_ARM0_DEST_PTR`/`FROG_ANIM_ARM0_SRC_BASE`) are named cells. `[seen]`.
+Arm 2 (`renderFrogAnimArm2`, `0x107b`) is now lifted on the arm-0 template, its pattern pointers named
+`FROG_ANIM_ARM2_DEST_PTR`/`FROG_ANIM_ARM2_SRC_BASE`; `[code]` (MAME-grounding pending).
 
 ## The sprite-object engine — `[seen,poked]`
 

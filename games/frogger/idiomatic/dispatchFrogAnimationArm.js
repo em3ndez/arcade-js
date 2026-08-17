@@ -9,6 +9,7 @@ import { NotImplemented } from "../../../boards/frogger/io.js";
 import { loc_8000 } from "./names.js";
 import { renderFrogAnimArm0 } from "./renderFrogAnimArm0.js";
 import { renderFrogAnimArm1 } from "./renderFrogAnimArm1.js";
+import { renderFrogAnimArm2 } from "./renderFrogAnimArm2.js";
 import { renderFrogAnimArm6 } from "./renderFrogAnimArm6.js";
 
 const ARM_TABLE = 0x0fbe; // base of the eleven arm entry pointers
@@ -20,7 +21,7 @@ export function dispatchFrogAnimationArm(m) {
   switch (target) {
     case 0x0fd4: return renderFrogAnimArm0(m);
     case 0x1058: return renderFrogAnimArm1(m);
-    case 0x107b: return m.call(0x107b);
+    case 0x107b: return renderFrogAnimArm2(m);
     case 0x109b: return m.call(0x109b);
     case 0x10bb: return m.call(0x10bb);
     case 0x10db: return m.call(0x10db);
