@@ -147,6 +147,70 @@ def all_games():
     )
 
 
+# --- reachability closure: a reachable routine still served by the translated oracle is cruft too ---
+# reachable (translated `_registry.generated.js`, graph-closed) - overridden (idiomatic ROUTINES) -
+# boundary = the still-frozen routines, counted alongside CPU cruft so the total can't reach 0 while
+# anything reachable is oracle-served. Only ENROLLED games are counted; legacy opts in when worked.
+CLOSURE_GAMES = {"frogger"}
+BOUNDARY_FILE = "tools/idiomatic-boundaries.txt"
+REG_ENTRY = re.compile(r"^\s*\[\s*0x([0-9a-fA-F]+)\s*,")     # _registry.generated.js address->fn rows
+ROUTINE_KEY = re.compile(r"^\s*0x([0-9a-fA-F]+)\s*:\s*\{")   # names.js ROUTINES map keys
+
+
+def _read(path, from_index):
+    """Read a tracked file's STAGED (index) content to match the ratchet, or the working tree."""
+    if from_index:
+        return git(["show", f":{path}"])
+    with open(path, encoding="utf-8") as fh:
+        return fh.read()
+
+
+def _registry_addrs(game, from_index):
+    text = _read(f"games/{game}/translated/_registry.generated.js", from_index)
+    return {int(m.group(1), 16) for m in map(REG_ENTRY.match, text.splitlines()) if m}
+
+
+def _override_addrs(game, from_index):
+    text = _read(f"games/{game}/idiomatic/names.js", from_index)
+    out, in_routines = set(), False
+    for line in text.splitlines():
+        if "export const ROUTINES" in line:
+            in_routines = True
+        if in_routines:
+            m = ROUTINE_KEY.match(line)
+            if m:
+                out.add(int(m.group(1), 16))
+    return out
+
+
+def boundary_dispositions(game):
+    """`{addr: disposition}` from tools/idiomatic-boundaries.txt for one game (dead / boundary + reason).
+    Every entry is a REVIEWED decision that a reachable routine legitimately stays translated (a genuine
+    oracle boundary) or is dead (callers dissolved). Fail closed on a malformed line."""
+    out = {}
+    if not os.path.exists(BOUNDARY_FILE):
+        return out
+    for raw in open(BOUNDARY_FILE, encoding="utf-8"):
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        parts = line.split()
+        if len(parts) < 3 or not parts[1].startswith("0x") or parts[2] not in ("dead", "boundary"):
+            raise GitError(f"malformed boundary line: {raw.rstrip()}")
+        if parts[0] == game:
+            out[int(parts[1], 16)] = parts[2]
+    return out
+
+
+def unlifted_addrs(game, from_index):
+    """Reachable routines with no idiomatic override and no boundary disposition — the frozen worklist."""
+    if game not in CLOSURE_GAMES:
+        return []
+    return sorted(_registry_addrs(game, from_index)
+                  - _override_addrs(game, from_index)
+                  - set(boundary_dispositions(game)))
+
+
 def check():
     """Ratchet: no game's staged idiomatic layer may exceed its budget. Returns process exit code."""
     try:
@@ -159,14 +223,18 @@ def check():
     for game in all_games():
         try:
             tot, per = count_in_index(game)
+            unl = len(unlifted_addrs(game, True))
         except GitError as e:
             print(f"idiomatic_gate: BLOCK — {game}: {e}")
             return 1
+        tot += unl  # a reachable routine still served by the oracle is cruft (closure-enrolled games)
         budget = budgets.get(game, 0)
         worst = max(worst, tot - budget)
         flag = "OK " if tot <= budget else "OVER"
         tag = "" if game in budgets else " (implicit 0)"
         brk = " ".join(f"{k[:4]}={per[k]}" for k in CATEGORIES)
+        if game in CLOSURE_GAMES:
+            brk += f" unlifted={unl}"
         rows.append(f"  [{flag}] {game}: {tot} cruft (budget {budget}{tag})  [{brk}]"
                     + ("  <- IDIOMATIC" if tot == 0 else ""))
     for r in rows:
@@ -195,7 +263,17 @@ def worklist(game):
         for k in CATEGORIES:
             grand[k] += per[k]
         print(f"  {tot:4}  {name:44}  " + " ".join(f"{k[:4]}={per[k]}" for k in CATEGORIES))
-    print(f"\n  {game}: total {total(grand)}  [" + " ".join(f"{k}={grand[k]}" for k in CATEGORIES) + "]")
+    unl = unlifted_addrs(game, False)
+    if game in CLOSURE_GAMES:
+        disp = boundary_dispositions(game)  # noqa: F841 (kept for a future disposition column)
+        print(f"\n  UNLIFTED — {len(unl)} reachable routine(s) still served by the translated oracle:")
+        for a in unl:
+            print(f"    loc_{a:04x}")
+    gtot = total(grand) + len(unl)
+    brk = " ".join(f"{k}={grand[k]}" for k in CATEGORIES)
+    if game in CLOSURE_GAMES:
+        brk += f" unlifted={len(unl)}"
+    print(f"\n  {game}: total {gtot}  [{brk}]")
     return 0
 
 
@@ -221,6 +299,10 @@ def selftest():
     adr = "const K = 0x8040; // see 0x1234 and 0x2673\nmem8[0xa808] = 0x0f;"
     a = counts(adr)
     want("addrs", a["addrs"], 2)  # 0x8040 + 0xa808; 0x0f is 2-digit; the comment ones stripped
+    # closure parsing: a translated-registry row and a ROUTINES key are recognised; a plain const is not
+    want("registry-row", bool(REG_ENTRY.match("  [0x0ff1, loc_0ff1],")), True)
+    want("routine-key", bool(ROUTINE_KEY.match('  0x0ff1: { name: "renderX" },')), True)
+    want("not-a-routine-key", bool(ROUTINE_KEY.match("  const K = 0x8040;")), False)
     if ok:
         print("idiomatic_gate selftest: OK")
     return 0 if ok else 1

@@ -1,0 +1,6 @@
+# Idiomatic-gate reachability boundaries — reviewed dispositions for reachable routines that legitimately
+# stay translated. Format: <game> <0xADDR> <dead|boundary>  # reason
+#   dead     — nothing live calls it (its callers were dissolved); not lifted, just accounted for.
+#   boundary — a genuine oracle boundary intentionally left as translated ROM.
+# Every line is a reviewed decision. A routine NOT here and NOT overridden counts as unlifted cruft.
+# Only closure-enrolled games (idiomatic_gate.CLOSURE_GAMES) are checked; frogger for now.

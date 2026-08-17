@@ -279,6 +279,23 @@ batch and feeds the next batch's targets.
   absent from it is held at 0, and a game is IDIOMATIC (a done requirement) only at 0. ⚠ frogger was authored register-full and is being retrofitted down after the fact — the
   debt this rule exists to prevent. Do not repeat it: on the next game, the gate is green only if every
   module was born with its registers already named.
+- **★ Closure — a reachable routine still served by the oracle is cruft too.** A born-live layer
+  silently falls back to the translated routine for anything unlifted, so it *runs correctly* and the
+  behavioural worklist (the state diff, §2) never flags it — a whole reachable sub-tree can stay frozen
+  while every gate is green (the frog-anim render cluster hid exactly this way). The cruft *count* alone
+  said "some cleanup remains," never *which* routines. So `idiomatic_gate` now also counts, for a
+  **closure-enrolled game** (`CLOSURE_GAMES`, frogger only until a legacy game is worked), every
+  **reachable-but-unlifted routine** — the translated `_registry.generated.js` set (graph-closed by the
+  §3 recursive descent) minus the idiomatic `ROUTINES` overrides minus a reviewed
+  `tools/idiomatic-boundaries.txt` allowlist (`dead` = callers dissolved, `boundary` = genuinely left
+  ROM) — and **lists them by address** in the worklist. The total cannot reach 0 while any reachable
+  routine is oracle-served, so the frozen tail is a **named, finite work-list, not an inferred number**,
+  and completeness is STRUCTURAL (the call-graph closure) rather than behavioural (does it play right).
+  This is the enforcement the latent rules (§4 "close the call graph over current m.call targets", §5
+  "every reachable routine runs as JS") always implied but nothing measured. (Recorded 2026-08-17: a
+  frogger frog-anim sub-tree of ~10 routines ran entirely on the translated fallback while
+  registry-coverage read 100% and every pixel/whole-game gate was green — the count was nonzero but
+  named nothing; Karl: "just add the unlifted routines to the cruft list.")
 - **Outgoing registers: `return` by default; a return-assignment for the load-bearing case.** The gate
   cannot infer input-vs-output from a `regs.a = value` write, and it does not try — **the author
   declares intent in the form and the gate enforces the form.** A routine that produces an interface
