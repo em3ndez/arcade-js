@@ -11,6 +11,7 @@ import { renderFrogAnimArm0 } from "./renderFrogAnimArm0.js";
 import { renderFrogAnimArm1 } from "./renderFrogAnimArm1.js";
 import { renderFrogAnimArm2 } from "./renderFrogAnimArm2.js";
 import { renderFrogAnimArm3 } from "./renderFrogAnimArm3.js";
+import { renderFrogAnimArm4 } from "./renderFrogAnimArm4.js";
 import { renderFrogAnimArm6 } from "./renderFrogAnimArm6.js";
 import { renderFrogAnimArm7 } from "./renderFrogAnimArm7.js";
 import { renderFrogAnimArm8 } from "./renderFrogAnimArm8.js";
@@ -28,7 +29,7 @@ export function dispatchFrogAnimationArm(m) {
     case 0x1058: return renderFrogAnimArm1(m);
     case 0x107b: return renderFrogAnimArm2(m);
     case 0x109b: return renderFrogAnimArm3(m);
-    case 0x10bb: return m.call(0x10bb);
+    case 0x10bb: return renderFrogAnimArm4(m);
     case 0x10db: return m.call(0x10db);
     case 0x10f8: return renderFrogAnimArm6(m);
     case 0x1118: return renderFrogAnimArm7(m);

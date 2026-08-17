@@ -162,9 +162,10 @@ triple, points at the pattern table, arms the IX/IY plot cursors at a lane list,
 code, and enters the shared render loop `FROG_ANIM_RENDER_LOOP` (arm 1 first runs the guarded pre-blit
 `blitFrogAnimColumnOnTrigger`). Arm 0's outgoing register ABI to that loop is a return-bridge and its
 pattern pointers (`FROG_ANIM_ARM0_DEST_PTR`/`FROG_ANIM_ARM0_SRC_BASE`) are named cells. `[seen]`.
-Arms 2,3,7,8,9,10 (`0x107b`/`0x109b`/`0x1118`/`0x1138`/`0x1158`/`0x1178`) are now lifted on the arm-0
-template, each reading its triple as an offset into the lane block and naming its own
-`FROG_ANIM_ARM<n>_DEST_PTR`/`SRC_BASE` pointers; `[code]` (MAME-grounding pending). Arms 4 and 5 stay frozen.
+Arms 2,3,4,7,8,9,10 (`0x107b`/`0x109b`/`0x10bb`/`0x1118`/`0x1138`/`0x1158`/`0x1178`) are now lifted on the
+arm-0 template, each reading its triple as an offset into the lane block; arms 2/3/7-10 name their own
+`FROG_ANIM_ARM<n>_DEST_PTR`/`SRC_BASE` pointers, arm 4 reuses the scroll subsystem's shared-block names.
+`[code]` (MAME-grounding pending). Only arm 5 (a bare `jp 0x1029`) stays frozen.
 
 ## The sprite-object engine — `[seen,poked]`
 
