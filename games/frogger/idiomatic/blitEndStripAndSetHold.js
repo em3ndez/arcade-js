@@ -8,10 +8,10 @@ import { NO_MORE_FROGS_COLUMN_VRAM, LAYOUT_SETUP_STRIP_SRC, FIVE_TILE_STRIP_SRC,
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 
 export function blitEndStripAndSetHold(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
-  copyRunUpTileColumn(m, NO_MORE_FROGS_COLUMN_VRAM, LAYOUT_SETUP_STRIP_SRC, 4);
-  copyRunUpTileColumn(m, regs.hl, FIVE_TILE_STRIP_SRC, 5);
+  const { hl } = copyRunUpTileColumn(m, NO_MORE_FROGS_COLUMN_VRAM, LAYOUT_SETUP_STRIP_SRC, 4);
+  copyRunUpTileColumn(m, hl, FIVE_TILE_STRIP_SRC, 5);
 
   mem8[HOLD_FLAG] = 1;
 }

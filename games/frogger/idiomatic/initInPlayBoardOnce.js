@@ -41,19 +41,20 @@ export function initInPlayBoardOnce(m) {
   mem8[INTRO_COUNTER_801B] = 0x04;
   mem8[POINT_TABLE_SPRITE_ATTR_8029] = 0x06;
 
-  copyRunUpTileColumn(m, 0xaa28, 0x2f77, 0x04);
-  regs.e = (regs.e + 1) & 0xff;
-  copyRunUpTileColumn(m, 0xaaad, regs.de, 0x0c);
+  const { de: seedSrc } = copyRunUpTileColumn(m, 0xaa28, 0x2f77, 0x04);
+  // Z80 INC E: advance only DE's low byte (no carry into the high byte)
+  const targetSrc = ((seedSrc >>> 8) << 8) | ((seedSrc + 1) & 0xff);
+  copyRunUpTileColumn(m, 0xaaad, targetSrc, 0x0c);
 
   blitPlayerSelectPrompt(m);
 
-  copyRunUpTileColumn(m, POINT_TABLE_PHASE2_STRIP_VRAM, PLAYER_SELECT_PROMPT_SRC, 0x03);
-  copyRunUpTileColumn(m, regs.hl, 0x2fa8, 0x06);
-  copyRunUpTileColumn(m, regs.hl, INTRO_TITLE_STRIP2_SRC, 0x05);
-  copyRunUpTileColumn(m, regs.hl, regs.de + 1, 0x07);
+  const promptRun = copyRunUpTileColumn(m, POINT_TABLE_PHASE2_STRIP_VRAM, PLAYER_SELECT_PROMPT_SRC, 0x03);
+  const promptRun2 = copyRunUpTileColumn(m, promptRun.hl, 0x2fa8, 0x06);
+  const promptRun3 = copyRunUpTileColumn(m, promptRun2.hl, INTRO_TITLE_STRIP2_SRC, 0x05);
+  copyRunUpTileColumn(m, promptRun3.hl, promptRun3.de + 1, 0x07);
 
   regs.hl = 0xa994; regs.de = m.mem16[EXTRA_LIFE_SCORE_TARGET];
-  writeScoreField(m);
+  const scoreTargetPtr = writeScoreField(m);
 
-  copyRunUpTileColumn(m, regs.hl, PTS_SUFFIX_STRIP, 0x04);
+  copyRunUpTileColumn(m, scoreTargetPtr, PTS_SUFFIX_STRIP, 0x04);
 }
