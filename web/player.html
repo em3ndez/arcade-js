@@ -632,15 +632,34 @@ import { getCached, putCached, clearCached } from "./romstore.js";
       }));
     if (!clips.size) return; // nothing loaded -> no audio, and no control shown
 
-    let current = null; // the single clip currently sounding, or null
+    // The sound TRIGGER is the falling edge of the control port's /INT bit, NOT the latch write. The ROM
+    // re-writes 0xD000 with the SAME command on a repeated effect (every hop is 0x04), and the worker
+    // dedups unchanged latch values, so a latch-triggered player sounds a repeated effect only ONCE. Track
+    // the latched command from LATCH writes and fire it on each falling edge of the control bit instead.
+    const ctrlPort = SOUNDS.ports?.control;
+    const intMask = 1 << (SOUNDS.ports?.intBit ?? 3);
+    let current = null;     // the single clip currently sounding, or null
+    let latched = null;     // last command written to the sound latch (0xD000)
+    let ctrlPrev = intMask; // the control bit idles high, so the first genuine 1->0 fall is caught
+    const fire = (cmd) => {
+      const clip = clips.get(cmd);
+      if (!clip) return;                  // silent/unknown command: leave the voice alone
+      if (current) player.stop(current);  // one sound CPU -> one voice at a time
+      player.play(clip.name);
+      current = clip.name;
+    };
     onSoundEvents = (ev) => {
       for (let i = 0; i < ev.length; i += 2) {
-        if (ev[i] !== LATCH) continue;
-        const clip = clips.get(ev[i + 1]);
-        if (!clip) continue;                // silent/unknown command: leave the voice alone
-        if (current) player.stop(current);  // one sound CPU -> one voice at a time
-        player.play(clip.name);
-        current = clip.name;
+        const addr = ev[i], val = ev[i + 1];
+        if (addr === LATCH) {
+          latched = val;
+          if (ctrlPort == null) fire(val); // a map with no control port keeps the old latch-trigger
+          continue;
+        }
+        if (addr !== ctrlPort) continue;
+        const fell = (ctrlPrev & intMask) && !(val & intMask); // bit3 1->0 = the /INT that plays the latch
+        ctrlPrev = val;
+        if (fell && latched != null) fire(latched);
       }
     };
 
