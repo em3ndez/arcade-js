@@ -458,7 +458,7 @@ The machine reuses one family of RAM-wiping and layout primitives across four oc
 Two primitives paint the tilemap. `clearTilemapToTile16` [seen] fills all 1024 cells of the 32x32 tilemap (VRAM_BASE (0xa800) through 0xabff) with the blank tile 0x10 — this is the rst 0x38 whole-screen wipe. `fillTilemapBlock28x32` [seen] fills a 28-wide by 32-tall block from TILEMAP_FILL_BASE_28X32 (0xa802) with tile 16, writing 28 cells per row and skipping 4 cells between rows, so it clears the play area while leaving the 4-column status margin untouched.
 
 Three primitives wipe player/actor work RAM:
-- `forceClearPlayerWorkRam` [seen] unconditionally zeroes the 32-byte frog object block from FROG_X (0x8044) [seen] and the 12-byte home-bay gate block from HOME_BAY_GATE_BLOCK (0x8420) [code].
+- `forceClearPlayerWorkRam` [seen] unconditionally zeroes the 32-byte frog object block from FROG_X (0x8044) [seen] and the 12-byte player-work scratch block from PLAYER_WORK_SCRATCH_8420 (0x8420) [seen].
 - `clearActivePlayerWorkRam` [seen] guards that: in a one-player game (PLAY_FLAG (0x83fe) [seen] == 1) it returns and leaves the block intact; in a two-player game or attract (PLAY_FLAG 0 or 2) it falls into the force-clear. The one-player skip preserves the single player's frog/gate state that a two-player game must instead swap out.
 - `clearObjectBlocksAndMirrorToObjRam` [seen] zeroes a 44-byte object block at LIVE_OBJECT_PAGE (0x800c) [seen], copies its now-zero 43-byte head into the OBJRAM object mirror OBJRAM_OBJECT_MIRROR_BASE (0xb00c) [seen], then zeroes a 99-byte sprite block at SPRITE_BLOCK2_BASE (0x8100) [seen] — clearing both the live object page and the sprite-actor scratch used for the next board's objects.
 
@@ -572,7 +572,7 @@ If `SCORE_DISPLAY_ARM_SELECT` [seen] (0x83df) is non-zero the driver takes the b
 
 `blitEndStripAndSetHold` [seen] (0x085b) is the no-more-frogs tail: it blits a four-tile then a five-tile strip up `NO_MORE_FROGS_COLUMN_VRAM` [seen] (0xaa51) — the second continuing where the first left the pointer — and raises `HOLD_FLAG` (0x8004) = 1, which halts the countdown driver.
 
-`armScoreBonusStrip` [code] (0x08c5) is the bonus arm — the `SCORE_DISPLAY_ARM_SELECT != 0` branch and also a standalone entry from the home-goal path. Guarded by `loc_83e0` [seen] (0x83e0) so it runs once, it blits a five-tile strip up 0xaa51, prints the remaining countdown byte `loc_83de` as two BCD digits, then cashes that remaining byte into the score through `addScoreAndAwardExtraLife` — the end-of-board time-bonus payout.
+`armScoreBonusStrip` [seen] (0x08c5) is the bonus arm — the `SCORE_DISPLAY_ARM_SELECT != 0` branch and also a standalone entry from the home-goal path. Guarded by `loc_83e0` [seen] (0x83e0) so it runs once, it blits a five-tile strip up 0xaa51, prints the remaining countdown byte `loc_83de` as two BCD digits, then cashes that remaining byte into the score through `addScoreAndAwardExtraLife` — the end-of-board time-bonus payout.
 
 ### Sound: the command ring
 
@@ -594,7 +594,7 @@ The credit amount comes from the coinage word `COINAGE_WORD` [seen] (0x83d4), wh
 
 `placeScoreRankMarkers` [seen] (0x0c3d) stamps the "your rank" markers. For each of the two bytes of the packed field `INTRO_DIGIT_FIELD` (0x83fb) — the rank codes `packScoreRankPair` stored — a non-zero code writes the constant marker tile 4 into work-RAM page 0x80 at offset (48 − code), via the row helper `loc_0c4a` [seen] (0x0c4a) which writes a byte into page-H RAM at row (D − C) and skips when C is 0. A zero code stamps nothing; the rank is encoded as a *position*, not a rendered numeral.
 
-`blitMode3FinalStrip` [seen] (0x0c17) is the shared final-strip tail: it zeros the strip-state cell `OBJECT_ANIM_STATE_8039` [code] (0x8039), then blits a 15-tile strip (`MODE3_FINAL_STRIP_SRC`, 0x2f4d) up the VRAM column `MODE3_FINAL_STRIP_VRAM` [seen] (0xaafc). It is reached both by fall-through from the ranking render and by a direct jump when the mode is already set up.
+`blitMode3FinalStrip` [seen] (0x0c17) is the shared final-strip tail: it zeros the strip-state cell `OBJECT_ANIM_STATE_8039` [seen] (0x8039), then blits a 15-tile strip (`MODE3_FINAL_STRIP_SRC`, 0x2f4d) up the VRAM column `MODE3_FINAL_STRIP_VRAM` [seen] (0xaafc). It is reached both by fall-through from the ranking render and by a direct jump when the mode is already set up.
 
 ## The lane-object mover
 
