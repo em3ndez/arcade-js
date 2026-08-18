@@ -251,6 +251,22 @@ test("render: a tile draws over the background; pen 0 is transparent so backgrou
   assert.deepEqual(pixel(out, 1), BACKGROUND_BLUE, "tile pen 0 transparent -> background");
 });
 
+test("render: per-column scroll-Y advances the source DOWNWARD (sourceY = nativeY + scrollY) -- guards the scroll SIGN", () => {
+  // Regression: a `-` here scrolled every lane backwards vs MAME; the wrong sign samples a different cell.
+  const gfx = blankGfx(), mem = blankMem();
+  const SCROLL = 8;
+  mem.objRam[0] = froggerNibbleSwap(SCROLL);
+  const cellPlus = (((VISIBLE_Y0 + SCROLL) & 0xff) >> 3) * 32;
+  const cellMinus = (((VISIBLE_Y0 - SCROLL) & 0xff) >> 3) * 32;
+  assert.notEqual(cellPlus, cellMinus, "the two signs must sample different cells for this test to bite");
+  mem.videoRam[cellPlus] = 5;
+  gfx.tiles[5 * 64 + 0] = 3;
+  setPen(gfx.palette, 3, [11, 22, 33]);
+  const out = new Uint8Array(SCREEN_W * 3);
+  renderRowsRGB(out, 0, 0, mem, gfx);
+  assert.deepEqual(pixel(out, 0), [11, 22, 33], "screen row 0 samples nativeY+scrollY (not nativeY-scrollY)");
+});
+
 test("render: per-column color base uses odd OBJRAM byte + frogger_extend rotate", () => {
   const gfx = blankGfx(), mem = blankMem();
   mem.videoRam[CELL0] = 5;
