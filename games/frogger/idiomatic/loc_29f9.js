@@ -26,7 +26,7 @@ export function loc_29f9(m, obj = m.regs.ix, spr = m.regs.iy) {
 
   if (mem8[(spr + 0x03)] >= ROW_THRESHOLD) {
     const step = facing === 0 ? -2 : 2;
-    mem8[(obj + 0x03)] = (mem8[(obj + 0x03)] + step) & 0xff;
+    mem8[(obj + 0x03)] = mem8[(obj + 0x03)] + step;
     return;
   }
 
@@ -35,11 +35,11 @@ export function loc_29f9(m, obj = m.regs.ix, spr = m.regs.iy) {
     const anchor = mem8[(obj + 0x00)];
     if (trackX < anchor) return; // past the target, hold
     if (((trackX - anchor) & 0xff) >= mem8[(spr + 0x00)]) return turn();
-    mem8[(obj + 0x02)] = (mem8[(obj + 0x02)] + 1) & 0xff; // step toward
+    mem8[(obj + 0x02)] = mem8[(obj + 0x02)] + 1; // step toward
   } else {
     const anchor = mem8[(obj + 0x01)];
     if (((trackX - anchor) & 0xff) < mem8[(spr + 0x00)]) return turn();
-    mem8[(obj + 0x02)] = (mem8[(obj + 0x02)] - 1) & 0xff;
+    mem8[(obj + 0x02)] = mem8[(obj + 0x02)] - 1;
   }
 
   function turn() {

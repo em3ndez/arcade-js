@@ -39,47 +39,47 @@ function enqueueHopSound(m) {
 
 // Shared begin body: fresh hop primes the sprite + counter, else the counter just re-primes, then advance.
 function beginHop(m, counter, reload, restCode, advance) {
-  const mem = m.mem8;
-  if (mem[counter] === 0) {
+  const { mem8 } = m;
+  if (mem8[counter] === 0) {
     enqueueHopSound(m);
-    if (mem[FROG_SPRITE_CODE] === restCode) {
-      mem[counter] = mem[reload]; // frog already showing the rest sprite: re-prime and advance, no bump
+    if (mem8[FROG_SPRITE_CODE] === restCode) {
+      mem8[counter] = mem8[reload]; // frog already showing the rest sprite: re-prime and advance, no bump
       return advance(m);
     }
-    mem[FROG_SPRITE_CODE] = restCode;
+    mem8[FROG_SPRITE_CODE] = restCode;
   }
-  const bumped = (mem[counter] + 1) & 0xff;
-  mem[counter] = bumped;
+  const bumped = (mem8[counter] + 1) & 0xff;
+  mem8[counter] = bumped;
   if (bumped === 0) return; // the bump wrapped: bail with the counter left at zero
-  mem[counter] = mem[reload];
+  mem8[counter] = mem8[reload];
   return advance(m);
 }
 
 // Shared advance body for the plain directions: arrive-once guard, tick down, then arrive or step the frog.
 function advanceHop(m, arrival, active, counter, restCode, moveCode, step) {
-  const mem = m.mem8;
-  if (mem[arrival] !== 0) return; // this hop has already arrived
-  mem[active] = 1;
-  const left = (mem[counter] - 1) & 0xff;
-  mem[counter] = left;
+  const { mem8 } = m;
+  if (mem8[arrival] !== 0) return; // this hop has already arrived
+  mem8[active] = 1;
+  const left = (mem8[counter] - 1) & 0xff;
+  mem8[counter] = left;
   if (left === 0) {
-    mem[active] = 0;
-    mem[arrival] = 1;
-    mem[FROG_SPRITE_CODE] = restCode;
+    mem8[active] = 0;
+    mem8[arrival] = 1;
+    mem8[FROG_SPRITE_CODE] = restCode;
     return;
   }
   step(m);
-  mem[FROG_SPRITE_CODE] = moveCode;
+  mem8[FROG_SPRITE_CODE] = moveCode;
 }
 
 const stepHopDown = (m) => {
-  m.mem8[FROG_Y] = (m.mem8[FROG_Y] + m.mem8[FROG_HOP_VERTICAL_DELTA]) & 0xff;
+  m.mem8[FROG_Y] = m.mem8[FROG_Y] + m.mem8[FROG_HOP_VERTICAL_DELTA];
 };
 const stepHopRight = (m) => {
-  m.mem8[FROG_X] = (m.mem8[FROG_X] + m.mem8[FROG_HOP_HORIZONTAL_DELTA]) & 0xff;
+  m.mem8[FROG_X] = m.mem8[FROG_X] + m.mem8[FROG_HOP_HORIZONTAL_DELTA];
 };
 const stepHopLeft = (m) => {
-  m.mem8[FROG_X] = (m.mem8[FROG_X] - m.mem8[FROG_HOP_HORIZONTAL_DELTA]) & 0xff;
+  m.mem8[FROG_X] = m.mem8[FROG_X] - m.mem8[FROG_HOP_HORIZONTAL_DELTA];
 };
 
 export function beginFrogHopDown(m) {
@@ -94,27 +94,27 @@ export function beginFrogHopUp(m) {
   return beginHop(m, FROG_HOP_UP_ANIM_COUNTER, FROG_HOP_UP_ANIM_RELOAD, HOP_UP_REST_CODE, advanceFrogHopUp);
 }
 export function advanceFrogHopUp(m) {
-  const mem = m.mem8;
+  const { mem8 } = m;
   loc_23eb(m); // advance the home-bay slot cursor; its A output is discarded below
-  if (mem[FROG_HOP_UP_ARRIVAL] !== 0) return;
-  mem[FROG_HOP_UP_ACTIVE] = 1;
-  const left = (mem[FROG_HOP_UP_ANIM_COUNTER] - 1) & 0xff;
-  mem[FROG_HOP_UP_ANIM_COUNTER] = left;
+  if (mem8[FROG_HOP_UP_ARRIVAL] !== 0) return;
+  mem8[FROG_HOP_UP_ACTIVE] = 1;
+  const left = (mem8[FROG_HOP_UP_ANIM_COUNTER] - 1) & 0xff;
+  mem8[FROG_HOP_UP_ANIM_COUNTER] = left;
   if (left === 0) {
-    mem[FROG_HOP_UP_ACTIVE] = 0;
-    mem[FROG_HOP_UP_ARRIVAL] = 1;
-    mem[FROG_SPRITE_CODE] = HOP_UP_REST_CODE;
+    mem8[FROG_HOP_UP_ACTIVE] = 0;
+    mem8[FROG_HOP_UP_ARRIVAL] = 1;
+    mem8[FROG_SPRITE_CODE] = HOP_UP_REST_CODE;
     scoreFrogRowProgress(m); // DE is scratch here, not live-out
     return;
   }
-  mem[FROG_Y] = (mem[FROG_Y] - mem[FROG_HOP_VERTICAL_DELTA]) & 0xff;
-  mem[FROG_SPRITE_CODE] = HOP_UP_MOVE_CODE;
+  mem8[FROG_Y] = mem8[FROG_Y] - mem8[FROG_HOP_VERTICAL_DELTA];
+  mem8[FROG_SPRITE_CODE] = HOP_UP_MOVE_CODE;
 }
 
 export function beginFrogHopRight(m) {
-  const mem = m.mem8;
-  if (mem[FROG_Y] < 0x30) return; // frog above the field top: no hop
-  if (mem[FROG_X] >= 0xe0) return; // frog at the right edge: no right-hop
+  const { mem8 } = m;
+  if (mem8[FROG_Y] < 0x30) return; // frog above the field top: no hop
+  if (mem8[FROG_X] >= 0xe0) return; // frog at the right edge: no right-hop
   return beginHop(m, FROG_HOP_RIGHT_ANIM_COUNTER, FROG_HOP_RIGHT_ANIM_RELOAD, HOP_RIGHT_REST_CODE, advanceFrogHopRight);
 }
 export function advanceFrogHopRight(m) {
@@ -122,9 +122,9 @@ export function advanceFrogHopRight(m) {
 }
 
 export function beginFrogHopLeft(m) {
-  const mem = m.mem8;
-  if (mem[FROG_Y] < 0x30) return; // frog above the field top: no hop
-  if (mem[FROG_X] < 0x20) return; // frog at the left edge: no left-hop
+  const { mem8 } = m;
+  if (mem8[FROG_Y] < 0x30) return; // frog above the field top: no hop
+  if (mem8[FROG_X] < 0x20) return; // frog at the left edge: no left-hop
   return beginHop(m, FROG_HOP_LEFT_ANIM_COUNTER, FROG_HOP_LEFT_ANIM_RELOAD, HOP_LEFT_REST_CODE, advanceFrogHopLeft);
 }
 export function advanceFrogHopLeft(m) {

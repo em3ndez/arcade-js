@@ -6,30 +6,30 @@
  */
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writePackedBcdByte } from "./writePackedBcdByte.js";
-import { CREDIT_BCD, OBJRAM_COL3F_ATTR_SHADOW, CREDIT_COLUMN_CLEAR_LATCH, CREDIT_LABEL_STRIP } from "./names.js";
+import {
+  CREDIT_BCD, OBJRAM_COL3F_ATTR_SHADOW, CREDIT_COLUMN_CLEAR_LATCH, CREDIT_LABEL_STRIP,
+  CREDIT_COLUMN_TOP_VRAM, CREDIT_LABEL_DST, CREDIT_COUNT_DST,
+} from "./names.js";
 
-const COLUMN_TOP = 0xa81f;
 const CLEAR_TILE = 0x10;
 const COLUMN_CELLS = 0x20;
 const ROW_STEP = 32; // one 32-cell tilemap row
-const LABEL_DST = 0xa97f;
 const LABEL_LEN = 0x06;
-const COUNT_DST = 0xa89f;
 
 export function renderCreditLine(m) {
   const { mem8 } = m;
 
   if (mem8[CREDIT_COLUMN_CLEAR_LATCH] === 0) {
     mem8[CREDIT_COLUMN_CLEAR_LATCH] = 1;
-    let cell = COLUMN_TOP;
+    let cell = CREDIT_COLUMN_TOP_VRAM;
     for (let n = COLUMN_CELLS; n !== 0; n--) {
       mem8[cell] = CLEAR_TILE;
       cell = cell + ROW_STEP;
     }
   }
 
-  copyRunUpTileColumn(m, LABEL_DST, CREDIT_LABEL_STRIP, LABEL_LEN);
+  copyRunUpTileColumn(m, CREDIT_LABEL_DST, CREDIT_LABEL_STRIP, LABEL_LEN);
 
   mem8[OBJRAM_COL3F_ATTR_SHADOW] = 1;
-  return writePackedBcdByte(m, mem8[CREDIT_BCD], COUNT_DST);
+  return writePackedBcdByte(m, mem8[CREDIT_BCD], CREDIT_COUNT_DST);
 }

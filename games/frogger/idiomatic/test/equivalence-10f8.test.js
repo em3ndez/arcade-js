@@ -5,15 +5,16 @@
  * coherent post-boot states are captured at the per-frame score redraw (0x0b1f) and replayed through
  * both sides. The routine reads all its inputs from memory (no register live-in), so any such state
  * is a valid entry; each is nudged so the arm's sprite triple renders a small, bounded, observable
- * block (the anim index is parked one below its wrap so only this arm draws). Both sides marshal the
- * shared render loop 0x0ff1 identically and run it on a fresh clone, so its writes are part of the
- * compared live-out. Live-out is memory-only, so RAM is compared and registers/SP are not. Teeth:
- * three broken twins (no-op, wrong plot cursor, skip the render call).
+ * block (the anim index is parked one below its wrap so only this arm draws). The rewrite enters the
+ * lifted render loop with a direct call where the oracle uses a Z80 call to 0x0ff1, so the only
+ * divergence is the seam's transient pushed return address in dead stack scratch (isStackScratch),
+ * excluded from the RAM compare. Live-out is memory-only, so RAM is compared and registers/SP are not.
+ * Teeth: three broken twins (no-op, wrong plot cursor, skip the render call).
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { makeMachine, ENTRY_FRAMES, romsPresent, isStackScratch } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { renderFrogAnimArm6 } from "../renderFrogAnimArm6.js";
 import { loc_10f8 as oracle } from "../../translated/loc_10f8.js";
@@ -55,7 +56,7 @@ function craft(machine) {
 function ramDiff(cand, machine) {
   const a = machine.clone(); oracle(a);
   const b = machine.clone(); cand(b);
-  const d = firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
+  const d = firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o), isStackScratch);
   return d ? `0x${(d.addr ?? 0).toString(16)}: ${d.a} vs ${d.b}` : null;
 }
 

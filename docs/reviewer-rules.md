@@ -125,14 +125,17 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
 
 - **R4b [ALL]** A cell that is `[code]` **or** `[seen]` must be exported by a DESCRIPTIVE identifier,
   not `loc_<addr>` — a cell earns its name at the `[guess]`→`[code]` transition, not at grounding
-  (runbook: "A cell earns its DESCRIPTIVE identifier the moment it reaches `[code]`"; the only sanctioned
-  forms are a descriptive `export const` or keep-hex, never `export const loc_<addr>`). **Verify:** for
+  (runbook: "A cell earns its DESCRIPTIVE identifier the moment it reaches `[code]`"; the sanctioned
+  forms are a descriptive `export const` for an understood cell or an allowlisted `loc_<addr>` for a
+  role-unknown one, never `loc_<addr>` for a `[code]`/`[seen]` cell). **Verify:** for
   each cell the commit adds/touches whose tag is `[code]` or `[seen]`, grep its `names.js` line — if the
   `export const` is still `loc_<addr>`, the naming is half-done and the unit is not finished. The rename
   is value-identical (address unchanged) and must update every importer, so also confirm
   `git grep "loc_<addr>" games/<game>/idiomatic` returns nothing for a now-renamed cell (a stale import
-  would fail to load). Fire on `[code]` and `[seen]`; a `[guess]`/unknown cell correctly stays keep-hex
-  (a bare literal, no const) — do not force a name before the reading is confident. (Recorded
+  would fail to load). Fire on `[code]` and `[seen]`; a `[guess]`/unknown cell takes an allowlisted
+  `loc_<addr>` name (tools/names-debt.txt) — a readable placeholder, not a forced descriptive name
+  before the reading is confident (Amended 2026-08-17 by Karl: unknown cells take loc_, not keep-hex).
+  (Recorded
   2026-08-15: the frogger pipeline left most of its confident cells — `[code]` and `[seen]` — named
   `loc_<addr>` until Karl caught it: "when a cell changes guess→code, that's when it should be renamed.")
 - **R5 [ALL]** Every name promoted loc_<addr>→English **in the commit under review** is corroborated
@@ -893,3 +896,23 @@ qarl asking how the docs change so the layer gets wired and used immediately.*
   too." Backfill owed -- a value-identical naming sweep over the cells grandfathered in `names-debt.txt`;
   the `names_consistency` gate rule (B) now FAILs any new `loc_` cell, and becomes fully debt-free once the
   sweep runs.*
+
+## R35 [U] mechanisms.md is regenerated WHOLE, never patched
+
+- **R35 [U]** An understanding pass regenerates `games/<game>/mechanisms.md` WHOLE from the current
+  code every time — it is never an incremental patch (Karl, 2026-08-17). A commit that renames / adds /
+  wires routines but leaves most of the map's prose byte-identical — a few-line edit that name-drops the
+  new routine to green `understanding_gate` CHECK A — is the anti-pattern: the map drifts from the code
+  while reading as finished. Verify: `git diff --cached --stat -- games/<game>/mechanisms.md` on a commit
+  that changes routine naming / wiring should reflect a whole-document re-derivation (the sections rewritten
+  from the bodies), not a handful of inserted lines. A small, surgical `mechanisms.md` diff on such a commit
+  FAILs unless the message states why the map was already current (e.g. a pure grounding pass that only
+  flipped tags). And per R20 the regenerated map is a CURRENT-STATE description: no development / batch
+  chronicle ("batch N lifted X"), no decompile-campaign narrative — it says what the machine IS now, not
+  how it was built. And it must READ AS NARRATION — flowing human-readable exposition, not a fact-listing;
+  a bulleted / comma-string catalogue of cells and offsets FAILs even if every fact is present. Grounding
+  rides in the `[seen]`/`[code]` TAG, never in prose — "MAME overturned/confirmed X", wave dates, golden
+  names, and "grounding inverted the earlier reading" are development history and FAIL; a current-state
+  warning that a reading is counterintuitive ("X is a counter, not a static base") is fine. Verify:
+  `grep -niE 'wave[- ][12]|overturn|golden_|MAME (grounding|wave)|batch [0-9]|earlier reading' games/<game>/mechanisms.md`
+  returns only mechanism false-positives (e.g. an "inverted" hardware port), not history prose.

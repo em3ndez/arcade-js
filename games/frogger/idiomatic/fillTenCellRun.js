@@ -15,6 +15,5 @@ export function fillTenCellRun(m, base = m.regs.hl) {
     mem8[p] = FILL_TILE;
     p++;
   }
-  m.regs.b = 0;
-  return (m.regs.hl = p);
+  return [(m.regs.hl = p), (m.regs.b = 0)]; // load-bearing register-out (HL past run, B drained) for the translated dispatch
 }

@@ -34,10 +34,10 @@ export function driveFlyPatrol(m) {
 function advance(m) {
   const { mem8 } = m;
   if (mem8[FLY_TRAVEL_DIR_STEP] & FLIP) { // backward: two steps back before the shared step forward
-    mem8[FLY_TRAVEL_DIR_STEP] = (mem8[FLY_TRAVEL_DIR_STEP] - 1) & 0xff;
-    mem8[FLY_TRAVEL_DIR_STEP] = (mem8[FLY_TRAVEL_DIR_STEP] - 1) & 0xff;
+    mem8[FLY_TRAVEL_DIR_STEP] = mem8[FLY_TRAVEL_DIR_STEP] - 1;
+    mem8[FLY_TRAVEL_DIR_STEP] = mem8[FLY_TRAVEL_DIR_STEP] - 1;
   }
-  mem8[FLY_TRAVEL_DIR_STEP] = (mem8[FLY_TRAVEL_DIR_STEP] + 1) & 0xff;
+  mem8[FLY_TRAVEL_DIR_STEP] = mem8[FLY_TRAVEL_DIR_STEP] + 1;
 
   const value = mem8[(FLY_PATH_OFFSET_TABLE + (mem8[FLY_TRAVEL_DIR_STEP] & STEP_MASK))];
   if (value === 0) { // endpoint: reverse direction, reload the timer, show the turn sprite
@@ -52,5 +52,5 @@ function advance(m) {
 
 function writeX(m, offset) {
   const { mem8 } = m;
-  mem8[FLY_SPRITE_X] = (offset + mem8[FLY_DRIFT_COUNTER]) & 0xff;
+  mem8[FLY_SPRITE_X] = offset + mem8[FLY_DRIFT_COUNTER];
 }

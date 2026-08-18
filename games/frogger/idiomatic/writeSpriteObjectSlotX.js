@@ -11,6 +11,6 @@ export function writeSpriteObjectSlotX(m, obj = m.regs.ix, spr = m.regs.iy) {
   if (mem8[(obj + 0x06)] === 0) return; // inactive object
 
   const tableByte = mem8[loc_8000 | mem8[(obj + 0x0b)]];
-  mem8[(spr + 0x00)] = (tableByte - mem8[(obj + 0x02)]) & 0xff;
+  mem8[(spr + 0x00)] = tableByte - mem8[(obj + 0x02)];
   mem8[(spr + 0x03)] = mem8[(obj + 0x04)];
 }

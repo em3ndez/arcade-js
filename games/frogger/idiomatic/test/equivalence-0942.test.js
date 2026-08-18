@@ -3,8 +3,10 @@
  * equivalence-0942 — crafted-entry gate: renderFrogSceneAndTickTimer vs the frozen oracle at ROM 0x0942
  * (the loc_0425 render core). Covers the PLAY_FLAG=0 branches (bare ret when the demo gate is set, else
  * the frog reset), the player-1 timer tick and its expiry into 0x83CF, the player-2 / demo-gate-set path
- * that skips the timer + home marker, and the lane-param + frog-animation-dispatch path (0x825A != 0),
- * run with 0x0FAF stubbed so the diff isolates this routine's own effects. Teeth: no-op, a skipped flag,
+ * that skips the timer + home marker, and the lane-param + frog-animation-dispatch path (0x825A != 0).
+ * The dispatcher is now dissolved to a direct idiomatic call (dispatchFrogAnimationArm), so the anim path
+ * runs the real dispatcher on both sides -- the candidate direct, the oracle via its m.call(0x0FAF) -- the
+ * two proven equivalent by equivalence-0faf; the stack scratch it churns is masked. Teeth: no-op, a skipped flag,
  * a skipped timer decrement, a wrong return-A (all must diff); positive control the timer expiry + reset fire.
  * Live-out: memory + A (caller 0x040B stores A into continue flag 0x83EA); stack masked.
  */
@@ -16,29 +18,8 @@ import { renderFrogSceneAndTickTimer as cand } from "../renderFrogSceneAndTickTi
 import { loc_0942 as oracle } from "../../translated/loc_0942.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
-const STACK_LO = 0x87e0, STACK_HI = 0x8800, ANIM_DISPATCH = 0x0faf;
 const PLAY = 0x83fe, PLAYER = 0x83fd, DEMO = 0x83cd, EXPIRY = 0x83cf, T1 = 0x83e5;
 const DEMOFLAG = 0x825a, CNT_EN = 0x826c, MIRROR = 0x83b5, READY = 0x83c3;
-
-// The anim path tail-calls the (still-translated, here in-flight) dispatcher; stub it to isolate 0x0942.
-function diffStub(entry, candFn = cand) {
-  const saved = entry.routines.get(ANIM_DISPATCH);
-  entry.routines.set(ANIM_DISPATCH, () => {});
-  try {
-    const a = entry.clone(); oracle(a);
-    const b = entry.clone(); candFn(b);
-    const A = a.dumpState(), B = b.dumpState();
-    for (let i = 0; i < Math.min(A.length, B.length); i++) {
-      if (A[i] === B[i]) continue;
-      const addr = a.stateOffsetToAddr(i);
-      if (addr >= STACK_LO && addr < STACK_HI) continue;
-      return `0x${addr.toString(16)}: ${A[i]} vs ${B[i]}`;
-    }
-    return null;
-  } finally {
-    entry.routines.set(ANIM_DISPATCH, saved);
-  }
-}
 
 // A is a live-out: the board-setup caller stores the returned A into the continue flag. Compare it too.
 function aDiff(entry, candFn = cand) {
@@ -60,7 +41,7 @@ test("EQUAL (crafted): renderFrogSceneAndTickTimer == oracle across branches", {
   assert.equal(ramDiff(oracle, cand, p1Tick()), null, "P1 timer tick diverged");
   assert.equal(ramDiff(oracle, cand, p1Expiry()), null, "P1 timer expiry diverged");
   assert.equal(ramDiff(oracle, cand, p2Gated()), null, "P2 / demo-gated diverged");
-  assert.equal(diffStub(animPath()), null, "lane-param + anim-dispatch path diverged");
+  assert.equal(ramDiff(oracle, cand, animPath()), null, "lane-param + anim-dispatch path diverged");
 
   assert.equal(aDiff(playOffRet()), null, "A live-out diverged on the demo-clear bare return");
   assert.equal(aDiff(playOffReset()), null, "A live-out diverged on the demo-set reset");

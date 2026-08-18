@@ -4,15 +4,16 @@
  * GATE: crafted-entry. Attract never dispatches this frog-animation arm (probe: 0 over ENTRY_FRAMES),
  * so a post-boot attract clone is poked into a coherent arm state: a small sprite triple at 0x8273,
  * the anim index 0x8000 set to 0x0a so the render loop's tail wraps without re-cascading, and the
- * pre-blit trigger 0x8118 driven both off and on. Both sides m.call the frozen pre-blit (0x0f8c) and
- * render loop (0x0ff1) on their own clone, so those callees run identically and their writes are part
- * of the compared live-out. Live-out is memory-only, so RAM is compared, not registers/SP. Teeth: four
- * broken twins. NOTE: links once names.js exports LANE_OBJLIST_8109, SCROLL_GRID_SRC_PHASE16 (added in a later pass).
+ * pre-blit trigger 0x8118 driven both off and on. The oracle runs the pre-blit and render loop via Z80
+ * calls (0x0f8c, 0x0ff1); the rewrite calls the lifted pre-blit and direct-calls the lifted render loop,
+ * so the only divergence is the seam's transient pushed return address in dead stack scratch
+ * (isStackScratch), masked. Live-out is memory-only, so RAM is compared, not registers/SP. Teeth: four
+ * broken twins.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { makeMachine, ENTRY_FRAMES, romsPresent, isStackScratch } from "./_harness.js";
 import { renderFrogAnimArm1 } from "../renderFrogAnimArm1.js";
 import { loc_1058 as oracle } from "../../translated/loc_1058.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -48,7 +49,7 @@ function entry(preblitTrigger) {
 function ramDiff(cand, machine) {
   const a = machine.clone(); oracle(a);
   const b = machine.clone(); cand(b);
-  const d = firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
+  const d = firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o), isStackScratch);
   return d ? `0x${(d.addr ?? 0).toString(16)}: ${d.a} vs ${d.b}` : null;
 }
 

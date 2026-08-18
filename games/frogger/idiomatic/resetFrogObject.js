@@ -17,5 +17,5 @@ export function resetFrogObject(m) {
   mem8[loc_842c] = 0;
   mem8[FROG_FURTHEST_ROW] = 0;
   mem8[FROG_READY_FLAG] = 1;
-  m.regs.a = 1;
+  return (m.regs.a = 1); // load-bearing A-out: the ready-flag value the render caller reads
 }

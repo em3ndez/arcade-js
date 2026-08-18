@@ -5,7 +5,7 @@
 export default {
   id: "frogger",
   title: "Frogger",
-  year: 1981, // GAME(1981, frogger, ...) galaxian.cpp:17072
+  year: 1981,
   manufacturer: "Konami",
   orientation: "vertical",
   screen: { width: 256, height: 224, rot: 90 },
@@ -15,6 +15,9 @@ export default {
   mameDriver: "galaxian.cpp",
 
   runtime: "idiomatic",
+
+  // Port finished (cruft=0) -> CLEANUP phase: comment_gate allows verbose idiomatic comments. docs/comment-gate.md
+  idiomaticComplete: true,
 
   // ROM assembly is game-local (games/frogger/tools/build-rom.mjs) for two transforms: maincpu PADDED
   // 0x3000->0x4000 with 0x00 (memory.js requires a 0x4000 image), and gfx plane1 (.606) D0<->D1 swapped

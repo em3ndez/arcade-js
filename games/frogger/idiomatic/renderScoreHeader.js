@@ -5,17 +5,14 @@
  * and — only in two-player mode — the 2-UP column (a "2" digit, "-UP", then player 2's score).
  * LIVE-OUT: memory-only (score-header tilemap cells).
  */
-import { HIGH_SCORE, PLAYER1_SCORE, PLAYER2_SCORE, NUM_PLAYERS, HI_SCORE_LABEL_STRIP, UP_LABEL_STRIP } from "./names.js";
+import {
+  HIGH_SCORE, PLAYER1_SCORE, PLAYER2_SCORE, NUM_PLAYERS, HI_SCORE_LABEL_STRIP, UP_LABEL_STRIP,
+  HISCORE_LABEL_DST, HISCORE_VALUE_DST, P1_DIGIT_DST, P1_SCORE_DST, P2_SCORE_DST,
+  SCORE_DISPLAY_VRAM_PAGE,
+} from "./names.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writeScoreField } from "./writeScoreField.js";
 import { writeScoreDigitStepUp } from "./writeScoreDigitStepUp.js";
-
-const HISCORE_LABEL_DST = 0xaa60;
-const HISCORE_VALUE_DST = 0xaa41;
-const P1_DIGIT_DST = 0xab20;
-const P1_SCORE_DST = 0xab41;
-const P2_DIGIT_DST = 0xa900;
-const P2_SCORE_DST = 0xa921;
 
 const HISCORE_LABEL_LEN = 8;
 const SIDE_LABEL_LEN = 3;
@@ -34,7 +31,8 @@ export function renderScoreHeader(m) {
 
   if (mem8[NUM_PLAYERS] === ONE_PLAYER) return;
 
-  const p2Ptr = writeScoreDigitStepUp(m, 2, P2_DIGIT_DST);
+  // the 2-UP "2" digit sits at the base cell of VRAM page 0xa9 (the score-display page)
+  const p2Ptr = writeScoreDigitStepUp(m, 2, SCORE_DISPLAY_VRAM_PAGE);
   copyRunUpTileColumn(m, p2Ptr, UP_LABEL_STRIP, SIDE_LABEL_LEN);
   return writeScoreField(m, mem16[PLAYER2_SCORE], P2_SCORE_DST);
 }

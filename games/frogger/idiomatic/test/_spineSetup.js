@@ -1,25 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Shared capture + diff for the new-game / continue / next-life spine routines (0x0457, 0x048f,
- * 0x04f3, 0x0547). Each tail-transfers into the pace tail (0x0368) and the cold-start body reaches
- * the mid-entry 0x0567, both of which re-enter the main loop forever when called directly. So the
- * routines map used for the isolated oracle/cand runs severs those two sinks with empty generators;
- * every routine then stops at its transfer point and the compared state is the routine's own setup.
- * A post-attract seed is cloned, SP seated at 0x8800, and the branch cells poked; live-out is
- * memory-only, so RAM is compared with the dead stack scratch [0x87e0,0x8800) masked.
+ * 0x04f3, 0x0547). The cold-start entry m.calls are now dissolved to direct idiomatic calls, so the
+ * routines map routes the frozen oracle's 0x0547/0x0557/0x0567 m.calls to the SAME idiomatic cold-start
+ * routines (they cancel); the pace tail (0x0368) is still severed with an empty generator so both sides
+ * stop at the frame boundary rather than re-entering the main loop forever. The compared state is the
+ * routine's own setup plus the shared, cancelling cold-start body. A post-attract seed is cloned, SP
+ * seated at 0x8800, and the branch cells poked; live-out is memory-only, so RAM is compared with the
+ * dead stack scratch [0x87e0,0x8800) masked.
  */
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { buildRoutines } from "../../routines.js";
+import { coldStartClearSlotGates } from "../coldStartClearSlotGates.js";
+import { coldStartClearAltSlotGates } from "../coldStartClearAltSlotGates.js";
+import { coldStartClearPlayRamAndSetMode } from "../coldStartClearPlayRamAndSetMode.js";
 
 export { romsPresent };
 
 const STACK_LO = 0x87e0, STACK_HI = 0x8800;
-const PACE_TAIL = 0x0368, COLD_START_MID_BODY = 0x0567;
+const PACE_TAIL = 0x0368;
 
-// The routines map with the two spine sinks severed, shared by every crafted run.
+// The routines map with the pace tail severed and the cold-start chain routed to the idiomatic layer.
 export const STUBS = buildRoutines();
 STUBS.set(PACE_TAIL, function* () {});
-STUBS.set(COLD_START_MID_BODY, function* () {});
+STUBS.set(0x0547, coldStartClearSlotGates);
+STUBS.set(0x0557, coldStartClearAltSlotGates);
+STUBS.set(0x0567, coldStartClearPlayRamAndSetMode);
 
 let seed = null;
 function seedMachine() {

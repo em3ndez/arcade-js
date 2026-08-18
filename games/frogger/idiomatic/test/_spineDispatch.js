@@ -3,9 +3,9 @@
  * Shared capture + diff for the foreground/play SPINE DISPATCHERS (0x040b, 0x0d11, 0x230f). Each keeps
  * m.call for the un-lifted dispatch targets, so a crafted post-attract clone drives each branch and RAM
  * is compared with the dead stack scratch [0x87e0,0x8800) masked. STUBS severs the non-returning
- * transfer points (0x0368/0x0567/0x0c17/0x0faf) as empty generators so both sides stop together, while
- * the returning calls (e.g. 0x0942) run for real. SEAM_STUBS instead models the live SP -- coroutine
- * tails hand back an iterator, returning sinks ret -- so withOmittedRet can be exercised.
+ * transfer points (0x0368/0x0567/0x0faf) as empty generators so both sides stop together, while
+ * the returning calls (e.g. 0x0942) and the direct-called lifted blitMode3FinalStrip (0x0c17) run for
+ * real. SEAM_STUBS instead models the live SP -- coroutine tails hand back an iterator, returning sinks ret.
  */
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { buildRoutines } from "../../routines.js";
@@ -14,14 +14,15 @@ export { romsPresent };
 
 const STACK_LO = 0x87e0, STACK_HI = 0x8800;
 
-// EQUAL/teeth: the non-returning transfer points severed; returning callees run for real.
+// EQUAL/teeth: the non-returning transfer points severed; returning callees (0x0942, the direct-called
+// blitMode3FinalStrip at 0x0c17) run for real.
 export const STUBS = buildRoutines();
-for (const a of [0x0368, 0x0567, 0x0c17, 0x0faf]) STUBS.set(a, function* () {});
+for (const a of [0x0368, 0x0567, 0x0faf]) STUBS.set(a, function* () {});
 
 // SEAM: live-faithful SP -- coroutine tails hand back an iterator, returning sinks ret.
 export const SEAM_STUBS = buildRoutines();
 for (const a of [0x0368, 0x0567]) SEAM_STUBS.set(a, function* () {});
-for (const a of [0x0c17, 0x0faf, 0x0942]) SEAM_STUBS.set(a, (mm) => mm.ret());
+for (const a of [0x0faf, 0x0942]) SEAM_STUBS.set(a, (mm) => mm.ret());
 
 let seed = null;
 function seedMachine() {

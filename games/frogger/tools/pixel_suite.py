@@ -45,7 +45,7 @@ GEN_BOOT_SKIP = 51
 GEN_OFFSETS = range(GEN_OFFSET - 3, GEN_OFFSET + 4)   # straddle it: a drift is measured, not assumed
 
 
-def capture_golden(rompath, out):
+def capture_golden(rompath, out, seconds):
     """Fresh certified golden via the shared capturer. Attract only -- no --tape.
 
     mame_golden.py returns nonzero on a POISONED capture (watchdog reset, frame delta, unverified
@@ -54,7 +54,7 @@ def capture_golden(rompath, out):
     r = subprocess.run(
         [sys.executable, os.path.join(REPO, "tools", "mame_golden.py"),
          "--hardware", HW, "--lua-dir", os.path.join(HERE, "lua"),
-         "--rompath", rompath, "--out", out, "--seconds", str(SECONDS)])
+         "--rompath", rompath, "--out", out, "--seconds", str(seconds)])
     return r.returncode == 0
 
 
@@ -111,13 +111,18 @@ def main():
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--rompath", default=os.path.expanduser("~/Downloads"),
                    help="MAME romset search path (needs frogger.zip); NOT the JS ROM dir.")
-    # Cover the whole golden (~refresh*SECONDS frames) with margin; render.js paints frames-1.
-    p.add_argument("--frames", type=int, default=math.ceil(60.606061 * SECONDS) + 34)
+    p.add_argument("--seconds", type=int, default=SECONDS,
+                   help="emulated seconds of attract to capture+render (10 = fast pre-commit gate; larger = extensive).")
+    # Cover the whole golden (~refresh*seconds frames) with margin; render.js paints frames-1.
+    p.add_argument("--frames", type=int, default=None,
+                   help="render frame count; default (None) covers the whole --seconds golden.")
     p.add_argument("--work", default=os.path.join(GAME, "out", "pixelwork"))
     # The gate invokes every suite with --layer {oracle,idiomatic}, chosen from which layer's files changed.
     p.add_argument("--layer", default="oracle", choices=["oracle", "idiomatic"],
                    help="which layer to render vs MAME (the pixel gate passes this explicitly).")
     a = p.parse_args()
+    if a.frames is None:
+        a.frames = math.ceil(60.606061 * a.seconds) + 34
     idiomatic = a.layer == "idiomatic"
     offsets = GEN_OFFSETS if idiomatic else OFFSETS
     from_frame = GEN_BOOT_SKIP if idiomatic else 0
@@ -137,7 +142,7 @@ def main():
     os.makedirs(a.work, exist_ok=True)
     go, jo = os.path.join(a.work, "golden"), os.path.join(a.work, "js")
 
-    if not capture_golden(a.rompath, go):
+    if not capture_golden(a.rompath, go, a.seconds):
         print("pixel_suite: FAIL -- mame_golden refused to certify the capture (poisoned golden).")
         return 1
     if not render_js(jo, a.frames, idiomatic):

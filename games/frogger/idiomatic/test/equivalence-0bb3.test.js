@@ -5,8 +5,9 @@
  * so a post-boot clone drives the routine directly (once as-seeded, once with nonzero rank codes at
  * 0x83FB and distinct high-score words at 0x83F1-0x83FA so every value-dependent digit path draws).
  * Live-out is memory-only; the rewrite's dissolved callees omit the oracle's push16 return residue in
- * [SP-8,SP), masked before the RAM compare. The tail loc_0c17 stays m.call, so both sides run it
- * identically. Teeth: no-op, perturbed-score, static-strip-source, short-loop.
+ * [SP-8,SP), masked before the RAM compare. The tail loc_0c17 is dissolved to a direct call to the
+ * lifted blitMode3FinalStrip (memory-equivalent to the oracle's fall-through). Teeth: no-op,
+ * perturbed-score, static-strip-source, short-loop.
  */
 import test from "node:test";
 import assert from "node:assert/strict";

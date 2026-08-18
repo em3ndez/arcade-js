@@ -1,43 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * convergence — run a game CYCLE-FREE (core/frame-stepped.js) and validate it against a
- * MAME golden with the drift-tolerant "reconverge" rule (docs/pixel-gate.md). This is the
- * whole-game analogue of the per-routine memory-equivalence gate: it answers "does the
- * cycle-free engine track MAME across a real run?" for ANY game, driven entirely by the
- * game's manifest (`convergence.pollPCs`, `entropyPin`) — no game code lives here.
- *
- * WHY drift-tolerant. Dropping the T-state clock trades "byte-exact per frame" for
- * "convergent": frame numbers may skew a little and a free-running cycle-proxy counter may
- * hold a bounded phase offset. So a frame is scored against its NEAREST golden frame (not
- * its index-mate), and the run PASSES iff no frame diverges beyond the threshold — pixels
- * that briefly differ but reconverge are fine; pixels that walk away are not.
+ * convergence — run a game CYCLE-FREE (core/frame-stepped.js, or the born-live idiomatic layer with
+ * --idiomatic) and validate it against a MAME golden with the drift-tolerant "reconverge" rule
+ * (docs/pixel-gate.md). Whole-game analogue of the per-routine memory-equivalence gate, driven by the
+ * game's manifest (`convergence.pollPCs`, `entropyPin`) — no game code here. Dropping the T-state clock
+ * trades byte-exact-per-frame for convergent: each frame is scored against its NEAREST golden frame, and
+ * the run PASSES iff none diverges past the threshold (transient diffs that reconverge are fine).
  *
  * Usage:
  *   node tools/convergence.mjs --game thepit --golden <dir> [--mode pixel|state]
- *        [--pin] [--frame-stride N] [--px-threshold 5] [--search-window W]
- *
- *   <dir> is a mame_golden.py output dir: frames.rgb+frames.json (pixel) and/or
- *   state.bin+state.json (state). The ROM/gfx/proms are the game's own uncommitted BYO
- *   images under games/<game>/rom/.
- *
- *   --pin installs the entropy pin (manifest.entropyPin) on the JS side. Use it ONLY with
- *   a golden captured with the MATCHING MAME-side pin (the state gate). Omit it for an
- *   unpinned golden (the pixel gate reconverges without pinning — the drift-tolerant rule
- *   tolerates the RNG-driven content that pinning would otherwise be needed to freeze).
+ *        [--pin] [--frame-stride N] [--px-threshold 5] [--search-window W] [--idiomatic]
+ *   --idiomatic drives runIdiomaticGame (the born-live layer); it runs FASTER (delay-collapse), so give
+ *   it a golden of ≥2 attract loops (extensive `pixel_suite --seconds`) or its ahead-frames find no match.
+ *   <dir> is a mame_golden.py output dir (frames.rgb+json / state.bin+json); ROM/gfx/proms are the game's
+ *   uncommitted BYO images under games/<game>/rom/. --pin installs manifest.entropyPin (use ONLY with a
+ *   matching MAME-side pin; omit for the pixel gate, which reconverges unpinned).
  *
  * Exit 0 = converged (PASS), 1 = diverged (FAIL), 2 = usage/IO error.
  */
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { runCycleFree } from "../core/frame-stepped.js";
+import { runCycleFree, runIdiomaticGame } from "../core/frame-stepped.js";
 import { installEntropyPin } from "../core/entropy-pin.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = dirname(HERE);
 
 function parseArgs(argv) {
-  const a = { mode: "pixel", frameStride: 15, pxThreshold: 5, searchWindow: Infinity, pin: false };
+  const a = { mode: "pixel", frameStride: 15, pxThreshold: 5, searchWindow: Infinity, pin: false, idiomatic: false };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === "--game") a.game = argv[++i];
@@ -47,6 +38,7 @@ function parseArgs(argv) {
     else if (k === "--frame-stride") a.frameStride = parseInt(argv[++i], 10);
     else if (k === "--px-threshold") a.pxThreshold = parseFloat(argv[++i]);
     else if (k === "--search-window") a.searchWindow = parseInt(argv[++i], 10);
+    else if (k === "--idiomatic") a.idiomatic = true;
     else { console.error(`unknown arg: ${k}`); process.exit(2); }
   }
   if (!a.game || !a.golden) { console.error("need --game and --golden"); process.exit(2); }
@@ -56,6 +48,19 @@ function parseArgs(argv) {
 function loadBin(p) {
   if (!existsSync(p)) { console.error(`missing golden file: ${p}`); process.exit(2); }
   return readFileSync(p);
+}
+
+// Render the JS side: the born-live idiomatic engine (--idiomatic) or the cycle-free oracle (default).
+// The idiomatic runs FASTER, so the golden must cover its ahead game-time. Returns {frames,stop,stopError}.
+function renderRun(machine, cfg, args, GC, capture) {
+  if (args.idiomatic) {
+    return runIdiomaticGame(machine, {
+      nmiReturnPC: cfg.idiomatic?.nmiReturnPC,
+      maxFrames: GC,
+      onFrame: (m, f) => { if (f !== 0) capture(m); }, // f=0 is power-on, before the boot chain runs
+    });
+  }
+  return runCycleFree(machine, { pollPCs: cfg.pollPCs, maxFrames: GC, onFrame: capture });
 }
 
 async function main() {
@@ -68,7 +73,7 @@ async function main() {
     console.error(`games/${args.game}/manifest.js has no convergence.pollPCs — add it (see The Pit).`);
     process.exit(2);
   }
-  const { Machine } = await import(join(gameDir, "machine.js"));
+  const { Machine, resolveAllIdiomatic } = await import(join(gameDir, "machine.js"));
 
   const romDir = join(gameDir, "rom");
   const rom = new Uint8Array(loadBin(join(romDir, "maincpu.bin")));
@@ -76,7 +81,16 @@ async function main() {
   const gfx = needGfx ? new Uint8Array(loadBin(join(romDir, "gfx.bin"))) : undefined;
   const proms = needGfx ? new Uint8Array(loadBin(join(romDir, "proms.bin"))) : undefined;
 
-  const machine = await Machine.create(rom, { gfx, proms });
+  // --idiomatic drives runIdiomaticGame, which resumes the idiomatic GENERATOR spine — so the machine
+  // must carry the idiomatic override map (resolveAllIdiomatic), exactly as render.js --idiomatic wires
+  // it. Without it, machine.call(bootAddr) runs the TRANSLATED boot (not a generator) and the run is
+  // silently the oracle, not the idiomatic layer.
+  if (args.idiomatic && !resolveAllIdiomatic) {
+    console.error(`games/${args.game} has no resolveAllIdiomatic export — --idiomatic needs an idiomatic layer.`);
+    process.exit(2);
+  }
+  const overrides = args.idiomatic ? await resolveAllIdiomatic() : undefined;
+  const machine = await Machine.create(rom, { gfx, proms, overrides });
   if (args.pin) installEntropyPin(machine, manifest.entropyPin);
 
   if (args.mode === "pixel") return pixelGate(machine, cfg, args);
@@ -104,11 +118,7 @@ function pixelGate(machine, cfg, args) {
 
   // capture my rendered frames (all of them; scoring samples every frameStride)
   const mine = [];
-  const run = runCycleFree(machine, {
-    pollPCs: cfg.pollPCs,
-    maxFrames: GC,
-    onFrame: (m) => mine.push(Buffer.from(m.renderFrame())),
-  });
+  const run = renderRun(machine, cfg, args, GC, (m) => mine.push(Buffer.from(m.renderFrame())));
 
   const bins = { "<1%": 0, "1-5%": 0, "5-10%": 0, ">10%": 0 };
   let worst = 0, worstFrame = -1, checked = 0;
@@ -158,11 +168,7 @@ function stateGate(machine, cfg, args) {
   for (let o = 0; o < BPF; o++) { const a = off2addr(o); if (!excl.has(a) && !(a >= sLo && a < sHi)) keep.push(o); }
 
   const mine = [];
-  const run = runCycleFree(machine, {
-    pollPCs: cfg.pollPCs,
-    maxFrames: GC,
-    onFrame: (m) => mine.push(Buffer.from(m.dumpState())),
-  });
+  const run = renderRun(machine, cfg, args, GC, (m) => mine.push(Buffer.from(m.dumpState())));
 
   const diff = (a, b) => { let n = 0; for (const o of keep) if (a[o] !== b[o]) n++; return n; };
   const bins = { "0": 0, "1-4": 0, "5-16": 0, ">16": 0 };

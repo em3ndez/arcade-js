@@ -1,70 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * The equivalence engine — the game-agnostic gate every optimized/ routine must
- * pass before it is trusted to replace its translated/ oracle.
- *
- * It answers one question two ways: does running the OPTIMIZED routine leave the
- * machine in observably the same state as running the TRANSLATED original from
- * identical input?
- *
- *   • wholeMachineEquivalence — run the whole game N frames twice, once with the
- *     override wired and once without, and diff the full per-frame state trace.
- *     This is the strict gate: a TIMING divergence (an optimized routine that
- *     pushed the frame's work past the vblank spin) does not hide here, it
- *     surfaces as downstream state drift. RAM is the real contract.
- *
- *   • unitEquivalence — capture the machine at the instant the routine is first
- *     entered (via a dispatch OR a direct m.call), clone it, run translated vs
- *     optimized on the two clones, and diff state + the CPU registers. Faster, and
- *     it localizes a failure to the routine itself instead of to some frame downstream.
- *
- * Cycles are deliberately NOT compared: the ROM self-synchronises at its vblank
- * spin, so a routine's internal cycle distribution is unobservable as long as
- * the frame still reaches that spin — and a frame that DIDN'T reach it shows up
- * as a state divergence in the whole-machine trace.
- *
- * WHAT MAKES THIS GAME-AGNOSTIC. It knows nothing about any board's memory map,
- * IO fields, or which game it is running. The caller supplies a
- * `makeMachine(overrides)` factory that returns a machine for its game; the
- * engine drives that machine through the small contract every board's machine
- * already satisfies:
- *
- *   runFrames(n) -> array of per-frame state dumps (Uint8Array), one per boundary
- *   dumpState()  -> a single state dump (Uint8Array)
- *   clone()      -> a fresh machine restored to this one's observable state, with
- *                   its frame machinery neutralised (see the board's clone())
- *   stateOffsetToAddr(off) -> the RAM address a dump offset came from
- *   .regs, .overrides, .stoppedBy  (the register file, the dispatch override map,
- *                   and why a bounded run ended)
- *
- * The register field list comes from core/cpu/z80.js — the CPU's own definition
- * of its state — so the register diff is not a copy that can drift from it.
+ * The equivalence engine — the game-agnostic gate an optimized/ routine passes before replacing its
+ * translated/ oracle: does the OPTIMIZED routine leave observably the same state as the TRANSLATED
+ * original from identical input? RAM is the contract; cycles are NOT compared (the ROM self-syncs at
+ * its vblank spin). The caller supplies a `makeMachine(overrides)` factory; register fields come from
+ * core/cpu/z80.js so the diff can't drift from the CPU's own state.
  */
 
 import { REG_FIELDS } from "./cpu/z80.js";
 
 // -- state-diff plumbing ----------------------------------------------------
 
-/**
- * First differing byte between two dumps, or null when identical.
- *
- * @param {Uint8Array} a
- * @param {Uint8Array} b
- * @param {(off:number)=>number} [offsetToAddr]  maps a dump offset back to its
- *   RAM address for reporting; when omitted, `addr` is null. The board owns this
- *   map (memory.js), so the engine never hardcodes region bases.
- */
-export function firstStateDiff(a, b, offsetToAddr) {
+/** First differing byte between two dumps, or null when identical. `offsetToAddr` (board-owned) maps
+ * an offset to its RAM address for reporting; `excludeAddr` skips addresses (dead stack scratch). */
+export function firstStateDiff(a, b, offsetToAddr, excludeAddr) {
   const n = Math.min(a.length, b.length);
   for (let i = 0; i < n; i++) {
-    if (a[i] !== b[i]) {
-      return {
-        offset: i,
-        addr: offsetToAddr ? offsetToAddr(i) : null,
-        a: a[i],
-        b: b[i],
-      };
-    }
+    if (a[i] === b[i]) continue;
+    if (excludeAddr && offsetToAddr && excludeAddr(offsetToAddr(i))) continue;
+    return {
+      offset: i,
+      addr: offsetToAddr ? offsetToAddr(i) : null,
+      a: a[i],
+      b: b[i],
+    };
   }
   if (a.length !== b.length) {
     return { offset: n, addr: null, a: a.length, b: b.length };
@@ -72,10 +31,7 @@ export function firstStateDiff(a, b, offsetToAddr) {
   return null;
 }
 
-/**
- * First differing register, or null when identical. Diffs exactly REG_FIELDS —
- * the CPU's own register file — so it stays in step with core/cpu/z80.js.
- */
+/** First differing register (exactly REG_FIELDS, the CPU's own file), or null when identical. */
 export function firstRegDiff(a, b) {
   for (const k of REG_FIELDS) {
     if (a[k] !== b[k]) return { reg: k, a: a[k], b: b[k] };
@@ -93,11 +49,8 @@ function overrideEntries(overrides) {
   return overrides instanceof Map ? [...overrides.entries()] : Object.entries(overrides);
 }
 
-/**
- * A run that stopped short of the frames it was asked for, or that hit a stub,
- * never reached the vblank spin on some frame — exactly the overrun the gate
- * warns about. Announce it instead of silently comparing a truncated trace.
- */
+/** A run that stopped short or hit a stub never reached the vblank spin on some frame — announce it
+ * rather than silently compare a truncated trace. */
 function assertRunHealthy(m, capturedFrames, nFrames, label) {
   if (m.stoppedBy) {
     throw new Error(`${label} run stopped early: ${m.stoppedBy}`);
@@ -113,28 +66,16 @@ function assertRunHealthy(m, capturedFrames, nFrames, label) {
 // -- whole-machine equivalence ----------------------------------------------
 
 /**
- * Run the game `nFrames` twice — baseline (overrides empty) and optimized (the
- * given overrides wired) — and diff the two per-frame state traces.
- *
- * @param {(overrides?:Map|object)=>object} makeMachine  factory returning a
- *   machine for the game under test; called with no argument for the baseline
- *   and with the wrapped override map for the optimized side.
- * @param {number} nFrames      frames to run each side
- * @param {object|Map} overrides  { targetAddr: optimizedFn } to wire on the
- *   optimized side. Each fn is wrapped with an invocation counter so an EQUAL
- *   result that never actually dispatched the override cannot pass vacuously.
- *   The wrapper forwards extra call args (`m.call(addr, ...args)`), matching the
- *   machine's raw override registration, so parameterized routines (draw_0578,
- *   sub_0028) are testable through this gate rather than needing a local wrapper.
- * @returns {object} { equal, framesCompared, invocations, ...firstDiff }
+ * Run the game `nFrames` twice — baseline (overrides empty) vs optimized (overrides wired) — and diff
+ * the per-frame state traces. Each override is wrapped with an invocation counter so an EQUAL result
+ * that never dispatched cannot pass vacuously; the wrapper forwards extra call args (`m.call(addr,
+ * ...args)`) so parameterized routines are testable through this gate.
  */
 export function wholeMachineEquivalence(makeMachine, nFrames, overrides) {
-  // Baseline: the shipped path, overrides empty.
   const base = makeMachine();
   const baseFrames = base.runFrames(nFrames);
   assertRunHealthy(base, baseFrames, nFrames, "baseline");
 
-  // Optimized side: wrap each override so we can prove it fired.
   const invocations = new Map();
   const wrapped = new Map();
   for (const [k, fn] of overrideEntries(overrides)) {
@@ -172,32 +113,10 @@ export function wholeMachineEquivalence(makeMachine, nFrames, overrides) {
 // -- unit equivalence -------------------------------------------------------
 
 /**
- * Prove translated vs optimized equal for ONE routine, in isolation.
- *
- * Captures the live machine at the instant `target` is first entered (via a
- * temporary override that snapshots on entry, then delegates to the translated
- * routine so the host run continues to a clean stop), then runs the translated
- * and optimized implementations on two independent clones of that entry state
- * and diffs the result.
- *
- * The snapshot override is installed at CONSTRUCTION (passed through
- * `makeMachine`), not mutated onto the machine afterward. That matters because a
- * routine reached only by a direct call — `m.call(target)` — resolves through the
- * registry built at construction, which a post-construction `overrides` mutation
- * would not touch; it would be caught only if `target` were a dispatch point.
- * Constructing with the override makes BOTH the dispatch consult and `m.call`
- * resolve to it, so the entry is captured however the routine is first entered
- * (this is the same construction-time wiring the whole-machine gate already uses).
- *
- * @param {(overrides?:Map|object)=>object} makeMachine  factory returning a
- *   machine for the game under test; called with the snapshot override so it is
- *   wired into the machine's routine registry at construction.
- * @param {number} target      address of the routine (e.g. 0x01c3)
- * @param {function} translatedFn  the oracle implementation
- * @param {function} optimizedFn   the implementation under test
- * @param {object} [opts]      { maxFrames = 240 } — how long to run to reach the
- *                             first entry of `target`
- * @returns {object} { equal, ram, regs, pc }
+ * Prove translated vs optimized equal for ONE routine, in isolation. Captures the live machine at the
+ * instant `target` is first entered — via a snapshot override installed at CONSTRUCTION, so both a
+ * dispatch consult and a direct `m.call(target)` resolve to it — then runs the translated and
+ * optimized on two clones of that entry state and diffs state + registers. opts.maxFrames (240) bounds it.
  */
 export function unitEquivalence(makeMachine, target, translatedFn, optimizedFn, opts = {}) {
   const maxFrames = opts.maxFrames ?? 240;
@@ -234,51 +153,20 @@ export function unitEquivalence(makeMachine, target, translatedFn, optimizedFn, 
 // -- convergent (relaxed) equivalence ---------------------------------------
 
 /**
- * The RELAXED gate. PIXELS are the ground truth; internal state may diverge
- * TRANSIENTLY as long as it RECONVERGES. PERSISTENT (non-healing) divergence in
- * either the compared state or the pixels FAILS. This is the gate for licensing a
- * cycle-collapse of an interruptible routine, where the strict byte-exact gate
- * false-fails on benign, self-healing differences:
- *
- *   - dead STACK scratch: the NMI's pushed PC lands in popped stack memory that is
- *     read only after a matching push overwrites it — excluded via `excludeAddr`.
- *   - a sub-perceptible RASTER tear: when the collapse services the vblank NMI a
- *     scanline late, a few pixels render stale for ONE frame, then heal (measured
- *     on sub_0350: 10 px total over 1400 frames, 3 isolated single-frame tears).
- *
- * Real corruption does NOT reconverge — the game state forks and stays forked —
- * which is exactly what "persistent" catches. The bias is toward FAILING: any
- * divergence still present in the final `tailWindow` frames fails, so a benign
- * tail tear fails safe (re-run longer) rather than a real fork passing.
- *
- * The caller MUST enable video (`captureVideo`) in `makeMachine` for the pixel
- * gate. This function stays game-agnostic: the caller supplies the game's stack
- * region via `excludeAddr` and (optionally) an address→name map for reporting.
- *
- * @param {(overrides?:Map|object)=>object} makeMachine  factory (video-enabled)
- * @param {number} nFrames
- * @param {object|Map} overrides   { addr: optimizedFn }
- * @param {object} [opts]
- * @param {(addr:number)=>boolean} [opts.excludeAddr]  skip these in the state diff
- *   (the dead stack scratch); default excludes nothing.
- * @param {number} [opts.tailWindow=20]  final frames that must be fully converged.
- * @param {(addr:number)=>string} [opts.name]  addr→name for reporting.
- * @param {object} [opts.baseline]  a precomputed all-oracle baseline from runBaseline() —
- *   pass it when gating MANY routines against the SAME scenario so the baseline is emulated
- *   once rather than once per routine. Omit to have it computed here.
- * @returns {object} { pass, invocations, framesCompared, statePersistent,
- *   pixelPersistent, transientStateAddrs, pixDiffFrames, maxPixels, lastPixDiff }
+ * The RELAXED gate: PIXELS are ground truth; state may diverge TRANSIENTLY as long as it RECONVERGES.
+ * PERSISTENT (non-healing) divergence in state or pixels FAILS — real corruption forks and stays
+ * forked. Biased to fail: any divergence still present in the final `tailWindow` frames fails.
+ * Licenses a cycle-collapse of an interruptible routine, where byte-exact false-fails on benign healing
+ * (dead stack scratch via `excludeAddr`; a one-frame raster tear). The caller MUST enable
+ * `captureVideo` and supplies the stack region via `excludeAddr`; opts.baseline reuses a runBaseline()
+ * across routines on one scenario (opts.tailWindow defaults to 20).
  */
 export function convergentEquivalence(makeMachine, nFrames, overrides, opts = {}) {
   const excludeAddr = opts.excludeAddr ?? (() => false);
   const tailWindow = opts.tailWindow ?? 20;
   const nameOf = opts.name ?? ((a) => "0x" + a.toString(16));
 
-  // The all-oracle baseline depends only on (scenario, nFrames) — never on `overrides` —
-  // so a caller running many routines against the SAME scenario may compute it ONCE and
-  // hand it in via opts.baseline, instead of re-emulating it from boot per routine. The
-  // arrays are read-only here (we only diff against them), so sharing them is safe.
-  // See runBaseline() below for the producer.
+  // The baseline depends only on (scenario, nFrames), not `overrides` — reusable via opts.baseline.
   let baseFrames, baseVideo, offToAddrFn;
   if (opts.baseline) {
     ({ frames: baseFrames, video: baseVideo, offToAddr: offToAddrFn } = opts.baseline);
@@ -308,16 +196,14 @@ export function convergentEquivalence(makeMachine, nFrames, overrides, opts = {}
   const F = Math.min(baseFrames.length, optFrames.length);
   const offToAddr = offToAddrFn;
 
-  // PIXELS are the ground truth — they must be captured, or the gate is meaningless.
-  // Refuse to run rather than silently pass a pixel-only divergence (review finding).
+  // Pixels are ground truth — refuse to run rather than silently pass a pixel-only divergence.
   if (baseVideo.length === 0 || opt.videoFrames.length === 0) {
     throw new Error(
       "convergentEquivalence: no video frames captured — the caller MUST enable " +
         "captureVideo. Pixels are the ground truth and cannot be silently skipped.",
     );
   }
-  // Need a genuine tail to observe reconvergence; too short a run classes every diff
-  // as persistent (fail-safe) but is not a real convergence test.
+  // Need a genuine tail to observe reconvergence.
   if (F <= tailWindow) {
     throw new Error(
       `convergentEquivalence: nFrames (${F}) must exceed tailWindow (${tailWindow}) ` +
@@ -361,25 +247,17 @@ export function convergentEquivalence(makeMachine, nFrames, overrides, opts = {}
     pass: statePersistent.length === 0 && !pixelPersistent,
     invocations,
     framesCompared: F,
-    statePersistent,                                  // FAIL if nonempty (non-healing state)
-    pixelPersistent,                                  // FAIL if true (non-healing pixels)
-    transientStateAddrs: lastStateDiff.size - statePersistent.length, // healed (tolerated)
+    statePersistent,
+    pixelPersistent,
+    transientStateAddrs: lastStateDiff.size - statePersistent.length,
     pixDiffFrames, maxPixels, lastPixDiff, videoCompared: vN,
   };
 }
 
 /**
- * Emulate the all-oracle BASELINE once, so a caller gating many routines against the SAME
- * scenario can reuse it via convergentEquivalence's `opts.baseline` instead of re-emulating
- * it from boot for every routine. The baseline depends only on (scenario, nFrames) — never
- * on WHICH routine is overridden — and that is exactly what makes it shareable.
- *
- * The returned `frames` and `video` are treated as READ-ONLY by the gate (it only diffs
- * against them), so handing the same object to many gate calls is safe.
- *
- * @param {(overrides?:Map|object)=>object} makeMachine  factory (video-enabled)
- * @param {number} nFrames
- * @returns {object} { frames, video, offToAddr }
+ * Emulate the all-oracle BASELINE once so a caller gating many routines on the SAME scenario reuses it
+ * via convergentEquivalence's opts.baseline instead of re-emulating from boot per routine. Depends
+ * only on (scenario, nFrames); `frames`/`video` are read-only to the gate, so sharing them is safe.
  */
 export function runBaseline(makeMachine, nFrames) {
   const base = makeMachine();

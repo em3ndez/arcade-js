@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * dispatchFrogAnimationArm — the frog-animation jump-table dispatcher. The low byte of the anim-index
- * cell selects one of eleven arm pointers in a jump table; this routine reads that pointer and jumps
- * into the matching arm. Each arm sets up its sprite and plot state and hands off through the shared
- * render loop, which drains back to the caller with one net return. LIVE-OUT: memory-only.
+ * dispatchFrogAnimationArm — the frog-animation dispatcher. The anim-index cell (0..10) selects one of
+ * eleven arms; the ROM jump table it indexes is fixed, so we dispatch on the index directly. Each arm
+ * sets up its sprite and plot state and hands off through the shared render loop, which drains back to
+ * the caller with one net return. LIVE-OUT: memory-only.
  */
 import { NotImplemented } from "../../../boards/frogger/io.js";
 import { loc_8000 } from "./names.js";
@@ -19,28 +19,23 @@ import { renderFrogAnimArm8 } from "./renderFrogAnimArm8.js";
 import { renderFrogAnimArm9 } from "./renderFrogAnimArm9.js";
 import { renderFrogAnimArm10 } from "./renderFrogAnimArm10.js";
 
-const ARM_TABLE = 0x0fbe; // base of the eleven arm entry pointers
 
 export function dispatchFrogAnimationArm(m) {
   const index = m.mem8[loc_8000]; // anim index 0..10
-  const target = m.mem16[(ARM_TABLE + 2 * index)];
 
-  switch (target) {
-    case 0x0fd4: return renderFrogAnimArm0(m);
-    case 0x1058: return renderFrogAnimArm1(m);
-    case 0x107b: return renderFrogAnimArm2(m);
-    case 0x109b: return renderFrogAnimArm3(m);
-    case 0x10bb: return renderFrogAnimArm4(m);
-    case 0x10db: return advanceFrogAnimIndexAndRedispatch(m); // arm 5 renders nothing — straight to the index advance
-    case 0x10f8: return renderFrogAnimArm6(m);
-    case 0x1118: return renderFrogAnimArm7(m);
-    case 0x1138: return renderFrogAnimArm8(m);
-    case 0x1158: return renderFrogAnimArm9(m);
-    case 0x1178: return renderFrogAnimArm10(m);
+  switch (index) {
+    case 0: return renderFrogAnimArm0(m);
+    case 1: return renderFrogAnimArm1(m);
+    case 2: return renderFrogAnimArm2(m);
+    case 3: return renderFrogAnimArm3(m);
+    case 4: return renderFrogAnimArm4(m);
+    case 5: return advanceFrogAnimIndexAndRedispatch(m); // arm 5 renders nothing -- straight to the index advance
+    case 6: return renderFrogAnimArm6(m);
+    case 7: return renderFrogAnimArm7(m);
+    case 8: return renderFrogAnimArm8(m);
+    case 9: return renderFrogAnimArm9(m);
+    case 10: return renderFrogAnimArm10(m);
     default:
-      throw new NotImplemented(
-        `dispatchFrogAnimationArm: target 0x${target.toString(16)} outside the arm table ` +
-          "{0x0fd4..0x1178} -- anim index > 10",
-      );
+      throw new NotImplemented(`dispatchFrogAnimationArm: anim index ${index} outside 0..10`);
   }
 }

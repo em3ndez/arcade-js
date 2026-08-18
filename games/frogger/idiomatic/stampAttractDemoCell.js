@@ -24,7 +24,7 @@ export function stampAttractDemoCell(m) {
   mem8[OBJECT_ANIM_STATE_800D] = 3;
   mem8[DEMO_SCROLL_REGISTER] = 3;
 
-  mem8[ATTRACT_DEMO_DWELL] = (mem8[ATTRACT_DEMO_DWELL] - 1) & 0xff;
+  mem8[ATTRACT_DEMO_DWELL] = mem8[ATTRACT_DEMO_DWELL] - 1;
   if (mem8[ATTRACT_DEMO_DWELL] !== 0) return; // still dwelling
   mem8[ATTRACT_DEMO_DWELL] = DWELL_RELOAD;
 
@@ -34,13 +34,13 @@ export function stampAttractDemoCell(m) {
   const tile = BASE_TILE[phase];
 
   mem8[src] = tile;
-  mem8[(src + 1)] = (tile + 1) & 0xff;
-  mem8[(src + ROW)] = (tile + 2) & 0xff;
-  mem8[(src + ROW + 1)] = (tile + 3) & 0xff;
+  mem8[(src + 1)] = tile + 1;
+  mem8[(src + ROW)] = tile + 2;
+  mem8[(src + ROW + 1)] = tile + 3;
 
   for (let i = 0; i < CLEAR_BYTES; i++) mem8[(obj + i)] = 0;
 
-  mem8[ATTRACT_DEMO_PHASE_COUNTER] = (mem8[ATTRACT_DEMO_PHASE_COUNTER] - 1) & 0xff;
+  mem8[ATTRACT_DEMO_PHASE_COUNTER] = mem8[ATTRACT_DEMO_PHASE_COUNTER] - 1;
   if (mem8[ATTRACT_DEMO_PHASE_COUNTER] !== 0) return; // cells remain
 
   mem8[ATTRACT_DEMO_PHASE_COUNTER] = PHASE_COUNT;

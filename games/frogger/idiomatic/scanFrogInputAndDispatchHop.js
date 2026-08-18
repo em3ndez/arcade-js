@@ -34,7 +34,7 @@ export function scanFrogInputAndDispatchHop(m) {
   if (mem8[GATED_COUNTDOWN_ENABLE_FLAG] !== 0) return;
 
   if (mem8[FROG_HOP_INPUT_TIMER] !== 0) {
-    mem8[FROG_HOP_INPUT_TIMER] = (mem8[FROG_HOP_INPUT_TIMER] - 1) & 0xff;
+    mem8[FROG_HOP_INPUT_TIMER] = mem8[FROG_HOP_INPUT_TIMER] - 1;
     return loc_23eb(m);
   }
 

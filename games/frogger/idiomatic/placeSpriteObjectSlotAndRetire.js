@@ -7,17 +7,16 @@
  * LIVE-OUT: memory-only (the sprite-slot bytes, and on the wrap the cleared record and slot).
  */
 import { FREE_RUNNING_POS_COUNTER } from "./names.js";
+import { raiseSpriteArmOneShotAndQueueSound } from "./raiseSpriteArmOneShotAndQueueSound.js";
 
-const ARM_HELPER = 0x2ae6; // raise the one-shot and queue the arm sound
+export function placeSpriteObjectSlotAndRetire(m, ix = m.regs.ix, iy = m.regs.iy) {
+  const { mem8 } = m;
 
-export function placeSpriteObjectSlotAndRetire(m) {
-  const { regs, mem8 } = m;
+  if (mem8[(ix + 6)] === 0) return; // inactive object
 
-  if (mem8[(regs.ix + 6)] === 0) return; // inactive object
-
-  m.push16(0x2afb); m.call(ARM_HELPER);
-  const record = regs.ix;
-  const slot = regs.iy;
+  raiseSpriteArmOneShotAndQueueSound(m);
+  const record = ix;
+  const slot = iy;
 
   const attr = mem8[(record + 4)];
   let onScreenX;
@@ -32,7 +31,7 @@ export function placeSpriteObjectSlotAndRetire(m) {
 
   let reachedFold;
   if (mem8[(record + 5)] !== 0) {
-    mem8[(slot + 4)] = (0xf1 + onScreenX) & 0xff;
+    mem8[(slot + 4)] = 0xf1 + onScreenX;
     reachedFold = onScreenX === 0;
   } else {
     const biased = (0x0f + onScreenX) & 0xff;

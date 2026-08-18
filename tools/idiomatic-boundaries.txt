@@ -4,3 +4,24 @@
 #   boundary — a genuine oracle boundary intentionally left as translated ROM.
 # Every line is a reviewed decision. A routine NOT here and NOT overridden counts as unlifted cruft.
 # Only closure-enrolled games (idiomatic_gate.CLOSURE_GAMES) are checked; frogger for now.
+frogger 0x14dd dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x14ee dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x14ff dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x1510 dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x1521 dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x1532 dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x1543 dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x1554 dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x1565 dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x1576 dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x1587 dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x1598 dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x15ab dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x15de dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x163e dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x16d4 dead  # inlined into moveLaneObjectsAndCarryFrog (0x14b7 cluster dissolution); no external callees
+frogger 0x10db dead  # frog-anim arm 5 inlined into dispatchFrogAnimationArm (0x0faf) index-5 branch
+frogger 0x20bf dead  # unbalanced tail-call dissolved into direct JS calls; callers (0x1a55/0x2341) no longer m.call it
+frogger 0x2673 dead  # goal-award caller-skip dissolved into the spine's direct calls
+frogger 0x2873 dead  # <2-level bare-ret dive arm inlined into loc_27ea (if (phase < 2) return)
+frogger 0x0f3e dead  # only caller (driveAttractDemoSequencer=0x0e7a, lifted) direct-calls the idiomatic tickAttractCellFrameClock instead of m.call(0x0f3e)

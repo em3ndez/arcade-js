@@ -26,7 +26,7 @@ export function animateSpriteObjectFrame(m, obj = m.regs.ix, spr = m.regs.iy) {
 
   const tile = mem8[(SPRITE_OBJECT_PHASE_TILE_TABLE + next)] | mem8[(obj + 0x05)];
   mem8[(spr + 0x01)] = tile;
-  mem8[(spr + 0x05)] = (tile + 1) & 0xff;
+  mem8[(spr + 0x05)] = tile + 1;
   mem8[(spr + 0x02)] = SPRITE_ATTR;
   mem8[(spr + 0x06)] = SPRITE_ATTR;
 }

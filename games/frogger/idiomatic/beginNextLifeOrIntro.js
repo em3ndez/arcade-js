@@ -6,22 +6,22 @@
  * HUD slot block, plays the restart jingle, and either runs the intro countdown (when the intro gate
  * is set) or hands play to the other player before resuming. LIVE-OUT: memory-only.
  */
-import { SCORE_DISPLAY_CURSOR_LO, SCORE_DISPLAY_CURSOR_HI, loc_83cc, BOARD_LAYOUT_GATE, loc_83cf, PACE_TAIL, LIFE_RESTART_FLAG } from "./names.js";
+import { SCORE_DISPLAY_CURSOR_LO, SCORE_DISPLAY_CURSOR_HI, loc_83cc, BOARD_LAYOUT_GATE, loc_83cf, LIFE_RESTART_FLAG, PER_LIFE_HUD_BASE } from "./names.js";
+import { endForegroundPassAtPaceTail } from "./endForegroundPassAtPaceTail.js";
 import { renderScoreHeader } from "./renderScoreHeader.js";
 import { activateFrogObject } from "./activateFrogObject.js";
 import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { handOffToOtherPlayer } from "./handOffToOtherPlayer.js";
+import { runIntroTimerThenInitGame } from "./runIntroTimerThenInitGame.js";
 
-const PER_LIFE_HUD_BASE = 0x83a0;
-const RUN_INTRO_TIMER = 0x048f; // intro-countdown entry, still served by the frozen layer
 const RESTART_SOUND = 0x80;
 
 export function beginNextLifeOrIntro(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   renderScoreHeader(m);
-  if (mem8[LIFE_RESTART_FLAG] === 0) return m.call(PACE_TAIL);
+  if (mem8[LIFE_RESTART_FLAG] === 0) return endForegroundPassAtPaceTail(m);
 
   activateFrogObject(m);
   clearActivePlayerWorkRam(m);
@@ -31,10 +31,9 @@ export function beginNextLifeOrIntro(m) {
   mem8[BOARD_LAYOUT_GATE] = 0;
   for (let i = 0; i < 14; i++) mem8[PER_LIFE_HUD_BASE + i] = 0;
 
-  regs.a = RESTART_SOUND;
-  enqueueSoundCommand(m);
+  enqueueSoundCommand(m, RESTART_SOUND);
 
-  if (mem8[loc_83cf] !== 0) return m.call(RUN_INTRO_TIMER);
+  if (mem8[loc_83cf] !== 0) return runIntroTimerThenInitGame(m);
   handOffToOtherPlayer(m);
-  return m.call(PACE_TAIL);
+  return endForegroundPassAtPaceTail(m);
 }

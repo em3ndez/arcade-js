@@ -13,7 +13,8 @@ import {
   FROG_HOP_VERTICAL_DELTA, FROG_HOP_HORIZONTAL_DELTA, FROG_HOP_DOWN_ANIM_RELOAD,
   FROG_HOP_UP_ANIM_RELOAD, FROG_HOP_RIGHT_ANIM_RELOAD, FROG_HOP_LEFT_ANIM_RELOAD, NUM_PLAYERS,
   ACTIVE_PLAYER, LIVES_COUNT, PLAYER1_LIVES, INPLAY_COUNTDOWN_WORD, FROG_TIMER_A, HOME_COLUMN_STATE,
-  loc_842d, PLAYER1_DIFFICULTY_INDEX, HOLD_FLAG, PLAYER_START_DEMO_FLAG,
+  loc_842d, PLAYER1_DIFFICULTY_INDEX, HOLD_FLAG, PLAYER_START_DEMO_FLAG, SOUND_SEQUENCE_COUNTDOWN,
+  WORK_PAGE_SAVE_BANK, SPRITE_OBJECT_RECORD_A_P1, loc_803d, loc_8071,
 } from "./names.js";
 import { bcdSubByte } from "../../../core/bcd.js";
 import { renderScoreHeader } from "./renderScoreHeader.js";
@@ -24,11 +25,9 @@ import { loadActivePlayerLaneParams } from "./loadActivePlayerLaneParams.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { clearTilemapToTile16 } from "./clearTilemapToTile16.js";
 import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
-
-// Targets the body drives via m.call.
-const ATTRACT_DISPATCH = 0x0d11;   // mode>=2 attract/mode dispatcher (call nc)
-const SERVICE_C = 0x230f;
-const IN_PLAY_TREE = 0x040b;        // board-start / life-loss dispatcher — the whole in-play family
+import { dispatchGameModeFrame } from "./dispatchGameModeFrame.js";
+import { setUpPlayStartOnce } from "./setUpPlayStartOnce.js";
+import { setUpBoardOrContinueLife } from "./setUpBoardOrContinueLife.js";
 
 export function* drainForegroundThenYieldEachVblank(m) {
   let entry = MAIN_LOOP_HEAD;
@@ -42,105 +41,83 @@ export function* drainForegroundThenYieldEachVblank(m) {
 // Run one foreground pass from `entry`, returning the entry the NEXT pass takes. Exported so the
 // go-live byte-exact harness can drive it from a golden anchor to isolate the model from boot.
 export function runOneForegroundPass(m, entry) {
-  const { regs, mem } = m;
+  const { mem8 } = m;
 
   if (entry === MAIN_LOOP_HEAD) {
-    regs.a = mem.read8(GAME_MODE);
-    regs.cp(0x02);
-    if (regs.fNC) { m.push16(0x0349); m.call(ATTRACT_DISPATCH); }
+    if (mem8[GAME_MODE] >= 0x02) dispatchGameModeFrame(m); // mode>=2 attract dispatch
     renderScoreHeader(m);
-    regs.a = mem.read8(GAME_MODE);
-    regs.a = regs.dec8(regs.a);
-    if (regs.fNZ) renderCreditLine(m);
-    m.push16(0x0356); m.call(SERVICE_C);
-    mem.write8(FROG_HOP_VERTICAL_DELTA, 0x02); mem.write8(FROG_HOP_HORIZONTAL_DELTA, 0x02);
-    mem.write8(FROG_HOP_DOWN_ANIM_RELOAD, 0x09); mem.write8(FROG_HOP_UP_ANIM_RELOAD, 0x09);
-    mem.write8(FROG_HOP_RIGHT_ANIM_RELOAD, 0x09); mem.write8(FROG_HOP_LEFT_ANIM_RELOAD, 0x09);
+    if (mem8[GAME_MODE] !== 1) renderCreditLine(m);
+    setUpPlayStartOnce(m);
+    mem8[FROG_HOP_VERTICAL_DELTA] = 0x02; mem8[FROG_HOP_HORIZONTAL_DELTA] = 0x02;
+    mem8[FROG_HOP_DOWN_ANIM_RELOAD] = 0x09; mem8[FROG_HOP_UP_ANIM_RELOAD] = 0x09;
+    mem8[FROG_HOP_RIGHT_ANIM_RELOAD] = 0x09; mem8[FROG_HOP_LEFT_ANIM_RELOAD] = 0x09;
   }
 
   // pace tail — the busy-delay is skipped: it writes no state.
-  regs.a = mem.read8(PLAY_FLAG);
-  regs.or(regs.a);
-  if (regs.fNZ) {
-    m.call(IN_PLAY_TREE); // runs one in-play pass; it returns here, so the frame yields next
+  if (mem8[PLAY_FLAG] !== 0) {
+    setUpBoardOrContinueLife(m); // runs one in-play pass; it returns here, so the frame yields next
     return PACE_TAIL;     // in-play stays at the tail, skipping the head
   }
 
-  regs.a = mem.read8(START_LATCH);
-  regs.or(regs.a);
-  if (regs.fNZ) return MAIN_LOOP_HEAD;
+  if (mem8[START_LATCH] !== 0) return MAIN_LOOP_HEAD;
 
-  regs.a = mem.read8(IN1_PORT);
-  regs.rlca(); // C = old bit 7 (START1)
+  // IN1 bit7 = START1, bit6 = START2 (the ROM rotates them out of A one at a time)
+  const in1 = mem8[IN1_PORT];
   let players;
-  if (regs.fNC) {
+  if ((in1 & 0x80) === 0) {
     players = 0x01;
+  } else if ((in1 & 0x40) !== 0) {
+    return MAIN_LOOP_HEAD;
   } else {
-    regs.rlca(); // C = old bit 6 (START2)
-    if (regs.fC) return MAIN_LOOP_HEAD;
     players = 0x02;
   }
 
-  regs.a = mem.read8(CREDIT_BCD);
-  regs.c = players;
-  regs.cp(regs.c);
-  if (regs.fC) return MAIN_LOOP_HEAD;
+  if (mem8[CREDIT_BCD] < players) return MAIN_LOOP_HEAD; // not enough credits (BCD compare, monotone in the byte)
 
   startNewGame(m, players);
-  m.call(IN_PLAY_TREE);
+  setUpBoardOrContinueLife(m);
   return PACE_TAIL;
 }
 
 // The one-time new-game setup: deduct the credit, clear the play RAM, seed game state.
 function startNewGame(m, players) {
-  const { regs, mem } = m;
+  const { mem8, mem16 } = m;
 
-  mem.write8(CREDIT_BCD, bcdSubByte(mem.read8(CREDIT_BCD), players).value); // BCD deduct
-  mem.write8(NUM_PLAYERS, players);
+  mem8[CREDIT_BCD] = bcdSubByte(mem8[CREDIT_BCD], players).value; // BCD deduct
+  mem8[NUM_PLAYERS] = players;
 
-  regs.hl = 0x8500; regs.de = 0x8501; regs.bc = 0x01ff;
-  mem.write8(regs.hl, regs.l);
-  m.ldirAt(0x03a5, 0x03a7); // clear the play RAM
+  for (let i = 0; i < 0x200; i++) mem8[WORK_PAGE_SAVE_BANK + i] = 0; // clear the play RAM (0x200 bytes)
 
-  mem.write8(PLAY_FLAG, regs.a); // = player count: a game is now in progress
-  regs.a = 0x01;
-  mem.write8(ACTIVE_PLAYER, regs.a);
-  mem.write8(START_LATCH, regs.a);
-  regs.h = regs.a; regs.l = regs.a;
-  mem.write8(LIVES_COUNT, regs.a);
-  mem.write16(PLAYER1_LIVES, regs.hl);
+  mem8[PLAY_FLAG] = players; // player count -- a game is now in progress (oracle loc_0341:168/183; was buggy: wrote stale credit)
+  mem8[ACTIVE_PLAYER] = 0x01;
+  mem8[START_LATCH] = 0x01;
+  mem8[LIVES_COUNT] = 0x01;
+  mem16[PLAYER1_LIVES] = 257; // 0x0101: P1 + P2 lives byte both = 1
 
   initNewGameScoreAndTimers(m);
-  regs.a = 0x03;
-  mem.write8(0x803d, regs.a);
+  mem8[loc_803d] = 0x03;
   clearSoundQueue(m);
-  regs.xor(regs.a);
-  mem.write8(0x8071, regs.a);
+  mem8[loc_8071] = 0x00;
 
-  enqueueSoundCommand(m); // A=0
-  regs.a = 0x09; enqueueSoundCommand(m);
-  regs.a = 0x0a; enqueueSoundCommand(m);
-  regs.a = 0x0b; enqueueSoundCommand(m);
+  enqueueSoundCommand(m, 0x00);
+  enqueueSoundCommand(m, 0x09);
+  enqueueSoundCommand(m, 0x0a);
+  enqueueSoundCommand(m, 0x0b);
 
-  regs.hl = 0x0020; mem.write16(INPLAY_COUNTDOWN_WORD, regs.hl);
-  regs.hl = 0x01a0; mem.write16(0x8382, regs.hl);
-  regs.hl = 0x0000; mem.write16(FROG_TIMER_A, regs.hl);
+  mem16[INPLAY_COUNTDOWN_WORD] = 32;
+  mem16[SOUND_SEQUENCE_COUNTDOWN] = 416;
+  mem16[FROG_TIMER_A] = 0;
 
   clearActivePlayerWorkRam(m);
   clearTilemapToTile16(m);
   loadActivePlayerLaneParams(m);
 
-  regs.xor(regs.a);
-  regs.h = regs.a; regs.l = regs.a;
-  mem.write8(HOME_COLUMN_STATE, regs.a);
-  mem.write8(loc_842d, regs.a);
-  mem.write16(PLAYER1_DIFFICULTY_INDEX, regs.hl);
+  mem8[HOME_COLUMN_STATE] = 0x00;
+  mem8[loc_842d] = 0x00;
+  mem16[PLAYER1_DIFFICULTY_INDEX] = 0;
 
-  regs.hl = 0x8440; regs.de = 0x8441; regs.bc = 0x004f;
-  mem.write8(regs.hl, regs.b);
-  m.ldirAt(0x0402, 0x0404); // clear a second play-RAM block
+  for (let i = 0; i < 0x50; i++) mem8[SPRITE_OBJECT_RECORD_A_P1 + i] = 0; // clear a second play-RAM block (0x50 bytes)
 
-  mem.write8(HOLD_FLAG, regs.a);
-  regs.a = regs.inc8(regs.a);
-  mem.write8(PLAYER_START_DEMO_FLAG, regs.a);
+  mem8[HOLD_FLAG] = 0x00;
+  mem8[PLAYER_START_DEMO_FLAG] = 0x01;
 }

@@ -8,13 +8,11 @@
  * LIVE-OUT: memory-only.
  */
 import { NotImplemented } from "../../../boards/frogger/io.js";
-import { HOLD_FLAG, TWO_PLAYER_START_FLAG, GATED_COUNTDOWN_ENABLE_FLAG, IN_PLAY_BOARD_STATE_BYTE } from "./names.js";
+import { HOLD_FLAG, TWO_PLAYER_START_FLAG, GATED_COUNTDOWN_ENABLE_FLAG, IN_PLAY_BOARD_STATE_BYTE, ATTRACT_HOP_DWELL, HOP_FRAME_TABLE } from "./names.js";
 import {
   beginFrogHopLeft, beginFrogHopRight, beginFrogHopUp, beginFrogHopDown,
 } from "./animateFrogHop.js";
 
-const SPAWN_DWELL = 0x8299;
-const HOP_FRAME_TABLE = 0x2e68;
 const DWELL_RELOAD = 0x30;
 
 export function driveAttractDemoFrogHop(m) {
@@ -23,13 +21,13 @@ export function driveAttractDemoFrogHop(m) {
   if (mem8[GATED_COUNTDOWN_ENABLE_FLAG] !== 0) return;
   if (mem8[HOLD_FLAG] !== 0) return;
 
-  const dwell = mem8[SPAWN_DWELL];
+  const dwell = mem8[ATTRACT_HOP_DWELL];
   if (dwell !== 0) {
-    mem8[SPAWN_DWELL] = (dwell - 1) & 0xff;
+    mem8[ATTRACT_HOP_DWELL] = dwell - 1;
     return;
   }
 
-  mem8[SPAWN_DWELL] = DWELL_RELOAD;
+  mem8[ATTRACT_HOP_DWELL] = DWELL_RELOAD;
   const phase = (mem8[IN_PLAY_BOARD_STATE_BYTE] + 1) & 0xff;
   mem8[IN_PLAY_BOARD_STATE_BYTE] = phase;
 
@@ -53,6 +51,6 @@ export function driveAttractDemoFrogHop(m) {
 function resetExtraFrog(m) {
   const { mem8 } = m;
   mem8[IN_PLAY_BOARD_STATE_BYTE] = 0;
-  mem8[SPAWN_DWELL] = 0;
+  mem8[ATTRACT_HOP_DWELL] = 0;
   mem8[TWO_PLAYER_START_FLAG] = 0;
 }

@@ -27,11 +27,11 @@ export function steerSpriteObjectTowardTarget(m, obj = m.regs.ix, spr = m.regs.i
 
   if (mem8[(obj + 0x05)] !== 0) {
     if (((target - mem8[(obj + 0x00)]) & 0xff) >= span) return despawn();
-    mem8[(obj + 0x02)] = (mem8[(obj + 0x02)] + 1) & 0xff;
+    mem8[(obj + 0x02)] = mem8[(obj + 0x02)] + 1;
     return;
   }
   if (((target - mem8[(obj + 0x01)]) & 0xff) < span) return despawn();
-  mem8[(obj + 0x02)] = (mem8[(obj + 0x02)] - 1) & 0xff;
+  mem8[(obj + 0x02)] = mem8[(obj + 0x02)] - 1;
 
   function despawn() {
     if (mem8[HOLD_FLAG] !== 0) return; // held: keep the struct

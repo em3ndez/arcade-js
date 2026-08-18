@@ -3,22 +3,25 @@
 """Idiomatic gate — the idiomatic layer must be truly idiomatic, with no old CPU/memory cruft.
 
 Runbook goal (§5 definition of done): a finished idiomatic module names its data and control flow,
-never the machine. Four kinds of cruft are counted, all of which must reach 0 for a game to be
+never the machine. Six kinds of cruft are counted, all of which must reach 0 for a game to be
 IDIOMATIC (a hard done requirement):
-  - REGISTERS: `regs.a` / `m.regs.hl` and the flag-carrying ALU helpers (`regs.cp(v)`), minus the two
-    declared-exempt forms — a param-default on a signature line (`fn(m, x = m.regs.a)`, the incoming
-    bridge) and a register write that rides a `return` (`return (m.regs.a = v)`, the outgoing bridge).
-  - m.call(...)  — dispatch into the still-translated layer; dissolve to a direct JS call (or `yield*`
-    for a coroutine handoff).
-  - m.push16/m.push*(...)  — Z80 stack trampolines; express as JS control flow.
-  - raw 0xHHHH  — a raw 4-hex-digit memory address; every cell is a named import from names.js.
-The last three are counted in CODE ONLY (comments stripped) and have NO exemptions.
+  - REGISTERS: `regs.a` / ALU helpers, minus two exempt bridges — a param-default (`fn(m, x=m.regs.a)`)
+    and a write riding a return (`return (m.regs.a=v)`).
+  - m.call(...) — dissolve to a direct JS call (or `yield*`). m.push16/* — Z80 stack trampolines.
+  - raw 0xHHHH — a bare address; use a named import from names.js.
+  - mem.read8/write8/read16/write16(...) — the low-level API; idiomatic is the indexed view `mem8[addr]`.
+  - a redundant width-mask on a mem assignment (`mem8[x]=..&0xff` / `mem16[x]=..&0xffff`): the write already
+    truncates, so it's noise. Counted with it: a non-canonical `const foo=m.mem8` alias that would hide one.
+The last five are counted in CODE ONLY (comments stripped) and have NO exemptions.
 
 FAIL-CLOSED ratchet: `check` enumerates EVERY games/*/idiomatic/ and holds each to a budget
 (tools/idiomatic-budget.txt), implicit 0 for a game not listed — so a NEW game is born idiomatic. It
 blocks when a game's STAGED count EXCEEDS its budget (no NEW cruft; the allowlist only shrinks).
 Fail-closed on a missing/malformed allowlist. Scope: games/<game>/idiomatic/*.js, minus names.js and
 the test/ subdir.
+
+COMPLETENESS: `check` also enforces the game-local `idiomaticComplete: true` flag (manifest) — a game may
+declare it only at 0 total cruft. Rationale: docs/comment-gate.md.
 
 Subcommands: worklist (per-module, per-category), check (the ratchet), selftest.
 """
@@ -41,8 +44,16 @@ WRITE = re.compile(r"\b(?:m\.)?regs\.[A-Za-z][A-Za-z0-9]*\s*=(?!=)")  # write ri
 CALL = re.compile(r"\bm\.call\(")
 PUSH = re.compile(r"\bm\.push\w*\(")
 ADDR = re.compile(r"0x[0-9a-fA-F]{4}\b")
+MEM = re.compile(r"\bmem\.(?:read|write)(?:8|16)\(")  # low-level machine API; idiomatic form is mem8[addr]
+# Redundant width-mask on a mem assignment: mem8[..]=..&0xff (write8 truncates) / mem16[..]=..&0xffff
+# (write16 truncates). The mask must be the outermost op on the RHS (right before `;`), width-matched.
+MASK8 = re.compile(r"\bmem8\[[^\]]*\]\s*=[^;=]*&\s*0x[fF][fF]\s*;")
+MASK16 = re.compile(r"\bmem16\[[^\]]*\]\s*=[^;=]*&\s*0x[fF]{4}\s*;")
+# A non-canonical whole-view alias (`const foo = m.mem8;`) would hide `foo[x]=..&0xff` masks; forbid it.
+# The `const {mem8,mem16} = m` destructure and byte reads `const v = m.mem8[x]` do not match.
+ALIAS = re.compile(r"\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*m\.mem(?:8|16)\s*;")
 
-CATEGORIES = ("registers", "calls", "pushes", "addrs")
+CATEGORIES = ("registers", "calls", "pushes", "addrs", "mem", "masks")
 
 
 def strip_comments(text):
@@ -56,11 +67,8 @@ def strip_comments(text):
 
 
 def register_hits(text):
-    """Register names in a body, minus param-defaults (a signature line) and register writes that ride
-    a `return` — approximated as any `regs.X =` AFTER the first `return` keyword on a line (the
-    load-bearing outgoing form `return (m.regs.a = v)`). A write BEFORE the `return` on the line is
-    still debt; a bare `regs.X =` placed after a `return;` on the same physical line is a rare form the
-    approximation also exempts."""
+    """Register names, minus a param-default (signature line) and a `regs.X =` write after the first
+    `return` on a line (the exempt outgoing bridge `return (m.regs.a = v)`)."""
     hits = []
     for line in text.splitlines():
         if SIG.search(line):
@@ -80,6 +88,9 @@ def counts(text):
         "calls": len(CALL.findall(code)),
         "pushes": len(PUSH.findall(code)),
         "addrs": len(ADDR.findall(code)),
+        "mem": len(MEM.findall(code)),
+        "masks": (len(MASK8.findall(code)) + len(MASK16.findall(code))
+                  + sum(1 for n in ALIAS.findall(code) if n not in ("mem8", "mem16"))),
     }
 
 
@@ -156,6 +167,22 @@ BOUNDARY_FILE = "tools/idiomatic-boundaries.txt"
 REG_ENTRY = re.compile(r"^\s*\[\s*0x([0-9a-fA-F]+)\s*,")     # _registry.generated.js address->fn rows
 ROUTINE_KEY = re.compile(r"^\s*0x([0-9a-fA-F]+)\s*:\s*\{")   # names.js ROUTINES map keys
 
+# The game-local CLEANUP flag (manifest); enforced below so it can't be set at nonzero cruft. Line-anchored
+# so a commented-out flag does not match. docs/comment-gate.md.
+COMPLETE_RE = re.compile(r"(?m)^\s*idiomaticComplete\s*:\s*true\b")
+
+
+def declares_complete(game):
+    try:
+        return bool(COMPLETE_RE.search(git(["show", f":games/{game}/manifest.js"])))
+    except GitError:
+        return False
+
+
+def is_completeness_violation(declares, tot):
+    """A game may not declare idiomaticComplete while any cruft (tot, incl. unlifted) remains."""
+    return declares and tot != 0
+
 
 def _read(path, from_index):
     """Read a tracked file's STAGED (index) content to match the ratchet, or the working tree."""
@@ -220,6 +247,7 @@ def check():
         return 1
     worst = 0
     rows = []
+    lied = []  # games that declare idiomaticComplete while cruft remains
     for game in all_games():
         try:
             tot, per = count_in_index(game)
@@ -235,10 +263,19 @@ def check():
         brk = " ".join(f"{k[:4]}={per[k]}" for k in CATEGORIES)
         if game in CLOSURE_GAMES:
             brk += f" unlifted={unl}"
+        complete = declares_complete(game)
+        if is_completeness_violation(complete, tot):
+            lied.append((game, tot))
         rows.append(f"  [{flag}] {game}: {tot} cruft (budget {budget}{tag})  [{brk}]"
-                    + ("  <- IDIOMATIC" if tot == 0 else ""))
+                    + ("  <- IDIOMATIC" if tot == 0 else "")
+                    + ("  [idiomaticComplete]" if complete else ""))
     for r in rows:
         print(r)
+    if lied:
+        for game, tot in lied:
+            print(f"\nBLOCK: {game}/manifest.js declares idiomaticComplete: true but its idiomatic layer "
+                  f"still holds {tot} cruft (a complete port must be 0). Finish the port or drop the flag.")
+        return 1
     if worst > 0:
         print("\nBLOCK: a game's idiomatic layer holds MORE CPU/memory cruft (registers, m.call, "
               "m.push*, raw 0xHHHH) than its budget. The allowlist only shrinks — dissolve the new "
@@ -303,6 +340,14 @@ def selftest():
     want("registry-row", bool(REG_ENTRY.match("  [0x0ff1, loc_0ff1],")), True)
     want("routine-key", bool(ROUTINE_KEY.match('  0x0ff1: { name: "renderX" },')), True)
     want("not-a-routine-key", bool(ROUTINE_KEY.match("  const K = 0x8040;")), False)
+    # idiomaticComplete flag parsing: only a `: true` declaration counts (false/absent do not)
+    want("complete-true", bool(COMPLETE_RE.search("  idiomaticComplete: true,")), True)
+    want("complete-false", bool(COMPLETE_RE.search("  idiomaticComplete: false,")), False)
+    want("complete-absent", bool(COMPLETE_RE.search('  runtime: "idiomatic",')), False)
+    want("complete-commented", bool(COMPLETE_RE.search("  // idiomaticComplete: true")), False)
+    want("lie: complete+cruft", is_completeness_violation(True, 5), True)
+    want("lie: complete+clean", is_completeness_violation(True, 0), False)
+    want("lie: dirty+unflagged", is_completeness_violation(False, 5), False)
     if ok:
         print("idiomatic_gate selftest: OK")
     return 0 if ok else 1

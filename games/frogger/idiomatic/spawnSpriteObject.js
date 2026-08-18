@@ -34,7 +34,7 @@ export function spawnSpriteObject(m, record = m.regs.ix) {
   const ptr = mem16[(SPAWN_POINTER_TABLE + 2 * variant)];
   const cell = mem8[ptr];
   const spanB = ((((cell >> 2) | (cell << 6)) & 0xff) - 16) & 0xff;
-  const spanCount = mem8[(ptr & 0xff00) | ((ptr + 2) & 0xff)] || 256; // 0 runs the loop 256 times
+  const spanCount = mem8[(ptr & ~0xff) | ((ptr + 2) & 0xff)] || 256; // 0 runs the loop 256 times
 
   // Subtract spanA (and probe spanB) from the seed until spanA underflows (abort), spanB underflows,
   // or the walk exhausts, leaving the value the position bytes are built from.
@@ -50,8 +50,8 @@ export function spawnSpriteObject(m, record = m.regs.ix) {
   const remainder = (armAcc + spanB) & 0xff;
 
   mem8[(record + 2)] = seedPos;
-  mem8[(record + 1)] = (seedPos - remainder) & 0xff;
-  mem8[record] = (seedPos - remainder + spanB) & 0xff;
+  mem8[(record + 1)] = seedPos - remainder;
+  mem8[record] = seedPos - remainder + spanB;
 
   if (nextSpawnRandomByte(m) & 1) {
     mem8[(record + 5)] = 0;

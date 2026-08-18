@@ -162,6 +162,19 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
   it. Guard it with a positive control: require a minimum count of **distinct** frames on both sides so
   a frozen or black screen cannot pass by matching nothing. Print the literal `pixel_suite: PASS` only
   on a clean comparison; every cannot-compare path exits non-zero.
+- **★ Expand the frame count — the fast gate is a tripwire, not coverage.** The default `SECONDS` window
+  (`pixel_suite.py --seconds`, ~10 s) is a per-commit REGRESSION check, NOT a done-proof: a defect can hide
+  just past it. Before a game is DONE, pixel-validate the **full attract cycle AND gameplay** — expand
+  `--seconds` to cover ≥1 complete attract loop, and drive an input tape from `games/<game>/tapes/`
+  (`mame_golden.py --tape`, `render.js --inputs`) to cover play. Frogger was byte-exact for 49 s, then a
+  divergence surfaced only at the attract-LOOP WRAP the 10 s gate never reached — "we should have been
+  testing [the long window] all along" (Karl 2026-08-17).
+  ⚠ **The fixed-offset compare aligns only within ONE landmark segment.** The "collapse pure delay, align on
+  a landmark" model runs the attract cycle faster than MAME, so the offset SHIFTS at the loop wrap; a single
+  swept offset breaks there even when the layer is correct. An extended / cross-loop / gameplay run must use
+  the **drift-tolerant reconverge rule** (`tools/convergence.mjs`, nearest-golden-frame over the whole
+  golden), never the fixed `pixel_suite` offset. Settle any cross-loop divergence with reconverge (or a
+  longer golden that contains it) before ruling it a bug.
 - **Wire it in and drop the waiver.** Declare the suite in `SUITES` in `pixel_gate_required.py` and
   remove the game's `EXEMPT` entry. The gate invokes each suite with `--layer {oracle,idiomatic}`; a
   translated-only game accepts the flag and renders the oracle for both until an idiomatic render
@@ -353,8 +366,10 @@ tag was honest; honest tags are not grounding.)
   (understood from the routines, consistent across the ones that touch it), RENAME its `names.js`
   `export const` from `loc_<addr>` to a DESCRIPTIVE name (the `PLAYER_X`/`CREDIT_BCD` style — see
   `names-registry.md`) and update every importer. This is **value-identical** — the address never
-  changes, only the identifier. A `[guess]`/unknown cell stays **keep-hex** (a bare literal, no const);
-  `loc_<addr>` as an *idiomatic* cell identifier is never a valid form (it is the translated layer's).
+  changes, only the identifier. A `[guess]`/unknown cell takes a **`loc_<addr>`** name, allowlisted in
+  `tools/names-debt.txt` — a readable placeholder that clears the raw-hex cruft and marks the role
+  pending; promote it to a descriptive name the moment it reaches `[code]` (loc_ is never valid for a
+  `[code]`/`[seen]` cell). (Amended 2026-08-17 by Karl: unknown cells take loc_, not keep-hex.)
   Grounding (`[code]`→`[seen]`) then only CONFIRMS the name — or OVERTURNS it, forcing a re-rename — it
   does not *first* bestow it. A confidently-read cell (`[code]` **or** `[seen]`) still named
   `loc_<addr>` is an unfinished job: the tag says we understand the byte, the symbol the code runs on
@@ -414,13 +429,29 @@ tag was honest; honest tags are not grounding.)
   is not a dispatch count for a routine that WAITS; tap a known-executing address first and confirm
   it's non-zero; without a driver the sweep measures attract only. A search's zero is not absence
   until the instrument is shown working on something known-present.
-- **Rewrite `mechanisms.md` from scratch every understanding pass** — blind to prior naming, a
-  player-facing model (read `gameplay.md`, re-derive, recount by measuring); never patch it
-  (`understanding_gate` enforces, and it fires on **additions** too, by design, so new machinery gets
-  documented). Sweep falsified prose by **claim family** (existence/counts/only-sole/status), never
-  token. `names.js` is the single source for a cell's name/role/tag; prose cites it, never contradicts
-  it (`names_consistency`). Promotion requires a proposer≠confirmer who **independently re-derives** —
-  a prose review is not a confirmation.
+- **★ `mechanisms.md` is REGENERATED WHOLE every understanding pass — never patched, never an
+  incremental edit, even for a one-routine change** (Karl, 2026-08-17). Throw the prior map away and
+  re-derive the ENTIRE document from the current code, every time. Method: fan out one code-reading
+  subagent per subsystem, each re-deriving mechanism from the ACTUAL routine bodies (idiomatic override
+  + frozen oracle) — **blind to the prior map**, forbidden to paraphrase it or the `names.js` role
+  strings; the lead stitches the sections, VERIFIES every mechanism claim against the code, and carries
+  grounding TAGS from the `names.js` `cert` field (`[seen]` is never re-invented by a code read — the
+  TAG, not prose, is how the map records that MAME confirmed a role). **Grounding is conveyed by the
+  tag, NEVER by narrative** — no "MAME overturned/confirmed X", no wave dates, no golden names; that is
+  development history and gets stripped. A current-state WARNING that a reading is counterintuitive ("X
+  is a counter, not a static base") stays, but stated about the code as it IS, with no before/after
+  framing. **It is a CURRENT-STATE description, NOT a development history** — no "batch N did X"
+  chronicle, no decompile-campaign narrative; describe what the machine IS now. **And it reads as
+  NARRATION** (Karl, 2026-08-17) — flowing, human-readable exposition a person follows to understand how
+  the machine works, NOT a bare fact-listing (comma-strings of cells/offsets, bulleted catalogues). Every
+  fact is present — cells, addresses, control flow, grounding tags — but woven into explanatory prose with
+  the connective tissue (why a step matters, how the pieces fit) that makes it readable. A patch that
+  touches a line or two is the exact anti-pattern: it lets the map drift and reads as finished while stale.
+  `understanding_gate` CHECK A binds the regenerated map to the commit and fires on **additions** too,
+  by design; a fresh-vs-patched regeneration is a reviewer call (`reviewer-rules.md`). `names.js` is the
+  single source for a cell's name/role/tag; prose cites it, never contradicts it (`names_consistency`).
+  Promotion requires a proposer≠confirmer who **independently re-derives** — a prose review is not a
+  confirmation.
 
 ### ★ The clock-free block — handle these four together
 
@@ -469,6 +500,41 @@ deliberate handling. These four are one problem and are decided together, once, 
   game responds** (banks credits, starts at the contract frame, player moves/scores), plus
   idiomatic==translated through the sequence and video RAM byte-identical, including **forced
   transitions the tapes never reach** (poke the ROM's own trigger).
+
+### ★ The cleanup phase — end of the idiomatic pass
+
+Once `idiomatic_gate` reports **0 total cruft** (all six categories + 0 unlifted for a closure game) the
+port is COMPLETE but terse. The cleanup phase turns it into a clean, self-documenting artifact. It is a
+distinct phase, gated on a flag, and runs in this order.
+
+- **Declare completeness — a GAME-LOCAL flag.** Set `idiomaticComplete: true` in
+  `games/<game>/manifest.js` (NOT a repo-wide list; game settings live with the game). `idiomatic_gate`
+  **enforces** it — a game that declares it at cruft > 0 is blocked — and `comment_gate` reads it to drop
+  **both** its rules (density + reference) for that game's `idiomatic/**`, so cleaned routines may carry
+  verbose comments that cite the ROM/hardware. The flag is the phase's precondition. (`docs/comment-gate.md`.)
+- **Regenerate `mechanisms.md` whole, from code (blank-slate).** Per-subsystem agents write each section
+  FROM THE CODE BODIES (forbidden to read the old map or paraphrase role strings); tags come from
+  `names.js` certs. The lead assembles, PRESERVES the grounding provenance (`[seen]` narratives + batch
+  history — not code-derivable), writes intro/legend/open, and **verifies every claim against code** — fan
+  that out: one adversarial checker per section, flagging wrong/unsupported/imprecise claims, fold the real
+  ones. The map carries **NO port plumbing** (`m.call`, the seam, `withOmittedRet`, `push16`,
+  "address-dispatched") — that is how the port is wired, not how the machine works.
+- **Rewrite `names.js`.** It accretes run-on role strings and port-plumbing prose across the pass. Make
+  every role concise, consistent, plumbing-free, correctly tagged. It is ONE file (edit contention):
+  agents PROPOSE cleaned entries per disjoint address range; the lead APPLIES them serially as the single
+  writer. Do this before the routine sweep, so the sweep references clean names.
+- **Clean every routine, LEAVES-FIRST.** Topo-sort the idiomatic call graph (imports = calls) and clean in
+  leaf-first waves — a callee cleaned (and any rename settled) before its callers — fanning out each wave
+  fully. "Cleaned" = verbose explanatory comments PLUS light code cleanup (fix misnomers, simplify locals),
+  never a behaviour change.
+  - **Comment standard:** a rich header (what it is, its role in the machine, ROM address, grounding tag,
+    live-out) + a block comment before each logical step explaining the mechanism and WHY, citing the
+    ROM/hardware — the level where someone who has never seen the game's internals could follow it.
+  - **Prove it changed nothing but comments:** for a comment-only unit, strip comments + blank lines and
+    assert the code is BYTE-IDENTICAL to pre-clean; run the equivalence subset + pixel as a backstop.
+- **Land per the usual cadence.** Each unit: gates first (`comment_gate` now in verbose mode for the game),
+  then an independent reviewer, then commit as Jimmy + push, single-threaded. Order across the phase:
+  complete-flag + mechanisms regen (one milestone) → `names.js` → the leaf-first sweep.
 
 ## 5 — Ship
 

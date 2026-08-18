@@ -5,11 +5,10 @@
  * 0x20 rows, two ten-cell runs per row separated by a two-cell gap, stepping down one row per pass.
  * LIVE-OUT: memory-only.
  */
-import { SCORE_DISPLAY_CURSOR_LO, SCORE_DISPLAY_CURSOR_HI, loc_83cc } from "./names.js";
+import { SCORE_DISPLAY_CURSOR_LO, SCORE_DISPLAY_CURSOR_HI, loc_83cc, FROG_ANIM_COLUMN_VRAM } from "./names.js";
 import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
 import { fillTenCellRun } from "./fillTenCellRun.js";
 
-const FIELD_BASE = 0xa806;
 const ROWS = 0x20;
 const RUN = 10;
 const GAP = 2;
@@ -24,11 +23,11 @@ export function clearAndSeedScoreField(m) {
   mem8[SCORE_DISPLAY_CURSOR_HI] = 0;
   mem8[loc_83cc] = 1;
 
-  let p = FIELD_BASE;
+  let p = FROG_ANIM_COLUMN_VRAM;
   for (let row = ROWS; row !== 0; row = (row - 1) & 0xff) {
     fillTenCellRun(m, p);
     p = p + RUN;
-    p = (p & 0xff00) | ((p + GAP) & 0xff); // step the low byte only, no carry into the page
+    p = (p & ~0xff) | ((p + GAP) & 0xff); // step the low byte only, no carry into the page
     fillTenCellRun(m, p);
     p = p + RUN;
     p = p + ROW_STEP;

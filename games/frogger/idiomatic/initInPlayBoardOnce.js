@@ -9,6 +9,7 @@ import {
   IN_PLAY_BOARD_INIT_GUARD, PLAYER1_DIFFICULTY_INDEX, PLAYER2_DIFFICULTY_INDEX,
   TWO_PLAYER_START_FLAG, ANIM_FRAME_INDEX, IN_PLAY_BOARD_STATE_BYTE, INTRO_COUNTER_801B, POINT_TABLE_SPRITE_ATTR_8029,
   POINT_TABLE_PHASE2_STRIP_VRAM, PLAYER_SELECT_PROMPT_SRC, INTRO_TITLE_STRIP2_SRC, PTS_SUFFIX_STRIP, EXTRA_LIFE_SCORE_TARGET,
+  EXTRA_LIFE_SCORE_TARGET_VRAM, BOARD_INIT_HUD_STRIP1_VRAM, BOARD_INIT_HUD_STRIP2_VRAM, BOARD_INIT_HUD_STRIP1_SRC, BOARD_INIT_HUD_STRIP3_SRC,
 } from "./names.js";
 import { loadActivePlayerLaneParams } from "./loadActivePlayerLaneParams.js";
 import { clearActivePlayerWorkRam } from "./clearActivePlayerWorkRam.js";
@@ -41,19 +42,19 @@ export function initInPlayBoardOnce(m) {
   mem8[INTRO_COUNTER_801B] = 0x04;
   mem8[POINT_TABLE_SPRITE_ATTR_8029] = 0x06;
 
-  const { de: seedSrc } = copyRunUpTileColumn(m, 0xaa28, 0x2f77, 0x04);
+  const { de: seedSrc } = copyRunUpTileColumn(m, BOARD_INIT_HUD_STRIP1_VRAM, BOARD_INIT_HUD_STRIP1_SRC, 0x04);
   // Z80 INC E: advance only DE's low byte (no carry into the high byte)
   const targetSrc = ((seedSrc >>> 8) << 8) | ((seedSrc + 1) & 0xff);
-  copyRunUpTileColumn(m, 0xaaad, targetSrc, 0x0c);
+  copyRunUpTileColumn(m, BOARD_INIT_HUD_STRIP2_VRAM, targetSrc, 0x0c);
 
   blitPlayerSelectPrompt(m);
 
   const promptRun = copyRunUpTileColumn(m, POINT_TABLE_PHASE2_STRIP_VRAM, PLAYER_SELECT_PROMPT_SRC, 0x03);
-  const promptRun2 = copyRunUpTileColumn(m, promptRun.hl, 0x2fa8, 0x06);
+  const promptRun2 = copyRunUpTileColumn(m, promptRun.hl, BOARD_INIT_HUD_STRIP3_SRC, 0x06);
   const promptRun3 = copyRunUpTileColumn(m, promptRun2.hl, INTRO_TITLE_STRIP2_SRC, 0x05);
   copyRunUpTileColumn(m, promptRun3.hl, promptRun3.de + 1, 0x07);
 
-  const scoreTargetPtr = writeScoreField(m, m.mem16[EXTRA_LIFE_SCORE_TARGET], 0xa994);
+  const scoreTargetPtr = writeScoreField(m, m.mem16[EXTRA_LIFE_SCORE_TARGET], EXTRA_LIFE_SCORE_TARGET_VRAM);
 
   copyRunUpTileColumn(m, scoreTargetPtr, PTS_SUFFIX_STRIP, 0x04);
 }

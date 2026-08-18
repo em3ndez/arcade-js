@@ -8,12 +8,10 @@
  * LIVE-OUT: memory-only (the move-blocked flag, plus the kill tail's own cells).
  */
 import {
-  FROG_STATE_DEMO_FLAG, HOLD_FLAG, FROG_Y, FROG_X,
+  FROG_STATE_DEMO_FLAG, HOLD_FLAG, FROG_Y, FROG_X, SECOND_BANK,
   SPRITE_BLOCK2_BASE, LANE_OBJLIST_8109, LANE_OBJLIST_8112, LANE_OBJLIST_811B, LANE_OBJLIST_8124, LANE_OBJLIST_8136, LANE_OBJLIST_813F, LANE_OBJLIST_8148, LANE_OBJLIST_8151, LANE_OBJLIST_815A,
 } from "./names.js";
 import { resolveFrogMoveAgainstLanes } from "./resolveFrogMoveAgainstLanes.js";
-
-const SECOND_BANK = 0x829c; // second-bank / mid-river kill cell
 
 // killFrogAtLane — the shared frog-kill tail: raise the hold/kill flag, and in the mid-river band
 // (0x30 <= Y < 0x80) also set the second-bank kill cell; road band and above-river just flag.

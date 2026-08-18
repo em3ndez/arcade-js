@@ -8,28 +8,29 @@
  */
 import { updateSpriteObject } from "./updateSpriteObject.js";
 import { dispatchSpriteObjectArmsA } from "./dispatchSpriteObjectArmsA.js";
-import { LIVES_COUNT, ACTIVE_PLAYER, SPRITE_OBJECT_SLOT_B } from "./names.js";
+import {
+  LIVES_COUNT, ACTIVE_PLAYER, SPRITE_OBJECT_SLOT_B, SPRITE_OBJECT_SLOT_A,
+  SPRITE_OBJECT_RECORD_A_P1, SPRITE_OBJECT_RECORD_A_P2, SPRITE_OBJECT_SLOT_A_SECOND,
+  SPRITE_OBJECT_RECORD_B_P1, SPRITE_OBJECT_RECORD_B_P2,
+} from "./names.js";
 
 const MIN_SLOTS = 3, TWO_SLOTS = 6;
-const RECORD_A_P1 = 0x8440, RECORD_A_P2 = 0x8460, RECORD_ADVANCE = 0x10;
-const SLOT_A_FIRST = 0x8048, SLOT_A_SECOND = 0x8050;
-const RECORD_B_P1 = 0x8480, RECORD_B_P2 = 0x8490;
+const RECORD_ADVANCE = 0x10;
 
 export function driveSpriteObjectCluster(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[LIVES_COUNT] >= MIN_SLOTS) {
-    regs.ix = mem8[ACTIVE_PLAYER] === 1 ? RECORD_A_P1 : RECORD_A_P2;
-    regs.iy = SLOT_A_FIRST;
-    dispatchSpriteObjectArmsA(m);
+    let recordA = mem8[ACTIVE_PLAYER] === 1 ? SPRITE_OBJECT_RECORD_A_P1 : SPRITE_OBJECT_RECORD_A_P2;
+    let slotA = SPRITE_OBJECT_SLOT_A;
+    dispatchSpriteObjectArmsA(m, recordA, slotA);
     if (mem8[LIVES_COUNT] >= TWO_SLOTS) {
-      regs.ix = regs.ix + RECORD_ADVANCE;
-      regs.iy = SLOT_A_SECOND;
+      recordA = recordA + RECORD_ADVANCE;
+      slotA = SPRITE_OBJECT_SLOT_A_SECOND;
     }
-    dispatchSpriteObjectArmsA(m);
+    dispatchSpriteObjectArmsA(m, recordA, slotA);
   }
 
-  regs.ix = mem8[ACTIVE_PLAYER] === 1 ? RECORD_B_P1 : RECORD_B_P2;
-  regs.iy = SPRITE_OBJECT_SLOT_B;
-  return updateSpriteObject(m);
+  const recordB = mem8[ACTIVE_PLAYER] === 1 ? SPRITE_OBJECT_RECORD_B_P1 : SPRITE_OBJECT_RECORD_B_P2;
+  return updateSpriteObject(m, recordB, SPRITE_OBJECT_SLOT_B);
 }

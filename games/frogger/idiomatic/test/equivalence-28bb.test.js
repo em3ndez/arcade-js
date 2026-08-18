@@ -8,13 +8,13 @@
  * ride, and the inner-overlap kill. Both sides run on fresh clones so the real frog-kill callee 0x12d0
  * executes identically and its side effects are part of the compared live-out. The ride VRAM quad is
  * pre-dirtied. The one caller makes another call immediately, so LIVE-OUT is memory-only: RAM is
- * compared, registers/SP are not. On the kill path both sides push the same 0x28ee bracket around the
- * 0x12d0 call, so the stack scratch matches with no masking. Teeth: three broken twins.
+ * compared, registers/SP are not. The kill path's dissolved balanced trampoline is excluded from the RAM
+ * diff (isStackScratch, detailed below). Teeth: three broken twins.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { makeMachine, ENTRY_FRAMES, romsPresent, isStackScratch } from "./_harness.js";
 import { mountOrKillFrogOnTwoPairFigure } from "../mountOrKillFrogOnTwoPairFigure.js";
 import { loc_28bb as oracle } from "../../translated/loc_28bb.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -45,11 +45,14 @@ function craft({ arm, phase, y, fx, dx, dirty }) {
   return e;
 }
 
-// null == RAM-equivalent. Memory-only live-out: compare RAM, not registers or SP.
+// null == RAM-equivalent. Memory-only live-out: compare RAM, not registers or SP. The kill path
+// dissolves the ROM's balanced push16(0x28ee)/call(0x12d0) trampoline into a direct killFrogAtLane
+// call, so the candidate no longer writes the sentinel into the dead stack scratch [0x87e0,0x8800);
+// exclude that region (isStackScratch) — the same class the pixel manifest's stateExclude.stack drops.
 function ramDiff(cand, machine) {
   const a = machine.clone(); oracle(a);
   const b = machine.clone(); cand(b);
-  const d = firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
+  const d = firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o), isStackScratch);
   return d ? `0x${(d.addr ?? 0).toString(16)}: ${d.a} vs ${d.b}` : null;
 }
 

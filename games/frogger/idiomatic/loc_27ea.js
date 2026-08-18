@@ -6,21 +6,20 @@
  * LIVE-OUT: memory-only.
  */
 import { LIVES_COUNT, FIGURE_ANIM_PHASE } from "./names.js";
-
-const DIVE_PHASE_HIGH = 0x2874;
-const SURFACE_COUNTER_RESET = 0x288c;
-const SURFACE_TIMER_STEP = 0x27fe;
+import { armDiveHighPhase } from "./armDiveHighPhase.js";
+import { resetDiveSurfaceCounter } from "./resetDiveSurfaceCounter.js";
+import { stepDiveSurfaceTimer } from "./stepDiveSurfaceTimer.js";
 
 export function loc_27ea(m) {
   const { mem8 } = m;
 
   const phase = mem8[LIVES_COUNT];
   if (phase < 2) return;
-  if (phase >= 5) return m.call(DIVE_PHASE_HIGH);
+  if (phase >= 5) return armDiveHighPhase(m);
 
   if (mem8[FIGURE_ANIM_PHASE] === 0) {
-    m.push16(SURFACE_TIMER_STEP);
-    m.call(SURFACE_COUNTER_RESET);
+    resetDiveSurfaceCounter(m);
+    return stepDiveSurfaceTimer(m);
   }
-  return m.call(SURFACE_TIMER_STEP);
+  return stepDiveSurfaceTimer(m);
 }

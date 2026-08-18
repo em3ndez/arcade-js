@@ -1,82 +1,97 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * clearPlayerOneHomeBayGates — memory-equivalent to the frozen oracle at ROM 0x0534.
- * GATE: crafted-entry (probe: 0 dispatches over ENTRY_FRAMES). Its tail transfers to the cold-start
- * entry 0x0567, which never returns in a unit context, so 0x0567 is overridden with a sentinel stub
- * installed identically on both sides; the compared live-out is the routine's own clears (0x825C,
- * 0x825E-0x8262) and the stub's sentinel write makes a skipped tail call observable. Memory-only
- * live-out, no register live-in. Teeth: no-op, wrong-value, skip-call (0x825D stays untouched).
+ * clearPlayerOneHomeBayGates — crafted-entry equivalence vs the frozen oracle at ROM 0x0534. Player-1
+ * COLD board re-init: zero the player-1 slot byte 0x825c and the five primary-bank home-bay occupancy
+ * gates 0x825e-0x8262, then tail DIRECTLY into the shared cold-start mid-entry 0x0567 (skipping the
+ * player-2 alt-gate clears at 0x0557). Both sides route 0x0567 to the SAME idiomatic mid-entry so its
+ * (large) contribution cancels, isolating 0x0534's own clears. The mid-entry's LDIR clears
+ * 0x8100-0x825f, so primary gates 0x8260-0x8262 survive it — they are the differential signal; the
+ * slot byte 0x825c and gates 0x825e-0x825f are additionally proven cleared. RAM compared, dead stack
+ * scratch masked. Teeth: no-op, a twin skipping one surviving gate, a twin that omits the mid-entry
+ * tail. Positive control: a seeded surviving gate 0x07 -> 0 and the tail really sets GAME_MODE = 3.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { clearPlayerOneHomeBayGates } from "../clearPlayerOneHomeBayGates.js";
+import { buildRoutines } from "../../routines.js";
+import { clearPlayerOneHomeBayGates as cand } from "../clearPlayerOneHomeBayGates.js";
+import { coldStartClearPlayRamAndSetMode } from "../coldStartClearPlayRamAndSetMode.js";
 import { loc_0534 as oracle } from "../../translated/loc_0534.js";
-import { firstStateDiff } from "../../../../core/equivalence.js";
 
-const COLD_START = 0x0567;
-const SLOT = 0x825c;
-const GAP = 0x825d; // between the slot byte and the gate table; the routine must NOT touch it
-const GATES = 0x825e; // 0x825E-0x8262, five occupancy gates
-const SENTINEL = 0x8600; // a cell the routine never writes; the stub marks it so the tail is visible
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
-const stub = (mm) => { mm.mem8[SENTINEL] = 0xab; };
+const STACK_LO = 0x87e0, STACK_HI = 0x8800;
+const SLOT = 0x825c;               // player-1 slot byte (cleared by 0x0534 AND the mid-entry LDIR)
+const GATE0 = 0x825e;              // first primary gate; 0x825e-0x825f also fall in the mid-entry LDIR
+const GATE_SURV = 0x8260;          // gates 0x8260-0x8262 survive the mid-entry -> differential signal
+const GATE4 = 0x8262;
+const GAME_MODE = 0x83d6, PLAY_FLAG = 0x83fe;
+
+const balCall = (mm) => { mm.regs.sp = (mm.regs.sp + 2) & 0xffff; };
+const noop = () => {};
+
+// Both sides run the SAME idiomatic mid-entry at 0x0567 (so it cancels); the deep render/sound callees
+// are stubbed balanced and the pace tail severed.
+const MAP = buildRoutines();
+MAP.set(0x0567, coldStartClearPlayRamAndSetMode);
+for (const a of [0x0038, 0x0b67, 0x0f69, 0x0b1f]) MAP.set(a, balCall);
+MAP.set(0x0368, noop);
 
 let seed = null;
 function seedMachine() {
   if (seed) return seed;
-  const m = makeMachine(new Map([[COLD_START, stub]])); // stub is never hit during attract
+  const m = makeMachine();
   m.runFrames(ENTRY_FRAMES);
-  assert.equal(m.stoppedBy, null, `the seed run stopped early: ${m.stoppedBy}`);
+  if (m.stoppedBy !== null) throw new Error(`the seed run stopped early: ${m.stoppedBy}`);
   seed = m.clone();
   return seed;
 }
 
-// A post-boot machine with the slot/gate cells set to a marker so the clears are observable, the gap
-// byte set to a witness, and the sentinel pre-cleared.
-function entry(v) {
+function craft(mut) {
   const e = seedMachine().clone();
-  e.mem8[SLOT] = v;
-  e.mem8[GAP] = 0x99;
-  for (let i = 0; i < 5; i++) e.mem8[GATES + i] = v;
-  e.mem8[SENTINEL] = 0;
+  e.routines = MAP;
+  e.regs.sp = STACK_HI;
+  e.mem8[PLAY_FLAG] = 0;
+  e.mem8[SLOT] = 0x09;
+  for (let i = 0; i < 5; i++) e.mem8[GATE0 + i] = 0x07;
+  e.mem8[GAME_MODE] = 0xff;
+  if (mut) mut(e.mem8, e);
   return e;
 }
 
-// null == RAM-equivalent. Memory-only live-out: compare RAM, not registers or SP.
-function ramDiff(cand, machine) {
-  const a = machine.clone(); oracle(a);
-  const b = machine.clone(); cand(b);
-  const d = firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
-  return d ? `0x${(d.addr ?? 0).toString(16)}: ${d.a} vs ${d.b}` : null;
+function ramDiff(orc, cnd, entry) {
+  const a = entry.clone(); a.routines = MAP; orc(a);
+  const b = entry.clone(); b.routines = MAP; cnd(b);
+  const A = a.dumpState(), B = b.dumpState();
+  const n = Math.min(A.length, B.length);
+  for (let i = 0; i < n; i++) {
+    if (A[i] === B[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= STACK_LO && addr < STACK_HI) continue;
+    return `0x${(addr ?? 0).toString(16)}: ${A[i]} vs ${B[i]}`;
+  }
+  return null;
 }
 
-const VALUES = [0xff, 0x01, 0x7e];
+test("EQUAL (crafted): clearPlayerOneHomeBayGates == oracle", { skip }, () => {
+  assert.equal(ramDiff(oracle, cand, craft()), null, "player-1 cold re-init diverged");
 
-function brokenNoOp() {}
-function brokenWrongValue(m) {
-  m.mem8[SLOT] = 0; for (let i = 0; i < 5; i++) m.mem8[GATES + i] = 1; return m.call(COLD_START);
-}
-function brokenSkipCall(m) {
-  m.mem8[SLOT] = 0; for (let i = 0; i < 5; i++) m.mem8[GATES + i] = 0; // BUG: never enters cold-start
-}
-
-test("EQUAL (crafted): clearPlayerOneHomeBayGates == oracle on every marker value", { skip }, () => {
-  const entries = VALUES.map(entry);
-  for (const e of entries) assert.equal(ramDiff(clearPlayerOneHomeBayGates, e), null, "a crafted entry diverged");
-  assert.ok(ramDiff(brokenNoOp, entry(0xff)), "vacuous: oracle wrote nothing");
-  // the routine must leave 0x825D untouched.
-  const chk = entry(0xff).clone(); oracle(chk);
-  assert.equal(chk.mem8[GAP], 0x99, "oracle unexpectedly wrote 0x825D");
-  console.log(`  EQUAL: ${entries.length} marker values, clearPlayerOneHomeBayGates == oracle; 0x825D preserved`);
+  const e = craft(); const a = e.clone(); a.routines = MAP; oracle(a);
+  assert.equal(a.mem8[GATE_SURV], 0, "positive control: surviving gate 2 (0x07) -> 0");
+  assert.equal(a.mem8[GATE4], 0, "positive control: surviving gate 4 (0x07) -> 0");
+  assert.notEqual(e.mem8[GATE_SURV], 0, "positive control vacuous: the gate was already zero");
+  assert.equal(a.mem8[SLOT], 0, "positive control: player-1 slot 0x09 -> 0");
+  assert.equal(a.mem8[GAME_MODE], 0x03, "tail control: the mid-entry ran (GAME_MODE 0xff -> 3)");
+  console.log(`  EQUAL: player-1 cold re-init; surviving gates 0x07->0, slot ${e.mem8[SLOT]}->0, mid-entry GAME_MODE->3`);
 });
 
 test("TEETH: broken twins are caught", { skip }, () => {
-  const e = entry(0xff);
-  assert.ok(ramDiff(brokenNoOp, e), "the no-op twin escaped");
-  assert.ok(ramDiff(brokenWrongValue, e), "the wrong-value twin escaped");
-  assert.ok(ramDiff(brokenSkipCall, e), "the skip-call twin escaped");
-  console.log("  TEETH: no-op, wrong-value, skip-call all caught");
+  const noOp = () => {};
+  const skipGate = (m) => { m.mem8[SLOT] = 0; for (let i = 0; i < 5; i++) m.mem8[GATE0 + i] = 0; m.mem8[GATE4] = 0x07; coldStartClearPlayRamAndSetMode(m); }; // one surviving gate left dirty
+  const noTail = (m) => { m.mem8[SLOT] = 0; for (let i = 0; i < 5; i++) m.mem8[GATE0 + i] = 0; }; // omits the mid-entry tail
+  assert.ok(ramDiff(oracle, noOp, craft()), "no-op twin escaped");
+  assert.ok(ramDiff(oracle, skipGate, craft()), "skip-gate twin escaped");
+  assert.ok(ramDiff(oracle, noTail, craft()), "no-tail twin escaped (mid-entry transfer not exercised)");
+  console.log("  TEETH: no-op, skip-gate, no-tail all caught");
 });

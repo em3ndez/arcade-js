@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * renderFrogAnimArm1 — a frog-animation render arm. Runs the guarded pre-blit, loads this arm's sprite
- * triple and pattern pointers, arms the plot cursors, then hands off to the shared render loop.
- * LIVE-OUT: memory-only.
+ * triple and pattern pointers, stashes the column stride + tile source, then calls the shared render
+ * loop directly with this arm's dest/source/cursors. LIVE-OUT: memory-only.
  */
-import { SCROLL_OBJECT_BLOCK_BASE, SCROLL_COPY_DEST_PTR, LANE_OBJLIST_8109, SCROLL_COPY_COLUMN_STRIDE, SCROLL_COPY_SRC_PTR, SCROLL_GRID_SRC_PHASE16, FROG_ANIM_RENDER_LOOP } from "./names.js";
+import { SCROLL_OBJECT_BLOCK_BASE, SCROLL_COPY_DEST_PTR, LANE_OBJLIST_8109, SCROLL_COPY_COLUMN_STRIDE, SCROLL_COPY_SRC_PTR, SCROLL_GRID_SRC_PHASE16 } from "./names.js";
 import { blitFrogAnimColumnOnTrigger } from "./blitFrogAnimColumnOnTrigger.js";
+import { renderFrogAnimTileColumns } from "./renderFrogAnimTileColumns.js";
 
 export function renderFrogAnimArm1(m) {
-  const { regs, mem8, mem16 } = m;
+  const { mem8, mem16 } = m;
 
   blitFrogAnimColumnOnTrigger(m);
 
@@ -19,12 +20,5 @@ export function renderFrogAnimArm1(m) {
   mem8[SCROLL_COPY_COLUMN_STRIDE] = spriteCode;
   mem16[SCROLL_COPY_SRC_PTR] = SCROLL_GRID_SRC_PHASE16;
 
-  regs.a = spriteCode;
-  regs.b = rowCount;
-  regs.c = columnIndex;
-  regs.hl = mem16[SCROLL_COPY_DEST_PTR];
-  regs.de = SCROLL_GRID_SRC_PHASE16;
-  regs.ix = LANE_OBJLIST_8109;
-  regs.iy = LANE_OBJLIST_8109;
-  return m.call(FROG_ANIM_RENDER_LOOP);
+  return renderFrogAnimTileColumns(m, rowCount, columnIndex, mem16[SCROLL_COPY_DEST_PTR], SCROLL_GRID_SRC_PHASE16, LANE_OBJLIST_8109, LANE_OBJLIST_8109);
 }

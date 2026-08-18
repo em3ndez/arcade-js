@@ -1,41 +1,41 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * resolveFrogMoveAgainstLanes — resolve a horizontal frog move against the object lanes (upper half of the dispatcher).
- * Returns at once when the move is already resolved. Otherwise the frog's row (Y) picks one of sixteen
- * arms through a pointer table: five scan no lane, ten seed a lane object list + band width. An object
- * in the frog's move band (scanned against the frog X) blocks the move; a clear lane kills the frog
- * when it has not yet crossed.
+ * Returns at once when the move is already resolved. Otherwise the high nibble of the frog's row (Y+15)
+ * selects one of sixteen lanes: six scan no lane, ten seed a lane object list + band width. An object in
+ * the frog's move band (scanned against the frog X) blocks the move; a clear lane kills the frog when it
+ * has not yet crossed.
  * LIVE-OUT: memory-only (the move-blocked flag, plus the kill tail's own cells).
  */
 import {
-  HOLD_FLAG, FROG_Y, LANE_LOW_BOUND_SELECTOR, FROG_X, LANE_SCAN_ARM_TABLE,
+  HOLD_FLAG, FROG_Y, LANE_LOW_BOUND_SELECTOR, FROG_X,
   SPRITE_BLOCK2_BASE, LANE_OBJLIST_8109, LANE_OBJLIST_8112, LANE_OBJLIST_811B, LANE_OBJLIST_8124, LANE_OBJLIST_8136, LANE_OBJLIST_813F, LANE_OBJLIST_8148, LANE_OBJLIST_8151, LANE_OBJLIST_815A,
 } from "./names.js";
 
 import { killFrogAtLane } from "./dispatchFrogMoveAgainstLanes.js";
 
-// arm value (from the pointer table) -> [lane object-list base, band width]; others scan no lane.
+// Row nibble (high nibble of frogY+15) -> [lane object-list base, band width], from the ROM arm-pointer
+// table at 0x130b (decoded). Nibbles not listed (0-2, 8, 14-15) select a no-lane arm and scan nothing.
 const LANES = new Map([
-  [0x1334, [SPRITE_BLOCK2_BASE, 60]],
-  [0x133c, [LANE_OBJLIST_8109, 31]],
-  [0x1344, [LANE_OBJLIST_8112, 92]],
-  [0x134c, [LANE_OBJLIST_811B, 44]],
-  [0x1354, [LANE_OBJLIST_8124, 47]],
-  [0x1364, [LANE_OBJLIST_8136, 34]],
-  [0x136c, [LANE_OBJLIST_813F, 18]],
-  [0x1374, [LANE_OBJLIST_8148, 18]],
-  [0x137c, [LANE_OBJLIST_8151, 18]],
-  [0x1384, [LANE_OBJLIST_815A, 18]],
+  [3, [SPRITE_BLOCK2_BASE, 60]],
+  [4, [LANE_OBJLIST_8109, 31]],
+  [5, [LANE_OBJLIST_8112, 92]],
+  [6, [LANE_OBJLIST_811B, 44]],
+  [7, [LANE_OBJLIST_8124, 47]],
+  [9, [LANE_OBJLIST_8136, 34]],
+  [10, [LANE_OBJLIST_813F, 18]],
+  [11, [LANE_OBJLIST_8148, 18]],
+  [12, [LANE_OBJLIST_8151, 18]],
+  [13, [LANE_OBJLIST_815A, 18]],
 ]);
 
 export function resolveFrogMoveAgainstLanes(m) {
-  const { mem8, mem16 } = m;
+  const { mem8 } = m;
   if (mem8[HOLD_FLAG] !== 0) return; // the move is already resolved this frame
 
   const key = (mem8[FROG_Y] + 15) & 0xff;
   if ((key & 0x0f) < 5) return; // low nibble < 5 -> the no-lane arm 0
-  const arm = mem16[(LANE_SCAN_ARM_TABLE + 2 * ((key & 0xf0) >> 4))];
-  const lane = LANES.get(arm);
+  const lane = LANES.get((key & 0xf0) >> 4);
   if (!lane) return;
 
   return scanLane(m, lane[0], lane[1]);

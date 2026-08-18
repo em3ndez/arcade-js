@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * renderFrogAnimArm10 — frog-animation arm 10 (sibling of arm 0). Loads its row-advance/count/column from
- * the lane-parameter block (the arm-10 triple at ACTIVE_LANE_PARAM_BLOCK + 30), points the destination +
- * pattern pointers, arms the plot cursors, and enters the shared render loop (kept dispatched by
- * address). The seven outgoing register values are handed to the loop as a return-line register bridge.
- * LIVE-OUT: memory-only.
+ * renderFrogAnimArm10 — frog-animation arm 10. Loads its row-advance/count/column from the lane-parameter
+ * block (arm-10 triple at ACTIVE_LANE_PARAM_BLOCK + 30), stashes the column stride + tile source, then
+ * calls the shared render loop directly with this arm's dest/source/cursors. LIVE-OUT: memory-only.
  */
 import {
   ACTIVE_LANE_PARAM_BLOCK,
@@ -13,8 +11,8 @@ import {
   LANE_OBJLIST_815A,
   FROG_ANIM_ARM10_DEST_PTR,
   FROG_ANIM_ARM10_SRC_BASE,
-  FROG_ANIM_RENDER_LOOP,
 } from "./names.js";
+import { renderFrogAnimTileColumns } from "./renderFrogAnimTileColumns.js";
 
 export function renderFrogAnimArm10(m) {
   const { mem8, mem16 } = m;
@@ -27,5 +25,5 @@ export function renderFrogAnimArm10(m) {
   mem8[SCROLL_COPY_COLUMN_STRIDE] = rowAdvance;
   mem16[SCROLL_COPY_SRC_PTR] = FROG_ANIM_ARM10_SRC_BASE;
 
-  return (m.regs.a = rowAdvance), (m.regs.b = rowCount), (m.regs.c = columnIndex), (m.regs.hl = destPtr), (m.regs.de = FROG_ANIM_ARM10_SRC_BASE), (m.regs.ix = LANE_OBJLIST_815A), (m.regs.iy = LANE_OBJLIST_815A), m.call(FROG_ANIM_RENDER_LOOP);
+  return renderFrogAnimTileColumns(m, rowCount, columnIndex, destPtr, FROG_ANIM_ARM10_SRC_BASE, LANE_OBJLIST_815A, LANE_OBJLIST_815A);
 }

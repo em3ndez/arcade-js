@@ -5,8 +5,7 @@
  * an outer overlap stamps the mounted-frog tile quad and raises the mount flag. LIVE-OUT: memory-only.
  */
 import { FIGURE_ANIM_STEP_GATE, LIVES_COUNT, FROG_Y, FROG_X, FIGURE_ANIM_PHASE, HOLD_FLAG, TWO_PAIR_FIGURE_VRAM } from "./names.js";
-
-const KILL_TAIL = 0x12d0;
+import { killFrogAtLane } from "./dispatchFrogMoveAgainstLanes.js";
 
 const DIVE_PHASE_MIN = 2;
 const BOX_Y_LOW = 42, BOX_Y_HIGH = 59; // frog-Y band (after the +8 bias) overlapping the diver
@@ -38,6 +37,7 @@ export function mountOrKillFrogOnTwoPairFigure(m) {
     return;
   }
 
-  m.push16(0x28ee); // inner overlap -> frog-kill tail (returns into block_28ef; kept dispatch)
-  m.call(KILL_TAIL);
+  // inner overlap -> frog-kill tail. The ROM brackets the call with push 0x28ee, but 0x28ee is just
+  // the routine's own `ret`, so the trampoline is a plain tail-call: run killFrogAtLane, return to caller.
+  return killFrogAtLane(m);
 }

@@ -7,24 +7,12 @@
  * one of the per-phase death-sprite pokes. The bank-select flag chooses the second poke set.
  * LIVE-OUT: memory-only.
  */
-import {
-  HOLD_FLAG, FIGURE_ANIM_STEP_GATE, FROG_ANIM_BLIT_TRIGGER, HOME_BAY_SLOT_CURSOR_MIRROR, PENDING_HOME_BAY_SLOT, FROG_SPRITE_CODE,
-  FROG_FURTHEST_ROW, FROG_HOP_DOWN_ACTIVE, FROG_HOP_LEFT_ANIM_COUNTER, GAME_MODE, PLAY_FLAG,
-  TWO_PLAYER_START_FLAG, IN_PLAY_BOARD_STATE_BYTE, COUNTDOWN_EXPIRY_FLAG, SCROLL_STAMP_PHASE, SCROLL_EDGE_FLAG, SCROLL_STAMP_ROWCOUNT,
-  SCROLL_BAND_ROWSPAN,
-  HOP_FRAME_COUNTER, LIFE_RESTART_FLAG,
-} from "./names.js";
+import { HOLD_FLAG, FIGURE_ANIM_STEP_GATE, FROG_ANIM_BLIT_TRIGGER, HOME_BAY_SLOT_CURSOR_MIRROR, PENDING_HOME_BAY_SLOT, FROG_SPRITE_CODE, FROG_FURTHEST_ROW, FROG_HOP_DOWN_ACTIVE, FROG_HOP_LEFT_ANIM_COUNTER, GAME_MODE, PLAY_FLAG, TWO_PLAYER_START_FLAG, IN_PLAY_BOARD_STATE_BYTE, COUNTDOWN_EXPIRY_FLAG, SCROLL_STAMP_PHASE, SCROLL_EDGE_FLAG, SCROLL_STAMP_ROWCOUNT, SCROLL_BAND_ROWSPAN, HOP_FRAME_COUNTER, LIFE_RESTART_FLAG, SECOND_BANK, FROG_OBJ_ATTR, DEATH_PHASE, ATTRACT_HOP_DWELL, SOUND_SEQUENCE_COUNTDOWN } from "./names.js";
 import { stampHomeBaySlot } from "./stampHomeBaySlot.js";
 import { activateFrogObject } from "./activateFrogObject.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { clearTwoPlayerFrameCells } from "./clearTwoPlayerFrameCells.js";
 import { clearLatchedCollision } from "./clearLatchedCollision.js";
-
-const loc_8046 = 0x8046;             // frog object sub-byte set to 7 as the death phase advances
-const DEATH_PHASE = 0x81b2;          // death-phase index, bumped each time the counter reaches 0x10
-const SECOND_BANK = 0x829c;          // second-bank select for the death-sprite poke set
-const loc_8299 = 0x8299;             // board-state byte cleared on board advance
-const DEATH_WORD = 0x8382;           // death-anim word poke operand
 
 const COUNTER_TARGET = 0x10;
 
@@ -43,7 +31,7 @@ export function driveFrogDeathAnimation(m) {
   if (cnt !== COUNTER_TARGET) return;
 
   mem8[HOP_FRAME_COUNTER] = 0;
-  mem8[loc_8046] = 0x07;
+  mem8[FROG_OBJ_ATTR] = 0x07;
   const phase = (mem8[DEATH_PHASE] + 1) & 0xff;
   mem8[DEATH_PHASE] = phase;
 
@@ -69,7 +57,7 @@ function advanceBoardAndReset(m) {
   mem8[LIFE_RESTART_FLAG] = 1;
   if (mem8[GAME_MODE] === 1 && mem8[PLAY_FLAG] === 0) {
     mem8[GAME_MODE] = 0;
-    mem8[loc_8299] = 0;
+    mem8[ATTRACT_HOP_DWELL] = 0;
     mem8[IN_PLAY_BOARD_STATE_BYTE] = 0;
     mem8[TWO_PLAYER_START_FLAG] = 0;
   }
@@ -82,7 +70,7 @@ function stampDeathTile(m, phase) {
   if (mem8[SECOND_BANK] !== 0) {
     if (phase === 1) {
       mem8[FROG_SPRITE_CODE] = 0x22;
-      mem16[DEATH_WORD] = 0;
+      mem16[SOUND_SEQUENCE_COUNTDOWN] = 0;
       enqueueSoundCommand(m, 0);
       enqueueSoundCommand(m, 0x02);
       return;
@@ -96,12 +84,12 @@ function stampDeathTile(m, phase) {
     mem8[SCROLL_STAMP_ROWCOUNT] = 0;
     mem8[SCROLL_BAND_ROWSPAN] = 0;
     clearTwoPlayerFrameCells(m);
-    mem16[DEATH_WORD] = 0x00d8;
+    mem16[SOUND_SEQUENCE_COUNTDOWN] = 0xd8;
     return;
   }
   if (phase === 1) {
     mem8[FROG_SPRITE_CODE] = 0x39;
-    mem16[DEATH_WORD] = 0;
+    mem16[SOUND_SEQUENCE_COUNTDOWN] = 0;
     enqueueSoundCommand(m, 0);
     enqueueSoundCommand(m, 0x03);
     return;
@@ -112,5 +100,5 @@ function stampDeathTile(m, phase) {
   mem8[FROG_SPRITE_CODE] = 0x3c;
   mem8[COUNTDOWN_EXPIRY_FLAG] = 0;
   clearTwoPlayerFrameCells(m);
-  mem16[DEATH_WORD] = 0x00d8;
+  mem16[SOUND_SEQUENCE_COUNTDOWN] = 0xd8;
 }

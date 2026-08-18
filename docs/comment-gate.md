@@ -102,3 +102,23 @@ without the other. A gate that refuses a file it cannot read is recoverable; one
 - **FAIL CLOSED** on a git error, and on any file the scanner cannot lex.
 - **`check` is VACUOUS when nothing in scope is staged** — green is evidence only when an in-scope file is staged.
 - The reference rule catches citations **by form, not meaning**.
+
+## The cleanup phase — `idiomaticComplete`
+
+Once a game's idiomatic port is finished (`idiomatic_gate` reports 0 cruft, including 0 unlifted for a
+closure game), it enters a CLEANUP phase where each routine is reworked to carry *verbose* explanatory
+comments — the deliberate opposite of the density discipline. The switch is a single game-local flag,
+`idiomaticComplete: true`, in `games/<game>/manifest.js` (deliberately NOT a repo-wide list — game settings
+live with the game).
+
+When a game declares it, **both** comment_gate rules step aside for that game's `idiomatic/**`:
+- the DENSITY cap no longer applies (comments may exceed code), and
+- the REFERENCE rule no longer applies (a comment may cite the ROM, MAME, the oracle, or hardware — exactly
+  the context a mechanism explanation needs).
+
+`names.js` and `test/` are unaffected. The flag is read from the **INDEX**, so verbose mode takes effect
+only once the flag itself is committed.
+
+**Enforced, not trusted.** `idiomatic_gate check` blocks any game that declares `idiomaticComplete: true`
+while it still holds cruft (cruft + unlifted must be 0). A game earns the verbose exemption only by actually
+being done — the flag cannot be flipped merely to escape the comment rules on an unfinished port.

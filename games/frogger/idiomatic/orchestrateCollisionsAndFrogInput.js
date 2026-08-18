@@ -5,12 +5,13 @@
  * gated by its arm cell, the slot-cursor tick, then a scroll-timer stage chosen by a life-count bit —
  * the gator/slot arm or the inline fly/slot arm, each keyed on the scroll counter — and finally the
  * shared exit: a low frog row tails to the goal scan, a clear play flag returns, otherwise the input
- * scan runs. Plain leaves dissolve; the tail-transferring dive driver and goal scan are dispatched by
- * address so the seam keeps a balanced stack. LIVE-OUT: memory-only.
+ * scan runs. Every sub-engine — plain leaves, the dive driver, and the goal scan — is a direct call.
+ * LIVE-OUT: memory-only.
  */
-import { PLAY_FLAG, HOME_GOAL_SPRITE_ARM_CELL, LIVES_COUNT, FROG_Y } from "./names.js";
+import { PLAY_FLAG, HOME_GOAL_SPRITE_ARM_CELL, LIVES_COUNT, FROG_Y, SCROLL_TIMER_COUNTER } from "./names.js";
 import { mountOrKillFrogOnTwoPairFigure } from "./mountOrKillFrogOnTwoPairFigure.js";
 import { animateTwoPairFigure } from "./animateTwoPairFigure.js";
+import { loc_27ea } from "./loc_27ea.js";
 import { animateFlyEatCollision } from "./animateFlyEatCollision.js";
 import { enqueueLaneScrollSyncedCommand } from "./enqueueLaneScrollSyncedCommand.js";
 import { clearFourByteCounterBlock } from "./clearFourByteCounterBlock.js";
@@ -21,9 +22,7 @@ import { stampHomeBayGatorEmerging } from "./stampHomeBayGatorEmerging.js";
 import { stampHomeBayGatorFull } from "./stampHomeBayGatorFull.js";
 import { scanFrogInputAndDispatchHop } from "./scanFrogInputAndDispatchHop.js";
 import { clearFlySpriteBlock } from "./clearFlySpriteBlock.js";
-
-const SCROLL_TIMER_COUNTER = 0x8122; // per-frame counter driving the fly/gator/slot arms
-const DIVE_DRIVER = 0x27ea, GOAL_SCAN = 0x1cff;
+import { selectHomeBayGoalHandler } from "./selectHomeBayGoalHandler.js";
 
 export function orchestrateCollisionsAndFrogInput(m) {
   const { mem8 } = m;
@@ -32,7 +31,7 @@ export function orchestrateCollisionsAndFrogInput(m) {
 
   mountOrKillFrogOnTwoPairFigure(m);
   animateTwoPairFigure(m);
-  m.push16(0x1a64); m.call(DIVE_DRIVER);
+  loc_27ea(m);
   animateFlyEatCollision(m);
   enqueueLaneScrollSyncedCommand(m);
 
@@ -72,7 +71,7 @@ function gatorSlotArm(m) {
 // A low frog row tails to the goal scan, a clear play flag returns, otherwise the input scan runs.
 function sharedExit(m) {
   const mem8 = m.mem8;
-  if (mem8[FROG_Y] < 0x31) return m.call(GOAL_SCAN);
+  if (mem8[FROG_Y] < 0x31) return selectHomeBayGoalHandler(m);
   if (mem8[PLAY_FLAG] === 0) return;
   return scanFrogInputAndDispatchHop(m);
 }

@@ -35,7 +35,7 @@ export function stampScrollRevealColumn(m) {
     stamp(base, SCROLL_STAMP_TABLE_160);
     mem8[SCROLL_EDGE_FLAG] = 1;
   }
-  mem8[SCROLL_STAMP_ROWCOUNT] = (rowCount - 1) & 0xff;
+  mem8[SCROLL_STAMP_ROWCOUNT] = rowCount - 1;
 
   function stamp(start, table) {
     let hl = start;

@@ -29,7 +29,7 @@ const BAY4 = { doneP1: HOME_BAY4_OCCUPANCY_PRIMARY, doneP2: HOME_BAY4_OCCUPANCY_
 const BAY5 = { doneP1: HOME_BAY5_OCCUPANCY_PRIMARY, doneP2: HOME_BAY5_OCCUPANCY_ALT, bayY: 0xd8, key: 0x05, slot: HOME_SLOT5_VRAM };
 
 function awardHomeBayGoal(m, p) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[mem8[ACTIVE_PLAYER] === 1 ? p.doneP1 : p.doneP2] !== 0) return;
   if (mem8[FROG_Y] >= HOME_ROW_Y) return scanFrogInputAndDispatchHop(m);
@@ -37,11 +37,8 @@ function awardHomeBayGoal(m, p) {
   // key match -> award bonus; the hold arm signals us to skip the rest of the goal handler.
   if (((mem8[PENDING_HOME_BAY_SLOT] - p.key) & 0xff) === 0 && awardBonusPoints(m, p.bayY)) return;
 
-  // Stamp the 2x2 home tiles at this bay's slot base + reset the frog. The slot base is handed over in
-  // HL: a bridge into stampHomeGoalAndResetFrog, which still reads HL directly (its own CPU-cruft
-  // burn-down is pending). Once that module takes an HL param this write dissolves to a direct argument.
-  regs.hl = p.slot;
-  stampHomeGoalAndResetFrog(m);
+  // Stamp the 2x2 home tiles at this bay's slot base + reset the frog.
+  stampHomeGoalAndResetFrog(m, p.slot);
 
   if (mem8[COLLISION_SUBFLAG] !== 0) {
     armHomeGoalSprite(m, p.bayY);
@@ -50,10 +47,10 @@ function awardHomeBayGoal(m, p) {
 
   if (mem8[ACTIVE_PLAYER] === 1) {
     mem8[p.doneP1] = 1;
-    mem8[PLAYER1_SLOT] = (mem8[PLAYER1_SLOT] + 1) & 0xff;
+    mem8[PLAYER1_SLOT] = mem8[PLAYER1_SLOT] + 1;
   } else {
     mem8[p.doneP2] = 1;
-    mem8[PLAYER2_SLOT] = (mem8[PLAYER2_SLOT] + 1) & 0xff;
+    mem8[PLAYER2_SLOT] = mem8[PLAYER2_SLOT] + 1;
   }
 }
 

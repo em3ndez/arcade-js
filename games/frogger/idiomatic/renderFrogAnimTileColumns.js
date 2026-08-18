@@ -15,6 +15,7 @@ import {
 } from "./names.js";
 import { computeVramColumnIndex } from "./computeVramColumnIndex.js";
 import { advanceFrogAnimIndexAndRedispatch } from "./advanceFrogAnimIndexAndRedispatch.js";
+import { u16 } from "../../../core/int.js";
 
 const TILE_ROW_STRIDE = 0x20; // one screen row apart
 
@@ -32,13 +33,13 @@ export function renderFrogAnimTileColumns(m, rowCount = m.regs.b, columnCount = 
     const screenColumn = computeVramColumnIndex(m, dst, borrow);
 
     if (mem8[TWO_PLAYER_START_FLAG] === 0) {
-      mem8[ix + 1] = (-screenColumn) & 0xff;
+      mem8[ix + 1] = -screenColumn;
       ix = ix + 1;
-      mem8[iyCursor] = (mem8[iyCursor] + 1) & 0xff;
+      mem8[iyCursor] = mem8[iyCursor] + 1;
     }
 
     // copy the tile-rows, two bytes each, stepping down one screen row per row
-    mem8[SCROLL_COPY_ROWCOUNT] = rowsPerColumn & 0xff;
+    mem8[SCROLL_COPY_ROWCOUNT] = rowsPerColumn;
     let cell = dst;
     let rows = rowsPerColumn & 0xff;
     for (;;) {
@@ -52,7 +53,7 @@ export function renderFrogAnimTileColumns(m, rowCount = m.regs.b, columnCount = 
 
     // advance the destination; the add's 16-bit overflow is the next column's borrow
     const advanced = cell + mem8[SCROLL_COPY_COLUMN_STRIDE];
-    dst = advanced & 0xffff;
+    dst = u16(advanced);
     borrow = advanced === dst ? 0 : 1;
 
     columnsLeft = (columnsLeft - 1) & 0xff;

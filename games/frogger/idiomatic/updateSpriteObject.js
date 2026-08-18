@@ -9,10 +9,10 @@ import { writeSpriteObjectSlotX } from "./writeSpriteObjectSlotX.js";
 import { flagSpriteObjectFrogHitAhead } from "./flagSpriteObjectFrogHitAhead.js";
 import { writeSpriteObjectSlotAttr } from "./writeSpriteObjectSlotAttr.js";
 
-export function updateSpriteObject(m) {
-  spawnSpriteObject(m);
-  steerSpriteObjectTowardTarget(m);
-  writeSpriteObjectSlotX(m);
-  flagSpriteObjectFrogHitAhead(m);
-  return writeSpriteObjectSlotAttr(m);
+export function updateSpriteObject(m, ix = m.regs.ix, iy = m.regs.iy) {
+  spawnSpriteObject(m, ix, iy);
+  steerSpriteObjectTowardTarget(m, ix, iy);
+  writeSpriteObjectSlotX(m, ix, iy);
+  flagSpriteObjectFrogHitAhead(m, ix, iy);
+  return writeSpriteObjectSlotAttr(m, ix, iy);
 }

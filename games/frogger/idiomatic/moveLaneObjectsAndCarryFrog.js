@@ -32,9 +32,9 @@ const LEAD_STRIDE = 4;
 const OBJECT_COUNT = 0x0b; // eleven objects, then the index wraps
 
 export function moveLaneObjectsAndCarryFrog(m) {
-  const mem = m.mem8;
+  const { mem8 } = m;
   for (;;) {
-    const i = mem[LANE_OBJECT_INDEX];
+    const i = mem8[LANE_OBJECT_INDEX];
     if (i > 10) {
       throw new NotImplemented(
         `moveLaneObjectsAndCarryFrog: lane-object index ${i} is past the eleven-object table`,
@@ -52,10 +52,10 @@ export function moveLaneObjectsAndCarryFrog(m) {
     }
 
     // Advance the walk. The mover never touches the index cell, so it still reads i here.
-    const next = (mem[LANE_OBJECT_INDEX] + 1) & 0xff;
-    mem[LANE_OBJECT_INDEX] = next;
+    const next = (mem8[LANE_OBJECT_INDEX] + 1) & 0xff;
+    mem8[LANE_OBJECT_INDEX] = next;
     if (next < OBJECT_COUNT) continue;
-    mem[LANE_OBJECT_INDEX] = 0;
+    mem8[LANE_OBJECT_INDEX] = 0;
     return;
   }
 }
@@ -68,10 +68,10 @@ function swapNibbles(v) {
 // Rightward mover. A running phase countdown, or a freshly-set phase bit in the control byte, hands
 // off to the phase tail; otherwise the shift amount is the control byte's low nibble.
 function moverRight(m, control, run, lead, phase) {
-  const mem = m.mem8;
-  const ph = mem[phase];
+  const { mem8 } = m;
+  const ph = mem8[phase];
   if (ph !== 0) return rightPhaseTail(m, control, run, lead, phase, ph);
-  const b = mem[control];
+  const b = mem8[control];
   const c = b & 0x0f;
   if (b & 0x10) return rightPhaseTail(m, control, run, lead, phase, c);
   return rightShift(m, control, run, lead, phase, c);
@@ -80,7 +80,7 @@ function moverRight(m, control, run, lead, phase) {
 // On the final tick force a one-pixel move; otherwise tick the countdown down and hold this frame.
 function rightPhaseTail(m, control, run, lead, phase, c) {
   if ((c & 0xff) !== 1) {
-    m.mem8[phase] = (c - 1) & 0xff;
+    m.mem8[phase] = c - 1;
     return;
   }
   return rightShift(m, control, run, lead, phase, 1);
@@ -89,19 +89,19 @@ function rightPhaseTail(m, control, run, lead, phase, c) {
 // Shift the object's run and lead sprite right by c, then, when the frog is in this lane's row band,
 // carry it along.
 function rightShift(m, control, run, lead, phase, c) {
-  const mem = m.mem8;
+  const { mem8 } = m;
   let de = run;
-  let n = mem[de]; // run length; a zero count means a full 256-byte run
+  let n = mem8[de]; // run length; a zero count means a full 256-byte run
   do {
     de = de + 1;
-    mem[de] = (mem[de] + c) & 0xff;
+    mem8[de] = mem8[de] + c;
     n = (n - 1) & 0xff;
   } while (n !== 0);
-  const x = (mem[lead] + c) & 0xff;
-  mem[lead] = x;
-  mem[(lead + 2)] = x;
+  const x = (mem8[lead] + c) & 0xff;
+  mem8[lead] = x;
+  mem8[(lead + 2)] = x;
 
-  const row = mem[FROG_Y];
+  const row = mem8[FROG_Y];
   if (row < 0x30 || row >= 0x73) return clearPhase(m, phase);
   const col = row & 0x0f;
   if (col < 0x03) return rightCarryLow(m, phase, c, row);
@@ -111,12 +111,12 @@ function rightShift(m, control, run, lead, phase, c) {
 
 // Frog near the low edge of a cell: carry it right and lose it if it runs off an edge.
 function rightCarryLow(m, phase, c, row) {
-  const mem = m.mem8;
+  const { mem8 } = m;
   const cellCol = swapNibbles(((row & 0xf0) - 0x30) & 0xff);
-  if (mem[LANE_OBJECT_INDEX] !== cellCol) return clearPhase(m, phase);
-  if (mem[FROG_Y] < 0x30) return clearPhase(m, phase);
-  const fx = (mem[FROG_X] + c) & 0xff;
-  mem[FROG_X] = fx;
+  if (mem8[LANE_OBJECT_INDEX] !== cellCol) return clearPhase(m, phase);
+  if (mem8[FROG_Y] < 0x30) return clearPhase(m, phase);
+  const fx = (mem8[FROG_X] + c) & 0xff;
+  mem8[FROG_X] = fx;
   if (fx < 0x08) return loseFrog(m, phase);
   if (fx < 0xe7) return clearPhase(m, phase);
   return loseFrog(m, phase);
@@ -124,19 +124,19 @@ function rightCarryLow(m, phase, c, row) {
 
 // Frog near the high edge of a cell: carry it right into the next column with no edge test.
 function rightCarryHigh(m, phase, c, row) {
-  const mem = m.mem8;
+  const { mem8 } = m;
   const cellCol = swapNibbles(((((row & 0xf0) + 0x10) & 0xff) - 0x30) & 0xff);
-  if (mem[LANE_OBJECT_INDEX] !== cellCol) return clearPhase(m, phase);
-  mem[FROG_X] = (mem[FROG_X] + c) & 0xff;
+  if (mem8[LANE_OBJECT_INDEX] !== cellCol) return clearPhase(m, phase);
+  mem8[FROG_X] = mem8[FROG_X] + c;
   return clearPhase(m, phase);
 }
 
 // Leftward mover — mirror of the rightward one, subtracting c, with a single row-band bound.
 function moverLeft(m, control, run, lead, phase) {
-  const mem = m.mem8;
-  const ph = mem[phase];
+  const { mem8 } = m;
+  const ph = mem8[phase];
   if (ph !== 0) return leftPhaseTail(m, control, run, lead, phase, ph);
-  const b = mem[control];
+  const b = mem8[control];
   const c = b & 0x0f;
   if (b & 0x10) return leftPhaseTail(m, control, run, lead, phase, c);
   return leftShift(m, control, run, lead, phase, c);
@@ -144,26 +144,26 @@ function moverLeft(m, control, run, lead, phase) {
 
 function leftPhaseTail(m, control, run, lead, phase, c) {
   if ((c & 0xff) !== 1) {
-    m.mem8[phase] = (c - 1) & 0xff;
+    m.mem8[phase] = c - 1;
     return;
   }
   return leftShift(m, control, run, lead, phase, 1);
 }
 
 function leftShift(m, control, run, lead, phase, c) {
-  const mem = m.mem8;
+  const { mem8 } = m;
   let de = run;
-  let n = mem[de];
+  let n = mem8[de];
   do {
     de = de + 1;
-    mem[de] = (mem[de] - c) & 0xff;
+    mem8[de] = mem8[de] - c;
     n = (n - 1) & 0xff;
   } while (n !== 0);
-  const x = (mem[lead] - c) & 0xff;
-  mem[lead] = x;
-  mem[(lead + 2)] = x;
+  const x = (mem8[lead] - c) & 0xff;
+  mem8[lead] = x;
+  mem8[(lead + 2)] = x;
 
-  const row = mem[FROG_Y];
+  const row = mem8[FROG_Y];
   if (row >= 0x73) return clearPhase(m, phase);
   const col = row & 0x0f;
   if (col < 0x03) return leftCarryLow(m, phase, c, row);
@@ -172,21 +172,21 @@ function leftShift(m, control, run, lead, phase, c) {
 }
 
 function leftCarryLow(m, phase, c, row) {
-  const mem = m.mem8;
+  const { mem8 } = m;
   const cellCol = swapNibbles(((row & 0xf0) - 0x30) & 0xff);
-  if (mem[LANE_OBJECT_INDEX] !== cellCol) return clearPhase(m, phase);
-  const fx = (mem[FROG_X] - c) & 0xff;
-  mem[FROG_X] = fx;
+  if (mem8[LANE_OBJECT_INDEX] !== cellCol) return clearPhase(m, phase);
+  const fx = (mem8[FROG_X] - c) & 0xff;
+  mem8[FROG_X] = fx;
   if (fx < 0x08) return loseFrog(m, phase);
   if (fx < 0xe7) return clearPhase(m, phase);
   return loseFrog(m, phase);
 }
 
 function leftCarryHigh(m, phase, c, row) {
-  const mem = m.mem8;
+  const { mem8 } = m;
   const cellCol = swapNibbles(((((row & 0xf0) + 0x10) & 0xff) - 0x30) & 0xff);
-  if (mem[LANE_OBJECT_INDEX] !== cellCol) return clearPhase(m, phase);
-  mem[FROG_X] = (mem[FROG_X] - c) & 0xff;
+  if (mem8[LANE_OBJECT_INDEX] !== cellCol) return clearPhase(m, phase);
+  mem8[FROG_X] = mem8[FROG_X] - c;
   return clearPhase(m, phase);
 }
 

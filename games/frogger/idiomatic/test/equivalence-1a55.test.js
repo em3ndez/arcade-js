@@ -4,9 +4,9 @@
  * GATE: crafted-entry (spine dispatcher). PLAY_FLAG 0x83fe clear tails straight to the shared exit; set,
  * it runs the collision sub-engines, the HOME_GOAL_SPRITE_ARM_CELL timing arm, the slot tick, then the LIVES_COUNT-bit0
  * scroll stage (inline fly/slot arm, or the gator/slot arm), and finally the shared exit — a low frog
- * row (0x8047<0x31) tails to the still-translated goal scan 0x1cff, else the input scan. Dissolves the
- * moved-0 leaves and the fly-sprite clear 0x27de; keeps m.call for the tail-transferring dive driver
- * 0x27ea and goal scan 0x1cff. Live-out memory-only; RAM compared, stack masked. Teeth: no-op, skipped/ wrong
+ * row (0x8047<0x31) tails to the goal scan 0x1cff, else the input scan. Every sub-engine is a direct
+ * call — the moved-0 leaves, the fly-sprite clear 0x27de, the dive driver 0x27ea, and the goal scan
+ * 0x1cff are all dissolved. Live-out memory-only; RAM compared, stack masked. Teeth: no-op, skipped/ wrong
  * scroll-counter effect. Positive control: the scroll counter 0x8122 arms 0->1 when the body runs.
  */
 import test from "node:test";

@@ -4,7 +4,7 @@
  * twice: it returns unless the mode byte is 1 (active play) and the run flag is
  * still zero. Only then does it clear the credit-column latch, lay out the board (display field, score
  * field, active-player lane params, frog + arm objects, the home-group tile block, the frog object),
- * run the frog-animation dispatcher (kept dispatch), then raise the 2-player start flag and the
+ * run the frog-animation dispatcher (direct call), then raise the 2-player start flag and the
  * run flag so the layout happens exactly once. LIVE-OUT: memory-only.
  */
 import { GAME_MODE, INTRO_COUNTER_829B, CREDIT_COLUMN_CLEAR_LATCH, TWO_PLAYER_START_FLAG, STATUS_ROW_VRAM_BASE } from "./names.js";
@@ -14,9 +14,9 @@ import { loadActivePlayerLaneParams } from "./loadActivePlayerLaneParams.js";
 import { renderFrogAndArmObjects } from "./renderFrogAndArmObjects.js";
 import { blitFourTileGroupColumn } from "./blitFourTileGroupColumn.js";
 import { resetFrogObject } from "./resetFrogObject.js";
+import { dispatchFrogAnimationArm } from "./dispatchFrogAnimationArm.js";
 
 const MODE_ACTIVE_PLAY = 1;
-const FROG_ANIM_DISPATCH = 0x0faf, FROG_ANIM_RET = 0x2338; // jp(hl) dispatcher (kept m.call)
 
 export function setUpPlayStartOnce(m) {
   const { mem8 } = m;
@@ -33,8 +33,10 @@ export function setUpPlayStartOnce(m) {
   renderFrogAndArmObjects(m);
   blitFourTileGroupColumn(m, STATUS_ROW_VRAM_BASE);
   resetFrogObject(m);
-  m.push16(FROG_ANIM_RET);
-  m.call(FROG_ANIM_DISPATCH);
+  // The frog-anim dispatcher (ROM 0x0faf) ran under a balanced push16(0x2338)+m.call: the sentinel
+  // 0x2338 is this function's own continuation below, and the arm cluster's one net ret consumes it.
+  // Dissolved to a direct call -- dropping the seam push only touches dead stack scratch [0x87e0,0x8800).
+  dispatchFrogAnimationArm(m);
 
   mem8[TWO_PLAYER_START_FLAG] = 1;
   mem8[INTRO_COUNTER_829B] = 1;

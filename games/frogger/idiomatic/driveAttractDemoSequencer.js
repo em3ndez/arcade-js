@@ -8,22 +8,22 @@ import { NotImplemented } from "../../../boards/frogger/io.js";
  * rewinds the seven cells, higher tails to the per-cell demo stamp. The frame clock returns false on
  * its not-elapsed branch, so we just return. LIVE-OUT: memory-only.
  */
-import { CREDIT_BCD, ATTRACT_SEQUENCER_PHASE, ATTRACT_DEMO_PHASE_COUNTER, ATTRACT_DEMO_DWELL, FLY_SPRITE_X } from "./names.js";
+import { CREDIT_BCD, ATTRACT_SEQUENCER_PHASE, ATTRACT_DEMO_PHASE_COUNTER, ATTRACT_DEMO_DWELL, FLY_SPRITE_X, ATTRACT_FRAME_TIMER } from "./names.js";
 import { fillTilemapBlock28x32 } from "./fillTilemapBlock28x32.js";
 import { clearObjectBlocksAndMirrorToObjRam } from "./clearObjectBlocksAndMirrorToObjRam.js";
 import { setAttractIdleMode } from "./setAttractIdleMode.js";
 import { stampAttractDemoCell } from "./stampAttractDemoCell.js";
-import { tickAttractCellFrameClock } from "./tickAttractCellFrameClock.js";
+import { tickAttractCellFrameClock, attractCellFrameTile } from "./tickAttractCellFrameClock.js";
 
-const ATTRACT_FRAME_TIMER = 0x83bd; // frame timer byte; the next byte is the frame index
 const CELL_BASE = FLY_SPRITE_X;     // the seven four-byte attract cells
 
-// Animator phase 1..7 -> [cell base, scroll floor], indexed by the computed jump slot.
+// Phase counter 1..7 -> [cell base, scroll floor]. The ROM indexes a jump table by 2*counter; the
+// counter is always 1..7 on this path (higher values throw), so we key on it directly.
 const ANIM_ARMS = {
-  0x0ec3: [FLY_SPRITE_X + 0x18, 0xc1], 0x0ec5: [FLY_SPRITE_X + 0x14, 0xa9],
-  0x0ec7: [FLY_SPRITE_X + 0x10, 0x91], 0x0ec9: [FLY_SPRITE_X + 0x0c, 0x79],
-  0x0ecb: [FLY_SPRITE_X + 0x08, 0x61], 0x0ecd: [FLY_SPRITE_X + 0x04, 0x49],
-  0x0ecf: [FLY_SPRITE_X, 0x31],
+  1: [FLY_SPRITE_X + 0x18, 0xc1], 2: [FLY_SPRITE_X + 0x14, 0xa9],
+  3: [FLY_SPRITE_X + 0x10, 0x91], 4: [FLY_SPRITE_X + 0x0c, 0x79],
+  5: [FLY_SPRITE_X + 0x08, 0x61], 6: [FLY_SPRITE_X + 0x04, 0x49],
+  7: [FLY_SPRITE_X, 0x31],
 };
 
 export function driveAttractDemoSequencer(m) {
@@ -58,20 +58,19 @@ function seedAnimator(m) {
 }
 
 function advancePhase(m) {
-  m.mem8[ATTRACT_SEQUENCER_PHASE] = (m.mem8[ATTRACT_SEQUENCER_PHASE] + 1) & 0xff;
+  m.mem8[ATTRACT_SEQUENCER_PHASE] = m.mem8[ATTRACT_SEQUENCER_PHASE] + 1;
 }
 
 function dispatchPhase(m, phase) {
   const a = (phase - 1) & 0xff;
   if (a !== 0) return dispatchPhase2Plus(m, a);
 
-  // phase 1: the scroll animator; a computed jump on the phase counter picks the arm
+  // phase 1: the scroll animator; the phase counter (1..7) picks the arm
   const p = m.mem8[ATTRACT_DEMO_PHASE_COUNTER];
-  const hl = 0x0ec1 + ((p + p) & 0xff);
-  const arm = ANIM_ARMS[hl];
+  const arm = ANIM_ARMS[p];
   if (!arm) {
     throw new NotImplemented(
-      `driveAttractDemoSequencer computed jump: slot 0x${hl.toString(16)} outside the arm table`,
+      `driveAttractDemoSequencer: phase counter ${p} outside the arm table (1..7)`,
     );
   }
   return animatorTail(m, arm[0], arm[1]);
@@ -81,7 +80,7 @@ function dispatchPhase(m, phase) {
 function animatorTail(m, cellBase, limit) {
   const mem8 = m.mem8;
   if (!tickAttractCellFrameClock(m)) return;
-  const tile = m.regs.a;
+  const tile = attractCellFrameTile(m);
 
   const scrolled = (mem8[cellBase] - 4) & 0xff;
   mem8[cellBase] = scrolled;
@@ -102,16 +101,16 @@ function dispatchPhase2Plus(m, a) {
 
   // phase 2: rewind the seven cells
   if (!tickAttractCellFrameClock(m)) return;
-  const c = (m.regs.a - 0x03) & 0xff;
+  const c = (attractCellFrameTile(m) - 0x03) & 0xff;
 
   const d7 = mem8[ATTRACT_DEMO_PHASE_COUNTER];
   if (d7 === 0) return seedAnimator(m);
 
   let hi = FLY_SPRITE_X + 3;
   for (let i = 0; i < 7; i++) {
-    mem8[hi] = (mem8[hi] - 4) & 0xff;
+    mem8[hi] = mem8[hi] - 4;
     mem8[(hi - 2)] = c;
     hi = hi + 4;
   }
-  mem8[ATTRACT_DEMO_PHASE_COUNTER] = (d7 - 1) & 0xff;
+  mem8[ATTRACT_DEMO_PHASE_COUNTER] = d7 - 1;
 }

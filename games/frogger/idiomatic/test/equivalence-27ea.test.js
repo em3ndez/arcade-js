@@ -7,8 +7,9 @@
  * are poked to drive each arm — the below-2 idle arm, the at-or-above-5 arm, and the middle band with
  * the secondary counter both zero (the reset arm runs) and non-zero. Each side runs the real
  * still-frozen callees on its own clone, so the callee writes are part of the compared live-out.
- * Live-out is memory-only, so RAM is compared and registers/SP are not; both sides issue the
- * identical push/call so no stack window is excluded. Teeth: three twins — no-op, a wrong-branch
+ * Live-out is memory-only, so RAM is compared and registers/SP are not; the dissolved dispatcher
+ * issues direct JS calls where the frozen oracle still pushes, so the dead stack scratch
+ * [0x87e0,0x8800) below the entry SP is masked from the diff. Teeth: three twins — no-op, a wrong-branch
  * twin (always the idle arm), and a skip-a-call twin (omits the reset call the middle band makes).
  */
 import test from "node:test";
@@ -17,12 +18,12 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_27ea } from "../loc_27ea.js";
 import { loc_27ea as oracle } from "../../translated/loc_27ea.js";
-import { firstStateDiff } from "../../../../core/equivalence.js";
 
 const DIVE_PHASE = 0x83b7;
 const SECONDARY = 0x8101;
 const BUSY_LATCH = 0x814f;
 const IDLE_ARM = 0x2873;
+const STACK_LO = 0x87e0, STACK_HI = 0x8800;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 let seed = null;
@@ -42,12 +43,20 @@ function craft(pokes) {
   return e;
 }
 
-// null == RAM-equivalent. Memory-only live-out: compare RAM, not registers or SP.
+// null == RAM-equivalent (dead stack scratch masked). Memory-only live-out: compare RAM, not
+// registers or SP; the dissolved direct calls leave [0x87e0,0x8800) unpushed where the oracle scribbles.
 function ramDiff(cand, machine) {
   const a = machine.clone(); oracle(a);
   const b = machine.clone(); cand(b);
-  const d = firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
-  return d ? `0x${(d.addr ?? 0).toString(16)}: ${d.a} vs ${d.b}` : null;
+  const A = a.dumpState(), B = b.dumpState();
+  const n = Math.min(A.length, B.length);
+  for (let i = 0; i < n; i++) {
+    if (A[i] === B[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= STACK_LO && addr < STACK_HI) continue;
+    return `0x${(addr ?? 0).toString(16)}: ${A[i]} vs ${B[i]}`;
+  }
+  return null;
 }
 
 // middle band, secondary counter 0 -> the reset arm runs then the shared step; writes memory.

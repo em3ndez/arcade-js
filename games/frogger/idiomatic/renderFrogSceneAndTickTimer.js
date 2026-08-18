@@ -11,25 +11,23 @@
 import {
   FROG_STATE_DEMO_FLAG, loc_83cf, PLAY_FLAG, ACTIVE_PLAYER, TIME_REMAINING_P1, TIME_REMAINING_P2, GATED_COUNTDOWN_ENABLE_FLAG,
   HOME_BAY1_OCCUPANCY_PRIMARY, HOME_BAY1_OCCUPANCY_ALT, PLAYER_START_DEMO_FLAG, STATUS_ROW_VRAM_BASE, LIFE_RESTART_FLAG,
+  GATED_COUNTDOWN_ENABLE_MIRROR,
 } from "./names.js";
 import { renderFrogAndArmObjects } from "./renderFrogAndArmObjects.js";
 import { blitFourTileGroupColumn } from "./blitFourTileGroupColumn.js";
 import { renderFilledHomeSlots } from "./renderFilledHomeSlots.js";
 import { loadActivePlayerLaneParams } from "./loadActivePlayerLaneParams.js";
 import { resetFrogObject } from "./resetFrogObject.js";
-
-const loc_83b5 = 0x83b5;           // countdown-enable mirror
-const FROG_ANIM_DISPATCH = 0x0faf; // the frog-animation dispatcher, a sibling in this batch
-const FROG_ANIM_RET = 0x09a6;      // return address pushed ahead of the dispatcher
+import { dispatchFrogAnimationArm } from "./dispatchFrogAnimationArm.js";
 
 export function renderFrogSceneAndTickTimer(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   mem8[LIFE_RESTART_FLAG] = 0;
   if (mem8[FROG_STATE_DEMO_FLAG] === 0) mem8[loc_83cf] = 0;
 
   if (mem8[PLAY_FLAG] === 0) {
-    if (mem8[FROG_STATE_DEMO_FLAG] === 0) { regs.a = 0; return; }
+    if (mem8[FROG_STATE_DEMO_FLAG] === 0) return (m.regs.a = 0);
     return resetFrogObject(m);
   }
 
@@ -42,18 +40,16 @@ export function renderFrogSceneAndTickTimer(m) {
 
   renderFrogAndArmObjects(m);
   if (mem8[FROG_STATE_DEMO_FLAG] === 0) {
-    mem8[loc_83b5] = 1;
+    mem8[GATED_COUNTDOWN_ENABLE_MIRROR] = 1;
     blitFourTileGroupColumn(m, STATUS_ROW_VRAM_BASE);
   }
 
-  mem8[loc_83b5] = mem8[GATED_COUNTDOWN_ENABLE_FLAG] ^ 1;
-  regs.hl = mem8[ACTIVE_PLAYER] === 1 ? HOME_BAY1_OCCUPANCY_PRIMARY : HOME_BAY1_OCCUPANCY_ALT;
-  renderFilledHomeSlots(m);
+  mem8[GATED_COUNTDOWN_ENABLE_MIRROR] = mem8[GATED_COUNTDOWN_ENABLE_FLAG] ^ 1;
+  renderFilledHomeSlots(m, mem8[ACTIVE_PLAYER] === 1 ? HOME_BAY1_OCCUPANCY_PRIMARY : HOME_BAY1_OCCUPANCY_ALT);
 
   if (mem8[PLAYER_START_DEMO_FLAG] === 0) return resetFrogObject(m);
   loadActivePlayerLaneParams(m);
-  m.push16(FROG_ANIM_RET);
-  m.call(FROG_ANIM_DISPATCH);
+  dispatchFrogAnimationArm(m);
 
   mem8[PLAYER_START_DEMO_FLAG] = 0;
   return resetFrogObject(m);

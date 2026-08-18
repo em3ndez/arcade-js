@@ -11,6 +11,10 @@ it under the cap as its own prerequisite unit and do not park the fix.
 REFERENCE (games/<game>/idiomatic/ only): a comment describes the file it sits in, not the ROM, MAME,
 the oracle, a sibling, a test, a doc, or a to-do. Exempt: translated/**, names.js, tests.
 
+CLEANUP PHASE: a game that declares `idiomaticComplete: true` (its manifest) has BOTH rules step aside for
+its idiomatic/**, so cleaned routines carry verbose comments. Game-local flag, enforced by idiomatic_gate;
+rationale and the whole design below in docs/comment-gate.md.
+
   check              STAGED files pass both rules (the pre-commit hook)
   scan / density     that rule over the working tree [PATH ...]
   selftest           known-bad and known-good cases
@@ -85,6 +89,29 @@ FORBIDDEN = [
 # Exempt by exact position, not basename -- a basename test would exempt a future idiomatic/sub/names.js.
 EXEMPT_LEAF = "names.js"
 
+# The game-local CLEANUP flag: games/<game>/manifest.js `idiomaticComplete: true`. Read from the INDEX, so
+# verbose mode takes effect only once the flag is committed. Line-anchored so a commented-out `//
+# idiomaticComplete: true` does not match. docs/comment-gate.md.
+_COMPLETE_RE = re.compile(r"(?m)^\s*idiomaticComplete\s*:\s*true\b")
+_complete_cache = {}
+
+
+def _game_idiomatic_complete(game):
+    if game not in _complete_cache:
+        try:
+            _complete_cache[game] = bool(_COMPLETE_RE.search(blob(":0", f"games/{game}/manifest.js")))
+        except GitError:
+            _complete_cache[game] = False
+    return _complete_cache[game]
+
+
+def _cleanup_exempt(path):
+    """True for an idiomatic ROUTINE file whose game declares idiomaticComplete -- both rules step aside.
+    test/ is NOT exempt: test harnesses keep the density discipline even in a complete game."""
+    parts = path.split("/")
+    return (len(parts) >= 3 and parts[0] == "games" and parts[2] == "idiomatic"
+            and "test" not in parts[3:] and _game_idiomatic_complete(parts[1]))
+
 
 def in_scope(path):
     """True for a file this gate governs: games/<game>/idiomatic/**.js, minus the registry, tests, and translated/."""
@@ -94,6 +121,8 @@ def in_scope(path):
     if not path.endswith(".js"):
         return False
     if "test" in parts[3:]:
+        return False
+    if _cleanup_exempt(path):
         return False
     return parts[3:] != [EXEMPT_LEAF]
 
@@ -140,6 +169,8 @@ def density_scope(path):
     if parts[0] not in _ROOTS or "node_modules" in parts:
         return False
     if len(parts) == 4 and parts[0] == "games" and parts[2] == "idiomatic" and parts[3] == EXEMPT_LEAF:
+        return False
+    if _cleanup_exempt(path):
         return False
     return os.path.splitext(path)[1] in _EXTS
 
@@ -899,6 +930,27 @@ def cmd_selftest(_args):
     for path, want in SCOPE_CASES:
         if in_scope(path) != want:
             failures.append(f"SCOPE wrong for {path}: in_scope={in_scope(path)}, want={want}")
+    # CLEANUP exemption: a flagged (idiomaticComplete) game's idiomatic/** steps aside from both rules.
+    _complete_cache.update({"donecx": True, "wipcx": False})  # inject the manifest read (no git in the test)
+    for path, complete in [
+        ("games/donecx/idiomatic/foo.js", True),
+        ("games/donecx/idiomatic/sub/bar.js", True),
+        ("games/wipcx/idiomatic/foo.js", False),
+    ]:
+        governed = not complete
+        if density_scope(path) != governed:
+            failures.append(f"CLEANUP density_scope {path}: got {density_scope(path)}, want {governed}")
+        if in_scope(path) != governed:
+            failures.append(f"CLEANUP in_scope {path}: got {in_scope(path)}, want {governed}")
+    _tp = "games/donecx/idiomatic/test/bar.test.js"
+    if not density_scope(_tp):
+        failures.append(f"CLEANUP test/ must stay density-governed: {_tp}")
+    if in_scope(_tp):
+        failures.append(f"CLEANUP test/ must not be reference-governed: {_tp}")
+    if _COMPLETE_RE.search("  // idiomaticComplete: true"):
+        failures.append("CLEANUP _COMPLETE_RE must not match a commented-out flag")
+    for _k in ("donecx", "wipcx"):
+        _complete_cache.pop(_k, None)
     if failures:
         print("comment_gate selftest: FAIL", file=sys.stderr)
         for f in failures:

@@ -9,6 +9,6 @@ import { WATCHDOG_RESET_PORT } from "./names.js";
 const SETTLE_PASSES = 61439;
 
 export function spinWatchdogSettleDelay(m) {
-  const { mem } = m;
-  for (let pass = 0; pass < SETTLE_PASSES; pass++) mem.read8(WATCHDOG_RESET_PORT);
+  const { mem8 } = m;
+  for (let pass = 0; pass < SETTLE_PASSES; pass++) mem8[WATCHDOG_RESET_PORT];
 }

@@ -4,11 +4,13 @@
  * is set a life remains, so it tail-hands to the continue/next-life path (beginNextLifeOrIntro).
  * Otherwise it lays out a fresh board: for a 2-player game with no swap pending it clears the tilemap
  * and swaps in the active player's pages, redraws the score header, runs the extra-life foreground when
- * a request is pending, builds the board (kept dispatch), redraws the time bar, stamps
+ * a request is pending, renders the frog scene and ticks the timer (renderFrogSceneAndTickTimer),
+ * storing its returned continue flag into the board-layout gate, redraws the time bar, stamps
  * the three board-start HUD cells, raises the 2-player start flag, clears the request cell, mirrors the
  * demo flag, redraws the lives row, then tail-enters the play loop. LIVE-OUT: memory-only.
  */
-import { BOARD_LAYOUT_GATE, FROG_STATE_DEMO_FLAG, PLAY_FLAG, BOARD_ADVANCE_REQUEST, PER_PLAYER_RESET_CELL, PACE_TAIL } from "./names.js";
+import { BOARD_LAYOUT_GATE, FROG_STATE_DEMO_FLAG, PLAY_FLAG, BOARD_ADVANCE_REQUEST, PER_PLAYER_RESET_CELL, HUD_STAMP_BASE } from "./names.js";
+import { endForegroundPassAtPaceTail } from "./endForegroundPassAtPaceTail.js";
 import { beginNextLifeOrIntro } from "./beginNextLifeOrIntro.js";
 import { clearTilemapToTile16 } from "./clearTilemapToTile16.js";
 import { swapInActivePlayerPages } from "./swapInActivePlayerPages.js";
@@ -17,13 +19,12 @@ import { advanceBoardForeground } from "./advanceBoardForeground.js";
 import { renderTimeBar } from "./renderTimeBar.js";
 import { raiseActivePlayerStartFlag } from "./raiseActivePlayerStartFlag.js";
 import { renderLivesRow } from "./renderLivesRow.js";
+import { renderFrogSceneAndTickTimer } from "./renderFrogSceneAndTickTimer.js";
 
 const ONE_PLAYER = 1;
-const BUILD_BOARD = 0x0942, BUILD_BOARD_RET = 0x042f; // renderFrogSceneAndTickTimer (kept m.call via the map); returns the continue flag in A
-const HUD_STAMP_BASE = 0x839c;                        // three board-start HUD cells, stamped 0x20/0x10/0x20
 
 export function setUpBoardOrContinueLife(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   if (mem8[BOARD_LAYOUT_GATE] !== 0) return beginNextLifeOrIntro(m);
 
@@ -37,9 +38,7 @@ export function setUpBoardOrContinueLife(m) {
 
   if (mem8[BOARD_ADVANCE_REQUEST] !== 0) advanceBoardForeground(m);
 
-  m.push16(BUILD_BOARD_RET);
-  m.call(BUILD_BOARD);
-  mem8[BOARD_LAYOUT_GATE] = regs.a;
+  mem8[BOARD_LAYOUT_GATE] = renderFrogSceneAndTickTimer(m);
 
   renderTimeBar(m);
 
@@ -54,5 +53,5 @@ export function setUpBoardOrContinueLife(m) {
 
   renderLivesRow(m);
 
-  return m.call(PACE_TAIL);
+  return endForegroundPassAtPaceTail(m);
 }

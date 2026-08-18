@@ -5,7 +5,7 @@
  * board, raise the board-laid-out flag, then tail into the score adder with the board-advance delta.
  * LIVE-OUT: memory-only.
  */
-import { ACTIVE_PLAYER, PLAYER1_DIFFICULTY_INDEX, PLAYER2_DIFFICULTY_INDEX, BOARD_ADVANCE_DONE_FLAG } from "./names.js";
+import { ACTIVE_PLAYER, PLAYER1_DIFFICULTY_INDEX, PLAYER2_DIFFICULTY_INDEX, BOARD_ADVANCE_DONE_FLAG, BOARD_ADVANCE_SCORE_DELTA } from "./names.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { clearAndSeedScoreField } from "./clearAndSeedScoreField.js";
 import { clearObjectBlocksAndMirrorToObjRam } from "./clearObjectBlocksAndMirrorToObjRam.js";
@@ -32,5 +32,5 @@ export function advanceBoardForeground(m) {
   seedObjectAnimationState(m);
 
   mem8[BOARD_ADVANCE_DONE_FLAG] = 1;
-  return addScoreAndAwardExtraLife(m, 0x0100);
+  return addScoreAndAwardExtraLife(m, BOARD_ADVANCE_SCORE_DELTA);
 }

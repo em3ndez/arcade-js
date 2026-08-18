@@ -47,5 +47,5 @@ export function blitScrollBand(m) {
       mem8[SCROLL_WRAP_LATCH] = 1;
     }
   }
-  mem8[SCROLL_BAND_ROWSPAN] = (rows - 1) & 0xff;
+  mem8[SCROLL_BAND_ROWSPAN] = rows - 1;
 }

@@ -7,7 +7,7 @@
  * LIVE-OUT: memory-only.
  */
 import {
-  loc_842d, OBJRAM_COL3F_ATTR_SHADOW, loc_83e0, LAYOUT_SETUP_STRIP_VRAM, LAYOUT_SETUP_STRIP_SRC, LAYOUT_SETUP_COLUMN_VRAM, loc_83dc, loc_83de,
+  loc_842d, OBJRAM_COL3F_ATTR_SHADOW, loc_83e0, LAYOUT_SETUP_STRIP_VRAM, LAYOUT_SETUP_STRIP_SRC, LAYOUT_SETUP_COLUMN_VRAM, loc_83dc, loc_83de, SCROLL_STATE_INIT,
 } from "./names.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 
@@ -31,6 +31,6 @@ export function initDisplayFieldOnce(m) {
     cell = cell + ROW_STRIDE;
   }
 
-  mem16[loc_83dc] = 0x3c20;
+  mem16[loc_83dc] = SCROLL_STATE_INIT;
   mem8[loc_83de] = 96;
 }

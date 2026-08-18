@@ -45,7 +45,7 @@ export function driveScoreDisplayCountdown(m) {
 
   const counterHi = mem8[SCORE_DISPLAY_COUNTER_HI];
   if (counterHi === 0) return blitEndStripAndSetHold(m);
-  mem8[SCORE_DISPLAY_COUNTER_HI] = (counterHi - 1) & 0xff;
+  mem8[SCORE_DISPLAY_COUNTER_HI] = counterHi - 1;
 
   const stepped = bcdSubByte(mem8[loc_83de], 1).value; // BCD decrement
   mem8[loc_83de] = stepped;
@@ -65,7 +65,7 @@ function stepScoreBarTile(m) {
   let a = dd & 0xfc;
   a = ((a << 2) | (a >> 6)) & 0xff; // rotate left by two
   const dst = BAR_BASE + (a + a);
-  mem8[dst] = (0x10 - c) & 0xff;
+  mem8[dst] = 0x10 - c;
 }
 
 export function armScoreBonusStrip(m) {

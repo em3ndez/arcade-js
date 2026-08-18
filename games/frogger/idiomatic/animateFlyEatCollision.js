@@ -7,15 +7,11 @@
  * Y in the [0x5a,0x68) row band). A hit latches the eat, fires the eat sound, and tracks the fly onto
  * the frog. LIVE-OUT: memory-only.
  */
-import {
-  FROG_X, FROG_Y, FROG_SPRITE_CODE, FLY_SPRITE_X, FLY_SPRITE_CODE, FLY_DRIFT_COUNTER,
-  FLY_TRAVEL_DIR_STEP, FLY_ATTACK_TIMER, COLLISION_SUBFLAG, COLLISION_LATCH,
-} from "./names.js";
+import { FROG_X, FROG_Y, FROG_SPRITE_CODE, FLY_SPRITE_X, FLY_SPRITE_CODE, FLY_DRIFT_COUNTER, FLY_TRAVEL_DIR_STEP, FLY_ATTACK_TIMER, COLLISION_SUBFLAG, COLLISION_LATCH, FLY_EAT_PHASE } from "./names.js";
 import { clearLatchedCollision } from "./clearLatchedCollision.js";
 import { driveFlyPatrol } from "./driveFlyPatrol.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 
-const FLY_EAT_PHASE = 0x813d;   // tongue-out/eat phase; bit0 set means retract this frame
 const FLY_SPRITE_ATTR = FLY_SPRITE_X + 2;
 const FLY_SPRITE_Y = FLY_SPRITE_X + 3;
 const EAT_SOUND = 0x18;
@@ -54,14 +50,14 @@ function trackFlyOntoFrog(m) {
   const { mem8 } = m;
   mem8[FLY_SPRITE_X] = mem8[FROG_X];
   mem8[FLY_SPRITE_CODE] = mem8[FROG_SPRITE_CODE];
-  mem8[FLY_SPRITE_Y] = (mem8[FROG_Y] + 0x02) & 0xff;
+  mem8[FLY_SPRITE_Y] = mem8[FROG_Y] + 0x02;
 }
 
 // Arm the tongue once: bump the eat phase, stamp the fly descriptor, set the tongue timers.
 function armFlyTongue(m) {
   const { mem8 } = m;
   if (mem8[COLLISION_LATCH] !== 0) return;
-  mem8[FLY_EAT_PHASE] = (mem8[FLY_EAT_PHASE] + 1) & 0xff;
+  mem8[FLY_EAT_PHASE] = mem8[FLY_EAT_PHASE] + 1;
   mem8[FLY_SPRITE_CODE] = 0x1e;
   mem8[FLY_SPRITE_ATTR] = 0x04;
   mem8[FLY_SPRITE_Y] = 0x60;

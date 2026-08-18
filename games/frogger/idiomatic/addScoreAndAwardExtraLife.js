@@ -7,15 +7,10 @@
  * bumps the active player's counter, stamps the bonus tile into that counter's HUD column and queues the
  * tile update. The high score then trails the larger score. LIVE-OUT: memory-only.
  */
-import {
-  PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_SCORE, PLAYER2_SCORE,
-  PLAYER1_EXTRA_LIFE_AWARDED, PLAYER2_EXTRA_LIFE_AWARDED,
-  TIME_REMAINING_P1, TIME_REMAINING_P2, loc_83cf, EXTRA_LIFE_SCORE_TARGET, HIGH_SCORE,
-} from "./names.js";
+import { PLAY_FLAG, ACTIVE_PLAYER, PLAYER1_SCORE, PLAYER2_SCORE, PLAYER1_EXTRA_LIFE_AWARDED, PLAYER2_EXTRA_LIFE_AWARDED, TIME_REMAINING_P1, TIME_REMAINING_P2, loc_83cf, EXTRA_LIFE_SCORE_TARGET, HIGH_SCORE, EXTRA_LIFE_HUD_SLOT_TOP } from "./names.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { bcdAddByte } from "../../../core/bcd.js";
 
-const HUD_SLOT_TOP = 0xabde;   // base the bonus tile walks back from, one row per counter step
 const HUD_ROW_STEP = 0x20;
 const BONUS_TILE = 0x4d;
 const TILE_UPDATE_CMD = 0x07;
@@ -42,7 +37,7 @@ export function addScoreAndAwardExtraLife(m, delta = m.regs.de) {
     const count = (mem8[counterCell] + 1) & 0xff;
     mem8[counterCell] = count;
 
-    let slot = HUD_SLOT_TOP, n = count;
+    let slot = EXTRA_LIFE_HUD_SLOT_TOP, n = count;
     do { slot = slot - HUD_ROW_STEP; n = (n - 1) & 0xff; } while (n !== 0);
     mem8[slot] = BONUS_TILE;
 

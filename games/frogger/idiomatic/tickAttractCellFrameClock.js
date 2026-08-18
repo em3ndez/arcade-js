@@ -7,26 +7,32 @@
  * LIVE-OUT: memory; on the true return also the accumulator tile in A.
  */
 import { u8 } from "../../../core/int.js";
+import { ATTRACT_FRAME_TIMER, ATTRACT_FRAME_INDEX, ATTRACT_TILE_TABLE } from "./names.js";
 
-const FRAME_TIMER = 0x83bd;
-const FRAME_INDEX = 0x83be;
-const TILE_TABLE = 0x2e1b;
 const TIMER_RELOAD = 8;
 const INDEX_WRAP = 4;
+
+// The tile for the current attract-cell animation frame: table[frame index]. The oracle leaves this in
+// A on the elapsed exit; idiomatic callers read it register-free from the frame index this clock advanced.
+export function attractCellFrameTile(m) {
+  const { mem8 } = m;
+  const index = mem8[ATTRACT_FRAME_INDEX];
+  return mem8[(ATTRACT_TILE_TABLE & ~0xff) | u8((ATTRACT_TILE_TABLE & 0xff) + index)];
+}
 
 export function tickAttractCellFrameClock(m) {
   const { mem8 } = m;
 
-  const timer = u8(mem8[FRAME_TIMER] - 1);
-  mem8[FRAME_TIMER] = timer;
+  const timer = u8(mem8[ATTRACT_FRAME_TIMER] - 1);
+  mem8[ATTRACT_FRAME_TIMER] = timer;
   if (timer !== 0) return false;
 
-  mem8[FRAME_TIMER] = TIMER_RELOAD;
+  mem8[ATTRACT_FRAME_TIMER] = TIMER_RELOAD;
 
-  let index = u8(mem8[FRAME_INDEX] - 1);
+  let index = u8(mem8[ATTRACT_FRAME_INDEX] - 1);
   if (index === 0) index = INDEX_WRAP;
-  mem8[FRAME_INDEX] = index;
+  mem8[ATTRACT_FRAME_INDEX] = index;
 
-  const tile = mem8[(TILE_TABLE & 0xff00) | u8((TILE_TABLE & 0xff) + index)];
+  const tile = attractCellFrameTile(m);
   return (m.regs.a = tile, true);
 }

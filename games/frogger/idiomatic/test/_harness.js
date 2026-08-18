@@ -2,8 +2,7 @@
 /**
  * Shared capture harness for the Frogger idiomatic equivalence gates. Builds the real Machine from
  * the assembled ROM and runs plain attract; a gate hooks a routine's address, clones each dispatch,
- * and replays the oracle and the rewrite in isolation on identical state. Frogger's attract reaches
- * the render/setup leaves with no input, so most gates need no tape.
+ * and replays the oracle and the rewrite in isolation on identical state.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -35,6 +34,10 @@ function romImages() {
 
 /** Frames of attract to run for a healthy dispatch corpus. */
 export const ENTRY_FRAMES = 900;
+
+/** Seam's transient pushed-return stack window — dead scratch (matches the pixel manifest's
+ * stateExclude.stack); a dissolved m.call skips the push, so exclude it from the state diff. */
+export const isStackScratch = (addr) => addr >= 0x87e0 && addr < 0x8800;
 
 /** A frogger Machine with `overrides` (a Map addr->fn) wired over the translated base; plain attract. */
 export function makeMachine(overrides) {

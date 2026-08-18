@@ -13,11 +13,12 @@ cell is named; no prose may contradict it. Two rules, both under `check`:
       never hardcoded: a hardcoded 0x8000-0x87FF once matched nothing for DK (0x6000-0x6BFF) and
       the gate passed while inspecting nothing.
 
-  (B) IDIOMATIC loc_ CELL rule (reviewer-rules.md R31): loc_<addr> is the translated layer's
-      identifier and is NEVER a valid idiomatic CELL const name, so every top-level
-      `export const loc_<hex> = 0x<hex>;` in a game's names.js is a violation. Scans the WORKING
+  (B) IDIOMATIC loc_ CELL rule (reviewer-rules.md R31): per Karl's cell-naming rule a role-UNDERSTOOD
+      cell owes a DESCRIPTIVE name and only a role-UNKNOWN cell may take a `loc_<addr>` name -- and then
+      only as an enumerated (game, addr) entry in tools/names-debt.txt, so a top-level
+      `export const loc_<hex> = 0x<hex>;` NOT on that allowlist is a violation. Scans the WORKING
       TREE across ALL games (not just staged); routine modules and ROUTINES-map entries are out
-      of scope. Existing debt is grandfathered by an enumerated allowlist in tools/names-debt.txt
+      of scope. The allowlist is tools/names-debt.txt
       - each non-blank, non-`#` line exactly `<game> 0x<addr>`, a shrinking set; fail-closed if
       that file is missing or malformed.
 
@@ -204,14 +205,13 @@ def loc_cell_check():
         sys.stderr.write(
             "\nCOMMIT BLOCKED — names-consistency gate, idiomatic loc_ cell rule\n"
             "  (docs/runbook.md \"A cell earns its DESCRIPTIVE identifier…\" / reviewer-rules.md R31):\n"
-            "  `loc_<addr>` is the TRANSLATED layer's identifier and is never a valid idiomatic CELL const\n"
-            "  name. A confidently-read cell owes a DESCRIPTIVE name; an unknown-role cell is keep-hex (a\n"
-            "  bare literal, no const). These idiomatic names.js cell consts are named loc_ and are NOT\n"
-            "  grandfathered in tools/names-debt.txt:\n\n"
+            "  A role-UNDERSTOOD cell owes a DESCRIPTIVE name; only a role-UNKNOWN cell may take a\n"
+            "  `loc_<addr>` name, and only as an enumerated (game, addr) entry in tools/names-debt.txt.\n"
+            "  These idiomatic names.js loc_ cell consts are NOT on that allowlist:\n\n"
             + "\n".join(failures)
-            + "\n\n  Fix: rename each to a DESCRIPTIVE name (value-identical — the address never changes) and\n"
-            "  update its importers, or drop the const and keep-hex the literal if the role is unknown.\n"
-            "  Do NOT add it to names-debt.txt — that set only SHRINKS. Do NOT --no-verify around this.\n\n"
+            + "\n\n  Fix: if the role is READABLE, rename each to a DESCRIPTIVE name (value-identical — the\n"
+            "  address never changes) and update its importers. If the role is genuinely UNKNOWN after\n"
+            "  tracing, allowlist it in tools/names-debt.txt. Do NOT --no-verify around this.\n\n"
         )
         return 1
     return 0

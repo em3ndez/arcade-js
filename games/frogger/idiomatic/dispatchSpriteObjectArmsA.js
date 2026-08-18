@@ -10,10 +10,10 @@ import { loc_29f9 } from "./loc_29f9.js";
 import { placeSpriteObjectSlotAndRetire } from "./placeSpriteObjectSlotAndRetire.js";
 import { flagSpriteObjectFrogHit } from "./flagSpriteObjectFrogHit.js";
 
-export function dispatchSpriteObjectArmsA(m) {
-  spawnSpriteObjectArmA(m);
-  animateSpriteObjectFrame(m);
-  loc_29f9(m);
-  placeSpriteObjectSlotAndRetire(m);
-  return flagSpriteObjectFrogHit(m);
+export function dispatchSpriteObjectArmsA(m, ix = m.regs.ix, iy = m.regs.iy) {
+  spawnSpriteObjectArmA(m, ix, iy);
+  animateSpriteObjectFrame(m, ix, iy);
+  loc_29f9(m, ix, iy);
+  placeSpriteObjectSlotAndRetire(m, ix, iy);
+  return flagSpriteObjectFrogHit(m, ix, iy);
 }
