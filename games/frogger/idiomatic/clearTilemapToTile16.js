@@ -17,9 +17,11 @@
  *   4-column status margin; this one wipes everything.
  *
  * LIVE-OUT
- *   Memory only. It writes 1024 VRAM tilemap cells and nothing else — no register the caller reads, no
- *   return value. The ROM version interleaves a per-row busy-wait delay (timing-only, to pace the writes
- *   on real video RAM); that delay affects nothing observable, so it is not reproduced here.
+ *   The 1024 blanked VRAM cells — no register the caller reads, no return value. The ROM interleaves a
+ *   per-row busy-wait between the row writes, so on hardware/MAME the clear ANIMATES top-down over ~48
+ *   displayed frames rather than blanking in one frame. That timing IS observable (it paces every
+ *   screen transition and the tape-replay timeline), so the delay is charged as displayed frames and the
+ *   rows are revealed progressively — see WIPE_DELAY_FRAMES.
  */
 import { VRAM_BASE } from "./names.js";
 
@@ -28,17 +30,56 @@ import { VRAM_BASE } from "./names.js";
 // the map with it is what makes the screen read as empty.
 const BLANK_TILE = 0x10;
 
-// The tilemap is 32 cells wide by 32 cells tall = 1024 (0x400) cells, laid out contiguously in VRAM from
-// VRAM_BASE (0xa800) through 0xabff. One flat loop over 0x400 therefore touches the whole screen.
-const TILEMAP_CELLS = 0x400;
+// The tilemap is 32 rows of 32 cells = 1024 (0x400), contiguous in VRAM from VRAM_BASE (0xa800). Row r
+// occupies cells [r*32, r*32+32); the ROM clears one row per busy-wait pass, top-down.
+const TILEMAP_ROWS = 32;
+const TILEMAP_COLS = 32;
+const TILEMAP_CELLS = TILEMAP_ROWS * TILEMAP_COLS;
+
+// Displayed frames the ROM's per-row busy-wait spans. Measured from MAME (frogger-golden): the boot wipe
+// blanks row 0 at frame 49 and all 32 rows by frame 97 — 48 frames, ~0.667 rows/frame.
+const WIPE_DELAY_FRAMES = 48;
 
 export function clearTilemapToTile16(m) {
   const { mem8 } = m;
 
-  // ── Fill the whole tilemap with the blank tile ───────────────────────────────────────
-  // Walk all 1024 cells as one contiguous run from VRAM_BASE (0xa800) and stamp the blank tile into each.
-  // Because the tilemap is a single flat block of VRAM, no row/column arithmetic is needed — index i steps
-  // straight through 0xa800..0xabff. (The ROM broke this into rows with a busy-wait between them for video
-  // timing; the visible result is identical, so we just write the run.)
+  // Snapshot the pre-wipe screen so the delay frames can reveal the blank top-down over what was there
+  // (a real transition wipes visible content, not black). Own array — the fill below mutates VRAM, and
+  // mem8 is index-access only (no .slice).
+  const pre = new Uint8Array(TILEMAP_CELLS);
+  for (let i = 0; i < TILEMAP_CELLS; i++) pre[i] = mem8[VRAM_BASE + i];
+
+  // Fill the whole tilemap with the blank tile: this is the memory end-state; the animation below is
+  // display-only and must not change it.
   for (let i = 0; i < TILEMAP_CELLS; i++) mem8[VRAM_BASE + i] = BLANK_TILE;
+
+  // Charge the ROM's per-row busy-wait as displayed frames so the timeline matches MAME, and reveal the
+  // blank progressively over that span (round(...) tracks MAME's ~0.667 rows/frame: 1 row by the first
+  // frame, all 32 by the last). The delay is display-only, but VRAM is shared with the paused game: the
+  // caller's same-frame redraw and any cell the vblank NMI draws mid-wait are real content, so `truth`
+  // tracks them (seeded from VRAM on frame 0, then folded forward from every cell the NMI changed behind
+  // the animation) and is handed back on the last frame — otherwise the blank writes gap-hole the board.
+  m.busyDelayFrames = (m.busyDelayFrames | 0) + WIPE_DELAY_FRAMES;
+  let truth = null; // the game's real VRAM (redraw + NMI writes), kept apart from the animation overlay
+  let shown = null; // what the overlay last wrote, so a differing cell is an NMI write to fold into truth
+  m.busyDelayRender = (mm, i, total) => {
+    const vram = mm.mem8;
+    if (i === 0) {
+      truth = new Uint8Array(TILEMAP_CELLS);
+      shown = new Uint8Array(TILEMAP_CELLS);
+      for (let j = 0; j < TILEMAP_CELLS; j++) truth[j] = vram[VRAM_BASE + j];
+    } else {
+      for (let j = 0; j < TILEMAP_CELLS; j++) if (vram[VRAM_BASE + j] !== shown[j]) truth[j] = vram[VRAM_BASE + j];
+    }
+    const done = Math.round(((i + 1) * TILEMAP_ROWS) / total);
+    const last = i === total - 1;
+    for (let r = 0; r < TILEMAP_ROWS; r++) {
+      for (let c = 0; c < TILEMAP_COLS; c++) {
+        const idx = r * TILEMAP_COLS + c;
+        const v = last ? truth[idx] : r < done ? BLANK_TILE : pre[idx];
+        vram[VRAM_BASE + idx] = v;
+        shown[idx] = v;
+      }
+    }
+  };
 }

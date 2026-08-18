@@ -1,15 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/**
- * Cycle-free ("frame-stepped") engines — run a game with NO T-state clock by firing the vblank NMI
- * at the game's vblank yield rather than an absolute cycle count. Three, in order of generality:
- * runCycleFree (poll-PC, translated only), runWatchdogGame (watchdog read), runIdiomaticGame
- * (coroutine — the model for a new game). TEST seams; the shipped game stays cycle-driven.
- *
- * The price, choosing poll PCs, and the go-live traps: docs/idiomatic-generation.md; runbook in
- * docs/integration-testing.md, "Go-live". Validate with tools/convergence.mjs, never a byte diff.
- */
+// Cycle-free ("frame-stepped") engines: fire the vblank NMI at the game's vblank yield, not on a cycle
+// count. runCycleFree (poll-PC, translated), runWatchdogGame (watchdog read), runIdiomaticGame (coroutine,
+// the model for a new game). TEST seams; the shipped game stays cycle-driven. Go-live traps and poll-PC
+// choice: docs/idiomatic-generation.md and docs/integration-testing.md "Go-live". Validate via convergence.mjs.
 
-/** Unwinds out of the call tree when a run is done; boot + main loop never return. Not an error. */
+// Unwinds out of the call tree when a run is done; boot + main loop never return. Not an error.
 class RunComplete extends Error {
   constructor(reason) {
     super(reason);
@@ -17,14 +12,8 @@ class RunComplete extends Error {
   }
 }
 
-/**
- * Run `machine` cycle-free from reset, calling `onFrame` at frame 0 (power-on) and at each poll PC
- * reached with the NMI unmasked. Wraps `step()` in place — construct a fresh Machine per run.
- *
- * @param {object} machine  a constructed game Machine; mutated in place
- * @param {object} opts  { pollPCs: vblank-yield addresses, maxFrames, onFrame, stepBudget }
- * @returns {{frames:number, steps:number, stop:string, stopError:(Error|null)}}
- */
+// Cycle-free from reset: onFrame at frame 0 (power-on) and at each poll PC reached with NMI unmasked.
+// Wraps step() in place -- construct a fresh Machine per run. opts: {pollPCs, maxFrames, onFrame, stepBudget}.
 export function runCycleFree(machine, { pollPCs, maxFrames = Infinity, onFrame, stepBudget = 6e8 } = {}) {
   const poll = pollPCs instanceof Set ? pollPCs : new Set(pollPCs);
   if (poll.size === 0) throw new Error("runCycleFree needs at least one poll PC");
@@ -37,25 +26,24 @@ export function runCycleFree(machine, { pollPCs, maxFrames = Infinity, onFrame, 
 
   const realFire = machine.fireNmi.bind(machine);
   const realStep = machine.step.bind(machine);
-  machine.fireNmi = function () {}; // the scheduler must never fire it; only the poll does
+  machine.fireNmi = function () {};
 
   let steps = 0;
   let inNmi = false;
   let frame = 0;
 
-  if (onFrame) onFrame(machine, 0); // frame 0 = power-on, before any instruction runs
+  if (onFrame) onFrame(machine, 0);
 
   machine.step = function (nextAddr, cycles) {
     realStep(nextAddr, cycles);
     if (++steps > stepBudget) throw new RunComplete("step-budget (unpolled spin?)");
-    // A poll PC reached with the NMI unmasked IS a frame boundary. `inNmi` blocks the handler
-    // re-triggering: its final `m.ret` steps back to the poll PC it interrupted.
+    // A poll PC reached with NMI unmasked IS a frame boundary; inNmi blocks the handler re-triggering
+    // (its final m.ret steps back to the poll PC it interrupted).
     if (!inNmi && poll.has(this.pc) && this.io.nmiMask) {
       frame += 1;
       if (onFrame) onFrame(this, frame);
       if (frame >= maxFrames) throw new RunComplete("reached maxFrames");
-      // realStep just set a genuine next-instruction address, so fireNmi's pcKnown guard holds.
-      this.pcKnown = true;
+      this.pcKnown = true; // realStep set a genuine next-instruction address, so fireNmi's guard holds
       inNmi = true;
       try {
         realFire();
@@ -68,7 +56,7 @@ export function runCycleFree(machine, { pollPCs, maxFrames = Infinity, onFrame, 
   let stop = "reached maxFrames";
   let stopError = null;
   try {
-    machine.reset(); // enters at PC 0x0000; never returns — unwinds via RunComplete/error
+    machine.reset();
     stop = "returned";
   } catch (e) {
     if (e instanceof RunComplete) {
@@ -79,22 +67,16 @@ export function runCycleFree(machine, { pollPCs, maxFrames = Infinity, onFrame, 
       stopError = e;
     }
   } finally {
-    machine.step = realStep; // restore, so the instance stays inspectable
+    machine.step = realStep;
     machine.fireNmi = realFire;
   }
 
   return { frames: frame, steps, stop, stopError };
 }
 
-/**
- * runWatchdogGame — the whole game idiomatic, with no T-state clock. Idiomatic poll routines never
- * call `m.step`, so runCycleFree's seam is unavailable; this treats the once-per-frame WATCHDOG
- * KICK (a read of `watchdogPort`) as the vblank yield. Superseded by runIdiomaticGame — see below.
- *
- * @param {object} machine  a Machine with the FULL idiomatic override set wired (opts.overrides)
- * @param {object} opts  { watchdogPort, nmiReturnPC, maxFrames, onFrame, readBudget (per-frame) }
- * @returns {{frames:number, stop:string, stopError:(Error|null)}}
- */
+// runWatchdogGame -- whole game idiomatic, no T-state clock. Idiomatic polls never call m.step, so the
+// watchdog KICK (a read of watchdogPort) is the vblank yield. Superseded by runIdiomaticGame. opts:
+// {watchdogPort, nmiReturnPC, maxFrames, onFrame, readBudget}.
 export function runWatchdogGame(machine, { watchdogPort, nmiReturnPC, maxFrames = Infinity, onFrame, readBudget = 5e6 } = {}) {
   if (watchdogPort == null || nmiReturnPC == null) throw new Error("runWatchdogGame needs watchdogPort and nmiReturnPC");
 
@@ -105,23 +87,20 @@ export function runWatchdogGame(machine, { watchdogPort, nmiReturnPC, maxFrames 
 
   const realFire = machine.fireNmi.bind(machine);
   const realRead = machine.mem.read8.bind(machine.mem);
-  machine.fireNmi = function () {}; // the scheduler must never fire it; only the watchdog poll does
+  machine.fireNmi = function () {};
 
   let frame = 0;
   let readsSinceFrame = 0;
 
-  if (onFrame) onFrame(machine, 0); // frame 0 = power-on
+  if (onFrame) onFrame(machine, 0);
 
   machine.mem.read8 = function (addr) {
     const v = realRead(addr);
-    // Per-frame spin backstop, reset each frame so a long healthy game never trips it.
     if (++readsSinceFrame > readBudget) throw new RunComplete("per-frame read budget (unpolled spin?)");
     if ((addr & 0xffff) === watchdogPort && machine.io.nmiMask) {
-      // Deliberately NO "in NMI" guard: a watchdog read while a prior NMI is still on the JS
-      // stack means that handler LONG-JUMPED into a new forever loop (the coin path). Those are
-      // genuine frame boundaries and MUST fire, or the game freezes on the credit screen. Safe
-      // because the handler never READS the watchdog. Cost: the abandoned handler stays on the
-      // host stack, one frame per warm restart — the leak runIdiomaticGame removes.
+      // NO "in NMI" guard: a watchdog read under a live NMI means that handler long-jumped into a new
+      // forever loop (coin path) -- a genuine boundary that MUST fire or the game freezes on the credit
+      // screen. Safe: the handler never reads the watchdog. Cost: one leaked host-stack frame per restart.
       frame += 1;
       readsSinceFrame = 0;
       if (onFrame) onFrame(machine, frame);
@@ -136,7 +115,7 @@ export function runWatchdogGame(machine, { watchdogPort, nmiReturnPC, maxFrames 
   let stop = "returned";
   let stopError = null;
   try {
-    machine.reset(); // enters idiomatic boot via the override at 0x0000; never returns
+    machine.reset();
     stop = "returned";
   } catch (e) {
     if (e instanceof RunComplete) stop = e.message;
@@ -149,19 +128,11 @@ export function runWatchdogGame(machine, { watchdogPort, nmiReturnPC, maxFrames 
   return { frames: frame, stop, stopError };
 }
 
-/**
- * runIdiomaticGame — the COROUTINE engine, and the model for a new game. The idiomatic
- * spine (boot, main loops, wait/hold loops) are GENERATORS that `yield` at each vblank wait. The
- * engine resumes the current one to its next yield, samples pre-NMI, then fires the NMI. A
- * coin/start/level/game-over transition is a WARM RESTART: the handler sets `machine.nextMain` to a
- * factory and the engine swaps it, letting the abandoned generator be collected — so the JS host
- * stack stays flat forever, removing runWatchdogGame's per-restart growth. The yield can sit
- * anywhere, so it ports with no per-game "find the forever loops" analysis.
- *
- * @param {object} machine  a Machine with idiomatic overrides wired (the spine must be generators)
- * @param {object} opts  { bootAddr, nmiReturnPC, maxFrames, onFrame }
- * @returns {{frames:number, stop:string, stopError:(Error|null)}}
- */
+// runIdiomaticGame -- the COROUTINE engine, model for a new game. The idiomatic spine (boot, main/wait
+// loops) are GENERATORS that yield at each vblank wait; the engine resumes to the next yield, samples
+// pre-NMI, fires the NMI. A coin/start/level/game-over transition is a WARM RESTART: the handler sets
+// machine.nextMain to a factory and the engine swaps it, so the abandoned generator is collected and the
+// host stack stays flat (removing runWatchdogGame's per-restart leak). opts: {bootAddr, nmiReturnPC, maxFrames, onFrame}.
 export function runIdiomaticGame(machine, { bootAddr = 0x0000, nmiReturnPC, maxFrames = Infinity, onFrame } = {}) {
   machine.nextBoundary = Infinity;
   machine.maxFrames = Infinity;
@@ -169,7 +140,7 @@ export function runIdiomaticGame(machine, { bootAddr = 0x0000, nmiReturnPC, maxF
   machine.nextNmi = Infinity;
 
   const realFire = machine.fireNmi.bind(machine);
-  machine.fireNmi = function () {}; // the scheduler must never fire it; only a vblank yield does
+  machine.fireNmi = function () {};
   machine.booted = true;
   machine.nextMain = null;
 
@@ -177,9 +148,9 @@ export function runIdiomaticGame(machine, { bootAddr = 0x0000, nmiReturnPC, maxF
   let stop = "returned";
   let stopError = null;
 
-  if (onFrame) onFrame(machine, 0); // frame 0 = power-on, before the boot generator runs
+  if (onFrame) onFrame(machine, 0);
 
-  // m.call of a generator returns the generator object; a spine tail delegates with `yield*`.
+  // m.call of a generator returns the generator object; a spine tail delegates with yield*.
   let gen = machine.call(bootAddr);
 
   try {
@@ -188,25 +159,40 @@ export function runIdiomaticGame(machine, { bootAddr = 0x0000, nmiReturnPC, maxF
       if (machine.nextMain) { gen = machine.nextMain(); machine.nextMain = null; }
       let r;
       try {
-        r = gen.next(); // run the current main generator to its next vblank yield (or return)
+        r = gen.next();
       } catch (e) {
-        // MID-FRAME warm restart: a service deep in the gameplay tree abandoned the frame and
-        // handed us a successor. The aborted frame fires no NMI — its vblank never arrived.
+        // MID-FRAME warm restart: a service deep in the gameplay tree abandoned the frame (no NMI fires).
         if (e === machine.RESTART && machine.nextMain) continue;
         throw e;
       }
       if (r.done) {
-        if (machine.nextMain) continue; // it returned AND handed off (boot -> attract) -> swap
-        stop = "returned";              // a main loop that returns with no hand-off is worth seeing
+        if (machine.nextMain) continue; // returned AND handed off (boot -> attract) -> swap
+        stop = "returned";
         break;
       }
       frame += 1;
       if (onFrame) onFrame(machine, frame); // sample PRE-NMI, at the vblank yield
       if (frame >= maxFrames) { stop = "reached maxFrames"; break; }
-      // Fire the vblank NMI: push16(pc) + run the handler; it may set machine.nextMain (warm restart).
       machine.pcKnown = true;
       if (nmiReturnPC != null) machine.pc = nmiReturnPC;
       realFire();
+
+      // Reproduce a COLLAPSED multi-frame busy-wait (the board wipe): a routine may declare N extra
+      // DISPLAYED frames. Fire N NMI-only frames, foreground generator paused -- the CPU sits in the
+      // busy-wait, the NMI keeps firing -- so the count matches MAME. Optional busyDelayRender(m,i,total)
+      // animates it (display-only; the memory end-state is already set).
+      const busyTotal = machine.busyDelayFrames | 0;
+      const busyRender = machine.busyDelayRender;
+      machine.busyDelayFrames = 0;
+      machine.busyDelayRender = null;
+      for (let i = 0; i < busyTotal && frame < maxFrames; i++) {
+        if (busyRender) busyRender(machine, i, busyTotal);
+        frame += 1;
+        if (onFrame) onFrame(machine, frame);
+        machine.pcKnown = true;
+        if (nmiReturnPC != null) machine.pc = nmiReturnPC;
+        realFire();
+      }
     }
   } catch (e) {
     stop = `${e.name}: ${e.message}`;
