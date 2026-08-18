@@ -80,4 +80,10 @@ export default {
     pollPCs: [0x0368],
     stateExclude: { stack: [0x87e0, 0x8800] },
   },
+
+  // Audio: record/replay of the sound-command surface; map = committed command map, samples = gitignored clips.
+  audio: {
+    map: "audio/sounds.js",
+    samples: "audio/samples",
+  },
 };
