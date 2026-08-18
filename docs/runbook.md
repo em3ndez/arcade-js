@@ -492,7 +492,30 @@ deliberate handling. These four are one problem and are decided together, once, 
   coherent-looking garbage on both sides, a weak check.
 - **Run a long continuous idiomatic run** (many minutes) diffed vs a matching golden, RAM first — the
   base and poke tapes are each too short to catch time-accumulated bugs that surface only deep into a
-  session.
+  session. ⚠ A RAM diff is BLIND to render and audio: the RAM can be byte-correct while the screen or
+  the sound is wrong (see the next two bullets), so RAM-clean is necessary, not sufficient.
+- **The deepest gameplay test is a real human PLAYTHROUGH — play it / WATCH it, do not just
+  replay-diff it.** Record a human playing a long session (`mame -record`, and pass NO
+  `-input_directory` or it silently no-ops). It drives the collision / scroll / audio paths the
+  attract gates and RAM state-diffs cannot see. In practice these bugs surface by EYE and EAR, never a
+  diff: a tilemap scroll drawn with the wrong sign (every lane/vehicle rendered backwards — invisible
+  to RAM diffs, and the pixel gate false-passed because a uniform background keeps any frame ~2-4%
+  "similar"), and a repeated effect that played only once (each hop re-writes the SAME sound-latch
+  byte, and the edge-deduped event stream dropped the repeats). Both were found by playing in the
+  browser, not by any automated gate.
+- **Do NOT trust a fixed-origin frame-by-frame replay of a recorded tape vs MAME.** The idiomatic
+  boot/board collapse warps the timeline NON-UNIFORMLY (a ~44-frame board wipe busy-wait drops to one
+  frame), so a tape replayed at one constant frame-offset drifts and manufactures FALSE divergences (a
+  "carry bug" that was pure replay desync, not a game bug). To replay-diff a real tape you must re-sync
+  on a landmark per life/board — or reproduce the collapsed busy-waits' frame counts so the timeline
+  stays aligned. The offset is not a constant across a whole session; it jumps at every collapse.
+- **Per-mechanic POKE tests vs MAME are the reliable per-mechanic detector** (`tools/mechanics_gate.py`,
+  game-agnostic; a game supplies `games/<g>/tools/mechanics_suite.py` printing `MECHANIC <id> PASS|FAIL`).
+  For EACH declared mechanic, poke the exact scenario (frog on a log, mid-hop, at a bay) identically into
+  the JS engine AND MAME, drive one input, and compare — MAME is the oracle, so there is no author-guessed
+  expected value, and poking the setup sidesteps the tape-alignment problem entirely. This is what catches
+  the gameplay holes attract-only gates are blind to; the honest limit is that the mechanic LIST is not
+  mechanically enumerable, so its completeness stays the adversarial done-audit's job.
 - The dispatch **seam leaks two stack bytes** — MEASURE per dispatch what heals it (SP unmoved ⇒ the
   resolver supplies the `ret`; SP up two with `pc` on the held slot ⇒ the transfer did it; anything
   else ⇒ raise, naming the routine). Bound the stack exclusion by the **measured** stack, not the
