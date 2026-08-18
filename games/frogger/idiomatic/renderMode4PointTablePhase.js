@@ -34,7 +34,7 @@ import {
   POINT_TABLE_PHASE1_STRIP_VRAM, POINT_TABLE_PHASE1_VALUE_VRAM, POINT_TABLE_PHASE2_VALUE_VRAM, POINT_TABLE_PHASE2_STRIP_VRAM, POINT_TABLE_PHASE3_VALUE_VRAM, POINT_TABLE_PHASE3_STRIP_VRAM, POINT_TABLE_PHASE4_VALUE_VRAM,
   POINT_TABLE_PHASE1_STRIP_ROM, PTS_SUFFIX_STRIP, POINT_TABLE_PHASE2_VALUE_ROM, INTRO_TITLE_STRIP2_SRC, POINT_TABLE_PHASE3_VALUE_ROM, POINT_TABLE_PHASE3_STRIP_ROM, POINT_TABLE_PHASE2_STRIP_ROM, POINT_TABLE_PHASE4_VALUE_ROM,
   POINT_TABLE_SPRITE_ATTR_801D, SCREEN_MODE_STATE, POINT_TABLE_SPRITE_ATTR_8029, LANE_LOW_BOUND_SELECTOR, INTRO_COUNTER_801B, OBJECT_ANIM_STATE_8021, POINT_TABLE_SPRITE_CODE_8027, POINT_TABLE_SPRITE_CODE_802D,
-  POINT_TABLE_1000_PTS,
+  POINTS_1000_BCD,
 } from "./names.js";
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
 import { writePackedBcdWord } from "./writePackedBcdWord.js";
@@ -87,10 +87,10 @@ export function renderMode4PointTablePhase(m) {
 
     // ── Phase 2: the "1000 PTS" row ──────────────────────────────────────────────────
     case 2: {
-      // Value+suffix: writePackedBcdWord stamps POINT_TABLE_1000_PTS (0x1000 = "1000"; a [code] value) at
+      // Value+suffix: writePackedBcdWord stamps POINTS_1000_BCD (0x1000 = "1000"; a [code] value) at
       // POINT_TABLE_PHASE2_VALUE_VRAM (0xab73) as four digits, then the 4-tile " PTS" suffix follows from
       // the returned pointer. p2runA is left just past the suffix.
-      const p2runA = copyRunUpTileColumn(m, writePackedBcdWord(m, POINT_TABLE_1000_PTS, POINT_TABLE_PHASE2_VALUE_VRAM), PTS_SUFFIX_STRIP, 4);
+      const p2runA = copyRunUpTileColumn(m, writePackedBcdWord(m, POINTS_1000_BCD, POINT_TABLE_PHASE2_VALUE_VRAM), PTS_SUFFIX_STRIP, 4);
       // Keep climbing the same column for 10 more tiles, but with a FRESH source POINT_TABLE_PHASE2_VALUE_ROM
       // (0x2f39): the dst chains from p2runA, the src is reloaded.
       const p2runB = copyRunUpTileColumn(m, p2runA.hl, POINT_TABLE_PHASE2_VALUE_ROM, 10);

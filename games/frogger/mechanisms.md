@@ -594,7 +594,7 @@ The credit amount comes from the coinage word `COINAGE_WORD` [seen] (0x83d4), wh
 
 `placeScoreRankMarkers` [seen] (0x0c3d) stamps the "your rank" markers. For each of the two bytes of the packed field `INTRO_DIGIT_FIELD` (0x83fb) — the rank codes `packScoreRankPair` stored — a non-zero code writes the constant marker tile 4 into work-RAM page 0x80 at offset (48 − code), via the row helper `loc_0c4a` [seen] (0x0c4a) which writes a byte into page-H RAM at row (D − C) and skips when C is 0. A zero code stamps nothing; the rank is encoded as a *position*, not a rendered numeral.
 
-`blitMode3FinalStrip` [seen] (0x0c17) is the shared final-strip tail: it zeros the strip-state cell `MODE3_STRIP_STATE` [code] (0x8039), then blits a 15-tile strip (`MODE3_FINAL_STRIP_SRC`, 0x2f4d) up the VRAM column `MODE3_FINAL_STRIP_VRAM` [seen] (0xaafc). It is reached both by fall-through from the ranking render and by a direct jump when the mode is already set up.
+`blitMode3FinalStrip` [seen] (0x0c17) is the shared final-strip tail: it zeros the strip-state cell `OBJECT_ANIM_STATE_8039` [code] (0x8039), then blits a 15-tile strip (`MODE3_FINAL_STRIP_SRC`, 0x2f4d) up the VRAM column `MODE3_FINAL_STRIP_VRAM` [seen] (0xaafc). It is reached both by fall-through from the ranking render and by a direct jump when the mode is already set up.
 
 ## The lane-object mover
 

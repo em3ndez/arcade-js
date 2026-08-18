@@ -19,12 +19,12 @@
  *   It has a single callee, the shared column-blit primitive copyRunUpTileColumn (0x0028).
  *
  * LIVE-OUT
- *   Memory only. It writes one work cell (MODE3_STRIP_STATE) and 15 VRAM tile cells (the blitted column).
+ *   Memory only. It writes one work cell (OBJECT_ANIM_STATE_8039) and 15 VRAM tile cells (the blitted column).
  *   It returns nothing: copyRunUpTileColumn hands back its walked pointers, but this tail ignores that
  *   result — the equivalence-0c17 test compares RAM alone and masks the dead stack scratch.
  */
 import { copyRunUpTileColumn } from "./copyRunUpTileColumn.js";
-import { MODE3_STRIP_STATE, MODE3_FINAL_STRIP_VRAM, MODE3_FINAL_STRIP_SRC } from "./names.js";
+import { OBJECT_ANIM_STATE_8039, MODE3_FINAL_STRIP_VRAM, MODE3_FINAL_STRIP_SRC } from "./names.js";
 
 // The final strip is 15 tiles tall (0x0f). This is the byte the ROM loads into B as the DJNZ loop count
 // for the blit below — kept in hex to mirror the ROM immediate. copyRunUpTileColumn treats a count of 0
@@ -35,12 +35,12 @@ export function blitMode3FinalStrip(m) {
   const { mem8 } = m;
 
   // ── Step 1: clear the mode-3 strip-state cell ────────────────────────────────────────
-  // MODE3_STRIP_STATE (0x8039) is the little work byte the mode-3 screen keeps for its own sequencing.
+  // OBJECT_ANIM_STATE_8039 (0x8039) is the little work byte the mode-3 screen keeps for its own sequencing.
   // Zeroing it here resets that state as part of finishing the page, so the next time the screen logic
   // runs it starts from a known-clear cell. This write must happen even though it is invisible on screen —
   // the equivalence test's "wrong-state" twin (which blits correctly but leaves the cell nonzero) is
   // caught precisely because the oracle zeros it.
-  mem8[MODE3_STRIP_STATE] = 0;
+  mem8[OBJECT_ANIM_STATE_8039] = 0;
 
   // ── Step 2: blit the 15-tile final strip up a VRAM column ─────────────────────────────
   // Draw the decorative strip via the shared primitive copyRunUpTileColumn (0x0028). It copies
