@@ -12,7 +12,7 @@ IDIOMATIC (a hard done requirement):
   - mem.read8/write8/read16/write16(...) — the low-level API; idiomatic is the indexed view `mem8[addr]`.
   - a redundant width-mask on a mem assignment (`mem8[x]=..&0xff` / `mem16[x]=..&0xffff`): the write already
     truncates, so it's noise. Counted with it: a non-canonical `const foo=m.mem8` alias that would hide one.
-The last five are counted in CODE ONLY (comments stripped) and have NO exemptions.
+All six are counted in CODE ONLY (comments stripped); the last five have NO exemptions (registers keep the two bridges above).
 
 FAIL-CLOSED ratchet: `check` enumerates EVERY games/*/idiomatic/ and holds each to a budget
 (tools/idiomatic-budget.txt), implicit 0 for a game not listed — so a NEW game is born idiomatic. It
@@ -84,7 +84,7 @@ def counts(text):
     """Per-category cruft counts for one module's source text."""
     code = strip_comments(text)
     return {
-        "registers": len(register_hits(text)),
+        "registers": len(register_hits(code)),
         "calls": len(CALL.findall(code)),
         "pushes": len(PUSH.findall(code)),
         "addrs": len(ADDR.findall(code)),
