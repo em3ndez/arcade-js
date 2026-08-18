@@ -20,7 +20,26 @@ OPER_W = 20          # operand field  (6+16+8+20 = 50 -> ';' lands at column 50)
 ROLE_WRAP = 72       # role-block prose wrap width (content, before the "; ")
 
 BRANCH = ("call", "jp", "jr", "djnz")
-TAG_RE = re.compile(r"\[(?:code|seen|guess)\]")
+TAG_RE = re.compile(r"\[(?:code|seen|guess)(?:,\s*[a-z]+)*\]")
+
+
+def strip_grounding(s):
+    """Drop RE-provenance ("grounded"/"grounding" citations, the `translated` qualifier)
+    while KEEPING the game facts tangled with it -- a grounding note is a trailing
+    sentence, an em-dash aside, or an inline clause; strip the wrapper, keep "NOT a
+    generic counter" / "frog X is 0x8044". The words are never a game fact in these ports."""
+    if not s:
+        return s
+    s = re.sub(r"\s*\(\s*poke-?grounded\b[^)]*\)", "", s, flags=re.I)              # (POKE-grounded: ...) paren
+    s = re.sub(r"\s*[-–—]{1,2}\s*(?:grounded|grounding)\b.*$", "", s, flags=re.I)  # em-dash aside -> EOL
+    s = re.sub(r"\.\s+(?:grounded|grounding)\b.*$", ".", s, flags=re.I)            # trailing ". Grounded ..."
+    s = re.sub(r"[;,]?\s*(?:grounded|grounding)\b[^);]*", "", s, flags=re.I)       # inline clause -> ) or ;
+    s = re.sub(r"\btranslated\s+", "", s)
+    s = re.sub(r"\(\s*\)", "", s)                                                  # tidy seams left behind
+    s = re.sub(r"\(\s*;\s*", "(", s)
+    s = re.sub(r"\s{2,}", " ", s)
+    s = re.sub(r"\s+([);.,])", r"\1", s)
+    return s.strip()
 
 # Per-game intro paragraph for the Code.md ```code block. Falls back to a line
 # built from the manifest when a game is absent here.
@@ -65,15 +84,9 @@ def camel(name):
 
 
 def clean_desc(text, upper_name=None):
-    """Reduce a raw JSDoc/inline comment line to one clean prose sentence.
-
-    Robust across both names.js JSDoc styles (timeplt and thepit): strips the
-    JSDoc frame (`/**`/`/*`/leading `*`/trailing `*/`), removes every
-    `[code]`/`[seen]`/`[guess]` evidence tag WHEREVER it sits (start, middle, or
-    tag-then-`*/` at the end), collapses whitespace, and drops a leading
-    `NAME (0xADDR) —` / `NAME —` self-preamble (thepit) so the text reads as
-    prose, not `CREDIT_COUNT (0x8000) — ...`. Never leaks a `*/`, a tag, or a
-    preamble; never truncates mid-token."""
+    """Reduce a raw JSDoc/inline comment to one clean prose sentence: strip the JSDoc
+    frame, evidence tags anywhere, RE-provenance (strip_grounding), and a leading
+    `NAME (0xADDR) —` self-preamble; never leak a `*/`/tag/preamble or cut mid-token."""
     if not text:
         return ""
     s = text.strip()
@@ -82,6 +95,7 @@ def clean_desc(text, upper_name=None):
     s = re.sub(r"\*/\s*$", "", s)          # trailing */ (survives even after a tag)
     s = TAG_RE.sub("", s)                  # evidence tags anywhere
     s = re.sub(r"\s+", " ", s).strip()     # normalise inner whitespace
+    s = strip_grounding(s)                 # drop RE-provenance method-language
     if upper_name:                         # drop `NAME (0xADDR) —` / `NAME —` self-preamble
         s = re.sub(r"^" + re.escape(upper_name) +
                    r"\s*(?:\(0x[0-9a-fA-F]+\))?\s*[—–:\-]+\s*", "", s)
@@ -110,14 +124,10 @@ _ABBREV = ("e.g.", "i.e.", "etc.", "vs.", "cf.", "al.", "fig.", "no.",
 
 
 def first_sentence(s, min_len=16):
-    """The first COMPLETE sentence of `s` -- never cut mid-word or mid-clause.
-
-    A boundary is a `.`/`!`/`?` that ends the string or is followed by whitespace
-    (so `8.8`, `§2.5`, `0xAB08..0xAB2F` and hex are NOT boundaries -- no space
-    follows the dot) and is not a known abbreviation (`e.g.`/`i.e.`/`etc.`). A very
-    short leading label (`Scoring.`) is extended to the next boundary so the row is
-    substantive; if the string holds no boundary the whole (complete) phrase is
-    returned."""
+    """The first COMPLETE sentence of `s` -- never cut mid-word/clause. A boundary is a
+    `.`/`!`/`?` that ends `s` or is followed by whitespace (so `8.8`/hex are not) and is
+    not a whole-token abbreviation; a very short leading label extends to the next
+    boundary; no boundary -> the whole phrase."""
     if not s:
         return ""
     s = s.strip()
@@ -128,8 +138,12 @@ def first_sentence(s, min_len=16):
         if i + 1 < n and not s[i + 1].isspace():
             continue                            # decimal / hex / section ref
         head = s[:i + 1]
-        if any(head.lower().endswith(a) for a in _ABBREV):
-            continue                            # abbreviation, not a sentence end
+        # a WHOLE-token abbreviation (`et al.`) is not a boundary; a word merely ending
+        # in one (`ARRIVAL.`/`GOAL.` end in "al.") IS.
+        hl = head.lower()
+        if any(hl.endswith(a) and (len(hl) == len(a) or not hl[-len(a) - 1].isalpha())
+               for a in _ABBREV):
+            continue
         if i + 1 >= n or len(head) >= min_len:
             return head.strip()
     return s
@@ -254,12 +268,15 @@ def build_routines(names_path):
     block = text[text.index("export const ROUTINES = {"):]
     entry = re.compile(
         r'0x([0-9a-f]{4}):\s*\{\s*name:\s*"([^"]*)"\s*,\s*'
+        r'(?:entry:\s*"([^"]*)"\s*,\s*)?'  # optional secondary entry-point label
         r'role:\s*"((?:[^"\\]|\\.)*)"\s*,\s*cert:\s*"([^"]*)"',
         re.S,
     )
     m = {}
-    for a, n, r, c in entry.findall(block):
-        m[int(a, 16)] = (n, unescape(r), c)
+    for a, n, e, r, c in entry.findall(block):
+        # label at this address = the override's `entry` secondary-entry name when present
+        # (mirrors the loader's `meta.entry ?? meta.name`; keeps each address's label unique)
+        m[int(a, 16)] = (e or n, unescape(r), c)
     # sanity: every `0xADDR: {` opener must have been captured.
     openers = re.findall(r"^  0x[0-9a-f]{4}: \{", block, re.M)
     assert len(openers) == len(m), \
@@ -276,7 +293,8 @@ def clean_role(text):
     t = re.sub(r"§\S*", "", t)
     t = re.sub(r"[;,]?\s*\blive-?out\b.*", "", t, flags=re.I)
     t = re.sub(r"\bloc_([0-9a-f]{4})\b", lambda mm: "$" + mm.group(1).upper(), t)
-    return re.sub(r"\s+", " ", t).strip()
+    t = re.sub(r"\s+", " ", t).strip()     # single-line before grounding strip's end-anchors
+    return strip_grounding(t)
 
 
 def build_notes(gdir):
@@ -293,13 +311,14 @@ def build_notes(gdir):
 
 
 def work_ram_region(game):
-    """(lo, hi) of the work-RAM region, from boards/<game>/hardware.json's `work`
-    stateRegion -- the board layer's own source of truth, so a game whose work RAM
-    is placed or sized differently is read, not assumed. Fails loud if absent."""
+    """(lo, hi) of the work-RAM region from boards/<game>/hardware.json -- the board's own
+    truth. Its region name varies: dkong/thepit `work`, frogger `ram`; prefer `work`, fall
+    back to `ram`, fail loud if neither."""
     hw_path = os.path.join(REPO, "boards", game, "hardware.json")
-    work = next((r for r in json.load(open(hw_path)).get("stateRegions", [])
-                 if r.get("name") == "work"), None)
-    assert work, f"no 'work' stateRegion in {hw_path}"
+    regions = json.load(open(hw_path)).get("stateRegions", [])
+    work = (next((r for r in regions if r.get("name") == "work"), None)
+            or next((r for r in regions if r.get("name") == "ram"), None))
+    assert work, f"no 'work'/'ram' stateRegion in {hw_path}"
     return work["base"], work["base"] + work["size"] - 1
 
 
