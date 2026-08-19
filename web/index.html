@@ -44,6 +44,11 @@
   /* A 64-char hash does not fit a 220px card, so an opened panel takes the whole
      grid row. Browsers without :has() just wrap the hash — nothing is lost. */
   .card:has(> details.romhelp[open]) { grid-column: 1 / -1; }
+  /* "view source" footer link -> the game's idiomatic dir on GitHub. Sibling of a.play (never nested
+     inside it -- an <a> inside an <a> is invalid). */
+  a.source { display: block; padding: 8px 18px; border-top: 1px solid #21212f; font-size: 12px;
+             color: #9fd0ff; text-decoration: none; }
+  a.source:hover { color: #cfe8ff; background: #171727; }
   .romhelp { border-top: 1px solid #21212f; font-size: 12px; }
   .romhelp summary { cursor: pointer; padding: 8px 18px; color: #9fd0ff; list-style: none; }
   .romhelp summary::-webkit-details-marker { display: none; }
@@ -250,6 +255,14 @@
       div("meta", `${m.manufacturer ?? ""}${m.year ? " · " + m.year : ""}`),
       tags,
     );
+    // "view source" -> the game's idiomatic (readable) layer on GitHub. Sibling of a.play, not nested.
+    const src = document.createElement("a");
+    src.className = "source";
+    src.href = `https://github.com/qarl/arcade-js/tree/main/games/${encodeURIComponent(id)}/idiomatic`;
+    src.target = "_blank";
+    src.rel = "noopener noreferrer";
+    src.textContent = "view source code ↗";
+    card.append(src);
     grid.appendChild(card);
 
     const entries = romEntries(m);
