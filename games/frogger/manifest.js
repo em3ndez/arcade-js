@@ -19,9 +19,12 @@ export default {
   // Port finished (cruft=0) -> CLEANUP phase: comment_gate allows verbose idiomatic comments. docs/comment-gate.md
   idiomaticComplete: true,
 
-  // ROM assembly is game-local (games/frogger/tools/build-rom.mjs) for two transforms: maincpu PADDED
-  // 0x3000->0x4000 with 0x00 (memory.js requires a 0x4000 image), and gfx plane1 (.606) D0<->D1 swapped
-  // (decode_frogger_gfx@8705: bitswap<8>(b,7,6,5,4,3,2,0,1)). size/sha256 are of the FINAL assembled image.
+  // Mechanics requiring a poke-vs-MAME test (tools/mechanics_gate.py enforces via mechanics_suite.py). First
+  // slice; more from gameplay.md as their tests land.
+  mechanics: ["timer_expiry"],
+
+  // ROM assembly is game-local (build-rom.mjs): maincpu PADDED 0x3000->0x4000 with 0x00, gfx plane1 (.606)
+  // D0<->D1 swapped (decode_frogger_gfx@8705). size/sha256 are of the FINAL assembled image.
   rom: {
     zip: "frogger.zip", // MAME set name; assembler also reads a loose set dir
     images: {
@@ -49,7 +52,6 @@ export default {
   // io.js). Bits are the PARENT `frogger` INPUT_PORTS_START (cocktail P2 dupes NOT bound); 4-way, no fire.
   inputs: {
     ports: { in0: 0xe000, in1: 0xe002, in2: 0xe004 },
-    // UP/DOWN on IN2 (b4/b6), LEFT/RIGHT on IN0 (b5/b4); COIN1/COIN2/SERVICE1 on IN0; START1/2 on IN1.
     actions: {
       up:      { port: 0xe004, bit: 0x10 },
       down:    { port: 0xe004, bit: 0x40 },
