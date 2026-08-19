@@ -35,7 +35,9 @@ def parent_text(files):
     on its own first output — the quote was real and the checker was wrong."""
     out = []
     for f in files:
-        r = subprocess.run(["git", "show", f"HEAD:{f}"], capture_output=True, text=True)
+        # errors="replace": a staged binary file (e.g. a PNG) has no decodable text and cannot be
+        # the source of a quote; without this the UTF-8 decode raises and blocks the whole commit.
+        r = subprocess.run(["git", "show", f"HEAD:{f}"], capture_output=True, text=True, errors="replace")
         if r.returncode == 0:
             out.append(r.stdout)
     tracked = git(["grep", "-h", "", "HEAD", "--", "games", "docs", "tools", "boards"])
