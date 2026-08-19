@@ -4,7 +4,11 @@
 # Absent -> implicit 0. dkong/timeplt budgets bumped 2026-08-17 to grandfather their existing mem.* and
 # redundant-mask cruft (dkong +1771 mem; timeplt +50 mem +10 mask — finished ports, off-limits to convert);
 # frogger targets 0 incl. mem + masks.
-dkong 3861
+# dkong 2026-08-18: the barrel-jump-over reset fix restores the ROM's call bracket (push16 + call,
+# plus their two address constants) at the 3 effect-state-machine callers — necessary cruft that
+# mirrors the existing object-slot-walk idiom. The budget follows the measured count (and absorbs the
+# slack it used to carry); a gate that refuses a real fix is a harness problem.
+dkong 3864
 frogger 455
 thepit 401
 timeplt 2427

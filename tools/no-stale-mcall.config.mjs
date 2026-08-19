@@ -37,6 +37,12 @@ export const ALLOWED = {
     "seatTheStackAndSettleTheControlLatch.js": [0x0069],
     "armThePenRouteThenColdStartOnATamperedImage.js": [0x0069],
   },
+  dkong: {
+    // 0x1dbd (dispatchEffectState) needs the restored guest-stack bracket (push16(RESUME); m.call) — its handlers' tail `ret` pops it; a direct call dissolves it -> the barrel-jump-over reset. Load-bearing ABI, like timeplt's.
+    "runGameplayFrame.js": [0x1dbd],
+    "runDeathAnimationSubstate.js": [0x1dbd],
+    "runRivetBoardInterludeFrame.js": [0x1dbd],
+  },
 };
 
 /**
