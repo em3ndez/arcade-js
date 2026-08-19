@@ -169,6 +169,13 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
   (`mame_golden.py --tape`, `render.js --inputs`) to cover play. Frogger was byte-exact for 49 s, then a
   divergence surfaced only at the attract-LOOP WRAP the 10 s gate never reached — "we should have been
   testing [the long window] all along" (Karl 2026-08-17).
+  ⚠ **Pre-capture a long golden and keep it ready — do not re-capture per gate.** Capture a
+  ~3-minute attract golden ONCE (`mame_golden.py --seconds 180`, ~11k frames) and reuse it as the
+  boot deepens batch by batch, so a long-window pixel/state diff never waits on a re-capture. It is
+  ROM-derived and gitignored (never commit). Mind the size: state is cheap (~48 MB at 180 s) but
+  frames.rgb is ~10 MB/s (~1.7 GB at 180 s, ~6 GB at 600 s) — 3 min is the practical default; add
+  `--no-frames` for a state-only golden when you only need statediff, and go longer only when a
+  defect is suspected past that window.
   ⚠ **The fixed-offset compare aligns only within ONE landmark segment.** The "collapse pure delay, align on
   a landmark" model runs the attract cycle faster than MAME, so the offset SHIFTS at the loop wrap; a single
   swept offset breaks there even when the layer is correct. An extended / cross-loop / gameplay run must use
@@ -226,6 +233,14 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
   `loc_<addr>.js`/`<addr>.test.js` (and idiomatic module/test) files never merge-conflict; the only
   cross-agent care is those pre-assigned ranges (so two agents don't disagree on a boundary) plus a
   style/ABI check at review.
+  ⚠ **Balance the split by estimated CODE VOLUME, not seed-entry count.** A seed entry with a large gap
+  to the next known entry expands into however many in-range sub-routines the disassembly holds, so
+  "N entries per agent" fans out wildly lopsided — Pooyan batch 3 gave one agent 72 routines (a dense
+  4 KB span) and another just 1 (its span was mostly data), and the big one ran ~90 min solo,
+  concentrating both the wall-clock and the review risk. In setup, ESTIMATE routines-per-range from
+  each span's decoded instruction blocks (NOT the byte gap — most of a large gap is data/unreached) and
+  size the groups to the ~3-routine target; a genuinely huge span gets its OWN batch or a sub-split at
+  interior routine entries, never buried in a mixed group.
   Shared files (the registry, `names.js`, board files) stay under serial control — agents RETURN their
   `names.js`/registry additions, the coordinator merges them. This parallelism is *within* a batch — the
   across-batch rule still holds (don't open the next batch while this one is under review).
