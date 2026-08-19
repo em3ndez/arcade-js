@@ -31,6 +31,9 @@ Both are decidable by a script. Whether a comment is TRUE is the reviewer's job.
   regardless of code size. The `/DIVISOR` cap alone starves small routines whose honest header
   (5–11 lines) predates the rule, so a pure rename could not land without gutting documentation
   prior passes wrote. The floor is that headroom.
+- **2x both: DENSITY_DIVISOR 4 → 2 and DENSITY_FLOOR 4 → 8 (2026-08-19, Karl's call).** Double the
+  comment budget — the per-code rate (back to the pre-08-08 divisor) and the flat floor. New cap =
+  `code // 2 + 8`.
 - The gate checks STAGED files only, so a change to the cap is self-limiting: a file pays when it is
   next touched, not today. At the 2→4 change: 3,083 in-scope files, 1,561 already over the old 0.50
   cap, 2,852 over the new one — not a wall, the migration, spread over whenever each file is next edited.

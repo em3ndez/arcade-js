@@ -129,9 +129,10 @@ def in_scope(path):
 
 # ── density: prose may not exceed code // DENSITY_DIVISOR + DENSITY_FLOOR ──────────────────────────────
 
-DENSITY_DIVISOR = 4  # comment lines allowed = code lines // DENSITY_DIVISOR + DENSITY_FLOOR
-DENSITY_FLOOR = 4  # >=4 comment lines always allowed. Cap history (0.50 -> /4 -> +floor) and why cutting
-# elaboration catches false claims that no gate can see: docs/comment-gate.md. Checks STAGED files only.
+DENSITY_DIVISOR = 2  # comment lines allowed = code lines // DENSITY_DIVISOR + DENSITY_FLOOR
+DENSITY_FLOOR = 8  # >=8 comment lines always allowed. Cap history (0.50 -> /4+4 -> 2x both, /2+8 Karl
+# 2026-08-19) and why cutting elaboration catches false claims no gate can see: docs/comment-gate.md.
+# Checks STAGED files only.
 
 _ROOTS = ("boards", "games", "tools", "core", "web")
 # Counting needs a real lexer: Python tokenize, Lua _scan_lua, shell excluded. Why: docs/comment-gate.md.
