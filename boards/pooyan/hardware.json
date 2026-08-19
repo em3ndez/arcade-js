@@ -8,9 +8,9 @@
     "'_hex'/'_note' fields are annotations the loader ignores.",
     "Forked from boards/timeplt/hardware.json; the deltas (32KB ROM, 0x8000-block RAM map,",
     "60.606061Hz/50688, 0xA1xx I/O) all come straight from pooyan.cpp.",
-    "★ ROM-DEPENDENT FIELDS NOT YET MEASURED (no romset in tree): dsw0.expected, controlByte,",
-    "landmarks. They are placeholders (0 / []) with loud notes and MUST be set from a MAME",
-    "golden run before any gate that reads them (scope.py / mame_golden.py) is trusted."
+    "★ dsw0.expected (0xFF) and controlByte (0xAF) MEASURED from a MAME golden config probe",
+    "(2026-08-19). landmarks[] still empty -- boot-init-done / first-vblank cycles not yet",
+    "extracted from the golden; non-blocking (scope.py coverage report only)."
   ],
 
   "driver": "pooyan",
@@ -37,11 +37,11 @@
     { "name": "mainlatch",   "start": 41344, "end": 41351, "_hex": "0xA180-0xA187 LS259 B2, write_d0, ONE address per bit -> bit = (addr-0xA180)&7. b0=NMI enable, b1=audio sh_irqtrigger, b2=audio mute, b3=coin0, b4=coin1, b5=payout(nop), b7=flip_screen(INVERTED). NO video-enable bit. -- pooyan.cpp:307,427-434" }
   ],
 
-  "dsw0": { "addr": 41184, "expected": 0, "_hex_addr": "0xA0E0 DSW0 = KONAMI_COINAGE (pooyan.cpp:304,341)", "_expected_TODO": "★ PLACEHOLDER 0 -- UNMEASURED. Pooyan's romset is not in the tree, so the idle DSW0 value has not been read from a MAME -noreadconfig golden run. Set this from that run before trusting scope.py/mame_golden.py DSW0 checks. (timeplt's 0xFF is timeplt's, not Pooyan's.)" },
-  "_dsw1_note": "0xA000 reads DSW1 (pooyan.cpp:300, Lives/Cabinet/Bonus/Difficulty/Demo_Sounds). Its idle value is likewise UNMEASURED.",
+  "dsw0": { "addr": 41184, "expected": 255, "_hex_addr": "0xA0E0 DSW0 = KONAMI_COINAGE (pooyan.cpp:304,341)", "_expected_note": "0xFF -- MEASURED from a MAME golden config probe (default KONAMI_COINAGE reads all-high); matches io.js / manifest idle." },
+  "_dsw1_note": "0xA000 reads DSW1 (pooyan.cpp:300) = 0x7B: Lives 3 (0x03) | Upright (0x00) | Bonus 50K (0x08) | Diff 1-Easy (0x70) | Demo On (0x00), from the driver dip defaults. DSW1 is not config-probe-checked, only DSW0.",
 
-  "controlByte": 0,
-  "_controlByte_TODO": "★ PLACEHOLDER 0 -- UNMEASURED. This is normally ROM[0x0000]'s first byte, used as a config-probe that the program ROM loaded. Pooyan's maincpu ROM (1.4a) is not in the tree; set this to its real first byte from the romset before trusting the probe.",
+  "controlByte": 175,
+  "_controlByte_note": "0xAF = ROM[0x0000], the reset 'xor a' opcode. Config-probe that the program ROM loaded; a MAME golden run read 0xAF with no poison.",
 
   "z80Reset": {
     "AF": 64, "BC": 0, "DE": 0, "HL": 0, "IX": 65535, "IY": 65535, "SP": 0,
@@ -58,5 +58,5 @@
   },
 
   "landmarks": [],
-  "_landmarks_todo": "★ EMPTY -- boot-init-done and first-vblank-NMI cycles need a MAME golden run with the romset (as boards/dkong/hardware.json has). BLOCKED on BYO romset."
+  "_landmarks_todo": "★ EMPTY -- boot-init-done / first-vblank-NMI cycles not yet extracted. A golden now captures cleanly (romset present); these feed scope.py's coverage report only, so it is non-blocking. Extract once a translated boot exists to bracket."
 }

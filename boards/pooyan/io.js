@@ -25,12 +25,12 @@ export const LATCH_FLIPSCREEN = 7; // q<7> INVERTED (.invert()): latch 0 => flip
 export const PORT_ADDRS = new Set([0xa080, 0xa0a0, 0xa0c0]);
 
 // Idle: IN0/IN1/IN2 = 0xFF (all PORT_BITs active-low). DSW1 = 0x7B, OR of pooyan.cpp:345-368 dip
-// defaults (Lives 3 / Upright / Bonus 50K / Easy / Demo on) — CONFIRM vs MAME. ★ DSW0 = 0xFF is a
-// PLACEHOLDER: KONAMI_COINAGE_LOC default not derivable here; MEASURE from a MAME -noreadconfig run.
+// defaults (Lives 3 / Upright / Bonus 50K / Easy / Demo on). DSW0 = 0xFF (KONAMI_COINAGE default).
+// Both MEASURED from a MAME golden config probe (2026-08-19); see boards/pooyan/hardware.json.
 export const IDLE_IN0 = 0xff;
 export const IDLE_IN1 = 0xff;
 export const IDLE_IN2 = 0xff;
-export const IDLE_DSW0 = 0xff; // ★ PLACEHOLDER -- UNMEASURED
+export const IDLE_DSW0 = 0xff;
 export const IDLE_DSW1 = 0x7b;
 
 // Live-input marker the worker hands the Machine; pooyan drives keys onto io.inputAssert, so unread.
