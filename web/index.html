@@ -21,6 +21,10 @@
   }
   .card:hover { background: #1c1c2c; border-color: #4a4a70; transform: translateY(-1px); }
   a.play { display: block; text-decoration: none; color: inherit; padding: 16px 18px; }
+  /* Full-bleed screenshot at the top of the card: negative margins cancel a.play's padding,
+     so it meets the card edges and shares the rounded top corners. Natural (tall) aspect. */
+  .shot { display: block; width: calc(100% + 36px); margin: -16px -18px 14px;
+          border-radius: 10px 10px 0 0; background: #000; }
   .title { font-size: 16px; font-weight: 600; color: #cfe8b0; }
   .meta  { color: #7a7a95; font-size: 12px; margin-top: 4px; }
   .tags  { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
@@ -229,10 +233,19 @@
       grid.appendChild(card);
       continue;
     }
+    // Full-bleed screenshot at the top of the card. src is a static asset, not markup, and
+    // removes itself if the game ships none (so a missing shot is a plain text card, not broken).
+    const shot = document.createElement("img");
+    shot.className = "shot";
+    shot.src = `../games/${encodeURIComponent(id)}/screenshot.png`;
+    shot.alt = `${m.title} screenshot`;
+    shot.loading = "lazy";
+    shot.onerror = () => shot.remove();
     const tags = document.createElement("div");
     tags.className = "tags";
     tags.append(span("tag", m.cpu), span("tag", `${m.board} board`), span("tag", m.orientation ?? "vertical"));
     a.append(
+      shot,
       div("title", m.title),
       div("meta", `${m.manufacturer ?? ""}${m.year ? " · " + m.year : ""}`),
       tags,
