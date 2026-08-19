@@ -25,16 +25,11 @@ export function loc_59e8(m) {
     return;
   }
   m.step(0x59f4, 5); // 59f3  ret z (not taken)
-  m.call(0x5a06);
-  m.step(0x59f7, 17); // 59f4  call 05a06h
-  m.call(0x5a56);
-  m.step(0x59fa, 17); // 59f7  call 05a56h
-  m.call(0x5a1f);
-  m.step(0x59fd, 17); // 59fa  call 05a1fh
-  m.call(0x5a9c);
-  m.step(0x5a00, 17); // 59fd  call 05a9ch
-  m.call(0x7e6d);
-  m.step(0x5a03, 17); // 5a00  call 07e6dh
+  m.push16(0x59f7); m.step(0x5a06, 17); m.call(0x5a06); // 59f4  call 05a06h (pattern A: rets to 0x59f7)
+  m.push16(0x59fa); m.step(0x5a56, 17); m.call(0x5a56); // 59f7  call 05a56h
+  m.push16(0x59fd); m.step(0x5a1f, 17); m.call(0x5a1f); // 59fa  call 05a1fh
+  m.push16(0x5a00); m.step(0x5a9c, 17); m.call(0x5a9c); // 59fd  call 05a9ch
+  m.push16(0x5a03); m.step(0x7e6d, 17); m.call(0x7e6d); // 5a00  call 07e6dh
   m.step(0x5ac0, 10); // 5a03  jp 05ac0h (tail)
   return m.call(0x5ac0);
 }

@@ -13,8 +13,7 @@ export function loc_08b3(m) {
   m.step(0x08b7, 13);
   mem.write8(0x8819, regs.a);
   m.step(0x08ba, 13);
-  m.call(0x02e3);
-  m.step(0x08bd, 17); // 08ba  call 0x02e3
+  m.push16(0x08bd); m.step(0x02e3, 17); m.call(0x02e3); // 08ba  call 0x02e3 (pattern A)
   regs.hl = 0x8e51;
   m.step(0x08c0, 10);
   regs.incMem8(mem, regs.hl);
@@ -71,9 +70,7 @@ export function loc_08b3(m) {
   m.step(0x08df, 4);
   mem.write8(0x8806, regs.a);
   m.step(0x08e2, 13);
-  m.call(0x02b9);
-  m.step(0x08e5, 17); // 08e2  call 0x02b9
-  m.call(0x1d0d);
-  m.step(0x08e8, 17); // 08e5  call 0x1d0d
+  m.push16(0x08e5); m.step(0x02b9, 17); m.call(0x02b9); // 08e2  call 0x02b9 (pattern A)
+  m.push16(0x08e8); m.step(0x1d0d, 17); m.call(0x1d0d); // 08e5  call 0x1d0d (pattern A)
   m.ret(); // 08e8  ret
 }

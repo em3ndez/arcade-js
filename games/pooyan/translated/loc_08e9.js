@@ -10,15 +10,13 @@ export function loc_08e9(m) {
 
   regs.b = 0x1d;
   m.step(0x08eb, 7);
-  m.call(0x02ce);
-  m.step(0x08ee, 17); // 08eb  call 0x02ce -- frame timer
+  m.push16(0x08ee); m.step(0x02ce, 17); m.call(0x02ce); // 08eb  call 0x02ce -- frame timer (pattern A)
   if (regs.fNZ) {
     m.ret(11); // 08ee  ret nz (still counting)
     return;
   }
   m.step(0x08ef, 5);
-  m.call(0x02e3);
-  m.step(0x08f2, 17);
+  m.push16(0x08f2); m.step(0x02e3, 17); m.call(0x02e3); // 08ef  call 0x02e3 (pattern A)
 
   for (;;) {
     // 08f2  guard 1: sum 0x0859..0x0878 must be 0x63
@@ -49,8 +47,7 @@ export function loc_08e9(m) {
     m.step(0x0900, 7);
     regs.bc = 0x0859;
     m.step(0x0903, 10);
-    m.call(0x075d);
-    m.step(0x0906, 17); // 0903  call 0x075d -- fill attribute map
+    m.push16(0x0906); m.step(0x075d, 17); m.call(0x075d); // 0903  call 0x075d -- fill attribute map (pattern A)
     // 0906  guard 2: sum 0x0831..0x0839 must be 0xaa
     regs.hl = 0x0831;
     m.step(0x0909, 10);
@@ -80,16 +77,13 @@ export function loc_08e9(m) {
     break;
   }
 
-  m.call(0x0e54);
-  m.step(0x0917, 17); // 0914  call 0x0e54
+  m.push16(0x0917); m.step(0x0e54, 17); m.call(0x0e54); // 0914  call 0x0e54 (pattern A)
   regs.de = 0x0611;
   m.step(0x091a, 10);
-  m.call(0x0038);
-  m.step(0x091b, 11); // 091a  rst 0x38 -- queue display cmd (0x0611)
+  m.push16(0x091b); m.step(0x0038, 11); m.call(0x0038); // 091a  rst 0x38 -- queue display cmd (0x0611) (pattern A)
   regs.e = 0x0b;
   m.step(0x091d, 7);
-  m.call(0x0038);
-  m.step(0x091e, 11); // 091d  rst 0x38 -- queue display cmd (0x060b)
+  m.push16(0x091e); m.step(0x0038, 11); m.call(0x0038); // 091d  rst 0x38 -- queue display cmd (0x060b) (pattern A)
   regs.hl = 0x8e51;
   m.step(0x0921, 10);
   mem.write8(regs.hl, 0x07);

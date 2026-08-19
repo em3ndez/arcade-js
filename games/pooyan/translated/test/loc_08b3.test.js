@@ -45,7 +45,9 @@ function makeMachine() {
       return lo | (hi << 8);
     },
     ret(cycles = 10) { this.step(this.pop16(), cycles); },
-    call(addr) { this.calls.push(addr); return undefined; },
+    // FAITHFUL stub: 0x02e3/0x02b9/0x1d0d are plain-ret, so each pops the return loc_08b3 pushed
+    // (0 T -> tstates counts only loc_08b3's own steps). A record-only stub hid the pattern-B leak.
+    call(addr) { this.calls.push(addr); this.ret(0); return undefined; },
   };
 }
 
@@ -58,15 +60,16 @@ function setup(m) {
 }
 
 const EXPECTED_PC_SEQ = [
-  0x08b4, 0x08b7, 0x08ba, 0x08bd, 0x08c0, 0x08c1, 0x08c4, 0x08c6, 0x08c7,
+  // each pattern-A call steps to the target, then the faithful ret pops the pushed return
+  0x08b4, 0x08b7, 0x08ba, 0x02e3, 0x08bd, 0x08c0, 0x08c1, 0x08c4, 0x08c6, 0x08c7,
   // iter1: (bc)=0x80, add no carry -> jr nc taken to 0x08d0 (skip inc l)
   0x08c8, 0x08ca, 0x08cc, 0x08cd, 0x08d0, 0x08d1, 0x08d2,
   // iter2: (bc)=0x90, add carries -> jr nc NOT taken -> 0x08cf inc l
   0x08c7, 0x08c8, 0x08ca, 0x08cc, 0x08cd, 0x08cf, 0x08d0, 0x08d1, 0x08d2,
   // iter3: (bc)=0x96 sentinel -> jr z taken to 0x08d4
   0x08c7, 0x08c8, 0x08ca, 0x08d4, 0x08d5, 0x08d7,
-  // checksum mismatch -> tamper flag
-  0x08d9, 0x08db, 0x08de, 0x08df, 0x08e2, 0x08e5, 0x08e8,
+  // checksum mismatch -> tamper flag, then the two tail calls (0x02b9, 0x1d0d) and ret
+  0x08d9, 0x08db, 0x08de, 0x08df, 0x08e2, 0x02b9, 0x08e5, 0x1d0d, 0x08e8,
   CALLER_RET,
 ];
 
@@ -77,6 +80,7 @@ test("loc_08b3: sub-state 0 -- backward checksum, both inner arms, tamper flagge
 
   assert.equal(m.tstates, 331, "total T for the crafted 3-byte-table path");
   assert.equal(m.pc, CALLER_RET, "exits via `ret`");
+  assert.equal(m.regs.sp, 0x8780, "stack balanced -- pattern-A calls do NOT leak");
   assert.deepEqual(m.calls, [0x02e3, 0x02b9, 0x1d0d], "external calls in order");
   assert.deepEqual(m.pcSeq, EXPECTED_PC_SEQ, "full instruction-boundary sequence");
 
@@ -94,7 +98,7 @@ test("loc_08b3: sub-state 0 -- backward checksum, both inner arms, tamper flagge
 test("loc_08b3 MUTATION: `call 0x02e3` mis-charged 10T (not 17T) is caught", () => {
   const m = makeMachine();
   const realStep = m.step.bind(m);
-  m.step = (nextAddr, cycles) => realStep(nextAddr, nextAddr === 0x08bd ? 10 : cycles);
+  m.step = (nextAddr, cycles) => realStep(nextAddr, nextAddr === 0x02e3 ? 10 : cycles);
   setup(m);
   loc_08b3(m);
 
@@ -104,4 +108,18 @@ test("loc_08b3 MUTATION: `call 0x02e3` mis-charged 10T (not 17T) is caught", () 
     /331/,
     "the golden T-state assertion must fail on the mutant",
   );
+});
+
+// POSITIVE CONTROL: the pattern-B bug (a missing push16 before a call) leaks 2 bytes. Swallow the
+// first call's pushed return so 0x02e3's faithful ret pops the wrong word -- SP MUST end unbalanced.
+test("loc_08b3 POSITIVE CONTROL: dropping a call's push16 (pattern-B) leaves SP unbalanced", () => {
+  const m = makeMachine();
+  setup(m);
+  let dropped = false;
+  const realPush = m.push16.bind(m);
+  m.push16 = (v) => { if (!dropped && v === 0x08bd) { dropped = true; return; } return realPush(v); };
+
+  loc_08b3(m);
+
+  assert.notEqual(m.regs.sp, 0x8780, "a missing push16 leaks -> SP drifts (the pattern-B defect)");
 });

@@ -55,7 +55,11 @@ function makeMachine() {
       return lo | (hi << 8);
     },
     ret(cycles = 10) { this.step(this.pop16(), cycles); },
-    call(addr) { this.calls.push(addr); return undefined; },
+    // FAITHFUL stub: every callee (0x02ce/0x02e3/0x075d/0x0e54, two rst 0x38) is plain-ret and pops
+    // the return loc_08e9 pushed (0 T -> tstates counts only loc_08e9's own steps). ret(0) leaves the
+    // flags alone, so the pre-set Z (standing in for 0x02ce's result) still drives the `ret nz`.
+    // A record-only stub hid the pattern-B leak; the SP-balance assertion + positive control are teeth.
+    call(addr) { this.calls.push(addr); this.ret(0); return undefined; },
   };
 }
 
@@ -81,6 +85,22 @@ test("loc_08e9 Path A: timer expired -> checksums pass, sub-state -> 7", () => {
   );
   assert.equal(m.mem.read8(0x8e51), 0x07, "sub-state advanced to 7");
   assert.equal(m.regs.de, 0x060b, "DE = 0x060b at the second rst (D held 0x06, E := 0x0b)");
+  assert.equal(m.regs.sp, 0x8780, "stack balanced -- pattern-A calls do NOT leak");
+});
+
+// POSITIVE CONTROL: the pattern-B bug (a missing push16 before a call) leaks 2 bytes. Swallow the
+// timer call's pushed return so 0x02ce's faithful ret pops the wrong word -- SP MUST end unbalanced.
+test("loc_08e9 POSITIVE CONTROL: dropping a call's push16 (pattern-B) leaves SP unbalanced", () => {
+  const m = makeMachine();
+  setup(m);
+  m.regs.f = 0x40;
+  let dropped = false;
+  const realPush = m.push16.bind(m);
+  m.push16 = (v) => { if (!dropped && v === 0x08ee) { dropped = true; return; } return realPush(v); };
+
+  loc_08e9(m);
+
+  assert.notEqual(m.regs.sp, 0x8780, "a missing push16 leaks -> SP drifts (the pattern-B defect)");
 });
 
 test("loc_08e9 Path B: timer still counting -> `ret nz` bails immediately", () => {
@@ -92,19 +112,20 @@ test("loc_08e9 Path B: timer still counting -> `ret nz` bails immediately", () =
   assert.equal(m.tstates, 35, "T = 7 (ld b) + 17 (call 0x02ce) + 11 (ret nz taken)");
   assert.equal(m.pc, CALLER_RET, "returned early");
   assert.deepEqual(m.calls, [0x02ce], "only the timer call ran");
-  assert.deepEqual(m.pcSeq, [0x08eb, 0x08ee, CALLER_RET], "boundaries: ld b, call, ret");
+  assert.deepEqual(m.pcSeq, [0x08eb, 0x02ce, 0x08ee, CALLER_RET],
+    "boundaries: ld b, step to 0x02ce, faithful ret to 0x08ee, ret nz to caller");
   assert.equal(m.mem.read8(0x8e51), 0x00, "sub-state untouched on the bail path");
 });
 
-test("loc_08e9 MUTATION: first `rst 0x38` mis-charged 7T (not 11T) is caught", () => {
+test("loc_08e9 MUTATION: `call 0x0e54` mis-charged 10T (not 17T) is caught", () => {
   const m = makeMachine();
   const realStep = m.step.bind(m);
-  m.step = (nextAddr, cycles) => realStep(nextAddr, nextAddr === 0x091b ? 7 : cycles);
+  m.step = (nextAddr, cycles) => realStep(nextAddr, nextAddr === 0x0e54 ? 10 : cycles);
   setup(m);
   m.regs.f = 0x40;
   loc_08e9(m);
 
-  assert.equal(m.tstates, 1235, "mutation loses 4 T (11 -> 7)");
+  assert.equal(m.tstates, 1232, "mutation loses 7 T (17 -> 10)");
   assert.throws(
     () => assert.equal(m.tstates, 1239, "total T"),
     /1239/,
