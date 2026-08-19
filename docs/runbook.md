@@ -175,7 +175,10 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
   ROM-derived and gitignored (never commit). Mind the size: state is cheap (~48 MB at 180 s) but
   frames.rgb is ~10 MB/s (~1.7 GB at 180 s, ~6 GB at 600 s) — 3 min is the practical default; add
   `--no-frames` for a state-only golden when you only need statediff, and go longer only when a
-  defect is suspected past that window.
+  defect is suspected past that window. To KEEP a frames golden between sessions,
+  `tools/golden_mp4.py compress <dir> --drop-rgb` shrinks frames.rgb ~300x to a byte-exact lossless
+  `frames.mp4` (~6 MB at 180 s; verified against the frames.json sha256 index, fails closed);
+  `golden_mp4.py decode <dir>` regenerates frames.rgb before a diff, so every reader is unchanged.
   ⚠ **The fixed-offset compare aligns only within ONE landmark segment.** The "collapse pure delay, align on
   a landmark" model runs the attract cycle faster than MAME, so the offset SHIFTS at the loop wrap; a single
   swept offset breaks there even when the layer is correct. An extended / cross-loop / gameplay run must use

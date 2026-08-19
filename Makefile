@@ -12,7 +12,7 @@ ROMPATH ?= $(HOME)/Downloads
 # Extra flags forwarded to the recorder, e.g. SAMPLEFLAGS="--dry-run".
 SAMPLEFLAGS ?=
 
-.PHONY: help test serve rom-dkong samples trace verify stepcheck pixel
+.PHONY: help test serve rom-dkong samples trace verify stepcheck pixel golden-mp4
 
 help:
 	@echo "arcade-js targets:"
@@ -62,3 +62,6 @@ verify: $(ROM)
 stepcheck: $(ROM)
 	python3 tools/stepcheck.py --selftest --asm $(OUT)/dk.asm --src "$(SRC)"
 	python3 tools/stepcheck.py --asm $(OUT)/dk.asm --src "$(SRC)"
+
+golden-mp4:
+	python3 tools/golden_mp4.py selftest
