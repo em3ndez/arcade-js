@@ -1,0 +1,62 @@
+{
+  "_comment": [
+    "Tool-facing hardware/address declaration for the Konami Pooyan board (GX320).",
+    "Read from MAME src/mame/konami/pooyan.cpp -- pooyan_state::main_map,",
+    "pooyan_state::pooyan(machine_config) and ROM_START(pooyan). Same role as the dkong,",
+    "thepit and timeplt files: the single source of truth the shared Python tools read",
+    "via --hardware, so tools/ stays game-agnostic. Numbers are decimal (JSON has no 0x);",
+    "'_hex'/'_note' fields are annotations the loader ignores.",
+    "Forked from boards/timeplt/hardware.json; the deltas (32KB ROM, 0x8000-block RAM map,",
+    "60.606061Hz/50688, 0xA1xx I/O) all come straight from pooyan.cpp.",
+    "★ ROM-DEPENDENT FIELDS NOT YET MEASURED (no romset in tree): dsw0.expected, controlByte,",
+    "landmarks. They are placeholders (0 / []) with loud notes and MUST be set from a MAME",
+    "golden run before any gate that reads them (scope.py / mame_golden.py) is trusted."
+  ],
+
+  "driver": "pooyan",
+  "screen": { "width": 256, "height": 224, "_note": "pooyan.cpp:440 set_raw(18.432/3, 384, 0,256, 264, 16,240) -> visible H 0..255 (256), V 16..239 (224). ROT90 (pooyan.cpp:544), same portrait orientation as timeplt." },
+  "refreshHz": 60.606061,
+  "_refresh_note": "6.144MHz/(384*264) ~= 60.606061 -- the DKONG/THEPIT figure. NOT timeplt's exact 60. pooyan.cpp:440 set_raw pixel clock 18.432/3.",
+  "cpuHz": 3072000,
+  "_cpu_note": "pooyan.cpp:424 Z80 at 18.432_MHz_XTAL / 3 / 2 = 3.072MHz. Identical derivation to Time Pilot.",
+  "cyclesPerFrame": 50688,
+  "_cycles_note": "3072000 / 60.606061 = 50688 = htotal*vtotal/... i.e. cpu runs 50688 cycles per 384*264 raster. Differs from timeplt's 51200 because the refresh differs.",
+
+  "stateDumpSize": 4608,
+  "stateRegions": [
+    { "name": "color",   "base": 32768, "size": 1024, "_hex": "0x8000-0x83FF colour RAM (tile ATTRIBUTES; colorram_w marks tilemap dirty) -- pooyan.cpp:295" },
+    { "name": "video",   "base": 33792, "size": 1024, "_hex": "0x8400-0x87FF video RAM (tile CODES; videoram_w) -- pooyan.cpp:296" },
+    { "name": "work",    "base": 34816, "size": 2048, "_hex": "0x8800-0x8FFF work RAM (0x800) -- pooyan.cpp:297" },
+    { "name": "sprite0", "base": 36864, "size": 256,  "_hex": "0x9000-0x90FF spriteram[0] (mirror MASK 0x0B00 -- don't-care bits, not an offset) -- pooyan.cpp:298" },
+    { "name": "sprite1", "base": 37888, "size": 256,  "_hex": "0x9400-0x94FF spriteram[1] (mirror MASK 0x0B00) -- pooyan.cpp:299" }
+  ],
+
+  "writeRanges": [
+    { "name": "watchdog",    "start": 40960, "end": 40960, "_hex": "0xA000 watchdog reset (READ at same address returns DSW1) -- pooyan.cpp:305" },
+    { "name": "sound_data",  "start": 41216, "end": 41216, "_hex": "0xA100 timeplt_audio sound_data_w to the audio Z80 -- pooyan.cpp:306" },
+    { "name": "mainlatch",   "start": 41344, "end": 41351, "_hex": "0xA180-0xA187 LS259 B2, write_d0, ONE address per bit -> bit = (addr-0xA180)&7. b0=NMI enable, b1=audio sh_irqtrigger, b2=audio mute, b3=coin0, b4=coin1, b5=payout(nop), b7=flip_screen(INVERTED). NO video-enable bit. -- pooyan.cpp:307,427-434" }
+  ],
+
+  "dsw0": { "addr": 41184, "expected": 0, "_hex_addr": "0xA0E0 DSW0 = KONAMI_COINAGE (pooyan.cpp:304,341)", "_expected_TODO": "★ PLACEHOLDER 0 -- UNMEASURED. Pooyan's romset is not in the tree, so the idle DSW0 value has not been read from a MAME -noreadconfig golden run. Set this from that run before trusting scope.py/mame_golden.py DSW0 checks. (timeplt's 0xFF is timeplt's, not Pooyan's.)" },
+  "_dsw1_note": "0xA000 reads DSW1 (pooyan.cpp:300, Lives/Cabinet/Bonus/Difficulty/Demo_Sounds). Its idle value is likewise UNMEASURED.",
+
+  "controlByte": 0,
+  "_controlByte_TODO": "★ PLACEHOLDER 0 -- UNMEASURED. This is normally ROM[0x0000]'s first byte, used as a config-probe that the program ROM loaded. Pooyan's maincpu ROM (1.4a) is not in the tree; set this to its real first byte from the romset before trusting the probe.",
+
+  "z80Reset": {
+    "AF": 64, "BC": 0, "DE": 0, "HL": 0, "IX": 65535, "IY": 65535, "SP": 0,
+    "_hex": "MAME Z80 reset: AF=0x0040 (Z flag set), IX=IY=0xFFFF, rest 0 -- same for every MAME Z80"
+  },
+
+  "writeTimestamp": "write-bus-cycle",
+
+  "interrupt": {
+    "kind": "NMI",
+    "vector": 102,
+    "_hex_vector": "0x0066",
+    "_note": "pooyan.cpp:264-276 vblank_irq() asserts INPUT_LINE_NMI only while mainlatch bit-0 (irq_enable) is set; clearing that bit clears the line. Same interrupt model as dkong/timeplt."
+  },
+
+  "landmarks": [],
+  "_landmarks_todo": "★ EMPTY -- boot-init-done and first-vblank-NMI cycles need a MAME golden run with the romset (as boards/dkong/hardware.json has). BLOCKED on BYO romset."
+}
