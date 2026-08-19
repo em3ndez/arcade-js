@@ -14,7 +14,12 @@ import fs from "node:fs";
 import { Machine } from "../../machine.js";
 import { loc_0092 } from "../loc_0092.js";
 
-const ROM = new Uint8Array(fs.readFileSync(new URL("../../rom/maincpu.bin", import.meta.url)));
+// This gate needs the REAL ROM (it drives loc_0092's 8-bank self-test against actual bytes), so it
+// SKIPS when the ROM is absent -- the same idiom as games/pooyan/test/boot.test.js.
+const ROM_URL = new URL("../../rom/maincpu.bin", import.meta.url);
+const ROM_PRESENT = fs.existsSync(ROM_URL);
+const ROM = ROM_PRESENT ? new Uint8Array(fs.readFileSync(ROM_URL)) : new Uint8Array(0x8000);
+const t = ROM_PRESENT ? test : (name) => test(name, { skip: "ROM not built — run `make -C games/pooyan rom`" }, () => {});
 
 const bal = (mm) => { mm.regs.sp = (mm.regs.sp + 2) & 0xffff; }; // callee/rst that immediately rets
 const noop = () => {}; // tail-jp target: no return address was pushed
@@ -80,13 +85,13 @@ function assertGolden(m) {
   assert.equal(rd(m, 0x83ff), 0x10, "colour RAM end = 0x10");
 }
 
-test("loc_0092 boot: ROM self-test + HUD/DSW seed + tail-jp to 0x020f", () => {
+t("loc_0092 boot: ROM self-test + HUD/DSW seed + tail-jp to 0x020f", () => {
   const m = mk();
   loc_0092(m);
   assertGolden(m);
 });
 
-test("loc_0092 MUTATION: entry `ld ix,0x0079` mis-charged 10T (not 14T) is caught", () => {
+t("loc_0092 MUTATION: entry `ld ix,0x0079` mis-charged 10T (not 14T) is caught", () => {
   const m = mk();
   let first = true;
   const os = m.step.bind(m);
