@@ -18,9 +18,10 @@ decision kicked to a human.
 
 Set the idle-timer first. Commit **locally**; a human gates the push. ROM is **never** committed
 (bring-your-own, sha256-verified). Stage **explicit paths** (never `git add -A`); python not sed for
-identifier renames; never `--no-verify` without per-commit approval. Work **in batches — 10 agents ×
-3 routines each** (≈30/batch; per-agent spin-up is too high for one, so 20×1 is retired), **one commit
-per batch, single-threaded** (don't author the next batch while one is under review). **Parallelise as
+identifier renames; never `--no-verify` without per-commit approval. Work **in batches — ~15 agents ×
+3–4 routines each** (≈50/batch; fan AGGRESSIVELY, per-agent spin-up is too high for one, so 20×1 is retired),
+**one commit per batch, single-threaded** (don't author the next batch while one is under review), and
+**fan the review at the same scale** (≈1 agent per 8 routines — one reviewer can't full-decode 50). **Parallelise as
 much as possible — never retreat to one-routine-at-a-time when a batchable pool exists.** Every
 commit gets an **independent reviewer** — a gate is not a review; run the repo's gates *before* the
 reviewer, and verify a reviewer's *reasons*, not just its ruling. **Grounding always uses MAME, never
@@ -225,12 +226,15 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
   is usually cuttable, and a two-line JSDoc that fits on one should be one). A batch that lands under cap
   needs no pruning pass. This binds **boards, manifests and test files too** — Time Pilot is the quality
   model (its files predate the cap and are grandfathered, so match their KIND, not their higher density).
-  ≈30 routines/batch (10 agents × 3) while the next is written; regenerate the registry after batches land
-  (`gen-registry.mjs`), not per batch.
+  **≈50 routines/batch (~15 agents × 3–4) — fan AGGRESSIVELY; shrinking the batch out of caution is the
+  failure mode, not the safe default.** Scope the batch from the whole reachable closure, not just the current
+  boot frontier — the deferred callees are provably reached (translated code already `m.call`s them), so
+  translate them in bulk ahead of the boot; the boot-statediff still runs each merge and live-validates the
+  swath as the boot advances into it. Regenerate the registry after batches land (`gen-registry.mjs`), not per batch.
 - **Fan out every batch — parallelise as much as possible; do NOT get scared and start one-by-one.**
   Serial pace is the failure mode, not the safe default: when a batchable pool exists, going one-at-a-time
   is the mistake. A batch is a serial→parallel→serial sandwich: ONE setup (fold the entrypoints, re-trace to a single
-  stable disassembly, pre-assign each routine's RANGE), **~10 agents × 3 routines each** (one-per-agent
+  stable disassembly, pre-assign each routine's RANGE), **~15 agents × 3–4 routines each (≈50/batch)** (one-per-agent
   wastes spin-up; scale the agent count to the pool — a 13-routine pool is 4–5 agents, not 13), then ONE
   merge (regenerate the registry, run the boot gate + stepcheck on the assembled set). Distinct
   `loc_<addr>.js`/`<addr>.test.js` (and idiomatic module/test) files never merge-conflict; the only
@@ -247,6 +251,14 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
   Shared files (the registry, `names.js`, board files) stay under serial control — agents RETURN their
   `names.js`/registry additions, the coordinator merges them. This parallelism is *within* a batch — the
   across-batch rule still holds (don't open the next batch while this one is under review).
+- **Fan the REVIEW too, at the same scale as the translation.** A ~50-routine batch cannot be full-decoded
+  by one reviewer — split the independent by-execution review across **~1 agent per ~8 routines** (a workflow
+  returning compact per-routine verdicts, not N loose parallel agents), then reconcile the blockers serially.
+  The review-fan is what keeps per-routine rigor at batch scale: it has caught real defects (missing-`push16`,
+  T-state mischarges in untested paths, mis-scoped loop-latches) that every mechanical gate and the per-routine
+  tests passed clean. Each review agent decodes its routines' whole range against the ROM (not just tested
+  paths) and runs its own positive control. Routines translated ahead of the boot lean on their equivalence
+  tests + this review until the boot reaches them.
 - **Even the hard spine parallelises — in clusters, not one-by-one.** "Hard" means each unit needs a
   bespoke fixture (tape/golden, pixel gate) or careful grounding, NOT that authoring conflicts. Group the
   interdependent routines into coherent CLUSTERS (siblings sharing state, a render group sharing the pixel
