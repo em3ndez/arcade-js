@@ -1,22 +1,28 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Pooyan ATTRACT pixel gate: JS render vs a fresh MAME golden, byte-for-byte.
+"""Pooyan attract-boot pixel gate: JS oracle render vs a fresh MAME golden, per-frame RECONVERGE.
 
-Attract's deterministic animation makes reproducing it pixel-exact the test. main() SWEEPS offsets and
-picks the min-diff one (nothing hardcoded); the band is one tight window above the measured floor, so a
-real regression blows past it. FAIL-CLOSED: `pixel_suite: PASS` prints ONLY on a clean comparison; no
-mame/romset, a poisoned golden, a short/frozen render, or any over-band frame exits nonzero (the gate
-treats any non-PASS, SKIP included, as refusal).
+The JS<->golden frame offset drifts across boot, so a single frozen offset false-fails at the fill
+transitions; each JS frame is scored against its NEAREST golden frame within a window instead (the
+drift-tolerant reconverge). Pooyan covers only the attract boot with no input -- the translated boot
+reaches 0x05ee, an untranslated dispatcher, and stops (render.js paints what it has and exits nonzero,
+which is EXPECTED here, not a failure).
 
-★ NOT YET CALIBRATED. Pooyan's translation has not reached a rendered frame, so the correct-layer pixel
-floor cannot be measured. BAND_MAX_PX / the idiomatic offsets are None and the suite REFUSES to run until
-they are set (see calibrate() guard). Pooyan is EXEMPT in tools/pixel_gate_required.py; calibrate here and
-drop that EXEMPT together, at the first rendered frame.
+CALIBRATION (two independent certified goldens, 2026-08-19): a correct oracle render reconverges to
+EXACTLY 0px -- byte-identical -- on every boot frame but one. The exception is js31, an ldirAt sub-frame
+fill instant that no whole-frame golden captures (16325px at every offset), isolated between byte-exact
+neighbours. So the floor is 0 and 3x0 stays 0: BAND_MAX_PX = 0 (a frame is a mismatch if it differs from
+its nearest golden by any pixel), and the one irreducible transient is carried by TRANSIENT_BUDGET, NOT
+by inflating the band to swallow 16325px (which would pass a 28%-wrong frame). VERDICT: PASS iff at most
+TRANSIENT_BUDGET frames mismatch. Injecting a single wrong pixel makes 2 mismatches -> FAIL (teeth).
+
+FAIL-CLOSED: `pixel_suite: PASS` prints ONLY on a clean comparison. No mame/romset -> SKIP + nonzero. A
+poisoned golden, a boot that stops anywhere but 0x05ee, too few frames, a frozen screen, or more than the
+budgeted mismatches each print a non-PASS line and exit nonzero.
 """
 import argparse
-import json
-import math
 import os
+import re
 import subprocess
 import sys
 
@@ -30,43 +36,31 @@ import pixel_gate       # noqa: E402
 
 HW = os.path.join(REPO, "boards", "pooyan", "hardware.json")
 DRIVER = "pooyan"
-SECONDS = 10
+SECONDS = 4                    # 244 golden frames: covers the ~131 painted boot frames + the search window
 
-# Sweep window straddling the expected +1 (the AVI lag), so a drift either way is caught, not assumed.
-OFFSETS = range(-2, 5)
+# Nearest-golden search half-width. Distinct-content frames drift about +1; static fill/hold frames match
+# any identical golden frame, so the chosen offset ranges wider but every clean frame still scores 0px --
+# stable over windows 8..20 in measurement. 20 is generous margin over the +1 content drift.
+WINDOW = 20
 
-# ★ UNMEASURED: the correct-layer floor needs a rendered frame that matches MAME, which does not exist
-# yet. None forces calibrate() to refuse rather than pass against a guessed band (frogger's 3/16 are
-# frogger's, not Pooyan's). Set both at the first rendered frame from the actual min-diff sweep.
-BAND_FLOOR_PX = None
-BAND_MAX_PX = None
+# Measured correct-layer floor is 0px (byte-exact); see the module docstring. BAND_MAX_PX 0 makes any
+# nonzero diff a mismatch; TRANSIENT_BUDGET 1 forgives the single irreducible ldirAt sub-frame transient.
+BAND_MAX_PX = 0
+TRANSIENT_BUDGET = 1
 
-# A frozen/black screen lets two dead frames match and PASS over nothing; require motion.
-MIN_DISTINCT = 10
+EXPECTED_BOOT_GAP = 0x05ee     # the untranslated dispatcher the oracle boot reaches; pinned so a boot that
+MIN_PAINTED = 120              # regresses to an earlier gap, or advances past it, trips the gate for review
+MIN_DISTINCT = 10              # a frozen/black render proves nothing; the boot has ~34 distinct images
 
-# ★ UNMEASURED idiomatic boot-collapse offset + transient-skip: no idiomatic layer exists yet.
-GEN_OFFSET = None
-GEN_BOOT_SKIP = None
-
-
-def calibrate(idiomatic):
-    """Fail closed until the bands are measured. A pixel gate with a guessed band is decoration."""
-    if BAND_MAX_PX is None or BAND_FLOOR_PX is None:
-        print("pixel_suite: SKIP -- band UNCALIBRATED: Pooyan has no rendered frame to measure the "
-              "correct-layer floor. Calibrate BAND_FLOOR_PX/BAND_MAX_PX at the first rendered frame.")
-        return False
-    if idiomatic and (GEN_OFFSET is None or GEN_BOOT_SKIP is None):
-        print("pixel_suite: SKIP -- idiomatic offsets UNCALIBRATED: no idiomatic layer exists yet.")
-        return False
-    return True
+# Positive control: flip one pixel in one painted frame (well clear of the js31 transient) -> must FAIL.
+INJECT_AT = 60
+INJECT_XY = (100, 100)
 
 
 def capture_golden(rompath, out, seconds):
-    """Fresh certified golden via the shared capturer. Attract only -- no --tape.
-
-    mame_golden.py returns nonzero on a POISONED capture (watchdog reset, frame delta, unverified
-    DSW/reset); returncode 0 == "all invariants hold". So its exit code IS the poison guard here.
-    """
+    """Fresh certified attract golden via the shared capturer (no --tape). mame_golden.py exits nonzero
+    on a POISONED capture -- watchdog reset, frame-count/delta mismatch, unverified DSW0/reset -- so its
+    return code IS the poison guard: 0 means every invariant held."""
     r = subprocess.run(
         [sys.executable, os.path.join(REPO, "tools", "mame_golden.py"),
          "--hardware", HW, "--lua-dir", os.path.join(HERE, "lua"),
@@ -74,79 +68,63 @@ def capture_golden(rompath, out, seconds):
     return r.returncode == 0
 
 
-def render_js(out, frames, idiomatic):
-    """Fresh JS render (nonzero on a boot gap / dropped frame). idiomatic = the born-live spine via
-    runIdiomaticGame; oracle = the cycle-driven translated layer. The gate picks by the changed files."""
+def render_oracle(out, frames):
+    """Render the translated (oracle) boot. Returns (painted, gap, dropped, log). `painted` comes from the
+    file size, not the log. render.js exits nonzero at the boot gap -- EXPECTED for pooyan -- so the caller
+    judges by gap address + painted count, not the exit code."""
     cmd = ["node", os.path.join(HERE, "render.js"), "--frames", str(frames), "--frames-out", out]
-    if idiomatic:
-        cmd.append("--idiomatic")
-    r = subprocess.run(cmd)
-    return r.returncode == 0
-
-
-def distinct_frames(frames_json):
-    """How many DISTINCT images the emitter recorded (both render.js and mame_golden write sha256)."""
-    with open(frames_json) as fh:
-        j = json.load(fh)
-    return len({f["sha256"] for f in j["frames"]})
-
-
-def frame_bytes():
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    log = (r.stdout or "") + (r.stderr or "")
     _, _, bpf = pixel_gate.screen_geometry(HW)
-    return bpf
+    rgb = os.path.join(out, "frames.rgb")
+    painted = os.path.getsize(rgb) // bpf if os.path.exists(rgb) else 0
+    m = re.search(r"boot gap 0x([0-9a-f]+)", log)
+    gap = int(m.group(1), 16) if m else None
+    return painted, gap, ("DROPPED" in log), log
 
 
-def total_diff(js_rgb, golden_rgb, bpf, offset, from_frame=0):
-    """(total differing px, worst per-frame px, worst frame, frames compared) for js[i] vs g[i+off].
+def load_frames(rgb_path, count, bpf, h, w):
+    with open(rgb_path, "rb") as fh:
+        return [np.frombuffer(fh.read(bpf), np.uint8).reshape(h, w, 3) for _ in range(count)]
 
-    Skips i where i+offset falls outside the golden -- so negative offsets never seek before 0.
-    from_frame drops the leading render frames (the idiomatic boot transient has no golden match)."""
-    njs = os.path.getsize(js_rgb) // bpf
-    ngd = os.path.getsize(golden_rgb) // bpf
-    total = worst = 0
-    worst_at = None
-    n = 0
-    with open(js_rgb, "rb") as jf, open(golden_rgb, "rb") as gf:
-        for i in range(from_frame, njs):
-            j = i + offset
-            if j < 0 or j >= ngd:
-                continue
-            jf.seek(i * bpf)
-            gf.seek(j * bpf)
-            a = np.frombuffer(jf.read(bpf), dtype=np.uint8).reshape(-1, 3)
-            b = np.frombuffer(gf.read(bpf), dtype=np.uint8).reshape(-1, 3)
-            c = int(np.any(a != b, axis=1).sum())
-            total += c
-            n += 1
-            if c > worst:
-                worst, worst_at = c, i
-    return total, worst, worst_at, n
+
+def reconverge(js, golden, window):
+    """Per-frame nearest-golden differing-pixel count: for each JS frame, the min over golden[i-W..i+W].
+    Breaks on a byte-exact match -- nothing beats 0 -- which also keeps the sweep fast."""
+    ng = len(golden)
+    scores = []
+    for i, a in enumerate(js):
+        best = 1 << 30
+        for j in range(max(0, i - window), min(ng, i + window + 1)):
+            d = int(np.any(a != golden[j], axis=2).sum())
+            if d < best:
+                best = d
+                if best == 0:
+                    break
+        scores.append(best)
+    return scores
+
+
+def distinct(frames):
+    return len({f.tobytes() for f in frames})
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--rompath", default=os.path.expanduser("~/Downloads"),
                    help="MAME romset search path (needs pooyan.zip); NOT the JS ROM dir.")
-    p.add_argument("--seconds", type=int, default=SECONDS,
-                   help="emulated seconds of attract to capture+render (10 = fast pre-commit gate; larger = extensive).")
-    # Cover the whole golden (~refresh*seconds frames) with margin; render.js paints frames-1.
-    p.add_argument("--frames", type=int, default=None,
-                   help="render frame count; default (None) covers the whole --seconds golden.")
+    p.add_argument("--seconds", type=int, default=SECONDS)
+    p.add_argument("--frames", type=int, default=400, help="render cap; the boot stops at 0x05ee first.")
     p.add_argument("--work", default=os.path.join(GAME, "out", "pixelwork"))
-    # The gate invokes every suite with --layer {oracle,idiomatic}, chosen from which layer's files changed.
-    p.add_argument("--layer", default="oracle", choices=["oracle", "idiomatic"],
-                   help="which layer to render vs MAME (the pixel gate passes this explicitly).")
+    # The gate invokes every suite with --layer {oracle,idiomatic}. Pooyan has no idiomatic layer yet, so
+    # both render the oracle; accepted (not rejected) so a shared-infra commit is never blocked here.
+    p.add_argument("--layer", default="oracle", choices=["oracle", "idiomatic"])
+    p.add_argument("--inject-defect", action="store_true",
+                   help="POSITIVE CONTROL: flip one pixel in the render before scoring; the suite must FAIL.")
     a = p.parse_args()
-    if a.frames is None:
-        a.frames = math.ceil(60.606061 * a.seconds) + 34
-    idiomatic = a.layer == "idiomatic"
-    if not calibrate(idiomatic):
-        return 1
-    offsets = range(GEN_OFFSET - 3, GEN_OFFSET + 4) if idiomatic else OFFSETS
-    from_frame = GEN_BOOT_SKIP if idiomatic else 0
-    print(f"  layer: {'IDIOMATIC (runIdiomaticGame)' if idiomatic else 'oracle (cycle-driven)'}")
+    if a.layer == "idiomatic":
+        print("  note: pooyan has no idiomatic layer yet -- rendering the oracle for this --layer.")
 
-    # --- can we compare at all? every "no" below exits NONZERO (fail-closed). ---
     try:
         verified = subprocess.run(["mame", "-rompath", a.rompath, "-verifyroms", DRIVER],
                                   capture_output=True, text=True).returncode == 0
@@ -163,50 +141,53 @@ def main():
     if not capture_golden(a.rompath, go, a.seconds):
         print("pixel_suite: FAIL -- mame_golden refused to certify the capture (poisoned golden).")
         return 1
-    if not render_js(jo, a.frames, idiomatic):
-        print("pixel_suite: FAIL -- render.js stopped early (boot gap / dropped frame); "
-              "a short artifact must not be diffed.")
+
+    painted, gap, dropped, log = render_oracle(jo, a.frames)
+    if dropped:
+        print("pixel_suite: FAIL -- render dropped frames (a tick outran a frame); indices shifted.")
+        return 1
+    if gap != EXPECTED_BOOT_GAP:
+        seen = "no gap (boot ran clean or died elsewhere)" if gap is None else f"0x{gap:04x}"
+        print(f"pixel_suite: FAIL -- boot stopped at {seen}, not the pinned gap 0x{EXPECTED_BOOT_GAP:04x}. "
+              "Boot depth changed -- re-measure and update EXPECTED_BOOT_GAP.\n" + log.strip()[-400:])
+        return 1
+    if painted < MIN_PAINTED:
+        print(f"pixel_suite: FAIL -- render painted {painted} frames (< {MIN_PAINTED}); too short to judge.")
         return 1
 
-    g_rgb, j_rgb = os.path.join(go, "frames.rgb"), os.path.join(jo, "frames.rgb")
-    bpf = frame_bytes()
-    n_g = os.path.getsize(g_rgb) // bpf
-    n_j = os.path.getsize(j_rgb) // bpf
-
-    # --- positive control: the golden must actually be a LIVE, animated attract, not frozen/black. ---
-    g_distinct = distinct_frames(os.path.join(go, "frames.json"))
-    j_distinct = distinct_frames(os.path.join(jo, "frames.json"))
-    print(f"  golden: {n_g} frames, {g_distinct} distinct   render: {n_j} frames, {j_distinct} distinct")
-    if g_distinct < MIN_DISTINCT or j_distinct < MIN_DISTINCT:
-        print(f"pixel_suite: FAIL -- fewer than {MIN_DISTINCT} distinct frames "
-              f"(golden {g_distinct}, render {j_distinct}); a frozen screen proves nothing.")
+    _, _, bpf = pixel_gate.screen_geometry(HW)
+    w, h = pixel_gate.frameio.WIDTH, pixel_gate.frameio.HEIGHT
+    n_g = os.path.getsize(os.path.join(go, "frames.rgb")) // bpf
+    if n_g < painted + WINDOW:
+        print(f"pixel_suite: FAIL -- golden {n_g} frames < render {painted} + window {WINDOW}; "
+              "capture more --seconds so every frame has a search window.")
         return 1
 
-    # --- MEASURE the offset: minimise total differing pixels over the overlap. ---
-    sweep = {off: total_diff(j_rgb, g_rgb, bpf, off, from_frame) for off in offsets}
-    for off in offsets:
-        tot, wst, _at, nn = sweep[off]
-        print(f"    offset {off:+d}: total={tot:>8d}px  worst={wst:>6d}px  frames={nn}")
-    offset = min(offsets, key=lambda o: sweep[o][0])
-    total, worst, worst_at, n = sweep[offset]
-    expect = f"expected +{GEN_OFFSET}, the boot collapse" if idiomatic else "expected +1, the AVI lag"
-    print(f"  measured offset: {offset:+d} (minimises total diff; {expect})")
-
-    # --- did we actually compare the whole attract? render must span the full golden overlap. ---
-    need = n_g - offset - from_frame
-    if n < need:
-        print(f"pixel_suite: FAIL -- compared only {n} of {need} overlapping frames; "
-              "render did not cover the full golden attract.")
+    golden = load_frames(os.path.join(go, "frames.rgb"), n_g, bpf, h, w)
+    js = load_frames(os.path.join(jo, "frames.rgb"), painted, bpf, h, w)
+    g_d, j_d = distinct(golden), distinct(js)
+    print(f"  golden: {n_g} frames, {g_d} distinct   render: {painted} frames, {j_d} distinct")
+    if g_d < MIN_DISTINCT or j_d < MIN_DISTINCT:
+        print(f"pixel_suite: FAIL -- under {MIN_DISTINCT} distinct frames (golden {g_d}, render {j_d}); "
+              "a frozen screen proves nothing.")
         return 1
 
-    # --- the tight full-frame band is the whole verdict (no decorative loose band). ---
-    verdict = pixel_gate.PASS if worst <= BAND_MAX_PX else pixel_gate.FAIL
-    print(f"  band: worst={worst}px @frame {worst_at} (floor {BAND_FLOOR_PX}px, budget {BAND_MAX_PX}px) "
-          f"over {n} frames -> {verdict}")
-    if verdict != pixel_gate.PASS:
-        print(f"pixel_suite: FAIL -- frame {worst_at} differs by {worst}px, over the {BAND_MAX_PX}px band.")
-        return 1
+    if a.inject_defect:
+        x, y = INJECT_XY
+        js[INJECT_AT] = js[INJECT_AT].copy()
+        js[INJECT_AT][y, x] ^= np.uint8(0xFF)
+        print(f"  INJECTED one wrong pixel at frame {INJECT_AT} {INJECT_XY} (positive control -- expect FAIL).")
 
+    scores = reconverge(js, golden, WINDOW)
+    over = [i for i, v in enumerate(scores) if v > BAND_MAX_PX]
+    worst = int(np.argmax(scores))
+    print(f"  reconverge: worst={scores[worst]}px @frame {worst}; mismatches(>{BAND_MAX_PX}px)={over} "
+          f"(budget {TRANSIENT_BUDGET})")
+
+    if len(over) > TRANSIENT_BUDGET:
+        print(f"pixel_suite: FAIL -- {len(over)} frames mismatch (> {TRANSIENT_BUDGET}); the boot is not "
+              "byte-exact against MAME beyond the one irreducible ldirAt transient.")
+        return 1
     print("pixel_suite: PASS")
     return 0
 

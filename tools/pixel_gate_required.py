@@ -61,6 +61,7 @@ SUITES = {
     "timeplt": [(["python3", "games/timeplt/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "thepit": [(["python3", "games/thepit/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "frogger": [(["python3", "games/frogger/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
+    "pooyan": [(["python3", "games/pooyan/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
 }
 
 MANUAL = {
@@ -76,14 +77,7 @@ MANUAL = {
 #: ★ AN ENTRY EXEMPTS THE GAME UNTIL REMOVED, waiving every later commit silently. Kept NEAR-EMPTY
 #: by design: legitimate ONLY when the gate cannot run and the reason is one a reviewer can check --
 #: the canonical case is a NEW game mid-translation that cannot render a frame yet (see docs/runbook.md).
-EXEMPT = {
-    # TEMPORARY new-game bootstrapping (runbook §2, 2026-08-13 autonomous-decision): REMOVE at pooyan's
-    # first rendered frame and declare the real suite.
-    "pooyan":
-        "mid-translation, empty translated layer -- the boot cannot clear its computed-jump dispatchers "
-        "yet, so no frame matches MAME. A reviewer verifies by booting to an unregistered-routine gap "
-        "(foundation review confirmed the gap at 0x0000). REMOVE at the first rendered frame.",
-}
+EXEMPT = {}
 
 
 def staged_paths():
