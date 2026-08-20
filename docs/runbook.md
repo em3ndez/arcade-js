@@ -170,16 +170,26 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
   (`mame_golden.py --tape`, `render.js --inputs`) to cover play. Frogger was byte-exact for 49 s, then a
   divergence surfaced only at the attract-LOOP WRAP the 10 s gate never reached — "we should have been
   testing [the long window] all along" (Karl 2026-08-17).
-  ⚠ **Pre-capture a long golden and keep it ready — do not re-capture per gate.** Capture a
-  ~3-minute attract golden ONCE (`mame_golden.py --seconds 180`, ~11k frames) and reuse it as the
-  boot deepens batch by batch, so a long-window pixel/state diff never waits on a re-capture. It is
-  ROM-derived and gitignored (never commit). Mind the size: state is cheap (~48 MB at 180 s) but
-  frames.rgb is ~10 MB/s (~1.7 GB at 180 s, ~6 GB at 600 s) — 3 min is the practical default; add
-  `--no-frames` for a state-only golden when you only need statediff, and go longer only when a
-  defect is suspected past that window. To KEEP a frames golden between sessions,
-  `tools/golden_mp4.py compress <dir> --drop-rgb` shrinks frames.rgb ~300x to a byte-exact lossless
-  `frames.mp4` (~6 MB at 180 s; verified against the frames.json sha256 index, fails closed);
-  `golden_mp4.py decode <dir>` regenerates frames.rgb before a diff, so every reader is unchanged.
+  ⚠⚠ **Run the pixel gate against MAME for a FULL ~10-MINUTE golden — and treat that long run as a
+  DUAL check, completeness AND correctness (Karl 2026-08-20).** Capture ONCE
+  (`mame_golden.py --seconds 600`, ~36k frames) and reuse it as the boot deepens batch by batch;
+  ROM-derived, gitignored (never commit).
+  - **(1) COMPLETENESS — the biggest trap.** Run the oracle/boot the FULL golden length; a translation
+    gap anywhere in it means a routine reached only in a **deep gameplay state** is still untranslated,
+    and **neither a static call-graph closure NOR a short boot will find it.** Pooyan declared §3 "done"
+    off a static m.call-closure + a 4000-frame boot — but `loc_1a64` (a 0x15a8 state-table handler whose
+    `DISPATCH_TABLE_` constant listed no entries, so the closure was blind to it) sat unreached until
+    **frame 4613** of the full golden. A short check will let you SHIP a gap. The long boot-gap crawl is
+    the only trustworthy §3-completeness signal.
+  - **(2) CORRECTNESS** — the pixel/state diff over the whole run.
+  Storage was the old excuse for a short golden and it is GONE: state is cheap (~48 MB at 180 s) and
+  `tools/golden_mp4.py compress <dir> --drop-rgb` shrinks frames.rgb ~300× to a byte-exact lossless
+  `frames.mp4` (~6 MB at 180 s, ~20 MB at 600 s; verified against the frames.json sha256, fails closed);
+  `golden_mp4.py decode <dir>` regenerates frames.rgb before a diff, so every reader is unchanged. Keep
+  the full 10-minute frames golden; `--no-frames` (state-only) is a quick spot-check, NEVER the done-proof.
+  10 minutes is a **FLOOR, not a ceiling** — extend it for a game with states reachable only much later
+  (a late level, the attract-loop wrap); pick the length from where the deepest state the game can enter
+  actually occurs, never a fixed count.
   ⚠ **The fixed-offset compare aligns only within ONE landmark segment.** The "collapse pure delay, align on
   a landmark" model runs the attract cycle faster than MAME, so the offset SHIFTS at the loop wrap; a single
   swept offset breaks there even when the layer is correct. An extended / cross-loop / gameplay run must use
@@ -224,13 +234,15 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
   4. **Report the irreducible residue explicitly** — arithmetically-computed `jp (hl)` with no static
      table, self-modifying code. It is small (Pooyan: ~none); resolve those few by MAME executed-trace,
      not by crawling.
-  ⚠ **The RAW static `--frontier` OVER-COUNTS catastrophically** — Pooyan reports ~1693 heads (~1269
-  "uncovered") vs a true ~459, nearly all data decoded as code — so it is **NOT** a standalone completeness
-  proof until MAME-executed-trace gated (the `--trace` TODO in the tool header). Read completeness from the
-  **m.call closure instead**: the distinct `m.call` targets + recovered rst-28 dispatch-table entries across
-  the translated layer, minus the registry. §3 is complete when that closure shrinks to a handful of known
-  data-traps (dead checksum-guard arms into data) AND the boot-statediff runs long/clean — the boot-gap
-  reachability oracle, not the raw static count, is the completeness signal.
+  ⚠ **NO static count is a completeness proof — the FULL-LENGTH boot-gap crawl (§2, the ~10-minute
+  golden) is the only one.** The raw `--frontier` OVER-COUNTS (Pooyan: ~1693 heads / ~1269 "uncovered"
+  vs a true ~459, data decoded as code). The m.call closure (distinct `m.call` targets + recovered
+  rst-28 table entries minus the registry) is a useful WORKLIST but it UNDER-counts: it is blind to any
+  dispatch-table handler whose `DISPATCH_TABLE_` constant lists no entries (Pooyan's 0x15a8 table hid
+  seven state handlers — `loc_1a64` et al. — this way, and both the closure and a 4000-frame boot passed
+  clean). Use the closure to SCOPE the next batch, but **prove §3 done only by running the oracle the FULL
+  10-minute golden with zero translation gaps** — the deep gameplay states a short boot never enters are
+  exactly where the last routines hide.
 - Translate each routine one instruction at a time via `m.step(addr, tstates)` — `addr` is the
   **next** instruction (where execution lands). Charge T-states exactly (video depends on *when* each
   write lands; `stepcheck`/`stepaudit` audit it). Keep flags exact (BCD/half-carry/parity/signed);
@@ -665,9 +677,11 @@ distinct phase, gated on a flag, and runs in this order.
   `transition.test.js` level/round/game-over) have run since the skeleton and gate the ship as-is.
 - **Definition of done — a named gate, not a claim.** *Done* means a named gate ran and passed
   (`how-the-agents-worked.md`), never "it looks finished." A game is shippable only when **every**
-  completion subsystem is green under its own gate — the live pixel gate (§2), stage-B grounding
-  complete (zero ungrounded `[code]`), the idiomatic gate at 0 (no registers/m.call/m.push*/raw
-  addresses), the whole-game gates above, the
+  completion subsystem is green under its own gate — the live pixel gate **run against the FULL
+  ~10-minute MAME golden (§2), never a short window** (that long run is also the authoritative
+  §3-completeness check — a boot gap in a deep state = a still-missing routine a short gate never
+  reaches), stage-B grounding complete (zero ungrounded `[code]`), the idiomatic gate at 0 (no
+  registers/m.call/m.push*/raw addresses), the whole-game gates above, the
   external disassembly if in scope, and **audio**. Each is executed, not reasoned about; the ship is
   refused while any is red. This ledger exists because frogger shipped "done" three times over with
   grounding, registers, *and* audio all still open — every one a subsystem with no gate guarding the
