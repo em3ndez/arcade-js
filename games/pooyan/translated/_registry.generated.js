@@ -18,6 +18,7 @@ import { loc_02a8 } from "./loc_02a8.js";
 import { loc_02aa } from "./loc_02aa.js";
 import { loc_02b1 } from "./loc_02b1.js";
 import { loc_02b9 } from "./loc_02b9.js";
+import { loc_02c9 } from "./loc_02c9.js";
 import { loc_02ce } from "./loc_02ce.js";
 import { loc_02e3 } from "./loc_02e3.js";
 import { loc_02e6 } from "./loc_02e6.js";
@@ -92,11 +93,19 @@ import { loc_0fb2 } from "./loc_0fb2.js";
 import { loc_0fd5 } from "./loc_0fd5.js";
 import { loc_159b } from "./loc_159b.js";
 import { loc_15a1 } from "./loc_15a1.js";
+import { loc_1601 } from "./loc_1601.js";
+import { loc_16b7 } from "./loc_16b7.js";
+import { loc_175d } from "./loc_175d.js";
+import { loc_17c1 } from "./loc_17c1.js";
+import { loc_19bc } from "./loc_19bc.js";
 import { loc_1ce7 } from "./loc_1ce7.js";
 import { loc_1cec } from "./loc_1cec.js";
 import { loc_1cf6 } from "./loc_1cf6.js";
 import { loc_1d0d, loc_1d15, loc_1d3c, loc_1d6e, loc_1d9c } from "./loc_1d0d.js";
+import { loc_1dd3 } from "./loc_1dd3.js";
 import { loc_208c } from "./loc_208c.js";
+import { loc_22b1 } from "./loc_22b1.js";
+import { loc_22e6 } from "./loc_22e6.js";
 import { loc_2334 } from "./loc_2334.js";
 import { loc_236a } from "./loc_236a.js";
 import { loc_23a1 } from "./loc_23a1.js";
@@ -264,6 +273,7 @@ export const ROUTINE_ENTRIES = [
   [0x02aa, loc_02aa],
   [0x02b1, loc_02b1],
   [0x02b9, loc_02b9],
+  [0x02c9, loc_02c9],
   [0x02ce, loc_02ce],
   [0x02e3, loc_02e3],
   [0x02e6, loc_02e6],
@@ -348,6 +358,11 @@ export const ROUTINE_ENTRIES = [
   [0x0fd5, loc_0fd5],
   [0x159b, loc_159b],
   [0x15a1, loc_15a1],
+  [0x1601, loc_1601],
+  [0x16b7, loc_16b7],
+  [0x175d, loc_175d],
+  [0x17c1, loc_17c1],
+  [0x19bc, loc_19bc],
   [0x1ce7, loc_1ce7],
   [0x1cec, loc_1cec],
   [0x1cf6, loc_1cf6],
@@ -356,7 +371,10 @@ export const ROUTINE_ENTRIES = [
   [0x1d3c, loc_1d3c],
   [0x1d6e, loc_1d6e],
   [0x1d9c, loc_1d9c],
+  [0x1dd3, loc_1dd3],
   [0x208c, loc_208c],
+  [0x22b1, loc_22b1],
+  [0x22e6, loc_22e6],
   [0x2334, loc_2334],
   [0x236a, loc_236a],
   [0x23a1, loc_23a1],
