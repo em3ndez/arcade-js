@@ -33,6 +33,19 @@
   .spinner { display: inline-block; width: 0.9em; height: 0.9em; vertical-align: -0.15em;
              margin-right: 0.45em; border: 2px solid #33334d; border-top-color: #9fd0ff;
              border-radius: 50%; animation: spin 0.8s linear infinite; }
+  /* The game board wraps the canvas so the loading indicator can be centered ON it while the
+     engine imports its modules — the board area is otherwise empty until the first frame. */
+  #board { position: relative; display: flex; }
+  #loadOverlay { position: absolute; inset: 0; display: flex; flex-direction: column;
+                 align-items: center; justify-content: center; gap: 10px; text-align: center;
+                 pointer-events: none; border-radius: 6px; background: rgba(11,11,16,0.35); }
+  #loadOverlay .spinner { width: 2em; height: 2em; border-width: 3px; margin: 0; }
+  #loadText { color: #9fd0ff; font-size: 15px; }
+  #loadText b { color: #cfe8b0; }
+  #loadBar { width: 60%; max-width: 220px; height: 6px; background: #23233a;
+             border-radius: 3px; overflow: hidden; }
+  #loadBarFill { width: 0%; height: 100%; background: #9fd0ff; transition: width .2s ease; }
+  #loadSub { color: #7a7a95; font-size: 12px; }
   .legend { color: #8a8aa5; max-width: 640px; text-align: center; }
   .legend kbd { background: #1a1a28; border: 1px solid #33334d; border-bottom-width: 2px;
                 border-radius: 4px; padding: 1px 6px; color: #d8d8ea; font-size: 12px; }
@@ -90,7 +103,15 @@
     <table id="romTable"><tbody></tbody></table>
     <p class="fineprint" id="romFine"></p>
   </section>
-  <canvas id="screen" aria-label="Game screen"></canvas>
+  <div id="board">
+    <canvas id="screen" aria-label="Game screen"></canvas>
+    <div id="loadOverlay">
+      <span class="spinner"></span>
+      <div id="loadText">loading engine…</div>
+      <div id="loadBar"><div id="loadBarFill"></div></div>
+      <div id="loadSub">first start imports the engine</div>
+    </div>
+  </div>
   <div class="row">
     <button id="coin">Insert coin <span style="color:#8a8aa5">(5)</span></button>
     <button id="start">1-Player start <span style="color:#8a8aa5">(1)</span></button>
@@ -102,7 +123,7 @@
          audio layer at all. See the AUDIO section in the script below. -->
     <button id="mute" class="hide" aria-pressed="false"></button>
   </div>
-  <div id="status"><span class="spinner"></span>loading… <span style="color:#5a5a72">(first start imports the engine — a few seconds)</span></div>
+  <div id="status"></div>
   <div id="romInfo" class="hide"></div>
   <div class="legend">
     <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> move · <kbd>Space</kbd> jump ·
@@ -115,6 +136,11 @@ import { getCached, putCached, clearCached } from "./romstore.js";
 
 (async () => {
   const statusEl = document.getElementById("status");
+  const loadOverlay = document.getElementById("loadOverlay");
+  const loadText = document.getElementById("loadText");
+  const loadBar = document.getElementById("loadBar");
+  const loadBarFill = document.getElementById("loadBarFill");
+  const loadSub = document.getElementById("loadSub");
   const gameId = new URLSearchParams(location.search).get("game") || "dkong";
 
   // Build a DOM node with plain text (never innerHTML) so untrusted values —
@@ -241,9 +267,11 @@ import { getCached, putCached, clearCached } from "./romstore.js";
         if (onSoundEvents) onSoundEvents(d.ev);
       } else if (d.type === "loading") {
         const pct = d.total ? Math.round((d.loaded / d.total) * 100) : 0;
-        statusEl.innerHTML = `<span class="spinner"></span>loading engine… <b>${pct}%</b>` +
-          ` <span style="color:#5a5a72">(${d.loaded}/${d.total} modules)</span>`;
+        loadText.innerHTML = `loading engine… <b>${pct}%</b>`;
+        loadBarFill.style.width = pct + "%";
+        loadSub.textContent = `${d.loaded}/${d.total} modules`;
       } else if (d.type === "ready") {
+        loadOverlay.classList.add("hide");
         statusEl.innerHTML = "<b>running</b> — press <b>5</b> for a coin, then <b>1</b> to start";
       } else if (d.type === "restart") {
         statusEl.textContent = "";
@@ -251,6 +279,12 @@ import { getCached, putCached, clearCached } from "./romstore.js";
       } else if (d.type === "reset") {
         statusEl.innerHTML = "<b>reset</b> — back to attract";
       } else if (d.type === "error") {
+        // Surface the failure on the board (it is otherwise empty) and below.
+        loadOverlay.classList.remove("hide");
+        loadText.textContent = `engine error: ${d.reason || ""}`;
+        loadText.style.color = "#ffb0b0";
+        loadBar.classList.add("hide");
+        loadSub.textContent = "";
         statusEl.textContent = "";
         statusEl.append(el("span", `engine error: ${d.reason || ""}`, "#ffb0b0"));
       }
@@ -818,8 +852,10 @@ import { getCached, putCached, clearCached } from "./romstore.js";
       `Have a checkout? make -C games/${gameId} rom builds the same images from the command line.`;
     renderRomTable(null);
     romPanel.classList.remove("hide");
-    // Nothing to look at until there is a ROM: put the panel where the game is.
-    const hidden = [canvas, document.querySelector(".row")];
+    // Nothing to look at until there is a ROM: put the panel where the game is. Hide the whole
+    // #board (canvas + loading overlay), not just the canvas, so the centered overlay does not
+    // leak as a stray cluster while the empty board box collapses.
+    const hidden = [document.getElementById("board"), document.querySelector(".row")];
     for (const n of hidden) n.classList.add("hide");
     statusEl.textContent = "";
     statusEl.append(el("span", `${manifest.rom.zip} needed — see above`, "#ffb0b0"));
