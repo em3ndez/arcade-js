@@ -27,6 +27,8 @@ import { loc_032a } from "./loc_032a.js";
 import { loc_0343 } from "./loc_0343.js";
 import { loc_0378 } from "./loc_0378.js";
 import { loc_039b } from "./loc_039b.js";
+import { loc_056b } from "./loc_056b.js";
+import { loc_059d } from "./loc_059d.js";
 import { loc_05b2 } from "./loc_05b2.js";
 import { loc_066d } from "./loc_066d.js";
 import { loc_0714 } from "./loc_0714.js";
@@ -77,6 +79,8 @@ import { loc_0f49 } from "./loc_0f49.js";
 import { loc_0f4e } from "./loc_0f4e.js";
 import { loc_0fb2 } from "./loc_0fb2.js";
 import { loc_0fd5 } from "./loc_0fd5.js";
+import { loc_159b } from "./loc_159b.js";
+import { loc_15a1 } from "./loc_15a1.js";
 import { loc_1ce7 } from "./loc_1ce7.js";
 import { loc_1cec } from "./loc_1cec.js";
 import { loc_1cf6 } from "./loc_1cf6.js";
@@ -230,6 +234,7 @@ import { loc_7790 } from "./loc_7790.js";
 import { loc_77c8 } from "./loc_77c8.js";
 import { loc_780f } from "./loc_780f.js";
 import { loc_7881 } from "./loc_7881.js";
+import { loc_7912 } from "./loc_7912.js";
 import { loc_79e9 } from "./loc_79e9.js";
 import { loc_7e6d } from "./loc_7e6d.js";
 
@@ -257,6 +262,8 @@ export const ROUTINE_ENTRIES = [
   [0x0343, loc_0343],
   [0x0378, loc_0378],
   [0x039b, loc_039b],
+  [0x056b, loc_056b],
+  [0x059d, loc_059d],
   [0x05b2, loc_05b2],
   [0x066d, loc_066d],
   [0x0714, loc_0714],
@@ -317,6 +324,8 @@ export const ROUTINE_ENTRIES = [
   [0x0f4e, loc_0f4e],
   [0x0fb2, loc_0fb2],
   [0x0fd5, loc_0fd5],
+  [0x159b, loc_159b],
+  [0x15a1, loc_15a1],
   [0x1ce7, loc_1ce7],
   [0x1cec, loc_1cec],
   [0x1cf6, loc_1cf6],
@@ -486,6 +495,7 @@ export const ROUTINE_ENTRIES = [
   [0x77c8, loc_77c8],
   [0x780f, loc_780f],
   [0x7881, loc_7881],
+  [0x7912, loc_7912],
   [0x79e9, loc_79e9],
   [0x7e6d, loc_7e6d],
 ];

@@ -10,6 +10,12 @@
  * The stack ends with 0x08a1 (rst's own return = table base) on top and 0x0bb5 beneath it,
  * with the seated caller address below that.
  *
+ * After the rst-0x28 dispatch, loc_0899 runs loc_0bb5 -- the shared handler epilogue every
+ * 0x08a1 handler `ret`s into (the 0x0bb5 seated at 0x089c). In the translated model m.ret only
+ * unwinds the JS stack, so this continuation is an explicit second m.call here; the recorded
+ * call list is [0x0028, 0x0bb5]. (This mock's m.call does not pop, so the stack layout the
+ * dispatch seated is still observable below.)
+ *
  * TEETH: mis-charge `ld a,(0x8e51)` (13 T) as 7 T. The golden T-state must catch it.
  *
  * Run: node --test games/pooyan/translated/test/loc_0899.test.js
@@ -61,7 +67,12 @@ test("loc_0899: rst 0x28 dispatch on 0x8e51 -> loc_0028, handler return 0x0bb5 s
 
   assert.equal(m.tstates, 45, "T = 10 (ld hl) + 11 (push) + 13 (ld a) + 11 (rst)");
   assert.deepEqual(m.pcSeq, [0x089c, 0x089d, 0x08a0, 0x0028], "boundaries; last is the rst target");
-  assert.deepEqual(m.calls, [0x0028], "delegates to the generic dispatcher loc_0028");
+  assert.deepEqual(
+    m.calls,
+    [0x0028, 0x0bb5],
+    "delegates to the dispatcher loc_0028, then runs the shared handler epilogue loc_0bb5 " +
+      "the dispatched handler ret's into",
+  );
   assert.equal(m.regs.a, 0x01, "A = the selector read from 0x8e51");
   // stack: rst's return (table base 0x08a1) on top, then the handler return 0x0bb5, then caller
   assert.equal(m.pop16(), 0x08a1, "top of stack = rst 0x28 return = table base 0x08a1");
