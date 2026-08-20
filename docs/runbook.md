@@ -200,6 +200,37 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
 - Disassemble with **reachability-driven recursive descent** from the real entries (reset and NMI
   vectors) — a linear sweep decodes data as garbage. Cross-check the tracer against **what MAME proves
   is code** (a coin+play executed-instruction trace); the tracer alone can miss executed addresses.
+- **★ Build the WHOLE call graph UP FRONT with `tools/callgraph.py` — do NOT discover routines
+  one-at-a-time off the boot gap.** The boot-gap crawl (translate until `m.call` throws, translate the
+  gap, repeat) is a reachability *oracle* — reliable but strictly sequential; it is what made Pooyan take
+  forever. A one-pass static extractor recovers ~all of the routine set before any lift. It must do four
+  things plain recursive descent does not:
+  1. **Recover the ONE computed-jump that is a code table: `rst 0x28`.** Its handler (0x0028) does
+     `pop hl`, so the word table is **inline** — the base is the bytes RIGHT AFTER the rst (the address the
+     rst pushed), NOT a preceding `ld hl,nn`. Index by A; bound the length by the `and mask` / `cp N` guard
+     just before the dispatch (or where the words leave the code range); read every word and add each to the
+     entry set. This is the single biggest miss — it hid the whole object-state handler set behind `loc_40d0`
+     twice. ⚠ `rst 0x20` and `rst 0x10` are NOT code-table dispatches: `rst 0x20` is a **byte-table LOOKUP
+     returning A** (its table is DATA) and `rst 0x10` is a block-fill helper — treat both as ordinary
+     page-zero calls (flow continues) and decode their tables as data, or you inject the data-as-code
+     cascade item 4 warns about.
+  2. **Flag mid-routine entries.** A `call`/`jp` target that lands *inside* an already-decoded routine's
+     `[start,end)` is a **second entry point** → its own `loc_<addr>` (re-emitting the shared tail, like
+     `loc_5733` mirrors `loc_572b`), never folded into the parent.
+  3. **Derive data-vs-code from REACHABILITY — never a hand-maintained exclusion list.** A stale "this is
+     a latch/data" guess is precisely what hid a real routine (`0x60bc`, wrongly hand-listed as a
+     non-routine, has a literal `m.call(0x60bc)`). Unreached bytes are data; reached bytes are code. Full
+     stop.
+  4. **Report the irreducible residue explicitly** — arithmetically-computed `jp (hl)` with no static
+     table, self-modifying code. It is small (Pooyan: ~none); resolve those few by MAME executed-trace,
+     not by crawling.
+  ⚠ **The RAW static `--frontier` OVER-COUNTS catastrophically** — Pooyan reports ~1693 heads (~1269
+  "uncovered") vs a true ~459, nearly all data decoded as code — so it is **NOT** a standalone completeness
+  proof until MAME-executed-trace gated (the `--trace` TODO in the tool header). Read completeness from the
+  **m.call closure instead**: the distinct `m.call` targets + recovered rst-28 dispatch-table entries across
+  the translated layer, minus the registry. §3 is complete when that closure shrinks to a handful of known
+  data-traps (dead checksum-guard arms into data) AND the boot-statediff runs long/clean — the boot-gap
+  reachability oracle, not the raw static count, is the completeness signal.
 - Translate each routine one instruction at a time via `m.step(addr, tstates)` — `addr` is the
   **next** instruction (where execution lands). Charge T-states exactly (video depends on *when* each
   write lands; `stepcheck`/`stepaudit` audit it). Keep flags exact (BCD/half-carry/parity/signed);
