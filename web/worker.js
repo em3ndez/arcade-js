@@ -120,6 +120,31 @@ async function fetchBin(url) {
   return new Uint8Array(await r.arrayBuffer());
 }
 
+// Warm the browser's module cache in PARALLEL before the (serial) resolve loop imports each
+// routine module. Computes the SAME URLs resolveOverrides/resolveAllIdiomatic will use, so the
+// resolve then cache-hits. Posts {type:"loading", loaded, total} for the player's progress bar;
+// an import error is swallowed here (the real resolve surfaces it) — this is a pure warm-up.
+async function prewarmModules(idiomatic, gameId, manifest, machineBase, manifestBase) {
+  let urls;
+  if (idiomatic) {
+    const { ROUTINES } = await import(`../games/${gameId}/idiomatic/names.js`);
+    urls = Object.values(ROUTINES).map((m) => new URL(`./idiomatic/${m.name}.js`, machineBase).href);
+  } else {
+    urls = Object.values(manifest.optimized || {}).map((e) => new URL(e.module, manifestBase).href);
+  }
+  urls = [...new Set(urls)]; // many routine addresses can share one module
+  const total = urls.length;
+  if (!total) return;
+  let loaded = 0, lastPct = -1;
+  postMessage({ type: "loading", loaded, total });
+  await Promise.all(urls.map(async (u) => {
+    try { await import(u); } catch { /* the resolve loop will surface a genuine error */ }
+    loaded++;
+    const pct = Math.round((loaded / total) * 100); // coalesce: post only when the percent ticks
+    if (pct !== lastPct || loaded === total) { lastPct = pct; postMessage({ type: "loading", loaded, total }); }
+  }));
+}
+
 async function run(gameId, provided) {
   const manifest = (await import(`../games/${gameId}/manifest.js`)).default;
   PORTS = manifest.inputs.ports;
@@ -138,9 +163,15 @@ async function run(gameId, provided) {
 
   // Resolved ONCE and reused for every (re)boot: idiomatic wires every routine to its
   // idiomatic/<name>.js; cycle-driven uses manifest.optimized (proven-equal routines).
+  // resolveOverrides imports each routine module with an AWAITED loop (serial); a game has
+  // hundreds, so pre-warm the browser's module cache in PARALLEL first (same URLs, so the
+  // resolve loop then cache-hits) and report progress so a long first-load is visibly alive.
+  const machineBase = new URL(`../games/${gameId}/machine.js`, import.meta.url);
+  const manifestBase = new URL(`../games/${gameId}/manifest.js`, import.meta.url);
+  await prewarmModules(idiomatic, gameId, manifest, machineBase, manifestBase);
   const overrides = idiomatic
-    ? await machineMod.resolveAllIdiomatic(new URL(`../games/${gameId}/machine.js`, import.meta.url))
-    : await machineMod.resolveOverrides(manifest.optimized, new URL(`../games/${gameId}/manifest.js`, import.meta.url));
+    ? await machineMod.resolveAllIdiomatic(machineBase)
+    : await machineMod.resolveOverrides(manifest.optimized, manifestBase);
 
   // Each declared ROM image: the page's sha256-checked copy if supplied, else the built .bin.
   const names = Object.keys(manifest.rom.images);

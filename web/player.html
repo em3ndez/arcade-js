@@ -26,6 +26,13 @@
   button.hot { background: #2a3a20; border-color: #4d7a33; color: #cfe8b0; }
   #status { color: #7a7a95; min-height: 1.4em; text-align: center; }
   #status b { color: #9fd0ff; }
+  /* Loading spinner: the engine imports hundreds of routine modules before it posts "ready",
+     which can take a few seconds; an animated indicator tells the user it is loading, not hung.
+     Any status message (ready/error/reset) overwrites #status, so the spinner clears itself. */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { display: inline-block; width: 0.9em; height: 0.9em; vertical-align: -0.15em;
+             margin-right: 0.45em; border: 2px solid #33334d; border-top-color: #9fd0ff;
+             border-radius: 50%; animation: spin 0.8s linear infinite; }
   .legend { color: #8a8aa5; max-width: 640px; text-align: center; }
   .legend kbd { background: #1a1a28; border: 1px solid #33334d; border-bottom-width: 2px;
                 border-radius: 4px; padding: 1px 6px; color: #d8d8ea; font-size: 12px; }
@@ -95,7 +102,7 @@
          audio layer at all. See the AUDIO section in the script below. -->
     <button id="mute" class="hide" aria-pressed="false"></button>
   </div>
-  <div id="status">booting…</div>
+  <div id="status"><span class="spinner"></span>loading… <span style="color:#5a5a72">(first start imports the engine — a few seconds)</span></div>
   <div id="romInfo" class="hide"></div>
   <div class="legend">
     <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> move · <kbd>Space</kbd> jump ·
@@ -232,6 +239,10 @@ import { getCached, putCached, clearCached } from "./romstore.js";
       const d = e.data;
       if (d.type === "sound") {
         if (onSoundEvents) onSoundEvents(d.ev);
+      } else if (d.type === "loading") {
+        const pct = d.total ? Math.round((d.loaded / d.total) * 100) : 0;
+        statusEl.innerHTML = `<span class="spinner"></span>loading engine… <b>${pct}%</b>` +
+          ` <span style="color:#5a5a72">(${d.loaded}/${d.total} modules)</span>`;
       } else if (d.type === "ready") {
         statusEl.innerHTML = "<b>running</b> — press <b>5</b> for a coin, then <b>1</b> to start";
       } else if (d.type === "restart") {
