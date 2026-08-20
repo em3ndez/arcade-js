@@ -32,12 +32,36 @@ if [ -z "$runner" ]; then
   echo "[pre-push] a spin in an idiomatic routine will hang this push with no verdict." >&2
 fi
 # No runtime estimate here on purpose -- a hand-maintained one goes stale and misleads.
-echo "[pre-push] running npm test (full suite; hard cap ${SUITE_TIMEOUT}s) before push..." >&2
+# Scope the suite: a push touching ONLY one game's dir runs that game's tests plus ALL shared tests
+# (core/boards/tools/web) and skips the OTHER games -- safe because games are independent. Anything
+# shared, a second game, or an unknowable range runs the FULL suite. Fails safe. PREPUSH_FULL=1 forces full.
+# rom-guard below still runs whole -- it is cheap (a no-ROM clone mostly skips) and guards ALL games.
+scope="FULL"
+if [ -z "${PREPUSH_FULL:-}" ]; then
+  # No `case` inside this $() -- bash 3.2 (macOS /bin/bash) misparses case-in-command-subst; ${sha//0/} tests all-zeros.
+  changed="$(while read -r _lr lsha _rr rsha; do
+    [ -z "$lsha" ] && continue
+    [ -z "${lsha//0/}" ] && continue
+    if [ -n "${rsha//0/}" ]; then
+      git diff --name-only "$rsha" "$lsha" 2>/dev/null || echo __FULL__
+    else
+      echo __FULL__
+    fi
+  done)"
+  scope="$(printf '%s\n' "$changed" | node "$repo/tools/prepush_scope.mjs" 2>/dev/null || echo FULL)"
+fi
+case "$scope" in
+  "SUBSET "*) game="${scope#SUBSET }"; suite_desc="game '$game' subset (shared tests kept; other games skipped)"
+    set -- node --test --test-concurrency=2 "core/**/test/*.test.js" "boards/**/test/*.test.js" \
+      "games/$game/**/test/*.test.js" "tools/**/test/*.test.js" "web/test/*.test.js" ;;
+  *) suite_desc="full suite"; set -- npm test ;;
+esac
+echo "[pre-push] running $suite_desc (hard cap ${SUITE_TIMEOUT}s) before push..." >&2
 log="$(mktemp)"
 if [ -n "$runner" ]; then
-  "$runner" "$SUITE_TIMEOUT" npm test >"$log" 2>&1 </dev/null; rc=$?
+  "$runner" "$SUITE_TIMEOUT" "$@" >"$log" 2>&1 </dev/null; rc=$?
 else
-  npm test >"$log" 2>&1 </dev/null; rc=$?
+  "$@" >"$log" 2>&1 </dev/null; rc=$?
 fi
 if [ "$rc" -eq 0 ]; then
   rm -f "$log"
