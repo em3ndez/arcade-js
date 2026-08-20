@@ -45,6 +45,15 @@ test("every game is scanned, and the scan reaches tracked modules", async () => 
       console.log(`  ${g}: no registry in the index yet, so there is nothing to check`);
       continue;
     }
+    // A registry with named cells but NO ROUTINES entries yet is the front-loaded RAM-naming
+    // state -- the understanding pass that names memory before any routine is decompiled. There is
+    // no module to dispatch, so nothing to scan; this is coherent, not the scan going blind. (An
+    // empty registry that ALSO has idiomatic module files is still caught: the per-game DISPATCHED
+    // test below flags every undispatched module.)
+    if (Object.keys(routines).length === 0) {
+      console.log(`  ${g}: registry present but no routine entries yet (RAM-naming only), nothing to scan`);
+      continue;
+    }
     const { modules, support, unclassified } = findWiringGaps(dir, routines);
     total += modules.length;
     const cannot = unclassified.length ? `, EXPORT SHAPE UNREAD: ${unclassified.join(", ")}` : "";
