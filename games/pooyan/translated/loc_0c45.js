@@ -26,20 +26,25 @@ export function loc_0c45(m) {
   m.ret(); // 0c4d  ret -- DE = table[index]
 }
 
-// loc_0c4e -- push a fixed return (0x0d78), then dispatch on state byte (0x880a) via loc_0028,
-// which indexes the inline word table at 0x0c56 {0->0c5c, 1->0c77, 2->0d61} and jumps there.
+// loc_0c4e -- push a fixed return (0x0d78), then dispatch on state byte (0x880a) via loc_0028, which
+// indexes the inline word table at 0x0c56 {0->0c5c, 1->0c77, 2->0d61} and jumps there. The chosen state
+// handler ret's to 0x0d78 -- loc_0c4e's OWN continuation past the 0x0c56 table -- which runs and ret's to
+// the caller (the NMI epilogue 0x06fa). So the dispatch is NOT a never-return tail: control comes back at
+// 0x0d78 and must continue there, or the pushed 0x06fa leaks and the NMI epilogue's ret pops a saved
+// register (same class as loc_159b). See loc_0899's `return m.call(0x0bb5)` for the identical idiom.
 export function loc_0c4e(m) {
   const { regs, mem } = m;
 
   regs.hl = 0x0d78;
   m.step(0x0c51, 10);
   m.push16(regs.hl);
-  m.step(0x0c52, 11); // 0c51  push hl -- handler's ret lands on 0x0d78
+  m.step(0x0c52, 11); // 0c51  push hl -- the dispatched handler's ret lands on 0x0d78
   regs.a = mem.read8(0x880a);
   m.step(0x0c55, 13); // 0c52  ld a,(0x880a)
   m.push16(0x0c56);
-  m.step(0x0028, 11); // 0c55  rst 0x28 -- pushes table base 0x0c56; loc_0028 performs the jump
-  return m.call(0x0028);
+  m.step(0x0028, 11); // 0c55  rst 0x28 -- pushes table base 0x0c56; loc_0028 jumps to the state handler
+  m.call(0x0028);
+  return m.call(0x0d78); // 0d78  loc_0c4e's post-dispatch continuation (rets to 0x06fa)
 }
 
 // loc_0c5c -- state 0: clear scratch bytes, seat the tile pointer (0x8442), bump state, delegate.

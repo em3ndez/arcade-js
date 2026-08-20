@@ -84,22 +84,29 @@ test("loc_0c45 MUTATION: `add hl,de` mis-charged 7T (not 11T) is caught", () => 
   assert.notEqual(m.tstates, 56, "golden T-state total catches the mutant");
 });
 
-// ── loc_0c4e: state dispatcher (always delegates to loc_0028; A carries the state) ────────────
-test("loc_0c4e: pushes 0x0d78 + table base 0x0c56, delegates to loc_0028; 45 T", () => {
+// ── loc_0c4e: state dispatcher -- pushes 0x0d78, dispatches via loc_0028, then continues at 0x0d78 ──
+test("loc_0c4e: pushes 0x0d78, dispatches loc_0028, continues at 0x0d78, rets to caller; balanced; 45 T", () => {
   const m = makeMachine();
-  seatCaller(m);
-  const sp0 = m.regs.sp;
+  seatCaller(m); // CALLER_RET stands in for the NMI epilogue 0x06fa loc_066d pushed
+
+  // loc_0028 is the rst-0x28 tail dispatcher: it pops the table base (0x0c56) AND the dispatched state
+  // handler ret's popping the 0x0d78 loc_0c4e pushed -- net SP += 4 -- landing control at 0x0d78.
+  // 0x0d78 is loc_0c4e's continuation, which rets to the caller (0x06fa).
+  m.call = (addr) => {
+    m.calls.push(addr);
+    if (addr === 0x0028) { m.regs.sp = (m.regs.sp + 4) & 0xffff; m.step(0x0d78, 0); }
+    else { m.ret(0); } // 0x0d78 continuation rets to the caller
+    return undefined;
+  };
   m.mem.write8(0x880a, 1); // state 1
 
   loc_0c4e(m);
 
-  assert.equal(m.tstates, 45, "loc_0c4e T-state total");
-  assert.deepEqual(m.calls, [0x0028], "dispatch delegated to loc_0028");
-  assert.equal(m.regs.a, 1, "A = state byte (loc_0028 does the doubling)");
-  assert.equal(m.regs.sp, (sp0 - 4) & 0xffff, "0x0d78 and 0x0c56 both pushed");
-  assert.equal(m.mem.read16(m.regs.sp), 0x0c56, "rst 0x28 return = inline table base");
-  assert.equal(m.mem.read16((m.regs.sp + 2) & 0xffff), 0x0d78, "handler's eventual ret target");
-  assert.deepEqual(m.pcSeq, [0x0c51, 0x0c52, 0x0c55, 0x0028], "step boundaries");
+  assert.equal(m.tstates, 45, "loc_0c4e T-state total (own instrs; the mock charges 0)");
+  assert.deepEqual(m.calls, [0x0028, 0x0d78], "dispatch, then the 0x0d78 continuation");
+  assert.equal(m.pc, CALLER_RET, "the 0x0d78 continuation rets to loc_0c4e's caller (0x06fa)");
+  assert.equal(m.regs.sp, 0x8780, "stack fully unwound to baseline -- the continuation consumes the caller return");
+  assert.deepEqual(m.pcSeq, [0x0c51, 0x0c52, 0x0c55, 0x0028, 0x0d78, CALLER_RET], "step boundaries");
 });
 
 // ── loc_0c5c: state 0 -- clear scratch, seat pointer, bump state, call 0x02b9 ──────────────────
