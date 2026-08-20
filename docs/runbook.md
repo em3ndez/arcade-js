@@ -281,6 +281,14 @@ batch and feeds the next batch's targets.
 - **Batches of ~10 leaf routines, leaves-first** — a caller decompiled before its callee has to
   hand-marshal the callee's register ABI, an assembly leak the equivalence gate can't see. Re-derive
   the leaf set **each batch** by closing the call graph over current `m.call` targets.
+- ⚠ **TODO — `batch_size_gate` guards §3 translation ONLY; extend it to THIS pass before batching in
+  earnest.** The idiomatic pass drifts to tiny batches too — the same failure the §3 gate exists to
+  stop (fan-out shrinks silently no matter what this doc says). Add a `--pass idiomatic` mode: N = the
+  idiomatic modules added in the commit, R = `loc_` routines still resolving to the oracle copy
+  (un-rewritten — readable from `ROUTINES`/the registry). ⚠ CALIBRATE its floor to THIS pass's
+  economics: idiomatic is understand + ground-in-MAME + rewrite with real interdependencies, NOT
+  syntactic like translation, so it will NOT be the §3 floor of ~40 — pick the number from real §4
+  batch sizes, and lean on the `--reason` waiver for a genuinely small grounding-heavy cluster.
 - Per routine ship all **four**: module + `equivalence-<addr>.test.js` + `ROUTINES` entry + green
   gate. **Done only when DISPATCHED** — `resolveAllIdiomatic` walks `ROUTINES`, so a module no entry
   names is never overridden. Done requires that **no routine runs as the frozen oracle in the live
