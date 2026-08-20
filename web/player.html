@@ -51,7 +51,9 @@
                 border-radius: 4px; padding: 1px 6px; color: #d8d8ea; font-size: 12px; }
   .warn { color: #ffb0b0; background: #2a1414; border: 1px solid #6a2a2a;
           padding: 10px 14px; border-radius: 6px; max-width: 640px; text-align: center; }
-  .hide { display: none; }
+  /* !important so it beats the #loadOverlay/#board id rules' display:flex (id > class,
+     so a bare .hide lost -- the load overlay stayed onscreen after "ready"). */
+  .hide { display: none !important; }
 
   /* --- drop-your-own-ROM panel ------------------------------------------- */
   #romPanel { width: 100%; max-width: 720px; background: #14141f; border: 1px solid #26263c;
