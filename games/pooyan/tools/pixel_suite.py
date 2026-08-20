@@ -4,21 +4,28 @@
 
 The JS<->golden frame offset drifts across boot, so a single frozen offset false-fails at the fill
 transitions; each JS frame is scored against its NEAREST golden frame within a window instead (the
-drift-tolerant reconverge). Pooyan covers only the attract boot with no input -- the translated boot
-reaches 0x05ee, an untranslated dispatcher, and stops (render.js paints what it has and exits nonzero,
-which is EXPECTED here, not a failure).
+drift-tolerant reconverge). Pooyan covers the attract boot with no input. Since batch 5 completed the
+0x0242 attract state table, the translated boot no longer stops early -- it runs CLEAN and only reaches
+the next untranslated gap (0x1601) around frame 1357. This gate validates the byte-exact PREFIX_FRAMES
+prefix of that boot; render.js is asked for exactly that many frames and must return them with NO gap.
 
-CALIBRATION (two independent certified goldens, 2026-08-19): a correct oracle render reconverges to
-EXACTLY 0px -- byte-identical -- on every boot frame but one. The exception is js31, an ldirAt sub-frame
-fill instant that no whole-frame golden captures (16325px at every offset), isolated between byte-exact
-neighbours. So the floor is 0 and 3x0 stays 0: BAND_MAX_PX = 0 (a frame is a mismatch if it differs from
-its nearest golden by any pixel), and the one irreducible transient is carried by TRANSIENT_BUDGET, NOT
-by inflating the band to swallow 16325px (which would pass a 28%-wrong frame). VERDICT: PASS iff at most
-TRANSIENT_BUDGET frames mismatch. Injecting a single wrong pixel makes 2 mismatches -> FAIL (teeth).
+CALIBRATION (2026-08-20): a correct oracle render reconverges to EXACTLY 0px -- byte-identical to MAME --
+on every prefix frame but one. The exception is js31, an ldirAt sub-frame fill instant that no whole-frame
+golden captures (16325px at every offset), isolated between byte-exact neighbours. So the floor is 0 and
+3x0 stays 0: BAND_MAX_PX = 0 (a frame is a mismatch if it differs from its nearest golden by any pixel),
+and the one irreducible transient is carried by TRANSIENT_BUDGET, NOT by inflating the band to swallow
+16325px (which would pass a 28%-wrong frame). VERDICT: PASS iff at most TRANSIENT_BUDGET prefix frames
+mismatch. Injecting a single wrong pixel makes 2 mismatches -> FAIL (teeth).
+
+SCOPE NOTE: beyond the prefix the extended attract demo (frames ~177-1357) shows ~20 ISOLATED,
+recover-immediately sub-frame / animation-drift transients vs MAME (max 1446px @ f793; every mismatched
+frame has byte-exact neighbours -- no cascade, so not state corruption). Gating that full sequence needs
+a fresh ~24s golden and a cascade-aware budget; it is a tracked FOUNDATION item, deliberately NOT papered
+over by inflating TRANSIENT_BUDGET here.
 
 FAIL-CLOSED: `pixel_suite: PASS` prints ONLY on a clean comparison. No mame/romset -> SKIP + nonzero. A
-poisoned golden, a boot that stops anywhere but 0x05ee, too few frames, a frozen screen, or more than the
-budgeted mismatches each print a non-PASS line and exit nonzero.
+poisoned golden, a boot that stops (any gap) inside the prefix, too few frames, a frozen screen, or more
+than the budgeted mismatches each print a non-PASS line and exit nonzero.
 """
 import argparse
 import os
@@ -36,20 +43,30 @@ import pixel_gate       # noqa: E402
 
 HW = os.path.join(REPO, "boards", "pooyan", "hardware.json")
 DRIVER = "pooyan"
-SECONDS = 4                    # 244 golden frames: covers the ~131 painted boot frames + the search window
+SECONDS = 4                    # 244 golden frames: covers the PREFIX_FRAMES validated window + the search window
+
+# The oracle boot no longer STOPS in the validated window -- since batch 5 (the attract 0x0242 state table
+# is complete) it runs clean to frame ~1357 and only then reaches the next untranslated gap 0x1601. So this
+# gate validates the byte-exact PREFIX: the first PREFIX_FRAMES boot frames, which stay byte-identical to
+# MAME (only the js31 ldirAt sub-frame transient differs). Beyond the prefix the extended attract demo shows
+# ~20 ISOLATED, recover-immediately sub-frame/animation-drift transients vs MAME (max 1446px @ f793; each
+# frame's neighbours are byte-exact -- no cascade). Pixel-gating that full 1357-frame sequence needs a fresh
+# ~24s golden and a cascade-aware budget; that is a tracked FOUNDATION item (see ARCADE2-RESUME.md), not
+# swept under an inflated budget here. 170 is the last frame before the first extended transient (f177).
+PREFIX_FRAMES = 170
+FULL_BOOT_GAP = 0x1601         # where the FULL boot now stops (documentation; the prefix gate expects NO gap)
 
 # Nearest-golden search half-width. Distinct-content frames drift about +1; static fill/hold frames match
 # any identical golden frame, so the chosen offset ranges wider but every clean frame still scores 0px --
 # stable over windows 8..20 in measurement. 20 is generous margin over the +1 content drift.
 WINDOW = 20
 
-# Measured correct-layer floor is 0px (byte-exact); see the module docstring. BAND_MAX_PX 0 makes any
-# nonzero diff a mismatch; TRANSIENT_BUDGET 1 forgives the single irreducible ldirAt sub-frame transient.
+# Measured correct-layer floor is 0px (byte-exact) across the prefix; see the module docstring. BAND_MAX_PX 0
+# makes any nonzero diff a mismatch; TRANSIENT_BUDGET 1 forgives the single irreducible js31 ldirAt transient.
 BAND_MAX_PX = 0
 TRANSIENT_BUDGET = 1
 
-EXPECTED_BOOT_GAP = 0x05ee     # the untranslated dispatcher the oracle boot reaches; pinned so a boot that
-MIN_PAINTED = 120              # regresses to an earlier gap, or advances past it, trips the gate for review
+MIN_PAINTED = 160              # the prefix must render nearly all PREFIX_FRAMES; a boot that stops early trips it
 MIN_DISTINCT = 10              # a frozen/black render proves nothing; the boot has ~34 distinct images
 
 # Positive control: flip one pixel in one painted frame (well clear of the js31 transient) -> must FAIL.
@@ -114,7 +131,8 @@ def main():
     p.add_argument("--rompath", default=os.path.expanduser("~/Downloads"),
                    help="MAME romset search path (needs pooyan.zip); NOT the JS ROM dir.")
     p.add_argument("--seconds", type=int, default=SECONDS)
-    p.add_argument("--frames", type=int, default=400, help="render cap; the boot stops at 0x05ee first.")
+    p.add_argument("--frames", type=int, default=PREFIX_FRAMES,
+                   help="frames to render+validate (the byte-exact boot prefix; the full boot runs clean past it).")
     p.add_argument("--work", default=os.path.join(GAME, "out", "pixelwork"))
     # The gate invokes every suite with --layer {oracle,idiomatic}. Pooyan has no idiomatic layer yet, so
     # both render the oracle; accepted (not rejected) so a shared-infra commit is never blocked here.
@@ -146,10 +164,10 @@ def main():
     if dropped:
         print("pixel_suite: FAIL -- render dropped frames (a tick outran a frame); indices shifted.")
         return 1
-    if gap != EXPECTED_BOOT_GAP:
-        seen = "no gap (boot ran clean or died elsewhere)" if gap is None else f"0x{gap:04x}"
-        print(f"pixel_suite: FAIL -- boot stopped at {seen}, not the pinned gap 0x{EXPECTED_BOOT_GAP:04x}. "
-              "Boot depth changed -- re-measure and update EXPECTED_BOOT_GAP.\n" + log.strip()[-400:])
+    if gap is not None:
+        print(f"pixel_suite: FAIL -- boot stopped at gap 0x{gap:04x} inside the {PREFIX_FRAMES}-frame prefix. "
+              f"The prefix must run CLEAN (the full boot runs to 0x{FULL_BOOT_GAP:04x}); an earlier stop is a "
+              "regression -- investigate.\n" + log.strip()[-400:])
         return 1
     if painted < MIN_PAINTED:
         print(f"pixel_suite: FAIL -- render painted {painted} frames (< {MIN_PAINTED}); too short to judge.")
