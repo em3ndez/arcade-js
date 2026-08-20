@@ -90,6 +90,58 @@ export const UNWIRED = {
       "The module and its equivalence-43f0 gate are correct (byte-identical to the oracle in work " +
       "RAM, verified) and stay; the frozen layer runs it in-game when the Mother-Ship is on the field.",
   },
+  pooyan: {
+    // Batch 1: 10 leaf modules, all decompiled + equivalence-proven (green equivalence-<addr>) and
+    // 0-cruft, but ALL held UNWIRED for one shared reason: pooyan is not yet go-live on the generator
+    // engine. A clock-free idiomatic override spends no T-states where the oracle spends many, so under
+    // the cycle-driven runFrames a wired override drifts the NMI phase (boot-statediff diverges from
+    // ~frame 179, first in the NMI stack) -- it cannot be validated until the convergence config
+    // (manifest nmiReturnPC / stateExclude.stack) is measured. The frozen oracle serves each address
+    // meanwhile. Group 1 below (memory-only) wires bare once go-live; group 2 ALSO needs a cruft-free
+    // register/flag dispatch bridge (the dkong *FromRegisters pattern writes regs + calls regs.and/addHl,
+    // register cruft idiomatic_gate counts, which pooyan's implicit-0 budget forbids).
+    //
+    // -- group 1: memory-only, wire bare post-go-live --
+    "paintColumnBodyTiles.js":
+      "0x02aa: memory-only (VRAM writes via pointer params). Returns HL for faithfulness but both callers " +
+      "reload HL, so bare dispatch is correct. Held for the go-live reason above.",
+    "clearBit2AcrossSixSlots.js":
+      "0x0e46: memory-only (clears bit 2 across six stride-4 entries at HL). Bare dispatch. Held for go-live. " +
+      "CAVEAT: no static caller found (nothing in the translated layer dispatches 0x0e46), so its bare-dispatch " +
+      "correctness is unverifiable until its dynamic call site is reached -- a further reason to hold.",
+    "setActorAnimation.js":
+      "0x381e: memory-only (DE -> ix+0x0C/0x0D, reset ix+0x0E). Bare dispatch, reached ~219x in attract. Held for go-live.",
+    "storeActorAnimationPointer.js":
+      "0x5c75: memory-only (DE -> iy+0x0c/0x0d, reset iy+0x0e). Bare dispatch. Held for go-live.",
+    //
+    // -- group 2: register/flag live-out, also needs a cruft-free bridge --
+    "blankTileColumn.js":
+      "0x02b1: HL is a GENUINE live-out -- loc_0254 issues 0x02b1 back-to-back without reloading HL, so " +
+      "each call consumes the pointer the previous left. A single-register HL bridge is expressible " +
+      "cruft-free (return (m.regs.hl = ...)), but it is held with the flag/multi-register siblings below " +
+      "until the bridge convention + a gameplay boot-statediff validate the dispatch path.",
+    "initActorRecord.js":
+      "0x619f: HL live-out -- the oracle advances HL to rec+0x17 and its callers loc_60bc/loc_60d9 tail-jump " +
+      "into loc_611f WITHOUT reloading HL, which reads the scan key at rec+0x14 (HL += 0xfffd). Wired bare it " +
+      "diverges at frame 1754 (first addr 0x8a40, a real work-RAM cell -- NOT the stack phase artifact). The " +
+      "module returns the advanced pointer; needs the same cruft-free HL bridge as blankTileColumn. (BC ends " +
+      "0x0004 as plumbing; no caller confirmed to read it.)",
+    "splitBcdByte.js":
+      "0x0429: three live-outs the callers read -- A (high BCD digit), HL (advanced by DE) and the Z flag " +
+      "(leading-zero test). The module returns { high, next } and Z-sense = high===0; a bridge must set " +
+      "regs.a/regs.hl and the Z flag, and setting Z is a read-modify-write of regs.f = register cruft.",
+    "drawStackedBcdDigits.js":
+      "0x1119: loc_6f42 reads HL (advanced), E (input byte) AND BC == 0xffe0 back after the call. A bridge " +
+      "must restore all three; the module is memory-only + returns { next, byte }, and BC is a machine " +
+      "residue no idiomatic body should hold.",
+    "advanceFallStep.js":
+      "0x3fd5: the live-out is the CARRY flag (callers use ret c). The module returns a boolean; a bridge " +
+      "must set carry, i.e. read-modify-write regs.f = register cruft under the implicit-0 budget.",
+    "stampObjectAndDecCounter.js":
+      "0x57e5: live-outs are A (byte from (BC)) and the Z flag (dec counter). The module returns " +
+      "{ a, counter }; a bridge must set regs.a and the Z flag. No confirmed caller (register-dispatched, " +
+      "0 dispatches in attract), so the exact flag consumer is unverified -- another reason to hold it.",
+  },
 };
 
 /**

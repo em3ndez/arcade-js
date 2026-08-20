@@ -72,6 +72,13 @@ register slot, not the player — both fire in a 1-player game) that a teardown 
 as it removes the struck object. `GRAB_ACTIVE_FLAG` [seen] latches while a rope-grab is in
 progress, aborting spawn and event work until it clears.
 
+The arena's records are built and driven by decompiled leaf primitives [code]: `initActorRecord`
+stamps a fresh record's spawn constants and datum; `setActorAnimation` and
+`storeActorAnimationPointer` install a record's animation-script pointer and reset its frame index;
+`advanceFallStep` steps a falling actor one gravity increment and reports whether it is still above
+its landing row; and `stampObjectAndDecCounter` marks an object's state bytes while decrementing a
+shared counter.
+
 ## Waves, rope and launch
 
 A round is a sequence of attack waves. `WAVE_INDEX` [seen] (`0x8f3d`) selects the wave and also
@@ -103,6 +110,12 @@ intro/attract text is emitted by the `SCRIPT_FRAME_TIMER`/`ATTRACT_SUBSTATE` [se
 (`ROUND_COUNTER` [code], BCD-rendered) and a five-cell vertical gauge drained through
 `GAUGE_PHASE_COUNTER` [seen]. The high score keeps its MSB in `HIGH_SCORE_BCD_HI` [seen] (compared
 MSB-first when a new score beats it) and the sorted ten-entry table at `HIGH_SCORE_TABLE` [code].
+
+Several rendering leaves are decompiled [code]: `splitBcdByte` peels a BCD byte into its two digits
+and `drawStackedBcdDigits` paints them as a stacked pair (blanking a leading zero) for the HUD
+counters; `paintColumnBodyTiles` stamps a column's two body tiles (the caller adds the cap) and
+`blankTileColumn` blanks a three-cell column; and `clearBit2AcrossSixSlots` clears one attribute bit
+across six strided table entries.
 
 ## Anti-tamper
 

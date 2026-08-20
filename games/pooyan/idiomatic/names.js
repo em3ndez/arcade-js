@@ -193,5 +193,16 @@ export const LATCHED_ENEMY_X = 0x8f5b;
 /** [code] (static 0 in BOTH goldens (band-build path not sampled) -- role code-confident: loc_343e/3473 gate+set=1, loc_2527/25a6 clear) One-shot latch: interior/rope sprite band has been built; gates re-setup, cleared on board reset and at rope terminal */
 export const ANIM_ARMED_LATCH = 0x8f63;
 
+// Stack-scratch window [lo, hi): the emulated Z80 stack lives just below its 0x9000 init (SP inits
+// to 0x9000 at loc_0092; measured min SP 0x8fd0 over the boot). Equivalence tests exclude it -- a
+// routine's transient stack writes are not game state.
+export const STACK_SCRATCH = { lo: 0x8fc0, hi: 0x9000 };
+
 // == Routine dispatch map (idiomatic overrides layered over the translated oracle) ==
+// Empty: batch-1 leaf modules are decompiled + equivalence-proven but held UNWIRED
+// (tools/registry-coverage.config.mjs) until pooyan is go-live on the generator engine. Under the
+// cycle-driven runFrames a clock-free idiomatic override spends no T-states where the oracle spends
+// many, drifting the NMI phase (a boot-statediff diverges from ~frame 179, first in the NMI stack),
+// so a wired override cannot be validated until the convergence config (manifest nmiReturnPC /
+// stateExclude.stack) is measured. 6 of the 10 also need a cruft-free register/flag dispatch bridge.
 export const ROUTINES = {};
