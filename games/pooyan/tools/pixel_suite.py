@@ -6,7 +6,7 @@ The JS<->golden frame offset drifts across boot, so a single frozen offset false
 transitions; each JS frame is scored against its NEAREST golden frame within a window instead (the
 drift-tolerant reconverge). Pooyan covers the attract boot with no input. Since batch 5 completed the
 0x0242 attract state table, the translated boot no longer stops early -- it runs CLEAN and only reaches
-the next untranslated gap (0x6c18) around frame 1447. This gate validates the byte-exact PREFIX_FRAMES
+the next untranslated gap (0x6c3f) around frame 1447. This gate validates the byte-exact PREFIX_FRAMES
 prefix of that boot; render.js is asked for exactly that many frames and must return them with NO gap.
 
 CALIBRATION (2026-08-20): a correct oracle render reconverges to EXACTLY 0px -- byte-identical to MAME --
@@ -46,7 +46,7 @@ DRIVER = "pooyan"
 SECONDS = 4                    # 244 golden frames: covers the PREFIX_FRAMES validated window + the search window
 
 # The oracle boot no longer STOPS in the validated window -- since batch 5 (the attract 0x0242 state table
-# is complete) it runs clean to frame ~1447 and only then reaches the next untranslated gap 0x6c18. So this
+# is complete) it runs clean to frame ~1447 and only then reaches the next untranslated gap 0x6c3f. So this
 # gate validates the byte-exact PREFIX: the first PREFIX_FRAMES boot frames, which stay byte-identical to
 # MAME (only the js31 ldirAt sub-frame transient differs). Beyond the prefix the extended attract demo shows
 # ~20 ISOLATED, recover-immediately sub-frame/animation-drift transients vs MAME (max 1446px @ f793; each
@@ -54,7 +54,7 @@ SECONDS = 4                    # 244 golden frames: covers the PREFIX_FRAMES val
 # ~24s golden and a cascade-aware budget; that is a tracked FOUNDATION item (see ARCADE2-RESUME.md), not
 # swept under an inflated budget here. 170 is the last frame before the first extended transient (f177).
 PREFIX_FRAMES = 170
-FULL_BOOT_GAP = 0x6c18         # where the FULL boot now stops (documentation; the prefix gate expects NO gap)
+FULL_BOOT_GAP = 0x6c3f         # where the FULL boot now stops (documentation; the prefix gate expects NO gap)
 
 # Nearest-golden search half-width. Distinct-content frames drift about +1; static fill/hold frames match
 # any identical golden frame, so the chosen offset ranges wider but every clean frame still scores 0px --
