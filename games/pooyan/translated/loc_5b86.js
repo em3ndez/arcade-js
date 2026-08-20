@@ -16,6 +16,7 @@ export function loc_5b86(m) {
     m.push16(0x5b93);
     m.step(0x5b99, 17);            // 5b90  call 0x5b99
     m.call(0x5b99);
+    if (m.pc !== 0x5b93) return;   // loc_5b99 hit-exit `pop af;ret` unwound two levels to loc_5ae4 (0x5afc); propagate
     regs.exx();                    m.step(0x5b94, 4);
     regs.addIx(regs.de);           m.step(0x5b96, 15);
     if (regs.djnz()) { m.step(0x5b8f, 13); } else { m.step(0x5b98, 8); break; }

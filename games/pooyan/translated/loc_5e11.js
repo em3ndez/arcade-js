@@ -11,6 +11,7 @@ export function loc_5e11(m) {
     m.push16(0x5e14);
     m.step(0x5e1f, 17);            // 5e11  call 0x5e1f
     m.call(0x5e1f);
+    if (m.pc !== 0x5e14) return;   // loc_5e1f skip-returned past this loop; propagate
     regs.de = 0x0004;             m.step(0x5e17, 10); // 5e14  ld de,0x0004
     regs.addIy(regs.de);          m.step(0x5e19, 15); // 5e17  add iy,de
     regs.e = 0x18;                m.step(0x5e1b, 7);  // 5e19  ld e,0x18

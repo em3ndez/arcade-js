@@ -48,7 +48,7 @@ function makeMachine() {
     // Model both so a missing push16 desyncs SP and a dropped exx leaks 0xEE into the loop state.
     call(addr) {
       this.calls.push(addr);
-      this.pop16();
+      this.pc = this.pop16();
       regs.a = 0xee; regs.b = 0xee; regs.c = 0xee;
       regs.d = 0xee; regs.e = 0xee; regs.h = 0xee; regs.l = 0xee;
       return undefined;

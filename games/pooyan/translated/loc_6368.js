@@ -17,6 +17,7 @@ export function loc_6368(m) {
     m.push16(0x6378);
     m.step(0x6381, 17);  // 6375  call 0x6381
     m.call(0x6381);
+    if (m.pc !== 0x6378) return;   // 0x6381 subtree skip-returned past this loop; propagate
     regs.exx();          m.step(0x6379, 4);
     regs.addIy(regs.de); m.step(0x637b, 15);
     regs.a = regs.e;     m.step(0x637c, 4);

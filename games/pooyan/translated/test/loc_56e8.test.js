@@ -47,7 +47,7 @@ function makeMachine() {
     ret(cycles = 10) { this.step(this.pop16(), cycles); },
     // loc_572b (pure pop) and loc_5871 (tail dispatch) both ret; pop models that. The tail jp z has
     // no push16 at the call site, so its pop consumes the seated CALLER_RET -> SP back to baseline.
-    call(addr) { this.calls.push(addr); this.pop16(); return undefined; },
+    call(addr) { this.calls.push(addr); this.pc = this.pop16(); return undefined; },
   };
 }
 
@@ -80,7 +80,7 @@ test("loc_56e8 tail jp z: (0x8907) bit0 clear -> dispatch loc_5871", () => {
 
   assert.equal(m.tstates, 13 + 4 + 12 + 13 + 8 + 10);
   assert.deepEqual(m.pcSeq, [0x56eb, 0x56ec, 0x56f3, 0x56f6, 0x56f8, 0x5871]);
-  assert.equal(m.pc, 0x5871, "tail jp lands on loc_5871");
+  assert.equal(m.pc, CALLER_RET, "loc_5871 ran + ret'd to caller; dispatch verified by pcSeq/m.calls");
   assert.deepEqual(m.calls, [0x5871]);
   assert.equal(m.regs.sp, 0x8780, "tail dispatch: loc_5871's ret consumed the seated CALLER_RET");
 });

@@ -41,7 +41,7 @@ function makeMachine() {
     ret(cycles = 10) { this.step(this.pop16(), cycles); },
     // The callee's `ret` pops the return address loc_53a0 pushed at the call site -- model that pop so
     // the stack stays balanced (a missing push16 then desyncs SP and the balance assertion fails).
-    call(addr) { this.calls.push(addr); this.pop16(); return undefined; },
+    call(addr) { this.calls.push(addr); this.pc = this.pop16(); return undefined; },
   };
 }
 

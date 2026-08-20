@@ -51,7 +51,7 @@ function makeMachine() {
     // push16 desyncs the stack and the final unwind misses CALLER_RET.
     call(addr) {
       this.calls.push(addr);
-      this.pop16();
+      this.pc = this.pop16();
       return undefined;
     },
   };
@@ -76,7 +76,7 @@ test("loc_4221 T1: bit0 clear, (ix+0x06)&0x1f >= 0x14 -> arm script 0x4212, tail
     0x4006, 0x4228, 0x422a, 0x343e, 0x4230, 0x4232, 0x4234, 0x4236,
     0x423a, 0x423d, 0x423e, 0x4241, 0x381e,
   ]);
-  assert.equal(m.pc, 0x381e, "tail jp lands on loc_381e");
+  assert.equal(m.pc, CALLER_RET, "loc_381e ran + ret'd to caller; dispatch verified by pcSeq/m.calls");
   assert.deepEqual(m.calls, [0x4006, 0x343e, 0x381e]);
   assert.equal(m.mem.read8(IX + 0x08), 0x01, "(ix+0x08) set to 1");
   assert.equal(m.mem.read8(0x8d4b), 0x00, "0x8d4b cleared (xor a)");
@@ -99,7 +99,7 @@ test("loc_4221 T2: bit0 set, A<0x0a, (0x8901)>=2 -> arm script 0x4203, tail loc_
     0x4006, 0x4228, 0x4244, 0x34f2, 0x424a, 0x424c, 0x424e, 0x4250, 0x4251, 0x4254, 0x4256,
     0x4258, 0x425c, 0x425f, 0x4261, 0x4264, 0x4241, 0x381e,
   ]);
-  assert.equal(m.pc, 0x381e, "jr 0x4241 -> tail jp loc_381e");
+  assert.equal(m.pc, CALLER_RET, "loc_381e ran + ret'd to caller; dispatch verified by pcSeq/m.calls");
   assert.deepEqual(m.calls, [0x4006, 0x34f2, 0x381e]);
   assert.equal(m.mem.read8(IX + 0x08), 0x00, "(ix+0x08) cleared to 0");
   assert.equal(m.mem.read8(0x8d4b), 0xff, "0x8d4b = 0xff");

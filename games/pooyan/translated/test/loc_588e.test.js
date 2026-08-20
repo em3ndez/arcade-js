@@ -40,7 +40,7 @@ function makeMachine() {
     ret(cycles = 10) { this.step(this.pop16(), cycles); },
     // loc_572b's `ret` pops the return address the call site pushed -- model that pop so a missing
     // push16 desyncs the stack. loc_572b's register effect on loc_588e is nil (IX is advanced here).
-    call(addr) { this.calls.push(addr); this.pop16(); return undefined; },
+    call(addr) { this.calls.push(addr); this.pc = this.pop16(); return undefined; },
   };
 }
 

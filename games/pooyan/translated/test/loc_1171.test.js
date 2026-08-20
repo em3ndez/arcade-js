@@ -43,7 +43,7 @@ function makeMachine() {
       return lo | (hi << 8);
     },
     ret(cycles = 10) { this.step(this.pop16(), cycles); },
-    call(addr) { this.calls.push(addr); this.pop16(); return undefined; }, // loc_119a: pop only
+    call(addr) { this.calls.push(addr); this.pc = this.pop16(); return undefined; }, // loc_119a: pop only
   };
 }
 

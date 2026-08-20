@@ -46,7 +46,7 @@ function makeMachine() {
     // loc_5b99's `ret` pops the return address the call site pushed -- model that pop so the stack
     // stays balanced (a missing push16 then desyncs SP and fails the balance tooth). loc_5b86 reads
     // none of loc_5b99's register output afterward (exx restores B/DE), so no register model needed.
-    call(addr) { this.calls.push(addr); this.pop16(); return undefined; },
+    call(addr) { this.calls.push(addr); this.pc = this.pop16(); return undefined; },
   };
 }
 

@@ -31,6 +31,7 @@ export function loc_1171(m) {
   for (;;) {
     regs.e = 0x1d;                     m.step(0x118f, 7);
     m.push16(0x1192); m.step(0x119a, 17); m.call(0x119a);
+    if (m.pc !== 0x1192) return;   // loc_119a skip-returned past this loop; propagate
     regs.de = 0x0018;                 m.step(0x1195, 10);
     regs.addIx(regs.de);              m.step(0x1197, 15);
     if (regs.djnz()) { m.step(0x118d, 13); } else { m.step(0x1199, 8); break; }

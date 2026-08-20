@@ -47,6 +47,7 @@ export function loc_56e8(m) {
   for (;;) {
     regs.e = 0x1d;                     m.step(0x5720, 7);
     m.push16(0x5723); m.step(0x572b, 17); m.call(0x572b);
+    if (m.pc !== 0x5723) return;   // loc_572b full-path skip-returned past this loop; propagate
     regs.de = 0x0018;                 m.step(0x5726, 10);
     regs.addIx(regs.de);              m.step(0x5728, 15);
     if (regs.djnz()) { m.step(0x571e, 13); } else { m.step(0x572a, 8); break; }

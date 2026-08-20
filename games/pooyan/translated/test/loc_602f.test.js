@@ -51,7 +51,7 @@ function makeMachine() {
     // swaps keep the loop counter B and increment DE intact.
     call(addr) {
       this.calls.push(addr);
-      this.pop16();
+      this.pc = this.pop16();
       regs.b = 0xee; regs.c = 0xee;
       regs.d = 0xee; regs.e = 0xee;
       regs.h = 0xee; regs.l = 0xee;

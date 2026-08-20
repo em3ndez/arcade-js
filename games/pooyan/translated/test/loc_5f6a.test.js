@@ -48,7 +48,7 @@ function makeMachine() {
     // pair in loc_5f6a protects. Model both so the stack tooth and the exx protection have teeth.
     call(addr) {
       this.calls.push(addr);
-      this.pop16();
+      this.pc = this.pop16();
       if (addr === 0x5f83) { regs.b = 0x04; regs.de = 0xdead; }
       return undefined;
     },

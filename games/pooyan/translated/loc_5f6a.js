@@ -19,6 +19,7 @@ export function loc_5f6a(m) {
     m.push16(0x5f7a);
     m.step(0x5f83, 17);              // 5f77  call 0x5f83 (per-slot handler)
     m.call(0x5f83);
+    if (m.pc !== 0x5f7a) return;     // loc_5f83 subtree hit-exit skip-returned past this loop to loc_5ae4 (0x5aea); propagate
     regs.exx();                      m.step(0x5f7b, 4);
     regs.addIy(regs.de);             m.step(0x5f7d, 15);
     regs.a = regs.b;                 m.step(0x5f7e, 4);

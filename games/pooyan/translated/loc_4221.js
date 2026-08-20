@@ -22,6 +22,7 @@ export function loc_4221(m) {
       m.push16(0x42d2);
       m.step(0x42da, 17);                // 42cf  call 0x42da (BOUNDARY)
       m.call(0x42da);
+      if (m.pc !== 0x42d2) return;       // loc_42da skip-returned past this loop; propagate
       regs.de = 0x0018;                  m.step(0x42d5, 10);
       regs.addIy(regs.de);              m.step(0x42d7, 15);
       if (regs.djnz()) { m.step(0x42cf, 13); } else { m.step(0x42d9, 8); return m.ret(10); }

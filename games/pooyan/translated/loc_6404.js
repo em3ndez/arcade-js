@@ -31,6 +31,7 @@ export function loc_6404(m) {
     m.push16(0x6420);
     m.step(0x6435, 17);  // 641d  call 0x6435
     m.call(0x6435);
+    if (m.pc !== 0x6420) return;   // 0x6435 subtree skip-returned past this loop; propagate
     regs.exx();          m.step(0x6421, 4);
     regs.addIy(regs.de); m.step(0x6423, 15);
     regs.a = regs.e;     m.step(0x6424, 4);

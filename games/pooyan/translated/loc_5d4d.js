@@ -13,6 +13,7 @@ export function loc_5d4d(m) {
 
   for (;;) { // 5d5a: proximity-check one target per iteration
     m.push16(0x5d5d); m.step(0x5d68, 17); m.call(0x5d68); // 5d5a  call 0x5d68
+    if (m.pc !== 0x5d5d) return;   // loc_5d68 skip-returned past this loop; propagate
     regs.de = 0x0004;          m.step(0x5d60, 10);
     regs.addIy(regs.de);       m.step(0x5d62, 15); // IY += 4
     regs.e = 0x18;             m.step(0x5d64, 7);

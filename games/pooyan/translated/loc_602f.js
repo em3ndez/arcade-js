@@ -19,6 +19,7 @@ export function loc_602f(m) {
     m.push16(0x603f);
     m.step(0x6048, 17);              // 603c  call 0x6048 (slot handler, pattern A -> 0x603f)
     m.call(0x6048);
+    if (m.pc !== 0x603f) return;     // 0x6048 subtree hit-exit skip-returned past this loop to loc_5ae4; propagate
     regs.exx();                      m.step(0x6040, 4);
     regs.addIy(regs.de);             m.step(0x6042, 15);
     regs.a = regs.b;                 m.step(0x6043, 4);

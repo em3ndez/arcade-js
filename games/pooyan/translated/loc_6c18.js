@@ -14,6 +14,7 @@ export function loc_6c18(m) {
     m.push16(0x6c28);
     m.step(0x6c3f, 17);            // 6c25  call 0x6c3f
     m.call(0x6c3f);
+    if (m.pc !== 0x6c28) return;   // loc_6c3f skip-returned past this loop to loc_6bee; propagate
 
     regs.de = 0x0004;             m.step(0x6c2b, 10);
     regs.addIy(regs.de);          m.step(0x6c2d, 15);

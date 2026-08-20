@@ -30,7 +30,7 @@ function makeMachine() {
     push16(v) { regs.sp = (regs.sp - 2) & 0xffff; mem.write8(regs.sp, v & 0xff); mem.write8((regs.sp + 1) & 0xffff, (v >> 8) & 0xff); },
     pop16() { const lo = mem.read8(regs.sp); const hi = mem.read8((regs.sp + 1) & 0xffff); regs.sp = (regs.sp + 2) & 0xffff; return lo | (hi << 8); },
     ret(cycles = 10) { this.step(this.pop16(), cycles); },
-    call(addr) { this.calls.push(addr); this.pop16(); return undefined; },
+    call(addr) { this.calls.push(addr); this.pc = this.pop16(); return undefined; },
   };
 }
 

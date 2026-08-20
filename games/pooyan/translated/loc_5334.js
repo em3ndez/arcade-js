@@ -33,6 +33,7 @@ export function loc_5334(m) {
     for (;;) { // 536a: per-entry call, IX advanced by stride 0x18
       regs.exx();                    m.step(0x536b, 4);
       m.push16(0x536e); m.step(0x5374, 17); m.call(0x5374); // 536b  call 0x5374
+      if (m.pc !== 0x536e) return;   // loc_5374 full-path skip-returned past this loop; propagate
       regs.exx();                    m.step(0x536f, 4);
       regs.addIx(regs.de);           m.step(0x5371, 15);
       if (regs.djnz()) { m.step(0x536a, 13); continue; }

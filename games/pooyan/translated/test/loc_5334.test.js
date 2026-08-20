@@ -42,7 +42,7 @@ function makeMachine() {
     ret(cycles = 10) { this.step(this.pop16(), cycles); },
     // 0x5374's `ret` pops the return this call site pushed -- model that pop so the stack balances (a
     // missing push16 then desyncs SP and fails the final ret). 0x5374 leaves IX/B/DE (banked by exx) intact.
-    call(addr) { this.calls.push(addr); this.pop16(); return undefined; },
+    call(addr) { this.calls.push(addr); this.pc = this.pop16(); return undefined; },
   };
 }
 
