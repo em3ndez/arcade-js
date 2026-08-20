@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// Equivalence test for loc_6e75 (ROM 0x6e75-0x6e85): phase-1 spawner gate. Frozen path tail-jumps to
-// 0x4c92; active path runs the two spawn calls 0x6e86/0x6edb.
+// Equivalence test for loc_6e75 (ROM 0x6e75-0x6e85): phase-1 spawner gate. The frozen/paused arm aims
+// at 0x4c92 which is DATA -- a dead trap that throws; the active path runs the two spawn calls 0x6e86/0x6edb.
 //
 // Run: node --test games/pooyan/translated/test/loc_6e75.test.js
 
@@ -33,17 +33,12 @@ function makeMachine() {
 }
 function seatCaller(m) { m.regs.sp = 0x8780; m.push16(CALLER_RET); }
 
-test("loc_6e75 frozen: (0x881e) set -> tail-jump 0x4c92; 40 T", () => {
+test("loc_6e75 frozen: (0x881e) set -> the 0x4c92 data-arm is a dead trap (throws)", () => {
   const m = makeMachine();
   seatCaller(m);
-  m.mem.write8(0x881e, 0x01); // freeze flag
+  m.mem.write8(0x881e, 0x01); // freeze flag -> the jp nz,0x4c92 arm; 0x4c92 is a data table
 
-  loc_6e75(m);
-
-  assert.equal(m.tstates, 10 + 13 + 7 + 10, "40 T");
-  assert.equal(m.pc, 0x4c92, "tail-jump to the frozen handler");
-  assert.deepEqual(m.calls, [0x4c92], "delegates to 0x4c92, no spawn");
-  assert.deepEqual(m.pcSeq, [0x6e78, 0x6e7b, 0x6e7c, 0x4c92], "boundaries");
+  assert.throws(() => loc_6e75(m), /trap 0x4c92/, "the freeze/pause arm aims at data -> unreachable, throws");
 });
 
 test("loc_6e75 active: no flags -> spawn 0x6e86 + 0x6edb, ret; 104 T", () => {
@@ -60,12 +55,12 @@ test("loc_6e75 active: no flags -> spawn 0x6e86 + 0x6edb, ret; 104 T", () => {
   assert.deepEqual(m.pcSeq, [0x6e78, 0x6e7b, 0x6e7c, 0x6e7f, 0x6e86, 0x6e82, 0x6edb, 0x6e85, CALLER_RET], "boundaries");
 });
 
-test("loc_6e75 MUTATION: or (hl) at 0x6e7b mischarged 4T (not 7T) is caught", () => {
+test("loc_6e75 MUTATION: or (hl) at 0x6e7c mischarged 4T (not 7T) caught by the active-path golden", () => {
   const m = makeMachine();
   seatCaller(m);
-  m.mem.write8(0x881e, 0x01);
+  m.call = (a) => { m.calls.push(a); m.ret(); return undefined; }; // pattern-A stub (active path)
   const real = m.step.bind(m);
   m.step = (n, c) => real(n, n === 0x6e7c ? 4 : c);
   loc_6e75(m);
-  assert.notEqual(m.tstates, 40, "golden 40 T catches the mischarge");
+  assert.notEqual(m.tstates, 104, "golden 104 T catches the mischarge");
 });

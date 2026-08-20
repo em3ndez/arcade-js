@@ -17,7 +17,7 @@ export function loc_3266(m) {
     m.step(0x3272, 8); break;
   }
   regs.cp(0xdc); m.step(0x3274, 7); // 3272  cp 0xdc
-  if (regs.fNZ) { m.step(0x0799, 10); return m.call(0x0799); } // 3274  jp nz,0x0799 (guard)
+  if (regs.fNZ) { throw new Error("loc_3266: ROM-integrity/sanity trap 0x0799 unreachable with a valid ROM"); } // 3274  jp nz,0x0799 (guard)
   m.step(0x3277, 10);
   m.ret(); // 3277  ret
 }

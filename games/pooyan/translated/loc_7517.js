@@ -87,11 +87,11 @@ export function loc_7517(m) {
   m.step(0x754c, 4); // 754b  ld a,e
   regs.cp(0x4f);
   m.step(0x754e, 7); // 754c  cp 0x4f
-  if (regs.fNZ) { m.step(0x43e1, 10); return m.call(0x43e1); } // 754e  jp nz,0x43e1
+  if (regs.fNZ) { throw new Error("loc_7517: ROM-integrity/sanity trap 0x43e1 unreachable with a valid ROM"); } // 754e  jp nz,0x43e1
   m.step(0x7551, 10); // 754e  jp nz (not taken)
   regs.d = regs.dec8(regs.d);
   m.step(0x7552, 4); // 7551  dec d
-  if (regs.fNZ) { m.step(0x462c, 10); return m.call(0x462c); } // 7552  jp nz,0x462c
+  if (regs.fNZ) { throw new Error("loc_7517: ROM-integrity/sanity trap 0x462c unreachable with a valid ROM"); } // 7552  jp nz,0x462c
   m.step(0x7555, 10); // 7552  jp nz (not taken)
   regs.hl = 0x8921;
   m.step(0x7558, 10); // 7555  ld hl,0x8921

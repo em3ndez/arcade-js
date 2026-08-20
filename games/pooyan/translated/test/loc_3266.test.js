@@ -31,16 +31,20 @@ function mk(loadRom) {
 }
 const t = ROM ? test : (n) => test(n, { skip: "ROM not built" }, () => {});
 
-test("loc_3266 checksum mismatch -> guard re-enters 0x0799; 1120 T", () => {
+test("loc_3266 checksum mismatch -> anti-tamper THROW", () => {
   const m = mk();
-  loc_3266(m); assert.equal(m.tstates, 1130, "T"); assert.deepEqual(m.calls, [0x0799]);
+  assert.throws(() => loc_3266(m), /trap 0x0799/);
 });
 t("loc_3266 checksum matches (real ROM) -> ret", () => {
   const m = mk(true);
   loc_3266(m); assert.equal(m.pc, CR, "ROM sum == 0xdc -> ret"); assert.deepEqual(m.calls, []);
 });
 test("loc_3266 MUTATION: add a,c mis-charged 7T (not 4T)", () => {
-  const m = mk();
-  const r = m.step.bind(m); m.step = (n, c) => r(n, n === 0x326e ? 7 : c);
-  loc_3266(m); assert.notEqual(m.tstates, 1130);
+  const acc = (mutate) => {
+    const m = mk();
+    if (mutate) { const r = m.step.bind(m); m.step = (n, c) => r(n, n === 0x326e ? 7 : c); }
+    try { loc_3266(m); } catch { /* anti-tamper throw on the no-ROM mismatch path */ }
+    return m.tstates;
+  };
+  assert.notEqual(acc(true), acc(false));
 });

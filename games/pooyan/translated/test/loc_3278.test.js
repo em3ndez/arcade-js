@@ -35,15 +35,15 @@ test("loc_3278 (0x8f55) gate set -> ret nz; 40 T", () => {
   const m = mk(); m.mem.write8(0x8f55, 0x01);
   loc_3278(m); assert.equal(m.tstates, 40, "T"); assert.deepEqual(m.calls, []);
 });
-test("loc_3278 empty board sum -> matches stored layout (ret) or tail-jumps 0x76d4", () => {
-  const m = mk(); m.norec.add(0x76d4); m.norec.add(0x3829); m.mem.write8(0x8f55, 0x00);
-  loc_3278(m);
+test("loc_3278 empty board sum -> 0x76d4 sanity trap throws (arms the gate first)", () => {
+  const m = mk(); m.mem.write8(0x8f55, 0x00);
+  assert.throws(() => loc_3278(m), /trap 0x76d4/);
   assert.equal(m.mem.read8(0x8f55), 0x01, "gate armed");
-  assert.ok(m.pc === CR || m.calls.includes(0x76d4) || m.calls.includes(0x3829), "board decision taken");
 });
 test("loc_3278 MUTATION: cp 0x88 mis-charged 4T (not 7T) changes the scan length", () => {
-  const m = mk(); m.norec.add(0x76d4); m.norec.add(0x3829); m.mem.write8(0x8f55, 0x00);
-  const base = (() => { const mm = mk(); mm.norec.add(0x76d4); mm.norec.add(0x3829); mm.mem.write8(0x8f55, 0x00); loc_3278(mm); return mm.tstates; })();
+  const catchTrap = (fn) => { try { fn(); } catch (e) { if (!/trap 0x76d4/.test(e.message)) throw e; } };
+  const m = mk(); m.mem.write8(0x8f55, 0x00);
+  const base = (() => { const mm = mk(); mm.mem.write8(0x8f55, 0x00); catchTrap(() => loc_3278(mm)); return mm.tstates; })();
   const r = m.step.bind(m); m.step = (n, c) => r(n, n === 0x329f ? 4 : c);
-  loc_3278(m); assert.notEqual(m.tstates, base);
+  catchTrap(() => loc_3278(m)); assert.notEqual(m.tstates, base);
 });

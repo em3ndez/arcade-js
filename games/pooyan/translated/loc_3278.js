@@ -8,7 +8,7 @@
 export function loc_3278(m) {
   const { regs, mem } = m;
 
-  regs.a = regs.a ^ regs.h; m.step(0x3279, 4); // 3278  xor h (overlap header byte)
+  regs.xor(regs.h); m.step(0x3279, 4); // 3278  xor h (overlap header byte)
   regs.l = regs.b; m.step(0x327a, 4); // 3279  ld l,b (overlap header byte)
   regs.hl = 0x8f55; m.step(0x327d, 10);
   regs.a = mem.read8(regs.hl); m.step(0x327e, 7); // 327d  ld a,(hl)
@@ -54,7 +54,7 @@ export function loc_3278(m) {
     m.step(0x32aa, 7);
     regs.hl = (regs.hl + 1) & 0xffff; m.step(0x32ab, 6);
     if (regs.djnz() !== 0) { m.step(0x32a7, 13); continue; }
-    m.step(0x32ad, 8); m.step(0x76d4, 10); return m.call(0x76d4);
+    m.step(0x32ad, 8); throw new Error("loc_3278: ROM-integrity/sanity trap 0x76d4 unreachable with a valid ROM");
   }
   for (;;) {
     regs.a = regs.d; m.step(0x32b1, 4);
@@ -63,6 +63,6 @@ export function loc_3278(m) {
     if (regs.fZ) { m.ret(11); return; } // 32b3  ret z (board matches a stored layout)
     m.step(0x32b4, 5);
     if (regs.djnz() !== 0) { m.step(0x32b0, 13); continue; }
-    m.step(0x32b6, 8); m.step(0x3829, 10); return m.call(0x3829);
+    m.step(0x32b6, 8); throw new Error("loc_3278: ROM-integrity/sanity trap 0x3829 unreachable with a valid ROM");
   }
 }

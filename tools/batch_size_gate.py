@@ -79,6 +79,11 @@ FLOOR = 40  # minimum routines a fresh-translation batch must add while the fron
 # games/<game>/translated/loc_<hex>.js  (NOT under a test/ subdir)
 LOC_RE = re.compile(r"^games/([^/]+)/translated/loc_([0-9a-fA-F]+)\.js$")
 CALL_RE = re.compile(r"m\.call\(0x([0-9a-fA-F]+)\)")
+# An address-owning export INSIDE a file: a file can hold several routines (gen-registry's
+# discover() registers each), so an m.call target is covered by the EXPORT, not the filename.
+# `\b` after the 4 hex excludes helper splits `loc_<parent>_<addr>` (never address-owners); anchored
+# to line-start so a commented/quoted "export function loc_XXXX" cannot be miscredited as coverage.
+EXPORT_RE = re.compile(r"^\s*export function loc_([0-9a-fA-F]{4})\b", re.M)
 
 
 class GitError(RuntimeError):
@@ -145,6 +150,8 @@ def remaining_frontier(game):
             text = open(p, encoding="utf-8", errors="replace").read()
         except OSError:
             continue
+        for e in EXPORT_RE.findall(text):  # multi-routine files: credit EVERY address-owning export
+            covered.add(e.lower())
         for t in CALL_RE.findall(text):
             targets.add(t.lower())
     return len(targets - covered), targets - covered
@@ -309,6 +316,15 @@ def cmd_selftest(_a):
         open(os.path.join(tdir, "loc_9000.js"), "w").write("export function loc_9000(m){}\n")
         subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, capture_output=True)
         _case("e2e: closing the frontier passes", lambda: cmd_check(None), 0, failures)
+
+        # (e) POSITIVE CONTROL for export-crediting: a NEW target 0xd000 covered ONLY by a SECONDARY
+        # export inside a differently-named multi-routine file. Filename-only coverage would miss it
+        # (R>0, small -> BLOCK); crediting the export closes it -> PASS.
+        open(os.path.join(tdir, "loc_c000.js"), "w").write("export function loc_c000(m){ m.call(0xd000); }\n")
+        open(os.path.join(tdir, "loc_e000.js"), "w").write(
+            "export function loc_e000(m){}\nexport function loc_d000(m){}\n")
+        subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, capture_output=True)
+        _case("e2e: secondary export in a multi-routine file covers the target", lambda: cmd_check(None), 0, failures)
     finally:
         REPO, WAIVERS = saved
         shutil.rmtree(tmp, ignore_errors=True)

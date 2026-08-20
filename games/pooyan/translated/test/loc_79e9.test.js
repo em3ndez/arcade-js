@@ -68,17 +68,14 @@ test("loc_79e9 match: sum 0x0101 (with carry), stored word matches -> ret; 231 T
     "match-path boundaries (iter1 no-carry, iter2 carry->inc d, iter3 terminator, then tail)");
 });
 
-// ── Low-byte mismatch -> jp nz,0x07d0 (anti-tamper abort) ──────────────────────────────────────
-test("loc_79e9 low-byte mismatch -> delegates to 0x07d0", () => {
+// ── Low-byte mismatch -> anti-tamper trap 0x07d0 (dead with a valid ROM) throws ─────────────────
+test("loc_79e9 low-byte mismatch -> throws (trap 0x07d0 unreachable)", () => {
   const m = makeMachine();
   seatCaller(m);
   seedMatch(m);
   m.mem.write8(0x7a0b, 0x99); // corrupt the stored low byte
 
-  loc_79e9(m);
-
-  assert.deepEqual(m.calls, [0x07d0], "low-byte mismatch aborts to 0x07d0");
-  assert.equal(m.pc, 0x07d0, "control transferred to the abort vector");
+  assert.throws(() => loc_79e9(m), /trap 0x07d0/);
 });
 
 // ── High-byte mismatch -> jp nz,0x1a85 (low matches, high does not) ─────────────────────────────

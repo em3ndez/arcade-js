@@ -110,17 +110,30 @@ test("loc_7517 Path 3: good HUD sum -> (0x8921)++ then call 0x0fb2, ret; 2159 T"
   assert.equal(m.pcSeq.filter((p) => p === 0x7542).length, 4, "HL page borrow dec h fired 4 times (2 per strip)");
 });
 
-// ── Abort: HUD sum wrong low byte -> jp nz,0x43e1 ────────────────────────────────────────────────
-test("loc_7517 abort: bad HUD low byte -> delegates to 0x43e1", () => {
+// ── Abort: HUD sum wrong low byte -> anti-tamper trap 0x43e1 ─────────────────────────────────────
+test("loc_7517 abort: bad HUD low byte -> throws trap 0x43e1", () => {
   const m = makeMachine();
   seatCaller(m);
   installBalancingCalls(m);
   m.mem.write8(0x88b7, 0x1b);
   m.mem.write8(0x8920, 0x05);
   // all strip tiles 0 -> sum 0 -> E=0 != 0x4f
-  loc_7517(m);
-  assert.deepEqual(m.calls, [0x4381, 0x43e1], "sum-low mismatch aborts to 0x43e1");
-  assert.equal(m.pc, 0x43e1, "control transferred to the abort vector");
+  assert.throws(() => loc_7517(m), /trap 0x43e1/);
+});
+
+// ── Abort: HUD sum right low byte, wrong high byte -> anti-tamper trap 0x462c ─────────────────────
+test("loc_7517 abort: good low byte, D!=1 -> throws trap 0x462c", () => {
+  const m = makeMachine();
+  seatCaller(m);
+  installBalancingCalls(m);
+  m.mem.write8(0x88b7, 0x1b);
+  m.mem.write8(0x8920, 0x05);
+  // sum totals 0x024f: E=0x4f passes cp, D=2 -> dec d = 1 (nz) -> abort
+  m.mem.write8(0x82bc, 0xff);
+  m.mem.write8(0x829c, 0x50); // first strip wraps once (D:=1, E:=0x4f)
+  m.mem.write8(0x86bc, 0xff);
+  m.mem.write8(0x869c, 0x01); // second strip wraps again (D:=2, E back to 0x4f)
+  assert.throws(() => loc_7517(m), /trap 0x462c/);
 });
 
 // ── MUTATION: `inc d` carry arm (0x753b) mis-charged 12T (not 4T) is caught ──────────────────────

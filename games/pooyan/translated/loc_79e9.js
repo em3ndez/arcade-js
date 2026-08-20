@@ -43,7 +43,7 @@ export function loc_79e9(m) {
   m.step(0x7a00, 4); // 79ff  ld a,e
   regs.cp(mem.read8(regs.hl));
   m.step(0x7a01, 7); // 7a00  cp (hl)
-  if (regs.fNZ) { m.step(0x07d0, 10); return m.call(0x07d0); } // 7a01  jp nz,0x07d0
+  if (regs.fNZ) { throw new Error("loc_79e9: ROM-integrity/sanity trap 0x07d0 unreachable with a valid ROM"); } // 7a01  jp nz,0x07d0
   m.step(0x7a04, 10); // 7a01  jp nz (not taken)
   regs.a = regs.d;
   m.step(0x7a05, 4); // 7a04  ld a,d

@@ -16,5 +16,6 @@ export function loc_71b9(m) {
   m.step(0x71c0, 11); // 71bf  push hl -- handler return address
   m.push16(0x71c1);
   m.step(0x0028, 11); // 71c0  rst 0x28 -- pushes inline table base 0x71c1
-  return m.call(0x0028, DISPATCH_TABLE_71C1);
+  m.call(0x0028, DISPATCH_TABLE_71C1);
+  return m.call(0x02ef); // handler ret's to 0x02ef (pushed above); run it -- its ret returns to loc_71b9's caller
 }

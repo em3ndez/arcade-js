@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 // loc_6e75  (ROM 0x6e75-0x6e85) -- phase-1 spawner gate. If either the 0x881e freeze flag or the
-// 0x8ef0 pause flag is set, tail-jump to 0x4c92 (skip spawning). Otherwise call the two spawn steps
+// 0x8ef0 pause flag is set, the ROM's `jp nz,0x4c92` arm fires -- but 0x4c92 is DATA (a dead trap,
+// see below), so that arm is unreachable in correct operation. Otherwise call the two spawn steps
 // 0x6e86 (single-object launcher) and 0x6edb (per-record driver), then return.
 export function loc_6e75(m) {
   const { regs, mem } = m;
@@ -13,8 +14,9 @@ export function loc_6e75(m) {
   regs.or(mem.read8(regs.hl));
   m.step(0x6e7c, 7); // 6e7b  or (hl)
   if (regs.fNZ) {
-    m.step(0x4c92, 10); // 6e7c  jp nz,0x4c92 -- frozen/paused: skip spawning
-    return m.call(0x4c92);
+    // 6e7c  jp nz,0x4c92 -- freeze(0x881e)/pause(0x8ef0) skip-spawn arm. 0x4c92 is a 0x95/0x98 DATA
+    // table, so this arm is unreachable in correct operation (taking it would execute data). Model the trap.
+    throw new Error("loc_6e75: freeze/pause trap 0x4c92 unreachable with a valid ROM (target is data)");
   }
   m.step(0x6e7f, 10);
   m.push16(0x6e82);
