@@ -61,13 +61,7 @@ const ADVANCE = 0x0020;
 function ramDiffMinusStack(ma, mb) {
   const a = ma.dumpState();
   const b = mb.dumpState();
-  let d = firstStateDiff(a, b, (off) => ma.stateOffsetToAddr(off));
-  let from = 0;
-  while (d && inDeadStack(d.addr)) {
-    from = d.offset + 1;
-    d = firstStateDiff(a.subarray(from), b.subarray(from), (off) => ma.stateOffsetToAddr(off + from));
-  }
-  return d;
+  return firstStateDiff(a, b, (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
 /** A crafted entry machine: ix->source byte, hl->cursor, de->stride, sp parked in dead scratch. */

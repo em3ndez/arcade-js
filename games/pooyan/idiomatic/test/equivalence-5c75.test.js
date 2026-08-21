@@ -56,13 +56,7 @@ const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr <
 function ramDiffMinusStack(ma, mb) {
   const a = ma.dumpState();
   const b = mb.dumpState();
-  let d = firstStateDiff(a, b, (off) => ma.stateOffsetToAddr(off));
-  let from = 0;
-  while (d && inDeadStack(d.addr)) {
-    from = d.offset + 1;
-    d = firstStateDiff(a.subarray(from), b.subarray(from), (off) => ma.stateOffsetToAddr(off + from));
-  }
-  return d;
+  return firstStateDiff(a, b, (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
 /** Hook 0x5c75 in a real attract run and clone the machine at up to K true dispatches. */
