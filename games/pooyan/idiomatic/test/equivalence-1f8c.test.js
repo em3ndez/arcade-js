@@ -6,16 +6,16 @@
  * the full pointer +0x1d (net +0x20 per row) to the next row's column origin.
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so each case runs the oracle on a
- * FRESH clone and blitGlyphBlock4x3 on another, compared on RAM (dumpState, minus STACK_SCRATCH).
- * The blit is memory-only (no caller reads back the advanced pointers), so there is no return to
- * compare.
+ * FRESH clone and blitGlyphBlock4x3 on another, compared on RAM (dumpState, minus STACK_SCRATCH)
+ * AND the advanced HL/DE live-outs: loc_1f18/loc_1f2f `rst 0x10` (memset at HL) right after the call,
+ * so the advanced HL is live-out; DE matches the oracle for a chained caller.
  *
  * Jobs:
- *   1. CAPTURE (best-effort) — replay any real 0x1f8c dispatch a boot happens to reach.
+ *   1. CAPTURE (best-effort) — replay any real 0x1f8c dispatch a boot happens to reach; RAM + HL/DE.
  *   2. CRAFTED (load-bearing) — pre-dirtied dest + a source of distinct bytes, including a dest whose
- *      low byte is near 0xff so the inner loop's low-byte-only wrap is exercised. RAM identical, and
- *      the twelve destination cells carry the source bytes at the LOW-byte-wrapped addresses (a
- *      full-16-bit-increment blit would miss those addresses -> positively pins the inc-L behavior).
+ *      low byte is near 0xff so the inner loop's low-byte-only wrap is exercised. RAM identical, HL/DE
+ *      advanced to the oracle's values, and the twelve destination cells carry the source bytes at the
+ *      LOW-byte-wrapped addresses (a full-16-bit-increment blit would miss those -> pins the inc-L step).
  *   3. WRITE-SET — the oracle writes exactly the twelve computed cells, nothing else.
  *   4. TEETH — a twin that advances the destination with a full 16-bit increment (instead of low-byte
  *      only) diverges at the page wrap and MUST be caught.
@@ -100,9 +100,13 @@ test("CAPTURE: real 0x1f8c dispatches replay identically (if reached)", () => {
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    blitGlyphBlock4x3(c);
+    const [retHl, retDe] = blitGlyphBlock4x3(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
+    assert.equal(c.regs.hl, o.regs.hl, `HL live-out: module ${hx(c.regs.hl)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(c.regs.de, o.regs.de, `DE live-out: module ${hx(c.regs.de)} != oracle ${hx(o.regs.de)}`);
+    assert.equal(retHl, o.regs.hl, `HL return ${hx(retHl)} != ${hx(o.regs.hl)}`);
+    assert.equal(retDe, o.regs.de, `DE return ${hx(retDe)} != ${hx(o.regs.de)}`);
   }
   console.log(`  CAPTURE: ${caps.length} real 0x1f8c dispatch(es) replayed identically`);
 });
@@ -114,10 +118,14 @@ test("CRAFTED: pre-dirtied dest + distinct source — RAM identical, 12 cells at
     const o = craft(dst);
     const c = craft(dst);
     oracle(o);
-    blitGlyphBlock4x3(c);
+    const [retHl, retDe] = blitGlyphBlock4x3(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `dst ${hx(dst)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
+    assert.equal(retHl, o.regs.hl, `dst ${hx(dst)}: HL live-out ${hx(retHl)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(retDe, o.regs.de, `dst ${hx(dst)}: DE live-out ${hx(retDe)} != oracle ${hx(o.regs.de)}`);
+    assert.equal(c.regs.hl, o.regs.hl, `dst ${hx(dst)}: module must SET HL (rst 0x10 memsets through it)`);
+    assert.equal(c.regs.de, o.regs.de, `dst ${hx(dst)}: module must SET DE`);
 
     // Positive check on the ORACLE clone: each computed cell carries its source byte. A full-16-bit
     // increment blit would land the post-wrap cells elsewhere, so this pins the low-byte-only step.

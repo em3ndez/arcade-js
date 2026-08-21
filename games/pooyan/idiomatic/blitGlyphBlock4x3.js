@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 /**
- * blitGlyphBlock4x3 — copy a 4-row x 3-column glyph block from a source into the tilemap.
+ * blitGlyphBlock4x3 — copy a 4-row x 3-column glyph block from a source into the tilemap. Each row
+ * copies three source bytes to the destination, advancing the destination LOW byte only (the row
+ * stays within its tilemap page), then steps the full pointer +0x1d (net +0x20 per row). A leaf.
  *
- * For each of four rows, copies three consecutive source bytes into the destination, advancing
- * the destination LOW byte only (the row stays within its tilemap page), then steps the full
- * pointer one row down (+0x1d after the three low-byte bumps, i.e. +0x20 per row) to the next
- * row's column origin. A leaf — writes only the twelve destination cells, calls nothing.
- *
- * LIVE-OUT: memory only (the twelve glyph cells). Returns nothing; no caller reads back the
- * advanced source/destination pointers (each either rets or reloads its registers).
+ * LIVE-OUT: HL = dst + 0x80 AND DE = src + 12 — both pointers advance. A caller memsets through the
+ * advanced HL right after the call, so a dropped HL corrupts that memset; DE is advanced faithfully
+ * (no caller is known to read it). A wrong live-out is invisible to a memory-only test.
  */
 export function blitGlyphBlock4x3(m, src = m.regs.de, dst = m.regs.hl) {
   const { mem8 } = m;
@@ -22,4 +20,5 @@ export function blitGlyphBlock4x3(m, src = m.regs.de, dst = m.regs.hl) {
     }
     dst = u16(dst + 0x1d); // step to the next row's column origin (net +0x20 with the three L bumps)
   }
+  return [(m.regs.hl = u16(dst)), (m.regs.de = u16(src))]; // advanced dest + source (both live-out)
 }

@@ -7,8 +7,9 @@ import { u16 } from "../../../core/int.js";
  * then steps the destination down one screen row (3 written + 0x1d = 0x20 cells). Source and
  * destination pointers come from the caller. A leaf: writes only the nine cells, calls nothing.
  *
- * LIVE-OUT: the advanced destination pointer (dst + 0x60, 16-bit), returned — a caller stamps
- * the next cell through it. (The source also advances by nine, but no caller reads it.)
+ * LIVE-OUT: HL = dst + 0x60 AND DE = src + 9 — BOTH pointers advance. A chained caller stamps the
+ * next block straight from the advanced SOURCE (DE) after this call, so dropping the source advance
+ * renders a wrong glyph. Callers needing only the dest reload it.
  */
 export function blitTile3x3Block(m, dst = m.regs.hl, src = m.regs.de) {
   const { mem8 } = m;
@@ -24,5 +25,5 @@ export function blitTile3x3Block(m, dst = m.regs.hl, src = m.regs.de) {
     cell = u16(cell + 0x1d); // step to the next screen row
   }
 
-  return (m.regs.hl = u16(cell));
+  return [(m.regs.hl = u16(cell)), (m.regs.de = u16(tile))]; // advanced dest + source (both live-out)
 }

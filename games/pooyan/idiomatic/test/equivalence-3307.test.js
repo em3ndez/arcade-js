@@ -8,11 +8,12 @@
  * a FRESH clone per side. The oracle runs on one clone, the module on another, and they are
  * compared on the go-forward contract:
  *
- *     RAM (dumpState, minus STACK_SCRATCH), AND the advanced HL live-out.
+ *     RAM (dumpState, minus STACK_SCRATCH), AND the advanced HL and DE live-outs.
  *
  * Register inputs are HL (destination) and DE (source); both sides read them from regs.hl /
- * regs.de. The caller loc_25a6 stamps `ld (hl),0x10` immediately AFTER the call, so the
- * advanced HL (dst + 0x60) is live-out and is compared against the oracle clone's final HL.
+ * regs.de. TWO pointers are live-out: the caller loc_25a6 stamps `ld (hl),0x10` right after the
+ * call (advanced HL = dst + 0x60), and loc_1ead stamps the NEXT block (0x1f8c) straight from the
+ * advanced DE = src + 9 — so a rewrite that drops the source advance renders a wrong glyph.
  *
  * NOTE — the oracle drives its row loop through a private RAM counter (0x8f0b), incrementing
  * it 1/2/3 and resetting it to 0 on exit; that cell is touched by NOTHING else and is always 0
@@ -54,6 +55,7 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 // Destination cells the oracle stamps, and the final advanced HL.
 const DST_CELLS = [0x00, 0x01, 0x02, 0x20, 0x21, 0x22, 0x40, 0x41, 0x42].map((o) => (DST + o) & 0xffff);
 const HL_OUT = (DST + 0x60) & 0xffff;
+const DE_OUT = (SRC + 9) & 0xffff; // advanced source: a chained blitter (loc_1ead) reads it next
 
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 
@@ -101,13 +103,15 @@ test("CAPTURE: real 0x3307 dispatches — module == oracle in RAM (−stack) and
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    const ret = blitTile3x3Block(c);
+    const [retHl, retDe] = blitTile3x3Block(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
-    assert.equal(ret, o.regs.hl, `HL live-out: module ${hx(ret)} != oracle ${hx(o.regs.hl)}`);
-    // SIDE EFFECT: the bridge must SET HL — caller loc_25a6 does `ld (hl),0x10` right after the
-    // call, so a return-only rewrite (right value, HL never set) would silently break the dispatch.
-    assert.equal(c.regs.hl, o.regs.hl, `module must SET HL for the translated dispatch: ${hx(c.regs.hl)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(retHl, o.regs.hl, `HL live-out: module ${hx(retHl)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(retDe, o.regs.de, `DE live-out: module ${hx(retDe)} != oracle ${hx(o.regs.de)}`);
+    // SIDE EFFECT: the bridge must SET both regs — loc_25a6 does `ld (hl),0x10` and loc_1ead blits
+    // the next block from DE right after the call, so a return-only rewrite would break the dispatch.
+    assert.equal(c.regs.hl, o.regs.hl, `module must SET HL: ${hx(c.regs.hl)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(c.regs.de, o.regs.de, `module must SET DE: ${hx(c.regs.de)} != oracle ${hx(o.regs.de)}`);
   }
   console.log(`  CAPTURE: ${CAPS.length} real dispatch(es) checked`);
 });
@@ -119,14 +123,17 @@ test("CRAFTED: pre-dirtied dest + varied source — nine tiles identical, HL adv
     const o = craft(seed);
     const c = craft(seed);
     oracle(o);
-    const ret = blitTile3x3Block(c);
+    const [retHl, retDe] = blitTile3x3Block(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `seed ${hx(seed)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
-    assert.equal(ret, o.regs.hl, `seed ${hx(seed)}: HL module ${hx(ret)} != oracle ${hx(o.regs.hl)}`);
-    assert.equal(ret, HL_OUT, `seed ${hx(seed)}: HL should be ${hx(HL_OUT)}`);
-    // SIDE EFFECT: the bridge must SET HL (loc_25a6 stamps `ld (hl),0x10` right after the call).
-    assert.equal(c.regs.hl, o.regs.hl, `seed ${hx(seed)}: module must SET HL for the translated dispatch: ${hx(c.regs.hl)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(retHl, o.regs.hl, `seed ${hx(seed)}: HL module ${hx(retHl)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(retHl, HL_OUT, `seed ${hx(seed)}: HL should be ${hx(HL_OUT)}`);
+    assert.equal(retDe, o.regs.de, `seed ${hx(seed)}: DE module ${hx(retDe)} != oracle ${hx(o.regs.de)}`);
+    assert.equal(retDe, DE_OUT, `seed ${hx(seed)}: DE should be ${hx(DE_OUT)}`);
+    // SIDE EFFECT: the bridge must SET both HL and DE (loc_25a6 stamps via HL, loc_1ead blits via DE).
+    assert.equal(c.regs.hl, o.regs.hl, `seed ${hx(seed)}: module must SET HL: ${hx(c.regs.hl)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(c.regs.de, o.regs.de, `seed ${hx(seed)}: module must SET DE: ${hx(c.regs.de)} != oracle ${hx(o.regs.de)}`);
 
     // The nine tiles landed in row-major order from the source.
     for (let i = 0; i < 9; i++) {

@@ -5,15 +5,16 @@
  * with one source byte (BC) down all 30 rows at the 0x20 row stride, BC advancing per column.
  *
  * CYCLE-FREE / memory-equivalence gate: the routine WRITES RAM, so every case uses a FRESH
- * clone per side. The go-forward contract is RAM only (dumpState minus STACK_SCRATCH): the
- * routine is memory-only — callers reload HL/DE/A and never read the advanced source pointer,
- * so no register is a live-out.
+ * clone per side. The contract is RAM (dumpState minus STACK_SCRATCH) PLUS the A live-out: the
+ * loop exits at (L & 0x1f) == 0x1f leaving A = 0x1f, and loc_0c77 stores that to ACTIVE_PLAYER
+ * (0x880d), so a memory-only rewrite that drops A diverges on the credit screen.
  *
  * Jobs:
  *   1. CAPTURE (best-effort) — hook 0x075d in a real run; any dispatch must agree in RAM.
  *   2. CRAFTED — the load-bearing arm. Pre-dirtied fill region + distinct per-column source
  *      bytes; both sides flood the 31x30 grid identically.
- *   3. TEETH — a twin that writes a WRONG attribute cell MUST be caught at the destination.
+ *   3. REGISTER — the A live-out (0x1f) must match the oracle (the arm a memory-only gate misses).
+ *   4. TEETH — a twin that writes a WRONG attribute cell MUST be caught at the destination.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-075d.test.js
  */
@@ -115,7 +116,22 @@ test("CRAFTED: pre-dirtied region + distinct source — 31x30 grid identical", (
   console.log(`  CRAFTED: ${SEEDS.length} source patterns flooded identically`);
 });
 
-// -- 3. TEETH -----------------------------------------------------------------
+// -- 3. REGISTER LIVE-OUT -----------------------------------------------------
+
+test("REGISTER: A live-out == oracle (loc_0c77 stores it to ACTIVE_PLAYER 0x880d)", () => {
+  for (const seed of SEEDS) {
+    const o = craft(seed); o.regs.a = 0x99; // sentinel: neither side may leave A untouched
+    const c = craft(seed); c.regs.a = 0x99;
+    oracle(o);
+    fillAttributeColumns(c);
+    assert.equal(c.regs.a, o.regs.a,
+      `seed ${hx(seed)}: A live-out differs — oracle=${hx(o.regs.a)} module=${hx(c.regs.a)}`);
+    assert.notEqual(c.regs.a, 0x99, "module never set the A live-out (a memory-only rewrite)");
+  }
+  console.log("  REGISTER: A live-out (0x1f) matches the oracle across all seeds");
+});
+
+// -- 4. TEETH -----------------------------------------------------------------
 
 /** Broken twin: corrupts one attribute cell — must be caught at that destination. */
 function brokenFill(m) {

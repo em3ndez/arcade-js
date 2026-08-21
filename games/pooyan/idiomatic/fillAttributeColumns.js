@@ -8,7 +8,9 @@ import { ATTRIB_MAP_BASE } from "./names.js";
  * 30 rows at the 0x20 row stride, the source pointer advancing one byte per column. A leaf — writes
  * only the attribute cells, calls nothing.
  *
- * LIVE-OUT: none, memory only. Callers reload HL/DE/A and never read the advanced source.
+ * LIVE-OUT: A = 0x1f. The column loop exits when (L & 0x1f) == 0x1f, leaving that value in A; a caller
+ * stores the leftover A into a work-RAM cell verbatim (a scratch byte, not a meaningful value), so A
+ * is a live-out even though it carries no data. HL/DE are dead (callers reload them).
  */
 export function fillAttributeColumns(m, src = m.regs.bc) {
   const { mem8 } = m;
@@ -23,4 +25,5 @@ export function fillAttributeColumns(m, src = m.regs.bc) {
     }
     source = u16(source + 1);
   }
+  return (m.regs.a = 0x1f); // the loop's terminal (L & 0x1f); a caller stores this leftover A
 }
