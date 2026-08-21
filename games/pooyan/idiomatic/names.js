@@ -230,6 +230,174 @@ export const HISCORE_CHECKSUM_BASE = 0x778a;
 export const HISCORE_TABLE_CORRUPT_FLAG = 0x8df8;
 /** [seen] (MAME gameplay golden: attribute codes flooded here in play, observed 0x10/0x1d/0x0d; loc_075d floods 31 columns x 30 rows, stride 0x20 from here) base of the tile-attribute/colour map on the 0x8000 video page */
 export const ATTRIB_MAP_BASE = 0x8040;
+/** [code] ROM base of the 0x20-byte block summed by the hunter-formation state-2 integrity guard (valid-ROM sum sentinel 0xdc) */
+export const FORMATION_GUARD_BASE = 0x0799;
+/** [code] ROM colour/attribute column source table for the default field job, selected when the round counter's low bit is set */
+export const FIELD_ATTRIB_SRC_A = 0x0839;
+/** [code] ROM colour/attribute column source table for the alternate field strip job */
+export const FIELD_ATTRIB_SRC_C = 0x0859;
+/** [code] ROM colour/attribute column source table for the default field job, selected when the round counter's low bit is clear */
+export const FIELD_ATTRIB_SRC_B = 0x0879;
+/** [code] four-byte source/pattern table (in ROM) read by the 2x2 tile-block copier */
+export const TILE_BLOCK_2X2_SRC = 0x0a72;
+/** [code] fixed 3x3 glyph tile source selected when the selector register B's bit5 is clear */
+export const GLYPH_TILES_A = 0x203b;
+/** [code] fixed 3x3 glyph tile source selected when the selector register B's bit5 is set */
+export const GLYPH_TILES_B = 0x2050;
+/** [code] base animation-script address reloaded into the script cursor on a control-marker full reset */
+export const ANIM_SCRIPT_RESET_PTR = 0x26e7;
+/** [code] base of four 4-byte 2x2 tile source blocks (stride 4) for the two-tile animator */
+export const TWOTILE_SRC_TABLE = 0x2744;
+/** [code] ROM source tiles for the round-marker 3x3 glyph block (blitTile3x3Block src) */
+export const MARKER_GLYPH_SRC = 0x2754;
+/** [code] 4-byte 2x2 tile source block for the ready-sprite square */
+export const READY_SPRITE_SRC = 0x2be1;
+/** [code] ROM animation-sequence descriptor stored into a record's anim field (ix+0x0c/0x0d) by setActorAnimation */
+export const RECORD_ANIM_SEQ_2CA7 = 0x2ca7;
+/** [code] ROM script/table pointer seeded little-endian into a record's +0x16/+0x17 script field */
+export const RECORD_SCRIPT_2D00 = 0x2d00;
+/** [code] ROM 4-byte 2x2 tile-block source blitted by the launch state machine (loc_27f3 uses this or 0x2d55) */
+export const LAUNCH_TILE_SRC = 0x2d51;
+/** [code] ROM animation-sequence table (4-frame attr/tile/colour loop) an actor record is pointed at */
+export const ANIM_TABLE_3829 = 0x3829;
+/** [code] turn-animation script table (4-byte-per-frame {attr,tile,colour} loop, sibling of loc_4221's scripts) armed into an actor record by loc_425c; specific animation not grounded */
+export const ANIM_SCRIPT_4203 = 0x4203;
+/** [code] ROM animation-script table armed via setActorAnimation on the interior-entry turn path (mirror of loc_4221) */
+export const ANIM_SCRIPT_4212 = 0x4212;
+/** [code] base of the 14-byte program block loc_1bcc folds (each byte masked to 5 bits) into the signature sentinel; the block is actually code inside loc_52f6's range, read as data (a self-checksum) */
+export const TAMPER_CHECKSUM_CODE_BASE = 0x5328;
+/** [code] top of the ROM block summed downward (to the 0x34 sentinel) by the loc_7e6d anti-tamper guard; also routine entry loc_64be, hence the _ADDR suffix */
+export const TAMPER_CKSUM_TOP_ADDR = 0x64be;
+/** [code] ROM table of expected tile-region checksum values (low-byte sum / wrap-count pairs) for the tamper guard */
+export const TILE_CHECKSUM_TABLE = 0x68eb;
+/** [code] ROM animation parameter block armed via setActorAnimation when an object advances to its next state */
+export const ANIM_PARAM_68EF = 0x68ef;
+/** [code] ROM 4-byte-per-record eagle-wave parameter table (record fields +6/+0x10/+4/+0x0f) */
+export const EAGLE_WAVE_PARAM_TABLE = 0x7409;
+/** [code] two 2-byte blink tile pairs in ROM ({0x3f,0x46} at +0, {0x46,0x3f} at +2) */
+export const BLINK_TILE_PAIRS = 0x76e6;
+/** [code] ROM pointer table of field-record lists, indexed by the field-render selector */
+export const FIELD_RECORD_PTR_TABLE = 0x7a0d;
+/** [code] 0x8000-page tilemap destination cell where loc_1ffb stamps the selected 3x3 glyph block (in the 0x8000-0x83ff colour/attribute region per the memory map) */
+export const GLYPH_BLOCK_DEST = 0x8062;
+/** [code] colour/attribute-map base for the alternate field job's 16-row vertical strip */
+export const FIELD_C_ATTRIB_DEST = 0x811c;
+/** [code] video-RAM anchor for the second 2x2 tile block stamped by loc_0a52 (specific graphic ungrounded) */
+export const VRAM_TILE_BLOCK_DEST_B = 0x826a;
+/** [code] video-RAM anchor for the first 2x2 tile block stamped by loc_0a52 (specific graphic ungrounded) */
+export const VRAM_TILE_BLOCK_DEST_A = 0x82aa;
+/** [code] base of the playfield tilemap tile region in video RAM (checksum/fill scan start) */
+export const PLAYFIELD_TILE_BASE = 0x8402;
+/** [code] video-RAM base of the 10-row packed-BCD digit panel */
+export const PANEL_DIGIT_VRAM_DEST = 0x8467;
+/** [code] first video cell of the blinking tile pair (second cell at +0x40) */
+export const BLINK_TILE_CELL_0 = 0x8471;
+/** [code] VRAM base of an 8-cell vertical tile column: top N cells filled (0x0c), the rest blanked (0x10), N derived from the actor-table count */
+export const COUNT_COLUMN_VRAM = 0x8482;
+/** [code] VRAM anchor for the arrow/launch 2x2 tile blit (shared with loc_27f3) */
+export const LAUNCH_TILE_VRAM = 0x84a7;
+/** [code] video-RAM anchor for the two-tile blit; the second block is stamped two rows above */
+export const BLIT_SCREEN_ANCHOR = 0x84b4;
+/** [code] video-RAM 2x2-blit anchor of the two-tile animator when round bit0 is clear */
+export const TWOTILE_ANIM_VRAM_ALT = 0x84bb;
+/** [code] top cap cell of the 3-tile video-RAM column stamped by loc_1ce7 (cap 0x02, then mid/base upward) */
+export const COLUMN_CAP_VRAM = 0x84e0;
+/** [code] status-panel VRAM tile cell lit (0x6f here / 0x10 in loc_27f3) when the launch fires while the game is idle */
+export const LAUNCH_HUD_TILE = 0x8508;
+/** [code] video-RAM column base where player-2's score digits are drawn */
+export const P2_SCORE_VRAM = 0x8521;
+/** [code] video-RAM base cell for the level-intro digit pair (tally at the base, its BCD double two rows up) */
+export const HUD_INTRO_DIGITS_BASE = 0x8634;
+/** [code] video-RAM column base where the top/high-score digits are drawn */
+export const HIGH_SCORE_VRAM = 0x8641;
+/** [code] video-RAM top-left cell of the round-marker column (offsets -0x20/+0x20/-0x41 give the count>0 saved ptr, count-0 saved ptr, and count-0 glyph anchor) */
+export const MARKER_VRAM_BASE = 0x86c3;
+/** [code] video-RAM column base where player-1's score digits are drawn (cursor walks up one row per digit) */
+export const P1_SCORE_VRAM = 0x8781;
+/** [code] video-RAM 2x2-blit anchor (round-bit0-set anchor of the two-tile animator; also the ready-sprite indicator tile used by loc_2bd3) */
+export const READY_SPRITE_TILE_VRAM = 0x87bb;
+/** [code] DSW1 bit7 complemented (boot-only; decoded in loc_0092): demo/attract sounds enable; bit0 gates queued sound dispatch when the game is idle */
+export const DEMO_SOUNDS_DSW = 0x8821;
+/** [code] coin-counter 1 queued-pulse count (decremented one per completed strobe) */
+export const COIN1_PULSE_COUNT = 0x8824;
+/** [code] coin-counter 1 pulse phase timer (seeded 0x30, drop point 0x18) */
+export const COIN1_PULSE_PHASE = 0x8825;
+/** [code] low-byte write pointer into the display-command ring (page 0x88), advanced by two per enqueue and clamped up to 0xc0 */
+export const DISPLAY_CMD_RING_WRITE_PTR = 0x88a0;
+/** [code] LSB of the 3-byte BCD high-score counter (0x88a8..0x88aa, MSB at 0x88aa) */
+export const HIGH_SCORE_BCD = 0x88a8;
+/** [code] alternate destination pointer for the display-list interpreter (used when FORMATION_SLOT_TABLE != 0), paired with 0x88ba */
+export const DISPLAY_LIST_DST_PTR_ALT = 0x88b8;
+/** [code] alternate source/layout read pointer for the display-list interpreter (used when FORMATION_SLOT_TABLE != 0), paired with 0x88b8 */
+export const DISPLAY_LIST_SRC_PTR_ALT = 0x88ba;
+export const loc_8905 = 0x8905;
+export const loc_8906 = 0x8906;
+/** [code] blink-timer countdown (reload 0x16); decremented per tick, on 0 toggles the phase */
+export const BLINK_COUNTDOWN = 0x892a;
+/** [code] blink phase byte; toggled on countdown expiry, its parity selects the tile pair */
+export const BLINK_PHASE = 0x892b;
+/** [code] shared per-frame phase/animation countdown reloaded to 0x12 (also used by loc_27f3/loc_7638) */
+export const SHARED_PHASE_COUNTDOWN = 0x892e;
+/** [code] frame countdown reseeded to 8 by this handler and decremented by loc_27f3; on reaching 0 it drives the 0x892e tile-flip bit */
+export const LAUNCH_FLIP_COUNTDOWN = 0x892f;
+/** [code] boolean gate flag enabling the shared actor phase countdown (written by loc_6566) */
+export const SHARED_PHASE_GATE = 0x8930;
+/** [code] work-RAM word holding the saved round-marker layout pointer */
+export const MARKER_LAYOUT_PTR = 0x8932;
+/** [code] work-RAM source table (ten 3-byte rows) rendered as packed-BCD digit pairs into the digit panel */
+export const PANEL_DIGIT_SOURCE_TABLE = 0x89c0;
+/** [code] gate byte for the player-0/1 BCD play-timer; nonzero suppresses the per-frame tick */
+export const PLAY_TIMER_GATE_P1 = 0x89e1;
+/** [code] gate byte for the player-1/2 BCD play-timer; nonzero suppresses the tick */
+export const PLAY_TIMER_GATE_P2 = 0x89e2;
+/** [code] anti-tamper flag (set by the loc_08b3 guard, cleared at reset by loc_2527); ORed with BOARD_CLEAR_FLAG to freeze the per-frame object update */
+export const TAMPER_OBJECT_FREEZE_FLAG = 0x89fb;
+/** [code] player-0/1 BCD play-timer bank: base byte = per-frame sub-counter (rolls at 0x3b/0x3c), +1/+2 = BCD seconds/minutes digits */
+export const PLAY_TIMER_BCD_P1 = 0x8a30;
+/** [code] player-1/2 BCD play-timer bank (frame sub-counter + BCD seconds/minutes) */
+export const PLAY_TIMER_BCD_P2 = 0x8a33;
+/** [code] sound-command ring buffer write/tail pointer (0x43..0x5e, wraps); loc_0eb3 stores into the slot it points at */
+export const SOUND_RING_WRITE_PTR = 0x8a40;
+/** [code] sound-command ring buffer read/head index (0x43..0x5e, wraps); the slot it points at is consumed then freed */
+export const SOUND_RING_READ_PTR = 0x8a41;
+/** [code] actor-record Y of the arrow/launch object (slot 2, ix+4); launch state machine gates on it (>=0x3c here, >=0x34 in state 1) */
+export const ARROW_Y = 0x8ab4;
+/** [code] gate byte: when zero, loc_6822 skips the 0x8b28 enemy-record state dispatch */
+export const ENEMY_REC_DISPATCH_GATE = 0x8afa;
+/** [code] base of the 6-slot per-frame object-state record array (stride 0x18, spans into PROJECTILE_TABLE at 0x8be8) swept by loc_76f4 via dispatchActiveObjectState */
+export const OBJECT_STATE_RECORD_BASE = 0x8ba0;
+/** [code] byte pending append into the page-0x8a00 text ring (stashed across the append gate) */
+export const TEXT_RING_PENDING_BYTE = 0x8d20;
+/** [code] work-RAM snapshot of the spawn-phase counter (written alongside ROPE_DRAW_COUNT) */
+export const SPAWN_PHASE_SNAPSHOT = 0x8d43;
+/** [code] value copied into the launch-arm latch (0x8f20) when nonzero; producer not in the decompiled set */
+export const LAUNCH_ARM_LATCH_SEED = 0x8d7a;
+/** [code] shift latch: loc_1e55 rotates the complemented joystick's bit4 into bit0 each frame; its low 3 bits decide whether the aim bit4 is cleared (also touched by loc_6cab) */
+export const INPUT_ROTATE_LATCH = 0x8f03;
+/** [code] two-tile animation hold countdown (reload 0x0c); decremented per frame, on 0 advances the phase */
+export const TWOTILE_ANIM_HOLD = 0x8f06;
+/** [code] two-tile animation phase byte; incremented on hold expiry, its parity selects the source block */
+export const TWOTILE_ANIM_PHASE = 0x8f07;
+/** [code] base of four per-cell frame timers (stride 2) for the rope-cell state handlers */
+export const ROPE_CELL_TIMERS = 0x8f28;
+/** [code] eagle-wave outer-phase counter; cleared when a wave seeds (alongside WAVE_RECORDS_ARRIVED 0x8f39), incremented on the 4th-wave re-arm */
+export const WAVE_OUTER_PHASE = 0x8f38;
+/** [code] eagle-wave launch flag; set 1 when a wave is seeded, loc_72a7 gates its driver on it being nonzero */
+export const WAVE_LAUNCH_FLAG = 0x8f3a;
+/** [code] eagle-wave record count = 2*WAVE_INDEX; loc_72a7 walks this many records of the 0x8ae0 table */
+export const WAVE_RECORD_COUNT = 0x8f3c;
+/** [code] eagle grid-advance done latch: set 1 when the eagle reaches the grid edge (>=0xd0); diverts the approach machine to its reset epilogue */
+export const EAGLE_FINISH_FLAG = 0x8f3e;
+/** [code] once-only latch gating the playfield tile-region tamper checksum (loc_68ac/loc_3278) */
+export const TILE_CHECKSUM_LATCH = 0x8f55;
+/** [code] state/flag ORed with WAVE_TEARDOWN_STATE (0x8f24) to gate/abort the player-object update; base of a 4-byte block cleared at reset by loc_2527 (role partially understood) */
+export const SECONDARY_TEARDOWN_FLAG = 0x8f57;
+/** [code] player-1 controls hardware input port (IN1), active-low; used in upright orientation */
+export const IN1_PORT = 0xa0a0;
+/** [code] player-2 controls hardware input port (IN2), active-low; used when the screen is flipped (cocktail) */
+export const IN2_PORT = 0xa0c0;
+/** [code] LS259 latch bit 3 driving the physical coin counter 1 (write_d0: only bit 0 of the value lands) */
+export const COIN1_COUNTER_LATCH = 0xa183;
 
 // Stack-scratch window [lo, hi): the emulated Z80 stack lives just below its 0x9000 init (SP inits
 // to 0x9000 at loc_0092; measured min SP 0x8fd0 over the boot). Equivalence tests exclude it -- a
@@ -302,4 +470,60 @@ export const ROUTINES = {
   0x7292: { name: "advanceEaglePhaseAndClearAim", role: "step the eagle's phase and clear its aim flags", cert: "code" },
   0x7707: { name: "dispatchActiveObjectState", role: "run one active object record's per-frame state handler, selected by (IX+2)&3 of four; inactive records are skipped", cert: "code" },
   0x780f: { name: "paintTileBlock2x2Above", role: "stamp a 2x2 tile block anchored one row above", cert: "code" },
+  0x0010: { name: "loc_0010", role: "fill a run of bytes with a constant, advancing the pointer (a zero counter fills 256)", cert: "code" },
+  0x0020: { name: "loc_0020", role: "rst-0x20 byte-table lookup: HL += A then A := (HL)", cert: "code" },
+  0x0038: { name: "loc_0038", role: "enqueue a two-byte display command into the page-0x88 display-command ring", cert: "code" },
+  0x02a8: { name: "loc_02a8", role: "stamp a three-tile vertical tilemap column (cap + two body tiles)", cert: "code" },
+  0x02e3: { name: "loc_02e3", role: "arm the row-by-row tile fill from the fixed VRAM start (the reset-to-0x8402 variant)", cert: "code" },
+  0x0320: { name: "loc_0320", role: "tick a caller-set frame counter, then run the flip-screen mirror pass when the orientation flag is zero", cert: "code" },
+  0x0343: { name: "loc_0343", role: "build sprite display-list entries from moving-object records, deriving screen coordinates from their sub-pixel position pairs", cert: "code" },
+  0x039b: { name: "loc_039b", role: "paint the count column: fill N tiles then blank the rest of an 8-cell VRAM column, N from the actor-table count clamped to 8", cert: "code" },
+  0x0439: { name: "loc_0439", role: "render ten rows of packed-BCD panel digits into video RAM (delegates the per-nibble split)", cert: "code" },
+  0x0552: { name: "loc_0552", role: "reset one of three 3-byte BCD counters and repaint it in its HUD column via the digit painter", cert: "code" },
+  0x056b: { name: "loc_056b", role: "draw one of three packed-BCD counters down a screen column, leading zeros blanked", cert: "code" },
+  0x05b2: { name: "loc_05b2", role: "draw a table-selected field of stacked characters bottom-up into video RAM (digit or blank mode per selector bit 7)", cert: "code" },
+  0x0a52: { name: "loc_0a52", role: "paint two 2x2 tile blocks into video RAM from one shared source pattern", cert: "code" },
+  0x0e53: { name: "loc_0e53", role: "phantom no-op (bare ret); display-list dispatch target that returns without drawing", cert: "code" },
+  0x0e64: { name: "loc_0e64", role: "drain one entry from the sound-command ring buffer and dispatch it to the audio CPU (gated by demo-sounds/game-active), then free the slot and advance the head", cert: "code" },
+  0x0ea2: { name: "loc_0ea2", role: "append one byte into the page-0x8a00 text ring (gated on game-active/play-mode), then advance and wrap the ring cursor", cert: "code" },
+  0x0eb3: { name: "loc_0eb3", role: "enqueue a command byte into the sound-command ring buffer (advance the write pointer, wrapping 0x5e->0x43)", cert: "code" },
+  0x0f09: { name: "loc_0f09", role: "emit the preset sound command to the audio CPU", cert: "code" },
+  0x141c: { name: "loc_141c", role: "gate an actor's spawn/queue step on its phase field; below threshold, clear a field and (re)start its animation", cert: "code" },
+  0x191c: { name: "loc_191c", role: "choose the enemy speed/column value for a new target group (gated), commit it to the speed index and clear the aim flags plus two adjacent cells", cert: "code" },
+  0x1a85: { name: "loc_1a85", role: "redraw the phase gauge, then set the play sub-state index for the active player", cert: "code" },
+  0x1bcc: { name: "loc_1bcc", role: "player-state bank snapshot + signature-checksum tripwire: copy the live page into player 1's bank, clear the sub-state index, bump the signature tamper counter unless a fixed program block folds to its sentinel", cert: "code" },
+  0x1ce7: { name: "loc_1ce7", role: "stamp a three-cell vertical tilemap column: cap tile then the two body tiles one row up each", cert: "code" },
+  0x1dd3: { name: "loc_1dd3", role: "paint the playfield colour/attribute map for the current field variant (default two-column job or alternate strip)", cert: "code" },
+  0x1e55: { name: "loc_1e55", role: "per-frame joystick sampler for the player-actor state byte: abort/freeze flags zero it, else store the complemented joystick and rotate its bit4 through a shift latch that gates clearing the state byte's bit4", cert: "code" },
+  0x1ffb: { name: "loc_1ffb", role: "render one of two glyph blocks (selected by B bit5) into the tilemap via blitTile3x3Block", cert: "code" },
+  0x22e6: { name: "loc_22e6", role: "step one actor's animation script, pulling/advancing the shared script cursor when its frame countdown expires", cert: "code" },
+  0x2563: { name: "loc_2563", role: "frame-gated two-tile animation: hold-countdown timer that on expiry blits two 2x2 tile squares selected by round/phase parity", cert: "code" },
+  0x278f: { name: "loc_278f", role: "launch state machine state 0: arm and gate the arrow/rope launch, advance the state, and blit the launch tile", cert: "code" },
+  0x28c5: { name: "loc_28c5", role: "phantom no-op (bare ret); launch-state-machine idle state and a neighbour's rst-0x10 landing", cert: "code" },
+  0x2bd3: { name: "loc_2bd3", role: "paint the ready-sprite 2x2 tile square unless it is already present", cert: "code" },
+  0x2c85: { name: "loc_2c85", role: "per-record helper: on state 0x11 advance to 0x12, arm the animation, and seed the script pointer", cert: "code" },
+  0x2e45: { name: "loc_2e45", role: "decrement one of the four rope-cell frame timers selected by IXL&3; leave its address in HL and reached-zero in the Z flag", cert: "code" },
+  0x3266: { name: "loc_3266", role: "hunter-formation dispatch state 2: ROM self-check summing a 0x20-byte block to the 0xdc sentinel (traps on mismatch)", cert: "code" },
+  0x3278: { name: "loc_3278", role: "board tile-sum check: once-per-arm, sum the playfield and match it against a ROM table (miss = data-integrity trap)", cert: "code" },
+  0x4006: { name: "loc_4006", role: "step one object's animation sequence (frame-hold countdown + script walk) for the record at IX", cert: "code" },
+  0x4179: { name: "loc_4179", role: "phantom no-op (bare ret); a call target that returns without doing work", cert: "code" },
+  0x423a: { name: "loc_423a", role: "interior-entry arm: clear the turn-column limit and arm the 0x4212 turn animation", cert: "code" },
+  0x425c: { name: "loc_425c", role: "arm an actor's turn animation (interior entry): latch the turn-column limit and point the record at the 0x4203 animation script", cert: "code" },
+  0x4378: { name: "loc_4378", role: "phantom no-op (bare ret); a called stub with no effect", cert: "code" },
+  0x4381: { name: "loc_4381", role: "display-list interpreter: copy/skip/reload a source stream into video RAM, advancing the chosen dest/src pointer pair", cert: "code" },
+  0x4a0b: { name: "loc_4a0b", role: "draw the round marker: snapshot the spawn-phase count then paint the marker column + 3x3 glyph, gated on the round counter's low bit", cert: "code" },
+  0x5a9c: { name: "loc_5a9c", role: "coin-counter 1 pulse generator: strobe the coin-counter latch from the queued pulse count + phase timer", cert: "code" },
+  0x5d0b: { name: "loc_5d0b", role: "tick the animation-hold countdown for each of the six enemy actor-table records", cert: "code" },
+  0x64fb: { name: "loc_64fb", role: "dispatch the 0x8c78 fountain record's per-frame state handler, selected by state byte (IX+2) of three (0/1/2)", cert: "code" },
+  0x667c: { name: "loc_667c", role: "advance one actor while its state byte is idle, retiring the record at the top row (0x1d)", cert: "code" },
+  0x66fd: { name: "loc_66fd", role: "run an actor's shared phase countdown; on expiry advance the phase, record fields, animation and tile id", cert: "code" },
+  0x683a: { name: "loc_683a", role: "advance an object record to its next state: phase bump, field reseed, and animation arm", cert: "code" },
+  0x68ac: { name: "loc_68ac", role: "once-only playfield tile-region tamper checksum and dispatch (returns on match, throws on tamper)", cert: "code" },
+  0x6b13: { name: "loc_6b13", role: "frame-gated two-tile blitter: on hold expiry, reload+advance phase and stamp a phase-selected 2x2 block at two screen positions", cert: "code" },
+  0x6f42: { name: "loc_6f42", role: "level-intro phase 2: advance the intro phase and draw the target-hit tally as two stacked digit pairs", cert: "code" },
+  0x7287: { name: "loc_7287", role: "eagle grid-advance guard: return the eagle coordinate until it reaches the grid edge, then arm the done latch and run the phase-reset epilogue", cert: "code" },
+  0x72e1: { name: "loc_72e1", role: "seed the next eagle attack wave: raise the launch flag, advance the wave index, and initialise the per-wave enemy records (or re-arm on the 4th wave)", cert: "code" },
+  0x76af: { name: "loc_76af", role: "two-phase blink timer: on countdown expiry toggle the phase and swap a video tile pair", cert: "code" },
+  0x7912: { name: "loc_7912", role: "tick the active player's BCD play-timer (frame sub-counter 0..0x3b/0x3c then BCD seconds/minutes carry)", cert: "code" },
+  0x7e6d: { name: "loc_7e6d", role: "periodic anti-tamper ROM checksum guard; bumps the ROM tamper-strike counter on a signature miss", cert: "code" },
 };

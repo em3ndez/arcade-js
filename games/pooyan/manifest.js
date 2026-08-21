@@ -86,7 +86,7 @@ export default {
   convergence: {
     idiomatic: { nmiReturnPC: 0x021c },
     pollPCs: [0x021c],
-    stateExclude: { stack: [0x8fd8, 0x9000] }, // MEASURED deepest SP over attract (SP inits 0x9000)
+    stateExclude: { stack: [0x8fc0, 0x9000] }, // stack scratch (SP inits 0x9000); matches names.js STACK_SCRATCH — gameplay call chains push deeper than attract's 0x8fd8
   },
 
   // Audio: clips model (shared timeplt_audio, record/replay). TODO §5 after recording.

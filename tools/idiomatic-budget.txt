@@ -9,10 +9,10 @@
 # mirrors the existing object-slot-walk idiom. The budget follows the measured count (and absorbs the
 # slack it used to carry); a gate that refuses a real fix is a harness problem.
 # pooyan 2026-08-21: enrolled in CLOSURE_GAMES; budget = reachable routines still oracle-served
-# (registry 497 - idiomatic overrides 53 = 444 unlifted, 0 CPU/mem cruft). Ratchets to 0 as the
-# idiomatic decompile pass lifts each routine.
+# (registry 497 - idiomatic overrides - boundaries = unlifted, 0 CPU/mem cruft). Ratchets to 0 as the
+# idiomatic decompile pass lifts each routine. 444 at enrollment -> 388 after the first leaf batch (56 lifted).
 dkong 3864
 frogger 455
-pooyan 444
+pooyan 388
 thepit 401
 timeplt 2427

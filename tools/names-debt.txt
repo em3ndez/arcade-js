@@ -59,3 +59,5 @@ timeplt 0xc600
 timeplt 0xde00
 timeplt 0xf1eb
 timeplt 0xf1f1
+pooyan 0x8905  # role unknown; touched by loc_191c, promote at [code]->grounding
+pooyan 0x8906  # role unknown; touched by loc_191c, promote at [code]->grounding
