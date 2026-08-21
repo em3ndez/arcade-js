@@ -237,10 +237,15 @@ export const ATTRIB_MAP_BASE = 0x8040;
 export const STACK_SCRATCH = { lo: 0x8fc0, hi: 0x9000 };
 
 // == Routine dispatch map (idiomatic overrides layered over the translated oracle) ==
-// Empty: batch-1 leaf modules are decompiled + equivalence-proven but held UNWIRED
-// (tools/registry-coverage.config.mjs) until pooyan is go-live on the generator engine. Under the
-// cycle-driven runFrames a clock-free idiomatic override spends no T-states where the oracle spends
-// many, drifting the NMI phase (a boot-statediff diverges from ~frame 179, first in the NMI stack),
-// so a wired override cannot be validated until the convergence config (manifest nmiReturnPC /
-// stateExclude.stack) is measured. 6 of the 10 also need a cruft-free register/flag dispatch bridge.
-export const ROUTINES = {};
+// The spine is wired: mainLoop runs as the born-live generator on runIdiomaticGame, yielding once
+// per iteration at the vblank boundary (the measured convergence config in the manifest). The frozen
+// boot chain runs synchronously and its tail call into the main loop returns this generator, which
+// the engine then drives frame by frame. The leaf modules stay UNWIRED
+// (tools/registry-coverage.config.mjs) until the leaf-wiring unit lands them on the running engine.
+export const ROUTINES = {
+  0x020f: {
+    name: "mainLoop",
+    role: "the main-loop state driver: each iteration runs the per-frame worker or dispatches one attract-ring handler; as the born-live generator it yields at the vblank boundary",
+    cert: "code",
+  },
+};
