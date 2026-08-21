@@ -8,7 +8,11 @@
 # plus their two address constants) at the 3 effect-state-machine callers — necessary cruft that
 # mirrors the existing object-slot-walk idiom. The budget follows the measured count (and absorbs the
 # slack it used to carry); a gate that refuses a real fix is a harness problem.
+# pooyan 2026-08-21: enrolled in CLOSURE_GAMES; budget = reachable routines still oracle-served
+# (registry 497 - idiomatic overrides 53 = 444 unlifted, 0 CPU/mem cruft). Ratchets to 0 as the
+# idiomatic decompile pass lifts each routine.
 dkong 3864
 frogger 455
+pooyan 444
 thepit 401
 timeplt 2427

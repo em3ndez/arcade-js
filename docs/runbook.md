@@ -387,7 +387,8 @@ batch and feeds the next batch's targets.
   behavioural worklist (the state diff, §2) never flags it — a whole reachable sub-tree can stay frozen
   while every gate is green (the frog-anim render cluster hid exactly this way). The cruft *count* alone
   said "some cleanup remains," never *which* routines. So `idiomatic_gate` now also counts, for a
-  **closure-enrolled game** (`CLOSURE_GAMES`, frogger only until a legacy game is worked), every
+  **closure-enrolled game** (`CLOSURE_GAMES` — the games actively held to full lifting; currently
+  frogger and pooyan, each enrolled when its port began), every
   **reachable-but-unlifted routine** — the translated `_registry.generated.js` set (graph-closed by the
   §3 recursive descent) minus the idiomatic `ROUTINES` overrides minus a reviewed
   `tools/idiomatic-boundaries.txt` allowlist (`dead` = callers dissolved, `boundary` = genuinely left
