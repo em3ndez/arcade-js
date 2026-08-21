@@ -470,6 +470,21 @@ tag was honest; honest tags are not grounding.)
   **Enforced** at review by `reviewer-rules.md` R31 (a `loc_<addr>` idiomatic cell const FAILs) and
   mechanically now by the `names_consistency` gate rule (B): it FAILs any new `loc_` cell while
   grandfathering the existing debt (`names-debt.txt`); fully debt-free once the backfill clears.
+- **★ DECOMPILE the routines FIRST — THE priority; get as many routines done as possible. Cells come
+  automatically from routine work (Karl, 2026-08-21).** Maximizing routine throughput — the decompile
+  half above, plus grounding routine ROLES here — is THE priority; do NOT divert into a standalone
+  cell-grinding campaign. A cell's role IS what the routines do to it, so decompiling and grounding a
+  routine — observing it run under MAME and confirming what it reads/writes — grounds the cells it
+  touches in the SAME work. Do NOT isolate an ungrounded cell and build a bespoke experiment to force
+  its value; that is backwards and slow. Decompile and ground the routines, and the cells fall out as a
+  byproduct — the cell-grounding mechanics below describe what that byproduct looks like, NOT a separate
+  cell-by-cell campaign. When a cell's routine is understood but the cell only changes on an unreachable
+  arm (an anti-tamper error path, a state no valid play reaches), it is ACCOUNTED FOR by the routine's
+  grounding + a reasoned note — not chased with a tailored capture. (Recorded 2026-08-21: pooyan work
+  was being driven cell-first — isolating individual ungrounded data cells and forcing each with a
+  tailored tamper/poke/read-tap capture — instead of decompiling routines; Karl: "decompile the
+  routines first. that's the priority. get as many routines done as possible." … "cells come in
+  automatically from routine work.")
 - **Ground addresses, not just routines — stage B applies to every claim in `names.js`, cells
   included.** A data address carries a confidence tag exactly as a routine does, and a fresh batch's
   data-name cells land at `[code]` (a code-only reading) until grounded. Lift a **RAM cell**
