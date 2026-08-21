@@ -2,11 +2,13 @@
 
 // mainLoopStep -- ONE iteration of the main-loop state driver loc_020f (ROM 0x020F-0x0241),
 // factored out so the born-live generator (idiomatic/mainLoop.js) can yield at the vblank
-// boundary between iterations. Byte-identical to loc_020f's for(;;) body with `continue`
-// replaced by `return`; the frozen loc_020f keeps the loop for the oracle. Reads the ring
-// cursor (0x88a1), and either runs the per-frame worker (0x0254) when the slot's bit 7 is
-// set or dispatches through the handler table at 0x0242 via `jp (hl)`, pushing 0x020f so the
-// handler's ret lands back at the loop top.
+// boundary. Byte-identical to loc_020f's for(;;) body with `continue` replaced by `return`;
+// the frozen loc_020f keeps the loop for the oracle. Reads the ring cursor (0x88a1), and
+// either runs the per-frame worker (0x0254) when the slot's bit 7 is set or dispatches through
+// the handler table at 0x0242 via `jp (hl)`, pushing 0x020f so the handler's ret lands back at
+// the loop top. Returns true on the worker/ring-idle iteration (the real vblank boundary),
+// false on a command dispatch -- a control signal for the generator, no emulation effect: the
+// display ring must drain WITHIN one frame (as MAME does per vblank), not one command per NMI.
 export function mainLoopStep(m) {
   const { regs, mem } = m;
 
@@ -28,7 +30,7 @@ export function mainLoopStep(m) {
     m.step(0x0254, 17);
     m.call(0x0254);
     m.step(0x020f, 12);
-    return;
+    return true; // worker/ring-idle iteration -> the vblank boundary
   }
   m.step(0x021e, 12); // jr nc taken -> dispatcher
 
@@ -82,4 +84,5 @@ export function mainLoopStep(m) {
   m.step(0x0241, 4);
   m.step(regs.hl, 4); // jp (hl)
   m.call(regs.hl);
+  return false; // command dispatch -> keep draining the ring within this frame
 }

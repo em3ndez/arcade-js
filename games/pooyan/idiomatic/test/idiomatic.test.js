@@ -3,9 +3,9 @@
 // idiomatic — pooyan's born-live seam gate. Runs the assembled game under the cycle-free coroutine
 // engine (core/frame-stepped.js runIdiomaticGame, wired via resolveAllIdiomatic — the same override
 // map web/worker.js ships) and compares it, frame for frame, against the pure-translated oracle run
-// under runCycleFree at the SAME frame boundary (the main-loop top 0x020f, manifest.convergence).
-// Both engines collapse pooyan's free-running main loop to one iteration per frame, so they execute
-// the identical sequence and must agree on every LIVE cell — only the dead stack scratch is excluded.
+// under runCycleFree at the SAME frame boundary (the worker/ring-idle point 0x021c, manifest.convergence).
+// Both engines drain the display command ring within a frame and fire the vblank NMI once per worker
+// iteration (as MAME does), so they agree on every LIVE cell — only the dead stack scratch is excluded.
 // ROM-guarded (skips without the BYO ROM).
 //
 // SCOPE: resolveAllIdiomatic wires the spine (mainLoop) AND the memory-only bare-dispatch leaves, so

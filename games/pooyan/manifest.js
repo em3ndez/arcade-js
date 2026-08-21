@@ -72,15 +72,20 @@ export default {
 
   entropyPin: null, // TODO §4 — measure the spin-counter fork set
 
-  // Frame model (MAME-grounded, scratchpad/pooyan-nmi-retpc.lua): pooyan's main loop FREE-RUNS with no
-  // vblank busy-wait — the NMI (0x066d) is the sole per-frame heartbeat (NMI-return-PC spreads ∝ execution
-  // frequency, no single-PC spin). The born-live model COLLAPSES the idempotent free-running main-loop
-  // iterations per frame to one: the poll/yield PC is the main-loop top 0x020f, so runCycleFree fires one
-  // NMI per main-loop iteration (game-time stays 1:1 with MAME — every NMI is one frame); the idiomatic
-  // arm (runIdiomaticGame) uses the same 0x020f once the generator spine is wired.
+  // Frame model (MAME-grounded): pooyan's main loop loc_020f FREE-RUNS with no vblank busy-wait — the NMI
+  // (0x066d) is the sole per-frame heartbeat. Per real vblank the CPU drains the WHOLE display command ring
+  // (0x88c0..0x88ff) then idles in the per-frame worker (0x0254); MAME's ring occupancy is 0 every frame.
+  // So the frame boundary is the worker/ring-idle point, NOT every loop iteration: the poll/yield PC is
+  // 0x021c (the return right after the worker 0x0254), which is reached ONLY on the worker path. Command
+  // dispatches ret to 0x020f, so polling 0x020f would fire one NMI PER COMMAND and drain the ring one
+  // command/frame — a credit-screen backlog then leaves stale attract tiles on the playfield deep into
+  // gameplay (fails loc_68ac's tile checksum). Polling 0x021c drains the ring within a frame, matching
+  // MAME. Attract convergence is unchanged (empty ring); the idiomatic arm mirrors it in mainLoop (yield
+  // only on the worker iteration). (History: 0x020f was attract-only-validated; the gameplay tape exposed
+  // the per-command drain — see ARCADE2 seam log.)
   convergence: {
-    idiomatic: { nmiReturnPC: 0x020f },
-    pollPCs: [0x020f],
+    idiomatic: { nmiReturnPC: 0x021c },
+    pollPCs: [0x021c],
     stateExclude: { stack: [0x8fd8, 0x9000] }, // MEASURED deepest SP over attract (SP inits 0x9000)
   },
 

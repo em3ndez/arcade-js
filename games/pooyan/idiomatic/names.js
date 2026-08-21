@@ -237,16 +237,17 @@ export const ATTRIB_MAP_BASE = 0x8040;
 export const STACK_SCRATCH = { lo: 0x8fc0, hi: 0x9000 };
 
 // == Routine dispatch map (idiomatic overrides layered over the translated oracle) ==
-// mainLoop runs as the born-live generator on runIdiomaticGame, yielding once per iteration at the
-// vblank boundary; the frozen boot chain's tail call into the main loop returns this generator, which
-// the engine drives frame by frame. The leaves below are wired as direct overrides: the memory-only ones
+// mainLoop runs as the born-live generator on runIdiomaticGame, yielding at the per-frame worker
+// (ring-idle) iteration -- the vblank boundary -- and draining the display command ring within the frame
+// (as MAME does per vblank); the frozen boot chain's tail call into the main loop returns this generator,
+// which the engine drives frame by frame. The leaves below are wired as direct overrides: the memory-only ones
 // return their result, and the register/flag-live-out ones set it through the return-assignment bridge
 // (return (m.regs.X = v)) so the frozen caller reads it back out of the register. Only the jump-table
 // dispatchers stay UNWIRED (tools/registry-coverage.config.mjs).
 export const ROUTINES = {
   0x020f: {
     name: "mainLoop",
-    role: "the main-loop state driver: each iteration runs the per-frame worker or dispatches one attract-ring handler; as the born-live generator it yields at the vblank boundary",
+    role: "the main-loop state driver: each iteration runs the per-frame worker or dispatches one display-ring handler; as the born-live generator it drains the ring within a frame and yields at the worker/ring-idle vblank boundary",
     cert: "code",
   },
   0x02aa: { name: "paintColumnBodyTiles", role: "stamp a tilemap column's two body tiles (mid + base)", cert: "code" },
