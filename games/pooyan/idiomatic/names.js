@@ -30,9 +30,9 @@ export const FILL_ROW_COUNTER = 0x8809;
 export const PLAY_STATE_INDEX = 0x880a;
 /** [seen] (low byte steps +32 (0,32,64,..,224,0) with 465 transitions; loc_02e6 stores HL, loc_02ce fills B tiles then adds 0x20-B) 16-bit VRAM write cursor for the row-by-row tile fill, advanced +0x20 per row (paired with 0x8809) */
 export const TILE_FILL_PTR = 0x880b;
-/** [code] (both goldens: a P1-held 1P game (holds 0) plus one scratch 0x1f write at f319 = leftover A from loc_075d's fill loop stored by loc_0c45, NOT a player value; the bit0=1->P2 switch is never observed) active-player select; bit0=0 -> P1 banks (score 0x88a2/counter 0x88a4), 1 -> P2 (0x88a5/0x88a7) */
+/** [seen] (MAME 2P golden: toggles P1<->P2 exactly on swaps -- 0->1 at P1 death f2854, 1->0 at P2 death f7129; the f319 scratch 0x1f is loc_075d's leftover stored by loc_0c45, not a player value) active-player select; bit0=0 -> P1 banks (score 0x88a2/counter 0x88a4), 1 -> P2 (0x88a5/0x88a7) */
 export const ACTIVE_PLAYER = 0x880d;
-/** [code] (static 0 in both goldens (no 2P game played) -> unobservable/code; loc_0dab sets 1 on 2P start (hi byte of 0x0100), loc_7fd6 picks player bank when nonzero) nonzero for a 2-player game; gates per-player bank selection (with 0x880d) and the 2P start event */
+/** [seen] (MAME 2P golden: 0->1 at 2P start f402, holds 1; static 0 in the 1P golden = positive control; loc_0dab sets 1 on 2P start, loc_7fd6 picks player bank when nonzero) nonzero for a 2-player game; gates per-player bank selection (with 0x880d) and the 2P start event */
 export const TWO_PLAYER_FLAG = 0x880e;
 /** [seen] (gameplay: bit0=1 at f302 (coin), bit3(val 8) at f362 (1P start); loc_066d writes cpl(IN0 @a080) here each NMI) inverted IN0 sample (head of 0x8810-0x8812 edge-detect ring): coin bit0, 1P-start bit3, 2P-start bit4 */
 export const INPUT_PORT0 = 0x8810;
@@ -76,11 +76,11 @@ export const FORMATION_SLOT_TABLE = 0x8920;
 export const ROPE_SEGMENT_COUNT = 0x8931;
 /** [code] (static 0 in both goldens (mirror of 0x8902) -> code) rope/lift segment draw count (snapshot of 0x8902 phase, reseeds to 4 at 7); sets rope sprite rows */
 export const ROPE_DRAW_COUNT = 0x8934;
-/** [code] (Static 0 both goldens (no player-swap in 1P golden; byte0=colour seed 0). Code: loc_1a47/loc_1601 ldir 0x8900<->0x8940 per 0x880d, loc_0e00 seeds colour+X.) Base of player-0's 0x3f-byte saved actor/state block, swapped with live page 0x8900; byte0=sprite colour */
+/** [seen] (MAME 2P golden: block saved on P1 death f2854 -- byte1 0x8941 0x20->0x1a via saveLivePageToPlayer0Bank; base byte0=colour stays 0 (source 0x8820=0) so grounded at BLOCK level. loc_1a47/loc_1601 ldir 0x8900<->0x8940 per 0x880d) Base of player-0's 0x3f-byte saved actor/state block, swapped with live page 0x8900; byte0=sprite colour */
 export const PLAYER0_STATE_BANK = 0x8940;
 /** [seen] (Gameplay golden: 0->3 (seed=default 3 lives) then 3->2->1->0 drain per death, then ->3 for next game. Decisive lives countdown; overturns A's 'active flag' guess. Seeded 0x8807 in loc_0e00 (bank +8).) Player-0 remaining lives, seeded from lives DSW 0x8807; decrements on death, gates player-switch/game-over */
 export const PLAYER0_LIVES = 0x8948;
-/** [code] (Static 0 both goldens (P1 bank untouched in 1P golden). Code: loc_1a47/loc_1bcc ldir 0x8900->0x8980 for player 1 per 0x880d, loc_0e00 seeds colour+X.) Base of player-1's 0x3f-byte saved actor/state block, swapped with live page 0x8900; byte0=sprite colour */
+/** [seen] (MAME 2P golden: block saved on P2 death f7129 -- byte1 0x8981 0x20->0x0f; base byte0=colour stays 0 (source 0x8820=0) so grounded at BLOCK level. loc_1a47/loc_1bcc ldir 0x8900->0x8980 per 0x880d) Base of player-1's 0x3f-byte saved actor/state block, swapped with live page 0x8900; byte0=sprite colour */
 export const PLAYER1_STATE_BANK = 0x8980;
 /** [seen] (Both goldens: 0->3 (seed=lives DSW), gameplay 3->0->3 reset pattern parallel to 0x8948. Value 3 = default lives; loc_7e6d gates integrity on >=4 (only under 4/5-life DSW). Overturns A's 'active flag'.) Player-1 remaining lives, seeded from lives DSW 0x8807; gates player-switch and an integrity check (>=4) */
 export const PLAYER1_LIVES = 0x8988;
@@ -194,9 +194,9 @@ export const LATCHED_ENEMY_X = 0x8f5b;
 export const ANIM_ARMED_LATCH = 0x8f63;
 
 // == Batch-2 decompile cells (role from the frozen oracle; [code] -- MAME-grounding pending) ==
-/** [code] (loc_04f2 selects this vs P2_SCORE_BCD off ACTIVE_PLAYER) player-1 live 3-byte BCD score buffer (0x88a2..0x88a4) */
+/** [seen] (MAME 2P golden: buffer accumulates during P1's turn only -- mid byte 0x88a3 0->0x14 while ACTIVE_PLAYER=0, frozen after the swap; base 0x88a2 low BCD pair stays 0 (scores x100) so grounded at BUFFER level; loc_04f2 selects this vs P2_SCORE_BCD off ACTIVE_PLAYER) player-1 live 3-byte BCD score buffer (0x88a2..0x88a4) */
 export const P1_SCORE_BCD = 0x88a2;
-/** [code] (loc_04f2 P2 bank) player-2 live 3-byte BCD score buffer (0x88a5..0x88a7) */
+/** [seen] (MAME 2P golden: buffer accumulates during P2's turn only -- mid byte 0x88a6 0->0x78 while ACTIVE_PLAYER=1, frozen otherwise; base 0x88a5 low BCD pair stays 0 (scores x100) so grounded at BUFFER level; loc_04f2 P2 bank) player-2 live 3-byte BCD score buffer (0x88a5..0x88a7) */
 export const P2_SCORE_BCD = 0x88a5;
 /** [code] (loc_585b sets 1 on a checksum mismatch; MULTIPLEXED -- loc_24fb writes 0x07 as a state index, loc_5a56 reads it as a coord low byte by COINAGE_CONFIG) eagle-spawn ROM-checksum mismatch flag */
 export const TAMPER_ROM_CHECK_FLAG = 0x882b;
@@ -218,13 +218,13 @@ export const TILE_ANIM_PARITY = 0x8f37;
 export const SOUND_COMMAND_LATCH = 0xa100;
 /** [seen] (MAME write-trace: a clean b1 high/low pulse per sound command; loc_0e8f pulses b1 high, 6x nop, low after a command) audio-IRQ strobe latch (mainlatch b1) */
 export const AUDIO_IRQ_LATCH = 0xa181;
-/** [code] (loc_208c samples every 8th byte from here) ROM base of the sampled code region for the signature guard */
+/** [seen] (MAME read-tap: read by loc_208c at pc=2095 in attract; loc_208c samples every 8th byte from here) ROM base of the sampled code region for the signature guard */
 export const SIGNATURE_SAMPLE_BASE = 0x066d;
-/** [code] (loc_208c compares the sample against this) 16-byte expected-signature reference table in ROM */
+/** [seen] (MAME read-tap: read by loc_208c at pc=2094, paired 1:1 with the sample; loc_208c compares the sample against this) 16-byte expected-signature reference table in ROM */
 export const SIGNATURE_REFERENCE_TABLE = 0x20aa;
 /** [code] (loc_3fe9 sums the 16-byte block descending from here) top of the ROM block checked by the state-10 integrity guard */
 export const ROM_CHECKSUM_TOP = 0x7780;
-/** [code] (loc_0644 header byte must be 0xc8; bytes0..3 summed, (sum-carry) must equal 0x59) ROM base of the 4-byte high-score-table checksum block */
+/** [seen] (MAME read-tap: read by loc_0644 at pc=064A once per attract cycle; the byte here = 0xc8 = the header loc_0644 asserts; bytes0..3 summed, (sum-carry) must equal 0x59) ROM base of the 4-byte high-score-table checksum block */
 export const HISCORE_CHECKSUM_BASE = 0x778a;
 /** [code] (loc_0644 sets 1 on a bad header or wrong checksum) work-RAM high-score-table corruption flag */
 export const HISCORE_TABLE_CORRUPT_FLAG = 0x8df8;
