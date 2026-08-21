@@ -61,3 +61,7 @@ timeplt 0xf1eb
 timeplt 0xf1f1
 pooyan 0x8905  # role unknown; touched by loc_191c, promote at [code]->grounding
 pooyan 0x8906  # role unknown; touched by loc_191c, promote at [code]->grounding
+pooyan 0x89e3  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8a99  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8f0e  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8f0f  # role unknown; promote to a descriptive name at grounding

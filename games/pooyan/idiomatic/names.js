@@ -230,6 +230,134 @@ export const HISCORE_CHECKSUM_BASE = 0x778a;
 export const HISCORE_TABLE_CORRUPT_FLAG = 0x8df8;
 /** [seen] (MAME gameplay golden: attribute codes flooded here in play, observed 0x10/0x1d/0x0d; loc_075d floods 31 columns x 30 rows, stride 0x20 from here) base of the tile-attribute/colour map on the 0x8000 video page */
 export const ATTRIB_MAP_BASE = 0x8040;
+/** [code] display-command WORD (not a RAM cell) enqueued via loc_0038 on hunter spawn */
+export const HUNTER_SPAWN_DISPLAY_CMD = 0x0315;
+/** [code] ROM table of 3-byte BCD score-award increments (stride 3), indexed by the award index (index!=0 path) */
+export const SCORE_AWARD_TABLE = 0x0501;
+/** [code] alternate display-list command word (0x06:0x07) enqueued on object init when the round counter is zero */
+export const OBJECT_SPAWN_DISPLAY_CMD_ALT = 0x0607;
+/** [code] display-command WORD (not a RAM cell) enqueued via loc_0038 for siren phase A */
+export const SIREN_DISPLAY_CMD_A = 0x060f;
+/** [code] display-list command word (0x06:0x11) enqueued via the page-0x88 ring on object spawn/init (also used by loc_08e9) */
+export const OBJECT_SPAWN_DISPLAY_CMD = 0x0611;
+/** [code] base display-command code queued when an eagle wave fully arrives, offset by the arrived count */
+export const WAVE_ARRIVAL_CMD_BASE = 0x0630;
+/** [code] display-command WORD (not a RAM cell) enqueued via loc_0038 for siren phase B */
+export const SIREN_DISPLAY_CMD_B = 0x068f;
+/** [code] ROM base of the 23-byte block rolling-summed downward by the slot-sweep checksum (the block is code inside another routine, read as data) */
+export const SLOT_SWEEP_CKSUM_BASE = 0x0bf3;
+/** [code] base of a code region read as data for this handler's entry integrity checksum (0x5b bytes summed, followed by its 4 guard bytes) */
+export const INTEGRITY_CHECKSUM_CODE_BLOCK = 0x2901;
+/** [code] ROM 4-byte table: rope-cell index (IXL&3) -> video-RAM column low byte (paired with page 0x84 to form the column base) */
+export const ROPE_CELL_COLUMN_TABLE = 0x2db8;
+/** [code] ROM byte table indexed by the adjusted attribute value; OR-ed into an actor attribute byte (+0x08) */
+export const ACTOR_ATTR_MERGE_TABLE = 0x3727;
+/** [code] ROM byte table indexed by 2*DIFFICULTY_DSW + clamped ROUND_COUNTER; supplies the base value for an actor attribute byte (+0x08) */
+export const ACTOR_ATTR_BASE_TABLE = 0x3737;
+/** [code] ROM 4-frame animation table (sibling of ANIM_TABLE_3829) armed into the descending object's record by the descent step */
+export const ANIM_TABLE_3838 = 0x3838;
+/** [code] animation-sequence pointer armed into even eagle records (IXL bit3 clear) */
+export const EAGLE_EVEN_RECORD_ANIM = 0x4086;
+/** [code] ROM animation-sequence descriptor armed via setActorAnimation when a spawned object lands/settles (also installed by the rope-grab path) */
+export const LANDING_ANIM_SEQ_40B4 = 0x40b4;
+/** [code] top of the ROM block loc_3865 sums backward (to the 0x1a terminator) for its tamper check; a ROM address, not a RAM cell */
+export const ACTOR_TAMPER_CKSUM_TOP = 0x4282;
+/** [code] ROM byte table indexed by the clamped spawn speed index; result stored at 0x8d5d */
+export const SPAWN_SPEED_TABLE = 0x5407;
+/** [code] fixed 56-byte block whose folded low-nibble sum is the object-frame anti-tamper sentinel (running low byte 0x67 with exactly one carry) */
+export const TAMPER_NIBBLE_SUM_BLOCK = 0x557f;
+/** [code] ROM byte table; the spawn reads entry [1] into the formation record's +0x09 field (its two's-complement negation into +0x0a) */
+export const SPAWN_FIELD_TABLE = 0x5902;
+/** [code] top of the 31-byte program block summed downward by the credit-draw anti-tamper tripwire (clean-image sum sentinel 0x8c) */
+export const HUD_GUARD_CKSUM_TOP = 0x64c8;
+/** [code] code base whose bytes loc_79e9 sums (forward to the terminating ret) as an integrity self-check */
+export const SELFCHECK_ROUTINE_BASE_ADDR = 0x68ac;
+/** [code] animation-sequence pointer armed into odd eagle records (IXL bit3 set) */
+export const EAGLE_ODD_RECORD_ANIM = 0x7403;
+/** [code] 2 guard bytes (0x7a0b/0x7a0c) the tail integrity checksum's 16-bit sum is verified against */
+export const TAIL_CHECKSUM_GUARD = 0x7a0b;
+/** [code] start of the boot-blanked video-RAM tile region (video base 0x8400 + 0x40); 0x3c0 tiles through 0x87ff set to erase tile 0x1e */
+export const VIDEO_RAM_BLANK_START = 0x8440;
+/** [code] video-RAM column base where the 10-entry high-score table is drawn (stacked BCD nibble tiles) */
+export const HIGH_SCORE_TABLE_VRAM = 0x85c7;
+/** [code] video-RAM base cell of the play-timer digit column; minutes/seconds nibble tiles are written here and up the column (stride -0x20) */
+export const PLAY_TIMER_DIGIT_VRAM = 0x862d;
+/** [code] video-RAM units-digit tile cell of the 2-digit credit HUD counter */
+export const CREDIT_HUD_UNITS_VRAM = 0x869f;
+/** [code] video-RAM tens-digit tile cell of the 2-digit credit HUD counter (written only when the tens nibble is nonzero) */
+export const CREDIT_HUD_TENS_VRAM = 0x86bf;
+/** [code] video-RAM base of the second 3-tile scroll column the per-frame worker stamps (via loc_02a8) and conditionally blanks, stride one tilemap row up */
+export const WORKER_COLUMN_VRAM = 0x8740;
+/** [code] video-RAM base (bottom origin) of the eagle grid-marker cell region; row (up) and column (right) offsets index from here */
+export const EAGLE_GRID_VRAM_BASE = 0x87e0;
+/** [code] cabinet lives-count byte (from the lives DSW), seeded into both players' lives at board reset */
+export const LIVES_DSW = 0x8807;
+/** [code] per-frame worker control byte (one below SPRITE_DISPLAY_LIST): low nibble != 0 gates the program-signature check, bit 4 gates the final scroll-column blank */
+export const WORKER_CONTROL_BYTE = 0x883f;
+/** [code] 3-byte BCD per-frame score increment added to the active player's score when the award index is 0 */
+export const PER_FRAME_SCORE_INCREMENT = 0x88ab;
+/** [code] shared per-frame delay/timer counter; decremented while nonzero to gate several object-update sweeps (loc_67a0/6905/756d/6523), reseeded by their handlers */
+export const SHARED_FRAME_DELAY_TIMER = 0x8929;
+/** [code] top of the per-entry play-time side table (3-byte stride) shifted alongside the high-score table on insert; the new entry's two play-timer BCD bytes are stored into the opened slot */
+export const HIGH_SCORE_TIME_TABLE = 0x89e0;
+export const loc_89e3 = 0x89e3;
+/** [code] base of a 7-byte flag block scanned after the timer render; the first nonzero flag diverts to the tail integrity checksum */
+export const INTEGRITY_FLAG_SCAN_BASE = 0x89e7;
+/** [code] anti-tamper strike counter bumped when the slot-sweep code-block checksum misses its sentinel; also read by the eagle-spawn handler */
+export const TAMPER_STRIKES_SLOTSWEEP = 0x89e8;
+/** [code] high-score insert rank+1: set to the winning rank plus one when a new score is inserted */
+export const HIGH_SCORE_INSERT_RANK = 0x89fc;
+/** [code] anti-tamper strike counter bumped when the credit-draw checksum tripwire misses its 0x8c sentinel */
+export const TAMPER_STRIKES_HUD_GUARD = 0x8a3c;
+export const loc_8a99 = 0x8a99;
+/** [code] base page of the per-slot hunter-return paced counters; a slot's counter cell is this | ((field-0 + 5) & 0xff) */
+export const HUNTER_COUNTER_PAGE = 0x8c00;
+/** [code] base of the 6-slot hunter record table (0x18 stride, scanned DOWNWARD) seeded by launch state 2 */
+export const HUNTER_TABLE_BASE = 0x8c78;
+/** [code] eagle live Y coordinate; >>3 +4 is its grid row, matched within a 5-row window of the record's target row (ix+4) */
+export const EAGLE_Y_COORD = 0x8c94;
+/** [code] eagle live X coordinate; >>3 is its grid column, matched against the record's target column (ix+6) or that minus one */
+export const EAGLE_X_COORD = 0x8c96;
+/** [code] one-shot spawn latch for the 0x8c30 formation record; set 1 when spawned, gates re-spawn */
+export const SPAWN_LATCH = 0x8d59;
+/** [code] spawn speed index = (ROUND_COUNTER>>1)+1 clamped to 6; indexes SPAWN_SPEED_TABLE */
+export const SPAWN_SPEED_INDEX = 0x8d5c;
+/** [code] spawn speed value looked up from SPAWN_SPEED_TABLE via SPAWN_SPEED_INDEX */
+export const SPAWN_SPEED_VALUE = 0x8d5d;
+/** [code] warning-siren enable gate: loc_19ca ticks only while nonzero */
+export const SIREN_ENABLE_GATE = 0x8d68;
+/** [code] warning-siren phase byte; bit0 selects the phase-A/B command, reset to 1/0 on toggle */
+export const SIREN_PHASE_BYTE = 0x8d69;
+/** [code] warning-siren frame countdown (reload 0x18); on expiry toggles the phase */
+export const SIREN_FRAME_COUNTDOWN = 0x8d6a;
+/** [code] once-only latch for the gated slot-sweep checksum guard; 0 = pending, set to the free-slot count once the sweep runs */
+export const SLOT_SWEEP_LATCH = 0x8d6e;
+export const loc_8f0e = 0x8f0e;
+export const loc_8f0f = 0x8f0f;
+/** [code] rope-extend sub-state selector (0/1) dispatched by the rope state handler; this routine is its state-0 handler and advances it */
+export const ROPE_EXTEND_STATE = 0x8f14;
+/** [code] rope-extend sub-timer, reloaded to 0x10 when a segment is added (timer role inferred from the reload, not grounded) */
+export const ROPE_EXTEND_TIMER = 0x8f16;
+/** [code] rope-extend segment index: gates the extend (below 4), indexes the video-column table and the per-segment cell timer */
+export const ROPE_EXTEND_INDEX = 0x8f18;
+/** [code] 16-bit video-RAM column base (page 0x84) for the current rope segment, looked up from the column table */
+export const ROPE_COLUMN_VRAM_PTR = 0x8f19;
+/** [code] work-RAM word holding the pointer to the most-recently-seeded hunter record */
+export const HUNTER_RECORD_PTR = 0x8f32;
+/** [code] spawn countdown seeded 0x20 by launch state 2 on the non-flip path */
+export const HUNTER_SPAWN_COUNTDOWN = 0x8f34;
+/** [code] eagle grid-advance frame tick; low 3 bits gate the every-eighth-frame grid marker step */
+export const EAGLE_GRID_STEP_TICK = 0x8f3b;
+/** [code] run-once latch for the playfield tilemap-sum integrity check (loc_6a7f sums once and sets 1); cleared/re-armed to 0 when the state-1 descending object reaches the bottom */
+export const TILE_SUM_ONCE_LATCH = 0x8f56;
+/** [code] sub-counter bumped by launch state 2 on the flip path */
+export const HUNTER_SPAWN_SUBCOUNTER = 0x8f5d;
+/** [code] flip flag: when set, launch state 2 bumps a sub-counter instead of enqueuing the spawn display command */
+export const HUNTER_SPAWN_FLIP_FLAG = 0x8f61;
+/** [code] sprite bank 0 fill start (bank base 0x9000 + 0x10); boot clears 0x30 bytes here */
+export const SPRITE0_CLEAR_BASE = 0x9010;
+/** [code] sprite bank 1 fill start (bank base 0x9400 + 0x10); boot clears 0x30 bytes here */
+export const SPRITE1_CLEAR_BASE = 0x9410;
 /** [code] ROM base of the 0x20-byte block summed by the hunter-formation state-2 integrity guard (valid-ROM sum sentinel 0xdc) */
 export const FORMATION_GUARD_BASE = 0x0799;
 /** [code] ROM colour/attribute column source table for the default field job, selected when the round counter's low bit is set */
@@ -526,4 +654,77 @@ export const ROUTINES = {
   0x76af: { name: "loc_76af", role: "two-phase blink timer: on countdown expiry toggle the phase and swap a video tile pair", cert: "code" },
   0x7912: { name: "loc_7912", role: "tick the active player's BCD play-timer (frame sub-counter 0..0x3b/0x3c then BCD seconds/minutes carry)", cert: "code" },
   0x7e6d: { name: "loc_7e6d", role: "periodic anti-tamper ROM checksum guard; bumps the ROM tamper-strike counter on a signature miss", cert: "code" },
+  0x01ea: { name: "loc_01ea", role: "boot RAM clear: fill both sprite-bank tops with A + blank lower video RAM to tile 0x1e, then cycle-only settle-delay", cert: "code" },
+  0x0254: { name: "loc_0254", role: "per-frame scroll worker dispatched by the main loop: repaint the scroll tile columns, or run the program-signature check when the control byte's low nibble is set", cert: "code" },
+  0x02b9: { name: "loc_02b9", role: "zero the board-init RAM regions (sprite display list + actor/object arena)", cert: "code" },
+  0x02ce: { name: "loc_02ce", role: "row-by-row VRAM tile fill: blank B tiles at the fill cursor (loc_0010), advance one row (+0x20-B), store cursor, dec row counter; Z = drained", cert: "code" },
+  0x02ef: { name: "loc_02ef", role: "per-frame sprite display-list rebuild (4 record groups + arrow Y-tick + flip-mirror tail)", cert: "code" },
+  0x03e9: { name: "loc_03e9", role: "paint the attract HUD/score panels: eleven selector fields, the ten-entry high-score table as stacked BCD digit pairs, then the digit and status panels", cert: "code" },
+  0x0496: { name: "loc_0496", role: "accrue the active player's BCD score and keep the high score in step", cert: "code" },
+  0x05ee: { name: "loc_05ee", role: "draw the credit count as two HUD digit tiles, then run a ROM-checksum anti-tamper tripwire", cert: "code" },
+  0x0e00: { name: "loc_0e00", role: "reset the actor/sprite state for a new board", cert: "code" },
+  0x0e54: { name: "loc_0e54", role: "queue the primary display command, plus the free-play extra command when the coinage config is the free-play sentinel", cert: "code" },
+  0x0ecf: { name: "loc_0ecf", role: "sound-command selector 0x00: A=0, tail-enqueue into the sound-command ring (loc_0eb3)", cert: "code" },
+  0x0ed2: { name: "loc_0ed2", role: "queue command 0x01 into the command ring (thin wrapper over loc_0ea2)", cert: "code" },
+  0x0ed6: { name: "loc_0ed6", role: "enqueue the fixed sound command 0x02 into the sound-command ring", cert: "code" },
+  0x0eda: { name: "loc_0eda", role: "queue two fixed sound commands into the sound-command ring", cert: "code" },
+  0x0ee3: { name: "loc_0ee3", role: "conditional sound-command enqueue: gated on wave-teardown/grab-active, then tail-appends command 0x04 to the page-0x8a command ring", cert: "code" },
+  0x0ef1: { name: "loc_0ef1", role: "enqueue fixed sound command 0x05 into the sound-command ring (wrapper over loc_0eb3)", cert: "code" },
+  0x0ef5: { name: "loc_0ef5", role: "sound-command stub: append the fixed command byte 0x06 into the page-0x8a text/command ring via loc_0ea2", cert: "code" },
+  0x0ef9: { name: "loc_0ef9", role: "append the fixed byte 0x07 into the page-0x8a command ring (load the constant, tail-call the ring appender)", cert: "code" },
+  0x0efd: { name: "loc_0efd", role: "command 0x08: append the fixed byte 0x08 into the page-0x8a command ring", cert: "code" },
+  0x0f01: { name: "loc_0f01", role: "sound-command selector 0x09: A=9, tail-enqueue into the sound-command ring (loc_0eb3)", cert: "code" },
+  0x0f05: { name: "loc_0f05", role: "queue command 0x0a into the command ring (thin wrapper over loc_0ea2)", cert: "code" },
+  0x0f0d: { name: "loc_0f0d", role: "append the fixed command byte 0x0b into the page-0x8a command ring", cert: "code" },
+  0x0f11: { name: "loc_0f11", role: "enqueue the fixed command byte 0x0c into the command ring (via the ring-append helper)", cert: "code" },
+  0x0f15: { name: "loc_0f15", role: "append fixed command byte 0x0d to the 0x8a-page text ring (wrapper over loc_0ea2)", cert: "code" },
+  0x0f19: { name: "loc_0f19", role: "command emitter: append the fixed byte 0x0e into the page-0x8a command ring (thin wrapper tail-calling loc_0ea2)", cert: "code" },
+  0x0f1d: { name: "loc_0f1d", role: "append the fixed byte 0x0f into the page-0x8a ring via loc_0ea2", cert: "code" },
+  0x0f21: { name: "loc_0f21", role: "queue two command bytes (0x95 then 0x10) into the command ring", cert: "code" },
+  0x0f2b: { name: "loc_0f2b", role: "sound-command stub: append the fixed command byte 0x11 into the page-0x8a text/command ring via loc_0ea2", cert: "code" },
+  0x0f30: { name: "loc_0f30", role: "queue three fixed command bytes (0x95, 0x03, 0x11) into the text-command ring via the append helper (last is a tail call)", cert: "code" },
+  0x0f3f: { name: "loc_0f3f", role: "queue the page-0x8a text-ring sound command 0x12", cert: "code" },
+  0x0f44: { name: "loc_0f44", role: "queue command byte 0x13 into the command ring", cert: "code" },
+  0x0f49: { name: "loc_0f49", role: "queue the fixed command byte 0x14 into the text-command ring (tail call to the append helper)", cert: "code" },
+  0x0f4e: { name: "loc_0f4e", role: "enqueue two fixed sound commands (0x82, 0x95) into the sound-command ring buffer (last is a tail call)", cert: "code" },
+  0x0f58: { name: "loc_0f58", role: "queue four fixed command bytes: 0x96,0x97 into the text/command ring; 0x18,0x15 into the sound ring", cert: "code" },
+  0x0f6c: { name: "loc_0f6c", role: "enqueue two sound commands (0x19 then 0x15) into the sound-command ring", cert: "code" },
+  0x0fb2: { name: "loc_0fb2", role: "enqueue sound commands 0x27 then 0x15 into the sound-command ring", cert: "code" },
+  0x0fbc: { name: "loc_0fbc", role: "enqueue text tiles 0x28,0x15,0x16,0x17 into the text ring", cert: "code" },
+  0x0fc3: { name: "loc_0fc3", role: "append a 4-tile run (caller byte + 0x15/0x16/0x17) to the command ring", cert: "code" },
+  0x1389: { name: "loc_1389", role: "spawn-step guard: gate the actor spawn/queue step (loc_141c) on bit0 of the record's flag byte (rec+8)", cert: "code" },
+  0x19ca: { name: "loc_19ca", role: "periodic warning-siren tick: gated frame countdown that toggles a phase and queues one of two siren display commands", cert: "code" },
+  0x1ab2: { name: "loc_1ab2", role: "insert the active player's score into the sorted 10-entry high-score table and its parallel play-time / display-tile side-tables (high-score insert-sort)", cert: "code" },
+  0x221e: { name: "loc_221e", role: "object-clear helper: blank a 0x18-byte record at IY to zero", cert: "code" },
+  0x22b1: { name: "loc_22b1", role: "step the animation script of four actor records unless a rope-grab is in progress", cert: "code" },
+  0x2527: { name: "loc_2527", role: "board/HUD reset: enqueue a display command, conditionally reseed the spawn-phase/rope-draw counters, clear three RAM blocks (loc_0010) and mirror the fill value into five actor/HUD cells", cert: "code" },
+  0x2856: { name: "loc_2856", role: "launch-state-machine state 2: seed a new hunter into the first free 0x8c78-table slot (unless play-mode set), then bump the launch state and either seed the spawn countdown + enqueue a display command or bump a sub-counter", cert: "code" },
+  0x28ad: { name: "loc_28ad", role: "launch state-3 handler: run the state-3 hold countdown, then advance the launch state and (unless play-mode latched) clear the pointed-to 0x18-byte record via loc_0010", cert: "code" },
+  0x2a32: { name: "loc_2a32", role: "actor state-3 handler: tile-flip + 16-bit position advance by 0x80, milestone display-command enqueues, state advance", cert: "code" },
+  0x2bd2: { name: "loc_2bd2", role: "stack-adjust entry (inc sp) that falls into the ready-sprite painter loc_2bd3; memory behaviour equals the painter's", cert: "code" },
+  0x2d80: { name: "loc_2d80", role: "rope-extend driver sub-state 0: add one rope segment", cert: "code" },
+  0x2e52: { name: "loc_2e52", role: "compute the video-RAM column base for a rope cell (IXL&3 ROM-table lookup)", cert: "code" },
+  0x324d: { name: "loc_324d", role: "per-slot hunter-return tick: gate (ix+0)>=0x40, drop 0x8c-page paced counter by 0x40, on borrow dec paired byte + (board-clear) tail to loc_3278", cert: "code" },
+  0x3553: { name: "loc_3553", role: "blank an actor's sprite band: fill 0x17 bytes from IX with zero", cert: "code" },
+  0x36de: { name: "loc_36de", role: "build an actor attribute byte (+0x08) via two table lookups with flag/phase/stage adjustments", cert: "code" },
+  0x3865: { name: "loc_3865", role: "actor state handler with embedded tamper check: run the animation player, tick the per-record timer, and on expiry advance state and (in the object-table band with the frame gate clear) fold a ROM checksum, bumping the signature-mismatch flag on deviation", cert: "code" },
+  0x3e9c: { name: "loc_3e9c", role: "object state-6 handler: in-flight mover for a spawned object (waypoint/free modes; lands via loc_381e anim + state flip)", cert: "code" },
+  0x4103: { name: "loc_4103", role: "per-object frame-advance: loc_4006 animate, (ix+11h) dwell, on expiry bump phase + clear (ix+13h) + frame-zero-crossing signature checksum bumping TAMPER_STRIKES_SIG", cert: "code" },
+  0x4350: { name: "loc_4350", role: "object state handler: tick loc_4006, count down the (ix+0x11) phase timer, then on lapse step (ix+0x02) and re-arm the turn animation (bit0 of (ix+0x08) selects loc_425c vs loc_423a)", cert: "code" },
+  0x52f6: { name: "loc_52f6", role: "gated slot sweep + ROM-checksum tamper tripwire", cert: "code" },
+  0x53b0: { name: "loc_53b0", role: "one-shot gated formation-record spawn/init: fill record fields + derive spawn speed from round counter", cert: "code" },
+  0x6523: { name: "loc_6523", role: "seat a fresh object record and enqueue its spawn display command(s)", cert: "code" },
+  0x672a: { name: "loc_672a", role: "object descent step: run loc_4006, advance the 16-bit sub-position, seat a matching free spawn-object slot when the landing row is reached, then bump state, reload the step to 0x18 and re-arm the animation via setActorAnimation", cert: "code" },
+  0x67a0: { name: "loc_67a0", role: "per-object frame update gated by the shared frame-delay timer (animation step + 16-bit position moves + state advance)", cert: "code" },
+  0x69c6: { name: "loc_69c6", role: "advance a paired ix/iy descending object one step: run the sequencer, lower both 16-bit positions by their delta, then gate/retire on the ix high byte", cert: "code" },
+  0x6aa8: { name: "loc_6aa8", role: "state-1 step of a descending object: move it down, then at bottom re-arm the tile-sum latch and advance state", cert: "code" },
+  0x7059: { name: "loc_7059", role: "phase-5 target-group tick: decrement the counter at HL and queue display command 0x0315", cert: "code" },
+  0x71ce: { name: "loc_71ce", role: "eagle/arrow approach state machine: hold-gate, drive the aim flags and records-arrived sub-phase from the eagle X, and step the grid marker + colour every eighth frame (delegating the grid-edge guard and phase-reset epilogue)", cert: "code" },
+  0x733c: { name: "loc_733c", role: "eagle approach state: gate eagle grid col/row vs (ix+6)/(ix+4) window, on hit advance (ix+2), arm anim + set (ix+9), even records bump arrived count + (all arrived) queue wave sound via rst 0x38", cert: "code" },
+  0x7395: { name: "loc_7395", role: "eagle-record dive/climb state: run the animation mover (loc_4006) then integrate the record's vertical position by its speed, advancing the state byte at the row limit", cert: "code" },
+  0x73ce: { name: "loc_73ce", role: "eagle-record state 2 (retire): clear the record and, when the wave empties, seed the inter-wave hold", cert: "code" },
+  0x73e3: { name: "loc_73e3", role: "eagle inter-wave idle handler: tick the hold timer, or on expiry enqueue the wave sound, reseed the hold, and clear the launch flag", cert: "code" },
+  0x7421: { name: "loc_7421", role: "bonus-stage teardown (phase 2): clear wave/enemy state and hand back to the attract sub-state", cert: "code" },
+  0x7960: { name: "loc_7960", role: "shared integrity + play-timer nibble-render handler: enqueue a display command, verify a code-block checksum, render the active player's timer BCD as nibble tiles and clear them, then scan a flag block that can divert to a tail checksum", cert: "code" },
+  0x79e9: { name: "loc_79e9", role: "code-region integrity self-check: sum a fixed routine's bytes into a 16-bit checksum and match it against the stored word (trap/divert on mismatch)", cert: "code" },
 };
