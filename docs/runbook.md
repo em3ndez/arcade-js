@@ -354,6 +354,16 @@ batch and feeds the next batch's targets.
   resolve file-local `const NAME = 0x…` aliases, not just literal hex. A bare-return no-op module
   dissolves to nothing (inline + delete module/entry/test). A strongly-connected cycle lands as one
   unit. Partition caller files across agents; don't run a rename pass while authoring agents are live.
+- **Fan agents WRITE + parse-check only; the LEAD runs the equivalence tests.** A decompile fan must
+  NOT have each agent run `node --test` — N agents each spawning a Machine-booting test at once starve
+  CPU, and an agent that retries a slow/hung test livelocks the whole fan (2026-08-20: a batch-2 fan
+  pinned a core ~5h across a compaction). Agents verify only `node --check <module>` (parses) +
+  `idiomatic_gate worklist <game>` (cruft-0) then return; the LEAD runs every `equivalence-<addr>.test.js`
+  SERIALLY in reconcile, each wrapped in an OS `timeout`. A timeout is a **bug to fix** — a
+  non-terminating test is a real defect (e.g. the `ramDiffMinusStack` subarray-offset loop that spun on
+  ≥2 dead-stack diffs) — **never a retry**. A background fan is not fire-and-forget: after a compaction
+  FIRST check whether one is still live (`ps` for `node --test`; the fan's `agent-*.jsonl` mtimes) and
+  kill a stalled run (`TaskStop <task-id>`); a large fan gets a stall watchdog.
 - Idiomatic rewrite = routine-**local** rules + routine-**wide** rules (input-register → optional
   param defaulting to the register `fn(m, x = m.regs.a)`; interface-register → explicit value/return;
   phantom no-op → inline+delete). Never weaken an assertion. **Address-retrofit:** no idiomatic routine
