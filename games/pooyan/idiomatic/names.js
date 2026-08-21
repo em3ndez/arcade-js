@@ -56,17 +56,17 @@ export const HIGH_SCORE_BCD_HI = 0x88aa;
 export const SUBPHASE_TICK = 0x88b7;
 /** [seen] (both goldens: high byte 0x84 (VIDEO RAM), low byte oscillates 0xe6-0xf0; loc_2405 (odd frames)/loc_23ec (even) dereference it and WRITE tile codes -- not ROM) 16-bit cursor into video RAM (0x84xx tilemap) marching a tile strip forward on odd frames / back on even, cycling tile codes 0x10/0x34/0x37 to animate on screen (0x34/0x37 gate the step) */
 export const TILE_ANIM_CURSOR = 0x88be;
-/** [code] (static 0 in both goldens (slowest tier); role code-confident from loc_142c/379d speed-table index (0x148e/0x38a5) + loc_191c escalating write) Enemy speed/difficulty index, read clamped <8 to index velocity tables (negated per 0x8907 bit0); escalates with wave/round */
+/** [seen] (MAME round-advance capture: escalates 0->2->4->..->14 = 2x round as round steps 1->7; loc_142c/379d speed-table index, loc_191c escalating write) Enemy speed/difficulty index, read clamped <8 to index velocity tables (negated per 0x8907 bit0); escalates with wave/round */
 export const SPEED_INDEX = 0x8900;
 /** [seen] (gameplay 0x20 then slow decrement 32->..->25 = per-stage countdown) counts down from 0x20 over a stage; near 0 gates actor AI; init value selects the stage label */
 export const STAGE_COUNTDOWN = 0x8901;
-/** [code] (static 0 in both goldens; role code-confident from loc_196e mode-select (<5/==5) + loc_2527 reseed at 7, cleared by loc_2ae8) Per-round phase/step counter (cycles to 7) selecting spawn/fire mode branches; snapshotted into 0x8d43/0x8934 */
+/** [seen] (MAME round-advance capture: cycles per-round 0->1 f1291, 1->2 f7618, 2->3 f7750; static 0 without a round poke; loc_196e mode-select, loc_2527 reseed at 7) Per-round phase/step counter (cycles to 7) selecting spawn/fire mode branches; snapshotted into 0x8d43/0x8934 */
 export const SPAWN_PHASE_COUNTER = 0x8902;
 /** [seen] (play: counts up 0..6 per stage then resets at transition = a per-stage arrival/wave counter (loc_3be3 bump, loc_2a01 cap, loc_2d80 rope bound)) Per-stage counter bumped on enemy arrival (caps 9->8); bounds the rope-segment count (0x8931 <= this-2), parity picks spawn variant */
 export const WAVE_ARRIVAL_COUNTER = 0x8903;
 /** [seen] (attract+play: 0/1 flag, 1 while a round runs, resets at stage/life transitions (loc_175d/1798 set, loc_1dd3/16b7 read)) In-progress flag for the active round; set to 1 at level start, keys render/state decision trees */
 export const ROUND_IN_PROGRESS = 0x8904;
-/** [code] (static 0 in both goldens (round 0); role code-confident from loc_1f2f/1ead BCD round render + widespread bit0 variant gates) Round counter; +1 BCD-rendered as the HUD round number; bit0 selects stage-type/facing variant, low bits index difficulty tables */
+/** [seen] (MAME round-advance capture: increments per stage transition -- natural 2->3 f2059, 3->4 f2431 beyond the poked value; bit1 gates target-group fan-out, bit0 the rope path; loc_1f2f/1ead BCD render) Round counter; +1 BCD-rendered as the HUD round number; bit0 selects stage-type/facing variant, low bits index difficulty tables */
 export const ROUND_COUNTER = 0x8907;
 /** [seen] (play: 3->2->1->0 then reset to 3; exhaustion runs loc_1a96 (phase transition, not death) rendered by loc_03c2 = a phase gauge) Phase counter drained per phase, drawn as a 5-cell vertical HUD gauge; on reaching 0 it triggers phase-exhausted (clears rope) */
 export const GAUGE_PHASE_COUNTER = 0x8908;
@@ -74,7 +74,7 @@ export const GAUGE_PHASE_COUNTER = 0x8908;
 export const FORMATION_SLOT_TABLE = 0x8920;
 /** [seen] (play: up-counter 0..4, resets to 0 at phase exhaustion (f3778); static 0 in attract (no rope); loc_2d80 steps it, loc_2f2f retracts) Count of extended rope segments; stepped up to 0x8903-2; drives per-segment retract anim and the attribute byte */
 export const ROPE_SEGMENT_COUNT = 0x8931;
-/** [code] (static 0 in both goldens (mirror of 0x8902) -> code) rope/lift segment draw count (snapshot of 0x8902 phase, reseeds to 4 at 7); sets rope sprite rows */
+/** [seen] (MAME round-advance capture: mirrors 0x8902 one frame later -- 0->1 f1292 vs 0x8902 f1291, 1->2 f7623) rope/lift segment draw count (snapshot of 0x8902 phase, reseeds to 4 at 7); sets rope sprite rows */
 export const ROPE_DRAW_COUNT = 0x8934;
 /** [seen] (MAME 2P golden: block saved on P1 death f2854 -- byte1 0x8941 0x20->0x1a via saveLivePageToPlayer0Bank; base byte0=colour stays 0 (source 0x8820=0) so grounded at BLOCK level. loc_1a47/loc_1601 ldir 0x8900<->0x8940 per 0x880d) Base of player-0's 0x3f-byte saved actor/state block, swapped with live page 0x8900; byte0=sprite colour */
 export const PLAYER0_STATE_BANK = 0x8940;
@@ -110,7 +110,7 @@ export const ENEMY_ACTOR_TABLE = 0x8ae0;
 export const SPRITE_OBJECT_TABLE = 0x8b70;
 /** [seen] (attract+play: byte0 toggles 0/1 (50/38 transitions); loc_3a6c allocates a free slot (bumps 0x8d42) and writes byte0=1) Base of the 3-slot projectile/object record table (stride 0x18); launch marks byte0=1 active */
 export const PROJECTILE_TABLE = 0x8be8;
-/** [code] (static 0 in BOTH goldens (no formation spawned in the 180s windows); loc_40bd sweeps 4 records stride 0x18, loc_53b0 inits slot 0) Base of the 4-slot formation object table (stride 0x18); one-shot spawn/init, swept per-record */
+/** [seen] (MAME round-advance capture: byte0 record-active toggles 0<->1, 35 transitions from f1863, only under a round-gated formation; loc_40bd sweeps 4 records stride 0x18) Base of the 4-slot formation object table (stride 0x18); one-shot spawn/init, swept per-record */
 export const FORMATION_TABLE = 0x8c30;
 /** [seen] (gameplay: byte0 takes {0,1,7} matching loc_2e5e writing (iy+0)=0x07 to a free slot; loc_6435 collision-scans B=3; attract static 0) Base of the 3-slot spawned-object table (stride 0x18) hit-tested vs shots; free slot seeded with state 0x07 */
 export const SPAWN_OBJECT_TABLE = 0x8c48;
@@ -136,7 +136,7 @@ export const ACTIVE_ENEMY_COUNT = 0x8d40;
 export const ANIM_FRAME_COUNTER = 0x8d41;
 /** [seen] (attract: 4 distinct 0..3 incl 3 (f1469 0->2); play: 0..3 — cycles discrete object-type values, confirms type/mode byte) Latched type byte of the active hit record (0x8c90/0x8ca8, I-parity); type 0 skips, ==3 selects the main hit path */
 export const ACTIVE_OBJECT_TYPE = 0x8d44;
-/** [code] (static 0 in both goldens (no turn armed in captures) — code-confident from loc_343e/34f2 compare vs (ix+6)&0x1f and loc_425c arm, ungrounded) Tile-column threshold at which a moving object starts its turn animation; anim-arm routines set it to 0 or 0xff */
+/** [seen] (MAME round-advance capture: takes {0, 8, 0xff} -- 0->8 f1291, 8->0xff f1863 = threshold then interior-entry; loc_343e/34f2 compare vs (ix+6)&0x1f, loc_425c arm) Tile-column threshold at which a moving object starts its turn animation; anim-arm routines set it to 0 or 0xff */
 export const TURN_COLUMN_LIMIT = 0x8d4b;
 /** [seen] (attract+play: values {0,16,24,32} latched then cleared to 0 (few transitions) — discrete guard thresholds, confirms guard role) Threshold the phase counter (0x8901) must reach before the attract/board script advances; latched to it, nonzero=busy */
 export const SCRIPT_ADVANCE_GUARD = 0x8d6d;
@@ -156,11 +156,11 @@ export const ATTRACT_SUBSTATE = 0x8e51;
 export const SCRIPT_WRITE_PTR = 0x8e56;
 /** [seen] (attract+play: cursor cycles 213->228->243->reset (238+/376 transitions) — moving script cursor, confirms role (loc_22e6)) 16-bit cursor into the shared per-actor animation script; advanced past 3-byte {tile,colour,delay} entries; 0xff lead = control marker */
 export const ANIM_SCRIPT_CURSOR = 0x8f00;
-/** [code] (static 0 in both goldens (formation never triggered in captures) — code-confident from loc_308b, ungrounded) Enemy-formation launch state; 0 while gathering launch-ready slots, set 1 when full then dispatched (&3)-1 into launch handlers */
+/** [seen] (MAME formation capture: cycles 0->1->2->3->0, 100 transitions from f1101 = gather->full->dispatch->reset, exactly as noted; loc_308b) Enemy-formation launch state; 0 while gathering launch-ready slots, set 1 when full then dispatched (&3)-1 into launch handlers */
 export const FORMATION_STATE = 0x8f08;
 /** [seen] (attract+play: toggles 0<->1 (f1805 0->1) — binary latch, confirms arm-flag role (loc_278f gate)) Arrow/rope launch arm latch: nonzero blocks re-arming launch flag 0x8f3f, seeded from 0x8d7a; cleared with 0x8d75 at wave end */
 export const LAUNCH_ARM_LATCH = 0x8f20;
-/** [code] (static 0 in both goldens (teardown not triggered) — code-confident from loc_32bd; A/B roles identical, name differs only) Enemy-formation teardown dispatch state: state1 tears down wave, state2 walks boss down; nonzero gates new grabs/launch as busy */
+/** [seen] (MAME formation capture: cycles 0->2->3->0, 75 transitions from f1157, in lockstep with the formation; loc_32bd) Enemy-formation teardown dispatch state: state1 tears down wave, state2 walks boss down; nonzero gates new grabs/launch as busy */
 export const WAVE_TEARDOWN_STATE = 0x8f24;
 /** [seen] (attract+play: cycles 0->1->2->3->4->0 (f1448) — confirms 5-state launch state machine (loc_2778 dispatch)) State selector for the arrow/rope launch state machine; per-frame driver dispatches (&7) into handlers 0..4 */
 export const LAUNCH_STATE = 0x8f30;
@@ -176,11 +176,11 @@ export const LAUNCH_ARMED_FLAG = 0x8f3f;
 export const DISPLAY_LIST_DST_PTR = 0x8f43;
 /** [seen] (attract+play: low byte sweeps 0..255 (44/69 distinct) = loc_4381 read pointer advancing through layout data then stored back) Source/layout read pointer for the display-list interpreter, paired with dest 0x8f43; advanced during the copy */
 export const DISPLAY_LIST_SRC_PTR = 0x8f45;
-/** [code] (static 0 in BOTH goldens (group inactive at capture) -- role code-confident: loc_17c1 seeds, loc_6f9d/6edb consume) Targets in the current group; scaled x5 into HUD 0x8634 and 3x compared to hit tally 0x8f52 for end-level bonus */
+/** [seen] (MAME target-group capture: 0->5 at f1090 when block-C fans out (0x880a 3->0x0f), value 5 = round-2 clamp 5..8, recycles per stage; written only when 0x8907 bit1 set; loc_17c1 seeds) Targets in the current group; scaled x5 into HUD 0x8634 and 3x compared to hit tally 0x8f52 for end-level bonus */
 export const TARGET_GROUP_COUNT = 0x8f47;
 /** [seen] (attract+play: low byte steps +2 across 0x26..0x30 then resets = checksum-ptr walk (loc_0b32/6df9 r/w 16-bit); 0x8f51 intro machine idle so delay-timer use unobserved) Dual-use: intro-phase delay timer (0x40/0x60/0x80, counts down) & anti-tamper column-checksum pointer */
 export const INTRO_DELAY_CKSUM_WORD = 0x8f48;
-/** [code] (static 0 in BOTH goldens (launcher idle) -- role code-confident: loc_6e86/6db8 script ptr, loc_1d6e/1a01 byte timer(=0x40)) Dual-use: 0xff-terminated object launch/dive-script pointer & 8-bit countdown firing at 0x40 in the launch path */
+/** [seen] (MAME formation capture: toggles 0<->1, 50 transitions from f1157, in lockstep with the launch path; the 0x40-countdown sub-role is [code], not distinctly observed; loc_6e86/6db8 script ptr) Dual-use: 0xff-terminated object launch/dive-script pointer & 8-bit countdown firing at 0x40 in the launch path */
 export const LAUNCH_SCRIPT_PTR = 0x8f4a;
 /** [code] (static 0 across BOTH goldens (incl. attract) -> refutes A attract-flag; only writes set 1 (loc_1a01) & 2 (loc_1d6e) -> refutes B P1/P2 index; a mode/state latch) Multi-valued play-state latch (0/1/2): set by gameplay handler / post-countdown; gates alternate update paths + table select */
 export const PLAY_MODE_LATCH = 0x8f50;
