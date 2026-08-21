@@ -79,6 +79,16 @@ stamps a fresh record's spawn constants and datum; `setActorAnimation` and
 its landing row; and `stampObjectAndDecCounter` marks an object's state bytes while decrementing a
 shared counter.
 
+The animation and lifecycle leaves drive a record from its pointer register: `tickActorAnimHold` and
+`advanceActorAnimFrame` run a record's frame-hold countdown and, on expiry, load the next frame from
+the actor's animation script (an `0xff` script opcode reloads the stream pointer and re-reads);
+`advanceActorDropStateOnDelay` and `advanceRisingActorStep` step a falling or rising actor's record
+fields once a per-record delay elapses; `seedObjectRecord` primes a new record's descriptor and
+coordinate pointers; `clearActorArena` zeroes the whole `ACTOR_TABLE` arena at board init and
+`clearActorArenaAndCounters` also resets the spawn/wave counters and `PLAY_STATE_INDEX`;
+`deriveStackedSpriteYs` writes the three stacked Y coordinates of a multi-sprite actor; and
+`advanceEaglePhaseAndClearAim` steps the eagle's phase and clears its aim flags.
+
 ## Waves, rope and launch
 
 A round is a sequence of attack waves. `WAVE_INDEX` [seen] (`0x8f3d`) selects the wave and also
@@ -117,11 +127,43 @@ counters; `paintColumnBodyTiles` stamps a column's two body tiles (the caller ad
 `blankTileColumn` blanks a three-cell column; and `clearBit2AcrossSixSlots` clears one attribute bit
 across six strided table entries.
 
+The batch-2 blitters stamp fixed tile blocks into the tilemap — `blitTile3x3Block`, `blit2x2TileBlock`,
+`paintTileBlock2x2` and `paintTileBlock2x2Above` (whose top row sits one screen row above the anchor),
+plus `blitGlyphBlock4x3` for a 4×3 glyph — while `paintColumnBodyTilesUp` and `seedTileFillCursor` feed
+the row-by-row column fill and `fillAttributeColumns` floods the colour/attribute map from
+`ATTRIB_MAP_BASE`. `mirrorSpriteListVertically` mirrors the whole `SPRITE_DISPLAY_LIST` for a flipped
+screen. The HUD painters are `renderPhaseGauge`/`paintPhaseGauge` (the five-cell gauge drawn upward from
+`PHASE_GAUGE_BASE_TILE`), `renderStageCountdownDigits` (the two-cell stage number at `HUD_STAGE_DIGIT_LO`),
+`renderPanelFromTable` (the status panel painted from `PANEL_TILE_SOURCE` into `PANEL_VRAM_DEST`) and
+`renderDigitWithBlanking`. Scores flow through `selectActivePlayerScoreBuffer` (choosing `P1_SCORE_BCD` or
+`P2_SCORE_BCD` by `ACTIVE_PLAYER`), `binToPackedBcd`/`byteToPackedBcd` and `copyObjectRecordsToDisplayList`.
+The tile-strip animation is gated by `TILE_ANIM_PARITY`, whose low bit alternates `TILE_ANIM_CURSOR`
+between a retreat pass (`retreatTileAnimScript`) and an advance pass (`advanceTileAnimForwardOnOdd`).
+`saveLiveStateToPlayerBank` and `saveLivePageToPlayer0Bank` copy the live state page into a per-player
+bank when the active player switches.
+
+## Sound
+
+The main CPU carries no sound hardware of its own; it commands a second Z80 (the timeplt audio
+board). `sendSoundCommand` [code] writes a command byte to `SOUND_COMMAND_LATCH`, then pulses
+`AUDIO_IRQ_LATCH` (mainlatch bit 1) high and low to raise the audio CPU's interrupt, which reads the
+latch and plays the effect.
+
 ## Anti-tamper
 
 Pooyan self-checks its ROM. `TAMPER_FREEZE_FLAG` [code] is a miss tally bumped by the checksum and
-signature guards; when non-zero it freezes spawns, aborts actor updates and skips HUD setup. Two
-further strike counters, `TAMPER_STRIKES_ROM` [code] (fed by the `0x64be` ROM checksum) and
-`TAMPER_STRIKES_SIG` [code] (fed by the `0x5328`/`0x557f` signature checksums), record specific
-guard failures. With an intact ROM none of these ever fire, so all three sit static at zero in both
-goldens — their dead failure arms are the anti-tamper traps closed off in the translation layer.
+signature guards; when non-zero it freezes spawns, aborts actor updates and skips HUD setup. Further
+strike counters record specific guard failures: `TAMPER_STRIKES_ROM` [code] (fed by the `0x64be` ROM
+checksum), `TAMPER_STRIKES_SIG` [code] (fed by the `0x5328`/`0x557f` signature checksums) and
+`TAMPER_STRIKES_STATE10` [code] (fed by the state-10 checksum below). With an intact ROM none ever
+fire, so they sit static at zero in both goldens — their dead failure arms are the anti-tamper traps
+closed off in the translation layer.
+
+The guards themselves are decompiled [code]: `verifyRomChecksum` sums the block below
+`ROM_CHECKSUM_TOP` and bumps `TAMPER_STRIKES_STATE10` on a deviation; `verifyRomSignature` samples the
+code region from `SIGNATURE_SAMPLE_BASE` against `SIGNATURE_REFERENCE_TABLE` and raises
+`SIGNATURE_MISMATCH_FLAG`; `verifyTableChecksum` sets `TAMPER_ROM_CHECK_FLAG` on a mismatch;
+`flagTamperOnRound5ChecksumMiss` runs only at round 5 and bumps `TAMPER_FREEZE_FLAG` when its six-byte
+sum fails to balance; and `flagHighScoreTableCorruptOnChecksumMiss` guards the high-score table at
+`HISCORE_CHECKSUM_BASE`, raising `HISCORE_TABLE_CORRUPT_FLAG`. Every one takes its pass path on an
+intact ROM, so the flags stay zero.

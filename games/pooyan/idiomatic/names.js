@@ -193,6 +193,44 @@ export const LATCHED_ENEMY_X = 0x8f5b;
 /** [code] (static 0 in BOTH goldens (band-build path not sampled) -- role code-confident: loc_343e/3473 gate+set=1, loc_2527/25a6 clear) One-shot latch: interior/rope sprite band has been built; gates re-setup, cleared on board reset and at rope terminal */
 export const ANIM_ARMED_LATCH = 0x8f63;
 
+// == Batch-2 decompile cells (role from the frozen oracle; [code] -- MAME-grounding pending) ==
+/** [code] (loc_04f2 selects this vs P2_SCORE_BCD off ACTIVE_PLAYER) player-1 live 3-byte BCD score buffer (0x88a2..0x88a4) */
+export const P1_SCORE_BCD = 0x88a2;
+/** [code] (loc_04f2 P2 bank) player-2 live 3-byte BCD score buffer (0x88a5..0x88a7) */
+export const P2_SCORE_BCD = 0x88a5;
+/** [code] (loc_585b sets 1 on a checksum mismatch; MULTIPLEXED -- loc_24fb writes 0x07 as a state index, loc_5a56 reads it as a coord low byte by COINAGE_CONFIG) eagle-spawn ROM-checksum mismatch flag */
+export const TAMPER_ROM_CHECK_FLAG = 0x882b;
+/** [code] (loc_0460 paints PANEL_VRAM_DEST from here) 30-byte status-panel tile source table (10 rows x 3 cells), work RAM */
+export const PANEL_TILE_SOURCE = 0x8e00;
+/** [code] (loc_0460 destination) VRAM base of the status panel painted from PANEL_TILE_SOURCE */
+export const PANEL_VRAM_DEST = 0x8567;
+/** [code] (loc_03c2/loc_2065 draw upward, stride -0x20, filled 0xb0 / blank 0x10) bottom cell of the 5-cell vertical phase-gauge HUD */
+export const PHASE_GAUGE_BASE_TILE = 0x863f;
+/** [code] (loc_34c9 draws the 2-cell stage number; tens tile derives at +0x20) units tile of the stage-countdown HUD number */
+export const HUD_STAGE_DIGIT_LO = 0x8743;
+/** [code] (loc_3fe9 state-10 integrity guard bumps it on a checksum bit-pattern failure; adjacent TAMPER_STRIKES_SIG) anti-tamper strike counter for the state-10 ROM checksum */
+export const TAMPER_STRIKES_STATE10 = 0x8a39;
+/** [code] (loc_208c sets 1 on a signature mismatch) work-RAM ROM-signature mismatch flag */
+export const SIGNATURE_MISMATCH_FLAG = 0x8ef0;
+/** [code] (loc_2405 advance/even, loc_23ec retreat; inc per frame, bit0 gates which pass runs on TILE_ANIM_CURSOR) per-frame tile-animation parity counter */
+export const TILE_ANIM_PARITY = 0x8f37;
+/** [code] (loc_0e8f writes the command byte here for the audio CPU) sound-command latch to the audio CPU */
+export const SOUND_COMMAND_LATCH = 0xa100;
+/** [code] (loc_0e8f pulses b1 high, 6x nop, low after a command) audio-IRQ strobe latch (mainlatch b1) */
+export const AUDIO_IRQ_LATCH = 0xa181;
+/** [code] (loc_208c samples every 8th byte from here) ROM base of the sampled code region for the signature guard */
+export const SIGNATURE_SAMPLE_BASE = 0x066d;
+/** [code] (loc_208c compares the sample against this) 16-byte expected-signature reference table in ROM */
+export const SIGNATURE_REFERENCE_TABLE = 0x20aa;
+/** [code] (loc_3fe9 sums the 16-byte block descending from here) top of the ROM block checked by the state-10 integrity guard */
+export const ROM_CHECKSUM_TOP = 0x7780;
+/** [code] (loc_0644 header byte must be 0xc8; bytes0..3 summed, (sum-carry) must equal 0x59) ROM base of the 4-byte high-score-table checksum block */
+export const HISCORE_CHECKSUM_BASE = 0x778a;
+/** [code] (loc_0644 sets 1 on a bad header or wrong checksum) work-RAM high-score-table corruption flag */
+export const HISCORE_TABLE_CORRUPT_FLAG = 0x8df8;
+/** [code] (loc_075d floods 31 columns x 30 rows, stride 0x20 from here) base of the tile-attribute/colour map on the 0x8000 video page */
+export const ATTRIB_MAP_BASE = 0x8040;
+
 // Stack-scratch window [lo, hi): the emulated Z80 stack lives just below its 0x9000 init (SP inits
 // to 0x9000 at loc_0092; measured min SP 0x8fd0 over the boot). Equivalence tests exclude it -- a
 // routine's transient stack writes are not game state.
