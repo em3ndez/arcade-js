@@ -111,6 +111,12 @@ test("RETURN: module { a, counter } matches the oracle's accumulator, (HL) resul
     assert.equal(ret.a, a.regs.a, "module.a must equal the oracle's accumulator (byte from (BC))");
     assert.equal(ret.counter, a.mem.read8(HL), "module.counter must equal the oracle's (HL) dec result");
     assert.equal(ret.counter === 0, a.regs.fZ, "module.counter==0 must track the oracle's Z flag");
+
+    // SIDE-EFFECT (the bridge): the module must SET the live-out register/flag on its own
+    // clone, not merely return them — a return-value-only check passes a rewrite that never
+    // sets the register the register-dispatched caller reads.
+    assert.equal(b.regs.a, a.regs.a, "module must SET regs.a for the register-dispatched caller");
+    assert.equal(b.regs.fZ, a.regs.fZ, "module must SET the Z flag for the register-dispatched caller");
   }
   console.log(`  RETURN: { a, counter } (+Z) matches the oracle across ${CASES.length} cases`);
 });

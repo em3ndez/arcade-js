@@ -8,9 +8,9 @@ import { u8, u16 } from "../../../core/int.js";
  * stores the blank tile while the budget is non-zero (budget--), or a real 0 once the budget
  * is spent. A leaf: one tile write, calls nothing.
  *
- * LIVE-OUT: { next, blankBudget } — the advanced cursor (cursor+stride) and the remaining
- * blank budget; the caller threads both across the digits of a field, so wiring writes back
- * IX (next) and C (blankBudget).
+ * LIVE-OUT: [next, blankBudget] — the advanced cursor (cursor+stride) and the remaining
+ * blank budget; the caller threads both across the digits of a field, so the bridge writes back
+ * IX (next) and C (blankBudget) while returning the tuple for idiomatic callers.
  */
 const BLANK_TILE = 0x10;
 
@@ -31,5 +31,5 @@ export function renderDigitWithBlanking(m, cursor = m.regs.ix, stride = m.regs.d
   }
 
   mem8[cursor] = tile;
-  return { next: u16(cursor + stride), blankBudget: budget };
+  return [m.regs.ix = u16(cursor + stride), m.regs.c = budget];
 }

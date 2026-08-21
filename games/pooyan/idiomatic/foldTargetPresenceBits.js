@@ -23,5 +23,5 @@ export function foldTargetPresenceBits(m) {
     if (mem8[rec] & 0x01) acc = ((acc << 1) | (acc >> 7)) & 0xff; // rotate-left on a present target
     rec += RECORD_STRIDE;
   }
-  return acc;
+  return (m.regs.a = acc); // sets A for the translated caller's cp 0x03; returns the fold
 }

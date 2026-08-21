@@ -17,5 +17,5 @@ export function byteToPackedBcd(m, value = m.regs.a) {
 
   let acc = 0;
   for (let i = 0; i < highUnits; i++) acc = bcdAddByte(acc, 0x16).value; // weight the high nibble by 16
-  return bcdAddByte(acc, low).value;
+  return (m.regs.a = bcdAddByte(acc, low).value);
 }

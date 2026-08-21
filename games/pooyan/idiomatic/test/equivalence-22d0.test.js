@@ -94,6 +94,7 @@ test("CAPTURE: real 0x22d0 dispatches — foldTargetPresenceBits == oracle in RA
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(acc, o.regs.a, `A live-out: module ${hx(acc)} != oracle ${hx(o.regs.a)}`);
+    assert.equal(c.regs.a, o.regs.a, `module must SET A (side effect) for the translated cp 0x03: c ${hx(c.regs.a)} != o ${hx(o.regs.a)}`);
   }
   console.log(`  CAPTURE: ${CAPS.length} real dispatch(es) checked`);
 });
@@ -113,6 +114,7 @@ test("CRAFTED: every bit-0 combination — RAM identical + A matches the oracle"
       d && `case ${JSON.stringify(cs)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`,
     );
     assert.equal(acc, o.regs.a, `case ${JSON.stringify(cs)}: A ${hx(acc)} != oracle ${hx(o.regs.a)}`);
+    assert.equal(c.regs.a, o.regs.a, `case ${JSON.stringify(cs)}: module must SET A (side effect): c ${hx(c.regs.a)} != o ${hx(o.regs.a)}`);
   }
   console.log(`  CRAFTED: ${CASES.length} bit-0 combinations agree in RAM + A`);
 });

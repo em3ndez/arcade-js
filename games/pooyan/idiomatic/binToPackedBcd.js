@@ -11,7 +11,7 @@
 export function binToPackedBcd(m, count = m.regs.b) {
   const iters = count === 0 ? 256 : count; // a zero counter counts a full wrap (256), not zero passes
   const low = iters % 100;
-  const a = (Math.floor(low / 10) << 4) | (low % 10); // pack the two decimal digits into one BCD byte
+  const a = (Math.floor(low / 10) << 4) | (low % 10);
   const hundreds = Math.floor(iters / 100);
-  return { a, hundreds };
+  return { a: (m.regs.a = a), hundreds: (m.regs.c = hundreds) };
 }

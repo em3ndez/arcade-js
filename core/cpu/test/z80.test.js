@@ -57,6 +57,22 @@ test("inc/dec do not disturb carry", () => {
   assert.ok(r.fC, "DEC must leave carry alone");
 });
 
+test("fC/fZ boolean setters toggle only their own bit (the idiomatic flag-out bridge)", () => {
+  const r = new Regs();
+  r.f = F_S | F_H; // unrelated flags that must survive a single-flag write
+  r.fC = true;
+  assert.ok(r.fC, "fC=true sets carry");
+  r.fZ = true;
+  assert.ok(r.fZ, "fZ=true sets zero");
+  assert.equal(r.f & (F_S | F_H), F_S | F_H, "sibling flags preserved through the RMW");
+  r.fC = false;
+  assert.ok(r.fNC, "fC=false clears carry");
+  assert.ok(r.fZ, "clearing carry leaves zero set");
+  r.fZ = false;
+  assert.ok(r.fNZ, "fZ=false clears zero");
+  assert.equal(r.f & (F_S | F_H), F_S | F_H, "sibling flags still intact");
+});
+
 romTest("incMem8/decMem8 do the RMW AND set flags -- the (ix+d) flag-drop the helper exists for", () => {
   const m = new Machine(ROM);
   const { regs, mem } = m;

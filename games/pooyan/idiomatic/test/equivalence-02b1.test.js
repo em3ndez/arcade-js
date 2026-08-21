@@ -111,6 +111,10 @@ test("EQUAL: crafted (start,stride) — blankTileColumn == oracle in RAM (−sta
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} blank=${d.b} (start=${hx(start)} stride=${hx(stride)})`);
     assert.equal(ret & 0xffff, o.regs.hl & 0xffff, `HL live-out mismatch for start=${hx(start)} stride=${hx(stride)}`);
+    // SIDE-EFFECT arm: the bridge must SET HL on the module clone (not merely return it) —
+    // loc_0254 reads HL out of the register across its chained 3rd->4th calls. A return-only
+    // rewrite that never writes HL passes the ret check above but would fail here.
+    assert.equal(c.regs.hl & 0xffff, o.regs.hl & 0xffff, `module must SET HL for the translated caller loc_0254 (start=${hx(start)} stride=${hx(stride)})`);
   }
   console.log(`  EQUAL: ${CASES.length} crafted cases identical (RAM −stack + HL)`);
 });
@@ -159,6 +163,7 @@ test("CRAFTED: pre-dirtied target cells are overwritten to 0x10 identically", ()
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} blank=${d.b}`);
+  assert.equal(c.regs.hl & 0xffff, o.regs.hl & 0xffff, "module must SET HL (advanced pointer) on the overwrite path too");
   for (const cell of cs) {
     assert.equal(c.mem.read8(cell), TILE_BLANK, `cell not overwritten (${hx(cell)})`);
   }

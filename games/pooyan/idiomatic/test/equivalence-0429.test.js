@@ -16,8 +16,13 @@
  * idiomatic layer replaces with a plain JS return. Comparing them would test the dropped
  * stack model, not the routine; neither pc nor SP is part of dumpState anyway.
  *
- * The return is checked against the ORACLE's own exit registers: { high } vs A, { next } vs
- * HL, and (high === 0) vs the oracle's Z flag — the leading-zero signal callers branch on.
+ * splitBcdByte carries the runbook RETURN-ASSIGNMENT BRIDGE: it returns the tuple
+ * [A=high, HL=next, Z=high===0] AND sets each on m.regs, because the frozen translated callers
+ * (0x03e9, 0x0439) read A (store the high digit), HL (advanced cursor) and Z (jr z leading-zero
+ * suppress) straight out of the registers. Each tuple element is checked against the ORACLE's
+ * own exit registers (high vs A, next vs HL, high===0 vs Z), and a LIVE-OUT arm additionally
+ * asserts the module clone's own regs (A/HL/Z) equal the oracle's — proving the SIDE EFFECT,
+ * not just the return value.
  *
  * Jobs:
  *   1. EQUAL + RETURN (crafted, both branches) — nonzero and zero high-nibble bytes leave
@@ -102,13 +107,19 @@ test("EQUAL+RETURN: crafted BCD bytes — RAM(−stack) identical and {high,next
     const o = base.clone();
     const c = base.clone();
     oracle(o);
-    const ret = splitBcdByte(c);
+    const [high, next, zsense] = splitBcdByte(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (byte ${hx(byte)}): oracle=${d.a} mine=${d.b}`);
-    assert.equal(ret.high, o.regs.a, `high digit mismatch for byte ${hx(byte)}`);
-    assert.equal(ret.next, o.regs.hl, `advanced cursor mismatch for byte ${hx(byte)}`);
-    assert.equal(ret.high === 0, o.regs.fZ, `leading-zero Z-sense mismatch for byte ${hx(byte)}`);
+    assert.equal(high, o.regs.a, `high digit mismatch for byte ${hx(byte)}`);
+    assert.equal(next, o.regs.hl, `advanced cursor mismatch for byte ${hx(byte)}`);
+    assert.equal(zsense, o.regs.fZ, `leading-zero Z-sense mismatch for byte ${hx(byte)}`);
+    // LIVE-OUT SIDE EFFECT: the bridge must SET the registers/flag the translated callers read
+    // out (A=high digit store, HL=advanced cursor, Z=jr z leading-zero suppress). A return-only
+    // check would pass a rewrite that returns right but never sets the registers.
+    assert.equal(c.regs.a, o.regs.a, `module must SET A (high digit) for the translated store, byte ${hx(byte)}`);
+    assert.equal(c.regs.hl, o.regs.hl, `module must SET HL (advanced cursor) for the translated caller, byte ${hx(byte)}`);
+    assert.equal(c.regs.fZ, o.regs.fZ, `module must SET Z (leading-zero jr z) for the translated caller, byte ${hx(byte)}`);
   }
   console.log(`  EQUAL+RETURN: ${CASES.length} crafted bytes identical (RAM −stack) + return/Z match`);
 });
@@ -121,11 +132,15 @@ test("CAPTURED: real 0x0429 dispatches in an attract boot replay identically (if
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    const ret = splitBcdByte(c);
+    const [high, next] = splitBcdByte(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
-    assert.equal(ret.high, o.regs.a, "captured high digit mismatch");
-    assert.equal(ret.next, o.regs.hl, "captured advanced cursor mismatch");
+    assert.equal(high, o.regs.a, "captured high digit mismatch");
+    assert.equal(next, o.regs.hl, "captured advanced cursor mismatch");
+    // LIVE-OUT SIDE EFFECT: bridge sets the registers/flag the translated callers read
+    assert.equal(c.regs.a, o.regs.a, "captured: module must SET A for the translated store");
+    assert.equal(c.regs.hl, o.regs.hl, "captured: module must SET HL for the translated caller");
+    assert.equal(c.regs.fZ, o.regs.fZ, "captured: module must SET Z for the translated caller");
   }
   console.log(`  CAPTURED: ${caps.length} real 0x0429 dispatch(es) replayed identically`);
 });

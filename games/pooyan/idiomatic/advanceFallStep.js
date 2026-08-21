@@ -21,5 +21,6 @@ export function advanceFallStep(m, rec = m.regs.ix) {
   }
   mem8[rec + 0x03] = sum;
 
-  return mem8[rec + 0x04] < LANDING_ROW;
+  // Bridge: set carry (the still-airborne live-out) for a register-dispatched caller, return the boolean.
+  return (m.regs.fC = mem8[rec + 0x04] < LANDING_ROW);
 }

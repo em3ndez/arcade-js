@@ -90,10 +90,14 @@ test("CRAFTED: all branches — RAM(−stack) identical and { next, blankBudget 
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (digit ${hx(digit)} budget ${budget}): oracle=${d.a} mine=${d.b}`);
-    assert.equal(ret.next, o.regs.ix, `advanced cursor mismatch (digit ${hx(digit)} budget ${budget})`);
-    assert.equal(ret.blankBudget, o.regs.c, `blank budget mismatch (digit ${hx(digit)} budget ${budget})`);
+    assert.equal(ret[0], o.regs.ix, `advanced cursor mismatch (digit ${hx(digit)} budget ${budget})`);
+    assert.equal(ret[1], o.regs.c, `blank budget mismatch (digit ${hx(digit)} budget ${budget})`);
+    // SIDE EFFECT: the bridge must SET IX and C so the frozen translated caller (loc_0552 / loc_056b),
+    // which threads both without reloading, reads the advance out of the registers — not just return them.
+    assert.equal(c.regs.ix, o.regs.ix, `module must SET IX for the translated caller (digit ${hx(digit)} budget ${budget})`);
+    assert.equal(c.regs.c, o.regs.c, `module must SET C for the translated caller (digit ${hx(digit)} budget ${budget})`);
   }
-  console.log(`  CRAFTED: ${CASES.length} cases identical (RAM −stack) + { next, blankBudget } match`);
+  console.log(`  CRAFTED: ${CASES.length} cases identical (RAM −stack) + [next, blankBudget] return AND IX/C side effect match`);
 });
 
 // -- 2. CAPTURED (best-effort) ------------------------------------------------
@@ -116,8 +120,11 @@ test("CAPTURED: real 0x059d dispatches in a boot replay identically (if reached)
     const ret = renderDigitWithBlanking(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
-    assert.equal(ret.next, o.regs.ix, "captured advanced cursor mismatch");
-    assert.equal(ret.blankBudget, o.regs.c, "captured blank budget mismatch");
+    assert.equal(ret[0], o.regs.ix, "captured advanced cursor mismatch");
+    assert.equal(ret[1], o.regs.c, "captured blank budget mismatch");
+    // SIDE EFFECT: the bridge must SET IX and C, not merely return them.
+    assert.equal(c.regs.ix, o.regs.ix, "captured: module must SET IX for the translated caller");
+    assert.equal(c.regs.c, o.regs.c, "captured: module must SET C for the translated caller");
   }
   console.log(`  CAPTURED: ${caps.length} real 0x059d dispatch(es) replayed identically`);
 });

@@ -7,7 +7,9 @@
  * two bytes into the record at IX, and calls nothing. The decremented counter determines
  * the caller's exit flags (Z exactly when it reached 0).
  *
- * LIVE-OUT: returns { a, counter } plus the (HL) decrement and two IX stamps in memory.
+ * LIVE-OUT: returns { a, counter } and, via the return-assignment bridge, SETS regs.a (the
+ * byte loaded from (BC)) and the Z flag (set exactly when the decremented counter reached 0)
+ * for the register-dispatched caller; plus the (HL) decrement and two IX stamps in memory.
  */
 export function stampObjectAndDecCounter(m, record = m.regs.ix, counterPtr = m.regs.hl, sourcePtr = m.regs.bc) {
   const { mem8 } = m;
@@ -20,5 +22,5 @@ export function stampObjectAndDecCounter(m, record = m.regs.ix, counterPtr = m.r
   mem8[base + 0x13] = 0x01; // stamp the two object state bytes
   mem8[base + 0x16] = 0xc1;
 
-  return { a, counter };
+  return { a: (m.regs.a = a), counter: ((m.regs.fZ = counter === 0), counter) };
 }

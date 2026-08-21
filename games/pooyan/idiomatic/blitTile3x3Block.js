@@ -24,5 +24,5 @@ export function blitTile3x3Block(m, dst = m.regs.hl, src = m.regs.de) {
     cell = u16(cell + 0x1d); // step to the next screen row
   }
 
-  return u16(cell);
+  return (m.regs.hl = u16(cell));
 }

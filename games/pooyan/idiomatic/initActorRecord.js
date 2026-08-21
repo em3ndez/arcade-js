@@ -22,5 +22,5 @@ export function initActorRecord(m, rec = m.regs.hl, value = m.regs.de) {
   mem8[rec + 0x16] = value;
   mem8[rec + 0x17] = value >> 8;
 
-  return u16(rec + 0x17); // HL live-out: the caller's scan continuation reads from here
+  return (m.regs.hl = u16(rec + 0x17)); // HL live-out: the caller's scan continuation reads from here
 }

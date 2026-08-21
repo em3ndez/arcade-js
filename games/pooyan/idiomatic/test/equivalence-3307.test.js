@@ -105,6 +105,9 @@ test("CAPTURE: real 0x3307 dispatches — module == oracle in RAM (−stack) and
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.hl, `HL live-out: module ${hx(ret)} != oracle ${hx(o.regs.hl)}`);
+    // SIDE EFFECT: the bridge must SET HL — caller loc_25a6 does `ld (hl),0x10` right after the
+    // call, so a return-only rewrite (right value, HL never set) would silently break the dispatch.
+    assert.equal(c.regs.hl, o.regs.hl, `module must SET HL for the translated dispatch: ${hx(c.regs.hl)} != oracle ${hx(o.regs.hl)}`);
   }
   console.log(`  CAPTURE: ${CAPS.length} real dispatch(es) checked`);
 });
@@ -122,6 +125,8 @@ test("CRAFTED: pre-dirtied dest + varied source — nine tiles identical, HL adv
     assert.equal(d, null, d && `seed ${hx(seed)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.hl, `seed ${hx(seed)}: HL module ${hx(ret)} != oracle ${hx(o.regs.hl)}`);
     assert.equal(ret, HL_OUT, `seed ${hx(seed)}: HL should be ${hx(HL_OUT)}`);
+    // SIDE EFFECT: the bridge must SET HL (loc_25a6 stamps `ld (hl),0x10` right after the call).
+    assert.equal(c.regs.hl, o.regs.hl, `seed ${hx(seed)}: module must SET HL for the translated dispatch: ${hx(c.regs.hl)} != oracle ${hx(o.regs.hl)}`);
 
     // The nine tiles landed in row-major order from the source.
     for (let i = 0; i < 9; i++) {

@@ -8,7 +8,9 @@
  * The routine WRITES NO RAM, so its go-forward contract is the values it leaves in registers:
  *
  *     RAM (dumpState, minus STACK_SCRATCH) — trivially, since neither writes — AND the
- *     { e, a, carry } tuple, each derived from the ORACLE clone (regs.e, regs.a, regs.fC).
+ *     [e, a, carry] tuple the bridge returns, PLUS the E/A/C SIDE EFFECT it sets on m.regs
+ *     (both compared to the ORACLE clone's regs.e, regs.a, regs.fC — the frozen translated
+ *     callers read those registers/flag straight out, so a return-only rewrite must be caught).
  *
  * Jobs:
  *   1. CAPTURE (best-effort) — hook 0x5f53; any real dispatch agrees in RAM + tuple. This
@@ -95,12 +97,17 @@ test("CAPTURE: real 0x5f53 dispatches — precheckCollisionBounds == oracle in R
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    const r = precheckCollisionBounds(c);
+    const [re, ra, rcarry] = precheckCollisionBounds(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
-    assert.equal(r.e, o.regs.e, `E: module ${hx(r.e)} != oracle ${hx(o.regs.e)}`);
-    assert.equal(r.a, o.regs.a, `A: module ${hx(r.a)} != oracle ${hx(o.regs.a)}`);
-    assert.equal(r.carry, o.regs.fC, "carry must equal the oracle's C");
+    assert.equal(re, o.regs.e, `E: module ${hx(re)} != oracle ${hx(o.regs.e)}`);
+    assert.equal(ra, o.regs.a, `A: module ${hx(ra)} != oracle ${hx(o.regs.a)}`);
+    assert.equal(rcarry, o.regs.fC, "carry must equal the oracle's C");
+    // SIDE EFFECT: the bridge must SET E/A/C on m.regs for the frozen translated callers,
+    // which read them straight out of the registers (a return-only rewrite would pass above).
+    assert.equal(c.regs.e, o.regs.e, "module must SET E for the translated caller's sub e");
+    assert.equal(c.regs.a, o.regs.a, "module must SET A for the translated caller's ld d,a");
+    assert.equal(c.regs.fC, o.regs.fC, "module must SET carry for the translated caller's jr nc");
   }
   console.log(`  CAPTURE: ${CAPS.length} real dispatch(es) checked`);
 });
@@ -112,13 +119,17 @@ test("CRAFTED: both bias branches + carry boundary — RAM identical + tuple mat
     const o = craft(cs.flip, cs.x0, cs.y2);
     const c = craft(cs.flip, cs.x0, cs.y2);
     oracle(o);
-    const r = precheckCollisionBounds(c);
+    const [re, ra, rcarry] = precheckCollisionBounds(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `case ${JSON.stringify(cs)}: RAM diff at ${hx(d.addr ?? 0)}`);
-    assert.equal(r.e, o.regs.e, `case ${JSON.stringify(cs)}: E ${hx(r.e)} != oracle ${hx(o.regs.e)}`);
-    assert.equal(r.a, o.regs.a, `case ${JSON.stringify(cs)}: A ${hx(r.a)} != oracle ${hx(o.regs.a)}`);
-    assert.equal(r.carry, o.regs.fC, `case ${JSON.stringify(cs)}: carry ${r.carry} != oracle ${o.regs.fC}`);
+    assert.equal(re, o.regs.e, `case ${JSON.stringify(cs)}: E ${hx(re)} != oracle ${hx(o.regs.e)}`);
+    assert.equal(ra, o.regs.a, `case ${JSON.stringify(cs)}: A ${hx(ra)} != oracle ${hx(o.regs.a)}`);
+    assert.equal(rcarry, o.regs.fC, `case ${JSON.stringify(cs)}: carry ${rcarry} != oracle ${o.regs.fC}`);
+    // SIDE EFFECT: the bridge must SET E/A/C on the module clone, as the oracle leaves them.
+    assert.equal(c.regs.e, o.regs.e, `case ${JSON.stringify(cs)}: module must SET E`);
+    assert.equal(c.regs.a, o.regs.a, `case ${JSON.stringify(cs)}: module must SET A`);
+    assert.equal(c.regs.fC, o.regs.fC, `case ${JSON.stringify(cs)}: module must SET carry`);
   }
   console.log(`  CRAFTED: ${CASES.length} cases agree in RAM + { e, a, carry }`);
 });
@@ -147,8 +158,8 @@ test("TEETH: a wrong carry is CAUGHT by the tuple contract", () => {
   for (const cs of CASES) {
     const o = craft(cs.flip, cs.x0, cs.y2);
     oracle(o);
-    const r = precheckCollisionBounds(craft(cs.flip, cs.x0, cs.y2));
-    const brokenCarry = !r.carry; // BUG: inverted below-bottom result
+    const [, , rcarry] = precheckCollisionBounds(craft(cs.flip, cs.x0, cs.y2));
+    const brokenCarry = !rcarry; // BUG: inverted below-bottom result
     if (brokenCarry !== o.regs.fC) { caught = true; break; }
   }
   assert.ok(caught, "the carry check FAILED to catch an inverted carry — it is worthless");

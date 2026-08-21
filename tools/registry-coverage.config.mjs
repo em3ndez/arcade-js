@@ -91,70 +91,11 @@ export const UNWIRED = {
       "RAM, verified) and stay; the frozen layer runs it in-game when the Mother-Ship is on the field.",
   },
   pooyan: {
-    // The born-live foundation is built (spine wired on runIdiomaticGame; convergence config measured),
-    // so the earlier blanket go-live hold is resolved. Leaf-wiring increment 1 wired the 33 memory-only
-    // bare-dispatch leaves as ROUTINES overrides. The leaves below stay UNWIRED because each has a
-    // register/flag live-out a caller consumes: wiring them bare would drop the value, so they need the
-    // runbook return-assignment bridge (return (m.regs.X = v)) -- increment 2. Writing regs directly is
-    // cruft idiomatic_gate counts against pooyan's implicit-0 budget, which is why the bridge form is
-    // required. (The 5 jump-table dispatchers 0x6da6/0x7442/0x15a1/0x72cf/0x0fd5 are dispatch plumbing,
-    // not memory-transform leaves, and are deferred separately.)
-    "blankTileColumn.js":
-      "0x02b1: HL is a GENUINE live-out -- loc_0254 issues 0x02b1 back-to-back without reloading HL, so " +
-      "each call consumes the pointer the previous left. A single-register HL bridge is expressible " +
-      "cruft-free (return (m.regs.hl = ...)), but it is held with the flag/multi-register siblings below " +
-      "until the bridge convention + a gameplay boot-statediff validate the dispatch path.",
-    "initActorRecord.js":
-      "0x619f: HL live-out -- the oracle advances HL to rec+0x17 and its callers loc_60bc/loc_60d9 tail-jump " +
-      "into loc_611f WITHOUT reloading HL, which reads the scan key at rec+0x14 (HL += 0xfffd). Wired bare it " +
-      "diverges at frame 1754 (first addr 0x8a40, a real work-RAM cell -- NOT the stack phase artifact). The " +
-      "module returns the advanced pointer; needs the same cruft-free HL bridge as blankTileColumn. (BC ends " +
-      "0x0004 as plumbing; no caller confirmed to read it.)",
-    "splitBcdByte.js":
-      "0x0429: three live-outs the callers read -- A (high BCD digit), HL (advanced by DE) and the Z flag " +
-      "(leading-zero test). The module returns { high, next } and Z-sense = high===0; a bridge must set " +
-      "regs.a/regs.hl and the Z flag, and setting Z is a read-modify-write of regs.f = register cruft.",
-    "drawStackedBcdDigits.js":
-      "0x1119: loc_6f42 reads HL (advanced), E (input byte) AND BC == 0xffe0 back after the call. A bridge " +
-      "must restore all three; the module is memory-only + returns { next, byte }, and BC is a machine " +
-      "residue no idiomatic body should hold.",
-    "advanceFallStep.js":
-      "0x3fd5: the live-out is the CARRY flag (callers use ret c). The module returns a boolean; a bridge " +
-      "must set carry, i.e. read-modify-write regs.f = register cruft under the implicit-0 budget.",
-    "stampObjectAndDecCounter.js":
-      "0x57e5: live-outs are A (byte from (BC)) and the Z flag (dec counter). The module returns " +
-      "{ a, counter }; a bridge must set regs.a and the Z flag. No confirmed caller (register-dispatched, " +
-      "0 dispatches in attract), so the exact flag consumer is unverified -- another reason to hold it.",
-    //
-    // -- batch 2: 42 leaf modules (decompiled + equivalence-proven, 0-cruft); same go-live hold as batch 1.
-    //    5 planned 'leaves' (0x6da6/0x7442/0x15a1/0x72cf/0x0fd5) were JUMP-TABLE DISPATCHERS, not
-    //    memory-transform leaves -- DEFERRED (dispatch plumbing, like 0x2e45/0x40d0), not decompiled. --
-    "adjustSpawnColumn.js":
-      "0x57b4: register C (the adjusted column), returned; the caller consumes C, so wiring needs a bridge to write the return back into C. Early-return branches return the unchanged input col. Held UNWIRED (go-live).",
-    "binToPackedBcd.js":
-      "0x1131: A (packed BCD = count mod 100) and C (hundreds = count div 100); both consumed by loc_10c2 (A drawn as a 2-digit HUD field, C folded into the hundreds slot). Returned as { a, hundreds }. Memory untouched. Held UNWIRED (go-live).",
-    "blit2x2TileBlock.js":
-      "0x3325: HL advanced to the bottom-left cell (dest + 0x20) -- RETURNED and CONSUMED by callers, so needs a bridge to write HL back. DE/A are plumbing (callers restore DE via push/pop, never read A). Plus the four VRAM writes (the memory effect). Held UNWIRED (go-live).",
-    "blitTile3x3Block.js":
-      "0x3307: returns a value live-out (see module JSDoc); held UNWIRED (go-live) -- a consumed live-out needs a cruft-free bridge before wiring.",
-    "byteToPackedBcd.js":
-      "0x062a: register A (the packed-BCD result), returned; caller loc_05ee consumes only A (splits it into HUD digit nibbles), daa carry-out not read. Held UNWIRED (go-live).",
-    "copyObjectRecordsToDisplayList.js":
-      "0x032a: Returns the advanced list pointer (page kept, low byte += 4*count); caller loc_02ef chains its next copy from it -- needs a wiring bridge. IX/B/A/DE are plumbing, not consumed. Held UNWIRED (go-live).",
-    "dispatchActiveObjectState.js":
-      "0x7707: returns a value live-out (see module JSDoc); held UNWIRED (go-live) -- a consumed live-out needs a cruft-free bridge before wiring.",
-    "foldTargetPresenceBits.js":
-      "0x22d0: A (returned): the rotate-folded accumulator. Seeded 0 and only ever rotated, so it resolves to 0 for every input; no memory writes, no other caller-consumed register. Held UNWIRED (go-live).",
-    "precheckCollisionBounds.js":
-      "0x5f53: return { e, a, carry }: carry = (A < 0xe0) is the branch result (primary); e = biased X left in the E register; a = biased Y+8 left in A. Held UNWIRED (go-live).",
-    "renderDigitWithBlanking.js":
-      "0x059d: { next, blankBudget } — advanced cursor (IX+=DE) and remaining blank budget (C), BOTH threaded by caller loc_0552 across a field's digits; needs a bridge writing IX and C back. Held UNWIRED (go-live).",
-    "seedObjectRecord.js":
-      "0x0a0c: { descPtr, coordPtr } — DE+2 and HL+2, BOTH consumed by caller loc_099c (reads descriptor sentinel from DE, keeps walking HL); needs a bridge writing both DE and HL back. IX (record base) untouched. Held UNWIRED (go-live).",
-    "seedTileFillCursor.js":
-      "0x02e6: A = 0x20, RETURNED and CONSUMED: caller loc_0092 writes it to the watchdog 0xa000 immediately after the call (needs an A bridge). Plus memory: TILE_FILL_PTR(0x880b):=ptr (16-bit LE), FILL_ROW_COUNTER(0x8809):=0x20. Held UNWIRED (go-live).",
-    "selectActivePlayerScoreBuffer.js":
-      "0x04f2: DE = the chosen 16-bit buffer pointer, returned; the caller consumes it as a pointer, so wiring must write DE back (needs a bridge). The oracle preserves A and flags (push af/pop af) — NOT a live-out. Held UNWIRED (go-live).",
+    // Empty: every decompiled leaf module is dispatched via ROUTINES -- the memory-only ones bare, the
+    // register/flag-live-out ones through the return-assignment bridge (return (m.regs.X = v)) so the
+    // frozen caller reads the result back out of the register. The five jump-table dispatchers
+    // (0x6da6/0x7442/0x15a1/0x72cf/0x0fd5) are dispatch plumbing, not decompiled leaf modules, so they
+    // are not idiomatic-module coverage entries; they are deferred to their own dispatcher unit.
   },
 };
 

@@ -111,8 +111,11 @@ test("CAPTURE: real 0x0a0c dispatches — seedObjectRecord == oracle in RAM (−
     const ret = seedObjectRecord(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
-    assert.equal(ret.descPtr, o.regs.de, "captured descPtr live-out mismatch");
-    assert.equal(ret.coordPtr, o.regs.hl, "captured coordPtr live-out mismatch");
+    assert.equal(ret[0], o.regs.de, "captured descPtr live-out mismatch");
+    assert.equal(ret[1], o.regs.hl, "captured coordPtr live-out mismatch");
+    // SIDE EFFECT: the bridge must SET DE and HL, not merely return them.
+    assert.equal(c.regs.de, o.regs.de, "captured: module must SET DE for the translated caller");
+    assert.equal(c.regs.hl, o.regs.hl, "captured: module must SET HL for the translated caller");
   }
   console.log(`  CAPTURE: ${caps.length} real 0x0a0c dispatch(es) replayed identically`);
 });
@@ -129,8 +132,12 @@ test("CRAFTED: pre-dirtied record + varied streams — RAM identical, five bytes
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
-    assert.equal(ret.descPtr, o.regs.de, `descPtr live-out ${hx(ret.descPtr)} != oracle ${hx(o.regs.de)}`);
-    assert.equal(ret.coordPtr, o.regs.hl, `coordPtr live-out ${hx(ret.coordPtr)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(ret[0], o.regs.de, `descPtr live-out ${hx(ret[0])} != oracle ${hx(o.regs.de)}`);
+    assert.equal(ret[1], o.regs.hl, `coordPtr live-out ${hx(ret[1])} != oracle ${hx(o.regs.hl)}`);
+    // SIDE EFFECT: the caller loc_099c reads the descriptor sentinel out of DE and walks HL into the
+    // next record without reloading either, so the bridge must SET both registers — not just return them.
+    assert.equal(c.regs.de, o.regs.de, `module must SET DE for the translated caller (desc ${desc}, coord ${coord})`);
+    assert.equal(c.regs.hl, o.regs.hl, `module must SET HL for the translated caller (desc ${desc}, coord ${coord})`);
 
     // The five stamped bytes are exactly right on the module side.
     assert.equal(c.mem.read8((REC + 0x06) & 0xffff), desc[0], "rec+0x06 = desc[0]");
@@ -191,14 +198,14 @@ test("TEETH: a wrong coordinate high byte is CAUGHT at rec+0x0d", () => {
 });
 
 test("TEETH: an un-advanced descriptor pointer is CAUGHT by the return check", () => {
+  // The bridge now writes DE back, so c.regs.de is the ADVANCED pointer; the un-advanced value a
+  // broken twin would leave is the descriptor source base (DESC_SRC), which the oracle advances by 2.
   let caught = false;
   for (const { desc, coord } of CASES) {
     const base = craft(desc, coord);
     const o = base.clone();
-    const c = base.clone();
     oracle(o);
-    seedObjectRecord(c);
-    const wrongRet = c.regs.de; // the un-advanced source base (DE was never written by the routine)
+    const wrongRet = DESC_SRC; // an un-advanced descriptor pointer (the source base)
     if (wrongRet !== o.regs.de) { caught = true; break; }
   }
   assert.ok(caught, "the return check FAILED to distinguish an un-advanced descriptor pointer — it is worthless");

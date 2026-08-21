@@ -17,5 +17,5 @@ export function blit2x2TileBlock(m, dest = m.regs.hl, src = m.regs.de) {
   mem8[dest + 0x21] = mem8[src + 0x02];
   mem8[dest + 0x20] = mem8[src + 0x03];
 
-  return u16(dest + 0x20); // HL live-out: dest advanced to the bottom-left cell
+  return (m.regs.hl = u16(dest + 0x20)); // HL live-out: sets HL for the animators, returns it
 }

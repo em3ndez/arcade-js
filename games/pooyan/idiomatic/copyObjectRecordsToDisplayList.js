@@ -26,5 +26,5 @@ export function copyObjectRecordsToDisplayList(m, list = m.regs.hl, rec = m.regs
     count = u8(count - 1);
   } while (count !== 0);
 
-  return u16(page + lo);
+  return (m.regs.hl = u16(page + lo)); // HL live-out: the caller chains its next copy from here
 }

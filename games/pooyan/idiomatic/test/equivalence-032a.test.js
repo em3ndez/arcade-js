@@ -107,6 +107,7 @@ test("CAPTURE: real 0x032a dispatches — module == oracle in RAM (−stack) and
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.hl, `HL live-out: module ${hx(ret)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(c.regs.hl, o.regs.hl, `module must SET HL for the translated chain: ${hx(c.regs.hl)} != ${hx(o.regs.hl)}`);
   }
   console.log(`  CAPTURE: ${CAPS.length} real dispatch(es) checked`);
 });
@@ -123,6 +124,7 @@ test("CRAFTED: varied records/stride/count — RAM identical, advanced HL identi
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${JSON.stringify(cs)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.hl, `${JSON.stringify(cs)}: HL module ${hx(ret)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(c.regs.hl, o.regs.hl, `${JSON.stringify(cs)}: module must SET HL ${hx(c.regs.hl)} != oracle ${hx(o.regs.hl)}`);
     // The high byte of HL never changes (Z80 inc's L only).
     assert.equal(ret & 0xff00, cs.list & 0xff00, `${JSON.stringify(cs)}: HL high byte must be unchanged`);
   }

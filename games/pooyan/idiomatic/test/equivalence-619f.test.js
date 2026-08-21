@@ -99,6 +99,7 @@ test("CAPTURE: real 0x619f dispatches — initActorRecord == oracle in RAM (−s
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.hl, `HL live-out: module ${hx(ret)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(c.regs.hl, o.regs.hl, `module must SET HL for the translated dispatch: ${hx(c.regs.hl)} != ${hx(o.regs.hl)}`);
   }
   console.log(`  CAPTURE: ${CAPS.length} real dispatch(es) checked`);
 });
@@ -115,6 +116,7 @@ test("CRAFTED: pre-dirtied record + varied DE — RAM identical, six bytes stamp
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `datum ${hx(datum)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.hl, `datum ${hx(datum)}: HL live-out module ${hx(ret)} != oracle ${hx(o.regs.hl)}`);
+    assert.equal(c.regs.hl, o.regs.hl, `datum ${hx(datum)}: module must SET HL ${hx(c.regs.hl)} != oracle ${hx(o.regs.hl)}`);
 
     // The six stamped bytes are exactly right on the module side.
     assert.equal(c.mem.read8((REC + 0x00) & 0xffff), 0x00);
@@ -180,18 +182,22 @@ test("TEETH: a wrong datum high byte is CAUGHT at rec+0x17", () => {
   console.log(`  TEETH: wrong high byte caught at ${hx(caught.addr)} (oracle=${caught.a} broken=${caught.b})`);
 });
 
-test("TEETH: a wrong HL live-out is CAUGHT by the return check", () => {
-  // The un-advanced base (rec) is what the old memory-only form effectively left — the exact bug
-  // this batch's review found. The return check (ret === oracle HL) must distinguish it.
-  let caught = false;
+test("TEETH: an un-advanced HL live-out is CAUGHT by the return + side-effect check", () => {
+  // A twin that stamps the record but leaves HL at the base — the memory-only bug this batch fixes.
+  // Both the return value and the register the bridge sets must reject it.
+  const broken = (m, rec = m.regs.hl, value = m.regs.de) => {
+    initActorRecord(m, rec, value);
+    return (m.regs.hl = rec); // BUG: HL left un-advanced at the base
+  };
+  let caught = null;
   for (const datum of DATA) {
     const o = craft(datum);
     const c = craft(datum);
     oracle(o);
-    initActorRecord(c);
-    const wrongRet = c.regs.hl; // the record base, un-advanced
-    if (wrongRet !== o.regs.hl) { caught = true; break; }
+    const ret = broken(c);
+    if (ret !== o.regs.hl || c.regs.hl !== o.regs.hl) { caught = { ret, hl: c.regs.hl, oracle: o.regs.hl }; break; }
   }
-  assert.ok(caught, "the return check FAILED to distinguish an un-advanced HL live-out — it is worthless");
-  console.log("  TEETH: an un-advanced HL return differs from the oracle's advanced HL");
+  assert.notEqual(caught, null, "the HL contract FAILED to reject an un-advanced HL live-out — it is worthless");
+  assert.notEqual(caught.oracle, REC, "sanity: the oracle's HL is genuinely advanced past the record base");
+  console.log(`  TEETH: un-advanced HL rejected (base ${hx(REC)} vs oracle ${hx(caught.oracle)})`);
 });

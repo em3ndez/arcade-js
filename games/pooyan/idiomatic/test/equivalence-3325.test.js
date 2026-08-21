@@ -78,6 +78,10 @@ test("CRAFTED: four bytes land in the 2x2 square, dirt preserved, RAM + HL ident
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${bytes}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.hl, `${bytes}: HL live-out ${hx(ret)} != oracle ${hx(o.regs.hl)}`);
+    // SIDE-EFFECT arm: the bridge must SET HL on the module clone (not merely return it) —
+    // loc_6b13/loc_2563 do `add hl,de` on the returned HL and loc_2329/loc_23ad do `ld l,X`
+    // reading the H byte, so the register itself is consumed. A return-only rewrite fails here.
+    assert.equal(c.regs.hl, o.regs.hl, `${bytes}: module must SET HL (== dest+0x20) for the translated animators`);
     assert.equal(ret, (DEST + 0x20) & 0xffff, `${bytes}: HL should advance to the bottom-left cell`);
 
     assert.equal(c.mem.read8(DEST + 0x00), bytes[0], `${bytes}: top-left`);
@@ -127,16 +131,20 @@ test("TEETH(RAM): a wrong bottom-left byte is CAUGHT at dest+0x20", () => {
   console.log(`  TEETH(RAM): wrong bottom-left caught at ${hx(caught.addr)} (oracle=${caught.a} broken=${caught.b})`);
 });
 
-test("TEETH(HL): an un-advanced HL return differs from the oracle's advanced HL", () => {
+test("TEETH(HL): an un-advanced HL (the base dest) differs from the oracle's advanced HL", () => {
+  // The module now SETS HL via the return-assignment bridge, so c.regs.hl already matches the
+  // oracle (asserted in CRAFTED). The teeth here prove the *contract* is non-trivial: the
+  // un-advanced base dest — the plausible "forgot to advance" bug — is genuinely rejected.
   let caught = false;
   for (const bytes of DATA) {
     const o = craft(bytes);
     const c = craft(bytes);
     oracle(o);
     blit2x2TileBlock(c);
-    const wrongRet = c.regs.hl; // HL was left at the dest base by the module (it never writes regs)
-    if (wrongRet !== o.regs.hl) { caught = true; break; }
+    assert.equal(c.regs.hl, o.regs.hl, `${bytes}: sanity — module SET HL matches the oracle`);
+    const unAdvanced = DEST & 0xffff; // the base dest, a plausible un-advanced-return bug
+    if (unAdvanced !== o.regs.hl) { caught = true; break; }
   }
-  assert.ok(caught, "the return check FAILED to distinguish an un-advanced HL — it is worthless");
-  console.log("  TEETH(HL): the module's return (dest+0x20) is required; the base dest differs");
+  assert.ok(caught, "the advanced-HL contract FAILED to reject the un-advanced base dest — it is worthless");
+  console.log("  TEETH(HL): the advanced HL (dest+0x20) is required; the base dest is rejected");
 });

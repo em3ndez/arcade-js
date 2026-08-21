@@ -7,19 +7,24 @@
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES RAM, so
  * each case runs the oracle on one FRESH clone and drawStackedBcdDigits on another, compared on:
  *
- *     RAM (dumpState, minus STACK_SCRATCH)  +  the declared return value.
+ *     RAM (dumpState, minus STACK_SCRATCH)  +  the declared return value  +  the live-out registers.
  *
  * pc/SP are NOT compared (oracle m.step/m.ret drive the dropped call/stack ABI; neither is in
- * dumpState). The return { next, byte } is checked against the oracle's exit HL and E — the two
- * registers the level-intro caller loc_6f42 reads back after the call.
+ * dumpState). The return { next, byte } is checked against the oracle's exit HL and E; the
+ * return-assignment bridge ALSO sets HL, E, and BC on m.regs, and each is asserted equal to the
+ * oracle clone's exit register — the SIDE EFFECT the frozen caller loc_6f42 reads back (add hl,bc
+ * twice off BC == 0xffe0, ld a,e off E, HL as the running cursor). A return-value-only check would
+ * pass a rewrite that returns the right value but never SETS the register.
  *
- * ABI NOTE (for the lead): loc_6f42 also consumes BC == 0xffe0, which the oracle leaves in a
- * register and a memory-only body cannot restore. That is a dispatch-bridge concern, recorded in
- * the 0x1119 registry-coverage deferral — it is NOT part of the tile-drawing effect this gate covers.
+ * ABI NOTE (for the lead): BC == 0xffe0 is genuinely consumed (loc_6f42's two add hl,bc), so the
+ * bridge SETS it — a real live-out, not dead plumbing. loc_10c2's three call sites read no 0x1119
+ * register live-out (each reloads HL/A first, and loc_0f44 does ld a,0x13 immediately). A and the
+ * flags are NOT restored by the bridge: no caller tail reads either after the call.
  *
  * Jobs:
- *   1. EQUAL + RETURN (crafted, both branches) — nonzero and zero tens nibbles leave identical
- *      RAM(−stack), and drawStackedBcdDigits's {next,byte} matches the oracle's HL/E.
+ *   1. EQUAL + RETURN + LIVE-OUT (crafted, both branches) — nonzero and zero tens nibbles leave
+ *      identical RAM(−stack), drawStackedBcdDigits's {next,byte} matches the oracle's HL/E, and the
+ *      module clone's HL/E/BC registers match the oracle clone's (the bridge side effect).
  *   2. CAPTURED (best-effort) — replay any real 0x1119 dispatch a boot happens to reach.
  *   3. WRITE-SET — the oracle's RAM writes land only at dst and dst-0x20 (one row up).
  *   4. TEETH — a twin that writes a WRONG tile at dst MUST be caught, at dst.
@@ -103,6 +108,11 @@ test("EQUAL+RETURN: crafted bytes — RAM(−stack) identical and {next,byte} ma
     assert.equal(ret.next, o.regs.hl, `advanced cursor mismatch for byte ${hx(byte)}`);
     assert.equal(ret.byte, o.regs.e, `echoed byte (E) mismatch for byte ${hx(byte)}`);
 
+    // LIVE-OUT side effect: the bridge must SET the registers loc_6f42 reads out (not just return them).
+    assert.equal(c.regs.hl, o.regs.hl, `module must SET HL for the frozen dispatch (byte ${hx(byte)})`);
+    assert.equal(c.regs.e, o.regs.e, `module must SET E (source byte) for loc_6f42's ld a,e (byte ${hx(byte)})`);
+    assert.equal(c.regs.bc, o.regs.bc, `module must SET BC (0xffe0 stride) for loc_6f42's add hl,bc (byte ${hx(byte)})`);
+
     // Spot-check the actual tiles: tens at dst (blank 0x10 when zero), units one row up.
     const tens = (byte >> 4) & 0x0f;
     assert.equal(c.mem.read8(DST), tens === 0 ? 0x10 : tens, `tens tile wrong for byte ${hx(byte)}`);
@@ -124,6 +134,10 @@ test("CAPTURED: real 0x1119 dispatches replay identically (if reached)", () => {
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
     assert.equal(ret.next, o.regs.hl, "captured advanced cursor mismatch");
     assert.equal(ret.byte, o.regs.e, "captured echoed byte mismatch");
+    // LIVE-OUT side effect on the captured dispatches too.
+    assert.equal(c.regs.hl, o.regs.hl, "captured: module must SET HL");
+    assert.equal(c.regs.e, o.regs.e, "captured: module must SET E");
+    assert.equal(c.regs.bc, o.regs.bc, "captured: module must SET BC (0xffe0 stride)");
   }
   console.log(`  CAPTURED: ${caps.length} real 0x1119 dispatch(es) replayed identically`);
 });

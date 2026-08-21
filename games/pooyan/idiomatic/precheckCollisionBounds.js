@@ -6,9 +6,9 @@
  * E = (rec+0x00) + bias, then A = (rec+0x02) + 8 and compares A to the bottom limit 0xe0.
  * A pure leaf: two record reads plus one flag read, writes nothing.
  *
- * LIVE-OUT: { e, a, carry }. carry (A < 0xe0) is the below-bottom result the caller branches
- * on; e is the biased X left in the E register (needs a bridge if the caller reads it); a is
- * the biased Y+margin left in A.
+ * LIVE-OUT (return-assignment bridge): returns [E=biased X, A=biased Y+margin, C=(A < 0xe0)]
+ * and SETS each on m.regs — a register-dispatched caller reads C (the off-screen gate), then A
+ * and E straight out of the registers.
  */
 import { FLIP_SCREEN_FLAG } from "./names.js";
 
@@ -24,5 +24,5 @@ export function precheckCollisionBounds(m, rec = m.regs.ix) {
   const e = (mem8[rec + 0x00] + bias) & 0xff;
   const a = (mem8[rec + 0x02] + Y_MARGIN) & 0xff;
   const carry = a < BOTTOM_LIMIT;
-  return { e, a, carry };
+  return [m.regs.e = e, m.regs.a = a, m.regs.fC = carry];
 }

@@ -119,11 +119,17 @@ export class Regs {
   get fZ() {
     return (this.f & F_Z) !== 0;
   }
+  set fZ(v) {
+    this.f = v ? this.f | F_Z : this.f & ~F_Z;
+  }
   get fNZ() {
     return (this.f & F_Z) === 0;
   }
   get fC() {
     return (this.f & F_C) !== 0;
+  }
+  set fC(v) {
+    this.f = v ? this.f | F_C : this.f & ~F_C;
   }
   get fNC() {
     return (this.f & F_C) === 0;

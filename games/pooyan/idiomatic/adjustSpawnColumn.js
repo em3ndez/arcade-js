@@ -12,8 +12,8 @@ import { STAGE_COUNTDOWN, WAVE_PROGRESS_COUNTER } from "./names.js";
 export function adjustSpawnColumn(m, col = m.regs.c) {
   const { mem8 } = m;
 
-  if (mem8[STAGE_COUNTDOWN] >= 0x03) return col; // late stage: column unchanged
+  if (mem8[STAGE_COUNTDOWN] >= 0x03) return (m.regs.c = col); // late stage: column unchanged
   const progress = mem8[WAVE_PROGRESS_COUNTER];
-  if (progress < 0x0c) return col; // below threshold: column unchanged
-  return (col + progress - 0x0c) & 0xff; // shift column by (progress - 0x0c)
+  if (progress < 0x0c) return (m.regs.c = col); // below threshold: column unchanged
+  return (m.regs.c = (col + progress - 0x0c) & 0xff); // shift column by (progress - 0x0c)
 }

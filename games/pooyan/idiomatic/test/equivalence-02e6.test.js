@@ -97,6 +97,7 @@ test("CAPTURE: real 0x02e6 dispatches — seedTileFillCursor == oracle in RAM (�
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.a, `A live-out: module ${hx(ret)} != oracle ${hx(o.regs.a)}`);
+    assert.equal(c.regs.a, o.regs.a, `module must SET A (side effect) for the watchdog kick: c ${hx(c.regs.a)} != o ${hx(o.regs.a)}`);
   }
   console.log(`  CAPTURE: ${CAPS.length} real dispatch(es) checked`);
 });
@@ -113,6 +114,7 @@ test("CRAFTED: pre-dirtied cells + varied HL — RAM identical, pointer + counte
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `ptr ${hx(ptr)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.a, `ptr ${hx(ptr)}: A live-out module ${hx(ret)} != oracle ${hx(o.regs.a)}`);
+    assert.equal(c.regs.a, o.regs.a, `ptr ${hx(ptr)}: module must SET A (side effect): c ${hx(c.regs.a)} != o ${hx(o.regs.a)}`);
 
     assert.equal(c.mem.read8(PTR_LO), ptr & 0xff, `ptr ${hx(ptr)}: cursor low byte`);
     assert.equal(c.mem.read8(PTR_HI), (ptr >> 8) & 0xff, `ptr ${hx(ptr)}: cursor high byte`);

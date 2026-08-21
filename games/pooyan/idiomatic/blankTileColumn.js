@@ -21,5 +21,5 @@ export function blankTileColumn(m, start = m.regs.hl, stride = m.regs.de) {
   mem8[cell] = TILE_BLANK;
   cell = cell + stride;
   mem8[cell] = TILE_BLANK;
-  return u16(cell);
+  return (m.regs.hl = u16(cell)); // HL live-out: the advanced pointer, chained into the next column
 }

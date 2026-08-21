@@ -88,6 +88,8 @@ test("EQUAL+RETURN: crafted cases across all branches — RAM(−stack) identica
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${hx(stage)},${hx(progress)},${hx(col)}]: RAM diff at ${hx(d.addr ?? 0)}`);
     assert.equal(ret, o.regs.c, `[${hx(stage)},${hx(progress)},${hx(col)}]: C live-out ${hx(ret)} != oracle ${hx(o.regs.c)}`);
+    // SIDE EFFECT: the bridge must SET C (the register the frozen caller reads), not just return it.
+    assert.equal(c.regs.c, o.regs.c, `[${hx(stage)},${hx(progress)},${hx(col)}]: module did not SET C ${hx(c.regs.c)} != oracle ${hx(o.regs.c)}`);
   }
   console.log(`  EQUAL+RETURN: ${CASES.length} crafted cases identical (RAM −stack) + C matches`);
 });
@@ -113,6 +115,8 @@ test("CAPTURED: real 0x57b4 dispatches replay identically (if reached in the boo
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `captured RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
     assert.equal(ret, o.regs.c, `captured C live-out ${hx(ret)} != oracle ${hx(o.regs.c)}`);
+    // SIDE EFFECT: the bridge must SET C on the captured state too.
+    assert.equal(c.regs.c, o.regs.c, `captured: module did not SET C ${hx(c.regs.c)} != oracle ${hx(o.regs.c)}`);
   }
   console.log(`  CAPTURED: ${caps.length} real 0x57b4 dispatch(es) replayed identically`);
 });

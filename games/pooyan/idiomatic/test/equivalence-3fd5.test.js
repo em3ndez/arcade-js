@@ -112,6 +112,9 @@ test("CAPTURE: real 0x3fd5 dispatches — advanceFallStep == oracle in RAM (−s
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(still, o.regs.fC, "boolean must equal the oracle's carry (still-falling)");
+    // Live-out SIDE EFFECT: the bridge must SET carry, not merely return the boolean —
+    // the frozen translated callers (loc_3f7c/loc_4364) read the result via `ret c`.
+    assert.equal(c.regs.fC, o.regs.fC, "module must SET carry for the translated `ret c` dispatch");
     void oc;
   }
   console.log(`  CAPTURE: ${CAPS.length} real dispatch(es) checked`);
@@ -134,6 +137,12 @@ test("CRAFTED: seeded fall records — RAM identical + boolean matches oracle ca
     assert.equal(
       still, o.regs.fC,
       `case ${JSON.stringify(cs)}: boolean ${still} != oracle carry ${o.regs.fC}`,
+    );
+    // Live-out SIDE EFFECT: prove the bridge actually SET carry (a return-only rewrite
+    // would pass the boolean check above but leave carry unset for `ret c` callers).
+    assert.equal(
+      c.regs.fC, o.regs.fC,
+      `case ${JSON.stringify(cs)}: module carry ${c.regs.fC} != oracle carry ${o.regs.fC}`,
     );
   }
   console.log(`  CRAFTED: ${CASES.length} seeded records identical (RAM −stack) + boolean`);

@@ -13,9 +13,6 @@
  * DE is the only live-out; it is derived from the ORACLE clone, never the module. pc is not
  * compared (the oracle drives it through m.step/m.ret, machinery the direct-call layer drops).
  *
- * The leaf is a tiny bank selector; every case is CRAFTED — an identical ACTIVE_PLAYER poke
- * on both sides (its only real input) across even/odd selector values.
- *
  * Jobs:
  *   1. EQUAL (crafted sweep) — over even and odd ACTIVE_PLAYER values, oracle == module in
  *      RAM (−stack) and in the returned DE, and the oracle leaves A/flags untouched.
@@ -82,6 +79,9 @@ test("EQUAL: crafted ACTIVE_PLAYER — module == oracle in RAM (−stack) + DE, 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `sel ${hx(sel)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret & 0xffff, o.regs.de & 0xffff, `sel ${hx(sel)}: DE live-out module ${hx(ret)} != oracle ${hx(o.regs.de)}`);
+    // SIDE EFFECT: the bridge must SET DE (loc_0496 reads mem[DE] right after the call), not
+    // merely return the value — a return-only rewrite passes the check above but leaves DE stale.
+    assert.equal(c.regs.de & 0xffff, o.regs.de & 0xffff, `sel ${hx(sel)}: module must SET DE for the translated dispatch, got ${hx(c.regs.de)} != oracle ${hx(o.regs.de)}`);
 
     const expected = (sel & 0x01) ? P2_SCORE_BCD : P1_SCORE_BCD;
     assert.equal(ret & 0xffff, expected, `sel ${hx(sel)}: expected bank ${hx(expected)}`);

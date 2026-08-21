@@ -75,6 +75,8 @@ test("EQUAL+RETURN: all 256 bytes — RAM(−stack) identical and return matches
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (byte ${hx(byte)}): oracle=${d.a} mine=${d.b}`);
     assert.equal(ret, o.regs.a, `return mismatch for byte ${hx(byte)}: mine ${hx(ret)} != oracle ${hx(o.regs.a)}`);
+    // SIDE EFFECT: the bridge must SET A (the register the frozen caller reads), not just return it.
+    assert.equal(c.regs.a, o.regs.a, `byte ${hx(byte)}: module did not SET A ${hx(c.regs.a)} != oracle ${hx(o.regs.a)}`);
   }
   console.log("  EQUAL+RETURN: 256 bytes — return == oracle A, no RAM touched");
 });
@@ -106,6 +108,8 @@ test("CAPTURED: real 0x062a dispatches in an attract boot replay identically (if
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
     assert.equal(ret, o.regs.a, `captured return mismatch: mine ${hx(ret)} != oracle ${hx(o.regs.a)}`);
+    // SIDE EFFECT: the bridge must SET A on the captured state too.
+    assert.equal(c.regs.a, o.regs.a, `captured: module did not SET A ${hx(c.regs.a)} != oracle ${hx(o.regs.a)}`);
   }
   console.log(`  CAPTURED: ${caps.length} real 0x062a dispatch(es) replayed identically`);
 });

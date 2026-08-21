@@ -16,5 +16,5 @@ export function seedTileFillCursor(m, ptr = m.regs.hl) {
   const { mem8, mem16 } = m;
   mem16[TILE_FILL_PTR] = ptr;
   mem8[FILL_ROW_COUNTER] = FILL_ROWS;
-  return FILL_ROWS; // A live-out
+  return (m.regs.a = FILL_ROWS); // sets A (=0x20) for the caller's watchdog kick; returns the row count
 }

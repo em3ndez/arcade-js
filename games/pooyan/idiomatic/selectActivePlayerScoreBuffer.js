@@ -12,5 +12,5 @@ import { ACTIVE_PLAYER, P1_SCORE_BCD, P2_SCORE_BCD } from "./names.js";
 export function selectActivePlayerScoreBuffer(m) {
   const { mem8 } = m;
 
-  return (mem8[ACTIVE_PLAYER] & 0x01) ? P2_SCORE_BCD : P1_SCORE_BCD;
+  return (m.regs.de = (mem8[ACTIVE_PLAYER] & 0x01) ? P2_SCORE_BCD : P1_SCORE_BCD);
 }
