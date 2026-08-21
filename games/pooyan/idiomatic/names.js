@@ -202,19 +202,19 @@ export const P2_SCORE_BCD = 0x88a5;
 export const TAMPER_ROM_CHECK_FLAG = 0x882b;
 /** [code] (loc_0460 paints PANEL_VRAM_DEST from here) 30-byte status-panel tile source table (10 rows x 3 cells), work RAM */
 export const PANEL_TILE_SOURCE = 0x8e00;
-/** [code] (loc_0460 destination) VRAM base of the status panel painted from PANEL_TILE_SOURCE */
+/** [seen] (MAME gameplay golden: status-panel tiles painted here in play; loc_0460 destination) VRAM base of the status panel painted from PANEL_TILE_SOURCE */
 export const PANEL_VRAM_DEST = 0x8567;
-/** [code] (loc_03c2/loc_2065 draw upward, stride -0x20, filled 0xb0 / blank 0x10) bottom cell of the 5-cell vertical phase-gauge HUD */
+/** [seen] (MAME gameplay golden: holds 0xb0 filled / 0x10 blank as the gauge fills; loc_03c2/loc_2065 draw upward, stride -0x20) bottom cell of the 5-cell vertical phase-gauge HUD */
 export const PHASE_GAUGE_BASE_TILE = 0x863f;
-/** [code] (loc_34c9 draws the 2-cell stage number; tens tile derives at +0x20) units tile of the stage-countdown HUD number */
+/** [seen] (MAME gameplay golden: holds the stage-digit tile, observed 2/1/0; loc_34c9 draws the 2-cell stage number, tens at +0x20) units tile of the stage-countdown HUD number */
 export const HUD_STAGE_DIGIT_LO = 0x8743;
 /** [code] (loc_3fe9 state-10 integrity guard bumps it on a checksum bit-pattern failure; adjacent TAMPER_STRIKES_SIG) anti-tamper strike counter for the state-10 ROM checksum */
 export const TAMPER_STRIKES_STATE10 = 0x8a39;
 /** [code] (loc_208c sets 1 on a signature mismatch) work-RAM ROM-signature mismatch flag */
 export const SIGNATURE_MISMATCH_FLAG = 0x8ef0;
-/** [code] (loc_2405 advance/even, loc_23ec retreat; inc per frame, bit0 gates which pass runs on TILE_ANIM_CURSOR) per-frame tile-animation parity counter */
+/** [seen] (MAME gameplay golden: increments +1 per frame in play; loc_2405 advance/even, loc_23ec retreat, bit0 gates which pass runs on TILE_ANIM_CURSOR) per-frame tile-animation parity counter */
 export const TILE_ANIM_PARITY = 0x8f37;
-/** [code] (loc_0e8f writes the command byte here for the audio CPU) sound-command latch to the audio CPU */
+/** [code] (loc_0e8f writes the command byte here for the audio CPU; write-only latch, absent from the state golden -> grounds by a write-trace, not by watching) sound-command latch to the audio CPU */
 export const SOUND_COMMAND_LATCH = 0xa100;
 /** [code] (loc_0e8f pulses b1 high, 6x nop, low after a command) audio-IRQ strobe latch (mainlatch b1) */
 export const AUDIO_IRQ_LATCH = 0xa181;
