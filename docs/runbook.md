@@ -348,6 +348,20 @@ batch and feeds the next batch's targets.
   teeth. Test by **capture-clone-replay** (hook the address, `m.clone()` at each real dispatch, replay
   in isolation); for arms the run never reaches, craft an entry — a real captured state with one
   variable poked identically on both sides.
+  - **★ REGISTER LIVE-OUT COMPLETENESS is a leading escaped-defect class — audit it explicitly.** For
+    **every** register the oracle *modifies and does not pop/restore before its `ret`*, ask "does a
+    caller read it back?"; if yes it is a live-out the module MUST set (return-assignment) AND the gate
+    MUST compare (derived from the oracle). The load-bearing heuristic: the oracle typically
+    `push16`/`pop16`s **BC/DE/HL** (restored to entry) but **NOT AF** — so **A and the flags left
+    modified are the first place to look for a missed live-out**, along with a `djnz`/loop counter left
+    in **B** or an advanced pointer/cursor left in **A/HL**. A memory-only gate goes green on a register-wrong rewrite,
+    so these escape the per-routine test and surface only in the whole-game tape (§4 "Driving coverage")
+    or a register-focused review — the whole-game replay and a review pass that audits live-out
+    completeness are therefore BOTH mandatory, not optional. When unsure a caller reads it, set + test it
+    anyway (a value that matches the oracle can never cause a false failure). (Recorded 2026-08-21:
+    pooyan's first idiomatic leaf batch shipped THREE such misses — a drained B, an advanced-cursor A, a
+    scan-counter B — each memory-equivalent in isolation, each caught only by the whole-game tape or the
+    register-focused review, never the per-routine gate.)
 - **Dissolve an `m.call` when you write the CALLER**, not when the callee lands. Before writing
   `m.call(0xADDR)`, check whether the callee is already decompiled (a stale marshalled call is
   memory-equivalent → the gate misses it, it reaches the reviewer). The `no-stale-mcall` lint must
