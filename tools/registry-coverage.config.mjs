@@ -141,6 +141,94 @@ export const UNWIRED = {
       "0x57e5: live-outs are A (byte from (BC)) and the Z flag (dec counter). The module returns " +
       "{ a, counter }; a bridge must set regs.a and the Z flag. No confirmed caller (register-dispatched, " +
       "0 dispatches in attract), so the exact flag consumer is unverified -- another reason to hold it.",
+    //
+    // -- batch 2: 42 leaf modules (decompiled + equivalence-proven, 0-cruft); same go-live hold as batch 1.
+    //    5 planned 'leaves' (0x6da6/0x7442/0x15a1/0x72cf/0x0fd5) were JUMP-TABLE DISPATCHERS, not
+    //    memory-transform leaves -- DEFERRED (dispatch plumbing, like 0x2e45/0x40d0), not decompiled. --
+    "adjustSpawnColumn.js":
+      "0x57b4: register C (the adjusted column), returned; the caller consumes C, so wiring needs a bridge to write the return back into C. Early-return branches return the unchanged input col. Held UNWIRED (go-live).",
+    "advanceActorAnimFrame.js":
+      "0x403c: memory-only — all state persists in the IY record (advanced stream pointer written back to +0x0c:+0x0d; new frame fields to +0x0e/+0x0f/+0x10). No register/flag live-out; the oracle's final HL/A are scratch that no caller reads. Held UNWIRED (go-live).",
+    "advanceActorDropStateOnDelay.js":
+      "0x24db: memory-only (record fields +0x02/+0x04/+0x06/+0x0f/+0x11); early-return path leaves the dec's Z flag but the state dispatcher reads no reg/flag. Held UNWIRED (go-live).",
+    "advanceEaglePhaseAndClearAim.js":
+      "0x7292: memory-only (see module JSDoc). Bare dispatch, held UNWIRED (go-live).",
+    "advanceRisingActorStep.js":
+      "0x2ab3: memory-only (the actor record at IX); no register or flag survives — both ret paths are register-transparent. Held UNWIRED (go-live).",
+    "advanceTileAnimForwardOnOdd.js":
+      "0x2405: memory-only (see module JSDoc). Bare dispatch, held UNWIRED (go-live).",
+    "binToPackedBcd.js":
+      "0x1131: A (packed BCD = count mod 100) and C (hundreds = count div 100); both consumed by loc_10c2 (A drawn as a 2-digit HUD field, C folded into the hundreds slot). Returned as { a, hundreds }. Memory untouched. Held UNWIRED (go-live).",
+    "blit2x2TileBlock.js":
+      "0x3325: HL advanced to the bottom-left cell (dest + 0x20) -- RETURNED and CONSUMED by callers, so needs a bridge to write HL back. DE/A are plumbing (callers restore DE via push/pop, never read A). Plus the four VRAM writes (the memory effect). Held UNWIRED (go-live).",
+    "blitGlyphBlock4x3.js":
+      "0x1f8c: memory-only (see module JSDoc). Bare dispatch, held UNWIRED (go-live).",
+    "blitTile3x3Block.js":
+      "0x3307: returns a value live-out (see module JSDoc); held UNWIRED (go-live) -- a consumed live-out needs a cruft-free bridge before wiring.",
+    "byteToPackedBcd.js":
+      "0x062a: register A (the packed-BCD result), returned; caller loc_05ee consumes only A (splits it into HUD digit nibbles), daa carry-out not read. Held UNWIRED (go-live).",
+    "clearActorArena.js":
+      "0x19bc: memory-only: 0x200 zeroed bytes at ACTOR_TABLE (0x8a80..0x8c7f); no register/flag returned. Held UNWIRED (go-live).",
+    "clearActorArenaAndCounters.js":
+      "0x2ae8: memory-only (returns nothing). Oracle leaves A=6, HL=DE=0x8cc1, BC=0 as ldir plumbing but no caller reads them. Held UNWIRED (go-live).",
+    "copyBiasedTileString.js":
+      "0x1b80: memory-only (biased bytes written to the dest buffer); oracle leaves A=0xa0 and advanced DE/HL but no caller reads them. Held UNWIRED (go-live).",
+    "copyObjectRecordsToDisplayList.js":
+      "0x032a: Returns the advanced list pointer (page kept, low byte += 4*count); caller loc_02ef chains its next copy from it -- needs a wiring bridge. IX/B/A/DE are plumbing, not consumed. Held UNWIRED (go-live).",
+    "deriveStackedSpriteYs.js":
+      "0x23d7: memory-only — A is left = base Y - 6, but no caller consumes it (all four callers loc_2334/236a/2901/32bd reload from RAM or ret immediately after the call, verified). Held UNWIRED (go-live).",
+    "dispatchActiveObjectState.js":
+      "0x7707: returns a value live-out (see module JSDoc); held UNWIRED (go-live) -- a consumed live-out needs a cruft-free bridge before wiring.",
+    "fillAttributeColumns.js":
+      "0x075d: memory-only — no register live-out (loc_1dd3 notes HL/DE/A are reloaded; no caller reads the advanced BC). Held UNWIRED (go-live).",
+    "flagHighScoreTableCorruptOnChecksumMiss.js":
+      "0x0644: memory-only — raises HISCORE_TABLE_CORRUPT_FLAG (0x8df8):=1 on any mismatch; no register/flag is returned (matches the 5b06 checksum-guard template's memory-only contract). Held UNWIRED (go-live).",
+    "flagTamperOnRound5ChecksumMiss.js":
+      "0x5b06: memory-only (see module JSDoc). Bare dispatch, held UNWIRED (go-live).",
+    "foldTargetPresenceBits.js":
+      "0x22d0: A (returned): the rotate-folded accumulator. Seeded 0 and only ever rotated, so it resolves to 0 for every input; no memory writes, no other caller-consumed register. Held UNWIRED (go-live).",
+    "mirrorSpriteListVertically.js":
+      "0x0378: memory-only (rewrites the 0x60-byte list in place; caller loc_0320 rets straight after, no register/flag consumed). Held UNWIRED (go-live).",
+    "paintColumnBodyTilesUp.js":
+      "0x1cec: memory-only: two tiles at start-0x20 (0x25) and start-0x40 (0x20). HL advances to start-0x40 but NO caller consumes it. Held UNWIRED (go-live).",
+    "paintPhaseGauge.js":
+      "0x2065: memory-only (up to 5 gauge tiles from 0x863f upward, stride -0x20); no caller reads a register. Held UNWIRED (go-live).",
+    "paintTileBlock2x2.js":
+      "0x0a40: memory-only (see module JSDoc). Bare dispatch, held UNWIRED (go-live).",
+    "paintTileBlock2x2Above.js":
+      "0x780f: memory-only (see module JSDoc). Bare dispatch, held UNWIRED (go-live).",
+    "precheckCollisionBounds.js":
+      "0x5f53: return { e, a, carry }: carry = (A < 0xe0) is the branch result (primary); e = biased X left in the E register; a = biased Y+8 left in A. Held UNWIRED (go-live).",
+    "renderDigitWithBlanking.js":
+      "0x059d: { next, blankBudget } — advanced cursor (IX+=DE) and remaining blank budget (C), BOTH threaded by caller loc_0552 across a field's digits; needs a bridge writing IX and C back. Held UNWIRED (go-live).",
+    "renderPanelFromTable.js":
+      "0x0460: Memory only -- the painted panel VRAM. Returns nothing; no register/flag consumed (caller loc_03e9 rets right after). Held UNWIRED (go-live).",
+    "renderPhaseGauge.js":
+      "0x03c2: memory-only (up to 5 gauge tiles from 0x863f upward, stride -0x20); no caller reads a register. Held UNWIRED (go-live).",
+    "renderStageCountdownDigits.js":
+      "0x34c9: memory-only (two HUD tiles 0x8743/0x8763); callers loc_1ead/1f14/3fb5 discard every register/flag. Held UNWIRED (go-live).",
+    "retreatTileAnimScript.js":
+      "0x23ec: Memory only -- the parity gate (0x8f37), the tile byte at the cursor, and the cursor word (0x88be). Plain-ret, no register or flag survives. Void. Held UNWIRED (go-live).",
+    "saveLivePageToPlayer0Bank.js":
+      "0x1bab: memory-only (see module JSDoc). Bare dispatch, held UNWIRED (go-live).",
+    "saveLiveStateToPlayerBank.js":
+      "0x1a47: memory-only (status byte, the 0x3f-byte dest-bank copy, PLAY_STATE_INDEX). No register or flag is returned. Held UNWIRED (go-live).",
+    "seedObjectRecord.js":
+      "0x0a0c: { descPtr, coordPtr } — DE+2 and HL+2, BOTH consumed by caller loc_099c (reads descriptor sentinel from DE, keeps walking HL); needs a bridge writing both DE and HL back. IX (record base) untouched. Held UNWIRED (go-live).",
+    "seedTileFillCursor.js":
+      "0x02e6: A = 0x20, RETURNED and CONSUMED: caller loc_0092 writes it to the watchdog 0xa000 immediately after the call (needs an A bridge). Plus memory: TILE_FILL_PTR(0x880b):=ptr (16-bit LE), FILL_ROW_COUNTER(0x8809):=0x20. Held UNWIRED (go-live).",
+    "selectActivePlayerScoreBuffer.js":
+      "0x04f2: DE = the chosen 16-bit buffer pointer, returned; the caller consumes it as a pointer, so wiring must write DE back (needs a bridge). The oracle preserves A and flags (push af/pop af) — NOT a live-out. Held UNWIRED (go-live).",
+    "sendSoundCommand.js":
+      "0x0e8f: memory-only (see module JSDoc). Bare dispatch, held UNWIRED (go-live).",
+    "tickActorAnimHold.js":
+      "0x5d1e: memory-only — mutates cells in the record at IX (rec+0x12 timer, rec+0x13 phase, rec+0x16 armed); nothing returned. Confirmed via caller loc_5d0b, which banks its loop counter/stride with exx across the call and reads no register back. Held UNWIRED (go-live).",
+    "verifyRomChecksum.js":
+      "0x3fe9: memory-only — the tamper counter, incremented ONLY on a checksum deviation; no register/flag live-out (dispatch handler, rets to dispatcher). Held UNWIRED (go-live).",
+    "verifyRomSignature.js":
+      "0x208c: Memory only -- sets SIGNATURE_MISMATCH_FLAG (0x8ef0)=1 on the first mismatch, else leaves it untouched. No register/flag consumed (caller loc_0254 returns immediately after the call). Held UNWIRED (go-live).",
+    "verifyTableChecksum.js":
+      "0x585b: memory-only (tamper flag at 0x882b := 1 on mismatch, untouched on match); accumulator regs A/D/HL/B are scratch, no caller reads them. Held UNWIRED (go-live).",
   },
 };
 
