@@ -2,28 +2,32 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Batch-size gate — make "fan out, don't dribble" a MECHANICAL prerequisite, not a wish.
 
-The failure mode this exists to stop: the translation pass drifts back to tiny batches
-(4 agents / ~11 routines) no matter how emphatically the runbook says "fan aggressively".
+The failure mode this exists to stop: the translation OR idiomatic pass drifts back to tiny
+batches (4 agents / ~11 routines) no matter how emphatically the runbook says "fan aggressively".
 Prose that does not halt a commit is decoration and gets skipped. This gate halts it.
 
 What it does
 ------------
-At pre-commit it counts the NEW translated routine files in the staged commit and refuses a
-commit that adds too few of them WHILE more remain to translate.
+At pre-commit it counts the NEW routine files a commit adds -- translated ``loc_<addr>.js`` for
+the §3 translation pass AND idiomatic module files for the §4 idiomatic pass -- and refuses a
+commit that adds too few of them WHILE more remain to do. BOTH passes share one FLOOR (Karl
+2026-08-20: the two passes are the same size).
 
-* N = staged files with status A (added) matching ``games/<game>/translated/loc_<hex>.js``
-  (routine files; the ``test/`` subdir is excluded). N is the batch's routine count.
-  **N == 0 -> the gate is INERT and passes** — a bug-fix to an existing routine is a MODIFY,
-  not an add, so is never touched; nor is a tool/doc/test/registry commit. Only a
-  fresh-translation batch is held to the floor.
-* R = "remaining frontier" = distinct ``m.call(0x____)`` targets across the post-commit
-  translated layer for that game that do NOT yet have a ``loc_<addr>.js`` file. Cheap
-  (regex + set-difference, no decode/BFS). It UNDERCOUNTS true remaining work, which is the
-  safe direction: R >= 1 means there is definitely more you could have pulled into this batch.
+* N (translate) = status-A files matching ``games/<game>/translated/loc_<hex>.js`` (the ``test/``
+  subdir excluded). N (idiomatic) = status-A files matching ``games/<game>/idiomatic/<name>.js``
+  (names.js and the ``test/`` subdir excluded).
+  **N == 0 for a layer -> the gate is INERT for it** — a bug-fix to an existing routine is a
+  MODIFY not an add, and a tool/doc/understanding/registry commit adds no routine files. Only a
+  fresh batch is held to the floor.
+* R = "remaining frontier". Translate: distinct ``m.call(0x____)`` targets across the post-commit
+  translated layer with no ``loc_<addr>.js`` file. Idiomatic: the game's translated routine files
+  MINUS the idiomatic modules present (decompile progress, NOT wiring -- modules land unwired by
+  design). Both are cheap and UNDERCOUNT true remaining work, the safe direction: R >= 1 means
+  there is definitely more you could have pulled into this batch.
 
 The rule (fail closed)
 ----------------------
-For each game with added routine files:
+For each game, and each pass (translate / idiomatic) with added routine files:
   * PASS if N >= FLOOR (the batch is big enough), OR
   * PASS if R == 0 (the frontier is now closed — this was the finishing batch, any size), else
   * BLOCK — unless a single-use waiver is on file for this exact staged diff.
@@ -74,10 +78,13 @@ import sys
 import tempfile
 import time
 
-FLOOR = 40  # minimum routines a fresh-translation batch must add while the frontier is open
+FLOOR = 40  # minimum routines a fresh batch must add while the frontier is open. BOTH passes share
+            # this floor (Karl 2026-08-20: the translation and idiomatic passes are the same size).
 
 # games/<game>/translated/loc_<hex>.js  (NOT under a test/ subdir)
 LOC_RE = re.compile(r"^games/([^/]+)/translated/loc_([0-9a-fA-F]+)\.js$")
+# games/<game>/idiomatic/<name>.js  (a routine MODULE; names.js and the test/ subdir are NOT modules)
+IDIOM_RE = re.compile(r"^games/([^/]+)/idiomatic/([^/]+)\.js$")
 CALL_RE = re.compile(r"m\.call\(0x([0-9a-fA-F]+)\)")
 # An address-owning export INSIDE a file: a file can hold several routines (gen-registry's
 # discover() registers each), so an m.call target is covered by the EXPORT, not the filename.
@@ -131,6 +138,24 @@ def added_routine_files():
     return added
 
 
+def added_idiomatic_modules():
+    """{game: set(module_name)} for idiomatic MODULE files added (status A) in the staged set.
+    names.js and the test/ subdir are NOT modules (IDIOM_RE's `[^/]+` already rejects test/)."""
+    out = git(["diff", "--cached", "--name-status", "--no-renames"])
+    added = {}
+    for line in out.splitlines():
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        status, path = parts[0], parts[-1]
+        if not status.startswith("A"):  # only ADDED modules are a "new routine"; M/D never count
+            continue
+        m = IDIOM_RE.match(path)
+        if m and m.group(2) != "names":
+            added.setdefault(m.group(1), set()).add(m.group(2))
+    return added
+
+
 def remaining_frontier(game):
     """R for one game: distinct m.call targets across its translated layer with no loc_ file.
 
@@ -157,6 +182,27 @@ def remaining_frontier(game):
     return len(targets - covered), targets - covered
 
 
+def _index_file_count(pathspec, keep):
+    """How many INDEX files under `pathspec` satisfy `keep(rel)`. ls-files reads the index, so an
+    unstaged stray cannot inflate the count and a staged add is included (matching the ratchet)."""
+    return sum(1 for rel in git(["ls-files", pathspec]).split() if keep(rel))
+
+
+def remaining_idiomatic_frontier(game):
+    """R for the idiomatic (§4) pass: routines still awaiting an idiomatic module. Measured from the
+    INDEX as the game's translated loc_<addr>.js routine files MINUS the idiomatic MODULE files present
+    (names.js and the test/ subdir excluded, via IDIOM_RE). This tracks DECOMPILE progress (modules
+    written), not wiring -- pooyan lands modules unwired by design, so a wiring-based count would never
+    fall and would block the finishing batch forever. Zero -> nothing left to decompile here, so a small
+    finishing batch is allowed. A game whose translated layer is already dissolved reads 0 and is inert."""
+    translated = _index_file_count(f"games/{game}/translated/loc_*.js", lambda rel: bool(LOC_RE.match(rel)))
+    modules = _index_file_count(
+        f"games/{game}/idiomatic/*.js",
+        lambda rel: bool(IDIOM_RE.match(rel)) and IDIOM_RE.match(rel).group(2) != "names",
+    )
+    return max(0, translated - modules)
+
+
 def classify(n_added, r_remaining, floor=FLOOR):
     """Pure rule (positive-control-tested in selftest). Returns (ok: bool, reason: str)."""
     if n_added == 0:
@@ -181,17 +227,22 @@ def cmd_id(_a):
 
 
 def cmd_check(_a):
-    added = added_routine_files()
-    if not added:
-        return 0  # inert: no fresh routines in this commit
+    added_t = added_routine_files()      # §3 translation: loc_<addr>.js files
+    added_i = added_idiomatic_modules()  # §4 idiomatic: module files
+    if not added_t and not added_i:
+        return 0  # inert: no fresh routine/module files in this commit
     did = diff_id(staged_diff())
     problems = []
-    for game, addrs in sorted(added.items()):
-        n = len(addrs)
+    for game, addrs in sorted(added_t.items()):
         r, _ = remaining_frontier(game)
-        ok, reason = classify(n, r)
+        ok, reason = classify(len(addrs), r)
         if not ok:
-            problems.append((game, reason))
+            problems.append((f"{game} (translate)", reason))
+    for game, mods in sorted(added_i.items()):
+        r = remaining_idiomatic_frontier(game)
+        ok, reason = classify(len(mods), r)
+        if not ok:
+            problems.append((f"{game} (idiomatic)", reason))
     if not problems:
         return 0
     # A single-use waiver bound to this exact staged diff clears the block.
@@ -208,8 +259,9 @@ def cmd_check(_a):
     msg = "; ".join(f"{g}: {why}" for g, why in problems)
     sys.stderr.write(
         "\nCOMMIT BLOCKED — batch_size_gate: " + msg + ".\n"
-        "  Fan wider — target ~50 routines across ~15 agents (see docs/runbook.md section 3).\n"
-        "  For a genuine small ADD (e.g. splitting a mis-merged routine), record a single-use waiver:\n"
+        f"  Fan wider — BOTH passes share a floor of {FLOOR} routines/batch (docs/runbook.md sections 3\n"
+        "  and 4: ~15 agents x 3-4). For a genuine small ADD (a mis-merged routine, or a grounding-heavy\n"
+        "  finishing cluster), record a single-use waiver:\n"
         f'    python3 tools/batch_size_gate.py waive --reason "<why>"\n'
         "  Do NOT --no-verify around this.\n\n"
     )
@@ -222,10 +274,16 @@ def cmd_plan(args):
     r, missing = remaining_frontier(args.game)
     print(f"{args.game}: {len(added)} routine file(s) staged-added; {r} call-target(s) still uncovered.")
     ok, reason = classify(len(added), r)
-    print(f"  -> {'OK' if ok else 'TOO SMALL'}: {reason}")
+    print(f"  translate -> {'OK' if ok else 'TOO SMALL'}: {reason}")
     if r:
         show = " ".join("0x" + a for a in sorted(missing)[:20])
         print(f"  uncovered (first 20): {show}")
+    mods = added_idiomatic_modules().get(args.game, set())
+    ri = remaining_idiomatic_frontier(args.game)
+    if mods or ri:
+        oki, reasoni = classify(len(mods), ri)
+        print(f"{args.game}: {len(mods)} idiomatic module(s) staged-added; {ri} routine(s) still awaiting "
+              f"a module.\n  idiomatic -> {'OK' if oki else 'TOO SMALL'}: {reasoni}")
     return 0
 
 
@@ -325,6 +383,29 @@ def cmd_selftest(_a):
             "export function loc_e000(m){}\nexport function loc_d000(m){}\n")
         subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, capture_output=True)
         _case("e2e: secondary export in a multi-routine file covers the target", lambda: cmd_check(None), 0, failures)
+
+        # (f) IDIOMATIC PASS, same floor. Game i: 3 translated routines, no idiomatic modules yet.
+        itdir = os.path.join(tmp, "games", "i", "translated")
+        idir = os.path.join(tmp, "games", "i", "idiomatic")
+        os.makedirs(os.path.join(idir, "test"))
+        os.makedirs(itdir)
+        for a in ("a000", "b000", "c000"):
+            open(os.path.join(itdir, f"loc_{a}.js"), "w").write(f"export function loc_{a}(m){{}}\n")
+        open(os.path.join(idir, "names.js"), "w").write("export const ROUTINES = {};\n")  # NOT a module
+        subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, capture_output=True)
+        subprocess.run(["git", "-C", tmp, "commit", "-qm", "game i base"], check=True, capture_output=True)
+
+        # (f1) add ONE idiomatic module while 3 routines await one -> R_idiom=2, small -> BLOCK
+        open(os.path.join(idir, "fooLeaf.js"), "w").write("export function fooLeaf(m){}\n")
+        subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, capture_output=True)
+        _case("e2e: small idiomatic batch + open frontier BLOCKS", lambda: cmd_check(None), 1, failures)
+
+        # (f2) add the remaining modules -> modules == routines -> R_idiom==0 -> finishing PASS
+        # (also proves names.js is not counted: 3 modules close a 3-routine frontier).
+        open(os.path.join(idir, "barLeaf.js"), "w").write("export function barLeaf(m){}\n")
+        open(os.path.join(idir, "bazLeaf.js"), "w").write("export function bazLeaf(m){}\n")
+        subprocess.run(["git", "-C", tmp, "add", "-A"], check=True, capture_output=True)
+        _case("e2e: idiomatic finishing batch (frontier closed) passes", lambda: cmd_check(None), 0, failures)
     finally:
         REPO, WAIVERS = saved
         shutil.rmtree(tmp, ignore_errors=True)

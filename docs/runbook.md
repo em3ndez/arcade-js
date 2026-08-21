@@ -321,17 +321,16 @@ batch and feeds the next batch's targets.
 
 ### The decompile half
 
-- **Batches of ~10 leaf routines, leaves-first** — a caller decompiled before its callee has to
-  hand-marshal the callee's register ABI, an assembly leak the equivalence gate can't see. Re-derive
-  the leaf set **each batch** by closing the call graph over current `m.call` targets.
-- ⚠ **TODO — `batch_size_gate` guards §3 translation ONLY; extend it to THIS pass before batching in
-  earnest.** The idiomatic pass drifts to tiny batches too — the same failure the §3 gate exists to
-  stop (fan-out shrinks silently no matter what this doc says). Add a `--pass idiomatic` mode: N = the
-  idiomatic modules added in the commit, R = `loc_` routines still resolving to the oracle copy
-  (un-rewritten — readable from `ROUTINES`/the registry). ⚠ CALIBRATE its floor to THIS pass's
-  economics: idiomatic is understand + ground-in-MAME + rewrite with real interdependencies, NOT
-  syntactic like translation, so it will NOT be the §3 floor of ~40 — pick the number from real §4
-  batch sizes, and lean on the `--reason` waiver for a genuinely small grounding-heavy cluster.
+- **Batches of ≥40 routines, leaves-first** (Karl 2026-08-20: the idiomatic and translation passes are
+  the **same size** — floor **40** — so fan AGGRESSIVELY, ~15 agents × 3–4; do NOT retreat to tiny leaf
+  batches). A caller decompiled before its callee has to hand-marshal the callee's register ABI, an
+  assembly leak the equivalence gate can't see, so still go leaves-first: re-derive the leaf set **each
+  batch** by closing the call graph over current `m.call` targets, and pull ≥40 of them per batch.
+- **`batch_size_gate` enforces THIS pass too, at the SAME floor (40).** It counts the idiomatic MODULE
+  files a commit adds (N) and holds them to the shared floor while routines remain to decompile
+  (R = the game's `loc_` routine files minus the idiomatic modules present); a genuinely small final
+  cluster clears with the `--reason` waiver. (Karl 2026-08-20 set the two passes to the same size,
+  overriding the earlier "idiomatic economics warrant a lower floor" note — the floor is 40 for both.)
 - Per routine ship all **four**: module + `equivalence-<addr>.test.js` + `ROUTINES` entry + green
   gate. **Done only when DISPATCHED** — `resolveAllIdiomatic` walks `ROUTINES`, so a module no entry
   names is never overridden. Done requires that **no routine runs as the frozen oracle in the live
