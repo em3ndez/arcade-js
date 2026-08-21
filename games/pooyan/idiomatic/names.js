@@ -214,9 +214,9 @@ export const TAMPER_STRIKES_STATE10 = 0x8a39;
 export const SIGNATURE_MISMATCH_FLAG = 0x8ef0;
 /** [seen] (MAME gameplay golden: increments +1 per frame in play; loc_2405 advance/even, loc_23ec retreat, bit0 gates which pass runs on TILE_ANIM_CURSOR) per-frame tile-animation parity counter */
 export const TILE_ANIM_PARITY = 0x8f37;
-/** [code] (loc_0e8f writes the command byte here for the audio CPU; write-only latch, absent from the state golden -> grounds by a write-trace, not by watching) sound-command latch to the audio CPU */
+/** [seen] (MAME write-trace: distinct sound-command bytes latched here in play, e.g. 0x01/0x04/0x09/0x15; loc_0e8f writes the command byte for the audio CPU) sound-command latch to the audio CPU */
 export const SOUND_COMMAND_LATCH = 0xa100;
-/** [code] (loc_0e8f pulses b1 high, 6x nop, low after a command) audio-IRQ strobe latch (mainlatch b1) */
+/** [seen] (MAME write-trace: a clean b1 high/low pulse per sound command; loc_0e8f pulses b1 high, 6x nop, low after a command) audio-IRQ strobe latch (mainlatch b1) */
 export const AUDIO_IRQ_LATCH = 0xa181;
 /** [code] (loc_208c samples every 8th byte from here) ROM base of the sampled code region for the signature guard */
 export const SIGNATURE_SAMPLE_BASE = 0x066d;
@@ -228,7 +228,7 @@ export const ROM_CHECKSUM_TOP = 0x7780;
 export const HISCORE_CHECKSUM_BASE = 0x778a;
 /** [code] (loc_0644 sets 1 on a bad header or wrong checksum) work-RAM high-score-table corruption flag */
 export const HISCORE_TABLE_CORRUPT_FLAG = 0x8df8;
-/** [code] (loc_075d floods 31 columns x 30 rows, stride 0x20 from here) base of the tile-attribute/colour map on the 0x8000 video page */
+/** [seen] (MAME gameplay golden: attribute codes flooded here in play, observed 0x10/0x1d/0x0d; loc_075d floods 31 columns x 30 rows, stride 0x20 from here) base of the tile-attribute/colour map on the 0x8000 video page */
 export const ATTRIB_MAP_BASE = 0x8040;
 
 // Stack-scratch window [lo, hi): the emulated Z80 stack lives just below its 0x9000 init (SP inits
