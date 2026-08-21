@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// idiomatic — pooyan's born-live spine gate. Runs the assembled game under the cycle-free coroutine
+// idiomatic — pooyan's born-live seam gate. Runs the assembled game under the cycle-free coroutine
 // engine (core/frame-stepped.js runIdiomaticGame, wired via resolveAllIdiomatic — the same override
 // map web/worker.js ships) and compares it, frame for frame, against the pure-translated oracle run
 // under runCycleFree at the SAME frame boundary (the main-loop top 0x020f, manifest.convergence).
@@ -8,10 +8,16 @@
 // the identical sequence and must agree on every LIVE cell — only the dead stack scratch is excluded.
 // ROM-guarded (skips without the BYO ROM).
 //
-// SCOPE, stated exactly so it is not overstated: this proves the idiomatic control SPINE (the mainLoop
-// generator) drives the assembled game and reproduces the oracle over attract. The leaf routines are
-// NOT wired here (idiomatic/names.js ROUTINES holds only mainLoop), so it exercises the spine, not the
-// translated->idiomatic leaf seam — that is a later unit, once the leaves are wired.
+// SCOPE: resolveAllIdiomatic wires the spine (mainLoop) AND the memory-only bare-dispatch leaves, so
+// this exercises the translated->idiomatic SEAM — a frozen translated caller emits push16(RET) before
+// its m.call and the idiomatic callee models the Z80 ret as a JS return. Beyond the oracle
+// equivalence, it asserts the guest stack is balanced at every vblank yield (SP unchanged across the
+// yield, never below the scratch floor) and that the NMI subtree is stack-neutral on its own — the
+// checks that catch a seam that leaks or over-pops a return word (dkong shipped a 12-14 byte/frame
+// leak no per-routine gate saw). The register/flag-live-out leaves stay UNWIRED pending the
+// return-assignment bridge (increment 2). COVERAGE IS ATTRACT ONLY: a leaf reached only in play (and
+// clearBit2AcrossSixSlots 0x0e46, which has no static caller at all) is not exercised here — those
+// seams need a coin/start/play tape (see registry-coverage.config.mjs + manifest.convergence).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
@@ -31,6 +37,7 @@ const { pollPCs, stateExclude, idiomatic } = manifest.convergence;
 const { nmiReturnPC } = idiomatic;
 const [STACK_LO, STACK_HI] = stateExclude.stack; // dead stack scratch, excluded (memory-equivalence)
 const hex = (v) => `0x${(v & 0xffff).toString(16).padStart(4, "0")}`;
+const brief = (xs) => (xs.length <= 6 ? xs.join("; ") : `${xs.slice(0, 6).join("; ")} … (${xs.length} in all)`);
 
 /** Byte offsets of the LIVE state cells — everything outside the dead stack scratch. */
 function liveOffsets(bytesPerFrame, probe) {
@@ -42,24 +49,62 @@ function liveOffsets(bytesPerFrame, probe) {
   return keep;
 }
 
-test("the born-live spine reproduces the translated oracle over attract", { skip: !HAVE_ROM }, async () => {
-  // Wire the spine live exactly as the worker does. resolveAllIdiomatic() reads idiomatic/names.js
-  // ROUTINES (mainLoop at the main-loop top); machine.call(0x0000) then runs the frozen translated
-  // boot, whose tail call into the main loop returns the mainLoop GENERATOR (generators pass the seam
-  // unwrapped), which runIdiomaticGame drives frame by frame.
+test("the born-live layer reproduces the oracle and keeps the guest stack balanced", { skip: !HAVE_ROM }, async () => {
+  // Wire the whole idiomatic layer exactly as the worker does. resolveAllIdiomatic() reads
+  // idiomatic/names.js ROUTINES (mainLoop + the wired leaves); machine.call(0x0000) runs the frozen
+  // translated boot, whose tail call into the main loop returns the mainLoop GENERATOR, which
+  // runIdiomaticGame drives frame by frame, dispatching each wired leaf through the seam.
   const overrides = await resolveAllIdiomatic();
   assert.ok(overrides.has(0x020f), "mainLoop must be wired at the main-loop entry");
+  assert.ok(overrides.size > 1, "expected the leaf overrides wired alongside the spine");
 
   const mi = new Machine(ROM, { overrides });
+
+  // The vblank NMI subtree must be stack-neutral on its own — localises a leak to the NMI chain
+  // instead of only showing up as a frame-boundary delta.
+  const nmiFaults = [];
+  const realFire = mi.fireNmi.bind(mi);
+  mi.fireNmi = function () {
+    const before = mi.regs.sp;
+    realFire();
+    if (mi.regs.sp !== before) nmiFaults.push(`${hex(before)} -> ${hex(mi.regs.sp)}`);
+  };
+
   const idi = [];
+  let prevSp = null;
+  const spFaults = [];
+  const floorFaults = [];
   const ri = runIdiomaticGame(mi, {
     bootAddr: 0x0000,
     nmiReturnPC,
     maxFrames: FRAMES,
-    onFrame: (m, f) => { if (f !== 0) idi.push(Buffer.from(m.dumpState())); },
+    onFrame: (m, f) => {
+      if (f === 0) return; // power-on sample, taken before boot sets SP
+      idi.push(Buffer.from(m.dumpState()));
+      const sp = m.regs.sp;
+      // The main-loop yield is a fixed point of the guest's stack discipline (the oracle holds SP
+      // constant there), so an unbalanced push/pop anywhere in the frame — a seam that leaks or
+      // over-pops a return word — shows as a non-zero delta on the first frame it happens.
+      if (prevSp !== null && sp !== prevSp) spFaults.push(`frame ${f}: ${hex(prevSp)} -> ${hex(sp)}`);
+      // ...and this makes the stack-scratch exclusion self-policing: excluding [LO,HI) is sound only
+      // while SP stays above the floor.
+      if (sp < STACK_LO) floorFaults.push(`frame ${f}: SP ${hex(sp)}`);
+      prevSp = sp;
+    },
   });
   assert.equal(ri.stopError, null, `idiomatic run errored: ${ri.stop}`);
   assert.ok(ri.frames >= FRAMES, `idiomatic run covered only ${ri.frames}/${FRAMES} frames (${ri.stop})`);
+  assert.equal(
+    spFaults.length, 0,
+    "guest SP moved across a frame boundary — an unbalanced push/pop at the translated/idiomatic " +
+      `seam (a translated caller's push16 no idiomatic callee consumed, or an over-pop): ${brief(spFaults)}`,
+  );
+  assert.equal(
+    floorFaults.length, 0,
+    `SP fell below the stack-scratch floor ${hex(STACK_LO)} — the exclusion ` +
+      `[${hex(STACK_LO)},${hex(STACK_HI)}) is no longer sound: ${brief(floorFaults)}`,
+  );
+  assert.equal(nmiFaults.length, 0, `the vblank NMI subtree changed SP: ${brief(nmiFaults)}`);
 
   // The pure-translated oracle under runCycleFree, sampled at the same main-loop top.
   const mt = new Machine(ROM, {});
@@ -69,19 +114,18 @@ test("the born-live spine reproduces the translated oracle over attract", { skip
     onFrame: (m, f) => { if (f !== 0) tr.push(Buffer.from(m.dumpState())); },
   });
   assert.equal(rt.stopError, null, `translated oracle run errored: ${rt.stop}`);
-  assert.equal(idi.length, tr.length, "frame counts differ between idiomatic spine and translated oracle");
+  assert.equal(idi.length, tr.length, "frame counts differ between the wired layer and the oracle");
 
-  // Compare the whole dumped state EXCEPT the dead stack scratch [STACK_LO, STACK_HI). Both engines run
-  // the identical collapsed sequence, so every live cell (including the RNG working set) must match
-  // byte-for-byte with no entropy pin.
+  // Every LIVE cell must match byte-for-byte (both engines run the identical collapsed sequence, so
+  // no entropy pin is needed), excluding only the dead stack scratch.
   const keep = liveOffsets(tr[0].length, mt);
   assert.ok(keep.length > 0, "no live-state bytes selected to compare");
   for (let i = 0; i < idi.length; i++) {
     for (const o of keep) {
       if (idi[i][o] !== tr[i][o]) {
         assert.fail(
-          `frame ${i}: spine diverged from oracle at ${hex(mt.stateOffsetToAddr(o))} ` +
-            `(spine ${idi[i][o]} vs oracle ${tr[i][o]})`,
+          `frame ${i}: wired layer diverged from oracle at ${hex(mt.stateOffsetToAddr(o))} ` +
+            `(idiomatic ${idi[i][o]} vs oracle ${tr[i][o]})`,
         );
       }
     }
