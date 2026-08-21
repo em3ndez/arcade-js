@@ -554,6 +554,21 @@ deliberate handling. These four are one problem and are decided together, once, 
   can reach a vblank wait become `function*` (callers use `yield*`; the classic bug is a `function*`
   called without `yield*`, which silently skips the wait); the vblank wait becomes `yield`; a warm
   restart is a boundary sentinel, **not** a `yield*`; leave the emulated CPU stack ops alone.
+  - **★ No main-loop wait (the NMI is the sole heartbeat) → collapse to one iteration per frame.** Some
+    games never busy-wait: the main loop free-runs and the vblank NMI, firing asynchronously, does ALL
+    per-frame work (render + input + the game-state dispatch), so the CPU is interrupted at a PC spread
+    ∝ execution frequency with NO single-PC spin. MEASURE this before assuming a dkong-style wait — an
+    NMI-return-PC histogram off a MAME read-tap on the NMI vector (gate CURPC, read the pushed return
+    PC off SP). With no ROM wait to yield at, the born-live yield is SYNTHETIC: make the main loop a
+    `function*` that `yield`s once per outer iteration, and set `nmiReturnPC` = `pollPCs` = the main-loop
+    TOP. Firing one NMI per iteration keeps game-time 1:1 with MAME (every NMI is one frame) and
+    collapses only the ~N redundant intra-frame iterations — VALID only because those are
+    memory-idempotent (anti-tamper re-checks, VRAM refreshes that rewrite the same bytes). PROVE the
+    idempotence, don't assume it: run the translated layer under `runCycleFree(pollPCs=[top])` and
+    reconverge vs a MAME golden (`convergence.mjs --mode state`); a clean reconverge (only the RNG
+    residual) confirms the collapse, a large persistent diff means an intra-frame iteration is NOT
+    idempotent and the model is wrong. (Pooyan: top 0x020f, worst 8 bytes/frame vs the attract golden;
+    dkong by contrast has a real wait at 0x02bd, so its yield is the wait, not the loop top.)
 - **Entropy pinning.** Most arcade RNG seeds from a spin counter the main loop increments while
   waiting for vblank — timing-derived, so a clock-free layer forks it within a few frames and every
   RNG-driven sprite drifts. **Pin it for testing only** (it forfeits falsifiability): discover the

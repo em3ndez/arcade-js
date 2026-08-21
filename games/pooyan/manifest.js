@@ -72,10 +72,16 @@ export default {
 
   entropyPin: null, // TODO §4 — measure the spin-counter fork set
 
+  // Frame model (MAME-grounded, scratchpad/pooyan-nmi-retpc.lua): pooyan's main loop FREE-RUNS with no
+  // vblank busy-wait — the NMI (0x066d) is the sole per-frame heartbeat (NMI-return-PC spreads ∝ execution
+  // frequency, no single-PC spin). The born-live model COLLAPSES the idempotent free-running main-loop
+  // iterations per frame to one: the poll/yield PC is the main-loop top 0x020f, so runCycleFree fires one
+  // NMI per main-loop iteration (game-time stays 1:1 with MAME — every NMI is one frame); the idiomatic
+  // arm (runIdiomaticGame) uses the same 0x020f once the generator spine is wired.
   convergence: {
-    idiomatic: { nmiReturnPC: 0x0000 }, // TODO — main-loop top the vblank NMI returns to (NMI vector 0x0066)
-    pollPCs: [0x0000], // TODO
-    stateExclude: { stack: [0x0000, 0x0000] }, // TODO — the MEASURED Z80 stack window
+    idiomatic: { nmiReturnPC: 0x020f },
+    pollPCs: [0x020f],
+    stateExclude: { stack: [0x8fd8, 0x9000] }, // MEASURED deepest SP over attract (SP inits 0x9000)
   },
 
   // Audio: clips model (shared timeplt_audio, record/replay). TODO §5 after recording.
