@@ -1075,6 +1075,7 @@ export const ROUTINES = {
   0x7059: { name: "loc_7059", role: "phase-5 target-group tick: decrement the counter at HL and queue display command 0x0315", cert: "code" },
   0x705f: { name: "loc_705f", role: "level-intro phase 6 (final): count the intro delay down; on expiry silence sound, clear the hit tally, and set the play sub-state ready (6)", cert: "code" },
   0x71ce: { name: "loc_71ce", role: "eagle/arrow approach state machine: hold-gate, drive the aim flags and records-arrived sub-phase from the eagle X, and step the grid marker + colour every eighth frame (delegating the grid-edge guard and phase-reset epilogue)", cert: "code" },
+  0x72cf: { name: "loc_72cf", role: "per-eagle-record state dispatcher: skip an inactive record, then route the record state (ix+2) to the approach (0), dive/climb (1), or retire (2) handler", cert: "code" },
   0x733c: { name: "loc_733c", role: "eagle approach state: gate eagle grid col/row vs (ix+6)/(ix+4) window, on hit advance (ix+2), arm anim + set (ix+9), even records bump arrived count + (all arrived) queue wave sound via rst 0x38", cert: "code" },
   0x7395: { name: "loc_7395", role: "eagle-record dive/climb state: run the animation mover (loc_4006) then integrate the record's vertical position by its speed, advancing the state byte at the row limit", cert: "code" },
   0x73ce: { name: "loc_73ce", role: "eagle-record state 2 (retire): clear the record and, when the wave empties, seed the inter-wave hold", cert: "code" },
