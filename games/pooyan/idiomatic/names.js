@@ -792,6 +792,25 @@ export const PROXIMITY_HIT_FLAG = 0x8d54;
 // return their result, and the register/flag-live-out ones set it through the return-assignment bridge
 // (return (m.regs.X = v)) so the frozen caller reads it back out of the register. Only the jump-table
 // dispatchers stay UNWIRED (tools/registry-coverage.config.mjs).
+
+// -- batch 5 decompile cells --
+/** [code] ROM source pointer (walked downward) whose bytes the terminator guard matches against TERMINATOR_MATCH_TABLE; a mismatch bumps TAMPER_STRIKES_TERMINATOR */
+export const TERMINATOR_SCAN_SRC = 0x0bc2;
+/** [code] top of the reversed reference copy of loc_67df's first 0x20 bytes; the state-5 signature check reads it downward (0x2b23..0x2b04) comparing against the code window read upward from 0x67df */
+export const STATE5_SIGCHECK_REF_TOP = 0x2b23;
+/** [code] ROM expected-byte table (walked upward) for the terminator match-scan, terminated when a fetched byte decrements to zero (a 0x01 sentinel) */
+export const TERMINATOR_MATCH_TABLE = 0x64d0;
+/** [code] ROM animation-sequence pointer handed to setActorAnimation for a struck/collided object */
+export const ANIM_SEQ_64DF = 0x64df;
+/** [code] base of the code window the 0x8a80 actor state-5 handler signature-checks (its first 0x20 bytes, read ascending) against the reversed reference at 0x2b23; this is also the entry of loc_67df */
+export const STATE5_SIGCHECK_CODE_BASE_ADDR = 0x67df;
+/** [code] stride-4 sprite y-coordinate slots (6 scanned) tested for the closest in-band aim target vs the player's y (SPRITE_DISPLAY_LIST+2) */
+export const SPRITE_SCAN_YSLOTS = 0x8852;
+/** [code] player-1 stride-4 target/collision coordinate slots scanned vs the 0x8c48 records (counterpart of 0x887c/SPRITE_TARGET_SLOTS; selected when PLAY_MODE_LATCH==0) */
+export const SPRITE_TARGET_SLOTS_P1 = 0x888c;
+/** [code] 5-byte acquired-aim-target lock: +0 closest-distance/lock-active byte, +1..+2 the locked y-slot pointer (little-endian), +3..+4 the locked enemy-block pointer (block+1, little-endian); overlaps DISPLAY_LIST_DST_PTR at 0x8f43 (multiplexed by game phase), accessed here as TARGET_LOCK+3/+4 */
+export const TARGET_LOCK = 0x8f40;
+
 export const ROUTINES = {
   0x020f: {
     name: "mainLoop",
@@ -1063,4 +1082,12 @@ export const ROUTINES = {
   0x7421: { name: "loc_7421", role: "bonus-stage teardown (phase 2): clear wave/enemy state and hand back to the attract sub-state", cert: "code" },
   0x7960: { name: "loc_7960", role: "shared integrity + play-timer nibble-render handler: enqueue a display command, verify a code-block checksum, render the active player's timer BCD as nibble tiles and clear them, then scan a flag block that can divert to a tail checksum", cert: "code" },
   0x79e9: { name: "loc_79e9", role: "code-region integrity self-check: sum a fixed routine's bytes into a 16-bit checksum and match it against the stored word (trap/divert on mismatch)", cert: "code" },
+  0x2a96: { name: "loc_2a96", role: "0x8a80 actor state-5 handler (rst-0x28 dispatch slot 5): 0x20-byte reversed-signature check of the loc_67df code window (ascending) against the reference block at 0x2b23 (descending) — on a full match reseat frame-hold (ix+0x11)=0x18, set flip bit (ix+0x10 bit7), advance record state (ix+0x02); on any mismatch tail-jump the state-2 handler loc_2a01", cert: "code" },
+  0x5df7: { name: "loc_5df7", role: "gate + seed for the proximity sweep: bail if the grab latch is set or formation/teardown state is non-zero, else seed source/target/record pointers + slot count and run the 3-slot sweep (loc_5e11)", cert: "code" },
+  0x6368: { name: "loc_6368", role: "two-pass projectile-proximity scan driver over the two actor boxes (SPRITE_ACTOR_RECORD_SLOTS +0 / +4), forwarding I=0 then I=4 as the interrupt-parity hit-flag selector; aborts on the first hit", cert: "code" },
+  0x60d9: { name: "loc_60d9", role: "mark the interrupt-parity hit-flag slot (0x8d1c/0x8d1b by `ld a,i`), seed a fresh actor record (initActorRecord, DE=0x0404), then run the enemy-record scan loc_611f; forwards the scan's false=abort / true=continue boolean", cert: "code" },
+  0x611f: { name: "loc_611f", role: "enemy-record finder: key = (HL+DE); scan 6 records at 0x8ae0 (stride 0x18) for +0x14 == key; match -> loc_613d (aborts frame, returns false); no match -> enqueue sound (loc_0ef1) unless ACTIVE_OBJECT_TYPE==3, then normal return (true)", cert: "code" },
+  0x6cab: { name: "loc_6cab", role: "aim-indicator / target-acquisition updater: gates on GAME_ACTIVE_FLAG/GRAB_ACTIVE_FLAG/WAVE_TEARDOWN_STATE, steps loc_6bee, bails on PROXIMITY_HIT_FLAG, then sets the above/below aim bit via LAUNCH_STATE / existing-lock re-evaluate / closest-in-band 6-block scan (records the 5-byte lock at TARGET_LOCK)", cert: "code" },
+  0x6bee: { name: "loc_6bee", role: "aim-indicator stepper: mode 0 runs the proximity redraw (loc_6c18); mode 1 sets bit2 / mode>=2 sets bit3 of PLAYER_AIM_FLAGS (clearing the other), then drains AIM_INDICATOR_TIMER, zeroing AIM_INDICATOR_MODE at expiry", cert: "code" },
+  0x6404: { name: "loc_6404", role: "two-pass actor collision driver: guarded by PLAY_MODE_LATCH/ROUND_COUNTER bit0, scans the actor record twice (selector 0 then 4), aborting on a collision (the terminator skip inside the scan unwinds this frame)", cert: "code" },
 };

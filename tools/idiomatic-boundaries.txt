@@ -37,3 +37,5 @@ pooyan 0x6274 dead  # caller-skip dissolved into loc_62e6; only m.call caller no
 pooyan 0x638a dead  # caller-skip dissolved into loc_6381; only m.call caller now direct-calls the idiomatic module
 pooyan 0x6c3f dead  # caller-skip dissolved into loc_6c18; only m.call caller now direct-calls the idiomatic module
 pooyan 0x119a dead  # per-record spawn-init caller-skip dissolved into loc_1171 (its only m.call caller, now an override that direct-calls it)
+pooyan 0x6435 dead  # caller-skip dissolved into loc_6404; direct-called by the idiomatic module (boolean), not oracle-served
+pooyan 0x64be dead  # caller-skip dissolved into loc_6435; direct-called by the idiomatic module (boolean), not oracle-served

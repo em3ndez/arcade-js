@@ -21,8 +21,8 @@ const SCAN_COUNT = 0x06;
 export function loc_613d(m, iy = m.regs.iy) {
   const { mem8 } = m;
   if ((mem8[iy] & 0x01) === 0) return loc_618a(m); // flag bit0 clear -> retire the record, forward abort
-  if ((mem8[ROUND_COUNTER] & 0x01) !== 0) return loc_6166(m); // odd round -> reset
-  if (mem8[ACTIVE_OBJECT_TYPE] !== 0x03) return loc_6166(m); // wrong type -> reset
+  if ((mem8[ROUND_COUNTER] & 0x01) !== 0) return loc_6166(m, iy); // odd round -> reset
+  if (mem8[ACTIVE_OBJECT_TYPE] !== 0x03) return loc_6166(m, iy); // wrong type -> reset
   const a = mem8[u16(iy + TAG_FIELD)];
   return loc_615d(m, a, SPRITE_OBJECT_TABLE, SCAN_STRIDE, SCAN_COUNT);
 }

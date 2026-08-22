@@ -91,6 +91,8 @@ export const UNWIRED = {
       "RAM, verified) and stay; the frozen layer runs it in-game when the Mother-Ship is on the field.",
   },
   pooyan: {
+    "loc_6435.js": "DISSOLVED caller-skip -> boolean (true=keep scanning, false=abort); direct-called by loc_6404 (a wired ROUTINES override); not oracle-served",
+    "loc_64be.js": "DISSOLVED caller-skip -> boolean (true=keep scanning, false=abort); direct-called by loc_6435 (a wired ROUTINES override); not oracle-served",
     // DISSOLVED caller-skips (pop-af; ret -> boolean). A caller-skip pops its own return (a net SP move
     // outside the withOmittedRet seam's 0/+2 window), so it cannot be a ROUTINES override. Per the runbook
     // each is dissolved into a boolean its caller early-returns on and is called DIRECTLY by that (wired)
