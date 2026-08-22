@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-const DISPATCH_TABLE_7448 = "0x7448 (attract/boot state selector 0x8921 & 3: 0x744e/0x7517/0x755d)";
+const DISPATCH_TABLE_7448 = "0x7448 (attract/boot state, selector 0x8921 mask 3): 744e 7517 755d";
 
 // loc_7442  (ROM 0x7442-0x7447) -- attract/self-test state dispatcher. Reads selector (0x8921),
 // masks to 0..3, and rst 0x28 -> loc_0028 reads the inline word table at 0x7448

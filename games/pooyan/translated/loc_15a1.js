@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-const DISPATCH_TABLE_15A8 = "0x15a8 (state handlers, index (0x880a)&0x1f)";
+const DISPATCH_TABLE_15A8 = "0x15a8 (state handlers, index (0x880a)&0x1f; MAME-confirmed, indices 5/6/9/11/15/16/17 unconfirmed-open, 1c03/1c66 untranslated): 1601 16b7 175d 17c1 18af 1a64 1b43 1bab 1c03 1c53 1c66 71b9";
 
 // loc_15a1  (ROM 0x15a1-0x15a7) -- rst 0x28 state dispatcher, also entered by fall-through from
 // loc_159b. Push HL (the return the SELECTED handler ret's to), read state index (0x880a)&0x1f, then

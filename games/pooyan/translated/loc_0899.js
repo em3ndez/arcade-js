@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-const DISPATCH_TABLE_08A1 = "0x08a1 (attract sub-state, selector 0x8e51)";
+const DISPATCH_TABLE_08A1 = "0x08a1 (attract sub-state, selector 0x8e51): 08b3 08e9 092c 0986 099c 0ac8 0b32 7442 76ea";
 
 // loc_0899  (ROM 0x0899-0x08a0) -- push 0x0bb5, read selector 0x8e51, rst 0x28 -> loc_0028 reads
-// table 0x08a1 (states 0..6: 08b3 08e9 092c 0986 099c 0ac8 0b32) and jp (hl)'s to the handler.
+// table 0x08a1 (states 0..8: 08b3 08e9 092c 0986 099c 0ac8 0b32 7442 76ea) and jp (hl)'s to the handler.
 // Each handler ret's to 0x0bb5 (the shared epilogue loc_0bb5), which ret's to the caller's seated
 // return (0x06fa in the NMI). m.ret only unwinds the JS stack, so loc_0899 must run loc_0bb5 after
 // the dispatch -- else loc_0bb5's body is skipped and its ret leaks 2 bytes/NMI.
