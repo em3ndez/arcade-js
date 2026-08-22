@@ -65,3 +65,12 @@ pooyan 0x89e3  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8a99  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8f0e  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8f0f  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8a42  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8a86  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8a9e  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8aa7  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8d76  # role unknown; promote to a descriptive name at grounding
+pooyan 0x890a  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8d23  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8e21  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8f17  # role unknown; promote to a descriptive name at grounding

@@ -8,1218 +8,1270 @@ architecture** — the work-RAM layout and the variables the game runs on — an
 main loop, the vblank interrupt that is the machine's only per-frame heartbeat, and the state machines
 that drive configuration, play, the actor arena, the wave/rope/launch cycle, rendering and the self-checks.
 
+
 ## The work RAM and its state model
 
-The Z80 sees one flat 64 KB address space, and the way it is carved up is the frame
-on which every other mechanism hangs. The bottom half, 0x0000-0x7FFF, is the 32 KB
-program ROM and is never written -- a store there is an unmapped-write fault, not a
-side effect. Above it sit four RAM-backed regions, each attached to a different piece of
-hardware: the colour/attribute plane at 0x8000-0x83FF, the tile-code plane at
-0x8400-0x87FF, the general-purpose work RAM at 0x8800-0x8FFF, and the two 256-byte
-sprite banks reachable through 0x9000-0x9FFF. From 0xA000 up there is no memory at all
--- that window is the I/O port block, and a read there and a write there talk to
-entirely different devices. Only work RAM is scratch the program owns outright; the
-video planes and sprite banks are output surfaces the game paints into, and the I/O
-window is the door to the coin door, joysticks, DIP switches, sound board, and the
-control latch.
+The Z80 sees one flat 64K space, but only the bottom half is program: **`COLOR_RAM_BASE`** [code] at
+0x8000 opens the machine's writable region and everything below it is ROM. From there up, five
+distinct devices are pasted into the address map, and the whole state model rests on knowing which is
+which. The tile picture lives in two planes — the colour/attribute map at 0x8000-0x83ff and the
+tile-code map at 0x8400-0x87ff. The 2K of general-purpose work RAM occupies 0x8800-0x8fff. Two
+256-byte hardware sprite banks sit at 0x9000 and 0x9400. And the strip at 0xa000-0xa1ff is not memory
+at all but the input, DIP-switch, and control-latch hardware, where — critically — a read and a write
+to the same address reach two entirely different devices.
 
-### Work RAM: the game's memory (0x8800-0x8FFF)
+### The two tile planes
 
-Everything the machine remembers between one instruction and the next lives in this
-2 KB page: what screen it is showing, whose turn it is, where every actor sits, the
-scores, the high-score table, and dozens of timers and one-shot latches. Boot clears
-the whole span to zero (an LDIR fill from 0x8800 upward), then seeds the handful of
-cells that must not start at zero, so the state model always begins from a known
-floor.
+The playfield is a pair of parallel 32x32 maps. **`VIDEO_RAM_BASE`** [code] at 0x8400 is the tile-code
+plane: each cell names which 8x8 character ROM tile to draw, and cells are addressed row-major with a
+0x20 stride between vertically-adjacent cells. **`COLOR_RAM_BASE`** [code] at 0x8000 is the matching
+attribute plane, one attribute byte per tile cell, carrying the colour/palette selection. The two
+planes are always written as a unit: a tile is placed by storing its code into the 0x8400 plane and
+its colour into the corresponding 0x8000 cell.
 
-The lowest addresses hold configuration and top-level control. The four DIP-derived
-config bytes are decoded once, at boot, by reading the physical switch ports and
-complementing them: BONUS_AWARD_DSW [code] at 0x8800 selects the extra-life award
-schedule, DIFFICULTY_DSW [code] at 0x8820 carries the three difficulty bits that scale
-enemy spawn schedules, DEMO_SOUNDS_DSW [code] at 0x8821 gates attract-mode sound, the
-lives count LIVES_DSW [code] at 0x8807 is copied into both players' life counters at
-board reset, and COINAGE_CONFIG [seen] at 0x882c holds the coin-slot nibble (the value
-0x0F meaning free play). These are written exactly once and read forever after; they
-are effectively constants for the life of the power-on. CREDIT_COUNT [seen] at 0x8802
-is the live BCD credit counter, bumped by a coin and consumed by a start button.
+Boot lays both planes down before play. It floods the attribute plane from **`ATTRIB_MAP_BASE`**
+[seen] (0x8040) — the map is painted a column at a time, 31 columns of 30 rows on the 0x20 stride —
+and it blanks the tile plane, writing the erase tile 0x1e across 0x3c0 cells from
+**`VIDEO_RAM_BLANK_START`** [code] (0x8440) through the end of video RAM. The row-by-row fill that
+repaints the playfield during state transitions marches a 16-bit cursor down the plane from
+**`PLAYFIELD_TILE_BASE`** [code] (0x8402), advancing one 0x20-stride row per pass. The attribute plane
+is not just decoration for the game logic: two vertical column strips of it, at
+**`HUD_INTEGRITY_STRIP_A`** [code] (0x82bc) and its tile-plane sibling at 0x86bc, are column-summed as
+a self-integrity check, so a corrupted picture region is also a tripped alarm.
 
-The single most important cell is MAIN_GAME_STATE [seen] at 0x8805: it is the
-top-level selector the per-frame service routine dispatches on, choosing among
-attract, intro, and play handlers through a jump table. Below it, GAME_ACTIVE_FLAG
-[seen] at 0x8806 is the in-play gate -- set to 1 at start-of-life and cleared to 0 at
-game-over -- and most gameplay handlers return immediately when it is zero. Within a
-running game a second selector, PLAY_STATE_INDEX [seen] at 0x880a, steps through the
-round and intro sub-phases via its own table, and PHASE_TIMER [seen] at 0x8808 is the
-per-frame countdown those handlers reload and drain to time transitions. This is the
-shape of the whole state model: a small number of discrete state selectors near the
-top of the page choose which handler runs, and a forest of countdown timers decides
-when each state gives way to the next.
+### The sprite banks
 
-Two-player play is expressed as a banking scheme. TWO_PLAYER_FLAG [seen] at 0x880e is
-nonzero for a two-player game, and ACTIVE_PLAYER [seen] at 0x880d selects whose turn
-is live: with bit 0 clear the machine reads and writes player 1's cells, and with it
-set, player 2's. The two players' persistent state is held in mirror-image banks --
-PLAYER0_STATE_BANK [seen] at 0x8940 and PLAYER1_STATE_BANK [seen] at 0x8980, each a
-0x3F-byte block, with the remaining-lives counts PLAYER0_LIVES [seen] at 0x8948 and
-PLAYER1_LIVES [seen] at 0x8988 -- while a single live working page at 0x8900 is
-swapped in and out of the inactive player's bank at each turn change. Scores follow
-the same pattern: P1_SCORE_BCD [seen] at 0x88A2 and P2_SCORE_BCD [seen] at 0x88A5 are
-three-byte BCD buffers, one of which is selected by the active-player bit and
-accumulated during that player's turn, and HIGH_SCORE_BCD_HI [seen] at 0x88AA tops the
-running high score that is kept in step with them. The full sorted leaderboard, ten
-three-byte BCD entries, sits at HIGH_SCORE_TABLE [code] 0x8A00.
+Hardware sprites are attribute records, not pixels, and they live in their own two banks:
+0x9000-0x90ff is sprite bank 0 and 0x9400-0x94ff is bank 1 (the bank is selected by address bit
+0x0400 within the 0x9000-0x9fff window, which mirrors). Each bank holds stride-4 sprite records
+beginning a little above its base — boot clears 0x30 bytes at **`SPRITE0_CLEAR_BASE`** [code] (0x9010)
+and **`SPRITE1_CLEAR_BASE`** [code] (0x9410), i.e. bank-base + 0x10, which is where the live records
+start.
 
-Input reaches the game through a small ring near 0x8810. Each frame the service
-routine samples the three controller ports, complements them (the ports are
-active-low), and lays the fresh readings down at INPUT_PORT0 [seen] 0x8810 and its two
-neighbours, first shifting the previous frame's samples up into 0x8813-0x8816. Holding
-one and the previous frame side by side is what lets the game distinguish a fresh
-button press -- a coin, a start, a fire -- from a button merely being held down.
-FLIP_SCREEN_FLAG [seen] at 0x881F records the cabinet orientation and is copied out to
-the hardware flip latch every frame.
+These hardware banks are downstream of a staging buffer that lives in work RAM, not in the banks
+themselves. **`SPRITE_DISPLAY_LIST`** [seen] at 0x8840 is the 24-entry, stride-4 sprite display list;
+its first byte is the first sprite's Y coordinate, and the whole list is rebuilt every frame from the
+moving-object records, then swept for collisions and — when the screen is flipped — mirrored
+vertically before it reaches the sprite banks. So the model is: object records drive the 0x8840 list,
+the list drives the 0x9000/0x9400 sprite hardware.
 
-Above the control band, the bulk of the page is dynamic object state. The actor arena
-begins at ACTOR_TABLE [seen] 0x8A80, a stride-0x18 array whose slot 0 is the player
-actor (its vertical position at PLAYER_Y [seen] 0x8A84, its input/aim byte at 0x8A87);
-the enemy, projectile, formation, and spawned-object record pools are laid out in
-further stride-0x18 tables up through the 0x8B-0x8C pages, and the eagle/rope/wave
-state machines with their countless timers and latches fill the 0x8D-0x8F pages. Each
-record carries its own state byte, and the per-frame drivers dispatch on those bytes
-exactly the way the top-level selector dispatches on 0x8805 -- the state model is the
-same idea repeated at every scale. Underpinning all of it is FRAME_COUNTER [seen] at
-0x8A5F, a free-running byte the service routine decrements every vblank; its low bits
-phase animations and its zero-crossings gate periodic checks. A second per-frame
-counter, WORKER_CONTROL_BYTE [code] at 0x883F (deliberately placed one byte below the
-sprite display list), is decremented alongside it and its low nibble gates a periodic
-integrity check.
+### The shape of work RAM
 
-The very top of work RAM belongs to the CPU stack. The stack pointer initialises to
-0x9000 -- the byte just past the end of the page -- and pushes grow downward, staying
-within roughly 0x8FC0-0x9000 in practice. Because this window holds transient return
-addresses and saved registers rather than durable game state, its contents are not
-part of the state model even though they share the page.
+The 2K at 0x8800-0x8fff is where all mutable game state lives, and it has a deliberate top-to-bottom
+shape. Boot zeroes almost the whole block — 0x7fe bytes up from **`BONUS_AWARD_DSW`** [code] (0x8800)
+— but stops two bytes short of the top on purpose. The emulated stack pointer initialises to 0x9000
+and grows downward through a scratch window of roughly 0x8fc0-0x8fff, so the top word must be kept
+clear of both the zero-fill and the stack. That top word, **`ROM_SELFTEST_TALLY`** [code] (0x8fff),
+holds the program-memory self-test result: boot reserves it with a single unbalanced push (leaving the
+pointer parked at 0x8ffe), which keeps it physically above the stack so the per-frame register-save at
+interrupt time cannot clobber it, because a later setup step refuses to advance unless the tally shows
+a full pass.
 
-### The video planes
+Below that scratch region the 2K is organised by function, low addresses to high.
 
-Two planes describe the fixed tilemap, paired cell-for-cell 0x400 apart. The
-colour/attribute map begins at 0x8000, with ATTRIB_MAP_BASE [seen] at 0x8040 the base
-of the playfield's colour region, flooded column by column as a stage loads. The
-tile-code map begins at 0x8400, with PLAYFIELD_TILE_BASE [code] at 0x8402 the start of
-the playfield tile region; the same offset within each plane names one on-screen cell,
-so a cell's tile code lives at 0x84xx and its colour/attribute byte at the
-corresponding 0x80xx address. These are write-mostly surfaces: the game stamps
-columns, HUD digits, score panels, and message strings into them, and the renderer
-reads them back out. The score and HUD digit columns, the phase gauge, the round
-marker, and the high-score display are all just specific cell addresses inside these
-two planes.
+**Configuration (0x8800-0x882f).** The bottom of work RAM caches the cabinet's DIP-switch settings,
+decoded once at boot and then treated as read-only. DIP bank 1 is complemented and rotated apart into
+**`CABINET_MODE_FLAG`** [code] (0x880f), **`BONUS_AWARD_DSW`** [code] (0x8800),
+**`DIFFICULTY_DSW`** [code] (0x8820, a 3-bit value scaling enemy schedules),
+**`DEMO_SOUNDS_DSW`** [code] (0x8821), and the lives count **`LIVES_DSW`** [code] (0x8807). DIP bank 0
+supplies the two coin-slot coinage nibbles, looked up through a ROM table into **`COINAGE_CONFIG`**
+[seen] (0x882c) and **`COINAGE_CONFIG_SLOT2`** [code] (0x882f), where the sentinel value 0x0f means
+free play. The live credit balance, **`CREDIT_COUNT`** [seen] (0x8802), also sits here: a coin adds
+one, a 1-player start consumes one and a 2-player start consumes two, and the value is drawn as two
+HUD digits.
 
-The moving objects live in the two sprite banks reached through 0x9000-0x9FFF. The
-address decode there is a mirror: bit 0x0400 selects the bank (0x9000 is bank 0,
-0x9400 is bank 1) and only the low byte indexes within it, so each bank is a 256-byte
-window. The two banks together describe up to 24 hardware sprites at stride-2 offsets
-running 0x10 upward: for a given offset, bank 0 holds the sprite's X and tile code and
-bank 1 holds its colour/flip control byte and its (240-minus-)Y. Crucially, the game
-does not manipulate the sprite banks directly during a frame. It builds a
-24-entry, four-bytes-each sprite display list in work RAM at SPRITE_DISPLAY_LIST
-[seen] 0x8840, rewriting it from the live object records every frame, and the vblank
-service routine then fans those four-byte records out into the two banks -- two bytes
-to bank 1 from SPRITE1_CLEAR_BASE-region 0x9410 and two to bank 0 from
-SPRITE0_CLEAR_BASE-region 0x9010 -- so the on-screen sprites are a refreshed copy of
-the work-RAM list, not a separate state. Boot blanks the tops of both banks
-(SPRITE0_CLEAR_BASE [code] 0x9010 and SPRITE1_CLEAR_BASE [code] 0x9410) so no stale
-sprite shows before the first list is built.
+**Top-level state selectors and the frame spine.** The single most important byte is
+**`MAIN_GAME_STATE`** [seen] (0x8805): the vblank service routine reads it every frame and dispatches
+through a jump table (attract / intro / play). Alongside it, **`GAME_ACTIVE_FLAG`** [seen] (0x8806)
+gates the in-play handlers (set 1 at start-of-life, cleared 0 at game-over, and gameplay handlers
+return early when it is 0), **`PLAY_STATE_INDEX`** [seen] (0x880a) is the masked in-play sub-state
+dispatched through a second table, and **`FLIP_SCREEN_FLAG`** [seen] (0x881f) records the screen
+orientation. One flag here overrides everything downstream: **`TAMPER_FREEZE_FLAG`** [code] (0x881e),
+raised by the anti-tamper guards, freezes spawns and aborts actor updates when nonzero.
 
-### The hardware I/O window (0xA000 and up)
+**The input edge-detect ring (0x8810-0x8816).** The vblank service samples the three hardware input
+ports each frame, complements them (so an active-low pressed bit becomes a 1 in RAM), and stores them
+at the head of this ring: IN0 into **`INPUT_PORT0`** [seen] (0x8810) with coin on bit 0, 1P-start on
+bit 3 and 2P-start on bit 4; IN1 into 0x8811; IN2 into 0x8812. Immediately before writing the new
+sample it shifts the previous frame's values up into 0x8813-0x8816, so the game can compare this frame
+against last frame and detect a *press* (an edge) rather than a held level — that is how a single coin
+insertion registers exactly once.
 
-From 0xA000 the address space stops being memory. Every access here is a device, and
-the governing rule -- the one that makes this region easy to misread -- is that a read
-and a write at the same address are two different devices. The decode is done with
-don't-care bit masks (hardware mirrors), so many addresses alias onto each canonical
-port, but the canonical addresses are these.
+**The two command rings.** Work RAM carries two producer/consumer ring buffers, both marked empty
+(0xff in every slot) at boot. The display-command ring occupies 0x88c0-0x88ff as 32 two-byte slots,
+addressed by low byte within page 0x88; **`DISPLAY_CMD_RING_WRITE_PTR`** [code] (0x88a0) fills upward
+two bytes per enqueue and **`DISPLAY_CMD_RING_READ_PTR`** [code] (0x88a1) drains it. The read side is
+also the main loop's dispatcher: it reads the slot the cursor points at, and a value with bit 7 set —
+the 0xff empty marker included — means "run the per-frame worker", while a value with bit 7 clear is a
+real command whose type indexes a handler table and whose following slot supplies an argument; both
+slots are then freed back to 0xff and the cursor advanced, wrapping 0xff back to 0xc0. So an idle ring
+naturally keeps running the worker, and a backlog is drained within the frame. The sound-command ring
+is smaller — slots 0x8a43-0x8a5e — with **`SOUND_RING_WRITE_PTR`** [code] (0x8a40) and
+**`SOUND_RING_READ_PTR`** [code] (0x8a41); its head slot is addressed as high-score-table-base plus
+the head index, and the drainer hands one byte per frame to the audio CPU (gated so attract stays
+silent unless demo sounds are enabled) then frees the slot and advances the head, wrapping 0x5e back
+to 0x43.
 
-On the read side sit the inputs and DIP switches. 0xA000 reads DSW1 (the lives,
-cabinet, bonus, difficulty, and demo-sound switches, idle value 0x7B); 0xA080 reads
-IN0; IN1_PORT [code] at 0xA0A0 reads the player-1 controls and IN2_PORT [code] at
-0xA0C0 the player-2 controls (used when the screen is flipped for a cocktail cabinet);
-and 0xA0E0 reads DSW0, the coinage switches. All the controller ports are active-low
--- idle reads 0xFF, and a pressed bit reads 0 -- which is why the service routine
-complements each sample before storing it in the input ring. The DIP ports are the
-raw source the boot routine decodes into the work-RAM config cells described above.
+**Score, high score, and the per-player banks.** The active player's running score is a 3-byte BCD
+buffer, **`P1_SCORE_BCD`** [seen] (0x88a2) or **`P2_SCORE_BCD`** [seen] (0x88a5), selected by the
+active-player flag; **`PER_FRAME_SCORE_INCREMENT`** [code] (0x88ab) is added into it each frame when an
+award is pending, and the running high score is kept in step at **`HIGH_SCORE_BCD`** [code]
+(0x88a8..0x88aa), MSB at **`HIGH_SCORE_BCD_HI`** [seen] (0x88aa). The sorted top-ten sits separately at
+**`HIGH_SCORE_TABLE`** [code] (0x8a00), ten 3-byte BCD entries seeded to a default at boot and
+insert-sorted on game-over.
 
-On the write side sit the control outputs, and here 0xA000 is the standout: writing it
-kicks the watchdog (the boot and per-frame code strobe it constantly to prove the CPU
-is alive), even though reading it returns DSW1. 0xA100 is the sound-command port --
-SOUND_COMMAND_LATCH [seen] at 0xA100 is where a command byte is handed to the audio
-CPU. 0xA180-0xA187 is an eight-bit addressable control latch (an LS259): rather than
-writing a byte, the program writes one bit per address, the low bit of the value
-landing in the latch whose index is the low three bits of the address. Those eight
-outputs are the machine's discrete controls: bit 0 (0xA180) is the vblank-NMI enable
-gate, and the service routine clears it on entry and re-arms it on exit so the next
-vblank interrupt fires cleanly; AUDIO_IRQ_LATCH [seen] at 0xA181 strobes the audio
-CPU's interrupt after a command is posted; bit 2 mutes audio; COIN1_COUNTER_LATCH
-[code] at 0xA183 and its neighbour drive the physical coin counters; bit 5 is the
-payout line; and bit 7 (0xA187) is the flip-screen output, driven inverted, which the
-service routine loads every frame from FLIP_SCREEN_FLAG in work RAM. The work-RAM flip
-flag is thus the durable state and the latch bit is its per-frame echo to the
-hardware -- a pattern typical of how this machine keeps its persistent decisions in
-work RAM and mirrors them out to the control latch each vblank.
+The per-player split is the heart of the two-player model. A single "live page" beginning at 0x8900
+holds the transient state of whoever is currently playing — its speed index **`SPEED_INDEX`** [seen]
+(0x8900), the round counter **`ROUND_COUNTER`** [seen] (0x8907), the phase gauge, spawn phase, and so
+on. When play passes to the other player, that whole 0x3f-byte page is copied out to the outgoing
+player's bank and the incoming player's bank is copied back into 0x8900. The two banks are
+**`PLAYER0_STATE_BANK`** [seen] (0x8940) and **`PLAYER1_STATE_BANK`** [seen] (0x8980), each a frozen
+mirror of the live page; the byte at bank + 8 is that player's remaining lives, **`PLAYER0_LIVES`**
+[seen] (0x8948) and **`PLAYER1_LIVES`** [seen] (0x8988), seeded from the lives DIP and drained on
+death. Which bank is live is chosen by **`ACTIVE_PLAYER`** [seen] (0x880d), and whether the game is a
+two-player game at all by **`TWO_PLAYER_FLAG`** [seen] (0x880e).
+
+**The actor arena.** Most of the upper work RAM is record arrays with a common 0x18-byte stride.
+**`ACTOR_TABLE`** [seen] (0x8a80) is the primary arena, zero-filled at board init, whose slot 0 is the
+player/lead actor: its vertical position **`PLAYER_Y`** [seen] (0x8a84) is the value enemy AI targets,
+and its state byte carries the sampled joystick and the aim indicator. Around it are the other record
+pools — the enemy sub-array at **`ENEMY_ACTOR_TABLE`** [seen] (0x8ae0), the object/projectile tables
+(0x8b70, 0x8be8, 0x8c48), the formation and hunter tables (0x8c30, 0x8c78), and the I-parity
+enemy-target pair at 0x8c90/0x8ca8 — each swept on the same stride by its own per-frame handler. Woven
+through the same address range are the wave, spawn, launch, and rope state machines, each a small
+cluster of a selector byte, a countdown timer, and one or two latches. Two free-running counters pace
+everything: **`FRAME_COUNTER`** [seen] (0x8a5f), decremented every vblank, whose zero-crossings gate
+the periodic integrity checks, and the frame counter's low bits phase the animations.
+
+### The hardware I/O window (0xa000-0xa1ff)
+
+The top strip of the address map is memory-mapped hardware, and the read side and write side of a
+given address are unrelated devices — reading 0xa000 samples a DIP bank, writing it pets a watchdog.
+
+**Reads — the inputs and DIP switches.** All four ports are active-low (idle 0xff, a set bit is a
+released control). 0xa000 reads DIP bank 1 (**`DSW1_PORT`** [code]) and 0xa0e0 reads DIP bank 0
+(**`DSW0_PORT`** [code], the coinage bank) — both consumed only at boot to fill the config cells above.
+The live controls are three ports: 0xa080 is IN0, the coin and start inputs (coin bit 0, coin-2 bit 1,
+service bit 2, 1P-start bit 3, 2P-start bit 4), sampled each frame into the edge-detect ring; 0xa0a0 is
+IN1 (**`IN1_PORT`** [code]), the player-1 joystick and fire (up bit 2, down bit 3, fire bit 4), used in
+the upright orientation; and 0xa0c0 is IN2 (**`IN2_PORT`** [code]), the player-2 controls used when the
+cabinet is a flipped cocktail.
+
+**Writes — the watchdog, sound port, and control latch.** A write to 0xa000 kicks the hardware
+watchdog; the vblank service does this once per frame, so a hung CPU that stops servicing interrupts
+lets the watchdog time out and reset the board. The sound port is a two-address handshake to the audio
+CPU: the command byte is stored at **`SOUND_COMMAND_LATCH`** [seen] (0xa100), then the audio-IRQ line
+is strobed high and low at **`AUDIO_IRQ_LATCH`** [seen] (0xa181), which interrupts the sound CPU into
+reading the byte.
+
+Everything from 0xa180 to 0xa187 is a single 8-bit addressable latch (an LS259) in which the address
+selects *which bit* to write and only bit 0 of the written value lands — so one address is one control
+line. 0xa180 is bit 0, the vblank-NMI enable (**`NMI_ENABLE_LATCH`** [code]): the frame service clears
+it at entry to mask further NMIs and sets it again at exit to re-arm, and boot writes it 1 to turn
+interrupts on once setup is done. 0xa181 is bit 1, the audio-IRQ strobe already described. 0xa183 is
+bit 3, the coin-counter drive (**`COIN1_COUNTER_LATCH`** [code]), pulsed by a small timed strobe that
+turns queued coin credits into physical counter clicks. 0xa187 is bit 7, the flip-screen latch
+(**`FLIP_SCREEN_LATCH`** [code]): the frame service copies the orientation flag from work RAM
+(0x881f) into it every frame — and note the polarity is *inverted* at the hardware, so a latched 0
+means a flipped screen and the boot's write of 1 selects the normal upright picture. The remaining
+latch bits (audio mute at bit 2, and the coin/payout lines) round out the same 259 but are touched
+only by their dedicated handlers.
+
+
 ## The frame loop and the vblank heartbeat
 
-Pooyan's foreground code never waits for the beam. The main loop at `loc_020f` is a
-tight infinite spin that free-runs as fast as the CPU will carry it; nothing in it
-polls a vblank bit or counts scanlines. All of the machine's timing hangs instead off
-a single interrupt: the vblank NMI at `loc_066d`, which fires once per displayed frame
-and is the sole heartbeat the rest of the game is paced against. The foreground loop is
-the hands; the NMI is the metronome.
+Pooyan runs on two clocks that never touch each other directly. The CPU spends its whole life inside one tight loop at `loc_020f` that never waits for anything; the display's 60 Hz vertical blank fires a non-maskable interrupt into `loc_066d` that does the real per-frame work and then hands the CPU back exactly where it was. The loop is the muscle that keeps chewing through queued drawing work; the NMI is the metronome. Everything that has to happen "once a frame" -- reading the joysticks, aging the timers, kicking the watchdog, advancing the game's top-level state -- happens in the interrupt, because the loop itself has no sense of time.
 
-What the main loop actually does each pass is decide between two jobs by peeking at a
-ring of pending display commands. It fixes the high byte of its address to page `0x88`,
-reads the ring's read cursor out of `0x88a1`, and uses that byte as the low half of a
-pointer back into the same page — so the cursor names a slot inside the ring. It fetches
-that slot's byte and doubles it, which drops bit 7 into carry. A slot whose top bit is
-set is a *free* slot (freed slots are stamped `0xff`): finding one means the ring is
-drained, and the loop takes that as its cue to run the per-frame worker at `loc_0254`
-and come back around. A slot whose top bit is clear is a real, pending command, and the
-loop dispatches it.
+The heartbeat has to be switched on deliberately. The power-on reset vector `loc_0000` immediately writes 0 to `NMI_ENABLE_LATCH` **[code]** (bit 0 of the LS259 at 0xa180), holding the vblank interrupt off so the boot self-test and RAM setup can run without being interrupted. The last thing the boot entry `loc_0092` does before dropping into the loop is write 1 back to that latch, arming the interrupt. From that instant on, the machine has a pulse, and the loop starts spinning.
 
-That ring is the machine's deferred-drawing mailbox. Producers deposit two-byte
-commands through `loc_0038` (reached as the `rst 0x38` vector): it reads the write
-pointer from **DISPLAY_CMD_RING_WRITE_PTR** [code] at `0x88a0`, and if the slot it
-points at is still free it drops the command's high byte there, its low byte in the next
-cell, and steps the write pointer on by two — wrapping back to `0xc0` whenever it would
-fall below it, so the storage cycles through the 64-cell window `0x88c0`–`0x88ff`. If the
-target slot is already occupied the command is simply dropped rather than clobbering
-unread work. When the main loop consumes a command it mirrors this exactly: it masks the
-first byte with `0x1f` to form an even offset into the handler table at `0x0242`, pulls
-the second byte out into `A` as a parameter for the handler, stamps both consumed slots
-back to `0xff`, and advances the read cursor at `0x88a1` by two with the same wrap to
-`0xc0`. It pushes `0x020f` as the handler's return address and jumps into the selected
-handler, so every drawing handler falls straight back into the top of the loop when it
-returns. The first byte of a command therefore selects *which* piece of screen work runs
-and the second carries its argument — for example **OBJECT_SPAWN_DISPLAY_CMD** [code]
-(`0x0611`) and **HUNTER_SPAWN_DISPLAY_CMD** [code] (`0x0315`) are words enqueued through
-`loc_0038` when objects and hunters appear. Crucially the loop keeps dispatching command
-after command until the ring runs dry within the same span of foreground time; only when
-it finally lands on a free slot does it fall through to the worker. A whole burst of
-commands queued up during, say, the credit screen is flushed in one drain rather than
-dribbling out one per frame and leaving stale tiles on the playfield.
+The loop's job is to service the **display-command ring**, a 32-slot circular queue living at `DISPLAY_CMD_RING_BUFFER` **[code]** (0x88c0-0x88ff, two bytes per slot). Producers all over the code append work to it through the enqueue helper `loc_0038`: it looks at the slot under the write cursor `DISPLAY_CMD_RING_WRITE_PTR` **[code]**, and only if that slot is free (its top bit set, which the boot guarantees by flooding the whole ring with 0xff) does it drop the command's two bytes in -- a type byte then an argument byte -- and step the cursor forward by two, wrapping back to 0xc0 when it runs off the end. If the slot is already occupied, the command is simply dropped rather than overwriting live work.
 
-The per-frame worker `loc_0254` is the light housekeeping the loop does whenever the ring
-is idle. It is paced not by its own logic but by a counter the NMI keeps ticking:
-**WORKER_CONTROL_BYTE** [code] at `0x883f`, the cell one below the sprite display list.
-If that byte's low nibble is nonzero the worker only runs a program-signature integrity
-check and returns; since the NMI decrements the byte every frame, the low nibble spends
-fifteen frames out of sixteen nonzero and the signature check dominates. On the one frame
-in sixteen where the low nibble reaches zero — and only while **GAME_ACTIVE_FLAG** [seen]
-(`0x8806`) is set — the worker instead repaints the machine's scrolling tile columns:
-in a one-player game it blanks a run of three-tile columns, in a two-player game it caps
-and paints a body column, then stamps a further scroll column through `loc_02a8`. A last
-column is blanked only when bit 4 of the control byte and bit 0 of the game-active flag
-are both set. Which column that final blank lands on is chosen by **ACTIVE_PLAYER** [seen]
-(`0x880d`), and the two-player branch is taken on **TWO_PLAYER_FLAG** [seen] (`0x880e`).
-Every column the worker touches steps one tilemap row upward per cell.
+Each pass of the loop reads the slot under the separate read cursor `DISPLAY_CMD_RING_READ_PTR` **[code]** and doubles that byte so its top bit lands in carry. An empty slot (0xff) has that bit set, and that is the loop's signal that the ring is drained: it runs the per-frame worker and comes back around. A real command has the bit clear, so instead the loop consumes the slot -- stamping both of its bytes back to 0xff to free them, advancing the read cursor by two (wrapping at 0xc0), and stashing the argument byte. It then indexes the doubled type byte into the handler jump table at ROM 0x0242, pushes the loop's own top address so the handler's return lands right back here, and jumps into the handler. Notice what this means: the ring is *self-terminating*. The loop never compares the read cursor against the write cursor; it drains commands until it hits the 0xff free-marker, then falls through to the worker. Several table entries point at `loc_0e53`, a bare-return phantom that consumes a command slot and draws nothing -- a deliberate no-op dispatch target.
 
-The heartbeat itself, `loc_066d`, is where the real per-frame work lives. It opens by
-saving the entire register file — main set, shadow set, and both index registers — and
-immediately masks further NMIs by clearing bit 0 of the LS259 latch at `0xa180`, so a
-frame's service can't re-enter itself. It then refreshes the hardware sprite banks:
-walking the sprite display list from **SPRITE_DISPLAY_LIST** [seen] (`0x8840`) and its
-neighbouring record regions and copying them into the two sprite banks at `0x9010` and
-`0x9410`. How many groups it copies depends on **PLAY_STATE_INDEX** [seen] (`0x880a`):
-in state 4 it transfers four separate record groups, otherwise a single tall group. Next
-it kicks the watchdog by writing `0xa000`, then samples the three control ports — IN2 at
-`0xa0c0`, IN1 at `0xa0a0`, IN0 at `0xa080` — complementing each (the inputs are active-low)
-and storing them down into the edge-detect ring headed by **INPUT_PORT0** [seen]
-(`0x8810`), first shuffling the previous frame's samples up the history cells so button
-edges can be detected against the prior frame.
+> A counterintuitive but important reading: the loop has **no vblank wait** in it at all. Because it never blocks, it works through *every* command queued in the ring during the gap between two interrupts, not one command per frame. A backlog built up on, say, the credit screen is meant to be flushed in a single inter-vblank interval, not dribbled out one command at a time.
 
-With input latched, the NMI ticks its two per-frame counters — the worker-pacing
-`0x883f` and the free-running **FRAME_COUNTER** [seen] (`0x8a5f`), whose low bits phase
-animation and whose zero-crossings gate periodic integrity checks — then services coin
-and credit logic and drains one entry from the sound-command ring into the audio CPU
-(`loc_0e64`). Only then does it run the frame's game logic: it reads the top-level state
-selector **MAIN_GAME_STATE** [seen] (`0x8805`) and dispatches through the jump table at
-`0x06f0` (attract, intro, and play handlers), pushing a return into its own epilogue so
-whichever handler runs lands back inside the interrupt. Those handlers are the producers
-that fill the display-command ring the foreground loop is busy draining. Finally the
-epilogue copies **FLIP_SCREEN_FLAG** [seen] (`0x881f`) into bit 7 of the flipscreen
-latch at `0xa187` so the screen orientation tracks the flag every frame, restores every
-saved register in reverse, re-arms the NMI by setting bit 0 of `0xa180` back to 1, and
-returns to whatever address the free-running main loop had reached when the beam
-interrupted it.
+When the ring finally reads empty, the loop calls the per-frame worker `loc_0254`. The worker first consults `WORKER_CONTROL_BYTE` **[code]** (0x883f): if its low nibble is nonzero it spends the pass on the ROM-signature anti-tamper check `verifyRomSignature` (which trips `SIGNATURE_MISMATCH_FLAG` **[code]** on a mismatch) and returns. Otherwise, and only while `GAME_ACTIVE_FLAG` **[seen]** is set, it repaints the scrolling tilemap columns: in a one-player game it blanks a run of four three-tile columns starting at `COLUMN_CAP_VRAM` **[code]** and `P2_SCORE_VRAM` **[code]**, while in a two-player game (`TWO_PLAYER_FLAG` **[seen]**) it stamps a capped body column instead. It then paints the column at `WORKER_COLUMN_VRAM` **[code]** through `loc_02a8`, and if the control byte's bit 4 is set it blanks one final column, choosing between the two column bases by `ACTIVE_PLAYER` **[seen]**. Every column walks one tilemap row upward (a -0x20 stride) per cell.
 
-The two pieces thus form a clean producer/consumer split running off one clock. Sixty
-times a second the vblank NMI preempts the spinning main loop, refreshes the sprites,
-reads the sticks, advances the frame counters, and runs one frame of game state — and
-that game state, rather than drawing directly, posts display commands into the page-`0x88`
-ring. Between interrupts the main loop empties that ring, executing the deferred drawing
-handlers, and idles into the housekeeping worker until the next NMI arrives. No part of
-the foreground counts time on its own; the NMI is the only thing tied to the frame, which
-is exactly why the game's whole cadence is governed by that single vblank heartbeat.
+The actual once-a-frame work all lives in the vblank NMI `loc_066d`. On entry it saves the entire register file -- main set, shadow set, and both index registers -- then immediately masks itself off by writing 0 to `NMI_ENABLE_LATCH`, so the service routine cannot re-enter itself. It rebuilds the hardware scroll columns (via `loc_0714`), kicks the watchdog with a write to 0xa000 -- the one duty that makes this a true heartbeat, since a missed frame would let the watchdog reset the board -- and samples the three input ports. Each port is read active-low, complemented, and pushed into the edge-detect ring headed by `INPUT_PORT0` **[seen]** (0x8810-0x8812), with the previous frame's samples shifted down alongside so handlers can tell a fresh press from a held button. It then ages the two per-frame counters, decrementing the worker's `WORKER_CONTROL_BYTE` and the free-running `FRAME_COUNTER` **[seen]** (0x8a5f) whose low bits phase animations and whose zero-crossings gate the integrity checks. It also drains one entry from the sound-command ring `SOUND_RING_BUFFER` **[code]** (via `loc_0e64`), handing it to the audio CPU.
+
+The interrupt's centerpiece is the top-level dispatch: it reads `MAIN_GAME_STATE` **[seen]** (0x8805) and jumps through the table at 0x06f0 into exactly one of the attract / intro / play handlers, which does that frame's game logic and returns into the NMI's own epilogue. The epilogue copies `FLIP_SCREEN_FLAG` **[seen]** (0x881f) into bit 7 of the flip-screen latch `FLIP_SCREEN_LATCH` **[code]** to hold the screen orientation, restores every saved register in reverse, writes 1 back to `NMI_ENABLE_LATCH` to re-arm the next frame's interrupt, and returns to the interrupted PC -- dropping the CPU straight back into the middle of the main loop, which never even knew it had been away.
+
+
 ## Configuration, coinage and players
 
-### Reading the DIP switches at boot
+### Boot-time DIP-switch decode
 
-The two option banks are read straight off the input hardware during the reset sequence
-(the boot routine at loc_0092). The board exposes DSW0 at port `0xa0e0` and DSW1 at port
-`0xa000` -- the same `0xa000` cell that doubles as the watchdog on a write, so a *read* of it
-returns the second switch bank. Both banks are wired active-low, so every field is complemented
-(`cpl`) as it is unpacked; the game's work-RAM config cells therefore hold the *logical* option
-value, not the raw switch bits.
+Every operator-facing option lives in the two DIP-switch banks, and the machine reads them exactly
+once — at power-on, inside the boot entry `loc_0092`. The switches are wired active-low, so the boot
+first complements the byte it reads from `DSW1_PORT` [code] (0xa000) and then rotates the complemented
+value field-by-field into a row of dedicated work-RAM configuration cells. Each cell is written here and
+nowhere else, so from the main loop's point of view they are read-only settings.
 
-DSW1 is decoded first. After `cpl` the byte is rotated right and sliced field by field: bit 2
-lands at 0x880f (the cabinet-type flag), bit 3 becomes **BONUS_AWARD_DSW [code]** at 0x8800,
-bits 4-6 become the 3-bit **DIFFICULTY_DSW [code]** at 0x8820, and bit 7 becomes
-**DEMO_SOUNDS_DSW [code]** at 0x8821. The routine then re-reads DSW1, complements it again, and
-maps its low two bits into **LIVES_DSW [code]** at 0x8807: values 0/1/2 select 3/4/5 lives (the
-decode adds 3 to the two-bit field), and the all-ones case is stored as the 0xff sentinel. This
-lives byte is later seeded into both players' life counters at board reset.
+The DSW1 fields land like this. Bits 0-1 select the starting life count: the boot maps the raw values
+0/1/2 to three, four, or five lives and the fourth setting to 0xff, storing the result in `LIVES_DSW`
+[code] (0x8807). Bit 2 becomes `CABINET_MODE_FLAG` [code] (0x880f), the upright/cocktail selector. Bit 3
+becomes `BONUS_AWARD_DSW` [code] (0x8800), which picks the extra-life award schedule. Bits 4-6 are masked
+into `DIFFICULTY_DSW` [code] (0x8820), a three-bit difficulty level. Bit 7 becomes `DEMO_SOUNDS_DSW`
+[code] (0x8821), the attract-mode sound enable.
 
-DSW0 carries the coinage. Its two nibbles are each used, high nibble first, as an index into the
-ROM coinage table at 0x0053; the looked-up byte for the high nibble is stored at 0x882f (the
-second coin slot's coinage) and the byte for the low nibble becomes **COINAGE_CONFIG [seen]** at
-0x882c (the first coin slot's coinage). Each coinage byte packs the slot's exchange rate: the
-high part sets how far the coin accumulator must climb before a credit is granted, and the low
-nibble is the number of credits granted per exchange. The whole-byte value 0x0f is the free-play
-sentinel. Alongside this, boot seeds **FLIP_SCREEN_FLAG [seen]** at 0x881f (and its latch bit 7
-of the LS259 at 0xa187) to 1 for the normal upright orientation.
+The coinage settings come from the other bank. The boot reads `DSW0_PORT` [code] (0xa0e0) uncomplemented
+and splits it into two nibbles, one per coin slot. Each nibble is not used directly — it indexes the ROM
+byte table `COINAGE_TABLE` [code] (0x0053), and the fetched byte is the packed coin/credit ratio for that
+slot. The low nibble's lookup is stored in `COINAGE_CONFIG` [seen] (0x882c) for coin slot 1 and the high
+nibble's in `COINAGE_CONFIG_SLOT2` [code] (0x882f) for coin slot 2. A resolved config byte of 0x0f is the
+free-play sentinel and is tested for all over the credit logic.
 
-Note that all of 0x8800-0x8ffd is zero-filled earlier in boot; the DIP-derived values above are
-written *after* that clear, so they are the durable configuration for the session. There is no
-runtime re-read of the switches -- the game runs entirely off these decoded cells.
+The same boot pass also establishes screen orientation: it writes 1 (upright) to both the software flag
+`FLIP_SCREEN_FLAG` [seen] (0x881f) and the hardware `FLIP_SCREEN_LATCH` [code] (0xa187), and every NMI
+thereafter copies the software flag into bit 7 of the latch so the current orientation always reaches the
+video hardware.
 
-### Sampling coin and start inputs each frame
+### Coin insertion and credit bookkeeping
 
-The vblank service routine (loc_066d) samples the three player-input ports every frame,
-complementing each (they are active-low) and storing them into a small edge-detect ring. IN0 at
-port `0xa080` is inverted into **INPUT_PORT0 [seen]** at 0x8810, IN1 (**IN1_PORT [code]**,
-`0xa0a0`) into 0x8811, and IN2 (**IN2_PORT [code]**, `0xa0c0`) into 0x8812. Before the fresh
-sample is taken the previous two frames' bytes are shuffled up into 0x8813-0x8816, so the coinage
-and start logic can distinguish a fresh press from a held button. Within INPUT_PORT0, bit 0 is
-coin slot 1, bit 1 is coin slot 2, bit 2 is the service coin, bit 3 is the 1-player start, and
-bit 4 is the 2-player start.
+Coins are serviced once per frame by the credit/coinage-gated chain `loc_59e8`. Its first act is a
+free-play short-circuit: if either coinage config (`COINAGE_CONFIG` or `COINAGE_CONFIG_SLOT2`) reads the
+0x0f sentinel it returns immediately — with free play there are no coins to count. Otherwise it runs three
+coin-input handlers (`loc_5a06`, `loc_5a56`, `loc_5a1f`), then the coin-counter strobe generator
+(`loc_5a9c`), then a program-integrity check (`loc_7e6d`).
 
-### Coinage bookkeeping and the credit counter
+All three coin-input handlers share one shape and differ only in which input line they watch and what they
+do on a clean edge. Each reads the debounced input sample `INPUT_PORT0` [seen] (0x8810) — a per-NMI
+complemented copy of the coin/start hardware port whose bit 0 is coin 1, bit 1 is coin 2, and bit 2 is the
+service credit. The handler rotates the bit it cares about into carry, shifts it into a small per-line
+shift ring (0x882a for coin 1, 0x882d for coin 2, 0x8829 for service), and fires only when the low three
+bits of that ring hold the pattern `001` — i.e. exactly on the leading edge of a fresh press, which
+debounces the switch so one coin cannot bank a burst of credits.
 
-Coin handling runs through the coinage-gated chain at loc_59e8, which the vblank service calls
-each frame. Its first act is a free-play short-circuit: if either coinage byte (0x882c or 0x882f)
-reads the 0x0f sentinel it returns immediately, so none of the coin accounting or coin-meter
-strobing runs in free play. Otherwise it drives three near-identical coin-accumulate steps and the
-two coin-counter pulse generators.
+The service line (`loc_5a06`) is the simple case: on its edge it plays a sound and adds one credit
+outright. The two real coin slots do coinage arithmetic. Coin 1 (`loc_5a56`) first queues a physical
+coin-counter pulse by bumping `COIN1_PULSE_COUNT` [code] (0x8824), then adds a fixed step of 0x10 to a
+per-slot accumulator (0x882b) and compares it against the slot's config byte: while the accumulator has
+not passed the threshold packed in the config's high nibble it simply returns, so several coins may be
+required before anything is granted. Once the threshold is crossed it subtracts the consumed amount back
+out of the accumulator and grants credits equal to the config's low nibble — unless that low nibble is the
+0x0f free-play sentinel, in which case the credit count is pinned to its 0x63 maximum. Coin 2 (`loc_5a1f`)
+is identical but uses its own counter (0x8826), accumulator (0x882e) and config (`COINAGE_CONFIG_SLOT2`).
 
-The three accumulate steps (loc_5a06, loc_5a1f, loc_5a56) each isolate one coin bit from
-INPUT_PORT0 -- the service bit (bit 2), coin-slot-2 (bit 1), and coin-slot-1 (bit 0) respectively
--- by rotating that bit into carry and shifting it (`rl`) into a per-slot debounce ring byte at
-0x8829 / 0x882d / 0x882a. A ring value whose low three bits equal 1 means the bit was low for two
-frames and is high this frame: a single clean coin edge. Coin-slot-1 and coin-slot-2 respond to an
-edge by stepping a per-slot progress accumulator (0x882b for slot 1, 0x882e for slot 2) up by
-0x10 and comparing it against that slot's coinage byte (0x882c / 0x882f); until the accumulator
-overtakes the coinage threshold no credit is granted, so several coins can be required per credit.
-When it does overtake, the accumulator wraps and the low nibble of the coinage byte -- the
-credits-per-exchange count -- is added to the credit counter. Each of those two slots also bumps
-its queued coin-meter pulse count (**COIN1_PULSE_COUNT [code]** at 0x8824 for slot 1, and its
-sibling at 0x8826 for slot 2) so the physical coin meter ticks once per accepted coin. The service
-input takes a shorter path: it grants exactly one credit per edge and does not tick a coin meter.
+Warning: the coin-1 accumulator byte at 0x882b is the cell named `TAMPER_ROM_CHECK_FLAG` [code] elsewhere
+in the map — the same RAM location is multiplexed as an eagle-spawn checksum flag during play and as this
+coinage accumulator on the coin path. Read in the coin context it is a running coin tally, not a tamper
+flag.
 
-All three funnel into a shared accumulate tail (loc_5a8a / loc_5a8c / loc_5a97): the credit amount
-in A is added to **CREDIT_COUNT [seen]** at 0x8802, the running total is clamped to a maximum of
-0x63 (99 in BCD), and a display command (0x0701) is queued so the on-screen credit field is
-redrawn. The MAME golden confirms CREDIT_COUNT is precisely this credit tally -- a coin drives it
-0->1, and starting a game consumes it back down -- and that it stays static at 0 through attract.
+Granted credits accumulate in `CREDIT_COUNT` [seen] (0x8802), a BCD counter clamped to 0x63 (99). It is
+drawn to the panel by `loc_05ee`, which clamps the value, converts it to packed BCD, and paints the tens
+and units as two HUD tiles (the units digit also triggers a small program-checksum tripwire).
 
-A current-state caution: the byte at 0x882b is multiplexed. In the coinage path it is coin-slot-1's
-progress accumulator (just below COINAGE_CONFIG at 0x882c), but a separate eagle-spawn code path
-reads and writes the same cell as **TAMPER_ROM_CHECK_FLAG [code]**. The two uses are keyed by which
-routine touches it, not by any tag on the cell itself.
+The queued physical pulses are turned into real meter movement by `loc_5a9c`, the coin-counter 1 pulse
+generator. It ignores an empty queue; on a fresh pulse it seeds the phase timer `COIN1_PULSE_PHASE` [code]
+(0x8825) to 0x30 and raises `COIN1_COUNTER_LATCH` [code] (0xa183, the LS259 bit driving the physical coin
+meter); on subsequent frames it counts the phase down, drops the latch at phase 0x18, and retires one
+queued pulse when the phase reaches zero — giving each coin a clean, timed strobe on the mechanical
+counter.
 
-### Coin-counter pulse generators
+### Consuming credits and starting a game
 
-The physical coin meters are strobed by two structurally identical generators (loc_5a9c for
-counter 1, loc_5ac0 for counter 2). Each watches its queued-pulse count (COIN1_PULSE_COUNT at
-0x8824, or 0x8826 for counter 2) and returns immediately when nothing is queued. On a fresh pulse
-it seeds a phase timer -- **COIN1_PULSE_PHASE [code]** at 0x8825 (0x8827 for counter 2) -- to 0x30
-and raises the meter latch: for counter 1 that is **COIN1_COUNTER_LATCH [code]**, bit 3 of the
-LS259 at `0xa183` (counter 2 uses bit 4 at `0xa184`). These latch writes are write-d0, so only bit
-0 of the value physically lands. While a pulse is in flight the phase counts down; at phase 0x18 it
-drops the latch again, and when phase reaches 0 it decrements the queued-pulse count. The net
-effect is one clean, timed high/low strobe of the coin meter per accepted coin.
+Whether a start button can launch a game is decided by the attract state handlers, and the rule depends on
+coinage. In coin mode the shared attract epilogue `loc_0bb5` only lets the top-level state advance while
+`CREDIT_COUNT` is non-zero; in free play (`COINAGE_CONFIG` == 0x0f) it instead inspects the start bits of
+`INPUT_PORT0` directly — bit 3 for one-player, bit 4 for two-player — and jumps straight into the start
+sequence, since no credit is needed.
 
-### Credit display, free-play and demo sounds
+The actual credit debit happens in the start handler `loc_0d78` and its one-player sibling `loc_0de4`. A
+one-player start (`INPUT_PORT0` bit 3) decrements `CREDIT_COUNT` by one and enters the start sequence with
+HL = 0x0000; a two-player start (bit 4) first checks that at least two credits are present, subtracts two,
+and enters with HL = 0x0100. The start sequence itself, `loc_0da8`/`loc_0dab`, writes that HL word to the
+player-selection pair in one 16-bit store: the low byte lands in `ACTIVE_PLAYER` [seen] (0x880d) and the
+high byte in `TWO_PLAYER_FLAG` [seen] (0x880e). So a one-player start leaves both zero, while a two-player
+start leaves the active player at 0 (player 1 goes first) and the two-player flag set. `loc_0dab` then
+seeds the in-play state — clearing the play sub-state index, setting the main game state to play and the
+in-play gate to 1, restoring upright orientation — and, when the two-player flag is set, fires the extra
+player-2 setup. It calls `loc_0e54`, which enqueues the primary panel display command plus, only when the
+coinage config is the free-play sentinel, an extra "FREE PLAY" panel command.
 
-The credit field is drawn by loc_05ee: it reads CREDIT_COUNT, clamps it to 99, converts to packed
-BCD, and writes the tens digit to **CREDIT_HUD_TENS_VRAM [code]** (0x86bf, only when the tens
-nibble is nonzero) and the units digit to **CREDIT_HUD_UNITS_VRAM [code]** (0x869f). (The same
-routine hides an anti-tamper tripwire: only when the units digit is exactly 2 does it sum the
-31-byte program block below **HUD_GUARD_CKSUM_TOP [code]** at 0x64c8 and bump
-**TAMPER_STRIKES_HUD_GUARD [code]** if the sum misses its 0x8c sentinel.)
+A game already in progress can still take a second coin: `loc_7fd6` is a per-frame trigger that returns
+unless there is a credit banked, checks whether the relevant player slot is still empty (via
+`TWO_PLAYER_FLAG`, `ACTIVE_PLAYER`, and the per-player life counts), and — if a start bit is pressed —
+routes back through `loc_0d78` to debit the credit and bring the second player in.
 
-Free play is surfaced to the player through loc_0e54: it always queues the primary display command
-(0x0701) and, only when COINAGE_CONFIG reads the 0x0f free-play sentinel, queues an extra command
-(0x0606) that lights the free-play indication. DEMO_SOUNDS_DSW gates attract-mode audio: the sound
-ring consumer (loc_0e64) dispatches a queued sound whenever bit 0 of DEMO_SOUNDS_DSW is set, but
-when that bit is clear it suppresses queued sounds while the game is idle -- silencing the attract
-demo when the operator has disabled demo sounds.
+At the end of a game the teardown path (`loc_1d0d`/`loc_1d15`) branches on `TWO_PLAYER_FLAG` and
+`CREDIT_COUNT` to decide between restart and a full stop, and on final game-over it clears both
+`ACTIVE_PLAYER` and `TWO_PLAYER_FLAG` back to zero.
 
-### Spending credits and starting a game
+### Active-player selection and two-player state
 
-With at least one credit banked, the attract/epilogue logic advances toward the start prompt: the
-shared handler epilogue at loc_0bb5, in the paid (non-free-play) branch, returns early if
-CREDIT_COUNT is zero and otherwise steps the top-level state forward so the game can be started.
+Once play is running, `ACTIVE_PLAYER` is the switch that routes every per-player resource. Its bit 0
+selects the score buffer: `selectActivePlayerScoreBuffer` returns `P1_SCORE_BCD` [seen] (0x88a2) when the
+bit is clear and `P2_SCORE_BCD` [seen] (0x88a5) when set, and the same bit chooses which score the running
+totals and the bonus-award threshold compare against.
 
-The actual start-button handling and credit spend live at loc_0d78. It inspects INPUT_PORT0: a
-1-player start (bit 3) routes to loc_0de4, which -- if CREDIT_COUNT is nonzero -- decrements it by
-one credit and jumps into the start-of-life setup with HL=0 (a one-player game). A 2-player start
-(bit 4) requires at least two credits; it subtracts two, then falls into the same setup with
-HL=0x0100. In free play, loc_0bb5 takes the parallel path: it reads the start bits directly and
-launches without touching the credit counter. A guarded variant, loc_7fd6, lets a start press mid
-sequence hand off to loc_0d78 only when a credit is present and the addressed player's slot is
-still open.
+The two players are kept apart by a bank-swap discipline. There is a single live actor/state page, and
+each player owns a saved 0x3f-byte bank — `PLAYER0_STATE_BANK` [seen] (0x8940) and `PLAYER1_STATE_BANK`
+[seen] (0x8980) — whose byte 1 is the opening X position and whose lives are held at `PLAYER0_LIVES`
+[seen] (0x8948) and `PLAYER1_LIVES` [seen] (0x8988). On a death or turn change the live page is written
+out with `saveLiveStateToPlayerBank` (or `saveLivePageToPlayer0Bank`, which also latches the active player
+to 1 when a two-player game's player 1 is still alive), always steering to the bank chosen by
+`ACTIVE_PLAYER`. At the start of each round `loc_1601` copies the active player's saved bank back into the
+live page, so a two-player game alternates by swapping whole state pages rather than by keeping two live
+copies.
 
-The start-of-life setup (loc_0dab) writes the 16-bit HL into **ACTIVE_PLAYER [seen]** (0x880d) and
-**TWO_PLAYER_FLAG [seen]** (0x880e) as a pair -- so HL=0 seats player 1 active with the two-player
-flag clear, while HL=0x0100 seats player 1 active *and* raises the two-player flag. It then clears
-the play sub-state, sets the top-level state to the play value, raises the in-play gate, re-asserts
-the normal-orientation flag, and (for a two-player game) fires the extra start jingle and clears an
-init block.
+`loc_1601` is also where `CABINET_MODE_FLAG` earns its keep: on the first entry of a two-player round,
+when the cabinet flag is clear (cocktail), it sets `FLIP_SCREEN_FLAG` to the incoming player's index so
+the display flips for the second player sitting across the table, and it enqueues a per-player
+player-select banner command; an upright cabinet leaves the orientation alone.
 
-### Active-player selection and two-player alternation
+### Config-driven schedules
 
-Throughout a two-player game the low bit of ACTIVE_PLAYER selects which player's banks are live:
-bit 0 clear picks player 1, bit 0 set picks player 2. The score path uses this directly --
-selectActivePlayerScoreBuffer (loc_04f2) returns the pointer to **P1_SCORE_BCD [seen]** (0x88a2)
-or **P2_SCORE_BCD [seen]** (0x88a5) from that bit, and the per-player timer and extra-life
-bookkeeping select their banks the same way (the bonus/extra-life step at loc_18da, for instance,
-compares the active player's score-counter MSB and reloads its award queue and BCD step size from
-BONUS_AWARD_DSW). TWO_PLAYER_FLAG is the master gate: it is nonzero only for a two-player game, and
-the MAME golden confirms it goes 0->1 at the 2-player start and holds, staying static at 0 in a
-one-player game.
+Three of the boot-decoded settings feed gameplay schedules rather than the credit path. Both players'
+starting lives are seeded from `LIVES_DSW` by the board-reset routine `loc_0e00`, which stamps that value
+into `PLAYER0_LIVES` and `PLAYER1_LIVES`; the same routine also copies `DIFFICULTY_DSW` into byte 0 of
+each player's bank, where it doubles as the player sprite's colour, and the difficulty value additionally
+scales enemy spawn and threshold tables during play.
 
-The alternation itself is a live-page/bank swap. Each player owns a 0x3f-byte saved state block --
-**PLAYER0_STATE_BANK [seen]** at 0x8940 and **PLAYER1_STATE_BANK [seen]** at 0x8980 -- and the
-game plays out of a single live page at 0x8900. When a life ends the finishing player's live page
-is copied out to their bank (loc_1a47 and loc_1bcc block-copy the live page to the bank chosen by
-ACTIVE_PLAYER, and the player-1 snapshot path at loc_1bab latches the active-player flag when the
-other player is still alive), and at the next round init (loc_1601) the *incoming* active player's
-bank is copied back into the live page. ACTIVE_PLAYER flips as each turn ends -- loc_1bcc clears it
-when player 0 still has lives, and the snapshot path raises it -- so the two players trade turns.
-The per-player life counts that decide when the swap and game-over happen are **PLAYER0_LIVES
-[seen]** at 0x8948 and **PLAYER1_LIVES [seen]** at 0x8988, both seeded from LIVES_DSW at board
-reset; the MAME two-player golden shows ACTIVE_PLAYER toggling exactly on each player's death.
+`BONUS_AWARD_DSW` drives the extra-life award schedule in `loc_18da`. When the pending threshold queue
+`AWARD_QUEUE` [code] (0x8909) is empty it reloads with 5 or 3 depending on the award switch; otherwise it
+waits until the active player's score MSB reaches the queued threshold, then bumps the saturating award
+gauge, BCD-advances the queue by 8 or 7 (again per the switch) to set the next threshold, redraws the HUD
+gauge, and appends the award sound. `DEMO_SOUNDS_DSW`, finally, is the boot-decoded gate that enables (or
+silences) sound during the attract loop.
+
+
 ## In-play progression and timers
 
-The machine runs off the vblank interrupt. Once per frame the service routine at 0x066d
-saves the register file, samples the three input ports into the edge-detect ring, decrements
-two per-frame counters, and then hands the frame to whatever the game is currently doing.
-The first counter is `FRAME_COUNTER` **[seen]** at 0x8a5f, a free-running down-counter whose
-low bits phase animations and whose zero-crossings arm the periodic integrity checks; the
-second is `WORKER_CONTROL_BYTE` **[code]** at 0x883f, the per-frame scroll worker's control
-byte (its low nibble and bit 4 steer the rendering worker, covered elsewhere). With the
-counters ticked, the service routine reads `MAIN_GAME_STATE` **[seen]** at 0x8805 and
-dispatches through the jump table at 0x06f0.
+### The top-level state machine
 
-`MAIN_GAME_STATE` is the top-level selector; it takes five values, one per handler in that
-table, and it is the spine the whole game hangs from:
+Every frame the vblank interrupt (loc_066d) samples the three input ports into the
+`0x8810` edge-detect ring, decrements two per-frame counters, and then dispatches on the
+one byte that decides what the whole machine is doing: `MAIN_GAME_STATE` **[seen]** at
+`0x8805`. It is used as an index into a five-way jump table, so its value maps directly to
+a handler:
 
-- **0 -> initial video fill (0x072d).** The tilemap is blanked a row at a time; on the frame
-  the fill drains (and the boot self-test tally at 0x8fff reads 0x10) the handler clears
-  `GAME_ACTIVE_FLAG`, raises `MAIN_GAME_STATE` to 1, clears `PLAY_STATE_INDEX`, floods the
-  attribute columns, enqueues the opening display commands, and clears the attract sub-state
-  — i.e. it hands the machine off to attract.
-- **1 -> attract/demo (0x0899).** This state dispatches a sub-state selector,
-  `ATTRACT_SUBSTATE` **[seen]** at 0x8e51, through its own 0..6 phase table at 0x08a1, every
-  handler returning through a shared epilogue.
-- **2 -> board build / start (0x0c4e).** Reached when a game is starting, this state runs a
-  three-entry sub-machine of its own keyed on `PLAY_STATE_INDEX` (table 0x0c56); the build
-  step (0x0c5c) clears `GAME_ACTIVE_FLAG`, seats the tile-fill cursor and re-seeds the fill
-  row counter, and the machine ultimately raises `MAIN_GAME_STATE` to 3 to begin play. This
-  is also the state the play loop drops back into on game-over (see below).
-- **3 -> in play (0x159b).** The gameplay driver, described in detail below.
-- **4 -> idle (0x0e53).** A bare-return slot that consumes a frame without drawing.
+- `0` &rarr; loc_072d, the attract set-up state that drains the row-by-row tilemap fill and,
+  once a boot self-test reads as passed, hands off to the attract display (advancing
+  `MAIN_GAME_STATE` to `1`);
+- `1` &rarr; loc_0899, the attract/intro machine, which itself sub-dispatches on the attract
+  sub-state at `0x8e51`;
+- `2` &rarr; loc_0c4e, the coin/credit and start state, sub-dispatching on `PLAY_STATE_INDEX`
+  (`0x880a`) and running the credit post-handler loc_0d78 afterward;
+- `3` &rarr; loc_159b, the in-play state described below;
+- `4` &rarr; loc_0e53, a bare no-op that returns without drawing.
 
-### The in-play driver and its phase machine
+Running underneath `MAIN_GAME_STATE` is the in-play gate `GAME_ACTIVE_FLAG` **[seen]** at
+`0x8806`. Start-of-life (loc_0dab) seats the pair together: it writes `MAIN_GAME_STATE = 3`
+and `GAME_ACTIVE_FLAG = 1`, resets the play sub-state to `0`, and calls the board reset
+loc_0e00. Game-over runs the opposite path (loc_1d15 / loc_1d3c): it clears
+`GAME_ACTIVE_FLAG` back to `0`, blanks the live-state page, resets `PLAY_STATE_INDEX`,
+`ACTIVE_PLAYER` **[seen]** (`0x880d`) and `TWO_PLAYER_FLAG` **[seen]** (`0x880e`), and drops
+`MAIN_GAME_STATE` back to `1` so the machine returns to attract. `GAME_ACTIVE_FLAG` is what
+the per-frame gameplay handlers read to decide whether to do anything at all — the play-timer
+tick, the field painter, and several object updaters all return immediately when it is clear.
 
-Every in-play frame the state-3 entry (0x159b) does two things in order. First it ticks the
-active player's play timer (0x7912, below). Then it dispatches a second, finer state machine
-on `PLAY_STATE_INDEX` **[seen]** at 0x880a: only the low five bits are used, indexing the
-play-phase table at 0x15a8 (the dispatch itself is at 0x15a1). This inner index is how a
-round walks through its phases — the phase handlers advance it themselves (`inc (0x880a)`) to
-step to the next phase, so gameplay is a script the index reads off one entry at a time.
+The interrupt also keeps the free-running `FRAME_COUNTER` **[seen]** at `0x8a5f`, decremented
+once per vblank so it walks steadily downward and wraps. Its low bits phase animations and its
+zero-crossings gate the periodic integrity self-checks; a sibling per-frame counter, the
+`WORKER_CONTROL_BYTE` **[code]** at `0x883f`, is decremented alongside it and controls the
+per-frame display worker. Neither is reloaded by the progression logic — they simply free-run
+while the machine is powered.
 
-Several of those phase handlers pace themselves with `PHASE_TIMER` **[seen]** at 0x8808, the
-general per-phase countdown. The field-setup phase (0x16b7) is the clearest example: it
-decrements `PHASE_TIMER` and returns unchanged until the timer hits zero, then paints the
-playfield for the current variant, seeds the fixed pointers, bumps `PLAY_STATE_INDEX` to the
-next phase and enqueues a display command. A handler that wants to hold a phase for a fixed
-span seeds `PHASE_TIMER` and spins on it this way before moving on.
+### The in-play sub-state machine and the phase timer
 
-The round-start phase (0x175d) is gated instead by a periodic one-shot: it ticks a mod-0x1c
-frame tick at 0x88b7 and, on each wrap, toggles the display one-shot at 0x8920. When that
-fires and a credit is present, it marks the round live — `ROUND_IN_PROGRESS` **[seen]** at
-0x8904 set to 1 and `WAVE_ARRIVAL_COUNTER` **[seen]** at 0x8903 set to 2 — runs the
-level-start batch (field build, gauge paint, round marker), and forces `PLAY_STATE_INDEX` to
-3 so the round proper begins on the next frame.
+In state `3`, loc_159b does two things each frame: it ticks the active player's BCD play-timer
+(below), then dispatches on the low five bits of `PLAY_STATE_INDEX` **[seen]** (`0x880a`)
+through a second jump table. This sub-state is the level-intro-to-active-play sequencer, and its
+handlers step it forward through the observed phase values (`1`, `2`, `3`, `4`, and the higher
+transition/bonus phases):
 
-### The round/level counters (the 0x8900 page)
+- index `0` (loc_1601) is round init. It waits for the tilemap fill to drain (returning early
+  until it does), clears the actor arena and a block of round-init cells, and then seeds the
+  phase timer and advances the sub-state. On the first entry of a round it also raises a
+  once-per-round latch, enqueues the player-select display command and floods the colour map;
+  otherwise it uses a short timer seed. The shared tail restores the active player's saved bank
+  into the live page (below) and copies the round message table into the tile message buffer.
+- index `1` (loc_16b7) is a timed wait. Each frame it decrements `PHASE_TIMER` **[seen]**
+  (`0x8808`) and returns while it is still nonzero; only when it expires does the phase run its
+  field set-up — it chooses a (graphic, layout) pointer pair from a decision tree keyed on the
+  round and in-progress flags, seeds the fixed pointers, bumps `PLAY_STATE_INDEX` to the next
+  phase, and enqueues a display command. `PHASE_TIMER` is the general-purpose phase clock: it is
+  reloaded (to `0x02`, `0x80`, or a latched value at round init) and counted down by the state
+  handlers to time each transition.
+- index `2` (loc_175d) advances the sub-phase animation clock and then commits to active play.
+  It increments `SUBPHASE_TICK` **[seen]** (`0x88b7`), which wraps at `0x1c`; on each wrap it
+  toggles the display sub-phase one-shot at `0x8920` (`FORMATION_SLOT_TABLE` **[seen]**, whose
+  byte 0 fires on that wrap). Past those guards, and provided a credit is in play and the round
+  has not already started, it marks the round in progress — `ROUND_IN_PROGRESS` **[seen]**
+  (`0x8904`) `= 1` and `WAVE_ARRIVAL_COUNTER` **[seen]** (`0x8903`) `= 2` — runs the level-start
+  batch (round-number render, siren/spawn set-up, seeding several object timers to `0x10`), and
+  finally forces `PLAY_STATE_INDEX = 3`, the running-gameplay phase.
 
-The state that describes "which round, how deep, how far along" lives in a compact block at
-the base of the 0x8900 page, and the whole block is wiped together at each board reset (see
-`loc_0e00` below), so a fresh game starts every one of these at zero.
+### Round and level progression
 
-`ROUND_COUNTER` **[seen]** at 0x8907 is the round number. It is bumped by the round-phase
-handler (0x1a01), rendered +1 as the HUD round digit, and its low bits pick stage variants:
-bit 0 selects the stage type / facing, bit 1 gates the target-group fan-out. It also indexes
-the difficulty tables that scale enemy behaviour.
+The round number lives in `ROUND_COUNTER` **[seen]** at `0x8907`. It is advanced by the
+round-transition handler loc_1a01, which first reseeds the spawn/rope draw counters (via the
+board/HUD reset loc_2527, whose returned fill value it stores into `SPAWN_PHASE_COUNTER`
+**[seen]** at `0x8902` and the rope draw count at `0x8934`), seats the stage attribute, and then
+bumps `ROUND_COUNTER`. It reads the new value's low bit: on the odd result it falls straight
+through, and on the even result it either sets the play-mode latch `PLAY_MODE_LATCH` **[code]**
+(`0x8f50`) — undoing the bump so the round only truly advances on the alternate pass — or, when
+`GAME_ACTIVE_FLAG` is clear, diverts to the game-over reset. Every non-game-over exit tails into the
+save-to-bank copy; the `GAME_ACTIVE_FLAG`-clear branch diverts to the game-over reset instead.
 
-`STAGE_COUNTDOWN` **[seen]** at 0x8901 is the on-screen depth number — the count that ticks
-down as the round drains. The round-phase handler (0x1a01) seeds it at the top of a round
-(0x28 for the first rounds, 0x30 once `ROUND_COUNTER` reaches 2, i.e. the seed is scaled by
-round), and the despawn tick (0x34b0) drains it one step at a time and renders it as the
-two-digit HUD stage number at `HUD_STAGE_DIGIT_LO` **[seen]** (0x8743, tens one tilemap row
-up), BCD-converting the value for display once it is 0x0a or greater. As it nears zero it
-gates the enemy AI. WARNING: this one cell is both the live countdown and the value the HUD
-digit painter reads — nothing else caches the displayed stage number, so a write here is a
-write to the screen next frame.
+`ROUND_COUNTER` then drives most of the difficulty and cosmetic variation across the game.
+Its low bit selects the playfield colour/attribute variant that loc_1dd3 paints (odd vs even
+source tables, plus the special first/idle-round strip). It is BCD-rendered as the HUD round
+number: both loc_1ead and loc_1f2f take `ROUND_COUNTER + 1`, convert it by a repeated
+add-and-decimal-adjust loop, split it into high/low nibble tiles (blanking a leading zero) and
+stamp them into the HUD. Its higher bits index the enemy speed/difficulty tables, and the
+enemy speed index `SPEED_INDEX` **[seen]** at `0x8900` escalates with the round, so later
+rounds run faster and fire harder.
 
-The rest of the block carries the finer round bookkeeping. `SPAWN_PHASE_COUNTER` **[seen]**
-at 0x8902 cycles across a round (to 7) selecting the spawn/fire-mode branch; the round-phase
-handler reseeds it and mirrors it into its snapshot `ROPE_DRAW_COUNT` **[seen]** (0x8934),
-and the despawn tick bumps it on the specific sub-state where `PLAY_STATE_INDEX` is 4.
-`WAVE_ARRIVAL_COUNTER` (0x8903) counts arrivals within the stage. `ROUND_IN_PROGRESS`
-(0x8904) is simply the "a round is running" flag, raised at level start and read by the
-render/state decision trees. `SPEED_INDEX` **[seen]** at 0x8900 is the enemy speed/difficulty
-index that escalates as rounds advance.
+Within a round, the stage is tracked by `STAGE_COUNTDOWN` **[seen]** at `0x8901`. It counts
+down as the wave is cleared: the shared enemy-despawn tail loc_34b0 drops the active-enemy count
+and, while `STAGE_COUNTDOWN` is still above zero, decrements it by one, then repaints it as its
+two HUD digits (renderStageCountdownDigits). Its value doubles as the stage label index that
+loc_1f2f maps to a column code and renders. `WAVE_ARRIVAL_COUNTER` (`0x8903`) counts enemy
+arrivals across the stage and, at round init, is used to size the extended-rope count
+`ROPE_SEGMENT_COUNT` **[seen]** (`0x8931`, set to the arrival count minus two). Board completion
+is signalled by `BOARD_CLEAR_FLAG` **[code]** at `0x89e5`: when set it freezes the per-frame
+object updates and diverts the handlers onto the board-clear / level-intro path. A parallel
+anti-tamper freeze `TAMPER_OBJECT_FREEZE_FLAG` **[code]** (`0x89fb`) is ORed with it, so a
+detected ROM-integrity strike stalls object updates the same way a real board clear does.
 
-`GAUGE_PHASE_COUNTER` **[seen]** at 0x8908 is a phase gauge, drawn as a five-cell vertical
-HUD column that fills from `PHASE_GAUGE_BASE_TILE` **[seen]** (0x863f) upward — the renderers
-at 0x03c2 / 0x2065 light `value - 1` cells, clamped to five. It behaves oppositely at its two
-ends. It *fills* on scoring milestones: the pending-award stepper (0x18da) bumps it
-(saturating at 0xff) each time the active player's score high byte reaches the queued award
-threshold, then advances the award queue. It *drains* one cell per phase in the gauge-drain
-sub-state (0x1a64): while a play-latch is clear that handler decrements the gauge and
-repaints it, and on reaching zero it tails into the phase-exhausted handler (0x1a96), which
-clears the rope segment/marker cells, advances `PLAY_STATE_INDEX`, and runs the high-score
-insert-sort (0x1ab2). Between those, the gauge-drain entry re-seeds `PLAY_STATE_INDEX` to
-0x0a (or 0x0b for the second player) so the drain phase repeats until the gauge empties.
+### The live-state page and per-player banking
 
-### The per-player play timers
+The block of in-play state from `0x8900` upward — `SPEED_INDEX`, `STAGE_COUNTDOWN`,
+`SPAWN_PHASE_COUNTER`, `WAVE_ARRIVAL_COUNTER`, `ROUND_IN_PROGRESS`, `ROUND_COUNTER` and the
+rest — is a single live page that belongs to whichever player is currently up. Two saved copies
+sit above it: `PLAYER0_STATE_BANK` **[seen]** at `0x8940` and `PLAYER1_STATE_BANK` **[seen]** at
+`0x8980`, each a `0x3f`-byte snapshot of the page. At round init (loc_1601) the active player's
+bank is copied down into the live page, and at each round transition the save tail loc_1a47
+copies the live page back up into that player's bank (destination chosen by `ACTIVE_PLAYER`) and
+zeroes `PLAY_STATE_INDEX`. In a two-player game this is how the two players alternate without
+trampling each other's progress: `ACTIVE_PLAYER` selects the bank, the loser's page is banked out
+and the next player's is banked in.
 
-Two identical BCD play-time accumulators run, one per player: `PLAY_TIMER_BCD_P1` **[code]**
-at 0x8a30 and `PLAY_TIMER_BCD_P2` **[code]** at 0x8a33. Each is a three-byte bank — the base
-byte is a per-frame sub-counter, +1 is the BCD seconds digit, +2 is the BCD minutes digit.
+Each player's remaining lives live inside that bank — `PLAYER0_LIVES` **[seen]** at `0x8948`
+and `PLAYER1_LIVES` **[seen]** at `0x8988` — seeded from the cabinet lives switch `LIVES_DSW`
+**[code]** (`0x8807`) when a new board is reset (loc_0e00). loc_0e00 clears the whole live page,
+seeds each bank's lives, opening X and sprite colour from the switches, and (only when the game
+is active) clears the launch flags. The board/HUD reset loc_2527 reseeds the spawn-phase and
+rope-draw counters to `4` once the spawn phase reaches its cap and mirrors a fill value into a
+handful of actor/HUD cells, giving each stage a clean starting state.
 
-The tick (0x7912), run at the very top of every in-play frame, first bails if
-`GAME_ACTIVE_FLAG` is clear. It then selects the pair belonging to the active player through
-`ACTIVE_PLAYER` **[seen]** at 0x880d: player 0 gets gate 0x89e1 with counter 0x8a30, player 1
-gets gate 0x89e2 with counter 0x8a33. Before touching the counter it checks that player's
-gate byte — `PLAY_TIMER_GATE_P1` **[code]** (0x89e1) or `PLAY_TIMER_GATE_P2` **[code]**
-(0x89e2) — and bails if it is set. The gate is the pause switch: a nonzero gate freezes that
-player's clock (both gates and both banks are zeroed at each board reset). Otherwise the
-frame sub-counter advances and, at its roll, BCD-carries into seconds and then minutes.
+### The per-player BCD play timers
 
-WARNING: two readings here are counterintuitive. The sub-counter's roll point is 0x3b or
-0x3c, chosen by bit 0 of the current seconds byte, so the accumulator alternates a 60- and
-61-frame "second" rather than using a fixed period. And the timer counts *up* — it is a
-running record of elapsed play time, not a countdown that can end the game. The seconds
-digit's low nibble rolls at 0x0a and its high nibble at 0x60 (true base-60 seconds); minutes
-carry the same way.
+Each player also owns a small wall-clock timer that accumulates their elapsed play time in
+BCD: `PLAY_TIMER_BCD_P1` **[code]** at `0x8a30` and `PLAY_TIMER_BCD_P2` **[code]** at `0x8a33`.
+Each is a three-byte bank — a per-frame sub-counter in byte 0, then BCD seconds and BCD minutes.
+loc_7912 ticks the active player's timer once per in-play frame: it returns immediately if
+`GAME_ACTIVE_FLAG` is clear, then selects the current player's bank from `ACTIVE_PLAYER` and
+returns again if that player's gate byte is set. The gates are `PLAY_TIMER_GATE_P1` **[code]**
+(`0x89e1`) and `PLAY_TIMER_GATE_P2` **[code]** (`0x89e2`); a nonzero gate suppresses the tick for
+that player. When the tick runs, the sub-counter climbs to `0x3b` (or `0x3c`, the extra frame
+chosen by bit 0 of the seconds byte, so successive seconds alternate 60/61 frames), and on that
+roll it clears and carries into the seconds digit; the seconds low nibble rolls at `0x0a` and the
+high nibble at `0x60` (i.e. 60 seconds), carrying in turn into the minutes digit. The result is a
+straightforward MM:SS clock ticking about once a real second.
 
-The accumulated time is drawn by the render handler at 0x7960, also run inside the in-play
-frame. It splits the active player's minutes and seconds BCD bytes into hi/lo nibble tiles up
-the video column at `PLAY_TIMER_DIGIT_VRAM` **[code]** (0x862d), parted by a spacer tile,
-then clears those three timer bytes — so on-screen the figure is redrawn from a bank the
-render itself has just zeroed. (This same handler carries integrity checksums around the
-render; those belong to the anti-tamper story.) When a game ends, the player's final time is
-copied into the parallel high-score time side-table by the insert-sort (0x1ab2), which is why
-a scoreboard entry carries a play time beside its score.
+The timer is rendered by loc_7960, which stamps the active player's minutes and seconds BCD as
+individual hi/lo nibble tiles up the video column anchored at `PLAY_TIMER_DIGIT_VRAM` **[code]**
+(`0x862d`), parting the two digit groups with a spacer tile, and then clears the rendered timer
+bytes. This render is bracketed by the game's anti-tamper self-checks: on entry it folds a
+checksum over a fixed code block and matches it against the guard bytes that trail the block,
+and after the render it scans a small flag block that can divert to a second tail checksum —
+mismatches trip an integrity error (unreachable with intact ROM data).
 
-### Board reset and the game-over turnaround
+Finally, the timer feeds the high-score table. When a finished player earns a high-score slot,
+loc_1ab2 inserts their score into the sorted ten-entry table and, riding alongside, shifts the
+parallel play-time side table `HIGH_SCORE_TIME_TABLE` **[code]** (`0x89e0`) down a slot and
+writes the active timer's seconds/minutes BCD into the opened entry, seating that player's timer
+gate to `1` so the timer stops accumulating. It also records the winning rank in
+`HIGH_SCORE_INSERT_RANK` **[code]** (`0x89fc`). So the per-player play timer is both a live
+metric during a game and a recorded value preserved next to each high score.
 
-A new board is set up by `loc_0e00`. It zeroes the entire 0x8900-page state region in one
-sweep — 0xbf bytes from 0x8900, which takes down `SPEED_INDEX`, `STAGE_COUNTDOWN`, the
-spawn/wave counters, `ROUND_IN_PROGRESS`, `ROUND_COUNTER`, `GAUGE_PHASE_COUNTER` and the rest
-at once — and separately clears `PLAY_STATE_INDEX` and both play-timer gates. It then seeds
-both players' lives, `PLAYER0_LIVES` **[seen]** (0x8948) and `PLAYER1_LIVES` **[seen]**
-(0x8988), from the cabinet lives byte `LIVES_DSW` **[code]** (0x8807), gives each its opening
-X and colour, and — only when the game is active — clears the launch/formation flags.
 
-When play ends, the state-3 driver's post-dispatch continuation (0x15d1) governs the
-turnaround. While `GAME_ACTIVE_FLAG` is still set it simply returns, leaving the game running.
-Once that flag is clear (game over) and a credit remains and the cabinet is not on free play,
-it forces `MAIN_GAME_STATE` back to 2 and `PLAY_STATE_INDEX` to 0, runs the board/HUD reset,
-and blanks an eight-tile column — handing the machine back to the board-build state to start
-the next game. That closes the loop: fill (0) -> attract (1) -> board build (2) -> play (3)
--> back to board build (2) for the next credit.
 ## The actor arena
 
-Every moving thing in Pooyan — the player, the wolves that ride the elevators, the arrows and meat and stones in flight, the eagle waves of the bonus stage — lives as a fixed-length record in one contiguous bank of work RAM. The bank begins at `ACTOR_TABLE` **[seen]** (0x8a80) and is carved into 24-byte (0x18) records on a uniform stride. Slot 0 is the player/lead actor; `LEAD_ACTOR_STATE` **[seen]** (0x8a82) is that record's phase byte, and `PLAYER_Y` **[seen]** (0x8a84) its vertical position, from which the elevator carries the hunter up and down. The rest of the bank is a landscape of sub-tables, each a run of the same 24-byte records reached at a fixed address: the enemy/eagle records at `ENEMY_ACTOR_TABLE` **[seen]** (0x8ae0), the secondary sprite-object pool at `SPRITE_OBJECT_TABLE` **[seen]** (0x8b70), the six per-frame object records at `OBJECT_STATE_RECORD_BASE` **[code]** (0x8ba0), the projectile records at `PROJECTILE_TABLE` **[seen]** (0x8be8), the four-slot `FORMATION_TABLE` **[seen]** (0x8c30), the three-slot `SPAWN_OBJECT_TABLE` **[seen]** (0x8c48), the six-slot `HUNTER_TABLE_BASE` **[code]** (0x8c78, scanned downward), and the two-record I-parity target pair `ENEMY_TARGET_REC0` **[seen]** / `ENEMY_TARGET_REC1` **[seen]** (0x8c90, 0x8ca8). These are not separate structures — they are windows into one arena of identically-shaped records.
+Every moving thing on screen -- the player, the enemy birds, the arrows, the falling and
+rising objects, the rope segments and the formation hunters -- lives as a fixed 0x18-byte
+record inside one contiguous block of work RAM that begins at `ACTOR_TABLE` **[seen]**
+(0x8a80). At board init `clearActorArena` zeroes the 0x200-byte span from that base, so a
+fresh board starts with every record blank and inactive; the heavier teardown
+`clearActorArenaAndCounters` zeroes an even longer 0x241-byte span and then resets the
+per-board tallies `SPAWN_PHASE_COUNTER` **[seen]** (0x8902), `WAVE_ARRIVAL_COUNTER`
+**[seen]** (0x8903) and `ROPE_SEGMENT_COUNT` **[seen]** (0x8931) before forcing
+`PLAY_STATE_INDEX` **[seen]** (0x880a) to sub-state 6. The single-record clear helper
+`loc_221e` blanks one 0x18-byte slot to zero, and `loc_3553` clears a record's 0x17-byte
+"sprite band" (the whole body bar its last byte) -- the routine the game reaches for when it
+retires an actor mid-frame.
 
-That uniform shape is the key to reading the whole subsystem, but it comes with a warning: the 24-byte record is a *union*, not a struct. Each state handler interprets the fields in the way its own kind of object needs, and the same offset means different things to different handlers. Reliably across the arena, the first two bytes (+0x00 / +0x01) hold the active/mode flags — a record is "live" when bit 0 of one of them is set — and +0x02 is the state/phase index that selects which handler runs. Beyond that the reuse is heavy: +0x03/+0x04/+0x05/+0x06 are a two-axis 16-bit position (fraction and integer row for each axis), +0x09 is usually a signed per-frame velocity or step (with its two's-complement negation cached at +0x0a), +0x0c:+0x0d is a 16-bit animation-sequence pointer with the frame-hold counter at +0x0e, +0x0f/+0x10 receive the colour and tile the animation stream emits, and +0x11 is a dwell/phase down-counter. But +0x12, for instance, is a 0xff opening marker to the record-seeder, a waypoint-script pointer to the in-flight mover, and an animation-hold timer to the hold-ticker — same byte, three readings. A person tracing one field across the arena must follow the handler, not the offset.
+### One block, many overlapping views
 
-**Board setup and teardown.** A fresh board begins by zeroing the arena. `clearActorArena` (0x19bc) wipes a 0x200-byte block from `ACTOR_TABLE` — the player record, the enemy sub-array, and everything past it — so no stale actor state survives into a new board. The teardown counterpart `clearActorArenaAndCounters` (0x2ae8) is the state-7 handler: it clears a 0x241-byte span from the same base, resets the spawn/wave/rope tallies (`SPAWN_PHASE_COUNTER`, `WAVE_ARRIVAL_COUNTER` **[seen]**, `ROPE_SEGMENT_COUNT`), and forces the in-play sub-state `PLAY_STATE_INDEX` to 6, handing control on to the next phase. Individual records are torn down in place by `loc_221e` (blank the 0x18-byte record at IY to zero) and `loc_3553` (blank a 0x17-byte sprite band from IX); both simply drive the shared run-fill helper across the record.
+The arena is not a set of disjoint allocations; it is one address range that different
+routines view through different windows, each a run of records one 0x18 stride apart. Named
+regions sit at fixed offsets from the base:
 
-**The per-frame state dispatch.** The heart of the arena is a small family of sweeps that walk a table and hand each live record to a state machine. The main one iterates six records of stride 0x18 from `OBJECT_STATE_RECORD_BASE` (0x8ba0), calling `dispatchActiveObjectState` (0x7707) on each. That routine skips any record whose +0x00/+0x01 both have bit 0 clear (inactive — nothing to service), and for a live record it takes the low two bits of the state byte (+0x02)&3 and tail-hands off to one of four handlers. State 0 (0x771d) *arms a new object*: it counts a frame timer at +0x11 down, and on expiry pulls the next spawn index from a ring counter, records it at +0x13, looks up a word from a spawn table into +0x15/+0x16, seeds the velocity byte at +0x0a, then bumps the state and falls straight into state 1 so the just-armed object also moves this frame. State 1 (0x7740) *advances* the object: it steps the animation, integrates the signed speed (+0x0a) into the sub-position with a borrow into +0x04, and once the object crosses into the next cell it advances the state, reloads the frame timer to 0x18, and queues an effect. State 2 (0x7790) *draws* the object twice (once at its screen pointer, once a row above) and then falls through into the record-clear path. Each handler returns straight to the sweep's continuation.
+- `ACTOR_TABLE` (0x8a80) holds the lead actors. Slot 0 is the player: its state selector is
+  `LEAD_ACTOR_STATE` **[seen]** (0x8a82, slot0+2), its vertical position is `PLAYER_Y`
+  **[seen]** (0x8a84, slot0+4), and its input/aim byte is `PLAYER_AIM_FLAGS` **[code]**
+  (0x8a87, slot0+7). The player is *drawn* as three vertically stacked sprites, so
+  `deriveStackedSpriteYs` fans `PLAYER_Y` out into the +4 Y fields of slots 3/2/1 (base Y at
+  slot 3 = 0x8acc, Y-0x10 at slot 2, and 0x0a below that at slot 1). Slot 2's record
+  (`ACTOR_TABLE`+0x30) is also read as the arrow/launch group when the display list is
+  rebuilt, and its +4 Y is named `ARROW_Y` **[code]** (0x8ab4) -- the same byte the
+  stacked-sprite derivation touches, so the two roles share the cell.
+- `ENEMY_ACTOR_TABLE` **[seen]** (0x8ae0 = base+0x60) is the moving-object band. It is the
+  widest window: the per-frame display rebuild treats 0x12 (18) records starting here as
+  movers, and 18 strides of 0x18 reach exactly to 0x8c90 -- so this one view spans every
+  object pool up to the enemy-target pair. The single record at 0x8b28 (0x8ae0+0x48) has its
+  own dispatcher, `loc_6822`, gated by `ENEMY_REC_DISPATCH_GATE` **[code]** (0x8afa): when
+  that byte is zero the dispatch is skipped entirely.
+- `SPRITE_OBJECT_TABLE` **[seen]** (0x8b70) is a 5-slot secondary pool that `loc_13bc` scans
+  for a free entry; `OBJECT_STATE_RECORD_BASE` **[code]** (0x8ba0) is a 6-slot per-frame
+  state array that runs into `PROJECTILE_TABLE` **[seen]** (0x8be8). Further up sit
+  `FORMATION_TABLE` **[seen]** (0x8c30), `SPAWN_OBJECT_TABLE` **[seen]** (0x8c48),
+  `HUNTER_TABLE_BASE` **[code]** (0x8c78, scanned downward), and the two-entry I-parity
+  target pair `ENEMY_TARGET_REC0` **[seen]** (0x8c90) / `ENEMY_TARGET_REC1` **[seen]**
+  (0x8ca8, base0+0x18).
 
-The same dispatch shape recurs for the other object kinds. The fountain/object dispatcher `loc_64fb` (0x64fb) selects among three handlers by the full state byte at +0x02 (0/1/2). The 0x8b28 enemy record — a single record 0x48 bytes into the enemy sub-array — is serviced by a gated dispatcher (0x6822) that returns immediately unless `ENEMY_REC_DISPATCH_GATE` **[code]** (0x8afa) is non-zero, then dispatches its state byte through a three-entry table (0x683a / 0x6857 / board-clear check). And the object-state handlers themselves form a rich set: `loc_683a` advances a record to its next state (bump the phase, zero the sub-position, seat fixed field values, arm an animation from `ANIM_PARAM_68EF` **[code]**); `loc_4103` and `loc_4350` are per-object frame steps that animate then count a dwell timer down before advancing; `loc_67a0`, `loc_672a` and `loc_69c6` are descent steppers; `loc_3e9c` is the in-flight mover.
+### The record structure
 
-**Motion.** The arena's movers are small, self-contained steppers that each own one record's kinematics. `advanceFallStep` (0x3fd5) treats the vertical position as 16-bit fixed point — fraction at +0x03, integer row at +0x04 — adding the fall velocity (+0x09) into the fraction and carrying one whole row on an 8-bit overflow; it reports (via carry) whether the actor is still above the landing row 0x1e. `advanceRisingActorStep` (0x2ab3) is its mirror for a rising actor: it reloads a short delay, flips the display tile between 0x15 and 0x1e every fourth frame, drives the rise upward, and on reaching the top (0xc0) nudges the base Y and advances the state with a long inter-state delay. `advanceActorDropStateOnDelay` (0x24db) counts the delay at +0x11 down and only at zero nudges the actor down, restamps its tile, reseeds the delay to 0x30, and advances the state. `loc_667c` advances an idle actor's sub-position and retires the record at the top row (0x1d) by forcing its state to 2 and clearing its position. `loc_2a32` is the state-3 handler: it flips the tile every fourth frame, advances the 16-bit position by a fixed step, and fires milestone display commands as the high byte passes 0x52 and 0x64. `loc_3e9c` moves a spawned object either along a dx/dy waypoint script (a 0xee lead byte is a "rewind here" loop marker) or in free flight with optional homing toward a target, landing when it crosses the gate and flipping into the landing state via `LANDING_ANIM_SEQ_40B4` **[code]**. `loc_69c6` steps a *paired* ix/iy descending object, lowering both records' positions together and retiring both (0x18-byte wipe each) when the ix high byte reaches zero.
+Across the routines a consistent 24-byte layout emerges. The first two bytes are activity
+flags -- a record is live when bit 0 of (+0) or (+1) is set; several handlers key their whole
+behaviour off (+1) as a secondary state. (+2) is the primary state/kind byte the dispatchers
+read. The position fields are 16-bit fixed point split across two pairs: (+3):(+4) is a
+fraction:row for the vertical axis and (+5):(+6) is the second axis, with (+9) the per-frame
+velocity/step folded into the fraction (an 8-bit overflow carries one whole unit into the
+integer byte). (+7) and (+8) are flag bytes (joystick bits, spawn-step and turn-select bits,
+a high-nibble gate); (+0a)/(+0b) carry a mirrored velocity and an animate/every-4th-frame
+counter. The animation fields are (+0c):(+0d) the little-endian sequence pointer, (+0e) the
+frame-hold countdown, (+0f) the colour attribute and (+10) the tile code -- exactly the bytes
+the display copy pulls out. (+11) is a per-frame delay/dwell timer, (+12) a hold timer or
+0xff spawn marker, (+13) a 2-bit phase, (+14) a sprite id, and (+16):(+17) a secondary
+16-bit script pointer with (+15) its step index.
 
-The eagle wave has its own movers. Its records are walked out of the 0x8ae0 table — the driver at 0x72a7 runs `2 * WAVE_INDEX` **[seen]** records once the wave is launched. `loc_733c` is the approach/arrival test: an eagle "arrives" at a record's grid slot when its column (`EAGLE_X_COORD` **[code]** >> 3) matches the record's target column (+0x06) or the one just before it, and its row (`EAGLE_Y_COORD` **[code]** >> 3, +4) falls inside a five-row window above the record's target row (+0x04). On arrival it advances the state and arms an animation, choosing between `EAGLE_ODD_RECORD_ANIM` **[code]** and `EAGLE_EVEN_RECORD_ANIM` **[code]** by bit 3 of the record's low address; the even records also bump `WAVE_RECORDS_ARRIVED` **[seen]** and, once the whole wave has arrived, queue the wave-arrival command (`WAVE_ARRIVAL_CMD_BASE` **[code]** offset by the count). `loc_7395` then integrates the record's vertical position by its speed — even records dive (advance state at the bottom row 0x1d), odd records climb (advance state below the top row 0x04). The wave's end-of-phase reset, `advanceEaglePhaseAndClearAim` (0x7292), drops the player aim flags in `PLAYER_AIM_FLAGS` **[code]** (0x8a87) and the latched enemy X in `LATCHED_ENEMY_X` **[seen]** (0x8f5b), steps the eagle-wave outer phase, and clears the arrived count.
+### The animation engine
 
-**Animation stepping.** An actor is pointed at an animation by `setActorAnimation` (0x381e) or its sibling `storeActorAnimationPointer` (0x5c75): both write a 16-bit sequence pointer little-endian into +0x0c:+0x0d and reset the frame index at +0x0e to zero, restarting the stream. The stream is then walked frame by frame by `advanceActorAnimFrame` (0x403c) and its twin `loc_4006` (called by nearly every object-state handler). The frame-hold counter at +0x0e is a countdown: while it is non-zero the current frame simply holds. At zero the walker reads the byte the +0x0c:+0x0d pointer addresses — a 0xff opcode reloads that pointer from the next two stream bytes (a jump within the sequence) and re-reads, and any other byte begins a three-byte frame record whose bytes land at +0x10 (tile), +0x0f (colour/attribute) and +0x0e (the new hold), after which the advanced pointer is stored back. The ROM supplies the sequences: `ANIM_TABLE_3829` **[code]**, `ANIM_TABLE_3838` **[code]**, the turn scripts `ANIM_SCRIPT_4203` **[code]** and `ANIM_SCRIPT_4212` **[code]**, `ANIM_PARAM_68EF`, `RECORD_ANIM_SEQ_2CA7` **[code]** and the eagle sequences; the specific on-screen animations they encode are read from the sequence data but not otherwise pinned down.
+Animation is a shared byte-code interpreter. `advanceActorAnimFrame` (and its identical
+sibling `loc_4006`) is the per-record stepper: while (+0e) is non-zero it decrements and holds
+the current frame; at zero it walks the sequence stream addressed by (+0c):(+0d). A 0xff
+opcode reloads that pointer from the next two stream bytes (a jump) and re-reads; any other
+byte begins a three-byte frame -- tile into (+10), colour into (+0f), the new hold into (+0e)
+-- after which the advanced pointer is written back. `loc_22e6` is a variant that pulls its
+frames not from a per-record pointer but from a single shared cursor, `ANIM_SCRIPT_CURSOR`
+**[seen]** (0x8f00): a normal {tile, colour, delay} triple is copied into the record and the
+cursor advanced, while a 0xff lead byte is a control marker whose two following bytes replace
+the cursor. That marker has a rival full-reset branch to `ANIM_SCRIPT_RESET_PTR` **[code]**
+(0x26e7), but it only fires when `foldTargetPresenceBits` returns 3 -- and that fold seeds 0
+and is only ever rotated, so in practice the marker always resolves as the inline jump.
 
-A second, shared animation channel runs off a single global cursor. `loc_22b1` (0x22b1) steps four actor records one stride apart from `ACTOR_TABLE` through `loc_22e6` (0x22e6), unless a rope grab is in progress (`GRAB_ACTIVE_FLAG` **[seen]** set), in which case the whole pass is skipped. `loc_22e6` reads a {tile, colour, delay} triple from the shared `ANIM_SCRIPT_CURSOR` **[seen]** (0x8f00), copies it into the record, and advances the cursor; a 0xff lead byte is a control marker whose two following bytes replace the cursor (an inline jump). There is a rival full-reset arm — resetting the cursor to `ANIM_SCRIPT_RESET_PTR` **[code]** (0x26e7) — but it fires only when `foldTargetPresenceBits` (0x22d0) returns 3, and that fold seeds zero and is only ever rotate-shifted, so it never reaches 3: the marker always resolves as the inline jump. Separately, `tickActorAnimHold` (0x5d1e) runs a per-record hold countdown at +0x12, stepping a two-bit phase at +0x13 and disarming at phase end; `loc_5d0b` (0x5d0b) drives it across all six records of the enemy actor table.
+Two helpers arm a record onto a new sequence: `setActorAnimation` and
+`storeActorAnimationPointer` both write the little-endian pointer into (+0c):(+0d) and reset
+the frame index (+0e) to 0, restarting the animation from step 0. `tickActorAnimHold` is the
+countdown-driven variant used for the enemy band: it proceeds only for records flagged to
+animate (or, absent the flag, on even `ROUND_COUNTER` **[seen]** frames), and on each timer
+underflow at (+12) it steps the 2-bit phase at (+13) down, re-arming (+16) while phase
+remains and disarming at phase end.
 
-**Spawning and seeding.** New records are stamped by a small set of seeders. `initActorRecord` (0x619f) writes the fixed opening constants (+0x00=0, +0x01=1, +0x02=8), the 0xff marker at +0x12, and a 16-bit datum at +0x16:+0x17. `seedObjectRecord` (0x0a0c) fills a record from a two-byte descriptor and a two-byte coordinate stream and clears the frame timer. `loc_6523` (0x6523) seats a fresh object record — bailing on an odd id word or while `SIGNATURE_MISMATCH_FLAG` **[code]** (0x8ef0) is held — then snapshots `SHARED_FRAME_DELAY_TIMER` **[code]** (0x8929) into +0x06, steps that shared timer down by two, and enqueues `OBJECT_SPAWN_DISPLAY_CMD` **[code]** (0x0611), plus `OBJECT_SPAWN_DISPLAY_CMD_ALT` **[code]** (0x0607) when `ROUND_COUNTER` **[seen]** (0x8907) is zero. `stampObjectAndDecCounter` (0x57e5) reads a control byte, decrements a shared counter in place, and stamps two fixed state bytes (+0x13, +0x16) into a record. The formation spawn `loc_53b0` (0x53b0) is one-shot and triply gated — a non-zero descriptor, a clear `SPAWN_LATCH` **[code]** (0x8d59), and `FRAME_COUNTER` **[seen]** (0x8a5f) at its zero crossing — and on firing it latches the spawn, fills the `FORMATION_TABLE` record (a field byte from `SPAWN_FIELD_TABLE` **[code]** and its negation, fixed state/phase bytes, an armed turn animation), and derives the spawn speed from the round counter (halved, +1, clamped to 6) through `SPAWN_SPEED_INDEX` **[code]** into `SPAWN_SPEED_VALUE` **[code]** via `SPAWN_SPEED_TABLE` **[code]**. `adjustSpawnColumn` (0x57b4) nudges the spawn-column index by wave progress (`WAVE_PROGRESS_COUNTER` **[seen]**) only in the early stages, while `STAGE_COUNTDOWN` **[seen]** is still low.
+These leaves are driven in batches. `loc_22b1` steps four lead records through the shared-cursor
+stepper unless `GRAB_ACTIVE_FLAG` **[seen]** (0x8d32) is set (a rope-grab freezes the pass);
+`loc_5d0b` ticks the hold countdown across the six enemy records from `ENEMY_ACTOR_TABLE`; and
+`loc_09f8` animates four `SPRITE_OBJECT_TABLE` records and then rebuilds the display list.
 
-An actor's colour/attribute byte at +0x08 is built by `loc_36de` (0x36de): it indexes `ACTOR_ATTR_BASE_TABLE` **[code]** by `2*DIFFICULTY_DSW` **[code]** plus the clamped round, steps that base value down past the record's armed-gate flags (+0x16, +0x13) and its phase (+0x06), biases it up by 3 when the stage countdown is nearly out, and ORs the value looked up from `ACTOR_ATTR_MERGE_TABLE` **[code]** into +0x08. The turn animations are armed by `loc_425c` and `loc_423a`, which set or clear `TURN_COLUMN_LIMIT` **[seen]** (0x8d4b) and point the record at its turn script; `loc_141c` / `loc_1389` gate an actor's spawn/queue step on its phase and flag byte before re-arming its animation.
+### Per-frame state dispatch
 
-**Collision and retirement.** Shots are hit-tested against objects by the proximity scan at 0x6435. It picks its target and object tables by `PLAY_MODE_LATCH` **[code]** (0x8f50) — one player's set scans the `SPAWN_OBJECT_TABLE` against the target slots, the other scans the `PROJECTILE_TABLE` against `SPRITE_TARGET_SLOTS` **[seen]** (0x887c) — then walks three object slots (stride 0x18). An object is a hit when it is active and lies within ±7 of the scanning actor in both X and Y, using an X bias that depends on `FLIP_SCREEN_FLAG` **[seen]** (0x881f). On a hit the object is reset (bytes 0/1/2 cleared, +0x11 reseeded to 0x20), a one-frame hit flag is raised — `OBJ_HIT_FLAG_I0` **[seen]** (0x8d1b) or `OBJ_HIT_FLAG_I1` **[seen]** (0x8d1c), chosen by an I-parity slot index rather than by the player — effects are queued, and the running `HIT_TALLY` **[code]** (0x8f52) is bumped for the end-of-level bonus. The struck object is then dismantled the following frame by `loc_21cf`, which consumes a per-object timer cell and falls into the 0x221e record-clear. On the display side, the player is drawn as three stacked sprites: `deriveStackedSpriteYs` (0x23d7) fans `PLAYER_Y` out into the Y fields of arena slots 3/2/1 (base Y, Y−0x10, and 0x0a below that). `precheckCollisionBounds` (0x5f53) is the shared off-screen gate — it biases an actor's X by the flip flag and reports whether its Y+8 still clears the bottom limit 0xe0.
+Each actor family runs a small state machine, always selected off the record's (+2) byte
+through a jump table. The player/lead record is driven by `loc_241e`: after running its
+pre-pass helpers it aborts the whole update when the anti-tamper freeze `TAMPER_FREEZE_FLAG`
+**[code]** (0x881e) is non-zero, then dispatches `(0x8a82)&7` six ways into handlers such as
+`loc_24b9` (state 3: drive base Y down by two per frame toward the floor 0xdc, then queue a
+sound and advance), `advanceActorDropStateOnDelay` (count the (+11) delay down, then nudge
+the actor down and advance), `advanceRisingActorStep` (state 6: rise (+6) toward the top 0xc0,
+flipping the tile every 4th frame, then advance and seed a long delay), and `loc_24fb`
+(state 5: frame-delay countdown that on expiry sets a shape-reload flag). The state byte is
+carried forward by the handlers themselves incrementing (+2); `loc_2c85` is the generic
+"advance from the trigger state" transition -- only a record sitting in state 0x11 is bumped
+to 0x12, armed onto a sequence, and given a fresh script pointer.
 
-Two anti-tamper tripwires are woven directly into the object update, firing on the frame-counter zero crossing so they cost nothing most frames: the state-1 object handler folds a five-byte ROM guard and bumps a strike counter on a miss, and `loc_4103` folds the low nibbles of `TAMPER_NIBBLE_SUM_BLOCK` **[code]** (0x557f) and bumps `TAMPER_STRIKES_SIG` **[code]** (0x8a38) unless the running total matches its sentinel. They mutate no actor state — a clean image simply falls through them.
+The object pools are swept by counted loops. `loc_76f4` walks six records from
+`OBJECT_STATE_RECORD_BASE`, calling `dispatchActiveObjectState` on each: inactive records
+(bit 0 of (+0)|(+1) clear) are skipped, and an active one has `(+2)&3` select one of four
+handlers. `loc_6f2d` is the enemy-record dispatcher: state 2 tails into the frame-hold tick
+`loc_3536`, any state below 0x0b runs the generic mover, and states 0x0b/0x0c index a two-entry
+table. `loc_64fb` dispatches the fountain record three ways on the full (+2) value, and
+`loc_72a7` walks 2x`WAVE_INDEX` records of the enemy table for the eagle wave. Retirement is
+handled inside the movers: `loc_667c` integrates an idle actor's position and, at the retire
+row 0x1d, marks it state 2 and clears its coordinates; `advanceFallStep` reports (via carry)
+whether a falling actor is still above the landing row 0x1e; and `loc_3536` blanks the sprite
+band on every non-holding exit, bumping a shared tally (0x8d76) that, on its third bump,
+clears `LANE_SPAWN_COUNTDOWN` **[seen]** (0x8d75) and `LAUNCH_ARM_LATCH` **[seen]** (0x8f20).
+
+### Collision
+
+Proximity hits are found by `loc_5f11`, a slot scan against a target box. It walks B records
+by their stride, skipping empty (state 0) and already-struck (state 3) slots, and measures
+each live one through `precheckCollisionBounds`, which biases the actor's X by the
+`FLIP_SCREEN_FLAG` **[seen]** (0x881f) orientation (+6 upright, -2 flipped), forms the biased
+Y+8, and returns an on-screen flag by comparing that Y against the bottom limit 0xe0.
+Off-screen slots are skipped; a hit requires the horizontal gap to the target centre under 7
+and the vertical gap (target Y + margin) under 6. On a hit the slot is marked struck (state
+3), the interrupt-parity flash cell `FLASH_CELL_BASE` **[code]** (0x8d19, or +1 by interrupt
+register parity) is set to 1, and the routine tail-hands to the hit-sound enqueue via
+`loc_5f02`. The I-parity target pair carries its own one-frame hit flags, `OBJ_HIT_FLAG_I0`
+**[seen]** (0x8d1b) and `OBJ_HIT_FLAG_I1` **[seen]** (0x8d1c), set by the sibling scanners and
+torn down together with the struck object.
+
+### Spawning and seeding
+
+A fresh record is opened by `initActorRecord`, which stamps the fixed spawn constants
+(+0=0x00, +1=0x01, +2=0x08), the 0xff marker at (+12), and a 16-bit datum at (+16):(+17),
+returning the advanced pointer for the caller's scan. `seedObjectRecord` fills a record's
+descriptor and coordinate fields from two source streams and clears the (+0e) timer,
+returning both advanced source pointers. `stampObjectAndDecCounter` reads a control byte,
+decrements a shared one-byte counter in place (its Z result steering the caller), and stamps
+two fixed state bytes (+13=0x01, +16=0xc1).
+
+The child-spawn path begins at `loc_13bc`: it scans the five `SPRITE_OBJECT_TABLE` slots for
+a free one (bit 0 of the first two bytes clear), and on finding one bumps the wrapping
+`ANIM_FRAME_COUNTER` **[seen]** (0x8d41, skipping zero) into the parent's sprite-id field,
+points the parent at animation sequence `ANIM_SEQ_3988` **[code]** (0x3988), seeds its timer
+and kind, then tail-calls `loc_142c`. That routine builds the child from the parent: fixed
+slots (+0=1, +2=4), a biased position copy (+80 into the X/Y fraction bytes), and a velocity
+looked up from `ENEMY_SPEED_TABLE` **[code]** (0x148e) via the round-clamped `SPEED_INDEX`
+**[seen]** (0x8900) -- negated on odd `ROUND_COUNTER` **[seen]** (0x8907) so the enemy faces
+the mirrored direction -- mirrored into the child (+0a/+0b) and parent (+0a). It arms the
+child onto sequence `ANIM_SEQ_38CB` **[code]** (0x38cb), seeds the spawn timer, and tail-hands
+to the spawn-sound enqueue. Two small guards gate the spawn/queue step: `loc_1389` runs it
+only when bit 0 of a record's (+8) flag is set, and `loc_141c` no-ops once the record's (+6)
+phase has reached 2, otherwise clearing (+8) and re-arming the record onto animation table
+`ANIM_TABLE_3829` **[code]** (0x3829).
+
+### Records become sprites
+
+Every frame `loc_02ef` rebuilds the sprite display list at `SPRITE_DISPLAY_LIST` **[seen]**
+(0x8840) from four record groups in turn: the two lead actors, the two I-parity target
+records, the eighteen moving-object records, and the two arrow/launch records. The two small
+groups and the arrow group are copied verbatim by `copyObjectRecordsToDisplayList`, which
+emits record bytes (+6), (+10), (+4), (+0f) into four successive list slots per record --
+raw Y, tile, X, colour. The eighteen movers go through `loc_0343`, which does the same layout
+but converts the (+5):(+6) and (+3):(+4) sub-pixel pairs into screen coordinates ((pair >> 5)
+- 8) instead of copying them raw. Both advance the list pointer by four bytes per record,
+wrapping within the list's 256-byte page. After the copy `loc_02ef` nudges the two arrow
+sprites' Y bytes down a pixel and hands off to the shared tail that ticks the second byte and,
+when the screen is flipped, vertically mirrors the whole list.
+
+
 ## Waves, rope and launch
 
-Three cooperating state machines run the attack side of the board: the eagle attack
-wave that seeds and flies a batch of enemy records, the arrow/launch machine that arms
-a shot and spawns hunters from it, and the rope that grows a column of cells down the
-screen and animates each one through its life. They share a common vocabulary of small
-work-RAM cells — a state selector, a hold timer, an index, a done latch — and they hand
-control to one another through the wave counters they all read.
+Three small state machines share the attack side of the playfield: the arrow/launch
+sequence that fires from the player's side and seeds hunters, the rope-cell machine that
+grows and animates a segmented rope down a video column, and the eagle wave that flies a
+formation of records across a coordinate grid during the bonus stage. Each is a per-frame
+selector-plus-handler-table driven by its own state cell, and each leans on a handful of
+counters and timers rather than any shared scheduler.
 
-### The eagle attack wave
+### The arrow/launch state machine
 
-The wave driver runs once per frame. While the launch flag `WAVE_LAUNCH_FLAG` [code]
-(0x8f3a) is still clear it seeds a fresh wave and returns; once a wave is up it either
-falls through to the inter-wave idle handler (when the live record count has drained) or
-walks the active records and steps each one's own approach machine.
+The launch sequence is driven every frame from the in-play object update through the
+dispatcher at `loc_2778`, which reads `LAUNCH_STATE` **[seen]** (0x8f30), masks it to three
+bits, and dispatches through a five-entry table into handlers 0..4. The state cell walks
+0->1->2->3->4->0, and each handler advances it in place, so the machine is a straight ring.
 
-Seeding a wave only happens while the target slot `ENEMY_TARGET_REC0` [seen] (0x8c90) is
-clear. When it is, the seeder raises `WAVE_LAUNCH_FLAG` and bumps the wave index
-`WAVE_INDEX` [seen] (0x8f3d). The fourth wave is special: rather than laying down new
-records it just advances the outer-phase counter `WAVE_OUTER_PHASE` [code] (0x8f38) and
-reloads the inter-wave hold `WAVE_HOLD_TIMER` [seen] (0x8f36) to 0x20. Every other wave
-lays down two records per wave index into the enemy-actor table `ENEMY_ACTOR_TABLE`
-[seen] (0x8ae0), stepping by the 0x18 record stride and copying four fields per record
-out of the four-byte-per-record parameter table `EAGLE_WAVE_PARAM_TABLE` [code] (0x7409):
-the target column (+6), a tile id (+0x10), the target row (+4) and a speed (+0x0f). Each
-record is stamped active (state 1), a fixed flag byte lands in field +5 (and also +3 for
-records whose own low address has bit 3 set — the odd/even split that recurs everywhere
-below), and the record count `WAVE_RECORD_COUNT` [code] (0x8f3c) is set to twice the wave
-index. Finally the outer phase and the records-arrived count `WAVE_RECORDS_ARRIVED`
-[seen] (0x8f39) are cleared so the new wave starts fresh.
+State 0 (`loc_278f`) is the arming and firing gate. If the one-shot `LAUNCH_ARMED_FLAG`
+**[seen]** (0x8f3f) is still clear it tries to raise it: when the `LANE_SPAWN_COUNTDOWN`
+**[seen]** (0x8d75) is still running and the `LAUNCH_ARM_LATCH` **[seen]** (0x8f20) is clear
+it bumps that latch and arms; otherwise it demands that `STAGE_COUNTDOWN` **[seen]** (0x8901)
+be nonzero and an exact multiple of eight before arming. Once armed, it will not advance
+until the arrow object has risen — `ARROW_Y` **[code]** (0x8ab4), the Y field of launch slot
+2, must have reached 0x3c — and until neither hunter-target record shows its hit bit, tested
+in `ENEMY_TARGET_REC0` **[seen]** (0x8c90) and `ENEMY_TARGET_REC1` **[seen]** (0x8ca8). When
+those clear it steps the state, reseeds the tile-flip countdown `LAUNCH_FLIP_COUNTDOWN`
+**[code]** (0x892f) to eight, refreshes the arm latch from its seed `LAUNCH_ARM_LATCH_SEED`
+**[code]** (0x8d7a) when that is nonzero, and blits the launch tile from `LAUNCH_TILE_SRC`
+**[code]** (0x2d51) to `LAUNCH_TILE_VRAM` **[code]** (0x84a7). If the game is idle
+(`GAME_ACTIVE_FLAG` **[seen]** (0x8806) zero) but a launch is nonetheless armed, it also
+lights the status-panel cell `LAUNCH_HUD_TILE` **[code]** (0x8508).
 
-With records laid down, the driver walks `WAVE_RECORD_COUNT` of them and runs a small
-per-record state machine on each. An arriving record (its approach state) is handled by
-gating the eagle's live position against the record's grid slot: the live column
-`EAGLE_X_COORD` [code] (0x8c96) shifted right by three must equal the record's target
-column (+6) or the one just before it, and the live row `EAGLE_Y_COORD` [code] (0x8c94)
-shifted right by three plus four must sit inside a five-row window above the record's
-target row (+4). Only on a match does the record advance and arm an animation: odd
-records (bit 3 of the record's low byte) take the odd animation descriptor
-`EAGLE_ODD_RECORD_ANIM` [code] (0x7403) and a 0x38 field; even records take
-`EAGLE_EVEN_RECORD_ANIM` [code] (0x4086), a 0x40 field, bump `WAVE_RECORDS_ARRIVED`, and —
-once the arrived count has reached the wave index, meaning every record of the wave is
-home — queue the wave-arrival display command whose base is `WAVE_ARRIVAL_CMD_BASE`
-[code] (0x0630) offset by the arrived count.
+State 1 (`loc_27f3`) splits on the same `ARROW_Y`. While the arrow is at or above 0x34 it
+just animates: it counts `LAUNCH_FLIP_COUNTDOWN` down, and on each expiry reloads it to 0x10,
+steps the shared phase byte `SHARED_PHASE_COUNTDOWN` **[code]** (0x892e), and blits one of
+two arrow tiles — `LAUNCH_TILE_SRC` or its alternate `LAUNCH_TILE_SRC_ALT` **[code]**
+(0x2d55) — chosen by that byte's parity, so the arrow visibly flickers between two frames as
+it climbs. Once the arrow has fallen below 0x34 the handler instead looks for a free
+hunter-target record among `ENEMY_TARGET_REC0`/`ENEMY_TARGET_REC1`; finding one it jumps the
+launch state straight to 2, marks the record active, queues a display command, blits the
+alternate tile, and seeds a small cluster of record fields (one of them a biased copy of a
+source coordinate).
 
-A record that has arrived then flies its dive-or-climb leg. Each frame it advances its
-animation and integrates a 16-bit vertical position by the per-record speed (+9). Even
-records descend — the speed is added, a carry drops the sprite one row (+4), and reaching
-the bottom row (0x1d) advances the record's state byte; odd records climb — the speed is
-subtracted, a borrow lifts the row, and rising above the top row (0x04) advances the
-state. Once a record reaches its retire state it is zero-filled across its whole 0x18
-bytes and the live record count is decremented; when that count hits zero the last member
-of the wave has retired, and the retire handler seeds the inter-wave hold to 0x30.
+State 2 (`loc_2856`) is the hunter seeder proper. Unless the `PLAY_MODE_LATCH` **[code]**
+(0x8f50) is set, it scans the six-slot hunter record table `HUNTER_TABLE_BASE` **[code]**
+(0x8c78) *downward* one 0x18 stride at a time for the first slot whose two leading bytes are
+both zero. A free slot is stamped with a fixed opening state, coordinates and tile ids, and
+its address is stored little-endian into `HUNTER_RECORD_PTR` **[code]** (0x8f32). The handler
+then advances the launch state and forks on `HUNTER_SPAWN_FLIP_FLAG` **[code]** (0x8f61):
+with the flag clear it seeds `HUNTER_SPAWN_COUNTDOWN` **[code]** (0x8f34) to 0x20 and enqueues
+`HUNTER_SPAWN_DISPLAY_CMD` **[code]** (0x0315); with it set it instead bumps
+`HUNTER_SPAWN_SUBCOUNTER` **[code]** (0x8f5d) and emits nothing.
 
-The inter-wave idle handler drains `WAVE_HOLD_TIMER` a step per frame. On expiry, if a
-wave index is still set it enqueues a command carrying that index (opcode 0x06, parameter
-0xb0 + index — the wave sound), then reseeds the hold to 0x18 and drops `WAVE_LAUNCH_FLAG`
-so the driver seeds the next wave. The bonus-stage teardown is a heavier version of the
-same shape: it holds on `WAVE_HOLD_TIMER`, and on expiry zeroes the nine-byte wave/phase
-block and the 0x48-byte enemy-record region, clears the play sub-state and the latched
-enemy X, and sets the attract sub-state selector to 7 to hand control back out of the
-bonus stage.
+State 3 (`loc_28ad`) is the post-spawn hold. It drains `HUNTER_SPAWN_COUNTDOWN` a frame at a
+time and returns while it is nonzero; on expiry it advances the state and, unless the play-mode
+latch is set, zero-fills the 0x18-byte record pointed at by `HUNTER_RECORD_PTR`, tearing down
+the slot it just seeded. State 4 (`loc_28c5`) is a bare return — the idle slot of the ring
+that holds the machine quiescent until state 0 re-arms it.
 
-### The eagle approach and grid marker
+### The rope cells
 
-Running alongside the record machine is the approach/aim machine, also once per frame and
-also hold-gated on `WAVE_HOLD_TIMER`: while the hold is nonzero it just ticks down. Once
-released it drives the player aim-indicator flags `PLAYER_AIM_FLAGS` [code] (0x8a87) from
-the eagle's approach coordinate against two X thresholds — a near threshold of 0x59 and a
-far threshold of 0x60. Past the far threshold it captures the coordinate into
-`LATCHED_ENEMY_X` [seen] (0x8f5b); once latched the flags read on-target, otherwise below.
-When the coordinate sits exactly at the near threshold it steps a sub-phase held in
-`WAVE_RECORDS_ARRIVED`: 0 becomes 1 with the aim cleared, anything else becomes 2 with the
-aim armed, and 2 runs the grid-marker step.
+The rope belongs to the pull-rope / lift sprite driver `loc_25a6`, which forks on
+`ROUND_COUNTER` **[seen]** (0x8907) bit 0: when that bit is clear it hands the frame off to
+`loc_2d66`, the branch that grows and animates the segmented rope. That branch first aborts
+if a grab is in progress — `GRAB_ACTIVE_FLAG` **[seen]** (0x8d32) nonzero — or if the stage's
+`WAVE_ARRIVAL_COUNTER` **[seen]** (0x8903) has reached 2, and otherwise runs two passes back
+to back: the extend driver `loc_2d78` and the per-cell sweep `loc_2e22`.
 
-> Note: the approach machine reads the coordinate it compares against 0x59/0x60 out of
-> `PLAYER_Y` [seen] (0x8a84) — the same cell that elsewhere is the player-actor's vertical
-> position, here serving as the eagle's advancing approach value. The rope-grab test below
-> reads the same 0x8a84 cell as a horizontal catch position. The reading is by cell, not by
-> a label, so do not assume "player Y" means only the player in this machinery.
+The extend driver dispatches on `ROPE_EXTEND_STATE` **[code]** (0x8f14): sub-state 0 adds a
+segment (`loc_2d80`), sub-state 1 is the blit/hold pass (`loc_2dbc`). `loc_2d80` returns at
+once when the rope has already grown to two below the stage's arrival count — that is, when
+`ROPE_SEGMENT_COUNT` **[seen]** (0x8931) equals `WAVE_ARRIVAL_COUNTER` minus two, which is how
+the per-stage counter bounds rope length. Otherwise it bumps the segment count and, while
+`ROPE_EXTEND_INDEX` **[code]** (0x8f18) is below four, advances that index, looks the new
+segment's video-column low byte up from `ROPE_CELL_COLUMN_TABLE` **[code]** (0x2db8), pairs it
+with the fixed 0x84 video page into `ROPE_COLUMN_VRAM_PTR` **[code]** (0x8f19), reloads that
+segment's cell timer in the `ROPE_CELL_TIMERS` **[code]** (0x8f28) block to 0x10, advances the
+sub-state, and arms `ROPE_EXTEND_TIMER` **[code]** (0x8f16). WARNING: past the fourth segment
+the extend does not simply stop — it proceeds only if a ROM-tamper strike is pending in
+`TAMPER_STRIKES_ROM` **[code]** (0x89ef), and then uses that strike count as the column-table
+index. In a clean image the strike count is zero, so the extend halts at four; the branch is
+an anti-tamper entanglement, not a normal path. `loc_2dbc` runs `ROPE_EXTEND_TIMER` down and,
+on expiry, either resets its own frame index and re-arms the next rope cell, or looks up a
+tile block and blits it at `ROPE_COLUMN_VRAM_PTR`, stepping that frame index toward eight.
 
-The grid-marker step advances every eighth frame, gated by the low three bits of the tick
-counter `EAGLE_GRID_STEP_TICK` [code] (0x8f3b). It walks a marker tile (code 0x2c) across
-a grid anchored at `EAGLE_GRID_VRAM_BASE` [code] (0x87e0), stepping up by one tilemap row
-per unit of one grid coordinate and right by the other, and stamps a colour attribute one
-0x400-cell back from the tile derived from the low bits of the two grid coordinates
-(held in the target record's +6 and +4 fields). A grid-edge guard reads the advancing
-grid coordinate (target record +4): while it is short of the edge (0xd0) it just hands the
-coordinate back so the marker keeps stepping; once it reaches the edge it arms the
-grid-advance done latch `EAGLE_FINISH_FLAG` [code] (0x8f3e) and runs the phase-reset
-epilogue. That epilogue drops the aim flags, clears `LATCHED_ENEMY_X`, advances the outer
-phase, and clears `WAVE_RECORDS_ARRIVED` — so once the done latch is set the whole approach
-machine short-circuits to the epilogue on its next entry.
+The sweep `loc_2e22` walks `ROPE_EXTEND_INDEX` active cells, pointing IX at the four per-cell
+state bytes based at 0x8f1c and calling the per-cell dispatcher `loc_2e36` on each. That
+dispatcher reads the cell state at (ix+0); a zero state is inactive and returns, otherwise it
+dispatches state-1 into four handlers: `loc_2e5e`, `loc_2ecb`, `loc_2f01`, `loc_2f2f`. Two
+tiny helpers serve all of them: `loc_2e45` ticks the cell's own frame timer (the low two bits
+of IXL pick one of the four `ROPE_CELL_TIMERS` entries, stride 2) and reports reached-zero,
+and `loc_2e52` rebuilds this cell's video-column base from `ROPE_CELL_COLUMN_TABLE` and the
+0x84 page.
 
-### The arrow / launch state machine
+`loc_2e5e` is rope-cell state 1: acting only every fourth frame (gated on `FRAME_COUNTER`
+**[seen]** (0x8a5f) low bits) and only once the cell timer elapses, it scans the three-slot
+`SPAWN_OBJECT_TABLE` **[seen]** (0x8c48) for a free slot; finding one it re-arms the timer
+with a `ROUND_COUNTER`-scaled reload, seeds the slot (state 0x07, coordinates, and a +4 field
+looked up from `ROPE_SPAWN_IY4_TABLE` **[code]** (0x2ec7) keyed by IXL&3), advances the cell
+state, and blits the rope segment tile from `ROPE_SEGMENT_TILE_SRC` **[code]** (0x2dfe). This
+is where a rope cell drops a bonus object down the column. `loc_2ecb` (state 2) ticks the
+timer and, on the frame it hits zero, writes a round-derived tile code into the timer cell,
+indexes the `FORMATION_TABLE` **[seen]** (0x8c30) by the following byte to bump one record's
+tile field, clear its position byte and drop another field, bumps the cell's own count, and
+blits the alternate segment tile `ROPE_SEGMENT_TILE_SRC_ALT` **[code]** (0x2e1e). `loc_2f01`
+(state 3) does similar formation-record bookkeeping after a helper gate. `loc_2f2f` (state 4)
+is the retract: on the cell timer, and while `ROPE_SEGMENT_COUNT` segments remain, it selects
+a retract animation and a per-segment attribute (both clamped and keyed by `ROUND_COUNTER`),
+merges the attribute into the paired cell, clears the corresponding formation record, advances
+the cell, and blits the shrinking segment. Alongside the live `ROPE_SEGMENT_COUNT`, the sprite
+side keeps `ROPE_DRAW_COUNT` **[seen]** (0x8934) — a one-frame-later snapshot of the spawn
+phase that sets how many rope sprite rows are drawn.
 
-The launch machine is a five-state selector held in `LAUNCH_STATE` [seen] (0x8f30); its
-per-frame driver masks the low three bits and vectors to the matching handler (states 0..4,
-with 4 a bare no-op idle). It builds around the arrow's climbing height `ARROW_Y` [code]
-(0x8ab4) — the Y of the launch object (slot 2, field +4).
+### The eagle wave
 
-State 0 arms the shot. If the arm flag `LAUNCH_ARMED_FLAG` [seen] (0x8f3f) is still clear
-it arms it one of two ways: when the lane-spawn countdown `LANE_SPAWN_COUNTDOWN` [seen]
-(0x8d75) is up and the arm latch `LAUNCH_ARM_LATCH` [seen] (0x8f20) is still clear it bumps
-the latch (blocking a re-arm), otherwise it requires the stage countdown `STAGE_COUNTDOWN`
-[seen] (0x8901) to be nonzero and a multiple of eight; either way it then sets
-`LAUNCH_ARMED_FLAG`. It then gates: the arrow must have risen to at least 0x3c and neither
-target record `ENEMY_TARGET_REC0` / `ENEMY_TARGET_REC1` [seen] (0x8c90 / 0x8ca8) may have
-its hit bit (0x02) set. Clearing those gates, it advances the state, reseeds a tile-flip
-countdown, may light the launch HUD cell `LAUNCH_HUD_TILE` [code] (0x8508) with tile 0x6f
-while the game is idle, refreshes the arm latch from its seed `LAUNCH_ARM_LATCH_SEED`
-[code] (0x8d7a) when that is nonzero, and blits the 2x2 launch tile from `LAUNCH_TILE_SRC`
-[code] (0x2d51) to `LAUNCH_TILE_VRAM` [code] (0x84a7).
+The eagle wave is the bonus-stage attack, driven through the phase dispatcher `loc_71b9`,
+which reads `WAVE_OUTER_PHASE` **[code]** (0x8f38) and dispatches phases 0..2 into `loc_71c7`,
+`loc_72a0` and `loc_7421`, pushing a shared display-rebuild epilogue as the common return.
+Phase 0 runs the approach state machine; phase 1 runs the launch driver that seeds and moves
+the wave; phase 2 tears the stage down.
 
-State 1 is the rising-arrow handler. Below arrow height 0x34 it runs a tile-flip animation:
-it decrements the flip countdown `LAUNCH_FLIP_COUNTDOWN` [code] (0x892f), and each time
-that reaches zero it reloads it to 0x10, bumps the parity byte `SHARED_PHASE_COUNTDOWN`
-[code] (0x892e), and blits one of two ROM tile blocks (0x2d51 or 0x2d55) selected by that
-parity's bit 0. Once the arrow has risen to 0x34 it instead scans the two-entry target
-pair at 0x8c90 for a free slot; finding one, it advances to state 2, marks the slot,
-blits, optionally lights the HUD tile, and seeds a target record (0x8a99 = 1, 0x8a9e from
-the player field 0x8a86 + 0x0c, 0x8aa7 = 0x10). With no free slot it simply returns and
-retries next frame.
+Phase 1's driver is `loc_72a7`. While the wave has not been launched — `WAVE_LAUNCH_FLAG`
+**[code]** (0x8f3a) zero — it seeds the next wave through `loc_72e1` and returns. `loc_72e1`
+runs only while the first target slot `ENEMY_TARGET_REC0` is clear: it raises the launch flag,
+advances `WAVE_INDEX` **[seen]** (0x8f3d), and on the fourth wave merely re-arms the outer
+phase and reloads the inter-wave hold. On any earlier wave it initialises two records per wave
+index in the `ENEMY_ACTOR_TABLE` **[seen]** (0x8ae0), stride 0x18, copying four fields apiece
+from the `EAGLE_WAVE_PARAM_TABLE` **[code]** (0x7409) and marking each active, then records the
+live-record total in `WAVE_RECORD_COUNT` **[code]** (0x8f3c) (two times the wave index) and
+clears the outer phase and `WAVE_RECORDS_ARRIVED` **[seen]** (0x8f39). Once the flag is set,
+the driver either hands off to the inter-wave idle handler when the record count has drained
+to zero, or walks that many records through the per-record dispatcher `loc_72cf`, which skips
+inactive records and dispatches each record's own state byte (ix+2) into three handlers.
 
-State 2 spawns a hunter. Unless the play-mode latch `PLAY_MODE_LATCH` [code] (0x8f50) is
-set, it scans the six-slot hunter table `HUNTER_TABLE_BASE` [code] (0x8c78) downward one
-stride at a time for the first slot whose two leading bytes are both zero; with no free
-slot it bails untouched. A free slot is stamped with a fixed opening record — state 5,
-coordinates and tile ids — and its address is saved into the record pointer
-`HUNTER_RECORD_PTR` [code] (0x8f32). It then advances the launch state and branches on the
-flip flag `HUNTER_SPAWN_FLIP_FLAG` [code] (0x8f61): with the flag clear it seeds the spawn
-countdown `HUNTER_SPAWN_COUNTDOWN` [code] (0x8f34) to 0x20 and enqueues the spawn display
-command `HUNTER_SPAWN_DISPLAY_CMD` [code] (0x0315); with it set it instead bumps the
-sub-counter `HUNTER_SPAWN_SUBCOUNTER` [code] (0x8f5d).
+Record state 0 (`loc_733c`) is arrival: it returns unless the eagle has reached this record's
+grid slot — its column, `EAGLE_X_COORD` **[code]** (0x8c96) shifted right by three, must match
+the record's target column (or the one just before it), and its row derived from `EAGLE_Y_COORD`
+**[code]** (0x8c94) must fall within a five-row window of the record's target row. On arrival
+it advances the record state and arms an animation, with odd and even records diverging on
+bit 3 of the record's low address: odd records take `EAGLE_ODD_RECORD_ANIM` **[code]** (0x7403)
+and a flag byte, even records take `EAGLE_EVEN_RECORD_ANIM` **[code]** (0x4086), bump
+`WAVE_RECORDS_ARRIVED`, and — once every record of the wave has arrived, i.e. the arrived
+count equals `WAVE_INDEX` — queue the wave-arrival display command from `WAVE_ARRIVAL_CMD_BASE`
+**[code]** (0x0630) offset by that count. Record state 1 (`loc_7395`) is the dive/climb: it
+runs the animation mover, then integrates the record's 16-bit vertical position by its
+per-record speed — even records descend (add; a carry drops the row, and reaching the bottom
+row advances the state), odd records climb (subtract; a borrow lifts the row, and reaching the
+top row advances the state). Record state 2 (`loc_73ce`) retires the record: it zero-fills the
+whole 0x18-byte record, decrements `WAVE_RECORD_COUNT`, and when the last record of the wave
+has gone it seeds the inter-wave hold `WAVE_HOLD_TIMER` **[seen]** (0x8f36) to 0x30. The idle
+handler `loc_73e3` runs between waves: it drains `WAVE_HOLD_TIMER`, and on expiry — if a wave
+index is still set — enqueues an indexed wave command, reseeds the hold to 0x18, and clears the
+launch flag so the driver seeds the next wave.
 
-State 3 is a hold-and-clear. While `HUNTER_SPAWN_COUNTDOWN` is nonzero it just decrements
-and returns; on expiry it advances the launch state and, unless `PLAY_MODE_LATCH` is set,
-zero-fills the whole 0x18-byte record addressed by `HUNTER_RECORD_PTR`. State 4 is the
-phantom idle — a bare return — where the machine rests until it is re-armed.
+Phase 0's approach machine is `loc_71ce`. A hold gate fronts it: while `WAVE_HOLD_TIMER` is
+nonzero it just ticks it down. Once clear, it drives the player's aim indicator from a
+coordinate compared against two fixed thresholds — 0x59 (near) and 0x60 (far). WARNING: the
+coordinate it reads is `PLAYER_Y` **[seen]** (0x8a84), the player-actor's own position, not a
+separate eagle field; the machine sets bits in `PLAYER_AIM_FLAGS` **[code]** (0x8a87) —
+on-target, below, armed — from where the player sits relative to those thresholds, latching
+the enemy X into `LATCHED_ENEMY_X` **[seen]** (0x8f5b) when the coordinate first crosses the
+far threshold. When the coordinate sits exactly on the near threshold it steps a
+records-arrived sub-phase (0->1 clears the aim, anything-but-2->2 arms it, 2 runs the grid
+step). On the grid step, once per eighth frame gated by `EAGLE_GRID_STEP_TICK` **[code]**
+(0x8f3b), it stamps a marker tile (0x2c) and a colour attribute into the eagle grid region
+based at `EAGLE_GRID_VRAM_BASE` **[code]** (0x87e0), with row and column offsets taken from the
+eagle's live coordinates. The grid advance is bounded by the guard `loc_7287`, which hands the
+advancing coordinate back while it is short of the grid edge (0xd0) and, once it reaches the
+edge, arms `EAGLE_FINISH_FLAG` **[code]** (0x8f3e) and runs the reset epilogue
+`advanceEaglePhaseAndClearAim` (0x7292). That epilogue clears the aim flags and the latched X,
+advances `WAVE_OUTER_PHASE`, and clears the records-arrived sub-count so the next phase starts
+clean.
 
-### The enemy formation and its teardown
+Phase 2 (`loc_7421`) closes the bonus stage: it drains `WAVE_HOLD_TIMER`, and on expiry
+zero-fills the nine-byte wave/phase block from `TILE_ANIM_PARITY` **[seen]** (0x8f37) and the
+0x48-byte `ENEMY_ACTOR_TABLE` region, clears `PLAY_STATE_INDEX` **[seen]** (0x880a) and
+`LATCHED_ENEMY_X`, and sets `ATTRACT_SUBSTATE` **[seen]** (0x8e51) to 7 to hand control back
+out of the stage.
 
-A separate formation manager gathers launch-ready enemies and later tears the wave down.
-It aborts unless its enable cell (0x8f04) is set. While the formation state
-`FORMATION_STATE` [seen] (0x8f08) is zero it scans the seventeen records at 0x8ae0 for a
-launch-ready one (state 0 or 5 with field +1 clear), registers each one's pointer into the
-formation slot table `FORMATION_SLOT_TABLE` [seen] (0x8920) two bytes at a time, and marks
-it state 5; once the slot table has filled it arms `FORMATION_STATE` to 1 (with a companion
-countdown of 0x20 in 0x8f09). Once the formation state is nonzero the manager vectors on
-(state & 3) − 1 into its own handlers and then always runs the shared teardown epilogue.
 
-That epilogue is keyed on the teardown state `WAVE_TEARDOWN_STATE` [seen] (0x8f24), which
-runs in lockstep with the formation. State 1 tears the wave down: it clears the periodic-
-event latch `WAVE_EVENT_LATCH` [seen] (0x8d21) and its companion timer, runs a cleanup,
-advances the teardown state, and re-checks the wave-build code's checksum against a
-sentinel (diverting to the anti-tamper guard on a miss). State 2 walks the boss actor
-down: it steps the boss coordinate (0x8a84) two units per frame, running a mover until the
-coordinate passes 0xdb, at which point it runs a settle routine, sets a completion flag
-`GRAB_ACTIVE_FLAG` [seen] (0x8d32), and advances the teardown state. State 3 and above
-simply return. Because both `WAVE_TEARDOWN_STATE` and `FORMATION_STATE` read as "busy"
-whenever nonzero, they are exactly the cells the rope-grab test consults before it will
-fire (below).
-
-### The rope: extend, animate, grab, retract
-
-The rope is drawn segment by segment down a column by a two-state extend driver held in
-`ROPE_EXTEND_STATE` [code] (0x8f14). Its state 0 adds one segment. It returns at once once
-the rope has grown to two below the stage's arrival count — the segment count
-`ROPE_SEGMENT_COUNT` [seen] (0x8931) equals `WAVE_ARRIVAL_COUNTER` [seen] (0x8903) minus
-two, the per-stage length bound. Otherwise it bumps `ROPE_SEGMENT_COUNT` and, while the
-extend index `ROPE_EXTEND_INDEX` [code] (0x8f18) is below four (above that it needs a
-pending tamper strike to continue), advances that index, looks the segment's video-column
-low byte up from the four-byte column table `ROPE_CELL_COLUMN_TABLE` [code] (0x2db8),
-combines it with the fixed video page 0x84 into the column pointer `ROPE_COLUMN_VRAM_PTR`
-[code] (0x8f19), reloads this segment's cell timer inside the four-entry timer block
-`ROPE_CELL_TIMERS` [code] (0x8f28) (one timer per counted segment, stride 2, reload 0x10),
-advances the sub-state, and arms the extend sub-timer `ROPE_EXTEND_TIMER` [code] (0x8f16)
-to 0x10.
-
-State 1 is the extend blitter. It holds on `ROPE_EXTEND_TIMER`; on expiry it reloads that
-to 8 and consults a per-cell frame index (0x8f1b): once that index has counted to 8 the
-segment is fully drawn, so it resets the index and re-arms the next rope cell (derived from
-`ROPE_EXTEND_STATE` and `ROPE_EXTEND_INDEX`); otherwise it looks up the next tile block
-and blits it at `ROPE_COLUMN_VRAM_PTR`, bumping the frame index. So each segment paints in
-over eight frames before the driver moves to the next. A snapshot count `ROPE_DRAW_COUNT`
-[seen] (0x8934), reseeded to 4 alongside the spawn-phase counter at board reset, tracks the
-rope's sprite rows.
-
-Once cells exist, a separate per-cell state machine animates each one through its life. A
-cell whose state byte (field +0) is zero is inactive and skipped; otherwise (state − 1)
-selects one of four handlers, and every handler is paced by that cell's timer inside
-`ROPE_CELL_TIMERS`, decremented in place and read back through its zero flag so the handler
-returns early until the timer elapses. Cell state 1 is additionally gated on the low two
-bits of the free-running frame counter `FRAME_COUNTER` [seen] (0x8a5f); when both fire it
-re-arms the timer, finds a free slot in the three-entry bonus/spawned-object table
-`SPAWN_OBJECT_TABLE` [seen] (0x8c48), seeds it (state, animation, coordinates, a field from
-a small lookup keyed by the cell index), advances the cell, and blits the segment tile.
-Cell state 2, on its timer, writes a tile derived from the round counter `ROUND_COUNTER`
-[seen] (0x8907) into the cell, then indexes the formation table `FORMATION_TABLE` [seen]
-(0x8c30) to bump the paired record's tile and clear its low position byte before advancing
-the cell and blitting.
-
-Cell state 3 is where a catch can happen. It first runs the rope-grab trigger, which looks
-up a catch-window half-width keyed by the cell index and compares it against a window
-around the player position (0x8a84) − 7. If the player is outside the window it returns
-normally and the cell continues; if the player is inside — and only when neither
-`WAVE_TEARDOWN_STATE` nor `FORMATION_STATE` is busy — it fires the grab: it sets the
-grab-active latch `GRAB_ACTIVE_FLAG` (0x8d32) to 1, runs the grab routine, and aborts the
-rest of the cell handler. That latch is the same one other systems consult to freeze the
-board while a grab is in progress — the animation walker skips its script step and the
-sound path suppresses its enqueue while it is set. When no grab fires, cell state 3
-finishes by writing tile 0x0c, dropping the paired formation record's tile, setting its
-low position to 0xc0, advancing the cell, and blitting.
-
-Cell state 4 retracts the rope. On its timer, and while `ROPE_SEGMENT_COUNT` still holds
-segments, it selects a retract animation pointer from a table keyed by `ROUND_COUNTER`
-shifted right twice and clamped to 3 (plus the cabinet upright/cocktail bit), reads a
-per-segment attribute byte indexed by `ROPE_SEGMENT_COUNT` − 1 clamped to 0x1f, merges that
-attribute into the paired cell, clears the corresponding formation record, advances the
-cell, and blits the shrinking segment. Draining `ROPE_SEGMENT_COUNT` this way is what
-retires the rope; the board reset, when the spawn-phase counter has hit its cap, reseeds
-the phase and `ROPE_DRAW_COUNT` to 4 and refills the formation slot table so the next
-stage's rope starts clean.
 ## Rendering, HUD and display lists
 
-Everything the player sees is assembled into two parallel byte maps on the video pages and a
-pair of sprite banks. The tilemap is 32 cells wide, so one screen row is a stride of `0x20`
-and "up one row" is `-0x20` throughout this code. Tile *codes* live on the `0x84xx` page from
-`PLAYFIELD_TILE_BASE` (0x8402) **[code]**; the matching per-cell colour/attribute bytes live on
-the `0x80xx` page from `ATTRIB_MAP_BASE` (0x8040) **[seen]**, with small fixed anchors such as
-`GLYPH_BLOCK_DEST` (0x8062) **[code]** also inside that region. Sprites are double-banked at
-`SPRITE0_CLEAR_BASE` (0x9010) **[code]** and `SPRITE1_CLEAR_BASE` (0x9410) **[code]**. Almost
-every drawing routine here is a leaf that touches only these cells; the interesting behaviour is
-in *where* it walks and *how* it decides what to stamp.
+Pooyan draws onto two 32-cell-wide video planes. The tile-code plane lives from
+`VIDEO_RAM_BASE` (0x8400) up through 0x87ff — `PLAYFIELD_TILE_BASE` (0x8402) is where the
+visible playfield begins — and every cell one tilemap row below its neighbour is 0x20 bytes
+further on. Overlaid on it is the colour/attribute plane at `COLOR_RAM_BASE` (0x8000), whose
+per-cell bytes are flooded from `ATTRIB_MAP_BASE` **[seen]** (0x8040). Almost all of the
+rendering code is a variation on "walk a column, stride 0x20 between cells," and the whole
+machine is glued together by a queue of drawing commands that the main loop drains once per
+frame. This section follows the paint primitives up from the smallest column-stamper to the
+score panels, then the two display-list mechanisms that schedule and assemble a frame.
 
-### The blit primitives
+### Blanking and painting tilemap columns
 
-Four hand-unrolled copiers do the actual pixel-block work, and they all share the `0x20` row
-stride. `blit2x2TileBlock` (0x3325) and its two siblings `paintTileBlock2x2` (0x0a40) and
-`paintTileBlock2x2Above` (0x780f) each drop four consecutive source bytes into a 2x2 square,
-differing only in corner order and in which corner is the anchor: `blit2x2TileBlock` writes
-top-left, top-right, bottom-right (`+0x21`), bottom-left (`+0x20`) and then leaves the pointer
-sitting on that bottom-left cell so a caller can chain the next block one row up; `paintTileBlock2x2`
-anchors at the top-left and discards its pointer; `paintTileBlock2x2Above` anchors at the
-bottom-left and reaches *up* a row for its top pair. `blitTile3x3Block` (0x3307) copies three
-rows of three, stepping the destination `+0x1d` after each triple to land on the next screen row
-(3 written + `0x1d` = a full `0x20`), and advances *both* the destination and the source pointer
-so a caller can stamp a run of glyphs straight through. `blitGlyphBlock4x3` (0x1f8c) is the taller
-cousin: four rows of three, but it advances only the destination's low byte within a row (the row
-never straddles a `0x100` page) before the `+0x1d` row step.
+The playfield is cleared and repainted a row (or a column) at a time. The row-by-row fill is
+armed by `seedTileFillCursor`, which points the 16-bit write cursor `TILE_FILL_PTR` **[seen]**
+(0x880b) at a chosen cell and seeds the pass counter `FILL_ROW_COUNTER` **[seen]** (0x8809) to
+0x20 (thirty-two rows); `loc_02e3` is the fixed-origin variant that arms the fill from
+`PLAYFIELD_TILE_BASE`. Each subsequent frame `loc_02ce` blanks a run of cells at the cursor
+with the blank tile 0x10, walks the cursor forward exactly one full row (the run it wrote plus
+the row's remainder), stores it back, and decrements the row counter; the Z flag it hands back
+signals the drained state that ends the fill. `loc_02c9` is the same idea but first zeroes the
+sprite/actor RAM and blanks only the 0x1d visible cells of the row, so it doubles as the
+board-init clear. Because the count reaches zero after thirty-two passes, the fill spreads the
+cost of erasing the screen across many frames rather than stalling one.
 
-### Columns and the row-by-row screen fill
+Vertical three-tile columns are stamped by a small family of helpers. `paintColumnBodyTiles`
+writes the mid tile 0x25 and base tile 0x20 one stride apart; `loc_02a8` prepends the cap tile
+0x01 to make a full cap-plus-body column, and `blankTileColumn` erases a three-cell column to
+the blank tile 0x10, returning the advanced pointer so a caller can chain straight into the
+next column. `paintColumnBodyTilesUp` and `loc_1ce7` are the fixed "step one row up each cell"
+mirror of these, with `loc_1ce7` writing its own cap tile 0x02 at `COLUMN_CAP_VRAM` **[code]**
+(0x84e0). These are what the per-frame scroll worker `loc_0254` uses: gated on the game-active
+flag, it repaints two scroll columns — in one-player mode a run of four blanked columns from
+`P2_SCORE_VRAM`, in two-player mode a capped body column — then a body column at
+`WORKER_COLUMN_VRAM` **[code]** (0x8740), and optionally one more blanked column, all of it
+keyed by `WORKER_CONTROL_BYTE` **[code]** (0x883f).
 
-Vertical strips are built from a cap tile plus two body tiles. `paintColumnBodyTiles` (0x02aa)
-writes the mid tile `0x25` and base tile `0x20` at successive strides; `paintColumnBodyTilesUp`
-(0x1cec) is the fixed `-0x20` (upward) variant; `blankTileColumn` (0x02b1) erases a three-cell
-column to the blank tile `0x10`. The two composite column stampers put a cap on top of the body:
-`loc_02a8` prepends cap tile `0x01` then calls the body painter, and `loc_1ce7` writes cap tile
-`0x02` at `COLUMN_CAP_VRAM` (0x84e0) **[code]** then paints its body upward.
+### Flooding the colour/attribute map
 
-Clearing or repainting the whole playfield is a two-cell state machine over `TILE_FILL_PTR`
-(0x880b) **[seen]** and `FILL_ROW_COUNTER` (0x8809) **[seen]**. `seedTileFillCursor` (0x02e6)
-arms it — it stores a 16-bit write cursor and seeds the row counter to `0x20` (32 rows) — and
-`loc_02e3` is the fixed-start entry that seeds the cursor at `PLAYFIELD_TILE_BASE`. Each pass,
-`loc_02ce` blanks `B` cells at the cursor (through the byte-run filler `loc_0010` (0x0010), which
-fills a run with a constant and treats a zero count as a full 256), then advances the cursor by
-exactly one whole row — it adds the remainder `0x20 - B` after the `B` cells the fill already
-moved — stores it back, decrements the row counter, and reports drained via the Z flag so the
-driver can loop until the screen is done. The boot-time blank, `loc_01ea` (0x01ea), reuses the
-byte filler to clear the tops of both sprite banks and then floods `0x3c0` tiles from
-`VIDEO_RAM_BLANK_START` (0x8440) **[code]** with the erase tile `0x1e`.
+`fillAttributeColumns` is the colour painter: from a ROM source table it walks 31 columns of
+`ATTRIB_MAP_BASE`, taking one source byte per column and flooding it down all thirty rows at
+the 0x20 stride, so each screen column gets a single solid attribute. `loc_1dd3` chooses which
+field variant to paint. The default job floods from `FIELD_ATTRIB_SRC_A` **[code]** (0x0839) or
+`FIELD_ATTRIB_SRC_B` (0x0879) — selected by bit 0 of `ROUND_COUNTER` **[seen]** (0x8907) — then
+stamps a short two-column marker (colour 0x0f) at columns 5 and 6. The alternate job runs only
+when the round is idle-but-active on an even/first round and outside attract (`ROUND_IN_PROGRESS`
+**[seen]** 0x8904 clear, `GAME_ACTIVE_FLAG` **[seen]** 0x8806 set, `PLAY_MODE_LATCH` **[code]**
+0x8f50 clear): it floods from `FIELD_ATTRIB_SRC_C` (0x0859) and lays a taller sixteen-row strip
+(colour 0x09) down `FIELD_C_ATTRIB_DEST` **[code]** (0x811c).
 
-### The colour/attribute map and its field variants
+### 2x2 and 3x3 tile-block blitters
 
-Colour is painted independently of tile codes. `fillAttributeColumns` (0x075d) floods the
-attribute map from `ATTRIB_MAP_BASE`: it walks 31 columns, and for each column takes one source
-byte and stamps it down all 30 rows at the row stride, so a single byte colours a whole vertical
-strip. `loc_1dd3` drives it for the current stage's look. It picks between two jobs from
-`ROUND_IN_PROGRESS` (0x8904) **[seen]**, `GAME_ACTIVE_FLAG` (0x8806) **[seen]**, `ROUND_COUNTER`
-(0x8907) **[seen]** and `PLAY_MODE_LATCH` (0x8f50) **[code]**: the default job floods from a
-round-parity source table — `FIELD_ATTRIB_SRC_A` (0x0839) **[code]** on odd rounds, else
-`FIELD_ATTRIB_SRC_B` (0x0879) **[code]** — then stamps a short four-row marker in columns 5 and 6
-with colour `0x0f`; the alternate job (taken only when a round is not in progress but the game is
-active, on an even/zeroth round, and outside the play-mode latch) floods from `FIELD_ATTRIB_SRC_C`
-(0x0859) **[code]** and stamps a taller 16-row single strip of colour `0x09` at `FIELD_C_ATTRIB_DEST`
-(0x811c) **[code]**.
+Small graphics are stamped as rectangular blocks copied from a four-, nine-, or twelve-byte ROM
+source. `blit2x2TileBlock` copies four source bytes into a 2x2 square in the order top-left,
+top-right (+0x01), bottom-right (+0x21), bottom-left (+0x20), and returns the pointer left at
+that bottom-left cell so an animator can step one row up before its next blit.
+`paintTileBlock2x2` is the memory-only sibling anchored at the top-left, and
+`paintTileBlock2x2Above` anchors at the bottom-left with its top row one tilemap row higher;
+`loc_0a52` uses `paintTileBlock2x2` to stamp two squares (at `VRAM_TILE_BLOCK_DEST_A`/`_B`,
+0x82aa/0x826a) from one shared source `TILE_BLOCK_2X2_SRC` **[code]** (0x0a72).
+`blitTile3x3Block` copies a three-wide, three-tall block, stepping the destination +0x1d after
+each row of three (net +0x20) and advancing both the destination and the ROM source so chained
+callers stamp consecutive blocks. `loc_2bd3` (and its stack-adjusted twin `loc_2bd2`) uses the
+2x2 blitter to paint the "ready" indicator square at `READY_SPRITE_TILE_VRAM` **[code]**
+(0x87bb) from `READY_SPRITE_SRC` (0x2be1), but only when that cell does not already hold the
+painted marker tile 0xba.
 
-### Scrolling and animated tile strips
+Two frame-gated animators cycle a 2x2 graphic. `loc_2563` and `loc_6b13` each run a hold
+countdown in `TWOTILE_ANIM_HOLD` **[code]** (0x8f06); on expiry they reload it to 0x0c, advance
+`TWOTILE_ANIM_PHASE` **[code]** (0x8f07), and pick a four-byte block out of `TWOTILE_SRC_TABLE`
+**[code]** (0x2744) by phase (and, in `loc_2563`, round) parity, then stamp it as two stacked
+squares — the second three rows above the first. `loc_2563` chooses its anchor
+(`READY_SPRITE_TILE_VRAM` or `TWOTILE_ANIM_VRAM_ALT`, 0x84bb) by round parity and is suspended
+whenever the play-mode latch is busy; `loc_6b13` always stamps at `BLIT_SCREEN_ANCHOR`
+(0x84b4). Separately, `loc_76af` runs a two-phase blink: a countdown in `BLINK_COUNTDOWN`
+**[code]** (0x892a) that on expiry reloads to 0x16, toggles `BLINK_PHASE` (0x892b), and swaps a
+two-tile pair from `BLINK_TILE_PAIRS` (0x76e6) into `BLINK_TILE_CELL_0` (0x8471) and its partner
+0x40 bytes on.
 
-`loc_0254` is the per-frame worker that keeps the moving scroll columns fresh. Its behaviour
-turns on `WORKER_CONTROL_BYTE` (0x883f) **[code]**: if the control byte's low nibble is set it
-short-circuits into the program-signature check instead of drawing; otherwise, while the game is
-active, it repaints two three-tile columns — four blanked columns then the shared column in
-one-player mode, or a capped body column in two-player mode keyed off `TWO_PLAYER_FLAG` (0x880e)
-**[seen]** — restamps the second scroll column at `WORKER_COLUMN_VRAM` (0x8740) **[code]** via
-`loc_02a8`, and, when both control bit 4 and the game-active bit are set, blanks one further
-column (the one chosen by `ACTIVE_PLAYER` (0x880d) **[seen]**). Every column here steps upward a
-row per cell.
+### Glyph blocks
 
-A separate marching strip is animated in place through `TILE_ANIM_CURSOR` (0x88be) **[seen]**, a
-16-bit cursor into the `0x84xx` tilemap, gated by the parity counter `TILE_ANIM_PARITY` (0x8f37)
-**[seen]**. The two halves bump the parity every call and act only on their own phase.
-`advanceTileAnimForwardOnOdd` (0x2405) runs on odd frames: if the tile under the cursor has
-reached the wrap code `0x37` it steps the cursor forward one cell and reseeds it with `0x34`,
-otherwise it just increments the current tile code — cycling the strip forward. `retreatTileAnimScript`
-(0x23ec) runs on even frames and walks it the other way: a `0x34` marker reloads the base code
-`0x10` and backs the pointer up one cell, any other value is decremented in place. The net effect
-is a tile strip that scrolls/cycles one direction on odd frames and unwinds on even ones.
+`blitGlyphBlock4x3` copies a three-wide, four-tall glyph (advancing the destination's low byte
+within its page per cell, then +0x1d to the next row's origin). `loc_1ffb` renders one of two
+fixed 3x3 glyph blocks into the colour/attribute plane at `GLYPH_BLOCK_DEST` **[code]** (0x8062)
+via `blitTile3x3Block`, choosing `GLYPH_TILES_A` **[code]** (0x203b) or `GLYPH_TILES_B` (0x2050)
+by bit 5 of its selector.
 
-### Glyphs, markers and the little animators
+The round marker `loc_4a0b` is the most elaborate glyph user. Gated on bit 0 of `ROUND_COUNTER`,
+it snapshots the spawn-phase count from `SPAWN_PHASE_COUNTER` **[seen]** (0x8902) into
+`SPAWN_PHASE_SNAPSHOT` (0x8d43) and `ROPE_DRAW_COUNT` **[seen]** (0x8934), then draws the marker
+column at `MARKER_VRAM_BASE` **[code]** (0x86c3): for a nonzero count it stamps that many stacked
+pairs of a two-wide marker (tiles 0xda/0xdb over 0xd8/0xd9) climbing the column, saves the
+column layout pointer into `MARKER_LAYOUT_PTR` (0x8932), and caps it with the marker glyph block
+from `MARKER_GLYPH_SRC` (0x2754); a zero count just stamps the glyph at the fixed anchor. The
+`blitTile3x3Block` call places the round-marker glyph beneath the stacked count.
 
-`loc_1ffb` stamps one of two fixed 3x3 glyph sources — `GLYPH_TILES_A` (0x203b) **[code]** or,
-when bit 5 of its selector is set, `GLYPH_TILES_B` (0x2050) **[code]** — into the tilemap at
-`GLYPH_BLOCK_DEST` via the 3x3 blitter. The round marker, `loc_4a0b`, is drawn only when
-`ROUND_COUNTER`'s low bit is set: it first snapshots `SPAWN_PHASE_COUNTER` (0x8902) **[seen]**
-into `SPAWN_PHASE_SNAPSHOT` (0x8d43) **[code]** and `ROPE_DRAW_COUNT` (0x8934) **[seen]**, then,
-for a nonzero count, paints that many stacked pairs of a two-wide marker (tiles `0xda`/`0xdb`
-over `0xd8`/`0xd9`) up a column from `MARKER_VRAM_BASE` (0x86c3) **[code]**, saves the column
-layout pointer into `MARKER_LAYOUT_PTR` (0x8932) **[code]**, and stamps the marker glyph block
-from `MARKER_GLYPH_SRC` (0x2754) **[code]** beneath it; a zero count saves the alternate layout
-pointer and stamps the glyph at the fixed anchor.
+### The HUD digit primitives
 
-The "ready" indicator, `loc_2bd3`, stamps a 2x2 square from `READY_SPRITE_SRC` (0x2be1) **[code]**
-at `READY_SPRITE_TILE_VRAM` (0x87bb) **[code]** — but only if that anchor cell does not already
-hold the painted marker tile `0xba`, so it will not redraw an already-present square. (`loc_2bd2`
-is an alternate entry that discards a return byte and falls straight into it; its drawing effect
-is identical.) Two small frame-gated animators cycle 2x2 blocks: `loc_2563` and `loc_6b13` each
-run a hold countdown in `TWOTILE_ANIM_HOLD` (0x8f06) **[code]** — decrement and return until it
-lapses, then reload `0x0c`, advance `TWOTILE_ANIM_PHASE` (0x8f07) **[code]**, pick a four-byte
-source block out of `TWOTILE_SRC_TABLE` (0x2744) **[code]** by parity, and stamp it as two 2x2
-squares one above the other. `loc_2563` folds in `ROUND_COUNTER` parity to choose among four
-blocks and between anchors `READY_SPRITE_TILE_VRAM` and `TWOTILE_ANIM_VRAM_ALT` (0x84bb) **[code]**,
-and stands down while the play-mode latch is busy; `loc_6b13` uses only the phase parity between two
-adjacent blocks at `BLIT_SCREEN_ANCHOR` (0x84b4) **[code]**. `loc_0a52` is the simplest of the
-family — it stamps one shared source pattern `TILE_BLOCK_2X2_SRC` (0x0a72) **[code]** into two
-fixed anchors, `VRAM_TILE_BLOCK_DEST_A` (0x82aa) **[code]** and `VRAM_TILE_BLOCK_DEST_B` (0x826a)
-**[code]**. Finally `loc_76af` is a two-phase blink: it counts `BLINK_COUNTDOWN` (0x892a) **[code]**
-down, and on expiry reloads `0x16`, toggles `BLINK_PHASE` (0x892b) **[code]**, and writes one of
-two tile pairs from `BLINK_TILE_PAIRS` (0x76e6) **[code]** into `BLINK_TILE_CELL_0` (0x8471)
-**[code]** and the cell `0x40` below it, swapping the blinking tiles.
+Every numeric field is built from a handful of digit routines that share a leading-zero
+convention (a suppressed leading zero draws the blank tile 0x10, not a "0"). `splitBcdByte`
+takes a packed-BCD byte, writes its low nibble as a tile at the cursor, advances the cursor,
+and hands back the high nibble (zero doubling as the leading-zero test). `renderDigitWithBlanking`
+paints one digit with a running blank budget threaded across a field: a nonzero digit ends the
+blank run, a zero spends a blank while the budget lasts, and once the budget is gone a genuine 0
+appears. `drawStackedBcdDigits` paints a packed byte as two vertically stacked tiles — tens at
+the cursor, units one row up — with the tens' leading zero suppressed. The two binary-to-BCD
+converters feed these: `byteToPackedBcd` reproduces the Z80 `daa` chain to give value-mod-100,
+and `binToPackedBcd` returns both the packed low two digits and a hundreds tally (a zero counter
+counts a full 256-pass wrap, matching the hardware down-counter).
 
-### Turning numbers into digit tiles
+### Scores, high score, credit, and panels
 
-The HUD renders packed-BCD counters as columns of digit tiles, and a handful of primitives do the
-nibble work. `splitBcdByte` (0x0429) writes a byte's low nibble as a tile at the cursor, advances
-the cursor by a caller-supplied stride, and hands back the high nibble (a zero high nibble is the
-leading-zero signal). `renderDigitWithBlanking` (0x059d) paints one digit while suppressing
-leading zeros through a running blank budget: a nonzero digit prints as-is and ends the blank run,
-a zero prints the blank tile `0x10` while budget remains (spending one), or a genuine `0` once the
-budget is gone. `drawStackedBcdDigits` (0x1119) draws a whole packed byte as two vertically
-stacked tiles — tens at the cursor, units one row up — with the tens leading zero blanked. Binary
-counts are converted first: `byteToPackedBcd` (0x062a) turns a byte into packed BCD (value mod 100)
-by reproducing the Z80 `daa` correction exactly, and `binToPackedBcd` (0x1131) counts up in BCD to
-produce the low two decimal digits plus a hundreds tally.
+The three BCD score counters are painted down screen columns by `loc_056b`, whose selector picks
+player 1 (`P1_SCORE_BCD` **[seen]** 0x88a2 into `P1_SCORE_VRAM` **[code]** 0x8781), player 2
+(`P2_SCORE_BCD` **[seen]** 0x88a5 into `P2_SCORE_VRAM` 0x8521), or the high score
+(`HIGH_SCORE_BCD_HI` **[seen]** 0x88aa into `HIGH_SCORE_VRAM` 0x8641); each of the three counter
+bytes is split into high then low digit up the column through `renderDigitWithBlanking` with a
+four-digit blank budget. `loc_0552` is the reset twin: it zeroes a counter's three bytes and
+repaints it (so the field shows four blanks and two zeros). `selectActivePlayerScoreBuffer`
+resolves which buffer is "the active player's" from bit 0 of `ACTIVE_PLAYER` **[seen]** (0x880d),
+and `loc_0496` is the score accrual: while the game is live it BCD-adds a per-frame increment
+(`PER_FRAME_SCORE_INCREMENT` for award index 0, else a `SCORE_AWARD_TABLE` entry) into that
+buffer, repaints its column, then compares MSB-first against `HIGH_SCORE_BCD` **[code]** (0x88a8)
+and — if the score is strictly higher — copies it over and repaints the high-score column.
 
-### Scores and the high-score table
+The credit counter `loc_05ee` draws `CREDIT_COUNT` **[seen]** (0x8802) clamped to 99: the tens
+nibble into `CREDIT_HUD_TENS_VRAM` **[code]** (0x86bf, only when nonzero) and the units into
+`CREDIT_HUD_UNITS_VRAM` (0x869f); when the units digit happens to be 2 it also runs a hidden
+31-byte checksum tripwire (see the anti-tamper section). `loc_05b2` is the general character-field
+painter used for the credit label and the attract text: a selector indexes `FIELD_RECORD_PTR_TABLE`
+(0x7a0d), and each record is a destination address followed by an inline string drawn bottom-up
+(one row per character), with a `.` ending a record and a `?` ending the run — bit 7 of the
+selector switches from digit-fill to blank-fill.
 
-`selectActivePlayerScoreBuffer` (0x04f2) resolves which 3-byte BCD score buffer is live — bit 0 of
-`ACTIVE_PLAYER` picks `P1_SCORE_BCD` (0x88a2) **[seen]** or `P2_SCORE_BCD` (0x88a5) **[seen]**.
-`loc_056b` draws any one of the three counters (player 1, player 2, or the top score's high byte
-`HIGH_SCORE_BCD_HI` (0x88aa) **[seen]**) down its screen column — `P1_SCORE_VRAM` (0x8781) **[code]**,
-`P2_SCORE_VRAM` (0x8521) **[code]** or `HIGH_SCORE_VRAM` (0x8641) **[code]** — splitting each of its
-three bytes into high-then-low digits up the column with a shared blank budget of 4. `loc_0552`
-is the reset twin: it zeroes the selected counter's three bytes and repaints the column, so the
-first four digits show as blanks and the last two as zeros.
+The status panel and the digit panel are two table-driven paints. `renderPanelFromTable` walks
+ten rows of three cells, painting each byte of `PANEL_TILE_SOURCE` **[code]** (0x8e00) into
+`PANEL_VRAM_DEST` **[seen]** (0x8567) (climbing within a row, re-basing forward per row) with an
+empty cell showing the panel-blank tile 0x40. `loc_0439` renders the packed-BCD digit panel: ten
+rows of `PANEL_DIGIT_SOURCE_TABLE` **[code]** (0x89c0) drawn into `PANEL_DIGIT_VRAM_DEST` (0x8467)
+as digit pairs a fixed separator tile 0x51 apart, delegating the nibble split to `splitBcdByte`.
+The big attract paint `loc_03e9` ties these together: it draws eleven consecutive character
+fields, renders the ten-entry `HIGH_SCORE_TABLE` **[code]** (0x8a00) as stacked BCD pairs into
+`HIGH_SCORE_TABLE_VRAM` (0x85c7), then calls `loc_0439` and `renderPanelFromTable`.
 
-Score accrual is `loc_0496`. Running only while the game-active bit is set, it chooses a 3-byte BCD
-increment — the per-frame trickle `PER_FRAME_SCORE_INCREMENT` (0x88ab) **[code]** when the award
-index is 0, otherwise a stride-3 entry out of `SCORE_AWARD_TABLE` (0x0501) **[code]** — BCD-adds it
-into the active player's buffer with carry chained LSB-first, repaints that player's score column,
-then compares the buffer MSB-first against the live high score `HIGH_SCORE_BCD` (0x88a8) **[code]**;
-a strictly greater buffer is copied over the high score and its column repainted. When a game ends,
-`loc_1ab2` inserts the finished player's score into the sorted ten-entry high-score table
-`HIGH_SCORE_TABLE` (0x8a00) **[code]** — ten 3-byte packed-BCD scores ranked high to low. It scans
-MSB-first for the first slot the score reaches or beats, and if it beats none it returns; otherwise
-it records the winning rank in `HIGH_SCORE_INSERT_RANK` (0x89fc) **[code]**, opens a slot by an
-overlap-safe descending shift of the tail, and writes the score in. Two parallel side tables ride
-along: the per-entry play-time pair `HIGH_SCORE_TIME_TABLE` (0x89e0) **[code]** is shifted and the
-new play-time copied from the active timer bank (`PLAY_TIMER_BCD_P1`/`P2`, with its gate
-`PLAY_TIMER_GATE_P1`/`P2` set), and the display-tile side table `PANEL_TILE_SOURCE` (0x8e00)
-**[code]** is shifted and the new entry's three cells blanked to `0x10`.
+### Counters, gauges and in-play numbers
 
-### Character fields and the status panels
+`loc_039b` paints the "count column" at `COUNT_COLUMN_VRAM` **[code]** (0x8482): gated on the
+game-active flag, it fills the top cells with tile 0x0c to a height of `ACTOR_TABLE` **[seen]**
+(0x8a80) count plus one (clamped to the eight-cell column) and blanks the rest. The phase gauge
+is drawn by `renderPhaseGauge` (with an identical sibling `paintPhaseGauge`): it reads
+`GAUGE_PHASE_COUNTER` **[seen]** (0x8908), draws (count − 1) filled cells (tile 0xb0) from
+`PHASE_GAUGE_BASE_TILE` **[seen]** (0x863f) upward and blanks the rest of the five, leaving the
+gauge alone when the count is zero. `loc_1a85` repaints the gauge and then latches the play
+sub-state index for the active player. The stage number is `renderStageCountdownDigits`: it reads
+`STAGE_COUNTDOWN` **[seen]** (0x8901) and writes its units nibble to `HUD_STAGE_DIGIT_LO`
+**[seen]** (0x8743) and the tens one row over (values under ten draw as a single digit; ten and
+above convert through `binToPackedBcd`, and that path is skipped while `PLAY_MODE_LATCH` is held).
 
-`loc_05b2` is the general character-field renderer. Its selector's low seven bits (doubled) index
-the pointer table `FIELD_RECORD_PTR_TABLE` (0x7a0d) **[code]**, whose entry heads a list of records;
-each record is a two-byte destination address followed by an inline string, drawn one tile-row *up*
-per character. Bit 7 of the selector chooses the mode: clear renders each character as a digit tile
-(`char - '0'`), set writes the blank tile for every character (used to erase a field). A `'.'` ends
-one record and moves to the next; a `'?'` ends the whole run.
+`loc_10c2` is a three-field sub-state display: it walks a counter toward a target one step at a
+time, stores it in `SUBSTATE_FIELD1_COUNTER` **[code]** (0x8f62), and paints three stacked-BCD
+fields (`SUBSTATE_FIELD1_VRAM` 0x85d0, `SUBSTATE_FIELD2_VRAM` 0x8652, `SUBSTATE_FIELD3_VRAM`
+0x85d2 with a hundreds cell at 0x85f2) through `drawStackedBcdDigits`, then advances the
+main-loop sub-state and queues a sound. `loc_6f42` (level-intro phase 2) draws the target-hit
+tally `HIT_TALLY` **[code]** (0x8f52) as two stacked digit pairs at `HUD_INTRO_DIGITS_BASE`
+**[code]** (0x8634) — the packed value and its BCD double two rows up. `loc_18da` steps the
+pending bonus-award tally: when the active player's score MSB reaches the queued threshold in
+`AWARD_QUEUE` **[code]** (0x8909) it bumps the saturating gauge counter, BCD-steps the queue, and
+redraws the gauge via `renderPhaseGauge`.
 
-The status panel has two renderers over its work-RAM source tables. `renderPanelFromTable` (0x0460)
-walks ten rows of three cells from `PANEL_TILE_SOURCE` into `PANEL_VRAM_DEST` (0x8567) **[seen]**,
-painting each source byte or the blank tile `0x40` when it is zero, with a stride that climbs two
-cells up a column then re-bases forward to the next column. `loc_0439` renders ten rows of
-packed-BCD digit pairs from `PANEL_DIGIT_SOURCE_TABLE` (0x89c0) **[code]** into
-`PANEL_DIGIT_VRAM_DEST` (0x8467) **[code]**: each row draws two source bytes as low/high digit
-pairs a row apart, with a fixed separator tile `0x51` wedged between them, re-basing the column two
-cells right per row. The attract-screen aggregator `loc_03e9` ties it together: it draws eleven
-consecutive selector-indexed character fields via `loc_05b2`, renders the whole ten-entry
-`HIGH_SCORE_TABLE` as stacked BCD digit pairs into `HIGH_SCORE_TABLE_VRAM` (0x85c7) **[code]**, then
-repaints the digit panel (`loc_0439`) and the status panel (`renderPanelFromTable`).
+The play-timer digits are rendered by `loc_7960`, which (behind a pair of code-block integrity
+checksums) splits the active player's minutes and seconds BCD bytes — `PLAY_TIMER_BCD_P1` **[code]**
+(0x8a30) or `PLAY_TIMER_BCD_P2` (0x8a33) — into hi/lo nibble tiles up the column at
+`PLAY_TIMER_DIGIT_VRAM` **[code]** (0x862d), separated by the spacer tile 0x51, then clears those
+timer bytes. The timer itself is advanced (not drawn) by `loc_7912`, whose frame sub-counter rolls
+at 0x3b/0x3c and BCD-carries the seconds and minutes digits.
 
-### Gauges, counters and the credit HUD
+### The sprite display list
 
-The phase gauge is a five-cell vertical bar. Both `renderPhaseGauge` (0x03c2) and `paintPhaseGauge`
-(0x2065) read `GAUGE_PHASE_COUNTER` (0x8908) **[seen]**: a zero leaves the gauge untouched, else
-`count - 1` cells (clamped to five) are drawn with the filled tile `0xb0` upward from
-`PHASE_GAUGE_BASE_TILE` (0x863f) **[seen]** and the rest with the blank tile. `loc_1a85` repaints
-the gauge and then sets the play sub-state index `PLAY_STATE_INDEX` (0x880a) **[seen]** to the base
-value (bumped by one for the second player). The stage number is drawn by `renderStageCountdownDigits`
-(0x34c9), which reads `STAGE_COUNTDOWN` (0x8901) **[seen]** and writes its units nibble to
-`HUD_STAGE_DIGIT_LO` (0x8743) **[seen]** and its tens nibble one row over; values under ten draw as a
-single digit, ten or more convert through packed BCD first (and that path draws nothing while the
-play-mode latch is held). `loc_039b` paints a live count column: gated on the game-active flag, it
-fills the top `ACTOR_TABLE` (0x8a80) **[seen]** count + 1 cells (clamped to eight) with tile `0x0c`
-down `COUNT_COLUMN_VRAM` (0x8482) **[code]** and blanks the remainder. The level-intro tally,
-`loc_6f42`, advances `INTRO_PHASE_INDEX` (0x8f51) **[code]** and draws `HIT_TALLY` (0x8f52) **[code]**
-as two stacked digit pairs at `HUD_INTRO_DIGITS_BASE` (0x8634) **[code]** — the packed tally at the
-base and its BCD double two rows up.
-
-The credit HUD is `loc_05ee`. It draws the credit field, then reads `CREDIT_COUNT` (0x8802) **[seen]**
-clamped to 99, converts it to packed BCD, writes the tens digit to `CREDIT_HUD_TENS_VRAM` (0x86bf)
-**[code]** (skipped when zero) and the units to `CREDIT_HUD_UNITS_VRAM` (0x869f) **[code]**. WARNING:
-this drawing routine hides an anti-tamper tripwire — only when the units digit happens to be exactly
-2 does it also sum a fixed 31-byte program block down from `HUD_GUARD_CKSUM_TOP` (0x64c8) **[code]**
-and, on a sentinel miss, bump the strike counter `TAMPER_STRIKES_HUD_GUARD` (0x8a3c) **[code]**; the
-checksum is incidental to the digit paint and fires only on that one digit value.
+Every frame the hardware sprite list is rebuilt from the object-record banks by `loc_02ef`. It
+copies four record groups into `SPRITE_DISPLAY_LIST` **[seen]** (0x8840): the two lead actors and
+the two enemy-target records go through `copyObjectRecordsToDisplayList`, which emits record
+bytes +0x06, +0x10, +0x04, +0x0f into four successive list slots per record; the eighteen moving
+objects go through `loc_0343`, which is the same layout but derives two of the four bytes as
+screen coordinates from the record's sub-pixel position pairs (a 16-bit hi:lo pair reduced to a
+pixel as `(pair >> 5) − 8`); and the arrow/launch group is copied raw. `loc_02ef` then nudges the
+arrow group's two sprite-Y bytes down a pixel and falls into `loc_0320`, which ticks a per-frame
+counter and, when the orientation flag `FLIP_SCREEN_FLAG` **[seen]** (0x881f) is zero (screen
+flipped), calls `mirrorSpriteListVertically` — that walks the twenty-four stride-4 entries in
+place, negating each coordinate byte (−x − 0x10) and toggling the two flip bits of the attribute
+byte while preserving its low nibble. `loc_09f8` is a lighter path that first advances four
+object records' animations and then rebuilds the list through `loc_02ef`.
 
 ### The display-list interpreter
 
-`loc_4381` copies a compact layout stream into video RAM. On entry it chooses its pointer pair from
-`FORMATION_SLOT_TABLE` (0x8920) **[seen]**: the primary pair `DISPLAY_LIST_DST_PTR` (0x8f43) **[seen]**
-/ `DISPLAY_LIST_SRC_PTR` (0x8f45) **[seen]**, or the alternate pair `DISPLAY_LIST_DST_PTR_ALT` (0x88b8)
-**[code]** / `DISPLAY_LIST_SRC_PTR_ALT` (0x88ba) **[code]** when that selector is nonzero. It then
-walks up to `0x1d` source bytes as a tiny opcode stream: a plain byte is copied to the destination and
-both pointers step; a skip opcode (`0x10`) advances the destination by the following byte and shrinks
-the remaining budget (so runs of untouched cells cost only two stream bytes); a reload opcode (`0xff`)
-loads a fresh 16-bit destination from the next two stream bytes and folds the byte after that into
-`SUBPHASE_TICK` (0x88b7) **[seen]**, then stops. Unless a reload ended the walk, the destination is
-nudged a final `+3`. On exit the advanced destination and source are written back into whichever
-pointer pair was chosen, so the next call resumes exactly where this one left off.
+`loc_4381` is a stream copier that lays out layout data into video RAM. It chooses a
+destination/source pointer pair — the primary pair `DISPLAY_LIST_DST_PTR` **[seen]** (0x8f43) and
+`DISPLAY_LIST_SRC_PTR` **[seen]** (0x8f45), or the alternate pair 0x88b8/0x88ba when
+`FORMATION_SLOT_TABLE` **[seen]** (0x8920) is nonzero — then walks up to 0x1d source bytes. A
+plain byte is copied to the destination and both pointers step forward; a 0x10 opcode advances
+the destination by the following byte and shrinks the remaining count (a run-skip); and a 0xff
+opcode reloads the destination from the next two stream bytes and folds the byte after that into
+`SUBPHASE_TICK` **[seen]** (0x88b7), ending the pass. On exit it writes the advanced pointers back
+to whichever pair it chose, so successive calls resume mid-stream.
+
+### The display-command ring
+
+The rendering work above is scheduled through a ring of two-byte drawing commands. `loc_0038`
+enqueues one: it looks at the slot the write pointer `DISPLAY_CMD_RING_WRITE_PTR` **[code]**
+(0x88a0) names within the `DISPLAY_CMD_RING_BUFFER` **[code]** (0x88c0, 32 slots), and — only if
+that slot is free (bit 7 set) — stores the command's high byte there and its low byte in the next
+slot, advances the pointer by two, and wraps it back to 0xc0; an occupied ring drops the command.
+The main loop drains this ring within the frame: it reads the slot the read cursor
+`DISPLAY_CMD_RING_READ_PTR` **[code]** (0x88a1) points at, and if that slot is free (bit 7 set) it
+runs the per-frame worker `loc_0254` and treats that as the frame boundary. Otherwise it takes the
+slot's high byte as a command index — doubled and masked to 0x1f, it selects a handler from the
+jump table at 0x0242 — frees the slot (writes 0xff), reads the low byte as the handler's argument,
+advances the cursor (wrapping at 0xc0), and dispatches. The handlers are the drawing routines
+(attract/board setup, the field and panel painters, sound emitters, and so on); `loc_0e53` is a
+deliberate phantom no-op handler that returns without drawing. Because the loop keeps draining
+until it hits a free slot, a backlog of commands queued on one screen is fully rendered on the
+next frame rather than one command at a time.
+
+
 ## Sound
 
-Sound on this board is a two-processor affair: the game CPU never synthesizes audio itself, it
-only hands one-byte *commands* to a separate audio CPU. The whole subsystem is the plumbing for
-that handoff — a hardware latch the audio CPU reads, an interrupt strobe that pokes it into
-reading, and a small ring buffer that lets gameplay code queue commands faster than they are
-actually delivered.
+Sound is produced in two tiers. At the bottom sits a single emitter that pokes the audio
+CPU; above it sits a small ring buffer that lets producers all over the game queue a command
+byte without touching the audio port themselves. The main CPU never blocks on sound: it drops
+a byte into the ring and moves on, and one byte per frame is handed down to the emitter.
 
-### Handing a command to the audio CPU
+**The emitter.** `sendSoundCommand` (0x0e8f) is the only code that speaks to the audio CPU. It
+writes the command byte into the sound-command latch `SOUND_COMMAND_LATCH` 0xa100 **[seen]**,
+then strobes the audio-IRQ latch `AUDIO_IRQ_LATCH` 0xa181 **[seen]** high and immediately back
+low. That rising/falling pulse is what interrupts the sound processor into reading the byte it
+just latched; the width of the pulse is nothing but a hardware settling delay carrying no state,
+so it collapses to two adjacent writes. `loc_0f09` is a direct-emit shortcut: it hands the fixed
+code 0x0b straight to `sendSoundCommand`, bypassing the ring entirely for that one preset.
 
-The primitive at the bottom is `sendSoundCommand` [code]. It writes the command byte into
-`SOUND_COMMAND_LATCH` [seen] at 0xa100 — the port the audio CPU reads — and then pulses
-`AUDIO_IRQ_LATCH` [seen] at 0xa181 high and immediately back low. That rising edge is what
-interrupts the audio CPU into fetching the byte it just latched; the two writes together are the
-complete "here is a command, go read it" gesture. The original code holds the strobe high for a
-few cycles before dropping it, but that pulse width is pure timing with no state behind it, so it
-does not survive as anything but the high-then-low pair. Nothing is returned — the effect is
-entirely in the latched byte and the interrupt it raises.
+**The command queue.** Everything else reaches the emitter through a ring buffer living in
+page 0x8a. The slots run from `SOUND_RING_BUFFER` 0x8a43 **[code]** up to 0x8a5e — a band of
+one-byte slots addressed as `0x8a00 + index`. Two cursors track it: the tail
+`SOUND_RING_WRITE_PTR` 0x8a40 **[code]** where the next byte is stored, and the head
+`SOUND_RING_READ_PTR` 0x8a41 **[code]** from which the next byte is consumed. Each cursor is a
+bare low-byte index confined to 0x43..0x5e; both advance by one per operation and wrap 0x5e back
+to 0x43, so the buffer is circular. Boot fills every slot with 0xff, which serves as the
+empty/free marker throughout — a slot reads 0xff when nothing is queued there.
 
-Most callers never touch `sendSoundCommand` directly; they queue a byte instead (below). The one
-routine that bypasses the queue is the direct preset emitter, which simply loads the fixed
-command code 0x0b and hands it straight to `sendSoundCommand`, latching and strobing in one shot
-with no buffering.
+**Enqueue.** Two entry points push into the same ring through the same write pointer.
+`loc_0eb3` is the raw enqueue: it stores the byte at `0x8a00 + tail`, then advances and wraps the
+tail — no gating, the byte always lands. `loc_0ea2` is the gated append: it first stashes the
+incoming byte in `TEXT_RING_PENDING_BYTE` 0x8d20 **[code]**, then appends only while a game is
+in progress — `GAME_ACTIVE_FLAG` 0x8806 **[seen]** nonzero — or the `PLAY_MODE_LATCH` 0x8f50
+**[code]** is set; with both clear it drops the byte and returns 0. On the appending path it
+writes the stashed byte at `0x8a00 + cursor`, advances and wraps the same write pointer, and
+returns the advanced cursor to its caller. Because both entry points key off 0x8a40 and write
+into 0x8a00, the two paths interleave into one shared queue.
 
-### The command ring
+WARNING: the gated append is described in places as a "text" ring and the raw path as a "sound"
+ring, but they are one and the same buffer — same slots, same write pointer, same drain. The
+distinction is only which producers use which entry point, not two separate queues.
 
-Between those two extremes sits a small circular buffer that decouples the producers (gameplay
-events that *want* a sound) from the single-command-per-frame rate at which commands are actually
-shipped. The ring lives in page 0x8a, sharing that page with the high-score table
-(`HIGH_SCORE_TABLE` [code] at 0x8a00) below it and the frame counter (`FRAME_COUNTER` [seen] at
-0x8a5f) above: the slots occupy 0x8a43 through 0x8a5e, and both cursors are single bytes that
-hold just the low offset into that page. `SOUND_RING_WRITE_PTR` [code] at 0x8a40 is the tail
-(where the next byte is stored), and `SOUND_RING_READ_PTR` [code] at 0x8a41 is the head (where
-the next byte is consumed). Each cursor walks 0x43..0x5e and wraps the last slot back to the
-first (0x5e -> 0x43). A slot value of 0xff means *empty*, and freeing a consumed slot writes 0xff
-back into it.
+Above these two helpers sits a bank of thin command selectors, one per effect, that just name a
+fixed byte (or a short run of bytes) and hand it down. Some go through the raw enqueue —
+`loc_0ecf` queues 0x00 (silence), `loc_0ed6` 0x02, `loc_0eda` the pair 0x82 then 0x03, `loc_0ef1`
+(and its trampoline `loc_5f02`) 0x05, `loc_0f01` 0x09 — while others go through the gated append —
+`loc_0ed2` 0x01, `loc_0ef9` 0x07, `loc_0f11` 0x0c, `loc_0f2b` 0x11. A game-logic site that wants
+a particular sound just calls the matching selector; the byte ends up in the ring either way.
 
-There are two front doors for enqueueing, and — importantly — they feed the *same* ring through
-the *same* write pointer. The plain path stores the byte into the slot the write pointer names,
-then advances and wraps the write pointer; it is unconditional, always appending. The gated path
-first stashes the incoming byte in `TEXT_RING_PENDING_BYTE` [code] at 0x8d20, then appends only
-while a game is running — `GAME_ACTIVE_FLAG` [seen] at 0x8806 set, or `PLAY_MODE_LATCH` [code] at
-0x8f50 set — otherwise it drops the byte and returns 0. On a real append it writes into the same
-page-0x8a slot at the write cursor, advances and wraps identically, and leaves the *advanced*
-cursor value behind for its caller to read. So the difference between the two enqueue paths is
-only the gate (and that one leaves the cursor in hand); the buffer, the slot range, the pointer,
-and the wrap are one and the same.
+**Drain.** `loc_0e64` empties the ring one byte at a time, driven from the per-frame vblank
+interrupt so at most one queued command reaches the audio CPU each frame — this is what
+serializes a burst of enqueues down to the single-latch port. It reads the head slot
+`0x8a00 + head`; if it holds 0xff the queue is empty and the routine returns without touching the
+port. Otherwise it applies a silence gate: the byte is suppressed only when attract-mode sound is
+disabled *and* no game is active — that is, when `DEMO_SOUNDS_DSW` 0x8821 **[code]** bit 0 is
+clear and `GAME_ACTIVE_FLAG` is 0 — so gameplay always plays and attract mode plays only when the
+operator DIP enables it. When not silenced it forwards the byte to `sendSoundCommand`, which
+latches and strobes as above. Either way it then writes 0xff back into the slot to free it and
+advances the head with the same 0x5e→0x43 wrap, so the next frame picks up the following byte.
 
-> WARNING: the read/write pointers are named for "sound," and the gated appender is described as
-> a "text" ring, but there is only one physical buffer here. A byte queued by either path lands
-> in the same slots behind the same write pointer and is drained by the same consumer — the "text
-> command" and "sound command" rings are not two structures, they are two entrances to one.
 
-### Draining the ring
-
-Once per vblank the drain routine takes exactly one step of the ring. It reads the slot the head
-pointer names; if that slot is 0xff the ring is empty and it returns having done nothing. Otherwise
-it decides whether the queued byte is actually audible: it is silenced only when *both* attract
-sound is disabled and no game is in progress — that is, when bit 0 of `DEMO_SOUNDS_DSW` [code] at
-0x8821 is clear *and* `GAME_ACTIVE_FLAG` is 0. If either condition allows sound (attract sounds
-enabled, or a game active), the byte is passed to `sendSoundCommand`, latched, and strobed out to
-the audio CPU. Either way — whether it was delivered or suppressed — the head slot is then freed
-back to 0xff and the head pointer is advanced and wrapped. Because this runs once per frame, the
-ring drains at one command per vblank; a burst of enqueues during a single frame is metered out
-over the following frames.
-
-### Command producers
-
-Above the two enqueue helpers sits a family of tiny wrapper routines, one per fixed command code,
-that gameplay uses as its sound vocabulary. Each simply loads a constant and calls the appropriate
-enqueue helper: some go through the unconditional path (for example the selectors that queue codes
-0x00, 0x02, 0x05, 0x09, and the wave/effect pairs like 0x19-then-0x15 or 0x27-then-0x15), while
-others go through the game-active-gated path (the run of codes 0x01, 0x06..0x0f, 0x11..0x14, and
-so on). A few queue several bytes in sequence in one call — for instance one routine appends
-0x96,0x97 through the gated path *and* 0x18,0x15 through the unconditional path, and another queues
-a short text-tile run 0x28,0x15,0x16,0x17. One producer is conditional on game state before it
-even enqueues, tail-appending its code (0x04) only when a wave is being torn down or a grab is
-active. From the ring's point of view none of this matters: every producer just deposits bytes
-that the per-vblank drain will eventually hand to the audio CPU.
 ## Anti-tamper
 
-Pooyan does not trust its own ROMs. Scattered through the render, spawn, and per-actor
-state code is a family of self-check routines that each fold a fixed span of the program
-image — or of the on-screen tilemap — into a running sum and compare that sum against a
-constant the authentic image was tuned to produce. When the sum matches, the guard is
-invisible: it returns having touched nothing and the game plays on. When it misses, the
-guard either raises one of a set of strike/corrupt flags — a slow-acting poison the rest
-of the machine reads later — or, for the harshest checks, branches into a byte range that
-is data or a dead code fragment, a jump that can only be taken on a genuinely altered
-image. Because every summed span is read-only program (or a tilemap the game itself
-paints from ROM), all of these guards are silent on an intact machine; they exist to make
-a patched or bootlegged ROM misbehave in ways that are hard to trace back to their cause.
+Pooyan carries an unusually dense web of self-verification: better than a dozen routines that read the
+program image (and, in a couple of cases, the live video RAM) back as data, fold it into a checksum, and
+compare the result against a hard-coded sentinel. None of them touch gameplay when the image is intact —
+they are pure tripwires. They differ only in *when* they fire, *what* they sum, and *how loudly* they
+answer a mismatch: some halt outright on a path an untampered ROM can never reach, while most just bump a
+quiet strike counter and let corrupted downstream code discover the damage on its own.
 
-**The payload flags.** The guards deliberately separate detection from punishment. The
-central sink is `TAMPER_FREEZE_FLAG` (0x881e) **[code]** — a miss tally that several
-guards increment. Once it is nonzero the game quietly comes apart: the actor-group driver
-at 0x241e reads it and aborts its per-frame dispatch before it ever reaches the actor
-state table; the phase-1 spawner gate at 0x6e75 ORs it together with `SIGNATURE_MISMATCH_FLAG`
-(0x8ef0) **[code]** and, if either is set, takes a `jp` into a data table at 0x4c92 that
-cannot execute as code; and the round/HUD setup at 0x1ead treats a nonzero value as
-"already initialised" and skips straight to the update chain, so the HUD never gets built.
-Alongside that shared flag sits a rank of dedicated strike counters that only tally and
-are never (in this code) cleared — `TAMPER_STRIKES_ROM` (0x89ef) **[code]**,
-`TAMPER_STRIKES_SIG` (0x8a38) **[code]**, `TAMPER_STRIKES_STATE10` (0x8a39) **[code]**,
-`TAMPER_STRIKES_SLOTSWEEP` (0x89e8) **[code]**, and `TAMPER_STRIKES_HUD_GUARD` (0x8a3c)
-**[code]** — plus three single-bit verdict cells: `HISCORE_TABLE_CORRUPT_FLAG` (0x8df8)
-**[code]**, `TAMPER_ROM_CHECK_FLAG` (0x882b) **[code]**, and `TAMPER_OBJECT_FREEZE_FLAG`
-(0x89fb) **[code]**. The last is ORed with `BOARD_CLEAR_FLAG` (0x89e5) **[code]** by the
-player-input sampler at 0x1e55 to freeze the per-frame object update, and is cleared only
-at board reset by 0x2527.
+### The front door: the power-on self-test
 
-**The program-signature sampler.** `verifyRomSignature` (0x208c) is the recurring one. It
-walks the 16-byte `SIGNATURE_REFERENCE_TABLE` (0x20aa) **[seen]** one byte at a time while
-striding through the sampled code region from `SIGNATURE_SAMPLE_BASE` (0x066d) **[seen]**
-eight bytes at a time, so the reference is a sparse fingerprint of the low ROM. The first
-byte that disagrees raises `SIGNATURE_MISMATCH_FLAG` and stops; a clean sweep leaves the
-flag alone. It runs off the per-frame worker `loc_0254`: that worker reads
-`WORKER_CONTROL_BYTE` (0x883f) **[code]** and, when its low nibble is nonzero, does nothing
-but call the signature check and return — so the sampler is folded into the same code path
-that otherwise repaints the scroll columns, hiding it inside ordinary frame work.
+The very first thing the boot entry `loc_0092` does, before it builds any machine state, is checksum the
+eight 4 KB program-memory banks. Each bank is folded with a 24-bit rolling sum kept as three bytes
+(low/mid/high) and compared against its three-byte entry in **ROM_SELFTEST_CHECKSUM_TABLE [code]** (0x0079),
+a 24-byte table of the eight banks' expected checksums. A pass tally is seeded with the bank count (8) and
+bumped once per matching bank, so a wholly-intact image lands at exactly 0x10; the result is written to
+**ROM_SELFTEST_TALLY [code]** (0x8fff). That cell is deliberately parked at the top of the boot stack — an
+unbalanced push reserves the word above the stack pointer so the per-frame vblank register-save can never
+clobber it. The tally is the gate: the attract state-0 handler `loc_072d` refuses to finish the
+attract-to-play handoff — clearing the in-play flag, advancing the top-level state, flooding the attribute
+map, queueing its display commands — unless ROM_SELFTEST_TALLY reads 0x10. A single bad bank leaves the
+tally short and the machine simply never leaves attract setup.
 
-**The ROM- and table-checksum guards.** Several guards sum a block and match a baked
-sentinel. `verifyRomChecksum` (0x3fe9) sums sixteen bytes descending from `ROM_CHECKSUM_TOP`
-(0x7780) **[code]** into one byte and inspects its *shape* rather than its value — a healthy
-image has bit 0 clear, bit 5 set, and bit 7 set; any other pattern bumps `TAMPER_STRIKES_STATE10`.
-`loc_7e6d` is the periodic ROM guard: it fires only when `PLAYER1_LIVES` (0x8988) **[seen]**
-is at least four and `FRAME_COUNTER` (0x8a5f) **[seen]** sits at its zero crossing, then sums
-downward from `TAMPER_CKSUM_TOP_ADDR` (0x64be) **[code]** to a 0x34 sentinel byte while
-counting the sum's carries; if `carries + sum` keeps any bit of 0xb0 it strikes
-`TAMPER_STRIKES_ROM`. The lives gate is worth flagging: this guard is only armed under the
-higher-lives DSW settings, so it never runs in a default three-life game. `verifyTableChecksum`
-(0x585b) accumulates a caller-supplied count of bytes into a full 16-bit sum (low byte plus a
-high byte bumped on each 8-bit carry) and demands high 0x1d / low 0xc1; anything else raises
-`TAMPER_ROM_CHECK_FLAG` on the eagle-spawn path. `flagHighScoreTableCorruptOnChecksumMiss`
-(0x0644) guards the high-score block: the first byte at `HISCORE_CHECKSUM_BASE` (0x778a)
-**[seen]** must be the 0xc8 header marker, then the four bytes are summed with each carry
-counted separately and `sum - carries` must equal 0x59 — a bad header or a wrong total raises
-`HISCORE_TABLE_CORRUPT_FLAG`. And `flagTamperOnRound5ChecksumMiss` (0x5b06) is armed only when
-`ROUND_COUNTER` (0x8907) **[seen]** is 5: it sums six program bytes at 0x1553 with a carry tally
-and, unless `low + carries + 0x7f` wraps to zero, bumps `TAMPER_FREEZE_FLAG` — a tripwire that
-lies dormant for the first four rounds.
+### The program-signature samplers
 
-**Checks piggybacked on gameplay routines.** Most of the family is not standalone; each guard
-rides inside a routine that has an unrelated day job, so the sum runs as a side effect of normal
-play. `loc_05ee` draws the two-digit credit HUD from `CREDIT_COUNT` (0x8802) **[seen]**, but
-only when the units digit comes out exactly 2 does it sum thirty-one bytes descending from
-`HUD_GUARD_CKSUM_TOP` (0x64c8) **[code]**; a total other than the 0x8c sentinel strikes
-`TAMPER_STRIKES_HUD_GUARD`. `loc_1bcc` snapshots the live page into player 1's bank and then,
-seeding its accumulator from the *advanced* copy pointer rather than zero, folds fourteen bytes
-of `TAMPER_CHECKSUM_CODE_BASE` (0x5328) **[code]** each masked to its low five bits; unless the
-result lands on the sentinel word 0x8a60 it bumps `TAMPER_STRIKES_SIG`. `loc_52f6` sweeps six
-enemy records at `ENEMY_ACTOR_TABLE` (0x8ae0) **[seen]** for free slots — running only while
-`SCRIPT_ADVANCE_GUARD` (0x8d6d) **[seen]** is set and `SLOT_SWEEP_LATCH` (0x8d6e) **[code]** is
-still clear — and, if it finds at least four free, latches the count and folds twenty-three bytes
-from `SLOT_SWEEP_CKSUM_BASE` (0x0bf3) **[code]**; a miss against low 0x15 / high 0x09 strikes
-`TAMPER_STRIKES_SLOTSWEEP`. Two actor-state handlers carry their own sums gated on the frame
-zero crossing: `loc_3865`, once its per-record timer expires and the record has reached the
-object band, folds a block descending from `ACTOR_TAMPER_CKSUM_TOP` (0x4282) **[code]** to a
-0x1a terminator and, if `carries + sum` keeps any bit of 0x9e, bumps `SIGNATURE_MISMATCH_FLAG`;
-`loc_4103`, on its dwell expiry, folds the low nibbles of fifty-six bytes from
-`TAMPER_NIBBLE_SUM_BLOCK` (0x557f) **[code]** and demands low 0x67 with exactly one carry, else
-strikes `TAMPER_STRIKES_SIG`. Two more state handlers bump `TAMPER_FREEZE_FLAG` directly:
-`loc_1b43` folds a 34-byte span at 0x5593 (each byte `& 0x37`, rotated, added with carry) and
-increments the freeze tally unless the accumulator equals 0x7c, and `loc_5594`, on reaching a
-free actor block, adds an eight-byte guard at 0x0bad against a local signature table and bumps
-the tally if any pair is nonzero.
+The lightest-weight check is `verifyRomSignature` (0x208c). It walks **SIGNATURE_REFERENCE_TABLE [seen]**
+(0x20aa) — sixteen expected bytes — against every eighth byte of the sampled code region starting at
+**SIGNATURE_SAMPLE_BASE [seen]** (0x066d): the reference pointer steps by one, the sample pointer by eight.
+On the first byte that differs it sets **SIGNATURE_MISMATCH_FLAG [code]** (0x8ef0) to 1 and stops; a clean
+sweep leaves the flag untouched. This sampler is driven from the per-frame scroll worker `loc_0254`, which
+runs it *instead of* its normal column repaint whenever the low nibble of **WORKER_CONTROL_BYTE [code]**
+(0x883f) is set — so the signature is re-sampled opportunistically as the control byte cycles.
 
-**The hard traps.** A second class of guard does not set a flag at all — a failure jumps into
-bytes that are data or an isolated dead fragment, so the branch is simply unreachable while the
-image is intact and manifests as a crash on a tampered one. `loc_7960`, the shared play-timer
-render handler, first folds a 0x5b-byte block from `INTEGRITY_CHECKSUM_CODE_BLOCK` (0x2901)
-**[code]** — a full 16-bit sum plus a second sum sampled at even offsets — and matches all four
-result bytes against the four guard bytes that trail the block; a mismatch traps. After
-rendering it scans a seven-byte flag block at `INTEGRITY_FLAG_SCAN_BASE` (0x89e7) **[code]**,
-and if any flag is set it sums from there to a 0xc9 sentinel and checks the two-byte result
-against `TAIL_CHECKSUM_GUARD` (0x7a0b) **[code]** — a low-byte miss traps, a high-byte miss
-diverts to a phase-gauge repaint instead. `loc_79e9` is the pure self-check: it sums a routine
-forward from `SELFCHECK_ROUTINE_BASE_ADDR` (0x68ac) **[code]** until it hits that routine's own
-terminating `ret` opcode and matches the 16-bit total against the same `TAIL_CHECKSUM_GUARD`
-word — low-byte miss traps, high-byte miss diverts. `loc_3266`, the hunter-formation state-2
-handler, sums a 0x20-byte block up from `FORMATION_GUARD_BASE` (0x0799) **[code]** and demands
-the 0xdc sentinel; a miss re-enters the guarded region, which is modelled as a trap.
+`loc_744e` (attract/self-test state 0) does a stricter, two-stage byte-for-byte comparison rather than a
+folded sum. Loop 1 compares the first eight boot bytes at **BOOT_CODE_BASE [code]** (0x0000) against a
+verbatim reference copy at **SELFTEST_REF_COPY_BOOT [code]** (0x749a); loop 2 continues the reference walk
+across a 0x74-byte program window from **SELFTEST_LOOP2_SCAN_BASE [code]** (0x0092). A loop-2 divergence
+aborts straight into the screen re-init handler `loc_67df` (below); an intact image passes both loops having
+written only its display-list seeds.
 
-**The tile-region checks.** Two guards checksum the painted playfield itself, catching a
-tampered tile ROM by its on-screen output. `loc_68ac` and `loc_3278` both sweep the tilemap
-from `PLAYFIELD_TILE_BASE` (0x8402) **[code]** — walking each 29-cell row, skipping a three-cell
-gap, and stepping pages until the high byte reaches 0x88 — accumulating a low-byte sum and a
-wrap count, then matching both against the paired entries of `TILE_CHECKSUM_TABLE` (0x68eb)
-**[code]**. Each runs at most once, guarded by `TILE_CHECKSUM_LATCH` (0x8f55) **[code]** which
-it sets on the first pass; a low-byte or wrap-count miss is a data-integrity trap that intact
-tiles cannot produce. A sibling, `loc_6a7f`, sums a different tilemap stride from 0x8450 into a
-16-bit total and demands 0x29b8, guarded once by `TILE_SUM_ONCE_LATCH` (0x8f56) **[code]** (this
-latch is re-armed to 0 when the state-1 descending object reaches the bottom, so the check
-re-runs per board); its two fail arms jump into a data address and a dead fragment. Finally,
-`loc_08b3` — the attract sub-state-0 handler — folds a backward checksum from 0x64d5 to a 0x96
-sentinel (sum into H, carry count into L) and, unless `0x96 - carries` equals 0x8f, raises
-`TAMPER_OBJECT_FREEZE_FLAG`, the object-update freeze described above.
+### The rolling-checksum tripwires that feed the strike counters
 
-**A reading warning.** A couple of the cells this system touches are multiplexed and should not
-be read as tamper-only. `TAMPER_ROM_CHECK_FLAG` (0x882b) is written as a mismatch flag on the
-eagle-spawn path but is also written elsewhere as a plain state index (0x07) and read elsewhere
-as a coordinate low byte selected by the coinage config, so its value is not always a tamper
-verdict. Likewise `INTRO_DELAY_CKSUM_WORD` (0x8f48) **[seen]** serves double duty as an
-intro-phase delay timer and as the 16-bit pointer walked by a column-checksum routine; the same
-word means different things in the two contexts.
+Most of the guards share one shape: sum a fixed span of program bytes, test the running total against a
+sentinel, and on a miss increment a per-guard strike counter — never halting, so the effect only surfaces
+later when other code reads that counter. Each guard owns its own counter, and they cluster in two bands of
+work RAM (0x89e7..0x89ef and 0x8a38..0x8a3c).
+
+- `verifyRomChecksum` (0x3fe9, the state-10 integrity guard) sums sixteen bytes descending from
+  **ROM_CHECKSUM_TOP [code]** (0x7780) into a byte, then reads its *shape* rather than an exact value: a
+  healthy image has bit 0 clear, bit 5 set and bit 7 set. Any other shape bumps
+  **TAMPER_STRIKES_STATE10 [code]** (0x8a39).
+- `loc_7e6d` is a periodic guard gated twice over — it runs only when player 1 has at least four lives and
+  the frame counter is at its zero crossing. It sums the image downward from **TAMPER_CKSUM_TOP_ADDR [code]**
+  (0x64be) to a 0x34 terminator, tracking both the byte sum and a carry tally; if `(carries + sum)` keeps any
+  bit of 0xb0 the image is judged tampered and **TAMPER_STRIKES_ROM [code]** (0x89ef) is bumped. That same
+  entry address doubles as the terminator match-scan guard `loc_64be`, whose miss instead bumps
+  **TAMPER_STRIKES_TERMINATOR [code]** (0x8df9).
+- `loc_05ee` hides a tripwire behind the credit HUD: after drawing the credit count it arms the check *only*
+  when the units digit is exactly 2, then sums 31 bytes downward from **HUD_GUARD_CKSUM_TOP [code]** (0x64c8)
+  and, on anything but the 0x8c sentinel, bumps **TAMPER_STRIKES_HUD_GUARD [code]** (0x8a3c).
+- `loc_52f6` runs a gated slot sweep: only while **SCRIPT_ADVANCE_GUARD [seen]** (0x8d6d) is set and the
+  once-only **SLOT_SWEEP_LATCH [code]** (0x8d6e) is still clear, and only when at least four of the six actor
+  slots are free. It latches the free count, then folds 23 bytes from **SLOT_SWEEP_CKSUM_BASE [code]**
+  (0x0bf3) into a 16-bit sum; a low byte other than 0x15 or high byte other than 0x09 bumps
+  **TAMPER_STRIKES_SLOTSWEEP [code]** (0x89e8).
+- `loc_3266` (hunter-formation dispatch state 2) sums a 0x20-byte block upward from
+  **FORMATION_GUARD_BASE [code]** (0x0799); an intact image reaches the 0xdc sentinel and returns to the
+  shared epilogue, while any other sum halts on a path a valid ROM never takes.
+- Two guards ride inside the actor state machine and only fire on the frame-counter zero crossing. `loc_3865`
+  (when the record has reached the object-table band) sums downward from **ACTOR_TAMPER_CKSUM_TOP [code]**
+  (0x4282) to a 0x1a terminator and bumps SIGNATURE_MISMATCH_FLAG if `(carries + sum)` keeps any bit of 0x9e.
+  `loc_4103` folds the *low nibbles* of a 56-byte block at **TAMPER_NIBBLE_SUM_BLOCK [code]** (0x557f); an
+  intact image lands on low total 0x67 with exactly one carry, and any deviation bumps
+  **TAMPER_STRIKES_SIG [code]** (0x8a38).
+- `loc_3be3` (object state 0) runs its check only while the screen is upright and the stage countdown is
+  still low: it sums an 0x12-byte window descending from **STATE0_CKSUM_BASE [code]** (0x01d5), and a running
+  sum other than 0x55 bumps **TAMPER_STRIKES_STATE0 [code]** (0x89ed) — the last slot of the seven-flag
+  integrity band based at **INTEGRITY_FLAG_SCAN_BASE [code]** (0x89e7).
+
+### The freeze-flag folds
+
+Three guards feed a single master tally, **TAMPER_FREEZE_FLAG [code]** (0x881e), whose consequences are the
+harshest of the soft responses. `loc_1b43` (a play-state handler) folds a 34-byte ROM block from
+**TAMPER_CKSUM_BASE_5593 [code]** (0x5593) with a mask-rotate-add-with-carry recurrence and bumps the freeze
+flag on any result but 0x7c. `flagTamperOnRound5ChecksumMiss` (0x5b06) arms only when **ROUND_COUNTER**
+(0x8907) equals 5: it sums six program bytes and bumps the freeze flag unless `(low sum + carry count + 0x7f)`
+wraps to zero. A third guard (`loc_5594`) sums an eight-byte signature pair at the first free actor block and
+bumps the freeze flag on a mismatch. A raised TAMPER_FREEZE_FLAG is read all over the update chain: `loc_6e75`
+skips the phase-1 spawner, `loc_241e` aborts the actor-update helpers, and `loc_1ead` short-circuits the
+board setup — so a tampered image quietly loses its enemies and never arms a round.
+
+A companion signature fold lives in `loc_1bcc`, which snapshots the live state page into player 1's bank and
+then, quirkily, *seeds the checksum from the advanced copy pointer rather than zero* before adding fourteen
+program bytes (each masked to its low five bits) from **TAMPER_CHECKSUM_CODE_BASE [code]** (0x5328); unless
+the fold lands on the expected sentinel word it bumps TAMPER_STRIKES_SIG.
+
+### The byte-for-byte copy compares
+
+Two guards keep a second, redundant copy of a block in ROM and compare the two verbatim, answering a
+mismatch by *wiping work RAM* rather than nudging a counter — a hard brick. `loc_6f9d` (level-intro phase 4)
+compares 0x44 bytes of **PHASE4_TAMPER_ORIG [code]** (0x6ac5) against **PHASE4_TAMPER_COPY [code]** (0x6fed):
+a full match queues one sound and one display command, and any mismatch propagates zero forward across work
+RAM. `loc_30f1` (hunter-formation launch) compares a two-byte pointer header plus 0x40 body bytes of the copy
+at **TAMPER_COPY_3278 [code]** (0x3278) against the original routine at
+**SELFCHECK_ROUTINE_BASE_ADDR [code]** (0x68ac); a mismatch likewise wipes work RAM upward from its base.
+
+That same 0x68ac routine is also self-summed by `loc_79e9`, which walks its bytes forward until the
+terminating 0xc9 return opcode, accumulating a 16-bit checksum, and matches it against the two-byte word at
+**TAIL_CHECKSUM_GUARD [code]** (0x7a0b): a low-byte miss is an integrity trap (unreachable while the summed
+bytes are intact) and a high-byte miss diverts to the phase-gauge path. The shared integrity/timer handler
+`loc_7960` performs the most elaborate fold of all — a 0x5b-byte sum over **INTEGRITY_CHECKSUM_CODE_BLOCK
+[code]** (0x2901) *plus* a second sum taken only at even offsets, all four result bytes matched against the
+four guard bytes that trail the block — before it renders the play timer. After rendering it scans the
+seven-flag integrity band from INTEGRITY_FLAG_SCAN_BASE; because several strike counters physically live
+inside that band, a strike raised anywhere diverts loc_7960 into a second, tail checksum (summed to a 0xc9
+sentinel and again matched against TAIL_CHECKSUM_GUARD).
+
+### The tile-region and colour-map checks
+
+Two guards verify the display memory rather than the code. `loc_68ac` runs at most once — guarded by
+**TILE_CHECKSUM_LATCH [code]** (0x8f55), which it sets on entry — and sums the whole playfield tilemap from
+**PLAYFIELD_TILE_BASE [code]** (0x8402), walking a 29-cell-wide column, skipping a three-cell gap to the next
+row, and advancing pages until the high byte reaches 0x88. It keeps the running sum as a low byte and a wrap
+count, looks the low byte up in **TILE_CHECKSUM_TABLE [code]** (0x68eb), and on a hit checks the wrap count
+against the table's paired entry; a miss on either is a tamper condition on an unreachable path. `loc_67df`
+gates a screen re-init behind a colour-map checksum: it sums ten colour cells one row apart from
+**HUD_INTEGRITY_STRIP_A [code]** (0x82bc), and only a 0x5a sentinel lets it arm a fresh screen (round flag,
+timers, arena wipe, playfield paint) — any other sum hands off to the per-object frame updater instead. The
+attract sub-state handler `loc_08e9` straddles its colour-map flood with two data-table guards: a 0x20-byte
+sum from **FIELD_ATTRIB_SRC_C [code]** (0x0859) must reach 0x63, and a nine-byte sum from
+**ATTRACT_INTEGRITY_CKSUM_BASE [code]** (0x0831) must reach 0xaa; either miss halts on a path intact data
+never reaches.
+
+### The table and high-score guards
+
+`verifyTableChecksum` (0x585b) is a reusable tripwire taking a pointer, a count and a seed: it sums the span
+into a 16-bit accumulator (low byte plus a carry-counted high byte) and, unless the result is high 0x1d /
+low 0xc1, raises **TAMPER_ROM_CHECK_FLAG [code]** (0x882b) — the flag the eagle-spawn path (its caller
+`loc_5835`) reads. `flagHighScoreTableCorruptOnChecksumMiss` (0x0644) guards the saved high-score table: the
+first byte of the four-byte block at **HISCORE_CHECKSUM_BASE [seen]** (0x778a) must be the 0xc8 header, and
+the four bytes summed minus the per-byte carry count must equal 0x59; a bad header or a mismatched total sets
+**HISCORE_TABLE_CORRUPT_FLAG [code]** (0x8df8) so a corrupted table can be rebuilt rather than trusted.
+
+### How a raised flag manifests
+
+The traps that halt are the exception; the norm is a flag that degrades play quietly. **TAMPER_FREEZE_FLAG**
+freezes spawns, aborts actor updates and skips setup, as above. **TAMPER_OBJECT_FREEZE_FLAG [code]** (0x89fb),
+raised by the `loc_08b3` guard and cleared at reset by `loc_2527`, is ORed with the board-clear flag to
+freeze the whole per-frame object update in `loc_1e55`/`loc_2527`. **SIGNATURE_MISMATCH_FLAG**, once nonzero,
+makes `loc_6523` bail out of its update. **TAMPER_STRIKES_TERMINATOR** is ORed with the board-clear flag in
+`loc_2514` to divert into the board/HUD reset. Even the rope-extend driver `loc_2d80` reads
+**TAMPER_STRIKES_ROM** and forces an extra segment advance while a strike is pending. And because the seven
+flags scanned by loc_7960 include the slot-sweep and state-0 strike counters, a single strike also rewires
+that handler's control flow. The net design: an intact ROM sails through every guard untouched, while a
+patched one accumulates strikes that starve spawns, freeze objects, corrupt the reset path, and — for the
+copy-compare guards — zero out work RAM entirely.
