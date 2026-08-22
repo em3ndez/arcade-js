@@ -41,3 +41,7 @@ pooyan 0x6435 dead  # caller-skip dissolved into loc_6404; direct-called by the 
 pooyan 0x64be dead  # caller-skip dissolved into loc_6435; direct-called by the idiomatic module (boolean), not oracle-served
 pooyan 0x6931 dead  # per-record spawn/init caller-skip dissolved into loc_6905; direct-called by the idiomatic module (boolean), not oracle-served
 pooyan 0x6a35 dead  # per-record spawn/init caller-skip dissolved into loc_6a0f; direct-called by the idiomatic module (boolean), not oracle-served
+pooyan 0x7638 dead  # animation-tick dispatch propagator dissolved into an index switch; direct-called by idiomatic loc_7627, not oracle-served
+pooyan 0x7644 dead  # animation-tick state-0 caller-skip dissolved; direct-called by the idiomatic dispatcher loc_7638 (boolean), not oracle-served
+pooyan 0x7675 dead  # animation-tick state-1 caller-skip dissolved; direct-called by the idiomatic dispatcher loc_7638 (boolean), not oracle-served
+pooyan 0x76a6 dead  # animation-tick state-2 handler (plain-ret); direct-called by the idiomatic dispatcher loc_7638, not oracle-served

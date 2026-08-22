@@ -290,6 +290,10 @@ export const PERIODIC_EVENT_TIMER = 0x8d22;
 export const loc_8d23 = 0x8d23;
 /** [code] busy/mode latch for the periodic siren driver: nonzero disables the whole routine; the >5 spawn-phase value is latched here */
 export const PERIODIC_MODE_LATCH = 0x8d55;
+/** [code] spawn ring counter: read+incremented per object-arm by the object cluster's state-0 handler (0x771d); cleared to 0 by the state-1 animation-tick handler on the phase-transition reseed */
+export const SPAWN_RING_COUNTER = 0x8d57;
+/** [code] per-object "drawn" flag: set to 1 once an object is drawn (object cluster's state-2 handler 0x7790); the state-2 animation tick holds while it is set */
+export const OBJECT_DRAWN_FLAG = 0x8d58;
 export const loc_8e21 = 0x8e21;
 export const loc_8f17 = 0x8f17;
 /** [code] 16-bit read-pointer into the lead hunter's active movement script (swoop; repointed to the dive script when the dive arms) */
@@ -992,6 +996,8 @@ export const ROUTINES = {
   0x72e1: { name: "loc_72e1", role: "seed the next eagle attack wave: raise the launch flag, advance the wave index, and initialise the per-wave enemy records (or re-arm on the 4th wave)", cert: "code" },
   0x744e: { name: "loc_744e", role: "attract/self-test state 0: seed the display-list pointer pairs + sub-phase tick, advance the self-test selector, and run the two-stage program-signature check (abort to loc_67df on a miss)", cert: "code" },
   0x7517: { name: "loc_7517", role: "display/self-test dispatch state 1: run the display-list interpreter, tick a mod-0x1c counter and a one-shot sub-phase, column-sum two video-RAM strips as a HUD integrity check, and advance the selector to state 2 on a clean sum", cert: "code" },
+  0x7625: { name: "loc_7625", role: "twin entry to the shared animation-tick walk: seed the 8-record count and run the walk over the enemy-actor array", cert: "code" },
+  0x7627: { name: "loc_7627", role: "shared per-frame animation-tick walk: tick a count of enemy-actor records (stride 0x18) via the per-entry tick, aborting early when a tick signals a phase-transition reseed", cert: "code" },
   0x76af: { name: "loc_76af", role: "two-phase blink timer: on countdown expiry toggle the phase and swap a video tile pair", cert: "code" },
   0x7912: { name: "loc_7912", role: "tick the active player's BCD play-timer (frame sub-counter 0..0x3b/0x3c then BCD seconds/minutes carry)", cert: "code" },
   0x7e6d: { name: "loc_7e6d", role: "periodic anti-tamper ROM checksum guard; bumps the ROM tamper-strike counter on a signature miss", cert: "code" },
@@ -1079,6 +1085,7 @@ export const ROUTINES = {
   0x6523: { name: "loc_6523", role: "seat a fresh object record and enqueue its spawn display command(s)", cert: "code" },
   0x672a: { name: "loc_672a", role: "object descent step: run loc_4006, advance the 16-bit sub-position, seat a matching free spawn-object slot when the landing row is reached, then bump state, reload the step to 0x18 and re-arm the animation via setActorAnimation", cert: "code" },
   0x67a0: { name: "loc_67a0", role: "per-object frame update gated by the shared frame-delay timer (animation step + 16-bit position moves + state advance)", cert: "code" },
+  0x68f8: { name: "loc_68f8", role: "per-frame group update: run the four object sub-passes in order, then return", cert: "code" },
   0x6905: { name: "loc_6905", role: "delay-gated enemy-spawn sweep: tick the frame-delay timer; once clear (wave neither full nor at limit), walk the 8 enemy/state record pairs and spawn into the first empty one — one spawn per call (dissolves loc_6931 to a boolean)", cert: "code" },
   0x69ad: { name: "loc_69ad", role: "step eight paired descending-object records through loc_69c6", cert: "code" },
   0x69c6: { name: "loc_69c6", role: "advance a paired ix/iy descending object one step: run the sequencer, lower both 16-bit positions by their delta, then gate/retire on the ix high byte", cert: "code" },
