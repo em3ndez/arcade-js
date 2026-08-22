@@ -35,6 +35,7 @@ export function loc_6905(m) {
   for (;;) { // 6925: 8 record pairs
     regs.exx();                    m.step(0x6926, 4);  // park B/DE in the shadow set
     m.push16(0x6929); m.step(0x6931, 17); m.call(0x6931);
+    if (m.pc !== 0x6929) return; // 6931's pop-af/ret caller-skip unwound past this loop -> abort (cf loc_6404 @ 0x6420; one spawn/sweep, transfer-validated in scratchpad/FIDELITY-6905-6a0f-oracle-fix.md)
     regs.exx();                    m.step(0x692a, 4);  // restore B/DE
     regs.addIx(regs.de);           m.step(0x692c, 15);
     regs.addIy(regs.de);           m.step(0x692e, 15);

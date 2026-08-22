@@ -34,6 +34,7 @@ export function loc_6a0f(m) {
   for (;;) {
     regs.exx();               m.step(0x6a2c, 4);
     m.push16(0x6a2f); m.step(0x6a35, 17); m.call(0x6a35);
+    if (m.pc !== 0x6a2f) return; // 6a35's pop-af/ret caller-skip unwound past this loop -> abort (cf loc_6404 @ 0x6420; one spawn/sweep, transfer-validated in scratchpad/FIDELITY-6905-6a0f-oracle-fix.md)
     regs.exx();               m.step(0x6a30, 4);
     regs.addIx(regs.de);      m.step(0x6a32, 15);
     if (regs.djnz() !== 0) { m.step(0x6a2b, 13); continue; }

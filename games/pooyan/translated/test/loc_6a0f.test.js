@@ -38,7 +38,10 @@ function makeMachine() {
       return lo | (hi << 8);
     },
     ret(cycles = 10) { this.step(this.pop16(), cycles); },
-    call(addr) { this.calls.push(addr); this.pop16(); return undefined; },
+    // model the callee's own ret: pop the pushed continuation into pc (a NORMAL return, e.g. loc_6a35's
+    // `ret c`). loc_6a0f's skip-abort guard reads m.pc, so the mock must set it or the guard sees stale
+    // pc. A SPAWN (pop-af; ret) is modelled per-test by overriding call to pop twice (see below).
+    call(addr) { this.calls.push(addr); this.pc = this.pop16(); return undefined; },
   };
 }
 
@@ -131,4 +134,26 @@ test("loc_6a0f MUTATION: dec (hl) mis-charged 10T (not 11T) is caught", () => {
 
   assert.equal(m.tstates, 96, "mutation loses 1T on dec (hl)");
   assert.throws(() => assert.equal(m.tstates, 97), /97/);
+});
+
+test("loc_6a0f Path D-spawn: loc_6a35 spawning on record 1 aborts the sweep after ONE call (one-spawn)", () => {
+  const m = makeMachine();
+  // model loc_6a35 SPAWNING: its `pop af; ret` drops 6a0f's pushed continuation (0x6a2f) and returns to
+  // the caller-caller, so pc ends at CALLER_RET -> loc_6a0f's guard fires and the record sweep aborts.
+  m.call = function (addr) {
+    this.calls.push(addr);
+    this.pop16(); // pop af -- drop the pushed 0x6a2f continuation
+    this.pc = this.pop16(); // ret -- to the caller-caller (CALLER_RET)
+    return undefined;
+  };
+  seatCaller(m);
+  m.mem.write8(0x892b, 0x01);
+  m.mem.write8(0x892c, 0x03);
+  m.mem.write8(0x892a, 0x00); // run the sweep
+
+  loc_6a0f(m);
+
+  assert.deepEqual(m.calls, [0x6a35], "spawn on record 1 -> exactly ONE call; the skip aborted the sweep");
+  assert.equal(m.pc, CALLER_RET, "pop-af/ret unwound to the caller-caller (guard propagated the skip)");
+  assert.equal(m.regs.sp, 0x8780, "stack unwound to baseline");
 });

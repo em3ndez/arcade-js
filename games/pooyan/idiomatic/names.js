@@ -204,6 +204,8 @@ export const TAMPER_ROM_CHECK_FLAG = 0x882b;
 export const PANEL_TILE_SOURCE = 0x8e00;
 /** [seen] (MAME gameplay golden: status-panel tiles painted here in play; loc_0460 destination) VRAM base of the status panel painted from PANEL_TILE_SOURCE */
 export const PANEL_VRAM_DEST = 0x8567;
+/** [code] VRAM tile for the high BCD digit of the on-screen wave-arrival count (low digit at -0x20 = 0x861b) */
+export const WAVE_COUNT_HUD_HI = 0x863b;
 /** [seen] (MAME gameplay golden: holds 0xb0 filled / 0x10 blank as the gauge fills; loc_03c2/loc_2065 draw upward, stride -0x20) bottom cell of the 5-cell vertical phase-gauge HUD */
 export const PHASE_GAUGE_BASE_TILE = 0x863f;
 /** [seen] (MAME gameplay golden: holds the stage-digit tile, observed 2/1/0; loc_34c9 draws the 2-cell stage number, tens at +0x20) units tile of the stage-countdown HUD number */
@@ -308,6 +310,10 @@ export const ATTRACT_SETUP_DISPLAY_CMD_A = 0x0604;
 export const ATTRACT_DISPLAY_CMD_060B = 0x060b;
 /** [code] display-command word queued (rst 0x38 -> loc_0038) on the phase-4 anti-tamper match */
 export const DISPLAY_CMD_0627 = 0x0627;
+/** [code] display-command word queued (rst 0x38 -> loc_0038) on the first spawn of a wave (paired with _B) */
+export const WAVE_SPAWN_DISPLAY_CMD_A = 0x0625;
+/** [code] second display-command word queued (rst 0x38 -> loc_0038) on the first spawn of a wave (paired with _A) */
+export const WAVE_SPAWN_DISPLAY_CMD_B = 0x060a;
 /** [code] display-command word (type 0x06) queued via the display-ring helper on deferred-object fire (1 of 5, 0x062b..0x062f) */
 export const PROMOTE_DISPLAY_CMD_A = 0x062b;
 /** [code] display-command word queued on deferred-object fire (2 of 5) */
@@ -585,6 +591,10 @@ export const TAMPER_CKSUM_TOP_ADDR = 0x64be;
 export const TILE_CHECKSUM_TABLE = 0x68eb;
 /** [code] ROM animation parameter block armed via setActorAnimation when an object advances to its next state */
 export const ANIM_PARAM_68EF = 0x68ef;
+/** [code] ROM animation-sequence pointer armed on spawn for pre-bump phase 0 or 1 (sibling of ANIM_PARAM_68EF) */
+export const ANIM_PARAM_76D4 = 0x76d4;
+/** [code] ROM animation-sequence pointer armed on spawn for pre-bump phase >= 3 (sibling of ANIM_PARAM_68EF) */
+export const ANIM_PARAM_6B0A = 0x6b0a;
 /** [code] ROM 4-byte-per-record eagle-wave parameter table (record fields +6/+0x10/+4/+0x0f) */
 export const EAGLE_WAVE_PARAM_TABLE = 0x7409;
 /** [code] two 2-byte blink tile pairs in ROM ({0x3f,0x46} at +0, {0x46,0x3f} at +2) */
@@ -906,6 +916,7 @@ export const ROUTINES = {
   0x6666: { name: "loc_6666", role: "rst-0x28 handler (index 2): walk three actor records backward from IX (stride -0x18) running the idle-actor advance loc_667c on each, then run the countdown-gated blink animation loc_66a1 over the hunter table (0x8c78)", cert: "code" },
   0x66c5: { name: "loc_66c5", role: "run loc_66f1 over 3 enemy-actor records (IX, stride 0x18); then unless the lead state byte (0x8ae2) is clear, step the (0x892d) countdown: decrement while live, on expiry reload 0x10, bump the flip toggle (0x892f), and enqueue a flip display command (0x0612 when toggle bit0 set else 0x0692) via loc_0038", cert: "code" },
   0x66f1: { name: "loc_66f1", role: "per-record state dispatcher: routes (ix+2) of four (0..3) to the record's per-frame state handler via tail dispatch", cert: "code" },
+  0x6a0f: { name: "loc_6a0f", role: "enemy-spawn sweep driver: gate on the blink phase/countdown, then sweep the 18 enemy records and spawn into the first empty one — one spawn per frame, aborting on that spawn (dissolves loc_6a35 to a boolean)", cert: "code" },
   0x6a7f: { name: "loc_6a7f", role: "per-frame object driver: when blink-phase (0x892b) set, run loc_6a98 over 18 enemy-actor records (0x8ae0, stride 0x18); else at wave index (0x892d)==2, once per pass (latch 0x8f56), checksum the playfield tilemap from 0x8450 (skip col 0x1b, row +0x12, stop h>=0x88; expect 0x29b8) and throw on mismatch", cert: "code" },
   0x6a98: { name: "loc_6a98", role: "per-object state dispatcher: rst-0x28 route (state-1)&3 to loc_6aa8 / loc_67df", cert: "code" },
   0x6c18: { name: "loc_6c18", role: "proximity-scan driver: walks 3 projectile records testing each against the fixed sprite record, aborts the scan on a hit, else clears the aim indicator bits + hit flag", cert: "code" },
@@ -1068,6 +1079,7 @@ export const ROUTINES = {
   0x6523: { name: "loc_6523", role: "seat a fresh object record and enqueue its spawn display command(s)", cert: "code" },
   0x672a: { name: "loc_672a", role: "object descent step: run loc_4006, advance the 16-bit sub-position, seat a matching free spawn-object slot when the landing row is reached, then bump state, reload the step to 0x18 and re-arm the animation via setActorAnimation", cert: "code" },
   0x67a0: { name: "loc_67a0", role: "per-object frame update gated by the shared frame-delay timer (animation step + 16-bit position moves + state advance)", cert: "code" },
+  0x6905: { name: "loc_6905", role: "delay-gated enemy-spawn sweep: tick the frame-delay timer; once clear (wave neither full nor at limit), walk the 8 enemy/state record pairs and spawn into the first empty one — one spawn per call (dissolves loc_6931 to a boolean)", cert: "code" },
   0x69ad: { name: "loc_69ad", role: "step eight paired descending-object records through loc_69c6", cert: "code" },
   0x69c6: { name: "loc_69c6", role: "advance a paired ix/iy descending object one step: run the sequencer, lower both 16-bit positions by their delta, then gate/retire on the ix high byte", cert: "code" },
   0x6aa8: { name: "loc_6aa8", role: "state-1 step of a descending object: move it down, then at bottom re-arm the tile-sum latch and advance state", cert: "code" },
