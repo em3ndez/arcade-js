@@ -74,3 +74,4 @@ pooyan 0x890a  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8d23  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8e21  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8f17  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8f5f  # spawn-increment counter, no reader found; promote at grounding

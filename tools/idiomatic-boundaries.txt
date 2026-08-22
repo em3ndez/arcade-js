@@ -25,3 +25,15 @@ frogger 0x20bf dead  # unbalanced tail-call dissolved into direct JS calls; call
 frogger 0x2673 dead  # goal-award caller-skip dissolved into the spine's direct calls
 frogger 0x2873 dead  # <2-level bare-ret dive arm inlined into loc_27ea (if (phase < 2) return)
 frogger 0x0f3e dead  # only caller (driveAttractDemoSequencer=0x0e7a, lifted) direct-calls the idiomatic tickAttractCellFrameClock instead of m.call(0x0f3e)
+pooyan 0x2bbf dead  # caller-skip dissolved into loc_2b9a; only m.call caller now direct-calls the idiomatic module
+pooyan 0x2be5 dead  # caller-skip dissolved into loc_2bb3; only m.call caller now direct-calls the idiomatic module
+pooyan 0x2c58 dead  # caller-skip dissolved into loc_2a01; only m.call caller now direct-calls the idiomatic module
+pooyan 0x305f dead  # caller-skip dissolved into loc_2f01; only m.call caller now direct-calls the idiomatic module
+pooyan 0x3cae dead  # caller-skip dissolved into loc_3c92; only m.call caller now direct-calls the idiomatic module
+pooyan 0x5d68 dead  # caller-skip dissolved into loc_5d4d; only m.call caller now direct-calls the idiomatic module
+pooyan 0x5e1f dead  # caller-skip dissolved into loc_5e11; only m.call caller now direct-calls the idiomatic module
+pooyan 0x618a dead  # caller-skip dissolved into loc_613d; only m.call caller now direct-calls the idiomatic module
+pooyan 0x6274 dead  # caller-skip dissolved into loc_62e6; only m.call caller now direct-calls the idiomatic module
+pooyan 0x638a dead  # caller-skip dissolved into loc_6381; only m.call caller now direct-calls the idiomatic module
+pooyan 0x6c3f dead  # caller-skip dissolved into loc_6c18; only m.call caller now direct-calls the idiomatic module
+pooyan 0x119a dead  # per-record spawn-init caller-skip dissolved into loc_1171 (its only m.call caller, now an override that direct-calls it)

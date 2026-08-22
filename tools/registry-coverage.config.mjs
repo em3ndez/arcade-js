@@ -91,11 +91,59 @@ export const UNWIRED = {
       "RAM, verified) and stay; the frozen layer runs it in-game when the Mother-Ship is on the field.",
   },
   pooyan: {
-    // Empty: every decompiled leaf module is dispatched via ROUTINES -- the memory-only ones bare, the
-    // register/flag-live-out ones through the return-assignment bridge (return (m.regs.X = v)) so the
-    // frozen caller reads the result back out of the register. The five jump-table dispatchers
-    // (0x6da6/0x7442/0x15a1/0x72cf/0x0fd5) are dispatch plumbing, not decompiled leaf modules, so they
-    // are not idiomatic-module coverage entries; they are deferred to their own dispatcher unit.
+    // DISSOLVED caller-skips (pop-af; ret -> boolean). A caller-skip pops its own return (a net SP move
+    // outside the withOmittedRet seam's 0/+2 window), so it cannot be a ROUTINES override. Per the runbook
+    // each is dissolved into a boolean its caller early-returns on and is called DIRECTLY by that (wired)
+    // caller -- it runs as JS, never the frozen oracle. Also recorded `dead` in tools/idiomatic-boundaries.txt.
+    // The five jump-table dispatchers (0x6da6/0x7442/0x15a1/0x72cf/0x0fd5) are deferred to their own unit.
+    "loc_2bbf.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_2b9a " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_2be5.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_2bb3 " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_2c58.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_2a01 " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_305f.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_2f01 " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_3cae.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_3c92 " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_5d68.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_5d4d " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_5e1f.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_5e11 " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_618a.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_613d " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_6274.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_62e6 " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_638a.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_6381 " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_6c3f.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_6c18 " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_119a.js":
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_1171 " +
+      "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
+      "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
   },
 };
 

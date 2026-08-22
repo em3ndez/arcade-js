@@ -720,6 +720,70 @@ export const STACK_SCRATCH = { lo: 0x8fc0, hi: 0x9000 };
  * ROM_SELFTEST_TALLY, keeping it above the stack so the vblank NMI's register-save cannot clobber it). */
 export const BOOT_STACK_TOP = 0x8ffe;
 
+
+// -- batch 4 leaf-decompile cells --
+/** [code] display-command word (0x06:0x08) queued by loc_6edb when 3x the target-group count (0x8f47) != the hit tally (0x8f52) */
+export const TARGET_MISMATCH_DISPLAY_CMD = 0x0608;
+/** [code] display-command word (0x06:0x10) queued by loc_6edb when 3x the target-group count == the hit tally (also forces intro phase 4) */
+export const TARGET_MATCH_DISPLAY_CMD = 0x0610;
+/** [code] display-command word queued via loc_0038 by loc_6edb when phase-1 completes */
+export const PHASE1_COMPLETE_DISPLAY_CMD = 0x0635;
+/** [code] ROM byte table (idx = (ROUND_COUNTER&0x3f)>>2) giving the ENEMY_SPAWN_TIMER reseed value */
+export const SPAWN_TIMER_TABLE_11F9 = 0x11f9;
+/** [code] ROM byte table (idx = (ROUND_COUNTER&0x3f)>>2) giving a spawned actor's facing byte (ix+9); its two's-complement negation goes to ix+0xa */
+export const SPAWN_FACING_TABLE_1209 = 0x1209;
+/** [code] ROM 4-byte actor shape/display-tile source table loaded into the actor records by the shape loader (loc_250f) */
+export const SHAPE_TABLE_26BD = 0x26bd;
+/** [code] ROM shape/tile source table loaded into the actor record (stride 0x18) via the pattern-A shape loader from the state-1 handler loc_2473 */
+export const SHAPE_TABLE_26C1 = 0x26c1;
+/** [code] ROM tile/shape source table (pattern A) copied into the four actor records by the loc_250f shape-loader */
+export const SHAPE_TABLE_26C5 = 0x26c5;
+/** [code] ROM animation-sequence descriptor armed into the hunter record (via setActorAnimation) on the 0x88 script opcode */
+export const ANIM_SEQ_2D5D = 0x2d5d;
+/** [code] second 0x18-stride actor record slot (ACTOR_TABLE + 0x18); loc_2442 snapshots the lead record here */
+export const ACTOR_TABLE_SLOT1 = 0x8a98;
+/** [code] state byte (+2) of each of the 3 projectile-table slots (0x8be8, stride 0x18); loc_6edb gates phase-1 completion on all three being idle (also coincides with the +2 state bytes of enemy-actor records 11/12/13 at 0x8ae0) */
+export const PROJECTILE_SLOT_STATE = 0x8bea;
+/** [guess] byte incremented once per actor spawn by loc_119a (paired with ACTIVE_ENEMY_COUNT); no reader found, purpose open */
+export const loc_8f5f = 0x8f5f;
+
+
+// -- batch 4 caller-skip cluster cells --
+/** [code] display command enqueued by loc_66c5's flip cadence when the flip toggle (0x892f) bit0 is set */
+export const FLIP_ANIM_DISPLAY_CMD = 0x0612;
+/** [code] display-command word (0x06:0x15) enqueued via loc_0038 by the actor state-2 handler on a clean integrity check */
+export const DISPLAY_CMD_0615 = 0x0615;
+/** [code] display command enqueued by loc_66c5's flip cadence when the flip toggle (0x892f) bit0 is clear */
+export const FLIP_ANIM_DISPLAY_CMD_ALT = 0x0692;
+/** [code] ROM table of rope-grab catch-window half-widths, indexed by IXL&3 */
+export const GRAB_WINDOW_TABLE = 0x3087;
+/** [code] ROM animation-sequence for a spawned formation child (data table 0x3d0f-0x3d17 just past the routine), seeded little-endian into the child's anim field (+0x0c/+0x0d) and walked by advanceActorAnimFrame */
+export const ANIM_SEQ_3D0F = 0x3d0f;
+/** [code] ROM handler-routine pointer seeded little-endian into a struck record's +0x12/+0x13 field on a proximity hit */
+export const PROXIMITY_HIT_HANDLER = 0x5dc2;
+/** [code] ROM animation/movement-script data installed as the matched record's animation-script pointer (low/high at +0x0c/+0x0d, step index reset at +0x0e) */
+export const ANIM_SCRIPT_634F = 0x634f;
+/** [code] ROM byte table (rst-0x20 lookup base) indexed by ((ROUND_COUNTER&7)>>1); the fetched byte is a signed per-round delta added into the matched record's +0x0a field */
+export const POSITION_DELTA_TABLE_6360 = 0x6360;
+/** [code] ROM animation-sequence descriptor pointed into a claimed proximity-target record (rec+0x0c/0x0d, frame index rec+0x0e reset) on a hit */
+export const ANIM_SEQ_63FB = 0x63fb;
+/** [code] video-RAM base of the 3 consecutive tile cells the actor state-2 handler paints with tile 0xbc */
+export const STATE2_TILE_PAINT_VRAM = 0x875a;
+/** [code] video-RAM 2x2-blit anchor / formation ready-sprite indicator cell checked and painted by loc_2bbf; distinct sibling of READY_SPRITE_TILE_VRAM 0x87bb (loc_2bd3's cell) */
+export const FORMATION_READY_TILE_VRAM = 0x877b;
+/** [code] fixed source object record scanned for proximity by loc_5d4d (screen X at +0, Y at +2); sits inside the sprite display list */
+export const PROXIMITY_SOURCE_OBJECT = 0x889c;
+/** [code] wave/stage progression index (0..8): incremented per wave (loc_7595/756d), gated at >=8 = all-waves-done (loc_6905), indexes the wave-param table; loc_6a7f arms its tilemap integrity check at ==2. NOTE: loc_66c5 instead treats it as a per-frame countdown reloaded to 0x10 (possible mode-dependent reuse, needs MAME grounding) */
+export const WAVE_NUMBER = 0x892d;
+/** [code] base of the formation spawn record table scanned by loc_2bb3/loc_2be5 (records 0x18 bytes apart, descending) */
+export const FORMATION_SPAWN_TABLE = 0x8c60;
+/** [code] aim-indicator mode/direction latch: 0 triggers a redraw pass, 1 selects the above bit and 2 the below bit of PLAYER_AIM_FLAGS; set to 1/2 on a timed proximity hit and read by the indicator stepper (loc_6bee) */
+export const AIM_INDICATOR_MODE = 0x8d52;
+/** [code] aim-indicator countdown reloaded to 0x18 on a timed proximity hit; decremented by the indicator stepper (loc_6bee), and on reaching 0 it clears AIM_INDICATOR_MODE */
+export const AIM_INDICATOR_TIMER = 0x8d53;
+/** [code] proximity-hit/target-acquired flag: set 1 on a target-in-band hit, cleared 0 by this scan when no record hits (gates the aim-acquisition updater loc_6cab, which bails when nonzero) */
+export const PROXIMITY_HIT_FLAG = 0x8d54;
+
 // == Routine dispatch map (idiomatic overrides layered over the translated oracle) ==
 // mainLoop runs as the born-live generator on runIdiomaticGame, yielding at the per-frame worker
 // (ring-idle) iteration -- the vblank boundary -- and draining the display command ring within the frame
@@ -758,6 +822,8 @@ export const ROUTINES = {
   0x10c2: { name: "loc_10c2", role: "adjust a counter by A (entry carry = direction), store it, and repaint three stacked-BCD HUD fields, then advance the main-loop sub-state and queue a sound", cert: "code" },
   0x1119: { name: "drawStackedBcdDigits", role: "draw a packed-BCD byte as two stacked digit tiles, tens then units one row up, leading zero blanked", cert: "code" },
   0x1131: { name: "binToPackedBcd", role: "convert a binary count to packed BCD digits plus a hundreds tally", cert: "code" },
+  0x1171: { name: "loc_1171", role: "enemy spawn-cadence tick: decrement the spawn timer, else (gated on stage-countdown vs active-count) sweep the 6 enemy records and initialise the first free one, aborting on the seed", cert: "code" },
+  0x1383: { name: "loc_1383", role: "B-range guard: B >= 0x20 returns with A=B and no effect; else tail into the child-actor spawn loc_13bc, passing its A result through", cert: "code" },
   0x196e: { name: "loc_196e", role: "gated periodic siren-arm / shared event-countdown driver", cert: "code" },
   0x19bc: { name: "clearActorArena", role: "zero the actor-record arena at board init", cert: "code" },
   0x1a47: { name: "saveLiveStateToPlayerBank", role: "copy the live state page into the active player's bank", cert: "code" },
@@ -773,18 +839,29 @@ export const ROUTINES = {
   0x23d7: { name: "deriveStackedSpriteYs", role: "write the three stacked sprite Y coordinates of the player actor", cert: "code" },
   0x23ec: { name: "retreatTileAnimScript", role: "retreat the video-RAM tile strip on even parity ticks", cert: "code" },
   0x2405: { name: "advanceTileAnimForwardOnOdd", role: "advance the video-RAM tile strip on odd parity ticks", cert: "code" },
+  0x2442: { name: "loc_2442", role: "lead-actor arena state-0 handler: seed+snapshot the record, load the shape table, queue the tile-run sound", cert: "code" },
+  0x2473: { name: "loc_2473", role: "0x8a80-actor state-1 handler (dispatch 0x2436[1]): dec frame delay (ix+0x11), ret nz; on expiry reseed to 0x10 + inc state (ix+0x02) if (0x8a39)==0 else store it at (BC) via the mid-instruction overlap; then (ix+0x04)+=0x10, clear (ix+0x1e), load shape table 0x26c1 via loc_250f (pattern A)", cert: "code" },
+  0x2497: { name: "loc_2497", role: "actor-table (0x8a80) state-2 handler dispatched by loc_241e table[2]: frame-delay countdown, on expiry advance the state, load the shape table via loc_250f, and nudge the primary record base-Y (+4) / secondary (-6)", cert: "code" },
   0x24b9: { name: "loc_24b9", role: "0x8a80-arena actor state-3 handler: alternate-frame sub-counter tick + Y advance toward the floor 0xdc, then pattern-A sound + frame-delay reseed + state advance once the floor is reached", cert: "code" },
   0x24db: { name: "advanceActorDropStateOnDelay", role: "step a falling actor's record fields once its delay elapses", cert: "code" },
+  0x24fb: { name: "loc_24fb", role: "actor-table state-5 handler (0x2436[5]): frame-delay countdown, then shape-flag stamp and fall-through into the shape loader", cert: "code" },
+  0x2a01: { name: "loc_2a01", role: "0x8a80 actor state-2 handler: reseat/flip/paint/advance the record, integrity-check the field attribute table (0x20-byte sum==1) — on mismatch tail-jump the loc_2c58 hunter guard (forwarding its caller-skip boolean), else enqueue display command 0x0615 and cap the wave-arrival counter at 8", cert: "code" },
   0x2ab3: { name: "advanceRisingActorStep", role: "step a rising actor one motion increment", cert: "code" },
   0x2ae8: { name: "clearActorArenaAndCounters", role: "zero the actor arena and reset the spawn/wave counters", cert: "code" },
+  0x2b9a: { name: "loc_2b9a", role: "formation-spawn tick: ready-sprite helper + spawn-countdown + record-scan dispatch", cert: "code" },
+  0x2bb3: { name: "loc_2bb3", role: "formation spawn scan over 0x11 records, launching the first free slot", cert: "code" },
+  0x2cb3: { name: "loc_2cb3", role: "hunter dispatch state 1 (rst 0x2c50[1]): animation step + script-cursor walk applying a signed position delta, or the 0x88 animate opcode", cert: "code" },
+  0x2f01: { name: "loc_2f01", role: "rope-cell timer handler (state 3): grab-test gated; on cell-timer zero re-arms the timer, updates the indexed formation record (dec tile / force pos=0xc0 / inc drop), bumps the cell state, and blits the rope segment", cert: "code" },
   0x3307: { name: "blitTile3x3Block", role: "stamp a 3x3 tile block into video RAM", cert: "code" },
   0x3325: { name: "blit2x2TileBlock", role: "copy four source bytes into a 2x2 video-RAM square", cert: "code" },
   0x343e: { name: "loc_343e", role: "object X-movement handler: advance sub-position/column, and at the turn-column limit arm the turn-around or build+arm the interior sprite band (tails into loc_34b0 / setActorAnimation)", cert: "code" },
   0x3473: { name: "loc_3473", role: "interior-entry arm (mirror of loc_343e's 0x3473 block): gate on the anim-armed latch, step the capped phase, seed the turn-column limit + 2x2 interior sprite band, then fall into the shared movement tail loc_34b0", cert: "code" },
   0x34b0: { name: "loc_34b0", role: "shared enemy-despawn movement tail: blank the sprite band, drop the active-enemy/stage counters, conditionally bump the spawn-phase counter, and render the stage countdown to two HUD digits", cert: "code" },
   0x34c9: { name: "renderStageCountdownDigits", role: "draw the stage-countdown number as two HUD digits", cert: "code" },
+  0x34f2: { name: "loc_34f2", role: "object sub-position movement handler (m.call dispatch target from loc_4221): advance (ix+5) by the signed step with borrow into column (ix+6), compare masked column vs turn-column limit, then tail into loc_34b0 / disarm (ix+8) / tail into loc_3473", cert: "code" },
   0x3775: { name: "loc_3775", role: "end-of-move dispatch for an actor record: finish-blank the sprite band in phase 5, else arm a turn-around animation", cert: "code" },
   0x381e: { name: "setActorAnimation", role: "point an actor record at an animation sequence and restart it", cert: "code" },
+  0x3c92: { name: "loc_3c92", role: "object state-1 handler: tick animation + frame timer, then scan 4 formation records seating a child into the first free slot", cert: "code" },
   0x3fd5: { name: "advanceFallStep", role: "advance a falling actor one gravity step; carry set while still above the landing row", cert: "code" },
   0x3fe9: { name: "verifyRomChecksum", role: "sum a ROM block and strike the state-10 tamper counter on deviation", cert: "code" },
   0x403c: { name: "advanceActorAnimFrame", role: "advance an actor's animation stream one frame", cert: "code" },
@@ -794,10 +871,25 @@ export const ROUTINES = {
   0x5b06: { name: "flagTamperOnRound5ChecksumMiss", role: "bump the tamper freeze tally on the round-5 checksum miss", cert: "code" },
   0x5c75: { name: "storeActorAnimationPointer", role: "install a record's animation-script pointer and reset its frame index", cert: "code" },
   0x5d1e: { name: "tickActorAnimHold", role: "count a record's animation hold down and step its phase", cert: "code" },
+  0x5d4d: { name: "loc_5d4d", role: "proximity-scan driver: test a fixed source object against 3 target/record pairs (SPRITE_TARGET_SLOTS stride 4 / PROJECTILE_TABLE stride 0x18), aborting the scan on the first hit", cert: "code" },
+  0x5e11: { name: "loc_5e11", role: "B-iteration proximity sweep: runs the grab trigger per target slot, advancing target/record pointers, aborting on a grab hit (caller of the dissolved skip loc_5e1f)", cert: "code" },
   0x5f02: { name: "loc_5f02", role: "enqueue the fixed sound command 0x05 into the sound-command ring (trampoline over the enqueue entry)", cert: "code" },
   0x5f11: { name: "loc_5f11", role: "proximity-collision slot scan: mark a struck slot + interrupt-parity flash cell + hit sound", cert: "code" },
   0x5f53: { name: "precheckCollisionBounds", role: "bias an actor's X and test whether its Y+margin clears the bottom", cert: "code" },
+  0x613d: { name: "loc_613d", role: "matched-record handler: retire the IY record on +0 flag bit0 clear, reset it when the round is odd or ACTIVE_OBJECT_TYPE!=3, else scan the sprite object table (0x8b70, stride 0x18, 6 recs) to engage the first record whose +0x14 tag == A; every branch aborts the frame", cert: "code" },
+  0x615d: { name: "loc_615d", role: "scan up to B actor records from IX (DE stride) for one whose +0x14 tag == A; engage the first match (loc_6190) else reset the actor record (loc_6166); both paths abort", cert: "code" },
+  0x6166: { name: "loc_6166", role: "reset the IY actor record to its idle opening state, enqueue a fixed sound command by ACTIVE_OBJECT_TYPE, then abort the caller frame (dissolves loc_618a)", cert: "code" },
+  0x6190: { name: "loc_6190", role: "mark the matched target record (IX): +8:=0x01, +0xa:=0xd0, then reset the actor record (loc_6166) and abort", cert: "code" },
   0x619f: { name: "initActorRecord", role: "stamp the fixed opening state into a fresh actor record", cert: "code" },
+  0x62e6: { name: "loc_62e6", role: "tag-match a record, apply its round-indexed position delta, re-arm it (bit5 + anim pointer 0x634f), then clear the I-parity target record; caller of the dissolved skip loc_6274", cert: "code" },
+  0x6381: { name: "loc_6381", role: "seed the proximity scan (coord table 0x887c, record list 0x8be8, 3 slots) and forward loc_638a's skip result", cert: "code" },
+  0x6666: { name: "loc_6666", role: "rst-0x28 handler (index 2): walk three actor records backward from IX (stride -0x18) running the idle-actor advance loc_667c on each, then run the countdown-gated blink animation loc_66a1 over the hunter table (0x8c78)", cert: "code" },
+  0x66c5: { name: "loc_66c5", role: "run loc_66f1 over 3 enemy-actor records (IX, stride 0x18); then unless the lead state byte (0x8ae2) is clear, step the (0x892d) countdown: decrement while live, on expiry reload 0x10, bump the flip toggle (0x892f), and enqueue a flip display command (0x0612 when toggle bit0 set else 0x0692) via loc_0038", cert: "code" },
+  0x66f1: { name: "loc_66f1", role: "per-record state dispatcher: routes (ix+2) of four (0..3) to the record's per-frame state handler via tail dispatch", cert: "code" },
+  0x6a7f: { name: "loc_6a7f", role: "per-frame object driver: when blink-phase (0x892b) set, run loc_6a98 over 18 enemy-actor records (0x8ae0, stride 0x18); else at wave index (0x892d)==2, once per pass (latch 0x8f56), checksum the playfield tilemap from 0x8450 (skip col 0x1b, row +0x12, stop h>=0x88; expect 0x29b8) and throw on mismatch", cert: "code" },
+  0x6a98: { name: "loc_6a98", role: "per-object state dispatcher: rst-0x28 route (state-1)&3 to loc_6aa8 / loc_67df", cert: "code" },
+  0x6c18: { name: "loc_6c18", role: "proximity-scan driver: walks 3 projectile records testing each against the fixed sprite record, aborts the scan on a hit, else clears the aim indicator bits + hit flag", cert: "code" },
+  0x6edb: { name: "loc_6edb", role: "phase-1 driver: run loc_6f2d over the 14 enemy-actor records (0x8ae0, stride 0x18); when the launch script (0x8f4a) hits 0xff and all 3 projectile slots (0x8bea, stride 0x18) are idle, inc intro phase (0x8f51), queue cmd 0x0635, force phase 4 + queue 0x0610 on 3*(0x8f47)==(0x8f52) else queue 0x0608, set intro delay (0x8f48)=0x40, clear 0x30 bytes at 0x8c90", cert: "code" },
   0x7292: { name: "advanceEaglePhaseAndClearAim", role: "step the eagle's phase and clear its aim flags", cert: "code" },
   0x7707: { name: "dispatchActiveObjectState", role: "run one active object record's per-frame state handler, selected by (IX+2)&3 of four; inactive records are skipped", cert: "code" },
   0x780f: { name: "paintTileBlock2x2Above", role: "stamp a 2x2 tile block anchored one row above", cert: "code" },
