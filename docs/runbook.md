@@ -336,7 +336,13 @@ batch and feeds the next batch's targets.
   names is never overridden. Done requires that **no routine runs as the frozen oracle in the live
   game**: every reachable routine is either wired as a live override (in `ROUTINES`) OR — for a genuine
   caller-skip whose net +4 SP move the withOmittedRet seam cannot seat — DISSOLVED into a direct-called
-  boolean and recorded in the config with a `DISSOLVED ... not oracle-served` reason. An `UNWIRED`/`DEBT`
+  boolean and recorded in **BOTH** files a dissolution touches: a `dead` entry in
+  `tools/idiomatic-boundaries.txt` (which subtracts it from the `idiomatic_gate` closure count) AND an
+  `UNWIRED` entry in `tools/registry-coverage.config.mjs` with a `DISSOLVED ... not oracle-served` reason
+  (which satisfies `registry-coverage.test.js`'s dispatch-or-exempt check). These are **separate checks in
+  separate files**; a dissolution that updates only one passes every pre-commit gate but is caught red by
+  the pre-push suite (2026-08-22: a batch shipped every `dead` entry but no `UNWIRED` entry, so
+  registry-coverage went red at push after the whole commit was built + reviewed). An `UNWIRED`/`DEBT`
   entry that means "oracle-served, can't-seat, left translated by design" is a **transient debt state,
   never done** — a seam throw is the signal to DISSOLVE, never to leave the routine translated. Silence
   reads as oversight.
@@ -373,11 +379,21 @@ batch and feeds the next batch's targets.
   CPU, and an agent that retries a slow/hung test livelocks the whole fan (2026-08-20: a batch-2 fan
   pinned a core ~5h across a compaction). Agents verify only `node --check <module>` (parses) +
   `idiomatic_gate worklist <game>` (cruft-0) then return; the LEAD runs every `equivalence-<addr>.test.js`
-  SERIALLY in reconcile, each wrapped in an OS `timeout`. A timeout is a **bug to fix** — a
+  SERIALLY in reconcile, each wrapped in an OS `timeout`, and judges each by its **exit code — never by
+  grepping the test output**. A grep on `# fail`/pass text false-passes a red gate whose failures print in
+  a different shape (2026-08-22: a grep-text harness reported "40/40 green" while 3 equivalence gates were
+  red; the independent review caught them, the harness did not). A timeout is a **bug to fix** — a
   non-terminating test is a real defect (e.g. the `ramDiffMinusStack` subarray-offset loop that spun on
   ≥2 dead-stack diffs) — **never a retry**. A background fan is not fire-and-forget: after a compaction
   FIRST check whether one is still live (`ps` for `node --test`; the fan's `agent-*.jsonl` mtimes) and
   kill a stalled run (`TaskStop <task-id>`); a large fan gets a stall watchdog.
+- **Run the WIRING tests in reconcile PRE-COMMIT, not only at push.** The pre-commit gates do NOT include
+  `tools/test/registry-coverage.test.js` (every idiomatic module dispatched-or-exempt) or
+  `tools/test/no-stale-mcall.test.js` (no stale marshalled `m.call` a decompiled callee should have
+  dissolved) — so a mis-wired override, a missing `UNWIRED` entry, or a stale `m.call` passes every
+  pre-commit gate and is caught only by the slow pre-push suite, after the whole commit is built and
+  reviewed. The LEAD runs both SERIALLY in reconcile alongside the equivalence tests (again, by exit
+  code), so a wiring miss is found before the reviewer, not at the push boundary.
 - Idiomatic rewrite = routine-**local** rules + routine-**wide** rules (input-register → optional
   param defaulting to the register `fn(m, x = m.regs.a)`; interface-register → explicit value/return;
   phantom no-op → inline+delete). Never weaken an assertion. **Address-retrofit:** no idiomatic routine
