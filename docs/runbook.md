@@ -407,9 +407,10 @@ batch and feeds the next batch's targets.
   `tools/idiomatic_gate.py` (pre-commit)** — the single gate that counts ALL idiomatic-layer cruft
   (register refs + `m.call` + `m.push*` + raw `0xHHHH`) and holds every `games/*/idiomatic/` to a
   per-game budget (implicit 0), so a NEW game is fail-closed from its first module and an author
-  literally cannot commit new cruft. `tools/idiomatic-budget.txt` is a **shrinking allowlist of
-  grandfathered exceptions only** (a game mid-burndown; legacy games frozen at their count); a game
-  absent from it is held at 0, and a game is IDIOMATIC (a done requirement) only at 0. ⚠ frogger was authored register-full and is being retrofitted down after the fact — the
+  literally cannot commit new cruft. Each game's own `games/<game>/idiomatic-budget.txt` (a single
+  integer — game-local config, NOT in common `tools/`) is a **shrinking ratchet** (a game
+  mid-burndown; legacy games frozen at their count); a game with no such file is held at 0, and a game
+  is IDIOMATIC (a done requirement) only at 0. ⚠ frogger was authored register-full and is being retrofitted down after the fact — the
   debt this rule exists to prevent. Do not repeat it: on the next game, the gate is green only if every
   module was born with its registers already named.
 - **★ Closure — a reachable routine still served by the oracle is cruft too.** A born-live layer

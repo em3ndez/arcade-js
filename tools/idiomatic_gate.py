@@ -15,7 +15,7 @@ IDIOMATIC (a hard done requirement):
 All six are counted in CODE ONLY (comments stripped); the last five have NO exemptions (registers keep the two bridges above).
 
 FAIL-CLOSED ratchet: `check` enumerates EVERY games/*/idiomatic/ and holds each to a budget
-(tools/idiomatic-budget.txt), implicit 0 for a game not listed — so a NEW game is born idiomatic. It
+(games/<game>/idiomatic-budget.txt), implicit 0 for a game not listed — so a NEW game is born idiomatic. It
 blocks when a game's STAGED count EXCEEDS its budget (no NEW cruft; the allowlist only shrinks).
 Fail-closed on a missing/malformed allowlist. Scope: games/<game>/idiomatic/*.js, minus names.js and
 the test/ subdir.
@@ -31,8 +31,6 @@ import os
 import re
 import subprocess
 import sys
-
-BUDGET_FILE = "tools/idiomatic-budget.txt"
 
 # --- registers (data registers + ALU-op helpers); both are machine surface ---
 REF = re.compile(r"\b(?:m\.)?regs\.([A-Za-z][A-Za-z0-9]*)")
@@ -136,18 +134,24 @@ def count_in_index(game):
 
 
 def read_budgets():
-    """Parse tools/idiomatic-budget.txt -> {game: max_allowed}. Fail closed if missing/malformed."""
-    if not os.path.exists(BUDGET_FILE):
-        raise GitError(f"missing allowlist {BUDGET_FILE}")
+    """Per-game budget from games/<game>/idiomatic-budget.txt -> {game: max_allowed}. Each file is a
+    single integer (first non-comment line; # comments allowed) — a shrinking ratchet toward 0. Absent
+    -> implicit 0 (a NEW game is born idiomatic). Fail closed on a malformed/empty file."""
     budgets = {}
-    for raw in open(BUDGET_FILE, encoding="utf-8"):
-        line = raw.split("#", 1)[0].strip()
-        if not line:
-            continue
-        parts = line.split()
-        if len(parts) != 2 or not parts[1].isdigit():
-            raise GitError(f"malformed allowlist line: {raw.rstrip()}")
-        budgets[parts[0]] = int(parts[1])
+    for path in sorted(glob.glob("games/*/idiomatic-budget.txt")):
+        game = os.path.basename(os.path.dirname(path))
+        val = None
+        for raw in open(path, encoding="utf-8"):
+            line = raw.split("#", 1)[0].strip()
+            if not line:
+                continue
+            if not line.isdigit():
+                raise GitError(f"malformed budget in {path}: {raw.rstrip()}")
+            val = int(line)
+            break
+        if val is None:
+            raise GitError(f"empty budget file {path}")
+        budgets[game] = val
     return budgets
 
 

@@ -1,0 +1,5 @@
+# Idiomatic-gate cruft budget for this game — a shrinking ratchet toward 0 (single integer, first
+# non-comment line). Absent -> implicit 0. A game is IDIOMATIC (a done requirement) only at 0.
+# dkong: grandfathered cruft (mem.* + the barrel-jump call brackets at the 3 effect-state callers);
+# finished port, off-limits to convert — the budget follows the measured count.
+3864

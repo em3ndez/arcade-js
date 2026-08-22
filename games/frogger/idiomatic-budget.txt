@@ -1,0 +1,4 @@
+# Idiomatic-gate cruft budget for this game — a shrinking ratchet toward 0 (single integer, first
+# non-comment line). Absent -> implicit 0. A game is IDIOMATIC (a done requirement) only at 0.
+# frogger: retrofit target 0 (incl mem + masks).
+455
