@@ -19,5 +19,5 @@ export function loc_5b71(m, rec = m.regs.ix) {
   if ((mem8[rec + 0x07] & FIRE_FLAG) === 0) return; // fire flag clear
   if (mem8[rec + 0x06] >= TIMER_LIMIT) return; // timer past the launch window
 
-  loc_3a6c(m); // all guards pass — launch
+  loc_3a6c(m, rec); // all guards pass — launch this record (threaded, not via a stale IX bridge)
 }

@@ -32,6 +32,7 @@ import { loc_5b71 } from "../loc_5b71.js";
 import { loc_3a6c } from "../../translated/loc_3a6c.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
+import { bridgeReseatEquivalent } from "../../../../core/bridge-reseat.js";
 import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -132,4 +133,25 @@ test("TEETH: a guard-dropping twin that fires on a wrong-mode record diverges at
   assert.notEqual(d, null, "the gate FAILED to catch a dropped mode guard");
   assert.equal(d.addr, SPAWN_COUNTER, `teeth caught wrong address ${hx(d.addr ?? 0)}`);
   console.log(`  TEETH(guard): caught at ${hx(d.addr)}`);
+});
+
+// -- R37: the launcher record must reach loc_3a6c through the param, not a stale IX bridge -----------
+// The cases above seat m.regs.ix == the record AND occupy every launch slot (loc_3a6c's no-free branch),
+// so a stale-register read is masked twice over. Here a FREE slot lets loc_3a6c do its record-specific
+// launch writes, and the register is POISONED with the record handed in as the param: a re-seat/thread
+// recovers, a stale m.regs.ix read leaks. Invisible to the base tape (wave-end fire cleanup is unreached).
+test("R37: loc_5b71 threads the launcher record to loc_3a6c, not a stale IX bridge", () => {
+  const craft = () => {
+    const m = BASE.clone();
+    m.regs.sp = SP0;
+    m.mem.write8(REC + 0x02, 0x05); // FIRE_MODE
+    m.mem.write8(REC + 0x07, 0x04); // FIRE_FLAG set
+    m.mem.write8(REC + 0x06, 0x08); // timer in window (also loc_3a6c's heading source)
+    return m; // slot 0 left FREE -> loc_3a6c performs its record-specific launch writes
+  };
+  const r = bridgeReseatEquivalent(craft(), oracle, loc_5b71, {
+    live: { ix: REC }, poison: { ix: 0x8b40 }, args: [REC], excludeAddr: inDeadStack,
+  });
+  assert.equal(r.equal, true, r.ram && `loc_5b71 launched off a stale IX; RAM diff at ${hx(r.ram.addr ?? 0)}`);
+  console.log("  R37: launcher record threaded to loc_3a6c (poison-IX bridge tooth clean)");
 });
