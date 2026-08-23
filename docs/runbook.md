@@ -354,6 +354,17 @@ batch and feeds the next batch's targets.
   teeth. Test by **capture-clone-replay** (hook the address, `m.clone()` at each real dispatch, replay
   in isolation); for arms the run never reaches, craft an entry — a real captured state with one
   variable poked identically on both sides.
+  - **★ SP-tooth for a DISPATCHING rewrite (the missing-`push16` class is invisible to memory-eq).** A
+    rewrite that seats a return then dispatches (`m.push16(<slot>)` before an rst-28 / tail-dispatcher
+    `m.call`, or `return m.call(<translated>)`) can drop the `push16` and still pass eq-green — the adrift
+    stack word lives in dead stack scratch, which the RAM diff excludes; it corrupts the live game and is
+    caught only whole-game by `tape.test.js`. Give such a routine an SP-tooth in its eq test: run it through
+    the game's `withOmittedRet` seam via `core/equivalence.js` `seamPlaceable(withOmittedRet, fn, addr,
+    entry)` and assert `placeable === true`. The seam is the authority — it completes an omitted ret (SP
+    moved 0), accepts a legit tail-dispatch (moved +2, pc on the caller slot — no false positive), and
+    THROWS when SP is adrift. **Null-mutant it once per game** (drop a real `push16`, prove it goes RED):
+    a check never observed failing cannot be trusted. See `games/pooyan/idiomatic/test/sp-seam-tooth.test.js`.
+    Enforced at review by reviewer-rules R36.
   - **★ REGISTER LIVE-OUT COMPLETENESS is a leading escaped-defect class — audit it explicitly.** For
     **every** register the oracle *modifies and does not pop/restore before its `ret`*, ask "does a
     caller read it back?"; if yes it is a live-out the module MUST set (return-assignment) AND the gate

@@ -150,6 +150,32 @@ export function unitEquivalence(makeMachine, target, translatedFn, optimizedFn, 
   };
 }
 
+// -- SP-delta tooth ---------------------------------------------------------
+
+/**
+ * The missing-push16 class is INVISIBLE to a memory-equivalence gate: the leaked/adrift stack word lives
+ * in dead stack scratch, which the RAM diff excludes, so a rewrite that drops the `m.push16(<slot>)` before
+ * an rst-28 / tail dispatch passes eq-green while corrupting the live game (caught only whole-game by
+ * tape.test.js / the SP-probe). This tooth closes that gap PER ROUTINE by running the rewrite through the
+ * game's own dispatch seam (`withOmittedRet`) — the authority on stack placement. The seam:
+ *   - moved 0            -> the rewrite omitted its ROM ret; the seam completes it. (leaf/normal: OK)
+ *   - moved +2, pc==slot -> a legit tail-dispatch reached its ret through translated code that popped the
+ *                           caller's slot and landed pc on it. (the "+2 dispatcher": OK, NOT a false positive)
+ *   - anything else      -> THROW: SP is adrift (a missing push16 is exactly this).
+ * Pass the game's `withOmittedRet` so this stays game-agnostic. `m` is a pristine entry clone with SP
+ * seated on a real caller-return word (as the eq craft() does). Returns {placeable, error}; a caller
+ * asserts placeable === true. Null-mutant it (drop a real push16, prove it goes RED) before trusting a
+ * GREEN — a check that cannot see the wrapped case cannot fail on it.
+ */
+export function seamPlaceable(withOmittedRet, fn, addr, m, ...args) {
+  try {
+    withOmittedRet(fn, addr)(m, ...args);
+    return { placeable: true, error: null };
+  } catch (e) {
+    return { placeable: false, error: e.message };
+  }
+}
+
 // -- convergent (relaxed) equivalence ---------------------------------------
 
 /**

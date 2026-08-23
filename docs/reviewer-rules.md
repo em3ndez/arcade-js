@@ -916,3 +916,20 @@ qarl asking how the docs change so the layer gets wired and used immediately.*
   warning that a reading is counterintuitive ("X is a counter, not a static base") is fine. Verify:
   `grep -niE 'wave[- ][12]|overturn|golden_|MAME (grounding|wave)|batch [0-9]|earlier reading' games/<game>/mechanisms.md`
   returns only mechanism false-positives (e.g. an "inverted" hardware port), not history prose.
+
+## R36 [D] a dispatching rewrite carries the SP-tooth (memory-eq is blind to a missing push16)
+
+- **R36 [D]** A new idiomatic routine that seats a return then dispatches — an `m.push16(<slot>)` before an
+  `m.call(<rst-28 / tail-dispatcher>)`, or any `return m.call(<translated>)` tail whose callee `ret`s —
+  carries an SP-tooth in its equivalence test: run the rewrite through the game's `withOmittedRet` seam via
+  `core/equivalence.js` `seamPlaceable(withOmittedRet, fn, addr, entryClone)` from a crafted entry (SP on a
+  real caller-return word) and assert `placeable === true`. The memory-equivalence diff is BLIND to a missing
+  `push16` — the adrift stack word lives in dead stack scratch, excluded from the RAM diff — so the class
+  passes eq-green while corrupting the live game; the seam is the authority (it completes an omitted ret at
+  moved 0, accepts the legit tail-dispatch at moved +2 with pc on the caller slot, and THROWS when SP is
+  adrift). The tooth must be null-mutant-proven at least once per game — drop a real `push16`, prove it goes
+  RED — because a check never observed failing cannot be trusted (R17's lesson at per-routine scope; the
+  whole-game version is `tape.test.js`). Verify: the routine's eq test imports `seamPlaceable`; the game has a
+  `sp-seam-tooth.test.js` whose null-mutant case asserts `placeable === false`. *Added 2026-08-22 after the
+  missing-push16 class survived per-routine eq-green (caught only by tape.test + human review); the eq gate
+  excludes SP by design, so only the seam catches it per routine.*

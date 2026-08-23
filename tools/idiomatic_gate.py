@@ -8,6 +8,8 @@ IDIOMATIC (a hard done requirement):
   - REGISTERS: `regs.a` / ALU helpers, minus two exempt bridges — a param-default (`fn(m, x=m.regs.a)`)
     and a write riding a return (`return (m.regs.a=v)`).
   - m.call(...) — dissolve to a direct JS call (or `yield*`). m.push16/* — Z80 stack trampolines.
+    (m.ret / m.pop* are Z80 stack primitives too, but counted CLOSURE-only — like `unlifted` below —
+    so a frozen legacy game's budget is not re-baselined by the gate newly seeing them.)
   - raw 0xHHHH — a bare address; use a named import from names.js.
   - mem.read8/write8/read16/write16(...) — the low-level API; idiomatic is the indexed view `mem8[addr]`.
   - a redundant width-mask on a mem assignment (`mem8[x]=..&0xff` / `mem16[x]=..&0xffff`): the write already
@@ -41,6 +43,10 @@ WRITE = re.compile(r"\b(?:m\.)?regs\.[A-Za-z][A-Za-z0-9]*\s*=(?!=)")  # write ri
 # --- control/stack/address cruft, counted in comment-stripped CODE, no exemptions ---
 CALL = re.compile(r"\bm\.call\(")
 PUSH = re.compile(r"\bm\.push\w*\(")
+# m.ret / m.pop* are Z80 stack primitives too (a fully idiomatic layer uses JS control flow, not the
+# machine stack). Counted CLOSURE-only (like `unlifted`): the games being driven to zero primitives,
+# so a legacy game's frozen budget is not re-baselined by making the gate newly see them.
+STACK = re.compile(r"\bm\.(?:ret|pop\w*)\(")
 ADDR = re.compile(r"0x[0-9a-fA-F]{4}\b")
 MEM = re.compile(r"\bmem\.(?:read|write)(?:8|16)\(")  # low-level machine API; idiomatic form is mem8[addr]
 # Redundant width-mask on a mem assignment: mem8[..]=..&0xff (write8 truncates) / mem16[..]=..&0xffff
@@ -79,7 +85,9 @@ def register_hits(text):
 
 
 def counts(text):
-    """Per-category cruft counts for one module's source text."""
+    """Per-category cruft counts for one module's source text. The CATEGORIES keys are always-counted
+    (baked into every game's budget); "stack" (m.ret/m.pop*) is a separate closure-only addend the
+    callers apply only for CLOSURE_GAMES, so it is returned but excluded from total()."""
     code = strip_comments(text)
     return {
         "registers": len(register_hits(code)),
@@ -89,6 +97,7 @@ def counts(text):
         "mem": len(MEM.findall(code)),
         "masks": (len(MASK8.findall(code)) + len(MASK16.findall(code))
                   + sum(1 for n in ALIAS.findall(code) if n not in ("mem8", "mem16"))),
+        "stack": len(STACK.findall(code)),
     }
 
 
@@ -121,16 +130,20 @@ def _modules_in_index(game):
 
 
 def count_in_index(game):
-    """Total cruft in the STAGED content, matching the other gates. Returns (total, per_category)."""
+    """Total cruft in the STAGED content, matching the other gates. Returns (total, per_category, stack)
+    where stack (m.ret/m.pop*) is a closure-only addend the caller applies, not part of total()."""
     agg = {k: 0 for k in CATEGORIES}
+    stk = 0
     for path in _modules_in_index(game):
         try:
             blob = git(["show", f":{path}"])
         except GitError:
             continue
-        for k, v in counts(blob).items():
-            agg[k] += v
-    return total(agg), agg
+        c = counts(blob)
+        for k in CATEGORIES:
+            agg[k] += c[k]
+        stk += c["stack"]
+    return total(agg), agg, stk
 
 
 def read_budgets():
@@ -254,19 +267,20 @@ def check():
     lied = []  # games that declare idiomaticComplete while cruft remains
     for game in all_games():
         try:
-            tot, per = count_in_index(game)
+            tot, per, stk = count_in_index(game)
             unl = len(unlifted_addrs(game, True))
         except GitError as e:
             print(f"idiomatic_gate: BLOCK — {game}: {e}")
             return 1
-        tot += unl  # a reachable routine still served by the oracle is cruft (closure-enrolled games)
+        stk = stk if game in CLOSURE_GAMES else 0  # m.ret/m.pop counted only for closure-enrolled games
+        tot += unl + stk  # a reachable routine still served by the oracle + stack primitives are cruft
         budget = budgets.get(game, 0)
         worst = max(worst, tot - budget)
         flag = "OK " if tot <= budget else "OVER"
         tag = "" if game in budgets else " (implicit 0)"
         brk = " ".join(f"{k[:4]}={per[k]}" for k in CATEGORIES)
         if game in CLOSURE_GAMES:
-            brk += f" unlifted={unl}"
+            brk += f" stack={stk} unlifted={unl}"
         complete = declares_complete(game)
         if is_completeness_violation(complete, tot):
             lied.append((game, tot))
@@ -282,8 +296,8 @@ def check():
         return 1
     if worst > 0:
         print("\nBLOCK: a game's idiomatic layer holds MORE CPU/memory cruft (registers, m.call, "
-              "m.push*, raw 0xHHHH) than its budget. The allowlist only shrinks — dissolve the new "
-              f"cruft or it does not land. Over budget by {worst}.")
+              "m.push*, m.ret/m.pop*, raw 0xHHHH) than its budget. The allowlist only shrinks — dissolve "
+              f"the new cruft or it does not land. Over budget by {worst}.")
         return 1
     return 0
 
@@ -291,29 +305,36 @@ def check():
 def worklist(game):
     """Per-module, per-category breakdown from the WORKING TREE (the burndown view)."""
     idir = os.path.join("games", game, "idiomatic")
+    closure = game in CLOSURE_GAMES
     rows = []
     for path in sorted(glob.glob(os.path.join(idir, "*.js"))):
         if os.path.basename(path) == "names.js":
             continue
         per = counts(open(path, encoding="utf-8").read())
-        if total(per):
-            rows.append((total(per), os.path.basename(path), per))
+        disp_tot = total(per) + (per["stack"] if closure else 0)
+        if disp_tot:
+            rows.append((disp_tot, os.path.basename(path), per))
     rows.sort(reverse=True)
     grand = {k: 0 for k in CATEGORIES}
+    gstk = 0
     for tot, name, per in rows:
         for k in CATEGORIES:
             grand[k] += per[k]
-        print(f"  {tot:4}  {name:44}  " + " ".join(f"{k[:4]}={per[k]}" for k in CATEGORIES))
+        gstk += per["stack"]
+        brk = " ".join(f"{k[:4]}={per[k]}" for k in CATEGORIES)
+        if closure:
+            brk += f" stack={per['stack']}"
+        print(f"  {tot:4}  {name:44}  " + brk)
     unl = unlifted_addrs(game, False)
-    if game in CLOSURE_GAMES:
+    if closure:
         disp = boundary_dispositions(game)  # noqa: F841 (kept for a future disposition column)
         print(f"\n  UNLIFTED — {len(unl)} reachable routine(s) still served by the translated oracle:")
         for a in unl:
             print(f"    loc_{a:04x}")
-    gtot = total(grand) + len(unl)
+    gtot = total(grand) + (gstk + len(unl) if closure else 0)
     brk = " ".join(f"{k}={grand[k]}" for k in CATEGORIES)
-    if game in CLOSURE_GAMES:
-        brk += f" unlifted={len(unl)}"
+    if closure:
+        brk += f" stack={gstk} unlifted={len(unl)}"
     print(f"\n  {game}: total {gtot}  [{brk}]")
     return 0
 
@@ -331,11 +352,12 @@ def selftest():
     # registers: 2 body refs; a param-default and a return-write are exempt
     reg = "function f(m, x = m.regs.a) {\n  const y = m.regs.b + regs.c;\n  return (m.regs.hl = y);\n}"
     want("registers", counts(reg)["registers"], 2)
-    # m.call + m.push* counted; a coroutine yield* is not
-    ctl = "function g(m) { m.push16(0x0232); m.call(0x1a55); yield* h(m); }"
+    # m.call + m.push* counted; m.ret/m.pop* counted as stack primitives; a coroutine yield* is not
+    ctl = "function g(m) { m.push16(0x0232); m.call(0x1a55); m.pop16(); yield* h(m); return m.ret(); }"
     c = counts(ctl)
     want("calls", c["calls"], 1)
-    want("pushes", c["pushes"], 1)
+    want("pushes", c["pushes"], 1)          # m.push16 only; ret/pop are NOT pushes
+    want("stack", c["stack"], 2)            # m.pop16 + m.ret; m.push16 is NOT stack; yield* uncounted
     # raw 0xHHHH counted in code; a 2-digit value and a hex in a comment are not
     adr = "const K = 0x8040; // see 0x1234 and 0x2673\nmem8[0xa808] = 0x0f;"
     a = counts(adr)
