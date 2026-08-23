@@ -69,6 +69,7 @@ export function loc_572b(m, rec = m.regs.ix, col = m.regs.c, eField = m.regs.e) 
   mem8[ENEMY_SPAWN_TIMER] = timer;
 
   mem8[ACTIVE_ENEMY_COUNT] = mem8[ACTIVE_ENEMY_COUNT] + 1;
+  m.regs.ix = rec; // record base flows through IX to the deeper scan-state chain
   loc_57c3(m, col); // run the scan-state head for the new actor
   return true; // spawned -> caller aborts its sweep
 }

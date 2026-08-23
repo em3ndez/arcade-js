@@ -59,3 +59,6 @@ pooyan 0x572b dead  # spawn caller-skip dissolved; direct-called by idiomatic lo
 pooyan 0x5733 dead  # caller-skip dissolved; direct-called by idiomatic loc_53a0 (boolean), not oracle-served
 pooyan 0x5b99 dead  # caller-skip dissolved; direct-called by idiomatic loc_5b86 (boolean), not oracle-served
 pooyan 0x5f83 dead  # caller-skip dissolved; direct-called by idiomatic loc_5f6a (boolean), not oracle-served
+pooyan 0x42da dead  # slot-init caller-skip dissolved; direct-called by idiomatic loc_4221 (boolean), not oracle-served
+pooyan 0x5374 dead  # lane-actor activation caller-skip dissolved; direct-called by idiomatic loc_5334 (boolean), not oracle-served
+pooyan 0x7595 dead  # wave-launch caller-skip dissolved; direct-called by idiomatic loc_756d (boolean), not oracle-served

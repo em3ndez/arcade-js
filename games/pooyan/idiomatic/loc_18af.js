@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: GPL-3.0-only
+import { loc_1e55 } from "./loc_1e55.js";
+import { loc_6cab } from "./loc_6cab.js";
+import { loc_20d4 } from "./loc_20d4.js";
+import { loc_511b } from "./loc_511b.js";
+import { loc_3377 } from "./loc_3377.js";
+import { loc_40bd } from "./loc_40bd.js";
+import { loc_02ef } from "./loc_02ef.js";
+import { loc_18da } from "./loc_18da.js";
+import { loc_191c } from "./loc_191c.js";
+import { loc_5ae4 } from "./loc_5ae4.js";
+import { loc_196e } from "./loc_196e.js";
+import { loc_1f2f } from "./loc_1f2f.js";
+import { loc_6b3b } from "./loc_6b3b.js";
+import { loc_19ca } from "./loc_19ca.js";
+/**
+ * loc_18af — gameplay-state index-4 per-frame coordinator (dispatch-table entry 4).
+ *
+ * Runs fourteen per-frame sub-handlers in fixed order, then returns. Each is a balanced-wire
+ * call (net SP 0) and each sub-handler reads its own state from RAM, so this driver marshals no
+ * register and holds no live-out. All fourteen callees are lifted, so every call is dissolved.
+ *
+ * LIVE-OUT: none — a void coordinator; its dispatcher reads no register back.
+ */
+export function loc_18af(m) {
+  loc_1e55(m);
+  loc_6cab(m);
+  loc_20d4(m);
+  loc_511b(m);
+  loc_3377(m);
+  loc_40bd(m);
+  loc_02ef(m);
+  loc_18da(m);
+  loc_191c(m);
+  loc_5ae4(m);
+  loc_196e(m);
+  loc_1f2f(m);
+  loc_6b3b(m);
+  loc_19ca(m);
+}

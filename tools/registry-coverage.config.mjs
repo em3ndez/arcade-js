@@ -166,6 +166,18 @@ export const UNWIRED = {
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_1171 " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_42da.js":
+      "DISSOLVED caller-skip -> boolean (true=slot busy/keep sweeping, false=slot initialized/abort); " +
+      "direct-called by loc_4221 (a wired ROUTINES override), so it runs as JS and is never oracle-served. " +
+      "Not a ROUTINES override: the pop-af/ret skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_5374.js":
+      "DISSOLVED caller-skip -> boolean (true=already active/keep sweeping, false=activated/abort); " +
+      "direct-called by loc_5334 (a wired ROUTINES override), so it runs as JS and is never oracle-served. " +
+      "Not a ROUTINES override: the pop-af/ret skip moves SP outside the withOmittedRet seam's 0/+2 window.",
+    "loc_7595.js":
+      "DISSOLVED caller-skip -> boolean (true=slot occupied/keep sweeping, false=launched/abort); " +
+      "direct-called by loc_756d (a wired ROUTINES override), so it runs as JS and is never oracle-served. " +
+      "Not a ROUTINES override: the caller-skip's net SP move is outside the withOmittedRet seam's 0/+2 window.",
   },
 };
 

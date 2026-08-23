@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import { loc_2e36 } from "./loc_2e36.js";
 import { ROPE_EXTEND_INDEX, ROPE_CELL_STATE_BASE } from "./names.js";
 /**
  * loc_2e22 — drive every active rope cell through its per-cell handler.
@@ -13,8 +14,6 @@ import { ROPE_EXTEND_INDEX, ROPE_CELL_STATE_BASE } from "./names.js";
 export function loc_2e22(m) {
   const count = m.mem8[ROPE_EXTEND_INDEX];
   for (let i = 0; i < count; i++) {
-    m.regs.ix = ROPE_CELL_STATE_BASE + i; // dispatcher reads the cell pointer from IX
-    m.push16(0x2e30); // return slot the dispatcher's ret consumes
-    m.call(0x2e36);
+    loc_2e36(m, ROPE_CELL_STATE_BASE + i); // hand each cell record to the rope-cell dispatcher
   }
 }

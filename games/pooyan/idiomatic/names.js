@@ -1062,6 +1062,185 @@ export const SPAWN_SEQUENCE_INDEX_8D13 = 0x8d13;
 /** [code] rotating spawn cursor (frame-timer spawner) (0x8d14) */
 export const SPAWN_SEQUENCE_INDEX_8D14 = 0x8d14;
 
+
+// == Batch: leaves-first decompile cells [code] (ungrounded; MAME-grounding pending) ==
+// Alias 0x0bb5 (CHECKSUM_ROM_BASE data view / ATTRACT_HANDLER_EPILOGUE_ADDR routine entry) -> understanding pass.
+
+/** [code] display command constant (0x0200) (0x0200) */
+export const DISPLAY_CMD_0200 = 0x0200;
+/** [code] display-command word base (type 0x03) (0x030f) */
+export const OBJECT_ANIM_DISPLAY_CMD_BASE = 0x030f;
+/** [code] attract state-4 display command (0x060d) */
+export const ATTRACT_S4_DISPLAY_CMD = 0x060d;
+/** [code] display command constant (0x068b) (0x068b) */
+export const DISPLAY_CMD_068B = 0x068b;
+/** [code] display command constant (0x068e) (0x068e) */
+export const DISPLAY_CMD_068E = 0x068e;
+/** [code] attract state-4 attribute source (0x07b9) */
+export const ATTRACT_S4_ATTRIB_SRC = 0x07b9;
+/** [code] attract state-4 check source run (0x07c9) */
+export const ATTRACT_S4_CHECK_SRC = 0x07c9;
+/** [code] rom field-attribute source (0x07d9) */
+export const FIELD_ATTRIB_SRC_07D9 = 0x07d9;
+/** [code] copy-protection stall byte (0x07f5) */
+export const COPY_PROTECT_STALL_BYTE = 0x07f5;
+/** [code] expected signature top value (0x0838) */
+export const SIGNATURE_EXPECTED_TOP = 0x0838;
+/** [code] inline jump-table base for the attract sub-state rst-28 dispatch (0x08a1) */
+export const ATTRACT_SUBSTATE_DISPATCH = 0x08a1;
+/** [code] rom signature word table (0x0976) */
+export const SIGNATURE_WORD_TABLE = 0x0976;
+/** [code] attract state-4 check reference (0x0a65) */
+export const ATTRACT_S4_CHECK_REF = 0x0a65;
+/** [code] attract state-4 object coordinates (0x0a76) */
+export const ATTRACT_S4_OBJ_COORDS = 0x0a76;
+/** [code] attract state-4 object descriptors (0x0a7e) */
+export const ATTRACT_S4_OBJ_DESCRIPTORS = 0x0a7e;
+/** [code] attract state-4 draw script (0x0a87) */
+export const ATTRACT_S4_DRAW_SCRIPT = 0x0a87;
+/** [code] rom 0x79-byte block compared in the world-3 anti-tamper check (0x0b32) */
+export const TAMPER_CHECK_BLOCK_0B32 = 0x0b32;
+/** [code] rom 5-byte guard table, each &0x1f summed by the checksum guard (0x0bb3) */
+export const INTEGRITY_GUARD_TABLE_0BB3 = 0x0bb3;
+/** [code] shared attract-handler epilogue routine entry (alias of checksum_rom_base; understanding pass to reconcile) (0x0bb5) */
+export const ATTRACT_HANDLER_EPILOGUE_ADDR = 0x0bb5;
+/** [code] rom signature-check source run summed vs the sig table (0x0bb9) */
+export const SIGNATURE_CHECK_SRC = 0x0bb9;
+/** [code] 0x43-terminated rom string, biased -0x88 into the display message buffer (0x183f) */
+export const INTRO_MSG_STRING_183F = 0x183f;
+/** [code] rom alternate seed table (odd round) (0x1e2c) */
+export const WAVE_SEED_TABLE_1E2C = 0x1e2c;
+/** [code] rom per-record {tile,colour} seed table (even/latched wave) (0x1e34) */
+export const WAVE_SEED_TABLE_1E34 = 0x1e34;
+/** [code] rom 0x10-terminated attribute field copied bottom-up into the reset attr column (0x1ea7) */
+export const ROUND_HUD_FIELD_SRC = 0x1ea7;
+/** [code] rom 5-entry stage-index -> column-code lookup table (0x1f87) */
+export const STAGE_TAG_COLUMN_TABLE = 0x1f87;
+/** [code] rom 2-entry word table, tens bit picks a glyph-block source (0x200d) */
+export const ROUND_GLYPH_WORD_TABLE = 0x200d;
+/** [code] rom anim script the shared cursor is seated to (0x26c9) */
+export const ANIM_SCRIPT_26C9 = 0x26c9;
+/** [code] inline rst-28 jump table for the lead actor's secondary state machine (0x28f1) */
+export const ACTOR_SECONDARY_STATE_DISPATCH = 0x28f1;
+/** [code] routine entry pushed as the dispatch transfer/return slot (0x2b8d) */
+export const SPAWN_FORMATION_EPILOGUE_ADDR = 0x2b8d;
+/** [code] rom word table of rope-extend tile blocks (0x2dee) */
+export const ROPE_TILE_BLOCK_TABLE = 0x2dee;
+/** [code] rom 2x2 tile source for the rope segment blit (0x2e1a) */
+export const ROPE_RETRACT_TILE_SRC = 0x2e1a;
+/** [code] inline rst-28 jump table for the rope-cell handlers (0x2e3d) */
+export const ROPE_CELL_DISPATCH = 0x2e3d;
+/** [code] rom word table of retract-anim pointers (0x2f93) */
+export const RETRACT_ANIM_TABLE = 0x2f93;
+/** [code] rom object state-2 anim word table (0x3dd3) */
+export const OBJECT_STATE2_ANIM_TABLE = 0x3dd3;
+/** [code] rom animation-sequence word table indexed by phase (0x3e49) */
+export const ANIM_SEQ_TABLE_3E49 = 0x3e49;
+/** [code] rom word table of plummet-animation pointers (0x4072) */
+export const FALL_ANIM_TABLE = 0x4072;
+/** [code] rom two's-complement signature table, 0xff-terminated (0x4283) */
+export const SIGNATURE_CHECK_TABLE = 0x4283;
+/** [code] rom word table indexed by ((round>>1)-1)&3 -> spawned-slot anim/script pointer (0x432d) */
+export const SPAWN_ANIM_WORD_TABLE = 0x432d;
+/** [code] rom animation-sequence pointer seated into the source record (0x4347) */
+export const SPAWN_ANIM_SEQ = 0x4347;
+/** [code] rom script-row table (0x519a) */
+export const SCRIPT_ROW_TABLE = 0x519a;
+/** [code] rom script data table a (0x5264) */
+export const SCRIPT_DATA_TABLE_A = 0x5264;
+/** [code] rom script data table b (0x52b0) */
+export const SCRIPT_DATA_TABLE_B = 0x52b0;
+/** [code] rom byte table (rst-0x20 lookup) or'd into record field 7 (0x53a6) */
+export const SCRIPT_FLAG_TABLE = 0x53a6;
+/** [code] rom byte table indexed by the spawn index -> record field +6 (0x55d4) */
+export const ACTOR_MOTION_TABLE_55D4 = 0x55d4;
+/** [code] rom reload-value table indexed by the spawn-type cursor low nibble (0x55ef) */
+export const SPAWN_RELOAD_TABLE = 0x55ef;
+/** [code] rom reload-value table indexed by the spawn-cursor low nibble (0x55ff) */
+export const SPAWN_INTERVAL_TABLE_55FF = 0x55ff;
+/** [code] rom rst-20 byte table of reload values indexed by cursor&0x0f (0x560f) */
+export const SPAWN_TIMER_RELOAD_TABLE = 0x560f;
+/** [code] rom word table indexed by the spawn index -> anim-script byte to record +0x17 (0x561f) */
+export const ACTOR_ANIM_SCRIPT_TABLE_561F = 0x561f;
+/** [code] rom verbatim clone of the tamper-check block (0x7071) */
+export const TAMPER_CHECK_CLONE_7071 = 0x7071;
+/** [code] rom word table of sprite tile bases, indexed by group tile-index (0x70eb) */
+export const SPAWN_TILE_TABLE_70EB = 0x70eb;
+/** [code] rom 6-byte table indexed by the variant cursor -> paired record anim-script index +0x17 (0x7618) */
+export const EAGLE_LAUNCH_VARIANT_TABLE = 0x7618;
+/** [code] rom 3-byte table indexed by min(wave_number,2), reseeds the shared frame-delay timer (0x761e) */
+export const LAUNCH_FRAME_DELAY_TABLE = 0x761e;
+/** [code] rom anim-sequence pointer armed when wave_number>=3 (0x76dd) */
+export const ANIM_PARAM_76DD = 0x76dd;
+/** [code] rom ret opcode reused as the colorram integrity checksum sentinel (0x780e) */
+export const COLORRAM_CHECKSUM_SENTINEL = 0x780e;
+/** [code] rom char-data word table, lower 2x2 row (0x7821) */
+export const OBJECT_CHAR_TABLE_ROW0 = 0x7821;
+/** [code] rom char-data word table, upper row (0x7841) */
+export const OBJECT_CHAR_TABLE_ROW1 = 0x7841;
+/** [code] rom per-spawn-index word table -> record +0x15/+0x16 (0x7869) */
+export const SPAWN_WORD_TABLE = 0x7869;
+/** [code] 9-word cumulative-sum table the integrity check compares against (0x7900) */
+export const ROM_BLOCK_CHECKSUM_TABLE = 0x7900;
+/** [code] vram dst for the round 3x3 tile block (0x8462) */
+export const ROUND_TILE_DST = 0x8462;
+/** [code] vram tile: round-number low bcd digit (0x847f) */
+export const HUD_ROUND_DIGIT_LO = 0x847f;
+/** [code] work cell: low nibble of the round bcd stashed for render (0x8483) */
+export const ROUND_BCD_LOW_STASH = 0x8483;
+/** [code] vram tile: round-number high bcd digit (0x10=blank on leading zero) (0x849f) */
+export const HUD_ROUND_DIGIT_HI = 0x849f;
+/** [guess] tile-vram cursor value (even/latched) (0x84e9) */
+export const WAVE_TILE_CURSOR_84E9 = 0x84e9;
+/** [guess] tile-vram cursor value published to the tile-anim cursor (odd round) (0x84f6) */
+export const WAVE_TILE_CURSOR_84F6 = 0x84f6;
+/** [code] base tile cell of the two-column serpentine playfield checksum (0x8548) */
+export const PLAYFIELD_CHECKSUM_VRAM_BASE = 0x8548;
+/** [code] attract state-4 vram cursor (0x8648) */
+export const ATTRACT_S4_VRAM_CURSOR = 0x8648;
+/** [code] cursor into the eagle launch variant table (0x8922) */
+export const EAGLE_LAUNCH_VARIANT_INDEX = 0x8922;
+/** [code] anti-tamper strike counter (integrity flag block +2) (0x89e9) */
+export const TAMPER_STRIKES_OBJMOVE = 0x89e9;
+/** [code] anti-tamper strike counter (object signature), sibling of tamper_strikes_sig (0x8a3a) */
+export const TAMPER_STRIKES_OBJSIG = 0x8a3a;
+/** [code] lead actor record frame-delay byte (actor_table+0x11) (0x8a91) */
+export const LEAD_ACTOR_FRAME_DELAY = 0x8a91;
+/** [code] index into the formation param tables (0x8d01) */
+export const FORMATION_SPAWN_INDEX = 0x8d01;
+/** [code] per-type spawn countdown, reloaded from the spawn reload table on zero (0x8d04) */
+export const SPAWN_COUNTDOWN_A = 0x8d04;
+/** [code] per-type spawn countdown (scheduler b), reloaded from the interval table at zero (0x8d05) */
+export const SPAWN_INTERVAL_COUNTDOWN = 0x8d05;
+/** [code] frame-timer gated spawner countdown, reloaded from the table on expiry (0x8d06) */
+export const SPAWN_RELOAD_TIMER = 0x8d06;
+/** [guess] second 6-byte formation state row blanked at entry (0x8d11) */
+export const FORMATION_STATE_ROW2 = 0x8d11;
+/** [code] work-ram landing sound-id latch = (ix+0x17)+1 (0x8d1d) */
+export const SOUND_ID_LATCH_8D1D = 0x8d1d;
+/** [code] once-per-level done latch (0x8d56) */
+export const LEVEL_TAG_DONE_LATCH = 0x8d56;
+/** [guess] spawn sweep countdown paired with the sweep trigger (0x8d5a) */
+export const SPAWN_SWEEP_COUNTDOWN = 0x8d5a;
+/** [guess] spawn sweep trigger (also cleared during object-slot init) (0x8d5b) */
+export const SPAWN_SWEEP_TRIGGER = 0x8d5b;
+/** [code] 16-bit live-script pointer seeded from the script data table (0x8d71) */
+export const SCRIPT_DATA_PTR = 0x8d71;
+/** [code] script delay countdown seeded by the script seeder, ticked/reseeded (0x8d73) */
+export const SCRIPT_DELAY_TIMER = 0x8d73;
+/** [code] matched script-row value byte, indexes the script flag table (0x8d74) */
+export const SCRIPT_VALUE_BYTE = 0x8d74;
+/** [code] script down-counter gating attract-substate advance + the 14-row checksum, reloaded to 0x0d (0x8e52) */
+export const SCRIPT_STEP_COUNTDOWN = 0x8e52;
+/** [code] attract state-4 column check tick (0x8e53) */
+export const SCRIPT_COL_CHECK_TICK = 0x8e53;
+/** [code] 16-bit script read cursor, paired with the script write cursor (0x8e54) */
+export const SCRIPT_READ_PTR = 0x8e54;
+/** [code] rope-extend blit frame index 0..8 (0x8f1b) */
+export const ROPE_EXTEND_FRAME_INDEX = 0x8f1b;
+/** [code] hud refresh tick (0x8f4d) */
+export const HUD_REFRESH_TICK = 0x8f4d;
+
 export const ROUTINES = {
   0x0714: { name: "loc_0714", role: "sprite-attribute copy loop. Runs `count` passes. Each pass reads four source bytes, walking the source low byte so it wraps inside its 256-byte page:…", cert: "code" },
   0x0a25: { name: "loc_0a25", role: "seeds the frame-animation cursor, then tail-hands to the two-slot tile painter, returning its result straight to this routine's own caller", cert: "code" },
@@ -1430,4 +1609,51 @@ export const ROUTINES = {
   0x6cab: { name: "loc_6cab", role: "aim-indicator / target-acquisition updater: gates on GAME_ACTIVE_FLAG/GRAB_ACTIVE_FLAG/WAVE_TEARDOWN_STATE, steps loc_6bee, bails on PROXIMITY_HIT_FLAG, then sets the above/below aim bit via LAUNCH_STATE / existing-lock re-evaluate / closest-in-band 6-block scan (records the 5-byte lock at TARGET_LOCK)", cert: "code" },
   0x6bee: { name: "loc_6bee", role: "aim-indicator stepper: mode 0 runs the proximity redraw (loc_6c18); mode 1 sets bit2 / mode>=2 sets bit3 of PLAYER_AIM_FLAGS (clearing the other), then drains AIM_INDICATOR_TIMER, zeroing AIM_INDICATOR_MODE at expiry", cert: "code" },
   0x6404: { name: "loc_6404", role: "two-pass actor collision driver: guarded by PLAY_MODE_LATCH/ROUND_COUNTER bit0, scans the actor record twice (selector 0 then 4), aborting on a collision (the terminator skip inside the scan unwinds this frame)", cert: "code" },
+  0x0899: { name: "loc_0899", role: "attract/demo sequence driver (top-level game state 1)", cert: "code" },
+  0x092c: { name: "loc_092c", role: "attract sub-state 2 (dispatched from the attract state table)", cert: "code" },
+  0x099c: { name: "loc_099c", role: "attract sub-state 4 handler (ROM 0x099c-0x09f7, dispatch 0x08a1[4])", cert: "code" },
+  0x0ac8: { name: "loc_0ac8", role: "attract sub-state 5 handler (dispatch target 0x08a1[5], ROM 0x0ac8-0x0b25)", cert: "code" },
+  0x1583: { name: "loc_1583", role: "per-frame HUD-refresh tick with a tamper-gated gameplay dispatch (ROM 0x1583-0x159a)", cert: "code" },
+  0x159b: { name: "loc_159b", role: "top-level game state-3 (play) handler (ROM 0x159b; dispatched each frame from the NMI service via table 0x06f0)", cert: "code" },
+  0x15d1: { name: "loc_15d1", role: "the play dispatcher's post-dispatch continuation (end-of-life housekeeping)", cert: "code" },
+  0x175d: { name: "loc_175d", role: "play sub-state idx2 handler", cert: "code" },
+  0x17c1: { name: "loc_17c1", role: "play-state idx3 handler: enemy-wave setup + spawn", cert: "code" },
+  0x18af: { name: "loc_18af", role: "gameplay-state index-4 per-frame coordinator (ROM 0x18af-0x18d9, table 0x15a8[4])", cert: "code" },
+  0x19ee: { name: "loc_19ee", role: "gameplay-state per-frame coordinator", cert: "code" },
+  0x1ead: { name: "loc_1ead", role: "round-number HUD setup, then the per-frame HUD update chain", cert: "code" },
+  0x1f18: { name: "loc_1f18", role: "per-frame round/stage HUD refresh", cert: "code" },
+  0x1f2f: { name: "loc_1f2f", role: "stage-label HUD updater, run once per level", cert: "code" },
+  0x2334: { name: "loc_2334", role: "actor-Y clamp + integrity-flag scan, then a gated phase-advance (ROM 0x2334-0x2369)", cert: "code" },
+  0x28c6: { name: "loc_28c6", role: "per-frame driver for the lead actor's secondary state machine", cert: "code" },
+  0x2dbc: { name: "loc_2dbc", role: "rope-extend blit driver (ROPE_EXTEND_STATE == 1)", cert: "code" },
+  0x2e36: { name: "loc_2e36", role: "per-rope-cell dispatcher (ROM 0x2e36-0x2e3c)", cert: "code" },
+  0x2f2f: { name: "loc_2f2f", role: "rope-cell state-4 handler: retract one rope segment (ROM 0x2f2f; dispatched from loc_2e36 with the cell record in IX)", cert: "code" },
+  0x355b: { name: "loc_355b", role: "actor movement / target-seek AI step for the record at IX. Steps the record's animation, bails to the move+dispatch handler if already latched onto a target, then advances X by the per-record step (a carry bumps the column)", cert: "code" },
+  0x3d18: { name: "loc_3d18", role: "object state-2 handler (ROM 0x3d18; dispatched with the object record in IX)", cert: "code" },
+  0x3d5c: { name: "loc_3d5c", role: "object state-3 handler (ROM 0x3d5c-0x3d8e; dispatch 0x33a7 index 3, also fall-through from loc_3d18)", cert: "code" },
+  0x3f5c: { name: "loc_3f5c", role: "object state handler: begin the fall", cert: "code" },
+  0x4137: { name: "loc_4137", role: "per-object descent step for the record at IX. The animation stepper runs first, then the position (+3) advances by the signed step (+0x0a), borrowing one from the sub-position (+4) when the position is below -(step)", cert: "code" },
+  0x4221: { name: "loc_4221", role: "per-frame object-state handler for the record at IX (dispatch target): tick the animation, branch on (ix+8) bit0, then arm a turn-animation script or drop into the shared bookkeeping tail", cert: "code" },
+  0x511b: { name: "loc_511b", role: "per-frame enemy-update dispatcher (ROM 0x511b; called from the idx-4 coordinator)", cert: "code" },
+  0x5146: { name: "loc_5146", role: "boot-frontier trampoline: run three sub-passes in order, then return", cert: "code" },
+  0x5150: { name: "loc_5150", role: "advance the attract/board script once its guard clears (ROM 0x5150-0x5199)", cert: "code" },
+  0x5334: { name: "loc_5334", role: "lane-sweep script tick gated on SLOT_SWEEP_LATCH: read the live script byte at SCRIPT_DATA_PTR, tick/reseed the delay timer and advance the pointer, then sweep the 6 records at ENEMY_ACTOR_TABLE activating each via loc_5374", cert: "code" },
+  0x540d: { name: "loc_540d", role: "enemy-formation spawn driver", cert: "code" },
+  0x5433: { name: "loc_5433", role: "initialise one enemy formation record at IX. Bails when the record is already live (either of its first two bytes set)", cert: "code" },
+  0x54c5: { name: "loc_54c5", role: "spawn scheduler A. Below round 4 a difficulty gate can veto the tick: round < 2 needs difficulty >= 3, round in {2,3} needs difficulty >= 2; round >= 4 always proceeds", cert: "code" },
+  0x5519: { name: "loc_5519", role: "spawn scheduler B (ROM 0x5519-0x5543), falls through into the spawn loop loc_5544", cert: "code" },
+  0x5564: { name: "loc_5564", role: "frame-timer gated formation spawner (ROM 0x5564-0x5592)", cert: "code" },
+  0x5ae4: { name: "loc_5ae4", role: "master per-frame actor updater", cert: "code" },
+  0x5b2c: { name: "loc_5b2c", role: "end-of-wave object-table cleanup (ROM 0x5b2c-0x5b70)", cert: "code" },
+  0x6df9: { name: "loc_6df9", role: "anti-tamper clone of loc_0ac8 (attract sub-state 5)", cert: "code" },
+  0x6e59: { name: "loc_6e59", role: "level-intro phase-1 per-frame body: nine sub-passes in fixed order", cert: "code" },
+  0x6f5e: { name: "loc_6f5e", role: "level-intro phase-3 timing gate (ROM 0x6f5e-0x6f9c)", cert: "code" },
+  0x755d: { name: "loc_755d", role: "dispatch state 2: the per-frame gameplay driver", cert: "code" },
+  0x756d: { name: "loc_756d", role: "per-frame projectile/arrow spawner driver", cert: "code" },
+  0x771d: { name: "loc_771d", role: "object-state 0: arm a new object (ROM 0x771d-0x773f, dispatch 0x7715[0])", cert: "code" },
+  0x7740: { name: "loc_7740", role: "active-object mover, rst-28 state 1 (ROM 0x7740-0x778f, dispatch 0x7715[1])", cert: "code" },
+  0x7790: { name: "loc_7790", role: "object-draw handler (rst-0x28 state 2, table 0x7715[2]) for the record based at IX. Advances the animation, decrements the frame timer (+0x11) and returns while it runs", cert: "code" },
+  0x77c8: { name: "loc_77c8", role: "clear an actor slot, then re-seed it behind a colour-RAM integrity check (ROM 0x77c8-0x780e)", cert: "code" },
+  0x7881: { name: "loc_7881", role: "periodic self-integrity check dispatched over an actor slot", cert: "code" },
+  0x7fd6: { name: "loc_7fd6", role: "guarded trigger reached through a jump-table pointer", cert: "code" },
 };
