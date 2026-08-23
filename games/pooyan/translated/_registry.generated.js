@@ -105,6 +105,7 @@ import { loc_0fa2 } from "./loc_0fa2.js";
 import { loc_0fad } from "./loc_0fad.js";
 import { loc_0fb2 } from "./loc_0fb2.js";
 import { loc_0fbc } from "./loc_0fbc.js";
+import { loc_0fc1 } from "./loc_0fc1.js";
 import { loc_0fc3 } from "./loc_0fc3.js";
 import { loc_0fd5 } from "./loc_0fd5.js";
 import { loc_10c2 } from "./loc_10c2.js";
@@ -595,6 +596,7 @@ export const ROUTINE_ENTRIES = [
   [0x0fad, loc_0fad],
   [0x0fb2, loc_0fb2],
   [0x0fbc, loc_0fbc],
+  [0x0fc1, loc_0fc1],
   [0x0fc3, loc_0fc3],
   [0x0fd5, loc_0fd5],
   [0x10c2, loc_10c2],

@@ -283,6 +283,14 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
   `loc_<addr>.js`/`<addr>.test.js` (and idiomatic module/test) files never merge-conflict; the only
   cross-agent care is those pre-assigned ranges (so two agents don't disagree on a boundary) plus a
   style/ABI check at review.
+  ⚠ **When a batch RE-DECOMPOSES or REWRITES a pre-existing translated routine** — splitting a lumped file,
+  moving a second-entry to its own file, or dropping an over-read span — **run the WHOLE
+  `games/<game>/translated/test/` subset in reconcile, not just the task-named subset.** A re-split breaks
+  pre-existing tests that import the OLD lumped exports (an ES-module link error) or whose mock lacks a method
+  the rewrite now calls, and the task-named subset (tape / registry-coverage / no-stale-mcall) MASKS it — it
+  surfaces only at pre-push. Also grep the whole translated layer for external `m.call`/`jp` into the region's
+  interior addresses and for pre-existing `loc_` files overlapping the range: a purely-internal recursive
+  descent misses boundaries introduced by external callers and prior SPLITs.
   ⚠ **Balance the split by estimated CODE VOLUME, not seed-entry count.** A seed entry with a large gap
   to the next known entry expands into however many in-range sub-routines the disassembly holds, so
   "N entries per agent" fans out wildly lopsided — Pooyan batch 3 gave one agent 72 routines (a dense
