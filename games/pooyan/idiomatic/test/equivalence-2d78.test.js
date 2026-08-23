@@ -1,0 +1,124 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * Memory-equivalence test for loc_2d78 (ROM 0x2d78, Pooyan) — the per-frame rope-extend dispatcher.
+ * It reads the rope-extend state and hands off through the shared rst-0x28 trampoline; the selected
+ * handler returns to loc_2d78's caller.
+ *
+ * SEATING: TAIL-CALL — the handler returns to this routine's caller (no net stack move here). The
+ * rst-0x28 trampoline (0x0028) is a spine dispatcher NOT lifted this batch, so the module keeps the
+ * register-marshalled m.call(0x0028) (index in A, table base pushed); the oracle drives the same
+ * frozen trampoline and handlers, so both walk identical downstream code. Compared on RAM (dumpState)
+ * minus STACK_SCRATCH; the register file is not compared (void dispatch).
+ *
+ * Cases are CRAFTED: the rope-state byte is poked directly. State 0 (segment-add handler) runs
+ * cleanly from a boot clone; state 1 (blit handler) is seated with a nonzero hold counter so it takes
+ * its trivial decrement-and-return path (the deeper blit path needs video geometry a boot lacks).
+ *
+ * Jobs:
+ *   1. EQUAL — states 0/1: oracle == module in RAM (−stack).
+ *   2. OBSERVABLE — states 0/1 do not produce the same RAM (the dispatch really varies by index, so
+ *      the equal result is not vacuous).
+ *   3. TEETH — a wrong seeded byte is caught by the RAM diff; an ignore-index twin (always dispatches
+ *      state 0) diverges on state 1, caught by the RAM diff.
+ *
+ * Run: node --test games/pooyan/idiomatic/test/equivalence-2d78.test.js
+ */
+
+import nodeTest from "node:test";
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+
+import { loc_2d78 as oracle } from "../../translated/loc_2d78.js";
+import { loc_2d78 } from "../loc_2d78.js";
+import { Machine } from "../../machine.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
+import { ROPE_EXTEND_STATE, ROPE_EXTEND_TIMER, ROPE_EXTEND_DISPATCH_TABLE, STACK_SCRATCH } from "../names.js";
+
+const ROM_DIR = new URL("../../rom/", import.meta.url);
+const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
+const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM_DIR))) : null;
+const test = ROM_PRESENT
+  ? nodeTest
+  : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
+
+const SP0 = 0x8ff0;
+const HOLD = 0x05; // nonzero rope-extend hold counter -> blit handler takes the trivial path
+const STATES = [0, 1];
+
+const hx = (v) => "0x" + (v & 0xffff).toString(16);
+const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
+const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
+
+function ramDiffMinusStack(ma, mb) {
+  return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
+}
+
+function craft(state) {
+  const m = BASE.clone();
+  m.regs.sp = SP0;
+  m.push16(0xabcd); // a return for the handler's ret (dead-stack)
+  m.mem.write8(ROPE_EXTEND_TIMER, HOLD);
+  m.mem.write8(ROPE_EXTEND_STATE, state);
+  return m;
+}
+
+// -- 1. EQUAL -----------------------------------------------------------------
+
+test("EQUAL: loc_2d78 == oracle in RAM (−stack) for each dispatch state", () => {
+  for (const s of STATES) {
+    const o = craft(s);
+    const c = craft(s);
+    oracle(o);
+    loc_2d78(c);
+    const d = ramDiffMinusStack(o, c);
+    assert.equal(d, null, d && `state ${s}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
+  }
+  console.log(`  EQUAL: ${STATES.length} dispatch states identical (RAM −stack)`);
+});
+
+// -- 2. OBSERVABLE ------------------------------------------------------------
+
+test("OBSERVABLE: the dispatch varies by index (equal is not vacuous)", () => {
+  const s0 = craft(0);
+  const s1 = craft(1);
+  oracle(s0);
+  oracle(s1);
+  assert.notEqual(
+    firstStateDiff(s0.dumpState(), s1.dumpState(), (off) => s0.stateOffsetToAddr(off), inDeadStack),
+    null,
+    "states 0 and 1 must dispatch to different handlers (else the equal check proves nothing)",
+  );
+  console.log("  OBSERVABLE: state 0 and state 1 dispatch differently");
+});
+
+// -- 3. TEETH -----------------------------------------------------------------
+
+test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
+  const o = craft(0);
+  const c = craft(0);
+  oracle(o);
+  loc_2d78(c);
+  // find a cell the dispatch wrote, corrupt it in the module copy
+  const d0 = firstStateDiff(o.dumpState(), BASE.dumpState(), (off) => o.stateOffsetToAddr(off), inDeadStack);
+  const target = d0 ? d0.addr : ROPE_EXTEND_STATE;
+  c.mem.write8(target, (o.mem.read8(target) ^ 0xff) & 0xff);
+  const d = ramDiffMinusStack(o, c);
+  assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
+  assert.equal(d.addr, target, `teeth caught wrong address ${hx(d.addr ?? 0)}`);
+  console.log(`  TEETH(RAM): caught at ${hx(d.addr)}`);
+});
+
+test("TEETH: an ignore-index twin (always state 0) is CAUGHT on state 1", () => {
+  function twin(m) {
+    m.regs.a = 0x00; // WRONG: ignores the rope state
+    m.push16(ROPE_EXTEND_DISPATCH_TABLE);
+    return m.call(0x0028);
+  }
+  const o = craft(1);
+  const t = craft(1);
+  oracle(o);
+  twin(t);
+  const d = ramDiffMinusStack(o, t);
+  assert.notEqual(d, null, "the gate FAILED to catch a wrong dispatch index on state 1");
+  console.log("  TEETH(index): ignore-index twin caught on state 1");
+});

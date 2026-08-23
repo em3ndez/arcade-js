@@ -5,8 +5,7 @@ import { loc_3775 } from "./loc_3775.js";
  * clear the routine returns with no effect; when it is set it hands the same record to the
  * end-of-move dispatch, whose result becomes this routine's result.
  *
- * LIVE-OUT: A — on the dispatch path it is the move counter the end-of-move dispatch leaves (read by
- * a register-dispatched caller); on the guard-return path A is untouched. IX passes straight through.
+ * LIVE-OUT: none — the subtree caller reloads A and reads no register back. IX passes straight through.
  */
 
 const REC_FLAG_BYTE = 0x08; // rec+8: bit 0 gates the end-of-move dispatch

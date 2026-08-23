@@ -1,5 +1,7 @@
 # Idiomatic-gate cruft budget for this game — a shrinking ratchet toward 0 (single integer, first
 # non-comment line). Absent -> implicit 0. A game is IDIOMATIC (a done requirement) only at 0.
 # pooyan: enrolled in CLOSURE_GAMES — budget = reachable routines still oracle-served (registry -
-# idiomatic overrides - boundaries), 0 CPU/mem cruft. Ratchets to 0 as the decompile pass lifts each.
-204
+# idiomatic overrides - boundaries) PLUS transient CPU cruft (sanctioned m.calls to unlifted rst-28
+# dispatchers + §3-gap routines and their register-dispatch bridges), all flagged for a later
+# de-registering/dispatcher pass. Ratchets toward 0 as the decompile pass lifts each.
+181

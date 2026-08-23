@@ -91,6 +91,12 @@ export const UNWIRED = {
       "RAM, verified) and stay; the frozen layer runs it in-game when the Mother-Ship is on the field.",
   },
   pooyan: {
+    "loc_0728.js": "DISSOLVED into loc_0714 (SCC fold); idiomatic-unreachable; not oracle-served",
+    "loc_5489.js": "DISSOLVED unconditional caller-skip -> false (always skips); direct-called by loc_54f9/loc_5544/loc_5594 (wired overrides); not oracle-served",
+    "loc_572b.js": "DISSOLVED caller-skip -> boolean (spawn path); direct-called by loc_56e8/loc_588e (wired overrides); not oracle-served",
+    "loc_5733.js": "DISSOLVED caller-skip -> boolean; direct-called by loc_53a0 (a wired ROUTINES override); not oracle-served",
+    "loc_5b99.js": "DISSOLVED caller-skip -> boolean; direct-called by loc_5b86 (a wired ROUTINES override); not oracle-served",
+    "loc_5f83.js": "DISSOLVED caller-skip -> boolean; direct-called by loc_5f6a (a wired ROUTINES override); not oracle-served",
     "loc_6435.js": "DISSOLVED caller-skip -> boolean (true=keep scanning, false=abort); direct-called by loc_6404 (a wired ROUTINES override); not oracle-served",
     "loc_64be.js": "DISSOLVED caller-skip -> boolean (true=keep scanning, false=abort); direct-called by loc_6435 (a wired ROUTINES override); not oracle-served",
     "loc_6931.js": "DISSOLVED caller-skip -> boolean (true=already active/keep sweeping, false=spawned/abort); direct-called by loc_6905 (a wired ROUTINES override); not oracle-served",
@@ -99,6 +105,14 @@ export const UNWIRED = {
     "loc_7644.js": "DISSOLVED caller-skip -> boolean (true=keep walking, false=abort); direct-called by the idiomatic dispatcher loc_7638; not oracle-served",
     "loc_7675.js": "DISSOLVED caller-skip -> boolean (true=keep walking, false=abort); direct-called by the idiomatic dispatcher loc_7638; not oracle-served",
     "loc_76a6.js": "DISSOLVED plain-ret handler (returns keep-walking); direct-called by the idiomatic dispatcher loc_7638; not oracle-served",
+    "loc_6069.js": "DISSOLVED tail-call -> boolean (object-proximity SCC entry); direct-called by idiomatic loc_6048 via the wired loc_602f; not oracle-served",
+    "loc_6048.js": "DISSOLVED fall-through -> boolean (true=normal/inert, false=hit skip); direct-called by loc_602f (a wired ROUTINES override); not oracle-served",
+    "loc_6080.js": "DISSOLVED tail-call -> boolean (miss->60f2, hit->60bc); direct-called within the idiomatic SCC; not oracle-served",
+    "loc_60f2.js": "DISSOLVED scan loop -> boolean; direct-called within the idiomatic SCC (recurses to loc_6069); not oracle-served",
+    "loc_61b4.js": "DISSOLVED award caller-skip -> boolean; direct-called within the idiomatic SCC; not oracle-served",
+    "loc_6287.js": "DISSOLVED tail-call -> boolean; direct-called by idiomatic loc_61b4; not oracle-served",
+    "loc_630f.js": "DISSOLVED tail-call -> boolean; direct-called by idiomatic loc_61b4; not oracle-served",
+    "loc_60bc.js": "DISSOLVED hit-handler caller-skip -> boolean; direct-called by idiomatic loc_6080; not oracle-served",
     // DISSOLVED caller-skips (pop-af; ret -> boolean). A caller-skip pops its own return (a net SP move
     // outside the withOmittedRet seam's 0/+2 window), so it cannot be a ROUTINES override. Per the runbook
     // each is dissolved into a boolean its caller early-returns on and is called DIRECTLY by that (wired)

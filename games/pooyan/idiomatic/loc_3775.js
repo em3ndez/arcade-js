@@ -11,8 +11,7 @@ import { setActorAnimation } from "./setActorAnimation.js";
  * picked by bit 1 of the flag byte (rec+7). A counter of two or more, or a nonzero finish
  * counter, does nothing.
  *
- * LIVE-OUT: A = the move counter (rec+6) on every path. On the finish-and-blank path the band
- * helper also leaves HL = the advanced pointer and B = 0.
+ * LIVE-OUT: none — the subtree caller reloads A and reads no register back.
  */
 
 const FINISH_PHASE = 0x05; // play-state value meaning "finish the slot"

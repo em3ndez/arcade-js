@@ -45,3 +45,17 @@ pooyan 0x7638 dead  # animation-tick dispatch propagator dissolved into an index
 pooyan 0x7644 dead  # animation-tick state-0 caller-skip dissolved; direct-called by the idiomatic dispatcher loc_7638 (boolean), not oracle-served
 pooyan 0x7675 dead  # animation-tick state-1 caller-skip dissolved; direct-called by the idiomatic dispatcher loc_7638 (boolean), not oracle-served
 pooyan 0x76a6 dead  # animation-tick state-2 handler (plain-ret); direct-called by the idiomatic dispatcher loc_7638, not oracle-served
+pooyan 0x6069 dead  # object-proximity SCC entry (tail-call -> boolean); direct-called by idiomatic loc_6048 via the wired loc_602f, not oracle-served
+pooyan 0x6048 dead  # object-proximity fall-through (-> boolean); direct-called by the wired loc_602f, not oracle-served
+pooyan 0x6080 dead  # object-proximity scan (tail-call -> boolean); direct-called within the idiomatic SCC, not oracle-served
+pooyan 0x60f2 dead  # object-proximity scan loop (-> boolean); direct-called within the idiomatic SCC, not oracle-served
+pooyan 0x61b4 dead  # object-proximity award caller-skip (-> boolean); direct-called within the idiomatic SCC, not oracle-served
+pooyan 0x6287 dead  # object-proximity scan (tail-call -> boolean); direct-called by idiomatic loc_61b4, not oracle-served
+pooyan 0x630f dead  # object-proximity scan (tail-call -> boolean); direct-called by idiomatic loc_61b4, not oracle-served
+pooyan 0x60bc dead  # object-proximity hit-handler caller-skip (-> boolean); direct-called by idiomatic loc_6080, not oracle-served
+pooyan 0x0728 dead  # folded into idiomatic loc_0714 (SCC), idiomatic-unreachable, not oracle-served
+pooyan 0x5489 dead  # unconditional caller-skip dissolved; direct-called by idiomatic loc_54f9/loc_5544/loc_5594 (boolean), not oracle-served
+pooyan 0x572b dead  # spawn caller-skip dissolved; direct-called by idiomatic loc_56e8/loc_588e (boolean), not oracle-served
+pooyan 0x5733 dead  # caller-skip dissolved; direct-called by idiomatic loc_53a0 (boolean), not oracle-served
+pooyan 0x5b99 dead  # caller-skip dissolved; direct-called by idiomatic loc_5b86 (boolean), not oracle-served
+pooyan 0x5f83 dead  # caller-skip dissolved; direct-called by idiomatic loc_5f6a (boolean), not oracle-served

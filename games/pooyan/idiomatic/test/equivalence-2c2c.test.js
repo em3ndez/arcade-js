@@ -1,0 +1,132 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * Memory-equivalence test for loc_2c2c (ROM 0x2c2c, Pooyan) — the hunter-record sweep. It walks the
+ * 17 enemy-actor records (base ENEMY_ACTOR_TABLE, stride 0x18), marshalling each record pointer
+ * through IX into the frozen per-record dispatcher (0x2c3f). The dispatcher returns false when a
+ * record reaches its spawn handler, which aborts the sweep.
+ *
+ * SEATING: BALANCED — the oracle ends on a plain ret; the abort is a dissolved caller-skip the
+ * frozen dispatcher already reports as a boolean the module early-returns on. The dispatcher
+ * (0x2c3f) is a spine dispatcher NOT lifted this batch, so the module keeps the register-marshalled
+ * m.call(0x2c3f); the oracle drives the same frozen dispatcher and handlers, so both walk identical
+ * downstream code. Compared on RAM (dumpState) minus STACK_SCRATCH; the register file is not
+ * compared — the caller rets immediately, reading nothing back.
+ *
+ * Cases are CRAFTED: two records are poked active with in-range states so the sweep dispatches
+ * observably; one sits in the LAST slot so a short sweep is caught.
+ *
+ * Jobs:
+ *   1. EQUAL — a boot clone (records as-seated) and a crafted two-record layout: oracle == module
+ *      in RAM (−stack).
+ *   2. OBSERVABLE — the crafted sweep writes RAM (the equal result is not vacuous).
+ *   3. TEETH — (a) a short-sweep twin (stops one record early) misses the last record and is
+ *      caught; (b) a wrong seeded byte is caught by the RAM diff.
+ *
+ * Run: node --test games/pooyan/idiomatic/test/equivalence-2c2c.test.js
+ */
+
+import nodeTest from "node:test";
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+
+import { loc_2c2c as oracle } from "../../translated/loc_2c2c.js";
+import { loc_2c2c } from "../loc_2c2c.js";
+import { Machine } from "../../machine.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
+import { ENEMY_ACTOR_TABLE, STACK_SCRATCH } from "../names.js";
+
+const ROM_DIR = new URL("../../rom/", import.meta.url);
+const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
+const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM_DIR))) : null;
+const test = ROM_PRESENT
+  ? nodeTest
+  : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
+
+const EAT = ENEMY_ACTOR_TABLE;
+const STRIDE = 0x18;
+const RECORD_COUNT = 0x11;
+const LAST = RECORD_COUNT - 1;
+const SP0 = 0x8ff0;
+
+const hx = (v) => "0x" + (v & 0xffff).toString(16);
+const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
+const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
+
+function ramDiffMinusStack(ma, mb) {
+  return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
+}
+
+function craftBoot() {
+  const m = BASE.clone();
+  m.regs.sp = SP0;
+  m.push16(0xabcd); // a return the frozen ret can pop into dead-stack
+  return m;
+}
+
+function craftTwo() {
+  const m = craftBoot();
+  // one active record mid-table, one in the LAST slot, each an in-range state
+  m.mem.write8(EAT + 5 * STRIDE + 0, 0x01);
+  m.mem.write8(EAT + 5 * STRIDE + 2, 0x12);
+  m.mem.write8(EAT + LAST * STRIDE + 0, 0x01);
+  m.mem.write8(EAT + LAST * STRIDE + 2, 0x13);
+  return m;
+}
+
+// -- 1. EQUAL -----------------------------------------------------------------
+
+for (const [label, craft] of [["boot clone", craftBoot], ["two active records", craftTwo]]) {
+  test(`EQUAL: ${label} — module == oracle in RAM (−stack)`, () => {
+    const o = craft();
+    const c = craft();
+    oracle(o);
+    loc_2c2c(c);
+    const d = ramDiffMinusStack(o, c);
+    assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
+    console.log(`  EQUAL ${label}: RAM identical`);
+  });
+}
+
+// -- 2. OBSERVABLE ------------------------------------------------------------
+
+test("OBSERVABLE: the crafted sweep writes RAM (equal is not vacuous)", () => {
+  const o = craftTwo();
+  oracle(o);
+  assert.notEqual(ramDiffMinusStack(o, craftTwo()), null, "the sweep must write RAM (else EQUAL proves nothing)");
+  console.log("  OBSERVABLE: crafted sweep writes RAM");
+});
+
+// -- 3. TEETH -----------------------------------------------------------------
+
+test("TEETH: a short sweep (stops one record early) misses the last record", () => {
+  function shortSweep(m) {
+    let rec = EAT;
+    for (let i = 0; i < RECORD_COUNT - 1; i++) {
+      m.regs.ix = rec;
+      m.push16(0x2c39);
+      if (!m.call(0x2c3f)) return;
+      rec += STRIDE;
+    }
+  }
+  const o = craftTwo();
+  const t = craftTwo();
+  oracle(o);
+  shortSweep(t);
+  const d = ramDiffMinusStack(o, t);
+  assert.notEqual(d, null, "the gate FAILED to catch a short sweep");
+  console.log(`  TEETH(short sweep): caught at ${hx(d.addr ?? 0)}`);
+});
+
+test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
+  const o = craftTwo();
+  const c = craftTwo();
+  oracle(o);
+  loc_2c2c(c);
+  const d0 = firstStateDiff(o.dumpState(), BASE.dumpState(), (off) => o.stateOffsetToAddr(off), inDeadStack);
+  const target = d0 ? d0.addr : EAT + LAST * STRIDE + 2;
+  c.mem.write8(target, (o.mem.read8(target) ^ 0xff) & 0xff);
+  const d = ramDiffMinusStack(o, c);
+  assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
+  assert.equal(d.addr, target, `teeth caught wrong address ${hx(d.addr ?? 0)}`);
+  console.log(`  TEETH(RAM): caught at ${hx(d.addr)}`);
+});
