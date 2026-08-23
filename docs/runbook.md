@@ -379,6 +379,15 @@ batch and feeds the next batch's targets.
     pooyan's first idiomatic leaf batch shipped THREE such misses — a drained B, an advanced-cursor A, a
     scan-counter B — each memory-equivalent in isolation, each caught only by the whole-game tape or the
     register-focused review, never the per-routine gate.)
+  - **★ REGISTER-BRIDGE LIVE-OUT into a FROZEN callee — a distinct sub-case (reviewer-rules R37).** A rewrite
+    that forwards a value as an explicit JS param, while a still-frozen callee (or an idiomatic callee whose
+    signature is `fn(m, x = m.regs.X)`) reads it from the register bridge, passes a STALE register in the live
+    game. RE-SEAT `m.regs.X` before delegating (idiom: `m.regs.ix = rec; // record base flows through IX to
+    the deeper scan-state chain`, loc_56e8/loc_588e). Invisible to memory-eq AND the by-execution reviewer fan
+    (both passed it clean); ONLY the whole-game tape catches it. (Recorded 2026-08-23: a decode batch newly
+    wired loc_5334/5374/53a0 to thread the record as a param, but loc_5733/572b delegate into loc_57c3 ->
+    loc_57c6, which reads it from a `= m.regs.ix` param default (loc_57c6) — unre-seated -> wrote 0x41 to a
+    stale IX; the pre-push tape caught it at frame 1086, b0602b4f.)
 - **Dissolve an `m.call` when you write the CALLER**, not when the callee lands. Before writing
   `m.call(0xADDR)`, check whether the callee is already decompiled (a stale marshalled call is
   memory-equivalent → the gate misses it, it reaches the reviewer). The `no-stale-mcall` lint must

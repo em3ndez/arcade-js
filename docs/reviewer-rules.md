@@ -933,3 +933,24 @@ qarl asking how the docs change so the layer gets wired and used immediately.*
   `sp-seam-tooth.test.js` whose null-mutant case asserts `placeable === false`. *Added 2026-08-22 after the
   missing-push16 class survived per-routine eq-green (caught only by tape.test + human review); the eq gate
   excludes SP by design, so only the seam catches it per routine.*
+
+## R37 [D] a routine delegating via a register bridge into a FROZEN callee must RE-SEAT that register
+
+When a decompiled routine forwards a value into a still-translated (frozen) callee — or into an idiomatic
+callee whose signature reads its input from a `= m.regs.X` param default — through the REGISTER BRIDGE, the
+rewrite MUST seat `m.regs.X` to that value before the delegate call. A rewrite that threads the value only as
+an explicit JS param, while a deeper frozen callee still reads `m.regs.X`, silently passes a STALE register
+and writes to the wrong address in the live game.
+
+This class is invisible to memory-equivalence eq tests (their harness happens to seat the register, and the
+oracle keeps it live as a real register the whole way) AND to the by-execution reviewer fan (it decodes each
+routine in isolation, not the assembled cross-routine register flow into a frozen delegate). ONLY the
+whole-game `tape.test.js` catches it, replaying real input through the wired layer vs the oracle.
+
+Verify: for a routine that tail-delegates or forwards into a callee (a kept frozen `m.call`, or an idiomatic
+callee with a `fn(m, x = m.regs.X)` signature), confirm the routine seats `m.regs.X` before the call — grep
+the callee chain for `= m.regs.` param defaults. The established idiom is
+`m.regs.ix = rec; // record base flows through IX to the deeper scan-state chain` (loc_56e8, loc_588e).
+*Added 2026-08-23 after a decode batch shipped eq-green + reviewer-fan-clean, then the pre-push tape caught it
+at frame 1086: loc_5733/572b forwarded the record as a param but loc_57c3->loc_57c6 read it from a
+`= m.regs.ix` param default (loc_57c6), which was stale (b0602b4f).*
