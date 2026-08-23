@@ -2,15 +2,15 @@
 /**
  * Memory-equivalence gate for loc_32bd (ROM 0x32bd) — the shared teardown epilogue, keyed on the
  * teardown-state byte (0x8f24). State 0 and states >= 3 return; state 1 dismantles the wave (clear
- * the event latch, reseed the periodic-event timer, run loc_0fad, advance the state, then a ROM
+ * the event latch, reseed the periodic-event timer, run queueSoundRun26, advance the state, then a ROM
  * running-sum self-check whose masked non-zero result diverts into loc_1f40); state 2 walks the lead
  * actor's position down two per frame, running loc_23d7 while it stays below the limit and, once it
- * reaches the limit, running loc_0f30 then — if the gate byte is clear — raising the completion latch
+ * reaches the limit, running queueSoundCommands95And03And11 then — if the gate byte is clear — raising the completion latch
  * and advancing the state.
  *
  * SEATING: BALANCED — the plain rets WIRE; the self-check diversion is a tail-jump forwarding the
  * delegatee's result. Compared per case on RAM (dumpState, minus STACK_SCRATCH); loc_32bd has no
- * register live-out of its own. pc/SP/full register file are not compared. loc_0fad/loc_0f30/loc_23d7
+ * register live-out of its own. pc/SP/full register file are not compared. queueSoundRun26/queueSoundCommands95And03And11/loc_23d7
  * are self-contained and composed; the tamper diversion (loc_1f40) pulls the HUD render subtree, so
  * its gate liveness is shown by the data invariant (intact mask == 0, tampered != 0) rather than run.
  *
@@ -18,7 +18,7 @@
  *   1. IDLE       — state 0 and state 3 leave RAM untouched; oracle == idiomatic.
  *   2. DESCEND    — state 2 below the limit: position advances two and loc_23d7 refreshes the
  *                   derived sprite Ys; oracle == idiomatic; the derived Y is a positive control.
- *   3. COMPLETE   — state 2 at the limit, gate clear: loc_0f30 runs, the completion latch is raised
+ *   3. COMPLETE   — state 2 at the limit, gate clear: queueSoundCommands95And03And11 runs, the completion latch is raised
  *                   and the state advanced; gate set: latch/state untouched; oracle == idiomatic.
  *   4. TEARDOWN   — state 1, intact ROM: latch cleared, timer reseeded, state advanced, check passes
  *                   (falls to ret); oracle == idiomatic; the writes are positive controls.
@@ -87,7 +87,7 @@ function craft({ state, playerY = 0x00, gate = 0x00 } = {}) {
   m.mem.write8(WAVE_EVENT_LATCH, 0xff); // pre-dirty so the state-1 clear is observable
   m.mem.write8(PERIODIC_EVENT_TIMER, 0x00);
   m.mem.write8(GRAB_ACTIVE_FLAG, 0x00);
-  // free ring window so loc_0fad/loc_0f30 append deterministically
+  // free ring window so queueSoundRun26/queueSoundCommands95And03And11 append deterministically
   m.mem.write8(DISPLAY_CMD_RING_WRITE_PTR, 0xc0);
   for (let i = 0; i < 0x20; i++) m.mem.write8(0x8800 + 0xc0 + i, 0x80); // bit7 set => free
   return m;
@@ -143,7 +143,7 @@ test("COMPLETE: state 2 at the limit raises the latch (gate clear) or holds (gat
   assert.equal(d, null, d && `gate-set RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(kset.mem.read8(GRAB_ACTIVE_FLAG), 0x00, "gate set -> latch untouched");
   assert.equal(kset.mem.read8(WAVE_TEARDOWN_STATE), 0x02, "gate set -> state held");
-  console.log("  COMPLETE: composed idiomatic loc_0f30; latch/state match oracle both ways");
+  console.log("  COMPLETE: composed idiomatic queueSoundCommands95And03And11; latch/state match oracle both ways");
 });
 
 // -- 4. TEARDOWN --------------------------------------------------------------
@@ -158,7 +158,7 @@ test("TEARDOWN: state 1 intact ROM clears/reseeds/advances then passes the check
   assert.equal(k.mem.read8(WAVE_EVENT_LATCH), 0x00, "event latch cleared");
   assert.equal(k.mem.read8(PERIODIC_EVENT_TIMER), 0x20, "periodic-event timer reseeded");
   assert.equal(k.mem.read8(WAVE_TEARDOWN_STATE), 0x02, "state advanced 1 -> 2");
-  console.log("  TEARDOWN: composed idiomatic loc_0fad, check passes to ret, identical to oracle");
+  console.log("  TEARDOWN: composed idiomatic queueSoundRun26, check passes to ret, identical to oracle");
 });
 
 // -- 5. BRANCH-LIVE -----------------------------------------------------------

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_0f15 } from "./loc_0f15.js";
+import { queueSoundCommand0D } from "./queueSoundCommand0D.js";
 import { FLIP_SCREEN_FLAG, GRAB_ACTIVE_FLAG, LANDING_ANIM_SEQ_40B4 } from "./names.js";
 /**
  * loc_5e1f — proximity trigger for one slot of the caller's target sweep (a dissolved skip).
@@ -51,6 +51,6 @@ export function loc_5e1f(m, rec = m.regs.hl, source = m.regs.ix, target = m.regs
   mem8[rec + 0x00] = 0x00;
   mem8[rec + 0x01] = 0x01;
   mem8[rec + 0x02] = 0x02;
-  loc_0f15(m);
+  queueSoundCommand0D(m);
   return false;
 }

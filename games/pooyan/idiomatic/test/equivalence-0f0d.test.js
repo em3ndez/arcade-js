@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f0d (ROM 0x0f0d) — append the fixed byte 0x0b into the
+ * Memory-equivalence test for queueSoundCommand0B (ROM 0x0f0d) — append the fixed byte 0x0b into the
  * page-0x8a command ring.
  *
  * The wrapper hands byte 0x0b to the ring-append helper. The helper always stashes the byte into
@@ -18,7 +18,7 @@
  * inside STACK_SCRATCH so the oracle's push/pop/ret stay there.
  *
  * Jobs:
- *   1. EQUAL — over gates-open / gates-closed / play-mode / wrap paths, oracle == loc_0f0d in
+ *   1. EQUAL — over gates-open / gates-closed / play-mode / wrap paths, oracle == queueSoundCommand0B in
  *      RAM (−stack) AND in A (returned and set).
  *   2. WRITE-SET — gates-open first-slot writes the pending byte, the ring slot, and the cursor.
  *   3. TEETH — a wrong appended byte is caught by the RAM diff, and a wrong A by the live-out check.
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f0d as oracle } from "../../translated/loc_0f0d.js";
-import { loc_0f0d } from "../loc_0f0d.js";
+import { queueSoundCommand0B } from "../queueSoundCommand0B.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -40,7 +40,7 @@ import {
   PLAY_MODE_LATCH,
   SOUND_RING_WRITE_PTR,
   HIGH_SCORE_TABLE,
-  TEXT_RING_PENDING_BYTE,
+  SOUND_RING_PENDING_BYTE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -83,12 +83,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/cursor paths — loc_0f0d == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted gate/cursor paths — queueSoundCommand0B == oracle in RAM (−stack) + A", () => {
   for (const { label, ga, pm, cur, wantA } of CASES) {
     const o = craft(ga, pm, cur);
     const c = craft(ga, pm, cur);
     oracle(o); // the oracle leaves its A live-out in o.regs.a (it rets; the JS fn returns undefined)
-    const ca = loc_0f0d(c);
+    const ca = queueSoundCommand0B(c);
     assert.equal(o.regs.a & 0xff, wantA, `oracle A for "${label}"`);
     assert.equal(ca & 0xff, o.regs.a & 0xff, `module A return mismatch for "${label}"`);
     // SIDE-EFFECT arm: the wrapper must SET A on its own clone (the frozen caller reads A back).
@@ -104,10 +104,10 @@ test("EQUAL: crafted gate/cursor paths — loc_0f0d == oracle in RAM (−stack) 
 test("WRITE-SET: gates-open first-slot writes pending byte, ring slot, and advanced cursor", () => {
   const o = craft(0x01, 0x00, RING_FIRST);
   oracle(o);
-  assert.equal(o.mem.read8(TEXT_RING_PENDING_BYTE), COMMAND_BYTE, "pending cell must hold 0x0b");
+  assert.equal(o.mem.read8(SOUND_RING_PENDING_BYTE), COMMAND_BYTE, "pending cell must hold 0x0b");
   assert.equal(o.mem.read8(HIGH_SCORE_TABLE + RING_FIRST), COMMAND_BYTE, "ring slot must hold 0x0b");
   assert.equal(o.mem.read8(SOUND_RING_WRITE_PTR), RING_FIRST + 1, "cursor must advance by one");
-  console.log(`  WRITE-SET: pending ${hx(TEXT_RING_PENDING_BYTE)}, slot ${hx(HIGH_SCORE_TABLE + RING_FIRST)}, cursor ${hx(SOUND_RING_WRITE_PTR)}`);
+  console.log(`  WRITE-SET: pending ${hx(SOUND_RING_PENDING_BYTE)}, slot ${hx(HIGH_SCORE_TABLE + RING_FIRST)}, cursor ${hx(SOUND_RING_WRITE_PTR)}`);
 });
 
 // -- 3. TEETH -----------------------------------------------------------------
@@ -117,7 +117,7 @@ test("TEETH: a wrong appended byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x01, 0x00, RING_FIRST);
   const c = craft(0x01, 0x00, RING_FIRST);
   oracle(o);
-  loc_0f0d(c);
+  queueSoundCommand0B(c);
   c.mem.write8(slot, 0x00); // BUG: this slot must hold command 0x0b
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong appended byte — it is worthless");
@@ -129,7 +129,7 @@ test("TEETH: a wrong A live-out is CAUGHT by the register check", () => {
   const o = craft(0x01, 0x00, RING_FIRST);
   const c = craft(0x01, 0x00, RING_FIRST);
   oracle(o); // A live-out is left in o.regs.a (the oracle rets; its JS fn returns undefined)
-  const ca = loc_0f0d(c);
+  const ca = queueSoundCommand0B(c);
   assert.equal(ca & 0xff, o.regs.a & 0xff, "sanity: module A matches the oracle");
   // an un-advanced cursor (the input 0x43) is a plausible bug the live-out check must reject
   assert.notEqual(RING_FIRST, o.regs.a & 0xff, "the live-out check must reject an un-advanced cursor in A");

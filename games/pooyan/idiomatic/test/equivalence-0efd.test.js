@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0efd (ROM 0x0efd, Pooyan) — "command 0x08: append the fixed
+ * Memory-equivalence test for queueSoundCommand08 (ROM 0x0efd, Pooyan) — "command 0x08: append the fixed
  * byte 0x08 into the page-0x8a command ring". The routine loads A := 0x08 then tail-jumps into
- * the ring appender loc_0ea2, whose ret returns to loc_0efd's caller. So the incoming A is
- * irrelevant (the routine overwrites it), and the effect is exactly loc_0ea2's for byte 0x08.
+ * the ring appender appendSoundCommandGated, whose ret returns to queueSoundCommand08's caller. So the incoming A is
+ * irrelevant (the routine overwrites it), and the effect is exactly appendSoundCommandGated's for byte 0x08.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine writes work RAM, so
  * every case uses a FRESH clone per side, compared on:
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0efd as oracle } from "../../translated/loc_0efd.js";
-import { loc_0efd } from "../loc_0efd.js";
+import { queueSoundCommand08 } from "../queueSoundCommand08.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -42,7 +42,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const PENDING = 0x8d20; // TEXT_RING_PENDING_BYTE — the stashed byte
+const PENDING = 0x8d20; // SOUND_RING_PENDING_BYTE — the stashed byte
 const CURSOR = 0x8a40; // SOUND_RING_WRITE_PTR — the ring cursor
 const ACTIVE = 0x8806; // GAME_ACTIVE_FLAG
 const MODE = 0x8f50; // PLAY_MODE_LATCH
@@ -84,12 +84,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/cursor cases — loc_0efd == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted gate/cursor cases — queueSoundCommand08 == oracle in RAM (−stack) + A", () => {
   for (const { name, a, active, mode, cursor } of CASES) {
     const o = craft(a, active, mode, cursor);
     const c = craft(a, active, mode, cursor);
     oracle(o);
-    const ret = loc_0efd(c);
+    const ret = queueSoundCommand08(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(c.regs.a & 0xff, o.regs.a & 0xff, `${name}: A live-out mismatch`);
@@ -154,7 +154,7 @@ test("TEETH: a wrong returned A is CAUGHT by the live-out check", () => {
   const o = craft(0x00, 1, 0, 0x50);
   const c = craft(0x00, 1, 0, 0x50);
   oracle(o);
-  const good = loc_0efd(c);
+  const good = queueSoundCommand08(c);
   assert.equal(good & 0xff, o.regs.a & 0xff, "sanity: module A matches the oracle");
   const broken = (good + 1) & 0xff; // an off-by-one cursor return a caller would misread
   assert.notEqual(broken, o.regs.a & 0xff, "the live-out check must reject an off-by-one A");

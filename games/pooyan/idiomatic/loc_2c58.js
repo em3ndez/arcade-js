@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_4006 } from "./loc_4006.js";
 import { loc_2c85 } from "./loc_2c85.js";
-import { loc_0f3f } from "./loc_0f3f.js";
+import { queueSoundCommand12 } from "./queueSoundCommand12.js";
 import { ENEMY_ACTOR_TABLE } from "./names.js";
 /**
  * loc_2c58 — hunter dispatch state 0. Steps the record's animation, then advances its 16-bit
@@ -37,6 +37,6 @@ export function loc_2c58(m, rec = m.regs.ix) {
     loc_2c85(m, sweep);
     sweep += RECORD_STRIDE;
   }
-  loc_0f3f(m); // queue the arrival sound
+  queueSoundCommand12(m); // queue the arrival sound
   return false; // caller-skip: abort the dispatch loop
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_0fad } from "./loc_0fad.js";
-import { loc_0f30 } from "./loc_0f30.js";
+import { queueSoundRun26 } from "./queueSoundRun26.js";
+import { queueSoundCommands95And03And11 } from "./queueSoundCommands95And03And11.js";
 import { deriveStackedSpriteYs } from "./deriveStackedSpriteYs.js";
 import { loc_1f40 } from "./loc_1f40.js";
 import {
@@ -45,7 +45,7 @@ export function loc_32bd(m) {
       deriveStackedSpriteYs(m); // still descending: refresh the derived sprite Ys
       return;
     }
-    loc_0f30(m); // reached the limit: queue the completion command
+    queueSoundCommands95And03And11(m); // reached the limit: queue the completion command
     if (mem8[loc_8083] !== 0) return; // already latched
     mem8[GRAB_ACTIVE_FLAG] = mem8[loc_8083] + 1; // gate byte is 0 -> latch = 1
     mem8[WAVE_TEARDOWN_STATE] = mem8[WAVE_TEARDOWN_STATE] + 1; // advance the state
@@ -57,7 +57,7 @@ export function loc_32bd(m) {
   // ===== state 1: tear down the wave =====
   mem8[WAVE_EVENT_LATCH] = 0;
   mem8[PERIODIC_EVENT_TIMER] = PERIODIC_TIMER_RESEED;
-  loc_0fad(m);
+  queueSoundRun26(m);
   mem8[WAVE_TEARDOWN_STATE] = mem8[WAVE_TEARDOWN_STATE] + 1; // advance the state
 
   let sum = 0;

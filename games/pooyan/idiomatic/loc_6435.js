@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_0ef5 } from "./loc_0ef5.js";
+import { queueSoundCommand06 } from "./queueSoundCommand06.js";
 import { loc_0038 } from "./loc_0038.js";
 import { loc_64be } from "./loc_64be.js";
 import {
@@ -83,7 +83,7 @@ export function loc_6435(m, iy = m.regs.iy, regI = m.regs.i) {
   mem8[u16(hit + 0x11)] = 0x20;
   mem8[regI === 0 ? OBJ_HIT_FLAG_I0 : OBJ_HIT_FLAG_I1] = 0x01;
   setActorAnimation(m, hit, ANIM_SEQ_64DF);
-  loc_0ef5(m);
+  queueSoundCommand06(m);
   if (mem8[PLAY_MODE_LATCH] === 0) loc_0038(m, HUNTER_SPAWN_DISPLAY_CMD);
   mem8[HIT_TALLY] = mem8[HIT_TALLY] + 1;
   return loc_64be(m, TERMINATOR_SCAN_SRC, TERMINATOR_MATCH_TABLE); // always false -> abort caller

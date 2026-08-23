@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0e54 (ROM 0x0e54) — "queue a fixed display command, plus a
+ * Memory-equivalence test for queueCreditDisplayCommands (ROM 0x0e54) — "queue a fixed display command, plus a
  * free-play extra": always enqueue command 0x0701 into the page-0x88 display-command ring; then,
  * only when the coinage config (0x882c) holds the free-play sentinel 0x0f, enqueue a second
  * command 0x0606.
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES
  * the display-command ring, so each case uses a FRESH clone per side: the oracle runs on one clone,
- * loc_0e54 on the other, compared on RAM (dumpState) minus STACK_SCRATCH. pc/SP/cycles are NOT
+ * queueCreditDisplayCommands on the other, compared on RAM (dumpState) minus STACK_SCRATCH. pc/SP/cycles are NOT
  * compared. There is NO consumed register live-out: this is a display-ring dispatch handler; the
  * oracle leaves A holding a ring-pointer leftover and DE holding the last command word, neither of
  * which a caller reads, so neither is part of the contract (and the idiomatic form reproduces
@@ -20,7 +20,7 @@
  *
  * Jobs:
  *   1. EQUAL (crafted sweep) — over {free-play, non-free-play} x {ring free, ring occupied}
- *      loc_0e54 == oracle in RAM (-stack).
+ *      queueCreditDisplayCommands == oracle in RAM (-stack).
  *   2. WRITE-SET — in free play with a free ring the oracle writes exactly five cells: the two
  *      command words (four bytes) and the advanced ring write pointer.
  *   3. TEETH — a twin that writes a wrong command byte is CAUGHT by the RAM diff; a twin that skips
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0e54 as oracle } from "../../translated/loc_0e54.js";
-import { loc_0e54 } from "../loc_0e54.js";
+import { queueCreditDisplayCommands } from "../queueCreditDisplayCommands.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, COINAGE_CONFIG, DISPLAY_CMD_RING_WRITE_PTR } from "../names.js";
@@ -81,12 +81,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted sweep) -------------------------------------------------
 
-test("EQUAL: crafted coinage x ring state — loc_0e54 == oracle in RAM (-stack)", () => {
+test("EQUAL: crafted coinage x ring state — queueCreditDisplayCommands == oracle in RAM (-stack)", () => {
   for (const { coinage, ringFree } of CASES) {
     const o = craft(coinage, ringFree);
     const c = craft(coinage, ringFree);
     oracle(o);
-    loc_0e54(c);
+    queueCreditDisplayCommands(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} (coinage=${hx(coinage)} ringFree=${ringFree})`);
   }
@@ -129,7 +129,7 @@ test("TEETH: a wrong command byte is CAUGHT by the RAM diff", () => {
   const o = craft(FREE_PLAY, true);
   const c = craft(FREE_PLAY, true);
   oracle(o);
-  loc_0e54(c);
+  queueCreditDisplayCommands(c);
   c.mem.write8(RING_PAGE | 0xc2, 0x00); // BUG: second command high byte must be 0x06
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong command byte");

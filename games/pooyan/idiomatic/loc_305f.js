@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_0020 } from "./loc_0020.js";
-import { loc_0f15 } from "./loc_0f15.js";
+import { queueSoundCommand0D } from "./queueSoundCommand0D.js";
 import {
   GRAB_WINDOW_TABLE,
   PLAYER_Y,
@@ -35,6 +35,6 @@ export function loc_305f(m, ixl = m.regs.ix & 0xff) {
   if ((mem8[FORMATION_STATE] | mem8[WAVE_TEARDOWN_STATE]) !== 0) return true;
 
   mem8[GRAB_ACTIVE_FLAG] = 0x01; // raise the grab-active latch
-  loc_0f15(m); // enqueue the grab command
+  queueSoundCommand0D(m); // enqueue the grab command
   return false;
 }

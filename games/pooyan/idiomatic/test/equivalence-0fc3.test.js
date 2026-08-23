@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0fc3 (Pooyan) — "append a four-tile run to the command ring":
+ * Memory-equivalence test for appendSoundCommandRun (Pooyan) — "append a four-tile run to the command ring":
  * append the caller's byte, then the three fixed tile codes, each through the shared append helper.
  *
  * Cycle-free memory-equivalence gate. The routine writes work RAM and calls the append helper four
@@ -28,10 +28,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0fc3 as oracle } from "../../translated/loc_0fc3.js";
-import { loc_0fc3 } from "../loc_0fc3.js";
+import { appendSoundCommandRun } from "../appendSoundCommandRun.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, GAME_ACTIVE_FLAG, PLAY_MODE_LATCH, SOUND_RING_WRITE_PTR, TEXT_RING_PENDING_BYTE } from "../names.js";
+import { STACK_SCRATCH, GAME_ACTIVE_FLAG, PLAY_MODE_LATCH, SOUND_RING_WRITE_PTR, SOUND_RING_PENDING_BYTE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -59,7 +59,7 @@ function craft(a, active, mode, cursor) {
   m.mem.write8(GAME_ACTIVE_FLAG, active);
   m.mem.write8(PLAY_MODE_LATCH, mode);
   m.mem.write8(SOUND_RING_WRITE_PTR, cursor);
-  m.mem.write8(TEXT_RING_PENDING_BYTE, 0x00); // known start so WRITE-SET sees the stash
+  m.mem.write8(SOUND_RING_PENDING_BYTE, 0x00); // known start so WRITE-SET sees the stash
   for (let c = RING_FIRST; c <= RING_LAST; c++) m.mem.write8(RING_PAGE + c, 0x00);
   m.regs.sp = 0x8ff0; // dead stack: the four nested calls push/pop here
   return m;
@@ -75,12 +75,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/cursor cases — loc_0fc3 == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted gate/cursor cases — appendSoundCommandRun == oracle in RAM (−stack) + A", () => {
   for (const { name, a, active, mode, cursor } of CASES) {
     const o = craft(a, active, mode, cursor);
     const c = craft(a, active, mode, cursor);
     oracle(o);
-    const ret = loc_0fc3(c);
+    const ret = appendSoundCommandRun(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(c.regs.a & 0xff, o.regs.a & 0xff, `${name}: A live-out mismatch`);
@@ -106,7 +106,7 @@ test("WRITE-SET: open writes {pending, four ring cells, cursor}; closed writes o
     }
   }
   const expected = [
-    TEXT_RING_PENDING_BYTE,
+    SOUND_RING_PENDING_BYTE,
     RING_PAGE + startCursor,
     RING_PAGE + startCursor + 1,
     RING_PAGE + startCursor + 2,
@@ -128,7 +128,7 @@ test("WRITE-SET: open writes {pending, four ring cells, cursor}; closed writes o
       shutChanged.push(addr);
     }
   }
-  assert.deepEqual(shutChanged, [TEXT_RING_PENDING_BYTE], `closed must write only the pending byte, got ${shutChanged.map(hx)}`);
+  assert.deepEqual(shutChanged, [SOUND_RING_PENDING_BYTE], `closed must write only the pending byte, got ${shutChanged.map(hx)}`);
   console.log("  WRITE-SET: open -> 6 cells, closed -> pending only");
 });
 
@@ -139,7 +139,7 @@ test("TEETH: a corrupted appended byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x42, 1, 0, cursor);
   const c = craft(0x42, 1, 0, cursor);
   oracle(o);
-  loc_0fc3(c);
+  appendSoundCommandRun(c);
   const cell = RING_PAGE + nextCursor(nextCursor(cursor)); // the third appended byte's cell
   c.mem.write8(cell, c.mem.read8(cell) ^ 0xff); // BUG: corrupt one run byte
   const d = ramDiffMinusStack(o, c);
@@ -152,7 +152,7 @@ test("TEETH: a wrong A live-out is CAUGHT by the live-out check", () => {
   const o = craft(0x42, 1, 0, 0x50);
   const c = craft(0x42, 1, 0, 0x50);
   oracle(o);
-  const ret = loc_0fc3(c);
+  const ret = appendSoundCommandRun(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A matches the oracle");
   const broken = (ret - 1) & 0xff; // one append short is a plausible bug the check must reject
   assert.notEqual(broken, o.regs.a & 0xff, "the A live-out check must reject an under-advanced cursor");

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0eb3 (ROM 0x0eb3, Pooyan) — "enqueue a sound command":
+ * Memory-equivalence test for enqueueSoundCommandRing (ROM 0x0eb3, Pooyan) — "enqueue a sound command":
  * store A into the ring slot named by the write pointer (SOUND_RING_WRITE_PTR), then advance
  * that pointer, wrapping the last slot (0x5e) back to the first (0x43). The original saves
  * and restores BC/DE/HL, so those registers survive unchanged.
  *
  * This is the CYCLE-FREE / memory-equivalence gate. The routine WRITES work RAM, so every
- * case runs the oracle on one fresh clone and loc_0eb3 on another, compared on the go-forward
+ * case runs the oracle on one fresh clone and enqueueSoundCommandRing on another, compared on the go-forward
  * contract: RAM (dumpState, minus STACK_SCRATCH). There is NO register live-out — every
  * enqueue site reloads A before its next use, and BC/DE/HL are round-tripped — so no register
  * is part of the contract. As a documented extra, the round-tripped BC/DE/HL are seeded to
@@ -15,7 +15,7 @@
  * A (the byte to enqueue) is the ONLY input, passed via the m.regs.a param-default bridge.
  *
  * Jobs:
- *   1. EQUAL — over normal + wrap tail positions, oracle == loc_0eb3 in RAM(−stack); BC/DE/HL
+ *   1. EQUAL — over normal + wrap tail positions, oracle == enqueueSoundCommandRing in RAM(−stack); BC/DE/HL
  *      preserved identically.
  *   2. WRITE-SET — the oracle's only work-RAM writes are the filled slot + the pointer cell.
  *   3. TEETH — a wrong stored byte is caught at the slot, and a wrong advanced pointer at the
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0eb3 as oracle } from "../../translated/loc_0eb3.js";
-import { loc_0eb3 } from "../loc_0eb3.js";
+import { enqueueSoundCommandRing } from "../enqueueSoundCommandRing.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SOUND_RING_WRITE_PTR, HIGH_SCORE_TABLE } from "../names.js";
@@ -77,12 +77,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: oracle == loc_0eb3 in RAM(−stack); BC/DE/HL preserved", () => {
+test("EQUAL: oracle == enqueueSoundCommandRing in RAM(−stack); BC/DE/HL preserved", () => {
   for (const { tail, command } of CASES) {
     const o = craft(tail, command);
     const c = craft(tail, command);
     oracle(o);
-    loc_0eb3(c);
+    enqueueSoundCommandRing(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b} (tail=${hx(tail)} cmd=${hx(command)})`);
@@ -128,7 +128,7 @@ test("TEETH: a wrong stored byte is caught at the slot", () => {
   const o = craft(tail, command);
   const c = craft(tail, command);
   oracle(o);
-  loc_0eb3(c);
+  enqueueSoundCommandRing(c);
   c.mem.write8(slot, (command ^ 0x01) & 0xff); // BUG: corrupt the enqueued byte
 
   const d = ramDiffMinusStack(o, c);
@@ -142,7 +142,7 @@ test("TEETH: a wrong advanced pointer is caught at the pointer cell", () => {
   const o = craft(tail, command);
   const c = craft(tail, command);
   oracle(o);
-  loc_0eb3(c);
+  enqueueSoundCommandRing(c);
   assert.equal(c.mem.read8(SOUND_RING_WRITE_PTR), o.mem.read8(SOUND_RING_WRITE_PTR), "sanity: module wraps like the oracle");
   c.mem.write8(SOUND_RING_WRITE_PTR, (tail + 1) & 0xff); // BUG: advanced instead of wrapping
 

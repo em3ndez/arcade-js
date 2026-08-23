@@ -4,7 +4,7 @@
  * seed four formation-slot records (each pointed to by a 0x8920-table entry) from ROM param table
  * 0x3337 plus a 0x30 frame delay; prime the frame-timer block (0x8928:=0x0c); bump the formation
  * state (0x8f08); blank a 3x3 video block at 0x84c2; seat the formation script pointer (0x8f4b:=
- * 0x3370); emit a sound command (loc_0f19) and run the return-scan (loc_323e); then verify a ROM
+ * 0x3370); emit a sound command (queueSoundCommand0E) and run the return-scan (loc_323e); then verify a ROM
  * self-check copy (0x3278) against its original (0x68ac) — a match returns, a mismatch wipes work RAM.
  *
  * The go-forward contract is RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are NOT compared;
@@ -109,7 +109,7 @@ test("WRITE-SET: the timer seed, script pointer, first record fields, and sound 
   assert.equal(m.mem.read8(recs[0] + 0x09), 0x30, "record 0 frame delay");
   assert.equal(m.mem.read8(recs[0] + 0x04), ROM[PARAM_TABLE], "record 0 param byte 0");
   assert.equal(m.mem.read8(recs[0] + 0x10), ROM[PARAM_TABLE + 3], "record 0 param byte 3");
-  assert.equal(m.mem.read8(SOUND_BYTE), 0x0e, "sound command byte latched (loc_0f19)");
+  assert.equal(m.mem.read8(SOUND_BYTE), 0x0e, "sound command byte latched (queueSoundCommand0E)");
   console.log("  WRITE-SET: 0x8928:=0x0c, 0x8f4b:=0x3370, record fields seeded, 0x8d20:=0x0e");
 });
 

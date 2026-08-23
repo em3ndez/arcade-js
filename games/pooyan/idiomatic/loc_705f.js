@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0ecf } from "./loc_0ecf.js";
+import { queueSoundCommand00 } from "./queueSoundCommand00.js";
 import { INTRO_DELAY_CKSUM_WORD, HIT_TALLY, PLAY_STATE_INDEX } from "./names.js";
 /**
  * loc_705f — level-intro phase 6 (final): count the intro delay down and hand the round to play.
@@ -21,7 +21,7 @@ export function loc_705f(m) {
   mem8[INTRO_DELAY_CKSUM_WORD] = mem8[INTRO_DELAY_CKSUM_WORD] - 1;
   if (mem8[INTRO_DELAY_CKSUM_WORD] !== 0) return;
 
-  loc_0ecf(m);
+  queueSoundCommand00(m);
   mem8[HIT_TALLY] = TALLY_CLEARED;
   mem8[PLAY_STATE_INDEX] = PLAY_READY_STATE;
 }

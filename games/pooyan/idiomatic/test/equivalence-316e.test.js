@@ -14,7 +14,7 @@
  *
  * LIVE-OUT IX/B: inherited from the loc_323e tail — IX advanced to FORMATION_SLOT_TABLE+8, B drained
  * to 0 on the main path; left untouched by the early wave-timer return. Both sides run the SAME
- * loc_323e and loc_0f1d (verified idiomatic modules), so the sub-calls agree by construction; the
+ * loc_323e and queueSoundCommand0F (verified idiomatic modules), so the sub-calls agree by construction; the
  * gate's job is loc_316e's own branching and its display-record stamping.
  *
  * The display-record pointers (slot-table +2/+4/+6) carry a high byte 0x8b (not the 0x8c board-clear

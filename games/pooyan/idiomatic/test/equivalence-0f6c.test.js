@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f6c (ROM 0x0f6c) — "enqueue sound commands 0x19 then 0x15".
+ * Memory-equivalence test for queueSoundCommands19And15 (ROM 0x0f6c) — "enqueue sound commands 0x19 then 0x15".
  *
  * The cycle-free / memory-equivalence gate: oracle and module run on fresh clones and are
  * compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are not compared.
  *
  * LIVE-OUT: memory only — the two filled ring slots and the advanced write pointer. The
- * enqueuer clobbers A but every enqueue site reloads it (established for the sibling loc_0eb3),
+ * enqueuer clobbers A but every enqueue site reloads it (established for the sibling enqueueSoundCommandRing),
  * so A is not part of the contract and is not compared.
  *
  * The leaf is not reached in a plain boot/attract, so every case is CRAFTED: the ring write
  * pointer (and the touched slots) are poked identically on both clones, spanning the wrap.
  *
  * Jobs:
- *   1. EQUAL — over crafted write-pointer positions oracle == loc_0f6c in RAM (−stack).
+ *   1. EQUAL — over crafted write-pointer positions oracle == queueSoundCommands19And15 in RAM (−stack).
  *   2. WRITE-SET — the only writes are the two enqueued ring slots (:= 0x19, 0x15) and the
  *      advanced write pointer.
  *   3. TEETH — a wrong enqueued byte is caught by the RAM diff.
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f6c as oracle } from "../../translated/loc_0f6c.js";
-import { loc_0f6c } from "../loc_0f6c.js";
+import { queueSoundCommands19And15 } from "../queueSoundCommands19And15.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SOUND_RING_WRITE_PTR, HIGH_SCORE_TABLE } from "../names.js";
@@ -66,12 +66,12 @@ const TAILS = [0x43, 0x50, 0x5d, 0x5e]; // includes the two wrap-adjacent positi
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted write-pointer positions — loc_0f6c == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted write-pointer positions — queueSoundCommands19And15 == oracle in RAM (−stack)", () => {
   for (const tail of TAILS) {
     const o = craft(tail);
     const c = craft(tail);
     oracle(o);
-    loc_0f6c(c);
+    queueSoundCommands19And15(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b} (tail=${hx(tail)})`);
   }
@@ -105,7 +105,7 @@ test("TEETH: a wrong enqueued byte is CAUGHT by the RAM diff", () => {
   const o = craft(tail);
   const c = craft(tail);
   oracle(o);
-  loc_0f6c(c);
+  queueSoundCommands19And15(c);
   c.mem8[RING_BASE + tail] = 0x00; // BUG: first slot must be 0x19
 
   const d = ramDiffMinusStack(o, c);

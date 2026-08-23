@@ -6,7 +6,7 @@ import { loc_23a1 } from "./loc_23a1.js";
 import { loc_250f } from "./loc_250f.js";
 import { clearActorArenaAndCounters } from "./clearActorArenaAndCounters.js";
 import { loc_2b9a } from "./loc_2b9a.js";
-import { loc_0fa2 } from "./loc_0fa2.js";
+import { queueRoundVariantSoundRun } from "./queueRoundVariantSoundRun.js";
 import {
   TILE_ANIM_CURSOR,
   SHAPE_TABLE_2D59,
@@ -62,5 +62,5 @@ export function loc_2901(m, rec = m.regs.ix) {
     }
   }
 
-  loc_0fa2(m); // emit the round-select tile run
+  queueRoundVariantSoundRun(m); // emit the round-select tile run
 }

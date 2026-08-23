@@ -6,17 +6,17 @@
  * reaches zero, then stored to 0x8f62 and drawn doubled as field 1. Field 2 (source 0x8f5e) draws a
  * single-digit value directly, else re-encodes it to packed BCD. Field 3 (source 0x8f60), when
  * nonzero, folds into the counter and draws doubled, mirroring its hundreds digit to 0x85f2 when
- * nonzero. Finally the main-loop sub-state selector 0x8f5c is bumped and loc_0f44 queues a sound.
+ * nonzero. Finally the main-loop sub-state selector 0x8f5c is bumped and queueSoundCommand13 queues a sound.
  *
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState, minus
- * STACK_SCRATCH) PLUS the declared register live-out A — the ring cursor the closing loc_0f44 append
+ * STACK_SCRATCH) PLUS the declared register live-out A — the ring cursor the closing queueSoundCommand13 append
  * leaves, which flows through the tail call so a register-dispatched caller reads it back. Both sides'
  * m.call push/ret land in STACK_SCRATCH (SP seated there) and are diff-excluded.
  *
  * NOTE FOR THE LEAD: 0x8f62/0x8f5e/0x8f60/0x8f5c and the four VRAM cells are not yet in names.js; this
  * test carries them as local consts. The module imports the proposed idents; merge them before running.
  *
- * GAME_ACTIVE_FLAG is set so loc_0f44's ring append advances the cursor (a nonzero, checkable A).
+ * GAME_ACTIVE_FLAG is set so queueSoundCommand13's ring append advances the cursor (a nonzero, checkable A).
  *
  * Jobs:
  *   1. EQUAL — up/down, field3 absent/present, a hundreds carry, field2 below/at ten, and the
@@ -35,7 +35,7 @@ import { loc_10c2 as oracle } from "../../translated/loc_10c2.js";
 import { loc_10c2 } from "../loc_10c2.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, GAME_ACTIVE_FLAG, SOUND_RING_WRITE_PTR, TEXT_RING_PENDING_BYTE } from "../names.js";
+import { STACK_SCRATCH, GAME_ACTIVE_FLAG, SOUND_RING_WRITE_PTR, SOUND_RING_PENDING_BYTE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -128,7 +128,7 @@ test("WRITE-SET: a field3-absent, single-digit-field2 call writes only its footp
   const footprint = new Set([
     FIELD1_COUNTER, SUBSTATE_SELECTOR,
     FIELD1_VRAM, FIELD1_VRAM - ROW_UP, FIELD2_VRAM, FIELD2_VRAM - ROW_UP,
-    TEXT_RING_PENDING_BYTE, SOUND_RING_WRITE_PTR, RING_PAGE + RING_PTR,
+    SOUND_RING_PENDING_BYTE, SOUND_RING_WRITE_PTR, RING_PAGE + RING_PTR,
   ]);
   const changed = [];
   for (let off = 0; off < b0.length; off++) {

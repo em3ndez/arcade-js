@@ -7,7 +7,7 @@ import { loc_630f } from "./loc_630f.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { loc_0020 } from "./loc_0020.js";
 import { loc_0010 } from "./loc_0010.js";
-import { loc_0ef1 } from "./loc_0ef1.js";
+import { queueSoundCommand05 } from "./queueSoundCommand05.js";
 import {
   FLIP_SCREEN_FLAG,
   ROUND_COUNTER,
@@ -87,6 +87,6 @@ export function loc_61b4(m, hl = m.regs.hl, ix = m.regs.ix, count = m.regs.b, iy
   mem8[u16(found + STATE_FIELD)] = mem8[u16(found + STATE_FIELD)] | REARM_BIT;
 
   loc_0010(m, ireg !== 0 ? ENEMY_TARGET_REC1 : ENEMY_TARGET_REC0, 0x00, TARGET_WIPE_LEN);
-  loc_0ef1(m);
+  queueSoundCommand05(m);
   return false; // caller-skip: unwind the caller's frame
 }

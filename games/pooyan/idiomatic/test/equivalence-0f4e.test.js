@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f4e (ROM 0x0f4e, Pooyan) — "enqueue two fixed bytes (0x82
+ * Memory-equivalence test for queueSoundCommands82And95 (ROM 0x0f4e, Pooyan) — "enqueue two fixed bytes (0x82
  * then 0x95) into the command ring" via the enqueue helper (the second a tail call). Each store
  * lands at 0x8a00 + tail (tail = 0x8a40) and the tail advances 0x43..0x5e, wrapping 0x5e -> 0x43.
  * The enqueue is ungated (unlike the 0x0ea2 append).
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f4e as oracle } from "../../translated/loc_0f4e.js";
-import { loc_0f4e } from "../loc_0f4e.js";
+import { queueSoundCommands82And95 } from "../queueSoundCommands82And95.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SOUND_RING_WRITE_PTR, HIGH_SCORE_TABLE } from "../names.js";
@@ -77,12 +77,12 @@ const TAILS = [0x50, 0x5d, RING_LAST]; // mid; wrap on the 2nd store; wrap on th
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted tail values — loc_0f4e == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted tail values — queueSoundCommands82And95 == oracle in RAM (−stack)", () => {
   for (const tail of TAILS) {
     const o = craft(tail);
     const c = craft(tail);
     oracle(o);
-    loc_0f4e(c);
+    queueSoundCommands82And95(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `tail=${hx(tail)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }

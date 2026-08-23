@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0ef1 } from "./loc_0ef1.js";
+import { queueSoundCommand05 } from "./queueSoundCommand05.js";
 /**
  * loc_5f02 — enqueue the fixed sound-effect command, then return.
  *
@@ -10,5 +10,5 @@ import { loc_0ef1 } from "./loc_0ef1.js";
  * a consumed live-out; the enqueue path reloads A at every use site.
  */
 export function loc_5f02(m) {
-  return loc_0ef1(m);
+  return queueSoundCommand05(m);
 }

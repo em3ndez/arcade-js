@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f11 (ROM 0x0f11, Pooyan) — "enqueue the fixed command byte
+ * Memory-equivalence test for queueSoundCommand0C (ROM 0x0f11, Pooyan) — "enqueue the fixed command byte
  * 0x0c into the page-0x8a00 command ring". The routine loads A := 0x0c then tail-jumps into the
- * ring-append helper loc_0ea2, whose ret returns to loc_0f11's caller. So loc_0f11 is loc_0ea2
+ * ring-append helper appendSoundCommandGated, whose ret returns to queueSoundCommand0C's caller. So queueSoundCommand0C is appendSoundCommandGated
  * with the incoming byte pinned to 0x0c: it stashes 0x0c at 0x8d20, and — only while
  * GAME_ACTIVE_FLAG (0x8806) or PLAY_MODE_LATCH (0x8f50) is set — writes it at 0x8a00 + cursor
  * (cursor = 0x8a40) and steps the cursor 0x43..0x5e, wrapping 0x5e -> 0x43.
  *
  * This is the cycle-free / memory-equivalence gate (docs/decompiler-pipeline). The routine writes
- * work RAM, so each case runs the oracle on one FRESH clone and loc_0f11 on another, compared on:
+ * work RAM, so each case runs the oracle on one FRESH clone and queueSoundCommand0C on another, compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH)  +  the A register live-out.
  *
@@ -16,11 +16,11 @@
  * (gates closed), A survives because the flag pair is not restored across the tail, and the
  * command trigger tail-returns it — so the EQUAL job asserts A in addition to RAM(−stack), and
  * that the module SET A on its own clone (a return-only rewrite would fail a translated caller).
- * pc/SP/cycles are NOT compared. loc_0f11 takes no register inputs (the byte is a constant).
+ * pc/SP/cycles are NOT compared. queueSoundCommand0C takes no register inputs (the byte is a constant).
  *
  * Jobs:
  *   1. EQUAL (crafted) — gate-closed, gate-open via each flag, a mid cursor, and the 0x5e->0x43
- *      wrap: oracle == loc_0f11 in RAM(−stack) and in A, and the module SET A.
+ *      wrap: oracle == queueSoundCommand0C in RAM(−stack) and in A, and the module SET A.
  *   2. WRITE-SET — gate-open writes exactly {0x8d20, ring cell, 0x8a40}; gate-closed writes only
  *      0x8d20.
  *   3. TEETH — a twin returning the wrong A is rejected by the live-out check; a twin that writes
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f11 as oracle } from "../../translated/loc_0f11.js";
-import { loc_0f11 } from "../loc_0f11.js";
+import { queueSoundCommand0C } from "../queueSoundCommand0C.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -63,7 +63,7 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** A fresh clone with the gate/cursor/ring cells poked identically. loc_0f11 takes no register
+/** A fresh clone with the gate/cursor/ring cells poked identically. queueSoundCommand0C takes no register
  *  inputs, so only memory + the dead stack are seated. */
 function craft(active, mode, cursor) {
   const m = BASE.clone();
@@ -88,12 +88,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/cursor cases — loc_0f11 == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted gate/cursor cases — queueSoundCommand0C == oracle in RAM (−stack) + A", () => {
   for (const { name, active, mode, cursor } of CASES) {
     const o = craft(active, mode, cursor);
     const c = craft(active, mode, cursor);
     oracle(o);
-    const ret = loc_0f11(c);
+    const ret = queueSoundCommand0C(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -143,7 +143,7 @@ test("TEETH: a wrong returned A is REJECTED by the live-out check", () => {
   const o = craft(1, 0, RING_FIRST);
   const c = craft(1, 0, RING_FIRST);
   oracle(o);
-  const ret = loc_0f11(c);
+  const ret = queueSoundCommand0C(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: the module's A matches the oracle");
   // A stale, un-advanced cursor (the input cursor) is a plausible bug the === check must reject.
   assert.notEqual(RING_FIRST, o.regs.a & 0xff, "the live-out check must reject an un-advanced cursor");
@@ -154,7 +154,7 @@ test("TEETH: a wrong appended ring byte is CAUGHT by the RAM diff", () => {
   const o = craft(1, 0, RING_FIRST);
   const c = craft(1, 0, RING_FIRST);
   oracle(o);
-  loc_0f11(c);
+  queueSoundCommand0C(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   c.mem.write8(RING_PAGE + RING_FIRST, COMMAND ^ 0xff); // BUG: wrong byte appended
   const d = ramDiffMinusStack(o, c);

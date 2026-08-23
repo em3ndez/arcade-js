@@ -42,7 +42,7 @@ export const TAMPER_FREEZE_FLAG = 0x881e;
 export const FLIP_SCREEN_FLAG = 0x881f;
 /** [code] (static 0 in both goldens (difficulty 0) -> unobservable/code; loc_0092 boot cpl's the DSW1 port then writes (~DSW1>>4)&0x07 (only writer), loc_54c5/loc_5519/loc_39fb threshold spawns on it) 3-bit difficulty (DSW1 bits4-6, complemented, boot-only); scales enemy spawn schedules and tier/threshold tables */
 export const DIFFICULTY_DSW = 0x8820;
-/** [seen] (both goldens: 0->1 at f32 (boot seeds coinage=1c/1c via table 0x0053, 0x882f gets hi nibble); loc_59e8/loc_15d1/loc_0e54 test ==0x0f free play (A's slot-B label unverified)) coin-slot coinage nibble from DSW0 low nibble via table 0x0053; 0x0f = free play; read by credit logic */
+/** [seen] (both goldens: 0->1 at f32 (boot seeds coinage=1c/1c via table 0x0053, 0x882f gets hi nibble); loc_59e8/loc_15d1/queueCreditDisplayCommands test ==0x0f free play (A's slot-B label unverified)) coin-slot coinage nibble from DSW0 low nibble via table 0x0053; 0x0f = free play; read by credit logic */
 export const COINAGE_CONFIG = 0x882c;
 /** [seen] (attract+play: byte0 0->176 then descends ~1 per 2f (35/40 distinct) = a live sprite Y at the list base; loc_02ef builds it, loc_0378 mirrors 24 entries) Base of the 24-entry x4 sprite display list; byte0 is the first sprite's Y, rebuilt each frame, swept for collisions */
 export const SPRITE_DISPLAY_LIST = 0x8840;
@@ -78,7 +78,7 @@ export const ROPE_SEGMENT_COUNT = 0x8931;
 export const ROPE_DRAW_COUNT = 0x8934;
 /** [seen] (MAME 2P golden: block saved on P1 death f2854 -- byte1 0x8941 0x20->0x1a via saveLivePageToPlayer0Bank; base byte0=colour stays 0 (source 0x8820=0) so grounded at BLOCK level. loc_1a47/loc_1601 ldir 0x8900<->0x8940 per 0x880d) Base of player-0's 0x3f-byte saved actor/state block, swapped with live page 0x8900; byte0=sprite colour */
 export const PLAYER0_STATE_BANK = 0x8940;
-/** [seen] (Gameplay golden: 0->3 (seed=default 3 lives) then 3->2->1->0 drain per death, then ->3 for next game. Decisive lives countdown; overturns A's 'active flag' guess. Seeded 0x8807 in loc_0e00 (bank +8).) Player-0 remaining lives, seeded from lives DSW 0x8807; decrements on death, gates player-switch/game-over */
+/** [seen] (Gameplay golden: 0->3 (seed=default 3 lives) then 3->2->1->0 drain per death, then ->3 for next game. Decisive lives countdown; overturns A's 'active flag' guess. Seeded 0x8807 in resetActorStateForBoard (bank +8).) Player-0 remaining lives, seeded from lives DSW 0x8807; decrements on death, gates player-switch/game-over */
 export const PLAYER0_LIVES = 0x8948;
 /** [seen] (MAME 2P golden: block saved on P2 death f7129 -- byte1 0x8981 0x20->0x0f; base byte0=colour stays 0 (source 0x8820=0) so grounded at BLOCK level. loc_1a47/loc_1bcc ldir 0x8900->0x8980 per 0x880d) Base of player-1's 0x3f-byte saved actor/state block, swapped with live page 0x8900; byte0=sprite colour */
 export const PLAYER1_STATE_BANK = 0x8980;
@@ -124,7 +124,7 @@ export const ENEMY_SPAWN_TIMER = 0x8d07;
 export const OBJ_HIT_FLAG_I0 = 0x8d1b;
 /** [seen] (attract+play: 0/1 one-frame pulses = flag; selected when I!=0 in loc_6435/loc_638a/loc_60d9; fires in the 1P golden = an I-parity slot index, not player 1) Hit flag for the I!=0 slot (pairs 0x8ca8, partner of 0x8d1b): set 1 on a collision, cleared on teardown by loc_21cf */
 export const OBJ_HIT_FLAG_I1 = 0x8d1c;
-/** [seen] (attract: 0->1 at f1448 held to f5798 then 0 (only 3 transitions) = long-held latch; loc_196e sets it on 0x8d22 expiry, loc_0cf8/32bd clear it) One-shot latch set when the 0x8d22 periodic-event timer expires (fires loc_0f76); cleared on wave teardown */
+/** [seen] (attract: 0->1 at f1448 held to f5798 then 0 (only 3 transitions) = long-held latch; loc_196e sets it on 0x8d22 expiry, loc_0cf8/32bd clear it) One-shot latch set when the 0x8d22 periodic-event timer expires (fires queueSirenSoundRun); cleared on wave teardown */
 export const WAVE_EVENT_LATCH = 0x8d21;
 /** [code] (static 0 in BOTH goldens (no formation-spawn cycle observed in 180s); loc_2b9a decs while nonzero, on expiry sets IX=0x8c60/DE=0xffe8) Formation-spawn countdown (seeded from level 0x8903); returns while nonzero, at 0 runs the 0x8c60 spawn loop */
 export const FORMATION_SPAWN_TIMER = 0x8d30;
@@ -170,7 +170,7 @@ export const WAVE_HOLD_TIMER = 0x8f36;
 export const WAVE_RECORDS_ARRIVED = 0x8f39;
 /** [seen] (attract+play: monotonic 0->1->2->3->4->0 (range 0..4) = wave counter incrementing then wrapping) Current attack-wave index; bumped per wave (wraps after 4th), scales record counts and wave sounds */
 export const WAVE_INDEX = 0x8f3d;
-/** [seen] (attract+play: toggles 0<->1 (range 0..1, 33/27 trans) = flag arming (loc_278f=1) then clearing (loc_0e00/2226)) One-shot arm flag for the arrow/formation launch; set when preconditions hold, cleared at init and when object spent */
+/** [seen] (attract+play: toggles 0<->1 (range 0..1, 33/27 trans) = flag arming (loc_278f=1) then clearing (resetActorStateForBoard/2226)) One-shot arm flag for the arrow/formation launch; set when preconditions hold, cleared at init and when object spent */
 export const LAUNCH_ARMED_FLAG = 0x8f3f;
 /** [seen] (attract+play: low byte cycles many pointer values (232/265 trans) = loc_4381 write pointer advancing then stored back) Destination pointer for the display-list interpreter, paired with source 0x8f45; advanced during the copy */
 export const DISPLAY_LIST_DST_PTR = 0x8f43;
@@ -389,7 +389,7 @@ export const FRAME_TIMER_BLOCK_BASE = 0x8928;
 /** [code] anti-tamper strike counter (last slot of the 7-flag integrity table at INTEGRITY_FLAG_SCAN_BASE=0x89e7) bumped when the state-0 code-window checksum misses its 0x55 running-sum sentinel */
 export const TAMPER_STRIKES_STATE0 = 0x89ed;
 export const loc_8a42 = 0x8a42;
-/** [code] base of the sound-command ring buffer (slots 0x8a43-0x8a5e); boot fills 0xff (empty); confirmed by loc_0eb3 */
+/** [code] base of the sound-command ring buffer (slots 0x8a43-0x8a5e); boot fills 0xff (empty); confirmed by enqueueSoundCommandRing */
 export const SOUND_RING_BUFFER = 0x8a43;
 export const loc_8a86 = 0x8a86;
 export const loc_8a9e = 0x8a9e;
@@ -683,7 +683,7 @@ export const TAMPER_OBJECT_FREEZE_FLAG = 0x89fb;
 export const PLAY_TIMER_BCD_P1 = 0x8a30;
 /** [code] player-1/2 BCD play-timer bank (frame sub-counter + BCD seconds/minutes) */
 export const PLAY_TIMER_BCD_P2 = 0x8a33;
-/** [code] sound-command ring buffer write/tail pointer (0x43..0x5e, wraps); loc_0eb3 stores into the slot it points at */
+/** [code] sound-command ring buffer write/tail pointer (0x43..0x5e, wraps); enqueueSoundCommandRing stores into the slot it points at */
 export const SOUND_RING_WRITE_PTR = 0x8a40;
 /** [code] sound-command ring buffer read/head index (0x43..0x5e, wraps); the slot it points at is consumed then freed */
 export const SOUND_RING_READ_PTR = 0x8a41;
@@ -694,7 +694,7 @@ export const ENEMY_REC_DISPATCH_GATE = 0x8afa;
 /** [code] base of the 6-slot per-frame object-state record array (stride 0x18, spans into PROJECTILE_TABLE at 0x8be8) swept by loc_76f4 via dispatchActiveObjectState */
 export const OBJECT_STATE_RECORD_BASE = 0x8ba0;
 /** [code] byte pending append into the page-0x8a00 text ring (stashed across the append gate) */
-export const TEXT_RING_PENDING_BYTE = 0x8d20;
+export const SOUND_RING_PENDING_BYTE = 0x8d20;
 /** [code] work-RAM snapshot of the spawn-phase counter (written alongside ROPE_DRAW_COUNT) */
 export const SPAWN_PHASE_SNAPSHOT = 0x8d43;
 /** [code] value copied into the launch-arm latch (0x8f20) when nonzero; producer not in the decompiled set */
@@ -1169,7 +1169,7 @@ export const ROUTINES = {
   0x0a40: { name: "paintTileBlock2x2", role: "stamp a 2x2 tile block", cert: "code" },
   0x0e46: { name: "clearBit2AcrossSixSlots", role: "clear bit 2 across six stride-4 table entries", cert: "code" },
   0x0e8f: { name: "sendSoundCommand", role: "hand a command byte to the audio CPU and strobe its IRQ", cert: "code" },
-  0x0f97: { name: "loc_0f97", role: "queue the round-derived display-command run: pick a command byte from ROUND_COUNTER bits 1..2 + base, then tail-append its fixed 4-tile run via the command-ring appender", cert: "code" },
+  0x0f97: { name: "queueRoundSoundCommandRun", role: "queue the round-derived sound-command run: pick a command byte from ROUND_COUNTER bits 1..2 + base, then tail-append its fixed sound-command run via the sound-command-run appender", cert: "code" },
   0x10c2: { name: "loc_10c2", role: "adjust a counter by A (entry carry = direction), store it, and repaint three stacked-BCD HUD fields, then advance the main-loop sub-state and queue a sound", cert: "code" },
   0x1119: { name: "drawStackedBcdDigits", role: "draw a packed-BCD byte as two stacked digit tiles, tens then units one row up, leading zero blanked", cert: "code" },
   0x1131: { name: "binToPackedBcd", role: "convert a binary count to packed BCD digits plus a hundreds tally", cert: "code" },
@@ -1259,11 +1259,11 @@ export const ROUTINES = {
   0x056b: { name: "loc_056b", role: "draw one of three packed-BCD counters down a screen column, leading zeros blanked", cert: "code" },
   0x05b2: { name: "loc_05b2", role: "draw a table-selected field of stacked characters bottom-up into video RAM (digit or blank mode per selector bit 7)", cert: "code" },
   0x0a52: { name: "loc_0a52", role: "paint two 2x2 tile blocks into video RAM from one shared source pattern", cert: "code" },
-  0x0e53: { name: "loc_0e53", role: "phantom no-op (bare ret); display-list dispatch target that returns without drawing", cert: "code" },
-  0x0e64: { name: "loc_0e64", role: "drain one entry from the sound-command ring buffer and dispatch it to the audio CPU (gated by demo-sounds/game-active), then free the slot and advance the head", cert: "code" },
-  0x0ea2: { name: "loc_0ea2", role: "append one byte into the page-0x8a00 text ring (gated on game-active/play-mode), then advance and wrap the ring cursor", cert: "code" },
-  0x0eb3: { name: "loc_0eb3", role: "enqueue a command byte into the sound-command ring buffer (advance the write pointer, wrapping 0x5e->0x43)", cert: "code" },
-  0x0f09: { name: "loc_0f09", role: "emit the preset sound command to the audio CPU", cert: "code" },
+  0x0e53: { name: "noopStateHandler", role: "phantom no-op (bare ret); display-list dispatch target that returns without drawing", cert: "code" },
+  0x0e64: { name: "drainSoundCommandRing", role: "drain one entry from the sound-command ring buffer and dispatch it to the audio CPU (gated by demo-sounds/game-active), then free the slot and advance the head", cert: "seen" },
+  0x0ea2: { name: "appendSoundCommandGated", role: "append one byte into the page-0x8a00 sound-command ring (gated on game-active/play-mode), then advance and wrap the ring cursor", cert: "code" },
+  0x0eb3: { name: "enqueueSoundCommandRing", role: "enqueue a command byte into the sound-command ring buffer (advance the write pointer, wrapping 0x5e->0x43)", cert: "seen" },
+  0x0f09: { name: "emitPresetSound", role: "emit the preset sound command to the audio CPU", cert: "code" },
   0x13bc: { name: "loc_13bc", role: "find a free sprite-object slot and spawn a child actor into it: bump the anim counter, seed the parent record, tail into the child-spawn init", cert: "code" },
   0x141c: { name: "loc_141c", role: "gate an actor's spawn/queue step on its phase field; below threshold, clear a field and (re)start its animation", cert: "code" },
   0x142c: { name: "loc_142c", role: "spawn/init a child actor record (IY) from parent (IX): fixed slots, biased position copy, round-negated speed-table lookup, velocity mirror, anim vector + timer, tail spawn-sound enqueue", cert: "code" },
@@ -1328,41 +1328,41 @@ export const ROUTINES = {
   0x03e9: { name: "loc_03e9", role: "paint the attract HUD/score panels: eleven selector fields, the ten-entry high-score table as stacked BCD digit pairs, then the digit and status panels", cert: "code" },
   0x0496: { name: "loc_0496", role: "accrue the active player's BCD score and keep the high score in step", cert: "code" },
   0x05ee: { name: "loc_05ee", role: "draw the credit count as two HUD digit tiles, then run a ROM-checksum anti-tamper tripwire", cert: "code" },
-  0x0e00: { name: "loc_0e00", role: "reset the actor/sprite state for a new board", cert: "code" },
-  0x0e54: { name: "loc_0e54", role: "queue the primary display command, plus the free-play extra command when the coinage config is the free-play sentinel", cert: "code" },
-  0x0ecf: { name: "loc_0ecf", role: "sound-command selector 0x00: A=0, tail-enqueue into the sound-command ring (loc_0eb3)", cert: "code" },
-  0x0ed2: { name: "loc_0ed2", role: "queue command 0x01 into the command ring (thin wrapper over loc_0ea2)", cert: "code" },
-  0x0ed6: { name: "loc_0ed6", role: "enqueue the fixed sound command 0x02 into the sound-command ring", cert: "code" },
-  0x0eda: { name: "loc_0eda", role: "queue two fixed sound commands into the sound-command ring", cert: "code" },
-  0x0ee3: { name: "loc_0ee3", role: "conditional sound-command enqueue: gated on wave-teardown/grab-active, then tail-appends command 0x04 to the page-0x8a command ring", cert: "code" },
-  0x0ef1: { name: "loc_0ef1", role: "enqueue fixed sound command 0x05 into the sound-command ring (wrapper over loc_0eb3)", cert: "code" },
-  0x0ef5: { name: "loc_0ef5", role: "sound-command stub: append the fixed command byte 0x06 into the page-0x8a text/command ring via loc_0ea2", cert: "code" },
-  0x0ef9: { name: "loc_0ef9", role: "append the fixed byte 0x07 into the page-0x8a command ring (load the constant, tail-call the ring appender)", cert: "code" },
-  0x0efd: { name: "loc_0efd", role: "command 0x08: append the fixed byte 0x08 into the page-0x8a command ring", cert: "code" },
-  0x0f01: { name: "loc_0f01", role: "sound-command selector 0x09: A=9, tail-enqueue into the sound-command ring (loc_0eb3)", cert: "code" },
-  0x0f05: { name: "loc_0f05", role: "queue command 0x0a into the command ring (thin wrapper over loc_0ea2)", cert: "code" },
-  0x0f0d: { name: "loc_0f0d", role: "append the fixed command byte 0x0b into the page-0x8a command ring", cert: "code" },
-  0x0f11: { name: "loc_0f11", role: "enqueue the fixed command byte 0x0c into the command ring (via the ring-append helper)", cert: "code" },
-  0x0f15: { name: "loc_0f15", role: "append fixed command byte 0x0d to the 0x8a-page text ring (wrapper over loc_0ea2)", cert: "code" },
-  0x0f19: { name: "loc_0f19", role: "command emitter: append the fixed byte 0x0e into the page-0x8a command ring (thin wrapper tail-calling loc_0ea2)", cert: "code" },
-  0x0f1d: { name: "loc_0f1d", role: "append the fixed byte 0x0f into the page-0x8a ring via loc_0ea2", cert: "code" },
-  0x0f21: { name: "loc_0f21", role: "queue two command bytes (0x95 then 0x10) into the command ring", cert: "code" },
-  0x0f2b: { name: "loc_0f2b", role: "sound-command stub: append the fixed command byte 0x11 into the page-0x8a text/command ring via loc_0ea2", cert: "code" },
-  0x0f30: { name: "loc_0f30", role: "queue three fixed command bytes (0x95, 0x03, 0x11) into the text-command ring via the append helper (last is a tail call)", cert: "code" },
-  0x0f3f: { name: "loc_0f3f", role: "queue the page-0x8a text-ring sound command 0x12", cert: "code" },
-  0x0f44: { name: "loc_0f44", role: "queue command byte 0x13 into the command ring", cert: "code" },
-  0x0f49: { name: "loc_0f49", role: "queue the fixed command byte 0x14 into the text-command ring (tail call to the append helper)", cert: "code" },
-  0x0f4e: { name: "loc_0f4e", role: "enqueue two fixed sound commands (0x82, 0x95) into the sound-command ring buffer (last is a tail call)", cert: "code" },
-  0x0f58: { name: "loc_0f58", role: "queue four fixed command bytes: 0x96,0x97 into the text/command ring; 0x18,0x15 into the sound ring", cert: "code" },
-  0x0f6c: { name: "loc_0f6c", role: "enqueue two sound commands (0x19 then 0x15) into the sound-command ring", cert: "code" },
-  0x0f76: { name: "loc_0f76", role: "when the siren gate is clear, append the round-selected siren tile plus the completing tile run to the command ring; otherwise return", cert: "code" },
-  0x0f88: { name: "loc_0f88", role: "tile-command trampoline: emit an opening tile then tail-append a four-tile run to the page-0x8a command ring", cert: "code" },
-  0x0f92: { name: "loc_0f92", role: "queue the phase-exhausted 4-tile run (fixed lead tile 0x1d) via the command-ring appender", cert: "code" },
-  0x0fa2: { name: "loc_0fa2", role: "select 1 of 4 tile codes 0x22..0x25 from the round counter (bits 1-2) and append that 4-tile run to the command ring (tail into the run-append helper)", cert: "code" },
-  0x0fad: { name: "loc_0fad", role: "queue the 4-tile run opening with tile code 0x26 (tail into loc_0fc3)", cert: "code" },
-  0x0fb2: { name: "loc_0fb2", role: "enqueue sound commands 0x27 then 0x15 into the sound-command ring", cert: "code" },
-  0x0fbc: { name: "loc_0fbc", role: "enqueue text tiles 0x28,0x15,0x16,0x17 into the text ring", cert: "code" },
-  0x0fc3: { name: "loc_0fc3", role: "append a 4-tile run (caller byte + 0x15/0x16/0x17) to the command ring", cert: "code" },
+  0x0e00: { name: "resetActorStateForBoard", role: "reset the actor/sprite state for a new board", cert: "code" },
+  0x0e54: { name: "queueCreditDisplayCommands", role: "queue the primary display command, plus the free-play extra command when the coinage config is the free-play sentinel", cert: "code" },
+  0x0ecf: { name: "queueSoundCommand00", role: "sound-command selector 0x00: A=0, tail-enqueue into the sound-command ring (enqueueSoundCommandRing)", cert: "code" },
+  0x0ed2: { name: "queueSoundCommand01", role: "queue command 0x01 into the sound-command ring (thin wrapper over appendSoundCommandGated)", cert: "code" },
+  0x0ed6: { name: "queueSoundCommand02", role: "enqueue the fixed sound command 0x02 into the sound-command ring", cert: "code" },
+  0x0eda: { name: "queueSoundCommands82And03", role: "queue two fixed sound commands into the sound-command ring", cert: "code" },
+  0x0ee3: { name: "queueSoundCommand04IfNotBusy", role: "conditional sound-command enqueue: gated on wave-teardown/grab-active, then tail-appends command 0x04 to the page-0x8a command ring", cert: "code" },
+  0x0ef1: { name: "queueSoundCommand05", role: "enqueue fixed sound command 0x05 into the sound-command ring (wrapper over enqueueSoundCommandRing)", cert: "code" },
+  0x0ef5: { name: "queueSoundCommand06", role: "sound-command stub: append the fixed command byte 0x06 into the page-0x8a sound-command ring via appendSoundCommandGated", cert: "code" },
+  0x0ef9: { name: "queueSoundCommand07", role: "append the fixed byte 0x07 into the page-0x8a command ring (load the constant, tail-call the ring appender)", cert: "code" },
+  0x0efd: { name: "queueSoundCommand08", role: "command 0x08: append the fixed byte 0x08 into the page-0x8a command ring", cert: "code" },
+  0x0f01: { name: "queueSoundCommand09", role: "sound-command selector 0x09: A=9, tail-enqueue into the sound-command ring (enqueueSoundCommandRing)", cert: "code" },
+  0x0f05: { name: "queueSoundCommand0A", role: "queue command 0x0a into the sound-command ring (thin wrapper over appendSoundCommandGated)", cert: "code" },
+  0x0f0d: { name: "queueSoundCommand0B", role: "append the fixed command byte 0x0b into the page-0x8a command ring", cert: "code" },
+  0x0f11: { name: "queueSoundCommand0C", role: "enqueue the fixed command byte 0x0c into the sound-command ring (via the ring-append helper)", cert: "code" },
+  0x0f15: { name: "queueSoundCommand0D", role: "append fixed command byte 0x0d to the 0x8a-page sound-command ring (wrapper over appendSoundCommandGated)", cert: "code" },
+  0x0f19: { name: "queueSoundCommand0E", role: "command emitter: append the fixed byte 0x0e into the page-0x8a command ring (thin wrapper tail-calling appendSoundCommandGated)", cert: "code" },
+  0x0f1d: { name: "queueSoundCommand0F", role: "append the fixed byte 0x0f into the page-0x8a ring via appendSoundCommandGated", cert: "code" },
+  0x0f21: { name: "queueSoundCommands95And10", role: "queue two command bytes (0x95 then 0x10) into the sound-command ring", cert: "code" },
+  0x0f2b: { name: "queueSoundCommand11", role: "sound-command stub: append the fixed command byte 0x11 into the page-0x8a sound-command ring via appendSoundCommandGated", cert: "code" },
+  0x0f30: { name: "queueSoundCommands95And03And11", role: "queue three fixed command bytes (0x95, 0x03, 0x11) into the sound-command ring via the append helper (last is a tail call)", cert: "code" },
+  0x0f3f: { name: "queueSoundCommand12", role: "queue the page-0x8a text-ring sound command 0x12", cert: "code" },
+  0x0f44: { name: "queueSoundCommand13", role: "queue command byte 0x13 into the sound-command ring", cert: "code" },
+  0x0f49: { name: "queueSoundCommand14", role: "queue the fixed command byte 0x14 into the sound-command ring (tail call to the append helper)", cert: "code" },
+  0x0f4e: { name: "queueSoundCommands82And95", role: "enqueue two fixed sound commands (0x82, 0x95) into the sound-command ring buffer (last is a tail call)", cert: "code" },
+  0x0f58: { name: "queueSoundCommands96And97And18And15", role: "queue four fixed command bytes: 0x96,0x97 into the sound-command ring; 0x18,0x15 into the sound ring", cert: "code" },
+  0x0f6c: { name: "queueSoundCommands19And15", role: "enqueue two sound commands (0x19 then 0x15) into the sound-command ring", cert: "code" },
+  0x0f76: { name: "queueSirenSoundRun", role: "when the siren gate is clear, append the round-selected siren lead byte plus the completing sound-command run to the command ring; otherwise return", cert: "code" },
+  0x0f88: { name: "queueSound82ThenRun1C", role: "sound-command trampoline: emit an lead byte then tail-append a four-byte sound-command run to the page-0x8a command ring", cert: "code" },
+  0x0f92: { name: "queueSoundRun1D", role: "queue the phase-exhausted sound-command run (fixed lead byte 0x1d) via the sound-command-run appender", cert: "code" },
+  0x0fa2: { name: "queueRoundVariantSoundRun", role: "select 1 of 4 sound-command bytes 0x22..0x25 from the round counter (bits 1-2) and append that sound-command run to the command ring (tail into the run-append helper)", cert: "code" },
+  0x0fad: { name: "queueSoundRun26", role: "queue the sound-command run opening with sound-command byte 0x26 (tail into appendSoundCommandRun)", cert: "code" },
+  0x0fb2: { name: "queueSoundCommands27And15", role: "enqueue sound commands 0x27 then 0x15 into the sound-command ring", cert: "code" },
+  0x0fbc: { name: "queueSoundRun28", role: "enqueue sound bytes 0x28,0x15,0x16,0x17 into the sound-command ring", cert: "code" },
+  0x0fc3: { name: "appendSoundCommandRun", role: "append a sound-command run (caller byte + 0x15/0x16/0x17) to the command ring", cert: "code" },
   0x1389: { name: "loc_1389", role: "spawn-step guard: gate the actor spawn/queue step (loc_141c) on bit0 of the record's flag byte (rec+8)", cert: "code" },
   0x19ca: { name: "loc_19ca", role: "periodic warning-siren tick: gated frame countdown that toggles a phase and queues one of two siren display commands", cert: "code" },
   0x1a96: { name: "loc_1a96", role: "phase-exhausted handler: advance the play sub-state, clear round cells, tail to the high-score insert-sort", cert: "code" },
@@ -1398,7 +1398,7 @@ export const ROUTINES = {
   0x4350: { name: "loc_4350", role: "object state handler: tick loc_4006, count down the (ix+0x11) phase timer, then on lapse step (ix+0x02) and re-arm the turn animation (bit0 of (ix+0x08) selects loc_425c vs loc_423a)", cert: "code" },
   0x52f6: { name: "loc_52f6", role: "gated slot sweep + ROM-checksum tamper tripwire", cert: "code" },
   0x53b0: { name: "loc_53b0", role: "one-shot gated formation-record spawn/init: fill record fields + derive spawn speed from round counter", cert: "code" },
-  0x6505: { name: "loc_6505", role: "rst-0x28 handler index 0: seed the frame-delay/blink-phase cells, seat three object records backward (loc_6523) bumping each phase, then emit the tile-command run loc_0f88", cert: "code" },
+  0x6505: { name: "loc_6505", role: "rst-0x28 handler index 0: seed the frame-delay/blink-phase cells, seat three object records backward (loc_6523) bumping each phase, then emit the tile-command run queueSound82ThenRun1C", cert: "code" },
   0x6523: { name: "loc_6523", role: "seat a fresh object record and enqueue its spawn display command(s)", cert: "code" },
   0x672a: { name: "loc_672a", role: "object descent step: run loc_4006, advance the 16-bit sub-position, seat a matching free spawn-object slot when the landing row is reached, then bump state, reload the step to 0x18 and re-arm the animation via setActorAnimation", cert: "code" },
   0x67a0: { name: "loc_67a0", role: "per-object frame update gated by the shared frame-delay timer (animation step + 16-bit position moves + state advance)", cert: "code" },
@@ -1426,7 +1426,7 @@ export const ROUTINES = {
   0x6368: { name: "loc_6368", role: "two-pass projectile-proximity scan driver over the two actor boxes (SPRITE_ACTOR_RECORD_SLOTS +0 / +4), forwarding I=0 then I=4 as the interrupt-parity hit-flag selector; aborts on the first hit", cert: "code" },
   0x602f: { name: "loc_602f", role: "run the per-slot object-proximity scan once for each of the two target slots; a hit inside a pass aborts before the remaining slot", cert: "code" },
   0x60d9: { name: "loc_60d9", role: "mark the interrupt-parity hit-flag slot (0x8d1c/0x8d1b by `ld a,i`), seed a fresh actor record (initActorRecord, DE=0x0404), then run the enemy-record scan loc_611f; forwards the scan's false=abort / true=continue boolean", cert: "code" },
-  0x611f: { name: "loc_611f", role: "enemy-record finder: key = (HL+DE); scan 6 records at 0x8ae0 (stride 0x18) for +0x14 == key; match -> loc_613d (aborts frame, returns false); no match -> enqueue sound (loc_0ef1) unless ACTIVE_OBJECT_TYPE==3, then normal return (true)", cert: "code" },
+  0x611f: { name: "loc_611f", role: "enemy-record finder: key = (HL+DE); scan 6 records at 0x8ae0 (stride 0x18) for +0x14 == key; match -> loc_613d (aborts frame, returns false); no match -> enqueue sound (queueSoundCommand05) unless ACTIVE_OBJECT_TYPE==3, then normal return (true)", cert: "code" },
   0x6cab: { name: "loc_6cab", role: "aim-indicator / target-acquisition updater: gates on GAME_ACTIVE_FLAG/GRAB_ACTIVE_FLAG/WAVE_TEARDOWN_STATE, steps loc_6bee, bails on PROXIMITY_HIT_FLAG, then sets the above/below aim bit via LAUNCH_STATE / existing-lock re-evaluate / closest-in-band 6-block scan (records the 5-byte lock at TARGET_LOCK)", cert: "code" },
   0x6bee: { name: "loc_6bee", role: "aim-indicator stepper: mode 0 runs the proximity redraw (loc_6c18); mode 1 sets bit2 / mode>=2 sets bit3 of PLAYER_AIM_FLAGS (clearing the other), then drains AIM_INDICATOR_TIMER, zeroing AIM_INDICATOR_MODE at expiry", cert: "code" },
   0x6404: { name: "loc_6404", role: "two-pass actor collision driver: guarded by PLAY_MODE_LATCH/ROUND_COUNTER bit0, scans the actor record twice (selector 0 then 4), aborting on a collision (the terminator skip inside the scan unwinds this frame)", cert: "code" },

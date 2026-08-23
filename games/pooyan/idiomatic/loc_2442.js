@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_250f } from "./loc_250f.js";
-import { loc_0fad } from "./loc_0fad.js";
+import { queueSoundRun26 } from "./queueSoundRun26.js";
 import {
   TAMPER_STRIKES_SLOTSWEEP,
   TAMPER_STRIKES_ROM,
@@ -37,5 +37,5 @@ export function loc_2442(m, rec = m.regs.ix) {
   loc_250f(m, SHAPE_TABLE_26BD, rec); // load the shape table into the actor records
 
   if (mem8[WAVE_TEARDOWN_STATE] !== 0) return;
-  loc_0fad(m); // queue the state's tile-run sound
+  queueSoundRun26(m); // queue the state's tile-run sound
 }

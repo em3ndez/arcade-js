@@ -3,7 +3,7 @@
  * Memory-equivalence test for loc_6505 (ROM 0x6505, Pooyan) — the rst-0x28 dispatch handler (index
  * 0). It seeds the shared frame-delay timer (0x1c) and the blink-phase cell (0x08), walks three
  * object records backward one 0x18 step per pass — seating each with the object-record seeder
- * (loc_6523) and bumping its (IX+2) phase — then emits the tile-command run (loc_0f88).
+ * (loc_6523) and bumping its (IX+2) phase — then emits the tile-command run (queueSound82ThenRun1C).
  *
  * Cycle-free memory-equivalence gate: a FRESH clone per side (the routine writes RAM), compared on
  * RAM (dumpState, minus STACK_SCRATCH — the oracle's exx-guarded call trampolines push there) PLUS

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0e64 (ROM 0x0e64, Pooyan) — "drain one sound-ring entry":
+ * Memory-equivalence test for drainSoundCommandRing (ROM 0x0e64, Pooyan) — "drain one sound-ring entry":
  * read the head slot; if empty (0xff) return; otherwise hand the byte to the audio CPU when
  * demo sounds are enabled (DEMO_SOUNDS_DSW bit 0) OR a game is active (GAME_ACTIVE_FLAG),
  * staying silent only when both are clear; then free the slot to 0xff and advance the head
  * index (0x5e wraps to 0x43).
  *
  * This is the CYCLE-FREE / memory-equivalence gate. The routine WRITES work RAM (the ring),
- * so every case runs the oracle on one fresh clone and loc_0e64 on another, compared on the
+ * so every case runs the oracle on one fresh clone and drainSoundCommandRing on another, compared on the
  * go-forward contract: RAM (dumpState, minus STACK_SCRATCH). There is NO register live-out —
  * both callers drop the registers (loc_066d reloads, loc_6e59 returns) — so no register is
  * compared. The dispatch DECISION, however, is invisible in dumpState (a sound command goes
@@ -16,7 +16,7 @@
  * with the SAME io.soundData (sentinel = suppressed, entry byte = dispatched).
  *
  * Jobs:
- *   1. EQUAL — over empty/dispatch/suppress/wrap cases, oracle == loc_0e64 in RAM(−stack)
+ *   1. EQUAL — over empty/dispatch/suppress/wrap cases, oracle == drainSoundCommandRing in RAM(−stack)
  *      AND in io.soundData (the dispatch decision), derived from the oracle clone.
  *   2. WRITE-SET — a non-empty entry writes only the freed slot + the head-index cell.
  *   3. TEETH — a wrong freed-slot byte is caught by the RAM diff, and a wrong dispatch
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0e64 as oracle } from "../../translated/loc_0e64.js";
-import { loc_0e64 } from "../loc_0e64.js";
+import { drainSoundCommandRing } from "../drainSoundCommandRing.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -88,12 +88,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: oracle == loc_0e64 in RAM(−stack) + io.soundData (dispatch decision)", () => {
+test("EQUAL: oracle == drainSoundCommandRing in RAM(−stack) + io.soundData (dispatch decision)", () => {
   for (const cs of CASES) {
     const o = craft(cs);
     const c = craft(cs);
     oracle(o);
-    loc_0e64(c);
+    drainSoundCommandRing(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b} (head=${hx(cs.head)} entry=${hx(cs.entry)})`);
@@ -137,7 +137,7 @@ test("TEETH: a wrong freed-slot byte is caught by the RAM diff", () => {
   const o = craft(cs);
   const c = craft(cs);
   oracle(o);
-  loc_0e64(c);
+  drainSoundCommandRing(c);
   c.mem.write8(slot, 0x00); // BUG: freed slot must be 0xff, not 0x00
 
   const d = ramDiffMinusStack(o, c);
@@ -151,7 +151,7 @@ test("TEETH: a wrong dispatch decision is caught by the io.soundData check", () 
   const o = craft(cs);
   const c = craft(cs);
   oracle(o);
-  loc_0e64(c);
+  drainSoundCommandRing(c);
   assert.equal(c.io.soundData, o.io.soundData, "sanity: module suppressed exactly as the oracle did");
   assert.equal(o.io.soundData, SND_SENTINEL, "sanity: the oracle left the sentinel (nothing dispatched)");
   c.io.soundData = cs.entry; // BUG: pretend the byte was dispatched

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0e00 (ROM 0x0e00) — "reset the actor/sprite state for a new
+ * Memory-equivalence test for resetActorStateForBoard (ROM 0x0e00) — "reset the actor/sprite state for a new
  * board": memset 0xbf bytes at 0x8900, clear loose flags, seed each player's bank from the cabinet
  * DSWs (lives 0x8807, colour 0x8820, opening X 0x20), arm the tile fill (call 0x02e3), and — unless
  * the in-play gate 0x8806 is clear — clear the launch flags.
@@ -11,11 +11,11 @@
  * — a divergence in a register no caller reads (see notes). A is checked against the oracle clone and
  * the module's own clone must SET it.
  *
- * loc_0e00 takes no register inputs; its only inputs are three memory cells. Cases are CRAFTED to
+ * resetActorStateForBoard takes no register inputs; its only inputs are three memory cells. Cases are CRAFTED to
  * exercise both the in-play (full) and idle (early-return) exits with distinct DSW values.
  *
  * Jobs:
- *   1. EQUAL (crafted) — in-play and idle, each with distinct lives/colour: oracle == loc_0e00 in
+ *   1. EQUAL (crafted) — in-play and idle, each with distinct lives/colour: oracle == resetActorStateForBoard in
  *      RAM (−stack) and A, and the module SETS A.
  *   2. WRITE-SET — every changed cell (minus stack) falls in the reset footprint, and the seed cells,
  *      tile-fill cells, and launch flags hold their expected values.
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0e00 as oracle } from "../../translated/loc_0e00.js";
-import { loc_0e00 } from "../loc_0e00.js";
+import { resetActorStateForBoard } from "../resetActorStateForBoard.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -78,14 +78,14 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted in-play/idle cases — loc_0e00 == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted in-play/idle cases — resetActorStateForBoard == oracle in RAM (−stack) + A", () => {
   for (const cs of CASES) {
     const o = craft(cs);
     oracle(o);
 
     const c = craft(cs);
     c.regs.a = 0xff; // sentinel: a module that never sets A fails
-    const ret = loc_0e00(c);
+    const ret = resetActorStateForBoard(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (${JSON.stringify(cs)})`);
@@ -132,7 +132,7 @@ test("TEETH: a wrong seeded lives byte is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[0]);
   const c = craft(CASES[0]);
   oracle(o);
-  loc_0e00(c);
+  resetActorStateForBoard(c);
   c.mem.write8(P0_LIVES, 0x07); // BUG: wrong lives seed
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong lives seed — it is worthless");

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f1d (ROM 0x0f1d) — "append the fixed byte 0x0f into the text
- * ring": load A=0x0f then tail-jr into the ring-append helper loc_0ea2, whose ret returns to our
+ * Memory-equivalence test for queueSoundCommand0F (ROM 0x0f1d) — "append the fixed byte 0x0f into the text
+ * ring": load A=0x0f then tail-jr into the ring-append helper appendSoundCommandGated, whose ret returns to our
  * caller.
  *
  * Cycle-free memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
@@ -12,7 +12,7 @@
  *
  * Jobs:
  *   1. EQUAL (crafted) — gate-open (valid cursor, incl. the last-slot wrap) and gate-closed:
- *      oracle == loc_0f1d in RAM (−stack) and in A, and the module SETS A.
+ *      oracle == queueSoundCommand0F in RAM (−stack) and in A, and the module SETS A.
  *   2. WRITE-SET — gate-open writes exactly the pending-byte cell, the ring slot, and the cursor;
  *      gate-closed writes only the pending-byte cell.
  *   3. TEETH — a twin that stashes the WRONG byte is caught in RAM; a twin that returns the WRONG
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f1d as oracle } from "../../translated/loc_0f1d.js";
-import { loc_0f1d } from "../loc_0f1d.js";
+import { queueSoundCommand0F } from "../queueSoundCommand0F.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -34,7 +34,7 @@ import {
   GAME_ACTIVE_FLAG,
   PLAY_MODE_LATCH,
   SOUND_RING_WRITE_PTR,
-  TEXT_RING_PENDING_BYTE,
+  SOUND_RING_PENDING_BYTE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -44,7 +44,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const RING_BYTE = 0x0f; // the fixed byte loc_0f1d appends
+const RING_BYTE = 0x0f; // the fixed byte queueSoundCommand0F appends
 const RING_PAGE = SOUND_RING_WRITE_PTR & 0xff00; // page the ring lives in
 const RING_LAST = 0x5e; // last cursor slot before wrap
 const RING_FIRST = 0x43; // wrap target
@@ -75,14 +75,14 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/cursor cases — loc_0f1d == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted gate/cursor cases — queueSoundCommand0F == oracle in RAM (−stack) + A", () => {
   for (const cs of CASES) {
     const o = craft(cs);
     oracle(o);
 
     const c = craft(cs);
     c.regs.a = (o.regs.a ^ 0xff) & 0xff; // sentinel: a module that never sets A fails
-    const ret = loc_0f1d(c);
+    const ret = queueSoundCommand0F(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (${JSON.stringify(cs)})`);
@@ -101,10 +101,10 @@ test("WRITE-SET: gate-open writes pending byte + ring slot + cursor; gate-closed
   const a1 = open.dumpState();
   const changed = new Set();
   for (let off = 0; off < b0.length; off++) if (b0[off] !== a1[off]) changed.add(open.stateOffsetToAddr(off));
-  assert.ok(changed.has(TEXT_RING_PENDING_BYTE), "pending byte written");
+  assert.ok(changed.has(SOUND_RING_PENDING_BYTE), "pending byte written");
   assert.ok(changed.has(RING_PAGE + 0x50), "ring slot written");
   assert.ok(changed.has(SOUND_RING_WRITE_PTR), "cursor advanced");
-  assert.equal(open.mem.read8(TEXT_RING_PENDING_BYTE), RING_BYTE, "pending byte := 0x0f");
+  assert.equal(open.mem.read8(SOUND_RING_PENDING_BYTE), RING_BYTE, "pending byte := 0x0f");
   assert.equal(open.mem.read8(RING_PAGE + 0x50), RING_BYTE, "slot := 0x0f");
   assert.equal(open.mem.read8(SOUND_RING_WRITE_PTR), 0x51, "cursor := 0x51");
 
@@ -114,7 +114,7 @@ test("WRITE-SET: gate-open writes pending byte + ring slot + cursor; gate-closed
   const s1 = shut.dumpState();
   const shutChanged = [];
   for (let off = 0; off < s0.length; off++) if (s0[off] !== s1[off]) shutChanged.push(shut.stateOffsetToAddr(off));
-  assert.deepEqual(shutChanged, [TEXT_RING_PENDING_BYTE], "gate-closed writes only the pending byte");
+  assert.deepEqual(shutChanged, [SOUND_RING_PENDING_BYTE], "gate-closed writes only the pending byte");
   console.log("  WRITE-SET: open=3 cells, closed=1 cell");
 });
 
@@ -124,11 +124,11 @@ test("TEETH: a wrong stashed byte is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[0]);
   const c = craft(CASES[0]);
   oracle(o);
-  loc_0f1d(c);
-  c.mem.write8(TEXT_RING_PENDING_BYTE, (RING_BYTE ^ 0x01) & 0xff); // BUG: wrong stashed byte
+  queueSoundCommand0F(c);
+  c.mem.write8(SOUND_RING_PENDING_BYTE, (RING_BYTE ^ 0x01) & 0xff); // BUG: wrong stashed byte
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stashed byte — it is worthless");
-  assert.equal(d.addr, TEXT_RING_PENDING_BYTE, `teeth caught wrong address ${hx(d.addr ?? 0)}`);
+  assert.equal(d.addr, SOUND_RING_PENDING_BYTE, `teeth caught wrong address ${hx(d.addr ?? 0)}`);
   console.log(`  TEETH(RAM): wrong stashed byte caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 

@@ -7,7 +7,7 @@
  * Otherwise it column-sums two 14-tile video-RAM strips (0x82bc and 0x86bc, walking up stride 0x20)
  * into a 16-bit accumulator and requires the total to be exactly 0x014f (E=0x4f, D=1); any other
  * total is a hard integrity trap (the oracle jumps to 0x43e1 / 0x462c, modelled as a throw). On a
- * clean sum it advances the selector 0x8921 to state 2 and enqueues two sound commands (loc_0fb2).
+ * clean sum it advances the selector 0x8921 to state 2 and enqueues two sound commands (queueSoundCommands27And15).
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM (and delegates to already-gated
  * leaves), so every case uses a FRESH clone per side. Contract: RAM (dumpState minus STACK_SCRATCH)

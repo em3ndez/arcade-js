@@ -2,7 +2,7 @@
 import { u16 } from "../../../core/int.js";
 import { initActorRecord } from "./initActorRecord.js";
 import { loc_611f } from "./loc_611f.js";
-import { loc_0f01 } from "./loc_0f01.js";
+import { queueSoundCommand09 } from "./queueSoundCommand09.js";
 import {
   ENEMY_ACTOR_TABLE,
   ACTIVE_OBJECT_TYPE,
@@ -46,7 +46,7 @@ export function loc_60bc(m, hl = m.regs.hl, key = m.regs.a, ireg = m.regs.i) {
       const target = ireg !== 0 ? ENEMY_TARGET_REC1 : ENEMY_TARGET_REC0;
       mem8[u16(target + 0x01)] = 0x01;
       mem8[u16(target + 0x07)] = 0x01;
-      loc_0f01(m); // enqueue the fixed sound command
+      queueSoundCommand09(m); // enqueue the fixed sound command
       return false; // skip path: abort the caller's frame
     }
     break; // matched but not engaged -> main path

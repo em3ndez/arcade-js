@@ -5,15 +5,15 @@
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
  * oracle on one and loc_3680 on the other, compared on RAM (dumpState, minus STACK_SCRATCH). The
  * routine's effect is memory: the spawn counters, the seeded template fields, the attribute byte
- * built by loc_36de and the slot fields laid by the loc_379d tail (which itself tails loc_0ee3);
+ * built by loc_36de and the slot fields laid by the loc_379d tail (which itself tails queueSoundCommand04IfNotBusy);
  * pc/SP/cycles are not compared. On the table-full path it writes nothing.
  *
  * INPUTS: IY (scan-window base), DE (stride), B (slot count), IX (template). Reads the scanned
  * slots' +0/+1 pair, the template's +7 (bit1 anim select, bit2 lane-counter arm) and the fields the
  * tail chain consumes, plus the spawn counters and the ROM tables the real ROM supplies both sides.
  *
- * The window (0x8b70) and template (0x8b00) are isolated work RAM; the tail's loc_0ee3 writes land
- * on the page-0x8a sound ring (covered by loc_0ee3's own gate). The leaf is not reached in a plain
+ * The window (0x8b70) and template (0x8b00) are isolated work RAM; the tail's queueSoundCommand04IfNotBusy writes land
+ * on the page-0x8a sound ring (covered by queueSoundCommand04IfNotBusy's own gate). The leaf is not reached in a plain
  * boot, so every case is CRAFTED: the registers, the slot pairs and the cells are poked both sides.
  *
  * Jobs:

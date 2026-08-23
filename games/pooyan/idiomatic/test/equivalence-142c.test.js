@@ -10,12 +10,12 @@
  * SPEED_INDEX (0x8900), ROUND_COUNTER (0x8907), the inline ROM speed table at 0x148e (via the
  * rst-0x20 lookup), and the parent's position bytes at IX+3/4/5/6.
  *
- * LIVE-OUT A: loc_142c tail-jumps to loc_0ee3 (the spawn-sound enqueue), whose A becomes this
+ * LIVE-OUT A: loc_142c tail-jumps to queueSoundCommand04IfNotBusy (the spawn-sound enqueue), whose A becomes this
  * routine's result. It is checked equal to the oracle and asserted SET on the module's clone.
  *
  * The child record (0x8b40), the parent (0x8b00) and the two gameplay cells are isolated work RAM;
- * loc_0ee3's own writes land on the page-0x8a sound ring, which the WRITE-SET job treats as the
- * callee's domain (covered by loc_0ee3's own gate). The leaf is not reached in a plain boot, so
+ * queueSoundCommand04IfNotBusy's own writes land on the page-0x8a sound ring, which the WRITE-SET job treats as the
+ * callee's domain (covered by queueSoundCommand04IfNotBusy's own gate). The leaf is not reached in a plain boot, so
  * every case is CRAFTED: IX/IY/C and the input cells are poked identically on both clones.
  *
  * Jobs:
@@ -94,7 +94,7 @@ test("EQUAL: crafted spawn cases — loc_142c == oracle in RAM (−stack) + A", 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret & 0xff, o.regs.a & 0xff, `[${spec.name}] A return mismatch`);
-    // SIDE-EFFECT arm: the module must SET A on its own clone (loc_0ee3 return-assignment bridge).
+    // SIDE-EFFECT arm: the module must SET A on its own clone (queueSoundCommand04IfNotBusy return-assignment bridge).
     assert.equal(c.regs.a & 0xff, o.regs.a & 0xff, `[${spec.name}] module must SET A`);
   }
   console.log(`  EQUAL: ${CASES.length} crafted spawn cases identical (RAM −stack + A)`);
@@ -103,9 +103,9 @@ test("EQUAL: crafted spawn cases — loc_142c == oracle in RAM (−stack) + A", 
 // -- 2. WRITE-SET -------------------------------------------------------------
 
 test("WRITE-SET: the child record fields + parent+0x0a hold the contract values", () => {
-  // loc_142c's own footprint is the child record + parent+0x0a; the tail call to loc_0ee3 adds
+  // loc_142c's own footprint is the child record + parent+0x0a; the tail call to queueSoundCommand04IfNotBusy adds
   // the sound-ring cells (0x8d20 pending byte, 0x8a40 write ptr, ring slot), documented by
-  // loc_0ee3's own gate. EQUAL already proves the module writes NO stray cell; here we pin the
+  // queueSoundCommand04IfNotBusy's own gate. EQUAL already proves the module writes NO stray cell; here we pin the
   // exact contract VALUES loc_142c lays into the record.
   const spec = CASES[0];
   const m = craft(spec);

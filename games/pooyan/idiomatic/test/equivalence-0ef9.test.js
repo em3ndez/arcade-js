@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0ef9 (ROM 0x0ef9) — "append the fixed byte 0x07 into the
+ * Memory-equivalence test for queueSoundCommand07 (ROM 0x0ef9) — "append the fixed byte 0x07 into the
  * command ring". The routine loads the constant append value and tail-jumps into the ring
  * appender, so its whole effect is the appender's: it stashes the byte at the pending cell,
  * and — only while the game is active OR the play-mode latch is set — writes the byte into the
  * ring page at the current cursor and advances that cursor (wrapping the last slot to the first).
  *
  * This is the cycle-free / memory-equivalence gate. The routine writes work RAM, so every case
- * uses a FRESH clone per side; the oracle runs on one clone, loc_0ef9 on another, and they are
+ * uses a FRESH clone per side; the oracle runs on one clone, queueSoundCommand07 on another, and they are
  * compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH) + the declared register live-out (A).
@@ -21,7 +21,7 @@
  * inputs (the two gate cells and the ring cursor) are poked identically on both sides.
  *
  * Jobs:
- *   1. EQUAL — over gate/cursor combinations, oracle == loc_0ef9 in RAM (−stack) and in A,
+ *   1. EQUAL — over gate/cursor combinations, oracle == queueSoundCommand07 in RAM (−stack) and in A,
  *      and the module SET A on its own clone.
  *   2. WRITE-SET — the gates-open append touches exactly the pending byte, the ring slot, and
  *      the cursor cell.
@@ -37,14 +37,14 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0ef9 as oracle } from "../../translated/loc_0ef9.js";
-import { loc_0ef9 } from "../loc_0ef9.js";
+import { queueSoundCommand07 } from "../queueSoundCommand07.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   GAME_ACTIVE_FLAG,
   PLAY_MODE_LATCH,
   SOUND_RING_WRITE_PTR,
-  TEXT_RING_PENDING_BYTE,
+  SOUND_RING_PENDING_BYTE,
   STACK_SCRATCH,
 } from "../names.js";
 
@@ -90,12 +90,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/cursor — loc_0ef9 == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted gate/cursor — queueSoundCommand07 == oracle in RAM (−stack) + A", () => {
   for (const c0 of CASES) {
     const o = craft(c0);
     const c = craft(c0);
     oracle(o);
-    const ret = loc_0ef9(c);
+    const ret = queueSoundCommand07(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b} (${JSON.stringify(c0)})`);
@@ -114,7 +114,7 @@ test("WRITE-SET: a gates-open append touches the pending byte, the ring slot, an
   const slot = RING_PAGE + cursor;
   const o = craft({ active: 1, playMode: 0, cursor });
   // Pre-dirty the two byte-writes so both definitely change (the cursor itself always advances).
-  o.mem.write8(TEXT_RING_PENDING_BYTE, 0xaa);
+  o.mem.write8(SOUND_RING_PENDING_BYTE, 0xaa);
   o.mem.write8(slot, 0xaa);
   const before = o.dumpState();
   oracle(o);
@@ -126,10 +126,10 @@ test("WRITE-SET: a gates-open append touches the pending byte, the ring slot, an
   }
   const byAddr = new Map(changed.map((ch) => [ch.addr, ch.to]));
   assert.equal(changed.length, 3, `expected exactly 3 written cells, got ${changed.length}`);
-  assert.equal(byAddr.get(TEXT_RING_PENDING_BYTE), APPEND_TILE, "pending byte must be 0x07");
+  assert.equal(byAddr.get(SOUND_RING_PENDING_BYTE), APPEND_TILE, "pending byte must be 0x07");
   assert.equal(byAddr.get(slot), APPEND_TILE, "ring slot must be 0x07");
   assert.equal(byAddr.get(SOUND_RING_WRITE_PTR), (cursor + 1) & 0xff, "cursor must advance by one");
-  console.log(`  WRITE-SET: ${hx(TEXT_RING_PENDING_BYTE)}/${hx(slot)} := 0x07, cursor -> ${hx(cursor + 1)}`);
+  console.log(`  WRITE-SET: ${hx(SOUND_RING_PENDING_BYTE)}/${hx(slot)} := 0x07, cursor -> ${hx(cursor + 1)}`);
 });
 
 // -- 3. CRAFTED (wrap) --------------------------------------------------------
@@ -139,7 +139,7 @@ test("CRAFTED: a cursor at the last slot wraps the advance back to the first", (
   const o = craft(c0);
   const c = craft(c0);
   oracle(o);
-  const ret = loc_0ef9(c);
+  const ret = queueSoundCommand07(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
@@ -157,7 +157,7 @@ test("TEETH: a wrong appended byte is CAUGHT by the RAM diff", () => {
   const o = craft(c0);
   const c = craft(c0);
   oracle(o);
-  loc_0ef9(c);
+  queueSoundCommand07(c);
   c.mem.write8(slot, 0x00); // BUG: the appended byte must be 0x07, not 0x00
 
   const d = ramDiffMinusStack(o, c);
@@ -171,7 +171,7 @@ test("TEETH: a wrong returned A is CAUGHT by the live-out check", () => {
   const o = craft(c0);
   const c = craft(c0);
   oracle(o);
-  const ret = loc_0ef9(c);
+  const ret = queueSoundCommand07(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: the module's A matches the oracle");
   // an un-advanced return (the cursor as it was, 0x43) is a plausible bug the check must reject
   assert.notEqual(0x43, o.regs.a & 0xff, "the live-out check must reject an un-advanced A");

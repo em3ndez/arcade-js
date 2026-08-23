@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f92 (ROM 0x0f92, Pooyan) — "queue the phase-exhausted tile
- * run": supply the fixed lead tile 0x1d and tail into the four-tile run appender (loc_0fc3),
+ * Memory-equivalence test for queueSoundRun1D (ROM 0x0f92, Pooyan) — "queue the phase-exhausted tile
+ * run": supply the fixed lead tile 0x1d and tail into the four-tile run appender (appendSoundCommandRun),
  * which appends the lead then the three fixed tile codes 0x15/0x16/0x17 through the shared ring
- * helper (loc_0ea2). Each append stashes the byte and (only while a game is active OR the
+ * helper (appendSoundCommandGated). Each append stashes the byte and (only while a game is active OR the
  * play-mode latch is set) writes it into the page-0x8a command ring at the cursor, wrapping the
  * last slot (0x5e) back to the first (0x43).
  *
@@ -13,7 +13,7 @@
  * not consumed — compared here defensively (it always matches, so it cannot false-fail) to pin
  * the tail-call's result to the four-append value.
  *
- * loc_0f92 supplies its own lead tile, so nothing is seated but the two append gates
+ * queueSoundRun1D supplies its own lead tile, so nothing is seated but the two append gates
  * (GAME_ACTIVE_FLAG, PLAY_MODE_LATCH), the ring cursor (SOUND_RING_WRITE_PTR), the pending-byte
  * cell, and the ring window — all poked identically on both sides.
  *
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f92 as oracle } from "../../translated/loc_0f92.js";
-import { loc_0f92 } from "../loc_0f92.js";
+import { queueSoundRun1D } from "../queueSoundRun1D.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -47,7 +47,7 @@ const test = ROM_PRESENT
 const GAME_ACTIVE_FLAG = 0x8806;
 const PLAY_MODE_LATCH = 0x8f50;
 const SOUND_RING_WRITE_PTR = 0x8a40;
-const TEXT_RING_PENDING_BYTE = 0x8d20;
+const SOUND_RING_PENDING_BYTE = 0x8d20;
 const RING_PAGE = 0x8a00;
 const RING_FIRST = 0x43;
 const RING_LAST = 0x5e;
@@ -67,7 +67,7 @@ function craft(active, mode, cursor) {
   m.mem.write8(GAME_ACTIVE_FLAG, active);
   m.mem.write8(PLAY_MODE_LATCH, mode);
   m.mem.write8(SOUND_RING_WRITE_PTR, cursor);
-  m.mem.write8(TEXT_RING_PENDING_BYTE, 0x00);
+  m.mem.write8(SOUND_RING_PENDING_BYTE, 0x00);
   for (let c = RING_FIRST; c <= RING_LAST; c++) m.mem.write8(RING_PAGE + c, 0x00);
   m.regs.sp = 0x8ff0; // dead stack: the nested appends push/pop here
   return m;
@@ -83,12 +83,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/cursor cases — loc_0f92 == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted gate/cursor cases — queueSoundRun1D == oracle in RAM (−stack) + A", () => {
   for (const { name, active, mode, cursor } of CASES) {
     const o = craft(active, mode, cursor);
     const c = craft(active, mode, cursor);
     oracle(o);
-    const ret = loc_0f92(c);
+    const ret = queueSoundRun1D(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(c.regs.a & 0xff, o.regs.a & 0xff, `${name}: A mismatch`);
@@ -114,7 +114,7 @@ test("WRITE-SET: open writes {pending, four ring cells, cursor}; closed writes o
     }
   }
   const expected = [
-    TEXT_RING_PENDING_BYTE,
+    SOUND_RING_PENDING_BYTE,
     RING_PAGE + startCursor,
     RING_PAGE + startCursor + 1,
     RING_PAGE + startCursor + 2,
@@ -136,7 +136,7 @@ test("WRITE-SET: open writes {pending, four ring cells, cursor}; closed writes o
       shutChanged.push(addr);
     }
   }
-  assert.deepEqual(shutChanged, [TEXT_RING_PENDING_BYTE], `closed must write only the pending byte, got ${shutChanged.map(hx)}`);
+  assert.deepEqual(shutChanged, [SOUND_RING_PENDING_BYTE], `closed must write only the pending byte, got ${shutChanged.map(hx)}`);
   console.log("  WRITE-SET: open -> 6 cells, closed -> pending only");
 });
 
@@ -147,7 +147,7 @@ test("TEETH: a corrupted appended byte is CAUGHT by the RAM diff", () => {
   const o = craft(1, 0, cursor);
   const c = craft(1, 0, cursor);
   oracle(o);
-  loc_0f92(c);
+  queueSoundRun1D(c);
   const cell = RING_PAGE + nextCursor(nextCursor(cursor)); // the third appended byte's cell
   c.mem.write8(cell, c.mem.read8(cell) ^ 0xff); // BUG: corrupt one run byte
   const d = ramDiffMinusStack(o, c);
@@ -160,7 +160,7 @@ test("TEETH: a wrong A is CAUGHT by the live-out check", () => {
   const o = craft(1, 0, 0x50);
   const c = craft(1, 0, 0x50);
   oracle(o);
-  const ret = loc_0f92(c);
+  const ret = queueSoundRun1D(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A matches the oracle");
   const broken = (ret - 1) & 0xff; // one append short is a plausible bug the check must reject
   assert.notEqual(broken, o.regs.a & 0xff, "the A check must reject an under-advanced cursor");

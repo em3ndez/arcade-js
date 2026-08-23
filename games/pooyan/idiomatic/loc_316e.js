@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
-import { loc_0f1d } from "./loc_0f1d.js";
+import { queueSoundCommand0F } from "./queueSoundCommand0F.js";
 import { loc_323e } from "./loc_323e.js";
 import {
   FRAME_TIMER_BLOCK_BASE,
@@ -98,7 +98,7 @@ export function loc_316e(m) {
     if (step >= DIVE_TILE_LIMIT) {
       mem8[FRAME_TIMER_BLOCK_BASE] = step;
       mem8[FORMATION_STATE] = mem8[FORMATION_STATE] + 1;
-      loc_0f1d(m);
+      queueSoundCommand0F(m);
     }
   } else {
     // arm the dive once the hunter crosses the player position
@@ -108,7 +108,7 @@ export function loc_316e(m) {
       mem8[LAUNCH_SCRIPT_PTR] = 1;
       mem8[HUNTER_SCRIPT_PTR] = DIVE_SCRIPT_DATA;
       mem8[u16(HUNTER_SCRIPT_PTR + 1)] = DIVE_SCRIPT_DATA >> 8;
-      loc_0f1d(m);
+      queueSoundCommand0F(m);
     }
   }
 

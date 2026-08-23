@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f76 (ROM 0x0f76, Pooyan) — "draw the warning-siren tile run
+ * Memory-equivalence test for queueSirenSoundRun (ROM 0x0f76, Pooyan) — "draw the warning-siren tile run
  * while the siren gate is clear": when the siren-enable gate (0x8d68) is nonzero the routine does
  * nothing; otherwise it appends tile 0x1a + (round bit0) to the command ring, then appends the
  * completing four-tile run through the shared helper.
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f76 as oracle } from "../../translated/loc_0f76.js";
-import { loc_0f76 } from "../loc_0f76.js";
+import { queueSirenSoundRun } from "../queueSirenSoundRun.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -43,7 +43,7 @@ import {
   GAME_ACTIVE_FLAG,
   PLAY_MODE_LATCH,
   SOUND_RING_WRITE_PTR,
-  TEXT_RING_PENDING_BYTE,
+  SOUND_RING_PENDING_BYTE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -72,7 +72,7 @@ function craft(gate, round, active, mode, cursor) {
   m.mem.write8(GAME_ACTIVE_FLAG, active);
   m.mem.write8(PLAY_MODE_LATCH, mode);
   m.mem.write8(SOUND_RING_WRITE_PTR, cursor);
-  m.mem.write8(TEXT_RING_PENDING_BYTE, 0x00); // known start so WRITE-SET sees the stash
+  m.mem.write8(SOUND_RING_PENDING_BYTE, 0x00); // known start so WRITE-SET sees the stash
   for (let c = RING_FIRST; c <= RING_LAST; c++) m.mem.write8(RING_PAGE + c, 0x00);
   m.regs.a = 0x77; // sentinel: a module that fails to set A on the disabled path is caught
   m.regs.sp = 0x8ff0; // dead stack: the nested appends push/pop here
@@ -88,12 +88,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/round/cursor cases — loc_0f76 == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted gate/round/cursor cases — queueSirenSoundRun == oracle in RAM (−stack) + A", () => {
   for (const { name, gate, round, active, mode, cursor } of CASES) {
     const o = craft(gate, round, active, mode, cursor);
     const c = craft(gate, round, active, mode, cursor);
     oracle(o);
-    const ret = loc_0f76(c);
+    const ret = queueSirenSoundRun(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(c.regs.a & 0xff, o.regs.a & 0xff, `${name}: module must SET A to the oracle's exit A`);
@@ -118,7 +118,7 @@ test("WRITE-SET: draw+open writes {pending, five ring cells, cursor}; disabled w
     openSet.add(addr);
   }
   const expected = [
-    TEXT_RING_PENDING_BYTE,
+    SOUND_RING_PENDING_BYTE,
     RING_PAGE + startCursor,
     RING_PAGE + startCursor + 1,
     RING_PAGE + startCursor + 2,
@@ -151,7 +151,7 @@ test("TEETH: a corrupted appended ring byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x00, 0x01, 1, 0, cursor);
   const c = craft(0x00, 0x01, 1, 0, cursor);
   oracle(o);
-  loc_0f76(c);
+  queueSirenSoundRun(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   const cell = RING_PAGE + cursor + 2; // one of the run bytes
   c.mem.write8(cell, c.mem.read8(cell) ^ 0xff); // BUG: corrupt a run byte
@@ -165,7 +165,7 @@ test("TEETH: a wrong A live-out is CAUGHT by the live-out check", () => {
   const o = craft(0x09, 0x00, 1, 0, 0x50); // disabled: A = the gate byte
   const c = craft(0x09, 0x00, 1, 0, 0x50);
   oracle(o);
-  const ret = loc_0f76(c);
+  const ret = queueSirenSoundRun(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A matches the oracle");
   const broken = (ret ^ 0xff) & 0xff; // a plausible wrong A the === check must reject
   assert.notEqual(broken, o.regs.a & 0xff, "the A live-out check must reject a wrong A");

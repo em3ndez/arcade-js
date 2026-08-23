@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence test for loc_6931 (ROM 0x6931) — the per-record enemy spawn/init, a
  * DISSOLVED caller-skip that composes the idiomatic siblings setActorAnimation, loc_0038 and
- * loc_0f97.
+ * queueRoundSoundCommandRun.
  *
  * An already-active record pair takes the plain `ret c` (normal return, SP += 2) and the module
  * returns true (caller keeps sweeping). An empty pair is spawned; loc_6931 then FALLS INTO the

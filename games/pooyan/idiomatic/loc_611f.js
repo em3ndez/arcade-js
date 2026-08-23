@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { loc_613d } from "./loc_613d.js";
-import { loc_0ef1 } from "./loc_0ef1.js";
+import { queueSoundCommand05 } from "./queueSoundCommand05.js";
 import { ENEMY_ACTOR_TABLE, ACTIVE_OBJECT_TYPE } from "./names.js";
 /**
  * loc_611f — find the enemy actor record whose tag matches the key at HL+DE.
@@ -28,6 +28,6 @@ export function loc_611f(m, hl = m.regs.hl, de = m.regs.de) {
     rec = u16(rec + SCAN_STRIDE);
   }
   if (mem8[ACTIVE_OBJECT_TYPE] === OBJECT_TYPE_QUIET) return true; // no match, type already 3: continue
-  loc_0ef1(m); // no match: enqueue the fixed sound command
+  queueSoundCommand05(m); // no match: enqueue the fixed sound command
   return true; // normal continuation
 }

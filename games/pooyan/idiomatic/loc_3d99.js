@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_0c45 } from "./loc_0c45.js";
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_0ed6 } from "./loc_0ed6.js";
+import { queueSoundCommand02 } from "./queueSoundCommand02.js";
 import { ANIM_SEQ_TABLE_4076 } from "./names.js";
 /**
  * loc_3d99 — enter the record's turn/select animation state.
@@ -29,5 +29,5 @@ export function loc_3d99(m, rec = m.regs.ix) {
 
   mem8[rec + VELOCITY_FIELD] = ENTRY_VELOCITY;
   mem8[rec + STATE_FIELD] = ENTRY_STATE;
-  return loc_0ed6(m); // tail: enqueue the sound command
+  return queueSoundCommand02(m); // tail: enqueue the sound command
 }

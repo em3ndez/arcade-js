@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_0f44 } from "./loc_0f44.js";
+import { queueSoundCommand13 } from "./queueSoundCommand13.js";
 import { loc_0038 } from "./loc_0038.js";
 import {
   TARGET_GROUP_COUNT,
@@ -58,7 +58,7 @@ export function loc_6f9d(m, cReg = m.regs.c) {
   }
 
   if (mismatchAt < 0) {
-    loc_0f44(m);
+    queueSoundCommand13(m);
     loc_0038(m, DISPLAY_CMD_0627);
     return;
   }

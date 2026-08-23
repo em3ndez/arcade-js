@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0fa2 (Pooyan) — "emit the round-select tile run": fold two bits
+ * Memory-equivalence test for queueRoundVariantSoundRun (Pooyan) — "emit the round-select tile run": fold two bits
  * of the round counter into a 0..3 selector, bias it onto one of four consecutive tile codes, and
  * append that code plus the three fixed run bytes to the command ring.
  *
@@ -21,7 +21,7 @@
  * Jobs:
  *   1. EQUAL — round values selecting each of the four tile codes, gate open (via active or via the
  *      play-mode latch), a wrap-straddling append, high-bit masking, and a gate-closed case:
- *      loc_0fa2 == oracle in RAM (−stack) and in A.
+ *      queueRoundVariantSoundRun == oracle in RAM (−stack) and in A.
  *   2. WRITE-SET — a gate-open, no-wrap case writes {pending byte, four ring cells, cursor}; the first
  *      ring cell carries the round-derived code and the run tail is 0x15/0x16/0x17.
  *   3. TEETH — a corrupted appended byte (RAM), and a wrong A live-out, are each CAUGHT.
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0fa2 as oracle } from "../../translated/loc_0fa2.js";
-import { loc_0fa2 } from "../loc_0fa2.js";
+import { queueRoundVariantSoundRun } from "../queueRoundVariantSoundRun.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -43,7 +43,7 @@ import {
   GAME_ACTIVE_FLAG,
   PLAY_MODE_LATCH,
   SOUND_RING_WRITE_PTR,
-  TEXT_RING_PENDING_BYTE,
+  SOUND_RING_PENDING_BYTE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -77,7 +77,7 @@ function craft(round, active, mode, cursor) {
   m.mem.write8(GAME_ACTIVE_FLAG, active);
   m.mem.write8(PLAY_MODE_LATCH, mode);
   m.mem.write8(SOUND_RING_WRITE_PTR, cursor);
-  m.mem.write8(TEXT_RING_PENDING_BYTE, 0x00); // known start so WRITE-SET sees the stash
+  m.mem.write8(SOUND_RING_PENDING_BYTE, 0x00); // known start so WRITE-SET sees the stash
   for (let c = RING_FIRST; c <= RING_LAST; c++) m.mem.write8(RING_PAGE + c, 0x00);
   m.regs.sp = 0x8ff0; // dead stack: the four nested appends push/pop here
   return m;
@@ -94,12 +94,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted round/gate/cursor cases — loc_0fa2 == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted round/gate/cursor cases — queueRoundVariantSoundRun == oracle in RAM (−stack) + A", () => {
   for (const { name, round, active, mode, cursor } of CASES) {
     const o = craft(round, active, mode, cursor);
     const c = craft(round, active, mode, cursor);
     oracle(o);
-    const ret = loc_0fa2(c);
+    const ret = queueRoundVariantSoundRun(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(c.regs.a & 0xff, o.regs.a & 0xff, `${name}: A live-out mismatch`);
@@ -127,7 +127,7 @@ test("WRITE-SET: a gate-open no-wrap emit writes {pending, four ring cells, curs
     }
   }
   const expected = [
-    TEXT_RING_PENDING_BYTE,
+    SOUND_RING_PENDING_BYTE,
     RING_PAGE + cursor,
     RING_PAGE + cursor + 1,
     RING_PAGE + cursor + 2,
@@ -156,7 +156,7 @@ test("TEETH: a corrupted appended byte is CAUGHT by the RAM diff", () => {
   const o = craft(round, 1, 0, cursor);
   const c = craft(round, 1, 0, cursor);
   oracle(o);
-  loc_0fa2(c);
+  queueRoundVariantSoundRun(c);
   c.mem.write8(RING_PAGE + cursor, 0x00); // BUG: the emitted code byte must be 0x24, not 0x00
 
   const d = ramDiffMinusStack(o, c);
@@ -171,7 +171,7 @@ test("TEETH: a wrong A live-out is CAUGHT by the register check", () => {
   const o = craft(round, 1, 0, cursor);
   const c = craft(round, 1, 0, cursor);
   oracle(o);
-  const ret = loc_0fa2(c);
+  const ret = queueRoundVariantSoundRun(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: the module's A matches the oracle");
   c.regs.a = (o.regs.a + 1) & 0xff; // BUG: a wrong advanced cursor left in A
   assert.notEqual(c.regs.a & 0xff, o.regs.a & 0xff, "the A live-out check must reject a wrong cursor");

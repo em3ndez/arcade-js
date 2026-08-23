@@ -2,7 +2,7 @@
 import { u8 } from "../../../core/int.js";
 import { loc_6018 } from "./loc_6018.js";
 import { loc_613d } from "./loc_613d.js";
-import { loc_0f01 } from "./loc_0f01.js";
+import { queueSoundCommand09 } from "./queueSoundCommand09.js";
 import { FLIP_SCREEN_FLAG, loc_8d45, loc_8c91, loc_8ca9 } from "./names.js";
 /**
  * loc_5fa2 — one pass of the six-slot overlap scan: does the record at recPtr overlap the target box?
@@ -62,6 +62,6 @@ export function loc_5fa2(m, recPtr = m.regs.hl, posPtr = m.regs.ix, slots = m.re
   const cell = (target & 0xff) === TARGET_LOW_A ? loc_8c91 : loc_8ca9;
   mem8[cell] = 0x01;
   mem8[cell + STRUCK_PARTNER] = 0x01;
-  loc_0f01(m);
+  queueSoundCommand09(m);
   return false;
 }

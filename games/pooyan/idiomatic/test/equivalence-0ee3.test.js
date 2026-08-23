@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0ee3 (ROM 0x0ee3) — "conditionally enqueue command 0x04".
+ * Memory-equivalence test for queueSoundCommand04IfNotBusy (ROM 0x0ee3) — "conditionally enqueue command 0x04".
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): oracle and module run
  * on fresh clones and are compared on RAM (dumpState, minus STACK_SCRATCH) PLUS the declared
@@ -15,7 +15,7 @@
  * and the appender's cells are poked identically on both clones.
  *
  * Jobs:
- *   1. EQUAL — over crafted gate/appender states, oracle == loc_0ee3 in RAM (-stack) and A.
+ *   1. EQUAL — over crafted gate/appender states, oracle == queueSoundCommand04IfNotBusy in RAM (-stack) and A.
  *   2. WRITE-SET — a busy gate writes nothing; the enqueue path writes only the pending byte
  *      (both gates closed) or the pending byte + ring slot + write pointer (append).
  *   3. TEETH — a wrong appended ring byte is caught by the RAM diff; a wrong A is caught by
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0ee3 as oracle } from "../../translated/loc_0ee3.js";
-import { loc_0ee3 } from "../loc_0ee3.js";
+import { queueSoundCommand04IfNotBusy } from "../queueSoundCommand04IfNotBusy.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -39,7 +39,7 @@ import {
   GAME_ACTIVE_FLAG,
   PLAY_MODE_LATCH,
   SOUND_RING_WRITE_PTR,
-  TEXT_RING_PENDING_BYTE,
+  SOUND_RING_PENDING_BYTE,
 } from "../names.js";
 
 const RING_PAGE = 0x8a00; // the page-0x8a command ring the appender writes into
@@ -83,7 +83,7 @@ const CASES = [
     pokes: [
       [WAVE_TEARDOWN_STATE, 0x00], [GRAB_ACTIVE_FLAG, 0x00],
       [GAME_ACTIVE_FLAG, 0x00], [PLAY_MODE_LATCH, 0x00],
-      [TEXT_RING_PENDING_BYTE, 0x00],
+      [SOUND_RING_PENDING_BYTE, 0x00],
     ],
     expectA: 0x00,
   },
@@ -92,7 +92,7 @@ const CASES = [
     pokes: [
       [WAVE_TEARDOWN_STATE, 0x00], [GRAB_ACTIVE_FLAG, 0x00],
       [GAME_ACTIVE_FLAG, 0x01], [SOUND_RING_WRITE_PTR, 0x50],
-      [RING_PAGE + 0x50, 0x00], [TEXT_RING_PENDING_BYTE, 0x00],
+      [RING_PAGE + 0x50, 0x00], [SOUND_RING_PENDING_BYTE, 0x00],
     ],
     expectA: 0x51,
   },
@@ -101,7 +101,7 @@ const CASES = [
     pokes: [
       [WAVE_TEARDOWN_STATE, 0x00], [GRAB_ACTIVE_FLAG, 0x00],
       [GAME_ACTIVE_FLAG, 0x01], [SOUND_RING_WRITE_PTR, 0x5e],
-      [RING_PAGE + 0x5e, 0x00], [TEXT_RING_PENDING_BYTE, 0x00],
+      [RING_PAGE + 0x5e, 0x00], [SOUND_RING_PENDING_BYTE, 0x00],
     ],
     expectA: 0x43,
   },
@@ -109,12 +109,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/appender states — loc_0ee3 == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted gate/appender states — queueSoundCommand04IfNotBusy == oracle in RAM (−stack) + A", () => {
   for (const { name, pokes, expectA } of CASES) {
     const o = craft(pokes);
     const c = craft(pokes);
     oracle(o);
-    const ret = loc_0ee3(c);
+    const ret = queueSoundCommand04IfNotBusy(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b} (${name})`);
@@ -145,7 +145,7 @@ test("WRITE-SET: a busy gate writes nothing; the append path writes only pending
     const pokes = [
       [WAVE_TEARDOWN_STATE, 0x00], [GRAB_ACTIVE_FLAG, 0x00],
       [GAME_ACTIVE_FLAG, 0x01], [SOUND_RING_WRITE_PTR, 0x50],
-      [RING_PAGE + 0x50, 0x00], [TEXT_RING_PENDING_BYTE, 0x00],
+      [RING_PAGE + 0x50, 0x00], [SOUND_RING_PENDING_BYTE, 0x00],
     ];
     const before = craft(pokes);
     const after = craft(pokes);
@@ -154,7 +154,7 @@ test("WRITE-SET: a busy gate writes nothing; the append path writes only pending
     const a = after.dumpState();
     const changed = new Set();
     for (let off = 0; off < b.length; off++) if (b[off] !== a[off]) changed.add(after.stateOffsetToAddr(off));
-    const expected = new Set([TEXT_RING_PENDING_BYTE, RING_PAGE + 0x50, SOUND_RING_WRITE_PTR]);
+    const expected = new Set([SOUND_RING_PENDING_BYTE, RING_PAGE + 0x50, SOUND_RING_WRITE_PTR]);
     for (const addr of changed) assert.ok(expected.has(addr), `unexpected write at ${hx(addr)}`);
     assert.equal(after.mem8[RING_PAGE + 0x50], 0x04, "ring slot must hold command 0x04");
     assert.equal(after.mem8[SOUND_RING_WRITE_PTR], 0x51, "write pointer advanced");
@@ -168,12 +168,12 @@ test("TEETH: a wrong appended ring byte is CAUGHT by the RAM diff", () => {
   const pokes = [
     [WAVE_TEARDOWN_STATE, 0x00], [GRAB_ACTIVE_FLAG, 0x00],
     [GAME_ACTIVE_FLAG, 0x01], [SOUND_RING_WRITE_PTR, 0x50],
-    [RING_PAGE + 0x50, 0x00], [TEXT_RING_PENDING_BYTE, 0x00],
+    [RING_PAGE + 0x50, 0x00], [SOUND_RING_PENDING_BYTE, 0x00],
   ];
   const o = craft(pokes);
   const c = craft(pokes);
   oracle(o);
-  loc_0ee3(c);
+  queueSoundCommand04IfNotBusy(c);
   c.mem8[RING_PAGE + 0x50] = 0x00; // BUG: slot must hold 0x04
 
   const d = ramDiffMinusStack(o, c);
@@ -187,7 +187,7 @@ test("TEETH: a wrong A is CAUGHT by the live-out check", () => {
   const o = craft(pokes);
   const c = craft(pokes);
   oracle(o);
-  const ret = loc_0ee3(c);
+  const ret = queueSoundCommand04IfNotBusy(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A matches oracle");
   const broken = (o.regs.a ^ 0xff) & 0xff; // a wrong A the === check must reject
   assert.notEqual(broken, o.regs.a & 0xff, "the live-out check must reject a wrong A");

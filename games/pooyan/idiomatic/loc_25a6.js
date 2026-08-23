@@ -20,9 +20,9 @@ import {
   MARKER_RETRACT_GLYPH_SRC_ODD,
 } from "./names.js";
 import { loc_2d66 } from "./loc_2d66.js";
-import { loc_0f11 } from "./loc_0f11.js";
-import { loc_0f19 } from "./loc_0f19.js";
-import { loc_0f49 } from "./loc_0f49.js";
+import { queueSoundCommand0C } from "./queueSoundCommand0C.js";
+import { queueSoundCommand0E } from "./queueSoundCommand0E.js";
+import { queueSoundCommand14 } from "./queueSoundCommand14.js";
 import { blitTile3x3Block } from "./blitTile3x3Block.js";
 
 /**
@@ -75,7 +75,7 @@ export function loc_25a6(m) {
         mem8[u16(up + 1)] = BLANK;
         up = u16(up - ROW_STRIDE);
       }
-      loc_0f49(m); // queue the retract display command
+      queueSoundCommand14(m); // queue the retract display command
     }
     rows = MAX_ROWS;
   } else {
@@ -105,8 +105,8 @@ export function loc_25a6(m) {
       mem16[MARKER_LAYOUT_PTR] = grown;
       mem8[u16(grown + ROW_STRIDE)] = PULSE;
       mem8[u16(grown + ROW_STRIDE + 1)] = PULSE;
-      loc_0f19(m); // queue the two extend display commands
-      loc_0f11(m);
+      queueSoundCommand0E(m); // queue the two extend display commands
+      queueSoundCommand0C(m);
     }
   }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0f05 } from "./loc_0f05.js";
+import { queueSoundCommand0A } from "./queueSoundCommand0A.js";
 import { blit2x2TileBlock } from "./blit2x2TileBlock.js";
 import {
   ARROW_Y,
@@ -57,7 +57,7 @@ export function loc_27f3(m) {
 
   mem8[LAUNCH_STATE] = HUNTER_STATE;
   mem8[free] = HUNTER_STATE;
-  loc_0f05(m);
+  queueSoundCommand0A(m);
   blit2x2TileBlock(m, LAUNCH_TILE_VRAM, LAUNCH_TILE_SRC_ALT);
   if ((mem8[PLAY_MODE_LATCH] | mem8[LAUNCH_ARMED_FLAG]) !== 0) mem8[LAUNCH_HUD_TILE] = HUD_TILE;
   mem8[loc_8a99] = 0x01;

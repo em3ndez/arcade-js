@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0fbc (ROM 0x0fbc, Pooyan) — "append four text tiles": append
+ * Memory-equivalence test for queueSoundRun28 (ROM 0x0fbc, Pooyan) — "append four text tiles": append
  * 0x28, 0x15, 0x16, 0x17 one at a time into the text ring via the append helper. Each append
  * stashes the byte at the pending cell 0x8d20, and — only while a game is active (0x8806) OR the
  * play-mode latch (0x8f50) is set — writes it at RING_BASE + cursor (cursor = 0x8a40) and steps
- * the cursor, wrapping 0x5e -> 0x43. The final append is a tail call; its result is loc_0fbc's.
+ * the cursor, wrapping 0x5e -> 0x43. The final append is a tail call; its result is queueSoundRun28's.
  *
  * Cycle-free gate: a fresh clone per side, compared on RAM (dumpState) minus STACK_SCRATCH PLUS
  * the register live-out A. A is a GENUINE live-out here: the tail append leaves the advanced
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0fbc as oracle } from "../../translated/loc_0fbc.js";
-import { loc_0fbc } from "../loc_0fbc.js";
+import { queueSoundRun28 } from "../queueSoundRun28.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -77,12 +77,12 @@ const CURSORS = [CURSOR_FIRST, 0x5b, 0x5c];
 
 // -- 1. EQUAL (gates open) ----------------------------------------------------
 
-test("EQUAL(open): crafted cursors — loc_0fbc == oracle in RAM (−stack) + A live-out", () => {
+test("EQUAL(open): crafted cursors — queueSoundRun28 == oracle in RAM (−stack) + A live-out", () => {
   for (const cursor of CURSORS) {
     const o = craft(cursor, true);
     const c = craft(cursor, true);
     oracle(o);
-    const ret = loc_0fbc(c);
+    const ret = queueSoundRun28(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `cursor=${hx(cursor)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret & 0xff, o.regs.a & 0xff, `A return mismatch for cursor=${hx(cursor)}`);
@@ -99,7 +99,7 @@ test("EQUAL(shut): gates closed — no ring writes, only the pending cell, A == 
   const o = craft(CURSOR_FIRST, false);
   const c = craft(CURSOR_FIRST, false);
   oracle(o);
-  const ret = loc_0fbc(c);
+  const ret = queueSoundRun28(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assert.equal(ret & 0xff, 0, "gates shut -> A == 0");
@@ -142,7 +142,7 @@ test("TEETH: a wrong appended byte is CAUGHT by the RAM diff", () => {
   const o = craft(cursor, true);
   const c = craft(cursor, true);
   oracle(o);
-  loc_0fbc(c);
+  queueSoundRun28(c);
   c.mem.write8(slot0, 0x00); // BUG: first appended tile must be 0x28
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong appended byte — it is worthless");
@@ -155,7 +155,7 @@ test("TEETH: a wrong final cursor is CAUGHT by the RAM diff", () => {
   const o = craft(cursor, true);
   const c = craft(cursor, true);
   oracle(o);
-  loc_0fbc(c);
+  queueSoundRun28(c);
   c.mem.write8(RING_CURSOR, (cursor + TILES.length) & 0xff); // BUG: must wrap, not run past 0x5e
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong final cursor — it is worthless");
@@ -168,7 +168,7 @@ test("TEETH: a wrong returned A is CAUGHT by the live-out check", () => {
   const o = craft(cursor, true);
   const c = craft(cursor, true);
   oracle(o);
-  const ret = loc_0fbc(c);
+  const ret = queueSoundRun28(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A matches oracle A");
   // one tile short (three appends' worth of advance) is a plausible bug the === must reject
   assert.notEqual((cursor + TILES.length - 1) & 0xff, o.regs.a & 0xff, "the live-out check must reject an under-advanced A");

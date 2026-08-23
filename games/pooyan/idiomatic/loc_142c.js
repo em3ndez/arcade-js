@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_0020 } from "./loc_0020.js";
-import { loc_0ee3 } from "./loc_0ee3.js";
+import { queueSoundCommand04IfNotBusy } from "./queueSoundCommand04IfNotBusy.js";
 import { SPEED_INDEX, ROUND_COUNTER, ENEMY_SPEED_TABLE, ANIM_SEQ_38CB } from "./names.js";
 /**
  * loc_142c — spawn and initialise a child actor record (at IY) from its parent (at IX). Seeds
@@ -49,5 +49,5 @@ export function loc_142c(m, parent = m.regs.ix, child = m.regs.iy, c = m.regs.c)
   mem8[child + 0x0d] = (ANIM_SEQ_38CB >> 8); // ...high byte
   mem8[child + 0x11] = SPAWN_TIMER;
 
-  return loc_0ee3(m); // tail: conditionally enqueue the spawn sound; A is its result
+  return queueSoundCommand04IfNotBusy(m); // tail: conditionally enqueue the spawn sound; A is its result
 }

@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence test for loc_6905 (ROM 0x6905) — the delay-gated enemy spawn sweep, the
  * CALLER that composes the real idiomatic caller-skip loc_6931 (which itself composes
- * setActorAnimation, loc_0038 and loc_0f97).
+ * setActorAnimation, loc_0038 and queueRoundSoundCommandRun).
  *
  * loc_6905 gates on the shared frame-delay timer, then on the wave-arrival / wave-limit checks,
  * then walks eight enemy/state record pairs, spawning into the FIRST empty one and stopping —

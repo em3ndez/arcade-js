@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f97 (ROM 0x0f97) — the round-derived command-run trampoline.
+ * Memory-equivalence test for queueRoundSoundCommandRun (ROM 0x0f97) — the round-derived command-run trampoline.
  *
- * loc_0f97 reads the round counter, selects one of four command bytes (counter bits 1..2 biased by
- * the command base 0x1e), and tail-delegates to the shared command-ring appender loc_0fc3, which
+ * queueRoundSoundCommandRun reads the round counter, selects one of four command bytes (counter bits 1..2 biased by
+ * the command base 0x1e), and tail-delegates to the shared command-ring appender appendSoundCommandRun, which
  * lays down that byte plus its fixed three-tile tail. It is a pure tail hand-off, so the contract is:
  *
  *     RAM (dumpState, minus STACK_SCRATCH)  +  regs.a (the advanced ring cursor).
@@ -11,16 +11,16 @@
  * regs.a is a DEFENSIVE arm: the frozen caller (loc_6931) discards A via pop af, so memory carries
  * the real teeth — but A matches the oracle and asserting it can never false-fail.
  *
- * pc/SP/cycles are NOT compared. The append gate (loc_0ea2) is opened via GAME_ACTIVE_FLAG so the
+ * pc/SP/cycles are NOT compared. The append gate (appendSoundCommandGated) is opened via GAME_ACTIVE_FLAG so the
  * command byte actually lands in the ring page — otherwise the byte never survives (each append
- * re-stashes TEXT_RING_PENDING_BYTE, the fourth tile wins) and a wrong command would go unseen. The
+ * re-stashes SOUND_RING_PENDING_BYTE, the fourth tile wins) and a wrong command would go unseen. The
  * ring cursor is seated at the first slot so the four appends land in known ring cells. Both sides
  * run on identical clones, so any deterministic appender effect matches; the test verifies the
  * COMMAND DERIVATION (rrca+&3 == (v>>1)&3, +0x1e) and that it reaches the appender.
  *
  * Jobs:
  *   1. EQUAL — over a round-counter sweep hitting all four command bytes (and high-bit values the
- *      mask must ignore), oracle == loc_0f97 in RAM (−stack) and in the returned cursor.
+ *      mask must ignore), oracle == queueRoundSoundCommandRun in RAM (−stack) and in the returned cursor.
  *   2. TEETH — a wrong written byte MUST be caught by the RAM diff; a WRONG COMMAND CONSTANT
  *      (the appender fed base+1 instead of base) MUST diverge from the oracle at the command slot.
  *
@@ -32,8 +32,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f97 as oracle } from "../../translated/loc_0f97.js";
-import { loc_0f97 } from "../loc_0f97.js";
-import { loc_0fc3 } from "../loc_0fc3.js";
+import { queueRoundSoundCommandRun } from "../queueRoundSoundCommandRun.js";
+import { appendSoundCommandRun } from "../appendSoundCommandRun.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -77,18 +77,18 @@ const SWEEP = [0x00, 0x02, 0x04, 0x06, 0x08, 0x0d, 0x33, 0xff];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: round sweep — loc_0f97 == oracle in RAM (−stack) and the regs.a cursor live-out", () => {
+test("EQUAL: round sweep — queueRoundSoundCommandRun == oracle in RAM (−stack) and the regs.a cursor live-out", () => {
   for (const round of SWEEP) {
     const o = craft(round);
     const c = craft(round);
     oracle(o);
-    loc_0f97(c);
+    queueRoundSoundCommandRun(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (round ${hx(round)})`);
     // LIVE-OUT is the register A (the ring cursor), read by the frozen caller. The JS return differs by
     // construction — the translated tail (m.call->m.ret) returns undefined, the idiomatic module
-    // propagates loc_0fc3's return-assignment — but both leave regs.a identical, which is the contract.
+    // propagates appendSoundCommandRun's return-assignment — but both leave regs.a identical, which is the contract.
     assert.equal(c.regs.a, o.regs.a, `regs.a cursor live-out mismatch (round ${hx(round)}): oracle=${o.regs.a} idiom=${c.regs.a}`);
   }
   console.log(`  EQUAL: ${SWEEP.length} round values identical (RAM −stack + regs.a cursor live-out)`);
@@ -98,7 +98,7 @@ test("TEETH: a wrong regs.a cursor live-out is CAUGHT", () => {
   const o = craft(0x02);
   const c = craft(0x02);
   oracle(o);
-  loc_0f97(c);
+  queueRoundSoundCommandRun(c);
   c.regs.a = (o.regs.a ^ 0xff) & 0xff; // BUG: wrong cursor left in A
   assert.notEqual(c.regs.a, o.regs.a, "the regs.a live-out check would miss a wrong cursor — worthless");
   console.log(`  TEETH/REG: a wrong regs.a (${hx(c.regs.a)} vs ${hx(o.regs.a)}) diverges from the oracle`);
@@ -110,7 +110,7 @@ test("TEETH: a wrong written byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x02);
   const c = craft(0x02);
   oracle(o);
-  loc_0f97(c);
+  queueRoundSoundCommandRun(c);
   c.mem.write8(COMMAND_SLOT, (c.mem.read8(COMMAND_SLOT) ^ 0xff) & 0xff); // corrupt the command slot
 
   const d = ramDiffMinusStack(o, c);
@@ -125,7 +125,7 @@ test("TEETH: a WRONG COMMAND CONSTANT (base+1) diverges from the oracle at the c
   const wrong = craft(round);
   oracle(o); // real derivation: command 0x1f appended, then the fixed tail
   const badCommand = (((round >> 1) & 0x03) + 0x1f) & 0xff; // BUG: base+1 instead of base
-  loc_0fc3(wrong, badCommand);
+  appendSoundCommandRun(wrong, badCommand);
 
   const d = ramDiffMinusStack(o, wrong);
   assert.notEqual(d, null, "a wrong command constant produced identical RAM — the derivation is untested");

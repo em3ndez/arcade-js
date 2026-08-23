@@ -9,7 +9,7 @@
  *
  * This is a CALLER gate per the cluster brief: it COMPOSES the real idiomatic subtree. The test
  * imports the idiomatic loc_6368, which imports the idiomatic loc_6381 -> loc_638a -> its idiomatic
- * leaves (setActorAnimation, loc_0ef9, loc_0038). The ORACLE loc_6368 runs the FROZEN translated
+ * leaves (setActorAnimation, queueSoundCommand07, loc_0038). The ORACLE loc_6368 runs the FROZEN translated
  * subtree internally via m.call, whose skip path (pop af; ret) aborts pass 2. The two must land
  * byte-identical in RAM (dumpState) MINUS STACK_SCRATCH. There is no register live-out: loc_5ae4
  * (the per-frame updater) calls this and reads nothing back, so the contract is RAM−stack only.

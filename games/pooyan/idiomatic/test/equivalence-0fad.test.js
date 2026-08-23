@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0fad (ROM 0x0fad, Pooyan) — "queue the four-tile run opening
+ * Memory-equivalence test for queueSoundRun26 (ROM 0x0fad, Pooyan) — "queue the four-tile run opening
  * with tile code 0x26".
  *
- * The routine loads A := 0x26 and tail-calls the four-tile run emitter (loc_0fc3), which appends
- * 0x26, 0x15, 0x16, 0x17 into the page-0x8a command ring through the shared appender (loc_0ea2).
+ * The routine loads A := 0x26 and tail-calls the four-tile run emitter (appendSoundCommandRun), which appends
+ * 0x26, 0x15, 0x16, 0x17 into the page-0x8a command ring through the shared appender (appendSoundCommandGated).
  * Each append is gated on a game being active or the play-mode latch being set; when both are
  * clear only the pending-byte cell is touched and A comes back 0.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). Each case runs the oracle on
- * one FRESH clone and loc_0fad on another and compares:
+ * one FRESH clone and queueSoundRun26 on another and compares:
  *
  *     RAM (dumpState, minus STACK_SCRATCH)  +  the declared register live-out (A).
  *
@@ -17,7 +17,7 @@
  * across the tail, and a caller reads it out of the register, so it is asserted AND the module must
  * SET it on its own clone (a return-only rewrite would pass the ret check but fail the caller). pc/SP
  * are NOT compared (dropped call/stack ABI); SP is seated in the dead stack. The oracle dispatches
- * its m.call sub-routines through the TRANSLATED registry; loc_0fad imports the idiomatic ones.
+ * its m.call sub-routines through the TRANSLATED registry; queueSoundRun26 imports the idiomatic ones.
  *
  * Jobs:
  *   1. EQUAL — gates OPEN (game active: four tiles appended, cursor advanced) and gates CLOSED
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0fad as oracle } from "../../translated/loc_0fad.js";
-import { loc_0fad } from "../loc_0fad.js";
+import { queueSoundRun26 } from "../queueSoundRun26.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -43,7 +43,7 @@ import {
   GAME_ACTIVE_FLAG,
   PLAY_MODE_LATCH,
   SOUND_RING_WRITE_PTR,
-  TEXT_RING_PENDING_BYTE,
+  SOUND_RING_PENDING_BYTE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -74,19 +74,19 @@ function craft(gatesOpen) {
   m.mem.write8(GAME_ACTIVE_FLAG, gatesOpen ? 0x01 : 0x00);
   m.mem.write8(PLAY_MODE_LATCH, 0x00);
   m.mem.write8(SOUND_RING_WRITE_PTR, RING_START);
-  m.mem.write8(TEXT_RING_PENDING_BYTE, DIRT);
+  m.mem.write8(SOUND_RING_PENDING_BYTE, DIRT);
   for (let i = 0; i < RUN_TILES.length; i++) m.mem.write8(RING_PAGE + RING_START + i, DIRT);
   return m;
 }
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0fad == oracle in RAM (−stack) + A, gates open and closed", () => {
+test("EQUAL: queueSoundRun26 == oracle in RAM (−stack) + A, gates open and closed", () => {
   for (const gatesOpen of [true, false]) {
     const o = craft(gatesOpen);
     const c = craft(gatesOpen);
     oracle(o);
-    const ret = loc_0fad(c);
+    const ret = queueSoundRun26(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `open=${gatesOpen}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -117,7 +117,7 @@ test("WRITE-SET: the OPEN run writes four ring slots, the write pointer, and the
     assert.equal(changed.get(cell), RUN_TILES[i], `ring slot ${hx(cell)} must hold ${hx(RUN_TILES[i])}`);
   }
   assert.equal(changed.get(SOUND_RING_WRITE_PTR), (RING_START + RUN_TILES.length) & 0xff, "write pointer advanced by four");
-  assert.equal(changed.get(TEXT_RING_PENDING_BYTE), RUN_TILES[RUN_TILES.length - 1], "pending byte = last appended tile");
+  assert.equal(changed.get(SOUND_RING_PENDING_BYTE), RUN_TILES[RUN_TILES.length - 1], "pending byte = last appended tile");
   assert.equal(changed.size, RUN_TILES.length + 2, `expected exactly ${RUN_TILES.length + 2} cells, got ${changed.size}`);
   console.log(`  WRITE-SET: 4 ring slots + write pointer + pending byte (${changed.size} cells)`);
 });
@@ -128,7 +128,7 @@ test("TEETH: a wrong ring byte is CAUGHT by the RAM diff", () => {
   const o = craft(true);
   const c = craft(true);
   oracle(o);
-  loc_0fad(c);
+  queueSoundRun26(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   const cell = RING_PAGE + RING_START + 2; // the third appended slot
   c.mem.write8(cell, 0x00); // BUG: this slot must hold 0x16
@@ -142,7 +142,7 @@ test("TEETH: an under-advanced returned A is REJECTED by the live-out check", ()
   const o = craft(true);
   const c = craft(true);
   oracle(o);
-  const ret = loc_0fad(c);
+  const ret = queueSoundRun26(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: the module's A matches the oracle");
   // One append short (cursor advanced by three, not four) is a plausible bug the check must reject.
   assert.notEqual((RING_START + RUN_TILES.length - 1) & 0xff, o.regs.a & 0xff, "the check must reject an under-advanced A");

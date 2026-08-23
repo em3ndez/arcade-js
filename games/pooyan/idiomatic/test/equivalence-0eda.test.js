@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0eda (ROM 0x0eda) — "queue two sound commands": enqueue command
+ * Memory-equivalence test for queueSoundCommands82And03 (ROM 0x0eda) — "queue two sound commands": enqueue command
  * 0x82 then 0x03 into the sound-command ring (slots HIGH_SCORE_TABLE+tail, tail at
  * SOUND_RING_WRITE_PTR, wrapping 0x5e -> 0x43) via the enqueue helper.
  *
@@ -10,7 +10,7 @@
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * pc/SP/cycles are NOT compared. The contract is MEMORY ONLY: the enqueue helper round-trips
- * BC/DE/HL and its A leftover (the advanced tail) is not consumed — loc_0eda's sole caller (loc_3f7c)
+ * BC/DE/HL and its A leftover (the advanced tail) is not consumed — queueSoundCommands82And03's sole caller (loc_3f7c)
  * reloads HL and never reads A after the call — so no register live-out is declared or checked.
  * The one input is the ring tail cell, poked identically per side; the wrap edge is crafted.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0eda as oracle } from "../../translated/loc_0eda.js";
-import { loc_0eda } from "../loc_0eda.js";
+import { queueSoundCommands82And03 } from "../queueSoundCommands82And03.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SOUND_RING_WRITE_PTR, HIGH_SCORE_TABLE } from "../names.js";
@@ -69,12 +69,12 @@ const TAILS = [RING_FIRST, 0x50, RING_LAST - 1, RING_LAST];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: curated ring tails — loc_0eda == oracle in RAM (−stack)", () => {
+test("EQUAL: curated ring tails — queueSoundCommands82And03 == oracle in RAM (−stack)", () => {
   for (const tail of TAILS) {
     const o = craft(tail);
     const c = craft(tail);
     oracle(o);
-    loc_0eda(c);
+    queueSoundCommands82And03(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (tail=${hx(tail)}): oracle=${d.a} idiom=${d.b}`);
   }
@@ -109,7 +109,7 @@ test("CRAFTED: at the last slot the tail wraps 0x5e -> 0x43 identically", () => 
   const o = craft(RING_LAST, true);
   const c = craft(RING_LAST, true);
   oracle(o);
-  loc_0eda(c);
+  queueSoundCommands82And03(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
@@ -126,7 +126,7 @@ test("TEETH: a wrong enqueued byte is CAUGHT by the RAM diff", () => {
   const o = craft(tail, true);
   const c = craft(tail, true);
   oracle(o);
-  loc_0eda(c);
+  queueSoundCommands82And03(c);
   const bug = slot(nextTail(tail));
   c.mem.write8(bug, 0x00); // BUG: second slot must hold 0x03
 

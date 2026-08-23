@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f3f (ROM 0x0f3f) — "queue text-ring command 0x12": load 0x12 and
- * tail-call the page-0x8a ring appender, which stashes the byte at TEXT_RING_PENDING_BYTE, and — only
+ * Memory-equivalence test for queueSoundCommand12 (ROM 0x0f3f) — "queue text-ring command 0x12": load 0x12 and
+ * tail-call the page-0x8a ring appender, which stashes the byte at SOUND_RING_PENDING_BYTE, and — only
  * when the game-active or play-mode gate is set — writes it into the ring at page-0x8a + cursor
  * (cursor = SOUND_RING_WRITE_PTR), advances the cursor (wrapping 0x5e -> 0x43), leaving it in A.
  *
@@ -27,10 +27,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f3f as oracle } from "../../translated/loc_0f3f.js";
-import { loc_0f3f } from "../loc_0f3f.js";
+import { queueSoundCommand12 } from "../queueSoundCommand12.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, GAME_ACTIVE_FLAG, PLAY_MODE_LATCH, SOUND_RING_WRITE_PTR, TEXT_RING_PENDING_BYTE } from "../names.js";
+import { STACK_SCRATCH, GAME_ACTIVE_FLAG, PLAY_MODE_LATCH, SOUND_RING_WRITE_PTR, SOUND_RING_PENDING_BYTE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -60,7 +60,7 @@ function craft({ ga, pm, cursor }) {
   m.mem.write8(GAME_ACTIVE_FLAG, ga);
   m.mem.write8(PLAY_MODE_LATCH, pm);
   m.mem.write8(SOUND_RING_WRITE_PTR, cursor);
-  m.mem.write8(TEXT_RING_PENDING_BYTE, 0x00); // sentinel != 0x12 so the stash is observable
+  m.mem.write8(SOUND_RING_PENDING_BYTE, 0x00); // sentinel != 0x12 so the stash is observable
   m.mem.write8(slot(cursor), 0xaa); // sentinel so an append is observable
   return m;
 }
@@ -74,12 +74,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: gate/cursor cases — loc_0f3f == oracle in RAM (−stack) + A live-out", () => {
+test("EQUAL: gate/cursor cases — queueSoundCommand12 == oracle in RAM (−stack) + A live-out", () => {
   for (const cse of CASES) {
     const o = craft(cse);
     const c = craft(cse);
     oracle(o);
-    const ret = loc_0f3f(c);
+    const ret = queueSoundCommand12(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (${JSON.stringify(cse)}): oracle=${d.a} idiom=${d.b}`);
@@ -105,7 +105,7 @@ test("WRITE-SET: closed writes only the pending byte; open adds the slot + curso
       if (b0[off] !== a1[off]) changed.set(after.stateOffsetToAddr(off), a1[off]);
     }
     const open = cse.ga !== 0 || cse.pm !== 0;
-    assert.equal(changed.get(TEXT_RING_PENDING_BYTE), CMD, "pending byte := 0x12");
+    assert.equal(changed.get(SOUND_RING_PENDING_BYTE), CMD, "pending byte := 0x12");
     if (!open) {
       assert.equal(changed.size, 1, `closed path writes only the pending byte, got ${changed.size}`);
     } else {
@@ -124,7 +124,7 @@ test("CRAFTED: at the last slot the cursor wraps 0x5e -> 0x43 identically", () =
   const o = craft(cse);
   const c = craft(cse);
   oracle(o);
-  loc_0f3f(c);
+  queueSoundCommand12(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
@@ -141,7 +141,7 @@ test("TEETH: a wrong ring byte is CAUGHT by the RAM diff", () => {
   const o = craft(cse);
   const c = craft(cse);
   oracle(o);
-  loc_0f3f(c);
+  queueSoundCommand12(c);
   const bug = slot(cse.cursor);
   c.mem.write8(bug, 0x00); // BUG: the appended slot must hold 0x12
 

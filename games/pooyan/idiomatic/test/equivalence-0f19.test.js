@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f19 (Pooyan) — "append the fixed byte 0x0e into the
+ * Memory-equivalence test for queueSoundCommand0E (Pooyan) — "append the fixed byte 0x0e into the
  * command ring": load A := 0x0e and tail-call the ring-append helper.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES RAM
- * (through the helper), so each case runs the oracle on one FRESH clone and loc_0f19 on
+ * (through the helper), so each case runs the oracle on one FRESH clone and queueSoundCommand0E on
  * another, compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH)  +  the declared register live-out (A).
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f19 as oracle } from "../../translated/loc_0f19.js";
-import { loc_0f19 } from "../loc_0f19.js";
+import { queueSoundCommand0E } from "../queueSoundCommand0E.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -43,7 +43,7 @@ import {
   GAME_ACTIVE_FLAG,
   PLAY_MODE_LATCH,
   SOUND_RING_WRITE_PTR,
-  TEXT_RING_PENDING_BYTE,
+  SOUND_RING_PENDING_BYTE,
   HIGH_SCORE_TABLE,
 } from "../names.js";
 
@@ -54,7 +54,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const RING_BYTE = 0x0e; // the byte loc_0f19 appends
+const RING_BYTE = 0x0e; // the byte queueSoundCommand0E appends
 const RING_FIRST = 0x43;
 const RING_LAST = 0x5e;
 const RING_PAGE = HIGH_SCORE_TABLE & 0xff00; // 0x8a00: the ring page base
@@ -88,12 +88,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted gate/cursor — loc_0f19 == oracle in RAM(−stack) + A", () => {
+test("EQUAL: crafted gate/cursor — queueSoundCommand0E == oracle in RAM(−stack) + A", () => {
   for (const c of CASES) {
     const o = craft(c);
     const k = craft(c);
     oracle(o);
-    const ret = loc_0f19(k);
+    const ret = queueSoundCommand0E(k);
 
     const d = ramDiffMinusStack(o, k);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b} (${c.name})`);
@@ -120,7 +120,7 @@ test("WRITE-SET: gates-open writes pending byte + ring slot + advanced cursor", 
       if (!inDeadStack(addr)) changed.set(addr, after[off]);
     }
   }
-  assert.equal(changed.get(TEXT_RING_PENDING_BYTE), RING_BYTE, "pending byte := 0x0e");
+  assert.equal(changed.get(SOUND_RING_PENDING_BYTE), RING_BYTE, "pending byte := 0x0e");
   assert.equal(changed.get(RING_PAGE + cursor), RING_BYTE, "ring slot := 0x0e");
   assert.equal(changed.get(SOUND_RING_WRITE_PTR), cursor + 1, "cursor advanced by one");
   assert.equal(changed.size, 3, `expected exactly 3 writes, got ${changed.size}`);
@@ -134,7 +134,7 @@ test("WRITE-SET: gates-open writes pending byte + ring slot + advanced cursor", 
   for (let off = 0; off < b2.length; off++) {
     if (b2[off] !== a2[off] && !inDeadStack(o2.stateOffsetToAddr(off))) changed2.push(o2.stateOffsetToAddr(off));
   }
-  assert.deepEqual(changed2, [TEXT_RING_PENDING_BYTE], "gates closed: only the pending byte changes");
+  assert.deepEqual(changed2, [SOUND_RING_PENDING_BYTE], "gates closed: only the pending byte changes");
   console.log("  WRITE-SET: open -> pending+slot+cursor (3); closed -> pending only (1)");
 });
 
@@ -144,7 +144,7 @@ test("CRAFTED: a cursor at the last slot wraps to the first, A := first", () => 
   const o = craft({ gameActive: 1, cursor: RING_LAST });
   const k = craft({ gameActive: 1, cursor: RING_LAST });
   oracle(o);
-  const ret = loc_0f19(k);
+  const ret = queueSoundCommand0E(k);
 
   const d = ramDiffMinusStack(o, k);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}`);
@@ -161,7 +161,7 @@ test("TEETH: a wrong appended byte is CAUGHT by the RAM diff", () => {
   const o = craft({ gameActive: 1, cursor });
   const k = craft({ gameActive: 1, cursor });
   oracle(o);
-  loc_0f19(k);
+  queueSoundCommand0E(k);
   k.mem.write8(RING_PAGE + cursor, (RING_BYTE ^ 0xff) & 0xff); // BUG: wrong ring byte
 
   const d = ramDiffMinusStack(o, k);
@@ -175,7 +175,7 @@ test("TEETH: a wrong A live-out is REJECTED by the live-out check", () => {
   const o = craft({ gameActive: 1, cursor });
   const k = craft({ gameActive: 1, cursor });
   oracle(o);
-  const ret = loc_0f19(k);
+  const ret = queueSoundCommand0E(k);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: the module's A matches the oracle");
   // the un-advanced cursor is the plausible off-by-one the check must reject
   assert.notEqual(cursor, o.regs.a & 0xff, "the live-out check must reject an un-advanced A");

@@ -4,7 +4,7 @@ import { loc_2e45 } from "./loc_2e45.js";
 import { loc_0020 } from "./loc_0020.js";
 import { loc_2e52 } from "./loc_2e52.js";
 import { blit2x2TileBlock } from "./blit2x2TileBlock.js";
-import { loc_0f11 } from "./loc_0f11.js";
+import { queueSoundCommand0C } from "./queueSoundCommand0C.js";
 import {
   FRAME_COUNTER,
   ROUND_COUNTER,
@@ -74,5 +74,5 @@ export function loc_2e5e(m, ix = m.regs.ix) {
 
   const columnBase = loc_2e52(m, ix & 0xff); // video-RAM column base for this rope cell
   blit2x2TileBlock(m, columnBase, ROPE_SEGMENT_TILE_SRC); // draw the segment tile
-  loc_0f11(m); // enqueue the segment display command
+  queueSoundCommand0C(m); // enqueue the segment display command
 }

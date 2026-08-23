@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { loc_6523 } from "./loc_6523.js";
-import { loc_0f88 } from "./loc_0f88.js";
+import { queueSound82ThenRun1C } from "./queueSound82ThenRun1C.js";
 import { SHARED_FRAME_DELAY_TIMER, BLINK_PHASE } from "./names.js";
 /**
  * loc_6505 — rst-0x28 dispatch handler (index 0). Seeds two frame/phase cells, then walks three
@@ -33,5 +33,5 @@ export function loc_6505(m, ix = m.regs.ix) {
     record = u16(record - RECORD_STRIDE);
   }
 
-  return [(m.regs.ix = record), loc_0f88(m)]; // IX = advanced pointer; A = emit's ring cursor
+  return [(m.regs.ix = record), queueSound82ThenRun1C(m)]; // IX = advanced pointer; A = emit's ring cursor
 }

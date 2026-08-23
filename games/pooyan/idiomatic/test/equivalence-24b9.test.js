@@ -4,7 +4,7 @@
  * from the 0x2436 state table for a record based at IX. It bumps the alternate-frame sub-counter at
  * +0x05 and, only when that lands even (bit0 clear), decrements +0x06. Every call it advances the
  * base Y at +0x04 by two; while Y stays below the floor 0xdc it returns having touched only those
- * fields. Once Y reaches the floor it calls loc_0f21 (queue the pattern-A sound), reseeds the frame
+ * fields. Once Y reaches the floor it calls queueSoundCommands95And10 (queue the pattern-A sound), reseeds the frame
  * delay +0x11 to 2, and advances the record's dispatch state +0x02.
  *
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState, minus
@@ -14,7 +14,7 @@
  *
  * Every case is CRAFTED: the leaf is not reached in a plain boot, and its inputs are IX and the five
  * record fields, poked identically on both sides. The record is zero-filled first so the write set is
- * fully determined. The floor cases set GAME_ACTIVE_FLAG so loc_0f21's ring append is exercised.
+ * fully determined. The floor cases set GAME_ACTIVE_FLAG so queueSoundCommands95And10's ring append is exercised.
  *
  * Jobs:
  *   1. EQUAL — odd/even frame, below/at the floor, and a Y wrap: oracle == module in RAM (−stack).
@@ -41,7 +41,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const REC = 0x8a80; // actor record base in work RAM (loc_0f21's ring writes land elsewhere)
+const REC = 0x8a80; // actor record base in work RAM (queueSoundCommands95And10's ring writes land elsewhere)
 const RECORD_LEN = 0x18;
 const FLOOR_Y = 0xdc;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);

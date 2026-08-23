@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0f21 } from "./loc_0f21.js";
+import { queueSoundCommands95And10 } from "./queueSoundCommands95And10.js";
 /**
  * loc_24b9 — actor state-3 handler for a record based at IX (dispatched from the actor state
  * table). Ticks the alternate-frame sub-counter at +0x05 and, only on its even values, decrements
@@ -24,7 +24,7 @@ export function loc_24b9(m, rec = m.regs.ix) {
   mem8[rec + 0x04] = mem8[rec + 0x04] + 0x02;
   if (mem8[rec + 0x04] < FLOOR_Y) return; // Y still above the floor: nothing more to do
 
-  loc_0f21(m); // reached the floor: queue the pattern-A sound
+  queueSoundCommands95And10(m); // reached the floor: queue the pattern-A sound
   mem8[rec + 0x11] = FRAME_DELAY_RESEED;
   mem8[rec + 0x02] = mem8[rec + 0x02] + 1;
 }

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f58 (Pooyan) — "queue four fixed commands": two text-ring
+ * Memory-equivalence test for queueSoundCommands96And97And18And15 (Pooyan) — "queue four fixed commands": two text-ring
  * appends (0x96, 0x97) then two sound-ring enqueues (0x18, 0x15), all through one shared ring
  * cursor on the 0x8a00 page.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES RAM, so
- * each case runs the oracle on one FRESH clone and loc_0f58 on another, compared on:
+ * each case runs the oracle on one FRESH clone and queueSoundCommands96And97And18And15 on another, compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f58 as oracle } from "../../translated/loc_0f58.js";
-import { loc_0f58 } from "../loc_0f58.js";
+import { queueSoundCommands96And97And18And15 } from "../queueSoundCommands96And97And18And15.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -43,7 +43,7 @@ import {
   GAME_ACTIVE_FLAG,
   PLAY_MODE_LATCH,
   SOUND_RING_WRITE_PTR,
-  TEXT_RING_PENDING_BYTE,
+  SOUND_RING_PENDING_BYTE,
   HIGH_SCORE_TABLE,
 } from "../names.js";
 
@@ -99,12 +99,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted gate/cursor — loc_0f58 == oracle in RAM(−stack)", () => {
+test("EQUAL: crafted gate/cursor — queueSoundCommands96And97And18And15 == oracle in RAM(−stack)", () => {
   for (const c of CASES) {
     const o = craft(c);
     const k = craft(c);
     oracle(o);
-    loc_0f58(k);
+    queueSoundCommands96And97And18And15(k);
     const d = ramDiffMinusStack(o, k);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b} (${c.name})`);
   }
@@ -120,7 +120,7 @@ test("WRITE-SET: gates-open = pending + 4 slots + cursor; gates-closed = pending
   oracle(open);
   const a1 = open.dumpState();
   const c1 = changedMinusStack(open, b1, a1);
-  assert.equal(c1.get(TEXT_RING_PENDING_BYTE), TEXT_B, "pending byte := 0x97 (last text byte)");
+  assert.equal(c1.get(SOUND_RING_PENDING_BYTE), TEXT_B, "pending byte := 0x97 (last text byte)");
   assert.equal(c1.get(RING_PAGE + RING_FIRST + 0), TEXT_A, "slot0 := 0x96");
   assert.equal(c1.get(RING_PAGE + RING_FIRST + 1), TEXT_B, "slot1 := 0x97");
   assert.equal(c1.get(RING_PAGE + RING_FIRST + 2), SOUND_A, "slot2 := 0x18");
@@ -134,7 +134,7 @@ test("WRITE-SET: gates-open = pending + 4 slots + cursor; gates-closed = pending
   oracle(closed);
   const a2 = closed.dumpState();
   const c2 = changedMinusStack(closed, b2, a2);
-  assert.equal(c2.get(TEXT_RING_PENDING_BYTE), TEXT_B, "pending byte still stashed");
+  assert.equal(c2.get(SOUND_RING_PENDING_BYTE), TEXT_B, "pending byte still stashed");
   assert.equal(c2.get(RING_PAGE + RING_FIRST + 0), SOUND_A, "slot0 := 0x18");
   assert.equal(c2.get(RING_PAGE + RING_FIRST + 1), SOUND_B, "slot1 := 0x15");
   assert.equal(c2.get(SOUND_RING_WRITE_PTR), RING_FIRST + 2, "cursor advanced by two");
@@ -149,7 +149,7 @@ test("CRAFTED: a cursor near the end wraps 0x5e -> 0x43 mid-sequence", () => {
   const o = craft({ gameActive: 1, cursor });
   const k = craft({ gameActive: 1, cursor });
   oracle(o);
-  loc_0f58(k);
+  queueSoundCommands96And97And18And15(k);
   const d = ramDiffMinusStack(o, k);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}`);
   assert.equal(o.mem.read8(RING_PAGE + RING_LAST), SOUND_A, "the last slot took the 3rd byte");
@@ -164,7 +164,7 @@ test("TEETH: a wrong enqueued byte is CAUGHT by the RAM diff", () => {
   const o = craft({ gameActive: 1, cursor: RING_FIRST });
   const k = craft({ gameActive: 1, cursor: RING_FIRST });
   oracle(o);
-  loc_0f58(k);
+  queueSoundCommands96And97And18And15(k);
   const badSlot = RING_PAGE + RING_FIRST + 3; // the last (0x15) enqueue slot
   k.mem.write8(badSlot, (SOUND_B ^ 0xff) & 0xff); // BUG: wrong enqueued byte
 

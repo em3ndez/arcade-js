@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0ea2 (ROM 0x0ea2, Pooyan) — "append a byte into the
+ * Memory-equivalence test for appendSoundCommandGated (ROM 0x0ea2, Pooyan) — "append a byte into the
  * page-0x8a00 text ring". The incoming byte (A) is stashed at 0x8d20; the append then
  * runs only while GAME_ACTIVE_FLAG (0x8806) or PLAY_MODE_LATCH (0x8f50) is set. On
  * append it writes the byte at 0x8a00 + cursor (cursor = 0x8a40) and steps the cursor
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0ea2 as oracle } from "../../translated/loc_0ea2.js";
-import { loc_0ea2 } from "../loc_0ea2.js";
+import { appendSoundCommandGated } from "../appendSoundCommandGated.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -85,12 +85,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/cursor cases — loc_0ea2 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted gate/cursor cases — appendSoundCommandGated == oracle in RAM (−stack)", () => {
   for (const { name, a, active, mode, cursor } of CASES) {
     const o = craft(a, active, mode, cursor);
     const c = craft(a, active, mode, cursor);
     oracle(o);
-    loc_0ea2(c);
+    appendSoundCommandGated(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     // A live-out: the oracle leaves A = advanced cursor (append) or 0 (gates closed); callers read it.

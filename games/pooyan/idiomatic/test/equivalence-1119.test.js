@@ -18,7 +18,7 @@
  *
  * ABI NOTE (for the lead): BC == 0xffe0 is genuinely consumed (loc_6f42's two add hl,bc), so the
  * bridge SETS it — a real live-out, not dead plumbing. loc_10c2's three call sites read no 0x1119
- * register live-out (each reloads HL/A first, and loc_0f44 does ld a,0x13 immediately). A and the
+ * register live-out (each reloads HL/A first, and queueSoundCommand13 does ld a,0x13 immediately). A and the
  * flags are NOT restored by the bridge: no caller tail reads either after the call.
  *
  * Jobs:

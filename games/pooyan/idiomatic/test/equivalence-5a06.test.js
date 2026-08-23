@@ -3,7 +3,7 @@
  * Memory-equivalence gate for loc_5a06 — per-frame accumulate step, variant A.
  *
  * Each frame the routine rotates INPUT_PORT0 bit2 into the cadence ring. When the ring's low three
- * bits settle on the fire phase (1) it emits the drip sound (loc_0f09) and adds one to the running
+ * bits settle on the fire phase (1) it emits the drip sound (emitPresetSound) and adds one to the running
  * total through the shared accumulate tail (loc_5a8c); off-phase it leaves only the advanced ring.
  * The module composes the real idiomatic siblings; the oracle drives their translated forms through
  * the routines map. loc_5a06 has no register live-out (the caller reloads A before reading it), so

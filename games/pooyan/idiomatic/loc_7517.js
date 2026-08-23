@@ -8,7 +8,7 @@ import {
   SELFTEST_DISPATCH_STATE,
 } from "./names.js";
 import { loc_4381 } from "./loc_4381.js";
-import { loc_0fb2 } from "./loc_0fb2.js";
+import { queueSoundCommands27And15 } from "./queueSoundCommands27And15.js";
 /**
  * loc_7517 — display dispatch state 1.
  *
@@ -52,5 +52,5 @@ export function loc_7517(m) {
   if ((sum >> 8) !== SUM_HIGH) throw new Error("loc_7517: HUD strip integrity trap (unreachable with an intact screen)");
 
   mem8[SELFTEST_DISPATCH_STATE] = mem8[SELFTEST_DISPATCH_STATE] + 1;
-  loc_0fb2(m);
+  queueSoundCommands27And15(m);
 }

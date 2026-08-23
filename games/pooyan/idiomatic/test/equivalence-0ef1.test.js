@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0ef1 (ROM 0x0ef1) — "enqueue sound command 0x05":
+ * Memory-equivalence test for queueSoundCommand05 (ROM 0x0ef1) — "enqueue sound command 0x05":
  * store the fixed command byte into the sound-command ring at the write pointer and advance
  * that pointer (wrapping the last slot to the first).
  *
@@ -13,7 +13,7 @@
  * both sides. The oracle push/pops BC/DE/HL and rets, all inside STACK_SCRATCH.
  *
  * Jobs:
- *   1. EQUAL — over a sweep of write-pointer values, oracle == loc_0ef1 in RAM (−stack).
+ *   1. EQUAL — over a sweep of write-pointer values, oracle == queueSoundCommand05 in RAM (−stack).
  *   2. WRITE-SET — the only writes are the ring slot (:= 0x05) and the advanced pointer.
  *   3. CRAFTED — a pre-dirtied slot is overwritten to 0x05.
  *   4. TEETH — a wrong slot byte MUST be caught by the RAM diff.
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0ef1 as oracle } from "../../translated/loc_0ef1.js";
-import { loc_0ef1 } from "../loc_0ef1.js";
+import { queueSoundCommand05 } from "../queueSoundCommand05.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SOUND_RING_WRITE_PTR, HIGH_SCORE_TABLE } from "../names.js";
@@ -64,12 +64,12 @@ const PTRS = [RING_FIRST, 0x50, 0x5d, RING_LAST];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted write pointers — loc_0ef1 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted write pointers — queueSoundCommand05 == oracle in RAM (−stack)", () => {
   for (const ptr of PTRS) {
     const o = craft(ptr);
     const c = craft(ptr);
     oracle(o);
-    loc_0ef1(c);
+    queueSoundCommand05(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (ptr=${hx(ptr)})`);
   }
@@ -108,7 +108,7 @@ test("CRAFTED: a pre-dirtied ring slot is overwritten to 0x05", () => {
   o.mem.write8(slot, 0xaa);
   c.mem.write8(slot, 0xaa);
   oracle(o);
-  loc_0ef1(c);
+  queueSoundCommand05(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}`);
   assert.equal(c.mem.read8(slot), SOUND_COMMAND, "slot overwritten to 0x05");
@@ -124,7 +124,7 @@ test("TEETH: a wrong ring-slot byte is CAUGHT by the RAM diff", () => {
   const o = craft(ptr);
   const c = craft(ptr);
   oracle(o);
-  loc_0ef1(c);
+  queueSoundCommand05(c);
   c.mem.write8(slot, 0x00); // BUG: the slot must be 0x05, not 0x00
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong ring-slot byte — it is worthless");

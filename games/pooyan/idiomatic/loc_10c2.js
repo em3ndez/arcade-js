@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { binToPackedBcd } from "./binToPackedBcd.js";
 import { drawStackedBcdDigits } from "./drawStackedBcdDigits.js";
-import { loc_0f44 } from "./loc_0f44.js";
+import { queueSoundCommand13 } from "./queueSoundCommand13.js";
 import {
   MAINLOOP_SUBSTATE_SELECTOR,
   SUBSTATE_FIELD1_COUNTER,
@@ -56,5 +56,5 @@ export function loc_10c2(m, counter = m.regs.b, adjust = m.regs.a, dirUp = m.reg
 
   mem8[MAINLOOP_SUBSTATE_SELECTOR] = mem8[MAINLOOP_SUBSTATE_SELECTOR] + 1; // advance the sub-state
   // HL live-out = the selector address; A live-out = the ring cursor the append leaves.
-  return [(m.regs.hl = MAINLOOP_SUBSTATE_SELECTOR), loc_0f44(m)];
+  return [(m.regs.hl = MAINLOOP_SUBSTATE_SELECTOR), queueSoundCommand13(m)];
 }

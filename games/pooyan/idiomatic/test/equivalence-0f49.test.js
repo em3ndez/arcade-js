@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0f49 (ROM 0x0f49, Pooyan) — "append the fixed byte 0x14 into
+ * Memory-equivalence test for queueSoundCommand14 (ROM 0x0f49, Pooyan) — "append the fixed byte 0x14 into
  * the page-0x8a command ring" (a tail call to the ring-append helper). The helper stashes the
  * byte at 0x8d20, then appends only while GAME_ACTIVE_FLAG (0x8806) or PLAY_MODE_LATCH (0x8f50)
  * is set: it writes the byte at 0x8a00 + cursor (cursor = 0x8a40) and steps the cursor
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f49 as oracle } from "../../translated/loc_0f49.js";
-import { loc_0f49 } from "../loc_0f49.js";
+import { queueSoundCommand14 } from "../queueSoundCommand14.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -32,7 +32,7 @@ import {
   GAME_ACTIVE_FLAG,
   PLAY_MODE_LATCH,
   SOUND_RING_WRITE_PTR,
-  TEXT_RING_PENDING_BYTE,
+  SOUND_RING_PENDING_BYTE,
   HIGH_SCORE_TABLE,
 } from "../names.js";
 
@@ -46,7 +46,7 @@ const test = ROM_PRESENT
 const RING_PAGE = HIGH_SCORE_TABLE; // 0x8a00: the append page (high byte of the cursor cell)
 const RING_FIRST = 0x43;
 const RING_LAST = 0x5e;
-const APPEND_BYTE = 0x14; // the fixed byte loc_0f49 enqueues
+const APPEND_BYTE = 0x14; // the fixed byte queueSoundCommand14 enqueues
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -62,7 +62,7 @@ function craft(active, mode, cursor) {
   m.mem.write8(GAME_ACTIVE_FLAG, active);
   m.mem.write8(PLAY_MODE_LATCH, mode);
   m.mem.write8(SOUND_RING_WRITE_PTR, cursor);
-  m.mem.write8(TEXT_RING_PENDING_BYTE, 0x00); // known start so the WRITE-SET sees the stash write
+  m.mem.write8(SOUND_RING_PENDING_BYTE, 0x00); // known start so the WRITE-SET sees the stash write
   for (let c = RING_FIRST; c <= RING_LAST; c++) m.mem.write8(RING_PAGE + c, 0x00);
   m.regs.sp = 0x8ffe; // dead stack: the helper's push/pop framing touches excluded RAM
   return m;
@@ -79,12 +79,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/cursor cases — loc_0f49 == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted gate/cursor cases — queueSoundCommand14 == oracle in RAM (−stack) + A", () => {
   for (const { name, active, mode, cursor } of CASES) {
     const o = craft(active, mode, cursor);
     const c = craft(active, mode, cursor);
     oracle(o);
-    loc_0f49(c);
+    queueSoundCommand14(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     // A live-out: advanced cursor (append) or 0 (gates closed); a caller reads it out of A.
@@ -114,12 +114,12 @@ test("WRITE-SET: gate-open writes {0x8d20, ring cell, 0x8a40}; gate-closed write
   const openChanged = changedCells(craft(1, 0, RING_FIRST), oracle);
   const openSet = new Set(openChanged);
   assert.equal(openChanged.length, 3, `gate-open expected 3 writes, got ${openChanged.length} (${openChanged.map(hx)})`);
-  for (const cell of [TEXT_RING_PENDING_BYTE, RING_PAGE + RING_FIRST, SOUND_RING_WRITE_PTR]) {
+  for (const cell of [SOUND_RING_PENDING_BYTE, RING_PAGE + RING_FIRST, SOUND_RING_WRITE_PTR]) {
     assert.ok(openSet.has(cell), `gate-open missing a write at ${hx(cell)}`);
   }
 
   const shutChanged = changedCells(craft(0, 0, 0x50), oracle);
-  assert.deepEqual(shutChanged, [TEXT_RING_PENDING_BYTE], `gate-closed must write only 0x8d20, got ${shutChanged.map(hx)}`);
+  assert.deepEqual(shutChanged, [SOUND_RING_PENDING_BYTE], `gate-closed must write only 0x8d20, got ${shutChanged.map(hx)}`);
   console.log("  WRITE-SET: open -> 3 cells, closed -> only the stash byte");
 });
 
@@ -128,7 +128,7 @@ test("WRITE-SET: gate-open writes {0x8d20, ring cell, 0x8a40}; gate-closed write
 /** Broken twin: appends the byte inverted. */
 function brokenWrongByte(m) {
   const cursor = m.mem.read8(SOUND_RING_WRITE_PTR);
-  m.mem.write8(TEXT_RING_PENDING_BYTE, APPEND_BYTE);
+  m.mem.write8(SOUND_RING_PENDING_BYTE, APPEND_BYTE);
   if (m.mem.read8(GAME_ACTIVE_FLAG) === 0 && m.mem.read8(PLAY_MODE_LATCH) === 0) return;
   m.mem.write8(RING_PAGE + cursor, APPEND_BYTE ^ 0xff); // BUG: inverted byte
   m.mem.write8(SOUND_RING_WRITE_PTR, nextCursor(cursor));
@@ -150,7 +150,7 @@ test("TEETH: a wrong advanced cursor is CAUGHT by the A live-out check", () => {
   const o = craft(1, 0, RING_FIRST);
   const c = craft(1, 0, RING_FIRST);
   oracle(o);
-  const ret = loc_0f49(c);
+  const ret = queueSoundCommand14(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A return matches the oracle");
   // an un-advanced cursor (still the first slot) is a plausible bug the A check must reject
   assert.notEqual(RING_FIRST, o.regs.a & 0xff, "the A live-out check must reject an un-advanced cursor");

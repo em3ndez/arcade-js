@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_0f09 (ROM 0x0f09) — emit the preset sound command 0x0b: load A
+ * Equivalence test for emitPresetSound (ROM 0x0f09) — emit the preset sound command 0x0b: load A
  * with 0x0b and tail into the sound sender (loc_0e8f / sendSoundCommand), which latches the
  * command byte and strobes the audio-IRQ LS259 bit high then low.
  *
  * The effects land in board I/O, NOT in dumped RAM (the sound latch and the LS259 are Io
  * state), so the load-bearing contract is the Io surface: io.soundData and io.latch. The RAM
  * diff is kept as a (trivially-null) regression check. The oracle runs on one fresh Machine,
- * the module on another, from the same power-on state. loc_0f09 supplies its own command, so
+ * the module on another, from the same power-on state. emitPresetSound supplies its own command, so
  * nothing is seated.
  *
  * pc/SP/cycles are NOT compared. No register survives for a caller (the sender leaves A=0,
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0f09 as oracle } from "../../translated/loc_0f09.js";
-import { loc_0f09 } from "../loc_0f09.js";
+import { emitPresetSound } from "../emitPresetSound.js";
 import { sendSoundCommand } from "../sendSoundCommand.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -42,7 +42,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const TARGET = 0x0f09;
-const SOUND_CMD = 0x0b; // the fixed command loc_0f09 emits
+const SOUND_CMD = 0x0b; // the fixed command emitPresetSound emits
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -86,7 +86,7 @@ test("CAPTURE: real 0x0f09 dispatches — module == oracle in Io state", () => {
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    loc_0f09(c);
+    emitPresetSound(c);
     assert.equal(ioDiff(o, c), null, `Io diff: ${ioDiff(o, c)}`);
     assert.equal(ramDiffMinusStack(o, c), null, "RAM should be identical (audio writes are Io, not RAM)");
   }
@@ -95,11 +95,11 @@ test("CAPTURE: real 0x0f09 dispatches — module == oracle in Io state", () => {
 
 // -- 2. CRAFTED (load-bearing) ------------------------------------------------
 
-test("CRAFTED: loc_0f09 latches soundData=0x0b, LS259 identical, RAM untouched", () => {
+test("CRAFTED: emitPresetSound latches soundData=0x0b, LS259 identical, RAM untouched", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_0f09(c);
+  emitPresetSound(c);
 
   assert.equal(ioDiff(o, c), null, `Io diff: ${ioDiff(o, c)}`);
   assert.equal(c.io.soundData, SOUND_CMD, "soundData latched to the preset command");
@@ -118,7 +118,7 @@ function brokenCommand(m) {
 /** Broken twin: leaves the audio-IRQ latch bit high. */
 function brokenStrobe(m) {
   const { mem8 } = m;
-  loc_0f09(m);
+  emitPresetSound(m);
   mem8[0xa181] = 1; // BUG: never lower the audio-IRQ bit
 }
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0ed6 (ROM 0x0ed6) — enqueue the fixed sound command 0x02 into
+ * Memory-equivalence test for queueSoundCommand02 (ROM 0x0ed6) — enqueue the fixed sound command 0x02 into
  * the sound-command ring.
  *
  * The wrapper hands command id 0x02 to the ring-enqueue helper, which stores it into the slot
@@ -14,7 +14,7 @@
  * STACK_SCRATCH so the oracle's push/pop/ret stay there.
  *
  * Jobs:
- *   1. EQUAL — over first/mid/last-slot write pointers, oracle == loc_0ed6 in RAM (−stack).
+ *   1. EQUAL — over first/mid/last-slot write pointers, oracle == queueSoundCommand02 in RAM (−stack).
  *   2. WRITE-SET — first-slot case stores 0x02 into the slot and advances the pointer by one.
  *   3. TEETH — a wrong enqueued byte is caught by the RAM diff.
  *
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0ed6 as oracle } from "../../translated/loc_0ed6.js";
-import { loc_0ed6 } from "../loc_0ed6.js";
+import { queueSoundCommand02 } from "../queueSoundCommand02.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SOUND_RING_WRITE_PTR, HIGH_SCORE_TABLE } from "../names.js";
@@ -67,12 +67,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted write pointers — loc_0ed6 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted write pointers — queueSoundCommand02 == oracle in RAM (−stack)", () => {
   for (const { label, tail } of CASES) {
     const o = craft(tail);
     const c = craft(tail);
     oracle(o);
-    loc_0ed6(c);
+    queueSoundCommand02(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} ("${label}")`);
   }
@@ -96,7 +96,7 @@ test("TEETH: a wrong enqueued byte is CAUGHT by the RAM diff", () => {
   const o = craft(RING_FIRST);
   const c = craft(RING_FIRST);
   oracle(o);
-  loc_0ed6(c);
+  queueSoundCommand02(c);
   c.mem.write8(slot, 0x00); // BUG: this slot must hold command 0x02
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong enqueued byte — it is worthless");

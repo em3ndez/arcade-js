@@ -9,7 +9,7 @@ import {
 import { loc_02ce } from "./loc_02ce.js";
 import { loc_02e3 } from "./loc_02e3.js";
 import { fillAttributeColumns } from "./fillAttributeColumns.js";
-import { loc_0e54 } from "./loc_0e54.js";
+import { queueCreditDisplayCommands } from "./queueCreditDisplayCommands.js";
 import { loc_0038 } from "./loc_0038.js";
 /**
  * loc_08e9 — attract sub-state 1.
@@ -46,7 +46,7 @@ export function loc_08e9(m) {
   for (let i = 0; i < GUARD2_LEN; i++) guard2 = (guard2 + mem8[ATTRACT_INTEGRITY_CKSUM_BASE + i]) & 0xff;
   if (guard2 !== GUARD2_SUM) throw new Error("loc_08e9: code-block integrity trap (unreachable with intact data)");
 
-  loc_0e54(m);
+  queueCreditDisplayCommands(m);
   loc_0038(m, OBJECT_SPAWN_DISPLAY_CMD);
   loc_0038(m, ATTRACT_DISPLAY_CMD_060B);
   mem8[ATTRACT_SUBSTATE] = NEXT_SUBSTATE;

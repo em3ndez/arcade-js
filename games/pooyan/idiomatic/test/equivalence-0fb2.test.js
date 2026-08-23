@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0fb2 (ROM 0x0fb2, Pooyan) — "enqueue two sound commands":
+ * Memory-equivalence test for queueSoundCommands27And15 (ROM 0x0fb2, Pooyan) — "enqueue two sound commands":
  * enqueue 0x27 then 0x15 into the sound-command ring, each through the ring-enqueue helper that
  * stores the byte at RING_BASE + tail (tail = the write pointer at 0x8a40) and advances the tail,
  * wrapping 0x5e -> 0x43.
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0fb2 as oracle } from "../../translated/loc_0fb2.js";
-import { loc_0fb2 } from "../loc_0fb2.js";
+import { queueSoundCommands27And15 } from "../queueSoundCommands27And15.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -69,12 +69,12 @@ const TAILS = [TAIL_FIRST, 0x50, 0x5d, TAIL_LAST];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted ring tails — loc_0fb2 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted ring tails — queueSoundCommands27And15 == oracle in RAM (−stack)", () => {
   for (const tail of TAILS) {
     const o = craft(tail);
     const c = craft(tail);
     oracle(o);
-    loc_0fb2(c);
+    queueSoundCommands27And15(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `tail=${hx(tail)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -114,7 +114,7 @@ test("TEETH: a wrong first stored byte is CAUGHT by the RAM diff", () => {
   const o = craft(tail);
   const c = craft(tail);
   oracle(o);
-  loc_0fb2(c);
+  queueSoundCommands27And15(c);
   c.mem.write8(slot0, 0x00); // BUG: the first slot must hold 0x27
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stored byte — it is worthless");
@@ -127,7 +127,7 @@ test("TEETH: a wrong final pointer is CAUGHT by the RAM diff", () => {
   const o = craft(tail);
   const c = craft(tail);
   oracle(o);
-  loc_0fb2(c);
+  queueSoundCommands27And15(c);
   c.mem.write8(SOUND_RING_WRITE_PTR, 0x00); // BUG: pointer must be advanced(advanced(0x5e)) = 0x44
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong write pointer — it is worthless");

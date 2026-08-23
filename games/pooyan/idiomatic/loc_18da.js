@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { bcdAddByte } from "../../../core/bcd.js";
 import { renderPhaseGauge } from "./renderPhaseGauge.js";
-import { loc_0f0d } from "./loc_0f0d.js";
+import { queueSoundCommand0B } from "./queueSoundCommand0B.js";
 import { AWARD_QUEUE, BONUS_AWARD_DSW, ACTIVE_PLAYER, GAUGE_PHASE_COUNTER, P1_SCORE_BCD, P2_SCORE_BCD } from "./names.js";
 /**
  * loc_18da — pending bonus-award tally step. An empty award queue reloads the slot from the
@@ -41,5 +41,5 @@ export function loc_18da(m) {
   mem8[AWARD_QUEUE] = bcdAddByte(step, queued).value; // next BCD threshold
 
   renderPhaseGauge(m);
-  return loc_0f0d(m); // tail: append the tally sound command; A is its result
+  return queueSoundCommand0B(m); // tail: append the tally sound command; A is its result
 }

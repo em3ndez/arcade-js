@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence gate for loc_5df7 (Pooyan) — the proximity-sweep gate/seeder, COMPOSING the
- * whole idiomatic sweep chain (loc_5e11 -> loc_5e1f -> setActorAnimation / loc_0f15).
+ * whole idiomatic sweep chain (loc_5e11 -> loc_5e1f -> setActorAnimation / queueSoundCommand0D).
  *
  * loc_5df7 bails when the grab latch is set or when the formation/teardown states are non-zero;
  * otherwise it aims the sweep at three fixed tables (the sprite display list as the reference

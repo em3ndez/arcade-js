@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { loc_0010 } from "./loc_0010.js";
-import { loc_0f19 } from "./loc_0f19.js";
+import { queueSoundCommand0E } from "./queueSoundCommand0E.js";
 import { loc_323e } from "./loc_323e.js";
 import {
   FORMATION_SLOT_TABLE,
@@ -70,7 +70,7 @@ export function loc_30f1(m) {
 
   mem16[HUNTER_SCRIPT_PTR] = HUNTER_SCRIPT_TABLE;
 
-  loc_0f19(m);
+  queueSoundCommand0E(m);
   loc_323e(m, u16(FORMATION_SLOT_TABLE + 8), 0); // IX past the 4 slots, B=0 -> a full 256-slot sweep
 
   // self-check: the copy at TAMPER_COPY_3278 (a two-byte pointer header, then CMP_LEN body

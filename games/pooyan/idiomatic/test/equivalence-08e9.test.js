@@ -6,7 +6,7 @@
  * ROM-table integrity guards that straddle the colour-map flood (fillAttributeColumns, source 0x0859):
  * guard 1 sums 0x0859..0x0878 == 0x63, guard 2 sums 0x0831..0x0839 == 0xaa. The oracle spins forever
  * on a guard miss; on an intact ROM neither can miss, so the module models the miss as a throw. On a
- * clean pass it queues two display commands (loc_0e54, then rst-0x38 words 0x0611 and 0x060b) and
+ * clean pass it queues two display commands (queueCreditDisplayCommands, then rst-0x38 words 0x0611 and 0x060b) and
  * sets the attract sub-state 0x8e51 := 7.
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM (and delegates to several already-gated

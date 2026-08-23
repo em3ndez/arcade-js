@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_0f2b } from "./loc_0f2b.js";
+import { queueSoundCommand11 } from "./queueSoundCommand11.js";
 import { FLIP_SCREEN_FLAG, PROXIMITY_HIT_HANDLER } from "./names.js";
 /**
  * loc_5d68 — proximity test between a source object and one target/record pair.
@@ -58,6 +58,6 @@ export function loc_5d68(m, source = m.regs.ix, target = m.regs.iy, record = m.r
   mem8[u16(record + 7)] = 0x01;
   mem8[u16(record + 0x12)] = PROXIMITY_HIT_HANDLER;
   mem8[u16(record + 0x13)] = (PROXIMITY_HIT_HANDLER >> 8);
-  loc_0f2b(m);
+  queueSoundCommand11(m);
   return false;
 }

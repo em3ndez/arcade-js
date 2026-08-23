@@ -11,7 +11,7 @@ import { loc_4006 } from "./loc_4006.js";
 import { advanceFallStep } from "./advanceFallStep.js";
 import { loc_0c45 } from "./loc_0c45.js";
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_0eda } from "./loc_0eda.js";
+import { queueSoundCommands82And03 } from "./queueSoundCommands82And03.js";
 import { renderStageCountdownDigits } from "./renderStageCountdownDigits.js";
 /**
  * loc_3f7c — object state-9 (catch) handler for the record based at IX.
@@ -36,7 +36,7 @@ export function loc_3f7c(m, rec = m.regs.ix) {
   setActorAnimation(m, rec, anim);
   mem8[rec + 0x02] = 0x02; // reset state
   mem8[rec + 0x11] = 0x20; // reset splash timer
-  loc_0eda(m); // score the catch
+  queueSoundCommands82And03(m); // score the catch
   mem8[ACTIVE_ENEMY_COUNT] = mem8[ACTIVE_ENEMY_COUNT] - 1;
 
   if ((mem8[rec + 0x0b] & 0x01) === 0) {

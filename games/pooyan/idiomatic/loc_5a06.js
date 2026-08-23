@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0f09 } from "./loc_0f09.js";
+import { emitPresetSound } from "./emitPresetSound.js";
 import { INPUT_PORT0, DRIP_RING_A } from "./names.js";
 /**
  * loc_5a06 — per-frame accumulate step, variant A.
@@ -20,7 +20,7 @@ export function loc_5a06(m) {
   const ring = ((mem8[DRIP_RING_A] << 1) | carry) & 0xff;
   mem8[DRIP_RING_A] = ring;
   if ((ring & RING_MASK) !== FIRE_PHASE) return; // off phase: ring advanced, nothing more
-  loc_0f09(m); // drip sound
+  emitPresetSound(m); // drip sound
   // The tail is reached through the marshalled call seam, which joins with A set to the
   // accumulate step, so load A before the call.
   m.regs.a = ACCUMULATE_STEP;

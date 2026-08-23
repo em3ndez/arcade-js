@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0f58 } from "./loc_0f58.js";
-import { loc_0f6c } from "./loc_0f6c.js";
-import { loc_0f76 } from "./loc_0f76.js";
+import { queueSoundCommands96And97And18And15 } from "./queueSoundCommands96And97And18And15.js";
+import { queueSoundCommands19And15 } from "./queueSoundCommands19And15.js";
+import { queueSirenSoundRun } from "./queueSirenSoundRun.js";
 import {
   PERIODIC_MODE_LATCH,
   SPAWN_PHASE_COUNTER,
@@ -39,11 +39,11 @@ export function loc_196e(m, hl = m.regs.hl) {
       mem8[pair] = 0x01;
       pair = (pair - (pair & 0xff)) + ((pair + 2) & 0xff); // keep the page, step the low byte by two
       mem8[pair] = 0x01;
-      loc_0f58(m);
+      queueSoundCommands96And97And18And15(m);
     }
   } else if (mode > 0x05) {
     mem8[PERIODIC_MODE_LATCH] = mode; // latch the mode
-    if (mem8[GRAB_ACTIVE_FLAG] === 0) loc_0f6c(m);
+    if (mem8[GRAB_ACTIVE_FLAG] === 0) queueSoundCommands19And15(m);
   }
 
   if (mem8[WAVE_EVENT_LATCH] !== 0) return;
@@ -52,7 +52,7 @@ export function loc_196e(m, hl = m.regs.hl) {
   if (mem8[PERIODIC_EVENT_TIMER] === 0) { // expired -> reload, latch, draw
     mem8[PERIODIC_EVENT_TIMER] = TIMER_RELOAD;
     mem8[WAVE_EVENT_LATCH] = 0x01;
-    loc_0f76(m);
+    queueSirenSoundRun(m);
     return;
   }
   mem8[PERIODIC_EVENT_TIMER] = (mem8[PERIODIC_EVENT_TIMER] - 1); // tick down

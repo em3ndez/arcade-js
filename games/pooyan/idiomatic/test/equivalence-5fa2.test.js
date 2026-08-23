@@ -7,13 +7,13 @@
  * flag (0x881f) sets the X bias. An empty/non-type-5 slot or an out-of-window box tail-loops through
  * the advance latch (loc_6018); a type-3 overlap tails the retire handler (loc_613d) after tallying
  * 0x8d45; any other overlap flags the two struck cells (0x8c91/0x8ca9 + partner), sounds the hit
- * (loc_0f01), and skip-returns. The whole subtree runs on both sides from an identical clone.
+ * (queueSoundCommand09), and skip-returns. The whole subtree runs on both sides from an identical clone.
  *
  * SEATING: miss/hit exits TAIL to loc_6018/loc_613d; the general hit is a caller-skip dissolved to a
  * boolean. Protocol: true = the sweep exhausted with no hit, false = a hit. Compared on RAM
  * (dumpState) minus STACK_SCRATCH plus the boolean; the register file is not compared. Cases are
  * CRAFTED — a plain boot does not seat this geometry. Green once the batch siblings (loc_6018/loc_613d
- * subtree, loc_0f01) and the 0x8d45/0x8c91/0x8ca9 cells land.
+ * subtree, queueSoundCommand09) and the 0x8d45/0x8c91/0x8ca9 cells land.
  *
  * Jobs:
  *   1. EQUAL — an exhausted sweep, a window-miss then exhaust, two general hits (both cell branches),

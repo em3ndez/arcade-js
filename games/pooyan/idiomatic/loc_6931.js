@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { setActorAnimation } from "./setActorAnimation.js";
 import { loc_0038 } from "./loc_0038.js";
-import { loc_0f97 } from "./loc_0f97.js";
+import { queueRoundSoundCommandRun } from "./queueRoundSoundCommandRun.js";
 import {
   ANIM_TABLE_3838,
   SHARED_FRAME_DELAY_TIMER,
@@ -80,7 +80,7 @@ export function loc_6931(m, ix = m.regs.ix, iy = m.regs.iy) {
     mem8[WAVE_COUNT_HUD_HI] = (bcd & 0xf0) >> 4; //          high digit
     mem8[WAVE_COUNT_HUD_HI - HUD_COLUMN_STRIDE] = bcd & 0x0f; // low digit
 
-    loc_0f97(m);
+    queueRoundSoundCommandRun(m);
   }
 
   mem8[WAVE_NUMBER] = mem8[WAVE_NUMBER] + 1;

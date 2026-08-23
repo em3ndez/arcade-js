@@ -5,7 +5,7 @@
  * it reseeds it to 0x10, steps a shared phase byte (0x892e) and tail-blits one of two arrow tiles
  * (ROM 0x2d51 / 0x2d55) chosen by that byte's parity. Below the gate it scans the two enemy-target
  * records (0x8c90 / 0x8ca8) for a free one; a free record advances the launch state (0x8f30 := 2),
- * marks the record, queues display command 0x0a (loc_0f05), blits the alternate tile, may light a
+ * marks the record, queues display command 0x0a (queueSoundCommand0A), blits the alternate tile, may light a
  * HUD cell (0x8508), and seeds three record fields (0x8a99 / 0x8a9e / 0x8aa7).
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES
@@ -14,11 +14,11 @@
  * with NO consumed register live-out, so only RAM is compared. The oracle's `ex af,af'; add a,l` on
  * the HUD-off path touches only the shadow accumulator (no memory, unconsumed) and is dropped in the
  * rewrite, matching in RAM. The tail m.call(0x3325) / mid m.call(0x0f05) equal the idiomatic
- * blit2x2TileBlock / loc_0f05; the oracle's rets pop the excluded stack.
+ * blit2x2TileBlock / queueSoundCommand0A; the oracle's rets pop the excluded stack.
  *
  * Every case is CRAFTED (the handler runs under the launch state machine, not a plain dispatch of
  * 0x27f3): all input cells poked identically on both sides. Sound gates (game-active / play-mode)
- * are held closed on the write-set case so loc_0f05 writes only the pending-byte cell (0x8d20).
+ * are held closed on the write-set case so queueSoundCommand0A writes only the pending-byte cell (0x8d20).
  *
  * Jobs:
  *   1. EQUAL — flip (not-elapsed / elapse both parities / underflow) and slot (no-free, free-rec0
@@ -63,14 +63,14 @@ const CELL_8A99 = 0x8a99;
 const CELL_8A86 = 0x8a86;
 const CELL_8A9E = 0x8a9e;
 const CELL_8AA7 = 0x8aa7;
-const TEXT_RING_PENDING_BYTE = 0x8d20;
+const SOUND_RING_PENDING_BYTE = 0x8d20;
 const LAUNCH_TILE_VRAM = 0x84a7;
 const LAUNCH_TILE_SRC = 0x2d51;
 const LAUNCH_TILE_SRC_ALT = 0x2d55;
 const BLIT_CELLS = [LAUNCH_TILE_VRAM, LAUNCH_TILE_VRAM + 0x01, LAUNCH_TILE_VRAM + 0x21, LAUNCH_TILE_VRAM + 0x20];
 
 const ARROW_Y_GATE = 0x34;
-const DISPLAY_CMD_0A = 0x0a; // loc_0f05's command byte
+const DISPLAY_CMD_0A = 0x0a; // queueSoundCommand0A's command byte
 const SEED_86 = 0x20; // crafted source coordinate at 0x8a86
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -135,11 +135,11 @@ test("EQUAL: crafted flip + slot paths — loc_27f3 == oracle in RAM (−stack)"
 
 test("WRITE-SET: full slot-success writes stay within footprint; blit copies ROM 0x2d55", () => {
   const footprint = new Set([
-    LAUNCH_STATE, REC0, LAUNCH_HUD_TILE, CELL_8A99, CELL_8A9E, CELL_8AA7, TEXT_RING_PENDING_BYTE, ...BLIT_CELLS,
+    LAUNCH_STATE, REC0, LAUNCH_HUD_TILE, CELL_8A99, CELL_8A9E, CELL_8AA7, SOUND_RING_PENDING_BYTE, ...BLIT_CELLS,
   ]);
   const m = craft({ arrowY: 0x20, rec0: 0x00, armed: 1, playMode: 0, gameActive: 0 });
   // Sentinel the pure-output cells so each write is observable (REC0 stays 0 = the free slot).
-  for (const cell of [LAUNCH_STATE, LAUNCH_HUD_TILE, CELL_8A99, CELL_8A9E, CELL_8AA7, TEXT_RING_PENDING_BYTE]) {
+  for (const cell of [LAUNCH_STATE, LAUNCH_HUD_TILE, CELL_8A99, CELL_8A9E, CELL_8AA7, SOUND_RING_PENDING_BYTE]) {
     m.mem.write8(cell, 0xee);
   }
   const b0 = m.dumpState();
@@ -153,7 +153,7 @@ test("WRITE-SET: full slot-success writes stay within footprint; blit copies ROM
     if (!inDeadStack(addr)) changed.push(addr);
   }
   for (const addr of changed) assert.ok(footprint.has(addr), `oracle wrote outside the footprint at ${hx(addr)}`);
-  for (const cell of [LAUNCH_STATE, REC0, LAUNCH_HUD_TILE, CELL_8A99, CELL_8A9E, CELL_8AA7, TEXT_RING_PENDING_BYTE]) {
+  for (const cell of [LAUNCH_STATE, REC0, LAUNCH_HUD_TILE, CELL_8A99, CELL_8A9E, CELL_8AA7, SOUND_RING_PENDING_BYTE]) {
     assert.ok(changed.includes(cell), `expected a write at ${hx(cell)}`);
   }
   assert.equal(m.mem.read8(LAUNCH_STATE), 0x02, "launch state must advance to 2");
@@ -162,7 +162,7 @@ test("WRITE-SET: full slot-success writes stay within footprint; blit copies ROM
   assert.equal(m.mem.read8(CELL_8A99), 0x01, "0x8a99 seeded to 1");
   assert.equal(m.mem.read8(CELL_8A9E), (SEED_86 + 0x0c) & 0xff, "0x8a9e = source + 0x0c");
   assert.equal(m.mem.read8(CELL_8AA7), 0x10, "0x8aa7 seeded to 0x10");
-  assert.equal(m.mem.read8(TEXT_RING_PENDING_BYTE), DISPLAY_CMD_0A, "loc_0f05 stored command 0x0a");
+  assert.equal(m.mem.read8(SOUND_RING_PENDING_BYTE), DISPLAY_CMD_0A, "queueSoundCommand0A stored command 0x0a");
   // The 2x2 blit copies ROM 0x2d55..0x2d58 into TL, TR (+1), BR (+0x21), BL (+0x20).
   assert.equal(m.mem.read8(BLIT_CELLS[0]), m.mem.read8(LAUNCH_TILE_SRC_ALT + 0), "blit TL");
   assert.equal(m.mem.read8(BLIT_CELLS[1]), m.mem.read8(LAUNCH_TILE_SRC_ALT + 1), "blit TR");

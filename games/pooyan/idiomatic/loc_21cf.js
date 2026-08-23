@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { OBJ_HIT_FLAG_I0, OBJ_HIT_FLAG_I1 } from "./names.js";
 import { loc_0010 } from "./loc_0010.js";
-import { loc_0ed2 } from "./loc_0ed2.js";
+import { queueSoundCommand01 } from "./queueSoundCommand01.js";
 import { loc_2226 } from "./loc_2226.js";
 /**
  * loc_21cf — per-object state step for the record based at IY.
@@ -34,7 +34,7 @@ export function loc_21cf(m, rec = m.regs.iy) {
 
   if (mem8[rec + 0x12] === 0) {
     mem8[rec + 0x12] = 1; // prime once
-    loc_0ed2(m);
+    queueSoundCommand01(m);
   }
 
   if (mem8[rec] & 0x02) return loc_2226(m, rec); // two-axis mover

@@ -9,7 +9,7 @@
  * loc_18da takes no register inputs; it is driven entirely by memory: AWARD_QUEUE (0x8909),
  * BONUS_AWARD_DSW (0x8800), ACTIVE_PLAYER (0x880d), the active player's score MSB (0x88a4 or
  * 0x88a7), and GAUGE_PHASE_COUNTER (0x8908). The full path also runs renderPhaseGauge (0x03c2)
- * and loc_0f0d (0x0f0d), whose own writes/reads are covered by their gates and match on both sides.
+ * and queueSoundCommand0B (0x0f0d), whose own writes/reads are covered by their gates and match on both sides.
  *
  * LIVE-OUT A: set on every return path — the reload value on the empty path, the score MSB on
  * the not-yet-reached path, the sound appender's cursor on the full path. Checked equal to the

@@ -41,7 +41,7 @@ import {
   FLIP_SCREEN_FLAG,
   GAME_ACTIVE_FLAG,
   PLAY_MODE_LATCH,
-  TEXT_RING_PENDING_BYTE,
+  SOUND_RING_PENDING_BYTE,
   LANDING_ANIM_SEQ_40B4,
 } from "../names.js";
 
@@ -102,7 +102,7 @@ const HIT_WRITES = new Map([
   [HL + 0x0d, (LANDING_ANIM_SEQ_40B4 >> 8) & 0xff],
   [HL + 0x0e, 0x00],
   [HL + 0x11, 0x0a],
-  [TEXT_RING_PENDING_BYTE, 0x0d],
+  [SOUND_RING_PENDING_BYTE, 0x0d],
   [GRAB_ACTIVE_FLAG, 0x01],
 ]);
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0f92 } from "./loc_0f92.js";
+import { queueSoundRun1D } from "./queueSoundRun1D.js";
 import { loc_1ab2 } from "./loc_1ab2.js";
 import { PLAY_STATE_INDEX, ACTIVE_PLAYER, HIGH_SCORE_INSERT_RANK, ROPE_SEGMENT_COUNT, MARKER_LAYOUT_PTR } from "./names.js";
 /**
@@ -15,7 +15,7 @@ import { PLAY_STATE_INDEX, ACTIVE_PLAYER, HIGH_SCORE_INSERT_RANK, ROPE_SEGMENT_C
 export function loc_1a96(m) {
   const { mem8 } = m;
 
-  loc_0f92(m);
+  queueSoundRun1D(m);
 
   if (mem8[ACTIVE_PLAYER] !== 0) mem8[PLAY_STATE_INDEX] = mem8[PLAY_STATE_INDEX] + 1; // player one: extra step
   mem8[PLAY_STATE_INDEX] = (mem8[PLAY_STATE_INDEX] + 1);
