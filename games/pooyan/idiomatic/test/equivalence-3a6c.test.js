@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3a6c (ROM 0x3a6c, Pooyan) — the projectile launcher. It bumps
+ * Memory-equivalence test for launchProjectileIntoFreeSlot (ROM 0x3a6c, Pooyan) — the projectile launcher. It bumps
  * the spawn counter, scans the 3-slot object table (stride 0x18) for a slot whose active bit is
  * clear, and — when one is free — seeds it from the launcher record at IX (coordinate pair,
  * hit-flash sequence, launcher back-pointer, state fields) while arming the launcher's animation,
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3a6c as oracle } from "../../translated/loc_3a6c.js";
-import { loc_3a6c } from "../loc_3a6c.js";
+import { launchProjectileIntoFreeSlot } from "../launchProjectileIntoFreeSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -89,7 +89,7 @@ for (const [label, craft] of [["free slot (full seeding)", craftSpawn], ["no fre
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_3a6c(c);
+    launchProjectileIntoFreeSlot(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     console.log(`  EQUAL ${label}: RAM identical`);
@@ -100,13 +100,13 @@ for (const [label, craft] of [["free slot (full seeding)", craftSpawn], ["no fre
 
 test("WRITE-SET: a spawn seeds the slot; a no-free record only bumps the counter", () => {
   const spawn = craftSpawn();
-  loc_3a6c(spawn);
+  launchProjectileIntoFreeSlot(spawn);
   assert.equal(spawn.mem.read8(SPAWN), 0x01, "spawn bumps the counter");
   assert.equal(spawn.mem.read8(TABLE + 0x00), 0x01, "slot marked active");
   assert.equal(spawn.mem.read8(TABLE + 0x08) & 0x01, 0x01, "slot seed bit set");
 
   const nofree = craftNoFree();
-  loc_3a6c(nofree);
+  launchProjectileIntoFreeSlot(nofree);
   assert.equal(nofree.mem.read8(SPAWN), 0x01, "no-free still bumps the counter");
   assert.equal(nofree.mem.read8(TABLE + 0x02), 0x00, "no-free leaves the slot state byte untouched");
   console.log("  WRITE-SET: spawn seeds; no-free only bumps");
@@ -119,7 +119,7 @@ for (const [label, addr] of [["seed byte", TABLE + 0x12], ["launcher attribute",
     const o = craftSpawn();
     const c = craftSpawn();
     oracle(o);
-    loc_3a6c(c);
+    launchProjectileIntoFreeSlot(c);
     c.mem.write8(addr, (o.mem.read8(addr) ^ 0xff) & 0xff);
     const d = ramDiffMinusStack(o, c);
     assert.notEqual(d, null, `the gate FAILED to catch a corrupted ${label}`);

@@ -106,7 +106,7 @@ test("EQUAL: reset path (board-clear flag set) — the board reset runs identica
     assertRegs(o, c, `spawnPhase=${hx(spawnPhase)}`);
     assert.equal(o.regs.ix & 0xffff, (IXBASE + COUNT * STRIDE) & 0xffff, "IX still advanced past the run on the reset path");
   }
-  console.log("  EQUAL(reset): both loc_2527 sub-branches identical (RAM −stack + IX/HL/B/A)");
+  console.log("  EQUAL(reset): both resetBoardRamAndReseedSpawnCounters sub-branches identical (RAM −stack + IX/HL/B/A)");
 });
 
 // -- 3. WRITE-SET -------------------------------------------------------------

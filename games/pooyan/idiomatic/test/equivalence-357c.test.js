@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_357c (ROM 0x357c, Pooyan) — the target-tile resolver + state step
+ * Memory-equivalence test for resolveTargetColumnAndArmApproach (ROM 0x357c, Pooyan) — the target-tile resolver + state step
  * for the actor record at IX. It resolves a wanted tile from a per-frame table (no lane active) or
  * from an alternate lane (direct compare, or a second table base). An exact tile match tails into
  * the pre-spawn guard; a tile below the threshold returns; at or above it the record is latched
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_357c as oracle } from "../../translated/loc_357c.js";
-import { loc_357c } from "../loc_357c.js";
+import { resolveTargetColumnAndArmApproach } from "../resolveTargetColumnAndArmApproach.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -100,12 +100,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_357c == oracle in RAM (−stack)", () => {
+test("EQUAL: resolveTargetColumnAndArmApproach == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_357c(c);
+    resolveTargetColumnAndArmApproach(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -133,7 +133,7 @@ test("TEETH: a corrupted latch byte is CAUGHT by the RAM diff", () => {
   const o = craftAltLatchA();
   const c = craftAltLatchA();
   oracle(o);
-  loc_357c(c);
+  resolveTargetColumnAndArmApproach(c);
   c.mem.write8(LATCH, (o.mem.read8(LATCH) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted latch byte");
@@ -148,8 +148,8 @@ test("TEETH: rec+0x07 bit1 selects the animation script (module tracks oracle bo
   const cb = craftAltLatchB();
   oracle(a);
   oracle(b);
-  loc_357c(ca);
-  loc_357c(cb);
+  resolveTargetColumnAndArmApproach(ca);
+  resolveTargetColumnAndArmApproach(cb);
   assert.equal(ramDiffMinusStack(a, ca), null, "script-A module must match the oracle");
   assert.equal(ramDiffMinusStack(b, cb), null, "script-B module must match the oracle");
   assert.equal(a.mem.read8(ANIMLO), SCRIPT_A_LO, "bit1 clear -> script A");

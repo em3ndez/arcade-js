@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { SPAWN_OBJECT_TABLE, WAVE_ARRIVAL_COUNTER, SHARED_FRAME_DELAY_TIMER, ANIM_TABLE_3838 } from "./names.js";
 /**
@@ -41,7 +41,7 @@ const SEAT_TIMER_SEED = 0x20; // value armed into the seat timer
 export function loc_672a(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_4006(m, rec);
+  advanceObjectAnimationFrame(m, rec);
 
   const pos = mem8[rec + POS_LOW] + mem8[rec + STEP];
   if (pos > 0xff) mem8[rec + POS_HIGH] = (mem8[rec + POS_HIGH] + 1);

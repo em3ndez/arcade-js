@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2101 (ROM 0x2101, Pooyan) — the boot-frontier sub-dispatch: run
+ * Memory-equivalence test for runLaunchAndTargetActorPipeline (ROM 0x2101, Pooyan) — the boot-frontier sub-dispatch: run
  * the three frontier sub-passes in order (the launch-sequence state driver 0x2778, the one-shot
  * slot-arming advance 0x210b, the paired-slot integrity scan 0x2157) then return.
  *
  * The module calls the three idiomatic siblings directly; the oracle drives the three translated
- * siblings through the routines map. loc_2101 is a void sequencer — no register survives, so the
+ * siblings through the routines map. runLaunchAndTargetActorPipeline is a void sequencer — no register survives, so the
  * register file is not compared (dumpState is memory-only); equivalence is RAM minus STACK_SCRATCH,
  * with SP parked there so each sub-pass's nested pushes drop out of the diff.
  *
@@ -29,10 +29,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2101 as oracle } from "../../translated/loc_2101.js";
-import { loc_2101 } from "../loc_2101.js";
-import { loc_2778 } from "../loc_2778.js";
-import { loc_210b } from "../loc_210b.js";
-import { loc_2157 } from "../loc_2157.js";
+import { runLaunchAndTargetActorPipeline } from "../runLaunchAndTargetActorPipeline.js";
+import { dispatchLaunchState } from "../dispatchLaunchState.js";
+import { spawnTargetActorOnLaunchTrigger } from "../spawnTargetActorOnLaunchTrigger.js";
+import { stepActiveTargetActorRecords } from "../stepActiveTargetActorRecords.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -92,7 +92,7 @@ test("EQUAL: module == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_2101(c);
+  runLaunchAndTargetActorPipeline(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: RAM identical");
@@ -101,9 +101,9 @@ test("EQUAL: module == oracle in RAM (−stack)", () => {
 // -- 2. TEETH -----------------------------------------------------------------
 
 const DROPS = [
-  { name: "drop 2778 (launch driver)", keep: [loc_210b, loc_2157], addr: FRONTIER_LATCH },
-  { name: "drop 210b (slot-arming advance)", keep: [loc_2778, loc_2157], addr: AIM_FLAGS },
-  { name: "drop 2157 (integrity scan)", keep: [loc_2778, loc_210b], addr: PASS_TALLY },
+  { name: "drop 2778 (launch driver)", keep: [spawnTargetActorOnLaunchTrigger, stepActiveTargetActorRecords], addr: FRONTIER_LATCH },
+  { name: "drop 210b (slot-arming advance)", keep: [dispatchLaunchState, stepActiveTargetActorRecords], addr: AIM_FLAGS },
+  { name: "drop 2157 (integrity scan)", keep: [dispatchLaunchState, spawnTargetActorOnLaunchTrigger], addr: PASS_TALLY },
 ];
 
 test("TEETH: a sequencer missing any one pass diverges from the oracle at that pass's footprint", () => {

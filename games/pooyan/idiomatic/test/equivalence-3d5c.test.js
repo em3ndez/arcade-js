@@ -7,9 +7,9 @@
  *
  * The module calls the idiomatic sub-routines directly; the oracle drives the same routines through
  * the frozen registry. advanceEnemyAnimationPhase is memory-only on every reachable exit (the fall-through always hits
- * loc_3d8f's not-elapsed path, since this routine already spent the timer), so the register file is
+ * blankEnemyBandOnTimerExpiry's not-elapsed path, since this routine already spent the timer), so the register file is
  * not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH (SP parked in dead stack so the
- * oracle's push/pop churn drops out). loc_4006 is held on its frame-hold branch (rec+0x0e != 0) so
+ * oracle's push/pop churn drops out). advanceObjectAnimationFrame is held on its frame-hold branch (rec+0x0e != 0) so
  * it never walks the ROM stream.
  *
  * Jobs:
@@ -42,7 +42,7 @@ const TIMER = REC + 0x11; //  frame timer
 const PHASE = REC + 0x16; //  animation phase (read/tested)
 const PCOUNT = REC + 0x13; // phase-count (written phase+1)
 const STATE = REC + 0x02; //  object state byte
-const HOLD = REC + 0x0e; //   loc_4006 frame-hold (nonzero -> simple decrement branch)
+const HOLD = REC + 0x0e; //   advanceObjectAnimationFrame frame-hold (nonzero -> simple decrement branch)
 const SP0 = 0x8fe0; //        inside STACK_SCRATCH
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -53,15 +53,15 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Fresh clone with the record seated: timer, phase, and a nonzero hold so loc_4006 stays simple. */
+/** Fresh clone with the record seated: timer, phase, and a nonzero hold so advanceObjectAnimationFrame stays simple. */
 function craft(timer, phase) {
   const m = BASE.clone();
   m.regs.ix = REC;
   m.regs.sp = SP0;
   m.mem8[TIMER] = timer & 0xff;
   m.mem8[PHASE] = phase & 0xff;
-  m.mem8[HOLD] = 0x05; // loc_4006: frame still holding -> decrement, no ROM stream walk
-  m.mem8[REC + 0x07] = 0x01; // loc_3d99 select field (low 2 bits) on the phase-7 path
+  m.mem8[HOLD] = 0x05; // advanceObjectAnimationFrame: frame still holding -> decrement, no ROM stream walk
+  m.mem8[REC + 0x07] = 0x01; // armEnemyTurnAnimation select field (low 2 bits) on the phase-7 path
   m.mem8[STATE] = 0x03; // starting state
   return m;
 }

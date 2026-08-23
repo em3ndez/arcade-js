@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_23a1 (ROM 0x23a1, Pooyan) — the shared render phase tick.
+ * Memory-equivalence test for tickStatusRenderRingAndRedrawOnWrap (ROM 0x23a1, Pooyan) — the shared render phase tick.
  * Decrements the mod-8 ring counter at 0x88bd; while it stays nonzero the caller returns.
  * On wrap it borrows one from the mod-4 render phase at 0x88bc and falls into the shared
- * render tail (loc_23ad), which re-renders three status fields.
+ * render tail (wrapRenderPhaseAndPaintTileTriplet), which re-renders three status fields.
  *
  * SEATING: BALANCED-WIRE. The oracle has a plain `ret nz` (net SP 0) on the still-counting
- * branch and falls through (tail) into loc_23ad — itself a plain-ret routine — on wrap; net
+ * branch and falls through (tail) into wrapRenderPhaseAndPaintTileTriplet — itself a plain-ret routine — on wrap; net
  * SP 0 either way. A void state-machine tail: no register is read back, so the register file
  * is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in scratch so
  * the render tail's nested pushes drop out of the diff.
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_23a1 as oracle } from "../../translated/loc_23a1.js";
-import { loc_23a1 } from "../loc_23a1.js";
+import { tickStatusRenderRingAndRedrawOnWrap } from "../tickStatusRenderRingAndRedrawOnWrap.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -69,12 +69,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_23a1 == oracle in RAM (−stack)", () => {
+test("EQUAL: tickStatusRenderRingAndRedrawOnWrap == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_23a1(c);
+    tickStatusRenderRingAndRedrawOnWrap(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -104,7 +104,7 @@ test("TEETH: a wrong ring byte is CAUGHT by the RAM diff", () => {
   const o = craftCounting();
   const c = craftCounting();
   oracle(o);
-  loc_23a1(c);
+  tickStatusRenderRingAndRedrawOnWrap(c);
   c.mem.write8(RING, (o.mem.read8(RING) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted ring byte");

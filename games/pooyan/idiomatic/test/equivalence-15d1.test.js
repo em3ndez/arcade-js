@@ -3,10 +3,10 @@
  * Memory-equivalence test for resetToBoardBuildToContinuePlay (ROM 0x15d1, Pooyan) — the play dispatcher's post-dispatch
  * continuation. Four exits, all returning to the frame caller (the NMI epilogue): ret while the game
  * is active; tail `jp 0x0bb5` (shared attract epilogue) on free play; ret with no credit; else force
- * the board-build state, run the board/HUD reset (loc_2527) and arena clear (loc_02b9), and blank an
+ * the board-build state, run the board/HUD reset (resetBoardRamAndReseedSpawnCounters) and arena clear (loc_02b9), and blank an
  * eight-tile attribute column.
  *
- * The idiomatic module dissolves loc_2527/loc_02b9 to direct calls and keeps the tail m.call(0x0bb5);
+ * The idiomatic module dissolves resetBoardRamAndReseedSpawnCounters/loc_02b9 to direct calls and keeps the tail m.call(0x0bb5);
  * the oracle drives the same frozen callees and the same tail. resetToBoardBuildToContinuePlay is a void continuation — the
  * frame caller restores every register — so no register is compared; equivalence is RAM (dumpState)
  * minus STACK_SCRATCH, with SP parked in dead stack so the oracle's transient return-slot pushes drop

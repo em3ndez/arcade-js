@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { OBJECT_DRAWN_FLAG } from "./names.js";
 
 /**
@@ -15,6 +15,6 @@ export function loc_76a6(m, ix = m.regs.ix) {
   const { mem8 } = m;
 
   if (mem8[OBJECT_DRAWN_FLAG] !== 0) return true; // gate closed -> hold
-  loc_4006(m, ix); // gate open -> step this entry's animation
+  advanceObjectAnimationFrame(m, ix); // gate open -> step this entry's animation
   return true;
 }

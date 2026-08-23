@@ -49,7 +49,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const IX_BASE = 0x8b00; // a work-RAM record base for the sprite band, clear of the seeded cells + stack
-const BAND_LEN = 0x17; //  bytes loc_3553 blanks from IX
+const BAND_LEN = 0x17; //  bytes blankActorSpriteBand blanks from IX
 const HUD_UNITS = HUD_STAGE_DIGIT_LO; //             units digit tile
 const HUD_TENS = (HUD_STAGE_DIGIT_LO + 0x20) & 0xffff; // tens digit tile, one row over
 const DIRT = 0xaa; //      sentinel pre-loaded so every real write is observable

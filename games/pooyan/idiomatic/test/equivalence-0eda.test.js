@@ -10,7 +10,7 @@
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * pc/SP/cycles are NOT compared. The contract is MEMORY ONLY: the enqueue helper round-trips
- * BC/DE/HL and its A leftover (the advanced tail) is not consumed — queueSoundCommands82And03's sole caller (loc_3f7c)
+ * BC/DE/HL and its A leftover (the advanced tail) is not consumed — queueSoundCommands82And03's sole caller (advanceFallingEnemyAndTallyCatchOnLanding)
  * reloads HL and never reads A after the call — so no register live-out is declared or checked.
  * The one input is the ring tail cell, poked identically per side; the wrap edge is crafted.
  *

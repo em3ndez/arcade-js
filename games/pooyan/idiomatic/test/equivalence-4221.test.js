@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence test for moveFormationAndSpawnObject (ROM 0x4221, Pooyan) — the per-frame object-state handler.
  *
- * The idiomatic module direct-calls its lifted callees (loc_4006/loc_34f2/loc_343e/loc_3553, the
+ * The idiomatic module direct-calls its lifted callees (advanceObjectAnimationFrame/loc_34f2/loc_343e/blankActorSpriteBand, the
  * interior-entry arms loc_423a/loc_425c, and blockC9's slot initializer initDescendingObjectSlot — a caller-skip
  * dissolved to a boolean the sweep early-returns on). moveFormationAndSpawnObject is a dispatched void handler — no
  * register survives — so equivalence is RAM (dumpState) minus STACK_SCRATCH.
@@ -57,11 +57,11 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Common record seating: animation held (loc_4006 just ticks), movement callee returns early. */
+/** Common record seating: animation held (advanceObjectAnimationFrame just ticks), movement callee returns early. */
 function seatRecord(m) {
   m.regs.sp = SP0;
   m.regs.ix = REC;
-  m.mem8[REC + 0x0e] = 0x05; // anim hold running -> loc_4006 decrements and returns
+  m.mem8[REC + 0x0e] = 0x05; // anim hold running -> advanceObjectAnimationFrame decrements and returns
   m.mem8[REC + 0x05] = 0x00; // sub-position: no carry in the movement callee
   m.mem8[REC + 0x09] = 0x00;
   m.mem8[REC + 0x0a] = 0x00;

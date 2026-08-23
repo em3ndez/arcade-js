@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import { FORMATION_TABLE } from "./names.js";
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { loc_3cae } from "./loc_3cae.js";
 /**
  * loc_3c92 — object state-7 handler: tick animation, then periodically spawn a child.
@@ -20,7 +20,7 @@ const RECORD_COUNT = 0x04; // formation records scanned
 export function loc_3c92(m, parent = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_4006(m, parent); // advance the parent's animation
+  advanceObjectAnimationFrame(m, parent); // advance the parent's animation
   mem8[parent + TIMER_FIELD] = u8(mem8[parent + TIMER_FIELD] - 1);
   if (mem8[parent + TIMER_FIELD] !== 0) return; // timer not elapsed
 

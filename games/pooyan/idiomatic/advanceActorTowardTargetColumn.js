@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_4006 } from "./loc_4006.js";
-import { loc_3757 } from "./loc_3757.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
+import { advanceActorXAndDispatchMove } from "./advanceActorXAndDispatchMove.js";
 import { loc_362d } from "./loc_362d.js";
 import { loc_3617 } from "./loc_3617.js";
 import { loc_0c45 } from "./loc_0c45.js";
@@ -47,8 +47,8 @@ const FLAG_APPROACH_B = 0x02; // flag bit selecting the second approach animatio
 export function advanceActorTowardTargetColumn(m, rec = m.regs.ix) {
   const { mem8, mem16 } = m;
 
-  loc_4006(m, rec); // step the record's animation
-  if (mem8[rec + REC_LATCH] !== 0) return loc_3757(m, rec); // already latched
+  advanceObjectAnimationFrame(m, rec); // step the record's animation
+  if (mem8[rec + REC_LATCH] !== 0) return advanceActorXAndDispatchMove(m, rec); // already latched
 
   const sum = mem8[rec + REC_X] + mem8[rec + REC_STEP];
   if (sum > 0xff) mem8[rec + REC_COLUMN] = u8(mem8[rec + REC_COLUMN] + 1); // carry into the column

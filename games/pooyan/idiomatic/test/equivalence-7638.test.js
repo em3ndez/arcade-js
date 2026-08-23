@@ -65,7 +65,7 @@ function seatDispatch(state) {
   const m = BASE.clone();
   m.regs.ix = REC;
   m.regs.sp = SP0;
-  m.mem.write8(REC + 0x0e, 0x05); // anim hold nonzero -> loc_4006 just decrements (no ROM-script walk)
+  m.mem.write8(REC + 0x0e, 0x05); // anim hold nonzero -> advanceObjectAnimationFrame just decrements (no ROM-script walk)
   m.mem.write8(STATE, state);
   return m;
 }

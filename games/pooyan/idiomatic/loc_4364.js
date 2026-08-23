@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { advanceFallStep } from "./advanceFallStep.js";
-import { loc_3553 } from "./loc_3553.js";
+import { blankActorSpriteBand } from "./blankActorSpriteBand.js";
 /**
  * loc_4364 — object state handler: while the record's phase timer is non-zero, count it down and
  * return; at zero, step the animation, advance one fall step, and tail-blank the sprite band on land.
@@ -18,7 +18,7 @@ export function loc_4364(m, rec = m.regs.ix) {
     return;
   }
 
-  loc_4006(m, rec);
+  advanceObjectAnimationFrame(m, rec);
   if (advanceFallStep(m, rec)) return;
-  return loc_3553(m, rec);
+  return blankActorSpriteBand(m, rec);
 }

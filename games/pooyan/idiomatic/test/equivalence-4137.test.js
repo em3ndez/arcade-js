@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for descendObjectToLanding (ROM 0x4137, Pooyan) — a per-object descent step for the
- * record at IX: animate (loc_4006), advance the position by the signed step with a sub-position
+ * record at IX: animate (advanceObjectAnimationFrame), advance the position by the signed step with a sub-position
  * borrow, and while still travelling return; on landing latch the sound id, reset the object, and
  * tail (via the dissolved loc_0c45 + setActorAnimation) into its landing animation.
  *
  * descendObjectToLanding is void — no register survives — so the register file is not compared; equivalence is
  * RAM (dumpState) minus STACK_SCRATCH via firstStateDiff, SP parked in dead stack. IX is passed
- * through the param bridge. loc_4006 is held on its frame-hold arm (+0x0e nonzero) so the diff
+ * through the param bridge. advanceObjectAnimationFrame is held on its frame-hold arm (+0x0e nonzero) so the diff
  * isolates the descent step; the dissolved loc_0c45 / setActorAnimation read/write identical bytes.
  *
  * Jobs:
@@ -48,12 +48,12 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** A record with loc_4006 on its frame-hold arm; `land` picks the landing vs travelling descent. */
+/** A record with advanceObjectAnimationFrame on its frame-hold arm; `land` picks the landing vs travelling descent. */
 function craft(land) {
   const m = BASE.clone();
   m.regs.sp = SP0;
   m.regs.ix = REC;
-  m.mem8[REC + 0x0e] = 0x05; // loc_4006: frame-hold running -> dec + return
+  m.mem8[REC + 0x0e] = 0x05; // advanceObjectAnimationFrame: frame-hold running -> dec + return
   if (land) {
     m.mem8[REC + 0x0a] = 0xfe; // step -2
     m.mem8[REC + 0x03] = 0x05; // position 5 >= 2 -> no borrow

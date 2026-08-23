@@ -131,7 +131,7 @@ export const UNWIRED = {
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
     "loc_305f.js":
-      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_2f01 " +
+      "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by advanceHangingRopeObjectWithGrabCheck " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
     "loc_3cae.js":

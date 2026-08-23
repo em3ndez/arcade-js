@@ -3,11 +3,11 @@
  * Memory-equivalence gate for loc_3c92 (ROM 0x3c92, Pooyan) — object state-7 handler that ticks
  * animation then periodically spawns a child, COMPOSING the dissolved caller-skip loc_3cae.
  *
- * loc_3c92 advances the parent's animation (loc_4006), decrements the parent frame timer (+0x11)
+ * loc_3c92 advances the parent's animation (advanceObjectAnimationFrame), decrements the parent frame timer (+0x11)
  * and returns while it still holds. On elapse it walks the four formation records (stride 0x18 from
  * the formation table) calling loc_3cae per record; the helper returns false the moment it seats a
  * child, which aborts the scan (no timer reseed this frame). If all four slots were occupied it
- * reseeds the timer to 0x10. The oracle runs the TRANSLATED loc_4006/loc_3cae (whose pop-af skip
+ * reseeds the timer to 0x10. The oracle runs the TRANSLATED advanceObjectAnimationFrame/loc_3cae (whose pop-af skip
  * aborts the loop); the idiomatic module imports the IDIOMATIC loc_3cae and early-returns on false.
  * The two must land byte-identical in RAM(-stack).
  *
@@ -16,7 +16,7 @@
  * parent) is the input; SP is seated in the dead stack. NO register live-out is declared — a
  * dispatched state handler whose effects are entirely in memory; pc/SP are not compared.
  *
- * The record fields are crafted per branch: the parent's loc_4006 hold (+0x0e) is nonzero so the
+ * The record fields are crafted per branch: the parent's advanceObjectAnimationFrame hold (+0x0e) is nonzero so the
  * animation step just decrements, the timer (+0x11) selects hold-vs-scan, and each formation
  * record's first byte marks it occupied or free.
  *
@@ -51,7 +51,7 @@ const test = ROM_PRESENT
 const PARENT = 0x8a80; // an actor record base, clear of the formation records and the dead stack
 const STRIDE = 0x18; // formation-record stride
 const TIMER = 0x11; // parent frame-timer field
-const HOLD_4006 = 0x0e; // loc_4006's own frame-hold field (nonzero => just decremented)
+const HOLD_4006 = 0x0e; // advanceObjectAnimationFrame's own frame-hold field (nonzero => just decremented)
 const SP_START = 0x8ff8; // inside STACK_SCRATCH; leaves room for the oracle's push/pop/ret chain
 const DIRT = 0xaa;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -66,7 +66,7 @@ function ramDiffMinusStack(ma, mb) {
 /**
  * A fresh clone with IX=parent and SP in the dead stack. `timer` seeds the frame timer (+0x11),
  * `freeSlot` marks that formation record free (all others occupied), or -1 for all occupied. The
- * parent's loc_4006 hold is nonzero so the animation step just decrements, and its coordinate
+ * parent's advanceObjectAnimationFrame hold is nonzero so the animation step just decrements, and its coordinate
  * source fields are seeded so a seated child's copies are concrete.
  */
 function craft({ timer, freeSlot }) {
@@ -113,7 +113,7 @@ test("WRITE-SET: allOccupied reseeds the timer; skipFirst leaves it at 0 and sea
   const occ = craft(BRANCHES.allOccupied);
   oracle(occ);
   assert.equal(occ.mem.read8(PARENT + TIMER), 0x10, "all-occupied scan reseeds the timer to 0x10");
-  assert.equal(occ.mem.read8(PARENT + HOLD_4006), 0x04, "loc_4006 decremented the parent hold");
+  assert.equal(occ.mem.read8(PARENT + HOLD_4006), 0x04, "advanceObjectAnimationFrame decremented the parent hold");
 
   const sk = craft(BRANCHES.skipFirst);
   oracle(sk);

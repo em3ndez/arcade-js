@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_36de (ROM 0x36de) — "build an actor attribute byte": index the
+ * Memory-equivalence test for mergeActorAttributeByte (ROM 0x36de) — "build an actor attribute byte": index the
  * primary ROM table (ACTOR_ATTR_BASE_TABLE) by 2*DIFFICULTY_DSW + ROUND_COUNTER-clamped-to-0x0e,
  * step the value down past the record's +0x16/+0x13 bit-0 flags and its +0x06 phase gate, bias it
  * up by 3 when STAGE_COUNTDOWN < 4, then OR the merge-table (ACTOR_ATTR_MERGE_TABLE) lookup into the
@@ -12,9 +12,9 @@
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * The contract is MEMORY ONLY (the +0x08 byte). The register leftovers (A = merged, HL = the merge
- * lookup pointer, B = the pre-bias value) are NOT declared live-out: the sole reach is loc_3680,
- * which tail-jumps to loc_379d, and loc_379d discards A/B/HL (it does `xor a` before using A and
- * never reads B/HL) while reading C — which loc_36de never touches. pc/SP/cycles are not compared.
+ * lookup pointer, B = the pre-bias value) are NOT declared live-out: the sole reach is spawnObjectIntoFreeSlot,
+ * which tail-jumps to spawnActorSlotFromTemplate, and spawnActorSlotFromTemplate discards A/B/HL (it does `xor a` before using A and
+ * never reads B/HL) while reading C — which mergeActorAttributeByte never touches. pc/SP/cycles are not compared.
  *
  * Inputs (record fields + three globals) are poked identically per side; the two ROM tables are
  * real, so the oracle is the ground truth for every branch. Jobs: 1. EQUAL over a branch-covering
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_36de as oracle } from "../../translated/loc_36de.js";
-import { loc_36de } from "../loc_36de.js";
+import { mergeActorAttributeByte } from "../mergeActorAttributeByte.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ROUND_COUNTER, DIFFICULTY_DSW, STAGE_COUNTDOWN } from "../names.js";
@@ -89,12 +89,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: branch sweep — loc_36de == oracle in RAM (−stack)", () => {
+test("EQUAL: branch sweep — mergeActorAttributeByte == oracle in RAM (−stack)", () => {
   for (const cse of CASES) {
     const o = craft(cse);
     const c = craft(cse);
     oracle(o);
-    loc_36de(c);
+    mergeActorAttributeByte(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (${JSON.stringify(cse)}): oracle=${d.a} idiom=${d.b}`);
     // The written attribute byte agrees with the oracle's (OR-merge preserved any pre-set bits).
@@ -130,7 +130,7 @@ test("TEETH: a wrong +0x08 byte is CAUGHT by the RAM diff", () => {
   const o = craft(cse);
   const c = craft(cse);
   oracle(o);
-  loc_36de(c);
+  mergeActorAttributeByte(c);
   c.mem.write8(ATTR, (o.mem.read8(ATTR) ^ 0xff) & 0xff); // BUG: corrupt the attribute byte
 
   const d = ramDiffMinusStack(o, c);

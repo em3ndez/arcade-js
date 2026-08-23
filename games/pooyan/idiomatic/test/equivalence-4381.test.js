@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_4381 (ROM 0x4381) — the display-list interpreter. On entry it
+ * Memory-equivalence test for paintDisplayListRunToVram (ROM 0x4381) — the display-list interpreter. On entry it
  * picks a dest/src pointer pair: the primary pair (0x8f43)/(0x8f45) when (0x8920)==0, else the
  * alternate pair (0x88b8)/(0x88ba). It then walks up to 0x1d source bytes: a plain byte copies
  * src->dest; a 0x10 opcode advances dest by the next byte and shrinks the remaining count; a 0xff
@@ -8,13 +8,13 @@
  * the advanced pointers are stored back to whichever pair was chosen. Fully self-contained (no calls).
  *
  * This is the cycle-free / memory-equivalence gate. The routine WRITES video RAM + pointer cells, so
- * every case uses a FRESH clone per side. Contract: RAM (dumpState, minus STACK_SCRATCH). loc_4381
+ * every case uses a FRESH clone per side. Contract: RAM (dumpState, minus STACK_SCRATCH). paintDisplayListRunToVram
  * takes no register inputs and leaves nothing live in a register for a reader (all results go to
  * memory), so pc/SP/cycles/registers are NOT compared. All inputs live in memory, so cases are
  * CRAFTED: identical pointer cells + source streams poked on both sides.
  *
  * Jobs:
- *   1. EQUAL — over crafted streams (literal / reload / skip / alternate pair) loc_4381 == oracle.
+ *   1. EQUAL — over crafted streams (literal / reload / skip / alternate pair) paintDisplayListRunToVram == oracle.
  *   2. WRITE-SET — the literal case changes only the copied cells + the advanced primary pointer.
  *   3. CRAFTED — the reload opcode's tick bump + pointer reload matches (an arm a plain copy misses).
  *   4. TEETH — a wrong copied byte AND a wrong stored pointer MUST each be caught by the RAM diff.
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4381 as oracle } from "../../translated/loc_4381.js";
-import { loc_4381 } from "../loc_4381.js";
+import { paintDisplayListRunToVram } from "../paintDisplayListRunToVram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -107,14 +107,14 @@ const SCENARIOS = {
 
 // -- 1. EQUAL ----------------------------------------------------------------
 
-test("EQUAL: loc_4381 == oracle in RAM (−stack) over crafted streams", () => {
+test("EQUAL: paintDisplayListRunToVram == oracle in RAM (−stack) over crafted streams", () => {
   for (const [name, setup] of Object.entries(SCENARIOS)) {
     const o = fresh();
     const c = fresh();
     setup(o);
     setup(c);
     oracle(o);
-    loc_4381(c);
+    paintDisplayListRunToVram(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} for "${name}": oracle=${d.a} idiomatic=${d.b}`);
   }
@@ -161,7 +161,7 @@ test("CRAFTED: the reload opcode bumps the tick and reloads the pointer identica
   SCENARIOS["primary reload"](c);
   const tick0 = o.mem.read8(TICK);
   oracle(o);
-  loc_4381(c);
+  paintDisplayListRunToVram(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
@@ -179,7 +179,7 @@ test("TEETH: a wrong copied byte is CAUGHT by the RAM diff", () => {
   SCENARIOS["primary literal"](o);
   SCENARIOS["primary literal"](c);
   oracle(o);
-  loc_4381(c);
+  paintDisplayListRunToVram(c);
   const victim = DST + 0x0a;
   c.mem.write8(victim, 0x00); // BUG: this cell must be the literal 0x42
 
@@ -195,7 +195,7 @@ test("TEETH: a wrong stored pointer is CAUGHT by the RAM diff", () => {
   SCENARIOS["primary literal"](o);
   SCENARIOS["primary literal"](c);
   oracle(o);
-  loc_4381(c);
+  paintDisplayListRunToVram(c);
   c.mem.write8(P_DST, (c.mem.read8(P_DST) + 1) & 0xff); // BUG: dest pointer off by one
 
   const d = ramDiffMinusStack(o, c);

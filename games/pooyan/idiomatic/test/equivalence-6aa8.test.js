@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for loc_6aa8 (ROM 0x6aa8, Pooyan) — "state-1 step of a descending object
- * record (IX)". Runs the shared animation helper (loc_4006), then subtracts the speed (IX+9) from the
+ * record (IX)". Runs the shared animation helper (advanceObjectAnimationFrame), then subtracts the speed (IX+9) from the
  * 16-bit position (IX+6):(IX+5) — a low-byte borrow decrements the high byte. While the high byte is
  * non-zero it returns; on reaching zero it re-arms the tilemap-sum latch (0x8f56 := 0) and advances
  * the record's state byte (IX+2).
@@ -44,7 +44,7 @@ const test = ROM_PRESENT
 
 const REC = 0x8be8; // a work-RAM record base, disjoint from the latch and the stack window
 const LATCH = 0x8f56; // TILE_SUM_ONCE_LATCH
-const HOLD = 0x05; // a non-zero animation hold: loc_4006 merely decrements it (minimal, deterministic)
+const HOLD = 0x05; // a non-zero animation hold: advanceObjectAnimationFrame merely decrements it (minimal, deterministic)
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -78,7 +78,7 @@ function craft({ lo, hi, speed, state = 0x01 }) {
   m.mem.write8(REC + 6, hi);
   m.mem.write8(REC + 9, speed);
   m.mem.write8(REC + 2, state);
-  m.mem.write8(REC + 0x0e, HOLD); // loc_4006 just decrements this (isolates the descent logic)
+  m.mem.write8(REC + 0x0e, HOLD); // advanceObjectAnimationFrame just decrements this (isolates the descent logic)
   m.mem.write8(LATCH, 0x01); // set so the re-arm (-> 0) is observable
   m.regs.ix = REC;
   m.regs.sp = 0x8ffe; // dead stack: the oracle's call/ret framing touches excluded RAM only

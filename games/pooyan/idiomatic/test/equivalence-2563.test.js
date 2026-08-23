@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2563 (ROM 0x2563) — "frame-gated two-tile animation":
+ * Memory-equivalence test for blitTwoTileAnimFrameOnHoldTimer (ROM 0x2563) — "frame-gated two-tile animation":
  * gate on the play-mode latch 0x8f50; run a hold countdown at 0x8f06; on expiry reload the
  * hold, advance the phase 0x8f07, then (keyed on round parity 0x8907 bit0 and the phase
  * parity) pick one of four 4-byte source blocks at 0x2744 (stride 4) and one of two video
@@ -12,7 +12,7 @@
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * pc/SP/cycles are NOT compared (the oracle drives them through m.step/m.push/m.ret, the
- * stack ABI the direct-call layer replaces). loc_2563 has NO register live-out: its only
+ * stack ABI the direct-call layer replaces). blitTwoTileAnimFrameOnHoldTimer has NO register live-out: its only
  * caller (loc_20d4) reads no register result, invoking the next helper (loc_25a6) straight
  * after, so the contract is memory alone. The routine takes no register inputs either — it
  * loads every pointer itself — so a case is just a set of poked cells.
@@ -23,7 +23,7 @@
  *
  * Jobs:
  *   1. EQUAL — over the gate arm, the hold-countdown arm, and all four blit arms (round x
- *      phase parity), oracle == loc_2563 in RAM (−stack).
+ *      phase parity), oracle == blitTwoTileAnimFrameOnHoldTimer in RAM (−stack).
  *   2. WRITE-SET — on a blit arm the only writes are 0x8f06, 0x8f07, and the eight cells of
  *      the two 2x2 squares.
  *   3. TEETH — a twin that writes a WRONG byte into the last blit cell MUST be caught.
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2563 as oracle } from "../../translated/loc_2563.js";
-import { loc_2563 } from "../loc_2563.js";
+import { blitTwoTileAnimFrameOnHoldTimer } from "../blitTwoTileAnimFrameOnHoldTimer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -101,12 +101,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: every arm — loc_2563 == oracle in RAM (−stack)", () => {
+test("EQUAL: every arm — blitTwoTileAnimFrameOnHoldTimer == oracle in RAM (−stack)", () => {
   for (const { name, poke } of CASES) {
     const o = craft(poke);
     const c = craft(poke);
     oracle(o);
-    loc_2563(c);
+    blitTwoTileAnimFrameOnHoldTimer(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -154,7 +154,7 @@ test("TEETH: a wrong last-cell byte is CAUGHT by the RAM diff", () => {
   const o = craft(poke);
   const c = craft(poke);
   oracle(o);
-  loc_2563(c);
+  blitTwoTileAnimFrameOnHoldTimer(c);
   const last = squareCells(VRAM_ANCHOR_EVEN).at(-1);
   c.mem.write8(last, (c.mem.read8(last) + 1) & 0xff); // BUG: corrupt the final blit cell
 

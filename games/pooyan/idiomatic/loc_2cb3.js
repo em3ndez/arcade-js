@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { ANIM_SEQ_2D5D } from "./names.js";
 
@@ -26,7 +26,7 @@ const OP_ANIMATE = 0x88; //  script byte: bump state + arm the animation
 export function loc_2cb3(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_4006(m, rec); // step the animation sequence first
+  advanceObjectAnimationFrame(m, rec); // step the animation sequence first
 
   let cursor = mem8[rec + SCRIPT_LO] | (mem8[rec + SCRIPT_HI] << 8);
   let op = mem8[cursor];

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for loc_76a6 (ROM 0x76a6, Pooyan) — animation-tick state 2, which composes
- * the idiomatic loc_4006. It never caller-skips: it always takes the plain `ret` (SP += 2) and
+ * the idiomatic advanceObjectAnimationFrame. It never caller-skips: it always takes the plain `ret` (SP += 2) and
  * returns true (the walk always continues).
  *
  * A gate: while the object-drawn flag is set the entry is HELD — `ret nz`, nothing steps. Once the
  * flag is clear it steps the entry's animation and returns. Either way it returns true.
  *
- * The oracle drives the TRANSLATED loc_4006 through the routines map; the module imports the
+ * The oracle drives the TRANSLATED advanceObjectAnimationFrame through the routines map; the module imports the
  * IDIOMATIC sibling directly. The two must land byte-identical in RAM (dumpState) minus STACK_SCRATCH.
  * No register is a live-out — the caller reads back only the (always-true) control-flow boolean — so
  * registers are NOT compared. Cases are CRAFTED: a plain boot does not seat this state.
@@ -56,7 +56,7 @@ const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 function seat(m) {
   m.regs.ix = REC;
   m.regs.sp = SP0;
-  m.mem.write8(HOLD, 0x05); // anim hold nonzero -> loc_4006 just decrements (no ROM-script walk)
+  m.mem.write8(HOLD, 0x05); // anim hold nonzero -> advanceObjectAnimationFrame just decrements (no ROM-script walk)
   return m;
 }
 

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_236a (ROM 0x236a, Pooyan) — the descent half of the
+ * Memory-equivalence test for movePlayerDownAndTickStatusRender (ROM 0x236a, Pooyan) — the descent half of the
  * direction-split actor handler at IX. While aim bit 3 is set it steps the actor's vertical
  * position down (inc), clamps it at the floor 0xc0, refreshes the three stacked sprite Ys, and
  * then — once the animation cursor's low byte reaches its end marker 0xf6 — runs the shared
  * phase-advance + render tail only while a tamper strike is recorded or the colour-parity sum
  * is nonzero; otherwise it holds.
  *
- * loc_236a is a void handler (no register live-out): the module calls the idiomatic siblings
+ * movePlayerDownAndTickStatusRender is a void handler (no register live-out): the module calls the idiomatic siblings
  * directly, the oracle drives the translated siblings through the routines map, so equivalence
  * is RAM (dumpState) minus STACK_SCRATCH. SP is parked in STACK_SCRATCH so nested pushes drop
  * out of the diff. The render ring is seeded so the render tail returns before the blit.
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_236a as oracle } from "../../translated/loc_236a.js";
-import { loc_236a } from "../loc_236a.js";
+import { movePlayerDownAndTickStatusRender } from "../movePlayerDownAndTickStatusRender.js";
 import { Machine } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -67,13 +67,13 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Seat IX at the player actor and lay down every cell loc_236a and its tail read. */
+/** Seat IX at the player actor and lay down every cell movePlayerDownAndTickStatusRender and its tail read. */
 function seat(m, { aim = ACTIVE, pos = 0x50, cursor = 0x8500, tamper = 0x00, p83 = 0x00, p43 = 0x00 } = {}) {
   m.regs.ix = ACTOR_TABLE;
   m.regs.sp = SP0;
   m.mem.write8(AIM, aim);
   m.mem.write8(POS, pos);
-  m.mem.write16(TILE_ANIM_CURSOR, cursor); // low byte gates loc_236a; the word is the tail's script ptr
+  m.mem.write16(TILE_ANIM_CURSOR, cursor); // low byte gates movePlayerDownAndTickStatusRender; the word is the tail's script ptr
   m.mem.write8(TAMPER_STRIKES_SIG + 0, tamper & 0xff);
   m.mem.write8(TAMPER_STRIKES_SIG + 1, 0x00);
   m.mem.write8(TAMPER_STRIKES_SIG + 2, 0x00);
@@ -104,7 +104,7 @@ test("EQUAL: every path — module == oracle in RAM (−stack)", () => {
     const o = seat(BASE.clone(), opts);
     const c = seat(BASE.clone(), opts);
     oracle(o);
-    loc_236a(c);
+    movePlayerDownAndTickStatusRender(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -116,13 +116,13 @@ test("EQUAL: every path — module == oracle in RAM (−stack)", () => {
 test("EFFECTS: inc/clamp + derived sprite Ys land; hold and tail differ at the render ring", () => {
   // inactive: nothing moves.
   let m = seat(BASE.clone(), { aim: 0x00 });
-  loc_236a(m);
+  movePlayerDownAndTickStatusRender(m);
   assert.equal(m.mem.read8(POS), 0x50, "inactive: POS untouched");
   assert.equal(m.mem.read8(SLOT3), 0xaa, "inactive: derive did not run");
 
   // active: POS steps down, the three sprite Ys derive off it.
   m = seat(BASE.clone(), { cursor: MID, pos: 0x50 });
-  loc_236a(m);
+  movePlayerDownAndTickStatusRender(m);
   assert.equal(m.mem.read8(POS), 0x51, "active: POS incremented");
   assert.equal(m.mem.read8(SLOT3), 0x51, "slot3 = base Y");
   assert.equal(m.mem.read8(SLOT2), 0x41, "slot2 = base Y - 0x10");
@@ -130,14 +130,14 @@ test("EFFECTS: inc/clamp + derived sprite Ys land; hold and tail differ at the r
 
   // clamp: inc past the floor lands exactly at the floor.
   m = seat(BASE.clone(), { cursor: MID, pos: 0xd0 });
-  loc_236a(m);
+  movePlayerDownAndTickStatusRender(m);
   assert.equal(m.mem.read8(POS), 0xc0, "clamp: POS pinned to the floor");
 
   // the hold path leaves the render ring; the tail path decrements it.
   const held = seat(BASE.clone(), { cursor: END });
   const tailed = seat(BASE.clone(), { cursor: MID });
-  loc_236a(held);
-  loc_236a(tailed);
+  movePlayerDownAndTickStatusRender(held);
+  movePlayerDownAndTickStatusRender(tailed);
   assert.equal(held.mem.read8(STATUS_RENDER_RING), 0x03, "hold: render ring untouched");
   assert.notEqual(tailed.mem.read8(STATUS_RENDER_RING), 0x03, "tail: render ring advanced");
 });
@@ -148,7 +148,7 @@ test("TEETH: a wrong POS byte is CAUGHT by the RAM diff", () => {
   const o = seat(BASE.clone(), { cursor: MID });
   const c = seat(BASE.clone(), { cursor: MID });
   oracle(o);
-  loc_236a(c);
+  movePlayerDownAndTickStatusRender(c);
   c.mem.write8(POS, (c.mem.read8(POS) ^ 0x01) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong POS — it is worthless");

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for loc_4350 (ROM 0x4350) — object state handler. Steps the record's
- * animation sequencer (loc_4006), decrements the phase timer at rec+0x11 and returns until it
+ * animation sequencer (advanceObjectAnimationFrame), decrements the phase timer at rec+0x11 and returns until it
  * lapses, then decrements the state byte rec+0x02 and re-arms the turn animation: loc_425c
  * (limit 0xff, script 0x4203) when rec+0x08 bit0 is clear, else loc_423a (limit 0, script 0x4212).
  *
@@ -12,7 +12,7 @@
  *
  * The record is based at IX; the leaf runs only during live object updates, so every case is
  * CRAFTED: the phase timer, the state byte, the variant flag, and the animation hold (rec+0x0e, set
- * non-zero so loc_4006 just decrements it) are seated identically on both sides, with the record and
+ * non-zero so advanceObjectAnimationFrame just decrements it) are seated identically on both sides, with the record and
  * TURN_COLUMN_LIMIT pre-dirtied so each write is visible.
  *
  * Jobs:
@@ -44,7 +44,7 @@ const test = ROM_PRESENT
 
 const REC = 0x8ba0;        // work-RAM record base (IX); disjoint from TURN_COLUMN_LIMIT (0x8d4b)
 const REC_LEN = 0x18;
-const HOLD = 0x0e;         // animation hold offset loc_4006 decrements
+const HOLD = 0x0e;         // animation hold offset advanceObjectAnimationFrame decrements
 const TIMER = 0x11;        // phase-timer offset
 const STATE = 0x02;        // state-byte offset
 const FLAG = 0x08;         // variant-flag offset (bit0)
@@ -67,7 +67,7 @@ function craft(scn) {
   const m = BASE.clone();
   for (let i = 0; i < REC_LEN; i++) m.mem.write8(REC + i, 0xaa);
   m.mem.write8(TURN_COLUMN_LIMIT, 0xaa);
-  m.mem.write8(REC + HOLD, 0x03);  // non-zero: loc_4006 just decrements this frame
+  m.mem.write8(REC + HOLD, 0x03);  // non-zero: advanceObjectAnimationFrame just decrements this frame
   m.mem.write8(REC + TIMER, scn.timer);
   m.mem.write8(REC + STATE, scn.state);
   m.mem.write8(REC + FLAG, scn.flag);

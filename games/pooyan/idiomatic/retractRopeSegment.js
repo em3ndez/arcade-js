@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_2e45 } from "./loc_2e45.js";
+import { tickRopeCellFrameTimer } from "./tickRopeCellFrameTimer.js";
 import { loc_0c45 } from "./loc_0c45.js";
 import { loc_0020 } from "./loc_0020.js";
 import { loc_0010 } from "./loc_0010.js";
-import { loc_2e52 } from "./loc_2e52.js";
+import { computeRopeCellVramColumn } from "./computeRopeCellVramColumn.js";
 import { blit2x2TileBlock } from "./blit2x2TileBlock.js";
 import {
   ROPE_SEGMENT_COUNT, ROUND_COUNTER, DIFFICULTY_DSW, FORMATION_TABLE,
@@ -28,7 +28,7 @@ const ATTR_MERGE_MASK = 0x1c;
 export function retractRopeSegment(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  const [timer, expired] = loc_2e45(m, rec & 0xff);
+  const [timer, expired] = tickRopeCellFrameTimer(m, rec & 0xff);
   if (!expired) return;
   if (mem8[ROPE_SEGMENT_COUNT] === 0) return;
 
@@ -47,5 +47,5 @@ export function retractRopeSegment(m, rec = m.regs.ix) {
   loc_0010(m, u16(FORMATION_TABLE + RECORD_STRIDE * iterations), 0, RECORD_STRIDE);
 
   mem8[rec] = 1;
-  blit2x2TileBlock(m, loc_2e52(m, rec & 0xff), ROPE_RETRACT_TILE_SRC);
+  blit2x2TileBlock(m, computeRopeCellVramColumn(m, rec & 0xff), ROPE_RETRACT_TILE_SRC);
 }

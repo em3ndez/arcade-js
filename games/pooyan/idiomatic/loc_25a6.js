@@ -19,7 +19,7 @@ import {
   MARKER_RETRACT_GLYPH_SRC,
   MARKER_RETRACT_GLYPH_SRC_ODD,
 } from "./names.js";
-import { loc_2d66 } from "./loc_2d66.js";
+import { driveRopeExtendAndRenderCells } from "./driveRopeExtendAndRenderCells.js";
 import { queueSoundCommand0C } from "./queueSoundCommand0C.js";
 import { queueSoundCommand0E } from "./queueSoundCommand0E.js";
 import { queueSoundCommand14 } from "./queueSoundCommand14.js";
@@ -51,7 +51,7 @@ export function loc_25a6(m) {
   const { mem8, mem16 } = m;
 
   // even frames run the other branch
-  if ((mem8[ROUND_COUNTER] & 0x01) === 0) return loc_2d66(m);
+  if ((mem8[ROUND_COUNTER] & 0x01) === 0) return driveRopeExtendAndRenderCells(m);
 
   // pace the driver on its own timer
   mem8[ROPE_DRAW_STEP_TIMER] = mem8[ROPE_DRAW_STEP_TIMER] - 1;

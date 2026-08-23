@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { TILE_SUM_ONCE_LATCH } from "./names.js";
 /**
  * loc_6aa8 — state-1 step of a descending object record (based at IX).
@@ -14,7 +14,7 @@ import { TILE_SUM_ONCE_LATCH } from "./names.js";
 export function loc_6aa8(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_4006(m, rec);
+  advanceObjectAnimationFrame(m, rec);
 
   // Descend: (IX+6):(IX+5) -= (IX+9); a low-byte borrow decrements the high byte.
   const lo = mem8[rec + 5];

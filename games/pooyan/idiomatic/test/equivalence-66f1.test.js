@@ -13,7 +13,7 @@
  * pc/SP/cycles are NOT compared, and there is no register/return live-out (both sides return
  * undefined). The record is based at ENEMY_ACTOR_TABLE (0x8ae0); the craft seats the fields that
  * keep each handler on a cheap, non-throwing path — (ix+0x0e) non-zero so the animation sequencer
- * loc_4006 just decrements; (ix+7)/(ix+8)=0 so the state-2 handler takes no linked-record branch;
+ * advanceObjectAnimationFrame just decrements; (ix+7)/(ix+8)=0 so the state-2 handler takes no linked-record branch;
  * (ix+6)=0x18 so the state-1 handler skips its free-slot scan; and the shared gate/countdown/
  * frame-delay cells seeded so states 0 and 2/3 take their short countdown paths. Both sides run on
  * identical clones, so any deterministic handler effect matches; the test verifies the SELECTION.
@@ -75,7 +75,7 @@ function craft(state) {
   m.mem.write8(IX + 0x07, 0x00); // state-2 handler: no linked record
   m.mem.write8(IX + 0x08, 0x00);
   m.mem.write8(IX + 0x09, 0x00);
-  m.mem.write8(IX + 0x0e, 0x05); // loc_4006 frame-hold: non-zero -> cheap decrement path
+  m.mem.write8(IX + 0x0e, 0x05); // advanceObjectAnimationFrame frame-hold: non-zero -> cheap decrement path
   m.mem.write8(SHARED_PHASE_GATE, 0x01); // state 0: gate open, then the countdown decrements
   m.mem.write8(SHARED_PHASE_COUNTDOWN, 0x05);
   m.mem.write8(SHARED_FRAME_DELAY_TIMER, 0x05); // states 2/3: short frame-delay path

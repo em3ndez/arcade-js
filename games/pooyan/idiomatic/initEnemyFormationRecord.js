@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_0020 } from "./loc_0020.js";
 import { loc_0c45 } from "./loc_0c45.js";
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import {
   FORMATION_SPAWN_INDEX,
   ACTOR_MOTION_TABLE_55D4,
@@ -48,7 +48,7 @@ export function initEnemyFormationRecord(m, ix = m.regs.ix) {
   mem8[ix + 0x0d] = sequence >> 8;
 
   mem8[ix + 0x11] = 0x40; // frame-hold
-  loc_4006(m, ix); //       one animation tick
+  advanceObjectAnimationFrame(m, ix); //       one animation tick
 
   mem8[FORMATION_SPAWN_INDEX] = index + 1; // wraps at 256 (the store masks)
 }

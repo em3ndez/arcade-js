@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { SHARED_FRAME_DELAY_TIMER } from "./names.js";
 /**
  * loc_67a0 — per-object frame update, gated by the shared frame-delay timer.
@@ -19,7 +19,7 @@ export function loc_67a0(m, rec = m.regs.ix) {
     mem8[SHARED_FRAME_DELAY_TIMER] = mem8[SHARED_FRAME_DELAY_TIMER] - 1;
     return;
   }
-  loc_4006(m, rec);
+  advanceObjectAnimationFrame(m, rec);
 
   const step = mem8[rec + 0x09];
   const linkHi = mem8[rec + 0x08];

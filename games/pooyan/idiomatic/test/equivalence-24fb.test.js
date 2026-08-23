@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_24fb (ROM 0x24fb, Pooyan) — actor-table state 5.
+ * Memory-equivalence test for advancePlayStateToPhase7OnActorDelay (ROM 0x24fb, Pooyan) — actor-table state 5.
  *
  * It decrements the record's frame-delay (rec+0x11); while non-zero it returns. On expiry it
  * stamps 0x07 into the ROM-check flag cell (0x882b), or into the play-state index (0x880a)
@@ -19,7 +19,7 @@
  *
  * Jobs:
  *   1. EQUAL (shallow) — still-holding, expire->0x882b, expire->0x880a (all guard-clear):
- *      oracle == loc_24fb exactly in RAM (−stack).
+ *      oracle == advancePlayStateToPhase7OnActorDelay exactly in RAM (−stack).
  *   2. EQUAL (deep) — expire with the guard set: same completion path + RAM identical.
  *   3. WRITE-SET — the expire->0x882b guard-clear case writes exactly (rec+0x11) and 0x882b.
  *   4. TEETH — a twin stamping the wrong shape byte, and a twin that skips the decrement, are
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_24fb as oracle } from "../../translated/loc_24fb.js";
-import { loc_24fb } from "../loc_24fb.js";
+import { advancePlayStateToPhase7OnActorDelay } from "../advancePlayStateToPhase7OnActorDelay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TAMPER_ROM_CHECK_FLAG, PLAY_STATE_INDEX, TAMPER_STRIKES_HUD_GUARD, BOARD_CLEAR_FLAG, TAMPER_STRIKES_TERMINATOR } from "../names.js";
@@ -64,7 +64,7 @@ function craft({ hold, romFlag, hudGuard }) {
   m.mem.write8(TAMPER_ROM_CHECK_FLAG, romFlag);
   m.mem.write8(PLAY_STATE_INDEX, 0x00); // observe the 0x880a write from a known value
   m.mem.write8(TAMPER_STRIKES_HUD_GUARD, hudGuard);
-  m.mem.write8(BOARD_CLEAR_FLAG, 0x00); // keep loc_2514 off its board-reset tail
+  m.mem.write8(BOARD_CLEAR_FLAG, 0x00); // keep copyDisplayTilesIntoActorRecords off its board-reset tail
   m.mem.write8(TAMPER_STRIKES_TERMINATOR, 0x00);
   return m;
 }
@@ -77,12 +77,12 @@ const SHALLOW = [
 
 // -- 1. EQUAL (shallow) -------------------------------------------------------
 
-test("EQUAL: shallow paths — loc_24fb == oracle exactly in RAM (−stack)", () => {
+test("EQUAL: shallow paths — advancePlayStateToPhase7OnActorDelay == oracle exactly in RAM (−stack)", () => {
   for (const cs of SHALLOW) {
     const o = craft(cs);
     const c = craft(cs);
     oracle(o);
-    loc_24fb(c);
+    advancePlayStateToPhase7OnActorDelay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cs.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -98,7 +98,7 @@ test("EQUAL: deep — expire with the guard set falls into loc_250f; same path +
   let oThrew = false;
   let cThrew = false;
   try { oracle(o); } catch { oThrew = true; }
-  try { loc_24fb(c); } catch { cThrew = true; }
+  try { advancePlayStateToPhase7OnActorDelay(c); } catch { cThrew = true; }
   assert.equal(oThrew, cThrew, "oracle and module must take the same completion path");
   if (!oThrew) {
     const d = ramDiffMinusStack(o, c);
@@ -132,7 +132,7 @@ test("TEETH: a wrong shape byte is CAUGHT by the RAM diff", () => {
   const o = craft(SHALLOW[1]);
   const c = craft(SHALLOW[1]);
   oracle(o);
-  loc_24fb(c);
+  advancePlayStateToPhase7OnActorDelay(c);
   c.mem.write8(TAMPER_ROM_CHECK_FLAG, 0x00); // BUG: must be 0x07
 
   const d = ramDiffMinusStack(o, c);

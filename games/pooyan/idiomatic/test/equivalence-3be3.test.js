@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3be3 (Pooyan) — object state-6 handler. Ticks the record's
+ * Memory-equivalence test for advanceEnemyToArrivalAndTallyWave (Pooyan) — object state-6 handler. Ticks the record's
  * animation stream, then either homes toward a target (mode bit0 set: advance the position by the
  * velocity, nudge the row down when the position drops below the negated velocity, mirror position
  * and row into the linked record) or free-runs (mode bit0 clear: advance by the fixed step, carry
@@ -22,7 +22,7 @@
  * Jobs:
  *   1. EQUAL — homing/free-run, arrived/not-arrived, the carry-into-row case, and every arrival
  *      sub-path (band-blank tail, latch-blocked, counter-not-ready, full reset then flip/stage/
- *      integrity exits): loc_3be3 == oracle in RAM (−stack).
+ *      integrity exits): advanceEnemyToArrivalAndTallyWave == oracle in RAM (−stack).
  *   2. WRITE-SET — the full-reset arrival path bumps the three tallies, blanks the band, steps the
  *      arrival counter, zeroes the four lane latches, and re-seeds the spawn timer + reset latch.
  *   3. TEETH — a lane-latch left un-zeroed, and a skipped wave-arrival bump, are each CAUGHT.
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3be3 as oracle } from "../../translated/loc_3be3.js";
-import { loc_3be3 } from "../loc_3be3.js";
+import { advanceEnemyToArrivalAndTallyWave } from "../advanceEnemyToArrivalAndTallyWave.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -127,12 +127,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: every branch — loc_3be3 == oracle in RAM (−stack)", () => {
+test("EQUAL: every branch — advanceEnemyToArrivalAndTallyWave == oracle in RAM (−stack)", () => {
   for (const scn of CASES) {
     const o = craft(scn);
     const c = craft(scn);
     oracle(o);
-    loc_3be3(c);
+    advanceEnemyToArrivalAndTallyWave(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${scn.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -144,7 +144,7 @@ test("EQUAL: every branch — loc_3be3 == oracle in RAM (−stack)", () => {
 test("WRITE-SET: the full-reset arrival path bumps tallies, blanks the band, and re-seeds the lane", () => {
   const scn = CASES[7]; // full reset, flip blocks before the integrity check (deterministic)
   const c = craft(scn);
-  loc_3be3(c);
+  advanceEnemyToArrivalAndTallyWave(c);
 
   assert.equal(c.mem.read8(WAVE_ARRIVAL_COUNTER), (FILL + 1) & 0xff, "wave-arrival tally bumped");
   assert.equal(c.mem.read8(ACTIVE_ENEMY_COUNT), (FILL - 1) & 0xff, "active-enemy tally decremented");
@@ -167,7 +167,7 @@ test("TEETH: a lane latch left un-zeroed is CAUGHT by the RAM diff", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_3be3(c);
+  advanceEnemyToArrivalAndTallyWave(c);
   c.mem.write8(LANE_SPAWN_COUNTDOWN, FILL); // BUG: the reset must zero this cell
 
   const d = ramDiffMinusStack(o, c);
@@ -181,7 +181,7 @@ test("TEETH: a skipped wave-arrival bump is CAUGHT by the RAM diff", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_3be3(c);
+  advanceEnemyToArrivalAndTallyWave(c);
   c.mem.write8(WAVE_ARRIVAL_COUNTER, FILL); // BUG: arrival must have bumped this tally
 
   const d = ramDiffMinusStack(o, c);

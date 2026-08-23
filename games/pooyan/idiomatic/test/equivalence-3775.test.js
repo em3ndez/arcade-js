@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3775 (ROM 0x3775, Pooyan) — "end-of-move dispatch". Four exit
+ * Memory-equivalence test for finishActorOrArmTurnaround (ROM 0x3775, Pooyan) — "end-of-move dispatch". Four exit
  * paths keyed on the play-state (0x880a) and the record's move counter (ix+6):
  *   - play-state == 5 (finish): counter != 0 does nothing; counter == 0 blanks the actor's sprite
  *     band (0x17 zero bytes from IX);
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3775 as oracle } from "../../translated/loc_3775.js";
-import { loc_3775 } from "../loc_3775.js";
+import { finishActorOrArmTurnaround } from "../finishActorOrArmTurnaround.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PLAY_STATE_INDEX } from "../names.js";
@@ -87,12 +87,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: the dispatch paths — loc_3775 == oracle in RAM (−stack) + A + HL + B", () => {
+test("EQUAL: the dispatch paths — finishActorOrArmTurnaround == oracle in RAM (−stack) + A + HL + B", () => {
   for (const { name, phase, counter, flags } of CASES) {
     const o = craft(IX, phase, counter, flags);
     const c = craft(IX, phase, counter, flags);
     oracle(o);
-    const ret = loc_3775(c);
+    const ret = finishActorOrArmTurnaround(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(c.regs.a & 0xff, o.regs.a & 0xff, `${name}: module must SET A to the oracle's exit A`);
@@ -134,7 +134,7 @@ test("TEETH: a corrupted armed anim byte is CAUGHT by the RAM diff", () => {
   const o = craft(IX, 0x01, 0x01, 0x00);
   const c = craft(IX, 0x01, 0x01, 0x00);
   oracle(o);
-  loc_3775(c);
+  finishActorOrArmTurnaround(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   const cell = IX + REC_ANIM_LO;
   c.mem.write8(cell, c.mem.read8(cell) ^ 0xff); // BUG: corrupt the armed anim pointer
@@ -148,7 +148,7 @@ test("TEETH: a wrong A live-out is CAUGHT by the live-out check", () => {
   const o = craft(IX, 0x05, 0x03, 0x00); // finish/idle: A = the (nonzero) move counter
   const c = craft(IX, 0x05, 0x03, 0x00);
   oracle(o);
-  const ret = loc_3775(c);
+  const ret = finishActorOrArmTurnaround(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A matches the oracle");
   const broken = (ret ^ 0x01) & 0xff; // an off-by-one counter is a plausible bug the check must reject
   assert.notEqual(broken, o.regs.a & 0xff, "the A live-out check must reject a wrong counter");

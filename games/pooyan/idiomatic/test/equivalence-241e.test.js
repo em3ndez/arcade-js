@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_241e (ROM 0x241e, Pooyan) — the per-frame lead-actor-group
+ * Memory-equivalence test for advanceLeadActorPrimaryState (ROM 0x241e, Pooyan) — the per-frame lead-actor-group
  * driver: run three sub-passes in order, abort on the freeze flag, else dispatch the lead record's
  * state through the shared spine trampoline.
  *
  * The module calls the three idiomatic sub-passes directly and keeps the register-marshalled
- * spine dispatch; the oracle drives the same frozen sub-passes and the same spine. loc_241e is a
+ * spine dispatch; the oracle drives the same frozen sub-passes and the same spine. advanceLeadActorPrimaryState is a
  * void driver — no register survives — so the register file is not compared; equivalence is RAM
  * (dumpState) minus STACK_SCRATCH, SP parked in dead stack so nested pushes drop out.
  *
@@ -15,7 +15,7 @@
  * is to decrement the lead record's delay byte — an observable, isolated footprint.
  *
  * Jobs:
- *   1. EQUAL — dispatch state (freeze clear) and abort state (freeze set): oracle == loc_241e in
+ *   1. EQUAL — dispatch state (freeze clear) and abort state (freeze set): oracle == advanceLeadActorPrimaryState in
  *      RAM (−stack).
  *   2. WRITE-SET — the freeze flag gates the dispatch: clear runs the handler (delay byte ticks),
  *      set skips it (delay byte held), so the two states differ at the delay byte.
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_241e as oracle } from "../../translated/loc_241e.js";
-import { loc_241e } from "../loc_241e.js";
+import { advanceLeadActorPrimaryState } from "../advanceLeadActorPrimaryState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -76,12 +76,12 @@ function craft(freeze) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: dispatch + abort states — loc_241e == oracle in RAM (−stack)", () => {
+test("EQUAL: dispatch + abort states — advanceLeadActorPrimaryState == oracle in RAM (−stack)", () => {
   for (const [label, freeze] of [["dispatch (freeze clear)", 0x00], ["abort (freeze set)", 0x01]]) {
     const o = craft(freeze);
     oracle(o);
     const c = craft(freeze);
-    loc_241e(c);
+    advanceLeadActorPrimaryState(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -109,7 +109,7 @@ test("TEETH: a wrong delay byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x00);
   const c = craft(0x00);
   oracle(o);
-  loc_241e(c);
+  advanceLeadActorPrimaryState(c);
   c.mem8[DELAY] = 0x05; // BUG: the dispatch must have ticked the delay to 0x04
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong delay byte — it is worthless");

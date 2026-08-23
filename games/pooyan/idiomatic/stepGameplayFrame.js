@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_308b } from "./loc_308b.js";
 import { loc_25a6 } from "./loc_25a6.js";
-import { loc_3377 } from "./loc_3377.js";
-import { loc_40bd } from "./loc_40bd.js";
+import { dispatchAllEnemyActorStates } from "./dispatchAllEnemyActorStates.js";
+import { dispatchFormationObjectStates } from "./dispatchFormationObjectStates.js";
 import { advanceLeadActorSecondaryState } from "./advanceLeadActorSecondaryState.js";
 import { loc_02ef } from "./loc_02ef.js";
 /**
@@ -16,8 +16,8 @@ import { loc_02ef } from "./loc_02ef.js";
 export function stepGameplayFrame(m) {
   loc_308b(m); // formation manager
   loc_25a6(m); // lift/marker column driver
-  loc_3377(m); // enemy-actor per-record state sweep
-  loc_40bd(m); // formation-record object-state dispatch
+  dispatchAllEnemyActorStates(m); // enemy-actor per-record state sweep
+  dispatchFormationObjectStates(m); // formation-record object-state dispatch
   advanceLeadActorSecondaryState(m); // lead actor secondary state machine
   loc_02ef(m); // sprite display-list rebuild
 }

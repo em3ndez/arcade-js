@@ -15,7 +15,7 @@
  * The leaf is not reached in a plain attract, so every case is CRAFTED: the three loop records are
  * seated so each advance writes (state 0, sub-position + step -> a carry-free bump), BLINK_PHASE is
  * armed to drain this frame so loc_66a1 takes its full tile-copy path, and the board-clear /
- * terminator flags are zeroed so loc_2514 does not divert to the board reset.
+ * terminator flags are zeroed so copyDisplayTilesIntoActorRecords does not divert to the board reset.
  *
  * Jobs:
  *   1. EQUAL — oracle == loc_6666 in RAM (−stack).

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import { OBJECT_CHAR_TABLE_ROW0, OBJECT_CHAR_TABLE_ROW1, OBJECT_DRAWN_FLAG } from "./names.js";
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { loc_0c45 } from "./loc_0c45.js";
 import { clearAndReseedObjectSlot } from "./clearAndReseedObjectSlot.js";
 import { paintTileBlock2x2Above } from "./paintTileBlock2x2Above.js";
@@ -25,7 +25,7 @@ const ROW_ABOVE = 0x400; // one tile-row group up from the pointer
 
 export function drawObjectStackedTiles(m, rec = m.regs.ix) {
   const { mem8 } = m;
-  loc_4006(m, rec);
+  advanceObjectAnimationFrame(m, rec);
 
   mem8[rec + OFF_TIMER] = u8(mem8[rec + OFF_TIMER] - 1);
   if (mem8[rec + OFF_TIMER] !== 0) return; // still counting -> omit ret (seam completes it)

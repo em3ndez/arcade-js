@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_24b9 (ROM 0x24b9, Pooyan) — the actor state-3 handler dispatched
+ * Memory-equivalence test for descendLeadActorToLanding (ROM 0x24b9, Pooyan) — the actor state-3 handler dispatched
  * from the 0x2436 state table for a record based at IX. It bumps the alternate-frame sub-counter at
  * +0x05 and, only when that lands even (bit0 clear), decrements +0x06. Every call it advances the
  * base Y at +0x04 by two; while Y stays below the floor 0xdc it returns having touched only those
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_24b9 as oracle } from "../../translated/loc_24b9.js";
-import { loc_24b9 } from "../loc_24b9.js";
+import { descendLeadActorToLanding } from "../descendLeadActorToLanding.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_ACTIVE_FLAG, SOUND_RING_WRITE_PTR } from "../names.js";
@@ -78,12 +78,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted actor records — loc_24b9 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted actor records — descendLeadActorToLanding == oracle in RAM (−stack)", () => {
   for (const c of CASES) {
     const o = craft(c);
     const m = craft(c);
     oracle(o);
-    loc_24b9(m);
+    descendLeadActorToLanding(m);
     const d = ramDiffMinusStack(o, m);
     assert.equal(d, null, d && `${c.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -120,7 +120,7 @@ test("TEETH: a wrong Y byte is CAUGHT by the RAM diff", () => {
   const o = craft(c);
   const m = craft(c);
   oracle(o);
-  loc_24b9(m);
+  descendLeadActorToLanding(m);
   m.mem.write8(REC + 0x04, 0x00); // BUG: Y at the floor must be 0xdc, not 0x00
   const d = ramDiffMinusStack(o, m);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong Y byte — it is worthless");

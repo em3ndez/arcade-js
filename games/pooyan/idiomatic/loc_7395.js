@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 /**
  * loc_7395 — eagle dive/climb state: advance the record's animation, then integrate its 16-bit
  * vertical position by the per-record speed. An even-indexed record (bit 3 of its low address byte
@@ -15,7 +15,7 @@ const TOP_ROW = 0x04; // climbing record advances state below this row
 
 export function loc_7395(m, rec = m.regs.ix) {
   const { mem8 } = m;
-  loc_4006(m, rec);
+  advanceObjectAnimationFrame(m, rec);
 
   const climbing = (rec & 0x08) !== 0;
   if (climbing) {

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2e22 (ROM 0x2e22, Pooyan) — the rope-cell driver. It reads the
+ * Memory-equivalence test for driveActiveRopeCells (ROM 0x2e22, Pooyan) — the rope-cell driver. It reads the
  * active-cell count, returns at once when it is zero, and otherwise walks the per-cell state array
  * one byte per step, handing each cell record to the rope-cell dispatcher.
  *
  * SEATING: seats a per-cell return slot — the loop pushes a return address before each dispatcher
  * call, which the dispatcher's ret consumes, so SP nets 0 per cell (net 0 overall). WIRE.
  * The oracle drives the dispatcher through the routines map; the module calls the idiomatic
- * dispatcher directly. loc_2e22 is a void driver — no register survives, so the register file is
+ * dispatcher directly. driveActiveRopeCells is a void driver — no register survives, so the register file is
  * not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH. SP is parked in STACK_SCRATCH
  * so the nested dispatch pushes drop out of the diff.
  *
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2e22 as oracle } from "../../translated/loc_2e22.js";
-import { loc_2e22 } from "../loc_2e22.js";
+import { driveActiveRopeCells } from "../driveActiveRopeCells.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -83,12 +83,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_2e22 == oracle in RAM (−stack)", () => {
+test("EQUAL: driveActiveRopeCells == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_2e22(c);
+    driveActiveRopeCells(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -116,7 +116,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftActive2();
   const c = craftActive2();
   oracle(o);
-  loc_2e22(c);
+  driveActiveRopeCells(c);
   c.mem.write8(TIMERS + 2, (o.mem.read8(TIMERS + 2) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted timer byte");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { BLINK_PHASE } from "./names.js";
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { loc_0010 } from "./loc_0010.js";
 /**
  * loc_69c6 — advance a paired (ix / iy) descending object one step.
@@ -32,7 +32,7 @@ export function loc_69c6(m, ix = m.regs.ix, iy = m.regs.iy) {
   if (mem8[ix + 0] === 0) return; //  record inactive
   if (mem8[ix + 2] !== 0) return; //  sub-state busy
 
-  loc_4006(m, ix);
+  advanceObjectAnimationFrame(m, ix);
 
   stepPositionDown(mem8, iy);
   stepPositionDown(mem8, ix);

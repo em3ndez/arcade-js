@@ -13,7 +13,7 @@ import {
   TWOTILE_ANIM_HOLD,
   ROPE_DRAW_STEP_TIMER,
 } from "./names.js";
-import { loc_4381 } from "./loc_4381.js";
+import { paintDisplayListRunToVram } from "./paintDisplayListRunToVram.js";
 import { paintRoundNumberHud } from "./paintRoundNumberHud.js";
 import { spawnEnemyFormation } from "./spawnEnemyFormation.js";
 import { paintPhaseGauge } from "./paintPhaseGauge.js";
@@ -58,7 +58,7 @@ function markInProgress(mem8) {
 
 export function startRoundAfterIntroDelay(m) {
   const { mem8 } = m;
-  loc_4381(m);
+  paintDisplayListRunToVram(m);
 
   mem8[SUBPHASE_TICK] = u8(mem8[SUBPHASE_TICK] + 1);
   if (mem8[SUBPHASE_TICK] !== TICK_WRAP) return; // not at the wrap yet

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { SHARED_PHASE_COUNTDOWN } from "./names.js";
 
 const STATE_FIELD = 0x02;
@@ -26,7 +26,7 @@ export function loc_7644(m, ix = m.regs.ix) {
 
   if (mem8[ix + 0x00] === 0) return true; // inactive -> keep walking
 
-  loc_4006(m, ix); // step this entry's animation
+  advanceObjectAnimationFrame(m, ix); // step this entry's animation
 
   const cur5 = mem8[ix + 0x05];
   const cur9 = mem8[ix + 0x09];

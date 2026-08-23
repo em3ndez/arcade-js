@@ -48,7 +48,7 @@ const TARGET = 0x6a98;
 const TABLE = 0x6aa4;
 const REC = 0x8ae0; // an enemy-actor arena record (the scan base loc_6a7f walks)
 const HANDLERS = [0x6aa8, 0x67df]; // table[0], table[1]
-const HOLD = REC + 0x0e; // anim frame-hold counter (handler 0x6aa8 -> loc_4006 decrements it)
+const HOLD = REC + 0x0e; // anim frame-hold counter (handler 0x6aa8 -> advanceObjectAnimationFrame decrements it)
 const POS_LO = REC + 0x05; // position low byte (handler subtracts the speed at +0x09)
 const POS_HI = REC + 0x06; // position high byte (non-zero -> handler returns without advancing state)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -71,7 +71,7 @@ function craft(stateByte, active = true) {
 
 /** Seat handler 0x6aa8's shallow path: hold a frame, keep the position high byte non-zero. */
 function seatShallow(m) {
-  m.mem.write8(HOLD, 0x05); //   frame held -> loc_4006 just decrements it
+  m.mem.write8(HOLD, 0x05); //   frame held -> advanceObjectAnimationFrame just decrements it
   m.mem.write8(POS_LO, 0x10);
   m.mem.write8(m.regs.ix + 0x09, 0x01); // speed
   m.mem.write8(POS_HI, 0x05); // non-zero -> no state advance, no latch re-arm

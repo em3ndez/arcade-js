@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_22e6 (Pooyan ROM 0x22e6) — the per-actor animation-script stepper,
+ * Memory-equivalence test for advanceActorAnimationFrame (Pooyan ROM 0x22e6) — the per-actor animation-script stepper,
  * IX being the actor record. (IX+0x0e) is a frame countdown: while non-zero it just ticks down and
  * returns. At zero it pulls the next entry from the shared script cursor (ANIM_SCRIPT_CURSOR): a
  * normal {tile, colour, delay} triple is copied into (IX+0x10/0x0f/0x0e) and the cursor advances past
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_22e6 as oracle } from "../../translated/loc_22e6.js";
-import { loc_22e6 } from "../loc_22e6.js";
+import { advanceActorAnimationFrame } from "../advanceActorAnimationFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ANIM_SCRIPT_CURSOR } from "../names.js";
@@ -97,12 +97,12 @@ const SEAT_MARKER = (m) => {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: countdown / normal entry / marker jump — loc_22e6 == oracle in RAM (−stack)", () => {
+test("EQUAL: countdown / normal entry / marker jump — advanceActorAnimationFrame == oracle in RAM (−stack)", () => {
   for (const [label, seat] of [["countdown", SEAT_COUNTDOWN], ["entry", SEAT_ENTRY], ["marker", SEAT_MARKER]]) {
     const o = craft(seat);
     const c = craft(seat);
     oracle(o);
-    loc_22e6(c);
+    advanceActorAnimationFrame(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -113,7 +113,7 @@ test("EQUAL(fields): countdown ticks (IX+0x0e) down by one", () => {
   const o = craft(SEAT_COUNTDOWN);
   const c = craft(SEAT_COUNTDOWN);
   oracle(o);
-  loc_22e6(c);
+  advanceActorAnimationFrame(c);
   assert.equal(c.mem.read8(REC + OFF_DELAY), 0x04, "module decrements the countdown");
   assert.equal(o.mem.read8(REC + OFF_DELAY), 0x04, "oracle decrements the countdown");
 });
@@ -149,7 +149,7 @@ test("CRAFTED: a marker installs the following cursor then reads the target entr
   const o = craft(SEAT_MARKER);
   const c = craft(SEAT_MARKER);
   oracle(o);
-  loc_22e6(c);
+  advanceActorAnimationFrame(c);
   assert.equal(ramDiffMinusStack(o, c), null, "marker jump must match");
   assert.equal(c.mem.read8(REC + OFF_TILE), 0x22, "tile from the jump target");
   assert.equal(c.mem.read8(REC + OFF_COLOUR), 0x44, "colour from the jump target");
@@ -164,7 +164,7 @@ test("TEETH: a wrong record field is CAUGHT by the RAM diff", () => {
   const o = craft(SEAT_ENTRY);
   const c = craft(SEAT_ENTRY);
   oracle(o);
-  loc_22e6(c);
+  advanceActorAnimationFrame(c);
   c.mem.write8(REC + OFF_TILE, 0x12 ^ 0x01); // BUG: wrong tile field
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong record field — it is worthless");
@@ -176,7 +176,7 @@ test("TEETH: a wrong advanced cursor is CAUGHT by the RAM diff", () => {
   const o = craft(SEAT_ENTRY);
   const c = craft(SEAT_ENTRY);
   oracle(o);
-  loc_22e6(c);
+  advanceActorAnimationFrame(c);
   c.mem.write8(CURSOR, ((BUF_A + 3) ^ 0x01) & 0xff); // BUG: cursor off by one
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong advanced cursor — it is worthless");

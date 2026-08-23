@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3865 (ROM 0x3865) — "actor state handler with embedded tamper check".
+ * Memory-equivalence test for advanceActorStateOnTimerWithTamperCheck (ROM 0x3865) — "actor state handler with embedded tamper check".
  *
  * The cycle-free / memory-equivalence gate: oracle and module run on fresh clones and are
  * compared on RAM (dumpState, minus STACK_SCRATCH) — the input register IX is seated
@@ -14,7 +14,7 @@
  *
  * Jobs:
  *   1. EQUAL — timer-running, out-of-band by high byte, out-of-band by low byte, in-band with
- *      the frame gate closed, and the full checksum path: oracle == loc_3865 in RAM (−stack).
+ *      the frame gate closed, and the full checksum path: oracle == advanceActorStateOnTimerWithTamperCheck in RAM (−stack).
  *   2. WRITE-SET — the frame-gate-closed case writes only the six record fields it touches.
  *   3. TEETH — a wrong record field is caught by the RAM diff.
  *
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3865 as oracle } from "../../translated/loc_3865.js";
-import { loc_3865 } from "../loc_3865.js";
+import { advanceActorStateOnTimerWithTamperCheck } from "../advanceActorStateOnTimerWithTamperCheck.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPRITE_OBJECT_TABLE, FRAME_COUNTER, SIGNATURE_MISMATCH_FLAG } from "../names.js";
@@ -73,12 +73,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted record/gate states — loc_3865 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted record/gate states — advanceActorStateOnTimerWithTamperCheck == oracle in RAM (−stack)", () => {
   for (const { name, ix, fields, frame } of CASES) {
     const o = craft(ix, fields, frame);
     const c = craft(ix, fields, frame);
     oracle(o);
-    loc_3865(c);
+    advanceActorStateOnTimerWithTamperCheck(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b} (${name})`);
   }
@@ -121,7 +121,7 @@ test("TEETH: a wrong record field is CAUGHT by the RAM diff", () => {
   const o = craft(ix, fields, 0x01);
   const c = craft(ix, fields, 0x01);
   oracle(o);
-  loc_3865(c);
+  advanceActorStateOnTimerWithTamperCheck(c);
   c.mem8[ix + 0x02] = 0x20; // BUG: sub-state must advance to 0x21
 
   const d = ramDiffMinusStack(o, c);

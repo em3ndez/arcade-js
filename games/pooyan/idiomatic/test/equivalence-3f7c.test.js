@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3f7c (ROM 0x3f7c, Pooyan) — object state-15 (catch) handler on IX.
+ * Memory-equivalence test for advanceFallingEnemyAndTallyCatchOnLanding (ROM 0x3f7c, Pooyan) — object state-15 (catch) handler on IX.
  *
  * SEATING: BALANCED (plain ret / tail-calls) -> WIRE. loc_3f72 (its fall-through caller) documents the
  * delegate yields nothing the caller reads, so LIVE-OUT is memory only; comparison is RAM (dumpState)
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3f7c as oracle } from "../../translated/loc_3f7c.js";
-import { loc_3f7c } from "../loc_3f7c.js";
+import { advanceFallingEnemyAndTallyCatchOnLanding } from "../advanceFallingEnemyAndTallyCatchOnLanding.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -58,7 +58,7 @@ function seat(m, { fields = {}, land = true, countdown = 0x05 } = {}) {
   m.regs.iff2 = false;
   m.regs.ix = REC;
   for (let i = 0; i < 0x18; i++) m.mem.write8(REC + i, 0x00);
-  m.mem.write8(REC + 0x0e, 0x03); // anim frame-hold nonzero -> loc_4006 just decrements
+  m.mem.write8(REC + 0x0e, 0x03); // anim frame-hold nonzero -> advanceObjectAnimationFrame just decrements
   m.mem.write8(REC + 0x07, 0x01); // caught kind -> splash anim index 0
   m.mem.write8(REC + 0x09, land ? 0x20 : 0x01); // fall velocity
   m.mem.write8(REC + 0x03, land ? 0xf0 : 0x00); // fall fraction
@@ -80,12 +80,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_3f7c == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceFallingEnemyAndTallyCatchOnLanding == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_3f7c(c);
+    advanceFallingEnemyAndTallyCatchOnLanding(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -113,7 +113,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["land: normal, countdown running"](BASE.clone());
   const c = CASES["land: normal, countdown running"](BASE.clone());
   oracle(o);
-  loc_3f7c(c);
+  advanceFallingEnemyAndTallyCatchOnLanding(c);
   c.mem.write8(REC + 0x11, (o.mem.read8(REC + 0x11) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -125,7 +125,7 @@ test("TEETH: a twin that skips the fall (never lands) diverges from the oracle",
   const o = CASES["land: normal, countdown running"](BASE.clone());
   const c = CASES["land: normal, countdown running"](BASE.clone());
   oracle(o); // lands: resets state, scores, drops count
-  loc_3f7c(seat(c, { land: false, fields: { 0x0b: 0x00 } })); // twin never lands -> different footprint
+  advanceFallingEnemyAndTallyCatchOnLanding(seat(c, { land: false, fields: { 0x0b: 0x00 } })); // twin never lands -> different footprint
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "a never-landing twin must diverge from a landing oracle");
   console.log(`  TEETH(fall): caught at ${hx(d.addr ?? 0)}`);

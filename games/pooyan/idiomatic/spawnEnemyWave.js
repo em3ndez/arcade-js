@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
-import { loc_22b1 } from "./loc_22b1.js";
+import { advanceActorAnimationsUnlessGrabbing } from "./advanceActorAnimationsUnlessGrabbing.js";
 import { loc_0c45 } from "./loc_0c45.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import {
@@ -75,7 +75,7 @@ export function spawnEnemyWave(m) {
 
   // Seat the shared anim-script cursor, then step the animators.
   mem16[ANIM_SCRIPT_CURSOR] = ANIM_SCRIPT_26C9;
-  loc_22b1(m);
+  advanceActorAnimationsUnlessGrabbing(m);
 
   if (mem8[PLAY_MODE_LATCH] === 0) {
     // Zero branch: arm play-state 0x12, else bump it and copy the intro string.

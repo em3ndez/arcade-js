@@ -4,7 +4,7 @@
  * animations, then rebuild the sprite display list".
  *
  * The routine sets IX to the object-record table base, walks four records one 0x18 stride
- * apart advancing each one's animation sequence (loc_4006), then tail-calls the per-frame
+ * apart advancing each one's animation sequence (advanceObjectAnimationFrame), then tail-calls the per-frame
  * display-list rebuild (loc_02ef). It takes no register inputs and leaves NO register
  * live-out — both stages are void per-frame workers whose whole effect is in RAM.
  *
@@ -20,7 +20,7 @@
  * translated composition against the idiomatic composition of the same four-then-rebuild shape.
  *
  * Jobs:
- *   1. EQUAL — plain (booted records) and seeded (each record's hold field armed so loc_4006
+ *   1. EQUAL — plain (booted records) and seeded (each record's hold field armed so advanceObjectAnimationFrame
  *      just decrements it, marking a distinct cell per record) both agree in RAM(−stack).
  *   2. WRITE-SET — the seeded run decrements all four hold fields by one and writes the sprite
  *      display list (loc_02ef ran); documents the four-record coverage + the rebuild delegation.
@@ -50,7 +50,7 @@ const test = ROM_PRESENT
 
 const RECORD_STRIDE = 0x18;
 const RECORD_COUNT = 4;
-const HOLD_OFF = 0x0e; // loc_4006's frame-hold field within a record
+const HOLD_OFF = 0x0e; // advanceObjectAnimationFrame's frame-hold field within a record
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;

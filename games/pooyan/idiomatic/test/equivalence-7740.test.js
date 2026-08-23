@@ -4,12 +4,12 @@
  * 1): step the position by the signed speed, and on a cell crossing advance the state, reload the
  * frame timer, fire sound + animation, and run a ROM checksum guard.
  *
- * The module dissolves loc_4006 (anim step), loc_0c45 (anim-word lookup) and the rst-20 guard adds
+ * The module dissolves advanceObjectAnimationFrame (anim step), loc_0c45 (anim-word lookup) and the rst-20 guard adds
  * (loc_0020) into direct calls, and keeps the two frozen helpers (loc_0ef1 sound, loc_381e anim-set)
  * as m.call. moveObject is a void per-object step (no register survives), so equivalence is RAM
  * (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
- * The anim hold (rec+0x0e) is seated non-zero so loc_4006 just decrements it (no stream walk), and
+ * The anim hold (rec+0x0e) is seated non-zero so advanceObjectAnimationFrame just decrements it (no stream walk), and
  * the speed is 0 (no position move / borrow). The crossing arm holds the sub-position low nibble
  * below 9 so the object crosses (state advance + sound + anim + guard run); the no-cross arm holds it
  * at/above 9 so the routine returns after the position step.
@@ -44,7 +44,7 @@ const STATE = REC + 0x02; //  state byte, advanced on a cell crossing
 const POS = REC + 0x03; //    position byte
 const SUB = REC + 0x04; //    sub-position byte (low 5 bits gate the crossing)
 const SPEED = REC + 0x0a; //  signed speed
-const HOLD = REC + 0x0e; //   anim frame-hold (loc_4006)
+const HOLD = REC + 0x0e; //   anim frame-hold (advanceObjectAnimationFrame)
 const TIMER = REC + 0x11; //  frame timer, reloaded on a crossing
 const ANIMIDX = REC + 0x17; // sprite/anim index (loc_0c45 table key)
 const SP0 = 0x8ff0; //     inside STACK_SCRATCH
@@ -58,12 +58,12 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Fresh clone: anim held (loc_4006 no-ops), speed 0 (no move), state 1; `sub` sets the crossing. */
+/** Fresh clone: anim held (advanceObjectAnimationFrame no-ops), speed 0 (no move), state 1; `sub` sets the crossing. */
 function craft(sub) {
   const m = BASE.clone();
   m.regs.sp = SP0;
   m.regs.ix = REC;
-  m.mem8[HOLD] = 0x05; // loc_4006: decrement the hold and return (no stream walk)
+  m.mem8[HOLD] = 0x05; // advanceObjectAnimationFrame: decrement the hold and return (no stream walk)
   m.mem8[SPEED] = 0x00; // no position move, no borrow
   m.mem8[POS] = 0x10;
   m.mem8[SUB] = sub & 0xff;

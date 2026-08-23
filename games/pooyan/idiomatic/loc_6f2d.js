@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_3536 } from "./loc_3536.js";
-import { loc_4006 } from "./loc_4006.js";
-import { loc_3e69 } from "./loc_3e69.js";
-import { loc_3e9c } from "./loc_3e9c.js";
+import { tickActorHoldThenBlankAndClearWaveLatches } from "./tickActorHoldThenBlankAndClearWaveLatches.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
+import { seedEnemyFromDescriptorAndEnterFlight } from "./seedEnemyFromDescriptorAndEnterFlight.js";
+import { advanceInFlightEnemyAndLand } from "./advanceInFlightEnemyAndLand.js";
 /**
  * loc_6f2d — per-record state handler for the enemy-actor table, record based at IX.
  *
@@ -21,14 +21,14 @@ export function loc_6f2d(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
   const state = mem8[rec + 0x02];
-  if (state === STATE_HOLD_TICK) return loc_3536(m, rec);
+  if (state === STATE_HOLD_TICK) return tickActorHoldThenBlankAndClearWaveLatches(m, rec);
   if (state < DISPATCH_BASE) { //                     generic animation mover, then return
-    loc_4006(m, rec);
+    advanceObjectAnimationFrame(m, rec);
     return;
   }
 
   switch ((state - DISPATCH_BASE) & 0xff) {
-    case 0: return loc_3e69(m, rec); //               state 0x0b -> object state-11 handler
-    case 1: return loc_3e9c(m, rec); //               state 0x0c -> object state-12 handler
+    case 0: return seedEnemyFromDescriptorAndEnterFlight(m, rec); //               state 0x0b -> object state-11 handler
+    case 1: return advanceInFlightEnemyAndLand(m, rec); //               state 0x0c -> object state-12 handler
   }
 }

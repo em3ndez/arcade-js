@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3e69 (ROM 0x3e69, Pooyan) — the object state-11 handler for the
+ * Memory-equivalence test for seedEnemyFromDescriptorAndEnterFlight (ROM 0x3e69, Pooyan) — the object state-11 handler for the
  * record based at IX. It decrements the frame timer (IX+0x11) and returns while it is still
  * counting. On expiry it follows the record's linked pointer (IX+0x14:0x15) two bytes in to a
  * descriptor whose first byte is a type: outside 5..6 it blanks the sprite band and stops;
@@ -19,7 +19,7 @@
  *
  * Jobs:
  *   1. EQUAL — timer-still-counting; expiry with an out-of-range type (below 5, at/above 7) -> band
- *      blank; expiry with an in-range type (5, 6) -> seed + fall-through: oracle == loc_3e69 in RAM.
+ *      blank; expiry with an in-range type (5, 6) -> seed + fall-through: oracle == seedEnemyFromDescriptorAndEnterFlight in RAM.
  *   2. WRITE-SET — the timer-still-counting path writes exactly IX+0x11.
  *   3. TEETH — a wrong timer byte and a wrong state-advance byte are each caught by the RAM diff.
  *
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3e69 as oracle } from "../../translated/loc_3e69.js";
-import { loc_3e69 } from "../loc_3e69.js";
+import { seedEnemyFromDescriptorAndEnterFlight } from "../seedEnemyFromDescriptorAndEnterFlight.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -93,12 +93,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted timer/type cases — loc_3e69 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted timer/type cases — seedEnemyFromDescriptorAndEnterFlight == oracle in RAM (−stack)", () => {
   for (const { label, rec, desc, dirty } of CASES) {
     const o = craft(rec, desc, dirty);
     const c = craft(rec, desc, dirty);
     oracle(o);
-    loc_3e69(c);
+    seedEnemyFromDescriptorAndEnterFlight(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -133,7 +133,7 @@ test("TEETH: a wrong timer byte is CAUGHT by the RAM diff", () => {
   const o = craft(rec, null, false);
   const c = craft(rec, null, false);
   oracle(o);
-  loc_3e69(c);
+  seedEnemyFromDescriptorAndEnterFlight(c);
   c.mem.write8(TIMER, 0xee); // BUG: the timer must be the decremented value
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong timer byte — it is worthless");
@@ -146,7 +146,7 @@ test("TEETH: a wrong state-advance byte (in-range fall-through) is CAUGHT by the
   const o = craft(rec, desc, false);
   const c = craft(rec, desc, false);
   oracle(o);
-  loc_3e69(c);
+  seedEnemyFromDescriptorAndEnterFlight(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: the fall-through path is RAM-equal before the twin breaks it");
   assert.equal(c.mem.read8(STATE), 0x04, "sanity: the state byte was advanced to 0x04");
   c.mem.write8(STATE, 0x00); // BUG: clobber the advanced state

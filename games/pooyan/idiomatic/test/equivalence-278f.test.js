@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_278f (ROM 0x278f) — launch-state-machine state 0: arm the
+ * Memory-equivalence test for armLaunchAndAdvanceToHunterSpawn (ROM 0x278f) — launch-state-machine state 0: arm the
  * launch flag once its preconditions hold, gate on the arrow height and the two hunter-hit
  * bits, then advance the state, reseed the flip countdown, optionally light a HUD cell,
  * refresh the arm latch, and tail-blit a 2x2 tile via loc_3325 (blit2x2TileBlock).
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine
  * WRITES work + video RAM, so each case uses a FRESH clone per side: the oracle runs on one
- * clone, loc_278f on another, and they are compared on the go-forward contract — RAM
- * (dumpState) minus STACK_SCRATCH. pc/SP/cycles are NOT compared. loc_278f is a dispatched
+ * clone, armLaunchAndAdvanceToHunterSpawn on another, and they are compared on the go-forward contract — RAM
+ * (dumpState) minus STACK_SCRATCH. pc/SP/cycles are NOT compared. armLaunchAndAdvanceToHunterSpawn is a dispatched
  * handler with NO consumed register live-out (the tail blit sets HL, but the dispatcher does
  * not read it), so only RAM is compared. The oracle's tail m.call(0x3325) and the idiomatic
  * blit2x2TileBlock produce identical VRAM effects; the oracle's ret pops read STACK_SCRATCH.
@@ -20,7 +20,7 @@
  * three gate exits, and both HUD / seed branches on the full path to the blit.
  *
  * Jobs:
- *   1. EQUAL (crafted sweep) — loc_278f == oracle in RAM (-stack) over every path.
+ *   1. EQUAL (crafted sweep) — armLaunchAndAdvanceToHunterSpawn == oracle in RAM (-stack) over every path.
  *   2. WRITE-SET — on the full path the oracle's writes stay within the documented footprint
  *      (state, flip, HUD, latch, and the four blit cells), and the blit copies ROM 0x2d51.
  *   3. TEETH — an inverted arrow gate (bails on a passing arrow) is CAUGHT; and a wrong
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_278f as oracle } from "../../translated/loc_278f.js";
-import { loc_278f } from "../loc_278f.js";
+import { armLaunchAndAdvanceToHunterSpawn } from "../armLaunchAndAdvanceToHunterSpawn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -122,12 +122,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted sweep) -------------------------------------------------
 
-test("EQUAL: crafted paths — loc_278f == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted paths — armLaunchAndAdvanceToHunterSpawn == oracle in RAM (−stack)", () => {
   for (const [label, over] of CASES) {
     const o = craft(over);
     const c = craft(over);
     oracle(o);
-    loc_278f(c);
+    armLaunchAndAdvanceToHunterSpawn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} [${label}]`);
   }
@@ -188,7 +188,7 @@ test("TEETH: a wrong launch-state byte is CAUGHT at 0x8f30", () => {
   const o = craft(over);
   const c = craft(over);
   oracle(o);
-  loc_278f(c);
+  armLaunchAndAdvanceToHunterSpawn(c);
   c.mem.write8(LAUNCH_STATE, 0x00); // BUG: state must have advanced to 0x06
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong launch-state byte");

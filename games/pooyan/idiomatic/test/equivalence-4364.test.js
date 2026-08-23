@@ -2,9 +2,9 @@
 /**
  * Memory-equivalence test for loc_4364 (ROM 0x4364) — an object state handler. While the record's
  * phase timer (ix+0x11) is non-zero it counts it down one and returns; once the timer is zero it
- * steps the animation sequencer (loc_4006), advances one fall step (loc_3fd5 / advanceFallStep,
+ * steps the animation sequencer (advanceObjectAnimationFrame), advances one fall step (loc_3fd5 / advanceFallStep,
  * whose carry = "still airborne"), returns while airborne, and on landing tail-blanks the sprite
- * band (loc_3553 zeroes 0x17 bytes from ix).
+ * band (blankActorSpriteBand zeroes 0x17 bytes from ix).
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so every case uses a FRESH clone
  * per side. Contract: RAM (dumpState minus STACK_SCRATCH) ONLY — loc_4364 is a table-dispatched
@@ -14,7 +14,7 @@
  *
  * The record is based at IX; the leaf runs only during live object updates, so every case is
  * CRAFTED. The record is pre-dirtied to 0xAA and the four fields loc_4364's callees read are seated
- * identically on both sides: the animation hold (ix+0x0e, non-zero so loc_4006 just decrements it),
+ * identically on both sides: the animation hold (ix+0x0e, non-zero so advanceObjectAnimationFrame just decrements it),
  * the fall fraction/velocity (ix+0x03 / ix+0x09, both 0 so no row carries), and the integer row
  * (ix+0x04) — below 0x1e = airborne, at 0x1e = landed.
  *
@@ -47,11 +47,11 @@ const test = ROM_PRESENT
 const REC = 0x8ba0;    // work-RAM record base (IX)
 const REC_LEN = 0x18;
 const TIMER = 0x11;    // phase-timer offset (ix+0x11)
-const HOLD = 0x0e;     // animation-hold offset loc_4006 decrements
+const HOLD = 0x0e;     // animation-hold offset advanceObjectAnimationFrame decrements
 const FRAC = 0x03;     // fall fraction
 const ROW = 0x04;      // integer row
 const VEL = 0x09;      // fall velocity
-const BAND_LEN = 0x17; // bytes loc_3553 blanks from the record base
+const BAND_LEN = 0x17; // bytes blankActorSpriteBand blanks from the record base
 const LANDING_ROW = 0x1e;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
@@ -69,7 +69,7 @@ const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 function craft(scn) {
   const m = BASE.clone();
   for (let i = 0; i < REC_LEN; i++) m.mem.write8(REC + i, 0xaa);
-  m.mem.write8(REC + HOLD, 0x03); // non-zero: loc_4006 just decrements the hold this frame
+  m.mem.write8(REC + HOLD, 0x03); // non-zero: advanceObjectAnimationFrame just decrements the hold this frame
   m.mem.write8(REC + FRAC, 0x00);
   m.mem.write8(REC + VEL, 0x00);  // fraction + velocity 0 -> the fall step carries no row
   m.mem.write8(REC + ROW, scn.row);
@@ -80,7 +80,7 @@ function craft(scn) {
 }
 
 const CASES = [
-  { name: "timer-running", timer: 0x05, row: 0x10 }, // timer != 0 -> dec + return, loc_4006 NOT called
+  { name: "timer-running", timer: 0x05, row: 0x10 }, // timer != 0 -> dec + return, advanceObjectAnimationFrame NOT called
   { name: "airborne",      timer: 0x00, row: 0x10 }, // timer 0, row < 0x1e -> ret c (still falling)
   { name: "landing",       timer: 0x00, row: LANDING_ROW }, // timer 0, row == 0x1e -> tail-blank the band
 ];
@@ -136,7 +136,7 @@ test("TEETH: a forgotten timer decrement is CAUGHT at ix+0x11", () => {
 });
 
 test("TEETH: an un-blanked sprite-band byte is CAUGHT on the landing path", () => {
-  const scn = CASES[2]; // landing -> loc_3553 zeroes the band
+  const scn = CASES[2]; // landing -> blankActorSpriteBand zeroes the band
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);

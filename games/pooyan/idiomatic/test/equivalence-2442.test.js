@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2442 (ROM 0x2442, Pooyan) — the lead-actor state-0 handler
+ * Memory-equivalence test for beginLeadActorLiftOnClear (ROM 0x2442, Pooyan) — the lead-actor state-0 handler
  * (record based at IX = ACTOR_TABLE = 0x8a80). It idles while either tamper-strike counter
  * (TAMPER_STRIKES_SLOTSWEEP 0x89e8 / TAMPER_STRIKES_ROM 0x89ef) is nonzero. Otherwise it seeds
  * the record's frame-delay field (+0x11 = 0x10), advances the state (+0x02), snapshots the whole
@@ -16,7 +16,7 @@
  *
  * Jobs:
  *   1. EQUAL — full path, teardown path (0x8f24 set), and the early-idle path (0x89e8 set).
- *   2. FOOTPRINT — loc_2442's own field writes (frame-delay, state, position drop, snapshot).
+ *   2. FOOTPRINT — beginLeadActorLiftOnClear's own field writes (frame-delay, state, position drop, snapshot).
  *   3. TEETH — a twin that writes the wrong frame-delay byte, and a twin that ignores the idle
  *      gate, are both CAUGHT.
  *
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2442 as oracle } from "../../translated/loc_2442.js";
-import { loc_2442 } from "../loc_2442.js";
+import { beginLeadActorLiftOnClear } from "../beginLeadActorLiftOnClear.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -70,7 +70,7 @@ function craft({ idle = false, teardown = false } = {}) {
   m.mem.write8(TAMPER_STRIKES_SLOTSWEEP, idle ? 0x01 : 0x00);
   m.mem.write8(TAMPER_STRIKES_ROM, 0x00);
   m.mem.write8(WAVE_TEARDOWN_STATE, teardown ? 0x01 : 0x00);
-  m.mem.write8(BOARD_CLEAR_FLAG, 0x00); //          keep loc_2514 off its board-reset tail
+  m.mem.write8(BOARD_CLEAR_FLAG, 0x00); //          keep copyDisplayTilesIntoActorRecords off its board-reset tail
   m.mem.write8(TAMPER_STRIKES_TERMINATOR, 0x00); // (partner of the divert OR)
   m.mem.write8(STATE, ORIG_STATE);
   m.mem.write8(POS, ORIG_POS);
@@ -86,7 +86,7 @@ function assertEqualPath(opts, label) {
   let oThrew = false;
   let cThrew = false;
   try { oracle(o); } catch { oThrew = true; }
-  try { loc_2442(c); } catch { cThrew = true; }
+  try { beginLeadActorLiftOnClear(c); } catch { cThrew = true; }
   assert.equal(oThrew, cThrew, `${label}: oracle and module must take the same completion path`);
   if (!oThrew) {
     const d = ramDiffMinusStack(o, c);
@@ -97,7 +97,7 @@ function assertEqualPath(opts, label) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: full / teardown / early-idle paths — loc_2442 == oracle in RAM (−stack)", () => {
+test("EQUAL: full / teardown / early-idle paths — beginLeadActorLiftOnClear == oracle in RAM (−stack)", () => {
   assertEqualPath({}, "full");
   assertEqualPath({ teardown: true }, "teardown");
   const { o, c } = assertEqualPath({ idle: true }, "early-idle");
@@ -109,7 +109,7 @@ test("EQUAL: full / teardown / early-idle paths — loc_2442 == oracle in RAM (�
 
 // -- 2. FOOTPRINT -------------------------------------------------------------
 
-test("FOOTPRINT: loc_2442's own field writes (teardown path, queueSoundRun26 skipped)", () => {
+test("FOOTPRINT: beginLeadActorLiftOnClear's own field writes (teardown path, queueSoundRun26 skipped)", () => {
   const m = craft({ teardown: true });
   oracle(m);
   const g = (a) => m.mem.read8(a);
@@ -127,7 +127,7 @@ test("TEETH: a wrong frame-delay byte is CAUGHT by the RAM diff", () => {
   const o = craft({ teardown: true });
   const c = craft({ teardown: true });
   oracle(o);
-  loc_2442(c);
+  beginLeadActorLiftOnClear(c);
   c.mem.write8(FRAME_DELAY, 0x00); // BUG: must be 0x10
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong frame-delay — it is worthless");

@@ -34,7 +34,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3f72 as oracle } from "../../translated/loc_3f72.js";
 import { loc_3f72 } from "../loc_3f72.js";
-import { loc_4006 } from "../loc_4006.js";
+import { advanceObjectAnimationFrame } from "../advanceObjectAnimationFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -135,7 +135,7 @@ test("TEETH: a handler that drops the tick or the timer diverges at that field",
   const o2 = craftHold();
   const t2 = craftHold();
   oracle(o2);
-  loc_4006(t2, REC); // tick only, no timer decrement
+  advanceObjectAnimationFrame(t2, REC); // tick only, no timer decrement
   const d2 = ramDiffMinusStack(o2, t2);
   assert.notEqual(d2, null, "a dropped timer decrement must be caught");
   assert.equal(d2.addr, REC + TIMER, `dropped-timer teeth caught wrong address ${hx(d2.addr ?? 0)}`);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { loc_2c85 } from "./loc_2c85.js";
 import { queueSoundCommand12 } from "./queueSoundCommand12.js";
 import { ENEMY_ACTOR_TABLE } from "./names.js";
@@ -24,7 +24,7 @@ const HUNTER_RECORD_COUNT = 0x11;
 export function loc_2c58(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_4006(m, rec); // step this record's animation frame
+  advanceObjectAnimationFrame(m, rec); // step this record's animation frame
 
   let low = mem8[rec + POS_LO] + mem8[rec + POS_STEP];
   if (low > 0xff) mem8[rec + POS_HI] = mem8[rec + POS_HI] + 1; // carry into the high byte

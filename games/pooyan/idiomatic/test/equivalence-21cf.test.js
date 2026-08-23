@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_21cf (ROM 0x21cf, Pooyan) — per-object state step on the IY record.
+ * Memory-equivalence test for advanceTargetActorState (ROM 0x21cf, Pooyan) — per-object state step on the IY record.
  *
- * SEATING: BALANCED (plain ret / tail-calls) -> WIRE. Void handler: loc_2157 reads no register back
+ * SEATING: BALANCED (plain ret / tail-calls) -> WIRE. Void handler: stepActiveTargetActorRecords reads no register back
  * after its `call nz,0x21cf`, so LIVE-OUT is memory only and the comparison is RAM (dumpState) minus
  * STACK_SCRATCH; the register file is not compared. SP parked in STACK_SCRATCH so nested pushes drop out.
  *
- * The two-axis-mover branch (bit1 of rec+0 -> loc_2226) is left to loc_2226's own gate: it is a pure
+ * The two-axis-mover branch (bit1 of rec+0 -> advanceTargetActorAlongVelocityElseDespawn) is left to advanceTargetActorAlongVelocityElseDespawn's own gate: it is a pure
  * delegation whose carry-flag ABI would couple this gate to a sibling. All other decision paths are
  * crafted here: the launch sub-phase (seed / travel / clear-at-0xe8 / not-armed) and the timer body
  * (prime-once, hit-flag consume for both parity cells, countdown decrement, countdown underflow-clear).
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_21cf as oracle } from "../../translated/loc_21cf.js";
-import { loc_21cf } from "../loc_21cf.js";
+import { advanceTargetActorState } from "../advanceTargetActorState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -85,12 +85,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_21cf == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceTargetActorState == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_21cf(c);
+    advanceTargetActorState(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -117,7 +117,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["timer: countdown decrement"](BASE.clone());
   const c = CASES["timer: countdown decrement"](BASE.clone());
   oracle(o);
-  loc_21cf(c);
+  advanceTargetActorState(c);
   c.mem.write8(REC0 + 0x06, (o.mem.read8(REC0 + 0x06) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

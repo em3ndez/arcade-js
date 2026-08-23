@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2e45 (ROM 0x2e45, Pooyan) — "tick down one of the four
+ * Memory-equivalence test for tickRopeCellFrameTimer (ROM 0x2e45, Pooyan) — "tick down one of the four
  * rope-cell frame timers". The low two bits of IXL pick a timer at 0x8f28 + 2*(IXL&3);
  * the routine decrements it in place.
  *
  * Cycle-free memory-equivalence gate: fresh clone per side, compared on RAM (dumpState,
  * minus STACK_SCRATCH) PLUS the declared register live-out. Two live-outs are genuine and
- * consumed by the frozen rope-cell handlers (loc_2e5e/2ecb/2f01/2f2f):
- *   - HL = the timer's address — loc_2e5e/loc_2f01 store through it after the call;
+ * consumed by the frozen rope-cell handlers (spawnHangingRopeObject/2ecb/2f01/2f2f):
+ *   - HL = the timer's address — spawnHangingRopeObject/advanceHangingRopeObjectWithGrabCheck store through it after the call;
  *   - the Z flag = decremented-to-zero — every caller `ret nz` on it.
  * Both are checked against the oracle clone, and the module's own clone must SET them (a
  * return-only rewrite would pass the return check but starve the register-dispatch
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2e45 as oracle } from "../../translated/loc_2e45.js";
-import { loc_2e45 } from "../loc_2e45.js";
+import { tickRopeCellFrameTimer } from "../tickRopeCellFrameTimer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -70,7 +70,7 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted IXL/timer cases — loc_2e45 == oracle in RAM (−stack) + HL + Z", () => {
+test("EQUAL: crafted IXL/timer cases — tickRopeCellFrameTimer == oracle in RAM (−stack) + HL + Z", () => {
   for (const { ixl, timerVal } of CASES) {
     const o = craft(ixl, timerVal);
     oracle(o);
@@ -78,7 +78,7 @@ test("EQUAL: crafted IXL/timer cases — loc_2e45 == oracle in RAM (−stack) + 
     const c = craft(ixl, timerVal);
     c.regs.hl = 0xffff; // sentinel: not any timer address, so a non-writing module fails
     c.regs.fZ = !o.regs.fZ; // opposite, so a module that never sets Z fails
-    const ret = loc_2e45(c);
+    const ret = tickRopeCellFrameTimer(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `ixl=${hx(ixl)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -116,7 +116,7 @@ test("TEETH: a wrong decremented byte is CAUGHT by the RAM diff", () => {
   const o = craft(ixl, timerVal);
   const c = craft(ixl, timerVal);
   oracle(o);
-  loc_2e45(c);
+  tickRopeCellFrameTimer(c);
   c.mem.write8(timerAddr(ixl), (timerVal - 2) & 0xff); // BUG: over-decremented
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong decrement — it is worthless");

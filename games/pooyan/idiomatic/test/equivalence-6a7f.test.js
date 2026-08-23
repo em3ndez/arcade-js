@@ -13,7 +13,7 @@
  *
  * Loop-arm determinism: an inactive record ((rec+1)=0) makes loc_6a98 return at once, so zeroing
  * every record's +1 byte makes the loop a pure no-op. Activating all 18 (state 1 -> loc_6aa8, with
- * a live frame-hold so loc_4006 just decrements, and a still-descending position) gives each record
+ * a live frame-hold so advanceObjectAnimationFrame just decrements, and a still-descending position) gives each record
  * a fixed two-cell write footprint; the 18-record spread at stride 0x18 is the loop bound witness.
  *
  * Integrity-arm construction: the walked-cell SET is value-independent, so `walkCells()` re-derives
@@ -113,7 +113,7 @@ function craftLoop({ active }) {
     if (active) {
       m.mem.write8(rec + 1, 0x01); // active slot
       m.mem.write8(rec + 2, 0x01); // state 1 -> loc_6aa8
-      m.mem.write8(rec + 0x0e, 0x05); // live frame-hold -> loc_4006 decrements and returns
+      m.mem.write8(rec + 0x0e, 0x05); // live frame-hold -> advanceObjectAnimationFrame decrements and returns
       m.mem.write8(rec + 5, 0x10); // position low
       m.mem.write8(rec + 6, 0x05); // position high stays nonzero -> still descending
       m.mem.write8(rec + 9, 0x01); // descent speed

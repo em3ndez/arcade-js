@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2d80 (Pooyan) — "rope-extend driver, sub-state 0": add one rope
+ * Memory-equivalence test for addRopeSegmentAndAdvanceExtendState (Pooyan) — "rope-extend driver, sub-state 0": add one rope
  * segment unless the rope is already at its per-stage length, gated on the segment index (below four,
  * or a pending tamper strike).
  *
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2d80 as oracle } from "../../translated/loc_2d80.js";
-import { loc_2d80 } from "../loc_2d80.js";
+import { addRopeSegmentAndAdvanceExtendState } from "../addRopeSegmentAndAdvanceExtendState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -89,12 +89,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted rope-machine cases — loc_2d80 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted rope-machine cases — addRopeSegmentAndAdvanceExtendState == oracle in RAM (−stack)", () => {
   for (const { name, arrivals, segCount, index, tamper } of CASES) {
     const o = craft(arrivals, segCount, index, tamper);
     const c = craft(arrivals, segCount, index, tamper);
     oracle(o);
-    loc_2d80(c);
+    addRopeSegmentAndAdvanceExtendState(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -153,7 +153,7 @@ test("TEETH: a corrupted column-ptr byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x06, 0x00, 0x00, 0x00);
   const c = craft(0x06, 0x00, 0x00, 0x00);
   oracle(o);
-  loc_2d80(c);
+  addRopeSegmentAndAdvanceExtendState(c);
   const cell = ROPE_COLUMN_VRAM_PTR + 1; // the fixed high byte of the column pointer
   c.mem.write8(cell, c.mem.read8(cell) ^ 0xff); // BUG: corrupt the video page byte
   const d = ramDiffMinusStack(o, c);
@@ -166,7 +166,7 @@ test("TEETH: an undone sub-state advance is CAUGHT at the sub-state cell", () =>
   const o = craft(0x06, 0x00, 0x00, 0x00);
   const c = craft(0x06, 0x00, 0x00, 0x00);
   oracle(o);
-  loc_2d80(c);
+  addRopeSegmentAndAdvanceExtendState(c);
   c.mem.write8(ROPE_EXTEND_STATE, (c.mem.read8(ROPE_EXTEND_STATE) - 1) & 0xff); // BUG: undo the advance
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch an undone sub-state advance — it is worthless");

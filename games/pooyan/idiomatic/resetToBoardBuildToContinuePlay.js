@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_2527 } from "./loc_2527.js";
+import { resetBoardRamAndReseedSpawnCounters } from "./resetBoardRamAndReseedSpawnCounters.js";
 import { loc_02b9 } from "./loc_02b9.js";
 import { u16 } from "../../../core/int.js";
 import {
@@ -34,7 +34,7 @@ export function resetToBoardBuildToContinuePlay(m) {
 
   mem8[MAIN_GAME_STATE] = BOARD_BUILD_STATE; // rebuild the board next
   mem8[PLAY_STATE_INDEX] = 0x00;
-  loc_2527(m); // board/HUD reset
+  resetBoardRamAndReseedSpawnCounters(m); // board/HUD reset
   loc_02b9(m); // clear the actor/object arena
 
   let cell = RESET_ATTR_COLUMN;

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2473 (ROM 0x2473, Pooyan) — actor state-1 step, record based at IX.
+ * Memory-equivalence test for dropLeadActorAfterDelay (ROM 0x2473, Pooyan) — actor state-1 step, record based at IX.
  *
  * Decrements the frame delay (IX+0x11); until it reaches zero, return (registers untouched). On
  * expiry: if the state-10 tamper counter (0x8a39) is zero it reseeds the delay to 0x10 and bumps the
  * actor state (IX+0x02); otherwise (the anti-tamper overlap arm, dead with an intact ROM) it stores
  * that tamper value at (BC). Both converge to bump the base Y (IX+0x04) by 0x10, clear (IX+0x1e),
- * then load shape table 0x26c1 via the pattern-A shape loader (loc_250f -> loc_2514).
+ * then load shape table 0x26c1 via the pattern-A shape loader (loc_250f -> copyDisplayTilesIntoActorRecords).
  *
  * Comparison is the go-forward contract: RAM (dumpState) minus STACK_SCRATCH, plus — on the expiry
  * path — the register live-out the shape loader leaves (IX past the copied run, B, HL, A), all
  * derived from the ORACLE clone. The early frame-delay return sets no register, so only RAM is
- * compared there. loc_2473 is reached only through the actor-state dispatch (no direct callers), so
+ * compared there. dropLeadActorAfterDelay is reached only through the actor-state dispatch (no direct callers), so
  * every case is CRAFTED: an identical IX record + BC poked on both sides.
  *
  * Jobs:
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2473 as oracle } from "../../translated/loc_2473.js";
-import { loc_2473 } from "../loc_2473.js";
+import { dropLeadActorAfterDelay } from "../dropLeadActorAfterDelay.js";
 import { loc_250f } from "../loc_250f.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -88,7 +88,7 @@ test("EQUAL: early return (delay not expired) — RAM identical, no register tou
   const o = craft({ delay: 0x05 });
   const c = craft({ delay: 0x05 });
   oracle(o);
-  loc_2473(c);
+  dropLeadActorAfterDelay(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log(`  EQUAL(early): delay 5->4, no dispatch — RAM identical`);
@@ -98,7 +98,7 @@ test("EQUAL: zero-expiry (reseed + state bump + shape load) — RAM + live-out i
   const o = craft({ delay: 0x01 });
   const c = craft({ delay: 0x01 });
   oracle(o);
-  loc_2473(c);
+  dropLeadActorAfterDelay(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assertLiveOut(c, o, "zero-expiry");
@@ -109,7 +109,7 @@ test("EQUAL: tamper overlap arm (0x8a39 nonzero) — RAM + live-out identical", 
   const o = craft({ delay: 0x01, tamper: 0x05 });
   const c = craft({ delay: 0x01, tamper: 0x05 });
   oracle(o);
-  loc_2473(c);
+  dropLeadActorAfterDelay(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assertLiveOut(c, o, "tamper");
@@ -184,7 +184,7 @@ test("TEETH: a wrong IX live-out is rejected by the live-out check", () => {
   const o = craft({ delay: 0x01 });
   const c = craft({ delay: 0x01 });
   oracle(o);
-  loc_2473(c);
+  dropLeadActorAfterDelay(c);
   assert.equal(c.regs.ix & 0xffff, o.regs.ix & 0xffff, "sanity: module IX matches oracle");
   assert.notEqual(REC, o.regs.ix & 0xffff, "an un-advanced IX (=REC) must be rejected");
   console.log(`  TEETH(live-out): module IX ${hx(o.regs.ix)} advanced past REC ${hx(REC)}`);

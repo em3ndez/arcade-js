@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { FRAME_COUNTER, TAMPER_NIBBLE_SUM_BLOCK, TAMPER_STRIKES_SIG } from "./names.js";
 /**
  * loc_4103 — per-object frame-advance step for the record based at IX.
@@ -22,7 +22,7 @@ const CHECKSUM_LOW_OK = 0x67; // intact low-total; carry count must also be 1
 
 export function loc_4103(m, rec = m.regs.ix) {
   const { mem8 } = m;
-  loc_4006(m, rec);
+  advanceObjectAnimationFrame(m, rec);
 
   const dwell = (mem8[rec + DWELL_FIELD] - 1) & 0xff;
   mem8[rec + DWELL_FIELD] = dwell;

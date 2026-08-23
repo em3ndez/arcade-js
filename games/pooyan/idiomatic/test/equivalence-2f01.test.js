@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2f01 (ROM 0x2f01) — "rope-cell timer handler gated by the grab
+ * Memory-equivalence test for advanceHangingRopeObjectWithGrabCheck (ROM 0x2f01) — "rope-cell timer handler gated by the grab
  * test", the CALLER of the dissolved grab-test skip. It first runs the grab test; on a grab it
  * abandons the cell update. Otherwise it ticks the cell timer (selected by IXL&3); until zero it
  * returns; on the zero frame it re-arms the timer to a fixed reload, indexes the formation table
@@ -23,9 +23,9 @@
  * it (grab) for the abort case; IXL&3 == 0 selects timer/column/window slot 0.
  *
  * Jobs:
- *   1. EQUAL (not-zero path) — grab-not-taken, timer>1: oracle == loc_2f01 in RAM (−stack) + HL + Z.
- *   2. EQUAL (zero path) — grab-not-taken, timer==1: oracle == loc_2f01 in RAM (−stack) + HL/IY/B.
- *   3. EQUAL (grab abort path) — inside the window and idle: oracle == loc_2f01 in RAM (−stack); the
+ *   1. EQUAL (not-zero path) — grab-not-taken, timer>1: oracle == advanceHangingRopeObjectWithGrabCheck in RAM (−stack) + HL + Z.
+ *   2. EQUAL (zero path) — grab-not-taken, timer==1: oracle == advanceHangingRopeObjectWithGrabCheck in RAM (−stack) + HL/IY/B.
+ *   3. EQUAL (grab abort path) — inside the window and idle: oracle == advanceHangingRopeObjectWithGrabCheck in RAM (−stack); the
  *      grab latch is raised and the cell body did NOT run (timer + record untouched).
  *   4. WRITE-SET — the zero path's writes: the timer cell, three record fields, (ix+0), 4 VRAM cells.
  *   5. TEETH — a wrong record byte / a wrong IY / a caller that failed to abort are all caught.
@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2f01 as oracle } from "../../translated/loc_2f01.js";
-import { loc_2f01 } from "../loc_2f01.js";
+import { advanceHangingRopeObjectWithGrabCheck } from "../advanceHangingRopeObjectWithGrabCheck.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -103,12 +103,12 @@ const recordFor = (recSel) => (FORMATION_TABLE + STRIDE * (recSel + 1)) & 0xffff
 
 // -- 1. EQUAL (not-zero path) -------------------------------------------------
 
-test("EQUAL: not-zero path (no grab, timer stays non-zero) — loc_2f01 == oracle in RAM (−stack) + HL + Z", () => {
+test("EQUAL: not-zero path (no grab, timer stays non-zero) — advanceHangingRopeObjectWithGrabCheck == oracle in RAM (−stack) + HL + Z", () => {
   for (const timer of [2, 3, 0x10]) {
     const o = craft({ timer });
     const c = craft({ timer });
     oracle(o);
-    const ret = loc_2f01(c);
+    const ret = advanceHangingRopeObjectWithGrabCheck(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `timer=${timer}: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
     assert.equal(c.regs.hl & 0xffff, o.regs.hl & 0xffff, `timer=${timer}: HL live-out mismatch`);
@@ -124,12 +124,12 @@ test("EQUAL: not-zero path (no grab, timer stays non-zero) — loc_2f01 == oracl
 
 // -- 2. EQUAL (zero path) -----------------------------------------------------
 
-test("EQUAL: zero path (no grab, timer reaches zero) — loc_2f01 == oracle in RAM (−stack) + HL/IY/B", () => {
+test("EQUAL: zero path (no grab, timer reaches zero) — advanceHangingRopeObjectWithGrabCheck == oracle in RAM (−stack) + HL/IY/B", () => {
   for (const recSel of [0x01, 0x03]) {
     const o = craft({ timer: 1, recSel });
     const c = craft({ timer: 1, recSel });
     oracle(o);
-    const ret = loc_2f01(c);
+    const ret = advanceHangingRopeObjectWithGrabCheck(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `recSel=${hx(recSel)}: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
     assert.equal(c.regs.hl & 0xffff, o.regs.hl & 0xffff, `recSel=${hx(recSel)}: HL live-out mismatch`);
@@ -146,11 +146,11 @@ test("EQUAL: zero path (no grab, timer reaches zero) — loc_2f01 == oracle in R
 
 // -- 3. EQUAL (grab abort path) -----------------------------------------------
 
-test("EQUAL: grab abort path (inside window + idle) — loc_2f01 == oracle in RAM (−stack), body skipped", () => {
+test("EQUAL: grab abort path (inside window + idle) — advanceHangingRopeObjectWithGrabCheck == oracle in RAM (−stack), body skipped", () => {
   const o = craft({ timer: 1, pos: POS_INSIDE });
   const c = craft({ timer: 1, pos: POS_INSIDE });
   oracle(o);
-  loc_2f01(c);
+  advanceHangingRopeObjectWithGrabCheck(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `grab: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
   assert.equal(o.mem.read8(GRAB_ACTIVE_FLAG), 0x01, "grab latch raised (the grab fired)");
@@ -215,7 +215,7 @@ test("TEETH: a wrong formation-record byte is CAUGHT by the RAM diff", () => {
   const o = craft({ timer: 1 });
   const c = craft({ timer: 1 });
   oracle(o);
-  loc_2f01(c);
+  advanceHangingRopeObjectWithGrabCheck(c);
   const cell = (recordFor(0x01) + REC_POS) & 0xffff;
   c.mem.write8(cell, (c.mem.read8(cell) + 1) & 0xff); // BUG: corrupt the forced record field
 
@@ -239,7 +239,7 @@ test("TEETH: a caller that FAILED to abort on the grab is CAUGHT by the RAM diff
   const o = craft({ timer: 1, pos: POS_INSIDE });
   const c = craft({ timer: 1, pos: POS_INSIDE });
   oracle(o); // aborts: timer left at 1
-  loc_2f01(c); // aborts too
+  advanceHangingRopeObjectWithGrabCheck(c); // aborts too
   c.mem.write8(TIMER0, RELOAD); // BUG surrogate: a non-aborting caller would re-arm the timer
 
   const d = ramDiffMinusStack(o, c);

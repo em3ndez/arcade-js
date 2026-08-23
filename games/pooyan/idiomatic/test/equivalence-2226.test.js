@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2226 (ROM 0x2226, Pooyan) — the two-axis object stepper at IY.
+ * Memory-equivalence test for advanceTargetActorAlongVelocityElseDespawn (ROM 0x2226, Pooyan) — the two-axis object stepper at IY.
  *
- * The module direct-calls the idiomatic phase reload (loc_2282) and the record-clear (loc_221e);
- * the oracle drives the frozen siblings through the registry that new Machine(ROM) builds. loc_2226
+ * The module direct-calls the idiomatic phase reload (loadPhaseMotionParamsAndAdvancePhase) and the record-clear (clearTargetActorRecord);
+ * the oracle drives the frozen siblings through the registry that new Machine(ROM) builds. advanceTargetActorAlongVelocityElseDespawn
  * is a void stepper — no register survives — so the register file is not compared; equivalence is
  * RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack so nested pushes drop out.
  *
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2226 as oracle } from "../../translated/loc_2226.js";
-import { loc_2226 } from "../loc_2226.js";
+import { advanceTargetActorAlongVelocityElseDespawn } from "../advanceTargetActorAlongVelocityElseDespawn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -91,12 +91,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_2226 == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceTargetActorAlongVelocityElseDespawn == oracle in RAM (−stack)", () => {
   for (const [label, o] of Object.entries(CASES)) {
     const a = craft(o);
     const b = craft(o);
     oracle(a);
-    loc_2226(b);
+    advanceTargetActorAlongVelocityElseDespawn(b);
     const d = ramDiffMinusStack(a, b);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -124,7 +124,7 @@ test("TEETH: a wrong stored X byte is CAUGHT by the RAM diff", () => {
   const a = craft(CASES["move/add"]);
   const b = craft(CASES["move/add"]);
   oracle(a);
-  loc_2226(b);
+  advanceTargetActorAlongVelocityElseDespawn(b);
   b.mem8[OBJ + 0x05] = (a.mem8[OBJ + 0x05] ^ 0xff) & 0xff; // corrupt the stored X low
   const d = ramDiffMinusStack(a, b);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted X byte — worthless");
@@ -137,7 +137,7 @@ test("TEETH: the reload borrow is observable — stored X is one below the no-bo
     (craft(CASES["reload+subtract borrow"]).mem8[OBJ + 0x06] << 8);
   const a = craft(CASES["reload+subtract borrow"]);
   oracle(a);
-  const xv = a.mem16[XVEL]; // velocity reloaded by loc_2282
+  const xv = a.mem16[XVEL]; // velocity reloaded by loadPhaseMotionParamsAndAdvancePhase
   const stored = a.mem8[OBJ + 0x05] | (a.mem8[OBJ + 0x06] << 8);
   assert.equal(stored, u16(xBefore - xv - 1), "reload+subtract must borrow one from the reload's carry");
   assert.notEqual(stored, u16(xBefore - xv), "a no-borrow subtract would differ — the borrow is load-bearing");

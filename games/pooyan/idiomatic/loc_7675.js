@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import {
   SHARED_PHASE_COUNTDOWN,
   ENEMY_ACTOR_TABLE,
@@ -31,7 +31,7 @@ const SUBSTATE_ON_EXPIRY = 0x08; // attract sub-state set on expiry
 export function loc_7675(m, ix = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_4006(m, ix); // step this entry's animation
+  advanceObjectAnimationFrame(m, ix); // step this entry's animation
 
   if (mem8[SHARED_PHASE_COUNTDOWN] !== 0) {
     mem8[SHARED_PHASE_COUNTDOWN] = mem8[SHARED_PHASE_COUNTDOWN] - 1; // still counting -> keep walking

@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2329 (ROM 0x2329-0x23d6) — the bidirectional position driver
- * for the actor at IX. Aim bit2 clear routes to the descent handler (loc_236a); set steps the
+ * Memory-equivalence test for movePlayerVerticallyAndTickStatusRender (ROM 0x2329-0x23d6) — the bidirectional position driver
+ * for the actor at IX. Aim bit2 clear routes to the descent handler (movePlayerDownAndTickStatusRender); set steps the
  * position up (dec, clamp low 0x41), refreshes the sprite Ys (loc_23d7), then advances the rising
  * ring counter — unless the tile-anim cursor sits at 0xe6 over a tile < 0x35 while all seven
  * integrity flags are clear, in which case it holds. On a ring wrap the mod-4 phase advances and
- * the shared render tail (loc_23ad) redraws.
+ * the shared render tail (wrapRenderPhaseAndPaintTileTriplet) redraws.
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so each case uses a FRESH clone
  * per side, compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are not compared (the
  * oracle drives them through m.step/push/ret, the stack ABI the direct-call layer replaces).
- * loc_2329 has NO register live-out — its only caller (loc_20d4) invokes the next helper straight
+ * movePlayerVerticallyAndTickStatusRender has NO register live-out — its only caller (loc_20d4) invokes the next helper straight
  * after and reads nothing back — so the contract is memory alone. The oracle drives its inlined
  * sub-calls (loc_23d7 / loc_23ec / loc_2405 / loc_0c45 / loc_3325 and the inlined descent) through
  * the full translated registry that new Machine(ROM) builds; the module direct-calls the idiomatic
- * siblings and dissolves the descent into loc_236a.
+ * siblings and dissolves the descent into movePlayerDownAndTickStatusRender.
  *
  * IX is seated at the actor table (0x8a80) — the value the live caller passes and the value
  * loc_23d7 forces — so the initial (IX+4)/(IX+7) reads and the sprite-Y derivation coincide.
@@ -22,7 +22,7 @@
  * Jobs:
  *   1. EQUAL — rise wrap (full render tail), rise advance no-wrap, rise gate-holds, rise
  *      scan-finds-a-flag, descent bit3-clear (delegation is a no-op), and descent advance
- *      (delegation does real work): oracle == loc_2329 in RAM (−stack).
+ *      (delegation does real work): oracle == movePlayerVerticallyAndTickStatusRender in RAM (−stack).
  *   2. TEETH — a wrong final-blit byte (wrap) and a wrong ring byte (no-wrap) are CAUGHT.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-2329.test.js
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2329 as oracle } from "../../translated/loc_2329.js";
-import { loc_2329 } from "../loc_2329.js";
+import { movePlayerVerticallyAndTickStatusRender } from "../movePlayerVerticallyAndTickStatusRender.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -103,12 +103,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: every branch — loc_2329 == oracle in RAM (−stack)", () => {
+test("EQUAL: every branch — movePlayerVerticallyAndTickStatusRender == oracle in RAM (−stack)", () => {
   for (const { name, poke } of CASES) {
     const o = craft(poke);
     const c = craft(poke);
     oracle(o);
-    loc_2329(c);
+    movePlayerVerticallyAndTickStatusRender(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -122,7 +122,7 @@ test("TEETH: a wrong final-blit byte (wrap) is CAUGHT", () => {
   const o = craft(poke);
   const c = craft(poke);
   oracle(o);
-  loc_2329(c);
+  movePlayerVerticallyAndTickStatusRender(c);
   const last = blitCells(VRAM_BASE + 2 * FIELD_STRIDE).at(-1);
   c.mem.write8(last, (c.mem.read8(last) + 1) & 0xff); // BUG: corrupt the final render cell
 
@@ -137,7 +137,7 @@ test("TEETH: a wrong ring byte (no-wrap) is CAUGHT", () => {
   const o = craft(poke);
   const c = craft(poke);
   oracle(o);
-  loc_2329(c);
+  movePlayerVerticallyAndTickStatusRender(c);
   c.mem.write8(RING, (c.mem.read8(RING) + 1) & 0xff); // BUG: corrupt the advanced ring counter
 
   const d = ramDiffMinusStack(o, c);

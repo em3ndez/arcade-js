@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_2329 } from "./loc_2329.js";
-import { loc_2101 } from "./loc_2101.js";
-import { loc_2563 } from "./loc_2563.js";
+import { movePlayerVerticallyAndTickStatusRender } from "./movePlayerVerticallyAndTickStatusRender.js";
+import { runLaunchAndTargetActorPipeline } from "./runLaunchAndTargetActorPipeline.js";
+import { blitTwoTileAnimFrameOnHoldTimer } from "./blitTwoTileAnimFrameOnHoldTimer.js";
 import { loc_25a6 } from "./loc_25a6.js";
 import { loc_308b } from "./loc_308b.js";
-import { loc_241e } from "./loc_241e.js";
+import { advanceLeadActorPrimaryState } from "./advanceLeadActorPrimaryState.js";
 import {
   PLAY_MODE_LATCH,
   GRAB_ACTIVE_FLAG,
@@ -29,15 +29,15 @@ export function loc_20d4(m) {
   const { mem8 } = m;
 
   if (mem8[PLAY_MODE_LATCH] === 0) {
-    if (mem8[GRAB_ACTIVE_FLAG] !== 0) return loc_241e(m); // idle + grab set -> lead-actor driver
+    if (mem8[GRAB_ACTIVE_FLAG] !== 0) return advanceLeadActorPrimaryState(m); // idle + grab set -> lead-actor driver
   } else {
     mem8[GRAB_ACTIVE_FLAG] = 0; // busy -> clear the grab flag
-    if ((mem8[HISCORE_TABLE_CORRUPT_FLAG] & mem8[TAMPER_STRIKES_TERMINATOR]) !== 0) return loc_241e(m);
+    if ((mem8[HISCORE_TABLE_CORRUPT_FLAG] & mem8[TAMPER_STRIKES_TERMINATOR]) !== 0) return advanceLeadActorPrimaryState(m);
   }
 
-  loc_2329(m, ACTOR_TABLE);
-  loc_2101(m);
-  loc_2563(m);
+  movePlayerVerticallyAndTickStatusRender(m, ACTOR_TABLE);
+  runLaunchAndTargetActorPipeline(m);
+  blitTwoTileAnimFrameOnHoldTimer(m);
   loc_25a6(m);
   loc_308b(m);
 }

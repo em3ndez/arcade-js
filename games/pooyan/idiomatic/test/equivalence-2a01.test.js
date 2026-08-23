@@ -97,7 +97,7 @@ function craftFrom(base, opts = {}) {
   m.mem.write8(RING_SLOT, 0x80); // bit7 set => slot free
   m.mem.write8(WAVE_ARRIVAL_COUNTER, opts.counter ?? 0x09);
   // loc_2c58 record inputs (consumed only when the checksum fails and loc_2a01 tail-jumps)
-  m.mem.write8(REC + 0x0e, 0x05); // frame-hold nonzero: loc_4006 just decrements
+  m.mem.write8(REC + 0x0e, 0x05); // frame-hold nonzero: advanceObjectAnimationFrame just decrements
   m.mem.write8(REC + 0x05, opts.lo ?? 0);
   m.mem.write8(REC + 0x09, opts.step ?? 0);
   m.mem.write8(REC + 0x06, opts.hi ?? 0);

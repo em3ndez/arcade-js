@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence test for loc_67a0 (ROM 0x67a0) — "per-object frame update": while the shared
  * frame-delay timer (SHARED_FRAME_DELAY_TIMER) is non-zero, decrement it and return; on expiry step
- * the object's animation (loc_4006), move the linked record's +0x05/+0x06 pair (if +0x07/+0x08 has a
+ * the object's animation (advanceObjectAnimationFrame), move the linked record's +0x05/+0x06 pair (if +0x07/+0x08 has a
  * non-zero high byte) and the object's own +0x05/+0x06 pair down by the +0x09 speed (a 16-bit
  * borrow decrements the high byte), and advance the object's state (+0x02) when its own +0x06 high
  * byte reaches zero.
@@ -14,9 +14,9 @@
  *
  * The contract is MEMORY ONLY: a per-frame state handler reached only through anti-tamper / object-
  * dispatch tails (loc_67df, loc_6a98) that do not read back its leftover registers. pc/SP/cycles are
- * not compared. loc_4006 is kept deterministic by seating a non-zero +0x0e hold, so it simply
+ * not compared. advanceObjectAnimationFrame is kept deterministic by seating a non-zero +0x0e hold, so it simply
  * decrements that field (its own script-walk is its own test's concern); both sides run the same
- * loc_4006 over the same memory. Inputs (the timer + record/link fields) are poked per side.
+ * advanceObjectAnimationFrame over the same memory. Inputs (the timer + record/link fields) are poked per side.
  *
  * Jobs: 1. EQUAL over timer-hold / no-link / link+borrow+state-advance; 2. WRITE-SET (exact
  * footprint of the early path and the full path); 3. TEETH (a wrong position byte + a missed tick).
@@ -54,7 +54,7 @@ const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 
 /**
  * Seat the timer and the record fields loc_67a0 reads. `rec` fields: 0x02 state, 0x05/0x06 own
- * position pair, 0x07/0x08 link pointer, 0x09 speed, 0x0e loc_4006 hold. Optional `link` fields.
+ * position pair, 0x07/0x08 link pointer, 0x09 speed, 0x0e advanceObjectAnimationFrame hold. Optional `link` fields.
  */
 function craft({ timer, rec, link }) {
   const m = BASE.clone();
@@ -115,7 +115,7 @@ test("WRITE-SET: early path ticks only the timer; full path writes the exact fie
 
   const link = changedOf(CASE_LINK);
   const want = new Map([
-    [REC + 0x0e, 0x01], // loc_4006 hold 0x02 -> 0x01
+    [REC + 0x0e, 0x01], // advanceObjectAnimationFrame hold 0x02 -> 0x01
     [REC + 0x05, 0xfe], // 0x03 - 0x05 = borrow -> 0xfe
     [REC + 0x06, 0x00], // borrow decrements 0x01 -> 0x00
     [REC + 0x02, 0x02], // own high byte hit 0 -> state advance 0x01 -> 0x02

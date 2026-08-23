@@ -9,7 +9,7 @@
  *
  * NOTE: the three "projectile slots" scanned (0x8bea / 0x8c02 / 0x8c1a) are the state bytes (+0x02)
  * of records 11/12/13 — the slot scan overlaps the actor arena. So for completion those records must
- * hold state 0 (idle); the loop then runs loc_4006 on them, which just decrements the frame-hold
+ * hold state 0 (idle); the loop then runs advanceObjectAnimationFrame on them, which just decrements the frame-hold
  * (+0x0e) when it is nonzero. Records 0-10 hold state 0x0d, a loc_6f2d no-op.
  *
  * Comparison is the go-forward contract: RAM (dumpState) minus STACK_SCRATCH. The caller (loc_6e75)
@@ -64,7 +64,7 @@ const test = ROM_PRESENT
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 const STRIDE = 0x18;
-const NOOP_STATE = 0x00; // a registered loc_6f2d path (state 0 -> loc_4006, which just decrements a set frame-hold)
+const NOOP_STATE = 0x00; // a registered loc_6f2d path (state 0 -> advanceObjectAnimationFrame, which just decrements a set frame-hold)
 const SCRIPT_PTR_TARGET = 0x8d00; // where LAUNCH_SCRIPT_PTR is aimed (clear of every write)
 
 function ramDiffMinusStack(ma, mb) {
@@ -85,15 +85,15 @@ function craft({ scriptTerm, slotsIdle, targetGroup = 0, hit = 0, dirtyTarget = 
   const m = new Machine(ROM);
   for (let n = 0; n <= 10; n++) {
     m.mem.write8((rec(n) + 0x02) & 0xffff, NOOP_STATE);
-    m.mem.write8((rec(n) + 0x0e) & 0xffff, 0x40); // frame-hold: loc_4006 decrements and returns
+    m.mem.write8((rec(n) + 0x0e) & 0xffff, 0x40); // frame-hold: advanceObjectAnimationFrame decrements and returns
   }
   for (let n = 11; n <= 13; n++) {
     if (slotsIdle) {
       m.mem.write8((rec(n) + 0x02) & 0xffff, 0x00);  // idle slot
-      m.mem.write8((rec(n) + 0x0e) & 0xffff, 0x40);  // frame-hold: loc_4006 decrements and returns
+      m.mem.write8((rec(n) + 0x0e) & 0xffff, 0x40);  // frame-hold: advanceObjectAnimationFrame decrements and returns
     } else {
       m.mem.write8((rec(n) + 0x02) & 0xffff, 0x03);  // busy slot (nonzero, state < 0x0b -> registered path)
-      m.mem.write8((rec(n) + 0x0e) & 0xffff, 0x40);  // frame-hold: loc_4006 decrements and returns
+      m.mem.write8((rec(n) + 0x0e) & 0xffff, 0x40);  // frame-hold: advanceObjectAnimationFrame decrements and returns
     }
   }
   // launch script pointer -> a controlled byte

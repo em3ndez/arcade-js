@@ -8,7 +8,7 @@
  * game's dispatch seam (withOmittedRet) — which THROWS when SP is adrift — so the class is caught per routine.
  *
  * This test NULL-MUTANTS the tooth (prime's rule: a check that cannot fail proves nothing):
- *   A. a correct legit-+2 dispatcher (loc_241e: push16 + rst-28 dispatch) is PLACEABLE (no false positive);
+ *   A. a correct legit-+2 dispatcher (advanceLeadActorPrimaryState: push16 + rst-28 dispatch) is PLACEABLE (no false positive);
  *   B. the SAME routine with its push16 DROPPED is NOT placeable (the tooth's teeth — it goes RED);
  *   C. the dispatcher's plain-return abort arm (SP moved 0) is placeable (the seam completes the ret);
  *   D. a leaf rewrite (enqueueSoundCommandRing, no stack ops) is placeable (no false positive on a leaf).
@@ -20,8 +20,8 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { loc_241e } from "../loc_241e.js";
-import { loc_2101 } from "../loc_2101.js";
+import { advanceLeadActorPrimaryState } from "../advanceLeadActorPrimaryState.js";
+import { runLaunchAndTargetActorPipeline } from "../runLaunchAndTargetActorPipeline.js";
 import { loc_25a6 } from "../loc_25a6.js";
 import { loc_308b } from "../loc_308b.js";
 import { enqueueSoundCommandRing } from "../enqueueSoundCommandRing.js";
@@ -65,10 +65,10 @@ function craft(freeze) {
   return m;
 }
 
-/** loc_241e with the push16 DROPPED — the missing-push16 bug the tooth must catch. */
+/** advanceLeadActorPrimaryState with the push16 DROPPED — the missing-push16 bug the tooth must catch. */
 function loc_241e_missingPush(m) {
   const { mem8 } = m;
-  loc_2101(m);
+  runLaunchAndTargetActorPipeline(m);
   loc_25a6(m);
   loc_308b(m);
   if (mem8[TAMPER_FREEZE_FLAG] !== 0) return;
@@ -79,14 +79,14 @@ function loc_241e_missingPush(m) {
 }
 
 // -- A. no false positive on a correct legit-+2 dispatcher --------------------
-test("PLACEABLE: correct loc_241e (push16 + rst-28 dispatch) — the legit +2 case is not flagged", () => {
-  const r = seamPlaceable(withOmittedRet, loc_241e, 0x241e, craft(0x00));
+test("PLACEABLE: correct advanceLeadActorPrimaryState (push16 + rst-28 dispatch) — the legit +2 case is not flagged", () => {
+  const r = seamPlaceable(withOmittedRet, advanceLeadActorPrimaryState, 0x241e, craft(0x00));
   assert.equal(r.placeable, true, `correct dispatcher must be seam-placeable; got: ${r.error}`);
-  console.log("  PLACEABLE: correct loc_241e dispatch (moved +2, pc on the caller slot)");
+  console.log("  PLACEABLE: correct advanceLeadActorPrimaryState dispatch (moved +2, pc on the caller slot)");
 });
 
 // -- B. THE TEETH: null-mutant (missing push16) goes RED ----------------------
-test("TEETH: loc_241e with the push16 DROPPED is NOT placeable (a check that cannot fail proves nothing)", () => {
+test("TEETH: advanceLeadActorPrimaryState with the push16 DROPPED is NOT placeable (a check that cannot fail proves nothing)", () => {
   const r = seamPlaceable(withOmittedRet, loc_241e_missingPush, 0x241e, craft(0x00));
   assert.equal(r.placeable, false,
     "the tooth FAILED to catch a missing push16 — it is worthless (memory-eq is blind to this class)");
@@ -94,10 +94,10 @@ test("TEETH: loc_241e with the push16 DROPPED is NOT placeable (a check that can
 });
 
 // -- C. no false positive on a plain-return arm (SP moved 0) ------------------
-test("PLACEABLE: loc_241e abort arm (freeze set, plain return) — the seam completes the omitted ret", () => {
-  const r = seamPlaceable(withOmittedRet, loc_241e, 0x241e, craft(0x01));
+test("PLACEABLE: advanceLeadActorPrimaryState abort arm (freeze set, plain return) — the seam completes the omitted ret", () => {
+  const r = seamPlaceable(withOmittedRet, advanceLeadActorPrimaryState, 0x241e, craft(0x01));
   assert.equal(r.placeable, true, `plain-return arm must be seam-placeable; got: ${r.error}`);
-  console.log("  PLACEABLE: loc_241e abort arm (moved 0, seam supplies the ret)");
+  console.log("  PLACEABLE: advanceLeadActorPrimaryState abort arm (moved 0, seam supplies the ret)");
 });
 
 // -- D. no false positive on a leaf (no stack ops) ---------------------------

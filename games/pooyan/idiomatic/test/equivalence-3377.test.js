@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3377 (ROM 0x3377, Pooyan) — the per-record state sweep. Walks
+ * Memory-equivalence test for dispatchAllEnemyActorStates (ROM 0x3377, Pooyan) — the per-record state sweep. Walks
  * the 14 enemy actor records at 0x8ae0 (stride 0x18) in order, running the per-record state
- * dispatcher (loc_338a) on each.
+ * dispatcher (dispatchActiveEnemyActorState) on each.
  *
  * SEATING: BALANCED-WIRE. The oracle ends with a plain `ret` (net SP 0); each per-record
  * dispatch is a balanced call whose selected handler returns to the sweep's continuation.
@@ -13,7 +13,7 @@
  * The states are CRAFTED: records 0 and 13 are seated to pass the dispatcher gate and route to
  * the frame-hold state handler (index 2) with their hold fields kept high, so each dispatch just
  * ticks two record-local counters and returns — a contained, observable footprint. The other 12
- * records are gate-inert. That isolates loc_3377's own job — the base, stride, order, and count
+ * records are gate-inert. That isolates dispatchAllEnemyActorStates's own job — the base, stride, order, and count
  * of the walk — from the handlers' internals, which their own gates cover.
  *
  * Jobs:
@@ -31,8 +31,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3377 as oracle } from "../../translated/loc_3377.js";
-import { loc_3377 } from "../loc_3377.js";
-import { loc_338a } from "../loc_338a.js";
+import { dispatchAllEnemyActorStates } from "../dispatchAllEnemyActorStates.js";
+import { dispatchActiveEnemyActorState } from "../dispatchActiveEnemyActorState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_ACTOR_TABLE } from "../names.js";
@@ -93,7 +93,7 @@ for (const [label, craft] of [["inert (all gate-fail)", craftInert], ["rich (rec
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_3377(c);
+    dispatchAllEnemyActorStates(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     console.log(`  EQUAL ${label}: RAM identical`);
@@ -122,7 +122,7 @@ test("TEETH: a wrong record byte is CAUGHT by the RAM diff", () => {
   const o = craftRich();
   const c = craftRich();
   oracle(o);
-  loc_3377(c);
+  dispatchAllEnemyActorStates(c);
   const addr = EAT + 13 * STRIDE + HOLD;
   c.mem.write8(addr, (o.mem.read8(addr) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
@@ -136,8 +136,8 @@ test("TEETH: a short sweep (13 records, last dropped) diverges at the missed rec
   const twin = craftRich();
   oracle(o);
   let rec = EAT;
-  // mirror loc_3377's per-record IX bridge (the dispatched handlers read the record through IX)
-  for (let i = 0; i < COUNT - 1; i++) { twin.regs.ix = rec; loc_338a(twin, rec); rec += STRIDE; } // drops record 13
+  // mirror dispatchAllEnemyActorStates's per-record IX bridge (the dispatched handlers read the record through IX)
+  for (let i = 0; i < COUNT - 1; i++) { twin.regs.ix = rec; dispatchActiveEnemyActorState(twin, rec); rec += STRIDE; } // drops record 13
   const d = ramDiffMinusStack(o, twin);
   assert.notEqual(d, null, "a dropped record must be caught");
   assert.ok(d.addr >= EAT + 13 * STRIDE && d.addr < EAT + 14 * STRIDE,

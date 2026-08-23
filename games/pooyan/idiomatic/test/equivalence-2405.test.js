@@ -9,7 +9,7 @@
  *
  * CYCLE-FREE / memory-equivalence gate. Each case runs the oracle on a FRESH clone and the module on
  * another, compared on RAM (dumpState, minus STACK_SCRATCH). The routine is memory-only (a plain-ret
- * "pattern A" callee — loc_236a falls straight through, reading no register back), so no return.
+ * "pattern A" callee — movePlayerDownAndTickStatusRender falls straight through, reading no register back), so no return.
  *
  * NOTE FOR THE LEAD: 0x8f37 is not yet in names.js. This module and test import TILE_ANIM_PARITY from
  * names.js; the flagged cell (proposed TILE_ANIM_PARITY = 0x8f37, the odd/even parity tick shared with

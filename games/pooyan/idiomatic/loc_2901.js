@@ -2,7 +2,7 @@
 import { u8 } from "../../../core/int.js";
 import { deriveStackedSpriteYs } from "./deriveStackedSpriteYs.js";
 import { advanceTileAnimForwardOnOdd } from "./advanceTileAnimForwardOnOdd.js";
-import { loc_23a1 } from "./loc_23a1.js";
+import { tickStatusRenderRingAndRedrawOnWrap } from "./tickStatusRenderRingAndRedrawOnWrap.js";
 import { loc_250f } from "./loc_250f.js";
 import { clearActorArenaAndCounters } from "./clearActorArenaAndCounters.js";
 import { loc_2b9a } from "./loc_2b9a.js";
@@ -39,7 +39,7 @@ export function loc_2901(m, rec = m.regs.ix) {
     deriveStackedSpriteYs(m); // refresh the three derived sprite Ys
     if (mem8[TILE_ANIM_CURSOR] === SCRIPT_HOLD) return; // script held
     advanceTileAnimForwardOnOdd(m); // advance the script pointer
-    return loc_23a1(m); // phase render tail
+    return tickStatusRenderRingAndRedrawOnWrap(m); // phase render tail
   }
 
   // reached the floor: load the landing shape, then reseed the record

@@ -7,7 +7,7 @@
  *
  * spawnEnemyWave is void — no register survives — so the register file is not compared; equivalence is
  * RAM (dumpState) minus STACK_SCRATCH via firstStateDiff, SP parked in dead stack. The animator
- * pass (loc_22b1) is held on its skip arm (grab latch set) so the diff isolates spawnEnemyWave's own
+ * pass (advanceActorAnimationsUnlessGrabbing) is held on its skip arm (grab latch set) so the diff isolates spawnEnemyWave's own
  * writes; the dissolved loc_0c45 / setActorAnimation on the group path read/write identical bytes.
  *
  * Jobs:
@@ -41,7 +41,7 @@ const ROUND_COUNTER = 0x8907;
 const FLIP = 0x881f;
 const GAME_ACTIVE = 0x8806;
 const LAUNCH_ARMED = 0x8f3f;
-const GRAB = 0x8d32; //     grab latch: set -> the animator pass (loc_22b1) skips
+const GRAB = 0x8d32; //     grab latch: set -> the animator pass (advanceActorAnimationsUnlessGrabbing) skips
 const PLAY_STATE = 0x880a; // PLAY_STATE_INDEX: 0x12 on the zero branch, 0x0f on the group branch
 const ENEMY_TABLE = 0x8ae0; // sprite-group base seeded by the nonzero branch
 const SP0 = 0x8ff0; //      inside STACK_SCRATCH

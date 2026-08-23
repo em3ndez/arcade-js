@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3e9c (ROM 0x3e9c) — "in-flight object mover, state 6". It
+ * Memory-equivalence test for advanceInFlightEnemyAndLand (ROM 0x3e9c) — "in-flight object mover, state 6". It
  * ticks the object's animation, then moves it in one of two modes selected by bit 0 of the
  * record's mode byte (rec+0x01): a waypoint script (dx/dy pairs, 0xee = loop marker) or free
  * flight (velocity + homing-toward-target or a 4-frame drift). Either mode can land the object,
@@ -17,7 +17,7 @@
  *
  * Jobs:
  *   1. EQUAL — over waypoint (plain / borrow+carry / loop marker / land) and free (drift-move /
- *      drift-idle / homing-move / homing-target-reached / free-land) cases, oracle == loc_3e9c
+ *      drift-idle / homing-move / homing-target-reached / free-land) cases, oracle == advanceInFlightEnemyAndLand
  *      in RAM (−stack).
  *   2. WRITE-SET — the plain-waypoint case writes exactly the frame-hold, X-low, Y-low, and
  *      script-pointer-low cells.
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3e9c as oracle } from "../../translated/loc_3e9c.js";
-import { loc_3e9c } from "../loc_3e9c.js";
+import { advanceInFlightEnemyAndLand } from "../advanceInFlightEnemyAndLand.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -95,12 +95,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted waypoint + free cases — loc_3e9c == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted waypoint + free cases — advanceInFlightEnemyAndLand == oracle in RAM (−stack)", () => {
   for (const { label, rec, script } of CASES) {
     const o = craft(rec, script);
     const c = craft(rec, script);
     oracle(o);
-    loc_3e9c(c);
+    advanceInFlightEnemyAndLand(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} ("${label}")`);
   }
@@ -136,7 +136,7 @@ test("TEETH: a wrong moved byte (no-land path) is CAUGHT by the RAM diff", () =>
   const o = craft(rec, script);
   const c = craft(rec, script);
   oracle(o);
-  loc_3e9c(c);
+  advanceInFlightEnemyAndLand(c);
   c.mem.write8(cell, 0xff); // BUG: corrupt the moved X-low byte
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong moved byte — it is worthless");
@@ -150,7 +150,7 @@ test("TEETH: a wrong landing-state byte (land path) is CAUGHT by the RAM diff", 
   const o = craft(landCase.rec, landCase.script);
   const c = craft(landCase.rec, landCase.script);
   oracle(o);
-  loc_3e9c(c);
+  advanceInFlightEnemyAndLand(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: the land path is RAM-equal before the twin breaks it");
   assert.equal(c.mem.read8(cell), 0x02, "sanity: the land path set the landing state");
   c.mem.write8(cell, 0x00); // BUG: clobber the landing state the handler set

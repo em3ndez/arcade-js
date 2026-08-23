@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2e5e (ROM 0x2e5e) — "rope-cell state 1 / bonus spawn":
- * gated on (0x8a5f)&3 and the per-cell timer (loc_2e45); when both fire it re-arms the timer,
+ * Memory-equivalence test for spawnHangingRopeObject (ROM 0x2e5e) — "rope-cell state 1 / bonus spawn":
+ * gated on (0x8a5f)&3 and the per-cell timer (tickRopeCellFrameTimer); when both fire it re-arms the timer,
  * finds a free slot in the three-entry 0x8c48 spawn table, seeds it (state/anim/coords, the
  * +4 field from ROM table 0x2ec7 keyed by IXL&3), advances the cell (ix+0), then blits the
  * segment tile (0x2dfe) and enqueues its display command.
  *
  * Cycle-free memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
- * STACK_SCRATCH) only. The routine has NO register live-out — its driver (loc_2e22) reads
+ * STACK_SCRATCH) only. The routine has NO register live-out — its driver (driveActiveRopeCells) reads
  * nothing back after the dispatch and IX (the cell record) is only read — so pc and the whole
  * register file are deliberately NOT compared. IX is the one input register, seated on both sides.
  *
  * Jobs:
  *   1. EQUAL (crafted) — the free-slot spawn at each of the three slot indices (one with the
  *      round clamped), the no-free-slot path, the wrong-frame gate, and the timer-not-elapsed
- *      gate: oracle == loc_2e5e in RAM (−stack).
+ *      gate: oracle == spawnHangingRopeObject in RAM (−stack).
  *   2. WRITE-SET — the spawn path's deterministic writes: the timer entry, the seven slot
  *      fields (the +4 field matching the ROM table), and the advanced cell state.
  *   3. TEETH — a wrong seeded slot byte is caught by the RAM diff.
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2e5e as oracle } from "../../translated/loc_2e5e.js";
-import { loc_2e5e } from "../loc_2e5e.js";
+import { spawnHangingRopeObject } from "../spawnHangingRopeObject.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -61,7 +61,7 @@ const timerAddr = (ix) => ROPE_CELL_TIMERS + 2 * ((ix & 0xff) & 0x03);
 const slotAddr = (i) => SPAWN_OBJECT_TABLE + SLOT_STRIDE * i;
 const reloadFor = (round) => ~(((round >= 0x10 ? 0x10 : round) - 0x28) & 0xff) & 0xff;
 
-/** A fresh clone seating IX + all cells loc_2e5e reads. `occ[i]` marks spawn slot i occupied. */
+/** A fresh clone seating IX + all cells spawnHangingRopeObject reads. `occ[i]` marks spawn slot i occupied. */
 function craft({ ix, frame, timer, round, occ, active }) {
   const m = BASE.clone();
   m.regs.ix = ix;
@@ -90,12 +90,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted cases — loc_2e5e == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted cases — spawnHangingRopeObject == oracle in RAM (−stack)", () => {
   for (const cs of CASES) {
     const o = craft(cs);
     oracle(o);
     const c = craft(cs);
-    loc_2e5e(c);
+    spawnHangingRopeObject(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (${JSON.stringify(cs)})`);
   }
@@ -130,7 +130,7 @@ test("TEETH: a wrong seeded slot byte is CAUGHT by the RAM diff", () => {
   const o = craft(cs);
   const c = craft(cs);
   oracle(o);
-  loc_2e5e(c);
+  spawnHangingRopeObject(c);
   const s = slotAddr(0);
   c.mem.write8(s + 0x00, 0x00); // BUG: slot state must be 0x07, not 0x00
   const d = ramDiffMinusStack(o, c);

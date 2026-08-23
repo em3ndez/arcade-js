@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2778 (ROM 0x2778, Pooyan) — the per-frame launch-sequence
+ * Memory-equivalence test for dispatchLaunchState (ROM 0x2778, Pooyan) — the per-frame launch-sequence
  * dispatcher. It reads the low three bits of the launch state and hands off through the shared
- * rst-0x28 trampoline; the selected handler returns to loc_2778's caller.
+ * rst-0x28 trampoline; the selected handler returns to dispatchLaunchState's caller.
  *
  * SEATING: BALANCED — the handler returns to this routine's caller (a tail dispatch, no net stack
  * move). The rst-0x28 trampoline (0x0028) is a spine dispatcher NOT lifted this batch, so the
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2778 as oracle } from "../../translated/loc_2778.js";
-import { loc_2778 } from "../loc_2778.js";
+import { dispatchLaunchState } from "../dispatchLaunchState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { LAUNCH_STATE, STACK_SCRATCH } from "../names.js";
@@ -62,12 +62,12 @@ function craft(state) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_2778 == oracle in RAM (−stack) for each dispatch state", () => {
+test("EQUAL: dispatchLaunchState == oracle in RAM (−stack) for each dispatch state", () => {
   for (const s of STATES) {
     const o = craft(s);
     const c = craft(s);
     oracle(o);
-    loc_2778(c);
+    dispatchLaunchState(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `state ${s}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -95,7 +95,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craft(1);
   const c = craft(1);
   oracle(o);
-  loc_2778(c);
+  dispatchLaunchState(c);
   // find a cell the dispatch wrote, corrupt it in the module copy
   const d0 = firstStateDiff(o.dumpState(), BASE.dumpState(), (off) => o.stateOffsetToAddr(off), inDeadStack);
   const target = d0 ? d0.addr : LAUNCH_STATE;

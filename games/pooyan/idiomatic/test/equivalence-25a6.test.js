@@ -6,7 +6,7 @@
  * SEATING: BALANCED (plain ret) — a void per-frame driver dispatched from the frame coordinator;
  * no caller reads a register back, so the register file is NOT compared. Equivalence is RAM
  * (dumpState) minus STACK_SCRATCH, with SP parked in the scratch so the oracle's nested call pushes
- * drop out of the diff. The even-frame branch (round bit0 == 0 -> loc_2d66) is a sibling's job and
+ * drop out of the diff. The even-frame branch (round bit0 == 0 -> driveRopeExtendAndRenderCells) is a sibling's job and
  * is kept out of every crafted state (round bit0 forced to 1) so this gate isolates 0x25a6's own
  * three modes: retract, extend (begin a sweep + grow), and steady, plus the two entry gates.
  *
@@ -41,7 +41,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const ROUND = 0x8907; // ROUND_COUNTER; bit0 == 1 keeps us out of the loc_2d66 branch
+const ROUND = 0x8907; // ROUND_COUNTER; bit0 == 1 keeps us out of the driveRopeExtendAndRenderCells branch
 const TIMER = 0x8f09; // step timer
 const PHASE = 0x8902; // spawn-phase counter (0 => nothing to draw)
 const FORM = 0x8920; // formation-slot byte; != 0 => retract mode
@@ -74,7 +74,7 @@ function seat(m, o = {}) {
     ptr = PTR_DEFAULT,
   } = o;
   m.regs.sp = SP0;
-  m.mem.write8(ROUND, 0x01); // odd frame: run this driver, not loc_2d66
+  m.mem.write8(ROUND, 0x01); // odd frame: run this driver, not driveRopeExtendAndRenderCells
   m.mem.write8(TIMER, timer);
   m.mem.write8(PHASE, phase);
   m.mem.write8(FORM, form);

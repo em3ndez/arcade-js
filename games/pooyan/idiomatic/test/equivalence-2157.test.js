@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2157 (ROM 0x2157, Pooyan) — step the two target actor records. Each
+ * Memory-equivalence test for stepActiveTargetActorRecords (ROM 0x2157, Pooyan) — step the two target actor records. Each
  * of the two passes runs the per-object stepper on a record whose presence bit0 is set; the pass count
  * lives in a memory cell (so it survives the stepper). After both records it runs a tamper check on the
  * anim-script cursor: a match zeroes a follow-up cell and returns, a mismatch tail-jumps the
  * grab-record walk.
  *
  * SEATING: BALANCED — the match exit is a plain `ret`; the mismatch exit tail-`jp`s the grab-record
- * walk, forwarded as `return loc_22b1(m)`. LIVE-OUT: none on the match path (the caller reads memory);
- * the mismatch path forwards the walk's own live-out, which no caller of loc_2157 reads back — so the
+ * walk, forwarded as `return advanceActorAnimationsUnlessGrabbing(m)`. LIVE-OUT: none on the match path (the caller reads memory);
+ * the mismatch path forwards the walk's own live-out, which no caller of stepActiveTargetActorRecords reads back — so the
  * register file is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
  * Cases are CRAFTED: a plain boot does not seat these records or the cursor value.
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2157 as oracle } from "../../translated/loc_2157.js";
-import { loc_2157 } from "../loc_2157.js";
+import { stepActiveTargetActorRecords } from "../stepActiveTargetActorRecords.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_TARGET_REC0, ANIM_SCRIPT_CURSOR } from "../names.js";
@@ -79,12 +79,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_2157 == oracle in RAM (−stack) across the callee tree", () => {
+test("EQUAL: stepActiveTargetActorRecords == oracle in RAM (−stack) across the callee tree", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_2157(c);
+    stepActiveTargetActorRecords(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -111,7 +111,7 @@ test("TEETH: a wrong follow-up byte is CAUGHT by the RAM diff", () => {
   const o = craftMatchNoStep();
   const c = craftMatchNoStep();
   oracle(o);
-  loc_2157(c);
+  stepActiveTargetActorRecords(c);
   c.mem.write8(FOLLOWUP, (o.mem.read8(FOLLOWUP) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted follow-up byte");
@@ -123,7 +123,7 @@ test("TEETH: a wrong pass-counter byte is CAUGHT by the RAM diff", () => {
   const o = craftMatchNoStep();
   const c = craftMatchNoStep();
   oracle(o);
-  loc_2157(c);
+  stepActiveTargetActorRecords(c);
   c.mem.write8(COUNTER, (o.mem.read8(COUNTER) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted pass-counter byte");

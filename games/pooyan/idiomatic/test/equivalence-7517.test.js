@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for loc_7517 (ROM 0x7517) — display dispatch state 1 (loc_7442's table,
- * selector 0x8921 & 3). It runs the display-list interpreter (loc_4381), then increments the mod
+ * selector 0x8921 & 3). It runs the display-list interpreter (paintDisplayListRunToVram), then increments the mod
  * counter 0x88b7 and returns until it reaches 0x1c; on that tick it reads/increments the one-shot
  * 0x8920, copies the pre-increment value into 0x88b7, and returns on the first pass (pre-inc 0).
  * Otherwise it column-sums two 14-tile video-RAM strips (0x82bc and 0x86bc, walking up stride 0x20)
@@ -14,10 +14,10 @@
  * ONLY — loc_7517 is a table-dispatched state handler and no caller consumes a result register, so
  * there is NO declared register live-out. pc/SP/cycles are NOT compared.
  *
- * loc_4381 runs on EVERY path and can otherwise perturb 0x88b7 and the pointer pairs, so craft()
+ * paintDisplayListRunToVram runs on EVERY path and can otherwise perturb 0x88b7 and the pointer pairs, so craft()
  * seats a harmless display list: both the primary (0x8f43/0x8f45) and alternate (0x88b8/0x88ba)
  * pointer pairs point their source at a two-byte skip program (0x10, 0x1d) whose skip count equals
- * the byte budget, so loc_4381 performs a single skip that writes NO cells and never touches 0x88b7.
+ * the byte budget, so paintDisplayListRunToVram performs a single skip that writes NO cells and never touches 0x88b7.
  * That makes the crafted counter/one-shot/strip values the only things that select the path.
  *
  * The good-sum craft mirrors the translated test's seedGoodStrips: zero all 28 summed cells, then
@@ -52,7 +52,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const TICK = 0x88b7;      // mod-0x1c counter
-const ONESHOT = 0x8920;   // sub-phase one-shot / loc_4381 primary-vs-alt selector
+const ONESHOT = 0x8920;   // sub-phase one-shot / paintDisplayListRunToVram primary-vs-alt selector
 const SELECTOR = 0x8921;  // loc_7442 dispatch selector, advanced to state 2 here
 const STRIP_A = 0x82bc;   // first summed strip base
 const STRIP_B = 0x86bc;   // second summed strip base
@@ -88,7 +88,7 @@ const STRIP_CELLS = strippedCells();
 /** A fresh clone: harmless display list seated, selector zeroed, SP in scratch. */
 function craft(scn) {
   const m = BASE.clone();
-  // A skip program that consumes the whole byte budget in one step -> loc_4381 writes no cells and
+  // A skip program that consumes the whole byte budget in one step -> paintDisplayListRunToVram writes no cells and
   // leaves 0x88b7 alone, whichever pointer pair it picks.
   m.mem.write8(SKIP_PROG, 0x10);     // CMD_SKIP
   m.mem.write8(SKIP_PROG + 1, 0x1d); // skip == the interpreter's byte budget

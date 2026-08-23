@@ -3,7 +3,7 @@
  * Memory-equivalence test for blit2x2TileBlock (ROM 0x3325) — "blit a 2x2 tile block". Four source
  * bytes at (DE) are copied into the video-RAM square at (HL): top-left, top-right (+0x01), bottom-right
  * (+0x21), bottom-left (+0x20). The oracle advances HL to the bottom-left cell (HL + 0x20) and that
- * advanced pointer is consumed by the two-tile animators (loc_6b13 / loc_2563 / loc_2329 all read it),
+ * advanced pointer is consumed by the two-tile animators (loc_6b13 / blitTwoTileAnimFrameOnHoldTimer / movePlayerVerticallyAndTickStatusRender all read it),
  * so it is part of the go-forward contract:
  *
  *     RAM (dumpState minus STACK_SCRATCH)  AND  the HL live-out (== dest + 0x20).
@@ -79,7 +79,7 @@ test("CRAFTED: four bytes land in the 2x2 square, dirt preserved, RAM + HL ident
     assert.equal(d, null, d && `${bytes}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.hl, `${bytes}: HL live-out ${hx(ret)} != oracle ${hx(o.regs.hl)}`);
     // SIDE-EFFECT arm: the bridge must SET HL on the module clone (not merely return it) —
-    // loc_6b13/loc_2563 do `add hl,de` on the returned HL and loc_2329/loc_23ad do `ld l,X`
+    // loc_6b13/blitTwoTileAnimFrameOnHoldTimer do `add hl,de` on the returned HL and movePlayerVerticallyAndTickStatusRender/wrapRenderPhaseAndPaintTileTriplet do `ld l,X`
     // reading the H byte, so the register itself is consumed. A return-only rewrite fails here.
     assert.equal(c.regs.hl, o.regs.hl, `${bytes}: module must SET HL (== dest+0x20) for the translated animators`);
     assert.equal(ret, (DEST + 0x20) & 0xffff, `${bytes}: HL should advance to the bottom-left cell`);

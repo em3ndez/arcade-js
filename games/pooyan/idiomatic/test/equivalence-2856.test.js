@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2856 (ROM 0x2856) — "launch state 2: seed a hunter, advance state".
+ * Memory-equivalence test for spawnHunterIntoTableAndAdvanceLaunch (ROM 0x2856) — "launch state 2: seed a hunter, advance state".
  *
  * The cycle-free / memory-equivalence gate: oracle and module run on fresh clones and are
  * compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are not compared.
@@ -14,7 +14,7 @@
  *
  * Jobs:
  *   1. EQUAL — over crafted states (skip-spawn, seed-first-slot, seed-second-slot, no-free-slot,
- *      flip set/clear) oracle == loc_2856 in RAM (−stack).
+ *      flip set/clear) oracle == spawnHunterIntoTableAndAdvanceLaunch in RAM (−stack).
  *   2. WRITE-SET — seeding a free slot writes the record's fixed opening bytes, the recorded
  *      pointer, the bumped launch state, the seeded countdown, and the enqueued command.
  *   3. TEETH — a wrong seeded record byte is caught by the RAM diff.
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2856 as oracle } from "../../translated/loc_2856.js";
-import { loc_2856 } from "../loc_2856.js";
+import { spawnHunterIntoTableAndAdvanceLaunch } from "../spawnHunterIntoTableAndAdvanceLaunch.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -91,12 +91,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted states — loc_2856 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted states — spawnHunterIntoTableAndAdvanceLaunch == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    loc_2856(c);
+    spawnHunterIntoTableAndAdvanceLaunch(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b} (${name})`);
   }
@@ -142,7 +142,7 @@ test("TEETH: a wrong seeded record byte is CAUGHT by the RAM diff", () => {
   const o = craft(cfg);
   const c = craft(cfg);
   oracle(o);
-  loc_2856(c);
+  spawnHunterIntoTableAndAdvanceLaunch(c);
   const rec = recBase(0);
   c.mem8[rec + 0x10] = 0x00; // BUG: record+0x10 must be 0x42
 

@@ -3,14 +3,14 @@
  * Memory-equivalence test for clampActorYAndAdvanceRenderPhase (ROM 0x2334, Pooyan) — the actor-Y clamp + integrity-flag
  * scan + gated phase-advance (the tamper handler tail-jumped from clearAndReseedObjectSlot).
  *
- * The module dissolves the render tail (loc_23ad) into a direct call and keeps the two frozen
+ * The module dissolves the render tail (wrapRenderPhaseAndPaintTileTriplet) into a direct call and keeps the two frozen
  * plain-ret helpers (loc_23d7, loc_23ec) as m.call. clampActorYAndAdvanceRenderPhase is a void handler (no register
  * survives), so equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * The no-work arm pins the tile-anim cursor low byte to 0xe6, its target byte below 0x35, and the 7
  * integrity flags clear, so the scan finds nothing and the routine returns after the sprite-Y trio.
  * The work arm holds the cursor low byte off 0xe6 (work found) with the render ring at 7, so the
- * ring wraps and the phase paint (loc_23ad) runs — the maximal footprint.
+ * ring wraps and the phase paint (wrapRenderPhaseAndPaintTileTriplet) runs — the maximal footprint.
  *
  * Jobs:
  *   1. EQUAL — no-work and work: oracle == clampActorYAndAdvanceRenderPhase in RAM (−stack).

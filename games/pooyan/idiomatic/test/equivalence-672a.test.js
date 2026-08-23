@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for loc_672a (ROM 0x672a) — object descent step. Runs the animation
- * sequencer (loc_4006), advances the record's 16-bit sub-position (rec+5 low, rec+6 high) by the
+ * sequencer (advanceObjectAnimationFrame), advances the record's 16-bit sub-position (rec+5 low, rec+6 high) by the
  * step rec+9, and while the high byte is below the landing row (0x18) scans three spawn-object slots
  * (SPAWN_OBJECT_TABLE, stride 0x18) for a free one whose row matches: on a hit it bumps
  * WAVE_ARRIVAL_COUNTER, marks the slot active (2), seats a biased X (rec+3 − 0x80) and Y (rec+5 +
@@ -10,10 +10,10 @@
  * bumps rec+2, reloads rec+9=0x18, and re-arms the record's animation to table 0x3838.
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so every case uses a FRESH clone per
- * side. Contract: RAM (dumpState minus STACK_SCRATCH) ONLY — loc_4006/setActorAnimation are
+ * side. Contract: RAM (dumpState minus STACK_SCRATCH) ONLY — advanceObjectAnimationFrame/setActorAnimation are
  * memory-only and the per-frame dispatcher reads no result register. pc/SP/cycles are NOT compared.
  *
- * The record is based at IX; every case is CRAFTED. rec+0x0e is seated non-zero so loc_4006 just
+ * The record is based at IX; every case is CRAFTED. rec+0x0e is seated non-zero so advanceObjectAnimationFrame just
  * decrements it, keeping the sequencer deterministic; the position bytes, step, state, X source, and
  * the three slots' active/row fields are seated identically on both sides, with the record + slots +
  * counters pre-dirtied so each write is visible.
@@ -72,7 +72,7 @@ function craft(scn) {
   m.mem.write8(WAVE_ARRIVAL_COUNTER, WAVE_SEED);
   m.mem.write8(SHARED_FRAME_DELAY_TIMER, 0xaa);
 
-  m.mem.write8(REC + 0x0e, 0x03); // non-zero: loc_4006 just decrements this frame
+  m.mem.write8(REC + 0x0e, 0x03); // non-zero: advanceObjectAnimationFrame just decrements this frame
   m.mem.write8(REC + 5, scn.posLo);
   m.mem.write8(REC + 6, scn.posHi);
   m.mem.write8(REC + 9, scn.step);

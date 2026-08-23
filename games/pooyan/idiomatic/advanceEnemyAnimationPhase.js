@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { loc_0038 } from "./loc_0038.js";
 import { loc_0c45 } from "./loc_0c45.js";
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_3d99 } from "./loc_3d99.js";
-import { loc_3d8f } from "./loc_3d8f.js";
+import { armEnemyTurnAnimation } from "./armEnemyTurnAnimation.js";
+import { blankEnemyBandOnTimerExpiry } from "./blankEnemyBandOnTimerExpiry.js";
 import { COUNTDOWN_EXPIRE_DISPLAY_CMD, ANIM_SEQ_TABLE_3E49 } from "./names.js";
 /**
  * advanceEnemyAnimationPhase — object state-9 handler (dispatch index 9, also fall-through
@@ -28,14 +28,14 @@ const RESEED_TIMER = 0x30;
 export function advanceEnemyAnimationPhase(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_4006(m, rec); // step the animation sequence
+  advanceObjectAnimationFrame(m, rec); // step the animation sequence
 
   const timer = (mem8[rec + FRAME_TIMER] - 1) & 0xff;
   mem8[rec + FRAME_TIMER] = timer;
   if (timer !== 0) return; // frame timer still running
 
   const phase = mem8[rec + ANIM_PHASE];
-  if (phase === TURN_PHASE) return loc_3d99(m, rec);
+  if (phase === TURN_PHASE) return armEnemyTurnAnimation(m, rec);
 
   const bias = phase === 0 ? 0 : (phase - 1) & 0xff; // display-cmd low-byte bias
   loc_0038(m, COUNTDOWN_EXPIRE_DISPLAY_CMD + bias);
@@ -48,5 +48,5 @@ export function advanceEnemyAnimationPhase(m, rec = m.regs.ix) {
 
   mem8[rec + PHASE_COUNT] = phase + 1; // write truncates
   mem8[rec + STATE_FIELD] = mem8[rec + STATE_FIELD] + 1;
-  return loc_3d8f(m, rec); // fall through into the state-10 handler
+  return blankEnemyBandOnTimerExpiry(m, rec); // fall through into the state-10 handler
 }

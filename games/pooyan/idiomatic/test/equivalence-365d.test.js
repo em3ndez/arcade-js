@@ -10,7 +10,7 @@
  * sets it through the return; the test compares A as well as RAM (dumpState) minus STACK_SCRATCH.
  *
  * RECONCILE DEPENDENCY: the module dissolves the fall-through into a direct call to the idiomatic
- * loc_3680; the tail cases run once that module lands. The bail cases are self-contained.
+ * spawnObjectIntoFreeSlot; the tail cases run once that module lands. The bail cases are self-contained.
  *
  * Cases are CRAFTED: the arm bit and the enemy-actor +0x02 state bytes are poked. On a power-on
  * clone the sprite-object window is free, so the tail path spawns and writes RAM.

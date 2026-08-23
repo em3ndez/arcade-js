@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3553 (ROM 0x3553, Pooyan) — "blank an actor's sprite band".
+ * Memory-equivalence test for blankActorSpriteBand (ROM 0x3553, Pooyan) — "blank an actor's sprite band".
  * The oracle clears A, copies IX into HL (push ix / pop hl), loads B := 0x17, and runs the
  * rst-0x10 run-fill helper (loc_0010) to write 0x17 zero bytes from HL, advancing HL. So it
  * fills the 0x17-byte run [IX, IX+0x17) with zero.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES RAM, so
- * each case runs the oracle on one FRESH clone and loc_3553 on another, compared on:
+ * each case runs the oracle on one FRESH clone and blankActorSpriteBand on another, compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH)  +  the declared register live-out (HL and B).
  *
  * HL — the advanced pointer IX+0x17 — and B = 0 (the fill counter the djnz drains) are genuine
- * live-outs the fill helper leaves; several handlers tail-jump into loc_3553, so its exit state
+ * live-outs the fill helper leaves; several handlers tail-jump into blankActorSpriteBand, so its exit state
  * propagates. Both are asserted, and the module must SET them on its own clone. A (the fill byte
  * 0) is a fixed input, not read back by any caller, so it is NOT part of the contract. pc/SP are
  * NOT compared (the oracle drives them through the dropped call/stack ABI). The one input, IX, is
  * seated identically on both sides.
  *
  * Jobs:
- *   1. EQUAL (crafted) — over several IX bases oracle == loc_3553 in RAM(−stack) and in HL and B,
+ *   1. EQUAL (crafted) — over several IX bases oracle == blankActorSpriteBand in RAM(−stack) and in HL and B,
  *      with the module SETTING HL and B.
  *   2. WRITE-SET — the oracle's only writes are the 0x17 band cells [IX, IX+0x17), each := 0.
  *   3. TEETH — a twin with a WRONG last filled byte is caught by the RAM diff; a twin returning an
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3553 as oracle } from "../../translated/loc_3553.js";
-import { loc_3553 } from "../loc_3553.js";
+import { blankActorSpriteBand } from "../blankActorSpriteBand.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -77,12 +77,12 @@ const BASES = [0x8a80, 0x8b00, 0x8be8, 0x8840, 0x8548];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted IX bases — loc_3553 == oracle in RAM (−stack) + HL + B", () => {
+test("EQUAL: crafted IX bases — blankActorSpriteBand == oracle in RAM (−stack) + HL + B", () => {
   for (const base of BASES) {
     const o = craft(base);
     const c = craft(base);
     oracle(o);
-    const ret = loc_3553(c);
+    const ret = blankActorSpriteBand(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `base ${hx(base)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -128,7 +128,7 @@ test("TEETH: a wrong last band byte is CAUGHT by the RAM diff", () => {
   const o = craft(base);
   const c = craft(base);
   oracle(o);
-  loc_3553(c);
+  blankActorSpriteBand(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   c.mem.write8(last, DIRT); // BUG: last cell must be 0, not DIRT
   const d = ramDiffMinusStack(o, c);
@@ -142,7 +142,7 @@ test("TEETH: an under-advanced HL is REJECTED by the live-out check", () => {
   const o = craft(base);
   const c = craft(base);
   oracle(o);
-  const ret = loc_3553(c);
+  const ret = blankActorSpriteBand(c);
   assert.equal(ret & 0xffff, o.regs.hl & 0xffff, "sanity: the module's HL matches the oracle");
   // One byte short of the run end is a plausible bug the === check must reject.
   assert.notEqual((base + BAND_LEN - 1) & 0xffff, o.regs.hl & 0xffff, "the check must reject an under-advanced HL");

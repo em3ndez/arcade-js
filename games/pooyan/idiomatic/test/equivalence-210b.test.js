@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_210b (ROM 0x210b, Pooyan) — the one-shot target-slot spawn. It
+ * Memory-equivalence test for spawnTargetActorOnLaunchTrigger (ROM 0x210b, Pooyan) — the one-shot target-slot spawn. It
  * samples and clears a trigger bit; if the bit was clear or a once latch is already set it stops.
  * Otherwise it arms the latch, optionally marks the first slot special, scans two slots for the
  * first free one and seeds it (position, timers, an optional buffer clear, a pair of side flags),
@@ -12,7 +12,7 @@
  * The init tail (0x22b1) and the fill helper (0x0010) are decompiled and imported; the tamper
  * re-scan (0x2157) is not lifted this batch, so the module keeps m.call(0x2157) and the oracle
  * drives the same frozen re-scan — both walk identical downstream code. The animation stepper is
- * held to its skip branch (grab latch set) so the init cases isolate loc_210b's own writes.
+ * held to its skip branch (grab latch set) so the init cases isolate spawnTargetActorOnLaunchTrigger's own writes.
  *
  * Cases are CRAFTED: a plain boot does not seat the trigger/slot geometry.
  *
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_210b as oracle } from "../../translated/loc_210b.js";
-import { loc_210b } from "../loc_210b.js";
+import { spawnTargetActorOnLaunchTrigger } from "../spawnTargetActorOnLaunchTrigger.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -49,7 +49,7 @@ const ACTOR = 0x8a80; // actor source (IX base)
 const TRIGGER = ACTOR + 0x07;
 const SRC_X = ACTOR + 0x04;
 const SRC_Y = ACTOR + 0x06;
-const LATCH = 0x8f02; // FORMATION_INIT_LATCH
+const LATCH = 0x8f02; // TARGET_SPAWN_ARM_LATCH
 const LAUNCH = 0x8f30; // LAUNCH_STATE
 const SLOT0 = 0x8c90; // ENEMY_TARGET_REC0 (IY)
 const STRIDE = 0x18;
@@ -146,12 +146,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_210b == oracle in RAM (−stack)", () => {
+test("EQUAL: spawnTargetActorOnLaunchTrigger == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_210b(c);
+    spawnTargetActorOnLaunchTrigger(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -168,7 +168,7 @@ test("WRITE-SET: not-triggered only clears the trigger; an init seeds the slot a
   assert.deepEqual([...nt.dumpState()], before, "not-triggered touches only the trigger byte");
 
   const init = craftInitOrdinary();
-  loc_210b(init);
+  spawnTargetActorOnLaunchTrigger(init);
   assert.equal(init.mem.read8(TRIGGER), 0x00, "trigger cleared");
   assert.equal(init.mem.read8(LATCH), 0x01, "once latch armed");
   assert.equal(init.mem.read8(SLOT0), 0x01, "slot claimed (in-use bit)");
@@ -187,7 +187,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftInitOrdinary();
   const c = craftInitOrdinary();
   oracle(o);
-  loc_210b(c);
+  spawnTargetActorOnLaunchTrigger(c);
   c.mem.write8(SLOT0 + 0x04, (o.mem.read8(SLOT0 + 0x04) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted slot byte");

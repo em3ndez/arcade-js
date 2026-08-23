@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_3680 } from "./loc_3680.js";
+import { spawnObjectIntoFreeSlot } from "./spawnObjectIntoFreeSlot.js";
 import { ENEMY_ACTOR_TABLE, SPRITE_OBJECT_TABLE } from "./names.js";
 /**
  * loc_365d — pre-spawn gate.
@@ -35,5 +35,5 @@ export function loc_365d(m, rec = m.regs.ix) {
   }
 
   // seat the sprite-object scan window, then fall through to the slot scanner
-  return loc_3680(m, SPRITE_OBJECT_TABLE, RECORD_STRIDE, SLOT_COUNT, rec);
+  return spawnObjectIntoFreeSlot(m, SPRITE_OBJECT_TABLE, RECORD_STRIDE, SLOT_COUNT, rec);
 }

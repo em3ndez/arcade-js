@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { loc_34f2 } from "./loc_34f2.js";
 import { loc_343e } from "./loc_343e.js";
-import { loc_3553 } from "./loc_3553.js";
+import { blankActorSpriteBand } from "./blankActorSpriteBand.js";
 import { loc_423a } from "./loc_423a.js";
 import { loc_425c } from "./loc_425c.js";
 import { initDescendingObjectSlot } from "./initDescendingObjectSlot.js";
@@ -66,7 +66,7 @@ export function moveFormationAndSpawnObject(m, ix = m.regs.ix) {
     return blockC9();
   };
 
-  loc_4006(m, ix);
+  advanceObjectAnimationFrame(m, ix);
 
   if ((mem8[ix + 0x08] & 0x01) !== 0) { // bit0 set
     loc_34f2(m, ix);
@@ -74,7 +74,7 @@ export function moveFormationAndSpawnObject(m, ix = m.regs.ix) {
     if (phase >= 0x0a) return blockP(phase);
     if (mem8[STAGE_COUNTDOWN] < 0x02) { // signature-check branch
       if (phase >= 0x02) return;
-      loc_3553(m, ix); // blank the sprite band
+      blankActorSpriteBand(m, ix); // blank the sprite band
       let src = SIGNATURE_CHECK_SRC; // program-image run summed descending vs the two's-complement table
       let tbl = SIGNATURE_CHECK_TABLE;
       for (;;) {

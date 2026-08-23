@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { loc_0c45 } from "./loc_0c45.js";
 import { loc_0020 } from "./loc_0020.js";
 import { queueSoundCommand05 } from "./queueSoundCommand05.js";
@@ -24,7 +24,7 @@ import {
 export function moveObject(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_4006(m, rec); // step the animation sequence
+  advanceObjectAnimationFrame(m, rec); // step the animation sequence
 
   const speed = mem8[rec + 0x0a];
   const pos = mem8[rec + 0x03];

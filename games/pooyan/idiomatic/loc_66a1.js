@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_2514 } from "./loc_2514.js";
+import { copyDisplayTilesIntoActorRecords } from "./copyDisplayTilesIntoActorRecords.js";
 import {
   BLINK_PHASE,
   ANIM_PHASE_TOGGLE_892C,
@@ -34,5 +34,5 @@ export function loc_66a1(m, ix = m.regs.ix) {
   const phase = (mem8[ANIM_PHASE_TOGGLE_892C] + 1) & 0xff;
   mem8[ANIM_PHASE_TOGGLE_892C] = phase;
   const table = (phase & 0x01) === 0 ? TILE_SRC_ROW_66BF : TILE_SRC_ROW_66C2;
-  loc_2514(m, table, RECORD_COUNT, RECORD_STRIDE, ix, STRIDE_LOW);
+  copyDisplayTilesIntoActorRecords(m, table, RECORD_COUNT, RECORD_STRIDE, ix, STRIDE_LOW);
 }

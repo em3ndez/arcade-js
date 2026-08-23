@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3d99 (ROM 0x3d99, Pooyan) — enter the turn/select animation
+ * Memory-equivalence test for armEnemyTurnAnimation (ROM 0x3d99, Pooyan) — enter the turn/select animation
  * state. It picks one of three sequences from the select table by the record's low-2-bit field
  * minus one, installs it on the record, arms the record's velocity and state bytes, and enqueues
  * the accompanying sound command.
@@ -8,7 +8,7 @@
  * SEATING: TAIL-CALL — the oracle's own body has no ret; it `jp`s into the sound-enqueue routine,
  * so its effective seating is that delegatee's (a plain balanced ret). WIRE. The module returns
  * the delegatee's result directly (void). Entry register IX is the record pointer, seated as the
- * param-default bridge. loc_3d99 is void — no register the caller reads — so equivalence is RAM
+ * param-default bridge. armEnemyTurnAnimation is void — no register the caller reads — so equivalence is RAM
  * (dumpState) minus STACK_SCRATCH; SP is parked in STACK_SCRATCH so the nested pushes drop out.
  *
  * The state is CRAFTED at a spare record; a boot does not seat this state entry.
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3d99 as oracle } from "../../translated/loc_3d99.js";
-import { loc_3d99 } from "../loc_3d99.js";
+import { armEnemyTurnAnimation } from "../armEnemyTurnAnimation.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -71,12 +71,12 @@ const CASES = [1, 2, 3];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_3d99 == oracle in RAM (−stack)", () => {
+test("EQUAL: armEnemyTurnAnimation == oracle in RAM (−stack)", () => {
   for (const select of CASES) {
     const o = craft(select);
     const c = craft(select);
     oracle(o);
-    loc_3d99(c);
+    armEnemyTurnAnimation(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `select ${select}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -100,7 +100,7 @@ test("TEETH: a wrong installed-pointer byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x02);
   const c = craft(0x02);
   oracle(o);
-  loc_3d99(c);
+  armEnemyTurnAnimation(c);
   c.mem.write8(REC + ANIM_LO, (o.mem.read8(REC + ANIM_LO) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted pointer byte");

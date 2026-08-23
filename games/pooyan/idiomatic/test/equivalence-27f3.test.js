@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_27f3 (ROM 0x27f3) — launch-state-machine state 1. With the
+ * Memory-equivalence test for spawnEnemyTargetOrAnimateLaunchFlipTile (ROM 0x27f3) — launch-state-machine state 1. With the
  * arrow at/above its gate (0x34) it decrements a flip countdown (0x892f); when that reaches zero
  * it reseeds it to 0x10, steps a shared phase byte (0x892e) and tail-blits one of two arrow tiles
  * (ROM 0x2d51 / 0x2d55) chosen by that byte's parity. Below the gate it scans the two enemy-target
@@ -10,7 +10,7 @@
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES
  * work + video RAM, so each case uses a FRESH clone per side, compared on RAM (dumpState) minus
- * STACK_SCRATCH. pc/SP/cycles are NOT compared. loc_27f3 is a dispatched handler (loc_2778 state 1)
+ * STACK_SCRATCH. pc/SP/cycles are NOT compared. spawnEnemyTargetOrAnimateLaunchFlipTile is a dispatched handler (dispatchLaunchState state 1)
  * with NO consumed register live-out, so only RAM is compared. The oracle's `ex af,af'; add a,l` on
  * the HUD-off path touches only the shadow accumulator (no memory, unconsumed) and is dropped in the
  * rewrite, matching in RAM. The tail m.call(0x3325) / mid m.call(0x0f05) equal the idiomatic
@@ -23,7 +23,7 @@
  * Jobs:
  *   1. EQUAL — flip (not-elapsed / elapse both parities / underflow) and slot (no-free, free-rec0
  *      HUD-on/off, free-rec1, HUD-via-playmode with the sound ring open) paths, plus the gate
- *      boundary: loc_27f3 == oracle in RAM (−stack).
+ *      boundary: spawnEnemyTargetOrAnimateLaunchFlipTile == oracle in RAM (−stack).
  *   2. WRITE-SET — the full slot-success path (sound gate closed) writes within its documented
  *      footprint, and the 2x2 blit copies ROM 0x2d55.
  *   3. TEETH — an inverted arrow gate is CAUGHT; and a wrong launch-state byte is CAUGHT at 0x8f30.
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_27f3 as oracle } from "../../translated/loc_27f3.js";
-import { loc_27f3 } from "../loc_27f3.js";
+import { spawnEnemyTargetOrAnimateLaunchFlipTile } from "../spawnEnemyTargetOrAnimateLaunchFlipTile.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -119,12 +119,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted flip + slot paths — loc_27f3 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted flip + slot paths — spawnEnemyTargetOrAnimateLaunchFlipTile == oracle in RAM (−stack)", () => {
   for (const [label, over] of CASES) {
     const o = craft(over);
     const c = craft(over);
     oracle(o);
-    loc_27f3(c);
+    spawnEnemyTargetOrAnimateLaunchFlipTile(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} [${label}]`);
   }
@@ -202,7 +202,7 @@ test("TEETH: a wrong launch-state byte is CAUGHT at 0x8f30", () => {
   const o = craft(over);
   const c = craft(over);
   oracle(o);
-  loc_27f3(c);
+  spawnEnemyTargetOrAnimateLaunchFlipTile(c);
   c.mem.write8(LAUNCH_STATE, 0x00); // BUG: state must have advanced to 2
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong launch-state byte");

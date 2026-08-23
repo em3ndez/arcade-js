@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_338a (ROM 0x338a, Pooyan) — the low-state per-record dispatcher.
+ * Memory-equivalence test for dispatchActiveEnemyActorState (ROM 0x338a, Pooyan) — the low-state per-record dispatcher.
  * It gates on the record's active bit (bit0 of (ix+0)|(ix+1)) and an in-range state ((ix+2)&0x1f
  * below 0x11), then hands that state through the shared rst-0x28 trampoline into the inline handler
- * table; the selected handler returns straight to loc_338a's caller.
+ * table; the selected handler returns straight to dispatchActiveEnemyActorState's caller.
  *
  * SEATING: net 0 per record — the caller seats a return slot before each call; on the dispatch path
  * the handler returns to it, and the two guard branches ret to consume it. The rst-0x28 trampoline (0x0028) is a spine
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_338a as oracle } from "../../translated/loc_338a.js";
-import { loc_338a } from "../loc_338a.js";
+import { dispatchActiveEnemyActorState } from "../dispatchActiveEnemyActorState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { ENEMY_ACTOR_TABLE, STACK_SCRATCH } from "../names.js";
@@ -69,12 +69,12 @@ function craft(state, active = 0x01) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_338a == oracle in RAM (−stack) for each dispatch state", () => {
+test("EQUAL: dispatchActiveEnemyActorState == oracle in RAM (−stack) for each dispatch state", () => {
   for (const s of EQUAL_STATES) {
     const o = craft(s);
     const c = craft(s);
     oracle(o);
-    loc_338a(c);
+    dispatchActiveEnemyActorState(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `state ${hx(s)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -136,7 +136,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x03);
   const c = craft(0x03);
   oracle(o);
-  loc_338a(c);
+  dispatchActiveEnemyActorState(c);
   const d0 = firstStateDiff(o.dumpState(), BASE.dumpState(), (off) => o.stateOffsetToAddr(off), inDeadStack);
   const target = d0 ? d0.addr : REC + 2;
   c.mem.write8(target, (o.mem.read8(target) ^ 0xff) & 0xff);

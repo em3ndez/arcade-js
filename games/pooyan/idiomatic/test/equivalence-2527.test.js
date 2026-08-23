@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2527 (ROM 0x2527) — board/HUD reset. Enqueues one display
+ * Memory-equivalence test for resetBoardRamAndReseedSpawnCounters (ROM 0x2527) — board/HUD reset. Enqueues one display
  * command (opcode 0x08, low byte from the incoming E) via rst 0x38; when SPAWN_PHASE_COUNTER has
  * reached its cap (>= 7) it reseeds that counter and ROPE_DRAW_COUNT to 4 and fills the formation
  * slot table with TAMPER_OBJECT_FREEZE_FLAG; it then fills three more RAM blocks with that value and
@@ -19,7 +19,7 @@
  *
  * Jobs:
  *   1. EQUAL — over both branches (skip vs reseed) and both fill values (0 vs a non-zero freeze
- *      flag) oracle == loc_2527 in RAM (−stack) AND in A/HL/B; the module must SET A on its clone.
+ *      flag) oracle == resetBoardRamAndReseedSpawnCounters in RAM (−stack) AND in A/HL/B; the module must SET A on its clone.
  *   2. WRITE-SET — on the reseed + ring-free case, the reseed cells, the four fill blocks, the five
  *      mirror cells, and the two enqueued ring bytes + advanced pointer hold their exact values.
  *   3. TEETH — a twin that leaves one mirror cell wrong MUST be caught by the RAM diff; a twin that
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2527 as oracle } from "../../translated/loc_2527.js";
-import { loc_2527 } from "../loc_2527.js";
+import { resetBoardRamAndReseedSpawnCounters } from "../resetBoardRamAndReseedSpawnCounters.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -112,12 +112,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted branch/fill cases — loc_2527 == oracle in RAM (−stack) + A/HL/B", () => {
+test("EQUAL: crafted branch/fill cases — resetBoardRamAndReseedSpawnCounters == oracle in RAM (−stack) + A/HL/B", () => {
   for (const scn of CASES) {
     const o = craft(scn);
     const c = craft(scn);
     oracle(o);
-    const ret = loc_2527(c);
+    const ret = resetBoardRamAndReseedSpawnCounters(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${scn.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -134,7 +134,7 @@ test("EQUAL: crafted branch/fill cases — loc_2527 == oracle in RAM (−stack) 
 test("WRITE-SET: reseed + ring-free case writes the exact footprint", () => {
   const scn = CASES[2]; // reseed, fill=0x99, ring free at 0xc0
   const c = craft(scn);
-  loc_2527(c);
+  resetBoardRamAndReseedSpawnCounters(c);
 
   assert.equal(c.mem.read8(SPAWN_PHASE_COUNTER), 0x04, "phase counter reseeded to 4");
   // ROPE_DRAW_COUNT (0x8934) sits INSIDE the formation-slot fill [0x8920,0x8940): the reseed-to-4
@@ -160,7 +160,7 @@ test("TEETH: a wrong mirror cell is CAUGHT by the RAM diff", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_2527(c);
+  resetBoardRamAndReseedSpawnCounters(c);
   c.mem.write8(HIT_TALLY, (scn.fill ^ 0x01) & 0xff); // BUG: wrong value in a mirror cell
 
   const d = ramDiffMinusStack(o, c);
@@ -174,7 +174,7 @@ test("TEETH: a wrong returned A is CAUGHT by the live-out check", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  const ret = loc_2527(c);
+  const ret = resetBoardRamAndReseedSpawnCounters(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: the module's A matches the oracle");
   assert.notEqual((scn.fill ^ 0x01) & 0xff, o.regs.a & 0xff, "the live-out check must reject a corrupted fill value");
   console.log(`  TEETH/A: module A ${hx(ret)} == oracle fill ${hx(scn.fill)}`);

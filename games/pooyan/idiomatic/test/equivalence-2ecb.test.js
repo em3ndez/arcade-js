@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2ecb (ROM 0x2ecb) — "rope-cell timer handler": tick the cell's
- * frame timer (loc_2e45, selected by IXL&3); while it has not reached zero, return. On the frame it
+ * Memory-equivalence test for advanceHangingRopeObject (ROM 0x2ecb) — "rope-cell timer handler": tick the cell's
+ * frame timer (tickRopeCellFrameTimer, selected by IXL&3); while it has not reached zero, return. On the frame it
  * reaches zero, write a round-derived tile into the timer cell, index the formation table (0x8c30) by
  * the following byte to bump one record's tile field / clear its position byte / drop another field,
- * bump (ix+0), then blit the segment's 2x2 tile square (loc_2e52 column base, source 0x2e1e).
+ * bump (ix+0), then blit the segment's 2x2 tile square (computeRopeCellVramColumn column base, source 0x2e1e).
  *
  * Cycle-free memory-equivalence gate: a FRESH clone per side, compared on RAM (dumpState, minus
  * STACK_SCRATCH — the oracle's call trampolines push there). pc/SP/cycles are NOT compared.
@@ -19,8 +19,8 @@
  * timer, so the formation record and every write stay off ROM.
  *
  * Jobs:
- *   1. EQUAL (not-zero path) — timer>1: oracle == loc_2ecb in RAM (−stack) + HL + Z.
- *   2. EQUAL (zero path) — timer==1, two round values: oracle == loc_2ecb in RAM (−stack) + HL/IY/B.
+ *   1. EQUAL (not-zero path) — timer>1: oracle == advanceHangingRopeObject in RAM (−stack) + HL + Z.
+ *   2. EQUAL (zero path) — timer==1, two round values: oracle == advanceHangingRopeObject in RAM (−stack) + HL/IY/B.
  *   3. WRITE-SET — the zero path's writes: the timer cell, three formation-record fields, (ix+0),
  *      and the four 2x2 video-RAM cells := the source block.
  *   4. TEETH — a wrong formation-record byte is caught by the RAM diff; a wrong IY by the live-out.
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2ecb as oracle } from "../../translated/loc_2ecb.js";
-import { loc_2ecb } from "../loc_2ecb.js";
+import { advanceHangingRopeObject } from "../advanceHangingRopeObject.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -84,12 +84,12 @@ const recordFor = (recSel) => (FORMATION_TABLE + STRIDE * (recSel + 1)) & 0xffff
 
 // -- 1. EQUAL (not-zero path) -------------------------------------------------
 
-test("EQUAL: not-zero path (timer stays non-zero) — loc_2ecb == oracle in RAM (−stack) + HL + Z", () => {
+test("EQUAL: not-zero path (timer stays non-zero) — advanceHangingRopeObject == oracle in RAM (−stack) + HL + Z", () => {
   for (const timer of [2, 3, 0x10]) {
     const o = craft({ timer });
     const c = craft({ timer });
     oracle(o);
-    const ret = loc_2ecb(c);
+    const ret = advanceHangingRopeObject(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `timer=${timer}: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
     assert.equal(c.regs.hl & 0xffff, o.regs.hl & 0xffff, `timer=${timer}: HL live-out mismatch`);
@@ -104,12 +104,12 @@ test("EQUAL: not-zero path (timer stays non-zero) — loc_2ecb == oracle in RAM 
 
 // -- 2. EQUAL (zero path) -----------------------------------------------------
 
-test("EQUAL: zero path (timer reaches zero) — loc_2ecb == oracle in RAM (−stack) + HL/IY/B", () => {
+test("EQUAL: zero path (timer reaches zero) — advanceHangingRopeObject == oracle in RAM (−stack) + HL/IY/B", () => {
   for (const round of [0x05, 0x20]) { // 0x20 exercises the round clamp
     const o = craft({ timer: 1, round });
     const c = craft({ timer: 1, round });
     oracle(o);
-    const ret = loc_2ecb(c);
+    const ret = advanceHangingRopeObject(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `round=${hx(round)}: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
     assert.equal(c.regs.hl & 0xffff, o.regs.hl & 0xffff, `round=${hx(round)}: HL live-out mismatch`);
@@ -180,7 +180,7 @@ test("TEETH: a wrong formation-record byte is CAUGHT by the RAM diff", () => {
   const o = craft({ timer: 1 });
   const c = craft({ timer: 1 });
   oracle(o);
-  loc_2ecb(c);
+  advanceHangingRopeObject(c);
   const cell = (recordFor(0x01) + REC_TILE) & 0xffff;
   c.mem.write8(cell, (c.mem.read8(cell) + 1) & 0xff); // BUG: corrupt the bumped record field
 

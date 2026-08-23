@@ -9,7 +9,7 @@ import {
   ACTOR_SECONDARY_STATE_DISPATCH,
   SPAWN_FORMATION_EPILOGUE_ADDR,
 } from "./names.js";
-import { loc_2101 } from "./loc_2101.js";
+import { runLaunchAndTargetActorPipeline } from "./runLaunchAndTargetActorPipeline.js";
 /**
  * advanceLeadActorSecondaryState — per-frame driver for the lead actor's secondary state machine.
  *
@@ -26,7 +26,7 @@ const STATE_MASK = 0x07; // three-bit secondary-state index
 
 export function advanceLeadActorSecondaryState(m) {
   const { mem8 } = m;
-  loc_2101(m);
+  runLaunchAndTargetActorPipeline(m);
   if ((mem8[ROUND_COUNTER] & 1) === 0) { mem8[PLAY_STATE_INDEX] = 0x06; return; }
   if (mem8[FORMATION_STATE] !== 0) { mem8[PLAY_STATE_INDEX] = 0x04; return; }
 

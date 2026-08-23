@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for loc_418d (ROM 0x418d) — countdown step for the object record at IX.
- * Advances the record's animation (loc_4006), then decrements the timer at rec+0x11 and returns
+ * Advances the record's animation (advanceObjectAnimationFrame), then decrements the timer at rec+0x11 and returns
  * while it is still non-zero. On expiry it enqueues a display command (type 0x03, low byte 0x12 +
  * the record's adjusted rec+0x16 — one less when non-zero), re-seats rec+0x11=1, stores rec+0x16+1
  * into rec+0x13, sets rec+0x02=2, and tails into loc_416f (which — since rec+0x11 is now 1 — steps
@@ -13,7 +13,7 @@
  * are NOT compared.
  *
  * The record is based at IX; every case is CRAFTED. rec+0x0e (the animation hold) is seated non-zero
- * so loc_4006 merely decrements it (no script walk), and the timer + seed fields are seated on both
+ * so advanceObjectAnimationFrame merely decrements it (no script walk), and the timer + seed fields are seated on both
  * sides. On the expiry path loc_416f's tail blanks rec+0x00..0x16, so the field writes are wiped and
  * the observable net effect is the blanked record plus the enqueued command / advanced ring pointer.
  *
@@ -46,7 +46,7 @@ const test = ROM_PRESENT
 
 const REC = 0x8ba0;   // work-RAM record base (IX)
 const REC_LEN = 0x18;
-const HOLD = 0x0e;    // animation hold offset loc_4006 decrements
+const HOLD = 0x0e;    // animation hold offset advanceObjectAnimationFrame decrements
 const TIMER = 0x11;   // countdown timer offset
 const SEED = 0x16;    // source of the command offset + rec+0x13 value
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -65,7 +65,7 @@ const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 function craft(scn) {
   const m = BASE.clone();
   for (let i = 0; i < REC_LEN; i++) m.mem.write8(REC + i, 0xaa);
-  m.mem.write8(REC + HOLD, 0x03); // non-zero: loc_4006 just decrements the hold this frame
+  m.mem.write8(REC + HOLD, 0x03); // non-zero: advanceObjectAnimationFrame just decrements the hold this frame
   m.mem.write8(REC + TIMER, scn.timer);
   m.mem.write8(REC + SEED, scn.seed);
   m.regs.ix = REC;

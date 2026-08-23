@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for loc_4103 (ROM 0x4103, Pooyan) — "per-object frame-advance step"
- * for the record based at IX. It advances the object's animation (loc_4006), decrements the
+ * for the record based at IX. It advances the object's animation (advanceObjectAnimationFrame), decrements the
  * dwell countdown (IX+0x11) and returns while it is non-zero; on expiry it bumps the phase
  * (IX+0x02), clears (IX+0x13), and only on the FRAME_COUNTER (0x8a5f) zero crossing folds the
  * low nibbles of a fixed 56-byte block (0x557f) into a checksum, bumping TAMPER_STRIKES_SIG
@@ -12,8 +12,8 @@
  * caller (it is reached by table dispatch on the object state), so no consuming site can be
  * read off the frozen layer; its exit A/flags/HL are treated as scratch. See the batch notes.
  *
- * loc_4006 is kept to a simple hold decrement by seeding (IX+0x0e) non-zero, so the record's
- * animation stream is not walked (that stream-walk is covered by loc_4006's own gate). With
+ * advanceObjectAnimationFrame is kept to a simple hold decrement by seeding (IX+0x0e) non-zero, so the record's
+ * animation stream is not walked (that stream-walk is covered by advanceObjectAnimationFrame's own gate). With
  * the ROM present and intact the checksum matches the sentinel, so the FRAME_COUNTER==0 path
  * does NOT bump the tamper counter (asserted below); the bump arm needs a corrupted, read-only
  * region and is not craftable here (batch notes).
@@ -47,7 +47,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const REC = 0x8bc0; // isolated work-RAM record base
-const HOLD = REC + 0x0e; // loc_4006's frame-hold counter
+const HOLD = REC + 0x0e; // advanceObjectAnimationFrame's frame-hold counter
 const PHASE = REC + 0x02;
 const DWELL = REC + 0x11;
 const RESET = REC + 0x13;
@@ -66,12 +66,12 @@ function ramDiffMinusStack(ma, mb) {
 function craft(dwell, frameCounter) {
   const m = BASE.clone();
   m.regs.ix = REC;
-  m.mem.write8(HOLD, 0x05); //  non-zero: loc_4006 just decrements it
+  m.mem.write8(HOLD, 0x05); //  non-zero: advanceObjectAnimationFrame just decrements it
   m.mem.write8(DWELL, dwell);
   m.mem.write8(PHASE, 0x02);
   m.mem.write8(RESET, 0x09); // non-zero so the clear-to-0 is observable
   m.mem.write8(FRAME_COUNTER, frameCounter);
-  m.regs.sp = 0x8ffe; // loc_4006's call push/ret lands inside STACK_SCRATCH
+  m.regs.sp = 0x8ffe; // advanceObjectAnimationFrame's call push/ret lands inside STACK_SCRATCH
   return m;
 }
 
@@ -110,7 +110,7 @@ test("WRITE-SET: the expiry path writes the hold, dwell, phase, and reset fields
   for (let off = 0; off < b0.length; off++) {
     if (b0[off] !== a1[off]) {
       const addr = m.stateOffsetToAddr(off);
-      if (inDeadStack(addr)) continue; // loc_4006's call push/ret scratch, not game state
+      if (inDeadStack(addr)) continue; // advanceObjectAnimationFrame's call push/ret scratch, not game state
       changed.push(addr);
     }
   }

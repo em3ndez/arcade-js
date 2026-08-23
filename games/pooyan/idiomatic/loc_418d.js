@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { loc_0038 } from "./loc_0038.js";
 import { loc_416f } from "./loc_416f.js";
 import { COUNTDOWN_EXPIRE_DISPLAY_CMD } from "./names.js";
@@ -23,7 +23,7 @@ const CMD_HIGH = (COUNTDOWN_EXPIRE_DISPLAY_CMD >> 8) << 8; // the command's type
 export function loc_418d(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_4006(m, rec); // advance the record's animation
+  advanceObjectAnimationFrame(m, rec); // advance the record's animation
 
   mem8[rec + TIMER_FIELD] = mem8[rec + TIMER_FIELD] - 1;
   if (mem8[rec + TIMER_FIELD] !== 0) return; // still counting down

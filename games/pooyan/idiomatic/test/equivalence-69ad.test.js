@@ -13,7 +13,7 @@
  * and wipe helpers frame their work on the stack, which is excluded.
  *
  * The eight records are seated identically on both sides. To keep the per-record sequencer
- * deterministic every active record carries a non-zero animation hold (+0x0e), so loc_4006 only
+ * deterministic every active record carries a non-zero animation hold (+0x0e), so advanceObjectAnimationFrame only
  * decrements that field and the descend path writes exactly {ix+5, ix+0x0e, iy+5}.
  *
  * Jobs:

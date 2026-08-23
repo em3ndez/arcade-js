@@ -21,8 +21,8 @@
  * m.step/m.ret stack the direct-call layer replaces with a JS return).
  *
  * The oracle reaches the tile-copy helper through m.call(0x2514) (registry-dispatched to
- * the frozen loc_2514); the module calls the idiomatic loc_2514 directly. Their memory
- * effects are identical by loc_2514's own gate, so the shrink half's RAM matches. sp is
+ * the frozen copyDisplayTilesIntoActorRecords); the module calls the idiomatic copyDisplayTilesIntoActorRecords directly. Their memory
+ * effects are identical by copyDisplayTilesIntoActorRecords's own gate, so the shrink half's RAM matches. sp is
  * seated inside STACK_SCRATCH so the oracle's push/ret land in dead RAM (excluded).
  *
  * Jobs:

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { loc_0c45 } from "./loc_0c45.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { SOUND_ID_LATCH_8D1D, ARM_ANIM_TABLE } from "./names.js";
@@ -18,7 +18,7 @@ import { SOUND_ID_LATCH_8D1D, ARM_ANIM_TABLE } from "./names.js";
 export function descendObjectToLanding(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_4006(m, rec);
+  advanceObjectAnimationFrame(m, rec);
 
   const step = mem8[rec + 0x0a]; // signed descent step
   const pos = mem8[rec + 0x03];

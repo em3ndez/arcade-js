@@ -4,13 +4,13 @@
  *
  * loc_3625 tests bit 0 of the +0x08 latch cell: when set the actor is already committed and the
  * handler returns immediately with no effect; when clear it delegates to the target-tile resolver
- * (loc_357c), which runs in this same tail frame.
+ * (resolveTargetColumnAndArmApproach), which runs in this same tail frame.
  *
  * CYCLE-FREE / memory-equivalence gate. Contract: RAM (dumpState minus STACK_SCRATCH) ONLY — a
  * tail-dispatched guard with NO register live-out. pc/SP/cycles are NOT compared. The self-contained
  * arm exercises the GUARD path (bit0 set), where the routine touches no RAM at all; this both proves
  * equivalence and pins the branch — an inverted module would fall through and run the resolver,
- * diverging. The delegated path (bit0 clear) is loc_357c's own equivalence responsibility; here it is
+ * diverging. The delegated path (bit0 clear) is resolveTargetColumnAndArmApproach's own equivalence responsibility; here it is
  * used only to prove the bit0 decision is load-bearing (the two branches diverge).
  *
  * Jobs:
@@ -18,7 +18,7 @@
  *   2. WRITE-SET — the guard path leaves RAM untouched (empty footprint): proof it does NOT delegate.
  *   3. TEETH — a corrupted byte after the guard run is caught by the RAM diff; and the bit0 branch is
  *      load-bearing: the oracle's guard path (A untouched) and delegate path (A = (ix+6) via
- *      loc_357c's alternate lane) diverge.
+ *      resolveTargetColumnAndArmApproach's alternate lane) diverge.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-3625.test.js
  */
@@ -42,7 +42,7 @@ const test = ROM_PRESENT
 
 const REC = 0x8a80;          // the actor record IX points at
 const LATCH = REC + 0x08;    // the guard's latch cell (bit0)
-const RESOLVER_MODE = 0x8d79; // loc_357c's lead selector; nonzero picks its alternate lane
+const RESOLVER_MODE = 0x8d79; // resolveTargetColumnAndArmApproach's lead selector; nonzero picks its alternate lane
 const SP_SCRATCH = 0x8ff0;   // parked in STACK_SCRATCH so ret/call stack churn drops out of the diff
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -64,14 +64,14 @@ function craftGuard() {
   return m;
 }
 
-/** bit0 clear -> delegate path (loc_357c runs). */
+/** bit0 clear -> delegate path (resolveTargetColumnAndArmApproach runs). */
 function craftDelegate() {
   const m = BASE.clone();
   m.regs.ix = REC;
   m.regs.a = 0x00;                   // sentinel: the delegate overwrites A
-  m.mem.write8(LATCH, 0x00);         // bit0 clear -> delegate to loc_357c
-  m.mem.write8(RESOLVER_MODE, 0x03); // nonzero -> loc_357c takes its alternate lane
-  m.mem.write8(REC + 0x07, 0x00);    // (ix+7) bit2 clear -> loc_357c re-reads A from (ix+6)
+  m.mem.write8(LATCH, 0x00);         // bit0 clear -> delegate to resolveTargetColumnAndArmApproach
+  m.mem.write8(RESOLVER_MODE, 0x03); // nonzero -> resolveTargetColumnAndArmApproach takes its alternate lane
+  m.mem.write8(REC + 0x07, 0x00);    // (ix+7) bit2 clear -> resolveTargetColumnAndArmApproach re-reads A from (ix+6)
   m.mem.write8(REC + 0x06, 0x0a);    // (ix+6) < 0x14 -> the alternate lane rets with A = 0x0a
   m.regs.sp = SP_SCRATCH;
   return m;
@@ -119,7 +119,7 @@ test("TEETH: the bit0 decision is load-bearing — guard and delegate branches d
   const g = craftGuard();
   const del = craftDelegate();
   oracle(g);   // guard: A untouched (0x00)
-  oracle(del); // delegate: loc_357c's alternate lane leaves A = (ix+6) == 0x0a
+  oracle(del); // delegate: resolveTargetColumnAndArmApproach's alternate lane leaves A = (ix+6) == 0x0a
   assert.notEqual(
     g.regs.a & 0xff,
     del.regs.a & 0xff,

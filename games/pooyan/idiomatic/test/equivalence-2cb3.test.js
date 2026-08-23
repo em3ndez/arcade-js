@@ -2,20 +2,20 @@
 /**
  * Memory-equivalence test for loc_2cb3 (ROM 0x2cb3, Pooyan) — hunter dispatch state 1.
  *
- * The routine first steps the record's animation (loc_4006), then walks its script cursor
+ * The routine first steps the record's animation (advanceObjectAnimationFrame), then walks its script cursor
  * (rec+0x16:0x17): leading 0xff bytes latch the sign flag (rec+0x15); a 0x88 byte bumps the
  * state (rec+0x02), arms an animation (rec+0x0c..0x0e) and reseeds the hold (rec+0x11); any
  * other byte is a magnitude added to (rec+0x03:0x04) when the sign flag's bit0 is set, else
  * subtracted. Every ret returns the boolean true (the dispatch "normal" protocol).
  *
- * This is the cycle-free / memory-equivalence gate. The oracle reaches loc_4006 / 0x381e
+ * This is the cycle-free / memory-equivalence gate. The oracle reaches advanceObjectAnimationFrame / 0x381e
  * through m.call trampolines whose transient return-address pushes land in STACK_SCRATCH
  * (sp seated there) and are excluded; the module calls the idiomatic siblings directly. So
  * the contract compared is RAM (dumpState, minus STACK_SCRATCH) PLUS the boolean live-out.
  * pc/sp/cycles are NOT compared. No register is a live-out here (all scratch is clobbered and
  * the caller reads only the boolean), so the boolean return is the sole non-RAM arm.
  *
- * loc_4006 is kept on its frame-hold path (rec+0x0e != 0 -> it only decrements) so the
+ * advanceObjectAnimationFrame is kept on its frame-hold path (rec+0x0e != 0 -> it only decrements) so the
  * animation step is a single deterministic byte write on both sides. Every case is CRAFTED:
  * the leaf is not reached in a plain boot.
  *
@@ -63,7 +63,7 @@ function craft({ script, sign, pos3, pos4, holdE = 0x05, state = 0x40 }) {
   const m = BASE.clone();
   m.regs.ix = REC;
   m.regs.sp = 0x8fe0; // in STACK_SCRATCH: the m.call return-address pushes hit dead RAM
-  m.mem.write8(REC + 0x0e, holdE); // loc_4006 frame-hold path (nonzero -> just decrement)
+  m.mem.write8(REC + 0x0e, holdE); // advanceObjectAnimationFrame frame-hold path (nonzero -> just decrement)
   m.mem.write8(REC + 0x02, state);
   m.mem.write8(REC + 0x03, pos3 & 0xff);
   m.mem.write8(REC + 0x04, pos4 & 0xff);

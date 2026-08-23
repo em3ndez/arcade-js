@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_28ad (ROM 0x28ad) — launch state-3 handler. Runs the state-3
+ * Memory-equivalence test for advanceLaunchOnDelayAndClearHunterRecord (ROM 0x28ad) — launch state-3 handler. Runs the state-3
  * hold countdown (HUNTER_SPAWN_COUNTDOWN): while non-zero it just decrements and returns. On expiry it
  * bumps LAUNCH_STATE and — unless PLAY_MODE_LATCH is set — clears the 0x18-byte record addressed by
  * HUNTER_RECORD_PTR (rst 0x10 fill = 0, landing on the bare-ret loc_28c5).
@@ -16,7 +16,7 @@
  *
  * Jobs:
  *   1. EQUAL — over all three exits (still-holding, expiry+clear, expiry+latched-skip) oracle ==
- *      loc_28ad in RAM (−stack).
+ *      advanceLaunchOnDelayAndClearHunterRecord in RAM (−stack).
  *   2. WRITE-SET — the expiry+clear case advances LAUNCH_STATE by one and zeroes exactly the
  *      0x18-byte record (its edges surviving).
  *   3. TEETH — a twin that leaves one record byte non-zero MUST be caught by the RAM diff; a twin
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_28ad as oracle } from "../../translated/loc_28ad.js";
-import { loc_28ad } from "../loc_28ad.js";
+import { advanceLaunchOnDelayAndClearHunterRecord } from "../advanceLaunchOnDelayAndClearHunterRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, LAUNCH_STATE, PLAY_MODE_LATCH, HUNTER_SPAWN_COUNTDOWN, HUNTER_RECORD_PTR } from "../names.js";
@@ -78,12 +78,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: all three exits — loc_28ad == oracle in RAM (−stack)", () => {
+test("EQUAL: all three exits — advanceLaunchOnDelayAndClearHunterRecord == oracle in RAM (−stack)", () => {
   for (const scn of CASES) {
     const o = craft(scn);
     const c = craft(scn);
     oracle(o);
-    loc_28ad(c);
+    advanceLaunchOnDelayAndClearHunterRecord(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${scn.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -95,7 +95,7 @@ test("EQUAL: all three exits — loc_28ad == oracle in RAM (−stack)", () => {
 test("WRITE-SET: expiry+clear bumps LAUNCH_STATE and zeroes exactly the record", () => {
   const scn = CASES[1];
   const c = craft(scn);
-  loc_28ad(c);
+  advanceLaunchOnDelayAndClearHunterRecord(c);
   assert.equal(c.mem.read8(LAUNCH_STATE), (scn.state + 1) & 0xff, "LAUNCH_STATE advanced by 1");
   assert.equal(c.mem.read8(HUNTER_SPAWN_COUNTDOWN), 0x00, "hold counter left at 0 (expired, not decremented past)");
   for (let i = 0; i < REC_LEN; i++) assert.equal(c.mem.read8(REC + i), 0x00, `record byte ${hx(REC + i)} zeroed`);
@@ -112,7 +112,7 @@ test("TEETH: a non-zero record byte is CAUGHT by the RAM diff", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_28ad(c);
+  advanceLaunchOnDelayAndClearHunterRecord(c);
   c.mem.write8(probe, 0x01); // BUG: record byte must be 0
 
   const d = ramDiffMinusStack(o, c);
@@ -126,7 +126,7 @@ test("TEETH: a mis-decremented hold counter is CAUGHT by the RAM diff", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_28ad(c);
+  advanceLaunchOnDelayAndClearHunterRecord(c);
   c.mem.write8(HUNTER_SPAWN_COUNTDOWN, (scn.hold - 2) & 0xff); // BUG: decremented by 2, not 1
 
   const d = ramDiffMinusStack(o, c);

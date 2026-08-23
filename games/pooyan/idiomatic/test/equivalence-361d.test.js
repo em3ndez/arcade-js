@@ -7,13 +7,13 @@
  * declared register live-out A. pc/SP/cycles are deliberately not compared.
  *
  * INPUT: IX (the actor record base). The guard tests bit 0 of the flag byte (rec+8): clear returns
- * with no effect, set hands the record to loc_3775 (the end-of-move dispatch). loc_3775 is a verified
+ * with no effect, set hands the record to finishActorOrArmTurnaround (the end-of-move dispatch). finishActorOrArmTurnaround is a verified
  * idiomatic module with its own equivalence gate; here we exercise the GUARD — that the dispatch is
  * suppressed when bit 0 is clear and taken when it is set — plus the A live-out it propagates.
  *
- * LIVE-OUT A: on the dispatch path A is the move counter (rec+6) loc_3775 leaves; on the guard-return
+ * LIVE-OUT A: on the dispatch path A is the move counter (rec+6) finishActorOrArmTurnaround leaves; on the guard-return
  * path A is untouched (a 0x99 sentinel is seated so an accidental write would show). Both sides run
- * the SAME loc_3775, so the dispatch cases agree by construction; the gate's job is the guard.
+ * the SAME finishActorOrArmTurnaround, so the dispatch cases agree by construction; the gate's job is the guard.
  *
  * The leaf is not reached in a plain boot, so every case is CRAFTED (identical pokes on both sides).
  *
@@ -34,7 +34,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_361d as oracle } from "../../translated/loc_361d.js";
 import { loc_361d } from "../loc_361d.js";
-import { loc_3775 } from "../loc_3775.js";
+import { finishActorOrArmTurnaround } from "../finishActorOrArmTurnaround.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PLAY_STATE_INDEX } from "../names.js";
@@ -48,7 +48,7 @@ const test = ROM_PRESENT
 
 const REC = 0x8b80; // isolated actor record base (rec..rec+0x17)
 const SENTINEL_A = 0x99; // seated in A so a stray write to the A live-out would show
-const REC_ANIM_LO = 0x0c; // loc_3775's turn-around arm writes rec+0x0c..0x0e
+const REC_ANIM_LO = 0x0c; // finishActorOrArmTurnaround's turn-around arm writes rec+0x0c..0x0e
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -115,7 +115,7 @@ test("WRITE-SET: a bit-0-clear record writes nothing (the guard's whole contract
 // -- 3. TEETH -----------------------------------------------------------------
 
 test("TEETH: a wrong written byte on the dispatch path is CAUGHT by the RAM diff", () => {
-  const cse = CASES[2]; // non-finish arm: loc_3775 writes rec+0x0c..0x0e
+  const cse = CASES[2]; // non-finish arm: finishActorOrArmTurnaround writes rec+0x0c..0x0e
   const o = craft(cse.play, cse.pokes);
   const c = craft(cse.play, cse.pokes);
   oracle(o);
@@ -129,12 +129,12 @@ test("TEETH: a wrong written byte on the dispatch path is CAUGHT by the RAM diff
 });
 
 test("TEETH (structural): a twin that dispatches through a CLEARED guard is CAUGHT", () => {
-  // bit0 clear but the record would otherwise arm an animation: the guard MUST suppress loc_3775.
+  // bit0 clear but the record would otherwise arm an animation: the guard MUST suppress finishActorOrArmTurnaround.
   const pokes = [[REC + 0x06, 0x01], [REC + 0x07, 0x00], [REC + 0x08, 0x00]];
   const o = craft(0x00, pokes);
   const c = craft(0x00, pokes);
   oracle(o); // guard clear -> returns, writes nothing
-  loc_3775(c, REC); // BUG twin: dispatched anyway -> arms the animation
+  finishActorOrArmTurnaround(c, REC); // BUG twin: dispatched anyway -> arms the animation
 
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a guard that was bypassed — the guard is untested");

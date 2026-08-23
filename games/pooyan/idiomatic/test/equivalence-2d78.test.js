@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2d78 (ROM 0x2d78, Pooyan) — the per-frame rope-extend dispatcher.
+ * Memory-equivalence test for dispatchRopeExtendState (ROM 0x2d78, Pooyan) — the per-frame rope-extend dispatcher.
  * It reads the rope-extend state and hands off through the shared rst-0x28 trampoline; the selected
- * handler returns to loc_2d78's caller.
+ * handler returns to dispatchRopeExtendState's caller.
  *
  * SEATING: TAIL-CALL — the handler returns to this routine's caller (no net stack move here). The
  * rst-0x28 trampoline (0x0028) is a spine dispatcher NOT lifted this batch, so the module keeps the
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2d78 as oracle } from "../../translated/loc_2d78.js";
-import { loc_2d78 } from "../loc_2d78.js";
+import { dispatchRopeExtendState } from "../dispatchRopeExtendState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { ROPE_EXTEND_STATE, ROPE_EXTEND_TIMER, ROPE_EXTEND_DISPATCH_TABLE, STACK_SCRATCH } from "../names.js";
@@ -64,12 +64,12 @@ function craft(state) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_2d78 == oracle in RAM (−stack) for each dispatch state", () => {
+test("EQUAL: dispatchRopeExtendState == oracle in RAM (−stack) for each dispatch state", () => {
   for (const s of STATES) {
     const o = craft(s);
     const c = craft(s);
     oracle(o);
-    loc_2d78(c);
+    dispatchRopeExtendState(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `state ${s}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -97,7 +97,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craft(0);
   const c = craft(0);
   oracle(o);
-  loc_2d78(c);
+  dispatchRopeExtendState(c);
   // find a cell the dispatch wrote, corrupt it in the module copy
   const d0 = firstStateDiff(o.dumpState(), BASE.dumpState(), (off) => o.stateOffsetToAddr(off), inDeadStack);
   const target = d0 ? d0.addr : ROPE_EXTEND_STATE;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for loc_7675 (ROM 0x7675, Pooyan) — animation-tick state 1, a DISSOLVED
- * caller-skip that composes the idiomatic loc_4006.
+ * caller-skip that composes the idiomatic advanceObjectAnimationFrame.
  *
  * It steps the entry's animation, then counts the shared phase countdown down. While that countdown
  * is non-zero it decrements it and takes the plain `ret` (SP += 2) returning true (the walk keeps
@@ -9,7 +9,7 @@
  * state byte of 6 object-state records cleared, the spawn ring counter cleared, the attract sub-state
  * set to 8 — then FALLS INTO `pop af; ret` (SP += 4) and returns false (abort the walk).
  *
- * The oracle drives the TRANSLATED loc_4006 through the routines map; the module imports the
+ * The oracle drives the TRANSLATED advanceObjectAnimationFrame through the routines map; the module imports the
  * IDIOMATIC sibling directly. The two must land byte-identical in RAM (dumpState) minus STACK_SCRATCH.
  * No register is a live-out — the caller reads back only the control-flow boolean — so registers are
  * NOT compared. The boolean return is, and the oracle's SP delta confirms which path ran. Cases are
@@ -64,7 +64,7 @@ const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 function seat(m) {
   m.regs.ix = REC;
   m.regs.sp = SP0;
-  m.mem.write8(REC + 0x0e, 0x05); // anim hold nonzero -> loc_4006 just decrements (no ROM-script walk)
+  m.mem.write8(REC + 0x0e, 0x05); // anim hold nonzero -> advanceObjectAnimationFrame just decrements (no ROM-script walk)
   return m;
 }
 

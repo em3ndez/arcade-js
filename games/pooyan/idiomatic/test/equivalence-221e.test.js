@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_221e (ROM 0x221e, Pooyan) — "object-clear helper": HL <- IY,
+ * Memory-equivalence test for clearTargetActorRecord (ROM 0x221e, Pooyan) — "object-clear helper": HL <- IY,
  * then blank 0x18 bytes at (HL) to 0 via the fill helper (rst 0x10 / loc_0010), and ret.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine writes work RAM, so
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_221e as oracle } from "../../translated/loc_221e.js";
-import { loc_221e } from "../loc_221e.js";
+import { clearTargetActorRecord } from "../clearTargetActorRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -66,12 +66,12 @@ const BASES = [0x8b70, 0x8c30, 0x8a80, 0x8be8];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted IY bases — loc_221e == oracle in RAM (−stack) + HL/B/A", () => {
+test("EQUAL: crafted IY bases — clearTargetActorRecord == oracle in RAM (−stack) + HL/B/A", () => {
   for (const base of BASES) {
     const o = craft(base, 0xaa);
     const c = craft(base, 0xaa);
     oracle(o);
-    const ret = loc_221e(c);
+    const ret = clearTargetActorRecord(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `base ${hx(base)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -116,7 +116,7 @@ test("CRAFTED: a pre-dirtied record is cleared to 0 identically", () => {
   const o = craft(base, 0xaa);
   const c = craft(base, 0xaa);
   oracle(o);
-  loc_221e(c);
+  clearTargetActorRecord(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   for (let i = 0; i < RECORD_LEN; i++) assert.equal(c.mem.read8(base + i), 0x00, `cell not cleared (${hx(base + i)})`);
@@ -130,7 +130,7 @@ test("TEETH: a wrong last cleared byte is CAUGHT by the RAM diff", () => {
   const o = craft(base, 0xaa);
   const c = craft(base, 0xaa);
   oracle(o);
-  loc_221e(c);
+  clearTargetActorRecord(c);
   const last = base + RECORD_LEN - 1;
   c.mem.write8(last, 0x01); // BUG: last cell must be 0
   const d = ramDiffMinusStack(o, c);
@@ -144,7 +144,7 @@ test("TEETH: a wrong returned HL is CAUGHT by the live-out check", () => {
   const o = craft(base, 0xaa);
   const c = craft(base, 0xaa);
   oracle(o);
-  const ret = loc_221e(c);
+  const ret = clearTargetActorRecord(c);
   assert.equal(ret & 0xffff, o.regs.hl & 0xffff, "sanity: module HL matches the oracle");
   const shortHl = (base + RECORD_LEN - 1) & 0xffff; // one cell short of base+0x18
   assert.notEqual(shortHl, o.regs.hl & 0xffff, "the live-out check must reject an under-advanced HL");

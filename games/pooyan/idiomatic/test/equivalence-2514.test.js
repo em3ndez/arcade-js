@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2514 (ROM 0x2514) — "copy a tile run into actor records, then
+ * Memory-equivalence test for copyDisplayTilesIntoActorRecords (ROM 0x2514) — "copy a tile run into actor records, then
  * maybe reset the board": for each of B records copy one source byte into (record+0x0f), stepping
  * the source +1 and the record +DE; when done, OR the terminator strike counter (0x8df9) with the
- * board-clear flag (0x89e5) and, if either is set, hand off to the board/HUD reset (loc_2527),
+ * board-clear flag (0x89e5) and, if either is set, hand off to the board/HUD reset (resetBoardRamAndReseedSpawnCounters),
  * otherwise return.
  *
  * Cycle-free memory-equivalence gate: a FRESH clone per side (the routine writes RAM), compared on
@@ -18,7 +18,7 @@
  * work RAM so nothing hits ROM.
  *
  * Jobs:
- *   1. EQUAL (return path) — branch cells zero: oracle == loc_2514 in RAM (−stack) + IX/HL/B/A.
+ *   1. EQUAL (return path) — branch cells zero: oracle == copyDisplayTilesIntoActorRecords in RAM (−stack) + IX/HL/B/A.
  *   2. EQUAL (reset path) — board-clear flag set: the reset runs identically on both sides.
  *   3. WRITE-SET — on the return path the ONLY writes are the B tile-field cells := the source bytes.
  *   4. TEETH — a wrong copied byte is caught by the RAM diff; a wrong advanced IX by the live-out.
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2514 as oracle } from "../../translated/loc_2514.js";
-import { loc_2514 } from "../loc_2514.js";
+import { copyDisplayTilesIntoActorRecords } from "../copyDisplayTilesIntoActorRecords.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, BOARD_CLEAR_FLAG, TAMPER_STRIKES_TERMINATOR, SPAWN_PHASE_COUNTER } from "../names.js";
@@ -71,7 +71,7 @@ function craft({ count, divertBoardClear = 0, divertTerminator = 0, cmdLow = 0x0
   m.regs.de = STRIDE;
   m.regs.ix = IXBASE;
   // NB: DE=0x18 is the record stride; E is its low byte and must NOT be reseated separately
-  // (loc_2527 ignores E, and reseating E here would corrupt the stride the loop's add ix,de reads).
+  // (resetBoardRamAndReseedSpawnCounters ignores E, and reseating E here would corrupt the stride the loop's add ix,de reads).
   m.regs.sp = 0x8ffe; // in STACK_SCRATCH; the oracle's trampolines push here
   return m;
 }
@@ -85,12 +85,12 @@ function assertRegs(o, c, tag) {
 
 // -- 1. EQUAL (return path) ---------------------------------------------------
 
-test("EQUAL: return path (branch cells zero) — loc_2514 == oracle in RAM (−stack) + IX/HL/B/A", () => {
+test("EQUAL: return path (branch cells zero) — copyDisplayTilesIntoActorRecords == oracle in RAM (−stack) + IX/HL/B/A", () => {
   for (const count of [1, 2, 3]) {
     const o = craft({ count });
     const c = craft({ count });
     oracle(o);
-    loc_2514(c);
+    copyDisplayTilesIntoActorRecords(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `count=${count}: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
@@ -105,19 +105,19 @@ test("EQUAL: return path (branch cells zero) — loc_2514 == oracle in RAM (−s
 // -- 2. EQUAL (reset path) ----------------------------------------------------
 
 test("EQUAL: reset path (board-clear flag set) — the board reset runs identically on both sides", () => {
-  // both loc_2527 sub-branches: spawn phase below cap (fill 0) and at cap (reseed branch)
+  // both resetBoardRamAndReseedSpawnCounters sub-branches: spawn phase below cap (fill 0) and at cap (reseed branch)
   for (const spawnPhase of [0x00, 0x07]) {
     const o = craft({ count: 2, divertBoardClear: 1, cmdLow: 0x11, spawnPhase });
     const c = craft({ count: 2, divertBoardClear: 1, cmdLow: 0x11, spawnPhase });
     oracle(o);
-    loc_2514(c);
+    copyDisplayTilesIntoActorRecords(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `spawnPhase=${hx(spawnPhase)}: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
     assertRegs(o, c, `spawnPhase=${hx(spawnPhase)}`);
     assert.equal(o.regs.ix & 0xffff, (IXBASE + 2 * STRIDE) & 0xffff, "IX still advanced past the run on the reset path");
   }
-  console.log("  EQUAL(reset): both loc_2527 sub-branches identical (RAM −stack + IX/HL/B/A)");
+  console.log("  EQUAL(reset): both resetBoardRamAndReseedSpawnCounters sub-branches identical (RAM −stack + IX/HL/B/A)");
 });
 
 // -- 3. WRITE-SET -------------------------------------------------------------
@@ -150,7 +150,7 @@ test("TEETH: a wrong copied byte is CAUGHT by the RAM diff", () => {
   const o = craft({ count: 3 });
   const c = craft({ count: 3 });
   oracle(o);
-  loc_2514(c);
+  copyDisplayTilesIntoActorRecords(c);
   const cell = (IXBASE + 1 * STRIDE + TILE_FIELD) & 0xffff;
   c.mem.write8(cell, (SRC_BYTES[1] + 1) & 0xff); // BUG: corrupt the middle copied byte
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2e52 (ROM 0x2e52) — "video-RAM column base for a rope cell":
+ * Memory-equivalence test for computeRopeCellVramColumn (ROM 0x2e52) — "video-RAM column base for a rope cell":
  * A := ropeColumnTable[IXL&3] via the rst-0x20 table fetch, then HL := 0x8400 | A. A plain-ret
  * helper that writes no memory.
  *
@@ -14,7 +14,7 @@
  * sides (only IXL&3 matters; the high byte and the top IXL bits are decoys proving the mask).
  *
  * Jobs:
- *   1. EQUAL (crafted) — each IXL&3 plus masked decoys: oracle == loc_2e52 in RAM, HL, and A; the
+ *   1. EQUAL (crafted) — each IXL&3 plus masked decoys: oracle == computeRopeCellVramColumn in RAM, HL, and A; the
  *      module SETS both, and HL lands on the tilemap page.
  *   2. WRITE-SET — the routine writes zero cells.
  *   3. TEETH — a twin that returns HL on the WRONG page and a twin that returns the WRONG low byte
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2e52 as oracle } from "../../translated/loc_2e52.js";
-import { loc_2e52 } from "../loc_2e52.js";
+import { computeRopeCellVramColumn } from "../computeRopeCellVramColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -61,7 +61,7 @@ const CASES = [0x00, 0x01, 0x02, 0x03, 0x07, 0xfe]; // 0x07&3=3, 0xfe&3=2 prove 
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted IXL cases — loc_2e52 == oracle in RAM (−stack) + HL + A", () => {
+test("EQUAL: crafted IXL cases — computeRopeCellVramColumn == oracle in RAM (−stack) + HL + A", () => {
   for (const ixl of CASES) {
     const o = craft(ixl);
     oracle(o);
@@ -69,7 +69,7 @@ test("EQUAL: crafted IXL cases — loc_2e52 == oracle in RAM (−stack) + HL + A
     const c = craft(ixl);
     c.regs.hl = 0xffff; // sentinel: a non-writing module fails
     c.regs.a = 0x55;
-    const ret = loc_2e52(c);
+    const ret = computeRopeCellVramColumn(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `ixl=${hx(ixl)}: unexpected RAM write at ${hx(d.addr ?? 0)}`);

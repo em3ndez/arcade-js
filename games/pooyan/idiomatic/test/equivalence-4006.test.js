@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_4006 (ROM 0x4006) — "step one object's animation sequence for the
+ * Memory-equivalence test for advanceObjectAnimationFrame (ROM 0x4006) — "step one object's animation sequence for the
  * record based at IX". +0x0e is a frame-hold counter: while non-zero it decrements and returns; on
  * expiry it walks the stream at +0x0c:+0x0d — a 0xff opcode reloads that pointer from the next two
  * bytes and re-reads; any other byte begins a 3-byte frame record (byte0 -> +0x10, byte1 -> +0x0f,
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4006 as oracle } from "../../translated/loc_4006.js";
-import { loc_4006 } from "../loc_4006.js";
+import { advanceObjectAnimationFrame } from "../advanceObjectAnimationFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPRITE_OBJECT_TABLE } from "../names.js";
@@ -116,7 +116,7 @@ test("CAPTURE: real 0x4006 dispatches — module == oracle in RAM (−stack)", (
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    loc_4006(c);
+    advanceObjectAnimationFrame(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -130,7 +130,7 @@ test("CRAFTED: both branches + 0xff reload — RAM identical, record bytes as de
     const o = craft(scn);
     const c = craft(scn);
     oracle(o);
-    loc_4006(c);
+    advanceObjectAnimationFrame(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${scn.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -147,7 +147,7 @@ test("CRAFTED: both branches + 0xff reload — RAM identical, record bytes as de
 
 /** Broken twin: corrupts the new-hold byte — must be caught at rec+0x0e (written in every branch). */
 function brokenAdvance(m) {
-  loc_4006(m);
+  advanceObjectAnimationFrame(m);
   const bad = (REC + 0x0e) & 0xffff;
   m.mem.write8(bad, (m.mem.read8(bad) ^ 0x01) & 0xff); // BUG: wrong hold byte
 }

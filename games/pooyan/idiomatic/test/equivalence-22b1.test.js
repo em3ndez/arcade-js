@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_22b1 (ROM 0x22b1) — "run the animation stepper over four actor
+ * Memory-equivalence test for advanceActorAnimationsUnlessGrabbing (ROM 0x22b1) — "run the animation stepper over four actor
  * records, unless a rope-grab is active". Gated on GRAB_ACTIVE_FLAG==0; IX walks the actor table in
- * 0x18-byte strides (0x8a80, 0x8a98, 0x8ab0, 0x8ac8), invoking loc_22e6 on each.
+ * 0x18-byte strides (0x8a80, 0x8a98, 0x8ab0, 0x8ac8), invoking advanceActorAnimationFrame on each.
  *
  * Cycle-free memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
  * STACK_SCRATCH) PLUS the register live-out. On the run path the loop leaves IX at the fourth record
- * and DE at the stride (loc_22e6 leaves both untouched, verified by its own gate); both are the
+ * and DE at the stride (advanceActorAnimationFrame leaves both untouched, verified by its own gate); both are the
  * routine's own deterministic output, checked against the oracle clone. On the skip path IX/DE are
- * untouched. (A/HL are loc_22e6's internal residue and are NOT part of the contract — see notes.)
+ * untouched. (A/HL are advanceActorAnimationFrame's internal residue and are NOT part of the contract — see notes.)
  *
  * Jobs:
  *   1. EQUAL (crafted) — a run with all four frame-countdowns live (four in-place decrements), a run
- *      that pulls fresh script entries into all four records, and a skip: oracle == loc_22b1 in RAM
+ *      that pulls fresh script entries into all four records, and a skip: oracle == advanceActorAnimationsUnlessGrabbing in RAM
  *      (−stack), IX, and DE; the module SETS IX/DE on the run path and leaves them on the skip path.
  *   2. WRITE-SET — the countdown-live run writes exactly the four records' countdown cells.
  *   3. TEETH — a twin that corrupts the fourth record is caught in RAM; a twin that under-advances
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_22b1 as oracle } from "../../translated/loc_22b1.js";
-import { loc_22b1 } from "../loc_22b1.js";
+import { advanceActorAnimationsUnlessGrabbing } from "../advanceActorAnimationsUnlessGrabbing.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ACTOR_TABLE, GRAB_ACTIVE_FLAG, ANIM_SCRIPT_CURSOR } from "../names.js";
@@ -39,7 +39,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const STRIDE = 0x18;
-const OFF_DELAY = 0x0e; // per-record frame countdown loc_22e6 ticks
+const OFF_DELAY = 0x0e; // per-record frame countdown advanceActorAnimationFrame ticks
 const RECS = [ACTOR_TABLE, ACTOR_TABLE + STRIDE, ACTOR_TABLE + 2 * STRIDE, ACTOR_TABLE + 3 * STRIDE];
 const FINAL_IX = RECS[3]; // 0x8ac8
 const DECOY_IX = 0x1234;
@@ -75,13 +75,13 @@ const SKIP = { grab: 1, delays: [0x05, 0x03, 0x08, 0x01], pull: false };
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted run/skip cases — loc_22b1 == oracle in RAM (−stack) + IX + DE", () => {
+test("EQUAL: crafted run/skip cases — advanceActorAnimationsUnlessGrabbing == oracle in RAM (−stack) + IX + DE", () => {
   for (const cs of [RUN_TICK, RUN_PULL, SKIP]) {
     const o = craft(cs);
     oracle(o);
 
     const c = craft(cs);
-    const ret = loc_22b1(c);
+    const ret = advanceActorAnimationsUnlessGrabbing(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (grab=${cs.grab} pull=${cs.pull})`);
@@ -123,7 +123,7 @@ test("TEETH: a corrupted fourth record is CAUGHT by the RAM diff", () => {
   const o = craft(RUN_TICK);
   const c = craft(RUN_TICK);
   oracle(o);
-  loc_22b1(c);
+  advanceActorAnimationsUnlessGrabbing(c);
   c.mem.write8(RECS[3] + OFF_DELAY, 0xaa); // BUG: fourth record wrong
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted record — it is worthless");

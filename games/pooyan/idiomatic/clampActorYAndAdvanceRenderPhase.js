@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_23ad } from "./loc_23ad.js";
+import { wrapRenderPhaseAndPaintTileTriplet } from "./wrapRenderPhaseAndPaintTileTriplet.js";
 import { deriveStackedSpriteYs } from "./deriveStackedSpriteYs.js";
 import { retreatTileAnimScript } from "./retreatTileAnimScript.js";
 import {
@@ -45,5 +45,5 @@ export function clampActorYAndAdvanceRenderPhase(m, baseY = m.regs.a, rec = m.re
   if (ring !== 0) return; // ring still winding
 
   mem8[STATUS_RENDER_PHASE] = mem8[STATUS_RENDER_PHASE] + 1; // mem8 write truncates to 8 bits
-  return loc_23ad(m, STATUS_RENDER_PHASE); // paint the advanced phase
+  return wrapRenderPhaseAndPaintTileTriplet(m, STATUS_RENDER_PHASE); // paint the advanced phase
 }

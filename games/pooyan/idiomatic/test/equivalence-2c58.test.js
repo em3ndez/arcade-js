@@ -60,7 +60,7 @@ function ramDiffMinusStack(ma, mb) {
 const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 
 const REC = 0x8a80; // the hunter record loc_2c58 operates on (distinct from the 0x8ae0 sweep region)
-const HOLD = 0x0e; //   record frame-hold offset (nonzero -> loc_4006 just decrements)
+const HOLD = 0x0e; //   record frame-hold offset (nonzero -> advanceObjectAnimationFrame just decrements)
 const P_LO = 0x05;
 const P_HI = 0x06;
 const P_STEP = 0x09;
@@ -71,7 +71,7 @@ function craft({ lo = 0, step = 0, hi = 0, seedTrigger = false } = {}) {
   const m = BASE.clone();
   m.regs.ix = REC;
   m.regs.sp = 0x8ff8; // in STACK_SCRATCH; the oracle's push/pop/ret stay inside it
-  m.mem.write8(REC + HOLD, 0x05); // frame-hold nonzero: loc_4006 decrements and returns
+  m.mem.write8(REC + HOLD, 0x05); // frame-hold nonzero: advanceObjectAnimationFrame decrements and returns
   m.mem.write8(REC + P_LO, lo);
   m.mem.write8(REC + P_STEP, step);
   m.mem.write8(REC + P_HI, hi);

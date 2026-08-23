@@ -7,7 +7,7 @@ import {
   HUD_INTEGRITY_STRIP_B,
   SELFTEST_DISPATCH_STATE,
 } from "./names.js";
-import { loc_4381 } from "./loc_4381.js";
+import { paintDisplayListRunToVram } from "./paintDisplayListRunToVram.js";
 import { queueSoundCommands27And15 } from "./queueSoundCommands27And15.js";
 /**
  * loc_7517 — display dispatch state 1.
@@ -30,7 +30,7 @@ const SUM_HIGH = 0x01;
 export function loc_7517(m) {
   const { mem8 } = m;
 
-  loc_4381(m);
+  paintDisplayListRunToVram(m);
 
   mem8[SUBPHASE_TICK] = mem8[SUBPHASE_TICK] + 1;
   if (mem8[SUBPHASE_TICK] !== TICK_PERIOD) return;

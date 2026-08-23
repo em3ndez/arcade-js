@@ -6,7 +6,7 @@
  * blitted at the +0x15/+0x16 screen pointer and the row above), raises OBJECT_DRAWN_FLAG once, then
  * falls through to clearAndReseedObjectSlot (clears the record; its ret returns to this handler's caller).
  *
- * IX is an input (param default rec = m.regs.ix). The module dissolves loc_4006, loc_0c45,
+ * IX is an input (param default rec = m.regs.ix). The module dissolves advanceObjectAnimationFrame, loc_0c45,
  * paintTileBlock2x2Above and the clearAndReseedObjectSlot tail to direct calls;
  * the oracle drives the same helpers. drawObjectStackedTiles outputs no register — equivalence is RAM
  * (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
@@ -41,7 +41,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const REC = 0x8c30; //     object record base (IX)
-const ANIM_HOLD = REC + 0x0e; // animation frame-hold -> loc_4006 just decrements
+const ANIM_HOLD = REC + 0x0e; // animation frame-hold -> advanceObjectAnimationFrame just decrements
 const TIMER = REC + 0x11; //    per-object frame timer
 const SPRITE = REC + 0x13; //   sprite/char index (< 5 -> clearAndReseedObjectSlot returns after its clear)
 const PTR_LO = REC + 0x15;
@@ -65,7 +65,7 @@ function craft(timer) {
   m.regs.sp = SP0;
   m.mem.write16(SP0, CALLER_RET);
   m.regs.ix = REC; // record base (input register)
-  m.mem8[ANIM_HOLD] = 0x05; // animation holds -> loc_4006 decrements, no stream walk
+  m.mem8[ANIM_HOLD] = 0x05; // animation holds -> advanceObjectAnimationFrame decrements, no stream walk
   m.mem8[TIMER] = timer & 0xff;
   m.mem8[SPRITE] = 0x03; //  < 5 -> clearAndReseedObjectSlot returns after clearing the record
   m.mem8[PTR_LO] = SCREEN & 0xff;

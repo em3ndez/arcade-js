@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2d66 (ROM 0x2d66, Pooyan) — the even-frame rope driver. It bails
+ * Memory-equivalence test for driveRopeExtendAndRenderCells (ROM 0x2d66, Pooyan) — the even-frame rope driver. It bails
  * while a grab is in progress or the wave-arrival counter is at its hold value; otherwise it runs
- * the rope-tile driver (loc_2d78) then the rope-cell writer (loc_2e22) in order.
+ * the rope-tile driver (dispatchRopeExtendState) then the rope-cell writer (driveActiveRopeCells) in order.
  *
  * SEATING: the two guard bails are plain rets (net SP 0, seam-completed). The live path is NOT
- * free-standing balanced: loc_2d78 always dispatches through the rst-0x28 trampoline, whose handler
- * ret consumes a caller-seated return slot, so loc_2d66 pushes that slot (push16 0x2d74) before the
- * call — netting 0 across the dispatch. The cell writer loc_2e22 seats each of its own dispatches
- * internally, so with the loc_2d78 seat the routine nets 0 overall and WIREs. It is a void per-frame
+ * free-standing balanced: dispatchRopeExtendState always dispatches through the rst-0x28 trampoline, whose handler
+ * ret consumes a caller-seated return slot, so driveRopeExtendAndRenderCells pushes that slot (push16 0x2d74) before the
+ * call — netting 0 across the dispatch. The cell writer driveActiveRopeCells seats each of its own dispatches
+ * internally, so with the dispatchRopeExtendState seat the routine nets 0 overall and WIREs. It is a void per-frame
  * driver: no register survives that a caller reads back (its own caller tail-calls it and forwards),
  * so the register file is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH, with SP
  * parked in STACK_SCRATCH so the sub-calls' pushes drop out of the diff.
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2d66 as oracle } from "../../translated/loc_2d66.js";
-import { loc_2d66 } from "../loc_2d66.js";
+import { driveRopeExtendAndRenderCells } from "../driveRopeExtendAndRenderCells.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -46,7 +46,7 @@ const GRAB = 0x8d32; // GRAB_ACTIVE_FLAG
 const ARRIVAL = 0x8903; // WAVE_ARRIVAL_COUNTER
 const EXTEND_STATE = 0x8f14; // ROPE_EXTEND_STATE (rst-0x28 dispatch selector)
 const EXTEND_INDEX = 0x8f18; // ROPE_EXTEND_INDEX
-const SEGMENT = 0x8931; // ROPE_SEGMENT_COUNT (loc_2d80's first write)
+const SEGMENT = 0x8931; // ROPE_SEGMENT_COUNT (addRopeSegmentAndAdvanceExtendState's first write)
 const SP0 = 0x8ff0; // inside STACK_SCRATCH
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -73,7 +73,7 @@ function craftHold() {
   return m;
 }
 
-/** Guards open; rope in extend-state 0 with room to grow -> loc_2d80 writes the segment count. */
+/** Guards open; rope in extend-state 0 with room to grow -> addRopeSegmentAndAdvanceExtendState writes the segment count. */
 function craftRun() {
   const m = BASE.clone();
   m.regs.sp = SP0;
@@ -93,12 +93,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_2d66 == oracle in RAM (−stack)", () => {
+test("EQUAL: driveRopeExtendAndRenderCells == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_2d66(c);
+    driveRopeExtendAndRenderCells(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -125,7 +125,7 @@ test("TEETH: a corrupted output byte is CAUGHT by the RAM diff", () => {
   const o = craftRun();
   const c = craftRun();
   oracle(o);
-  loc_2d66(c);
+  driveRopeExtendAndRenderCells(c);
   c.mem.write8(SEGMENT, (o.mem.read8(SEGMENT) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted output byte");

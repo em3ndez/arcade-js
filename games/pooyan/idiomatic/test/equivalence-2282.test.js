@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2282 (ROM 0x2282, Pooyan) — "load the phase's motion params".
+ * Memory-equivalence test for loadPhaseMotionParamsAndAdvancePhase (ROM 0x2282, Pooyan) — "load the phase's motion params".
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
- * oracle on one and loc_2282 on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
- * loc_2282 has no register live-out — the caller reads the three loaded slots back out of memory —
+ * oracle on one and loadPhaseMotionParamsAndAdvancePhase on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
+ * loadPhaseMotionParamsAndAdvancePhase has no register live-out — the caller reads the three loaded slots back out of memory —
  * so only RAM is compared; pc/SP/cycles are deliberately not compared.
  *
  * INPUTS: the phase index at 0x8f0f, plus the three ROM tables (byte 0x2712 via the rst-0x20
@@ -16,7 +16,7 @@
  *
  * Jobs:
  *   1. EQUAL — crafted phase cases spanning the mid range, the 9->8 clamp and the 0 wrap, oracle
- *      == loc_2282 in RAM (−stack).
+ *      == loadPhaseMotionParamsAndAdvancePhase in RAM (−stack).
  *   2. WRITE-SET — the three loaded slots hold the oracle's values and the phase steps to the
  *      contract value (mid + 1; 8 held at 8 after the clamp).
  *   3. TEETH — a wrong loaded byte and a not-clamped phase twin are each CAUGHT by the RAM diff.
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2282 as oracle } from "../../translated/loc_2282.js";
-import { loc_2282 } from "../loc_2282.js";
+import { loadPhaseMotionParamsAndAdvancePhase } from "../loadPhaseMotionParamsAndAdvancePhase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -71,12 +71,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted phase cases — loc_2282 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted phase cases — loadPhaseMotionParamsAndAdvancePhase == oracle in RAM (−stack)", () => {
   for (const spec of CASES) {
     const o = craft(spec.phase);
     oracle(o);
     const c = craft(spec.phase);
-    loc_2282(c);
+    loadPhaseMotionParamsAndAdvancePhase(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -95,7 +95,7 @@ test("WRITE-SET: the three loaded slots + the stepped phase hold the contract va
     const wordY = o.mem.read16(PARAM_WORD_Y);
 
     const c = craft(spec.phase);
-    loc_2282(c);
+    loadPhaseMotionParamsAndAdvancePhase(c);
     assert.equal(c.mem8[PARAM_BYTE], byte, `[${spec.name}] 0x8f0e byte`);
     assert.equal(c.mem.read16(PARAM_WORD_X), wordX, `[${spec.name}] 0x8f10 word`);
     assert.equal(c.mem.read16(PARAM_WORD_Y), wordY, `[${spec.name}] 0x8f12 word`);
@@ -110,7 +110,7 @@ test("TEETH: a wrong loaded byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x03);
   const c = craft(0x03);
   oracle(o);
-  loc_2282(c);
+  loadPhaseMotionParamsAndAdvancePhase(c);
   c.mem8[PARAM_BYTE] = (o.mem8[PARAM_BYTE] ^ 0xff) & 0xff; // BUG: wrong loaded param byte
 
   const d = ramDiffMinusStack(o, c);
@@ -123,7 +123,7 @@ test("TEETH: a phase-not-clamped twin is CAUGHT by the RAM diff", () => {
   const o = craft(0x08); // oracle clamps 9 -> 8
   const c = craft(0x08);
   oracle(o);
-  loc_2282(c);
+  loadPhaseMotionParamsAndAdvancePhase(c);
   c.mem8[PHASE] = 0x09; // BUG: a twin that stepped to 9 without clamping
 
   const d = ramDiffMinusStack(o, c);

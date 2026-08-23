@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_3553 } from "./loc_3553.js";
+import { blankActorSpriteBand } from "./blankActorSpriteBand.js";
 import { renderStageCountdownDigits } from "./renderStageCountdownDigits.js";
 import { ACTIVE_ENEMY_COUNT, STAGE_COUNTDOWN, PLAY_STATE_INDEX, SPAWN_PHASE_COUNTER } from "./names.js";
 /**
@@ -16,7 +16,7 @@ const PLAY_STATE_FOURTH = 0x04; // sub-state that also advances the spawn-phase 
 export function loc_34b0(m, base = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_3553(m, base); // blank the actor sprite band
+  blankActorSpriteBand(m, base); // blank the actor sprite band
   mem8[ACTIVE_ENEMY_COUNT] = mem8[ACTIVE_ENEMY_COUNT] - 1;
   if (mem8[STAGE_COUNTDOWN] !== 0) mem8[STAGE_COUNTDOWN] = mem8[STAGE_COUNTDOWN] - 1;
   if (mem8[PLAY_STATE_INDEX] === PLAY_STATE_FOURTH) {

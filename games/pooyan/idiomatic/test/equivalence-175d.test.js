@@ -6,12 +6,12 @@
  * GAME_ACTIVE_FLAG / ROUND_COUNTER: arm sub-state 0x0d, or run the level-start batch and force
  * sub-state 3.
  *
- * The module dissolves loc_4381, paintPhaseGauge, loc_4a0b and loc_02ef to direct calls and keeps
+ * The module dissolves paintDisplayListRunToVram, paintPhaseGauge, loc_4a0b and loc_02ef to direct calls and keeps
  * push16 + m.call for the two unlifted batch callees (0x1ead, 0x540d); the oracle drives the same
  * frozen routines. startRoundAfterIntroDelay is a void handler — no register survives — so equivalence is RAM
  * (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
- * loc_4381 runs on every arm, so a benign RELOAD display-list stream is seated (both pointer pairs)
+ * paintDisplayListRunToVram runs on every arm, so a benign RELOAD display-list stream is seated (both pointer pairs)
  * so it breaks at once without a ROM write. Arms: an early return (tick not at wrap), the arm-0x0d
  * branch, the force-sub-3 branch, and the level-start batch branch.
  *
@@ -59,7 +59,7 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Seat a benign display-list: a RELOAD opcode so loc_4381 breaks at once, no ROM write. */
+/** Seat a benign display-list: a RELOAD opcode so paintDisplayListRunToVram breaks at once, no ROM write. */
 function seatDisplayList(m) {
   m.mem8[STREAM] = 0xff; //     RELOAD
   m.mem8[STREAM + 1] = 0x00;

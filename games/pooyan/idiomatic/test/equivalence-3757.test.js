@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3757 (ROM 0x3757, Pooyan) — advance an actor's X, then dispatch.
+ * Memory-equivalence test for advanceActorXAndDispatchMove (ROM 0x3757, Pooyan) — advance an actor's X, then dispatch.
  *
- * A fresh clone per side, the oracle on one and loc_3757 on the other, compared on RAM (dumpState,
+ * A fresh clone per side, the oracle on one and advanceActorXAndDispatchMove on the other, compared on RAM (dumpState,
  * minus STACK_SCRATCH) PLUS the declared register live-out A. pc/SP/cycles are not compared.
  *
- * INPUT: IX (the actor record). loc_3757 adds the signed step (rec+0x0a) to X (rec+0x05); when X is
+ * INPUT: IX (the actor record). advanceActorXAndDispatchMove adds the signed step (rec+0x0a) to X (rec+0x05); when X is
  * below the negated step the lap counter (rec+0x06) is decremented first. It then tails into the
  * end-of-move dispatch (stage countdown >= 3) or the phase-state dispatch (countdown < 3, new X in B).
  * The end-of-move dispatch is a verified idiomatic module; the phase-state dispatch is a sibling
@@ -13,7 +13,7 @@
  *
  * LIVE-OUT A: the counter/result the delegatee leaves (a 0x99 sentinel is seated so a stray write
  * would show). Both sides run the SAME delegatees, so those agree by construction; this gate exercises
- * loc_3757's own X/counter arithmetic and branch selection.
+ * advanceActorXAndDispatchMove's own X/counter arithmetic and branch selection.
  *
  * The routine is not reached in a plain boot, so every case is CRAFTED (identical pokes on both sides).
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3757 as oracle } from "../../translated/loc_3757.js";
-import { loc_3757 } from "../loc_3757.js";
+import { advanceActorXAndDispatchMove } from "../advanceActorXAndDispatchMove.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PLAY_STATE_INDEX, STAGE_COUNTDOWN } from "../names.js";
@@ -89,12 +89,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted records — loc_3757 == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted records — advanceActorXAndDispatchMove == oracle in RAM (−stack) + A", () => {
   for (const cse of CASES) {
     const o = craft(cse.pokes);
     const c = craft(cse.pokes);
     oracle(o);
-    loc_3757(c);
+    advanceActorXAndDispatchMove(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(c.regs.a, o.regs.a, `[${cse.name}] A live-out mismatch`);
@@ -104,7 +104,7 @@ test("EQUAL: crafted records — loc_3757 == oracle in RAM (−stack) + A", () =
 
 // -- 2. WRITE-SET -------------------------------------------------------------
 
-test("WRITE-SET: loc_3757 itself writes exactly X and (on the dec branch) the lap counter", () => {
+test("WRITE-SET: advanceActorXAndDispatchMove itself writes exactly X and (on the dec branch) the lap counter", () => {
   // Case 1 (dec, end-of-move no-op): the delegate writes nothing, so only rec+5 and rec+6 change.
   const before = craft(CASES[1].pokes);
   const after = craft(CASES[1].pokes);
@@ -127,7 +127,7 @@ test("TEETH: a wrong X byte is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[0].pokes);
   const c = craft(CASES[0].pokes);
   oracle(o);
-  loc_3757(c);
+  advanceActorXAndDispatchMove(c);
   c.mem8[REC + REC_X] = (c.mem8[REC + REC_X] + 1) & 0xff; // BUG: wrong advanced X
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong X byte — it is worthless");
@@ -139,7 +139,7 @@ test("TEETH: a skipped lap-counter decrement is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[1].pokes); // X < -step: the dec MUST happen
   const c = craft(CASES[1].pokes);
   oracle(o);
-  loc_3757(c);
+  advanceActorXAndDispatchMove(c);
   c.mem8[REC + REC_LAP] = (c.mem8[REC + REC_LAP] + 1) & 0xff; // BUG twin: as if the dec never ran
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a missing lap decrement");
@@ -151,7 +151,7 @@ test("TEETH: a wrong A live-out is CAUGHT by the live-out check", () => {
   const o = craft(CASES[2].pokes); // finish phase, counter!=0 -> A = counter
   const c = craft(CASES[2].pokes);
   oracle(o);
-  loc_3757(c);
+  advanceActorXAndDispatchMove(c);
   assert.equal(c.regs.a, o.regs.a, "sanity: module A matches the oracle before corruption");
   c.regs.a = (o.regs.a + 1) & 0xff; // BUG: wrong counter left in A
   assert.notEqual(c.regs.a, o.regs.a, "the A live-out check must reject a wrong counter");

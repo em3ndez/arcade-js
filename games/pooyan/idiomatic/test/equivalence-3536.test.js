@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3536 (ROM 0x3536, Pooyan) — "actor frame-hold tick".
+ * Memory-equivalence test for tickActorHoldThenBlankAndClearWaveLatches (ROM 0x3536, Pooyan) — "actor frame-hold tick".
  *
- * The routine advances the record's animation (loc_4006), then decrements the record's frame-hold
+ * The routine advances the record's animation (advanceObjectAnimationFrame), then decrements the record's frame-hold
  * field (+0x11). While it is still holding (nonzero after the decrement) it returns and the frame
  * stays — the ONLY path that does not blank the sprite band. Once the hold lapses, and only when
  * the record's flag byte (+0x07) has a set high nibble, a shared tally (loc_8d76) is bumped; on the
  * third such bump the lane-spawn countdown and the launch arm latch are cleared. Every non-holding
- * exit tail-calls the band-blank (loc_3553), zeroing the 0x17-byte record band.
+ * exit tail-calls the band-blank (blankActorSpriteBand), zeroing the 0x17-byte record band.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). Each case runs the oracle on one
- * FRESH clone and loc_3536 on another and compares:
+ * FRESH clone and tickActorHoldThenBlankAndClearWaveLatches on another and compares:
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * NO register live-out is declared: the dispatch caller parks and restores its own loop registers
  * (B/DE) around this tick with exx and reads none of ours, so hold-vs-blank is entirely a RAM effect.
  * pc/SP are NOT compared; SP is seated in the dead stack. The oracle dispatches its m.call sub-routines
- * through the TRANSLATED registry; loc_3536 imports the idiomatic ones. IX (the record) is the one input.
+ * through the TRANSLATED registry; tickActorHoldThenBlankAndClearWaveLatches imports the idiomatic ones. IX (the record) is the one input.
  *
  * Jobs (one per branch):
  *   1. EQUAL — holding, expired-no-flag, tally-bump (<3), and tally-reset (>=3) all agree in RAM(−stack).
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3536 as oracle } from "../../translated/loc_3536.js";
-import { loc_3536 } from "../loc_3536.js";
+import { tickActorHoldThenBlankAndClearWaveLatches } from "../tickActorHoldThenBlankAndClearWaveLatches.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, LANE_SPAWN_COUNTDOWN, LAUNCH_ARM_LATCH, loc_8d76 } from "../names.js";
@@ -46,9 +46,9 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const REC = 0x8ae0; // an actor record base clear of STACK_SCRATCH
-const BAND_LEN = 0x17; // bytes loc_3553 blanks from the record base
-const HOLD_4006 = 0x0e; // loc_4006's own frame-hold field
-const HOLD_3536 = 0x11; // loc_3536's frame-hold field
+const BAND_LEN = 0x17; // bytes blankActorSpriteBand blanks from the record base
+const HOLD_4006 = 0x0e; // advanceObjectAnimationFrame's own frame-hold field
+const HOLD_3536 = 0x11; // tickActorHoldThenBlankAndClearWaveLatches's frame-hold field
 const FLAG_FIELD = 0x07; // flag byte; high nibble gates the tally bump
 const DIRT = 0xaa;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -69,7 +69,7 @@ function craft({ hold3536, flagHi, tally }) {
   m.regs.sp = STACK_SCRATCH.hi;
   m.regs.ix = REC;
   for (let i = 0; i < BAND_LEN; i++) m.mem.write8((REC + i) & 0xffff, DIRT);
-  m.mem.write8(REC + HOLD_4006, 0x05); // loc_4006 just decrements this and returns
+  m.mem.write8(REC + HOLD_4006, 0x05); // advanceObjectAnimationFrame just decrements this and returns
   m.mem.write8(REC + HOLD_3536, hold3536);
   m.mem.write8(REC + FLAG_FIELD, flagHi);
   m.mem.write8(loc_8d76, tally);
@@ -87,12 +87,12 @@ const BRANCHES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_3536 == oracle in RAM (−stack) across all four branches", () => {
+test("EQUAL: tickActorHoldThenBlankAndClearWaveLatches == oracle in RAM (−stack) across all four branches", () => {
   for (const [name, cfg] of Object.entries(BRANCHES)) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    loc_3536(c);
+    tickActorHoldThenBlankAndClearWaveLatches(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -119,7 +119,7 @@ test("TEETH: a skipped lane-countdown clear is CAUGHT by the RAM diff", () => {
   const o = craft(BRANCHES.reset);
   const c = craft(BRANCHES.reset);
   oracle(o);
-  loc_3536(c);
+  tickActorHoldThenBlankAndClearWaveLatches(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   c.mem.write8(LANE_SPAWN_COUNTDOWN, DIRT); // BUG: the reset must clear this to 0
   const d = ramDiffMinusStack(o, c);
@@ -132,7 +132,7 @@ test("TEETH: a wrong band byte is CAUGHT by the RAM diff", () => {
   const o = craft(BRANCHES.expiredNoFlag);
   const c = craft(BRANCHES.expiredNoFlag);
   oracle(o);
-  loc_3536(c);
+  tickActorHoldThenBlankAndClearWaveLatches(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   const cell = (REC + BAND_LEN - 1) & 0xffff;
   c.mem.write8(cell, DIRT); // BUG: last band cell must be 0

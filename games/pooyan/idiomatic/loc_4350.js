@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_4006 } from "./loc_4006.js";
+import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { loc_425c } from "./loc_425c.js";
 import { loc_423a } from "./loc_423a.js";
 /**
@@ -21,7 +21,7 @@ const BIT0 = 0x01;
 export function loc_4350(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_4006(m, rec);
+  advanceObjectAnimationFrame(m, rec);
 
   mem8[rec + PHASE_TIMER] = (mem8[rec + PHASE_TIMER] - 1);
   if (mem8[rec + PHASE_TIMER] !== 0) return; // timer still running

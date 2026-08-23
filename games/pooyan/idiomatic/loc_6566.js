@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_2514 } from "./loc_2514.js";
+import { copyDisplayTilesIntoActorRecords } from "./copyDisplayTilesIntoActorRecords.js";
 import {
   LAUNCH_FLIP_COUNTDOWN,
   ANIM_PHASE_TOGGLE_892C,
@@ -82,7 +82,7 @@ export function loc_6566(m, ix = m.regs.ix) {
 
     // Render the three records from the source row the toggle's current bit0 selects.
     const src = (mem8[ANIM_PHASE_TOGGLE_892C] & 0x01) !== 0 ? TILE_SRC_ROW_66C2 : TILE_SRC_ROW_66BF;
-    loc_2514(m, src, RENDER_COUNT, RECORD_STEP_BACK, ix, RECORD_STEP_BACK & 0xff);
+    copyDisplayTilesIntoActorRecords(m, src, RENDER_COUNT, RECORD_STEP_BACK, ix, RECORD_STEP_BACK & 0xff);
     return;
   }
 

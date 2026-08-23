@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_23ad (ROM 0x23ad-0x23d6) — the shared render tail. Masks the
+ * Memory-equivalence test for wrapRenderPhaseAndPaintTileTriplet (ROM 0x23ad-0x23d6) — the shared render tail. Masks the
  * phase counter at (HL) to 0..3, looks up a tile-block descriptor for that phase via loc_0c45
  * (table 0x26f6), and stamps three 2x2 blocks at 0x8425 / 0x8465 / 0x84a5; the third block's
  * source is 0x270a when (0x88bc) bit0 is set, else 0x270e.
@@ -8,7 +8,7 @@
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so each case uses a FRESH clone
  * per side, compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are not compared (the
  * oracle drives them through m.step/push/ret, the stack ABI the direct-call layer replaces).
- * loc_23ad has NO register live-out — its callers (loc_23a1 / clampActorYAndAdvanceRenderPhase / loc_2329) tail into it and
+ * wrapRenderPhaseAndPaintTileTriplet has NO register live-out — its callers (tickStatusRenderRingAndRedrawOnWrap / clampActorYAndAdvanceRenderPhase / movePlayerVerticallyAndTickStatusRender) tail into it and
  * read nothing back — so the contract is memory alone. The oracle's loc_0c45 / loc_3325 sub-calls
  * resolve through the full translated registry that new Machine(ROM) builds.
  *
@@ -18,7 +18,7 @@
  *
  * Jobs:
  *   1. EQUAL — over the four phases at the real seat (HL = 0x88bc) and the split seat (HL = 0x88bd),
- *      oracle == loc_23ad in RAM (−stack).
+ *      oracle == wrapRenderPhaseAndPaintTileTriplet in RAM (−stack).
  *   2. TEETH — a wrong byte in the final blit cell, and a wrong (unmasked) phase cell, are CAUGHT.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-23ad.test.js
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_23ad as oracle } from "../../translated/loc_23ad.js";
-import { loc_23ad } from "../loc_23ad.js";
+import { wrapRenderPhaseAndPaintTileTriplet } from "../wrapRenderPhaseAndPaintTileTriplet.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -81,12 +81,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: every case — loc_23ad == oracle in RAM (−stack)", () => {
+test("EQUAL: every case — wrapRenderPhaseAndPaintTileTriplet == oracle in RAM (−stack)", () => {
   for (const { name, poke } of CASES) {
     const o = craft(poke);
     const c = craft(poke);
     oracle(o);
-    loc_23ad(c);
+    wrapRenderPhaseAndPaintTileTriplet(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -100,7 +100,7 @@ test("TEETH: a wrong final-blit byte is CAUGHT by the RAM diff", () => {
   const o = craft(poke);
   const c = craft(poke);
   oracle(o);
-  loc_23ad(c);
+  wrapRenderPhaseAndPaintTileTriplet(c);
   const last = blitCells(VRAM_BASE + 2 * FIELD_STRIDE).at(-1); // bottom-left of the third block
   c.mem.write8(last, (c.mem.read8(last) + 1) & 0xff); // BUG: corrupt the final blit cell
 
@@ -115,7 +115,7 @@ test("TEETH: an unmasked phase cell is CAUGHT (mask write is compared)", () => {
   const o = craft(poke);
   const c = craft(poke);
   oracle(o);
-  loc_23ad(c);
+  wrapRenderPhaseAndPaintTileTriplet(c);
   c.mem.write8(RENDER_PHASE, 0x06); // BUG: leave the phase cell unmasked
 
   const d = ramDiffMinusStack(o, c);

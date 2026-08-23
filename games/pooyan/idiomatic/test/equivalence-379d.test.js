@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_379d (ROM 0x379d, Pooyan) — "initialise an actor slot from a
+ * Memory-equivalence test for spawnActorSlotFromTemplate (ROM 0x379d, Pooyan) — "initialise an actor slot from a
  * template".
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
- * oracle on one and loc_379d on the other, compared on RAM (dumpState, minus STACK_SCRATCH) PLUS
+ * oracle on one and spawnActorSlotFromTemplate on the other, compared on RAM (dumpState, minus STACK_SCRATCH) PLUS
  * the declared register live-out A. pc/SP/cycles are deliberately not compared.
  *
  * INPUTS: IY (slot), IX (template), C (copied to slot+0x14). The routine also reads DIFFICULTY_DSW
@@ -12,7 +12,7 @@
  * +3/+4/+5/+6 position bytes, +7 (frame nibble + anim lookup) and +0b (anim override flag), plus
  * the ROM speed/anim-pointer tables the real ROM supplies to both sides.
  *
- * LIVE-OUT A: loc_379d tail-jumps to queueSoundCommand04IfNotBusy (the spawn-sound enqueue), whose A becomes this
+ * LIVE-OUT A: spawnActorSlotFromTemplate tail-jumps to queueSoundCommand04IfNotBusy (the spawn-sound enqueue), whose A becomes this
  * routine's result. It is checked equal to the oracle and asserted SET on the module's clone.
  *
  * The slot (0x8b40), template (0x8b00) and the gameplay cells are isolated work RAM; queueSoundCommand04IfNotBusy's own
@@ -21,7 +21,7 @@
  *
  * Jobs:
  *   1. EQUAL — crafted cases spanning the easy/hard speed table, the clamp and negate branches, and
- *      both anim paths (looked-up vs the +0b override), oracle == loc_379d in RAM (−stack) and A.
+ *      both anim paths (looked-up vs the +0b override), oracle == spawnActorSlotFromTemplate in RAM (−stack) and A.
  *   2. WRITE-SET — the slot's fields + template+0a hold the contract values; the +0b override case
  *      lays the fixed 0x3952 anim vector.
  *   3. TEETH — a wrong slot cell (RAM) and a wrong A (live-out) are each CAUGHT.
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_379d as oracle } from "../../translated/loc_379d.js";
-import { loc_379d } from "../loc_379d.js";
+import { spawnActorSlotFromTemplate } from "../spawnActorSlotFromTemplate.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -88,12 +88,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted spawn cases — loc_379d == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted spawn cases — spawnActorSlotFromTemplate == oracle in RAM (−stack) + A", () => {
   for (const spec of CASES) {
     const o = craft(spec);
     oracle(o);
     const c = craft(spec);
-    const ret = loc_379d(c);
+    const ret = spawnActorSlotFromTemplate(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -150,7 +150,7 @@ test("TEETH: a wrong slot field is CAUGHT by the RAM diff", () => {
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  loc_379d(c);
+  spawnActorSlotFromTemplate(c);
   c.mem8[SLOT + 0x05] = (o.mem8[SLOT + 0x05] ^ 0xff) & 0xff; // BUG: wrong biased X byte
 
   const d = ramDiffMinusStack(o, c);
@@ -164,7 +164,7 @@ test("TEETH: a wrong A is CAUGHT by the live-out check", () => {
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  const ret = loc_379d(c);
+  const ret = spawnActorSlotFromTemplate(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A matches oracle");
   const broken = (o.regs.a ^ 0xff) & 0xff; // a wrong A the === check must reject
   assert.notEqual(broken, o.regs.a & 0xff, "the live-out check must reject a wrong A");

@@ -123,7 +123,7 @@ function craft3d5c() {
   m.regs.sp = SP0;
   m.mem8[REC_3D5C + 0x11] = 0x01; //  frame timer -> expires this tick
   m.mem8[REC_3D5C + 0x16] = 0x02; //  animation phase (ordinary: not turn/swap)
-  m.mem8[REC_3D5C + 0x0e] = 0x05; //  loc_4006 frame-hold nonzero -> simple decrement, no ROM walk
+  m.mem8[REC_3D5C + 0x0e] = 0x05; //  advanceObjectAnimationFrame frame-hold nonzero -> simple decrement, no ROM walk
   m.mem8[REC_3D5C + 0x07] = 0x01;
   m.mem8[REC_3D5C + 0x02] = 0x03; //  starting state
   return m;

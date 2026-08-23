@@ -3,14 +3,14 @@
  * Memory-equivalence test for loc_66a1 (ROM 0x66a1) — "countdown-gated sprite-table applier":
  * decrement the BLINK_PHASE (0x892b) cell; while non-zero return; on zero reload it to 0x08, advance
  * the select phase (0x892c), pick a 3-tile ROM source table by the phase's bit 0 (even 0x66bf / odd
- * 0x66c2), and copy those tiles into three actor records (IX, IX-0x18, IX-0x30) via loc_2514.
+ * 0x66c2), and copy those tiles into three actor records (IX, IX-0x18, IX-0x30) via copyDisplayTilesIntoActorRecords.
  *
  * The go-forward contract is RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are NOT compared.
  * There is no register live-out: the sole caller (loc_6666) issues this then ret's, reading nothing
  * back, so the oracle's early-exit A/HL/flags are dead. IX is the one live-in (loc_6666 seeds 0x8c78).
  *
  * The routine is not reached in a plain attract, so every case is CRAFTED (poke BLINK_PHASE / the
- * select phase / IX identically on both sides). loc_2514's board-clear tail is kept off by zeroing
+ * select phase / IX identically on both sides). copyDisplayTilesIntoActorRecords's board-clear tail is kept off by zeroing
  * TAMPER_STRIKES_TERMINATOR + BOARD_CLEAR_FLAG.
  *
  * Jobs: 1. EQUAL over both table parities + the early-exit bail. 2. WRITE-SET (the reload, the phase,
@@ -41,7 +41,7 @@ const BLINK_PHASE = 0x892b;
 const SELECT_PHASE = 0x892c;
 const TABLE_EVEN = 0x66bf;
 const TABLE_ODD = 0x66c2;
-const REC_TILE = 0x0f; //           record byte loc_2514 writes the tile into
+const REC_TILE = 0x0f; //           record byte copyDisplayTilesIntoActorRecords writes the tile into
 const IX = 0x8c78; //               the record pointer loc_6666 seeds
 const RECS = [0x8c78, 0x8c60, 0x8c48]; // IX, IX-0x18, IX-0x30 (count 3, stride -0x18)
 const TAMPER_STRIKES_TERMINATOR = 0x8df9;

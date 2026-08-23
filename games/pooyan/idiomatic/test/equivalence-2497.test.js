@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2497 (ROM 0x2497, Pooyan) — "actor state-2: frame-delay countdown
+ * Memory-equivalence test for nudgeLeadActorAndAdvanceOnDelay (ROM 0x2497, Pooyan) — "actor state-2: frame-delay countdown
  * then advance the state and nudge the primary record".
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
- * oracle on one and loc_2497 on the other, compared on RAM (dumpState, minus STACK_SCRATCH) PLUS the
+ * oracle on one and nudgeLeadActorAndAdvanceOnDelay on the other, compared on RAM (dumpState, minus STACK_SCRATCH) PLUS the
  * declared register live-out A. pc/SP/cycles are deliberately not compared.
  *
  * INPUTS: IX (the dispatched record; the dispatcher preloads it to the actor table base 0x8a80) and
@@ -18,10 +18,10 @@
  * is untouched (the decrement is memory-only), so both sides leave the seated A.
  *
  * The leaf is not reached in a plain boot, so every case is CRAFTED. The board-clear/tamper flags are
- * left 0 so loc_2514 takes its plain copy path (no reset diversion).
+ * left 0 so copyDisplayTilesIntoActorRecords takes its plain copy path (no reset diversion).
  *
  * Jobs:
- *   1. EQUAL — the still-counting early return and the expiry path, oracle == loc_2497 in RAM (−stack)
+ *   1. EQUAL — the still-counting early return and the expiry path, oracle == nudgeLeadActorAndAdvanceOnDelay in RAM (−stack)
  *      and A.
  *   2. WRITE-SET — the expiry path writes only within the frame-delay/state/shape-field/primary set.
  *   3. TEETH — a wrong secondary byte (RAM) and a wrong returned A (live-out) are each CAUGHT.
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2497 as oracle } from "../../translated/loc_2497.js";
-import { loc_2497 } from "../loc_2497.js";
+import { nudgeLeadActorAndAdvanceOnDelay } from "../nudgeLeadActorAndAdvanceOnDelay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -81,7 +81,7 @@ function craft(f) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: still-counting and expiry paths — loc_2497 == oracle in RAM (−stack) + A", () => {
+test("EQUAL: still-counting and expiry paths — nudgeLeadActorAndAdvanceOnDelay == oracle in RAM (−stack) + A", () => {
   const cases = [
     { name: "still counting (delay 0x05 -> 0x04)", f: { delay: 0x05 } },
     { name: "expiry (delay 0x01 -> 0x00, advance + nudge)", f: { delay: 0x01 } },
@@ -90,14 +90,14 @@ test("EQUAL: still-counting and expiry paths — loc_2497 == oracle in RAM (−s
     const o = craft(cse.f);
     oracle(o);
     const c = craft(cse.f);
-    loc_2497(c);
+    nudgeLeadActorAndAdvanceOnDelay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(c.regs.a & 0xff, o.regs.a & 0xff, `[${cse.name}] A live-out mismatch`);
   }
   // The still-counting path must leave the seated A untouched (decrement is memory-only).
   const still = craft({ delay: 0x05 });
-  loc_2497(still);
+  nudgeLeadActorAndAdvanceOnDelay(still);
   assert.equal(still.regs.a & 0xff, SEED_A, "the early return must leave A untouched");
   console.log(`  EQUAL: ${cases.length} paths identical (RAM −stack + A)`);
 });
@@ -136,7 +136,7 @@ test("TEETH: a wrong secondary byte is CAUGHT by the RAM diff", () => {
   const o = craft({ delay: 0x01, secondary: 0x30 });
   const c = craft({ delay: 0x01, secondary: 0x30 });
   oracle(o);
-  loc_2497(c);
+  nudgeLeadActorAndAdvanceOnDelay(c);
   c.mem8[ACTOR_TABLE + OFF_SECONDARY] = 0x00; // BUG: secondary must be 0x2a
 
   const d = ramDiffMinusStack(o, c);
@@ -149,7 +149,7 @@ test("TEETH: a wrong returned A is CAUGHT by the live-out check", () => {
   const o = craft({ delay: 0x01, secondary: 0x30 });
   const c = craft({ delay: 0x01, secondary: 0x30 });
   oracle(o);
-  const ret = loc_2497(c);
+  const ret = nudgeLeadActorAndAdvanceOnDelay(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: the module's A return matches the oracle");
   assert.equal(c.regs.a & 0xff, o.regs.a & 0xff, "sanity: the module SET A on its own clone");
   // the pre-subtract secondary (0x30) is a plausible bug the live-out check must reject

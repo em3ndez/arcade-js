@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_3a6c } from "./loc_3a6c.js";
+import { launchProjectileIntoFreeSlot } from "./launchProjectileIntoFreeSlot.js";
 import {
   INTRO_DELAY_CKSUM_WORD,
   LAUNCH_SEQ_COUNTER,
@@ -66,6 +66,6 @@ export function loc_6e86(m) {
   // arm the selected record and launch it
   mem8[rec + 0x02] = 0x06;
   setActorAnimation(m, rec, SPAWN_ANIM_TABLE_396A);
-  loc_3a6c(m, rec);
+  launchProjectileIntoFreeSlot(m, rec);
   mem8[LAUNCH_SEQ_COUNTER] = mem8[LAUNCH_SEQ_COUNTER] + 1;
 }
