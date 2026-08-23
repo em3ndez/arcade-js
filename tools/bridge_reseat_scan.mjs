@@ -13,7 +13,7 @@
 // A HIT is a CANDIDATE, never a verdict: the poison-at-entry tooth is conservative -- it flags any routine
 // whose observable effect would diverge if the register differed from the param at a downstream read, a
 // SUPERSET of real defects. Triage each vs the oracle/MAME (a caller that seats the register, or an
-// unclobbered pure dispatcher, is a false positive). See docs / POOYAN-OPEN-GAPS for the triage record.
+// unclobbered pure dispatcher, is a false positive). See scratchpad/POOYAN-OPEN-GAPS.md for the triage record.
 //
 // Run:  node tools/bridge_reseat_scan.mjs --game pooyan
 //       node tools/bridge_reseat_scan.mjs --game pooyan --selfcheck   (proves the driver reports >0)
@@ -80,22 +80,25 @@ async function enumerateBridges(g) {
   for (const [addr, meta] of Object.entries(g.names.ROUTINES)) nameToAddr.set(meta.name, Number(addr));
   const files = readdirSync(idir).filter((f) => f.endsWith(".js") && f !== "names.js");
   const bridges = [];
-  const skips = { noAddr: 0, noOracle: 0, notPureBridge: 0, noBridgeParam: 0 };
+  // Every module lands in exactly one bucket -- a bridge, or a counted skip. No silent drops: an
+  // unparsedSig (regex matched the export but bridgeSignature's exact marker did not, e.g. a space before
+  // the paren) would otherwise vanish uncounted, hiding a real bridge from the coverage report.
+  const skips = { noFnExport: 0, noAddr: 0, noOracle: 0, unparsedSig: 0, notPureBridge: 0, noBridgeParam: 0, noCallable: 0 };
   for (const f of files) {
     const src = readFileSync(join(idir, f), "utf8");
     const exp = src.match(/export function ([A-Za-z_$][\w$]*)\s*\(/);
-    if (!exp) continue;
+    if (!exp) { skips.noFnExport++; continue; }
     const fnName = exp[1];
     const locm = f.match(/^loc_([0-9a-f]{4})\.js$/);
     const addr = locm ? parseInt(locm[1], 16) : nameToAddr.get(fnName) ?? null;
     if (addr == null) { skips.noAddr++; continue; }
     if (!translatedByAddr.has(addr)) { skips.noOracle++; continue; }
     const sig = bridgeSignature(src, fnName);
-    if (!sig) continue;
+    if (!sig) { skips.unparsedSig++; continue; }
     if (!sig.pure) { skips.notPureBridge++; continue; }
     if (sig.params.length === 0) { skips.noBridgeParam++; continue; }
     const mod = await import(join(idir, f));
-    if (typeof mod[fnName] !== "function") continue;
+    if (typeof mod[fnName] !== "function") { skips.noCallable++; continue; }
     bridges.push({ addr, name: fnName, params: sig.params, fn: mod[fnName], oracle: translatedByAddr.get(addr) });
   }
   return { bridges, skips, translatedByAddr };
@@ -145,6 +148,7 @@ function toothOne(b, entry, inDeadStack) {
 function pooyanScenarios(A, names) {
   const press = (a, act) => { a[act.port] = (a[act.port] || 0) | act.bit; };
   const play = (a, f) => { if (f % 24 < 4) press(a, A.fire); press(a, Math.floor(f / 60) % 2 ? A.down : A.up); };
+  const coinStart1 = (a, f) => { if (f >= 300 && f < 306) press(a, A.coin); if (f >= 360 && f < 366) press(a, A.start1); if (f >= 420) play(a, f); };
   return [
     { name: "attract", frames: 900 },
     {
@@ -160,6 +164,28 @@ function pooyanScenarios(A, names) {
       name: "late-wave (round-advance poke)", frames: 1700,
       tape: (m, f) => { const a = {}; if (f >= 300 && f < 306) press(a, A.coin); if (f >= 360 && f < 366) press(a, A.start1); if (f >= 420) play(a, f); return a; },
       poke: (m, f) => { if (f === 700) m.mem.write8(names.ROUND_COUNTER, 0x06); },
+    },
+    {
+      // Long natural play, sustained fire -> survive and advance through waves organically (pooyan's
+      // ROM-integrity checks TRAP a raw state/round poke, so deep states are reached by PLAY, not pokes).
+      name: "long survive (sustained fire)", frames: 4200,
+      tape: (m, f) => {
+        const a = {}; if (f >= 300 && f < 306) press(a, A.coin); if (f >= 360 && f < 366) press(a, A.start1);
+        if (f >= 420) { if (f % 10 < 6) press(a, A.fire); press(a, Math.floor(f / 45) % 2 ? A.down : A.up); }
+        return a;
+      },
+    },
+    {
+      // No-fire play -> let waves through -> lose lives -> the death / life-loss states (lives 3->2->1).
+      // NOTE: true game-over is NOT reachable this way yet -- past ~f5510 the deep-death path reaches the
+      // untranslated 0x1c03 (a 0x15a8-dispatch handler) and throws, before all lives are spent; capped here
+      // to capture the life-loss states cleanly. Translating 0x1c03 unblocks the game-over subtree.
+      name: "no-fire deep death (life-loss states)", frames: 4000,
+      tape: (m, f) => {
+        const a = {}; if (f >= 300 && f < 306) press(a, A.coin); if (f >= 360 && f < 366) press(a, A.start1);
+        if (f >= 420) press(a, Math.floor(f / 90) % 2 ? A.down : A.up); // move but never fire
+        return a;
+      },
     },
   ];
 }
@@ -206,7 +232,8 @@ export async function scan(game, { selfcheck = false, quiet = false } = {}) {
 }
 
 function printReport(r) {
-  console.log(`bridge routines enumerated: ${r.enumerated}  (skipped: noAddr=${r.skips.noAddr} noOracle=${r.skips.noOracle} notPureBridge=${r.skips.notPureBridge})`);
+  const skipStr = Object.entries(r.skips).filter(([, n]) => n).map(([k, n]) => `${k}=${n}`).join(" ") || "none";
+  console.log(`bridge routines enumerated: ${r.enumerated}  (skipped: ${skipStr})`);
   for (const s of r.perScenario) console.log(`  scenario "${s.name}": ${s.frames} frames (${s.stop}${s.err ? " ERR " + s.err : ""}) -> captured ${s.captured}`);
   console.log(`COVERAGE: reached ${r.reached}/${r.enumerated} under the scenarios; ${r.notReached.length} not reached (need deeper poke-tapes)`);
   console.log(`TOOTH: clean=${r.clean} unscannable=${r.unscannable} HITS=${r.hits.length}`);
