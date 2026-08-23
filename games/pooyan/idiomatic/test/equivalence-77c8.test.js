@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_77c8 (ROM 0x77c8, Pooyan) — clear + re-seed an actor slot behind a
+ * Memory-equivalence test for clearAndReseedObjectSlot (ROM 0x77c8, Pooyan) — clear + re-seed an actor slot behind a
  * colour-RAM integrity check.
  *
  * An actor-slot (re)initialiser read from IX; it writes only record RAM, so the contract is memory
@@ -18,7 +18,7 @@
  *
  * Jobs:
  *   1. EQUAL — early path ((REC+0x13) < 5 -> clear + return) and normal path (>= 5 -> seed + integrity
- *      pass + return): oracle == loc_77c8 in RAM (−stack).
+ *      pass + return): oracle == clearAndReseedObjectSlot in RAM (−stack).
  *   2. WRITE-SET — the normal path seeds (REC+1)=1, (REC+2)=3, (REC+0x11)=0x80; the early path clears
  *      the slot and leaves them 0.
  *   3. TEETH — a wrong seeded byte is CAUGHT by the RAM diff; a neighbour mismatch THROWS the trap.
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_77c8 as oracle } from "../../translated/loc_77c8.js";
-import { loc_77c8 } from "../loc_77c8.js";
+import { clearAndReseedObjectSlot } from "../clearAndReseedObjectSlot.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -74,12 +74,12 @@ function craft(spawnIdx, cellVal) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: early + normal path — loc_77c8 == oracle in RAM (−stack)", () => {
+test("EQUAL: early + normal path — clearAndReseedObjectSlot == oracle in RAM (−stack)", () => {
   for (const [label, idx] of [["normal (idx>=5)", 0x05], ["early (idx<5)", 0x03]]) {
     const o = craft(idx, PASS_VAL);
     oracle(o);
     const c = craft(idx, PASS_VAL);
-    loc_77c8(c);
+    clearAndReseedObjectSlot(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -109,7 +109,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x05, PASS_VAL);
   const c = craft(0x05, PASS_VAL);
   oracle(o);
-  loc_77c8(c);
+  clearAndReseedObjectSlot(c);
   c.mem8[REC + 0x11] = 0x00; // BUG: the normal path must have seeded (REC+0x11) to 0x80
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong seeded byte — it is worthless");
@@ -120,14 +120,14 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
 test("TEETH: a colour-RAM neighbour mismatch THROWS the tamper trap", () => {
   const c = craft(0x05, PASS_VAL);
   c.mem8[STRIP] = (PASS_VAL + 1) & 0xff; // break the first neighbour comparison
-  assert.throws(() => loc_77c8(c), /tamper trap/, "neighbour mismatch must throw the data-table trap");
+  assert.throws(() => clearAndReseedObjectSlot(c), /tamper trap/, "neighbour mismatch must throw the data-table trap");
   console.log("  TEETH/throw: neighbour mismatch trapped");
 });
 
 // -- 4. SP-TOOTH --------------------------------------------------------------
 
 test("SP-TOOTH: the reachable normal path (omitted ret, moved 0) is seam-placeable", () => {
-  const r = seamPlaceable(withOmittedRet, loc_77c8, 0x77c8, craft(0x05, PASS_VAL));
+  const r = seamPlaceable(withOmittedRet, clearAndReseedObjectSlot, 0x77c8, craft(0x05, PASS_VAL));
   assert.equal(r.placeable, true, `normal path must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: normal path (moved 0) placeable");
 });

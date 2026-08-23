@@ -4,7 +4,7 @@ import { FORMATION_TABLE } from "./names.js";
 import { loc_4006 } from "./loc_4006.js";
 import { loc_3cae } from "./loc_3cae.js";
 /**
- * loc_3c92 — object state-1 handler: tick animation, then periodically spawn a child.
+ * loc_3c92 — object state-7 handler: tick animation, then periodically spawn a child.
  *
  * Advances the parent's animation and counts down its frame timer, returning until it elapses.
  * On elapse it walks the four formation records (stride 0x18), asking the spawn helper to seat a

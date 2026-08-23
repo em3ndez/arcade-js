@@ -1,26 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_159b (ROM 0x159b, Pooyan) — the top-level game state-3 (play)
+ * Memory-equivalence test for runPlayStateFrame (ROM 0x159b, Pooyan) — the top-level game state-3 (play)
  * handler: tick the BCD play-timer, then dispatch the in-play sub-state through the frozen rst-0x28
  * dispatcher loc_15a1 with the continuation seated in HL, and run the post-dispatch continuation
- * loc_15d1.
+ * resetToBoardBuildToContinuePlay.
  *
- * The module dissolves loc_7912 and the continuation loc_15d1 to direct idiomatic calls and keeps
+ * The module dissolves loc_7912 and the continuation resetToBoardBuildToContinuePlay to direct idiomatic calls and keeps
  * m.call for the frozen sub-state dispatcher loc_15a1 (continuation seated in HL); the oracle drives
- * all three through the routines map. loc_159b is a void handler returning into the NMI service — no
+ * all three through the routines map. runPlayStateFrame is a void handler returning into the NMI service — no
  * register survives — so the
  * register file is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in
  * dead stack so the nested dispatch pushes drop out of the diff.
  *
  * The crafted state seats the sub-state dispatch to index 1 (handler loc_16b7) with the phase timer
  * running, so the handler's sole effect is a single phase-timer decrement; the in-play gate is set so
- * the play-timer tick runs and the continuation loc_15d1 returns immediately — an isolated footprint.
+ * the play-timer tick runs and the continuation resetToBoardBuildToContinuePlay returns immediately — an isolated footprint.
  *
  * Jobs:
- *   1. EQUAL — oracle == loc_159b in RAM (−stack).
+ *   1. EQUAL — oracle == runPlayStateFrame in RAM (−stack).
  *   2. WRITE-SET — the dispatch decrements the phase timer.
  *   3. TEETH — a wrong phase-timer byte is CAUGHT by the RAM diff.
- *   4. SP-TOOTH — the tail dispatch (loc_15d1 pops the caller's slot, SP +2) is seam-placeable.
+ *   4. SP-TOOTH — the tail dispatch (resetToBoardBuildToContinuePlay pops the caller's slot, SP +2) is seam-placeable.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-159b.test.js
  */
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_159b as oracle } from "../../translated/loc_159b.js";
-import { loc_159b } from "../loc_159b.js";
+import { runPlayStateFrame } from "../runPlayStateFrame.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -44,7 +44,7 @@ const test = ROM_PRESENT
 
 const STATE_INDEX = 0x880a; // PLAY_STATE_INDEX; &0x1f indexes the 0x15a8 dispatch table
 const PHASE_TIMER = 0x8808; // decremented by the index-1 handler loc_16b7
-const GAME_ACTIVE = 0x8806; // GAME_ACTIVE_FLAG; set -> play-timer runs, loc_15d1 returns at once
+const GAME_ACTIVE = 0x8806; // GAME_ACTIVE_FLAG; set -> play-timer runs, resetToBoardBuildToContinuePlay returns at once
 const SP0 = 0x8ff0; //        inside STACK_SCRATCH
 const CALLER_RET = 0xfffc; // caller-return word seated at SP0; the tail dispatch pops it (pc==this)
 
@@ -68,11 +68,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_159b == oracle in RAM (−stack)", () => {
+test("EQUAL: runPlayStateFrame == oracle in RAM (−stack)", () => {
   const o = craft();
   oracle(o);
   const c = craft();
-  loc_159b(c);
+  runPlayStateFrame(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: identical (RAM −stack)");
@@ -93,7 +93,7 @@ test("TEETH: a wrong phase-timer byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_159b(c);
+  runPlayStateFrame(c);
   c.mem8[PHASE_TIMER] = 0x60; // BUG: the dispatch must have decremented the phase timer
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong phase-timer byte — it is worthless");
@@ -106,7 +106,7 @@ test("TEETH: a wrong phase-timer byte is CAUGHT by the RAM diff", () => {
 test("SP-TOOTH: the register-bridge dispatch through loc_15a1 is seam-placeable", () => {
   const entry = craft();
   entry.mem.write16(SP0, CALLER_RET); // the caller's return word the seam completes
-  const r = seamPlaceable(withOmittedRet, loc_159b, 0x159b, entry);
+  const r = seamPlaceable(withOmittedRet, runPlayStateFrame, 0x159b, entry);
   assert.equal(r.placeable, true, `the dispatch must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: loc_159b dispatch seam-placeable");
+  console.log("  SP-TOOTH: runPlayStateFrame dispatch seam-placeable");
 });

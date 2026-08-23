@@ -6,7 +6,7 @@
  * attract sub-state (0x8e51), and seat 0x0b26 into the 0x8f48 attract cursor word.
  *
  * Cycle-free memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
- * STACK_SCRATCH) only. The routine has NO register live-out — its dispatcher (loc_0899) resumes
+ * STACK_SCRATCH) only. The routine has NO register live-out — its dispatcher (dispatchAttractSubstate) resumes
  * in the shared epilogue loc_0bb5, which reloads its registers from memory — so pc and the whole
  * register file are deliberately NOT compared.
  *

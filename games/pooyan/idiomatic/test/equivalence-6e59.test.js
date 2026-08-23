@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6e59 (ROM 0x6e59, Pooyan) — the level-intro phase-1 per-frame body:
- * a fixed run of nine sub-passes (frame-tick + gameplay dispatch loc_1583, phase-1 spawner, joystick
+ * Memory-equivalence test for runLevelIntroPhase1Frame (ROM 0x6e59, Pooyan) — the level-intro phase-1 per-frame body:
+ * a fixed run of nine sub-passes (frame-tick + gameplay dispatch tickHudRefresh, phase-1 spawner, joystick
  * sampler, object-update gate, sprite rebuild, bonus tally, speed pick, collision driver, sound-ring
- * drain), all dissolved to direct idiomatic calls; the oracle drives the same siblings. loc_6e59 is a
+ * drain), all dissolved to direct idiomatic calls; the oracle drives the same siblings. runLevelIntroPhase1Frame is a
  * void driver, so equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * The state is seated benign (valid-ROM flags clear, formation off, timers on their decrement arms,
- * HUD_REFRESH_TICK seeded so loc_1583 ticks then returns early): the tick is the first observable
+ * HUD_REFRESH_TICK seeded so tickHudRefresh ticks then returns early): the tick is the first observable
  * footprint, the sound-ring head advance the last.
  *
  * Jobs: EQUAL (benign chain matches the oracle in RAM −stack), WRITE-SET (the tick fires first, the
@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6e59 as oracle } from "../../translated/loc_6e59.js";
-import { loc_6e59 } from "../loc_6e59.js";
+import { runLevelIntroPhase1Frame } from "../runLevelIntroPhase1Frame.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -72,9 +72,9 @@ function craft() {
 }
 
 // -- 1. EQUAL -----------------------------------------------------------------
-test("EQUAL: benign nine-pass chain — loc_6e59 == oracle in RAM (−stack)", () => {
+test("EQUAL: benign nine-pass chain — runLevelIntroPhase1Frame == oracle in RAM (−stack)", () => {
   const o = craft(); oracle(o);
-  const c = craft(); loc_6e59(c);
+  const c = craft(); runLevelIntroPhase1Frame(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: nine-pass chain identical (RAM −stack)");
@@ -92,7 +92,7 @@ test("WRITE-SET: the chain runs end to end (first tick + last drain)", () => {
 // -- 3. TEETH -----------------------------------------------------------------
 test("TEETH: a wrong 0x8f4d tick is CAUGHT by the RAM diff", () => {
   const o = craft(); const c = craft();
-  oracle(o); loc_6e59(c);
+  oracle(o); runLevelIntroPhase1Frame(c);
   c.mem8[FRAME_TICK] = (c.mem8[FRAME_TICK] + 1) & 0xff; // corrupt the tick
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong tick — it is worthless");
@@ -102,7 +102,7 @@ test("TEETH: a wrong 0x8f4d tick is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (R36) --------------------------------------------------------
 test("SP-TOOTH: the driver is seam-placeable (moved 0)", () => {
-  const r = seamPlaceable(withOmittedRet, loc_6e59, 0x6e59, craft());
+  const r = seamPlaceable(withOmittedRet, runLevelIntroPhase1Frame, 0x6e59, craft());
   assert.equal(r.placeable, true, `driver must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: loc_6e59 placeable (moved 0, seam supplies the ret)");
+  console.log("  SP-TOOTH: runLevelIntroPhase1Frame placeable (moved 0, seam supplies the ret)");
 });

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2dbc (ROM 0x2dbc, Pooyan) — the rope-extend blit driver
+ * Memory-equivalence test for advanceRopeExtendAnimation (ROM 0x2dbc, Pooyan) — the rope-extend blit driver
  * (ROPE_EXTEND_STATE == 1). It counts the hold timer, and on expiry either advances the blit
  * sequence (look up this frame's tile block, blit at the rope column, bump the frame index) or,
  * once the index reaches 8, resets the sequence and re-arms the next rope cell.
  *
  * The module dissolves the tile lookup (loc_0c45) and the 2x2 blit (blit2x2TileBlock) to direct
  * calls; the oracle drives the same frozen helpers via the registry new Machine(ROM) builds.
- * loc_2dbc is a void handler — no register survives — so equivalence is RAM (dumpState) minus
+ * advanceRopeExtendAnimation is a void handler — no register survives — so equivalence is RAM (dumpState) minus
  * STACK_SCRATCH, SP parked in dead stack.
  *
  * Jobs:
- *   1. EQUAL — timer-running, blit, and reset arms: oracle == loc_2dbc in RAM (−stack).
+ *   1. EQUAL — timer-running, blit, and reset arms: oracle == advanceRopeExtendAnimation in RAM (−stack).
  *   2. WRITE-SET — the blit arm bumps the frame index; the reset arm zeroes the index + state.
  *   3. TEETH — a wrong blitted VRAM tile is CAUGHT by the RAM diff.
  *
@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2dbc as oracle } from "../../translated/loc_2dbc.js";
-import { loc_2dbc } from "../loc_2dbc.js";
+import { advanceRopeExtendAnimation } from "../advanceRopeExtendAnimation.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -75,10 +75,10 @@ function craftReset() {
 }
 
 // -- 1. EQUAL -----------------------------------------------------------------
-test("EQUAL: running + blit + reset arms — loc_2dbc == oracle in RAM (−stack)", () => {
+test("EQUAL: running + blit + reset arms — advanceRopeExtendAnimation == oracle in RAM (−stack)", () => {
   for (const [label, craft] of [["running", craftRunning], ["blit", craftBlit], ["reset", craftReset]]) {
     const o = craft(); oracle(o);
-    const c = craft(); loc_2dbc(c);
+    const c = craft(); advanceRopeExtendAnimation(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -100,7 +100,7 @@ test("WRITE-SET: blit bumps the frame index; reset zeroes the index and state", 
 // -- 3. TEETH -----------------------------------------------------------------
 test("TEETH: a wrong blitted VRAM tile is CAUGHT by the RAM diff", () => {
   const o = craftBlit(); const c = craftBlit();
-  oracle(o); loc_2dbc(c);
+  oracle(o); advanceRopeExtendAnimation(c);
   c.mem8[VRAM] = (c.mem8[VRAM] + 1) & 0xff; // corrupt one blitted tile
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong blitted tile — it is worthless");

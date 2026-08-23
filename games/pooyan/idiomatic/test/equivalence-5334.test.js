@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5334 (ROM 0x5334, Pooyan) — the lane-sweep script tick.
+ * Memory-equivalence test for spawnNextScriptedEnemy (ROM 0x5334, Pooyan) — the lane-sweep script tick.
  *
- * The idiomatic module calls the idiomatic loc_5374 directly (the exx register-bank dance dissolves
- * into JS locals); the oracle drives the frozen loc_5374 across the same 6-record sweep. loc_5334 is
+ * The idiomatic module calls the idiomatic activateLaneActorSlot directly (the exx register-bank dance dissolves
+ * into JS locals); the oracle drives the frozen activateLaneActorSlot across the same 6-record sweep. spawnNextScriptedEnemy is
  * a dispatched void handler — no register survives — so equivalence is RAM (dumpState) minus
  * STACK_SCRATCH.
  *
@@ -12,7 +12,7 @@
  * CLEAR (script byte 0xff, threshold passed -> clear guard/latch/spawn-timer).
  *
  * Jobs:
- *   1. EQUAL — all four arms: oracle == loc_5334 in RAM (−stack).
+ *   1. EQUAL — all four arms: oracle == spawnNextScriptedEnemy in RAM (−stack).
  *   2. WRITE-SET — CLEAR zeroes the guard/latch; SWEEP advances the pointer + reseeds the delay.
  *   3. TEETH — a wrong advanced pointer is CAUGHT by the RAM diff.
  *
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5334 as oracle } from "../../translated/loc_5334.js";
-import { loc_5334 } from "../loc_5334.js";
+import { spawnNextScriptedEnemy } from "../spawnNextScriptedEnemy.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -76,12 +76,12 @@ const SCENARIOS = ["notlatched", "delay", "sweep", "clear"];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: all four arms — loc_5334 == oracle in RAM (−stack)", () => {
+test("EQUAL: all four arms — spawnNextScriptedEnemy == oracle in RAM (−stack)", () => {
   for (const s of SCENARIOS) {
     const o = craft(s);
     oracle(o);
     const c = craft(s);
-    loc_5334(c);
+    spawnNextScriptedEnemy(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${s}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -110,7 +110,7 @@ test("TEETH: a wrong advanced pointer is CAUGHT by the RAM diff", () => {
   const o = craft("sweep");
   const c = craft("sweep");
   oracle(o);
-  loc_5334(c);
+  spawnNextScriptedEnemy(c);
   c.mem.write16(SCRIPT_DATA_PTR, SCRIPT_CELL); // BUG: the sweep must have advanced the pointer
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a stale script pointer — it is worthless");

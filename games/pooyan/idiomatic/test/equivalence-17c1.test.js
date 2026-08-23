@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_17c1 (ROM 0x17c1, Pooyan) — the play-state idx3 handler:
+ * Memory-equivalence test for spawnEnemyWave (ROM 0x17c1, Pooyan) — the play-state idx3 handler:
  * enemy-wave setup + spawn. Selects a seed/cursor pair, seeds four actor records, nudges,
  * seats the anim-script cursor, steps the animators, then on the play-mode latch either arms a
  * play-state / copies the intro string (zero branch) or fans out a sprite group (nonzero branch).
  *
- * loc_17c1 is void — no register survives — so the register file is not compared; equivalence is
+ * spawnEnemyWave is void — no register survives — so the register file is not compared; equivalence is
  * RAM (dumpState) minus STACK_SCRATCH via firstStateDiff, SP parked in dead stack. The animator
- * pass (loc_22b1) is held on its skip arm (grab latch set) so the diff isolates loc_17c1's own
+ * pass (loc_22b1) is held on its skip arm (grab latch set) so the diff isolates spawnEnemyWave's own
  * writes; the dissolved loc_0c45 / setActorAnimation on the group path read/write identical bytes.
  *
  * Jobs:
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_17c1 as oracle } from "../../translated/loc_17c1.js";
-import { loc_17c1 } from "../loc_17c1.js";
+import { spawnEnemyWave } from "../spawnEnemyWave.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -80,12 +80,12 @@ function craftGroup() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: arm + group branches — loc_17c1 == oracle in RAM (−stack)", () => {
+test("EQUAL: arm + group branches — spawnEnemyWave == oracle in RAM (−stack)", () => {
   for (const [label, craft] of [["arm-0x12", craftArm], ["group build", craftGroup]]) {
     const o = craft();
     oracle(o);
     const c = craft();
-    loc_17c1(c);
+    spawnEnemyWave(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -115,7 +115,7 @@ test("TEETH: a wrong PLAY_STATE_INDEX is CAUGHT by the RAM diff", () => {
   const o = craftGroup();
   const c = craftGroup();
   oracle(o);
-  loc_17c1(c);
+  spawnEnemyWave(c);
   c.mem8[PLAY_STATE] = 0x12; // BUG: the group branch must arm 0x0f, not 0x12
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong PLAY_STATE_INDEX — it is worthless");

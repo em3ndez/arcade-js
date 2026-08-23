@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5519 (ROM 0x5519, Pooyan) — spawn scheduler B: gate on round /
+ * Memory-equivalence test for spawnShotTargetOnInterval (ROM 0x5519, Pooyan) — spawn scheduler B: gate on round /
  * difficulty, tick the per-type spawn countdown, and only on zero reload it from the interval table
  * (indexed by the low nibble of the spawn cursor), advance the cursor, and fall through into the
  * spawn loop loc_5544.
  *
  * The module calls the idiomatic loc_0020 / loc_5544 directly; the oracle drives them through the
- * frozen registry. loc_5519 declares no register live-out (loc_5544 is memory-only and the caller
+ * frozen registry. spawnShotTargetOnInterval declares no register live-out (loc_5544 is memory-only and the caller
  * reads only memory back), so the register file is not compared; equivalence is RAM (dumpState) minus
  * STACK_SCRATCH (SP parked in dead stack so the loop's push/pop and loc_5489's caller-skip drop out).
  * The SEED case (a free spawn block) exercises loc_5544's caller-skip through loc_5489; the ALL-LIVE
  * case makes the block live so the scan falls out with no seed. Both read ROM tables -> ROM required.
  *
  * Jobs:
- *   1. EQUAL — gate-fail / countdown-running / reload-no-seed / reload-seed: oracle == loc_5519.
+ *   1. EQUAL — gate-fail / countdown-running / reload-no-seed / reload-seed: oracle == spawnShotTargetOnInterval.
  *   2. WRITE-SET — zero reloads the countdown from the table and advances the cursor; nonzero holds.
  *   3. TEETH — a wrong advanced cursor byte is CAUGHT by the RAM diff.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5519 as oracle } from "../../translated/loc_5519.js";
-import { loc_5519 } from "../loc_5519.js";
+import { spawnShotTargetOnInterval } from "../spawnShotTargetOnInterval.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -70,7 +70,7 @@ const reloadByte = (m) => m.mem.read8((TABLE + (m.mem8[SEQIDX] & 0x0f)) & 0xffff
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: gate-fail / running / reload-no-seed / reload-seed — loc_5519 == oracle in RAM (−stack)", () => {
+test("EQUAL: gate-fail / running / reload-no-seed / reload-seed — spawnShotTargetOnInterval == oracle in RAM (−stack)", () => {
   const cases = [
     { round: 0x00, diff: 0x00, cd: 0x05, idx: 0x03, live: 0x01, label: "gate fail (round<2, diff<2)" },
     { round: 0x02, diff: 0x00, cd: 0x05, idx: 0x03, live: 0x01, label: "countdown running -> return" },
@@ -81,7 +81,7 @@ test("EQUAL: gate-fail / running / reload-no-seed / reload-seed — loc_5519 == 
     const o = craft(round, diff, cd, idx, live);
     oracle(o);
     const c = craft(round, diff, cd, idx, live);
-    loc_5519(c);
+    spawnShotTargetOnInterval(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -110,7 +110,7 @@ test("TEETH: a wrong advanced cursor byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x02, 0x00, 0x01, 0x03, 0x01);
   const c = craft(0x02, 0x00, 0x01, 0x03, 0x01);
   oracle(o);
-  loc_5519(c);
+  spawnShotTargetOnInterval(c);
   c.mem8[SEQIDX] = 0x03; // BUG: the reload path must have advanced the cursor to 0x04
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a stale cursor — it is worthless");

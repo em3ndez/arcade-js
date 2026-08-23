@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_4137 (ROM 0x4137, Pooyan) — a per-object descent step for the
+ * Memory-equivalence test for descendObjectToLanding (ROM 0x4137, Pooyan) — a per-object descent step for the
  * record at IX: animate (loc_4006), advance the position by the signed step with a sub-position
  * borrow, and while still travelling return; on landing latch the sound id, reset the object, and
  * tail (via the dissolved loc_0c45 + setActorAnimation) into its landing animation.
  *
- * loc_4137 is void — no register survives — so the register file is not compared; equivalence is
+ * descendObjectToLanding is void — no register survives — so the register file is not compared; equivalence is
  * RAM (dumpState) minus STACK_SCRATCH via firstStateDiff, SP parked in dead stack. IX is passed
  * through the param bridge. loc_4006 is held on its frame-hold arm (+0x0e nonzero) so the diff
  * isolates the descent step; the dissolved loc_0c45 / setActorAnimation read/write identical bytes.
  *
  * Jobs:
  *   1. EQUAL — the LAND path (lands, latches, re-animates) and the TRAVEL path (still moving,
- *      early return): oracle == loc_4137 in RAM (−stack).
+ *      early return): oracle == descendObjectToLanding in RAM (−stack).
  *   2. WRITE-SET — landing latches the sound id at SOUND_ID_LATCH; travelling does not.
  *   3. TEETH — a wrong sound-id latch is CAUGHT by the RAM diff.
  *
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4137 as oracle } from "../../translated/loc_4137.js";
-import { loc_4137 } from "../loc_4137.js";
+import { descendObjectToLanding } from "../descendObjectToLanding.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -69,12 +69,12 @@ function craft(land) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: land + travel paths — loc_4137 == oracle in RAM (−stack)", () => {
+test("EQUAL: land + travel paths — descendObjectToLanding == oracle in RAM (−stack)", () => {
   for (const [label, land] of [["land", true], ["travel", false]]) {
     const o = craft(land);
     oracle(o);
     const c = craft(land);
-    loc_4137(c);
+    descendObjectToLanding(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -104,7 +104,7 @@ test("TEETH: a wrong sound-id latch is CAUGHT by the RAM diff", () => {
   const o = craft(true);
   const c = craft(true);
   oracle(o);
-  loc_4137(c);
+  descendObjectToLanding(c);
   c.mem8[SOUND_LATCH] = 0x00; // BUG: landing must latch 0x05
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong sound latch — it is worthless");

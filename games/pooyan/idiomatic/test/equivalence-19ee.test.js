@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_19ee (ROM 0x19ee, Pooyan) — the gameplay-state per-frame
+ * Memory-equivalence test for stepGameplayFrame (ROM 0x19ee, Pooyan) — the gameplay-state per-frame
  * coordinator: six ordered sub-drivers, then return.
  *
  * The module direct-calls the six idiomatic sub-drivers; the oracle drives the same six frozen
- * routines through the registry new Machine(ROM) builds. loc_19ee is a void driver — no register
+ * routines through the registry new Machine(ROM) builds. stepGameplayFrame is a void driver — no register
  * survives — so the register file is not compared; equivalence is RAM (dumpState) minus
  * STACK_SCRATCH, SP parked in dead stack so nested pushes drop out.
  *
@@ -13,7 +13,7 @@
  * all six, in order — is what the whole-RAM diff proves.
  *
  * Jobs:
- *   1. EQUAL — oracle == loc_19ee in RAM (−stack).
+ *   1. EQUAL — oracle == stepGameplayFrame in RAM (−stack).
  *   2. WRITE-SET — the run is not inert: the secondary-state driver forces the play sub-state to 6.
  *   3. TEETH — a wrong play-sub-state byte is CAUGHT by the RAM diff.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_19ee as oracle } from "../../translated/loc_19ee.js";
-import { loc_19ee } from "../loc_19ee.js";
+import { stepGameplayFrame } from "../stepGameplayFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -61,11 +61,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_19ee == oracle in RAM (−stack)", () => {
+test("EQUAL: stepGameplayFrame == oracle in RAM (−stack)", () => {
   const a = craft();
   const b = craft();
   oracle(a);
-  loc_19ee(b);
+  stepGameplayFrame(b);
   const d = ramDiffMinusStack(a, b);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: coordinator identical (RAM −stack)");
@@ -89,7 +89,7 @@ test("TEETH: a wrong play-sub-state byte is CAUGHT by the RAM diff", () => {
   const a = craft();
   const b = craft();
   oracle(a);
-  loc_19ee(b);
+  stepGameplayFrame(b);
   b.mem8[PLAY_STATE] = (a.mem8[PLAY_STATE] ^ 0xff) & 0xff; // corrupt the sequenced write
   const d = ramDiffMinusStack(a, b);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong play-sub-state byte — worthless");

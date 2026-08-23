@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5b2c (ROM 0x5b2c, Pooyan) — end-of-wave object-table cleanup:
+ * Memory-equivalence test for fireArmedEnemyProjectilesAndDisarm (ROM 0x5b2c, Pooyan) — end-of-wave object-table cleanup:
  * gated by the launch-arm latch 0x8d75 and active-lane count 0x8d79; when the pending flag 0x8d77 is
  * clear it scans six enemy records' +4 field for the wave-end key (0x13 even / 0x0b odd round) and
  * returns on a miss; on a hit (or 0x8d77 set) it sweeps six records through the fire gate loc_5b71
  * and clears 0x8d75 / 0x8f20.
  *
  * The module calls the idiomatic loc_5b71 directly (the oracle's exx only parks the loop counter, a
- * JS local here, so it dissolves); the oracle drives loc_5b71 through the frozen registry. loc_5b2c
+ * JS local here, so it dissolves); the oracle drives loc_5b71 through the frozen registry. fireArmedEnemyProjectilesAndDisarm
  * declares no register live-out (the caller rets straight after), so the register file is not
  * compared; equivalence is RAM (dumpState) minus STACK_SCRATCH. The swept records are left inert
- * (rec+2 != 5) so loc_5b71 no-ops, isolating loc_5b2c's own scan/gate/clear behaviour.
+ * (rec+2 != 5) so loc_5b71 no-ops, isolating fireArmedEnemyProjectilesAndDisarm's own scan/gate/clear behaviour.
  *
  * Jobs:
- *   1. EQUAL — latch-clear / lane-busy / scan-miss / scan-hit / pending-set: oracle == loc_5b2c.
+ *   1. EQUAL — latch-clear / lane-busy / scan-miss / scan-hit / pending-set: oracle == fireArmedEnemyProjectilesAndDisarm.
  *   2. WRITE-SET — the sweep clears 0x8d75 and 0x8f20; a gated-off entry leaves them untouched.
  *   3. TEETH — a non-cleared launch-arm latch is CAUGHT by the RAM diff.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5b2c as oracle } from "../../translated/loc_5b2c.js";
-import { loc_5b2c } from "../loc_5b2c.js";
+import { fireArmedEnemyProjectilesAndDisarm } from "../fireArmedEnemyProjectilesAndDisarm.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -70,7 +70,7 @@ function craft(lane, laneCnt, pending, round, firstKey) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: latch-clear / lane-busy / miss / hit / pending — loc_5b2c == oracle in RAM (−stack)", () => {
+test("EQUAL: latch-clear / lane-busy / miss / hit / pending — fireArmedEnemyProjectilesAndDisarm == oracle in RAM (−stack)", () => {
   const cases = [
     { lane: 0x00, cnt: 0x00, pend: 0x00, round: 0x00, key: 0x00, label: "latch clear -> return" },
     { lane: 0x01, cnt: 0x03, pend: 0x00, round: 0x00, key: 0x00, label: "lane still busy -> return" },
@@ -83,7 +83,7 @@ test("EQUAL: latch-clear / lane-busy / miss / hit / pending — loc_5b2c == orac
     const o = craft(lane, cnt, pend, round, key);
     oracle(o);
     const c = craft(lane, cnt, pend, round, key);
-    loc_5b2c(c);
+    fireArmedEnemyProjectilesAndDisarm(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -111,7 +111,7 @@ test("TEETH: a non-cleared launch-arm latch is CAUGHT by the RAM diff", () => {
   const o = craft(0x01, 0x00, 0x01, 0x00, 0x00);
   const c = craft(0x01, 0x00, 0x01, 0x00, 0x00);
   oracle(o);
-  loc_5b2c(c);
+  fireArmedEnemyProjectilesAndDisarm(c);
   c.mem8[LANE] = 0x01; // BUG: the sweep must have cleared 0x8d75 to 0
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a non-cleared latch — it is worthless");

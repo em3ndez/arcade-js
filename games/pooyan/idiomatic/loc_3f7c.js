@@ -14,7 +14,7 @@ import { setActorAnimation } from "./setActorAnimation.js";
 import { queueSoundCommands82And03 } from "./queueSoundCommands82And03.js";
 import { renderStageCountdownDigits } from "./renderStageCountdownDigits.js";
 /**
- * loc_3f7c — object state-9 (catch) handler for the record based at IX.
+ * loc_3f7c — object state-15 (catch) handler for the record based at IX.
  *
  * Ticks the animation, advances the fall, and returns while still airborne. On landing it installs
  * the splash animation for the caught kind (rec+7), resets the record's state/timer, scores the

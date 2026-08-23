@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2e36 (ROM 0x2e36, Pooyan) — the per-rope-cell dispatcher: return
+ * Memory-equivalence test for dispatchRopeCellState (ROM 0x2e36, Pooyan) — the per-rope-cell dispatcher: return
  * on an inactive cell (state 0), else dispatch the cell's state-1 through the shared rst-28 spine.
  *
  * The module marshals the dispatch index + record into the register bridge and keeps the rst-28
- * m.call; the oracle does the same via `sub`/`rst 0x28`. loc_2e36 is a void dispatcher (no register
+ * m.call; the oracle does the same via `sub`/`rst 0x28`. dispatchRopeCellState is a void dispatcher (no register
  * survives), so equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * The dispatch arm seats the cell state at 1 (index 0 -> rope handler 0x2e5e) with the frame-parity
@@ -12,7 +12,7 @@
  * an isolated, observable write. The inactive arm holds state 0 so the dispatch is skipped.
  *
  * Jobs:
- *   1. EQUAL — dispatch (state 1) and inactive (state 0): oracle == loc_2e36 in RAM (−stack).
+ *   1. EQUAL — dispatch (state 1) and inactive (state 0): oracle == dispatchRopeCellState in RAM (−stack).
  *   2. WRITE-SET — the dispatch ticks the per-cell timer; the inactive arm holds it, so they differ.
  *   3. TEETH — a wrong timer byte is CAUGHT by the RAM diff.
  *   4. SP-TOOTH — the push16 + rst-28 dispatch is seam-placeable (missing-push16 is invisible to eq).
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2e36 as oracle } from "../../translated/loc_2e36.js";
-import { loc_2e36 } from "../loc_2e36.js";
+import { dispatchRopeCellState } from "../dispatchRopeCellState.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -65,12 +65,12 @@ function craft(state) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: dispatch + inactive states — loc_2e36 == oracle in RAM (−stack)", () => {
+test("EQUAL: dispatch + inactive states — dispatchRopeCellState == oracle in RAM (−stack)", () => {
   for (const [label, state] of [["dispatch (state 1)", 0x01], ["inactive (state 0)", 0x00]]) {
     const o = craft(state);
     oracle(o);
     const c = craft(state);
-    loc_2e36(c);
+    dispatchRopeCellState(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -98,7 +98,7 @@ test("TEETH: a wrong per-cell timer byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x01);
   const c = craft(0x01);
   oracle(o);
-  loc_2e36(c);
+  dispatchRopeCellState(c);
   c.mem8[CELL_TIMER] = 0x05; // BUG: the dispatch must have ticked the timer to 0x04
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong timer byte — it is worthless");
@@ -109,7 +109,7 @@ test("TEETH: a wrong per-cell timer byte is CAUGHT by the RAM diff", () => {
 // -- 4. SP-TOOTH --------------------------------------------------------------
 
 test("SP-TOOTH: push16 + rst-28 dispatch is seam-placeable (missing-push16 is invisible to eq)", () => {
-  const r = seamPlaceable(withOmittedRet, loc_2e36, 0x2e36, craft(0x01));
+  const r = seamPlaceable(withOmittedRet, dispatchRopeCellState, 0x2e36, craft(0x01));
   assert.equal(r.placeable, true, `dispatching rewrite must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: loc_2e36 dispatch seats a real caller-return word (placeable)");
+  console.log("  SP-TOOTH: dispatchRopeCellState dispatch seats a real caller-return word (placeable)");
 });

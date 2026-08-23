@@ -4,7 +4,7 @@
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
  * oracle on one and loc_196e on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
- * pc/SP/cycles are NOT compared, and there is no register live-out: the caller (loc_18af) runs this
+ * pc/SP/cycles are NOT compared, and there is no register live-out: the caller (runActiveGameplayFrame) runs this
  * as one of fourteen sequential sub-handlers and reads no register back, so the contract is memory.
  *
  * INPUTS: the mode latch 0x8d55, SPAWN_PHASE_COUNTER 0x8902, GRAB_ACTIVE_FLAG 0x8d32, the siren gate

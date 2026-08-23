@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5433 (ROM 0x5433) — the per-record enemy-formation initialiser.
+ * Memory-equivalence test for initEnemyFormationRecord (ROM 0x5433) — the per-record enemy-formation initialiser.
  *
  * A live record (either of its first two bytes set) takes the early `ret nz` and changes nothing. A
  * free record is seeded: fixed state constants, a motion byte and a two's-complement speed partner
@@ -9,7 +9,7 @@
  *
  * The oracle drives the TRANSLATED subtree (two rst-0x20 lookups, two word lookups, the anim tick)
  * through the routines map; the idiomatic module composes the IDIOMATIC siblings directly. The two
- * must land byte-identical in RAM (dumpState) minus STACK_SCRATCH. loc_5433 is a void routine — its
+ * must land byte-identical in RAM (dumpState) minus STACK_SCRATCH. initEnemyFormationRecord is a void routine — its
  * caller reads no register back — so the register file is NOT compared; the oracle's SP += 2 (its
  * final ret) lives in dead stack.
  *
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5433 as oracle } from "../../translated/loc_5433.js";
-import { loc_5433 } from "../loc_5433.js";
+import { initEnemyFormationRecord } from "../initEnemyFormationRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -41,7 +41,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const IX = 0x8c30; //     FORMATION_TABLE — a formation record base
-const INDEX = 0x8d01; //  FORMATION_SPAWN_INDEX — the shared table cursor loc_5433 reads and bumps
+const INDEX = 0x8d01; //  FORMATION_SPAWN_INDEX — the shared table cursor initEnemyFormationRecord reads and bumps
 const SP0 = 0x8fe0; //    inside STACK_SCRATCH; room for the nested lookup/tick dips + the final ret
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -65,12 +65,12 @@ function craft(live) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: free (seed) + live (no-op) — loc_5433 == oracle in RAM (−stack)", () => {
+test("EQUAL: free (seed) + live (no-op) — initEnemyFormationRecord == oracle in RAM (−stack)", () => {
   for (const [label, live] of [["free record", false], ["live record", true]]) {
     const o = craft(live);
     oracle(o);
     const c = craft(live);
-    loc_5433(c);
+    initEnemyFormationRecord(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -102,7 +102,7 @@ test("TEETH: a wrong seeded field byte is CAUGHT by the RAM diff", () => {
   const o = craft(false);
   const c = craft(false);
   oracle(o);
-  loc_5433(c);
+  initEnemyFormationRecord(c);
   c.mem8[IX + 0x04] = 0x99; // BUG: field +4 must be 0x1b
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong seeded byte — it is worthless");

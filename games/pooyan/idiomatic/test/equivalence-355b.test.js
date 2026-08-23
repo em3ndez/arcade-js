@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_355b (Pooyan) — actor movement / target-seek AI step for the
+ * Memory-equivalence test for advanceActorTowardTargetColumn (Pooyan) — actor movement / target-seek AI step for the
  * record at IX: step the animation, advance X, resolve a target column, and either bail near, hand
  * to the pre-spawn guard, or latch + point at an approach animation.
  *
- * loc_355b is reached by register dispatch (IX = the record). Its one register live-out is A on
+ * advanceActorTowardTargetColumn is reached by register dispatch (IX = the record). Its one register live-out is A on
  * the near bail (the actor column), written as a return-assignment for the frozen bridge; a tail
  * exit forwards its handler's own registers. So the register arm compares A on the near-bail arm;
  * equivalence otherwise is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
@@ -15,7 +15,7 @@
  *   - primary:   extra-lane clear -> the round-keyed table lookup path.
  *
  * Jobs:
- *   1. EQUAL — all three arms: oracle == loc_355b in RAM (−stack).
+ *   1. EQUAL — all three arms: oracle == advanceActorTowardTargetColumn in RAM (−stack).
  *   2. REGISTER — near-bail A live-out (actor column) matches the oracle.
  *   3. WRITE-SET — the range gate gates the latch: far column latches, near column does not.
  *   4. TEETH — a wrong advanced-X byte is CAUGHT by the RAM diff.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_355b as oracle } from "../../translated/loc_355b.js";
-import { loc_355b } from "../loc_355b.js";
+import { advanceActorTowardTargetColumn } from "../advanceActorTowardTargetColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -79,7 +79,7 @@ function craft({ col = NEAR_COL, activeLane = 0x01, flags = 0x00 } = {}) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: near-bail + latch + primary arms — loc_355b == oracle in RAM (−stack)", () => {
+test("EQUAL: near-bail + latch + primary arms — advanceActorTowardTargetColumn == oracle in RAM (−stack)", () => {
   const arms = [
     ["near-bail", { col: NEAR_COL, activeLane: 0x01 }],
     ["latch", { col: FAR_COL, activeLane: 0x01 }],
@@ -89,7 +89,7 @@ test("EQUAL: near-bail + latch + primary arms — loc_355b == oracle in RAM (−
     const o = craft(opts);
     oracle(o);
     const c = craft(opts);
-    loc_355b(c);
+    advanceActorTowardTargetColumn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -102,7 +102,7 @@ test("REGISTER: near-bail A live-out (actor column) matches the oracle", () => {
   const o = craft({ col: NEAR_COL, activeLane: 0x01 });
   oracle(o);
   const c = craft({ col: NEAR_COL, activeLane: 0x01 });
-  loc_355b(c);
+  advanceActorTowardTargetColumn(c);
   assert.equal(o.regs.a, NEAR_COL, "oracle near-bail leaves A = the actor column");
   assert.equal(c.regs.a, o.regs.a, `A live-out mismatch: oracle=${hx(o.regs.a)} module=${hx(c.regs.a)}`);
   console.log(`  REGISTER: near-bail A live-out ${hx(c.regs.a)} matches`);
@@ -129,7 +129,7 @@ test("TEETH: a wrong advanced-X byte is CAUGHT by the RAM diff", () => {
   const o = craft({ col: NEAR_COL, activeLane: 0x01 });
   const c = craft({ col: NEAR_COL, activeLane: 0x01 });
   oracle(o);
-  loc_355b(c);
+  advanceActorTowardTargetColumn(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: near-bail arm must match before the poke");
   c.mem8[REC_X] = 0x10; // BUG: the step must have advanced X to 0x11
   const d = ramDiffMinusStack(o, c);

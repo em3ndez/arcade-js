@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3be3 (Pooyan) — object state-0 handler. Ticks the record's
+ * Memory-equivalence test for loc_3be3 (Pooyan) — object state-6 handler. Ticks the record's
  * animation stream, then either homes toward a target (mode bit0 set: advance the position by the
  * velocity, nudge the row down when the position drops below the negated velocity, mirror position
  * and row into the linked record) or free-runs (mode bit0 clear: advance by the fixed step, carry

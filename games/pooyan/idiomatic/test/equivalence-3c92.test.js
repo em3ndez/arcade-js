@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3c92 (ROM 0x3c92, Pooyan) — object state-1 handler that ticks
+ * Memory-equivalence gate for loc_3c92 (ROM 0x3c92, Pooyan) — object state-7 handler that ticks
  * animation then periodically spawns a child, COMPOSING the dissolved caller-skip loc_3cae.
  *
  * loc_3c92 advances the parent's animation (loc_4006), decrements the parent frame timer (+0x11)

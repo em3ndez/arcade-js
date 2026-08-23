@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_6df9 — the anti-tamper clone of loc_0ac8 (attract sub-state 5).
+ * Memory-equivalence gate for paintAttractColumnWithTamperChecksum — the anti-tamper clone of typeAttractTextColumn (attract sub-state 5).
  *
- * loc_6df9 ticks the animation frame counter (loc_0a28 on wrap), advances the scripted sprite step
+ * paintAttractColumnWithTamperChecksum ticks the animation frame counter (loc_0a28 on wrap), advances the scripted sprite step
  * (loc_09f8), and on each SCRIPT_FRAME_TIMER expiry copies one script byte through the write cursor,
  * backing that cursor up one 0x20 row; every SCRIPT_STEP_COUNTDOWN expiry reseeds the timers, bumps
  * ATTRACT_SUBSTATE, and rolls a 14-row (stride 0x20) checksum verified against the two bytes at the
  * INTRO_DELAY_CKSUM_WORD pointer. The module dissolves loc_0a28/loc_09f8/loc_76ea to direct calls and
  * keeps the frozen 0x7442 tamper dispatcher; the oracle drives the frozen subtree. Both are compared in
- * RAM (dumpState, minus STACK_SCRATCH). loc_6df9 is void — no register survives — so only RAM is compared.
+ * RAM (dumpState, minus STACK_SCRATCH). paintAttractColumnWithTamperChecksum is void — no register survives — so only RAM is compared.
  *
  * Reachable arms are seated: timer-counting (loc_0a28 wrap + loc_09f8 + tick), byte-copy (timer expires,
  * step still counting), and the full checksum on a CLEAN-PASS (source byte 0 into a zeroed 14-row region,
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6df9 as oracle } from "../../translated/loc_6df9.js";
-import { loc_6df9 } from "../loc_6df9.js";
+import { paintAttractColumnWithTamperChecksum } from "../paintAttractColumnWithTamperChecksum.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -118,7 +118,7 @@ test("EQUAL: tick, byte-copy, checksum-clean-pass — module == oracle in RAM (�
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_6df9(c);
+    paintAttractColumnWithTamperChecksum(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -147,7 +147,7 @@ test("TEETH: a wrong placed byte is caught by the RAM diff", () => {
   const o = craftCopy();
   const c = craftCopy();
   oracle(o);
-  loc_6df9(c);
+  paintAttractColumnWithTamperChecksum(c);
   c.mem.write8(DST, 0x99); // BUG: the copy must have placed 0x37
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong placed byte — it is worthless");
@@ -157,11 +157,11 @@ test("TEETH: a wrong placed byte is caught by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (R36) --------------------------------------------------------
 
-test("SP-TOOTH: loc_6df9 (tail-dispatches to 0x7442 / loc_76ea) seats SP for the seam", () => {
+test("SP-TOOTH: paintAttractColumnWithTamperChecksum (tail-dispatches to 0x7442 / loc_76ea) seats SP for the seam", () => {
   const m = craftTick();
   m.mem.write8(ANIM_FC, 0x05); // skip loc_0a28 -> minimal sub-calls on this arm
   m.mem.write16(SP0, CALLER_RET); // the caller's return word the seam completes (moved-0 arm)
-  const r = seamPlaceable(withOmittedRet, loc_6df9, 0x6df9, m);
-  assert.equal(r.placeable, true, `loc_6df9 must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: loc_6df9 seam-placeable (moved 0, seam completes the ret)");
+  const r = seamPlaceable(withOmittedRet, paintAttractColumnWithTamperChecksum, 0x6df9, m);
+  assert.equal(r.placeable, true, `paintAttractColumnWithTamperChecksum must be seam-placeable; got: ${r.error}`);
+  console.log("  SP-TOOTH: paintAttractColumnWithTamperChecksum seam-placeable (moved 0, seam completes the ret)");
 });

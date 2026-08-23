@@ -7,7 +7,7 @@
  *
  * CYCLE-FREE / memory-equivalence gate: the routine WRITES RAM, so every case uses a FRESH clone
  * per side. The go-forward contract is RAM only (dumpState minus STACK_SCRATCH): the caller
- * (loc_7790) reloads HL/DE from the object record, so neither pointer is a live-out.
+ * (drawObjectStackedTiles) reloads HL/DE from the object record, so neither pointer is a live-out.
  *
  * Jobs:
  *   1. CAPTURE (best-effort) — hook 0x780f in a real run; any dispatch must agree in RAM.

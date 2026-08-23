@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_28c6 (ROM 0x28c6, Pooyan) — the per-frame driver for the lead
+ * Memory-equivalence test for advanceLeadActorSecondaryState (ROM 0x28c6, Pooyan) — the per-frame driver for the lead
  * actor's secondary state machine: frontier sub-dispatch, then steer the play sub-state, and on a
  * delay expiry dispatch the actor's state through the shared spine into the secondary-state table.
  *
  * The module keeps the register-marshalled spine dispatch (m.call 0x0028), pushes the shared
  * epilogue return slot and the inline table base, and direct-calls the idiomatic epilogue; the
  * oracle drives the same spine and the frozen epilogue through the registry new Machine(ROM) builds.
- * loc_28c6 is a void driver — no register survives — so the register file is not compared;
+ * advanceLeadActorSecondaryState is a void driver — no register survives — so the register file is not compared;
  * equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * Cases are CRAFTED (a plain boot does not seat these states): the even round forces the play
@@ -15,7 +15,7 @@
  * expired delay dispatches the state-2 handler.
  *
  * Jobs:
- *   1. EQUAL — all four arms: oracle == loc_28c6 in RAM (−stack).
+ *   1. EQUAL — all four arms: oracle == advanceLeadActorSecondaryState in RAM (−stack).
  *   2. WRITE-SET — the even round writes 6, the busy formation writes 4, at the play sub-state byte.
  *   3. TEETH — a wrong play-sub-state byte is CAUGHT by the RAM diff.
  *   4. SP-TOOTH — the two-push dispatch and the plain-return epilogue arm are both seam-placeable.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_28c6 as oracle } from "../../translated/loc_28c6.js";
-import { loc_28c6 } from "../loc_28c6.js";
+import { advanceLeadActorSecondaryState } from "../advanceLeadActorSecondaryState.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -99,12 +99,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_28c6 == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceLeadActorSecondaryState == oracle in RAM (−stack)", () => {
   for (const [label, craft] of Object.entries(CASES)) {
     const a = craft();
     const b = craft();
     oracle(a);
-    loc_28c6(b);
+    advanceLeadActorSecondaryState(b);
     const d = ramDiffMinusStack(a, b);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -132,7 +132,7 @@ test("TEETH: a wrong play-sub-state byte is CAUGHT by the RAM diff", () => {
   const a = craftPhase6();
   const b = craftPhase6();
   oracle(a);
-  loc_28c6(b);
+  advanceLeadActorSecondaryState(b);
   b.mem8[PLAY_STATE] = 0x00; // BUG: the even-round gate must have written 6
   const d = ramDiffMinusStack(a, b);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong play-sub-state byte — worthless");
@@ -143,13 +143,13 @@ test("TEETH: a wrong play-sub-state byte is CAUGHT by the RAM diff", () => {
 // -- 4. SP-TOOTH (reviewer-rules R36) -----------------------------------------
 
 test("SP-TOOTH: the two-push dispatch is seam-placeable (SP seated on a real caller-return word)", () => {
-  const r = seamPlaceable(withOmittedRet, loc_28c6, 0x28c6, craftDispatch());
+  const r = seamPlaceable(withOmittedRet, advanceLeadActorSecondaryState, 0x28c6, craftDispatch());
   assert.equal(r.placeable, true, `the dispatch must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: dispatch seatable (moved 0, epilogue slot consumed by the handler ret)");
 });
 
 test("SP-TOOTH: the plain-return epilogue arm is seam-placeable (omitted ret, SP moved 0)", () => {
-  const r = seamPlaceable(withOmittedRet, loc_28c6, 0x28c6, craftDelay());
+  const r = seamPlaceable(withOmittedRet, advanceLeadActorSecondaryState, 0x28c6, craftDelay());
   assert.equal(r.placeable, true, `the epilogue arm must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: epilogue arm seatable (moved 0, seam supplies the ret)");
 });

@@ -10,7 +10,7 @@
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
- * pc/SP/cycles are NOT compared. loc_76af has NO register live-out — its caller (loc_755d)
+ * pc/SP/cycles are NOT compared. loc_76af has NO register live-out — its caller (updateGameplayFrame)
  * treats it as a plain-ret helper and reads no register result — and takes no register inputs
  * (it loads 0x892a itself). It calls nothing, so the two tile pairs are read straight from ROM.
  *

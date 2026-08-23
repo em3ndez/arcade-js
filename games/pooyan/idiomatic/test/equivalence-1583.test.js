@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1583 (ROM 0x1583, Pooyan) — the per-frame HUD-refresh tick with a
+ * Memory-equivalence test for tickHudRefresh (ROM 0x1583, Pooyan) — the per-frame HUD-refresh tick with a
  * tamper-gated gameplay dispatch: bump HUD_REFRESH_TICK, and on a 16-frame boundary enqueue a
  * display-refresh command, then (only while TAMPER_STRIKES_ROM is nonzero) fall through into the
- * state-3 dispatcher loc_159b.
+ * state-3 dispatcher runPlayStateFrame.
  *
- * The module dissolves loc_0038 and the loc_159b fall-through to direct calls; the oracle inlines
- * that same tail. loc_1583 is a void routine, so equivalence is RAM (dumpState) minus STACK_SCRATCH.
+ * The module dissolves loc_0038 and the runPlayStateFrame fall-through to direct calls; the oracle inlines
+ * that same tail. tickHudRefresh is a void routine, so equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
  * Jobs:
  *   1. EQUAL — three reachable arms (no boundary, boundary/gate-off, boundary/dispatch) are
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1583 as oracle } from "../../translated/loc_1583.js";
-import { loc_1583 } from "../loc_1583.js";
+import { tickHudRefresh } from "../tickHudRefresh.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -41,8 +41,8 @@ const STRIKES = 0x89ef; //      tamper-strike counter (nonzero -> gameplay dispa
 const STATE_IDX = 0x880a; //    play sub-state index dispatched via table 0x15a8
 const PHASE_TIMER = 0x8808; //  play phase timer (idx-1 handler decrements it)
 const GAME_ACTIVE = 0x8806; //  0 -> loc_7912 bails
-const COINAGE = 0x882c; //      != 0x0f -> not free play (loc_15d1 stays off the epilogue tail)
-const CREDIT = 0x8802; //       0 -> loc_15d1 returns cleanly
+const COINAGE = 0x882c; //      != 0x0f -> not free play (resetToBoardBuildToContinuePlay stays off the epilogue tail)
+const CREDIT = 0x8802; //       0 -> resetToBoardBuildToContinuePlay returns cleanly
 const SP0 = 0x8ff0; //          inside STACK_SCRATCH
 const CALLER_RET = 0xfffc; //   caller-return word the tail-delegate consumes
 
@@ -77,12 +77,12 @@ const ARMS = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: three reachable arms — loc_1583 == oracle in RAM (−stack)", () => {
+test("EQUAL: three reachable arms — tickHudRefresh == oracle in RAM (−stack)", () => {
   for (const [label, opts] of ARMS) {
     const o = craft(opts);
     oracle(o);
     const c = craft(opts);
-    loc_1583(c);
+    tickHudRefresh(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -111,7 +111,7 @@ test("TEETH: a wrong phase-timer byte is CAUGHT by the RAM diff", () => {
   const o = craft(opts);
   const c = craft(opts);
   oracle(o);
-  loc_1583(c);
+  tickHudRefresh(c);
   c.mem8[PHASE_TIMER] = 0x05; // BUG: the dispatch must have ticked the phase timer to 0x04
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong phase-timer byte — it is worthless");
@@ -122,7 +122,7 @@ test("TEETH: a wrong phase-timer byte is CAUGHT by the RAM diff", () => {
 // -- 4. SP-TOOTH (reviewer-rules R36) -----------------------------------------
 
 test("SP-TOOTH: the dispatch tail-delegate is seam-placeable (no adrift return)", () => {
-  const r = seamPlaceable(withOmittedRet, loc_1583, 0x1583, craft({ tick: 0x0f, strikes: 0x01 }));
+  const r = seamPlaceable(withOmittedRet, tickHudRefresh, 0x1583, craft({ tick: 0x0f, strikes: 0x01 }));
   assert.equal(r.placeable, true, `the dispatch delegate must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: loc_1583 dispatch delegate placeable (SP balanced through loc_159b)");
+  console.log("  SP-TOOTH: tickHudRefresh dispatch delegate placeable (SP balanced through runPlayStateFrame)");
 });

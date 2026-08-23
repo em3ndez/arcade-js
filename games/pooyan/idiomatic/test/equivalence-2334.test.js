@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2334 (ROM 0x2334, Pooyan) — the actor-Y clamp + integrity-flag
- * scan + gated phase-advance (the tamper handler tail-jumped from loc_77c8).
+ * Memory-equivalence test for clampActorYAndAdvanceRenderPhase (ROM 0x2334, Pooyan) — the actor-Y clamp + integrity-flag
+ * scan + gated phase-advance (the tamper handler tail-jumped from clearAndReseedObjectSlot).
  *
  * The module dissolves the render tail (loc_23ad) into a direct call and keeps the two frozen
- * plain-ret helpers (loc_23d7, loc_23ec) as m.call. loc_2334 is a void handler (no register
+ * plain-ret helpers (loc_23d7, loc_23ec) as m.call. clampActorYAndAdvanceRenderPhase is a void handler (no register
  * survives), so equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * The no-work arm pins the tile-anim cursor low byte to 0xe6, its target byte below 0x35, and the 7
@@ -13,7 +13,7 @@
  * ring wraps and the phase paint (loc_23ad) runs — the maximal footprint.
  *
  * Jobs:
- *   1. EQUAL — no-work and work: oracle == loc_2334 in RAM (−stack).
+ *   1. EQUAL — no-work and work: oracle == clampActorYAndAdvanceRenderPhase in RAM (−stack).
  *   2. WRITE-SET — work steps the render ring (7 -> 0); no-work holds it, so they differ.
  *   3. TEETH — a wrong render-phase byte is CAUGHT by the RAM diff.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2334 as oracle } from "../../translated/loc_2334.js";
-import { loc_2334 } from "../loc_2334.js";
+import { clampActorYAndAdvanceRenderPhase } from "../clampActorYAndAdvanceRenderPhase.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -76,12 +76,12 @@ function craft(work) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: work + no-work states — loc_2334 == oracle in RAM (−stack)", () => {
+test("EQUAL: work + no-work states — clampActorYAndAdvanceRenderPhase == oracle in RAM (−stack)", () => {
   for (const [label, work] of [["work found", true], ["no work", false]]) {
     const o = craft(work);
     oracle(o);
     const c = craft(work);
-    loc_2334(c);
+    clampActorYAndAdvanceRenderPhase(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -109,7 +109,7 @@ test("TEETH: a wrong render-phase byte is CAUGHT by the RAM diff", () => {
   const o = craft(true);
   const c = craft(true);
   oracle(o);
-  loc_2334(c);
+  clampActorYAndAdvanceRenderPhase(c);
   c.mem8[PHASE] = (c.mem8[PHASE] + 1) & 0xff; // BUG: perturb the phase the wrap should have set
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong phase byte — it is worthless");
@@ -119,11 +119,11 @@ test("TEETH: a wrong render-phase byte is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (R36) --------------------------------------------------------
 
-test("SP-TOOTH: loc_2334 (wired override) is seam-placeable", () => {
+test("SP-TOOTH: clampActorYAndAdvanceRenderPhase (wired override) is seam-placeable", () => {
   const m = craft(true); // work arm: all sub-calls direct -> SP nets 0
   m.mem8[SP0] = CALLER_RET & 0xff;
   m.mem8[SP0 + 1] = CALLER_RET >> 8; // seat the caller's return word the seam completes
-  const r = seamPlaceable(withOmittedRet, loc_2334, 0x2334, m);
-  assert.equal(r.placeable, true, `loc_2334 must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: loc_2334 seam-placeable (moved 0, seam completes the ret)");
+  const r = seamPlaceable(withOmittedRet, clampActorYAndAdvanceRenderPhase, 0x2334, m);
+  assert.equal(r.placeable, true, `clampActorYAndAdvanceRenderPhase must be seam-placeable; got: ${r.error}`);
+  console.log("  SP-TOOTH: clampActorYAndAdvanceRenderPhase seam-placeable (moved 0, seam completes the ret)");
 });

@@ -8,7 +8,7 @@
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so each case uses a FRESH clone
  * per side, compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are not compared (the
  * oracle drives them through m.step/push/ret, the stack ABI the direct-call layer replaces).
- * loc_23ad has NO register live-out — its callers (loc_23a1 / loc_2334 / loc_2329) tail into it and
+ * loc_23ad has NO register live-out — its callers (loc_23a1 / clampActorYAndAdvanceRenderPhase / loc_2329) tail into it and
  * read nothing back — so the contract is memory alone. The oracle's loc_0c45 / loc_3325 sub-calls
  * resolve through the full translated registry that new Machine(ROM) builds.
  *

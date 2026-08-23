@@ -8,7 +8,7 @@
  *
  * The oracle's call/ret/rst-0x10 trampolines touch only STACK_SCRATCH (sp seated there),
  * excluded from the diff; the contract is RAM (dumpState, minus STACK_SCRATCH). No register
- * is a live-out — loc_18af runs the next per-frame handler with its own registers — so RAM
+ * is a live-out — runActiveGameplayFrame runs the next per-frame handler with its own registers — so RAM
  * is the whole contract. pc/sp/cycles are not compared.
  *
  * Every state is CRAFTED (the routine runs only in live gameplay). The "reaches indicator"

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_099c (ROM 0x099c, Pooyan) — the attract sub-state 4 handler.
+ * Memory-equivalence test for buildAttractSpritesAndPrimeTextScript (ROM 0x099c, Pooyan) — the attract sub-state 4 handler.
  *
  * Every callee is lifted and dissolved to a direct call, so the module holds no emulated stack op;
  * the oracle drives the same work through push16/call/ret in STACK_SCRATCH. Equivalence is RAM
@@ -13,7 +13,7 @@
  *
  * Jobs:
  *   1. EQUAL — early path (row counter not drained -> return after the row fill) and full path
- *      (drained -> verify + fills + build + script block + fall into loc_09f8): oracle == loc_099c.
+ *      (drained -> verify + fills + build + script block + fall into loc_09f8): oracle == buildAttractSpritesAndPrimeTextScript.
  *   2. WRITE-SET — the full path seats the script block (read/write pointers, timer, sub-state++,
  *      the two check-tick bytes); the early path leaves them untouched.
  *   3. TEETH — a wrong script byte is CAUGHT by the RAM diff.
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_099c as oracle } from "../../translated/loc_099c.js";
-import { loc_099c } from "../loc_099c.js";
+import { buildAttractSpritesAndPrimeTextScript } from "../buildAttractSpritesAndPrimeTextScript.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -68,12 +68,12 @@ function craft(rows) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: early + full path — loc_099c == oracle in RAM (−stack)", () => {
+test("EQUAL: early + full path — buildAttractSpritesAndPrimeTextScript == oracle in RAM (−stack)", () => {
   for (const [label, rows] of [["full path (drained)", 0x01], ["early (rows remain)", 0x05]]) {
     const o = craft(rows);
     oracle(o);
     const c = craft(rows);
-    loc_099c(c);
+    buildAttractSpritesAndPrimeTextScript(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -105,7 +105,7 @@ test("TEETH: a wrong script byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x01);
   const c = craft(0x01);
   oracle(o);
-  loc_099c(c);
+  buildAttractSpritesAndPrimeTextScript(c);
   c.mem8[SCRIPT_FRAME_TIMER] = 0x00; // BUG: the full path must have seeded it to 0x32
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong script byte — it is worthless");

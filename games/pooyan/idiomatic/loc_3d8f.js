@@ -2,7 +2,7 @@
 import { loc_4006 } from "./loc_4006.js";
 import { loc_3553 } from "./loc_3553.js";
 /**
- * loc_3d8f — object state-4 handler.
+ * loc_3d8f — object state-10 handler.
  *
  * Steps the object's animation sequence, then counts down its frame timer. While the timer has not
  * elapsed the handler returns; once it reaches zero the object is retired by blanking its sprite band.

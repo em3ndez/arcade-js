@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_092c (Pooyan) — attract sub-state 2: a frame-gated tilemap
+ * Memory-equivalence test for paintAttractColorsAndQueueDraws (Pooyan) — attract sub-state 2: a frame-gated tilemap
  * clear that, once drained, advances the attract sub-state, zeroes the board-init RAM, runs the
  * anti-tamper checks, and queues the attract display.
  *
- * loc_092c is a void handler — no register survives — so the register file is not compared;
+ * paintAttractColorsAndQueueDraws is a void handler — no register survives — so the register file is not compared;
  * equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack so nested pushes
  * drop out. The two crafted states seat the frame gate on its two arms: drained (row counter
  * hits zero -> the full body runs) and still-counting (one tick -> early return).
  *
  * Jobs:
- *   1. EQUAL — drained and counting arms: oracle == loc_092c in RAM (−stack).
+ *   1. EQUAL — drained and counting arms: oracle == paintAttractColorsAndQueueDraws in RAM (−stack).
  *   2. WRITE-SET — the row gate gates the sub-state advance: drained bumps ATTRACT_SUBSTATE,
  *      counting holds it.
  *   3. TEETH — a wrong sub-state byte is CAUGHT by the RAM diff.
@@ -23,7 +23,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_092c as oracle } from "../../translated/loc_092c.js";
-import { loc_092c } from "../loc_092c.js";
+import { paintAttractColorsAndQueueDraws } from "../paintAttractColorsAndQueueDraws.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -61,12 +61,12 @@ function craft(rows) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: drained + counting arms — loc_092c == oracle in RAM (−stack)", () => {
+test("EQUAL: drained + counting arms — paintAttractColorsAndQueueDraws == oracle in RAM (−stack)", () => {
   for (const [label, rows] of [["drained (rows=1)", 0x01], ["counting (rows=2)", 0x02]]) {
     const o = craft(rows);
     oracle(o);
     const c = craft(rows);
-    loc_092c(c);
+    paintAttractColorsAndQueueDraws(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -95,7 +95,7 @@ test("TEETH: a wrong sub-state byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x01);
   const c = craft(0x01);
   oracle(o);
-  loc_092c(c);
+  paintAttractColorsAndQueueDraws(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: drained arm must match before the poke");
   c.mem8[ATTRACT_SUBSTATE] = 0x02; // BUG: the drained pass must have advanced it to 0x03
   const d = ramDiffMinusStack(o, c);

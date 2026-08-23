@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence + SP-tooth test for loc_5146 (ROM 0x5146, Pooyan) — the boot-frontier
- * trampoline: run loc_5150, loc_52f6, loc_5334 in order and return. All three passes are dissolved
+ * Memory-equivalence + SP-tooth test for runEnemySpawnScriptPasses (ROM 0x5146, Pooyan) — the boot-frontier
+ * trampoline: run armEnemySpawnScript, loc_52f6, spawnNextScriptedEnemy in order and return. All three passes are dissolved
  * to direct calls.
  *
- * loc_5146 is void — no register survives — so the register file is not compared; equivalence is
+ * runEnemySpawnScriptPasses is void — no register survives — so the register file is not compared; equivalence is
  * RAM (dumpState) minus STACK_SCRATCH via firstStateDiff, SP parked in dead stack. The craft arms
  * the slot-sweep (advance guard set, sweep latch clear, enemy slots empty) so loc_52f6 does real
  * work — an observable write the trampoline is responsible for invoking.
  *
- * loc_5146 dissolved its trampolines to direct calls, so it nets SP zero. As a wired override it
+ * runEnemySpawnScriptPasses dissolved its trampolines to direct calls, so it nets SP zero. As a wired override it
  * carries an SP-TOOTH (reviewer-rules R36): the correct routine is seam-placeable (SP nets zero, the
  * seam completes the omitted ret), and a synthetic variant with a push16 DROPPED is not (the
  * invisible-to-memory-eq missing-push16 class the seam catches).
  *
  * Jobs:
- *   1. EQUAL — oracle == loc_5146 in RAM (−stack): the idiomatic middle pass matches the frozen one.
+ *   1. EQUAL — oracle == runEnemySpawnScriptPasses in RAM (−stack): the idiomatic middle pass matches the frozen one.
  *   2. WRITE-SET — the trampoline runs loc_52f6, which latches the free-slot count.
  *   3. TEETH — a wrong sweep-latch byte is CAUGHT by the RAM diff.
  *   4. SP-TOOTH — placeable when correct; NOT placeable with a dropped push16.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5146 as oracle } from "../../translated/loc_5146.js";
-import { loc_5146 } from "../loc_5146.js";
+import { runEnemySpawnScriptPasses } from "../runEnemySpawnScriptPasses.js";
 import { loc_52f6 } from "../loc_52f6.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -41,7 +41,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const SCRIPT_ADVANCE_GUARD = 0x8d6d; // set -> loc_5150 bails, loc_52f6 sweeps
+const SCRIPT_ADVANCE_GUARD = 0x8d6d; // set -> armEnemySpawnScript bails, loc_52f6 sweeps
 const SLOT_SWEEP_LATCH = 0x8d6e; //     loc_52f6 latches the free-slot count here
 const SP0 = 0x8ff0; //                  inside STACK_SCRATCH
 const CALLER_RET = 0xabcd; //           the caller's return word the seam completes
@@ -72,11 +72,11 @@ function loc_5146_missingPush(m) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5146 == oracle in RAM (−stack)", () => {
+test("EQUAL: runEnemySpawnScriptPasses == oracle in RAM (−stack)", () => {
   const o = craft();
   oracle(o);
   const c = craft();
-  loc_5146(c);
+  runEnemySpawnScriptPasses(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: trampoline identical (RAM −stack)");
@@ -87,7 +87,7 @@ test("EQUAL: loc_5146 == oracle in RAM (−stack)", () => {
 test("WRITE-SET: the trampoline runs loc_52f6 (latches the free-slot count)", () => {
   const before = craft().mem8[SLOT_SWEEP_LATCH];
   const c = craft();
-  loc_5146(c);
+  runEnemySpawnScriptPasses(c);
   assert.equal(before, 0x00, "sweep latch clear before the run");
   assert.equal(c.mem8[SLOT_SWEEP_LATCH], 0x06, "loc_52f6 latched all six empty slots");
   console.log("  WRITE-SET: sweep latch 0x00 -> 0x06 (loc_52f6 invoked)");
@@ -99,7 +99,7 @@ test("TEETH: a wrong sweep-latch byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_5146(c);
+  runEnemySpawnScriptPasses(c);
   c.mem8[SLOT_SWEEP_LATCH] = 0x00; // BUG: the sweep must have latched 0x06
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong sweep latch — it is worthless");
@@ -109,8 +109,8 @@ test("TEETH: a wrong sweep-latch byte is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH --------------------------------------------------------------
 
-test("SP-TOOTH: correct loc_5146 is seam-placeable; a dropped push16 is NOT", () => {
-  const ok = seamPlaceable(withOmittedRet, loc_5146, 0x5146, craft());
+test("SP-TOOTH: correct runEnemySpawnScriptPasses is seam-placeable; a dropped push16 is NOT", () => {
+  const ok = seamPlaceable(withOmittedRet, runEnemySpawnScriptPasses, 0x5146, craft());
   assert.equal(ok.placeable, true, `correct trampoline must be seam-placeable; got: ${ok.error}`);
 
   const bad = seamPlaceable(withOmittedRet, loc_5146_missingPush, 0x5146, craft());

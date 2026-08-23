@@ -6,7 +6,7 @@
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
  * oracle on one and loc_34f2 on the other, compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP/
  * cycles are deliberately not compared, and there is NO register live-out: the dispatch caller
- * (loc_4221) reloads A from the record the instant loc_34f2 returns and reads no other register back,
+ * (moveFormationAndSpawnObject) reloads A from the record the instant loc_34f2 returns and reads no other register back,
  * so the whole contract is memory.
  *
  * INPUTS: IX (the object record) plus the record fields it reads — step (0x0a), sub-position (0x05),

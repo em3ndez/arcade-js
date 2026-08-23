@@ -11,7 +11,7 @@
  *
  *     RAM (dumpState, minus STACK_SCRATCH)  +  the two advanced pointers.
  *
- * The caller (loc_099c) reads the descriptor sentinel from the advanced DE and keeps walking
+ * The caller (buildAttractSpritesAndPrimeTextScript) reads the descriptor sentinel from the advanced DE and keeps walking
  * HL into the next record, consuming BOTH advanced pointers without reloading them, so the
  * module's { descPtr, coordPtr } is compared against the oracle clone's final regs.de / regs.hl.
  * IX is left untouched by the routine (the caller steps the record base itself).
@@ -134,7 +134,7 @@ test("CRAFTED: pre-dirtied record + varied streams — RAM identical, five bytes
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
     assert.equal(ret[0], o.regs.de, `descPtr live-out ${hx(ret[0])} != oracle ${hx(o.regs.de)}`);
     assert.equal(ret[1], o.regs.hl, `coordPtr live-out ${hx(ret[1])} != oracle ${hx(o.regs.hl)}`);
-    // SIDE EFFECT: the caller loc_099c reads the descriptor sentinel out of DE and walks HL into the
+    // SIDE EFFECT: the caller buildAttractSpritesAndPrimeTextScript reads the descriptor sentinel out of DE and walks HL into the
     // next record without reloading either, so the bridge must SET both registers — not just return them.
     assert.equal(c.regs.de, o.regs.de, `module must SET DE for the translated caller (desc ${desc}, coord ${coord})`);
     assert.equal(c.regs.hl, o.regs.hl, `module must SET HL for the translated caller (desc ${desc}, coord ${coord})`);

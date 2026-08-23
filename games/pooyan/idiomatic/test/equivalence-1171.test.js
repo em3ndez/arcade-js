@@ -17,7 +17,7 @@
  * This is the cycle-free / memory-equivalence gate. The oracle reaches 0x119a (and its 0x381e /
  * 0x0020 callees) through m.call trampolines whose pushes — and 0x119a's skip-pop — land in
  * STACK_SCRATCH (sp seated there) and are excluded; the module calls the idiomatic sibling
- * directly. The contract compared is RAM (dumpState, minus STACK_SCRATCH). loc_511b reads no
+ * directly. The contract compared is RAM (dumpState, minus STACK_SCRATCH). serviceEnemySpawns reads no
  * register back (it calls this then unconditionally rets), so there is no register live-out and no
  * boolean is returned; RAM is the whole contract.
  *

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5564 (ROM 0x5564, Pooyan) — the frame-timer gated formation
+ * Memory-equivalence test for spawnFormationEnemiesOnTimer (ROM 0x5564, Pooyan) — the frame-timer gated formation
  * spawner: tick the reload timer and return while running; on expiry reload it, advance the spawn
  * cursor, pick a spawn count, and tail the scan/seed loop over the formation-spawn blocks.
  *
  * The module dissolves the rst-20 table fetch (loc_0020) and the scan/seed tail (loc_5594) into
- * direct calls; the oracle keeps them frozen. loc_5564 is a void spawner (no register survives), so
+ * direct calls; the oracle keeps them frozen. spawnFormationEnemiesOnTimer is a void spawner (no register survives), so
  * equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * The expiry arm seats the timer at 1 (drains to 0 -> the reload/advance/tail runs) with the round at
@@ -13,7 +13,7 @@
  * expiry footprint is the timer reload + cursor advance alone. The running arm holds the timer at 5.
  *
  * Jobs:
- *   1. EQUAL — expiry and running: oracle == loc_5564 in RAM (−stack).
+ *   1. EQUAL — expiry and running: oracle == spawnFormationEnemiesOnTimer in RAM (−stack).
  *   2. WRITE-SET — expiry advances the spawn cursor; the running arm holds it, so they differ.
  *   3. TEETH — a wrong spawn-cursor byte is CAUGHT by the RAM diff.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5564 as oracle } from "../../translated/loc_5564.js";
-import { loc_5564 } from "../loc_5564.js";
+import { spawnFormationEnemiesOnTimer } from "../spawnFormationEnemiesOnTimer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -65,12 +65,12 @@ function craft(timer) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: expiry + running states — loc_5564 == oracle in RAM (−stack)", () => {
+test("EQUAL: expiry + running states — spawnFormationEnemiesOnTimer == oracle in RAM (−stack)", () => {
   for (const [label, timer] of [["expiry (timer 1)", 0x01], ["running (timer 5)", 0x05]]) {
     const o = craft(timer);
     oracle(o);
     const c = craft(timer);
-    loc_5564(c);
+    spawnFormationEnemiesOnTimer(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -98,7 +98,7 @@ test("TEETH: a wrong spawn-cursor byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x01);
   const c = craft(0x01);
   oracle(o);
-  loc_5564(c);
+  spawnFormationEnemiesOnTimer(c);
   c.mem8[CURSOR] = 0x03; // BUG: the reload path must have advanced the cursor to 0x04
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong cursor byte — it is worthless");

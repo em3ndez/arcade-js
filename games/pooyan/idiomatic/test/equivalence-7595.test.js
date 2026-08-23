@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7595 (ROM 0x7595) — the per-record launch attempt, a DISSOLVED
+ * Memory-equivalence test for launchWolfIntoSlot (ROM 0x7595) — the per-record launch attempt, a DISSOLVED
  * caller-skip that composes the idiomatic siblings loc_0020, loc_0c45 and setActorAnimation.
  *
  * An already-active slot (bit 0 of either of IX's first two bytes) takes the plain `ret c` (normal
  * return, SP += 2) and the module returns true (caller keeps sweeping). A free slot is launched: the
  * IX record is stamped, from wave 2 on the paired IY record too, the shared frame-delay is reseeded,
- * the wave counter is bumped and the IX record armed with its launch animation; loc_7595 then FALLS
+ * the wave counter is bumped and the IX record armed with its launch animation; launchWolfIntoSlot then FALLS
  * INTO the `pop af; ret` (SP += 4), unwinding the caller, and the module returns false.
  *
  * The oracle runs the TRANSLATED subtree through the routines map; the idiomatic module imports the
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7595 as oracle } from "../../translated/loc_7595.js";
-import { loc_7595 } from "../loc_7595.js";
+import { launchWolfIntoSlot } from "../launchWolfIntoSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -45,10 +45,10 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const IX = 0x8ae0; //     ENEMY_ACTOR_TABLE — the enemy record loc_756d sweeps
+const IX = 0x8ae0; //     ENEMY_ACTOR_TABLE — the enemy record spawnNextEnemyOnDelay sweeps
 const IY = 0x8b70; //     SPRITE_OBJECT_TABLE — the paired state record
 const WAVE = 0x892d; //   WAVE_NUMBER — gates the IY branch and the delay index, then bumped
-const VIDX = 0x8922; //   EAGLE_LAUNCH_VARIANT_INDEX — the variant-table cursor (wave 2 branch)
+const VIDX = 0x8922; //   WOLF_LAUNCH_VARIANT_INDEX — the variant-table cursor (wave 2 branch)
 const DELAY = 0x8929; //  SHARED_FRAME_DELAY_TIMER — reseeded on a launch
 const SP0 = 0x8fe0; //    inside STACK_SCRATCH; room for the nested dips + the pop-af/ret
 
@@ -79,7 +79,7 @@ function craft(occupied, wave) {
 test("EQUAL: occupied — module == oracle in RAM (−stack), returns true, normal ret (SP += 2)", () => {
   const o = craft(true, 0x02);
   const c = craft(true, 0x02);
-  const ret = loc_7595(c);
+  const ret = launchWolfIntoSlot(c);
   oracle(o);
   assert.equal(ret, true, "an occupied slot must return true (caller keeps sweeping)");
   assert.equal(o.regs.sp, (SP0 + 2) & 0xffff, "oracle occupied must take the plain ret c (SP += 2)");
@@ -92,7 +92,7 @@ for (const [label, wave] of [["launch-wave-1 (IY skipped)", 0x01], ["launch-wave
   test(`EQUAL: ${label} — module == oracle in RAM (−stack), returns false, skip (SP += 4)`, () => {
     const o = craft(false, wave);
     const c = craft(false, wave);
-    const ret = loc_7595(c);
+    const ret = launchWolfIntoSlot(c);
     oracle(o);
     assert.equal(ret, false, "a launch must return false (abort the caller)");
     assert.equal(o.regs.sp, (SP0 + 4) & 0xffff, "oracle launch must fall into the pop-af/ret skip (SP += 4)");
@@ -122,7 +122,7 @@ test("WRITE-SET: a wave-2 launch activates both records, reseeds the delay, bump
 
 test("TEETH: a twin that reports a launch as 'continue' (true) is rejected by the boolean check", () => {
   function brokenContinue(m) {
-    loc_7595(m); // real memory effect
+    launchWolfIntoSlot(m); // real memory effect
     return true; // BUG: a launch must abort the caller -> false
   }
   const c = craft(false, 0x01);
@@ -137,7 +137,7 @@ test("TEETH: a wrong seeded field byte is CAUGHT by the RAM diff", () => {
   const o = craft(false, 0x02);
   const c = craft(false, 0x02);
   oracle(o);
-  loc_7595(c);
+  launchWolfIntoSlot(c);
   c.mem8[IX + 0x04] = 0x99; // BUG: IX field +4 must be 0x15
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong seeded byte — it is worthless");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3d8f (ROM 0x3d8f) — "object state-4 handler": step the object's
+ * Memory-equivalence test for loc_3d8f (ROM 0x3d8f) — "object state-10 handler": step the object's
  * animation (loc_4006), decrement its frame timer (ix+0x11), and while the timer has not elapsed
  * return; once it hits zero, blank the sprite band (tail to loc_3553).
  *

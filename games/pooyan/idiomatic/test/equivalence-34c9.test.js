@@ -9,7 +9,7 @@
  * This is the CYCLE-FREE / memory-equivalence gate. The routine WRITES VRAM, so every case
  * runs the oracle on one FRESH clone and the module on another, compared on the go-forward
  * contract: RAM (dumpState, minus STACK_SCRATCH). There is NO register live-out — every
- * caller (loc_1ead/loc_1f14/loc_3fb5) discards it — so nothing else is compared.
+ * caller (paintRoundNumberHud/loc_1f14/loc_3fb5) discards it — so nothing else is compared.
  *
  * Jobs:
  *   1. CRAFTED (load-bearing) — pre-dirty the two HUD tiles, seed varied countdown + latch

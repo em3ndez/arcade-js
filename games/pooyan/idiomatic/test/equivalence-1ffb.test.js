@@ -5,7 +5,7 @@
  * into the fixed tilemap block at 0x8062 via the already-decompiled blitTile3x3Block (0x3307).
  *
  * This is the cycle-free / memory-equivalence gate. B is the only input (bridged via the register
- * default). The successor (loc_1ead) reloads HL/DE/A after the call, so the contract is RAM only
+ * default). The successor (paintRoundNumberHud) reloads HL/DE/A after the call, so the contract is RAM only
  * (dumpState minus STACK_SCRATCH) — there is no consumed register live-out; pc/SP/cycles are not
  * compared. The oracle stamps through the translated loc_3307, which uses the 0x8f0b row counter and
  * resets it to 0; a fresh clone has it 0, so its net footprint is just the nine tiles.

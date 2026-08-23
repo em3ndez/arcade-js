@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3f5c (ROM 0x3f5c, Pooyan) — the object state handler that begins a
+ * Memory-equivalence test for startEnemyFall (ROM 0x3f5c, Pooyan) — the object state handler that begins a
  * fall. It picks a plummet animation from the fall table (0x4072) by the record's low-two variant
  * bits (biased down by one), points the record at it, seeds the fall velocity, advances the state
  * byte, and falls through into the next state handler (loc_3f72: tick the animation, count the frame
@@ -8,13 +8,13 @@
  *
  * The module dissolves every callee to a direct call: the word lookup (loc_0c45), the animation-set
  * (setActorAnimation at 0x381e), and the state-handler fall-through (loc_3f72); the oracle drives the
- * frozen originals. IX (the record base) is the one input, bridged in via the param default. loc_3f5c
+ * frozen originals. IX (the record base) is the one input, bridged in via the param default. startEnemyFall
  * yields nothing the caller reads, so no register is compared; equivalence is RAM (dumpState) minus
  * STACK_SCRATCH, SP parked in dead stack so the oracle's transient return-slot pushes drop out.
  *
  * The frame timer is seeded > 1 so loc_3f72 returns after the tick (the deeper handler stays out of
  * scope). Jobs:
- *   1. EQUAL — three variant selectors: oracle == loc_3f5c (RAM −stack).
+ *   1. EQUAL — three variant selectors: oracle == startEnemyFall (RAM −stack).
  *   2. WRITE-SET — seeds the fall velocity, advances the state byte, ticks the frame timer.
  *   3. TEETH — a wrong fall velocity is CAUGHT by the RAM diff.
  *
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3f5c as oracle } from "../../translated/loc_3f5c.js";
-import { loc_3f5c } from "../loc_3f5c.js";
+import { startEnemyFall } from "../startEnemyFall.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ACTOR_TABLE } from "../names.js";
@@ -66,12 +66,12 @@ function craft(v) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: three variant selectors — loc_3f5c == oracle (RAM −stack)", () => {
+test("EQUAL: three variant selectors — startEnemyFall == oracle (RAM −stack)", () => {
   for (const v of [0x01, 0x02, 0x03]) {
     const o = craft(v);
     oracle(o);
     const c = craft(v);
-    loc_3f5c(c);
+    startEnemyFall(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[variant ${hx(v)}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -95,7 +95,7 @@ test("TEETH: a wrong fall velocity is CAUGHT by the RAM diff", () => {
   const o = craft(0x01);
   const c = craft(0x01);
   oracle(o);
-  loc_3f5c(c);
+  startEnemyFall(c);
   c.mem8[VELOCITY] = 0x00; // BUG: the handler must have seeded the fall velocity to 0x40
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong fall velocity — it is worthless");

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7fd6 (Pooyan) — a credit-gated trigger: choose a status byte,
+ * Memory-equivalence test for startGameOnStartButtonPress (Pooyan) — a credit-gated trigger: choose a status byte,
  * bail if it is already active, and on a gate-bit press enqueue sound command 0 and tail into the
  * follow-on handler.
  *
- * loc_7fd6 is void on every bail and its fire path tails into the still-frozen follow-on handler
+ * startGameOnStartButtonPress is void on every bail and its fire path tails into the still-frozen follow-on handler
  * through a kept m.call, so no register survives; equivalence is RAM (dumpState) minus
- * STACK_SCRATCH, SP parked in dead stack. loc_7fd6 ends in a tail dispatch, so it also carries an
+ * STACK_SCRATCH, SP parked in dead stack. startGameOnStartButtonPress ends in a tail dispatch, so it also carries an
  * SP-tooth. The two crafted states seat the trigger on its two arms: fire (credit present, status
  * clear, gate bits set) and gate-clear (no credit -> immediate return).
  *
  * Jobs:
- *   1. EQUAL — fire and gate-clear arms: oracle == loc_7fd6 in RAM (−stack).
+ *   1. EQUAL — fire and gate-clear arms: oracle == startGameOnStartButtonPress in RAM (−stack).
  *   2. WRITE-SET — the credit gate gates the sound enqueue: fire writes the sound ring, gate-clear
  *      writes nothing.
  *   3. TEETH — a wrong byte at a written cell is CAUGHT by the RAM diff.
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7fd6 as oracle } from "../../translated/loc_7fd6.js";
-import { loc_7fd6 } from "../loc_7fd6.js";
+import { startGameOnStartButtonPress } from "../startGameOnStartButtonPress.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -66,12 +66,12 @@ function craft(credit) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: fire + gate-clear arms — loc_7fd6 == oracle in RAM (−stack)", () => {
+test("EQUAL: fire + gate-clear arms — startGameOnStartButtonPress == oracle in RAM (−stack)", () => {
   for (const [label, credit] of [["fire (credit=1)", 0x01], ["gate-clear (credit=0)", 0x00]]) {
     const o = craft(credit);
     oracle(o);
     const c = craft(credit);
-    loc_7fd6(c);
+    startGameOnStartButtonPress(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -102,7 +102,7 @@ test("TEETH: a wrong byte at a written cell is CAUGHT by the RAM diff", () => {
   const o = craft(0x01);
   oracle(o);
   const c = craft(0x01);
-  loc_7fd6(c);
+  startGameOnStartButtonPress(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: fire arm must match before the poke");
   const wrote = firstStateDiff(pre, o.dumpState(), (off) => o.stateOffsetToAddr(off), inDeadStack);
   c.mem8[wrote.addr] = (c.mem8[wrote.addr] ^ 0xff) & 0xff; // corrupt a cell the fire path wrote
@@ -114,7 +114,7 @@ test("TEETH: a wrong byte at a written cell is CAUGHT by the RAM diff", () => {
 // -- 4. SP-TOOTH --------------------------------------------------------------
 
 test("SP-TOOTH: the tail dispatch is stack-placeable through the seam", () => {
-  const r = seamPlaceable(withOmittedRet, loc_7fd6, 0x7fd6, craft(0x01));
+  const r = seamPlaceable(withOmittedRet, startGameOnStartButtonPress, 0x7fd6, craft(0x01));
   assert.equal(r.placeable, true, `tail dispatch must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: loc_7fd6 tail dispatch placeable (moved +2, pc on the caller slot)");
+  console.log("  SP-TOOTH: startGameOnStartButtonPress tail dispatch placeable (moved +2, pc on the caller slot)");
 });

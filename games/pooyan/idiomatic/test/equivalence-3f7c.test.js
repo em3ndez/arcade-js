@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3f7c (ROM 0x3f7c, Pooyan) — object state-9 (catch) handler on IX.
+ * Memory-equivalence test for loc_3f7c (ROM 0x3f7c, Pooyan) — object state-15 (catch) handler on IX.
  *
  * SEATING: BALANCED (plain ret / tail-calls) -> WIRE. loc_3f72 (its fall-through caller) documents the
  * delegate yields nothing the caller reads, so LIVE-OUT is memory only; comparison is RAM (dumpState)

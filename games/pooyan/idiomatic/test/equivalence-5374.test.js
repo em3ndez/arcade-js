@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5374 (ROM 0x5374, Pooyan) — the one-shot lane-actor activator,
+ * Memory-equivalence test for activateLaneActorSlot (ROM 0x5374, Pooyan) — the one-shot lane-actor activator,
  * dissolved from a caller-skip into a boolean.
  *
  * The idiomatic module runs the spawn body through loc_53a0 (forwarding the computed kind byte) and
- * dissolves the rst-0x20 lookup; the oracle drives the same frozen spawn chain. loc_5374's live-out is
+ * dissolves the rst-0x20 lookup; the oracle drives the same frozen spawn chain. activateLaneActorSlot's live-out is
  * memory PLUS the boolean caller-skip signal — true when the slot is already live (keep sweeping),
  * false when it activated one (abort the sweep) — so the boolean is asserted on every arm.
  *
  * Jobs:
- *   1. EQUAL — live slot + fresh slot: oracle == loc_5374 in RAM (−stack).
+ *   1. EQUAL — live slot + fresh slot: oracle == activateLaneActorSlot in RAM (−stack).
  *   2. BOOLEAN — the caller-skip signal: live -> true, fresh -> false.
  *   3. WRITE-SET — activation bumps ACTIVE_LANE_COUNT + marks the slot; the live arm holds them.
  *   4. TEETH — a wrong ACTIVE_LANE_COUNT is CAUGHT by the RAM diff.
@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5374 as oracle } from "../../translated/loc_5374.js";
-import { loc_5374 } from "../loc_5374.js";
+import { activateLaneActorSlot } from "../activateLaneActorSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_ACTOR_TABLE, ACTIVE_LANE_COUNT, ROUND_COUNTER, SCRIPT_VALUE_BYTE } from "../names.js";
@@ -61,12 +61,12 @@ function craft(live) {
 
 // -- 1. EQUAL + 2. BOOLEAN ----------------------------------------------------
 
-test("EQUAL + BOOLEAN: live slot + fresh slot — loc_5374 == oracle in RAM (−stack), boolean matches", () => {
+test("EQUAL + BOOLEAN: live slot + fresh slot — activateLaneActorSlot == oracle in RAM (−stack), boolean matches", () => {
   for (const [label, live, want] of [["live slot", true, true], ["fresh slot", false, false]]) {
     const o = craft(live);
     oracle(o);
     const c = craft(live);
-    const got = loc_5374(c);
+    const got = activateLaneActorSlot(c);
     assert.equal(got, want, `[${label}] boolean caller-skip signal`);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -94,7 +94,7 @@ test("TEETH: a wrong ACTIVE_LANE_COUNT is CAUGHT by the RAM diff", () => {
   const o = craft(false);
   const c = craft(false);
   oracle(o);
-  loc_5374(c);
+  activateLaneActorSlot(c);
   c.mem8[ACTIVE_LANE_COUNT] = 0x02; // BUG: activation must have bumped it to 0x03
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong lane tally — it is worthless");

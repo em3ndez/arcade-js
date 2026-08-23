@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5150 (ROM 0x5150, Pooyan) — the attract/board script advancer:
+ * Memory-equivalence test for armEnemySpawnScript (ROM 0x5150, Pooyan) — the attract/board script advancer:
  * gated by SCRIPT_ADVANCE_GUARD, pick the round's script row, scan it for the stage's threshold, and
  * on a match latch the guard + row value and resolve two data pointers into the live-script slots.
  *
  * The module dissolves all three loc_0c45 word lookups to direct calls; the oracle drives the frozen
- * loc_0c45 through the register seam. loc_5150 is a void routine, so equivalence is RAM (dumpState)
+ * loc_0c45 through the register seam. armEnemySpawnScript is a void routine, so equivalence is RAM (dumpState)
  * minus STACK_SCRATCH, SP parked in dead stack.
  *
  * The match arm uses round 0 / stage 0x20 — the first record of that ROM row has threshold 0x20, so
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5150 as oracle } from "../../translated/loc_5150.js";
-import { loc_5150 } from "../loc_5150.js";
+import { armEnemySpawnScript } from "../armEnemySpawnScript.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -69,12 +69,12 @@ const ARMS = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: three reachable arms — loc_5150 == oracle in RAM (−stack)", () => {
+test("EQUAL: three reachable arms — armEnemySpawnScript == oracle in RAM (−stack)", () => {
   for (const [label, opts] of ARMS) {
     const o = craft(opts);
     oracle(o);
     const c = craft(opts);
-    loc_5150(c);
+    armEnemySpawnScript(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -103,7 +103,7 @@ test("TEETH: a wrong latched-guard byte is CAUGHT by the RAM diff", () => {
   const o = craft(opts);
   const c = craft(opts);
   oracle(o);
-  loc_5150(c);
+  armEnemySpawnScript(c);
   c.mem8[GUARD] = 0x00; // BUG: the match must have latched the guard to 0x20
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong guard byte — it is worthless");

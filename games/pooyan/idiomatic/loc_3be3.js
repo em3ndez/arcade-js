@@ -19,7 +19,7 @@ import {
   TAMPER_STRIKES_STATE0,
 } from "./names.js";
 /**
- * loc_3be3 — object state-0 handler.
+ * loc_3be3 — object state-6 handler.
  *
  * First ticks the record's animation stream. When the record's mode flag bit0 is set it homes:
  * the position advances by the record's velocity, and the row counter is nudged down when the

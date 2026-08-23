@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6f5e (ROM 0x6f5e, Pooyan) — level-intro phase-3 timing gate: while
+ * Memory-equivalence test for advanceLevelIntroFromPhase3 (ROM 0x6f5e, Pooyan) — level-intro phase-3 timing gate: while
  * the delay 0x8f48 reads exactly 0x20 tick the sub-count 0x8f52 (queue a sound each step, hold while
  * board-clear 0x89e5 is set); once the delay counts to zero reload it to 0x60 and, only on world 3,
  * run the 0x79-byte anti-tamper compare (0x0b32 vs its 0x7071 clone) before advancing the phase to
@@ -8,7 +8,7 @@
  *
  * The module calls the idiomatic loc_0038 directly and keeps the tamper tail m.call(0x6df9) (an
  * unlifted anti-tamper clone, not in this batch); the oracle drives the same through the frozen
- * registry. loc_6f5e is memory-only on every reachable exit (an intro-phase handler), so the register
+ * registry. advanceLevelIntroFromPhase3 is memory-only on every reachable exit (an intro-phase handler), so the register
  * file is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
  * SP-TOOTH (R36): the tamper arm is a `return m.call(0x6df9)` tail. It is UNREACHABLE in a crafted
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6f5e as oracle } from "../../translated/loc_6f5e.js";
-import { loc_6f5e } from "../loc_6f5e.js";
+import { advanceLevelIntroFromPhase3 } from "../advanceLevelIntroFromPhase3.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -77,7 +77,7 @@ function craft(delay, tally, boardClear, round) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: delay / sub-count / board-hold / expire / world-3 — loc_6f5e == oracle in RAM (−stack)", () => {
+test("EQUAL: delay / sub-count / board-hold / expire / world-3 — advanceLevelIntroFromPhase3 == oracle in RAM (−stack)", () => {
   const cases = [
     { delay: 0x05, tally: 0x00, bc: 0x00, round: 0x00, label: "delay running -> return" },
     { delay: 0x20, tally: 0x05, bc: 0x00, round: 0x00, label: "sub-count ticks (queue sound)" },
@@ -90,7 +90,7 @@ test("EQUAL: delay / sub-count / board-hold / expire / world-3 — loc_6f5e == o
     const o = craft(delay, tally, bc, round);
     oracle(o);
     const c = craft(delay, tally, bc, round);
-    loc_6f5e(c);
+    advanceLevelIntroFromPhase3(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -117,7 +117,7 @@ test("TEETH: a wrong phase byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x01, 0x00, 0x00, 0x00);
   const c = craft(0x01, 0x00, 0x00, 0x00);
   oracle(o);
-  loc_6f5e(c);
+  advanceLevelIntroFromPhase3(c);
   c.mem8[PHASE] = 0x00; // BUG: expiry must have written phase 6
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong phase byte — it is worthless");
@@ -129,7 +129,7 @@ test("TEETH: a wrong phase byte is CAUGHT by the RAM diff", () => {
 
 test("SP-TOOTH: the reachable plain-return paths are seam-placeable (no stray push)", () => {
   for (const [label, delay, round] of [["delay running", 0x05, 0x00], ["expire, not world 3", 0x01, 0x00]]) {
-    const r = seamPlaceable(withOmittedRet, loc_6f5e, 0x6f5e, craft(delay, 0x00, 0x00, round));
+    const r = seamPlaceable(withOmittedRet, advanceLevelIntroFromPhase3, 0x6f5e, craft(delay, 0x00, 0x00, round));
     assert.equal(r.placeable, true, `[${label}] plain-return arm must be seam-placeable; got: ${r.error}`);
   }
   console.log("  SP-TOOTH: plain-return paths seam-placeable (moved 0, seam supplies the ret)");

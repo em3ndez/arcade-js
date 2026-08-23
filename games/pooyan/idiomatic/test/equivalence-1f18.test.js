@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1f18 (ROM 0x1f18, Pooyan) — the per-frame round/stage HUD refresh.
+ * Memory-equivalence test for refreshRoundStageHud (ROM 0x1f18, Pooyan) — the per-frame round/stage HUD refresh.
  * Holds off if any integrity-flag slot is armed; else derives the stage countdown's tens digit and,
  * only on the first stage (tens zero), draws the BCD round number, blanks three trailing tiles, and
  * mirrors the countdown into its HUD digit; both paths then draw the fixed stage label.
  *
  * The module dissolves the three sub-renderers (loc_0c45, loc_0010, blitGlyphBlock4x3 at 0x1f8c) to
- * direct calls; the oracle drives the frozen originals. loc_1f18 is void — its caller reloads every
+ * direct calls; the oracle drives the frozen originals. refreshRoundStageHud is void — its caller reloads every
  * register before reading one — so no register is compared; equivalence is RAM (dumpState) minus
  * STACK_SCRATCH, SP parked in dead stack so the oracle's transient return-slot pushes drop out.
  *
  * Jobs:
- *   1. EQUAL — three arms (integrity armed / first stage / later stage): oracle == loc_1f18 (RAM −stack).
+ *   1. EQUAL — three arms (integrity armed / first stage / later stage): oracle == refreshRoundStageHud (RAM −stack).
  *   2. WRITE-SET — the first-stage arm mirrors the countdown into its HUD digit; a later stage does not.
  *   3. TEETH — a wrong HUD digit is CAUGHT by the RAM diff.
  *
@@ -23,7 +23,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1f18 as oracle } from "../../translated/loc_1f18.js";
-import { loc_1f18 } from "../loc_1f18.js";
+import { refreshRoundStageHud } from "../refreshRoundStageHud.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -63,12 +63,12 @@ function craft(arm) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: integrity-armed / first-stage / later-stage — loc_1f18 == oracle (RAM −stack)", () => {
+test("EQUAL: integrity-armed / first-stage / later-stage — refreshRoundStageHud == oracle (RAM −stack)", () => {
   for (const arm of ["armed", "first", "later"]) {
     const o = craft(arm);
     oracle(o);
     const c = craft(arm);
-    loc_1f18(c);
+    refreshRoundStageHud(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${arm}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -96,7 +96,7 @@ test("TEETH: a wrong HUD digit is CAUGHT by the RAM diff", () => {
   const o = craft("first");
   const c = craft("first");
   oracle(o);
-  loc_1f18(c);
+  refreshRoundStageHud(c);
   c.mem8[HUD_DIGIT] = 0x00; // BUG: the first stage must have mirrored the countdown here
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong HUD digit — it is worthless");

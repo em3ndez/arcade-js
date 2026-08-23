@@ -37,7 +37,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const REC = 0x8c60; //         actor-block table base (loc_5564's real IX)
+const REC = 0x8c60; //         actor-block table base (spawnFormationEnemiesOnTimer's real IX)
 const STRIDE = 0x18; //        block stride
 const KIND_FIELD = 0x17; //    blk+0x17 = seeded kind byte
 const ACTIVE_FLAG = 0x00; //   blk+0x00 = 1 (set by loc_5489)

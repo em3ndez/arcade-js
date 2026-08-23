@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0ac8 (ROM 0x0ac8, Pooyan) — the attract sub-state 5 handler:
+ * Memory-equivalence test for typeAttractTextColumn (ROM 0x0ac8, Pooyan) — the attract sub-state 5 handler:
  * tick the animation timer, step the scripted sprite records, and on the frame/step-counter wraps
  * stamp a script byte up the column and fold a 14-row checksum verified against INTRO_DELAY_CKSUM_WORD.
  *
  * The module dissolves loc_0a28 / loc_09f8 / loc_76ea to direct calls and keeps the frozen tamper
- * trap 0x7442; the oracle drives the same routines through the register seam. loc_0ac8 is a void
+ * trap 0x7442; the oracle drives the same routines through the register seam. typeAttractTextColumn is a void
  * handler (no register survives), so equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
  * Jobs:
@@ -23,7 +23,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0ac8 as oracle } from "../../translated/loc_0ac8.js";
-import { loc_0ac8 } from "../loc_0ac8.js";
+import { typeAttractTextColumn } from "../typeAttractTextColumn.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -84,12 +84,12 @@ const ARMS = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: three reachable arms — loc_0ac8 == oracle in RAM (−stack)", () => {
+test("EQUAL: three reachable arms — typeAttractTextColumn == oracle in RAM (−stack)", () => {
   for (const [label, opts] of ARMS) {
     const o = craft(opts);
     oracle(o);
     const c = craft(opts);
-    loc_0ac8(c);
+    typeAttractTextColumn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -116,7 +116,7 @@ test("TEETH: a wrong checksum-pointer byte is CAUGHT by the RAM diff", () => {
   const o = craft(opts);
   const c = craft(opts);
   oracle(o);
-  loc_0ac8(c);
+  typeAttractTextColumn(c);
   assert.equal(rd16(o, CKSUM_PTR), 0x8f02, "checksum match advances the pointer past both bytes");
   c.mem8[CKSUM_PTR] = 0x00; // BUG: the match must have advanced the pointer low byte to 0x02
   const d = ramDiffMinusStack(o, c);
@@ -127,11 +127,11 @@ test("TEETH: a wrong checksum-pointer byte is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (R36) --------------------------------------------------------
 
-test("SP-TOOTH: loc_0ac8 (tail-dispatches to 0x7442 / loc_76ea) seats SP for the seam", () => {
+test("SP-TOOTH: typeAttractTextColumn (tail-dispatches to 0x7442 / loc_76ea) seats SP for the seam", () => {
   const m = craft({ frameTimer: 0x05 }); // frame-timer no-wrap -> early return (moved 0)
   m.mem8[SP0] = CALLER_RET & 0xff;
   m.mem8[SP0 + 1] = CALLER_RET >> 8; // seat the caller's return word the seam completes
-  const r = seamPlaceable(withOmittedRet, loc_0ac8, 0x0ac8, m);
-  assert.equal(r.placeable, true, `loc_0ac8 must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: loc_0ac8 seam-placeable (moved 0, seam completes the ret)");
+  const r = seamPlaceable(withOmittedRet, typeAttractTextColumn, 0x0ac8, m);
+  assert.equal(r.placeable, true, `typeAttractTextColumn must be seam-placeable; got: ${r.error}`);
+  console.log("  SP-TOOTH: typeAttractTextColumn seam-placeable (moved 0, seam completes the ret)");
 });

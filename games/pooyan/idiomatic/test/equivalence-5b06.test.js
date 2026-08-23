@@ -7,7 +7,7 @@
  *
  * CYCLE-FREE / memory-equivalence gate. The only observable effect is the possible increment of
  * TAMPER_FREEZE_FLAG, so the go-forward contract is RAM only (dumpState minus STACK_SCRATCH); the
- * caller (loc_5ae4) ignores A and the flags.
+ * caller (runActorUpdatePipeline) ignores A and the flags.
  *
  * Jobs:
  *   1. CAPTURE (best-effort) — hook 0x5b06 in a real run; any dispatch must agree in RAM.

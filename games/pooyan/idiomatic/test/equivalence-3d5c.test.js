@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3d5c (ROM 0x3d5c, Pooyan) — object state-3 handler: step the
+ * Memory-equivalence test for advanceEnemyAnimationPhase (ROM 0x3d5c, Pooyan) — object state-9 handler: step the
  * record's animation, count down the frame timer, and on expiry advance the animation phase (phase
  * 7 -> turn/select state; phase 4 -> swap animation + reseed timer), bump the phase-count and state,
- * and fall through into the state-4 handler.
+ * and fall through into the state-10 handler.
  *
  * The module calls the idiomatic sub-routines directly; the oracle drives the same routines through
- * the frozen registry. loc_3d5c is memory-only on every reachable exit (the fall-through always hits
+ * the frozen registry. advanceEnemyAnimationPhase is memory-only on every reachable exit (the fall-through always hits
  * loc_3d8f's not-elapsed path, since this routine already spent the timer), so the register file is
  * not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH (SP parked in dead stack so the
  * oracle's push/pop churn drops out). loc_4006 is held on its frame-hold branch (rec+0x0e != 0) so
  * it never walks the ROM stream.
  *
  * Jobs:
- *   1. EQUAL — timer-running / phase-2 / phase-4 / phase-7 paths: oracle == loc_3d5c in RAM (−stack).
+ *   1. EQUAL — timer-running / phase-2 / phase-4 / phase-7 paths: oracle == advanceEnemyAnimationPhase in RAM (−stack).
  *   2. WRITE-SET — the timer gates the advance: running holds the state byte, expiry bumps it.
  *   3. TEETH — a wrong phase-count byte is CAUGHT by the RAM diff.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3d5c as oracle } from "../../translated/loc_3d5c.js";
-import { loc_3d5c } from "../loc_3d5c.js";
+import { advanceEnemyAnimationPhase } from "../advanceEnemyAnimationPhase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -68,7 +68,7 @@ function craft(timer, phase) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: timer-running / phase 2 / phase 4 / phase 7 — loc_3d5c == oracle in RAM (−stack)", () => {
+test("EQUAL: timer-running / phase 2 / phase 4 / phase 7 — advanceEnemyAnimationPhase == oracle in RAM (−stack)", () => {
   const cases = [
     { timer: 0x05, phase: 0x02, label: "timer running -> early return" },
     { timer: 0x01, phase: 0x02, label: "expiry, ordinary phase" },
@@ -79,7 +79,7 @@ test("EQUAL: timer-running / phase 2 / phase 4 / phase 7 — loc_3d5c == oracle 
     const o = craft(timer, phase);
     oracle(o);
     const c = craft(timer, phase);
-    loc_3d5c(c);
+    advanceEnemyAnimationPhase(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -108,7 +108,7 @@ test("TEETH: a wrong phase-count byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x01, 0x02);
   const c = craft(0x01, 0x02);
   oracle(o);
-  loc_3d5c(c);
+  advanceEnemyAnimationPhase(c);
   c.mem8[PCOUNT] = 0xff; // BUG: expiry must have written phase + 1 = 0x03
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong phase-count byte — it is worthless");

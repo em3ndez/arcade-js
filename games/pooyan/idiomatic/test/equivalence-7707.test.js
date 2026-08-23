@@ -157,7 +157,7 @@ test("TEETH: a twin ignoring the active guard is caught (inactive record dispatc
 });
 
 test("TEETH: a twin routing selector 1 to the wrong handler is caught", () => {
-  const o = craft(0x01, 0x00, 0x01); // active, selector 1 -> loc_7740
+  const o = craft(0x01, 0x00, 0x01); // active, selector 1 -> moveObject
   const c = craft(0x01, 0x00, 0x01);
   oracle(o);
   brokenWrongSelector(c); // routes to loc_7881 instead

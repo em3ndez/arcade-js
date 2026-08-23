@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7881 (ROM 0x7881, Pooyan) — the periodic self-integrity check
+ * Memory-equivalence test for advanceAttractStateIfImageIntact (ROM 0x7881, Pooyan) — the periodic self-integrity check
  * dispatched over an actor slot: tick a frame countdown, then run a program-image sum and a
  * playfield serpentine sum, and on a clean image clear the enemy-actor arena and re-seed the slot.
  *
  * The module dissolves its block-fill, flip/tamper, and slot-reseed callees to direct idiomatic
- * calls; the oracle drives the frozen ones through the registry new Machine(ROM) builds. loc_7881 is
+ * calls; the oracle drives the frozen ones through the registry new Machine(ROM) builds. advanceAttractStateIfImageIntact is
  * a void routine — no register survives — so the register file is not compared; equivalence is RAM
  * (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
@@ -15,7 +15,7 @@
  * sum runs against the real image and must pass.
  *
  * Jobs:
- *   1. EQUAL — countdown-running and clean-image arms: oracle == loc_7881 in RAM (−stack).
+ *   1. EQUAL — countdown-running and clean-image arms: oracle == advanceAttractStateIfImageIntact in RAM (−stack).
  *   2. WRITE-SET — a running countdown only ticks the frame delay; a clean image sets the attract
  *      sub-state and clears the arena.
  *   3. TEETH — a wrong attract-sub-state byte is CAUGHT by the RAM diff.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7881 as oracle } from "../../translated/loc_7881.js";
-import { loc_7881 } from "../loc_7881.js";
+import { advanceAttractStateIfImageIntact } from "../advanceAttractStateIfImageIntact.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -79,12 +79,12 @@ function craftClean() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_7881 == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceAttractStateIfImageIntact == oracle in RAM (−stack)", () => {
   for (const [label, craft] of [["countdown running", craftRunning], ["clean image", craftClean]]) {
     const a = craft();
     const b = craft();
     oracle(a);
-    loc_7881(b);
+    advanceAttractStateIfImageIntact(b);
     const d = ramDiffMinusStack(a, b);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -112,7 +112,7 @@ test("TEETH: a wrong attract-sub-state byte is CAUGHT by the RAM diff", () => {
   const a = craftClean();
   const b = craftClean();
   oracle(a);
-  loc_7881(b);
+  advanceAttractStateIfImageIntact(b);
   b.mem8[ATTRACT_SS] = 0x00; // BUG: the clean path must have set it to 2
   const d = ramDiffMinusStack(a, b);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong attract-sub-state byte — worthless");

@@ -8,7 +8,7 @@ import { loc_3e9c } from "./loc_3e9c.js";
  *
  * Reads the record's state byte (rec+0x02) and routes on it: state 2 tails into the frame-hold
  * tick; any state below 0x0b runs the generic animation mover and returns; state 0x0b or 0x0c
- * dispatch into the object state-5 / state-6 handlers respectively (a two-entry dispatch table
+ * dispatch into the object state-11 / state-12 handlers respectively (a two-entry dispatch table
  * indexed by state minus the dispatch base).
  *
  * LIVE-OUT: none — the scan loop parks its own loop registers across the call and reads no result
@@ -28,7 +28,7 @@ export function loc_6f2d(m, rec = m.regs.ix) {
   }
 
   switch ((state - DISPATCH_BASE) & 0xff) {
-    case 0: return loc_3e69(m, rec); //               state 0x0b -> object state-5 handler
-    case 1: return loc_3e9c(m, rec); //               state 0x0c -> object state-6 handler
+    case 0: return loc_3e69(m, rec); //               state 0x0b -> object state-11 handler
+    case 1: return loc_3e9c(m, rec); //               state 0x0c -> object state-12 handler
   }
 }

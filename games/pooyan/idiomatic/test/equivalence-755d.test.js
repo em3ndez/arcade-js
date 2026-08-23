@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_755d (Pooyan) — dispatch state 2: the per-frame gameplay driver
+ * Memory-equivalence test for updateGameplayFrame (Pooyan) — dispatch state 2: the per-frame gameplay driver
  * that runs the projectile spawner, arrow mover, eagle blitter, blink-timer swap, and sprite
  * display-list rebuild in order.
  *
- * loc_755d is a void driver — no register survives — so the register file is not compared;
- * equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack. The spawner loc_756d
+ * updateGameplayFrame is a void driver — no register survives — so the register file is not compared;
+ * equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack. The spawner spawnNextEnemyOnDelay
  * is decompiled and called directly: the crafted state holds its frame-delay
  * counter running (the spawner just ticks it and returns), isolating the driver's ORDER + the other
- * sub-passes. loc_755d is a wired override, so it also carries an SP-tooth.
+ * sub-passes. updateGameplayFrame is a wired override, so it also carries an SP-tooth.
  *
  * Jobs:
- *   1. EQUAL — oracle == loc_755d in RAM (−stack).
+ *   1. EQUAL — oracle == updateGameplayFrame in RAM (−stack).
  *   2. WRITE-SET — the driver mutates RAM (the sub-passes are not a no-op).
  *   3. TEETH — a wrong byte at a written cell is CAUGHT by the RAM diff.
  *   4. SP-TOOTH — the seated spawner call is stack-placeable through the dispatch seam.
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_755d as oracle } from "../../translated/loc_755d.js";
-import { loc_755d } from "../loc_755d.js";
+import { updateGameplayFrame } from "../updateGameplayFrame.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -59,11 +59,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_755d == oracle in RAM (−stack)", () => {
+test("EQUAL: updateGameplayFrame == oracle in RAM (−stack)", () => {
   const o = craft();
   oracle(o);
   const c = craft();
-  loc_755d(c);
+  updateGameplayFrame(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: driver identical (RAM −stack)");
@@ -87,7 +87,7 @@ test("TEETH: a wrong byte at a written cell is CAUGHT by the RAM diff", () => {
   const o = craft();
   oracle(o);
   const c = craft();
-  loc_755d(c);
+  updateGameplayFrame(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: driver must match before the poke");
   const wrote = firstStateDiff(pre, o.dumpState(), (off) => o.stateOffsetToAddr(off), inDeadStack);
   c.mem8[wrote.addr] = (c.mem8[wrote.addr] ^ 0xff) & 0xff; // corrupt a cell the driver wrote
@@ -99,7 +99,7 @@ test("TEETH: a wrong byte at a written cell is CAUGHT by the RAM diff", () => {
 // -- 4. SP-TOOTH --------------------------------------------------------------
 
 test("SP-TOOTH: the seated spawner call is stack-placeable through the seam", () => {
-  const r = seamPlaceable(withOmittedRet, loc_755d, 0x755d, craft());
+  const r = seamPlaceable(withOmittedRet, updateGameplayFrame, 0x755d, craft());
   assert.equal(r.placeable, true, `driver must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: loc_755d seated dispatch placeable (moved 0, seam supplies the ret)");
+  console.log("  SP-TOOTH: updateGameplayFrame seated dispatch placeable (moved 0, seam supplies the ret)");
 });

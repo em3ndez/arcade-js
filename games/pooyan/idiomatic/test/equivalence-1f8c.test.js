@@ -7,7 +7,7 @@
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so each case runs the oracle on a
  * FRESH clone and blitGlyphBlock4x3 on another, compared on RAM (dumpState, minus STACK_SCRATCH)
- * AND the advanced HL/DE live-outs: loc_1f18/loc_1f2f `rst 0x10` (memset at HL) right after the call,
+ * AND the advanced HL/DE live-outs: refreshRoundStageHud/drawStageLabelOncePerLevel `rst 0x10` (memset at HL) right after the call,
  * so the advanced HL is live-out; DE matches the oracle for a chained caller.
  *
  * Jobs:

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2f2f (ROM 0x2f2f, Pooyan) — the rope-cell state-4 handler: on the
+ * Memory-equivalence test for retractRopeSegment (ROM 0x2f2f, Pooyan) — the rope-cell state-4 handler: on the
  * per-cell timer, while rope segments remain, it selects a retract-anim pointer, reads this
  * segment's attribute, merges it into the timer cell, clears a formation record, advances the cell
  * state, and blits the segment tile.
  *
  * The module dissolves every callee (2e45/0c45/0020/0010/2e52/3325) to a direct idiomatic call; the
- * oracle drives the same frozen callees through the routines map. loc_2f2f is a void handler — no
+ * oracle drives the same frozen callees through the routines map. retractRopeSegment is a void handler — no
  * register survives to a caller (the rope-cell driver reads none back) — so the register file is not
  * compared; equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack so the
  * oracle's nested dispatch pushes drop out of the diff.
@@ -16,7 +16,7 @@
  * so the tick expires this frame, and rope segments remaining, so the full retract path runs.
  *
  * Jobs:
- *   1. EQUAL — terminal + merge cells: oracle == loc_2f2f in RAM (−stack).
+ *   1. EQUAL — terminal + merge cells: oracle == retractRopeSegment in RAM (−stack).
  *   2. WRITE-SET — the handler advances the cell state to 1 and clears the selected formation record.
  *   3. TEETH — a wrong cell-state byte is CAUGHT by the RAM diff.
  *
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2f2f as oracle } from "../../translated/loc_2f2f.js";
-import { loc_2f2f } from "../loc_2f2f.js";
+import { retractRopeSegment } from "../retractRopeSegment.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -73,12 +73,12 @@ function craft(cell) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: terminal + merge cells — loc_2f2f == oracle in RAM (−stack)", () => {
+test("EQUAL: terminal + merge cells — retractRopeSegment == oracle in RAM (−stack)", () => {
   for (const [label, cell] of [["terminal (0x28 col)", 0], ["merge (non-terminal col)", 1]]) {
     const o = craft(cell);
     oracle(o);
     const c = craft(cell);
-    loc_2f2f(c);
+    retractRopeSegment(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -104,7 +104,7 @@ test("TEETH: a wrong cell-state byte is CAUGHT by the RAM diff", () => {
   const o = craft(0);
   const c = craft(0);
   oracle(o);
-  loc_2f2f(c);
+  retractRopeSegment(c);
   c.mem8[CELL_BASE] = 0x00; // BUG: the handler must have advanced the cell state to 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong cell-state byte — it is worthless");

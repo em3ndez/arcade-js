@@ -9,7 +9,7 @@
  * This is the CYCLE-FREE / memory-equivalence gate. The routine WRITES work RAM (the ring),
  * so every case runs the oracle on one fresh clone and drainSoundCommandRing on another, compared on the
  * go-forward contract: RAM (dumpState, minus STACK_SCRATCH). There is NO register live-out —
- * both callers drop the registers (loc_066d reloads, loc_6e59 returns) — so no register is
+ * both callers drop the registers (loc_066d reloads, runLevelIntroPhase1Frame returns) — so no register is
  * compared. The dispatch DECISION, however, is invisible in dumpState (a sound command goes
  * to the 0xa100 latch, outside dumpState's RAM window), so it is checked separately through
  * io.soundData: each craft seeds a sentinel there, and the oracle and module clones must end

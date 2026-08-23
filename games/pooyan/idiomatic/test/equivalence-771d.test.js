@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_771d (ROM 0x771d, Pooyan) — object-state 0: arm a new object.
+ * Memory-equivalence test for armObjectFromSpawnRing (ROM 0x771d, Pooyan) — object-state 0: arm a new object.
  *
  * A per-object state handler dispatched by jp (hl) from loc_7707; it reads its record from IX and
  * writes only record + spawn-ring RAM, so the contract is memory (dumpState minus STACK_SCRATCH) with
  * NO register live-out. loc_0020 (the table fetch) is dissolved; the fall-through into state 1
- * (loc_7740) is a direct tail call.
+ * (moveObject) is a direct tail call.
  *
  * SP-TOOTH (R36): the module is a wired override reached through the seam, so it must seat SP
  * correctly. Both the full path and the early path leave SP at the seat (moved 0) and must be
@@ -16,7 +16,7 @@
  *
  * Jobs:
  *   1. EQUAL — early path ((REC+0x11) still counting -> return) and full path (expiry -> arm the
- *      object + fall into 0x7740): oracle == loc_771d in RAM (−stack).
+ *      object + fall into 0x7740): oracle == armObjectFromSpawnRing in RAM (−stack).
  *   2. WRITE-SET — the full path stores the spawn index, seeds the speed, advances the state, and
  *      steps the spawn ring; the early path only ticks the countdown.
  *   3. TEETH — a wrong armed byte is CAUGHT by the RAM diff.
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_771d as oracle } from "../../translated/loc_771d.js";
-import { loc_771d } from "../loc_771d.js";
+import { armObjectFromSpawnRing } from "../armObjectFromSpawnRing.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPAWN_RING_COUNTER } from "../names.js";
@@ -76,12 +76,12 @@ function craft(frame) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: early + full path — loc_771d == oracle in RAM (−stack)", () => {
+test("EQUAL: early + full path — armObjectFromSpawnRing == oracle in RAM (−stack)", () => {
   for (const [label, frame] of [["full (expiry)", 0x01], ["early (counting)", 0x05]]) {
     const o = craft(frame);
     oracle(o);
     const c = craft(frame);
-    loc_771d(c);
+    armObjectFromSpawnRing(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -111,7 +111,7 @@ test("TEETH: a wrong armed byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x01);
   const c = craft(0x01);
   oracle(o);
-  loc_771d(c);
+  armObjectFromSpawnRing(c);
   c.mem8[REC + SPEED] = 0x00; // BUG: the full path must have seeded the speed to 0xec
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong armed byte — it is worthless");
@@ -122,9 +122,9 @@ test("TEETH: a wrong armed byte is CAUGHT by the RAM diff", () => {
 // -- 4. SP-TOOTH --------------------------------------------------------------
 
 test("SP-TOOTH: full and early paths are both seam-placeable (moved 0)", () => {
-  const full = seamPlaceable(withOmittedRet, loc_771d, 0x771d, craft(0x01));
+  const full = seamPlaceable(withOmittedRet, armObjectFromSpawnRing, 0x771d, craft(0x01));
   assert.equal(full.placeable, true, `full path must be seam-placeable; got: ${full.error}`);
-  const early = seamPlaceable(withOmittedRet, loc_771d, 0x771d, craft(0x05));
+  const early = seamPlaceable(withOmittedRet, armObjectFromSpawnRing, 0x771d, craft(0x05));
   assert.equal(early.placeable, true, `early path must be seam-placeable; got: ${early.error}`);
   console.log("  SP-TOOTH: full + early both placeable (moved 0)");
 });

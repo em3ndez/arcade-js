@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_18af (ROM 0x18af, Pooyan) — the gameplay-state index-4 per-frame
+ * Memory-equivalence test for runActiveGameplayFrame (ROM 0x18af, Pooyan) — the gameplay-state index-4 per-frame
  * coordinator: fourteen sub-handlers in fixed ROM order, then return.
  *
  * SEATING: BALANCED-WIRE, FULLY DISSOLVED. All fourteen callees are lifted this batch, so every call
@@ -10,7 +10,7 @@
  *
  * Jobs:
  *   1. EQUAL — on a boot clone every sub-handler runs the same on both sides (each dissolved idiomatic
- *      callee is memory-equivalent to the oracle's translated one), so oracle == loc_18af in RAM
+ *      callee is memory-equivalent to the oracle's translated one), so oracle == runActiveGameplayFrame in RAM
  *      (−stack): the whole fourteen-handler composition is equivalent.
  *   2. TEETH — a wrong byte in the idiomatic result is CAUGHT by the RAM diff.
  *
@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_18af as oracle } from "../../translated/loc_18af.js";
-import { loc_18af } from "../loc_18af.js";
+import { runActiveGameplayFrame } from "../runActiveGameplayFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PHASE_TIMER } from "../names.js";
@@ -52,11 +52,11 @@ function bootClone() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: boot clone — loc_18af == oracle in RAM (−stack)", () => {
+test("EQUAL: boot clone — runActiveGameplayFrame == oracle in RAM (−stack)", () => {
   const o = bootClone();
   oracle(o);
   const c = bootClone();
-  loc_18af(c);
+  runActiveGameplayFrame(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL boot clone: fourteen-handler composition identical (RAM −stack)");
@@ -68,7 +68,7 @@ test("TEETH: a wrong byte in the idiomatic result is CAUGHT by the RAM diff", ()
   const o = bootClone();
   const c = bootClone();
   oracle(o);
-  loc_18af(c);
+  runActiveGameplayFrame(c);
   c.mem8[PHASE_TIMER] = (c.mem8[PHASE_TIMER] ^ 0xff) & 0xff; // BUG: corrupt a live work-RAM cell
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte — it is worthless");

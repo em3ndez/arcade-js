@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3e69 (ROM 0x3e69, Pooyan) — the object state-5 handler for the
+ * Memory-equivalence test for loc_3e69 (ROM 0x3e69, Pooyan) — the object state-11 handler for the
  * record based at IX. It decrements the frame timer (IX+0x11) and returns while it is still
  * counting. On expiry it follows the record's linked pointer (IX+0x14:0x15) two bytes in to a
  * descriptor whose first byte is a type: outside 5..6 it blanks the sprite band and stops;
  * in-range it seeds the object's position (IX+0x03..0x06, the +0x04 byte one less than the source),
- * clears the pointer high byte, advances the state (IX+0x02), and falls through into the state-6
+ * clears the pointer high byte, advances the state (IX+0x02), and falls through into the state-12
  * in-flight mover.
  *
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState, minus

@@ -11,7 +11,7 @@
  * imports the idiomatic loc_6368, which imports the idiomatic loc_6381 -> loc_638a -> its idiomatic
  * leaves (setActorAnimation, queueSoundCommand07, loc_0038). The ORACLE loc_6368 runs the FROZEN translated
  * subtree internally via m.call, whose skip path (pop af; ret) aborts pass 2. The two must land
- * byte-identical in RAM (dumpState) MINUS STACK_SCRATCH. There is no register live-out: loc_5ae4
+ * byte-identical in RAM (dumpState) MINUS STACK_SCRATCH. There is no register live-out: runActorUpdatePipeline
  * (the per-frame updater) calls this and reads nothing back, so the contract is RAM−stack only.
  * pc / the full register file / cycles are deliberately NOT compared.
  *

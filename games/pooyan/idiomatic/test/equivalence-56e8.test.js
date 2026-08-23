@@ -5,7 +5,7 @@
  * SEATING: BALANCED (plain ret) -> WIRE. Two callees are dissolved: the even-round arm TAIL-CALLS
  * loc_5871 (its seating), and the per-slot loc_572b is a +4 SP caller-skip dissolved to a boolean
  * (true = spawned -> abort the sweep). The register file is NOT compared: loc_56e8 has no register
- * live-out — its caller (loc_511b tail, dispatched from the loc_18af straight-line sequence) rets
+ * live-out — its caller (serviceEnemySpawns tail, dispatched from the runActiveGameplayFrame straight-line sequence) rets
  * straight after and reads nothing back. Compared on RAM (dumpState) minus STACK_SCRATCH only.
  *
  * Cases are CRAFTED (a plain attract boot does not sit at this gate). They exercise every arm:

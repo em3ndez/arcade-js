@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_175d (ROM 0x175d, Pooyan) — the play sub-state idx2 handler. It
+ * Memory-equivalence test for startRoundAfterIntroDelay (ROM 0x175d, Pooyan) — the play sub-state idx2 handler. It
  * runs the display-list interpreter, advances SUBPHASE_TICK (wrapping every 0x1c calls) and a
  * one-shot at FORMATION_SLOT_TABLE, then picks an action from PLAY_MODE_LATCH / ROUND_IN_PROGRESS /
  * GAME_ACTIVE_FLAG / ROUND_COUNTER: arm sub-state 0x0d, or run the level-start batch and force
@@ -8,7 +8,7 @@
  *
  * The module dissolves loc_4381, paintPhaseGauge, loc_4a0b and loc_02ef to direct calls and keeps
  * push16 + m.call for the two unlifted batch callees (0x1ead, 0x540d); the oracle drives the same
- * frozen routines. loc_175d is a void handler — no register survives — so equivalence is RAM
+ * frozen routines. startRoundAfterIntroDelay is a void handler — no register survives — so equivalence is RAM
  * (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * loc_4381 runs on every arm, so a benign RELOAD display-list stream is seated (both pointer pairs)
@@ -16,7 +16,7 @@
  * branch, the force-sub-3 branch, and the level-start batch branch.
  *
  * Jobs:
- *   1. EQUAL — early / arm-0x0d / force-3 / batch arms: oracle == loc_175d in RAM (−stack).
+ *   1. EQUAL — early / arm-0x0d / force-3 / batch arms: oracle == startRoundAfterIntroDelay in RAM (−stack).
  *   2. WRITE-SET — the branch choice is observable at PLAY_STATE_INDEX (0x0d vs 0x03).
  *   3. TEETH — a wrong PLAY_STATE_INDEX is CAUGHT by the RAM diff.
  *   4. SP-TOOTH — both the batch arm and the light arm are seam-placeable (moved 0).
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_175d as oracle } from "../../translated/loc_175d.js";
-import { loc_175d } from "../loc_175d.js";
+import { startRoundAfterIntroDelay } from "../startRoundAfterIntroDelay.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -76,7 +76,7 @@ function craft(variant) {
   m.regs.sp = SP0;
   m.mem.write16(SP0, CALLER_RET);
   seatDisplayList(m);
-  m.mem8[0x881e] = 0x00; // valid-ROM path for loc_1ead
+  m.mem8[0x881e] = 0x00; // valid-ROM path for paintRoundNumberHud
   if (variant === "early") {
     m.mem8[SUBTICK] = 0x00; // inc -> 1 != 0x1c -> early return
     m.mem8[ONESHOT] = 0x00;
@@ -94,10 +94,10 @@ function craft(variant) {
 const ARMS = ["early", "arm", "force3", "batch"];
 
 // -- 1. EQUAL -----------------------------------------------------------------
-test("EQUAL: early / arm / force3 / batch — loc_175d == oracle in RAM (−stack)", () => {
+test("EQUAL: early / arm / force3 / batch — startRoundAfterIntroDelay == oracle in RAM (−stack)", () => {
   for (const variant of ARMS) {
     const o = craft(variant); oracle(o);
-    const c = craft(variant); loc_175d(c);
+    const c = craft(variant); startRoundAfterIntroDelay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${variant}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -119,7 +119,7 @@ test("WRITE-SET: the branch choice lands in PLAY_STATE_INDEX", () => {
 // -- 3. TEETH -----------------------------------------------------------------
 test("TEETH: a wrong PLAY_STATE_INDEX is CAUGHT by the RAM diff", () => {
   const o = craft("arm"); const c = craft("arm");
-  oracle(o); loc_175d(c);
+  oracle(o); startRoundAfterIntroDelay(c);
   c.mem8[SUBSTATE] = 0x03; // BUG: the arm branch must set 0x0d
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong sub-state — it is worthless");
@@ -129,9 +129,9 @@ test("TEETH: a wrong PLAY_STATE_INDEX is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (R36) --------------------------------------------------------
 test("SP-TOOTH: both the batch and light arms are seam-placeable (moved 0)", () => {
-  const batch = seamPlaceable(withOmittedRet, loc_175d, 0x175d, craft("batch"));
+  const batch = seamPlaceable(withOmittedRet, startRoundAfterIntroDelay, 0x175d, craft("batch"));
   assert.equal(batch.placeable, true, `batch arm must be seam-placeable; got: ${batch.error}`);
-  const arm = seamPlaceable(withOmittedRet, loc_175d, 0x175d, craft("arm"));
+  const arm = seamPlaceable(withOmittedRet, startRoundAfterIntroDelay, 0x175d, craft("arm"));
   assert.equal(arm.placeable, true, `light arm must be seam-placeable; got: ${arm.error}`);
   console.log("  SP-TOOTH: batch + light arm both placeable (moved 0)");
 });

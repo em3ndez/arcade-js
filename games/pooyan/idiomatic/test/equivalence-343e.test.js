@@ -11,7 +11,7 @@
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so every case uses a FRESH clone
  * per side. Contract: RAM (dumpState minus STACK_SCRATCH) ONLY — every callee is memory-only and
- * loc_4221 reloads A from memory immediately after the call and reads no other register back, so
+ * moveFormationAndSpawnObject reloads A from memory immediately after the call and reads no other register back, so
  * there is NO register live-out. pc/SP/cycles are NOT compared.
  *
  * The record is based at IX; the leaf runs only during live object updates, so every case is

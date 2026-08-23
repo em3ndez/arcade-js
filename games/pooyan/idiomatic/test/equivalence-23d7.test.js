@@ -12,7 +12,7 @@
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * The routine has NO register live-out: it sets IX internally to a constant and leaves A =
- * base Y - 6, but all four callers (loc_2334/236a/2901/32bd) reload from RAM (or ret) right
+ * base Y - 6, but all four callers (clampActorYAndAdvanceRenderPhase/236a/2901/32bd) reload from RAM (or ret) right
  * after the call, so A is plumbing and is not part of the contract. pc/SP are not compared
  * (the modelled call/stack ABI the direct-call idiomatic layer replaces with a plain return).
  *

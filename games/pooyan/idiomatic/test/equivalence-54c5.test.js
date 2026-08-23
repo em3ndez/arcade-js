@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_54c5 (ROM 0x54c5, Pooyan) — "spawn scheduler A".
+ * Memory-equivalence test for spawnFormationEnemyOnInterval (ROM 0x54c5, Pooyan) — "spawn scheduler A".
  *
  * A difficulty gate can veto the tick below round 4; past it, the per-type countdown is drained and,
  * only when it hits zero, reloaded from the ROM table (indexed by the schedule cursor), the cursor is
  * advanced, and the routine falls into the formation spawn loop (loc_54f9). The module dissolves the
  * rst-0x20 lookup (loc_0020) and the fall-through (loc_54f9) to direct calls; the oracle drives the
- * frozen versions. loc_54c5 is void — no register survives — so equivalence is RAM (−STACK_SCRATCH).
+ * frozen versions. spawnFormationEnemyOnInterval is void — no register survives — so equivalence is RAM (−STACK_SCRATCH).
  *
  * Jobs:
  *   1. EQUAL — round<2 veto, round∈{2,3} veto, countdown running (dec + ret), and the full
@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_54c5 as oracle } from "../../translated/loc_54c5.js";
-import { loc_54c5 } from "../loc_54c5.js";
+import { spawnFormationEnemyOnInterval } from "../spawnFormationEnemyOnInterval.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -77,7 +77,7 @@ test("EQUAL: all scheduler paths agree in RAM (−stack)", () => {
     const o = craft(args);
     oracle(o);
     const c = craft(args);
-    loc_54c5(c);
+    spawnFormationEnemyOnInterval(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -100,7 +100,7 @@ test("TEETH: a wrong countdown byte is CAUGHT by the RAM diff", () => {
   const o = craft(args);
   const c = craft(args);
   oracle(o);
-  loc_54c5(c);
+  spawnFormationEnemyOnInterval(c);
   c.mem8[SPAWN_COUNTDOWN_A] = 0x03; // BUG: the dec must have left it at 0x02
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong countdown byte — it is worthless");

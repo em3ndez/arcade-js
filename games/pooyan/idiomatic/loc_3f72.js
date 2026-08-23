@@ -2,7 +2,7 @@
 import { loc_4006 } from "./loc_4006.js";
 import { loc_3f7c } from "./loc_3f7c.js";
 /**
- * loc_3f72 — object state handler.
+ * loc_3f72 — object state-14 handler.
  *
  * Ticks the record's animation, then counts down its frame timer and returns while it is
  * still running. On expiry it advances the record's state byte and falls through into the

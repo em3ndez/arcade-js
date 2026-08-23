@@ -2,12 +2,12 @@
 import { loc_3553 } from "./loc_3553.js";
 import { loc_3e9c } from "./loc_3e9c.js";
 /**
- * loc_3e69 — object state-5 handler for the record based at IX. Counts down the frame timer at
+ * loc_3e69 — object state-11 handler for the record based at IX. Counts down the frame timer at
  * +0x11 and returns while it is still running. On expiry it follows the record's linked pointer
  * (+0x14:+0x15) two bytes in to a descriptor type: a type outside 5..6 blanks the sprite band
  * and stops here; an in-range type seeds the object's position (+0x03..+0x06, the +0x04 byte one
  * less than the source), clears the pointer high byte, advances the state (+0x02), and falls
- * through into the state-6 in-flight mover.
+ * through into the state-12 in-flight mover.
  * LIVE-OUT: none — a table-dispatched handler; the whole result is in the record's memory.
  */
 const TYPE_MIN = 0x05; // descriptor types below this are out of range
