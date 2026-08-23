@@ -48,6 +48,8 @@ def check_idiomatic(game):
 
 FIRST_TAG = re.compile(r"\[(seen|code|guess)\]")
 GND_ARROW = re.compile(r"\[code\]\s*(?:->|→)\s*\[seen\]")  # "was [code], now [seen]" = grounded
+CERT_ANY = re.compile(r'\bcert:\s*"')                       # a ROUTINES entry line (graded by its cert field)
+CERT_UNGROUNDED = re.compile(r'\bcert:\s*"(code|guess)"')   # an ungrounded routine
 
 
 def _line_ungrounded(ln):
@@ -59,14 +61,30 @@ def _line_ungrounded(ln):
     return bool(m and m.group(1) in ("code", "guess"))
 
 
+def _count_grounding(lines):
+    # Two kinds of claim in names.js, graded by DIFFERENT signals: a CELL by the [code]/[guess]/[seen]
+    # bracket tag in its JSDoc; a ROUTINE by its ROUTINES-entry `cert:` field (which carries no bracket
+    # tag). Count them separately -- a cert line is a routine even if its role prose holds a stray tag.
+    cells = routines = 0
+    for ln in lines:
+        if CERT_ANY.search(ln):
+            if CERT_UNGROUNDED.search(ln):
+                routines += 1
+        elif _line_ungrounded(ln):
+            cells += 1
+    return cells, routines
+
+
 def check_grounding(game):
     # names.js (the registry) is the authoritative grounding artifact; mechanisms.md `[code]` are
     # accounted-for prose, not counted here.
     path = f"games/{game}/idiomatic/names.js"
     if not os.path.exists(path):
         return False, "no names.js"
-    n = sum(1 for ln in open(path, encoding="utf-8", errors="replace") if _line_ungrounded(ln))
-    return (n == 0), f"{n} ungrounded [code]/[guess] in names.js" if n else "fully grounded"
+    cells, routines = _count_grounding(open(path, encoding="utf-8", errors="replace").readlines())
+    n = cells + routines
+    detail = f"{cells} ungrounded cells + {routines} ungrounded routines" if n else "fully grounded"
+    return (n == 0), detail
 
 
 def check_audio(game):
@@ -131,6 +149,16 @@ def selftest():
     for ln, exp in cases:
         if _line_ungrounded(ln) != exp:
             print(f"selftest FAIL: grounding {ln!r} -> {_line_ungrounded(ln)} want {exp}", file=sys.stderr); ok = False
+    # the cells/routines split: a cell is graded by its bracket tag, a routine by its cert field.
+    split = _count_grounding([
+        "/** [code] (unobservable) FOO bias */",                             # ungrounded cell
+        "export const FOO = 0x8800;",
+        "/** [seen] (golden: 0->1 at f302) BAR credit */",                   # grounded cell
+        '  0x0714: { name: "loc_0714", role: "copy loop", cert: "code" },',  # ungrounded routine
+        '  0x0a25: { name: "loc_0a25", role: "tile paint", cert: "seen" },', # grounded routine
+    ])
+    if split != (1, 1):
+        print(f"selftest FAIL: grounding split -> {split} want (1, 1)", file=sys.stderr); ok = False
     print("selftest OK" if ok else "selftest FAILED")
     return 0 if ok else 1
 
