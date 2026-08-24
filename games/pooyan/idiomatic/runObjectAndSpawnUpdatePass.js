@@ -17,7 +17,6 @@ import { ENEMY_ACTOR_TABLE, HUNTER_TABLE_BASE } from "./names.js";
 export function runObjectAndSpawnUpdatePass(m) {
   blitStackedTwoTileAnimFrameOnHoldTimer(m);
   m.regs.ix = HUNTER_TABLE_BASE; // fountain record pointer for the state dispatch
-  m.push16(m.pc); // seat a scratch return frame for the dispatch tail-return
   runActorGroupStateHandler(m);
   updateEnemyActorsAndCycleLaunchFlipAnim(m, ENEMY_ACTOR_TABLE);
   return loc_6822(m); // enemy-record state dispatcher

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_771d } from "../translated/loc_771d.js";
-import { loc_7740 } from "../translated/loc_7740.js";
-import { loc_7790 } from "../translated/loc_7790.js";
-import { loc_7881 } from "../translated/loc_7881.js";
+import { armObjectFromSpawnRing } from "./armObjectFromSpawnRing.js";
+import { moveObject } from "./moveObject.js";
+import { drawObjectStackedTiles } from "./drawObjectStackedTiles.js";
+import { advanceAttractStateIfImageIntact } from "./advanceAttractStateIfImageIntact.js";
 /**
  * dispatchActiveObjectState — run one object record's per-frame state handler.
  *
@@ -19,9 +19,9 @@ export function dispatchActiveObjectState(m, rec = m.regs.ix) {
   if (((mem8[rec + 0x00] | mem8[rec + 0x01]) & 1) === 0) return;
 
   switch (mem8[rec + 0x02] & 0x03) {
-    case 0: return loc_771d(m);
-    case 1: return loc_7740(m);
-    case 2: return loc_7790(m);
-    case 3: return loc_7881(m);
+    case 0: return armObjectFromSpawnRing(m, rec);
+    case 1: return moveObject(m, rec);
+    case 2: return drawObjectStackedTiles(m, rec);
+    case 3: return advanceAttractStateIfImageIntact(m, rec);
   }
 }
