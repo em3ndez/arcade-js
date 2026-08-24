@@ -81,3 +81,4 @@ pooyan 0x8c91  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8ca9  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8d45  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8d77  # role unknown; promote to a descriptive name at grounding
+pooyan 0x8819  # role unknown (cleared at attract sub-state-0 / play state-0 entry; no reader observed); promote at grounding

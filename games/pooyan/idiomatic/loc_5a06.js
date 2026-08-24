@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import { loc_5a8c } from "./loc_5a8c.js";
 import { emitPresetSound } from "./emitPresetSound.js";
 import { INPUT_PORT0, DRIP_RING_A } from "./names.js";
 /**
@@ -24,5 +25,5 @@ export function loc_5a06(m) {
   // The tail is reached through the marshalled call seam, which joins with A set to the
   // accumulate step, so load A before the call.
   m.regs.a = ACCUMULATE_STEP;
-  return m.call(0x5a8c); // tail: add one to the running total
+  return loc_5a8c(m); // tail: add one to the running total
 }

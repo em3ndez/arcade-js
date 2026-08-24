@@ -1241,7 +1241,149 @@ export const ROPE_EXTEND_FRAME_INDEX = 0x8f1b;
 /** [code] hud refresh tick (0x8f4d) */
 export const HUD_REFRESH_TICK = 0x8f4d;
 
+
+// == Batch: decode pass #1 cells [code] (role from the frozen oracle; MAME-grounding pending) ==
+/** [code] coin-jingle fixed follow-up rst-0x38 command */
+export const DISPLAY_CMD_0300 = 0x0300;
+/** [code] display/sound command word (0x04:0x00) enqueued via loc_0038 at start-of-life; the 2P path additionally fires 0x0401 */
+export const START_OF_LIFE_DISPLAY_CMD = 0x0400;
+/** [code] start-of-life display/sound command variant (0x04:0x01) enqueued only on a two-player game (ROM: inc e from 0x0400) */
+export const START_OF_LIFE_DISPLAY_CMD_2P = 0x0401;
+/** [code] board-intro rst-0x38 display command */
+export const DISPLAY_CMD_0601 = 0x0601;
+/** [code] display-command word 0x0613 enqueued via loc_0038 when the ascent checksum matches (DISPLAY_CMD_06xx family) */
+export const DISPLAY_CMD_0613 = 0x0613;
+/** [code] board-intro rst-0x38 display command */
+export const DISPLAY_CMD_0616 = 0x0616;
+/** [code] board-intro rst-0x38 display command, 1P variant (bonus DSW bit0 clear) */
+export const DISPLAY_CMD_0617 = 0x0617;
+/** [code] coin-jingle rst-0x38 display command for exactly one credit */
+export const DISPLAY_CMD_0618 = 0x0618;
+/** [code] coin-jingle rst-0x38 display command for more than one credit */
+export const DISPLAY_CMD_0619 = 0x0619;
+/** [code] board-intro rst-0x38 display command, 2P variant (bonus DSW bit0 set) */
+export const DISPLAY_CMD_0628 = 0x0628;
+/** [code] board-intro rst-0x38 display command, bonus DSW bit0 set variant */
+export const DISPLAY_CMD_0629 = 0x0629;
+/** [code] board-intro rst-0x38 display command, bonus DSW bit0 clear variant */
+export const DISPLAY_CMD_062A = 0x062a;
+/** [code] display command word (DE) enqueued into the page-0x88 command ring via loc_0038 during idx1 phase setup */
+export const PHASE_SETUP_DISPLAY_CMD = 0x0683;
+/** [code] original typeAttractTextColumn block (0x0ac8), byte-compared against its clone for tamper detection (TAMPER_CHECK_* family) */
+export const TAMPER_CHECK_BLOCK_0AC8 = 0x0ac8;
+/** [code] ROM word table of attract script pointers (0x0bab), indexed by SCRIPT_COL_CHECK_TICK-1 via loc_0c45 */
+export const ATTRACT_SCRIPT_PTR_TABLE = 0x0bab;
+/** [code] 0xff-terminated ROM reference byte list scanned against the HUD tile strip (stride -0x20) in the epilogue integrity check */
+export const EPILOGUE_HUD_SCAN_REF_TABLE = 0x20c2;
+/** [code] ROM byte table indexed by ATTRACT_SUBSTATE (rst-0x20 lookup) whose result is cross-checked against the scanned strip cell */
+export const EPILOGUE_SUBSTATE_LOOKUP_TABLE = 0x20cb;
+/** [code] ROM display-list graphic-stream pointer; committed to DISPLAY_LIST_SRC_PTR_ALT on the in-play, latch-clear, round==0 branch */
+export const DLIST_GFX_ROUND0 = 0x44a9;
+/** [code] ROM display-list graphic-stream pointer; committed to DISPLAY_LIST_SRC_PTR_ALT on the in-play, latch-clear, odd-round branch */
+export const DLIST_GFX_ROUND_ODD = 0x462c;
+/** [code] ROM display-list graphic-stream pointer; committed to DISPLAY_LIST_SRC_PTR_ALT on the shared alternate branch, round bit0 clear */
+export const DLIST_GFX_ALT_EVEN = 0x46d6;
+/** [code] ROM display-list graphic-stream pointer; committed to DISPLAY_LIST_SRC_PTR_ALT on the shared alternate branch, round bit0 set */
+export const DLIST_GFX_ALT_ODD = 0x4872;
+/** [code] ROM display-list layout-stream pointer; committed to DISPLAY_LIST_SRC_PTR on the shared alternate branch, round bit0 clear */
+export const DLIST_LAYOUT_ALT_EVEN = 0x4a50;
+/** [code] ROM display-list layout-stream pointer; committed to DISPLAY_LIST_SRC_PTR on the in-play, latch-clear, odd-round branch */
+export const DLIST_LAYOUT_ROUND_ODD = 0x4b30;
+/** [code] ROM display-list layout-stream pointer; committed to DISPLAY_LIST_SRC_PTR on the in-play, latch-clear, round==0 branch */
+export const DLIST_LAYOUT_ROUND0 = 0x4b55;
+/** [code] ROM display-list layout-stream pointer; committed to DISPLAY_LIST_SRC_PTR on the shared alternate branch, round bit0 set */
+export const DLIST_LAYOUT_ALT_ODD = 0x4bf6;
+/** [code] ROM display-list graphic-stream pointer; committed to DISPLAY_LIST_SRC_PTR_ALT on the latch-set, round bit1 set branch */
+export const DLIST_GFX_LATCH_B1 = 0x4c92;
+/** [code] ROM display-list layout-stream pointer; committed to DISPLAY_LIST_SRC_PTR on the latch-set, round bit1 set branch */
+export const DLIST_LAYOUT_LATCH_B1 = 0x4dce;
+/** [code] ROM display-list graphic-stream pointer; committed to DISPLAY_LIST_SRC_PTR_ALT on the latch-set, round bit1 clear branch */
+export const DLIST_GFX_LATCH = 0x4e81;
+/** [code] ROM display-list layout-stream pointer; committed to DISPLAY_LIST_SRC_PTR on the latch-set, round bit1 clear branch */
+export const DLIST_LAYOUT_LATCH = 0x5039;
+/** [code] ROM reference-checksum bytes trailing loc_6857 (0x68a3), summed against the tile block during the ascent integrity check */
+export const ASCENT_CHECKSUM_REF = 0x68a3;
+/** [code] anti-tamper clone of typeAttractTextColumn (0x6df9), byte-compared against the original block (TAMPER_CHECK_* family) */
+export const TAMPER_CHECK_CLONE_6DF9 = 0x6df9;
+/** [code] ROM word table of level-intro script-timer values, indexed by min(7, ROUND_COUNTER>>2) via loc_0c45 */
+export const INTRO_SCRIPT_TIMER_TABLE = 0x70f3;
+/** [code] ROM table (0x14 bytes) integrity-checksummed on the 2P credit-consume path */
+export const CREDIT_CHECKSUM_TABLE = 0x776b;
+/** [code] base of the vertical tilemap column wiped during the phase-timer teardown; a stride-2 offset by the high-score insert rank (low byte only, page fixed at 0x80) yields the column pointer stored at 0x89fd */
+export const WIPE_COLUMN_VRAM_BASE = 0x8045;
+/** [code] scratch byte cleared at attract sub-state 0 / play state 0 entry (role unconfirmed -> loc_ name) */
+export const loc_8819 = 0x8819;
+/** [code] coin-counter 2 queued-pulse count: bumped by the per-frame coin step at 0x5a1f and drained one per completed strobe by the coin-2 pulse generator; twin of COIN1_PULSE_COUNT (0x8824) */
+export const COIN2_PULSE_COUNT = 0x8826;
+/** [code] coin-counter 2 pulse phase timer (seeded 0x30, drop point 0x18) */
+export const COIN2_PULSE_PHASE = 0x8827;
+/** [code] variant-C drip debounce ring: one input bit rotated in per frame, acted on at 3-bit phase 1 (sibling of DRIP_RING_A=0x8829) */
+export const DRIP_RING_C = 0x882a;
+/** [code] cadence ring for the per-frame step at 0x5a1f: rotated left each frame injecting an input-port bit; low 3 bits == 1 triggers the step */
+export const DRIP_RING_B = 0x882d;
+/** [code] first byte of the 0x5a1f step's pair (0x882e/0x882f; neighbor COINAGE_CONFIG_SLOT2): advanced +0x10 per step, wrapped against the second byte */
+export const DRIP_COORD_B = 0x882e;
+/** [code] Launcher/player position coordinate; shifted >>3 (rrca x3 & 0x1f) with the flip-screen flag to derive the target column used to align an enemy shot. NOTE: axis (X vs Y) is unverified in this decode pass — the translated author's comment calls it the 'launcher position / target column'; confirm the axis in MAME during grounding. */
+export const PLAYER_X_COORD = 0x8842;
+/** [code] RAM counter incremented when the credit-consume integrity checksum folds nonzero */
+export const CREDIT_TAMPER_COUNTER = 0x89ea;
+/** [code] 16-bit tilemap pointer for the column wipe, built from WIPE_COLUMN_VRAM_BASE; the fill in loc_1c66 walks it stride +0x20 for 0x1c cells */
+export const WIPE_COLUMN_VRAM_PTR = 0x89fd;
+/** [code] fill tile value for the column wipe; seeded to 0x07 here, incremented each pass in loc_1c66 and clamped 0x10->0x06 */
+export const WIPE_COLUMN_FILL_TILE = 0x89ff;
+/** [code] 12-byte block cleared to 0 (rst 0x10 fill) only on a two-player start-of-life; grounding pending */
+export const PLAYER2_START_CLEAR_BLOCK = 0x8e1f;
+/** [code] counter bumped each time the shared epilogue reaches its HUD-integrity check (game idle, build state 1, sub-state 3/5/8) */
+export const ATTRACT_EPILOGUE_TICK = 0x8efe;
+/** [code] write-only address that decodes to a watchdog kick (value ignored) */
+export const WATCHDOG_KICK = 0xa028;
+/** [code] IN0 input hardware read port (start/coin/service buttons); loc_066d samples cpl(this) into INPUT_PORT0 each NMI */
+export const IN0_PORT = 0xa080;
+/** [code] LS259 latch bit 4 driving the physical coin counter 2 (write_d0: only bit 0 of the value lands) */
+export const COIN2_COUNTER_LATCH = 0xa184;
+
 export const ROUTINES = {
+  // --- decode pass #1 additions (40 leaves/second-entries; loc_ names, cert code) ---
+  0x08b3: { name: "loc_08b3", role: "attract sub-state 0 handler (attract dispatch target 0)", cert: "code" },
+  0x0b32: { name: "loc_0b32", role: "attract sub-state 6 handler", cert: "code" },
+  0x0bb5: { name: "loc_0bb5", role: "shared attract/board-handler epilogue", cert: "code" },
+  0x0c2a: { name: "loc_0c2a", role: "IN0 start-button poll during attract", cert: "code" },
+  0x0c4e: { name: "loc_0c4e", role: "board-build state dispatcher (NMI epilogue path)", cert: "code" },
+  0x0c5c: { name: "loc_0c5c", role: "board-build state 0", cert: "code" },
+  0x0c77: { name: "loc_0c77", role: "board-intro state 1: paint two tile-fill runs, count down, then build the intro", cert: "code" },
+  0x0d61: { name: "loc_0d61", role: "coin jingle: on a nonzero credit count, queue a credit display command (a distinct", cert: "code" },
+  0x0d78: { name: "loc_0d78", role: "coin/credit post-handler on the IN0 edge bits (INPUT_PORT0)", cert: "code" },
+  0x0da8: { name: "loc_0da8", role: "thin entry that seats HL = the start-of-life state seed (256) and falls through to the", cert: "code" },
+  0x0dab: { name: "loc_0dab", role: "start-of-life setup for a new game", cert: "code" },
+  0x0de4: { name: "loc_0de4", role: "the (0x8810) bit-3 coin/credit branch", cert: "code" },
+  0x0fc1: { name: "loc_0fc1", role: "enqueue the four-tile text sequence 0x29,0x15,0x16,0x17 into the text ring", cert: "code" },
+  0x1694: { name: "loc_1694", role: "compare the terminated pattern against the display message buffer", cert: "code" },
+  0x16b7: { name: "loc_16b7", role: "idx1 state handler. Decrements the phase timer and returns until it expires; then", cert: "code" },
+  0x1a01: { name: "loc_1a01", role: "gameplay-state handler. Reseeds the spawn counters, seats the sprite attribute", cert: "code" },
+  0x1a64: { name: "loc_1a64", role: "gameplay-state entry. While the play-mode latch is set it tails to the gameplay-state", cert: "code" },
+  0x1c03: { name: "loc_1c03", role: "play-state dispatch handler gated on the phase timer", cert: "code" },
+  0x1c66: { name: "loc_1c66", role: "round-clear / game-over / player-swap master of the play-state dispatch handler", cert: "code" },
+  0x1cf6: { name: "loc_1cf6", role: "reseed-the-other-player tail of the play-state dispatch handler", cert: "code" },
+  0x1d0d: { name: "loc_1d0d", role: "stamp the three tiles of the second scroll column, top to bottom", cert: "code" },
+  0x1d15: { name: "loc_1d15", role: "full-clear tail of the play-state dispatch handler", cert: "code" },
+  0x1d3c: { name: "loc_1d3c", role: "cold-teardown tail of the play-state dispatch handler", cert: "code" },
+  0x39af: { name: "loc_39af", role: "enemy actor state handler (rst-0x28 dispatch target) for the record at IX", cert: "code" },
+  0x39ba: { name: "loc_39ba", role: "advance the enemy actor's vertical position along its velocity, then branch on state", cert: "code" },
+  0x39e0: { name: "loc_39e0", role: "gate the enemy \"fire / drop\" decision on the level counters, then in the shared tail", cert: "code" },
+  0x3a48: { name: "loc_3a48", role: "reset the enemy actor's sub-state and reload its state timer", cert: "code" },
+  0x3a51: { name: "loc_3a51", role: "arm the drop animation when the actor is near the top of its travel", cert: "code" },
+  0x3b87: { name: "loc_3b87", role: "horizontal-travel phase of an enemy actor whose (+8) bit0 is clear", cert: "code" },
+  0x59e8: { name: "loc_59e8", role: "credit/coinage-gated update chain", cert: "code" },
+  0x5a1f: { name: "loc_5a1f", role: "per-frame step B: rotate the cadence ring, on phase 1 bump the pulse count and feed the accumulate tail", cert: "code" },
+  0x5a56: { name: "loc_5a56", role: "per-frame step C: rotate one input bit into the ring at DRIP_RING_C and act on phase 1", cert: "code" },
+  0x5a8a: { name: "loc_5a8a", role: "full-wrap entry into the shared score-accumulate tail", cert: "code" },
+  0x5a8c: { name: "loc_5a8c", role: "the shared accumulate tail of the three score drips", cert: "code" },
+  0x5a97: { name: "loc_5a97", role: "queue the step's display command via rst-0x38", cert: "code" },
+  0x5ac0: { name: "loc_5ac0", role: "coin-counter 2 pulse generator: turn queued coin pulses into a timed strobe on the", cert: "code" },
+  0x6857: { name: "loc_6857", role: "object ascent step. Runs the object animation sequencer, then subtracts (rec+9) from", cert: "code" },
+  0x6da6: { name: "loc_6da6", role: "level-intro / round-start phase dispatcher (top-level game state 2)", cert: "code" },
+  0x6db8: { name: "loc_6db8", role: "level-intro phase 0. Runs the shared per-frame sound run, picks a script-timer word", cert: "code" },
+  0x7071: { name: "loc_7071", role: "ANTI-TAMPER CLONE of loc_0b32 (attract sub-state-6 handler), reached by the state-0", cert: "code" },
   0x0714: { name: "loc_0714", role: "sprite-attribute copy loop. Runs `count` passes. Each pass reads four source bytes, walking the source low byte so it wraps inside its 256-byte page:…", cert: "code" },
   0x0a25: { name: "loc_0a25", role: "seeds the frame-animation cursor, then tail-hands to the two-slot tile painter, returning its result straight to this routine's own caller", cert: "code" },
   0x0a28: { name: "loc_0a28", role: "advance the 4-phase attract animation and repaint its tile block", cert: "code" },
@@ -1305,7 +1447,7 @@ export const ROUTINES = {
   0x5835: { name: "loc_5835", role: "spawn the singleton actor, or step it if it already exists", cert: "code" },
   0x5871: { name: "loc_5871", role: "actor-spawn gate. Latches the entry value into the speed index, then launches a new actor only when the active count is strictly below the stage…", cert: "code" },
   0x588e: { name: "loc_588e", role: "initialise a run of sprite blocks", cert: "code" },
-  0x5a06: { name: "loc_5a06", role: "per-frame accumulate step, variant A", cert: "code" },
+  0x5a06: { name: "loc_5a06", role: "per-frame accumulate step A (adds to the running total)", cert: "code" },
   0x5b71: { name: "loc_5b71", role: "fire gate for one actor record (based at IX)", cert: "code" },
   0x5b86: { name: "loc_5b86", role: "sweep the per-record collision check across the six enemy-actor records", cert: "code" },
   0x5e78: { name: "loc_5e78", role: "gated actor-sweep driver. On an odd round only, hands the actor-record table to the per-slot sweep twice: a phase latch of 0 on the first pass and 1…", cert: "code" },
