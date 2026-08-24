@@ -110,8 +110,29 @@ def check_wholegame(game):
     return (rc == 0), ("PASS" if rc == 0 else "whole-game tests FAILED")
 
 
+def check_wiring(game):
+    """The repo-wide wiring invariants: every idiomatic module is DISPATCHED (registry-coverage), no
+    idiomatic routine m.call()s an already-decompiled callee (no-stale-mcall), and no idiomatic module
+    imports+calls the FROZEN copy of a routine that has an idiomatic twin (no-frozen-twin-call). These
+    live in tools/test/, OUTSIDE the game tree, so check_wholegame's games/<g>/test glob never reaches
+    them -- a done-authority that omits wiring is a check that cannot fail at the top of the stack, and
+    every one of them runs the idiomatic layer as designed only if the wiring is sound. The gates are
+    repo-wide (they discover their own games), so a wiring break in ANY game blocks the ship: the
+    invariant is global, not per-game."""
+    gates = ["registry-coverage", "no-stale-mcall", "no-frozen-twin-call"]
+    for g in gates:
+        path = f"tools/test/{g}.test.js"
+        if not os.path.exists(path):
+            return False, f"missing wiring gate {g}"
+        rc, _ = run(["node", "--test", path])
+        if rc != 0:
+            return False, f"wiring gate {g} FAILED"
+    return True, "PASS (registry-coverage, no-stale-mcall, no-frozen-twin-call)"
+
+
 SUBSYSTEMS = [
     ("idiomatic", check_idiomatic),
+    ("wiring", check_wiring),
     ("grounding", check_grounding),
     ("audio", check_audio),
     ("pixel", check_pixel),
