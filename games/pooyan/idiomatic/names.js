@@ -1492,6 +1492,7 @@ export const ROUTINES = {
   0x72a0: { name: "runWaveLaunchPhaseFrame", role: "bonus phase 1 body: run the shared per-frame update, then the wave-launch driver", cert: "code" },
   0x7621: { name: "advanceAllEnemyActorStates", role: "twin entry to the shared animation-tick walk", cert: "code" },
   0x76ea: { name: "runObjectAndEnemyActorUpdate", role: "a per-frame driver that runs three subsystems in order", cert: "code" },
+  0x76f4: { name: "loc_76f4", role: "sweep the per-object state dispatcher over the six object records at OBJECT_STATE_RECORD_BASE (stride 0x18)", cert: "code" },
   0x020f: {
     name: "mainLoop",
     role: "the main-loop state driver: each iteration runs the per-frame worker or dispatches one display-ring handler; as the born-live generator it drains the ring within a frame and yields at the worker/ring-idle vblank boundary",
