@@ -84,7 +84,7 @@ The 2KB work-RAM slab is densely packed. Grouped by role:
 
 **Per-player banks.** The game keeps a *live page* at 0x8900 and swaps it wholesale with a saved 0x3F-byte block per player: PLAYER0_STATE_BANK (0x8940) [seen] and PLAYER1_STATE_BANK (0x8980) [seen], each with its remaining-lives byte at PLAYER0_LIVES (0x8948) [seen] / PLAYER1_LIVES (0x8988) [seen] (seeded from LIVES_DSW, drained on death, gating the player switch and game-over). Scores are three-byte BCD buffers, P1_SCORE_BCD (0x88a2) [seen] and P2_SCORE_BCD (0x88a5) [seen], selected by ACTIVE_PLAYER; the play timers are BCD banks PLAY_TIMER_BCD_P1 (0x8a30) [code] / PLAY_TIMER_BCD_P2 (0x8a33) [code] with their own suppress gates PLAY_TIMER_GATE_P1 (0x89e1) / PLAY_TIMER_GATE_P2 (0x89e2).
 
-**The 0x8900 live block and the 0x8928 timer/flag block.** The live page opens with the per-round scalars: SPEED_INDEX (0x8900) [seen], STAGE_COUNTDOWN (0x8901) [seen], SPAWN_PHASE_COUNTER (0x8902) [seen], WAVE_ARRIVAL_COUNTER (0x8903) [seen], ROUND_IN_PROGRESS (0x8904) [seen], ROUND_COUNTER (0x8907) [seen] (rendered as the HUD round number, its low bits selecting stage-type variants), GAUGE_PHASE_COUNTER (0x8908) [seen] (drained per phase and drawn as the vertical gauge), the extra-life AWARD_QUEUE (0x8909) [code], the rope counters ROPE_SEGMENT_COUNT (0x8931) [seen] and ROPE_DRAW_COUNT (0x8934) [seen], and the enemy-population counters ACTIVE_ENEMY_COUNT (0x8d40) [seen] and ANIM_FRAME_COUNTER (0x8d41) [seen]. Just after it comes a compact nine-byte per-frame timer/flag block from FRAME_TIMER_BLOCK_BASE (0x8928) [code]: SHARED_FRAME_DELAY_TIMER (0x8929) [seen] (a shared countdown gating several object sweeps), BLINK_COUNTDOWN (0x892a) [code] / BLINK_PHASE (0x892b) [code], ANIM_PHASE_TOGGLE_892C (0x892c) [seen] (grow-vs-shrink half selector), WAVE_NUMBER (0x892d) [code], SHARED_PHASE_COUNTDOWN (0x892e) [seen], LAUNCH_FLIP_COUNTDOWN (0x892f) [code], and SHARED_PHASE_GATE (0x8930) [code]. This block is zeroed at screen re-init.
+**The 0x8900 live block and the 0x8928 timer/flag block.** The live page opens with the per-round scalars: SPEED_INDEX (0x8900) [seen], STAGE_COUNTDOWN (0x8901) [seen], SPAWN_PHASE_COUNTER (0x8902) [seen], WAVE_ARRIVAL_COUNTER (0x8903) [seen], ROUND_IN_PROGRESS (0x8904) [seen], ROUND_COUNTER (0x8907) [seen] (rendered as the HUD round number, its low bits selecting stage-type variants), GAUGE_PHASE_COUNTER (0x8908) [seen] (drained per phase and drawn as the vertical gauge), the extra-life AWARD_QUEUE (0x8909) [seen], the rope counters ROPE_SEGMENT_COUNT (0x8931) [seen] and ROPE_DRAW_COUNT (0x8934) [seen], and the enemy-population counters ACTIVE_ENEMY_COUNT (0x8d40) [seen] and ANIM_FRAME_COUNTER (0x8d41) [seen]. Just after it comes a compact nine-byte per-frame timer/flag block from FRAME_TIMER_BLOCK_BASE (0x8928) [code]: SHARED_FRAME_DELAY_TIMER (0x8929) [seen] (a shared countdown gating several object sweeps), BLINK_COUNTDOWN (0x892a) [code] / BLINK_PHASE (0x892b) [code], ANIM_PHASE_TOGGLE_892C (0x892c) [seen] (grow-vs-shrink half selector), WAVE_NUMBER (0x892d) [code], SHARED_PHASE_COUNTDOWN (0x892e) [seen], LAUNCH_FLIP_COUNTDOWN (0x892f) [code], and SHARED_PHASE_GATE (0x8930) [code]. This block is zeroed at screen re-init.
 
 **Actor and object records.** The heart of the entity model is the 0x18-stride record array based at ACTOR_TABLE (0x8a80) [seen], zero-filled at board init, whose *slot 0 is the player/lead actor*. Its fields include LEAD_ACTOR_STATE (0x8a82) [seen] (a 6-way dispatch index), the player's vertical position PLAYER_Y (0x8a84) [seen] (note this is the *Y* axis — the elevator-style up/down motion, not X — and enemy AI targets it to arm dives), and PLAYER_AIM_FLAGS (0x8a87) [seen] (joystick bits plus the aim above/on/below indicator). Beyond the lead actor, parallel 0x18-stride record pools carve up the rest of the entity population: ENEMY_ACTOR_TABLE (0x8ae0) [seen], SPRITE_OBJECT_TABLE (0x8b70) [seen], OBJECT_STATE_RECORD_BASE (0x8ba0) [seen] (which spans into) PROJECTILE_TABLE (0x8be8) [seen], FORMATION_TABLE (0x8c30) [seen], SPAWN_OBJECT_TABLE (0x8c48) [seen], FORMATION_SPAWN_TABLE (0x8c60) [seen], the six-slot HUNTER_TABLE_BASE (0x8c78) [seen] (scanned *downward*), and the two-entry I-parity pair ENEMY_TARGET_REC0 (0x8c90) [seen] / ENEMY_TARGET_REC1 (0x8ca8) [seen]. Each record's byte 0 is a presence/active flag and byte +2 (or +6) is the per-record state byte the dispatchers switch on; the eagle records carry live coordinates EAGLE_X_COORD (0x8c96) [code] / EAGLE_Y_COORD (0x8c94) [code] integrated from the velocity words OBJECT_VEL_X (0x8f10) [seen] / OBJECT_VEL_Y (0x8f12) [seen]. Spawn cadence is governed by ENEMY_SPAWN_TIMER (0x8d07) [seen] and a family of per-type countdowns around 0x8d04-0x8d06.
 
@@ -396,7 +396,7 @@ after copying.
 Several one-byte timers are primed at start-of-life from, or alongside, the config seed,
 and they pace the round rather than the coin logic. `startNewGamePlay` primes the
 periodic-event pair: it clears `WAVE_EVENT_LATCH` (0x8d21) [seen] and reloads
-`PERIODIC_EVENT_TIMER` (0x8d22) [code] to `0x20`. That timer counts down each frame; on
+`PERIODIC_EVENT_TIMER` (0x8d22) [seen] to `0x20`. That timer counts down each frame; on
 expiry it reloads and raises the wave-event latch (which fires the siren-tile run), and
 the latch is cleared again on wave teardown — grounded [seen] as a long-held one-shot.
 
@@ -410,8 +410,8 @@ the counter's wrap.
 
 Finally, the extra-life schedule is config-driven but runs as a per-frame tally. The
 selected award schedule comes from `BONUS_AWARD_DSW` (0x8800) [code] — decoded at boot
-from `DSW1` bit 3 — and drives the bonus-award step at `0x18da` [code]: an empty
-`AWARD_QUEUE` (0x8909) [code] reloads its next BCD threshold (5 or 3 depending on the
+from `DSW1` bit 3 — and drives the bonus-award step at `0x18da` [seen]: an empty
+`AWARD_QUEUE` (0x8909) [seen] reloads its next BCD threshold (5 or 3 depending on the
 switch), and once the active player's score most-significant byte reaches the queued
 threshold it saturating-bumps the `GAUGE_PHASE_COUNTER` (0x8908) [seen] gauge, BCD-steps
 the queue to the next threshold (by 8 or 7), redraws the HUD gauge, and appends the tally
@@ -434,7 +434,7 @@ The top-level game state cell MAIN_GAME_STATE (0x8805, [seen]) selects one of fi
 each vblank; value 3 is "in play" and lands on `runPlayStateFrame` (0x159b, [seen]). That handler does
 only three things per frame: it ticks the active player's BCD play-timer, it dispatches the in-play
 sub-state, and it runs the end-of-frame housekeeping continuation. The whole richness of gameplay is
-therefore reached through one indirection — the sub-state dispatcher at 0x15a1 ([code]).
+therefore reached through one indirection — the sub-state dispatcher at 0x15a1 ([seen]).
 
 That dispatcher reads PLAY_STATE_INDEX (0x880a, [seen]), masks it to its low five bits, and routes to
 one of nineteen phase handlers. This index is the spine of the entire round: it is not a mode you set
@@ -464,7 +464,7 @@ tamper-strike counter (0x89ef) is nonzero — an anti-tamper re-entry, dormant o
 
 ### Building a round: the setup phases
 
-Sub-state 0, the round-init handler at 0x1601 ([code]), is where a round is assembled. It first drives
+Sub-state 0, the round-init handler at 0x1601 ([seen]), is where a round is assembled. It first drives
 the row-by-row tilemap clear and returns early each frame until that fill drains, so the build spreads
 across many frames rather than stalling one. Once the screen is blanked it re-arms the fill, clears
 the actor arena and a cluster of round-init cells (the wave-event latch, the rope-extend timers, and
@@ -506,7 +506,7 @@ when ROUND_COUNTER bit 1 is set, fans out an enemy sprite group whose size scale
 (clamped to eight, tile base pulled from a word table, per-slot coordinates packed with a rippling
 carry) and forces sub-state 0x0f.
 
-Two further build-adjacent handlers sit at indices 8 and 9 — 0x1b43 ([code]) and its sibling 0x1b8c
+Two further build-adjacent handlers sit at indices 8 and 9 — 0x1b43 ([seen]) and its sibling 0x1b8c
 ([code]). Both tick and drain the tilemap clear, reflood the attribute columns, enqueue two display
 commands, run the shared integrity/timer render (0x7960, below), and latch the play sub-state to 0x0c;
 0x1b43 additionally folds a 34-byte program block into a rolling checksum and bumps the tamper-freeze
@@ -515,7 +515,7 @@ while 0x1b8c reloads PHASE_TIMER to 0x60.
 
 ### Active gameplay and the progression drivers
 
-Two indices carry the running round. Sub-state 4, `runActiveGameplayFrame` (0x18af, [code]), is the main
+Two indices carry the running round. Sub-state 4, `runActiveGameplayFrame` (0x18af, [seen]), is the main
 per-frame coordinator: it runs fourteen sub-handlers in a fixed order — joystick sampling into the
 player state byte, aim-indicator/target acquisition, the object-update gate, enemy spawn servicing,
 the enemy-actor and formation-object state sweeps, the sprite-list rebuild, the pending-bonus-award
@@ -541,9 +541,9 @@ Sub-state 7, `advancePhaseGaugeCountdown` (0x1a64, [seen]), drives the vertical 
 play-mode latch is set it tails to the sub-state-6 handler. Otherwise it queues a sound, runs the
 board/HUD reset, clears the once-per-round latch, and — with the game still active — counts
 GAUGE_PHASE_COUNTER (0x8908, [seen]) down by one. If that count was already zero, or reaches zero on this
-tick, it tail-hands to the phase-exhausted handler at 0x1a96 ([code]); otherwise it repaints the gauge
+tick, it tail-hands to the phase-exhausted handler at 0x1a96 ([seen]); otherwise it repaints the gauge
 and seats the play sub-state for the active player (0x0a for player zero, 0x0b for player one). The
-helper at 0x1a85 ([code]) does the same gauge-plus-index seating standalone. The phase-exhausted handler
+helper at 0x1a85 ([seen]) does the same gauge-plus-index seating standalone. The phase-exhausted handler
 at 0x1a96 queues the exhaustion sound, advances the index once more for player one and once
 unconditionally, clears the high-score insert rank and two round cells, and tail-hands to the
 high-score insert-sort — the beginning of that player's game-over bookkeeping.
@@ -1421,11 +1421,11 @@ freeze flag being clear: it copies an attribute field bottom-up into the reset a
 glyph blocks (the tens bit selects which glyph word via a word-table lookup, then a 3x3 block and a 4x3
 glyph block are stamped), stashes the low digit, and renders a selector glyph. Both entry paths then run
 the per-frame update chain: refreshRoundStageHud then renderStageCountdownDigits. refreshRoundStageHud
-(0x1f18) [code] holds off while any of the seven integrity-flag slots is armed; otherwise it derives the
+(0x1f18) [seen] holds off while any of the seven integrity-flag slots is armed; otherwise it derives the
 stage countdown's tens digit by repeated subtraction, and only on the first stage (tens zero) draws the
 BCD round number (choosing one of two glyph banks by a tens bit), blanks three trailing tiles, and mirrors
 the countdown into its HUD digit; either way it then draws the fixed stage label from a pointer table.
-drawStageLabelOncePerLevel (0x1f2f) [code] is the once-per-level variant: it is a one-shot latched by
+drawStageLabelOncePerLevel (0x1f2f) [seen] is the once-per-level variant: it is a one-shot latched by
 LEVEL_TAG_DONE_LATCH, treats a stage below ten as label column zero (arming the latch), matches a higher
 stage against a five-entry column table (returning without drawing on a miss), and on column zero draws
 the round number and mirrors the countdown before drawing the label. The countdown itself is drawn by
@@ -1645,13 +1645,13 @@ the two halves of the alternating warble — one phase resets the byte to 0 and 
 (0x060f) [code]. So the siren is a slow square wave in software, flipping between two commands every
 0x18 frames for as long as the gate stays open.
 
-The arming and the periodic wave-alarm sit in 0x196e [code], the gated periodic driver. It idles
+The arming and the periodic wave-alarm sit in 0x196e [seen], the gated periodic driver. It idles
 while `PERIODIC_MODE_LATCH` (0x8d55) [code] is nonzero. It then reads the spawn-phase value
 `SPAWN_PHASE_COUNTER` (0x8902) [seen] as a mode: at exactly 5 it arms a pair of gate cells (the
 siren-enable gate when no grab is active) and fires the mode-5 run `queueSoundCommands96And97And18And15`;
 above 5 it latches the mode and, if no grab is active, fires `queueSoundCommands19And15`. After the
 mode branch it runs a shared event countdown: unless `WAVE_EVENT_LATCH` (0x8d21) [seen] or the
-wave-teardown state is set, it ticks `PERIODIC_EVENT_TIMER` (0x8d22) [code] down, and on expiry
+wave-teardown state is set, it ticks `PERIODIC_EVENT_TIMER` (0x8d22) [seen] down, and on expiry
 reloads it to 0x20, raises the wave-event latch, and calls `queueSirenSoundRun` — which (while the
 siren gate is clear) appends a round-selected base byte (0x1a or 0x1b) followed by the completing
 run, giving the periodic alarm blip that punctuates a building wave.
@@ -1755,7 +1755,7 @@ TAMPER_STRIKES_STATE10 (0x8a39) on any deviation. verifyTableChecksum (0x585b) [
 0x1d, and any other outcome raises the eagle-spawn ROM-check flag TAMPER_ROM_CHECK_FLAG (0x882b).
 flagTamperOnRound5ChecksumMiss (0x5b06) [code] fires only when the round selector (0x8907) equals
 5, sums the six bytes at 0x1553, and on an unbalanced result bumps the freeze tally
-TAMPER_FREEZE_FLAG (0x881e). loc_1b43 [code], one of the play-state handlers, folds a 34-byte
+TAMPER_FREEZE_FLAG (0x881e). loc_1b43 [seen], one of the play-state handlers, folds a 34-byte
 checksum over TAMPER_CKSUM_BASE_5593 (0x5593) — each byte masked with 0x37, rotated, added with
 carry — and bumps TAMPER_FREEZE_FLAG unless the accumulator equals 0x7c. loc_5594 [code], a spawner
 tail, sums the eight bytes of INTEGRITY_GUARD_REGION_0BAD (0x0bad) against their two's-complement
