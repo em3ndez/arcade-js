@@ -135,16 +135,17 @@ screen, and that a collected one drops out of the cycle and holds still, is a fi
 in the machine code for it to live.
 
 Every such routine keeps a gate proving it memory-equivalent to the faithful translation, so
-readability is never bought with correctness. The sweep is **complete for The Pit** and **ongoing
-for Time Pilot and Donkey Kong**.
+readability is never bought with correctness. That decompilation sweep is **complete for Frogger**,
+whose layer is fully idiomatic; **Pooyan** is the port in progress, and the earlier games were done
+under earlier iterations of the method.
 
 Alongside the code, the game's **mechanics** are written up in the same way: *grounded by playing it
 in MAME*, not guessed from the source. The same oracle does double duty — a **gate** that proves the
 pixels match, and a **probe** we drive to learn what the game means. The whole method is one page:
 [docs/README.md](docs/README.md).
 
-**Donkey Kong** is the first subject, and its port is complete — the decompilation sweep above is
-the part still running on it. **The Pit** (Zilec/Centuri, 1982) is
+**Donkey Kong** is the first subject, and its port is complete — pixel-exact and fully playable.
+**The Pit** (Zilec/Centuri, 1982) is
 the second, and it was chosen deliberately: **no public disassembly of it exists**, so there was
 nothing for a model to have memorized — the agents had to recover it from the raw ROM. That makes
 it the sharper test of the thesis, and the same falsifiable pixel gate keeps it honest. The repo
@@ -154,8 +155,6 @@ sharing what they genuinely share.
 How the agents were organised — the division of labour, the failure modes we actually hit, and
 what the tooling had to do about them — is written up in
 [docs/how-the-agents-worked.md](docs/how-the-agents-worked.md).
-
-![Donkey Kong running in the arcade-js browser player](docs/media/player-screenshot.png)
 
 > **Status — Donkey Kong:** plays. All four boards, natural board-to-board progression, and the
 > level loop all work — finish 100m and it wraps back to 25m at the next level, indefinitely —
@@ -229,7 +228,7 @@ boards/               arcade hardware, named by MAME driver (a "board")
   dkong/hardware.json the same, as JSON: the single source the shared Python gate
                       tools read via --hardware, instead of hardcoding DK addresses
   dkong/test/         unit tests for the board
-games/                one directory per romset (dkong, thepit, timeplt)
+games/                one directory per romset (dkong, thepit, timeplt, frogger, pooyan)
   dkong/
     manifest.js       declares its cpu + board + rom set + inputs + metadata
     translated/       the assembly-JS translation of the ROM (the frozen oracle)
@@ -241,9 +240,9 @@ games/                one directory per romset (dkong, thepit, timeplt)
     entrypoints.json  disassembly entry points (folded into the trace)
     tools/            per-game gate runners (emit.js · move_suite.py · prize_suite.py)
   thepit/             the second game — same shape; its mechanisms.md maps the game
-                      as understood so far
-  timeplt/            the third game — same shape; translation essentially
-                      complete, decompilation in progress
+  timeplt/            same shape — an earlier-method port (translated)
+  frogger/            same shape; its idiomatic layer is complete
+  pooyan/             same shape; the port currently in progress
 web/                  browser front-end: pick a game and play it
 tools/                disassembler · tracer · MAME golden capture · pixel/state diff ·
                        gate runner (verdict.sh) — shared, game-agnostic
