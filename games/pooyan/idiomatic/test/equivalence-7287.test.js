@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7287 (ROM 0x7287) — the eagle grid-advance guard. It reads the
+ * Memory-equivalence test for armEagleFinishAtGridEdge (ROM 0x7287) — the eagle grid-advance guard. It reads the
  * eagle's advancing grid coordinate at 0x8c94: while that coordinate is below the grid edge 0xd0 it
  * returns it in A (a `ret c`); once it reaches the edge it sets the grid-advance done latch 0x8f3e,
  * runs the phase-reset epilogue (clear 0x8a87 and 0x8f5b, advance 0x8f38, clear 0x8f39), and returns
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7287 as oracle } from "../../translated/loc_7287.js";
-import { loc_7287 } from "../loc_7287.js";
+import { armEagleFinishAtGridEdge } from "../armEagleFinishAtGridEdge.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -106,7 +106,7 @@ test("CAPTURE: real 0x7287 dispatches — module == oracle in RAM (−stack) + A
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    const ret = loc_7287(c);
+    const ret = armEagleFinishAtGridEdge(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.a, "A return matches oracle");
@@ -122,7 +122,7 @@ test("CRAFTED: below-edge + at-edge — RAM identical, A identical, module SET A
     const o = craft(pos, phase);
     const c = craft(pos, phase);
     oracle(o);
-    const ret = loc_7287(c);
+    const ret = armEagleFinishAtGridEdge(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `pos ${hx(pos)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -193,7 +193,7 @@ test("TEETH: a wrong returned A is CAUGHT by the live-out check", () => {
   const o = craft(pos, phase);
   const c = craft(pos, phase);
   oracle(o);
-  const ret = loc_7287(c);
+  const ret = armEagleFinishAtGridEdge(c);
   assert.equal(ret, o.regs.a, "sanity: the module's A matches the oracle");
   assert.notEqual((pos + 1) & 0xff, o.regs.a, "the live-out check must reject an off-by-one A");
   console.log(`  TEETH/A: module A ${hx(ret)} == oracle; an off-by-one ${hx((pos + 1) & 0xff)} is rejected`);
@@ -203,7 +203,7 @@ test("TEETH: a stale done latch (0x8f3e) is CAUGHT by the RAM diff", () => {
   const o = craft(0xd0, 0x40); // at-edge
   const c = craft(0xd0, 0x40);
   oracle(o);
-  loc_7287(c);
+  armEagleFinishAtGridEdge(c);
   c.mem.write8(DONE_LATCH, 0x55); // BUG: forget to arm the done latch
 
   const d = ramDiffMinusStack(o, c);

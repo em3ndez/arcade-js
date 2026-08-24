@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6cab (ROM 0x6cab, Pooyan) — the aim-indicator /
- * target-acquisition updater. loc_6cab is NOT a caller-skip (no `pop af; ret`); it is the
- * in-cluster CALLER of loc_6bee, which it invokes directly. This gate COMPOSES the real
- * idiomatic loc_6bee: the module imports it (which itself composes loc_6c18), while the
- * oracle runs the translated loc_6bee through m.call. Both must land byte-identical.
+ * Memory-equivalence test for acquireTargetLockAndSetAimIndicator (ROM 0x6cab, Pooyan) — the aim-indicator /
+ * target-acquisition updater. acquireTargetLockAndSetAimIndicator is NOT a caller-skip (no `pop af; ret`); it is the
+ * in-cluster CALLER of driveAimIndicatorHitTimerElseRescan, which it invokes directly. This gate COMPOSES the real
+ * idiomatic driveAimIndicatorHitTimerElseRescan: the module imports it (which itself composes clearAimIndicatorUnlessProximityHit), while the
+ * oracle runs the translated driveAimIndicatorHitTimerElseRescan through m.call. Both must land byte-identical.
  *
  * The oracle's call/ret/rst-0x10 trampolines touch only STACK_SCRATCH (sp seated there),
  * excluded from the diff; the contract is RAM (dumpState, minus STACK_SCRATCH). No register
@@ -12,8 +12,8 @@
  * is the whole contract. pc/sp/cycles are not compared.
  *
  * Every state is CRAFTED (the routine runs only in live gameplay). The "reaches indicator"
- * states seat AIM_INDICATOR_MODE=0 so the composed loc_6bee takes its loc_6c18 no-hit
- * redraw (which zeroes PROXIMITY_HIT_FLAG, letting loc_6cab continue). States seated:
+ * states seat AIM_INDICATOR_MODE=0 so the composed driveAimIndicatorHitTimerElseRescan takes its clearAimIndicatorUnlessProximityHit no-hit
+ * redraw (which zeroes PROXIMITY_HIT_FLAG, letting acquireTargetLockAndSetAimIndicator continue). States seated:
  *   - "bail game"     — GAME_ACTIVE_FLAG set: immediate return, no writes.
  *   - "bail grab"     — GRAB_ACTIVE_FLAG set: immediate return, no writes.
  *   - "teardown"      — WAVE_TEARDOWN_STATE set: PLAYER_AIM_FLAGS cleared, return.
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6cab as oracle } from "../../translated/loc_6cab.js";
-import { loc_6cab } from "../loc_6cab.js";
+import { acquireTargetLockAndSetAimIndicator } from "../acquireTargetLockAndSetAimIndicator.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -59,8 +59,8 @@ const ENEMY = 0x8ae0; //    ENEMY_ACTOR_TABLE (block 0)
 const PLAYER_REF = 0x8842; // SPRITE_DISPLAY_LIST + 2
 const YSLOTS = 0x8852; //   SPRITE_SCAN_YSLOTS (slot 0)
 const LOCK = 0x8f40; //     TARGET_LOCK base (5 bytes)
-const MODE = 0x8d52; //     AIM_INDICATOR_MODE (0 => loc_6bee redraw)
-const GATE0 = 0x8be8; //    projectile gates (inactive => loc_6c18 no hit)
+const MODE = 0x8d52; //     AIM_INDICATOR_MODE (0 => driveAimIndicatorHitTimerElseRescan redraw)
+const GATE0 = 0x8be8; //    projectile gates (inactive => clearAimIndicatorUnlessProximityHit no hit)
 const GATE1 = 0x8c00;
 const GATE2 = 0x8c18;
 const PTR_Y = 0x8b40; //    scratch cell a lock's y-slot pointer aims at
@@ -83,8 +83,8 @@ function reachable() {
   m.mem.write8(GRAB, 0x00);
   m.mem.write8(TEARDOWN, 0x00);
   m.mem.write8(AIM, 0xff); // so a clear/flip shows
-  m.mem.write8(HIT, 0x01); // loc_6bee->loc_6c18 zeroes it
-  m.mem.write8(MODE, 0x00); // loc_6bee takes the loc_6c18 redraw
+  m.mem.write8(HIT, 0x01); // driveAimIndicatorHitTimerElseRescan->clearAimIndicatorUnlessProximityHit zeroes it
+  m.mem.write8(MODE, 0x00); // driveAimIndicatorHitTimerElseRescan takes the clearAimIndicatorUnlessProximityHit redraw
   m.mem.write8(GATE0, 0x00);
   m.mem.write8(GATE1, 0x00);
   m.mem.write8(GATE2, 0x00);
@@ -186,17 +186,17 @@ const STATES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: each caller state — loc_6cab == oracle in RAM (−stack)", () => {
+test("EQUAL: each caller state — acquireTargetLockAndSetAimIndicator == oracle in RAM (−stack)", () => {
   for (const state of STATES) {
     const o = craft(state);
     const c = craft(state);
     oracle(o);
-    loc_6cab(c);
+    acquireTargetLockAndSetAimIndicator(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${state}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
-  console.log(`  EQUAL: ${STATES.length} caller states identical (RAM −stack); loc_6bee composed on every reaching state`);
+  console.log(`  EQUAL: ${STATES.length} caller states identical (RAM −stack); driveAimIndicatorHitTimerElseRescan composed on every reaching state`);
 });
 
 // -- 2. WRITE-SET -------------------------------------------------------------
@@ -223,7 +223,7 @@ test("TEETH: a wrong indicator byte is CAUGHT by the RAM diff", () => {
   const o = craft("scan below");
   const c = craft("scan below");
   oracle(o);
-  loc_6cab(c);
+  acquireTargetLockAndSetAimIndicator(c);
   c.mem.write8(AIM, (c.mem.read8(AIM) ^ 0xff) & 0xff); // BUG: corrupt the aim indicator
 
   const d = ramDiffMinusStack(o, c);
@@ -236,7 +236,7 @@ test("TEETH: a wrong recorded lock pointer is CAUGHT by the RAM diff", () => {
   const o = craft("scan below");
   const c = craft("scan below");
   oracle(o);
-  loc_6cab(c);
+  acquireTargetLockAndSetAimIndicator(c);
   c.mem.write8(LOCK + 3, (c.mem.read8(LOCK + 3) ^ 0xff) & 0xff); // BUG: corrupt the block pointer
 
   const d = ramDiffMinusStack(o, c);
@@ -245,12 +245,12 @@ test("TEETH: a wrong recorded lock pointer is CAUGHT by the RAM diff", () => {
   console.log(`  TEETH/lock: wrong lock pointer caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 
-test("TEETH: a twin that skips the composed loc_6bee (HIT not zeroed) is CAUGHT", () => {
+test("TEETH: a twin that skips the composed driveAimIndicatorHitTimerElseRescan (HIT not zeroed) is CAUGHT", () => {
   const o = craft("scan none");
   const c = craft("scan none");
-  oracle(o); // loc_6bee->loc_6c18 zeroes HIT
-  loc_6cab(c);
-  c.mem.write8(HIT, 0x01); // BUG: pretend the composed loc_6bee never ran
+  oracle(o); // driveAimIndicatorHitTimerElseRescan->clearAimIndicatorUnlessProximityHit zeroes HIT
+  acquireTargetLockAndSetAimIndicator(c);
+  c.mem.write8(HIT, 0x01); // BUG: pretend the composed driveAimIndicatorHitTimerElseRescan never ran
 
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a caller that skipped its composed callee");

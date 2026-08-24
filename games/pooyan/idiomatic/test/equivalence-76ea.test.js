@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_76ea (ROM 0x76ea, Pooyan) — a per-frame driver that runs three
+ * Memory-equivalence test for runObjectAndEnemyActorUpdate (ROM 0x76ea, Pooyan) — a per-frame driver that runs three
  * subsystems in order: advance the six-record object state table, walk the enemy-actor animation
  * tick, then rebuild the sprite display list. Straight-line, no branches.
  *
- * The module runs two sub-passes as direct idiomatic calls (loc_7625, loc_02ef) and keeps the
+ * The module runs two sub-passes as direct idiomatic calls (advanceFirstGroupEnemyActorStates, loc_02ef) and keeps the
  * object-state-table walk as a machine call (0x76f4 — a spine dispatcher not lifted this batch);
- * the oracle drives all three through the routines map. loc_76ea is a void sequencer — no register
+ * the oracle drives all three through the routines map. runObjectAndEnemyActorUpdate is a void sequencer — no register
  * survives, so the register file is not compared; equivalence is RAM (dumpState) minus
  * STACK_SCRATCH. SP is parked in STACK_SCRATCH so each pass's nested pushes drop out of the diff.
  *
@@ -25,8 +25,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_76ea as oracle } from "../../translated/loc_76ea.js";
-import { loc_76ea } from "../loc_76ea.js";
-import { loc_7625 } from "../loc_7625.js";
+import { runObjectAndEnemyActorUpdate } from "../runObjectAndEnemyActorUpdate.js";
+import { advanceFirstGroupEnemyActorStates } from "../advanceFirstGroupEnemyActorStates.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, OBJECT_STATE_RECORD_BASE } from "../names.js";
@@ -65,18 +65,18 @@ function craftRich() {
 /** A twin that runs every pass EXCEPT the display-list rebuild (the structural teeth target). */
 function twinNoDisplayRebuild(m) {
   m.call(0x76f4);
-  loc_7625(m);
+  advanceFirstGroupEnemyActorStates(m);
   // (loc_02ef omitted)
 }
 
 // -- 1 & 2. EQUAL -------------------------------------------------------------
 
-test("EQUAL: loc_76ea == oracle in RAM (−stack), boot and rich", () => {
+test("EQUAL: runObjectAndEnemyActorUpdate == oracle in RAM (−stack), boot and rich", () => {
   for (const [name, craft] of [["boot", craftBoot], ["rich", craftRich]]) {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_76ea(c);
+    runObjectAndEnemyActorUpdate(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -89,7 +89,7 @@ test("TEETH: a corrupted result byte is CAUGHT by the RAM diff", () => {
   const o = craftRich();
   const c = craftRich();
   oracle(o);
-  loc_76ea(c);
+  runObjectAndEnemyActorUpdate(c);
   c.mem.write8(OSR + 0, (o.mem.read8(OSR + 0) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted result byte");

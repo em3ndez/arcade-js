@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7517 (ROM 0x7517) — display dispatch state 1 (loc_7442's table,
+ * Memory-equivalence test for runDisplayListAndAdvanceToGameplay (ROM 0x7517) — display dispatch state 1 (loc_7442's table,
  * selector 0x8921 & 3). It runs the display-list interpreter (paintDisplayListRunToVram), then increments the mod
  * counter 0x88b7 and returns until it reaches 0x1c; on that tick it reads/increments the one-shot
  * 0x8920, copies the pre-increment value into 0x88b7, and returns on the first pass (pre-inc 0).
@@ -11,7 +11,7 @@
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM (and delegates to already-gated
  * leaves), so every case uses a FRESH clone per side. Contract: RAM (dumpState minus STACK_SCRATCH)
- * ONLY — loc_7517 is a table-dispatched state handler and no caller consumes a result register, so
+ * ONLY — runDisplayListAndAdvanceToGameplay is a table-dispatched state handler and no caller consumes a result register, so
  * there is NO declared register live-out. pc/SP/cycles are NOT compared.
  *
  * paintDisplayListRunToVram runs on EVERY path and can otherwise perturb 0x88b7 and the pointer pairs, so craft()
@@ -24,7 +24,7 @@
  * 0x82bc := 0xff and 0x829c := 0x50 (one carry -> D=1, E=0x4f = total 0x014f).
  *
  * Jobs:
- *   1. EQUAL — counter-not-yet, first-pass, and good-sum full paths: loc_7517 == oracle (RAM −stack).
+ *   1. EQUAL — counter-not-yet, first-pass, and good-sum full paths: runDisplayListAndAdvanceToGameplay == oracle (RAM −stack).
  *   2. CRAFTED (trap) — a zeroed sum (0 != 0x4f): BOTH throw, and the RAM after the trap still agrees.
  *   3. WRITE-SET — the full path advances 0x8921, writes 0x88b7 := pre-inc, 0x8920 += 1, and does NOT
  *      write the read-only strip cells.
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7517 as oracle } from "../../translated/loc_7517.js";
-import { loc_7517 } from "../loc_7517.js";
+import { runDisplayListAndAdvanceToGameplay } from "../runDisplayListAndAdvanceToGameplay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -115,12 +115,12 @@ const EQUAL_CASES = [
   { name: "good-sum",        tick: 0x1b, oneshot: 0x05, strips: "good" }, // full path, sum 0x014f
 ];
 
-test("EQUAL: counter-not-yet + first-pass + good-sum — loc_7517 == oracle in RAM (−stack)", () => {
+test("EQUAL: counter-not-yet + first-pass + good-sum — runDisplayListAndAdvanceToGameplay == oracle in RAM (−stack)", () => {
   for (const scn of EQUAL_CASES) {
     const o = craft(scn);
     const c = craft(scn);
     oracle(o);
-    loc_7517(c);
+    runDisplayListAndAdvanceToGameplay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${scn.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -134,7 +134,7 @@ test("CRAFTED: a zeroed sum traps — BOTH throw, RAM after the trap still agree
   const o = craft(scn);
   const c = craft(scn);
   assert.throws(() => oracle(o), "oracle must trap on a bad HUD sum");
-  assert.throws(() => loc_7517(c), "module must trap on a bad HUD sum");
+  assert.throws(() => runDisplayListAndAdvanceToGameplay(c), "module must trap on a bad HUD sum");
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `trap: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -167,7 +167,7 @@ test("TEETH: a mis-advanced selector on the full path is CAUGHT at 0x8921", () =
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_7517(c);
+  runDisplayListAndAdvanceToGameplay(c);
   assert.equal(o.mem.read8(SELECTOR), 0x01, "control: oracle advanced the selector to 1");
   c.mem.write8(SELECTOR, 0x00); // BUG: selector not advanced to state 2
 
@@ -182,7 +182,7 @@ test("TEETH: a wrong 0x88b7 on the first-pass path is CAUGHT", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_7517(c);
+  runDisplayListAndAdvanceToGameplay(c);
   assert.equal(o.mem.read8(TICK), 0x00, "control: oracle wrote the pre-inc one-shot (0) into 0x88b7");
   c.mem.write8(TICK, 0x1c); // BUG: left 0x88b7 at 0x1c instead of the pre-inc value
 

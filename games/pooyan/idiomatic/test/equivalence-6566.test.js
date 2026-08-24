@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6566 (ROM 0x6566, Pooyan) — the fountain-record
+ * Memory-equivalence test for animateActorGroupGrowShrink (ROM 0x6566, Pooyan) — the fountain-record
  * animation step. While the flip countdown (0x892f) is nonzero it decrements it and
  * returns; on zero it advances the toggle (0x892c) and, by its new bit0, runs the shrink
  * (odd) half — step three mirrored records then render via the tile-copy helper — or the
@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6566 as oracle } from "../../translated/loc_6566.js";
-import { loc_6566 } from "../loc_6566.js";
+import { animateActorGroupGrowShrink } from "../animateActorGroupGrowShrink.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -93,7 +93,7 @@ test("EQUAL: (0x892f)!=0 shallow path — module == oracle in RAM (−stack)", (
   const o = craft({ [FLIP_COUNTDOWN]: 0x05 });
   const c = craft({ [FLIP_COUNTDOWN]: 0x05 });
   oracle(o);
-  loc_6566(c);
+  animateActorGroupGrowShrink(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assert.equal(o.mem.read8(FLIP_COUNTDOWN), 0x04, "oracle decremented 5 -> 4");
@@ -110,7 +110,7 @@ test("EQUAL: grow half with the sweep ret-nc taken — module == oracle in RAM (
   const o = craft(pokes);
   const c = craft(pokes);
   oracle(o);
-  loc_6566(c);
+  animateActorGroupGrowShrink(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assert.equal(o.mem.read8(FLIP_COUNTDOWN), 0x06, "even half seeds 0x06");
@@ -134,7 +134,7 @@ test("EQUAL: shrink half render — module == oracle in RAM (−stack)", () => {
   const o = craft(pokes);
   const c = craft(pokes);
   oracle(o);
-  loc_6566(c);
+  animateActorGroupGrowShrink(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assert.equal(o.mem.read8(FLIP_COUNTDOWN), 0x0c, "odd half seeds 0x0c");
@@ -193,7 +193,7 @@ test("CRAFTED: even full sweep — oracle and module take the same completion pa
   let oThrew = false;
   let cThrew = false;
   try { oracle(o); } catch { oThrew = true; }
-  try { loc_6566(c); } catch { cThrew = true; }
+  try { animateActorGroupGrowShrink(c); } catch { cThrew = true; }
   assert.equal(oThrew, cThrew, "oracle and module must take the same completion path");
   // Compare RAM even when both throw: the grow-half reseed writes happen BEFORE the integrity throw,
   // so this is where the reseed footprint gets real teeth (a fresh clone throws on both sides).
@@ -209,7 +209,7 @@ test("TEETH: a wrong seeded (0x892f) byte is CAUGHT by the RAM diff", () => {
   const o = craft(pokes);
   const c = craft(pokes);
   oracle(o);
-  loc_6566(c);
+  animateActorGroupGrowShrink(c);
   c.mem.write8(FLIP_COUNTDOWN, 0x05); // BUG: grow half must seed 0x06, not 0x05
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong seed — it is worthless");

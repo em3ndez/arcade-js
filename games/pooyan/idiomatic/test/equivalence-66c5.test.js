@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_66c5 (ROM 0x66c5, Pooyan) — "step three enemy-actor records
+ * Memory-equivalence test for updateEnemyActorsAndCycleLaunchFlipAnim (ROM 0x66c5, Pooyan) — "step three enemy-actor records
  * through their state pass, then run the flip-command cadence".
  *
- * loc_66c5 is a CALLER: it composes the already-decompiled record dispatcher loc_66f1 (three
+ * updateEnemyActorsAndCycleLaunchFlipAnim is a CALLER: it composes the already-decompiled record dispatcher dispatchEnemyActorState (three
  * records, stride 0x18) and the display-command enqueue loc_0038. This gate imports the idiomatic
- * loc_66c5 (which imports the idiomatic loc_66f1 / loc_0038) and compares it against the translated
- * oracle (which runs the translated loc_66f1 / loc_0038 through m.call) on fresh clones, in
+ * updateEnemyActorsAndCycleLaunchFlipAnim (which imports the idiomatic dispatchEnemyActorState / loc_0038) and compares it against the translated
+ * oracle (which runs the translated dispatchEnemyActorState / loc_0038 through m.call) on fresh clones, in
  * RAM (dumpState) minus STACK_SCRATCH. The composed subtrees are separately gated, so a divergence
- * here is a defect in loc_66c5's own control flow — the loop bound, the post-pass gate, the
+ * here is a defect in updateEnemyActorsAndCycleLaunchFlipAnim's own control flow — the loop bound, the post-pass gate, the
  * countdown decrement/reload, the toggle bump, or the command selection.
  *
- * Deterministic branch control: the loop's state-0 handler (loc_66fd) is gated by 0x8930, so with
+ * Deterministic branch control: the loop's state-0 handler (advanceEnemyActorToDescentStateOnDelay) is gated by 0x8930, so with
  * 0x8930 = 0 and each scanned record's state byte = 0 the loop is a pure no-op. The scan is pointed
  * at a scratch record region (0x8c48) disjoint from the post-pass cells, so the loop never touches
  * the lead state byte (0x8ae2), the countdown (0x892d) or the flip toggle (0x892f) — all three are
  * poked absolutely and select the post-pass branch.
  *
- * LIVE-OUT: none — memory only. The sole caller (loc_64e2) reloads IX before its next use (loc_6822
+ * LIVE-OUT: none — memory only. The sole caller (runObjectAndSpawnUpdatePass) reloads IX before its next use (loc_6822
  * resets IX itself) and reads no result register, so no register is part of the contract.
  *
  * Jobs:
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_66c5 as oracle } from "../../translated/loc_66c5.js";
-import { loc_66c5 } from "../loc_66c5.js";
+import { updateEnemyActorsAndCycleLaunchFlipAnim } from "../updateEnemyActorsAndCycleLaunchFlipAnim.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -48,9 +48,9 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const SCRATCH_IX = 0x8c48; // loop scan base; records at +0/+0x18/+0x30, disjoint from the post-pass cells
-const PHASE_GATE = 0x8930; // SHARED_PHASE_GATE — 0 makes the state-0 handler (loc_66fd) a no-op
+const PHASE_GATE = 0x8930; // SHARED_PHASE_GATE — 0 makes the state-0 handler (advanceEnemyActorToDescentStateOnDelay) a no-op
 const LEAD_STATE = 0x8ae2; // ENEMY_ACTOR_TABLE + 2 — post-pass gate
-const COUNTDOWN = 0x892d; // WAVE_NUMBER — the per-frame countdown loc_66c5 steps
+const COUNTDOWN = 0x892d; // WAVE_NUMBER — the per-frame countdown updateEnemyActorsAndCycleLaunchFlipAnim steps
 const FLIP_TOGGLE = 0x892f; // LAUNCH_FLIP_COUNTDOWN — bumped on expiry; bit0 picks the command
 const RING_PTR = 0x88a0; // DISPLAY_CMD_RING_WRITE_PTR
 const RING_PAGE = 0x8800;
@@ -107,12 +107,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted post-pass branches — loc_66c5 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted post-pass branches — updateEnemyActorsAndCycleLaunchFlipAnim == oracle in RAM (−stack)", () => {
   for (const { name, opts } of CASES) {
     const o = craft(opts);
     const c = craft(opts);
     oracle(o);
-    loc_66c5(c);
+    updateEnemyActorsAndCycleLaunchFlipAnim(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -122,17 +122,17 @@ test("EQUAL: crafted post-pass branches — loc_66c5 == oracle in RAM (−stack)
 test("EQUAL/branch: the module actually took each post-pass branch (memory witnesses)", () => {
   // early return: countdown untouched.
   const a = craft({ lead: 0x00, count: 0x05 });
-  loc_66c5(a);
+  updateEnemyActorsAndCycleLaunchFlipAnim(a);
   assert.equal(a.mem.read8(COUNTDOWN), 0x05, "early return must not touch the countdown");
 
   // live: decrement.
   const b = craft({ lead: 0x01, count: 0x05 });
-  loc_66c5(b);
+  updateEnemyActorsAndCycleLaunchFlipAnim(b);
   assert.equal(b.mem.read8(COUNTDOWN), 0x04, "live countdown must decrement");
 
   // expired, toggle bit set after bump -> primary command 0x06:0x12.
   const c1 = craft({ lead: 0x01, count: 0x00, toggle: 0x00 });
-  loc_66c5(c1);
+  updateEnemyActorsAndCycleLaunchFlipAnim(c1);
   assert.equal(c1.mem.read8(COUNTDOWN), 0x10, "expired countdown must reload to 0x10");
   assert.equal(c1.mem.read8(FLIP_TOGGLE), 0x01, "toggle must bump");
   assert.equal(c1.mem.read8(RING_PAGE + RING_START), 0x06, "primary cmd high byte");
@@ -140,7 +140,7 @@ test("EQUAL/branch: the module actually took each post-pass branch (memory witne
 
   // expired, toggle bit clear after bump -> alternate command 0x06:0x92.
   const c2 = craft({ lead: 0x01, count: 0x00, toggle: 0x01 });
-  loc_66c5(c2);
+  updateEnemyActorsAndCycleLaunchFlipAnim(c2);
   assert.equal(c2.mem.read8(FLIP_TOGGLE), 0x02, "toggle must bump");
   assert.equal(c2.mem.read8(RING_PAGE + RING_START + 1), 0x92, "alternate cmd low byte");
   console.log("  BRANCH: early/live/primary/alt witnessed in memory");
@@ -150,7 +150,7 @@ test("EQUAL/branch: the module actually took each post-pass branch (memory witne
 
 test("WRITE-SET: expired/primary changes exactly {countdown, toggle, ring ptr, 2 slots}; early return changes nothing", () => {
   const oracleSet = changedAddrs(craft({ lead: 0x01, count: 0x00, toggle: 0x00 }), oracle);
-  const moduleSet = changedAddrs(craft({ lead: 0x01, count: 0x00, toggle: 0x00 }), loc_66c5);
+  const moduleSet = changedAddrs(craft({ lead: 0x01, count: 0x00, toggle: 0x00 }), updateEnemyActorsAndCycleLaunchFlipAnim);
   assert.deepEqual(moduleSet, oracleSet, "module and oracle must change the identical cell set");
   assert.deepEqual(
     oracleSet,
@@ -167,7 +167,7 @@ test("TEETH: a wrong enqueued command byte is CAUGHT by the RAM diff", () => {
   const o = craft({ lead: 0x01, count: 0x00, toggle: 0x00 });
   const c = craft({ lead: 0x01, count: 0x00, toggle: 0x00 });
   oracle(o);
-  loc_66c5(c);
+  updateEnemyActorsAndCycleLaunchFlipAnim(c);
   c.mem.write8(RING_PAGE + RING_START + 1, 0x99); // BUG: primary cmd low byte must be 0x12
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong command byte — it is worthless");
@@ -179,7 +179,7 @@ test("TEETH: a wrong countdown byte is CAUGHT by the RAM diff", () => {
   const o = craft({ lead: 0x01, count: 0x05 });
   const c = craft({ lead: 0x01, count: 0x05 });
   oracle(o);
-  loc_66c5(c);
+  updateEnemyActorsAndCycleLaunchFlipAnim(c);
   c.mem.write8(COUNTDOWN, 0x00); // BUG: live countdown must land on 0x04, not 0x00
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong countdown byte — it is worthless");

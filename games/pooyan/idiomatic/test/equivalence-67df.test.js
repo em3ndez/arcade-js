@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_67df (ROM 0x67df) — "screen re-init behind a colour-map
+ * Memory-equivalence test for reinitRoundArenaAndPlayfieldIfImageIntact (ROM 0x67df) — "screen re-init behind a colour-map
  * checksum": sum ten colour-map cells at 0x82bc (stride -0x20) into an 8-bit accumulator; if the
  * sum != 0x5a, tail to 0x67a0 (the per-object frame updater) and return. On a match: set
  * 0x8904/0x8808/0x880a=1, clear 9 bytes at 0x8928 (rst 0x10), zero the 0x8a80..0x8cc0 arena (ld
  * (hl),0 + ldir), then paint 0x1d rows of 0x1d tiles of 0x10 from 0x8442 (+0x20 per row).
  *
  * Cycle-free memory-equivalence gate (docs/decompiler-pipeline): a FRESH clone per side, compared
- * on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are NOT compared. loc_67df is reached by
+ * on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are NOT compared. reinitRoundArenaAndPlayfieldIfImageIntact is reached by
  * tail transfer from the ROM integrity guards and its exit registers are init scratch no caller
  * consumes — the contract is RAM only. The oracle's rst-0x10 `push16`s land in STACK_SCRATCH, which
  * the idiomatic direct calls skip — excluded by contract.
@@ -18,7 +18,7 @@
  * decrement-and-return path, giving a single well-defined write on both sides.
  *
  * Jobs:
- *   1. EQUAL — the MATCH re-init and the MISMATCH tail both give loc_67df == oracle in RAM (-stack).
+ *   1. EQUAL — the MATCH re-init and the MISMATCH tail both give reinitRoundArenaAndPlayfieldIfImageIntact == oracle in RAM (-stack).
  *   2. WRITE-SET — the match path seats the three state flags to 1, clears the timer block and the
  *      arena, and paints the playfield square (0x1d x 0x1d of tile 0x10, row stride 0x20).
  *   3. TEETH — a twin with a wrong painted tile is CAUGHT in the paint region; a twin with a wrong
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_67df as oracle } from "../../translated/loc_67df.js";
-import { loc_67df } from "../loc_67df.js";
+import { reinitRoundArenaAndPlayfieldIfImageIntact } from "../reinitRoundArenaAndPlayfieldIfImageIntact.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ROUND_IN_PROGRESS, PHASE_TIMER, PLAY_STATE_INDEX, ACTOR_TABLE, SHARED_FRAME_DELAY_TIMER } from "../names.js";
@@ -97,21 +97,21 @@ function craftMismatch() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: MATCH re-init — loc_67df == oracle in RAM (−stack)", () => {
+test("EQUAL: MATCH re-init — reinitRoundArenaAndPlayfieldIfImageIntact == oracle in RAM (−stack)", () => {
   const o = craftMatch();
   const c = craftMatch();
   oracle(o);
-  loc_67df(c);
+  reinitRoundArenaAndPlayfieldIfImageIntact(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
   console.log("  EQUAL(match): re-init identical (flags + timer block + arena + playfield paint)");
 });
 
-test("EQUAL: MISMATCH tail — loc_67df == oracle in RAM (−stack)", () => {
+test("EQUAL: MISMATCH tail — reinitRoundArenaAndPlayfieldIfImageIntact == oracle in RAM (−stack)", () => {
   const o = craftMismatch();
   const c = craftMismatch();
   oracle(o);
-  loc_67df(c);
+  reinitRoundArenaAndPlayfieldIfImageIntact(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
   assert.equal(c.mem.read8(SHARED_FRAME_DELAY_TIMER), 0x04, "the tail decremented the frame-delay timer 5 -> 4");
@@ -155,7 +155,7 @@ test("TEETH: a wrong painted tile is CAUGHT in the paint region", () => {
   const o = craftMatch();
   const c = craftMatch();
   oracle(o);
-  loc_67df(c);
+  reinitRoundArenaAndPlayfieldIfImageIntact(c);
   c.mem.write8(PAINT_START, 0x00); // BUG: painted cell must be 0x10
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong painted tile — it is worthless");
@@ -167,7 +167,7 @@ test("TEETH: a wrong state flag is CAUGHT at 0x8904", () => {
   const o = craftMatch();
   const c = craftMatch();
   oracle(o);
-  loc_67df(c);
+  reinitRoundArenaAndPlayfieldIfImageIntact(c);
   c.mem.write8(ROUND_IN_PROGRESS, 0x00); // BUG: flag must be seated to 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a cleared state flag");

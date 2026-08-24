@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_1e55 } from "./loc_1e55.js";
-import { loc_6cab } from "./loc_6cab.js";
+import { acquireTargetLockAndSetAimIndicator } from "./acquireTargetLockAndSetAimIndicator.js";
 import { loc_20d4 } from "./loc_20d4.js";
 import { serviceEnemySpawns } from "./serviceEnemySpawns.js";
 import { dispatchAllEnemyActorStates } from "./dispatchAllEnemyActorStates.js";
@@ -24,7 +24,7 @@ import { loc_19ca } from "./loc_19ca.js";
  */
 export function runActiveGameplayFrame(m) {
   loc_1e55(m);
-  loc_6cab(m);
+  acquireTargetLockAndSetAimIndicator(m);
   loc_20d4(m);
   serviceEnemySpawns(m);
   dispatchAllEnemyActorStates(m);

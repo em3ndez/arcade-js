@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6b13 (ROM 0x6b13) — a frame-gated two-tile blitter. The hold
+ * Memory-equivalence test for blitStackedTwoTileAnimFrameOnHoldTimer (ROM 0x6b13) — a frame-gated two-tile blitter. The hold
  * countdown 0x8f06 gates the work: while non-zero it decrements and returns. On expiry it reloads
  * 0x8f06 to 0x0c, advances the phase 0x8f07, and picks a four-byte source pattern by the phase's low
  * bit (0x2744 even, 0x2748 odd). That pattern is stamped as a 2x2 block at 0x84b4 and again at the
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6b13 as oracle } from "../../translated/loc_6b13.js";
-import { loc_6b13 } from "../loc_6b13.js";
+import { blitStackedTwoTileAnimFrameOnHoldTimer } from "../blitStackedTwoTileAnimFrameOnHoldTimer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -99,7 +99,7 @@ test("CAPTURE: real 0x6b13 dispatches — module == oracle in RAM (−stack)", (
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    loc_6b13(c);
+    blitStackedTwoTileAnimFrameOnHoldTimer(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -113,7 +113,7 @@ test("CRAFTED: hold + work branches (both phases, wrap) — RAM identical", () =
     const o = craft(hold, phase);
     const c = craft(hold, phase);
     oracle(o);
-    loc_6b13(c);
+    blitStackedTwoTileAnimFrameOnHoldTimer(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -161,7 +161,7 @@ test("TEETH: a wrong last video cell is CAUGHT by the RAM diff", () => {
   const o = craft(0x00, 0x00);
   const c = craft(0x00, 0x00);
   oracle(o);
-  loc_6b13(c);
+  blitStackedTwoTileAnimFrameOnHoldTimer(c);
   c.mem.write8(lastCell, (c.mem.read8(lastCell) ^ 0xff) & 0xff); // BUG: corrupt the last painted tile
 
   const d = ramDiffMinusStack(o, c);

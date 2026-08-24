@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_667c (ROM 0x667c, Pooyan) — "advance one actor while
+ * Memory-equivalence test for advanceActorToTopRowThenRetire (ROM 0x667c, Pooyan) — "advance one actor while
  * its state byte is idle, retiring it at the top row". It runs only while (IX+1) is 0,
  * adds the step (IX+9) into the sub-position (IX+5) carrying one row into (IX+6), and once
  * (IX+6) reaches 0x1d retires the record: (IX+1)=2 with (IX+4)/(IX+6) cleared.
  *
  * Cycle-free memory-equivalence gate: fresh clone per side, compared on RAM (dumpState,
- * minus STACK_SCRATCH). The routine is memory-only — the caller (loc_6666) reads no
+ * minus STACK_SCRATCH). The routine is memory-only — the caller (advanceActorGroupRiseAndCycleTiles) reads no
  * register or flag back (it exx/addIx/djnz on its own state) — so no register is compared.
  * IX is the incoming record pointer, seated via the module's register-default bridge.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_667c as oracle } from "../../translated/loc_667c.js";
-import { loc_667c } from "../loc_667c.js";
+import { advanceActorToTopRowThenRetire } from "../advanceActorToTopRowThenRetire.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -76,12 +76,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted record cases — loc_667c == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted record cases — advanceActorToTopRowThenRetire == oracle in RAM (−stack)", () => {
   for (const { name, state, subpos, step, row } of CASES) {
     const o = craft(state, subpos, step, row);
     const c = craft(state, subpos, step, row);
     oracle(o);
-    loc_667c(c);
+    advanceActorToTopRowThenRetire(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }

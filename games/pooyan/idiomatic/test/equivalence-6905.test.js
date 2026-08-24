@@ -10,7 +10,7 @@
  * idiomatic driver reproduces that with `if (!loc_6931(...)) return;`.
  *
  * ⚠ THE FROZEN ORACLE IS BUGGY HERE. The translated loc_6905 has no skip-propagation guard
- * (unlike its sibling loc_6404, which carries `if (m.pc !== <ret>) return`), so after loc_6931's
+ * (unlike its sibling scanActorCollisionsBothSlots, which carries `if (m.pc !== <ret>) return`), so after loc_6931's
  * `pop af; ret` the JS loop keeps running and spawns EVERY empty pair — all eight from an
  * all-empty state (verified: WAVE_NUMBER 3 -> 11). Correct hardware spawns exactly one; the
  * dissolution restores that. So oracle and the (correct) module agree ONLY when every pair after

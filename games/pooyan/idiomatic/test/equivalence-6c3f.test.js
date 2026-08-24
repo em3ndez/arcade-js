@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for loc_6c3f (ROM 0x6c3f, Pooyan) — the dissolved caller-skip of
- * loc_6c18's proximity scan. The oracle ends each path either with a plain `ret` (the normal
+ * clearAimIndicatorUnlessProximityHit's proximity scan. The oracle ends each path either with a plain `ret` (the normal
  * "keep scanning" outcome) or with `pop af; ret` (the skip that aborts the caller's scan on a
  * hit). The idiomatic module replaces that stack protocol with a boolean: true = the normal
  * path, false = the skip path.

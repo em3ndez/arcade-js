@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_72a0 (ROM 0x72a0, Pooyan) — bonus phase 1 body: run the shared
+ * Memory-equivalence test for runWaveLaunchPhaseFrame (ROM 0x72a0, Pooyan) — bonus phase 1 body: run the shared
  * per-frame update then the wave-launch driver, and return.
  *
  * The module calls the per-frame update through its frozen sibling and the wave driver through its
- * idiomatic sibling; the oracle drives both translated siblings through the routines map. loc_72a0
+ * idiomatic sibling; the oracle drives both translated siblings through the routines map. runWaveLaunchPhaseFrame
  * is a void sequencer — no register survives, so the register file is not compared; equivalence is
  * RAM (dumpState) minus STACK_SCRATCH. SP is parked in STACK_SCRATCH so each sub-pass's nested
  * pushes drop out of the diff.
@@ -27,9 +27,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_72a0 as oracle } from "../../translated/loc_72a0.js";
-import { loc_72a0 } from "../loc_72a0.js";
+import { runWaveLaunchPhaseFrame } from "../runWaveLaunchPhaseFrame.js";
 import { loc_20d4 } from "../../translated/loc_20d4.js";
-import { loc_72a7 } from "../loc_72a7.js";
+import { driveEagleWavePerFrame } from "../driveEagleWavePerFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -61,11 +61,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_72a0 == oracle in RAM (−stack)", () => {
+test("EQUAL: runWaveLaunchPhaseFrame == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_72a0(c);
+  runWaveLaunchPhaseFrame(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: RAM identical");
@@ -75,7 +75,7 @@ test("EQUAL: loc_72a0 == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: both pass markers set after the run", () => {
   const c = craft();
-  loc_72a0(c);
+  runWaveLaunchPhaseFrame(c);
   assert.notEqual(c.mem.read8(UPDATE_MARK), 0x00, "per-frame update must mark 0x8931");
   assert.notEqual(c.mem.read8(WAVE_MARK), 0x00, "wave driver must bump WAVE_INDEX");
   console.log("  WRITE-SET: update + wave markers set");
@@ -87,7 +87,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_72a0(c);
+  runWaveLaunchPhaseFrame(c);
   c.mem.write8(WAVE_MARK, (o.mem.read8(WAVE_MARK) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -97,7 +97,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a sequencer missing either pass diverges at that pass's marker", () => {
   const DROPS = [
-    { name: "drop update", keep: (m) => loc_72a7(m), addr: UPDATE_MARK },
+    { name: "drop update", keep: (m) => driveEagleWavePerFrame(m), addr: UPDATE_MARK },
     { name: "drop wave driver", keep: (m) => loc_20d4(m), addr: WAVE_MARK },
   ];
   for (const { name, keep, addr } of DROPS) {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_71ce (ROM 0x71ce, Pooyan) — the eagle/arrow approach state
+ * Memory-equivalence test for advanceEagleApproachAndPaintGridMarker (ROM 0x71ce, Pooyan) — the eagle/arrow approach state
  * machine, run once per frame. A hold counter at 0x8f36 gates entry (nonzero -> tick down and
  * return). Once zero, the machine ORs the target presence at 0x8c90 with 0x8a99 to pick a branch,
  * then drives the aim flags at 0x8a87 from the eagle X (0x8a84) against thresholds 0x59/0x60 and
@@ -12,20 +12,20 @@
  * the running pointer at 0x8f39), so the marker lands relocated — a real path this test covers.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine writes work + video
- * RAM, so each case runs the oracle on one FRESH clone and loc_71ce on another, compared on:
+ * RAM, so each case runs the oracle on one FRESH clone and advanceEagleApproachAndPaintGridMarker on another, compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * LIVE-OUT: none. Every exit leaves scratch registers in a state the sole caller (which reloads HL
  * and A immediately) never reads, so the contract is memory only — pc/SP/cycles and the register
- * file are NOT compared. loc_71ce takes no register inputs; every input is a memory cell, seated
+ * file are NOT compared. advanceEagleApproachAndPaintGridMarker takes no register inputs; every input is a memory cell, seated
  * identically on both sides. The delegated guard/epilogue run as the real routines under the
- * oracle and as the validated idiomatic modules under loc_71ce, so their writes must agree too.
+ * oracle and as the validated idiomatic modules under advanceEagleApproachAndPaintGridMarker, so their writes must agree too.
  *
  * Jobs:
  *   1. EQUAL (crafted sweep) — one poke-set per control-flow arm (hold, both idle-aim exits, the
  *      three sub-phase steps, both delegations, the eighth-frame grid stamp, the loop-back, and the
- *      grid-EDGE relocation): oracle == loc_71ce in RAM(−stack).
+ *      grid-EDGE relocation): oracle == advanceEagleApproachAndPaintGridMarker in RAM(−stack).
  *   2. TARGETED — pin the concrete effect of the hold tick, the idle-aim latch, the eighth-frame
  *      marker/colour stamp, and the grid-edge relocation (finish flag + epilogue + relocated stamp).
  *   3. WRITE-SET — the eighth-frame stamp writes exactly {tick, marker cell, colour cell}.
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_71ce as oracle } from "../../translated/loc_71ce.js";
-import { loc_71ce } from "../loc_71ce.js";
+import { advanceEagleApproachAndPaintGridMarker } from "../advanceEagleApproachAndPaintGridMarker.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -79,7 +79,7 @@ function ramDiffMinusStack(ma, mb) {
 }
 
 /** A fresh clone: dead stack seated, the control cells zeroed to a known baseline, then `vals`
- *  applied. loc_71ce takes no register inputs, so only memory is seated. */
+ *  applied. advanceEagleApproachAndPaintGridMarker takes no register inputs, so only memory is seated. */
 function craft(vals) {
   const m = BASE.clone();
   m.regs.sp = STACK_SCRATCH.hi - 0x10; // the oracle's ret/tail-call framing reads the dead stack
@@ -114,12 +114,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted sweep) -------------------------------------------------
 
-test("EQUAL: crafted control-flow arms — loc_71ce == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted control-flow arms — advanceEagleApproachAndPaintGridMarker == oracle in RAM (−stack)", () => {
   for (const { name, vals } of CASES) {
     const o = craft(vals);
     const c = craft(vals);
     oracle(o);
-    loc_71ce(c);
+    advanceEagleApproachAndPaintGridMarker(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -130,13 +130,13 @@ test("EQUAL: crafted control-flow arms — loc_71ce == oracle in RAM (−stack)"
 
 test("TARGETED: hold gate ticks the counter down and returns", () => {
   const c = craft({ [HOLD]: 5 });
-  loc_71ce(c);
+  advanceEagleApproachAndPaintGridMarker(c);
   assert.equal(c.mem.read8(HOLD), 4, "hold counter decremented");
 });
 
 test("TARGETED: idle unlatched past the far threshold latches X and shows below", () => {
   const c = craft({ [EAGLE_X]: 0x70, [AIM]: 0xff });
-  loc_71ce(c);
+  advanceEagleApproachAndPaintGridMarker(c);
   assert.equal(c.mem.read8(LATCHED_X), 0x70, "enemy X latched");
   assert.equal(c.mem.read8(AIM), (0xff & 0xfb) | 0x08, "aim: bit2 cleared, bit3 set");
 });
@@ -145,7 +145,7 @@ test("TARGETED: eighth-frame stamp writes the marker tile and colour attribute",
   const col = 0x36, pos = 0x1a;
   const { marker, colour } = gridCells(col, pos);
   const c = craft({ [TARGET0]: 1, [EAGLE_X]: 0x59, [ARRIVED]: 2, [FINISH]: 0, [TICK]: 0x07, [GRID_COL]: col, [GRID_POS]: pos });
-  loc_71ce(c);
+  advanceEagleApproachAndPaintGridMarker(c);
   assert.equal(c.mem.read8(TICK), 0x08, "tick advanced onto the eighth-frame boundary");
   assert.equal(c.mem.read8(marker), MARKER, `marker tile at ${hx(marker)}`);
   assert.equal(c.mem.read8(colour), 0xc0, `colour attribute at ${hx(colour)}`); // col&6==6, pos&6==2
@@ -153,7 +153,7 @@ test("TARGETED: eighth-frame stamp writes the marker tile and colour attribute",
 
 test("TARGETED: grid-EDGE runs the epilogue and relocates the stamp", () => {
   const c = craft({ [TARGET0]: 1, [EAGLE_X]: 0x59, [ARRIVED]: 2, [FINISH]: 0, [TICK]: 0x07, [GRID_COL]: 0x36, [GRID_POS]: EDGE, [LATCHED_X]: 0x11, [AIM]: 0x22, [PHASE]: 0x03 });
-  loc_71ce(c);
+  advanceEagleApproachAndPaintGridMarker(c);
   // The guard arms the finish flag and runs the epilogue at the edge.
   assert.equal(c.mem.read8(FINISH), 1, "finish flag armed at the edge");
   assert.equal(c.mem.read8(AIM), 0, "epilogue cleared the aim flags");
@@ -198,7 +198,7 @@ test("TEETH: a wrong aim byte is CAUGHT by the RAM diff", () => {
   const o = craft(vals);
   const c = craft(vals);
   oracle(o);
-  loc_71ce(c);
+  advanceEagleApproachAndPaintGridMarker(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   c.mem.write8(AIM, 0x00); // BUG: aim must be 0x08 (below), not 0x00
   const d = ramDiffMinusStack(o, c);
@@ -214,7 +214,7 @@ test("TEETH: a wrong marker byte is CAUGHT by the RAM diff", () => {
   const o = craft(vals);
   const c = craft(vals);
   oracle(o);
-  loc_71ce(c);
+  advanceEagleApproachAndPaintGridMarker(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   c.mem.write8(marker, MARKER ^ 0xff); // BUG: wrong marker tile
   const d = ramDiffMinusStack(o, c);

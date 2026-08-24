@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_6018 — the advance-and-loop latch of the six-slot overlap scan.
+ * Equivalence test for advanceOverlapScanToNextSlot — the advance-and-loop latch of the six-slot overlap scan.
  *
- * loc_6018 writes NO RAM: it steps the record-index pointer (IX) by one record (+4) and the geometry
+ * advanceOverlapScanToNextSlot writes NO RAM: it steps the record-index pointer (IX) by one record (+4) and the geometry
  * pointer (HL) by one stride (+0x18), decrements the slot counter (B), and either re-enters the scan
  * pass (B != 0) or completes the exhausted no-hit sweep (B == 0). Because there is no memory effect,
  * a RAM-only gate would pass a wholly wrong stride — so the REGISTER file (the advanced IX/HL, the
@@ -12,7 +12,7 @@
  * seating is a boolean caller-skip (false = a hit must unwind the caller's frame); on B == 0 it rets.
  * The module returns true for the exhausted sweep and forwards loc_5fa2's boolean otherwise. This
  * gate exercises the SELF-CONTAINED exhausted path (B == 1 -> 0), which never enters loc_5fa2; the
- * continue branch is the {loc_5fa2, loc_6018} cluster's whole-unit responsibility.
+ * continue branch is the {loc_5fa2, advanceOverlapScanToNextSlot} cluster's whole-unit responsibility.
  *
  * Jobs:
  *   1. REGISTER — the exhausted path advances IX/HL, zeroes B, leaves DE = 0x18: module == oracle.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6018 as oracle } from "../../translated/loc_6018.js";
-import { loc_6018 } from "../loc_6018.js";
+import { advanceOverlapScanToNextSlot } from "../advanceOverlapScanToNextSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -40,7 +40,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const IX0 = 0x8850;          // record-index pointer (arbitrary; loc_6018 touches no RAM)
+const IX0 = 0x8850;          // record-index pointer (arbitrary; advanceOverlapScanToNextSlot touches no RAM)
 const HL0 = 0x8ae0;          // geometry pointer
 const INDEX_STRIDE = 4;
 const GEOM_STRIDE = 0x18;
@@ -74,11 +74,11 @@ const REGS = (m) => ({
 
 // -- 1. REGISTER --------------------------------------------------------------
 
-test("REGISTER: exhausted path — loc_6018 advances IX/HL, zeroes B (== oracle)", () => {
+test("REGISTER: exhausted path — advanceOverlapScanToNextSlot advances IX/HL, zeroes B (== oracle)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  const ret = loc_6018(c);
+  const ret = advanceOverlapScanToNextSlot(c);
 
   assert.deepEqual(REGS(c), REGS(o), "advanced register file must equal the oracle");
   assert.deepEqual(
@@ -96,13 +96,13 @@ test("RAM: the latch touches no RAM (module == oracle, −stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_6018(c);
+  advanceOverlapScanToNextSlot(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
 
   const before = craft().dumpState();
-  const after = ((m) => (loc_6018(m), m.dumpState()))(craft());
-  assert.deepEqual([...after], [...before], "loc_6018 must not write RAM");
+  const after = ((m) => (advanceOverlapScanToNextSlot(m), m.dumpState()))(craft());
+  assert.deepEqual([...after], [...before], "advanceOverlapScanToNextSlot must not write RAM");
   console.log("  RAM: no writes (−stack)");
 });
 
@@ -112,7 +112,7 @@ test("TEETH: a wrong advance is CAUGHT by the register compare", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_6018(c);
+  advanceOverlapScanToNextSlot(c);
   c.regs.ix = (c.regs.ix + 1) & 0xffff; // BUG: index pointer off by one
 
   assert.notEqual(c.regs.ix & 0xffff, o.regs.ix & 0xffff, "the register compare FAILED to catch a wrong advance");
@@ -121,7 +121,7 @@ test("TEETH: a wrong advance is CAUGHT by the register compare", () => {
 
 test("TEETH: a wrong forwarded boolean is CAUGHT", () => {
   assert.throws(
-    () => assert.equal(((m) => (loc_6018(m), false))(craft()), true),
+    () => assert.equal(((m) => (advanceOverlapScanToNextSlot(m), false))(craft()), true),
     "an exhausted no-hit sweep must forward true",
   );
   console.log("  TEETH/boolean: exhausted-sweep-returns-false twin caught");

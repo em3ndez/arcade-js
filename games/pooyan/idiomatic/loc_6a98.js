@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_6aa8 } from "./loc_6aa8.js";
-import { loc_67df } from "./loc_67df.js";
+import { reinitRoundArenaAndPlayfieldIfImageIntact } from "./reinitRoundArenaAndPlayfieldIfImageIntact.js";
 /**
  * loc_6a98 — per-object state handler for one record based at IX.
  *
@@ -19,6 +19,6 @@ export function loc_6a98(m, rec = m.regs.ix) {
 
   switch ((mem8[rec + 0x02] - 1) & 0x03) {
     case 0: return loc_6aa8(m, rec);
-    case 1: return loc_67df(m);
+    case 1: return reinitRoundArenaAndPlayfieldIfImageIntact(m);
   }
 }

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_64fb (ROM 0x64fb, Pooyan) — the 0x8c78 fountain-record
+ * Memory-equivalence test for runActorGroupStateHandler (ROM 0x64fb, Pooyan) — the 0x8c78 fountain-record
  * state dispatcher. It reads the state byte (IX+2) and rst-0x28 dispatches through the
  * inline word table at 0x64ff to one of three handlers (0=6505 1=6566 2=6666); each is a
- * tail hand-off, so the handler returns straight to loc_64fb's caller.
+ * tail hand-off, so the handler returns straight to runActorGroupStateHandler's caller.
  *
  * The oracle reaches its handler through the rst-0x28 trampoline (push the inline table
  * base, jp (hl) via the 0x64ff table); the module calls the handler directly. Because
  * `m.call` pushes no return, the handler runs at the SAME sp on both sides — the only
  * asymmetric stack write is the transient table base, which lands inside STACK_SCRATCH and
  * is excluded. So dispatching the correct handler leaves identical game RAM. The
- * dispatcher is memory-only: the caller (loc_64e2) reloads IX/IY after the call.
+ * dispatcher is memory-only: the caller (runObjectAndSpawnUpdatePass) reloads IX/IY after the call.
  *
  * Jobs:
  *   1. ROM-TABLE — the module's hardwired case->handler map matches the real ROM 0x64ff
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_64fb as oracle } from "../../translated/loc_64fb.js";
-import { loc_64fb } from "../loc_64fb.js";
+import { runActorGroupStateHandler } from "../runActorGroupStateHandler.js";
 import { loc_6666 } from "../../translated/loc_6666.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -103,7 +103,7 @@ test("CAPTURE: real 0x64fb dispatches replay identically (if reached)", () => {
     let oThrew = false;
     let cThrew = false;
     try { oracle(o); } catch { oThrew = true; }
-    try { loc_64fb(c); } catch { cThrew = true; }
+    try { runActorGroupStateHandler(c); } catch { cThrew = true; }
     assert.equal(oThrew, cThrew, "oracle and module must take the same completion path");
     if (!oThrew) {
       const d = ramDiffMinusStack(o, c);
@@ -115,13 +115,13 @@ test("CAPTURE: real 0x64fb dispatches replay identically (if reached)", () => {
 
 // -- 3. CRAFTED selector 1 (shallow, safe) ------------------------------------
 
-test("CRAFTED: selector 1 shallow path — loc_64fb == oracle in RAM (−stack)", () => {
+test("CRAFTED: selector 1 shallow path — runActorGroupStateHandler == oracle in RAM (−stack)", () => {
   const o = craft(1);
   const c = craft(1);
   o.mem.write8(PHASE_892F, 0x05);
   c.mem.write8(PHASE_892F, 0x05);
   oracle(o);
-  loc_64fb(c);
+  runActorGroupStateHandler(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assert.equal(o.mem.read8(PHASE_892F), 0x04, "handler 6566 should decrement (0x892f) 5 -> 4");
@@ -138,7 +138,7 @@ test("CRAFTED: selectors 0 and 2 take the same path; RAM matches when they compl
     let oThrew = false;
     let cThrew = false;
     try { oracle(o); } catch { oThrew = true; }
-    try { loc_64fb(c); } catch { cThrew = true; }
+    try { runActorGroupStateHandler(c); } catch { cThrew = true; }
     assert.equal(oThrew, cThrew, `selector ${sel}: oracle and module must take the same completion path`);
     if (!oThrew) {
       const d = ramDiffMinusStack(o, c);
@@ -157,7 +157,7 @@ function brokenNoDispatch() {
 
 /** Broken twin: routes selector 1 to handler 2 instead of handler 1. */
 function brokenMisroute(m) {
-  return loc_6666(m); // BUG: selector 1 must reach loc_6566
+  return loc_6666(m); // BUG: selector 1 must reach animateActorGroupGrowShrink
 }
 
 test("TEETH: a twin that never dispatches is CAUGHT (missed 0x892f decrement)", () => {

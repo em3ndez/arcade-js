@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { ROUND_COUNTER } from "./names.js";
 import { loc_68f8 } from "./loc_68f8.js";
-import { loc_64e2 } from "./loc_64e2.js";
+import { runObjectAndSpawnUpdatePass } from "./runObjectAndSpawnUpdatePass.js";
 import { loc_02ef } from "./loc_02ef.js";
 
 /**
@@ -16,7 +16,7 @@ export function loc_1c53(m) {
   if (m.mem8[ROUND_COUNTER] & 0x01) {
     loc_68f8(m); // odd frame
   } else {
-    loc_64e2(m); // even frame
+    runObjectAndSpawnUpdatePass(m); // even frame
   }
   loc_02ef(m);
 }

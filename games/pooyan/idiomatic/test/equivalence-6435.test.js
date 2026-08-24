@@ -11,7 +11,7 @@
  * The oracle runs the TRANSLATED subtree (setActorAnimation, queueSoundCommand06, loc_0038, loc_64be)
  * through the routines map; the idiomatic module imports the IDIOMATIC siblings directly. The
  * two must land byte-identical in RAM (dumpState) minus STACK_SCRATCH. No register is a
- * live-out: the caller (loc_6404) protects its own B/DE via exx and keeps IY, so nothing the
+ * live-out: the caller (scanActorCollisionsBothSlots) protects its own B/DE via exx and keeps IY, so nothing the
  * scan leaves in registers is read back — registers are NOT compared. The boolean return is,
  * and the oracle's SP delta (+2 normal, +4 skip) confirms which path it took.
  *

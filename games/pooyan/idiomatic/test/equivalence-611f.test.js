@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_611f (ROM 0x611f, Pooyan) — the enemy-record finder.
+ * Memory-equivalence test for dispatchHitToEnemyRecordElseQueueSound (ROM 0x611f, Pooyan) — the enemy-record finder.
  *
  * HL+DE points at a key byte; the routine scans six enemy actor records (stride 0x18) for
  * the first whose +0x14 tag equals the key. On a match it hands that record to the
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_611f as oracle } from "../../translated/loc_611f.js";
-import { loc_611f } from "../loc_611f.js";
+import { dispatchHitToEnemyRecordElseQueueSound } from "../dispatchHitToEnemyRecordElseQueueSound.js";
 import { loc_613d } from "../loc_613d.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -92,12 +92,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_611f == oracle in RAM (−stack) + boolean across match / no-match", () => {
+test("EQUAL: dispatchHitToEnemyRecordElseQueueSound == oracle in RAM (−stack) + boolean across match / no-match", () => {
   for (const { name, matchIndex, objType, ret: want } of CASES) {
     const o = craft(matchIndex, objType);
     const c = craft(matchIndex, objType);
     oracle(o);
-    const ret = loc_611f(c);
+    const ret = dispatchHitToEnemyRecordElseQueueSound(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -111,7 +111,7 @@ test("EQUAL: loc_611f == oracle in RAM (−stack) + boolean across match / no-ma
 test("WRITE-SET: the silent no-match branch (type 3) writes nothing outside the stack", () => {
   const m = craft(-1, 0x03);
   const b0 = m.dumpState();
-  const ret = loc_611f(m);
+  const ret = dispatchHitToEnemyRecordElseQueueSound(m);
   const a1 = m.dumpState();
   const changed = [];
   for (let off = 0; off < b0.length; off++) {
@@ -130,7 +130,7 @@ test("TEETH: a wrong written byte on the match branch is CAUGHT by the RAM diff"
   const o = craft(matchIndex, 0x02);
   const c = craft(matchIndex, 0x02);
   oracle(o);
-  loc_611f(c);
+  dispatchHitToEnemyRecordElseQueueSound(c);
   const victim = (ENEMY_ACTOR_TABLE + matchIndex * STRIDE + 0x16) & 0xffff; // reset writes 0x07 here
   c.mem.write8(victim, 0x00); // BUG: corrupt a reset field on the matched record
   const d = ramDiffMinusStack(o, c);

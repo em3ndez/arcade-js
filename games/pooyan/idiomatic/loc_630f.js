@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { loc_60f2 } from "./loc_60f2.js";
-import { loc_60d9 } from "./loc_60d9.js";
+import { markHitFlagSeedActorAndScanEnemyRecords } from "./markHitFlagSeedActorAndScanEnemyRecords.js";
 import { FLIP_SCREEN_FLAG } from "./names.js";
 /**
  * loc_630f — tight bounding-box proximity test for one dispatch kind.
@@ -20,5 +20,5 @@ export function loc_630f(m, hl = m.regs.hl, ix = m.regs.ix, count = m.regs.b, iy
   const ay = (mem8[u16(ix + 2)] + 8) & 0xff;
   if (Math.abs(mem8[iy] - ax) >= GAP_LIMIT) return loc_60f2(m, hl, ix, count);
   if (Math.abs(((mem8[u16(iy + 2)] + 8) & 0xff) - ay) >= GAP_LIMIT) return loc_60f2(m, hl, ix, count);
-  return loc_60d9(m, hl); // hit
+  return markHitFlagSeedActorAndScanEnemyRecords(m, hl); // hit
 }

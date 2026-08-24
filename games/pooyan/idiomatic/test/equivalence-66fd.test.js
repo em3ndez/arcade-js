@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_66fd (ROM 0x66fd) — "run one actor's phase countdown". If
+ * Memory-equivalence test for advanceEnemyActorToDescentStateOnDelay (ROM 0x66fd) — "run one actor's phase countdown". If
  * the shared gate flag (0x8930) is clear it does nothing. While the shared countdown (0x892e)
  * is nonzero it decrements it and waits. When the countdown is zero it reloads it to 0x12,
  * bumps the actor's phase (rec+2), clears rec+3/rec+5, seats rec+4:=0x15/rec+6:=0x02, points
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_66fd as oracle } from "../../translated/loc_66fd.js";
-import { loc_66fd } from "../loc_66fd.js";
+import { advanceEnemyActorToDescentStateOnDelay } from "../advanceEnemyActorToDescentStateOnDelay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -64,7 +64,7 @@ function craft(gate, count, fill = 0xaa) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: gate-clear / live-count / expired — loc_66fd == oracle in RAM (−stack)", () => {
+test("EQUAL: gate-clear / live-count / expired — advanceEnemyActorToDescentStateOnDelay == oracle in RAM (−stack)", () => {
   const CASES = [
     { gate: 0x00, count: 0x05, label: "gate-clear" },
     { gate: 0x00, count: 0x00, label: "gate-clear (count already 0)" },
@@ -77,7 +77,7 @@ test("EQUAL: gate-clear / live-count / expired — loc_66fd == oracle in RAM (�
     const o = craft(gate, count);
     const c = craft(gate, count);
     oracle(o);
-    loc_66fd(c);
+    advanceEnemyActorToDescentStateOnDelay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (${label})`);
   }
@@ -137,7 +137,7 @@ test("CRAFTED: the expired arm overwrites a pre-dirtied record identically", () 
   const o = craft(0x01, 0x00, 0x77);
   const c = craft(0x01, 0x00, 0x77);
   oracle(o);
-  loc_66fd(c);
+  advanceEnemyActorToDescentStateOnDelay(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(c.mem.read8(COUNTDOWN), 0x12, "countdown reloaded");
@@ -151,7 +151,7 @@ test("TEETH: a wrong tile-id byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x01, 0x00);
   const c = craft(0x01, 0x00);
   oracle(o);
-  loc_66fd(c);
+  advanceEnemyActorToDescentStateOnDelay(c);
   c.mem.write8(REC + 0x09, 0x00); // BUG: rec+9 must be the tile id 0x2c
 
   const d = ramDiffMinusStack(o, c);

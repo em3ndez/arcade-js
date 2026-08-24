@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6166 (ROM 0x6166, Pooyan) — "reset the actor record", a
+ * Memory-equivalence test for resetActorRecordQueueSoundAndAbortFrame (ROM 0x6166, Pooyan) — "reset the actor record", a
  * caller that dissolves the caller-skip loc_618a.
  *
  * The routine clears the record IY points at to its idle opening state (+0 := 0, +1 := 1,
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6166 as oracle } from "../../translated/loc_6166.js";
-import { loc_6166 } from "../loc_6166.js";
+import { resetActorRecordQueueSoundAndAbortFrame } from "../resetActorRecordQueueSoundAndAbortFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -80,12 +80,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_6166 == oracle in RAM (−stack) over both branches / several IY bases", () => {
+test("EQUAL: resetActorRecordQueueSoundAndAbortFrame == oracle in RAM (−stack) over both branches / several IY bases", () => {
   for (const { iy, objType } of CASES) {
     const o = craft(iy, objType);
     const c = craft(iy, objType);
     oracle(o);
-    const ret = loc_6166(c);
+    const ret = resetActorRecordQueueSoundAndAbortFrame(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `iy=${hx(iy)} objType=${hx(objType)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -99,7 +99,7 @@ test("EQUAL: loc_6166 == oracle in RAM (−stack) over both branches / several I
 test("WRITE-SET: the record fields reset to their fixed opening values", () => {
   const { iy, objType } = CASES[0];
   const c = craft(iy, objType);
-  loc_6166(c);
+  resetActorRecordQueueSoundAndAbortFrame(c);
   const o = craft(iy, objType);
   oracle(o);
   for (const [off, val] of RESET_FIELDS) {
@@ -116,7 +116,7 @@ test("TEETH: a wrong reset byte is CAUGHT by the RAM diff", () => {
   const o = craft(iy, objType);
   const c = craft(iy, objType);
   oracle(o);
-  loc_6166(c);
+  resetActorRecordQueueSoundAndAbortFrame(c);
   const victim = (iy + 0x02) & 0xffff;
   c.mem.write8(victim, 0x00); // BUG: +2 must be 0x08
   const d = ramDiffMinusStack(o, c);

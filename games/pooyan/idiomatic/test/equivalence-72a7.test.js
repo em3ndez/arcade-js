@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_72a7 (ROM 0x72a7) — the enemy-wave launch driver.
+ * Memory-equivalence test for driveEagleWavePerFrame (ROM 0x72a7) — the enemy-wave launch driver.
  *
- * loc_72a7 has three states:
- *   - launch flag clear  -> seed the next wave (loc_72e1), then return.
- *   - record count zero   -> tail hand-off to the inter-wave idle handler (loc_73e3).
+ * driveEagleWavePerFrame has three states:
+ *   - launch flag clear  -> seed the next wave (seedNextEagleWave), then return.
+ *   - record count zero   -> tail hand-off to the inter-wave idle handler (tickEagleInterWaveHoldAndRearmLaunch).
  *   - otherwise           -> walk 2*(wave index) live records of the enemy-actor table (stride
- *                            0x18) through the per-record state handler (loc_72cf).
+ *                            0x18) through the per-record state handler (dispatchActiveEagleRecordState).
  * The frozen layer dissolved three marshalled calls (seed / idle / per-record); this module calls
  * the idiomatic routines directly. The contract is:
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * pc/SP/cycles are NOT compared. The seed and record-walk branches return undefined on both sides.
- * The idle branch is a faithful tail hand-off: the module returns loc_73e3's value (its A live-out),
+ * The idle branch is a faithful tail hand-off: the module returns tickEagleInterWaveHoldAndRearmLaunch's value (its A live-out),
  * while the frozen oracle's `m.call` drops it (returns undefined) — so on that branch the RAW return
  * is not compared; instead we assert both sides leave the SAME register A, proving the hand-off
  * reached the idle handler and carried its live-out straight through.
  *
  * Jobs:
- *   1. EQUAL — each branch: oracle == loc_72a7 in RAM (−stack); returns/A as described above.
+ *   1. EQUAL — each branch: oracle == driveEagleWavePerFrame in RAM (−stack); returns/A as described above.
  *   2. TEETH/RAM — a wrong written byte MUST be caught by the RAM diff.
  *   3. TEETH/BRANCH — running the WRONG branch's handler on a record-walk state MUST diverge.
  *
@@ -31,8 +31,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_72a7 as oracle } from "../../translated/loc_72a7.js";
-import { loc_72a7 } from "../loc_72a7.js";
-import { loc_73e3 } from "../loc_73e3.js";
+import { driveEagleWavePerFrame } from "../driveEagleWavePerFrame.js";
+import { tickEagleInterWaveHoldAndRearmLaunch } from "../tickEagleInterWaveHoldAndRearmLaunch.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -76,8 +76,8 @@ function seedDescendRecord(m, base) {
 
 /**
  * A fresh clone crafted onto one of the three branches:
- *   "seed"   -> launch flag clear, target slot clear (loc_72e1 seeds a real wave).
- *   "idle"   -> launched, no records, hold non-zero (loc_73e3 ticks the hold).
+ *   "seed"   -> launch flag clear, target slot clear (seedNextEagleWave seeds a real wave).
+ *   "idle"   -> launched, no records, hold non-zero (tickEagleInterWaveHoldAndRearmLaunch ticks the hold).
  *   "walk"   -> launched, records present, wave index 1 -> two descend records walked.
  */
 function craft(branch) {
@@ -104,12 +104,12 @@ function craft(branch) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: seed / walk branches — loc_72a7 == oracle in RAM (−stack), both return undefined", () => {
+test("EQUAL: seed / walk branches — driveEagleWavePerFrame == oracle in RAM (−stack), both return undefined", () => {
   for (const branch of ["seed", "walk"]) {
     const o = craft(branch);
     const c = craft(branch);
     const ro = oracle(o);
-    const rc = loc_72a7(c);
+    const rc = driveEagleWavePerFrame(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (${branch})`);
@@ -123,7 +123,7 @@ test("EQUAL: idle branch — RAM (−stack) identical AND the tail hand-off carr
   const o = craft("idle");
   const c = craft("idle");
   oracle(o);
-  loc_72a7(c);
+  driveEagleWavePerFrame(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (idle)`);
@@ -139,7 +139,7 @@ test("TEETH/RAM: a wrong written byte is CAUGHT by the RAM diff", () => {
   const o = craft("idle");
   const c = craft("idle");
   oracle(o); // ticks the hold timer 0x20 -> 0x1f
-  loc_72a7(c);
+  driveEagleWavePerFrame(c);
   c.mem.write8(WAVE_HOLD_TIMER, 0x00); // BUG: the idle tick leaves it at 0x1f
 
   const d = ramDiffMinusStack(o, c);
@@ -152,7 +152,7 @@ test("TEETH/BRANCH: the idle handler on a record-walk state diverges from the or
   const o = craft("walk");
   const wrong = craft("walk");
   oracle(o); // real dispatch -> the record walk (modifies the two descend records)
-  loc_73e3(wrong); // WRONG branch: the idle handler ticks the hold and ignores the records
+  tickEagleInterWaveHoldAndRearmLaunch(wrong); // WRONG branch: the idle handler ticks the hold and ignores the records
 
   const d = ramDiffMinusStack(o, wrong);
   assert.notEqual(d, null, "a wrong branch produced identical RAM — the selection is untested");

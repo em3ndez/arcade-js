@@ -14,7 +14,7 @@
  * Compared on RAM (dumpState) minus STACK_SCRATCH; the register file is not compared. The slot
  * selector and target box are the param-default register bridge.
  *
- * The oracle runs the TRANSLATED loc_5f83, which m.call()s the scan subtree (loc_5fa2 -> loc_6018/
+ * The oracle runs the TRANSLATED loc_5f83, which m.call()s the scan subtree (loc_5fa2 -> advanceOverlapScanToNextSlot/
  * queueSoundCommand09) through the registry; the module composes the idiomatic subtree by direct import of
  * loc_5fa2 (a batch sibling — this gate is green once loc_5fa2 and the ENEMY_SCAN_BOX_TABLE cell
  * land). Cases are CRAFTED — a plain boot does not seat this block/box/enemy geometry.

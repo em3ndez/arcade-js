@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_5e78 } from "./loc_5e78.js";
 import { loc_5f6a } from "./loc_5f6a.js";
-import { loc_602f } from "./loc_602f.js";
-import { loc_6368 } from "./loc_6368.js";
+import { resolveObjectProximityHitsBothSlots } from "./resolveObjectProximityHitsBothSlots.js";
+import { resolveProjectileCollisionsBothActorSlots } from "./resolveProjectileCollisionsBothActorSlots.js";
 import { loc_5df7 } from "./loc_5df7.js";
 import { flagTamperOnRound5ChecksumMiss } from "./flagTamperOnRound5ChecksumMiss.js";
 import { loc_5d4d } from "./loc_5d4d.js";
 import { loc_5b86 } from "./loc_5b86.js";
-import { loc_6404 } from "./loc_6404.js";
+import { scanActorCollisionsBothSlots } from "./scanActorCollisionsBothSlots.js";
 import { loc_5d0b } from "./loc_5d0b.js";
 import { fireArmedEnemyProjectilesAndDisarm } from "./fireArmedEnemyProjectilesAndDisarm.js";
 /**
@@ -22,13 +22,13 @@ import { fireArmedEnemyProjectilesAndDisarm } from "./fireArmedEnemyProjectilesA
 export function runActorUpdatePipeline(m) {
   loc_5e78(m); // odd-round actor sweep
   loc_5f6a(m);
-  loc_602f(m);
-  loc_6368(m);
+  resolveObjectProximityHitsBothSlots(m);
+  resolveProjectileCollisionsBothActorSlots(m);
   loc_5df7(m);
   flagTamperOnRound5ChecksumMiss(m); // round-5 checksum tamper tally
   loc_5d4d(m);
   loc_5b86(m);
-  loc_6404(m); // two-pass actor collision driver
+  scanActorCollisionsBothSlots(m); // two-pass actor collision driver
   loc_5d0b(m);
   fireArmedEnemyProjectilesAndDisarm(m); // end-of-wave object-table cleanup
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_672a (ROM 0x672a) — object descent step. Runs the animation
+ * Memory-equivalence test for descendEnemyActorAndSeatSpawnSlot (ROM 0x672a) — object descent step. Runs the animation
  * sequencer (advanceObjectAnimationFrame), advances the record's 16-bit sub-position (rec+5 low, rec+6 high) by the
  * step rec+9, and while the high byte is below the landing row (0x18) scans three spawn-object slots
  * (SPAWN_OBJECT_TABLE, stride 0x18) for a free one whose row matches: on a hit it bumps
@@ -20,7 +20,7 @@
  *
  * Jobs:
  *   1. EQUAL — skip-scan, no-free-slot (early return), a plain seat, a seat with X-borrow + Y-carry,
- *      and a position-carry that increments the row before the match; oracle == loc_672a in RAM (−stack).
+ *      and a position-carry that increments the row before the match; oracle == descendEnemyActorAndSeatSpawnSlot in RAM (−stack).
  *   2. WRITE-SET — the plain-seat case writes the exact slot fields, the back-link, the counters, and
  *      the merge (state++, step=0x18, anim->0x3838).
  *   3. TEETH — a twin that clears the seated slot's active marker MUST be caught; a twin that leaves
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_672a as oracle } from "../../translated/loc_672a.js";
-import { loc_672a } from "../loc_672a.js";
+import { descendEnemyActorAndSeatSpawnSlot } from "../descendEnemyActorAndSeatSpawnSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPAWN_OBJECT_TABLE, WAVE_ARRIVAL_COUNTER, SHARED_FRAME_DELAY_TIMER } from "../names.js";
@@ -106,12 +106,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: skip/no-slot/seat/borrow-carry/pos-carry — loc_672a == oracle in RAM (−stack)", () => {
+test("EQUAL: skip/no-slot/seat/borrow-carry/pos-carry — descendEnemyActorAndSeatSpawnSlot == oracle in RAM (−stack)", () => {
   for (const scn of CASES) {
     const o = craft(scn);
     const c = craft(scn);
     oracle(o);
-    loc_672a(c);
+    descendEnemyActorAndSeatSpawnSlot(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${scn.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -123,7 +123,7 @@ test("EQUAL: skip/no-slot/seat/borrow-carry/pos-carry — loc_672a == oracle in 
 test("WRITE-SET: the plain-seat case writes the slot, back-link, counters, and merge", () => {
   const scn = CASES[2]; // seat-simple: xsrc=0x90 -> X=0x10 (no borrow), Y=0x50 (no carry)
   const c = craft(scn);
-  loc_672a(c);
+  descendEnemyActorAndSeatSpawnSlot(c);
   const s0 = slotBase(0);
 
   assert.equal(c.mem.read8(WAVE_ARRIVAL_COUNTER), (WAVE_SEED + 1) & 0xff, "arrival counter bumped");
@@ -151,7 +151,7 @@ test("TEETH: a cleared seat active-marker is CAUGHT by the RAM diff", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_672a(c);
+  descendEnemyActorAndSeatSpawnSlot(c);
   const s0 = slotBase(0);
   c.mem.write8(s0 + 1, 0x00); // BUG: seated slot must be marked active (2)
 
@@ -166,7 +166,7 @@ test("TEETH: a wrong seat timer is CAUGHT by the RAM diff", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_672a(c);
+  descendEnemyActorAndSeatSpawnSlot(c);
   c.mem.write8(SHARED_FRAME_DELAY_TIMER, 0x00); // BUG: seat must arm the timer to 0x20
 
   const d = ramDiffMinusStack(o, c);

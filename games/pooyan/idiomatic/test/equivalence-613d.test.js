@@ -35,7 +35,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_613d as oracle } from "../../translated/loc_613d.js";
 import { loc_613d } from "../loc_613d.js";
-import { loc_6166 } from "../loc_6166.js";
+import { resetActorRecordQueueSoundAndAbortFrame } from "../resetActorRecordQueueSoundAndAbortFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -151,7 +151,7 @@ test("TEETH: resetting the record on the flag-clear branch diverges from the ora
   const o = craft(cfg);
   oracle(o);
   const c = craft(cfg);
-  loc_6166(c); // wrong branch: reset instead of the direct abort
+  resetActorRecordQueueSoundAndAbortFrame(c); // wrong branch: reset instead of the direct abort
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate must catch a reset run on the flag-clear branch");
   console.log(`  TEETH(branch): reset-on-flag-clear diverges at ${hx(d.addr ?? 0)}`);

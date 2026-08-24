@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_67a0 (ROM 0x67a0) — "per-object frame update": while the shared
+ * Memory-equivalence test for ascendEnemyActorAndLinkedSlotOnTimer (ROM 0x67a0) — "per-object frame update": while the shared
  * frame-delay timer (SHARED_FRAME_DELAY_TIMER) is non-zero, decrement it and return; on expiry step
  * the object's animation (advanceObjectAnimationFrame), move the linked record's +0x05/+0x06 pair (if +0x07/+0x08 has a
  * non-zero high byte) and the object's own +0x05/+0x06 pair down by the +0x09 speed (a 16-bit
@@ -13,7 +13,7 @@
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * The contract is MEMORY ONLY: a per-frame state handler reached only through anti-tamper / object-
- * dispatch tails (loc_67df, loc_6a98) that do not read back its leftover registers. pc/SP/cycles are
+ * dispatch tails (reinitRoundArenaAndPlayfieldIfImageIntact, loc_6a98) that do not read back its leftover registers. pc/SP/cycles are
  * not compared. advanceObjectAnimationFrame is kept deterministic by seating a non-zero +0x0e hold, so it simply
  * decrements that field (its own script-walk is its own test's concern); both sides run the same
  * advanceObjectAnimationFrame over the same memory. Inputs (the timer + record/link fields) are poked per side.
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_67a0 as oracle } from "../../translated/loc_67a0.js";
-import { loc_67a0 } from "../loc_67a0.js";
+import { ascendEnemyActorAndLinkedSlotOnTimer } from "../ascendEnemyActorAndLinkedSlotOnTimer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SHARED_FRAME_DELAY_TIMER } from "../names.js";
@@ -53,7 +53,7 @@ function ramDiffMinusStack(ma, mb) {
 const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 
 /**
- * Seat the timer and the record fields loc_67a0 reads. `rec` fields: 0x02 state, 0x05/0x06 own
+ * Seat the timer and the record fields ascendEnemyActorAndLinkedSlotOnTimer reads. `rec` fields: 0x02 state, 0x05/0x06 own
  * position pair, 0x07/0x08 link pointer, 0x09 speed, 0x0e advanceObjectAnimationFrame hold. Optional `link` fields.
  */
 function craft({ timer, rec, link }) {
@@ -79,12 +79,12 @@ const CASES = [CASE_HOLD, CASE_NOLINK, CASE_LINK];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: hold / no-link / link+borrow+advance — loc_67a0 == oracle in RAM (−stack)", () => {
+test("EQUAL: hold / no-link / link+borrow+advance — ascendEnemyActorAndLinkedSlotOnTimer == oracle in RAM (−stack)", () => {
   CASES.forEach((cse, i) => {
     const o = craft(cse);
     const c = craft(cse);
     oracle(o);
-    loc_67a0(c);
+    ascendEnemyActorAndLinkedSlotOnTimer(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (case ${i}): oracle=${d.a} idiom=${d.b}`);
   });
@@ -133,7 +133,7 @@ test("TEETH: a wrong own-position byte is CAUGHT by the RAM diff", () => {
   const o = craft(CASE_LINK);
   const c = craft(CASE_LINK);
   oracle(o);
-  loc_67a0(c);
+  ascendEnemyActorAndLinkedSlotOnTimer(c);
   const bug = REC + 0x05;
   c.mem.write8(bug, 0x00); // BUG: own +0x05 must be the borrowed 0xfe
 
@@ -147,7 +147,7 @@ test("TEETH: a missed timer tick is CAUGHT on the early path", () => {
   const o = craft(CASE_HOLD);
   const c = craft(CASE_HOLD);
   oracle(o);
-  loc_67a0(c);
+  ascendEnemyActorAndLinkedSlotOnTimer(c);
   c.mem.write8(SHARED_FRAME_DELAY_TIMER, 0x05); // BUG: timer should have decremented to 0x04
 
   const d = ramDiffMinusStack(o, c);

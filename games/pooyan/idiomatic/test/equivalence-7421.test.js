@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7421 (ROM 0x7421) — "bonus-stage teardown": while the wave-hold
+ * Memory-equivalence test for clearWaveStateAndArenaOnHoldExpiry (ROM 0x7421) — "bonus-stage teardown": while the wave-hold
  * timer (WAVE_HOLD_TIMER) is non-zero, tick it down and return; on expiry clear the 9-byte block at
  * TILE_ANIM_PARITY and the 0x48-byte enemy-record region at ENEMY_ACTOR_TABLE to zero, clear
  * PLAY_STATE_INDEX and LATCHED_ENEMY_X, and set ATTRACT_SUBSTATE to 7.
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7421 as oracle } from "../../translated/loc_7421.js";
-import { loc_7421 } from "../loc_7421.js";
+import { clearWaveStateAndArenaOnHoldExpiry } from "../clearWaveStateAndArenaOnHoldExpiry.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -71,12 +71,12 @@ function craft(hold, dirty) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: hold / expiry — loc_7421 == oracle in RAM (−stack)", () => {
+test("EQUAL: hold / expiry — clearWaveStateAndArenaOnHoldExpiry == oracle in RAM (−stack)", () => {
   for (const [hold, dirty] of [[0x03, true], [0x01, false], [0x00, true], [0x00, false]]) {
     const o = craft(hold, dirty);
     const c = craft(hold, dirty);
     oracle(o);
-    loc_7421(c);
+    clearWaveStateAndArenaOnHoldExpiry(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (hold=${hold} dirty=${dirty}): oracle=${d.a} idiom=${d.b}`);
   }
@@ -132,7 +132,7 @@ test("CRAFTED: on expiry all sentinels are cleared/set identically", () => {
   const o = craft(0x00, true);
   const c = craft(0x00, true);
   oracle(o);
-  loc_7421(c);
+  clearWaveStateAndArenaOnHoldExpiry(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
@@ -150,7 +150,7 @@ test("TEETH: a wrong cleared byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x00, true);
   const c = craft(0x00, true);
   oracle(o);
-  loc_7421(c);
+  clearWaveStateAndArenaOnHoldExpiry(c);
   const bug = EN_LO + 0x10;
   c.mem.write8(bug, 0x55); // BUG: this enemy-region cell must be cleared to 0
 
@@ -164,7 +164,7 @@ test("TEETH: a missed timer tick is CAUGHT on the hold path", () => {
   const o = craft(0x03, false);
   const c = craft(0x03, false);
   oracle(o);
-  loc_7421(c);
+  clearWaveStateAndArenaOnHoldExpiry(c);
   c.mem.write8(WAVE_HOLD_TIMER, 0x03); // BUG: timer should have decremented to 0x02
 
   const d = ramDiffMinusStack(o, c);

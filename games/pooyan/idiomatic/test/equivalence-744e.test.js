@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_744e (ROM 0x744e) — attract/self-test state 0. Clears the
+ * Memory-equivalence test for seedDisplayListPointersAndVerifyRomSignature (ROM 0x744e) — attract/self-test state 0. Clears the
  * sub-phase tick (0x88b7), seeds the display-list pointer pairs (0x88ba<-0x43e1, 0x8f45<-0x4af0,
  * 0x88b8<-0x8442, 0x8f43<-0x8042), advances the self-test selector (inc 0x8921), then runs a
  * two-stage program-signature check: loop 1 (eight boot bytes vs the copy at 0x749a) and loop 2 (a
  * 0x74-byte window from 0x0092 vs the copy continuing at 0x74a2). Both reference blocks are verbatim
  * copies of the checked code, so on the built image both loops match and the routine returns after
- * the seed writes; a loop-2 divergence would tail into loc_67df.
+ * the seed writes; a loop-2 divergence would tail into reinitRoundArenaAndPlayfieldIfImageIntact.
  *
  * CYCLE-FREE / memory-equivalence gate. Contract: RAM (dumpState minus STACK_SCRATCH) ONLY — a
  * tail-dispatched state handler with no register live-out. pc/SP/cycles are NOT compared. The
@@ -16,7 +16,7 @@
  * The ten written cells are PRE-DIRTIED so each write is visible (and a skipped write is caught).
  *
  * Jobs:
- *   1. EQUAL — loc_744e == oracle in RAM (−stack) on the built image.
+ *   1. EQUAL — seedDisplayListPointersAndVerifyRomSignature == oracle in RAM (−stack) on the built image.
  *   2. WRITE-SET — exactly the ten seed cells change, to their little-endian pointer bytes /
  *      cleared tick / incremented selector.
  *   3. TEETH — a twin with a wrong seed pointer byte and a twin with a non-advanced selector are
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_744e as oracle } from "../../translated/loc_744e.js";
-import { loc_744e } from "../loc_744e.js";
+import { seedDisplayListPointersAndVerifyRomSignature } from "../seedDisplayListPointersAndVerifyRomSignature.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -84,11 +84,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: built image — loc_744e == oracle in RAM (−stack)", () => {
+test("EQUAL: built image — seedDisplayListPointersAndVerifyRomSignature == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_744e(c);
+  seedDisplayListPointersAndVerifyRomSignature(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: clean-path RAM identical (−stack)");
@@ -99,7 +99,7 @@ test("EQUAL: built image — loc_744e == oracle in RAM (−stack)", () => {
 test("WRITE-SET: exactly the ten seed cells change to their expected values", () => {
   const c = craft();
   const before = c.dumpState();
-  loc_744e(c);
+  seedDisplayListPointersAndVerifyRomSignature(c);
   const after = c.dumpState();
 
   const changed = [];
@@ -120,7 +120,7 @@ test("TEETH: a wrong seed pointer byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_744e(c);
+  seedDisplayListPointersAndVerifyRomSignature(c);
   c.mem.write8(SRC_ALT, 0x00); // BUG: this cell must be the low byte of 0x43e1 (0xe1)
 
   const d = ramDiffMinusStack(o, c);
@@ -133,7 +133,7 @@ test("TEETH: a non-advanced self-test selector is CAUGHT by the RAM diff", () =>
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_744e(c);
+  seedDisplayListPointersAndVerifyRomSignature(c);
   c.mem.write8(SELECTOR, SELECTOR_SEED); // BUG: selector must be incremented
 
   const d = ramDiffMinusStack(o, c);

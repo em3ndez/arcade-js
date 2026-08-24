@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_76af (ROM 0x76af) — "two-phase blink timer": countdown at
+ * Memory-equivalence test for blinkTilePairOnCountdown (ROM 0x76af) — "two-phase blink timer": countdown at
  * 0x892a; while non-zero decrement and return; on zero reload 0x16, toggle the phase 0x892b,
  * and by phase parity pick one of two 2-byte tile pairs (0x76e6={0x3f,0x46} / 0x76e8=
  * {0x46,0x3f}) and write it into the video cells 0x8471 and 0x84b1 (=0x8471+0x40).
@@ -10,7 +10,7 @@
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
- * pc/SP/cycles are NOT compared. loc_76af has NO register live-out — its caller (updateGameplayFrame)
+ * pc/SP/cycles are NOT compared. blinkTilePairOnCountdown has NO register live-out — its caller (updateGameplayFrame)
  * treats it as a plain-ret helper and reads no register result — and takes no register inputs
  * (it loads 0x892a itself). It calls nothing, so the two tile pairs are read straight from ROM.
  *
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_76af as oracle } from "../../translated/loc_76af.js";
-import { loc_76af } from "../loc_76af.js";
+import { blinkTilePairOnCountdown } from "../blinkTilePairOnCountdown.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -73,12 +73,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: countdown + both parity arms — loc_76af == oracle in RAM (−stack)", () => {
+test("EQUAL: countdown + both parity arms — blinkTilePairOnCountdown == oracle in RAM (−stack)", () => {
   for (const { name, countdown, phase } of CASES) {
     const o = craft(countdown, phase);
     const c = craft(countdown, phase);
     oracle(o);
-    loc_76af(c);
+    blinkTilePairOnCountdown(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -120,7 +120,7 @@ test("TEETH: a wrong second-cell byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x00, 0x00);
   const c = craft(0x00, 0x00);
   oracle(o);
-  loc_76af(c);
+  blinkTilePairOnCountdown(c);
   c.mem.write8(CELL_1, (c.mem.read8(CELL_1) + 1) & 0xff); // BUG: corrupt the second blink cell
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong blink byte — it is worthless");

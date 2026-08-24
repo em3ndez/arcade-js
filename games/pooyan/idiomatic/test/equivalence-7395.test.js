@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7395 (Pooyan) — "eagle dive/climb state": advance the record's
+ * Memory-equivalence test for advanceEagleDiveClimbToRetireAtLimit (Pooyan) — "eagle dive/climb state": advance the record's
  * animation (shared stepper), then integrate its 16-bit vertical position by the per-record speed.
  * An even-indexed record (bit 3 of its low address byte clear) descends (add speed, carry bumps the
  * row, bottom limit advances the state byte); an odd-indexed record climbs (subtract, borrow drops
  * the row, top limit advances the state byte).
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES RAM, so each
- * case runs the oracle on one FRESH clone and loc_7395 on another, compared on:
+ * case runs the oracle on one FRESH clone and advanceEagleDiveClimbToRetireAtLimit on another, compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
@@ -18,7 +18,7 @@
  * IX (the record base) both selects the record AND, via bit 3 of its low byte, the dive/climb path,
  * so cases craft records at an even base and an odd base. The animation stepper is kept on its
  * frame-hold branch (rec+0x0E non-zero, so it just decrements) — its full stream walk has its own
- * gate — leaving this test to exercise loc_7395's own integration arithmetic.
+ * gate — leaving this test to exercise advanceEagleDiveClimbToRetireAtLimit's own integration arithmetic.
  *
  * Jobs:
  *   1. EQUAL (crafted) — descending {no-carry, carry, bottom-limit} and climbing {no-borrow, borrow,
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7395 as oracle } from "../../translated/loc_7395.js";
-import { loc_7395 } from "../loc_7395.js";
+import { advanceEagleDiveClimbToRetireAtLimit } from "../advanceEagleDiveClimbToRetireAtLimit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_ACTOR_TABLE } from "../names.js";
@@ -95,12 +95,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted dive/climb records — loc_7395 == oracle in RAM(−stack)", () => {
+test("EQUAL: crafted dive/climb records — advanceEagleDiveClimbToRetireAtLimit == oracle in RAM(−stack)", () => {
   for (const c of CASES) {
     const o = craft(c.rec, c);
     const k = craft(c.rec, c);
     oracle(o);
-    loc_7395(k);
+    advanceEagleDiveClimbToRetireAtLimit(k);
     const d = ramDiffMinusStack(o, k);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b} (${c.name})`);
   }
@@ -146,7 +146,7 @@ test("TEETH: a wrong integrated position byte is CAUGHT by the RAM diff", () => 
   const o = craft(c.rec, c);
   const k = craft(c.rec, c);
   oracle(o);
-  loc_7395(k);
+  advanceEagleDiveClimbToRetireAtLimit(k);
   k.mem.write8(c.rec + 0x03, (o.mem.read8(c.rec + 0x03) ^ 0xff) & 0xff); // BUG: wrong position
 
   const d = ramDiffMinusStack(o, k);

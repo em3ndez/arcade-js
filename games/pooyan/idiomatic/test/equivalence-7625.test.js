@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7625 (ROM 0x7625, Pooyan) — a twin entry to the shared
+ * Memory-equivalence test for advanceFirstGroupEnemyActorStates (ROM 0x7625, Pooyan) — a twin entry to the shared
  * animation-tick walk: it seeds the record count (8) and runs the walk over the enemy-actor array
  * (base 0x8ae0, stride 0x18).
  *
  * SEATING: BALANCED (WIRE). The oracle tail-delegates into the shared walk, which ends in a plain
- * `ret`; loc_7625 has no `pop af` of its own. The module does no stack ops; the oracle's pushes/pops
+ * `ret`; advanceFirstGroupEnemyActorStates has no `pop af` of its own. The module does no stack ops; the oracle's pushes/pops
  * land in STACK_SCRATCH and drop from the diff.
  *
  * LIVE-OUT: none — a void delegator. The next thing its caller runs re-initialises its registers, so
@@ -28,8 +28,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7625 as oracle } from "../../translated/loc_7625.js";
-import { loc_7625 } from "../loc_7625.js";
-import { loc_7627 } from "../loc_7627.js"; // for the wrong-count teeth twins
+import { advanceFirstGroupEnemyActorStates } from "../advanceFirstGroupEnemyActorStates.js";
+import { advanceEnemyActorStateWalk } from "../advanceEnemyActorStateWalk.js"; // for the wrong-count teeth twins
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_ACTOR_TABLE, OBJECT_DRAWN_FLAG } from "../names.js";
@@ -47,7 +47,7 @@ const STATE_FIELD = 0x02;
 const HOLD_FIELD = 0x0e;
 const HOLD_SEED = 0x05;
 const STATE_STEP = 0x02;
-const SEEDED_COUNT = 8; // the count loc_7625 seeds
+const SEEDED_COUNT = 8; // the count advanceFirstGroupEnemyActorStates seeds
 const SP0 = 0x8ff8;
 const CALLER_RET = 0xabcd;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -80,7 +80,7 @@ test("EQUAL: seeds count 8 and walks — module == oracle in RAM (−stack)", ()
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_7625(c);
+  advanceFirstGroupEnemyActorStates(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: RAM identical");
@@ -104,7 +104,7 @@ test("TEETH: a twin seeding the wrong count (7 under / 9 over) diverges from the
   const under = craft();
   const underTwin = craft();
   oracle(under); // seeds 8
-  loc_7627(underTwin, 7); // BUG: under-seeded twin leaves record 7 un-stepped
+  advanceEnemyActorStateWalk(underTwin, 7); // BUG: under-seeded twin leaves record 7 un-stepped
   let d = ramDiffMinusStack(under, underTwin);
   assert.notEqual(d, null, "under-seed not caught");
   assert.equal(d.addr, recAddr(7) + HOLD_FIELD, `under-seed caught at ${hx(d.addr ?? 0)}`);
@@ -112,7 +112,7 @@ test("TEETH: a twin seeding the wrong count (7 under / 9 over) diverges from the
   const over = craft();
   const overTwin = craft();
   oracle(over); // seeds 8
-  loc_7627(overTwin, 9); // BUG: over-seeded twin steps record 8
+  advanceEnemyActorStateWalk(overTwin, 9); // BUG: over-seeded twin steps record 8
   d = ramDiffMinusStack(over, overTwin);
   assert.notEqual(d, null, "over-seed not caught");
   assert.equal(d.addr, recAddr(8) + HOLD_FIELD, `over-seed caught at ${hx(d.addr ?? 0)}`);

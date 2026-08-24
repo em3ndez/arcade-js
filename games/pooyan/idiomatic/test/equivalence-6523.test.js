@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6523 (ROM 0x6523, Pooyan) — "seat a fresh object record (IX) and
+ * Memory-equivalence test for seatActorRecordAndQueueSpawnDisplay (ROM 0x6523, Pooyan) — "seat a fresh object record (IX) and
  * enqueue its display command". Bails when (IX+0 | IX+1) is odd or the signature-mismatch flag
  * (0x8ef0) is held; otherwise stamps the opening state, snapshots the frame-delay counter (0x8929)
  * into IX+6 and steps it down by two, then enqueues the object-spawn display command via the page-0x88
@@ -9,7 +9,7 @@
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine writes work RAM, so
  * every case uses a FRESH clone per side, compared on RAM (dumpState, minus STACK_SCRATCH).
  *
- * LIVE-OUT: none — memory-only. The sole caller (loc_6505) wraps the call in exx, preserving its own
+ * LIVE-OUT: none — memory-only. The sole caller (spawnActorGroupRecords) wraps the call in exx, preserving its own
  * registers, and reads no result register; so no register is part of the contract.
  *
  * Jobs:
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6523 as oracle } from "../../translated/loc_6523.js";
-import { loc_6523 } from "../loc_6523.js";
+import { seatActorRecordAndQueueSpawnDisplay } from "../seatActorRecordAndQueueSpawnDisplay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -101,12 +101,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted proceed/bail cases — loc_6523 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted proceed/bail cases — seatActorRecordAndQueueSpawnDisplay == oracle in RAM (−stack)", () => {
   for (const { name, opts } of CASES) {
     const o = craft(opts);
     const c = craft(opts);
     oracle(o);
-    loc_6523(c);
+    seatActorRecordAndQueueSpawnDisplay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -117,7 +117,7 @@ test("EQUAL: crafted proceed/bail cases — loc_6523 == oracle in RAM (−stack)
 
 test("WRITE-SET: proceed/round-0 changes the identical cell set; both bails change nothing", () => {
   const oracleSet = changedAddrs(craft({ round: 0x00 }), oracle);
-  const moduleSet = changedAddrs(craft({ round: 0x00 }), loc_6523);
+  const moduleSet = changedAddrs(craft({ round: 0x00 }), seatActorRecordAndQueueSpawnDisplay);
   assert.deepEqual(moduleSet, oracleSet, "module and oracle must change the identical cell set");
   // The footprint must include the seated record fields, the delay counter, and the ring pointer.
   for (const cell of [REC + 0, REC + 4, REC + 6, DELAY, RING_PTR]) {
@@ -134,7 +134,7 @@ test("TEETH: a wrong stamped record field is CAUGHT by the RAM diff", () => {
   const o = craft({ round: 0x00 });
   const c = craft({ round: 0x00 });
   oracle(o);
-  loc_6523(c);
+  seatActorRecordAndQueueSpawnDisplay(c);
   c.mem.write8(REC + 4, 0x14); // BUG: IX+4 must be stamped 0x15
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong record field — it is worthless");

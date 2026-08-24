@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6c18 (ROM 0x6c18, Pooyan) — the proximity-scan caller that
+ * Memory-equivalence test for clearAimIndicatorUnlessProximityHit (ROM 0x6c18, Pooyan) — the proximity-scan caller that
  * dissolves the loc_6c3f caller-skip. The oracle fixes ix = SPRITE_DISPLAY_LIST and walks three
  * projectile records (iy stride 4, hl stride 0x18), calling loc_6c3f per pass; the skip's
  * `pop af; ret` aborts the whole scan on the first hit. If no pass hits, the oracle clears the
  * above/below aim bits on PLAYER_AIM_FLAGS and zeroes PROXIMITY_HIT_FLAG.
  *
- * This gate COMPOSES the real idiomatic skip: the imported idiomatic loc_6c18 imports the
- * idiomatic loc_6c3f, and the oracle loc_6c18 runs the TRANSLATED loc_6c3f through m.call (the
+ * This gate COMPOSES the real idiomatic skip: the imported idiomatic clearAimIndicatorUnlessProximityHit imports the
+ * idiomatic loc_6c3f, and the oracle clearAimIndicatorUnlessProximityHit runs the TRANSLATED loc_6c3f through m.call (the
  * default registry). The two must land byte-identical. The oracle's push16/call trampolines
  * write only STACK_SCRATCH (sp seated there), which is excluded; the module spends no stack. So
  * the contract compared is RAM (dumpState, minus STACK_SCRATCH). No register is a live-out (the
- * caller of loc_6c18 reads nothing back), so RAM is the whole contract. pc/sp/cycles are not
+ * caller of clearAimIndicatorUnlessProximityHit reads nothing back), so RAM is the whole contract. pc/sp/cycles are not
  * compared.
  *
  * The routine runs only during live aim-indicator gameplay, so every state is CRAFTED. Three
@@ -24,7 +24,7 @@
  *                     passes and still aborts (skip taken on the last pass).
  *
  * Jobs:
- *   1. EQUAL — each state: oracle == loc_6c18 in RAM (−stack).
+ *   1. EQUAL — each state: oracle == clearAimIndicatorUnlessProximityHit in RAM (−stack).
  *   2. WRITE-SET — the no-hit state's only writes are the AIM clear and the HIT zero.
  *   3. TEETH — a wrong post-loop byte is caught by the RAM diff; a twin that fails to abort on a
  *      hit (runs the post-loop clears anyway) is caught.
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6c18 as oracle } from "../../translated/loc_6c18.js";
-import { loc_6c18 } from "../loc_6c18.js";
+import { clearAimIndicatorUnlessProximityHit } from "../clearAimIndicatorUnlessProximityHit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -104,12 +104,12 @@ const STATES = ["no hit", "hit pass 0", "hit pass 2"];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: each caller state — loc_6c18 == oracle in RAM (−stack)", () => {
+test("EQUAL: each caller state — clearAimIndicatorUnlessProximityHit == oracle in RAM (−stack)", () => {
   for (const state of STATES) {
     const o = craftCaller(state);
     const c = craftCaller(state);
     oracle(o);
-    loc_6c18(c);
+    clearAimIndicatorUnlessProximityHit(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${state}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -142,7 +142,7 @@ test("TEETH: a wrong post-loop AIM byte is CAUGHT by the RAM diff", () => {
   const o = craftCaller("no hit");
   const c = craftCaller("no hit");
   oracle(o);
-  loc_6c18(c);
+  clearAimIndicatorUnlessProximityHit(c);
   c.mem.write8(AIM, (c.mem.read8(AIM) ^ 0xff) & 0xff); // BUG: corrupt the cleared aim byte
 
   const d = ramDiffMinusStack(o, c);
@@ -155,7 +155,7 @@ test("TEETH: a twin that fails to abort on a hit (runs the post-loop) is CAUGHT"
   const o = craftCaller("hit pass 0");
   const c = craftCaller("hit pass 0");
   oracle(o); // aborts: AIM=0xf7 (bit2 set/bit3 clear), HIT stays 1
-  loc_6c18(c);
+  clearAimIndicatorUnlessProximityHit(c);
   // simulate a non-aborting caller: apply the post-loop clears it should have skipped
   c.mem.write8(AIM, c.mem.read8(AIM) & ~0x0c);
   c.mem.write8(HIT, 0x00);

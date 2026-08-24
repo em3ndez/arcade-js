@@ -18,8 +18,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { loc_71b9 as oracle } from "../../translated/loc_71b9.js";
 import { loc_71b9 } from "../loc_71b9.js";
-import { loc_71c7 } from "../loc_71c7.js";
-import { loc_7421 } from "../loc_7421.js";
+import { runEagleApproachPhaseFrame } from "../runEagleApproachPhaseFrame.js";
+import { clearWaveStateAndArenaOnHoldExpiry } from "../clearWaveStateAndArenaOnHoldExpiry.js";
 import { loc_02ef } from "../loc_02ef.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -74,7 +74,7 @@ test("CRAFTED: each phase 0/1/2 (dispatch + epilogue) routes identically", () =>
 
 test("TEETH: a twin routing phase 0 to the wrong handler is caught", () => {
   const brokenWrong = (m) => {
-    switch (m.mem8[WAVE_OUTER_PHASE]) { case 0: loc_7421(m); break; default: loc_71c7(m); break; } // BUG: phase 0 -> loc_7421
+    switch (m.mem8[WAVE_OUTER_PHASE]) { case 0: clearWaveStateAndArenaOnHoldExpiry(m); break; default: runEagleApproachPhaseFrame(m); break; } // BUG: phase 0 -> clearWaveStateAndArenaOnHoldExpiry
     return loc_02ef(m);
   };
   const o = craft(0), c = craft(0);

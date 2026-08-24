@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6190 (ROM 0x6190, Pooyan) — "engage the matched target".
+ * Memory-equivalence test for engageMatchedSpriteObjectAndResetActor (ROM 0x6190, Pooyan) — "engage the matched target".
  *
  * The routine seats two "engaged" fields on the record IX points at (+8 := 0x01, +0xa := 0xd0)
  * and then tail-continues into the actor-record reset chain (0x6166), which resets the record
  * IY points at, enqueues one of two fixed sound commands chosen by ACTIVE_OBJECT_TYPE, and ends
  * in the caller-skip (0x618a) that clears the type and aborts the frame. So a full run exercises
- * loc_6190 -> loc_6166 -> the sound helper -> loc_618a.
+ * engageMatchedSpriteObjectAndResetActor -> resetActorRecordQueueSoundAndAbortFrame -> the sound helper -> loc_618a.
  *
  * Cycle-free memory-equivalence gate composed over the REAL idiomatic chain: the oracle drives
  * the translated chain (its own sound helper + pop-af skip) and the module drives the idiomatic
@@ -20,7 +20,7 @@
  * Jobs:
  *   1. EQUAL — both object-type branches (!= 3 enqueues the sound-command ring; == 3 the text
  *      ring, gated shut on an unbooted machine): oracle == module in RAM (−stack).
- *   2. WRITE-SET — loc_6190's OWN writes are +8 := 0x01 and +0xa := 0xd0 (the chain's further
+ *   2. WRITE-SET — engageMatchedSpriteObjectAndResetActor's OWN writes are +8 := 0x01 and +0xa := 0xd0 (the chain's further
  *      writes are covered by EQUAL).
  *   3. TEETH — a wrong engaged byte is caught by the RAM diff.
  *
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6190 as oracle } from "../../translated/loc_6190.js";
-import { loc_6190 } from "../loc_6190.js";
+import { engageMatchedSpriteObjectAndResetActor } from "../engageMatchedSpriteObjectAndResetActor.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -76,12 +76,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_6190 == oracle in RAM (−stack) over both object-type branches", () => {
+test("EQUAL: engageMatchedSpriteObjectAndResetActor == oracle in RAM (−stack) over both object-type branches", () => {
   for (const { ix, iy, objType } of CASES) {
     const o = craft(ix, iy, objType);
     const c = craft(ix, iy, objType);
     oracle(o);
-    const ret = loc_6190(c);
+    const ret = engageMatchedSpriteObjectAndResetActor(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `objType=${hx(objType)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -92,10 +92,10 @@ test("EQUAL: loc_6190 == oracle in RAM (−stack) over both object-type branches
 
 // -- 2. WRITE-SET -------------------------------------------------------------
 
-test("WRITE-SET: loc_6190's own writes are +8 := 0x01 and +0xa := 0xd0", () => {
+test("WRITE-SET: engageMatchedSpriteObjectAndResetActor's own writes are +8 := 0x01 and +0xa := 0xd0", () => {
   const { ix, iy, objType } = CASES[0];
   const c = craft(ix, iy, objType);
-  loc_6190(c);
+  engageMatchedSpriteObjectAndResetActor(c);
   assert.equal(c.mem.read8((ix + 0x08) & 0xffff), 0x01, "engaged state (+8)");
   assert.equal(c.mem.read8((ix + 0x0a) & 0xffff), 0xd0, "engaged parameter (+0xa)");
 
@@ -113,7 +113,7 @@ test("TEETH: a wrong engaged byte is CAUGHT by the RAM diff", () => {
   const o = craft(ix, iy, objType);
   const c = craft(ix, iy, objType);
   oracle(o);
-  loc_6190(c);
+  engageMatchedSpriteObjectAndResetActor(c);
   const victim = (ix + 0x08) & 0xffff;
   c.mem.write8(victim, 0x00); // BUG: engaged state must be 0x01
   const d = ramDiffMinusStack(o, c);

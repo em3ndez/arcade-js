@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_72e1 (ROM 0x72e1, Pooyan) — "seed the next eagle wave":
+ * Memory-equivalence test for seedNextEagleWave (ROM 0x72e1, Pooyan) — "seed the next eagle wave":
  * runs only while ENEMY_TARGET_REC0 is clear; raises WAVE_LAUNCH_FLAG and advances WAVE_INDEX;
  * on the fourth wave it just bumps WAVE_OUTER_PHASE and reloads WAVE_HOLD_TIMER; otherwise it
  * initialises two records per wave in the enemy-actor table (stride 0x18) from the four-byte
  * ROM parameter table at EAGLE_WAVE_PARAM_TABLE, then clears the outer-phase/arrived counters.
  *
  * This is the CYCLE-FREE / memory-equivalence gate. The routine WRITES work RAM (reading its
- * per-record fields out of ROM), so every case runs the oracle on one fresh clone and loc_72e1
+ * per-record fields out of ROM), so every case runs the oracle on one fresh clone and seedNextEagleWave
  * on another, compared on the go-forward contract: RAM (dumpState, minus STACK_SCRATCH). There
  * is NO register live-out — the caller returns immediately after seeding — and the routine
  * reads no input register, so nothing else is compared.
  *
  * Jobs:
  *   1. EQUAL — the busy-target guard, waves 1/2/3 (record seeding), and wave 4 (re-arm):
- *      oracle == loc_72e1 in RAM(−stack).
+ *      oracle == seedNextEagleWave in RAM(−stack).
  *   2. WRITE-SET — a seeding wave writes only the wave cells + the per-record field footprint.
  *   3. TEETH — a wrong seeded record byte is caught in the arena, and a wrong WAVE_INDEX at
  *      its own cell.
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_72e1 as oracle } from "../../translated/loc_72e1.js";
-import { loc_72e1 } from "../loc_72e1.js";
+import { seedNextEagleWave } from "../seedNextEagleWave.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -82,12 +82,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: oracle == loc_72e1 in RAM(−stack) across guard / waves 1-3 / re-arm", () => {
+test("EQUAL: oracle == seedNextEagleWave in RAM(−stack) across guard / waves 1-3 / re-arm", () => {
   for (const { rec0, waveSeed, label } of CASES) {
     const o = craft(rec0, waveSeed);
     const c = craft(rec0, waveSeed);
     oracle(o);
-    loc_72e1(c);
+    seedNextEagleWave(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
@@ -132,7 +132,7 @@ test("TEETH: a wrong seeded record byte is caught in the arena", () => {
   const o = craft(rec0, waveSeed);
   const c = craft(rec0, waveSeed);
   oracle(o);
-  loc_72e1(c);
+  seedNextEagleWave(c);
   c.mem.write8(ENEMY_ACTOR_TABLE, (c.mem.read8(ENEMY_ACTOR_TABLE) ^ 0x01) & 0xff); // BUG: corrupt record 0's active byte
 
   const d = ramDiffMinusStack(o, c);
@@ -146,7 +146,7 @@ test("TEETH: a wrong WAVE_INDEX is caught at its own cell", () => {
   const o = craft(rec0, waveSeed);
   const c = craft(rec0, waveSeed);
   oracle(o);
-  loc_72e1(c);
+  seedNextEagleWave(c);
   assert.equal(c.mem.read8(WAVE_INDEX), o.mem.read8(WAVE_INDEX), "sanity: module advanced WAVE_INDEX like the oracle");
   c.mem.write8(WAVE_INDEX, (c.mem.read8(WAVE_INDEX) + 1) & 0xff); // BUG: over-advanced wave index
 

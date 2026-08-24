@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7627 (ROM 0x7627, Pooyan) — the shared per-frame animation-tick
+ * Memory-equivalence test for advanceEnemyActorStateWalk (ROM 0x7627, Pooyan) — the shared per-frame animation-tick
  * walk. It ticks `count` records of the enemy-actor array (base 0x8ae0, stride 0x18) in order via the
  * per-entry tick dispatcher; a tick may abort the whole walk, and the loop early-returns so the
  * remaining records go untouched.
  *
  * SEATING: BALANCED (WIRE). The oracle ends in a plain `ret`; its abort path unwinds through the
  * handler's own `pop af; ret` to the SAME caller with SP fully balanced (translated test:
- * "every call push balanced, ret popped the caller" / "loc_7627 added no ret"). So the caller-skip is
- * absorbed inside the tick sub-graph and never reaches loc_7627's caller. The module does no stack
+ * "every call push balanced, ret popped the caller" / "advanceEnemyActorStateWalk added no ret"). So the caller-skip is
+ * absorbed inside the tick sub-graph and never reaches advanceEnemyActorStateWalk's caller. The module does no stack
  * ops; the oracle's pushes/pops all land in STACK_SCRATCH and drop from the diff.
  *
  * LIVE-OUT: none in registers. Both downstream consumers re-initialise their registers at entry
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7627 as oracle } from "../../translated/loc_7625.js";
-import { loc_7627 } from "../loc_7627.js";
+import { advanceEnemyActorStateWalk } from "../advanceEnemyActorStateWalk.js";
 import { loc_7638 } from "../loc_7638.js"; // for the teeth twins
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -109,7 +109,7 @@ test("EQUAL: full 8-record walk — module == oracle in RAM (−stack)", () => {
   const o = craftFull(8, 8); // record 8 armed but out of range
   const c = craftFull(8, 8);
   oracle(o); // reads count from regs.b
-  loc_7627(c, 8);
+  advanceEnemyActorStateWalk(c, 8);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL full-8: RAM identical");
@@ -119,7 +119,7 @@ test("EQUAL: early-abort walk (abort at record 3) — module == oracle in RAM (�
   const o = craftAbort(8, 3);
   const c = craftAbort(8, 3);
   oracle(o);
-  loc_7627(c, 8);
+  advanceEnemyActorStateWalk(c, 8);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL abort@3: RAM identical");
@@ -129,7 +129,7 @@ test("EQUAL: 14-record walk via the register bridge (count = m.regs.b) — modul
   const o = craftFull(14, null);
   const c = craftFull(14, null);
   oracle(o);
-  loc_7627(c); // no count arg -> defaults to m.regs.b (14), exactly the wired-override path
+  advanceEnemyActorStateWalk(c); // no count arg -> defaults to m.regs.b (14), exactly the wired-override path
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL bridge-14: RAM identical");

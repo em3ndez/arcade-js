@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence (caller) gate for loc_6368 (ROM 0x6368) — the two-pass projectile-proximity
+ * Memory-equivalence (caller) gate for resolveProjectileCollisionsBothActorSlots (ROM 0x6368) — the two-pass projectile-proximity
  * driver. It runs the scan seeder loc_6381 (which hands off to the scan loc_638a) once per pass:
  * the first box at the actor-record slot base with the I=0 hit-flag selector, the second box one
  * stride on with the stride (=4) as the selector. The instant a pass CLAIMS a hit, the scan reports
@@ -8,8 +8,8 @@
  * hit it runs both passes and falls through.
  *
  * This is a CALLER gate per the cluster brief: it COMPOSES the real idiomatic subtree. The test
- * imports the idiomatic loc_6368, which imports the idiomatic loc_6381 -> loc_638a -> its idiomatic
- * leaves (setActorAnimation, queueSoundCommand07, loc_0038). The ORACLE loc_6368 runs the FROZEN translated
+ * imports the idiomatic resolveProjectileCollisionsBothActorSlots, which imports the idiomatic loc_6381 -> loc_638a -> its idiomatic
+ * leaves (setActorAnimation, queueSoundCommand07, loc_0038). The ORACLE resolveProjectileCollisionsBothActorSlots runs the FROZEN translated
  * subtree internally via m.call, whose skip path (pop af; ret) aborts pass 2. The two must land
  * byte-identical in RAM (dumpState) MINUS STACK_SCRATCH. There is no register live-out: runActorUpdatePipeline
  * (the per-frame updater) calls this and reads nothing back, so the contract is RAM−stack only.
@@ -23,7 +23,7 @@
  * Jobs:
  *   1. EQUAL — three crafted states: pass-1 hit (abort before pass 2), pass-2 hit (pass 1 exhausts
  *      then pass 2 aborts, selecting the I=1 flag), and no hit (both passes exhaust). oracle ==
- *      loc_6368 in RAM (−stack) in every case.
+ *      resolveProjectileCollisionsBothActorSlots in RAM (−stack) in every case.
  *   2. WRITE-SET — on the pass-2 hit, document the claimed record's stamp, its animation pointer,
  *      and that the I=1 hit flag (not the I=0 flag) is the one raised.
  *   3. TEETH/RAM — a wrong byte poked into a stamped record cell MUST be caught by the RAM diff.
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6368 as oracle } from "../../translated/loc_6368.js";
-import { loc_6368 } from "../loc_6368.js";
+import { resolveProjectileCollisionsBothActorSlots } from "../resolveProjectileCollisionsBothActorSlots.js";
 import { loc_6381 } from "../loc_6381.js";
 import { u16 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
@@ -147,7 +147,7 @@ test("EQUAL: composed idiomatic subtree == oracle in RAM (−stack) over all thr
     const o = craft(cells);
     const c = craft(cells);
     oracle(o);
-    loc_6368(c);
+    resolveProjectileCollisionsBothActorSlots(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} (${name})`);
   }
@@ -193,7 +193,7 @@ test("TEETH/RAM: a wrong stamped-record byte is CAUGHT by the RAM diff", () => {
   const o = craft(CASE_PASS2_HIT);
   const c = craft(CASE_PASS2_HIT);
   oracle(o);
-  loc_6368(c);
+  resolveProjectileCollisionsBothActorSlots(c);
   c.mem.write8(REC0 + 0x01, 0x99); // BUG: stamp byte must be 0x01
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stamped byte — it is worthless");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_744e } from "./loc_744e.js";
-import { loc_7517 } from "./loc_7517.js";
+import { seedDisplayListPointersAndVerifyRomSignature } from "./seedDisplayListPointersAndVerifyRomSignature.js";
+import { runDisplayListAndAdvanceToGameplay } from "./runDisplayListAndAdvanceToGameplay.js";
 import { updateGameplayFrame } from "./updateGameplayFrame.js";
 import { SELFTEST_DISPATCH_STATE } from "./names.js";
 /**
@@ -12,9 +12,9 @@ import { SELFTEST_DISPATCH_STATE } from "./names.js";
 export function loc_7442(m) {
   switch (m.mem8[SELFTEST_DISPATCH_STATE] & 0x03) {
     case 0:
-      return loc_744e(m);
+      return seedDisplayListPointersAndVerifyRomSignature(m);
     case 1:
-      return loc_7517(m);
+      return runDisplayListAndAdvanceToGameplay(m);
     case 2:
       return updateGameplayFrame(m);
     default:

@@ -34,7 +34,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_615d as oracle } from "../../translated/loc_615d.js";
 import { loc_615d } from "../loc_615d.js";
-import { loc_6166 } from "../loc_6166.js";
+import { resetActorRecordQueueSoundAndAbortFrame } from "../resetActorRecordQueueSoundAndAbortFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -145,7 +145,7 @@ test("TEETH: taking the reset branch on a match diverges from the oracle", () =>
   const o = craft(0x00, matchIndex);
   oracle(o);
   const c = craft(0x00, matchIndex);
-  loc_6166(c); // the wrong continuation (reset only, no engage)
+  resetActorRecordQueueSoundAndAbortFrame(c); // the wrong continuation (reset only, no engage)
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate must catch a module that reset instead of engaging on a match");
   console.log(`  TEETH(branch): reset-on-match diverges at ${hx(d.addr ?? 0)}`);

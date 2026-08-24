@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6505 (ROM 0x6505, Pooyan) — the rst-0x28 dispatch handler (index
+ * Memory-equivalence test for spawnActorGroupRecords (ROM 0x6505, Pooyan) — the rst-0x28 dispatch handler (index
  * 0). It seeds the shared frame-delay timer (0x1c) and the blink-phase cell (0x08), walks three
  * object records backward one 0x18 step per pass — seating each with the object-record seeder
- * (loc_6523) and bumping its (IX+2) phase — then emits the tile-command run (queueSound82ThenRun1C).
+ * (seatActorRecordAndQueueSpawnDisplay) and bumping its (IX+2) phase — then emits the tile-command run (queueSound82ThenRun1C).
  *
  * Cycle-free memory-equivalence gate: a FRESH clone per side (the routine writes RAM), compared on
  * RAM (dumpState, minus STACK_SCRATCH — the oracle's exx-guarded call trampolines push there) PLUS
@@ -12,7 +12,7 @@
  * are NOT compared. IX is the routine's only register input; every other input is a work-RAM cell.
  *
  * Jobs:
- *   1. EQUAL (ring idle) — display ring occupied so the seeder's enqueues drop: oracle == loc_6505
+ *   1. EQUAL (ring idle) — display ring occupied so the seeder's enqueues drop: oracle == spawnActorGroupRecords
  *      in RAM (−stack) + A/IX.
  *   2. EQUAL (ring free, round 0) — ring seated free so all enqueues (two per record on round 0)
  *      land: identical on both sides.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6505 as oracle } from "../../translated/loc_6505.js";
-import { loc_6505 } from "../loc_6505.js";
+import { spawnActorGroupRecords } from "../spawnActorGroupRecords.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -85,12 +85,12 @@ function assertRegs(o, c, tag) {
 
 // -- 1. EQUAL (ring idle) -----------------------------------------------------
 
-test("EQUAL: ring idle — loc_6505 == oracle in RAM (−stack) + A/IX", () => {
+test("EQUAL: ring idle — spawnActorGroupRecords == oracle in RAM (−stack) + A/IX", () => {
   for (const round of [0x00, 0x01]) {
     const o = craft({ round });
     const c = craft({ round });
     oracle(o);
-    loc_6505(c);
+    spawnActorGroupRecords(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `round=${hx(round)}: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
     assertRegs(o, c, `round=${hx(round)}`);
@@ -105,7 +105,7 @@ test("EQUAL: ring free, round 0 — all enqueues land identically on both sides"
   const o = craft({ round: 0x00, ringFree: true });
   const c = craft({ round: 0x00, ringFree: true });
   oracle(o);
-  loc_6505(c);
+  spawnActorGroupRecords(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
   assertRegs(o, c, "ring-free");
@@ -142,7 +142,7 @@ test("TEETH: a wrong seated record byte is CAUGHT by the RAM diff", () => {
   const o = craft({ round: 0x01 });
   const c = craft({ round: 0x01 });
   oracle(o);
-  loc_6505(c);
+  spawnActorGroupRecords(c);
   c.mem.write8(cell, (c.mem.read8(cell) ^ 0x01) & 0xff); // BUG: corrupt a seated field
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong seated byte — it is worthless");

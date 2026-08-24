@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6404 (ROM 0x6404) — the two-pass actor collision
+ * Memory-equivalence test for scanActorCollisionsBothSlots (ROM 0x6404) — the two-pass actor collision
  * driver, the CALLER that composes the real idiomatic scan loc_6435 (which itself composes
  * the idiomatic terminator guard loc_64be).
  *
  * In the frozen layer a hit inside loc_6435 falls into loc_64be, whose `pop af; ret`
- * discards loc_6404's own return and unwinds to loc_6404's caller — skipping the rest of
+ * discards scanActorCollisionsBothSlots's own return and unwinds to scanActorCollisionsBothSlots's caller — skipping the rest of
  * the two-pass loop. The idiomatic driver reproduces that with `if (!loc_6435(...)) return;`:
  * a false (hit) return aborts the loop. This gate seats BOTH a skip-taken state (pass 1
  * hits, pass 2 must NOT run) and a skip-not-taken state (both passes miss, loop completes),
  * plus the early-out guard, and compares oracle vs module in RAM (dumpState) minus
- * STACK_SCRATCH. loc_6404 returns void; registers are loop bookkeeping and are NOT compared.
+ * STACK_SCRATCH. scanActorCollisionsBothSlots returns void; registers are loop bookkeeping and are NOT compared.
  *
  * The oracle drives the whole TRANSLATED subtree through the routines map; the module drives
  * the IDIOMATIC subtree by direct import. Byte-identical RAM (−stack) is the contract.
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6404 as oracle } from "../../translated/loc_6404.js";
-import { loc_6404 } from "../loc_6404.js";
+import { scanActorCollisionsBothSlots } from "../scanActorCollisionsBothSlots.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -123,7 +123,7 @@ for (const [label, craft] of [
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_6404(c);
+    scanActorCollisionsBothSlots(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (${label})`);
     console.log(`  EQUAL ${label}: RAM identical (composed idiomatic loc_6435/loc_64be)`);
@@ -136,7 +136,7 @@ test("ABORT: a pass-1 hit unwinds the loop — pass 2's record is left untouched
   const o = craftHitAbort();
   const c = craftHitAbort();
   oracle(o);
-  loc_6404(c);
+  scanActorCollisionsBothSlots(c);
 
   assert.equal(o.mem.read8(SLOT0), 0x00, "pass 1 reset slot 0 (the hit)");
   assert.equal(o.mem.read8(SLOT1), 0x07, "oracle: slot 1 untouched -> the loop aborted before pass 2");
@@ -150,7 +150,7 @@ test("TEETH: a pass-2 side effect (a no-abort bug) is caught by the RAM diff", (
   const o = craftHitAbort();
   const c = craftHitAbort();
   oracle(o);
-  loc_6404(c);
+  scanActorCollisionsBothSlots(c);
   // Simulate a driver that failed to abort and let pass 2 reset slot 1:
   c.mem.write8(SLOT1, 0x00);
 

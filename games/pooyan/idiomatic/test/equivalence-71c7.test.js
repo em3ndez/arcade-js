@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_71c7 (ROM 0x71c7, Pooyan) — the bonus phase-0 body: step the
+ * Memory-equivalence test for runEagleApproachPhaseFrame (ROM 0x71c7, Pooyan) — the bonus phase-0 body: step the
  * eagle/arrow approach state machine, then run the shared per-frame object update.
  *
  * SEATING: BALANCED-WIRE. Two push16/call pairs (each callee pops its return) then a plain `ret`
@@ -26,8 +26,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_71c7 as oracle } from "../../translated/loc_71c7.js";
-import { loc_71c7 } from "../loc_71c7.js";
-import { loc_71ce } from "../loc_71ce.js";
+import { runEagleApproachPhaseFrame } from "../runEagleApproachPhaseFrame.js";
+import { advanceEagleApproachAndPaintGridMarker } from "../advanceEagleApproachAndPaintGridMarker.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -68,7 +68,7 @@ test("EQUAL: module == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_71c7(c);
+  runEagleApproachPhaseFrame(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: RAM identical");
@@ -80,7 +80,7 @@ test("TEETH: dropping the object update leaves its chain writes missing", () => 
   const o = craft();
   const twin = craft();
   oracle(o);
-  loc_71ce(twin); // only the state machine, no object update
+  advanceEagleApproachAndPaintGridMarker(twin); // only the state machine, no object update
   const d = ramDiffMinusStack(o, twin);
   assert.notEqual(d, null, "omitting the object update was NOT caught — worthless");
   console.log(`  TEETH no-update: caught at ${hx(d.addr)}`);

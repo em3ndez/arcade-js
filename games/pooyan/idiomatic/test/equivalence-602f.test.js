@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_602f (ROM 0x602f, Pooyan) — run the per-slot proximity scan
+ * Memory-equivalence test for resolveObjectProximityHitsBothSlots (ROM 0x602f, Pooyan) — run the per-slot proximity scan
  * once for each of the two target slots. It tags each pass with its slot selector and target
  * base, runs the scan, and aborts the whole routine the instant a pass reports a hit.
  *
@@ -10,7 +10,7 @@
  * on the scan's boolean, so the seam places it with its own ret. Compared on RAM (dumpState) minus
  * STACK_SCRATCH; pc/SP/registers are not compared. No register is read back by the caller.
  *
- * The oracle runs the TRANSLATED loc_602f, which m.call()s the scan through the registry; the
+ * The oracle runs the TRANSLATED resolveObjectProximityHitsBothSlots, which m.call()s the scan through the registry; the
  * module composes the idiomatic scan by direct import. Cases are CRAFTED — a plain boot does not
  * seat this block/record/enemy geometry. The two slots carry DISTINCT block lead bytes so a pass
  * that should have been skipped is observable in the latched type.
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_602f as oracle } from "../../translated/loc_602f.js";
-import { loc_602f } from "../loc_602f.js";
+import { resolveObjectProximityHitsBothSlots } from "../resolveObjectProximityHitsBothSlots.js";
 import { loc_6048 } from "../loc_6048.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -120,12 +120,12 @@ function skipIgnoringTwin(m) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_602f == oracle in RAM (−stack)", () => {
+test("EQUAL: resolveObjectProximityHitsBothSlots == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_602f(c);
+    resolveObjectProximityHitsBothSlots(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -147,7 +147,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftBothMiss();
   const c = craftBothMiss();
   oracle(o);
-  loc_602f(c);
+  resolveObjectProximityHitsBothSlots(c);
   c.mem.write8(TYPE, (o.mem.read8(TYPE) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted type byte");

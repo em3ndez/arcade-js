@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_6018 } from "./loc_6018.js";
+import { advanceOverlapScanToNextSlot } from "./advanceOverlapScanToNextSlot.js";
 import { loc_613d } from "./loc_613d.js";
 import { queueSoundCommand09 } from "./queueSoundCommand09.js";
 import { FLIP_SCREEN_FLAG, loc_8d45, loc_8c91, loc_8ca9 } from "./names.js";
@@ -37,7 +37,7 @@ export function loc_5fa2(m, recPtr = m.regs.hl, posPtr = m.regs.ix, slots = m.re
 
   // empty slot or non-type-5 record -> advance to the next slot (thread the invariant type)
   if (mem8[recPtr] === 0 || mem8[recPtr + 2] !== RECORD_TYPE) {
-    return (m.regs.c = type, loc_6018(m, posPtr, recPtr, slots));
+    return (m.regs.c = type, advanceOverlapScanToNextSlot(m, posPtr, recPtr, slots));
   }
 
   const tight = type === 0x03;
@@ -49,7 +49,7 @@ export function loc_5fa2(m, recPtr = m.regs.hl, posPtr = m.regs.ix, slots = m.re
 
   // outside either window -> advance
   if (dx >= (tight ? TYPE3_DX : NEAR_D) || dy >= (tight ? TYPE3_DY : NEAR_D)) {
-    return (m.regs.c = type, loc_6018(m, posPtr, recPtr, slots));
+    return (m.regs.c = type, advanceOverlapScanToNextSlot(m, posPtr, recPtr, slots));
   }
 
   if (tight) {

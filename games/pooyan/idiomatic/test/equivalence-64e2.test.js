@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_64e2 (ROM 0x64e2, Pooyan) — the fountain/spawn subtree driver:
+ * Memory-equivalence test for runObjectAndSpawnUpdatePass (ROM 0x64e2, Pooyan) — the fountain/spawn subtree driver:
  * seed the two-tile fountain blitter, dispatch the fountain record's per-frame state handler, run
  * the three-record enemy-actor state pass, then the enemy-record state dispatch. Straight-line,
  * no branches.
  *
- * The module runs three sub-passes as direct idiomatic calls (loc_6b13, loc_64fb, loc_66c5) and
+ * The module runs three sub-passes as direct idiomatic calls (blitStackedTwoTileAnimFrameOnHoldTimer, runActorGroupStateHandler, updateEnemyActorsAndCycleLaunchFlipAnim) and
  * keeps the enemy-record state dispatcher as a machine call (0x6822 — a spine dispatcher not lifted
- * this batch); the oracle drives all four through the routines map. loc_64e2 is a void sequencer —
+ * this batch); the oracle drives all four through the routines map. runObjectAndSpawnUpdatePass is a void sequencer —
  * no register survives, so the register file is not compared; equivalence is RAM (dumpState) minus
  * STACK_SCRATCH. SP is parked in STACK_SCRATCH so each pass's nested pushes (and the module's
  * scratch return frame for the fountain-dispatch tail-return) drop out of the diff.
@@ -27,10 +27,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_64e2 as oracle } from "../../translated/loc_64e2.js";
-import { loc_64e2 } from "../loc_64e2.js";
-import { loc_6b13 } from "../loc_6b13.js";
-import { loc_64fb } from "../loc_64fb.js";
-import { loc_66c5 } from "../loc_66c5.js";
+import { runObjectAndSpawnUpdatePass } from "../runObjectAndSpawnUpdatePass.js";
+import { blitStackedTwoTileAnimFrameOnHoldTimer } from "../blitStackedTwoTileAnimFrameOnHoldTimer.js";
+import { runActorGroupStateHandler } from "../runActorGroupStateHandler.js";
+import { updateEnemyActorsAndCycleLaunchFlipAnim } from "../updateEnemyActorsAndCycleLaunchFlipAnim.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_ACTOR_TABLE, HUNTER_TABLE_BASE } from "../names.js";
@@ -79,22 +79,22 @@ function craftRich() {
 
 /** A twin that runs every pass EXCEPT the enemy-actor state pass (the structural teeth target). */
 function twinNoEnemyPass(m) {
-  loc_6b13(m);
+  blitStackedTwoTileAnimFrameOnHoldTimer(m);
   m.regs.ix = HUNTER;
   m.push16(m.pc);
-  loc_64fb(m);
-  // (loc_66c5 omitted)
+  runActorGroupStateHandler(m);
+  // (updateEnemyActorsAndCycleLaunchFlipAnim omitted)
   return m.call(0x6822);
 }
 
 // -- 1 & 2. EQUAL -------------------------------------------------------------
 
-test("EQUAL: loc_64e2 == oracle in RAM (−stack), boot and rich", () => {
+test("EQUAL: runObjectAndSpawnUpdatePass == oracle in RAM (−stack), boot and rich", () => {
   for (const [name, craft] of [["boot", craftBoot], ["rich", craftRich]]) {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_64e2(c);
+    runObjectAndSpawnUpdatePass(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -107,7 +107,7 @@ test("TEETH: a corrupted result byte is CAUGHT by the RAM diff", () => {
   const o = craftRich();
   const c = craftRich();
   oracle(o);
-  loc_64e2(c);
+  runObjectAndSpawnUpdatePass(c);
   c.mem.write8(EAT + 0, (o.mem.read8(EAT + 0) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted result byte");

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { loc_60f2 } from "./loc_60f2.js";
-import { loc_60d9 } from "./loc_60d9.js";
+import { markHitFlagSeedActorAndScanEnemyRecords } from "./markHitFlagSeedActorAndScanEnemyRecords.js";
 import { loc_62e6 } from "./loc_62e6.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { loc_0020 } from "./loc_0020.js";
@@ -36,7 +36,7 @@ export function loc_6287(m, kind = m.regs.a, hl = m.regs.hl, ix = m.regs.ix, cou
   const ay = (mem8[u16(ix + 2)] + 8) & 0xff;
   if (Math.abs(mem8[iy] - ax) >= X_GAP_LIMIT) return loc_60f2(m, hl, ix, count);
   if (Math.abs(((mem8[u16(iy + 2)] + 8) & 0xff) - ay) >= Y_GAP_LIMIT) return loc_60f2(m, hl, ix, count);
-  if (kind === DIRECT_KIND) return loc_60d9(m, hl);
+  if (kind === DIRECT_KIND) return markHitFlagSeedActorAndScanEnemyRecords(m, hl);
 
   setActorAnimation(m, hl, ANIM_SCRIPT_6349);
   const index = (mem8[ROUND_COUNTER] & 0x07) >> 1;

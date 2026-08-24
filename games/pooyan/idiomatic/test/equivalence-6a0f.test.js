@@ -13,7 +13,7 @@
  *
  * ORACLE DEFECT (reported to the LEAD): translated/loc_6a0f.js does NOT propagate the skip
  * abort. It is missing the `if (m.pc !== 0x6a2f) return;` check that translated/loc_6404.js
- * carries after its own skip-call (loc_6404.js line 34). Run directly, the caller oracle keeps
+ * carries after its own skip-call (scanActorCollisionsBothSlots.js line 34). Run directly, the caller oracle keeps
  * sweeping after the first spawn and spawns EVERY empty record, where hardware unwinds after
  * one. So this file:
  *   - diffs the raw caller oracle vs the module only on the paths the oracle gets right (the

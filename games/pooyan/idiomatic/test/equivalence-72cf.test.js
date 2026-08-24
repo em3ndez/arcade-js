@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_72cf (ROM 0x72cf) — the per-eagle-record state dispatcher.
+ * Memory-equivalence test for dispatchActiveEagleRecordState (ROM 0x72cf) — the per-eagle-record state dispatcher.
  *
- * loc_72cf skips an inactive record (bit0 of (ix+0)|(ix+1) clear), then selects one of three
+ * dispatchActiveEagleRecordState skips an inactive record (bit0 of (ix+0)|(ix+1) clear), then selects one of three
  * handlers by the record state byte (ix+2), replacing the frozen layer's rst-0x28 word table at
  * 0x72db (0->733c, 1->7395, 2->73ce; the table was MAME-validated — all three indices observed
- * under gameplay). It is a pure tail dispatch (no continuation stacked); its caller (loc_72a7)
+ * under gameplay). It is a pure tail dispatch (no continuation stacked); its caller (driveEagleWavePerFrame)
  * reads no register or return value back, so the contract is:
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
@@ -17,7 +17,7 @@
  * one step; state 2 retires the record (clears it, decrements the wave count).
  *
  * Jobs:
- *   1. EQUAL — over states 0..2, oracle == loc_72cf in RAM (−stack), both returning undefined.
+ *   1. EQUAL — over states 0..2, oracle == dispatchActiveEagleRecordState in RAM (−stack), both returning undefined.
  *   2. INACTIVE — bit0 of (ix+0)|(ix+1) clear: both no-op the record, RAM unchanged.
  *   3. TEETH — a wrong written byte MUST be caught by the RAM diff; a MIS-DISPATCH (the wrong
  *      handler on the same craft) MUST diverge from the oracle.
@@ -30,8 +30,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_72cf as oracle } from "../../translated/loc_72cf.js";
-import { loc_72cf } from "../loc_72cf.js";
-import { loc_7395 } from "../loc_7395.js";
+import { dispatchActiveEagleRecordState } from "../dispatchActiveEagleRecordState.js";
+import { advanceEagleDiveClimbToRetireAtLimit } from "../advanceEagleDiveClimbToRetireAtLimit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_ACTOR_TABLE } from "../names.js";
@@ -108,12 +108,12 @@ const STATES = [0, 1, 2];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: states 0..2 — loc_72cf == oracle in RAM (−stack), both return undefined", () => {
+test("EQUAL: states 0..2 — dispatchActiveEagleRecordState == oracle in RAM (−stack), both return undefined", () => {
   for (const state of STATES) {
     const o = craft(state);
     const c = craft(state);
     const ro = oracle(o);
-    const rc = loc_72cf(c);
+    const rc = dispatchActiveEagleRecordState(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (state ${state})`);
@@ -132,7 +132,7 @@ test("INACTIVE: bit0 of (ix+0)|(ix+1) clear -> both no-op the record (RAM unchan
     const o = craft(state, { active: false });
     const c = craft(state, { active: false });
     assert.equal(oracle(o), undefined);
-    assert.equal(loc_72cf(c), undefined);
+    assert.equal(dispatchActiveEagleRecordState(c), undefined);
     // both left RAM exactly as crafted (an inactive record dispatches nothing)
     assert.equal(ramDiffMinusStack(o, c), null, `inactive: oracle vs idiom differ (state ${state})`);
     const dOracle = firstStateDiff(snap, o.dumpState(), (off) => before.stateOffsetToAddr(off), inDeadStack);
@@ -147,7 +147,7 @@ test("TEETH: a wrong written byte is CAUGHT by the RAM diff", () => {
   const o = craft(1);
   const c = craft(1);
   oracle(o);
-  loc_72cf(c);
+  dispatchActiveEagleRecordState(c);
   c.mem.write8(REC + 0x03, (c.mem.read8(REC + 0x03) ^ 0xff) & 0xff); // corrupt the integrated position
 
   const d = ramDiffMinusStack(o, c);
@@ -160,7 +160,7 @@ test("TEETH: a MIS-DISPATCH (state-1 handler on a state-2 record) diverges from 
   const o = craft(2);
   const wrong = craft(2);
   oracle(o); // real dispatch -> state-2 retire handler (clears the record, decrements the count)
-  loc_7395(wrong); // WRONG: the descend handler integrates position instead of clearing
+  advanceEagleDiveClimbToRetireAtLimit(wrong); // WRONG: the descend handler integrates position instead of clearing
 
   const d = ramDiffMinusStack(o, wrong);
   assert.notEqual(d, null, "a mis-dispatch produced identical RAM — the selection is untested");

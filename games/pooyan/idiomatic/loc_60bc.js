@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { initActorRecord } from "./initActorRecord.js";
-import { loc_611f } from "./loc_611f.js";
+import { dispatchHitToEnemyRecordElseQueueSound } from "./dispatchHitToEnemyRecordElseQueueSound.js";
 import { queueSoundCommand09 } from "./queueSoundCommand09.js";
 import {
   ENEMY_ACTOR_TABLE,
@@ -55,5 +55,5 @@ export function loc_60bc(m, hl = m.regs.hl, key = m.regs.a, ireg = m.regs.i) {
   // main path: mark the parity hit-flag slot, seed a fresh actor, then scan
   mem8[ireg !== 0 ? OBJ_HIT_FLAG_I1 : OBJ_HIT_FLAG_I0] = 0x01;
   const advanced = initActorRecord(m, u16(hl + RECORD_BACKUP), RECORD_INIT_VALUE);
-  return loc_611f(m, advanced, SCAN_BACKUP);
+  return dispatchHitToEnemyRecordElseQueueSound(m, advanced, SCAN_BACKUP);
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_73ce (ROM 0x73ce) — eagle-record state 2 (retire).
+ * Memory-equivalence test for despawnEagleAndSeedHoldOnWaveEmpty (ROM 0x73ce) — eagle-record state 2 (retire).
  *
  * Zero-fills the whole 0x18-byte record based at IX, then decrements the live-record count
  * (WAVE_RECORD_COUNT). When that count reaches zero — the last record of the wave has retired —
@@ -14,7 +14,7 @@
  * both sides, sp seated inside STACK_SCRATCH so the clear helper's rst-0x10 push/ret stay there.
  *
  * Jobs:
- *   1. EQUAL — over count>1 / count==1 (seed) / count==0 (wrap) paths, oracle == loc_73ce in
+ *   1. EQUAL — over count>1 / count==1 (seed) / count==0 (wrap) paths, oracle == despawnEagleAndSeedHoldOnWaveEmpty in
  *      RAM (−stack).
  *   2. WRITE-SET — the count==1 path clears the 0x18 record cells, zeroes the count, and seeds 0x30.
  *   3. TEETH — a record cell left uncleared is caught by the RAM diff.
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_73ce as oracle } from "../../translated/loc_73ce.js";
-import { loc_73ce } from "../loc_73ce.js";
+import { despawnEagleAndSeedHoldOnWaveEmpty } from "../despawnEagleAndSeedHoldOnWaveEmpty.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, WAVE_RECORD_COUNT, WAVE_HOLD_TIMER } from "../names.js";
@@ -72,12 +72,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted count paths — loc_73ce == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted count paths — despawnEagleAndSeedHoldOnWaveEmpty == oracle in RAM (−stack)", () => {
   for (const { label, count } of CASES) {
     const o = craft(count);
     const c = craft(count);
     oracle(o);
-    loc_73ce(c);
+    despawnEagleAndSeedHoldOnWaveEmpty(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} ("${label}")`);
   }
@@ -115,7 +115,7 @@ test("TEETH: an uncleared record cell is CAUGHT by the RAM diff", () => {
   const o = craft(0x03);
   const c = craft(0x03);
   oracle(o);
-  loc_73ce(c);
+  despawnEagleAndSeedHoldOnWaveEmpty(c);
   c.mem.write8(REC + 0x00, 0x55); // BUG: this record cell must be cleared to 0
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch an uncleared record cell — it is worthless");

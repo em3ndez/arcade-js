@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_73e3 (ROM 0x73e3) — "eagle inter-wave idle": while the hold timer
+ * Memory-equivalence test for tickEagleInterWaveHoldAndRearmLaunch (ROM 0x73e3) — "eagle inter-wave idle": while the hold timer
  * (0x8f36) is non-zero, decrement it and return the pre-decrement value in A. On expiry, if a wave
  * index (0x8f3d) is still set, enqueue command 0x06(0xb0+index) into the page-0x88 display-command
  * ring; then reseed the hold timer to 0x18 and clear the launch flag (0x8f3a), leaving A=0.
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). Each case uses a FRESH
- * clone per side: oracle on one, loc_73e3 on the other, compared on RAM (dumpState) minus
+ * clone per side: oracle on one, tickEagleInterWaveHoldAndRearmLaunch on the other, compared on RAM (dumpState) minus
  * STACK_SCRATCH PLUS the declared register live-out A. pc/SP/cycles are NOT compared. A is a
  * deterministic exit value on both paths (pre-decrement hold, or 0), matchable and consumed by
  * callers, so it is declared. The oracle's `push16 + call 0x0038` return address lands in
@@ -17,7 +17,7 @@
  *
  * Jobs:
  *   1. EQUAL (crafted sweep) — over {ticking, expiry+no wave, expiry+enqueue, ticking to zero}
- *      loc_73e3 == oracle in RAM (-stack) AND in A; the SIDE-EFFECT arm asserts the module SET A.
+ *      tickEagleInterWaveHoldAndRearmLaunch == oracle in RAM (-stack) AND in A; the SIDE-EFFECT arm asserts the module SET A.
  *   2. WRITE-SET — expiry with a wave index writes exactly five cells: the command word (two ring
  *      bytes), the advanced ring pointer, the reseeded hold timer, and the cleared launch flag.
  *   3. TEETH — a wrong reseed value is CAUGHT by the RAM diff; a wrong A is CAUGHT by the live-out
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_73e3 as oracle } from "../../translated/loc_73e3.js";
-import { loc_73e3 } from "../loc_73e3.js";
+import { tickEagleInterWaveHoldAndRearmLaunch } from "../tickEagleInterWaveHoldAndRearmLaunch.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, WAVE_HOLD_TIMER, WAVE_INDEX, WAVE_LAUNCH_FLAG, DISPLAY_CMD_RING_WRITE_PTR } from "../names.js";
@@ -79,12 +79,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted sweep) -------------------------------------------------
 
-test("EQUAL: crafted hold x wave — loc_73e3 == oracle in RAM (-stack) + A", () => {
+test("EQUAL: crafted hold x wave — tickEagleInterWaveHoldAndRearmLaunch == oracle in RAM (-stack) + A", () => {
   for (const { hold, waveIndex } of CASES) {
     const o = craft(hold, waveIndex);
     const c = craft(hold, waveIndex);
     oracle(o);
-    const ret = loc_73e3(c);
+    const ret = tickEagleInterWaveHoldAndRearmLaunch(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} (hold=${hx(hold)} wave=${hx(waveIndex)})`);
     assert.equal(ret & 0xff, o.regs.a & 0xff, `A return mismatch (hold=${hx(hold)} wave=${hx(waveIndex)})`);
@@ -129,7 +129,7 @@ test("TEETH: a wrong hold reseed value is CAUGHT by the RAM diff", () => {
   const o = craft(0x00, 0x00);
   const c = craft(0x00, 0x00);
   oracle(o);
-  loc_73e3(c);
+  tickEagleInterWaveHoldAndRearmLaunch(c);
   c.mem.write8(WAVE_HOLD_TIMER, 0x17); // BUG: reseed must be 0x18
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong reseed value");
@@ -141,7 +141,7 @@ test("TEETH: a wrong A on the ticking path is CAUGHT by the live-out check", () 
   const o = craft(0x05, 0x02);
   const c = craft(0x05, 0x02);
   oracle(o);
-  const ret = loc_73e3(c);
+  const ret = tickEagleInterWaveHoldAndRearmLaunch(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A matches the oracle (pre-decrement hold)");
   assert.notEqual(0x04, o.regs.a & 0xff, "the live-out check must reject the post-decrement value (0x04)");
   console.log(`  TEETH/A: module A ${hx(ret & 0xff)} == oracle; the post-decrement 0x04 is rejected`);

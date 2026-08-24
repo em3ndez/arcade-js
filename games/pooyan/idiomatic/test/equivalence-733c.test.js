@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_733c (ROM 0x733c, Pooyan) — "eagle approach state" for the
+ * Memory-equivalence test for advanceEagleToArrivalAndTallyWave (ROM 0x733c, Pooyan) — "eagle approach state" for the
  * record based at IX. It matches the eagle's grid column (EAGLE_X 0x8c96 >> 3, against IX+6 or
  * IX+6-1) and row (EAGLE_Y 0x8c94 >> 3 + 4, within a 5-row window of IX+4). On a hit it bumps
  * the record state (IX+2) and arms an animation (setActorAnimation): odd records (bit 3 of IXL)
@@ -9,7 +9,7 @@
  * display command (0x0630 + arrived) via loc_0038.
  *
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState, minus
- * STACK_SCRATCH). No register/flag live-out is declared: loc_733c has no direct m.call caller (it
+ * STACK_SCRATCH). No register/flag live-out is declared: advanceEagleToArrivalAndTallyWave has no direct m.call caller (it
  * is reached by per-record state-table dispatch), so no consuming site is visible on the frozen
  * layer; its exit A/flags are treated as scratch. See the batch notes.
  *
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_733c as oracle } from "../../translated/loc_733c.js";
-import { loc_733c } from "../loc_733c.js";
+import { advanceEagleToArrivalAndTallyWave } from "../advanceEagleToArrivalAndTallyWave.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -100,12 +100,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted approach cases — loc_733c == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted approach cases — advanceEagleToArrivalAndTallyWave == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    loc_733c(c);
+    advanceEagleToArrivalAndTallyWave(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cfg.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -150,7 +150,7 @@ test("ENQUEUE: the wave-complete path lands command 0x0633 in the display ring",
   const o = craft(cfg);
   const c = craft(cfg);
   oracle(o);
-  loc_733c(c);
+  advanceEagleToArrivalAndTallyWave(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -169,7 +169,7 @@ test("TEETH: a wrong flag byte (IX+9) is CAUGHT by the RAM diff", () => {
   const o = craft(cfg);
   const c = craft(cfg);
   oracle(o);
-  loc_733c(c);
+  advanceEagleToArrivalAndTallyWave(c);
   c.mem.write8(ix + 0x09, 0x40); // BUG: an odd record's flag byte must be 0x38, not 0x40
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong flag byte — it is worthless");
@@ -183,7 +183,7 @@ test("TEETH: a wrong anim-pointer byte is CAUGHT by the RAM diff", () => {
   const o = craft(cfg);
   const c = craft(cfg);
   oracle(o);
-  loc_733c(c);
+  advanceEagleToArrivalAndTallyWave(c);
   c.mem.write8(ix + 0x0c, 0x03); // BUG: even record's anim low byte must be 0x86, not 0x03
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong anim-pointer byte — it is worthless");

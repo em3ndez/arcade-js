@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence test for loc_1c53 (ROM 0x1c53, Pooyan) — the per-frame object driver, split on
  * frame parity (ROUND_COUNTER 0x8907 bit0). On an odd frame it runs the group-update pass
- * (idiomatic loc_68f8); on an even frame it runs the spawn-subtree driver (idiomatic loc_64e2).
+ * (idiomatic loc_68f8); on an even frame it runs the spawn-subtree driver (idiomatic runObjectAndSpawnUpdatePass).
  * Either way it then rebuilds the sprite display list (idiomatic loc_02ef).
  *
  * SEATING: BALANCED (WIRE). The oracle ends in a plain `ret(10)`; no `pop af`. The module does no
@@ -15,13 +15,13 @@
  * The sub-drivers have their own equivalence gates; this test isolates loc_1c53's own job — PARITY
  * SELECTION + calling the display-list rebuild after — so the crafted state gates the sub-drivers to
  * benign branches: loc_68f8's frame-delay timer + blink countdown left running (each merely ticks),
- * loc_64e2's blitter hold (0x8f06) left running (it merely ticks), and empty 0x8ae0 records so the
+ * runObjectAndSpawnUpdatePass's blitter hold (0x8f06) left running (it merely ticks), and empty 0x8ae0 records so the
  * bird pass is a no-op. That keeps oracle and module in their agreement region.
  *
- * DEPENDS ON in-batch sibling loc_64e2 (dissolved even-frame call) being written; see reconcile notes.
+ * DEPENDS ON in-batch sibling runObjectAndSpawnUpdatePass (dissolved even-frame call) being written; see reconcile notes.
  *
  * Jobs:
- *   1. EQUAL — odd frame (loc_68f8 path) and even frame (loc_64e2 path): oracle == module in RAM.
+ *   1. EQUAL — odd frame (loc_68f8 path) and even frame (runObjectAndSpawnUpdatePass path): oracle == module in RAM.
  *   2. WRITE-SET — the display-list rebuild leaves an observable footprint (both parities).
  *   3. TEETH — a wrong seeded byte is caught by the RAM diff; a twin taking the WRONG parity branch
  *      diverges; and a twin that skips the display-list rebuild diverges.
@@ -36,7 +36,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_1c53 as oracle } from "../../translated/loc_1c53.js";
 import { loc_1c53 } from "../loc_1c53.js";
 import { loc_68f8 } from "../loc_68f8.js"; // odd-branch pass, for the teeth twins
-import { loc_64e2 } from "../loc_64e2.js"; // even-branch pass, for the teeth twins
+import { runObjectAndSpawnUpdatePass } from "../runObjectAndSpawnUpdatePass.js"; // even-branch pass, for the teeth twins
 import { loc_02ef } from "../loc_02ef.js"; // shared display-list rebuild, for the teeth twins
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -54,7 +54,7 @@ const COUNTDOWN = 0x892a; // BLINK_COUNTDOWN (loc_68f8 sweep driver)
 const PHASE = 0x892b; // BLINK_PHASE (loc_68f8 object driver)
 const TOGGLE = 0x892c; // ANIM_PHASE_TOGGLE
 const WAVE = 0x892d; // WAVE_NUMBER
-const BLIT_HOLD = 0x8f06; // loc_6b13 frame-hold countdown (loc_64e2 first callee)
+const BLIT_HOLD = 0x8f06; // blitStackedTwoTileAnimFrameOnHoldTimer frame-hold countdown (runObjectAndSpawnUpdatePass first callee)
 const SP0 = 0x8ff0; // inside STACK_SCRATCH
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -73,7 +73,7 @@ function gate(m) {
   m.mem.write8(TOGGLE, 0x00);
   m.mem.write8(COUNTDOWN, 0x07); // loc_68f8: sweep driver just decrements
   m.mem.write8(WAVE, 0x00);
-  m.mem.write8(BLIT_HOLD, 0x05); // loc_64e2: blitter hold running -> loc_6b13 just decrements
+  m.mem.write8(BLIT_HOLD, 0x05); // runObjectAndSpawnUpdatePass: blitter hold running -> blitStackedTwoTileAnimFrameOnHoldTimer just decrements
   return m;
 }
 
@@ -82,7 +82,7 @@ const craftEven = () => { const m = gate(BASE.clone()); m.mem.write8(ROUND_COUNT
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-for (const [label, craft] of [["odd frame (loc_68f8 path)", craftOdd], ["even frame (loc_64e2 path)", craftEven]]) {
+for (const [label, craft] of [["odd frame (loc_68f8 path)", craftOdd], ["even frame (runObjectAndSpawnUpdatePass path)", craftEven]]) {
   test(`EQUAL: ${label} — module == oracle in RAM (−stack)`, () => {
     const o = craft();
     const c = craft();
@@ -122,7 +122,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
 });
 
 test("TEETH: a twin taking the WRONG parity branch diverges from the oracle", () => {
-  // Even frame: correct = loc_64e2 + rebuild. A twin that runs the odd pass (loc_68f8) instead must diverge.
+  // Even frame: correct = runObjectAndSpawnUpdatePass + rebuild. A twin that runs the odd pass (loc_68f8) instead must diverge.
   const o = craftEven();
   const twin = craftEven();
   oracle(o);

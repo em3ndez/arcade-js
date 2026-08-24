@@ -5,7 +5,7 @@ import { loc_20d4 } from "./loc_20d4.js";
 import { loc_02ef } from "./loc_02ef.js";
 import { loc_18da } from "./loc_18da.js";
 import { loc_191c } from "./loc_191c.js";
-import { loc_6404 } from "./loc_6404.js";
+import { scanActorCollisionsBothSlots } from "./scanActorCollisionsBothSlots.js";
 import { drainSoundCommandRing } from "./drainSoundCommandRing.js";
 import { tickHudRefresh } from "./tickHudRefresh.js";
 
@@ -25,6 +25,6 @@ export function runLevelIntroPhase1Frame(m) {
   loc_02ef(m);
   loc_18da(m);
   loc_191c(m);
-  loc_6404(m);
+  scanActorCollisionsBothSlots(m);
   drainSoundCommandRing(m);
 }

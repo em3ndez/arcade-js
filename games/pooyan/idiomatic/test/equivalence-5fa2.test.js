@@ -5,14 +5,14 @@
  * The record pointer (HL = 0x8ae0, stride 0x18) supplies each slot's lead + type bytes; the position
  * pointer (IX = 0x8850, stride 4) its box; the target box is IY; the hit type is C; the screen-flip
  * flag (0x881f) sets the X bias. An empty/non-type-5 slot or an out-of-window box tail-loops through
- * the advance latch (loc_6018); a type-3 overlap tails the retire handler (loc_613d) after tallying
+ * the advance latch (advanceOverlapScanToNextSlot); a type-3 overlap tails the retire handler (loc_613d) after tallying
  * 0x8d45; any other overlap flags the two struck cells (0x8c91/0x8ca9 + partner), sounds the hit
  * (queueSoundCommand09), and skip-returns. The whole subtree runs on both sides from an identical clone.
  *
- * SEATING: miss/hit exits TAIL to loc_6018/loc_613d; the general hit is a caller-skip dissolved to a
+ * SEATING: miss/hit exits TAIL to advanceOverlapScanToNextSlot/loc_613d; the general hit is a caller-skip dissolved to a
  * boolean. Protocol: true = the sweep exhausted with no hit, false = a hit. Compared on RAM
  * (dumpState) minus STACK_SCRATCH plus the boolean; the register file is not compared. Cases are
- * CRAFTED — a plain boot does not seat this geometry. Green once the batch siblings (loc_6018/loc_613d
+ * CRAFTED — a plain boot does not seat this geometry. Green once the batch siblings (advanceOverlapScanToNextSlot/loc_613d
  * subtree, queueSoundCommand09) and the 0x8d45/0x8c91/0x8ca9 cells land.
  *
  * Jobs:
@@ -120,7 +120,7 @@ test("EQUAL: every path — loc_5fa2 == oracle in RAM (−stack) and the boolean
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(rc, wantBool, `${label}: module boolean`);
     // The frozen oracle dissolves the hit/no-hit outcome into pc/stack control flow and returns
-    // undefined (its loc_6018/loc_613d tail-return chain, unlike loc_2c58's explicit `return
+    // undefined (its advanceOverlapScanToNextSlot/loc_613d tail-return chain, unlike loc_2c58's explicit `return
     // true/false`); the boolean is a module-layer live-out, anchored here by the RAM diff above
     // and the module boolean, so the oracle's own JS return carries no boolean to compare.
     assert.equal(ro, undefined, `${label}: frozen oracle returns no JS boolean`);

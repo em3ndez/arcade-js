@@ -4,7 +4,7 @@
  * tick the animation timer, step the scripted sprite records, and on the frame/step-counter wraps
  * stamp a script byte up the column and fold a 14-row checksum verified against INTRO_DELAY_CKSUM_WORD.
  *
- * The module dissolves loc_0a28 / loc_09f8 / loc_76ea to direct calls and keeps the frozen tamper
+ * The module dissolves loc_0a28 / loc_09f8 / runObjectAndEnemyActorUpdate to direct calls and keeps the frozen tamper
  * trap 0x7442; the oracle drives the same routines through the register seam. typeAttractTextColumn is a void
  * handler (no register survives), so equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
@@ -127,7 +127,7 @@ test("TEETH: a wrong checksum-pointer byte is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (R36) --------------------------------------------------------
 
-test("SP-TOOTH: typeAttractTextColumn (tail-dispatches to 0x7442 / loc_76ea) seats SP for the seam", () => {
+test("SP-TOOTH: typeAttractTextColumn (tail-dispatches to 0x7442 / runObjectAndEnemyActorUpdate) seats SP for the seam", () => {
   const m = craft({ frameTimer: 0x05 }); // frame-timer no-wrap -> early return (moved 0)
   m.mem8[SP0] = CALLER_RET & 0xff;
   m.mem8[SP0 + 1] = CALLER_RET >> 8; // seat the caller's return word the seam completes

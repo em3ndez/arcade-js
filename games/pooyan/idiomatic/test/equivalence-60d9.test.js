@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_60d9 (ROM 0x60d9, Pooyan) — mark hit-flag slot, seed the
+ * Memory-equivalence test for markHitFlagSeedActorAndScanEnemyRecords (ROM 0x60d9, Pooyan) — mark hit-flag slot, seed the
  * actor record, then run the enemy-record scan.
  *
- * loc_60d9 marks the interrupt-parity hit-flag slot active (odd-parity slot 0x8d1c, or the
+ * markHitFlagSeedActorAndScanEnemyRecords marks the interrupt-parity hit-flag slot active (odd-parity slot 0x8d1c, or the
  * even slot 0x8d1b when the interrupt register is zero), stamps the opening state into the
  * fresh actor record at HL, backs HL up to the record's +0x14 tag, and enters the record
  * finder. The finder resets/retires the matching enemy record and aborts (false), or with
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_60d9 as oracle } from "../../translated/loc_60d9.js";
-import { loc_60d9 } from "../loc_60d9.js";
+import { markHitFlagSeedActorAndScanEnemyRecords } from "../markHitFlagSeedActorAndScanEnemyRecords.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -98,12 +98,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_60d9 == oracle in RAM (−stack) + forwarded boolean", () => {
+test("EQUAL: markHitFlagSeedActorAndScanEnemyRecords == oracle in RAM (−stack) + forwarded boolean", () => {
   for (const cfg of CASES) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    const ret = loc_60d9(c);
+    const ret = markHitFlagSeedActorAndScanEnemyRecords(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -139,7 +139,7 @@ test("TEETH: a wrong seeded record byte is CAUGHT by the RAM diff", () => {
   const o = craft(cfg);
   const c = craft(cfg);
   oracle(o);
-  loc_60d9(c);
+  markHitFlagSeedActorAndScanEnemyRecords(c);
   const victim = (REC + 0x16) & 0xffff; // seed writes 0x04 here
   c.mem.write8(victim, 0x00); // BUG: corrupt a seeded record byte
   const d = ramDiffMinusStack(o, c);
@@ -153,7 +153,7 @@ test("TEETH: a wrong hit-flag slot byte is CAUGHT by the RAM diff", () => {
   const o = craft(cfg);
   const c = craft(cfg);
   oracle(o);
-  loc_60d9(c);
+  markHitFlagSeedActorAndScanEnemyRecords(c);
   c.mem.write8(HIT_FLAG_I1, 0x00); // BUG: the parity slot must be marked 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch an unmarked hit-flag slot");

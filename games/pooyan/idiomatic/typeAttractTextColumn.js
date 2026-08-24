@@ -2,7 +2,7 @@
 import { u16 } from "../../../core/int.js";
 import { loc_0a28 } from "./loc_0a28.js";
 import { loc_09f8 } from "./loc_09f8.js";
-import { loc_76ea } from "./loc_76ea.js";
+import { runObjectAndEnemyActorUpdate } from "./runObjectAndEnemyActorUpdate.js";
 import { loc_7442 } from "./loc_7442.js";
 import {
   ANIM_FRAME_COUNTER,
@@ -66,7 +66,7 @@ export function typeAttractTextColumn(m) {
   // verify the sum against the two bytes at INTRO_DELAY_CKSUM_WORD; a mismatch takes a tamper redirect
   let ck = mem8[INTRO_DELAY_CKSUM_WORD] | (mem8[INTRO_DELAY_CKSUM_WORD + 1] << 8);
   if (mem8[ck] !== (sum & 0xff)) return loc_7442(m); // low-byte mismatch -> tamper trap
-  if (mem8[u16(ck + 1)] !== (sum >> 8)) return loc_76ea(m); // high-byte mismatch -> tamper redirect
+  if (mem8[u16(ck + 1)] !== (sum >> 8)) return runObjectAndEnemyActorUpdate(m); // high-byte mismatch -> tamper redirect
   ck = u16(ck + 2);
   mem8[INTRO_DELAY_CKSUM_WORD] = ck; // low byte
   mem8[INTRO_DELAY_CKSUM_WORD + 1] = ck >> 8;

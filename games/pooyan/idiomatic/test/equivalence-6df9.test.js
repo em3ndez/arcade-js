@@ -6,21 +6,21 @@
  * (loc_09f8), and on each SCRIPT_FRAME_TIMER expiry copies one script byte through the write cursor,
  * backing that cursor up one 0x20 row; every SCRIPT_STEP_COUNTDOWN expiry reseeds the timers, bumps
  * ATTRACT_SUBSTATE, and rolls a 14-row (stride 0x20) checksum verified against the two bytes at the
- * INTRO_DELAY_CKSUM_WORD pointer. The module dissolves loc_0a28/loc_09f8/loc_76ea to direct calls and
+ * INTRO_DELAY_CKSUM_WORD pointer. The module dissolves loc_0a28/loc_09f8/runObjectAndEnemyActorUpdate to direct calls and
  * keeps the frozen 0x7442 tamper dispatcher; the oracle drives the frozen subtree. Both are compared in
  * RAM (dumpState, minus STACK_SCRATCH). paintAttractColumnWithTamperChecksum is void — no register survives — so only RAM is compared.
  *
  * Reachable arms are seated: timer-counting (loc_0a28 wrap + loc_09f8 + tick), byte-copy (timer expires,
  * step still counting), and the full checksum on a CLEAN-PASS (source byte 0 into a zeroed 14-row region,
  * so the sum is 0 and the two stored bytes are 0 -> the check-pointer advances, no tamper branch). The
- * tamper arms (jp 0x7442 / loc_76ea) run frozen handlers in isolation, so they are not seated here; the
+ * tamper arms (jp 0x7442 / runObjectAndEnemyActorUpdate) run frozen handlers in isolation, so they are not seated here; the
  * module keeps/dissolves them identically to the oracle.
  *
  * Jobs:
  *   1. EQUAL — timer-counting, byte-copy, checksum-clean-pass: oracle == module in RAM (−stack).
  *   2. WRITE-SET — the SCRIPT_FRAME_TIMER expiry gates the byte copy (source cursor advances only then).
  *   3. TEETH — a wrong placed byte is caught by the RAM diff.
- *   4. SP-TOOTH (R36) — the routine tail-dispatches (return m.call(0x7442) / return loc_76ea); assert it
+ *   4. SP-TOOTH (R36) — the routine tail-dispatches (return m.call(0x7442) / return runObjectAndEnemyActorUpdate); assert it
  *      seats SP for the withOmittedRet seam on a real caller-return word (moved-0 arm -> placeable).
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-6df9.test.js
@@ -157,7 +157,7 @@ test("TEETH: a wrong placed byte is caught by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (R36) --------------------------------------------------------
 
-test("SP-TOOTH: paintAttractColumnWithTamperChecksum (tail-dispatches to 0x7442 / loc_76ea) seats SP for the seam", () => {
+test("SP-TOOTH: paintAttractColumnWithTamperChecksum (tail-dispatches to 0x7442 / runObjectAndEnemyActorUpdate) seats SP for the seam", () => {
   const m = craftTick();
   m.mem.write8(ANIM_FC, 0x05); // skip loc_0a28 -> minimal sub-calls on this arm
   m.mem.write16(SP0, CALLER_RET); // the caller's return word the seam completes (moved-0 arm)

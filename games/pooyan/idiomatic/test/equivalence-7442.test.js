@@ -23,8 +23,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7442 as oracle } from "../../translated/loc_7442.js";
 import { loc_7442 } from "../loc_7442.js";
-import { loc_744e } from "../loc_744e.js";
-import { loc_7517 } from "../loc_7517.js";
+import { seedDisplayListPointersAndVerifyRomSignature } from "../seedDisplayListPointersAndVerifyRomSignature.js";
+import { runDisplayListAndAdvanceToGameplay } from "../runDisplayListAndAdvanceToGameplay.js";
 import { updateGameplayFrame } from "../updateGameplayFrame.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -125,8 +125,8 @@ test("SP-TOOTH: the tail dispatch is seam-placeable", () => {
 /** Broken twin: routes selector 1 to the wrong handler (state 2's). */
 function brokenWrongSelector(m) {
   switch (m.mem8[SELFTEST_DISPATCH_STATE] & 0x03) {
-    case 0: return loc_744e(m);
-    case 1: return updateGameplayFrame(m); // BUG: selector 1 should be loc_7517
+    case 0: return seedDisplayListPointersAndVerifyRomSignature(m);
+    case 1: return updateGameplayFrame(m); // BUG: selector 1 should be runDisplayListAndAdvanceToGameplay
     case 2: return updateGameplayFrame(m);
     default: throw new Error("guard-slack");
   }
