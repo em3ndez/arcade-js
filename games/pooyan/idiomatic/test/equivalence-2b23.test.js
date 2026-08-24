@@ -6,9 +6,9 @@
  * dispatch redirect.
  *
  * SEATING: TAIL-CALL. Reached by tail-jump from the frame driver, so both delegatees run in that
- * caller's frame; loc_2b23 has no ret of its own. The reset-scan delegatee (0x2b59) is decompiled
- * in this same group and imported; the redirect (0x7e94) is not lifted this batch, so the module
- * keeps m.call(0x7e94) and the oracle drives the same frozen redirect — both walk identical
+ * caller's frame; loc_2b23 has no ret of its own. Both delegatees are lifted and imported: the
+ * reset-scan (0x2b59) and the write-anim redirect (0x7e94), which the module now tail-calls directly
+ * (its orphaned push16 dropped) while the oracle drives the frozen redirect — both walk identical
  * downstream code (its epilogue gate is held clear so that path stays a shallow no-op).
  *
  * LIVE-OUT: none — void tail step; equivalence is RAM (dumpState) minus STACK_SCRATCH.

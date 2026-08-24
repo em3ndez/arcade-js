@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_2b59 } from "./loc_2b59.js";
+import { loc_7e94 } from "./loc_7e94.js";
 import { PHASE_TIMER, RESET_SCAN_LATCH } from "./names.js";
 /**
  * loc_2b23 — phase-timer tick with reset-scan re-entry.
@@ -15,6 +16,5 @@ export function loc_2b23(m) {
   mem8[PHASE_TIMER]--; // tick the phase timer
   const timer = mem8[PHASE_TIMER];
   if (mem8[RESET_SCAN_LATCH] !== 0 && timer === 0) return loc_2b59(m); // re-enter the reset scan
-  m.push16(0x2b34); // return slot the dispatch redirect's ret consumes
-  return m.call(0x7e94); // tail to the (unlifted) write-animation dispatch redirect
+  return loc_7e94(m); // tail to the write-animation dispatch redirect
 }

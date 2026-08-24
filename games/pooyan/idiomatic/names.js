@@ -295,6 +295,28 @@ export const SPAWN_RING_COUNTER = 0x8d57;
 /** [code] per-object "drawn" flag: set to 1 once an object is drawn (object cluster's state-2 handler 0x7790); the state-2 animation tick holds while it is set */
 export const OBJECT_DRAWN_FLAG = 0x8d58;
 export const loc_8e21 = 0x8e21;
+/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
+export const loc_8565 = 0x8565;
+/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
+export const loc_8811 = 0x8811;
+/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
+export const loc_8812 = 0x8812;
+/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
+export const loc_8dfd = 0x8dfd;
+/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
+export const loc_8e23 = 0x8e23;
+/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
+export const loc_8e24 = 0x8e24;
+/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
+export const loc_8e25 = 0x8e25;
+/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
+export const loc_8e26 = 0x8e26;
+/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
+export const loc_8e27 = 0x8e27;
+/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
+export const loc_8e29 = 0x8e29;
+/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
+export const loc_8e2b = 0x8e2b;
 export const loc_8f17 = 0x8f17;
 /** [code] 16-bit read-pointer into the lead hunter's active movement script (swoop; repointed to the dive script when the dive arms) */
 export const HUNTER_SCRIPT_PTR = 0x8f4b;
@@ -1571,6 +1593,11 @@ export const ROUTINES = {
   0x6edb: { name: "loc_6edb", role: "phase-1 driver: run loc_6f2d over the 14 enemy-actor records (0x8ae0, stride 0x18); when the launch script (0x8f4a) hits 0xff and all 3 projectile slots (0x8bea, stride 0x18) are idle, inc intro phase (0x8f51), queue cmd 0x0635, force phase 4 + queue 0x0610 on 3*(0x8f47)==(0x8f52) else queue 0x0608, set intro delay (0x8f48)=0x40, clear 0x30 bytes at 0x8c90", cert: "code" },
   0x7292: { name: "advanceEaglePhaseAndClearAim", role: "step the eagle's phase and clear its aim flags", cert: "seen" },
   0x7707: { name: "dispatchActiveObjectState", role: "run one active object record's per-frame state handler, selected by (IX+2)&3 of four; inactive records are skipped", cert: "seen" },
+  0x7e94: { name: "loc_7e94", role: "the write-anim dispatch redirect (a per-frame pre-pass): gated by the run-once latch (RESET_SCAN_LATCH) and HIGH_SCORE_INSERT_RANK, else selector loc_8e26 picks one of three write-anim handlers, then tail into the start-button poll startGameOnStartButtonPress", cert: "code" },
+  0x7eb2: { name: "loc_7eb2", role: "write-anim handler 0: seed the animation work block (loc_8e2x) with pointers/fields from the config + player-select cells", cert: "code" },
+  0x7f0e: { name: "loc_7f0e", role: "write-anim handler 1: count down the 16-bit anim counter (loc_8e2b); on zero tail to loc_7fa8, else step the index and tail to loc_7f5d", cert: "code" },
+  0x7f5d: { name: "loc_7f5d", role: "write-anim handler 2: rotate the phase ring (loc_8e29); on phase 1 advance the block pointers, drain the row countdown, and tail to loc_7fa8 when it empties", cert: "code" },
+  0x7fa8: { name: "loc_7fa8", role: "write-anim shared tail (reached from loc_7f0e/loc_7f5d): queue a sound (queueSoundCommand00), flood-fill `count` tile/record cells, then reload PHASE_TIMER and set the run-once latch", cert: "code" },
   0x780f: { name: "paintTileBlock2x2Above", role: "stamp a 2x2 tile block anchored one row above", cert: "seen" },
   0x0000: { name: "loc_0000", role: "power-on reset vector: disable the vblank NMI latch, then tail into the boot entry loc_0092", cert: "code" },
   0x0010: { name: "loc_0010", role: "fill a run of bytes with a constant, advancing the pointer (a zero counter fills 256)", cert: "code" },

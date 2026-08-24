@@ -569,9 +569,17 @@ full-clear/continue tail; in a two-player game, player zero's turn ending routes
 reseed-the-other-player tail, an exhausted player-zero life count routes to the full-clear tail, and
 otherwise it swaps to player zero, zeroes PLAY_STATE_INDEX, zero-fills player one's bank, arms the flip
 flag, resets the display pointer, and stamps the cap-first column. When the reset condition is not yet
-met it instead runs a per-frame pre-pass (0x7e94) and, only every eighth tick and only while a
-high-score entry is pending, wipes a vertical column with a stepping fill tile (clamped back to 0x06
-once it passes 0x10).
+met it instead runs the per-frame write-anim pre-pass `loc_7e94` [code] and, only every eighth tick and
+only while a high-score entry is pending, wipes a vertical column with a stepping fill tile (clamped back
+to 0x06 once it passes 0x10).
+
+The write-anim pre-pass `loc_7e94` [code] is a run-once-latched dispatch redirect: once the latch
+(RESET_SCAN_LATCH) is set, or while HIGH_SCORE_INSERT_RANK is zero (which arms the latch), it skips
+straight to the epilogue; otherwise a selector picks one of three write-anim state handlers — `loc_7eb2`
+[code] seeds an animation work block, `loc_7f0e` [code] counts the block down and steps its index, and
+`loc_7f5d` [code] rotates a phase ring and advances the block pointers — before every path tail-returns
+into the per-frame start-button poll `startGameOnStartButtonPress`. Two of those handlers share a
+fill-and-latch tail `loc_7fa8` [code] that floods a run of tile and record cells and re-arms the latch.
 
 The two swap/continue tails carry the alternation. `reseedOtherPlayerForTurn` (0x1cf6, [code]) hands off
 to the full-clear tail when player one is out of lives; otherwise it clears the index, zero-fills

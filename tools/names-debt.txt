@@ -82,3 +82,14 @@ pooyan 0x8ca9  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8d45  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8d77  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8819  # role unknown (cleared at attract sub-state-0 / play state-0 entry; no reader observed); promote at grounding
+pooyan 0x8565  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding
+pooyan 0x8811  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding
+pooyan 0x8812  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding
+pooyan 0x8dfd  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding
+pooyan 0x8e23  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding
+pooyan 0x8e24  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding
+pooyan 0x8e25  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding
+pooyan 0x8e26  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding
+pooyan 0x8e27  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding
+pooyan 0x8e29  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding
+pooyan 0x8e2b  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding

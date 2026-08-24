@@ -5,6 +5,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { clearActorsAndEnterContinueState } from "./clearActorsAndEnterContinueState.js";
 import { reseedOtherPlayerForTurn } from "./reseedOtherPlayerForTurn.js";
 import { loc_1ce7 } from "./loc_1ce7.js";
+import { loc_7e94 } from "./loc_7e94.js";
 import {
   PHASE_TIMER,
   RESET_SCAN_LATCH,
@@ -51,7 +52,7 @@ export function dispatchRoundEndElseWipeColumn(m) {
   const reinit = armed && mem8[PHASE_TIMER] === 0; // armed and the timer has expired
 
   if (!reinit) {
-    m.push16(0x1c77); m.call(0x7e94); // frozen per-frame pre-pass
+    loc_7e94(m); // the write-anim dispatch pre-pass
     if (mem8[HIGH_SCORE_INSERT_RANK] === 0) return;
     if ((mem8[PHASE_TIMER] & TICK_MASK) !== 0) return; // only every eighth tick
 
