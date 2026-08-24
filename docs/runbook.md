@@ -495,6 +495,32 @@ does **not** discharge stage B: a `[code]` name is a proposal that owes a ground
 label. If you did not run MAME this pass, you have not grounded, and the pass is not done. (Full
 formula and method in `understanding.md`; it is not optional there and not optional here.)
 
+- **★ The grounding CONFIRMER confirms a `[seen]` from EVIDENCE — re-run MAME, or be handed the MAME
+  write-tap per cert — NEVER inferred from the code diff.** Grounding is a MAME fact (a watched write /
+  value-change), and by the tag-only rule that fact is NOT in the commit diff. So a reviewer who reads
+  only the staged `names.js` + code sees every `[code]`→`[seen]` promotion as *unrecorded* and can only
+  flag its absence — it can never *confirm* it. A review that judges a MAME-fact from code is not
+  proposer≠confirmer for grounding; it is a second code-read. The confirmer therefore either (a) re-runs
+  the game's grounding harness under MAME and re-derives the `[seen]` from the capture, or (b) is handed,
+  per cert, that cert's MAME write-tap evidence to check the promotion against. The mechanism for (b):
+  the grounding-commit-review workflow attaches to each reviewer's slice the per-cert evidence from the
+  capture the grounding fan produced (`ground-evidence.json` / the gwtrace CSV), extracted by
+  `tools/grounding_evidence.mjs` — `routine <lo> <hi>` gives a routine's OWN write-set (return-stack
+  scratch separated out, its window read per-game from `names.js` `STACK_SCRATCH`), `cell <addr>` gives a
+  cell's watched value-changes. A routine is `[seen]` only when a role-defining MAME observation grounds
+  ITS role — but that observation is **not always a write**. A routine that PRODUCES state is `[seen]` on a
+  role-defining own write; a DISPATCHER or driver, whose role is to READ a cell and vector to the matching
+  handler, is `[seen]` when MAME confirms that vectoring — observed reachability + correct handler selection
+  across the states it routes — even with no own write, OR derivatively once its dispatch cell and handlers
+  are themselves `[seen]` (`routine` mode reporting only stack scratch is the signal to check the vectoring,
+  not an automatic `[code]`). What stays `[code]` is a role that is NEITHER write-grounded NOR
+  dispatch-grounded — e.g. a writer whose only writes land in cells still `[code]`/contested (it cannot be
+  more grounded than the cells it writes). Enforced at review by `reviewer-rules.md` R38 [U]. (Recorded
+  2026-08-24: a pooyan understanding pass promoted 32 routines to `[seen]`; a code-only commit review
+  flagged the promotions as unrecorded and, for the write-less dispatchers, affirmatively unjustified —
+  14 reverted to `[code]`; the review could not confirm the other 18 either, only reason about their
+  code, because it was never handed the MAME evidence.)
+
 **Why stage B gets skipped — the failure mode this rule exists to stop.** Grounding leaves almost no
 *diff* artifacts: it is `[seen]` tags, notes, and the occasional overturned name — not `git mv`
 renames. So reconstructing "how an understanding pass works" from a past commit's diff shows only stage
@@ -899,3 +925,12 @@ reviewable in one place — reverse any that would have been called differently.
   cap" and this doc's own sanction to drop mnemonic-only oracle comments when a file trips the cap.
   Follow-up (§3): translation/board agents now write UNDER the cap from the first draft, so no pruning pass
   is needed on future ports.
+- **2026-08-24 — Grounding review must confirm from MAME evidence** (§4 understand-half; reviewer-rules R38
+  [U]): a code-only grounding-commit-review cannot confirm a `[seen]` (grounding is a MAME fact absent from
+  the diff), so it over-flags sound groundings and cannot validate weak ones — not proposer≠confirmer. Fix:
+  the confirmer re-runs the grounding write-tap (`games/<game>/tools/lua/ground_writes.lua`) or is handed
+  the per-cert MAME evidence (`tools/grounding_evidence.mjs` extracts it from the capture); a routine is
+  `[seen]` on a role-defining OWN write OR, for a dispatcher, on MAME-confirmed vectoring across the states
+  it routes; a cell on a watched value change. Added a method rule, a reviewer rule, the extractor tool, and
+  the committed write-tap producer. Surfaced when a pooyan understanding-pass review reverted 14 over-promoted
+  certs from a code-only read; a **rigor-process change**, logged here for review.

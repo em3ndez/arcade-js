@@ -954,3 +954,34 @@ the callee chain for `= m.regs.` param defaults. The established idiom is
 *Added 2026-08-23 after a decode batch shipped eq-green + reviewer-fan-clean, then the pre-push tape caught it
 at frame 1086: loc_5733/572b forwarded the record as a param but loc_57c3->loc_57c6 read it from a
 `= m.regs.ix` param default (loc_57c6), which was stale (b0602b4f).*
+
+## R38 [U] a GROUNDING review confirms a [seen] from MAME EVIDENCE, never from the code diff
+
+A `[code]`->`[seen]` promotion is a claim about the real hardware: a MAME write-tap watched the cell change,
+or watched the routine's own PC write a role-defining cell. That fact is NOT in the commit diff (grounding
+is carried by the tag, not narrated), so a reviewer given only the staged `names.js` + code can see the
+promotion but has no way to CONFIRM it — it can only flag it as unrecorded. A grounding review done from
+code alone is therefore not proposer!=confirmer; it is a second code-read, and it will over-flag sound
+groundings while being unable to validate weak ones. (Recorded 2026-08-24: a pooyan understanding-pass
+commit review, handed only the diff, flagged all 32 [seen] promotions as unrecorded — 14 were genuinely
+unjustified, but the review could not confirm the other 18 either; it could only reason about their code.)
+
+So a review that adjudicates any `cert: "seen"` (routine) or `[seen]` (cell) MUST be handed that cert's MAME
+evidence, or re-run the game's grounding write-tap (`games/<game>/tools/lua/ground_writes.lua` under the MAME
+rig) to re-derive it. The mechanism: the grounding-commit-review workflow attaches, per cert, the write-tap
+from the capture that producer emits (`pc,addr,n,v0,vN,cyc0`), extracted by
+`tools/grounding_evidence.mjs` (`routine <lo> <hi>` for a routine's own write-set, its stack window read
+per-game from `names.js` `STACK_SCRATCH`; `cell <addr>` for a cell's value-changes). Verify: a role-defining
+MAME observation grounds the cert, but it is NOT always a write. A routine that PRODUCES state is `[seen]`
+on a role-defining OWN write; a DISPATCHER or driver (its role is to read a cell and vector to the matching
+handler) is `[seen]` when MAME confirms that vectoring — observed reachability + correct handler selection
+ACROSS THE STATES IT ROUTES (a single observed arm is not enough; watch it vector correctly to each handler
+of its dispatch table) — even with no own write, OR derivatively once its dispatch cell and handlers are
+themselves `[seen]`. So the
+tool reporting only stack scratch for a dispatcher is the signal to check its vectoring, NEVER an automatic
+`[code]`; what stays `[code]` is a role that is neither write- nor dispatch-grounded (e.g. a writer whose
+only writes land in cells still `[code]`/contested — it cannot be more grounded than the cells it writes).
+A cell is `[seen]` only if the capture shows it watched changing (drain/toggle/seed). A grounding review with
+no MAME evidence on record is not a grounding confirmation — treat its `[seen]` verdicts as unmade.
+*Added 2026-08-24 (Deferral-3): the grounding-review process was code-only, which cannot confirm a MAME
+fact; see docs/runbook.md §4 "The grounding CONFIRMER confirms a [seen] from EVIDENCE".*
