@@ -62,3 +62,7 @@ pooyan 0x5f83 dead  # caller-skip dissolved; direct-called by idiomatic loc_5f6a
 pooyan 0x42da dead  # slot-init caller-skip dissolved; direct-called by idiomatic moveFormationAndSpawnObject (boolean), not oracle-served
 pooyan 0x5374 dead  # lane-actor activation caller-skip dissolved; direct-called by idiomatic spawnNextScriptedEnemy (boolean), not oracle-served
 pooyan 0x7595 dead  # wave-launch caller-skip dissolved; direct-called by idiomatic spawnNextEnemyOnDelay (boolean), not oracle-served
+pooyan 0x2c3f dead  # rst-28 boolean caller-skip dispatcher dissolved; direct-called by idiomatic loc_2c2c, not oracle-served
+pooyan 0x2d24 dead  # hunter state-2 caller-skip dissolved; direct-called by idiomatic loc_2c3f (boolean), not oracle-served
+pooyan 0x2d4a dead  # hunter state-3 caller-skip dissolved; direct-called by idiomatic loc_2c3f (boolean), not oracle-served
+pooyan 0x0fd5 boundary  # beyond validated frontier: only caller loc_1d9c is 15a1 idx15 (0x880a never reaches 15 in valid play); handlers 0fef-114f untranslated. Lifted 15a1 throws at idx15 first

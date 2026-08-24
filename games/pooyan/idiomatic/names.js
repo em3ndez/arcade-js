@@ -1343,6 +1343,12 @@ export const IN0_PORT = 0xa080;
 export const COIN2_COUNTER_LATCH = 0xa184;
 
 export const ROUTINES = {
+  // --- decode pass: rst-28 spine dispatchers (switch over MAME-confirmed handlers; loc_ names, cert code) ---
+  0x7442: { name: "loc_7442", role: "attract/self-test state dispatcher: (0x8921)&3 -> table 0x7448 {0 init/ROM-check, 1 HUD-checksum, 2 gameplay driver}", cert: "code" },
+  0x40d0: { name: "loc_40d0", role: "IX-object state dispatcher: inactive/oob guards then (ix+2)&0x1f -> table 0x40e1 (17 handlers)", cert: "code" },
+  0x6822: { name: "loc_6822", role: "special-object (0x8b28) record state dispatcher, gated by 0x8afa -> table 0x6834 (3 handlers)", cert: "code" },
+  0x71b9: { name: "loc_71b9", role: "bonus/eagle-stage phase dispatcher: (0x8f38) -> table 0x71c1 (3 handlers), then shared epilogue 0x02ef", cert: "code" },
+  0x15a1: { name: "loc_15a1", role: "in-play sub-state dispatcher: (0x880a)&0x1f -> table 0x15a8 (19 handlers; idx 15/16/17 beyond frontier)", cert: "code" },
   // --- decode pass #1 additions (40 leaves/second-entries; loc_ names, cert code) ---
   0x08b3: { name: "resetToAttractScreenStart", role: "attract sub-state 0 handler (attract dispatch target 0)", cert: "seen" },
   0x0b32: { name: "advanceAttractSequenceToPlay", role: "attract sub-state 6 handler", cert: "seen" },

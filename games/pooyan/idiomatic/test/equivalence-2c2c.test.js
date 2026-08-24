@@ -2,15 +2,15 @@
 /**
  * Memory-equivalence test for loc_2c2c (ROM 0x2c2c, Pooyan) — the hunter-record sweep. It walks the
  * 17 enemy-actor records (base ENEMY_ACTOR_TABLE, stride 0x18), marshalling each record pointer
- * through IX into the frozen per-record dispatcher (0x2c3f). The dispatcher returns false when a
- * record reaches its spawn handler, which aborts the sweep.
+ * through IX into the per-record dispatcher loc_2c3f. The dispatcher returns false when a record
+ * reaches its spawn handler, which aborts the sweep.
  *
- * SEATING: BALANCED — the oracle ends on a plain ret; the abort is a dissolved caller-skip the
- * frozen dispatcher already reports as a boolean the module early-returns on. The dispatcher
- * (0x2c3f) is a spine dispatcher NOT lifted this batch, so the module keeps the register-marshalled
- * m.call(0x2c3f); the oracle drives the same frozen dispatcher and handlers, so both walk identical
- * downstream code. Compared on RAM (dumpState) minus STACK_SCRATCH; the register file is not
- * compared — the caller rets immediately, reading nothing back.
+ * SEATING: BALANCED — the oracle ends on a plain ret; the abort is a dissolved caller-skip loc_2c3f
+ * reports as a boolean the module early-returns on. loc_2c3f is now idiomatic (dissolved this batch),
+ * so the module DIRECT-CALLS it (no seated-return push16) — the frozen oracle consumed the CALL's
+ * pushed word via its own ret, so dropping the push keeps the module SP-neutral. Compared on RAM
+ * (dumpState) minus STACK_SCRATCH; PLUS an SP-baseline tooth (the sweep must leave SP unchanged — a
+ * retained/orphaned push would leak per iteration, invisible to the RAM diff).
  *
  * Cases are CRAFTED: two records are poked active with in-range states so the sweep dispatches
  * observably; one sits in the LAST slot so a short sweep is caught.
@@ -19,7 +19,8 @@
  *   1. EQUAL — a boot clone (records as-seated) and a crafted two-record layout: oracle == module
  *      in RAM (−stack).
  *   2. OBSERVABLE — the crafted sweep writes RAM (the equal result is not vacuous).
- *   3. TEETH — (a) a short-sweep twin (stops one record early) misses the last record and is
+ *   3. SP-TOOTH — the idiomatic sweep leaves SP unchanged (regresses the orphaned-push16 leak).
+ *   4. TEETH — (a) a short-sweep twin (stops one record early) misses the last record and is
  *      caught; (b) a wrong seeded byte is caught by the RAM diff.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-2c2c.test.js
@@ -31,6 +32,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c2c as oracle } from "../../translated/loc_2c2c.js";
 import { loc_2c2c } from "../loc_2c2c.js";
+import { loc_2c3f } from "../loc_2c3f.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { ENEMY_ACTOR_TABLE, STACK_SCRATCH } from "../names.js";
@@ -96,7 +98,32 @@ test("OBSERVABLE: the crafted sweep writes RAM (equal is not vacuous)", () => {
   console.log("  OBSERVABLE: crafted sweep writes RAM");
 });
 
-// -- 3. TEETH -----------------------------------------------------------------
+// -- 3. SP-TOOTH --------------------------------------------------------------
+
+test("SP-TOOTH: the idiomatic sweep leaves SP unchanged (orphaned-push16 regression)", () => {
+  const c = craftTwo();
+  const sp0 = c.regs.sp;
+  loc_2c2c(c);
+  const delta = ((c.regs.sp - sp0) << 16) >> 16;
+  assert.equal(c.regs.sp, sp0, `sweep leaked SP by ${delta} bytes (an orphaned seated-return push16)`);
+  // mutation control: a twin that retains the seated-return push16 MUST leak and be caught.
+  function leakySweep(m) {
+    let rec = EAT;
+    for (let i = 0; i < RECORD_COUNT; i++) {
+      m.regs.ix = rec;
+      m.push16(0x2c39); // BUG: the idiomatic dispatcher never consumes this seated return
+      if (!loc_2c3f(m)) return;
+      rec += STRIDE;
+    }
+  }
+  const t = craftTwo();
+  const tsp0 = t.regs.sp;
+  leakySweep(t);
+  assert.notEqual(t.regs.sp, tsp0, "the SP-tooth FAILED to catch a retained orphaned push16 — it is worthless");
+  console.log("  SP-TOOTH: idiomatic sweep SP-neutral; retained-push16 twin caught");
+});
+
+// -- 4. TEETH -----------------------------------------------------------------
 
 test("TEETH: a short sweep (stops one record early) misses the last record", () => {
   function shortSweep(m) {

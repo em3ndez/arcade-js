@@ -2,6 +2,7 @@
 import { loc_6b13 } from "./loc_6b13.js";
 import { loc_64fb } from "./loc_64fb.js";
 import { loc_66c5 } from "./loc_66c5.js";
+import { loc_6822 } from "./loc_6822.js";
 import { ENEMY_ACTOR_TABLE, HUNTER_TABLE_BASE } from "./names.js";
 /**
  * loc_64e2 — the fountain/spawn subtree driver, run once per frame.
@@ -19,5 +20,5 @@ export function loc_64e2(m) {
   m.push16(m.pc); // seat a scratch return frame for the dispatch tail-return
   loc_64fb(m);
   loc_66c5(m, ENEMY_ACTOR_TABLE);
-  return m.call(0x6822); // enemy-record state dispatcher
+  return loc_6822(m); // enemy-record state dispatcher
 }

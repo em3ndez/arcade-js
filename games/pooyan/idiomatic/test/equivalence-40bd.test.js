@@ -3,15 +3,16 @@
  * Memory-equivalence test for dispatchFormationObjectStates (ROM 0x40bd, Pooyan) — the formation-record sweep. It
  * walks four fixed-stride records and hands each to the object-state dispatcher.
  *
- * SEATING: BALANCED-WIRE. The oracle's per-iteration push16 is popped by the callee and it ends
- * on a plain `ret` (net SP 0). The dispatcher (0x40d0) is a spine routine not lifted this batch,
- * so its one call is kept marshalled; the oracle parks its loop counter/stride in the alt
- * register set (exx) purely to survive that call, which the module replaces with JS locals — the
- * dispatcher reads only IX, never the parked B/DE. LIVE-OUT is memory only.
+ * SEATING: BALANCED-WIRE. loc_40d0 is now lifted (idiomatic), so the module DIRECT-CALLS it (the
+ * seated-return push16 the frozen dispatcher's ret used to consume is dropped) — the module ends on
+ * a plain return (net SP 0). The oracle parks its loop counter/stride in the alt register set (exx)
+ * purely to survive the call, which the module replaces with JS locals — the dispatcher reads only
+ * IX, never the parked B/DE. LIVE-OUT is memory only.
  *
- * The module differs from the oracle ONLY in loop mechanics, so the substance is the record
- * sequence handed to the dispatcher. A spy wrapping 0x40d0 (on a private routines map so it does
- * not leak to other clones) records the IX at each dispatch for BOTH runs.
+ * The module differs from the oracle ONLY in loop mechanics, so the substance is the record sequence
+ * handed to the dispatcher. Both the oracle (`ld ix` / `add ix,de`) and the module (`m.regs.ix =`)
+ * seat each record pointer through the IX setter, so a spy on that setter records the dispatch
+ * sequence for BOTH runs (the frozen m.call and the idiomatic direct call alike).
  *
  * Jobs:
  *   1. EQUAL — on a boot clone the records are inactive, so the dispatcher no-ops: oracle ==
@@ -39,7 +40,6 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const DISPATCH = 0x40d0;
 const EXPECTED = [0x8c30, 0x8c48, 0x8c60, 0x8c78]; // FORMATION_TABLE + i*0x18, i=0..3
 const SP0 = 0x8fe0; // inside STACK_SCRATCH
 
@@ -51,16 +51,20 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Run `runner`, returning the IX handed to the dispatcher at each dispatch. */
+/** Run `runner`, returning the record pointer seated in IX before each dispatch (the sweep sequence).
+ *  Works for the frozen oracle (m.call(0x40d0)) and the idiomatic module (direct loc_40d0) alike:
+ *  both route every record pointer through the IX setter, which we spy on the instance. */
 function sweepIx(runner) {
   const m = BASE.clone();
   m.regs.sp = SP0;
-  m.routines = new Map(m.routines); // private copy so the spy does not leak to other clones
   const seq = [];
-  const real = m.routines.get(DISPATCH);
-  m.routines.set(DISPATCH, (mm, ...a) => {
-    seq.push(mm.regs.ix & 0xffff);
-    return real(mm, ...a);
+  Object.defineProperty(m.regs, "ix", {
+    configurable: true,
+    get() { return this._ix; },
+    set(v) {
+      this._ix = v & 0xffff;
+      if (EXPECTED.includes(this._ix)) seq.push(this._ix); // a record pointer is being seated for dispatch
+    },
   });
   runner(m);
   return seq;

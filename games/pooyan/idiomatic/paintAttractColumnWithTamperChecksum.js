@@ -3,6 +3,7 @@ import { u16 } from "../../../core/int.js";
 import { loc_0a28 } from "./loc_0a28.js";
 import { loc_09f8 } from "./loc_09f8.js";
 import { loc_76ea } from "./loc_76ea.js";
+import { loc_7442 } from "./loc_7442.js";
 import {
   ANIM_FRAME_COUNTER,
   SCRIPT_FRAME_TIMER,
@@ -61,7 +62,7 @@ export function paintAttractColumnWithTamperChecksum(m) {
   }
 
   let cksum = mem16[INTRO_DELAY_CKSUM_WORD]; // verify against the two stored bytes
-  if (mem8[cksum] !== (sum & 0xff)) return m.call(0x7442); // low-byte miss -> tamper dispatcher
+  if (mem8[cksum] !== (sum & 0xff)) return loc_7442(m); // low-byte miss -> tamper dispatcher
   cksum = u16(cksum + 1);
   if (mem8[cksum] !== (sum >> 8)) return loc_76ea(m); // high-byte miss -> tamper handler
   mem16[INTRO_DELAY_CKSUM_WORD] = u16(cksum + 1); // clean pass -> advance the check pointer

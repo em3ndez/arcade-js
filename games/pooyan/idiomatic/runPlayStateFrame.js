@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_7912 } from "./loc_7912.js";
 import { resetToBoardBuildToContinuePlay } from "./resetToBoardBuildToContinuePlay.js";
+import { loc_15a1 } from "./loc_15a1.js";
 /**
  * runPlayStateFrame — top-level game state-3 (play) handler, dispatched each frame from the NMI
  * service via the state table. Ticks the BCD play-timer, then dispatches the in-play sub-state through
@@ -11,7 +12,6 @@ import { resetToBoardBuildToContinuePlay } from "./resetToBoardBuildToContinuePl
 
 export function runPlayStateFrame(m) {
   loc_7912(m); // tick the BCD play-timer
-  m.regs.hl = 0x15d1; // continuation the dispatched handler returns to (bridge to the frozen dispatch)
-  m.call(0x15a1); // frozen rst-0x28 in-play sub-state dispatch; the handler returns to the continuation
+  loc_15a1(m); // in-play sub-state dispatch (tail dispatch; the handler returns here)
   return resetToBoardBuildToContinuePlay(m); // post-dispatch continuation -> NMI epilogue
 }

@@ -91,6 +91,9 @@ export const UNWIRED = {
       "RAM, verified) and stay; the frozen layer runs it in-game when the Mother-Ship is on the field.",
   },
   pooyan: {
+    "loc_2c3f.js": "DISSOLVED boolean caller-skip dispatcher; direct-called by idiomatic loc_2c2c; switches ((ix+2)&0x1f)-0x11 to loc_2c58/2cb3/2d24/2d4a; not oracle-served",
+    "loc_2d24.js": "DISSOLVED hunter state-2 caller-skip -> boolean; direct-called by idiomatic loc_2c3f; not oracle-served",
+    "loc_2d4a.js": "DISSOLVED hunter state-3 caller-skip -> boolean; direct-called by idiomatic loc_2c3f; not oracle-served",
     "loc_0728.js": "DISSOLVED into loc_0714 (SCC fold); idiomatic-unreachable; not oracle-served",
     "loc_5489.js": "DISSOLVED unconditional caller-skip -> false (always skips); direct-called by loc_54f9/loc_5544/loc_5594 (wired overrides); not oracle-served",
     "loc_572b.js": "DISSOLVED caller-skip -> boolean (spawn path); direct-called by loc_56e8/loc_588e (wired overrides); not oracle-served",

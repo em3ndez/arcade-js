@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { FORMATION_TABLE } from "./names.js";
+import { loc_40d0 } from "./loc_40d0.js";
 
 const RECORD_STRIDE = 0x18; // bytes between consecutive formation records
 const RECORD_COUNT = 4;
@@ -18,8 +19,7 @@ export function dispatchFormationObjectStates(m) {
   let record = FORMATION_TABLE;
   for (let i = 0; i < RECORD_COUNT; i++) {
     m.regs.ix = record; // the dispatcher reads the record pointer from IX
-    m.push16(0x40ca); // return slot the dispatcher's ret consumes
-    m.call(0x40d0);
+    loc_40d0(m);
     record += RECORD_STRIDE;
   }
 }
