@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0c5c (ROM 0x0c5c, Pooyan) — board-build state 0.
+ * Memory-equivalence test for primeTileFillCursorAndAdvanceBoardBuild (ROM 0x0c5c, Pooyan) — board-build state 0.
  *
  * Clears the state scratch byte, kicks the watchdog, drops the in-play flag, seats the row-fill
  * cursor at the playfield paint origin, primes the row counter, advances the sub-state, then
@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0c5c as oracle } from "../../translated/loc_0c45.js";
-import { loc_0c5c } from "../loc_0c5c.js";
+import { primeTileFillCursorAndAdvanceBoardBuild } from "../primeTileFillCursorAndAdvanceBoardBuild.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -65,12 +65,12 @@ function craft(state) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0c5c == oracle in RAM (−stack)", () => {
+test("EQUAL: primeTileFillCursorAndAdvanceBoardBuild == oracle in RAM (−stack)", () => {
   for (const state of [0x00, 0x03]) {
     const o = craft(state);
     const c = craft(state);
     oracle(o);
-    loc_0c5c(c);
+    primeTileFillCursorAndAdvanceBoardBuild(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `state ${state}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -96,7 +96,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x00);
   const c = craft(0x00);
   oracle(o);
-  loc_0c5c(c);
+  primeTileFillCursorAndAdvanceBoardBuild(c);
   c.mem8[FILL_ROW_COUNTER] = (o.mem8[FILL_ROW_COUNTER] ^ 0xff) & 0xff;
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -108,7 +108,7 @@ test("TEETH: a twin that skips the sub-state bump diverges from the oracle", () 
   const o = craft(0x00);
   const c = craft(0x00);
   oracle(o);
-  loc_0c5c(c);
+  primeTileFillCursorAndAdvanceBoardBuild(c);
   c.mem8[PLAY_STATE_INDEX] = 0x00; // regress the bump the handler performed
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "a skipped sub-state bump must be caught");

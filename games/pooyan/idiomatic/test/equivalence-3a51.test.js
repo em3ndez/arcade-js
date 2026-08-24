@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3a51 (ROM 0x3a51, Pooyan) — arm the drop animation near the top.
+ * Memory-equivalence test for armActorDropAnimationNearTop (ROM 0x3a51, Pooyan) — arm the drop animation near the top.
  *
  * SEATING: BALANCED — the high-position byte arrives in B (param default m.regs.b) and the actor
  * record base in IX (param default m.regs.ix). Above the arm window it returns inert; below it
@@ -23,7 +23,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3a51 as oracle } from "../../translated/loc_39af.js";
-import { loc_3a51 } from "../loc_3a51.js";
+import { armActorDropAnimationNearTop } from "../armActorDropAnimationNearTop.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { bridgeReseatEquivalent } from "../../../../core/bridge-reseat.js";
@@ -66,12 +66,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_3a51 == oracle in RAM (−stack)", () => {
+test("EQUAL: armActorDropAnimationNearTop == oracle in RAM (−stack)", () => {
   for (const [name, highPos] of Object.entries(CASES)) {
     const o = seat(BASE.clone(), highPos);
     const c = seat(BASE.clone(), highPos);
     oracle(o);
-    loc_3a51(c);
+    armActorDropAnimationNearTop(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -82,7 +82,7 @@ test("EQUAL: loc_3a51 == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: armed stamps the record; inert leaves it untouched", () => {
   const armed = seat(BASE.clone(), 0x01);
-  loc_3a51(armed);
+  armActorDropAnimationNearTop(armed);
   assert.equal(armed.mem.read8(REC + 0x0c), 0xd1, "anim pointer low = 0xd1");
   assert.equal(armed.mem.read8(REC + 0x0d), 0x3b, "anim pointer high = 0x3b");
   assert.equal(armed.mem.read8(REC + 0x0e), 0x00, "anim phase cleared");
@@ -102,7 +102,7 @@ test("TEETH: a corrupted record byte is CAUGHT by the RAM diff", () => {
   const o = seat(BASE.clone(), 0x01);
   const c = seat(BASE.clone(), 0x01);
   oracle(o);
-  loc_3a51(c);
+  armActorDropAnimationNearTop(c);
   c.mem.write8(REC + 0x11, (o.mem.read8(REC + 0x11) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -123,7 +123,7 @@ test("TEETH: a twin that skips the arm diverges from the oracle", () => {
 
 test("BRIDGE: a poisoned IX is re-seated before the frozen loc_381e", () => {
   const entry = seat(BASE.clone(), 0x01);
-  const { equal, ram } = bridgeReseatEquivalent(entry, oracle, loc_3a51, {
+  const { equal, ram } = bridgeReseatEquivalent(entry, oracle, armActorDropAnimationNearTop, {
     live: { ix: REC },
     poison: { ix: 0x8b40 }, // wrong record base; a missing re-seat writes the anim pointer there
     args: [0x01, REC],

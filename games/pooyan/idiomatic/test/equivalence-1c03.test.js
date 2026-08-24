@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1c03 (ROM 0x1c03) — the phase-timer-gated play-state dispatch
+ * Memory-equivalence test for advancePlayStateAndStageHighScoreEntryOnTimer (ROM 0x1c03) — the phase-timer-gated play-state dispatch
  * handler. Void handler (no register read back by its dispatcher), so LIVE-OUT is memory only and
  * the comparison is RAM (dumpState) minus STACK_SCRATCH. Cases exercise: timer running (early ret),
  * timer expired with rank 0 (sounds/paint/enqueue + sub-state advance), and rank nonzero (the wipe
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1c03 as oracle } from "../../translated/loc_1c03.js";
-import { loc_1c03 } from "../loc_1c03.js";
+import { advancePlayStateAndStageHighScoreEntryOnTimer } from "../advancePlayStateAndStageHighScoreEntryOnTimer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -54,12 +54,12 @@ const CASES = {
 
 // -- 1. EQUAL ----------------------------------------------------------------
 
-test("EQUAL: loc_1c03 == oracle in RAM (−stack)", () => {
+test("EQUAL: advancePlayStateAndStageHighScoreEntryOnTimer == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_1c03(c);
+    advancePlayStateAndStageHighScoreEntryOnTimer(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -86,7 +86,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["expired, rank 0"](BASE.clone());
   const c = CASES["expired, rank 0"](BASE.clone());
   oracle(o);
-  loc_1c03(c);
+  advancePlayStateAndStageHighScoreEntryOnTimer(c);
   c.mem.write8(PLAY_STATE_INDEX, (o.mem.read8(PLAY_STATE_INDEX) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

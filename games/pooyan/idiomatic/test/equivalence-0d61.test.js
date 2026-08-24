@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0d61 (ROM 0x0d61, Pooyan) — the coin jingle.
+ * Memory-equivalence test for queueCreditDisplayAndEnterBoardBuild (ROM 0x0d61, Pooyan) — the coin jingle.
  *
  * On a nonzero credit count (0x8802) it queues a credit display command (rst 0x38) — 0x0618 for
  * exactly one credit, 0x0619 for more — then a fixed 0x0300 command, and sets the top-level game
@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0d61 as oracle } from "../../translated/loc_0cf8.js";
-import { loc_0d61 } from "../loc_0d61.js";
+import { queueCreditDisplayAndEnterBoardBuild } from "../queueCreditDisplayAndEnterBoardBuild.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -63,12 +63,12 @@ const CASES = { "zero credits": 0x00, "one credit": 0x01, "two credits": 0x02 };
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0d61 == oracle in RAM (−stack)", () => {
+test("EQUAL: queueCreditDisplayAndEnterBoardBuild == oracle in RAM (−stack)", () => {
   for (const [name, credits] of Object.entries(CASES)) {
     const o = craft(credits);
     const c = craft(credits);
     oracle(o);
-    loc_0d61(c);
+    queueCreditDisplayAndEnterBoardBuild(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -95,7 +95,7 @@ test("TEETH: a corrupted 0x8805 byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x02);
   const c = craft(0x02);
   oracle(o);
-  loc_0d61(c);
+  queueCreditDisplayAndEnterBoardBuild(c);
   c.mem.write8(MAIN_GAME_STATE, (o.mem.read8(MAIN_GAME_STATE) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted state byte");

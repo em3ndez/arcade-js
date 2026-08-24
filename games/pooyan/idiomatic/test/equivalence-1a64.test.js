@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1a64 (ROM 0x1a64, Pooyan) — gameplay-state entry.
+ * Memory-equivalence test for advancePhaseGaugeCountdown (ROM 0x1a64, Pooyan) — gameplay-state entry.
  *
  * SEATING: BALANCED (plain ret / tail-branches) -> WIRE. Void handler: no caller reads a register
  * back, so LIVE-OUT is memory only and the comparison is RAM (dumpState) minus STACK_SCRATCH;
  * nested sub-routine pushes park in the dead stack (SP in STACK_SCRATCH).
  *
- * Paths crafted: latch-set (tail to loc_1a01); credit-gate teardown; gauge already-zero and
+ * Paths crafted: latch-set (tail to reseedSpawnCountersAndArmPlayMode); credit-gate teardown; gauge already-zero and
  * count-to-zero (tail to loc_1a96); the render path seeding the play sub-state; and the render
  * path with the display-command ring slot freed, so resetBoardRamAndReseedSpawnCounters's dissolved
  * call 0x2527 forwards the E live-in (display-command low byte) through loc_0038 into 0x88c1.
@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1a64 as oracle } from "../../translated/loc_1a64.js";
-import { loc_1a64 } from "../loc_1a64.js";
+import { advancePhaseGaugeCountdown } from "../advancePhaseGaugeCountdown.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -80,7 +80,7 @@ function seat(
 }
 
 const CASES = {
-  "latch set -> tail loc_1a01": (m) => seat(m, { latch: 0x02, round: 0x00 }),
+  "latch set -> tail reseedSpawnCountersAndArmPlayMode": (m) => seat(m, { latch: 0x02, round: 0x00 }),
   "credit gate closed -> teardown": (m) => seat(m, { latch: 0x00, active: 0x00 }),
   "gauge already 0 -> loc_1a96": (m) => seat(m, { latch: 0x00, active: 0x01, gauge: 0x00 }),
   "gauge count to 0 -> loc_1a96": (m) => seat(m, { latch: 0x00, active: 0x01, gauge: 0x01 }),
@@ -95,12 +95,12 @@ const CASES = {
 
 const CMD_LOW_ADDR = DISPLAY_CMD_RING_BUFFER + 1; // 0x88c1 — where loc_0038 stores E
 
-test("EQUAL: loc_1a64 == oracle in RAM (−stack)", () => {
+test("EQUAL: advancePhaseGaugeCountdown == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_1a64(c);
+    advancePhaseGaugeCountdown(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -123,7 +123,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["render path (player 0)"](BASE.clone());
   const c = CASES["render path (player 0)"](BASE.clone());
   oracle(o);
-  loc_1a64(c);
+  advancePhaseGaugeCountdown(c);
   c.mem.write8(PLAY_STATE_INDEX, (o.mem.read8(PLAY_STATE_INDEX) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_39ba (ROM 0x39ba, Pooyan) — advance the enemy actor's vertical
+ * Memory-equivalence test for advanceEnemyVerticalAndDispatchByAltitude (ROM 0x39ba, Pooyan) — advance the enemy actor's vertical
  * position along its velocity, then branch on the state byte and the new high position.
  *
- * SEATING: BALANCED. LIVE-OUT is memory only — the routine rets or tail-delegates (loc_3a51,
- * loc_3a48, loc_39e0, all decompiled this batch / verified); the comparison is RAM (dumpState)
+ * SEATING: BALANCED. LIVE-OUT is memory only — the routine rets or tail-delegates (armActorDropAnimationNearTop,
+ * resetActorSubstateAndReloadStateTimer, fireEnemyShotWhenAlignedWithPlayer, all decompiled this batch / verified); the comparison is RAM (dumpState)
  * minus STACK_SCRATCH. The register file is not compared.
  *
  * INPUT: IX (the actor record). The low position (+3) advances by the signed velocity (+0x0a),
  * borrowing one from the high byte (+4) on underflow. Crafted paths: no-borrow ret and borrow ret
- * (self arithmetic), the sub-state reset (loc_3a48), the arrival delegate (loc_3a51, seated to
- * return), and the fire/drop gate (loc_39e0, seated to return). Delegatee modules resolve at
+ * (self arithmetic), the sub-state reset (resetActorSubstateAndReloadStateTimer), the arrival delegate (armActorDropAnimationNearTop, seated to
+ * return), and the fire/drop gate (fireEnemyShotWhenAlignedWithPlayer, seated to return). Delegatee modules resolve at
  * reconcile; both sides run the SAME chosen delegatee so those agree by construction.
  *
  * Jobs:
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_39ba as oracle } from "../../translated/loc_39af.js";
-import { loc_39ba } from "../loc_39ba.js";
+import { advanceEnemyVerticalAndDispatchByAltitude } from "../advanceEnemyVerticalAndDispatchByAltitude.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, WAVE_PROGRESS_COUNTER, LANE_SPAWN_COUNTDOWN } from "../names.js";
@@ -65,28 +65,28 @@ const CASES = [
     pokes: [[REC + REC_VEL, 0x80], [REC + REC_POSLOW, 0xa0], [REC + REC_POSHIGH, 0x08], [REC + REC_STATE, 0x01]] },
   { name: "borrow, state!=0, mid position -> ret",
     pokes: [[REC + REC_VEL, 0x05], [REC + REC_POSLOW, 0x02], [REC + REC_POSHIGH, 0x08], [REC + REC_STATE, 0x01]] },
-  { name: "state!=0, high position < 4 -> loc_3a48",
+  { name: "state!=0, high position < 4 -> resetActorSubstateAndReloadStateTimer",
     pokes: [[REC + REC_VEL, 0x00], [REC + REC_POSLOW, 0x10], [REC + REC_POSHIGH, 0x03], [REC + REC_STATE, 0x01]] },
-  { name: "state == 0 -> loc_3a51 (returns: high >= 2)",
+  { name: "state == 0 -> armActorDropAnimationNearTop (returns: high >= 2)",
     pokes: [[REC + REC_VEL, 0x00], [REC + REC_POSLOW, 0x10], [REC + REC_POSHIGH, 0x05], [REC + REC_STATE, 0x00]] },
-  { name: "state == 0, high < 2 -> loc_3a51 DROP-ARM (no-borrow, deterministic)",
+  { name: "state == 0, high < 2 -> armActorDropAnimationNearTop DROP-ARM (no-borrow, deterministic)",
     // vel=0 => u8(-vel)=0 => posLow(0x10) < 0 is false => no borrow => posHigh stays 0x01 < 2:
-    // loc_3a51 must seat the drop animation and sub-state/timer. The high-position ARGUMENT is
-    // load-bearing here — this is the case reverting to loc_3a51(m, rec) can no longer pass.
+    // armActorDropAnimationNearTop must seat the drop animation and sub-state/timer. The high-position ARGUMENT is
+    // load-bearing here — this is the case reverting to armActorDropAnimationNearTop(m, rec) can no longer pass.
     pokes: [[REC + REC_VEL, 0x00], [REC + REC_POSLOW, 0x10], [REC + REC_POSHIGH, 0x01], [REC + REC_STATE, 0x00]] },
-  { name: "state!=0, high position >= 0x10 -> loc_39e0 (returns)",
+  { name: "state!=0, high position >= 0x10 -> fireEnemyShotWhenAlignedWithPlayer (returns)",
     pokes: [[REC + REC_VEL, 0x00], [REC + REC_POSLOW, 0x10], [REC + REC_POSHIGH, 0x10], [REC + REC_STATE, 0x01],
             [WAVE_PROGRESS_COUNTER, 0x0e], [LANE_SPAWN_COUNTDOWN, 0x01]] },
 ];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted paths — loc_39ba == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted paths — advanceEnemyVerticalAndDispatchByAltitude == oracle in RAM (−stack)", () => {
   for (const cse of CASES) {
     const o = craft(cse.pokes);
     const c = craft(cse.pokes);
     oracle(o);
-    loc_39ba(c);
+    advanceEnemyVerticalAndDispatchByAltitude(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -115,7 +115,7 @@ test("TEETH: a corrupted position byte is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[1].pokes);
   const c = craft(CASES[1].pokes);
   oracle(o);
-  loc_39ba(c);
+  advanceEnemyVerticalAndDispatchByAltitude(c);
   c.mem8[REC + REC_POSLOW] = (c.mem8[REC + REC_POSLOW] + 1) & 0xff; // BUG: wrong advanced position
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted position byte");
@@ -127,7 +127,7 @@ test("TEETH: a twin that skips the borrow (high byte) diverges from the oracle",
   const o = craft(CASES[1].pokes);
   const c = craft(CASES[1].pokes);
   oracle(o);
-  loc_39ba(c);
+  advanceEnemyVerticalAndDispatchByAltitude(c);
   c.mem8[REC + REC_POSHIGH] = (c.mem8[REC + REC_POSHIGH] + 1) & 0xff; // BUG twin: as if no borrow ran
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "a skipped borrow must be caught");
@@ -135,16 +135,16 @@ test("TEETH: a twin that skips the borrow (high byte) diverges from the oracle",
   console.log(`  TEETH(borrow): caught at ${hx(d.addr)}`);
 });
 
-test("TEETH: state==0 & high<2 reaches loc_3a51's DROP-ARM and the module matches the oracle", () => {
-  // The state==0 branch delegates to loc_3a51 passing the NEW high-position byte. loc_3a51 only
+test("TEETH: state==0 & high<2 reaches armActorDropAnimationNearTop's DROP-ARM and the module matches the oracle", () => {
+  // The state==0 branch delegates to armActorDropAnimationNearTop passing the NEW high-position byte. armActorDropAnimationNearTop only
   // arms the drop when that argument is < 2; the older state==0 case (posHigh>=2) early-returns,
-  // so the high-position bridge is untested and reverting to loc_3a51(m, rec) survives. This case
+  // so the high-position bridge is untested and reverting to armActorDropAnimationNearTop(m, rec) survives. This case
   // makes the drop-arm fire, so a lost high-position argument diverges.
   const DROP = CASES[4]; // state==0, high<2 (no-borrow)
   const o = craft(DROP.pokes);
   const c = craft(DROP.pokes);
   oracle(o);
-  loc_39ba(c);
+  advanceEnemyVerticalAndDispatchByAltitude(c);
 
   // Live-out is derived from the ORACLE: prove the drop-arm genuinely ran (not another early-out).
   assert.equal(o.mem8[REC + 0x02], 0x02, "oracle: sub-state -> dropping (0x02)");
@@ -154,7 +154,7 @@ test("TEETH: state==0 & high<2 reaches loc_3a51's DROP-ARM and the module matche
   assert.equal(o.mem8[REC + 0x0e], 0x00, "oracle: anim frame index reset to 0");
 
   // The module must reproduce every one of those writes; a dropped high-position argument
-  // (loc_3a51(m, rec)) turns the drop-arm into an early return and this diff catches it.
+  // (armActorDropAnimationNearTop(m, rec)) turns the drop-arm into an early return and this diff catches it.
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `drop-arm RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  TEETH(drop-arm): high<2 seats anim 0x3bd1 + sub-state 0x02 / timer 0x28; module == oracle");

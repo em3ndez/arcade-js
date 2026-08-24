@@ -7,7 +7,7 @@
  *
  * Cycle-free memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
  * STACK_SCRATCH) only. The routine has NO register live-out — its dispatcher (dispatchAttractSubstate) resumes
- * in the shared epilogue loc_0bb5, which reloads its registers from memory — so pc and the whole
+ * in the shared epilogue advanceGameStateOnCreditOrStartPress, which reloads its registers from memory — so pc and the whole
  * register file are deliberately NOT compared.
  *
  * Jobs:

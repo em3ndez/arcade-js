@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3a48 (ROM 0x3a48, Pooyan) — reset the enemy actor's sub-state and
+ * Memory-equivalence test for resetActorSubstateAndReloadStateTimer (ROM 0x3a48, Pooyan) — reset the enemy actor's sub-state and
  * reload its state timer on the IX record.
  *
  * SEATING: BALANCED (plain ret). LIVE-OUT is memory only — the routine writes rec+2 = 0 and
@@ -20,7 +20,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3a48 as oracle } from "../../translated/loc_39af.js";
-import { loc_3a48 } from "../loc_3a48.js";
+import { resetActorSubstateAndReloadStateTimer } from "../resetActorSubstateAndReloadStateTimer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -53,11 +53,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_3a48 == oracle in RAM (−stack)", () => {
+test("EQUAL: resetActorSubstateAndReloadStateTimer == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_3a48(c);
+  resetActorSubstateAndReloadStateTimer(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: identical (RAM −stack)");
@@ -85,7 +85,7 @@ test("TEETH: a corrupted timer byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_3a48(c);
+  resetActorSubstateAndReloadStateTimer(c);
   c.mem8[REC + REC_TIMER] = (c.mem8[REC + REC_TIMER] ^ 0xff) & 0xff; // BUG: wrong reload
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted timer byte");
@@ -97,7 +97,7 @@ test("TEETH: a twin that skips the sub-state clear diverges from the oracle", ()
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_3a48(c);
+  resetActorSubstateAndReloadStateTimer(c);
   c.mem8[REC + REC_SUBSTATE] = 0x55; // BUG twin: as if the clear never ran
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "a skipped sub-state clear must be caught");

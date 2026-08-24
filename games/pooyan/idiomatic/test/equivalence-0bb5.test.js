@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0bb5 (ROM 0x0bb5, Pooyan) — the shared attract/board-handler epilogue.
+ * Memory-equivalence test for advanceGameStateOnCreditOrStartPress (ROM 0x0bb5, Pooyan) — the shared attract/board-handler epilogue.
  *
  * Two independent jobs run back to back: (1) a HUD integrity check (only when idle at build state 1
  * in sub-state 3/5/8) that scans a ROM reference list against the tile strip and cross-checks a
  * sub-state ROM lookup, arming the board-clear flag on any disagreement; (2) the coin/credit gate
  * that either advances the top-level state on a waiting credit, or on free play routes the IN0 start
- * bits into the 1P/2P screen builders. loc_0bb5 is a void epilogue -> equivalence is RAM (dumpState)
+ * bits into the 1P/2P screen builders. advanceGameStateOnCreditOrStartPress is a void epilogue -> equivalence is RAM (dumpState)
  * minus STACK_SCRATCH.
  *
  * Crafts cover: game-active skip + no-credit ret; credit-advances-state; integrity mismatch (arm);
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0bb5 as oracle } from "../../translated/loc_0b32.js";
-import { loc_0bb5 } from "../loc_0bb5.js";
+import { advanceGameStateOnCreditOrStartPress } from "../advanceGameStateOnCreditOrStartPress.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { bridgeReseatEquivalent } from "../../../../core/bridge-reseat.js";
@@ -136,12 +136,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0bb5 == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceGameStateOnCreditOrStartPress == oracle in RAM (−stack)", () => {
   for (const [name, mk] of Object.entries(CASES)) {
     const o = mk();
     const c = mk();
     oracle(o);
-    loc_0bb5(c);
+    advanceGameStateOnCreditOrStartPress(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -168,7 +168,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["game active, credit -> advance state"]();
   const c = CASES["game active, credit -> advance state"]();
   oracle(o);
-  loc_0bb5(c);
+  advanceGameStateOnCreditOrStartPress(c);
   c.mem8[MAIN_GAME_STATE] = (o.mem8[MAIN_GAME_STATE] ^ 0xff) & 0xff;
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -180,7 +180,7 @@ test("TEETH: a twin that skips the board-clear arm diverges from the oracle", ()
   const o = CASES["integrity mismatch -> arm"]();
   const c = CASES["integrity mismatch -> arm"]();
   oracle(o);
-  loc_0bb5(c);
+  advanceGameStateOnCreditOrStartPress(c);
   c.mem8[BOARD_CLEAR_FLAG] = 0x00; // regress the arm the epilogue performed
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "a skipped arm must be caught");
@@ -191,7 +191,7 @@ test("TEETH: a twin that skips the board-clear arm diverges from the oracle", ()
 // -- 4. BRIDGE (R37) ----------------------------------------------------------
 
 test("BRIDGE: the 1P builder HL=0 hand-off re-seats a poisoned HL", () => {
-  const r = bridgeReseatEquivalent(CASES["free play, 1P start -> 0dab"](), oracle, loc_0bb5, {
+  const r = bridgeReseatEquivalent(CASES["free play, 1P start -> 0dab"](), oracle, advanceGameStateOnCreditOrStartPress, {
     live: { hl: 0x0000 },
     poison: { hl: 0xbeef },
     excludeAddr: inDeadStack,

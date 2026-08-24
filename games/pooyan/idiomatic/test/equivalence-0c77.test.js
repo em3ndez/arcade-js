@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0c77 (ROM 0x0c77, Pooyan) — board-intro state 1.
+ * Memory-equivalence test for fillIntroRowsThenBuildBoardIntro (ROM 0x0c77, Pooyan) — board-intro state 1.
  *
  * Each call fills two 0x1d-byte tile runs (loc_0010) from the fill cursor and ticks the row
  * countdown (0x8809). While the countdown holds it returns. When it drains it advances the play
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0c77 as oracle } from "../../translated/loc_0c45.js";
-import { loc_0c77 } from "../loc_0c77.js";
+import { fillIntroRowsThenBuildBoardIntro } from "../fillIntroRowsThenBuildBoardIntro.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -79,12 +79,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0c77 == oracle in RAM (−stack)", () => {
+test("EQUAL: fillIntroRowsThenBuildBoardIntro == oracle in RAM (−stack)", () => {
   for (const [name, mk] of Object.entries(CASES)) {
     const o = mk();
     const c = mk();
     oracle(o);
-    loc_0c77(c);
+    fillIntroRowsThenBuildBoardIntro(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -114,7 +114,7 @@ test("TEETH: a corrupted fill byte is CAUGHT by the RAM diff", () => {
   const o = CASES["countdown holds"]();
   const c = CASES["countdown holds"]();
   oracle(o);
-  loc_0c77(c);
+  fillIntroRowsThenBuildBoardIntro(c);
   c.mem.write8(0x8402, (o.mem.read8(0x8402) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted fill byte");
@@ -126,7 +126,7 @@ test("TEETH: a twin that skips the sub-state advance diverges from the oracle", 
   const o = CASES["drains, DSW bit0=0"]();
   const c = CASES["drains, DSW bit0=0"]();
   oracle(o);
-  loc_0c77(c);
+  fillIntroRowsThenBuildBoardIntro(c);
   c.mem.write8(ACTIVE_PLAYER, (o.mem.read8(ACTIVE_PLAYER) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "a corrupted 0x880d byte must be caught by the RAM diff");

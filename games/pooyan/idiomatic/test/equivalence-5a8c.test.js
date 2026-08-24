@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5a8c (ROM 0x5a8c, Pooyan) — shared score-accumulate tail.
+ * Memory-equivalence test for addCreditsAndQueueDisplay (ROM 0x5a8c, Pooyan) — shared score-accumulate tail.
  *
  * SEATING: BALANCED — the incoming amount arrives in A (param default m.regs.a), the routine adds it
- * to the score byte, clamps to 0x63, and tails into loc_5a97 (dissolved) which queues a display
+ * to the score byte, clamps to 0x63, and tails into queueCreditDisplayRefresh (dissolved) which queues a display
  * command. LIVE-OUT is memory only (score byte + display ring); no caller reads A back. SP parked in
  * STACK_SCRATCH. Cases: below-cap (no clamp), above-cap, exactly-at-cap.
  *
@@ -20,8 +20,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5a8c as oracle } from "../../translated/loc_5a56.js";
-import { loc_5a8c } from "../loc_5a8c.js";
-import { loc_5a97 } from "../loc_5a97.js";
+import { addCreditsAndQueueDisplay } from "../addCreditsAndQueueDisplay.js";
+import { queueCreditDisplayRefresh } from "../queueCreditDisplayRefresh.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, CREDIT_COUNT } from "../names.js";
@@ -65,12 +65,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5a8c == oracle in RAM (−stack)", () => {
+test("EQUAL: addCreditsAndQueueDisplay == oracle in RAM (−stack)", () => {
   for (const [name, cfg] of Object.entries(CASES)) {
     const o = seat(BASE.clone(), cfg);
     const c = seat(BASE.clone(), cfg);
     oracle(o);
-    loc_5a8c(c);
+    addCreditsAndQueueDisplay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -81,11 +81,11 @@ test("EQUAL: loc_5a8c == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: below-cap keeps the sum; above-cap clamps to 0x63", () => {
   const below = seat(BASE.clone(), CASES["below cap"]);
-  loc_5a8c(below);
+  addCreditsAndQueueDisplay(below);
   assert.equal(below.mem.read8(CREDIT_COUNT), 0x11, "0x01 + 0x10 = 0x11 (no clamp)");
 
   const above = seat(BASE.clone(), CASES["above cap"]);
-  loc_5a8c(above);
+  addCreditsAndQueueDisplay(above);
   assert.equal(above.mem.read8(CREDIT_COUNT), 0x63, "0x63 + 0x10 clamps to 0x63");
   console.log("  WRITE-SET: sum kept below cap; clamped above");
 });
@@ -96,7 +96,7 @@ test("TEETH: a corrupted score byte is CAUGHT by the RAM diff", () => {
   const o = seat(BASE.clone(), CASES["below cap"]);
   const c = seat(BASE.clone(), CASES["below cap"]);
   oracle(o);
-  loc_5a8c(c);
+  addCreditsAndQueueDisplay(c);
   c.mem.write8(CREDIT_COUNT, (o.mem.read8(CREDIT_COUNT) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -111,7 +111,7 @@ test("TEETH: a twin that skips the clamp diverges on the above-cap case", () => 
   oracle(o);
   // twin: add without clamping, then the same display-command tail -> only the score byte differs
   t.mem.write8(CREDIT_COUNT, (cfg.amount + cfg.score) & 0xff);
-  loc_5a97(t);
+  queueCreditDisplayRefresh(t);
   const d = ramDiffMinusStack(o, t);
   assert.notEqual(d, null, "a skipped clamp must be caught by the RAM diff");
   assert.equal(d.addr, CREDIT_COUNT, `teeth caught wrong address ${hx(d.addr ?? 0)}`);

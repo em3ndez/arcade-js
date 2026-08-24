@@ -8,7 +8,7 @@
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState,
  * minus STACK_SCRATCH). The routine's live-out is MEMORY ONLY — the filled slot plus the
  * advanced write pointer. The oracle also leaves A==0 and its xor-a flags, but none of the
- * four callers (loc_1d0d/705f/0b32/7fd6) reads A or the flags back after the call (each
+ * four callers (stampSecondScrollColumn/705f/0b32/7fd6) reads A or the flags back after the call (each
  * overwrites A or jumps away), so A/flags are not part of the contract and are not compared.
  *
  * Jobs:

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0d78 } from "./loc_0d78.js";
+import { startSelectedPlayerGameConsumingCredits } from "./startSelectedPlayerGameConsumingCredits.js";
 import { queueSoundCommand00 } from "./queueSoundCommand00.js";
 import {
   CREDIT_COUNT,
@@ -40,5 +40,5 @@ export function startGameOnStartButtonPress(m) {
 
   if ((mem8[INPUT_PORT0] & GATE_BITS) === 0) return; // gate bits clear
   queueSoundCommand00(m); // enqueue sound command 0
-  return loc_0d78(m); // tail into the follow-on handler
+  return startSelectedPlayerGameConsumingCredits(m); // tail into the follow-on handler
 }

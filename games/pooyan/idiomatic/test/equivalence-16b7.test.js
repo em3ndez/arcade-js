@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_16b7 (ROM 0x16b7, Pooyan) — the idx1 phase-timer state handler.
+ * Memory-equivalence test for selectRoundDisplayListAndAdvancePhase (ROM 0x16b7, Pooyan) — the idx1 phase-timer state handler.
  *
  * SEATING: BALANCED (plain ret / call+ret) -> WIRE. Void handler: no caller reads a register back,
  * so LIVE-OUT is memory only and the comparison is RAM (dumpState) minus STACK_SCRATCH; nested
@@ -8,7 +8,7 @@
  *
  * Paths crafted: timer-not-expired early ret; attract branch (latch bit0 -> force sub-state 0x10);
  * and three decision-tree pointer selections (in-progress alt, round-parity primary, latched
- * branch). Body cases seat the display buffer to the ROM pattern so the trailing loc_1694 clears
+ * branch). Body cases seat the display buffer to the ROM pattern so the trailing clearDisplayMsgBufOnRoundInitMatch clears
  * and returns rather than re-entering this handler.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-16b7.test.js
@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_16b7 as oracle } from "../../translated/loc_16b7.js";
-import { loc_16b7 } from "../loc_16b7.js";
+import { selectRoundDisplayListAndAdvancePhase } from "../selectRoundDisplayListAndAdvancePhase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -61,7 +61,7 @@ function copyPattern(m) {
   }
 }
 
-/** Seat SP/interrupt state, the display buffer (so loc_1694 clears), and the decision cells. */
+/** Seat SP/interrupt state, the display buffer (so clearDisplayMsgBufOnRoundInitMatch clears), and the decision cells. */
 function seat(m, { timer = 0x01, latch = 0x00, inProg = 0x00, active = 0x01, round = 0x00 } = {}) {
   m.regs.sp = SP0;
   m.regs.i = 0x00;
@@ -90,12 +90,12 @@ const CASES = {
   "tree: in-progress -> alt pointers (round odd -> ALT_ODD)": (m) => seat(m, { latch: 0x00, inProg: 0x01, round: 0x03 }),
 };
 
-test("EQUAL: loc_16b7 == oracle in RAM (−stack)", () => {
+test("EQUAL: selectRoundDisplayListAndAdvancePhase == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_16b7(c);
+    selectRoundDisplayListAndAdvancePhase(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -125,7 +125,7 @@ test("WRITE-SET: the 3 formerly-unexercised (gfx,layout) branches commit the ora
     const o = CASES[name](BASE.clone());
     const c = CASES[name](BASE.clone());
     oracle(o);
-    loc_16b7(c);
+    selectRoundDisplayListAndAdvancePhase(c);
     const gfxO = o.mem.read16(DISPLAY_LIST_SRC_PTR_ALT);
     const layoutO = o.mem.read16(DISPLAY_LIST_SRC_PTR);
     assert.equal(
@@ -146,7 +146,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["tree: round bit0 -> primary pointers (ROUND_ODD)"](BASE.clone());
   const c = CASES["tree: round bit0 -> primary pointers (ROUND_ODD)"](BASE.clone());
   oracle(o);
-  loc_16b7(c);
+  selectRoundDisplayListAndAdvancePhase(c);
   c.mem.write8(PLAY_STATE_INDEX, (o.mem.read8(PLAY_STATE_INDEX) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1c66 (ROM 0x1c66) — the round-clear / game-over / player-swap
+ * Memory-equivalence test for dispatchRoundEndElseWipeColumn (ROM 0x1c66) — the round-clear / game-over / player-swap
  * master of the play-state dispatch handler. Void handler; LIVE-OUT is memory only, comparison is RAM
  * minus STACK_SCRATCH. Cases: not-armed pre-pass, armed-but-not-expired pre-pass, armed+expired with a
  * failing integrity checksum (stamp the reset column then abort), and armed+expired with a passing
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1c66 as oracle } from "../../translated/loc_1c66.js";
-import { loc_1c66 } from "../loc_1c66.js";
+import { dispatchRoundEndElseWipeColumn } from "../dispatchRoundEndElseWipeColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -73,12 +73,12 @@ const CASES = {
 
 // -- 1. EQUAL ----------------------------------------------------------------
 
-test("EQUAL: loc_1c66 == oracle in RAM (−stack)", () => {
+test("EQUAL: dispatchRoundEndElseWipeColumn == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_1c66(c);
+    dispatchRoundEndElseWipeColumn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -105,7 +105,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["armed, expired, checksum fail -> stamp + abort"](BASE.clone());
   const c = CASES["armed, expired, checksum fail -> stamp + abort"](BASE.clone());
   oracle(o);
-  loc_1c66(c);
+  dispatchRoundEndElseWipeColumn(c);
   c.mem.write8(RESET_ATTR_COLUMN, (o.mem.read8(RESET_ATTR_COLUMN) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

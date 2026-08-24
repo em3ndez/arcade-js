@@ -9,7 +9,7 @@
  *
  * Cycle-free memory-equivalence gate (docs/decompiler-pipeline): a FRESH clone per side, compared
  * on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are NOT compared. loc_6f9d is a
- * tail-dispatched intro-phase handler (loc_6da6's rst-0x28 table) and leaves no register a caller
+ * tail-dispatched intro-phase handler (dispatchLevelIntroPhase's rst-0x28 table) and leaves no register a caller
  * consumes — the contract is RAM only. The oracle's `push16 + call/rst` on the match path writes a
  * return address into STACK_SCRATCH the idiomatic direct calls do not — excluded by contract.
  *

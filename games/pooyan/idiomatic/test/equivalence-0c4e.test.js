@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0c4e (ROM 0x0c4e, Pooyan) — the board-build state dispatcher.
+ * Memory-equivalence test for dispatchBoardBuildSubstate (ROM 0x0c4e, Pooyan) — the board-build state dispatcher.
  *
  * Seats its own post-dispatch continuation (0x0d78) as the handler return, marshals the play-state
  * index, dispatches through the shared rst-0x28 trampoline into the inline table {0->0c5c, 1->0c77,
  * 2->0d61}, then runs the continuation which returns to the caller. Both oracle and module drive the
- * SAME frozen spine + handler; only the continuation differs (frozen vs idiomatic loc_0d78), so
+ * SAME frozen spine + handler; only the continuation differs (frozen vs idiomatic startSelectedPlayerGameConsumingCredits), so
  * equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
- * The crafted state seats sub-state 0 (loc_0c5c: clear scratch, seat the fill cursor, bump the
+ * The crafted state seats sub-state 0 (primeTileFillCursorAndAdvanceBoardBuild: clear scratch, seat the fill cursor, bump the
  * sub-state, clear the board-init RAM) — a self-contained handler whose memory footprint is stable.
  *
  * Jobs:
  *   1. EQUAL — oracle == module in RAM (−stack).
- *   2. WRITE-SET — the dispatch reaches loc_0c5c: the sub-state is bumped 0 -> 1.
+ *   2. WRITE-SET — the dispatch reaches primeTileFillCursorAndAdvanceBoardBuild: the sub-state is bumped 0 -> 1.
  *   3. TEETH — a corrupted post-run byte is CAUGHT by the RAM diff.
  *   4. SP-TOOTH (R36) — the seated-return + rst-28 dispatch is seam-placeable.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0c4e as oracle } from "../../translated/loc_0c45.js";
-import { loc_0c4e } from "../loc_0c4e.js";
+import { dispatchBoardBuildSubstate } from "../dispatchBoardBuildSubstate.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PLAY_STATE_INDEX } from "../names.js";
@@ -39,7 +39,7 @@ const test = ROM_PRESENT
 
 const SP0 = 0x8fe0; //        inside STACK_SCRATCH
 const CALLER_RET = 0xfffc; // the continuation's ret lands pc here (moved +2 / or completed by the seam)
-const STATE_0 = 0x00; //      dispatch -> loc_0c5c
+const STATE_0 = 0x00; //      dispatch -> primeTileFillCursorAndAdvanceBoardBuild
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -60,11 +60,11 @@ function craft(state = STATE_0) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0c4e == oracle in RAM (−stack)", () => {
+test("EQUAL: dispatchBoardBuildSubstate == oracle in RAM (−stack)", () => {
   const o = craft();
   oracle(o);
   const c = craft();
-  loc_0c4e(c);
+  dispatchBoardBuildSubstate(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: state-0 dispatch identical (RAM −stack)");
@@ -72,11 +72,11 @@ test("EQUAL: loc_0c4e == oracle in RAM (−stack)", () => {
 
 // -- 2. WRITE-SET -------------------------------------------------------------
 
-test("WRITE-SET: the dispatch reaches loc_0c5c (sub-state bumped 0 -> 1)", () => {
+test("WRITE-SET: the dispatch reaches primeTileFillCursorAndAdvanceBoardBuild (sub-state bumped 0 -> 1)", () => {
   const o = craft();
   oracle(o);
   assert.equal(o.mem8[PLAY_STATE_INDEX], 0x01, "state-0 handler ran -> sub-state advanced to 1");
-  console.log("  WRITE-SET: sub-state 0 dispatch reached loc_0c5c");
+  console.log("  WRITE-SET: sub-state 0 dispatch reached primeTileFillCursorAndAdvanceBoardBuild");
 });
 
 // -- 3. TEETH -----------------------------------------------------------------
@@ -85,7 +85,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_0c4e(c);
+  dispatchBoardBuildSubstate(c);
   c.mem8[PLAY_STATE_INDEX] = (o.mem8[PLAY_STATE_INDEX] ^ 0xff) & 0xff;
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -95,8 +95,8 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (R36) --------------------------------------------------------
 
-test("SP-TOOTH: loc_0c4e's seated-return + rst-28 dispatch is seam-placeable", () => {
-  const r = seamPlaceable(withOmittedRet, loc_0c4e, 0x0c4e, craft());
+test("SP-TOOTH: dispatchBoardBuildSubstate's seated-return + rst-28 dispatch is seam-placeable", () => {
+  const r = seamPlaceable(withOmittedRet, dispatchBoardBuildSubstate, 0x0c4e, craft());
   assert.equal(r.placeable, true, `dispatcher must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: dispatch + continuation seat cleanly");
 });

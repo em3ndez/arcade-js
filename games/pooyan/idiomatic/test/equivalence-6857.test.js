@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6857 (ROM 0x6857, Pooyan) — object ascent step on the IX record.
+ * Memory-equivalence test for advanceObjectAscentStep (ROM 0x6857, Pooyan) — object ascent step on the IX record.
  *
  * SEATING: BALANCED (plain ret / tail-calls) -> WIRE. Void handler on the record at IX: no register
  * survives, LIVE-OUT is memory only, comparison is RAM (dumpState) minus STACK_SCRATCH. SP parked in
@@ -9,7 +9,7 @@
  *
  * Crafted paths: reached-top (rec+6 >= 0x1b -> ret early), and below-top with the tile-block cells
  * tuned so the two-pass checksum resolves to zero -> the loc_0038 append path (self-contained). The
- * checksum-mismatch arm tails to sibling loc_08b3 and is left to that routine's own gate.
+ * checksum-mismatch arm tails to sibling resetToAttractScreenStart and is left to that routine's own gate.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-6857.test.js
  */
@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6857 as oracle } from "../../translated/loc_6857.js";
-import { loc_6857 } from "../loc_6857.js";
+import { advanceObjectAscentStep } from "../advanceObjectAscentStep.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, HUD_INTEGRITY_STRIP_B } from "../names.js";
@@ -75,12 +75,12 @@ const CASES = {
   "below top -> checksum zero -> append": (m) => seatChecksumZero(m),
 };
 
-test("EQUAL: loc_6857 == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceObjectAscentStep == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_6857(c);
+    advanceObjectAscentStep(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -103,7 +103,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["reached top -> ret early"](BASE.clone());
   const c = CASES["reached top -> ret early"](BASE.clone());
   oracle(o);
-  loc_6857(c);
+  advanceObjectAscentStep(c);
   c.mem.write8(REC + 0x05, (o.mem.read8(REC + 0x05) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

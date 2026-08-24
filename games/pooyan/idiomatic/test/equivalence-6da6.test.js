@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6da6 (ROM 0x6da6, Pooyan) — the level-intro / round-start phase
+ * Memory-equivalence test for dispatchLevelIntroPhase (ROM 0x6da6, Pooyan) — the level-intro / round-start phase
  * dispatcher (top-level game state 2): read the intro phase counter (0x8f51) and PURE-tail-dispatch
  * it through the shared rst-0x28 trampoline into the inline table at 0x6daa; no epilogue slot is
  * pushed, so the selected handler returns straight to this dispatcher's caller.
  *
  * The module keeps the register-marshalled spine dispatch (m.call 0x0028); the oracle drives the
- * same frozen dispatcher + handler. loc_6da6 is a void dispatcher — no register survives — so
+ * same frozen dispatcher + handler. dispatchLevelIntroPhase is a void dispatcher — no register survives — so
  * equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * The craft seats phase 3 -> handler loc_6f5e with the delay timer (0x8f48) mid-count and off world
@@ -14,7 +14,7 @@
  * isolates the dispatcher's job (READ the selector + DISPATCH the right handler).
  *
  * Jobs:
- *   1. EQUAL — oracle == loc_6da6 in RAM (−stack) for the phase-3 dispatch.
+ *   1. EQUAL — oracle == dispatchLevelIntroPhase in RAM (−stack) for the phase-3 dispatch.
  *   2. WRITE-SET — the dispatch reaches loc_6f5e: the delay timer is decremented.
  *   3. TEETH — a wrong timer byte is CAUGHT by the RAM diff.
  *   4. SP-TOOTH (R36) — the push16 + rst-28 tail dispatch is seam-placeable (a dropped push16 goes
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6da6 as oracle } from "../../translated/loc_6da6.js";
-import { loc_6da6 } from "../loc_6da6.js";
+import { dispatchLevelIntroPhase } from "../dispatchLevelIntroPhase.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, INTRO_PHASE_INDEX } from "../names.js";
@@ -67,11 +67,11 @@ function craft(delay) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: phase-3 dispatch — loc_6da6 == oracle in RAM (−stack)", () => {
+test("EQUAL: phase-3 dispatch — dispatchLevelIntroPhase == oracle in RAM (−stack)", () => {
   const o = craft(0x05);
   oracle(o);
   const c = craft(0x05);
-  loc_6da6(c);
+  dispatchLevelIntroPhase(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: phase-3 dispatch identical (RAM −stack)");
@@ -92,7 +92,7 @@ test("TEETH: a wrong delay-timer byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x05);
   const c = craft(0x05);
   oracle(o);
-  loc_6da6(c);
+  dispatchLevelIntroPhase(c);
   c.mem8[INTRO_DELAY] = 0x05; // BUG: the dispatch must have ticked it to 0x04
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong timer byte — it is worthless");
@@ -102,8 +102,8 @@ test("TEETH: a wrong delay-timer byte is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (R36) --------------------------------------------------------
 
-test("SP-TOOTH: loc_6da6's push16 + rst-28 tail dispatch is seam-placeable", () => {
-  const r = seamPlaceable(withOmittedRet, loc_6da6, 0x6da6, craft(0x05));
+test("SP-TOOTH: dispatchLevelIntroPhase's push16 + rst-28 tail dispatch is seam-placeable", () => {
+  const r = seamPlaceable(withOmittedRet, dispatchLevelIntroPhase, 0x6da6, craft(0x05));
   assert.equal(r.placeable, true, `dispatcher must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: tail dispatch seats cleanly (moved +2, pc on the caller slot)");
 });

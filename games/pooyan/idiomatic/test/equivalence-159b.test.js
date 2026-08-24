@@ -12,7 +12,7 @@
  * register file is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in
  * dead stack so the nested dispatch pushes drop out of the diff.
  *
- * The crafted state seats the sub-state dispatch to index 1 (handler loc_16b7) with the phase timer
+ * The crafted state seats the sub-state dispatch to index 1 (handler selectRoundDisplayListAndAdvancePhase) with the phase timer
  * running, so the handler's sole effect is a single phase-timer decrement; the in-play gate is set so
  * the play-timer tick runs and the continuation resetToBoardBuildToContinuePlay returns immediately — an isolated footprint.
  *
@@ -43,7 +43,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const STATE_INDEX = 0x880a; // PLAY_STATE_INDEX; &0x1f indexes the 0x15a8 dispatch table
-const PHASE_TIMER = 0x8808; // decremented by the index-1 handler loc_16b7
+const PHASE_TIMER = 0x8808; // decremented by the index-1 handler selectRoundDisplayListAndAdvancePhase
 const GAME_ACTIVE = 0x8806; // GAME_ACTIVE_FLAG; set -> play-timer runs, resetToBoardBuildToContinuePlay returns at once
 const SP0 = 0x8ff0; //        inside STACK_SCRATCH
 const CALLER_RET = 0xfffc; // caller-return word seated at SP0; the tail dispatch pops it (pc==this)
@@ -60,7 +60,7 @@ function ramDiffMinusStack(ma, mb) {
 function craft() {
   const m = BASE.clone();
   m.regs.sp = SP0;
-  m.mem8[STATE_INDEX] = 0x01; // dispatch index 1 -> loc_16b7 (phase-timer decrement)
+  m.mem8[STATE_INDEX] = 0x01; // dispatch index 1 -> selectRoundDisplayListAndAdvancePhase (phase-timer decrement)
   m.mem8[PHASE_TIMER] = 0x60; // running -> handler decrements and returns
   m.mem8[GAME_ACTIVE] = 0x01; // in-play gate open
   return m;

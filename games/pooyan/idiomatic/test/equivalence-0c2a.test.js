@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0c2a (ROM 0x0c2a, Pooyan) — the attract IN0 start-button poll.
+ * Memory-equivalence test for advanceAttractOnStartPress (ROM 0x0c2a, Pooyan) — the attract IN0 start-button poll.
  *
  * While IN0 bit3 is set the routine is inert; on a press it seats attract sub-state 9 and wipes the
  * tile video RAM to the blank tile. The fill is one cell short of the full page (bc = 0x03ff), so the
- * final 0x87ff cell is deliberately left untouched — a quirk the teeth pin down. loc_0c2a is a void
+ * final 0x87ff cell is deliberately left untouched — a quirk the teeth pin down. advanceAttractOnStartPress is a void
  * poll, so equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
  * Jobs:
@@ -20,7 +20,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0c2a as oracle } from "../../translated/loc_0b32.js";
-import { loc_0c2a } from "../loc_0c2a.js";
+import { advanceAttractOnStartPress } from "../advanceAttractOnStartPress.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, IN0_PORT, ATTRACT_SUBSTATE, VIDEO_RAM_BASE } from "../names.js";
@@ -62,12 +62,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0c2a == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceAttractOnStartPress == oracle in RAM (−stack)", () => {
   for (const [name, mk] of Object.entries(CASES)) {
     const o = mk();
     const c = mk();
     oracle(o);
-    loc_0c2a(c);
+    advanceAttractOnStartPress(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -92,7 +92,7 @@ test("TEETH: a corrupted filled cell is CAUGHT by the RAM diff", () => {
   const o = CASES["start pressed -> wipe"]();
   const c = CASES["start pressed -> wipe"]();
   oracle(o);
-  loc_0c2a(c);
+  advanceAttractOnStartPress(c);
   c.mem8[VIDEO_RAM_BASE] = (o.mem8[VIDEO_RAM_BASE] ^ 0xff) & 0xff;
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted cell");
@@ -104,7 +104,7 @@ test("TEETH: a twin that also fills 0x87ff diverges from the oracle", () => {
   const o = CASES["start pressed -> wipe"]();
   const c = CASES["start pressed -> wipe"]();
   oracle(o);
-  loc_0c2a(c);
+  advanceAttractOnStartPress(c);
   c.mem8[NEVER_FILLED] = BLANK_TILE; // over-fill: the oracle left this cell alone
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "an over-fill of 0x87ff must be caught");

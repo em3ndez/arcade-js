@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0b32 (ROM 0x0b32, Pooyan) — attract sub-state 6 handler: verify the
- * 0x82bc integrity block (any mismatch re-enters loc_08b3), run the frame-animation + sprite rebuild
+ * Memory-equivalence test for advanceAttractSequenceToPlay (ROM 0x0b32, Pooyan) — attract sub-state 6 handler: verify the
+ * 0x82bc integrity block (any mismatch re-enters resetToAttractScreenStart), run the frame-animation + sprite rebuild
  * (loc_0a28 / loc_09f8), then the 0x8e50 script timer; on expiry seat the next script pointer via
  * loc_0c45 and, on a checksum frame, run the 14x29 column checksum over 0x8462 and verify it against
- * the two bytes at the INTRO_DELAY_CKSUM_WORD pointer — low miss -> loc_08b3, high miss -> loc_08e9,
+ * the two bytes at the INTRO_DELAY_CKSUM_WORD pointer — low miss -> resetToAttractScreenStart, high miss -> loc_08e9,
  * clean pass -> set main state 3 + resetActorStateForBoard. Every call is dissolved to an idiomatic
  * sibling; the oracle drives the frozen ones.
  *
- * loc_0b32 is a void attract handler — no register survives — so equivalence is RAM (dumpState) minus
+ * advanceAttractSequenceToPlay is a void attract handler — no register survives — so equivalence is RAM (dumpState) minus
  * STACK_SCRATCH, SP parked in dead stack. Each decision path is crafted: row mismatch, timer running
  * (early return), a checksum-frame clean pass, and a checksum-frame high-byte miss.
  *
  * Jobs:
- *   1. EQUAL — every crafted path: oracle == loc_0b32 in RAM (−stack).
+ *   1. EQUAL — every crafted path: oracle == advanceAttractSequenceToPlay in RAM (−stack).
  *   2. WRITE-SET — the running-timer path ticks the frame-animation + script timers.
  *   3. TEETH — a corrupted post-run byte is CAUGHT by the RAM diff.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0b32 as oracle } from "../../translated/loc_0b32.js";
-import { loc_0b32 } from "../loc_0b32.js";
+import { advanceAttractSequenceToPlay } from "../advanceAttractSequenceToPlay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -82,7 +82,7 @@ function seat(m, { animCtr = 2, frameTimer = 5, checkTick = 1, rowMismatch = fal
 }
 
 const CASES = {
-  "row mismatch -> loc_08b3": (m) => seat(m, { rowMismatch: true }),
+  "row mismatch -> resetToAttractScreenStart": (m) => seat(m, { rowMismatch: true }),
   "timer running -> early return": (m) => seat(m, { frameTimer: 5 }),
   "checksum frame -> clean pass": (m) => seat(m, { frameTimer: 1, checkTick: 1, expLo: 0, expHi: 0 }),
   "checksum frame -> high-byte miss (loc_08e9)": (m) => seat(m, { frameTimer: 1, checkTick: 1, expLo: 0, expHi: 1 }),
@@ -90,12 +90,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: every crafted path — loc_0b32 == oracle in RAM (−stack)", () => {
+test("EQUAL: every crafted path — advanceAttractSequenceToPlay == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_0b32(c);
+    advanceAttractSequenceToPlay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -118,7 +118,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["timer running -> early return"](BASE.clone());
   const c = CASES["timer running -> early return"](BASE.clone());
   oracle(o);
-  loc_0b32(c);
+  advanceAttractSequenceToPlay(c);
   c.mem8[SCRIPT_FRAME_TIMER] = (o.mem8[SCRIPT_FRAME_TIMER] ^ 0xff) & 0xff; // BUG: wrong timer
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte — it is worthless");

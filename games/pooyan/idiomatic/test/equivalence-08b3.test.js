@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_08b3 (ROM 0x08b3, Pooyan) — attract sub-state 0 handler: kick the
+ * Memory-equivalence test for resetToAttractScreenStart (ROM 0x08b3, Pooyan) — attract sub-state 0 handler: kick the
  * watchdog + clear a scratch byte, arm the tile fill (loc_02e3), advance the attract sub-state, run
  * the backward ROM checksum from 0x64d5 to the 0x96 sentinel (miss -> raise the tamper flag), clear
- * the in-play gate, then zero the board-init RAM (loc_02b9) and run the sprite-slot tail (loc_1d0d).
+ * the in-play gate, then zero the board-init RAM (loc_02b9) and run the sprite-slot tail (stampSecondScrollColumn).
  * All three internal calls are dissolved to direct idiomatic calls; the oracle drives the frozen
  * siblings.
  *
- * loc_08b3 is a void attract handler — no register survives — so equivalence is RAM (dumpState)
+ * resetToAttractScreenStart is a void attract handler — no register survives — so equivalence is RAM (dumpState)
  * minus STACK_SCRATCH, SP parked in dead stack. The checksum path is fixed by the ROM (an intact ROM
  * leaves the tamper flag clear), so a single capture-clone-replay exercises the whole body.
  *
  * Jobs:
- *   1. EQUAL — oracle == loc_08b3 in RAM (−stack).
+ *   1. EQUAL — oracle == resetToAttractScreenStart in RAM (−stack).
  *   2. WRITE-SET — the sub-state is advanced and the in-play gate cleared.
  *   3. TEETH — a corrupted post-run byte is CAUGHT by the RAM diff.
  *
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_08b3 as oracle } from "../../translated/loc_08b3.js";
-import { loc_08b3 } from "../loc_08b3.js";
+import { resetToAttractScreenStart } from "../resetToAttractScreenStart.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ATTRACT_SUBSTATE, GAME_ACTIVE_FLAG } from "../names.js";
@@ -60,11 +60,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: attract sub-state 0 — loc_08b3 == oracle in RAM (−stack)", () => {
+test("EQUAL: attract sub-state 0 — resetToAttractScreenStart == oracle in RAM (−stack)", () => {
   const o = craft();
   oracle(o);
   const c = craft();
-  loc_08b3(c);
+  resetToAttractScreenStart(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: attract sub-state 0 body identical (RAM −stack)");
@@ -86,7 +86,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_08b3(c);
+  resetToAttractScreenStart(c);
   c.mem8[ATTRACT_SUBSTATE] = (o.mem8[ATTRACT_SUBSTATE] ^ 0xff) & 0xff; // BUG: wrong sub-state
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte — it is worthless");

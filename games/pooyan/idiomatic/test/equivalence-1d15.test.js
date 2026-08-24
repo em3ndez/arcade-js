@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1d15 (ROM 0x1d15) — the full-clear tail of the play-state dispatch
+ * Memory-equivalence test for clearActorsAndEnterContinueState (ROM 0x1d15) — the full-clear tail of the play-state dispatch
  * handler. Void handler; LIVE-OUT is memory only, comparison is RAM minus STACK_SCRATCH. Cases: the
  * one-player reseed branch (two-player flag clear) with credit remaining (finish the continue path)
  * and with none (cold teardown), plus the two-player reseed branch (cap-first column stamp).
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1d15 as oracle } from "../../translated/loc_1d15.js";
-import { loc_1d15 } from "../loc_1d15.js";
+import { clearActorsAndEnterContinueState } from "../clearActorsAndEnterContinueState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -56,12 +56,12 @@ const CASES = {
 
 // -- 1. EQUAL ----------------------------------------------------------------
 
-test("EQUAL: loc_1d15 == oracle in RAM (−stack)", () => {
+test("EQUAL: clearActorsAndEnterContinueState == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_1d15(c);
+    clearActorsAndEnterContinueState(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -84,7 +84,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["1P, credit -> continue"](BASE.clone());
   const c = CASES["1P, credit -> continue"](BASE.clone());
   oracle(o);
-  loc_1d15(c);
+  clearActorsAndEnterContinueState(c);
   c.mem.write8(MAIN_GAME_STATE, (o.mem.read8(MAIN_GAME_STATE) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

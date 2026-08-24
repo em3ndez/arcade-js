@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7071 (ROM 0x7071, Pooyan) — anti-tamper clone of loc_0b32.
+ * Memory-equivalence test for advanceAttractToBoardBuildIfImageIntact (ROM 0x7071, Pooyan) — anti-tamper clone of advanceAttractSequenceToPlay.
  *
  * SEATING: BALANCED (plain ret / tail-calls) -> WIRE. Void handler: no register survives, LIVE-OUT is
  * memory only, comparison is RAM (dumpState) minus STACK_SCRATCH. SP parked in STACK_SCRATCH so the
@@ -9,7 +9,7 @@
  * Crafted paths (column integrity seeded intact so the row guard passes): the ANIM timer both ways
  * (skip vs call loc_0a28), always loc_09f8, the SCRIPT_FRAME_TIMER ret, and the mid-block that seats
  * the next script pointer via loc_0c45 then rets on the SCRIPT_COL_CHECK_TICK guard. The tail column
- * checksum (-> resetActorStateForBoard / loc_08b3 / loc_08e9) needs a matching (0x8f48) target block
+ * checksum (-> resetActorStateForBoard / resetToAttractScreenStart / loc_08e9) needs a matching (0x8f48) target block
  * and is left to those callees' own gates.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-7071.test.js
@@ -20,7 +20,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7071 as oracle } from "../../translated/loc_7071.js";
-import { loc_7071 } from "../loc_7071.js";
+import { advanceAttractToBoardBuildIfImageIntact } from "../advanceAttractToBoardBuildIfImageIntact.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -66,12 +66,12 @@ const CASES = {
   "frame expiry -> mid-block, tick ret": (m) => seat(m, { anim: 0x03, frame: 0x01, tick: 0x02 }),
 };
 
-test("EQUAL: loc_7071 == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceAttractToBoardBuildIfImageIntact == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_7071(c);
+    advanceAttractToBoardBuildIfImageIntact(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -95,7 +95,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["frame expiry -> mid-block, tick ret"](BASE.clone());
   const c = CASES["frame expiry -> mid-block, tick ret"](BASE.clone());
   oracle(o);
-  loc_7071(c);
+  advanceAttractToBoardBuildIfImageIntact(c);
   c.mem.write8(SCRIPT_WRITE_PTR, (o.mem.read8(SCRIPT_WRITE_PTR) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

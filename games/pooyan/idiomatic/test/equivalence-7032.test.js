@@ -8,7 +8,7 @@
  * chosen by the new bit0, via rst 0x38.
  *
  * Cycle-free memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
- * STACK_SCRATCH) only. The routine has NO register live-out — the intro dispatcher (loc_6da6)
+ * STACK_SCRATCH) only. The routine has NO register live-out — the intro dispatcher (dispatchLevelIntroPhase)
  * tail-dispatches here and its caller reads nothing back — so pc and the whole register file
  * are deliberately NOT compared. The page-0x88 display ring is seated so the enqueues land.
  *

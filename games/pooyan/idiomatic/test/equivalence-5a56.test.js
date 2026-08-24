@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5a56 (ROM 0x5a56, Pooyan) — variant-C drip step.
+ * Memory-equivalence test for accrueCreditFromCoin1Pulse (ROM 0x5a56, Pooyan) — variant-C drip step.
  *
  * SEATING: BALANCED (plain ret / tail-calls) -> WIRE. Void handler: no register survives, so LIVE-OUT
  * is memory only and the comparison is RAM (dumpState) minus STACK_SCRATCH. SP parked in STACK_SCRATCH
  * so nested pushes (emitPresetSound / the accumulate tail) drop out.
  *
  * Crafted paths: ring phase != 1 (inert but for the rl), phase 1 with no coord carry (ret nc), and
- * both accumulate-tail funnels (low nibble != 0x0f -> loc_5a8c; == 0x0f -> loc_5a8a). Those two tails
+ * both accumulate-tail funnels (low nibble != 0x0f -> addCreditsAndQueueDisplay; == 0x0f -> addFullWrapCreditAmount). Those two tails
  * are shared sibling routines; their own gates cover them, this gate only pins the whole-path RAM.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-5a56.test.js
@@ -18,7 +18,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5a56 as oracle } from "../../translated/loc_5a56.js";
-import { loc_5a56 } from "../loc_5a56.js";
+import { accrueCreditFromCoin1Pulse } from "../accrueCreditFromCoin1Pulse.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, INPUT_PORT0, DRIP_RING_C, TAMPER_ROM_CHECK_FLAG, COINAGE_CONFIG } from "../names.js";
@@ -51,16 +51,16 @@ function seat(m, { input = 0x00, ring = 0x00, coord = 0x00, cfg = 0x00 } = {}) {
 const CASES = {
   "phase != 1 -> inert but for the rl": (m) => seat(m, { input: 0x01, ring: 0x02 }),
   "phase 1, no coord carry -> ret nc": (m) => seat(m, { input: 0x01, ring: 0x00, coord: 0x00, cfg: 0x20 }),
-  "phase 1 -> accumulate tail loc_5a8c": (m) => seat(m, { input: 0x01, ring: 0x00, coord: 0x00, cfg: 0x05 }),
-  "phase 1 -> accumulate tail loc_5a8a": (m) => seat(m, { input: 0x01, ring: 0x00, coord: 0x00, cfg: 0x0f }),
+  "phase 1 -> accumulate tail addCreditsAndQueueDisplay": (m) => seat(m, { input: 0x01, ring: 0x00, coord: 0x00, cfg: 0x05 }),
+  "phase 1 -> accumulate tail addFullWrapCreditAmount": (m) => seat(m, { input: 0x01, ring: 0x00, coord: 0x00, cfg: 0x0f }),
 };
 
-test("EQUAL: loc_5a56 == oracle in RAM (−stack)", () => {
+test("EQUAL: accrueCreditFromCoin1Pulse == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_5a56(c);
+    accrueCreditFromCoin1Pulse(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -82,7 +82,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["phase 1, no coord carry -> ret nc"](BASE.clone());
   const c = CASES["phase 1, no coord carry -> ret nc"](BASE.clone());
   oracle(o);
-  loc_5a56(c);
+  accrueCreditFromCoin1Pulse(c);
   c.mem.write8(TAMPER_ROM_CHECK_FLAG, (o.mem.read8(TAMPER_ROM_CHECK_FLAG) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

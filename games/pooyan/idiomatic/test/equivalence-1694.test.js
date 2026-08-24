@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1694 (ROM 0x1694, Pooyan) — pattern compare of the display buffer.
+ * Memory-equivalence test for clearDisplayMsgBufOnRoundInitMatch (ROM 0x1694, Pooyan) — pattern compare of the display buffer.
  *
  * SEATING: BALANCED (plain ret / tail-branch) -> WIRE. Void handler: no caller reads a register back,
  * so LIVE-OUT is memory only and the comparison is RAM (dumpState) minus STACK_SCRATCH.
  *
- * Paths crafted here: the first-byte mismatch (tail into loc_16b7, held to its timer-not-expired
+ * Paths crafted here: the first-byte mismatch (tail into selectRoundDisplayListAndAdvancePhase, held to its timer-not-expired
  * early return so the diff stays local) and the full-match clear of the seven-cell buffer.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-1694.test.js
@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1694 as oracle } from "../../translated/loc_1694.js";
-import { loc_1694 } from "../loc_1694.js";
+import { clearDisplayMsgBufOnRoundInitMatch } from "../clearDisplayMsgBufOnRoundInitMatch.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DISPLAY_MSG_BUF } from "../names.js";
@@ -47,7 +47,7 @@ function base(m) {
   return m;
 }
 
-/** Copy the 0xff-terminated ROM pattern into the display buffer so loc_1694 takes the full-match path. */
+/** Copy the 0xff-terminated ROM pattern into the display buffer so clearDisplayMsgBufOnRoundInitMatch takes the full-match path. */
 function copyPattern(m) {
   for (let i = 0; ; i++) {
     const b = m.mem.read8(PATTERN_ROM + i);
@@ -57,10 +57,10 @@ function copyPattern(m) {
 }
 
 const CASES = {
-  "mismatch -> tail loc_16b7 (timer not expired)": (m) => {
+  "mismatch -> tail selectRoundDisplayListAndAdvancePhase (timer not expired)": (m) => {
     base(m);
     for (let i = 0; i < 0x08; i++) m.mem.write8(DISPLAY_MSG_BUF + i, 0x55); // != pattern[0]=0x0a
-    m.mem.write8(PHASE_TIMER, 0x02); // loc_16b7 dec -> 1, returns immediately
+    m.mem.write8(PHASE_TIMER, 0x02); // selectRoundDisplayListAndAdvancePhase dec -> 1, returns immediately
     return m;
   },
   "full match -> clear 7 cells": (m) => {
@@ -71,12 +71,12 @@ const CASES = {
   },
 };
 
-test("EQUAL: loc_1694 == oracle in RAM (−stack)", () => {
+test("EQUAL: clearDisplayMsgBufOnRoundInitMatch == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_1694(c);
+    clearDisplayMsgBufOnRoundInitMatch(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -96,7 +96,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["full match -> clear 7 cells"](BASE.clone());
   const c = CASES["full match -> clear 7 cells"](BASE.clone());
   oracle(o);
-  loc_1694(c);
+  clearDisplayMsgBufOnRoundInitMatch(c);
   c.mem.write8(DISPLAY_MSG_BUF, (o.mem.read8(DISPLAY_MSG_BUF) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

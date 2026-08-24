@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0fc1 (ROM 0x0fc1, Pooyan) — enqueue the four-tile text sequence
+ * Memory-equivalence test for queueFixedSoundCommandRun (ROM 0x0fc1, Pooyan) — enqueue the four-tile text sequence
  * 0x29,0x15,0x16,0x17 into the text ring. Each tile is handed to the frozen text-ring append
  * loc_0ea2 via A (a register bridge); the final append is a tail call.
  *
@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0fc1 as oracle } from "../../translated/loc_0fc1.js";
-import { loc_0fc1 } from "../loc_0fc1.js";
+import { queueFixedSoundCommandRun } from "../queueFixedSoundCommandRun.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -62,11 +62,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0fc1 == oracle in RAM (−stack)", () => {
+test("EQUAL: queueFixedSoundCommandRun == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_0fc1(c);
+  queueFixedSoundCommandRun(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: four-tile append identical (RAM −stack)");
@@ -76,7 +76,7 @@ test("EQUAL: loc_0fc1 == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: the four tiles land in order and the cursor advances by four", () => {
   const c = craft();
-  loc_0fc1(c);
+  queueFixedSoundCommandRun(c);
   assert.deepEqual(
     [0, 1, 2, 3].map((i) => c.mem.read8(RING + CUR0 + i)),
     [0x29, 0x15, 0x16, 0x17],
@@ -93,7 +93,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_0fc1(c);
+  queueFixedSoundCommandRun(c);
   c.mem.write8(RING + CUR0 + 2, (o.mem.read8(RING + CUR0 + 2) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1cf6 (ROM 0x1cf6) — the reseed-the-other-player tail of the
+ * Memory-equivalence test for reseedOtherPlayerForTurn (ROM 0x1cf6) — the reseed-the-other-player tail of the
  * play-state dispatch handler. Void handler; LIVE-OUT is memory only, comparison is RAM minus
  * STACK_SCRATCH. Cases: player-1 out of lives (delegate to the full-clear tail) and player-1 alive
  * (clear sub-state, zero player-0's bank via the frozen fill, mark player 0 active, reset the display
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1cf6 as oracle } from "../../translated/loc_1cf6.js";
-import { loc_1cf6 } from "../loc_1cf6.js";
+import { reseedOtherPlayerForTurn } from "../reseedOtherPlayerForTurn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -54,12 +54,12 @@ const CASES = {
 
 // -- 1. EQUAL ----------------------------------------------------------------
 
-test("EQUAL: loc_1cf6 == oracle in RAM (−stack)", () => {
+test("EQUAL: reseedOtherPlayerForTurn == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_1cf6(c);
+    reseedOtherPlayerForTurn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -82,7 +82,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["player-1 alive -> reseed player 0"](BASE.clone());
   const c = CASES["player-1 alive -> reseed player 0"](BASE.clone());
   oracle(o);
-  loc_1cf6(c);
+  reseedOtherPlayerForTurn(c);
   c.mem.write8(ACTIVE_PLAYER, (o.mem.read8(ACTIVE_PLAYER) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

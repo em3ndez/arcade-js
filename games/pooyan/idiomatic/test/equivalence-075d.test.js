@@ -6,7 +6,7 @@
  *
  * CYCLE-FREE / memory-equivalence gate: the routine WRITES RAM, so every case uses a FRESH
  * clone per side. The contract is RAM (dumpState minus STACK_SCRATCH) PLUS the A live-out: the
- * loop exits at (L & 0x1f) == 0x1f leaving A = 0x1f, and loc_0c77 stores that to ACTIVE_PLAYER
+ * loop exits at (L & 0x1f) == 0x1f leaving A = 0x1f, and fillIntroRowsThenBuildBoardIntro stores that to ACTIVE_PLAYER
  * (0x880d), so a memory-only rewrite that drops A diverges on the credit screen.
  *
  * Jobs:
@@ -118,7 +118,7 @@ test("CRAFTED: pre-dirtied region + distinct source — 31x30 grid identical", (
 
 // -- 3. REGISTER LIVE-OUT -----------------------------------------------------
 
-test("REGISTER: A live-out == oracle (loc_0c77 stores it to ACTIVE_PLAYER 0x880d)", () => {
+test("REGISTER: A live-out == oracle (fillIntroRowsThenBuildBoardIntro stores it to ACTIVE_PLAYER 0x880d)", () => {
   for (const seed of SEEDS) {
     const o = craft(seed); o.regs.a = 0x99; // sentinel: neither side may leave A untouched
     const c = craft(seed); c.regs.a = 0x99;

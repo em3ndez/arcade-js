@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0bb5 } from "./loc_0bb5.js";
+import { advanceGameStateOnCreditOrStartPress } from "./advanceGameStateOnCreditOrStartPress.js";
 import { resetBoardRamAndReseedSpawnCounters } from "./resetBoardRamAndReseedSpawnCounters.js";
 import { loc_02b9 } from "./loc_02b9.js";
 import { u16 } from "../../../core/int.js";
@@ -30,7 +30,7 @@ export function resetToBoardBuildToContinuePlay(m) {
   const { mem8 } = m;
 
   if (mem8[GAME_ACTIVE_FLAG] !== 0) return; // game still live -> nothing to do
-  if (mem8[COINAGE_CONFIG] === FREE_PLAY) return loc_0bb5(m); // free play -> shared epilogue tail
+  if (mem8[COINAGE_CONFIG] === FREE_PLAY) return advanceGameStateOnCreditOrStartPress(m); // free play -> shared epilogue tail
   if (mem8[CREDIT_COUNT] === 0) return; // no credit -> stay put
 
   mem8[MAIN_GAME_STATE] = BOARD_BUILD_STATE; // rebuild the board next

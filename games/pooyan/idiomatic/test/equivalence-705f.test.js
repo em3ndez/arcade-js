@@ -5,7 +5,7 @@
  *
  * Cycle-free memory-equivalence gate (docs/decompiler-pipeline): a FRESH clone per side, compared
  * on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are NOT compared. loc_705f is a
- * tail-dispatched intro-phase handler (loc_6da6's rst-0x28 table, selector 0x8f51) and leaves no
+ * tail-dispatched intro-phase handler (dispatchLevelIntroPhase's rst-0x28 table, selector 0x8f51) and leaves no
  * register a caller consumes, so the contract is RAM only — no register live-out.
  *
  * The routine has two paths off the intro-delay decrement:

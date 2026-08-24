@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0de4 (ROM 0x0de4, Pooyan) — the (0x8810) bit-3 coin/credit branch.
+ * Memory-equivalence test for startOnePlayerGameOnCredit (ROM 0x0de4, Pooyan) — the (0x8810) bit-3 coin/credit branch.
  *
  * With credits remaining it spends one (0x8802--) and restarts a fresh single-player game via
- * loc_0dab (DISSOLVED; active-player word = 0). With no credits it either returns inert (play
+ * startNewGamePlay (DISSOLVED; active-player word = 0). With no credits it either returns inert (play
  * sub-state 0x0e) or nudges the main state to 1.
  *
- * Both sides ultimately reach the SAME frozen loc_0e54 / loc_0e00 through loc_0dab, so the gate
- * proves loc_0de4's branch and the delegated restart. The display-command ring is freed so the
+ * Both sides ultimately reach the SAME frozen loc_0e54 / loc_0e00 through startNewGamePlay, so the gate
+ * proves startOnePlayerGameOnCredit's branch and the delegated restart. The display-command ring is freed so the
  * restart's enqueues land; SP is parked in STACK_SCRATCH. Compared on RAM (dumpState, minus
  * STACK_SCRATCH). No register live-out — memory only.
  *
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0de4 as oracle } from "../../translated/loc_0cf8.js";
-import { loc_0de4 } from "../loc_0de4.js";
+import { startOnePlayerGameOnCredit } from "../startOnePlayerGameOnCredit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -66,19 +66,19 @@ function craft({ credits, playState }) {
 }
 
 const CASES = {
-  "restart: credits>0 -> spend + loc_0dab": { credits: 3, playState: 0x00 },
+  "restart: credits>0 -> spend + startNewGamePlay": { credits: 3, playState: 0x00 },
   "inert: no credits, sub-state 0x0e": { credits: 0, playState: 0x0e },
   "nudge: no credits, sub-state != 0x0e": { credits: 0, playState: 0x05 },
 };
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: restart / inert / nudge — loc_0de4 == oracle in RAM (−stack)", () => {
+test("EQUAL: restart / inert / nudge — startOnePlayerGameOnCredit == oracle in RAM (−stack)", () => {
   for (const [name, seed] of Object.entries(CASES)) {
     const o = craft(seed);
     const c = craft(seed);
     oracle(o);
-    loc_0de4(c);
+    startOnePlayerGameOnCredit(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -88,10 +88,10 @@ test("EQUAL: restart / inert / nudge — loc_0de4 == oracle in RAM (−stack)", 
 // -- 2. WRITE-SET -------------------------------------------------------------
 
 test("WRITE-SET: restart decrements credits + seeds the game; inert leaves RAM untouched", () => {
-  const restart = craft(CASES["restart: credits>0 -> spend + loc_0dab"]);
+  const restart = craft(CASES["restart: credits>0 -> spend + startNewGamePlay"]);
   oracle(restart);
   assert.equal(restart.mem.read8(CREDIT_COUNT), 2, "one credit spent");
-  assert.equal(restart.mem.read8(MAIN_GAME_STATE), 0x03, "restart seeds main state 3 (via loc_0dab)");
+  assert.equal(restart.mem.read8(MAIN_GAME_STATE), 0x03, "restart seeds main state 3 (via startNewGamePlay)");
 
   const inert = craft(CASES["inert: no credits, sub-state 0x0e"]);
   const before = inert.dumpState();
@@ -110,7 +110,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = craft(CASES["nudge: no credits, sub-state != 0x0e"]);
   const c = craft(CASES["nudge: no credits, sub-state != 0x0e"]);
   oracle(o);
-  loc_0de4(c);
+  startOnePlayerGameOnCredit(c);
   c.mem.write8(MAIN_GAME_STATE, (o.mem.read8(MAIN_GAME_STATE) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -119,10 +119,10 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
 });
 
 test("TEETH: a twin that skips the credit spend diverges from the oracle", () => {
-  const o = craft(CASES["restart: credits>0 -> spend + loc_0dab"]);
-  const c = craft(CASES["restart: credits>0 -> spend + loc_0dab"]);
+  const o = craft(CASES["restart: credits>0 -> spend + startNewGamePlay"]);
+  const c = craft(CASES["restart: credits>0 -> spend + startNewGamePlay"]);
   oracle(o);
-  loc_0de4(c);
+  startOnePlayerGameOnCredit(c);
   c.mem.write8(CREDIT_COUNT, o.mem.read8(CREDIT_COUNT) + 1); // twin: never spent the credit
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "a skipped credit spend must be caught");

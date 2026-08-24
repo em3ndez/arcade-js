@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1d3c (ROM 0x1d3c, Pooyan) — cold-teardown tail of the play-state
+ * Memory-equivalence test for resetGameToAttractState (ROM 0x1d3c, Pooyan) — cold-teardown tail of the play-state
  * dispatch handler.
  *
  * SEATING: BALANCED — the routine zeroes the in-play state block, seeds the fresh-start flags,
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1d3c as oracle } from "../../translated/loc_1d3c.js";
-import { loc_1d3c } from "../loc_1d3c.js";
+import { resetGameToAttractState } from "../resetGameToAttractState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -63,11 +63,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1d3c == oracle in RAM (−stack)", () => {
+test("EQUAL: resetGameToAttractState == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_1d3c(c);
+  resetGameToAttractState(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: full teardown identical (RAM −stack)");
@@ -77,7 +77,7 @@ test("EQUAL: loc_1d3c == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: fresh-start flags seeded; first message byte unpacked (>>1)", () => {
   const c = craft();
-  loc_1d3c(c);
+  resetGameToAttractState(c);
   assert.equal(c.mem8[GAME_ACTIVE_FLAG], 0, "game-active zeroed");
   assert.equal(c.mem8[MAIN_GAME_STATE], 1, "main state = 1");
   assert.equal(c.mem8[FLIP_SCREEN_FLAG], 1, "flip-screen = 1");
@@ -92,7 +92,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_1d3c(c);
+  resetGameToAttractState(c);
   c.mem8[DISPLAY_MSG_BUF] = (c.mem8[DISPLAY_MSG_BUF] ^ 0xff) & 0xff; // BUG: wrong unpacked byte
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte — it is worthless");

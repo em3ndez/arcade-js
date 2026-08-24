@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5a97 (ROM 0x5a97, Pooyan) — queue the score-drip display command.
+ * Memory-equivalence test for queueCreditDisplayRefresh (ROM 0x5a97, Pooyan) — queue the score-drip display command.
  *
  * SEATING: BALANCED (loads DE, calls the frozen rst-0x38 dispatcher, rets). LIVE-OUT is memory only
  * (the display-command ring the dispatcher writes); the register file is not compared, SP parked in
@@ -20,7 +20,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5a97 as oracle } from "../../translated/loc_5a56.js";
-import { loc_5a97 } from "../loc_5a97.js";
+import { queueCreditDisplayRefresh } from "../queueCreditDisplayRefresh.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -63,11 +63,11 @@ function brokenTwin(m) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5a97 == oracle in RAM (−stack)", () => {
+test("EQUAL: queueCreditDisplayRefresh == oracle in RAM (−stack)", () => {
   const o = seat(BASE.clone());
   const c = seat(BASE.clone());
   oracle(o);
-  loc_5a97(c);
+  queueCreditDisplayRefresh(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: display-command queue identical (RAM −stack)");
@@ -77,7 +77,7 @@ test("EQUAL: loc_5a97 == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: the command word lands in the ring and the pointer advances", () => {
   const c = seat(BASE.clone());
-  loc_5a97(c);
+  queueCreditDisplayRefresh(c);
   assert.equal(c.mem.read8(SLOT), 0x07, "D=0x07 enqueued at the ring slot");
   assert.equal(c.mem.read8(SLOT + 1), 0x01, "E=0x01 enqueued at the next ring byte");
   assert.equal(c.mem.read8(RING_PTR), 0xc2, "ring pointer advanced by 2");
@@ -90,7 +90,7 @@ test("TEETH: a corrupted post-run ring byte is CAUGHT by the RAM diff", () => {
   const o = seat(BASE.clone());
   const c = seat(BASE.clone());
   oracle(o);
-  loc_5a97(c);
+  queueCreditDisplayRefresh(c);
   c.mem.write8(SLOT, (o.mem.read8(SLOT) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

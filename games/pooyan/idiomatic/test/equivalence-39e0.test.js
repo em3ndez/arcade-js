@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_39e0 (ROM 0x39e0, Pooyan) — gate the enemy fire/drop decision on
+ * Memory-equivalence test for fireEnemyShotWhenAlignedWithPlayer (ROM 0x39e0, Pooyan) — gate the enemy fire/drop decision on
  * the level counters, then in the shared tail spawn a shot when the target column aligns.
  *
  * SEATING: BALANCED. LIVE-OUT is memory only — every branch rets or tail-jumps into the KEPT
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_39e0 as oracle } from "../../translated/loc_39af.js";
-import { loc_39e0 } from "../loc_39e0.js";
+import { fireEnemyShotWhenAlignedWithPlayer } from "../fireEnemyShotWhenAlignedWithPlayer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -98,12 +98,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted paths — loc_39e0 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted paths — fireEnemyShotWhenAlignedWithPlayer == oracle in RAM (−stack)", () => {
   for (const cse of CASES) {
     const o = craft(cse.pokes);
     const c = craft(cse.pokes);
     oracle(o);
-    loc_39e0(c);
+    fireEnemyShotWhenAlignedWithPlayer(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -131,7 +131,7 @@ test("TEETH: a corrupted cooldown byte is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[2].pokes);
   const c = craft(CASES[2].pokes);
   oracle(o);
-  loc_39e0(c);
+  fireEnemyShotWhenAlignedWithPlayer(c);
   c.mem8[REC + REC_COOLDOWN] = (c.mem8[REC + REC_COOLDOWN] ^ 0xff) & 0xff; // BUG: wrong cooldown
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted cooldown byte");

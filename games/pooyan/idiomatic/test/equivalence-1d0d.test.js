@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1d0d (ROM 0x1d0d, Pooyan) — the second scroll column's tile stamp.
+ * Memory-equivalence test for stampSecondScrollColumn (ROM 0x1d0d, Pooyan) — the second scroll column's tile stamp.
  * It writes tile 0x01 to the column top (0x8740) then re-emits loc_1ce7's shared tail: 0x25 one row
  * up (0x8720), 0x20 two rows up (0x8700). Fixed addresses/values -> no input registers.
  *
@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1d0d as oracle } from "../../translated/loc_1d0d.js";
-import { loc_1d0d } from "../loc_1d0d.js";
+import { stampSecondScrollColumn } from "../stampSecondScrollColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -56,11 +56,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1d0d == oracle in RAM (−stack)", () => {
+test("EQUAL: stampSecondScrollColumn == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_1d0d(c);
+  stampSecondScrollColumn(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: column-stamp identical (RAM −stack)");
@@ -70,7 +70,7 @@ test("EQUAL: loc_1d0d == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: the three column cells land at 0x01 / 0x25 / 0x20", () => {
   const c = craft();
-  loc_1d0d(c);
+  stampSecondScrollColumn(c);
   assert.equal(c.mem.read8(TOP), 0x01, "top cell = 0x01");
   assert.equal(c.mem.read8(MID), 0x25, "mid cell = 0x25");
   assert.equal(c.mem.read8(BOT), 0x20, "bottom cell = 0x20");
@@ -83,7 +83,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_1d0d(c);
+  stampSecondScrollColumn(c);
   c.mem.write8(MID, (o.mem.read8(MID) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -93,7 +93,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a twin that skips the bottom write diverges from the oracle", () => {
   const o = craft();
-  const c = craft(); // twin: never runs loc_1d0d -> the pre-dirty 0xaa filler survives
+  const c = craft(); // twin: never runs stampSecondScrollColumn -> the pre-dirty 0xaa filler survives
   oracle(o);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "a skipped write must be caught by the RAM diff");
