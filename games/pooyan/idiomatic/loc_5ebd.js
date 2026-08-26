@@ -33,18 +33,18 @@ function absDiff(raw, borrow) {
 export function loc_5ebd(m, hl = m.regs.hl, ix = m.regs.ix, iy = m.regs.iy, count = m.regs.b) {
   const { mem8, mem16 } = m;
 
-  if (mem8[hl] === 0) return loc_5f06(m, hl, ix, count); // empty slot
-  if (mem8[u16(hl + 2)] >= STATE_LIMIT) return loc_5f06(m, hl, ix, count); // busy slot
+  if (mem8[hl] === 0) return loc_5f06(m, hl, ix, count, iy); // empty slot
+  if (mem8[u16(hl + 2)] >= STATE_LIMIT) return loc_5f06(m, hl, ix, count, iy); // busy slot
 
   const [e, y, onScreen] = precheckCollisionBounds(m, ix);
-  if (!onScreen) return loc_5f06(m, hl, ix, count); // off-screen
+  if (!onScreen) return loc_5f06(m, hl, ix, count, iy); // off-screen
 
   const dx = absDiff((mem8[iy] - e) & 0xff, mem8[iy] < e);
-  if (dx >= DX_LIMIT) return loc_5f06(m, hl, ix, count); // horizontal gap too wide
+  if (dx >= DX_LIMIT) return loc_5f06(m, hl, ix, count, iy); // horizontal gap too wide
 
   const yTarget = (mem8[iy + 2] + Y_MARGIN) & 0xff;
   const dy = absDiff((yTarget - y) & 0xff, yTarget < y);
-  if (dy >= DY_LIMIT) return loc_5f06(m, hl, ix, count); // vertical gap too wide
+  if (dy >= DY_LIMIT) return loc_5f06(m, hl, ix, count, iy); // vertical gap too wide
 
   // Hit: catch the slot.
   mem8[hl] = 0x00;
