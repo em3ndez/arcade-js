@@ -16,13 +16,11 @@ import { loc_572b } from "./loc_572b.js";
 const BLOCK_STRIDE = 0x18; // bytes between consecutive sprite blocks
 const INIT_SEED = 0x04; // field seed handed to each block initialiser
 
-export function loc_588e(m, base = m.regs.ix, count = m.regs.b) {
+export function loc_588e(m, base = m.regs.ix, count = m.regs.b, col = m.regs.c) {
   let cursor = base;
   let remaining = count;
   do {
-    m.regs.ix = cursor; // block base flows through IX to the deeper scan-state chain
-    // eField (E) = INIT_SEED; col (C) stays the ambient entry C
-    if (loc_572b(m, cursor, m.regs.c, INIT_SEED)) return; // seeded a fresh block -> stop the run
+    if (loc_572b(m, cursor, col, INIT_SEED)) return; // seeded a fresh block -> stop the run
     cursor = u16(cursor + BLOCK_STRIDE);
     remaining = (remaining - 1) & 0xff;
   } while (remaining !== 0);

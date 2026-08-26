@@ -50,7 +50,6 @@ export function loc_56e8(m) {
 
   let rec = ENEMY_ACTOR_TABLE;
   for (let n = SLOT_COUNT; n > 0; n--) {
-    m.regs.ix = rec; // record base flows through IX to the deeper scan-state chain
     if (loc_572b(m, rec, col, SPAWN_E_FIELD)) return; // spawned -> abort the sweep
     rec += SLOT_STRIDE;
   }
