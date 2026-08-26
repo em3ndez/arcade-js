@@ -27,14 +27,14 @@ const PHASE_TIMER_RELOAD = 0x80; // reload latched into PHASE_TIMER at the tail
 const RESET_SCAN_LATCH_SET = 0x01;
 
 export function loc_7fa8(m) {
-  const { mem8 } = m;
+  const { mem8, mem16 } = m;
 
   queueSoundCommand00(m); // enqueue silence into the sound-command ring
 
   const count = mem8[loc_8e25]; // the fill count
   if (count !== 0) {
-    let tilePtr = m.mem.read16(loc_8e27); // tile-fill pointer, stride -one row group
-    let recPtr = m.mem.read16(PLAYER2_START_CLEAR_BLOCK); // record pointer, stride +1 (not written back)
+    let tilePtr = mem16[loc_8e27]; // tile-fill pointer, stride -one row group
+    let recPtr = mem16[PLAYER2_START_CLEAR_BLOCK]; // record pointer, stride +1 (not written back)
     for (let i = 0; i < count; i++) {
       mem8[tilePtr] = FILL_TILE;
       mem8[recPtr] = FILL_TILE;
