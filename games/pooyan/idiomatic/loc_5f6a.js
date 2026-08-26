@@ -20,7 +20,6 @@ export function loc_5f6a(m) {
   let cursor = SPRITE_ACTOR_RECORD_SLOTS;
   let selector = 0x00; // interrupt-parity selector: 0 for the first slot
   for (let pass = PASS_COUNT; pass > 0; pass--) {
-    m.regs.iy = cursor; // iy carries this pass's target box across the handler call below
     if (!loc_5f83(m, selector, cursor)) return; // a hit was claimed — skip the remaining pass
     cursor = u16(cursor + SLOT_STRIDE);
     selector = pass; // the second slot selects on the remaining count (=2, non-zero)

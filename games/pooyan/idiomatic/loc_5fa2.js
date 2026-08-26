@@ -37,7 +37,7 @@ export function loc_5fa2(m, recPtr = m.regs.hl, posPtr = m.regs.ix, slots = m.re
 
   // empty slot or non-type-5 record -> advance to the next slot (thread the invariant type)
   if (mem8[recPtr] === 0 || mem8[recPtr + 2] !== RECORD_TYPE) {
-    return (m.regs.c = type, advanceOverlapScanToNextSlot(m, posPtr, recPtr, slots));
+    return (m.regs.c = type, advanceOverlapScanToNextSlot(m, posPtr, recPtr, slots, type, target));
   }
 
   const tight = type === 0x03;
@@ -49,7 +49,7 @@ export function loc_5fa2(m, recPtr = m.regs.hl, posPtr = m.regs.ix, slots = m.re
 
   // outside either window -> advance
   if (dx >= (tight ? TYPE3_DX : NEAR_D) || dy >= (tight ? TYPE3_DY : NEAR_D)) {
-    return (m.regs.c = type, advanceOverlapScanToNextSlot(m, posPtr, recPtr, slots));
+    return (m.regs.c = type, advanceOverlapScanToNextSlot(m, posPtr, recPtr, slots, type, target));
   }
 
   if (tight) {

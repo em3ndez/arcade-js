@@ -14,14 +14,14 @@ import { loc_5fa2 } from "./loc_5fa2.js";
 const INDEX_STRIDE = 4;
 const GEOM_STRIDE = 0x18;
 
-export function advanceOverlapScanToNextSlot(m, index = m.regs.ix, geom = m.regs.hl, slots = m.regs.b) {
+export function advanceOverlapScanToNextSlot(m, index = m.regs.ix, geom = m.regs.hl, slots = m.regs.b, type = m.regs.c, target = m.regs.iy) {
   const nextIndex = u16(index + INDEX_STRIDE);
   const nextGeom = u16(geom + GEOM_STRIDE);
   const remaining = u8(slots - 1);
 
   // thread the advanced cursors + slot count into the re-entered pass, or finish the sweep
   if (remaining !== 0) {
-    return (m.regs.ix = nextIndex, m.regs.hl = nextGeom, m.regs.b = remaining, m.regs.de = GEOM_STRIDE, loc_5fa2(m));
+    return (m.regs.ix = nextIndex, m.regs.hl = nextGeom, m.regs.b = remaining, m.regs.de = GEOM_STRIDE, loc_5fa2(m, nextGeom, nextIndex, remaining, type, target));
   }
   return (m.regs.ix = nextIndex, m.regs.hl = nextGeom, m.regs.b = 0, m.regs.de = GEOM_STRIDE, true);
 }
