@@ -255,6 +255,9 @@ import { loc_3307 } from "./loc_3307.js";
 import { loc_3325 } from "./loc_3325.js";
 import { loc_3377 } from "./loc_3377.js";
 import { loc_338a } from "./loc_338a.js";
+import { loc_33bd } from "./loc_33bd.js";
+import { loc_33ca } from "./loc_33ca.js";
+import { loc_3423 } from "./loc_3423.js";
 import { loc_343e } from "./loc_343e.js";
 import { loc_3473 } from "./loc_3473.js";
 import { loc_34b0 } from "./loc_34b0.js";
@@ -750,6 +753,9 @@ export const ROUTINE_ENTRIES = [
   [0x3325, loc_3325],
   [0x3377, loc_3377],
   [0x338a, loc_338a],
+  [0x33bd, loc_33bd],
+  [0x33ca, loc_33ca],
+  [0x3423, loc_3423],
   [0x343e, loc_343e],
   [0x3473, loc_3473],
   [0x34b0, loc_34b0],
