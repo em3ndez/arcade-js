@@ -16,9 +16,7 @@ export function armActorDropAnimationNearTop(m, highPos = m.regs.b, rec = m.regs
   const { mem8 } = m;
   if (highPos >= 0x02) return;
 
-  m.regs.de = DROP_ANIM_DESCRIPTOR; // drop-animation pointer for the record write (register bridge)
-  m.regs.ix = rec; // record base for the write (register bridge) — re-seat
-  setActorAnimation(m); // seat the drop animation into the record
+  setActorAnimation(m, rec, DROP_ANIM_DESCRIPTOR); // seat the drop animation into the record
 
   mem8[rec + 0x02] = DROP_SUBSTATE;
   mem8[rec + 0x11] = DROP_TIMER;
