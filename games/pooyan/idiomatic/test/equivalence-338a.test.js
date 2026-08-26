@@ -2,14 +2,12 @@
 /**
  * Memory-equivalence test for dispatchActiveEnemyActorState (ROM 0x338a, Pooyan) — the low-state per-record dispatcher.
  * It gates on the record's active bit (bit0 of (ix+0)|(ix+1)) and an in-range state ((ix+2)&0x1f
- * below 0x11), then hands that state through the shared rst-0x28 trampoline into the inline handler
- * table; the selected handler returns straight to dispatchActiveEnemyActorState's caller.
+ * below 0x11), then runs the handler for that state via a switch over the seventeen
+ * states; the selected handler returns straight to dispatchActiveEnemyActorState's caller.
  *
- * SEATING: net 0 per record — the caller seats a return slot before each call; on the dispatch path
- * the handler returns to it, and the two guard branches ret to consume it. The rst-0x28 trampoline (0x0028) is a spine
- * dispatcher NOT lifted this batch, so the module keeps the register-marshalled m.call(0x0028)
- * (index in A, table base pushed); the oracle drives the same frozen trampoline and handlers, so
- * both walk identical downstream code. Compared on RAM (dumpState) minus STACK_SCRATCH; the
+ * SEATING: net 0 per record — the module is a plain switch (no push, no ret) that seats the record
+ * base in IX for the handlers' still-frozen callees; the oracle drives the frozen rst-0x28
+ * trampoline into the same handlers, so both walk identical downstream code. Compared on RAM (dumpState) minus STACK_SCRATCH; the
  * register file is not compared (void dispatch).
  *
  * Cases are CRAFTED: one enemy-actor record is poked active with a chosen state byte. States

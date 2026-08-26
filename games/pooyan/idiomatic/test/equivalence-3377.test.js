@@ -5,7 +5,7 @@
  * dispatcher (dispatchActiveEnemyActorState) on each.
  *
  * SEATING: BALANCED-WIRE. The oracle ends with a plain `ret` (net SP 0); each per-record
- * dispatch is a balanced call whose selected handler returns to the sweep's continuation.
+ * dispatch is a plain call that returns to the sweep — the sweep seats no return slot.
  * A void driver — no register is read back — so the register file is not compared; equivalence
  * is RAM (dumpState) minus STACK_SCRATCH, SP parked in scratch so the dispatch's nested pushes
  * drop out of the diff.
