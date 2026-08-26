@@ -1,16 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { INTRO_PHASE_INDEX } from "./names.js";
+import { seatIntroLaunchScriptAndAdvancePhase } from "./seatIntroLaunchScriptAndAdvancePhase.js";
+import { runLevelIntroPhase1Frame } from "./runLevelIntroPhase1Frame.js";
+import { loc_6f42 } from "./loc_6f42.js";
+import { advanceLevelIntroFromPhase3 } from "./advanceLevelIntroFromPhase3.js";
+import { loc_6f9d } from "./loc_6f9d.js";
+import { loc_7032 } from "./loc_7032.js";
+import { loc_705f } from "./loc_705f.js";
+
 /**
  * dispatchLevelIntroPhase — level-intro / round-start phase dispatcher (top-level game state 2).
- * Reads the intro phase counter and tail-dispatches it through the shared rst-0x28 trampoline into
- * the seven-entry inline phase table. PURE tail dispatch: no handler-return slot is pushed, so the
- * handler returns straight to this dispatcher's own caller.
- * LIVE-OUT: none — a void per-frame dispatch (A carries the selector into the frozen trampoline).
+ * Runs the handler for the current intro phase; the handler returns straight to this dispatcher's
+ * caller (a tail dispatch). Seven phases.
+ *
+ * LIVE-OUT: none — a void per-frame dispatch.
  */
-const PHASE_TABLE_BASE = 0x6daa;
-
 export function dispatchLevelIntroPhase(m) {
-  m.regs.a = m.mem8[INTRO_PHASE_INDEX];
-  m.push16(PHASE_TABLE_BASE);
-  return m.call(0x0028); // spine dispatcher -> handler -> our caller
+  switch (m.mem8[INTRO_PHASE_INDEX]) {
+    case 0: return seatIntroLaunchScriptAndAdvancePhase(m);
+    case 1: return runLevelIntroPhase1Frame(m);
+    case 2: return loc_6f42(m);
+    case 3: return advanceLevelIntroFromPhase3(m);
+    case 4: return loc_6f9d(m);
+    case 5: return loc_7032(m);
+    case 6: return loc_705f(m);
+  }
 }

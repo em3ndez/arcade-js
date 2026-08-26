@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for dispatchRopeCellState (ROM 0x2e36, Pooyan) — the per-rope-cell dispatcher: return
- * on an inactive cell (state 0), else dispatch the cell's state-1 through the shared rst-28 spine.
+ * on an inactive cell (state 0), else run the handler for the cell's state-1.
  *
- * The module marshals the dispatch index + record into the register bridge and keeps the rst-28
- * m.call; the oracle does the same via `sub`/`rst 0x28`. dispatchRopeCellState is a void dispatcher (no register
+ * The module runs the dispatch through an idiomatic switch, passing the cell record to each handler;
+ * the oracle does the same via `sub`/`rst 0x28`. dispatchRopeCellState is a void dispatcher (no register
  * survives), so equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * The dispatch arm seats the cell state at 1 (index 0 -> rope handler 0x2e5e) with the frame-parity

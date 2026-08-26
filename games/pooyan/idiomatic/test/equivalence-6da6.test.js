@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for dispatchLevelIntroPhase (ROM 0x6da6, Pooyan) — the level-intro / round-start phase
- * dispatcher (top-level game state 2): read the intro phase counter (0x8f51) and PURE-tail-dispatch
- * it through the shared rst-0x28 trampoline into the inline table at 0x6daa; no epilogue slot is
- * pushed, so the selected handler returns straight to this dispatcher's caller.
+ * dispatcher (top-level game state 2): read the intro phase counter (0x8f51) and run the matching
+ * handler from the seven-entry table (a pure tail dispatch, no epilogue slot); the selected handler
+ * returns straight to this dispatcher's caller.
  *
- * The module keeps the register-marshalled spine dispatch (m.call 0x0028); the oracle drives the
- * same frozen dispatcher + handler. dispatchLevelIntroPhase is a void dispatcher — no register survives — so
+ * The module runs the dispatch through an idiomatic switch; the oracle drives the same frozen
+ * rst-0x28 trampoline + handler. dispatchLevelIntroPhase is a void dispatcher — no register survives — so
  * equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * The craft seats phase 3 -> handler loc_6f5e with the delay timer (0x8f48) mid-count and off world
