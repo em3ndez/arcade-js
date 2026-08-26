@@ -60,7 +60,7 @@ export function advanceAttractSequenceToPlay(m) {
 
   // Timer expired: reseed it, step the sub-state, seat the next script pointer.
   mem8[SCRIPT_FRAME_TIMER] = 1;
-  mem8[ATTRACT_SUBSTATE] = (mem8[ATTRACT_SUBSTATE] - 1) & 0xff;
+  mem8[ATTRACT_SUBSTATE] = (mem8[ATTRACT_SUBSTATE] - 1);
   const idx = (mem8[SCRIPT_COL_CHECK_TICK] - 1) & 0xff;
   mem16[SCRIPT_WRITE_PTR] = loc_0c45(m, idx, SCRIPT_PTR_TABLE); // DE = table[idx]
 

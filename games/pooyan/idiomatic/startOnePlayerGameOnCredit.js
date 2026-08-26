@@ -16,7 +16,7 @@ export function startOnePlayerGameOnCredit(m) {
   const { mem8 } = m;
 
   if (mem8[CREDIT_COUNT] !== 0) {
-    mem8[CREDIT_COUNT] = (mem8[CREDIT_COUNT] - 1) & 0xff;
+    mem8[CREDIT_COUNT] = (mem8[CREDIT_COUNT] - 1);
     return startNewGamePlay(m, 0x0000); //  restart a single-player game
   }
 

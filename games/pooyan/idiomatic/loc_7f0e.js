@@ -31,8 +31,8 @@ export function loc_7f0e(m) {
 
   // Decrement the 16-bit counter; when it drains to zero, hand off to the shared tail.
   const counter = ((mem8[loc_8e2b] | (mem8[loc_8e2b + 1] << 8)) - 1) & 0xffff;
-  mem8[loc_8e2b] = counter & 0xff;
-  mem8[loc_8e2b + 1] = (counter >> 8) & 0xff;
+  mem8[loc_8e2b] = counter;
+  mem8[loc_8e2b + 1] = (counter >> 8);
   if (counter === 0) return loc_7fa8(m);
 
   // The flag byte pointed to by the source pointer selects the index direction.

@@ -34,8 +34,8 @@ const PERIODIC_RELOAD = 0x20; //  periodic-event timer reload
 export function startNewGamePlay(m, player = m.regs.hl) {
   const { mem8 } = m;
 
-  mem8[ACTIVE_PLAYER] = player & 0xff; //         low byte -> active-player index
-  mem8[TWO_PLAYER_FLAG] = (player >> 8) & 0xff; // high byte -> two-player flag
+  mem8[ACTIVE_PLAYER] = player; //         low byte -> active-player index
+  mem8[TWO_PLAYER_FLAG] = (player >> 8); // high byte -> two-player flag
   queueCreditDisplayCommands(m); //  pre-play display setup
 
   mem8[PLAY_STATE_INDEX] = 0;

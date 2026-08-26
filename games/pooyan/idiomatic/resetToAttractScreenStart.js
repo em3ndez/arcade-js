@@ -31,7 +31,7 @@ export function resetToAttractScreenStart(m) {
   mem8[WATCHDOG_KICK] = 0; // A = 0 written to each cell below
   mem8[loc_8819] = 0;
   loc_02e3(m); // arm the row-by-row tile fill
-  mem8[ATTRACT_SUBSTATE] = (mem8[ATTRACT_SUBSTATE] + 1) & 0xff; // advance sub-state
+  mem8[ATTRACT_SUBSTATE] = (mem8[ATTRACT_SUBSTATE] + 1); // advance sub-state
 
   let sum = 0;
   let carries = 0;

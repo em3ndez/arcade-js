@@ -19,7 +19,7 @@ export function loc_2d24(m, rec = m.regs.ix) {
   advanceObjectAnimationFrame(m, rec); // pattern A: step the animation frame
   const low = mem8[rec + POS_LO] + mem8[rec + POS_STEP];
   if (low > 0xff) mem8[rec + POS_HI] = mem8[rec + POS_HI] + 1; // carry into the high byte
-  mem8[rec + POS_LO] = low & 0xff;
+  mem8[rec + POS_LO] = low;
   if (mem8[rec + POS_HI] < TOP_ROW) return true; // still climbing
   mem8[rec + STATE] = mem8[rec + STATE] + 1; // reached top: advance the record state
   mem8[rec + POS_LO] = 0;
