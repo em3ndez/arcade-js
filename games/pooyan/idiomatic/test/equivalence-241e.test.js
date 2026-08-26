@@ -2,10 +2,10 @@
 /**
  * Memory-equivalence test for advanceLeadActorPrimaryState (ROM 0x241e, Pooyan) — the per-frame lead-actor-group
  * driver: run three sub-passes in order, abort on the freeze flag, else dispatch the lead record's
- * state through the shared spine trampoline.
+ * state through an idiomatic switch to its six state handlers (the oracle drives the frozen spine).
  *
- * The module calls the three idiomatic sub-passes directly and keeps the register-marshalled
- * spine dispatch; the oracle drives the same frozen sub-passes and the same spine. advanceLeadActorPrimaryState is a
+ * The module dispatches the lead record's state through an idiomatic switch to the six handlers; the
+ * oracle drives the same frozen sub-passes and rst-28 spine into the same handlers. advanceLeadActorPrimaryState is a
  * void driver — no register survives — so the register file is not compared; equivalence is RAM
  * (dumpState) minus STACK_SCRATCH, SP parked in dead stack so nested pushes drop out.
  *

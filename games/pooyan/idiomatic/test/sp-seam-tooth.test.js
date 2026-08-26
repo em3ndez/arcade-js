@@ -8,8 +8,8 @@
  * game's dispatch seam (withOmittedRet) — which THROWS when SP is adrift — so the class is caught per routine.
  *
  * This test NULL-MUTANTS the tooth (prime's rule: a check that cannot fail proves nothing):
- *   A. a correct legit-+2 dispatcher (advanceLeadActorPrimaryState: push16 + rst-28 dispatch) is PLACEABLE (no false positive);
- *   B. the SAME routine with its push16 DROPPED is NOT placeable (the tooth's teeth — it goes RED);
+ *   A. a converted switch-form dispatcher (advanceLeadActorPrimaryState) is PLACEABLE (moved 0, no false positive);
+ *   B. a synthetic rst-28 dispatch (advanceLeadActorPrimaryState's pre-conversion form) with its push16 DROPPED is NOT placeable (the tooth's teeth — it goes RED);
  *   C. the dispatcher's plain-return abort arm (SP moved 0) is placeable (the seam completes the ret);
  *   D. a leaf rewrite (enqueueSoundCommandRing, no stack ops) is placeable (no false positive on a leaf).
  *
@@ -65,7 +65,7 @@ function craft(freeze) {
   return m;
 }
 
-/** advanceLeadActorPrimaryState with the push16 DROPPED — the missing-push16 bug the tooth must catch. */
+/** A synthetic rst-28 dispatch (advanceLeadActorPrimaryState's pre-conversion form) with the push16 DROPPED — the missing-push16 bug the tooth must catch. */
 function loc_241e_missingPush(m) {
   const { mem8 } = m;
   runLaunchAndTargetActorPipeline(m);
@@ -79,10 +79,10 @@ function loc_241e_missingPush(m) {
 }
 
 // -- A. no false positive on a correct legit-+2 dispatcher --------------------
-test("PLACEABLE: correct advanceLeadActorPrimaryState (push16 + rst-28 dispatch) — the legit +2 case is not flagged", () => {
+test("PLACEABLE: advanceLeadActorPrimaryState (switch form) is placeable — moved 0, no false positive", () => {
   const r = seamPlaceable(withOmittedRet, advanceLeadActorPrimaryState, 0x241e, craft(0x00));
   assert.equal(r.placeable, true, `correct dispatcher must be seam-placeable; got: ${r.error}`);
-  console.log("  PLACEABLE: correct advanceLeadActorPrimaryState dispatch (moved +2, pc on the caller slot)");
+  console.log("  PLACEABLE: advanceLeadActorPrimaryState switch form (moved 0, seam supplies the ret)");
 });
 
 // -- B. THE TEETH: null-mutant (missing push16) goes RED ----------------------
