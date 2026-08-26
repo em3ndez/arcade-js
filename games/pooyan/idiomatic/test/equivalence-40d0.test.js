@@ -110,6 +110,28 @@ test("CRAFTED: inactive/oob guards + each in-range state route identically", () 
   console.log(`  CRAFTED: ${cases.length} guard/state cases routed identically`);
 });
 
+// -- 2b. BRIDGE (rec argument) ------------------------------------------------
+
+test("BRIDGE: loc_40d0 routes on the rec argument, ignoring m.regs.ix", () => {
+  const runRec = (m) => {
+    try { loc_40d0(m, REC); return { threw: false }; } catch (e) { return { threw: true, msg: String(e && e.message) }; }
+  };
+  const POISON = 0x8d00; // a wrong record base; a handler that reads m.regs.ix acts here, not REC
+  for (const state of [0, 1, 2, 8, 9, 11, 12, 13]) {
+    const seated = craft(0x01, 0x00, state); //   m.regs.ix = REC
+    const poisoned = craft(0x01, 0x00, state);
+    poisoned.regs.ix = POISON; //                 wrong ix, but rec=REC is passed explicitly
+    const rs = runRec(seated);
+    const rp = runRec(poisoned);
+    assert.equal(rs.threw, rp.threw, `state ${state}: control flow differs under a poisoned IX`);
+    if (!rs.threw) {
+      const d = ramDiffMinusStack(seated, poisoned);
+      assert.equal(d, null, d && `state ${state}: loc_40d0 read m.regs.ix, not rec (diff at ${hx(d.addr ?? 0)})`);
+    }
+  }
+  console.log("  BRIDGE: rec-argument routing ignores a poisoned IX");
+});
+
 // -- 3. SP-TOOTH --------------------------------------------------------------
 
 test("SP-TOOTH: the tail dispatch is seam-placeable", () => {
