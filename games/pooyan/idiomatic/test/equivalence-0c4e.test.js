@@ -2,11 +2,10 @@
 /**
  * Memory-equivalence test for dispatchBoardBuildSubstate (ROM 0x0c4e, Pooyan) — the board-build state dispatcher.
  *
- * Seats its own post-dispatch continuation (0x0d78) as the handler return, marshals the play-state
- * index, dispatches through the shared rst-0x28 trampoline into the inline table {0->0c5c, 1->0c77,
- * 2->0d61}, then runs the continuation which returns to the caller. Both oracle and module drive the
- * SAME frozen spine + handler; only the continuation differs (frozen vs idiomatic startSelectedPlayerGameConsumingCredits), so
- * equivalence is RAM (dumpState) minus STACK_SCRATCH.
+ * Runs the handler for the play-state index (three states) via an idiomatic switch, then runs the
+ * post-dispatch continuation (startSelectedPlayerGameConsumingCredits) which returns to the caller. The
+ * oracle drives the frozen rst-0x28 trampoline + the same handlers, so equivalence is RAM (dumpState)
+ * minus STACK_SCRATCH.
  *
  * The crafted state seats sub-state 0 (primeTileFillCursorAndAdvanceBoardBuild: clear scratch, seat the fill cursor, bump the
  * sub-state, clear the board-init RAM) — a self-contained handler whose memory footprint is stable.
@@ -15,7 +14,7 @@
  *   1. EQUAL — oracle == module in RAM (−stack).
  *   2. WRITE-SET — the dispatch reaches primeTileFillCursorAndAdvanceBoardBuild: the sub-state is bumped 0 -> 1.
  *   3. TEETH — a corrupted post-run byte is CAUGHT by the RAM diff.
- *   4. SP-TOOTH (R36) — the seated-return + rst-28 dispatch is seam-placeable.
+ *   4. SP-TOOTH (R36) — the switch-form dispatcher is SP-neutral through the seam.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-0c4e.test.js
  */
@@ -95,7 +94,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (R36) --------------------------------------------------------
 
-test("SP-TOOTH: dispatchBoardBuildSubstate's seated-return + rst-28 dispatch is seam-placeable", () => {
+test("SP-TOOTH: dispatchBoardBuildSubstate is SP-neutral through the seam", () => {
   const r = seamPlaceable(withOmittedRet, dispatchBoardBuildSubstate, 0x0c4e, craft());
   assert.equal(r.placeable, true, `dispatcher must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: dispatch + continuation seat cleanly");
