@@ -74,6 +74,5 @@ export function advanceGameStateOnCreditOrStartPress(m) {
     return beginTwoPlayerStartOfLife(m); // 2P screen builder
   }
   queueSoundCommand00(m); // credit/coin bookkeeping (unlifted)
-  m.regs.hl = 0; // player-bank word handed to the 1P builder (register bridge)
-  return startNewGamePlay(m); // 1P screen builder
+  return startNewGamePlay(m, 0); // 1P screen builder (player-bank word 0)
 }

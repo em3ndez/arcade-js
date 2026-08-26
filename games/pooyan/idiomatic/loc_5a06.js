@@ -24,6 +24,5 @@ export function loc_5a06(m) {
   emitPresetSound(m); // drip sound
   // The tail is reached through the marshalled call seam, which joins with A set to the
   // accumulate step, so load A before the call.
-  m.regs.a = ACCUMULATE_STEP;
-  return addCreditsAndQueueDisplay(m); // tail: add one to the running total
+  return addCreditsAndQueueDisplay(m, ACCUMULATE_STEP); // tail: add one to the running total
 }
