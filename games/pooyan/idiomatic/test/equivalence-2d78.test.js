@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for dispatchRopeExtendState (ROM 0x2d78, Pooyan) — the per-frame rope-extend dispatcher.
- * It reads the rope-extend state and hands off through the shared rst-0x28 trampoline; the selected
- * handler returns to dispatchRopeExtendState's caller.
+ * It reads the rope-extend state and runs the matching handler (one of two); the selected handler
+ * returns to dispatchRopeExtendState's caller (a tail dispatch).
  *
  * SEATING: TAIL-CALL — the handler returns to this routine's caller (no net stack move here). The
- * rst-0x28 trampoline (0x0028) is a spine dispatcher NOT lifted this batch, so the module keeps the
- * register-marshalled m.call(0x0028) (index in A, table base pushed); the oracle drives the same
- * frozen trampoline and handlers, so both walk identical downstream code. Compared on RAM (dumpState)
+ * module runs the dispatch through an idiomatic switch; the oracle drives the frozen rst-0x28
+ * trampoline (0x0028, not lifted this batch) and the same handlers, so both walk identical downstream
+ * code. Compared on RAM (dumpState)
  * minus STACK_SCRATCH; the register file is not compared (void dispatch).
  *
  * Cases are CRAFTED: the rope-state byte is poked directly. State 0 (segment-add handler) runs

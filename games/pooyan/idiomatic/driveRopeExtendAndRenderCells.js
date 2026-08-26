@@ -18,7 +18,6 @@ export function driveRopeExtendAndRenderCells(m) {
   if (mem8[GRAB_ACTIVE_FLAG] !== 0) return; // grab in progress
   if (mem8[WAVE_ARRIVAL_COUNTER] === ARRIVAL_HOLD) return;
 
-  m.push16(0x2d74); // return slot the dispatch handler's ret consumes
   dispatchRopeExtendState(m);
   driveActiveRopeCells(m);
 }
