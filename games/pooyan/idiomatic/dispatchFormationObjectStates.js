@@ -8,9 +8,8 @@ const RECORD_COUNT = 4;
 /**
  * dispatchFormationObjectStates — run the object-state dispatcher over the four formation records.
  *
- * Walk the four fixed-stride records and hand each one to the shared per-object state
- * dispatcher (kept marshalled: the dispatcher is not lifted this batch). The loop counter
- * and stride are local, so no register needs parking across the call.
+ * Walk the four fixed-stride records and hand each record pointer to the shared per-object state
+ * dispatcher as an argument.
  *
  * LIVE-OUT: memory only (the sole callers are straight-line sequencers that read no register
  * back).
@@ -18,8 +17,7 @@ const RECORD_COUNT = 4;
 export function dispatchFormationObjectStates(m) {
   let record = FORMATION_TABLE;
   for (let i = 0; i < RECORD_COUNT; i++) {
-    m.regs.ix = record; // the dispatcher reads the record pointer from IX
-    loc_40d0(m);
+    loc_40d0(m, record);
     record += RECORD_STRIDE;
   }
 }

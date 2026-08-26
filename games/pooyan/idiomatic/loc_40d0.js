@@ -20,16 +20,16 @@ export function loc_40d0(m, rec = m.regs.ix) {
   const state = mem8[rec + 0x02] & 0x1f;
   if (state >= 0x11) return; // state index out of range (cp 0x11 -> ret nc)
   switch (state) {
-    case 0: return loc_4103(m);
-    case 1: return descendObjectToLanding(m);
-    case 2: return loc_416f(m);
+    case 0: return loc_4103(m, rec);
+    case 1: return descendObjectToLanding(m, rec);
+    case 2: return loc_416f(m, rec);
     case 3: case 4: case 5: case 6: case 7: return loc_4179(m);
-    case 8: return loc_417a(m);
-    case 9: return loc_418d(m);
+    case 8: return loc_417a(m, rec);
+    case 9: return loc_418d(m, rec);
     case 10: return loc_4179(m);
-    case 11: return moveFormationAndSpawnObject(m);
-    case 12: return loc_4350(m);
-    case 13: return loc_4364(m);
+    case 11: return moveFormationAndSpawnObject(m, rec);
+    case 12: return loc_4350(m, rec);
+    case 13: return loc_4364(m, rec);
     case 14: case 15: case 16: return loc_4378(m);
   }
 }
