@@ -1601,6 +1601,8 @@ export const ROUTINES = {
   0x7fa8: { name: "loc_7fa8", role: "write-anim shared tail (reached from loc_7f0e/loc_7f5d): queue a sound (queueSoundCommand00), flood-fill `count` tile/record cells, then reload PHASE_TIMER and set the run-once latch", cert: "code" },
   0x780f: { name: "paintTileBlock2x2Above", role: "stamp a 2x2 tile block anchored one row above", cert: "seen" },
   0x0000: { name: "loc_0000", role: "power-on reset vector: disable the vblank NMI latch, then tail into the boot entry loc_0092", cert: "code" },
+  0x0066: { name: "loc_0066", role: "Z80 NMI vector: jump to the vblank service routine loc_066d", cert: "code" },
+  0x066d: { name: "loc_066d", role: "vblank NMI service routine (the sole per-frame heartbeat): masks NMI, rebuilds the scroll columns via loc_0714, shifts the input edge-detect ring, ticks two frame counters, services coins + the sound ring, dispatches on MAIN_GAME_STATE, then latches flip-screen and re-arms NMI", cert: "code" },
   0x0010: { name: "loc_0010", role: "fill a run of bytes with a constant, advancing the pointer (a zero counter fills 256)", cert: "code" },
   0x0020: { name: "loc_0020", role: "rst-0x20 byte-table lookup: HL += A then A := (HL)", cert: "code" },
   0x0038: { name: "loc_0038", role: "enqueue a two-byte display command into the page-0x88 display-command ring", cert: "code" },
