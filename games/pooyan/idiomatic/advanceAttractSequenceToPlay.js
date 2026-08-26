@@ -10,6 +10,7 @@ import {
   ROUND_TILE_DST,
   INTRO_DELAY_CKSUM_WORD,
   MAIN_GAME_STATE,
+  ATTRACT_SCRIPT_PTR_TABLE,
 } from "./names.js";
 import { resetToAttractScreenStart } from "./resetToAttractScreenStart.js";
 import { loc_0a28 } from "./loc_0a28.js";
@@ -33,7 +34,6 @@ import { resetActorStateForBoard } from "./resetActorStateForBoard.js";
  */
 const ROW_STRIDE = 0x20; // distance between the two compared integrity rows (one row back = -0x20)
 const PAIR_COUNT = 10; // integrity-block pairs verified
-const SCRIPT_PTR_TABLE = 0x0bab; // word table of script-pointer choices
 const CHECK_COLS = 14; // column-checksum outer count
 const CHECK_ROWS = 29; // column-checksum inner count (bytes per column)
 const PLAY_STATE = 3; // main-state value seated on a clean pass
@@ -62,7 +62,7 @@ export function advanceAttractSequenceToPlay(m) {
   mem8[SCRIPT_FRAME_TIMER] = 1;
   mem8[ATTRACT_SUBSTATE] = (mem8[ATTRACT_SUBSTATE] - 1);
   const idx = (mem8[SCRIPT_COL_CHECK_TICK] - 1) & 0xff;
-  mem16[SCRIPT_WRITE_PTR] = loc_0c45(m, idx, SCRIPT_PTR_TABLE); // DE = table[idx]
+  mem16[SCRIPT_WRITE_PTR] = loc_0c45(m, idx, ATTRACT_SCRIPT_PTR_TABLE); // DE = table[idx]
 
   const tick = (mem8[SCRIPT_COL_CHECK_TICK] - 1) & 0xff;
   mem8[SCRIPT_COL_CHECK_TICK] = tick;

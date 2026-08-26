@@ -30,7 +30,6 @@ import {
  * LIVE-OUT: memory only — a void epilogue; the caller reads nothing back.
  */
 const ROW_STRIDE = 0x20; // scan advances hl one tile row backward per match
-const SCAN_TO_CMP_OFFSET = 0xfbc0; // scan-end ptr -> lookup compare cell
 
 export function advanceGameStateOnCreditOrStartPress(m) {
   const { mem8 } = m;
@@ -53,7 +52,7 @@ export function advanceGameStateOnCreditOrStartPress(m) {
     }
 
     if (!mismatch) {
-      const cmp = u16(hl + SCAN_TO_CMP_OFFSET); // strip cell the lookup is checked against
+      const cmp = u16(hl - 0x440); // strip cell the lookup is checked against (0x440 back)
       const [fetched] = loc_0020(m, EPILOGUE_SUBSTATE_LOOKUP_TABLE, mem8[ATTRACT_SUBSTATE]);
       if (fetched === mem8[cmp]) break integrity; // lookup agrees -> no tamper
     }
