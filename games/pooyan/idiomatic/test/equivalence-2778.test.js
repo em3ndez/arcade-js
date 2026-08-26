@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for dispatchLaunchState (ROM 0x2778, Pooyan) — the per-frame launch-sequence
- * dispatcher. It reads the low three bits of the launch state and hands off through the shared
- * rst-0x28 trampoline; the selected handler returns to dispatchLaunchState's caller.
+ * dispatcher. It reads the low three bits of the launch state and runs the matching handler from the
+ * five-entry table; the selected handler returns to dispatchLaunchState's caller (a tail dispatch).
  *
  * SEATING: BALANCED — the handler returns to this routine's caller (a tail dispatch, no net stack
- * move). The rst-0x28 trampoline (0x0028) is a spine dispatcher NOT lifted this batch, so the
- * module keeps the register-marshalled m.call(0x0028) (index in A, table base pushed); the oracle
- * drives the same frozen trampoline and handlers, so both walk identical downstream code. Compared
+ * move). The module runs the dispatch through an idiomatic switch; the oracle drives the frozen
+ * rst-0x28 trampoline (0x0028, not lifted this batch) and the same handlers, so both walk identical
+ * downstream code. Compared
  * on RAM (dumpState) minus STACK_SCRATCH; the register file is not compared (void dispatch).
  *
  * Cases are CRAFTED: the launch-state byte is poked directly. States 0/1/2 run cleanly from a boot

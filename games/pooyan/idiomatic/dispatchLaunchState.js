@@ -1,15 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { LAUNCH_STATE } from "./names.js";
+import { armLaunchAndAdvanceToHunterSpawn } from "./armLaunchAndAdvanceToHunterSpawn.js";
+import { spawnEnemyTargetOrAnimateLaunchFlipTile } from "./spawnEnemyTargetOrAnimateLaunchFlipTile.js";
+import { spawnHunterIntoTableAndAdvanceLaunch } from "./spawnHunterIntoTableAndAdvanceLaunch.js";
+import { advanceLaunchOnDelayAndClearHunterRecord } from "./advanceLaunchOnDelayAndClearHunterRecord.js";
+import { loc_28c5 } from "./loc_28c5.js";
+
 /**
  * dispatchLaunchState — per-frame driver for the launch-sequence state machine.
  *
- * Selects a handler by the low three bits of the launch state and hands off through the shared
- * rst-0x28 trampoline; the selected handler returns straight to this routine's caller.
+ * Selects a handler by the low three bits of the launch state and runs it; the selected handler
+ * returns straight to this routine's caller (a tail dispatch). Five sub-states.
  *
  * LIVE-OUT: none — a void per-frame dispatch; the caller reads nothing back.
  */
 export function dispatchLaunchState(m) {
-  m.regs.a = m.mem8[LAUNCH_STATE] & 0x07; // dispatch index
-  m.push16(0x277e); // inline jump-table base
-  return m.call(0x0028); // rst-0x28 spine dispatcher (unlifted) -> handler
+  switch (m.mem8[LAUNCH_STATE] & 0x07) {
+    case 0: return armLaunchAndAdvanceToHunterSpawn(m);
+    case 1: return spawnEnemyTargetOrAnimateLaunchFlipTile(m);
+    case 2: return spawnHunterIntoTableAndAdvanceLaunch(m);
+    case 3: return advanceLaunchOnDelayAndClearHunterRecord(m);
+    case 4: return loc_28c5(m);
+  }
 }

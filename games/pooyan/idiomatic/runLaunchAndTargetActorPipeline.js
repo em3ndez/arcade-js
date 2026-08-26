@@ -11,7 +11,6 @@ import { stepActiveTargetActorRecords } from "./stepActiveTargetActorRecords.js"
  * LIVE-OUT: none — a void sequencer; each sub-pass acts on memory and the caller reads nothing back.
  */
 export function runLaunchAndTargetActorPipeline(m) {
-  m.push16(0x2104); // return slot the tail-dispatcher's ret consumes
   dispatchLaunchState(m);
   spawnTargetActorOnLaunchTrigger(m);
   stepActiveTargetActorRecords(m);
