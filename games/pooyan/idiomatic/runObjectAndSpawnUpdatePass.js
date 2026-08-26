@@ -11,13 +11,11 @@ import { ENEMY_ACTOR_TABLE, HUNTER_TABLE_BASE } from "./names.js";
  * runs the three-record enemy-actor state pass, then the enemy-record state dispatch. Straight-line
  * calls, no branches.
  *
- * SEATING: a void sequencer — no register survives; the caller reads only memory back. The record
- * pointer for the fountain dispatch is handed through the interpreter register it reads.
+ * SEATING: a void sequencer — no register survives; the caller reads only memory back.
  */
 export function runObjectAndSpawnUpdatePass(m) {
   blitStackedTwoTileAnimFrameOnHoldTimer(m);
-  m.regs.ix = HUNTER_TABLE_BASE; // fountain record pointer for the state dispatch
-  runActorGroupStateHandler(m);
+  runActorGroupStateHandler(m, HUNTER_TABLE_BASE); // fountain record for the state dispatch
   updateEnemyActorsAndCycleLaunchFlipAnim(m, ENEMY_ACTOR_TABLE);
   return loc_6822(m); // enemy-record state dispatcher
 }
