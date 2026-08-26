@@ -4,17 +4,19 @@ import {
   FORMATION_ENABLE_FLAG,
   FORMATION_STATE,
   FORMATION_SLOT_TABLE,
-  FORMATION_DISPATCH_TABLE,
   ENEMY_ACTOR_TABLE,
   ROPE_DRAW_STEP_TIMER,
 } from "./names.js";
+import { loc_30f1 } from "./loc_30f1.js";
+import { loc_316e } from "./loc_316e.js";
+import { loc_3266 } from "./loc_3266.js";
 import { loc_32bd } from "./loc_32bd.js";
 
 /**
  * loc_308b — the formation manager.
  *
- * Does nothing while disabled. Once the formation is active it dispatches the low two bits of the
- * state through the shared spine trampoline into the phase-handler table, then runs the shared
+ * Does nothing while disabled. Once the formation is active it dispatches the formation phase (the
+ * low two bits of the state, less one) to the matching phase handler, then runs the shared
  * epilogue. Otherwise it scans the actor records for launch-ready slots (idle or queued with a
  * clear ready byte), registers each record pointer into the slot table and marks it queued; when
  * the fourth entry fills the table it arms the formation, and when the scan finds none it resets
@@ -40,10 +42,11 @@ export function loc_308b(m) {
   if (mem8[FORMATION_ENABLE_FLAG] === 0) return; // disabled
 
   if (mem8[FORMATION_STATE] !== 0) {
-    m.push16(0x32bd); // return slot the spine dispatcher's ret consumes
-    m.regs.a = u8((mem8[FORMATION_STATE] & 0x03) - 1); // phase -> dispatch index (register bridge)
-    m.push16(FORMATION_DISPATCH_TABLE); // inline jump-table base
-    m.call(0x0028); // rst-0x28 spine dispatcher (unlifted) -> phase handler
+    switch (u8((mem8[FORMATION_STATE] & 0x03) - 1)) { // formation phase -> its handler
+      case 0: loc_30f1(m); break;
+      case 1: loc_316e(m); break;
+      case 2: loc_3266(m); break;
+    }
     return loc_32bd(m); // shared formation epilogue
   }
 

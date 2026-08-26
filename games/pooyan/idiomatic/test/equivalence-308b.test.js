@@ -2,9 +2,9 @@
 /**
  * Memory-equivalence test for loc_308b (ROM 0x308b, Pooyan) — the formation manager.
  *
- * The module keeps the register-marshalled spine dispatch (m.call 0x0028) and direct-calls the
- * idiomatic epilogue (loc_32bd); the oracle drives the same spine and the frozen epilogue through
- * the registry that new Machine(ROM) builds. loc_308b is a void manager — no register survives —
+ * The module dispatches the formation phase through an idiomatic switch to the three phase handlers
+ * and direct-calls the idiomatic epilogue (loc_32bd); the oracle drives the same handlers and
+ * epilogue through the frozen rst-28 spine that new Machine(ROM) builds. loc_308b is a void manager — no register survives —
  * so the register file is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH, SP
  * parked in dead stack so nested pushes drop out.
  *
