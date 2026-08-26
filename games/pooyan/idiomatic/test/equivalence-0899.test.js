@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for dispatchAttractSubstate (ROM 0x0899, Pooyan) — the attract/demo sequence driver
- * (top-level game state 1): read the attract sub-state and dispatch it through the shared rst-0x28
- * trampoline; every handler returns to the shared epilogue, which returns to this driver's caller.
+ * (top-level game state 1): read the attract sub-state and run the matching handler from the nine-entry
+ * table, then run the shared epilogue, which returns to this driver's caller.
  *
- * The module keeps the register-marshalled spine dispatch (m.call 0x0028) and the kept epilogue
- * (m.call 0x0bb5); the oracle drives the same frozen dispatcher, handler, and epilogue. dispatchAttractSubstate is
- * a void driver — no register survives — so equivalence is RAM (dumpState) minus STACK_SCRATCH.
+ * The module runs the handlers through an idiomatic switch and calls the epilogue directly; the oracle
+ * drives the frozen rst-0x28 dispatcher, handler, and epilogue. dispatchAttractSubstate is a void driver
+ * — no register survives — so equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
  * The crafted state seats sub-state 3 (loc_0986, a pure countdown gate) with its frame timer still
  * running, so the handler just decrements it and returns; the epilogue is held on its clean `ret z`
@@ -17,8 +17,8 @@
  *   1. EQUAL — oracle == dispatchAttractSubstate in RAM (−stack) for the running-timer and expiring-timer crafts.
  *   2. WRITE-SET — the dispatch reaches loc_0986: the frame timer is decremented.
  *   3. TEETH — a wrong timer byte is CAUGHT by the RAM diff.
- *   4. SP-TOOTH (R36) — the push16 + rst-28 dispatch is seam-placeable (a dropped push16 goes RED
- *      in the shared sp-seam-tooth.test.js null-mutant).
+ *   4. SP-TOOTH (R36) — the switch-form dispatcher is SP-neutral through the seam (no stack ops; the
+ *      seam supplies the ret). Null-mutant coverage for the seam is in sp-seam-tooth.test.js.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-0899.test.js
  */
@@ -111,7 +111,7 @@ test("TEETH: a wrong frame-timer byte is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (R36) --------------------------------------------------------
 
-test("SP-TOOTH: dispatchAttractSubstate's push16 + rst-28 dispatch is seam-placeable", () => {
+test("SP-TOOTH: dispatchAttractSubstate is SP-neutral through the seam", () => {
   const r = seamPlaceable(withOmittedRet, dispatchAttractSubstate, 0x0899, craft(0x05));
   assert.equal(r.placeable, true, `dispatcher must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: dispatch + epilogue seat cleanly (moved +2, pc on the caller slot)");
