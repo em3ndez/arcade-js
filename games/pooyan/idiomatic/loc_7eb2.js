@@ -16,6 +16,7 @@ import {
   loc_8e26,
   loc_8e27,
   loc_8e2b,
+  FIRE_PHASE_SEED,
 } from "./names.js";
 
 /**
@@ -39,7 +40,7 @@ export function loc_7eb2(m) {
 
   mem16[loc_8e27] = loc_8565; // stash the stamp base (read back for the second walk)
   mem8[loc_8e25] = 0x03;
-  mem16[loc_8e2b] = 0x03a0;
+  mem16[loc_8e2b] = FIRE_PHASE_SEED;
 
   // Record walk: pointer += 3 per pass (a 0 seed runs 256 passes).
   let recordPtr = loc_8dfd;

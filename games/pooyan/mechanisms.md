@@ -576,8 +576,10 @@ to 0x06 once it passes 0x10).
 The write-anim pre-pass `loc_7e94` [code] is a run-once-latched dispatch redirect: once the latch
 (RESET_SCAN_LATCH) is set, or while HIGH_SCORE_INSERT_RANK is zero (which arms the latch), it skips
 straight to the epilogue; otherwise a selector picks one of three write-anim state handlers — `loc_7eb2`
-[code] seeds an animation work block, `loc_7f0e` [code] counts the block down and steps its index, and
-`loc_7f5d` [code] rotates a phase ring and advances the block pointers — before every path tail-returns
+[code] seeds an animation work block (stamping the 16-bit `FIRE_PHASE_SEED` (0x03a0, [code]) into the
+block's word cell 0x8e2b), `loc_7f0e` [code] counts the block down and steps its index, and
+`loc_7f5d` [code] rotates a phase ring and, when the ring settles on the fire phase, re-stamps that same
+`FIRE_PHASE_SEED` before advancing the block pointers — before every path tail-returns
 into the per-frame start-button poll `startGameOnStartButtonPress`. Two of those handlers share a
 fill-and-latch tail `loc_7fa8` [code] that floods a run of tile and record cells and re-arms the latch.
 
@@ -591,8 +593,8 @@ left — tails to the cold teardown, or, with credit banked, clears the active g
 flip flag, and drops MAIN_GAME_STATE to the board-build state (2): the continue screen. The cold
 teardown, `resetGameToAttractState` (0x1d3c, [seen]), zeroes the whole in-play state block (game-active,
 index, active player, two-player flag, attract sub-state), seeds the fresh-start flags (main state 1,
-flip normal, launch armed), zeroes the board RAM, posts sound command 0, and unpacks the attract
-message table (each byte halved) into the display buffer.
+flip normal, launch armed), zeroes the board RAM, posts sound command 0, and unpacks the packed attract
+message table ATTRACT_INIT_MESSAGE_SRC (0x1e4c) [code] (each byte halved) into the display buffer.
 
 ### The live progression block and the per-player state banks
 
@@ -799,6 +801,12 @@ timer `TWOTILE_ANIM_HOLD` (0x8f06, [seen], reload 0x0c) gates the work, on expir
 `TWOTILE_ANIM_PHASE` (0x8f07, [seen]) advances and its low bit picks one of two adjacent
 4-byte source patterns, which is stamped as a 2x2 block at the screen anchor and again two
 rows higher.
+
+A separate one-shot arms an actor's fall rather than stepping frames: `armActorDropAnimationNearTop`
+(0x3a51, [seen]) acts only when the actor is near the top of its travel (its high-position byte below
+2), seating the ROM drop-animation descriptor `DROP_ANIM_DESCRIPTOR` (0x3bd1, [code]) into the record
+through `setActorAnimation`, marking the record's sub-state as dropping (0x02), and reloading its phase
+timer (0x28).
 
 ### Spawning new actors
 
@@ -1320,7 +1328,9 @@ the command. Per-frame HUD upkeep enters here through tickHudRefresh (0x1583) [c
 HUD_REFRESH_TICK and, on every 16-frame boundary, enqueues a display-refresh command (argument 0xb5 or
 0x35 depending on bit 4 of the counter), then falls through into the gameplay dispatcher only while the
 tamper-strike counter is nonzero. The attract build posts its layout draws the same way — three commands
-from paintAttractColorsAndQueueDraws and two from each sibling play-state handler. A related buffer is
+from paintAttractColorsAndQueueDraws and two from each sibling play-state handler. A credit-display
+refresh enters the same enqueue: queueCreditDisplayRefresh (0x5a97) [code] hands the fixed command word
+CREDIT_DISPLAY_COMMAND (0x0701) [code] to 0x0038 through DE. A related buffer is
 the display message buffer: clearDisplayMsgBufOnRoundInitMatch (0x1694) [seen] compares a terminated ROM
 pattern against DISPLAY_MSG_BUF and, on a full match, clears the seven-cell buffer, otherwise tail-branches
 into the round display-list state handler and reuses the frame.
@@ -1400,7 +1410,11 @@ tile (skipped when zero) and units tile, and — only when the units digit is ex
 program block as a hidden checksum tripwire, bumping an anti-tamper strike counter on a miss. The
 high-score table's own integrity is guarded by flagHighScoreTableCorruptOnChecksumMiss (0x0644) [code],
 which checks the 0xc8 header marker and a four-byte checksum (summed bytes minus carry count must equal
-0x59) and raises the table-corrupt flag on any mismatch.
+0x59) and raises the table-corrupt flag on any mismatch. When a score qualifies for the table,
+advancePlayStateAndStageHighScoreEntryOnTimer (0x1c03) [seen] — the play-state handler that acts only
+while the high-score insert rank is nonzero — copies the ROM name-entry source table
+HIGH_SCORE_ENTRY_TABLE_SRC (0x1754) [code] into the display-message buffer, rotating each byte left
+through carry up to its 0x5a terminator, to stage the entry readout.
 
 The attract screen composes all of this in 0x03e9 [code]: it draws eleven selector-indexed character
 fields, then renders the ten-entry high-score table as stacked BCD digit pairs (each source byte split
@@ -1727,7 +1741,10 @@ TAMPER_CHECK_CLONE_6DF9) whenever bit 2 of the round counter is set, and another
 compare of the 0x7071 clone against its own original (0x0b32) on round 3; each compare, on a
 divergence, tails into the other clone as its tamper-response handler. A patch applied to one copy
 but not the other therefore shows up as a mismatch that reroutes the machine into the duplicated
-code.
+code. The attract sub-state 0 handler resetToAttractScreenStart (0x08b3) [seen] carries a guard of
+its own: it sums ROM backward from CHECKSUM_SCAN_START (0x64d5) [code] down to a 0x96 sentinel and,
+unless (0x96 minus the carry count) lands on 0x8f, raises the object-freeze flag
+TAMPER_OBJECT_FREEZE_FLAG (0x89fb).
 
 The signature guards proper live deeper in play. verifyRomSignature (0x208c) [code] samples the
 code region from SIGNATURE_SAMPLE_BASE (0x066d) — every eighth byte — against the 16-byte

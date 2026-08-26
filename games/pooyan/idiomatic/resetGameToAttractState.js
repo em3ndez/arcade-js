@@ -12,9 +12,9 @@ import {
   FLIP_SCREEN_FLAG,
   LAUNCH_ARMED_FLAG,
   DISPLAY_MSG_BUF,
+  ATTRACT_INIT_MESSAGE_SRC,
 } from "./names.js";
 
-const INIT_MSG_SRC = 0x1e4c; // packed display-message source table
 const MSG_TERMINATOR = 0x7f; // sentinel ending the table
 
 /**
@@ -42,7 +42,7 @@ export function resetGameToAttractState(m) {
   loc_02b9(m); // zero the board RAM regions
   queueSoundCommand00(m); // post sound command 0
 
-  let src = INIT_MSG_SRC;
+  let src = ATTRACT_INIT_MESSAGE_SRC;
   let dst = DISPLAY_MSG_BUF;
   for (;;) {
     const b = mem8[src];

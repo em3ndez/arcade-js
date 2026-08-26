@@ -1363,6 +1363,18 @@ export const WATCHDOG_KICK = 0xa028;
 export const IN0_PORT = 0xa080;
 /** [code] LS259 latch bit 4 driving the physical coin counter 2 (write_d0: only bit 0 of the value lands) */
 export const COIN2_COUNTER_LATCH = 0xa184;
+/** [code] ROM source table copied into the high-score name-entry display buffer (0x1754) */
+export const HIGH_SCORE_ENTRY_TABLE_SRC = 0x1754;
+/** [code] ROM animation-descriptor pointer for the actor drop, seated into the record on arm (0x3bd1) */
+export const DROP_ANIM_DESCRIPTOR = 0x3bd1;
+/** [code] address the backward power-on checksum scan begins at, walked down to the sentinel byte (0x64d5) */
+export const CHECKSUM_SCAN_START = 0x64d5;
+/** [code] packed ROM display-message source table for the attract reset (0x1e4c) */
+export const ATTRACT_INIT_MESSAGE_SRC = 0x1e4c;
+/** [code] display-command word queued to the rst-0x38 dispatcher on a credit-display refresh (0x0701) */
+export const CREDIT_DISPLAY_COMMAND = 0x0701;
+/** [code] 16-bit value stamped on the fire phase (0x03a0) */
+export const FIRE_PHASE_SEED = 0x03a0;
 
 export const ROUTINES = {
   // --- decode pass: rst-28 spine dispatchers (switch over MAME-confirmed handlers; loc_ names, cert code) ---

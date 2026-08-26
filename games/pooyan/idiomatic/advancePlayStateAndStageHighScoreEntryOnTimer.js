@@ -15,6 +15,7 @@ import {
   WIPE_COLUMN_FILL_TILE,
   DISPLAY_MSG_BUF,
   OBJECT_SPAWN_DISPLAY_CMD,
+  HIGH_SCORE_ENTRY_TABLE_SRC,
 } from "./names.js";
 /**
  * advancePlayStateAndStageHighScoreEntryOnTimer — play-state dispatch handler gated on the phase timer.
@@ -31,7 +32,6 @@ import {
 const SUBSTATE_ADVANCE = 0x0e;
 const WIPE_SEED_TILE = 0x07;
 const TABLE_TERMINATOR = 0x5a;
-const TABLE_SRC = 0x1754; // source table copied into the display buffer
 
 export function advancePlayStateAndStageHighScoreEntryOnTimer(m) {
   const { mem8, mem16 } = m;
@@ -57,7 +57,7 @@ export function advancePlayStateAndStageHighScoreEntryOnTimer(m) {
   queueFixedSoundCommandRun(m); // enqueue the four-tile text sequence
 
   mem8[WIPE_COLUMN_FILL_TILE] = WIPE_SEED_TILE;
-  let src = TABLE_SRC;
+  let src = HIGH_SCORE_ENTRY_TABLE_SRC;
   let dst = DISPLAY_MSG_BUF;
   for (;;) { // copy the source table (rotate-left through carry per byte) until the terminator
     const b = mem8[src];

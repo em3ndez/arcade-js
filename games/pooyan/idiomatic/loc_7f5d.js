@@ -10,6 +10,7 @@ import {
   loc_8e27,
   loc_8e29,
   loc_8e2b,
+  FIRE_PHASE_SEED,
 } from "./names.js";
 
 /**
@@ -26,7 +27,6 @@ import {
 
 const FIRE_PHASE = 0x01; // ring low-3 value that opens the block-build step
 const RING_MASK = 0x07;
-const SEED_2B = 0x03a0; //   16-bit value stamped on the fire phase
 const ROW_STRIDE = 0x20; //  one row; the row pointer is backed up by this
 const REPRIME = 0x11; //     re-primed into the index byte and written at the backed-up row pointer
 
@@ -39,7 +39,7 @@ export function loc_7f5d(m) {
   mem8[loc_8e29] = ring;
   if ((ring & RING_MASK) !== FIRE_PHASE) return; // off phase: only the ring advanced
 
-  mem16[loc_8e2b] = SEED_2B;
+  mem16[loc_8e2b] = FIRE_PHASE_SEED;
 
   // append the index byte to the block and advance the write-pointer
   const appendPtr = mem16[PLAYER2_START_CLEAR_BLOCK];
