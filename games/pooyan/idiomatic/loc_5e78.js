@@ -13,16 +13,14 @@ const SLOT_STRIDE = 4; // one record between passes
  * 0 on the first pass and 1 after, with the table pointer advanced one record between passes.
  *
  * LIVE-OUT: none — a void per-frame driver; the caller reads nothing back. The phase latch and
- * target box are seated in the register bridge the per-slot sweep's recursive scan reads back.
+ * target box are passed to the per-slot sweep as arguments.
  */
 export function loc_5e78(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
   if ((mem8[ROUND_COUNTER] & 0x01) === 0) return; // even round -> disabled
   let table = SPRITE_ACTOR_RECORD_SLOTS;
   for (let pass = 0; pass < PASSES; pass++) {
-    regs.iy = table; // target box the recursive scan reads
-    regs.i = pass === 0 ? 0 : 1; // phase latch the recursive scan reads
-    loc_5e98(m);
+    loc_5e98(m, pass === 0 ? 0 : 1, table); // phase latch, target box
     table = u16(table + SLOT_STRIDE);
   }
 }
