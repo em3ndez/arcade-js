@@ -19,31 +19,21 @@ Both are decidable by a script. Whether a comment is TRUE is the reviewer's job.
 
 ## Why density, and the cap's history
 
-- **2 → 4 (2026-08-08, Karl's call)**, after measuring what the 0.50 cap was actually doing: every
-  file carrying a round-3 blocker sat AT the ceiling — pixel_suite.py 0.50, render.js 0.49,
-  assembled-swap.test.js 0.49, pixel_gate_required.py 0.48, loc_32eb.js 0.48. Not one comfortably
-  inside it. A cap was being treated as a target, and the prose written to fill it is where that
-  round's five false claims lived. Forced to compress nine lines to two, the lines that went
-  contained a falsehood no gate could see. Errors concentrate in the elaboration, so halving the
-  elaboration is the cheapest instrument available — it costs no review time and fires before a
-  reviewer is ever spawned.
-- **+ DENSITY_FLOOR = 4 (2026-08-10, Karl's call).** Always allow at least four comment lines
-  regardless of code size. The `/DIVISOR` cap alone starves small routines whose honest header
-  (5–11 lines) predates the rule, so a pure rename could not land without gutting documentation
-  prior passes wrote. The floor is that headroom.
-- **2x both: DENSITY_DIVISOR 4 → 2 and DENSITY_FLOOR 4 → 8 (2026-08-19, Karl's call).** Double the
-  comment budget — the per-code rate (back to the pre-08-08 divisor) and the flat floor. New cap =
-  `code // 2 + 8`.
+- **2 → 4**. Errors concentrate in the elaboration, so halving the elaboration is the cheapest
+  instrument available — it costs no review time and fires before a reviewer is ever spawned.
+- **+ DENSITY_FLOOR = 4.** Always allow at least four comment lines regardless of code size. The
+  `/DIVISOR` cap alone starves small routines whose honest header (5–11 lines) predates the rule,
+  so a pure rename could not land without gutting documentation prior passes wrote. The floor is
+  that headroom.
+- **2x both: DENSITY_DIVISOR 4 → 2 and DENSITY_FLOOR 4 → 8.** Double the comment budget — the
+  per-code rate and the flat floor. New cap = `code // 2 + 8`.
 - The gate checks STAGED files only, so a change to the cap is self-limiting: a file pays when it is
-  next touched, not today. At the 2→4 change: 3,083 in-scope files, 1,561 already over the old 0.50
-  cap, 2,852 over the new one — not a wall, the migration, spread over whenever each file is next edited.
+  next touched, not today — not a wall, a migration spread over whenever each file is next edited.
 
 ## Exemptions — none by KIND, one by POSITION
 
 **NOTHING IS EXEMPT BY KIND** — not the transcription layer, not generated files, not the gate file
-itself. Every kind-exemption that was once here began as an assumption about what the rule would do
-to a class of files, and each was wrong when the class was finally measured. Narrowing the rule to
-JS only was a scope cut dressed as a principle, and it exempted the gate from the rule it enforces.
+itself.
 
 One file is exempt **by POSITION**: `games/<game>/idiomatic/names.js`, the address-to-name map,
 whose comments are each entry's own content rather than commentary on code. Exempt by exact position,
@@ -64,8 +54,7 @@ report the fix as already made, and that is the state that most tempts a `--no-v
 ## Lexing: a wrong counter fails in both directions
 
 Counting comments needs a real lexer for the host language, and a wrong one fails both ways —
-blocking an honest file, or letting prose through. Three review rounds found hand-written lexers
-wrong on Python string prefixes, shell parameter expansion, and `<<` in shell arithmetic.
+blocking an honest file, or letting prose through.
 
 **Why a prefix test is not enough.** Deciding a line by whether it starts with `//` fails both
 directions: a `//` inside a template literal is not a comment, a script blocked for the banner it
@@ -94,10 +83,7 @@ catch went invisible. It is not guessed at any more: after a value keyword the r
 the test is on token SPELLING, so `in` and `of` are left out as ordinary identifiers — and after
 `)`, `]` or `}` the file is scanned BOTH ways and refused if the readings disagree. At those
 ambiguous positions two cheap facts settle almost every line: a regex must CLOSE on its own line,
-and never opens on whitespace (`/ c` is division). An earlier attempt
-only caught the case where the phantom string ran off the end of the line, which made correctness
-depend on the parity of apostrophes in the prose being measured: one `don't` in a trailing comment
-closed the string and the comment vanished. Both rules now share one scanner, so neither can be fixed
+and never opens on whitespace (`/ c` is division). Both rules now share one scanner, so neither can be fixed
 without the other. A gate that refuses a file it cannot read is recoverable; one that waves it through is not.
 
 ## Known limitations — a green means less than it looks like

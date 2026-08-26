@@ -85,7 +85,7 @@ From gameplay.md, blind to the old map. Never patch it. Recount by measuring.
 Sweep by **claim family** — existence, counts, "only/sole", status words — **never by token.**
 A token sweep finds only claims that name the renamed thing, and most stale claims never name it:
 to-dos that have since fired, counts of other files, whole-ROM "only" assertions, and status words
-the port's own progress falsifies. This is the step's recorded failure mode, twice.
+the port's own progress falsifies.
 Flatten files before matching — wrapped lines hide hits.
 Enumerate the phrasings actually present; guessing them is the failure mode.
 Re-derive every count a reworded predicate touches.
@@ -137,14 +137,13 @@ as absence:
   It existed.
 - **Sample size.** A sample far too small for the rate being looked for, so the expected yield was
   a fraction of one hit. Zero was the *predicted* output of a search that could not have found the
-  thing, and it was read as proof the thing was absent. (Reported to me by another agent; I have not
-  seen the artifact, so take the shape as the lesson and the instance as second-hand.)
+  thing, and it was read as proof the thing was absent.
 
 The failure is never in the reasoning after the search; it is that the search was never shown to be
 capable. Related, and the same discipline one layer down: a MAME positive control can silently be a
 no-op, so verify it actually moved pixels (step 4).
 
-★ **Corollary — where an unverified premise hides.** Twice in that same day the *conclusion* was
+★ **Corollary — where an unverified premise hides.** The *conclusion* was
 right and the premise supporting it was false. That is not luck, it is the mechanism: **a sound
 conclusion is the most comfortable place for an unverified premise to sit**, because nothing
 downstream ever fails, so nothing ever checks it. When a decision is obviously correct, that is
@@ -197,10 +196,7 @@ someone repairs a gate that was working.
    (the exact "one routine's local view" the registry exists to reconcile). Plus each routine still
    tagged `[guess]`. An undefined cell is an unnamed unknown even when no prose question mentions it. So
    an understanding pass **ENUMERATES both nets mechanically** and works that whole set — it does not
-   read the map's open-questions section and stop. (Recorded failures: an agent read only the map's
-   "still-open" list and reported the game "as understood as it gets" while **30** cells sat unnamed;
-   and a first single-net recipe caught only (a), hiding **~19** more cells that lived as local
-   consts — a one-net enumeration UNDER-reports.) Verified game-agnostic enumeration (`<game>` = e.g.
+   read the map's open-questions section and stop. Verified game-agnostic enumeration (`<game>` = e.g.
    `thepit`):
 
    ```sh
@@ -233,12 +229,7 @@ someone repairs a gate that was working.
    ★ **Enumerate writers with a TAP, never with an operand scan — a scan cannot see an indexed
    write.** Searching the image for instructions that name a cell as an immediate operand misses
    `ld (ix+d),a`, `ld (iy+d),a` and every store made through a pointer register, so it returns
-   "nothing writes this" for a cell being rewritten hundreds of times a run. That exact zero was read
-   as a finding on this project: a pair of cells was declared a FIXED point because no instruction
-   named them, while two `ld (ix+d),a` stores rewrote them 596 times each in a 200 s undriven attract
-   run. A caveat naming this precise hole had been written down in the same working document and
-   the scan was trusted anyway — which is why the rule belongs HERE, at the step that runs the
-   scan, and not in a page of lessons somebody reads once. **A writer set is a write
+   "nothing writes this" for a cell being rewritten hundreds of times a run. **A writer set is a write
    tap's output. A scan is a hint, and its zero is not an absence** ("Before you report a negative
    from a search", above).
 
@@ -271,7 +262,7 @@ spiral — it FEEDS a grounding pass. Two stages, and stage B is not optional:
    "One source per fact".
 3. **The names cleared proposer≠confirmer + a third adversarial review.** Two independent *blind*
    derivations, promoted on convergence — but convergence is necessary, not sufficient (two blind
-   derivations can converge on the same *wrong* reading, the recorded `0x8076` case), so a third
+   derivations can converge on the same *wrong* reading), so a third
    adversarial review reads every promoted name before it lands, not only the ones the two split on. The
    lead — not a proposer — edits `names.js`. (See [idiomatic generation](idiomatic-generation.md).)
 4. **Verify the code side mechanically, don't assert.** Both-net enumeration prints zero uncentralized
@@ -281,8 +272,7 @@ spiral — it FEEDS a grounding pass. Two stages, and stage B is not optional:
 **B. Then GROUND the `[code]` names.** They are *proposals*. A grounding pass plays/pokes each in MAME —
 never the JS engine, which is our own model (grounding it against itself is circular) — to lift
 `[code]`→`[seen]` or to OVERTURN it. Ground the **load-bearing, code-undecidable** picks first and
-*before you build on them*: a name derived from code alone can be confidently wrong (The Pit shipped
-"no laser exists" and called enemy-3 a "ship", both from code, both overturned only by grounding). A
+*before you build on them*: a name derived from code alone can be confidently wrong. A
 batch of fresh `[code]` names is a grounding **work-list**, not a finished map — the pass is complete
 only when that list is grounded-or-accounted-for, exactly as the mechanism map is (below).
 

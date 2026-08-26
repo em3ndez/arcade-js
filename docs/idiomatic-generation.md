@@ -69,13 +69,8 @@ thing it proxies for is being checked.**
 The cost of turning it on late is not the run; it is the bisect. Many green routines and one pixel
 diff is a search problem. One routine and one pixel diff is a bug report.
 
-★ **This is written here because it happened.** Time Pilot's idiomatic layer ran a full day of
-batches — per-routine gates green, whole-game swap green, suite green — with the pixel gate wired
-into nothing at all: no npm script, no hook, no Makefile target, last run by hand days earlier.
-Nothing was lying: every gate reported truthfully on what it measured. The gap was that nobody had
-asked what none of them measured. Note also that `make verify` is **not** the pixel gate despite the
-name — it is a disassembly decoder check, and it defaults to `GAME=dkong`, so on any other game it
-does not even read your ROM.
+**`make verify` is not the pixel gate despite the name** — it is a disassembly decoder check, and it
+defaults to `GAME=dkong`, so on any other game it does not even read your ROM.
 
 ## The batch loop: ten leaf routines at a time
 
@@ -176,9 +171,7 @@ already-decompiled callees with direct calls as part of its own work.
 
 Strict bottom-up order is what makes this hold. Violate it — decompile a caller before its callee —
 and you buy the retrofit instead: the moment the callee lands, every already-idiomatic caller's
-`m.call(0xADDR)` is stale and the `no-stale-mcall` lint goes red. On The Pit, one batch of eight
-leaves landed under callers that had already been decompiled and stranded 25 `m.call` sites across
-15 caller files between them, including `push16` return-brackets. Worse, dissolving a
+`m.call(0xADDR)` is stale and the `no-stale-mcall` lint goes red. Dissolving a
 *tail* `return m.call` changes the Z80 pc/SP/stack, which false-fails any caller test still written
 to the **strict** pc/SP/whole-stack contract; each must then be migrated to memory-equivalence —
 excluding the dead `[SP-8, SP)` stack scratch, keeping the RAM diff and the teeth, and re-proving
@@ -204,11 +197,9 @@ file: a label the ROM's own `jp`/`ret` lands on, whose whole body reads and writ
 *routine-is-a-range-not-a-filename* trap). Do not preserve the call. Inline it — a tail
 `return callee(m)` becomes `return;`, a mid-body call is deleted — then delete the module, its
 `ROUTINES` entry, and its `equivalence-<addr>.test.js`. The frozen `translated/` twin stays as the
-oracle, and the address harmlessly falls back to it since nothing dispatches it. Worked case: Time
-Pilot's `loc_0ce8` was `awardScoreToPlayer`'s own exit label, removed this way. **A bare-return
+oracle, and the address harmlessly falls back to it since nothing dispatches it. **A bare-return
 idiomatic module should be forbidden by a gate**, the way `registry-coverage` forbids an undispatched
-one — a rule no gate checks decays (see *A check that cannot fail*, and the registry-coverage
-history, above).
+one — a rule no gate checks decays (see *A check that cannot fail*, above).
 
 ## Then the mechanisms file
 
@@ -250,29 +241,24 @@ When the decompile is about to commit an identity that (a) downstream work will 
 code alone cannot settle — laser vs terrain-scroll, enemy vs ship, which axis is X — fire the
 experiment *then* and let the result set the name.
 
-Do **not** name it from code and let grounding upgrade it later. That deferral is how The Pit
-committed *"no laser exists"* and named enemy-3 a *"ship,"* each caught only by a later round after
-the wrong pick had propagated through the map. Low-stakes or code-decidable calls defer freely;
-this gate is for the picks everything downstream leans on.
+Do **not** name it from code and let grounding upgrade it later. Low-stakes or code-decidable calls
+defer freely; this gate is for the picks everything downstream leans on.
 
 ## ★ A check that cannot fail is worse than no check
 
 Before quoting a check's output as a fact, ask what would make it print the other answer. If nothing
 would, it is measuring the runtime rather than the artifact.
 
-The instance worth remembering, because it happened to the person writing this rule rather than to
-an agent: the registry's entries were verified "sorted" with
+The registry's entries were once verified "sorted" with
 
 ```js
 const k = Object.keys(ROUTINES).map(Number);
 k.every((v, i) => i === 0 || k[i - 1] < v);   // true for ANY registry, however scrambled
 ```
 
-and the result was reported to a reviewer as verified. But an object key written `0x2bde:` becomes
-an integer-like property, and `Object.keys` returns integer-like keys in ascending numeric order
-**whatever order they appear in the source**. The expression returns true for any registry, however
-scrambled. The reviewer said the file had source-order descents; both statements were true, because
-the check never measured source order at all.
+But an object key written `0x2bde:` becomes an integer-like property, and `Object.keys` returns
+integer-like keys in ascending numeric order **whatever order they appear in the source**. The
+expression returns true for any registry, however scrambled.
 
 Two things generalise. **To check a property of the SOURCE, parse the source** — a regex over the
 file would have answered it correctly, and the script that inserted those entries minutes earlier
@@ -343,12 +329,7 @@ Before a naming pass decides which routines are "hard," **measure which ones the
 executes.** Install a one-byte read tap at each unnamed entry, drive the game through every board,
 level and difficulty you can poke to, and count hits, attributing each to the live game state.
 
-Do this because the intuition is wrong. On DK, with 105 routines unnamed, the standing assumption
-was that they stayed unnamed because nothing grounded them. The sweep refuted it in 150 emulated
-seconds: **84 of 105 executed**, one of them 9,548 times. **38 fired on exactly one board** — the
-bucket where poking pays. **21 were not reached** — and a second sweep driving what the first
-skipped reached 7 of those 21, one of them 1,464 times. The first sweep's not-reached list
-overstated dead code by half.
+Do this because the intuition is wrong.
 
 Three rules fall out:
 
@@ -358,15 +339,12 @@ Three rules fall out:
 2. **A not-reached list is an UPPER BOUND on dead code, never a measurement of it.** It describes
    the states your sweep drove, not the ROM. Report it as "not reached by this sweep," and narrow it
    by driving more states rather than by concluding.
-3. **Corroborate a dead-code claim — and check the two methods answer the SAME question.** DK's
-   `loc_16d0` appeared in a not-reached set while a blind confirmer independently derived from code
-   that its one write is dead. That was written up as two methods agreeing. It was not: the
-   confirmer's claim was that a WRITE is unobservable, the sweep's was that the ROUTINE never runs. A
-   second sweep found it executing 107 times, and tracing the write showed it stores a direction
-   reversal — not inert either. Both halves were false and the file they were used to doubt had been
-   right all along. **Two results pointing the same direction are not corroboration unless they
-   answer the same question** — and when a claim has been wrong twice, the next correction is the one
-   to distrust most.
+3. **Corroborate a dead-code claim — and check the two methods answer the SAME question.** A
+   not-reached-by-sweep finding and a from-code claim that a write is unobservable are different
+   questions — one says the ROUTINE never runs, the other says a WRITE is never read — so agreement
+   between them is not corroboration unless both answer the same question. **Two results pointing the
+   same direction are not corroboration unless they answer the same question** — and when a claim has
+   been wrong twice, the next correction is the one to distrust most.
 
 ### Three limits of the sweep method itself — all silent
 
@@ -397,10 +375,8 @@ limits carry to any new game, and none raises an error:
 
 - **Encrypted / decrypted-opcodes sets.** A program-space read tap counts executions only where the
   CPU fetches opcodes through that space. On a driver with a separate `AS_OPCODES` region the tap
-  sees nothing and the sweep reports **every** routine as not-reached, silently. Verified sound as
-  used here: on dkong under MAME 0.288 a tap at `0x0066`, the Z80 NMI vector — pure code, never read
-  as data — counted 713 hits over 720 frames, one per NMI. **Before trusting a sweep on a new game,
-  tap a known-executing address and check the count is non-zero.**
+  sees nothing and the sweep reports **every** routine as not-reached, silently. **Before trusting a
+  sweep on a new game, tap a known-executing address and check the count is non-zero.**
 - **The boot blind spot, which is self-inflicted.** The taps install on the first frame
   notification, so anything before that — the reset vector, boot-time setup — runs untapped and
   reads as 0 hits. This is a choice, not a 0.288 limitation: both `devices[':maincpu']
@@ -421,10 +397,9 @@ genuinely dead path — and note a dead routine is still nameable, by its mechan
 
 ## Rounds: persistence plus a completeness critic
 
-Run grounding in **rounds**, and keep going while each round still lands a *correction* — one game's
-first three rounds each overturned something: the objective wasn't collect-all, the "enemies" were
-decor, a "saucer" was a real enemy. Then spend the effort once more on a **completeness-critic**
-round that asks "what is still unlooked-at?", and stop only when it comes back dry.
+Run grounding in **rounds**, and keep going while each round still lands a *correction*. Then spend
+the effort once more on a **completeness-critic** round that asks "what is still unlooked-at?", and
+stop only when it comes back dry.
 
 State the **honest floor**: what is structurally unobservable and stays `[guess]` — a sound-command
 mapping with no audio oracle, a cell dormant on every reachable path. Naming "we couldn't observe
@@ -439,8 +414,7 @@ Agent-driven, headless, reproducible:
 - A per-frame Lua notifier logs cells and can poke state or drive inputs. **Retain EVERY
   subscription token in a global** — the notifier and every write/read tap. A discarded token is
   silently garbage-collected mid-run and the tap stops firing, so the log flatlines partway through,
-  which reads as *the game stalled* when it is running fine. Measured on The Pit: an unheld write-tap
-  died at frame 184; the same tap held in a global ran to completion. Suspect an unheld **tap**
+  which reads as *the game stalled* when it is running fine. Suspect an unheld **tap**
   before the notifier, and cross-check any "it stopped" reading against a GC-immune signal —
   `screens:at(1):frame_number()` is a register read, not a subscription, and never lies.
 - Build a **properly-named, verified romset first**; a loose chip dump lacks the `.icNN` filenames
@@ -451,9 +425,7 @@ Agent-driven, headless, reproducible:
 
 `[seen]` facts flow into the **names** and into `mechanisms.md`. Grounding also **extends the pixel
 gate** into deep gameplay: the same pokes drive the engine to states attract never reaches, which
-can then be pixel-validated. The worked example is The Pit — four rounds took the whole game from
-`[guess]` to `[seen]`, recovering the dig → collect → surface objective, refuting a decorative
-"tank," and correcting names the code alone had gotten wrong.
+can then be pixel-validated.
 
 ---
 
@@ -553,13 +525,10 @@ capstone is how it came to be left off for a whole day of batches.
 
 ★ **A property with no owner is fine. A property with no owner and NO RECORD of being unowned is a
 trap**, because the next person to measure it reads a real, reproducible, meaningless difference and
-reasonably concludes something is broken. This table exists because that happened three times in one
-night.
+reasonably concludes something is broken.
 
 **T-states, the one that bit us.** No idiomatic module calls `m.step`/`m.tick` — not one, by design
-— so every rewrite spends fewer T-states than its frozen twin. One measured case was exactly 84
-fewer, constant across every captured entry state, decomposing as its own instructions plus a
-translated callee plus the seam's substituted `ret`. That is intended and harmless under the
+— so every rewrite spends fewer T-states than its frozen twin. That is intended and harmless under the
 cycle-free engine the assembled-swap GATE runs, which fires the vblank NMI on reaching a poll PC —
 and that engine is a test seam, not what the player runs. It is NOT harmless on the cycle-driven
 engine, where the missing T-states shift the foreground phase, the NMI interrupts
@@ -585,8 +554,7 @@ matter. So inputs are **captured**, not constructed:
 2. **Hook the routine's address in the dispatch registry.** A wrapper does `m.clone()` — a deep copy
    of the entire machine — then lets the real routine run so the game continues undisturbed. Each
    snapshot is one real captured dispatch.
-3. **Collect hundreds.** One routine fired 557× in a plain attract run, each with a different real
-   position and board state.
+3. **Collect hundreds.**
 4. **Replay each in isolation.** Clone twice, run oracle on one and candidate on the other, diff on
    the contract above. Identical across every captured dispatch → the rewrite reproduces the oracle
    on every state the game really produces.
@@ -622,9 +590,7 @@ never pins.**
 
 **Discovery is automatic.** Diff attract-mode work RAM between the two engines per frame: exactly
 the entropy set forks, and the tell is that it forks *while the interrupt counter stays
-byte-identical* — the interrupt counter is the synced twin. On DK, `0x601a` was identical through
-1214 frames; the spin counter `0x6019` forked first at frame 9, and the seed `0x6018` one frame
-later.
+byte-identical* — the interrupt counter is the synced twin.
 
 **What the pin does.** It makes the RNG working set read a deterministic 0 on both engines: drop
 writes to the seed so it keeps its boot value (killing its single writer, the once-per-frame mix
@@ -656,8 +622,7 @@ attract with the pin, then that a gameplay tape converges to the game's residual
 **Validate a pinned run with a convergent / align-tolerant diff, not a per-frame byte diff.** With
 the pin on, RNG-driven divergence is gone, and what remains is whatever residual the game's own
 hardware artifacts leave — for DK, the Kong-climb DMA phase, which no RNG work removes. Measure that
-residual as a trend that reconverges rather than demanding equality at every frame; on DK's long
-tape the convergent diff dropped from mean 90 px / 25 frames over 1% to mean 43 px / 1 frame over 1%.
+residual as a trend that reconverges rather than demanding equality at every frame.
 
 **When the coupling is harder.** If a game samples its RNG from a free-running counter on *every
 read*, or couples it to beam position or analog noise, no converge/diverge gate can save it. The
@@ -716,8 +681,7 @@ equivalence again isolates real logic bugs.
   result. If a live-out drives an action, the verb is `steer`/`play`/`spawn`/`advance`, never
   `classify`/`compute`/`check`/`detect`. Tell: if the output is read *in place of* another input — a
   routine feeding the movement dispatcher where the joystick normally goes — the routine *generates*
-  that input. This is exactly how `classifyWallCollision` was mis-named: its own header described it
-  as steering the demo along the walls, yet it was named after the internal probe test.
+  that input.
 - **Verify an action-driving name by OBSERVATION.** Write a short trace that runs a real session and
   logs the routine's output *and the downstream effect*, then confirm the name matches what you see.
   It is ~30 lines the agent writes itself, so naming is checkable at scale.
@@ -758,10 +722,7 @@ equivalence again isolates real logic bugs.
   start of a regex literal, and after `)`, `]` or `}` no scanner can tell which. Rather than guess,
   the file is scanned both ways; if the readings disagree about which lines are comments, the commit
   is BLOCKED with **"cannot lex"** and no verdict is given. Rewrite the line — name the regex, or
-  space out the division. This is not a judgement about your prose. It exists because the earlier
-  version guessed, and guessed **fail-OPEN**: a quote inside a regex body opened a phantom string
-  that swallowed the following comment lines *and* inflated the code count, so whether the gate saw
-  your prose depended on how many apostrophes were in it.
+  space out the division. This is not a judgement about your prose.
 
   Only the hook's **staged** view is inspected, so an unswept file blocks nothing until it is next
   touched. **Migration is therefore per game, and `scan` is what says so:** until
@@ -858,9 +819,8 @@ around. Untracked modules are still *reported*, so a forming debt is visible bef
 ★ **COVERAGE IS NOT EXECUTION, and this is the trap behind the trap.** A clean registry says every
 module is *dispatchable*; it does not say the layer *runs*. `manifest.runtime` decides that, and a
 game set to `"translated"` never calls `resolveAllIdiomatic` at all — so a fully-wired layer sits
-there executed by nothing, with this check green. That is exactly where Time Pilot sat. When a
-game's layer is meant to be live, the thing that proves it is a whole-machine gate plus the manifest
-switch, never registry coverage.
+there executed by nothing, with this check green. When a game's layer is meant to be live, the thing
+that proves it is a whole-machine gate plus the manifest switch, never registry coverage.
 
 So the check **prints each game's `manifest.runtime` on its verdict line**, every run, rather than
 leaving that to this paragraph — `runtime: translated -- so the player runs no idiomatic module`
@@ -868,14 +828,6 @@ beside a clean coverage result states the problem without arguing it. It is a re
 assertion on purpose: `"translated"` can be a perfectly accurate declaration, and a gate that fires
 on a correct declaration is one people learn to ignore. Whether a game *should* be live yet is a
 judgement, so the instrument is the line, not a failure.
-
-★ **Why this is written down HERE, when it was already written down.** The honest history is worse
-than "nobody wrote it down", and more useful. This document ALREADY required the registry entry, in
-two places: the four artifacts of a decompile batch, and this section naming Donkey Kong as the
-precedent. The requirement and its worked example were both on the page, and Donkey Kong's unwired
-batch is still unwired. A written rule that changes nothing observable when it is skipped is a rule
-in name only — which is why the enforcement half exists, and why the two halves land together. Do
-not read this section as the fix; read the test as the fix and this section as its reason.
 
 ---
 
@@ -897,9 +849,7 @@ An understanding pass is **two fan-outs, keyed differently**:
 **Both kinds get the same three looks.** Two agents derive the name *blind* to each other — routine
 from body plus callers, variable over all uses of the address — promote only on convergence, then a
 **third adversarial review** before it lands. Two blind derivations can converge on the same wrong
-reading: on The Pit both derived `0x8076` as latching the goal tile because the shared classify
-ladder records two latches on adjacent lines, and only a separate reviewer re-deriving from scratch
-caught it.
+reading.
 
 **Distinguish an open purpose from a code-undecidable identity.** An open purpose is
 defer-and-upgrade — name by mechanism now, let grounding sharpen it later. An identity the code
@@ -932,10 +882,9 @@ unit. Replace only what genuinely remains, which in practice means a cluster lan
     the override set. A dispatch honours that deletion; a direct import defeats it and wires the
     idiomatic twin in unconditionally, so the drain spins with the NMI never firing — and the
     engine's spin backstop counts `m.step` calls, which that loop never makes, so nothing catches
-    it and the process simply stops. Measured on Time Pilot's `loc_00a8` → `0x0B93`: as a dispatch
-    it reaches its full frame budget; dissolved it produced no output in sixty seconds. Record the
-    pair in `tools/no-stale-mcall.config.mjs` under `ALLOWED` and leave the caller alone. These
-    dissolve only once the yield moves off the poll PC, i.e. under the generator engine.
+    it and the process simply stops. Record the routine and its caller in
+    `tools/no-stale-mcall.config.mjs` under `ALLOWED` and leave the caller alone. These dissolve only
+    once the yield moves off the poll PC, i.e. under the generator engine.
 - **Idiomatic routines silently DROP load-bearing stack ops** that looked dead in the swap harness
   because a translated caller balanced them — a main-loop SP re-seat, an NMI handler's normal-exit
   `ret`. When a whole-game run leaks or creeps stack, suspect one of those before anything exotic.

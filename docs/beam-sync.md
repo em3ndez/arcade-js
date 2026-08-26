@@ -62,24 +62,11 @@ a game that does not need it pays nothing and changes not at all.
 
 ## Validation
 
-- The **oracle** (cycle-accurate, per-scanline, ~100% vs MAME: 107967/108000 frames byte-identical,
-  band gate 0-over) is the reference: a
-  beam-synced idiomatic render must equal it per scanline.
+- The **oracle** (cycle-accurate, per-scanline) is the reference: a beam-synced idiomatic render
+  must equal it per scanline.
 - **`confirm600.py`** generalizes as the gate — run the idiomatic layer long against a MAME
   golden, RAM first then pixels; the mid-frame residual must fall to ~0.
 - **Positive control**: force the single-snapshot path and confirm the residual returns —
   an absence of divergence counts only if the instrument was shown able to detect it.
 - The reworked routines must leave the **final** RAM byte-identical to before (game state is
   unchanged; only render timing differs). Check it the equivalence-test way.
-
-## Reference case: Time Pilot's cloud multiplexer
-
-Eight scenery slots are drawn up to sixteen times: the foreground polls the scanline counter
-(read side of 0xC000) and, once the beam passes a slot, relocates it half a screen in both
-axes and re-serves it (`mechanisms.md` §"The cloud multiplexer"). The idiomatic layer first
-**collapsed** this — `multiplexSpriteSlots` applied every relocation at once and kept only the
-far-half positions, so the snapshot lost the near-half (upper) clouds: ~1,100 px/frame,
-upper rows only, every one a cloud, RAM otherwise byte-identical over a 600 s run. With the band
-painter driven by `replayCloudBands`, that 600 s run is 99.1% pixel byte-identical to MAME (from
-18.0%), RAM still byte-identical. Time Pilot is the proving ground; each later game that beam-syncs
-records its beam points and paints its bands, reusing the same accumulator.

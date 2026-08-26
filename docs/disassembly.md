@@ -50,11 +50,10 @@ worked example in the board sources under `boards/dkong/` and their comments.
 **Get every address and offset from the MAME driver's actual implementation — its memory map *and*
 its video/draw code — never by inference.** A plausible-looking guess for a sprite base, a
 per-column scroll base, a tile plane order, or a mirror mask is exactly where a subtle bug hides,
-and one class of it is invisible to the state gate: a **render-addressing offset**. The Pit shipped a
-16-byte offset in the renderer's interpretation of sprite/scroll RAM. Because that offset is in how
-the render *reads* the RAM, not in the RAM's contents, the whole-machine [state
-diff](integration-testing.md) still matched MAME byte-for-byte — a render-interpretation error
-moves no state. Only the [pixel gate](pixel-gate.md) surfaced it. So a green state diff is *not*
+and one class of it is invisible to the state gate: a **render-addressing offset**. Because such an
+offset is in how the render *reads* the RAM, not in the RAM's contents, the whole-machine [state
+diff](integration-testing.md) can still match MAME byte-for-byte — a render-interpretation error
+moves no state. Only the [pixel gate](pixel-gate.md) surfaces it. So a green state diff is *not*
 evidence the render is right: run the pixel gate too, and pin the board's video addressing against
 the driver's own draw routine (for The Pit, `taito/roundup.cpp`), citing it in the board source.
 

@@ -245,7 +245,7 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
 - Faithful lift = **memory-equivalent + mutation-tested, validated in isolation off the live game**. The
   translated layer carries **no prose** (SPDX, a one-line identity, per-instruction address/mnemonic
   comments; a trailing `--` clause names what bytes *are*, never a mechanism). **Write it UNDER the
-  `comment_gate` density cap (comments ≤ code//4 + 4) from the first draft** — keep the checkable `--`
+  `comment_gate` density cap (comments ≤ code//2 + 8) from the first draft** — keep the checkable `--`
   clauses, drop mnemonic-only restatements (an address/mnemonic line with no `--` clause is usually
   cuttable, and a two-line JSDoc that fits on one should be one). This binds **boards, manifests and test
   files too** — Time Pilot is the quality model (its files predate the cap and are grandfathered, so match
@@ -791,7 +791,7 @@ wrong reason**. Guard against it everywhere:
 - Small language traps that read as data: a default parameter is a landmine for a `.map(fn)` callback (arg 2
   is the index → a NaN that looks like data); integer division truncates toward zero (use `Math.trunc`, not
   `Math.floor`, on signed values). Numbers base-10 (hex only for irreducible bit ops); `u8()`/`u16()` for a
-  load-bearing wrap. `comment_gate`: comments ≤ code//4 + 4, each describes *this* file only — when it trips,
+  load-bearing wrap. `comment_gate`: comments ≤ code//2 + 8, each describes *this* file only — when it trips,
   cut prose (whole-file freeze). Commit messages ≤ 10 lines.
 
 ---

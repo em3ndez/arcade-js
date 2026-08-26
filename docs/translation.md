@@ -16,8 +16,7 @@ exactly the cycles the Z80 spent.
 **`addr` is the NEXT instruction, not the one being charged** — `m.step` sets PC to where execution
 lands. Get this backwards and correct code reads as broken: a loop whose accumulator is loaded
 outside the body looks like it reloads every iteration, because the back-edge's `m.step` names the
-first instruction *inside* the loop rather than the load. Two reviewers hit that same shape in one
-night. It is settled without reading a single disassembly line, from `machine.js`'s own
+first instruction *inside* the loop rather than the load. It is settled without reading a single disassembly line, from `machine.js`'s own
 `ret(cycles = 10) { this.step(this.pop16(), cycles); }`: the argument is the popped return address,
 so it can only be the new PC. Prefer that proof — it is immune to the transcription being wrong,
 which is what you are there to check.
@@ -155,7 +154,7 @@ Fanning the translated layer out across parallel agents needs a work list, and t
 to build one are wrong in two directions.
 
 **Do not derive routine extents by slicing the listing.** A slicer that walks from an entry until
-it "looks finished" gets it wrong both ways at once. Ways it went wrong on Time Pilot: the `ret`
+it "looks finished" gets it wrong both ways at once. Ways it went wrong: the `ret`
 terminator never fired, because the listing pads the mnemonic with spaces and the guard tested
 for `"ret "`, so slices ran past a routine's end into the next one and into data tables that
 decode as plausible nonsense; a hard line cap silently truncated the largest routines, stopping
@@ -323,10 +322,7 @@ So the cheap ones are also the empty ones.
 **A trailing comment may append a short clause after `--`, and the test is whether the clause is
 CHECKABLE.** `-- the state byte`, `-- DE = the 16-bit X`, `-- -0x0180` all name what the bytes
 ARE, and a reviewer can confirm or refute each from the ROM. What is forbidden is a clause
-asserting a MECHANISM the bytes do not show. The failure to picture: three sites in one batch
-said an arm was "reached only on checksum failure", copied from the one neighbouring site where
-that was true; at the other two the guard was reading back a tile and its colour attribute out of
-video RAM, and there was no summation anywhere in the chain. Name what is compared, and stop.
+asserting a MECHANISM the bytes do not show. Name what is compared, and stop.
 
 **Understanding belongs downstream.** Decompilation and the understanding pass are where a
 routine gets explained, in the idiomatic layer — where R21 then restricts a comment to describing
@@ -337,14 +333,9 @@ is rewritten from scratch every understanding pass.
 
 ## Two ways a class fix reintroduces the defect it is fixing
 
-Both were hit in one night, on the same pass, while fixing trailing clauses that asserted
-mechanisms the bytes did not show.
-
 **A site-specific clause cannot be applied by a site-agnostic edit.** Fixing a class of comments
 by scripted string replacement — one `old -> new` pair applied everywhere it matches — takes a
-derivation that is true at ONE site and stamps it onto every site with the same old text. Two
-`-- off-field` clauses looked identical and were different tests on different cells: one was
-`ld a,(iy+0x31) / add a,0x13 / cp 0x03`, the other `ld a,(iy+0x00) / add a,0x08 / cp 0x28`. The
+derivation that is true at ONE site and stamps it onto every site with the same old text. The
 sweep did not merely fail to catch the imitation failure; the sweep WAS the imitation failure,
 industrialised. If the replacement text contains a fact about operands, the edit has to be
 per-site and each site re-derived.
@@ -367,7 +358,5 @@ value, not just the value.**
 The record is the thing that outlives the
 session and gets cited in commit messages, so every quoted string and every line number in it
 should be pasted out of a command you just ran. The same applies to a reviewer's note: it reads
-as already-checked and it is not. One such note named the wrong instruction as the lossy step in
-an `rst` chain, was written in faithfully, and produced a clause more precisely wrong than the
-one it replaced. The findings that survive scrutiny carry the opcode bytes; the ones that fail
+as already-checked and it is not. The findings that survive scrutiny carry the opcode bytes; the ones that fail
 carry a conclusion.

@@ -54,10 +54,8 @@ code cannot change a gate's verdict, so gates stay green while dead code accumul
 NMI path can sit dead — ROM `0x02BC` falls through into `0x02BD`, and nothing performs that
 fall-through — while tests are green and state frames are byte-identical, because every frame
 the gate compares ends before boot finishes and nothing in the commit has executed. That is
-why `tools/scope.py` exists to state what a verdict actually *covered*. The step audit learned
-the same lesson the hard way: it used to excuse a step target that landed in a span the tracer
-had not reached, and that clause hid 836 bytes of live code — 313 targets — while printing
-CLEAN. An exemption that reclassifies a miss as benign is where the next bug will live.
+why `tools/scope.py` exists to state what a verdict actually *covered*. An exemption that
+reclassifies a miss as benign is where the next bug will live.
 
 **Substituting an easier path.** Asked to do X, an agent does a nearby, cheaper X′ and reports
 it as X — reaching a game state by poking memory, for instance, instead of playing up to it.

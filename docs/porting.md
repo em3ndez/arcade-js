@@ -38,16 +38,14 @@ every gate — the pixel harness never reads it — but it can't be played in th
 
 See `games/dkong/manifest.js` for the reference shape.
 
-## Bringing a validated game up in the browser — the web contract, and where The Pit tripped
+## Bringing a validated game up in the browser — the web contract
 
 A game that renders **pixel-exact offline** still will not run in the web player until it meets the
 live-worker contract. `web/worker.js` + `web/player.html` drive every game the same way, but that
-"same way" is a real interface the game's Machine, board, and manifest must satisfy. The Pit passed
-every offline gate and *still* failed the browser on several separate points. Here they are as a
-checklist so the next game is right the first time — each one bit us:
+"same way" is a real interface the game's Machine, board, and manifest must satisfy. Here they are as
+a checklist so the next game is right the first time:
 
-1. **Register it.** Add the id to `games/registry.js`; the selector reads this. (The Pit was missing —
-   it never appeared in the list.)
+1. **Register it.** Add the id to `games/registry.js`; the selector reads this.
 
 2. **Assemble EVERY declared ROM image to `games/<id>/rom/`, not just `maincpu`.** The dev path
    fetches each `manifest.rom.images` entry from there. `tools/build-rom.mjs` concatenates parts in
@@ -85,9 +83,9 @@ checklist so the next game is right the first time — each one bit us:
    `GAME()` macro's `ROT0/ROT90/ROT180/ROT270` *is* the screen orientation: `ROT90` = `SWAP_XY|FLIP_X`
    = 90° **clockwise**; `ROT270` = `SWAP_XY|FLIP_Y` = 90° **anti-clockwise**. **DK is `ROT270`, The Pit
    is `ROT90` — opposite directions.** Collapsing both to `orientation: "vertical"` records "portrait"
-   but throws away *which way*, so the display comes out 180° wrong — **upside down**, exactly what The
-   Pit did. Copy the game's `ROT` straight out of its MAME `GAME()` line into the manifest and have the
-   renderer apply it faithfully (not a boolean "is it rotated").
+   but throws away *which way*, so the display comes out 180° wrong — **upside down**. Copy the game's
+   `ROT` straight out of its MAME `GAME()` line into the manifest and have the renderer apply it
+   faithfully (not a boolean "is it rotated").
 
 7. **Unported audio → silent, not broken — but you can add sound without porting the audio hardware.**
    A game whose sound CPU/chips are not translated runs with no audio, which is expected. To give it
@@ -105,7 +103,7 @@ no chip emulation. Same "audio above the emulation" stance DK uses, in its simpl
 1. **Record one clip per command (`games/<id>/tools/record_samples.py`, adapt DK's).** It drives real
    MAME once, headless, and for each command byte injects it to the soundlatch and captures what MAME
    emits into `cmd_<decimal>.wav`, writing an `index.json` of which commands sounded, the file each
-   landed in, and whether the clip loops. Three things that bit The Pit and will bite the next game:
+   landed in, and whether the clip loops. Three things will bite the next game:
    - **Mute the ROM's own soundlatch writes** while you inject, or the game's own audio fights your
      stimulus. A Lua write-tap that swallows writes to the latch address does it.
    - **Know how the command triggers.** On The Pit the soundlatch write does **not** assert the audio
@@ -128,8 +126,7 @@ no chip emulation. Same "audio above the emulation" stance DK uses, in its simpl
 3. **The web side — one generic tap, two playback models.**
    - `web/worker.js` forwards each tapped sound write to the page, deduped **by address** (a `Map`
      keyed by the raw write address), so a **single** soundlatch works as cleanly as DK's several latch
-     surfaces — only a *changed* value at an address ships. (An older DK-specific latch-index made the
-     single-latch case never dedup and flood; don't reintroduce it.) Guard any polled surface behind a
+     surfaces — only a *changed* value at an address ships. Guard any polled surface behind a
      board-capability check so a board that lacks it ships no spurious edge.
    - `web/player.html`'s `setupAudio()` dispatches on `SOUNDS.model`. DK's default model schedules
      discrete synth effects + recorded tunes across trigger/latch/irq surfaces; the **`"clips"`** model
@@ -151,17 +148,14 @@ below, and registering the game — add its id to `games/registry.js`, write `ga
 
 **Plumb `--input` and `--poke` in that same first pass**, not once the layer looks done. Skip it and
 every gate you run measures attract mode only, which leaves most of the ROM unexecuted while
-reporting clean — see [integration testing](integration-testing.md) for the three seams and for
-what it cost on Time Pilot.
+reporting clean — see [integration testing](integration-testing.md) for the three seams.
 
 **★ A new game gets its whole-machine swap gate in its FIRST unit, before the module count grows.**
-A gate scoped to one routine cannot observe a property of the assembled system: per-routine
-equivalence proved every Time Pilot routine correct while the mixed layer destroyed the machine
-within a few frames, because the dropped returns were in shared helpers and never in the routine
-being dispatched. The same blindness hides the prior question — whether anything dispatches the
-routine at all (see [idiomatic generation](idiomatic-generation.md), *How a routine joins the
-layer*). Build the gate while there is one routine to bisect, and **commission it to FAIL**: a gate
-built to prove it catches a break is a gate, one built to pass is a decoration.
+A gate scoped to one routine cannot observe a property of the assembled system. The same blindness
+hides the prior question — whether anything dispatches the routine at all (see [idiomatic
+generation](idiomatic-generation.md), *How a routine joins the layer*). Build the gate while there
+is one routine to bisect, and **commission it to FAIL**: a gate built to prove it catches a break is
+a gate, one built to pass is a decoration.
 
 The **method** — the model that turns a ROM into validated, *understood* JavaScript — lives in
 exactly one place: **[The Method](README.md)** (one oracle, a Structure⇄Meaning spiral up the call

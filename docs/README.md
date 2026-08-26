@@ -120,9 +120,8 @@ Each links to the doc that details it.
    watch-only grounding, it shrinks from a re-derivation to a confirmation.
 3. **Load-bearing picks ride on grounding** — the converse of (1). When the code alone can't settle
    an identity that later work will *trust* — is this sprite the laser or a terrain-scroll? an enemy
-   or a ship? which axis is X? — grounding is a **gate on the pick, not a later upgrade**. Naming it
-   from code and "letting grounding upgrade it later" is how The Pit shipped *"no laser exists"* and
-   named enemy-3 a *"ship,"* each overturned only by a later round. Ground the load-bearing,
+   or a ship? which axis is X? — grounding is a **gate on the pick, not a later upgrade**.
+   Ground the load-bearing,
    code-undecidable call **in-loop, before you build on it**; low-stakes or code-decidable calls
    defer freely. The `[guess]` list is that work-list — resolve a load-bearing guess *as it's
    generated*.

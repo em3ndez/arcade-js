@@ -27,10 +27,7 @@ dump the generator's per-frame RAM and diff against the golden `state.bin`. This
 engine run long, **not** the oracle — the oracle is cycle-accurate and matches trivially; the point is to
 catch a time-accumulated bug in the layer that actually ships.
 
-★ Written because it happened: Time Pilot's idiomatic layer ran byte-identical to MAME for ~1,850 frames
-— through two player deaths, with the RNG and the frame counter in lockstep — then a marginal last-life
-collision resolved as a hit in MAME and a miss for us, and the run diverged from there. Every short gate
-passed (the base gate and all six poke-tapes); only a continuous multi-minute run caught it. Run one.
+Run one.
 
 ## What a poke-tape is
 

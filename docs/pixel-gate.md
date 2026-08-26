@@ -29,9 +29,7 @@ rough gate distinguishes them:
 
 The key word is *reconverge*. A translation that's right will differ from MAME only in brief,
 bounded transients and then snap back to identical; a translation that's wrong will diverge and
-stay diverged. The percent-of-frame threshold accepts the former and rejects the latter. (In
-practice the bar is met with enormous margin — e.g. Donkey Kong's attract sequence runs
-byte-identical to MAME on 727 of 728 frames, with a single 3-pixel, 0.005% transient.)
+stay diverged. The percent-of-frame threshold accepts the former and rejects the latter.
 
 `games/dkong/tools/prize_suite.py` runs the same rough gate over the bonus-item pickups — Pauline's dropped
 parasol/hat/purse, worth level-scaled points — across the boards that carry them (50m/75m/100m).
@@ -95,9 +93,7 @@ DMA sub-frame raster position has no owner among the memory gates. So a layer bu
 off can be green everywhere and still wrong on the glass, and switching it on late turns a bug
 report (one routine, one diff) into a bisect (many green routines, one diff).
 
-★ Written because it happened: Time Pilot's idiomatic layer ran a full day — per-routine, swap and
-suite all green — while this gate was in no npm script, hook or Makefile target, so it ran only when
-someone chose to, and nobody did. **Check where it is wired; the answer changes.** ⚠ `make verify`
+**Check where it is wired; the answer changes.** ⚠ `make verify`
 is NOT this gate — it is `verify_decoder.py`, a disassembly check defaulting to `GAME=dkong`, and
 says nothing about pixels.
 
@@ -137,9 +133,7 @@ renders the ORACLE — **a declared runtime is not evidence about what got rende
 is rendered, that game's idiomatic layer is dormant and a regression in it is uncovered; the tool
 prints a dormancy caveat on such a PASS rather than a bare one, so it travels with the verdict.
 
-Measured, not reasoned: poisoning every Time Pilot idiomatic module with a throwing import left the
-frames **byte-identical**, with a positive control confirming the poison fires when a module loads
-— an absence is evidence only once the instrument is shown able to detect presence.
+An absence is evidence only once the instrument is shown able to detect presence.
 
 ⚠ **A PASS on an idiomatic-rendering game is real coverage, not parity.** Two limits, both measured
 in `pixel_suite.py`: the frames before the first vblank yield have no counterpart on a yield clock

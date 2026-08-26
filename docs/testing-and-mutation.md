@@ -49,46 +49,21 @@ Without one, a number is an assertion with a decimal point.
 
 ### A validation set you HAPPEN to have is not a validation set you CHOSE
 
-An estimator for review duration had exactly one job: separate the minutes a reviewer spent working
-from the minutes it spent waiting for a compute slot. It was validated against two cases whose true
-durations were already known, and bracketed both. Only one of those two was ever checked for
-queueing, and it had none — its own clock ran about three minutes under its elapsed time, all of it
-spawn overhead. The other was never checked either way. The estimator was then applied to a
-different population — reviews dispatched as one concurrent wave, where most of the elapsed time IS
-the wait — and when one of those was later measured directly, it had overstated the case by better
-than two-fold and its bracket did not contain the answer.
-
-The validation could not have established that it would work, because the quantity the estimator
-existed to remove was absent from the one case anybody checked for it and unexamined in the other.
-They were the cases whose true durations happened to be recoverable, not cases picked to span the
-estimator's failure modes. **Passing on the cases you
-could easily check is exactly as much evidence as a mutant that any test would kill.** Both feel
-like validation and neither discriminates.
+**Passing on the cases you could easily check is exactly as much evidence as a mutant that any test
+would kill.** Both feel like validation and neither discriminates.
 
 - Choose validation cases the way you choose mutants: for their power to REFUTE. The case that
   would embarrass the estimator is the one worth spending a direct measurement on.
-- Prefer a case that appears in BOTH datasets. The refutation above was available only because one
-  routine had an estimate and a direct measurement — same subject, two numbers. That is a
+- Prefer a case that appears in BOTH datasets. A refutation is available only when one subject
+  carries both an estimate and a direct measurement — same subject, two numbers. That is a
   falsification; two numbers from different subjects would only have been a disagreement.
 - State the validation set's size and how it was selected, beside the estimate. "Validated against
   two known cases" reads as rigour until you add how those two came to be the ones you had.
 
 ### Match the control on the variable that drives the QUANTITY, not the one that describes the SUBJECT
 
-A clean review-duration baseline was to be matched to its comparison set on **ROM size**, on the
-reasoning that ROM size is what makes a routine hard. It is — but a reviewer reads the DIFF, not
-the ROM. Measured, the proposed subject's gate was larger than the largest gate in the set it was
-to be compared against, so matching on ROM size would have skewed the baseline in the direction
-that made the conclusion look strongest. By how much is not known: nobody measured how review
-minutes scale with diff surface, and the arm's own figures suggest the relationship is far from
-proportional.
-
 **Ask what the number is a number OF, and control on that.** ROM size describes the routine; diff
 surface drives the reviewer's minutes. Only one of those belongs in the cost model.
 
-★ **Do not reach for your most-reviewed unit as a baseline.** The subject proposed here had been
-through four review rounds — verified — and was carrying a gate larger than anything in the set it
-would have anchored. Whether the rounds CAUSED that surface is a separate claim and this one does
-not support it: the gate's own timestamps put its last change before the third round began, so
-rounds three and four added nothing to it. What survives is the selection warning, which is enough:
-the unit you scrutinised hardest is unrepresentative by construction, whatever made it so.
+★ **Do not reach for your most-reviewed unit as a baseline.** The unit you scrutinised hardest is
+unrepresentative by construction, whatever made it so.

@@ -15,8 +15,7 @@ routines you *already* have, working together, and it fails at the first routine
 the first unregistered `m.call`) — which is exactly the routine to translate or fix next. So the
 gate doubles as the work-list: boot it, see where it stops or diverges, address that, boot again.
 Waiting until translation is "done" hides integration bugs until they have piled up and discards the
-diff's you-are-here signal. Donkey Kong was built this way — the state diff drove the *order* of the
-work, and the same loop runs from the first bootable frame of every new game.
+diff's you-are-here signal. The same loop runs from the first bootable frame of every new game.
 
 ## Capturing a golden (the reference side)
 
@@ -75,14 +74,6 @@ It is three small seams, and every board needs all three:
    Time Pilot's is not measured yet, so its tape carries no such note and no cross-side comparison
    using it should be trusted until one exists.
 3. **`emit.js`** passing `machine.inputTape` / `machine.pokes` through from the parsed arguments.
-
-**What it is worth, measured on Time Pilot the day it was plumbed.** Attract had run 20000 frames
-with no translation gap and the layer looked complete. Insert a coin and press start, and against
-an attract baseline of the same length the run reached fifty-odd routines attract never touches —
-and with two ROM regions that had never been transcribed, the same tape hard-stopped at frame 610.
-Both regions were dispatched from a table through a computed jump, so no static tracer found them
-and no attract run executed them. **The harness was reporting a complete layer because it could
-not press the button that breaks it.**
 
 ### Finding the input bits without trusting the driver's port table
 
@@ -244,9 +235,7 @@ game before trusting a number out of any of these tools.
   explain it — the byte diff reports a corrupted sprite cell and names no routine.
 - **Bound the stack exclusion by the MEASURED STACK, never by the game-state ceiling.** Those are
   different numbers and the gap between them is dead space that nothing writes — which is exactly
-  where a leaking SP lands first. Excluding it buys blindness at the one place the seam can fail:
-  on Time Pilot the tooth's bounded leak is invisible for an ENTIRE run under a ceiling-floored
-  window and is caught in the first few dozen frames under a stack-floored one.
+  where a leaking SP lands first. Excluding it buys blindness at the one place the seam can fail.
 
 ## Go-live — running the WHOLE game idiomatic
 

@@ -118,13 +118,7 @@ RAM cells and routines both carry the **same evidence class** — `[seen]` (obse
 confidence and a routine's confidence mean the same thing and rank the same way, consistent with
 `mechanisms.md`'s tags.
 
-**Changed 2026-07-31 (was two vocabularies).** Cells previously carried a separate *identity* grade
-(`strong`/`fair`/`weak`) measuring **corroboration breadth** — how many routines agree — while routines
-used the evidence cert `code`/`seen`/`guess`. That split answered a real second question (how broadly a
-name is corroborated), but two confidence axes for the same kind of claim were inconsistent and could not
-be compared. We unified on the **evidence-source** axis (`[seen]`/`[code]`/`[guess]`) because *how* we
-know a name is the more meaningful confidence signal, and made it the single system across cells,
-routines, and `mechanisms.md`. Breadth is not lost — it stays in the cell's prose ("used across N
+Breadth is not lost — it stays in the cell's prose ("used across N
 routines") — it is just no longer a separate grade. A routine's/cell's `[guess]` is the exact analogue of
 keep-hex: an open work-list item, resolved by grounding, never asked of a human. **Every name here is
 still a *proposal* until it clears proposer≠confirmer** — see [understanding](understanding.md) "Maintain it as
@@ -144,10 +138,7 @@ those facts:
 - **Routine comments** describe the *routine*. They refer to cells by their imported name and never
   restate registry status — never "0x8083 has no names.js name / stays hex" for an address `names.js` names.
 
-This prevents the drift where a fact copied into two independently-edited places goes stale. Three
-separate sync bugs on 2026-07-31 traced to exactly it — a `mechanisms.md` tag contradicting `names.js`, a
-stale "backups stay hex" note in `names.js`, and dozens of routine comments still calling promoted cells
-"hex" after they were named.
+This prevents the drift where a fact copied into two independently-edited places goes stale.
 
 **Enforced.** `tools/names_consistency.py` is a fail-closed pre-commit gate: it blocks any commit whose
 staged prose — in `mechanisms.md` or a routine comment — calls a `names.js`-named work-RAM address

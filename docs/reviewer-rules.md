@@ -34,16 +34,9 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   routines. **The instruction to commit one routine at a time is what splits them**: ten
   single-routine commits are ten decompile COMMITS and one decompile BATCH.
 
-  Until Karl rules, **the headline governs** — a reviewer withheld a token on exactly this and was
-  upheld, on the ground that the permissive reading requires "batch" to mean a group of commits,
-  which appears nowhere in `docs/`. Whichever way he rules must be written into **both** this rule
-  (headline *and* recipe) **and** `idiomatic-generation.md` step 6; one place is not enough, since
-  keeping them in step in only one place is how they drifted apart.
-
-  *Worth recording because it cost a round: two agents argued this from the text in front of them
-  and each found the half that agreed with them. Neither opened the document that defines the term.
-  When two readings of a rule disagree, the disagreement is usually not in the rule — it is in a
-  word the rule leaves to another document.*
+  Until Karl rules, **the headline governs**. Whichever way he rules must be written into **both**
+  this rule (headline *and* recipe) **and** `idiomatic-generation.md` step 6; one place is not
+  enough, since keeping them in step in only one place is how they drifted apart.
 
 ## Understanding passes must not be hollowed out (kept the cheap half, dropped grounding)
 - **R2 [U]** Grounding is part of understanding, so the pass must DO grounding. But grounding is an
@@ -92,13 +85,10 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   3. Any not-reached set is stated as "not reached by THIS sweep", with the states the sweep did
      NOT drive named (deliberate death, full prize collection, two-player, each difficulty tier
      ACTUALLY reached rather than merely nominally set). A not-reached set presented as a dead-code
-     measurement FAILS. Measured cost of skipping this on DK: a second sweep adding those states
-     reached 7 of a 21-entry not-reached list, so the first list overstated dead code by 50%.
+     measurement FAILS.
   4. A dead-code claim about a specific routine is corroborated by a SECOND, independent method
      (typically a code derivation) — execution data alone is not sufficient, and neither is code
-     alone. AND THE TWO METHODS MUST ANSWER THE SAME QUESTION. DK's loc_16d0 was reported as
-     corroborated because a sweep found it unreached while a confirmer derived that its one write
-     is dead; those are different claims, and a later sweep found the routine executing 107 times.
+     alone. AND THE TWO METHODS MUST ANSWER THE SAME QUESTION.
      Two results pointing the same way are not corroboration until you have checked they are about
      the same thing.
   5. The pass names at least one blocked cluster its run actually attacked, and what it found —
@@ -111,17 +101,8 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   final name is absent from the proposals file is the NORMAL case and not a finding. What the rule
   requires is that the same ADDRESS was proposed by one agent and confirmed by another.
 
-  ★ **Find the two files by asking the pass, not by pattern.** The naming has already changed once —
-  `pass<N>-confirmed.md` gave way to `pass-c<N>-entries.md` / `pass-c<N>.md`, alongside proposer
-  files named `proposals-cluster<N>.md`, `routines-cluster<N>.md` and `authored-cluster<N>.md`. A
-  recipe that hard-codes either filename goes silently unrunnable the next time a pass renames its
-  own output, which is exactly the failure this rule already had once.
-
-  *Why the join key changed: it used to join the two documents on the promoted NAME. But a confirmer
-  doing its job changes names, and in the recent cluster passes nearly every promotion was renamed
-  away from the proposer's wording, precisely because the confirmer refused it. Grepping for the
-  final name then finds nothing, and the rule reads as violated exactly when the process worked. A
-  recipe that fails on correct behaviour and passes on rubber-stamping is inverted.*
+  ★ **Find the two files by asking the pass, not by pattern.** A recipe that hard-codes either
+  filename goes silently unrunnable the next time a pass renames its own output.
 
 - **R4b [ALL]** A cell that is `[code]` **or** `[seen]` must be exported by a DESCRIPTIVE identifier,
   not `loc_<addr>` — a cell earns its name at the `[guess]`→`[code]` transition, not at grounding
@@ -134,10 +115,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   `git grep "loc_<addr>" games/<game>/idiomatic` returns nothing for a now-renamed cell (a stale import
   would fail to load). Fire on `[code]` and `[seen]`; a `[guess]`/unknown cell takes an allowlisted
   `loc_<addr>` name (tools/names-debt.txt) — a readable placeholder, not a forced descriptive name
-  before the reading is confident (Amended 2026-08-17 by Karl: unknown cells take loc_, not keep-hex).
-  (Recorded
-  2026-08-15: the frogger pipeline left most of its confident cells — `[code]` and `[seen]` — named
-  `loc_<addr>` until Karl caught it: "when a cell changes guess→code, that's when it should be renamed.")
+  before the reading is confident.
 - **R5 [ALL]** Every name promoted loc_<addr>→English **in the commit under review** is corroborated
   by evidence OUTSIDE the routine itself (a named cell it touches, an idiomatic caller/callee,
   mechanisms.md, or a sibling), and **that routine's `ROUTINES` entry in `names.js` states the
@@ -168,12 +146,9 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
 
   **The corroboration must be a PREDICTION the name makes, that was then checked** — not a
   restatement of the same code-reading in other words. Ask of each promotion: what would be
-  observably different if this name were wrong, and did anyone look? "String renderer" predicts
-  writes to VRAM `0x7400+`; the routine writes 4-byte sprite records into `SPRITE_BUFFER` at 0x6900
-  and never touches 0x7400+ at all, so one write-set diff would have killed the name before it
-  spread through the cluster and its gates. A header whose corroboration cannot fail is not
-  corroboration. Cheapest checks, all theory-free: the routine's write-set, its reachability and the
-  states it fires in, and what its caller does with the result.
+  observably different if this name were wrong, and did anyone look? A header whose corroboration
+  cannot fail is not corroboration. Cheapest checks, all theory-free: the routine's write-set, its
+  reachability and the states it fires in, and what its caller does with the result.
 
   Corollary — **the header may claim only what its writer derived.** Prose beyond the name's
   justification and the cells read/written is unverifiable in bulk and propagates by imitation into
@@ -193,13 +168,8 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   hook) + scan comments in the diff.
 - **R8 [ALL]** A cell named in names.js is IMPORTED from names.js, not redefined as a local hex const.
   Verify WITHOUT a hardcoded address range: read the game's `names.js`, collect the addresses it
-  names, and grep the diff for any `const [A-Z_0-9]+ = 0x…` whose value is one of them. ★ The recipe
-  here used to say `0x6[0-9a-f]{3}`, which is **Donkey Kong's** work RAM — so a reviewer following
-  it literally on any other game grepped a range that cannot appear and reported clean having
-  inspected nothing. `tools/names_consistency.py` documents that exact defect in its own docstring
-  and already fixed it by deriving each game's window from `boards/<board>/memory.js` through the
-  manifest; the hardcode survived only here, in the half a person follows. A check that cannot fail
-  is not a check.
+  names, and grep the diff for any `const [A-Z_0-9]+ = 0x…` whose value is one of them. ★ **A check
+  that cannot fail is not a check.**
 
   Two things this rule does NOT cover, so do not read a pass as more than it is. **Naming a cell is
   retroactive**: the moment a cell enters `names.js`, every surviving local alias for it becomes a
@@ -278,13 +248,6 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   manifest does not run, say so in your report. That is not a violation of this rule; it is the
   thing this rule cannot see.
 
-  On the file's closing instruction to add rules and not gates: the rule alone was already tried
-  here. `idiomatic-generation.md` has required the registry entry all along, in two places, naming
-  Donkey Kong as the precedent, and the batch it names is still unwired. What was missing was not a
-  statement but a consequence, and the mechanical half tests no proxy — the forbidden thing IS the
-  missing entry, which a script decides exactly. The half that would be a proxy, whether an
-  exemption's reason is true, stays above with you.
-
 ## Every routine gated with teeth
 - **R12 [D]** Each new/changed routine has an equivalence test that (a) compares work-RAM to the
   frozen oracle, (b) asserts the routine's REAL live-out (return value too, not just RAM), and
@@ -312,62 +275,35 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
      shows a teeth case, or the author reports the exact failure message from breaking it.
   4. For a shared cross-game tool, run it for EVERY game it names, not just the one you changed —
      a tool that exits non-zero on argument parsing or a missing method has never run there.
-  *Why: five live instances found in one session — `games/dkong/idiomatic/test/golive.test.js`'s
-  header described a config it does not wire, `loc_2a22`'s `GATE:` header claimed attract captures
-  that do not exist, `loc_281d` carried a stale dependency note, `tools/swap_check.mjs` died on
-  `Machine.create is not a function` for DK so its "only running the whole game catches that" had
-  never once run there, and `tools/names_consistency.py` inspected The Pit's 0x8000-0x87FF window
-  on every DK commit and so matched nothing. All five were green; none was checking anything.
-  (Those five are the HISTORICAL examples that produced this rule; all five were verified fixed in
-  2026-08. In particular names_consistency.py has derived its window per game from the board memory
-  map since a94ede3, and is live for DK's 0x6000-0x6BFF — do not cite THE WINDOW as a current blind
-  spot. Its docstring records the holes that DO remain, chiefly that a trailing comment escapes
-  scanning entirely. A reviewer cited the window from this footnote in 2026-08 and had to retract
-  after teeth-testing the tool; a second reviewer then caught this note citing the wrong commit for
-  the fix — ce6f6ea is a later, separate repair to the same tool, its uppercase-hex EXPORT regex.)*
 
 ## A commit's account of itself
 
 - **R19 [ALL]** Every statement a commit makes ABOUT ITS OWN DIFF must be verified against the diff,
-  not against the author's account of it. This is the defect that has most often cost a review
-  round recently — and because it is caught BEFORE commit, the committed history cannot show it, so
-  do not expect to find it there. On one 2-file comment-only commit (c880a82) it caused five
-  consecutive review failures — reported by the author, not recorded in `.reviews/` — while not one
-  of that commit's ROM findings ever moved.
+  not against the author's account of it.
 
   The three forms it takes, each with the check that catches it:
   1. **A number about the diff.** Counts of files, sites, roles, occurrences. DERIVE IT FROM THE
      DIFF at the moment of writing — `git diff --cached --name-only | wc -l`,
      `git diff --cached | grep -c ...`. A count carried from an earlier draft is stale the moment
-     the diff changes, and it always changes. (Observed in review drafts. None of these mistaken
-     statements was ever committed as an assertion — they survive only as the examples quoted here:
-     a draft claiming five role strings after a sixth was added, landing as 42c1f07's "six role
-     strings"; a draft claiming "both sites" where the file had three, landing as c880a82's "all
-     four sites".)
+     the diff changes, and it always changes.
   2. **A quotation.** Quoting text is a claim that those exact words exist in that exact file.
      GREP EACH QUOTE against the parent revision before writing it — `git show HEAD:<path> |
      grep -F "<quote>"` — and check the PROVENANCE: words
      the author wrote in an earlier *staged draft* are not in the parent and never will be.
-     (Observed: two fabricated quotes; one real quote attributed to the header when it had only ever
-     existed in a draft.)
   3. **A claim that a fix landed.** GREP THE STAGED BLOB FOR THE OLD WORDING before reporting a fix
      done — `git show :path | grep -F "<old text>"` must return nothing. Editing the commit message
-     and believing the file changed is a real and repeated failure. (Observed: a reviewer found the
-     staged blob byte-identical to the previous round after the author reported the edit made.)
+     and believing the file changed is a real and repeated failure.
 
   Two corollaries, both earned the same way:
   * **A fix applied where a reviewer points leaves its siblings alive.** When told about an instance,
-    sweep for the CLASS. (Observed twice in one commit: three "edge reset" sites where two were
-    claimed; a fabricated quote corrected in one place and left standing in another.)
+    sweep for the CLASS.
   * **Re-read the WHOLE file each round, not the delta.** A fix can convert a merely-stale
-    neighbouring clause into a live contradiction. (Observed: deleting a disclaimer, then asserting
-    its opposite, refuted a clause three lines up that had been tolerable before.) Verify: read the
+    neighbouring clause into a live contradiction. Verify: read the
     whole touched file AT THE STAGED REVISION, not the diff hunks, and confirm every clause
     adjacent to a change is still true.
 
   Verify: for each such statement in the message and in any touched header, run the producing
-  command. A statement about the diff with no producing command is unverified, and unverified
-  statements about the diff have been wrong more often than right here.
+  command. A statement about the diff with no producing command is unverified.
 
 ## What a file is allowed to say about the past
 
@@ -381,12 +317,8 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   1. The reader has the file, not the session. Prose that only makes sense beside its own predecessor
      is unreadable the moment the predecessor is gone — which is immediately, since the same commit
      removes it.
-  2. **Most of what these notes cite was never committed.** Measured on one 19-file unit: 10 such
-     passages, all of them pointing at wording that had existed only in the author's working tree,
-     that same session, for about an hour. There is no revision a reader can check them against.
-     Worse, two entries in the same unit's commit message announced the WITHDRAWAL of absolutes
-     that appear nowhere in the repository at any revision — retractions of the author's own
-     private drafts, presented as repairs to the codebase.
+  2. **Most of what these notes cite was never committed.** There is no revision a reader can check
+     them against.
 
   What survives the rule: a warning against a reading a future reader could plausibly re-derive
   ("NOT A STRING RENDERER — the tables at 0x39C3 are (x,y) waypoint pairs") is a statement about the
@@ -447,20 +379,12 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   And the cheap sanity check that ends most of these in a minute: **run the probe against the code
   already shipped.** An instrument that condemns the live registry is not detecting a defect.
 
-  *Why: three probes in one night each returned a confident, plausible, wrong answer — one reported
-  a defect class that does not exist, one condemned routines a colleague had cleared. Both omissions
-  were sitting in committed files the whole time.*
-
 - **R24 [ALL]** A comment-density pass is a fact about the file AS IT WAS. The cap scales with code
   length, so **DELETING code can push an unchanged header over the cap** — a rewire that removes
   local `const` declarations, a refactor that shortens a body.
 
   Verify: re-run `comment_gate.py check` after any edit that REMOVES lines, not only after edits
   that add prose. **Cut the prose; never raise the cap.**
-
-  *Why: this blocked two commits in one night, both times because a retroactive R8 rewire deleted
-  `const` lines from a file whose header a confirmer had already sized against the old body. Nothing
-  about the header changed; something else did.*
 
 - **R25 [ALL]** Deleting a declaration ORPHANS the doc block above it, and **JSDoc attaches
   DOWNWARD** — so an orphan does not merely go stale, a reader binds it to the NEXT declaration,
@@ -471,11 +395,8 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   the claim it made belongs in the registry entry for the cell that now has a name. Run the check
   with a PLANTED orphan in the same pass, so a clean result is a measurement.
 
-  *Why: a rewire deleted `const SCORING_PLAYER_TWO = 0xad32;` from a gate and left
-  "Which player's score the award routine was working on…" standing above a different cell's
-  declaration. ★ The general shape: **a script that removes lines must own everything ATTACHED to
-  those lines**, and finding one instance means sweeping every file that script has ever touched.*
-
+  ★ **The general shape: a script that removes lines must own everything ATTACHED to those
+  lines**, and finding one instance means sweeping every file that script has ever touched.
 
 - **R26 [ALL]** A test that needs a ROM must SKIP without one, and this is checked by RUNNING, not
   by reading. `README.md`'s Quickstart tells a stranger to run `npm test` and promises the
@@ -499,11 +420,6 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   `assembled-swap.test.js`, so this is not one game's local habit. A grep for `romsPresent` condemns
   every healthy dkong test file, and an idiom invented later would break a static check silently.
 
-  *Why it is owed: nine gates broke the promise, four of them already pushed to the public branch.
-  A static repair keyed on `^test(` then reported itself complete while missing tests generated
-  inside a `for` loop, and a ROM read reached from inside a test body. Both were found by running,
-  after the pattern said it was done.*
-
 - **R27 [ALL]** **Before you measure, read what the tree already says. After you measure, do not
   let the sentence outrun the log.**
 
@@ -511,33 +427,10 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   and its callers. After a run, grep your own log for counterexamples to every universal you are
   about to write.
 
-  Four instances, one night:
-  1. A proposer's falsifiable prediction read *"a read tap at the entry must count exactly one
-     dispatch."* The real tap counts **3,291,149** — its "one" was our JS harness entering a JS
-     function once, R3a `[code]` wearing `[seen]` clothes, inside a prediction whose whole purpose
-     was to be falsifiable against the ROM. A confirmer reproducing it literally **kills a correct
-     name**: worse than a false positive, because it destroys good work quietly.
-  2. A pass reported 55 pokes producing 55 dispatches. Both were cut off by the same run-end — the
-     real count is 56 — so the correspondence was **manufactured by the measurement window**.
-  3. Nine gates with no ROM guard, found by RUNNING the suite with no ROM (see R26).
-  4. A `mechanisms.md` section headed *"The nibble-pair drawer draws DECIMAL digits, not
-     hexadecimal"* refuted a proposed name before any run. The pass found it at minute twelve,
-     after all six MAME runs — roughly half the pass spent re-deriving a committed heading.
-
-  ★ The first three are the sentence outrunning the log. The fourth is nobody reading the log at
-  all. Same disease, opposite faces.
-
 - **R28 [ALL]** Derive a check from the RANGE OF LEGAL VALUES, never from the case in front of you.
   A check written from the expected value rejects compliance at the boundaries, and it passes on
   today's example BY CONSTRUCTION — so it has never been tested against anything but the thing it
   was copied from.
-
-  *Two instances, on instruments written to police each other. A ceiling of "exactly one new module
-  per commit" flagged a compliant ZERO-module pass, and once relaxed flagged a compliant
-  one-routine lift at TWO, because its pattern counted the module and its test together. Wrong
-  boundary in both directions, on one rule, within hours. And a gate's `EXCLUDED` register set,
-  written to match the module rather than derived from the oracle, ASSERTED the divergence: green
-  on a broken module, red on the correct one — and the module it defended hung the game.*
 
 - **R29 [ALL]** When a commit was previously BLOCKED and is re-presented because a qualifying
   commit has since landed, audit whether the unblocking commit is SUBSTANTIVE — not a shim created
@@ -548,28 +441,16 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   token being the strongest single check.
 
   *Any rule of the form "X is allowed once Y exists" has this hole, and R1 is only the instance we
-  hit. A reviewer derived this check unprompted when a decompile it had blocked came back after a
-  pass appeared — and verified that the pass was substantive, had a grounding record, and had
-  itself been blind-reviewed and BLOCKED once.*
+  hit.*
 
 - **R30 [ALL]** Before presenting a unit, run the cheap pre-flight checks that have blocked units
   of its class before. Rounds are the price of unchecked work, not of rigour — when review looks
   expensive, ask how many of its rounds existed to catch something the author could have caught
   alone.
 
-  *Three units went through review in one day, same reviewers, same gates. Two took several rounds;
-  one took a single round with no blockers. The one that passed first time differed in exactly one
-  respect — its failure modes were checked before the reviewer saw it. For a routine promotion those
-  checks are: does naming it leave a stale alias anywhere, does its declared range swallow an
-  already-named routine, do its comments cite anything outside their own file. Each had cost a round
-  on an earlier unit. The multi-round units were not blocked on hard questions; they were blocked on
-  claims their author had not verified, and on a scripted edit whose blast radius he had not checked.*
-
-  ⚠️ *This rule deliberately carries no figures. It first shipped with a table of round counts and
-  durations, and a reviewer checked them: the round count double-counted a re-adjudication, one
-  duration contradicted its own report, two were not derivable from anything recorded, and a "six of
-  seven" was six. A rule arguing against unverified claims had five of them in its own table — see
-  R19.1. The lesson never needed the numbers; only the wish to sound precise did.*
+  *For a routine promotion, the pre-flight checks are: does naming it leave a stale alias anywhere,
+  does its declared range swallow an already-named routine, do its comments cite anything outside
+  their own file.*
 
 ## R31 [ALL] A narrow brief still has to account for the whole diff
 
@@ -581,11 +462,6 @@ Every narrow brief carries this as check #1, un-narrowed:
 > Diff the staged file against `HEAD` and justify **every** removed or changed line. Anything not
 > explained by the change's stated intent is a blocker. Confirm nothing was silently re-ordered.
 
-It exists because a four-check brief once passed all four while the same edit had silently deleted
-six unrelated things — an argument paragraph, a mechanics paragraph, a subject paragraph, a docs
-link, a screenshot and two status blockquotes. The narrow checks could not see it; they were not
-looking there. It was caught only because the reviewer read the diff anyway and chose to mention it.
-
 **The cause is worth knowing, because the edit pattern is common.** A script replaced everything
 between a heading and the next heading — and that span held more than the section:
 
@@ -593,20 +469,13 @@ between a heading and the next heading — and that span held more than the sect
 e = src.index("\n## ", s + 10)      # swallows whatever else lives in the span
 ```
 
-★ **And the line count hid it: +1 net**, because ~74 lines of new code block replaced ~70 lines of
-prose. **A near-zero net delta is the signature of a swap, not evidence that little changed.** Read
+★ **A near-zero net delta is the signature of a swap, not evidence that little changed.** Read
 insertions and deletions separately; never reason from the net.
 
 ### R32 [ALL] The brief side of it: a disclosure must be RE-STATED every round
 
 The accounting check is only as good as the list of authorized changes it is given, and **every
 round gets a fresh, blind reviewer.** Anything you disclosed in round 3 does not exist in round 5.
-
-This bit immediately. A layout line was corrected on explicit instruction, disclosed in two
-successive briefs, and then dropped from the third — so round 5's reviewer, seeing a change outside
-the commit's declared scope, correctly blocked on it. The change was authorized, deliberate, and
-*more accurate than what it replaced*; the reviewer independently confirmed that. It was blocked
-purely because the brief had lost its provenance.
 
 ★ **An authorized change whose authorization is not restated is indistinguishable from collateral
 damage** — and it must be, otherwise the accounting check would have to trust the author's memory,
@@ -623,18 +492,16 @@ to make.
 
 ## R33 [ALL] Generating a quote fixes drift and introduces range errors
 
-Two failures on the same document, one after the other, and the fix for the first caused the second.
-
-**First: a hand-copied code block silently lost four comments**, and was then reported as "verified
-verbatim". Transcription drifts, and the drift ran in the direction of the surrounding argument —
+A hand-copied code block can silently lose comments while being reported as "verified verbatim".
+Transcription drifts, and the drift ran in the direction of the surrounding argument —
 which is the dangerous direction, because *tidying* a quote and *shading* one are the same edit and
 a reader cannot tell them apart.
 
 ⇒ **So generate quotes from their source by script.** Verbatim then holds by construction rather
 than by care, and the claim can be re-checked mechanically afterwards.
 
-**Then: the generating script deleted six unrelated things**, because it replaced everything between
-one heading and the next and that span held more than the section.
+**But a generating script can delete unrelated things**, because it replaces everything between
+one heading and the next and that span can hold more than the section.
 
 ★ **A script's blast radius is not what you aimed it at — it is what its bounds actually span, and
 you cannot eyeball a span you did not compute.** Generation removes one failure mode and adds
@@ -697,11 +564,8 @@ drawn when it fires. The DMA sub-frame raster position has no owner among the me
 **Turning it on late costs the bisect, not the run.** Many green routines and one pixel diff is a
 search problem; one routine and one pixel diff is a bug report.
 
-*Written because a game's idiomatic layer ran a full day of batches — per-routine gates green,
-whole-game swap green, suite green — with the pixel gate wired into nothing. Every gate reported
-truthfully on what it measured; nobody had asked what none of them measured. Beware that `make
-verify` is a disassembly decoder check defaulting to `GAME=dkong` — a green `make verify` says
-nothing about pixels.*
+Beware that `make verify` is a disassembly decoder check defaulting to `GAME=dkong` — a green
+`make verify` says nothing about pixels.
 
 ## R35 [ALL] An exclusivity claim about a cell needs a WRITE TAP, not a scan
 
@@ -710,14 +574,11 @@ occurs nowhere"* must cite an instrument that could have seen a writer it did no
 the image — by byte pattern or by decoded operand — is not that instrument, and the reviewer's job
 is to ask which one produced the claim, because the diff shows the conclusion and never the tool.
 
-Two ways such a scan comes back confidently wrong, both caught in one batch:
+Two ways such a scan comes back confidently wrong:
 - **The address is never an operand.** A store through an index register (`ld (ix+d),a`) or through
-  a register pair loaded earlier (`dec (hl)`) names no address at the writing instruction. A pair of
-  cells was declared unwritten on a scan; a write tap found them rewritten 596 times each in a 200 s
-  run.
+  a register pair loaded earlier (`dec (hl)`) names no address at the writing instruction.
 - **The scan finds the site and stops.** Worse than blindness, because it looks like coverage: an
-  operand scan located a routine's arm and therefore counted the routine, then missed a SECOND
-  write sixteen bytes later in the same twenty-two-byte body.
+  operand scan can locate one write and miss a second write elsewhere in the same body.
 
 So the failure is not "scans miss things" — it is that a scan's output is a lower bound wearing the
 costume of a count. **Accept a floor stated as a floor.** Refuse a floor stated as an exclusivity.
@@ -735,11 +596,8 @@ mechanical; whether the instrument named could have seen a writer it did not rep
 reviewer's judgement.
 
 ★ **A hit on this rule's own text is not a test of the trigger.** Check it against the prose in the
-diff, not against the examples above. The first version of this recipe listed five literal phrases,
-fired on its own examples, and read as validated — while missing `names.js`'s "and nothing else
-writes it", which is this repo's canonical phrasing for the hazard and was the very claim used to
-demonstrate that R35 works. A word list rots; this one will too. What does not rot is checking the
-list against the corpus rather than against itself.
+diff, not against the examples above. A word list rots; this one will too. What does not rot is
+checking the list against the corpus rather than against itself.
 
 ## R36 [ALL] A register in an EXCLUDED set that the routine does not clobber is dead weight
 
@@ -781,107 +639,14 @@ liveness recorded somewhere the next reader can find, which is what a crafted ar
   that was never staged is unrecoverable — it is not in the object database, so the review file is
   the only record that revision ever existed.
 
-  *Why: a coordinator handed a reviewer a token saying both blobs were unchanged. False — one had
-  been edited twice. But the message quoted the CORRECT current hash, so a recipient whose check is
-  "re-hash the file, compare to the quoted hash" gets a PASS. Self-consistent, and it cannot fail —
-  the same species as "a check that cannot fail is not a check". What caught it was the reviewer's
-  own anchor from the previous round.*
-
 Report format: for each class-applicable rule, `Rxx PASS` or `Rxx FAIL <evidence>`; record the token
 only if ALL are PASS (plus the correctness review passes).
 
 ---
 
-*History: R1/R2 began as a `cadence_gate.py` commit-msg hook and R16 as a `rating_completeness.py`
-gate; both were deleted in favour of these rules. A gate tests a proxy (e.g. "≥1 new `[seen]` line");
-a rule the review agent reads can require the real thing (grounding actually ran and was honestly
-recorded). Add new requirements here, as rules — not as new gates.*
-
-*R10's recipe was completed at the same time (2026-08-02): it had checked only the `m.call(0x…)`
-form and was blind to the direct `../translated/loc_XXXX.js` import form, which had accumulated 26
-stale references across 16 DK idiomatic files that day. Same species as R17 — a check that reads as
-complete, run for years, that could only ever have caught half of what its own statement forbids.*
-
-*R17 was added after a whole-game guest-stack leak survived 368 green per-routine gates plus the
-go-live gate: every gate that could have seen it was either scoped away from the seam or, in two
-cases, structurally incapable of running at all (`swap_check.mjs` for DK, `names_consistency.py`'s
-address window). The fix is deliberately NOT another gate script — a script cannot tell whether a
-header's claim is true. It is a rule, whose verification recipe ends in "has this gate ever been
-observed failing?", because that is the question none of the five instances could have answered.*
-
-*R18 was added after a reachability sweep refuted the premise the lead had been reporting for
-several passes. With 105 DK routines unnamed, the standing account was that they were blocked for
-want of grounding. One 150-second MAME run with a read tap per entry showed 84 of them executing —
-one of them 9,548 times. The technique was NOT documented anywhere until the preceding commit put
-it in idiomatic-generation.md; an earlier draft of this note claimed it "was already documented and simply was
-not being reached for", which was false and erased that commit's contribution. The honest account
-is two steps: write the technique down, then REQUIRE reaching for it, because a document alone
-supplies no requirement. It is a rule and not a gate for the narrower reason that no script can
-check whether a pass formed its belief by measuring or by guessing — a reviewer reading the pass's
-own report can. (The mechanical half, check 1 and the existence half of check 2, IS scriptable;
-gating only that would recreate the proxy failure this file's own history documents.) Prompted by
-qarl asking whether the method was written down where the next game would find it.*
-
-*R19 was added after a two-file, comment-only commit (c880a82) failed review five times running
-without a single one of its ROM findings moving. Every failure was the commit's account of itself:
-a cited hunk that was unstaged, a count left behind by the author's own edit, two fabricated
-quotations, a real quotation attributed to the parent when it had only ever existed in a draft, and
-finally a fix reported as landed that had been made only to the commit message. Two of the five were
-introduced by the fix for the previous one. The existing rules govern evidence for claims about the
-GAME, and R17 already governs what a gate's HEADER claims about itself — its check 2 is this rule's
-form 1 applied to headers. What had no rule was the commit MESSAGE, which is where those rounds
-were actually spent.
-Note the asymmetry this rule lives with: the defect is caught pre-commit, so `.reviews/` and the log
-record the corrected version and never the mistake — the evidence for R19 is review transcripts, not
-history.*
-
-*R21 is deliberately a GATE, against this file's own closing instruction to add requirements as
-rules and not gates. That instruction's reason is that a gate tests a PROXY; R21's mechanical half
-tests none — the forbidden thing IS the reference, and "does this comment name something outside
-this file" is what a regex decides. The half that would be a proxy, whether the displaced claim
-landed anywhere, is left as the rule in R21's second paragraph. The seam is truth vs reference.
-
-It was added after step 8 of the understanding formula was run twice on Donkey Kong and done by
-token substitution both times — the second time after a reviewer had written down, in the defect
-list the fixer was working from, that a token sweep cannot work. It cannot, because only claims
-naming a RENAMED THING are findable that way, and most stale cross-file claims never name it. The
-root cause was not the sweep: `idiomatic/`'s comment rule existed only in the lead's memory and had
-never been written into `docs/`, so every agent that generated the layer worked without it — which
-is why the whole layer violated it uniformly rather than by drift. A procedure changed in someone's
-head is not a procedure.
-
-Three things its own review established, each a defect a reader of the code would not have
-predicted. A comment scanner cannot find comments by blanking string literals first: comments are
-English, English has apostrophes, and one opens a string that swallows the following lines. A
-`loc_<addr>` must be caught as a sibling citation but exempted when a file names ITSELF, or the
-gate refuses the exact header R11 mandates for every unnamed routine. And the tool counts nothing
-on purpose: a count of the tree is a derived fact, true once and false after the next file is
-cleaned, so `scan` prints one line per violation and the exit code carries zero-or-not — with a
-root that matches no in-scope file an ERROR rather than a pass, since a green scan is what licenses
-skipping the tree-wide half of step 8.
-
-Prompted by qarl, who asked what step 8 actually was and then observed that the fix was to stop
-putting the material in the files at all.*
-
-*R22's thesis is not "nobody wrote it down." That was the first diagnosis and it was wrong.
-`idiomatic-generation.md` has required the `ROUTINES` entry all along — once as one of the four
-artifacts a decompile batch delivers, and once in a sentence that names Donkey Kong as the worked
-precedent, mechanism included. Both were on the page, and Donkey Kong's unwired batch is still
-unwired: committed modules with green gates that no entry names and no sibling imports, so nothing
-but their own tests ever call them.
-That is the finding worth carrying. A requirement whose omission changes nothing observable is not
-enforced by being true, or by being written twice, or by being written beside its own precedent.
-An isolation gate cannot ask whether anything dispatches the routine, so the gap stays hidden in
-exact proportion to how many of those gates are green — which is why the rule needed a consequence
-and not a third restatement.
-Two corrections this rule's own review had to make, both to confident claims by the author and the
-lead, and both worth reading as the same species of error the rule is about. "No doc says it" came
-from a grep too narrow to find the sentence it was looking for. And Time Pilot was reported as
-having shipped its whole layer unwired; it had not — its commits wired 1:1 except one, which the
-very next commit repaired by title. Time Pilot's layer WAS executed by nothing, for a different
-reason this rule does not catch: `manifest.runtime` said `"translated"`, so the player never called
-`resolveAllIdiomatic`. Registry coverage and a live layer are different properties. Prompted by
-qarl asking how the docs change so the layer gets wired and used immediately.*
+*Add new requirements here, as rules — not as new gates. A gate tests a proxy (e.g. "≥1 new
+`[seen]` line"); a rule the review agent reads can require the real thing (grounding actually ran
+and was honestly recorded).*
 
 - **R31 [ALL]** A confidently-read idiomatic cell owes a DESCRIPTIVE name (runbook: a cell earns its
   identifier at the `[guess]`→`[code]` transition, not at grounding). FAIL any `export const loc_<addr>
@@ -890,17 +655,12 @@ qarl asking how the docs change so the layer gets wired and used immediately.*
   is an unfinished job, and an unknown-role cell is keep-hex (a bare literal, no const), so a `loc_` cell
   const is always the violation. Every reader pays the `mem16[loc_83ef]`-vs-`mem16[HIGH_SCORE]` tax the
   idiomatic layer exists to remove. (Idiomatic ROUTINE modules kept `loc_<addr>` are a separate question,
-  not this rule.) *Recorded 2026-08-15: role-understood `[code]` cells persisted as `loc_<addr>` in the
-  frogger `names.js` because the `[code]`-level naming pass was never run as its own step and nothing
-  enforced it (most such cells predated the session); qarl: "code cells should have descriptive names
-  too." Backfill owed -- a value-identical naming sweep over the cells grandfathered in `names-debt.txt`;
-  the `names_consistency` gate rule (B) now FAILs any new `loc_` cell, and becomes fully debt-free once the
-  sweep runs.*
+  not this rule.)
 
 ## R35 [U] mechanisms.md is regenerated WHOLE, never patched
 
 - **R35 [U]** An understanding pass regenerates `games/<game>/mechanisms.md` WHOLE from the current
-  code every time — it is never an incremental patch (Karl, 2026-08-17). A commit that renames / adds /
+  code every time — it is never an incremental patch. A commit that renames / adds /
   wires routines but leaves most of the map's prose byte-identical — a few-line edit that name-drops the
   new routine to green `understanding_gate` CHECK A — is the anti-pattern: the map drifts from the code
   while reading as finished. Verify: `git diff --cached --stat -- games/<game>/mechanisms.md` on a commit
@@ -930,9 +690,7 @@ qarl asking how the docs change so the layer gets wired and used immediately.*
   adrift). The tooth must be null-mutant-proven at least once per game — drop a real `push16`, prove it goes
   RED — because a check never observed failing cannot be trusted (R17's lesson at per-routine scope; the
   whole-game version is `tape.test.js`). Verify: the routine's eq test imports `seamPlaceable`; the game has a
-  `sp-seam-tooth.test.js` whose null-mutant case asserts `placeable === false`. *Added 2026-08-22 after the
-  missing-push16 class survived per-routine eq-green (caught only by tape.test + human review); the eq gate
-  excludes SP by design, so only the seam catches it per routine.*
+  `sp-seam-tooth.test.js` whose null-mutant case asserts `placeable === false`.
 
 ## R37 [D] a routine delegating via a register bridge into a FROZEN callee must RE-SEAT that register
 
@@ -951,9 +709,6 @@ Verify: for a routine that tail-delegates or forwards into a callee (a kept froz
 callee with a `fn(m, x = m.regs.X)` signature), confirm the routine seats `m.regs.X` before the call — grep
 the callee chain for `= m.regs.` param defaults. The established idiom is
 `m.regs.ix = rec; // record base flows through IX to the deeper scan-state chain` (loc_56e8, loc_588e).
-*Added 2026-08-23 after a decode batch shipped eq-green + reviewer-fan-clean, then the pre-push tape caught it
-at frame 1086: loc_5733/572b forwarded the record as a param but loc_57c3->loc_57c6 read it from a
-`= m.regs.ix` param default (loc_57c6), which was stale (b0602b4f).*
 
 ## R38 [U] a GROUNDING review confirms a [seen] from MAME EVIDENCE, never from the code diff
 
@@ -962,9 +717,7 @@ or watched the routine's own PC write a role-defining cell. That fact is NOT in 
 is carried by the tag, not narrated), so a reviewer given only the staged `names.js` + code can see the
 promotion but has no way to CONFIRM it — it can only flag it as unrecorded. A grounding review done from
 code alone is therefore not proposer!=confirmer; it is a second code-read, and it will over-flag sound
-groundings while being unable to validate weak ones. (Recorded 2026-08-24: a pooyan understanding-pass
-commit review, handed only the diff, flagged all 32 [seen] promotions as unrecorded — 14 were genuinely
-unjustified, but the review could not confirm the other 18 either; it could only reason about their code.)
+groundings while being unable to validate weak ones.
 
 So a review that adjudicates any `cert: "seen"` (routine) or `[seen]` (cell) MUST be handed that cert's MAME
 evidence, or re-run the game's grounding write-tap (`games/<game>/tools/lua/ground_writes.lua` under the MAME
@@ -983,5 +736,4 @@ tool reporting only stack scratch for a dispatcher is the signal to check its ve
 only writes land in cells still `[code]`/contested — it cannot be more grounded than the cells it writes).
 A cell is `[seen]` only if the capture shows it watched changing (drain/toggle/seed). A grounding review with
 no MAME evidence on record is not a grounding confirmation — treat its `[seen]` verdicts as unmade.
-*Added 2026-08-24 (Deferral-3): the grounding-review process was code-only, which cannot confirm a MAME
-fact; see docs/runbook.md §4 "The grounding CONFIRMER confirms a [seen] from EVIDENCE".*
+*See docs/runbook.md §4 "The grounding CONFIRMER confirms a [seen] from EVIDENCE".*

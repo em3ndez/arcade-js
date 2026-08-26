@@ -37,8 +37,7 @@ Every flag in `build_mame_argv` is load-bearing. Gotchas encoded there so nobody
 
 Same hazard class as NVRAM, and proven not theoretical: MAME persists DIPSWITCH changes to
 `cfg/<game>.cfg` and defaults `cfg_directory` to `cfg` relative to cwd. A stray cfg silently changes
-what the golden ran with, and the value never appears in the capture. Measured: with a cfg setting
-the Lives switch, DSW0 (0x7D80) read 0x83 instead of 0x80. Mitigation: a fresh empty
+what the golden ran with, and the value never appears in the capture. Mitigation: a fresh empty
 `-cfg_directory` per run, plus certifying DSW0 from a Lua config probe on every non-`--writes`
 capture.
 
@@ -62,26 +61,22 @@ configuration is not a verified one.
 
 The obvious formula is wrong. MAME appends one AVI frame per video update at t = 0, T, 2T, … and
 exits at the FIRST update at or after t = seconds — and that frame is still recorded. So the last
-frame lands PAST t = seconds, not on it (measured: timeplt at 2s ends at 2.0167s, dkong at 3s at
-3.0030s), and the count is `ceil(seconds/T) + 1`.
+frame lands PAST t = seconds, not on it, and the count is `ceil(seconds/T) + 1`.
 
 The step to `floor(hz*sec)+2` is the part worth writing down. T is the frame period in whole
 attoseconds, and on every board here it lands strictly BELOW the ideal period, so seconds/T sits a
 shade above hz*sec and off an exact integer. That makes `ceil(seconds/T)` equal `floor(hz*sec)+1`
-for a fractional AND a whole-number product alike — hence the uniform +2. Measured: timeplt's T is
-16666666666666666 as, under the exact 1/60; its frame 120 lands at 1.99999999999999992 s and so does
-NOT end a 2-second run, while frame 121 at 2.0166… does.
+for a fractional AND a whole-number product alike — hence the uniform +2.
 
-SCOPED DELIBERATELY: "below the ideal period" is a property of these boards, not a law. dkong's ideal
-period IS a whole attosecond count (16500000000000000) and is saved only by MAME's per-tick rounding
-pushing the stored value down to 16499999999932416. A board whose period divides 1e18 evenly — a
-plain 50Hz `set_refresh_hz` would — puts seconds/T exactly on an integer and costs this formula one
-frame. **Re-measure T before trusting the +2 on a fourth board.**
+SCOPED DELIBERATELY: "below the ideal period" is a property of these boards, not a law. A board
+whose period divides 1e18 evenly — a plain 50Hz `set_refresh_hz` would — puts seconds/T exactly on
+an integer and costs this formula one frame. **Re-measure T before trusting the +2 on a fourth
+board.**
 
 NOT `ceil(hz*sec)+1`: that is short by one whenever hz*sec is a whole number, which a 60.000000Hz
-board hits at every integer duration. It agrees for a fractional product, which is why it survived
-two games. A capture that misses the formula was truncated or mis-run, and is the exact input that
-makes a short-run false PASS possible downstream.
+board hits at every integer duration. It agrees for a fractional product. A capture that misses the
+formula was truncated or mis-run, and is the exact input that makes a short-run false PASS possible
+downstream.
 
 ### State dump: same +2, and where the check must live
 
@@ -96,10 +91,7 @@ does not apply to it.
 ### AVI/state delta is 0, not 1
 
 AVI frame 0 is the machine-init framebuffer and state[0] is the power-on sample — the SAME instant —
-so the two clocks are aligned. The delta of 1 this check originally enforced was an artifact of the
-state dump being off by one frame (the Lua frame notifier fires at the END of frame N, so sampling
-only on the notifier made state[0] mean "after one frame"). Fixed in `lua/dump_state.lua`; the clocks
-agreeing is now a positive signal.
+so the two clocks are aligned.
 
 ## Tape parameters travel WITH the golden, not only with the tape
 
