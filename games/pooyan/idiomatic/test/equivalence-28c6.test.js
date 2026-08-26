@@ -4,21 +4,21 @@
  * actor's secondary state machine: frontier sub-dispatch, then steer the play sub-state, and on a
  * delay expiry dispatch the actor's state through the shared spine into the secondary-state table.
  *
- * The module keeps the register-marshalled spine dispatch (m.call 0x0028), pushes the shared
- * epilogue return slot and the inline table base, and direct-calls the idiomatic epilogue; the
- * oracle drives the same spine and the frozen epilogue through the registry new Machine(ROM) builds.
+ * The module dispatches the actor's state through an idiomatic switch to the eight secondary-state
+ * handlers; the shared epilogue (loc_2b8d) is a downstream continuation reached via loc_2b59, not run
+ * here — matching the oracle, whose pushed epilogue slot the frozen spine pops without executing it.
  * advanceLeadActorSecondaryState is a void driver — no register survives — so the register file is not compared;
  * equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * Cases are CRAFTED (a plain boot does not seat these states): the even round forces the play
- * sub-state to 6; a busy formation forces it to 4; a running frame delay hands to the epilogue; an
- * expired delay dispatches the state-2 handler.
+ * sub-state to 6; a busy formation forces it to 4; a running frame delay returns early; an expired
+ * delay dispatches the state-2 handler.
  *
  * Jobs:
  *   1. EQUAL — all four arms: oracle == advanceLeadActorSecondaryState in RAM (−stack).
  *   2. WRITE-SET — the even round writes 6, the busy formation writes 4, at the play sub-state byte.
  *   3. TEETH — a wrong play-sub-state byte is CAUGHT by the RAM diff.
- *   4. SP-TOOTH — the two-push dispatch and the plain-return epilogue arm are both seam-placeable.
+ *   4. SP-TOOTH — the switch dispatch and the delay-running arm are both SP-neutral (moved 0) through the seam.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-28c6.test.js
  */
@@ -142,14 +142,14 @@ test("TEETH: a wrong play-sub-state byte is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH (reviewer-rules R36) -----------------------------------------
 
-test("SP-TOOTH: the two-push dispatch is seam-placeable (SP seated on a real caller-return word)", () => {
+test("SP-TOOTH: the switch dispatch is seam-placeable — moved 0, no false positive", () => {
   const r = seamPlaceable(withOmittedRet, advanceLeadActorSecondaryState, 0x28c6, craftDispatch());
   assert.equal(r.placeable, true, `the dispatch must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: dispatch seatable (moved 0, epilogue slot consumed by the handler ret)");
+  console.log("  SP-TOOTH: dispatch seatable (moved 0, switch; epilogue deferred to loc_2b59)");
 });
 
-test("SP-TOOTH: the plain-return epilogue arm is seam-placeable (omitted ret, SP moved 0)", () => {
+test("SP-TOOTH: the delay-running arm is seam-placeable (plain return, SP moved 0)", () => {
   const r = seamPlaceable(withOmittedRet, advanceLeadActorSecondaryState, 0x28c6, craftDelay());
-  assert.equal(r.placeable, true, `the epilogue arm must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: epilogue arm seatable (moved 0, seam supplies the ret)");
+  assert.equal(r.placeable, true, `the delay-running arm must be seam-placeable; got: ${r.error}`);
+  console.log("  SP-TOOTH: delay-running arm seatable (moved 0, seam supplies the ret)");
 });

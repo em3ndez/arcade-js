@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import {
-  ROUND_COUNTER,
-  PLAY_STATE_INDEX,
-  FORMATION_STATE,
-  ACTOR_TABLE,
-  LEAD_ACTOR_STATE,
-  ACTOR_SECONDARY_STATE_DISPATCH,
-  SPAWN_FORMATION_EPILOGUE_ADDR,
-} from "./names.js";
+import { ROUND_COUNTER, PLAY_STATE_INDEX, FORMATION_STATE, ACTOR_TABLE, LEAD_ACTOR_STATE } from "./names.js";
 import { runLaunchAndTargetActorPipeline } from "./runLaunchAndTargetActorPipeline.js";
+import { loc_2901 } from "./loc_2901.js";
+import { loc_29a0 } from "./loc_29a0.js";
+import { loc_2a01 } from "./loc_2a01.js";
+import { loc_2a32 } from "./loc_2a32.js";
+import { loc_2a79 } from "./loc_2a79.js";
+import { loc_2a96 } from "./loc_2a96.js";
+import { advanceRisingActorStep } from "./advanceRisingActorStep.js";
+import { clearActorArenaAndCounters } from "./clearActorArenaAndCounters.js";
 /**
  * advanceLeadActorSecondaryState — per-frame driver for the lead actor's secondary state machine.
  *
  * Runs the frontier sub-dispatch, then steers the play sub-state: an even round forces sub-state 6,
- * a busy formation forces 4. Otherwise it seats the shared spawn/formation epilogue, ticks the
- * actor's frame delay, and while the delay runs transfers straight there; on expiry it dispatches
- * the actor's state (low three bits) through the shared spine into the secondary-state handler table.
- * The handler and the delay-ret both land the epilogue downstream of this driver, not inside it.
+ * a busy formation forces 4. Otherwise it ticks the actor's frame delay and, once the delay expires,
+ * runs the handler for the actor's state (low three bits), passing the record base (ACTOR_TABLE).
+ * The handler returns to this driver's caller; the shared spawn/formation epilogue is a downstream
+ * continuation reached elsewhere, not from this routine.
  *
- * LIVE-OUT: none — record base and dispatch index are register-bridged into the frozen spine.
+ * LIVE-OUT: none — a void per-frame driver.
  */
 const FRAME_DELAY = 0x11; // actor-record frame-delay offset
 const STATE_MASK = 0x07; // three-bit secondary-state index
@@ -30,12 +30,16 @@ export function advanceLeadActorSecondaryState(m) {
   if ((mem8[ROUND_COUNTER] & 1) === 0) { mem8[PLAY_STATE_INDEX] = 0x06; return; }
   if (mem8[FORMATION_STATE] !== 0) { mem8[PLAY_STATE_INDEX] = 0x04; return; }
 
-  m.regs.ix = ACTOR_TABLE; // record base the epilogue + dispatched handler read (register bridge)
-  m.push16(SPAWN_FORMATION_EPILOGUE_ADDR); // transfer target: handler/ret lands the epilogue downstream
   mem8[ACTOR_TABLE + FRAME_DELAY] = u8(mem8[ACTOR_TABLE + FRAME_DELAY] - 1);
-  if (mem8[ACTOR_TABLE + FRAME_DELAY] !== 0) return m.ret(); // delay still running -> transfer to epilogue
-
-  m.regs.a = mem8[LEAD_ACTOR_STATE] & STATE_MASK; // dispatch index (register bridge)
-  m.push16(ACTOR_SECONDARY_STATE_DISPATCH); // inline jump-table base
-  return m.call(0x0028); // rst-0x28 spine dispatcher (unlifted) -> handler -> transfer to epilogue
+  if (mem8[ACTOR_TABLE + FRAME_DELAY] !== 0) return; // delay still running -> nothing more this frame
+  switch (mem8[LEAD_ACTOR_STATE] & STATE_MASK) {
+    case 0: return loc_2901(m, ACTOR_TABLE);
+    case 1: return loc_29a0(m, ACTOR_TABLE);
+    case 2: return loc_2a01(m, ACTOR_TABLE);
+    case 3: return loc_2a32(m, ACTOR_TABLE);
+    case 4: return loc_2a79(m, ACTOR_TABLE);
+    case 5: return loc_2a96(m, ACTOR_TABLE);
+    case 6: return advanceRisingActorStep(m, ACTOR_TABLE);
+    case 7: return clearActorArenaAndCounters(m);
+  }
 }
