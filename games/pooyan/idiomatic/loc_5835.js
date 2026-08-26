@@ -16,7 +16,7 @@ import { SPECIAL_ACTOR_ACTIVE_FLAG, ANIM_TABLE_3847, CHECKSUM_ROM_BASE } from ".
 export function loc_5835(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  if (mem8[SPECIAL_ACTOR_ACTIVE_FLAG]) return loc_57c6(m); // already active -> step it
+  if (mem8[SPECIAL_ACTOR_ACTIVE_FLAG]) return loc_57c6(m, rec); // already active -> step it
 
   mem8[SPECIAL_ACTOR_ACTIVE_FLAG] = 0x01;
   mem8[rec + 0x0b] = 0x01;

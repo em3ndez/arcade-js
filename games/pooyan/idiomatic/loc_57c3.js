@@ -12,8 +12,8 @@ import { loc_57c6 } from "./loc_57c6.js";
  * SEATING: TAIL-CALL — both exits reuse the caller's frame; the seating is the delegate's.
  * LIVE-OUT: whatever the chosen delegate returns.
  */
-export function loc_57c3(m, count = m.regs.b) {
+export function loc_57c3(m, count = m.regs.b, rec = m.regs.ix) {
   const next = u8(count - 1);
-  if (next === 0) return (m.regs.b = 0, loc_5835(m)); // counter reached 0 -> spawn-or-step entry
-  return (m.regs.b = next, loc_57c6(m)); //             otherwise -> animation-advance stepper
+  if (next === 0) return (m.regs.b = 0, loc_5835(m, rec)); // counter reached 0 -> spawn-or-step entry
+  return (m.regs.b = next, loc_57c6(m, rec)); //            otherwise -> animation-advance stepper
 }

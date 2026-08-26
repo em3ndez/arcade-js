@@ -74,6 +74,5 @@ export function loc_5733(m, c = m.regs.c, ix = m.regs.ix, e = m.regs.e) {
 
   mem8[ACTIVE_ENEMY_COUNT] = mem8[ACTIVE_ENEMY_COUNT] + 1;
 
-  m.regs.ix = ix; // record base flows through IX to the deeper scan-state chain
-  loc_57c3(m, stateSeed); // enter the start-of-scan state machine
+  loc_57c3(m, stateSeed, ix); // enter the start-of-scan state machine
 }

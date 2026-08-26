@@ -73,5 +73,5 @@ export function loc_57c6(m, ix = m.regs.ix) {
   mem8[EAGLE_STAGE_TIMERS + 1] = mem8[ptr + 1];
   mem8[EAGLE_STAGE_TIMERS + 2] = mem8[ptr + 2];
 
-  return loc_57c3(m, 0xff); // re-run the state head with a non-spawn marker
+  return loc_57c3(m, 0xff, ix); // re-run the state head with a non-spawn marker
 }
