@@ -9,6 +9,7 @@ import {
   PHASE_TIMER,
   PLAY_STATE_INDEX,
   HIGH_SCORE_INSERT_RANK,
+  FIELD_ATTRIB_SRC_07D9,
   WIPE_COLUMN_VRAM_BASE,
   WIPE_COLUMN_VRAM_PTR,
   WIPE_COLUMN_FILL_TILE,
@@ -41,7 +42,7 @@ export function advancePlayStateAndStageHighScoreEntryOnTimer(m) {
   loc_05b2(m, 0x82); // play sound (id in A)
   loc_05b2(m, 0x80);
   loc_05b2(m, 0x89);
-  fillAttributeColumns(m, 0x07d9); // paint the column strip
+  fillAttributeColumns(m, FIELD_ATTRIB_SRC_07D9); // paint the column strip
   loc_03e9(m); // paint its frame
   loc_0038(m, OBJECT_SPAWN_DISPLAY_CMD); // enqueue a display command
 
@@ -51,7 +52,7 @@ export function advancePlayStateAndStageHighScoreEntryOnTimer(m) {
 
   let lo = u8(WIPE_COLUMN_VRAM_BASE); // advance the column low byte by 2 per rank step (page fixed)
   for (let i = 0; i < rank; i++) lo = u8(lo + 2);
-  mem16[WIPE_COLUMN_VRAM_PTR] = (WIPE_COLUMN_VRAM_BASE & 0xff00) | lo;
+  mem16[WIPE_COLUMN_VRAM_PTR] = (WIPE_COLUMN_VRAM_BASE & ~0xff) | lo;
 
   queueFixedSoundCommandRun(m); // enqueue the four-tile text sequence
 

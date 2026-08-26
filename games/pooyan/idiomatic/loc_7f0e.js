@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import { u16 } from "../../../core/int.js";
 import { loc_7f5d } from "./loc_7f5d.js";
 import { loc_7fa8 } from "./loc_7fa8.js";
 import {
@@ -30,7 +31,7 @@ export function loc_7f0e(m) {
   const { mem8 } = m;
 
   // Decrement the 16-bit counter; when it drains to zero, hand off to the shared tail.
-  const counter = ((mem8[loc_8e2b] | (mem8[loc_8e2b + 1] << 8)) - 1) & 0xffff;
+  const counter = u16((mem8[loc_8e2b] | (mem8[loc_8e2b + 1] << 8)) - 1);
   mem8[loc_8e2b] = counter;
   mem8[loc_8e2b + 1] = (counter >> 8);
   if (counter === 0) return loc_7fa8(m);

@@ -28,7 +28,7 @@ import {
  * LIVE-OUT: none — a void handler; only the memory writes survive.
  */
 
-const RECORD_STRIDE = 0x0003; // +3 per pass
+const RECORD_STRIDE = 0x03; // +3 per pass
 const WRITE_PTR_STEP = 0x02; //  +2 per pass
 const STAMP_BYTE = 0x11; //      written at the landing address
 

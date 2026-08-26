@@ -9,7 +9,7 @@ import { IN0_PORT, ATTRACT_SUBSTATE, VIDEO_RAM_BASE } from "./names.js";
  *
  * LIVE-OUT: memory only — a void poll; the caller reads nothing back.
  */
-const FILL_CELLS = 0x03ff; // 1023 cells — leaves the final page cell untouched
+const FILL_CELLS = 1023; // leaves the final page cell untouched
 const BLANK_TILE = 0x10;
 
 export function advanceAttractOnStartPress(m) {

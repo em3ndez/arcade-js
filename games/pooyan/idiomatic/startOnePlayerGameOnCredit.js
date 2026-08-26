@@ -17,7 +17,7 @@ export function startOnePlayerGameOnCredit(m) {
 
   if (mem8[CREDIT_COUNT] !== 0) {
     mem8[CREDIT_COUNT] = (mem8[CREDIT_COUNT] - 1);
-    return startNewGamePlay(m, 0x0000); //  restart a single-player game
+    return startNewGamePlay(m, 0x00); //  restart a single-player game
   }
 
   if (mem8[PLAY_STATE_INDEX] === PLAY_STATE_LOCKED) return;
