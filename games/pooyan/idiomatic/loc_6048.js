@@ -21,10 +21,10 @@ const INERT_EMPTY = 0x00;
 const INERT_ENGAGED = 0x03;
 const SCAN_COUNT = 0x05;
 
-export function loc_6048(m, slot = m.regs.i) {
+export function loc_6048(m, slot = m.regs.i, target = m.regs.iy) {
   const { mem8 } = m;
   const kind = mem8[slot === 0 ? ENEMY_TARGET_REC0 : ENEMY_TARGET_REC1];
   if (kind === INERT_EMPTY || kind === INERT_ENGAGED) return true;
   mem8[ACTIVE_OBJECT_TYPE] = kind;
-  return loc_6069(m, SPRITE_OBJECT_TABLE, SPRITE_SCAN_ACTOR_SLOTS, SCAN_COUNT);
+  return loc_6069(m, SPRITE_OBJECT_TABLE, SPRITE_SCAN_ACTOR_SLOTS, SCAN_COUNT, target, slot);
 }

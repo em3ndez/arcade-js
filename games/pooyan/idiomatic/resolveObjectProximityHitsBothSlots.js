@@ -19,9 +19,7 @@ const SLOT1_SELECTOR = 2;
 export function resolveObjectProximityHitsBothSlots(m) {
   let target = SPRITE_ACTOR_RECORD_SLOTS;
   for (let slot = 0; slot < SLOT_COUNT; slot++) {
-    m.regs.iy = target;
-    m.regs.i = slot === 0 ? 0 : SLOT1_SELECTOR;
-    if (!loc_6048(m)) return; // a hit skip-returns past the remaining slot
+    if (!loc_6048(m, slot === 0 ? 0 : SLOT1_SELECTOR, target)) return; // a hit skip-returns past the remaining slot
     target = u16(target + SLOT_STRIDE);
   }
 }

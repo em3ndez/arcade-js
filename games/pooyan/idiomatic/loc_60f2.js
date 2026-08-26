@@ -14,8 +14,8 @@ import { loc_6069 } from "./loc_6069.js";
 const ACTOR_STRIDE = 0x04;
 const RECORD_STRIDE = 0x18;
 
-export function loc_60f2(m, hl = m.regs.hl, ix = m.regs.ix, count = m.regs.b) {
+export function loc_60f2(m, hl = m.regs.hl, ix = m.regs.ix, count = m.regs.b, iy = m.regs.iy, ireg = m.regs.i) {
   const remaining = (count - 1) & 0xff;
   if (remaining === 0) return true; // every record scanned, no hit
-  return loc_6069(m, u16(hl + RECORD_STRIDE), u16(ix + ACTOR_STRIDE), remaining);
+  return loc_6069(m, u16(hl + RECORD_STRIDE), u16(ix + ACTOR_STRIDE), remaining, iy, ireg);
 }

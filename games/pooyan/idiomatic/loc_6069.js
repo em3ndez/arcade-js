@@ -16,11 +16,11 @@ import { ROUND_COUNTER } from "./names.js";
 const LIVE_KIND = 0x05;
 const KIND_OFFSET = 0x02;
 
-export function loc_6069(m, hl = m.regs.hl, ix = m.regs.ix, count = m.regs.b) {
+export function loc_6069(m, hl = m.regs.hl, ix = m.regs.ix, count = m.regs.b, iy = m.regs.iy, ireg = m.regs.i) {
   const { mem8 } = m;
-  if (mem8[hl] === 0) return loc_60f2(m, hl, ix, count); // empty record
+  if (mem8[hl] === 0) return loc_60f2(m, hl, ix, count, iy, ireg); // empty record
   const kind = mem8[(hl & ~0xff) | ((hl + KIND_OFFSET) & 0xff)];
-  if (kind !== LIVE_KIND) return loc_60f2(m, hl, ix, count);
-  if (mem8[ROUND_COUNTER] & 0x01) return loc_61b4(m, hl, ix, count); // odd round
-  return loc_6080(m, hl, ix, count);
+  if (kind !== LIVE_KIND) return loc_60f2(m, hl, ix, count, iy, ireg);
+  if (mem8[ROUND_COUNTER] & 0x01) return loc_61b4(m, hl, ix, count, iy, ireg); // odd round
+  return loc_6080(m, hl, ix, count, iy, ireg);
 }

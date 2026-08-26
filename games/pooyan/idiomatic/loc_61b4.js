@@ -54,19 +54,19 @@ export function loc_61b4(m, hl = m.regs.hl, ix = m.regs.ix, count = m.regs.b, iy
     stateByte = mem8[u16(slot + STATE_FIELD)];
     break;
   }
-  if (stateByte < 0) return loc_6080(m, hl, ix, count); // no usable match
+  if (stateByte < 0) return loc_6080(m, hl, ix, count, iy, ireg); // no usable match
 
   const nibble = stateByte & 0xf0;
-  if (nibble === 0x00) return loc_6080(m, hl, ix, count);
-  if (nibble === 0x50 || nibble === 0xd0) return loc_6287(m, nibble, hl, ix, count);
-  if (nibble === 0xf0) return loc_630f(m, hl, ix, count);
+  if (nibble === 0x00) return loc_6080(m, hl, ix, count, iy, ireg);
+  if (nibble === 0x50 || nibble === 0xd0) return loc_6287(m, nibble, hl, ix, count, iy, ireg);
+  if (nibble === 0xf0) return loc_630f(m, hl, ix, count, iy, ireg);
 
   // proximity gate before the award path
   const bias = mem8[FLIP_SCREEN_FLAG] !== 0 ? 6 : -2;
   const ax = (mem8[ix] + bias) & 0xff;
   const ay = (mem8[u16(ix + 2)] + 8) & 0xff;
-  if (Math.abs(mem8[iy] - ax) >= X_GAP_LIMIT) return loc_60f2(m, hl, ix, count);
-  if (Math.abs(((mem8[u16(iy + 2)] + 8) & 0xff) - ay) >= Y_GAP_LIMIT) return loc_60f2(m, hl, ix, count);
+  if (Math.abs(mem8[iy] - ax) >= X_GAP_LIMIT) return loc_60f2(m, hl, ix, count, iy, ireg);
+  if (Math.abs(((mem8[u16(iy + 2)] + 8) & 0xff) - ay) >= Y_GAP_LIMIT) return loc_60f2(m, hl, ix, count, iy, ireg);
 
   // award path
   setActorAnimation(m, hl, ANIM_SCRIPT_6343);
