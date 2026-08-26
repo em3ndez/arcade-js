@@ -101,10 +101,21 @@ function craftSlot0Hit() {
   return m;
 }
 
+// Slot 0 inert (skipped) so the hit lands on slot 1, whose parity selector is 2 (REC1/I1). We
+// pre-seat I to 0 so a dropped ireg thread would wrongly write REC0/I0 and diverge from the oracle.
+function craftSlot1HitParity() {
+  const m = seat(BASE.clone(), { blockA: 0x00, lead: 0x01 });
+  m.mem.write8(EAT + 0 * STRIDE + 0x14, KEY); // enemy record 0 matches...
+  m.mem.write8(EAT + 0 * STRIDE + 0x16, 0x02); // ...bit1 set -> loc_60bc parity write -> abort
+  m.regs.i = 0x00; // != slot-1 selector (2); the oracle re-seats it, so only a dropped thread reads this
+  return m;
+}
+
 const CASES = [
   { name: "both slots inert", craft: craftBothInert },
   { name: "both slots live, empty records", craft: craftBothMiss },
   { name: "slot 0 hit -> slot 1 untouched", craft: craftSlot0Hit },
+  { name: "slot 1 hit -> parity REC1 (guards the ireg thread)", craft: craftSlot1HitParity },
 ];
 
 /** A 602f that ignores the scan's boolean: it always runs both slots. Used only as a teeth twin. */
