@@ -10,9 +10,10 @@
  * IX, never the parked B/DE. LIVE-OUT is memory only.
  *
  * The module differs from the oracle ONLY in loop mechanics, so the substance is the record sequence
- * handed to the dispatcher. Both the oracle (`ld ix` / `add ix,de`) and the module (`m.regs.ix =`)
- * seat each record pointer through the IX setter, so a spy on that setter records the dispatch
- * sequence for BOTH runs (the frozen m.call and the idiomatic direct call alike).
+ * handed to the dispatcher. The module now passes each record as an argument (no IX seat), so the
+ * dispatch sequence is observed mechanism-agnostically: both runs read each record's lead byte in the
+ * dispatcher's active-check, so a spy on read8 at the four record bases records the sweep for BOTH
+ * (the frozen m.call and the idiomatic direct call alike).
  *
  * Jobs:
  *   1. EQUAL — on a boot clone the records are inactive, so the dispatcher no-ops: oracle ==
@@ -51,21 +52,24 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Run `runner`, returning the record pointer seated in IX before each dispatch (the sweep sequence).
- *  Works for the frozen oracle (m.call(0x40d0)) and the idiomatic module (direct loc_40d0) alike:
- *  both route every record pointer through the IX setter, which we spy on the instance. */
+/** Run `runner`, returning the record bases dispatched, in order (the sweep sequence). Works for the
+ *  frozen oracle (m.call(0x40d0)) and the idiomatic module (direct loc_40d0) alike: both read each
+ *  record's lead byte through read8 during the dispatcher's active-check, which we spy on the instance.
+ *  First-occurrence-in-order collapses the repeated reads within one record's dispatch. */
 function sweepIx(runner) {
   const m = BASE.clone();
   m.regs.sp = SP0;
   const seq = [];
-  Object.defineProperty(m.regs, "ix", {
-    configurable: true,
-    get() { return this._ix; },
-    set(v) {
-      this._ix = v & 0xffff;
-      if (EXPECTED.includes(this._ix)) seq.push(this._ix); // a record pointer is being seated for dispatch
-    },
-  });
+  const seen = new Set();
+  const orig = m.mem.read8.bind(m.mem);
+  m.mem.read8 = (addr) => {
+    const a = addr & 0xffff;
+    if (EXPECTED.includes(a) && !seen.has(a)) {
+      seen.add(a);
+      seq.push(a); // first read of a record base = its dispatch
+    }
+    return orig(a);
+  };
   runner(m);
   return seq;
 }
