@@ -141,6 +141,7 @@ export function runIdiomaticGame(machine, { bootAddr = 0x0000, nmiReturnPC, maxF
 
   const realFire = machine.fireNmi.bind(machine);
   machine.fireNmi = function () {};
+  machine.idiomaticNmi = true; // this engine fires the vblank NMI as a direct JS call (see the board fireNmi)
   machine.booted = true;
   machine.nextMain = null;
 

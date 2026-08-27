@@ -12,6 +12,7 @@ import {
 import { Regs } from "../../core/cpu/z80.js";
 import { makeIndexedView } from "../../core/mem-views.js";
 import { buildRoutines } from "./routines.js";
+import { loc_0066 } from "./idiomatic/loc_0066.js";
 
 /** 3.072MHz / 60.606061 Hz. htotal*vtotal = 384*264 pixel clocks at 6.144MHz, halved to Z80 cycles.
  *  This is the dkong/thepit figure, NOT timeplt's exact 60 / 51200 -- do not copy timeplt's timing. */
@@ -161,6 +162,11 @@ export class Machine {
   /** The pushed PC lands in work RAM, which IS diffed, so it must be real and not a sentinel.
    *  Reentrancy is guarded by the hardware -- the handler clears the enable bit itself. */
   fireNmi() {
+    if (this.idiomaticNmi) {
+      // Idiomatic engine: the vblank handler is pure JS, fired directly -- no guest push, no call/ret seam, so SP is unused.
+      this.nmiCount += 1;
+      return loc_0066(this);
+    }
     if (!this.pcKnown) {
       throw new Error(
         `NMI at cycle ${this.cycles} but the ROM PC is unknown: a routine here used ` +

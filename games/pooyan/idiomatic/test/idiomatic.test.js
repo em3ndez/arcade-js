@@ -11,8 +11,9 @@
 // SCOPE: resolveAllIdiomatic wires the spine (mainLoop) AND the memory-only bare-dispatch leaves, so
 // this exercises the translated->idiomatic SEAM — a frozen translated caller emits push16(RET) before
 // its m.call and the idiomatic callee models the Z80 ret as a JS return. Beyond the oracle
-// equivalence, it asserts the guest stack is balanced at every vblank yield (SP unchanged across the
-// yield, never below the scratch floor) and that the NMI subtree is stack-neutral on its own — the
+// equivalence, it asserts SP stays inert — the register-free idiomatic layer never touches the guest
+// stack (the vblank NMI is a direct JS call, not a Z80 push/seam) so SP never moves across a yield —
+// and that the NMI subtree is stack-neutral on its own — the
 // checks that catch a seam that leaks or over-pops a return word (dkong shipped a 12-14 byte/frame
 // leak no per-routine gate saw). The register/flag-live-out leaves stay UNWIRED pending the
 // return-assignment bridge (increment 2). COVERAGE IS ATTRACT ONLY: a leaf reached only in play (and
@@ -73,22 +74,18 @@ test("the born-live layer reproduces the oracle and keeps the guest stack balanc
   const idi = [];
   let prevSp = null;
   const spFaults = [];
-  const floorFaults = [];
   const ri = runIdiomaticGame(mi, {
     bootAddr: 0x0000,
     nmiReturnPC,
     maxFrames: FRAMES,
     onFrame: (m, f) => {
-      if (f === 0) return; // power-on sample, taken before boot sets SP
+      if (f === 0) return; // power-on sample, taken before the boot generator runs
       idi.push(Buffer.from(m.dumpState()));
       const sp = m.regs.sp;
       // The main-loop yield is a fixed point of the guest's stack discipline (the oracle holds SP
       // constant there), so an unbalanced push/pop anywhere in the frame — a seam that leaks or
       // over-pops a return word — shows as a non-zero delta on the first frame it happens.
       if (prevSp !== null && sp !== prevSp) spFaults.push(`frame ${f}: ${hex(prevSp)} -> ${hex(sp)}`);
-      // ...and this makes the stack-scratch exclusion self-policing: excluding [LO,HI) is sound only
-      // while SP stays above the floor.
-      if (sp < STACK_LO) floorFaults.push(`frame ${f}: SP ${hex(sp)}`);
       prevSp = sp;
     },
   });
@@ -96,13 +93,8 @@ test("the born-live layer reproduces the oracle and keeps the guest stack balanc
   assert.ok(ri.frames >= FRAMES, `idiomatic run covered only ${ri.frames}/${FRAMES} frames (${ri.stop})`);
   assert.equal(
     spFaults.length, 0,
-    "guest SP moved across a frame boundary — an unbalanced push/pop at the translated/idiomatic " +
-      `seam (a translated caller's push16 no idiomatic callee consumed, or an over-pop): ${brief(spFaults)}`,
-  );
-  assert.equal(
-    floorFaults.length, 0,
-    `SP fell below the stack-scratch floor ${hex(STACK_LO)} — the exclusion ` +
-      `[${hex(STACK_LO)},${hex(STACK_HI)}) is no longer sound: ${brief(floorFaults)}`,
+    "SP moved across a frame boundary — the register-free idiomatic layer must never touch the guest " +
+      `stack (a reintroduced unbalanced push/pop would show here): ${brief(spFaults)}`,
   );
   assert.equal(nmiFaults.length, 0, `the vblank NMI subtree changed SP: ${brief(nmiFaults)}`);
 

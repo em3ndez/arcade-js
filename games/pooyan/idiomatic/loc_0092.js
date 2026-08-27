@@ -32,7 +32,6 @@ import {
   PANEL_DIGIT_SOURCE_TABLE,
   HIGH_SCORE_TABLE,
   HIGH_SCORE_BCD_HI,
-  BOOT_STACK_TOP,
   loc_8a42,
 } from "./names.js";
 
@@ -74,13 +73,6 @@ const rotr8 = (v) => ((v >>> 1) | ((v & 1) << 7)) & 0xff;
 
 export function loc_0092(m) {
   const { mem8 } = m;
-
-  // Boot stack-pointer init. The boot reserves the top stack word for the self-test tally with an
-  // unbalanced push, so the pointer starts one word below the top (BOOT_STACK_TOP). Load-bearing: it
-  // keeps that tally above the stack so the per-frame vblank NMI's register-save cannot overwrite it
-  // (the attract-setup handler gates on the tally). The pointer is excluded from the equivalence gate,
-  // so only the whole-game tape catches a wrong seed.
-  m.regs.sp = BOOT_STACK_TOP;
 
   // program-memory self-test: 24-bit rolling sum per bank vs its checksum-table entry
   let tally = BANK_COUNT;

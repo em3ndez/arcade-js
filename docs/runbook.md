@@ -590,6 +590,27 @@ deliberate handling. These four are one problem and are decided together, once, 
     under `runCycleFree(pollPCs=[top])` and reconverge vs a MAME golden (`convergence.mjs --mode state`); a
     clean reconverge (only the RNG residual) confirms the collapse, a large persistent diff means an
     intra-frame iteration is NOT idempotent and the model is wrong.
+  - **Retiring SP — the last register — by firing the idiomatic NMI as a DIRECT JS call.** The idiomatic
+    layer targets zero registers, but `m.regs.sp` outlives every value register: once the value registers are
+    threaded away, the only remaining SP user is how the born-live engine fires the vblank NMI — through the
+    **Z80 call/ret seam** (`fireNmi` does `push16(pc)`, the `withOmittedRet` wrapper does `read16(sp)` +
+    `ret`), plus the boot's `m.regs.sp = <top>` seat that exists only to serve that push. **Do not exempt
+    SP** — it is a CPU register like any other, the VBI included; remove what needs it, in two moves done
+    together per game: (1) LIFT the frozen main-loop-step spine to idiomatic JS (no `m.step`/`m.call`/
+    `m.push`) so the main loop never touches the seam; (2) in idiomatic mode FIRE the NMI as a direct JS call
+    to the vblank-vector handler (`this.nmiCount += 1; return loc_<vector>(this)`) — no `push16`, no seam —
+    gated on a per-machine flag the born-live engine sets (`machine.idiomaticNmi = true` in
+    `runIdiomaticGame`); the oracle / cycle-driven engine is a real Z80 with a real stack, so ITS `fireNmi`
+    keeps the `push16 + step + call(vector)` path. The boot's SP seat is then vestigial (nothing reads SP) →
+    drop it. Memory-equivalent: all the push+seam did was park the return PC on the guest stack and pop it —
+    that word lands in `STACK_SCRATCH` (excluded from the diff) and the handler is SP-neutral, so no diffed
+    cell moves; a fixed-address self-test tally the ROM keeps at the stack top is written by the idiomatic
+    boot to that address directly, not via SP, so it is unaffected. The whole-game tape (it runs BOTH
+    engines) is the arbiter; **update its stack guard to assert SP stays INERT** (never moves from its
+    power-on value) rather than "SP stays within the stack window" — a retired SP sits at its reset value,
+    below that window, so the old floor guard now mandates the very defect it should permit; the inert-SP
+    check is the stronger, correct invariant. With this done the idiomatic layer holds no `m.regs.*` and
+    `idiomatic_gate` registers reach 0.
 - **Entropy pinning.** Most arcade RNG seeds from a spin counter the main loop increments while waiting for
   vblank — timing-derived, so a clock-free layer forks it within a few frames and every RNG-driven sprite
   drifts. **Pin it for testing only** (it forfeits falsifiability): discover the set by attract-diffing the

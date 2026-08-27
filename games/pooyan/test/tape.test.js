@@ -7,9 +7,10 @@
 // only after START) run live and agree with the oracle. Both engines are clock-free and collapse the
 // same idempotent iterations, so they stay frame-aligned — the comparison is direct, no reconverge shift.
 // Asserts three things: (1) NON-VACUITY — both arms actually bank a credit, enter play, and move the
-// player (a run that never started is a worthless pass); (2) the guest stack stays balanced across every
-// yield (a leaked/over-popped return word at the seam); (3) idiomatic == oracle byte-for-byte on every
-// live cell (dead stack scratch excluded). ROM-guarded (skips without the BYO ROM).
+// player (a run that never started is a worthless pass); (2) SP stays inert — the register-free idiomatic
+// layer never touches the guest stack (the vblank NMI is a direct JS call, not a Z80 push/seam); (3)
+// idiomatic == oracle byte-for-byte on every live cell (dead stack scratch excluded). ROM-guarded (skips
+// without the BYO ROM).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
@@ -90,26 +91,23 @@ test("the coin/start/play tape drives real gameplay and idiomatic == oracle thro
   };
   const idi = [], respI = newResp();
   let prevSp = null;
-  const spFaults = [], floorFaults = [];
+  const spFaults = [];
   const ri = runIdiomaticGame(mi, {
     bootAddr: 0x0000, nmiReturnPC, maxFrames: FRAMES,
     onFrame: (m, f) => {
-      if (f === 0) return; // power-on sample, before boot sets SP
+      if (f === 0) return; // power-on sample, before the boot generator runs
       m.io.inputAssert = tapeInput(f);
       idi.push(Buffer.from(m.dumpState()));
       track(respI, m, f);
       const sp = m.regs.sp;
       if (prevSp !== null && sp !== prevSp) spFaults.push(`frame ${f}: ${hex(prevSp)} -> ${hex(sp)}`);
-      if (sp < STACK_LO) floorFaults.push(`frame ${f}: SP ${hex(sp)}`);
       prevSp = sp;
     },
   });
   assert.equal(ri.stopError, null, `idiomatic run errored: ${ri.stop}`);
   assert.ok(ri.frames >= FRAMES, `idiomatic run covered only ${ri.frames}/${FRAMES} frames (${ri.stop})`);
   assert.equal(spFaults.length, 0,
-    `guest SP moved across a frame boundary — an unbalanced push/pop at the seam: ${brief(spFaults)}`);
-  assert.equal(floorFaults.length, 0,
-    `SP fell below the stack-scratch floor ${hex(STACK_LO)}: ${brief(floorFaults)}`);
+    `SP moved across a frame boundary — the register-free idiomatic layer must never touch the guest stack: ${brief(spFaults)}`);
   assert.equal(nmiFaults.length, 0, `the vblank NMI subtree changed SP: ${brief(nmiFaults)}`);
 
   // Translated oracle under runCycleFree, same tape at the same main-loop boundary.
