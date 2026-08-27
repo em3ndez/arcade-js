@@ -91,6 +91,7 @@ export const UNWIRED = {
       "RAM, verified) and stay; the frozen layer runs it in-game when the Mother-Ship is on the field.",
   },
   pooyan: {
+    "mainLoopStep.js": "the main-loop state-driver body (loc_020f), direct-called by the born-live mainLoop generator so it can yield at the vblank; the generator imports it rather than dispatching through ROUTINES. Memory-equivalent to the frozen loop body (equivalence-020f); not a dispatch entry.",
     "loc_2c3f.js": "DISSOLVED boolean caller-skip dispatcher; direct-called by idiomatic loc_2c2c; switches ((ix+2)&0x1f)-0x11 to loc_2c58/2cb3/2d24/2d4a; not oracle-served",
     "loc_2d24.js": "DISSOLVED hunter state-2 caller-skip -> boolean; direct-called by idiomatic loc_2c3f; not oracle-served",
     "loc_2d4a.js": "DISSOLVED hunter state-3 caller-skip -> boolean; direct-called by idiomatic loc_2c3f; not oracle-served",

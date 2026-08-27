@@ -5,7 +5,7 @@
 // backlog (built during the credit screen) drains one command per NMI and leaves stale attract tiles
 // on the playfield. So run mainLoopStep repeatedly, draining command dispatches WITHIN the frame, and
 // yield only when it reports the worker ran -- there the engine fires the vblank NMI and resumes.
-import { mainLoopStep } from "../translated/mainLoopStep.js";
+import { mainLoopStep } from "./mainLoopStep.js";
 
 export function* mainLoop(m) {
   for (;;) {
