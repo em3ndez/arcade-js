@@ -3,8 +3,8 @@
  * Memory-equivalence test for loc_316e (ROM 0x316e, Pooyan) — the lead-hunter swoop step.
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
- * oracle on one and loc_316e on the other, compared on RAM (dumpState, minus STACK_SCRATCH) PLUS the
- * declared register live-out IX/B. pc/SP/cycles are deliberately not compared.
+ * oracle on one and loc_316e on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
+ * pc/SP/registers are deliberately not compared.
  *
  * The routine takes no register inputs; it reads everything from work RAM. A wave timer gates it: while
  * nonzero it counts down and returns; at zero it advances the hunter record (the FORMATION_SLOT_TABLE
@@ -12,8 +12,8 @@
  * crossing) or re-primes the timer (armed, past tile 0x1b), stamps three display records, and falls
  * into the four-slot scan loc_323e.
  *
- * LIVE-OUT IX/B: inherited from the loc_323e tail — IX advanced to FORMATION_SLOT_TABLE+8, B drained
- * to 0 on the main path; left untouched by the early wave-timer return. Both sides run the SAME
+ * LIVE-OUT: none — the tail loc_323e leaves an advanced IX / drained B, but no caller reads them
+ * (loc_308b discards this routine's return), so they are not compared. Both sides run the SAME
  * loc_323e and queueSoundCommand0F (verified idiomatic modules), so the sub-calls agree by construction; the
  * gate's job is loc_316e's own branching and its display-record stamping.
  *
@@ -25,12 +25,10 @@
  *
  * Jobs:
  *   1. EQUAL — over crafted states covering every branch (early return; dwell +/- dive; sub-pixel step
- *      with armed re-prime, armed-no-reprime, and unarmed-no-dive) oracle == loc_316e in RAM (−stack)
- *      and IX/B.
+ *      with armed re-prime, armed-no-reprime, and unarmed-no-dive) oracle == loc_316e in RAM (−stack).
  *   2. WRITE-SET — the dwell/no-dive case writes only inside the hunter record + the three display
  *      records, with the per-record byte2/byte4 (C vs C+2, B vs B+2) variation exact.
- *   3. TEETH — a wrong stamped display byte (RAM) and an un-advanced IX / clobbered B (live-out) are
- *      each CAUGHT.
+ *   3. TEETH — a wrong stamped display byte is CAUGHT by the RAM diff.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-316e.test.js
  */
@@ -64,7 +62,6 @@ const SCRIPT = 0x8bf0; //      where the script bytes live (RAM)
 const REC1 = 0x8b00; //        display record 1 pointer target
 const REC2 = 0x8b20; //        display record 2 pointer target
 const REC3 = 0x8b40; //        display record 3 pointer target
-const SLOT_END = 0x8928; //    IX advanced to slot base + 2*4 by the loc_323e tail
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -107,7 +104,7 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted branch coverage — loc_316e == oracle in RAM (−stack) + IX/B", () => {
+test("EQUAL: crafted branch coverage — loc_316e == oracle in RAM (−stack)", () => {
   for (const cse of CASES) {
     const o = craft(cse.pokes);
     const c = craft(cse.pokes);
@@ -116,22 +113,8 @@ test("EQUAL: crafted branch coverage — loc_316e == oracle in RAM (−stack) + 
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
-    assert.equal(c.regs.ix & 0xffff, o.regs.ix & 0xffff, `[${cse.name}] IX live-out mismatch`);
-    assert.equal(c.regs.b, o.regs.b, `[${cse.name}] B live-out mismatch`);
   }
-  console.log(`  EQUAL: ${CASES.length} crafted branch cases identical (RAM −stack + IX/B)`);
-});
-
-test("EQUAL: the main path advances IX to the slot end and drains B to 0", () => {
-  const o = craft([]); // dwell/no-dive: a representative main-path case
-  const c = craft([]);
-  oracle(o);
-  loc_316e(c);
-  assert.equal(o.regs.ix & 0xffff, SLOT_END, "oracle IX advanced to slot base + 2*4");
-  assert.equal(c.regs.ix & 0xffff, SLOT_END, "module IX advanced to slot base + 2*4");
-  assert.equal(o.regs.b, 0x00, "oracle B drained");
-  assert.equal(c.regs.b, 0x00, "module B drained");
-  console.log(`  EQUAL: main path IX -> ${hx(SLOT_END)}, B -> 0`);
+  console.log(`  EQUAL: ${CASES.length} crafted branch cases identical (RAM −stack)`);
 });
 
 // -- 2. WRITE-SET -------------------------------------------------------------
@@ -188,18 +171,4 @@ test("TEETH: a wrong stamped display byte is CAUGHT by the RAM diff", () => {
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stamped byte — it is worthless");
   assert.equal(d.addr, REC2 + 4, `teeth caught the wrong address ${hx(d.addr ?? 0)}`);
   console.log(`  TEETH/RAM: wrong stamped byte caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
-});
-
-test("TEETH: an un-advanced IX and a clobbered B are CAUGHT by the live-out checks", () => {
-  const o = craft([]);
-  const c = craft([]);
-  oracle(o);
-  loc_316e(c);
-  assert.equal(c.regs.ix & 0xffff, o.regs.ix & 0xffff, "sanity: module IX matches the oracle");
-  assert.equal(c.regs.b, o.regs.b, "sanity: module B matches the oracle");
-  // an IX left at the slot base (never advanced by the tail scan) must be rejected
-  assert.notEqual(SLOT & 0xffff, o.regs.ix & 0xffff, "the IX live-out check must reject an un-advanced cursor");
-  // a B left nonzero (counter not drained) must be rejected
-  assert.notEqual((o.regs.b + 1) & 0xff, o.regs.b, "the B live-out check must reject a non-drained counter");
-  console.log(`  TEETH: un-advanced IX ${hx(SLOT)} and clobbered B rejected (oracle IX=${hx(o.regs.ix)} B=${hx(o.regs.b)})`);
 });

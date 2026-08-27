@@ -3,14 +3,14 @@
  * Memory-equivalence test for loc_323e (ROM 0x323e, Pooyan) — "scan 4 display-list slots".
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side,
- * the oracle on one and loc_323e on the other, compared on RAM (dumpState, minus STACK_SCRATCH)
- * PLUS the declared register live-out B. pc/SP/cycles are deliberately not compared.
+ * the oracle on one and loc_323e on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
+ * pc/SP/registers are deliberately not compared.
  *
  * INPUTS: IX (record base) and B (loop count; the real callers preset B=4). For each slot whose
  * tag byte (IX+1) is 0x8c the routine runs loc_324d on that slot; IX steps by 2 each iteration.
  *
- * LIVE-OUT B: the djnz loop counter, drained to 0 at exit; checked equal to the oracle and
- * asserted SET on the module's clone. IX is left advanced but no caller reads it back.
+ * LIVE-OUT: none — the module walks the counter in a local and leaves no consumed register (the
+ * oracle's advanced IX / drained B are unread by every caller, so they are not compared).
  *
  * loc_324d preserves B on every path exercised here (below-threshold skip, no-borrow drop, borrow
  * + paired dec, and the board-clear tail with TILE_CHECKSUM_LATCH pre-set so loc_3278 no-ops). The
@@ -23,9 +23,9 @@
  *
  * Jobs:
  *   1. EQUAL — over crafted 4-slot layouts (no match; match+skip; no-borrow; borrow; borrow+
- *      board-clear no-op), oracle == loc_323e in RAM (−stack) and B.
+ *      board-clear no-op), oracle == loc_323e in RAM (−stack).
  *   2. WRITE-SET — a single borrow match writes only the counter cell and the paired byte.
- *   3. TEETH — a wrong counter byte (RAM) and a clobbered B (live-out) are each CAUGHT.
+ *   3. TEETH — a wrong counter byte is CAUGHT by the RAM diff.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-323e.test.js
  */
@@ -102,7 +102,7 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted 4-slot layouts — loc_323e == oracle in RAM (−stack) + IX/B", () => {
+test("EQUAL: crafted 4-slot layouts — loc_323e == oracle in RAM (−stack)", () => {
   for (const cse of CASES) {
     const o = craft(cse.pokes);
     oracle(o);
@@ -111,12 +111,8 @@ test("EQUAL: crafted 4-slot layouts — loc_323e == oracle in RAM (−stack) + I
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
-    assert.equal(c.regs.ix & 0xffff, o.regs.ix & 0xffff, `[${cse.name}] IX live-out mismatch (advanced cursor)`);
-    assert.equal(c.regs.b, o.regs.b, `[${cse.name}] B live-out mismatch`);
-    assert.equal(c.regs.ix & 0xffff, (REC + 2 * COUNT) & 0xffff, `[${cse.name}] IX must advance base + 2*count`);
-    assert.equal(c.regs.b, 0x00, `[${cse.name}] the djnz counter must drain to 0`);
   }
-  console.log(`  EQUAL: ${CASES.length} crafted layouts identical (RAM −stack + IX/B)`);
+  console.log(`  EQUAL: ${CASES.length} crafted layouts identical (RAM −stack)`);
 });
 
 // -- 2. WRITE-SET -------------------------------------------------------------
@@ -161,15 +157,3 @@ test("TEETH: a wrong counter byte is CAUGHT by the RAM diff", () => {
   console.log(`  TEETH/RAM: wrong counter caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 
-test("TEETH: a clobbered B and an under-advanced IX are CAUGHT by the live-out checks", () => {
-  const o = craft([]);
-  const c = craft([]);
-  oracle(o);
-  loc_323e(c);
-  // BUG twin 1: the drained loop counter must match the oracle (0)
-  const brokenB = (o.regs.b + 1) & 0xff;
-  assert.notEqual(brokenB, o.regs.b, "the B live-out check must reject a clobbered counter");
-  // BUG twin 2: an IX left un-advanced (still at REC) must be rejected
-  assert.notEqual(REC & 0xffff, o.regs.ix & 0xffff, "the IX live-out check must reject an un-advanced cursor");
-  console.log(`  TEETH: clobbered B ${hx(brokenB)} and un-advanced IX ${hx(REC)} rejected (oracle B=${hx(o.regs.b)} IX=${hx(o.regs.ix)})`);
-});

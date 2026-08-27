@@ -6,11 +6,12 @@ import { loc_324d } from "./loc_324d.js";
  * steps (count preset in B); each slot whose tag byte (slot+1) is 0x8c runs the slot-clear handler,
  * then decrements until the counter reaches zero.
  *
- * The counter is the LIVE B register: on the board-clear-full path the slot-clear handler clobbers B
- * (its tilemap checksum resumes into this djnz), cutting the scan short exactly as the djnz does; a
- * captured-at-entry counter would over-scan the later slots.
+ * The counter walks in a local: on the board-clear-full path the slot-clear handler runs the tile-sum
+ * check, which resumes its own scan counter into this djnz (the handler returns it), cutting the scan
+ * short exactly as the djnz does; a captured-at-entry counter would over-scan the later slots.
  *
- * LIVE-OUT: IX (stopping slot) and B (0 at exit), both defensive — neither verified caller consumes them.
+ * LIVE-OUT: none — the stopping slot and drained counter are unconsumed; every caller discards the
+ * return, and the shared formation epilogue reads no register back.
  */
 
 const TAG_BOARD_CLEAR = 0x8c; // slot tag that triggers the slot-clear handler
@@ -19,13 +20,14 @@ const SLOT_STRIDE = 0x02; //    display-list slots are two bytes apart
 export function loc_323e(m, rec = m.regs.ix, count = m.regs.b) {
   const { mem8 } = m;
 
-  m.regs.b = count & 0xff;
+  let b = count & 0xff;
   let slot = rec;
   do {
-    if (mem8[slot + 0x01] === TAG_BOARD_CLEAR) loc_324d(m, slot);
+    if (mem8[slot + 0x01] === TAG_BOARD_CLEAR) {
+      const resumed = loc_324d(m, slot); // the tile-sum check resumes its counter into the djnz
+      if (resumed !== undefined) b = resumed;
+    }
     slot = u16(slot + SLOT_STRIDE);
-    m.regs.b = (m.regs.b - 1) & 0xff; // the handler may have clobbered B; decrement the live value
-  } while (m.regs.b !== 0);
-
-  return [(m.regs.ix = slot), m.regs.b];
+    b = (b - 1) & 0xff;
+  } while (b !== 0);
 }
