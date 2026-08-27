@@ -51,7 +51,7 @@ export function resolveTargetColumnAndArmApproach(m, ix = m.regs.ix) {
 
   if (doLookup) {
     const [wanted] = loc_0020(m, base, column);
-    if (mem8[ix + 0x06] === wanted) return loc_3617(m); // exact hit
+    if (mem8[ix + 0x06] === wanted) return loc_3617(m, undefined, ix); // exact hit
   }
 
   if (mem8[ix + 0x06] < TILE_THRESHOLD) return; // below threshold

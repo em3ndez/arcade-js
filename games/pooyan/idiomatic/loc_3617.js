@@ -12,7 +12,7 @@ import { loc_365d } from "./loc_365d.js";
 
 const B_LIMIT = 0x20;
 
-export function loc_3617(m, b = m.regs.b) {
+export function loc_3617(m, b = m.regs.b, rec = m.regs.ix) {
   if (b >= B_LIMIT) return (m.regs.a = b); // bail: A = B
-  return loc_365d(m); // tail to the (unlifted) pre-spawn gate
+  return loc_365d(m, rec); // tail to the pre-spawn gate
 }

@@ -34,7 +34,6 @@ export function dispatchActiveEnemyActorState(m, rec = m.regs.ix) {
   if (((mem8[rec + 0] | mem8[rec + 1]) & ACTIVE_BIT) === 0) return; // inactive slot
   const state = mem8[rec + 2] & STATE_MASK;
   if (state >= STATE_LIMIT) return; // index out of range
-  m.regs.ix = rec; // record base the dispatched handlers' still-frozen callees read from IX
   switch (state) {
     case 0x00: return loc_33bd(m, rec);
     case 0x01: return loc_3423(m, rec);

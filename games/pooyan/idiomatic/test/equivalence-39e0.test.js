@@ -125,6 +125,20 @@ test("WRITE-SET: the cooldown-tick path decrements exactly rec+0x15", () => {
   console.log("  WRITE-SET: cooldown -1");
 });
 
+// -- 2b. BRIDGE (rec argument on the spawn path) ------------------------------
+
+test("BRIDGE: the spawn path routes on the rec argument, ignoring m.regs.ix", () => {
+  const POISON = 0x8d00; // a valid but wrong record; a stale-IX read would spawn against it, not REC
+  const seated = craft(CASES[4].pokes); //     column match -> the shot-spawn tail
+  const poisoned = craft(CASES[4].pokes);
+  poisoned.regs.ix = POISON; //                wrong IX, but rec=REC is passed explicitly
+  fireEnemyShotWhenAlignedWithPlayer(seated, REC);
+  fireEnemyShotWhenAlignedWithPlayer(poisoned, REC);
+  const d = ramDiffMinusStack(seated, poisoned);
+  assert.equal(d, null, d && `spawn path read m.regs.ix, not rec (diff at ${hx(d.addr ?? 0)})`);
+  console.log("  BRIDGE: spawn path ignores a poisoned IX");
+});
+
 // -- 3. TEETH -----------------------------------------------------------------
 
 test("TEETH: a corrupted cooldown byte is CAUGHT by the RAM diff", () => {

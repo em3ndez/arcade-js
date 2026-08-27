@@ -68,7 +68,7 @@ export function advanceActorTowardTargetColumn(m, rec = m.regs.ix) {
       index = mem8[ANIM_FRAME_COUNTER] & 0x07;
     }
     const [targetCol] = loc_0020(m, base, index);
-    if (actorCol === targetCol) return loc_3617(m, newX); // on target -> pre-spawn guard
+    if (actorCol === targetCol) return loc_3617(m, newX, rec); // on target -> pre-spawn guard
   }
 
   if (actorCol < NEAR_LIMIT) return (m.regs.a = actorCol); // too near -> bail (A = actor column)

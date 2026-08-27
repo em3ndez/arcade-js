@@ -63,5 +63,5 @@ function l_3a08(m, rec) {
 
   let target = col;
   if (mem8[ROUND_COUNTER] & 1) target = u8(target + 4); // odd-frame parity offset
-  if (target === mem8[rec + 0x04]) return launchProjectileIntoFreeSlot(m); // tail-jump: spawn a shot
+  if (target === mem8[rec + 0x04]) return launchProjectileIntoFreeSlot(m, rec); // tail-jump: spawn a shot
 }
