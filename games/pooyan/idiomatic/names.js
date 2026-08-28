@@ -14,7 +14,7 @@
 // attract + gameplay goldens).
 
 // == Work-RAM cells (0x8800-0x8FFF) -- core game state, grounded vs the attract + gameplay goldens ==
-/** [code] (both goldens static 0 (DSW1 bit3=0 default) -> unobservable/code; loc_0092 boot cpl's the DSW1 port then decodes ~(bit3) here, loc_18da picks award queue 5/3 & step 8/7 off it) DSW1 bit3 (complemented, boot-only): selects bonus/extra-life award schedule -- queue reload 5/3, BCD step 8/7 */
+/** [seen] (both goldens static 0 (DSW1 bit3=0 default) -> unobservable/code; loc_0092 boot cpl's the DSW1 port then decodes ~(bit3) here, loc_18da picks award queue 5/3 & step 8/7 off it) DSW1 bit3 (complemented, boot-only): selects bonus/extra-life award schedule -- queue reload 5/3, BCD step 8/7 */
 export const BONUS_AWARD_DSW = 0x8800;
 /** [seen] (gameplay golden: coin at f302 -> 0->1, 1P start at f362 -> 1->0 (credit added then consumed); static 0 in attract = credit counter, REFUTES A's score-drip) BCD credit counter (max 0x63): coin +1, 1P start consumes 1, 2P start consumes 2; drawn as 2 HUD digits */
 export const CREDIT_COUNT = 0x8802;
@@ -40,7 +40,7 @@ export const INPUT_PORT0 = 0x8810;
 export const TAMPER_FREEZE_FLAG = 0x881e;
 /** [seen] (both goldens: 0->1 at f32 (boot init to normal orientation), held; loc_066d epilogue copies (0x881f)->0xa187 b7, loc_0320 gates mirror pass when ==0) screen orientation flag copied to flipscreen latch 0xa187 b7 each NMI; 1=normal (upright), gates the vertical-mirror pass */
 export const FLIP_SCREEN_FLAG = 0x881f;
-/** [code] (static 0 in both goldens (difficulty 0) -> unobservable/code; loc_0092 boot cpl's the DSW1 port then writes (~DSW1>>4)&0x07 (only writer), spawnFormationEnemyOnInterval/spawnShotTargetOnInterval/loc_39fb threshold spawns on it) 3-bit difficulty (DSW1 bits4-6, complemented, boot-only); scales enemy spawn schedules and tier/threshold tables */
+/** [seen] (static 0 in both goldens (difficulty 0) -> unobservable/code; loc_0092 boot cpl's the DSW1 port then writes (~DSW1>>4)&0x07 (only writer), spawnFormationEnemyOnInterval/spawnShotTargetOnInterval/loc_39fb threshold spawns on it) 3-bit difficulty (DSW1 bits4-6, complemented, boot-only); scales enemy spawn schedules and tier/threshold tables */
 export const DIFFICULTY_DSW = 0x8820;
 /** [seen] (both goldens: 0->1 at f32 (boot seeds coinage=1c/1c via table 0x0053, 0x882f gets hi nibble); serviceCoinCreditAndCountersUnlessFreePlay/resetToBoardBuildToContinuePlay/queueCreditDisplayCommands test ==0x0f free play (A's slot-B label unverified)) coin-slot coinage nibble from DSW0 low nibble via table 0x0053; 0x0f = free play; read by credit logic */
 export const COINAGE_CONFIG = 0x882c;
@@ -378,11 +378,11 @@ export const PHASE4_TAMPER_ORIG = 0x6ac5;
 export const PHASE4_TAMPER_COPY = 0x6fed;
 /** [code] base of the colour/attribute map (0x8000-0x83ff) */
 export const COLOR_RAM_BASE = 0x8000;
-/** [code] video-RAM base of the first 14-tile column strip (colour region) column-summed upward (stride -0x20) by runDisplayListAndAdvanceToGameplay's state-1 HUD integrity check */
+/** [seen] video-RAM base of the first 14-tile column strip (colour region) column-summed upward (stride -0x20) by runDisplayListAndAdvanceToGameplay's state-1 HUD integrity check */
 export const HUD_INTEGRITY_STRIP_A = 0x82bc;
 /** [code] base of the tile-code video RAM (0x8400-0x87ff); also the row-by-row tile-fill cursor origin seeded here */
 export const VIDEO_RAM_BASE = 0x8400;
-/** [code] video-RAM start cell of the screen re-init playfield tile paint (0x1d x 0x1d tiles of blank tile 0x10, +0x20 per row) */
+/** [seen] video-RAM start cell of the screen re-init playfield tile paint (0x1d x 0x1d tiles of blank tile 0x10, +0x20 per row) */
 export const PLAYFIELD_PAINT_START = 0x8442;
 /** [code] video-RAM digit-column base for loc_10c2's first 2-digit BCD field */
 export const SUBSTATE_FIELD1_VRAM = 0x85d0;
@@ -529,11 +529,11 @@ export const TAMPER_STRIKES_HUD_GUARD = 0x8a3c;
 export const loc_8a99 = 0x8a99;
 /** [code] base page of the per-slot hunter-return paced counters; a slot's counter cell is this | ((field-0 + 5) & 0xff) */
 export const HUNTER_COUNTER_PAGE = 0x8c00;
-/** [code] (SHARED actor table — the 0x65xx path also seeds it; kept code; observed MAME: spawnHunterIntoTableAndAdvanceLaunch seeds fields 0x8c79..0x8c88 (pc 2872-2892) and stores base ptr 0x8c78 to 0x8f32/0x8f33; only slot 0 exercised in capture, so the 6-slot / 0x18-stride / downward-scan structure rema…) base of the 6-slot hunter record table (0x18 stride, scanned DOWNWARD) seeded by launch state 2 */
+/** [seen] (SHARED actor table — the 0x65xx path also seeds it; kept code; observed MAME: spawnHunterIntoTableAndAdvanceLaunch seeds fields 0x8c79..0x8c88 (pc 2872-2892) and stores base ptr 0x8c78 to 0x8f32/0x8f33; only slot 0 exercised in capture, so the 6-slot / 0x18-stride / downward-scan structure rema…) base of the 6-slot hunter record table (0x18 stride, scanned DOWNWARD) seeded by launch state 2 */
 export const HUNTER_TABLE_BASE = 0x8c78;
-/** [code] (SHARED actor-record coord — eagle species (read by advanceEagleToArrivalAndTallyWave) not write-confirmed; kept code; observed MAME: advanceTargetActorState writes 0x8c94 at pc=0x2218 n=356, 0x5b->0xea (launch-phase Y+=4). Same cell seeded by spawnTargetActorOnLaunchTrigger (pc=0x218d) and velocity-integrated by advanceTargetActorAlongVelocityElseDespawn (pc=0x2264, n=1547) -- a live p…) eagle live Y coordinate; >>3 +4 is its grid row, matched within a 5-row window of the record's target row (ix+4) */
+/** [seen] (SHARED actor-record coord — eagle species (read by advanceEagleToArrivalAndTallyWave) not write-confirmed; kept code; observed MAME: advanceTargetActorState writes 0x8c94 at pc=0x2218 n=356, 0x5b->0xea (launch-phase Y+=4). Same cell seeded by spawnTargetActorOnLaunchTrigger (pc=0x218d) and velocity-integrated by advanceTargetActorAlongVelocityElseDespawn (pc=0x2264, n=1547) -- a live p…) eagle live Y coordinate; >>3 +4 is its grid row, matched within a 5-row window of the record's target row (ix+4) */
 export const EAGLE_Y_COORD = 0x8c94;
-/** [code] (SHARED actor-record coord — eagle species (read by advanceEagleToArrivalAndTallyWave) not write-confirmed; kept code; observed MAME: advanceTargetActorState writes 0x8c96 at pc=0x2200 n=2101, 0xb0->0x50 (X-=4 per frame; JS despawns when < 4). Same cell seeded by spawnTargetActorOnLaunchTrigger (pc=0x2195) and velocity-integrated by advanceTargetActorAlongVelocityElseDespawn (pc=0x224e,…) eagle live X coordinate; >>3 is its grid column, matched against the record's target column (ix+6) or that minus one */
+/** [seen] (SHARED actor-record coord — eagle species (read by advanceEagleToArrivalAndTallyWave) not write-confirmed; kept code; observed MAME: advanceTargetActorState writes 0x8c96 at pc=0x2200 n=2101, 0xb0->0x50 (X-=4 per frame; JS despawns when < 4). Same cell seeded by spawnTargetActorOnLaunchTrigger (pc=0x2195) and velocity-integrated by advanceTargetActorAlongVelocityElseDespawn (pc=0x224e,…) eagle live X coordinate; >>3 is its grid column, matched against the record's target column (ix+6) or that minus one */
 export const EAGLE_X_COORD = 0x8c96;
 /** [code] one-shot spawn latch for the 0x8c30 formation record; set 1 when spawned, gates re-spawn */
 export const SPAWN_LATCH = 0x8d59;
@@ -571,9 +571,9 @@ export const TILE_SUM_ONCE_LATCH = 0x8f56;
 export const HUNTER_SPAWN_SUBCOUNTER = 0x8f5d;
 /** [code] flip flag: when set, launch state 2 bumps a sub-counter instead of enqueuing the spawn display command */
 export const HUNTER_SPAWN_FLIP_FLAG = 0x8f61;
-/** [code] sprite bank 0 fill start (bank base 0x9000 + 0x10); boot clears 0x30 bytes here */
+/** [seen] sprite bank 0 fill start (bank base 0x9000 + 0x10); boot clears 0x30 bytes here */
 export const SPRITE0_CLEAR_BASE = 0x9010;
-/** [code] sprite bank 1 fill start (bank base 0x9400 + 0x10); boot clears 0x30 bytes here */
+/** [seen] sprite bank 1 fill start (bank base 0x9400 + 0x10); boot clears 0x30 bytes here */
 export const SPRITE1_CLEAR_BASE = 0x9410;
 /** [code] ROM base of the 0x20-byte block summed by the hunter-formation state-2 integrity guard (valid-ROM sum sentinel 0xdc) */
 export const FORMATION_GUARD_BASE = 0x0799;
@@ -653,9 +653,9 @@ export const TWOTILE_ANIM_VRAM_ALT = 0x84bb;
 export const COLUMN_CAP_VRAM = 0x84e0;
 /** [seen] (MAME: pc 2840 (spawnEnemyTargetOrAnimateLaunchFlipTile) writes tile 0x10 (n=15); sibling pc 27de writes 0x6f (n=17) — a launch-state tile toggle in VRAM) status-panel VRAM tile cell lit (0x6f here / 0x10 in spawnEnemyTargetOrAnimateLaunchFlipTile) when the launch fires while the game is idle */
 export const LAUNCH_HUD_TILE = 0x8508;
-/** [code] video-RAM column base where player-2's score digits are drawn */
+/** [seen] video-RAM column base where player-2's score digits are drawn */
 export const P2_SCORE_VRAM = 0x8521;
-/** [code] video-RAM base cell for the level-intro digit pair (tally at the base, its BCD double two rows up) */
+/** [seen] video-RAM base cell for the level-intro digit pair (tally at the base, its BCD double two rows up) */
 export const HUD_INTRO_DIGITS_BASE = 0x8634;
 /** [seen] video-RAM column base where the top/high-score digits are drawn */
 export const HIGH_SCORE_VRAM = 0x8641;
@@ -683,11 +683,11 @@ export const loc_8905 = 0x8905;
 export const loc_8906 = 0x8906;
 /** [seen] blink-timer countdown (reload 0x16); decremented per tick, on 0 toggles the phase */
 export const BLINK_COUNTDOWN = 0x892a;
-/** [code] (MULTIPLEXED, role contested: MAME shows the blink path (blinkTilePairOnCountdown/0x76af) toggle it in step with the tile swap (n=30), while the object-anim path seeds it 0x08 (spawnActorGroupRecords) and decrements/reloads it as a countdown (cycleActorGroupSpriteFramesOnTimer/0x66a1); kept code) blink path: phase byte toggled on 0x892a expiry, parity selects the tile pair */
+/** [seen] (MULTIPLEXED, role contested: MAME shows the blink path (blinkTilePairOnCountdown/0x76af) toggle it in step with the tile swap (n=30), while the object-anim path seeds it 0x08 (spawnActorGroupRecords) and decrements/reloads it as a countdown (cycleActorGroupSpriteFramesOnTimer/0x66a1); kept code) blink path: phase byte toggled on 0x892a expiry, parity selects the tile pair */
 export const BLINK_PHASE = 0x892b;
 /** [seen] shared per-frame phase/animation countdown reloaded to 0x12 (also used by spawnEnemyTargetOrAnimateLaunchFlipTile/loc_7638) */
 export const SHARED_PHASE_COUNTDOWN = 0x892e;
-/** [code] (MULTIPLEXED w/ the 0x65xx eagle path (both write/dec); kept code; observed MAME: pc 27fd dec (n=3492), 27ff reload 0x10 (n=216); expiry increments 0x892e at 2802; sibling 27ca reseeds to 8 (v 08->08, n=20)) frame countdown reseeded to 8 by this handler and decremented by spawnEnemyTargetOrAnimateLaunchFlipTile; on reaching 0 it drives the 0x892e tile-flip bit */
+/** [seen] (MULTIPLEXED w/ the 0x65xx eagle path (both write/dec); kept code; observed MAME: pc 27fd dec (n=3492), 27ff reload 0x10 (n=216); expiry increments 0x892e at 2802; sibling 27ca reseeds to 8 (v 08->08, n=20)) frame countdown reseeded to 8 by this handler and decremented by spawnEnemyTargetOrAnimateLaunchFlipTile; on reaching 0 it drives the 0x892e tile-flip bit */
 export const LAUNCH_FLIP_COUNTDOWN = 0x892f;
 /** [seen] boolean gate flag enabling the shared actor phase countdown (written by animateActorGroupGrowShrink) */
 export const SHARED_PHASE_GATE = 0x8930;
@@ -817,7 +817,7 @@ export const FORMATION_READY_TILE_VRAM = 0x877b;
 export const PROXIMITY_SOURCE_OBJECT = 0x889c;
 /** [seen] wave/stage progression index (0..8): incremented per wave (launchWolfIntoSlot/756d), gated at >=8 = all-waves-done (loc_6905), indexes the wave-param table; loc_6a7f arms its tilemap integrity check at ==2. NOTE: updateEnemyActorsAndCycleLaunchFlipAnim instead treats it as a per-frame countdown reloaded to 0x10 (possible mode-dependent reuse, needs MAME grounding) */
 export const WAVE_NUMBER = 0x892d;
-/** [code] base of the formation spawn record table scanned by loc_2bb3/loc_2be5 (records 0x18 bytes apart, descending) */
+/** [seen] base of the formation spawn record table scanned by loc_2bb3/loc_2be5 (records 0x18 bytes apart, descending) */
 export const FORMATION_SPAWN_TABLE = 0x8c60;
 /** [seen] aim-indicator mode/direction latch: 0 triggers a redraw pass, 1 selects the above bit and 2 the below bit of PLAYER_AIM_FLAGS; set to 1/2 on a timed proximity hit and read by the indicator stepper (driveAimIndicatorHitTimerElseRescan) */
 export const AIM_INDICATOR_MODE = 0x8d52;
@@ -848,9 +848,9 @@ export const ANIM_SEQ_64DF = 0x64df;
 export const STATE5_SIGCHECK_CODE_BASE_ADDR = 0x67df;
 /** [seen] stride-4 sprite y-coordinate slots (6 scanned) tested for the closest in-band aim target vs the player's y (SPRITE_DISPLAY_LIST+2) */
 export const SPRITE_SCAN_YSLOTS = 0x8852;
-/** [code] stride-4 actor coordinate slots (base IX, 5 scanned) swept by the object-record proximity scan; +0 (x)/+2 (y) is the moving actor tested against each object record */
+/** [seen] stride-4 actor coordinate slots (base IX, 5 scanned) swept by the object-record proximity scan; +0 (x)/+2 (y) is the moving actor tested against each object record */
 export const SPRITE_SCAN_ACTOR_SLOTS = 0x8868;
-/** [code] player-1 stride-4 target/collision coordinate slots scanned vs the 0x8c48 records (counterpart of 0x887c/SPRITE_TARGET_SLOTS; selected when PLAY_MODE_LATCH==0) */
+/** [seen] player-1 stride-4 target/collision coordinate slots scanned vs the 0x8c48 records (counterpart of 0x887c/SPRITE_TARGET_SLOTS; selected when PLAY_MODE_LATCH==0) */
 export const SPRITE_TARGET_SLOTS_P1 = 0x888c;
 /** [seen] 5-byte acquired-aim-target lock: +0 closest-distance/lock-active byte, +1..+2 the locked y-slot pointer (little-endian), +3..+4 the locked enemy-block pointer (block+1, little-endian); overlaps DISPLAY_LIST_DST_PTR at 0x8f43 (multiplexed by game phase), accessed here as TARGET_LOCK+3/+4 */
 export const TARGET_LOCK = 0x8f40;
@@ -988,7 +988,7 @@ export const STATUS_RENDER_VRAM_BASE = 0x8425;
 export const RESET_ATTR_COLUMN = 0x855f;
 /** [seen] (MAME: written e4->ec n=56 with its 2x2 neighbors 0x866b=e5->ed,0x868a=e6->ee,0x868b=e7->ef — a 2x2 block of animation frames (e4-e7 -> ec-ef)) anim tile block top (0x866a) */
 export const ANIM_TILE_BLOCK_TOP = 0x866a;
-/** [code] column blit tile dest (0x86a7) */
+/** [seen] column blit tile dest (0x86a7) */
 export const COLUMN_BLIT_TILE_DEST = 0x86a7;
 /** [seen] (MAME: written e4->ec n=56 with 2x2 neighbors 0x86ab=e5->ed,0x86ca=e6->ee,0x86cb=e7->ef — identical animated 2x2 block) anim tile block bottom (0x86aa) */
 export const ANIM_TILE_BLOCK_BOTTOM = 0x86aa;
@@ -1218,7 +1218,7 @@ export const WAVE_TILE_CURSOR_84E9 = 0x84e9;
 export const WAVE_TILE_CURSOR_84F6 = 0x84f6;
 /** [code] base tile cell of the two-column serpentine playfield checksum (0x8548) */
 export const PLAYFIELD_CHECKSUM_VRAM_BASE = 0x8548;
-/** [code] attract state-4 vram cursor (0x8648) */
+/** [seen] attract state-4 vram cursor (0x8648) */
 export const ATTRACT_S4_VRAM_CURSOR = 0x8648;
 /** [seen] cursor into the wolf launch-variant table (0x8922) */
 export const WOLF_LAUNCH_VARIANT_INDEX = 0x8922;
@@ -1392,7 +1392,7 @@ export const ROUTINES = {
   0x0c5c: { name: "primeTileFillCursorAndAdvanceBoardBuild", role: "board-build state 0", cert: "seen" },
   0x0c77: { name: "fillIntroRowsThenBuildBoardIntro", role: "board-intro state 1: paint two tile-fill runs, count down, then build the intro", cert: "seen" },
   0x0d61: { name: "queueCreditDisplayAndEnterBoardBuild", role: "coin jingle: on a nonzero credit count, queue a credit display command (a distinct", cert: "seen" },
-  0x0d78: { name: "startSelectedPlayerGameConsumingCredits", role: "coin/credit post-handler on the IN0 edge bits (INPUT_PORT0)", cert: "code" },
+  0x0d78: { name: "startSelectedPlayerGameConsumingCredits", role: "coin/credit post-handler on the IN0 edge bits (INPUT_PORT0)", cert: "seen" },
   0x0da8: { name: "beginTwoPlayerStartOfLife", role: "thin entry that seats HL = the start-of-life state seed (256) and falls through to the", cert: "code" },
   0x0dab: { name: "startNewGamePlay", role: "start-of-life setup for a new game", cert: "seen" },
   0x0de4: { name: "startOnePlayerGameOnCredit", role: "the (0x8810) bit-3 coin/credit branch", cert: "seen" },
@@ -1414,7 +1414,7 @@ export const ROUTINES = {
   0x3a51: { name: "armActorDropAnimationNearTop", role: "arm the drop animation when the actor is near the top of its travel", cert: "seen" },
   0x3b87: { name: "advanceTravelingEnemyToArrival", role: "horizontal-travel phase of an enemy actor whose (+8) bit0 is clear", cert: "seen" },
   0x59e8: { name: "serviceCoinCreditAndCountersUnlessFreePlay", role: "credit/coinage-gated update chain", cert: "code" },
-  0x5a1f: { name: "accrueCreditsFromCoinSlot2", role: "per-frame step B: rotate the cadence ring, on phase 1 bump the pulse count and feed the accumulate tail", cert: "code" },
+  0x5a1f: { name: "accrueCreditsFromCoinSlot2", role: "per-frame step B: rotate the cadence ring, on phase 1 bump the pulse count and feed the accumulate tail", cert: "seen" },
   0x5a56: { name: "accrueCreditFromCoin1Pulse", role: "per-frame step C: rotate one input bit into the ring at DRIP_RING_C and act on phase 1", cert: "seen" },
   0x5a8a: { name: "addFullWrapCreditAmount", role: "full-wrap entry into the shared score-accumulate tail", cert: "code" },
   0x5a8c: { name: "addCreditsAndQueueDisplay", role: "the shared accumulate tail of the three score drips", cert: "seen" },
@@ -1489,12 +1489,12 @@ export const ROUTINES = {
   0x588e: { name: "loc_588e", role: "initialise a run of sprite blocks", cert: "code" },
   0x5a06: { name: "loc_5a06", role: "per-frame accumulate step A (adds to the running total)", cert: "code" },
   0x5b71: { name: "loc_5b71", role: "fire gate for one actor record (based at IX)", cert: "code" },
-  0x5b86: { name: "loc_5b86", role: "sweep the per-record collision check across the six enemy-actor records", cert: "code" },
+  0x5b86: { name: "loc_5b86", role: "sweep the per-record collision check across the six enemy-actor records", cert: "seen" },
   0x5e78: { name: "loc_5e78", role: "gated actor-sweep driver. On an odd round only, hands the actor-record table to the per-slot sweep twice: a phase latch of 0 on the first pass and 1…", cert: "code" },
   0x5e98: { name: "loc_5e98", role: "enter the per-slot actor sweep for one interrupt-parity pair", cert: "code" },
   0x5ebd: { name: "loc_5ebd", role: "one iteration of the actor-sweep loop body", cert: "code" },
   0x5f06: { name: "loc_5f06", role: "tail of the actor sweep loop. Steps the actor pointer one record and the row pointer one row, then continues the sweep while slots remain; once the…", cert: "code" },
-  0x5f6a: { name: "loc_5f6a", role: "walk the two actor-record slots through the per-slot handler, once per pass", cert: "code" },
+  0x5f6a: { name: "loc_5f6a", role: "walk the two actor-record slots through the per-slot handler, once per pass", cert: "seen" },
   0x5fa2: { name: "loc_5fa2", role: "one pass of the six-slot overlap scan: does the record at recPtr overlap the target box? An empty slot (record byte0 == 0) or a non-type-5 record…", cert: "seen" },
   0x6018: { name: "advanceOverlapScanToNextSlot", role: "the advance-and-loop latch of the six-slot overlap scan", cert: "code" },
   0x64e2: { name: "runObjectAndSpawnUpdatePass", role: "the fountain/spawn subtree driver, invoked by the even-frame branch of loc_1c53", cert: "code" },
@@ -1587,7 +1587,7 @@ export const ROUTINES = {
   0x5b06: { name: "flagTamperOnRound5ChecksumMiss", role: "bump the tamper freeze tally on the round-5 checksum miss", cert: "code" },
   0x5c75: { name: "storeActorAnimationPointer", role: "install a record's animation-script pointer and reset its frame index", cert: "seen" },
   0x5d1e: { name: "tickActorAnimHold", role: "count a record's animation hold down and step its phase", cert: "seen" },
-  0x5d4d: { name: "loc_5d4d", role: "proximity-scan driver: test a fixed source object against 3 target/record pairs (SPRITE_TARGET_SLOTS stride 4 / PROJECTILE_TABLE stride 0x18), aborting the scan on the first hit", cert: "code" },
+  0x5d4d: { name: "loc_5d4d", role: "proximity-scan driver: test a fixed source object against 3 target/record pairs (SPRITE_TARGET_SLOTS stride 4 / PROJECTILE_TABLE stride 0x18), aborting the scan on the first hit", cert: "seen" },
   0x5e11: { name: "loc_5e11", role: "B-iteration proximity sweep: runs the grab trigger per target slot, advancing target/record pointers, aborting on a grab hit (caller of the dissolved skip loc_5e1f)", cert: "code" },
   0x5f02: { name: "loc_5f02", role: "enqueue the fixed sound command 0x05 into the sound-command ring (trampoline over the enqueue entry)", cert: "code" },
   0x5f11: { name: "loc_5f11", role: "proximity-collision slot scan: mark a struck slot + interrupt-parity flash cell + hit sound", cert: "code" },
@@ -1621,7 +1621,7 @@ export const ROUTINES = {
   0x0010: { name: "loc_0010", role: "fill a run of bytes with a constant, advancing the pointer (a zero counter fills 256)", cert: "seen" },
   0x0020: { name: "loc_0020", role: "rst-0x20 byte-table lookup: HL += A then A := (HL)", cert: "code" },
   0x0038: { name: "loc_0038", role: "enqueue a two-byte display command into the page-0x88 display-command ring", cert: "seen" },
-  0x02a8: { name: "loc_02a8", role: "stamp a three-tile vertical tilemap column (cap + two body tiles)", cert: "code" },
+  0x02a8: { name: "loc_02a8", role: "stamp a three-tile vertical tilemap column (cap + two body tiles)", cert: "seen" },
   0x02e3: { name: "loc_02e3", role: "arm the row-by-row tile fill from the fixed VRAM start (the reset-to-0x8402 variant)", cert: "code" },
   0x0320: { name: "loc_0320", role: "tick a caller-set frame counter, then run the flip-screen mirror pass when the orientation flag is zero", cert: "seen" },
   0x0343: { name: "loc_0343", role: "build sprite display-list entries from moving-object records, deriving screen coordinates from their sub-pixel position pairs", cert: "seen" },
@@ -1676,7 +1676,7 @@ export const ROUTINES = {
   0x66fd: { name: "advanceEnemyActorToDescentStateOnDelay", role: "run an actor's shared phase countdown; on expiry advance the phase, record fields, animation and tile id", cert: "seen" },
   0x67df: { name: "reinitRoundArenaAndPlayfieldIfImageIntact", role: "screen re-init behind a colour-map integrity checksum: arm the round flags, clear the timer block + actor arena, paint the playfield square of the blank tile; a checksum miss tails to the per-object frame updater", cert: "seen" },
   0x683a: { name: "loc_683a", role: "advance an object record to its next state: phase bump, field reseed, and animation arm", cert: "seen" },
-  0x68ac: { name: "loc_68ac", role: "once-only playfield tile-region tamper checksum and dispatch (returns on match, throws on tamper)", cert: "code" },
+  0x68ac: { name: "loc_68ac", role: "once-only playfield tile-region tamper checksum and dispatch (returns on match, throws on tamper)", cert: "seen" },
   0x6b13: { name: "blitStackedTwoTileAnimFrameOnHoldTimer", role: "frame-gated two-tile blitter: on hold expiry, reload+advance phase and stamp a phase-selected 2x2 block at two screen positions", cert: "seen" },
   0x6b3b: { name: "loc_6b3b", role: "deferred-object promoter: on countdown fire, promote in-range enemy records into the promoted-object list and queue the promotion's display commands, then rebuild the sprite list", cert: "code" },
   0x6f2d: { name: "loc_6f2d", role: "per-record state dispatch for the enemy-actor table: state 2 -> tickActorHoldThenBlankAndClearWaveLatches hold-tick, states <0x0b -> advanceObjectAnimationFrame mover, states 0x0b/0x0c -> seedEnemyFromDescriptorAndEnterFlight/advanceInFlightEnemyAndLand via the 2-entry table at 0x6f3e", cert: "code" },
@@ -1692,14 +1692,14 @@ export const ROUTINES = {
   0x7e6d: { name: "loc_7e6d", role: "periodic anti-tamper ROM checksum guard; bumps the ROM tamper-strike counter on a signature miss", cert: "code" },
   0x0092: { name: "loc_0092", role: "power-on boot entry: program-memory self-test + full initial RAM/ring/DSW setup, then hand off to the main-loop generator", cert: "seen" },
   0x01ea: { name: "loc_01ea", role: "boot RAM clear: fill both sprite-bank tops with A + blank lower video RAM to tile 0x1e, then cycle-only settle-delay", cert: "seen" },
-  0x0254: { name: "loc_0254", role: "per-frame scroll worker dispatched by the main loop: repaint the scroll tile columns, or run the program-signature check when the control byte's low nibble is set", cert: "code" },
+  0x0254: { name: "loc_0254", role: "per-frame scroll worker dispatched by the main loop: repaint the scroll tile columns, or run the program-signature check when the control byte's low nibble is set", cert: "seen" },
   0x02b9: { name: "loc_02b9", role: "zero the board-init RAM regions (sprite display list + actor/object arena)", cert: "code" },
   0x02c9: { name: "loc_02c9", role: "clear the board-init RAM regions, then blank one tilemap row at the fill cursor and decrement the row counter (Z = drained)", cert: "code" },
   0x02ce: { name: "loc_02ce", role: "row-by-row VRAM tile fill: blank B tiles at the fill cursor (loc_0010), advance one row (+0x20-B), store cursor, dec row counter; Z = drained", cert: "seen" },
-  0x02ef: { name: "loc_02ef", role: "per-frame sprite display-list rebuild (4 record groups + arrow Y-tick + flip-mirror tail)", cert: "code" },
+  0x02ef: { name: "loc_02ef", role: "per-frame sprite display-list rebuild (4 record groups + arrow Y-tick + flip-mirror tail)", cert: "seen" },
   0x03e9: { name: "loc_03e9", role: "paint the attract HUD/score panels: eleven selector fields, the ten-entry high-score table as stacked BCD digit pairs, then the digit and status panels", cert: "seen" },
   0x0496: { name: "loc_0496", role: "accrue the active player's BCD score and keep the high score in step", cert: "seen" },
-  0x05ee: { name: "loc_05ee", role: "draw the credit count as two HUD digit tiles, then run a ROM-checksum anti-tamper tripwire", cert: "code" },
+  0x05ee: { name: "loc_05ee", role: "draw the credit count as two HUD digit tiles, then run a ROM-checksum anti-tamper tripwire", cert: "seen" },
   0x0e00: { name: "resetActorStateForBoard", role: "reset the actor/sprite state for a new board", cert: "seen" },
   0x0e54: { name: "queueCreditDisplayCommands", role: "queue the primary display command, plus the free-play extra command when the coinage config is the free-play sentinel", cert: "code" },
   0x0ecf: { name: "queueSoundCommand00", role: "sound-command selector 0x00: A=0, tail-enqueue into the sound-command ring (enqueueSoundCommandRing)", cert: "code" },
