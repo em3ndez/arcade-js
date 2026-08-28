@@ -21,22 +21,11 @@ First, classify this commit from its subject line:
 Rules tagged [D]/[U]/[ALL] apply to that class.
 
 ## Cadence — the drift this list exists to stop
-- **R1 [D]** No two DECOMPILE commits without an UNDERSTANDING commit between them.
+- **R1 [D]** Never two decompile-batch commits in a row without an understanding pass between
+  (one commit per batch, per the runbook).
   Verify: read `git log --format=%s` from newest; walking back from HEAD, an "understanding pass"
   commit must appear before you reach a second "decompile batch" (i.e. this decompile batch is not
   the second in a row with no understanding pass between them).
-
-  ★ **OPEN QUESTION FOR KARL — do not resolve this by reinterpretation.** The headline above says
-  "decompile COMMITS"; the verify recipe says "decompile BATCH". Those named the same object until
-  now, because `idiomatic-generation.md` defines a batch as the content of ONE commit — *"the
-  unit of work is a batch of about ten routines"*, *"land the batch as a DECOMPILE commit"* — and
-  the history bears that out — every commit titled `decompile batch <N>` carries a group of
-  routines. **The instruction to commit one routine at a time is what splits them**: ten
-  single-routine commits are ten decompile COMMITS and one decompile BATCH.
-
-  Until Karl rules, **the headline governs**. Whichever way he rules must be written into **both**
-  this rule (headline *and* recipe) **and** `idiomatic-generation.md` step 6; one place is not
-  enough, since keeping them in step in only one place is how they drifted apart.
 
 ## Understanding passes must not be hollowed out (kept the cheap half, dropped grounding)
 - **R2 [U]** Grounding is part of understanding, so the pass must DO grounding. But grounding is an
@@ -59,7 +48,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
     Our engine may be IN the chain: a pixel diff runs our renderer against a MAME golden and stays
     `[seen]`, because the reference side is the real machine. What is forbidden is a chain that
     terminates in our OWN output — a `Machine`/`runFrames` dispatch count, an override-map replay,
-    or an idiomatic-vs-oracle equality (`golive.test.js` compares our JS against our JS). Those are
+    or an idiomatic-vs-oracle equality (`idiomatic.test.js` compares the born-live idiomatic layer against the translated oracle). Those are
     sound facts about the PORT, and they are `[code]`.
     Verify: for every `[seen]` whose evidence is a number, follow the chain to its far end and ask
     what produced the REFERENCE. Do not classify by which tool ran — `prize_suite.py` emits both
@@ -649,13 +638,15 @@ only if ALL are PASS (plus the correctness review passes).
 and was honestly recorded).*
 
 - **R31 [ALL]** A confidently-read idiomatic cell owes a DESCRIPTIVE name (runbook: a cell earns its
-  identifier at the `[guess]`→`[code]` transition, not at grounding). FAIL any `export const loc_<addr>
-  = 0x...` in a game's idiomatic `names.js` — `loc_<addr>` is the translated layer's identifier and is
-  never a valid idiomatic CELL name; a confident cell (`[code]` **or** `[seen]`) still named `loc_<addr>`
-  is an unfinished job, and an unknown-role cell is keep-hex (a bare literal, no const), so a `loc_` cell
-  const is always the violation. Every reader pays the `mem16[loc_83ef]`-vs-`mem16[HIGH_SCORE]` tax the
-  idiomatic layer exists to remove. (Idiomatic ROUTINE modules kept `loc_<addr>` are a separate question,
-  not this rule.)
+  identifier at the `[guess]`→`[code]` transition, not at grounding). An `export const loc_<addr> = 0x...`
+  in a game's idiomatic `names.js` is valid ONLY as an allowlisted placeholder for an unknown /
+  `[guess]`-role cell — listed in `tools/names-debt.txt`, which the `names_consistency` gate rule B checks
+  — where it clears the raw-hex cruft while the role is pending. FAIL a `loc_<addr>` cell const in either
+  other case: a confident cell (`[code]` **or** `[seen]`) still named `loc_<addr>` is an unfinished job (the
+  descriptive name is earned the moment it reaches `[code]`), and a NEW `loc_` cell absent from
+  `names-debt.txt` is un-tracked debt. Every reader of a mis-named confident cell pays the
+  `mem16[loc_83ef]`-vs-`mem16[HIGH_SCORE]` tax the idiomatic layer exists to remove. (Idiomatic ROUTINE
+  modules kept `loc_<addr>` are a separate question, not this rule.)
 
 ## R35 [U] mechanisms.md is regenerated WHOLE, never patched
 

@@ -1,4 +1,4 @@
-# 6. The pixel gate
+# The pixel gate
 
 The final arbiter is the picture: does our frame look like MAME's frame? But "look like" needs a
 precise definition, and there are two, used in different places.
@@ -130,8 +130,9 @@ verdict. Recorded, not fixed.
 thepit declare `"idiomatic"` too but thepit's `render.js` has no override path, so its suite still
 renders the ORACLE — **a declared runtime is not evidence about what got rendered**, which is why
 `suite_renders_idiomatic()` requires the flag, the path and the manifest together. Where the oracle
-is rendered, that game's idiomatic layer is dormant and a regression in it is uncovered; the tool
-prints a dormancy caveat on such a PASS rather than a bare one, so it travels with the verdict.
+is rendered, the idiomatic layer still RUNS (born-live) but is not RENDERED, so an idiomatic *render*
+regression is uncovered; the tool prints a not-rendered caveat on such a PASS rather than a bare one,
+so it travels with the verdict.
 
 An absence is evidence only once the instrument is shown able to detect presence.
 

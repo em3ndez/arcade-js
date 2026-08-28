@@ -36,7 +36,7 @@ machine method the game's per-frame code calls.
 
 ## What each game needs
 
-**A `manifest.convergence.beam` profile** (beside the go-live block under `manifest.convergence`;
+**A `manifest.convergence.beam` profile** (beside the `idiomatic` block under `manifest.convergence`;
 entropy pinning is the sibling technique, declared at manifest top-level):
 - the beam/scanline register — address, read decode, and the beam→row map (`vpos`), the
   visible window and vblank line;
@@ -64,8 +64,9 @@ a game that does not need it pays nothing and changes not at all.
 
 - The **oracle** (cycle-accurate, per-scanline) is the reference: a beam-synced idiomatic render
   must equal it per scanline.
-- **`confirm600.py`** generalizes as the gate — run the idiomatic layer long against a MAME
-  golden, RAM first then pixels; the mid-frame residual must fall to ~0.
+- The committed **`tools/convergence.mjs`** gate generalizes to cover this — run the idiomatic
+  layer long against a MAME golden, RAM first then pixels; the mid-frame residual must fall to ~0.
+  (`confirm600.py` was an ad-hoc scratchpad check, not a committed gate.)
 - **Positive control**: force the single-snapshot path and confirm the residual returns —
   an absence of divergence counts only if the instrument was shown able to detect it.
 - The reworked routines must leave the **final** RAM byte-identical to before (game state is

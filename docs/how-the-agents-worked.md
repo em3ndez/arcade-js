@@ -113,15 +113,16 @@ against MAME — and the support it needs:
   confirmer re-derives it by control-poke or citation before it is trusted —
   proposer-≠-confirmer applied to interpretation rather than code.
 
-The pattern that carries it is small batches, one file per routine (two rewrites never touch the
+The pattern that carries it is large batches fanned out aggressively — roughly forty to fifty
+routines at a time, one file per routine (two rewrites never touch the
 same file, so they parallelize without colliding), each run through a fixed loop: rewrite → prove
 each routine's own memory-equivalence gate → review independently → fix → commit. The lead never
 hand-verifies a routine and never lets an author's own confidence stand in for the gate.
 
 ## What this does not show
 
-- Two games on two boards now (Donkey Kong on `dkong`, The Pit on `thepit`), but still one CPU
-  family (Z80) and one era of arcade hardware. How far the method carries to a very different CPU,
+- Five games on five boards now (`dkong` = Donkey Kong, `thepit` = The Pit, `timeplt` = Time
+  Pilot, `frogger`, `pooyan`), but still one CPU family (Z80) and one era of arcade hardware. How far the method carries to a very different CPU,
   or to a non-arcade target, is still open.
 - The oracle does a great deal of the work. How much of this transfers to porting problems with
   no MAME-equivalent to diff against is precisely the open question, and this project does not

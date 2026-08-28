@@ -35,8 +35,9 @@ The tag is the **same evidence class used for routines** (`[seen]`/`[code]`/`[gu
 - **`[code]`** — the role is understood by reading the routines that touch the address — consistent across
   them, but not directly observed. (The common case.)
 - **`[guess]`** — a single plausible reading, not yet confirmed; treat as a hint, verify before trusting.
-- **keep-hex** — no confident name yet, so *no const is created*: the address stays a bare literal in the
-  code rather than wearing a misleading label. (The absence of an entry is itself the signal.)
+- **`loc_<addr>` placeholder** — no confident name yet, so the cell is exported as a `loc_<addr>`
+  placeholder const (allowlisted in `tools/names-debt.txt`) rather than wearing a misleading descriptive
+  label. The placeholder itself is the signal that the role is still pending.
 
 These consts are **live**: the idiomatic routines `import { PLAYER_X } from "./names.js"`, so the name is
 the actual symbol the code runs on, not a comment. The tag reflects the **consensus across every routine
@@ -44,18 +45,21 @@ that touches the address** — never one routine's local view (one routine sees 
 the ~18 that stage it reveal `PLOT_RUN_LENGTH`). How broadly a name is corroborated is stated in the
 cell's prose ("used across N routines"), not as a separate grade (see [the single vocabulary](#one-confidence-vocabulary-seen--code--guess)).
 
-**A cell's IDENTIFIER tracks its confidence, and `loc_<addr>` is not one of the forms.** `loc_<addr>`
-is the *translated* layer's identifier (one file per routine there); an idiomatic RAM cell is either a
-**descriptive** `export const` (named) or **keep-hex** (a bare literal, no const) — never
-`export const loc_<addr> = 0x<addr>`. The descriptive name is earned at the **`[guess]`→`[code]`
-transition**: as soon as the reading is confident enough to be `[code]`, rename the const from
-`loc_<addr>` (or promote from keep-hex) to the descriptive name and update every importer —
-value-identical, the address is unchanged. Grounding (`[code]`→`[seen]`) then only confirms or overturns
-that name; it does not first bestow it. So **both `[code]` and `[seen]` cells must be descriptively
-named**; only `[guess]`/unknown stays keep-hex. A `[code]`-or-`[seen]` cell still exported as
-`loc_<addr>` is a half-finished job: the tag claims we know what the byte is while the symbol the code
-runs on still says we don't. (See the runbook's rule "A cell earns its DESCRIPTIVE identifier the moment
-it reaches `[code]`"; enforced by reviewer-rules R4b.)
+**A cell's IDENTIFIER tracks its confidence — and it is never a bare hex literal.** An idiomatic RAM
+cell is exported as an `export const` in one of two forms: a **descriptive** name once its reading is
+understood, or a **`loc_<addr>` placeholder** while it is not (a `[guess]`/not-yet-understood cell),
+allowlisted in `tools/names-debt.txt`. The placeholder clears the raw-hex cruft and marks the role
+pending; every reference goes through the named import, so the registry stays the single source even for
+an unknown cell. The descriptive name is earned at the **`[guess]`→`[code]` transition**: as soon as the
+reading is confident enough to be `[code]`, rename the const from `loc_<addr>` to the descriptive name and
+update every importer — value-identical, the address is unchanged. Grounding (`[code]`→`[seen]`) then only
+confirms or overturns that name; it does not first bestow it. So **both `[code]` and `[seen]` cells must
+be descriptively named** (`loc_<addr>` is never valid for a `[code]`/`[seen]` cell); only
+`[guess]`/unknown stays `loc_<addr>`. A `[code]`-or-`[seen]` cell still exported as `loc_<addr>` is a
+half-finished job: the tag claims we know what the byte is while the symbol the code runs on still says we
+don't. (See the runbook's rule "A cell earns its DESCRIPTIVE identifier the moment it reaches `[code]`";
+enforced mechanically by the `names_consistency` gate — which fails any new `loc_` cell not in
+`names-debt.txt` — and at review by reviewer-rules R31.)
 
 ### Routines — the `ROUTINES` map
 
@@ -113,14 +117,15 @@ game declared `"translated"` runs nowhere. The entry ships in the same unit as t
 ## One confidence vocabulary (`[seen]` / `[code]` / `[guess]`)
 
 RAM cells and routines both carry the **same evidence class** — `[seen]` (observed under MAME), `[code]`
-(understood from the code that touches the address), `[guess]` (a hypothesis not yet confirmed) — plus
-**keep-hex** for a cell with no confident name (no const is created). One vocabulary, so a cell's
+(understood from the code that touches the address), `[guess]` (a hypothesis not yet confirmed) — plus a
+**`loc_<addr>` placeholder** const for a cell with no confident name yet (allowlisted in
+`tools/names-debt.txt`). One vocabulary, so a cell's
 confidence and a routine's confidence mean the same thing and rank the same way, consistent with
 `mechanisms.md`'s tags.
 
 Breadth is not lost — it stays in the cell's prose ("used across N
 routines") — it is just no longer a separate grade. A routine's/cell's `[guess]` is the exact analogue of
-keep-hex: an open work-list item, resolved by grounding, never asked of a human. **Every name here is
+a `loc_<addr>` placeholder: an open work-list item, resolved by grounding, never asked of a human. **Every name here is
 still a *proposal* until it clears proposer≠confirmer** — see [understanding](understanding.md) "Maintain it as
 understanding grows".
 

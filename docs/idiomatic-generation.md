@@ -1,4 +1,4 @@
-# 8. Idiomatic generation — from the frozen lift to understood code
+# Idiomatic generation — from the frozen lift to understood code
 
 This turns the [translated](translation.md) lift into idiomatic JavaScript that a person can read,
 held **memory-equivalent** to the oracle. It is one sentence:
@@ -40,12 +40,13 @@ is the second face of the oracle, and it runs from day zero.
    `tools/pixel_gate_required.py`, which is what makes `hooks/pre-commit` refuse an idiomatic
    commit whose pixels were never compared. Until you do, the gate refuses that game rather than
    passing it — an undeclared game is unevaluable, not clean.
-   ★ **But know what it can and cannot see.** The suites render the ORACLE; a game whose
-   `manifest.runtime` is still `"translated"` has a dormant idiomatic layer that nothing renders,
-   so no pixel gate can observe an idiomatic regression in it until go-live. Getting the gate
-   running from day zero is still right — it holds the oracle and the board layer to MAME while the
-   idiomatic layer is being built, and it is in place the moment go-live makes it bite. See
-   [the pixel gate](pixel-gate.md).
+   ★ **But know what it can and cannot see.** The idiomatic layer runs from the skeleton (born-live),
+   but a suite that renders the ORACLE cannot observe an idiomatic *render* regression — it sees one
+   only once the game's idiomatic render path exists and the suite selects it (the `render.js
+   --idiomatic` CLI switch for the gate; `manifest.runtime` `"idiomatic"` for the shipped worker).
+   Getting the gate running from day zero is still right — it holds the oracle and the board layer to
+   MAME while the idiomatic layer is being built, and it bites the idiomatic render the moment that
+   path is wired. See [the pixel gate](pixel-gate.md).
 
 ## ★★ Why the pixel gate has to be on BEFORE the idiomatic layer, not after
 
@@ -72,12 +73,14 @@ diff is a search problem. One routine and one pixel diff is a bug report.
 **`make verify` is not the pixel gate despite the name** — it is a disassembly decoder check, and it
 defaults to `GAME=dkong`, so on any other game it does not even read your ROM.
 
-## The batch loop: ten leaf routines at a time
+## The batch loop: forty routines a batch, leaves-first, one commit
 
-The unit of work is a **batch of about ten routines, taken leaves-first**. Ten because it is small
-enough that one agent holds the whole batch in view and a reviewer can re-derive every claim in
-it, and large enough that shared context across sibling routines pays for itself. Bigger batches
-get sampled rather than reviewed; that is how defects survive.
+The unit of work is a **batch of at least forty routines, taken leaves-first and landed as a single
+commit**. Forty is the floor — the same floor the translation pass and `batch_size_gate` share
+(runbook §4) — so fan the batch aggressively across ~15 agents at three or four routines each
+rather than retreating to tiny leaf batches. Each agent still holds its handful in view and the
+per-commit reviewer re-derives every claim in the batch, so shared context across sibling routines
+pays for itself without shrinking the batch below the floor.
 
 **Leaves first is not a preference.** A caller decompiled while its callee is still a raw ROM
 routine has to marshal the callee's register ABI by hand — an assembly leak that the equivalence
@@ -889,7 +892,7 @@ unit. Replace only what genuinely remains, which in practice means a cluster lan
   because a translated caller balanced them — a main-loop SP re-seat, an NMI handler's normal-exit
   `ret`. When a whole-game run leaks or creeps stack, suspect one of those before anything exotic.
 - **The mixed-migration stack leak is benign only if something HEALS it. Check; do not assume.**
-  A translated caller pushes a return address its idiomatic callee never pops. The three ports so
+  A translated caller pushes a return address its idiomatic callee never pops. Three of the five games ported so
   far answer differently: The Pit re-seats SP from a literal at the top of every main-loop pass, so
   the leak dies once a frame; DK's idiomatic callers drop the oracle's `push16`/`ret` bracket at the
   call site, so the bytes are never pushed; Time Pilot seats SP once at boot and does neither, and

@@ -16,9 +16,10 @@ emulator catches any place it doesn't. The port is produced by AI agents — see
 [how the agents worked](how-the-agents-worked.md) for the division of labour and the failure modes
 actually hit.
 
-**One oracle, one spiral, then ship.** It is *not* a numbered sequence of stages — that framing (an
-old "reading-order = filename number" index, a "5-step pipeline") was these same moves *unrolled up
-the call graph* and mistaken for a conveyor belt.
+**One oracle, one spiral, then ship.** The authoritative, executable procedure is
+[the runbook](runbook.md) — a numbered §0→§5 sequence run top to bottom. Its heart (§4) is a *spiral
+up the call graph*, not a one-pass conveyor: the same two moves (Structure, Meaning) repeat each lap,
+sharpening the map and the meaning. This page is the conceptual map; the runbook is the drill.
 
 ## Day zero — GAMEPLAY (know the game before you touch the ROM)
 
@@ -61,7 +62,7 @@ moves. Structure feeds Meaning; Meaning picks the next lap's target.
 
 ### Meaning — on the *probe* face → produces **the understood game**, consolidated in `mechanisms.md`
 - **name** — label the map at the current understanding level. One confidence vocabulary for RAM cells
-  *and* routines — `[seen]`/`[code]`/`[guess]` (+ keep-hex for an unnamed cell) — and the tags carry
+  *and* routines — `[seen]`/`[code]`/`[guess]` (+ `loc_<addr>` for an unnamed cell) — and the tags carry
   between laps, so a later lap sharpens an earlier `[guess]` instead of starting cold.
 - **ground** — play/poke in MAME to learn what things mean; feed it back into naming.
 - **MECHANISMS** — the written game model. The *capstone of Meaning*, not a ship artifact.
@@ -72,8 +73,9 @@ moves. Structure feeds Meaning; Meaning picks the next lap's target.
 
 ## Ship
 
-Package for humans: wire the idiomatic routines **live** (manifest, pixel-gated integration), web
-player, audio (by ear — no audio oracle exists), publish.
+The idiomatic layer has run **live since the skeleton** — the born-live generator engine, wired in
+routine-by-routine as each is decompiled — so ship is *packaging*, not a wiring milestone: the web
+player, the web-worker contract, audio (by ear — no audio oracle exists), publish.
 
 ---
 
@@ -103,7 +105,7 @@ Each links to the doc that details it.
 **Meaning**
 - confidence tags (`[seen]/[code]/[guess]`) + the build/maintain loops — [understanding](understanding.md)
 - **one source per fact**: `names.js` owns a cell's name/role/tag; `mechanisms.md` tags *mechanisms* not cells, comments never restate registry status — a fail-closed gate (`tools/names_consistency.py`) blocks prose that calls a named cell "hex/unnamed" — [the names registry](names-registry.md)
-- proposer≠confirmer (RAM *and* routines) + third adversarial review; keep-hex-if-ungrounded; name a routine once its **mechanism** is understood (`loc_` only when the mechanism itself is unclear) — [understanding](understanding.md), [idiomatic generation](idiomatic-generation.md)
+- proposer≠confirmer (RAM *and* routines) + third adversarial review; `loc_<addr>`-placeholder-if-ungrounded; name a routine once its **mechanism** is understood (`loc_` only when the mechanism itself is unclear) — [understanding](understanding.md), [idiomatic generation](idiomatic-generation.md)
 - grounding = poke-to-trigger + watch-in-MAME + A/B with a **negative control**; memory-diffing to
   find where to poke; persistence + completeness-critic rounds — [idiomatic generation](idiomatic-generation.md)
 
@@ -140,5 +142,6 @@ Each details one cluster inside a move (read in any order):
 - [how the agents worked](how-the-agents-worked.md) — the experiment (the agents, not the method)
 - [contributing a disassembly](contributing-disassembly.md) — **beyond the port**: publishing a clean-room ROM disassembly to an external archive
 
-The running example is **Donkey Kong** (Z80, `dkong` board); **The Pit** (Zilec / Centuri, `thepit`)
-is the second game. Nothing about the method is game-specific.
+The running example is **Donkey Kong** (Z80, `dkong` board); later ports — The Pit (`thepit`), Time
+Pilot (`timeplt`), Frogger (`frogger`), Pooyan (`pooyan`) — exercised the same method on new boards.
+Nothing about the method is game-specific.

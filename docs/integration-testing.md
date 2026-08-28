@@ -1,4 +1,4 @@
-# 5. Integration testing — the MAME ground-truth harness
+# Integration testing — the MAME ground-truth harness
 
 Unit tests prove a routine matches the disassembly. Integration testing proves the *whole machine*
 matches reality, where reality is **MAME** running the same ROM. The comparison is only meaningful
@@ -187,7 +187,7 @@ entropy pin — find the byte that forks while the interrupt counter stays synce
 RAM diff auto-identifies it; see idiomatic-generation.md). Put both in `manifest.convergence` /
 `manifest.entropyPin` and the tool works unchanged.
 
-**Three ports in, two of those facts turn out to hide assumptions.** Check both against the new
+**Five ports in, two of those facts turn out to hide assumptions.** Check both against the new
 game before trusting a number out of any of these tools.
 
 - **A game need not poll a VBLANK flag at all.** Time Pilot polls none anywhere in the ROM: the
@@ -207,7 +207,7 @@ game before trusting a number out of any of these tools.
 - **The mixed layer only survives if SP gets back where it started.** A translated call site pushes
   the return address and the translated callee's `ret` pops it; an idiomatic rewrite has no `ret`
   and returns to JS, so every translated → idiomatic dispatch leaks two bytes of stack. **Ask what
-  heals that in the new game, and do not assume anything heals it.** The three ported so far answer
+  heals that in the new game, and do not assume anything heals it.** The five ported so far answer
   differently: The Pit re-seats SP from a literal at the top of every main-loop pass, so its leak
   is gone once a frame; DK's idiomatic callers drop the oracle's `push16`/`ret` bracket at the call
   site, so the bytes are never pushed (`games/dkong/manifest.js`); Time Pilot does neither — it
@@ -237,17 +237,18 @@ game before trusting a number out of any of these tools.
   different numbers and the gap between them is dead space that nothing writes — which is exactly
   where a leaking SP lands first. Excluding it buys blindness at the one place the seam can fail.
 
-## Go-live — running the WHOLE game idiomatic
+## Running the WHOLE game idiomatic
 
 `runCycleFree` detects the frame boundary via **`m.step` reaching a poll PC**. That only works while
 the poll routines (`mainLoop`, `waitFrames`) are still TRANSLATED — they are what emit the `m.step`.
-Idiomatic routines are cycle-free and **never call `m.step`**, so once you wire the poll routines
-themselves idiomatic (the whole-game state), the poll-PC seam goes dark and the run hangs. That is
-why per-routine swaps validate under `runCycleFree` but the *whole idiomatic game* needs a second
-engine.
+Idiomatic routines are cycle-free and **never call `m.step`**, so once the poll routines are
+themselves idiomatic — as they are in the born-live whole game — the poll-PC seam goes dark and the
+run hangs. That is why `runCycleFree` stays a per-routine equivalence gate on the born-live game (one
+idiomatic swap validated against the translated oracle, the poll routines held translated) while the
+*whole idiomatic game* runs on its own engine.
 
-**`core/frame-stepped.js` — `runIdiomaticGame(machine, {watchdogPort, nmiReturnPC, maxFrames, onFrame})`.**
-The go-live engine. It fires the vblank NMI on the ONE control-flow event the idiomatic poll routines
+**`core/frame-stepped.js` — `runWatchdogGame(machine, {watchdogPort, nmiReturnPC, maxFrames, onFrame})`.**
+The whole-game engine — superseded by `runIdiomaticGame`, the coroutine engine below. It fires the vblank NMI on the ONE control-flow event the idiomatic poll routines
 still perform once per frame: the **watchdog kick** — a read of `watchdogPort` (The Pit `0xb800`) that
 `mainLoop` does once per pass and `waitFrames` once per spin. That read IS the vblank-poll yield:
 sample the pre-NMI state (same order as `runCycleFree` — sampling *after* the NMI fakes a one-frame
@@ -256,8 +257,8 @@ An `inNmi` guard stops the handler's own watchdog kick from re-triggering. `nmiR
 ROM PC for the NMI's pushed return (use the main-loop top). Wire EVERY idiomatic routine as an
 override; `machine.reset()` then enters the idiomatic boot at `0x0000` and the game self-drives.
 
-**The gate: `<game>/idiomatic/test/golive.test.js`.** Run the assembled idiomatic game under
-`runIdiomaticGame` AND the pure-translated game under `runCycleFree` for the same frame count, and
+**The gate: `<game>/idiomatic/test/idiomatic.test.js`.** Run the assembled idiomatic game under
+`runWatchdogGame` AND the pure-translated game under `runCycleFree` for the same frame count, and
 assert byte-identical over the **used game-state region `[0x8000, gameStateHi]`** minus the
 cycle-proxy cells — plus that it reaches a known state (The Pit: `GAME_STATE == 4`, the attract demo,
 proving boot → setup → demo all run idiomatic). This is the capstone the per-routine equivalence
@@ -267,7 +268,7 @@ the practical ground truth here. The pinned-MAME *pixel* golden is **not** a lat
 from before the first idiomatic module and stays running, because this gate and the per-routine ones
 compare memory and never a pixel. See [the pixel gate](pixel-gate.md).
 
-**Porting go-live is three facts** in `manifest.convergence.golive = { watchdogPort, nmiReturnPC,
+**Porting the whole-game engine is three facts** in `manifest.convergence.idiomatic = { watchdogPort, nmiReturnPC,
 gameStateHi }`: (1) `watchdogPort` — the I/O address whose READ kicks the watchdog (once per frame in
 the poll loops). (2) `nmiReturnPC` — the main-loop top. (3) `gameStateHi` — the top of the used
 game-state region: instrument a pure-translated run and take the **highest DIRECT store** (a write
@@ -277,29 +278,29 @@ the scenario (verify it is a live writer first — a rendering-only routine whos
 outside `[0x8000, gameStateHi]` will not trip a game-state gate, which is a poor teeth target, not a
 missing tooth).
 
-**The go-live gate above runs ATTRACT — which takes no input. That is only half the machine.** A
+**The whole-game gate above runs ATTRACT — which takes no input. That is only half the machine.** A
 runtime can reproduce the attract loop byte-for-byte and still freeze the instant a player inserts a
 coin (The Pit did: the coin/credit warm-restart long-jumps out of the NMI — see idiomatic-generation.md
 Traps). So the gate set MUST also **replay the input tapes**. `games/<game>/idiomatic/test/tape.test.js`
 replays `games/<game>/tapes/*.lua` through the idiomatic runtime AND the translated oracle (both under
-`runIdiomaticGame` — pure-translated runs under it too, since the translated poll loops also kick the
+`runWatchdogGame` — pure-translated runs under it too, since the translated poll loops also kick the
 watchdog and the translated NMI handler doesn't read it). It asserts the game RESPONDS — a credit
 banks, the game starts at the tape's contract frame, the player moves/digs — and that idiomatic == the
 oracle through coin → start → in-game → dig. Port it with the tape: press the same bits the lua tape
 does via `io.inputAssert` (the JS mirror is offset a couple frames — the tape file documents it), and
 expand a thin coin/start tape until it exercises much of the game.
 
-## Go-live, the RIGHT way — the coroutine engine (`runGeneratorGame`)
+## The born-live coroutine engine (`runIdiomaticGame`)
 
-`runIdiomaticGame` (above) fires the vblank NMI as a NESTED JS call at the watchdog read. It works,
+`runWatchdogGame` (above) fires the vblank NMI as a NESTED JS call at the watchdog read. It works,
 but a warm restart (coin/start/level/game-over) long-jumps into a *new* forever main loop that never
 returns, so the JS HOST stack grows ~one frame per restart — bounded for a normal session, but a leak,
 and it needs a per-game "find the forever loops" analysis. **The coroutine engine removes both.** It is
-the recommended go-live model and the template every future game should use.
+the recommended born-live engine and the template every future game should use.
 
 **The model.** The idiomatic control SPINE — the boot chain, the main loops, the wait/hold loops — are
 GENERATORS (`function*`) that `yield` at each vblank wait; everything else (per-frame services, physics,
-render) stays a plain function. `core/frame-stepped.js` `runGeneratorGame(machine, {nmiReturnPC, onFrame,
+render) stays a plain function. `core/frame-stepped.js` `runIdiomaticGame(machine, {nmiReturnPC, onFrame,
 maxFrames})` drives the CURRENT main generator one frame at a time: resume it to its next `yield`, sample
 the pre-NMI state, fire the vblank NMI (a plain handler), repeat. A state change is a WARM RESTART: the
 handler (or a spine tail) sets `machine.nextMain = () => nextLoop(m)` and the engine swaps the generator;
@@ -327,7 +328,7 @@ no per-game analysis. Perf is a non-issue: the generator tax lands on the low-fr
      Making the entire call tree `yield*` just to bubble that up would drag gameplay into generators, so
      instead it's a non-local exit: `machine.restartMain(() => theNewLoop(m))` sets `nextMain` and throws
      the per-machine `RESTART` sentinel. Nothing in the plain tree catches it, so it unwinds out of the
-     mainLoop generator's `.next()`; `runGeneratorGame` catches `RESTART`, swaps in the successor, and the
+     mainLoop generator's `.next()`; `runIdiomaticGame` catches `RESTART`, swaps in the successor, and the
      aborted frame fires no NMI (its vblank never arrived). The frozen oracle reached the same place by a
      tail-`jp` into a nested never-returning main loop — the throw is the faithful coroutine analogue.
      On The Pit these are `dispatchObjectFrameByStateTimer` / `tickObjectDwellThenTransition` (the timer
@@ -344,9 +345,9 @@ across attract, coin/start and dig, AND — critically for the transition tree t
 FORCED transitions: drive the game live, then poke the ROM's own transition trigger (arm the master
 countdown to expire next frame with its level-vs-life selector set) and assert the coroutine game still
 matches the translated oracle frame-for-frame through the mid-frame `RESTART` and out into the next round.
-The whole-game gates that lock this in: `idiomatic/test/golive.test.js` (boot→attract), `tape.test.js`
+The whole-game gates that lock this in: `idiomatic/test/idiomatic.test.js` (boot→attract), `tape.test.js`
 (coin/start/dig), `transition.test.js` (level clear / round boundary / game-over teardown). Then flip the
-worker to `runGeneratorGame` and re-run them all on it, plus a check that VIDEO RAM (0x9000+, which the
+worker to `runIdiomaticGame` and re-run them all on it, plus a check that VIDEO RAM (0x9000+, which the
 gates' work-RAM window excludes) is byte-identical too — that is the browser's render.
 
 **Retiring the swap-era gates.** The coroutine gates SUBSUME the per-routine `equivalence-<addr>.test.js`
@@ -358,7 +359,7 @@ harness + rationale); the leaf/gameplay `equivalence-<addr>.test.js` that DON'T 
 `manifest.idiomatic` + `tools/swap_check.mjs` (the one-leaf-at-a-time promotion set/classifier) are retired
 with them — the whole idiomatic layer now runs live, so there is no promotion subset to track.
 
-Because a spine routine has no `equivalence-<addr>.test.js`, a go-live foundation whose idiomatic layer
+Because a spine routine has no `equivalence-<addr>.test.js`, a born-live foundation whose idiomatic layer
 holds ONLY spine files names no decompiled address, and the dissolve lint (`tools/no-stale-mcall.mjs`)
 would otherwise refuse to score it. List those files under `SPINE` in `tools/no-stale-mcall.config.mjs`:
 they are excused from seeding the decompiled set, but still scanned, so a spine `m.call` to a leaf

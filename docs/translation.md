@@ -1,4 +1,4 @@
-# 3. Translation to "assembly-JavaScript"
+# Translation to "assembly-JavaScript"
 
 Each ROM routine becomes a JavaScript function that operates on a machine object `m` and mirrors
 the original Z80 instruction sequence **one instruction at a time**. We call the result
@@ -266,7 +266,7 @@ Pilot has several (`0x562A`, `0x4984`, `0x3B77`). Registering it is only half th
 earlier entry must then DELEGATE into it (`m.call`) rather than transcribe the shared body too,
 or the same ROM bytes exist in two files and the copies drift.
 
-## Commit the lift in small batches, WHILE the next batch is being written
+## Commit the lift in batches, not one accumulated commit
 
 Do not let a translation pass accumulate into one commit. The costs are specific:
 
@@ -279,8 +279,7 @@ Do not let a translation pass accumulate into one commit. The costs are specific
 - **Nothing is recoverable until the end.** An uncommitted pass is a single point of failure and
   reads as a stall.
 
-**The rule: commit roughly twenty routines at a time, and commit a finished batch while the next
-is being lifted.** Ordering is almost free — a translated routine depends on the ROM and the
+**The rule: commit roughly fifty routines at a time, one commit per batch.** Ordering is almost free — a translated routine depends on the ROM and the
 machine contract, not on its siblings. The exception is a file that imports a sibling directly
 (a shared tail split out as a helper); keep such a pair in one batch.
 

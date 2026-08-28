@@ -1,4 +1,4 @@
-# 7. Understanding the mechanisms
+# Understanding the mechanisms
 
 The [lift](translation.md) is byte-faithful but **meaning-blind**: it tells you a routine
 writes `0x801b`, not that `0x801b` is *which directions the player is allowed to dig*. The
@@ -79,7 +79,8 @@ If both proposers report the same unexplained oddity, suspect their shared premi
 Proposers never do. Rename every importer. Equivalence suite stays green.
 
 **7. Rewrite mechanisms.md whole.**
-From gameplay.md, blind to the old map. Never patch it. Recount by measuring.
+From the current CODE (re-derive each subsystem from the actual routine bodies), blind to the old map,
+with gameplay.md as the outside-in frame — not sourced from it. Never patch it. Recount by measuring.
 
 **8. Sweep the prose the renames just falsified.**
 Sweep by **claim family** — existence, counts, "only/sole", status words — **never by token.**

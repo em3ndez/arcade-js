@@ -1,4 +1,4 @@
-# 4. Drafter testing & mutation
+# Drafter testing & mutation
 
 Translating a routine and *asserting* it's right are two different jobs. The process separates
 them: a **drafter** translates a routine and ships it with the evidence that it works, and a

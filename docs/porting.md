@@ -1,4 +1,4 @@
-# 9. Porting a new game
+# Porting a new game
 
 Nothing in the method is Donkey Kong specific. A new game differs along two independent axes — its
 **CPU** and its **board** — and brings one thing of its own, its **ROM**.
@@ -157,8 +157,9 @@ generation](idiomatic-generation.md), *How a routine joins the layer*). Build th
 is one routine to bisect, and **commission it to FAIL**: a gate built to prove it catches a break is
 a gate, one built to pass is a decoration.
 
-The **method** — the model that turns a ROM into validated, *understood* JavaScript — lives in
-exactly one place: **[The Method](README.md)** (one oracle, a Structure⇄Meaning spiral up the call
+The **method** — the model that turns a ROM into validated, *understood* JavaScript — has its
+authoritative, executable form in **[the runbook](runbook.md)** (§0→§5, run top to bottom), with the
+conceptual map in **[The Method](README.md)** (one oracle, a Structure⇄Meaning spiral up the call
 graph, then Ship). Its detailed Structure/Meaning techniques are in
 [idiomatic generation](idiomatic-generation.md), building on the disassembly, translation, and
 gate mechanics in the disassembly-through-pixel-gate docs.
