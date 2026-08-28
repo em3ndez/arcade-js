@@ -468,6 +468,49 @@ it is not optional there and not optional here.)
   land in cells still `[code]`/contested (it cannot be more grounded than the cells it writes). Enforced at
   review by `reviewer-rules.md` R38 [U].
 
+**★★ Ground at SCALE — capture broadly, then ONE mega-fan. NEVER dribble small serial waves.** Grounding
+the whole `[code]` set is a **capture-then-fan pipeline**, and the failure mode (learned the hard way on
+pooyan: waves of 33/55/77) is trickling it out as many tiny serial waves — each paying a full
+workflow+review+push cycle. Do it once, wide. The steps:
+- **Build ALL the MAME captures up front** (one rig, several taps/scenarios), because different item classes
+  need different evidence:
+  - **Write-tap** (`games/<game>/tools/lua/ground_writes.lua`): per-instruction write attribution over
+    attract+coin/start/1P-play → grounds *producer* routines (own role-defining write) and work-RAM cells
+    (value change).
+  - **Variant captures** (a lua read-tap that OVERRIDES an input port): a **DSW-variant** forces a
+    non-default dip value so DSW-derived cells hold a different value → grounded by **value-SPREAD across the
+    union of captures**; a **2P capture** (coin×2 + "2 Players Start") reaches the two-player cells.
+  - **Poke-cycle capture**: drive the in-play **sub-state index** through its handler table and bump the
+    **round counter**, forcing the in-play gate set, so the trace enters sub-states the fixed tape never
+    reaches (thousands of new PCs). Poking a state to make MAME *run* a handler is valid grounding — you are
+    observing the real hardware execute it.
+  - **Read-tap** (`ground_reads.lua`): the write-tap **cannot** ground ROM constants/tables (ROM is never
+    written) — tap **reads** on `0x0000-0x7fff` and record `(addr,pc)`. ⚠ **EXCLUDE the ROM-checksum sweep
+    PC and generic anti-tamper sweeps** (one PC that reads *hundreds* of addresses grounds nothing
+    role-specific). A **direct** read by a role PC grounds a constant; for a **table base**, tap the **RANGE**
+    `[base,base+N)` so the role code's **entry** reads (`base+offset`, a different address) are caught, then
+    trace any shared-helper reader (an `rst`-table lookup) back to the caller that loaded the table pointer.
+  - **UNION** all captures (the evidence tools take multiple CSVs).
+- **Triage the WHOLE ungrounded set ONCE against the union**, tagging each item with the METHOD that grounds
+  it: routine = *producer* (own write) / *driver-dispatcher* (reached, writes only stack-scratch → ground on
+  reachability + correct vectoring: the pushed return vectors back into its OWN body and the handler it calls
+  is reached) / *unreached*; cell = *write-change* / *direct-ROM-read* / *range-ROM-read* / *deep*.
+- **Fan the ENTIRE groundable-now set in ONE workflow** (proposer≠confirmer — the fan agents are not the
+  namers), one slice per agent, returning compact schema verdicts `{seen|insufficient|overturn}`; **fan the
+  independent grounding-review at scale too**. Apply is a pure **tag-flip** (`[code]→[seen]` /
+  `cert:"code"→"seen"`) — it clears the gates with **no `mechanisms.md` regen** — one commit per fan, the R38
+  reviewer re-deriving from the same capture.
+- **⚠ Use each routine's TIGHT body range** (its translated `// loc_<addr> (ROM 0x<lo>-0x<hi>)` header), NOT
+  the next-registry address — the latter overshoots into a fall-through callee and **mis-credits the callee's
+  writes**, manufacturing false groundings (the confirmer must verify the grounding write's PC is inside the
+  routine's OWN body).
+- **The DEEP TAIL is CAPTURE-limited, not fan-limited.** Items exercised only in genuine deep gameplay (later
+  boards, the bonus/eagle stage, game-over) cannot be grounded by the fixed tape or poked states — **more
+  agents do not help**. Fan the deep-**capture** research instead: agents each force a deep state (poke the
+  board-advance flag, the stage trigger, drain lives) and report which reaches new code; then re-capture and
+  re-fan the grounding. A ROM constant read only by the checksum sweep, or a routine reached only in an
+  unreached state, stays honest `[code]` until a capture reaches it.
+
 **Derive the method from this runbook and `understanding.md`, never from the shape of an old commit.**
 Grounding leaves almost no *diff* artifacts — it is `[seen]` tags, notes, and the occasional overturned
 name, not `git mv` renames — so reconstructing "how an understanding pass works" from a past commit's diff
