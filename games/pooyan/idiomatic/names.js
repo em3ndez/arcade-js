@@ -232,9 +232,9 @@ export const HISCORE_CHECKSUM_BASE = 0x778a;
 export const HISCORE_TABLE_CORRUPT_FLAG = 0x8df8;
 /** [seen] (MAME gameplay golden: attribute codes flooded here in play, observed 0x10/0x1d/0x0d; loc_075d floods 31 columns x 30 rows, stride 0x20 from here) base of the tile-attribute/colour map on the 0x8000 video page */
 export const ATTRIB_MAP_BASE = 0x8040;
-/** [code] ROM base of the boot code; self-test loop 1 checks its first eight bytes against the reference copy at 0x749a */
+/** [seen] ROM base of the boot code; self-test loop 1 checks its first eight bytes against the reference copy at 0x749a */
 export const BOOT_CODE_BASE = 0x0000;
-/** [code] ROM base where self-test loop 2 walks the checked program window (through ROM[0x0105]) against the reference copy at 0x74a2 */
+/** [seen] ROM base where self-test loop 2 walks the checked program window (through ROM[0x0105]) against the reference copy at 0x74a2 */
 export const SELFTEST_LOOP2_SCAN_BASE = 0x0092;
 /** [code] display-command word base (type 0x03) enqueued on the (ix+0x11) countdown expiry; its low byte 0x12 is offset by the adjusted (ix+0x16) before enqueue */
 export const COUNTDOWN_EXPIRE_DISPLAY_CMD = 0x0312;
@@ -244,11 +244,11 @@ export const DISPLAY_CMD_0600 = 0x0600;
 export const DISPLAY_CMD_0602 = 0x0602;
 /** [code] display-command word (0x06:0x03) enqueued via loc_0038 by loc_1b8c */
 export const DISPLAY_CMD_0603 = 0x0603;
-/** [code] ROM colour/attribute column source table (bytes from 0x0819) flooded into the attribute map by fillAttributeColumns from the 0x15a8-dispatch handlers loc_1b43/loc_1b8c */
+/** [seen] ROM colour/attribute column source table (bytes from 0x0819) flooded into the attribute map by fillAttributeColumns from the 0x15a8-dispatch handlers loc_1b43/loc_1b8c */
 export const FIELD_ATTRIB_SRC_0819 = 0x0819;
-/** [code] ROM 0xff-terminated tile/message table copied into DISPLAY_MSG_BUF at round init */
+/** [seen] ROM 0xff-terminated tile/message table copied into DISPLAY_MSG_BUF at round init */
 export const ROUND_INIT_MSG_TABLE = 0x16ae;
-/** [code] ROM source string copied (each byte +8 tile bias) into DISPLAY_MSG_BUF by copyBiasedTileString from loc_1b43 */
+/** [seen] ROM source string copied (each byte +8 tile bias) into DISPLAY_MSG_BUF by copyBiasedTileString from loc_1b43 */
 export const BIASED_TILE_STRING_1FF2 = 0x1ff2;
 /** [code] ROM address of the loc_3278 routine, read as data by loc_30f1's anti-tamper guard which byte-compares its body (after a 2-byte 0x68ac pointer header) against the loc_68ac original */
 export const TAMPER_COPY_3278 = 0x3278;
@@ -266,13 +266,13 @@ export const ANIM_SEQ_3988 = 0x3988;
 export const ATTRACT_LIST_SRC_ALT_SEED = 0x43e1;
 /** [seen] attract display-list source-pointer seed stored into DISPLAY_LIST_SRC_PTR (0x8f45) at self-test state 0 */
 export const ATTRACT_LIST_SRC_SEED = 0x4af0;
-/** [code] base of a 34-byte ROM block folded (&0x37, rrca, adc a,c) into loc_1b43's anti-tamper checksum; a result != 0x7c bumps TAMPER_FREEZE_FLAG */
+/** [seen] base of a 34-byte ROM block folded (&0x37, rrca, adc a,c) into loc_1b43's anti-tamper checksum; a result != 0x7c bumps TAMPER_FREEZE_FLAG */
 export const TAMPER_CKSUM_BASE_5593 = 0x5593;
 /** [code] ROM 3-byte tile-code source row copied into the 0x8c78 record + its two mirror banks by the shrink render (copyDisplayTilesIntoActorRecords) when the phase toggle bit0 is clear */
 export const TILE_SRC_ROW_66BF = 0x66bf;
-/** [code] ROM 3-byte tile-code source row copied into the 0x8c78 record + its two mirror banks by the shrink render (copyDisplayTilesIntoActorRecords) when the phase toggle bit0 is set */
+/** [seen] ROM 3-byte tile-code source row copied into the 0x8c78 record + its two mirror banks by the shrink render (copyDisplayTilesIntoActorRecords) when the phase toggle bit0 is set */
 export const TILE_SRC_ROW_66C2 = 0x66c2;
-/** [code] ROM reference copy of the boot bytes; self-test loop 1 compares it against ROM[0x0000..0x0007] and loop 2 continues into it from 0x74a2 (verified verbatim copies of the checked code) */
+/** [seen] ROM reference copy of the boot bytes; self-test loop 1 compares it against ROM[0x0000..0x0007] and loop 2 continues into it from 0x74a2 (verified verbatim copies of the checked code) */
 export const SELFTEST_REF_COPY_BOOT = 0x749a;
 /** [seen] attract display-list dest-pointer seed (colour-map cell) stored into DISPLAY_LIST_DST_PTR (0x8f43) at self-test state 0 */
 export const ATTRACT_LIST_DST_SEED = 0x8042;
@@ -322,7 +322,7 @@ export const loc_8f17 = 0x8f17;
 export const HUNTER_SCRIPT_PTR = 0x8f4b;
 /** [code] ROM byte table mapping a DSW0 coinage nibble to a coinage-config value (rst-0x20 lookup base) */
 export const COINAGE_TABLE = 0x0053;
-/** [code] 24-byte table of the eight program-memory banks' 3-byte (low/mid/high) 24-bit checksums; verified: all 8 match the built ROM */
+/** [seen] 24-byte table of the eight program-memory banks' 3-byte (low/mid/high) 24-bit checksums; verified: all 8 match the built ROM */
 export const ROM_SELFTEST_CHECKSUM_TABLE = 0x0079;
 /** [code] highest address of the 0x12-byte program-memory window summed by the state-0 integrity check (the sum walks downward from here; expected running sum 0x55) */
 export const STATE0_CKSUM_BASE = 0x01d5;
@@ -352,17 +352,17 @@ export const PROMOTE_DISPLAY_CMD_D = 0x062e;
 export const PROMOTE_DISPLAY_CMD_E = 0x062f;
 /** [code] display-command word queued (via rst 0x38) by intro phase 5 when the toggle's new bit0 is 0 */
 export const INTRO_PHASE5_DISPLAY_CMD_A = 0x06a7;
-/** [code] ROM colour/attribute column source table flooded into the attribute map at attract state-0 completion (fillAttributeColumns source) */
+/** [seen] ROM colour/attribute column source table flooded into the attribute map at attract state-0 completion (fillAttributeColumns source) */
 export const ATTRACT_FIELD_ATTRIB_SRC = 0x0779;
-/** [code] ROM block (0x0831..0x0839, 9 bytes) anti-tamper checksummed by attract sub-state 1 (loc_08e9); valid-image low-byte sum sentinel 0xaa (verified against maincpu.bin) */
+/** [seen] ROM block (0x0831..0x0839, 9 bytes) anti-tamper checksummed by attract sub-state 1 (loc_08e9); valid-image low-byte sum sentinel 0xaa (verified against maincpu.bin) */
 export const ATTRACT_INTEGRITY_CKSUM_BASE = 0x0831;
-/** [code] ROM base of the 12-byte (6-word) attract-script word table 0x0b26-0x0b31 (per typeAttractTextColumn's note), seeded as the start of the dual-use 0x8f48 attract cursor that advanceAttractSequenceToPlay walks */
+/** [seen] ROM base of the 12-byte (6-word) attract-script word table 0x0b26-0x0b31 (per typeAttractTextColumn's note), seeded as the start of the dual-use 0x8f48 attract cursor that advanceAttractSequenceToPlay walks */
 export const ATTRACT_SCRIPT_TABLE_BASE = 0x0b26;
 /** [code] 8-byte inline ROM speed-magnitude table indexed (via the rst-0x20 lookup) by the clamped SPEED_INDEX */
 export const ENEMY_SPEED_TABLE = 0x148e;
-/** [code] ROM alternate 4-byte 2x2 tile source for the launch blit (spawnEnemyTargetOrAnimateLaunchFlipTile uses this or LAUNCH_TILE_SRC per flip parity; names.js already references 0x2d55 in a comment but exports no name for it) */
+/** [seen] ROM alternate 4-byte 2x2 tile source for the launch blit (spawnEnemyTargetOrAnimateLaunchFlipTile uses this or LAUNCH_TILE_SRC per flip parity; names.js already references 0x2d55 in a comment but exports no name for it) */
 export const LAUNCH_TILE_SRC_ALT = 0x2d55;
-/** [code] ROM 4-byte 2x2 tile source blitted (via 0x3325) as the rope segment tile */
+/** [seen] ROM 4-byte 2x2 tile source blitted (via 0x3325) as the rope segment tile */
 export const ROPE_SEGMENT_TILE_SRC = 0x2dfe;
 /** [code] ROM 4-byte 2x2 tile source block blitted for a rope-cell segment (blit2x2TileBlock source) */
 export const ROPE_SEGMENT_TILE_SRC_ALT = 0x2e1e;
@@ -461,17 +461,17 @@ export const OBJECT_SPAWN_DISPLAY_CMD = 0x0611;
 export const WAVE_ARRIVAL_CMD_BASE = 0x0630;
 /** [code] display-command WORD (not a RAM cell) enqueued via loc_0038 for siren phase B */
 export const SIREN_DISPLAY_CMD_B = 0x068f;
-/** [code] ROM base of the 23-byte block rolling-summed downward by the slot-sweep checksum (the block is code inside another routine, read as data) */
+/** [seen] ROM base of the 23-byte block rolling-summed downward by the slot-sweep checksum (the block is code inside another routine, read as data) */
 export const SLOT_SWEEP_CKSUM_BASE = 0x0bf3;
-/** [code] base of a code region read as data for this handler's entry integrity checksum (0x5b bytes summed, followed by its 4 guard bytes) */
+/** [seen] base of a code region read as data for this handler's entry integrity checksum (0x5b bytes summed, followed by its 4 guard bytes) */
 export const INTEGRITY_CHECKSUM_CODE_BLOCK = 0x2901;
-/** [code] ROM 4-byte table: rope-cell index (IXL&3) -> video-RAM column low byte (paired with page 0x84 to form the column base) */
+/** [seen] ROM 4-byte table: rope-cell index (IXL&3) -> video-RAM column low byte (paired with page 0x84 to form the column base) */
 export const ROPE_CELL_COLUMN_TABLE = 0x2db8;
 /** [code] ROM byte table indexed by the adjusted attribute value; OR-ed into an actor attribute byte (+0x08) */
 export const ACTOR_ATTR_MERGE_TABLE = 0x3727;
 /** [code] ROM byte table indexed by 2*DIFFICULTY_DSW + clamped ROUND_COUNTER; supplies the base value for an actor attribute byte (+0x08) */
 export const ACTOR_ATTR_BASE_TABLE = 0x3737;
-/** [code] ROM 4-frame animation table (sibling of ANIM_TABLE_3829) armed into the descending object's record by the descent step */
+/** [seen] ROM 4-frame animation table (sibling of ANIM_TABLE_3829) armed into the descending object's record by the descent step */
 export const ANIM_TABLE_3838 = 0x3838;
 /** [code] animation-sequence pointer armed into even eagle records (IXL bit3 clear) */
 export const EAGLE_EVEN_RECORD_ANIM = 0x4086;
@@ -483,7 +483,7 @@ export const ACTOR_TAMPER_CKSUM_TOP = 0x4282;
 export const SPAWN_SPEED_TABLE = 0x5407;
 /** [code] fixed 56-byte block whose folded low-nibble sum is the object-frame anti-tamper sentinel (running low byte 0x67 with exactly one carry) */
 export const TAMPER_NIBBLE_SUM_BLOCK = 0x557f;
-/** [code] ROM byte table; the spawn reads entry [1] into the formation record's +0x09 field (its two's-complement negation into +0x0a) */
+/** [seen] ROM byte table; the spawn reads entry [1] into the formation record's +0x09 field (its two's-complement negation into +0x0a) */
 export const SPAWN_FIELD_TABLE = 0x5902;
 /** [code] top of the 31-byte program block summed downward by the credit-draw anti-tamper tripwire (clean-image sum sentinel 0x8c) */
 export const HUD_GUARD_CKSUM_TOP = 0x64c8;
@@ -579,19 +579,19 @@ export const SPRITE1_CLEAR_BASE = 0x9410;
 export const FORMATION_GUARD_BASE = 0x0799;
 /** [code] ROM colour/attribute column source table for the default field job, selected when the round counter's low bit is set */
 export const FIELD_ATTRIB_SRC_A = 0x0839;
-/** [code] ROM colour/attribute column source table for the alternate field strip job */
+/** [seen] ROM colour/attribute column source table for the alternate field strip job */
 export const FIELD_ATTRIB_SRC_C = 0x0859;
 /** [code] ROM colour/attribute column source table for the default field job, selected when the round counter's low bit is clear */
 export const FIELD_ATTRIB_SRC_B = 0x0879;
-/** [code] four-byte source/pattern table (in ROM) read by the 2x2 tile-block copier */
+/** [seen] four-byte source/pattern table (in ROM) read by the 2x2 tile-block copier */
 export const TILE_BLOCK_2X2_SRC = 0x0a72;
 /** [code] fixed 3x3 glyph tile source selected when the selector register B's bit5 is clear */
 export const GLYPH_TILES_A = 0x203b;
 /** [code] fixed 3x3 glyph tile source selected when the selector register B's bit5 is set */
 export const GLYPH_TILES_B = 0x2050;
-/** [code] base animation-script address reloaded into the script cursor on a control-marker full reset */
+/** [seen] base animation-script address reloaded into the script cursor on a control-marker full reset */
 export const ANIM_SCRIPT_RESET_PTR = 0x26e7;
-/** [code] base of four 4-byte 2x2 tile source blocks (stride 4) for the two-tile animator */
+/** [seen] base of four 4-byte 2x2 tile source blocks (stride 4) for the two-tile animator */
 export const TWOTILE_SRC_TABLE = 0x2744;
 /** [code] ROM source tiles for the round-marker 3x3 glyph block (blitTile3x3Block src) */
 export const MARKER_GLYPH_SRC = 0x2754;
@@ -601,13 +601,13 @@ export const READY_SPRITE_SRC = 0x2be1;
 export const RECORD_ANIM_SEQ_2CA7 = 0x2ca7;
 /** [code] ROM script/table pointer seeded little-endian into a record's +0x16/+0x17 script field */
 export const RECORD_SCRIPT_2D00 = 0x2d00;
-/** [code] ROM 4-byte 2x2 tile-block source blitted by the launch state machine (spawnEnemyTargetOrAnimateLaunchFlipTile uses this or 0x2d55) */
+/** [seen] ROM 4-byte 2x2 tile-block source blitted by the launch state machine (spawnEnemyTargetOrAnimateLaunchFlipTile uses this or 0x2d55) */
 export const LAUNCH_TILE_SRC = 0x2d51;
-/** [code] ROM animation-sequence table (4-frame attr/tile/colour loop) an actor record is pointed at */
+/** [seen] ROM animation-sequence table (4-frame attr/tile/colour loop) an actor record is pointed at */
 export const ANIM_TABLE_3829 = 0x3829;
 /** [code] turn-animation script table (4-byte-per-frame {attr,tile,colour} loop, sibling of moveFormationAndSpawnObject's scripts) armed into an actor record by loc_425c; specific animation not grounded */
 export const ANIM_SCRIPT_4203 = 0x4203;
-/** [code] ROM animation-script table armed via setActorAnimation on the interior-entry turn path (mirror of moveFormationAndSpawnObject) */
+/** [seen] ROM animation-script table armed via setActorAnimation on the interior-entry turn path (mirror of moveFormationAndSpawnObject) */
 export const ANIM_SCRIPT_4212 = 0x4212;
 /** [code] base of the 14-byte program block loc_1bcc folds (each byte masked to 5 bits) into the signature sentinel; the block is actually code inside loc_52f6's range, read as data (a self-checksum) */
 export const TAMPER_CHECKSUM_CODE_BASE = 0x5328;
@@ -615,9 +615,9 @@ export const TAMPER_CHECKSUM_CODE_BASE = 0x5328;
 export const TAMPER_CKSUM_TOP_ADDR = 0x64be;
 /** [code] ROM table of expected tile-region checksum values (low-byte sum / wrap-count pairs) for the tamper guard */
 export const TILE_CHECKSUM_TABLE = 0x68eb;
-/** [code] ROM animation parameter block armed via setActorAnimation when an object advances to its next state */
+/** [seen] ROM animation parameter block armed via setActorAnimation when an object advances to its next state */
 export const ANIM_PARAM_68EF = 0x68ef;
-/** [code] ROM animation-sequence pointer armed on spawn for pre-bump phase 0 or 1 (sibling of ANIM_PARAM_68EF) */
+/** [seen] ROM animation-sequence pointer armed on spawn for pre-bump phase 0 or 1 (sibling of ANIM_PARAM_68EF) */
 export const ANIM_PARAM_76D4 = 0x76d4;
 /** [code] ROM animation-sequence pointer armed on spawn for pre-bump phase >= 3 (sibling of ANIM_PARAM_68EF) */
 export const ANIM_PARAM_6B0A = 0x6b0a;
@@ -625,7 +625,7 @@ export const ANIM_PARAM_6B0A = 0x6b0a;
 export const EAGLE_WAVE_PARAM_TABLE = 0x7409;
 /** [seen] two 2-byte blink tile pairs in ROM ({0x3f,0x46} at +0, {0x46,0x3f} at +2) */
 export const BLINK_TILE_PAIRS = 0x76e6;
-/** [code] ROM pointer table of field-record lists, indexed by the field-render selector */
+/** [seen] ROM pointer table of field-record lists, indexed by the field-render selector */
 export const FIELD_RECORD_PTR_TABLE = 0x7a0d;
 /** [seen] (MAME: n=7 v0=00 as top-left of a 3x3 block (0x8062/8082/80a2), rows stride 0x20) 0x8000-page tilemap destination cell where loc_1ffb stamps the selected 3x3 glyph block (in the 0x8000-0x83ff colour/attribute region per the memory map) */
 export const GLYPH_BLOCK_DEST = 0x8062;
@@ -774,7 +774,7 @@ export const SHAPE_TABLE_26BD = 0x26bd;
 export const SHAPE_TABLE_26C1 = 0x26c1;
 /** [code] ROM tile/shape source table (pattern A) copied into the four actor records by the loc_250f shape-loader */
 export const SHAPE_TABLE_26C5 = 0x26c5;
-/** [code] ROM animation-sequence descriptor armed into the hunter record (via setActorAnimation) on the 0x88 script opcode */
+/** [seen] ROM animation-sequence descriptor armed into the hunter record (via setActorAnimation) on the 0x88 script opcode */
 export const ANIM_SEQ_2D5D = 0x2d5d;
 /** [seen] (MAME: pc=245a writes the contiguous 0x18-byte range 0x8a98..0x8aaf in one pass = the 0x18-byte lead-record copy into slot 1, matching the documented role.) second 0x18-stride actor record slot (ACTOR_TABLE + 0x18); beginLeadActorLiftOnClear snapshots the lead record here */
 export const ACTOR_TABLE_SLOT1 = 0x8a98;
@@ -862,9 +862,9 @@ export const TARGET_LOCK = 0x8f40;
 export const DISPLAY_CMD_0614 = 0x0614;
 /** [code] checksum rom base (0x0bb5) */
 export const CHECKSUM_ROM_BASE = 0x0bb5;
-/** [code] column blit tile src (0x0d2f) */
+/** [seen] column blit tile src (0x0d2f) */
 export const COLUMN_BLIT_TILE_SRC = 0x0d2f;
-/** [code] column blit attr src (0x0d48) */
+/** [seen] column blit attr src (0x0d48) */
 export const COLUMN_BLIT_ATTR_SRC = 0x0d48;
 /** [code] anim seq table (0x12fb) */
 export const ANIM_SEQ_TABLE_12FB = 0x12fb;
@@ -882,7 +882,7 @@ export const ROUND_DIGIT_GLYPHS_ALT = 0x1fe6;
 export const ACTOR_GROUP_STATE_DISPATCH = 0x2436;
 /** [code] anim frame word table (0x26f6) */
 export const ANIM_FRAME_WORD_TABLE = 0x26f6;
-/** [code] status render tile table (0x26f6) */
+/** [seen] status render tile table (0x26f6) */
 export const STATUS_RENDER_TILE_TABLE = 0x26f6;
 /** [code] status field tile a (0x270a) */
 export const STATUS_FIELD_TILE_A = 0x270a;
@@ -946,7 +946,7 @@ export const HIT_FLASH_ANIM_3BDD = 0x3bdd;
 export const ANIM_SEQ_TABLE_4076 = 0x4076;
 /** [code] splash anim table (0x40a4) */
 export const SPLASH_ANIM_TABLE_40A4 = 0x40a4;
-/** [code] arm anim table (0x41b1) */
+/** [seen] arm anim table (0x41b1) */
 export const ARM_ANIM_TABLE = 0x41b1;
 /** [code] catch tamper cksum top (0x428b) */
 export const CATCH_TAMPER_CKSUM_TOP = 0x428b;
@@ -958,17 +958,17 @@ export const HIT_FLASH_ANIM_4341 = 0x4341;
 export const ACTOR_SPEED_TABLE_55D7 = 0x55d7;
 /** [code] actor spawn type table (0x5637) */
 export const ACTOR_SPAWN_TYPE_TABLE = 0x5637;
-/** [code] actor anim table (0x5657) */
+/** [seen] actor anim table (0x5657) */
 export const ACTOR_ANIM_TABLE_5657 = 0x5657;
 /** [code] spawn timer table odd (0x589b) */
 export const SPAWN_TIMER_TABLE_ODD = 0x589b;
-/** [code] spawn timer table even (0x58c0) */
+/** [seen] spawn timer table even (0x58c0) */
 export const SPAWN_TIMER_TABLE_EVEN = 0x58c0;
 /** [code] spawn field table odd (0x58e0) */
 export const SPAWN_FIELD_TABLE_ODD = 0x58e0;
 /** [code] eagle rearm table (0x5922) */
 export const EAGLE_REARM_TABLE_5922 = 0x5922;
-/** [code] eagle rearm table (0x5985) */
+/** [seen] eagle rearm table (0x5985) */
 export const EAGLE_REARM_TABLE_5985 = 0x5985;
 /** [code] anim seq (0x5c80) */
 export const ANIM_SEQ_5C80 = 0x5c80;
@@ -1073,7 +1073,7 @@ export const OBJECT_VEL_Y = 0x8f12;
 export const INTEGRITY_GUARD_REGION_0BAD = 0x0bad;
 /** [code] integrity-guard ROM signature (twos-complement check) (0x55b5) */
 export const INTEGRITY_GUARD_SIGNATURE_55B5 = 0x55b5;
-/** [code] rope-extend rst-28 inline jump table (2 words) (0x2d7c) */
+/** [seen] rope-extend rst-28 inline jump table (2 words) (0x2d7c) */
 export const ROPE_EXTEND_DISPATCH_TABLE = 0x2d7c;
 /** [code] spawn-kind ROM byte table (rst-20 base), frame-timer spawner (0x5627) */
 export const SPAWN_KIND_TABLE_5627 = 0x5627;
@@ -1098,55 +1098,55 @@ export const ATTRACT_S4_DISPLAY_CMD = 0x060d;
 export const DISPLAY_CMD_068B = 0x068b;
 /** [code] display command constant (0x068e) (0x068e) */
 export const DISPLAY_CMD_068E = 0x068e;
-/** [code] attract state-4 attribute source (0x07b9) */
+/** [seen] attract state-4 attribute source (0x07b9) */
 export const ATTRACT_S4_ATTRIB_SRC = 0x07b9;
-/** [code] attract state-4 check source run (0x07c9) */
+/** [seen] attract state-4 check source run (0x07c9) */
 export const ATTRACT_S4_CHECK_SRC = 0x07c9;
-/** [code] rom field-attribute source (0x07d9) */
+/** [seen] rom field-attribute source (0x07d9) */
 export const FIELD_ATTRIB_SRC_07D9 = 0x07d9;
-/** [code] copy-protection stall byte (0x07f5) */
+/** [seen] copy-protection stall byte (0x07f5) */
 export const COPY_PROTECT_STALL_BYTE = 0x07f5;
-/** [code] expected signature top value (0x0838) */
+/** [seen] expected signature top value (0x0838) */
 export const SIGNATURE_EXPECTED_TOP = 0x0838;
-/** [code] inline jump-table base for the attract sub-state rst-28 dispatch (0x08a1) */
+/** [seen] inline jump-table base for the attract sub-state rst-28 dispatch (0x08a1) */
 export const ATTRACT_SUBSTATE_DISPATCH = 0x08a1;
 /** [code] rom signature word table (0x0976) */
 export const SIGNATURE_WORD_TABLE = 0x0976;
-/** [code] attract state-4 check reference (0x0a65) */
+/** [seen] attract state-4 check reference (0x0a65) */
 export const ATTRACT_S4_CHECK_REF = 0x0a65;
-/** [code] attract state-4 object coordinates (0x0a76) */
+/** [seen] attract state-4 object coordinates (0x0a76) */
 export const ATTRACT_S4_OBJ_COORDS = 0x0a76;
-/** [code] attract state-4 object descriptors (0x0a7e) */
+/** [seen] attract state-4 object descriptors (0x0a7e) */
 export const ATTRACT_S4_OBJ_DESCRIPTORS = 0x0a7e;
-/** [code] attract state-4 draw script (0x0a87) */
+/** [seen] attract state-4 draw script (0x0a87) */
 export const ATTRACT_S4_DRAW_SCRIPT = 0x0a87;
 /** [code] rom 0x79-byte block compared in the world-3 anti-tamper check (0x0b32) */
 export const TAMPER_CHECK_BLOCK_0B32 = 0x0b32;
-/** [code] rom 5-byte guard table, each &0x1f summed by the checksum guard (0x0bb3) */
+/** [seen] rom 5-byte guard table, each &0x1f summed by the checksum guard (0x0bb3) */
 export const INTEGRITY_GUARD_TABLE_0BB3 = 0x0bb3;
 /** [code] shared attract-handler epilogue routine entry (alias of checksum_rom_base; understanding pass to reconcile) (0x0bb5) */
 export const ATTRACT_HANDLER_EPILOGUE_ADDR = 0x0bb5;
 /** [code] rom signature-check source run summed vs the sig table (0x0bb9) */
 export const SIGNATURE_CHECK_SRC = 0x0bb9;
-/** [code] 0x43-terminated rom string, biased -0x88 into the display message buffer (0x183f) */
+/** [seen] 0x43-terminated rom string, biased -0x88 into the display message buffer (0x183f) */
 export const INTRO_MSG_STRING_183F = 0x183f;
 /** [code] rom alternate seed table (odd round) (0x1e2c) */
 export const WAVE_SEED_TABLE_1E2C = 0x1e2c;
-/** [code] rom per-record {tile,colour} seed table (even/latched wave) (0x1e34) */
+/** [seen] rom per-record {tile,colour} seed table (even/latched wave) (0x1e34) */
 export const WAVE_SEED_TABLE_1E34 = 0x1e34;
 /** [code] rom 0x10-terminated attribute field copied bottom-up into the reset attr column (0x1ea7) */
 export const ROUND_HUD_FIELD_SRC = 0x1ea7;
-/** [code] rom 5-entry stage-index -> column-code lookup table (0x1f87) */
+/** [seen] rom 5-entry stage-index -> column-code lookup table (0x1f87) */
 export const STAGE_TAG_COLUMN_TABLE = 0x1f87;
 /** [code] rom 2-entry word table, tens bit picks a glyph-block source (0x200d) */
 export const ROUND_GLYPH_WORD_TABLE = 0x200d;
-/** [code] rom anim script the shared cursor is seated to (0x26c9) */
+/** [seen] rom anim script the shared cursor is seated to (0x26c9) */
 export const ANIM_SCRIPT_26C9 = 0x26c9;
 /** [code] inline rst-28 jump table for the lead actor's secondary state machine (0x28f1) */
 export const ACTOR_SECONDARY_STATE_DISPATCH = 0x28f1;
 /** [code] routine entry pushed as the dispatch transfer/return slot (0x2b8d) */
 export const SPAWN_FORMATION_EPILOGUE_ADDR = 0x2b8d;
-/** [code] rom word table of rope-extend tile blocks (0x2dee) */
+/** [seen] rom word table of rope-extend tile blocks (0x2dee) */
 export const ROPE_TILE_BLOCK_TABLE = 0x2dee;
 /** [code] rom 2x2 tile source for the rope segment blit (0x2e1a) */
 export const ROPE_RETRACT_TILE_SRC = 0x2e1a;
@@ -1166,13 +1166,13 @@ export const SIGNATURE_CHECK_TABLE = 0x4283;
 export const SPAWN_ANIM_WORD_TABLE = 0x432d;
 /** [code] rom animation-sequence pointer seated into the source record (0x4347) */
 export const SPAWN_ANIM_SEQ = 0x4347;
-/** [code] rom script-row table (0x519a) */
+/** [seen] rom script-row table (0x519a) */
 export const SCRIPT_ROW_TABLE = 0x519a;
-/** [code] rom script data table a (0x5264) */
+/** [seen] rom script data table a (0x5264) */
 export const SCRIPT_DATA_TABLE_A = 0x5264;
-/** [code] rom script data table b (0x52b0) */
+/** [seen] rom script data table b (0x52b0) */
 export const SCRIPT_DATA_TABLE_B = 0x52b0;
-/** [code] rom byte table (rst-0x20 lookup) or'd into record field 7 (0x53a6) */
+/** [seen] rom byte table (rst-0x20 lookup) or'd into record field 7 (0x53a6) */
 export const SCRIPT_FLAG_TABLE = 0x53a6;
 /** [code] rom byte table indexed by the spawn index -> record field +6 (0x55d4) */
 export const ACTOR_MOTION_TABLE_55D4 = 0x55d4;
@@ -1188,21 +1188,21 @@ export const ACTOR_ANIM_SCRIPT_TABLE_561F = 0x561f;
 export const TAMPER_CHECK_CLONE_7071 = 0x7071;
 /** [code] rom word table of sprite tile bases, indexed by group tile-index (0x70eb) */
 export const SPAWN_TILE_TABLE_70EB = 0x70eb;
-/** [code] rom 6-byte table indexed by the variant cursor -> paired record anim-script index +0x17 (0x7618) */
+/** [seen] rom 6-byte table indexed by the variant cursor -> paired record anim-script index +0x17 (0x7618) */
 export const WOLF_LAUNCH_VARIANT_TABLE = 0x7618;
-/** [code] rom 3-byte table indexed by min(wave_number,2), reseeds the shared frame-delay timer (0x761e) */
+/** [seen] rom 3-byte table indexed by min(wave_number,2), reseeds the shared frame-delay timer (0x761e) */
 export const LAUNCH_FRAME_DELAY_TABLE = 0x761e;
-/** [code] rom anim-sequence pointer armed when wave_number>=3 (0x76dd) */
+/** [seen] rom anim-sequence pointer armed when wave_number>=3 (0x76dd) */
 export const ANIM_PARAM_76DD = 0x76dd;
 /** [code] rom ret opcode reused as the colorram integrity checksum sentinel (0x780e) */
 export const COLORRAM_CHECKSUM_SENTINEL = 0x780e;
-/** [code] rom char-data word table, lower 2x2 row (0x7821) */
+/** [seen] rom char-data word table, lower 2x2 row (0x7821) */
 export const OBJECT_CHAR_TABLE_ROW0 = 0x7821;
-/** [code] rom char-data word table, upper row (0x7841) */
+/** [seen] rom char-data word table, upper row (0x7841) */
 export const OBJECT_CHAR_TABLE_ROW1 = 0x7841;
-/** [code] rom per-spawn-index word table -> record +0x15/+0x16 (0x7869) */
+/** [seen] rom per-spawn-index word table -> record +0x15/+0x16 (0x7869) */
 export const SPAWN_WORD_TABLE = 0x7869;
-/** [code] 9-word cumulative-sum table the integrity check compares against (0x7900) */
+/** [seen] 9-word cumulative-sum table the integrity check compares against (0x7900) */
 export const ROM_BLOCK_CHECKSUM_TABLE = 0x7900;
 /** [seen] (MAME: n=7 v0=b2, base cell of the 3x3 block from loc_1ead(hl=0x8462)) vram dst for the round 3x3 tile block (0x8462) */
 export const ROUND_TILE_DST = 0x8462;
@@ -1293,13 +1293,13 @@ export const DISPLAY_CMD_062A = 0x062a;
 export const PHASE_SETUP_DISPLAY_CMD = 0x0683;
 /** [code] original typeAttractTextColumn block (0x0ac8), byte-compared against its clone for tamper detection (TAMPER_CHECK_* family) */
 export const TAMPER_CHECK_BLOCK_0AC8 = 0x0ac8;
-/** [code] ROM word table of attract script pointers (0x0bab), indexed by SCRIPT_COL_CHECK_TICK-1 via loc_0c45 */
+/** [seen] ROM word table of attract script pointers (0x0bab), indexed by SCRIPT_COL_CHECK_TICK-1 via loc_0c45 */
 export const ATTRACT_SCRIPT_PTR_TABLE = 0x0bab;
 /** [code] 0xff-terminated ROM reference byte list scanned against the HUD tile strip (stride -0x20) in the epilogue integrity check */
 export const EPILOGUE_HUD_SCAN_REF_TABLE = 0x20c2;
 /** [code] ROM byte table indexed by ATTRACT_SUBSTATE (rst-0x20 lookup) whose result is cross-checked against the scanned strip cell */
 export const EPILOGUE_SUBSTATE_LOOKUP_TABLE = 0x20cb;
-/** [code] ROM display-list graphic-stream pointer; committed to DISPLAY_LIST_SRC_PTR_ALT on the in-play, latch-clear, round==0 branch */
+/** [seen] ROM display-list graphic-stream pointer; committed to DISPLAY_LIST_SRC_PTR_ALT on the in-play, latch-clear, round==0 branch */
 export const DLIST_GFX_ROUND0 = 0x44a9;
 /** [code] ROM display-list graphic-stream pointer; committed to DISPLAY_LIST_SRC_PTR_ALT on the in-play, latch-clear, odd-round branch */
 export const DLIST_GFX_ROUND_ODD = 0x462c;
@@ -1311,7 +1311,7 @@ export const DLIST_GFX_ALT_ODD = 0x4872;
 export const DLIST_LAYOUT_ALT_EVEN = 0x4a50;
 /** [code] ROM display-list layout-stream pointer; committed to DISPLAY_LIST_SRC_PTR on the in-play, latch-clear, odd-round branch */
 export const DLIST_LAYOUT_ROUND_ODD = 0x4b30;
-/** [code] ROM display-list layout-stream pointer; committed to DISPLAY_LIST_SRC_PTR on the in-play, latch-clear, round==0 branch */
+/** [seen] ROM display-list layout-stream pointer; committed to DISPLAY_LIST_SRC_PTR on the in-play, latch-clear, round==0 branch */
 export const DLIST_LAYOUT_ROUND0 = 0x4b55;
 /** [code] ROM display-list layout-stream pointer; committed to DISPLAY_LIST_SRC_PTR on the shared alternate branch, round bit0 set */
 export const DLIST_LAYOUT_ALT_ODD = 0x4bf6;
@@ -1367,7 +1367,7 @@ export const COIN2_COUNTER_LATCH = 0xa184;
 export const HIGH_SCORE_ENTRY_TABLE_SRC = 0x1754;
 /** [code] ROM animation-descriptor pointer for the actor drop, seated into the record on arm (0x3bd1) */
 export const DROP_ANIM_DESCRIPTOR = 0x3bd1;
-/** [code] address the backward power-on checksum scan begins at, walked down to the sentinel byte (0x64d5) */
+/** [seen] address the backward power-on checksum scan begins at, walked down to the sentinel byte (0x64d5) */
 export const CHECKSUM_SCAN_START = 0x64d5;
 /** [code] packed ROM display-message source table for the attract reset (0x1e4c) */
 export const ATTRACT_INIT_MESSAGE_SRC = 0x1e4c;
