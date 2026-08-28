@@ -372,7 +372,7 @@ export const ROPE_SPAWN_IY4_TABLE = 0x2ec7;
 export const ANIM_TABLE_3847 = 0x3847;
 /** [code] ROM animation-sequence descriptor seeded little-endian into a spawned child actor's +0x0c/+0x0d anim field */
 export const ANIM_SEQ_38CB = 0x38cb;
-/** [code] ROM original bytes (0x44) compared by the level-intro phase-4 anti-tamper self-check */
+/** [seen] ROM original bytes (0x44) compared by the level-intro phase-4 anti-tamper self-check */
 export const PHASE4_TAMPER_ORIG = 0x6ac5;
 /** [code] ROM data copy of the phase-4 tamper block, compared byte-for-byte against PHASE4_TAMPER_ORIG */
 export const PHASE4_TAMPER_COPY = 0x6fed;
@@ -386,9 +386,9 @@ export const VIDEO_RAM_BASE = 0x8400;
 export const PLAYFIELD_PAINT_START = 0x8442;
 /** [code] video-RAM digit-column base for loc_10c2's first 2-digit BCD field */
 export const SUBSTATE_FIELD1_VRAM = 0x85d0;
-/** [code] video-RAM digit-column base for loc_10c2's third 2-digit BCD field */
+/** [seen] video-RAM digit-column base for loc_10c2's third 2-digit BCD field */
 export const SUBSTATE_FIELD3_VRAM = 0x85d2;
-/** [code] video-RAM cell for the hundreds digit of loc_10c2's third field (written only when the hundreds count is nonzero) */
+/** [seen] video-RAM cell for the hundreds digit of loc_10c2's third field (written only when the hundreds count is nonzero) */
 export const SUBSTATE_FIELD3_HUNDREDS_VRAM = 0x85f2;
 /** [seen] video-RAM digit-column base for loc_10c2's second 2-digit BCD field */
 export const SUBSTATE_FIELD2_VRAM = 0x8652;
@@ -535,7 +535,7 @@ export const HUNTER_TABLE_BASE = 0x8c78;
 export const EAGLE_Y_COORD = 0x8c94;
 /** [seen] (SHARED actor-record coord — eagle species (read by advanceEagleToArrivalAndTallyWave) not write-confirmed; kept code; observed MAME: advanceTargetActorState writes 0x8c96 at pc=0x2200 n=2101, 0xb0->0x50 (X-=4 per frame; JS despawns when < 4). Same cell seeded by spawnTargetActorOnLaunchTrigger (pc=0x2195) and velocity-integrated by advanceTargetActorAlongVelocityElseDespawn (pc=0x224e,…) eagle live X coordinate; >>3 is its grid column, matched against the record's target column (ix+6) or that minus one */
 export const EAGLE_X_COORD = 0x8c96;
-/** [code] one-shot spawn latch for the 0x8c30 formation record; set 1 when spawned, gates re-spawn */
+/** [seen] one-shot spawn latch for the 0x8c30 formation record; set 1 when spawned, gates re-spawn */
 export const SPAWN_LATCH = 0x8d59;
 /** [seen] spawn speed index = (ROUND_COUNTER>>1)+1 clamped to 6; indexes SPAWN_SPEED_TABLE */
 export const SPAWN_SPEED_INDEX = 0x8d5c;
@@ -1427,7 +1427,7 @@ export const ROUTINES = {
   0x0714: { name: "loc_0714", role: "sprite-attribute copy loop. Runs `count` passes. Each pass reads four source bytes, walking the source low byte so it wraps inside its 256-byte page:…", cert: "seen" },
   0x0a25: { name: "loc_0a25", role: "seeds the frame-animation cursor, then tail-hands to the two-slot tile painter, returning its result straight to this routine's own caller", cert: "seen" },
   0x0a28: { name: "loc_0a28", role: "advance the 4-phase attract animation and repaint its tile block", cert: "seen" },
-  0x0c45: { name: "loc_0c45", role: "little-endian word lookup: return table[index] from a word table", cert: "code" },
+  0x0c45: { name: "loc_0c45", role: "little-endian word lookup: return table[index] from a word table", cert: "seen" },
   0x0cf8: { name: "loc_0cf8", role: "stamp a two-plane column strip into video RAM", cert: "seen" },
   0x12d0: { name: "loc_12d0", role: "table lookup + object-field compare/dispatch for the record at IX", cert: "seen" },
   0x1391: { name: "loc_1391", role: "spawned-flag guard in front of the field-compare dispatch", cert: "code" },
