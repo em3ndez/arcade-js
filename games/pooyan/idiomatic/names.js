@@ -336,9 +336,9 @@ export const ATTRACT_SETUP_DISPLAY_CMD_A = 0x0604;
 export const ATTRACT_DISPLAY_CMD_060B = 0x060b;
 /** [seen] display-command word queued (rst 0x38 -> loc_0038) on the phase-4 anti-tamper match */
 export const DISPLAY_CMD_0627 = 0x0627;
-/** [code] display-command word queued (rst 0x38 -> loc_0038) on the first spawn of a wave (paired with _B) */
+/** [seen] display-command word queued (rst 0x38 -> loc_0038) on the first spawn of a wave (paired with _B) */
 export const WAVE_SPAWN_DISPLAY_CMD_A = 0x0625;
-/** [code] second display-command word queued (rst 0x38 -> loc_0038) on the first spawn of a wave (paired with _A) */
+/** [seen] second display-command word queued (rst 0x38 -> loc_0038) on the first spawn of a wave (paired with _A) */
 export const WAVE_SPAWN_DISPLAY_CMD_B = 0x060a;
 /** [code] display-command word (type 0x06) queued via the display-ring helper on deferred-object fire (1 of 5, 0x062b..0x062f) */
 export const PROMOTE_DISPLAY_CMD_A = 0x062b;
@@ -350,7 +350,7 @@ export const PROMOTE_DISPLAY_CMD_C = 0x062d;
 export const PROMOTE_DISPLAY_CMD_D = 0x062e;
 /** [code] display-command word queued on deferred-object fire (5 of 5) */
 export const PROMOTE_DISPLAY_CMD_E = 0x062f;
-/** [code] display-command word queued (via rst 0x38) by intro phase 5 when the toggle's new bit0 is 0 */
+/** [seen] display-command word queued (via rst 0x38) by intro phase 5 when the toggle's new bit0 is 0 */
 export const INTRO_PHASE5_DISPLAY_CMD_A = 0x06a7;
 /** [seen] ROM colour/attribute column source table flooded into the attribute map at attract state-0 completion (fillAttributeColumns source) */
 export const ATTRACT_FIELD_ATTRIB_SRC = 0x0779;
@@ -453,13 +453,13 @@ export const HUNTER_SPAWN_DISPLAY_CMD = 0x0315;
 export const SCORE_AWARD_TABLE = 0x0501;
 /** [seen] alternate display-list command word (0x06:0x07) enqueued on object init when the round counter is zero */
 export const OBJECT_SPAWN_DISPLAY_CMD_ALT = 0x0607;
-/** [code] display-command WORD (not a RAM cell) enqueued via loc_0038 for siren phase A */
+/** [seen] display-command WORD (not a RAM cell) enqueued via loc_0038 for siren phase A */
 export const SIREN_DISPLAY_CMD_A = 0x060f;
 /** [seen] display-list command word (0x06:0x11) enqueued via the page-0x88 ring on object spawn/init (also used by loc_08e9) */
 export const OBJECT_SPAWN_DISPLAY_CMD = 0x0611;
 /** [code] base display-command code queued when an eagle wave fully arrives, offset by the arrived count */
 export const WAVE_ARRIVAL_CMD_BASE = 0x0630;
-/** [code] display-command WORD (not a RAM cell) enqueued via loc_0038 for siren phase B */
+/** [seen] display-command WORD (not a RAM cell) enqueued via loc_0038 for siren phase B */
 export const SIREN_DISPLAY_CMD_B = 0x068f;
 /** [seen] ROM base of the 23-byte block rolling-summed downward by the slot-sweep checksum (the block is code inside another routine, read as data) */
 export const SLOT_SWEEP_CKSUM_BASE = 0x0bf3;
@@ -762,7 +762,7 @@ export const BOOT_STACK_TOP = 0x8ffe;
 export const TARGET_MISMATCH_DISPLAY_CMD = 0x0608;
 /** [code] display-command word (0x06:0x10) queued by loc_6edb when 3x the target-group count == the hit tally (also forces intro phase 4) */
 export const TARGET_MATCH_DISPLAY_CMD = 0x0610;
-/** [code] display-command word queued via loc_0038 by loc_6edb when phase-1 completes */
+/** [seen] display-command word queued via loc_0038 by loc_6edb when phase-1 completes */
 export const PHASE1_COMPLETE_DISPLAY_CMD = 0x0635;
 /** [seen] ROM byte table (idx = (ROUND_COUNTER&0x3f)>>2) giving the ENEMY_SPAWN_TIMER reseed value */
 export const SPAWN_TIMER_TABLE_11F9 = 0x11f9;
@@ -1038,9 +1038,9 @@ export const ALT_TARGET_TABLE_PTR = 0x8d6f;
 export const RESET_SCAN_LATCH = 0x8e2a;
 /** [seen] (MAME: set to 1 by spawnTargetActorOnLaunchTrigger at pc=0x211e (n=149, on trigger frames) and cleared to 0 by stepActiveTargetActorRecords at pc=0x2180 (n=5615, ~every frame). Oscillating 0<->1 set-once/clear-each-pass pattern match…) one-shot spawn-arming latch for player-launched target actors: set 1 to gate re-entry, cleared each step pass to re-arm once per launch trigger (was mis-named FORMATION_INIT_LATCH) */
 export const TARGET_SPAWN_ARM_LATCH = 0x8f02;
-/** [code] formation enable flag (0x8f04) */
+/** [seen] formation enable flag (0x8f04) */
 export const FORMATION_ENABLE_FLAG = 0x8f04;
-/** [code] rope draw complete flag (0x8f04) */
+/** [seen] rope draw complete flag (0x8f04) */
 export const ROPE_DRAW_COMPLETE_FLAG = 0x8f04;
 /** [seen] rope draw extend flag (0x8f05) */
 export const ROPE_DRAW_EXTEND_FLAG = 0x8f05;
@@ -1269,7 +1269,7 @@ export const HUD_REFRESH_TICK = 0x8f4d;
 export const DISPLAY_CMD_0300 = 0x0300;
 /** [seen] display/sound command word (0x04:0x00) enqueued via loc_0038 at start-of-life; the 2P path additionally fires 0x0401 */
 export const START_OF_LIFE_DISPLAY_CMD = 0x0400;
-/** [code] start-of-life display/sound command variant (0x04:0x01) enqueued only on a two-player game (ROM: inc e from 0x0400) */
+/** [seen] start-of-life display/sound command variant (0x04:0x01) enqueued only on a two-player game (ROM: inc e from 0x0400) */
 export const START_OF_LIFE_DISPLAY_CMD_2P = 0x0401;
 /** [seen] board-intro rst-0x38 display command */
 export const DISPLAY_CMD_0601 = 0x0601;
@@ -1283,9 +1283,9 @@ export const DISPLAY_CMD_0617 = 0x0617;
 export const DISPLAY_CMD_0618 = 0x0618;
 /** [seen] coin-jingle rst-0x38 display command for more than one credit */
 export const DISPLAY_CMD_0619 = 0x0619;
-/** [code] board-intro rst-0x38 display command, 2P variant (bonus DSW bit0 set) */
+/** [seen] board-intro rst-0x38 display command, 2P variant (bonus DSW bit0 set) */
 export const DISPLAY_CMD_0628 = 0x0628;
-/** [code] board-intro rst-0x38 display command, bonus DSW bit0 set variant */
+/** [seen] board-intro rst-0x38 display command, bonus DSW bit0 set variant */
 export const DISPLAY_CMD_0629 = 0x0629;
 /** [seen] board-intro rst-0x38 display command, bonus DSW bit0 clear variant */
 export const DISPLAY_CMD_062A = 0x062a;
