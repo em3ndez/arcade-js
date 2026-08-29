@@ -47,3 +47,7 @@
 0x1c66  state-4 sig-check window base; cell bytes read as data ONLY by loc_2a79 (pc 2a82, cp vs 0x2b23, trap on mismatch); the code entry loc_1c66 grounds separately
 0x2980  anti-tamper reference copy of ROM 0x0859 in a data gap; read ONLY by round-init compares loc_2901/loc_29a0 (trap on mismatch); no role reader, captures show only sweeps
 0x2b23  state-5 sig-check reversed reference; read as data ONLY by the sig-checks loc_2a79 (pc 2a81 vs 0x1c66) + loc_2a96 (pc 2a9e vs 0x67df), n=70; the executable role is the separately-grounded routine loc_2b23
+0x0bb5  the address is the separately-[seen] routine loc_0bb5; its bytes are read as DATA only by anti-tamper (the 5-byte checksum pc 777f + block-compares pc 64be/4273) + whole-ROM scans; no non-checksum data reader, so the data-cell role never MAME-terminates on a good ROM
+0x776b  the address is executable code inside the [seen] routine loc_7740; read as DATA only by the 2P-credit checksum loop pc 0d95 (bumps 0x89ea) + whole-ROM scans; no non-checksum data reader
+0x780e  the address is a shared ret opcode in the [seen] routine loc_77c8; read as DATA only by the colour-RAM integrity compare pc 780a (sentinel 0xc9, trap on mismatch) + whole-ROM scans; no non-checksum data reader
+0x0ac8  the address is the [seen] routine loc_0ac8 (typeAttractTextColumn); read as DATA only by the anti-tamper compare loc_6db8 (pc 6df0, HL=0x0ac8 vs its clone 0x6df9) + whole-ROM scans; no non-checksum data reader
