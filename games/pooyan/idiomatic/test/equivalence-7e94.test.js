@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence test for loc_7e94 (ROM 0x7e94, Pooyan) — the write-anim dispatch redirect, a
  * per-frame pre-pass. A run-once latch (RESET_SCAN_LATCH 0x8e2a) and HIGH_SCORE_INSERT_RANK (0x89fc)
- * gate it; otherwise selector loc_8e26 picks handler 0/1/2 (loc_7eb2/7f0e/7f5d). Every path then
+ * gate it; otherwise selector WRITE_ANIM_HANDLER_SELECT picks handler 0/1/2 (loc_7eb2/7f0e/7f5d). Every path then
  * tail-returns into the per-frame start-button poll startGameOnStartButtonPress (0x7fd6) — the ROM
  * seats it as the shared return every handler ret's into.
  *
@@ -33,7 +33,7 @@ import { loc_7eb2 as oracle7eb2 } from "../../translated/loc_7eb2.js";
 import { loc_7f5d as oracle7f5d } from "../../translated/loc_7f5d.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, RESET_SCAN_LATCH, HIGH_SCORE_INSERT_RANK, loc_8e26 } from "../names.js";
+import { STACK_SCRATCH, RESET_SCAN_LATCH, HIGH_SCORE_INSERT_RANK, WRITE_ANIM_HANDLER_SELECT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,12 +50,12 @@ function ramDiffMinusStack(ma, mb) {
 }
 
 /** A machine at a chosen gate/selector, with the epilogue parked shallow (credits 0) and a small pass
- *  count so the handlers terminate quickly. Selector cases run whichever handler loc_8e26 picks. */
+ *  count so the handlers terminate quickly. Selector cases run whichever handler WRITE_ANIM_HANDLER_SELECT picks. */
 function craft({ latch = 0, rank = 1, selector = 0 } = {}) {
   const m = new Machine(ROM);
   m.mem.write8(RESET_SCAN_LATCH, latch);
   m.mem.write8(HIGH_SCORE_INSERT_RANK, rank); // pass count for the handlers; 1 => one loop pass
-  m.mem.write8(loc_8e26, selector);
+  m.mem.write8(WRITE_ANIM_HANDLER_SELECT, selector);
   m.mem.write8(CREDIT_COUNT, 0x00); // epilogue bails immediately
   m.regs.sp = 0x8fe0; // inside STACK_SCRATCH: trampoline push/pop + handler/epilogue ret read dead RAM
   return m;

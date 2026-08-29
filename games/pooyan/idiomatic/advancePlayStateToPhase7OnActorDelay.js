@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_250f } from "./loc_250f.js";
-import { TAMPER_ROM_CHECK_FLAG, PLAY_STATE_INDEX, TAMPER_STRIKES_HUD_GUARD } from "./names.js";
+import { SCORE_DRIP_ACCUM, PLAY_STATE_INDEX, TAMPER_STRIKES_HUD_GUARD } from "./names.js";
 
 const HOLD_FIELD = 0x11; //  per-record frame-delay countdown
 const SHAPE_FLAG = 0x07; //  value stamped into the selected shape-state cell
@@ -19,7 +19,7 @@ export function advancePlayStateToPhase7OnActorDelay(m, rec = m.regs.ix) {
   mem8[rec + HOLD_FIELD] = mem8[rec + HOLD_FIELD] - 1;
   if (mem8[rec + HOLD_FIELD] !== 0) return; // still holding this frame
 
-  const shapePtr = mem8[TAMPER_ROM_CHECK_FLAG] !== 0 ? TAMPER_ROM_CHECK_FLAG : PLAY_STATE_INDEX;
+  const shapePtr = mem8[SCORE_DRIP_ACCUM] !== 0 ? SCORE_DRIP_ACCUM : PLAY_STATE_INDEX;
   mem8[shapePtr] = SHAPE_FLAG;
 
   if (mem8[TAMPER_STRIKES_HUD_GUARD] === 0) return;

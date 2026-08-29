@@ -15,7 +15,7 @@ import {
   ATTRACT_SETUP_DISPLAY_CMD_A,
   START_OF_LIFE_DISPLAY_CMD,
   START_OF_LIFE_DISPLAY_CMD_2P,
-  PLAYER2_START_CLEAR_BLOCK,
+  ANIM_WORK_BLOCK_PTR,
 } from "./names.js";
 /**
  * startNewGamePlay — start-of-life setup for a new game.
@@ -53,5 +53,5 @@ export function startNewGamePlay(m, player = m.regs.hl) {
   if ((mem8[TWO_PLAYER_FLAG] & 1) === 0) return; //  one-player: done
 
   loc_0038(m, START_OF_LIFE_DISPLAY_CMD_2P); //  second-player variant
-  loc_0010(m, PLAYER2_START_CLEAR_BLOCK, 0, 12); //  clear the 12-byte panel block
+  loc_0010(m, ANIM_WORK_BLOCK_PTR, 0, 12); //  clear the 12-byte panel block
 }

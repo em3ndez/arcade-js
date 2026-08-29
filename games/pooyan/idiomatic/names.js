@@ -198,8 +198,8 @@ export const ANIM_ARMED_LATCH = 0x8f63;
 export const P1_SCORE_BCD = 0x88a2;
 /** [seen] (MAME 2P golden: buffer accumulates during P2's turn only -- mid byte 0x88a6 0->0x78 while ACTIVE_PLAYER=1, frozen otherwise; base 0x88a5 low BCD pair stays 0 (scores x100) so grounded at BUFFER level; loc_04f2 P2 bank) player-2 live 3-byte BCD score buffer (0x88a5..0x88a7) */
 export const P2_SCORE_BCD = 0x88a5;
-/** [code] (loc_585b sets 1 on a checksum mismatch; MULTIPLEXED -- advancePlayStateToPhase7OnActorDelay writes 0x07 as a state index, accrueCreditFromCoin1Pulse reads it as a coord low byte by COINAGE_CONFIG) eagle-spawn ROM-checksum mismatch flag */
-export const TAMPER_ROM_CHECK_FLAG = 0x882b;
+/** [seen] score-drip accumulator: the coin-1 drip step (accrueCreditFromCoin1Pulse) steps it +0x10 with a carry into COINAGE_CONFIG, and the play-state actor handler (advancePlayStateToPhase7OnActorDelay) stamps 0x07 into it; the loc_585b ROM-checksum writer that sets it to 1 is a secondary, unreached facet */
+export const SCORE_DRIP_ACCUM = 0x882b;
 /** [seen] (loc_0460 paints PANEL_VRAM_DEST from here) 30-byte status-panel tile source table (10 rows x 3 cells), work RAM */
 export const PANEL_TILE_SOURCE = 0x8e00;
 /** [seen] (MAME gameplay golden: status-panel tiles painted here in play; loc_0460 destination) VRAM base of the status panel painted from PANEL_TILE_SOURCE */
@@ -295,28 +295,28 @@ export const SPAWN_RING_COUNTER = 0x8d57;
 /** [seen] per-object "drawn" flag: set to 1 once an object is drawn (object cluster's state-2 handler 0x7790); the state-2 animation tick holds while it is set */
 export const OBJECT_DRAWN_FLAG = 0x8d58;
 export const loc_8e21 = 0x8e21;
-/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
-export const loc_8565 = 0x8565;
-/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
-export const loc_8811 = 0x8811;
-/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
-export const loc_8812 = 0x8812;
+/** [seen] tilemap VRAM tile-code cell two below PANEL_VRAM_DEST (0x8567); stamped by the display-list interpreter loc_4381 */
+export const DISPLAY_LIST_VRAM_TILE = 0x8565;
+/** [seen] inverted active-high sample of IN1 (P1 controls); cell 2 of the 0x8810 input edge-detect ring, sampled each vblank NMI by loc_066d */
+export const INPUT_PORT1 = 0x8811;
+/** [seen] inverted sample of IN2 (P2 controls); cell 3 (tail) of the 0x8810 input edge-detect ring, sampled each vblank NMI by loc_066d */
+export const INPUT_PORT2 = 0x8812;
 /** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
 export const loc_8dfd = 0x8dfd;
-/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
-export const loc_8e23 = 0x8e23;
-/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
-export const loc_8e24 = 0x8e24;
-/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
-export const loc_8e25 = 0x8e25;
-/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
-export const loc_8e26 = 0x8e26;
-/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
-export const loc_8e27 = 0x8e27;
-/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
-export const loc_8e29 = 0x8e29;
-/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
-export const loc_8e2b = 0x8e2b;
+/** [seen] write-anim animation tile index; stepped up/down between 0x10 and 0x2c and stamped into the growing block (loc_7f0e/loc_7f5d) */
+export const WRITE_ANIM_TILE_INDEX = 0x8e23;
+/** [seen] write-anim per-step delay sub-timer (reload 0x0c); decremented each frame, gates when the tile index steps (loc_7f0e) */
+export const WRITE_ANIM_STEP_DELAY = 0x8e24;
+/** [seen] write-anim row/pass count (seed 3); decremented per appended row, at 0 the anim hands off to its tail (loc_7f5d/loc_7fa8) */
+export const WRITE_ANIM_ROW_COUNT = 0x8e25;
+/** [seen] write-anim state selector (0/1/2) picking one of the three write-anim handlers (loc_7eb2/loc_7f0e/loc_7f5d) each frame */
+export const WRITE_ANIM_HANDLER_SELECT = 0x8e26;
+/** [seen] 16-bit write pointer for the write-anim block; seeded from DISPLAY_LIST_VRAM_TILE and advanced per pass (loc_7eb2/loc_7f5d) */
+export const WRITE_ANIM_WRITE_PTR = 0x8e27;
+/** [seen] write-anim phase ring: bit 4 of the source byte rotated in each frame; low 3 bits gate the append phase (loc_7f5d) */
+export const WRITEANIM_PHASE_RING = 0x8e29;
+/** [seen] 16-bit write-anim countdown (low byte here, high byte 0x8e2c); drained per frame, at 0 hands off to the tail (loc_7f0e) */
+export const WRITEANIM_COUNTDOWN = 0x8e2b;
 export const loc_8f17 = 0x8f17;
 /** [seen] 16-bit read-pointer into the lead hunter's active movement script (swoop; repointed to the dive script when the dive arms) */
 export const HUNTER_SCRIPT_PTR = 0x8f4b;
@@ -358,7 +358,7 @@ export const ATTRACT_FIELD_ATTRIB_SRC = 0x0779;
 export const ATTRACT_INTEGRITY_CKSUM_BASE = 0x0831;
 /** [seen] ROM base of the 12-byte (6-word) attract-script word table 0x0b26-0x0b31 (per typeAttractTextColumn's note), seeded as the start of the dual-use 0x8f48 attract cursor that advanceAttractSequenceToPlay walks */
 export const ATTRACT_SCRIPT_TABLE_BASE = 0x0b26;
-/** [code] 8-byte inline ROM speed-magnitude table indexed (via the rst-0x20 lookup) by the clamped SPEED_INDEX */
+/** [seen] 8-byte inline ROM speed-magnitude table indexed (via the rst-0x20 lookup) by the clamped SPEED_INDEX */
 export const ENEMY_SPEED_TABLE = 0x148e;
 /** [seen] ROM alternate 4-byte 2x2 tile source for the launch blit (spawnEnemyTargetOrAnimateLaunchFlipTile uses this or LAUNCH_TILE_SRC per flip parity; names.js already references 0x2d55 in a comment but exports no name for it) */
 export const LAUNCH_TILE_SRC_ALT = 0x2d55;
@@ -599,8 +599,8 @@ export const MARKER_GLYPH_SRC = 0x2754;
 export const READY_SPRITE_SRC = 0x2be1;
 /** [seen] ROM animation-sequence descriptor stored into a record's anim field (ix+0x0c/0x0d) by setActorAnimation */
 export const RECORD_ANIM_SEQ_2CA7 = 0x2ca7;
-/** [code] ROM script/table pointer seeded little-endian into a record's +0x16/+0x17 script field */
-export const RECORD_SCRIPT_2D00 = 0x2d00;
+/** [seen] ROM movement-script table a hunter record's cursor (ix+16/17) walks: 0xff latches ix+15, an 0x88 opcode advances the record state, else a signed X-delta; loc_2c85 seeds the cursor here */
+export const HUNTER_MOVE_SCRIPT = 0x2d00;
 /** [seen] ROM 4-byte 2x2 tile-block source blitted by the launch state machine (spawnEnemyTargetOrAnimateLaunchFlipTile uses this or 0x2d55) */
 export const LAUNCH_TILE_SRC = 0x2d51;
 /** [seen] ROM animation-sequence table (4-frame attr/tile/colour loop) an actor record is pointed at */
@@ -758,9 +758,9 @@ export const BOOT_STACK_TOP = 0x8ffe;
 
 
 // -- batch 4 leaf-decompile cells --
-/** [code] display-command word (0x06:0x08) queued by loc_6edb when 3x the target-group count (0x8f47) != the hit tally (0x8f52) */
+/** [seen] display-command word (0x06:0x08) queued by loc_6edb when 3x the target-group count (0x8f47) != the hit tally (0x8f52) */
 export const TARGET_MISMATCH_DISPLAY_CMD = 0x0608;
-/** [code] display-command word (0x06:0x10) queued by loc_6edb when 3x the target-group count == the hit tally (also forces intro phase 4) */
+/** [seen] display-command word (0x06:0x10) queued by loc_6edb when 3x the target-group count == the hit tally (also forces intro phase 4) */
 export const TARGET_MATCH_DISPLAY_CMD = 0x0610;
 /** [seen] display-command word queued via loc_0038 by loc_6edb when phase-1 completes */
 export const PHASE1_COMPLETE_DISPLAY_CMD = 0x0635;
@@ -858,8 +858,8 @@ export const TARGET_LOCK = 0x8f40;
 
 // == Batch: object/marker/rope/config/anim decompile cells [code] (ungrounded; MAME-grounding pending) ==
 // Aliases (same address, two code-level readings) are flagged for the understanding pass to reconcile.
-/** [code] display cmd (0x0614) */
-export const DISPLAY_CMD_0614 = 0x0614;
+/** [seen] display word enqueued via rst 0x38 by loc_29a0 when the descent state's self-checks pass and the record advances */
+export const DESCENT_STATE_COMPLETE_DISPLAY_CMD = 0x0614;
 /** [code] checksum rom base (0x0bb5) */
 export const CHECKSUM_ROM_BASE = 0x0bb5;
 /** [seen] column blit tile src (0x0d2f) */
@@ -868,7 +868,7 @@ export const COLUMN_BLIT_TILE_SRC = 0x0d2f;
 export const COLUMN_BLIT_ATTR_SRC = 0x0d48;
 /** [seen] anim seq table (0x12fb) */
 export const ANIM_SEQ_TABLE_12FB = 0x12fb;
-/** [code] state timer reload table (0x13d3) */
+/** [seen] state timer reload table (0x13d3) */
 export const STATE_TIMER_RELOAD_TABLE = 0x13d3;
 /** [code] state4 sigcheck code base addr (0x1c66) */
 export const STATE4_SIGCHECK_CODE_BASE_ADDR = 0x1c66;
@@ -1353,8 +1353,8 @@ export const CREDIT_TAMPER_COUNTER = 0x89ea;
 export const WIPE_COLUMN_VRAM_PTR = 0x89fd;
 /** [seen] fill tile value for the column wipe; seeded to 0x07 here, incremented each pass in dispatchRoundEndElseWipeColumn and clamped 0x10->0x06 */
 export const WIPE_COLUMN_FILL_TILE = 0x89ff;
-/** [code] 12-byte block cleared to 0 (rst 0x10 fill) only on a two-player start-of-life; grounding pending */
-export const PLAYER2_START_CLEAR_BLOCK = 0x8e1f;
+/** [seen] 16-bit anim work-block pointer: loc_7eb2 seeds it and loc_7f5d/loc_7fa8 append the growing block through it (the 2P start-of-life 12-byte clear at this base is a generic fill, not its role) */
+export const ANIM_WORK_BLOCK_PTR = 0x8e1f;
 /** [seen] (gwtrace inc HL=0x8efe x1402, 0x01->0x7a wrapping) counter bumped each time the shared epilogue reaches its HUD-integrity check */
 export const ATTRACT_EPILOGUE_TICK = 0x8efe;
 /** [code] write-only address that decodes to a watchdog kick (value ignored) */
@@ -1508,7 +1508,7 @@ export const ROUTINES = {
   0x020f: {
     name: "mainLoop",
     role: "the main-loop state driver: each iteration runs the per-frame worker or dispatches one display-ring handler; as the generator it drains the ring within a frame and yields at the worker/ring-idle vblank boundary",
-    cert: "code",
+    cert: "seen",
   },
   0x02aa: { name: "paintColumnBodyTiles", role: "stamp a tilemap column's two body tiles (mid + base)", cert: "seen" },
   0x02b1: { name: "blankTileColumn", role: "clear a three-cell tilemap column to the blank tile", cert: "seen" },
@@ -1609,10 +1609,10 @@ export const ROUTINES = {
   0x6edb: { name: "loc_6edb", role: "phase-1 driver: run loc_6f2d over the 14 enemy-actor records (0x8ae0, stride 0x18); when the launch script (0x8f4a) hits 0xff and all 3 projectile slots (0x8bea, stride 0x18) are idle, inc intro phase (0x8f51), queue cmd 0x0635, force phase 4 + queue 0x0610 on 3*(0x8f47)==(0x8f52) else queue 0x0608, set intro delay (0x8f48)=0x40, clear 0x30 bytes at 0x8c90", cert: "seen" },
   0x7292: { name: "advanceEaglePhaseAndClearAim", role: "step the eagle's phase and clear its aim flags", cert: "seen" },
   0x7707: { name: "dispatchActiveObjectState", role: "run one active object record's per-frame state handler, selected by (IX+2)&3 of four; inactive records are skipped", cert: "seen" },
-  0x7e94: { name: "loc_7e94", role: "the write-anim dispatch redirect (a per-frame pre-pass): gated by the run-once latch (RESET_SCAN_LATCH) and HIGH_SCORE_INSERT_RANK, else selector loc_8e26 picks one of three write-anim handlers, then tail into the start-button poll startGameOnStartButtonPress", cert: "seen" },
+  0x7e94: { name: "loc_7e94", role: "the write-anim dispatch redirect (a per-frame pre-pass): gated by the run-once latch (RESET_SCAN_LATCH) and HIGH_SCORE_INSERT_RANK, else selector WRITE_ANIM_HANDLER_SELECT picks one of three write-anim handlers, then tail into the start-button poll startGameOnStartButtonPress", cert: "seen" },
   0x7eb2: { name: "loc_7eb2", role: "write-anim handler 0: seed the animation work block (loc_8e2x) with pointers/fields from the config + player-select cells", cert: "seen" },
-  0x7f0e: { name: "loc_7f0e", role: "write-anim handler 1: count down the 16-bit anim counter (loc_8e2b); on zero tail to loc_7fa8, else step the index and tail to loc_7f5d", cert: "seen" },
-  0x7f5d: { name: "loc_7f5d", role: "write-anim handler 2: rotate the phase ring (loc_8e29); on phase 1 advance the block pointers, drain the row countdown, and tail to loc_7fa8 when it empties", cert: "seen" },
+  0x7f0e: { name: "loc_7f0e", role: "write-anim handler 1: count down the 16-bit anim counter (WRITEANIM_COUNTDOWN); on zero tail to loc_7fa8, else step the index and tail to loc_7f5d", cert: "seen" },
+  0x7f5d: { name: "loc_7f5d", role: "write-anim handler 2: rotate the phase ring (WRITEANIM_PHASE_RING); on phase 1 advance the block pointers, drain the row countdown, and tail to loc_7fa8 when it empties", cert: "seen" },
   0x7fa8: { name: "loc_7fa8", role: "write-anim shared tail (reached from loc_7f0e/loc_7f5d): queue a sound (queueSoundCommand00), flood-fill `count` tile/record cells, then reload PHASE_TIMER and set the run-once latch", cert: "seen" },
   0x780f: { name: "paintTileBlock2x2Above", role: "stamp a 2x2 tile block anchored one row above", cert: "seen" },
   0x0000: { name: "loc_0000", role: "power-on reset vector: disable the vblank NMI latch, then tail into the boot entry loc_0092", cert: "seen" },

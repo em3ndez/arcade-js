@@ -3,11 +3,11 @@ import { u16 } from "../../../core/int.js";
 import { queueSoundCommand00 } from "./queueSoundCommand00.js";
 import {
   PHASE_TIMER,
-  PLAYER2_START_CLEAR_BLOCK,
+  ANIM_WORK_BLOCK_PTR,
   RESET_SCAN_LATCH,
-  loc_8e25,
-  loc_8e26,
-  loc_8e27,
+  WRITE_ANIM_ROW_COUNT,
+  WRITE_ANIM_HANDLER_SELECT,
+  WRITE_ANIM_WRITE_PTR,
 } from "./names.js";
 /**
  * loc_7fa8 — shared write-anim tail. Silences the sound channel (queueSoundCommand00), then
@@ -31,10 +31,10 @@ export function loc_7fa8(m) {
 
   queueSoundCommand00(m); // enqueue silence into the sound-command ring
 
-  const count = mem8[loc_8e25]; // the fill count
+  const count = mem8[WRITE_ANIM_ROW_COUNT]; // the fill count
   if (count !== 0) {
-    let tilePtr = mem16[loc_8e27]; // tile-fill pointer, stride -one row group
-    let recPtr = mem16[PLAYER2_START_CLEAR_BLOCK]; // record pointer, stride +1 (not written back)
+    let tilePtr = mem16[WRITE_ANIM_WRITE_PTR]; // tile-fill pointer, stride -one row group
+    let recPtr = mem16[ANIM_WORK_BLOCK_PTR]; // record pointer, stride +1 (not written back)
     for (let i = 0; i < count; i++) {
       mem8[tilePtr] = FILL_TILE;
       mem8[recPtr] = FILL_TILE;
@@ -45,6 +45,6 @@ export function loc_7fa8(m) {
 
   // shared tail (also the count==0 target): latch the phase-transition state
   mem8[PHASE_TIMER] = PHASE_TIMER_RELOAD;
-  mem8[loc_8e26] = 0x00; // cleared here
+  mem8[WRITE_ANIM_HANDLER_SELECT] = 0x00; // cleared here
   mem8[RESET_SCAN_LATCH] = RESET_SCAN_LATCH_SET;
 }

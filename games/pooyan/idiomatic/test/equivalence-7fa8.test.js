@@ -5,7 +5,7 @@
  * frozen loc_0ecf, the module via its idiomatic twin queueSoundCommand00 — so this test also pins the
  * twin against the frozen helper in RAM), (2) OPTIONALLY floods `count` (0x8e25) cells with the fill
  * tile 0x10 down a pointer at 0x8e27 (stride -0x20) and up the record pointer at
- * PLAYER2_START_CLEAR_BLOCK (stride +1), and (3) latches PHASE_TIMER=0x80, 0x8e26=0, RESET_SCAN_LATCH=1.
+ * ANIM_WORK_BLOCK_PTR (stride +1), and (3) latches PHASE_TIMER=0x80, 0x8e26=0, RESET_SCAN_LATCH=1.
  *
  * CYCLE-FREE / memory-equivalence gate: the handler WRITES RAM, so every case uses a FRESH clone per
  * side. The contract is RAM (dumpState minus STACK_SCRATCH); this is a void terminal handler, so there
@@ -28,7 +28,7 @@ import { loc_7fa8 as oracle } from "../../translated/loc_7fa8.js";
 import { loc_7fa8 } from "../loc_7fa8.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, PHASE_TIMER, PLAYER2_START_CLEAR_BLOCK, RESET_SCAN_LATCH } from "../names.js";
+import { STACK_SCRATCH, PHASE_TIMER, ANIM_WORK_BLOCK_PTR, RESET_SCAN_LATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -70,7 +70,7 @@ function craft(count) {
   }
   m.mem.write8(COUNT_CELL, count & 0xff);
   m.mem.write16(TILE_PTR_CELL, TILE_PTR_START);
-  m.mem.write16(PLAYER2_START_CLEAR_BLOCK, REC_PTR_START);
+  m.mem.write16(ANIM_WORK_BLOCK_PTR, REC_PTR_START);
   return m;
 }
 
@@ -132,7 +132,7 @@ test("CRAFTED count!=0: djnz fill floods `count` cells identically; pointers not
 
     // Pointers are NOT written back by this handler.
     assert.equal(c.mem.read16(TILE_PTR_CELL), TILE_PTR_START, `count ${hx(count)}: tile pointer was written back`);
-    assert.equal(c.mem.read16(PLAYER2_START_CLEAR_BLOCK), REC_PTR_START, `count ${hx(count)}: record pointer was written back`);
+    assert.equal(c.mem.read16(ANIM_WORK_BLOCK_PTR), REC_PTR_START, `count ${hx(count)}: record pointer was written back`);
 
     // The tail latches still fire after the fill.
     assert.equal(c.mem.read8(PHASE_TIMER), 0x80, `count ${hx(count)}: PHASE_TIMER not latched`);

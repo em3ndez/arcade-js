@@ -36,7 +36,7 @@ import { loc_24fb as oracle } from "../../translated/loc_24fb.js";
 import { advancePlayStateToPhase7OnActorDelay } from "../advancePlayStateToPhase7OnActorDelay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, TAMPER_ROM_CHECK_FLAG, PLAY_STATE_INDEX, TAMPER_STRIKES_HUD_GUARD, BOARD_CLEAR_FLAG, TAMPER_STRIKES_TERMINATOR } from "../names.js";
+import { STACK_SCRATCH, SCORE_DRIP_ACCUM, PLAY_STATE_INDEX, TAMPER_STRIKES_HUD_GUARD, BOARD_CLEAR_FLAG, TAMPER_STRIKES_TERMINATOR } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -61,7 +61,7 @@ function craft({ hold, romFlag, hudGuard }) {
   m.regs.ix = REC;
   m.regs.sp = 0x8fe0; // in STACK_SCRATCH: the fall-through call pushes hit dead RAM
   m.mem.write8(REC + HOLD, hold);
-  m.mem.write8(TAMPER_ROM_CHECK_FLAG, romFlag);
+  m.mem.write8(SCORE_DRIP_ACCUM, romFlag);
   m.mem.write8(PLAY_STATE_INDEX, 0x00); // observe the 0x880a write from a known value
   m.mem.write8(TAMPER_STRIKES_HUD_GUARD, hudGuard);
   m.mem.write8(BOARD_CLEAR_FLAG, 0x00); // keep copyDisplayTilesIntoActorRecords off its board-reset tail
@@ -121,9 +121,9 @@ test("WRITE-SET: expire->0x882b (guard clear) writes exactly (rec+0x11) and 0x88
   }
   assert.equal(changed.size, 2, `expected exactly 2 writes, got ${changed.size}`);
   assert.ok(changed.has(REC + HOLD), `expected a write at ${hx(REC + HOLD)}`);
-  assert.ok(changed.has(TAMPER_ROM_CHECK_FLAG), `expected a write at ${hx(TAMPER_ROM_CHECK_FLAG)}`);
-  assert.equal(o.mem.read8(TAMPER_ROM_CHECK_FLAG), 0x07, "0x882b must be stamped to 0x07");
-  console.log(`  WRITE-SET: ${hx(REC + HOLD)} (1->0) + ${hx(TAMPER_ROM_CHECK_FLAG)} (:=0x07)`);
+  assert.ok(changed.has(SCORE_DRIP_ACCUM), `expected a write at ${hx(SCORE_DRIP_ACCUM)}`);
+  assert.equal(o.mem.read8(SCORE_DRIP_ACCUM), 0x07, "0x882b must be stamped to 0x07");
+  console.log(`  WRITE-SET: ${hx(REC + HOLD)} (1->0) + ${hx(SCORE_DRIP_ACCUM)} (:=0x07)`);
 });
 
 // -- 4. TEETH -----------------------------------------------------------------
@@ -133,11 +133,11 @@ test("TEETH: a wrong shape byte is CAUGHT by the RAM diff", () => {
   const c = craft(SHALLOW[1]);
   oracle(o);
   advancePlayStateToPhase7OnActorDelay(c);
-  c.mem.write8(TAMPER_ROM_CHECK_FLAG, 0x00); // BUG: must be 0x07
+  c.mem.write8(SCORE_DRIP_ACCUM, 0x00); // BUG: must be 0x07
 
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong shape byte — it is worthless");
-  assert.equal(d.addr, TAMPER_ROM_CHECK_FLAG, `teeth caught wrong address ${hx(d.addr ?? 0)}`);
+  assert.equal(d.addr, SCORE_DRIP_ACCUM, `teeth caught wrong address ${hx(d.addr ?? 0)}`);
   console.log(`  TEETH/shape: wrong byte caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 

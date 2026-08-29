@@ -9,7 +9,7 @@
  * registers are scratch and no caller reads them.
  */
 import { u8, u16 } from "../../../core/int.js";
-import { TAMPER_ROM_CHECK_FLAG } from "./names.js";
+import { SCORE_DRIP_ACCUM } from "./names.js";
 
 export function verifyTableChecksum(m, ptr = m.regs.hl, count = m.regs.b, low = m.regs.a, high = m.regs.d) {
   const { mem8 } = m;
@@ -23,5 +23,5 @@ export function verifyTableChecksum(m, ptr = m.regs.hl, count = m.regs.b, low = 
   }
 
   if (low === 0xc1 && high === 0x1d) return; // high 0x1d, low 0xc1: table intact
-  mem8[TAMPER_ROM_CHECK_FLAG] = 1;
+  mem8[SCORE_DRIP_ACCUM] = 1;
 }

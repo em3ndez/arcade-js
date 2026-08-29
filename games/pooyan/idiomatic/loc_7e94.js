@@ -3,7 +3,7 @@ import { loc_7eb2 } from "./loc_7eb2.js";
 import { loc_7f0e } from "./loc_7f0e.js";
 import { loc_7f5d } from "./loc_7f5d.js";
 import { startGameOnStartButtonPress } from "./startGameOnStartButtonPress.js";
-import { RESET_SCAN_LATCH, HIGH_SCORE_INSERT_RANK, loc_8e26 } from "./names.js";
+import { RESET_SCAN_LATCH, HIGH_SCORE_INSERT_RANK, WRITE_ANIM_HANDLER_SELECT } from "./names.js";
 
 /**
  * loc_7e94 — the write-anim dispatch redirect, a per-frame pre-pass.
@@ -24,7 +24,7 @@ export function loc_7e94(m) {
     return startGameOnStartButtonPress(m);
   }
 
-  switch (mem8[loc_8e26]) {
+  switch (mem8[WRITE_ANIM_HANDLER_SELECT]) {
     case 0:
       loc_7eb2(m);
       break;

@@ -9,7 +9,7 @@ import {
   FIELD_ATTRIB_SRC_B,
   FIELD_ATTRIB_SRC_C,
   FIELD_ATTRIB_REF_2980,
-  DISPLAY_CMD_0614,
+  DESCENT_STATE_COMPLETE_DISPLAY_CMD,
   loc_8343,
 } from "./names.js";
 /**
@@ -71,5 +71,5 @@ export function loc_29a0(m, rec = m.regs.ix) {
     if (mem8[FIELD_ATTRIB_REF_2980 + i] !== mem8[FIELD_ATTRIB_SRC_C + i]) return loc_2901(m, rec);
   }
 
-  loc_0038(m, DISPLAY_CMD_0614); // clean check -> enqueue the descent display command
+  loc_0038(m, DESCENT_STATE_COMPLETE_DISPLAY_CMD); // clean check -> enqueue the descent display command
 }

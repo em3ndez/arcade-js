@@ -7,7 +7,7 @@ import {
   INPUT_PORT0,
   DRIP_RING_C,
   COIN1_PULSE_COUNT,
-  TAMPER_ROM_CHECK_FLAG,
+  SCORE_DRIP_ACCUM,
   COINAGE_CONFIG,
 } from "./names.js";
 /**
@@ -29,13 +29,13 @@ export function accrueCreditFromCoin1Pulse(m) {
   emitPresetSound(m);
   mem8[COIN1_PULSE_COUNT] = u8(mem8[COIN1_PULSE_COUNT] + 1);
 
-  const stepped = u8(mem8[TAMPER_ROM_CHECK_FLAG] + 0x10);
-  mem8[TAMPER_ROM_CHECK_FLAG] = stepped;
+  const stepped = u8(mem8[SCORE_DRIP_ACCUM] + 0x10);
+  mem8[SCORE_DRIP_ACCUM] = stepped;
   const cfg = mem8[COINAGE_CONFIG];
   if (cfg >= stepped) return; // sub (hl),b -> ret nc: no borrow means nothing to carry
 
-  const carry = u8(u8(-u8((cfg & 0xf0) + 0x10)) + mem8[TAMPER_ROM_CHECK_FLAG]);
-  mem8[TAMPER_ROM_CHECK_FLAG] = carry;
+  const carry = u8(u8(-u8((cfg & 0xf0) + 0x10)) + mem8[SCORE_DRIP_ACCUM]);
+  mem8[SCORE_DRIP_ACCUM] = carry;
 
   const nibble = cfg & 0x0f;
   if (nibble !== 0x0f) return addCreditsAndQueueDisplay(m, nibble); // add the nibble to the score byte

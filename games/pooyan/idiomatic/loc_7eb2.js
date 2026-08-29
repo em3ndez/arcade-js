@@ -4,18 +4,18 @@ import {
   ACTIVE_PLAYER,
   CABINET_MODE_FLAG,
   HIGH_SCORE_INSERT_RANK,
-  PLAYER2_START_CLEAR_BLOCK,
-  loc_8565,
-  loc_8811,
-  loc_8812,
+  ANIM_WORK_BLOCK_PTR,
+  DISPLAY_LIST_VRAM_TILE,
+  INPUT_PORT1,
+  INPUT_PORT2,
   loc_8dfd,
   loc_8e21,
-  loc_8e23,
-  loc_8e24,
-  loc_8e25,
-  loc_8e26,
-  loc_8e27,
-  loc_8e2b,
+  WRITE_ANIM_TILE_INDEX,
+  WRITE_ANIM_STEP_DELAY,
+  WRITE_ANIM_ROW_COUNT,
+  WRITE_ANIM_HANDLER_SELECT,
+  WRITE_ANIM_WRITE_PTR,
+  WRITEANIM_COUNTDOWN,
   FIRE_PHASE_SEED,
 } from "./names.js";
 
@@ -38,9 +38,9 @@ export function loc_7eb2(m) {
 
   const count = mem8[HIGH_SCORE_INSERT_RANK]; // pass count for both walks
 
-  mem16[loc_8e27] = loc_8565; // stash the stamp base (read back for the second walk)
-  mem8[loc_8e25] = 0x03;
-  mem16[loc_8e2b] = FIRE_PHASE_SEED;
+  mem16[WRITE_ANIM_WRITE_PTR] = DISPLAY_LIST_VRAM_TILE; // stash the stamp base (read back for the second walk)
+  mem8[WRITE_ANIM_ROW_COUNT] = 0x03;
+  mem16[WRITEANIM_COUNTDOWN] = FIRE_PHASE_SEED;
 
   // Record walk: pointer += 3 per pass (a 0 seed runs 256 passes).
   let recordPtr = loc_8dfd;
@@ -49,24 +49,24 @@ export function loc_7eb2(m) {
     recordPtr = u16(recordPtr + RECORD_STRIDE);
     b = u8(b - 1);
   } while (b !== 0);
-  mem16[PLAYER2_START_CLEAR_BLOCK] = recordPtr;
+  mem16[ANIM_WORK_BLOCK_PTR] = recordPtr;
 
   // Source pointer: default, unless cabinet flag clear AND active-player flag set -> alternate.
-  let srcPtr = loc_8811;
-  if (mem8[CABINET_MODE_FLAG] === 0 && mem8[ACTIVE_PLAYER] !== 0) srcPtr = loc_8812;
+  let srcPtr = INPUT_PORT1;
+  if (mem8[CABINET_MODE_FLAG] === 0 && mem8[ACTIVE_PLAYER] !== 0) srcPtr = INPUT_PORT2;
   mem16[loc_8e21] = srcPtr;
 
   // Stamp-pointer walk: pointer += 2 per pass (same seed).
-  let writePtr = mem16[loc_8e27]; // the stamp base
+  let writePtr = mem16[WRITE_ANIM_WRITE_PTR]; // the stamp base
   let b2 = count;
   do {
     writePtr = u16(writePtr + WRITE_PTR_STEP);
     b2 = u8(b2 - 1);
   } while (b2 !== 0);
-  mem16[loc_8e27] = writePtr; // advanced pointer
+  mem16[WRITE_ANIM_WRITE_PTR] = writePtr; // advanced pointer
 
   mem8[writePtr] = STAMP_BYTE; // stamp at the landing address
-  mem8[loc_8e23] = STAMP_BYTE;
-  mem8[loc_8e26] = 0x01;
-  mem8[loc_8e24] = 0x0c;
+  mem8[WRITE_ANIM_TILE_INDEX] = STAMP_BYTE;
+  mem8[WRITE_ANIM_HANDLER_SELECT] = 0x01;
+  mem8[WRITE_ANIM_STEP_DELAY] = 0x0c;
 }

@@ -36,7 +36,7 @@ import { loc_585b as oracle } from "../../translated/loc_585b.js";
 import { verifyTableChecksum } from "../verifyTableChecksum.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, TAMPER_ROM_CHECK_FLAG } from "../names.js";
+import { STACK_SCRATCH, SCORE_DRIP_ACCUM } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -93,7 +93,7 @@ test("REAL: HL=0x0bb5 ROM table, B=0x52 — verifyTableChecksum == oracle in RAM
   verifyTableChecksum(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
-  console.log(`  REAL: 0x0bb5..+0x52 checksum — tamper flag now ${c.mem.read8(TAMPER_ROM_CHECK_FLAG)}`);
+  console.log(`  REAL: 0x0bb5..+0x52 checksum — tamper flag now ${c.mem.read8(SCORE_DRIP_ACCUM)}`);
 });
 
 // -- 2. CRAFTED (load-bearing) ------------------------------------------------
@@ -123,16 +123,16 @@ test("WRITE-SET: the oracle's only live write is the tamper flag (0x882b)", () =
       if (b0[off] === a1[off]) continue;
       const addr = after.stateOffsetToAddr(off);
       assert.ok(
-        addr === TAMPER_ROM_CHECK_FLAG || inDeadStack(addr),
+        addr === SCORE_DRIP_ACCUM || inDeadStack(addr),
         `${cs.name}: oracle wrote unexpected addr ${hx(addr)} (${b0[off]}->${a1[off]})`,
       );
     }
   }
   // The OK case must NOT touch the flag; a mismatch case must set it to 1.
   const ok = craft(CRAFTED[0]); oracle(ok);
-  assert.equal(ok.mem.read8(TAMPER_ROM_CHECK_FLAG), 0, "OK checksum must leave the tamper flag clear");
+  assert.equal(ok.mem.read8(SCORE_DRIP_ACCUM), 0, "OK checksum must leave the tamper flag clear");
   const bad = craft(CRAFTED[1]); oracle(bad);
-  assert.equal(bad.mem.read8(TAMPER_ROM_CHECK_FLAG), 1, "a mismatch must set the tamper flag to 1");
+  assert.equal(bad.mem.read8(SCORE_DRIP_ACCUM), 1, "a mismatch must set the tamper flag to 1");
   console.log("  WRITE-SET: only the tamper flag moves; OK leaves it 0, mismatch sets 1");
 });
 
@@ -141,7 +141,7 @@ test("WRITE-SET: the oracle's only live write is the tamper flag (0x882b)", () =
 /** Broken twin: stamps a WRONG tamper byte regardless of the verdict — caught at 0x882b. */
 function brokenVerify(m, ptr = m.regs.hl, count = m.regs.b, low = m.regs.a, high = m.regs.d) {
   verifyTableChecksum(m, ptr, count, low, high);
-  m.mem.write8(TAMPER_ROM_CHECK_FLAG, 0xee); // BUG: wrong tamper value / spurious write
+  m.mem.write8(SCORE_DRIP_ACCUM, 0xee); // BUG: wrong tamper value / spurious write
 }
 
 test("TEETH: a wrong tamper byte is CAUGHT at the tamper flag", () => {
@@ -155,6 +155,6 @@ test("TEETH: a wrong tamper byte is CAUGHT at the tamper flag", () => {
     if (d) { caught = d; break; }
   }
   assert.notEqual(caught, null, "the gate FAILED to catch a wrong tamper store — it is worthless");
-  assert.equal(caught.addr, TAMPER_ROM_CHECK_FLAG, `teeth caught the wrong address ${hx(caught.addr ?? 0)}`);
+  assert.equal(caught.addr, SCORE_DRIP_ACCUM, `teeth caught the wrong address ${hx(caught.addr ?? 0)}`);
   console.log(`  TEETH: wrong tamper store caught at ${hx(caught.addr)} (oracle=${caught.a} broken=${caught.b})`);
 });

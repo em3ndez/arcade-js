@@ -21,7 +21,7 @@ import { loc_5a56 as oracle } from "../../translated/loc_5a56.js";
 import { accrueCreditFromCoin1Pulse } from "../accrueCreditFromCoin1Pulse.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, INPUT_PORT0, DRIP_RING_C, TAMPER_ROM_CHECK_FLAG, COINAGE_CONFIG } from "../names.js";
+import { STACK_SCRATCH, INPUT_PORT0, DRIP_RING_C, SCORE_DRIP_ACCUM, COINAGE_CONFIG } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -43,7 +43,7 @@ function seat(m, { input = 0x00, ring = 0x00, coord = 0x00, cfg = 0x00 } = {}) {
   m.regs.sp = SP0;
   m.mem.write8(INPUT_PORT0, input);
   m.mem.write8(DRIP_RING_C, ring);
-  m.mem.write8(TAMPER_ROM_CHECK_FLAG, coord);
+  m.mem.write8(SCORE_DRIP_ACCUM, coord);
   m.mem.write8(COINAGE_CONFIG, cfg);
   return m;
 }
@@ -74,7 +74,7 @@ test("WRITE-SET: the rl step lands and phase 1 bumps the coord pair", () => {
 
   const step = CASES["phase 1, no coord carry -> ret nc"](BASE.clone()); // cfg>=stepped -> early ret preserves the pre-carry coord
   oracle(step);
-  assert.equal(step.mem.read8(TAMPER_ROM_CHECK_FLAG) & 0xff, (0x00 + 0x10) & 0xff, "coord += 0x10 pre-carry");
+  assert.equal(step.mem.read8(SCORE_DRIP_ACCUM) & 0xff, (0x00 + 0x10) & 0xff, "coord += 0x10 pre-carry");
   console.log("  WRITE-SET: rl lands; coord stepped");
 });
 
@@ -83,7 +83,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const c = CASES["phase 1, no coord carry -> ret nc"](BASE.clone());
   oracle(o);
   accrueCreditFromCoin1Pulse(c);
-  c.mem.write8(TAMPER_ROM_CHECK_FLAG, (o.mem.read8(TAMPER_ROM_CHECK_FLAG) ^ 0xff) & 0xff);
+  c.mem.write8(SCORE_DRIP_ACCUM, (o.mem.read8(SCORE_DRIP_ACCUM) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
   console.log(`  TEETH(RAM): caught at ${hx(d.addr ?? 0)}`);

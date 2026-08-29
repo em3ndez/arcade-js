@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { setActorAnimation } from "./setActorAnimation.js";
-import { RECORD_ANIM_SEQ_2CA7, RECORD_SCRIPT_2D00 } from "./names.js";
+import { RECORD_ANIM_SEQ_2CA7, HUNTER_MOVE_SCRIPT } from "./names.js";
 
 const STATE_FIELD = 0x02; // record state byte
 const STATE_TRIGGER = 0x11; // state that triggers the transition
@@ -24,7 +24,7 @@ export function loc_2c85(m, rec = m.regs.ix) {
 
   mem8[rec + STATE_FIELD] = STATE_NEXT;
   setActorAnimation(m, rec, RECORD_ANIM_SEQ_2CA7);
-  mem8[rec + SCRIPT_LO] = RECORD_SCRIPT_2D00; // low byte (store truncates)
-  mem8[rec + SCRIPT_HI] = RECORD_SCRIPT_2D00 >> 8;
+  mem8[rec + SCRIPT_LO] = HUNTER_MOVE_SCRIPT; // low byte (store truncates)
+  mem8[rec + SCRIPT_HI] = HUNTER_MOVE_SCRIPT >> 8;
   mem8[rec + SCRIPT_STEP] = 0x00;
 }
