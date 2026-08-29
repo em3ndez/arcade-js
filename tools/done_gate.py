@@ -57,6 +57,11 @@ ROUT_ADDR = re.compile(r"^\s*(0x[0-9a-f]+):")                                  #
 def _line_ungrounded(ln):
     # Evidence = the FIRST bracketed tag; [code]/[guess] there = ungrounded (the `[code] not [seen]`
     # idiom keeps [code] first, so a trailing [seen] must NOT exempt). Skip the legend + [code]->[seen].
+    # A `//` line comment (a section divider `// == Batch ... [code] ==` or prose) is NEVER a cell's
+    # JSDoc tag -- a cell tag lives in a /** ... */ block -- so its stray [code] has no cell and must
+    # not be counted as one (else the divider is a phantom ungrounded cell that can never be grounded).
+    if ln.lstrip().startswith("//"):
+        return False
     if "evidence tag" in ln or GND_ARROW.search(ln):
         return False
     m = FIRST_TAG.search(ln)
@@ -220,6 +225,9 @@ def selftest():
         ('  role: "does X", cert: "seen",', False),                      # grounded
         ('  // 0x80 was [code]->[seen] once the tap fired', False),      # completion arrow
         ('  mem8[x] = 1;', False),                                       # no tag
+        ('// == Batch: leaves-first decompile cells [code] (pending) ==', False),  # phantom divider
+        ('// observation ...; [code] role read from the translated', False),       # phantom prose
+        ('/** [code] a real ungrounded cell */', True),                 # a genuine JSDoc cell tag
     ]
     for ln, exp in cases:
         if _line_ungrounded(ln) != exp:
