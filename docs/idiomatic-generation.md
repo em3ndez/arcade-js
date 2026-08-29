@@ -40,7 +40,7 @@ is the second face of the oracle, and it runs from day zero.
    `tools/pixel_gate_required.py`, which is what makes `hooks/pre-commit` refuse an idiomatic
    commit whose pixels were never compared. Until you do, the gate refuses that game rather than
    passing it — an undeclared game is unevaluable, not clean.
-   ★ **But know what it can and cannot see.** The idiomatic layer runs from the skeleton (born-live),
+   ★ **But know what it can and cannot see.** The idiomatic layer runs from the skeleton (on the generator engine),
    but a suite that renders the ORACLE cannot observe an idiomatic *render* regression — it sees one
    only once the game's idiomatic render path exists and the suite selects it (the `render.js
    --idiomatic` CLI switch for the gate; `manifest.runtime` `"idiomatic"` for the shipped worker).

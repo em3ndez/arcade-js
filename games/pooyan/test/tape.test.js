@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// tape — pooyan's whole-game GAMEPLAY gate: a coin/start/play input tape driven through the born-live
+// tape — pooyan's whole-game GAMEPLAY gate: a coin/start/play input tape driven through the generator
 // idiomatic layer (runIdiomaticGame) and the pure-translated oracle (runCycleFree) at the same frame
 // boundary (0x021c, manifest.convergence). Attract gates never dispatch the in-play leaves, so this is
 // the only standing check that the gameplay seams (fire/climb handlers, the object/HUD leaves reached
@@ -80,7 +80,7 @@ test("the coin/start/play tape drives real gameplay and idiomatic == oracle thro
   const overrides = await resolveAllIdiomatic();
   assert.ok(overrides.has(0x020f), "mainLoop must be wired at the main-loop entry");
 
-  // Idiomatic arm — the born-live layer, wired exactly as the worker ships it.
+  // Idiomatic arm — the generator layer, wired exactly as the worker ships it.
   const mi = new Machine(ROM, { overrides });
   const nmiFaults = [];
   const realFire = mi.fireNmi.bind(mi);

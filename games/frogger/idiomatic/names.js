@@ -5,13 +5,13 @@
  *
  * resolveAllIdiomatic() reads ROUTINES: each 0xADDR maps to ./idiomatic/<name>.js, exporting
  * <entry ?? name>, wired OVER the translated base. Only the SPINE is listed here — every routine
- * without an entry falls back to its translated oracle, which is the born-live model.
+ * without an entry falls back to its translated oracle, which is the generator model.
  *
  * The spine is the foreground main loop, and it is TWO addresses because the ROM enters the loop
  * body at two points: 0x0341 (the head, run each attract pass) and 0x0368 (the pace tail, which the
  * in-play play-loop re-enters via `jp 0x0368`, skipping the head). The boot chain (0x0000, 0x02a3)
  * stays translated: it runs once, never yields, and its tail `m.call(0x0341)` already hands the
- * engine the driver generator — so boot needs no idiomatic form to be born live.
+ * engine the driver generator — so boot needs no idiomatic form to run on the generator engine.
  *
  * Names carry an evidence tag: [code] understood from the routines that touch the cell; [seen]
  * observed under MAME. The pixel gate, not a name, is the correctness authority.

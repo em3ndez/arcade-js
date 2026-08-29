@@ -44,7 +44,7 @@ import {
  * parks their read/write cursors at the origin, floods the colour map, arms the row-by-row tile fill,
  * decodes the two DIP-switch ports into their work-RAM config cells, clears the sprite banks and blanks
  * the lower tile map, silences the audio CPU, enables the vblank interrupt, and lays down the default
- * high-score table. Finally it hands control to the born-live main-loop generator.
+ * high-score table. Finally it hands control to the main-loop generator.
  *
  * The banks are checked with a 24-bit rolling sum kept as three bytes (low/mid/high). The tally is
  * seeded with the bank count and incremented once per matching bank, so a wholly-intact image lands at

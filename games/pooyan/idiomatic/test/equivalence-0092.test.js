@@ -6,7 +6,7 @@
  * requires), then lays down the whole initial machine state: clears work RAM, empties the two command
  * rings, floods the colour map, arms the tile fill, decodes both DIP-switch ports, clears the sprite
  * banks and blanks the lower tile map, enables the vblank interrupt, seeds the high-score table, and
- * finally hands control to the born-live main-loop generator (`jp` into the main loop in the frozen
+ * finally hands control to the main-loop generator (`jp` into the main loop in the frozen
  * form; a returned generator in the idiomatic form).
  *
  * This is the CYCLE-FREE / memory-equivalence gate. The contract is RAM (dumpState, minus

@@ -48,7 +48,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
     Our engine may be IN the chain: a pixel diff runs our renderer against a MAME golden and stays
     `[seen]`, because the reference side is the real machine. What is forbidden is a chain that
     terminates in our OWN output — a `Machine`/`runFrames` dispatch count, an override-map replay,
-    or an idiomatic-vs-oracle equality (`idiomatic.test.js` compares the born-live idiomatic layer against the translated oracle). Those are
+    or an idiomatic-vs-oracle equality (`idiomatic.test.js` compares the generator idiomatic layer against the translated oracle). Those are
     sound facts about the PORT, and they are `[code]`.
     Verify: for every `[seen]` whose evidence is a number, follow the chain to its far end and ask
     what produced the REFERENCE. Do not classify by which tool ran — `prize_suite.py` emits both

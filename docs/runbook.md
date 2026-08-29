@@ -78,7 +78,7 @@ real running game, not attract mode.
   never returns 0** — a silent 0 is indistinguishable from correct until a pixel diff fails hundreds of
   frames later; throwing turns "not implemented" into a self-naming coverage signal. State lives at its
   real address (the RAM arrays are what gets diffed vs MAME).
-- **The game runs on the born-live engine `runIdiomaticGame` from the start** — a clock-free engine whose
+- **The game runs on the generator engine `runIdiomaticGame` from the start** — a clock-free engine whose
   frame boundary is the ROM's own vblank-wait yield. Until routines are rewritten it runs **entirely on
   the translated fallback** (`resolveAllIdiomatic` supplies the translated routine for anything not yet
   done), so it is always a complete runnable game. There is no separate "make it live" milestone. Declare
@@ -293,7 +293,7 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
 - **Even the hard spine parallelises — in clusters, not one-by-one.** "Hard" means each unit needs a
   bespoke fixture (tape/golden, pixel gate) or careful grounding, NOT that authoring conflicts. Group the
   interdependent routines into coherent CLUSTERS (siblings sharing state, a render group sharing the pixel
-  gate) and run ~1 agent per cluster in parallel; born-live `m.call` fallback decouples the authoring, and
+  gate) and run ~1 agent per cluster in parallel; generator `m.call` fallback decouples the authoring, and
   equivalence gates correctness regardless of order. Keep the GROUNDING careful (the spine is where
   grounding-overturns hide) and **wire the spine dispatchers LAST, validating them serially** (a bad
   dispatcher wire breaks the whole live game — the pixel/live gate is what catches it). **Before opening the
@@ -404,7 +404,7 @@ feeds the next batch's targets.
   `games/<game>/idiomatic-budget.txt` (a single integer — game-local config, NOT in common `tools/`) is a
   **shrinking ratchet** (legacy games frozen at their count); a game with no such file is held at 0, and a
   game is IDIOMATIC (a done requirement) only at 0.
-- **Closure — a reachable routine still served by the oracle is cruft too.** A born-live layer silently
+- **Closure — a reachable routine still served by the oracle is cruft too.** A generator layer silently
   falls back to the translated routine for anything unlifted, so it *runs correctly* and the behavioural
   worklist (the state diff, §2) never flags it — a whole reachable sub-tree can stay frozen while every gate
   is green. So `idiomatic_gate` also counts, for a **closure-enrolled game** (`CLOSURE_GAMES`), every
@@ -625,7 +625,7 @@ deliberate handling. These four are one problem and are decided together, once, 
     work (render + input + the game-state dispatch), so the CPU is interrupted at a PC spread ∝ execution
     frequency with NO single-PC spin. MEASURE this before assuming a dkong-style wait — an NMI-return-PC
     histogram off a MAME read-tap on the NMI vector (gate CURPC, read the pushed return PC off SP). With no
-    ROM wait to yield at, the born-live yield is SYNTHETIC: make the main loop a `function*` that `yield`s
+    ROM wait to yield at, the generator yield is SYNTHETIC: make the main loop a `function*` that `yield`s
     once per outer iteration, and set `nmiReturnPC` = `pollPCs` = the main-loop TOP. Firing one NMI per
     iteration keeps game-time 1:1 with MAME (every NMI is one frame) and collapses only the ~N redundant
     intra-frame iterations — VALID only because those are memory-idempotent (anti-tamper re-checks, VRAM
@@ -635,14 +635,14 @@ deliberate handling. These four are one problem and are decided together, once, 
     intra-frame iteration is NOT idempotent and the model is wrong.
   - **Retiring SP — the last register — by firing the idiomatic NMI as a DIRECT JS call.** The idiomatic
     layer targets zero registers, but `m.regs.sp` outlives every value register: once the value registers are
-    threaded away, the only remaining SP user is how the born-live engine fires the vblank NMI — through the
+    threaded away, the only remaining SP user is how the generator engine fires the vblank NMI — through the
     **Z80 call/ret seam** (`fireNmi` does `push16(pc)`, the `withOmittedRet` wrapper does `read16(sp)` +
     `ret`), plus the boot's `m.regs.sp = <top>` seat that exists only to serve that push. **Do not exempt
     SP** — it is a CPU register like any other, the VBI included; remove what needs it, in two moves done
     together per game: (1) LIFT the frozen main-loop-step spine to idiomatic JS (no `m.step`/`m.call`/
     `m.push`) so the main loop never touches the seam; (2) in idiomatic mode FIRE the NMI as a direct JS call
     to the vblank-vector handler (`this.nmiCount += 1; return loc_<vector>(this)`) — no `push16`, no seam —
-    gated on a per-machine flag the born-live engine sets (`machine.idiomaticNmi = true` in
+    gated on a per-machine flag the generator engine sets (`machine.idiomaticNmi = true` in
     `runIdiomaticGame`); the oracle / cycle-driven engine is a real Z80 with a real stack, so ITS `fireNmi`
     keeps the `push16 + step + call(vector)` path. The boot's SP seat is then vestigial (nothing reads SP) →
     drop it. Memory-equivalent: all the push+seam did was park the return PC on the guest stack and pop it —

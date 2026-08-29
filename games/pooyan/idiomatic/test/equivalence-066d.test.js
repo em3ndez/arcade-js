@@ -3,7 +3,7 @@
  * Memory-equivalence + SP-tooth for loc_066d (ROM 0x066d, Pooyan) — the vblank NMI service routine,
  * the game's sole per-frame heartbeat. The oracle saves the full register file, does its per-frame work
  * (scroll rebuild, input edge-ring, frame counters, coin/sound service, state dispatch), and restores the
- * file; the born-live main loop holds no CPU registers, so the module drops the save/restore and keeps its
+ * file; the generator main loop holds no CPU registers, so the module drops the save/restore and keeps its
  * scratch in JS locals. The rst-28 state dispatch (table 0x06f0) becomes a switch.
  *
  * ENTRY: the NMI runs a whole frame of game logic through the state dispatch, so a raw power-on clone is
@@ -46,7 +46,7 @@ const SP0 = 0x8fe0; //         inside STACK_SCRATCH — the oracle's 12 register
 const RET = 0xfffc; //         a caller-return word seeded at SP0 for the oracle's final ret to pop
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 
-// Boot the born-live engine (real overrides) once to a mid-attract frame; that valid state is the entry.
+// Boot the generator engine (real overrides) once to a mid-attract frame; that valid state is the entry.
 let SNAP = null;
 if (ROM_PRESENT) {
   const overrides = await resolveAllIdiomatic();

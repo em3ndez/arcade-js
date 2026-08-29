@@ -59,7 +59,7 @@ def capture_golden(rompath, out, seconds):
 
 
 def render_js(out, frames, idiomatic):
-    """Fresh JS render (nonzero on a boot gap / dropped frame). idiomatic = the born-live spine via
+    """Fresh JS render (nonzero on a boot gap / dropped frame). idiomatic = the generator spine via
     runIdiomaticGame; oracle = the cycle-driven translated layer. The gate picks by the changed files."""
     cmd = ["node", os.path.join(HERE, "render.js"), "--frames", str(frames), "--frames-out", out]
     if idiomatic:

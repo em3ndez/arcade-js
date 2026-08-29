@@ -827,7 +827,7 @@ export const AIM_INDICATOR_TIMER = 0x8d53;
 export const PROXIMITY_HIT_FLAG = 0x8d54;
 
 // == Routine dispatch map (idiomatic overrides layered over the translated oracle) ==
-// mainLoop runs as the born-live generator on runIdiomaticGame, yielding at the per-frame worker
+// mainLoop runs as the generator on runIdiomaticGame, yielding at the per-frame worker
 // (ring-idle) iteration -- the vblank boundary -- and draining the display command ring within the frame
 // (as MAME does per vblank); the frozen boot chain's tail call into the main loop returns this generator,
 // which the engine drives frame by frame. The leaves below are wired as direct overrides: the memory-only ones
@@ -1507,7 +1507,7 @@ export const ROUTINES = {
   0x76f4: { name: "loc_76f4", role: "sweep the per-object state dispatcher over the six object records at OBJECT_STATE_RECORD_BASE (stride 0x18)", cert: "seen" },
   0x020f: {
     name: "mainLoop",
-    role: "the main-loop state driver: each iteration runs the per-frame worker or dispatches one display-ring handler; as the born-live generator it drains the ring within a frame and yields at the worker/ring-idle vblank boundary",
+    role: "the main-loop state driver: each iteration runs the per-frame worker or dispatches one display-ring handler; as the generator it drains the ring within a frame and yields at the worker/ring-idle vblank boundary",
     cert: "code",
   },
   0x02aa: { name: "paintColumnBodyTiles", role: "stamp a tilemap column's two body tiles (mid + base)", cert: "seen" },

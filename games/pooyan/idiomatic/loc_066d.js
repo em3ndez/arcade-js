@@ -33,7 +33,7 @@ import {
  * loc_066d — the vblank NMI service routine, the game's sole per-frame heartbeat.
  *
  * On the real machine it saves the whole register file, does its work, and restores it so the
- * interrupted main loop is undisturbed. The born-live main loop holds no CPU registers, so that
+ * interrupted main loop is undisturbed. The generator main loop holds no CPU registers, so that
  * save/restore is vestigial and dropped here; scratch lives in JS locals. LIVE-OUT: memory only.
  *
  * Steps: mask NMI; rebuild the scrolling tile columns; kick the watchdog; shift the three input ports

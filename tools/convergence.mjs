@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * convergence — run a game CYCLE-FREE (core/frame-stepped.js, or the born-live idiomatic layer with
+ * convergence — run a game CYCLE-FREE (core/frame-stepped.js, or the generator idiomatic layer with
  * --idiomatic) and validate it against a MAME golden with the drift-tolerant "reconverge" rule
  * (docs/pixel-gate.md). Whole-game analogue of the per-routine memory-equivalence gate, driven by the
  * game's manifest (`convergence.pollPCs`, `entropyPin`) — no game code here. Dropping the T-state clock
@@ -10,7 +10,7 @@
  * Usage:
  *   node tools/convergence.mjs --game thepit --golden <dir> [--mode pixel|state]
  *        [--pin] [--frame-stride N] [--px-threshold 5] [--search-window W] [--idiomatic]
- *   --idiomatic drives runIdiomaticGame (the born-live layer); it runs FASTER (delay-collapse), so give
+ *   --idiomatic drives runIdiomaticGame (the generator layer); it runs FASTER (delay-collapse), so give
  *   it a golden of ≥2 attract loops (extensive `pixel_suite --seconds`) or its ahead-frames find no match.
  *   <dir> is a mame_golden.py output dir (frames.rgb+json / state.bin+json); ROM/gfx/proms are the game's
  *   uncommitted BYO images under games/<game>/rom/. --pin installs manifest.entropyPin (use ONLY with a
@@ -50,7 +50,7 @@ function loadBin(p) {
   return readFileSync(p);
 }
 
-// Render the JS side: the born-live idiomatic engine (--idiomatic) or the cycle-free oracle (default).
+// Render the JS side: the generator engine (--idiomatic) or the cycle-free oracle (default).
 // The idiomatic runs FASTER, so the golden must cover its ahead game-time. Returns {frames,stop,stopError}.
 function renderRun(machine, cfg, args, GC, capture) {
   if (args.idiomatic) {

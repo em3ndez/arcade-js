@@ -124,7 +124,7 @@ def reconverge(js, golden, window):
     return scores
 
 
-# The born-live idiomatic layer collapses pure-delay waits, so its frame i lands at a golden index that
+# The generator idiomatic layer collapses pure-delay waits, so its frame i lands at a golden index that
 # drifts ahead non-uniformly (+33..+67 over the boot) -- the fixed +/-WINDOW sweep cannot track that.
 IDIOMATIC_SECONDS = 6          # ~366 golden frames: headroom for the ~1.4x collapse
 MONO_BACK = 20                 # backward slack for near-identical adjacent boot frames
@@ -132,7 +132,7 @@ MONO_AHEAD = 96                # forward reach per frame: covers the initial col
 
 
 def reconverge_monotonic(js, golden, back, ahead):
-    """Drift-tolerant reconverge for the COLLAPSED born-live timeline: score each JS frame against its
+    """Drift-tolerant reconverge for the COLLAPSED generator timeline: score each JS frame against its
     nearest golden frame at a MONOTONICALLY non-decreasing index (search [lo-back, lo+ahead), advance lo
     to the match). Monotonicity is the teeth -- a frozen/garbage render cannot pass by cherry-picking
     scattered golden frames, since the match index can only move forward. Returns (scores, idxs)."""

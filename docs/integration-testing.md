@@ -242,8 +242,8 @@ game before trusting a number out of any of these tools.
 `runCycleFree` detects the frame boundary via **`m.step` reaching a poll PC**. That only works while
 the poll routines (`mainLoop`, `waitFrames`) are still TRANSLATED — they are what emit the `m.step`.
 Idiomatic routines are cycle-free and **never call `m.step`**, so once the poll routines are
-themselves idiomatic — as they are in the born-live whole game — the poll-PC seam goes dark and the
-run hangs. That is why `runCycleFree` stays a per-routine equivalence gate on the born-live game (one
+themselves idiomatic — as they are in the generator whole game — the poll-PC seam goes dark and the
+run hangs. That is why `runCycleFree` stays a per-routine equivalence gate on the generator game (one
 idiomatic swap validated against the translated oracle, the poll routines held translated) while the
 *whole idiomatic game* runs on its own engine.
 
@@ -290,13 +290,13 @@ oracle through coin → start → in-game → dig. Port it with the tape: press 
 does via `io.inputAssert` (the JS mirror is offset a couple frames — the tape file documents it), and
 expand a thin coin/start tape until it exercises much of the game.
 
-## The born-live coroutine engine (`runIdiomaticGame`)
+## The generator engine (`runIdiomaticGame`)
 
 `runWatchdogGame` (above) fires the vblank NMI as a NESTED JS call at the watchdog read. It works,
 but a warm restart (coin/start/level/game-over) long-jumps into a *new* forever main loop that never
 returns, so the JS HOST stack grows ~one frame per restart — bounded for a normal session, but a leak,
 and it needs a per-game "find the forever loops" analysis. **The coroutine engine removes both.** It is
-the recommended born-live engine and the template every future game should use.
+the recommended generator engine and the template every future game should use.
 
 **The model.** The idiomatic control SPINE — the boot chain, the main loops, the wait/hold loops — are
 GENERATORS (`function*`) that `yield` at each vblank wait; everything else (per-frame services, physics,
@@ -359,7 +359,7 @@ harness + rationale); the leaf/gameplay `equivalence-<addr>.test.js` that DON'T 
 `manifest.idiomatic` + `tools/swap_check.mjs` (the one-leaf-at-a-time promotion set/classifier) are retired
 with them — the whole idiomatic layer now runs live, so there is no promotion subset to track.
 
-Because a spine routine has no `equivalence-<addr>.test.js`, a born-live foundation whose idiomatic layer
+Because a spine routine has no `equivalence-<addr>.test.js`, a generator foundation whose idiomatic layer
 holds ONLY spine files names no decompiled address, and the dissolve lint (`tools/no-stale-mcall.mjs`)
 would otherwise refuse to score it. List those files under `SPINE` in `tools/no-stale-mcall.config.mjs`:
 they are excused from seeding the decompiled set, but still scanned, so a spine `m.call` to a leaf

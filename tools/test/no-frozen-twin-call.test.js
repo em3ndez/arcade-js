@@ -76,7 +76,7 @@ test("NULL-MUTANT: a module importing the frozen twin of an overridden address i
   }
 });
 
-test("NEGATIVE: importing a frozen routine with NO override is allowed (born-live fallback)", async () => {
+test("NEGATIVE: importing a frozen routine with NO override is allowed (generator fallback)", async () => {
   const { dir, cleanup } = fixture(NAMES, {
     "leaf.js": "import { loc_9999 } from '../translated/loc_9999.js';\nexport function leaf(m){ return loc_9999(m); }\n",
   });

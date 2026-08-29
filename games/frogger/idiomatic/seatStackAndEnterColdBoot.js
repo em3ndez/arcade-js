@@ -15,7 +15,7 @@
  *   foreground main loop; from then on the machine lives inside that loop and its vblank NMI.
  *
  *   The name records the ROM instruction `ld sp,0x8800`, which seats the Z80 stack pointer as the third
- *   act of the vector. The born-live idiomatic layer deliberately does NOT seat a stack: it dispatches
+ *   act of the vector. The generator idiomatic layer deliberately does NOT seat a stack: it dispatches
  *   routines with ordinary JS calls, not the Z80 hardware stack, and the engine's vblank-NMI push16 is
  *   never popped — so that instruction has no JS analogue and is simply dropped. (The name is thus a mild
  *   misnomer for what the JS does; kept as-is because renaming an exported routine is out of scope here.)
@@ -47,7 +47,7 @@ export function seatStackAndEnterColdBoot(m) {
   // watchdog reset_r port. The value read is discarded; the READ ITSELF is the point — touching the port
   // pets the watchdog so it won't time out and reset the board while cold-boot init runs its long RAM wipe.
   // (The instruction that follows in the ROM, `ld sp,0x8800`, seats the Z80 stack at this same address;
-  // the born-live layer omits it, as noted in the header.)
+  // the generator layer omits it, as noted in the header.)
   mem8[WATCHDOG_RESET_PORT];
 
   // ── Enter cold-boot init ─────────────────────────────────────────────────────────────

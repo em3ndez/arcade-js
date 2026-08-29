@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// mainLoop -- born-live generator spine. Pooyan's main loop free-runs with no vblank wait, so the
+// mainLoop -- generator spine. Pooyan's main loop free-runs with no vblank wait, so the
 // frame boundary is synthetic: it is the per-frame WORKER (ring-idle) iteration, NOT every iteration.
 // The real machine drains the whole display command ring per vblank; the engine must too, or a ring
 // backlog (built during the credit screen) drains one command per NMI and leaves stale attract tiles

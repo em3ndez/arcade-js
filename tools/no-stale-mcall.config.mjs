@@ -53,7 +53,7 @@ export const ALLOWED = {
  * indebted callee still fails. Re-derive with `findStaleMcalls`; never hand-edit.
  */
 export const DEBT = {
-  frogger: {}, // idiomatic port complete (call=0): every m.call dissolved, no born-live debt remains
+  frogger: {}, // idiomatic port complete (call=0): every m.call dissolved, no generator debt remains
   dkong: {
     "advanceBarrelMotion.js": [0x1fac, 0x1fe5, 0x1fef, 0x2053, 0x20ec],
     "advanceBarrelTileAnimation.js": [0x21ba],

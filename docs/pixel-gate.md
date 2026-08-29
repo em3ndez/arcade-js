@@ -130,7 +130,7 @@ verdict. Recorded, not fixed.
 thepit declare `"idiomatic"` too but thepit's `render.js` has no override path, so its suite still
 renders the ORACLE — **a declared runtime is not evidence about what got rendered**, which is why
 `suite_renders_idiomatic()` requires the flag, the path and the manifest together. Where the oracle
-is rendered, the idiomatic layer still RUNS (born-live) but is not RENDERED, so an idiomatic *render*
+is rendered, the idiomatic layer still RUNS (on the generator engine) but is not RENDERED, so an idiomatic *render*
 regression is uncovered; the tool prints a not-rendered caveat on such a PASS rather than a bare one,
 so it travels with the verdict.
 

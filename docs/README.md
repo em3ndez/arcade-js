@@ -73,7 +73,7 @@ moves. Structure feeds Meaning; Meaning picks the next lap's target.
 
 ## Ship
 
-The idiomatic layer has run **live since the skeleton** — the born-live generator engine, wired in
+The idiomatic layer has run **live since the skeleton** — the generator engine, wired in
 routine-by-routine as each is decompiled — so ship is *packaging*, not a wiring milestone: the web
 player, the web-worker contract, audio (by ear — no audio oracle exists), publish.
 

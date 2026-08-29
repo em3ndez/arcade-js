@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// idiomatic — pooyan's born-live seam gate. Runs the assembled game under the cycle-free coroutine
+// idiomatic — pooyan's generator seam gate. Runs the assembled game under the cycle-free coroutine
 // engine (core/frame-stepped.js runIdiomaticGame, wired via resolveAllIdiomatic — the same override
 // map web/worker.js ships) and compares it, frame for frame, against the pure-translated oracle run
 // under runCycleFree at the SAME frame boundary (the worker/ring-idle point 0x021c, manifest.convergence).
@@ -50,7 +50,7 @@ function liveOffsets(bytesPerFrame, probe) {
   return keep;
 }
 
-test("the born-live layer reproduces the oracle and keeps the guest stack balanced", { skip: !HAVE_ROM }, async () => {
+test("the generator layer reproduces the oracle and keeps the guest stack balanced", { skip: !HAVE_ROM }, async () => {
   // Wire the whole idiomatic layer exactly as the worker does. resolveAllIdiomatic() reads
   // idiomatic/names.js ROUTINES (mainLoop + the wired leaves); machine.call(0x0000) runs the frozen
   // translated boot, whose tail call into the main loop returns the mainLoop GENERATOR, which

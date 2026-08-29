@@ -3,7 +3,7 @@
  * Memory-equivalence for loc_0066 (ROM 0x0066, Pooyan) — the Z80 NMI vector, a bare jump to the vblank
  * service routine loc_066d. The oracle steps + m.call(0x066d); the module delegates directly. Both run a
  * whole NMI frame, so (as in equivalence-066d) the entry is a booted mid-attract clone captured from the
- * born-live engine, not a raw power-on one; on it the two produce identical RAM (−stack).
+ * generator engine, not a raw power-on one; on it the two produce identical RAM (−stack).
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-0066.test.js
  */
