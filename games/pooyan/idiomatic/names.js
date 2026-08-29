@@ -240,9 +240,9 @@ export const SELFTEST_LOOP2_SCAN_BASE = 0x0092;
 export const COUNTDOWN_EXPIRE_DISPLAY_CMD = 0x0312;
 /** [code] display-command word (0x06:0x00) enqueued via loc_0038 by the 0x15a8-dispatch state handlers loc_1b43/loc_1b8c */
 export const DISPLAY_CMD_0600 = 0x0600;
-/** [code] display-command word (0x06:0x02) enqueued via loc_0038 by loc_1b43 */
+/** [seen] display-command word (0x06:0x02) enqueued via loc_0038 by loc_1b43 */
 export const DISPLAY_CMD_0602 = 0x0602;
-/** [code] display-command word (0x06:0x03) enqueued via loc_0038 by loc_1b8c */
+/** [seen] display-command word (0x06:0x03) enqueued via loc_0038 by loc_1b8c */
 export const DISPLAY_CMD_0603 = 0x0603;
 /** [seen] ROM colour/attribute column source table (bytes from 0x0819) flooded into the attribute map by fillAttributeColumns from the 0x15a8-dispatch handlers loc_1b43/loc_1b8c */
 export const FIELD_ATTRIB_SRC_0819 = 0x0819;
@@ -328,13 +328,13 @@ export const ROM_SELFTEST_CHECKSUM_TABLE = 0x0079;
 export const STATE0_CKSUM_BASE = 0x01d5;
 /** [code] display-command WORD (not a RAM cell) enqueued at attract state-0 completion */
 export const ATTRACT_SETUP_DISPLAY_CMD_B = 0x0500;
-/** [code] display-command WORD (not a RAM cell) enqueued at attract state-0 completion */
+/** [seen] display-command WORD (not a RAM cell) enqueued at attract state-0 completion */
 export const ATTRACT_SETUP_DISPLAY_CMD_C = 0x0502;
-/** [code] display-command WORD (not a RAM cell) enqueued at attract state-0 completion */
+/** [seen] display-command WORD (not a RAM cell) enqueued at attract state-0 completion */
 export const ATTRACT_SETUP_DISPLAY_CMD_A = 0x0604;
-/** [code] display-command word (0x06:0x0b) enqueued via loc_0038 by attract sub-state 1 (loc_08e9), immediately after the 0x0611 (OBJECT_SPAWN_DISPLAY_CMD) command */
+/** [seen] display-command word (0x06:0x0b) enqueued via loc_0038 by attract sub-state 1 (loc_08e9), immediately after the 0x0611 (OBJECT_SPAWN_DISPLAY_CMD) command */
 export const ATTRACT_DISPLAY_CMD_060B = 0x060b;
-/** [code] display-command word queued (rst 0x38 -> loc_0038) on the phase-4 anti-tamper match */
+/** [seen] display-command word queued (rst 0x38 -> loc_0038) on the phase-4 anti-tamper match */
 export const DISPLAY_CMD_0627 = 0x0627;
 /** [code] display-command word queued (rst 0x38 -> loc_0038) on the first spawn of a wave (paired with _B) */
 export const WAVE_SPAWN_DISPLAY_CMD_A = 0x0625;
@@ -455,7 +455,7 @@ export const SCORE_AWARD_TABLE = 0x0501;
 export const OBJECT_SPAWN_DISPLAY_CMD_ALT = 0x0607;
 /** [code] display-command WORD (not a RAM cell) enqueued via loc_0038 for siren phase A */
 export const SIREN_DISPLAY_CMD_A = 0x060f;
-/** [code] display-list command word (0x06:0x11) enqueued via the page-0x88 ring on object spawn/init (also used by loc_08e9) */
+/** [seen] display-list command word (0x06:0x11) enqueued via the page-0x88 ring on object spawn/init (also used by loc_08e9) */
 export const OBJECT_SPAWN_DISPLAY_CMD = 0x0611;
 /** [code] base display-command code queued when an eagle wave fully arrives, offset by the arrived count */
 export const WAVE_ARRIVAL_CMD_BASE = 0x0630;
@@ -787,7 +787,7 @@ export const loc_8f5f = 0x8f5f;
 // -- batch 4 caller-skip cluster cells --
 /** [code] display command enqueued by updateEnemyActorsAndCycleLaunchFlipAnim's flip cadence when the flip toggle (0x892f) bit0 is set */
 export const FLIP_ANIM_DISPLAY_CMD = 0x0612;
-/** [code] display-command word (0x06:0x15) enqueued via loc_0038 by the actor state-2 handler on a clean integrity check */
+/** [seen] display-command word (0x06:0x15) enqueued via loc_0038 by the actor state-2 handler on a clean integrity check */
 export const DISPLAY_CMD_0615 = 0x0615;
 /** [code] display command enqueued by updateEnemyActorsAndCycleLaunchFlipAnim's flip cadence when the flip toggle (0x892f) bit0 is clear */
 export const FLIP_ANIM_DISPLAY_CMD_ALT = 0x0692;
@@ -1088,15 +1088,15 @@ export const SPAWN_SEQUENCE_INDEX_8D14 = 0x8d14;
 // == Batch: leaves-first decompile cells [code] (ungrounded; MAME-grounding pending) ==
 // Alias 0x0bb5 (CHECKSUM_ROM_BASE data view / ATTRACT_HANDLER_EPILOGUE_ADDR routine entry) -> understanding pass.
 
-/** [code] display command constant (0x0200) (0x0200) */
+/** [seen] display command constant (0x0200) (0x0200) */
 export const DISPLAY_CMD_0200 = 0x0200;
 /** [code] display-command word base (type 0x03) (0x030f) */
 export const OBJECT_ANIM_DISPLAY_CMD_BASE = 0x030f;
 /** [code] attract state-4 display command (0x060d) */
 export const ATTRACT_S4_DISPLAY_CMD = 0x060d;
-/** [code] display command constant (0x068b) (0x068b) */
+/** [seen] display command constant (0x068b) (0x068b) */
 export const DISPLAY_CMD_068B = 0x068b;
-/** [code] display command constant (0x068e) (0x068e) */
+/** [seen] display command constant (0x068e) (0x068e) */
 export const DISPLAY_CMD_068E = 0x068e;
 /** [seen] attract state-4 attribute source (0x07b9) */
 export const ATTRACT_S4_ATTRIB_SRC = 0x07b9;
@@ -1265,17 +1265,17 @@ export const HUD_REFRESH_TICK = 0x8f4d;
 
 
 // == Batch: decode pass #1 cells [code] (role from the frozen oracle; MAME-grounding pending) ==
-/** [code] coin-jingle fixed follow-up rst-0x38 command */
+/** [seen] coin-jingle fixed follow-up rst-0x38 command */
 export const DISPLAY_CMD_0300 = 0x0300;
-/** [code] display/sound command word (0x04:0x00) enqueued via loc_0038 at start-of-life; the 2P path additionally fires 0x0401 */
+/** [seen] display/sound command word (0x04:0x00) enqueued via loc_0038 at start-of-life; the 2P path additionally fires 0x0401 */
 export const START_OF_LIFE_DISPLAY_CMD = 0x0400;
 /** [code] start-of-life display/sound command variant (0x04:0x01) enqueued only on a two-player game (ROM: inc e from 0x0400) */
 export const START_OF_LIFE_DISPLAY_CMD_2P = 0x0401;
-/** [code] board-intro rst-0x38 display command */
+/** [seen] board-intro rst-0x38 display command */
 export const DISPLAY_CMD_0601 = 0x0601;
-/** [code] display-command word 0x0613 enqueued via loc_0038 when the ascent checksum matches (DISPLAY_CMD_06xx family) */
+/** [seen] display-command word 0x0613 enqueued via loc_0038 when the ascent checksum matches (DISPLAY_CMD_06xx family) */
 export const DISPLAY_CMD_0613 = 0x0613;
-/** [code] board-intro rst-0x38 display command */
+/** [seen] board-intro rst-0x38 display command */
 export const DISPLAY_CMD_0616 = 0x0616;
 /** [code] board-intro rst-0x38 display command, 1P variant (bonus DSW bit0 clear) */
 export const DISPLAY_CMD_0617 = 0x0617;
@@ -1371,7 +1371,7 @@ export const DROP_ANIM_DESCRIPTOR = 0x3bd1;
 export const CHECKSUM_SCAN_START = 0x64d5;
 /** [seen] packed ROM display-message source table for the attract reset (0x1e4c) */
 export const ATTRACT_INIT_MESSAGE_SRC = 0x1e4c;
-/** [code] display-command word queued to the rst-0x38 dispatcher on a credit-display refresh (0x0701) */
+/** [seen] display-command word queued to the rst-0x38 dispatcher on a credit-display refresh (0x0701) */
 export const CREDIT_DISPLAY_COMMAND = 0x0701;
 /** [code] 16-bit value stamped on the fire phase (0x03a0) */
 export const FIRE_PHASE_SEED = 0x03a0;
