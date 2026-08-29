@@ -8,7 +8,7 @@ import {
   ANIM_TABLE_3829,
   SPAWN_FACING_TABLE_1209,
   SPAWN_TIMER_TABLE_11F9,
-  loc_8f5f,
+  HUNTER_SPAWN_COUNT,
 } from "./names.js";
 /**
  * loc_119a — initialise a spawned actor's record (based at IX).
@@ -49,7 +49,7 @@ export function loc_119a(m, rec = m.regs.ix, posSeed = m.regs.e) {
 
   mem8[ENEMY_SPAWN_TIMER] = loc_0020(m, SPAWN_TIMER_TABLE_11F9, idx)[0];
 
-  mem8[loc_8f5f] = mem8[loc_8f5f] + 1;
+  mem8[HUNTER_SPAWN_COUNT] = mem8[HUNTER_SPAWN_COUNT] + 1;
   mem8[ACTIVE_ENEMY_COUNT] = mem8[ACTIVE_ENEMY_COUNT] + 1;
   return false; // seeded a free record -> caller ends its sweep (original's skip-return)
 }

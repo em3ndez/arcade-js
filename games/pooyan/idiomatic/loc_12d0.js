@@ -2,7 +2,7 @@
 import { u16 } from "../../../core/int.js";
 import { loc_0c45 } from "./loc_0c45.js";
 import { loc_0020 } from "./loc_0020.js";
-import { loc_1383 } from "./loc_1383.js";
+import { spawnChildActorIfInRange } from "./spawnChildActorIfInRange.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { ROUND_COUNTER, ANIM_FRAME_COUNTER, ANIM_SEQ_TABLE_12FB, ANIM_TABLE_3838 } from "./names.js";
 /**
@@ -34,7 +34,7 @@ export function loc_12d0(m, rec = m.regs.ix) {
   const field = mem8[rec + OBJ_FIELD];
   const advancedPtr = u16(ANIM_SEQ_TABLE_12FB + ((index << 1) & 0xff) + 1);
 
-  if (field === target) return (m.regs.c = target, m.regs.de = advancedPtr, loc_1383(m)); // tail: spawn dispatch
+  if (field === target) return (m.regs.c = target, m.regs.de = advancedPtr, spawnChildActorIfInRange(m)); // tail: spawn dispatch
   if (field < FIELD_MIN) return (m.regs.c = target, m.regs.de = advancedPtr, m.regs.a = field);
   mem8[rec + SPAWNED_FLAG] = 0x01;
   setActorAnimation(m, rec, ANIM_TABLE_3838); // point the record at the animation

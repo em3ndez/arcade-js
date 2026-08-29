@@ -3,18 +3,18 @@
  * Memory-equivalence gate for loc_12d0 (ROM 0x12d0) — "table lookup + object-field compare/dispatch"
  * for the record at IX. The round counter's low bits index a word table (via loc_0c45); the
  * animation-frame nibble indexes a target byte inside that word's row (via loc_0020). The record's
- * compare field (ix+0x06) is matched against the target: equal -> tail loc_1383 (spawn dispatch);
+ * compare field (ix+0x06) is matched against the target: equal -> tail spawnChildActorIfInRange (spawn dispatch);
  * below the low bound -> ret with A = the field; else -> flag the record spawned and tail
  * setActorAnimation.
  *
  * SEATING: BALANCED — the ret-below-bound WIREs; the equal and spawned branches are tail-jumps
- * forwarding the delegatee's result. LIVE-OUT: A — loc_1383's result on the equal branch, else the
+ * forwarding the delegatee's result. LIVE-OUT: A — spawnChildActorIfInRange's result on the equal branch, else the
  * compare field itself. Compared per case on RAM (dumpState, minus STACK_SCRATCH) PLUS the register
  * live-out A (a register-dispatched caller reads it back — see loc_1391). pc/SP are not compared.
  *
- * The idiomatic loc_12d0 imports the idiomatic loc_0c45/loc_0020/loc_1383/setActorAnimation; the
+ * The idiomatic loc_12d0 imports the idiomatic loc_0c45/loc_0020/spawnChildActorIfInRange/setActorAnimation; the
  * oracle runs the TRANSLATED equivalents via the registry. The equal branch seats B >= 0x20 so
- * loc_1383 returns B directly (no deeper subtree). The lookup target with round=0/frame=0 is 0x11
+ * spawnChildActorIfInRange returns B directly (no deeper subtree). The lookup target with round=0/frame=0 is 0x11
  * (verified against the ROM tables), so the field is chosen relative to it.
  *
  * Jobs: 1. EQUAL — RAM (−stack) AND A match on the below-bound, equal, and spawned branches.
@@ -72,7 +72,7 @@ function craft({ field, a = 0x77, b = 0x20 }) {
 
 const CASES = [
   { label: "below bound: field < 0x14, != target -> ret A=field", field: 0x05 },
-  { label: "equal: field == target -> tail loc_1383 (B>=0x20 -> A=B)", field: TARGET, b: 0x20 },
+  { label: "equal: field == target -> tail spawnChildActorIfInRange (B>=0x20 -> A=B)", field: TARGET, b: 0x20 },
   { label: "spawned: field >= 0x14, != target -> flag + anim, A=field", field: 0x50 },
 ];
 

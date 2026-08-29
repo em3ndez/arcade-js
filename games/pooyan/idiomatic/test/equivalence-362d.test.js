@@ -2,12 +2,12 @@
 /**
  * Memory-equivalence test for loc_362d (ROM 0x362d, Pooyan) — phase dispatch for the actor record
  * at IX, gated by a per-actor delay. The phase byte (rec+0x06) routes the low range to the
- * end-of-move guard (loc_361d) and the high range to the target resolver (loc_3625). In the middle
+ * end-of-move guard (loc_361d) and the high range to the target resolver (resolveActorTargetUnlessCommitted). In the middle
  * band a global progress gate lets one phase return early; otherwise a per-actor delay counts down
  * (returning while it runs), and when it elapses for a near-half actor the delay is reloaded from a
  * round-selected table and control falls into the pre-spawn gate (loc_365d).
  *
- * SEATING: the three tail branches (loc_361d / loc_3625 / loc_365d) are TAIL-CALLs — the module
+ * SEATING: the three tail branches (loc_361d / resolveActorTargetUnlessCommitted / loc_365d) are TAIL-CALLs — the module
  * forwards each delegate's result; the early exits are plain BALANCED rets (LIVE-OUT none). Compared
  * on RAM (dumpState) minus STACK_SCRATCH; the register file is not compared. SP is parked in
  * STACK_SCRATCH so the oracle's nested calls drop out.
@@ -64,7 +64,7 @@ function seat(m, { phase = 0x10, timer = 0x00, delay = 0x05, xPos = 0x10, latch 
   m.regs.b = xPos;
   m.regs.sp = SP0;
   m.mem.write8(IX + 0x06, phase);
-  m.mem.write8(IX + 0x08, latch); // loc_361d/loc_3625 guard bit
+  m.mem.write8(IX + 0x08, latch); // loc_361d/resolveActorTargetUnlessCommitted guard bit
   m.mem.write8(IX + 0x0b, 0x01); // loc_365d takes the count-scan path...
   m.mem.write8(TIMER, timer);
   m.mem.write8(DELAY, delay);
@@ -74,7 +74,7 @@ function seat(m, { phase = 0x10, timer = 0x00, delay = 0x05, xPos = 0x10, latch 
 }
 
 const craftLow = () => seat(BASE.clone(), { phase: 0x03, latch: 0x00 }); // -> loc_361d guard (inert)
-const craftHigh = () => seat(BASE.clone(), { phase: 0x20, latch: 0x01 }); // -> loc_3625 guard (inert)
+const craftHigh = () => seat(BASE.clone(), { phase: 0x20, latch: 0x01 }); // -> resolveActorTargetUnlessCommitted guard (inert)
 const craftGateRet = () => seat(BASE.clone(), { phase: 0x10, timer: 0x0e }); // progress gate -> early ret
 const craftDelayRun = () => seat(BASE.clone(), { delay: 0x05 }); // countdown -> dec + ret
 const craftFarRet = () => seat(BASE.clone(), { delay: 0x00, xPos: 0x90 }); // far actor -> ret

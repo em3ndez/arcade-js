@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3625 — a guard on the actor record at IX.
+ * Memory-equivalence test for resolveActorTargetUnlessCommitted — a guard on the actor record at IX.
  *
- * loc_3625 tests bit 0 of the +0x08 latch cell: when set the actor is already committed and the
+ * resolveActorTargetUnlessCommitted tests bit 0 of the +0x08 latch cell: when set the actor is already committed and the
  * handler returns immediately with no effect; when clear it delegates to the target-tile resolver
  * (resolveTargetColumnAndArmApproach), which runs in this same tail frame.
  *
@@ -14,7 +14,7 @@
  * used only to prove the bit0 decision is load-bearing (the two branches diverge).
  *
  * Jobs:
- *   1. EQUAL — guard path (bit0 set): loc_3625 == oracle in RAM (−stack).
+ *   1. EQUAL — guard path (bit0 set): resolveActorTargetUnlessCommitted == oracle in RAM (−stack).
  *   2. WRITE-SET — the guard path leaves RAM untouched (empty footprint): proof it does NOT delegate.
  *   3. TEETH — a corrupted byte after the guard run is caught by the RAM diff; and the bit0 branch is
  *      load-bearing: the oracle's guard path (A untouched) and delegate path (A = (ix+6) via
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3625 as oracle } from "../../translated/loc_3625.js";
-import { loc_3625 } from "../loc_3625.js";
+import { resolveActorTargetUnlessCommitted } from "../resolveActorTargetUnlessCommitted.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -79,11 +79,11 @@ function craftDelegate() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: guard path (bit0 set) — loc_3625 == oracle in RAM (−stack)", () => {
+test("EQUAL: guard path (bit0 set) — resolveActorTargetUnlessCommitted == oracle in RAM (−stack)", () => {
   const o = craftGuard();
   const c = craftGuard();
   oracle(o);
-  loc_3625(c);
+  resolveActorTargetUnlessCommitted(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: guard path RAM identical (−stack)");
@@ -94,7 +94,7 @@ test("EQUAL: guard path (bit0 set) — loc_3625 == oracle in RAM (−stack)", ()
 test("WRITE-SET: the guard path leaves RAM untouched (it does NOT delegate)", () => {
   const c = craftGuard();
   const before = c.dumpState();
-  loc_3625(c);
+  resolveActorTargetUnlessCommitted(c);
   const after = c.dumpState();
   assert.deepEqual([...after], [...before], "the guard path must leave RAM untouched");
   console.log("  WRITE-SET: guard path inert (empty footprint)");
@@ -106,7 +106,7 @@ test("TEETH: a corrupted byte after the guard run is CAUGHT by the RAM diff", ()
   const o = craftGuard();
   const c = craftGuard();
   oracle(o);
-  loc_3625(c);
+  resolveActorTargetUnlessCommitted(c);
   c.mem.write8(LATCH + 1, 0x5a); // BUG: an errant write the guard path would never make
 
   const d = ramDiffMinusStack(o, c);

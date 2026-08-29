@@ -42,7 +42,7 @@ import {
   ACTIVE_ENEMY_COUNT,
   SPAWN_FACING_TABLE_1209,
   SPAWN_TIMER_TABLE_11F9,
-  loc_8f5f,
+  HUNTER_SPAWN_COUNT,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -53,7 +53,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const REC = 0x8ae0; // a spawned-actor record slot in the enemy-actor arena
-const SPAWN_COUNTER = loc_8f5f; // 0x8f5f
+const SPAWN_COUNTER = HUNTER_SPAWN_COUNT; // 0x8f5f
 const ANIM_LO = 0x29; // low byte of ANIM_TABLE_3829
 const ANIM_HI = 0x38; // high byte of ANIM_TABLE_3829
 const POS_SEED = 0x1d; // the value the caller passes in E

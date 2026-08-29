@@ -320,7 +320,11 @@ round-clamped `SPEED_INDEX` (0x8900) `[seen]` (negated on an odd round for a mir
 `DIFFICULTY_DSW` (0x8820) `[seen]` picks the table), seats the anim vector, and queues the spawn
 sound. `launchProjectileIntoFreeSlot` (0x3a6c) is the projectile path: it scans the three-slot
 `PROJECTILE_TABLE` for a free record, seeds its coordinate pair from a round-selected table, arms
-the launcher's own animation and a hit-flash sequence, and stores a rotating display attribute.
+the launcher's own animation and a hit-flash sequence, and stores a rotating display attribute. A
+parallel path fills the secondary `SPRITE_OBJECT_TABLE` (0x8b70) `[seen]` pool with child actors: once an
+approaching enemy reaches its target column (`loc_12d0`, 0x12d0) it tail-jumps through the range guard
+`spawnChildActorIfInRange` (0x1383) `[seen]`, which bails when the column index is out of range (0x20 or
+above) and otherwise hands off to the free-slot child spawner `loc_13bc` (0x13bc).
 `initActorRecord` (0x619f) and `seedObjectRecord` (0x0a0c) are the low-level seeders that stamp a
 fresh record's opening bytes and its descriptor/coordinate fields. At board boundaries the arena
 is wiped: `clearActorArena` (0x19bc) zero-fills the 0x200-byte block from `ACTOR_TABLE`, and the
@@ -328,7 +332,11 @@ state-7 teardown `clearActorArenaAndCounters` (0x2ae8) zeroes an even larger spa
 `SPAWN_PHASE_COUNTER` (0x8902) `[seen]`, `WAVE_ARRIVAL_COUNTER` (0x8903) `[seen]`, and
 `ROPE_SEGMENT_COUNT` (0x8931) `[seen]` before forcing `PLAY_STATE_INDEX` to 6. Live population is
 tracked in `ACTIVE_ENEMY_COUNT` (0x8d40) `[seen]`, and the spawn cadence itself is metered by the
-`ENEMY_SPAWN_TIMER` (0x8d07) `[seen]` countdown.
+`ENEMY_SPAWN_TIMER` (0x8d07) `[seen]` countdown. Each time the enemy-record initialiser `loc_119a`
+(0x119a) seeds a free `ENEMY_ACTOR_TABLE` (0x8ae0) `[seen]` slot it bumps `ACTIVE_ENEMY_COUNT` and, in
+the adjacent instruction, the cumulative `HUNTER_SPAWN_COUNT` (0x8f5f) `[seen]` — a running spawn-init
+tally that, unlike the per-wave live count beside it, is never reset, so it accumulates across the whole
+game; nothing on the spawn path reads it back.
 
 ### Stacking the player sprite
 
@@ -409,7 +417,7 @@ The vertical mover, `advanceEnemyVerticalAndDispatchByAltitude` (0x39ba) [seen],
 
 The fire decision lives in `fireEnemyShotWhenAlignedWithPlayer` (0x39e0) [seen]. It gates on the level counters — a high `WAVE_PROGRESS_COUNTER` (0x8d7d) [seen] (0x0e or more), a high `ROUND_COUNTER`, a too-low `GAUGE_PHASE_COUNTER` (0x8908) [seen], or a late wave — routing through an extra difficulty gate keyed on `DIFFICULTY_DSW` (0x8820) [seen]. Its shared firing tail bails while the global `LANE_SPAWN_COUNTDOWN` (0x8d75) [seen] is running, ticks a per-actor cooldown when armed, and otherwise derives a target column from the launcher's X (mirrored when the screen is flipped) and the frame parity, spawning a shot only when that column matches the actor's position.
 
-Two more handlers round out the primary sweep. `resolveTargetColumnAndArmApproach` (0x357c) [seen] resolves a wanted tile — from a per-frame table row when no lane is active, or from an alternate lane table when one is — and, on an exact match, tails into the pre-spawn guard; short of a threshold it returns, at or above it latches the record and arms one of two approach-animation scripts. `armEnemyTurnAnimation` (0x3d99) [seen] enters the turn/select animation state: it picks one of three sequences by the record's low two bits, installs it, arms the entry velocity and state bytes, and queues the accompanying sound. When a dropped object finally lands it reaches state 0x0f, `advanceFallingEnemyAndTallyCatchOnLanding` (0x3f7c) [seen]: still airborne it just ticks the fall, but on landing it installs the splash animation for the caught kind, resets the record, scores the catch, drops `ACTIVE_ENEMY_COUNT` (0x8d40) [seen], and (normal path) decrements `STAGE_COUNTDOWN` (0x8901) [seen] and repaints it, or (special path) zeroes the countdown, repaints, and runs an integrity checksum.
+Two more handlers round out the primary sweep. `resolveTargetColumnAndArmApproach` (0x357c) [seen] resolves a wanted tile — from a per-frame table row when no lane is active, or from an alternate lane table when one is — and, on an exact match, tails into the pre-spawn guard; short of a threshold it returns, at or above it latches the record and arms one of two approach-animation scripts. That same resolver is also reached through a commit-latch guard, `resolveActorTargetUnlessCommitted` (0x3625) [seen], which the per-actor phase dispatcher `loc_362d` (0x362d) [seen] tail-jumps to once the record's phase byte (ix+6) reaches 0x14: unless the record's +0x08 latch bit 0 marks it already committed, it delegates straight into `resolveTargetColumnAndArmApproach` in the same tail frame. `armEnemyTurnAnimation` (0x3d99) [seen] enters the turn/select animation state: it picks one of three sequences by the record's low two bits, installs it, arms the entry velocity and state bytes, and queues the accompanying sound. When a dropped object finally lands it reaches state 0x0f, `advanceFallingEnemyAndTallyCatchOnLanding` (0x3f7c) [seen]: still airborne it just ticks the fall, but on landing it installs the splash animation for the caught kind, resets the record, scores the catch, drops `ACTIVE_ENEMY_COUNT` (0x8d40) [seen], and (normal path) decrements `STAGE_COUNTDOWN` (0x8901) [seen] and repaints it, or (special path) zeroes the countdown, repaints, and runs an integrity checksum.
 
 The second dispatcher family drives a smaller set of records. `updateEnemyActorsAndCycleLaunchFlipAnim` (0x66c5) [seen] runs `dispatchEnemyActorState` (0x66f1) [seen] over three consecutive records, then — unless the lead state byte is clear — steps a per-frame countdown that, on expiry, reloads, advances a flip toggle, and enqueues the launch-flip display command in one of two variants. `dispatchEnemyActorState` itself is a four-way router on the record's state byte, covering the descent/ascent lifecycle. Its descent leg is `loc_29a0` (0x29a0) [seen]: it reseats the frame-hold, toggles the display tile between two shapes every fourth frame, and drives a descent counter down by two; below the floor it either diverts to a countdown/redirect step (when a gate byte is set) or reseeds the spawn timer, advances the record state, and runs two block self-checks — a running sum and a byte compare against a reference. Only when both checks pass clean does it enqueue `DESCENT_STATE_COMPLETE_DISPLAY_CMD` (0x0614) [seen].
 
@@ -653,8 +661,10 @@ pass skipped; otherwise WRITE_ANIM_HANDLER_SELECT (0x8e26) [seen] picks one of t
 every path finally polls the start button. Handler 0, loc_7eb2, seeds the work block: it stashes
 the stamp base DISPLAY_LIST_VRAM_TILE (0x8565) [seen] into WRITE_ANIM_WRITE_PTR (0x8e27) [seen], sets
 WRITE_ANIM_ROW_COUNT (0x8e25) [seen] to 3 and the 16-bit WRITEANIM_COUNTDOWN (0x8e2b) [seen] to the
-fire-phase seed, then walks an append pointer (+3 per pass) into ANIM_WORK_BLOCK_PTR (0x8e1f) [seen]
-and the stamp pointer (+2 per pass) for as many passes as the insert rank; it stamps a landing byte,
+fire-phase seed, then — starting from the record-array anchor WRITE_ANIM_RECORD_ANCHOR (0x8dfd) [code] —
+walks a record pointer (+3 per pass) into ANIM_WORK_BLOCK_PTR (0x8e1f) [seen] and the stamp pointer (+2 per
+pass) for as many passes as the insert rank, so the record pointer settles at 0x8dfd + 3×rank (always at or
+past 0x8e00, since this handler runs only for a nonzero rank); it stamps a landing byte,
 seeds WRITE_ANIM_TILE_INDEX (0x8e23) [seen], sets WRITE_ANIM_STEP_DELAY (0x8e24) [seen] to 0x0c, and
 selects handler 1. Crucially it also latches the source pointer (held in the work cell loc_8e21) to
 INPUT_PORT1 (0x8811) [seen] by default, or INPUT_PORT2 (0x8812) [seen] when the cabinet flag
@@ -880,7 +890,9 @@ and WATCHDOG_KICK (0xa028) [code]. Their behaviour is fixed by the board, and th
 feed are grounded, so the ports themselves carry a code-level tag without a separate observation.
 
 A few remaining work cells are read from the code but not yet watched change: PER_FRAME_SCORE_INCREMENT
-(0x88ab) [code], the launch-arm seed LAUNCH_ARM_LATCH_SEED (0x8d7a) [code], the write-anim record base
-loc_8dfd (0x8dfd) [code], and the two seed constants FIRE_PHASE_SEED (0x03a0) [code] and its siblings.
-Finally, loc_8f5f (0x8f5f) [guess] is bumped once per actor spawn but has no reader found in the
-decompiled set, so its purpose is still open.
+(0x88ab) [code], the launch-arm seed LAUNCH_ARM_LATCH_SEED (0x8d7a) [code], the write-anim record-array
+anchor WRITE_ANIM_RECORD_ANCHOR (0x8dfd) [code], and the two seed constants FIRE_PHASE_SEED (0x03a0)
+[code] and its siblings. WRITE_ANIM_RECORD_ANCHOR is a base-minus-one anchor loaded only as an immediate
+operand to derive a record pointer that always lands at or past 0x8e00, so the cell at 0x8dfd is never
+itself read or written by role code — a structural reason it cannot terminate in a MAME cell observation
+on a good ROM.

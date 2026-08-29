@@ -8,7 +8,7 @@ import {
   DISPLAY_LIST_VRAM_TILE,
   INPUT_PORT1,
   INPUT_PORT2,
-  loc_8dfd,
+  WRITE_ANIM_RECORD_ANCHOR,
   loc_8e21,
   WRITE_ANIM_TILE_INDEX,
   WRITE_ANIM_STEP_DELAY,
@@ -43,7 +43,7 @@ export function loc_7eb2(m) {
   mem16[WRITEANIM_COUNTDOWN] = FIRE_PHASE_SEED;
 
   // Record walk: pointer += 3 per pass (a 0 seed runs 256 passes).
-  let recordPtr = loc_8dfd;
+  let recordPtr = WRITE_ANIM_RECORD_ANCHOR;
   let b = count;
   do {
     recordPtr = u16(recordPtr + RECORD_STRIDE);

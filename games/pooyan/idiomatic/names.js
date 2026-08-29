@@ -301,8 +301,8 @@ export const DISPLAY_LIST_VRAM_TILE = 0x8565;
 export const INPUT_PORT1 = 0x8811;
 /** [seen] inverted sample of IN2 (P2 controls); cell 3 (tail) of the 0x8810 input edge-detect ring, sampled each vblank NMI by loc_066d */
 export const INPUT_PORT2 = 0x8812;
-/** [code] write-anim work cell (0x7e94 dispatch cluster) — role pending grounding */
-export const loc_8dfd = 0x8dfd;
+/** [code] write-anim record-array base-minus-one anchor: only loaded as an immediate (ld ix,0x8dfd @0x7ec6) to compute the record pointer (ANIM_WORK_BLOCK_PTR 0x8e1f) = 0x8dfd + 3*(HIGH_SCORE_INSERT_RANK 0x89fc); loc_7e94 dispatches the seeder only when 0x89fc != 0 (rank >= 1), so the pointer is always >= 0x8e00 and 0x8dfd itself is never read/written as a cell by role code (only the boot RAM-clear pc 0x0111 touches it) */
+export const WRITE_ANIM_RECORD_ANCHOR = 0x8dfd;
 /** [seen] write-anim animation tile index; stepped up/down between 0x10 and 0x2c and stamped into the growing block (loc_7f0e/loc_7f5d) */
 export const WRITE_ANIM_TILE_INDEX = 0x8e23;
 /** [seen] write-anim per-step delay sub-timer (reload 0x0c); decremented each frame, gates when the tile index steps (loc_7f0e) */
@@ -780,8 +780,8 @@ export const ANIM_SEQ_2D5D = 0x2d5d;
 export const ACTOR_TABLE_SLOT1 = 0x8a98;
 /** [seen] (MAME: 0x3e69 increments 0x8bea via incMem8(ix+0x02) at pc=3e99 from 0x0b to 0x0c, handing the slot to the state-12 in-flight mover (0x3e9c), which then runs on it -- confirming +2 is the dispatch…) state byte (+2) of each of the 3 projectile-table slots (0x8be8, stride 0x18); loc_6edb gates phase-1 completion on all three being idle (also coincides with the +2 state bytes of enemy-actor records 11/12/13 at 0x8ae0) */
 export const PROJECTILE_SLOT_STATE = 0x8bea;
-/** [guess] byte incremented once per actor spawn by loc_119a (paired with ACTIVE_ENEMY_COUNT); no reader found, purpose open */
-export const loc_8f5f = 0x8f5f;
+/** [seen] cumulative hunter-spawn-init counter: loc_119a bumps it (inc (hl), pc 0x11f2) once per freshly-initialised free enemy-record in the ENEMY_ACTOR_TABLE (0x8ae0) pool, in lock-step with the adjacent ACTIVE_ENEMY_COUNT (0x8d40) inc; unlike that per-wave spawn budget it is never reset, so it accumulates across the game; not read on the spawn path */
+export const HUNTER_SPAWN_COUNT = 0x8f5f;
 
 
 // -- batch 4 caller-skip cluster cells --
@@ -1465,7 +1465,7 @@ export const ROUTINES = {
   0x338a: { name: "dispatchActiveEnemyActorState", role: "low-state per-record dispatcher", cert: "seen" },
   0x357c: { name: "resolveTargetColumnAndArmApproach", role: "target-tile resolver + state step for an actor record at IX", cert: "seen" },
   0x3617: { name: "loc_3617", role: "pre-spawn guard. When B is below 0x20, tail to the frozen pre-spawn gate; otherwise bail. Reached by tail-jump from the target-tile resolver, so both…", cert: "seen" },
-  0x3625: { name: "loc_3625", role: "a guard on the actor record at IX, reached by a tail-jump from the phase dispatcher", cert: "code" },
+  0x3625: { name: "resolveActorTargetUnlessCommitted", role: "guard on the actor record at IX, tail-jumped from the phase dispatcher when the phase byte (ix+6) >= 0x14: if the +0x08 latch bit0 is set the actor is already committed and it returns inert, else it delegates to the target-tile resolver in the same tail frame", cert: "seen" },
   0x362d: { name: "loc_362d", role: "phase dispatch for the actor record at IX, gated by a per-actor delay", cert: "seen" },
   0x365d: { name: "loc_365d", role: "pre-spawn gate. When the actor record's arm bit (rec+0x0b bit0) is set, require exactly one enemy-actor record whose +0x02 state byte holds the spawn…", cert: "seen" },
   0x3680: { name: "spawnObjectIntoFreeSlot", role: "find a free actor slot in the IY table and spawn into the IX template", cert: "seen" },
@@ -1536,7 +1536,7 @@ export const ROUTINES = {
   0x1119: { name: "drawStackedBcdDigits", role: "draw a packed-BCD byte as two stacked digit tiles, tens then units one row up, leading zero blanked", cert: "seen" },
   0x1131: { name: "binToPackedBcd", role: "convert a binary count to packed BCD digits plus a hundreds tally", cert: "seen" },
   0x1171: { name: "loc_1171", role: "enemy spawn-cadence tick: decrement the spawn timer, else (gated on stage-countdown vs active-count) sweep the 6 enemy records and initialise the first free one, aborting on the seed", cert: "seen" },
-  0x1383: { name: "loc_1383", role: "B-range guard: B >= 0x20 returns with A=B and no effect; else tail into the child-actor spawn loc_13bc, passing its A result through", cert: "code" },
+  0x1383: { name: "spawnChildActorIfInRange", role: "B-range guard in front of the child-actor spawn, reached by jp z from loc_12d0 when the actor reaches its target column: B >= 0x20 (out of range) returns with A=B and no effect; else it tails into the free-slot child-actor spawn loc_13bc, passing A through", cert: "seen" },
   0x196e: { name: "loc_196e", role: "gated periodic siren-arm / shared event-countdown driver", cert: "seen" },
   0x19bc: { name: "clearActorArena", role: "zero the actor-record arena at board init", cert: "seen" },
   0x1a47: { name: "saveLiveStateToPlayerBank", role: "copy the live state page into the active player's bank", cert: "seen" },

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_361d } from "./loc_361d.js";
-import { loc_3625 } from "./loc_3625.js";
+import { resolveActorTargetUnlessCommitted } from "./resolveActorTargetUnlessCommitted.js";
 import { loc_365d } from "./loc_365d.js";
 import { loc_0020 } from "./loc_0020.js";
 import {
@@ -34,7 +34,7 @@ export function loc_362d(m, rec = m.regs.ix, xPos = m.regs.b) {
 
   const phase = mem8[rec + 0x06];
   if (phase < PHASE_LOW) return loc_361d(m, rec);
-  if (phase >= PHASE_HIGH) return loc_3625(m, rec);
+  if (phase >= PHASE_HIGH) return resolveActorTargetUnlessCommitted(m, rec);
 
   // middle band: the progress gate short-circuits one phase (A = the phase byte)
   if (mem8[WAVE_PROGRESS_COUNTER] >= PROGRESS_GATE && mem8[rec + 0x06] < PHASE_GATED)
