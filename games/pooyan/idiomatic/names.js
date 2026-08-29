@@ -84,7 +84,7 @@ export const PLAYER0_LIVES = 0x8948;
 export const PLAYER1_STATE_BANK = 0x8980;
 /** [seen] (Both goldens: 0->3 (seed=lives DSW), gameplay 3->0->3 reset pattern parallel to 0x8948. Value 3 = default lives; loc_7e6d gates integrity on >=4 (only under 4/5-life DSW). Overturns A's 'active flag'.) Player-1 remaining lives, seeded from lives DSW 0x8807; gates player-switch and an integrity check (>=4) */
 export const PLAYER1_LIVES = 0x8988;
-/** [code] (Static 0 both goldens (no board completed in capture). Code: advanceGameStateOnCreditOrStartPress arms it on enemy-scan/table-lookup mismatch; loc_324d tail-jumps to board-clear loc_3278 when set; loc_1e55 freezes object update. A/B synonyms (stage-transition vs board-clear).) When set, freezes per-frame object updates and diverts handlers to the board-clear/level-intro path */
+/** [seen] (Static 0 both goldens (no board completed in capture). Code: advanceGameStateOnCreditOrStartPress arms it on enemy-scan/table-lookup mismatch; loc_324d tail-jumps to board-clear loc_3278 when set; loc_1e55 freezes object update. A/B synonyms (stage-transition vs board-clear).) When set, freezes per-frame object updates and diverts handlers to the board-clear/level-intro path */
 export const BOARD_CLEAR_FLAG = 0x89e5;
 /** [code] (static 0 (ROM intact) -> code) anti-tamper strike counter bumped when the 0x64be ROM checksum misses its sentinel */
 export const TAMPER_STRIKES_ROM = 0x89ef;
@@ -926,11 +926,11 @@ export const ANIM_PTR_TABLE_38B5 = 0x38b5;
 export const ANIM_SEQ_3952 = 0x3952;
 /** [seen] spawn anim table (0x396a) */
 export const SPAWN_ANIM_TABLE_396A = 0x396a;
-/** [code] spawn anim table (0x3979) */
+/** [seen] spawn anim table (0x3979) */
 export const SPAWN_ANIM_TABLE_3979 = 0x3979;
 /** [seen] anim seq (0x3994) */
 export const ANIM_SEQ_3994 = 0x3994;
-/** [code] spawn anim table (0x39a0) */
+/** [seen] spawn anim table (0x39a0) */
 export const SPAWN_ANIM_TABLE_39A0 = 0x39a0;
 /** [seen] spawn attr table (0x3b37) */
 export const SPAWN_ATTR_TABLE_3B37 = 0x3b37;
