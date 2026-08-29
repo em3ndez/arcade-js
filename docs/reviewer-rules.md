@@ -746,3 +746,21 @@ never allowlisted. An entry you cannot independently justify as un-groundable-on
 token and name the address + why it looks reachable. Allowlisting a groundable item is the exact abuse this
 rule exists to stop.
 *See docs/runbook.md §4/§5 (the grounding-debt allowlist) and `tools/done_gate.py` `check_grounding`.*
+
+## R40 [ALL] a DONE-marker commit's review IS a fresh adversarial §5 done-audit, not a read of the file
+
+A commit that adds or sets a game's done-record (`games/<game>/DONE.md`) is the done-claim itself, and the
+standing `review_gate` already makes it un-landable without a PASS on those exact bytes. But a review that
+merely reads `DONE.md` and agrees it "looks thorough" is the blind-arbiter failure the entire done-definition
+exists to stop — a green subsystem gate is *exactly* what once read as "done" while blind to half the runbook
+(pixel ran a 90s window not the §5 full golden; audio passed on map structure while the clips were never
+recorded). So the review of a DONE-marker commit MUST be a FRESH adversarial done-audit (docs/runbook.md §5):
+handed this runbook, the reviewer independently checks the GAME STATE at that commit against EVERY §5
+completion criterion — the game, not the diff bytes — records a per-criterion verdict, and records PASS only
+if it finds ZERO open criteria and no gate passing while validating too little. proposer≠confirmer: the
+auditor that wrote `DONE.md` and the reviewer that clears the commit are DIFFERENT agents, and the verdict
+rests on neither the human's word nor "the gates are green." Run the cheap mechanical pre-filter first
+(`done_gate`, the per-game subsystem gates) so a red subsystem is caught in a second — but a green pre-filter
+is a precondition, never the audit. Any open criterion, or any gate green-but-blind → WITHHOLD the token and
+name the gap. A `DONE.md` landed WITHOUT such an audit on record is an invalid done-claim.
+*See docs/runbook.md §5 "A game is NOT done until an independent adversarial agent agrees" + the DONE.md bullet.*

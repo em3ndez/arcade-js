@@ -826,6 +826,22 @@ distinct phase, gated on a flag, and runs in this order.
   done — proposer≠confirmer applied to the done-claim itself, never the author's word and never "the gates
   are green." If it finds any open criterion, OR any gate that passes while validating too little, the game
   is not done. Record its verdict; a game with no adversarial done-audit on record is not done.
+- **The done-audit is RECORDED as a committed `games/<game>/DONE.md`, and its commit is gated by the
+  standing review gate.** The verdict above is not a chat claim or a scratch note — it is a committed file,
+  and *that is the whole enforcement*: no new machinery, it rides `review_gate` (which already refuses any
+  commit whose exact staged bytes lack an independent reviewer's PASS). `DONE.md` is written by the
+  adversarial done-auditor and holds: `rom_sha256` (matching the manifest parts) + the commit it was
+  audited at; a **per-§5-criterion verdict table** (each criterion → PASS + its evidence — the full ~10-min
+  pixel golden, stage-B grounding complete, idiomatic gate at 0, the whole-game tapes + forced transitions,
+  the external disasm if in scope, audio recorded+signed-off, the §3 completeness crawl, `loc_` naming, the
+  cleanup phase); and the auditor agent's identity + an explicit "zero open criteria" conclusion.
+  Committing `DONE.md` triggers `review_gate`; the reviewer of that commit is a SECOND, independent
+  adversarial agent (proposer≠confirmer) that re-runs the FULL §5 audit against the game state at that
+  commit — **not** a read of `DONE.md` — and records PASS only on independent agreement (see
+  reviewer-rules **R40**). So a *landed* `DONE.md` is itself proof that an independent agent verified done;
+  **no committed `DONE.md` ⇒ the game is not done.** Honest ceiling (already stated in `review_gate`'s own
+  header): `--no-verify` bypasses any hook and an agent could forge a token — the same trust the whole repo
+  rests on for every commit; the human can re-run the audit at any time to check it.
 - **Audio-coverage gate.** Audio was the only ship step with no gate ("by ear, no oracle"), so it is the
   step that silently gets skipped. `tools/audio_gate.py` is a completion gate requiring the committed
   artifacts a complete audio layer has (the model is dkong): `manifest.audio.map` + the map file; for a clips
