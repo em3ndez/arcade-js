@@ -577,7 +577,7 @@ export const SPRITE0_CLEAR_BASE = 0x9010;
 export const SPRITE1_CLEAR_BASE = 0x9410;
 /** [seen] ROM base of the 0x20-byte block summed by the hunter-formation state-2 integrity guard (valid-ROM sum sentinel 0xdc) */
 export const FORMATION_GUARD_BASE = 0x0799;
-/** [code] ROM colour/attribute column source table for the default field job, selected when the round counter's low bit is set */
+/** [seen] ROM colour/attribute column source table for the default field job, selected when the round counter's low bit is set */
 export const FIELD_ATTRIB_SRC_A = 0x0839;
 /** [seen] ROM colour/attribute column source table for the alternate field strip job */
 export const FIELD_ATTRIB_SRC_C = 0x0859;
@@ -876,7 +876,7 @@ export const STATE4_SIGCHECK_CODE_BASE_ADDR = 0x1c66;
 export const STAGE_LABEL_PTR_TABLE = 0x1fa3;
 /** [seen] round digit glyphs (0x1fda) */
 export const ROUND_DIGIT_GLYPHS = 0x1fda;
-/** [code] round digit glyphs alt (0x1fe6) */
+/** [seen] round digit glyphs alt (0x1fe6) */
 export const ROUND_DIGIT_GLYPHS_ALT = 0x1fe6;
 /** [seen] actor group state dispatch (0x2436) */
 export const ACTOR_GROUP_STATE_DISPATCH = 0x2436;
