@@ -200,7 +200,7 @@ export const P1_SCORE_BCD = 0x88a2;
 export const P2_SCORE_BCD = 0x88a5;
 /** [code] (loc_585b sets 1 on a checksum mismatch; MULTIPLEXED -- advancePlayStateToPhase7OnActorDelay writes 0x07 as a state index, accrueCreditFromCoin1Pulse reads it as a coord low byte by COINAGE_CONFIG) eagle-spawn ROM-checksum mismatch flag */
 export const TAMPER_ROM_CHECK_FLAG = 0x882b;
-/** [code] (loc_0460 paints PANEL_VRAM_DEST from here) 30-byte status-panel tile source table (10 rows x 3 cells), work RAM */
+/** [seen] (loc_0460 paints PANEL_VRAM_DEST from here) 30-byte status-panel tile source table (10 rows x 3 cells), work RAM */
 export const PANEL_TILE_SOURCE = 0x8e00;
 /** [seen] (MAME gameplay golden: status-panel tiles painted here in play; loc_0460 destination) VRAM base of the status panel painted from PANEL_TILE_SOURCE */
 export const PANEL_VRAM_DEST = 0x8567;
@@ -527,7 +527,7 @@ export const HIGH_SCORE_INSERT_RANK = 0x89fc;
 /** [code] anti-tamper strike counter bumped when the credit-draw checksum tripwire misses its 0x8c sentinel */
 export const TAMPER_STRIKES_HUD_GUARD = 0x8a3c;
 export const loc_8a99 = 0x8a99;
-/** [code] base page of the per-slot hunter-return paced counters; a slot's counter cell is this | ((field-0 + 5) & 0xff) */
+/** [seen] base page of the per-slot hunter-return paced counters; a slot's counter cell is this | ((field-0 + 5) & 0xff) */
 export const HUNTER_COUNTER_PAGE = 0x8c00;
 /** [seen] (SHARED actor table — the 0x65xx path also seeds it; kept code; observed MAME: spawnHunterIntoTableAndAdvanceLaunch seeds fields 0x8c79..0x8c88 (pc 2872-2892) and stores base ptr 0x8c78 to 0x8f32/0x8f33; only slot 0 exercised in capture, so the 6-slot / 0x18-stride / downward-scan structure rema…) base of the 6-slot hunter record table (0x18 stride, scanned DOWNWARD) seeded by launch state 2 */
 export const HUNTER_TABLE_BASE = 0x8c78;
@@ -693,7 +693,7 @@ export const LAUNCH_FLIP_COUNTDOWN = 0x892f;
 export const SHARED_PHASE_GATE = 0x8930;
 /** [seen] work-RAM word holding the saved round-marker layout pointer */
 export const MARKER_LAYOUT_PTR = 0x8932;
-/** [code] work-RAM source table (ten 3-byte rows) rendered as packed-BCD digit pairs into the digit panel */
+/** [seen] work-RAM source table (ten 3-byte rows) rendered as packed-BCD digit pairs into the digit panel */
 export const PANEL_DIGIT_SOURCE_TABLE = 0x89c0;
 /** [seen] gate byte for the player-0/1 BCD play-timer; nonzero suppresses the per-frame tick */
 export const PLAY_TIMER_GATE_P1 = 0x89e1;
