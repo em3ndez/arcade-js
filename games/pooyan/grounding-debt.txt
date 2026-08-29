@@ -13,3 +13,31 @@
 # EMPTY until the deep-capture grounding campaign has grounded everything REACHABLE; only the true
 # irreducible residue lands here. Do NOT allowlist a routine/cell a deep capture could reach (a later
 # board, the eagle/bonus stage, a sound event) -- that must be GROUNDED, not accounted-for.
+
+0x01d5  Checksum-ref ROM: 0x12-byte state-0 window summed by loc_3be3 integrity check (cp 0x55, pc ~0x3c86) + full-ROM sweeps 
+0x0c2a  Dead code: 0x0c2a absent from 0x08a1 dispatch table (08b3..76ea) and no jp/call/jr/push16 targets it anywhere; reach h
+0x6df9  Anti-tamper clone of loc_0ac8 (byte-for-byte dup), reached ONLY via 'jp nz,0x6df9' from loc_6db8 tamper compare; not t
+0x6fed  Checksum-ref ROM: read only by blessed tamper comparator pc 6fcb (dc5-romreads n=80, 68-byte block) + full-ROM sweeps.
+0x7071  Anti-tamper clone of loc_0b32, reached ONLY via 'jp nz,0x7071' from loc_6db8 tamper guard (0x6df1); not taken on intac
+0x881e  Tamper freeze flag: only writers are tamper checksums (loc_5b06 flagTamperOnRound5ChecksumMiss, loc_1b43); readers loc
+0x89e7  First of the 7 tamper-flag slots at 0x89e7, scanned by loc_1f18/loc_7960 (return early / divert if any non-zero). Only
+0x89e8  Tamper counter: only writer loc_52f6 gated slot-sweep tripwire bumps on checksum miss (L!=0x15||H!=0x09, 0x5332). Read
+0x89e9  Tamper counter: only writer loc_7740 moveObject bumps it (0x778e) on checksum mismatch. Scanned by loc_7960. Captures 
+0x89ea  Credit tamper counter: only writer loc_0cf8/0d78 bumps (0x89ea) if the 0x776b checksum folds !=0 (0x0da7). Match on go
+0x89eb  Tamper flag: only writer loc_3f7c sets it (0x3fd1 'ld (0x89eb),a -- tamper flag') on checksum fail (bytes down from 0x
+0x89ed  Tamper counter (7-flag block slot): only writer loc_3be3 program-integrity check bumps on mismatch (0x3c90). Scanned b
+0x89ef  Tamper counter: only writer loc_7e6d anti-tamper checksum guard (bumps on (E+C)&0xb0 miss). Readers loc_1583/loc_2442 
+0x89fb  Tamper freeze flag: only writer loc_08b3 sets 1 (0x08db) on checksum miss (cp 0x8f fail), else stays 0. Reader loc_1e5
+0x8a38  Tamper counter: writers loc_1bcc/loc_4103 checksum-tripwires (conditional; captures show no v0!=vN change). Reader loc
+0x8a39  Tamper counter: only writer loc_3fe9 verifyRomChecksum (bumps on deviation, 0x4004). Reader loc_2473 (0x2477 'if (0x8a
+0x8a3a  Object-signature tamper counter (sibling of 0x8a38): only writer loc_4221 bumps on tamper (0x4281, deep nested). Reade
+0x8a3c  Tamper cell: only writer loc_05ee credit-HUD checksum tripwire bumps on mismatch vs 0x8c. Reader loc_24fb (0x250a 'if 
+0x8df9  Terminator tamper counter: only writer loc_64be bumps on checksum mismatch (0x64cd). Reader loc_2514 ORs it with board
+0x8ef0  Signature-mismatch flag: only writer loc_208c verifyRomSignature sets 1 (0x20a9) on mismatch, else returns clean. Read
+0xa000  MMIO port: 0xA000 R=DSW1 / W=watchdog reset (hardware.json:35, memory.js:8, pooyan.cpp:305). Role fixed by board drive
+0xa028  MMIO watchdog-kick decode of 0xA000 region (hardware.json:35 watchdog), write-only value ignored; written by loc_08b3/
+0xa080  MMIO IN0 input port (start/coin/service): io.js:25 PORT_ADDRS 0xa080, memory.js:93 kind=in0, readIn0(); read by loc_0b
+0xa0a0  MMIO IN1 input port: io.js:25 PORT_ADDRS 0xa0a0, memory.js:94 kind=in1, readIn1(). Role fixed by board driver; input s
+0xa0c0  MMIO IN2 (cocktail P2) input port: io.js:25 PORT_ADDRS 0xa0c0, memory.js:95 kind=in2, readIn2(). Role fixed by board d
+0xa0e0  MMIO port: 0xA0E0 DSW0 = KONAMI_COINAGE (hardware.json:40 dsw0.addr 41184, memory.js:8). Role fixed by board driver; n
+0xa187  MMIO LS259 mainlatch bit7 = flip_screen INVERTED (hardware.json:37 0xA180-0xA187, bit=(addr-0xA180)&7). Write-only lat
