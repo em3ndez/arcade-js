@@ -46,3 +46,4 @@
 0x67df  state-5 sig-check window base; cell bytes read as data ONLY by loc_2a96 (pc 2a9f, cp vs 0x2b23, trap on mismatch); the code entry loc_67df grounds separately
 0x1c66  state-4 sig-check window base; cell bytes read as data ONLY by loc_2a79 (pc 2a82, cp vs 0x2b23, trap on mismatch); the code entry loc_1c66 grounds separately
 0x2980  anti-tamper reference copy of ROM 0x0859 in a data gap; read ONLY by round-init compares loc_2901/loc_29a0 (trap on mismatch); no role reader, captures show only sweeps
+0x2b23  state-5 sig-check reversed reference; read as data ONLY by the sig-checks loc_2a79 (pc 2a81 vs 0x1c66) + loc_2a96 (pc 2a9e vs 0x67df), n=70; the executable role is the separately-grounded routine loc_2b23

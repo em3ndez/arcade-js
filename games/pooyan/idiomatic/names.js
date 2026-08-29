@@ -376,11 +376,11 @@ export const ANIM_SEQ_38CB = 0x38cb;
 export const PHASE4_TAMPER_ORIG = 0x6ac5;
 /** [code] ROM data copy of the phase-4 tamper block, compared byte-for-byte against PHASE4_TAMPER_ORIG */
 export const PHASE4_TAMPER_COPY = 0x6fed;
-/** [code] base of the colour/attribute map (0x8000-0x83ff) */
+/** [seen] base of the colour/attribute map (0x8000-0x83ff) */
 export const COLOR_RAM_BASE = 0x8000;
 /** [seen] video-RAM base of the first 14-tile column strip (colour region) column-summed upward (stride -0x20) by runDisplayListAndAdvanceToGameplay's state-1 HUD integrity check */
 export const HUD_INTEGRITY_STRIP_A = 0x82bc;
-/** [code] base of the tile-code video RAM (0x8400-0x87ff); also the row-by-row tile-fill cursor origin seeded here */
+/** [seen] base of the tile-code video RAM (0x8400-0x87ff); also the row-by-row tile-fill cursor origin seeded here */
 export const VIDEO_RAM_BASE = 0x8400;
 /** [seen] video-RAM start cell of the screen re-init playfield tile paint (0x1d x 0x1d tiles of blank tile 0x10, +0x20 per row) */
 export const PLAYFIELD_PAINT_START = 0x8442;
@@ -457,7 +457,7 @@ export const OBJECT_SPAWN_DISPLAY_CMD_ALT = 0x0607;
 export const SIREN_DISPLAY_CMD_A = 0x060f;
 /** [seen] display-list command word (0x06:0x11) enqueued via the page-0x88 ring on object spawn/init (also used by loc_08e9) */
 export const OBJECT_SPAWN_DISPLAY_CMD = 0x0611;
-/** [code] base display-command code queued when an eagle wave fully arrives, offset by the arrived count */
+/** [seen] base display-command code queued when an eagle wave fully arrives, offset by the arrived count */
 export const WAVE_ARRIVAL_CMD_BASE = 0x0630;
 /** [seen] display-command WORD (not a RAM cell) enqueued via loc_0038 for siren phase B */
 export const SIREN_DISPLAY_CMD_B = 0x068f;
@@ -635,7 +635,7 @@ export const FIELD_C_ATTRIB_DEST = 0x811c;
 export const VRAM_TILE_BLOCK_DEST_B = 0x826a;
 /** [seen] (MAME: written 00->00 n=2 as a 2x2 pattern (0x82aa,0x82ab,0x82ca,0x82cb) by the same 2x2 stamper — confirms VRAM_TILE_BLOCK_DEST_A is a 2x2 block anchor) video-RAM anchor for the first 2x2 tile block stamped by loc_0a52 (specific graphic ungrounded) */
 export const VRAM_TILE_BLOCK_DEST_A = 0x82aa;
-/** [code] base of the playfield tilemap tile region in video RAM (checksum/fill scan start) */
+/** [seen] base of the playfield tilemap tile region in video RAM (checksum/fill scan start) */
 export const PLAYFIELD_TILE_BASE = 0x8402;
 /** [seen] video-RAM base of the 10-row packed-BCD digit panel */
 export const PANEL_DIGIT_VRAM_DEST = 0x8467;
@@ -902,7 +902,7 @@ export const MARKER_COLUMN_GLYPH_SRC = 0x2768;
 export const MARKER_COLUMN_GLYPH_SRC_ODD = 0x276c;
 /** [seen] marker retract glyph src (0x2770) */
 export const MARKER_RETRACT_GLYPH_SRC = 0x2770;
-/** [code] marker retract glyph src odd (0x2774) */
+/** [seen] marker retract glyph src odd (0x2774) */
 export const MARKER_RETRACT_GLYPH_SRC_ODD = 0x2774;
 /** [code] field attrib ref (0x2980) */
 export const FIELD_ATTRIB_REF_2980 = 0x2980;
@@ -1144,7 +1144,7 @@ export const ROUND_GLYPH_WORD_TABLE = 0x200d;
 export const ANIM_SCRIPT_26C9 = 0x26c9;
 /** [seen] inline rst-28 jump table for the lead actor's secondary state machine (0x28f1) */
 export const ACTOR_SECONDARY_STATE_DISPATCH = 0x28f1;
-/** [code] routine entry pushed as the dispatch transfer/return slot (0x2b8d) */
+/** [seen] routine entry pushed as the dispatch transfer/return slot (0x2b8d) */
 export const SPAWN_FORMATION_EPILOGUE_ADDR = 0x2b8d;
 /** [seen] rom word table of rope-extend tile blocks (0x2dee) */
 export const ROPE_TILE_BLOCK_TABLE = 0x2dee;
@@ -1333,7 +1333,7 @@ export const INTRO_SCRIPT_TIMER_TABLE = 0x70f3;
 export const CREDIT_CHECKSUM_TABLE = 0x776b;
 /** [seen] base of the vertical tilemap column wiped during the phase-timer teardown; a stride-2 offset by the high-score insert rank (low byte only, page fixed at 0x80) yields the column pointer stored at 0x89fd */
 export const WIPE_COLUMN_VRAM_BASE = 0x8045;
-/** [code] scratch byte cleared at attract sub-state 0 / play state 0 entry (role unconfirmed -> loc_ name) */
+/** [seen] scratch byte cleared at attract sub-state 0 / play state 0 entry (role unconfirmed -> loc_ name) */
 export const loc_8819 = 0x8819;
 /** [seen] coin-counter 2 queued-pulse count: bumped by the per-frame coin step at 0x5a1f and drained one per completed strobe by the coin-2 pulse generator; twin of COIN1_PULSE_COUNT (0x8824) */
 export const COIN2_PULSE_COUNT = 0x8826;
