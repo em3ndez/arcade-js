@@ -866,7 +866,7 @@ export const CHECKSUM_ROM_BASE = 0x0bb5;
 export const COLUMN_BLIT_TILE_SRC = 0x0d2f;
 /** [seen] column blit attr src (0x0d48) */
 export const COLUMN_BLIT_ATTR_SRC = 0x0d48;
-/** [code] anim seq table (0x12fb) */
+/** [seen] anim seq table (0x12fb) */
 export const ANIM_SEQ_TABLE_12FB = 0x12fb;
 /** [code] state timer reload table (0x13d3) */
 export const STATE_TIMER_RELOAD_TABLE = 0x13d3;
