@@ -19,6 +19,6 @@ export function loc_6a98(m, rec = m.regs.ix) {
 
   switch ((mem8[rec + 0x02] - 1) & 0x03) {
     case 0: return loc_6aa8(m, rec);
-    case 1: return reinitRoundArenaAndPlayfieldIfImageIntact(m);
+    case 1: return reinitRoundArenaAndPlayfieldIfImageIntact(m, rec);
   }
 }

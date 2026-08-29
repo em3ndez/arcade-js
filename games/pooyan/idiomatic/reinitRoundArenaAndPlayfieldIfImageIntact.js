@@ -35,7 +35,7 @@ const PAINT_TILE = 0x10; //     blank tile stamped across the playfield
 const PAINT_SPAN = 0x1d; //     tiles per row and rows painted
 const ROW_GAP = ROW_STRIDE - PAINT_SPAN; // step from a row's last tile to the next row's first
 
-export function reinitRoundArenaAndPlayfieldIfImageIntact(m) {
+export function reinitRoundArenaAndPlayfieldIfImageIntact(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
   let sum = 0;
@@ -45,7 +45,7 @@ export function reinitRoundArenaAndPlayfieldIfImageIntact(m) {
     probe = u16(probe - ROW_STRIDE);
   }
   if (sum !== CKSUM_EXPECTED) {
-    ascendEnemyActorAndLinkedSlotOnTimer(m);
+    ascendEnemyActorAndLinkedSlotOnTimer(m, rec); // rec = this record, threaded from the enemy-scan loop
     return;
   }
 
