@@ -258,7 +258,7 @@ export const HUNTER_LAUNCH_PARAM_TABLE = 0x3337;
 export const DIVE_SCRIPT_DATA = 0x3348;
 /** [seen] ROM base of the hunter-formation script table seated into HUNTER_SCRIPT_PTR by loc_30f1 */
 export const HUNTER_SCRIPT_TABLE = 0x3370;
-/** [code] rst-0x20 byte table indexed by the bumped spawn-phase snapshot; supplies the new turn-column limit written to TURN_COLUMN_LIMIT on the interior-band arm */
+/** [seen] rst-0x20 byte table indexed by the bumped spawn-phase snapshot; supplies the new turn-column limit written to TURN_COLUMN_LIMIT on the interior-band arm */
 export const ANIM_TABLE_3418 = 0x3418;
 /** [seen] (MAME: spawnObjectIntoFreeSlot loads ld hl,0x3988 then pc=0x36c6 writes 0x88 -> (ix+0x0c) and pc=0x36c9 writes 0x39 -> (ix+0x0d), n=11 each on records 0x8aec/0x8b04/0x8b1c - exactly the documented 'seeded into a…) ROM animation-sequence descriptor pointer seeded into a spawner/parent actor record (+0x0c/+0x0d) */
 export const ANIM_SEQ_3988 = 0x3988;
@@ -368,9 +368,9 @@ export const ROPE_SEGMENT_TILE_SRC = 0x2dfe;
 export const ROPE_SEGMENT_TILE_SRC_ALT = 0x2e1e;
 /** [seen] ROM 4-byte table indexed by IXL&3 (via rst 0x20) supplying the spawned slot's +4 field value */
 export const ROPE_SPAWN_IY4_TABLE = 0x2ec7;
-/** [code] animation-sequence table (turn-around variant, sibling of ANIM_TABLE_3829) armed into an actor record when its flag byte (ix+7) bit1 is set */
+/** [seen] animation-sequence table (turn-around variant, sibling of ANIM_TABLE_3829) armed into an actor record when its flag byte (ix+7) bit1 is set */
 export const ANIM_TABLE_3847 = 0x3847;
-/** [code] ROM animation-sequence descriptor seeded little-endian into a spawned child actor's +0x0c/+0x0d anim field */
+/** [seen] ROM animation-sequence descriptor seeded little-endian into a spawned child actor's +0x0c/+0x0d anim field */
 export const ANIM_SEQ_38CB = 0x38cb;
 /** [seen] ROM original bytes (0x44) compared by the level-intro phase-4 anti-tamper self-check */
 export const PHASE4_TAMPER_ORIG = 0x6ac5;
@@ -467,19 +467,19 @@ export const SLOT_SWEEP_CKSUM_BASE = 0x0bf3;
 export const INTEGRITY_CHECKSUM_CODE_BLOCK = 0x2901;
 /** [seen] ROM 4-byte table: rope-cell index (IXL&3) -> video-RAM column low byte (paired with page 0x84 to form the column base) */
 export const ROPE_CELL_COLUMN_TABLE = 0x2db8;
-/** [code] ROM byte table indexed by the adjusted attribute value; OR-ed into an actor attribute byte (+0x08) */
+/** [seen] ROM byte table indexed by the adjusted attribute value; OR-ed into an actor attribute byte (+0x08) */
 export const ACTOR_ATTR_MERGE_TABLE = 0x3727;
-/** [code] ROM byte table indexed by 2*DIFFICULTY_DSW + clamped ROUND_COUNTER; supplies the base value for an actor attribute byte (+0x08) */
+/** [seen] ROM byte table indexed by 2*DIFFICULTY_DSW + clamped ROUND_COUNTER; supplies the base value for an actor attribute byte (+0x08) */
 export const ACTOR_ATTR_BASE_TABLE = 0x3737;
 /** [seen] ROM 4-frame animation table (sibling of ANIM_TABLE_3829) armed into the descending object's record by the descent step */
 export const ANIM_TABLE_3838 = 0x3838;
 /** [code] animation-sequence pointer armed into even eagle records (IXL bit3 clear) */
 export const EAGLE_EVEN_RECORD_ANIM = 0x4086;
-/** [code] ROM animation-sequence descriptor armed via setActorAnimation when a spawned object lands/settles (also installed by the rope-grab path) */
+/** [seen] ROM animation-sequence descriptor armed via setActorAnimation when a spawned object lands/settles (also installed by the rope-grab path) */
 export const LANDING_ANIM_SEQ_40B4 = 0x40b4;
 /** [code] top of the ROM block advanceActorStateOnTimerWithTamperCheck sums backward (to the 0x1a terminator) for its tamper check; a ROM address, not a RAM cell */
 export const ACTOR_TAMPER_CKSUM_TOP = 0x4282;
-/** [code] ROM byte table indexed by the clamped spawn speed index; result stored at 0x8d5d */
+/** [seen] ROM byte table indexed by the clamped spawn speed index; result stored at 0x8d5d */
 export const SPAWN_SPEED_TABLE = 0x5407;
 /** [code] fixed 56-byte block whose folded low-nibble sum is the object-frame anti-tamper sentinel (running low byte 0x67 with exactly one carry) */
 export const TAMPER_NIBBLE_SUM_BLOCK = 0x557f;
@@ -595,9 +595,9 @@ export const ANIM_SCRIPT_RESET_PTR = 0x26e7;
 export const TWOTILE_SRC_TABLE = 0x2744;
 /** [seen] ROM source tiles for the round-marker 3x3 glyph block (blitTile3x3Block src) */
 export const MARKER_GLYPH_SRC = 0x2754;
-/** [code] 4-byte 2x2 tile source block for the ready-sprite square */
+/** [seen] 4-byte 2x2 tile source block for the ready-sprite square */
 export const READY_SPRITE_SRC = 0x2be1;
-/** [code] ROM animation-sequence descriptor stored into a record's anim field (ix+0x0c/0x0d) by setActorAnimation */
+/** [seen] ROM animation-sequence descriptor stored into a record's anim field (ix+0x0c/0x0d) by setActorAnimation */
 export const RECORD_ANIM_SEQ_2CA7 = 0x2ca7;
 /** [code] ROM script/table pointer seeded little-endian into a record's +0x16/+0x17 script field */
 export const RECORD_SCRIPT_2D00 = 0x2d00;
@@ -842,7 +842,7 @@ export const TERMINATOR_SCAN_SRC = 0x0bc2;
 export const STATE5_SIGCHECK_REF_TOP = 0x2b23;
 /** [seen] ROM expected-byte table (walked upward) for the terminator match-scan, terminated when a fetched byte decrements to zero (a 0x01 sentinel) */
 export const TERMINATOR_MATCH_TABLE = 0x64d0;
-/** [code] ROM animation-sequence pointer handed to setActorAnimation for a struck/collided object */
+/** [seen] ROM animation-sequence pointer handed to setActorAnimation for a struck/collided object */
 export const ANIM_SEQ_64DF = 0x64df;
 /** [code] base of the code window the 0x8a80 actor state-5 handler signature-checks (its first 0x20 bytes, read ascending) against the reversed reference at 0x2b23; this is also the entry of reinitRoundArenaAndPlayfieldIfImageIntact */
 export const STATE5_SIGCHECK_CODE_BASE_ADDR = 0x67df;
@@ -888,11 +888,11 @@ export const STATUS_RENDER_TILE_TABLE = 0x26f6;
 export const STATUS_FIELD_TILE_A = 0x270a;
 /** [seen] status field tile b (0x270e) */
 export const STATUS_FIELD_TILE_B = 0x270e;
-/** [code] motion param table (0x2712) */
+/** [seen] motion param table (0x2712) */
 export const MOTION_PARAM_TABLE_2712 = 0x2712;
-/** [code] motion param table (0x271c) */
+/** [seen] motion param table (0x271c) */
 export const MOTION_PARAM_TABLE_271C = 0x271c;
-/** [code] motion param table (0x2730) */
+/** [seen] motion param table (0x2730) */
 export const MOTION_PARAM_TABLE_2730 = 0x2730;
 /** [seen] marker glyph src odd (0x275e) */
 export const MARKER_GLYPH_SRC_ODD = 0x275e;
@@ -910,9 +910,9 @@ export const FIELD_ATTRIB_REF_2980 = 0x2980;
 export const SHAPE_TABLE_2D59 = 0x2d59;
 /** [seen] formation dispatch table (0x30eb) */
 export const FORMATION_DISPATCH_TABLE = 0x30eb;
-/** [code] target tile row table (0x35c7) */
+/** [seen] target tile row table (0x35c7) */
 export const TARGET_TILE_ROW_TABLE = 0x35c7;
-/** [code] delay reload table (0x368e) */
+/** [seen] delay reload table (0x368e) */
 export const DELAY_RELOAD_TABLE_368E = 0x368e;
 /** [code] anim table (0x3856) */
 export const ANIM_TABLE_3856 = 0x3856;
@@ -920,27 +920,27 @@ export const ANIM_TABLE_3856 = 0x3856;
 export const SPEED_TABLE_38A5 = 0x38a5;
 /** [code] speed table (0x38ad) */
 export const SPEED_TABLE_38AD = 0x38ad;
-/** [code] anim ptr table (0x38b5) */
+/** [seen] anim ptr table (0x38b5) */
 export const ANIM_PTR_TABLE_38B5 = 0x38b5;
-/** [code] anim seq (0x3952) */
+/** [seen] anim seq (0x3952) */
 export const ANIM_SEQ_3952 = 0x3952;
-/** [code] spawn anim table (0x396a) */
+/** [seen] spawn anim table (0x396a) */
 export const SPAWN_ANIM_TABLE_396A = 0x396a;
 /** [code] spawn anim table (0x3979) */
 export const SPAWN_ANIM_TABLE_3979 = 0x3979;
-/** [code] anim seq (0x3994) */
+/** [seen] anim seq (0x3994) */
 export const ANIM_SEQ_3994 = 0x3994;
 /** [code] spawn anim table (0x39a0) */
 export const SPAWN_ANIM_TABLE_39A0 = 0x39a0;
 /** [code] spawn attr table (0x3b37) */
 export const SPAWN_ATTR_TABLE_3B37 = 0x3b37;
-/** [code] spawn attr table (0x3b3f) */
+/** [seen] spawn attr table (0x3b3f) */
 export const SPAWN_ATTR_TABLE_3B3F = 0x3b3f;
-/** [code] spawn coord table (0x3b47) */
+/** [seen] spawn coord table (0x3b47) */
 export const SPAWN_COORD_TABLE_3B47 = 0x3b47;
 /** [code] spawn coord table (0x3b57) */
 export const SPAWN_COORD_TABLE_3B57 = 0x3b57;
-/** [code] hit flash anim (0x3bdd) */
+/** [seen] hit flash anim (0x3bdd) */
 export const HIT_FLASH_ANIM_3BDD = 0x3bdd;
 /** [code] anim seq table (0x4076) */
 export const ANIM_SEQ_TABLE_4076 = 0x4076;
@@ -952,21 +952,21 @@ export const ARM_ANIM_TABLE = 0x41b1;
 export const CATCH_TAMPER_CKSUM_TOP = 0x428b;
 /** [code] hit flash anim (0x433b) */
 export const HIT_FLASH_ANIM_433B = 0x433b;
-/** [code] hit flash anim (0x4341) */
+/** [seen] hit flash anim (0x4341) */
 export const HIT_FLASH_ANIM_4341 = 0x4341;
-/** [code] actor speed table (0x55d7) */
+/** [seen] actor speed table (0x55d7) */
 export const ACTOR_SPEED_TABLE_55D7 = 0x55d7;
 /** [code] actor spawn type table (0x5637) */
 export const ACTOR_SPAWN_TYPE_TABLE = 0x5637;
 /** [seen] actor anim table (0x5657) */
 export const ACTOR_ANIM_TABLE_5657 = 0x5657;
-/** [code] spawn timer table odd (0x589b) */
+/** [seen] spawn timer table odd (0x589b) */
 export const SPAWN_TIMER_TABLE_ODD = 0x589b;
 /** [seen] spawn timer table even (0x58c0) */
 export const SPAWN_TIMER_TABLE_EVEN = 0x58c0;
-/** [code] spawn field table odd (0x58e0) */
+/** [seen] spawn field table odd (0x58e0) */
 export const SPAWN_FIELD_TABLE_ODD = 0x58e0;
-/** [code] eagle rearm table (0x5922) */
+/** [seen] eagle rearm table (0x5922) */
 export const EAGLE_REARM_TABLE_5922 = 0x5922;
 /** [seen] eagle rearm table (0x5985) */
 export const EAGLE_REARM_TABLE_5985 = 0x5985;
@@ -1075,7 +1075,7 @@ export const INTEGRITY_GUARD_REGION_0BAD = 0x0bad;
 export const INTEGRITY_GUARD_SIGNATURE_55B5 = 0x55b5;
 /** [seen] rope-extend rst-28 inline jump table (2 words) (0x2d7c) */
 export const ROPE_EXTEND_DISPATCH_TABLE = 0x2d7c;
-/** [code] spawn-kind ROM byte table (rst-20 base), frame-timer spawner (0x5627) */
+/** [seen] spawn-kind ROM byte table (rst-20 base), frame-timer spawner (0x5627) */
 export const SPAWN_KIND_TABLE_5627 = 0x5627;
 /** [code] spawn-kind ROM byte table (rst-20 base), spawn scheduler B (0x5647) */
 export const SPAWN_KIND_TABLE_5647 = 0x5647;
@@ -1142,7 +1142,7 @@ export const STAGE_TAG_COLUMN_TABLE = 0x1f87;
 export const ROUND_GLYPH_WORD_TABLE = 0x200d;
 /** [seen] rom anim script the shared cursor is seated to (0x26c9) */
 export const ANIM_SCRIPT_26C9 = 0x26c9;
-/** [code] inline rst-28 jump table for the lead actor's secondary state machine (0x28f1) */
+/** [seen] inline rst-28 jump table for the lead actor's secondary state machine (0x28f1) */
 export const ACTOR_SECONDARY_STATE_DISPATCH = 0x28f1;
 /** [code] routine entry pushed as the dispatch transfer/return slot (0x2b8d) */
 export const SPAWN_FORMATION_EPILOGUE_ADDR = 0x2b8d;
@@ -1154,7 +1154,7 @@ export const ROPE_RETRACT_TILE_SRC = 0x2e1a;
 export const ROPE_CELL_DISPATCH = 0x2e3d;
 /** [seen] rom word table of retract-anim pointers (0x2f93) */
 export const RETRACT_ANIM_TABLE = 0x2f93;
-/** [code] rom object state-8 anim word table (0x3dd3) */
+/** [seen] rom object state-8 anim word table (0x3dd3) */
 export const OBJECT_STATE8_ANIM_TABLE = 0x3dd3;
 /** [code] rom animation-sequence word table indexed by phase (0x3e49) */
 export const ANIM_SEQ_TABLE_3E49 = 0x3e49;
@@ -1162,9 +1162,9 @@ export const ANIM_SEQ_TABLE_3E49 = 0x3e49;
 export const FALL_ANIM_TABLE = 0x4072;
 /** [seen] rom two's-complement signature table, 0xff-terminated (0x4283) */
 export const SIGNATURE_CHECK_TABLE = 0x4283;
-/** [code] rom word table indexed by ((round>>1)-1)&3 -> spawned-slot anim/script pointer (0x432d) */
+/** [seen] rom word table indexed by ((round>>1)-1)&3 -> spawned-slot anim/script pointer (0x432d) */
 export const SPAWN_ANIM_WORD_TABLE = 0x432d;
-/** [code] rom animation-sequence pointer seated into the source record (0x4347) */
+/** [seen] rom animation-sequence pointer seated into the source record (0x4347) */
 export const SPAWN_ANIM_SEQ = 0x4347;
 /** [seen] rom script-row table (0x519a) */
 export const SCRIPT_ROW_TABLE = 0x519a;
@@ -1180,7 +1180,7 @@ export const ACTOR_MOTION_TABLE_55D4 = 0x55d4;
 export const SPAWN_RELOAD_TABLE = 0x55ef;
 /** [code] rom reload-value table indexed by the spawn-cursor low nibble (0x55ff) */
 export const SPAWN_INTERVAL_TABLE_55FF = 0x55ff;
-/** [code] rom rst-20 byte table of reload values indexed by cursor&0x0f (0x560f) */
+/** [seen] rom rst-20 byte table of reload values indexed by cursor&0x0f (0x560f) */
 export const SPAWN_TIMER_RELOAD_TABLE = 0x560f;
 /** [code] rom word table indexed by the spawn index -> anim-script byte to record +0x17 (0x561f) */
 export const ACTOR_ANIM_SCRIPT_TABLE_561F = 0x561f;
@@ -1365,7 +1365,7 @@ export const IN0_PORT = 0xa080;
 export const COIN2_COUNTER_LATCH = 0xa184;
 /** [seen] ROM source table copied into the high-score name-entry display buffer (0x1754) */
 export const HIGH_SCORE_ENTRY_TABLE_SRC = 0x1754;
-/** [code] ROM animation-descriptor pointer for the actor drop, seated into the record on arm (0x3bd1) */
+/** [seen] ROM animation-descriptor pointer for the actor drop, seated into the record on arm (0x3bd1) */
 export const DROP_ANIM_DESCRIPTOR = 0x3bd1;
 /** [seen] address the backward power-on checksum scan begins at, walked down to the sentinel byte (0x64d5) */
 export const CHECKSUM_SCAN_START = 0x64d5;
