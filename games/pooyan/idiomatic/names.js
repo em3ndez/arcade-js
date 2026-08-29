@@ -236,7 +236,7 @@ export const ATTRIB_MAP_BASE = 0x8040;
 export const BOOT_CODE_BASE = 0x0000;
 /** [seen] ROM base where self-test loop 2 walks the checked program window (through ROM[0x0105]) against the reference copy at 0x74a2 */
 export const SELFTEST_LOOP2_SCAN_BASE = 0x0092;
-/** [code] display-command word base (type 0x03) enqueued on the (ix+0x11) countdown expiry; its low byte 0x12 is offset by the adjusted (ix+0x16) before enqueue */
+/** [seen] display-command word base (type 0x03) enqueued on the (ix+0x11) countdown expiry; its low byte 0x12 is offset by the adjusted (ix+0x16) before enqueue */
 export const COUNTDOWN_EXPIRE_DISPLAY_CMD = 0x0312;
 /** [seen] display-command word (0x06:0x00) enqueued via loc_0038 by the 0x15a8-dispatch state handlers loc_1b43/loc_1b8c */
 export const DISPLAY_CMD_0600 = 0x0600;
@@ -340,15 +340,15 @@ export const DISPLAY_CMD_0627 = 0x0627;
 export const WAVE_SPAWN_DISPLAY_CMD_A = 0x0625;
 /** [seen] second display-command word queued (rst 0x38 -> loc_0038) on the first spawn of a wave (paired with _A) */
 export const WAVE_SPAWN_DISPLAY_CMD_B = 0x060a;
-/** [code] display-command word (type 0x06) queued via the display-ring helper on deferred-object fire (1 of 5, 0x062b..0x062f) */
+/** [seen] display-command word (type 0x06) queued via the display-ring helper on deferred-object fire (1 of 5, 0x062b..0x062f) */
 export const PROMOTE_DISPLAY_CMD_A = 0x062b;
-/** [code] display-command word queued on deferred-object fire (2 of 5) */
+/** [seen] display-command word queued on deferred-object fire (2 of 5) */
 export const PROMOTE_DISPLAY_CMD_B = 0x062c;
-/** [code] display-command word queued on deferred-object fire (3 of 5) */
+/** [seen] display-command word queued on deferred-object fire (3 of 5) */
 export const PROMOTE_DISPLAY_CMD_C = 0x062d;
-/** [code] display-command word queued on deferred-object fire (4 of 5) */
+/** [seen] display-command word queued on deferred-object fire (4 of 5) */
 export const PROMOTE_DISPLAY_CMD_D = 0x062e;
-/** [code] display-command word queued on deferred-object fire (5 of 5) */
+/** [seen] display-command word queued on deferred-object fire (5 of 5) */
 export const PROMOTE_DISPLAY_CMD_E = 0x062f;
 /** [seen] display-command word queued (via rst 0x38) by intro phase 5 when the toggle's new bit0 is 0 */
 export const INTRO_PHASE5_DISPLAY_CMD_A = 0x06a7;
@@ -431,9 +431,9 @@ export const TAMPER_STRIKES_TERMINATOR = 0x8df9;
 export const INTRO_PHASE5_TOGGLE = 0x8f54;
 /** [seen] main-loop sub-state selector (&7), dispatched by loc_0fd5 via the inline table at 0x0fe3; loc_10c2 bumps it to advance the phase */
 export const MAINLOOP_SUBSTATE_SELECTOR = 0x8f5c;
-/** [code] source value for loc_10c2's second BCD HUD field (drawn raw when <10, else re-encoded to packed BCD) */
+/** [seen] source value for loc_10c2's second BCD HUD field (drawn raw when <10, else re-encoded to packed BCD) */
 export const SUBSTATE_FIELD2_VALUE = 0x8f5e;
-/** [code] presence/source value for loc_10c2's third BCD HUD field: nonzero enables the field (drawn x2) and is folded into the field-1 counter */
+/** [seen] presence/source value for loc_10c2's third BCD HUD field: nonzero enables the field (drawn x2) and is folded into the field-1 counter */
 export const SUBSTATE_FIELD3_VALUE = 0x8f60;
 /** [seen] counter adjusted by loc_10c2 and drawn x2 as its first BCD HUD field; the third-field source is added into it when present */
 export const SUBSTATE_FIELD1_COUNTER = 0x8f62;
@@ -449,7 +449,7 @@ export const NMI_ENABLE_LATCH = 0xa180;
 export const FLIP_SCREEN_LATCH = 0xa187;
 /** [seen] display-command WORD (not a RAM cell) enqueued via loc_0038 on hunter spawn */
 export const HUNTER_SPAWN_DISPLAY_CMD = 0x0315;
-/** [code] ROM table of 3-byte BCD score-award increments (stride 3), indexed by the award index (index!=0 path) */
+/** [seen] ROM table of 3-byte BCD score-award increments (stride 3), indexed by the award index (index!=0 path) */
 export const SCORE_AWARD_TABLE = 0x0501;
 /** [seen] alternate display-list command word (0x06:0x07) enqueued on object init when the round counter is zero */
 export const OBJECT_SPAWN_DISPLAY_CMD_ALT = 0x0607;
@@ -739,7 +739,7 @@ export const WAVE_RECORD_COUNT = 0x8f3c;
 export const EAGLE_FINISH_FLAG = 0x8f3e;
 /** [seen] once-only latch gating the playfield tile-region tamper checksum (loc_68ac/loc_3278) */
 export const TILE_CHECKSUM_LATCH = 0x8f55;
-/** [code] state/flag ORed with WAVE_TEARDOWN_STATE (0x8f24) to gate/abort the player-object update; base of a 4-byte block cleared at reset by resetBoardRamAndReseedSpawnCounters (role partially understood) */
+/** [seen] state/flag ORed with WAVE_TEARDOWN_STATE (0x8f24) to gate/abort the player-object update; base of a 4-byte block cleared at reset by resetBoardRamAndReseedSpawnCounters (role partially understood) */
 export const SECONDARY_TEARDOWN_FLAG = 0x8f57;
 /** [code] player-1 controls hardware input port (IN1), active-low; used in upright orientation */
 export const IN1_PORT = 0xa0a0;
@@ -914,7 +914,7 @@ export const FORMATION_DISPATCH_TABLE = 0x30eb;
 export const TARGET_TILE_ROW_TABLE = 0x35c7;
 /** [seen] delay reload table (0x368e) */
 export const DELAY_RELOAD_TABLE_368E = 0x368e;
-/** [code] anim table (0x3856) */
+/** [seen] anim table (0x3856) */
 export const ANIM_TABLE_3856 = 0x3856;
 /** [seen] speed table (0x38a5) */
 export const SPEED_TABLE_38A5 = 0x38a5;
@@ -972,11 +972,11 @@ export const EAGLE_REARM_TABLE_5922 = 0x5922;
 export const EAGLE_REARM_TABLE_5985 = 0x5985;
 /** [seen] anim seq (0x5c80) */
 export const ANIM_SEQ_5C80 = 0x5c80;
-/** [code] anim seq (0x5c89) */
+/** [seen] anim seq (0x5c89) */
 export const ANIM_SEQ_5C89 = 0x5c89;
 /** [seen] anim seq table (0x5c92) */
 export const ANIM_SEQ_TABLE_5C92 = 0x5c92;
-/** [code] anim seq (0x5cf9) */
+/** [seen] anim seq (0x5cf9) */
 export const ANIM_SEQ_5CF9 = 0x5cf9;
 /** [seen] column blit attr dest (0x82a7) */
 export const COLUMN_BLIT_ATTR_DEST = 0x82a7;
@@ -1018,9 +1018,9 @@ export const EAGLE_STAGE_TIMERS = 0x8d47;
 export const SPAWN_ACTIVE_FLAG = 0x8d4a;
 /** [seen] special actor active flag (0x8d4a) */
 export const SPECIAL_ACTOR_ACTIVE_FLAG = 0x8d4a;
-/** [code] eagle target column bias (0x8d4c) */
+/** [seen] eagle target column bias (0x8d4c) */
 export const EAGLE_TARGET_COLUMN_BIAS = 0x8d4c;
-/** [code] spawn column bias (0x8d4c) */
+/** [seen] spawn column bias (0x8d4c) */
 export const SPAWN_COLUMN_BIAS = 0x8d4c;
 /** [seen] active enemy target pair ptr (0x8d65) */
 export const ACTIVE_ENEMY_TARGET_PAIR_PTR = 0x8d65;
@@ -1090,7 +1090,7 @@ export const SPAWN_SEQUENCE_INDEX_8D14 = 0x8d14;
 
 /** [seen] display command constant (0x0200) (0x0200) */
 export const DISPLAY_CMD_0200 = 0x0200;
-/** [code] display-command word base (type 0x03) (0x030f) */
+/** [seen] display-command word base (type 0x03) (0x030f) */
 export const OBJECT_ANIM_DISPLAY_CMD_BASE = 0x030f;
 /** [seen] attract state-4 display command (0x060d) */
 export const ATTRACT_S4_DISPLAY_CMD = 0x060d;
@@ -1158,7 +1158,7 @@ export const RETRACT_ANIM_TABLE = 0x2f93;
 export const OBJECT_STATE8_ANIM_TABLE = 0x3dd3;
 /** [seen] rom animation-sequence word table indexed by phase (0x3e49) */
 export const ANIM_SEQ_TABLE_3E49 = 0x3e49;
-/** [code] rom word table of plummet-animation pointers (0x4072) */
+/** [seen] rom word table of plummet-animation pointers (0x4072) */
 export const FALL_ANIM_TABLE = 0x4072;
 /** [seen] rom two's-complement signature table, 0xff-terminated (0x4283) */
 export const SIGNATURE_CHECK_TABLE = 0x4283;
@@ -1236,7 +1236,7 @@ export const SPAWN_COUNTDOWN_A = 0x8d04;
 export const SPAWN_INTERVAL_COUNTDOWN = 0x8d05;
 /** [seen] frame-timer gated spawner countdown, reloaded from the table on expiry (0x8d06) */
 export const SPAWN_RELOAD_TIMER = 0x8d06;
-/** [guess] second 6-byte formation state row blanked at entry (0x8d11) */
+/** [seen] second 6-byte formation state row blanked at entry (0x8d11) */
 export const FORMATION_STATE_ROW2 = 0x8d11;
 /** [seen] work-ram landing sound-id latch = (ix+0x17)+1 (0x8d1d) */
 export const SOUND_ID_LATCH_8D1D = 0x8d1d;
@@ -1343,7 +1343,7 @@ export const COIN2_PULSE_PHASE = 0x8827;
 export const DRIP_RING_C = 0x882a;
 /** [seen] cadence ring for the per-frame step at 0x5a1f: rotated left each frame injecting an input-port bit; low 3 bits == 1 triggers the step */
 export const DRIP_RING_B = 0x882d;
-/** [code] first byte of the 0x5a1f step's pair (0x882e/0x882f; neighbor COINAGE_CONFIG_SLOT2): advanced +0x10 per step, wrapped against the second byte */
+/** [seen] first byte of the 0x5a1f step's pair (0x882e/0x882f; neighbor COINAGE_CONFIG_SLOT2): advanced +0x10 per step, wrapped against the second byte */
 export const DRIP_COORD_B = 0x882e;
 /** [seen] Launcher/player position coordinate; shifted >>3 (rrca x3 & 0x1f) with the flip-screen flag to derive the target column used to align an enemy shot. NOTE: axis (X vs Y) is unverified in this decode pass — the translated author's comment calls it the 'launcher position / target column'; confirm the axis in MAME during grounding. */
 export const PLAYER_X_COORD = 0x8842;
