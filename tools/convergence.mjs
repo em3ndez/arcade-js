@@ -28,7 +28,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = dirname(HERE);
 
 function parseArgs(argv) {
-  const a = { mode: "pixel", frameStride: 15, pxThreshold: 5, searchWindow: Infinity, pin: false, idiomatic: false };
+  const a = { mode: "pixel", frameStride: 15, pxThreshold: 5, searchWindow: Infinity, pin: false, idiomatic: false, tape: null, tapeOrigin: 0 };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === "--game") a.game = argv[++i];
@@ -39,6 +39,8 @@ function parseArgs(argv) {
     else if (k === "--px-threshold") a.pxThreshold = parseFloat(argv[++i]);
     else if (k === "--search-window") a.searchWindow = parseInt(argv[++i], 10);
     else if (k === "--idiomatic") a.idiomatic = true;
+    else if (k === "--tape") a.tape = argv[++i];
+    else if (k === "--tape-origin") a.tapeOrigin = parseInt(argv[++i], 10);
     else { console.error(`unknown arg: ${k}`); process.exit(2); }
   }
   if (!a.game || !a.golden) { console.error("need --game and --golden"); process.exit(2); }
@@ -53,14 +55,17 @@ function loadBin(p) {
 // Render the JS side: the generator engine (--idiomatic) or the cycle-free oracle (default).
 // The idiomatic runs FASTER, so the golden must cover its ahead game-time. Returns {frames,stop,stopError}.
 function renderRun(machine, cfg, args, GC, capture) {
+  // Apply the input tape at f + tapeOrigin, exactly as render.js's runGeneratorFrames does, so a
+  // gameplay golden (coin/start/play) can be validated — not just an input-free attract boot.
+  const drive = (m, f) => { m.applyInputs(f + args.tapeOrigin); m.applyPokes(f + args.tapeOrigin); };
   if (args.idiomatic) {
     return runIdiomaticGame(machine, {
       nmiReturnPC: cfg.idiomatic?.nmiReturnPC,
       maxFrames: GC,
-      onFrame: (m, f) => { if (f !== 0) capture(m); }, // f=0 is power-on, before the boot chain runs
+      onFrame: (m, f) => { if (f !== 0) { drive(m, f); capture(m); } }, // f=0 is power-on, before the boot chain runs
     });
   }
-  return runCycleFree(machine, { pollPCs: cfg.pollPCs, maxFrames: GC, onFrame: capture });
+  return runCycleFree(machine, { pollPCs: cfg.pollPCs, maxFrames: GC, onFrame: (m, f) => { drive(m, f); capture(m); } });
 }
 
 async function main() {
@@ -78,7 +83,12 @@ async function main() {
   const romDir = join(gameDir, "rom");
   const rom = new Uint8Array(loadBin(join(romDir, "maincpu.bin")));
   const needGfx = args.mode === "pixel";
-  const gfx = needGfx ? new Uint8Array(loadBin(join(romDir, "gfx.bin"))) : undefined;
+  // Some boards ship one gfx.bin (thepit); others split it (pooyan: tiles.bin + sprites.bin). Load
+  // whichever the game has so pixel mode paints instead of throwing "renderFrame needs tiles/sprites".
+  const hasSplit = existsSync(join(romDir, "tiles.bin")) && existsSync(join(romDir, "sprites.bin"));
+  const gfx = needGfx && !hasSplit ? new Uint8Array(loadBin(join(romDir, "gfx.bin"))) : undefined;
+  const tiles = needGfx && hasSplit ? new Uint8Array(loadBin(join(romDir, "tiles.bin"))) : undefined;
+  const sprites = needGfx && hasSplit ? new Uint8Array(loadBin(join(romDir, "sprites.bin"))) : undefined;
   const proms = needGfx ? new Uint8Array(loadBin(join(romDir, "proms.bin"))) : undefined;
 
   // --idiomatic drives runIdiomaticGame, which resumes the idiomatic GENERATOR spine — so the machine
@@ -90,8 +100,13 @@ async function main() {
     process.exit(2);
   }
   const overrides = args.idiomatic ? await resolveAllIdiomatic() : undefined;
-  const machine = await Machine.create(rom, { gfx, proms, overrides });
+  const machine = await Machine.create(rom, { gfx, tiles, sprites, proms, overrides });
   if (args.pin) installEntropyPin(machine, manifest.entropyPin);
+  // Drive gameplay from an input tape (JSON array of {port,bits,frame,dur}), same shape render.js uses.
+  if (args.tape) {
+    machine.inputTape = JSON.parse(readFileSync(args.tape, "utf8"));
+    console.error(`[tape] ${machine.inputTape.length} entries, tape-origin ${args.tapeOrigin}`);
+  }
 
   if (args.mode === "pixel") return pixelGate(machine, cfg, args);
   if (args.mode === "state") return stateGate(machine, cfg, args);

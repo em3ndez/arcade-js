@@ -153,11 +153,30 @@ def check_audio(game):
 
 
 def check_pixel(game):
+    # The DONE gate runs the FULL pixel path (--done), NOT the bare attract-prefix default the per-commit
+    # tripwire (tools/pixel_gate_required.py) runs: --done adds attract COMPLETENESS past the former crash
+    # frames + tape-driven GAMEPLAY vs the MAME golden, closing the green-but-blind hole where gameplay was
+    # pixel-validated NOWHERE (runbook 5: an attract-only gate must NOT count green for done). PASS is the
+    # literal `pixel_suite: PASS` line, never the exit code (the suite exits 0 when it CANNOT run -- no
+    # mame/romset); a suite that does not accept --done is a stale attract-only gate and must not pass.
     suite = f"games/{game}/tools/pixel_suite.py"
     if not os.path.exists(suite):
         return False, "no pixel_suite.py"
-    rc, out = run(["python3", suite, "--layer", "idiomatic"])
-    return (rc == 0), ("PASS" if rc == 0 else "pixel suite FAILED")
+    # Legacy pre-runbook ports (runbook "Legacy games": do not retrofit) are grandfathered on the attract
+    # pixel gate; the --done gameplay bar is the go-forward standard for games ported under the runbook.
+    LEGACY_ATTRACT_ONLY = {"frogger", "timeplt", "thepit"}
+    if "--done" not in open(suite, encoding="utf-8", errors="replace").read():
+        if game not in LEGACY_ATTRACT_ONLY:
+            return False, "pixel_suite.py has no --done mode (attract-only gate is blind to gameplay)"
+        rc, out = run(["python3", suite, "--layer", "idiomatic"])
+        ok = rc == 0 and re.search(r"^pixel_suite: PASS", out, re.M) is not None
+        return ok, ("PASS (legacy attract-only, grandfathered)" if ok else "pixel suite FAILED")
+    rc, out = run(["python3", suite, "--layer", "idiomatic", "--done"])
+    passed = rc == 0 and re.search(r"^pixel_suite: PASS", out, re.M) is not None
+    if passed:
+        return True, "PASS (--done: attract completeness + gameplay vs MAME)"
+    last = next((ln for ln in reversed(out.splitlines()) if ln.strip()), "")
+    return False, "pixel --done FAILED: " + last[:90]
 
 
 def check_wholegame(game):
