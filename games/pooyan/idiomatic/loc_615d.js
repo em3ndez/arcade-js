@@ -13,12 +13,12 @@ import { resetActorRecordQueueSoundAndAbortFrame } from "./resetActorRecordQueue
  */
 const TAG_FIELD = 0x14;
 
-export function loc_615d(m, a = m.regs.a, ix = m.regs.ix, de = m.regs.de, count = m.regs.b) {
+export function loc_615d(m, a = m.regs.a, ix = m.regs.ix, de = m.regs.de, count = m.regs.b, iy = m.regs.iy) {
   const { mem8 } = m;
   let rec = ix;
   for (let n = count === 0 ? 256 : count; n > 0; n--) { // count 0 wraps to 256 (djnz)
-    if (a === mem8[u16(rec + TAG_FIELD)]) return engageMatchedSpriteObjectAndResetActor(m, rec); // match -> engage
+    if (a === mem8[u16(rec + TAG_FIELD)]) return engageMatchedSpriteObjectAndResetActor(m, rec, iy); // match -> engage
     rec = u16(rec + de);
   }
-  return resetActorRecordQueueSoundAndAbortFrame(m); // no match -> reset the actor record
+  return resetActorRecordQueueSoundAndAbortFrame(m, iy); // no match -> reset the actor record
 }

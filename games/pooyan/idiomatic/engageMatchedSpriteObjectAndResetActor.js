@@ -10,9 +10,9 @@ import { resetActorRecordQueueSoundAndAbortFrame } from "./resetActorRecordQueue
  *
  * LIVE-OUT: none of its own; propagates the reset chain's boolean (always false).
  */
-export function engageMatchedSpriteObjectAndResetActor(m, ix = m.regs.ix) {
+export function engageMatchedSpriteObjectAndResetActor(m, ix = m.regs.ix, iy = m.regs.iy) {
   const { mem8 } = m;
   mem8[u16(ix + 0x08)] = 0x01; // engaged state
   mem8[u16(ix + 0x0a)] = 0xd0; // engaged parameter
-  return resetActorRecordQueueSoundAndAbortFrame(m); // reset the actor record (tail into the skip chain)
+  return resetActorRecordQueueSoundAndAbortFrame(m, iy); // reset the actor record (tail into the skip chain)
 }

@@ -24,5 +24,5 @@ export function loc_613d(m, iy = m.regs.iy) {
   if ((mem8[ROUND_COUNTER] & 0x01) !== 0) return resetActorRecordQueueSoundAndAbortFrame(m, iy); // odd round -> reset
   if (mem8[ACTIVE_OBJECT_TYPE] !== 0x03) return resetActorRecordQueueSoundAndAbortFrame(m, iy); // wrong type -> reset
   const a = mem8[u16(iy + TAG_FIELD)];
-  return loc_615d(m, a, SPRITE_OBJECT_TABLE, SCAN_STRIDE, SCAN_COUNT);
+  return loc_615d(m, a, SPRITE_OBJECT_TABLE, SCAN_STRIDE, SCAN_COUNT, iy); // iy = actor record, threaded to the scan's reset
 }
