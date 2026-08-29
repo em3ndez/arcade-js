@@ -427,7 +427,7 @@ export const LANE_RESET_LATCH = 0x8d7e;
 export const PROMOTED_OBJECT_LIST = 0x8d80;
 /** [code] anti-tamper strike counter bumped by the terminator match-scan guard (loc_64be); nonzero diverts handlers to the board/reset path */
 export const TAMPER_STRIKES_TERMINATOR = 0x8df9;
-/** [code] level-intro phase-5 toggle byte incremented each 16-frame boundary; its new bit0 selects which display command is queued */
+/** [seen] level-intro phase-5 toggle byte incremented each 16-frame boundary; its new bit0 selects which display command is queued */
 export const INTRO_PHASE5_TOGGLE = 0x8f54;
 /** [seen] main-loop sub-state selector (&7), dispatched by loc_0fd5 via the inline table at 0x0fe3; loc_10c2 bumps it to advance the phase */
 export const MAINLOOP_SUBSTATE_SELECTOR = 0x8f5c;
@@ -435,7 +435,7 @@ export const MAINLOOP_SUBSTATE_SELECTOR = 0x8f5c;
 export const SUBSTATE_FIELD2_VALUE = 0x8f5e;
 /** [code] presence/source value for loc_10c2's third BCD HUD field: nonzero enables the field (drawn x2) and is folded into the field-1 counter */
 export const SUBSTATE_FIELD3_VALUE = 0x8f60;
-/** [code] counter adjusted by loc_10c2 and drawn x2 as its first BCD HUD field; the third-field source is added into it when present */
+/** [seen] counter adjusted by loc_10c2 and drawn x2 as its first BCD HUD field; the third-field source is added into it when present */
 export const SUBSTATE_FIELD1_COUNTER = 0x8f62;
 /** [seen] ROM self-test pass tally; seeded to the bank count (8) and bumped once per matching bank, == 0x10 on a full pass; loc_072d requires 0x10 to finish setup. NOTE: physically the top of the boot's own stack and inside STACK_SCRATCH */
 export const ROM_SELFTEST_TALLY = 0x8fff;
@@ -543,7 +543,7 @@ export const SPAWN_SPEED_INDEX = 0x8d5c;
 export const SPAWN_SPEED_VALUE = 0x8d5d;
 /** [seen] warning-siren enable gate: loc_19ca ticks only while nonzero */
 export const SIREN_ENABLE_GATE = 0x8d68;
-/** [code] warning-siren phase byte; bit0 selects the phase-A/B command, reset to 1/0 on toggle */
+/** [seen] warning-siren phase byte; bit0 selects the phase-A/B command, reset to 1/0 on toggle */
 export const SIREN_PHASE_BYTE = 0x8d69;
 /** [code] warning-siren frame countdown (reload 0x18); on expiry toggles the phase */
 export const SIREN_FRAME_COUNTDOWN = 0x8d6a;
@@ -593,7 +593,7 @@ export const GLYPH_TILES_B = 0x2050;
 export const ANIM_SCRIPT_RESET_PTR = 0x26e7;
 /** [seen] base of four 4-byte 2x2 tile source blocks (stride 4) for the two-tile animator */
 export const TWOTILE_SRC_TABLE = 0x2744;
-/** [code] ROM source tiles for the round-marker 3x3 glyph block (blitTile3x3Block src) */
+/** [seen] ROM source tiles for the round-marker 3x3 glyph block (blitTile3x3Block src) */
 export const MARKER_GLYPH_SRC = 0x2754;
 /** [code] 4-byte 2x2 tile source block for the ready-sprite square */
 export const READY_SPRITE_SRC = 0x2be1;
@@ -793,7 +793,7 @@ export const DISPLAY_CMD_0615 = 0x0615;
 export const FLIP_ANIM_DISPLAY_CMD_ALT = 0x0692;
 /** [seen] ROM table of rope-grab catch-window half-widths, indexed by IXL&3 */
 export const GRAB_WINDOW_TABLE = 0x3087;
-/** [code] ROM animation-sequence for a spawned formation child (data table 0x3d0f-0x3d17 just past the routine), seeded little-endian into the child's anim field (+0x0c/+0x0d) and walked by advanceActorAnimFrame */
+/** [seen] ROM animation-sequence for a spawned formation child (data table 0x3d0f-0x3d17 just past the routine), seeded little-endian into the child's anim field (+0x0c/+0x0d) and walked by advanceActorAnimFrame */
 export const ANIM_SEQ_3D0F = 0x3d0f;
 /** [code] ROM handler-routine pointer seeded little-endian into a struck record's +0x12/+0x13 field on a proximity hit */
 export const PROXIMITY_HIT_HANDLER = 0x5dc2;
@@ -836,11 +836,11 @@ export const PROXIMITY_HIT_FLAG = 0x8d54;
 // dispatchers stay UNWIRED (tools/registry-coverage.config.mjs).
 
 // -- batch 5 decompile cells --
-/** [code] ROM source pointer (walked downward) whose bytes the terminator guard matches against TERMINATOR_MATCH_TABLE; a mismatch bumps TAMPER_STRIKES_TERMINATOR */
+/** [seen] ROM source pointer (walked downward) whose bytes the terminator guard matches against TERMINATOR_MATCH_TABLE; a mismatch bumps TAMPER_STRIKES_TERMINATOR */
 export const TERMINATOR_SCAN_SRC = 0x0bc2;
 /** [code] top of the reversed reference copy of reinitRoundArenaAndPlayfieldIfImageIntact's first 0x20 bytes; the state-5 signature check reads it downward (0x2b23..0x2b04) comparing against the code window read upward from 0x67df */
 export const STATE5_SIGCHECK_REF_TOP = 0x2b23;
-/** [code] ROM expected-byte table (walked upward) for the terminator match-scan, terminated when a fetched byte decrements to zero (a 0x01 sentinel) */
+/** [seen] ROM expected-byte table (walked upward) for the terminator match-scan, terminated when a fetched byte decrements to zero (a 0x01 sentinel) */
 export const TERMINATOR_MATCH_TABLE = 0x64d0;
 /** [code] ROM animation-sequence pointer handed to setActorAnimation for a struck/collided object */
 export const ANIM_SEQ_64DF = 0x64df;
@@ -894,11 +894,11 @@ export const MOTION_PARAM_TABLE_2712 = 0x2712;
 export const MOTION_PARAM_TABLE_271C = 0x271c;
 /** [code] motion param table (0x2730) */
 export const MOTION_PARAM_TABLE_2730 = 0x2730;
-/** [code] marker glyph src odd (0x275e) */
+/** [seen] marker glyph src odd (0x275e) */
 export const MARKER_GLYPH_SRC_ODD = 0x275e;
-/** [code] marker column glyph src (0x2768) */
+/** [seen] marker column glyph src (0x2768) */
 export const MARKER_COLUMN_GLYPH_SRC = 0x2768;
-/** [code] marker column glyph src odd (0x276c) */
+/** [seen] marker column glyph src odd (0x276c) */
 export const MARKER_COLUMN_GLYPH_SRC_ODD = 0x276c;
 /** [seen] marker retract glyph src (0x2770) */
 export const MARKER_RETRACT_GLYPH_SRC = 0x2770;
@@ -916,7 +916,7 @@ export const TARGET_TILE_ROW_TABLE = 0x35c7;
 export const DELAY_RELOAD_TABLE_368E = 0x368e;
 /** [code] anim table (0x3856) */
 export const ANIM_TABLE_3856 = 0x3856;
-/** [code] speed table (0x38a5) */
+/** [seen] speed table (0x38a5) */
 export const SPEED_TABLE_38A5 = 0x38a5;
 /** [code] speed table (0x38ad) */
 export const SPEED_TABLE_38AD = 0x38ad;
@@ -948,7 +948,7 @@ export const ANIM_SEQ_TABLE_4076 = 0x4076;
 export const SPLASH_ANIM_TABLE_40A4 = 0x40a4;
 /** [seen] arm anim table (0x41b1) */
 export const ARM_ANIM_TABLE = 0x41b1;
-/** [code] catch tamper cksum top (0x428b) */
+/** [seen] catch tamper cksum top (0x428b) */
 export const CATCH_TAMPER_CKSUM_TOP = 0x428b;
 /** [code] hit flash anim (0x433b) */
 export const HIT_FLASH_ANIM_433B = 0x433b;
@@ -1026,7 +1026,7 @@ export const SPAWN_COLUMN_BIAS = 0x8d4c;
 export const ACTIVE_ENEMY_TARGET_PAIR_PTR = 0x8d65;
 /** [code] struck target latch (0x8d65) */
 export const STRUCK_TARGET_LATCH = 0x8d65;
-/** [code] actor delay counter (0x8d6b) */
+/** [seen] actor delay counter (0x8d6b) */
 export const ACTOR_DELAY_COUNTER = 0x8d6b;
 /** [seen] spawn step timer (0x8d6b) */
 export const SPAWN_STEP_TIMER = 0x8d6b;
@@ -1069,9 +1069,9 @@ export const OBJECT_VEL_Y = 0x8f12;
 
 
 // == closure-fan cells [code] (caller/gap routines) ==
-/** [code] integrity-guard ROM region summed against its signature (0x0bad) */
+/** [seen] integrity-guard ROM region summed against its signature (0x0bad) */
 export const INTEGRITY_GUARD_REGION_0BAD = 0x0bad;
-/** [code] integrity-guard ROM signature (twos-complement check) (0x55b5) */
+/** [seen] integrity-guard ROM signature (twos-complement check) (0x55b5) */
 export const INTEGRITY_GUARD_SIGNATURE_55B5 = 0x55b5;
 /** [seen] rope-extend rst-28 inline jump table (2 words) (0x2d7c) */
 export const ROPE_EXTEND_DISPATCH_TABLE = 0x2d7c;
@@ -1126,7 +1126,7 @@ export const TAMPER_CHECK_BLOCK_0B32 = 0x0b32;
 export const INTEGRITY_GUARD_TABLE_0BB3 = 0x0bb3;
 /** [seen] shared attract-handler epilogue routine entry (alias of checksum_rom_base; understanding pass to reconcile) (0x0bb5) */
 export const ATTRACT_HANDLER_EPILOGUE_ADDR = 0x0bb5;
-/** [code] rom signature-check source run summed vs the sig table (0x0bb9) */
+/** [seen] rom signature-check source run summed vs the sig table (0x0bb9) */
 export const SIGNATURE_CHECK_SRC = 0x0bb9;
 /** [seen] 0x43-terminated rom string, biased -0x88 into the display message buffer (0x183f) */
 export const INTRO_MSG_STRING_183F = 0x183f;
@@ -1160,7 +1160,7 @@ export const OBJECT_STATE8_ANIM_TABLE = 0x3dd3;
 export const ANIM_SEQ_TABLE_3E49 = 0x3e49;
 /** [code] rom word table of plummet-animation pointers (0x4072) */
 export const FALL_ANIM_TABLE = 0x4072;
-/** [code] rom two's-complement signature table, 0xff-terminated (0x4283) */
+/** [seen] rom two's-complement signature table, 0xff-terminated (0x4283) */
 export const SIGNATURE_CHECK_TABLE = 0x4283;
 /** [code] rom word table indexed by ((round>>1)-1)&3 -> spawned-slot anim/script pointer (0x432d) */
 export const SPAWN_ANIM_WORD_TABLE = 0x432d;
