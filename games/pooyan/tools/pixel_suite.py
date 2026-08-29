@@ -85,11 +85,13 @@ def capture_golden(rompath, out, seconds):
     return r.returncode == 0
 
 
-def render_oracle(out, frames):
-    """Render the translated (oracle) boot. Returns (painted, gap, dropped, log). `painted` comes from the
-    file size, not the log. render.js exits nonzero at the boot gap -- EXPECTED for pooyan -- so the caller
-    judges by gap address + painted count, not the exit code."""
+def render_js(out, frames, idiomatic):
+    """Render the boot -- the idiomatic layer when `idiomatic`, else the translated oracle. Returns
+    (painted, gap, dropped, log); `painted` from file size. render.js exits nonzero at the boot gap --
+    EXPECTED for pooyan -- so the caller judges by gap address + painted count, not the exit code."""
     cmd = ["node", os.path.join(HERE, "render.js"), "--frames", str(frames), "--frames-out", out]
+    if idiomatic:
+        cmd.append("--idiomatic")
     r = subprocess.run(cmd, capture_output=True, text=True)
     log = (r.stdout or "") + (r.stderr or "")
     _, _, bpf = pixel_gate.screen_geometry(HW)
@@ -122,6 +124,37 @@ def reconverge(js, golden, window):
     return scores
 
 
+# The born-live idiomatic layer collapses pure-delay waits, so its frame i lands at a golden index that
+# drifts ahead non-uniformly (+33..+67 over the boot) -- the fixed +/-WINDOW sweep cannot track that.
+IDIOMATIC_SECONDS = 6          # ~366 golden frames: headroom for the ~1.4x collapse
+MONO_BACK = 20                 # backward slack for near-identical adjacent boot frames
+MONO_AHEAD = 96                # forward reach per frame: covers the initial collapse jump + drift
+
+
+def reconverge_monotonic(js, golden, back, ahead):
+    """Drift-tolerant reconverge for the COLLAPSED born-live timeline: score each JS frame against its
+    nearest golden frame at a MONOTONICALLY non-decreasing index (search [lo-back, lo+ahead), advance lo
+    to the match). Monotonicity is the teeth -- a frozen/garbage render cannot pass by cherry-picking
+    scattered golden frames, since the match index can only move forward. Returns (scores, idxs)."""
+    ng = len(golden)
+    lo = 0
+    scores, idxs = [], []
+    for a in js:
+        best = 1 << 30
+        bj = min(lo, ng - 1)
+        for j in range(max(0, lo - back), min(ng, lo + ahead)):
+            d = int(np.any(a != golden[j], axis=2).sum())
+            if d < best:
+                best = d
+                bj = j
+                if best == 0:
+                    break
+        scores.append(best)
+        idxs.append(bj)
+        lo = bj
+    return scores, idxs
+
+
 def distinct(frames):
     return len({f.tobytes() for f in frames})
 
@@ -134,14 +167,12 @@ def main():
     p.add_argument("--frames", type=int, default=PREFIX_FRAMES,
                    help="frames to render+validate (the byte-exact boot prefix; the full boot runs clean past it).")
     p.add_argument("--work", default=os.path.join(GAME, "out", "pixelwork"))
-    # The gate invokes every suite with --layer {oracle,idiomatic}. Pooyan has no idiomatic layer yet, so
-    # both render the oracle; accepted (not rejected) so a shared-infra commit is never blocked here.
+    # The gate invokes every suite with --layer {oracle,idiomatic}; render.js renders that layer.
     p.add_argument("--layer", default="oracle", choices=["oracle", "idiomatic"])
     p.add_argument("--inject-defect", action="store_true",
                    help="POSITIVE CONTROL: flip one pixel in the render before scoring; the suite must FAIL.")
     a = p.parse_args()
-    if a.layer == "idiomatic":
-        print("  note: pooyan has no idiomatic layer yet -- rendering the oracle for this --layer.")
+    idiomatic = a.layer == "idiomatic"
 
     try:
         verified = subprocess.run(["mame", "-rompath", a.rompath, "-verifyroms", DRIVER],
@@ -156,11 +187,12 @@ def main():
     os.makedirs(a.work, exist_ok=True)
     go, jo = os.path.join(a.work, "golden"), os.path.join(a.work, "js")
 
-    if not capture_golden(a.rompath, go, a.seconds):
+    secs = max(a.seconds, IDIOMATIC_SECONDS) if idiomatic else a.seconds
+    if not capture_golden(a.rompath, go, secs):
         print("pixel_suite: FAIL -- mame_golden refused to certify the capture (poisoned golden).")
         return 1
 
-    painted, gap, dropped, log = render_oracle(jo, a.frames)
+    painted, gap, dropped, log = render_js(jo, a.frames, idiomatic)
     if dropped:
         print("pixel_suite: FAIL -- render dropped frames (a tick outran a frame); indices shifted.")
         return 1
@@ -196,15 +228,35 @@ def main():
         js[INJECT_AT][y, x] ^= np.uint8(0xFF)
         print(f"  INJECTED one wrong pixel at frame {INJECT_AT} {INJECT_XY} (positive control -- expect FAIL).")
 
-    scores = reconverge(js, golden, WINDOW)
-    over = [i for i, v in enumerate(scores) if v > BAND_MAX_PX]
-    worst = int(np.argmax(scores))
-    print(f"  reconverge: worst={scores[worst]}px @frame {worst}; mismatches(>{BAND_MAX_PX}px)={over} "
-          f"(budget {TRANSIENT_BUDGET})")
+    if idiomatic:
+        # The idiomatic BOOT PREFIX is deterministic (pre-RNG), so it is byte-exact everywhere -- budget 0.
+        budget = 0
+        scores, idxs = reconverge_monotonic(js, golden, MONO_BACK, MONO_AHEAD)
+        over = [i for i, v in enumerate(scores) if v > BAND_MAX_PX]
+        worst = int(np.argmax(scores))
+        span = idxs[-1] - idxs[0]
+        print(f"  reconverge (monotonic, collapsed timeline): worst={scores[worst]}px @frame {worst}; "
+              f"matched golden {idxs[0]}..{idxs[-1]} (span {span}); mismatches(>{BAND_MAX_PX}px)={over} "
+              f"(budget {budget})")
+        if idxs[-1] >= n_g - 1:
+            print(f"pixel_suite: FAIL -- idiomatic match reached the end of the golden ({idxs[-1]}/{n_g}); "
+                  "capture more --seconds so the collapsed timeline keeps headroom.")
+            return 1
+        if span < painted // 2:
+            print(f"pixel_suite: FAIL -- idiomatic match advanced only {span} golden frames over {painted} "
+                  "render frames; the render is not tracking the timeline (frozen/misaligned).")
+            return 1
+    else:
+        budget = TRANSIENT_BUDGET
+        scores = reconverge(js, golden, WINDOW)
+        over = [i for i, v in enumerate(scores) if v > BAND_MAX_PX]
+        worst = int(np.argmax(scores))
+        print(f"  reconverge: worst={scores[worst]}px @frame {worst}; mismatches(>{BAND_MAX_PX}px)={over} "
+              f"(budget {budget})")
 
-    if len(over) > TRANSIENT_BUDGET:
-        print(f"pixel_suite: FAIL -- {len(over)} frames mismatch (> {TRANSIENT_BUDGET}); the boot is not "
-              "byte-exact against MAME beyond the one irreducible ldirAt transient.")
+    if len(over) > budget:
+        print(f"pixel_suite: FAIL -- {len(over)} frames mismatch (> {budget}); the render is not "
+              "byte-exact against MAME beyond the allowed transient.")
         return 1
     print("pixel_suite: PASS")
     return 0
