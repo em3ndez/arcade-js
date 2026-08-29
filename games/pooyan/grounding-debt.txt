@@ -41,3 +41,8 @@
 0xa0c0  MMIO IN2 (cocktail P2) input port: io.js:25 PORT_ADDRS 0xa0c0, memory.js:95 kind=in2, readIn2(). Role fixed by board d
 0xa0e0  MMIO port: 0xA0E0 DSW0 = KONAMI_COINAGE (hardware.json:40 dsw0.addr 41184, memory.js:8). Role fixed by board driver; n
 0xa187  MMIO LS259 mainlatch bit7 = flip_screen INVERTED (hardware.json:37 0xA180-0xA187, bit=(addr-0xA180)&7). Write-only lat
+0x4282  checksum top; byte read as data ONLY by loc_3865 ROM-checksum (romread pc 388f); the 0x4282 ret executes only on a string-mismatch tamper branch, never on a good ROM
+0x557f  56-byte anti-tamper block low-nibble-summed by loc_4103 (sentinel else bump 0x8a38); captures show only boot scans 0111/1b27/1b39, no gameplay reader
+0x67df  state-5 sig-check window base; cell bytes read as data ONLY by loc_2a96 (pc 2a9f, cp vs 0x2b23, trap on mismatch); the code entry loc_67df grounds separately
+0x1c66  state-4 sig-check window base; cell bytes read as data ONLY by loc_2a79 (pc 2a82, cp vs 0x2b23, trap on mismatch); the code entry loc_1c66 grounds separately
+0x2980  anti-tamper reference copy of ROM 0x0859 in a data gap; read ONLY by round-init compares loc_2901/loc_29a0 (trap on mismatch); no role reader, captures show only sweeps
