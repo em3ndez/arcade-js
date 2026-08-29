@@ -1,0 +1,15 @@
+# grounding-debt.txt -- pooyan's honestly-IRREDUCIBLE ungrounded items.
+#
+# Stage-B grounding lifts a names.js [code] proposal to [seen] only on a MAME observation. A few roles can
+# NEVER terminate in such an observation on a GOOD ROM: an anti-tamper clone that runs only on a TAMPERED
+# ROM, or a ROM constant read only by the checksum sweep (no role-specific read in any reachable state).
+# The runbook accounts for these "by a reasoned note" rather than chasing a tailored capture.
+#
+# Each line accounts for ONE such address:   0xADDR   <why it can never be MAME-grounded on a good ROM>
+# done_gate.check_grounding SUBTRACTS these from the ungrounded count, and stays honest: an entry with no
+# reason, or one whose address is NOT actually ungrounded in names.js, BLOCKS the gate. Each entry is
+# independently reviewed as genuinely irreducible (proposer != confirmer) -- see reviewer-rules R39.
+#
+# EMPTY until the deep-capture grounding campaign has grounded everything REACHABLE; only the true
+# irreducible residue lands here. Do NOT allowlist a routine/cell a deep capture could reach (a later
+# board, the eagle/bonus stage, a sound event) -- that must be GROUNDED, not accounted-for.

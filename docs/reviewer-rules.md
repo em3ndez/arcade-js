@@ -728,3 +728,21 @@ only writes land in cells still `[code]`/contested — it cannot be more grounde
 A cell is `[seen]` only if the capture shows it watched changing (drain/toggle/seed). A grounding review with
 no MAME evidence on record is not a grounding confirmation — treat its `[seen]` verdicts as unmade.
 *See docs/runbook.md §4 "The grounding CONFIRMER confirms a [seen] from EVIDENCE".*
+
+## R39 [ALL] a grounding-debt.txt entry must be genuinely IRREDUCIBLE, verified independently
+
+`games/<game>/grounding-debt.txt` accounts for the honestly-irreducible ungrounded tail — `done_gate`
+subtracts each listed address from the grounding count, so an entry here is exactly as load-bearing as a
+`[seen]` promotion: it lets the ship pass. The gate MECHANICALLY rejects a reasonless entry or one whose
+address is not actually ungrounded in `names.js`; the JUDGMENT that the reason is TRUE is the reviewer's,
+proposer!=confirmer. For every entry ADDED/CHANGED this commit, independently confirm from the code AND the
+grounding captures that NO reachable state on a GOOD ROM produces a role-defining MAME observation:
+- **anti-tamper clone / error arm** reached only when a checksum/signature guard fires — i.e. only on a
+  TAMPERED ROM (its guard never fails on the real image), so no valid play reaches it; or
+- **a ROM constant read only by the checksum sweep** — no role PC ever reads it in any reachable state.
+A routine or cell a deep capture COULD reach — a later board, the eagle/bonus stage, a sound event, a 2P
+split, a forced state-machine transition — is NOT irreducible: it must be GROUNDED (deep-capture campaign),
+never allowlisted. An entry you cannot independently justify as un-groundable-on-a-good-ROM → WITHHOLD the
+token and name the address + why it looks reachable. Allowlisting a groundable item is the exact abuse this
+rule exists to stop.
+*See docs/runbook.md §4/§5 (the grounding-debt allowlist) and `tools/done_gate.py` `check_grounding`.*

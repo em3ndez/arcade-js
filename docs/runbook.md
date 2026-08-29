@@ -509,7 +509,14 @@ workflow+review+push cycle. Do it once, wide. The steps:
   agents do not help**. Fan the deep-**capture** research instead: agents each force a deep state (poke the
   board-advance flag, the stage trigger, drain lives) and report which reaches new code; then re-capture and
   re-fan the grounding. A ROM constant read only by the checksum sweep, or a routine reached only in an
-  unreached state, stays honest `[code]` until a capture reaches it.
+  unreached state, stays honest `[code]` until a capture reaches it. The genuinely-IRREDUCIBLE ones — an
+  anti-tamper clone / error arm reached only on a TAMPERED ROM (its guard never fails on the real image),
+  or a ROM constant read only by the checksum sweep in EVERY reachable state — are ACCOUNTED-FOR in
+  `games/<game>/grounding-debt.txt` (one `0xADDR  reason` per line), which `done_gate.check_grounding`
+  SUBTRACTS from the ungrounded count so the ship can pass. The gate rejects a reasonless or stale entry;
+  each is independently reviewed as truly un-groundable-on-a-good-ROM (reviewer-rules R39). A routine or
+  cell a deep capture COULD reach (a later board, the eagle/bonus stage, a sound event, a forced
+  transition) is GROUNDED, never allowlisted — allowlist only the true irreducible residue.
 
 **Derive the method from this runbook and `understanding.md`, never from the shape of an old commit.**
 Grounding leaves almost no *diff* artifacts — it is `[seen]` tags, notes, and the occasional overturned
@@ -783,8 +790,9 @@ distinct phase, gated on a flag, and runs in this order.
   (`how-the-agents-worked.md`), never "it looks finished." A game is shippable only when **every** completion
   subsystem is green under its own gate — the live pixel gate **run against the FULL ~10-minute MAME golden
   (§2), never a short window** (that long run is also the authoritative §3-completeness check — a boot gap in
-  a deep state = a still-missing routine a short gate never reaches), stage-B grounding complete (zero
-  ungrounded `[code]`), the idiomatic gate at 0 (no registers/m.call/m.push*/raw addresses), the whole-game
+  a deep state = a still-missing routine a short gate never reaches), stage-B grounding complete (every
+  `[code]` either lifted to `[seen]` or accounted-for as genuinely irreducible in `grounding-debt.txt` —
+  see §4), the idiomatic gate at 0 (no registers/m.call/m.push*/raw addresses), the whole-game
   gates above, the external disassembly if in scope, and **audio**. Each is executed, not reasoned about; the
   ship is refused while any is red.
 - **A fully idiomatic layer is required — zero translated routines, zero `m.call()`, zero `m.push*()`, zero

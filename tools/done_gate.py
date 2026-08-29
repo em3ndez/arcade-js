@@ -50,6 +50,8 @@ FIRST_TAG = re.compile(r"\[(seen|code|guess)\]")
 GND_ARROW = re.compile(r"\[code\]\s*(?:->|→)\s*\[seen\]")  # "was [code], now [seen]" = grounded
 CERT_ANY = re.compile(r'\bcert:\s*"')                       # a ROUTINES entry line (graded by its cert field)
 CERT_UNGROUNDED = re.compile(r'\bcert:\s*"(code|guess)"')   # an ungrounded routine
+CELL_CONST = re.compile(r"^export const [A-Z0-9_]+\s*=\s*(0x[0-9a-f]+)\s*;")  # a named cell -> its address
+ROUT_ADDR = re.compile(r"^\s*(0x[0-9a-f]+):")                                  # a ROUTINES entry -> its address
 
 
 def _line_ungrounded(ln):
@@ -65,26 +67,78 @@ def _count_grounding(lines):
     # Two kinds of claim in names.js, graded by DIFFERENT signals: a CELL by the [code]/[guess]/[seen]
     # bracket tag in its JSDoc; a ROUTINE by its ROUTINES-entry `cert:` field (which carries no bracket
     # tag). Count them separately -- a cert line is a routine even if its role prose holds a stray tag.
+    # Also collect each ungrounded item's ADDRESS (a cell's is on the `export const` line below its
+    # JSDoc; a routine's is on the cert line) so check_grounding can subtract the accounted-for allowlist.
     cells = routines = 0
-    for ln in lines:
+    cell_addrs, rout_addrs = [], []
+    for i, ln in enumerate(lines):
         if CERT_ANY.search(ln):
             if CERT_UNGROUNDED.search(ln):
                 routines += 1
+                m = ROUT_ADDR.match(ln)
+                rout_addrs.append(int(m.group(1), 16) if m else None)
         elif _line_ungrounded(ln):
             cells += 1
-    return cells, routines
+            a = None
+            for j in range(i + 1, min(i + 8, len(lines))):
+                mc = CELL_CONST.match(lines[j])
+                if mc:
+                    a = int(mc.group(1), 16)
+                    break
+            cell_addrs.append(a)
+    return cells, routines, cell_addrs, rout_addrs
+
+
+def _read_grounding_debt(game):
+    # games/<game>/grounding-debt.txt accounts for the honestly-IRREDUCIBLE ungrounded items -- a role
+    # that can never terminate in a MAME observation on a good ROM (an anti-tamper clone that runs only on
+    # a tampered ROM; a ROM constant read only by the checksum sweep). One "0xADDR  reason" per line
+    # (# comments / blank lines ignored). done_gate SUBTRACTS these so the gate enforces the runbook's
+    # "accounted-for by a reasoned note" rule -- and stays honest: a reasonless entry, or one whose address
+    # is NOT actually ungrounded, BLOCKS (check_grounding). Each entry is reviewer-verified as genuinely
+    # irreducible, proposer != confirmer (reviewer-rules R39).
+    path = f"games/{game}/grounding-debt.txt"
+    debt = {}
+    if not os.path.exists(path):
+        return debt
+    for ln in open(path, encoding="utf-8", errors="replace"):
+        ln = ln.split("#", 1)[0].strip()
+        if not ln:
+            continue
+        parts = ln.split(None, 1)
+        try:
+            a = int(parts[0], 16)
+        except ValueError:
+            continue
+        debt[a] = parts[1].strip() if len(parts) > 1 else ""
+    return debt
 
 
 def check_grounding(game):
     # names.js (the registry) is the authoritative grounding artifact; mechanisms.md `[code]` are
-    # accounted-for prose, not counted here.
+    # accounted-for prose, not counted here. grounding-debt.txt subtracts the honestly-irreducible tail.
     path = f"games/{game}/idiomatic/names.js"
     if not os.path.exists(path):
         return False, "no names.js"
-    cells, routines = _count_grounding(open(path, encoding="utf-8", errors="replace").readlines())
-    n = cells + routines
-    detail = f"{cells} ungrounded cells + {routines} ungrounded routines" if n else "fully grounded"
-    return (n == 0), detail
+    cells, routines, cell_addrs, rout_addrs = _count_grounding(
+        open(path, encoding="utf-8", errors="replace").readlines())
+    debt = _read_grounding_debt(game)
+    noreason = sorted(a for a, r in debt.items() if not r)
+    if noreason:
+        return False, "grounding-debt.txt: entries need a reason -> " + ", ".join(hex(a) for a in noreason)
+    ung = {a for a in cell_addrs + rout_addrs if a is not None}
+    stale = sorted(set(debt) - ung)
+    if stale:
+        return False, ("grounding-debt.txt: stale (already-grounded / not an ungrounded claim) -> "
+                       + ", ".join(hex(a) for a in stale))
+    acc_cells = sum(1 for a in cell_addrs if a is not None and a in debt)
+    acc_rout = sum(1 for a in rout_addrs if a is not None and a in debt)
+    rem_cells, rem_rout = cells - acc_cells, routines - acc_rout
+    acc = acc_cells + acc_rout
+    tail = f" ({acc} accounted-for via grounding-debt.txt)" if acc else ""
+    if rem_cells + rem_rout == 0:
+        return True, "fully grounded" + tail
+    return False, f"{rem_cells} ungrounded cells + {rem_rout} ungrounded routines" + tail
 
 
 def check_audio(game):
@@ -170,16 +224,21 @@ def selftest():
     for ln, exp in cases:
         if _line_ungrounded(ln) != exp:
             print(f"selftest FAIL: grounding {ln!r} -> {_line_ungrounded(ln)} want {exp}", file=sys.stderr); ok = False
-    # the cells/routines split: a cell is graded by its bracket tag, a routine by its cert field.
-    split = _count_grounding([
+    # the cells/routines split + address extraction: a cell is graded by its bracket tag (address on the
+    # export const below it), a routine by its cert field (address on the cert line).
+    cells, routines, cell_addrs, rout_addrs = _count_grounding([
         "/** [code] (unobservable) FOO bias */",                             # ungrounded cell
         "export const FOO = 0x8800;",
         "/** [seen] (golden: 0->1 at f302) BAR credit */",                   # grounded cell
         '  0x0714: { name: "loc_0714", role: "copy loop", cert: "code" },',  # ungrounded routine
         '  0x0a25: { name: "loc_0a25", role: "tile paint", cert: "seen" },', # grounded routine
     ])
-    if split != (1, 1):
-        print(f"selftest FAIL: grounding split -> {split} want (1, 1)", file=sys.stderr); ok = False
+    if (cells, routines, cell_addrs, rout_addrs) != (1, 1, [0x8800], [0x0714]):
+        print(f"selftest FAIL: grounding split -> {(cells, routines, cell_addrs, rout_addrs)} "
+              "want (1, 1, [0x8800], [0x0714])", file=sys.stderr); ok = False
+    # accounting: a grounding-debt entry subtracts an ungrounded item by ADDRESS (0x8800 here -> 1 accounted).
+    if sum(1 for a in cell_addrs + rout_addrs if a in {0x8800}) != 1:
+        print("selftest FAIL: grounding accounting arithmetic", file=sys.stderr); ok = False
     print("selftest OK" if ok else "selftest FAILED")
     return 0 if ok else 1
 
