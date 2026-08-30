@@ -90,7 +90,7 @@ function craft({ ix, flag, sub, step, coarse, vel = 0x00, countdown, round = 0x0
   return m;
 }
 
-const T00 = computeTarget(0x00, 0x00); // target for round 0, frame 0
+const T00 = ROM_PRESENT ? computeTarget(0x00, 0x00) : 0; // target round0/frame0 (ROM-guarded: skip path)
 
 const CASES = [
   { name: "flagged -> loc_13fe mover", ix: 0x8300, flag: 0x01, sub: 0x40, step: 0x10, coarse: 0x05, vel: 0xe0, countdown: 0x05 },
