@@ -4,10 +4,10 @@
 
 The JS<->golden frame offset drifts across boot, so a single frozen offset false-fails at the fill
 transitions; each JS frame is scored against its NEAREST golden frame within a window instead (the
-drift-tolerant reconverge). Pooyan covers the attract boot with no input. Since batch 5 completed the
-0x0242 attract state table, the translated boot no longer stops early -- it runs CLEAN and only reaches
-the next untranslated gap (0x60bc) around frame 1447. This gate validates the byte-exact PREFIX_FRAMES
-prefix of that boot; render.js is asked for exactly that many frames and must return them with NO gap.
+drift-tolerant reconverge). Pooyan covers the attract boot with no input. The translated attract boot runs
+CLEAN for the full ~10-minute golden (36000+ frames verified gap-free; 0x60bc is translated -- the earlier
+'stops at 0x60bc around f1447' note was stale). This gate validates the byte-exact PREFIX_FRAMES prefix of
+that boot; render.js is asked for exactly that many frames and must return them with NO gap.
 
 CALIBRATION (2026-08-20): a correct oracle render reconverges to EXACTLY 0px -- byte-identical to MAME --
 on every prefix frame but one. The exception is js31, an ldirAt sub-frame fill instant that no whole-frame
@@ -46,16 +46,21 @@ HW = os.path.join(REPO, "boards", "pooyan", "hardware.json")
 DRIVER = "pooyan"
 SECONDS = 4                    # 244 golden frames: covers the PREFIX_FRAMES validated window + the search window
 
-# The oracle boot no longer STOPS in the validated window -- since batch 5 (the attract 0x0242 state table
-# is complete) it runs clean to frame ~1447 and only then reaches the next untranslated gap 0x60bc. So this
-# gate validates the byte-exact PREFIX: the first PREFIX_FRAMES boot frames, which stay byte-identical to
-# MAME (only the js31 ldirAt sub-frame transient differs). Beyond the prefix the extended attract demo shows
-# ~20 ISOLATED, recover-immediately sub-frame/animation-drift transients vs MAME (max 1446px @ f793; each
-# frame's neighbours are byte-exact -- no cascade). Pixel-gating that full 1357-frame sequence needs a fresh
-# ~24s golden and a cascade-aware budget; that is a tracked FOUNDATION item (see ARCADE2-RESUME.md), not
-# swept under an inflated budget here. 170 is the last frame before the first extended transient (f177).
+# The oracle attract boot runs CLEAN far beyond the validated window -- the full ~10-min golden (36000+
+# frames) runs gap-free (0x60bc is translated; the old 'stops at ~f1447' note was stale). The only
+# untranslated routines are deep in-play dispatch handlers reached ONLY past a board-clear (see the
+# deep-untranslated note below), never in this attract boot. So this gate validates the byte-exact PREFIX:
+# the first PREFIX_FRAMES boot frames, byte-identical to MAME (only the js31 ldirAt sub-frame transient
+# differs). Beyond the prefix the extended attract demo shows ~20 ISOLATED, recover-immediately sub-frame/
+# animation-drift transients vs MAME (max 1446px @ f793; neighbours byte-exact -- no cascade). Pixel-gating
+# that full 1357-frame sequence needs a fresh ~24s golden and a cascade-aware budget; a tracked FOUNDATION
+# item (see ARCADE2-RESUME.md), not swept under an inflated budget here. 170 is the last frame before the
+# first extended transient (f177).
 PREFIX_FRAMES = 170
-FULL_BOOT_GAP = 0x60bc         # where the FULL boot now stops (documentation; the prefix gate expects NO gap)
+# Deep-untranslated (documentation): attract + the full ~10-min golden run gap-free; the only untranslated
+# routines are in-play dispatch handlers reached only past a board-clear -- 0x1d9c/0x1d6e/0x6bb2 (in-play
+# sub-state table 0x15a8 idx15-17) + loc_0fd5's subtree (0x0fef/1016/1090/10a2/113c/114f). Translating them
+# plus a phase-2 capture that clears a wave is the open §3-completeness item (no current bot reaches it).
 
 # Nearest-golden search half-width. Distinct-content frames drift about +1; static fill/hold frames match
 # any identical golden frame, so the chosen offset ranges wider but every clean frame still scores 0px --
@@ -557,8 +562,8 @@ def main():
         return 1
     if gap is not None:
         print(f"pixel_suite: FAIL -- boot stopped at gap 0x{gap:04x} inside the {PREFIX_FRAMES}-frame prefix. "
-              f"The prefix must run CLEAN (the full boot runs to 0x{FULL_BOOT_GAP:04x}); an earlier stop is a "
-              "regression -- investigate.\n" + log.strip()[-400:])
+              "The prefix must run CLEAN (the attract boot runs the full ~10-min golden gap-free); an earlier "
+              "stop is a regression -- investigate.\n" + log.strip()[-400:])
         return 1
     if painted < MIN_PAINTED:
         print(f"pixel_suite: FAIL -- render painted {painted} frames (< {MIN_PAINTED}); too short to judge.")
