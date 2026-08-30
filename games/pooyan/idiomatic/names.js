@@ -1387,7 +1387,7 @@ export const BONUS_STAGE_BANNER_DISPLAY_CMD = 0x0626;
 export const ATTRACT_HELP_CLEAR_DISPLAY_CMD_A = 0x06ab;
 /** [seen] video-RAM digit-column base where loc_10a2 draws HUNTER_SPAWN_SUBCOUNTER (0x8f5d) as a 2-digit BCD field (via drawStackedBcdDigits) */
 export const HUNTER_SPAWN_SUBCOUNTER_VRAM = 0x8650;
-/** [code] video-RAM digit-column base for the alternate rendering of SUBSTATE_FIELD3_VALUE (0x8f60, x2 packed BCD) by launch/hunter state-2 handler loc_1518; different screen column from SUBSTATE_FIELD3_VRAM (0x85d2) */
+/** [seen] video-RAM digit-column base for the alternate rendering of SUBSTATE_FIELD3_VALUE (0x8f60, x2 packed BCD) by launch/hunter state-2 handler loc_1518; different screen column from SUBSTATE_FIELD3_VRAM (0x85d2) */
 export const SUBSTATE_FIELD3_VRAM_ALT = 0x85c9;
 /** [code] video-RAM cell for the hundreds digit of loc_1518 alternate SUBSTATE_FIELD3 rendering (written only when hundreds != 0); = SUBSTATE_FIELD3_VRAM_ALT + 0x20 */
 export const SUBSTATE_FIELD3_HUNDREDS_VRAM_ALT = 0x85e9;
@@ -1869,7 +1869,7 @@ export const ROUTINES = {
   0x107d: { name: "loc_107d", role: "main-loop sub-state handler: on stage-countdown expiry advance the selector, enqueue the phase-1-complete display cmd, seed the field-1 countdown", cert: "seen" },
   0x113c: { name: "loc_113c", role: "main-loop sub-state 4: tick the field-1 timer (enqueue HUNTER_SPAWN_DISPLAY_CMD while counting; reload 0x80 + advance selector on expiry)", cert: "seen" },
   0x125f: { name: "loc_125f", role: "countdown-driven phase transition for the actor at IX: tick rec+0x11; on expiry advance phase, latch rec+0x08, set anim table 0x3838", cert: "seen" },
-  0x6bae: { name: "loc_6bae", role: "enqueue the DE display command, then rebuild the sprite display list (shared tail of the 0x6bb2 block)", cert: "code" },
+  0x6bae: { name: "loc_6bae", role: "enqueue the DE display command, then rebuild the sprite display list (shared tail of the 0x6bb2 block)", cert: "seen" },
   0x13fe: { name: "loc_13fe", role: "advance an actor X (rec+0x05) by its velocity (rec+0x0a), spending a lap (rec+0x06) on wrap; tails into loc_1410", cert: "seen" },
   0x0929: { name: "loc_0929", role: "guarded screen/attribute setup: carry-clear fills one tile row (bails if the row counter is not draining), re-arms the fill and bumps the attract sub-state; carry-set arm just bumps the incoming pointer cell; both then zero the board arena, stall until the protection cell is ready, verify a 7-entry signature (mismatch = unreachable tamper trap), flood the attribute map, and enqueue three display commands", cert: "code" },
   0x0fd5: { name: "loc_0fd5", role: "main-loop sub-state dispatcher: (MAINLOOP_SUBSTATE_SELECTOR & 7) -> one of six handlers via the inline table at 0x0fe3; states 2..5 run the loc_1035 tail after the handler", cert: "seen" },
@@ -1891,6 +1891,6 @@ export const ROUTINES = {
   0x1d6e: { name: "loc_1d6e", role: "tick the countdown timer and branch on its pre-decrement value: at 0x40 run the code-integrity check + enqueue the bonus-stage banner command + queue its sound; at 0 (expiry) clear the play-state index, latch play mode 0x02, reload the enemy-spawn timer 0x40, and raise the hunter-spawn flip flag unless round-counter bit 1 is set", cert: "seen" },
   0x1d9c: { name: "loc_1d9c", role: "ROUND_COUNTER bit1 gate: bit clear -> delegate to the main-loop sub-state dispatcher; bit set -> run the level-intro phase dispatcher then a code-window integrity probe that latches the integrity flag on a bit-tally miss", cert: "seen" },
   0x50f1: { name: "loc_50f1", role: "object-freeze tamper gate: traps on the freeze flag, else delegates to the phase-4 tilemap checksum guard loc_6ac5", cert: "seen" },
-  0x6ac5: { name: "loc_6ac5", role: "one-shot tilemap integrity checksum: only when wave index (0x892d)==2 and the once-latch (0x8f56) is clear, latch it then sum the playfield tilemap from 0x8450 (skip col 0x1b, row +0x12, stop h>=0x88); accept only 0x29b8, else throw a tamper trap", cert: "code" },
+  0x6ac5: { name: "loc_6ac5", role: "one-shot tilemap integrity checksum: only when wave index (0x892d)==2 and the once-latch (0x8f56) is clear, latch it then sum the playfield tilemap from 0x8450 (skip col 0x1b, row +0x12, stop h>=0x88); accept only 0x29b8, else throw a tamper trap", cert: "seen" },
   0x6bb2: { name: "loc_6bb2", role: "countdown-gated promoted-object commit: decrement the pending-object timer, and on underflow store each active record's value 6 bytes past its little-endian pointer, set play-state index := 4, then enqueue 5 help-clear display commands (0x06ab..0x06af) tailing into the display-list rebuild", cert: "seen" },
 };
