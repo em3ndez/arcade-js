@@ -1849,4 +1849,10 @@ export const ROUTINES = {
   0x77c8: { name: "clearAndReseedObjectSlot", role: "clear an actor slot, then re-seed it behind a colour-RAM integrity check (ROM 0x77c8-0x780e)", cert: "seen" },
   0x7881: { name: "advanceAttractStateIfImageIntact", role: "periodic self-integrity check dispatched over an actor slot", cert: "seen" },
   0x7fd6: { name: "startGameOnStartButtonPress", role: "guarded trigger reached through a jump-table pointer", cert: "seen" },
+  0x1042: { name: "loc_1042", role: "per-frame lead-actor (slot 0) control byte from the input port; arms LAUNCH_ARMED_FLAG", cert: "code" },
+  0x107d: { name: "loc_107d", role: "main-loop sub-state handler: on stage-countdown expiry advance the selector, enqueue the phase-1-complete display cmd, seed the field-1 countdown", cert: "code" },
+  0x113c: { name: "loc_113c", role: "main-loop sub-state 4: tick the field-1 timer (enqueue HUNTER_SPAWN_DISPLAY_CMD while counting; reload 0x80 + advance selector on expiry)", cert: "code" },
+  0x125f: { name: "loc_125f", role: "countdown-driven phase transition for the actor at IX: tick rec+0x11; on expiry advance phase, latch rec+0x08, set anim table 0x3838", cert: "code" },
+  0x6bae: { name: "loc_6bae", role: "enqueue the DE display command, then rebuild the sprite display list (shared tail of the 0x6bb2 block)", cert: "code" },
+  0x13fe: { name: "loc_13fe", role: "advance an actor X (rec+0x05) by its velocity (rec+0x0a), spending a lap (rec+0x06) on wrap; tails into loc_1410", cert: "code" },
 };
