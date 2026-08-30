@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Definition-of-done gate - "done" means a named gate ran and passed, never "it looks finished".
 
-A game is shippable only when EVERY completion subsystem is green under its own gate. This runs them
-all for one game and reports per-subsystem; exit 0 iff all pass. It exists because frogger was
+A game is shippable only when EVERY completion subsystem is green under its own gate AND the adversarial
+done-audit has landed as a committed games/<game>/DONE.md (runbook §5, reviewer-rule R40): subsystem-green
+is the PRE-FILTER, never sufficient on its own. This runs the subsystems for one game and reports
+per-subsystem; exit 0 iff all pass AND the DONE.md record is committed. It exists because frogger was
 declared "done" three times over with grounding, registers, and audio all still open - each a
 subsystem with no gate guarding the done-claim. Subsystems:
   idiomatic   - tools/idiomatic_gate.py: the idiomatic layer holds ZERO CPU/memory cruft — no
@@ -218,6 +220,19 @@ SUBSYSTEMS = [
 ]
 
 
+def done_record_committed(game, tracked=None):
+    """True iff games/<game>/DONE.md is a COMMITTED (git-tracked) file -- the landed, reviewer-verified
+    adversarial done-audit (runbook §5, reviewer-rule R40). review_gate refuses that commit without an
+    independent PASS, so a committed record IS the proof an independent agent agreed the game is done; a
+    green pre-filter alone is never sufficient. An untracked working-tree DONE.md has not passed review,
+    so it does not count. `tracked` is a test seam (a set of paths) that bypasses git."""
+    path = f"games/{game}/DONE.md"
+    if tracked is not None:
+        return path in tracked
+    rc, _ = run(["git", "ls-files", "--error-unmatch", path])
+    return rc == 0
+
+
 def check(game):
     print(f"definition-of-done [{game}]:")
     all_ok = True
@@ -225,10 +240,16 @@ def check(game):
         ok, detail = fn(game)
         all_ok = all_ok and ok
         print(f"  [{'OK ' if ok else 'RED'}] {name:<11} {detail}")
-    if all_ok:
-        print(f"\n{game}: DONE — every subsystem gate passed.")
+    if not all_ok:
+        print(f"\n{game}: NOT DONE — a subsystem gate is red (above). The ship is refused.", file=sys.stderr)
+        return 1
+    if done_record_committed(game):
+        print(f"\n{game}: DONE — every subsystem gate passed and the adversarial done-audit is on "
+              f"record (games/{game}/DONE.md).")
         return 0
-    print(f"\n{game}: NOT DONE — a subsystem gate is red (above). The ship is refused.", file=sys.stderr)
+    print(f"\n{game}: NOT DONE — subsystem gates are green (pre-filter), but no committed "
+          f"games/{game}/DONE.md: the adversarial done-audit (runbook §5, reviewer-rule R40) has not "
+          f"landed. A green pre-filter is necessary, never sufficient.", file=sys.stderr)
     return 1
 
 
@@ -266,6 +287,12 @@ def selftest():
     # accounting: a grounding-debt entry subtracts an ungrounded item by ADDRESS (0x8800 here -> 1 accounted).
     if sum(1 for a in cell_addrs + rout_addrs if a in {0x8800}) != 1:
         print("selftest FAIL: grounding accounting arithmetic", file=sys.stderr); ok = False
+    # done-record: subsystem-green is only the PRE-FILTER; "done" also needs a COMMITTED DONE.md. The
+    # helper counts a record only when git-tracked (an untracked working-tree DONE.md has not been reviewed).
+    if not done_record_committed("x", tracked={"games/x/DONE.md"}):
+        print("selftest FAIL: done_record_committed missed a tracked DONE.md", file=sys.stderr); ok = False
+    if done_record_committed("x", tracked=set()):
+        print("selftest FAIL: done_record_committed counted an absent DONE.md", file=sys.stderr); ok = False
     print("selftest OK" if ok else "selftest FAILED")
     return 0 if ok else 1
 
