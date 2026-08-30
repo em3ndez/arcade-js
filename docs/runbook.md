@@ -849,7 +849,10 @@ distinct phase, gated on a flag, and runs in this order.
   every emitted command has a mapped clip) and `test/audio-wiring.test.js` (the soundlatch tap reaches the
   player). Those two committed tests do the enumeration/verification in the standing suite — the WAVs +
   index.json are gitignored copyright, so the gate cannot parse coverage itself; it guarantees the tests were
-  not skipped. Fail-closed when the layer or a test is absent. It **cannot** check correctness — no oracle —
+  not skipped. Because structure alone cannot tell a recorded+auditioned layer from an un-recorded stub,
+  GREEN also requires a committed by-ear sign-off `games/<game>/audio/RECORDING-SIGNOFF.md` (`rom_sha256`,
+  `clips`>0, `date`, `by_ear`) — evidence a human ran the recorder AND listened; legacy pre-runbook ports
+  are grandfathered. Fail-closed when the layer, a test, or the sign-off is absent. It **cannot** check correctness — no oracle —
   so "does it sound right" stays a recorded by-ear sign-off, but a *missing or untested* audio layer becomes
   impossible to ship.
 
