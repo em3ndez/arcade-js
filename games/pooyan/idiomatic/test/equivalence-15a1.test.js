@@ -3,11 +3,12 @@
  * Memory-equivalence test for loc_15a1 (ROM 0x15a1) — the in-play sub-state dispatcher. Tail-hands
  * (0x880a)&0x1f to one of 19 handlers via the inline table 0x15a8; the handler returns to the caller's
  * seated continuation (a tail dispatch). Oracle reaches handlers through rst 0x28; the module switches
- * directly. Compared: RAM (dumpState −STACK_SCRATCH). Indices 15/16/17 are beyond the validated frontier
- * (untranslated handlers; never reached in valid play) and 19..31 are guard-slack — both throw.
+ * directly. Compared: RAM (dumpState −STACK_SCRATCH). Indices 15/16/17 dispatch to the deep-state
+ * handlers (loc_1d9c/loc_1d6e/loc_6bb2) exactly as the oracle's table does, so they are checked by
+ * memory-eq like every other index; only 19..31 (guard-slack past the 19-entry table) throw.
  *
- * Jobs: CAPTURE (load-bearing, real play dispatches), CRAFTED routing (0..14,18), SP-TOOTH (captured
- * state), THROW (15/16/17 raise), TEETH (mis-route).
+ * Jobs: CAPTURE (load-bearing, real play dispatches), CRAFTED routing (0..18), SP-TOOTH (captured
+ * state), GUARD-SLACK (>18 raise), TEETH (mis-route).
  * Run: node --test games/pooyan/idiomatic/test/equivalence-15a1.test.js
  */
 import nodeTest from "node:test";
@@ -60,8 +61,10 @@ test("CAPTURE: real 0x15a1 dispatches replay identically (oracle vs module)", ()
   console.log(`  CAPTURE: ${caps.length} real 0x15a1 dispatch(es) replayed identically`);
 });
 
-test("CRAFTED: each dispatchable index (0..14,18) routes identically", () => {
-  for (const state of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 18]) {
+test("CRAFTED: each dispatchable index (0..18) routes identically", () => {
+  // 15/16/17 dispatch to the deep-state handlers (loc_1d9c/loc_1d6e/loc_6bb2); they match the oracle
+  // like every other index, so they belong in the memory-eq sweep rather than a throw assertion.
+  for (const state of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]) {
     const o = craft(state), c = craft(state);
     const ro = runGuarded(oracle, o), rc = runGuarded(loc_15a1, c);
     assert.equal(ro.threw, rc.threw, `state ${state}: divergent control flow (oracle=${ro.threw} module=${rc.threw})`);
@@ -78,11 +81,11 @@ test("SP-TOOTH: the tail dispatch is seam-placeable (on a real captured state)",
   console.log("  SP-TOOTH: tail dispatch seats cleanly on a real state");
 });
 
-test("THROW: beyond-frontier indices 15/16/17 raise", () => {
-  for (const state of [15, 16, 17]) {
-    assert.throws(() => loc_15a1(craft(state)), /beyond validated frontier/, `state ${state} must throw`);
+test("GUARD-SLACK: indices > 18 (past the 19-entry table) raise", () => {
+  for (const state of [19, 25, 31]) {
+    assert.throws(() => loc_15a1(craft(state)), /guard-slack/, `state ${state} must throw`);
   }
-  console.log("  THROW: 15/16/17 raise beyond-frontier");
+  console.log("  GUARD-SLACK: >18 raise");
 });
 
 test("TEETH: a twin routing state 0 to the wrong handler is caught", () => {
