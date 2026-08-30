@@ -5,9 +5,10 @@
 const DISPATCH_TABLE_0FE3 = "0x0fe3 (main-loop sub-state, selector 0x8f5c & 7)";
 
 // loc_0fd5  (ROM 0x0fd5-0x0fe2) -- main-loop sub-state dispatcher. A = (0x8f5c & 7). For states
-// >= 2 it first pushes 0x1035 (the post-handler tail the selected handler `ret`s to: run
-// 0x2157/0x1219/0x40bd/0x02ef then ret to the caller); states 0/1 `ret` straight to the caller.
-// Then rst 0x28 -> loc_0028 reads the inline table at 0x0fe3 and jp (hl)'s to table[A].
+// >= 2 it first pushes 0x1035 (the post-handler tail the selected handler `ret`s to); states 0/1
+// `ret` straight to the caller. Then rst 0x28 -> loc_0028 reads the inline table at 0x0fe3 and
+// jp (hl)'s to table[A]. m.ret only unwinds the JS stack, so the handler's ret pops 0x1035 without
+// executing it -- run loc_1035 explicitly after the dispatch for states >= 2 (mirror loc_0899).
 export function loc_0fd5(m) {
   const { regs, mem } = m;
 
@@ -18,6 +19,7 @@ export function loc_0fd5(m) {
   regs.cp(0x02);
   m.step(0x0fdc, 7); // 0fda  cp 0x02
 
+  const hasTail = !regs.fC; // state >= 2 seats the loc_1035 tail
   if (regs.fC) {
     m.step(0x0fe2, 12); // 0fdc  jr c,0x0fe2 -- state 0/1: skip the tail push
   } else {
@@ -31,4 +33,5 @@ export function loc_0fd5(m) {
   m.push16(0x0fe3); // 0fe2  rst 0x28 pushes its return = inline table base
   m.step(0x0028, 11);
   m.call(0x0028, DISPATCH_TABLE_0FE3);
+  if (hasTail) return m.call(0x1035); // handler ret'd to 0x1035; run the post-handler tail
 }

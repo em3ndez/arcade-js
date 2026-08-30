@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { ROUND_COUNTER, INTEGRITY_FLAG_SCAN_BASE } from "./names.js";
 import { dispatchLevelIntroPhase } from "./dispatchLevelIntroPhase.js";
+import { loc_0fd5 } from "./loc_0fd5.js";
 
 /**
  * loc_1d9c — per-frame gate keyed on ROUND_COUNTER bit 1.
@@ -26,7 +27,7 @@ export function loc_1d9c(m) {
   const { mem8 } = m;
 
   if ((mem8[ROUND_COUNTER] & ROUND_BIT1) === 0) {
-    m.call(0x0fd5); // boundary: main-loop sub-state dispatcher
+    loc_0fd5(m); // main-loop sub-state dispatcher
     return;
   }
 

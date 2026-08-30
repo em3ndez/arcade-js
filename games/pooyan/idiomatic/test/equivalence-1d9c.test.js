@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence test for loc_1d9c (Pooyan) — per-frame gate on ROUND_COUNTER bit 1.
  *
- * Bit 1 clear: delegate to the main-loop sub-state dispatcher (boundary 0x0fd5) and return. Bit 1
+ * Bit 1 clear: delegate to the main-loop sub-state dispatcher (0x0fd5) and return. Bit 1
  * set: run the level-intro phase dispatcher (idiomatic here / translated oracle), then a code-window
  * integrity probe that latches INTEGRITY_FLAG_SCAN_BASE only when a fixed program cell fails its
  * bit tally. That cell lives in ROM (an intact 0x16 byte), so on a good ROM the strike write is

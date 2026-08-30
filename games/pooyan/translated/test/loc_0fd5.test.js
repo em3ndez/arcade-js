@@ -6,7 +6,8 @@
  * at 0x0fe3 and jp (hl)'s to the selected handler.
  *
  * Pinned paths:
- *   state 2 (0x8f5c=0x0a -> &7 = 2, cp 2 => NO carry): push 0x1035, then dispatch.
+ *   state 2 (0x8f5c=0x0a -> &7 = 2, cp 2 => NO carry): push 0x1035, dispatch, then run the
+ *     0x1035 tail after the handler (m.ret only unwinds the JS stack, so the tail is called).
  *     T = 13 + 7 + 7 + 7 + 10 + 11 + 11 = 66. Stack: 0x0fe3 (rst return/table base) on top,
  *     then 0x1035 (handler tail), then the seated caller below.
  *   state 1 (0x8f5c=0x09 -> &7 = 1, cp 2 => carry): jr taken, no push.
@@ -55,7 +56,7 @@ function seatCaller(m) {
   m.push16(CALLER_RET);
 }
 
-test("loc_0fd5: state 2 (0x8f5c=0x0a) pushes tail 0x1035, then dispatches via loc_0028", () => {
+test("loc_0fd5: state 2 (0x8f5c=0x0a) pushes tail 0x1035, dispatches via loc_0028, then runs the tail", () => {
   const m = makeMachine();
   seatCaller(m);
   m.mem.write8(0x8f5c, 0x0a); // 0x0a & 7 = 2 -> state 2, cp 2 => no carry
@@ -64,7 +65,7 @@ test("loc_0fd5: state 2 (0x8f5c=0x0a) pushes tail 0x1035, then dispatches via lo
   assert.equal(m.tstates, 66, "T = 13+7+7+7(jr nt)+10+11+11");
   assert.deepEqual(m.pcSeq, [0x0fd8, 0x0fda, 0x0fdc, 0x0fde, 0x0fe1, 0x0fe2, 0x0028],
     "no-carry path falls through the push, then the rst target");
-  assert.deepEqual(m.calls, [0x0028], "delegates to the generic dispatcher loc_0028");
+  assert.deepEqual(m.calls, [0x0028, 0x1035], "dispatches via loc_0028, then runs the loc_1035 tail");
   assert.equal(m.regs.a, 0x02, "A = masked state index preserved into the dispatch");
   assert.equal(m.pop16(), 0x0fe3, "top of stack = rst return = inline table base 0x0fe3");
   assert.equal(m.pop16(), 0x1035, "beneath it = the pushed handler tail return 0x1035");
