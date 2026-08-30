@@ -157,7 +157,10 @@ async function run(gameId, provided) {
   // cycle-driven engine. Idiomatic is validated byte-for-byte vs the oracle (idiomatic/test/).
   const idiomatic = manifest.runtime === "idiomatic";
   const liveCfg = manifest.convergence?.idiomatic;
-  if (idiomatic && !liveCfg) throw new Error(`${gameId}: runtime "idiomatic" needs manifest.convergence.idiomatic`);
+  // Refuse idiomatic without nmiReturnPC specifically: runIdiomaticGame defaults it to undefined and
+  // silently skips the per-NMI PC reseat, so a present-but-empty convergence.idiomatic would run wrong.
+  if (idiomatic && liveCfg?.nmiReturnPC == null)
+    throw new Error(`${gameId}: runtime "idiomatic" needs manifest.convergence.idiomatic.nmiReturnPC`);
   const runIdiomaticGame = idiomatic ? (await import("../core/frame-stepped.js")).runIdiomaticGame : null;
   const LiveMachine = idiomatic ? null : makeLive(Machine);
 
