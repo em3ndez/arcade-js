@@ -16,6 +16,10 @@ export default {
 
   runtime: "idiomatic",
 
+  // §4 decompile complete: every reachable routine is idiomatic JS (idiomatic_gate total 0). Enables the
+  // §4-end cleanup regime (comment_gate drops its density/reference rules for this game's idiomatic/**).
+  idiomaticComplete: true,
+
   rom: {
     zip: "pooyan.zip",
     images: {
