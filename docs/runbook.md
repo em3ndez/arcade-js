@@ -15,7 +15,12 @@ MAME — with no decision kicked to a human.
 
 ## Standing discipline (applies to every step)
 
-Set the idle-timer first. Commit **locally**; a human gates the push. ROM is **never** committed
+**Keep going — don't stop.** Drive the work to done autonomously: a landed milestone or a green gate is
+never a stopping point, and neither is a decision you can make yourself. Pause only for a genuine
+human-only dependency (a by-ear audio sign-off, a hardware playthrough) or an explicit block — and even
+then keep driving every OTHER track. After a unit lands, launch the next in-order work the SAME turn;
+never end on a status-and-wait. Set the idle-timer as a keep-going backstop.
+Commit **locally**; a human gates the push. ROM is **never** committed
 (bring-your-own, sha256-verified). Stage **explicit paths** (never `git add -A`); python not sed for
 identifier renames; never `--no-verify` without per-commit approval. Work **in batches — ~15 agents ×
 3–4 routines each (≈50/batch); fan aggressively**, **one commit per batch, single-threaded** (don't
