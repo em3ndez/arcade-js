@@ -39,6 +39,7 @@ REPO = os.path.dirname(os.path.dirname(GAME))      # arcade-js
 sys.path.insert(0, os.path.join(REPO, "tools"))
 
 import numpy as np      # noqa: E402
+import hardware         # noqa: E402
 import pixel_gate       # noqa: E402
 
 HW = os.path.join(REPO, "boards", "pooyan", "hardware.json")
@@ -88,7 +89,10 @@ INJECT_XY = (100, 100)
 #    with the SAME tape, and score it with the runbook's DRIFT-TOLERANT reconverge (tools/convergence.mjs
 #    nearest-golden -- the same stride-8 sampled %, whole-golden search). This EXERCISES the in-play seams
 #    (fire/climb handlers, object/HUD leaves) against MAME instead of asserting idiomatic==oracle (JS-vs-JS,
-#    which proves nothing about correctness).
+#    which proves nothing about correctness). PART B FIRST asserts DEEP-STATE COVERAGE (see DONE_DEEP_STATES):
+#    the golden's own state.bin must have reached the game's declared deepest-reachable states -- a round
+#    advance, etc. -- else it only skimmed wave 1 and that reconverge PASS would be a coverage lie (deep-state
+#    pixels never compared). A golden that never advances the round is RED, not a green attract-length skim.
 ATTRACT_DONE_FRAMES = 2400     # >= 2000, well past the two former crash frames at f1681 (PART A)
 GAMEPLAY_SECONDS = 90          # tape-driven golden length: coin@300, start@360, play from 420 (~5456 frames)
 GAMEPLAY_TAPE = os.path.join(GAME, "tapes", "coin_start_play.lua")  # the MAME-side driver for the golden
@@ -118,6 +122,78 @@ GP_BAND_PCT = 5.0              # per-frame band on the sampled grid (convergence
 # BELOW the band (0 over 5% on the certified render), so this is headroom for entropy-capture variation, NOT a
 # hole -- a real gross regression trips hundreds of frames (56x56 -> 360), dwarfing it.
 GP_TRANSIENT_BUDGET = 8
+
+# ── PART B DEEP-STATE COVERAGE ────────────────────────────────────────────────────────────────────
+# A gameplay golden that only skims WAVE 1 is a coverage LIE: it never reaches a cleared board, a round
+# advance, or the eagle bonus stage, so those deep-state pixels go UNVALIDATED vs MAME while PART B still
+# prints a clean PASS. Runbook 2/5: the pixel golden must reach "where the deepest state the game can enter
+# actually occurs", not a short window. So PART B ASSERTS -- straight from the golden's OWN per-frame
+# state.bin (the same dumper the pixel capture already writes) -- that the golden actually REACHED each
+# game-declared deepest-reachable state, and FAILS "gameplay golden never reached deep state X" if it did
+# not. A wave-1-death golden leaves ROUND_COUNTER at 0, so this makes the gate go RED until the golden
+# genuinely completes a board -- the honest result.
+#
+# Each entry: (label, cpu_addr, predicate(byte_value)->bool, why). "reached" == predicate true at ANY
+# golden frame. The list is the game-declared coverage contract; extend it as deeper markers get grounded.
+#   ROUND_COUNTER (0x8907) >= 1: the BCD HUD round number [seen] (names.js/mechanisms.md 0x8900 live block).
+#     0 for the whole of a wave-1-only golden; >=1 proves at least one FULL board was cleared and the round
+#     advanced -- the deep state the current bot-dies-in-wave-1 golden never reaches.
+#
+# NOT ENCODED -- the eagle/bonus stage. Its machinery (WAVE_LAUNCH_FLAG 0x8f3a, WAVE_OUTER_PHASE 0x8f38,
+# EAGLE_FINISH_FLAG 0x8f3e) is documented (mechanisms.md "The bonus stage REUSES the launch and target-actor
+# machinery") as SHARED with the ordinary hunter-launch/target machinery, and NO capture in this repo reaches
+# even round 1 -- so there is ZERO positive MAME evidence that any one of those cells is eagle-EXCLUSIVE.
+# Encoding an unverified marker would be its own lie: a normal-round launch could set the cell and masquerade
+# as eagle coverage. Add the eagle condition here the day a golden actually enters the bonus stage and grounds
+# an exclusive cell against MAME; until then round>=1 is the honest, evidence-grounded deep-state floor.
+DONE_DEEP_STATES = [
+    ("round>=1 (at least one board cleared / round advanced)", 0x8907, lambda v: v >= 1,
+     "ROUND_COUNTER stays 0 for the whole of a wave-1-only golden; >=1 requires a full board completion"),
+]
+
+
+def _state_offset(addr):
+    """Byte offset of CPU address `addr` inside one state.bin frame, derived from the board's state-region
+    layout (hardware.json stateRegions -> the exact concatenation dump_state.lua writes). Raises if the
+    address is outside every dumped region."""
+    pos = 0
+    for _name, base, size in hardware.Hardware.load(HW).state_regions:
+        if base <= addr < base + size:
+            return pos + (addr - base)
+        pos += size
+    raise ValueError(f"address 0x{addr:04x} is not inside any dumped state region")
+
+
+def check_deep_states(golden_dir):
+    """Read the gameplay golden's per-frame state.bin and assert EVERY DONE_DEEP_STATES condition is
+    satisfied at some frame. Returns (ok, lines): ok False if any declared deep state was never reached
+    (coverage incomplete). This is what makes a wave-1-only golden RED -- ROUND_COUNTER never leaves 0."""
+    sb = os.path.join(golden_dir, "state.bin")
+    lines = []
+    if not os.path.exists(sb):
+        return False, [f"pixel_suite: FAIL -- PART B: golden has no state.bin at {sb}; cannot verify "
+                       "deep-state coverage (the golden capture must dump per-frame state)."]
+    bpf = sum(size for _n, _b, size in hardware.Hardware.load(HW).state_regions)
+    data = np.fromfile(sb, dtype=np.uint8)
+    nframes = data.size // bpf
+    if nframes == 0:
+        return False, ["pixel_suite: FAIL -- PART B: golden state.bin is empty; no frames to check "
+                       "deep-state coverage against."]
+    frames = data[:nframes * bpf].reshape(nframes, bpf)
+    ok = True
+    for label, addr, pred, why in DONE_DEEP_STATES:
+        col = frames[:, _state_offset(addr)]
+        peak = int(col.max())
+        first = next((i for i in range(nframes) if pred(int(col[i]))), None)
+        if first is not None:
+            lines.append(f"  [PART B] deep-state REACHED: {label} at golden frame {first} "
+                         f"(cell 0x{addr:04x}, peak value {peak}).")
+        else:
+            ok = False
+            lines.append(f"pixel_suite: FAIL -- PART B: gameplay golden never reached deep state "
+                         f"'{label}' (cell 0x{addr:04x} peaked at {peak} over {nframes} frames) -- "
+                         f"coverage incomplete. {why}.")
+    return ok, lines
 
 
 def capture_golden(rompath, out, seconds, tape=None):
@@ -287,9 +363,12 @@ def _done_partA(a):
 def _done_partB(a):
     """PART B -- gameplay correctness. Capture a tape-driven MAME golden (coin->start->~90s play), render
     the idiomatic layer with the same tape, and score with the drift-tolerant nearest-golden reconverge.
-    Teeth: (1) the render must COMPLETE (a gameplay crash -> gap/short -> RED); (2) MIN_DISTINCT + the
-    matched-golden SPAN reject a frozen/blank/non-tracking render; (3) at most GP_TRANSIENT_BUDGET frames
-    may exceed GP_BAND_PCT (a gross wrong render trips hundreds). Returns True=clean."""
+    Teeth: (0) DEEP-STATE COVERAGE -- the golden's own state.bin must have REACHED every DONE_DEEP_STATES
+    condition (round>=1, ...), else the golden only skimmed wave 1 and the deep-state pixels are unvalidated
+    -> RED (checked before the JS render so a coverage miss fails fast); (1) the render must COMPLETE (a
+    gameplay crash -> gap/short -> RED); (2) MIN_DISTINCT + the matched-golden SPAN reject a frozen/blank/
+    non-tracking render; (3) at most GP_TRANSIENT_BUDGET frames may exceed GP_BAND_PCT (a gross wrong render
+    trips hundreds). Returns True=clean."""
     go, jo = os.path.join(a.work, "done_golden"), os.path.join(a.work, "done_js")
     if not capture_golden(a.rompath, go, GAMEPLAY_SECONDS, tape=GAMEPLAY_TAPE):
         print("pixel_suite: FAIL -- PART B: mame_golden refused to certify the gameplay capture (poisoned).")
@@ -300,6 +379,15 @@ def _done_partB(a):
     if n_g < GAMEPLAY_FRAMES:
         print(f"pixel_suite: FAIL -- PART B: gameplay golden {n_g} frames < {GAMEPLAY_FRAMES}; "
               "capture more --seconds so the collapsed idiomatic timeline has headroom.")
+        return False
+
+    # DEEP-STATE COVERAGE: the golden is worthless as a gameplay reference if it never left wave 1. Assert
+    # it actually reached every game-declared deepest-reachable state (round advance, ...) before spending a
+    # JS render + the reconverge teeth on it. A miss here == coverage incomplete == RED (fail fast).
+    ok_deep, deep_lines = check_deep_states(go)
+    for line in deep_lines:
+        print(line)
+    if not ok_deep:
         return False
 
     specs = gameplay_tape_specs(n_g + TAPE_ORIGIN + 60)  # cover the whole golden, in MAME frame numbers
@@ -368,6 +456,48 @@ def run_done(a):
     return 0
 
 
+def selftest_deepstates(a):
+    """POSITIVE CONTROL for the PART B deep-state coverage check -- no MAME/golden capture needed. It
+    synthesises two state.bin fixtures in the exact board layout and asserts the check has TEETH:
+      NEGATIVE -- ROUND_COUNTER stays 0 in every frame (a wave-1-only golden) -> coverage must FAIL.
+      POSITIVE -- ROUND_COUNTER poked to 1 at one frame (a board was cleared) -> coverage must PASS.
+    If the round-0 fixture passes (no teeth) or the round-1 fixture fails (false red), the selftest FAILS."""
+    import tempfile
+    bpf = sum(size for _n, _b, size in hardware.Hardware.load(HW).state_regions)
+    off = _state_offset(0x8907)
+    d = tempfile.mkdtemp(prefix="pooyan_deepstate_selftest_")
+    NF = 100
+    POKE_FRAME = 60
+
+    neg = os.path.join(d, "neg_round0")
+    os.makedirs(neg)
+    np.zeros(NF * bpf, dtype=np.uint8).tofile(os.path.join(neg, "state.bin"))
+    ok_neg, lines_neg = check_deep_states(neg)
+
+    pos = os.path.join(d, "pos_round1")
+    os.makedirs(pos)
+    arr = np.zeros((NF, bpf), dtype=np.uint8)
+    arr[POKE_FRAME, off] = 1
+    arr.tofile(os.path.join(pos, "state.bin"))
+    ok_pos, lines_pos = check_deep_states(pos)
+
+    print(f"pixel_suite selftest-deepstates: state.bin {bpf} B/frame, ROUND_COUNTER 0x8907 -> byte {off}")
+    print("  NEGATIVE fixture (round stays 0 -- must FAIL coverage):")
+    for line in lines_neg:
+        print("   " + line)
+    print(f"  POSITIVE fixture (round poked to 1 @frame {POKE_FRAME} -- must PASS coverage):")
+    for line in lines_pos:
+        print("   " + line)
+    if ok_neg:
+        print("pixel_suite: FAIL -- selftest: the round-0 fixture PASSED coverage (the check has NO teeth).")
+        return 1
+    if not ok_pos:
+        print("pixel_suite: FAIL -- selftest: the round>=1 fixture FAILED coverage (false red).")
+        return 1
+    print("pixel_suite: PASS -- deep-state coverage has teeth (round-0 fixture RED, round>=1 fixture GREEN).")
+    return 0
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--rompath", default=os.path.expanduser("~/Downloads"),
@@ -390,8 +520,15 @@ def main():
     p.add_argument("--inject-attract-crash", action="store_true",
                    help="POSITIVE CONTROL for --done PART A: truncate the attract render so it looks like a "
                         "crash/short run; PART A must FAIL. (Use the real crash-fix revert for a truer test.)")
+    p.add_argument("--selftest-deepstates", action="store_true",
+                   help="POSITIVE CONTROL for --done PART B deep-state coverage: synthesise a round-0 and a "
+                        "round>=1 state.bin and prove the coverage check fails the first, passes the second. "
+                        "Needs no MAME/golden.")
     a = p.parse_args()
     idiomatic = a.layer == "idiomatic"
+
+    if a.selftest_deepstates:
+        return selftest_deepstates(a)
 
     try:
         verified = subprocess.run(["mame", "-rompath", a.rompath, "-verifyroms", DRIVER],
