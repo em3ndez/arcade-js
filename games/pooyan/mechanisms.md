@@ -855,7 +855,7 @@ to populate the board as the machine commits to `PLAY_STATE_INDEX` 6.
 down, and branches on the pre-decrement value:
 
 - At the boundary value **0x40** it verifies the ROM checksum (0x79e9), enqueues the
-  "BONUS STAGE" banner display command (0x0626, painted at VRAM 0x86d1) `[code]`, fires the
+  "BONUS STAGE" banner display command (0x0626, painted at VRAM 0x86d1) `[seen]`, fires the
   banner's sound cue (0x0f44), and returns.
 - While the timer is otherwise non-zero it just returns -- the banner stays up.
 - At **zero** (expiry) it commits the bonus stage: it clears `PLAY_STATE_INDEX` (0x880a),
@@ -1875,13 +1875,6 @@ into a visibly broken state without a single explicit "you cheated" halt.
 A few points remain open in this current-state description, each awaiting a targeted capture
 of the machine in the right state:
 
-- **BONUS_STAGE_BANNER_DISPLAY_CMD (0x0626)** is still [code]: the "BONUS STAGE" banner display
-  command is understood from the code that enqueues it, but confirming what it actually paints
-  needs a capture of the real bonus-stage render.
-- **SUBSTATE_FIELD3_HUNDREDS_VRAM_ALT (0x85e9)** is still [code]: this alternate hundreds-digit
-  VRAM target on the third bonus-tally field is reached only when field 3 is at least 50, so
-  pinning down its render needs a capture that drives that field high — a field-3 >= 50 hunter
-  render.
 - **WAVE_NUMBER (0x892d) mode-dependent reuse.** In the wave-release path WAVE_NUMBER is a 0..8
   per-wave release index, but it also appears to be consumed elsewhere as a per-frame countdown
   reloaded to 0x10 by `updateEnemyActorsAndCycleLaunchFlipAnim`. Whether this is a genuine

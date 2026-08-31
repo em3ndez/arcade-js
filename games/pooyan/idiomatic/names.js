@@ -1381,7 +1381,7 @@ export const FIRE_PHASE_SEED = 0x03a0;
 
 /** [seen] type-06 display command (0x06:0x34): paints the bonus-stage points tally ("BONUS POINT"/"MEAT .. 00 PTS"/"WOLF .. 00 PTS") via the message painter drawStackedCharField; enqueued by queueBonusStageTallyDisplayOnDelay on substate-countdown expiry */
 export const BONUS_STAGE_TALLY_DISPLAY_CMD = 0x0634;
-/** [code] type-06 display command (0x06:0x26): paints the "BONUS STAGE" banner at VRAM 0x86d1 via drawStackedCharField; enqueued by the bonus-stage intro countdown announceBonusStageAndStartPlay when its 0x8f4a timer crosses 0x40 */
+/** [seen] (MAME bonus-stage capture, round-counter poke: after the real reseed arms the bonus (PML->1) the game routes to announceBonusStageAndStartPlay (PSI=0x10, LSP=0x40) which enqueues it; mainLoopStep dispatches hi 0x06->drawStackedCharField, lo 0x26->selector, which reads FIELD_RECORD_PTR_TABLE[0x26*2]=0x7a59 (pc 0x05be) and paints 'B'(0x12)/'O'(0x1f) tiles to VRAM 0x86d1 (pc 0x05d6); address 0x0626 read only by the boot checksum sweep pc 0x00aa, never as a data cell -- it is the command word) type-06 display command (0x06:0x26): paints the "BONUS STAGE" banner at VRAM 0x86d1 via drawStackedCharField; enqueued by the bonus-stage intro countdown announceBonusStageAndStartPlay when its 0x8f4a timer crosses 0x40 */
 export const BONUS_STAGE_BANNER_DISPLAY_CMD = 0x0626;
 /** [seen] type-06 display command (0x06:0xab): bit7-set erase path of drawStackedCharField; blanks the "2ND PHASE GETS" attract help line at VRAM 0x86d0; first of 5 (0x06ab..0x06af) fired by commitPromotedObjectsAndClearHelpScreenOnCountdown to clear the how-to-play screen */
 export const ATTRACT_HELP_CLEAR_DISPLAY_CMD_A = 0x06ab;
@@ -1389,7 +1389,7 @@ export const ATTRACT_HELP_CLEAR_DISPLAY_CMD_A = 0x06ab;
 export const HUNTER_SPAWN_SUBCOUNTER_VRAM = 0x8650;
 /** [seen] video-RAM digit-column base for the alternate rendering of SUBSTATE_FIELD3_VALUE (0x8f60, x2 packed BCD) by launch/hunter state-2 handler tickEnemyHoldThenTurnOrBlank; different screen column from SUBSTATE_FIELD3_VRAM (0x85d2) */
 export const SUBSTATE_FIELD3_VRAM_ALT = 0x85c9;
-/** [code] video-RAM cell for the hundreds digit of tickEnemyHoldThenTurnOrBlank alternate SUBSTATE_FIELD3 rendering (written only when hundreds != 0); = SUBSTATE_FIELD3_VRAM_ALT + 0x20 */
+/** [seen] (MAME main-loop tally capture, control-poke: in the real MLS=1 tally window (stepEnemyActorState walks the enemy records), a record forced to state 9 runs tickEnemyHoldThenTurnOrBlank and writes the hundreds digit here (pc 0x1530, val 0x01) ONLY when SUBSTATE_FIELD3_VALUE pinned >=0x32 (doubled >=100 -> hundreds!=0); A/B negative control at SF3=0x10 renders the same digit field to 0x85c9 but leaves 0x85e9 untouched) video-RAM cell for the hundreds digit of tickEnemyHoldThenTurnOrBlank alternate SUBSTATE_FIELD3 rendering (written only when hundreds != 0); = SUBSTATE_FIELD3_VRAM_ALT + 0x20 */
 export const SUBSTATE_FIELD3_HUNDREDS_VRAM_ALT = 0x85e9;
 
 export const ROUTINES = {
