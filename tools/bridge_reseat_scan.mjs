@@ -245,13 +245,13 @@ function printReport(r) {
 }
 
 // The b0602b4f mutant for --selfcheck: the real idiomatic loc_5733 verbatim MINUS its `m.regs.ix = ix`
-// re-seat, delegating through the real idiomatic sub-chain (loc_57c3 -> loc_57c6 reads `= m.regs.ix`).
+// re-seat, delegating through the real idiomatic sub-chain (decrementPhaseCounterAndDispatchSpawnOrStep -> loc_57c6 reads `= m.regs.ix`).
 async function mutantMissingReseat(gdir, N) {
   const idir = join(gdir, "idiomatic");
-  const { loc_0020 } = await import(join(idir, "loc_0020.js"));
+  const { fetchByteFromTableIndex } = await import(join(idir, "fetchByteFromTableIndex.js"));
   const { adjustSpawnColumn } = await import(join(idir, "adjustSpawnColumn.js"));
   const { setActorAnimation } = await import(join(idir, "setActorAnimation.js"));
-  const { loc_57c3 } = await import(join(idir, "loc_57c3.js"));
+  const { decrementPhaseCounterAndDispatchSpawnOrStep } = await import(join(idir, "decrementPhaseCounterAndDispatchSpawnOrStep.js"));
   return function loc_5733_missingReseat(m, c = m.regs.c, ix = m.regs.ix, e = m.regs.e) {
     const { mem8 } = m;
     const stateSeed = c;
@@ -263,14 +263,14 @@ async function mutantMissingReseat(gdir, N) {
     if (mem8[N.GAUGE_PHASE_COUNTER] >= 0x04) col = (col + mem8[N.SPAWN_COLUMN_BIAS]) & 0xff;
     if (odd === 0) col = adjustSpawnColumn(m, col);
     col = (mem8[N.ROUND_COUNTER] + col) & 0xff; if (col >= 0x20) col = 0x1f;
-    const [motion] = loc_0020(m, odd ? N.SPAWN_FIELD_TABLE_ODD : N.SPAWN_FIELD_TABLE, col);
+    const [motion] = fetchByteFromTableIndex(m, odd ? N.SPAWN_FIELD_TABLE_ODD : N.SPAWN_FIELD_TABLE, col);
     mem8[ix + 0x09] = motion; mem8[ix + 0x0a] = -motion;
     setActorAnimation(m, ix, N.ANIM_TABLE_3829);
-    const [timer] = loc_0020(m, odd ? N.SPAWN_TIMER_TABLE_ODD : N.SPAWN_TIMER_TABLE_EVEN, col);
+    const [timer] = fetchByteFromTableIndex(m, odd ? N.SPAWN_TIMER_TABLE_ODD : N.SPAWN_TIMER_TABLE_EVEN, col);
     mem8[N.ENEMY_SPAWN_TIMER] = timer;
     mem8[N.ACTIVE_ENEMY_COUNT] = mem8[N.ACTIVE_ENEMY_COUNT] + 1;
-    // BUG: no `m.regs.ix = ix` -> the loc_57c3 -> loc_57c6 chain reads a stale m.regs.ix.
-    loc_57c3(m, stateSeed);
+    // BUG: no `m.regs.ix = ix` -> the decrementPhaseCounterAndDispatchSpawnOrStep -> loc_57c6 chain reads a stale m.regs.ix.
+    decrementPhaseCounterAndDispatchSpawnOrStep(m, stateSeed);
   };
 }
 
