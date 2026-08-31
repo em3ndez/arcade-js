@@ -22,6 +22,7 @@ import {
   MAIN_GAME_STATE, GAME_ACTIVE_FLAG, PLAY_STATE_INDEX, ROUND_COUNTER,
   ACTOR_TABLE, LEAD_ACTOR_STATE, LEAD_ACTOR_FRAME_DELAY, PLAYER0_LIVES,
   RESET_SCAN_LATCH, PHASE_TIMER, TWO_PLAYER_FLAG, HUD_INTEGRITY_STRIP_A,
+  SPEED_INDEX,
 } from "../idiomatic/names.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -64,7 +65,7 @@ function liveOffsets(bytesPerFrame, probe) {
 // is a live 1-player round). Returns the per-frame state dumps and the transition witness.
 async function drive(useIdiomatic, forcePoke) {
   const frames = [];
-  const w = { forced: false, sawPlay: false, roundAtForce: null, activeAtForce: null };
+  const w = { forced: false, sawPlay: false, roundAtForce: null, activeAtForce: null, livesAtForce: null };
   const onFrame = (m, f) => {
     if (f === 0) return; // power-on sample, before the boot generator runs
     m.io.inputAssert = tapeInput(f);
@@ -72,6 +73,7 @@ async function drive(useIdiomatic, forcePoke) {
     if (f === FORCE_AT && m.mem.read8(MAIN_GAME_STATE) === PLAY_STATE) {
       w.roundAtForce = m.mem.read8(ROUND_COUNTER);
       w.activeAtForce = m.mem.read8(GAME_ACTIVE_FLAG);
+      w.livesAtForce = m.mem.read8(PLAYER0_LIVES);
       forcePoke(m);
       w.forced = true;
     }
@@ -171,4 +173,54 @@ test("game over: GAME_ACTIVE_FLAG clears and idiomatic == oracle through the tea
   assert.equal(trActive, 0, `oracle GAME_ACTIVE_FLAG did not clear (still ${trActive})`);
 
   assertIdentical(idi, tr, "game-over");
+});
+
+// LIFE LOSS WITH LIVES REMAINING -- the death -> respawn/continue branch, the counterpart of the
+// game-over teardown above. On a death the ROM does NOT decrement PLAYER0_LIVES (0x8948) with a
+// standalone dec: MAME grounding (games/pooyan/out/grounding writes) shows the ONLY non-init writer
+// of 0x8948 is the ldir inside saveLivePageToPlayer0Bank (play sub-state index 10, ROM 0x1bc5),
+// which parks the live page (base SPEED_INDEX 0x8900) into player 0's saved bank (0x8940) -- and the
+// lives counter is the +8 byte of that block, so the live copy at SPEED_INDEX+8 (0x8908) is copied
+// into PLAYER0_LIVES at bank+8 (0x8948). That ldir is what drains lives 3->2->1->0 per death. So we
+// model a death by decrementing the LIVE lives copy (lives-1), then point the play sub-state at the
+// bank-save handler (index 10). At the settled one-player round-0 state saveLivePageToPlayer0Bank
+// commits the decremented count into PLAYER0_LIVES and -- being one-player (no player-1 hand-off)
+// and never touching GAME_ACTIVE_FLAG or MAIN_GAME_STATE -- clears the play sub-state to 0, so the
+// round rebuilds in place: the player respawns and play continues (NOT game over / attract). Both
+// engines take the same poked path.
+const LIVE_LIVES_CELL = (SPEED_INDEX + 8) & 0xffff; // live-page +8 = lives slot, ldir source for PLAYER0_LIVES (bank+8)
+const BANK_SAVE_STATE = 0x0a; // play sub-state index 10 = saveLivePageToPlayer0Bank
+function forceLifeLoss(m) {
+  m.mem.write8(LIVE_LIVES_CELL, (m.mem.read8(PLAYER0_LIVES) - 1) & 0xff); // the death took one life off the live copy
+  m.mem.write8(PLAY_STATE_INDEX, BANK_SAVE_STATE);                   // run the bank-save that commits it into PLAYER0_LIVES
+}
+
+test("life loss with lives left: PLAYER0_LIVES decrements, no game over, idiomatic == oracle through the respawn", { skip: !HAVE_ROM }, async () => {
+  const idi = await drive(true, forceLifeLoss);
+  const tr = await drive(false, forceLifeLoss);
+
+  assert.ok(idi.w.sawPlay && tr.w.sawPlay, "a run never reached in-play — the tape must settle a round");
+  assert.ok(idi.w.forced && tr.w.forced, "the life-loss force never fired (game was not in play at FORCE_AT)");
+  // Lives remained going in (>= 2), or "decrement without game over" would be the wrong branch.
+  assert.ok(idi.w.livesAtForce >= 2, `idiomatic had no lives to spare at the force (${idi.w.livesAtForce})`);
+  assert.ok(tr.w.livesAtForce >= 2, `oracle had no lives to spare at the force (${tr.w.livesAtForce})`);
+  // The in-play gate was set going in, so asserting it STAYED set is not vacuous.
+  assert.equal(idi.w.activeAtForce, 1, "GAME_ACTIVE_FLAG was not set at the force — the run was not live");
+  assert.equal(tr.w.activeAtForce, 1, "oracle GAME_ACTIVE_FLAG was not set at the force");
+
+  // TEETH 1: the life was actually LOST — PLAYER0_LIVES dropped by exactly one, on BOTH sides.
+  const idiLives = idi.m.mem.read8(PLAYER0_LIVES);
+  const trLives = tr.m.mem.read8(PLAYER0_LIVES);
+  assert.equal(idiLives, idi.w.livesAtForce - 1, `idiomatic lives did not decrement by one (${idi.w.livesAtForce} -> ${idiLives})`);
+  assert.equal(trLives, tr.w.livesAtForce - 1, `oracle lives did not decrement by one (${tr.w.livesAtForce} -> ${trLives})`);
+  assert.equal(idiLives, trLives, "idiomatic and oracle ended on different life counts");
+
+  // TEETH 2: it was a RESPAWN, not a teardown — the game stayed live (GAME_ACTIVE_FLAG still 1) and
+  // in the play top-level state (MAIN_GAME_STATE still 3), never falling to game-over / attract.
+  for (const [label, run] of [["idiomatic", idi], ["oracle", tr]]) {
+    assert.equal(run.m.mem.read8(GAME_ACTIVE_FLAG), 1, `${label} went to game over — GAME_ACTIVE_FLAG cleared on a life loss with lives left`);
+    assert.equal(run.m.mem.read8(MAIN_GAME_STATE), PLAY_STATE, `${label} left in-play (MAIN_GAME_STATE ${run.m.mem.read8(MAIN_GAME_STATE)}) — a respawn must stay in play state 3`);
+  }
+
+  assertIdentical(idi, tr, "life-loss");
 });
