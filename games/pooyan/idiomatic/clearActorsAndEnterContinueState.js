@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { stampSecondScrollColumn } from "./stampSecondScrollColumn.js";
-import { loc_1ce7 } from "./loc_1ce7.js";
+import { stampCappedTileColumnUp } from "./stampCappedTileColumnUp.js";
 import { resetGameToAttractState } from "./resetGameToAttractState.js";
 import {
   SPEED_INDEX,
@@ -30,10 +30,10 @@ const CONTINUE_STATE = 2;
 export function clearActorsAndEnterContinueState(m) {
   const { mem8 } = m;
 
-  loc_0010(m, SPEED_INDEX, 0, PAGE_LEN); // zero-fill the live actor page
+  fillByteRun(m, SPEED_INDEX, 0, PAGE_LEN); // zero-fill the live actor page
 
   if (mem8[TWO_PLAYER_FLAG] === 0) stampSecondScrollColumn(m); // fixed-stride paint
-  else loc_1ce7(m); // cap-first column stamp
+  else stampCappedTileColumnUp(m); // cap-first column stamp
 
   if (mem8[CREDIT_COUNT] === 0) return resetGameToAttractState(m); // no credit -> cold teardown
 

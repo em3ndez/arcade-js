@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6a98 (ROM 0x6a98, Pooyan) — the per-object state dispatcher.
+ * Memory-equivalence test for dispatchDescendingObjectState (ROM 0x6a98, Pooyan) — the per-object state dispatcher.
  * It skips an inactive record (its +1 byte zero); otherwise it reads the state byte (IX+2) and
  * rst-0x28 dispatches through the inline word table at 0x6aa4 to one of two handlers, indexed by
  * (state-1) & 3: index 0 = 0x6aa8 (descending-object step), index 1 = 0x67df (screen re-init).
- * Each is a tail hand-off, so the handler returns straight to loc_6a98's caller.
+ * Each is a tail hand-off, so the handler returns straight to dispatchDescendingObjectState's caller.
  *
  * The oracle reaches its handler through the rst-0x28 trampoline (push the table base, jp (hl) via
  * the 0x6aa4 words); the module calls the handler directly. `m.call` pushes no return, so the
  * handler runs at the SAME sp on both sides — the only asymmetric stack write is the transient
  * table base, inside STACK_SCRATCH and excluded. The dispatcher is memory-only: the record-scan
- * caller (loc_6a7f) brackets its loop registers with exx and reads nothing back.
+ * caller (runObjectsElseVerifyTilemapChecksum) brackets its loop registers with exx and reads nothing back.
  *
  * Jobs:
  *   1. ROM-TABLE — the module's case->handler map matches the real ROM 0x6aa4 word table.
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6a98 as oracle } from "../../translated/loc_6a98.js";
-import { loc_6a98 } from "../loc_6a98.js";
+import { dispatchDescendingObjectState } from "../dispatchDescendingObjectState.js";
 import { loc_67df as translatedReinit } from "../../translated/loc_67df.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -46,7 +46,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x6a98;
 const TABLE = 0x6aa4;
-const REC = 0x8ae0; // an enemy-actor arena record (the scan base loc_6a7f walks)
+const REC = 0x8ae0; // an enemy-actor arena record (the scan base runObjectsElseVerifyTilemapChecksum walks)
 const HANDLERS = [0x6aa8, 0x67df]; // table[0], table[1]
 const HOLD = REC + 0x0e; // anim frame-hold counter (handler 0x6aa8 -> advanceObjectAnimationFrame decrements it)
 const POS_LO = REC + 0x05; // position low byte (handler subtracts the speed at +0x09)
@@ -112,7 +112,7 @@ test("CAPTURE: real 0x6a98 dispatches replay identically (if reached)", () => {
     let oThrew = false;
     let cThrew = false;
     try { oracle(o); } catch { oThrew = true; }
-    try { loc_6a98(c); } catch { cThrew = true; }
+    try { dispatchDescendingObjectState(c); } catch { cThrew = true; }
     assert.equal(oThrew, cThrew, "oracle and module must take the same completion path");
     if (!oThrew) {
       const d = ramDiffMinusStack(o, c);
@@ -124,13 +124,13 @@ test("CAPTURE: real 0x6a98 dispatches replay identically (if reached)", () => {
 
 // -- 3. CRAFTED selector 0 (shallow, safe) ------------------------------------
 
-test("CRAFTED: selector 0 shallow path — loc_6a98 == oracle in RAM (−stack)", () => {
+test("CRAFTED: selector 0 shallow path — dispatchDescendingObjectState == oracle in RAM (−stack)", () => {
   const o = craft(0x01); // (1-1)&3 = 0 -> handler 0x6aa8
   const c = craft(0x01);
   seatShallow(o);
   seatShallow(c);
   oracle(o);
-  loc_6a98(c);
+  dispatchDescendingObjectState(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   // confirm the handler actually ran (a no-op twin would leave these unchanged)
@@ -149,7 +149,7 @@ test("CRAFTED: selector 1 takes the same path; RAM matches when it completes", (
   let oThrew = false;
   let cThrew = false;
   try { oracle(o); } catch { oThrew = true; }
-  try { loc_6a98(c); } catch { cThrew = true; }
+  try { dispatchDescendingObjectState(c); } catch { cThrew = true; }
   assert.equal(oThrew, cThrew, "selector 1: oracle and module must take the same completion path");
   if (!oThrew) {
     const d = ramDiffMinusStack(o, c);
@@ -165,7 +165,7 @@ test("INACTIVE: (IX+1)==0 skips — both write nothing", () => {
   const c = craft(0x01, false);
   const before = o.dumpState();
   oracle(o);
-  loc_6a98(c);
+  dispatchDescendingObjectState(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}`);
   let changes = 0;

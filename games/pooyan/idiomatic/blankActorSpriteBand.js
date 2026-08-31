@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 /**
  * blankActorSpriteBand — blank an actor's sprite band.
  * Fills a fixed-length run of bytes at the actor-record pointer with zero, clearing the band, by
@@ -12,5 +12,5 @@ const BAND_FILL = 0x00; // the band is cleared to zero
 const BAND_LEN = 0x17;  // bytes in the sprite band
 
 export function blankActorSpriteBand(m, base = m.regs.ix) {
-  return loc_0010(m, base, BAND_FILL, BAND_LEN);
+  return fillByteRun(m, base, BAND_FILL, BAND_LEN);
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { WAVE_RECORD_COUNT, WAVE_HOLD_TIMER } from "./names.js";
 /**
  * despawnEagleAndSeedHoldOnWaveEmpty — eagle-record state 2 (retire): clear the record, then maybe seed the inter-wave hold.
@@ -18,7 +18,7 @@ const INTER_WAVE_HOLD = 0x30; // reseed value for the hold countdown
 export function despawnEagleAndSeedHoldOnWaveEmpty(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
-  loc_0010(m, rec, RECORD_FILL, RECORD_LEN);
+  fillByteRun(m, rec, RECORD_FILL, RECORD_LEN);
 
   mem8[WAVE_RECORD_COUNT] = mem8[WAVE_RECORD_COUNT] - 1;
   if (mem8[WAVE_RECORD_COUNT] !== 0) return;

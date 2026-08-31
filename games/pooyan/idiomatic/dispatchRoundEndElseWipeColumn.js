@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0010 } from "./loc_0010.js";
-import { loc_02e3 } from "./loc_02e3.js";
+import { fillByteRun } from "./fillByteRun.js";
+import { armTileFillFromPlayfieldBase } from "./armTileFillFromPlayfieldBase.js";
 import { u8, u16 } from "../../../core/int.js";
 import { clearActorsAndEnterContinueState } from "./clearActorsAndEnterContinueState.js";
 import { reseedOtherPlayerForTurn } from "./reseedOtherPlayerForTurn.js";
-import { loc_1ce7 } from "./loc_1ce7.js";
-import { loc_7e94 } from "./loc_7e94.js";
+import { stampCappedTileColumnUp } from "./stampCappedTileColumnUp.js";
+import { dispatchWriteAnimStateAndPollStart } from "./dispatchWriteAnimStateAndPollStart.js";
 import {
   PHASE_TIMER,
   RESET_SCAN_LATCH,
@@ -52,7 +52,7 @@ export function dispatchRoundEndElseWipeColumn(m) {
   const reinit = armed && mem8[PHASE_TIMER] === 0; // armed and the timer has expired
 
   if (!reinit) {
-    loc_7e94(m); // the write-anim dispatch pre-pass
+    dispatchWriteAnimStateAndPollStart(m); // the write-anim dispatch pre-pass
     if (mem8[HIGH_SCORE_INSERT_RANK] === 0) return;
     if ((mem8[PHASE_TIMER] & TICK_MASK) !== 0) return; // only every eighth tick
 
@@ -80,8 +80,8 @@ export function dispatchRoundEndElseWipeColumn(m) {
 
   mem8[ACTIVE_PLAYER] = 0;
   mem8[PLAY_STATE_INDEX] = 0;
-  loc_0010(m, PLAYER1_STATE_BANK, 0, BANK_LEN); // zero-fill player one's state bank
+  fillByteRun(m, PLAYER1_STATE_BANK, 0, BANK_LEN); // zero-fill player one's state bank
   mem8[FLIP_SCREEN_FLAG] = 1; // the fill leaves A zero -> increment is one
-  loc_02e3(m); // reset the display pointer
-  return loc_1ce7(m); // fall into the cap-first column stamp
+  armTileFillFromPlayfieldBase(m); // reset the display pointer
+  return stampCappedTileColumnUp(m); // fall into the cap-first column stamp
 }

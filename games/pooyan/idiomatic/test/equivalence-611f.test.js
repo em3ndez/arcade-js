@@ -33,7 +33,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_611f as oracle } from "../../translated/loc_611f.js";
 import { dispatchHitToEnemyRecordElseQueueSound } from "../dispatchHitToEnemyRecordElseQueueSound.js";
-import { loc_613d } from "../loc_613d.js";
+import { retireResetOrEngageObjectRecord } from "../retireResetOrEngageObjectRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -146,7 +146,7 @@ test("TEETH: handing the wrong record to the handler diverges from the oracle", 
   const o = craft(matchIndex, 0x02);
   oracle(o);
   const c = craft(matchIndex, 0x02);
-  loc_613d(c, ENEMY_ACTOR_TABLE); // wrong record handed on (base, not the matched record)
+  retireResetOrEngageObjectRecord(c, ENEMY_ACTOR_TABLE); // wrong record handed on (base, not the matched record)
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate must catch the wrong record being handed to the handler");
   console.log(`  TEETH(branch): wrong-record handoff diverges at ${hx(d.addr ?? 0)}`);

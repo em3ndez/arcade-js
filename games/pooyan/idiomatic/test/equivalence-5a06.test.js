@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_5a06 — per-frame accumulate step, variant A.
+ * Memory-equivalence gate for accrueCreditFromDripRingA — per-frame accumulate step, variant A.
  *
  * Each frame the routine rotates INPUT_PORT0 bit2 into the cadence ring. When the ring's low three
  * bits settle on the fire phase (1) it emits the drip sound (emitPresetSound) and adds one to the running
  * total through the shared accumulate tail (addCreditsAndQueueDisplay); off-phase it leaves only the advanced ring.
  * The module composes the real idiomatic siblings; the oracle drives their translated forms through
- * the routines map. loc_5a06 has no register live-out (the caller reloads A before reading it), so
+ * the routines map. accrueCreditFromDripRingA has no register live-out (the caller reloads A before reading it), so
  * only RAM (dumpState, minus STACK_SCRATCH) is compared. SP sits in STACK_SCRATCH so the accumulate
  * tail's nested pushes drop out of the diff.
  *
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5a06 as oracle } from "../../translated/loc_5a06.js";
-import { loc_5a06 } from "../loc_5a06.js";
+import { accrueCreditFromDripRingA } from "../accrueCreditFromDripRingA.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, INPUT_PORT0, CREDIT_COUNT } from "../names.js";
@@ -72,12 +72,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5a06 == oracle in RAM (−stack)", () => {
+test("EQUAL: accrueCreditFromDripRingA == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    loc_5a06(c);
+    accrueCreditFromDripRingA(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -105,7 +105,7 @@ test("TEETH: a wrong ring byte is caught by the RAM diff", () => {
   const o = craft(OFF);
   const c = craft(OFF);
   oracle(o);
-  loc_5a06(c);
+  accrueCreditFromDripRingA(c);
   c.mem.write8(DRIP_RING_A, (o.mem.read8(DRIP_RING_A) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted ring byte");
@@ -117,7 +117,7 @@ test("TEETH: a spuriously-fired total (off-phase must not accumulate) is caught"
   const o = craft(OFF);
   const c = craft(OFF);
   oracle(o);
-  loc_5a06(c);
+  accrueCreditFromDripRingA(c);
   assert.equal(c.mem.read8(CREDIT_COUNT), 0x10, "sanity: off-phase left the total untouched");
   c.mem.write8(CREDIT_COUNT, 0x11); // BUG: a step that wrongly fired would bump the total
   const d = ramDiffMinusStack(o, c);

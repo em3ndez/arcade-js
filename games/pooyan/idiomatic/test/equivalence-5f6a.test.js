@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5f6a (ROM 0x5f6a, Pooyan) — the ungated two-pass actor-slot
+ * Memory-equivalence test for sweepBothActorRecordSlotsForHit (ROM 0x5f6a, Pooyan) — the ungated two-pass actor-slot
  * sweep. It walks the two actor-record slots (base +0 then +4) through the per-slot handler with
  * the interrupt-parity selector 0 then non-zero, aborting the instant a pass claims a hit.
  *
  * SEATING: BALANCED (plain ret). The module drives the idiomatic per-slot handler sibling and
  * aborts on its `false` (hit-claimed) return, mirroring the projectile-proximity driver's shape;
- * the oracle drives the translated handler through the routines map. loc_5f6a is a void sweep — no
+ * the oracle drives the translated handler through the routines map. sweepBothActorRecordSlotsForHit is a void sweep — no
  * register survives — so equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in
  * STACK_SCRATCH so the handler's nested pushes drop out of the diff.
  *
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5f6a as oracle } from "../../translated/loc_5f6a.js";
-import { loc_5f6a } from "../loc_5f6a.js";
+import { sweepBothActorRecordSlotsForHit } from "../sweepBothActorRecordSlotsForHit.js";
 import { loc_5f83 } from "../loc_5f83.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -113,12 +113,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5f6a == oracle in RAM (−stack)", () => {
+test("EQUAL: sweepBothActorRecordSlotsForHit == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_5f6a(c);
+    sweepBothActorRecordSlotsForHit(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -129,12 +129,12 @@ test("EQUAL: loc_5f6a == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: a two-slot miss sweep leaves the second slot's lead byte at 0x8d44", () => {
   const c = craftBoth();
-  loc_5f6a(c);
+  sweepBothActorRecordSlotsForHit(c);
   assert.equal(c.mem.read8(TYPE), LEAD1, "both passes must run -> the second slot's lead byte lands last");
 
   const empty = craftEmpty();
   const b0 = empty.dumpState();
-  loc_5f6a(empty);
+  sweepBothActorRecordSlotsForHit(empty);
   assert.deepEqual([...empty.dumpState()], [...b0], "two empty slots leave RAM untouched");
   console.log("  WRITE-SET: second-slot lead at 0x8d44; empty inert");
 });
@@ -145,7 +145,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftBoth();
   const c = craftBoth();
   oracle(o);
-  loc_5f6a(c);
+  sweepBothActorRecordSlotsForHit(c);
   c.mem.write8(TYPE, (o.mem.read8(TYPE) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -174,7 +174,7 @@ test("TEETH(stale-iy): the slot-1 overlap fires only when iy tracks each pass's 
 
   // the module must reach the SAME hit; a stale target box misses it and leaves HIT_CELL clear
   const c = craftScanHit();
-  loc_5f6a(c);
+  sweepBothActorRecordSlotsForHit(c);
   assert.equal(c.mem.read8(HIT_CELL), 0x01, "module missed the slot-1 overlap -> stale target box (iy never published)");
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `stale-iy divergence at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);

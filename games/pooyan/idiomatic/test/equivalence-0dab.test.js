@@ -4,11 +4,11 @@
  *
  * Records the active-player word (low byte -> player index at 0x880d, high byte -> two-player flag
  * at 0x880e), runs the frozen pre-play display setup (loc_0e54, KEPT), seeds the top-level state,
- * enqueues the 0x0604 start command (loc_0038, dissolved), resets the actor tables (loc_0e00, KEPT),
+ * enqueues the 0x0604 start command (enqueueDisplayCommand, dissolved), resets the actor tables (loc_0e00, KEPT),
  * primes the periodic-event pair, enqueues the start-of-life sound, and — on a two-player game —
- * enqueues the second-player variant and clears a 12-byte panel block (loc_0010, dissolved).
+ * enqueues the second-player variant and clears a 12-byte panel block (fillByteRun, dissolved).
  *
- * Both sides call the SAME frozen loc_0e54 / loc_0e00, and the dissolved loc_0038 / loc_0010 carry
+ * Both sides call the SAME frozen loc_0e54 / loc_0e00, and the dissolved enqueueDisplayCommand / fillByteRun carry
  * their own gates, so this gate proves startNewGamePlay's own writes and branch. The display-command ring is
  * freed so the enqueues land; SP is parked in STACK_SCRATCH so the KEPT calls' push/ret drop out of
  * the RAM diff. Compared on RAM (dumpState, minus STACK_SCRATCH). No register live-out — memory only.

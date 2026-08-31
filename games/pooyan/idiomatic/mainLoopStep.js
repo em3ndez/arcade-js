@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import { DISPLAY_CMD_RING_READ_PTR } from "./names.js";
-import { loc_0254 } from "./loc_0254.js";
-import { loc_039b } from "./loc_039b.js";
+import { repaintScrollColumnsElseVerifySignature } from "./repaintScrollColumnsElseVerifySignature.js";
+import { paintActorCountColumn } from "./paintActorCountColumn.js";
 import { renderPhaseGauge } from "./renderPhaseGauge.js";
-import { loc_03e9 } from "./loc_03e9.js";
-import { loc_0496 } from "./loc_0496.js";
-import { loc_0552 } from "./loc_0552.js";
-import { loc_056b } from "./loc_056b.js";
-import { loc_05b2 } from "./loc_05b2.js";
-import { loc_05ee } from "./loc_05ee.js";
+import { paintAttractHudAndHighScores } from "./paintAttractHudAndHighScores.js";
+import { accrueScoreAndUpdateHighScore } from "./accrueScoreAndUpdateHighScore.js";
+import { resetBcdCounterAndRepaintColumn } from "./resetBcdCounterAndRepaintColumn.js";
+import { drawBcdCounterColumn } from "./drawBcdCounterColumn.js";
+import { drawStackedCharField } from "./drawStackedCharField.js";
+import { drawCreditCountAndTamperCheck } from "./drawCreditCountAndTamperCheck.js";
 import { flagHighScoreTableCorruptOnChecksumMiss } from "./flagHighScoreTableCorruptOnChecksumMiss.js";
 
 const RING_PAGE = DISPLAY_CMD_RING_READ_PTR & ~0xff; // the ring lives on the cursor's page
@@ -31,7 +31,7 @@ export function mainLoopStep(m) {
   const slot = mem8[slotAddr];
 
   if (slot & 0x80) {
-    loc_0254(m); // worker slot -> the real vblank boundary
+    repaintScrollColumnsElseVerifySignature(m); // worker slot -> the real vblank boundary
     return true;
   }
 
@@ -43,14 +43,14 @@ export function mainLoopStep(m) {
   mem8[DISPLAY_CMD_RING_READ_PTR] = advanced >= RING_WRAP ? advanced : RING_WRAP;
 
   switch (index) {
-    case 0x00: loc_039b(m); break;
+    case 0x00: paintActorCountColumn(m); break;
     case 0x02: renderPhaseGauge(m); break;
-    case 0x04: loc_03e9(m); break;
-    case 0x06: loc_0496(m, param); break;
-    case 0x08: loc_0552(m, param); break;
-    case 0x0a: loc_056b(m, param); break;
-    case 0x0c: loc_05b2(m, param); break;
-    case 0x0e: loc_05ee(m); break;
+    case 0x04: paintAttractHudAndHighScores(m); break;
+    case 0x06: accrueScoreAndUpdateHighScore(m, param); break;
+    case 0x08: resetBcdCounterAndRepaintColumn(m, param); break;
+    case 0x0a: drawBcdCounterColumn(m, param); break;
+    case 0x0c: drawStackedCharField(m, param); break;
+    case 0x0e: drawCreditCountAndTamperCheck(m); break;
     case 0x10: flagHighScoreTableCorruptOnChecksumMiss(m); break;
   }
   return false;

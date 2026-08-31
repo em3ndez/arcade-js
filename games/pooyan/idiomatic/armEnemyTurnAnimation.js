@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { queueSoundCommand02 } from "./queueSoundCommand02.js";
 import { ANIM_SEQ_TABLE_4076 } from "./names.js";
@@ -24,7 +24,7 @@ export function armEnemyTurnAnimation(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
   const index = ((mem8[rec + SELECT_FIELD] & SELECT_MASK) - 1) & 0xff;
-  const animPointer = loc_0c45(m, index, ANIM_SEQ_TABLE_4076);
+  const animPointer = fetchWordFromTableIndex(m, index, ANIM_SEQ_TABLE_4076);
   setActorAnimation(m, rec, animPointer);
 
   mem8[rec + VELOCITY_FIELD] = ENTRY_VELOCITY;

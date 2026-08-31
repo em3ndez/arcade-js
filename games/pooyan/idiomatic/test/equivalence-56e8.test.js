@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_56e8 (ROM 0x56e8, Pooyan) — the enemy-spawn tick.
+ * Memory-equivalence test for tickEnemySpawnTimerAndGateSpawn (ROM 0x56e8, Pooyan) — the enemy-spawn tick.
  *
  * SEATING: BALANCED (plain ret) -> WIRE. Two callees are dissolved: the even-round arm TAIL-CALLS
- * loc_5871 (its seating), and the per-slot loc_572b is a +4 SP caller-skip dissolved to a boolean
- * (true = spawned -> abort the sweep). The register file is NOT compared: loc_56e8 has no register
+ * gateEnemySpawnOnActiveCountAndInit (its seating), and the per-slot loc_572b is a +4 SP caller-skip dissolved to a boolean
+ * (true = spawned -> abort the sweep). The register file is NOT compared: tickEnemySpawnTimerAndGateSpawn has no register
  * live-out — its caller (serviceEnemySpawns tail, dispatched from the runActiveGameplayFrame straight-line sequence) rets
  * straight after and reads nothing back. Compared on RAM (dumpState) minus STACK_SCRATCH only.
  *
  * Cases are CRAFTED (a plain attract boot does not sit at this gate). They exercise every arm:
  *   DEC        — timer nonzero: decrement and return.
- *   TAIL       — timer 0, even round: hand off to loc_5871 (seated so it does not launch).
+ *   TAIL       — timer 0, even round: hand off to gateEnemySpawnOnActiveCountAndInit (seated so it does not launch).
  *   RETZ/RETC  — stage countdown equal to / below the active count: bail untouched.
  *   RETNC      — active count at the difficulty threshold (SPEED_INDEX>=3 -> 6): bail untouched.
  *   NOSWEEP    — the SPEED_INDEX<3 threshold arm (threshold = SPEED_INDEX+4), gate passes, all six
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_56e8 as oracle } from "../../translated/loc_56e8.js";
-import { loc_56e8 } from "../loc_56e8.js";
+import { tickEnemySpawnTimerAndGateSpawn } from "../tickEnemySpawnTimerAndGateSpawn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -55,7 +55,7 @@ const STRIDE = 0x18;
 const DIFFICULTY = 0x8820; //  DIFFICULTY_DSW
 const GAUGE = 0x8908; //       GAUGE_PHASE_COUNTER
 const BIAS = 0x8d4c; //        SPAWN_COLUMN_BIAS
-const SUBSTATE_COUNTER = 0x8d46; // scan-state head counter (loc_57c3)
+const SUBSTATE_COUNTER = 0x8d46; // scan-state head counter (decrementPhaseCounterAndDispatchSpawnOrStep)
 const SUBSTATE_0 = 0x8d47; //  first sub-state byte
 const SP0 = 0x8ff0; //         inside STACK_SCRATCH
 
@@ -105,12 +105,12 @@ const ARMS = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_56e8 == oracle in RAM (−stack) across every arm", () => {
+test("EQUAL: tickEnemySpawnTimerAndGateSpawn == oracle in RAM (−stack) across every arm", () => {
   for (const [name, cfg] of Object.entries(ARMS)) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    loc_56e8(c);
+    tickEnemySpawnTimerAndGateSpawn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -121,18 +121,18 @@ test("EQUAL: loc_56e8 == oracle in RAM (−stack) across every arm", () => {
 
 test("WRITE-SET: DEC decrements the timer; SPAWN claims slot 1 + bumps the count; RETZ is inert", () => {
   const dec = craft(ARMS.DEC);
-  loc_56e8(dec);
+  tickEnemySpawnTimerAndGateSpawn(dec);
   assert.equal(dec.mem.read8(SPAWN_TIMER), 0x04, "DEC must decrement the spawn timer");
 
   const spawn = craft(ARMS.SPAWN);
-  loc_56e8(spawn);
+  tickEnemySpawnTimerAndGateSpawn(spawn);
   assert.equal(spawn.mem.read8(SLOTS + 0x00), 0x01, "slot 0 stays live (untouched)");
   assert.equal(spawn.mem.read8(SLOTS + STRIDE + 0x00), 0x01, "the sweep spawns into slot 1");
   assert.equal(spawn.mem.read8(ACTIVE), 0x03, "a spawn bumps the active enemy count (2 -> 3)");
 
   const retz = craft(ARMS.RETZ);
   const before = [...retz.dumpState()];
-  loc_56e8(retz);
+  tickEnemySpawnTimerAndGateSpawn(retz);
   assert.deepEqual([...retz.dumpState()], before, "a bail arm must leave RAM byte-identical");
   console.log("  WRITE-SET: DEC dec; SPAWN claims slot 1 + counts; RETZ inert");
 });
@@ -143,7 +143,7 @@ test("TEETH: a wrong spawned byte is CAUGHT by the RAM diff", () => {
   const o = craft(ARMS.SPAWN);
   const c = craft(ARMS.SPAWN);
   oracle(o);
-  loc_56e8(c);
+  tickEnemySpawnTimerAndGateSpawn(c);
   const spawned = SLOTS + STRIDE + 0x09; // a velocity byte the spawn writes into slot 1
   c.mem.write8(spawned, (o.mem.read8(spawned) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);

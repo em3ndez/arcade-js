@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_68ac (ROM 0x68ac) — "once-only playfield tile-region tamper
+ * Memory-equivalence test for verifyPlayfieldTileChecksumOnce (ROM 0x68ac) — "once-only playfield tile-region tamper
  * checksum". Guarded by a latch (0x8f55): if already set it returns immediately. Otherwise it
  * sets the latch, sums the tilemap region (from 0x8402, 29-cell columns stepped +1, a 3-cell
  * gap between rows, pages up to 0x88) into a low byte + wrap count, looks the low byte up in
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_68ac as oracle } from "../../translated/loc_68ac.js";
-import { loc_68ac } from "../loc_68ac.js";
+import { verifyPlayfieldTileChecksumOnce } from "../verifyPlayfieldTileChecksumOnce.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -99,7 +99,7 @@ test("AGREE: latch already set — both return, no throw, RAM identical", () => 
   const o = craft(0x01);
   const c = craft(0x01);
   const ro = run(oracle, o);
-  const rc = run(loc_68ac, c);
+  const rc = run(verifyPlayfieldTileChecksumOnce, c);
   assert.equal(rc.threw, ro.threw, "throw-agreement");
   assert.equal(ro.threw, false, "an already-run latch must return, not throw");
   const d = ramDiffMinusStack(o, c);
@@ -117,7 +117,7 @@ test("AGREE: region crafted to the first table entry — both return via the pai
   fillRegion(o, e, dPair);
   fillRegion(c, e, dPair);
   const ro = run(oracle, o);
-  const rc = run(loc_68ac, c);
+  const rc = run(verifyPlayfieldTileChecksumOnce, c);
   assert.equal(rc.threw, ro.threw, "throw-agreement");
   assert.equal(ro.threw, false, "a matching checksum must return, not throw");
   const d = ramDiffMinusStack(o, c);
@@ -137,7 +137,7 @@ test("AGREE: region crafted to a low byte absent from the table — both throw",
   fillRegion(o, badE, 0x00);
   fillRegion(c, badE, 0x00);
   const ro = run(oracle, o);
-  const rc = run(loc_68ac, c);
+  const rc = run(verifyPlayfieldTileChecksumOnce, c);
   assert.equal(rc.threw, ro.threw, "throw-agreement");
   assert.equal(ro.threw, true, "an unmatched checksum must throw");
   const d = ramDiffMinusStack(o, c);
@@ -151,7 +151,7 @@ test("AGREE: latch clear over the booted tilemap — same decision + RAM", () =>
   const o = craft(0x00);
   const c = craft(0x00);
   const ro = run(oracle, o);
-  const rc = run(loc_68ac, c);
+  const rc = run(verifyPlayfieldTileChecksumOnce, c);
   assert.equal(rc.threw, ro.threw, "throw-agreement on the real tilemap");
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
@@ -185,7 +185,7 @@ test("TEETH: a wrong latch byte is CAUGHT by the RAM diff", () => {
   fillRegion(o, e, dPair);
   fillRegion(c, e, dPair);
   run(oracle, o);
-  run(loc_68ac, c);
+  run(verifyPlayfieldTileChecksumOnce, c);
   c.mem.write8(LATCH, 0x00); // BUG: the latch must be set after a run
 
   const d = ramDiffMinusStack(o, c);

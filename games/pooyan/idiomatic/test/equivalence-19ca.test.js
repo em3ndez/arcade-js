@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_19ca (ROM 0x19ca) — "periodic warning-siren tick".
+ * Memory-equivalence test for tickIdleSirenAndTogglePhase (ROM 0x19ca) — "periodic warning-siren tick".
  *
  * The cycle-free / memory-equivalence gate: oracle and module run on fresh clones and are
  * compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are not compared.
@@ -13,7 +13,7 @@
  * clones. The enqueue path needs a free ring slot (bit 7 set), poked in craft().
  *
  * Jobs:
- *   1. EQUAL — over crafted gate/countdown/phase states oracle == loc_19ca in RAM (−stack),
+ *   1. EQUAL — over crafted gate/countdown/phase states oracle == tickIdleSirenAndTogglePhase in RAM (−stack),
  *      including the two toggle phases and both early gates.
  *   2. WRITE-SET — on expiry the writes are the reloaded countdown, the flipped phase byte,
  *      and (when the slot is free) the two ring bytes + the ring write pointer.
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_19ca as oracle } from "../../translated/loc_19ca.js";
-import { loc_19ca } from "../loc_19ca.js";
+import { tickIdleSirenAndTogglePhase } from "../tickIdleSirenAndTogglePhase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -87,12 +87,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/countdown/phase — loc_19ca == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted gate/countdown/phase — tickIdleSirenAndTogglePhase == oracle in RAM (−stack)", () => {
   for (const { name, pokes } of CASES) {
     const o = craft(pokes);
     const c = craft(pokes);
     oracle(o);
-    loc_19ca(c);
+    tickIdleSirenAndTogglePhase(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b} (${name})`);
   }
@@ -133,7 +133,7 @@ test("TEETH: a wrong phase byte is CAUGHT by the RAM diff", () => {
   const o = craft(pokes);
   const c = craft(pokes);
   oracle(o);
-  loc_19ca(c);
+  tickIdleSirenAndTogglePhase(c);
   c.mem8[SIREN_PHASE_BYTE] = 0x01; // BUG: bit0 was set -> phase must become 0
 
   const d = ramDiffMinusStack(o, c);

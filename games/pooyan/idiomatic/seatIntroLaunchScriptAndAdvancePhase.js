@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
 import { queueSoundRun28 } from "./queueSoundRun28.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { advanceAttractToBoardBuildIfImageIntact } from "./advanceAttractToBoardBuildIfImageIntact.js";
 import {
   ROUND_COUNTER,
@@ -28,7 +28,7 @@ export function seatIntroLaunchScriptAndAdvancePhase(m) {
 
   const raw = mem8[ROUND_COUNTER] >> 2;
   const index = (raw >= 0x07 ? 0x07 : raw) & 0x07; // clamp to 7
-  mem16[LAUNCH_SCRIPT_PTR] = loc_0c45(m, index, INTRO_SCRIPT_TIMER_TABLE);
+  mem16[LAUNCH_SCRIPT_PTR] = fetchWordFromTableIndex(m, index, INTRO_SCRIPT_TIMER_TABLE);
   mem8[INTRO_DELAY_CKSUM_WORD] = 0x40;
   mem8[INTRO_PHASE_INDEX] = u8(mem8[INTRO_PHASE_INDEX] + 1);
 

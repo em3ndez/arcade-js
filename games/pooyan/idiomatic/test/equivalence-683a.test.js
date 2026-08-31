@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_683a (ROM 0x683a) — advance an object to its next state:
+ * Memory-equivalence test for advanceObjectToNextStateAndArmAnim (ROM 0x683a) — advance an object to its next state:
  * bump the phase (ix+0x02), zero ix+0x03/ix+0x05, seat ix+0x04 := 0x08 and ix+0x06 := 0x1e,
  * arm the animation from the 0x68ef parameter block via loc_381e (setActorAnimation, writing
  * ix+0x0c := 0xef, ix+0x0d := 0x68, ix+0x0e := 0), then seat ix+0x09 := 0x18.
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine
  * WRITES the record, so each case uses a FRESH clone per side: the oracle runs on one clone,
- * loc_683a on another, compared on the go-forward contract — RAM (dumpState) minus
- * STACK_SCRATCH. pc/SP/cycles are NOT compared. loc_683a has NO consumed register live-out.
+ * advanceObjectToNextStateAndArmAnim on another, compared on the go-forward contract — RAM (dumpState) minus
+ * STACK_SCRATCH. pc/SP/cycles are NOT compared. advanceObjectToNextStateAndArmAnim has NO consumed register live-out.
  * The oracle's `push16 + call 0x381e` writes a return address into STACK_SCRATCH that the
  * idiomatic direct call does not — excluded by contract.
  *
@@ -17,7 +17,7 @@
  * is CRAFTED — the routine takes no other inputs.
  *
  * Jobs:
- *   1. EQUAL (crafted sweep) — across sentinels loc_683a == oracle in RAM (-stack).
+ *   1. EQUAL (crafted sweep) — across sentinels advanceObjectToNextStateAndArmAnim == oracle in RAM (-stack).
  *   2. WRITE-SET — the oracle writes exactly nine record cells to their documented values
  *      (the phase = sentinel+1).
  *   3. TEETH — a twin that omits the phase bump is CAUGHT at ix+0x02; a wrong ix+0x09 is
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_683a as oracle } from "../../translated/loc_683a.js";
-import { loc_683a } from "../loc_683a.js";
+import { advanceObjectToNextStateAndArmAnim } from "../advanceObjectToNextStateAndArmAnim.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -67,12 +67,12 @@ function craft(sentinel) {
 
 // -- 1. EQUAL (crafted sweep) -------------------------------------------------
 
-test("EQUAL: crafted sentinels — loc_683a == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted sentinels — advanceObjectToNextStateAndArmAnim == oracle in RAM (−stack)", () => {
   for (const sentinel of [0xaa, 0x00, 0x7f, 0xff]) {
     const o = craft(sentinel);
     const c = craft(sentinel);
     oracle(o);
-    loc_683a(c);
+    advanceObjectToNextStateAndArmAnim(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} (sentinel=${hx(sentinel)})`);
   }
@@ -146,7 +146,7 @@ test("TEETH: a wrong ix+0x09 byte is CAUGHT at ix+0x09", () => {
   const o = craft(0xaa);
   const c = craft(0xaa);
   oracle(o);
-  loc_683a(c);
+  advanceObjectToNextStateAndArmAnim(c);
   c.mem.write8(IX + 0x09, 0x00); // BUG: must be seated to 0x18
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong ix+0x09 byte");

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { tickRopeCellFrameTimer } from "./tickRopeCellFrameTimer.js";
-import { loc_0c45 } from "./loc_0c45.js";
-import { loc_0020 } from "./loc_0020.js";
-import { loc_0010 } from "./loc_0010.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { computeRopeCellVramColumn } from "./computeRopeCellVramColumn.js";
 import { blit2x2TileBlock } from "./blit2x2TileBlock.js";
 import {
@@ -33,9 +33,9 @@ export function retractRopeSegment(m, rec = m.regs.ix) {
   if (mem8[ROPE_SEGMENT_COUNT] === 0) return;
 
   const row = Math.min(mem8[ROUND_COUNTER] >> 2, ANIM_ROW_CLAMP);
-  const animPtr = loc_0c45(m, ((mem8[DIFFICULTY_DSW] & 0x04) >> 1) + row, RETRACT_ANIM_TABLE);
+  const animPtr = fetchWordFromTableIndex(m, ((mem8[DIFFICULTY_DSW] & 0x04) >> 1) + row, RETRACT_ANIM_TABLE);
   const seg = Math.min((mem8[ROPE_SEGMENT_COUNT] - 1) & 0xff, SEG_ATTR_CLAMP);
-  const [attr] = loc_0020(m, animPtr, seg);
+  const [attr] = fetchByteFromTableIndex(m, animPtr, seg);
 
   let merged = attr;
   if ((timer & 0xff) !== TERMINAL_COLUMN) {
@@ -44,7 +44,7 @@ export function retractRopeSegment(m, rec = m.regs.ix) {
   mem8[timer] = merged;
 
   const iterations = ((mem8[u16(timer + 1)] + 1) & 0xff) || 256; // djnz: 0 wraps to 256
-  loc_0010(m, u16(FORMATION_TABLE + RECORD_STRIDE * iterations), 0, RECORD_STRIDE);
+  fillByteRun(m, u16(FORMATION_TABLE + RECORD_STRIDE * iterations), 0, RECORD_STRIDE);
 
   mem8[rec] = 1;
   blit2x2TileBlock(m, computeRopeCellVramColumn(m, rec & 0xff), ROPE_RETRACT_TILE_SRC);

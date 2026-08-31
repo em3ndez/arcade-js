@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_12d0 (ROM 0x12d0) — "table lookup + object-field compare/dispatch"
- * for the record at IX. The round counter's low bits index a word table (via loc_0c45); the
- * animation-frame nibble indexes a target byte inside that word's row (via loc_0020). The record's
+ * Memory-equivalence gate for matchActorScheduleThenSpawnOrAnimate (ROM 0x12d0) — "table lookup + object-field compare/dispatch"
+ * for the record at IX. The round counter's low bits index a word table (via fetchWordFromTableIndex); the
+ * animation-frame nibble indexes a target byte inside that word's row (via fetchByteFromTableIndex). The record's
  * compare field (ix+0x06) is matched against the target: equal -> tail spawnChildActorIfInRange (spawn dispatch);
  * below the low bound -> ret with A = the field; else -> flag the record spawned and tail
  * setActorAnimation.
@@ -10,9 +10,9 @@
  * SEATING: BALANCED — the ret-below-bound WIREs; the equal and spawned branches are tail-jumps
  * forwarding the delegatee's result. LIVE-OUT: A — spawnChildActorIfInRange's result on the equal branch, else the
  * compare field itself. Compared per case on RAM (dumpState, minus STACK_SCRATCH) PLUS the register
- * live-out A (a register-dispatched caller reads it back — see loc_1391). pc/SP are not compared.
+ * live-out A (a register-dispatched caller reads it back — see dispatchSpawnScheduleUnlessActorFlagged). pc/SP are not compared.
  *
- * The idiomatic loc_12d0 imports the idiomatic loc_0c45/loc_0020/spawnChildActorIfInRange/setActorAnimation; the
+ * The idiomatic matchActorScheduleThenSpawnOrAnimate imports the idiomatic fetchWordFromTableIndex/fetchByteFromTableIndex/spawnChildActorIfInRange/setActorAnimation; the
  * oracle runs the TRANSLATED equivalents via the registry. The equal branch seats B >= 0x20 so
  * spawnChildActorIfInRange returns B directly (no deeper subtree). The lookup target with round=0/frame=0 is 0x11
  * (verified against the ROM tables), so the field is chosen relative to it.
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_12d0 as oracle } from "../../translated/loc_12d0.js";
-import { loc_12d0 } from "../loc_12d0.js";
+import { matchActorScheduleThenSpawnOrAnimate } from "../matchActorScheduleThenSpawnOrAnimate.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -78,12 +78,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted branches — loc_12d0 == oracle in RAM (−stack) + A live-out", () => {
+test("EQUAL: crafted branches — matchActorScheduleThenSpawnOrAnimate == oracle in RAM (−stack) + A live-out", () => {
   for (const c of CASES) {
     const o = craft(c);
     const k = craft(c);
     oracle(o);
-    loc_12d0(k);
+    matchActorScheduleThenSpawnOrAnimate(k);
     const d = ramDiffMinusStack(o, k);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (${c.label})`);
     assert.equal(k.regs.a & 0xff, o.regs.a & 0xff, `A live-out mismatch (${c.label})`);
@@ -99,7 +99,7 @@ test("WRITE-SET: below-bound is inert; the spawned branch flags the record + sea
   const below = craft(CASES[0]);
   const ref = craft(CASES[0]); // fresh, unrun reference
   oracle(below);
-  // −stack: the oracle still marshals loc_0c45 + the rst 0x20 before the field test, so it parks
+  // −stack: the oracle still marshals fetchWordFromTableIndex + the rst 0x20 before the field test, so it parks
   // return addresses in STACK_SCRATCH; the below-bound path touches no *real* RAM.
   const d = ramDiffMinusStack(below, ref);
   assert.equal(d, null, d && `the below-bound path must leave RAM untouched (diff at ${hx(d.addr ?? 0)})`);
@@ -118,7 +118,7 @@ test("TEETH: a wrong A live-out is CAUGHT; a wrong written byte is CAUGHT by the
   const o = craft(c);
   const k = craft(c);
   oracle(o);
-  loc_12d0(k);
+  matchActorScheduleThenSpawnOrAnimate(k);
   assert.equal(k.regs.a & 0xff, o.regs.a & 0xff, "sanity: A matches the oracle on the below-bound path");
   assert.equal(o.regs.a & 0xff, c.field, "the below-bound live-out is the compare field itself");
   assert.notEqual((c.field + 1) & 0xff, o.regs.a & 0xff, "the live-out check must reject an off-by-one A");
@@ -132,7 +132,7 @@ test("TEETH: a wrong A live-out is CAUGHT; a wrong written byte is CAUGHT by the
   const o2 = craft(CASES[2]);
   const k2 = craft(CASES[2]);
   oracle(o2);
-  loc_12d0(k2);
+  matchActorScheduleThenSpawnOrAnimate(k2);
   assert.equal(k2.regs.de & 0xffff, o2.regs.de & 0xffff, "sanity: DE matches the oracle on the spawned path");
   assert.equal(o2.regs.de & 0xffff, ANIM_TABLE_3838, "the spawned DE live-out is the anim-table base");
   assert.notEqual((ANIM_TABLE_3838 + 1) & 0xffff, o2.regs.de & 0xffff, "the spawned DE check must reject a wrong base");

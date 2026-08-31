@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_615d (ROM 0x615d, Pooyan) — the record-scan loop.
+ * Memory-equivalence test for scanRecordsForTagEngageElseReset (ROM 0x615d, Pooyan) — the record-scan loop.
  *
  * Starting from IX, the routine compares A against each record's +0x14 tag, advancing IX by DE
  * up to B records. The first match hands that record to the "engage" step (0x6190, which seats
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_615d as oracle } from "../../translated/loc_615d.js";
-import { loc_615d } from "../loc_615d.js";
+import { scanRecordsForTagEngageElseReset } from "../scanRecordsForTagEngageElseReset.js";
 import { resetActorRecordQueueSoundAndAbortFrame } from "../resetActorRecordQueueSoundAndAbortFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -93,12 +93,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_615d == oracle in RAM (−stack) over match / no-match", () => {
+test("EQUAL: scanRecordsForTagEngageElseReset == oracle in RAM (−stack) over match / no-match", () => {
   for (const { name, matchIndex, objType } of CASES) {
     const o = craft(objType, matchIndex);
     const c = craft(objType, matchIndex);
     oracle(o);
-    const ret = loc_615d(c);
+    const ret = scanRecordsForTagEngageElseReset(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -112,7 +112,7 @@ test("EQUAL: loc_615d == oracle in RAM (−stack) over match / no-match", () => 
 test("CRAFTED: a match engages that record (+8 := 0x01, +0xa := 0xd0)", () => {
   const matchIndex = 2;
   const c = craft(0x03, matchIndex);
-  loc_615d(c);
+  scanRecordsForTagEngageElseReset(c);
   const rec = (IX + matchIndex * DE) & 0xffff;
   assert.equal(c.mem.read8((rec + 0x08) & 0xffff), 0x01, "engaged state on the matched record");
   assert.equal(c.mem.read8((rec + 0x0a) & 0xffff), 0xd0, "engaged parameter on the matched record");
@@ -129,7 +129,7 @@ test("TEETH: a wrong engaged byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x00, matchIndex);
   const c = craft(0x00, matchIndex);
   oracle(o);
-  loc_615d(c);
+  scanRecordsForTagEngageElseReset(c);
   const victim = (IX + 0x08) & 0xffff; // matched record 0, +8
   c.mem.write8(victim, 0x00); // BUG: engaged state must be 0x01
   const d = ramDiffMinusStack(o, c);

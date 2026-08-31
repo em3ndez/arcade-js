@@ -13,10 +13,10 @@ import {
   ATTRACT_SCRIPT_PTR_TABLE,
 } from "./names.js";
 import { resetToAttractScreenStart } from "./resetToAttractScreenStart.js";
-import { loc_0a28 } from "./loc_0a28.js";
-import { loc_09f8 } from "./loc_09f8.js";
-import { loc_0c45 } from "./loc_0c45.js";
-import { loc_08e9 } from "./loc_08e9.js";
+import { advanceAttractAnimationAndRepaint } from "./advanceAttractAnimationAndRepaint.js";
+import { advanceFourObjectAnimsAndRebuildList } from "./advanceFourObjectAnimsAndRebuildList.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
+import { blankRowThenFloodColorsAndAdvanceAttract } from "./blankRowThenFloodColorsAndAdvanceAttract.js";
 import { resetActorStateForBoard } from "./resetActorStateForBoard.js";
 /**
  * advanceAttractSequenceToPlay — attract sub-state 6 handler.
@@ -51,8 +51,8 @@ export function advanceAttractSequenceToPlay(m) {
 
   const anim = (mem8[ANIM_FRAME_COUNTER] - 1) & 0xff;
   mem8[ANIM_FRAME_COUNTER] = anim;
-  if (anim === 0) loc_0a28(m); // wrap -> advance the attract animation
-  loc_09f8(m); // step the object records + rebuild the sprite list
+  if (anim === 0) advanceAttractAnimationAndRepaint(m); // wrap -> advance the attract animation
+  advanceFourObjectAnimsAndRebuildList(m); // step the object records + rebuild the sprite list
 
   const timer = (mem8[SCRIPT_FRAME_TIMER] - 1) & 0xff;
   mem8[SCRIPT_FRAME_TIMER] = timer;
@@ -62,7 +62,7 @@ export function advanceAttractSequenceToPlay(m) {
   mem8[SCRIPT_FRAME_TIMER] = 1;
   mem8[ATTRACT_SUBSTATE] = (mem8[ATTRACT_SUBSTATE] - 1);
   const idx = (mem8[SCRIPT_COL_CHECK_TICK] - 1) & 0xff;
-  mem16[SCRIPT_WRITE_PTR] = loc_0c45(m, idx, ATTRACT_SCRIPT_PTR_TABLE); // DE = table[idx]
+  mem16[SCRIPT_WRITE_PTR] = fetchWordFromTableIndex(m, idx, ATTRACT_SCRIPT_PTR_TABLE); // DE = table[idx]
 
   const tick = (mem8[SCRIPT_COL_CHECK_TICK] - 1) & 0xff;
   mem8[SCRIPT_COL_CHECK_TICK] = tick;
@@ -87,7 +87,7 @@ export function advanceAttractSequenceToPlay(m) {
   let vptr = mem16[INTRO_DELAY_CKSUM_WORD];
   if (sumLow !== mem8[vptr]) return resetToAttractScreenStart(m); // low-byte miss
   vptr = u16(vptr + 1);
-  if (carries !== mem8[vptr]) return loc_08e9(m); // high-byte miss
+  if (carries !== mem8[vptr]) return blankRowThenFloodColorsAndAdvanceAttract(m); // high-byte miss
 
   mem8[INTRO_DELAY_CKSUM_WORD] = 0; // clean pass: clear the check word
   mem8[INTRO_DELAY_CKSUM_WORD + 1] = 0;

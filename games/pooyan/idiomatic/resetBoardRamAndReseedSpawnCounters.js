@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0038 } from "./loc_0038.js";
-import { loc_0010 } from "./loc_0010.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
+import { fillByteRun } from "./fillByteRun.js";
 import {
   SPAWN_PHASE_COUNTER,
   ROPE_DRAW_COUNT,
@@ -38,19 +38,19 @@ const SPAWN_TIMER_LEN = 0x03; //  bytes filled at the formation-spawn-timer bloc
 export function resetBoardRamAndReseedSpawnCounters(m, cmdLow = m.regs.e) {
   const { mem8 } = m;
 
-  loc_0038(m, (RESET_CMD_HI << 8) | (cmdLow & 0xff));
+  enqueueDisplayCommand(m, (RESET_CMD_HI << 8) | (cmdLow & 0xff));
 
   let fill = 0;
   if (mem8[SPAWN_PHASE_COUNTER] >= PHASE_CAP) {
     fill = mem8[TAMPER_OBJECT_FREEZE_FLAG];
     mem8[SPAWN_PHASE_COUNTER] = PHASE_RESEED;
     mem8[ROPE_DRAW_COUNT] = PHASE_RESEED;
-    loc_0010(m, FORMATION_SLOT_TABLE, fill, FORMATION_SLOTS_LEN);
+    fillByteRun(m, FORMATION_SLOT_TABLE, fill, FORMATION_SLOTS_LEN);
   }
 
-  loc_0010(m, ANIM_SCRIPT_CURSOR, fill, ANIM_CURSOR_LEN);
-  loc_0010(m, SECONDARY_TEARDOWN_FLAG, fill, TEARDOWN_LEN);
-  loc_0010(m, FORMATION_SPAWN_TIMER, fill, SPAWN_TIMER_LEN);
+  fillByteRun(m, ANIM_SCRIPT_CURSOR, fill, ANIM_CURSOR_LEN);
+  fillByteRun(m, SECONDARY_TEARDOWN_FLAG, fill, TEARDOWN_LEN);
+  fillByteRun(m, FORMATION_SPAWN_TIMER, fill, SPAWN_TIMER_LEN);
 
   mem8[LEAD_ACTOR_STATE] = fill;
   mem8[ENEMY_TARGET_REC0] = fill;

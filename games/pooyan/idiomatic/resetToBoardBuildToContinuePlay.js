@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { advanceGameStateOnCreditOrStartPress } from "./advanceGameStateOnCreditOrStartPress.js";
 import { resetBoardRamAndReseedSpawnCounters } from "./resetBoardRamAndReseedSpawnCounters.js";
-import { loc_02b9 } from "./loc_02b9.js";
+import { zeroSpriteListAndActorArena } from "./zeroSpriteListAndActorArena.js";
 import { u16 } from "../../../core/int.js";
 import {
   GAME_ACTIVE_FLAG,
@@ -36,7 +36,7 @@ export function resetToBoardBuildToContinuePlay(m) {
   mem8[MAIN_GAME_STATE] = BOARD_BUILD_STATE; // rebuild the board next
   mem8[PLAY_STATE_INDEX] = 0x00;
   resetBoardRamAndReseedSpawnCounters(m); // board/HUD reset
-  loc_02b9(m); // clear the actor/object arena
+  zeroSpriteListAndActorArena(m); // clear the actor/object arena
 
   let cell = RESET_ATTR_COLUMN;
   for (let i = 0; i < COLUMN_HEIGHT; i++) { // blank the column, one row up per step

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0038 (Pooyan ROM 0x0038) — the display-command ring enqueue.
+ * Memory-equivalence test for enqueueDisplayCommand (Pooyan ROM 0x0038) — the display-command ring enqueue.
  * Reads the low-byte write pointer; if the pointed slot is free (bit 7 set) it stores the command's
  * high byte there and its low byte in the next slot, advances the pointer by two and wraps it back to
  * the ring start (0xc0) once it drops below; an occupied slot (bit 7 clear) drops the command.
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0038 as oracle } from "../../translated/loc_0038.js";
-import { loc_0038 } from "../loc_0038.js";
+import { enqueueDisplayCommand } from "../enqueueDisplayCommand.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DISPLAY_CMD_RING_WRITE_PTR } from "../names.js";
@@ -81,12 +81,12 @@ const FREE_CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: free enqueues + an occupied slot — loc_0038 == oracle in RAM (−stack)", () => {
+test("EQUAL: free enqueues + an occupied slot — enqueueDisplayCommand == oracle in RAM (−stack)", () => {
   for (const { cmd, low } of FREE_CASES) {
     const o = craft(cmd, low, true);
     const c = craft(cmd, low, true);
     oracle(o);
-    loc_0038(c);
+    enqueueDisplayCommand(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `free cmd=${hx(cmd)} low=${hx(low)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -94,7 +94,7 @@ test("EQUAL: free enqueues + an occupied slot — loc_0038 == oracle in RAM (−
   const o = craft(0x1111, 0xc4, false);
   const c = craft(0x1111, 0xc4, false);
   oracle(o);
-  loc_0038(c);
+  enqueueDisplayCommand(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `occupied: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log(`  EQUAL: ${FREE_CASES.length} free + 1 occupied case identical (RAM −stack)`);
@@ -141,7 +141,7 @@ test("CRAFTED: an occupied slot writes nothing; a low-wrap clamps the pointer to
   const o = craft(0x3344, 0xfe, true);
   const c = craft(0x3344, 0xfe, true);
   oracle(o);
-  loc_0038(c);
+  enqueueDisplayCommand(c);
   assert.equal(ramDiffMinusStack(o, c), null, "low-wrap case must match");
   assert.equal(c.mem.read8(PTR), RING_START, "module must clamp the wrapped pointer to 0xc0");
   assert.equal(o.mem.read8(PTR), RING_START, "oracle clamps the wrapped pointer to 0xc0");
@@ -157,7 +157,7 @@ test("TEETH: a wrong slot byte is CAUGHT by the RAM diff", () => {
   const o = craft(cmd, low, true);
   const c = craft(cmd, low, true);
   oracle(o);
-  loc_0038(c);
+  enqueueDisplayCommand(c);
   c.mem.write8(s1, (cmd & 0xff) ^ 0x01); // BUG: corrupt the enqueued low byte
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong slot byte — it is worthless");
@@ -171,7 +171,7 @@ test("TEETH: a wrong advanced pointer is CAUGHT by the RAM diff", () => {
   const o = craft(cmd, low, true);
   const c = craft(cmd, low, true);
   oracle(o);
-  loc_0038(c);
+  enqueueDisplayCommand(c);
   c.mem.write8(PTR, (low + 1) & 0xff); // BUG: advance by one instead of two
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch an under-advanced pointer — it is worthless");

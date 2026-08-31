@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5f11 (ROM 0x5f11, Pooyan) — the proximity-collision slot scan.
+ * Memory-equivalence test for scanActorSlotsMarkStruckAndFlash (ROM 0x5f11, Pooyan) — the proximity-collision slot scan.
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
- * oracle on one and loc_5f11 on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
+ * oracle on one and scanActorSlotsMarkStruckAndFlash on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
  * pc/SP/cycles are NOT compared, and there is no register live-out: it is tail-reached from a sweep
  * dispatcher and its output is the marked slot, the flash cell and the hit-sound ring writes. The
  * scan's advanced IX/HL/B cursors are registers no caller reads back.
@@ -15,7 +15,7 @@
  *
  * Jobs:
  *   1. EQUAL — over empty / already-struck / off-screen / hit (I==0 & I!=0-negate) / dx-reject /
- *      dy-reject / two-slot-loop cases, oracle == loc_5f11 in RAM (−stack).
+ *      dy-reject / two-slot-loop cases, oracle == scanActorSlotsMarkStruckAndFlash in RAM (−stack).
  *   2. WRITE-SET — a hit marks the slot struck and sets exactly its interrupt-parity flash cell
  *      (the partner cell stays clear).
  *   3. TEETH — a wrong struck-slot byte is CAUGHT by the RAM diff.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5f11 as oracle } from "../../translated/loc_5f11.js";
-import { loc_5f11 } from "../loc_5f11.js";
+import { scanActorSlotsMarkStruckAndFlash } from "../scanActorSlotsMarkStruckAndFlash.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -91,12 +91,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted scan cases — loc_5f11 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted scan cases — scanActorSlotsMarkStruckAndFlash == oracle in RAM (−stack)", () => {
   for (const spec of CASES) {
     const o = craft(spec);
     oracle(o);
     const c = craft(spec);
-    loc_5f11(c);
+    scanActorSlotsMarkStruckAndFlash(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -128,7 +128,7 @@ test("TEETH: a wrong struck-slot byte is CAUGHT by the RAM diff", () => {
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  loc_5f11(c);
+  scanActorSlotsMarkStruckAndFlash(c);
   c.mem8[HL_REC] = 0x00; // BUG: a hit must mark the slot 0x03
 
   const d = ramDiffMinusStack(o, c);

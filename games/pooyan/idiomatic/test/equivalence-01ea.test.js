@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_01ea (ROM 0x01ea, Pooyan) — "boot clear": fill 0x30 bytes at
+ * Memory-equivalence test for clearSpriteBanksAndBlankVideoRam (ROM 0x01ea, Pooyan) — "boot clear": fill 0x30 bytes at
  * the top of each sprite bank (0x9410, 0x9010) with the incoming byte A, then blank the video
  * tile region 0x8440..0x87ff to the erase tile 0x1e. The original then spins a cycle-burning
  * settle delay that only kicks the hardware watchdog at 0xa000 (outside the dumped RAM), so the
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_01ea as oracle } from "../../translated/loc_01ea.js";
-import { loc_01ea } from "../loc_01ea.js";
+import { clearSpriteBanksAndBlankVideoRam } from "../clearSpriteBanksAndBlankVideoRam.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -80,12 +80,12 @@ const FILLS = [0x00, 0x1e, 0x55, 0xa5, 0xff];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted fill bytes — loc_01ea == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted fill bytes — clearSpriteBanksAndBlankVideoRam == oracle in RAM (−stack)", () => {
   for (const fill of FILLS) {
     const o = craft(fill);
     const c = craft(fill);
     oracle(o);
-    loc_01ea(c);
+    clearSpriteBanksAndBlankVideoRam(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `fill=${hx(fill)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -131,7 +131,7 @@ test("CRAFTED: a pre-dirtied footprint is overwritten identically on both sides"
   dirtyFootprint(o, 0x3c);
   dirtyFootprint(c, 0x3c);
   oracle(o);
-  loc_01ea(c);
+  clearSpriteBanksAndBlankVideoRam(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log(`  CRAFTED: footprint pre-dirtied to 0x3c -> both overwrite identically`);
@@ -145,7 +145,7 @@ test("TEETH: a wrong video byte is CAUGHT by the RAM diff", () => {
   const o = craft(fill);
   const c = craft(fill);
   oracle(o);
-  loc_01ea(c);
+  clearSpriteBanksAndBlankVideoRam(c);
   c.mem.write8(badCell, 0x00); // BUG: this cell must be 0x1e
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong video byte — it is worthless");
@@ -159,7 +159,7 @@ test("TEETH: a wrong sprite-bank byte is CAUGHT by the RAM diff", () => {
   const o = craft(fill);
   const c = craft(fill);
   oracle(o);
-  loc_01ea(c);
+  clearSpriteBanksAndBlankVideoRam(c);
   c.mem.write8(badCell, (fill ^ 0xff) & 0xff); // BUG: this cell must hold the fill byte
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong sprite byte — it is worthless");

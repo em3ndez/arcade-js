@@ -4,8 +4,8 @@
  *
  * A difficulty gate can veto the tick below round 4; past it, the per-type countdown is drained and,
  * only when it hits zero, reloaded from the ROM table (indexed by the schedule cursor), the cursor is
- * advanced, and the routine falls into the formation spawn loop (loc_54f9). The module dissolves the
- * rst-0x20 lookup (loc_0020) and the fall-through (loc_54f9) to direct calls; the oracle drives the
+ * advanced, and the routine falls into the formation spawn loop (seedFirstFreeActorBlockFromSpawnTypeTable). The module dissolves the
+ * rst-0x20 lookup (fetchByteFromTableIndex) and the fall-through (seedFirstFreeActorBlockFromSpawnTypeTable) to direct calls; the oracle drives the
  * frozen versions. spawnFormationEnemyOnInterval is void — no register survives — so equivalence is RAM (−STACK_SCRATCH).
  *
  * Jobs:

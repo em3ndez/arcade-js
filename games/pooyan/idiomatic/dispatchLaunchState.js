@@ -4,7 +4,7 @@ import { armLaunchAndAdvanceToHunterSpawn } from "./armLaunchAndAdvanceToHunterS
 import { spawnEnemyTargetOrAnimateLaunchFlipTile } from "./spawnEnemyTargetOrAnimateLaunchFlipTile.js";
 import { spawnHunterIntoTableAndAdvanceLaunch } from "./spawnHunterIntoTableAndAdvanceLaunch.js";
 import { advanceLaunchOnDelayAndClearHunterRecord } from "./advanceLaunchOnDelayAndClearHunterRecord.js";
-import { loc_28c5 } from "./loc_28c5.js";
+import { idleLaunchStateNoop } from "./idleLaunchStateNoop.js";
 
 /**
  * dispatchLaunchState — per-frame driver for the launch-sequence state machine.
@@ -20,6 +20,6 @@ export function dispatchLaunchState(m) {
     case 1: return spawnEnemyTargetOrAnimateLaunchFlipTile(m);
     case 2: return spawnHunterIntoTableAndAdvanceLaunch(m);
     case 3: return advanceLaunchOnDelayAndClearHunterRecord(m);
-    case 4: return loc_28c5(m);
+    case 4: return idleLaunchStateNoop(m);
   }
 }

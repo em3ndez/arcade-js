@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_6381 (Pooyan) — the proximity-scan seeder, COMPOSING the
+ * Memory-equivalence gate for seedAndRunTargetProximityScan (Pooyan) — the proximity-scan seeder, COMPOSING the
  * dissolved caller-skip loc_638a.
  *
- * loc_6381 points the coordinate cursor at the sprite target-slot table and the record cursor at
+ * seedAndRunTargetProximityScan points the coordinate cursor at the sprite target-slot table and the record cursor at
  * the projectile list, sets the slot count, and hands off to loc_638a. In the frozen layer that
- * hand-off is a fall-through and loc_638a aborts via `pop af; ret`; the idiomatic loc_6381 imports
+ * hand-off is a fall-through and loc_638a aborts via `pop af; ret`; the idiomatic seedAndRunTargetProximityScan imports
  * the idiomatic loc_638a and forwards its boolean instead. This gate runs the WHOLE caller both
- * ways and requires RAM-equivalence: the oracle loc_6381 (which internally runs the translated
- * loc_638a) versus loc_6381 (which runs the idiomatic loc_638a), compared on dumpState minus
+ * ways and requires RAM-equivalence: the oracle seedAndRunTargetProximityScan (which internally runs the translated
+ * loc_638a) versus seedAndRunTargetProximityScan (which runs the idiomatic loc_638a), compared on dumpState minus
  * STACK_SCRATCH. pc/SP/cycles are not compared — the oracle's pushes/pops land in STACK_SCRATCH.
  *
  * Two skip states are seated per the CLUSTER contract: SKIP-TAKEN (a record close to the actor box
  * -> loc_638a claims it and aborts) and SKIP-NOT-TAKEN (records present but all out of range ->
  * loc_638a runs to exhaustion). A third case hits on the SECOND slot to exercise the advance.
  *
- * loc_6381 hard-seeds IX=0x887c / HL=0x8be8 / B=3 itself, so only IY (actor box), I (interrupt
+ * seedAndRunTargetProximityScan hard-seeds IX=0x887c / HL=0x8be8 / B=3 itself, so only IY (actor box), I (interrupt
  * parity) and FLIP_SCREEN_FLAG are inputs here; the scanned cells sit at those fixed bases.
  *
  * Jobs: EQUAL (RAM −stack over the three cases) + a boolean tied to the oracle's SP path; TEETH (a
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6381 as oracle } from "../../translated/loc_6381.js";
-import { loc_6381 } from "../loc_6381.js";
+import { seedAndRunTargetProximityScan } from "../seedAndRunTargetProximityScan.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -62,7 +62,7 @@ function ramDiffMinusStack(ma, mb) {
 
 const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 
-/** A fresh clone with IY/I/flip and the fixed coord/record cells seated (IX/HL/B are set by loc_6381). */
+/** A fresh clone with IY/I/flip and the fixed coord/record cells seated (IX/HL/B are set by seedAndRunTargetProximityScan). */
 function craft(spec) {
   const m = BASE.clone();
   m.regs.sp = SP_ENTRY;
@@ -100,12 +100,12 @@ function oracleNormalPath(o) {
 
 // -- 1. EQUAL (composing the real idiomatic skip) -----------------------------
 
-test("EQUAL: loc_6381 (idiomatic 638a) == oracle (translated 638a) in RAM (−stack), boolean tied to path", () => {
+test("EQUAL: seedAndRunTargetProximityScan (idiomatic 638a) == oracle (translated 638a) in RAM (−stack), boolean tied to path", () => {
   for (const spec of CASES) {
     const o = craft(spec);
     oracle(o);
     const c = craft(spec);
-    const ret = loc_6381(c);
+    const ret = seedAndRunTargetProximityScan(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -136,7 +136,7 @@ test("TEETH: a wrong stamped byte after the claim is CAUGHT by the RAM diff", ()
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  loc_6381(c);
+  seedAndRunTargetProximityScan(c);
   c.mem8[REC_BASE + 0x11] = 0x00; // BUG: the claim's teardown countdown must be 0x28
 
   const d = ramDiffMinusStack(o, c);

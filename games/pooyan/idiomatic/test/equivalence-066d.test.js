@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence + SP-tooth for loc_066d (ROM 0x066d, Pooyan) — the vblank NMI service routine,
+ * Memory-equivalence + SP-tooth for runVblankNmiService (ROM 0x066d, Pooyan) — the vblank NMI service routine,
  * the game's sole per-frame heartbeat. The oracle saves the full register file, does its per-frame work
  * (scroll rebuild, input edge-ring, frame counters, coin/sound service, state dispatch), and restores the
  * file; the generator main loop holds no CPU registers, so the module drops the save/restore and keeps its
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_066d as oracle } from "../../translated/loc_066d.js";
-import { loc_066d } from "../loc_066d.js";
+import { runVblankNmiService } from "../runVblankNmiService.js";
 import { Machine, resolveAllIdiomatic, withOmittedRet } from "../../machine.js";
 import { runIdiomaticGame } from "../../../../core/frame-stepped.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -68,14 +68,14 @@ test("EQUAL: booted clone — module == oracle in RAM (−stack)", () => {
   const o = forNmi();
   const c = forNmi();
   oracle(o);
-  loc_066d(c);
+  runVblankNmiService(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at 0x${(d.addr ?? 0).toString(16)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL booted clone: one NMI frame, RAM identical");
 });
 
 test("SP-TOOTH: the NMI places SP-neutral through the withOmittedRet seam", () => {
-  const { placeable, error } = seamPlaceable(withOmittedRet, loc_066d, 0x066d, forNmi());
-  assert.equal(placeable, true, error || "loc_066d must place SP-neutral (no stack ops; seam supplies the ret)");
+  const { placeable, error } = seamPlaceable(withOmittedRet, runVblankNmiService, 0x066d, forNmi());
+  assert.equal(placeable, true, error || "runVblankNmiService must place SP-neutral (no stack ops; seam supplies the ret)");
   console.log("  SP-TOOTH: placeable === true");
 });

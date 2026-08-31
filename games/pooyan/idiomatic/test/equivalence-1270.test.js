@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1270 (Pooyan) — per-object fine/coarse position countdown + retire.
+ * Memory-equivalence test for advanceEnemyCountdownThenRetireAndTickStage (Pooyan) — per-object fine/coarse position countdown + retire.
  *
  * Steps the object animation, then adds the signed step (+0x0a) to the fine position (+0x05),
  * borrowing from the coarse counter (+0x06) when the fine value underflows. While the coarse counter
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1270 as oracle } from "../../translated/loc_1270.js";
-import { loc_1270 } from "../loc_1270.js";
+import { advanceEnemyCountdownThenRetireAndTickStage } from "../advanceEnemyCountdownThenRetireAndTickStage.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -89,12 +89,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1270 == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceEnemyCountdownThenRetireAndTickStage == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_1270(c);
+    advanceEnemyCountdownThenRetireAndTickStage(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -144,7 +144,7 @@ test("TEETH: a corrupted fine byte is CAUGHT; branches are load-bearing", () => 
   const o = seat({ step: 0x02, fine: 0x10, coarse: 0x03 });
   const c = seat({ step: 0x02, fine: 0x10, coarse: 0x03 });
   oracle(o);
-  loc_1270(c);
+  advanceEnemyCountdownThenRetireAndTickStage(c);
   c.mem.write8(FINE, (o.mem.read8(FINE) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted fine byte");

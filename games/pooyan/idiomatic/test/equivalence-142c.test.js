@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_142c (ROM 0x142c, Pooyan) — "spawn/init a child actor record".
+ * Memory-equivalence test for initChildActorRecordFromParent (ROM 0x142c, Pooyan) — "spawn/init a child actor record".
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side,
- * the oracle on one and loc_142c on the other, compared on RAM (dumpState, minus STACK_SCRATCH)
+ * the oracle on one and initChildActorRecordFromParent on the other, compared on RAM (dumpState, minus STACK_SCRATCH)
  * PLUS the declared register live-out A. pc/SP/cycles are deliberately not compared.
  *
  * INPUTS: IX (parent record), IY (child record), C (copied to child+0x14). The routine also reads
  * SPEED_INDEX (0x8900), ROUND_COUNTER (0x8907), the inline ROM speed table at 0x148e (via the
  * rst-0x20 lookup), and the parent's position bytes at IX+3/4/5/6.
  *
- * LIVE-OUT A: loc_142c tail-jumps to queueSoundCommand04IfNotBusy (the spawn-sound enqueue), whose A becomes this
+ * LIVE-OUT A: initChildActorRecordFromParent tail-jumps to queueSoundCommand04IfNotBusy (the spawn-sound enqueue), whose A becomes this
  * routine's result. It is checked equal to the oracle and asserted SET on the module's clone.
  *
  * The child record (0x8b40), the parent (0x8b00) and the two gameplay cells are isolated work RAM;
@@ -20,7 +20,7 @@
  *
  * Jobs:
  *   1. EQUAL — over crafted (speedIndex, round, C, parent-position) cases spanning the clamp and
- *      the negate branches, oracle == loc_142c in RAM (−stack) and A.
+ *      the negate branches, oracle == initChildActorRecordFromParent in RAM (−stack) and A.
  *   2. WRITE-SET — the child record's 14 fields + parent+0x0a hold the exact contract values
  *      (fixed slots, biased position copies, mirrored velocity, anim vector, timer); any other
  *      changed cell lies on the page-0x8a ring.
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_142c as oracle } from "../../translated/loc_142c.js";
-import { loc_142c } from "../loc_142c.js";
+import { initChildActorRecordFromParent } from "../initChildActorRecordFromParent.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -84,12 +84,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted spawn cases — loc_142c == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted spawn cases — initChildActorRecordFromParent == oracle in RAM (−stack) + A", () => {
   for (const spec of CASES) {
     const o = craft(spec);
     oracle(o);
     const c = craft(spec);
-    const ret = loc_142c(c);
+    const ret = initChildActorRecordFromParent(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -103,10 +103,10 @@ test("EQUAL: crafted spawn cases — loc_142c == oracle in RAM (−stack) + A", 
 // -- 2. WRITE-SET -------------------------------------------------------------
 
 test("WRITE-SET: the child record fields + parent+0x0a hold the contract values", () => {
-  // loc_142c's own footprint is the child record + parent+0x0a; the tail call to queueSoundCommand04IfNotBusy adds
+  // initChildActorRecordFromParent's own footprint is the child record + parent+0x0a; the tail call to queueSoundCommand04IfNotBusy adds
   // the sound-ring cells (0x8d20 pending byte, 0x8a40 write ptr, ring slot), documented by
   // queueSoundCommand04IfNotBusy's own gate. EQUAL already proves the module writes NO stray cell; here we pin the
-  // exact contract VALUES loc_142c lays into the record.
+  // exact contract VALUES initChildActorRecordFromParent lays into the record.
   const spec = CASES[0];
   const m = craft(spec);
   oracle(m);
@@ -143,7 +143,7 @@ test("TEETH: a wrong child field is CAUGHT by the RAM diff", () => {
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  loc_142c(c);
+  initChildActorRecordFromParent(c);
   c.mem8[CHILD + 0x0c] = 0x00; // BUG: the anim vector low byte must be 0xcb
 
   const d = ramDiffMinusStack(o, c);
@@ -157,7 +157,7 @@ test("TEETH: a wrong A is CAUGHT by the live-out check", () => {
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  const ret = loc_142c(c);
+  const ret = initChildActorRecordFromParent(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A matches oracle");
   const broken = (o.regs.a ^ 0xff) & 0xff; // a wrong A the === check must reject
   assert.notEqual(broken, o.regs.a & 0xff, "the live-out check must reject a wrong A");

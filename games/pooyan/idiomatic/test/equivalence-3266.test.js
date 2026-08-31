@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3266 (ROM 0x3266, Pooyan) — hunter-formation dispatch state 2, a
+ * Memory-equivalence test for verifyFormationGuardChecksum (ROM 0x3266, Pooyan) — hunter-formation dispatch state 2, a
  * ROM self-check. It sums a fixed 0x20-byte block from FORMATION_GUARD_BASE; an intact ROM sums
  * to 0xdc and it returns, otherwise the frozen code re-enters the guarded region (modelled here as a
  * thrown integrity trap). The routine reads ROM only — it writes no game RAM and has no register
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3266 as oracle } from "../../translated/loc_3266.js";
-import { loc_3266 } from "../loc_3266.js";
+import { verifyFormationGuardChecksum } from "../verifyFormationGuardChecksum.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, FORMATION_GUARD_BASE } from "../names.js";
@@ -72,7 +72,7 @@ test("EQUAL: on the real ROM both return without throwing; RAM (−stack) identi
   const o = craft();
   const c = craft();
   assert.doesNotThrow(() => oracle(o), "oracle must not trap on a valid ROM");
-  assert.doesNotThrow(() => loc_3266(c), "module must not trap on a valid ROM");
+  assert.doesNotThrow(() => verifyFormationGuardChecksum(c), "module must not trap on a valid ROM");
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
   console.log("  EQUAL: no trap, RAM identical (both write nothing)");
@@ -95,7 +95,7 @@ test("WRITE-SET: the oracle writes zero game-RAM cells", () => {
 
 test("TEETH: a wrong-sentinel twin throws where the module returns cleanly", () => {
   const c = craft();
-  assert.doesNotThrow(() => loc_3266(c), "sanity: the module accepts the real ROM sum (0xdc)");
+  assert.doesNotThrow(() => verifyFormationGuardChecksum(c), "sanity: the module accepts the real ROM sum (0xdc)");
   const t = craft();
   assert.throws(() => brokenTwinWrongSentinel(t), "the sentinel check must be load-bearing — a wrong sum must trap");
   console.log("  TEETH: module accepts sum 0xdc; a wrong-sentinel twin traps on the same ROM");

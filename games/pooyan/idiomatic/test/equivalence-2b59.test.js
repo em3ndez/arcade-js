@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2b59 (ROM 0x2b59, Pooyan) — the integrity-strip reset scan. It
+ * Memory-equivalence test for checksumIntegrityStripAndDispatchSpawn (ROM 0x2b59, Pooyan) — the integrity-strip reset scan. It
  * always blanks an eight-tall attribute column to the base attribute value, then checksums a
  * ten-byte integrity strip (same upward stride). Unless the strip sums to the magic total it
  * returns with nothing else changed; on the magic sum it clears the reset latch and hands off by
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2b59 as oracle } from "../../translated/loc_2b59.js";
-import { loc_2b59 } from "../loc_2b59.js";
+import { checksumIntegrityStripAndDispatchSpawn } from "../checksumIntegrityStripAndDispatchSpawn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -50,7 +50,7 @@ const LATCH = 0x8e2a; // RESET_SCAN_LATCH
 const TWO_PLAYER = 0x880e;
 const ACTIVE_PLAYER = 0x880d;
 const LEAD_STATE = 0x8a82; // LEAD_ACTOR_STATE; below 3 the epilogue returns at once
-const IX_BASE = 0x8c60; // formation record base; loc_2b59 inherits IX (never sets it) into loc_2bb3
+const IX_BASE = 0x8c60; // formation record base; checksumIntegrityStripAndDispatchSpawn inherits IX (never sets it) into scanFormationSlotsAndLaunchFree
 const ROW = 0x20;
 const MAGIC = 0xaa;
 const SP0 = 0x8ff0;
@@ -69,7 +69,7 @@ function ramDiffMinusStack(ma, mb) {
 /** Seat SP, the latch, the column, and a strip that sums to `checksum`. */
 function seat(m, { checksum, twoPlayer = 0, activePlayer = 0, leadState = 0 }) {
   m.regs.sp = SP0;
-  m.regs.ix = IX_BASE; // inherited base for the formation-spawn scan (loc_2b59 -> loc_2bb3)
+  m.regs.ix = IX_BASE; // inherited base for the formation-spawn scan (checksumIntegrityStripAndDispatchSpawn -> scanFormationSlotsAndLaunchFree)
   m.mem.write8(LATCH, 0x01); // armed; a magic sum clears it
   m.mem.write8(TWO_PLAYER, twoPlayer);
   m.mem.write8(ACTIVE_PLAYER, activePlayer);
@@ -95,12 +95,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_2b59 == oracle in RAM (−stack)", () => {
+test("EQUAL: checksumIntegrityStripAndDispatchSpawn == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_2b59(c);
+    checksumIntegrityStripAndDispatchSpawn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -111,12 +111,12 @@ test("EQUAL: loc_2b59 == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: mismatch blanks but keeps the latch; a magic sum blanks AND clears the latch", () => {
   const miss = craftMismatch();
-  loc_2b59(miss);
+  checksumIntegrityStripAndDispatchSpawn(miss);
   for (const c of colCells()) assert.equal(miss.mem.read8(c), 0x10, `column cell ${hx(c)} blanked`);
   assert.equal(miss.mem.read8(LATCH), 0x01, "a mismatch leaves the reset latch armed");
 
   const hit = craftEpilogue();
-  loc_2b59(hit);
+  checksumIntegrityStripAndDispatchSpawn(hit);
   for (const c of colCells()) assert.equal(hit.mem.read8(c), 0x10, `column cell ${hx(c)} blanked`);
   assert.equal(hit.mem.read8(LATCH), 0x00, "a magic sum clears the reset latch");
   console.log("  WRITE-SET: mismatch keeps latch; magic sum clears it");
@@ -128,7 +128,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftMismatch();
   const c = craftMismatch();
   oracle(o);
-  loc_2b59(c);
+  checksumIntegrityStripAndDispatchSpawn(c);
   c.mem.write8(ATTR_TOP, (o.mem.read8(ATTR_TOP) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted column byte");
@@ -149,7 +149,7 @@ test("TEETH: a no-blank twin and a checksum-blind twin are CAUGHT", () => {
   const o2 = craftMismatch();
   const twin2 = craftMismatch();
   oracle(o2);
-  loc_2b59(twin2);
+  checksumIntegrityStripAndDispatchSpawn(twin2);
   twin2.mem.write8(LATCH, 0x00); // the defect a checksum-blind clear would leave
   const d2 = ramDiffMinusStack(o2, twin2);
   assert.notEqual(d2, null, "the gate FAILED to catch a latch cleared on a mismatch");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_0020 } from "./loc_0020.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { moveObject } from "./moveObject.js";
 import { SPAWN_RING_COUNTER, SPAWN_WORD_TABLE } from "./names.js";
 /**
@@ -22,7 +22,7 @@ export function armObjectFromSpawnRing(m, record = m.regs.ix) {
   mem8[SPAWN_RING_COUNTER] = spawnIndex + 1;
   mem8[record + 0x13] = spawnIndex;
 
-  const [wordLow, ptr] = loc_0020(m, SPAWN_WORD_TABLE, (spawnIndex * 2) & 0xff);
+  const [wordLow, ptr] = fetchByteFromTableIndex(m, SPAWN_WORD_TABLE, (spawnIndex * 2) & 0xff);
   mem8[record + 0x15] = wordLow;
   mem8[record + 0x16] = mem8[u16(ptr + 1)]; // spawn word high byte
   mem8[record + 0x0a] = 0xec;

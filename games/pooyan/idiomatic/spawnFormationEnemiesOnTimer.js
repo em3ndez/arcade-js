@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0020 } from "./loc_0020.js";
-import { loc_5594 } from "./loc_5594.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
+import { seedFirstFreeSlotForTimedSpawnWithTamperCheck } from "./seedFirstFreeSlotForTimedSpawnWithTamperCheck.js";
 import {
   SPAWN_RELOAD_TIMER,
   SPAWN_TIMER_RELOAD_TABLE,
@@ -28,7 +28,7 @@ export function spawnFormationEnemiesOnTimer(m) {
   if (mem8[SPAWN_RELOAD_TIMER] !== 0) return; // timer still running
 
   const idx = mem8[SPAWN_SEQUENCE_INDEX_8D14] & 0x0f;
-  const [reload] = loc_0020(m, SPAWN_TIMER_RELOAD_TABLE, idx); // rst-20 table fetch
+  const [reload] = fetchByteFromTableIndex(m, SPAWN_TIMER_RELOAD_TABLE, idx); // rst-20 table fetch
   mem8[SPAWN_RELOAD_TIMER] = reload;
   mem8[SPAWN_SEQUENCE_INDEX_8D14] = mem8[SPAWN_SEQUENCE_INDEX_8D14] + 1;
 
@@ -40,5 +40,5 @@ export function spawnFormationEnemiesOnTimer(m) {
     if (difficulty === 0) return; // no active wave
     count = difficulty < 0x04 ? 0x01 : 0x02;
   }
-  return loc_5594(m, FORMATION_SPAWN_TABLE, BLOCK_STRIDE, count); // tail: scan/seed the blocks
+  return seedFirstFreeSlotForTimedSpawnWithTamperCheck(m, FORMATION_SPAWN_TABLE, BLOCK_STRIDE, count); // tail: scan/seed the blocks
 }

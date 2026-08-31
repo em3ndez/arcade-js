@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5d0b (Pooyan) — "tick the enemy-table animation holds": walk the
+ * Memory-equivalence test for tickEnemyActorAnimHolds (Pooyan) — "tick the enemy-table animation holds": walk the
  * six fixed-stride records of the enemy actor table and step each record's animation-hold in place.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES RAM (through
- * its per-record callee), so each case runs the oracle on one FRESH clone and loc_5d0b on another,
+ * its per-record callee), so each case runs the oracle on one FRESH clone and tickEnemyActorAnimHolds on another,
  * compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
- * pc/SP are NOT compared. loc_5d0b returns NOTHING the caller reads — the next caller reloads its own
+ * pc/SP are NOT compared. tickEnemyActorAnimHolds returns NOTHING the caller reads — the next caller reloads its own
  * pointer/counter — so the contract is memory-only; no register live-out is declared. The oracle
  * banks its loop counter and stride across each callee, an effect with no RAM footprint.
  *
  * Jobs:
- *   1. EQUAL (crafted) — with all six records armed so every tick mutates, oracle == loc_5d0b in
+ *   1. EQUAL (crafted) — with all six records armed so every tick mutates, oracle == tickEnemyActorAnimHolds in
  *      RAM(−stack). The crafted state (active/armed record, hold about to underflow, phase step)
  *      is what a natural boot rarely presents, so it is poked identically on both sides.
  *   2. CAPTURED (best-effort) — replay any real dispatch a short boot happens to reach.
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5d0b as oracle } from "../../translated/loc_5d0b.js";
-import { loc_5d0b } from "../loc_5d0b.js";
+import { tickEnemyActorAnimHolds } from "../tickEnemyActorAnimHolds.js";
 import { tickActorAnimHold } from "../tickActorAnimHold.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -80,11 +80,11 @@ function craft() {
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted armed records — loc_5d0b == oracle in RAM(−stack)", () => {
+test("EQUAL: crafted armed records — tickEnemyActorAnimHolds == oracle in RAM(−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_5d0b(c);
+  tickEnemyActorAnimHolds(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
@@ -115,7 +115,7 @@ test("CAPTURED: real dispatches replay identically (if reached)", () => {
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    loc_5d0b(c);
+    tickEnemyActorAnimHolds(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `captured RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
   }

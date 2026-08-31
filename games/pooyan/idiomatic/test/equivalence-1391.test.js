@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1391 (ROM 0x1391, Pooyan) — "spawned-flag guard in front of the
+ * Memory-equivalence test for dispatchSpawnScheduleUnlessActorFlagged (ROM 0x1391, Pooyan) — "spawned-flag guard in front of the
  * field-compare dispatch".
  *
- * loc_1391 does `bit 0,(ix+0x08); ret nz` — when the block's flag byte has bit 0 set it returns
+ * dispatchSpawnScheduleUnlessActorFlagged does `bit 0,(ix+0x08); ret nz` — when the block's flag byte has bit 0 set it returns
  * doing nothing, leaving A as it entered — else it tail-jumps to the field-compare dispatch
- * (loc_12d0), whose result (register A) becomes loc_1391's result. Its only caller reaches it by a
+ * (matchActorScheduleThenSpawnOrAnimate), whose result (register A) becomes dispatchSpawnScheduleUnlessActorFlagged's result. Its only caller reaches it by a
  * `jr nc` tail, so its live-out is A.
  *
- * SEATING: TAIL-CALL. The module returns loc_12d0's result directly on the dispatch path and
- * returns nothing on the guard path (A untouched). The idiomatic loc_1391 imports the idiomatic
- * loc_12d0; the oracle side runs the TRANSLATED loc_1391, which m.call()s the translated loc_12d0
+ * SEATING: TAIL-CALL. The module returns matchActorScheduleThenSpawnOrAnimate's result directly on the dispatch path and
+ * returns nothing on the guard path (A untouched). The idiomatic dispatchSpawnScheduleUnlessActorFlagged imports the idiomatic
+ * matchActorScheduleThenSpawnOrAnimate; the oracle side runs the TRANSLATED dispatchSpawnScheduleUnlessActorFlagged, which m.call()s the translated matchActorScheduleThenSpawnOrAnimate
  * through the registry.
  *
  * Cycle-free / memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
  * STACK_SCRATCH) PLUS the register live-out A. pc/SP/cycles are NOT compared. A is derived from the
- * behaviour: entry A on the guard path, loc_12d0's result on the dispatch path.
+ * behaviour: entry A on the guard path, matchActorScheduleThenSpawnOrAnimate's result on the dispatch path.
  *
- * NOTE: the dispatch cases compose the sibling idiomatic loc_12d0; they turn green once that module
+ * NOTE: the dispatch cases compose the sibling idiomatic matchActorScheduleThenSpawnOrAnimate; they turn green once that module
  * lands (the LEAD runs the gate in reconcile). The guard case is self-contained.
  *
  * Jobs: 1. EQUAL — RAM (−stack) AND A match on the guard + two dispatch states. 2. WRITE-SET —
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1391 as oracle } from "../../translated/loc_1391.js";
-import { loc_1391 } from "../loc_1391.js";
+import { dispatchSpawnScheduleUnlessActorFlagged } from "../dispatchSpawnScheduleUnlessActorFlagged.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -79,12 +79,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted cases — loc_1391 == oracle in RAM (−stack) + A live-out", () => {
+test("EQUAL: crafted cases — dispatchSpawnScheduleUnlessActorFlagged == oracle in RAM (−stack) + A live-out", () => {
   for (const c of CASES) {
     const o = craft(c);
     const k = craft(c);
     oracle(o);
-    loc_1391(k);
+    dispatchSpawnScheduleUnlessActorFlagged(k);
     const d = ramDiffMinusStack(o, k);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (${c.label})`);
     assert.equal(k.regs.a & 0xff, o.regs.a & 0xff, `A live-out mismatch (${c.label})`);
@@ -113,7 +113,7 @@ test("TEETH: a wrong A live-out is CAUGHT by the register check", () => {
   const o = craft(c);
   const k = craft(c);
   oracle(o);
-  loc_1391(k);
+  dispatchSpawnScheduleUnlessActorFlagged(k);
   assert.equal(k.regs.a & 0xff, o.regs.a & 0xff, "sanity: A matches the oracle on the guard path");
   assert.notEqual((c.a + 1) & 0xff, o.regs.a & 0xff, "the live-out check must reject an off-by-one A");
   console.log(`  TEETH/A: guard A ${hx(o.regs.a)} == oracle; an off-by-one is rejected`);
@@ -124,7 +124,7 @@ test("TEETH: a wrong written byte on the dispatch path is CAUGHT by the RAM diff
   const o = craft(c);
   const k = craft(c);
   oracle(o);
-  loc_1391(k);
+  dispatchSpawnScheduleUnlessActorFlagged(k);
   assert.equal(ramDiffMinusStack(o, k), null, "sanity: the dispatch path is memory-equivalent before tampering");
   k.mem.write8(u16(IX_BLOCK + FLAG_FIELD), (o.mem.read8(u16(IX_BLOCK + FLAG_FIELD)) ^ 0xff) & 0xff); // BUG
   const d = ramDiffMinusStack(o, k);

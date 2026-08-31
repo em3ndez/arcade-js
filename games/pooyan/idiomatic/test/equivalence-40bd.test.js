@@ -3,7 +3,7 @@
  * Memory-equivalence test for dispatchFormationObjectStates (ROM 0x40bd, Pooyan) — the formation-record sweep. It
  * walks four fixed-stride records and hands each to the object-state dispatcher.
  *
- * SEATING: BALANCED-WIRE. loc_40d0 is now lifted (idiomatic), so the module DIRECT-CALLS it (the
+ * SEATING: BALANCED-WIRE. dispatchObjectStateHandler is now lifted (idiomatic), so the module DIRECT-CALLS it (the
  * seated-return push16 the frozen dispatcher's ret used to consume is dropped) — the module ends on
  * a plain return (net SP 0). The oracle parks its loop counter/stride in the alt register set (exx)
  * purely to survive the call, which the module replaces with JS locals — the dispatcher reads only
@@ -53,7 +53,7 @@ function ramDiffMinusStack(ma, mb) {
 }
 
 /** Run `runner`, returning the record bases dispatched, in order (the sweep sequence). Works for the
- *  frozen oracle (m.call(0x40d0)) and the idiomatic module (direct loc_40d0) alike: both read each
+ *  frozen oracle (m.call(0x40d0)) and the idiomatic module (direct dispatchObjectStateHandler) alike: both read each
  *  record's lead byte through read8 during the dispatcher's active-check, which we spy on the instance.
  *  First-occurrence-in-order collapses the repeated reads within one record's dispatch. */
 function sweepIx(runner) {

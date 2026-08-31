@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import { runPlayStateFrame } from "./runPlayStateFrame.js";
 import { HUD_REFRESH_TICK, TAMPER_STRIKES_ROM } from "./names.js";
 /**
@@ -19,7 +19,7 @@ export function tickHudRefresh(m) {
   mem8[HUD_REFRESH_TICK]++;
   const counter = mem8[HUD_REFRESH_TICK];
   if ((counter & BOUNDARY_MASK) !== 0) return; // not a 16-frame boundary
-  loc_0038(m, (CMD_HIGH << 8) | (counter & VARIANT_BIT ? 0xb5 : 0x35));
+  enqueueDisplayCommand(m, (CMD_HIGH << 8) | (counter & VARIANT_BIT ? 0xb5 : 0x35));
   if (mem8[TAMPER_STRIKES_ROM] === 0) return; // dispatch gated on the strike counter
   return runPlayStateFrame(m); // fall through into the state-3 dispatch + continuation
 }

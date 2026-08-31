@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0552 (Pooyan ROM 0x0552) — reset one of three 3-byte BCD counters
+ * Memory-equivalence test for resetBcdCounterAndRepaintColumn (Pooyan ROM 0x0552) — reset one of three 3-byte BCD counters
  * to zero and repaint it in its HUD column. A selects the counter (0 = player 1, 1 = player 2, else
  * high score): its three bytes are zeroed, then rendered most-significant byte first down the column,
  * each byte split into a high then a low BCD digit through the leading-zero-blanking digit painter
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0552 as oracle } from "../../translated/loc_0552.js";
-import { loc_0552 } from "../loc_0552.js";
+import { resetBcdCounterAndRepaintColumn } from "../resetBcdCounterAndRepaintColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -81,12 +81,12 @@ function craft(sel) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: every selector arm — loc_0552 == oracle in RAM (−stack)", () => {
+test("EQUAL: every selector arm — resetBcdCounterAndRepaintColumn == oracle in RAM (−stack)", () => {
   for (const sel of [0, 1, 2, 0xff]) {
     const o = craft(sel);
     const c = craft(sel);
     oracle(o);
-    loc_0552(c);
+    resetBcdCounterAndRepaintColumn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `sel=${hx(sel)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -143,7 +143,7 @@ test("CAPTURE: real 0x0552 dispatches replay identically (if reached)", () => {
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    loc_0552(c);
+    resetBcdCounterAndRepaintColumn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -156,7 +156,7 @@ test("CRAFTED: the player-2 and high-score arms clear + paint the right cells", 
     const o = craft(sel);
     const c = craft(sel);
     oracle(o);
-    loc_0552(c);
+    resetBcdCounterAndRepaintColumn(c);
     assert.equal(ramDiffMinusStack(o, c), null, `sel=${sel}: RAM must match`);
     for (const cell of counterCells) assert.equal(c.mem.read8(cell), 0x00, `sel=${sel}: counter ${hx(cell)} zeroed`);
     hudCells.forEach((cell, i) => assert.equal(c.mem.read8(cell), EXPECTED_HUD[i], `sel=${sel}: HUD ${hx(cell)}`));
@@ -172,7 +172,7 @@ test("TEETH: a wrong HUD tile is CAUGHT by the RAM diff", () => {
   const o = craft(sel);
   const c = craft(sel);
   oracle(o);
-  loc_0552(c);
+  resetBcdCounterAndRepaintColumn(c);
   c.mem.write8(hudCells[0], EXPECTED_HUD[0] ^ 0x01); // BUG: wrong tile in the top digit cell
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong HUD tile — it is worthless");
@@ -186,7 +186,7 @@ test("TEETH: a non-zeroed counter byte is CAUGHT by the RAM diff", () => {
   const o = craft(sel);
   const c = craft(sel);
   oracle(o);
-  loc_0552(c);
+  resetBcdCounterAndRepaintColumn(c);
   c.mem.write8(counterCells[1], 0x99); // BUG: counter byte not cleared
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a non-zeroed counter — it is worthless");

@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_20d4 (ROM 0x20d4, Pooyan) — the per-frame update gate.
+ * Memory-equivalence test for dispatchPerFrameActorUpdatePasses (ROM 0x20d4, Pooyan) — the per-frame update gate.
  *
  * The module direct-calls the six idiomatic siblings (the lead-actor driver on the tail, the five
  * sub-passes on the chain); the oracle drives the same frozen siblings through the registry that
- * new Machine(ROM) builds. loc_20d4 is a void driver — no register survives — so the register file
+ * new Machine(ROM) builds. dispatchPerFrameActorUpdatePasses is a void driver — no register survives — so the register file
  * is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
  * Both crafted states hold every sub-pass on a benign arm (formation off, rope pass on its timer
  * decrement, launch state 0, actor record on its descent arm, integrity flags clear) so the gate
- * isolates loc_20d4's own job: pick the tail vs the chain, and clear the grab flag when busy. The
+ * isolates dispatchPerFrameActorUpdatePasses's own job: pick the tail vs the chain, and clear the grab flag when busy. The
  * lead-actor driver's state-1 handler ticks the record delay byte, an isolated tail footprint.
  *
  * Jobs:
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_20d4 as oracle } from "../../translated/loc_20d4.js";
-import { loc_20d4 } from "../loc_20d4.js";
+import { dispatchPerFrameActorUpdatePasses } from "../dispatchPerFrameActorUpdatePasses.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -92,12 +92,12 @@ function craftTail() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_20d4 == oracle in RAM (−stack)", () => {
+test("EQUAL: dispatchPerFrameActorUpdatePasses == oracle in RAM (−stack)", () => {
   for (const [label, craft] of [["chain", craftChain], ["tail", craftTail]]) {
     const a = craft();
     const b = craft();
     oracle(a);
-    loc_20d4(b);
+    dispatchPerFrameActorUpdatePasses(b);
     const d = ramDiffMinusStack(a, b);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -126,7 +126,7 @@ test("TEETH: a wrong chain byte is CAUGHT by the RAM diff", () => {
   const a = craftChain();
   const b = craftChain();
   oracle(a);
-  loc_20d4(b);
+  dispatchPerFrameActorUpdatePasses(b);
   b.mem8[ROPE_TIMER] = (a.mem8[ROPE_TIMER] ^ 0xff) & 0xff; // corrupt a chain-pass result
   const d = ramDiffMinusStack(a, b);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted chain byte — worthless");

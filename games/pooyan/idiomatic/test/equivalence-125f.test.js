@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_125f (Pooyan) — countdown-driven phase transition for the actor
+ * Memory-equivalence test for advanceActorStateOnTimerAndRestartAnim (Pooyan) — countdown-driven phase transition for the actor
  * record at IX. Decrements the per-phase timer (rec+0x11); while non-zero it returns untouched. On
  * expiry it advances the phase field (rec+0x02), sets rec+0x08 := 1, and points the record at
  * animation table ANIM_TABLE_3838 via the (already idiomatic) setActorAnimation, which writes
@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_125f as oracle } from "../../translated/loc_125f.js";
-import { loc_125f } from "../loc_125f.js";
+import { advanceActorStateOnTimerAndRestartAnim } from "../advanceActorStateOnTimerAndRestartAnim.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ANIM_TABLE_3838 } from "../names.js";
@@ -68,12 +68,12 @@ const craftExpire = () => seat({ timer: 0x01 });
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_125f == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceActorStateOnTimerAndRestartAnim == oracle in RAM (−stack)", () => {
   for (const [name, craft] of [["counting", craftCount], ["expiry", craftExpire]]) {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_125f(c);
+    advanceActorStateOnTimerAndRestartAnim(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -106,7 +106,7 @@ test("TEETH: a corrupted anim byte is CAUGHT; the branches are load-bearing", ()
   const o = craftExpire();
   const c = craftExpire();
   oracle(o);
-  loc_125f(c);
+  advanceActorStateOnTimerAndRestartAnim(c);
   c.mem.write8(ANIM_LO, (o.mem.read8(ANIM_LO) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted anim byte");

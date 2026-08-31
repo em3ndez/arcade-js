@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for wrapRenderPhaseAndPaintTileTriplet (ROM 0x23ad-0x23d6) — the shared render tail. Masks the
- * phase counter at (HL) to 0..3, looks up a tile-block descriptor for that phase via loc_0c45
+ * phase counter at (HL) to 0..3, looks up a tile-block descriptor for that phase via fetchWordFromTableIndex
  * (table 0x26f6), and stamps three 2x2 blocks at 0x8425 / 0x8465 / 0x84a5; the third block's
  * source is 0x270a when (0x88bc) bit0 is set, else 0x270e.
  *
@@ -9,7 +9,7 @@
  * per side, compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are not compared (the
  * oracle drives them through m.step/push/ret, the stack ABI the direct-call layer replaces).
  * wrapRenderPhaseAndPaintTileTriplet has NO register live-out — its callers (tickStatusRenderRingAndRedrawOnWrap / clampActorYAndAdvanceRenderPhase / movePlayerVerticallyAndTickStatusRender) tail into it and
- * read nothing back — so the contract is memory alone. The oracle's loc_0c45 / loc_3325 sub-calls
+ * read nothing back — so the contract is memory alone. The oracle's fetchWordFromTableIndex / loc_3325 sub-calls
  * resolve through the full translated registry that new Machine(ROM) builds.
  *
  * The mask reads (HL) but the third-block bit0 test reads 0x88bc ABSOLUTELY: one case seats HL at

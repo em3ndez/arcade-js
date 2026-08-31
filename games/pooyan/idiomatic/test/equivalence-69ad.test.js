@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_69ad (ROM 0x69ad) — "step eight paired descending-object
- * records through loc_69c6": walk the enemy-actor table (ix from 0x8ae0) and the object-state
+ * Memory-equivalence test for stepPairedDescendingObjects (ROM 0x69ad) — "step eight paired descending-object
+ * records through advancePairedDescendingObjectStep": walk the enemy-actor table (ix from 0x8ae0) and the object-state
  * record base (iy from 0x8ba0) in lockstep, one 0x18 stride apart, advancing each pair one step.
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES
- * work RAM through loc_69c6, so each case uses a FRESH clone per side: the oracle runs on one clone,
- * loc_69ad on another, compared on the go-forward contract — RAM (dumpState) minus STACK_SCRATCH.
- * pc/SP/cycles are NOT compared. LIVE-OUT is memory only: loc_69ad's caller (loc_68f8) issues it and
+ * work RAM through advancePairedDescendingObjectStep, so each case uses a FRESH clone per side: the oracle runs on one clone,
+ * stepPairedDescendingObjects on another, compared on the go-forward contract — RAM (dumpState) minus STACK_SCRATCH.
+ * pc/SP/cycles are NOT compared. LIVE-OUT is memory only: stepPairedDescendingObjects's caller (runPerFrameObjectSubPasses) issues it and
  * moves on, consuming no register result; the oracle's shadow-register (exx) juggling only protects
  * its loop counter and stride and leaves no game state, so no register is compared. The sequencer
  * and wipe helpers frame their work on the stack, which is excluded.
@@ -17,7 +17,7 @@
  * decrements that field and the descend path writes exactly {ix+5, ix+0x0e, iy+5}.
  *
  * Jobs:
- *   1. EQUAL — all eight records active + descending: loc_69ad == oracle in RAM (−stack).
+ *   1. EQUAL — all eight records active + descending: stepPairedDescendingObjects == oracle in RAM (−stack).
  *   2. WRITE-SET — the sweep writes exactly the 24 cells {ix_n+5, ix_n+0x0e, iy_n+5}, n=0..7.
  *   3. TEETH — a twin that sweeps only seven pairs (missing the last) is CAUGHT; and a wrong
  *      descended byte in the first record is CAUGHT at its address.
@@ -30,8 +30,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_69ad as oracle } from "../../translated/loc_69ad.js";
-import { loc_69ad } from "../loc_69ad.js";
-import { loc_69c6 } from "../loc_69c6.js";
+import { stepPairedDescendingObjects } from "../stepPairedDescendingObjects.js";
+import { advancePairedDescendingObjectStep } from "../advancePairedDescendingObjectStep.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -59,7 +59,7 @@ function ramDiffMinusStack(ma, mb) {
 const ixRec = (n) => IX_BASE + n * STRIDE;
 const iyRec = (n) => IY_BASE + n * STRIDE;
 
-// Descend-no-borrow record template (mirrors the loc_69c6 gate's own scenario): active (+0),
+// Descend-no-borrow record template (mirrors the advancePairedDescendingObjectStep gate's own scenario): active (+0),
 // idle (+2==0), non-zero hold (+0x0e), high byte 0x03 (descends without gate/wipe), delta < value.
 function seatRecord(m, ix, iy) {
   m.mem.write8(ix + 0x00, 0x01);
@@ -82,11 +82,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: eight active descending pairs — loc_69ad == oracle in RAM (−stack)", () => {
+test("EQUAL: eight active descending pairs — stepPairedDescendingObjects == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_69ad(c);
+  stepPairedDescendingObjects(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
   // Independent spot check: each pair descended by its delta (no borrow), hold decremented.
@@ -126,7 +126,7 @@ function sweepSeven(m) {
   let ix = IX_BASE;
   let iy = IY_BASE;
   for (let n = 0; n < PAIRS - 1; n++) {
-    loc_69c6(m, ix, iy);
+    advancePairedDescendingObjectStep(m, ix, iy);
     ix = (ix + STRIDE) & 0xffff;
     iy = (iy + STRIDE) & 0xffff;
   }
@@ -146,7 +146,7 @@ test("TEETH: a wrong descended byte in the first record is CAUGHT", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_69ad(c);
+  stepPairedDescendingObjects(c);
   c.mem.write8(ixRec(0) + 0x05, (c.mem.read8(ixRec(0) + 0x05) ^ 0x01) & 0xff); // BUG: wrong position
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong position byte — it is worthless");

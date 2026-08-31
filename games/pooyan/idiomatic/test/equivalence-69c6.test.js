@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_69c6 (ROM 0x69c6, Pooyan) — "advance a paired (ix/iy) descending
+ * Memory-equivalence test for advancePairedDescendingObjectStep (ROM 0x69c6, Pooyan) — "advance a paired (ix/iy) descending
  * object one step". Returns unless the ix record is active (+0) and idle (+2 == 0). Runs the
  * animation sequencer for the ix record, lowers each record's 16-bit position (+6:+5) by its delta
  * (+9) with a borrow into the high byte, then on the ix high byte: 6 bumps the blink-phase gate
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_69c6 as oracle } from "../../translated/loc_69c6.js";
-import { loc_69c6 } from "../loc_69c6.js";
+import { advancePairedDescendingObjectStep } from "../advancePairedDescendingObjectStep.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, BLINK_PHASE } from "../names.js";
@@ -110,12 +110,12 @@ function assertByte(m, addr, val) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted scenarios — loc_69c6 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted scenarios — advancePairedDescendingObjectStep == oracle in RAM (−stack)", () => {
   for (const scn of SCENARIOS) {
     const o = craft(scn);
     const c = craft(scn);
     oracle(o);
-    loc_69c6(c);
+    advancePairedDescendingObjectStep(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${scn.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     if (scn.verify) scn.verify(c);
@@ -151,7 +151,7 @@ test("TEETH: a wrong descended position byte is CAUGHT at ix+5", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_69c6(c);
+  advancePairedDescendingObjectStep(c);
   c.mem.write8(IX_REC + 5, (c.mem.read8(IX_REC + 5) ^ 0x01) & 0xff); // BUG: wrong position
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong position byte — it is worthless");
@@ -164,7 +164,7 @@ test("TEETH: an incomplete record wipe is CAUGHT", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_69c6(c);
+  advancePairedDescendingObjectStep(c);
   c.mem.write8(IY_REC + 0, 0x01); // BUG: a wiped cell left non-zero
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch an incomplete wipe — it is worthless");

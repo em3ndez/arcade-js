@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { binToPackedBcd } from "./binToPackedBcd.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { blitTile3x3Block } from "./blitTile3x3Block.js";
 import { blitGlyphBlock4x3 } from "./blitGlyphBlock4x3.js";
-import { loc_1ffb } from "./loc_1ffb.js";
+import { stampSelectedGlyphBlock } from "./stampSelectedGlyphBlock.js";
 import { renderStageCountdownDigits } from "./renderStageCountdownDigits.js";
 import { refreshRoundStageHud } from "./refreshRoundStageHud.js";
 import {
@@ -52,12 +52,12 @@ export function paintRoundNumberHud(m) {
     mem8[HUD_ROUND_DIGIT_HI] = hi !== 0 ? hi : FIELD_TERMINATOR; // blank a leading zero
     mem8[HUD_ROUND_DIGIT_LO] = bcd & 0x0f;
 
-    const glyph = loc_0c45(m, (bcd >> 4) & 0x01, ROUND_GLYPH_WORD_TABLE); // tens bit selects the glyph word
+    const glyph = fetchWordFromTableIndex(m, (bcd >> 4) & 0x01, ROUND_GLYPH_WORD_TABLE); // tens bit selects the glyph word
     const [, glyphSrc] = blitTile3x3Block(m, ROUND_TILE_DST, glyph); // stamp block, advance the source
     blitGlyphBlock4x3(m, glyphSrc, HUD_ROUND_TILE);
 
     mem8[ROUND_BCD_LOW_STASH] = bcd & 0x0f;
-    loc_1ffb(m, bcd); // render the selector glyph block (bit5 of the BCD value)
+    stampSelectedGlyphBlock(m, bcd); // render the selector glyph block (bit5 of the BCD value)
   }
 
   // per-frame update chain (also the freeze-set entry, which skips the setup above)

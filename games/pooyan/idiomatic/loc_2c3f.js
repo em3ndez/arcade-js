@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_2c58 } from "./loc_2c58.js";
-import { loc_2cb3 } from "./loc_2cb3.js";
+import { runHunterMoveScriptStep } from "./runHunterMoveScriptStep.js";
 import { loc_2d24 } from "./loc_2d24.js";
 import { loc_2d4a } from "./loc_2d4a.js";
 /**
@@ -16,7 +16,7 @@ export function loc_2c3f(m, rec = m.regs.ix) {
   if (state < 0x11) return true; // state below the dispatch range
   switch (state - 0x11) {
     case 0: return loc_2c58(m, rec);
-    case 1: return loc_2cb3(m, rec);
+    case 1: return runHunterMoveScriptStep(m, rec);
     case 2: return loc_2d24(m, rec);
     case 3: return loc_2d4a(m, rec);
     default:

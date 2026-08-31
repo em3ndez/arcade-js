@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0714 (Pooyan) — the sprite-attribute copy loop. Each pass
+ * Memory-equivalence test for copySpriteAttrAndPositionRun (Pooyan) — the sprite-attribute copy loop. Each pass
  * copies four source bytes (source low byte walks, page-fixed): two into the attribute area at
  * attr+1/attr+0, two at the position cursor/cursor+1; both cursors advance by two per pass.
  *
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0714 as oracle } from "../../translated/loc_0714.js";
-import { loc_0714 } from "../loc_0714.js";
+import { copySpriteAttrAndPositionRun } from "../copySpriteAttrAndPositionRun.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -76,12 +76,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0714 == oracle in RAM (−stack) + A/DE/IX live-out", () => {
+test("EQUAL: copySpriteAttrAndPositionRun == oracle in RAM (−stack) + A/DE/IX live-out", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    const [a, de, ix] = loc_0714(c);
+    const [a, de, ix] = copySpriteAttrAndPositionRun(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(a, o.regs.a, `${cfg.name}: A live-out must match`);
@@ -102,7 +102,7 @@ test("WRITE-SET: one pass writes the interleaved attribute + position bytes", ()
   const b1 = m.mem.read8(SRC + 1);
   const b2 = m.mem.read8(SRC + 2);
   const b3 = m.mem.read8(SRC + 3);
-  loc_0714(m);
+  copySpriteAttrAndPositionRun(m);
   assert.equal(m.mem.read8(ATTR + 1), b0, "byte0 -> attr+1");
   assert.equal(m.mem.read8(ATTR + 0), b1, "byte1 -> attr+0");
   assert.equal(m.mem.read8(POS + 0), b2, "byte2 -> pos+0");
@@ -116,7 +116,7 @@ test("TEETH: a corrupted dest byte is CAUGHT by the RAM diff", () => {
   const o = craftMany();
   const c = craftMany();
   oracle(o);
-  loc_0714(c);
+  copySpriteAttrAndPositionRun(c);
   c.mem.write8(ATTR + 3, (o.mem.read8(ATTR + 3) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted dest byte");

@@ -2,13 +2,13 @@
 /**
  * Memory-equivalence test for moveFormationAndSpawnObject (ROM 0x4221, Pooyan) — the per-frame object-state handler.
  *
- * The idiomatic module direct-calls its lifted callees (advanceObjectAnimationFrame/loc_34f2/loc_343e/blankActorSpriteBand, the
- * interior-entry arms loc_423a/loc_425c, and blockC9's slot initializer initDescendingObjectSlot — a caller-skip
+ * The idiomatic module direct-calls its lifted callees (advanceObjectAnimationFrame/advanceObjectColumnByStepAndDispatch/advanceActorColumnAndArmTurnOrBand/blankActorSpriteBand, the
+ * interior-entry arms clearColumnLimitAndArmTurnAnimation/latchColumnLimitAndArmTurnAnimation, and blockC9's slot initializer initDescendingObjectSlot — a caller-skip
  * dissolved to a boolean the sweep early-returns on). moveFormationAndSpawnObject is a dispatched void handler — no
  * register survives — so equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
- * Two branch-representative arms: TURN_CLEAR (bit0 clear, phase >= 0x14 -> loc_423a arms script 0x4212
- * and clears the turn-column limit) and TURN_LATCH (bit0 set, small phase, countdown high -> loc_425c
+ * Two branch-representative arms: TURN_CLEAR (bit0 clear, phase >= 0x14 -> clearColumnLimitAndArmTurnAnimation arms script 0x4212
+ * and clears the turn-column limit) and TURN_LATCH (bit0 set, small phase, countdown high -> latchColumnLimitAndArmTurnAnimation
  * arms script 0x4203 and latches the limit to 0xff). A crafted SP-tooth drives the blockC9 sweep on
  * its skip path and asserts moveFormationAndSpawnObject seats SP for the seam.
  *
@@ -71,24 +71,24 @@ function seatRecord(m) {
 function craftTurnClear() {
   const m = BASE.clone();
   seatRecord(m);
-  m.mem8[REC + 0x08] = 0x00; // bit0 clear -> loc_343e branch
-  m.mem8[REC + 0x06] = 0x14; // phase 0x14 (>= 0x14) -> arm via loc_423a
+  m.mem8[REC + 0x08] = 0x00; // bit0 clear -> advanceActorColumnAndArmTurnOrBand branch
+  m.mem8[REC + 0x06] = 0x14; // phase 0x14 (>= 0x14) -> arm via clearColumnLimitAndArmTurnAnimation
   return m;
 }
 
 function craftTurnLatch() {
   const m = BASE.clone();
   seatRecord(m);
-  m.mem8[REC + 0x08] = 0x01; // bit0 set -> loc_34f2 branch
-  m.mem8[REC + 0x06] = 0x08; // phase 8 (< 0x0a); loc_34f2 returns (column != limit, sub-state != 4)
-  m.mem8[STAGE_COUNTDOWN] = 0x05; // >= 2 -> take the loc_425c arm (not the signature branch)
+  m.mem8[REC + 0x08] = 0x01; // bit0 set -> advanceObjectColumnByStepAndDispatch branch
+  m.mem8[REC + 0x06] = 0x08; // phase 8 (< 0x0a); advanceObjectColumnByStepAndDispatch returns (column != limit, sub-state != 4)
+  m.mem8[STAGE_COUNTDOWN] = 0x05; // >= 2 -> take the latchColumnLimitAndArmTurnAnimation arm (not the signature branch)
   return m;
 }
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
 test("EQUAL: turn-clear + turn-latch arms — moveFormationAndSpawnObject == oracle in RAM (−stack)", () => {
-  for (const [label, craft] of [["turn-clear (loc_423a)", craftTurnClear], ["turn-latch (loc_425c)", craftTurnLatch]]) {
+  for (const [label, craft] of [["turn-clear (clearColumnLimitAndArmTurnAnimation)", craftTurnClear], ["turn-latch (latchColumnLimitAndArmTurnAnimation)", craftTurnLatch]]) {
     const o = craft();
     oracle(o);
     const c = craft();
@@ -121,7 +121,7 @@ test("TEETH: a wrong turn-column limit is CAUGHT by the RAM diff", () => {
   const c = craftTurnClear();
   oracle(o);
   moveFormationAndSpawnObject(c);
-  c.mem8[TURN_COLUMN_LIMIT] = 0x1f; // BUG: loc_423a must have cleared it to 0
+  c.mem8[TURN_COLUMN_LIMIT] = 0x1f; // BUG: clearColumnLimitAndArmTurnAnimation must have cleared it to 0
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong turn-column limit — it is worthless");
   assert.equal(d.addr, TURN_COLUMN_LIMIT, `teeth caught wrong address ${hx(d.addr ?? 0)}`);
@@ -140,7 +140,7 @@ function craftBlockC9Skip() {
   const m = BASE.clone();
   seatRecord(m);
   m.mem.write16(SP0, CALLER_RET); // the caller-return word the seam completes (moved 0)
-  m.mem8[REC + 0x08] = 0x00; // bit0 clear -> loc_343e branch
+  m.mem8[REC + 0x08] = 0x00; // bit0 clear -> advanceActorColumnAndArmTurnOrBand branch
   m.mem8[REC + 0x06] = 0x08; // phase 8: in [5, 0x14) -> blockP
   m.mem8[SPAWN_SWEEP_TRIGGER] = 0x01; // (0x8d5b) != 0 -> straight into blockC9 (before any scan)
   m.mem8[SPAWN_OBJECT_TABLE + 0x00] = 0x00; // slot 0 idle (bit0 clear) -> 0x42da takes the init/skip path

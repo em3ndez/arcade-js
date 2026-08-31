@@ -79,7 +79,7 @@ test("EQUAL: crafted ACTIVE_PLAYER — module == oracle in RAM (−stack) + DE, 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `sel ${hx(sel)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret & 0xffff, o.regs.de & 0xffff, `sel ${hx(sel)}: DE live-out module ${hx(ret)} != oracle ${hx(o.regs.de)}`);
-    // SIDE EFFECT: the bridge must SET DE (loc_0496 reads mem[DE] right after the call), not
+    // SIDE EFFECT: the bridge must SET DE (accrueScoreAndUpdateHighScore reads mem[DE] right after the call), not
     // merely return the value — a return-only rewrite passes the check above but leaves DE stale.
     assert.equal(c.regs.de & 0xffff, o.regs.de & 0xffff, `sel ${hx(sel)}: module must SET DE for the translated dispatch, got ${hx(c.regs.de)} != oracle ${hx(o.regs.de)}`);
 

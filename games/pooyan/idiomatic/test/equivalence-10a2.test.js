@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_10a2 (Pooyan) — repaint the three sub-state HUD digit fields,
+ * Memory-equivalence test for paintSubstateHudDigitsAndAdvancePhase (Pooyan) — repaint the three sub-state HUD digit fields,
  * then bump the phase selector and queue the phase sound.
  *
  * Field 1 draws its subcounter (packed to BCD when >= 10), plus a re-centred second field
@@ -23,7 +23,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_10a2 as oracle } from "../../translated/loc_10a2.js";
-import { loc_10a2 } from "../loc_10a2.js";
+import { paintSubstateHudDigitsAndAdvancePhase } from "../paintSubstateHudDigitsAndAdvancePhase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -93,12 +93,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_10a2 == oracle in RAM (−stack)", () => {
+test("EQUAL: paintSubstateHudDigitsAndAdvancePhase == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_10a2(c);
+    paintSubstateHudDigitsAndAdvancePhase(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -138,7 +138,7 @@ test("TEETH: a corrupted digit cell is CAUGHT; branches are load-bearing", () =>
   const o = seat({ f1: 0x0a, f3: 0x64 });
   const c = seat({ f1: 0x0a, f3: 0x64 });
   oracle(o);
-  loc_10a2(c);
+  paintSubstateHudDigitsAndAdvancePhase(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: equal before corruption");
   c.mem.write8(SUBSTATE_FIELD3_VRAM, (o.mem.read8(SUBSTATE_FIELD3_VRAM) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);

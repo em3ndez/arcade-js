@@ -4,7 +4,7 @@
  *
  * A per-object state handler dispatched by jp (hl) from loc_7707; it reads its record from IX and
  * writes only record + spawn-ring RAM, so the contract is memory (dumpState minus STACK_SCRATCH) with
- * NO register live-out. loc_0020 (the table fetch) is dissolved; the fall-through into state 1
+ * NO register live-out. fetchByteFromTableIndex (the table fetch) is dissolved; the fall-through into state 1
  * (moveObject) is a direct tail call.
  *
  * SP-TOOTH (R36): the module is a wired override reached through the seam, so it must seat SP

@@ -28,10 +28,10 @@ import {
   DLIST_LAYOUT_ALT_ODD,
   PHASE_SETUP_DISPLAY_CMD,
 } from "./names.js";
-import { loc_02e3 } from "./loc_02e3.js";
-import { loc_1dd3 } from "./loc_1dd3.js";
+import { armTileFillFromPlayfieldBase } from "./armTileFillFromPlayfieldBase.js";
+import { paintPlayfieldAttributeMapForVariant } from "./paintPlayfieldAttributeMapForVariant.js";
 import { renderPhaseGauge } from "./renderPhaseGauge.js";
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import { clearDisplayMsgBufOnRoundInitMatch } from "./clearDisplayMsgBufOnRoundInitMatch.js";
 /**
  * selectRoundDisplayListAndAdvancePhase — idx1 state handler. Decrements the phase timer and returns until it expires; then
@@ -52,8 +52,8 @@ export function selectRoundDisplayListAndAdvancePhase(m) {
   mem8[PHASE_TIMER] = t;
   if (t !== 0) return; // timer still running
 
-  loc_02e3(m);
-  loc_1dd3(m);
+  armTileFillFromPlayfieldBase(m);
+  paintPlayfieldAttributeMapForVariant(m);
 
   if (mem8[PLAY_MODE_LATCH] & 0x01) {
     mem8[PLAY_STATE_INDEX] = 0x10; // attract/other: force sub-state 0x10
@@ -108,6 +108,6 @@ export function selectRoundDisplayListAndAdvancePhase(m) {
   mem8[ENEMY_SPAWN_TIMER] = SPAWN_TIMER_SEED;
   mem8[PLAY_STATE_INDEX] = mem8[PLAY_STATE_INDEX] + 1; // next sub-state
 
-  loc_0038(m, PHASE_SETUP_DISPLAY_CMD);
+  enqueueDisplayCommand(m, PHASE_SETUP_DISPLAY_CMD);
   clearDisplayMsgBufOnRoundInitMatch(m);
 }

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0a28 (ROM 0x0a28, Pooyan) — the 4-phase attract-animation
+ * Memory-equivalence test for advanceAttractAnimationAndRepaint (ROM 0x0a28, Pooyan) — the 4-phase attract-animation
  * step. It reseeds the frame countdown, bumps the phase counter, looks this phase's 2x2 tile
  * source out of the frame-word table, and stamps it into the block's top and bottom halves.
  *
  * SEATING: TAIL-CALL. The oracle has no ret of its own — it falls through into the paint helper,
- * whose plain ret is loc_0a28's effective seating (net SP 0 -> WIRE). The module dissolves the
+ * whose plain ret is advanceAttractAnimationAndRepaint's effective seating (net SP 0 -> WIRE). The module dissolves the
  * paint helper to a direct idiomatic call and the pure ROM frame-word lookup to an inline
  * little-endian read (no RAM effect, registers not read back), so it makes no marshalled call.
  * The oracle drives both through the routines map. LIVE-OUT is memory only, so the register file
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0a28 as oracle } from "../../translated/loc_0a28.js";
-import { loc_0a28 } from "../loc_0a28.js";
+import { advanceAttractAnimationAndRepaint } from "../advanceAttractAnimationAndRepaint.js";
 import { paintTileBlock2x2 } from "../paintTileBlock2x2.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -81,7 +81,7 @@ for (let n = 0; n < 4; n++) {
     const o = craftPhase(n);
     const c = craftPhase(n);
     oracle(o);
-    loc_0a28(c);
+    advanceAttractAnimationAndRepaint(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `phase ${n}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     console.log(`  EQUAL phase ${n}: RAM identical`);

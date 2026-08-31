@@ -5,7 +5,7 @@
  * display-refresh command, then (only while TAMPER_STRIKES_ROM is nonzero) fall through into the
  * state-3 dispatcher runPlayStateFrame.
  *
- * The module dissolves loc_0038 and the runPlayStateFrame fall-through to direct calls; the oracle inlines
+ * The module dissolves enqueueDisplayCommand and the runPlayStateFrame fall-through to direct calls; the oracle inlines
  * that same tail. tickHudRefresh is a void routine, so equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
  * Jobs:
@@ -40,7 +40,7 @@ const HUD_TICK = 0x8f4d; //     per-frame refresh counter
 const STRIKES = 0x89ef; //      tamper-strike counter (nonzero -> gameplay dispatch)
 const STATE_IDX = 0x880a; //    play sub-state index dispatched via table 0x15a8
 const PHASE_TIMER = 0x8808; //  play phase timer (idx-1 handler decrements it)
-const GAME_ACTIVE = 0x8806; //  0 -> loc_7912 bails
+const GAME_ACTIVE = 0x8806; //  0 -> tickActivePlayerPlayTimer bails
 const COINAGE = 0x882c; //      != 0x0f -> not free play (resetToBoardBuildToContinuePlay stays off the epilogue tail)
 const CREDIT = 0x8802; //       0 -> resetToBoardBuildToContinuePlay returns cleanly
 const SP0 = 0x8ff0; //          inside STACK_SCRATCH
@@ -61,7 +61,7 @@ function craft({ tick, strikes }) {
   m.mem.write16(SP0, CALLER_RET);
   m.mem8[HUD_TICK] = tick;
   m.mem8[STRIKES] = strikes;
-  m.mem8[GAME_ACTIVE] = 0x00; // loc_7912 bails
+  m.mem8[GAME_ACTIVE] = 0x00; // tickActivePlayerPlayTimer bails
   m.mem8[STATE_IDX] = 0x01; // dispatch index 1 -> the phase-timer handler
   m.mem8[PHASE_TIMER] = 0x05; // running -> handler decrements and returns
   m.mem8[COINAGE] = 0x11; // not free play

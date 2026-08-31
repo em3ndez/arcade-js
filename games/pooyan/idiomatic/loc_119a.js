@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0020 } from "./loc_0020.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import {
   ROUND_COUNTER,
@@ -41,13 +41,13 @@ export function loc_119a(m, rec = m.regs.ix, posSeed = m.regs.e) {
 
   const idx = (mem8[ROUND_COUNTER] & 0x3f) >> 2;
 
-  const facing = loc_0020(m, SPAWN_FACING_TABLE_1209, idx)[0];
+  const facing = fetchByteFromTableIndex(m, SPAWN_FACING_TABLE_1209, idx)[0];
   mem8[rec + 0x09] = facing;
   mem8[rec + 0x0a] = -facing; // negated facing
 
   setActorAnimation(m, rec, ANIM_TABLE_3829);
 
-  mem8[ENEMY_SPAWN_TIMER] = loc_0020(m, SPAWN_TIMER_TABLE_11F9, idx)[0];
+  mem8[ENEMY_SPAWN_TIMER] = fetchByteFromTableIndex(m, SPAWN_TIMER_TABLE_11F9, idx)[0];
 
   mem8[HUNTER_SPAWN_COUNT] = mem8[HUNTER_SPAWN_COUNT] + 1;
   mem8[ACTIVE_ENEMY_COUNT] = mem8[ACTIVE_ENEMY_COUNT] + 1;

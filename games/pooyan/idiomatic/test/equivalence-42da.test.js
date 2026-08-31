@@ -9,7 +9,7 @@
  *   false = the caller-skip (slot initialized -> abort moveFormationAndSpawnObject's loop).
  * The frozen oracle does NOT (yet) carry the boolean protocol, so its skip is read from the STACK
  * DELTA: a plain `ret` moves SP +2, the `pop af; ret` moves it +4. The module composes the real
- * idiomatic callees (loc_0c45 + storeActorAnimationPointer + setActorAnimation); equivalence is RAM
+ * idiomatic callees (fetchWordFromTableIndex + storeActorAnimationPointer + setActorAnimation); equivalence is RAM
  * (dumpState) minus STACK_SCRATCH. initDescendingObjectSlot has no register live-out — moveFormationAndSpawnObject reloads its own.
  *
  * Jobs:

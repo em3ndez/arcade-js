@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6e75 (ROM 0x6e75, Pooyan) — phase-1 spawner gate: with neither
+ * Memory-equivalence test for runPhase1LauncherThenDriver (ROM 0x6e75, Pooyan) — phase-1 spawner gate: with neither
  * guard flag set, run the single-object launcher then the per-record driver, then return.
  *
  * SEATING: BALANCED (plain ret, net SP 0). The module calls its two idiomatic siblings directly;
- * the oracle drives the two translated siblings through the routines map. loc_6e75 is a void
+ * the oracle drives the two translated siblings through the routines map. runPhase1LauncherThenDriver is a void
  * sequencer — no register survives (both callers overwrite/ignore the register file), so the
  * register file is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH, with SP parked
  * in STACK_SCRATCH so each sub-pass's nested pushes drop out of the diff.
@@ -12,7 +12,7 @@
  * The crafted state keeps both sub-passes in a bounded branch: the launcher's countdown is left
  * running so it merely decrements and returns, and every actor record holds a running frame so the
  * driver's sweep merely decrements each and the launch script (non-terminator) short-circuits the
- * completion tail. That isolates loc_6e75's own job — ORDER + WIRING + the trap — from the
+ * completion tail. That isolates runPhase1LauncherThenDriver's own job — ORDER + WIRING + the trap — from the
  * sub-passes' internals, which their own equivalence gates cover.
  *
  * Jobs:
@@ -30,9 +30,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6e75 as oracle } from "../../translated/loc_6e75.js";
-import { loc_6e75 } from "../loc_6e75.js";
-import { loc_6e86 } from "../loc_6e86.js";
-import { loc_6edb } from "../loc_6edb.js";
+import { runPhase1LauncherThenDriver } from "../runPhase1LauncherThenDriver.js";
+import { launchNextScriptedObjectOnDelay } from "../launchNextScriptedObjectOnDelay.js";
+import { drivePhase1RecordsThenCheckCompletion } from "../drivePhase1RecordsThenCheckCompletion.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -89,11 +89,11 @@ const craftTrap = () => {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_6e75 == oracle in RAM (−stack)", () => {
+test("EQUAL: runPhase1LauncherThenDriver == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_6e75(c);
+  runPhase1LauncherThenDriver(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: RAM identical");
@@ -112,8 +112,8 @@ test("WRITE-SET: the launcher countdown and the first record's hold both tick", 
 // -- 3. TEETH(RAM) ------------------------------------------------------------
 
 const DROPS = [
-  { name: "drop launcher", run: (twin) => loc_6edb(twin), addr: DELAY },
-  { name: "drop driver", run: (twin) => loc_6e86(twin), addr: EAT + HOLD },
+  { name: "drop launcher", run: (twin) => drivePhase1RecordsThenCheckCompletion(twin), addr: DELAY },
+  { name: "drop driver", run: (twin) => launchNextScriptedObjectOnDelay(twin), addr: EAT + HOLD },
 ];
 
 test("TEETH: a sequencer missing either pass diverges at that pass's footprint", () => {
@@ -133,7 +133,7 @@ test("TEETH: a corrupted output byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_6e75(c);
+  runPhase1LauncherThenDriver(c);
   c.mem.write8(DELAY, (o.mem.read8(DELAY) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted output byte");
@@ -145,6 +145,6 @@ test("TEETH: a corrupted output byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a set guard flag makes both oracle and module throw", () => {
   assert.throws(() => oracle(craftTrap()), "oracle must trap on a set guard flag");
-  assert.throws(() => loc_6e75(craftTrap()), "module must trap on a set guard flag");
+  assert.throws(() => runPhase1LauncherThenDriver(craftTrap()), "module must trap on a set guard flag");
   console.log("  TEETH(TRAP): both throw");
 });

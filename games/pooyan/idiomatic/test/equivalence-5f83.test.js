@@ -10,13 +10,13 @@
  * skip-returns +4 SP past the caller's loop (measured: an inert/miss slot nets SP+2, a hit nets
  * SP+4). The module folds both into a boolean return — true = the slot completed normally (the
  * inert block, and a scan with no hit), false = a hit inside the scan skip-returns past the
- * caller's loop. Needs-caller-lifted: loc_5f6a's loop tests `m.pc !== 0x5f7a` and propagates.
+ * caller's loop. Needs-caller-lifted: sweepBothActorRecordSlotsForHit's loop tests `m.pc !== 0x5f7a` and propagates.
  * Compared on RAM (dumpState) minus STACK_SCRATCH; the register file is not compared. The slot
  * selector and target box are the param-default register bridge.
  *
- * The oracle runs the TRANSLATED loc_5f83, which m.call()s the scan subtree (loc_5fa2 -> advanceOverlapScanToNextSlot/
+ * The oracle runs the TRANSLATED loc_5f83, which m.call()s the scan subtree (testRecordOverlapRetireOrFlagHit -> advanceOverlapScanToNextSlot/
  * queueSoundCommand09) through the registry; the module composes the idiomatic subtree by direct import of
- * loc_5fa2 (a batch sibling — this gate is green once loc_5fa2 and the ENEMY_SCAN_BOX_TABLE cell
+ * testRecordOverlapRetireOrFlagHit (a batch sibling — this gate is green once testRecordOverlapRetireOrFlagHit and the ENEMY_SCAN_BOX_TABLE cell
  * land). Cases are CRAFTED — a plain boot does not seat this block/box/enemy geometry.
  *
  * Jobs:

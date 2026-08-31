@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_62e6 (ROM 0x62e6, Pooyan) — the caller in a caller-skip
+ * Memory-equivalence test for applyRoundDeltaAndRearmMatchedRecord (ROM 0x62e6, Pooyan) — the caller in a caller-skip
  * cluster: it tag-matches a record, applies a per-round position delta, re-arms the record,
  * and tail-jumps into loc_6274, whose `pop af; ret` skips a frame.
  *
- * This gate composes the REAL idiomatic skip: loc_62e6 (idiomatic) imports loc_6274
- * (idiomatic) and calls it directly, early-returning on its `false`; the oracle loc_62e6
+ * This gate composes the REAL idiomatic skip: applyRoundDeltaAndRearmMatchedRecord (idiomatic) imports loc_6274
+ * (idiomatic) and calls it directly, early-returning on its `false`; the oracle applyRoundDeltaAndRearmMatchedRecord
  * (translated) runs the translated loc_6274 internally, whose pop-af aborts. The two must
  * land byte-identical in RAM (dumpState, minus STACK_SCRATCH). The oracle's transient stack
  * (its `call` return words plus loc_6274's pop-af/ret unwind) lives in STACK_SCRATCH and is
  * excluded; the idiomatic side spends no stack. pc/SP/cycles/register-file are NOT compared.
  *
  * loc_6274 takes ONLY the pop-af path, so it always returns false and the caller always
- * aborts — but that abort is loc_62e6's own tail, so an early-return and a normal fall-off
- * are the same landing here. (The true one-frame skip lands ABOVE loc_62e6, in whatever
+ * aborts — but that abort is applyRoundDeltaAndRearmMatchedRecord's own tail, so an early-return and a normal fall-off
+ * are the same landing here. (The true one-frame skip lands ABOVE applyRoundDeltaAndRearmMatchedRecord, in whatever
  * called it; that is outside this cluster and irrelevant to RAM equivalence.) There is thus
  * no "skip not taken" state to seat; the two states we vary are the SCAN outcome (a match
  * found vs the counter draining) and the I-parity that selects the cleared target record.
@@ -25,7 +25,7 @@
  *
  * Jobs:
  *   1. EQUAL — over match-early / match-mid / exhaustion / match-last, each with an I-parity
- *      and a distinct round (delta-table index 0..3), oracle == loc_62e6 in RAM (−stack).
+ *      and a distinct round (delta-table index 0..3), oracle == applyRoundDeltaAndRearmMatchedRecord in RAM (−stack).
  *   2. WRITE-SET — the matched record gets +0x0a += table delta, bit 5 of +0x16, the anim
  *      pointer 0x634f at +0x0c/+0x0d/+0x0e:=0, and the I-selected target record is zeroed.
  *   3. TEETH — a wrong re-armed byte is CAUGHT by the RAM diff.
@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_62e6 as oracle } from "../../translated/loc_62e6.js";
-import { loc_62e6 } from "../loc_62e6.js";
+import { applyRoundDeltaAndRearmMatchedRecord } from "../applyRoundDeltaAndRearmMatchedRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -120,12 +120,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_62e6 (composing the real idiomatic skip) == oracle in RAM (−stack)", () => {
+test("EQUAL: applyRoundDeltaAndRearmMatchedRecord (composing the real idiomatic skip) == oracle in RAM (−stack)", () => {
   for (const spec of CASES) {
     const o = craft(spec);
     const c = craft(spec);
     oracle(o);
-    const ret = loc_62e6(c);
+    const ret = applyRoundDeltaAndRearmMatchedRecord(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -164,7 +164,7 @@ test("TEETH: a wrong re-armed byte is CAUGHT by the RAM diff", () => {
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  loc_62e6(c);
+  applyRoundDeltaAndRearmMatchedRecord(c);
   c.mem8[rec + FLAG_FIELD] = c.mem8[rec + FLAG_FIELD] & ~REARM_BIT; // BUG: bit 5 must be set
 
   const d = ramDiffMinusStack(o, c);

@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1a96 (ROM 0x1a96, Pooyan) — the phase-exhausted handler.
+ * Memory-equivalence test for advancePlayStateThenInsertHighScore (ROM 0x1a96, Pooyan) — the phase-exhausted handler.
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
- * oracle on one and loc_1a96 on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
+ * oracle on one and advancePlayStateThenInsertHighScore on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
  * pc/SP/cycles are NOT compared, and there is no register live-out: it is tail-reached from a phase
  * dispatcher and every consumed result is a work-RAM cell.
  *
  * INPUTS: ACTIVE_PLAYER 0x880d (its parity picks single vs double step of PLAY_STATE_INDEX 0x880a),
- * plus the cells the tail insert-sort reads (the per-player score buffers). loc_1a96 clears the
+ * plus the cells the tail insert-sort reads (the per-player score buffers). advancePlayStateThenInsertHighScore clears the
  * high-score insert rank 0x89fc, ROPE_SEGMENT_COUNT 0x8931 and MARKER_LAYOUT_PTR 0x8932; the tail
  * insert-sort then re-sets 0x89fc, so its final value is the callee's domain (covered by EQUAL, not
  * WRITE-SET). The queued tile run + the sorted tables are likewise the callees' writes.
  *
  * Jobs:
- *   1. EQUAL — player-0 (single step) and player-1 (double step) cases, oracle == loc_1a96 in RAM
+ *   1. EQUAL — player-0 (single step) and player-1 (double step) cases, oracle == advancePlayStateThenInsertHighScore in RAM
  *      (−stack).
- *   2. WRITE-SET — the three cells loc_1a96 owns and the callees do not touch (PLAY_STATE_INDEX
+ *   2. WRITE-SET — the three cells advancePlayStateThenInsertHighScore owns and the callees do not touch (PLAY_STATE_INDEX
  *      stepped once/twice, the two round cells cleared).
  *   3. TEETH — a wrong cleared cell is CAUGHT by the RAM diff.
  *
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1a96 as oracle } from "../../translated/loc_1a96.js";
-import { loc_1a96 } from "../loc_1a96.js";
+import { advancePlayStateThenInsertHighScore } from "../advancePlayStateThenInsertHighScore.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -78,12 +78,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: player-0 and player-1 — loc_1a96 == oracle in RAM (−stack)", () => {
+test("EQUAL: player-0 and player-1 — advancePlayStateThenInsertHighScore == oracle in RAM (−stack)", () => {
   for (const spec of CASES) {
     const o = craft(spec);
     oracle(o);
     const c = craft(spec);
-    loc_1a96(c);
+    advancePlayStateThenInsertHighScore(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -111,7 +111,7 @@ test("TEETH: a wrong cleared cell is CAUGHT by the RAM diff", () => {
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  loc_1a96(c);
+  advancePlayStateThenInsertHighScore(c);
   c.mem8[MARKER_PTR] = 0x99; // BUG: this cell must be cleared to 0
 
   const d = ramDiffMinusStack(o, c);

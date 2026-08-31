@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3c92 (ROM 0x3c92, Pooyan) — object state-7 handler that ticks
+ * Memory-equivalence gate for spawnFormationChildIntoFreeSlotOnTimer (ROM 0x3c92, Pooyan) — object state-7 handler that ticks
  * animation then periodically spawns a child, COMPOSING the dissolved caller-skip loc_3cae.
  *
- * loc_3c92 advances the parent's animation (advanceObjectAnimationFrame), decrements the parent frame timer (+0x11)
+ * spawnFormationChildIntoFreeSlotOnTimer advances the parent's animation (advanceObjectAnimationFrame), decrements the parent frame timer (+0x11)
  * and returns while it still holds. On elapse it walks the four formation records (stride 0x18 from
  * the formation table) calling loc_3cae per record; the helper returns false the moment it seats a
  * child, which aborts the scan (no timer reseed this frame). If all four slots were occupied it
@@ -12,7 +12,7 @@
  * The two must land byte-identical in RAM(-stack).
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). Each case runs the oracle on one
- * FRESH clone and loc_3c92 on another and compares RAM (dumpState, minus STACK_SCRATCH). IX (the
+ * FRESH clone and spawnFormationChildIntoFreeSlotOnTimer on another and compares RAM (dumpState, minus STACK_SCRATCH). IX (the
  * parent) is the input; SP is seated in the dead stack. NO register live-out is declared — a
  * dispatched state handler whose effects are entirely in memory; pc/SP are not compared.
  *
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3c92 as oracle } from "../../translated/loc_3c92.js";
-import { loc_3c92 } from "../loc_3c92.js";
+import { spawnFormationChildIntoFreeSlotOnTimer } from "../spawnFormationChildIntoFreeSlotOnTimer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, FORMATION_TABLE } from "../names.js";
@@ -95,12 +95,12 @@ const BRANCHES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_3c92 == oracle in RAM (−stack) across all branches", () => {
+test("EQUAL: spawnFormationChildIntoFreeSlotOnTimer == oracle in RAM (−stack) across all branches", () => {
   for (const [name, cfg] of Object.entries(BRANCHES)) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    loc_3c92(c);
+    spawnFormationChildIntoFreeSlotOnTimer(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -130,7 +130,7 @@ test("TEETH: a timer reseed on the skip path (failure to abort) is CAUGHT", () =
   const o = craft(BRANCHES.skipFirst);
   const c = craft(BRANCHES.skipFirst);
   oracle(o);
-  loc_3c92(c);
+  spawnFormationChildIntoFreeSlotOnTimer(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   c.mem.write8(PARENT + TIMER, 0x10); // BUG: not aborting would reseed the timer
   const d = ramDiffMinusStack(o, c);
@@ -143,7 +143,7 @@ test("TEETH: a wrong seated byte is CAUGHT by the RAM diff", () => {
   const o = craft(BRANCHES.skipThird);
   const c = craft(BRANCHES.skipThird);
   oracle(o);
-  loc_3c92(c);
+  spawnFormationChildIntoFreeSlotOnTimer(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   c.mem.write8(rec(2) + 0x01, DIRT); // BUG: the seated slot-active marker must be 0x01
   const d = ramDiffMinusStack(o, c);

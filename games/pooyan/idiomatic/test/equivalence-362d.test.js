@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_362d (ROM 0x362d, Pooyan) — phase dispatch for the actor record
+ * Memory-equivalence test for dispatchActorPhaseGatedByDelay (ROM 0x362d, Pooyan) — phase dispatch for the actor record
  * at IX, gated by a per-actor delay. The phase byte (rec+0x06) routes the low range to the
- * end-of-move guard (loc_361d) and the high range to the target resolver (resolveActorTargetUnlessCommitted). In the middle
+ * end-of-move guard (dispatchEndOfMoveIfFlagged) and the high range to the target resolver (resolveActorTargetUnlessCommitted). In the middle
  * band a global progress gate lets one phase return early; otherwise a per-actor delay counts down
  * (returning while it runs), and when it elapses for a near-half actor the delay is reloaded from a
- * round-selected table and control falls into the pre-spawn gate (loc_365d).
+ * round-selected table and control falls into the pre-spawn gate (spawnObjectGatedByArmedActorCount).
  *
- * SEATING: the three tail branches (loc_361d / resolveActorTargetUnlessCommitted / loc_365d) are TAIL-CALLs — the module
+ * SEATING: the three tail branches (dispatchEndOfMoveIfFlagged / resolveActorTargetUnlessCommitted / spawnObjectGatedByArmedActorCount) are TAIL-CALLs — the module
  * forwards each delegate's result; the early exits are plain BALANCED rets (LIVE-OUT none). Compared
  * on RAM (dumpState) minus STACK_SCRATCH; the register file is not compared. SP is parked in
  * STACK_SCRATCH so the oracle's nested calls drop out.
  *
  * The module calls the idiomatic siblings directly; the oracle drives the translated siblings via
  * the routines map. The guard/resolver branches are seated so their delegate returns inertly, and
- * the reload branch is seated so loc_365d's count scan finds no match and returns without writing —
- * isolating loc_362d's own effect (the delay counter) from the delegates. Cases are CRAFTED.
+ * the reload branch is seated so spawnObjectGatedByArmedActorCount's count scan finds no match and returns without writing —
+ * isolating dispatchActorPhaseGatedByDelay's own effect (the delay counter) from the delegates. Cases are CRAFTED.
  *
  * Jobs:
  *   1. EQUAL — the phase<7 guard, the phase>=0x14 resolver, the progress-gate early return, the
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_362d as oracle } from "../../translated/loc_362d.js";
-import { loc_362d } from "../loc_362d.js";
+import { dispatchActorPhaseGatedByDelay } from "../dispatchActorPhaseGatedByDelay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -46,7 +46,7 @@ const test = ROM_PRESENT
 const DELAY = 0x8d6b; // ACTOR_DELAY_COUNTER
 const TIMER = 0x8d7d; // WAVE_PROGRESS_COUNTER
 const ROUND = 0x8907; // ROUND_COUNTER
-const SCAN = 0x8ae2; // loc_365d count-scan record base (stride 0x18, 6 records)
+const SCAN = 0x8ae2; // spawnObjectGatedByArmedActorCount count-scan record base (stride 0x18, 6 records)
 const IX = 0x8c50; // actor record (clear of the scan region and the pre-spawn window)
 const SP0 = 0x8ff0; // inside STACK_SCRATCH
 
@@ -64,8 +64,8 @@ function seat(m, { phase = 0x10, timer = 0x00, delay = 0x05, xPos = 0x10, latch 
   m.regs.b = xPos;
   m.regs.sp = SP0;
   m.mem.write8(IX + 0x06, phase);
-  m.mem.write8(IX + 0x08, latch); // loc_361d/resolveActorTargetUnlessCommitted guard bit
-  m.mem.write8(IX + 0x0b, 0x01); // loc_365d takes the count-scan path...
+  m.mem.write8(IX + 0x08, latch); // dispatchEndOfMoveIfFlagged/resolveActorTargetUnlessCommitted guard bit
+  m.mem.write8(IX + 0x0b, 0x01); // spawnObjectGatedByArmedActorCount takes the count-scan path...
   m.mem.write8(TIMER, timer);
   m.mem.write8(DELAY, delay);
   m.mem.write8(ROUND, 0x00);
@@ -73,12 +73,12 @@ function seat(m, { phase = 0x10, timer = 0x00, delay = 0x05, xPos = 0x10, latch 
   return m;
 }
 
-const craftLow = () => seat(BASE.clone(), { phase: 0x03, latch: 0x00 }); // -> loc_361d guard (inert)
+const craftLow = () => seat(BASE.clone(), { phase: 0x03, latch: 0x00 }); // -> dispatchEndOfMoveIfFlagged guard (inert)
 const craftHigh = () => seat(BASE.clone(), { phase: 0x20, latch: 0x01 }); // -> resolveActorTargetUnlessCommitted guard (inert)
 const craftGateRet = () => seat(BASE.clone(), { phase: 0x10, timer: 0x0e }); // progress gate -> early ret
 const craftDelayRun = () => seat(BASE.clone(), { delay: 0x05 }); // countdown -> dec + ret
 const craftFarRet = () => seat(BASE.clone(), { delay: 0x00, xPos: 0x90 }); // far actor -> ret
-const craftReload = () => seat(BASE.clone(), { delay: 0x00, xPos: 0x10 }); // reload -> loc_365d (inert)
+const craftReload = () => seat(BASE.clone(), { delay: 0x00, xPos: 0x10 }); // reload -> spawnObjectGatedByArmedActorCount (inert)
 
 const CASES = [
   ["phase<7 guard", craftLow],
@@ -96,7 +96,7 @@ test("EQUAL: every branch — module == oracle in RAM (−stack)", () => {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_362d(c);
+    dispatchActorPhaseGatedByDelay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -107,11 +107,11 @@ test("EQUAL: every branch — module == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: a running delay decrements; an early return leaves it untouched", () => {
   const run = craftDelayRun();
-  loc_362d(run);
+  dispatchActorPhaseGatedByDelay(run);
   assert.equal(run.mem.read8(DELAY), 0x04, "running delay decremented");
 
   const gate = craftGateRet();
-  loc_362d(gate);
+  dispatchActorPhaseGatedByDelay(gate);
   assert.equal(gate.mem.read8(DELAY), 0x05, "progress-gate return leaves the delay untouched");
   console.log("  WRITE-SET: delay decremented on countdown; untouched on early return");
 });
@@ -122,7 +122,7 @@ test("TEETH: a corrupted delay byte is CAUGHT by the RAM diff", () => {
   const o = craftDelayRun();
   const c = craftDelayRun();
   oracle(o);
-  loc_362d(c);
+  dispatchActorPhaseGatedByDelay(c);
   c.mem.write8(DELAY, (o.mem.read8(DELAY) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted delay byte");

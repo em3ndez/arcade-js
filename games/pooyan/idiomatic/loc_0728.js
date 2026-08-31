@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
-import { loc_0714 } from "./loc_0714.js";
+import { copySpriteAttrAndPositionRun } from "./copySpriteAttrAndPositionRun.js";
 /**
  * loc_0728 — tail of the sprite-attribute copy loop: step the record pointer and continue.
  *
@@ -14,6 +14,6 @@ import { loc_0714 } from "./loc_0714.js";
 export function loc_0728(m, src = m.regs.hl, rec = m.regs.ix, dst = m.regs.de, count = m.regs.b) {
   const nextRec = u16(rec + 1);
   const nextCount = u8(count - 1);
-  if (nextCount !== 0) return loc_0714(m, src, nextRec, dst, nextCount); // more iterations
+  if (nextCount !== 0) return copySpriteAttrAndPositionRun(m, src, nextRec, dst, nextCount); // more iterations
   return [(m.regs.ix = nextRec), (m.regs.de = dst)]; // loop done: IX/DE live-out
 }

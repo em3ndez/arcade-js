@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6bb2 (Pooyan) — countdown-gated promoted-object commit.
+ * Memory-equivalence test for commitPromotedObjectsAndClearHelpScreenOnCountdown (Pooyan) — countdown-gated promoted-object commit.
  *
  * Decrements PENDING_OBJECT_COUNTDOWN and returns while it is still nonzero. On the tick it reaches
  * zero it walks the 11 stride-3 records at PROMOTED_OBJECT_LIST: each record whose pointer high byte
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6bb2 as oracle } from "../../translated/loc_6bb2.js";
-import { loc_6bb2 } from "../loc_6bb2.js";
+import { commitPromotedObjectsAndClearHelpScreenOnCountdown } from "../commitPromotedObjectsAndClearHelpScreenOnCountdown.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -105,12 +105,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_6bb2 == oracle in RAM (−stack)", () => {
+test("EQUAL: commitPromotedObjectsAndClearHelpScreenOnCountdown == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_6bb2(c);
+    commitPromotedObjectsAndClearHelpScreenOnCountdown(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -150,7 +150,7 @@ test("TEETH: a corrupted target store is CAUGHT; fire vs early-return branches d
   const o = seat({ countdown: 0x01, rec0Active: true });
   const c = seat({ countdown: 0x01, rec0Active: true });
   oracle(o);
-  loc_6bb2(c);
+  commitPromotedObjectsAndClearHelpScreenOnCountdown(c);
   c.mem.write8(T1, (o.mem.read8(T1) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted target store");

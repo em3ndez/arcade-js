@@ -5,7 +5,7 @@
  * Every callee is lifted and dissolved to a direct call, so the module holds no emulated stack op;
  * the oracle drives the same work through push16/call/ret in STACK_SCRATCH. Equivalence is RAM
  * (dumpState) minus STACK_SCRATCH. There is no register live-out — the handler is dispatched by
- * jp (hl) and falls into the void loc_09f8 — so the register file is not compared.
+ * jp (hl) and falls into the void advanceFourObjectAnimsAndRebuildList — so the register file is not compared.
  *
  * The full path reads two redundant ROM tables that MUST match on an intact ROM (the byte pairs at
  * 0x07c9/0x0a65 are byte-identical, verified against maincpu.bin) so the spin-verify terminates, and
@@ -13,7 +13,7 @@
  *
  * Jobs:
  *   1. EQUAL — early path (row counter not drained -> return after the row fill) and full path
- *      (drained -> verify + fills + build + script block + fall into loc_09f8): oracle == buildAttractSpritesAndPrimeTextScript.
+ *      (drained -> verify + fills + build + script block + fall into advanceFourObjectAnimsAndRebuildList): oracle == buildAttractSpritesAndPrimeTextScript.
  *   2. WRITE-SET — the full path seats the script block (read/write pointers, timer, sub-state++,
  *      the two check-tick bytes); the early path leaves them untouched.
  *   3. TEETH — a wrong script byte is CAUGHT by the RAM diff.
@@ -38,8 +38,8 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const FILL_ROW_COUNTER = 0x8809; // loc_02ce decrements it; 0 -> drained -> full path
-const TILE_FILL_PTR = 0x880b; //    16-bit row-fill cursor loc_02ce advances
+const FILL_ROW_COUNTER = 0x8809; // blankFillRowAndStepCounter decrements it; 0 -> drained -> full path
+const TILE_FILL_PTR = 0x880b; //    16-bit row-fill cursor blankFillRowAndStepCounter advances
 const SCRIPT_FRAME_TIMER = 0x8e50;
 const ATTRACT_SUBSTATE = 0x8e51;
 const SCRIPT_ROW_CHECK = 0x8e52;

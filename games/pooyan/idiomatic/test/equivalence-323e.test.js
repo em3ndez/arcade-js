@@ -1,29 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_323e (ROM 0x323e, Pooyan) — "scan 4 display-list slots".
+ * Memory-equivalence test for scanDisplaySlotsAndTickBoardClear (ROM 0x323e, Pooyan) — "scan 4 display-list slots".
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side,
- * the oracle on one and loc_323e on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
+ * the oracle on one and scanDisplaySlotsAndTickBoardClear on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
  * pc/SP/registers are deliberately not compared.
  *
  * INPUTS: IX (record base) and B (loop count; the real callers preset B=4). For each slot whose
- * tag byte (IX+1) is 0x8c the routine runs loc_324d on that slot; IX steps by 2 each iteration.
+ * tag byte (IX+1) is 0x8c the routine runs tickHunterReturnCounterAndCheckBoardClear on that slot; IX steps by 2 each iteration.
  *
  * LIVE-OUT: none — the module walks the counter in a local and leaves no consumed register (the
  * oracle's advanced IX / drained B are unread by every caller, so they are not compared).
  *
- * loc_324d preserves B on every path exercised here (below-threshold skip, no-borrow drop, borrow
- * + paired dec, and the board-clear tail with TILE_CHECKSUM_LATCH pre-set so loc_3278 no-ops). The
+ * tickHunterReturnCounterAndCheckBoardClear preserves B on every path exercised here (below-threshold skip, no-borrow drop, borrow
+ * + paired dec, and the board-clear tail with TILE_CHECKSUM_LATCH pre-set so verifyPlayfieldTileChecksum no-ops). The
  * board-clear FULL-scan path (BOARD_CLEAR_FLAG set AND the latch clear) is the ONE state where
- * loc_3278 sets B=4 and djnz-drains it, clobbering the caller's counter mid-scan; the oracle's
+ * verifyPlayfieldTileChecksum sets B=4 and djnz-drains it, clobbering the caller's counter mid-scan; the oracle's
  * register-B loop would diverge from this local-counter loop there, so it is deliberately not
- * crafted (see the batch return notes) — the same state loc_324d's own gate also avoids.
+ * crafted (see the batch return notes) — the same state tickHunterReturnCounterAndCheckBoardClear's own gate also avoids.
  *
  * The leaf is not reached in a plain boot, so every case is CRAFTED (identical pokes on both sides).
  *
  * Jobs:
  *   1. EQUAL — over crafted 4-slot layouts (no match; match+skip; no-borrow; borrow; borrow+
- *      board-clear no-op), oracle == loc_323e in RAM (−stack).
+ *      board-clear no-op), oracle == scanDisplaySlotsAndTickBoardClear in RAM (−stack).
  *   2. WRITE-SET — a single borrow match writes only the counter cell and the paired byte.
  *   3. TEETH — a wrong counter byte is CAUGHT by the RAM diff.
  *
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_323e as oracle } from "../../translated/loc_323e.js";
-import { loc_323e } from "../loc_323e.js";
+import { scanDisplaySlotsAndTickBoardClear } from "../scanDisplaySlotsAndTickBoardClear.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -79,7 +79,7 @@ function craft(pokes) {
   return m;
 }
 
-// slot n's field-0 is REC+2n, its tag REC+2n+1. Tag 0x8c triggers loc_324d.
+// slot n's field-0 is REC+2n, its tag REC+2n+1. Tag 0x8c triggers tickHunterReturnCounterAndCheckBoardClear.
 const CASES = [
   { name: "no match (all tags != 0x8c)", pokes: [] },
   { name: "match slot0, below threshold (skip)", pokes: [[REC + 0, 0x30], [REC + 1, 0x8c]] },
@@ -92,7 +92,7 @@ const CASES = [
     pokes: [[REC + 4, 0x48], [REC + 5, 0x8c], [counterAddr(0x48), 0x10], [pairedAddr(0x48), 0x05]],
   },
   {
-    name: "match slot3, borrow + board-clear tail (loc_3278 no-op)",
+    name: "match slot3, borrow + board-clear tail (verifyPlayfieldTileChecksum no-op)",
     pokes: [
       [REC + 6, 0x4c], [REC + 7, 0x8c], [counterAddr(0x4c), 0x10], [pairedAddr(0x4c), 0x05],
       [BOARD_CLEAR_FLAG, 0x01], [TILE_CHECKSUM_LATCH, 0x01],
@@ -102,12 +102,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted 4-slot layouts — loc_323e == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted 4-slot layouts — scanDisplaySlotsAndTickBoardClear == oracle in RAM (−stack)", () => {
   for (const cse of CASES) {
     const o = craft(cse.pokes);
     oracle(o);
     const c = craft(cse.pokes);
-    loc_323e(c);
+    scanDisplaySlotsAndTickBoardClear(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -148,7 +148,7 @@ test("TEETH: a wrong counter byte is CAUGHT by the RAM diff", () => {
   const o = craft(pokes);
   const c = craft(pokes);
   oracle(o);
-  loc_323e(c);
+  scanDisplaySlotsAndTickBoardClear(c);
   c.mem8[counterAddr(field0)] = 0x00; // BUG: counter must be 0x50 - 0x40 = 0x10
 
   const d = ramDiffMinusStack(o, c);

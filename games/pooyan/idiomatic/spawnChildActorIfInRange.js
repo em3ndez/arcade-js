@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_13bc } from "./loc_13bc.js";
+import { spawnChildActorIntoFreeSpriteSlot } from "./spawnChildActorIntoFreeSpriteSlot.js";
 /**
  * spawnChildActorIfInRange — B-range guard in front of the child-actor spawn.
  *
@@ -14,5 +14,5 @@ const B_RANGE_LIMIT = 0x20; // B >= this: out of range
 
 export function spawnChildActorIfInRange(m, b = m.regs.b) {
   if (b >= B_RANGE_LIMIT) return (m.regs.a = b);
-  return loc_13bc(m);
+  return spawnChildActorIntoFreeSpriteSlot(m);
 }

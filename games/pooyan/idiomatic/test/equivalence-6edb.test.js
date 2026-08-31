@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6edb (ROM 0x6edb, Pooyan) — the phase-1 per-record driver and
+ * Memory-equivalence test for drivePhase1RecordsThenCheckCompletion (ROM 0x6edb, Pooyan) — the phase-1 per-record driver and
  * completion check. It runs the per-record state handler over the 14 enemy-actor records (0x8ae0,
  * stride 0x18); then, only if the launch script has reached its 0xff terminator AND all three
  * projectile slots are idle, it advances the intro phase, queues a display command, compares 3x the
@@ -10,9 +10,9 @@
  * NOTE: the three "projectile slots" scanned (0x8bea / 0x8c02 / 0x8c1a) are the state bytes (+0x02)
  * of records 11/12/13 — the slot scan overlaps the actor arena. So for completion those records must
  * hold state 0 (idle); the loop then runs advanceObjectAnimationFrame on them, which just decrements the frame-hold
- * (+0x0e) when it is nonzero. Records 0-10 hold state 0x0d, a loc_6f2d no-op.
+ * (+0x0e) when it is nonzero. Records 0-10 hold state 0x0d, a dispatchEnemyActorRecordState no-op.
  *
- * Comparison is the go-forward contract: RAM (dumpState) minus STACK_SCRATCH. The caller (loc_6e75)
+ * Comparison is the go-forward contract: RAM (dumpState) minus STACK_SCRATCH. The caller (runPhase1LauncherThenDriver)
  * returns straight after and reads no register back, so live-out is memory only (the closing fill
  * leaves A/HL/B, but nothing consumes them). The leaf is not reached in a plain boot, so every case
  * is CRAFTED.
@@ -31,10 +31,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6edb as oracle } from "../../translated/loc_6edb.js";
-import { loc_6edb } from "../loc_6edb.js";
-import { loc_6f2d } from "../loc_6f2d.js";
-import { loc_0038 } from "../loc_0038.js";
-import { loc_0010 } from "../loc_0010.js";
+import { drivePhase1RecordsThenCheckCompletion } from "../drivePhase1RecordsThenCheckCompletion.js";
+import { dispatchEnemyActorRecordState } from "../dispatchEnemyActorRecordState.js";
+import { enqueueDisplayCommand } from "../enqueueDisplayCommand.js";
+import { fillByteRun } from "../fillByteRun.js";
 import { u16 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -64,7 +64,7 @@ const test = ROM_PRESENT
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 const STRIDE = 0x18;
-const NOOP_STATE = 0x00; // a registered loc_6f2d path (state 0 -> advanceObjectAnimationFrame, which just decrements a set frame-hold)
+const NOOP_STATE = 0x00; // a registered dispatchEnemyActorRecordState path (state 0 -> advanceObjectAnimationFrame, which just decrements a set frame-hold)
 const SCRIPT_PTR_TARGET = 0x8d00; // where LAUNCH_SCRIPT_PTR is aimed (clear of every write)
 
 function ramDiffMinusStack(ma, mb) {
@@ -117,7 +117,7 @@ test("EQUAL: script not finished -> early return, RAM identical", () => {
   const o = craft({ scriptTerm: false, slotsIdle: false });
   const c = craft({ scriptTerm: false, slotsIdle: false });
   oracle(o);
-  loc_6edb(c);
+  drivePhase1RecordsThenCheckCompletion(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL(script-unfinished): early return, RAM identical");
@@ -127,7 +127,7 @@ test("EQUAL: slot busy -> early return, RAM identical", () => {
   const o = craft({ scriptTerm: true, slotsIdle: false });
   const c = craft({ scriptTerm: true, slotsIdle: false });
   oracle(o);
-  loc_6edb(c);
+  drivePhase1RecordsThenCheckCompletion(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL(slot-busy): early return, RAM identical");
@@ -137,7 +137,7 @@ test("EQUAL: completion, target/tally MISMATCH -> phase advanced (not forced)", 
   const o = craft({ scriptTerm: true, slotsIdle: true, targetGroup: 2, hit: 0, freeRing: true });
   const c = craft({ scriptTerm: true, slotsIdle: true, targetGroup: 2, hit: 0, freeRing: true });
   oracle(o);
-  loc_6edb(c);
+  drivePhase1RecordsThenCheckCompletion(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assert.equal(o.mem.read8(INTRO_PHASE_INDEX), 0x01, "mismatch advances phase 0->1 (not forced to 4)");
@@ -148,7 +148,7 @@ test("EQUAL: completion, target/tally MATCH -> phase forced to 4", () => {
   const o = craft({ scriptTerm: true, slotsIdle: true, targetGroup: 2, hit: 6, freeRing: true });
   const c = craft({ scriptTerm: true, slotsIdle: true, targetGroup: 2, hit: 6, freeRing: true });
   oracle(o);
-  loc_6edb(c);
+  drivePhase1RecordsThenCheckCompletion(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assert.equal(o.mem.read8(INTRO_PHASE_INDEX), 0x04, "match forces phase to 4");
@@ -180,19 +180,19 @@ test("WRITE-SET: completion footprint (phase, intro delay, target block, queued 
 function brokenNoPhaseAdvance(m) {
   const { mem8 } = m;
   let r = ENEMY_ACTOR_TABLE;
-  for (let i = 0; i < 14; i++) { loc_6f2d(m, r); r = u16(r + STRIDE); }
+  for (let i = 0; i < 14; i++) { dispatchEnemyActorRecordState(m, r); r = u16(r + STRIDE); }
   const script = mem8[LAUNCH_SCRIPT_PTR] | (mem8[u16(LAUNCH_SCRIPT_PTR + 1)] << 8);
   if (mem8[script] !== 0xff) return;
   let slot = PROJECTILE_SLOT_STATE;
   for (let i = 0; i < 3; i++) { if (mem8[slot] !== 0) return; slot = u16(slot + STRIDE); }
   // BUG: forgot to advance INTRO_PHASE_INDEX here
-  loc_0038(m, PHASE1_COMPLETE_DISPLAY_CMD);
+  enqueueDisplayCommand(m, PHASE1_COMPLETE_DISPLAY_CMD);
   const target3 = (mem8[TARGET_GROUP_COUNT] * 3) & 0xff;
   let cmd = TARGET_MISMATCH_DISPLAY_CMD;
   if (target3 === mem8[HIT_TALLY]) { mem8[INTRO_PHASE_INDEX] = 0x04; cmd = TARGET_MATCH_DISPLAY_CMD; }
   mem8[INTRO_DELAY_CKSUM_WORD] = 0x40;
-  loc_0038(m, cmd);
-  loc_0010(m, ENEMY_TARGET_REC0, 0x00, 0x30);
+  enqueueDisplayCommand(m, cmd);
+  fillByteRun(m, ENEMY_TARGET_REC0, 0x00, 0x30);
 }
 
 test("TEETH: a twin skipping the phase advance is caught in RAM", () => {
@@ -210,7 +210,7 @@ test("TEETH: a wrong target-clear byte is caught in RAM", () => {
   const o = craft({ scriptTerm: true, slotsIdle: true, targetGroup: 2, hit: 0, dirtyTarget: true, freeRing: true });
   const c = craft({ scriptTerm: true, slotsIdle: true, targetGroup: 2, hit: 0, dirtyTarget: true, freeRing: true });
   oracle(o);
-  loc_6edb(c);
+  drivePhase1RecordsThenCheckCompletion(c);
   c.mem.write8((ENEMY_TARGET_REC0 + 0x10) & 0xffff, 0x99); // BUG: a cell left non-zero
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a dirty target cell — it is worthless");

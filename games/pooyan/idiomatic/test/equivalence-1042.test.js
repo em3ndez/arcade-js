@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1042 (Pooyan) — per-frame setup of the lead-actor control byte.
+ * Memory-equivalence test for generatePlayerControlInput (Pooyan) — per-frame setup of the lead-actor control byte.
  *
  * Always sets LAUNCH_ARMED_FLAG := 1. Then: an inactive slot (ACTOR_TABLE+0x02 != 0) OR a global
  * pause/teardown (WAVE_TEARDOWN_STATE | SECONDARY_TEARDOWN_FLAG != 0) clears the control byte
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1042 as oracle } from "../../translated/loc_1042.js";
-import { loc_1042 } from "../loc_1042.js";
+import { generatePlayerControlInput } from "../generatePlayerControlInput.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -84,12 +84,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1042 == oracle in RAM (−stack)", () => {
+test("EQUAL: generatePlayerControlInput == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_1042(c);
+    generatePlayerControlInput(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -131,7 +131,7 @@ test("TEETH: a corrupted control byte is CAUGHT; branches are load-bearing", () 
   const o = seat({ flip: 0x01, subtimer: 0x01 });
   const c = seat({ flip: 0x01, subtimer: 0x01 });
   oracle(o);
-  loc_1042(c);
+  generatePlayerControlInput(c);
   c.mem.write8(CONTROL, (o.mem.read8(CONTROL) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted control byte");

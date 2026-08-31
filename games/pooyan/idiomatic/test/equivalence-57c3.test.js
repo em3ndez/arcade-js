@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_57c3 (ROM 0x57c3, Pooyan) — the sub-state head.
+ * Memory-equivalence test for decrementPhaseCounterAndDispatchSpawnOrStep (ROM 0x57c3, Pooyan) — the sub-state head.
  *
  * `dec b` splits the entry: a counter that reaches 0 (was 1) hands off to the spawn-or-step entry
- * (loc_5835), every other value to the animation-advance stepper (loc_57c6). Both are tail hand-offs
+ * (spawnSpecialActorElseStep), every other value to the animation-advance stepper (advanceEagleStageTimersAndLatchMoveElseRearm). Both are tail hand-offs
  * reusing the caller's frame; the decremented counter is threaded through the register bridge so a
  * delegate that returns without rewriting B leaves the oracle's value behind. The whole subtree runs
  * on both sides from an identical clone.
  *
  * SEATING: TAIL-CALL — the seating is the delegate's. Compared on RAM (dumpState) minus STACK_SCRATCH;
  * B is additionally compared where the delegate leaves it untouched, since B is the routine's only
- * register effect. Cases are CRAFTED. Green once the batch cluster (loc_5835 / loc_57c6 /
+ * register effect. Cases are CRAFTED. Green once the batch cluster (spawnSpecialActorElseStep / advanceEagleStageTimersAndLatchMoveElseRearm /
  * verifyTableChecksum) is present.
  *
  * Jobs:
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_57c3 as oracle } from "../../translated/loc_57c3.js";
-import { loc_57c3 } from "../loc_57c3.js";
+import { decrementPhaseCounterAndDispatchSpawnOrStep } from "../decrementPhaseCounterAndDispatchSpawnOrStep.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -72,12 +72,12 @@ const craftSpawn = () => seat(BASE.clone(), 0x01, { active: 0x00 });
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: stepper (b!=1) and spawn (b==1) — loc_57c3 == oracle in RAM (−stack)", () => {
+test("EQUAL: stepper (b!=1) and spawn (b==1) — decrementPhaseCounterAndDispatchSpawnOrStep == oracle in RAM (−stack)", () => {
   for (const [label, craft] of [["stepper", craftStep], ["spawn", craftSpawn]]) {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_57c3(c);
+    decrementPhaseCounterAndDispatchSpawnOrStep(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -85,7 +85,7 @@ test("EQUAL: stepper (b!=1) and spawn (b==1) — loc_57c3 == oracle in RAM (−s
   const os = craftStep();
   const cs = craftStep();
   oracle(os);
-  loc_57c3(cs);
+  decrementPhaseCounterAndDispatchSpawnOrStep(cs);
   assert.equal(cs.regs.b & 0xff, os.regs.b & 0xff, "decremented B must equal the oracle (stepper leaves it)");
   assert.equal(cs.regs.b & 0xff, 0x02, "sanity: dec b from 3 -> 2, untouched by the stepper");
   console.log(`  EQUAL: stepper + spawn identical (RAM −stack); B=${hx(cs.regs.b & 0xff)} threaded`);
@@ -142,7 +142,7 @@ test("TEETH: a non-decremented B is CAUGHT by the register compare", () => {
   const o = craftStep();
   const c = craftStep();
   oracle(o);
-  loc_57c3(c);
+  decrementPhaseCounterAndDispatchSpawnOrStep(c);
   c.regs.b = 0x03; // BUG: dec b was skipped -> B stayed at the entry value
   assert.notEqual(c.regs.b & 0xff, o.regs.b & 0xff, "the register compare FAILED to catch a skipped dec b");
   console.log("  TEETH(register-B): skipped dec b caught");
@@ -168,7 +168,7 @@ test("TEETH: a wrong stepper field is CAUGHT by the RAM diff", () => {
   const o = craftStep();
   const c = craftStep();
   oracle(o);
-  loc_57c3(c);
+  decrementPhaseCounterAndDispatchSpawnOrStep(c);
   c.mem.write8(REC + 0x13, 0xff); // BUG: the latched move dir must be 2
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong latched field");

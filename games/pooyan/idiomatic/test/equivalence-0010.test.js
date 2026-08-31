@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0010 (Pooyan) — "fill a run of bytes": write the fill byte
+ * Memory-equivalence test for fillByteRun (Pooyan) — "fill a run of bytes": write the fill byte
  * into `count` cells from a start pointer, advancing the pointer, where a zero counter means a
  * full 256.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES RAM, so
- * each case runs the oracle on one FRESH clone and loc_0010 on another, compared on:
+ * each case runs the oracle on one FRESH clone and fillByteRun on another, compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH)  +  the declared register live-out (HL).
  *
@@ -20,7 +20,7 @@
  * identical (start, fill, len) poked on both sides.
  *
  * Jobs:
- *   1. EQUAL (crafted) — over curated (start, fill, len) triples oracle == loc_0010 in RAM(−stack)
+ *   1. EQUAL (crafted) — over curated (start, fill, len) triples oracle == fillByteRun in RAM(−stack)
  *      and in HL, and the module SETS HL on its own clone (the side effect the caller reads).
  *   2. WRITE-SET — the oracle's only writes are the `count` filled cells, each := fill.
  *   3. CRAFTED (zero counter) — len 0 fills a full 256 cells (the djnz wrap), checked explicitly.
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0010 as oracle } from "../../translated/loc_0010.js";
-import { loc_0010 } from "../loc_0010.js";
+import { fillByteRun } from "../fillByteRun.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -92,12 +92,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted (start,fill,len) — loc_0010 == oracle in RAM(−stack) + HL", () => {
+test("EQUAL: crafted (start,fill,len) — fillByteRun == oracle in RAM(−stack) + HL", () => {
   for (const { start, fill, len } of CASES) {
     const o = craft(start, fill, len);
     const c = craft(start, fill, len);
     oracle(o);
-    const ret = loc_0010(c);
+    const ret = fillByteRun(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b} (start=${hx(start)} len=${len})`);
@@ -144,7 +144,7 @@ test("CRAFTED: a zero counter fills a full 256 cells", () => {
   const o = craft(start, fill, 0);
   const c = craft(start, fill, 0);
   oracle(o);
-  const ret = loc_0010(c);
+  const ret = fillByteRun(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
@@ -164,7 +164,7 @@ test("TEETH: a wrong last filled byte is CAUGHT by the RAM diff", () => {
   const o = craft(start, fill, len);
   const c = craft(start, fill, len);
   oracle(o);
-  loc_0010(c);
+  fillByteRun(c);
   c.mem.write8(last, (fill ^ 0xff) & 0xff); // BUG: wrong byte at the last filled cell
 
   const d = ramDiffMinusStack(o, c);
@@ -178,7 +178,7 @@ test("TEETH: an under-advanced HL is REJECTED by the live-out check", () => {
   const o = craft(start, fill, len);
   const c = craft(start, fill, len);
   oracle(o);
-  const ret = loc_0010(c);
+  const ret = fillByteRun(c);
   assert.equal(ret & 0xffff, o.regs.hl & 0xffff, "sanity: the module's HL matches the oracle");
   // one cell short (start+len-1) is the plausible off-by-one the === check must reject
   assert.notEqual((start + len - 1) & 0xffff, o.regs.hl & 0xffff, "the live-out check must reject an under-advanced HL");

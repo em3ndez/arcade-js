@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_1016 — the active-play sub-state handler, a pure void sequencer
+ * Memory-equivalence gate for runActivePlayFrame — the active-play sub-state handler, a pure void sequencer
  * that invokes ten subsystem handlers in fixed ROM order and returns.
  *
  * The module dissolves all ten m.call sites to direct idiomatic calls; the oracle drives the same
  * ten frozen handlers through the routines map. This gate COMPOSES the real idiomatic subtree and
- * checks oracle == module in RAM (dumpState, minus STACK_SCRATCH). loc_1016 has no register
+ * checks oracle == module in RAM (dumpState, minus STACK_SCRATCH). runActivePlayFrame has no register
  * live-out (it consumes none of the handlers' results), so only RAM is compared; SP sits in dead stack.
  *
  * Two arms are seated: an idle boot state (the composition is exercised with a near-empty footprint)
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1016 as oracle } from "../../translated/loc_1016.js";
-import { loc_1016 } from "../loc_1016.js";
+import { runActivePlayFrame } from "../runActivePlayFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -90,7 +90,7 @@ test("EQUAL: idle + tenth-handler-active — module == oracle in RAM (−stack)"
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_1016(c);
+    runActivePlayFrame(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -108,7 +108,7 @@ test("COMPOSITION: the tenth handler runs — slot freed and head advanced", () 
   assert.equal(o.mem.read8(SOUND_RING_READ_PTR), RING_HEAD_FIRST + 1, "oracle: tenth handler advanced the head");
 
   const c = craftTenth();
-  loc_1016(c);
+  runActivePlayFrame(c);
   assert.equal(c.mem.read8(HIGH_SCORE_TABLE + RING_HEAD_FIRST), SLOT_EMPTY, "module: tenth handler freed the slot");
   assert.equal(c.mem.read8(SOUND_RING_READ_PTR), RING_HEAD_FIRST + 1, "module: tenth handler advanced the head");
   console.log("  COMPOSITION: the tenth handler executed (slot freed, head advanced)");
@@ -120,7 +120,7 @@ test("TEETH: a wrong head index is caught by the RAM diff", () => {
   const o = craftTenth();
   const c = craftTenth();
   oracle(o);
-  loc_1016(c);
+  runActivePlayFrame(c);
   c.mem.write8(SOUND_RING_READ_PTR, RING_HEAD_FIRST); // BUG: the drain must have advanced the head
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong head index — it is worthless");

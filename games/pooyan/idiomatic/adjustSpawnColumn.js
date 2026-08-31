@@ -6,7 +6,7 @@ import { STAGE_COUNTDOWN, WAVE_PROGRESS_COUNTER } from "./names.js";
  *
  * ROM 0x57b4-0x57c2. Grounding: [seen].
  *
- * ROLE. When the enemy-travel tick (loc_12af) decides to release a new formation child, it needs a
+ * ROLE. When the enemy-travel tick (advanceEnemyTravelAndSpawnChildActors) decides to release a new formation child, it needs a
  * screen column to spawn it in. This little pure helper takes the column the caller has already
  * chosen (in C) and, under two conditions, slides it further along by however far the current wave
  * has progressed past a fixed threshold. The effect is that early in a stage, as the wave gets

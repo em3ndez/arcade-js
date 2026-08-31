@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1219 (Pooyan) — the per-record state sweep. Walks the 14 enemy
+ * Memory-equivalence test for stepEnemyActorStates (Pooyan) — the per-record state sweep. Walks the 14 enemy
  * actor records at 0x8ae0 (stride 0x18) in order, running the per-record state dispatcher
- * (loc_122c) on each and passing it the record pointer.
+ * (stepEnemyActorState) on each and passing it the record pointer.
  *
  * SEATING: BALANCED-WIRE. The oracle ends with a plain `ret` (net SP 0); each per-record dispatch
  * is a plain call that returns to the sweep — the sweep seats no return slot. A void driver — no
@@ -12,7 +12,7 @@
  * The states are CRAFTED: records 0 and 13 are seated to pass the dispatcher gate and route to the
  * frame-hold state handler (index 2) with their pre-step and hold fields kept high, so each dispatch
  * just decrements two record-local counters and returns — a contained, observable footprint. The
- * other 12 records are gate-inert. That isolates loc_1219's own job — the base, stride, order, and
+ * other 12 records are gate-inert. That isolates stepEnemyActorStates's own job — the base, stride, order, and
  * count of the walk — from the handlers' internals, which their own gates cover.
  *
  * Jobs:
@@ -30,8 +30,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1219 as oracle } from "../../translated/loc_1219.js";
-import { loc_1219 } from "../loc_1219.js";
-import { loc_122c } from "../loc_122c.js";
+import { stepEnemyActorStates } from "../stepEnemyActorStates.js";
+import { stepEnemyActorState } from "../stepEnemyActorState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_ACTOR_TABLE } from "../names.js";
@@ -92,7 +92,7 @@ for (const [label, craft] of [["inert (all gate-fail)", craftInert], ["rich (rec
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_1219(c);
+    stepEnemyActorStates(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     console.log(`  EQUAL ${label}: RAM identical`);
@@ -121,7 +121,7 @@ test("TEETH: a wrong record byte is CAUGHT by the RAM diff", () => {
   const o = craftRich();
   const c = craftRich();
   oracle(o);
-  loc_1219(c);
+  stepEnemyActorStates(c);
   const addr = EAT + 13 * STRIDE + HOLD;
   c.mem.write8(addr, (o.mem.read8(addr) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
@@ -135,8 +135,8 @@ test("TEETH: a short sweep (13 records, last dropped) diverges at the missed rec
   const twin = craftRich();
   oracle(o);
   let rec = EAT;
-  // mirror loc_1219's per-record IX bridge (the dispatched handlers read the record through IX)
-  for (let i = 0; i < COUNT - 1; i++) { twin.regs.ix = rec; loc_122c(twin, rec); rec += STRIDE; } // drops record 13
+  // mirror stepEnemyActorStates's per-record IX bridge (the dispatched handlers read the record through IX)
+  for (let i = 0; i < COUNT - 1; i++) { twin.regs.ix = rec; stepEnemyActorState(twin, rec); rec += STRIDE; } // drops record 13
   const d = ramDiffMinusStack(o, twin);
   assert.notEqual(d, null, "a dropped record must be caught");
   assert.ok(d.addr >= EAT + 13 * STRIDE && d.addr < EAT + 14 * STRIDE,

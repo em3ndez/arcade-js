@@ -10,7 +10,7 @@
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * The effect is memory-only: the oracle leaves the terminator in A and the advanced DE/HL in the
- * CPU, but its fall-through caller (loc_1b43 -> its dispatcher) reads none of them, so there is no
+ * CPU, but its fall-through caller (rebuildFieldAndLatchPlayStateWithTamperCheck -> its dispatcher) reads none of them, so there is no
  * return value to compare. pc/SP are not in dumpState.
  *
  * Jobs:
@@ -50,7 +50,7 @@ const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr <
 
 const DST = DISPLAY_MSG_BUF; // 0x89f0: the live destination (message tile buffer)
 const SRC = 0x8b00;          // a scratch RAM source region for the crafted arm
-const REAL_SRC = 0x1ff2;     // the exact ROM source the live caller (loc_1b43) seeds
+const REAL_SRC = 0x1ff2;     // the exact ROM source the live caller (rebuildFieldAndLatchPlayStateWithTamperCheck) seeds
 const DIRT = 0xaa;
 
 /** First RAM difference on the go-forward contract: dumpState minus the dead STACK_SCRATCH. */

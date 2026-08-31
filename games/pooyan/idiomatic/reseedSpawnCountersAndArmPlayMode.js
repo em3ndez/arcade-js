@@ -11,7 +11,7 @@ import {
 } from "./names.js";
 import { resetBoardRamAndReseedSpawnCounters } from "./resetBoardRamAndReseedSpawnCounters.js";
 import { saveLiveStateToPlayerBank } from "./saveLiveStateToPlayerBank.js";
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { resetGameToAttractState } from "./resetGameToAttractState.js";
 /**
  * reseedSpawnCountersAndArmPlayMode — gameplay-state handler. Reseeds the spawn counters, seats the sprite attribute
@@ -38,7 +38,7 @@ export function reseedSpawnCountersAndArmPlayMode(m) {
   if (mem8[GAME_ACTIVE_FLAG] === 0) return resetGameToAttractState(m); // credit gate closed
 
   if (mem8[PLAY_MODE_LATCH] !== 0) {
-    loc_0010(m, DISPLAY_LIST_SRC_PTR, 0x00, 0x10); // latch set: clear the block
+    fillByteRun(m, DISPLAY_LIST_SRC_PTR, 0x00, 0x10); // latch set: clear the block
     return saveLiveStateToPlayerBank(m, 0x81);
   }
 

@@ -11,7 +11,7 @@ import { reseedSpawnCountersAndArmPlayMode } from "./reseedSpawnCountersAndArmPl
 import { queueSoundCommands82And95 } from "./queueSoundCommands82And95.js";
 import { resetBoardRamAndReseedSpawnCounters } from "./resetBoardRamAndReseedSpawnCounters.js";
 import { renderPhaseGauge } from "./renderPhaseGauge.js";
-import { loc_1a96 } from "./loc_1a96.js";
+import { advancePlayStateThenInsertHighScore } from "./advancePlayStateThenInsertHighScore.js";
 import { resetGameToAttractState } from "./resetGameToAttractState.js";
 /**
  * advancePhaseGaugeCountdown — gameplay-state entry. While the play-mode latch is set it tails to the gameplay-state
@@ -34,9 +34,9 @@ export function advancePhaseGaugeCountdown(m) {
 
   if (mem8[GAME_ACTIVE_FLAG] === 0) return resetGameToAttractState(m); // credit gate closed
 
-  if (mem8[GAUGE_PHASE_COUNTER] === 0) return loc_1a96(m); // count already 0
+  if (mem8[GAUGE_PHASE_COUNTER] === 0) return advancePlayStateThenInsertHighScore(m); // count already 0
   mem8[GAUGE_PHASE_COUNTER] = mem8[GAUGE_PHASE_COUNTER] - 1;
-  if (mem8[GAUGE_PHASE_COUNTER] === 0) return loc_1a96(m); // count reached 0
+  if (mem8[GAUGE_PHASE_COUNTER] === 0) return advancePlayStateThenInsertHighScore(m); // count reached 0
 
   renderPhaseGauge(m);
   mem8[PLAY_STATE_INDEX] = mem8[ACTIVE_PLAYER] !== 0 ? 0x0b : 0x0a;

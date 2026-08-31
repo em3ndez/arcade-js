@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1d6e (Pooyan) — countdown-timer tick with branch on landing value.
+ * Memory-equivalence test for announceBonusStageAndStartPlay (Pooyan) — countdown-timer tick with branch on landing value.
  *
  * Every call decrements the timer (LAUNCH_SCRIPT_PTR). Then, on the PRE-decrement value: 0x40 (the
  * boundary) runs the code-integrity check, enqueues the bonus-stage banner display command, and
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1d6e as oracle } from "../../translated/loc_1d6e.js";
-import { loc_1d6e } from "../loc_1d6e.js";
+import { announceBonusStageAndStartPlay } from "../announceBonusStageAndStartPlay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -78,12 +78,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1d6e == oracle in RAM (−stack)", () => {
+test("EQUAL: announceBonusStageAndStartPlay == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_1d6e(c);
+    announceBonusStageAndStartPlay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -125,7 +125,7 @@ test("TEETH: a corrupted output is CAUGHT; branches are load-bearing", () => {
   const o = seat({ value: 0x00, round: 0x00 });
   const c = seat({ value: 0x00, round: 0x00 });
   oracle(o);
-  loc_1d6e(c);
+  announceBonusStageAndStartPlay(c);
   c.mem.write8(PLAY_MODE_LATCH, (o.mem.read8(PLAY_MODE_LATCH) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted latch byte");

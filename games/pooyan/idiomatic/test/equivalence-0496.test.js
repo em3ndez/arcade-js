@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0496 (ROM 0x0496, Pooyan) — "accrue the active player's score and
+ * Memory-equivalence test for accrueScoreAndUpdateHighScore (ROM 0x0496, Pooyan) — "accrue the active player's score and
  * keep the high score in step". Gated on GAME_ACTIVE_FLAG (0x8806) bit 0. The award index (A) picks a
  * 3-byte BCD increment: index 0 -> the per-frame increment (0x88ab); any other index -> the award
  * table (0x0501, stride 3). The increment is BCD-added into the active player's counter (P1 0x88a2 /
- * P2 0x88a5, selected by ACTIVE_PLAYER 0x880d), the counter's column is repainted (loc_056b), then the
+ * P2 0x88a5, selected by ACTIVE_PLAYER 0x880d), the counter's column is repainted (drawBcdCounterColumn), then the
  * counter is compared MSB-first with the high score (0x88a8) and, if strictly greater, copied over it
  * and repainted with the high-score selector.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine writes work RAM and
  * video RAM (via the repaint), so every case uses a FRESH clone per side, compared on RAM (dumpState,
- * minus STACK_SCRATCH). The module and oracle repaint through the two forms of loc_056b (idiomatic vs
- * translated), which agree by loc_056b's own gate — so the compared RAM includes the painted columns.
+ * minus STACK_SCRATCH). The module and oracle repaint through the two forms of drawBcdCounterColumn (idiomatic vs
+ * translated), which agree by drawBcdCounterColumn's own gate — so the compared RAM includes the painted columns.
  *
  * LIVE-OUT: none — memory-only. Reached only by table dispatch; no caller reads a result register.
  *
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0496 as oracle } from "../../translated/loc_0496.js";
-import { loc_0496 } from "../loc_0496.js";
+import { accrueScoreAndUpdateHighScore } from "../accrueScoreAndUpdateHighScore.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -108,12 +108,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted accrue cases — loc_0496 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted accrue cases — accrueScoreAndUpdateHighScore == oracle in RAM (−stack)", () => {
   for (const { name, opts } of CASES) {
     const o = craft(opts);
     const c = craft(opts);
     oracle(o);
-    loc_0496(c);
+    accrueScoreAndUpdateHighScore(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -128,7 +128,7 @@ test("WRITE-SET: a new-high-score case changes the identical set (counter + high
   // never lists, hiding those cells from the footprint check below.
   const opts = { player: 0, counter: [0, 0, 0], inc: [0x50, 0x34, 0x12], high: [0, 0, 0] };
   const oSet = changedAddrs(craft(opts), oracle);
-  const cSet = changedAddrs(craft(opts), loc_0496);
+  const cSet = changedAddrs(craft(opts), accrueScoreAndUpdateHighScore);
   assert.deepEqual(cSet, oSet, "module and oracle must change the identical cell set");
   // The counter's LSB and every high-score byte must be in the footprint.
   for (const cell of [P1_COUNTER, HIGH, HIGH + 1, HIGH + 2]) {
@@ -146,7 +146,7 @@ test("TEETH: a wrong counter byte is CAUGHT by the RAM diff", () => {
   const o = craft(opts);
   const c = craft(opts);
   oracle(o);
-  loc_0496(c);
+  accrueScoreAndUpdateHighScore(c);
   c.mem.write8(P1_COUNTER, (c.mem.read8(P1_COUNTER) ^ 0x01) & 0xff); // BUG: wrong accrued LSB
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong counter byte — it is worthless");

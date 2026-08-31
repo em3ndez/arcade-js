@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for stampSecondScrollColumn (ROM 0x1d0d, Pooyan) — the second scroll column's tile stamp.
- * It writes tile 0x01 to the column top (0x8740) then re-emits loc_1ce7's shared tail: 0x25 one row
+ * It writes tile 0x01 to the column top (0x8740) then re-emits stampCappedTileColumnUp's shared tail: 0x25 one row
  * up (0x8720), 0x20 two rows up (0x8700). Fixed addresses/values -> no input registers.
  *
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState, minus

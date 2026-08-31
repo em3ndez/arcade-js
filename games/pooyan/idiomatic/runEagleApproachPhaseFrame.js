@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_20d4 } from "./loc_20d4.js";
+import { dispatchPerFrameActorUpdatePasses } from "./dispatchPerFrameActorUpdatePasses.js";
 import { advanceEagleApproachAndPaintGridMarker } from "./advanceEagleApproachAndPaintGridMarker.js";
 
 /**
@@ -13,5 +13,5 @@ import { advanceEagleApproachAndPaintGridMarker } from "./advanceEagleApproachAn
  */
 export function runEagleApproachPhaseFrame(m) {
   advanceEagleApproachAndPaintGridMarker(m);
-  loc_20d4(m);
+  dispatchPerFrameActorUpdatePasses(m);
 }

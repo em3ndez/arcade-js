@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_33ca (ROM 0x33ca, Pooyan) — the shared "turn-select" tail (also
- * loc_33bd's fall-through and its 0x3407 call target). Looks the low nibble of the spawn-phase
+ * Memory-equivalence test for seatTurnAnimationFromColumnLimit (ROM 0x33ca, Pooyan) — the shared "turn-select" tail (also
+ * advanceEnemyState0AndArmFlapReset's fall-through and its 0x3407 call target). Looks the low nibble of the spawn-phase
  * snapshot up in the rst-0x20 byte table (0x3418), latches the value as the turn-column limit, and
  * compares it against the record's target column (rec+0x06): above -> frame 0 + straight table
  * (0x3829); below -> frame 1 + turn table (0x3838); equal -> gate on the aim (rec+0x09) vs the
  * sub-position (rec+0x05), seating frame=aim + 0x3838 when the aim is below, else deferring to
- * loc_3473. Every non-defer arm writes rec+0x08 and installs the animation (setActorAnimation).
+ * armInteriorBandOrMarkActorActive. Every non-defer arm writes rec+0x08 and installs the animation (setActorAnimation).
  *
- * Cycle-free / memory-equivalence gate: a fresh clone per side, oracle on one and loc_33ca on the
+ * Cycle-free / memory-equivalence gate: a fresh clone per side, oracle on one and seatTurnAnimationFromColumnLimit on the
  * other, compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are NOT compared, and there
  * is NO register live-out (the record-dispatch caller reloads A on return and reads no other register
- * back). The oracle's rst-0x20 lookup and its loc_3473 tail call/push/ret land inside STACK_SCRATCH.
+ * back). The oracle's rst-0x20 lookup and its armInteriorBandOrMarkActorActive tail call/push/ret land inside STACK_SCRATCH.
  *
  * The 0x3418 table's phase-0 entry is read from ROM so the crafted targets steer each branch
  * deterministically. The leaf is not reached in a plain boot, so every case is CRAFTED (identical
  * pokes on both sides), the record pre-dirtied to 0xAA so every real write is observable.
  *
  * Jobs:
- *   1. EQUAL — the three limit-vs-target arms plus the equal/defer(loc_3473) arm agree in RAM (−stack).
+ *   1. EQUAL — the three limit-vs-target arms plus the equal/defer(armInteriorBandOrMarkActorActive) arm agree in RAM (−stack).
  *   2. WRITE-SET — the limit>target arm writes exactly the limit cell + rec+0x08 + the anim triple.
  *   3. TEETH — a wrong frame byte and a wrong limit cell are each CAUGHT by the RAM diff.
  *   4. SP-TOOTH — the idiomatic call returns SP-neutral (seam-placeable); a leaked stack word is NOT.
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_33ca as oracle } from "../../translated/loc_33ca.js";
-import { loc_33ca } from "../loc_33ca.js";
+import { seatTurnAnimationFromColumnLimit } from "../seatTurnAnimationFromColumnLimit.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -80,7 +80,7 @@ function craft(f) {
   m.mem.write8(TURN_COLUMN_LIMIT, DIRT); // sentinel so the limit write is observable
   m.mem.write8(ANIM_ARMED_LATCH, f.armed ?? 0x00);
   m.regs.ix = REC;
-  m.regs.sp = 0x8fe0; // deep in STACK_SCRATCH: the rst-0x20 lookup + loc_3473 tail stay inside
+  m.regs.sp = 0x8fe0; // deep in STACK_SCRATCH: the rst-0x20 lookup + armInteriorBandOrMarkActorActive tail stay inside
   return m;
 }
 
@@ -88,17 +88,17 @@ const CASES = [
   { name: "limit>target -> frame0 + 0x3829", f: { target: LIMIT0 - 1 } },
   { name: "limit<target -> frame1 + 0x3838", f: { target: LIMIT0 + 1 } },
   { name: "limit==target, aim<subpos -> frame=aim + 0x3838", f: { target: LIMIT0, aim: 0x03, subpos: 0x10 } },
-  { name: "limit==target, aim>=subpos -> defer loc_3473", f: { target: LIMIT0, aim: 0x20, subpos: 0x10, armed: 0x01 } },
+  { name: "limit==target, aim>=subpos -> defer armInteriorBandOrMarkActorActive", f: { target: LIMIT0, aim: 0x20, subpos: 0x10, armed: 0x01 } },
 ];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted limit-vs-target arms — loc_33ca == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted limit-vs-target arms — seatTurnAnimationFromColumnLimit == oracle in RAM (−stack)", () => {
   for (const cse of CASES) {
     const o = craft(cse.f);
     oracle(o);
     const c = craft(cse.f);
-    loc_33ca(c);
+    seatTurnAnimationFromColumnLimit(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -108,11 +108,11 @@ test("EQUAL: crafted limit-vs-target arms — loc_33ca == oracle in RAM (−stac
 // -- 2. WRITE-SET -------------------------------------------------------------
 
 test("WRITE-SET: the limit>target arm writes exactly the limit cell + rec+0x08 + the anim triple", () => {
-  const f = { target: LIMIT0 - 1 }; // frame 0 + straight table 0x3829, no loc_3473 tail
+  const f = { target: LIMIT0 - 1 }; // frame 0 + straight table 0x3829, no armInteriorBandOrMarkActorActive tail
   const before = craft(f);
   const after = craft(f);
   const b = before.dumpState();
-  loc_33ca(after);
+  seatTurnAnimationFromColumnLimit(after);
   const a = after.dumpState();
 
   const changed = [];
@@ -138,7 +138,7 @@ test("TEETH: a wrong frame byte is CAUGHT by the RAM diff", () => {
   const o = craft(f);
   const c = craft(f);
   oracle(o);
-  loc_33ca(c);
+  seatTurnAnimationFromColumnLimit(c);
   c.mem8[REC + OFF_FRAME] = 0x01; // BUG: the limit>target arm sets frame 0
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong frame byte — it is worthless");
@@ -151,7 +151,7 @@ test("TEETH: a wrong turn-column-limit cell is CAUGHT by the RAM diff", () => {
   const o = craft(f);
   const c = craft(f);
   oracle(o);
-  loc_33ca(c);
+  seatTurnAnimationFromColumnLimit(c);
   c.mem8[TURN_COLUMN_LIMIT] = (LIMIT0 ^ 0x01) & 0xff; // BUG: limit must be the table value
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong limit cell — it is worthless");
@@ -161,7 +161,7 @@ test("TEETH: a wrong turn-column-limit cell is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH --------------------------------------------------------------
 
-test("SP-TOOTH: loc_33ca returns SP-neutral (seam-placeable); a leaked stack word is NOT (self-proving)", () => {
+test("SP-TOOTH: seatTurnAnimationFromColumnLimit returns SP-neutral (seam-placeable); a leaked stack word is NOT (self-proving)", () => {
   const CALLER_RET = 0xfffc;
   const entry = () => {
     const m = craft({ target: LIMIT0 - 1 });
@@ -169,11 +169,11 @@ test("SP-TOOTH: loc_33ca returns SP-neutral (seam-placeable); a leaked stack wor
     m.mem.write16(0x8ff0, CALLER_RET);
     return m;
   };
-  const ok = seamPlaceable(withOmittedRet, loc_33ca, 0x33ca, entry());
+  const ok = seamPlaceable(withOmittedRet, seatTurnAnimationFromColumnLimit, 0x33ca, entry());
   assert.equal(ok.placeable, true, `the dispatch tail must be seam-placeable; got: ${ok.error}`);
 
-  const leaky = (mm, rec) => { mm.push16(0x0000); return loc_33ca(mm, rec); };
+  const leaky = (mm, rec) => { mm.push16(0x0000); return seatTurnAnimationFromColumnLimit(mm, rec); };
   const bad = seamPlaceable(withOmittedRet, leaky, 0x33ca, entry());
   assert.equal(bad.placeable, false, "SP-tooth null-mutant: a leaked stack word MUST NOT be placeable");
-  console.log("  SP-TOOTH: loc_33ca seam-placeable (moved 0); leaked-push mutant caught (not placeable)");
+  console.log("  SP-TOOTH: seatTurnAnimationFromColumnLimit seam-placeable (moved 0); leaked-push mutant caught (not placeable)");
 });

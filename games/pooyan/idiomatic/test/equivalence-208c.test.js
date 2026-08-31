@@ -11,7 +11,7 @@
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
- * No register/flag survives for the caller (loc_0254 immediately returns after the call), so the
+ * No register/flag survives for the caller (repaintScrollColumnsElseVerifySignature immediately returns after the call), so the
  * flag write is the whole contract. Because both tables live in ROM (read-only), the mismatch and
  * match branches are exercised by building machines from MUTATED ROM copies (reads still hit
  * this.rom), forcing the sampled bytes to differ from / equal the reference bytes.

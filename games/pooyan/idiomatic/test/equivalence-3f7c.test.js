@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence test for advanceFallingEnemyAndTallyCatchOnLanding (ROM 0x3f7c, Pooyan) — object state-15 (catch) handler on IX.
  *
- * SEATING: BALANCED (plain ret / tail-calls) -> WIRE. loc_3f72 (its fall-through caller) documents the
+ * SEATING: BALANCED (plain ret / tail-calls) -> WIRE. advanceObjectStateOnFrameTimerExpiry (its fall-through caller) documents the
  * delegate yields nothing the caller reads, so LIVE-OUT is memory only; comparison is RAM (dumpState)
  * minus STACK_SCRATCH, register file not compared. SP parked in STACK_SCRATCH.
  *

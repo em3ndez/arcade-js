@@ -2,15 +2,15 @@
 /**
  * Memory-equivalence gate for paintAttractColumnWithTamperChecksum — the anti-tamper clone of typeAttractTextColumn (attract sub-state 5).
  *
- * paintAttractColumnWithTamperChecksum ticks the animation frame counter (loc_0a28 on wrap), advances the scripted sprite step
- * (loc_09f8), and on each SCRIPT_FRAME_TIMER expiry copies one script byte through the write cursor,
+ * paintAttractColumnWithTamperChecksum ticks the animation frame counter (advanceAttractAnimationAndRepaint on wrap), advances the scripted sprite step
+ * (advanceFourObjectAnimsAndRebuildList), and on each SCRIPT_FRAME_TIMER expiry copies one script byte through the write cursor,
  * backing that cursor up one 0x20 row; every SCRIPT_STEP_COUNTDOWN expiry reseeds the timers, bumps
  * ATTRACT_SUBSTATE, and rolls a 14-row (stride 0x20) checksum verified against the two bytes at the
- * INTRO_DELAY_CKSUM_WORD pointer. The module dissolves loc_0a28/loc_09f8/runObjectAndEnemyActorUpdate to direct calls and
+ * INTRO_DELAY_CKSUM_WORD pointer. The module dissolves advanceAttractAnimationAndRepaint/advanceFourObjectAnimsAndRebuildList/runObjectAndEnemyActorUpdate to direct calls and
  * keeps the frozen 0x7442 tamper dispatcher; the oracle drives the frozen subtree. Both are compared in
  * RAM (dumpState, minus STACK_SCRATCH). paintAttractColumnWithTamperChecksum is void — no register survives — so only RAM is compared.
  *
- * Reachable arms are seated: timer-counting (loc_0a28 wrap + loc_09f8 + tick), byte-copy (timer expires,
+ * Reachable arms are seated: timer-counting (advanceAttractAnimationAndRepaint wrap + advanceFourObjectAnimsAndRebuildList + tick), byte-copy (timer expires,
  * step still counting), and the full checksum on a CLEAN-PASS (source byte 0 into a zeroed 14-row region,
  * so the sum is 0 and the two stored bytes are 0 -> the check-pointer advances, no tamper branch). The
  * tamper arms (jp 0x7442 / runObjectAndEnemyActorUpdate) run frozen handlers in isolation, so they are not seated here; the
@@ -52,7 +52,7 @@ const WPTR = 0x8e56; //     SCRIPT_WRITE_PTR (16-bit)
 const CKWORD = 0x8f48; //   INTRO_DELAY_CKSUM_WORD (16-bit)
 const SRC_TARGET = 0x8fa8; //   quiet scratch the source cursor points at
 const CK_TARGET = 0x8fac; //    quiet scratch the check pointer points at
-const CKSUM_BASE = 0x8c00; //   14-row checksum region base (above every cell loc_09f8 writes)
+const CKSUM_BASE = 0x8c00; //   14-row checksum region base (above every cell advanceFourObjectAnimsAndRebuildList writes)
 const DST = 0x8c20; //          byte-copy destination = write cursor before the 0x20 back-up
 const SP0 = 0x8ff0; //          inside STACK_SCRATCH
 const CALLER_RET = 0xfffc; //   caller's return word the seam completes on the moved-0 arm
@@ -70,10 +70,10 @@ function base() {
   return m;
 }
 
-/** Timer-counting arm: ANIM_FRAME_COUNTER wraps (loc_0a28), then the frame timer just ticks down. */
+/** Timer-counting arm: ANIM_FRAME_COUNTER wraps (advanceAttractAnimationAndRepaint), then the frame timer just ticks down. */
 function craftTick() {
   const m = base();
-  m.mem.write8(ANIM_FC, 0x01); // dec -> 0 -> loc_0a28 fires
+  m.mem.write8(ANIM_FC, 0x01); // dec -> 0 -> advanceAttractAnimationAndRepaint fires
   m.mem.write8(FTIMER, 0x03); // dec -> 2 (nonzero) -> early ret
   return m;
 }
@@ -81,7 +81,7 @@ function craftTick() {
 /** Byte-copy arm: frame timer expires (copy runs), step countdown still counting -> ret before checksum. */
 function craftCopy() {
   const m = base();
-  m.mem.write8(ANIM_FC, 0x05); // dec -> 4 -> skip loc_0a28
+  m.mem.write8(ANIM_FC, 0x05); // dec -> 4 -> skip advanceAttractAnimationAndRepaint
   m.mem.write8(FTIMER, 0x01); // dec -> 0 -> copy
   m.mem.write8(STEPCD, 0x03); // dec -> 2 -> ret before checksum
   m.mem.write16(SRC, SRC_TARGET);
@@ -94,7 +94,7 @@ function craftCopy() {
  *  -> sum 0 matches -> the clean-pass advances the check pointer (no tamper branch). */
 function craftChecksum() {
   const m = base();
-  m.mem.write8(ANIM_FC, 0x05); // skip loc_0a28
+  m.mem.write8(ANIM_FC, 0x05); // skip advanceAttractAnimationAndRepaint
   m.mem.write8(FTIMER, 0x01); // expire -> copy
   m.mem.write8(STEPCD, 0x01); // expire -> checksum
   m.mem.write16(SRC, SRC_TARGET);
@@ -111,7 +111,7 @@ function craftChecksum() {
 
 test("EQUAL: tick, byte-copy, checksum-clean-pass — module == oracle in RAM (−stack)", () => {
   for (const [label, craft] of [
-    ["timer counting (loc_0a28 wrap)", craftTick],
+    ["timer counting (advanceAttractAnimationAndRepaint wrap)", craftTick],
     ["byte copy", craftCopy],
     ["checksum clean pass", craftChecksum],
   ]) {
@@ -122,7 +122,7 @@ test("EQUAL: tick, byte-copy, checksum-clean-pass — module == oracle in RAM (�
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
-  console.log("  EQUAL: 3 arms identical (RAM −stack), composed idiomatic loc_0a28/loc_09f8");
+  console.log("  EQUAL: 3 arms identical (RAM −stack), composed idiomatic advanceAttractAnimationAndRepaint/advanceFourObjectAnimsAndRebuildList");
 });
 
 // -- 2. WRITE-SET -------------------------------------------------------------
@@ -159,7 +159,7 @@ test("TEETH: a wrong placed byte is caught by the RAM diff", () => {
 
 test("SP-TOOTH: paintAttractColumnWithTamperChecksum (tail-dispatches to 0x7442 / runObjectAndEnemyActorUpdate) seats SP for the seam", () => {
   const m = craftTick();
-  m.mem.write8(ANIM_FC, 0x05); // skip loc_0a28 -> minimal sub-calls on this arm
+  m.mem.write8(ANIM_FC, 0x05); // skip advanceAttractAnimationAndRepaint -> minimal sub-calls on this arm
   m.mem.write16(SP0, CALLER_RET); // the caller's return word the seam completes (moved-0 arm)
   const r = seamPlaceable(withOmittedRet, paintAttractColumnWithTamperChecksum, 0x6df9, m);
   assert.equal(r.placeable, true, `paintAttractColumnWithTamperChecksum must be seam-placeable; got: ${r.error}`);

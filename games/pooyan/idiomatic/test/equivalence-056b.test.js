@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_056b (Pooyan) — "draw one packed-BCD counter down a column":
+ * Memory-equivalence test for drawBcdCounterColumn (Pooyan) — "draw one packed-BCD counter down a column":
  * the selector (0/1/2) picks a counter's three source bytes and its screen column; each byte's high
  * then low digit is painted one cell apart up the column with leading zeros suppressed by a budget.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES video RAM, so
- * each case runs the oracle on one FRESH clone and loc_056b on another, compared on:
+ * each case runs the oracle on one FRESH clone and drawBcdCounterColumn on another, compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
@@ -19,7 +19,7 @@
  *
  * Jobs:
  *   1. EQUAL (crafted) — over selectors 0/1/2 (and 3, which selects the same arm as 2) oracle ==
- *      loc_056b in RAM(−stack).
+ *      drawBcdCounterColumn in RAM(−stack).
  *   2. CAPTURED (best-effort) — replay any real dispatch a short boot happens to reach.
  *   3. WRITE-SET — for an all-nonzero counter the oracle writes exactly the six column cells.
  *   4. TEETH — a twin that writes a WRONG tile at a column cell MUST be caught by the RAM diff.
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_056b as oracle } from "../../translated/loc_056b.js";
-import { loc_056b } from "../loc_056b.js";
+import { drawBcdCounterColumn } from "../drawBcdCounterColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -83,12 +83,12 @@ function craft(selector) {
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted selectors — loc_056b == oracle in RAM(−stack)", () => {
+test("EQUAL: crafted selectors — drawBcdCounterColumn == oracle in RAM(−stack)", () => {
   for (const selector of [0, 1, 2, 3]) {
     const o = craft(selector);
     const c = craft(selector);
     oracle(o);
-    loc_056b(c);
+    drawBcdCounterColumn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (selector ${selector}): oracle=${d.a} mine=${d.b}`);
   }
@@ -112,7 +112,7 @@ test("CAPTURED: real dispatches replay identically (if reached)", () => {
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    loc_056b(c);
+    drawBcdCounterColumn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `captured RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
   }
@@ -155,7 +155,7 @@ test("TEETH: a wrong tile at a column cell is CAUGHT by the RAM diff", () => {
   const o = craft(selector);
   const c = craft(selector);
   oracle(o);
-  loc_056b(c);
+  drawBcdCounterColumn(c);
   c.mem.write8(victim, 0xaa); // BUG: wrong tile in the middle of the column
 
   const d = ramDiffMinusStack(o, c);

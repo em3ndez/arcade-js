@@ -11,7 +11,7 @@
  *
  *     RAM (dumpState, minus STACK_SCRATCH), AND the HL live-out.
  *
- * The caller (loc_02ef) chains its next copy from the advanced HL without reloading it, so the
+ * The caller (rebuildSpriteDisplayList) chains its next copy from the advanced HL without reloading it, so the
  * module's return (the advanced list pointer) is compared against the oracle clone's final HL.
  * IX/B/A/DE are left as plumbing (the caller resets IX+B per call, DE is unchanged), so they are
  * not part of the contract.
@@ -77,7 +77,7 @@ function craft({ list, rec, stride, count }) {
 }
 
 const CASES = [
-  { list: SPRITE_DISPLAY_LIST, rec: ACTOR_TABLE, stride: 0x18, count: 0x02 }, // the real loc_02ef shape
+  { list: SPRITE_DISPLAY_LIST, rec: ACTOR_TABLE, stride: 0x18, count: 0x02 }, // the real rebuildSpriteDisplayList shape
   { list: SPRITE_DISPLAY_LIST, rec: 0x8ae0, stride: 0x18, count: 0x01 },
   { list: 0x8850, rec: 0x8a80, stride: 0x0c, count: 0x05 },
   { list: 0x88fe, rec: 0x8a80, stride: 0x18, count: 0x03 }, // PAGE-WRAP: low byte crosses 0xff

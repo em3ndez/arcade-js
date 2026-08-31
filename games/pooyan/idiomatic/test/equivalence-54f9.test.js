@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_54f9 (ROM 0x54f9, Pooyan) — "spawn-slot scan": walk B blocks at
+ * Memory-equivalence test for seedFirstFreeActorBlockFromSpawnTypeTable (ROM 0x54f9, Pooyan) — "spawn-slot scan": walk B blocks at
  * IX stepping DE each pass, and seed one actor into the first block whose first two bytes are both
  * zero.
  *
- * loc_54f9 is the CALLER of the dissolved caller-skip loc_5489 (the block seeder, which pop-af/rets
- * to loc_54f9's own caller). This gate COMPOSES the real idiomatic path: the idiomatic loc_54f9
- * picks the kind byte via the idiomatic table-index helper (loc_0020), writes it to the block's
+ * seedFirstFreeActorBlockFromSpawnTypeTable is the CALLER of the dissolved caller-skip loc_5489 (the block seeder, which pop-af/rets
+ * to seedFirstFreeActorBlockFromSpawnTypeTable's own caller). This gate COMPOSES the real idiomatic path: the idiomatic seedFirstFreeActorBlockFromSpawnTypeTable
+ * picks the kind byte via the idiomatic table-index helper (fetchByteFromTableIndex), writes it to the block's
  * kind field, then calls the idiomatic loc_5489 and returns — exactly where the oracle's rst-20 +
- * call/pop-af aborted the scan. The oracle side runs the TRANSLATED loc_54f9, which m.call()s the
- * translated loc_0020 / loc_5489 through the registry.
+ * call/pop-af aborted the scan. The oracle side runs the TRANSLATED seedFirstFreeActorBlockFromSpawnTypeTable, which m.call()s the
+ * translated fetchByteFromTableIndex / loc_5489 through the registry.
  *
  * Cycle-free / memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
- * STACK_SCRATCH). pc/SP/cycles/registers are NOT compared (loc_54f9 has no register live-out — the
+ * STACK_SCRATCH). pc/SP/cycles/registers are NOT compared (seedFirstFreeActorBlockFromSpawnTypeTable has no register live-out — the
  * seed's caller reads only memory). Inputs are the block pointer (IX), the stride (DE) and the
  * count (B), bridged via the register defaults, plus the block bytes, the schedule cursor
  * (0x8d12) and the round counter (0x8907) poked identically on both sides.
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_54f9 as oracle } from "../../translated/loc_54f9.js";
-import { loc_54f9 } from "../loc_54f9.js";
+import { seedFirstFreeActorBlockFromSpawnTypeTable } from "../seedFirstFreeActorBlockFromSpawnTypeTable.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -78,7 +78,7 @@ test("EQUAL: single live block — scan finds no free slot, no writes", () => {
   const o = craft([0], 0x01);
   const c = craft([0], 0x01);
   oracle(o);
-  loc_54f9(c);
+  seedFirstFreeActorBlockFromSpawnTypeTable(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
   console.log("  EQUAL/all-live: no free slot, RAM identical (no writes)");
@@ -88,7 +88,7 @@ test("EQUAL: first block free — seed pass 1", () => {
   const o = craft([], 0x01); // block 0 is zeroed -> free
   const c = craft([], 0x01);
   oracle(o);
-  loc_54f9(c);
+  seedFirstFreeActorBlockFromSpawnTypeTable(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
   console.log(`  EQUAL/seed-1: seeded ${hx(blockBase(0))}, RAM identical`);
@@ -98,7 +98,7 @@ test("EQUAL: two live then free — step twice, seed pass 3", () => {
   const o = craft([0, 1], 0x03); // blocks 0,1 live; block 2 free
   const c = craft([0, 1], 0x03);
   oracle(o);
-  loc_54f9(c);
+  seedFirstFreeActorBlockFromSpawnTypeTable(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
   console.log(`  EQUAL/seed-3: seeded ${hx(blockBase(2))}, RAM identical`);
@@ -124,7 +124,7 @@ test("TEETH: a wrong kind byte is CAUGHT by the RAM diff", () => {
   const o = craft([], 0x01);
   const c = craft([], 0x01);
   oracle(o);
-  loc_54f9(c);
+  seedFirstFreeActorBlockFromSpawnTypeTable(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: the seed is memory-equivalent before tampering");
   c.mem.write8(blockBase(0) + KIND_FIELD, (o.mem.read8(blockBase(0) + KIND_FIELD) ^ 0xff) & 0xff); // BUG
   const d = ramDiffMinusStack(o, c);
@@ -137,7 +137,7 @@ test("TEETH: a wrong seeded field on pass 3 is CAUGHT by the RAM diff", () => {
   const o = craft([0, 1], 0x03);
   const c = craft([0, 1], 0x03);
   oracle(o);
-  loc_54f9(c);
+  seedFirstFreeActorBlockFromSpawnTypeTable(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: pass-3 seed is memory-equivalent before tampering");
   c.mem.write8(blockBase(2) + 0x06, (o.mem.read8(blockBase(2) + 0x06) ^ 0xff) & 0xff); // BUG: seeded count field
   const d = ramDiffMinusStack(o, c);

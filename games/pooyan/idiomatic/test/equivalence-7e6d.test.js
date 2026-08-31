@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7e6d (ROM 0x7e6d, Pooyan) — the periodic anti-tamper ROM check.
+ * Memory-equivalence test for bumpTamperStrikeOnRomChecksumMiss (ROM 0x7e6d, Pooyan) — the periodic anti-tamper ROM check.
  * It runs only when PLAYER1_LIVES >= 4 and FRAME_COUNTER == 0, then sums the ROM downward from
  * TAMPER_CKSUM_TOP_ADDR to the 0x34 sentinel and, if (carries + sum) & 0xb0 is nonzero, bumps
  * TAMPER_STRIKES_ROM. On an intact ROM the signature is clean, so the bump is unreachable — the only
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7e6d as oracle } from "../../translated/loc_7e6d.js";
-import { loc_7e6d } from "../loc_7e6d.js";
+import { bumpTamperStrikeOnRomChecksumMiss } from "../bumpTamperStrikeOnRomChecksumMiss.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PLAYER1_LIVES, FRAME_COUNTER, TAMPER_STRIKES_ROM } from "../names.js";
@@ -71,12 +71,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_7e6d == oracle in RAM (−stack) across both gates and the body", () => {
+test("EQUAL: bumpTamperStrikeOnRomChecksumMiss == oracle in RAM (−stack) across both gates and the body", () => {
   for (const cfg of CASES) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    loc_7e6d(c);
+    bumpTamperStrikeOnRomChecksumMiss(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b} (${cfg.name})`);
   }
@@ -110,7 +110,7 @@ test("TEETH: a guard-dropped twin spuriously bumps TAMPER_STRIKES_ROM — caught
 
   // Sanity: the real module agrees with the oracle (no bump) on the same input.
   const s = craft({ name: "teeth", lives: 0x05, frame: 0x00 });
-  loc_7e6d(s);
+  bumpTamperStrikeOnRomChecksumMiss(s);
   assert.equal(ramDiffMinusStack(o, s), null, "the real module must match the oracle (no bump on a clean ROM)");
   console.log(`  TEETH/RAM: spurious bump caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

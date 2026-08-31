@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2bb3 (ROM 0x2bb3) — "formation spawn scan": walk up to 0x11
+ * Memory-equivalence test for scanFormationSlotsAndLaunchFree (ROM 0x2bb3) — "formation spawn scan": walk up to 0x11
  * records stepping the pointer back one record each pass, launching the first free slot.
  *
- * loc_2bb3 is the CALLER of the dissolved caller-skip loc_2be5. This gate COMPOSES the real
- * idiomatic skip: the idiomatic loc_2bb3 imports the idiomatic loc_2be5 and early-returns when
+ * scanFormationSlotsAndLaunchFree is the CALLER of the dissolved caller-skip loc_2be5. This gate COMPOSES the real
+ * idiomatic skip: the idiomatic scanFormationSlotsAndLaunchFree imports the idiomatic loc_2be5 and early-returns when
  * it reports false (launched), exactly where the oracle's pop-af/ret aborted the loop. The
- * oracle side runs the TRANSLATED loc_2bb3, which internally m.call()s the translated loc_2be5
+ * oracle side runs the TRANSLATED scanFormationSlotsAndLaunchFree, which internally m.call()s the translated loc_2be5
  * (and its anim helper) through the registry.
  *
  * Cycle-free / memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2bb3 as oracle } from "../../translated/loc_2bb3.js";
-import { loc_2bb3 } from "../loc_2bb3.js";
+import { scanFormationSlotsAndLaunchFree } from "../scanFormationSlotsAndLaunchFree.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -77,7 +77,7 @@ test("EQUAL: all slots busy — full loop, no writes", () => {
   const o = craft(allBusy);
   const c = craft(allBusy);
   oracle(o);
-  loc_2bb3(c);
+  scanFormationSlotsAndLaunchFree(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
   console.log("  EQUAL/all-busy: 17-pass loop, RAM identical (no writes)");
@@ -87,7 +87,7 @@ test("EQUAL: first slot free — seed pass 1 then abort", () => {
   const o = craft([]); // nothing busy -> pass 1 slot is free
   const c = craft([]);
   oracle(o);
-  loc_2bb3(c);
+  scanFormationSlotsAndLaunchFree(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
   console.log(`  EQUAL/abort-1: seeded ${hx(recBase(0))}, RAM identical`);
@@ -97,7 +97,7 @@ test("EQUAL: two busy then free — step twice, seed pass 3, abort", () => {
   const o = craft([0, 1]); // slots 0,1 busy; slot 2 free
   const c = craft([0, 1]);
   oracle(o);
-  loc_2bb3(c);
+  scanFormationSlotsAndLaunchFree(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
   console.log(`  EQUAL/abort-3: seeded ${hx(recBase(2))}, RAM identical`);
@@ -109,7 +109,7 @@ test("TEETH: a wrong seeded byte on the abort case is CAUGHT by the RAM diff", (
   const o = craft([0, 1]);
   const c = craft([0, 1]);
   oracle(o);
-  loc_2bb3(c);
+  scanFormationSlotsAndLaunchFree(c);
   c.mem.write8(recBase(2) + 0x02, 0x00); // BUG: seeded state must be 0x11
 
   const d = ramDiffMinusStack(o, c);

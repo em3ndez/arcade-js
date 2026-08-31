@@ -11,10 +11,10 @@
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * pc is deliberately NOT compared. HL is the routine's only input; the stride (-0x20) is baked
- * in, not passed. HL advances to start-0x40 but NO caller consumes it (the callers loc_1ce7 /
+ * in, not passed. HL advances to start-0x40 but NO caller consumes it (the callers stampCappedTileColumnUp /
  * stampSecondScrollColumn ret into clearActorsAndEnterContinueState, which reads elsewhere), so the contract is memory only.
  *
- * The two real entry HL values are 0x84e0 (from loc_1ce7) and 0x8740 (from stampSecondScrollColumn); both are
+ * The two real entry HL values are 0x84e0 (from stampCappedTileColumnUp) and 0x8740 (from stampSecondScrollColumn); both are
  * in the crafted sweep. The leaf runs during board layout, not a plain attract boot, so every
  * case is CRAFTED: an identical HL poke on both sides.
  *

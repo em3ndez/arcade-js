@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6f2d (ROM 0x6f2d) — per-record state handler for the enemy-actor
+ * Memory-equivalence test for dispatchEnemyActorRecordState (ROM 0x6f2d) — per-record state handler for the enemy-actor
  * table, record based at IX. Routes on the state byte rec+0x02: state 2 tails into tickActorHoldThenBlankAndClearWaveLatches; any
  * state below 0x0b runs advanceObjectAnimationFrame and returns; states 0x0b / 0x0c dispatch into seedEnemyFromDescriptorAndEnterFlight / advanceInFlightEnemyAndLand
  * (the two-entry word table at 0x6f3e indexed by state-0x0b).
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6f2d as oracle } from "../../translated/loc_6f2d.js";
-import { loc_6f2d } from "../loc_6f2d.js";
+import { dispatchEnemyActorRecordState } from "../dispatchEnemyActorRecordState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -90,12 +90,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: hold-tick, movers, and both dispatch arms — loc_6f2d == oracle in RAM (−stack)", () => {
+test("EQUAL: hold-tick, movers, and both dispatch arms — dispatchEnemyActorRecordState == oracle in RAM (−stack)", () => {
   for (const scn of CASES) {
     const o = craft(scn);
     const c = craft(scn);
     oracle(o);
-    loc_6f2d(c);
+    dispatchEnemyActorRecordState(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${scn.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -107,7 +107,7 @@ test("EQUAL: hold-tick, movers, and both dispatch arms — loc_6f2d == oracle in
 test("WRITE-SET: a below-0x0b state writes exactly rec+0x0e (the advanceObjectAnimationFrame hold decrement)", () => {
   const c = craft(CASES[2]); // state 5
   const before = c.dumpState();
-  loc_6f2d(c);
+  dispatchEnemyActorRecordState(c);
   const after = c.dumpState();
 
   const changed = [];
@@ -125,7 +125,7 @@ test("TEETH: a wrong byte on the state-2 path is CAUGHT by the RAM diff", () => 
   const o = craft(CASES[0]);
   const c = craft(CASES[0]);
   oracle(o);
-  loc_6f2d(c);
+  dispatchEnemyActorRecordState(c);
   c.mem.write8(REC + TIMER, 0x02); // BUG: tickActorHoldThenBlankAndClearWaveLatches decremented the timer to 1
 
   const d = ramDiffMinusStack(o, c);
@@ -137,8 +137,8 @@ test("TEETH: a wrong byte on the state-2 path is CAUGHT by the RAM diff", () => 
 test("TEETH: the two dispatch arms (0x0b vs 0x0c) produce DIFFERENT RAM (routing branches)", () => {
   const a = craft(CASES[3]); // -> seedEnemyFromDescriptorAndEnterFlight
   const b = craft(CASES[4]); // -> advanceInFlightEnemyAndLand
-  loc_6f2d(a);
-  loc_6f2d(b);
+  dispatchEnemyActorRecordState(a);
+  dispatchEnemyActorRecordState(b);
   assert.ok(!ramEqual(a, b), "dispatch arms 0x0b and 0x0c produced identical RAM — routing is untested");
   console.log("  TEETH/DISPATCH: state 0x0b and 0x0c drive distinct handlers (RAM differs)");
 });

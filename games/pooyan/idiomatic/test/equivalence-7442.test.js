@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7442 (ROM 0x7442, Pooyan) — the attract/self-test state dispatcher.
+ * Memory-equivalence test for dispatchSelfTestState (ROM 0x7442, Pooyan) — the attract/self-test state dispatcher.
  *
  * The oracle reads the self-test state (0x8921 & 3) and reaches one of three handlers via rst 0x28
  * (inline table 0x7448 {0->744e, 1->7517, 2->755d}) with no return pushed — a tail dispatch. The
@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7442 as oracle } from "../../translated/loc_7442.js";
-import { loc_7442 } from "../loc_7442.js";
+import { dispatchSelfTestState } from "../dispatchSelfTestState.js";
 import { seedDisplayListPointersAndVerifyRomSignature } from "../seedDisplayListPointersAndVerifyRomSignature.js";
 import { runDisplayListAndAdvanceToGameplay } from "../runDisplayListAndAdvanceToGameplay.js";
 import { updateGameplayFrame } from "../updateGameplayFrame.js";
@@ -77,7 +77,7 @@ test("CAPTURE: real 0x7442 dispatches replay identically (oracle vs module)", ()
     const o = cap.clone();
     const c = cap.clone();
     const ro = runGuarded(oracle, o);
-    const rc = runGuarded(loc_7442, c);
+    const rc = runGuarded(dispatchSelfTestState, c);
     assert.equal(ro.threw, rc.threw, `divergent control flow: oracle threw=${ro.threw} module threw=${rc.threw}`);
     if (!ro.threw) {
       const d = ramDiffMinusStack(o, c);
@@ -102,7 +102,7 @@ test("CRAFTED: each selector 0/1/2 (+ &3 mask) routes identically (oracle vs mod
     const o = craft(state);
     const c = craft(state);
     const ro = runGuarded(oracle, o);
-    const rc = runGuarded(loc_7442, c);
+    const rc = runGuarded(dispatchSelfTestState, c);
     assert.equal(ro.threw, rc.threw, `${name}: divergent control flow (oracle threw=${ro.threw} module threw=${rc.threw})`);
     if (!ro.threw) {
       const d = ramDiffMinusStack(o, c);
@@ -115,7 +115,7 @@ test("CRAFTED: each selector 0/1/2 (+ &3 mask) routes identically (oracle vs mod
 // -- 3. SP-TOOTH (R36) --------------------------------------------------------
 
 test("SP-TOOTH: the tail dispatch is seam-placeable", () => {
-  const r = seamPlaceable(withOmittedRet, loc_7442, TARGET, craft(0x00));
+  const r = seamPlaceable(withOmittedRet, dispatchSelfTestState, TARGET, craft(0x00));
   assert.equal(r.placeable, true, `dispatcher must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: tail dispatch seats cleanly");
 });

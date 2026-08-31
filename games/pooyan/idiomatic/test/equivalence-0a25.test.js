@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0a25 (ROM 0x0a25, Pooyan) — seeds the frame-animation cursor
+ * Memory-equivalence test for primeAttractAnimAndPaintTileBlocks (ROM 0x0a25, Pooyan) — seeds the frame-animation cursor
  * then tail-hands to the two-slot tile painter: advance the 4-phase counter, look its frame word
  * up in a ROM table, and paint the same 2x2 source into two screen slots.
  *
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0a25 as oracle } from "../../translated/loc_0a25.js";
-import { loc_0a25 } from "../loc_0a25.js";
+import { primeAttractAnimAndPaintTileBlocks } from "../primeAttractAnimAndPaintTileBlocks.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -61,12 +61,12 @@ function craft(phaseSeed = 0x00) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0a25 == oracle in RAM (−stack)", () => {
+test("EQUAL: primeAttractAnimAndPaintTileBlocks == oracle in RAM (−stack)", () => {
   for (const seed of [0x00, 0x03]) {
     const o = craft(seed);
     const c = craft(seed);
     oracle(o);
-    loc_0a25(c);
+    primeAttractAnimAndPaintTileBlocks(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `seed ${hx(seed)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -89,7 +89,7 @@ test("TEETH: a corrupted output byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x00);
   const c = craft(0x00);
   oracle(o);
-  loc_0a25(c);
+  primeAttractAnimAndPaintTileBlocks(c);
   c.mem.write8(FRAME_HI, (o.mem.read8(FRAME_HI) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted output byte");

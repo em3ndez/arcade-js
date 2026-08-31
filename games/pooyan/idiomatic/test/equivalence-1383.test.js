@@ -3,20 +3,20 @@
  * Memory-equivalence test for spawnChildActorIfInRange (ROM 0x1383) — "B-range guard before the child spawn".
  *
  * spawnChildActorIfInRange does `ld a,b; cp 0x20; ret nc` — when B >= 0x20 it returns with A = B and no memory
- * effect — else it tail-jumps to loc_13bc (find a free sprite-object slot and spawn a child
- * actor). loc_13bc's result (register A) therefore becomes spawnChildActorIfInRange's result on the in-range
- * path. The only caller (loc_12d0) reaches spawnChildActorIfInRange by a `jp z` tail, so its live-out is A.
+ * effect — else it tail-jumps to spawnChildActorIntoFreeSpriteSlot (find a free sprite-object slot and spawn a child
+ * actor). spawnChildActorIntoFreeSpriteSlot's result (register A) therefore becomes spawnChildActorIfInRange's result on the in-range
+ * path. The only caller (matchActorScheduleThenSpawnOrAnimate) reaches spawnChildActorIfInRange by a `jp z` tail, so its live-out is A.
  *
- * CYCLE-FREE / memory-equivalence gate. The in-range path can WRITE work RAM (through loc_13bc /
- * loc_142c), so each case uses a FRESH clone per side, compared on RAM (dumpState, minus
+ * CYCLE-FREE / memory-equivalence gate. The in-range path can WRITE work RAM (through spawnChildActorIntoFreeSpriteSlot /
+ * initChildActorRecordFromParent), so each case uses a FRESH clone per side, compared on RAM (dumpState, minus
  * STACK_SCRATCH) PLUS the register live-out A. pc/SP/cycles are NOT compared. A is derived from
- * the oracle: it is B on the guard path and loc_13bc's spawn/no-free result on the tail path.
+ * the oracle: it is B on the guard path and spawnChildActorIntoFreeSpriteSlot's spawn/no-free result on the tail path.
  *
  * NOTE ON THE JS RETURN: the translated guard path does a bare `return;` (JS undefined) while the
  * idiomatic guard path returns `(m.regs.a = b)`. Both set the SAME register A, which is the actual
  * contract, so the gate compares the register — not the raw JS return — on that path.
  *
- * Cases: guard (B >= 0x20); tail with NO free slot (all five slots' bit0 set -> loc_13bc returns
+ * Cases: guard (B >= 0x20); tail with NO free slot (all five slots' bit0 set -> spawnChildActorIntoFreeSpriteSlot returns
  * the last rotate-right byte, no writes); tail with a free slot (slot 0 free -> full spawn).
  *
  * Jobs:

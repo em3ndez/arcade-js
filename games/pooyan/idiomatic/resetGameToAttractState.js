@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { queueSoundCommand00 } from "./queueSoundCommand00.js";
 import { u16 } from "../../../core/int.js";
-import { loc_02b9 } from "./loc_02b9.js";
+import { zeroSpriteListAndActorArena } from "./zeroSpriteListAndActorArena.js";
 import {
   GAME_ACTIVE_FLAG,
   PLAY_STATE_INDEX,
@@ -39,7 +39,7 @@ export function resetGameToAttractState(m) {
   mem8[FLIP_SCREEN_FLAG] = 1;
   mem8[LAUNCH_ARMED_FLAG] = 1;
 
-  loc_02b9(m); // zero the board RAM regions
+  zeroSpriteListAndActorArena(m); // zero the board RAM regions
   queueSoundCommand00(m); // post sound command 0
 
   let src = ATTRACT_INIT_MESSAGE_SRC;

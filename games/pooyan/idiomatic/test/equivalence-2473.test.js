@@ -6,7 +6,7 @@
  * expiry: if the state-10 tamper counter (0x8a39) is zero it reseeds the delay to 0x10 and bumps the
  * actor state (IX+0x02); otherwise (the anti-tamper overlap arm, dead with an intact ROM) it stores
  * that tamper value at (BC). Both converge to bump the base Y (IX+0x04) by 0x10, clear (IX+0x1e),
- * then load shape table 0x26c1 via the pattern-A shape loader (loc_250f -> copyDisplayTilesIntoActorRecords).
+ * then load shape table 0x26c1 via the pattern-A shape loader (seedFourRecordsAndCopyDisplayTiles -> copyDisplayTilesIntoActorRecords).
  *
  * Comparison is the go-forward contract: RAM (dumpState) minus STACK_SCRATCH, plus — on the expiry
  * path — the register live-out the shape loader leaves (IX past the copied run, B, HL, A), all
@@ -29,7 +29,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2473 as oracle } from "../../translated/loc_2473.js";
 import { dropLeadActorAfterDelay } from "../dropLeadActorAfterDelay.js";
-import { loc_250f } from "../loc_250f.js";
+import { seedFourRecordsAndCopyDisplayTiles } from "../seedFourRecordsAndCopyDisplayTiles.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TAMPER_STRIKES_STATE10, SHAPE_TABLE_26C1 } from "../names.js";
@@ -166,7 +166,7 @@ function brokenNoReseed(m, rec = m.regs.ix, bc = m.regs.bc) {
   }
   mem8[rec + 0x04] = (mem8[rec + 0x04] + 0x10) & 0xff;
   mem8[rec + 0x1e] = 0;
-  return loc_250f(m, SHAPE_TABLE_26C1, rec);
+  return seedFourRecordsAndCopyDisplayTiles(m, SHAPE_TABLE_26C1, rec);
 }
 
 test("TEETH: a twin skipping the delay reseed is caught in RAM", () => {

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
-import { loc_34f2 } from "./loc_34f2.js";
-import { loc_343e } from "./loc_343e.js";
+import { advanceObjectColumnByStepAndDispatch } from "./advanceObjectColumnByStepAndDispatch.js";
+import { advanceActorColumnAndArmTurnOrBand } from "./advanceActorColumnAndArmTurnOrBand.js";
 import { blankActorSpriteBand } from "./blankActorSpriteBand.js";
-import { loc_423a } from "./loc_423a.js";
-import { loc_425c } from "./loc_425c.js";
+import { clearColumnLimitAndArmTurnAnimation } from "./clearColumnLimitAndArmTurnAnimation.js";
+import { latchColumnLimitAndArmTurnAnimation } from "./latchColumnLimitAndArmTurnAnimation.js";
 import { initDescendingObjectSlot } from "./initDescendingObjectSlot.js";
 import {
   STAGE_COUNTDOWN,
@@ -69,7 +69,7 @@ export function moveFormationAndSpawnObject(m, ix = m.regs.ix) {
   advanceObjectAnimationFrame(m, ix);
 
   if ((mem8[ix + 0x08] & 0x01) !== 0) { // bit0 set
-    loc_34f2(m, ix);
+    advanceObjectColumnByStepAndDispatch(m, ix);
     const phase = mem8[ix + 0x06] & 0x1f;
     if (phase >= 0x0a) return blockP(phase);
     if (mem8[STAGE_COUNTDOWN] < 0x02) { // signature-check branch
@@ -88,12 +88,12 @@ export function moveFormationAndSpawnObject(m, ix = m.regs.ix) {
       }
     }
     mem8[ix + 0x08] = 0x00; // interior-entry arm
-    return loc_425c(m, ix);
+    return latchColumnLimitAndArmTurnAnimation(m, ix);
   }
 
-  loc_343e(m, ix); // bit0 clear -> X-movement
+  advanceActorColumnAndArmTurnOrBand(m, ix); // bit0 clear -> X-movement
   const phase = mem8[ix + 0x06] & 0x1f;
   if (phase < 0x14) return blockP(phase);
   mem8[ix + 0x08] = 0x01; // interior-entry arm
-  return loc_423a(m, ix);
+  return clearColumnLimitAndArmTurnAnimation(m, ix);
 }

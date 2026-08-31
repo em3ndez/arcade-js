@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
 import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { SOUND_ID_LATCH_8D1D, ARM_ANIM_TABLE } from "./names.js";
 /**
@@ -31,6 +31,6 @@ export function descendObjectToLanding(m, rec = m.regs.ix) {
   mem8[SOUND_ID_LATCH_8D1D] = u8(soundId + 1); // notify: landing sound id + 1
   mem8[rec + 0x02] = 0x02; // reset to phase 2
   mem8[rec + 0x11] = 0x18;
-  const word = loc_0c45(m, soundId, ARM_ANIM_TABLE); // landing animation pointer
+  const word = fetchWordFromTableIndex(m, soundId, ARM_ANIM_TABLE); // landing animation pointer
   return setActorAnimation(m, rec, word);
 }

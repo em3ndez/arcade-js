@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3473 (ROM 0x3473, Pooyan) — the interior-entry arm for the shared
+ * Memory-equivalence test for armInteriorBandOrMarkActorActive (ROM 0x3473, Pooyan) — the interior-entry arm for the shared
  * movement tail. When the anim-armed latch is already set it marks the record (IX+1) active-1 and
  * returns. Otherwise it clears (IX+1), and — while the phase snapshot is below the cap — steps the
  * phase, looks it up in a ROM row table to seed the turn-column limit, stamps the 2x2 interior sprite
- * band, raises the anim-armed latch, and falls into the shared despawn/movement tail (loc_34b0). At
+ * band, raises the anim-armed latch, and falls into the shared despawn/movement tail (despawnActorAndRenderStageCountdown). At
  * or above the cap it skips straight to that tail.
  *
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState, minus
@@ -14,7 +14,7 @@
  *
  * Jobs:
  *   1. EQUAL (crafted) — latch-already-set (exit A), capped (exit B, straight to the tail), and
- *      below-cap (exit C, table lookup + band + latch + tail) cases: oracle == loc_3473 in RAM (−stack).
+ *      below-cap (exit C, table lookup + band + latch + tail) cases: oracle == armInteriorBandOrMarkActorActive in RAM (−stack).
  *   2. WRITE-SET — the latch-set exit's ONLY write is (IX+1) := 1 (its exact footprint).
  *   3. TEETH — a wrong sprite-band tile (exit C) and a wrong (IX+1) byte (exit A) are each caught.
  *
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3473 as oracle } from "../../translated/loc_3473.js";
-import { loc_3473 } from "../loc_3473.js";
+import { armInteriorBandOrMarkActorActive } from "../armInteriorBandOrMarkActorActive.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -78,7 +78,7 @@ function craft(latch, phase) {
   m.mem.write8((IX_BASE + REC_ACTIVE) & 0xffff, DIRT);
   m.mem.write8(TURN_COLUMN_LIMIT, DIRT);
   for (const cell of BAND_CELLS) m.mem.write8(cell, DIRT);
-  // shared-tail (loc_34b0) inputs, seated identically on both sides
+  // shared-tail (despawnActorAndRenderStageCountdown) inputs, seated identically on both sides
   m.mem.write8(ACTIVE_ENEMY_COUNT, 0x05);
   m.mem.write8(STAGE_COUNTDOWN, 0x05);
   m.mem.write8(PLAY_STATE_INDEX, 0x00);
@@ -103,12 +103,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted latch/phase cases — loc_3473 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted latch/phase cases — armInteriorBandOrMarkActorActive == oracle in RAM (−stack)", () => {
   for (const [latch, phase, label] of CASES) {
     const o = craft(latch, phase);
     const c = craft(latch, phase);
     oracle(o);
-    loc_3473(c);
+    armInteriorBandOrMarkActorActive(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -144,7 +144,7 @@ test("TEETH: a wrong sprite-band tile (exit C) is CAUGHT by the RAM diff", () =>
   const o = craft(0x00, 0x03);
   const c = craft(0x00, 0x03);
   oracle(o);
-  loc_3473(c);
+  armInteriorBandOrMarkActorActive(c);
   c.mem.write8(SPRITE_BAND_86E3, (c.mem.read8(SPRITE_BAND_86E3) ^ 0x01) & 0xff); // BUG
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong band tile — it is worthless");
@@ -157,7 +157,7 @@ test("TEETH: a wrong (IX+1) byte (exit A) is CAUGHT by the RAM diff", () => {
   const o = craft(0x01, 0x00);
   const c = craft(0x01, 0x00);
   oracle(o);
-  loc_3473(c);
+  armInteriorBandOrMarkActorActive(c);
   c.mem.write8(cell, 0x00); // BUG: the latch-set exit must leave (IX+1) = 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong (IX+1) byte — it is worthless");

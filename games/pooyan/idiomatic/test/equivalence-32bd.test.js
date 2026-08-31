@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_32bd (ROM 0x32bd) — the shared teardown epilogue, keyed on the
+ * Memory-equivalence gate for advanceWaveTeardownByState (ROM 0x32bd) — the shared teardown epilogue, keyed on the
  * teardown-state byte (0x8f24). State 0 and states >= 3 return; state 1 dismantles the wave (clear
  * the event latch, reseed the periodic-event timer, run queueSoundRun26, advance the state, then a ROM
- * running-sum self-check whose masked non-zero result diverts into loc_1f40); state 2 walks the lead
+ * running-sum self-check whose masked non-zero result diverts into findTableSlotAndPaintStageHeader); state 2 walks the lead
  * actor's position down two per frame, running loc_23d7 while it stays below the limit and, once it
  * reaches the limit, running queueSoundCommands95And03And11 then — if the gate byte is clear — raising the completion latch
  * and advancing the state.
  *
  * SEATING: BALANCED — the plain rets WIRE; the self-check diversion is a tail-jump forwarding the
- * delegatee's result. Compared per case on RAM (dumpState, minus STACK_SCRATCH); loc_32bd has no
+ * delegatee's result. Compared per case on RAM (dumpState, minus STACK_SCRATCH); advanceWaveTeardownByState has no
  * register live-out of its own. pc/SP/full register file are not compared. queueSoundRun26/queueSoundCommands95And03And11/loc_23d7
- * are self-contained and composed; the tamper diversion (loc_1f40) pulls the HUD render subtree, so
+ * are self-contained and composed; the tamper diversion (findTableSlotAndPaintStageHeader) pulls the HUD render subtree, so
  * its gate liveness is shown by the data invariant (intact mask == 0, tampered != 0) rather than run.
  *
  * Jobs:
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_32bd as oracle } from "../../translated/loc_32bd.js";
-import { loc_32bd } from "../loc_32bd.js";
+import { advanceWaveTeardownByState } from "../advanceWaveTeardownByState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -101,7 +101,7 @@ test("IDLE: state 0 and state 3 leave RAM untouched; oracle == idiomatic", () =>
     const k = craft({ state });
     const b0 = o.dumpState();
     oracle(o);
-    loc_32bd(k);
+    advanceWaveTeardownByState(k);
     assert.deepEqual([...o.dumpState()], [...b0], `state ${hx(state)}: oracle must leave RAM untouched`);
     const d = ramDiffMinusStack(o, k);
     assert.equal(d, null, d && `state ${hx(state)}: RAM diff at ${hx(d.addr ?? 0)}`);
@@ -115,7 +115,7 @@ test("DESCEND: state 2 below the limit advances the position and derives sprite 
   const o = craft({ state: 0x02, playerY: 0x50 });
   const k = craft({ state: 0x02, playerY: 0x50 });
   oracle(o);
-  loc_32bd(k);
+  advanceWaveTeardownByState(k);
   const d = ramDiffMinusStack(o, k);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(k.mem.read8(PLAYER_Y), 0x52, "position advanced by two");
@@ -129,7 +129,7 @@ test("COMPLETE: state 2 at the limit raises the latch (gate clear) or holds (gat
   const clear = craft({ state: 0x02, playerY: 0xda, gate: 0x00 }); // +2 = 0xdc >= limit
   const kclear = craft({ state: 0x02, playerY: 0xda, gate: 0x00 });
   oracle(clear);
-  loc_32bd(kclear);
+  advanceWaveTeardownByState(kclear);
   let d = ramDiffMinusStack(clear, kclear);
   assert.equal(d, null, d && `gate-clear RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(kclear.mem.read8(GRAB_ACTIVE_FLAG), 0x01, "gate clear -> completion latch raised");
@@ -138,7 +138,7 @@ test("COMPLETE: state 2 at the limit raises the latch (gate clear) or holds (gat
   const set = craft({ state: 0x02, playerY: 0xda, gate: 0x01 });
   const kset = craft({ state: 0x02, playerY: 0xda, gate: 0x01 });
   oracle(set);
-  loc_32bd(kset);
+  advanceWaveTeardownByState(kset);
   d = ramDiffMinusStack(set, kset);
   assert.equal(d, null, d && `gate-set RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(kset.mem.read8(GRAB_ACTIVE_FLAG), 0x00, "gate set -> latch untouched");
@@ -152,7 +152,7 @@ test("TEARDOWN: state 1 intact ROM clears/reseeds/advances then passes the check
   const o = craft({ state: 0x01 });
   const k = craft({ state: 0x01 });
   oracle(o);
-  loc_32bd(k);
+  advanceWaveTeardownByState(k);
   const d = ramDiffMinusStack(o, k);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(k.mem.read8(WAVE_EVENT_LATCH), 0x00, "event latch cleared");
@@ -175,7 +175,7 @@ test("TEETH: a wrong reseeded periodic-timer byte is CAUGHT by the RAM diff", ()
   const o = craft({ state: 0x01 });
   const k = craft({ state: 0x01 });
   oracle(o);
-  loc_32bd(k);
+  advanceWaveTeardownByState(k);
   k.mem.write8(PERIODIC_EVENT_TIMER, 0x00); // BUG: must reseed to 0x20
   const d = ramDiffMinusStack(o, k);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong periodic-timer byte — it is worthless");

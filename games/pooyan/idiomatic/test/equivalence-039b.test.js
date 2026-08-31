@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_039b (ROM 0x039b) — "paint the count column": when the
+ * Memory-equivalence test for paintActorCountColumn (ROM 0x039b) — "paint the count column": when the
  * game-active gate is set, fill N cells of a vertical VRAM column with tile 0x0c (N =
  * (actor-table count + 1) clamped to 8, one row 0x20 apart) then blank the remaining 8-N
  * cells with tile 0x10.
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine
  * WRITES video RAM, so each case uses a FRESH clone per side: the oracle runs on one clone,
- * loc_039b on another, and they are compared on the go-forward contract — RAM (dumpState)
- * minus STACK_SCRATCH. pc/SP/cycles are deliberately NOT compared. loc_039b has NO register
+ * paintActorCountColumn on another, and they are compared on the go-forward contract — RAM (dumpState)
+ * minus STACK_SCRATCH. pc/SP/cycles are deliberately NOT compared. paintActorCountColumn has NO register
  * live-out (a memory-only paint routine reached off-attract via dynamic dispatch), so only
  * RAM is compared.
  *
@@ -20,7 +20,7 @@
  * whose eight cells all land in video RAM (0x8482..0x8562).
  *
  * Jobs:
- *   1. EQUAL (crafted sweep) — over curated (active, actor) pairs loc_039b == oracle in
+ *   1. EQUAL (crafted sweep) — over curated (active, actor) pairs paintActorCountColumn == oracle in
  *      RAM (-stack), including the gate-clear no-op.
  *   2. WRITE-SET — the oracle's only writes are the eight column cells: the top N := 0x0c,
  *      the rest := 0x10.
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_039b as oracle } from "../../translated/loc_039b.js";
-import { loc_039b } from "../loc_039b.js";
+import { paintActorCountColumn } from "../paintActorCountColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -104,12 +104,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted sweep) -------------------------------------------------
 
-test("EQUAL: crafted (active,actor) — loc_039b == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted (active,actor) — paintActorCountColumn == oracle in RAM (−stack)", () => {
   for (const { active, actor } of CASES) {
     const o = craft(active, actor);
     const c = craft(active, actor);
     oracle(o);
-    loc_039b(c);
+    paintActorCountColumn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} (active=${active} actor=${hx(actor)})`);
   }
@@ -153,7 +153,7 @@ test("CRAFTED: a pre-dirtied column is overwritten identically", () => {
   const c = craft(1, actor);
   for (const cell of cells) { o.mem.write8(cell, 0xaa); c.mem.write8(cell, 0xaa); }
   oracle(o);
-  loc_039b(c);
+  paintActorCountColumn(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
   for (const cell of cells) {
@@ -170,7 +170,7 @@ test("TEETH: a wrong last-cell byte is CAUGHT by the RAM diff", () => {
   const o = craft(1, actor);
   const c = craft(1, actor);
   oracle(o);
-  loc_039b(c);
+  paintActorCountColumn(c);
   c.mem.write8(lastCell, 0x00); // BUG: last blank cell must be 0x10, not 0x00
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong last-cell byte — it is worthless");

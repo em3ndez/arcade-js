@@ -5,8 +5,8 @@ import { loc_6080 } from "./loc_6080.js";
 import { loc_6287 } from "./loc_6287.js";
 import { loc_630f } from "./loc_630f.js";
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_0020 } from "./loc_0020.js";
-import { loc_0010 } from "./loc_0010.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { queueSoundCommand05 } from "./queueSoundCommand05.js";
 import {
   FLIP_SCREEN_FLAG,
@@ -71,7 +71,7 @@ export function loc_61b4(m, hl = m.regs.hl, ix = m.regs.ix, count = m.regs.b, iy
   // award path
   setActorAnimation(m, hl, ANIM_SCRIPT_6343);
   const index = (mem8[ROUND_COUNTER] & 0x07) >> 1;
-  const [d1] = loc_0020(m, POSITION_DELTA_TABLE_6358, index);
+  const [d1] = fetchByteFromTableIndex(m, POSITION_DELTA_TABLE_6358, index);
   mem8[u16(hl + DELTA_FIELD)] = mem8[u16(hl + DELTA_FIELD)] + d1;
 
   const tag = mem8[u16(hl + TAG_OFFSET)];
@@ -82,11 +82,11 @@ export function loc_61b4(m, hl = m.regs.hl, ix = m.regs.ix, count = m.regs.b, iy
     remaining = (remaining - 1) & 0xff;
     if (remaining === 0) break;
   }
-  const [d2] = loc_0020(m, POSITION_DELTA_TABLE_6358, index);
+  const [d2] = fetchByteFromTableIndex(m, POSITION_DELTA_TABLE_6358, index);
   mem8[u16(found + DELTA_FIELD)] = mem8[u16(found + DELTA_FIELD)] + d2;
   mem8[u16(found + STATE_FIELD)] = mem8[u16(found + STATE_FIELD)] | REARM_BIT;
 
-  loc_0010(m, ireg !== 0 ? ENEMY_TARGET_REC1 : ENEMY_TARGET_REC0, 0x00, TARGET_WIPE_LEN);
+  fillByteRun(m, ireg !== 0 ? ENEMY_TARGET_REC1 : ENEMY_TARGET_REC0, 0x00, TARGET_WIPE_LEN);
   queueSoundCommand05(m);
   return false; // caller-skip: unwind the caller's frame
 }

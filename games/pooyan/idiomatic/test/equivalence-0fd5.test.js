@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0fd5 (ROM 0x0fd5) — the main-loop sub-state dispatcher. Selects one
+ * Memory-equivalence test for dispatchMainLoopSubstate (ROM 0x0fd5) — the main-loop sub-state dispatcher. Selects one
  * of six handlers by (MAINLOOP_SUBSTATE_SELECTOR & 7) through the inline word table at 0x0fe3. States
- * 0/1 tail-hand to their handler; states 2..5 run the handler then the post-handler tail loc_1035.
+ * 0/1 tail-hand to their handler; states 2..5 run the handler then the post-handler tail advanceObjectsAndRebuildSprites.
  * The module expresses the seated tail as a plain sequential call. Compared: RAM (dumpState −
  * STACK_SCRATCH) against the frozen translated oracle.
  *
@@ -14,10 +14,10 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { loc_0fd5 as oracle } from "../../translated/loc_0fd5.js";
-import { loc_0fd5 } from "../loc_0fd5.js";
-import { loc_1090 } from "../loc_1090.js";
-import { loc_1016 } from "../loc_1016.js";
-import { loc_1035 } from "../loc_1035.js";
+import { dispatchMainLoopSubstate } from "../dispatchMainLoopSubstate.js";
+import { queueBonusStageTallyDisplayOnDelay } from "../queueBonusStageTallyDisplayOnDelay.js";
+import { runActivePlayFrame } from "../runActivePlayFrame.js";
+import { advanceObjectsAndRebuildSprites } from "../advanceObjectsAndRebuildSprites.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -59,12 +59,12 @@ function craft(state, seat) {
   return m;
 }
 
-test("CRAFTED: each selector 0..5 routes identically to the oracle (states 2..5 include the loc_1035 tail)", () => {
+test("CRAFTED: each selector 0..5 routes identically to the oracle (states 2..5 include the advanceObjectsAndRebuildSprites tail)", () => {
   for (const state of [0, 1, 2, 3, 4, 5]) {
     for (const [label, seat] of SEATINGS) {
       const o = craft(state, seat); oracle(o);
       const c = craft(state, seat);
-      const rc = runGuarded(loc_0fd5, c);
+      const rc = runGuarded(dispatchMainLoopSubstate, c);
       assert.equal(rc.threw, false, `state ${state} [${label}]: module threw: ${rc.msg}`);
       const d = ramDiffMinusStack(o, c);
       assert.equal(d, null, d && `state ${state} [${label}]: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -74,24 +74,24 @@ test("CRAFTED: each selector 0..5 routes identically to the oracle (states 2..5 
 });
 
 test("SP-TOOTH: the tail dispatch is seam-placeable on a crafted state", () => {
-  const r = seamPlaceable(withOmittedRet, loc_0fd5, TARGET, craft(2, SEATINGS[0][1]));
+  const r = seamPlaceable(withOmittedRet, dispatchMainLoopSubstate, TARGET, craft(2, SEATINGS[0][1]));
   assert.equal(r.placeable, true, `dispatcher must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: tail dispatch seats cleanly (SP net-zero)");
 });
 
 test("GUARD-SLACK: selectors whose low three bits are 6 or 7 (past the 6-entry table) raise", () => {
   for (const state of [0x06, 0x07, 0x0e, 0xff]) { // &7 -> 6,7,6,7
-    assert.throws(() => loc_0fd5(craft(state, SEATINGS[0][1])), /guard-slack/, `selector ${hx(state)} must throw`);
+    assert.throws(() => dispatchMainLoopSubstate(craft(state, SEATINGS[0][1])), /guard-slack/, `selector ${hx(state)} must throw`);
   }
   console.log("  GUARD-SLACK: (selector & 7) of 6/7 raise");
 });
 
 test("TEETH: a dropped tail and a mis-route are both caught", () => {
-  // (a) BUG: state 2 drops the loc_1035 tail — the seated-tail-drop the oracle was fixed to avoid.
+  // (a) BUG: state 2 drops the advanceObjectsAndRebuildSprites tail — the seated-tail-drop the oracle was fixed to avoid.
   const droppedTail = (m) => {
     switch (m.mem8[MAINLOOP_SUBSTATE_SELECTOR] & 7) {
-      case 2: return loc_1090(m); // BUG: no loc_1035
-      default: return loc_1035(m);
+      case 2: return queueBonusStageTallyDisplayOnDelay(m); // BUG: no advanceObjectsAndRebuildSprites
+      default: return advanceObjectsAndRebuildSprites(m);
     }
   };
   {
@@ -99,12 +99,12 @@ test("TEETH: a dropped tail and a mis-route are both caught", () => {
     const c = craft(2, SEATINGS[0][1]);
     const rc = runGuarded(droppedTail, c);
     const caught = rc.threw || ramDiffMinusStack(o, c) !== null;
-    assert.equal(caught, true, "the gate FAILED to catch a dropped loc_1035 tail");
+    assert.equal(caught, true, "the gate FAILED to catch a dropped advanceObjectsAndRebuildSprites tail");
   }
   // (b) BUG: state 0 routed to the wrong handler.
   const misRoute = (m) => {
     switch (m.mem8[MAINLOOP_SUBSTATE_SELECTOR] & 7) {
-      case 0: return loc_1016(m); // BUG: state 0 -> loc_1016
+      case 0: return runActivePlayFrame(m); // BUG: state 0 -> runActivePlayFrame
       default: throw new Error("guard-slack");
     }
   };

@@ -8,14 +8,14 @@
  * drives the frozen rst-0x28 dispatcher, handler, and epilogue. dispatchAttractSubstate is a void driver
  * — no register survives — so equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
- * The crafted state seats sub-state 3 (loc_0986, a pure countdown gate) with its frame timer still
+ * The crafted state seats sub-state 3 (tickAttractDelayThenReseedAndAdvance, a pure countdown gate) with its frame timer still
  * running, so the handler just decrements it and returns; the epilogue is held on its clean `ret z`
  * (game-active set -> scan skipped, not free play, no credit). This isolates the driver's job —
  * READ the selector + DISPATCH + run the epilogue — with a single observable footprint (the timer).
  *
  * Jobs:
  *   1. EQUAL — oracle == dispatchAttractSubstate in RAM (−stack) for the running-timer and expiring-timer crafts.
- *   2. WRITE-SET — the dispatch reaches loc_0986: the frame timer is decremented.
+ *   2. WRITE-SET — the dispatch reaches tickAttractDelayThenReseedAndAdvance: the frame timer is decremented.
  *   3. TEETH — a wrong timer byte is CAUGHT by the RAM diff.
  *   4. SP-TOOTH (R36) — the switch-form dispatcher is SP-neutral through the seam (no stack ops; the
  *      seam supplies the ret). Null-mutant coverage for the seam is in sp-seam-tooth.test.js.
@@ -49,7 +49,7 @@ const test = ROM_PRESENT
 
 const SP0 = 0x8fe0; //        inside STACK_SCRATCH
 const CALLER_RET = 0xfffc; // the epilogue's clean ret lands pc here (moved +2 -> placeable)
-const SUBSTATE_3 = 0x03; //   dispatch -> loc_0986 (pure countdown gate)
+const SUBSTATE_3 = 0x03; //   dispatch -> tickAttractDelayThenReseedAndAdvance (pure countdown gate)
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -91,7 +91,7 @@ test("EQUAL: running + expiring frame timer — dispatchAttractSubstate == oracl
 test("WRITE-SET: the dispatch reaches the sub-state-3 handler (frame timer ticks)", () => {
   const o = craft(0x05);
   oracle(o);
-  assert.equal(o.mem8[SCRIPT_FRAME_TIMER], 0x04, "dispatch reached loc_0986 -> timer decremented");
+  assert.equal(o.mem8[SCRIPT_FRAME_TIMER], 0x04, "dispatch reached tickAttractDelayThenReseedAndAdvance -> timer decremented");
   console.log("  WRITE-SET: sub-state 3 dispatch decremented the frame timer");
 });
 

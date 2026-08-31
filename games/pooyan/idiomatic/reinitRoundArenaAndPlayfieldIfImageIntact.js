@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { ascendEnemyActorAndLinkedSlotOnTimer } from "./ascendEnemyActorAndLinkedSlotOnTimer.js";
 import {
   HUD_INTEGRITY_STRIP_A,
@@ -53,12 +53,12 @@ export function reinitRoundArenaAndPlayfieldIfImageIntact(m, rec = m.regs.ix) {
   mem8[PHASE_TIMER] = ARMED;
   mem8[PLAY_STATE_INDEX] = ARMED;
 
-  loc_0010(m, FRAME_TIMER_BLOCK_BASE, FILL_ZERO, TIMER_BLOCK_LEN);
+  fillByteRun(m, FRAME_TIMER_BLOCK_BASE, FILL_ZERO, TIMER_BLOCK_LEN);
   for (let i = 0; i < ARENA_WIPE_LEN; i++) mem8[ACTOR_TABLE + i] = FILL_ZERO;
 
   let cursor = PLAYFIELD_PAINT_START;
   for (let row = 0; row < PAINT_SPAN; row++) {
-    const advanced = loc_0010(m, cursor, PAINT_TILE, PAINT_SPAN);
+    const advanced = fillByteRun(m, cursor, PAINT_TILE, PAINT_SPAN);
     cursor = u16(advanced + ROW_GAP);
   }
 }

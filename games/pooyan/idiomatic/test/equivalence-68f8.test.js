@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_68f8 (ROM 0x68f8, Pooyan) — per-frame group update: run the
+ * Memory-equivalence test for runPerFrameObjectSubPasses (ROM 0x68f8, Pooyan) — per-frame group update: run the
  * four object sub-passes in order (delay-gated enemy-spawn sweep, paired descending-object
  * stepper, enemy-spawn sweep driver, per-frame object driver) then return.
  *
  * The module calls the four idiomatic siblings directly; the oracle drives the four translated
- * siblings through the routines map. loc_68f8 is a void sequencer — no register survives, so the
+ * siblings through the routines map. runPerFrameObjectSubPasses is a void sequencer — no register survives, so the
  * register file is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH. SP is parked
  * in STACK_SCRATCH so each sub-pass's nested pushes drop out of the diff.
  *
  * The first and third sub-passes carry a dissolved caller-skip whose translated form over-spawns
  * (documented in their own gates), so the crafted states keep those two in their agreement region:
  * the frame-delay timer and the blink countdown are both left running, so each merely decrements
- * and returns before its record sweep. That isolates loc_68f8's own job — ORDER + WIRING — from
+ * and returns before its record sweep. That isolates runPerFrameObjectSubPasses's own job — ORDER + WIRING — from
  * the sub-passes' internals, which their own equivalence gates cover.
  *
  * Jobs:
@@ -31,11 +31,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_68f8 as oracle } from "../../translated/loc_68f8.js";
-import { loc_68f8 } from "../loc_68f8.js";
-import { loc_6905 } from "../loc_6905.js";
-import { loc_69ad } from "../loc_69ad.js";
-import { loc_6a0f } from "../loc_6a0f.js";
-import { loc_6a7f } from "../loc_6a7f.js";
+import { runPerFrameObjectSubPasses } from "../runPerFrameObjectSubPasses.js";
+import { spawnPairedEnemyOnDelaySweep } from "../spawnPairedEnemyOnDelaySweep.js";
+import { stepPairedDescendingObjects } from "../stepPairedDescendingObjects.js";
+import { spawnEnemyOnBlinkCountdownSweep } from "../spawnEnemyOnBlinkCountdownSweep.js";
+import { runObjectsElseVerifyTilemapChecksum } from "../runObjectsElseVerifyTilemapChecksum.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -105,7 +105,7 @@ for (const [label, craft] of [["gated (counters only)", craftGated], ["rich (all
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_68f8(c);
+    runPerFrameObjectSubPasses(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     console.log(`  EQUAL ${label}: RAM identical`);
@@ -115,10 +115,10 @@ for (const [label, craft] of [["gated (counters only)", craftGated], ["rich (all
 // -- 3. TEETH -----------------------------------------------------------------
 
 const DROPS = [
-  { name: "drop 6905 (timer sweep)", keep: [loc_69ad, loc_6a0f, loc_6a7f], addr: DELAY },
-  { name: "drop 69ad (stepper)", keep: [loc_6905, loc_6a0f, loc_6a7f], addr: EAT + 0 * STRIDE + 5 },
-  { name: "drop 6a0f (sweep driver)", keep: [loc_6905, loc_69ad, loc_6a7f], addr: COUNTDOWN },
-  { name: "drop 6a7f (object driver)", keep: [loc_6905, loc_69ad, loc_6a0f], addr: EAT + 10 * STRIDE + 2 },
+  { name: "drop 6905 (timer sweep)", keep: [stepPairedDescendingObjects, spawnEnemyOnBlinkCountdownSweep, runObjectsElseVerifyTilemapChecksum], addr: DELAY },
+  { name: "drop 69ad (stepper)", keep: [spawnPairedEnemyOnDelaySweep, spawnEnemyOnBlinkCountdownSweep, runObjectsElseVerifyTilemapChecksum], addr: EAT + 0 * STRIDE + 5 },
+  { name: "drop 6a0f (sweep driver)", keep: [spawnPairedEnemyOnDelaySweep, stepPairedDescendingObjects, runObjectsElseVerifyTilemapChecksum], addr: COUNTDOWN },
+  { name: "drop 6a7f (object driver)", keep: [spawnPairedEnemyOnDelaySweep, stepPairedDescendingObjects, spawnEnemyOnBlinkCountdownSweep], addr: EAT + 10 * STRIDE + 2 },
 ];
 
 test("TEETH: a sequencer missing any one pass diverges from the oracle at that pass's footprint", () => {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0020 } from "./loc_0020.js";
-import { loc_54f9 } from "./loc_54f9.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
+import { seedFirstFreeActorBlockFromSpawnTypeTable } from "./seedFirstFreeActorBlockFromSpawnTypeTable.js";
 import {
   ROUND_COUNTER,
   DIFFICULTY_DSW,
@@ -34,7 +34,7 @@ export function spawnFormationEnemyOnInterval(m) {
   if (mem8[SPAWN_COUNTDOWN_A] !== 0) return; // still counting -> no spawn this tick
 
   const idx = mem8[SPAWN_TYPE_CURSOR] & 0x0f;
-  mem8[SPAWN_COUNTDOWN_A] = loc_0020(m, SPAWN_RELOAD_TABLE, idx)[0]; // reload from the table byte
+  mem8[SPAWN_COUNTDOWN_A] = fetchByteFromTableIndex(m, SPAWN_RELOAD_TABLE, idx)[0]; // reload from the table byte
   mem8[SPAWN_TYPE_CURSOR] = mem8[SPAWN_TYPE_CURSOR] + 1; // advance the schedule cursor (mem8 truncates)
-  return loc_54f9(m, FORMATION_TABLE, SLOT_STRIDE, SPAWN_COUNT); // fall through into the spawn loop
+  return seedFirstFreeActorBlockFromSpawnTypeTable(m, FORMATION_TABLE, SLOT_STRIDE, SPAWN_COUNT); // fall through into the spawn loop
 }

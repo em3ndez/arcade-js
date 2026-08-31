@@ -3,12 +3,12 @@
  * Memory-equivalence test for descendObjectToLanding (ROM 0x4137, Pooyan) — a per-object descent step for the
  * record at IX: animate (advanceObjectAnimationFrame), advance the position by the signed step with a sub-position
  * borrow, and while still travelling return; on landing latch the sound id, reset the object, and
- * tail (via the dissolved loc_0c45 + setActorAnimation) into its landing animation.
+ * tail (via the dissolved fetchWordFromTableIndex + setActorAnimation) into its landing animation.
  *
  * descendObjectToLanding is void — no register survives — so the register file is not compared; equivalence is
  * RAM (dumpState) minus STACK_SCRATCH via firstStateDiff, SP parked in dead stack. IX is passed
  * through the param bridge. advanceObjectAnimationFrame is held on its frame-hold arm (+0x0e nonzero) so the diff
- * isolates the descent step; the dissolved loc_0c45 / setActorAnimation read/write identical bytes.
+ * isolates the descent step; the dissolved fetchWordFromTableIndex / setActorAnimation read/write identical bytes.
  *
  * Jobs:
  *   1. EQUAL — the LAND path (lands, latches, re-animates) and the TRAVEL path (still moving,

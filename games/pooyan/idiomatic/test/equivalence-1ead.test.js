@@ -5,7 +5,7 @@
  * run the per-frame update chain (the timer/round updater refreshRoundStageHud, then the stage
  * digits).
  *
- * The module dissolves binToPackedBcd + loc_0c45 + blitTile3x3Block + blitGlyphBlock4x3 + loc_1ffb +
+ * The module dissolves binToPackedBcd + fetchWordFromTableIndex + blitTile3x3Block + blitGlyphBlock4x3 + stampSelectedGlyphBlock +
  * renderStageCountdownDigits + refreshRoundStageHud to direct calls; the oracle
  * drives the frozen versions of all of them. paintRoundNumberHud is void — no register survives — so equivalence
  * is RAM (dumpState) minus STACK_SCRATCH. The crafted state holds the integrity-flag scan nonzero so

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { dispatchEnemyActorState } from "./dispatchEnemyActorState.js";
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import {
   ENEMY_ACTOR_TABLE,
   WAVE_NUMBER,
@@ -46,5 +46,5 @@ export function updateEnemyActorsAndCycleLaunchFlipAnim(m, rec = m.regs.ix) {
   mem8[WAVE_NUMBER] = COUNTDOWN_RELOAD; // count expired -> reload
   mem8[LAUNCH_FLIP_COUNTDOWN] = mem8[LAUNCH_FLIP_COUNTDOWN] + 1; // advance the flip toggle
   const cmd = (mem8[LAUNCH_FLIP_COUNTDOWN] & 0x01) ? FLIP_ANIM_DISPLAY_CMD : FLIP_ANIM_DISPLAY_CMD_ALT;
-  loc_0038(m, cmd);
+  enqueueDisplayCommand(m, cmd);
 }

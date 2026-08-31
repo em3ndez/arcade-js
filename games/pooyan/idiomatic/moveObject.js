@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
-import { loc_0c45 } from "./loc_0c45.js";
-import { loc_0020 } from "./loc_0020.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { queueSoundCommand05 } from "./queueSoundCommand05.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import {
@@ -38,11 +38,11 @@ export function moveObject(m, rec = m.regs.ix) {
 
   queueSoundCommand05(m); // enqueue sound command 5
 
-  setActorAnimation(m, rec, loc_0c45(m, mem8[rec + 0x17], ARM_ANIM_TABLE)); // store the animation pointer
+  setActorAnimation(m, rec, fetchWordFromTableIndex(m, mem8[rec + 0x17], ARM_ANIM_TABLE)); // store the animation pointer
 
   let acc = 0; // 5-byte checksum guard; rst-20 serves only as its 16-bit add (fetched byte discarded)
   for (let i = 0; i < 5; i++) {
-    const [, next] = loc_0020(m, acc, mem8[INTEGRITY_GUARD_TABLE_0BB3 + i] & 0x1f);
+    const [, next] = fetchByteFromTableIndex(m, acc, mem8[INTEGRITY_GUARD_TABLE_0BB3 + i] & 0x1f);
     acc = next;
   }
   if ((((acc & 0xff) + ((acc >> 8) & 0xff) + 0xc7) & 0xff) === 0) return; // guard clear

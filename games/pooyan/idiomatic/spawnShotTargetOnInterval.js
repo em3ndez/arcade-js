@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0020 } from "./loc_0020.js";
-import { loc_5544 } from "./loc_5544.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
+import { seedFirstFreeSlotForScheduledSpawn } from "./seedFirstFreeSlotForScheduledSpawn.js";
 import {
   ROUND_COUNTER,
   DIFFICULTY_DSW,
@@ -36,9 +36,9 @@ export function spawnShotTargetOnInterval(m) {
   if (countdown !== 0) return; // per-type countdown still running
 
   const idx = mem8[SPAWN_SEQUENCE_INDEX_8D13] & INDEX_MASK;
-  const [reload] = loc_0020(m, SPAWN_INTERVAL_TABLE_55FF, idx); // table lookup
+  const [reload] = fetchByteFromTableIndex(m, SPAWN_INTERVAL_TABLE_55FF, idx); // table lookup
   mem8[SPAWN_INTERVAL_COUNTDOWN] = reload; // reload the countdown
   mem8[SPAWN_SEQUENCE_INDEX_8D13] = mem8[SPAWN_SEQUENCE_INDEX_8D13] + 1; // advance index (write truncates)
 
-  return loc_5544(m, SPAWN_OBJECT_TABLE, SPAWN_STRIDE, SPAWN_COUNT); // fall through into the spawn loop
+  return seedFirstFreeSlotForScheduledSpawn(m, SPAWN_OBJECT_TABLE, SPAWN_STRIDE, SPAWN_COUNT); // fall through into the spawn loop
 }

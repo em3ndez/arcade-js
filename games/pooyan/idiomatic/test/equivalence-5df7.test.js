@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_5df7 (Pooyan) — the proximity-sweep gate/seeder, COMPOSING the
- * whole idiomatic sweep chain (loc_5e11 -> loc_5e1f -> setActorAnimation / queueSoundCommand0D).
+ * Memory-equivalence gate for gateAndRunProjectileTargetSweep (Pooyan) — the proximity-sweep gate/seeder, COMPOSING the
+ * whole idiomatic sweep chain (sweepTargetSlotsForGrab -> loc_5e1f -> setActorAnimation / queueSoundCommand0D).
  *
- * loc_5df7 bails when the grab latch is set or when the formation/teardown states are non-zero;
+ * gateAndRunProjectileTargetSweep bails when the grab latch is set or when the formation/teardown states are non-zero;
  * otherwise it aims the sweep at three fixed tables (the sprite display list as the reference
  * source, the sprite target slots as the per-slot comparison coords, the projectile table as the
  * records) and runs three slots. In the frozen layer it falls through into the sweep, whose grab
- * hit unwinds two frames back to this routine's caller; the idiomatic loc_5df7 calls the idiomatic
- * loc_5e11 (which early-returns on a hit) and then returns normally. This gate runs the WHOLE
- * routine both ways and requires RAM-equivalence: the oracle loc_5df7 (which internally runs the
- * translated sweep chain) versus loc_5df7 (which runs the idiomatic chain), compared on dumpState
+ * hit unwinds two frames back to this routine's caller; the idiomatic gateAndRunProjectileTargetSweep calls the idiomatic
+ * sweepTargetSlotsForGrab (which early-returns on a hit) and then returns normally. This gate runs the WHOLE
+ * routine both ways and requires RAM-equivalence: the oracle gateAndRunProjectileTargetSweep (which internally runs the
+ * translated sweep chain) versus gateAndRunProjectileTargetSweep (which runs the idiomatic chain), compared on dumpState
  * minus STACK_SCRATCH. pc/SP/cycles are not compared — the oracle's pushes/pops land in
  * STACK_SCRATCH and the idiomatic side keeps no stack.
  *
@@ -21,7 +21,7 @@
  * byte and via the teardown byte (either non-zero -> bail), a full no-hit SWEEP (three present
  * records all out of range -> exhaust with no writes), a HIT on slot 0 (grab fires, record stamped,
  * sweep aborts), and a HIT on slot 1 (advance past a miss, then fire). Each case's oracle grab-latch
- * value is asserted so a case cannot silently no-op. loc_5df7 hard-seeds IX/IY/HL/B itself, so the
+ * value is asserted so a case cannot silently no-op. gateAndRunProjectileTargetSweep hard-seeds IX/IY/HL/B itself, so the
  * only inputs are the guard cells, the flip flag, and the source/target/record cells at fixed bases.
  *
  * Jobs: EQUAL (RAM −stack over all cases, oracle grab-latch tied to intent), WRITE-SET (the stamp a
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5df7 as oracle } from "../../translated/loc_5df7.js";
-import { loc_5df7 } from "../loc_5df7.js";
+import { gateAndRunProjectileTargetSweep } from "../gateAndRunProjectileTargetSweep.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -114,12 +114,12 @@ const CASES = [
 
 // -- 1. EQUAL (composing the real idiomatic sweep chain) ----------------------
 
-test("EQUAL: loc_5df7 (idiomatic chain) == oracle (translated chain) in RAM (−stack)", () => {
+test("EQUAL: gateAndRunProjectileTargetSweep (idiomatic chain) == oracle (translated chain) in RAM (−stack)", () => {
   for (const spec of CASES) {
     const o = craft(spec);
     oracle(o);
     const c = craft(spec);
-    loc_5df7(c);
+    gateAndRunProjectileTargetSweep(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -149,7 +149,7 @@ test("TEETH: a wrong stamped byte after a hit is CAUGHT by the RAM diff", () => 
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  loc_5df7(c);
+  gateAndRunProjectileTargetSweep(c);
   c.mem8[REC_BASE + 0x11] = 0x00; // BUG: the hit's stamped byte must be 0x0a
 
   const d = ramDiffMinusStack(o, c);

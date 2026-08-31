@@ -2,8 +2,8 @@
 /**
  * Memory-equivalence test for loc_2be5 (ROM 0x2be5) — "try to launch one formation slot".
  *
- * loc_2be5 is a DISSOLVED CALLER-SKIP for loc_2bb3. In the oracle it ends one path with
- * `pop af; ret` (aborting loc_2bb3's scan) and another with a plain `ret c` (busy slot). The
+ * loc_2be5 is a DISSOLVED CALLER-SKIP for scanFormationSlotsAndLaunchFree. In the oracle it ends one path with
+ * `pop af; ret` (aborting scanFormationSlotsAndLaunchFree's scan) and another with a plain `ret c` (busy slot). The
  * idiomatic module drops the stack plumbing and returns a BOOLEAN in its place:
  *   true  = normal return (slot busy -> keep scanning),
  *   false = the caller-skip (slot launched -> abort the scan).
@@ -12,7 +12,7 @@
  * Cycle-free / memory-equivalence gate: the routine WRITES RAM, so every case uses a FRESH
  * clone per side, compared on RAM (dumpState, minus STACK_SCRATCH) plus the boolean return.
  * pc/SP/cycles are NOT compared (the oracle drives them through m.step/m.push/m.pop/m.ret).
- * loc_2be5 has NO register live-out: loc_2bb3 protects its loop counter and stride across the
+ * loc_2be5 has NO register live-out: scanFormationSlotsAndLaunchFree protects its loop counter and stride across the
  * call (exx) and reads back only its own record pointer, which loc_2be5 never modifies.
  *
  * The record pointer is the only input register (IX); the free path also consumes the wave

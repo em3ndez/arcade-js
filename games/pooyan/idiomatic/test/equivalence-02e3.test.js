@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_02e3 (Pooyan ROM 0x02e3) — the "reset fill pointer to 0x8402"
+ * Memory-equivalence test for armTileFillFromPlayfieldBase (Pooyan ROM 0x02e3) — the "reset fill pointer to 0x8402"
  * variant of arming the row-by-row tile fill. It seeds the fixed VRAM start into the 16-bit fill
  * cursor (TILE_FILL_PTR, little-endian) and the row counter (FILL_ROW_COUNTER) to 0x20, delegating
  * to the shared arming routine.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_02e3 as oracle } from "../../translated/loc_02e3.js";
-import { loc_02e3 } from "../loc_02e3.js";
+import { armTileFillFromPlayfieldBase } from "../armTileFillFromPlayfieldBase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TILE_FILL_PTR, FILL_ROW_COUNTER, PLAYFIELD_TILE_BASE } from "../names.js";
@@ -82,13 +82,13 @@ function captureDispatches(K, maxFrames) {
   return caps;
 }
 
-test("CAPTURE: real 0x02e3 dispatches — loc_02e3 == oracle in RAM (−stack) + A", () => {
+test("CAPTURE: real 0x02e3 dispatches — armTileFillFromPlayfieldBase == oracle in RAM (−stack) + A", () => {
   const caps = ROM_PRESENT ? captureDispatches(8, 1500) : [];
   for (const cap of caps) {
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    const ret = loc_02e3(c);
+    const ret = armTileFillFromPlayfieldBase(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.a, `A live-out module ${hx(ret)} != oracle ${hx(o.regs.a)}`);
@@ -103,7 +103,7 @@ test("CRAFTED: pre-dirtied cells — identical RAM, cursor 0x8402, counter + A =
   const o = craft();
   const c = craft();
   oracle(o);
-  const ret = loc_02e3(c);
+  const ret = armTileFillFromPlayfieldBase(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -145,7 +145,7 @@ test("TEETH: a wrong cursor high byte is CAUGHT at 0x880c", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_02e3(c);
+  armTileFillFromPlayfieldBase(c);
   c.mem.write8(PTR_HI, ((PLAYFIELD_TILE_BASE >> 8) ^ 0x01) & 0xff); // BUG: wrong high byte
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong cursor high byte — it is worthless");
@@ -157,7 +157,7 @@ test("TEETH: a wrong A live-out is CAUGHT by the return check", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  const brokenRet = (loc_02e3(c) ^ 0x01) & 0xff; // module runs, its return perturbed
+  const brokenRet = (armTileFillFromPlayfieldBase(c) ^ 0x01) & 0xff; // module runs, its return perturbed
   assert.notEqual(brokenRet, o.regs.a, "the return check must reject an A that differs from the oracle's");
   console.log(`  TEETH: a perturbed return (${hx(brokenRet)}) differs from the oracle's ${hx(o.regs.a)}`);
 });

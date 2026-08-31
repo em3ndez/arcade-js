@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_613d (ROM 0x613d, Pooyan) — the matched-record handler and
+ * Memory-equivalence test for retireResetOrEngageObjectRecord (ROM 0x613d, Pooyan) — the matched-record handler and
  * entry of the retire/reset/scan cluster; a caller that dissolves the caller-skip loc_618a.
  *
  * Behaviour by branch off the record IY points at:
@@ -14,7 +14,7 @@
  *
  * Cycle-free memory-equivalence gate: the oracle drives the translated chain, the module the
  * idiomatic chain; compared on RAM (dumpState, minus STACK_SCRATCH). No register survives the
- * terminating skip, so the register file is not compared, and loc_613d's own JS return is not a
+ * terminating skip, so the register file is not compared, and retireResetOrEngageObjectRecord's own JS return is not a
  * live-out (the frozen caller unwinds through the stack, which the dissolution drops) — RAM is
  * the contract. SP is parked in STACK_SCRATCH so the chain's pushes and the pop-af+ret drop out
  * of the diff. IY is placed above the scan region so no reset field aliases a scan tag.
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_613d as oracle } from "../../translated/loc_613d.js";
-import { loc_613d } from "../loc_613d.js";
+import { retireResetOrEngageObjectRecord } from "../retireResetOrEngageObjectRecord.js";
 import { resetActorRecordQueueSoundAndAbortFrame } from "../resetActorRecordQueueSoundAndAbortFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -97,12 +97,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_613d == oracle in RAM (−stack) across all five branches", () => {
+test("EQUAL: retireResetOrEngageObjectRecord == oracle in RAM (−stack) across all five branches", () => {
   for (const cfg of CASES) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    const ret = loc_613d(c);
+    const ret = retireResetOrEngageObjectRecord(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, false, `${cfg.name}: every branch takes the pop-af skip -> must return false`);
@@ -134,7 +134,7 @@ test("TEETH: a wrong written byte is CAUGHT by the RAM diff", () => {
   const o = craft(cfg);
   const c = craft(cfg);
   oracle(o);
-  loc_613d(c);
+  retireResetOrEngageObjectRecord(c);
   const rec = (SPRITE_OBJECT_TABLE + cfg.matchIndex * SCAN_STRIDE) & 0xffff;
   const victim = (rec + 0x08) & 0xffff;
   c.mem.write8(victim, 0x00); // BUG: engaged state must be 0x01

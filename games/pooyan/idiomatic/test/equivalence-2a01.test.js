@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_2a01 (ROM 0x2a01) — the CALLER that dissolves the loc_2c58
- * caller-skip. loc_2a01 reseats a record, paints tiles, advances the record state, then
+ * Memory-equivalence gate for advanceActorState2AndCapWaveArrival (ROM 0x2a01) — the CALLER that dissolves the loc_2c58
+ * caller-skip. advanceActorState2AndCapWaveArrival reseats a record, paints tiles, advances the record state, then
  * integrity-checks the field attribute source table (8-bit sum of 0x20 bytes == 1). On a clean
  * check it enqueues a display command and caps the wave-arrival counter; on a mismatch it
  * TAIL-JUMPS into loc_2c58, propagating that routine's caller-skip boolean.
  *
- * Contract compared per case: RAM (dumpState, minus STACK_SCRATCH). loc_2a01 has no register
+ * Contract compared per case: RAM (dumpState, minus STACK_SCRATCH). advanceActorState2AndCapWaveArrival has no register
  * live-out of its own; on the tamper branch it forwards loc_2c58's boolean, which the EQUAL jobs
  * also confirm. pc/cycles/full register file are not compared.
  *
@@ -15,7 +15,7 @@
  * throw. To reach the composition we build a SECOND base from a ROM copy with one summed byte
  * bumped, so the checksum fails and BOTH sides tail-jump into loc_2c58. That composes the real
  * idiomatic skip over a skip-NOT-taken state (loc_2c58 climbs -> true) AND a skip-taken state
- * (loc_2c58 reaches the top -> false). The oracle runs the registered translated loc_2c58/loc_0038
+ * (loc_2c58 reaches the top -> false). The oracle runs the registered translated loc_2c58/enqueueDisplayCommand
  * via m.call; the idiomatic caller imports the idiomatic equivalents — the whole unit is composed.
  *
  * Jobs:
@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2a01 as oracle } from "../../translated/loc_2a01.js";
-import { loc_2a01 } from "../loc_2a01.js";
+import { advanceActorState2AndCapWaveArrival } from "../advanceActorState2AndCapWaveArrival.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -83,20 +83,20 @@ if (ROM_PRESENT) {
   BASE_TAMPER = new Machine(TAMPERED_ROM).clone();
 }
 
-const REC = 0x8a80; //   the 0x8a80 actor record loc_2a01 operates on
+const REC = 0x8a80; //   the 0x8a80 actor record advanceActorState2AndCapWaveArrival operates on
 const RING_PTR = 0x88a0; // DISPLAY_CMD_RING_WRITE_PTR
 const RING_SLOT = 0x88c0; // first ring slot (page 0x88 + 0xc0)
 
-/** A fresh clone off `base` with loc_2a01's inputs (and loc_2c58's, for the jp path) seated. */
+/** A fresh clone off `base` with advanceActorState2AndCapWaveArrival's inputs (and loc_2c58's, for the jp path) seated. */
 function craftFrom(base, opts = {}) {
   const m = base.clone();
   m.regs.ix = REC;
   m.regs.sp = 0x8ff8; // in STACK_SCRATCH; the oracle's push/pop/ret stay inside it
-  // epilogue plumbing (a free ring slot so loc_0038 actually enqueues); harmless on the jp path
+  // epilogue plumbing (a free ring slot so enqueueDisplayCommand actually enqueues); harmless on the jp path
   m.mem.write8(RING_PTR, 0xc0);
   m.mem.write8(RING_SLOT, 0x80); // bit7 set => slot free
   m.mem.write8(WAVE_ARRIVAL_COUNTER, opts.counter ?? 0x09);
-  // loc_2c58 record inputs (consumed only when the checksum fails and loc_2a01 tail-jumps)
+  // loc_2c58 record inputs (consumed only when the checksum fails and advanceActorState2AndCapWaveArrival tail-jumps)
   m.mem.write8(REC + 0x0e, 0x05); // frame-hold nonzero: advanceObjectAnimationFrame just decrements
   m.mem.write8(REC + 0x05, opts.lo ?? 0);
   m.mem.write8(REC + 0x09, opts.step ?? 0);
@@ -111,13 +111,13 @@ test("EPILOGUE/CAP: intact ROM, clean check enqueues + caps the counter; oracle 
   const o = craftFrom(BASE, { counter: 0x09 });
   const c = craftFrom(BASE, { counter: 0x09 });
   oracle(o);
-  loc_2a01(c);
+  advanceActorState2AndCapWaveArrival(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   // positive controls on the module's own clone
-  assert.equal(c.mem.read8(RING_SLOT), 0x06, "loc_0038 must enqueue the command high byte 0x06");
-  assert.equal(c.mem.read8(RING_SLOT + 1), 0x15, "loc_0038 must enqueue the command low byte 0x15");
+  assert.equal(c.mem.read8(RING_SLOT), 0x06, "enqueueDisplayCommand must enqueue the command high byte 0x06");
+  assert.equal(c.mem.read8(RING_SLOT + 1), 0x15, "enqueueDisplayCommand must enqueue the command low byte 0x15");
   assert.equal(c.mem.read8(WAVE_ARRIVAL_COUNTER), 0x08, "counter 0x09 must be capped to 0x08");
   assert.equal(c.mem.read8(STATE2_TILE_PAINT_VRAM), 0xbc, "the tile paint must have run");
   console.log("  EPILOGUE/CAP: enqueue + cap identical to oracle");
@@ -129,7 +129,7 @@ test("EPILOGUE/NOCAP: intact ROM, counter below the cap is left unchanged; oracl
   const o = craftFrom(BASE, { counter: 0x05 });
   const c = craftFrom(BASE, { counter: 0x05 });
   oracle(o);
-  loc_2a01(c);
+  advanceActorState2AndCapWaveArrival(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
@@ -143,11 +143,11 @@ test("TAMPER/CLIMB: failed check -> loc_2c58 climbs (true); oracle == idiomatic;
   const o = craftFrom(BASE_TAMPER, { hi: 0x05 });
   const c = craftFrom(BASE_TAMPER, { hi: 0x05 });
   const ro = oracle(o);
-  const rc = loc_2a01(c);
+  const rc = advanceActorState2AndCapWaveArrival(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
-  assert.equal(rc, ro, "loc_2a01 must forward loc_2c58's boolean unchanged");
+  assert.equal(rc, ro, "advanceActorState2AndCapWaveArrival must forward loc_2c58's boolean unchanged");
   assert.equal(rc, true, "loc_2c58 climbs -> true (skip not taken)");
   // positive control: the epilogue did NOT run (ring slot still free), so the jp was taken
   assert.equal(c.mem.read8(RING_SLOT), 0x80, "epilogue must be skipped on the tamper branch");
@@ -160,11 +160,11 @@ test("TAMPER/TOP: failed check -> loc_2c58 sweeps (false); oracle == idiomatic; 
   const o = craftFrom(BASE_TAMPER, { hi: 0x12, seedTrigger: true });
   const c = craftFrom(BASE_TAMPER, { hi: 0x12, seedTrigger: true });
   const ro = oracle(o);
-  const rc = loc_2a01(c);
+  const rc = advanceActorState2AndCapWaveArrival(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
-  assert.equal(rc, ro, "loc_2a01 must forward loc_2c58's boolean unchanged");
+  assert.equal(rc, ro, "advanceActorState2AndCapWaveArrival must forward loc_2c58's boolean unchanged");
   assert.equal(rc, false, "loc_2c58 reaches the top -> false (skip taken)");
   assert.equal(c.mem.read8(ENEMY_ACTOR_TABLE + 0x02), 0x12, "the sweep must transition the seeded record");
   console.log("  TAMPER/TOP: composed idiomatic loc_2c58 (false), sweep transitioned the record");
@@ -178,8 +178,8 @@ test("BRANCH-LIVE: the checksum truly selects the branch (intact sum==1, tampere
   // Same seatings, different ROM: the idiomatic run must land in different RAM (branch is live).
   const intact = craftFrom(BASE, { hi: 0x05 });
   const tamper = craftFrom(BASE_TAMPER, { hi: 0x05 });
-  loc_2a01(intact);
-  loc_2a01(tamper);
+  advanceActorState2AndCapWaveArrival(intact);
+  advanceActorState2AndCapWaveArrival(tamper);
   const d = ramDiffMinusStack(intact, tamper);
   assert.notEqual(d, null, "intact vs tampered must diverge — else the checksum branch is dead");
   console.log(`  BRANCH-LIVE: intact/tampered diverge at ${hx(d.addr ?? 0)} (epilogue vs jp)`);
@@ -191,7 +191,7 @@ test("TEETH: a wrong painted tile byte is CAUGHT by the RAM diff", () => {
   const o = craftFrom(BASE, { counter: 0x09 });
   const c = craftFrom(BASE, { counter: 0x09 });
   oracle(o);
-  loc_2a01(c);
+  advanceActorState2AndCapWaveArrival(c);
   c.mem.write8(STATE2_TILE_PAINT_VRAM + 1, 0x00); // BUG: the middle tile must be 0xbc
 
   const d = ramDiffMinusStack(o, c);

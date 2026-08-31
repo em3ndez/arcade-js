@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { CREDIT_DISPLAY_COMMAND } from "./names.js";
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 /**
  * queueCreditDisplayRefresh — queue the credit-display refresh command.
  *
@@ -9,5 +9,5 @@ import { loc_0038 } from "./loc_0038.js";
  */
 
 export function queueCreditDisplayRefresh(m) {
-  loc_0038(m, CREDIT_DISPLAY_COMMAND); // enqueue the display-command word via rst-0x38
+  enqueueDisplayCommand(m, CREDIT_DISPLAY_COMMAND); // enqueue the display-command word via rst-0x38
 }

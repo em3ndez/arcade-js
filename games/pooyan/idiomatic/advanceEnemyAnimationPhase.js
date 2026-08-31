@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
-import { loc_0038 } from "./loc_0038.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { armEnemyTurnAnimation } from "./armEnemyTurnAnimation.js";
 import { blankEnemyBandOnTimerExpiry } from "./blankEnemyBandOnTimerExpiry.js";
@@ -38,10 +38,10 @@ export function advanceEnemyAnimationPhase(m, rec = m.regs.ix) {
   if (phase === TURN_PHASE) return armEnemyTurnAnimation(m, rec);
 
   const bias = phase === 0 ? 0 : (phase - 1) & 0xff; // display-cmd low-byte bias
-  loc_0038(m, COUNTDOWN_EXPIRE_DISPLAY_CMD + bias);
+  enqueueDisplayCommand(m, COUNTDOWN_EXPIRE_DISPLAY_CMD + bias);
 
   if (phase === SWAP_PHASE) {
-    const animPtr = loc_0c45(m, phase, ANIM_SEQ_TABLE_3E49);
+    const animPtr = fetchWordFromTableIndex(m, phase, ANIM_SEQ_TABLE_3E49);
     setActorAnimation(m, rec, animPtr);
     mem8[rec + FRAME_TIMER] = RESEED_TIMER;
   }

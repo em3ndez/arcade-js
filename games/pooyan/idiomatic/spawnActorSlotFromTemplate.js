@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0020 } from "./loc_0020.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { queueSoundCommand04IfNotBusy } from "./queueSoundCommand04IfNotBusy.js";
 import {
   DIFFICULTY_DSW,
@@ -48,7 +48,7 @@ export function spawnActorSlotFromTemplate(m, slot = m.regs.iy, template = m.reg
   const speedTable = mem8[DIFFICULTY_DSW] === HARD_DSW ? SPEED_TABLE_38AD : SPEED_TABLE_38A5;
   let speedIndex = mem8[SPEED_INDEX];
   if (speedIndex >= SPEED_CLAMP) speedIndex = SPEED_MAX;
-  const [speed] = loc_0020(m, speedTable, speedIndex);
+  const [speed] = fetchByteFromTableIndex(m, speedTable, speedIndex);
 
   let velocity = speed;
   if ((mem8[ROUND_COUNTER] & 0x01) !== 0) velocity = (-velocity) & 0xff; // mirrored facing
@@ -56,7 +56,7 @@ export function spawnActorSlotFromTemplate(m, slot = m.regs.iy, template = m.reg
   mem8[template + 0x0a] = velocity;
 
   const frame = mem8[template + 0x07] >> 4;
-  const looked = loc_0c45(m, frame, ANIM_PTR_TABLE_38B5);
+  const looked = fetchWordFromTableIndex(m, frame, ANIM_PTR_TABLE_38B5);
   const flag = mem8[template + 0x0b];
   const animVector = flag === 0 ? looked : ANIM_SEQ_3952;
   mem8[slot + 0x0b] = flag;

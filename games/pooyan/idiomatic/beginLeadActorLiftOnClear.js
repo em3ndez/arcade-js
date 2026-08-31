@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_250f } from "./loc_250f.js";
+import { seedFourRecordsAndCopyDisplayTiles } from "./seedFourRecordsAndCopyDisplayTiles.js";
 import { queueSoundRun26 } from "./queueSoundRun26.js";
 import {
   TAMPER_STRIKES_SLOTSWEEP,
@@ -34,7 +34,7 @@ export function beginLeadActorLiftOnClear(m, rec = m.regs.ix) {
   for (let i = 0; i < RECORD_LEN; i++) mem8[ACTOR_TABLE_SLOT1 + i] = mem8[ACTOR_TABLE + i]; // snapshot
   mem8[rec + 0x04] = mem8[rec + 0x04] - POS_DROP; // drop the position field one row
 
-  loc_250f(m, SHAPE_TABLE_26BD, rec); // load the shape table into the actor records
+  seedFourRecordsAndCopyDisplayTiles(m, SHAPE_TABLE_26BD, rec); // load the shape table into the actor records
 
   if (mem8[WAVE_TEARDOWN_STATE] !== 0) return;
   queueSoundRun26(m); // queue the state's tile-run sound

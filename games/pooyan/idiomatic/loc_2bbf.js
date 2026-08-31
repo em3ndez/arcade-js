@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_2bd3 } from "./loc_2bd3.js";
+import { paintReadySpriteSquareIfAbsent } from "./paintReadySpriteSquareIfAbsent.js";
 import { blit2x2TileBlock } from "./blit2x2TileBlock.js";
 import { FORMATION_READY_TILE_VRAM, READY_SPRITE_SRC } from "./names.js";
 /**
@@ -19,13 +19,13 @@ export function loc_2bbf(m, a = m.regs.a) {
   const { mem8 } = m;
 
   if (a === READY) {
-    loc_2bd3(m); // stamp the ready-sprite square
+    paintReadySpriteSquareIfAbsent(m); // stamp the ready-sprite square
     return true;
   }
 
   if (mem8[FORMATION_READY_TILE_VRAM] === PAINTED_MARKER) return false; // already present -> caller skips
 
   blit2x2TileBlock(m, FORMATION_READY_TILE_VRAM, READY_SPRITE_SRC); // paint the indicator tile
-  loc_2bd3(m); // then stamp the ready-sprite square
+  paintReadySpriteSquareIfAbsent(m); // then stamp the ready-sprite square
   return true;
 }

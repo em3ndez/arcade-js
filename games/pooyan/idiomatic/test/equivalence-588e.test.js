@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_588e (ROM 0x588e, Pooyan) — "initialise a run of sprite blocks":
+ * Memory-equivalence test for seedFirstFreeSpriteBlockInRun (ROM 0x588e, Pooyan) — "initialise a run of sprite blocks":
  * walk B blocks at IX, one block (0x18 bytes) per pass, initialising each with a fixed field seed
  * (E=0x04).
  *
- * loc_588e is the CALLER of the dissolved caller-skip loc_572b (the per-block initialiser, which
+ * seedFirstFreeSpriteBlockInRun is the CALLER of the dissolved caller-skip loc_572b (the per-block initialiser, which
  * ret-c's on a live block to keep the walk going and pop-af/rets past this loop once it seeds a
- * fresh block). This gate COMPOSES the real idiomatic skip: the idiomatic loc_588e imports the
+ * fresh block). This gate COMPOSES the real idiomatic skip: the idiomatic seedFirstFreeSpriteBlockInRun imports the
  * idiomatic loc_572b and early-returns when it reports false (seeded), exactly where the oracle's
- * pop-af/ret aborted the run. The oracle side runs the TRANSLATED loc_588e, which m.call()s the
+ * pop-af/ret aborted the run. The oracle side runs the TRANSLATED seedFirstFreeSpriteBlockInRun, which m.call()s the
  * translated loc_572b through the registry.
  *
  * Cycle-free / memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
- * STACK_SCRATCH). pc/SP/cycles/registers are NOT compared (loc_588e has no register live-out).
+ * STACK_SCRATCH). pc/SP/cycles/registers are NOT compared (seedFirstFreeSpriteBlockInRun has no register live-out).
  * Inputs are the block pointer (IX) and the count (B), bridged via the register defaults, plus the
  * block bytes and the three shared cells the initialiser reads (0x8907 / 0x8820 / 0x8908) poked
  * identically on both sides.
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_588e as oracle } from "../../translated/loc_588e.js";
-import { loc_588e } from "../loc_588e.js";
+import { seedFirstFreeSpriteBlockInRun } from "../seedFirstFreeSpriteBlockInRun.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -79,7 +79,7 @@ test("EQUAL: two live blocks — full run, no writes", () => {
   const o = craft([0, 1], 0x02);
   const c = craft([0, 1], 0x02);
   oracle(o);
-  loc_588e(c);
+  seedFirstFreeSpriteBlockInRun(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
   console.log("  EQUAL/all-live: full run, RAM identical (no writes)");
@@ -89,7 +89,7 @@ test("EQUAL: first block free — seed pass 1 then stop", () => {
   const o = craft([], 0x06); // block 0 free
   const c = craft([], 0x06);
   oracle(o);
-  loc_588e(c);
+  seedFirstFreeSpriteBlockInRun(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
   console.log(`  EQUAL/seed-1: seeded ${hx(blockBase(0))}, RAM identical`);
@@ -99,7 +99,7 @@ test("EQUAL: two live then free — step twice, seed pass 3, stop", () => {
   const o = craft([0, 1], 0x06); // blocks 0,1 live; block 2 free
   const c = craft([0, 1], 0x06);
   oracle(o);
-  loc_588e(c);
+  seedFirstFreeSpriteBlockInRun(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
   console.log(`  EQUAL/seed-3: seeded ${hx(blockBase(2))}, RAM identical`);
@@ -127,7 +127,7 @@ test("TEETH: a wrong seeded byte on the abort case is CAUGHT by the RAM diff", (
   const o = craft([0, 1], 0x06);
   const c = craft([0, 1], 0x06);
   oracle(o);
-  loc_588e(c);
+  seedFirstFreeSpriteBlockInRun(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: pass-3 seed is memory-equivalent before tampering");
   c.mem.write8(blockBase(2) + 0x02, (o.mem.read8(blockBase(2) + 0x02) ^ 0xff) & 0xff); // BUG: seeded state byte
   const d = ramDiffMinusStack(o, c);

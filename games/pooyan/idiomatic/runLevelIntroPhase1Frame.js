@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_6e75 } from "./loc_6e75.js";
-import { loc_1e55 } from "./loc_1e55.js";
-import { loc_20d4 } from "./loc_20d4.js";
-import { loc_02ef } from "./loc_02ef.js";
-import { loc_18da } from "./loc_18da.js";
-import { loc_191c } from "./loc_191c.js";
+import { runPhase1LauncherThenDriver } from "./runPhase1LauncherThenDriver.js";
+import { sampleJoystickIntoPlayerAimState } from "./sampleJoystickIntoPlayerAimState.js";
+import { dispatchPerFrameActorUpdatePasses } from "./dispatchPerFrameActorUpdatePasses.js";
+import { rebuildSpriteDisplayList } from "./rebuildSpriteDisplayList.js";
+import { advanceBonusAwardQueueAndBumpGauge } from "./advanceBonusAwardQueueAndBumpGauge.js";
+import { pickEnemyGroupSpeedAndClearAim } from "./pickEnemyGroupSpeedAndClearAim.js";
 import { scanActorCollisionsBothSlots } from "./scanActorCollisionsBothSlots.js";
 import { drainSoundCommandRing } from "./drainSoundCommandRing.js";
 import { tickHudRefresh } from "./tickHudRefresh.js";
@@ -19,12 +19,12 @@ import { tickHudRefresh } from "./tickHudRefresh.js";
  */
 export function runLevelIntroPhase1Frame(m) {
   tickHudRefresh(m);
-  loc_6e75(m);
-  loc_1e55(m);
-  loc_20d4(m);
-  loc_02ef(m);
-  loc_18da(m);
-  loc_191c(m);
+  runPhase1LauncherThenDriver(m);
+  sampleJoystickIntoPlayerAimState(m);
+  dispatchPerFrameActorUpdatePasses(m);
+  rebuildSpriteDisplayList(m);
+  advanceBonusAwardQueueAndBumpGauge(m);
+  pickEnemyGroupSpeedAndClearAim(m);
   scanActorCollisionsBothSlots(m);
   drainSoundCommandRing(m);
 }

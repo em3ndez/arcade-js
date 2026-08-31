@@ -5,7 +5,7 @@
  * delay expiry dispatch the actor's state through the shared spine into the secondary-state table.
  *
  * The module dispatches the actor's state through an idiomatic switch to the eight secondary-state
- * handlers; the shared epilogue (loc_2b8d) is a downstream continuation reached via loc_2b59, not run
+ * handlers; the shared epilogue (runSpawnTickAndHunterSweep) is a downstream continuation reached via checksumIntegrityStripAndDispatchSpawn, not run
  * here — matching the oracle, whose pushed epilogue slot the frozen spine pops without executing it.
  * advanceLeadActorSecondaryState is a void driver — no register survives — so the register file is not compared;
  * equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
@@ -145,7 +145,7 @@ test("TEETH: a wrong play-sub-state byte is CAUGHT by the RAM diff", () => {
 test("SP-TOOTH: the switch dispatch is seam-placeable — moved 0, no false positive", () => {
   const r = seamPlaceable(withOmittedRet, advanceLeadActorSecondaryState, 0x28c6, craftDispatch());
   assert.equal(r.placeable, true, `the dispatch must be seam-placeable; got: ${r.error}`);
-  console.log("  SP-TOOTH: dispatch seatable (moved 0, switch; epilogue deferred to loc_2b59)");
+  console.log("  SP-TOOTH: dispatch seatable (moved 0, switch; epilogue deferred to checksumIntegrityStripAndDispatchSpawn)");
 });
 
 test("SP-TOOTH: the delay-running arm is seam-placeable (plain return, SP moved 0)", () => {

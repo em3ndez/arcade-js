@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7960 (ROM 0x7960) — the shared integrity + play-timer
+ * Memory-equivalence test for renderPlayTimerNibblesAndGuardChecksum (ROM 0x7960) — the shared integrity + play-timer
  * nibble-render handler. On a valid data image the handler: enqueues one fixed display command;
  * folds a 16-bit checksum plus an even-offset running sum over a fixed code block and matches
  * four result bytes against the guards that trail it; splits the active player's timer minutes
@@ -21,7 +21,7 @@
  * the (otherwise unreached) tail check.
  *
  * Jobs:
- *   1. EQUAL — over player select and timer values, oracle == loc_7960 in RAM (−stack).
+ *   1. EQUAL — over player select and timer values, oracle == renderPlayTimerNibblesAndGuardChecksum in RAM (−stack).
  *   2. WRITE-SET — with the enqueue forced to drop, the ONLY writes are the five render cells
  *      and the three cleared timer bytes.
  *   3. CRAFTED (player 2) — the second player's timer bank is the source and clear target.
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7960 as oracle } from "../../translated/loc_7960.js";
-import { loc_7960 } from "../loc_7960.js";
+import { renderPlayTimerNibblesAndGuardChecksum } from "../renderPlayTimerNibblesAndGuardChecksum.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { ACTIVE_PLAYER, PLAY_TIMER_BCD_P1, PLAY_TIMER_BCD_P2, STACK_SCRATCH } from "../names.js";
@@ -104,12 +104,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted player/timer — loc_7960 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted player/timer — renderPlayTimerNibblesAndGuardChecksum == oracle in RAM (−stack)", () => {
   for (const c0 of CASES) {
     const o = craft(c0);
     const c = craft(c0);
     oracle(o);
-    loc_7960(c);
+    renderPlayTimerNibblesAndGuardChecksum(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b} (${JSON.stringify(c0)})`);
   }
@@ -160,7 +160,7 @@ test("CRAFTED: a nonzero player select renders + clears the second player's time
   o.mem.write8(P2_MIN + 1, 0x22); // 0x8a36 = the third cleared byte, made nonzero to observe the clear
   c.mem.write8(P2_MIN + 1, 0x22);
   oracle(o);
-  loc_7960(c);
+  renderPlayTimerNibblesAndGuardChecksum(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
@@ -184,7 +184,7 @@ test("CRAFTED (tail, craft-only): a set flag diverts to the tail check; both sid
   const c = craft(seed);
   let oThrew = false, cThrew = false;
   try { oracle(o); } catch { oThrew = true; }
-  try { loc_7960(c); } catch { cThrew = true; }
+  try { renderPlayTimerNibblesAndGuardChecksum(c); } catch { cThrew = true; }
   assert.equal(cThrew, oThrew, "module and oracle must take the same tail branch (both trip, or neither)");
   const d = ramDiffMinusStack(o, c); // the writes made before any trip must match either way
   assert.equal(d, null, d && `tail RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b}`);
@@ -198,7 +198,7 @@ test("TEETH: a wrong render byte is CAUGHT by the RAM diff", () => {
   const o = craft(c0);
   const c = craft(c0);
   oracle(o);
-  loc_7960(c);
+  renderPlayTimerNibblesAndGuardChecksum(c);
   c.mem.write8(RENDER[0], 0x00); // BUG: the hi-minutes tile must be 5, not 0
 
   const d = ramDiffMinusStack(o, c);

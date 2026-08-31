@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_107d (Pooyan) — a main-loop sub-state handler gated on the stage
+ * Memory-equivalence test for advanceToPhaseCompleteOnStageEnd (Pooyan) — a main-loop sub-state handler gated on the stage
  * countdown. If STAGE_COUNTDOWN is non-zero it returns untouched; otherwise it bumps the sub-state
  * selector (MAINLOOP_SUBSTATE_SELECTOR), enqueues PHASE1_COMPLETE_DISPLAY_CMD via the (already
- * idiomatic) ring helper loc_0038, and seeds SUBSTATE_FIELD1_COUNTER with 64.
+ * idiomatic) ring helper enqueueDisplayCommand, and seeds SUBSTATE_FIELD1_COUNTER with 64.
  *
  * No register inputs. Each case seats a FREE ring slot so the enqueue path actually writes, and the
  * enqueue bytes are part of the compared RAM. Compared on RAM (dumpState) minus STACK_SCRATCH; SP is
@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_107d as oracle } from "../../translated/loc_107d.js";
-import { loc_107d } from "../loc_107d.js";
+import { advanceToPhaseCompleteOnStageEnd } from "../advanceToPhaseCompleteOnStageEnd.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -65,12 +65,12 @@ const craftExpired = () => seat({ countdown: 0x00 });
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_107d == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceToPhaseCompleteOnStageEnd == oracle in RAM (−stack)", () => {
   for (const [name, craft] of [["guard busy", craftBusy], ["expired", craftExpired]]) {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_107d(c);
+    advanceToPhaseCompleteOnStageEnd(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -98,7 +98,7 @@ test("TEETH: a corrupted counter seed is CAUGHT; the guard is load-bearing", () 
   const o = craftExpired();
   const c = craftExpired();
   oracle(o);
-  loc_107d(c);
+  advanceToPhaseCompleteOnStageEnd(c);
   c.mem.write8(SUBSTATE_FIELD1_COUNTER, (o.mem.read8(SUBSTATE_FIELD1_COUNTER) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted counter seed");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_4378 (ROM 0x4378, Pooyan) — a PHANTOM NO-OP: the frozen routine
+ * Memory-equivalence test for noopHighStateHandler (ROM 0x4378, Pooyan) — a PHANTOM NO-OP: the frozen routine
  * is a lone `ret` with no memory effect (a called stub). The idiomatic rewrite must leave RAM
  * (dumpState, minus STACK_SCRATCH) byte-identical to the oracle, which also just returns. pc/SP are
  * NOT compared; there is no register live-out.
@@ -9,7 +9,7 @@
  * minimal module + this gate document that it does nothing.
  *
  * Jobs:
- *   1. NO-OP EQUAL — over boot-state clones, oracle == loc_4378 in RAM(−stack).
+ *   1. NO-OP EQUAL — over boot-state clones, oracle == noopHighStateHandler in RAM(−stack).
  *   2. WRITE-SET — the oracle changes ZERO cells.
  *   3. TEETH — a twin that writes one work-RAM byte MUST be caught by the RAM diff.
  *
@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4378 as oracle } from "../../translated/loc_4378.js";
-import { loc_4378 } from "../loc_4378.js";
+import { noopHighStateHandler } from "../noopHighStateHandler.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -54,12 +54,12 @@ function craft() {
 
 // -- 1. NO-OP EQUAL -----------------------------------------------------------
 
-test("NO-OP EQUAL: oracle == loc_4378 in RAM(−stack) across clones", () => {
+test("NO-OP EQUAL: oracle == noopHighStateHandler in RAM(−stack) across clones", () => {
   for (let i = 0; i < 4; i++) {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_4378(c);
+    noopHighStateHandler(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
   }
@@ -88,7 +88,7 @@ test("TEETH: a single stray work-RAM write is caught", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_4378(c);
+  noopHighStateHandler(c);
   c.mem.write8(TEETH_CELL, (c.mem.read8(TEETH_CELL) ^ 0xaa) & 0xff); // BUG: a no-op must write nothing
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a stray write — it is worthless");

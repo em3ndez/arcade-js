@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0254 (ROM 0x0254) — the per-frame scroll-column worker.
+ * Memory-equivalence test for repaintScrollColumnsElseVerifySignature (ROM 0x0254) — the per-frame scroll-column worker.
  *
  * Branch selectors are four work-RAM cells: the control byte (low nibble gates the ROM-signature
  * check, bit 4 gates the final blank), the game-active flag (nonzero to run, bit 0 gates the final
@@ -17,7 +17,7 @@
  * path writes nothing against the intact ROM.
  *
  * Jobs:
- *   1. EQUAL — over the six branch paths, oracle == loc_0254 in RAM (−stack).
+ *   1. EQUAL — over the six branch paths, oracle == repaintScrollColumnsElseVerifySignature in RAM (−stack).
  *   2. WRITE-SET — the two-player + final-blank path writes exactly the two three-cell columns.
  *   3. TEETH — a wrong written column byte is caught by the RAM diff.
  *
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0254 as oracle } from "../../translated/loc_0254.js";
-import { loc_0254 } from "../loc_0254.js";
+import { repaintScrollColumnsElseVerifySignature } from "../repaintScrollColumnsElseVerifySignature.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -87,12 +87,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted branch paths — loc_0254 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted branch paths — repaintScrollColumnsElseVerifySignature == oracle in RAM (−stack)", () => {
   for (const { label, control, gameActive, twoPlayer, activePlayer } of CASES) {
     const o = craft(control, gameActive, twoPlayer, activePlayer);
     const c = craft(control, gameActive, twoPlayer, activePlayer);
     oracle(o);
-    loc_0254(c);
+    repaintScrollColumnsElseVerifySignature(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} ("${label}")`);
   }
@@ -140,7 +140,7 @@ test("TEETH: a wrong written column byte is CAUGHT by the RAM diff", () => {
   const o = craft(control, gameActive, twoPlayer, activePlayer);
   const c = craft(control, gameActive, twoPlayer, activePlayer);
   oracle(o);
-  loc_0254(c);
+  repaintScrollColumnsElseVerifySignature(c);
   c.mem.write8(WORKER_COLUMN_VRAM, 0x00); // BUG: this cell must hold the cap tile
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong column byte — it is worthless");

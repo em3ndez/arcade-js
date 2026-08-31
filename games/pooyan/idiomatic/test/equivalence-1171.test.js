@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1171 (ROM 0x1171, Pooyan) — enemy spawn-cadence tick.
+ * Memory-equivalence test for tickSpawnTimerAndSeedFreeEnemy (ROM 0x1171, Pooyan) — enemy spawn-cadence tick.
  *
- * loc_1171 is the CALLER of the caller-skip loc_119a. In the oracle its record sweep calls 0x119a
+ * tickSpawnTimerAndSeedFreeEnemy is the CALLER of the caller-skip loc_119a. In the oracle its record sweep calls 0x119a
  * per record; when 0x119a seeds a free record it does `pop af; ret` (a skip that aborts the sweep
- * and returns from loc_1171). The idiomatic caller drops the stack plumbing: it imports the
+ * and returns from tickSpawnTimerAndSeedFreeEnemy). The idiomatic caller drops the stack plumbing: it imports the
  * idiomatic loc_119a and `if (!loc_119a(...)) return;` — false (the seed path) aborts the sweep.
  *
  * This composes the REAL idiomatic loc_119a. The skip-taken arm therefore REQUIRES loc_119a to be
@@ -12,7 +12,7 @@
  * seed path). loc_119a was decompiled in an earlier leaves-first pass and currently returns
  * undefined on both paths — until it is re-dissolved to a boolean, the SKIP-TAKEN-MID-SWEEP arm
  * fails (the caller aborts after the first record instead of at the first FREE record). See the
- * agent notes for loc_1171.
+ * agent notes for tickSpawnTimerAndSeedFreeEnemy.
  *
  * This is the cycle-free / memory-equivalence gate. The oracle reaches 0x119a (and its 0x381e /
  * 0x0020 callees) through m.call trampolines whose pushes — and 0x119a's skip-pop — land in
@@ -24,7 +24,7 @@
  * Jobs:
  *   1. EQUAL — countdown (timer nonzero, no sweep), all-records-active (sweep completes, no seed),
  *      and skip-taken-mid-sweep (records 0,1 active, record 2 free -> only record 2 is seeded then
- *      the sweep aborts): oracle == loc_1171 in RAM (−stack) on each.
+ *      the sweep aborts): oracle == tickSpawnTimerAndSeedFreeEnemy in RAM (−stack) on each.
  *   2. WRITE-SET — the countdown case's only write is the timer decrement.
  *   3. TEETH — a twin that fails to abort the sweep (seeds a later free record too) is caught by
  *      the RAM diff; a twin with a wrong decremented timer is caught by the RAM diff.
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1171 as oracle } from "../../translated/loc_1171.js";
-import { loc_1171 } from "../loc_1171.js";
+import { tickSpawnTimerAndSeedFreeEnemy } from "../tickSpawnTimerAndSeedFreeEnemy.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -81,11 +81,11 @@ const SKIP_MID = { timer: 0, activeRecords: [0, 1] };                // records 
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: countdown — loc_1171 == oracle in RAM (−stack)", () => {
+test("EQUAL: countdown — tickSpawnTimerAndSeedFreeEnemy == oracle in RAM (−stack)", () => {
   const o = craft(COUNTDOWN);
   const c = craft(COUNTDOWN);
   oracle(o);
-  loc_1171(c);
+  tickSpawnTimerAndSeedFreeEnemy(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assert.equal(c.mem.read8(SPAWN_TIMER), 0x04, "timer decremented to 4");
@@ -96,7 +96,7 @@ test("EQUAL: all records active — sweep completes, seeds nothing", () => {
   const o = craft(ALL_ACTIVE);
   const c = craft(ALL_ACTIVE);
   oracle(o);
-  loc_1171(c);
+  tickSpawnTimerAndSeedFreeEnemy(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL/all-active: identical (RAM −stack), no record seeded");
@@ -106,7 +106,7 @@ test("EQUAL: skip taken mid-sweep — only the first FREE record (2) is seeded [
   const o = craft(SKIP_MID);
   const c = craft(SKIP_MID);
   oracle(o);
-  loc_1171(c);
+  tickSpawnTimerAndSeedFreeEnemy(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(
     d,
@@ -149,7 +149,7 @@ test("TEETH: a failure to abort the sweep (a later free record seeded too) is CA
   const o = craft(SKIP_MID);
   const c = craft(SKIP_MID);
   oracle(o);
-  loc_1171(c);
+  tickSpawnTimerAndSeedFreeEnemy(c);
   c.mem.write8(rec(3), 0x01); // BUG: a caller that did not abort would seed record 3 as well
 
   const d = ramDiffMinusStack(o, c);
@@ -162,7 +162,7 @@ test("TEETH: a wrong decremented timer is CAUGHT by the RAM diff", () => {
   const o = craft(COUNTDOWN);
   const c = craft(COUNTDOWN);
   oracle(o);
-  loc_1171(c);
+  tickSpawnTimerAndSeedFreeEnemy(c);
   c.mem.write8(SPAWN_TIMER, 0x03); // BUG: must be 4, not 3
 
   const d = ramDiffMinusStack(o, c);

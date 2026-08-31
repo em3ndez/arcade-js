@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3278 (ROM 0x3278) — the board tile-sum check. While the scan gate
+ * Memory-equivalence test for verifyPlayfieldTileChecksum (ROM 0x3278) — the board tile-sum check. While the scan gate
  * 0x8f55 is non-zero it returns at once; on the first pass (gate zero) it increments the gate, then
  * 16-bit-sums the playfield tile region from 0x8402 (walking columns to the end page 0x88) and looks
  * the sum up in the four-entry table at 0x68eb — the low byte against the entries, then the high byte
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3278 as oracle } from "../../translated/loc_3278.js";
-import { loc_3278 } from "../loc_3278.js";
+import { verifyPlayfieldTileChecksum } from "../verifyPlayfieldTileChecksum.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -113,7 +113,7 @@ test("EQUAL: gate non-zero — module == oracle, no write, any board", () => {
       c.mem.write8(WALKED[i], 0x3c);
     }
     oracle(o);
-    loc_3278(c);
+    verifyPlayfieldTileChecksum(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `gate=${hx(gateVal)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(c.mem.read8(GATE), gateVal, `gate=${hx(gateVal)}: gate untouched on the early return`);
@@ -131,7 +131,7 @@ test("CRAFTED: a board summing to a table entry — both return, RAM agrees, gat
   seedBoardSum(c, target);
 
   assert.doesNotThrow(() => oracle(o), "oracle should recognise the crafted board");
-  assert.doesNotThrow(() => loc_3278(c), "module should recognise the crafted board");
+  assert.doesNotThrow(() => verifyPlayfieldTileChecksum(c), "module should recognise the crafted board");
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `match: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -149,7 +149,7 @@ test("CRAFTED: a later-index match — B live-out (scan counter) matches the ora
   seedBoardSum(o, target);
   seedBoardSum(c, target);
   assert.doesNotThrow(() => oracle(o), "oracle should recognise the later-index board");
-  const ret = loc_3278(c);
+  const ret = verifyPlayfieldTileChecksum(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `later-match: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   // positive control: a genuine later match leaves B != the entry count 4, so this arm has real teeth.
@@ -170,7 +170,7 @@ test("CRAFTED: an unrecognised board — BOTH throw, RAM after the trap still ag
   seedBoardSum(c, 0x0000);
 
   assert.throws(() => oracle(o), "oracle must trap on an unrecognised board");
-  assert.throws(() => loc_3278(c), "module must trap on an unrecognised board");
+  assert.throws(() => verifyPlayfieldTileChecksum(c), "module must trap on an unrecognised board");
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `miss: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -208,7 +208,7 @@ test("TEETH: a forgotten gate increment is CAUGHT at 0x8f55", () => {
   seedBoardSum(o, target);
   seedBoardSum(c, target);
   oracle(o);
-  loc_3278(c);
+  verifyPlayfieldTileChecksum(c);
   c.mem.write8(GATE, 0x00); // BUG: leave the scan gate unmarked
 
   const d = ramDiffMinusStack(o, c);

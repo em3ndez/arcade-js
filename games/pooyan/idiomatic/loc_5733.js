@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { adjustSpawnColumn } from "./adjustSpawnColumn.js";
-import { loc_0020 } from "./loc_0020.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_57c3 } from "./loc_57c3.js";
+import { decrementPhaseCounterAndDispatchSpawnOrStep } from "./decrementPhaseCounterAndDispatchSpawnOrStep.js";
 import {
   ROUND_COUNTER,
   DIFFICULTY_DSW,
@@ -61,7 +61,7 @@ export function loc_5733(m, c = m.regs.c, ix = m.regs.ix, e = m.regs.e) {
 
   // Motion field from the round-parity field table (with its two's-complement partner).
   const fieldTable = odd ? SPAWN_FIELD_TABLE_ODD : SPAWN_FIELD_TABLE;
-  const [motion] = loc_0020(m, fieldTable, col);
+  const [motion] = fetchByteFromTableIndex(m, fieldTable, col);
   mem8[ix + 0x09] = motion;
   mem8[ix + 0x0a] = -motion; // two's-complement partner (Uint8Array store masks)
 
@@ -69,10 +69,10 @@ export function loc_5733(m, c = m.regs.c, ix = m.regs.ix, e = m.regs.e) {
 
   // Spawn timer from the round-parity timer table.
   const timerTable = odd ? SPAWN_TIMER_TABLE_ODD : SPAWN_TIMER_TABLE_EVEN;
-  const [timer] = loc_0020(m, timerTable, col);
+  const [timer] = fetchByteFromTableIndex(m, timerTable, col);
   mem8[ENEMY_SPAWN_TIMER] = timer;
 
   mem8[ACTIVE_ENEMY_COUNT] = mem8[ACTIVE_ENEMY_COUNT] + 1;
 
-  loc_57c3(m, stateSeed, ix); // enter the start-of-scan state machine
+  decrementPhaseCounterAndDispatchSpawnOrStep(m, stateSeed, ix); // enter the start-of-scan state machine
 }

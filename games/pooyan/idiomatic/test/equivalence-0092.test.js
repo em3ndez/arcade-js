@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0092 (ROM 0x0092) — the power-on boot entry.
+ * Memory-equivalence test for runSelfTestAndInitMachineState (ROM 0x0092) — the power-on boot entry.
  *
- * loc_0092 checksums the eight program-memory banks (writing a pass tally the play-state gate later
+ * runSelfTestAndInitMachineState checksums the eight program-memory banks (writing a pass tally the play-state gate later
  * requires), then lays down the whole initial machine state: clears work RAM, empties the two command
  * rings, floods the colour map, arms the tile fill, decodes both DIP-switch ports, clears the sprite
  * banks and blanks the lower tile map, enables the vblank interrupt, seeds the high-score table, and
@@ -15,7 +15,7 @@
  *
  *   THE SELF-TEST TALLY (0x8FFF) IS LOAD-BEARING BUT LIVES INSIDE STACK_SCRATCH. The frozen boot sets
  *   SP to 0x9000 and its very first push seats the bank count into 0x8FFF, which the self-test then
- *   increments per matching bank; loc_072d reads 0x8FFF and requires 0x10 (a full pass) to finish
+ *   increments per matching bank; blankFillRowThenFinishAttractSetup reads 0x8FFF and requires 0x10 (a full pass) to finish
  *   setup. Because 0x8FFF sits in the excluded stack window (0x8FC0-0x8FFF), ramDiffMinusStack cannot
  *   see it, so this test compares it with a DEDICATED arm — otherwise the tally would go unverified.
  *
@@ -25,7 +25,7 @@
  * fixed program image are the two DIP-switch ports, which every case CRAFTS identically on both sides.
  *
  * Jobs:
- *   1. EQUAL (crafted DSW sweep) — over curated (DSW0, DSW1) pairs oracle == loc_0092 in RAM (−stack)
+ *   1. EQUAL (crafted DSW sweep) — over curated (DSW0, DSW1) pairs oracle == runSelfTestAndInitMachineState in RAM (−stack)
  *      AND in the dedicated tally cell (both 0x10, a full self-test pass on the intact image).
  *   2. WRITE-SET — the boot's key written cells hold their exact expected values (colour flood + its
  *      one-cell tile-map spill, blank region, config cells, rings, sprite fill, high-score seed, tally).
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0092 as oracle } from "../../translated/loc_0092.js";
-import { loc_0092 } from "../loc_0092.js";
+import { runSelfTestAndInitMachineState } from "../runSelfTestAndInitMachineState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -54,7 +54,7 @@ const test = ROM_PRESENT
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// 0x8FFF: the ROM self-test pass tally. It is a real, consumed cell (loc_072d needs it == 0x10) but
+// 0x8FFF: the ROM self-test pass tally. It is a real, consumed cell (blankFillRowThenFinishAttractSetup needs it == 0x10) but
 // it lives inside the excluded stack window, so it gets a dedicated comparison arm below.
 const TALLY_ADDR = 0x8fff;
 const FULL_PASS = 0x10; // bank count + eight matches on an intact image
@@ -95,12 +95,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted DSW sweep) ---------------------------------------------
 
-test("EQUAL: crafted DSW pairs — loc_0092 == oracle in RAM (−stack) + the self-test tally", () => {
+test("EQUAL: crafted DSW pairs — runSelfTestAndInitMachineState == oracle in RAM (−stack) + the self-test tally", () => {
   for (const { dsw0, dsw1 } of CASES) {
     const o = craft(dsw0, dsw1);
     const c = craft(dsw0, dsw1);
     oracle(o);
-    loc_0092(c);
+    runSelfTestAndInitMachineState(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} (DSW0=${hx(dsw0)} DSW1=${hx(dsw1)})`);
@@ -169,7 +169,7 @@ test("TEETH: a wrong dumped byte is CAUGHT by the RAM diff", () => {
   const o = craft(dsw0, dsw1);
   const c = craft(dsw0, dsw1);
   oracle(o);
-  loc_0092(c);
+  runSelfTestAndInitMachineState(c);
   c.mem.write8(0x8807, (c.mem.read8(0x8807) + 1) & 0xff); // BUG: corrupt the decoded lives cell
 
   const d = ramDiffMinusStack(o, c);
@@ -183,7 +183,7 @@ test("TEETH: a wrong tally is CAUGHT only by the dedicated arm (RAM diff exclude
   const o = craft(dsw0, dsw1);
   const c = craft(dsw0, dsw1);
   oracle(o);
-  loc_0092(c);
+  runSelfTestAndInitMachineState(c);
   c.mem.write8(TALLY_ADDR, (c.mem.read8(TALLY_ADDR) + 1) & 0xff); // BUG: corrupt the pass tally
 
   // The RAM diff is blind to this (0x8FFF is inside STACK_SCRATCH) — proving the dedicated arm's worth.

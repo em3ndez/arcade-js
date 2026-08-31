@@ -1,27 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_324d (ROM 0x324d, Pooyan) — "per-slot hunter-return tick".
+ * Memory-equivalence test for tickHunterReturnCounterAndCheckBoardClear (ROM 0x324d, Pooyan) — "per-slot hunter-return tick".
  * A slot whose (IX+0) < 0x40 is skipped. Otherwise a paced counter on the hunter page
  * (0x8c00 | ((IX+0)+5)) is dropped by 0x40; if that did not borrow it returns. On a borrow it
  * decrements the paired byte one cell up, and if BOARD_CLEAR_FLAG (0x89e5) is set it tail-calls
- * the board tile-sum check loc_3278 (returning its result).
+ * the board tile-sum check verifyPlayfieldTileChecksum (returning its result).
  *
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState,
- * minus STACK_SCRATCH) PLUS register B. B is the loop counter of the sole caller loc_323e
- * (`inc ix; inc ix; djnz` right after the call), so it must survive the call; loc_324d never
+ * minus STACK_SCRATCH) PLUS register B. B is the loop counter of the sole caller scanDisplaySlotsAndTickBoardClear
+ * (`inc ix; inc ix; djnz` right after the call), so it must survive the call; tickHunterReturnCounterAndCheckBoardClear never
  * writes B, and on the board-clear tail path the check leaves it untouched too, so it is
  * checked equal to the oracle (a broken twin that clobbers B is caught). A/HL/flags are left
- * modified but loc_323e reads none of them (inc ix and djnz consult neither), so they are not
+ * modified but scanDisplaySlotsAndTickBoardClear reads none of them (inc ix and djnz consult neither), so they are not
  * compared.
  *
  * The board-clear tail path is exercised with TILE_CHECKSUM_LATCH (0x8f55) pre-set, so both the
- * translated and idiomatic loc_3278 early-return (no writes, B untouched); the checksum-scan
- * arm of loc_3278 has its own gate. The mismatch/throw arm cannot be reached without corrupting
+ * translated and idiomatic verifyPlayfieldTileChecksum early-return (no writes, B untouched); the checksum-scan
+ * arm of verifyPlayfieldTileChecksum has its own gate. The mismatch/throw arm cannot be reached without corrupting
  * the read-only tile region, so it is not crafted here (see notes in the batch return).
  *
  * Jobs:
  *   1. EQUAL (crafted) — below-threshold skip; no-borrow drop; borrow + paired dec (board flag
- *      clear); borrow + board-clear tail-call (loc_3278 no-op): oracle == module in RAM (−stack)
+ *      clear); borrow + board-clear tail-call (verifyPlayfieldTileChecksum no-op): oracle == module in RAM (−stack)
  *      and in B.
  *   2. WRITE-SET — the borrow path's only writes are the counter cell and the paired byte.
  *   3. TEETH — a wrong counter byte (RAM) and a clobbered B (live-out) are each CAUGHT.
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_324d as oracle } from "../../translated/loc_324d.js";
-import { loc_324d } from "../loc_324d.js";
+import { tickHunterReturnCounterAndCheckBoardClear } from "../tickHunterReturnCounterAndCheckBoardClear.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -50,7 +50,7 @@ const REC = 0x8d90; // isolated work-RAM record base; only (IX+0) is read
 const HUNTER_PAGE = 0x8c00;
 const BOARD_CLEAR_FLAG = 0x89e5;
 const TILE_CHECKSUM_LATCH = 0x8f55;
-const B_SENTINEL = 0x07; // the caller's loop counter, which loc_324d must preserve
+const B_SENTINEL = 0x07; // the caller's loop counter, which tickHunterReturnCounterAndCheckBoardClear must preserve
 
 const counterAddr = (slot) => HUNTER_PAGE | ((slot + 0x05) & 0xff);
 const pairedAddr = (slot) => (counterAddr(slot) + 1) & 0xffff;
@@ -80,17 +80,17 @@ const CASES = [
   { name: "skip (slot < 0x40)", slot: 0x30, counterVal: 0x50, boardFlag: 0x00, latch: 0x01 },
   { name: "no-borrow drop", slot: 0x40, counterVal: 0x50, boardFlag: 0x00, latch: 0x01 },
   { name: "borrow + paired dec", slot: 0x44, counterVal: 0x20, boardFlag: 0x00, latch: 0x01 },
-  { name: "borrow + board-clear tail (loc_3278 no-op)", slot: 0x48, counterVal: 0x10, boardFlag: 0x01, latch: 0x01 },
+  { name: "borrow + board-clear tail (verifyPlayfieldTileChecksum no-op)", slot: 0x48, counterVal: 0x10, boardFlag: 0x01, latch: 0x01 },
 ];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted slot/counter/gate cases — loc_324d == oracle in RAM (−stack) + B", () => {
+test("EQUAL: crafted slot/counter/gate cases — tickHunterReturnCounterAndCheckBoardClear == oracle in RAM (−stack) + B", () => {
   for (const { name, slot, counterVal, boardFlag, latch } of CASES) {
     const o = craft(slot, counterVal, boardFlag, latch);
     oracle(o);
     const c = craft(slot, counterVal, boardFlag, latch);
-    loc_324d(c);
+    tickHunterReturnCounterAndCheckBoardClear(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -129,7 +129,7 @@ test("TEETH: a wrong counter byte is CAUGHT by the RAM diff", () => {
   const o = craft(slot, counterVal, boardFlag, latch);
   const c = craft(slot, counterVal, boardFlag, latch);
   oracle(o);
-  loc_324d(c);
+  tickHunterReturnCounterAndCheckBoardClear(c);
   c.mem.write8(counterAddr(slot), 0x00); // BUG: counter must be counterVal-0x40
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong counter byte — it is worthless");
@@ -142,7 +142,7 @@ test("TEETH: a clobbered B is CAUGHT by the live-out check", () => {
   const o = craft(slot, counterVal, boardFlag, latch);
   oracle(o);
   const c = craft(slot, counterVal, boardFlag, latch);
-  loc_324d(c);
+  tickHunterReturnCounterAndCheckBoardClear(c);
   c.regs.b = (o.regs.b + 1) & 0xff; // BUG: the caller's loop counter must survive intact
   assert.notEqual(c.regs.b, o.regs.b, "the B live-out check must reject a clobbered loop counter");
   console.log(`  TEETH(B): clobbered B ${hx(c.regs.b)} rejected against oracle ${hx(o.regs.b)}`);

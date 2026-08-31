@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0439 (ROM 0x0439, Pooyan) — "render ten rows of packed-BCD panel
+ * Memory-equivalence test for renderPanelBcdDigitRows (ROM 0x0439, Pooyan) — "render ten rows of packed-BCD panel
  * digits into video RAM". Each row draws two source bytes as digit pairs: byte1's low then high
  * nibble a tilemap row apart, a fixed separator tile 0x51 a row on, then byte2's low nibble and —
  * unless byte2's high nibble is zero (leading-zero suppressed) — its high nibble. The source pointer
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0439 as oracle } from "../../translated/loc_0439.js";
-import { loc_0439 } from "../loc_0439.js";
+import { renderPanelBcdDigitRows } from "../renderPanelBcdDigitRows.js";
 import { splitBcdByte } from "../splitBcdByte.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -78,7 +78,7 @@ test("EQUAL: seeded source tables — module == oracle in RAM (−stack)", () =>
     const o = craft(fn);
     const c = craft(fn);
     oracle(o);
-    loc_0439(c);
+    renderPanelBcdDigitRows(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `seed=${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -127,7 +127,7 @@ test("CRAFTED: leading-zero suppression leaves the high2 cells untouched", () =>
   const o = craft(SEEDS.allFives);
   const c = craft(SEEDS.allFives);
   oracle(o);
-  loc_0439(c);
+  renderPanelBcdDigitRows(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   // Sanity: the first row's high2 cell stayed at its 0xAA pre-dirty (suppressed, not written to 0).
@@ -142,7 +142,7 @@ test("TEETH: a wrong separator tile is CAUGHT in the panel", () => {
   const o = craft(SEEDS.allNines);
   const c = craft(SEEDS.allNines);
   oracle(o);
-  loc_0439(c);
+  renderPanelBcdDigitRows(c);
   const sep0 = (PANEL_DIGIT_VRAM_DEST + 2 * ROW_STRIDE) & 0xffff;
   c.mem.write8(sep0, 0x00); // BUG: the separator must be 0x51, not 0x00
   const d = ramDiffMinusStack(o, c);
@@ -151,7 +151,7 @@ test("TEETH: a wrong separator tile is CAUGHT in the panel", () => {
   console.log(`  TEETH(separator): wrong tile caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 
-/** Broken twin: identical to loc_0439 but never suppresses the leading-zero high2 nibble. */
+/** Broken twin: identical to renderPanelBcdDigitRows but never suppresses the leading-zero high2 nibble. */
 function brokenNoSuppress(m) {
   const { mem8 } = m;
   let src = PANEL_DIGIT_SOURCE_TABLE;

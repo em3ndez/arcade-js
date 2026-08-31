@@ -74,7 +74,7 @@ test("CRAFTED: every B — a == oracle A, hundreds == oracle C, RAM untouched", 
     assert.equal(ret.a, o.regs.a, `B=${b}: a ${hx(ret.a)} != oracle A ${hx(o.regs.a)}`);
     assert.equal(ret.hundreds, o.regs.c, `B=${b}: hundreds ${ret.hundreds} != oracle C ${o.regs.c}`);
 
-    // Live-out SIDE EFFECT (the bridge): the module must SET the registers the frozen caller loc_10c2
+    // Live-out SIDE EFFECT (the bridge): the module must SET the registers the frozen caller adjustCounterAndPaintBcdHudFields
     // reads out of the seam — A (0x1102 ld e,a) and C (0x1103 ld a,c) — not merely return them. A
     // return-only rewrite that never touches the registers passes the checks above but fails here.
     assert.equal(c.regs.a, o.regs.a, `B=${b}: module must SET A for the translated dispatch (${hx(c.regs.a)} != oracle ${hx(o.regs.a)})`);

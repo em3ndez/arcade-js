@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_4a0b (ROM 0x4a0b, Pooyan) — draw the round marker. Gated on
+ * Memory-equivalence test for paintSpawnPhaseMarkerColumn (ROM 0x4a0b, Pooyan) — draw the round marker. Gated on
  * ROUND_COUNTER (0x8907) bit0: clear -> ret. Else it snapshots SPAWN_PHASE_COUNTER (0x8902) into
  * 0x8d43 and ROPE_DRAW_COUNT (0x8934); for count N>0 it paints N stacked pairs of a two-wide
  * marker down a video-RAM column from 0x86c3 (stride 0x20), saves the layout pointer to 0x8932,
@@ -8,7 +8,7 @@
  * pointer and blits the fixed glyph at 0x8682. Source glyph is ROM 0x2754.
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES video + work RAM, so each case runs the
- * oracle on one FRESH clone and loc_4a0b on another, compared on RAM (dumpState, minus
+ * oracle on one FRESH clone and paintSpawnPhaseMarkerColumn on another, compared on RAM (dumpState, minus
  * STACK_SCRATCH). pc/SP are NOT compared; there is no register live-out (the blitter's advanced
  * HL/DE are dropped by 0x4a0b's ret and read by no caller). The oracle's `call 0x3307` resolves
  * through the translated registry `new Machine(ROM)` builds, so the gate cross-checks the idiomatic
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4a0b as oracle } from "../../translated/loc_4a0b.js";
-import { loc_4a0b } from "../loc_4a0b.js";
+import { paintSpawnPhaseMarkerColumn } from "../paintSpawnPhaseMarkerColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -82,12 +82,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted, both branches) ----------------------------------------
 
-test("EQUAL: crafted gate/count — loc_4a0b == oracle in RAM(−stack)", () => {
+test("EQUAL: crafted gate/count — paintSpawnPhaseMarkerColumn == oracle in RAM(−stack)", () => {
   for (const [gateOdd, count, label] of CASES) {
     const o = craft(gateOdd, count);
     const c = craft(gateOdd, count);
     oracle(o);
-    loc_4a0b(c);
+    paintSpawnPhaseMarkerColumn(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} [${label}]: oracle=${d.a} mine=${d.b}`);
@@ -133,7 +133,7 @@ test("TEETH: a wrong marker tile is caught at its cell", () => {
   const o = craft(true, 0x01);
   const c = craft(true, 0x01);
   oracle(o);
-  loc_4a0b(c);
+  paintSpawnPhaseMarkerColumn(c);
   c.mem.write8(MARKER_TOP, (c.mem.read8(MARKER_TOP) ^ 0xff) & 0xff); // BUG: corrupt the top marker tile
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong marker tile — it is worthless");

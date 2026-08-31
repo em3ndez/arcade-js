@@ -2,7 +2,7 @@
 import { u8, u16 } from "../../../core/int.js";
 import { OBJECT_CHAR_TABLE_ROW0, OBJECT_CHAR_TABLE_ROW1, OBJECT_DRAWN_FLAG } from "./names.js";
 import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { clearAndReseedObjectSlot } from "./clearAndReseedObjectSlot.js";
 import { paintTileBlock2x2Above } from "./paintTileBlock2x2Above.js";
 
@@ -32,8 +32,8 @@ export function drawObjectStackedTiles(m, rec = m.regs.ix) {
 
   const sprite = mem8[rec + OFF_SPRITE];
   const screenPtr = mem8[rec + OFF_PTR_LO] | (mem8[rec + OFF_PTR_HI] << 8);
-  paintTileBlock2x2Above(m, screenPtr, loc_0c45(m, sprite, OBJECT_CHAR_TABLE_ROW0)); // lower row
-  paintTileBlock2x2Above(m, u16(screenPtr - ROW_ABOVE), loc_0c45(m, sprite, OBJECT_CHAR_TABLE_ROW1)); // above
+  paintTileBlock2x2Above(m, screenPtr, fetchWordFromTableIndex(m, sprite, OBJECT_CHAR_TABLE_ROW0)); // lower row
+  paintTileBlock2x2Above(m, u16(screenPtr - ROW_ABOVE), fetchWordFromTableIndex(m, sprite, OBJECT_CHAR_TABLE_ROW1)); // above
 
   if (mem8[OBJECT_DRAWN_FLAG] === 0) mem8[OBJECT_DRAWN_FLAG] = 1;
 

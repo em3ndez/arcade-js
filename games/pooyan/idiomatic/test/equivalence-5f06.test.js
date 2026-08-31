@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5f06 (ROM 0x5f06, Pooyan) — the tail of the actor sweep loop.
+ * Memory-equivalence test for advanceActorSweepToNextSlot (ROM 0x5f06, Pooyan) — the tail of the actor sweep loop.
  * It advances the actor pointer one record and the row pointer one row, decrements the sweep
- * counter, then either returns (counter drained) or re-enters the still-frozen loop body loc_5ebd.
+ * counter, then either returns (counter drained) or re-enters the still-frozen loop body testAndCatchActorSlotOnOverlap.
  *
  * SEATING: BALANCED. When the counter drains the oracle plain-`ret`s to the sweep caller; the
- * taken-djnz branch tail-jumps back into loc_5ebd (no net stack move). loc_5ebd is NOT lifted this
+ * taken-djnz branch tail-jumps back into testAndCatchActorSlotOnOverlap (no net stack move). testAndCatchActorSlotOnOverlap is NOT lifted this
  * batch, so the module keeps the register-marshalled m.call(0x5ebd); the oracle drives the same
- * frozen loc_5ebd, so both walk identical downstream code. Compared on RAM (dumpState) minus
+ * frozen testAndCatchActorSlotOnOverlap, so both walk identical downstream code. Compared on RAM (dumpState) minus
  * STACK_SCRATCH; the register file is not compared (void tail). Entry HL/IX/B are the loop state,
  * bridged from the entry registers.
  *
- * Cases are CRAFTED: a plain boot does not seat this sweep geometry. The HIT case makes loc_5ebd
+ * Cases are CRAFTED: a plain boot does not seat this sweep geometry. The HIT case makes testAndCatchActorSlotOnOverlap
  * strike the record the correct advance lands on, so the sweep's writes are observable.
  *
  * Jobs:
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5f06 as oracle } from "../../translated/loc_5f06.js";
-import { loc_5f06 } from "../loc_5f06.js";
+import { advanceActorSweepToNextSlot } from "../advanceActorSweepToNextSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -43,7 +43,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const BIAS_FLAG = 0x881f; // loc_5f53 x-bias select
-const LATCH = 0x8d65; // struck-target latch loc_5ebd reloads on a hit
+const LATCH = 0x8d65; // struck-target latch testAndCatchActorSlotOnOverlap reloads on a hit
 const REC = 0x8c30; // the record the correct advance lands on (0x8c18 + 0x18)
 const ACTOR = 0x8888; // the actor coords the correct advance lands on (0x8884 + 4)
 const BOX = 0x8848; // proximity target box (IY)
@@ -87,12 +87,12 @@ function craftExit() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5f06 == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceActorSweepToNextSlot == oracle in RAM (−stack)", () => {
   for (const [label, craft] of [["hit (djnz taken)", craftHit], ["exit (B==1)", craftExit]]) {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_5f06(c);
+    advanceActorSweepToNextSlot(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -120,7 +120,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftHit();
   const c = craftHit();
   oracle(o);
-  loc_5f06(c);
+  advanceActorSweepToNextSlot(c);
   c.mem.write8(REC + 1, (o.mem.read8(REC + 1) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

@@ -4,7 +4,7 @@
  *
  * The register-bridge live-out class is invisible to memory-eq: a rewrite that forwards a bridge value as
  * a param while a deeper callee reads it from `= m.regs.X` passes eq-green (the eq craft seats the register
- * == the param) yet writes to a STALE register in the live game (b0602b4f: loc_5733 -> loc_57c3 -> loc_57c6,
+ * == the param) yet writes to a STALE register in the live game (b0602b4f: loc_5733 -> decrementPhaseCounterAndDispatchSpawnOrStep -> advanceEagleStageTimersAndLatchMoveElseRearm,
  * which reads m.regs.ix and writes rec+0x16). The tooth poisons the bridge register and hands the intended
  * value in as a param: a re-seat recovers, a missing re-seat leaks the poison into the deep write.
  *
@@ -30,9 +30,9 @@ import { loc_3d5c as oracle3d5c } from "../../translated/loc_3d5c.js";
 import { Machine } from "../../machine.js";
 import { bridgeReseatEquivalent } from "../../../../core/bridge-reseat.js";
 import { adjustSpawnColumn } from "../adjustSpawnColumn.js";
-import { loc_0020 } from "../loc_0020.js";
+import { fetchByteFromTableIndex } from "../fetchByteFromTableIndex.js";
 import { setActorAnimation } from "../setActorAnimation.js";
-import { loc_57c3 } from "../loc_57c3.js";
+import { decrementPhaseCounterAndDispatchSpawnOrStep } from "../decrementPhaseCounterAndDispatchSpawnOrStep.js";
 import {
   STACK_SCRATCH,
   ROUND_COUNTER,
@@ -90,16 +90,16 @@ function loc_5733_missingReseat(m, c = m.regs.c, ix = m.regs.ix, e = m.regs.e) {
   col = (mem8[ROUND_COUNTER] + col) & 0xff;
   if (col >= COLUMN_MAX) col = COLUMN_MAX - 1;
   const fieldTable = odd ? SPAWN_FIELD_TABLE_ODD : SPAWN_FIELD_TABLE;
-  const [motion] = loc_0020(m, fieldTable, col);
+  const [motion] = fetchByteFromTableIndex(m, fieldTable, col);
   mem8[ix + 0x09] = motion;
   mem8[ix + 0x0a] = -motion;
   setActorAnimation(m, ix, ANIM_TABLE_3829);
   const timerTable = odd ? SPAWN_TIMER_TABLE_ODD : SPAWN_TIMER_TABLE_EVEN;
-  const [timer] = loc_0020(m, timerTable, col);
+  const [timer] = fetchByteFromTableIndex(m, timerTable, col);
   mem8[ENEMY_SPAWN_TIMER] = timer;
   mem8[ACTIVE_ENEMY_COUNT] = mem8[ACTIVE_ENEMY_COUNT] + 1;
-  // BUG (b0602b4f): the `m.regs.ix = ix` re-seat is gone -> loc_57c6 down the chain reads a stale m.regs.ix.
-  loc_57c3(m, stateSeed);
+  // BUG (b0602b4f): the `m.regs.ix = ix` re-seat is gone -> advanceEagleStageTimersAndLatchMoveElseRearm down the chain reads a stale m.regs.ix.
+  decrementPhaseCounterAndDispatchSpawnOrStep(m, stateSeed);
 }
 
 /** Entry clone for the loc_5733 spawn: c/e seated for the oracle, the sub-state stepper on its plain arm. */
@@ -112,7 +112,7 @@ function craft5733() {
   m.mem8[DIFFICULTY_DSW] = 0x01;
   m.mem8[GAUGE_PHASE_COUNTER] = 0x00;
   m.mem8[SPAWN_COLUMN_BIAS] = 0x00;
-  m.mem8[0x8d46] = 0x03; //                sub-state counter 1..6 -> plain stepper arm (loc_57c6 stage 1)
+  m.mem8[0x8d46] = 0x03; //                sub-state counter 1..6 -> plain stepper arm (advanceEagleStageTimersAndLatchMoveElseRearm stage 1)
   m.mem8[0x8d47] = 0x02; //                first stage timer nonzero -> writes rec+0x13 / rec+0x16
   return m;
 }
@@ -135,7 +135,7 @@ test("PLACEABLE: correct loc_5733 (re-seats m.regs.ix) is bridge-equivalent unde
     live: { ix: REAL_IX }, poison: { ix: POISON_IX }, args: [SEED, REAL_IX, E], excludeAddr: inDeadStack,
   });
   assert.equal(r.equal, true, r.ram && `correct loc_5733 flagged; RAM diff at ${hx(r.ram.addr ?? 0)}`);
-  console.log("  PLACEABLE: correct loc_5733 re-seats -> the poison never reaches loc_57c6");
+  console.log("  PLACEABLE: correct loc_5733 re-seats -> the poison never reaches advanceEagleStageTimersAndLatchMoveElseRearm");
 });
 
 // -- B. THE TEETH: the b0602b4f mutant (missing re-seat) diverges ---------------

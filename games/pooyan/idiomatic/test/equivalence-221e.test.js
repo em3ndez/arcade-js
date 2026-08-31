@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for clearTargetActorRecord (ROM 0x221e, Pooyan) — "object-clear helper": HL <- IY,
- * then blank 0x18 bytes at (HL) to 0 via the fill helper (rst 0x10 / loc_0010), and ret.
+ * then blank 0x18 bytes at (HL) to 0 via the fill helper (rst 0x10 / fillByteRun), and ret.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine writes work RAM, so
  * every case uses a FRESH clone per side, compared on:

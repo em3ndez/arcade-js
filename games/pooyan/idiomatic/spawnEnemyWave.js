@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import { advanceActorAnimationsUnlessGrabbing } from "./advanceActorAnimationsUnlessGrabbing.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import {
   ACTOR_TABLE,
@@ -107,7 +107,7 @@ export function spawnEnemyWave(m) {
       tileIndex = 0x03;
     }
     mem8[TARGET_GROUP_COUNT] = groupSize;
-    const word = loc_0c45(m, tileIndex, SPAWN_TILE_TABLE_70EB); // tile-base word (was HL)
+    const word = fetchWordFromTableIndex(m, tileIndex, SPAWN_TILE_TABLE_70EB); // tile-base word (was HL)
     let hi = (word >> 8) & 0xff;
     const lo = word & 0xff;
     let cAcc = 0x00;

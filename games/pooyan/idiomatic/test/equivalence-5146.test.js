@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence + SP-tooth test for runEnemySpawnScriptPasses (ROM 0x5146, Pooyan) — the boot-frontier
- * trampoline: run armEnemySpawnScript, loc_52f6, spawnNextScriptedEnemy in order and return. All three passes are dissolved
+ * trampoline: run armEnemySpawnScript, latchFreeSlotCountAndTamperCheck, spawnNextScriptedEnemy in order and return. All three passes are dissolved
  * to direct calls.
  *
  * runEnemySpawnScriptPasses is void — no register survives — so the register file is not compared; equivalence is
  * RAM (dumpState) minus STACK_SCRATCH via firstStateDiff, SP parked in dead stack. The craft arms
- * the slot-sweep (advance guard set, sweep latch clear, enemy slots empty) so loc_52f6 does real
+ * the slot-sweep (advance guard set, sweep latch clear, enemy slots empty) so latchFreeSlotCountAndTamperCheck does real
  * work — an observable write the trampoline is responsible for invoking.
  *
  * runEnemySpawnScriptPasses dissolved its trampolines to direct calls, so it nets SP zero. As a wired override it
@@ -16,7 +16,7 @@
  *
  * Jobs:
  *   1. EQUAL — oracle == runEnemySpawnScriptPasses in RAM (−stack): the idiomatic middle pass matches the frozen one.
- *   2. WRITE-SET — the trampoline runs loc_52f6, which latches the free-slot count.
+ *   2. WRITE-SET — the trampoline runs latchFreeSlotCountAndTamperCheck, which latches the free-slot count.
  *   3. TEETH — a wrong sweep-latch byte is CAUGHT by the RAM diff.
  *   4. SP-TOOTH — placeable when correct; NOT placeable with a dropped push16.
  *
@@ -29,7 +29,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5146 as oracle } from "../../translated/loc_5146.js";
 import { runEnemySpawnScriptPasses } from "../runEnemySpawnScriptPasses.js";
-import { loc_52f6 } from "../loc_52f6.js";
+import { latchFreeSlotCountAndTamperCheck } from "../latchFreeSlotCountAndTamperCheck.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -41,8 +41,8 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const SCRIPT_ADVANCE_GUARD = 0x8d6d; // set -> armEnemySpawnScript bails, loc_52f6 sweeps
-const SLOT_SWEEP_LATCH = 0x8d6e; //     loc_52f6 latches the free-slot count here
+const SCRIPT_ADVANCE_GUARD = 0x8d6d; // set -> armEnemySpawnScript bails, latchFreeSlotCountAndTamperCheck sweeps
+const SLOT_SWEEP_LATCH = 0x8d6e; //     latchFreeSlotCountAndTamperCheck latches the free-slot count here
 const SP0 = 0x8ff0; //                  inside STACK_SCRATCH
 const CALLER_RET = 0xabcd; //           the caller's return word the seam completes
 
@@ -66,7 +66,7 @@ function craft() {
 /** A synthetic trampoline with a push16 DROPPED — the missing-push16 bug seamPlaceable must catch. */
 function loc_5146_missingPush(m) {
   m.call(0x5150); // BUG: missing m.push16(0x5149) — the callee's ret pops the caller's slot
-  loc_52f6(m);
+  latchFreeSlotCountAndTamperCheck(m);
   m.push16(0x514f); m.call(0x5334);
 }
 
@@ -84,13 +84,13 @@ test("EQUAL: runEnemySpawnScriptPasses == oracle in RAM (−stack)", () => {
 
 // -- 2. WRITE-SET -------------------------------------------------------------
 
-test("WRITE-SET: the trampoline runs loc_52f6 (latches the free-slot count)", () => {
+test("WRITE-SET: the trampoline runs latchFreeSlotCountAndTamperCheck (latches the free-slot count)", () => {
   const before = craft().mem8[SLOT_SWEEP_LATCH];
   const c = craft();
   runEnemySpawnScriptPasses(c);
   assert.equal(before, 0x00, "sweep latch clear before the run");
-  assert.equal(c.mem8[SLOT_SWEEP_LATCH], 0x06, "loc_52f6 latched all six empty slots");
-  console.log("  WRITE-SET: sweep latch 0x00 -> 0x06 (loc_52f6 invoked)");
+  assert.equal(c.mem8[SLOT_SWEEP_LATCH], 0x06, "latchFreeSlotCountAndTamperCheck latched all six empty slots");
+  console.log("  WRITE-SET: sweep latch 0x00 -> 0x06 (latchFreeSlotCountAndTamperCheck invoked)");
 });
 
 // -- 3. TEETH -----------------------------------------------------------------

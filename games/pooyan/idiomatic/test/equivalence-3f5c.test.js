@@ -3,16 +3,16 @@
  * Memory-equivalence test for startEnemyFall (ROM 0x3f5c, Pooyan) — the object state handler that begins a
  * fall. It picks a plummet animation from the fall table (0x4072) by the record's low-two variant
  * bits (biased down by one), points the record at it, seeds the fall velocity, advances the state
- * byte, and falls through into the next state handler (loc_3f72: tick the animation, count the frame
+ * byte, and falls through into the next state handler (advanceObjectStateOnFrameTimerExpiry: tick the animation, count the frame
  * timer, return while it is still running).
  *
- * The module dissolves every callee to a direct call: the word lookup (loc_0c45), the animation-set
- * (setActorAnimation at 0x381e), and the state-handler fall-through (loc_3f72); the oracle drives the
+ * The module dissolves every callee to a direct call: the word lookup (fetchWordFromTableIndex), the animation-set
+ * (setActorAnimation at 0x381e), and the state-handler fall-through (advanceObjectStateOnFrameTimerExpiry); the oracle drives the
  * frozen originals. IX (the record base) is the one input, bridged in via the param default. startEnemyFall
  * yields nothing the caller reads, so no register is compared; equivalence is RAM (dumpState) minus
  * STACK_SCRATCH, SP parked in dead stack so the oracle's transient return-slot pushes drop out.
  *
- * The frame timer is seeded > 1 so loc_3f72 returns after the tick (the deeper handler stays out of
+ * The frame timer is seeded > 1 so advanceObjectStateOnFrameTimerExpiry returns after the tick (the deeper handler stays out of
  * scope). Jobs:
  *   1. EQUAL — three variant selectors: oracle == startEnemyFall (RAM −stack).
  *   2. WRITE-SET — seeds the fall velocity, advances the state byte, ticks the frame timer.
@@ -60,7 +60,7 @@ function craft(v) {
   m.regs.ix = REC;
   m.mem8[VARIANT] = v & 0xff;
   m.mem8[STATE] = 0x07; // some prior state -> advanced to 0x08
-  m.mem8[TIMER] = 0x05; // running -> loc_3f72 ticks it and returns before the deeper handler
+  m.mem8[TIMER] = 0x05; // running -> advanceObjectStateOnFrameTimerExpiry ticks it and returns before the deeper handler
   return m;
 }
 

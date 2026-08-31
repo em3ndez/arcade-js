@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence for loc_0066 (ROM 0x0066, Pooyan) — the Z80 NMI vector, a bare jump to the vblank
- * service routine loc_066d. The oracle steps + m.call(0x066d); the module delegates directly. Both run a
+ * Memory-equivalence for enterVblankService (ROM 0x0066, Pooyan) — the Z80 NMI vector, a bare jump to the vblank
+ * service routine runVblankNmiService. The oracle steps + m.call(0x066d); the module delegates directly. Both run a
  * whole NMI frame, so (as in equivalence-066d) the entry is a booted mid-attract clone captured from the
  * generator engine, not a raw power-on one; on it the two produce identical RAM (−stack).
  *
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0066 as oracle } from "../../translated/loc_0066.js";
-import { loc_0066 } from "../loc_0066.js";
+import { enterVblankService } from "../enterVblankService.js";
 import { Machine, resolveAllIdiomatic } from "../../machine.js";
 import { runIdiomaticGame } from "../../../../core/frame-stepped.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -49,7 +49,7 @@ test("EQUAL: booted clone — module == oracle in RAM (−stack)", () => {
   const o = forNmi();
   const c = forNmi();
   oracle(o);
-  loc_0066(c);
+  enterVblankService(c);
   const d = firstStateDiff(o.dumpState(), c.dumpState(), (off) => o.stateOffsetToAddr(off), inDeadStack);
   assert.equal(d, null, d && `RAM diff at 0x${(d.addr ?? 0).toString(16)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL booted clone: NMI-vector delegation, RAM identical");

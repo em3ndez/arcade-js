@@ -4,7 +4,7 @@
  * tick the animation timer, step the scripted sprite records, and on the frame/step-counter wraps
  * stamp a script byte up the column and fold a 14-row checksum verified against INTRO_DELAY_CKSUM_WORD.
  *
- * The module dissolves loc_0a28 / loc_09f8 / runObjectAndEnemyActorUpdate to direct calls and keeps the frozen tamper
+ * The module dissolves advanceAttractAnimationAndRepaint / advanceFourObjectAnimsAndRebuildList / runObjectAndEnemyActorUpdate to direct calls and keeps the frozen tamper
  * trap 0x7442; the oracle drives the same routines through the register seam. typeAttractTextColumn is a void
  * handler (no register survives), so equivalence is RAM (dumpState) minus STACK_SCRATCH.
  *
@@ -54,7 +54,7 @@ function ramDiffMinusStack(ma, mb) {
 }
 const rd16 = (m, a) => m.mem8[a] | (m.mem8[a + 1] << 8);
 
-/** Fresh clone; ANIM held off its wrap so loc_0a28 is skipped, pointers seated. */
+/** Fresh clone; ANIM held off its wrap so advanceAttractAnimationAndRepaint is skipped, pointers seated. */
 function craft({ frameTimer, stepCounter, matchChecksum } = {}) {
   const m = BASE.clone();
   m.regs.sp = SP0;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0010 } from "./loc_0010.js";
-import { loc_02e3 } from "./loc_02e3.js";
+import { fillByteRun } from "./fillByteRun.js";
+import { armTileFillFromPlayfieldBase } from "./armTileFillFromPlayfieldBase.js";
 import {
   SPEED_INDEX,
   PLAY_STATE_INDEX,
@@ -36,7 +36,7 @@ const LIVE_PAGE_LEN = 0xbf; // bytes of the live-state page cleared on reset
 export function resetActorStateForBoard(m) {
   const { mem8 } = m;
 
-  loc_0010(m, SPEED_INDEX, 0, LIVE_PAGE_LEN); // clear the live-state page
+  fillByteRun(m, SPEED_INDEX, 0, LIVE_PAGE_LEN); // clear the live-state page
   mem8[PLAY_STATE_INDEX] = 0;
   mem8[PLAY_TIMER_GATE_P1] = 0;
   mem8[PLAY_TIMER_GATE_P2] = 0;
@@ -53,7 +53,7 @@ export function resetActorStateForBoard(m) {
   mem8[PLAYER0_STATE_BANK] = colour;
   mem8[PLAYER1_STATE_BANK] = colour;
 
-  loc_02e3(m); // arm the row-by-row tile fill
+  armTileFillFromPlayfieldBase(m); // arm the row-by-row tile fill
 
   if (mem8[GAME_ACTIVE_FLAG] === 0) return (m.regs.a = 0); // idle -> stop here, A cleared
 

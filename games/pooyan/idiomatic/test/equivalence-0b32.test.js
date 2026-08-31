@@ -2,9 +2,9 @@
 /**
  * Memory-equivalence test for advanceAttractSequenceToPlay (ROM 0x0b32, Pooyan) — attract sub-state 6 handler: verify the
  * 0x82bc integrity block (any mismatch re-enters resetToAttractScreenStart), run the frame-animation + sprite rebuild
- * (loc_0a28 / loc_09f8), then the 0x8e50 script timer; on expiry seat the next script pointer via
- * loc_0c45 and, on a checksum frame, run the 14x29 column checksum over 0x8462 and verify it against
- * the two bytes at the INTRO_DELAY_CKSUM_WORD pointer — low miss -> resetToAttractScreenStart, high miss -> loc_08e9,
+ * (advanceAttractAnimationAndRepaint / advanceFourObjectAnimsAndRebuildList), then the 0x8e50 script timer; on expiry seat the next script pointer via
+ * fetchWordFromTableIndex and, on a checksum frame, run the 14x29 column checksum over 0x8462 and verify it against
+ * the two bytes at the INTRO_DELAY_CKSUM_WORD pointer — low miss -> resetToAttractScreenStart, high miss -> blankRowThenFloodColorsAndAdvanceAttract,
  * clean pass -> set main state 3 + resetActorStateForBoard. Every call is dissolved to an idiomatic
  * sibling; the oracle drives the frozen ones.
  *
@@ -77,7 +77,7 @@ function seat(m, { animCtr = 2, frameTimer = 5, checkTick = 1, rowMismatch = fal
   m.mem16[INTRO_DELAY_CKSUM_WORD] = VERIFY_ADDR; // check word points at the expected sum bytes
   m.mem8[VERIFY_ADDR] = expLo;
   m.mem8[VERIFY_ADDR + 1] = expHi;
-  m.mem16[0x880b] = 0x8400; // loc_08e9->loc_02ce fills B tiles at this pointer; seat valid VRAM so the anti-tamper high-miss arm does not fill ROM (mirrors the live attract state)
+  m.mem16[0x880b] = 0x8400; // blankRowThenFloodColorsAndAdvanceAttract->blankFillRowAndStepCounter fills B tiles at this pointer; seat valid VRAM so the anti-tamper high-miss arm does not fill ROM (mirrors the live attract state)
   return m;
 }
 
@@ -85,7 +85,7 @@ const CASES = {
   "row mismatch -> resetToAttractScreenStart": (m) => seat(m, { rowMismatch: true }),
   "timer running -> early return": (m) => seat(m, { frameTimer: 5 }),
   "checksum frame -> clean pass": (m) => seat(m, { frameTimer: 1, checkTick: 1, expLo: 0, expHi: 0 }),
-  "checksum frame -> high-byte miss (loc_08e9)": (m) => seat(m, { frameTimer: 1, checkTick: 1, expLo: 0, expHi: 1 }),
+  "checksum frame -> high-byte miss (blankRowThenFloodColorsAndAdvanceAttract)": (m) => seat(m, { frameTimer: 1, checkTick: 1, expLo: 0, expHi: 1 }),
 };
 
 // -- 1. EQUAL -----------------------------------------------------------------

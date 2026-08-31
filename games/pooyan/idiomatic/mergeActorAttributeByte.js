@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0020 } from "./loc_0020.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { ROUND_COUNTER, DIFFICULTY_DSW, STAGE_COUNTDOWN, ACTOR_ATTR_BASE_TABLE, ACTOR_ATTR_MERGE_TABLE } from "./names.js";
 /**
  * mergeActorAttributeByte — build an actor's attribute byte (record +0x08) from two lookup tables.
@@ -17,7 +17,7 @@ export function mergeActorAttributeByte(m, rec = m.regs.ix) {
   const round = mem8[ROUND_COUNTER];
   const clampedRound = round < 0x10 ? round : 0x0e;
   const index = (mem8[DIFFICULTY_DSW] * 2 + clampedRound) & 0xff;
-  let value = loc_0020(m, ACTOR_ATTR_BASE_TABLE, index)[0];
+  let value = fetchByteFromTableIndex(m, ACTOR_ATTR_BASE_TABLE, index)[0];
 
   let zeroed = false;
   if ((mem8[rec + 0x16] & 1) !== 0) {
@@ -34,5 +34,5 @@ export function mergeActorAttributeByte(m, rec = m.regs.ix) {
   }
   if (mem8[STAGE_COUNTDOWN] < 0x04) value = (value + 0x03) & 0xff;
 
-  mem8[rec + 0x08] = loc_0020(m, ACTOR_ATTR_MERGE_TABLE, value)[0] | mem8[rec + 0x08];
+  mem8[rec + 0x08] = fetchByteFromTableIndex(m, ACTOR_ATTR_MERGE_TABLE, value)[0] | mem8[rec + 0x08];
 }

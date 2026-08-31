@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import {
   EAGLE_X_COORD,
   EAGLE_Y_COORD,
@@ -51,5 +51,5 @@ export function advanceEagleToArrivalAndTallyWave(m, rec = m.regs.ix) {
   if (mem8[WAVE_INDEX] !== arrived) return; //             wave not yet complete
 
   const cmdLow = ((WAVE_ARRIVAL_CMD_BASE & 0xff) + arrived) & 0xff;
-  loc_0038(m, WAVE_ARRIVAL_CMD_BASE - (WAVE_ARRIVAL_CMD_BASE & 0xff) + cmdLow);
+  enqueueDisplayCommand(m, WAVE_ARRIVAL_CMD_BASE - (WAVE_ARRIVAL_CMD_BASE & 0xff) + cmdLow);
 }

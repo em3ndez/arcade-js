@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6a7f (ROM 0x6a7f, Pooyan) — "per-frame object driver + one-shot
+ * Memory-equivalence test for runObjectsElseVerifyTilemapChecksum (ROM 0x6a7f, Pooyan) — "per-frame object driver + one-shot
  * tilemap integrity check".
  *
- * loc_6a7f has two arms. When the blink-phase byte (0x892b) is set it is a CALLER: it walks 18
+ * runObjectsElseVerifyTilemapChecksum has two arms. When the blink-phase byte (0x892b) is set it is a CALLER: it walks 18
  * enemy-actor records (0x8ae0, stride 0x18) through the already-decompiled per-object handler
- * loc_6a98. When the byte is clear, at wave index 2 and once per pass (latched at 0x8f56), it
+ * dispatchDescendingObjectState. When the byte is clear, at wave index 2 and once per pass (latched at 0x8f56), it
  * checksums the playfield tilemap and TRAPS (throws) on a mismatch. This gate composes the
- * idiomatic loc_6a7f (which imports the idiomatic loc_6a98 subtree) against the translated oracle
+ * idiomatic runObjectsElseVerifyTilemapChecksum (which imports the idiomatic dispatchDescendingObjectState subtree) against the translated oracle
  * (which runs the same subtree through m.call), on fresh clones, in RAM (dumpState) minus
  * STACK_SCRATCH — plus the throw decision for the integrity arm.
  *
- * Loop-arm determinism: an inactive record ((rec+1)=0) makes loc_6a98 return at once, so zeroing
- * every record's +1 byte makes the loop a pure no-op. Activating all 18 (state 1 -> loc_6aa8, with
+ * Loop-arm determinism: an inactive record ((rec+1)=0) makes dispatchDescendingObjectState return at once, so zeroing
+ * every record's +1 byte makes the loop a pure no-op. Activating all 18 (state 1 -> descendObjectThenAdvanceStateAtBottom, with
  * a live frame-hold so advanceObjectAnimationFrame just decrements, and a still-descending position) gives each record
  * a fixed two-cell write footprint; the 18-record spread at stride 0x18 is the loop bound witness.
  *
@@ -21,7 +21,7 @@
  * 16-bit sum land on the pass value. The ORACLE arbitrates the walk — if `walkCells()` were wrong,
  * the oracle would trap the "valid" tilemap and INTEGRITY-CLEAN would fail.
  *
- * LIVE-OUT: none (memory only) — the record cursor is local; loc_6a7f is the last call in its
+ * LIVE-OUT: none (memory only) — the record cursor is local; runObjectsElseVerifyTilemapChecksum is the last call in its
  * per-frame group driver, which returns immediately, so no register is read back.
  *
  * Jobs:
@@ -42,7 +42,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6a7f as oracle } from "../../translated/loc_6a7f.js";
-import { loc_6a7f } from "../loc_6a7f.js";
+import { runObjectsElseVerifyTilemapChecksum } from "../runObjectsElseVerifyTilemapChecksum.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -112,13 +112,13 @@ function craftLoop({ active }) {
     const rec = ENEMY + i * 0x18;
     if (active) {
       m.mem.write8(rec + 1, 0x01); // active slot
-      m.mem.write8(rec + 2, 0x01); // state 1 -> loc_6aa8
+      m.mem.write8(rec + 2, 0x01); // state 1 -> descendObjectThenAdvanceStateAtBottom
       m.mem.write8(rec + 0x0e, 0x05); // live frame-hold -> advanceObjectAnimationFrame decrements and returns
       m.mem.write8(rec + 5, 0x10); // position low
       m.mem.write8(rec + 6, 0x05); // position high stays nonzero -> still descending
       m.mem.write8(rec + 9, 0x01); // descent speed
     } else {
-      m.mem.write8(rec + 1, 0x00); // inactive -> loc_6a98 returns immediately
+      m.mem.write8(rec + 1, 0x00); // inactive -> dispatchDescendingObjectState returns immediately
     }
   }
   m.regs.sp = 0x8ffe; // dead stack: oracle exx/rst/call framing touches excluded RAM only
@@ -153,7 +153,7 @@ test("walk visits distinct cells and admits the pass-value construction", () => 
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loop no-op / loop full / integrity gate-bails — loc_6a7f == oracle in RAM (−stack)", () => {
+test("EQUAL: loop no-op / loop full / integrity gate-bails — runObjectsElseVerifyTilemapChecksum == oracle in RAM (−stack)", () => {
   const cases = [
     { name: "loop, all inactive (no-op)", m: () => craftLoop({ active: false }) },
     { name: "loop, all active", m: () => craftLoop({ active: true }) },
@@ -164,7 +164,7 @@ test("EQUAL: loop no-op / loop full / integrity gate-bails — loc_6a7f == oracl
     const o = m();
     const c = m();
     oracle(o);
-    loc_6a7f(c);
+    runObjectsElseVerifyTilemapChecksum(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -173,7 +173,7 @@ test("EQUAL: loop no-op / loop full / integrity gate-bails — loc_6a7f == oracl
 
 test("EQUAL/loop: the full loop reaches the last record (count + stride witness)", () => {
   const c = craftLoop({ active: true });
-  loc_6a7f(c);
+  runObjectsElseVerifyTilemapChecksum(c);
   for (const i of [0, 17]) {
     const rec = ENEMY + i * 0x18;
     assert.equal(c.mem.read8(rec + 0x0e), 0x04, `record ${i} frame-hold must decrement`);
@@ -188,7 +188,7 @@ test("INTEGRITY: a valid tilemap is accepted by both (oracle arbitrates the walk
   const o = craftIntegrity({ build: "valid" });
   const c = craftIntegrity({ build: "valid" });
   assert.doesNotThrow(() => oracle(o), "oracle must accept the constructed valid tilemap");
-  assert.doesNotThrow(() => loc_6a7f(c), "module must accept the constructed valid tilemap");
+  assert.doesNotThrow(() => runObjectsElseVerifyTilemapChecksum(c), "module must accept the constructed valid tilemap");
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assert.equal(c.mem.read8(LATCH), 0x01, "the one-shot latch must be set on the clean path");
@@ -199,7 +199,7 @@ test("INTEGRITY: a one-byte-corrupted tilemap traps in both (same latch, same RA
   const o = craftIntegrity({ build: "valid", perturb: true });
   const c = craftIntegrity({ build: "valid", perturb: true });
   assert.throws(() => oracle(o), "oracle must trap a corrupted tilemap");
-  assert.throws(() => loc_6a7f(c), "module must trap a corrupted tilemap");
+  assert.throws(() => runObjectsElseVerifyTilemapChecksum(c), "module must trap a corrupted tilemap");
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assert.equal(c.mem.read8(LATCH), 0x01, "the latch is written before the trap");
@@ -210,7 +210,7 @@ test("INTEGRITY: a one-byte-corrupted tilemap traps in both (same latch, same RA
 
 test("WRITE-SET: loop-full -> identical 36-cell record set; integrity-clean -> latch only; bails -> none", () => {
   const oLoop = changedAddrs(craftLoop({ active: true }), oracle);
-  const cLoop = changedAddrs(craftLoop({ active: true }), loc_6a7f);
+  const cLoop = changedAddrs(craftLoop({ active: true }), runObjectsElseVerifyTilemapChecksum);
   assert.deepEqual(cLoop, oLoop, "loop module and oracle must change the identical cell set");
   assert.equal(oLoop.length, 36, `loop must touch 2 cells x 18 records, got ${oLoop.length}`);
 
@@ -223,8 +223,8 @@ test("WRITE-SET: loop-full -> identical 36-cell record set; integrity-clean -> l
 // -- 4. TEETH -----------------------------------------------------------------
 
 test("TEETH: the checksum decision is tight (rets on valid, traps on +1)", () => {
-  assert.doesNotThrow(() => loc_6a7f(craftIntegrity({ build: "valid" })), "module must NOT trap a valid tilemap");
-  assert.throws(() => loc_6a7f(craftIntegrity({ build: "valid", perturb: true })), "module must trap a +1 tilemap");
+  assert.doesNotThrow(() => runObjectsElseVerifyTilemapChecksum(craftIntegrity({ build: "valid" })), "module must NOT trap a valid tilemap");
+  assert.throws(() => runObjectsElseVerifyTilemapChecksum(craftIntegrity({ build: "valid", perturb: true })), "module must trap a +1 tilemap");
   console.log("  TEETH/decision: valid accepted, +1 corruption trapped");
 });
 
@@ -232,7 +232,7 @@ test("TEETH: a wrong latch byte (clean path) is CAUGHT by the RAM diff", () => {
   const o = craftIntegrity({ build: "valid" });
   const c = craftIntegrity({ build: "valid" });
   oracle(o);
-  loc_6a7f(c);
+  runObjectsElseVerifyTilemapChecksum(c);
   c.mem.write8(LATCH, 0x02); // BUG: the latch must be 0x01
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong latch — it is worthless");
@@ -244,7 +244,7 @@ test("TEETH: a wrong record field (loop path) is CAUGHT by the RAM diff", () => 
   const o = craftLoop({ active: true });
   const c = craftLoop({ active: true });
   oracle(o);
-  loc_6a7f(c);
+  runObjectsElseVerifyTilemapChecksum(c);
   const rec17 = ENEMY + 17 * 0x18;
   c.mem.write8(rec17 + 5, 0x00); // BUG: record 17 position must step to 0x0f
   const d = ramDiffMinusStack(o, c);

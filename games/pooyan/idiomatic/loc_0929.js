@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_02ce } from "./loc_02ce.js";
-import { loc_02e3 } from "./loc_02e3.js";
-import { loc_02b9 } from "./loc_02b9.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { blankFillRowAndStepCounter } from "./blankFillRowAndStepCounter.js";
+import { armTileFillFromPlayfieldBase } from "./armTileFillFromPlayfieldBase.js";
+import { zeroSpriteListAndActorArena } from "./zeroSpriteListAndActorArena.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { fillAttributeColumns } from "./fillAttributeColumns.js";
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import {
   ATTRACT_SUBSTATE,
   COPY_PROTECT_STALL_BYTE,
@@ -39,25 +39,25 @@ export function loc_0929(m, carry = m.regs.fC, ptr = m.regs.hl) {
   if (carry) {
     mem8[ptr] = mem8[ptr] + 1; // overlapping-decode arm: bump the incoming cell (write wraps to a byte)
   } else {
-    if (!loc_02ce(m, FILL_ROW_BLANKS)) return; // row counter not drained -> bail
-    loc_02e3(m);
+    if (!blankFillRowAndStepCounter(m, FILL_ROW_BLANKS)) return; // row counter not drained -> bail
+    armTileFillFromPlayfieldBase(m);
     mem8[ATTRACT_SUBSTATE] = mem8[ATTRACT_SUBSTATE] + 1;
   }
 
-  loc_02b9(m);
+  zeroSpriteListAndActorArena(m);
 
   while (mem8[COPY_PROTECT_STALL_BYTE] !== STALL_READY) { /* stall until ready */ }
 
   let entry = SIGNATURE_EXPECTED_TOP;
   for (let index = SIGNATURE_COUNT; index >= 1; index--) {
-    const word = loc_0c45(m, index, SIGNATURE_WORD_TABLE);
+    const word = fetchWordFromTableIndex(m, index, SIGNATURE_WORD_TABLE);
     const expected = mem8[u16(word + ENTRY_OFFSET)];
     if (mem8[entry] !== expected) throw new Error("loc_0929: ROM signature mismatch (integrity guard)");
     entry = u16(entry - 1);
   }
 
   fillAttributeColumns(m, FIELD_ATTRIB_SRC_07D9);
-  loc_0038(m, DISPLAY_CMD_068B);
-  loc_0038(m, DISPLAY_CMD_068E);
-  loc_0038(m, DISPLAY_CMD_0200);
+  enqueueDisplayCommand(m, DISPLAY_CMD_068B);
+  enqueueDisplayCommand(m, DISPLAY_CMD_068E);
+  enqueueDisplayCommand(m, DISPLAY_CMD_0200);
 }

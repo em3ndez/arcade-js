@@ -2,12 +2,12 @@
 import { u8 } from "../../../core/int.js";
 import { ROUND_COUNTER, PLAY_STATE_INDEX, FORMATION_STATE, ACTOR_TABLE, LEAD_ACTOR_STATE } from "./names.js";
 import { runLaunchAndTargetActorPipeline } from "./runLaunchAndTargetActorPipeline.js";
-import { loc_2901 } from "./loc_2901.js";
-import { loc_29a0 } from "./loc_29a0.js";
-import { loc_2a01 } from "./loc_2a01.js";
-import { loc_2a32 } from "./loc_2a32.js";
-import { loc_2a79 } from "./loc_2a79.js";
-import { loc_2a96 } from "./loc_2a96.js";
+import { advanceLeadActorDescentToLanding } from "./advanceLeadActorDescentToLanding.js";
+import { advanceActorDescentStepAndLand } from "./advanceActorDescentStepAndLand.js";
+import { advanceActorState2AndCapWaveArrival } from "./advanceActorState2AndCapWaveArrival.js";
+import { advanceActorPositionAndEnqueueMilestone } from "./advanceActorPositionAndEnqueueMilestone.js";
+import { verifySignatureThenClearFlipAndAdvance } from "./verifySignatureThenClearFlipAndAdvance.js";
+import { verifySignatureThenSetFlipAndAdvance } from "./verifySignatureThenSetFlipAndAdvance.js";
 import { advanceRisingActorStep } from "./advanceRisingActorStep.js";
 import { clearActorArenaAndCounters } from "./clearActorArenaAndCounters.js";
 /**
@@ -33,12 +33,12 @@ export function advanceLeadActorSecondaryState(m) {
   mem8[ACTOR_TABLE + FRAME_DELAY] = u8(mem8[ACTOR_TABLE + FRAME_DELAY] - 1);
   if (mem8[ACTOR_TABLE + FRAME_DELAY] !== 0) return; // delay still running -> nothing more this frame
   switch (mem8[LEAD_ACTOR_STATE] & STATE_MASK) {
-    case 0: return loc_2901(m, ACTOR_TABLE);
-    case 1: return loc_29a0(m, ACTOR_TABLE);
-    case 2: return loc_2a01(m, ACTOR_TABLE);
-    case 3: return loc_2a32(m, ACTOR_TABLE);
-    case 4: return loc_2a79(m, ACTOR_TABLE);
-    case 5: return loc_2a96(m, ACTOR_TABLE);
+    case 0: return advanceLeadActorDescentToLanding(m, ACTOR_TABLE);
+    case 1: return advanceActorDescentStepAndLand(m, ACTOR_TABLE);
+    case 2: return advanceActorState2AndCapWaveArrival(m, ACTOR_TABLE);
+    case 3: return advanceActorPositionAndEnqueueMilestone(m, ACTOR_TABLE);
+    case 4: return verifySignatureThenClearFlipAndAdvance(m, ACTOR_TABLE);
+    case 5: return verifySignatureThenSetFlipAndAdvance(m, ACTOR_TABLE);
     case 6: return advanceRisingActorStep(m, ACTOR_TABLE);
     case 7: return clearActorArenaAndCounters(m);
   }

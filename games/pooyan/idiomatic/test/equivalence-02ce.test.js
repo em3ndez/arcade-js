@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_02ce (ROM 0x02ce, Pooyan) — "fill one row of the
+ * Memory-equivalence test for blankFillRowAndStepCounter (ROM 0x02ce, Pooyan) — "fill one row of the
  * row-by-row tilemap fill and step the row counter". It reads the 16-bit fill cursor at
  * TILE_FILL_PTR (0x880b), blanks B cells (the incoming loop counter) with tile 0x10 via the
- * rst-0x10 fill helper (loc_0010), advances the cursor by exactly one full row (0x20)
+ * rst-0x10 fill helper (fillByteRun), advances the cursor by exactly one full row (0x20)
  * regardless of B, stores it back, and decrements FILL_ROW_COUNTER (0x8809).
  *
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState,
  * minus STACK_SCRATCH) PLUS the declared register live-out. The genuine live-out is the Z
- * flag from the final `dec (0x8809)`: EVERY caller (loc_072d/099c/08e9/092c) does `ret nz`
+ * flag from the final `dec (0x8809)`: EVERY caller (blankFillRowThenFinishAttractSetup/099c/08e9/092c) does `ret nz`
  * right after the call, looping until the counter drains. So Z is checked against the oracle
  * clone AND the module clone must SET it (a return-only rewrite would pass the return check
  * but starve the register-dispatch caller). HL/A/B/DE are left modified by the oracle but no
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_02ce as oracle } from "../../translated/loc_02ce.js";
-import { loc_02ce } from "../loc_02ce.js";
+import { blankFillRowAndStepCounter } from "../blankFillRowAndStepCounter.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -89,14 +89,14 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted (B,cursor,rowCount) — loc_02ce == oracle in RAM (−stack) + Z", () => {
+test("EQUAL: crafted (B,cursor,rowCount) — blankFillRowAndStepCounter == oracle in RAM (−stack) + Z", () => {
   for (const { count, cursor, rowCount } of CASES) {
     const o = craft(count, cursor, rowCount);
     oracle(o);
 
     const c = craft(count, cursor, rowCount);
     c.regs.fZ = !o.regs.fZ; // opposite seed: a module that never sets Z fails
-    const ret = loc_02ce(c);
+    const ret = blankFillRowAndStepCounter(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `B=${hx(count)} cursor=${hx(cursor)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -141,7 +141,7 @@ test("TEETH: a wrong filled byte is CAUGHT by the RAM diff", () => {
   const o = craft(count, cursor, rowCount);
   const c = craft(count, cursor, rowCount);
   oracle(o);
-  loc_02ce(c);
+  blankFillRowAndStepCounter(c);
   const victim = (cursor + 1) & 0xffff;
   c.mem.write8(victim, 0x00); // BUG: a filled cell must be 0x10
   const d = ramDiffMinusStack(o, c);
@@ -156,7 +156,7 @@ test("TEETH: a wrong Z flag is CAUGHT by the live-out check", () => {
   oracle(o);
   assert.equal(o.regs.fZ, true, "sanity: oracle sets Z when the row counter reaches zero");
   const c = craft(count, cursor, rowCount);
-  loc_02ce(c);
+  blankFillRowAndStepCounter(c);
   c.regs.fZ = false; // BUG: never reports the drained counter
   assert.notEqual(c.regs.fZ, o.regs.fZ, "the Z live-out check must reject a stuck-clear flag");
   console.log("  TEETH(Z): stuck-clear Z rejected against oracle Z=true");

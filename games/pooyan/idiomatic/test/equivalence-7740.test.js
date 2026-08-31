@@ -4,8 +4,8 @@
  * 1): step the position by the signed speed, and on a cell crossing advance the state, reload the
  * frame timer, fire sound + animation, and run a ROM checksum guard.
  *
- * The module dissolves advanceObjectAnimationFrame (anim step), loc_0c45 (anim-word lookup) and the rst-20 guard adds
- * (loc_0020) into direct calls, and keeps the two frozen helpers (loc_0ef1 sound, loc_381e anim-set)
+ * The module dissolves advanceObjectAnimationFrame (anim step), fetchWordFromTableIndex (anim-word lookup) and the rst-20 guard adds
+ * (fetchByteFromTableIndex) into direct calls, and keeps the two frozen helpers (loc_0ef1 sound, loc_381e anim-set)
  * as m.call. moveObject is a void per-object step (no register survives), so equivalence is RAM
  * (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *
@@ -46,7 +46,7 @@ const SUB = REC + 0x04; //    sub-position byte (low 5 bits gate the crossing)
 const SPEED = REC + 0x0a; //  signed speed
 const HOLD = REC + 0x0e; //   anim frame-hold (advanceObjectAnimationFrame)
 const TIMER = REC + 0x11; //  frame timer, reloaded on a crossing
-const ANIMIDX = REC + 0x17; // sprite/anim index (loc_0c45 table key)
+const ANIMIDX = REC + 0x17; // sprite/anim index (fetchWordFromTableIndex table key)
 const SP0 = 0x8ff0; //     inside STACK_SCRATCH
 const CALLER_RET = 0xfffc; // caller's return word the seam completes on the moved-0 arm
 

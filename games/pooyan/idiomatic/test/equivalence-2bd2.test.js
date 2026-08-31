@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2bd2 (ROM 0x2bd2) — "stack-adjust entry into the ready-sprite painter".
+ * Memory-equivalence test for paintReadySpriteFromStackAdjustEntry (ROM 0x2bd2) — "stack-adjust entry into the ready-sprite painter".
  *
- * loc_2bd2's only machine act is an `inc sp` that discards a byte of the pushed return before
- * falling into loc_2bd3; that is a stack/return effect the memory model drops, so the memory
+ * paintReadySpriteFromStackAdjustEntry's only machine act is an `inc sp` that discards a byte of the pushed return before
+ * falling into paintReadySpriteSquareIfAbsent; that is a stack/return effect the memory model drops, so the memory
  * behaviour is exactly the painter's. The gate compares RAM (dumpState, minus STACK_SCRATCH);
  * pc/SP/cycles are not compared, which is precisely why the stack adjust is invisible here.
  *
@@ -14,7 +14,7 @@
  * is poked identically on both clones (unpainted vs already-painted).
  *
  * Jobs:
- *   1. EQUAL — unpainted anchor (paints) and already-painted anchor (no-op): loc_2bd2 == oracle
+ *   1. EQUAL — unpainted anchor (paints) and already-painted anchor (no-op): paintReadySpriteFromStackAdjustEntry == oracle
  *      in RAM (−stack).
  *   2. WRITE-SET — the paint touches only cells around the anchor; the already-painted case
  *      writes nothing.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2bd2 as oracle } from "../../translated/loc_2bd2.js";
-import { loc_2bd2 } from "../loc_2bd2.js";
+import { paintReadySpriteFromStackAdjustEntry } from "../paintReadySpriteFromStackAdjustEntry.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, READY_SPRITE_TILE_VRAM } from "../names.js";
@@ -59,12 +59,12 @@ function craft(anchor) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: unpainted (paints) and already-painted (no-op) — loc_2bd2 == oracle in RAM (−stack)", () => {
+test("EQUAL: unpainted (paints) and already-painted (no-op) — paintReadySpriteFromStackAdjustEntry == oracle in RAM (−stack)", () => {
   for (const anchor of [0x00, PAINTED_MARKER]) {
     const o = craft(anchor);
     const c = craft(anchor);
     oracle(o);
-    loc_2bd2(c);
+    paintReadySpriteFromStackAdjustEntry(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b} (anchor=${hx(anchor)})`);
   }
@@ -106,7 +106,7 @@ test("TEETH: a wrong painted cell is CAUGHT by the RAM diff", () => {
   const o = craft(0x00);
   const c = craft(0x00);
   oracle(o);
-  loc_2bd2(c);
+  paintReadySpriteFromStackAdjustEntry(c);
   c.mem8[READY_SPRITE_TILE_VRAM] = 0x00; // BUG: anchor must be stamped, not left at 0
 
   const d = ramDiffMinusStack(o, c);

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0020 } from "./loc_0020.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { adjustSpawnColumn } from "./adjustSpawnColumn.js";
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_57c3 } from "./loc_57c3.js";
+import { decrementPhaseCounterAndDispatchSpawnOrStep } from "./decrementPhaseCounterAndDispatchSpawnOrStep.js";
 import {
   ROUND_COUNTER,
   DIFFICULTY_DSW,
@@ -57,7 +57,7 @@ export function loc_572b(m, rec = m.regs.ix, col = m.regs.c, eField = m.regs.e) 
 
   // velocity from the column table, and its negation for the mirrored field
   const velTable = odd ? SPAWN_FIELD_TABLE_ODD : SPAWN_FIELD_TABLE;
-  const [vel] = loc_0020(m, velTable, column);
+  const [vel] = fetchByteFromTableIndex(m, velTable, column);
   mem8[rec + 0x09] = vel;
   mem8[rec + 0x0a] = -vel; // mirrored (negated) velocity
 
@@ -65,10 +65,10 @@ export function loc_572b(m, rec = m.regs.ix, col = m.regs.c, eField = m.regs.e) 
 
   // reload timer from the column table
   const timerTable = odd ? SPAWN_TIMER_TABLE_ODD : SPAWN_TIMER_TABLE_EVEN;
-  const [timer] = loc_0020(m, timerTable, column);
+  const [timer] = fetchByteFromTableIndex(m, timerTable, column);
   mem8[ENEMY_SPAWN_TIMER] = timer;
 
   mem8[ACTIVE_ENEMY_COUNT] = mem8[ACTIVE_ENEMY_COUNT] + 1;
-  loc_57c3(m, col, rec); // run the scan-state head for the new actor
+  decrementPhaseCounterAndDispatchSpawnOrStep(m, col, rec); // run the scan-state head for the new actor
   return true; // spawned -> caller aborts its sweep
 }

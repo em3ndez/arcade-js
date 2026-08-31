@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import { queueRoundSoundCommandRun } from "./queueRoundSoundCommandRun.js";
 import {
   ANIM_TABLE_3838,
@@ -68,8 +68,8 @@ export function loc_6931(m, ix = m.regs.ix, iy = m.regs.iy) {
   mem8[SHARED_FRAME_DELAY_TIMER] = RESPAWN_DELAY;
 
   if (mem8[WAVE_NUMBER] === 0) { // first spawn of the wave
-    loc_0038(m, WAVE_SPAWN_DISPLAY_CMD_A);
-    loc_0038(m, WAVE_SPAWN_DISPLAY_CMD_B);
+    enqueueDisplayCommand(m, WAVE_SPAWN_DISPLAY_CMD_A);
+    enqueueDisplayCommand(m, WAVE_SPAWN_DISPLAY_CMD_B);
 
     let bcd = 0x00;
     let steps = mem8[WAVE_ARRIVAL_COUNTER];

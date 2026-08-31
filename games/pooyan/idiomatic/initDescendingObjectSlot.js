@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { storeActorAnimationPointer } from "./storeActorAnimationPointer.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import {
@@ -41,7 +41,7 @@ export function initDescendingObjectSlot(m, slot = m.regs.iy, source = m.regs.ix
   mem8[slot + 0x0a] = 0xd6; // -0x2a (negated)
 
   const idx = ((mem8[ROUND_COUNTER] >> 1) - 1) & 0x03; // round-derived table index
-  const animPtr = loc_0c45(m, idx, SPAWN_ANIM_WORD_TABLE); // word from the anim table
+  const animPtr = fetchWordFromTableIndex(m, idx, SPAWN_ANIM_WORD_TABLE); // word from the anim table
   storeActorAnimationPointer(m, slot, animPtr); // install into the slot record
 
   mem8[SPAWN_SWEEP_TRIGGER] = 0x00;

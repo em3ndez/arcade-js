@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_191c (ROM 0x191c, Pooyan) — "choose the enemy
+ * Memory-equivalence test for pickEnemyGroupSpeedAndClearAim (ROM 0x191c, Pooyan) — "choose the enemy
  * speed/column value for a new target group". It runs only while STAGE_COUNTDOWN (0x8901)
  * and LEAD_ACTOR_STATE (0x8a82) are both zero, and aborts if any of the six enemy records
  * (0x8ae2, stride 0x18) already holds state 3. Otherwise it bumps PLAY_STATE_INDEX
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_191c as oracle } from "../../translated/loc_191c.js";
-import { loc_191c } from "../loc_191c.js";
+import { pickEnemyGroupSpeedAndClearAim } from "../pickEnemyGroupSpeedAndClearAim.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -90,12 +90,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted gate/value cases — loc_191c == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted gate/value cases — pickEnemyGroupSpeedAndClearAim == oracle in RAM (−stack)", () => {
   for (const { name, opts } of CASES) {
     const o = craft(opts);
     const c = craft(opts);
     oracle(o);
-    loc_191c(c);
+    pickEnemyGroupSpeedAndClearAim(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }

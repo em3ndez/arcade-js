@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_4364 (ROM 0x4364) — an object state handler. While the record's
+ * Memory-equivalence test for advanceObjectFallStepThenBlankBandOnLand (ROM 0x4364) — an object state handler. While the record's
  * phase timer (ix+0x11) is non-zero it counts it down one and returns; once the timer is zero it
  * steps the animation sequencer (advanceObjectAnimationFrame), advances one fall step (loc_3fd5 / advanceFallStep,
  * whose carry = "still airborne"), returns while airborne, and on landing tail-blanks the sprite
  * band (blankActorSpriteBand zeroes 0x17 bytes from ix).
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so every case uses a FRESH clone
- * per side. Contract: RAM (dumpState minus STACK_SCRATCH) ONLY — loc_4364 is a table-dispatched
- * handler (sibling loc_4350) and no caller consumes a result register; the exit registers/flags
+ * per side. Contract: RAM (dumpState minus STACK_SCRATCH) ONLY — advanceObjectFallStepThenBlankBandOnLand is a table-dispatched
+ * handler (sibling countdownThenRearmTurnAnimationByFlag) and no caller consumes a result register; the exit registers/flags
  * differ per path (A + flags on the timer path, carry on the airborne path, the tail callee's HL/B
  * on the landing path), so there is NO declared register live-out. pc/SP/cycles are NOT compared.
  *
  * The record is based at IX; the leaf runs only during live object updates, so every case is
- * CRAFTED. The record is pre-dirtied to 0xAA and the four fields loc_4364's callees read are seated
+ * CRAFTED. The record is pre-dirtied to 0xAA and the four fields advanceObjectFallStepThenBlankBandOnLand's callees read are seated
  * identically on both sides: the animation hold (ix+0x0e, non-zero so advanceObjectAnimationFrame just decrements it),
  * the fall fraction/velocity (ix+0x03 / ix+0x09, both 0 so no row carries), and the integer row
  * (ix+0x04) — below 0x1e = airborne, at 0x1e = landed.
  *
  * Jobs:
- *   1. EQUAL — timer-running, airborne, and landing exits: loc_4364 == oracle in RAM (−stack).
+ *   1. EQUAL — timer-running, airborne, and landing exits: advanceObjectFallStepThenBlankBandOnLand == oracle in RAM (−stack).
  *   2. WRITE-SET — the timer-running path's ONLY write is the phase timer, decremented by one.
  *   3. TEETH — a twin that forgets the timer decrement MUST be caught at ix+0x11; a twin that leaves
  *      a byte of the sprite band un-blanked on the landing path MUST be caught in the band.
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4364 as oracle } from "../../translated/loc_4364.js";
-import { loc_4364 } from "../loc_4364.js";
+import { advanceObjectFallStepThenBlankBandOnLand } from "../advanceObjectFallStepThenBlankBandOnLand.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -87,12 +87,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: timer-running + airborne + landing — loc_4364 == oracle in RAM (−stack)", () => {
+test("EQUAL: timer-running + airborne + landing — advanceObjectFallStepThenBlankBandOnLand == oracle in RAM (−stack)", () => {
   for (const scn of CASES) {
     const o = craft(scn);
     const c = craft(scn);
     oracle(o);
-    loc_4364(c);
+    advanceObjectFallStepThenBlankBandOnLand(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${scn.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -126,7 +126,7 @@ test("TEETH: a forgotten timer decrement is CAUGHT at ix+0x11", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_4364(c);
+  advanceObjectFallStepThenBlankBandOnLand(c);
   c.mem.write8(REC + TIMER, scn.timer); // BUG: leave the phase timer un-decremented
 
   const d = ramDiffMinusStack(o, c);
@@ -140,7 +140,7 @@ test("TEETH: an un-blanked sprite-band byte is CAUGHT on the landing path", () =
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_4364(c);
+  advanceObjectFallStepThenBlankBandOnLand(c);
   // positive control: the oracle really did clear this band cell to 0
   assert.equal(o.mem.read8(REC + 0x05), 0x00, "control: oracle blanked the band on landing");
   c.mem.write8(REC + 0x05, 0xaa); // BUG: a band byte left un-blanked

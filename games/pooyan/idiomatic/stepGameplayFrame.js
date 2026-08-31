@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_308b } from "./loc_308b.js";
-import { loc_25a6 } from "./loc_25a6.js";
+import { dispatchFormationPhaseOrQueueLaunchSlots } from "./dispatchFormationPhaseOrQueueLaunchSlots.js";
+import { renderMarkerColumnExtendOrRetract } from "./renderMarkerColumnExtendOrRetract.js";
 import { dispatchAllEnemyActorStates } from "./dispatchAllEnemyActorStates.js";
 import { dispatchFormationObjectStates } from "./dispatchFormationObjectStates.js";
 import { advanceLeadActorSecondaryState } from "./advanceLeadActorSecondaryState.js";
-import { loc_02ef } from "./loc_02ef.js";
+import { rebuildSpriteDisplayList } from "./rebuildSpriteDisplayList.js";
 /**
  * stepGameplayFrame — gameplay-state per-frame coordinator.
  *
@@ -14,10 +14,10 @@ import { loc_02ef } from "./loc_02ef.js";
  * LIVE-OUT: none — a void per-frame driver.
  */
 export function stepGameplayFrame(m) {
-  loc_308b(m); // formation manager
-  loc_25a6(m); // lift/marker column driver
+  dispatchFormationPhaseOrQueueLaunchSlots(m); // formation manager
+  renderMarkerColumnExtendOrRetract(m); // lift/marker column driver
   dispatchAllEnemyActorStates(m); // enemy-actor per-record state sweep
   dispatchFormationObjectStates(m); // formation-record object-state dispatch
   advanceLeadActorSecondaryState(m); // lead actor secondary state machine
-  loc_02ef(m); // sprite display-list rebuild
+  rebuildSpriteDisplayList(m); // sprite display-list rebuild
 }

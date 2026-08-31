@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_29a0 (ROM 0x29a0) — the descent state handler for the actor
+ * Memory-equivalence gate for advanceActorDescentStepAndLand (ROM 0x29a0) — the descent state handler for the actor
  * record at IX. It reseats the frame-hold, toggles the display tile every fourth frame, and drives
  * the descent counter down by two: at/above the floor it just returns; below it, a set gate byte
  * diverts to the countdown/redirect step, otherwise it reseeds the spawn timer, advances the state,
  * and runs two ROM self-checks — a running-sum block (miss -> loc_2ab3) and a byte-compare block
- * against a reference table (miss -> loc_2901); a clean pair enqueues the descent display command.
+ * against a reference table (miss -> advanceLeadActorDescentToLanding); a clean pair enqueues the descent display command.
  *
- * SEATING: BALANCED — loc_29a0's own rets WIRE; the diversions are tail-jumps that forward the
- * delegatee's result. Compared per case on RAM (dumpState, minus STACK_SCRATCH); loc_29a0 has no
+ * SEATING: BALANCED — advanceActorDescentStepAndLand's own rets WIRE; the diversions are tail-jumps that forward the
+ * delegatee's result. Compared per case on RAM (dumpState, minus STACK_SCRATCH); advanceActorDescentStepAndLand has no
  * register live-out of its own. pc/SP/full register file are not compared.
  *
  * The self-check branches gate on ROM sums/tables that PASS for the intact image (verified: the
  * 0x20 bytes at 0x0879 sum to 0x37, and 0x2980.. equals 0x0859.. over 0x20). Both are in ROM, so
  * the branches are unreachable by poking RAM — ROM writes throw. To reach the sum miss we build a
  * SECOND base from a ROM copy with one summed byte bumped and compose the sibling idiomatic loc_2ab3
- * (self-contained). The cmp-miss guard (loc_2901) and the gate diversion (loc_2b23) pull large
+ * (self-contained). The cmp-miss guard (advanceLeadActorDescentToLanding) and the gate diversion (tickPhaseTimerAndMaybeRunResetScan) pull large
  * subtrees, so they are NOT composed here — their gate liveness is shown by the data invariants and
  * the sum-miss composition (a failed check skips the enqueue), leaving their execution to their own
  * per-routine gates.
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_29a0 as oracle } from "../../translated/loc_29a0.js";
-import { loc_29a0 } from "../loc_29a0.js";
+import { advanceActorDescentStepAndLand } from "../advanceActorDescentStepAndLand.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -85,7 +85,7 @@ if (ROM_PRESENT) {
   BASE_TAMPER = new Machine(TAMPERED_ROM).clone();
 }
 
-const REC = 0x8a80; //   the actor record loc_29a0 operates on
+const REC = 0x8a80; //   the actor record advanceActorDescentStepAndLand operates on
 const RING_SLOT = 0x88c0; // first ring slot (page 0x88 + ring start 0xc0)
 const FRAME_HOLD = 0x11;
 const ANIM_TICK = 0x0b;
@@ -93,7 +93,7 @@ const DISPLAY_TILE = 0x0f;
 const DESCENT_COUNTER = 0x06;
 const STATE_FIELD = 0x02;
 
-/** A fresh clone off `base` with loc_29a0's record inputs seated. */
+/** A fresh clone off `base` with advanceActorDescentStepAndLand's record inputs seated. */
 function craftFrom(base, { counter = 0x2c, tick = 0x00, tile = 0x15, gate = 0x00 } = {}) {
   const m = base.clone();
   m.regs.ix = REC;
@@ -104,7 +104,7 @@ function craftFrom(base, { counter = 0x2c, tick = 0x00, tile = 0x15, gate = 0x00
   m.mem.write8(REC + DISPLAY_TILE, tile);
   m.mem.write8(REC + STATE_FIELD, 0x00);
   m.mem.write8(REC + FRAME_HOLD, 0x00);
-  // free ring slot so loc_0038 actually enqueues on the success path
+  // free ring slot so enqueueDisplayCommand actually enqueues on the success path
   m.mem.write8(DISPLAY_CMD_RING_WRITE_PTR, 0xc0);
   m.mem.write8(RING_SLOT, 0x80); // bit7 set => free
   return m;
@@ -121,13 +121,13 @@ test("DESCEND: at/above the floor the handler returns; tile flip identical to or
     const o = craftFrom(BASE, c);
     const k = craftFrom(BASE, c);
     oracle(o);
-    loc_29a0(k);
+    advanceActorDescentStepAndLand(k);
     const d = ramDiffMinusStack(o, k);
     assert.equal(d, null, d && `${c.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
     assert.equal(k.mem.read8(REC + DESCENT_COUNTER), 0x4e, `${c.name}: counter dropped by two`);
   }
   const flip = craftFrom(BASE, { counter: 0x50, tick: 0x03, tile: 0x15 });
-  loc_29a0(flip);
+  advanceActorDescentStepAndLand(flip);
   assert.equal(flip.mem.read8(REC + DISPLAY_TILE), 0x1e, "the flip frame toggled the tile");
   console.log("  DESCEND: return path identical (flip + no-flip)");
 });
@@ -138,13 +138,13 @@ test("SUCCESS: below the floor, clean checks enqueue the command; oracle == idio
   const o = craftFrom(BASE, { counter: 0x2c });
   const k = craftFrom(BASE, { counter: 0x2c });
   oracle(o);
-  loc_29a0(k);
+  advanceActorDescentStepAndLand(k);
   const d = ramDiffMinusStack(o, k);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(k.mem.read8(FORMATION_SPAWN_TIMER), 0x30, "spawn timer reseeded to base");
   assert.equal(k.mem.read8(REC + FRAME_HOLD), 0x18, "frame-hold stretched");
-  assert.equal(k.mem.read8(RING_SLOT), 0x06, "loc_0038 enqueued the command high byte 0x06");
-  assert.equal(k.mem.read8(RING_SLOT + 1), 0x14, "loc_0038 enqueued the command low byte 0x14");
+  assert.equal(k.mem.read8(RING_SLOT), 0x06, "enqueueDisplayCommand enqueued the command high byte 0x06");
+  assert.equal(k.mem.read8(RING_SLOT + 1), 0x14, "enqueueDisplayCommand enqueued the command low byte 0x14");
   console.log("  SUCCESS: both checks pass -> descent command enqueued, identical to oracle");
 });
 
@@ -154,7 +154,7 @@ test("SUM-MISS: tampered ROM -> tail-jump loc_2ab3; oracle == idiomatic; enqueue
   const o = craftFrom(BASE_TAMPER, { counter: 0x2c });
   const k = craftFrom(BASE_TAMPER, { counter: 0x2c });
   const ro = oracle(o);
-  const rc = loc_29a0(k);
+  const rc = advanceActorDescentStepAndLand(k);
   const d = ramDiffMinusStack(o, k);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(rc, ro, "the tail-jump must forward loc_2ab3's result unchanged");
@@ -171,8 +171,8 @@ test("BRANCH-LIVE: the self-checks truly select the branch (intact passes, tampe
   assert.equal(tablesMatch(ROM), true, "intact ROM: the compare tables must match (cmp check passes)");
   const intact = craftFrom(BASE, { counter: 0x2c });
   const tamper = craftFrom(BASE_TAMPER, { counter: 0x2c });
-  loc_29a0(intact);
-  loc_29a0(tamper);
+  advanceActorDescentStepAndLand(intact);
+  advanceActorDescentStepAndLand(tamper);
   const d = ramDiffMinusStack(intact, tamper);
   assert.notEqual(d, null, "intact vs sum-tampered must diverge — else the sum branch is dead");
   console.log(`  BRANCH-LIVE: intact/tampered diverge at ${hx(d.addr ?? 0)} (enqueue vs loc_2ab3)`);
@@ -184,7 +184,7 @@ test("TEETH: a wrong reseeded spawn-timer byte is CAUGHT by the RAM diff", () =>
   const o = craftFrom(BASE, { counter: 0x2c });
   const k = craftFrom(BASE, { counter: 0x2c });
   oracle(o);
-  loc_29a0(k);
+  advanceActorDescentStepAndLand(k);
   k.mem.write8(FORMATION_SPAWN_TIMER, 0x00); // BUG: the spawn timer must reseed to 0x30
   const d = ramDiffMinusStack(o, k);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong spawn-timer byte — it is worthless");

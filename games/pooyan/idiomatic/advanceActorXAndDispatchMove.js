@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_362d } from "./loc_362d.js";
+import { dispatchActorPhaseGatedByDelay } from "./dispatchActorPhaseGatedByDelay.js";
 import { finishActorOrArmTurnaround } from "./finishActorOrArmTurnaround.js";
 import { STAGE_COUNTDOWN } from "./names.js";
 /**
@@ -25,6 +25,6 @@ export function advanceActorXAndDispatchMove(m, rec = m.regs.ix) {
   if (x < u8(-step)) mem8[rec + REC_LAP_COUNTER] = mem8[rec + REC_LAP_COUNTER] - 1;
   const newX = u8(x + step);
   mem8[rec + REC_X] = newX;
-  if (mem8[STAGE_COUNTDOWN] < AI_GATE) return loc_362d(m, rec, newX); // new X in B
+  if (mem8[STAGE_COUNTDOWN] < AI_GATE) return dispatchActorPhaseGatedByDelay(m, rec, newX); // new X in B
   return finishActorOrArmTurnaround(m, rec);
 }

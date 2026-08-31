@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_40d0 (ROM 0x40d0, Pooyan) — the IX-object state dispatcher.
+ * Memory-equivalence test for dispatchObjectStateHandler (ROM 0x40d0, Pooyan) — the IX-object state dispatcher.
  *
  * Inactive records (bit0 of (IX+0)|(IX+1) clear) and out-of-range states ((IX+2)&0x1f >= 0x11) return
  * untouched; otherwise the state selects one of 17 handlers via the inline table 0x40e1 and tail-hands
@@ -21,9 +21,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_40d0 as oracle } from "../../translated/loc_40d0.js";
-import { loc_40d0 } from "../loc_40d0.js";
-import { loc_4103 } from "../loc_4103.js";
-import { loc_4378 } from "../loc_4378.js";
+import { dispatchObjectStateHandler } from "../dispatchObjectStateHandler.js";
+import { advanceObjectPhaseThenAuditChecksum } from "../advanceObjectPhaseThenAuditChecksum.js";
+import { noopHighStateHandler } from "../noopHighStateHandler.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -76,7 +76,7 @@ test("CAPTURE: real 0x40d0 dispatches replay identically (oracle vs module)", ()
     const o = cap.clone();
     const c = cap.clone();
     const ro = runGuarded(oracle, o);
-    const rc = runGuarded(loc_40d0, c);
+    const rc = runGuarded(dispatchObjectStateHandler, c);
     assert.equal(ro.threw, rc.threw, `divergent control flow (oracle threw=${ro.threw} module threw=${rc.threw})`);
     if (!ro.threw) {
       const d = ramDiffMinusStack(o, c);
@@ -100,7 +100,7 @@ test("CRAFTED: inactive/oob guards + each in-range state route identically", () 
     const o = craft(b0, b1, state);
     const c = craft(b0, b1, state);
     const ro = runGuarded(oracle, o);
-    const rc = runGuarded(loc_40d0, c);
+    const rc = runGuarded(dispatchObjectStateHandler, c);
     assert.equal(ro.threw, rc.threw, `${name}: divergent control flow (oracle threw=${ro.threw} module threw=${rc.threw})`);
     if (!ro.threw) {
       const d = ramDiffMinusStack(o, c);
@@ -112,9 +112,9 @@ test("CRAFTED: inactive/oob guards + each in-range state route identically", () 
 
 // -- 2b. BRIDGE (rec argument) ------------------------------------------------
 
-test("BRIDGE: loc_40d0 routes on the rec argument, ignoring m.regs.ix", () => {
+test("BRIDGE: dispatchObjectStateHandler routes on the rec argument, ignoring m.regs.ix", () => {
   const runRec = (m) => {
-    try { loc_40d0(m, REC); return { threw: false }; } catch (e) { return { threw: true, msg: String(e && e.message) }; }
+    try { dispatchObjectStateHandler(m, REC); return { threw: false }; } catch (e) { return { threw: true, msg: String(e && e.message) }; }
   };
   const POISON = 0x8d00; // a wrong record base; a handler that reads m.regs.ix acts here, not REC
   for (const state of [0, 1, 2, 8, 9, 11, 12, 13]) {
@@ -126,7 +126,7 @@ test("BRIDGE: loc_40d0 routes on the rec argument, ignoring m.regs.ix", () => {
     assert.equal(rs.threw, rp.threw, `state ${state}: control flow differs under a poisoned IX`);
     if (!rs.threw) {
       const d = ramDiffMinusStack(seated, poisoned);
-      assert.equal(d, null, d && `state ${state}: loc_40d0 read m.regs.ix, not rec (diff at ${hx(d.addr ?? 0)})`);
+      assert.equal(d, null, d && `state ${state}: dispatchObjectStateHandler read m.regs.ix, not rec (diff at ${hx(d.addr ?? 0)})`);
     }
   }
   console.log("  BRIDGE: rec-argument routing ignores a poisoned IX");
@@ -135,7 +135,7 @@ test("BRIDGE: loc_40d0 routes on the rec argument, ignoring m.regs.ix", () => {
 // -- 3. SP-TOOTH --------------------------------------------------------------
 
 test("SP-TOOTH: the tail dispatch is seam-placeable", () => {
-  const r = seamPlaceable(withOmittedRet, loc_40d0, TARGET, craft(0x01, 0x00, 0x00));
+  const r = seamPlaceable(withOmittedRet, dispatchObjectStateHandler, TARGET, craft(0x01, 0x00, 0x00));
   assert.equal(r.placeable, true, `dispatcher must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: tail dispatch seats cleanly");
 });
@@ -147,13 +147,13 @@ test("TEETH: an ignored active-guard and a mis-routed state are caught", () => {
   const og = craft(0x00, 0x00, 0x00);
   const cg = craft(0x00, 0x00, 0x00);
   oracle(og);
-  loc_4103(cg); // broken: dispatch despite inactive
+  advanceObjectPhaseThenAuditChecksum(cg); // broken: dispatch despite inactive
   assert.notEqual(ramDiffMinusStack(og, cg), null, "guard teeth worthless: inactive dispatch not caught");
   // selector: state 0 routed to the wrong handler.
   const os = craft(0x01, 0x00, 0x00);
   const cs = craft(0x01, 0x00, 0x00);
   const ro = runGuarded(oracle, os);
-  const rc = runGuarded(loc_4378, cs); // broken: state 0 should be loc_4103
+  const rc = runGuarded(noopHighStateHandler, cs); // broken: state 0 should be advanceObjectPhaseThenAuditChecksum
   const caught = ro.threw !== rc.threw || (!ro.threw && ramDiffMinusStack(os, cs) !== null);
   assert.equal(caught, true, "selector teeth worthless: mis-route not caught");
   console.log("  TEETH: inactive dispatch + mis-route both caught");

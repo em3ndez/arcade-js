@@ -5,7 +5,7 @@
  * It decrements the record's frame-delay (rec+0x11); while non-zero it returns. On expiry it
  * stamps 0x07 into the ROM-check flag cell (0x882b), or into the play-state index (0x880a)
  * when that flag is already clear, then — if the HUD-guard tally (0x8a3c) is set — falls
- * through into the shape loader loc_250f keyed by that pointer.
+ * through into the shape loader seedFourRecordsAndCopyDisplayTiles keyed by that pointer.
  *
  * Cycle-free / memory-equivalence gate: contract = RAM (dumpState, minus STACK_SCRATCH). The
  * oracle's fall-through m.call(0x250f) and the copier's inner calls push return addresses into
@@ -13,7 +13,7 @@
  * make no call and give exact RAM assertions; the deep fall-through is run under the
  * same-completion-path pattern (both sides take the same branch, RAM matches when both finish).
  * pc/sp/cycles are NOT compared. No register live-out is asserted: the early paths are memory-
- * only and the fall-through tail-inherits loc_250f's register live-out through the return.
+ * only and the fall-through tail-inherits seedFourRecordsAndCopyDisplayTiles's register live-out through the return.
  *
  * Every case is CRAFTED — the leaf is not reached in a plain boot.
  *
@@ -89,9 +89,9 @@ test("EQUAL: shallow paths — advancePlayStateToPhase7OnActorDelay == oracle ex
   console.log(`  EQUAL(shallow): ${SHALLOW.length} cases identical (RAM −stack)`);
 });
 
-// -- 2. EQUAL (deep fall-through into loc_250f) -------------------------------
+// -- 2. EQUAL (deep fall-through into seedFourRecordsAndCopyDisplayTiles) -------------------------------
 
-test("EQUAL: deep — expire with the guard set falls into loc_250f; same path + RAM", () => {
+test("EQUAL: deep — expire with the guard set falls into seedFourRecordsAndCopyDisplayTiles; same path + RAM", () => {
   const cfg = { hold: 0x01, romFlag: 0x03, hudGuard: 0x01 };
   const o = craft(cfg);
   const c = craft(cfg);
@@ -104,7 +104,7 @@ test("EQUAL: deep — expire with the guard set falls into loc_250f; same path +
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
-  console.log(`  EQUAL(deep): loc_250f fall-through — same path (threw=${oThrew}), RAM identical when completing`);
+  console.log(`  EQUAL(deep): seedFourRecordsAndCopyDisplayTiles fall-through — same path (threw=${oThrew}), RAM identical when completing`);
 });
 
 // -- 3. WRITE-SET -------------------------------------------------------------

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_114f (Pooyan) — main-loop sub-state 5 handler.
+ * Memory-equivalence test for advancePlayStateToPhase6OnDwellExpiry (Pooyan) — main-loop sub-state 5 handler.
  *
  * Ticks SUBSTATE_FIELD1_COUNTER: while non-zero, decrement and return. On expiry it clears a 9-byte
  * block from LATCHED_ENEMY_X, enqueues the silence sound command, and sets PLAY_STATE_INDEX := 6.
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_114f as oracle } from "../../translated/loc_114f.js";
-import { loc_114f } from "../loc_114f.js";
+import { advancePlayStateToPhase6OnDwellExpiry } from "../advancePlayStateToPhase6OnDwellExpiry.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -88,12 +88,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_114f == oracle in RAM (−stack)", () => {
+test("EQUAL: advancePlayStateToPhase6OnDwellExpiry == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_114f(c);
+    advancePlayStateToPhase6OnDwellExpiry(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -124,7 +124,7 @@ test("TEETH: a corrupted phase byte is CAUGHT; the branches are load-bearing", (
   const o = seat({ timer: 0x00 });
   const c = seat({ timer: 0x00 });
   oracle(o);
-  loc_114f(c);
+  advancePlayStateToPhase6OnDwellExpiry(c);
   c.mem.write8(PLAY_STATE_INDEX, (o.mem.read8(PLAY_STATE_INDEX) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted phase byte");
@@ -143,10 +143,10 @@ test("TEETH: a corrupted phase byte is CAUGHT; the branches are load-bearing", (
 test("TAIL: sum != 0 transfers into the spawn sweep on both sides; sum == 0 returns on both", () => {
   // sum != 0: the guard is false -> both hand off to the sweep (which runs away off mapped RAM here).
   assert.equal(threw(oracle, seat({ timer: 0x00, drip: 0x01 })), true, "oracle takes the tail on sum != 0");
-  assert.equal(threw(loc_114f, seat({ timer: 0x00, drip: 0x01 })), true, "module takes the tail on sum != 0");
+  assert.equal(threw(advancePlayStateToPhase6OnDwellExpiry, seat({ timer: 0x00, drip: 0x01 })), true, "module takes the tail on sum != 0");
 
   // sum == 0: the guard holds -> both return without entering the sweep.
   assert.equal(threw(oracle, seat({ timer: 0x00, drip: 0x00 })), false, "oracle returns on sum == 0");
-  assert.equal(threw(loc_114f, seat({ timer: 0x00, drip: 0x00 })), false, "module returns on sum == 0");
+  assert.equal(threw(advancePlayStateToPhase6OnDwellExpiry, seat({ timer: 0x00, drip: 0x00 })), false, "module returns on sum == 0");
   console.log("  TAIL: handoff parity — sum != 0 enters the sweep, sum == 0 returns");
 });

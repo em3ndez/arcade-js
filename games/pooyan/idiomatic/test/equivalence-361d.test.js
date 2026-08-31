@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_361d (ROM 0x361d, Pooyan) — the actor end-of-move guard.
+ * Memory-equivalence test for dispatchEndOfMoveIfFlagged (ROM 0x361d, Pooyan) — the actor end-of-move guard.
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
- * oracle on one and loc_361d on the other, compared on RAM (dumpState, minus STACK_SCRATCH) PLUS the
+ * oracle on one and dispatchEndOfMoveIfFlagged on the other, compared on RAM (dumpState, minus STACK_SCRATCH) PLUS the
  * declared register live-out A. pc/SP/cycles are deliberately not compared.
  *
  * INPUT: IX (the actor record base). The guard tests bit 0 of the flag byte (rec+8): clear returns
@@ -19,7 +19,7 @@
  *
  * Jobs:
  *   1. EQUAL — over crafted records (guard-clear no-op; finish-phase counter!=0; two turn-around
- *      arm variants; non-finish counter>=2) oracle == loc_361d in RAM (−stack) and A (and IX passes
+ *      arm variants; non-finish counter>=2) oracle == dispatchEndOfMoveIfFlagged in RAM (−stack) and A (and IX passes
  *      through unchanged).
  *   2. WRITE-SET — a bit-0-clear record writes NOTHING (the guard's whole contract).
  *   3. TEETH — a wrong written byte (RAM), a twin that dispatches through a CLEARED guard (structural),
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_361d as oracle } from "../../translated/loc_361d.js";
-import { loc_361d } from "../loc_361d.js";
+import { dispatchEndOfMoveIfFlagged } from "../dispatchEndOfMoveIfFlagged.js";
 import { finishActorOrArmTurnaround } from "../finishActorOrArmTurnaround.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -81,12 +81,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted records — loc_361d == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted records — dispatchEndOfMoveIfFlagged == oracle in RAM (−stack) + A", () => {
   for (const cse of CASES) {
     const o = craft(cse.play, cse.pokes);
     const c = craft(cse.play, cse.pokes);
     oracle(o);
-    loc_361d(c);
+    dispatchEndOfMoveIfFlagged(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -119,7 +119,7 @@ test("TEETH: a wrong written byte on the dispatch path is CAUGHT by the RAM diff
   const o = craft(cse.play, cse.pokes);
   const c = craft(cse.play, cse.pokes);
   oracle(o);
-  loc_361d(c);
+  dispatchEndOfMoveIfFlagged(c);
   c.mem8[REC + REC_ANIM_LO] = (c.mem8[REC + REC_ANIM_LO] + 1) & 0xff; // BUG: corrupt an armed byte
 
   const d = ramDiffMinusStack(o, c);
@@ -146,7 +146,7 @@ test("TEETH: a wrong A live-out is CAUGHT by the live-out check", () => {
   const o = craft(cse.play, cse.pokes);
   const c = craft(cse.play, cse.pokes);
   oracle(o);
-  loc_361d(c);
+  dispatchEndOfMoveIfFlagged(c);
   assert.equal(c.regs.a, o.regs.a, "sanity: the module's A matches the oracle before corruption");
   c.regs.a = (o.regs.a + 1) & 0xff; // BUG: wrong move counter left in A
 

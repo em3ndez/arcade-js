@@ -11,7 +11,7 @@ import { u16 } from "../../../core/int.js";
  * into the destination buffer. The 0xa0 sentinel is consumed as the end mark and is never
  * copied — it is the routine's only exit.
  *
- * The primary caller (loc_1b43) falls straight into this loop with the source pointing at the
+ * The primary caller (rebuildFieldAndLatchPlayStateWithTamperCheck) falls straight into this loop with the source pointing at the
  * ROM message string BIASED_TILE_STRING_1FF2 (0x1ff2) and the destination pointing into the
  * on-screen tile buffer, so a boot/attract banner lands on screen already biased into tile
  * codes.

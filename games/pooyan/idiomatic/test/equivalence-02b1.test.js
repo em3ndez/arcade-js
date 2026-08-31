@@ -15,7 +15,7 @@
  * fetch + stack pop the direct-call layer replaces with a JS return); comparing it would
  * test the stack model we drop, not the routine's effect. The register live-out — the
  * advanced pointer HL = start + 2*stride — IS checked, derived from the oracle clone.
- * That HL is a GENUINE live-out: loc_0254 issues 0x02b1 back-to-back without reloading
+ * That HL is a GENUINE live-out: repaintScrollColumnsElseVerifySignature issues 0x02b1 back-to-back without reloading
  * HL between its 3rd and 4th calls, so each call consumes the pointer the prior one left.
  *
  * The leaf is NOT reached in a plain boot/attract (a hooked 1500-frame run dispatches it
@@ -91,7 +91,7 @@ function cells(start, stride) {
 // Curated inputs: down-a-row (0x0020) and up-a-row (0xffe0) strides over several
 // video-RAM (0x8400-0x87ff) bases, plus a base that makes the writes straddle a page.
 const CASES = [
-  { start: 0x84e0, stride: 0xffe0 }, // the real loc_0254 stride
+  { start: 0x84e0, stride: 0xffe0 }, // the real repaintScrollColumnsElseVerifySignature stride
   { start: 0x8420, stride: 0x0020 },
   { start: 0x8521, stride: 0xffe0 },
   { start: 0x8460, stride: 0x0020 },
@@ -112,9 +112,9 @@ test("EQUAL: crafted (start,stride) — blankTileColumn == oracle in RAM (−sta
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} blank=${d.b} (start=${hx(start)} stride=${hx(stride)})`);
     assert.equal(ret & 0xffff, o.regs.hl & 0xffff, `HL live-out mismatch for start=${hx(start)} stride=${hx(stride)}`);
     // SIDE-EFFECT arm: the bridge must SET HL on the module clone (not merely return it) —
-    // loc_0254 reads HL out of the register across its chained 3rd->4th calls. A return-only
+    // repaintScrollColumnsElseVerifySignature reads HL out of the register across its chained 3rd->4th calls. A return-only
     // rewrite that never writes HL passes the ret check above but would fail here.
-    assert.equal(c.regs.hl & 0xffff, o.regs.hl & 0xffff, `module must SET HL for the translated caller loc_0254 (start=${hx(start)} stride=${hx(stride)})`);
+    assert.equal(c.regs.hl & 0xffff, o.regs.hl & 0xffff, `module must SET HL for the translated caller repaintScrollColumnsElseVerifySignature (start=${hx(start)} stride=${hx(stride)})`);
   }
   console.log(`  EQUAL: ${CASES.length} crafted cases identical (RAM −stack + HL)`);
 });

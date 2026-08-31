@@ -6,7 +6,7 @@
  * blitted at the +0x15/+0x16 screen pointer and the row above), raises OBJECT_DRAWN_FLAG once, then
  * falls through to clearAndReseedObjectSlot (clears the record; its ret returns to this handler's caller).
  *
- * IX is an input (param default rec = m.regs.ix). The module dissolves advanceObjectAnimationFrame, loc_0c45,
+ * IX is an input (param default rec = m.regs.ix). The module dissolves advanceObjectAnimationFrame, fetchWordFromTableIndex,
  * paintTileBlock2x2Above and the clearAndReseedObjectSlot tail to direct calls;
  * the oracle drives the same helpers. drawObjectStackedTiles outputs no register — equivalence is RAM
  * (dumpState) minus STACK_SCRATCH, SP parked in dead stack.

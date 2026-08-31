@@ -5,7 +5,7 @@
  * only on the first stage (tens zero), draws the BCD round number, blanks three trailing tiles, and
  * mirrors the countdown into its HUD digit; both paths then draw the fixed stage label.
  *
- * The module dissolves the three sub-renderers (loc_0c45, loc_0010, blitGlyphBlock4x3 at 0x1f8c) to
+ * The module dissolves the three sub-renderers (fetchWordFromTableIndex, fillByteRun, blitGlyphBlock4x3 at 0x1f8c) to
  * direct calls; the oracle drives the frozen originals. refreshRoundStageHud is void — its caller reloads every
  * register before reading one — so no register is compared; equivalence is RAM (dumpState) minus
  * STACK_SCRATCH, SP parked in dead stack so the oracle's transient return-slot pushes drop out.

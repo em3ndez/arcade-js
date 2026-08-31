@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7059 (ROM 0x7059) — "phase-5 target-group tick": dec (HL), then
+ * Memory-equivalence test for tickTargetGroupCounterAndQueueDisplay (ROM 0x7059) — "phase-5 target-group tick": dec (HL), then
  * DE := 0x0315 and rst 0x38 enqueues that word into the page-0x88 display-command ring, then ret.
  *
  * Cycle-free memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
@@ -11,7 +11,7 @@
  *
  * Jobs:
  *   1. EQUAL (crafted) — a free-slot enqueue, a counter wrap (0->0xff), an occupied slot (command
- *      dropped), and a second pointer: oracle == loc_7059 in RAM (−stack), HL, and DE.
+ *      dropped), and a second pointer: oracle == tickTargetGroupCounterAndQueueDisplay in RAM (−stack), HL, and DE.
  *   2. WRITE-SET — the free-slot path writes the counter, the two command bytes, and the advanced
  *      ring pointer; the occupied-slot path writes only the counter.
  *   3. TEETH — a twin that over-decrements the counter is caught in RAM; a twin that returns the
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7059 as oracle } from "../../translated/loc_7059.js";
-import { loc_7059 } from "../loc_7059.js";
+import { tickTargetGroupCounterAndQueueDisplay } from "../tickTargetGroupCounterAndQueueDisplay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TARGET_GROUP_COUNT, DISPLAY_CMD_RING_WRITE_PTR } from "../names.js";
@@ -37,7 +37,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const CMD = 0x0315; // the fixed command word loc_7059 queues
+const CMD = 0x0315; // the fixed command word tickTargetGroupCounterAndQueueDisplay queues
 const RING_PAGE = DISPLAY_CMD_RING_WRITE_PTR & 0xff00; // page-0x88 ring base
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -67,14 +67,14 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted cases — loc_7059 == oracle in RAM (−stack) + HL + DE", () => {
+test("EQUAL: crafted cases — tickTargetGroupCounterAndQueueDisplay == oracle in RAM (−stack) + HL + DE", () => {
   for (const cs of CASES) {
     const o = craft(cs);
     oracle(o);
 
     const c = craft(cs);
     c.regs.de = 0xbeef; // sentinel: a module that never sets DE fails
-    const ret = loc_7059(c);
+    const ret = tickTargetGroupCounterAndQueueDisplay(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (${JSON.stringify(cs)})`);
@@ -128,7 +128,7 @@ test("TEETH: an over-decremented counter is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[0]);
   const c = craft(CASES[0]);
   oracle(o);
-  loc_7059(c);
+  tickTargetGroupCounterAndQueueDisplay(c);
   c.mem.write8(TARGET_GROUP_COUNT, 0x03); // BUG: dropped two, not one
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch an over-decrement — it is worthless");

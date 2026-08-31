@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5fa2 (ROM 0x5fa2, Pooyan) — one pass of the six-slot overlap scan.
+ * Memory-equivalence test for testRecordOverlapRetireOrFlagHit (ROM 0x5fa2, Pooyan) — one pass of the six-slot overlap scan.
  *
  * The record pointer (HL = 0x8ae0, stride 0x18) supplies each slot's lead + type bytes; the position
  * pointer (IX = 0x8850, stride 4) its box; the target box is IY; the hit type is C; the screen-flip
  * flag (0x881f) sets the X bias. An empty/non-type-5 slot or an out-of-window box tail-loops through
- * the advance latch (advanceOverlapScanToNextSlot); a type-3 overlap tails the retire handler (loc_613d) after tallying
+ * the advance latch (advanceOverlapScanToNextSlot); a type-3 overlap tails the retire handler (retireResetOrEngageObjectRecord) after tallying
  * 0x8d45; any other overlap flags the two struck cells (0x8c91/0x8ca9 + partner), sounds the hit
  * (queueSoundCommand09), and skip-returns. The whole subtree runs on both sides from an identical clone.
  *
- * SEATING: miss/hit exits TAIL to advanceOverlapScanToNextSlot/loc_613d; the general hit is a caller-skip dissolved to a
+ * SEATING: miss/hit exits TAIL to advanceOverlapScanToNextSlot/retireResetOrEngageObjectRecord; the general hit is a caller-skip dissolved to a
  * boolean. Protocol: true = the sweep exhausted with no hit, false = a hit. Compared on RAM
  * (dumpState) minus STACK_SCRATCH plus the boolean; the register file is not compared. Cases are
- * CRAFTED — a plain boot does not seat this geometry. Green once the batch siblings (advanceOverlapScanToNextSlot/loc_613d
+ * CRAFTED — a plain boot does not seat this geometry. Green once the batch siblings (advanceOverlapScanToNextSlot/retireResetOrEngageObjectRecord
  * subtree, queueSoundCommand09) and the 0x8d45/0x8c91/0x8ca9 cells land.
  *
  * Jobs:
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5fa2 as oracle } from "../../translated/loc_5fa2.js";
-import { loc_5fa2 } from "../loc_5fa2.js";
+import { testRecordOverlapRetireOrFlagHit } from "../testRecordOverlapRetireOrFlagHit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -92,7 +92,7 @@ function seat(m, { type = 0x02, flip = 0x01, target = TARGET_A, records = {}, bo
 }
 
 const HIT_REC = { 0: { lead: 0x01, type: 0x05 } };
-const T3_REC = { 0: { lead: 0x02, type: 0x05 } }; // bit0 clear -> loc_613d retires via loc_618a
+const T3_REC = { 0: { lead: 0x02, type: 0x05 } }; // bit0 clear -> retireResetOrEngageObjectRecord retires via loc_618a
 const FAR_BOX = { 0: { x: 0x40, y: 0x00 } }; //     posX=0x46 -> dx way outside the window
 
 const craftExhaust = () => seat(BASE.clone(), { type: 0x02 }); //                    all slots empty
@@ -103,7 +103,7 @@ const craftType3 = () => seat(BASE.clone(), { type: 0x03, target: TARGET_A, reco
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: every path — loc_5fa2 == oracle in RAM (−stack) and the boolean matches", () => {
+test("EQUAL: every path — testRecordOverlapRetireOrFlagHit == oracle in RAM (−stack) and the boolean matches", () => {
   const cases = [
     ["exhaust", craftExhaust, true],
     ["window-miss", craftWindowMiss, true],
@@ -114,13 +114,13 @@ test("EQUAL: every path — loc_5fa2 == oracle in RAM (−stack) and the boolean
   for (const [label, craft, wantBool] of cases) {
     const o = craft();
     const c = craft();
-    const rc = loc_5fa2(c);
+    const rc = testRecordOverlapRetireOrFlagHit(c);
     const ro = oracle(o);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(rc, wantBool, `${label}: module boolean`);
     // The frozen oracle dissolves the hit/no-hit outcome into pc/stack control flow and returns
-    // undefined (its advanceOverlapScanToNextSlot/loc_613d tail-return chain, unlike loc_2c58's explicit `return
+    // undefined (its advanceOverlapScanToNextSlot/retireResetOrEngageObjectRecord tail-return chain, unlike loc_2c58's explicit `return
     // true/false`); the boolean is a module-layer live-out, anchored here by the RAM diff above
     // and the module boolean, so the oracle's own JS return carries no boolean to compare.
     assert.equal(ro, undefined, `${label}: frozen oracle returns no JS boolean`);
@@ -134,7 +134,7 @@ test("WRITE-SET: a general hit flags exactly its struck cell + partner", () => {
   for (const [label, craft, cell] of [["A", craftHitA, CELL_A], ["B", craftHitB, CELL_B]]) {
     const m = craft();
     const b0 = m.dumpState();
-    loc_5fa2(m);
+    testRecordOverlapRetireOrFlagHit(m);
     const a1 = m.dumpState();
     for (let off = 0; off < b0.length; off++) {
       if (b0[off] === a1[off]) continue;
@@ -152,7 +152,7 @@ test("WRITE-SET: a general hit flags exactly its struck cell + partner", () => {
 test("WRITE-SET: a type-3 hit tallies 0x8d45 and clears the active type", () => {
   const m = craftType3();
   assert.equal(m.mem.read8(MARK), 0x00, "precondition: tally starts at 0");
-  loc_5fa2(m);
+  testRecordOverlapRetireOrFlagHit(m);
   assert.equal(m.mem.read8(MARK), 0x01, "type-3 hit must bump the 0x8d45 tally");
   assert.equal(m.mem.read8(OBJTYPE), 0x00, "the retire path clears the active object type");
   console.log(`  WRITE-SET(type-3): ${hx(MARK)} 0->1, ${hx(OBJTYPE)} cleared`);
@@ -164,7 +164,7 @@ test("TEETH: a wrong struck-cell flag is CAUGHT by the RAM diff", () => {
   const o = craftHitA();
   const c = craftHitA();
   oracle(o);
-  loc_5fa2(c);
+  testRecordOverlapRetireOrFlagHit(c);
   c.mem.write8(CELL_A, 0x00); // BUG: the struck cell must latch to 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a cleared struck cell");
@@ -176,7 +176,7 @@ test("TEETH: a wrong 0x8d45 tally is CAUGHT by the RAM diff", () => {
   const o = craftType3();
   const c = craftType3();
   oracle(o);
-  loc_5fa2(c);
+  testRecordOverlapRetireOrFlagHit(c);
   c.mem.write8(MARK, 0x05); // BUG: the tally must be exactly one more than it started
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong tally");
@@ -185,9 +185,9 @@ test("TEETH: a wrong 0x8d45 tally is CAUGHT by the RAM diff", () => {
 });
 
 test("TEETH: a wrong boolean is CAUGHT (hit->true, exhausted->false twins)", () => {
-  assert.throws(() => assert.equal(((m) => (loc_5fa2(m), true))(craftHitA()), false),
+  assert.throws(() => assert.equal(((m) => (testRecordOverlapRetireOrFlagHit(m), true))(craftHitA()), false),
     "a hit must return false");
-  assert.throws(() => assert.equal(((m) => (loc_5fa2(m), false))(craftExhaust()), true),
+  assert.throws(() => assert.equal(((m) => (testRecordOverlapRetireOrFlagHit(m), false))(craftExhaust()), true),
     "an exhausted sweep must return true");
   console.log("  TEETH(boolean): hit-returns-true and exhausted-returns-false twins caught");
 });

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_5e11 (ROM 0x5e11) — the B-slot proximity sweep, COMPOSING the
+ * Memory-equivalence gate for sweepTargetSlotsForGrab (ROM 0x5e11) — the B-slot proximity sweep, COMPOSING the
  * dissolved caller-skip loc_5e1f. The idiomatic caller imports the idiomatic loc_5e1f and, on a
  * grab (false), early-returns to abort the sweep — reproducing the oracle skip whose `pop af; ret`
  * unwound past this routine. The oracle caller runs the TRANSLATED loc_5e1f internally (its pop-af
@@ -11,14 +11,14 @@
  * sweep is a tail delegate and its caller reloads registers before reading any — so the advanced
  * IY/HL/B and pc/SP are not compared.
  *
- * The registers are seeded exactly as the caller loc_5df7 seeds them (IX=source list, IY=target
+ * The registers are seeded exactly as the caller gateAndRunProjectileTargetSweep seeds them (IX=source list, IY=target
  * slots, HL=record table, B=3), sp inside STACK_SCRATCH. Two families of scenario are composed:
  * skip-NOT-taken (all records inert -> full sweep, no writes) and skip-taken at slot 0/1/2 (a hit
  * that must abort after writing exactly that slot). The hit at slot 1/2 also proves the idiomatic
  * loop advances IY/HL identically before it composes the skip.
  *
  * Jobs:
- *   1. EQUAL — over the no-hit sweep and a hit at each slot, oracle == loc_5e11 in RAM (−stack).
+ *   1. EQUAL — over the no-hit sweep and a hit at each slot, oracle == sweepTargetSlotsForGrab in RAM (−stack).
  *   2. TEETH — a twin that ignores the abort (keeps sweeping) writes an extra slot the diff catches;
  *      a wrong written byte is caught by the RAM diff.
  *
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5e11 as oracle } from "../../translated/loc_5e11.js";
-import { loc_5e11 } from "../loc_5e11.js";
+import { sweepTargetSlotsForGrab } from "../sweepTargetSlotsForGrab.js";
 import { loc_5e1f } from "../loc_5e1f.js";
 import { Machine } from "../../machine.js";
 import { u16 } from "../../../../core/int.js";
@@ -66,7 +66,7 @@ const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 
 const SP_SEAT = 0x8fe0; // inside STACK_SCRATCH
 
-/** A fresh clone seeded exactly as loc_5df7 seeds the sweep, with all three records inert (state 0). */
+/** A fresh clone seeded exactly as gateAndRunProjectileTargetSweep seeds the sweep, with all three records inert (state 0). */
 function craft() {
   const m = BASE.clone();
   m.regs.ix = SPRITE_DISPLAY_LIST; // source coordinate list (fixed across slots)
@@ -97,25 +97,25 @@ function seatHit(m, slot) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: no-hit full sweep — loc_5e11 == oracle in RAM (−stack)", () => {
+test("EQUAL: no-hit full sweep — sweepTargetSlotsForGrab == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_5e11(c);
+  sweepTargetSlotsForGrab(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(o.mem8[GRAB_ACTIVE_FLAG], 0x00, "no grab latched on the inert sweep");
   console.log("  EQUAL: 3-slot inert sweep identical (RAM −stack), no writes");
 });
 
-test("EQUAL: grab hit at each slot — loc_5e11 == oracle in RAM (−stack), sweep aborts", () => {
+test("EQUAL: grab hit at each slot — sweepTargetSlotsForGrab == oracle in RAM (−stack), sweep aborts", () => {
   for (let slot = 0; slot < 3; slot++) {
     const o = craft();
     const c = craft();
     seatHit(o, slot);
     seatHit(c, slot);
     oracle(o);
-    loc_5e11(c);
+    sweepTargetSlotsForGrab(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (hit slot ${slot})`);
     assert.equal(o.mem8[GRAB_ACTIVE_FLAG], 0x01, `grab latched on the hit at slot ${slot}`);
@@ -159,7 +159,7 @@ test("TEETH: a wrong written byte is CAUGHT by the RAM diff", () => {
   seatHit(o, 0);
   seatHit(c, 0);
   oracle(o);
-  loc_5e11(c);
+  sweepTargetSlotsForGrab(c);
   const rec = PROJECTILE_TABLE; // slot-0 record
   c.mem8[rec + 0x11] = 0x00; // BUG: this record field must hold 0x0a
   const d = ramDiffMinusStack(o, c);

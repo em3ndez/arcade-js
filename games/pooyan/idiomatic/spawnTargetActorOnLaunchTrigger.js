@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { stepActiveTargetActorRecords } from "./stepActiveTargetActorRecords.js";
 import { u16 } from "../../../core/int.js";
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { advanceActorAnimationsUnlessGrabbing } from "./advanceActorAnimationsUnlessGrabbing.js";
 import {
   ACTOR_TABLE,
@@ -66,7 +66,7 @@ export function spawnTargetActorOnLaunchTrigger(m) {
         mem8[slot + 0x0f] = 0x10; // special-slot timers
         mem8[slot + 0x10] = 0x40;
         mem8[loc_8d77] = 0x01;
-        loc_0010(m, ACTOR_TABLE_SLOT1, 0x00, SLOT_STRIDE); // clear the special buffer
+        fillByteRun(m, ACTOR_TABLE_SLOT1, 0x00, SLOT_STRIDE); // clear the special buffer
       } else {
         mem8[slot + 0x0f] = 0x14; // ordinary-slot timers
         mem8[slot + 0x10] = 0x40;

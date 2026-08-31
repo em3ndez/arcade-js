@@ -9,7 +9,7 @@
  *
  * INPUTS: IX (the dispatched record; the dispatcher preloads it to the actor table base 0x8a80) and
  * the record's frame-delay field (0x11). On expiry the routine advances the state field (0x02), runs
- * the shape-loader loc_250f (which the machine dispatches idiomatically on the oracle side exactly as
+ * the shape-loader seedFourRecordsAndCopyDisplayTiles (which the machine dispatches idiomatically on the oracle side exactly as
  * the module imports it, so its four tile-field copies match), then steps the primary record's base Y
  * (0x8a84 += 4) and secondary coordinate (0x8a86 -= 6).
  *

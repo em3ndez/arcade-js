@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1ffb (ROM 0x1ffb) — "render one of two glyph blocks": bit 5 of the
+ * Memory-equivalence test for stampSelectedGlyphBlock (ROM 0x1ffb) — "render one of two glyph blocks": bit 5 of the
  * selector register B picks a ROM 3x3 glyph source (clear -> 0x203b, set -> 0x2050) which is stamped
  * into the fixed tilemap block at 0x8062 via the already-decompiled blitTile3x3Block (0x3307).
  *
@@ -11,7 +11,7 @@
  * resets it to 0; a fresh clone has it 0, so its net footprint is just the nine tiles.
  *
  * Jobs:
- *   1. EQUAL — both bit-5 selections: oracle == loc_1ffb in RAM (−stack).
+ *   1. EQUAL — both bit-5 selections: oracle == stampSelectedGlyphBlock in RAM (−stack).
  *   2. WRITE-SET — exactly the nine dest cells change, each equal to its ROM source byte.
  *   3. CRAFTED — both branches are reached only by poking B bit 5 (the leaf runs mid-render); both
  *      are exercised here.
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1ffb as oracle } from "../../translated/loc_1ffb.js";
-import { loc_1ffb } from "../loc_1ffb.js";
+import { stampSelectedGlyphBlock } from "../stampSelectedGlyphBlock.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -68,12 +68,12 @@ function craft(selector) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: both bit-5 selections — loc_1ffb == oracle in RAM (−stack)", () => {
+test("EQUAL: both bit-5 selections — stampSelectedGlyphBlock == oracle in RAM (−stack)", () => {
   for (const selector of [0x00, 0x20]) {
     const o = craft(selector);
     const c = craft(selector);
     oracle(o);
-    loc_1ffb(c);
+    stampSelectedGlyphBlock(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (B=${hx(selector)})`);
   }
@@ -119,7 +119,7 @@ test("TEETH: a wrong dest tile is CAUGHT by the RAM diff", () => {
   const o = craft(0x00);
   const c = craft(0x00);
   oracle(o);
-  loc_1ffb(c);
+  stampSelectedGlyphBlock(c);
   const victim = destCells()[4]; // the center cell
   c.mem.write8(victim, (c.mem.read8(victim) ^ 0xff) & 0xff); // BUG: flip the center tile
   const d = ramDiffMinusStack(o, c);

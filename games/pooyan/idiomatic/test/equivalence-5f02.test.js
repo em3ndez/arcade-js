@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5f02 (ROM 0x5f02, Pooyan) — "enqueue the fixed sound-effect
+ * Memory-equivalence test for queueHitSound (ROM 0x5f02, Pooyan) — "enqueue the fixed sound-effect
  * command, then return". A trampoline that defers to the sound-command enqueue entry, whose only
  * effect is to store one fixed command byte (0x05) into the sound-command ring slot named by the
  * write pointer (0x8a40), then advance that pointer, wrapping the last slot (0x5e) to the first
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5f02 as oracle } from "../../translated/loc_5f02.js";
-import { loc_5f02 } from "../loc_5f02.js";
+import { queueHitSound } from "../queueHitSound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SOUND_RING_WRITE_PTR, HIGH_SCORE_TABLE } from "../names.js";
@@ -70,12 +70,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted cursors — loc_5f02 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted cursors — queueHitSound == oracle in RAM (−stack)", () => {
   for (const { name, cursor } of CASES) {
     const o = craft(cursor);
     const c = craft(cursor);
     oracle(o);
-    loc_5f02(c);
+    queueHitSound(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -113,7 +113,7 @@ test("TEETH: a corrupted enqueued slot byte is CAUGHT by the RAM diff", () => {
   const o = craft(cursor);
   const c = craft(cursor);
   oracle(o);
-  loc_5f02(c);
+  queueHitSound(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   const cell = RING_PAGE + cursor;
   c.mem.write8(cell, c.mem.read8(cell) ^ 0xff); // BUG: corrupt the enqueued command

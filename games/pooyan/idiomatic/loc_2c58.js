@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
-import { loc_2c85 } from "./loc_2c85.js";
+import { advanceRecordStateAndSeedMoveScript } from "./advanceRecordStateAndSeedMoveScript.js";
 import { queueSoundCommand12 } from "./queueSoundCommand12.js";
 import { ENEMY_ACTOR_TABLE } from "./names.js";
 /**
@@ -34,7 +34,7 @@ export function loc_2c58(m, rec = m.regs.ix) {
 
   let sweep = ENEMY_ACTOR_TABLE;
   for (let i = 0; i < HUNTER_RECORD_COUNT; i++) {
-    loc_2c85(m, sweep);
+    advanceRecordStateAndSeedMoveScript(m, sweep);
     sweep += RECORD_STRIDE;
   }
   queueSoundCommand12(m); // queue the arrival sound

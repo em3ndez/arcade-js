@@ -2,7 +2,7 @@
 import { blitStackedTwoTileAnimFrameOnHoldTimer } from "./blitStackedTwoTileAnimFrameOnHoldTimer.js";
 import { runActorGroupStateHandler } from "./runActorGroupStateHandler.js";
 import { updateEnemyActorsAndCycleLaunchFlipAnim } from "./updateEnemyActorsAndCycleLaunchFlipAnim.js";
-import { loc_6822 } from "./loc_6822.js";
+import { dispatchSpecialObjectRecordState } from "./dispatchSpecialObjectRecordState.js";
 import { ENEMY_ACTOR_TABLE, HUNTER_TABLE_BASE } from "./names.js";
 /**
  * runObjectAndSpawnUpdatePass — the fountain/spawn subtree driver, run on even frames.
@@ -17,5 +17,5 @@ export function runObjectAndSpawnUpdatePass(m) {
   blitStackedTwoTileAnimFrameOnHoldTimer(m);
   runActorGroupStateHandler(m, HUNTER_TABLE_BASE); // fountain record for the state dispatch
   updateEnemyActorsAndCycleLaunchFlipAnim(m, ENEMY_ACTOR_TABLE);
-  return loc_6822(m); // enemy-record state dispatcher
+  return dispatchSpecialObjectRecordState(m); // enemy-record state dispatcher
 }

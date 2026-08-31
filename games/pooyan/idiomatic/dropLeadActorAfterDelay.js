@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_250f } from "./loc_250f.js";
+import { seedFourRecordsAndCopyDisplayTiles } from "./seedFourRecordsAndCopyDisplayTiles.js";
 import { TAMPER_STRIKES_STATE10, SHAPE_TABLE_26C1 } from "./names.js";
 /**
  * dropLeadActorAfterDelay — actor state-1 step for the record based at IX. Counts down the frame delay (IX+0x11);
@@ -30,5 +30,5 @@ export function dropLeadActorAfterDelay(m, rec = m.regs.ix, bc = m.regs.bc) {
 
   mem8[rec + 0x04] = (mem8[rec + 0x04] + BASE_Y_STEP);
   mem8[rec + 0x1e] = 0;
-  return loc_250f(m, SHAPE_TABLE_26C1, rec);
+  return seedFourRecordsAndCopyDisplayTiles(m, SHAPE_TABLE_26C1, rec);
 }

@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0000 (ROM 0x0000, Pooyan) — the power-on reset vector.
+ * Memory-equivalence test for disableNmiAndEnterBoot (ROM 0x0000, Pooyan) — the power-on reset vector.
  *
- * loc_0000 disables the vblank NMI latch (0xA180 := 0) and then tails into the boot entry loc_0092,
+ * disableNmiAndEnterBoot disables the vblank NMI latch (0xA180 := 0) and then tails into the boot entry runSelfTestAndInitMachineState,
  * which runs the self-test and lays down the full initial machine state. The reset vector's own write
  * is transient — the boot re-enables the latch before it finishes — so the observable effect of
- * loc_0000 is exactly the boot's final state. This gate therefore runs the whole boot on both sides
- * and compares it, the way loc_0092's own gate does.
+ * disableNmiAndEnterBoot is exactly the boot's final state. This gate therefore runs the whole boot on both sides
+ * and compares it, the way runSelfTestAndInitMachineState's own gate does.
  *
  * The contract is RAM (dumpState, minus STACK_SCRATCH) with NO register live-out (control transfers
  * into the main-loop generator), PLUS one dedicated cell:
  *
  *   THE SELF-TEST TALLY (0x8FFF) IS LOAD-BEARING BUT LIVES INSIDE STACK_SCRATCH. The frozen boot
- *   seats the bank count there via its first push and increments it per matching bank; loc_072d later
+ *   seats the bank count there via its first push and increments it per matching bank; blankFillRowThenFinishAttractSetup later
  *   requires 0x10 (a full pass). Because 0x8FFF sits in the excluded stack window, ramDiffMinusStack
  *   cannot see it, so it is compared with a dedicated arm.
  *
@@ -22,9 +22,9 @@
  * so every case CRAFTS them identically on both sides.
  *
  * Jobs:
- *   1. EQUAL (crafted DSW sweep) — oracle == loc_0000 in RAM (−stack) AND in the tally cell.
+ *   1. EQUAL (crafted DSW sweep) — oracle == disableNmiAndEnterBoot in RAM (−stack) AND in the tally cell.
  *   2. WRITE-SET — the reset+boot's key cells hold their exact expected values, including the NMI
- *      latch left ENABLED (1) after the boot overwrites loc_0000's transient disable.
+ *      latch left ENABLED (1) after the boot overwrites disableNmiAndEnterBoot's transient disable.
  *   3. TEETH — a wrong dumped byte (RAM diff) and a wrong tally (dedicated arm) are each CAUGHT.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-0000.test.js
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0000 as oracle } from "../../translated/loc_0000.js";
-import { loc_0000 } from "../loc_0000.js";
+import { disableNmiAndEnterBoot } from "../disableNmiAndEnterBoot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -68,7 +68,7 @@ function craft(dsw0, dsw1) {
   const m = BASE.clone();
   m.io.dsw0 = dsw0 & 0xff;
   m.io.dsw1 = dsw1 & 0xff;
-  m.regs.sp = 0x9000; // loc_0092 resets this itself; the reset vector's own call-push lands in-window
+  m.regs.sp = 0x9000; // runSelfTestAndInitMachineState resets this itself; the reset vector's own call-push lands in-window
   return m;
 }
 
@@ -82,12 +82,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted DSW sweep) ---------------------------------------------
 
-test("EQUAL: crafted DSW pairs — loc_0000 == oracle in RAM (−stack) + the self-test tally", () => {
+test("EQUAL: crafted DSW pairs — disableNmiAndEnterBoot == oracle in RAM (−stack) + the self-test tally", () => {
   for (const { dsw0, dsw1 } of CASES) {
     const o = craft(dsw0, dsw1);
     const c = craft(dsw0, dsw1);
     oracle(o);
-    loc_0000(c);
+    disableNmiAndEnterBoot(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} (DSW0=${hx(dsw0)} DSW1=${hx(dsw1)})`);
@@ -105,9 +105,9 @@ test("WRITE-SET: the reset+boot's key cells hold their exact expected values", (
   oracle(o);
   const r = (a) => o.mem.read8(a);
 
-  // loc_0000's NMI-disable is transient — the boot overwrites it, so it is not separately observable;
+  // disableNmiAndEnterBoot's NMI-disable is transient — the boot overwrites it, so it is not separately observable;
   // the EQUAL arm already covers whatever region dumpState includes. Here we document the boot's own
-  // key cells, proving loc_0000 tails into the full boot rather than a partial one.
+  // key cells, proving disableNmiAndEnterBoot tails into the full boot rather than a partial one.
   // colour map flooded to 0x10, lower tile map blanked to 0x1e, rings emptied
   assert.equal(r(0x8000), 0x10, "colour-map base flooded");
   assert.equal(r(0x8440), 0x1e, "lower tile map blanked");
@@ -127,7 +127,7 @@ test("TEETH: a wrong dumped byte is CAUGHT by the RAM diff", () => {
   const o = craft(dsw0, dsw1);
   const c = craft(dsw0, dsw1);
   oracle(o);
-  loc_0000(c);
+  disableNmiAndEnterBoot(c);
   c.mem.write8(0x881f, (c.mem.read8(0x881f) + 1) & 0xff); // BUG: corrupt the flip-screen flag
 
   const d = ramDiffMinusStack(o, c);
@@ -141,7 +141,7 @@ test("TEETH: a wrong tally is CAUGHT only by the dedicated arm (RAM diff exclude
   const o = craft(dsw0, dsw1);
   const c = craft(dsw0, dsw1);
   oracle(o);
-  loc_0000(c);
+  disableNmiAndEnterBoot(c);
   c.mem.write8(TALLY_ADDR, (c.mem.read8(TALLY_ADDR) + 1) & 0xff); // BUG: corrupt the pass tally
 
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: the RAM diff excludes the tally cell");

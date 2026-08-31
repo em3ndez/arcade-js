@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_57c6 (ROM 0x57c6, Pooyan) — the eagle sub-state stepper / re-arm.
+ * Memory-equivalence test for advanceEagleStageTimersAndLatchMoveElseRearm (ROM 0x57c6, Pooyan) — the eagle sub-state stepper / re-arm.
  * With the step counter in 1..6 it bumps the counter and steps the first non-zero of three stage
  * timers, latching a move dir+speed into the actor record (rec+0x13 / rec+0x16). A zero or
  * exhausted counter re-arms: reset to 1, pick a record table by the round flag's bit0, index it by
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_57c6 as oracle } from "../../translated/loc_57c6.js";
-import { loc_57c6 } from "../loc_57c6.js";
+import { advanceEagleStageTimersAndLatchMoveElseRearm } from "../advanceEagleStageTimersAndLatchMoveElseRearm.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -89,12 +89,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_57c6 == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceEagleStageTimersAndLatchMoveElseRearm == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_57c6(c);
+    advanceEagleStageTimersAndLatchMoveElseRearm(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -124,7 +124,7 @@ test("TEETH: a corrupted latch byte is CAUGHT by the RAM diff", () => {
   const o = craftStage1();
   const c = craftStage1();
   oracle(o);
-  loc_57c6(c);
+  advanceEagleStageTimersAndLatchMoveElseRearm(c);
   c.mem.write8(DIR, (o.mem.read8(DIR) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted latch byte");
@@ -136,7 +136,7 @@ test("TEETH: a twin that skips the stage decrement diverges at the stage timer",
   const o = craftStage3();
   const twin = craftStage3();
   oracle(o);
-  loc_57c6(twin);
+  advanceEagleStageTimersAndLatchMoveElseRearm(twin);
   twin.mem.write8(STAGES + 2, twin.mem.read8(STAGES + 2) + 1); // undo the decrement
   const d = ramDiffMinusStack(o, twin);
   assert.notEqual(d, null, "the gate FAILED to catch a missing stage decrement — worthless");

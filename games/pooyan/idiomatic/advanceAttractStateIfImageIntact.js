@@ -7,8 +7,8 @@ import {
   ENEMY_ACTOR_TABLE,
   ATTRACT_SUBSTATE,
 } from "./names.js";
-import { loc_0010 } from "./loc_0010.js";
-import { loc_0320 } from "./loc_0320.js";
+import { fillByteRun } from "./fillByteRun.js";
+import { tickCounterAndMirrorIfFlipped } from "./tickCounterAndMirrorIfFlipped.js";
 import { clearAndReseedObjectSlot } from "./clearAndReseedObjectSlot.js";
 /**
  * advanceAttractStateIfImageIntact — periodic self-integrity check dispatched over an actor slot.
@@ -64,9 +64,9 @@ export function advanceAttractStateIfImageIntact(m, record = m.regs.ix) {
     fieldSum = u16(fieldSum + mem8[cell]);
     cell = u16(cell - ROW);
   }
-  if ((((fieldSum & 0xff) + (fieldSum >> 8) + SENTINEL_BIAS) & 0xff) !== 0) return loc_0320(m, fieldSum); // bad image
+  if ((((fieldSum & 0xff) + (fieldSum >> 8) + SENTINEL_BIAS) & 0xff) !== 0) return tickCounterAndMirrorIfFlipped(m, fieldSum); // bad image
 
-  const trailing = loc_0010(m, ENEMY_ACTOR_TABLE, 0x00, 0x00); // clear the arena (a zero count fills 256)
-  loc_0010(m, trailing, 0x00, TRAILING_CLEAR); // clear the trailing block
+  const trailing = fillByteRun(m, ENEMY_ACTOR_TABLE, 0x00, 0x00); // clear the arena (a zero count fills 256)
+  fillByteRun(m, trailing, 0x00, TRAILING_CLEAR); // clear the trailing block
   clearAndReseedObjectSlot(m, record); // re-seed the actor slot
 }

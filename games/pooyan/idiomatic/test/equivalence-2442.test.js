@@ -5,14 +5,14 @@
  * (TAMPER_STRIKES_SLOTSWEEP 0x89e8 / TAMPER_STRIKES_ROM 0x89ef) is nonzero. Otherwise it seeds
  * the record's frame-delay field (+0x11 = 0x10), advances the state (+0x02), snapshots the whole
  * 0x18-byte lead record into ACTOR_TABLE_SLOT1 (0x8a98), drops the +0x04 position field by 0x10,
- * loads the shape table via loc_250f, and — unless WAVE_TEARDOWN_STATE (0x8f24) is set — queues
+ * loads the shape table via seedFourRecordsAndCopyDisplayTiles, and — unless WAVE_TEARDOWN_STATE (0x8f24) is set — queues
  * the tile-run sound via queueSoundRun26.
  *
  * The contract is RAM (dumpState, minus STACK_SCRATCH) only; this is reached by tail dispatch and
- * the per-frame driver reads no register back. pc/SP/cycles are not compared. loc_250f and queueSoundRun26
+ * the per-frame driver reads no register back. pc/SP/cycles are not compared. seedFourRecordsAndCopyDisplayTiles and queueSoundRun26
  * are deep leaves, so EQUAL runs both sides under try/catch and requires the same completion path,
  * comparing RAM whenever both complete. The direct field footprint is asserted on the teardown
- * path (0x8f24 != 0), where queueSoundRun26 is skipped and only loc_250f's +0x0f-per-record writes occur.
+ * path (0x8f24 != 0), where queueSoundRun26 is skipped and only seedFourRecordsAndCopyDisplayTiles's +0x0f-per-record writes occur.
  *
  * Jobs:
  *   1. EQUAL — full path, teardown path (0x8f24 set), and the early-idle path (0x89e8 set).

@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_30f1 (ROM 0x30f1) — hunter-formation launch (dispatch state 0):
+ * Memory-equivalence test for launchHunterFormationAndSeedSlots (ROM 0x30f1) — hunter-formation launch (dispatch state 0):
  * seed four formation-slot records (each pointed to by a 0x8920-table entry) from ROM param table
  * 0x3337 plus a 0x30 frame delay; prime the frame-timer block (0x8928:=0x0c); bump the formation
  * state (0x8f08); blank a 3x3 video block at 0x84c2; seat the formation script pointer (0x8f4b:=
- * 0x3370); emit a sound command (queueSoundCommand0E) and run the return-scan (loc_323e); then verify a ROM
+ * 0x3370); emit a sound command (queueSoundCommand0E) and run the return-scan (scanDisplaySlotsAndTickBoardClear); then verify a ROM
  * self-check copy (0x3278) against its original (0x68ac) — a match returns, a mismatch wipes work RAM.
  *
  * The go-forward contract is RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are NOT compared;
  * there is no register live-out (an rst-0x30 dispatch handler whose caller discards results). With
  * the intact ROM the self-check matches, so the clean ret path runs (no wipe).
  *
- * loc_30f1 passes loc_323e a stale IX (0x8928, one past the four slots) and B=0, so the scan sweeps a
+ * launchHunterFormationAndSeedSlots passes scanDisplaySlotsAndTickBoardClear a stale IX (0x8928, one past the four slots) and B=0, so the scan sweeps a
  * full 256 slots. The craft ZEROES that window (0x8928..0x8b27) so no slot carries the 0x8c tag and
- * loc_324d never fires, and points the four slot entries at scratch records ABOVE the window; with
+ * tickHunterReturnCounterAndCheckBoardClear never fires, and points the four slot entries at scratch records ABOVE the window; with
  * BOARD_CLEAR_FLAG (0x89e5) zero the board-clear tail stays off. Everything here is CRAFTED (this
  * launch state is not reached in a plain attract).
  *
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_30f1 as oracle } from "../../translated/loc_30f1.js";
-import { loc_30f1 } from "../loc_30f1.js";
+import { launchHunterFormationAndSeedSlots } from "../launchHunterFormationAndSeedSlots.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -85,12 +85,12 @@ const LAYOUTS = [
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted slot layouts — loc_30f1 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted slot layouts — launchHunterFormationAndSeedSlots == oracle in RAM (−stack)", () => {
   for (const recs of LAYOUTS) {
     const o = craft(recs);
     const c = craft(recs);
     oracle(o);
-    loc_30f1(c);
+    launchHunterFormationAndSeedSlots(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b} (recs @ ${hx(recs[0])})`);
   }
@@ -120,7 +120,7 @@ test("CRAFTED: pre-dirtied record fields are overwritten identically", () => {
   const o = craft(recs);
   const c = craft(recs);
   oracle(o);
-  loc_30f1(c);
+  launchHunterFormationAndSeedSlots(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
   for (let s = 0; s < 4; s++) {
@@ -137,7 +137,7 @@ test("TEETH: a wrong script pointer is CAUGHT by the RAM diff", () => {
   const o = craft(recs);
   const c = craft(recs);
   oracle(o);
-  loc_30f1(c);
+  launchHunterFormationAndSeedSlots(c);
   c.mem.write8(SCRIPT_PTR, (SCRIPT_TABLE & 0xff) ^ 0xff); // BUG: wrong script pointer low byte
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong script pointer — it is worthless");
@@ -150,7 +150,7 @@ test("TEETH: a wrong frame-timer seed is CAUGHT by the RAM diff", () => {
   const o = craft(recs);
   const c = craft(recs);
   oracle(o);
-  loc_30f1(c);
+  launchHunterFormationAndSeedSlots(c);
   c.mem.write8(FRAME_TIMER, 0x00); // BUG: must be 0x0c
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong timer seed");

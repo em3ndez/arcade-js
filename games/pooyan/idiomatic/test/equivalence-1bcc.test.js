@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1bcc (ROM 0x1bcc) — "snapshot live page + signature tripwire":
+ * Memory-equivalence test for snapshotPlayer1BankWithSignatureCheck (ROM 0x1bcc) — "snapshot live page + signature tripwire":
  * optionally deselect player 0, copy the 0x3f-byte live state page into player 1's bank, clear the
  * play sub-state index, then fold a fixed ROM code block onto the leftover copy pointer and bump the
  * signature tamper counter unless the fold lands on its sentinel word.
@@ -14,7 +14,7 @@
  * whether the counter is bumped — the case is natural, not crafted around a known ROM value.
  *
  * Jobs:
- *   1. EQUAL — over several seeded live pages / lives values, oracle == loc_1bcc in RAM (−stack).
+ *   1. EQUAL — over several seeded live pages / lives values, oracle == snapshotPlayer1BankWithSignatureCheck in RAM (−stack).
  *   2. WRITE-SET — the oracle's writes are a subset of {ACTIVE_PLAYER, the 0x3f bank cells,
  *      PLAY_STATE_INDEX, TAMPER_STRIKES_SIG}; the bank equals the copied live page.
  *   3. CRAFTED — player-0-alive arm (lives != 0) forces the ACTIVE_PLAYER clear a fresh boot omits.
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1bcc as oracle } from "../../translated/loc_1bcc.js";
-import { loc_1bcc } from "../loc_1bcc.js";
+import { snapshotPlayer1BankWithSignatureCheck } from "../snapshotPlayer1BankWithSignatureCheck.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -79,12 +79,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: seeded lives/live-page — loc_1bcc == oracle in RAM (−stack)", () => {
+test("EQUAL: seeded lives/live-page — snapshotPlayer1BankWithSignatureCheck == oracle in RAM (−stack)", () => {
   for (const { lives, pageSeed } of CASES) {
     const o = craft(lives, pageSeed);
     const c = craft(lives, pageSeed);
     oracle(o);
-    loc_1bcc(c);
+    snapshotPlayer1BankWithSignatureCheck(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (lives=${lives} seed=${hx(pageSeed)})`);
   }
@@ -125,14 +125,14 @@ test("CRAFTED: lives==0 leaves ACTIVE_PLAYER dirty; lives!=0 clears it (both == 
   const oZero = craft(0, 0x22);
   const cZero = craft(0, 0x22);
   oracle(oZero);
-  loc_1bcc(cZero);
+  snapshotPlayer1BankWithSignatureCheck(cZero);
   assert.equal(cZero.mem.read8(ACTIVE_PLAYER), 0x7f, "lives==0 must not touch ACTIVE_PLAYER");
   assert.equal(ramDiffMinusStack(oZero, cZero), null, "lives==0 arm must match oracle");
 
   const oLive = craft(2, 0x22);
   const cLive = craft(2, 0x22);
   oracle(oLive);
-  loc_1bcc(cLive);
+  snapshotPlayer1BankWithSignatureCheck(cLive);
   assert.equal(cLive.mem.read8(ACTIVE_PLAYER), 0, "lives!=0 must clear ACTIVE_PLAYER");
   assert.equal(ramDiffMinusStack(oLive, cLive), null, "lives!=0 arm must match oracle");
   console.log("  CRAFTED: both lives arms confirmed");
@@ -145,7 +145,7 @@ test("TEETH: a corrupted bank byte is CAUGHT by the RAM diff", () => {
   const o = craft(lives, pageSeed);
   const c = craft(lives, pageSeed);
   oracle(o);
-  loc_1bcc(c);
+  snapshotPlayer1BankWithSignatureCheck(c);
   c.mem.write8(PLAYER1_BANK + 5, 0xee); // BUG: bank byte 5 corrupted
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted bank byte");
@@ -158,7 +158,7 @@ test("TEETH: skipping the PLAY_STATE_INDEX clear is CAUGHT", () => {
   const o = craft(lives, pageSeed);
   const c = craft(lives, pageSeed);
   oracle(o);
-  loc_1bcc(c);
+  snapshotPlayer1BankWithSignatureCheck(c);
   c.mem.write8(PLAY_STATE_INDEX, 0x7f); // BUG: index left as its dirty pre-value
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch an un-cleared PLAY_STATE_INDEX");

@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_1e55 } from "./loc_1e55.js";
+import { sampleJoystickIntoPlayerAimState } from "./sampleJoystickIntoPlayerAimState.js";
 import { acquireTargetLockAndSetAimIndicator } from "./acquireTargetLockAndSetAimIndicator.js";
-import { loc_20d4 } from "./loc_20d4.js";
+import { dispatchPerFrameActorUpdatePasses } from "./dispatchPerFrameActorUpdatePasses.js";
 import { serviceEnemySpawns } from "./serviceEnemySpawns.js";
 import { dispatchAllEnemyActorStates } from "./dispatchAllEnemyActorStates.js";
 import { dispatchFormationObjectStates } from "./dispatchFormationObjectStates.js";
-import { loc_02ef } from "./loc_02ef.js";
-import { loc_18da } from "./loc_18da.js";
-import { loc_191c } from "./loc_191c.js";
+import { rebuildSpriteDisplayList } from "./rebuildSpriteDisplayList.js";
+import { advanceBonusAwardQueueAndBumpGauge } from "./advanceBonusAwardQueueAndBumpGauge.js";
+import { pickEnemyGroupSpeedAndClearAim } from "./pickEnemyGroupSpeedAndClearAim.js";
 import { runActorUpdatePipeline } from "./runActorUpdatePipeline.js";
-import { loc_196e } from "./loc_196e.js";
+import { armSirenAndTickWaveEventCountdown } from "./armSirenAndTickWaveEventCountdown.js";
 import { drawStageLabelOncePerLevel } from "./drawStageLabelOncePerLevel.js";
-import { loc_6b3b } from "./loc_6b3b.js";
-import { loc_19ca } from "./loc_19ca.js";
+import { promoteEnemyRecordsOnCountdownFire } from "./promoteEnemyRecordsOnCountdownFire.js";
+import { tickIdleSirenAndTogglePhase } from "./tickIdleSirenAndTogglePhase.js";
 /**
  * runActiveGameplayFrame — gameplay-state index-4 per-frame coordinator (dispatch-table entry 4).
  *
@@ -23,18 +23,18 @@ import { loc_19ca } from "./loc_19ca.js";
  * LIVE-OUT: none — a void coordinator; its dispatcher reads no register back.
  */
 export function runActiveGameplayFrame(m) {
-  loc_1e55(m);
+  sampleJoystickIntoPlayerAimState(m);
   acquireTargetLockAndSetAimIndicator(m);
-  loc_20d4(m);
+  dispatchPerFrameActorUpdatePasses(m);
   serviceEnemySpawns(m);
   dispatchAllEnemyActorStates(m);
   dispatchFormationObjectStates(m);
-  loc_02ef(m);
-  loc_18da(m);
-  loc_191c(m);
+  rebuildSpriteDisplayList(m);
+  advanceBonusAwardQueueAndBumpGauge(m);
+  pickEnemyGroupSpeedAndClearAim(m);
   runActorUpdatePipeline(m);
-  loc_196e(m);
+  armSirenAndTickWaveEventCountdown(m);
   drawStageLabelOncePerLevel(m);
-  loc_6b3b(m);
-  loc_19ca(m);
+  promoteEnemyRecordsOnCountdownFire(m);
+  tickIdleSirenAndTogglePhase(m);
 }

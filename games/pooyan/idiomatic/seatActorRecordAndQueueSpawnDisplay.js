@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import {
   SIGNATURE_MISMATCH_FLAG,
   SHARED_FRAME_DELAY_TIMER,
@@ -39,7 +39,7 @@ export function seatActorRecordAndQueueSpawnDisplay(m, rec = m.regs.ix) {
   mem8[rec + 0x09] = 0xf0;
 
   // Enqueue the object-spawn display command; a second variant on round 0.
-  loc_0038(m, OBJECT_SPAWN_DISPLAY_CMD);
+  enqueueDisplayCommand(m, OBJECT_SPAWN_DISPLAY_CMD);
   if (mem8[ROUND_COUNTER] !== 0) return;
-  loc_0038(m, OBJECT_SPAWN_DISPLAY_CMD_ALT);
+  enqueueDisplayCommand(m, OBJECT_SPAWN_DISPLAY_CMD_ALT);
 }

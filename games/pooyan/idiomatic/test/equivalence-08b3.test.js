@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for resetToAttractScreenStart (ROM 0x08b3, Pooyan) — attract sub-state 0 handler: kick the
- * watchdog + clear a scratch byte, arm the tile fill (loc_02e3), advance the attract sub-state, run
+ * watchdog + clear a scratch byte, arm the tile fill (armTileFillFromPlayfieldBase), advance the attract sub-state, run
  * the backward ROM checksum from 0x64d5 to the 0x96 sentinel (miss -> raise the tamper flag), clear
- * the in-play gate, then zero the board-init RAM (loc_02b9) and run the sprite-slot tail (stampSecondScrollColumn).
+ * the in-play gate, then zero the board-init RAM (zeroSpriteListAndActorArena) and run the sprite-slot tail (stampSecondScrollColumn).
  * All three internal calls are dissolved to direct idiomatic calls; the oracle drives the frozen
  * siblings.
  *

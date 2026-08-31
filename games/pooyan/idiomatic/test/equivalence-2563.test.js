@@ -13,7 +13,7 @@
  *
  * pc/SP/cycles are NOT compared (the oracle drives them through m.step/m.push/m.ret, the
  * stack ABI the direct-call layer replaces). blitTwoTileAnimFrameOnHoldTimer has NO register live-out: its only
- * caller (loc_20d4) reads no register result, invoking the next helper (loc_25a6) straight
+ * caller (dispatchPerFrameActorUpdatePasses) reads no register result, invoking the next helper (renderMarkerColumnExtendOrRetract) straight
  * after, so the contract is memory alone. The routine takes no register inputs either — it
  * loads every pointer itself — so a case is just a set of poked cells.
  *

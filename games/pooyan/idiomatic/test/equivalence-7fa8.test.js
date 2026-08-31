@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7fa8 (ROM 0x7fa8-0x7fd5) — the shared write-anim tail
- * tail-delegated into from loc_7f0e/loc_7f5d. It (1) enqueues sound command 0 (the oracle via the
+ * Memory-equivalence test for floodWriteAnimCellsAndLatchPhase (ROM 0x7fa8-0x7fd5) — the shared write-anim tail
+ * tail-delegated into from advanceWriteAnimTileIndexOnCountdown/appendWriteAnimBlockRowOnPhase. It (1) enqueues sound command 0 (the oracle via the
  * frozen loc_0ecf, the module via its idiomatic twin queueSoundCommand00 — so this test also pins the
  * twin against the frozen helper in RAM), (2) OPTIONALLY floods `count` (0x8e25) cells with the fill
  * tile 0x10 down a pointer at 0x8e27 (stride -0x20) and up the record pointer at
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7fa8 as oracle } from "../../translated/loc_7fa8.js";
-import { loc_7fa8 } from "../loc_7fa8.js";
+import { floodWriteAnimCellsAndLatchPhase } from "../floodWriteAnimCellsAndLatchPhase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PHASE_TIMER, ANIM_WORK_BLOCK_PTR, RESET_SCAN_LATCH } from "../names.js";
@@ -94,7 +94,7 @@ test("CAPTURE: real 0x7fa8 dispatches — module == oracle in RAM (−stack)", (
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    loc_7fa8(c);
+    floodWriteAnimCellsAndLatchPhase(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -112,7 +112,7 @@ test("CRAFTED count!=0: djnz fill floods `count` cells identically; pointers not
     const o = craft(count);
     const c = craft(count);
     oracle(o);
-    loc_7fa8(c);
+    floodWriteAnimCellsAndLatchPhase(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `count ${hx(count)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -148,7 +148,7 @@ test("CRAFTED count==0: fill skipped; only the tail latches fire", () => {
   const o = craft(0x00);
   const c = craft(0x00);
   oracle(o);
-  loc_7fa8(c);
+  floodWriteAnimCellsAndLatchPhase(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -168,14 +168,14 @@ test("CRAFTED count==0: fill skipped; only the tail latches fire", () => {
 
 /** Broken twin: floods one WRONG tile cell — must be caught at that destination. */
 function brokenFill(m) {
-  loc_7fa8(m);
+  floodWriteAnimCellsAndLatchPhase(m);
   const bad = (TILE_PTR_START - 2 * TILE_STRIDE) & 0xffff;
   m.mem.write8(bad, (m.mem.read8(bad) ^ 0x01) & 0xff);
 }
 
 /** Broken twin: latches a WRONG PHASE_TIMER value — must be caught at PHASE_TIMER. */
 function brokenTail(m) {
-  loc_7fa8(m);
+  floodWriteAnimCellsAndLatchPhase(m);
   m.mem.write8(PHASE_TIMER, 0x81); // BUG: should be 0x80
 }
 

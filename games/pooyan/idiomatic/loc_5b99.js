@@ -2,7 +2,7 @@
 import { u16 } from "../../../core/int.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { storeActorAnimationPointer } from "./storeActorAnimationPointer.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import {
   FLIP_SCREEN_FLAG,
   ROUND_COUNTER,
@@ -75,7 +75,7 @@ export function loc_5b99(m, rec = m.regs.ix) {
       if (mem8[rec + 0x14] !== mem8[slot + 0x14]) continue;
 
       const cls = (mem8[rec + 0x07] & 0xf0) >> 4;
-      let animPtr = loc_0c45(m, cls, ANIM_SEQ_TABLE_5C92); // table[cls]
+      let animPtr = fetchWordFromTableIndex(m, cls, ANIM_SEQ_TABLE_5C92); // table[cls]
       if (mem8[slot + 0x0b] & 0x01) animPtr = ANIM_SEQ_5CF9; // slot override
       mem8[slot + 0x16] = 0x02;
       storeActorAnimationPointer(m, slot, animPtr);

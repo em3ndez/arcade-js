@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_02b9 (ROM 0x02b9) — "zero the board-init RAM regions": clear the
+ * Memory-equivalence test for zeroSpriteListAndActorArena (ROM 0x02b9) — "zero the board-init RAM regions": clear the
  * sprite display-list run (0x60 bytes from SPRITE_DISPLAY_LIST) and the actor/object arena (0x237
  * bytes from ACTOR_TABLE) to zero.
  *
@@ -13,7 +13,7 @@
  * every case is crafted only by pre-dirtying cells so the clear is observable. The live-outs are
  * derived from the oracle's exit: A = 0 (the xor-a fill byte, never restored), B = 0 (the fill
  * counter drained by the last fill) and HL = ACTOR_TABLE + 0x237 (the advanced fill pointer). Most
- * callers overwrite these, but one (loc_0c45) tail-returns them, so they are set + checked.
+ * callers overwrite these, but one (fetchWordFromTableIndex) tail-returns them, so they are set + checked.
  *
  * Jobs: 1. EQUAL over pre-dirtied clones (RAM−stack + A/B/HL, with SET side-effect arms);
  * 2. WRITE-SET (every change is a zero-write inside the two ranges); 3. CRAFTED (sentinels in both
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_02b9 as oracle } from "../../translated/loc_02b9.js";
-import { loc_02b9 } from "../loc_02b9.js";
+import { zeroSpriteListAndActorArena } from "../zeroSpriteListAndActorArena.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPRITE_DISPLAY_LIST, ACTOR_TABLE } from "../names.js";
@@ -69,17 +69,17 @@ function craft(sentinel) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_02b9 == oracle in RAM (−stack) + A/B/HL live-outs", () => {
+test("EQUAL: zeroSpriteListAndActorArena == oracle in RAM (−stack) + A/B/HL live-outs", () => {
   for (const sentinel of [null, 0xaa, 0x01, 0xff]) {
     const o = craft(sentinel);
     const c = craft(sentinel);
     oracle(o);
-    const ret = loc_02b9(c);
+    const ret = zeroSpriteListAndActorArena(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (sentinel=${sentinel})`);
     assert.equal(ret & 0xff, o.regs.a & 0xff, `A return mismatch (sentinel=${sentinel})`);
-    // SET side-effect arms: loc_0c45 tail-returns these, so the module must WRITE them.
+    // SET side-effect arms: fetchWordFromTableIndex tail-returns these, so the module must WRITE them.
     assert.equal(c.regs.a & 0xff, o.regs.a & 0xff, `module must SET A (sentinel=${sentinel})`);
     assert.equal(c.regs.b & 0xff, o.regs.b & 0xff, `module must SET B (sentinel=${sentinel})`);
     assert.equal(c.regs.hl & 0xffff, o.regs.hl & 0xffff, `module must SET HL (sentinel=${sentinel})`);
@@ -122,7 +122,7 @@ test("CRAFTED: sentinel cells across both ranges are overwritten to zero identic
   const o = craft(0xaa);
   const c = craft(0xaa);
   oracle(o);
-  loc_02b9(c);
+  zeroSpriteListAndActorArena(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
@@ -136,7 +136,7 @@ test("TEETH: a wrong cleared byte is CAUGHT by the RAM diff", () => {
   const o = craft(0xaa);
   const c = craft(0xaa);
   oracle(o);
-  loc_02b9(c);
+  zeroSpriteListAndActorArena(c);
   const bug = ARENA_LO + 0x100;
   c.mem.write8(bug, 0x55); // BUG: this cell must be cleared to 0x00
 

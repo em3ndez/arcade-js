@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_53b0 } from "./loc_53b0.js";
-import { loc_1171 } from "./loc_1171.js";
-import { loc_56e8 } from "./loc_56e8.js";
+import { initFormationRecordAndDeriveSpawnSpeed } from "./initFormationRecordAndDeriveSpawnSpeed.js";
+import { tickSpawnTimerAndSeedFreeEnemy } from "./tickSpawnTimerAndSeedFreeEnemy.js";
+import { tickEnemySpawnTimerAndGateSpawn } from "./tickEnemySpawnTimerAndGateSpawn.js";
 import { spawnFormationEnemyOnInterval } from "./spawnFormationEnemyOnInterval.js";
 import { spawnShotTargetOnInterval } from "./spawnShotTargetOnInterval.js";
 import { spawnFormationEnemiesOnTimer } from "./spawnFormationEnemiesOnTimer.js";
@@ -24,14 +24,14 @@ export function serviceEnemySpawns(m) {
     spawnShotTargetOnInterval(m); // spawn scheduler B
     spawnFormationEnemiesOnTimer(m); // frame-timer gated spawner
     if (mem8[HUNTER_SPAWN_FLIP_FLAG] !== 0) {
-      loc_1171(m); // spawn-cadence tick
+      tickSpawnTimerAndSeedFreeEnemy(m); // spawn-cadence tick
       return;
     }
   } else {
-    loc_53b0(m, mem8[ROUND_COUNTER]); // formation spawn/init
+    initFormationRecordAndDeriveSpawnSpeed(m, mem8[ROUND_COUNTER]); // formation spawn/init
   }
 
   runEnemySpawnScriptPasses(m); // shared tail: boot-frontier trampoline
   if (mem8[SCRIPT_ADVANCE_GUARD] !== 0) return;
-  loc_56e8(m); // enemy-spawn tick
+  tickEnemySpawnTimerAndGateSpawn(m); // enemy-spawn tick
 }

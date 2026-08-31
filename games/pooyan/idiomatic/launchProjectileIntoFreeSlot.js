@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_0020 } from "./loc_0020.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import {
   SPAWN_COUNTER,
   PROJECTILE_TABLE,
@@ -50,7 +50,7 @@ export function launchProjectileIntoFreeSlot(m, rec = m.regs.ix) {
   // coordinate pair: heading index into the round-selected word table
   const headingIndex = (((mem8[rec + 0x06] - 0x06) & 0xff) >> 1) & 0x07;
   const coordTable = mem8[ROUND_COUNTER] & 0x01 ? SPAWN_COORD_TABLE_3B47 : SPAWN_COORD_TABLE_3B57;
-  const coordPtr = loc_0c45(m, headingIndex, coordTable);
+  const coordPtr = fetchWordFromTableIndex(m, headingIndex, coordTable);
   mem8[slot + 0x12] = mem8[coordPtr];
   mem8[slot + 0x13] = mem8[coordPtr + 1];
   mem8[slot + 0x08] = mem8[slot + 0x08] | 0x01; // mark seeded
@@ -86,6 +86,6 @@ export function launchProjectileIntoFreeSlot(m, rec = m.regs.ix) {
   mem8[SPAWN_ATTR_INDEX] = mem8[SPAWN_ATTR_INDEX] + 1;
   const attrIndex = mem8[SPAWN_ATTR_INDEX] & 0x07;
   const attrTable = mem8[ROUND_COUNTER] & 0x01 ? SPAWN_ATTR_TABLE_3B3F : SPAWN_ATTR_TABLE_3B37;
-  const [attr] = loc_0020(m, attrTable, attrIndex);
+  const [attr] = fetchByteFromTableIndex(m, attrTable, attrIndex);
   mem8[rec + 0x15] = attr;
 }

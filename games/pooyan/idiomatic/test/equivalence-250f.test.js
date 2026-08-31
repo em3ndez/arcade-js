@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_250f (ROM 0x250f) — the shape-loader prologue. It fixes the
+ * Memory-equivalence test for seedFourRecordsAndCopyDisplayTiles (ROM 0x250f) — the shape-loader prologue. It fixes the
  * actor-record stride (0x18) and count (4), then falls into the shared tile-copier: copy four
  * shape-table bytes into (record+0x0f) of four consecutive 0x18-byte records and, when the
  * board-clear / terminator gate is set, run the board/HUD reset (the stride low byte 0x18 doubles
@@ -14,7 +14,7 @@
  * established internally, so the craft seats only HL/IX and the two branch cells.
  *
  * Jobs:
- *   1. EQUAL (return path) — branch cells zero: oracle == loc_250f in RAM (−stack) + IX/HL/B/A.
+ *   1. EQUAL (return path) — branch cells zero: oracle == seedFourRecordsAndCopyDisplayTiles in RAM (−stack) + IX/HL/B/A.
  *   2. EQUAL (reset path) — board-clear flag set: the reset runs identically on both sides.
  *   3. WRITE-SET — on the return path the ONLY writes are the 4 tile-field cells := the shape bytes.
  *   4. TEETH — a wrong copied byte is caught by the RAM diff; a wrong advanced IX by the live-out.
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_250f as oracle } from "../../translated/loc_250f.js";
-import { loc_250f } from "../loc_250f.js";
+import { seedFourRecordsAndCopyDisplayTiles } from "../seedFourRecordsAndCopyDisplayTiles.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, BOARD_CLEAR_FLAG, TAMPER_STRIKES_TERMINATOR, SPAWN_PHASE_COUNTER } from "../names.js";
@@ -40,8 +40,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const TILE_FIELD = 0x0f;
-const STRIDE = 0x18; // established internally by loc_250f
-const COUNT = 4; //     established internally by loc_250f
+const STRIDE = 0x18; // established internally by seedFourRecordsAndCopyDisplayTiles
+const COUNT = 4; //     established internally by seedFourRecordsAndCopyDisplayTiles
 const SHAPE = 0x8b00; // work-RAM shape table (4 bytes)
 const IXBASE = 0x8a80; // work-RAM record base
 const SHAPE_BYTES = [0x51, 0x52, 0x53, 0x54]; // distinct so every copy shows as a change
@@ -54,7 +54,7 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** A fresh clone with loc_250f's two inputs (HL shape table, IX record base) + branch cells seated. */
+/** A fresh clone with seedFourRecordsAndCopyDisplayTiles's two inputs (HL shape table, IX record base) + branch cells seated. */
 function craft({ divertBoardClear = 0, divertTerminator = 0, spawnPhase = 0x00 } = {}) {
   const m = BASE.clone();
   for (let i = 0; i < SHAPE_BYTES.length; i++) m.mem.write8(SHAPE + i, SHAPE_BYTES[i]);
@@ -77,11 +77,11 @@ function assertRegs(o, c, tag) {
 
 // -- 1. EQUAL (return path) ---------------------------------------------------
 
-test("EQUAL: return path (branch cells zero) — loc_250f == oracle in RAM (−stack) + IX/HL/B/A", () => {
+test("EQUAL: return path (branch cells zero) — seedFourRecordsAndCopyDisplayTiles == oracle in RAM (−stack) + IX/HL/B/A", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_250f(c);
+  seedFourRecordsAndCopyDisplayTiles(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
@@ -99,7 +99,7 @@ test("EQUAL: reset path (board-clear flag set) — the board reset runs identica
     const o = craft({ divertBoardClear: 1, spawnPhase });
     const c = craft({ divertBoardClear: 1, spawnPhase });
     oracle(o);
-    loc_250f(c);
+    seedFourRecordsAndCopyDisplayTiles(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `spawnPhase=${hx(spawnPhase)}: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
@@ -138,7 +138,7 @@ test("TEETH: a wrong copied byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_250f(c);
+  seedFourRecordsAndCopyDisplayTiles(c);
   const cell = (IXBASE + 2 * STRIDE + TILE_FIELD) & 0xffff;
   c.mem.write8(cell, (SHAPE_BYTES[2] + 1) & 0xff); // BUG: corrupt the third copied byte
 

@@ -8,8 +8,8 @@ import {
   GAME_ACTIVE_FLAG,
   CHECKSUM_SCAN_START,
 } from "./names.js";
-import { loc_02e3 } from "./loc_02e3.js";
-import { loc_02b9 } from "./loc_02b9.js";
+import { armTileFillFromPlayfieldBase } from "./armTileFillFromPlayfieldBase.js";
+import { zeroSpriteListAndActorArena } from "./zeroSpriteListAndActorArena.js";
 import { stampSecondScrollColumn } from "./stampSecondScrollColumn.js";
 /**
  * resetToAttractScreenStart — attract sub-state 0 handler (attract dispatch target 0).
@@ -30,7 +30,7 @@ export function resetToAttractScreenStart(m) {
 
   mem8[WATCHDOG_KICK] = 0; // A = 0 written to each cell below
   mem8[loc_8819] = 0;
-  loc_02e3(m); // arm the row-by-row tile fill
+  armTileFillFromPlayfieldBase(m); // arm the row-by-row tile fill
   mem8[ATTRACT_SUBSTATE] = (mem8[ATTRACT_SUBSTATE] + 1); // advance sub-state
 
   let sum = 0;
@@ -50,6 +50,6 @@ export function resetToAttractScreenStart(m) {
   }
 
   mem8[GAME_ACTIVE_FLAG] = 0; // clear the in-play gate
-  loc_02b9(m); // zero the board-init RAM regions
+  zeroSpriteListAndActorArena(m); // zero the board-init RAM regions
   stampSecondScrollColumn(m); // sprite-slot tail
 }

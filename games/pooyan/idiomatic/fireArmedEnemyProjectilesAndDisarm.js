@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_5b71 } from "./loc_5b71.js";
+import { launchProjectileIfRecordInFireWindow } from "./launchProjectileIfRecordInFireWindow.js";
 import {
   LANE_SPAWN_COUNTDOWN,
   ACTIVE_LANE_COUNT,
@@ -47,7 +47,7 @@ export function fireArmedEnemyProjectilesAndDisarm(m) {
 
   let rec = ENEMY_ACTOR_TABLE;
   for (let i = 0; i < RECORD_COUNT; i++) {
-    loc_5b71(m, rec); // fire gate for this record
+    launchProjectileIfRecordInFireWindow(m, rec); // fire gate for this record
     rec = u16(rec + STRIDE);
   }
   mem8[LANE_SPAWN_COUNTDOWN] = 0x00;

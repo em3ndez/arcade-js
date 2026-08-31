@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_0020 } from "./loc_0020.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { ACTOR_ANIM_TABLE_5657, ACTOR_SPEED_TABLE_55D7, ROUND_COUNTER } from "./names.js";
 /**
  * loc_5489 — initialise an actor record at rec.
@@ -40,14 +40,14 @@ export function loc_5489(m, rec = m.regs.ix, spawnField = m.regs.b) {
   mem8[rec + SPAWN_FIELD] = spawnField;
 
   const kind = mem8[rec + KIND_FIELD];
-  const animPointer = loc_0c45(m, kind, ACTOR_ANIM_TABLE_5657);
+  const animPointer = fetchWordFromTableIndex(m, kind, ACTOR_ANIM_TABLE_5657);
   setActorAnimation(m, rec, animPointer);
   mem8[rec + COUNTDOWN] = COUNTDOWN_SEED;
 
   // kind picks the speed-table row; 3 x (round & 7) picks the byte within it, negated
-  const [, speedRow] = loc_0020(m, ACTOR_SPEED_TABLE_55D7, kind);
+  const [, speedRow] = fetchByteFromTableIndex(m, ACTOR_SPEED_TABLE_55D7, kind);
   const step = 3 * (mem8[ROUND_COUNTER] & ROUND_MASK);
-  const [speed] = loc_0020(m, speedRow, step);
+  const [speed] = fetchByteFromTableIndex(m, speedRow, step);
   mem8[rec + SPEED_FIELD] = u8(-speed);
 
   return false;

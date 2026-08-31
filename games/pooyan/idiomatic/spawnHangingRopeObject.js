@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { tickRopeCellFrameTimer } from "./tickRopeCellFrameTimer.js";
-import { loc_0020 } from "./loc_0020.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { computeRopeCellVramColumn } from "./computeRopeCellVramColumn.js";
 import { blit2x2TileBlock } from "./blit2x2TileBlock.js";
 import { queueSoundCommand0C } from "./queueSoundCommand0C.js";
@@ -60,7 +60,7 @@ export function spawnHangingRopeObject(m, ix = m.regs.ix) {
   mem8[timer] = reload;
   mem8[timer + 1] = ~remaining & 0x03; // the free slot's index (0..2)
 
-  const [iy4] = loc_0020(m, ROPE_SPAWN_IY4_TABLE, ix & 0x03); // table lookup keyed by IXL&3
+  const [iy4] = fetchByteFromTableIndex(m, ROPE_SPAWN_IY4_TABLE, ix & 0x03); // table lookup keyed by IXL&3
   mem8[slot + 0x00] = SPAWN_STATE;
   mem8[slot + 0x02] = 0x10;
   mem8[slot + 0x04] = iy4;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { WAVE_HOLD_TIMER, TILE_ANIM_PARITY, ENEMY_ACTOR_TABLE, PLAY_STATE_INDEX, LATCHED_ENEMY_X, ATTRACT_SUBSTATE } from "./names.js";
 /**
  * clearWaveStateAndArenaOnHoldExpiry — bonus-stage teardown (phase 2).
@@ -22,8 +22,8 @@ export function clearWaveStateAndArenaOnHoldExpiry(m) {
     mem8[WAVE_HOLD_TIMER] = mem8[WAVE_HOLD_TIMER] - 1;
     return;
   }
-  loc_0010(m, TILE_ANIM_PARITY, FILL_ZERO, 0x09);
-  loc_0010(m, ENEMY_ACTOR_TABLE, FILL_ZERO, 0x48);
+  fillByteRun(m, TILE_ANIM_PARITY, FILL_ZERO, 0x09);
+  fillByteRun(m, ENEMY_ACTOR_TABLE, FILL_ZERO, 0x48);
   mem8[PLAY_STATE_INDEX] = FILL_ZERO;
   mem8[LATCHED_ENEMY_X] = FILL_ZERO;
   mem8[ATTRACT_SUBSTATE] = ATTRACT_STATE_AFTER_BONUS;

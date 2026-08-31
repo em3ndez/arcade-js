@@ -3,7 +3,7 @@
 // Memory-equivalence test for mirrorSpriteListVertically (ROM 0x0378) — flip-screen mirror of the
 // 24-entry stride-4 sprite display list at 0x8840. Per entry: byte0/byte2 := -x - 0x10, byte1 keeps
 // its low nibble but toggles its two flip bits, byte3 untouched. DE/B are loaded internally, so the
-// routine takes NO register inputs and returns NO register (the caller loc_0320 rets straight after).
+// routine takes NO register inputs and returns NO register (the caller tickCounterAndMirrorIfFlipped rets straight after).
 //
 // CYCLE-FREE / memory-equivalence gate: the routine WRITES RAM, so each case uses a FRESH clone per
 // side. The go-forward contract is RAM only (dumpState minus STACK_SCRATCH).

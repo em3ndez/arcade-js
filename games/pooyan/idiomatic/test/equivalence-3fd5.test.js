@@ -113,7 +113,7 @@ test("CAPTURE: real 0x3fd5 dispatches — advanceFallStep == oracle in RAM (−s
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(still, o.regs.fC, "boolean must equal the oracle's carry (still-falling)");
     // Live-out SIDE EFFECT: the bridge must SET carry, not merely return the boolean —
-    // the frozen translated callers (advanceFallingEnemyAndTallyCatchOnLanding/loc_4364) read the result via `ret c`.
+    // the frozen translated callers (advanceFallingEnemyAndTallyCatchOnLanding/advanceObjectFallStepThenBlankBandOnLand) read the result via `ret c`.
     assert.equal(c.regs.fC, o.regs.fC, "module must SET carry for the translated `ret c` dispatch");
     void oc;
   }

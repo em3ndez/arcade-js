@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0020 } from "./loc_0020.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import {
   FORMATION_SPAWN_INDEX,
@@ -35,15 +35,15 @@ export function initEnemyFormationRecord(m, ix = m.regs.ix) {
 
   const index = mem8[FORMATION_SPAWN_INDEX];
 
-  const [motion] = loc_0020(m, ACTOR_MOTION_TABLE_55D4, index);
+  const [motion] = fetchByteFromTableIndex(m, ACTOR_MOTION_TABLE_55D4, index);
   mem8[ix + 0x06] = motion;
-  const [speed] = loc_0020(m, ACTOR_SPEED_TABLE_55D7, index);
+  const [speed] = fetchByteFromTableIndex(m, ACTOR_SPEED_TABLE_55D7, index);
   mem8[ix + 0x0a] = -speed; // two's-complement partner (the store masks)
 
-  const scriptWord = loc_0c45(m, index, ACTOR_ANIM_SCRIPT_TABLE_561F);
+  const scriptWord = fetchWordFromTableIndex(m, index, ACTOR_ANIM_SCRIPT_TABLE_561F);
   const scriptByte = mem8[scriptWord];
   mem8[ix + 0x17] = scriptByte;
-  const sequence = loc_0c45(m, scriptByte, ACTOR_ANIM_TABLE_5657);
+  const sequence = fetchWordFromTableIndex(m, scriptByte, ACTOR_ANIM_TABLE_5657);
   mem8[ix + 0x0c] = sequence; //      low byte (the store masks)
   mem8[ix + 0x0d] = sequence >> 8;
 

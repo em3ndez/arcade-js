@@ -4,8 +4,8 @@
  * gated by SCRIPT_ADVANCE_GUARD, pick the round's script row, scan it for the stage's threshold, and
  * on a match latch the guard + row value and resolve two data pointers into the live-script slots.
  *
- * The module dissolves all three loc_0c45 word lookups to direct calls; the oracle drives the frozen
- * loc_0c45 through the register seam. armEnemySpawnScript is a void routine, so equivalence is RAM (dumpState)
+ * The module dissolves all three fetchWordFromTableIndex word lookups to direct calls; the oracle drives the frozen
+ * fetchWordFromTableIndex through the register seam. armEnemySpawnScript is a void routine, so equivalence is RAM (dumpState)
  * minus STACK_SCRATCH, SP parked in dead stack.
  *
  * The match arm uses round 0 / stage 0x20 — the first record of that ROM row has threshold 0x20, so
@@ -41,7 +41,7 @@ const GUARD = 0x8d6d; //  script-advance guard (nonzero -> busy)
 const ROUND = 0x8907; //  round counter (& 0x0f -> row index)
 const STAGE = 0x8901; //  stage countdown (scanned against the row thresholds)
 const SP0 = 0x8ff0; //    inside STACK_SCRATCH
-const CALLER_RET = 0xfffc; // return word the frozen loc_0c45 calls consume
+const CALLER_RET = 0xfffc; // return word the frozen fetchWordFromTableIndex calls consume
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;

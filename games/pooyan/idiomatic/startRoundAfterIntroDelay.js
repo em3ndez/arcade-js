@@ -17,8 +17,8 @@ import { paintDisplayListRunToVram } from "./paintDisplayListRunToVram.js";
 import { paintRoundNumberHud } from "./paintRoundNumberHud.js";
 import { spawnEnemyFormation } from "./spawnEnemyFormation.js";
 import { paintPhaseGauge } from "./paintPhaseGauge.js";
-import { loc_4a0b } from "./loc_4a0b.js";
-import { loc_02ef } from "./loc_02ef.js";
+import { paintSpawnPhaseMarkerColumn } from "./paintSpawnPhaseMarkerColumn.js";
+import { rebuildSpriteDisplayList } from "./rebuildSpriteDisplayList.js";
 
 /**
  * startRoundAfterIntroDelay — play sub-state idx2 handler.
@@ -42,12 +42,12 @@ function levelStartBatch(m) {
   const { mem8 } = m;
   paintRoundNumberHud(m); // bonus/round HUD setup + per-frame update chain
   paintPhaseGauge(m);
-  loc_4a0b(m); // round marker (odd rounds only)
+  paintSpawnPhaseMarkerColumn(m); // round marker (odd rounds only)
   mem8[LEAD_ACTOR_FRAME_DELAY] = SEED;
   mem8[TWOTILE_ANIM_HOLD] = SEED;
   mem8[ROPE_DRAW_STEP_TIMER] = SEED;
   spawnEnemyFormation(m); // enemy-spawn driver
-  loc_02ef(m); // sprite display-list rebuild
+  rebuildSpriteDisplayList(m); // sprite display-list rebuild
 }
 
 /** Raise the round-in-progress flag and seat the wave-arrival counter. */

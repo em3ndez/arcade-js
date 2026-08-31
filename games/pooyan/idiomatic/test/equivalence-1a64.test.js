@@ -7,9 +7,9 @@
  * nested sub-routine pushes park in the dead stack (SP in STACK_SCRATCH).
  *
  * Paths crafted: latch-set (tail to reseedSpawnCountersAndArmPlayMode); credit-gate teardown; gauge already-zero and
- * count-to-zero (tail to loc_1a96); the render path seeding the play sub-state; and the render
+ * count-to-zero (tail to advancePlayStateThenInsertHighScore); the render path seeding the play sub-state; and the render
  * path with the display-command ring slot freed, so resetBoardRamAndReseedSpawnCounters's dissolved
- * call 0x2527 forwards the E live-in (display-command low byte) through loc_0038 into 0x88c1.
+ * call 0x2527 forwards the E live-in (display-command low byte) through enqueueDisplayCommand into 0x88c1.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-1a64.test.js
  */
@@ -51,7 +51,7 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-// Display-command ring: loc_0038 reads the write-ptr low byte (0x88a0), indexes the page-0x88 ring,
+// Display-command ring: enqueueDisplayCommand reads the write-ptr low byte (0x88a0), indexes the page-0x88 ring,
 // and enqueues only when the pointed slot's bit 7 is set (free). Seeding the ptr to its start (0xc0)
 // and freeing slot 0x88c0 makes the dissolved 0x2527 call actually enqueue D=0x08 / E=cmdLow.
 const RING_START = 0xc0; //     write-ptr low byte at the ring start
@@ -82,18 +82,18 @@ function seat(
 const CASES = {
   "latch set -> tail reseedSpawnCountersAndArmPlayMode": (m) => seat(m, { latch: 0x02, round: 0x00 }),
   "credit gate closed -> teardown": (m) => seat(m, { latch: 0x00, active: 0x00 }),
-  "gauge already 0 -> loc_1a96": (m) => seat(m, { latch: 0x00, active: 0x01, gauge: 0x00 }),
-  "gauge count to 0 -> loc_1a96": (m) => seat(m, { latch: 0x00, active: 0x01, gauge: 0x01 }),
+  "gauge already 0 -> advancePlayStateThenInsertHighScore": (m) => seat(m, { latch: 0x00, active: 0x01, gauge: 0x00 }),
+  "gauge count to 0 -> advancePlayStateThenInsertHighScore": (m) => seat(m, { latch: 0x00, active: 0x01, gauge: 0x01 }),
   "render path (player 0)": (m) => seat(m, { latch: 0x00, active: 0x01, gauge: 0x02, player: 0x00 }),
   "render path (player 1)": (m) => seat(m, { latch: 0x00, active: 0x01, gauge: 0x02, player: 0x01 }),
   // Render path with the display-ring slot freed and a nonzero E: 0x2527's dissolved reset forwards
-  // E through loc_0038, so the E bridge (cmdLow = m.regs.e) is genuinely exercised and any mis-bridge
+  // E through enqueueDisplayCommand, so the E bridge (cmdLow = m.regs.e) is genuinely exercised and any mis-bridge
   // diverges in RAM at 0x88c1.
   "render path + E bridge (ring free, E=0x37)": (m) =>
     seat(m, { latch: 0x00, active: 0x01, gauge: 0x02, player: 0x00, e: 0x37, freeRing: true }),
 };
 
-const CMD_LOW_ADDR = DISPLAY_CMD_RING_BUFFER + 1; // 0x88c1 — where loc_0038 stores E
+const CMD_LOW_ADDR = DISPLAY_CMD_RING_BUFFER + 1; // 0x88c1 — where enqueueDisplayCommand stores E
 
 test("EQUAL: advancePhaseGaugeCountdown == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
@@ -143,7 +143,7 @@ test("TEETH: a twin that skips the gauge decrement diverges from the oracle", ()
 test("WRITE-SET: the freed ring forwards D=0x08 and the E live-in into the ring (oracle)", () => {
   const o = CASES["render path + E bridge (ring free, E=0x37)"](BASE.clone());
   oracle(o);
-  // live-out derived from the oracle: loc_0038 stores D then E and advances the write ptr by two.
+  // live-out derived from the oracle: enqueueDisplayCommand stores D then E and advances the write ptr by two.
   assert.equal(o.mem.read8(DISPLAY_CMD_RING_BUFFER), 0x08, "0x88c0 gets the command high byte D=0x08");
   assert.equal(o.mem.read8(CMD_LOW_ADDR), 0x37, "0x88c1 gets the command low byte from E");
   assert.equal(o.mem.read8(DISPLAY_CMD_RING_WRITE_PTR), 0xc2, "write ptr advances 0xc0 -> 0xc2");

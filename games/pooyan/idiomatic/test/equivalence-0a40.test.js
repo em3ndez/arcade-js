@@ -10,9 +10,9 @@
  * another, compared on the go-forward contract: RAM (dumpState, minus STACK_SCRATCH).
  *
  * pc/registers are NOT compared: it is memory-only. The walk ends DE at src+3 and HL at dst+0x20,
- * but the caller (loc_0a28) pops DE and reloads HL, so neither survives for a reader.
+ * but the caller (advanceAttractAnimationAndRepaint) pops DE and reloads HL, so neither survives for a reader.
  *
- * The two real dst entries are 0x866a and 0x86aa (loc_0a28); both are in the crafted sweep. The
+ * The two real dst entries are 0x866a and 0x86aa (advanceAttractAnimationAndRepaint); both are in the crafted sweep. The
  * leaf runs during the animation paint, not a plain attract boot, so every case is CRAFTED: an
  * identical dst/src/source-byte poke on both sides. src sits in work RAM (readable, disjoint from
  * every dst write) so the four bytes can be seeded to distinct values that catch a mapping bug.

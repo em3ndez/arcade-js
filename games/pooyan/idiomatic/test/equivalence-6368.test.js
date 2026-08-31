@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence (caller) gate for resolveProjectileCollisionsBothActorSlots (ROM 0x6368) — the two-pass projectile-proximity
- * driver. It runs the scan seeder loc_6381 (which hands off to the scan loc_638a) once per pass:
+ * driver. It runs the scan seeder seedAndRunTargetProximityScan (which hands off to the scan loc_638a) once per pass:
  * the first box at the actor-record slot base with the I=0 hit-flag selector, the second box one
  * stride on with the stride (=4) as the selector. The instant a pass CLAIMS a hit, the scan reports
- * it (loc_6381 forwards `false`) and this driver ABORTS — the remaining pass is not run. With no
+ * it (seedAndRunTargetProximityScan forwards `false`) and this driver ABORTS — the remaining pass is not run. With no
  * hit it runs both passes and falls through.
  *
  * This is a CALLER gate per the cluster brief: it COMPOSES the real idiomatic subtree. The test
- * imports the idiomatic resolveProjectileCollisionsBothActorSlots, which imports the idiomatic loc_6381 -> loc_638a -> its idiomatic
- * leaves (setActorAnimation, queueSoundCommand07, loc_0038). The ORACLE resolveProjectileCollisionsBothActorSlots runs the FROZEN translated
+ * imports the idiomatic resolveProjectileCollisionsBothActorSlots, which imports the idiomatic seedAndRunTargetProximityScan -> loc_638a -> its idiomatic
+ * leaves (setActorAnimation, queueSoundCommand07, enqueueDisplayCommand). The ORACLE resolveProjectileCollisionsBothActorSlots runs the FROZEN translated
  * subtree internally via m.call, whose skip path (pop af; ret) aborts pass 2. The two must land
  * byte-identical in RAM (dumpState) MINUS STACK_SCRATCH. There is no register live-out: runActorUpdatePipeline
  * (the per-frame updater) calls this and reads nothing back, so the contract is RAM−stack only.
@@ -41,7 +41,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6368 as oracle } from "../../translated/loc_6368.js";
 import { resolveProjectileCollisionsBothActorSlots } from "../resolveProjectileCollisionsBothActorSlots.js";
-import { loc_6381 } from "../loc_6381.js";
+import { seedAndRunTargetProximityScan } from "../seedAndRunTargetProximityScan.js";
 import { u16 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -207,7 +207,7 @@ function brokenNoAbort(m) {
   let box = SPRITE_ACTOR_RECORD_SLOTS;
   let selector = 0x00;
   for (let pass = 2; pass > 0; pass--) {
-    loc_6381(m, box, selector); // BUG: never early-returns on a claimed hit
+    seedAndRunTargetProximityScan(m, box, selector); // BUG: never early-returns on a claimed hit
     box = u16(box + 0x04);
     selector = 0x04;
   }
@@ -230,7 +230,7 @@ test("TEETH/ABORT: failing to abort after a pass-1 hit stamps a second record an
 function brokenNoSelector(m) {
   let box = SPRITE_ACTOR_RECORD_SLOTS;
   for (let pass = 2; pass > 0; pass--) {
-    if (!loc_6381(m, box, 0x00)) return; // BUG: always selector 0
+    if (!seedAndRunTargetProximityScan(m, box, 0x00)) return; // BUG: always selector 0
     box = u16(box + 0x04);
   }
 }

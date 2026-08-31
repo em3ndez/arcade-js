@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0020 (ROM 0x0020) — the rst 0x20 byte-table lookup:
+ * Memory-equivalence test for fetchByteFromTableIndex (ROM 0x0020) — the rst 0x20 byte-table lookup:
  * HL := HL + A (16-bit), then A := (HL), leaving the advanced pointer behind.
  *
  * This is the cycle-free / memory-equivalence gate. The routine WRITES no memory (it only
@@ -8,7 +8,7 @@
  * trivially null) PLUS the declared register live-out:
  *
  *   - A  = the fetched byte table[base+index] — load-bearing: every rst 0x20 caller reads
- *          the byte back out of A (e.g. loc_0092's coinage lookups).
+ *          the byte back out of A (e.g. runSelfTestAndInitMachineState's coinage lookups).
  *   - HL = base+index, the advanced pointer — a genuine architectural result of the add,
  *          written faithfully so a register-dispatched caller reading HL gets the oracle's
  *          value. (No single HL consumer was individually verified; setting it can only
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0020 as oracle } from "../../translated/loc_0020.js";
-import { loc_0020 } from "../loc_0020.js";
+import { fetchByteFromTableIndex } from "../fetchByteFromTableIndex.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -86,12 +86,12 @@ const WRAP = { base: 0xfff0, index: 0x20, seedTable: false }; // base+index = 0x
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted (base,index) — loc_0020 == oracle in RAM (−stack) + A + HL", () => {
+test("EQUAL: crafted (base,index) — fetchByteFromTableIndex == oracle in RAM (−stack) + A + HL", () => {
   for (const { base, index } of CASES) {
     const o = craft(base, index);
     const c = craft(base, index);
     oracle(o);
-    const ret = loc_0020(c);
+    const ret = fetchByteFromTableIndex(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (base=${hx(base)} index=${hx(index)})`);
@@ -128,7 +128,7 @@ test("CRAFTED: base+index overflowing 16 bits wraps identically (fetch a ROM byt
   const o = craft(WRAP.base, WRAP.index, WRAP.seedTable);
   const c = craft(WRAP.base, WRAP.index, WRAP.seedTable);
   oracle(o);
-  const ret = loc_0020(c);
+  const ret = fetchByteFromTableIndex(c);
 
   assert.equal(ramDiffMinusStack(o, c), null, "RAM identical on the wrap path");
   assert.equal(o.regs.hl, u16(WRAP.base + WRAP.index), "oracle HL wrapped to the low address");

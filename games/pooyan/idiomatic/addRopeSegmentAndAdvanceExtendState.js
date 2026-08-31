@@ -11,7 +11,7 @@ import {
   ROPE_CELL_TIMERS,
   TAMPER_STRIKES_ROM,
 } from "./names.js";
-import { loc_0020 } from "./loc_0020.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 /**
  * addRopeSegmentAndAdvanceExtendState — rope-extend driver (sub-state 0): add one rope segment.
  *
@@ -47,7 +47,7 @@ export function addRopeSegmentAndAdvanceExtendState(m) {
   mem8[ROPE_EXTEND_INDEX] = u8(index + 1);
 
   // this segment's video-RAM column base: low byte from the column table, page fixed
-  const columnLo = loc_0020(m, ROPE_CELL_COLUMN_TABLE, tableIndex)[0];
+  const columnLo = fetchByteFromTableIndex(m, ROPE_CELL_COLUMN_TABLE, tableIndex)[0];
   mem16[ROPE_COLUMN_VRAM_PTR] = (VIDEO_PAGE << 8) | columnLo;
 
   // reload the just-added segment's cell timer (one cell-pair per counted segment)

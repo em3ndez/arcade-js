@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_141c (ROM 0x141c) — "gate an actor's spawn/queue step on
+ * Memory-equivalence test for restartActorAnimUnlessPhaseAdvanced (ROM 0x141c) — "gate an actor's spawn/queue step on
  * its phase field": if (rec+6) >= 2 the record is left untouched; otherwise (rec+8) is
  * cleared and the record is pointed at the 0x3829 animation sequence (rec+0x0C:=0x29,
  * rec+0x0D:=0x38, rec+0x0E:=0), via the animation helper it tail-calls.
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_141c as oracle } from "../../translated/loc_141c.js";
-import { loc_141c } from "../loc_141c.js";
+import { restartActorAnimUnlessPhaseAdvanced } from "../restartActorAnimUnlessPhaseAdvanced.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -64,12 +64,12 @@ const GATE_HIT = [0x02, 0x03, 0xff]; // phase >= 2 -> untouched
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: both arms — loc_141c == oracle in RAM (−stack)", () => {
+test("EQUAL: both arms — restartActorAnimUnlessPhaseAdvanced == oracle in RAM (−stack)", () => {
   for (const phase of [...PROCEED, ...GATE_HIT]) {
     const o = craft(phase);
     const c = craft(phase);
     oracle(o);
-    loc_141c(c);
+    restartActorAnimUnlessPhaseAdvanced(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (phase=${hx(phase)})`);
   }
@@ -118,7 +118,7 @@ test("CRAFTED: pre-dirtied record fields are overwritten identically on the proc
   const o = craft(0x01, 0xff);
   const c = craft(0x01, 0xff);
   oracle(o);
-  loc_141c(c);
+  restartActorAnimUnlessPhaseAdvanced(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(c.mem.read8(REC + 0x08), 0x00, "rec+8 not cleared");
@@ -132,7 +132,7 @@ test("TEETH: a wrong animation byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x00);
   const c = craft(0x00);
   oracle(o);
-  loc_141c(c);
+  restartActorAnimUnlessPhaseAdvanced(c);
   c.mem.write8(REC + 0x0c, 0x00); // BUG: rec+0x0C must be 0x29 (low byte of the anim pointer)
 
   const d = ramDiffMinusStack(o, c);

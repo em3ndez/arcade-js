@@ -2,19 +2,19 @@
 /**
  * Memory-equivalence test for loc_2bbf (ROM 0x2bbf) — "formation ready-sprite helper".
  *
- * loc_2bbf is a DISSOLVED CALLER-SKIP for loc_2b9a. In the oracle one path ends with
- * `pop af; ret` (aborting loc_2b9a) and the others with a plain `ret`. The idiomatic module
+ * loc_2bbf is a DISSOLVED CALLER-SKIP for tickFormationSpawnAndScanSlots. In the oracle one path ends with
+ * `pop af; ret` (aborting tickFormationSpawnAndScanSlots) and the others with a plain `ret`. The idiomatic module
  * drops the stack plumbing and returns a BOOLEAN:
- *   true  = normal return (loc_2b9a continues),
- *   false = the caller-skip (the indicator marker was already present -> abort loc_2b9a).
+ *   true  = normal return (tickFormationSpawnAndScanSlots continues),
+ *   false = the caller-skip (the indicator marker was already present -> abort tickFormationSpawnAndScanSlots).
  * The translated oracle ALSO returns that boolean, so the two are compared directly. The gate
- * COMPOSES the real idiomatic painters (loc_2bd3 + blit2x2TileBlock).
+ * COMPOSES the real idiomatic painters (paintReadySpriteSquareIfAbsent + blit2x2TileBlock).
  *
  * Cycle-free / memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
  * STACK_SCRATCH) plus the boolean. pc/SP/cycles/registers are NOT compared. loc_2bbf has NO
- * register live-out — loc_2b9a reloads its own registers. The only input is A (the wave count),
+ * register live-out — tickFormationSpawnAndScanSlots reloads its own registers. The only input is A (the wave count),
  * bridged via the register default; a case also pokes the two indicator cells (0x877b checked/
- * painted here, 0x87bb painted by loc_2bd3) identically on both sides.
+ * painted here, 0x87bb painted by paintReadySpriteSquareIfAbsent) identically on both sides.
  *
  * Jobs:
  *   1. EQUAL — a==1 (paint only, true), a==0 & marker present (skip, false, no writes), a==0 &
@@ -129,7 +129,7 @@ test("TEETH: a wrong boolean is CAUGHT by the boolean check", () => {
   const o = craft({ a: 0x00, cell877b: MARKER });
   const oret = oracle(o); // false (skip)
   assert.equal(oret, false, "sanity: the marker-present path reports false");
-  const brokenTwin = () => true; // a twin that fails to abort loc_2b9a
+  const brokenTwin = () => true; // a twin that fails to abort tickFormationSpawnAndScanSlots
   assert.throws(() => assert.equal(brokenTwin(), oret), "a wrong boolean must be caught");
   console.log("  TEETH/bool: a twin returning true on the skip path is rejected");
 });

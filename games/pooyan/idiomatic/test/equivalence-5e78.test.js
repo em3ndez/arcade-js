@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5e78 (ROM 0x5e78, Pooyan) — the gated actor-sweep driver. On an
- * odd round it hands the actor-record table to the per-slot sweep loc_5e98 twice: phase latch 0 on
+ * Memory-equivalence test for sweepActorRecordSlotsBothParitiesOnOddRound (ROM 0x5e78, Pooyan) — the gated actor-sweep driver. On an
+ * odd round it hands the actor-record table to the per-slot sweep dispatchTargetPairCollisionSweep twice: phase latch 0 on
  * the first pass and 1 after, with the table pointer advanced one record between passes. On an even
  * round it returns without touching anything.
  *
- * SEATING: BALANCED — a plain ret both when disabled (ret z) and after the two passes. loc_5e98 is
+ * SEATING: BALANCED — a plain ret both when disabled (ret z) and after the two passes. dispatchTargetPairCollisionSweep is
  * NOT lifted this batch, so the module keeps the register-marshalled m.call(0x5e98) (phase latch in
- * I, table pointer in IY); the oracle drives the same frozen loc_5e98, so both walk identical
+ * I, table pointer in IY); the oracle drives the same frozen dispatchTargetPairCollisionSweep, so both walk identical
  * downstream code. Compared on RAM (dumpState) minus STACK_SCRATCH; the register file is not
  * compared (void driver).
  *
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5e78 as oracle } from "../../translated/loc_5e78.js";
-import { loc_5e78 } from "../loc_5e78.js";
+import { sweepActorRecordSlotsBothParitiesOnOddRound } from "../sweepActorRecordSlotsBothParitiesOnOddRound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -57,7 +57,7 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Gate on; both pairs active (bit1 clear -> the loc_5ebd sweep); slot 0 hits box A, slot 1 box B. */
+/** Gate on; both pairs active (bit1 clear -> the testAndCatchActorSlotOnOverlap sweep); slot 0 hits box A, slot 1 box B. */
 function seatTwoHit(m) {
   m.regs.sp = SP0;
   m.push16(0xabcd);
@@ -92,12 +92,12 @@ function craftGateOff() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5e78 == oracle in RAM (−stack)", () => {
+test("EQUAL: sweepActorRecordSlotsBothParitiesOnOddRound == oracle in RAM (−stack)", () => {
   for (const [label, craft] of [["two-hit (gate on)", craftTwoHit], ["gate off", craftGateOff]]) {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_5e78(c);
+    sweepActorRecordSlotsBothParitiesOnOddRound(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -125,7 +125,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftTwoHit();
   const c = craftTwoHit();
   oracle(o);
-  loc_5e78(c);
+  sweepActorRecordSlotsBothParitiesOnOddRound(c);
   c.mem.write8(SLOT1 + 1, (o.mem.read8(SLOT1 + 1) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

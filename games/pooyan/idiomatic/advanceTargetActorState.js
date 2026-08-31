@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { OBJ_HIT_FLAG_I0, OBJ_HIT_FLAG_I1 } from "./names.js";
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { queueSoundCommand01 } from "./queueSoundCommand01.js";
 import { advanceTargetActorAlongVelocityElseDespawn } from "./advanceTargetActorAlongVelocityElseDespawn.js";
 /**
@@ -17,7 +17,7 @@ import { advanceTargetActorAlongVelocityElseDespawn } from "./advanceTargetActor
 export function advanceTargetActorState(m, rec = m.regs.iy) {
   const { mem8 } = m;
 
-  const clearRecord = () => loc_0010(m, rec, 0x00, 0x18); // blank 0x18 bytes from the record base
+  const clearRecord = () => fillByteRun(m, rec, 0x00, 0x18); // blank 0x18 bytes from the record base
 
   if (mem8[rec + 0x07] & 0x01) {
     const step = mem8[rec + 0x01];

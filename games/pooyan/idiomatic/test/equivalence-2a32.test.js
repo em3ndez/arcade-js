@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2a32 (ROM 0x2a32, Pooyan) — the state-3 per-frame handler for
+ * Memory-equivalence test for advanceActorPositionAndEnqueueMilestone (ROM 0x2a32, Pooyan) — the state-3 per-frame handler for
  * an actor record at IX. It reloads the frame delay (rec+0x11 := 0x03), bumps the frame counter
  * (rec+0x0b) and every fourth frame flips the display tile (rec+0x0f) between 0x15 and 0x1e, then
  * advances the 16-bit position (rec+0x05 low, rec+0x06 high) by 0x80 with the carry plus one extra
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2a32 as oracle } from "../../translated/loc_2a32.js";
-import { loc_2a32 } from "../loc_2a32.js";
+import { advanceActorPositionAndEnqueueMilestone } from "../advanceActorPositionAndEnqueueMilestone.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -86,12 +86,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted records — loc_2a32 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted records — advanceActorPositionAndEnqueueMilestone == oracle in RAM (−stack)", () => {
   for (const kase of CASES) {
     const o = craft(kase);
     const c = craft(kase);
     oracle(o);
-    loc_2a32(c);
+    advanceActorPositionAndEnqueueMilestone(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `case ${JSON.stringify(kase)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -138,7 +138,7 @@ test("TEETH: a wrong position high byte is CAUGHT by the RAM diff", () => {
   const o = craft(kase);
   const c = craft(kase);
   oracle(o);
-  loc_2a32(c);
+  advanceActorPositionAndEnqueueMilestone(c);
   c.mem.write8(REC + 0x06, 0x00); // BUG: high must be old_high + 1 = 0x11
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong high byte — it is worthless");
@@ -152,7 +152,7 @@ test("TEETH: a wrong enqueued command byte is CAUGHT by the RAM diff", () => {
   const o = craft(kase);
   const c = craft(kase);
   oracle(o);
-  loc_2a32(c);
+  advanceActorPositionAndEnqueueMilestone(c);
   c.mem.write8(slot1, 0x00); // BUG: enqueued command lo byte must be 0x94
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong command byte — it is worthless");

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_196e (ROM 0x196e, Pooyan) — the gated periodic siren/event driver.
+ * Memory-equivalence test for armSirenAndTickWaveEventCountdown (ROM 0x196e, Pooyan) — the gated periodic siren/event driver.
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
- * oracle on one and loc_196e on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
+ * oracle on one and armSirenAndTickWaveEventCountdown on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
  * pc/SP/cycles are NOT compared, and there is no register live-out: the caller (runActiveGameplayFrame) runs this
  * as one of fourteen sequential sub-handlers and reads no register back, so the contract is memory.
  *
@@ -14,7 +14,7 @@
  *
  * Jobs:
  *   1. EQUAL — over busy / mode>5 / mode==5 (siren-free & grab-active & occupied) / mode<5 /
- *      tail-bail cases spanning both the timer-expiry (draw) and tick-down tails, oracle == loc_196e
+ *      tail-bail cases spanning both the timer-expiry (draw) and tick-down tails, oracle == armSirenAndTickWaveEventCountdown
  *      in RAM (−stack).
  *   2. WRITE-SET — the mode==5 expiry case arms the siren pair + reloads the timer + sets the latch;
  *      the mode>5 case latches the mode + ticks the timer.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_196e as oracle } from "../../translated/loc_196e.js";
-import { loc_196e } from "../loc_196e.js";
+import { armSirenAndTickWaveEventCountdown } from "../armSirenAndTickWaveEventCountdown.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -88,12 +88,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted driver cases — loc_196e == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted driver cases — armSirenAndTickWaveEventCountdown == oracle in RAM (−stack)", () => {
   for (const spec of CASES) {
     const o = craft(spec);
     oracle(o);
     const c = craft(spec);
-    loc_196e(c);
+    armSirenAndTickWaveEventCountdown(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -128,7 +128,7 @@ test("TEETH: a wrong armed siren cell is CAUGHT by the RAM diff", () => {
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  loc_196e(c);
+  armSirenAndTickWaveEventCountdown(c);
   c.mem8[SIREN_CD] = 0x00; // BUG: the second armed cell must be 0x01
 
   const d = ramDiffMinusStack(o, c);

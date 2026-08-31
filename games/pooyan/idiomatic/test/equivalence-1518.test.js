@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1518 (Pooyan) — per-frame object update with a phase-advance step.
+ * Memory-equivalence test for tickEnemyHoldThenTurnOrBlank (Pooyan) — per-frame object update with a phase-advance step.
  *
  * The routine steps the object's animation and counts down the record's frame timer (IX+0x11);
  * while it is still running it returns. On expiry it optionally redraws a HUD field — a nonzero
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1518 as oracle } from "../../translated/loc_1518.js";
-import { loc_1518 } from "../loc_1518.js";
+import { tickEnemyHoldThenTurnOrBlank } from "../tickEnemyHoldThenTurnOrBlank.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -91,12 +91,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1518 == oracle in RAM (−stack)", () => {
+test("EQUAL: tickEnemyHoldThenTurnOrBlank == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_1518(c);
+    tickEnemyHoldThenTurnOrBlank(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -142,7 +142,7 @@ test("TEETH: a corrupted HUD cell is CAUGHT; branches are load-bearing", () => {
   const o = seat({ timer: 0x01, selector: 0x50, phase: 0x02 });
   const c = seat({ timer: 0x01, selector: 0x50, phase: 0x02 });
   oracle(o);
-  loc_1518(c);
+  tickEnemyHoldThenTurnOrBlank(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   c.mem.write8(DIGITS_CELL, (o.mem.read8(DIGITS_CELL) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);

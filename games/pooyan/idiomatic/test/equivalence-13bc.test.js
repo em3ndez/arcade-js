@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_13bc (ROM 0x13bc, Pooyan) — "find a free sprite-object slot and
+ * Memory-equivalence test for spawnChildActorIntoFreeSpriteSlot (ROM 0x13bc, Pooyan) — "find a free sprite-object slot and
  * spawn a child there".
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
- * oracle on one and loc_13bc on the other, compared on RAM (dumpState, minus STACK_SCRATCH) PLUS
+ * oracle on one and spawnChildActorIntoFreeSpriteSlot on the other, compared on RAM (dumpState, minus STACK_SCRATCH) PLUS
  * the declared register live-out A. pc/SP/cycles are deliberately not compared.
  *
  * INPUTS: IX (the parent record). The routine sets IY/DE/B itself as it scans the five 0x18-byte
  * slots at 0x8b70; it reads the wrapping counter at 0x8d41, and (on the spawn path, via the tail
- * call to loc_142c) SPEED_INDEX 0x8900, ROUND_COUNTER 0x8907 and the parent's position bytes.
+ * call to initChildActorRecordFromParent) SPEED_INDEX 0x8900, ROUND_COUNTER 0x8907 and the parent's position bytes.
  *
- * LIVE-OUT A: on the spawn path A is loc_142c's tail-call result; on the no-free path A is the last
+ * LIVE-OUT A: on the spawn path A is initChildActorRecordFromParent's tail-call result; on the no-free path A is the last
  * scanned pair's `rrca` byte. Checked equal to the oracle and asserted SET on the module's clone.
  * A caller reading it back is unconfirmed, so A is reproduced and compared on both exits (a set that
  * matches the oracle can never false-fail).
@@ -21,7 +21,7 @@
  *
  * Jobs:
  *   1. EQUAL — over no-free and spawn (keep / wrap / later-slot / nonzero-but-free) cases, oracle ==
- *      loc_13bc in RAM (−stack) and A.
+ *      spawnChildActorIntoFreeSpriteSlot in RAM (−stack) and A.
  *   2. WRITE-SET — the spawn path lays the six parent fields + the bumped counter; the no-free path
  *      writes nothing. (The child slot + sound-ring cells are the tail callee's domain.)
  *   3. TEETH — a wrong parent field (RAM) and a wrong A (live-out) are each CAUGHT.
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_13bc as oracle } from "../../translated/loc_13bc.js";
-import { loc_13bc } from "../loc_13bc.js";
+import { spawnChildActorIntoFreeSpriteSlot } from "../spawnChildActorIntoFreeSpriteSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -103,12 +103,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted scan cases — loc_13bc == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted scan cases — spawnChildActorIntoFreeSpriteSlot == oracle in RAM (−stack) + A", () => {
   for (const spec of CASES) {
     const o = craft(spec);
     oracle(o);
     const c = craft(spec);
-    const ret = loc_13bc(c);
+    const ret = spawnChildActorIntoFreeSpriteSlot(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -158,7 +158,7 @@ test("TEETH: a wrong parent field is CAUGHT by the RAM diff", () => {
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  loc_13bc(c);
+  spawnChildActorIntoFreeSpriteSlot(c);
   c.mem8[PARENT + 0x0c] = 0x00; // BUG: the anim vector low byte must be 0x88
 
   const d = ramDiffMinusStack(o, c);
@@ -172,7 +172,7 @@ test("TEETH: a wrong no-free A is CAUGHT by the live-out check", () => {
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  const ret = loc_13bc(c);
+  const ret = spawnChildActorIntoFreeSpriteSlot(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A matches oracle");
   assert.equal(o.regs.a & 0xff, rrca(0x01), "sanity: the no-free A is rrca(0x01) = 0x80");
   const broken = (o.regs.a ^ 0xff) & 0xff; // a plausible-wrong A the === check must reject

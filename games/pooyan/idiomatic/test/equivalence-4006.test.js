@@ -40,7 +40,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built" }, fn);
 
 const TARGET = 0x4006;
-const REC = SPRITE_OBJECT_TABLE; // 0x8b70: a record base loc_09f8 actually walks 0x4006 over
+const REC = SPRITE_OBJECT_TABLE; // 0x8b70: a record base advanceFourObjectAnimsAndRebuildList actually walks 0x4006 over
 const STREAM = 0x8bc0;   // primary sequence stream (work RAM, disjoint from REC + stack)
 const STREAM2 = 0x8c00;  // first reload target
 const STREAM3 = 0x8c40;  // second reload target

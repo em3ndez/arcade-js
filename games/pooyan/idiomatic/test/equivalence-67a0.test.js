@@ -13,7 +13,7 @@
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * The contract is MEMORY ONLY: a per-frame state handler reached only through anti-tamper / object-
- * dispatch tails (reinitRoundArenaAndPlayfieldIfImageIntact, loc_6a98) that do not read back its leftover registers. pc/SP/cycles are
+ * dispatch tails (reinitRoundArenaAndPlayfieldIfImageIntact, dispatchDescendingObjectState) that do not read back its leftover registers. pc/SP/cycles are
  * not compared. advanceObjectAnimationFrame is kept deterministic by seating a non-zero +0x0e hold, so it simply
  * decrements that field (its own script-walk is its own test's concern); both sides run the same
  * advanceObjectAnimationFrame over the same memory. Inputs (the timer + record/link fields) are poked per side.

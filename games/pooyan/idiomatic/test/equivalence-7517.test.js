@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for runDisplayListAndAdvanceToGameplay (ROM 0x7517) — display dispatch state 1 (loc_7442's table,
+ * Memory-equivalence test for runDisplayListAndAdvanceToGameplay (ROM 0x7517) — display dispatch state 1 (dispatchSelfTestState's table,
  * selector 0x8921 & 3). It runs the display-list interpreter (paintDisplayListRunToVram), then increments the mod
  * counter 0x88b7 and returns until it reaches 0x1c; on that tick it reads/increments the one-shot
  * 0x8920, copies the pre-increment value into 0x88b7, and returns on the first pass (pre-inc 0).
@@ -53,7 +53,7 @@ const test = ROM_PRESENT
 
 const TICK = 0x88b7;      // mod-0x1c counter
 const ONESHOT = 0x8920;   // sub-phase one-shot / paintDisplayListRunToVram primary-vs-alt selector
-const SELECTOR = 0x8921;  // loc_7442 dispatch selector, advanced to state 2 here
+const SELECTOR = 0x8921;  // dispatchSelfTestState dispatch selector, advanced to state 2 here
 const STRIP_A = 0x82bc;   // first summed strip base
 const STRIP_B = 0x86bc;   // second summed strip base
 const ROW_STRIDE = 0x20;

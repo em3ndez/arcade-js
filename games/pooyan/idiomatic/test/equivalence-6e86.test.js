@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6e86 (ROM 0x6e86, Pooyan) — scripted single-object launcher. A
+ * Memory-equivalence test for launchNextScriptedObjectOnDelay (ROM 0x6e86, Pooyan) — scripted single-object launcher. A
  * per-call delay ticks down (decrement-and-return until it elapses); on expiry it reloads the delay
  * from the sequence counter's bit1, pulls the next script byte (0xff terminates), indexes an
  * enemy-actor record from it, and — if a projectile slot is free — arms the record, points it at its
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6e86 as oracle } from "../../translated/loc_6e86.js";
-import { loc_6e86 } from "../loc_6e86.js";
+import { launchNextScriptedObjectOnDelay } from "../launchNextScriptedObjectOnDelay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -83,12 +83,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_6e86 == oracle in RAM (−stack)", () => {
+test("EQUAL: launchNextScriptedObjectOnDelay == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_6e86(c);
+    launchNextScriptedObjectOnDelay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -121,7 +121,7 @@ test("TEETH: a wrong launched-record byte is CAUGHT by the RAM diff", () => {
   const o = craftLaunch();
   const c = craftLaunch();
   oracle(o);
-  loc_6e86(c);
+  launchNextScriptedObjectOnDelay(c);
   c.mem.write8(EAT + 0x02, (o.mem.read8(EAT + 0x02) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted record byte");

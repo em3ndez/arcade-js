@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_18da (ROM 0x18da, Pooyan) — "pending bonus-award tally step".
+ * Memory-equivalence test for advanceBonusAwardQueueAndBumpGauge (ROM 0x18da, Pooyan) — "pending bonus-award tally step".
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side,
- * the oracle on one and loc_18da on the other, compared on RAM (dumpState, minus STACK_SCRATCH)
+ * the oracle on one and advanceBonusAwardQueueAndBumpGauge on the other, compared on RAM (dumpState, minus STACK_SCRATCH)
  * PLUS the declared register live-out A. pc/SP/cycles are deliberately not compared.
  *
- * loc_18da takes no register inputs; it is driven entirely by memory: AWARD_QUEUE (0x8909),
+ * advanceBonusAwardQueueAndBumpGauge takes no register inputs; it is driven entirely by memory: AWARD_QUEUE (0x8909),
  * BONUS_AWARD_DSW (0x8800), ACTIVE_PLAYER (0x880d), the active player's score MSB (0x88a4 or
  * 0x88a7), and GAUGE_PHASE_COUNTER (0x8908). The full path also runs renderPhaseGauge (0x03c2)
  * and queueSoundCommand0B (0x0f0d), whose own writes/reads are covered by their gates and match on both sides.
@@ -20,7 +20,7 @@
  *
  * Jobs:
  *   1. EQUAL — over crafted cases spanning the three paths (empty-reload ×2, not-reached ×2 for
- *      both players, full-tally ×2 for both players), oracle == loc_18da in RAM (−stack) and A.
+ *      both players, full-tally ×2 for both players), oracle == advanceBonusAwardQueueAndBumpGauge in RAM (−stack) and A.
  *   2. WRITE-SET — the empty-reload path writes exactly one cell (AWARD_QUEUE := 5 or 3).
  *   3. TEETH — a wrong AWARD_QUEUE byte (RAM) and a wrong A (live-out) are each CAUGHT.
  *
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_18da as oracle } from "../../translated/loc_18da.js";
-import { loc_18da } from "../loc_18da.js";
+import { advanceBonusAwardQueueAndBumpGauge } from "../advanceBonusAwardQueueAndBumpGauge.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -86,12 +86,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted path cases — loc_18da == oracle in RAM (−stack) + A", () => {
+test("EQUAL: crafted path cases — advanceBonusAwardQueueAndBumpGauge == oracle in RAM (−stack) + A", () => {
   for (const cse of CASES) {
     const o = craft(cse.pokes);
     oracle(o);
     const c = craft(cse.pokes);
-    const ret = loc_18da(c);
+    const ret = advanceBonusAwardQueueAndBumpGauge(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -131,7 +131,7 @@ test("TEETH: a wrong AWARD_QUEUE byte is CAUGHT by the RAM diff", () => {
   const o = craft(pokes);
   const c = craft(pokes);
   oracle(o);
-  loc_18da(c);
+  advanceBonusAwardQueueAndBumpGauge(c);
   c.mem8[AWARD_QUEUE] = 0x00; // BUG: the reload must be 0x05
 
   const d = ramDiffMinusStack(o, c);
@@ -145,7 +145,7 @@ test("TEETH: a wrong A is CAUGHT by the live-out check", () => {
   const o = craft(pokes);
   const c = craft(pokes);
   oracle(o);
-  const ret = loc_18da(c);
+  const ret = advanceBonusAwardQueueAndBumpGauge(c);
   assert.equal(ret & 0xff, o.regs.a & 0xff, "sanity: module A matches oracle");
   const broken = (o.regs.a ^ 0xff) & 0xff; // a wrong A the === check must reject
   assert.notEqual(broken, o.regs.a & 0xff, "the live-out check must reject a wrong A");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5835 (ROM 0x5835, Pooyan) — spawn the singleton actor, or step
+ * Memory-equivalence test for spawnSpecialActorElseStep (ROM 0x5835, Pooyan) — spawn the singleton actor, or step
  * it if already active.
  *
  * SEATING: TAIL-CALL. Every exit is a tail hand-off (to the stepper when active, to the checksum
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5835 as oracle } from "../../translated/loc_5835.js";
-import { loc_5835 } from "../loc_5835.js";
+import { spawnSpecialActorElseStep } from "../spawnSpecialActorElseStep.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -74,12 +74,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5835 == oracle in RAM (−stack)", () => {
+test("EQUAL: spawnSpecialActorElseStep == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_5835(c);
+    spawnSpecialActorElseStep(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -90,7 +90,7 @@ test("EQUAL: loc_5835 == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: a spawn marks the actor active and seeds the record", () => {
   const spawn = craftSpawn();
-  loc_5835(spawn);
+  spawnSpecialActorElseStep(spawn);
   assert.equal(spawn.mem.read8(ACTIVE), 0x01, "a spawn sets the active flag");
   assert.equal(spawn.mem.read8(SLOT + 0x13), 0x03, "a spawn seeds the record");
   assert.equal(spawn.mem.read8(SLOT + 0x07), 0x02, "a spawn seeds the record");
@@ -103,7 +103,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftSpawn();
   const c = craftSpawn();
   oracle(o);
-  loc_5835(c);
+  spawnSpecialActorElseStep(c);
   c.mem.write8(SLOT + 0x13, (o.mem.read8(SLOT + 0x13) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted seed byte");
@@ -115,7 +115,7 @@ test("TEETH: a twin that omits the active-flag write diverges at the flag", () =
   const o = craftSpawn();
   const twin = craftSpawn();
   oracle(o);
-  loc_5835(twin);
+  spawnSpecialActorElseStep(twin);
   twin.mem.write8(ACTIVE, 0x00); // a rewrite that forgot to mark the actor active
   const d = ramDiffMinusStack(o, twin);
   assert.notEqual(d, null, "the gate FAILED to catch a missing active-flag write");

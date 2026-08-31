@@ -40,7 +40,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
 const HOLD = 0x8f36; // WAVE_HOLD_TIMER — the state machine ticks it down while nonzero
-const UPDATE_GATE = 0x8f50; // cleared -> loc_20d4 takes its helper-chain path
+const UPDATE_GATE = 0x8f50; // cleared -> dispatchPerFrameActorUpdatePasses takes its helper-chain path
 const GRAB_FLAG = 0x8d32; // zero -> not the early tail path
 const OBJECT_UPDATE = 0x20d4;
 const SP0 = 0x8fe0; // inside STACK_SCRATCH

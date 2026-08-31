@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_0038 } from "./loc_0038.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { advanceEnemyAnimationPhase } from "./advanceEnemyAnimationPhase.js";
 import { loc_8d45, OBJECT_STATE8_ANIM_TABLE, OBJECT_ANIM_DISPLAY_CMD_BASE } from "./names.js";
@@ -31,7 +31,7 @@ export function armEnemyState8Animation(m, rec = m.regs.ix) {
       animIndex = 0; // child index was 0xff
     } else {
       animIndex = (Math.min(difficulty, DIFF_CLAMP) + 6) & 0xff;
-      loc_0038(m, OBJECT_ANIM_DISPLAY_CMD_BASE + animIndex);
+      enqueueDisplayCommand(m, OBJECT_ANIM_DISPLAY_CMD_BASE + animIndex);
       timerReseed = TIMER_RESEED_ANIM;
     }
   }
@@ -42,7 +42,7 @@ export function armEnemyState8Animation(m, rec = m.regs.ix) {
     const stepped = (animIndex + 1) & 0xff;
     index = mem8[loc_8d45] !== 0 ? (stepped + 3) & 0xff : stepped;
   }
-  setActorAnimation(m, rec, loc_0c45(m, index, OBJECT_STATE8_ANIM_TABLE));
+  setActorAnimation(m, rec, fetchWordFromTableIndex(m, index, OBJECT_STATE8_ANIM_TABLE));
 
   const stateCell = u16(rec + 0x02);
   mem8[stateCell] = mem8[stateCell] + 1; // advance the object state

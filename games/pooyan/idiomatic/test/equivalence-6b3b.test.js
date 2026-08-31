@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6b3b (ROM 0x6b3b, Pooyan) — "deferred-object promoter". Bails
+ * Memory-equivalence test for promoteEnemyRecordsOnCountdownFire (ROM 0x6b3b, Pooyan) — "deferred-object promoter". Bails
  * unless the game-idle gate (0x8806), the busy latch (0x8d5f) and the round counter's low bit
  * (0x8907) are all clear. Then a countdown (0x8d5e): 0 idles, >1 decrements and returns, ==1 fires.
  * Firing arms the state (0x880a = 0x8d5f = 0x11, 0x8d5e = 0xff), scans the eleven enemy records
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6b3b as oracle } from "../../translated/loc_6b3b.js";
-import { loc_6b3b } from "../loc_6b3b.js";
+import { promoteEnemyRecordsOnCountdownFire } from "../promoteEnemyRecordsOnCountdownFire.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -98,12 +98,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: guard exits + countdown-decrement — loc_6b3b == oracle in RAM (−stack)", () => {
+test("EQUAL: guard exits + countdown-decrement — promoteEnemyRecordsOnCountdownFire == oracle in RAM (−stack)", () => {
   for (const { name, opts } of CASES) {
     const o = craft(opts);
     const c = craft(opts);
     oracle(o);
-    loc_6b3b(c);
+    promoteEnemyRecordsOnCountdownFire(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -112,7 +112,7 @@ test("EQUAL: guard exits + countdown-decrement — loc_6b3b == oracle in RAM (�
 
 // -- 2. FIRE ------------------------------------------------------------------
 
-test("FIRE: countdown==1 fires — loc_6b3b == oracle, and the promoted contract holds", () => {
+test("FIRE: countdown==1 fires — promoteEnemyRecordsOnCountdownFire == oracle, and the promoted contract holds", () => {
   const enemies = [];
   enemies[0] = { type: 0x06, saved: 0x33 }; // low boundary of the range -> promoted
   enemies[2] = { type: 0x19, saved: 0x44 }; // top of the range -> promoted
@@ -122,7 +122,7 @@ test("FIRE: countdown==1 fires — loc_6b3b == oracle, and the promoted contract
   const o = craft({ countdown: 0x01, enemies });
   const c = craft({ countdown: 0x01, enemies });
   oracle(o);
-  loc_6b3b(c);
+  promoteEnemyRecordsOnCountdownFire(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `FIRE: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -178,7 +178,7 @@ test("TEETH: a corrupted promoted-list byte is CAUGHT by the RAM diff", () => {
   const o = craft({ countdown: 0x01, enemies });
   const c = craft({ countdown: 0x01, enemies });
   oracle(o);
-  loc_6b3b(c);
+  promoteEnemyRecordsOnCountdownFire(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   const cell = PROMOTED_OBJECT_LIST + 2; // the saved-field byte of the first promoted entry
   c.mem.write8(cell, c.mem.read8(cell) ^ 0xff); // BUG: corrupt a promoted-list byte
@@ -192,7 +192,7 @@ test("TEETH: a wrong decremented countdown is CAUGHT by the RAM diff", () => {
   const o = craft({ countdown: 0x05 });
   const c = craft({ countdown: 0x05 });
   oracle(o);
-  loc_6b3b(c);
+  promoteEnemyRecordsOnCountdownFire(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   c.mem.write8(PENDING_OBJECT_COUNTDOWN, 0x03); // BUG: should be 4 (5 - 1), not 3
   const d = ramDiffMinusStack(o, c);

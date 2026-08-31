@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence test for blankActorSpriteBand (ROM 0x3553, Pooyan) — "blank an actor's sprite band".
  * The oracle clears A, copies IX into HL (push ix / pop hl), loads B := 0x17, and runs the
- * rst-0x10 run-fill helper (loc_0010) to write 0x17 zero bytes from HL, advancing HL. So it
+ * rst-0x10 run-fill helper (fillByteRun) to write 0x17 zero bytes from HL, advancing HL. So it
  * fills the 0x17-byte run [IX, IX+0x17) with zero.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES RAM, so

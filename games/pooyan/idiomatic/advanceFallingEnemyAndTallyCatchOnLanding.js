@@ -9,7 +9,7 @@ import {
 } from "./names.js";
 import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { advanceFallStep } from "./advanceFallStep.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { queueSoundCommands82And03 } from "./queueSoundCommands82And03.js";
 import { renderStageCountdownDigits } from "./renderStageCountdownDigits.js";
@@ -32,7 +32,7 @@ export function advanceFallingEnemyAndTallyCatchOnLanding(m, rec = m.regs.ix) {
   if (advanceFallStep(m, rec)) return; // still airborne
 
   const animIndex = ((mem8[rec + 0x07] & 0x03) - 1) & 0xff;
-  const anim = loc_0c45(m, animIndex, SPLASH_ANIM_TABLE_40A4);
+  const anim = fetchWordFromTableIndex(m, animIndex, SPLASH_ANIM_TABLE_40A4);
   setActorAnimation(m, rec, anim);
   mem8[rec + 0x02] = 0x02; // reset state
   mem8[rec + 0x11] = 0x20; // reset splash timer

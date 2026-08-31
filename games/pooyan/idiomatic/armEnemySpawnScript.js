@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import {
   SCRIPT_ADVANCE_GUARD,
   ROUND_COUNTER,
@@ -34,7 +34,7 @@ export function armEnemySpawnScript(m) {
   const { mem8 } = m;
   if (mem8[SCRIPT_ADVANCE_GUARD] !== 0) return; // script busy
 
-  let row = loc_0c45(m, mem8[ROUND_COUNTER] & ROUND_MASK, SCRIPT_ROW_TABLE);
+  let row = fetchWordFromTableIndex(m, mem8[ROUND_COUNTER] & ROUND_MASK, SCRIPT_ROW_TABLE);
   const stage = mem8[STAGE_COUNTDOWN];
   if (stage < STAGE_FLOOR) return; // stage below 7
 
@@ -50,13 +50,13 @@ export function armEnemySpawnScript(m) {
   const value = mem8[u16(row + 1)];
   mem8[SCRIPT_VALUE_BYTE] = value;
 
-  const dataA = loc_0c45(m, value, SCRIPT_DATA_TABLE_A);
+  const dataA = fetchWordFromTableIndex(m, value, SCRIPT_DATA_TABLE_A);
   mem8[SCRIPT_DELAY_TIMER] = mem8[dataA];
   const ptr = u16(dataA + 1);
   mem8[SCRIPT_DATA_PTR] = ptr; // low byte (the store truncates)
   mem8[SCRIPT_DATA_PTR + 1] = ptr >> 8;
 
-  const dataB = loc_0c45(m, value, SCRIPT_DATA_TABLE_B);
+  const dataB = fetchWordFromTableIndex(m, value, SCRIPT_DATA_TABLE_B);
   mem8[ALT_TARGET_TABLE_PTR] = dataB; // low byte
   mem8[ALT_TARGET_TABLE_PTR + 1] = dataB >> 8;
 

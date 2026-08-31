@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_365d (ROM 0x365d, Pooyan) — the pre-spawn gate. When the record's
+ * Memory-equivalence test for spawnObjectGatedByArmedActorCount (ROM 0x365d, Pooyan) — the pre-spawn gate. When the record's
  * arm bit (ix+0x0b bit0) is set it counts the enemy-actor records in the spawn state and bails
  * unless exactly one is found; otherwise it seats the sprite-object scan window and tails into the
  * slot scanner (0x3680).
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_365d as oracle } from "../../translated/loc_365d.js";
-import { loc_365d } from "../loc_365d.js";
+import { spawnObjectGatedByArmedActorCount } from "../spawnObjectGatedByArmedActorCount.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { ENEMY_ACTOR_TABLE, STACK_SCRATCH } from "../names.js";
@@ -80,12 +80,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_365d == oracle in RAM (−stack) and in A", () => {
+test("EQUAL: spawnObjectGatedByArmedActorCount == oracle in RAM (−stack) and in A", () => {
   for (const { name, cfg } of CASES) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    loc_365d(c);
+    spawnObjectGatedByArmedActorCount(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(c.regs.a, o.regs.a, `${name}: A live-out diverged: oracle=${hx(o.regs.a)} module=${hx(c.regs.a)}`);
@@ -132,7 +132,7 @@ test("TEETH: an always-tail twin (ignores the count guard) diverges on a bail in
   const o = craft({ arm: true, spawnCount: 0 }); // oracle bails, RAM unchanged
   const c = craft({ arm: true, spawnCount: 0 });
   oracle(o);
-  loc_365d(c);
+  spawnObjectGatedByArmedActorCount(c);
   // planting a bail-path RAM write in the module's copy models an always-tail twin's spurious write
   c.mem.write8(REC + 0x14, (o.mem.read8(REC + 0x14) ^ 0xff) & 0xff);
   assert.notEqual(ramDiffMinusStack(o, c), null, "the RAM diff FAILED to catch a bail-path write");
@@ -143,7 +143,7 @@ test("TEETH: a wrong seeded byte on the tail path is CAUGHT by the RAM diff", ()
   const o = craft({ arm: false });
   const c = craft({ arm: false });
   oracle(o);
-  loc_365d(c);
+  spawnObjectGatedByArmedActorCount(c);
   c.mem.write8(REC + 0x0c, (o.mem.read8(REC + 0x0c) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted tail-path byte");

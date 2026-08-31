@@ -22,8 +22,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { advanceLeadActorPrimaryState } from "../advanceLeadActorPrimaryState.js";
 import { runLaunchAndTargetActorPipeline } from "../runLaunchAndTargetActorPipeline.js";
-import { loc_25a6 } from "../loc_25a6.js";
-import { loc_308b } from "../loc_308b.js";
+import { renderMarkerColumnExtendOrRetract } from "../renderMarkerColumnExtendOrRetract.js";
+import { dispatchFormationPhaseOrQueueLaunchSlots } from "../dispatchFormationPhaseOrQueueLaunchSlots.js";
 import { enqueueSoundCommandRing } from "../enqueueSoundCommandRing.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
@@ -69,8 +69,8 @@ function craft(freeze) {
 function loc_241e_missingPush(m) {
   const { mem8 } = m;
   runLaunchAndTargetActorPipeline(m);
-  loc_25a6(m);
-  loc_308b(m);
+  renderMarkerColumnExtendOrRetract(m);
+  dispatchFormationPhaseOrQueueLaunchSlots(m);
   if (mem8[TAMPER_FREEZE_FLAG] !== 0) return;
   m.regs.ix = ACTOR_TABLE;
   m.regs.a = mem8[ACTOR_TABLE + 0x02] & 0x07;

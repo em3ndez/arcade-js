@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_118d (ROM 0x118d) — "sweep a run of actor records, initialise the
+ * Memory-equivalence test for spawnHunterIntoFreeSlot (ROM 0x118d) — "sweep a run of actor records, initialise the
  * first free one." For up to B records a 0x18 stride apart it hands each to the per-record initialiser
  * (loc_119a) with a fixed 0x1d seed; the first free record is seeded and the sweep ends there.
  *
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_118d as oracle } from "../../translated/loc_118d.js";
-import { loc_118d } from "../loc_118d.js";
+import { spawnHunterIntoFreeSlot } from "../spawnHunterIntoFreeSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -84,12 +84,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_118d == oracle in RAM (−stack) across every sweep outcome", () => {
+test("EQUAL: spawnHunterIntoFreeSlot == oracle in RAM (−stack) across every sweep outcome", () => {
   for (const { name, active } of CASES) {
     const o = seat(active);
     const c = seat(active);
     oracle(o);
-    loc_118d(c);
+    spawnHunterIntoFreeSlot(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   }
@@ -101,7 +101,7 @@ test("EQUAL: loc_118d == oracle in RAM (−stack) across every sweep outcome", (
 test("WRITE-SET: the first free record is seeded; a later free record is left alone", () => {
   // slot 0 active, slots 1..5 free -> the sweep must seed slot 1 and stop before slot 2.
   const c = seat([0]);
-  loc_118d(c);
+  spawnHunterIntoFreeSlot(c);
 
   assert.equal(c.mem.read8(recAddr(1)), 0x01, "first free record marked active");
   assert.equal(c.mem.read8(recAddr(1) + 0x02), OPENING_STATE, "first free record given the opening state");
@@ -115,7 +115,7 @@ test("WRITE-SET: an all-active run writes nothing", () => {
   const before = seat([0, 1, 2, 3, 4, 5]);
   const after = seat([0, 1, 2, 3, 4, 5]);
   const b0 = before.dumpState();
-  loc_118d(after);
+  spawnHunterIntoFreeSlot(after);
   const a1 = after.dumpState();
   let changed = 0;
   for (let off = 0; off < b0.length; off++) if (b0[off] !== a1[off]) changed++;
@@ -129,7 +129,7 @@ test("TEETH: a corrupted seed byte is CAUGHT by the RAM diff", () => {
   const o = seat([0]);
   const c = seat([0]);
   oracle(o);
-  loc_118d(c);
+  spawnHunterIntoFreeSlot(c);
   c.mem.write8(recAddr(1) + 0x04, (o.mem.read8(recAddr(1) + 0x04) ^ 0xff) & 0xff); // BUG: wrong seed
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted seed byte — it is worthless");
@@ -143,7 +143,7 @@ test("TEETH: a continued sweep (no abort) would diverge — stop-after-first is 
   const o = seat([]);
   const c = seat([]);
   oracle(o);
-  loc_118d(c);
+  spawnHunterIntoFreeSlot(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: idiomatic matches the oracle (seed slot 0 only)");
   c.mem.write8(recAddr(1) + 0x04, SEED); // forge a second seed as if the sweep never aborted
   const d = ramDiffMinusStack(o, c);

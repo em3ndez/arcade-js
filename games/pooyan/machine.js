@@ -12,7 +12,7 @@ import {
 import { Regs } from "../../core/cpu/z80.js";
 import { makeIndexedView } from "../../core/mem-views.js";
 import { buildRoutines } from "./routines.js";
-import { loc_0066 } from "./idiomatic/loc_0066.js";
+import { enterVblankService } from "./idiomatic/enterVblankService.js";
 
 /** 3.072MHz / 60.606061 Hz. htotal*vtotal = 384*264 pixel clocks at 6.144MHz, halved to Z80 cycles.
  *  This is the dkong/thepit figure, NOT timeplt's exact 60 / 51200 -- do not copy timeplt's timing. */
@@ -165,7 +165,7 @@ export class Machine {
     if (this.idiomaticNmi) {
       // Idiomatic engine: the vblank handler is pure JS, fired directly -- no guest push, no call/ret seam, so SP is unused.
       this.nmiCount += 1;
-      return loc_0066(this);
+      return enterVblankService(this);
     }
     if (!this.pcKnown) {
       throw new Error(

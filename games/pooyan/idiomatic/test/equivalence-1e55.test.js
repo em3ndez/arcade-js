@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1e55 (ROM 0x1e55) — "sample the joystick into the player-actor
+ * Memory-equivalence test for sampleJoystickIntoPlayerAimState (ROM 0x1e55) — "sample the joystick into the player-actor
  * state byte": abort/freeze flags zero the state byte; an inactive game leaves it untouched;
  * otherwise the complemented live joystick becomes the state byte and its bit 4 is rotated into a
  * shift latch, which in turn decides whether the state byte's bit 4 is cleared.
  *
- * This is the cycle-free / memory-equivalence gate. loc_1e55 takes NO register inputs and returns via
+ * This is the cycle-free / memory-equivalence gate. sampleJoystickIntoPlayerAimState takes NO register inputs and returns via
  * a plain ret, so the contract is RAM only (dumpState minus STACK_SCRATCH) — no register live-out
  * (A/IX/IY are scratch, unconsumed). pc/SP/cycles are not compared. The joystick is read from the
  * hardware input ports (IN1 0xa0a0 upright, IN2 0xa0c0 flipped); the test drives them through io.in1
  * / io.in2, seeded identically on both clones.
  *
  * Jobs:
- *   1. EQUAL — every abort/gate/input arm: oracle == loc_1e55 in RAM (−stack).
+ *   1. EQUAL — every abort/gate/input arm: oracle == sampleJoystickIntoPlayerAimState in RAM (−stack).
  *   2. WRITE-SET — the input path writes exactly {PLAYER_AIM_FLAGS, INPUT_ROTATE_LATCH}; the gate-
  *      closed arm writes nothing.
  *   3. CRAFTED — the keep-vs-clear split is isolated by the OLD latch value with a fixed input; both
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1e55 as oracle } from "../../translated/loc_1e55.js";
-import { loc_1e55 } from "../loc_1e55.js";
+import { sampleJoystickIntoPlayerAimState } from "../sampleJoystickIntoPlayerAimState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -94,12 +94,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: every arm — loc_1e55 == oracle in RAM (−stack)", () => {
+test("EQUAL: every arm — sampleJoystickIntoPlayerAimState == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    loc_1e55(c);
+    sampleJoystickIntoPlayerAimState(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (${cfg.name})`);
   }
@@ -140,7 +140,7 @@ test("CRAFTED: latch keep vs clear isolated by the old latch value (both == orac
   const keep = craft(CASES[6]); // old latch 0 -> new latch 1, low3==1 -> keep the complement 0x10
   const keepO = craft(CASES[6]);
   oracle(keepO);
-  loc_1e55(keep);
+  sampleJoystickIntoPlayerAimState(keep);
   assert.equal(keep.mem.read8(AIM), 0x10, "keep: state byte is the complement 0x10");
   assert.equal(keep.mem.read8(LATCH), 0x01, "keep: latch shifted to 1");
   assert.equal(ramDiffMinusStack(keepO, keep), null, "keep arm matches oracle");
@@ -148,7 +148,7 @@ test("CRAFTED: latch keep vs clear isolated by the old latch value (both == orac
   const clr = craft(CASES[7]); // old latch 1 -> new latch 3, low3!=1 -> clear bit4 -> 0x00
   const clrO = craft(CASES[7]);
   oracle(clrO);
-  loc_1e55(clr);
+  sampleJoystickIntoPlayerAimState(clr);
   assert.equal(clr.mem.read8(AIM), 0x00, "clear: bit4 cleared to 0x00");
   assert.equal(clr.mem.read8(LATCH), 0x03, "clear: latch shifted to 3");
   assert.equal(ramDiffMinusStack(clrO, clr), null, "clear arm matches oracle");
@@ -161,7 +161,7 @@ test("TEETH: a wrong state byte is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[6]);
   const c = craft(CASES[6]);
   oracle(o);
-  loc_1e55(c);
+  sampleJoystickIntoPlayerAimState(c);
   c.mem.write8(AIM, 0x77); // BUG: wrong state byte
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong state byte");
@@ -173,7 +173,7 @@ test("TEETH: a wrong latch is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[7]);
   const c = craft(CASES[7]);
   oracle(o);
-  loc_1e55(c);
+  sampleJoystickIntoPlayerAimState(c);
   c.mem.write8(LATCH, 0x00); // BUG: latch not advanced
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong latch");

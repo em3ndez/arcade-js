@@ -8,7 +8,7 @@
  * return: it does the real memory writes (zero the selected record body, enqueue the sound
  * command) and returns a JS boolean — `false` = the pop-af skip path, `true` = a plain ret.
  * This routine takes ONLY the pop-af path, so the module always returns false; the caller
- * (loc_62e6) reads that and aborts in place of the discarded frame.
+ * (applyRoundDeltaAndRearmMatchedRecord) reads that and aborts in place of the discarded frame.
  *
  * Fidelity contract: RAM (dumpState, minus STACK_SCRATCH) PLUS the boolean return matching
  * which path the oracle took. pc/SP/cycles/register-file are NOT compared: the pop-af abort

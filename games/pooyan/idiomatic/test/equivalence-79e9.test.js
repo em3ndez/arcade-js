@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_79e9 (ROM 0x79e9, Pooyan) — "code-region integrity self-check".
+ * Memory-equivalence test for verifyRoutineChecksumOrDivert (ROM 0x79e9, Pooyan) — "code-region integrity self-check".
  * Sums the bytes of the routine based at 0x68ac (forward until the terminating 0xc9 ret opcode)
  * into a 16-bit accumulator (low byte + carry count as the high byte) and matches it against the
  * stored word at 0x7a0b/0x7a0c. A low-byte miss throws (integrity trap); a high-byte miss diverts
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_79e9 as oracle } from "../../translated/loc_79e9.js";
-import { loc_79e9 } from "../loc_79e9.js";
+import { verifyRoutineChecksumOrDivert } from "../verifyRoutineChecksumOrDivert.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -73,7 +73,7 @@ function independentChecksum() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_79e9 == oracle in RAM (−stack) + DE, and DE == the independent checksum", () => {
+test("EQUAL: verifyRoutineChecksumOrDivert == oracle in RAM (−stack) + DE, and DE == the independent checksum", () => {
   const expected = independentChecksum();
   const storedWord = ROM[CHECKSUM_WORD] | (ROM[CHECKSUM_WORD + 1] << 8);
   assert.equal(expected, storedWord, `self-check should match on an intact ROM: computed ${hx(expected)} vs stored ${hx(storedWord)}`);
@@ -81,7 +81,7 @@ test("EQUAL: loc_79e9 == oracle in RAM (−stack) + DE, and DE == the independen
   const o = craft();
   const c = craft();
   oracle(o);
-  const ret = loc_79e9(c);
+  const ret = verifyRoutineChecksumOrDivert(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -114,7 +114,7 @@ test("TEETH: a wrong DE is CAUGHT by the live-out check", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  const ret = loc_79e9(c);
+  const ret = verifyRoutineChecksumOrDivert(c);
   assert.equal(ret & 0xffff, o.regs.de & 0xffff, "sanity: module DE matches the oracle");
   // an off-by-one checksum is a plausible bug the DE equality must reject
   assert.notEqual((ret + 1) & 0xffff, o.regs.de & 0xffff, "the DE live-out check must reject an off-by-one checksum");
@@ -125,7 +125,7 @@ test("TEETH: an injected RAM write is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_79e9(c);
+  verifyRoutineChecksumOrDivert(c);
   c.mem.write8(SCRATCH_CELL, (c.mem.read8(SCRATCH_CELL) ^ 0x5a) & 0xff); // BUG: a write this routine never makes
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch an injected RAM write — the RAM arm is worthless");

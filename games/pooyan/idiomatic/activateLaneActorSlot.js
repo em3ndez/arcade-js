@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_53a0 } from "./loc_53a0.js";
-import { loc_0020 } from "./loc_0020.js";
+import { seedSpawnColumnAndRunBody } from "./seedSpawnColumnAndRunBody.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { ACTIVE_LANE_COUNT, ROUND_COUNTER, SCRIPT_FLAG_TABLE, SCRIPT_VALUE_BYTE } from "./names.js";
 /**
  * activateLaneActorSlot — one-shot activator for the lane-actor record at IX.
@@ -21,9 +21,9 @@ export function activateLaneActorSlot(m, ix = m.regs.ix) {
   mem8[ix + 0x00] = 0x01;
   const kind = (mem8[ROUND_COUNTER] & 0x01) ? 0x1d : 0x04; // E by round parity
 
-  loc_53a0(m, ix, kind); // spawn-one-actor wrapper: seeds C=0xff then runs the spawn body
+  seedSpawnColumnAndRunBody(m, ix, kind); // spawn-one-actor wrapper: seeds C=0xff then runs the spawn body
 
-  const [flag] = loc_0020(m, SCRIPT_FLAG_TABLE, mem8[SCRIPT_VALUE_BYTE]);
+  const [flag] = fetchByteFromTableIndex(m, SCRIPT_FLAG_TABLE, mem8[SCRIPT_VALUE_BYTE]);
   mem8[ix + 0x07] = flag | mem8[ix + 0x07];
 
   return false; // activated -> abort the sweep

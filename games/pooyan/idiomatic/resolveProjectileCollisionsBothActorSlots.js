@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_6381 } from "./loc_6381.js";
+import { seedAndRunTargetProximityScan } from "./seedAndRunTargetProximityScan.js";
 import { SPRITE_ACTOR_RECORD_SLOTS } from "./names.js";
 /**
  * resolveProjectileCollisionsBothActorSlots — run the projectile-proximity scan against the two actor boxes, once per pass.
@@ -19,7 +19,7 @@ export function resolveProjectileCollisionsBothActorSlots(m) {
   let box = SPRITE_ACTOR_RECORD_SLOTS;
   let selector = 0x00; // interrupt-parity selector: 0 for the first box
   for (let pass = PASS_COUNT; pass > 0; pass--) {
-    if (!loc_6381(m, box, selector)) return; // a hit was claimed — skip the remaining pass
+    if (!seedAndRunTargetProximityScan(m, box, selector)) return; // a hit was claimed — skip the remaining pass
     box = u16(box + BOX_STRIDE);
     selector = BOX_STRIDE; // the second box selects on the stride value (=4)
   }

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1ab2 (Pooyan) — "insert a score into the sorted ten-entry
+ * Memory-equivalence test for insertScoreIntoHighScoreTable (Pooyan) — "insert a score into the sorted ten-entry
  * high-score table": scan MSB-first for the rank the just-finished player's score reaches or
  * beats, open a 3-byte slot by shifting the tail down one entry, write the score, and ride two
  * parallel side tables (a play-time pair + a gate marker, and a display-tile side table whose new
  * cells are cleared to the blank tile).
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES RAM, so each
- * case runs the oracle on one FRESH clone and loc_1ab2 on another, compared on:
+ * case runs the oracle on one FRESH clone and insertScoreIntoHighScoreTable on another, compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1ab2 as oracle } from "../../translated/loc_1ab2.js";
-import { loc_1ab2 } from "../loc_1ab2.js";
+import { insertScoreIntoHighScoreTable } from "../insertScoreIntoHighScoreTable.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -149,12 +149,12 @@ function inFootprint(addr) {
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted inserts — loc_1ab2 == oracle in RAM(−stack)", () => {
+test("EQUAL: crafted inserts — insertScoreIntoHighScoreTable == oracle in RAM(−stack)", () => {
   for (const c of CASES) {
     const o = craft(c.player, c.score);
     const k = craft(c.player, c.score);
     oracle(o);
-    loc_1ab2(k);
+    insertScoreIntoHighScoreTable(k);
     const d = ramDiffMinusStack(o, k);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b} (${c.name})`);
   }
@@ -212,7 +212,7 @@ test("TEETH: a wrong inserted score byte is CAUGHT by the RAM diff", () => {
   const o = craft(c.player, c.score);
   const k = craft(c.player, c.score);
   oracle(o);
-  loc_1ab2(k);
+  insertScoreIntoHighScoreTable(k);
   const slotHi = HIGH_SCORE_TABLE + 2;
   k.mem.write8(slotHi, (c.score[2] ^ 0xff) & 0xff); // BUG: wrong inserted score hi byte
 
@@ -227,7 +227,7 @@ test("TEETH: a wrong rank cell is CAUGHT by the RAM diff", () => {
   const o = craft(c.player, c.score);
   const k = craft(c.player, c.score);
   oracle(o);
-  loc_1ab2(k);
+  insertScoreIntoHighScoreTable(k);
   k.mem.write8(HIGH_SCORE_INSERT_RANK, (c.rank + 2) & 0xff); // BUG: off-by-one rank
 
   const d = ramDiffMinusStack(o, k);

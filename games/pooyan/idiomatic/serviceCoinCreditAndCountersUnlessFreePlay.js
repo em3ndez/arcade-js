@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_5a06 } from "./loc_5a06.js";
+import { accrueCreditFromDripRingA } from "./accrueCreditFromDripRingA.js";
 import { accrueCreditFromCoin1Pulse } from "./accrueCreditFromCoin1Pulse.js";
 import { accrueCreditsFromCoinSlot2 } from "./accrueCreditsFromCoinSlot2.js";
-import { loc_5a9c } from "./loc_5a9c.js";
-import { loc_7e6d } from "./loc_7e6d.js";
+import { pulseCoinCounter1Latch } from "./pulseCoinCounter1Latch.js";
+import { bumpTamperStrikeOnRomChecksumMiss } from "./bumpTamperStrikeOnRomChecksumMiss.js";
 import { pulseCoinCounter2Latch } from "./pulseCoinCounter2Latch.js";
 import { COINAGE_CONFIG, COINAGE_CONFIG_SLOT2 } from "./names.js";
 /**
@@ -23,10 +23,10 @@ export function serviceCoinCreditAndCountersUnlessFreePlay(m) {
   if (mem8[COINAGE_CONFIG] === FREE_PLAY) return; // slot 1 free play
   if (mem8[COINAGE_CONFIG_SLOT2] === FREE_PLAY) return; // slot 2 free play
 
-  loc_5a06(m);
+  accrueCreditFromDripRingA(m);
   accrueCreditFromCoin1Pulse(m);
   accrueCreditsFromCoinSlot2(m);
-  loc_5a9c(m);
-  loc_7e6d(m);
+  pulseCoinCounter1Latch(m);
+  bumpTamperStrikeOnRomChecksumMiss(m);
   return pulseCoinCounter2Latch(m); // tail
 }

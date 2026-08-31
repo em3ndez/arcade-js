@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_250f } from "./loc_250f.js";
+import { seedFourRecordsAndCopyDisplayTiles } from "./seedFourRecordsAndCopyDisplayTiles.js";
 import { SCORE_DRIP_ACCUM, PLAY_STATE_INDEX, TAMPER_STRIKES_HUD_GUARD } from "./names.js";
 
 const HOLD_FIELD = 0x11; //  per-record frame-delay countdown
@@ -23,5 +23,5 @@ export function advancePlayStateToPhase7OnActorDelay(m, rec = m.regs.ix) {
   mem8[shapePtr] = SHAPE_FLAG;
 
   if (mem8[TAMPER_STRIKES_HUD_GUARD] === 0) return;
-  return loc_250f(m, shapePtr, rec); // reload a shape from the pointer just written
+  return seedFourRecordsAndCopyDisplayTiles(m, shapePtr, rec); // reload a shape from the pointer just written
 }

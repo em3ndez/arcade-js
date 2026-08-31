@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_343e (ROM 0x343e) — object X-movement handler for the record at
+ * Memory-equivalence test for advanceActorColumnAndArmTurnOrBand (ROM 0x343e) — object X-movement handler for the record at
  * IX. Advances the sub-position (rec+0x05) by the delta (rec+0x09) with a carry into the column
  * (rec+0x06), then compares the masked column against the turn-column limit and branches: below the
  * limit it returns; above it flags rec+0x08 and arms the turn-around animation (setActorAnimation
  * with pointer 0x3838); at the limit it gates on the play sub-state and delta, then either latches
  * rec+0x01 (band already armed) or, on the first arm, bumps the capped phase snapshot, looks up the
  * new turn-column limit (rst-0x20 table 0x3418), stamps the interior sprite band, sets the armed
- * latch, and tails into loc_34b0.
+ * latch, and tails into despawnActorAndRenderStageCountdown.
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so every case uses a FRESH clone
  * per side. Contract: RAM (dumpState minus STACK_SCRATCH) ONLY — every callee is memory-only and
@@ -20,7 +20,7 @@
  * identically on both sides.
  *
  * Jobs:
- *   1. EQUAL — below/at/above the limit, the carry-into-column path, the turn arm, the loc_34b0
+ *   1. EQUAL — below/at/above the limit, the carry-into-column path, the turn arm, the despawnActorAndRenderStageCountdown
  *      tail, the already-armed latch, and the full band-build path all agree in RAM (−stack).
  *   2. WRITE-SET — the turn-arm path writes exactly rec+0x05, rec+0x08, and the animation triple
  *      rec+0x0c/0x0d/0x0e (points at pointer 0x3838, frame index 0).
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_343e as oracle } from "../../translated/loc_343e.js";
-import { loc_343e } from "../loc_343e.js";
+import { advanceActorColumnAndArmTurnOrBand } from "../advanceActorColumnAndArmTurnOrBand.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -94,12 +94,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: all branch paths — loc_343e == oracle in RAM (−stack)", () => {
+test("EQUAL: all branch paths — advanceActorColumnAndArmTurnOrBand == oracle in RAM (−stack)", () => {
   for (const scn of CASES) {
     const o = craft(scn);
     const c = craft(scn);
     oracle(o);
-    loc_343e(c);
+    advanceActorColumnAndArmTurnOrBand(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${scn.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -109,10 +109,10 @@ test("EQUAL: all branch paths — loc_343e == oracle in RAM (−stack)", () => {
 // -- 2. WRITE-SET -------------------------------------------------------------
 
 test("WRITE-SET: the turn-arm path writes exactly rec+0x05/0x08 + the animation triple", () => {
-  const scn = CASES[2]; // above-limit turn arm (no loc_34b0 tail: a clean, enumerable footprint)
+  const scn = CASES[2]; // above-limit turn arm (no despawnActorAndRenderStageCountdown tail: a clean, enumerable footprint)
   const c = craft(scn);
   const before = c.dumpState();
-  loc_343e(c);
+  advanceActorColumnAndArmTurnOrBand(c);
   const after = c.dumpState();
 
   const changed = [];
@@ -138,7 +138,7 @@ test("TEETH: a wrong sprite-band byte on the build path is CAUGHT by the RAM dif
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_343e(c);
+  advanceActorColumnAndArmTurnOrBand(c);
   c.mem.write8(BAND + 0x20, 0x00); // BUG: the third band cell must be 0xda, not 0x00
 
   const d = ramDiffMinusStack(o, c);
@@ -152,7 +152,7 @@ test("TEETH: a wrong turn flag on the arm path is CAUGHT by the RAM diff", () =>
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_343e(c);
+  advanceActorColumnAndArmTurnOrBand(c);
   c.mem.write8(REC + 0x08, 0x00); // BUG: the arm must flag rec+0x08 = 1
 
   const d = ramDiffMinusStack(o, c);

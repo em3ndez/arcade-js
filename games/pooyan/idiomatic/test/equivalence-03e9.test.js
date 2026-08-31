@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_03e9 (ROM 0x03e9, Pooyan) — "paint the HUD / score panels".
+ * Memory-equivalence test for paintAttractHudAndHighScores (ROM 0x03e9, Pooyan) — "paint the HUD / score panels".
  * Draws eleven selector-indexed character fields, renders the ten-entry high-score table
  * (0x8a00, three bytes per row) as stacked BCD digit pairs into the column at 0x85c7 (each byte's
  * low then high nibble a row apart, the third pair's high nibble leading-zero suppressed, the
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_03e9 as oracle } from "../../translated/loc_03e9.js";
-import { loc_03e9 } from "../loc_03e9.js";
+import { paintAttractHudAndHighScores } from "../paintAttractHudAndHighScores.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, HIGH_SCORE_TABLE } from "../names.js";
@@ -89,12 +89,12 @@ const TABLE_SUPPRESS = Array.from({ length: TABLE_BYTES }, (_, i) => (i % 3 === 
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted high-score tables — loc_03e9 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted high-score tables — paintAttractHudAndHighScores == oracle in RAM (−stack)", () => {
   for (const [name, table] of [["all non-zero", TABLE_FULL], ["suppress path", TABLE_SUPPRESS]]) {
     const o = craft(table);
     const c = craft(table);
     oracle(o);
-    loc_03e9(c);
+    paintAttractHudAndHighScores(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -105,7 +105,7 @@ test("EQUAL: crafted high-score tables — loc_03e9 == oracle in RAM (−stack)"
 
 test("WRITE-SET: every score nibble tile lands at its independently-derived cell", () => {
   const c = craft(TABLE_FULL);
-  loc_03e9(c);
+  paintAttractHudAndHighScores(c);
   const cells = scoreCells(TABLE_FULL);
   assert.equal(cells.length, 60, `all-non-zero table should write 60 score cells, derived ${cells.length}`);
   for (const { addr, val } of cells) {
@@ -120,7 +120,7 @@ test("TEETH: a wrong score nibble tile is CAUGHT by the RAM diff", () => {
   const o = craft(TABLE_FULL);
   const c = craft(TABLE_FULL);
   oracle(o);
-  loc_03e9(c);
+  paintAttractHudAndHighScores(c);
   c.mem.write8(CURSOR0, (c.mem.read8(CURSOR0) ^ 0x0f) & 0xff); // BUG: wrong first units digit
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong score tile — it is worthless");

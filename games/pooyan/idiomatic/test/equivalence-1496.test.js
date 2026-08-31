@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1496 (Pooyan) — advance one object record (based at IX).
+ * Memory-equivalence test for advanceRisingActorThenSettleOrArmDrop (Pooyan) — advance one object record (based at IX).
  *
  * Steps the object's animation, walks the position field (+0x03) by the signed step (+0x0a) and
  * decrements the lap counter (+0x04) when the position ran below the step's negation, then gates on
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1496 as oracle } from "../../translated/loc_1496.js";
-import { loc_1496 } from "../loc_1496.js";
+import { advanceRisingActorThenSettleOrArmDrop } from "../advanceRisingActorThenSettleOrArmDrop.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, DROP_ANIM_DESCRIPTOR } from "../names.js";
@@ -77,12 +77,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1496 == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceRisingActorThenSettleOrArmDrop == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_1496(c);
+    advanceRisingActorThenSettleOrArmDrop(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -123,7 +123,7 @@ test("TEETH: a corrupted anim byte is CAUGHT; branches are load-bearing", () => 
   const o = seat({ active: 0x01, pos: 0x10, lap: 0x03 });
   const c = seat({ active: 0x01, pos: 0x10, lap: 0x03 });
   oracle(o);
-  loc_1496(c);
+  advanceRisingActorThenSettleOrArmDrop(c);
   c.mem.write8(ANIM, (o.mem.read8(ANIM) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted anim byte");

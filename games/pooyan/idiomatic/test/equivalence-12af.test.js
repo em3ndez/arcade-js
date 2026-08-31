@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_12af (ROM 0x12af) — per-object travel tick driven off IX.
+ * Memory-equivalence test for advanceEnemyTravelAndSpawnChildActors (ROM 0x12af) — per-object travel tick driven off IX.
  *
  * Steps the record's animation, then branches on the record base at IX:
- *   - rec+0x08 already set -> delegate to the velocity mover (loc_13fe);
+ *   - rec+0x08 already set -> delegate to the velocity mover (advanceActorPositionByVelocity);
  *   - else accumulate rec+0x05 += rec+0x09, carrying into rec+0x06;
- *   - STAGE_COUNTDOWN < 3 -> delegate to the spawn-cadence dispatch (loc_1399) with the accumulator;
+ *   - STAGE_COUNTDOWN < 3 -> delegate to the spawn-cadence dispatch (dispatchActorSpawnBySubStateAndPaceCadence) with the accumulator;
  *   - else fetch this round's target column (ANIM_SEQ_TABLE_12FB via ROUND_COUNTER, then a byte via
  *     ANIM_FRAME_COUNTER): coarse == target -> child-spawn guard; coarse < 0x14 -> ret (travelling);
  *     coarse >= 0x14 -> latch rec+0x08 := 1 and restart the record on ANIM_TABLE_3838.
  *
  * This is the memory-equivalence gate: the routine WRITES RAM (its own record cells plus everything
  * the delegate chains touch), so every case uses a FRESH clone per side, compared on RAM (dumpState,
- * minus STACK_SCRATCH) via firstStateDiff. pc/SP/cycles are NOT compared; loc_12af has no load-
+ * minus STACK_SCRATCH) via firstStateDiff. pc/SP/cycles are NOT compared; advanceEnemyTravelAndSpawnChildActors has no load-
  * bearing register/return output of its own — it forwards each delegate's tail.
  *
  * Bridge input: ix (the record base). Every read field is crafted per case: the flag, the sub/step
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_12af as oracle } from "../../translated/loc_12af.js";
-import { loc_12af } from "../loc_12af.js";
+import { advanceEnemyTravelAndSpawnChildActors } from "../advanceEnemyTravelAndSpawnChildActors.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -53,7 +53,7 @@ const OFF_SUB = 0x05; //    sub-position accumulator
 const OFF_COARSE = 0x06; // coarse position / lap counter
 const OFF_FLAG = 0x08; //   latched-done flag
 const OFF_STEP = 0x09; //   per-tick sub-position step
-const OFF_VEL = 0x0a; //    velocity (read by the loc_13fe delegate)
+const OFF_VEL = 0x0a; //    velocity (read by the advanceActorPositionByVelocity delegate)
 const OFF_HOLD = 0x0e; //   animation frame-hold (nonzero -> plain decrement)
 const SP0 = 0x8fe0; //      inside STACK_SCRATCH
 
@@ -66,7 +66,7 @@ function ramDiffMinusStack(ma, mb) {
 
 const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 
-/** The target column loc_12af fetches for (round, frame) — same ROM read both sides perform. */
+/** The target column advanceEnemyTravelAndSpawnChildActors fetches for (round, frame) — same ROM read both sides perform. */
 function computeTarget(round, frame) {
   const off = ((((round & 0x1f) >> 2) << 1)) & 0xff;
   const wordPtr = (ANIM_SEQ_TABLE_12FB + off) & 0xffff;
@@ -93,9 +93,9 @@ function craft({ ix, flag, sub, step, coarse, vel = 0x00, countdown, round = 0x0
 const T00 = ROM_PRESENT ? computeTarget(0x00, 0x00) : 0; // target round0/frame0 (ROM-guarded: skip path)
 
 const CASES = [
-  { name: "flagged -> loc_13fe mover", ix: 0x8300, flag: 0x01, sub: 0x40, step: 0x10, coarse: 0x05, vel: 0xe0, countdown: 0x05 },
-  { name: "no-carry, stage<3 -> loc_1399", ix: 0x8320, flag: 0x00, sub: 0x10, step: 0x05, coarse: 0x03, countdown: 0x01 },
-  { name: "carry -> inc coarse, stage<3 -> loc_1399", ix: 0x8340, flag: 0x00, sub: 0xf0, step: 0x20, coarse: 0x08, countdown: 0x02 },
+  { name: "flagged -> advanceActorPositionByVelocity mover", ix: 0x8300, flag: 0x01, sub: 0x40, step: 0x10, coarse: 0x05, vel: 0xe0, countdown: 0x05 },
+  { name: "no-carry, stage<3 -> dispatchActorSpawnBySubStateAndPaceCadence", ix: 0x8320, flag: 0x00, sub: 0x10, step: 0x05, coarse: 0x03, countdown: 0x01 },
+  { name: "carry -> inc coarse, stage<3 -> dispatchActorSpawnBySubStateAndPaceCadence", ix: 0x8340, flag: 0x00, sub: 0xf0, step: 0x20, coarse: 0x08, countdown: 0x02 },
   { name: "stage>=3, coarse==target -> spawn guard", ix: 0x8360, flag: 0x00, sub: 0x10, step: 0x05, coarse: T00, vel: 0x00, countdown: 0x05, round: 0x00, frame: 0x00 },
   { name: "stage>=3, coarse<0x14 -> travelling ret", ix: 0x8380, flag: 0x00, sub: 0x10, step: 0x05, coarse: (T00 + 1) & 0xff, countdown: 0x05, round: 0x00, frame: 0x00 },
   { name: "stage>=3, coarse>=0x14 -> latch + setAnim", ix: 0x83a0, flag: 0x00, sub: 0x10, step: 0x05, coarse: 0x18, countdown: 0x05, round: 0x00, frame: 0x00 },
@@ -103,7 +103,7 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted records — loc_12af == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted records — advanceEnemyTravelAndSpawnChildActors == oracle in RAM (−stack)", () => {
   // The two coarse<0x14 / >=0x14 cases must actually differ from the target, or their arms collapse.
   assert.notEqual((T00 + 1) & 0xff, T00, "sanity: travelling case must differ from target");
   assert.notEqual(0x18, T00, "sanity: latch case must differ from target");
@@ -113,7 +113,7 @@ test("EQUAL: crafted records — loc_12af == oracle in RAM (−stack)", () => {
     const o = craft(cs);
     const c = craft(cs);
     oracle(o);
-    loc_12af(c);
+    advanceEnemyTravelAndSpawnChildActors(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(
       d,
@@ -130,7 +130,7 @@ test("WRITE-SET: accumulator advances, carry bumps coarse, the end-arm latches t
   // no-carry accumulate: rec+0x05 := (sub+step)&0xff; coarse unchanged
   const nc = CASES[1];
   const c1 = craft(nc);
-  loc_12af(c1);
+  advanceEnemyTravelAndSpawnChildActors(c1);
   assert.equal(c1.mem.read8(nc.ix + OFF_SUB), (nc.sub + nc.step) & 0xff, "accumulator stored");
   assert.equal(c1.mem.read8(nc.ix + OFF_COARSE), nc.coarse & 0xff, "no carry -> coarse unchanged");
 
@@ -138,7 +138,7 @@ test("WRITE-SET: accumulator advances, carry bumps coarse, the end-arm latches t
   const cy = CASES[2];
   assert.ok(cy.sub + cy.step > 0xff, "sanity: carry case must overflow");
   const c2 = craft(cy);
-  loc_12af(c2);
+  advanceEnemyTravelAndSpawnChildActors(c2);
   assert.equal(c2.mem.read8(cy.ix + OFF_SUB), (cy.sub + cy.step) & 0xff, "accumulator stored (carry)");
   assert.equal(c2.mem.read8(cy.ix + OFF_COARSE), (cy.coarse + 1) & 0xff, "carry -> coarse incremented");
 
@@ -146,7 +146,7 @@ test("WRITE-SET: accumulator advances, carry bumps coarse, the end-arm latches t
   const lt = CASES[5];
   const c3 = craft(lt);
   assert.equal(c3.mem.read8(lt.ix + OFF_FLAG), 0x00, "flag starts clear");
-  loc_12af(c3);
+  advanceEnemyTravelAndSpawnChildActors(c3);
   assert.equal(c3.mem.read8(lt.ix + OFF_FLAG), 0x01, "end arm latches the flag");
   console.log("  WRITE-SET: rec+0x05 := (sub+step)&0xff; coarse += carry; end arm latches rec+0x08");
 });
@@ -158,7 +158,7 @@ test("TEETH: a corrupted accumulator is CAUGHT; branches are load-bearing", () =
   const o = craft(cs);
   const c = craft(cs);
   oracle(o);
-  loc_12af(c);
+  advanceEnemyTravelAndSpawnChildActors(c);
   const subAddr = (cs.ix + OFF_SUB) & 0xffff;
   c.mem.write8(subAddr, (c.mem.read8(subAddr) ^ 0xff) & 0xff); // BUG: wrong accumulator byte
 

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_308b (ROM 0x308b, Pooyan) — the formation manager.
+ * Memory-equivalence test for dispatchFormationPhaseOrQueueLaunchSlots (ROM 0x308b, Pooyan) — the formation manager.
  *
  * The module dispatches the formation phase through an idiomatic switch to the three phase handlers
- * and direct-calls the idiomatic epilogue (loc_32bd); the oracle drives the same handlers and
- * epilogue through the frozen rst-28 spine that new Machine(ROM) builds. loc_308b is a void manager — no register survives —
+ * and direct-calls the idiomatic epilogue (advanceWaveTeardownByState); the oracle drives the same handlers and
+ * epilogue through the frozen rst-28 spine that new Machine(ROM) builds. dispatchFormationPhaseOrQueueLaunchSlots is a void manager — no register survives —
  * so the register file is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH, SP
  * parked in dead stack so nested pushes drop out.
  *
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_308b as oracle } from "../../translated/loc_308b.js";
-import { loc_308b } from "../loc_308b.js";
+import { dispatchFormationPhaseOrQueueLaunchSlots } from "../dispatchFormationPhaseOrQueueLaunchSlots.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -112,12 +112,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_308b == oracle in RAM (−stack)", () => {
+test("EQUAL: dispatchFormationPhaseOrQueueLaunchSlots == oracle in RAM (−stack)", () => {
   for (const [label, craft] of Object.entries(CASES)) {
     const a = craft();
     const b = craft();
     oracle(a);
-    loc_308b(b);
+    dispatchFormationPhaseOrQueueLaunchSlots(b);
     const d = ramDiffMinusStack(a, b);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -149,7 +149,7 @@ test("TEETH: a wrong slot byte is CAUGHT by the RAM diff", () => {
   const a = craftFill();
   const b = craftFill();
   oracle(a);
-  loc_308b(b);
+  dispatchFormationPhaseOrQueueLaunchSlots(b);
   b.mem8[SLOT + 0] = (a.mem8[SLOT + 0] ^ 0xff) & 0xff; // corrupt the first stored pointer
   const d = ramDiffMinusStack(a, b);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted slot byte — worthless");

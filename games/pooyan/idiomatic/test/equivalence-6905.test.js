@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6905 (ROM 0x6905) — the delay-gated enemy spawn sweep, the
+ * Memory-equivalence test for spawnPairedEnemyOnDelaySweep (ROM 0x6905) — the delay-gated enemy spawn sweep, the
  * CALLER that composes the real idiomatic caller-skip loc_6931 (which itself composes
- * setActorAnimation, loc_0038 and queueRoundSoundCommandRun).
+ * setActorAnimation, enqueueDisplayCommand and queueRoundSoundCommandRun).
  *
- * loc_6905 gates on the shared frame-delay timer, then on the wave-arrival / wave-limit checks,
+ * spawnPairedEnemyOnDelaySweep gates on the shared frame-delay timer, then on the wave-arrival / wave-limit checks,
  * then walks eight enemy/state record pairs, spawning into the FIRST empty one and stopping —
  * loc_6931's `pop af; ret` skip aborts the sweep, so at most one pair spawns per call. The
  * idiomatic driver reproduces that with `if (!loc_6931(...)) return;`.
  *
- * ⚠ THE FROZEN ORACLE IS BUGGY HERE. The translated loc_6905 has no skip-propagation guard
+ * ⚠ THE FROZEN ORACLE IS BUGGY HERE. The translated spawnPairedEnemyOnDelaySweep has no skip-propagation guard
  * (unlike its sibling scanActorCollisionsBothSlots, which carries `if (m.pc !== <ret>) return`), so after loc_6931's
  * `pop af; ret` the JS loop keeps running and spawns EVERY empty pair — all eight from an
  * all-empty state (verified: WAVE_NUMBER 3 -> 11). Correct hardware spawns exactly one; the
@@ -20,7 +20,7 @@
  * documenting the exact divergence the dissolution corrects.
  *
  * Oracle drives the TRANSLATED subtree through the routines map; the module drives the IDIOMATIC
- * subtree by direct import. loc_6905 returns void; registers are loop bookkeeping and are NOT
+ * subtree by direct import. spawnPairedEnemyOnDelaySweep returns void; registers are loop bookkeeping and are NOT
  * compared. Cases are CRAFTED: a plain boot does not seat these record inputs directly.
  *
  * Jobs:
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6905 as oracle } from "../../translated/loc_6905.js";
-import { loc_6905 } from "../loc_6905.js";
+import { spawnPairedEnemyOnDelaySweep } from "../spawnPairedEnemyOnDelaySweep.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -146,7 +146,7 @@ for (const [label, craft] of [
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_6905(c);
+    spawnPairedEnemyOnDelaySweep(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (${label})`);
     console.log(`  EQUAL ${label}: RAM identical`);
@@ -159,7 +159,7 @@ test("ABORT: two empty pairs — module AND the guard-fixed oracle both spawn on
   const c = seatAllActive();
   makeEmpty(c, 0);
   makeEmpty(c, 1); // bait: a runaway sweep would spawn this too
-  loc_6905(c);
+  spawnPairedEnemyOnDelaySweep(c);
 
   assert.equal(c.mem.read8(ixOf(0)), 0x01, "module: pair 0 spawned");
   assert.equal(c.mem.read8(ixOf(1)), 0x00, "module: pair 1 left untouched -> the skip aborted the sweep");
@@ -184,7 +184,7 @@ test("TEETH: a wrong record byte is caught by the RAM diff (agreement scenario)"
   const o = craftSpawnPair0();
   const c = craftSpawnPair0();
   oracle(o);
-  loc_6905(c);
+  spawnPairedEnemyOnDelaySweep(c);
   c.mem.write8(ixOf(0) + 0x04, 0x99); // BUG: field 0x04 must be 0x15
 
   const d = ramDiffMinusStack(o, c);
@@ -197,12 +197,12 @@ test("TEETH: a no-abort twin (spawns the bait pair) is caught against the correc
   const good = seatAllActive();
   makeEmpty(good, 0);
   makeEmpty(good, 1);
-  loc_6905(good);
+  spawnPairedEnemyOnDelaySweep(good);
 
   const twin = seatAllActive();
   makeEmpty(twin, 0);
   makeEmpty(twin, 1);
-  loc_6905(twin);
+  spawnPairedEnemyOnDelaySweep(twin);
   twin.mem.write8(ixOf(1), 0x01); // simulate a driver that failed to abort and spawned pair 1
 
   const d = ramDiffMinusStack(good, twin);

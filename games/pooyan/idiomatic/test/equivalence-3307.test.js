@@ -11,7 +11,7 @@
  *     RAM (dumpState, minus STACK_SCRATCH), AND the advanced HL and DE live-outs.
  *
  * Register inputs are HL (destination) and DE (source); both sides read them from regs.hl /
- * regs.de. TWO pointers are live-out: the caller loc_25a6 stamps `ld (hl),0x10` right after the
+ * regs.de. TWO pointers are live-out: the caller renderMarkerColumnExtendOrRetract stamps `ld (hl),0x10` right after the
  * call (advanced HL = dst + 0x60), and paintRoundNumberHud stamps the NEXT block (0x1f8c) straight from the
  * advanced DE = src + 9 — so a rewrite that drops the source advance renders a wrong glyph.
  *
@@ -108,7 +108,7 @@ test("CAPTURE: real 0x3307 dispatches — module == oracle in RAM (−stack) and
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(retHl, o.regs.hl, `HL live-out: module ${hx(retHl)} != oracle ${hx(o.regs.hl)}`);
     assert.equal(retDe, o.regs.de, `DE live-out: module ${hx(retDe)} != oracle ${hx(o.regs.de)}`);
-    // SIDE EFFECT: the bridge must SET both regs — loc_25a6 does `ld (hl),0x10` and paintRoundNumberHud blits
+    // SIDE EFFECT: the bridge must SET both regs — renderMarkerColumnExtendOrRetract does `ld (hl),0x10` and paintRoundNumberHud blits
     // the next block from DE right after the call, so a return-only rewrite would break the dispatch.
     assert.equal(c.regs.hl, o.regs.hl, `module must SET HL: ${hx(c.regs.hl)} != oracle ${hx(o.regs.hl)}`);
     assert.equal(c.regs.de, o.regs.de, `module must SET DE: ${hx(c.regs.de)} != oracle ${hx(o.regs.de)}`);
@@ -131,7 +131,7 @@ test("CRAFTED: pre-dirtied dest + varied source — nine tiles identical, HL adv
     assert.equal(retHl, HL_OUT, `seed ${hx(seed)}: HL should be ${hx(HL_OUT)}`);
     assert.equal(retDe, o.regs.de, `seed ${hx(seed)}: DE module ${hx(retDe)} != oracle ${hx(o.regs.de)}`);
     assert.equal(retDe, DE_OUT, `seed ${hx(seed)}: DE should be ${hx(DE_OUT)}`);
-    // SIDE EFFECT: the bridge must SET both HL and DE (loc_25a6 stamps via HL, paintRoundNumberHud blits via DE).
+    // SIDE EFFECT: the bridge must SET both HL and DE (renderMarkerColumnExtendOrRetract stamps via HL, paintRoundNumberHud blits via DE).
     assert.equal(c.regs.hl, o.regs.hl, `seed ${hx(seed)}: module must SET HL: ${hx(c.regs.hl)} != oracle ${hx(o.regs.hl)}`);
     assert.equal(c.regs.de, o.regs.de, `seed ${hx(seed)}: module must SET DE: ${hx(c.regs.de)} != oracle ${hx(o.regs.de)}`);
 

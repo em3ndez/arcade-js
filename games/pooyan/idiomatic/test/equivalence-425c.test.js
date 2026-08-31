@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_425c (ROM 0x425c, Pooyan) — "arm the turn animation":
+ * Memory-equivalence test for latchColumnLimitAndArmTurnAnimation (ROM 0x425c, Pooyan) — "arm the turn animation":
  * latch TURN_COLUMN_LIMIT to 0xff, then point the actor record (IX) at the fixed 0x4203
  * turn-animation script and restart it — the low byte 0x03 at rec+0x0c, the high byte 0x42
  * at rec+0x0d, and the frame index 0x00 at rec+0x0e (the shared set-animation tail).
  *
  * This is the CYCLE-FREE / memory-equivalence gate. The routine WRITES work RAM, so every
- * case runs the oracle on one fresh clone and loc_425c on another, compared on the go-forward
+ * case runs the oracle on one fresh clone and latchColumnLimitAndArmTurnAnimation on another, compared on the go-forward
  * contract: RAM (dumpState, minus STACK_SCRATCH). There is NO register live-out — the
  * animation-arm callers discard the registers — so no register is compared. IX (the record
  * base) is the ONLY input, passed via the m.regs.ix param-default bridge.
  *
  * Jobs:
- *   1. EQUAL — over several record bases, oracle == loc_425c in RAM(−stack); the 0x4203
+ *   1. EQUAL — over several record bases, oracle == latchColumnLimitAndArmTurnAnimation in RAM(−stack); the 0x4203
  *      pointer split (0x03/0x42) and the zeroed frame index are confirmed off the oracle.
  *   2. WRITE-SET — the only writes are TURN_COLUMN_LIMIT + rec+0x0c/0x0d/0x0e.
  *   3. TEETH — a wrong animation-pointer byte is caught at rec+0x0c, and a wrong flag value
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_425c as oracle } from "../../translated/loc_425c.js";
-import { loc_425c } from "../loc_425c.js";
+import { latchColumnLimitAndArmTurnAnimation } from "../latchColumnLimitAndArmTurnAnimation.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TURN_COLUMN_LIMIT } from "../names.js";
@@ -71,12 +71,12 @@ const CASES = [0x8b00, 0x8a80, 0x8bc0, 0x8c00];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: oracle == loc_425c in RAM(−stack); the 0x4203 split lands correctly", () => {
+test("EQUAL: oracle == latchColumnLimitAndArmTurnAnimation in RAM(−stack); the 0x4203 split lands correctly", () => {
   for (const rec of CASES) {
     const o = craft(rec);
     const c = craft(rec);
     oracle(o);
-    loc_425c(c);
+    latchColumnLimitAndArmTurnAnimation(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b} (rec=${hx(rec)})`);
@@ -122,7 +122,7 @@ test("TEETH: a wrong animation-pointer byte is caught at rec+0x0c", () => {
   const o = craft(rec);
   const c = craft(rec);
   oracle(o);
-  loc_425c(c);
+  latchColumnLimitAndArmTurnAnimation(c);
   c.mem.write8(lo, (ANIM_LO ^ 0x01) & 0xff); // BUG: corrupt the script pointer low byte
 
   const d = ramDiffMinusStack(o, c);
@@ -136,7 +136,7 @@ test("TEETH: a wrong flag value is caught at TURN_COLUMN_LIMIT", () => {
   const o = craft(rec);
   const c = craft(rec);
   oracle(o);
-  loc_425c(c);
+  latchColumnLimitAndArmTurnAnimation(c);
   assert.equal(c.mem.read8(TURN_COLUMN_LIMIT), o.mem.read8(TURN_COLUMN_LIMIT), "sanity: module armed the flag like the oracle");
   c.mem.write8(TURN_COLUMN_LIMIT, 0x00); // BUG: flag must be 0xff, not 0x00
 

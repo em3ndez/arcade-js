@@ -6,7 +6,7 @@
  * run the 0x79-byte anti-tamper compare (0x0b32 vs its 0x7071 clone) before advancing the phase to
  * 0x8f51 = 6.
  *
- * The module calls the idiomatic loc_0038 directly and keeps the tamper tail m.call(0x6df9) (an
+ * The module calls the idiomatic enqueueDisplayCommand directly and keeps the tamper tail m.call(0x6df9) (an
  * unlifted anti-tamper clone, not in this batch); the oracle drives the same through the frozen
  * registry. advanceLevelIntroFromPhase3 is memory-only on every reachable exit (an intro-phase handler), so the register
  * file is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH.
@@ -71,7 +71,7 @@ function craft(delay, tally, boardClear, round) {
   m.mem8[BOARDCLEAR] = boardClear & 0xff;
   m.mem8[ROUND] = round & 0xff;
   m.mem8[RING_PTR] = 0xc0; // ring write pointer at the ring start
-  m.mem8[RING_SLOT] = 0xff; // slot free so loc_0038 actually enqueues
+  m.mem8[RING_SLOT] = 0xff; // slot free so enqueueDisplayCommand actually enqueues
   return m;
 }
 

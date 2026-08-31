@@ -8,7 +8,7 @@
  * Contract compared per case: RAM (dumpState, minus STACK_SCRATCH) PLUS the routine's ONLY
  * live-out — the JS boolean return. No register survives as a consumed output: on the climbing
  * path IX/A are left untouched-or-clobbered but unread (loc_2c3f only propagates the boolean, and
- * loc_2c2c parks its loop counter in the alt register set across the call); on the skip path the
+ * dispatchAllHunterRecordStates parks its loop counter in the alt register set across the call); on the skip path the
  * oracle's pop-af leaves A as stack garbage and the caller frame is aborted. IX is deliberately
  * NOT compared: the oracle advances it during the top-sweep, the idiomatic module walks a local
  * pointer — the divergence is out of contract because the skip aborts every caller that could read
@@ -64,7 +64,7 @@ const HOLD = 0x0e; //   record frame-hold offset (nonzero -> advanceObjectAnimat
 const P_LO = 0x05;
 const P_HI = 0x06;
 const P_STEP = 0x09;
-const TRIG = 0x02; //   record state offset; 0x11 triggers loc_2c85's transition
+const TRIG = 0x02; //   record state offset; 0x11 triggers advanceRecordStateAndSeedMoveScript's transition
 
 /** A fresh clone with loc_2c58's record inputs seated identically on both sides. */
 function craft({ lo = 0, step = 0, hi = 0, seedTrigger = false } = {}) {

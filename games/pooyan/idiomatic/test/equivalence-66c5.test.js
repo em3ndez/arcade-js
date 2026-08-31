@@ -4,9 +4,9 @@
  * through their state pass, then run the flip-command cadence".
  *
  * updateEnemyActorsAndCycleLaunchFlipAnim is a CALLER: it composes the already-decompiled record dispatcher dispatchEnemyActorState (three
- * records, stride 0x18) and the display-command enqueue loc_0038. This gate imports the idiomatic
- * updateEnemyActorsAndCycleLaunchFlipAnim (which imports the idiomatic dispatchEnemyActorState / loc_0038) and compares it against the translated
- * oracle (which runs the translated dispatchEnemyActorState / loc_0038 through m.call) on fresh clones, in
+ * records, stride 0x18) and the display-command enqueue enqueueDisplayCommand. This gate imports the idiomatic
+ * updateEnemyActorsAndCycleLaunchFlipAnim (which imports the idiomatic dispatchEnemyActorState / enqueueDisplayCommand) and compares it against the translated
+ * oracle (which runs the translated dispatchEnemyActorState / enqueueDisplayCommand through m.call) on fresh clones, in
  * RAM (dumpState) minus STACK_SCRATCH. The composed subtrees are separately gated, so a divergence
  * here is a defect in updateEnemyActorsAndCycleLaunchFlipAnim's own control flow — the loop bound, the post-pass gate, the
  * countdown decrement/reload, the toggle bump, or the command selection.
@@ -17,7 +17,7 @@
  * the lead state byte (0x8ae2), the countdown (0x892d) or the flip toggle (0x892f) — all three are
  * poked absolutely and select the post-pass branch.
  *
- * LIVE-OUT: none — memory only. The sole caller (runObjectAndSpawnUpdatePass) reloads IX before its next use (loc_6822
+ * LIVE-OUT: none — memory only. The sole caller (runObjectAndSpawnUpdatePass) reloads IX before its next use (dispatchSpecialObjectRecordState
  * resets IX itself) and reads no result register, so no register is part of the contract.
  *
  * Jobs:

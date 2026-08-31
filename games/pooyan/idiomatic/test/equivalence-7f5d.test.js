@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7f5d (ROM 0x7f5d, Pooyan) — rst-0x28 write-anim dispatch handler
+ * Memory-equivalence test for appendWriteAnimBlockRowOnPhase (ROM 0x7f5d, Pooyan) — rst-0x28 write-anim dispatch handler
  * (dispatch-table entry 2). It rotates bit 4 of the byte at *(0x8e21) into the phase ring 0x8e29;
  * unless the ring's low three bits land on phase 1 it returns (the ROM `ret nz`). On the 1-phase it
  * seeds 0x8e2b, appends (0x8e23) through the write-pointer 0x8e1f, and decrements the row countdown
- * 0x8e25 — draining it tail-delegates to loc_7fa8, otherwise it does the per-row write at *(0x8e27).
+ * 0x8e25 — draining it tail-delegates to floodWriteAnimCellsAndLatchPhase, otherwise it does the per-row write at *(0x8e27).
  *
- * loc_7f5d is a void handler (no register live-out), so the register file is not compared; equivalence
+ * appendWriteAnimBlockRowOnPhase is a void handler (no register live-out), so the register file is not compared; equivalence
  * is RAM (dumpState) minus STACK_SCRATCH. SP is parked in STACK_SCRATCH so the drained path's nested
  * pushes (the tail's m.call chain) drop out of the diff.
  *
  * Both load-bearing branches are driven on BOTH arms:
  *   - the phase gate: an off-phase case (early return, only the ring moved) and an on-phase case;
- *   - the countdown: a NOT-drained case (the per-row write path) and a DRAINED case (tail -> loc_7fa8).
+ *   - the countdown: a NOT-drained case (the per-row write path) and a DRAINED case (tail -> floodWriteAnimCellsAndLatchPhase).
  *
  * Jobs:
- *   1. EQUAL — over off-phase / on-phase-not-drained / on-phase-drained, oracle == loc_7f5d, RAM (−stack).
+ *   1. EQUAL — over off-phase / on-phase-not-drained / on-phase-drained, oracle == appendWriteAnimBlockRowOnPhase, RAM (−stack).
  *   2. WRITE-SET — the on-phase-not-drained path's key cells hold their exact expected values.
  *   3. TEETH(RAM) — a corrupted module output byte is caught by the RAM diff.
  *   4. TEETH(tail) — a twin that omits the drained tail-delegation DIVERGES from the oracle.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7f5d as oracle } from "../../translated/loc_7f5d.js";
-import { loc_7f5d } from "../loc_7f5d.js";
+import { appendWriteAnimBlockRowOnPhase } from "../appendWriteAnimBlockRowOnPhase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -66,8 +66,8 @@ function craft({ bit4, ring0, count }) {
   m.mem.write8(0x8e25, count); //              row countdown
   m.mem.write8(0x8e26, 0x00); //               row flag (set to 1 on a row step)
   m.mem.write16(0x8e2b, 0x0000); //            seeded to 0x03a0 on the 1-phase
-  m.mem.write8(0x8808, 0x00); //               loc_7fa8's shared latch (0x80 only via the tail)
-  m.mem.write8(0x8e2a, 0x00); //               loc_7fa8's done flag (1 only via the tail)
+  m.mem.write8(0x8808, 0x00); //               floodWriteAnimCellsAndLatchPhase's shared latch (0x80 only via the tail)
+  m.mem.write8(0x8e2a, 0x00); //               floodWriteAnimCellsAndLatchPhase's done flag (1 only via the tail)
   return m;
 }
 
@@ -75,11 +75,11 @@ function craft({ bit4, ring0, count }) {
 // ring0=0x00 + bit4=0 -> rotated 0x00 -> (0x00&7)==0 : off-phase (early return).
 const OFF_PHASE = { bit4: 0, ring0: 0x00, count: 0x02 };
 const ON_NOT_DRAINED = { bit4: 1, ring0: 0x00, count: 0x02 }; // 0x02 -> 0x01, not drained
-const ON_DRAINED = { bit4: 1, ring0: 0x00, count: 0x01 }; //     0x01 -> 0x00, drained -> loc_7fa8
+const ON_DRAINED = { bit4: 1, ring0: 0x00, count: 0x01 }; //     0x01 -> 0x00, drained -> floodWriteAnimCellsAndLatchPhase
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_7f5d == oracle in RAM (−stack) across both gate arms and both countdown arms", () => {
+test("EQUAL: appendWriteAnimBlockRowOnPhase == oracle in RAM (−stack) across both gate arms and both countdown arms", () => {
   for (const [name, seed] of [
     ["off-phase", OFF_PHASE],
     ["on-phase/not-drained", ON_NOT_DRAINED],
@@ -88,7 +88,7 @@ test("EQUAL: loc_7f5d == oracle in RAM (−stack) across both gate arms and both
     const o = craft(seed);
     const c = craft(seed);
     oracle(o);
-    loc_7f5d(c);
+    appendWriteAnimBlockRowOnPhase(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -122,7 +122,7 @@ test("TEETH(RAM): a corrupted module output byte is CAUGHT by the RAM diff", () 
   const o = craft(ON_NOT_DRAINED);
   const c = craft(ON_NOT_DRAINED);
   oracle(o);
-  loc_7f5d(c);
+  appendWriteAnimBlockRowOnPhase(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: identical before corruption");
   c.mem.write16(0x8e2b, 0x0000); // BUG: undo the 1-phase seed
   const d = ramDiffMinusStack(o, c);
@@ -131,7 +131,7 @@ test("TEETH(RAM): a corrupted module output byte is CAUGHT by the RAM diff", () 
 });
 
 /** A twin identical to the module up to the countdown, but on the drained arm it just returns
- * instead of tail-delegating to loc_7fa8 — proving the delegation is load-bearing. */
+ * instead of tail-delegating to floodWriteAnimCellsAndLatchPhase — proving the delegation is load-bearing. */
 function twinNoTail(m) {
   const { mem8, mem16 } = m;
   const src = mem8[mem16[0x8e21]];
@@ -144,7 +144,7 @@ function twinNoTail(m) {
   mem16[0x8e1f] = (appendPtr + 1) & 0xffff;
   const countdown = (mem8[0x8e25] - 1) & 0xff;
   mem8[0x8e25] = countdown;
-  if (countdown === 0) return; // BUG: drops the tail delegation to loc_7fa8
+  if (countdown === 0) return; // BUG: drops the tail delegation to floodWriteAnimCellsAndLatchPhase
   const rowPtr = mem16[0x8e27];
   mem8[rowPtr] = mem8[0x8e23];
   const backed = (rowPtr - 0x20) & 0xffff;
@@ -160,6 +160,6 @@ test("TEETH(tail): a twin omitting the drained tail-delegation DIVERGES from the
   oracle(o);
   twinNoTail(c);
   const d = ramDiffMinusStack(o, c);
-  assert.notEqual(d, null, "omitting the tail delegation to loc_7fa8 must diverge");
+  assert.notEqual(d, null, "omitting the tail delegation to floodWriteAnimCellsAndLatchPhase must diverge");
   console.log(`  TEETH(tail): omission caught at ${hx(d.addr ?? 0)}`);
 });

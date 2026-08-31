@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_05ee (ROM 0x05ee) — draw the credit count as two HUD digit
+ * Memory-equivalence test for drawCreditCountAndTamperCheck (ROM 0x05ee) — draw the credit count as two HUD digit
  * tiles, then a hidden ROM-checksum tripwire.
  *
  * The one crafted input is the credit count (0x8802): it is clamped to 99, converted to packed
@@ -13,12 +13,12 @@
  * and are not consumed.
  *
  * All cases are CRAFTED: the credit count is poked identically on both sides, sp seated inside
- * STACK_SCRATCH so the oracle's push/call/ret stay there. The field draw (loc_05b2) and checksum
+ * STACK_SCRATCH so the oracle's push/call/ret stay there. The field draw (drawStackedCharField) and checksum
  * read the intact ROM identically on both sides.
  *
  * Jobs:
  *   1. EQUAL — over several credit values (incl. the clamp, tens-present, and tripwire paths),
- *      oracle == loc_05ee in RAM (−stack).
+ *      oracle == drawCreditCountAndTamperCheck in RAM (−stack).
  *   2. WRITE-SET — the two HUD nibble cells hold the expected tens/units digit tiles.
  *   3. TEETH — a wrong units tile is caught by the RAM diff.
  *
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_05ee as oracle } from "../../translated/loc_05ee.js";
-import { loc_05ee } from "../loc_05ee.js";
+import { drawCreditCountAndTamperCheck } from "../drawCreditCountAndTamperCheck.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, CREDIT_COUNT, CREDIT_HUD_TENS_VRAM, CREDIT_HUD_UNITS_VRAM } from "../names.js";
@@ -72,12 +72,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted credit values — loc_05ee == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted credit values — drawCreditCountAndTamperCheck == oracle in RAM (−stack)", () => {
   for (const { label, credit } of CASES) {
     const o = craft(credit);
     const c = craft(credit);
     oracle(o);
-    loc_05ee(c);
+    drawCreditCountAndTamperCheck(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} ("${label}")`);
   }
@@ -100,7 +100,7 @@ test("TEETH: a wrong units tile is CAUGHT by the RAM diff", () => {
   const o = craft(0x0c);
   const c = craft(0x0c);
   oracle(o);
-  loc_05ee(c);
+  drawCreditCountAndTamperCheck(c);
   c.mem.write8(CREDIT_HUD_UNITS_VRAM, 0x07); // BUG: units tile must be 2, not 7
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong units tile — it is worthless");

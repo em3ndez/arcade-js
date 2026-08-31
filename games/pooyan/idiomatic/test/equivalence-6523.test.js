@@ -4,7 +4,7 @@
  * enqueue its display command". Bails when (IX+0 | IX+1) is odd or the signature-mismatch flag
  * (0x8ef0) is held; otherwise stamps the opening state, snapshots the frame-delay counter (0x8929)
  * into IX+6 and steps it down by two, then enqueues the object-spawn display command via the page-0x88
- * ring (rst 0x38 / loc_0038) — a second variant when the round counter (0x8907) is zero.
+ * ring (rst 0x38 / enqueueDisplayCommand) — a second variant when the round counter (0x8907) is zero.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine writes work RAM, so
  * every case uses a FRESH clone per side, compared on RAM (dumpState, minus STACK_SCRATCH).

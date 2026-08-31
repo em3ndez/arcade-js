@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1601 (ROM 0x1601, Pooyan) — the round-init state handler. It blanks
+ * Memory-equivalence test for initRoundArenaAndRestorePlayerBank (ROM 0x1601, Pooyan) — the round-init state handler. It blanks
  * one tilemap row and returns early until the fill drains; once drained it re-arms the fill, clears
  * the actor arena and several round-init cells, on the first entry of a two-player round raises the
  * once-per-round latch / enqueues a player-select display command / floods the attribute map, then in
@@ -11,9 +11,9 @@
  * Cycle-free memory-equivalence gate: a FRESH clone per side (the routine writes RAM), compared on
  * RAM (dumpState, minus STACK_SCRATCH — the oracle drives its callees through m.call/m.step, whose
  * return-address pushes land in the dead stack). pc/SP/cycles are NOT compared, and there is NO
- * register/flag live-out: loc_1601 is a table-dispatched state handler whose caller does not read a
+ * register/flag live-out: initRoundArenaAndRestorePlayerBank is a table-dispatched state handler whose caller does not read a
  * result register back. The oracle runs entirely in the translated layer (its m.call resolves the
- * frozen callees); loc_1601 runs its idiomatic callees. Each callee's own gate proves the two agree,
+ * frozen callees); initRoundArenaAndRestorePlayerBank runs its idiomatic callees. Each callee's own gate proves the two agree,
  * so RAM equivalence over composed inputs is the fidelity contract here.
  *
  * NOTE on coupling: the bank->live-page copy writes 0x8900..0x893e, which contains the cells the tail
@@ -24,7 +24,7 @@
  * Jobs:
  *   1. EQUAL (crafted) — early-return (fill not drained), single-player, two-player first-entry
  *      (both player/cabinet variants), latch-already-set, message-copy, and rope-skip cases:
- *      oracle == loc_1601 in RAM (−stack).
+ *      oracle == initRoundArenaAndRestorePlayerBank in RAM (−stack).
  *   2. CONTRACT — a first-entry case: document the owned cells the oracle produces (phase timer,
  *      sub-state bump, cleared cells, raised latch, flip flag, the copied live page).
  *   3. TEETH — a wrong phase-timer byte and a wrong copied live-page byte are each caught.
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1601 as oracle } from "../../translated/loc_1601.js";
-import { loc_1601 } from "../loc_1601.js";
+import { initRoundArenaAndRestorePlayerBank } from "../initRoundArenaAndRestorePlayerBank.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -119,12 +119,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted round-init cases — loc_1601 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted round-init cases — initRoundArenaAndRestorePlayerBank == oracle in RAM (−stack)", () => {
   for (const [label, c] of CASES) {
     const o = craft(c);
     const cc = craft(c);
     oracle(o);
-    loc_1601(cc);
+    initRoundArenaAndRestorePlayerBank(cc);
     const d = ramDiffMinusStack(o, cc);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -157,7 +157,7 @@ test("TEETH: a wrong phase-timer byte is CAUGHT by the RAM diff", () => {
   const o = craft(c);
   const cc = craft(c);
   oracle(o);
-  loc_1601(cc);
+  initRoundArenaAndRestorePlayerBank(cc);
   cc.mem.write8(PHASE_TIMER, (cc.mem.read8(PHASE_TIMER) ^ 0x01) & 0xff); // BUG: corrupt the phase timer
   const d = ramDiffMinusStack(o, cc);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong phase-timer byte — it is worthless");
@@ -170,7 +170,7 @@ test("TEETH: a wrong copied live-page byte is CAUGHT by the RAM diff", () => {
   const o = craft(c);
   const cc = craft(c);
   oracle(o);
-  loc_1601(cc);
+  initRoundArenaAndRestorePlayerBank(cc);
   cc.mem.write8(LIVE_PAGE, (cc.mem.read8(LIVE_PAGE) ^ 0x01) & 0xff); // BUG: corrupt the ldir'd byte
   const d = ramDiffMinusStack(o, cc);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong copied byte — it is worthless");

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5544 (ROM 0x5544, Pooyan) — scan an actor-block table, seed the
+ * Memory-equivalence test for seedFirstFreeSlotForScheduledSpawn (ROM 0x5544, Pooyan) — scan an actor-block table, seed the
  * first free slot. Live blocks ((blk+0)|(blk+1) != 0) are skipped (cursor += stride, count times); the
  * first free block is seeded ((blk+0x17) from SPAWN_KIND_TABLE_5647 via rst 0x20) and initialised by
- * loc_5489, which caller-skips (pop af; ret) past loc_5544. No free block -> the scan falls out.
+ * loc_5489, which caller-skips (pop af; ret) past seedFirstFreeSlotForScheduledSpawn. No free block -> the scan falls out.
  *
  * Compared on RAM (dumpState) minus STACK_SCRATCH; the register file is not compared (LIVE-OUT: none).
  * The oracle drives its rst-0x20 + loc_5489 via the translated registry; the module calls the idiomatic
- * loc_0020/loc_5489 directly. Both read ROM tables, so the test requires the built ROM.
+ * fetchByteFromTableIndex/loc_5489 directly. Both read ROM tables, so the test requires the built ROM.
  *
  * Jobs:
  *   1. EQUAL — FREE-FIRST, LIVE-then-FREE, ALL-LIVE across index/round values: oracle == module.
@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5544 as oracle } from "../../translated/loc_5544.js";
-import { loc_5544 } from "../loc_5544.js";
+import { seedFirstFreeSlotForScheduledSpawn } from "../seedFirstFreeSlotForScheduledSpawn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPAWN_SEQUENCE_INDEX_8D13, SPAWN_KIND_TABLE_5647 } from "../names.js";
@@ -71,7 +71,7 @@ const kindByte = (m, spawnIndex) =>
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: FREE-FIRST / LIVE-then-FREE / ALL-LIVE — loc_5544 == oracle in RAM (−stack)", () => {
+test("EQUAL: FREE-FIRST / LIVE-then-FREE / ALL-LIVE — seedFirstFreeSlotForScheduledSpawn == oracle in RAM (−stack)", () => {
   const cases = [
     { count: 1, live: [0x00], idx: 0x03, round: 0x00 }, // free on iter 1 -> seed
     { count: 3, live: [0x01, 0x00, 0x00], idx: 0x05, round: 0x02 }, // skip one live, seed the second
@@ -83,7 +83,7 @@ test("EQUAL: FREE-FIRST / LIVE-then-FREE / ALL-LIVE — loc_5544 == oracle in RA
     const o = craft(count, live, idx, round);
     const c = craft(count, live, idx, round);
     oracle(o);
-    loc_5544(c);
+    seedFirstFreeSlotForScheduledSpawn(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null,
       d && `count=${count} idx=${hx(idx)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -97,7 +97,7 @@ test("WRITE-SET: the free block's kind byte (blk+0x17) is the rst-0x20 table byt
   const idx = 0x03;
   const c = craft(1, [0x00], idx, 0x05);
   const expected = kindByte(c, idx);
-  loc_5544(c);
+  seedFirstFreeSlotForScheduledSpawn(c);
   assert.equal(c.mem.read8((REC + KIND_FIELD) & 0xffff), expected,
     `blk+0x17 must be SPAWN_KIND_TABLE_5647[idx] = ${hx(expected)}`);
   assert.equal(c.mem.read8((REC + ACTIVE_FLAG) & 0xffff), 0x01, "loc_5489 must set the active flag");
@@ -110,7 +110,7 @@ test("TEETH: a wrong seeded kind byte is CAUGHT by the RAM diff", () => {
   const o = craft(1, [0x00], 0x03, 0x05);
   const c = craft(1, [0x00], 0x03, 0x05);
   oracle(o);
-  loc_5544(c);
+  seedFirstFreeSlotForScheduledSpawn(c);
   const correct = c.mem.read8((REC + KIND_FIELD) & 0xffff);
   c.mem.write8((REC + KIND_FIELD) & 0xffff, correct ^ 0xff); // BUG: seed byte must be the table fetch
   const d = ramDiffMinusStack(o, c);
@@ -123,7 +123,7 @@ test("TEETH: a cleared active flag is CAUGHT by the RAM diff", () => {
   const o = craft(1, [0x00], 0x03, 0x05);
   const c = craft(1, [0x00], 0x03, 0x05);
   oracle(o);
-  loc_5544(c);
+  seedFirstFreeSlotForScheduledSpawn(c);
   c.mem.write8((REC + ACTIVE_FLAG) & 0xffff, 0x00); // BUG: loc_5489 must set the active flag to 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a cleared active flag");

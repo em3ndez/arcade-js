@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7eb2 (ROM 0x7eb2, Pooyan) — entry 0 of the 0x7e94 write-anim
+ * Memory-equivalence test for seedWriteAnimWorkBlock (ROM 0x7eb2, Pooyan) — entry 0 of the 0x7e94 write-anim
  * dispatch table. It seeds the animation work-block 0x8e1f..0x8e2b: a record pointer
  * 0x8e1f = 0x8dfd + 3*count, a source pointer 0x8e21 (0x8811, or 0x8812 when the cabinet flag is
  * clear AND the active-player flag is set), a stamp write pointer 0x8e27 walked from base 0x8565 by
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7eb2 as oracle } from "../../translated/loc_7eb2.js";
-import { loc_7eb2 } from "../loc_7eb2.js";
+import { seedWriteAnimWorkBlock } from "../seedWriteAnimWorkBlock.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -84,7 +84,7 @@ function craft(seed, cabinet, active) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: both source arms x three pass counts — loc_7eb2 == oracle in RAM (−stack)", () => {
+test("EQUAL: both source arms x three pass counts — seedWriteAnimWorkBlock == oracle in RAM (−stack)", () => {
   const cases = [
     { name: "cabinet set -> 0x8811, 1 pass", seed: 0x01, cab: 0x01, act: 0x01 },
     { name: "cabinet clear + active set -> 0x8812, 5 passes", seed: 0x05, cab: 0x00, act: 0x01 },
@@ -96,7 +96,7 @@ test("EQUAL: both source arms x three pass counts — loc_7eb2 == oracle in RAM 
     const o = craft(seed, cab, act);
     const c = craft(seed, cab, act);
     oracle(o);
-    loc_7eb2(c);
+    seedWriteAnimWorkBlock(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -145,7 +145,7 @@ test("TEETH: a wrong record pointer is CAUGHT by the RAM diff", () => {
   const o = craft(0x05, 0x00, 0x01);
   const c = craft(0x05, 0x00, 0x01);
   oracle(o);
-  loc_7eb2(c);
+  seedWriteAnimWorkBlock(c);
   c.mem.write16(RECORD_PTR, (c.mem.read16(RECORD_PTR) ^ 0x0003) & 0xffff); // BUG: off-by-one stride
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong record pointer — it is worthless");
@@ -157,7 +157,7 @@ test("TEETH: a wrong source pointer (branch) is CAUGHT by the RAM diff", () => {
   const o = craft(0x05, 0x00, 0x01); // oracle -> 0x8812
   const c = craft(0x05, 0x00, 0x01);
   oracle(o);
-  loc_7eb2(c);
+  seedWriteAnimWorkBlock(c);
   c.mem.write16(SRC_PTR, 0x8811); // BUG: took the wrong branch (default instead of alt)
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong source pointer — it is worthless");
@@ -170,7 +170,7 @@ test("TEETH: a wrong stamp-landing byte is CAUGHT by the RAM diff", () => {
   const o = craft(seed, 0x00, 0x01);
   const c = craft(seed, 0x00, 0x01);
   oracle(o);
-  loc_7eb2(c);
+  seedWriteAnimWorkBlock(c);
   const landing = landingFor(seed);
   c.mem.write8(landing, 0x00); // BUG: stamp not written at the landing address
   const d = ramDiffMinusStack(o, c);

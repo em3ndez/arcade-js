@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_5fa2 } from "./loc_5fa2.js";
+import { testRecordOverlapRetireOrFlagHit } from "./testRecordOverlapRetireOrFlagHit.js";
 import {
   ENEMY_TARGET_REC0,
   ENEMY_TARGET_REC1,
@@ -26,5 +26,5 @@ export function loc_5f83(m, slot = m.regs.i, target = m.regs.iy) {
   const type = mem8[slot === 0 ? ENEMY_TARGET_REC0 : ENEMY_TARGET_REC1];
   if (type === 0) return true; // inert block -> normal completion
   mem8[ACTIVE_OBJECT_TYPE] = type;
-  return loc_5fa2(m, ENEMY_ACTOR_TABLE, ENEMY_SCAN_BOX_TABLE, SCAN_RECORD_COUNT, type, target);
+  return testRecordOverlapRetireOrFlagHit(m, ENEMY_ACTOR_TABLE, ENEMY_SCAN_BOX_TABLE, SCAN_RECORD_COUNT, type, target);
 }

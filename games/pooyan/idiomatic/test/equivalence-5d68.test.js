@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_5d68 — the DISSOLVED caller-skip of loc_5d4d.
+ * Memory-equivalence gate for loc_5d68 — the DISSOLVED caller-skip of scanProximityTargetPairsAgainstSource.
  *
  * The frozen oracle ends its no-hit paths with a plain `ret` and its hit path with
  * `pop af; ret` (discarding its own return address so control resumes two frames up).

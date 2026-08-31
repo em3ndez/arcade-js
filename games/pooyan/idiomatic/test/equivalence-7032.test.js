@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7032 (ROM 0x7032) — "level-intro phase 5": while the
- * target-group count (0x8f47) is nonzero, tick it via loc_7059 (which queues sound 0x0315);
+ * Memory-equivalence test for advanceLevelIntroFromPhase5 (ROM 0x7032) — "level-intro phase 5": while the
+ * target-group count (0x8f47) is nonzero, tick it via tickTargetGroupCounterAndQueueDisplay (which queues sound 0x0315);
  * then count the intro delay word (0x8f48) down — when already zero, reseed it to 0x20 and
  * advance the intro phase (0x8f51); otherwise decrement it and, only on a 16-frame boundary
  * (low nibble now zero), toggle 0x8f54 and queue one of two display commands (0x06a7/0x0627)
@@ -14,7 +14,7 @@
  *
  * Jobs:
  *   1. EQUAL (crafted) — tick-only, delay-elapsed, both 16-frame-boundary parities, a combined
- *      tick+boundary, and a non-boundary tick: oracle == loc_7032 in RAM (−stack).
+ *      tick+boundary, and a non-boundary tick: oracle == advanceLevelIntroFromPhase5 in RAM (−stack).
  *   2. WRITE-SET — the delay-elapsed path writes exactly the delay reseed and the phase bump.
  *   3. TEETH — a wrong phase byte on the elapsed path is caught by the RAM diff.
  *
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7032 as oracle } from "../../translated/loc_7032.js";
-import { loc_7032 } from "../loc_7032.js";
+import { advanceLevelIntroFromPhase5 } from "../advanceLevelIntroFromPhase5.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -79,12 +79,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted cases — loc_7032 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted cases — advanceLevelIntroFromPhase5 == oracle in RAM (−stack)", () => {
   for (const cs of CASES) {
     const o = craft(cs);
     oracle(o);
     const c = craft(cs);
-    loc_7032(c);
+    advanceLevelIntroFromPhase5(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (${JSON.stringify(cs)})`);
   }
@@ -117,7 +117,7 @@ test("TEETH: a wrong phase byte is CAUGHT by the RAM diff", () => {
   const o = craft(cs);
   const c = craft(cs);
   oracle(o);
-  loc_7032(c);
+  advanceLevelIntroFromPhase5(c);
   c.mem.write8(INTRO_PHASE_INDEX, 0x02); // BUG: phase must advance to 0x03, not stay 0x02
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong phase byte — it is worthless");

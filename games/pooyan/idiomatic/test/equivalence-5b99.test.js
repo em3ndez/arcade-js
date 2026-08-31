@@ -8,9 +8,9 @@
  * sweeping), false = a hit fired and the caller must abort its frame. Compared on RAM (dumpState)
  * minus STACK_SCRATCH plus the forwarded boolean; the register file is not compared.
  *
- * RECONCILE DEPENDENCY: the module imports the idiomatic loc_0c45 (the animation-pointer lookup)
+ * RECONCILE DEPENDENCY: the module imports the idiomatic fetchWordFromTableIndex (the animation-pointer lookup)
  * and the proposed names ANIM_SEQ_5C80/5C89/5CF9 and ANIM_SEQ_TABLE_5C92; the slot-found case runs
- * once loc_0c45 lands and those names exist in names.js. loc_0c45 reads ROM, so ROM must be built.
+ * once fetchWordFromTableIndex lands and those names exist in names.js. fetchWordFromTableIndex reads ROM, so ROM must be built.
  *
  * Cases are CRAFTED: a plain boot does not seat this record/target geometry.
  *

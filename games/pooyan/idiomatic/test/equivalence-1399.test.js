@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1399 (ROM 0x1399, Pooyan) — actor sub-state dispatch on rec+6.
+ * Memory-equivalence test for dispatchActorSpawnBySubStateAndPaceCadence (ROM 0x1399, Pooyan) — actor sub-state dispatch on rec+6.
  *
- * SEATING: BALANCED (plain ret / tail-calls) -> WIRE. Reached via loc_1410's tail from the actor
+ * SEATING: BALANCED (plain ret / tail-calls) -> WIRE. Reached via latchActorStepThenDispatchByStageCountdown's tail from the actor
  * dispatch; the sub-state handlers are void, so LIVE-OUT is memory only and the comparison is RAM
  * (dumpState) minus STACK_SCRATCH; register file not compared. SP parked in STACK_SCRATCH.
  *
@@ -10,7 +10,7 @@
  * routines map (each pair has its own gate). Crafted paths: state < 7 (spawn-step guard), state >= 0x14
  * (field-compare dispatch), and the 7..0x13 timer body — timer running (decrement), timer spent with the
  * count exhausted (inert), and timer spent below the count (table reload + child spawn). The spawn slots
- * are seated full so the child-spawn tail returns without writing, isolating loc_1399's own footprint.
+ * are seated full so the child-spawn tail returns without writing, isolating dispatchActorSpawnBySubStateAndPaceCadence's own footprint.
  *
  * Jobs:
  *   1. EQUAL — every crafted path: oracle == module in RAM (−stack).
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1399 as oracle } from "../../translated/loc_1399.js";
-import { loc_1399 } from "../loc_1399.js";
+import { dispatchActorSpawnBySubStateAndPaceCadence } from "../dispatchActorSpawnBySubStateAndPaceCadence.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -82,12 +82,12 @@ const CASES = {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1399 == oracle in RAM (−stack)", () => {
+test("EQUAL: dispatchActorSpawnBySubStateAndPaceCadence == oracle in RAM (−stack)", () => {
   for (const [name, craft] of Object.entries(CASES)) {
     const o = craft(BASE.clone());
     const c = craft(BASE.clone());
     oracle(o);
-    loc_1399(c);
+    dispatchActorSpawnBySubStateAndPaceCadence(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -114,7 +114,7 @@ test("TEETH: a corrupted post-run byte is CAUGHT by the RAM diff", () => {
   const o = CASES["timer running -> decrement"](BASE.clone());
   const c = CASES["timer running -> decrement"](BASE.clone());
   oracle(o);
-  loc_1399(c);
+  dispatchActorSpawnBySubStateAndPaceCadence(c);
   c.mem.write8(TIMER, (o.mem.read8(TIMER) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");

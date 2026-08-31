@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 /**
  * clearTargetActorRecord — object-clear helper: blank a 0x18-byte record starting at IY with zeros.
  * Points the fill helper at the record and clears the 0x18 bytes to 0.
@@ -11,6 +11,6 @@ const RECORD_LEN = 0x18;
 const CLEAR_FILL = 0x00;
 
 export function clearTargetActorRecord(m, base = m.regs.iy) {
-  const advanced = loc_0010(m, base, CLEAR_FILL, RECORD_LEN); // HL := base+0x18, B := 0
+  const advanced = fillByteRun(m, base, CLEAR_FILL, RECORD_LEN); // HL := base+0x18, B := 0
   return (m.regs.a = CLEAR_FILL), advanced; // A := 0 (cleared fill left in A); HL is the advanced pointer
 }

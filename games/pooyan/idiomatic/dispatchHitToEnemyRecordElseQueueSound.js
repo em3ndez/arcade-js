@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_613d } from "./loc_613d.js";
+import { retireResetOrEngageObjectRecord } from "./retireResetOrEngageObjectRecord.js";
 import { queueSoundCommand05 } from "./queueSoundCommand05.js";
 import { ENEMY_ACTOR_TABLE, ACTIVE_OBJECT_TYPE } from "./names.js";
 /**
@@ -24,7 +24,7 @@ export function dispatchHitToEnemyRecordElseQueueSound(m, hl = m.regs.hl, de = m
   const key = mem8[u16(hl + de)];
   let rec = ENEMY_ACTOR_TABLE;
   for (let n = 0; n < SCAN_COUNT; n++) {
-    if (key === mem8[u16(rec + TAG_FIELD)]) return loc_613d(m, rec); // match: handler aborts the frame
+    if (key === mem8[u16(rec + TAG_FIELD)]) return retireResetOrEngageObjectRecord(m, rec); // match: handler aborts the frame
     rec = u16(rec + SCAN_STRIDE);
   }
   if (mem8[ACTIVE_OBJECT_TYPE] === OBJECT_TYPE_QUIET) return true; // no match, type already 3: continue

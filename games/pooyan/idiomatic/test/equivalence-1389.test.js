@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1389 (Pooyan) — "spawn-step guard on a record flag": if bit 0
+ * Memory-equivalence test for restartActorAnimIfFlagBit0Set (Pooyan) — "spawn-step guard on a record flag": if bit 0
  * of the record's flag byte (rec+8) is clear, return untouched; else run the spawn/queue-step
  * helper, which no-ops when the phase is already advanced or clears a field and re-arms the
  * record's animation.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES RAM (via the
- * helper), so each case runs the oracle on one FRESH clone and loc_1389 on another, compared on:
+ * helper), so each case runs the oracle on one FRESH clone and restartActorAnimIfFlagBit0Set on another, compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1389 as oracle } from "../../translated/loc_1389.js";
-import { loc_1389 } from "../loc_1389.js";
+import { restartActorAnimIfFlagBit0Set } from "../restartActorAnimIfFlagBit0Set.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ACTOR_TABLE, ANIM_TABLE_3829 } from "../names.js";
@@ -90,12 +90,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted (flag,phase) — loc_1389 == oracle in RAM(−stack)", () => {
+test("EQUAL: crafted (flag,phase) — restartActorAnimIfFlagBit0Set == oracle in RAM(−stack)", () => {
   for (const c of CASES) {
     const o = craft(c.flag, c.phase);
     const k = craft(c.flag, c.phase);
     oracle(o);
-    loc_1389(k);
+    restartActorAnimIfFlagBit0Set(k);
     const d = ramDiffMinusStack(o, k);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b} (${c.name})`);
   }
@@ -137,7 +137,7 @@ test("TEETH: a wrong animation-pointer byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x03, 0x01);
   const k = craft(0x03, 0x01);
   oracle(o);
-  loc_1389(k);
+  restartActorAnimIfFlagBit0Set(k);
   k.mem.write8(REC + 0x0c, (ANIM_LO ^ 0xff) & 0xff); // BUG: wrong anim pointer low byte
 
   const d = ramDiffMinusStack(o, k);

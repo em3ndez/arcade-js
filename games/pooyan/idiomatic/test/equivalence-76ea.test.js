@@ -4,7 +4,7 @@
  * subsystems in order: advance the six-record object state table, walk the enemy-actor animation
  * tick, then rebuild the sprite display list. Straight-line, no branches.
  *
- * The module runs two sub-passes as direct idiomatic calls (advanceFirstGroupEnemyActorStates, loc_02ef) and keeps the
+ * The module runs two sub-passes as direct idiomatic calls (advanceFirstGroupEnemyActorStates, rebuildSpriteDisplayList) and keeps the
  * object-state-table walk as a machine call (0x76f4 — a spine dispatcher not lifted this batch);
  * the oracle drives all three through the routines map. runObjectAndEnemyActorUpdate is a void sequencer — no register
  * survives, so the register file is not compared; equivalence is RAM (dumpState) minus
@@ -66,7 +66,7 @@ function craftRich() {
 function twinNoDisplayRebuild(m) {
   m.call(0x76f4);
   advanceFirstGroupEnemyActorStates(m);
-  // (loc_02ef omitted)
+  // (rebuildSpriteDisplayList omitted)
 }
 
 // -- 1 & 2. EQUAL -------------------------------------------------------------

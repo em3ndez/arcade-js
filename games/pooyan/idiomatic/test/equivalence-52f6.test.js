@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_52f6 (Pooyan) — "gated slot sweep with a code-region checksum
+ * Memory-equivalence test for latchFreeSlotCountAndTamperCheck (Pooyan) — "gated slot sweep with a code-region checksum
  * tripwire": while the advance guard is set and the sweep latch clear, count the empty records among
  * six stride-0x18 slots; with four or more free, latch the count and fold a fixed code block, bumping
  * a tamper strike counter if the fold misses its expected value.
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_52f6 as oracle } from "../../translated/loc_52f6.js";
-import { loc_52f6 } from "../loc_52f6.js";
+import { latchFreeSlotCountAndTamperCheck } from "../latchFreeSlotCountAndTamperCheck.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -93,12 +93,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted guard/slot/block cases — loc_52f6 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted guard/slot/block cases — latchFreeSlotCountAndTamperCheck == oracle in RAM (−stack)", () => {
   for (const { name, guard, latch, freeCount } of CASES) {
     const o = craft(guard, latch, freeCount);
     const c = craft(guard, latch, freeCount);
     oracle(o);
-    loc_52f6(c);
+    latchFreeSlotCountAndTamperCheck(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -150,7 +150,7 @@ test("TEETH: a wrong latched count is CAUGHT by the RAM diff", () => {
   const o = craft(0x01, 0x00, 6);
   const c = craft(0x01, 0x00, 6);
   oracle(o);
-  loc_52f6(c);
+  latchFreeSlotCountAndTamperCheck(c);
   c.mem.write8(SLOT_SWEEP_LATCH, c.mem.read8(SLOT_SWEEP_LATCH) ^ 0xff); // BUG: wrong latched count
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong latched count — it is worthless");
@@ -162,7 +162,7 @@ test("TEETH: a spurious tamper bump is CAUGHT at the tamper counter", () => {
   const o = craft(0x01, 0x00, 6);
   const c = craft(0x01, 0x00, 6);
   oracle(o);
-  loc_52f6(c);
+  latchFreeSlotCountAndTamperCheck(c);
   c.mem.write8(TAMPER_STRIKES_SLOTSWEEP, c.mem.read8(TAMPER_STRIKES_SLOTSWEEP) ^ 0xff); // BUG: spurious/missed bump
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a tamper-counter divergence — it is worthless");
@@ -192,7 +192,7 @@ function wrongSentinelTwin(m) {
 
 test("POSITIVE-CONTROL: the checksum comparison is load-bearing (a wrong-sentinel twin bumps tamper)", () => {
   const c = craft(0x01, 0x00, 6);
-  loc_52f6(c);
+  latchFreeSlotCountAndTamperCheck(c);
   assert.equal(c.mem.read8(TAMPER_STRIKES_SLOTSWEEP), 0x00, "sanity: the module leaves tamper clear on the genuine ROM");
   const t = craft(0x01, 0x00, 6);
   wrongSentinelTwin(t);

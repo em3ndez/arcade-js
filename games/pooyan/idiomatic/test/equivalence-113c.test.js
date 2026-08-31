@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_113c (Pooyan) — main-loop sub-state 4 handler. Ticks the timer
+ * Memory-equivalence test for driveHunterSpawnDisplayAndAdvancePhase (Pooyan) — main-loop sub-state 4 handler. Ticks the timer
  * SUBSTATE_FIELD1_COUNTER: while non-zero, decrement it and enqueue HUNTER_SPAWN_DISPLAY_CMD via the
- * (already idiomatic) ring helper loc_0038; when zero, reload the timer to 0x80 and bump
+ * (already idiomatic) ring helper enqueueDisplayCommand; when zero, reload the timer to 0x80 and bump
  * MAINLOOP_SUBSTATE_SELECTOR.
  *
  * No register inputs. The counting case seats a FREE ring slot so the enqueue path writes and its
@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_113c as oracle } from "../../translated/loc_113c.js";
-import { loc_113c } from "../loc_113c.js";
+import { driveHunterSpawnDisplayAndAdvancePhase } from "../driveHunterSpawnDisplayAndAdvancePhase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -64,12 +64,12 @@ const craftExpire = () => seat({ timer: 0x00 });
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_113c == oracle in RAM (−stack)", () => {
+test("EQUAL: driveHunterSpawnDisplayAndAdvancePhase == oracle in RAM (−stack)", () => {
   for (const [name, craft] of [["counting", craftCount], ["expired", craftExpire]]) {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_113c(c);
+    driveHunterSpawnDisplayAndAdvancePhase(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -97,7 +97,7 @@ test("TEETH: a corrupted timer cell is CAUGHT; the branches are load-bearing", (
   const o = craftExpire();
   const c = craftExpire();
   oracle(o);
-  loc_113c(c);
+  driveHunterSpawnDisplayAndAdvancePhase(c);
   c.mem.write8(SUBSTATE_FIELD1_COUNTER, (o.mem.read8(SUBSTATE_FIELD1_COUNTER) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted timer cell");

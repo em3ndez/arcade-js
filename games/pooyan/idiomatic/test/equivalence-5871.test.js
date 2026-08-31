@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5871 (ROM 0x5871, Pooyan) — the actor-spawn gate. It latches the
+ * Memory-equivalence test for gateEnemySpawnOnActiveCountAndInit (ROM 0x5871, Pooyan) — the actor-spawn gate. It latches the
  * entry register into the speed index, then launches a new actor only when the active count is
  * strictly below the stage threshold AND below the cap (6). On a launch it raises the spawn-active
  * flag (0x8d4a, proposed SPAWN_ACTIVE_FLAG) and runs the init loop over the record block
- * (idiomatic loc_588e).
+ * (idiomatic seedFirstFreeSpriteBlockInRun).
  *
  * SEATING: BALANCED (WIRE). The three early exits are plain `ret`s (net SP 0); the launch path
- * tail-delegates into loc_588e, which ends in a plain `ret` — no `pop af` anywhere. The module does
+ * tail-delegates into seedFirstFreeSpriteBlockInRun, which ends in a plain `ret` — no `pop af` anywhere. The module does
  * no stack ops; the oracle's marshalled pushes/pops land in STACK_SCRATCH and drop from the diff.
  *
  * LIVE-OUT: none — a void spawn driver in a void-driver chain (its caller calls it then rets,
@@ -15,8 +15,8 @@
  * speed index is the sole register INPUT (bridged from regs.a). Fidelity = RAM (dumpState) minus
  * STACK_SCRATCH.
  *
- * DEPENDS ON in-batch sibling loc_588e (dissolved launch-path call) being written; see reconcile
- * notes (assumed signature loc_588e(m, base, count)).
+ * DEPENDS ON in-batch sibling seedFirstFreeSpriteBlockInRun (dissolved launch-path call) being written; see reconcile
+ * notes (assumed signature seedFirstFreeSpriteBlockInRun(m, base, count)).
  *
  * Jobs:
  *   1. EQUAL — four gate decisions (launch; at-threshold; below-threshold/borrow; roster-full):
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5871 as oracle } from "../../translated/loc_5871.js";
-import { loc_5871 } from "../loc_5871.js";
+import { gateEnemySpawnOnActiveCountAndInit } from "../gateEnemySpawnOnActiveCountAndInit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPEED_INDEX, STAGE_COUNTDOWN, ACTIVE_ENEMY_COUNT } from "../names.js";
@@ -86,7 +86,7 @@ test("EQUAL: every gate decision — module == oracle in RAM (−stack)", () => 
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    loc_5871(c);
+    gateEnemySpawnOnActiveCountAndInit(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -112,7 +112,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craft(cfg);
   const c = craft(cfg);
   oracle(o);
-  loc_5871(c);
+  gateEnemySpawnOnActiveCountAndInit(c);
   c.mem.write8(SPEED_INDEX, (o.mem.read8(SPEED_INDEX) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted speed-index byte");
@@ -122,11 +122,11 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: the launch decision is load-bearing (launch sets the flag, at-threshold does not)", () => {
   const launched = craft({ threshold: 0x05, active: 0x02 });
-  loc_5871(launched);
+  gateEnemySpawnOnActiveCountAndInit(launched);
   assert.equal(launched.mem.read8(SPAWN_ACTIVE_FLAG), 0x01, "a launch must set the flag");
 
   const held = craft({ threshold: 0x03, active: 0x03 });
-  loc_5871(held);
+  gateEnemySpawnOnActiveCountAndInit(held);
   assert.equal(held.mem.read8(SPAWN_ACTIVE_FLAG), 0x00, "an at-threshold state must NOT launch");
   console.log("  TEETH(branch): launch/no-launch decision caught by the flag");
 });

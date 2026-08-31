@@ -4,13 +4,13 @@
  * dispatch handler.
  *
  * SEATING: BALANCED — the routine zeroes the in-play state block, seeds the fresh-start flags,
- * dissolves loc_02b9 (a verified idiomatic module) to zero the board RAM, KEEPS m.call(0x0ecf)
+ * dissolves zeroSpriteListAndActorArena (a verified idiomatic module) to zero the board RAM, KEEPS m.call(0x0ecf)
  * (sound command 0, unlifted) with its push16 return slot, and unpacks the 0x1e4c ROM table
  * (each byte >> 1) into the display-message buffer to the 0x7f terminator. LIVE-OUT is memory
  * only, so the comparison is RAM (dumpState) minus STACK_SCRATCH; the register file is not compared.
  *
- * The two sides differ in transient stack use (the oracle m.call's frozen loc_02b9 with a push16;
- * the module calls idiomatic loc_02b9 directly) — masked because SP ends where it started and all
+ * The two sides differ in transient stack use (the oracle m.call's frozen zeroSpriteListAndActorArena with a push16;
+ * the module calls idiomatic zeroSpriteListAndActorArena directly) — masked because SP ends where it started and all
  * push residue lands inside STACK_SCRATCH.
  *
  * Jobs:

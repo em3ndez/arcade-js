@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0cf8 (ROM 0x0cf8, Pooyan) — a two-plane column-strip blit. It
+ * Memory-equivalence test for stampTwoPlaneColumnStrip (ROM 0x0cf8, Pooyan) — a two-plane column-strip blit. It
  * walks a ROM source table of 12-byte columns, writing each column bottom-up (row stride 0x20) into
  * the tile-code plane at 0x86a7; a 0xff steering byte switches to the attribute table + attribute
  * plane at 0x82a7, a 0xee byte ends the stamp, any other byte starts the next column one cell right.
  *
  * SEATING: BALANCED — the oracle's only exit is a plain `ret z` on the 0xee marker, so the module is
- * WIRED as a void routine. LIVE-OUT: none — the caller (loc_0c45) overwrites DE and reads no
+ * WIRED as a void routine. LIVE-OUT: none — the caller (fetchWordFromTableIndex) overwrites DE and reads no
  * register back, so equivalence is RAM (dumpState) minus STACK_SCRATCH; the register file is not
  * compared. A plain boot clone reaches it: the source tables live in ROM and terminate themselves.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0cf8 as oracle } from "../../translated/loc_0cf8.js";
-import { loc_0cf8 } from "../loc_0cf8.js";
+import { stampTwoPlaneColumnStrip } from "../stampTwoPlaneColumnStrip.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -82,7 +82,7 @@ test("EQUAL: module == oracle in RAM (−stack) after the full stamp", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_0cf8(c);
+  stampTwoPlaneColumnStrip(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: RAM identical");
@@ -92,7 +92,7 @@ test("EQUAL: module == oracle in RAM (−stack) after the full stamp", () => {
 
 test("WRITE-SET: the blit ran — RAM changed and each plane's first cell holds its source byte", () => {
   const c = craft();
-  loc_0cf8(c);
+  stampTwoPlaneColumnStrip(c);
   const changed = ramDiffMinusStack(BASE.clone(), c);
   assert.notEqual(changed, null, "module wrote nothing — EQUAL would be vacuous");
   assert.equal(c.mem8[TILE_DEST], c.mem8[TILE_SRC], "tile-plane first cell = tile source byte");
@@ -106,7 +106,7 @@ test("TEETH: a single wrong dest byte is caught by the RAM diff", () => {
   const o = craft();
   oracle(o);
   const twin = craft();
-  loc_0cf8(twin);
+  stampTwoPlaneColumnStrip(twin);
   twin.mem8[TILE_DEST] = (twin.mem8[TILE_DEST] + 1) & 0xff; // one byte off
   const d = ramDiffMinusStack(o, twin);
   assert.notEqual(d, null, "the RAM diff FAILED to catch a one-byte error — worthless");

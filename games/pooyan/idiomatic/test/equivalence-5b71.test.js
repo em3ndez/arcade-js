@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5b71 (ROM 0x5b71, Pooyan) — fire gate for one actor record based
+ * Memory-equivalence test for launchProjectileIfRecordInFireWindow (ROM 0x5b71, Pooyan) — fire gate for one actor record based
  * at IX. It launches only when the record is in mode 5 (rec+2), its fire flag is set (bit 2 of
  * rec+7) and its timer (rec+6) is below 0x11; any guard failing returns without acting.
  *
  * The module reads the record through the IX param-default bridge and delegates the launch to its
- * frozen sibling; the oracle drives the same translated sibling through the routines map. loc_5b71
+ * frozen sibling; the oracle drives the same translated sibling through the routines map. launchProjectileIfRecordInFireWindow
  * is a void gate — no register survives — so equivalence is RAM (dumpState) minus STACK_SCRATCH,
  * with SP parked in STACK_SCRATCH so the launch's nested pushes drop out of the diff.
  *
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5b71 as oracle } from "../../translated/loc_5b71.js";
-import { loc_5b71 } from "../loc_5b71.js";
+import { launchProjectileIfRecordInFireWindow } from "../launchProjectileIfRecordInFireWindow.js";
 import { loc_3a6c } from "../../translated/loc_3a6c.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -81,12 +81,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5b71 == oracle in RAM (−stack)", () => {
+test("EQUAL: launchProjectileIfRecordInFireWindow == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_5b71(c);
+    launchProjectileIfRecordInFireWindow(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -98,13 +98,13 @@ test("EQUAL: loc_5b71 == oracle in RAM (−stack)", () => {
 test("WRITE-SET: a fire bumps the spawn counter; every blocked branch is inert", () => {
   const fired = craftLaunch();
   const before = fired.mem.read8(SPAWN_COUNTER);
-  loc_5b71(fired);
+  launchProjectileIfRecordInFireWindow(fired);
   assert.equal(fired.mem.read8(SPAWN_COUNTER), (before + 1) & 0xff, "a firing gate must bump the spawn counter");
 
   for (const cfg of CASES.filter((c) => !c.fires)) {
     const m = cfg.craft();
     const b0 = m.dumpState();
-    loc_5b71(m);
+    launchProjectileIfRecordInFireWindow(m);
     assert.deepEqual([...m.dumpState()], [...b0], `${cfg.name}: a blocked gate must leave RAM untouched`);
   }
   console.log("  WRITE-SET: fire bumps counter; blocked branches inert");
@@ -116,7 +116,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftLaunch();
   const c = craftLaunch();
   oracle(o);
-  loc_5b71(c);
+  launchProjectileIfRecordInFireWindow(c);
   c.mem.write8(SPAWN_COUNTER, (o.mem.read8(SPAWN_COUNTER) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -140,7 +140,7 @@ test("TEETH: a guard-dropping twin that fires on a wrong-mode record diverges at
 // so a stale-register read is masked twice over. Here a FREE slot lets loc_3a6c do its record-specific
 // launch writes, and the register is POISONED with the record handed in as the param: a re-seat/thread
 // recovers, a stale m.regs.ix read leaks. Invisible to the base tape (wave-end fire cleanup is unreached).
-test("R37: loc_5b71 threads the launcher record to loc_3a6c, not a stale IX bridge", () => {
+test("R37: launchProjectileIfRecordInFireWindow threads the launcher record to loc_3a6c, not a stale IX bridge", () => {
   const craft = () => {
     const m = BASE.clone();
     m.regs.sp = SP0;
@@ -149,9 +149,9 @@ test("R37: loc_5b71 threads the launcher record to loc_3a6c, not a stale IX brid
     m.mem.write8(REC + 0x06, 0x08); // timer in window (also loc_3a6c's heading source)
     return m; // slot 0 left FREE -> loc_3a6c performs its record-specific launch writes
   };
-  const r = bridgeReseatEquivalent(craft(), oracle, loc_5b71, {
+  const r = bridgeReseatEquivalent(craft(), oracle, launchProjectileIfRecordInFireWindow, {
     live: { ix: REC }, poison: { ix: 0x8b40 }, args: [REC], excludeAddr: inDeadStack,
   });
-  assert.equal(r.equal, true, r.ram && `loc_5b71 launched off a stale IX; RAM diff at ${hx(r.ram.addr ?? 0)}`);
+  assert.equal(r.equal, true, r.ram && `launchProjectileIfRecordInFireWindow launched off a stale IX; RAM diff at ${hx(r.ram.addr ?? 0)}`);
   console.log("  R37: launcher record threaded to loc_3a6c (poison-IX bridge tooth clean)");
 });

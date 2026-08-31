@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3617 (ROM 0x3617, Pooyan) — the pre-spawn guard. When B is below
+ * Memory-equivalence test for enterPreSpawnGateIfBelowLimit (ROM 0x3617, Pooyan) — the pre-spawn guard. When B is below
  * 0x20 it tails to the frozen pre-spawn gate (0x365d); otherwise it bails, leaving A = B.
  *
- * SEATING: TAIL-CALL / BALANCED. loc_3617 is reached by tail-jump from the target-tile resolver, so
+ * SEATING: TAIL-CALL / BALANCED. enterPreSpawnGateIfBelowLimit is reached by tail-jump from the target-tile resolver, so
  * both the bail (a plain ret) and the tail run in that caller's frame — the omitted-ret seam seats
  * both (net move 0 on the bail, +2 through the frozen gate on the tail). The gate (0x365d) is NOT
  * lifted this batch, so the module keeps m.call(0x365d); the oracle drives the same frozen gate, so
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3617 as oracle } from "../../translated/loc_3617.js";
-import { loc_3617 } from "../loc_3617.js";
+import { enterPreSpawnGateIfBelowLimit } from "../enterPreSpawnGateIfBelowLimit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { ENEMY_ACTOR_TABLE, STACK_SCRATCH } from "../names.js";
@@ -72,7 +72,7 @@ for (const [label, b, scanBit] of [["bail (B=0x25)", 0x25, undefined], ["tail (B
     const o = craft(b, scanBit);
     const c = craft(b, scanBit);
     oracle(o);
-    loc_3617(c);
+    enterPreSpawnGateIfBelowLimit(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(c.regs.a, o.regs.a, `${label}: A live-out diverged: oracle=${hx(o.regs.a)} module=${hx(c.regs.a)}`);
@@ -120,7 +120,7 @@ test("TEETH: a wrong seeded byte on the tail path is CAUGHT by the RAM diff", ()
   const o = craft(0x10, 0x00);
   const c = craft(0x10, 0x00);
   oracle(o);
-  loc_3617(c);
+  enterPreSpawnGateIfBelowLimit(c);
   const d0 = firstStateDiff(o.dumpState(), BASE.dumpState(), (off) => o.stateOffsetToAddr(off), inDeadStack);
   const target = d0 ? d0.addr : REC;
   c.mem.write8(target, (o.mem.read8(target) ^ 0xff) & 0xff);

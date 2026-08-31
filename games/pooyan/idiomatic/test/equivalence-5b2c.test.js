@@ -3,14 +3,14 @@
  * Memory-equivalence test for fireArmedEnemyProjectilesAndDisarm (ROM 0x5b2c, Pooyan) — end-of-wave object-table cleanup:
  * gated by the launch-arm latch 0x8d75 and active-lane count 0x8d79; when the pending flag 0x8d77 is
  * clear it scans six enemy records' +4 field for the wave-end key (0x13 even / 0x0b odd round) and
- * returns on a miss; on a hit (or 0x8d77 set) it sweeps six records through the fire gate loc_5b71
+ * returns on a miss; on a hit (or 0x8d77 set) it sweeps six records through the fire gate launchProjectileIfRecordInFireWindow
  * and clears 0x8d75 / 0x8f20.
  *
- * The module calls the idiomatic loc_5b71 directly (the oracle's exx only parks the loop counter, a
- * JS local here, so it dissolves); the oracle drives loc_5b71 through the frozen registry. fireArmedEnemyProjectilesAndDisarm
+ * The module calls the idiomatic launchProjectileIfRecordInFireWindow directly (the oracle's exx only parks the loop counter, a
+ * JS local here, so it dissolves); the oracle drives launchProjectileIfRecordInFireWindow through the frozen registry. fireArmedEnemyProjectilesAndDisarm
  * declares no register live-out (the caller rets straight after), so the register file is not
  * compared; equivalence is RAM (dumpState) minus STACK_SCRATCH. The swept records are left inert
- * (rec+2 != 5) so loc_5b71 no-ops, isolating fireArmedEnemyProjectilesAndDisarm's own scan/gate/clear behaviour.
+ * (rec+2 != 5) so launchProjectileIfRecordInFireWindow no-ops, isolating fireArmedEnemyProjectilesAndDisarm's own scan/gate/clear behaviour.
  *
  * Jobs:
  *   1. EQUAL — latch-clear / lane-busy / scan-miss / scan-hit / pending-set: oracle == fireArmedEnemyProjectilesAndDisarm.

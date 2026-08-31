@@ -11,7 +11,7 @@
  * false. LIVE-OUT: none (memory only). Compared on RAM (dumpState) minus STACK_SCRATCH; the register
  * file is not compared. The kind byte, round counter, and rec+0x06 seed are all crafted identically on
  * both sides. The lookups read ROM tables, so the test requires the ROM; it is green once the batch
- * sibling loc_0c45 and the 0x5657/0x55d7 table cells land.
+ * sibling fetchWordFromTableIndex and the 0x5657/0x55d7 table cells land.
  *
  * Jobs:
  *   1. EQUAL — several (kind, round, seed) combinations: oracle == module in RAM (−stack).
@@ -43,7 +43,7 @@ const test = ROM_PRESENT
 const REC = 0x8c30; //        actor record base
 const KIND_FIELD = 0x17; //   rec+0x17 = kind index
 const ROUND_COUNTER = 0x8907;
-const ANIM_TABLE = 0x5657; // word table (loc_0c45), indexed 2*kind
+const ANIM_TABLE = 0x5657; // word table (fetchWordFromTableIndex), indexed 2*kind
 const SPEED_TABLE = 0x55d7; // speed table, indexed kind then 3*(round & 7)
 const SP0 = 0x8fe0;
 

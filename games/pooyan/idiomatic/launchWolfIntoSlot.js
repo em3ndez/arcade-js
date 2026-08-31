@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0020 } from "./loc_0020.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import {
   WAVE_NUMBER,
@@ -48,9 +48,9 @@ export function launchWolfIntoSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
     mem8[iy + 0x04] = 0x14;
     mem8[iy + 0x06] = 0x1e;
     const variantIndex = mem8[WOLF_LAUNCH_VARIANT_INDEX];
-    const [variant] = loc_0020(m, WOLF_LAUNCH_VARIANT_TABLE, variantIndex);
+    const [variant] = fetchByteFromTableIndex(m, WOLF_LAUNCH_VARIANT_TABLE, variantIndex);
     mem8[iy + 0x17] = variant;
-    const sequence = loc_0c45(m, variant, ACTOR_ANIM_TABLE_5657);
+    const sequence = fetchWordFromTableIndex(m, variant, ACTOR_ANIM_TABLE_5657);
     mem8[iy + 0x0c] = sequence; //      low byte (the store masks)
     mem8[iy + 0x0d] = sequence >> 8;
     mem8[iy + 0x09] = 0x18;
@@ -62,7 +62,7 @@ export function launchWolfIntoSlot(m, ix = m.regs.ix, iy = m.regs.iy) {
 
   // Reseed the shared frame-delay from the launch table (index clamped to two).
   const wave = mem8[WAVE_NUMBER];
-  const [delay] = loc_0020(m, LAUNCH_FRAME_DELAY_TABLE, wave < 0x02 ? wave : 0x02);
+  const [delay] = fetchByteFromTableIndex(m, LAUNCH_FRAME_DELAY_TABLE, wave < 0x02 ? wave : 0x02);
   mem8[SHARED_FRAME_DELAY_TIMER] = delay;
 
   // Advance the wave and arm the IX record's launch animation.

@@ -5,7 +5,7 @@
  * sequence (look up this frame's tile block, blit at the rope column, bump the frame index) or,
  * once the index reaches 8, resets the sequence and re-arms the next rope cell.
  *
- * The module dissolves the tile lookup (loc_0c45) and the 2x2 blit (blit2x2TileBlock) to direct
+ * The module dissolves the tile lookup (fetchWordFromTableIndex) and the 2x2 blit (blit2x2TileBlock) to direct
  * calls; the oracle drives the same frozen helpers via the registry new Machine(ROM) builds.
  * advanceRopeExtendAnimation is a void handler — no register survives — so equivalence is RAM (dumpState) minus
  * STACK_SCRATCH, SP parked in dead stack.

@@ -2,10 +2,10 @@
 import { u8 } from "../../../core/int.js";
 import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { advanceActorXAndDispatchMove } from "./advanceActorXAndDispatchMove.js";
-import { loc_362d } from "./loc_362d.js";
-import { loc_3617 } from "./loc_3617.js";
-import { loc_0c45 } from "./loc_0c45.js";
-import { loc_0020 } from "./loc_0020.js";
+import { dispatchActorPhaseGatedByDelay } from "./dispatchActorPhaseGatedByDelay.js";
+import { enterPreSpawnGateIfBelowLimit } from "./enterPreSpawnGateIfBelowLimit.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import {
   STAGE_COUNTDOWN,
@@ -54,7 +54,7 @@ export function advanceActorTowardTargetColumn(m, rec = m.regs.ix) {
   if (sum > 0xff) mem8[rec + REC_COLUMN] = u8(mem8[rec + REC_COLUMN] + 1); // carry into the column
   const newX = u8(sum);
   mem8[rec + REC_X] = newX;
-  if (mem8[STAGE_COUNTDOWN] < MIN_STAGE) return loc_362d(m, rec, newX); // early stage
+  if (mem8[STAGE_COUNTDOWN] < MIN_STAGE) return dispatchActorPhaseGatedByDelay(m, rec, newX); // early stage
 
   const actorCol = mem8[rec + REC_COLUMN];
   const altSource = mem8[ACTIVE_LANE_COUNT] !== 0;
@@ -64,11 +64,11 @@ export function advanceActorTowardTargetColumn(m, rec = m.regs.ix) {
       base = mem16[ALT_TARGET_TABLE_PTR];
       index = mem8[SLOT_SPAWN_INDEX];
     } else {
-      base = loc_0c45(m, (mem8[ROUND_COUNTER] & 0x0f) >> 1, TARGET_TILE_ROW_TABLE);
+      base = fetchWordFromTableIndex(m, (mem8[ROUND_COUNTER] & 0x0f) >> 1, TARGET_TILE_ROW_TABLE);
       index = mem8[ANIM_FRAME_COUNTER] & 0x07;
     }
-    const [targetCol] = loc_0020(m, base, index);
-    if (actorCol === targetCol) return loc_3617(m, newX, rec); // on target -> pre-spawn guard
+    const [targetCol] = fetchByteFromTableIndex(m, base, index);
+    if (actorCol === targetCol) return enterPreSpawnGateIfBelowLimit(m, newX, rec); // on target -> pre-spawn guard
   }
 
   if (actorCol < NEAR_LIMIT) return (m.regs.a = actorCol); // too near -> bail (A = actor column)

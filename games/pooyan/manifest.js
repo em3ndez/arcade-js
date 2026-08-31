@@ -83,7 +83,7 @@ export default {
   // 0x021c (the return right after the worker 0x0254), which is reached ONLY on the worker path. Command
   // dispatches ret to 0x020f, so polling 0x020f would fire one NMI PER COMMAND and drain the ring one
   // command/frame — a credit-screen backlog then leaves stale attract tiles on the playfield deep into
-  // gameplay (fails loc_68ac's tile checksum). Polling 0x021c drains the ring within a frame, matching
+  // gameplay (fails verifyPlayfieldTileChecksumOnce's tile checksum). Polling 0x021c drains the ring within a frame, matching
   // MAME. Attract convergence is unchanged (empty ring); the idiomatic arm mirrors it in mainLoop (yield
   // only on the worker iteration). (History: 0x020f was attract-only-validated; the gameplay tape exposed
   // the per-command drain — see ARCADE2 seam log.)

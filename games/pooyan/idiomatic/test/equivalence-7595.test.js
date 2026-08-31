@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for launchWolfIntoSlot (ROM 0x7595) — the per-record launch attempt, a DISSOLVED
- * caller-skip that composes the idiomatic siblings loc_0020, loc_0c45 and setActorAnimation.
+ * caller-skip that composes the idiomatic siblings fetchByteFromTableIndex, fetchWordFromTableIndex and setActorAnimation.
  *
  * An already-active slot (bit 0 of either of IX's first two bytes) takes the plain `ret c` (normal
  * return, SP += 2) and the module returns true (caller keeps sweeping). A free slot is launched: the

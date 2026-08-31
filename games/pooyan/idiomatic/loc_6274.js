@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { queueSoundCommand05 } from "./queueSoundCommand05.js";
 import { ENEMY_TARGET_REC0, ENEMY_TARGET_REC1 } from "./names.js";
 /**
@@ -17,7 +17,7 @@ const RECORD_LEN = 0x18;
 
 export function loc_6274(m, iReg = m.regs.i) {
   const base = iReg === 0 ? ENEMY_TARGET_REC0 : ENEMY_TARGET_REC1;
-  loc_0010(m, base, 0x00, RECORD_LEN); // zero the record body
+  fillByteRun(m, base, 0x00, RECORD_LEN); // zero the record body
   queueSoundCommand05(m); // enqueue the fixed sound command
   return false; // always the abort branch
 }

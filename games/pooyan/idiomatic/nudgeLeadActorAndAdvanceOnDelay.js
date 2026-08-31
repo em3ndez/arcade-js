@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_250f } from "./loc_250f.js";
+import { seedFourRecordsAndCopyDisplayTiles } from "./seedFourRecordsAndCopyDisplayTiles.js";
 import { ACTOR_TABLE, SHAPE_TABLE_26C5 } from "./names.js";
 /**
  * nudgeLeadActorAndAdvanceOnDelay — the actor-table state-2 handler: a frame-delay countdown that, on expiry, advances the
@@ -21,7 +21,7 @@ export function nudgeLeadActorAndAdvanceOnDelay(m, ix = m.regs.ix) {
   if (delay !== 0) return; // still counting down this frame
 
   mem8[ix + 0x02] = mem8[ix + 0x02] + 1; // advance the actor state (byte wraps)
-  loc_250f(m, SHAPE_TABLE_26C5, ix);
+  seedFourRecordsAndCopyDisplayTiles(m, SHAPE_TABLE_26C5, ix);
 
   mem8[ACTOR_TABLE + 0x04] = mem8[ACTOR_TABLE + 0x04] + 0x04; // base Y += 4 (byte wraps)
   const secondary = (mem8[ACTOR_TABLE + 0x06] - 0x06) & 0xff;

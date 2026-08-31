@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2a96 — the 0x8a80 actor state-5 handler (dispatch slot 5).
+ * Memory-equivalence test for verifySignatureThenSetFlipAndAdvance — the 0x8a80 actor state-5 handler (dispatch slot 5).
  *
  * The routine runs a 0x20-byte signature check (a fixed program window read upward vs a reversed
  * reference block read downward). On a match it reseats the frame-hold cell (ix+0x11) := 0x18, sets
@@ -14,7 +14,7 @@
  * exercises the clean (match) path. The three record cells are seeded so each write is observable.
  *
  * Jobs:
- *   1. EQUAL — loc_2a96 == oracle in RAM (−stack) on the built image.
+ *   1. EQUAL — verifySignatureThenSetFlipAndAdvance == oracle in RAM (−stack) on the built image.
  *   2. WRITE-SET — exactly the three record cells change: frame-hold := 0x18, flag |= 0x80,
  *      state incremented.
  *   3. TEETH — a wrong frame-hold byte, a non-advanced state cell, and a cleared flip bit are each
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2a96 as oracle } from "../../translated/loc_2a96.js";
-import { loc_2a96 } from "../loc_2a96.js";
+import { verifySignatureThenSetFlipAndAdvance } from "../verifySignatureThenSetFlipAndAdvance.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -81,11 +81,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: built image (match path) — loc_2a96 == oracle in RAM (−stack)", () => {
+test("EQUAL: built image (match path) — verifySignatureThenSetFlipAndAdvance == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_2a96(c);
+  verifySignatureThenSetFlipAndAdvance(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: clean-path RAM identical (−stack)");
@@ -96,7 +96,7 @@ test("EQUAL: built image (match path) — loc_2a96 == oracle in RAM (−stack)",
 test("WRITE-SET: exactly the three record cells change to their expected values", () => {
   const c = craft();
   const before = c.dumpState();
-  loc_2a96(c);
+  verifySignatureThenSetFlipAndAdvance(c);
   const after = c.dumpState();
 
   const changed = [];
@@ -117,7 +117,7 @@ test("TEETH: a wrong frame-hold byte is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_2a96(c);
+  verifySignatureThenSetFlipAndAdvance(c);
   c.mem.write8(HOLD, 0x00); // BUG: the frame-hold cell must be reseated to 0x18
 
   const d = ramDiffMinusStack(o, c);
@@ -130,7 +130,7 @@ test("TEETH: a non-advanced state cell is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_2a96(c);
+  verifySignatureThenSetFlipAndAdvance(c);
   c.mem.write8(STATE, STATE_SEED); // BUG: the state cell must be incremented
 
   const d = ramDiffMinusStack(o, c);
@@ -143,7 +143,7 @@ test("TEETH: a cleared flip bit is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_2a96(c);
+  verifySignatureThenSetFlipAndAdvance(c);
   c.mem.write8(FLAG, FLAG_SEED); // BUG: bit 7 of the flag cell must be set
 
   const d = ramDiffMinusStack(o, c);

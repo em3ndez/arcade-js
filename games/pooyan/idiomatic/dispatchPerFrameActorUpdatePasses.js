@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: GPL-3.0-only
+import { movePlayerVerticallyAndTickStatusRender } from "./movePlayerVerticallyAndTickStatusRender.js";
+import { runLaunchAndTargetActorPipeline } from "./runLaunchAndTargetActorPipeline.js";
+import { blitTwoTileAnimFrameOnHoldTimer } from "./blitTwoTileAnimFrameOnHoldTimer.js";
+import { renderMarkerColumnExtendOrRetract } from "./renderMarkerColumnExtendOrRetract.js";
+import { dispatchFormationPhaseOrQueueLaunchSlots } from "./dispatchFormationPhaseOrQueueLaunchSlots.js";
+import { advanceLeadActorPrimaryState } from "./advanceLeadActorPrimaryState.js";
+import {
+  PLAY_MODE_LATCH,
+  GRAB_ACTIVE_FLAG,
+  HISCORE_TABLE_CORRUPT_FLAG,
+  TAMPER_STRIKES_TERMINATOR,
+  ACTOR_TABLE,
+} from "./names.js";
+
+/**
+ * dispatchPerFrameActorUpdatePasses — per-frame object-update gate then the fixed helper chain.
+ *
+ * While the play-mode latch is idle, a set grab flag hands the frame to the lead-actor driver.
+ * While the latch is busy the grab flag is cleared and, if the corruption pair is both set, the
+ * frame is handed off the same way. Otherwise it seeds the actor table and runs the five per-frame
+ * sub-passes in order, then returns.
+ *
+ * SEATING: balanced ret, or a tail into the lead-actor driver.
+ * LIVE-OUT: none — a void driver; the caller reads nothing back.
+ */
+
+export function dispatchPerFrameActorUpdatePasses(m) {
+  const { mem8 } = m;
+
+  if (mem8[PLAY_MODE_LATCH] === 0) {
+    if (mem8[GRAB_ACTIVE_FLAG] !== 0) return advanceLeadActorPrimaryState(m); // idle + grab set -> lead-actor driver
+  } else {
+    mem8[GRAB_ACTIVE_FLAG] = 0; // busy -> clear the grab flag
+    if ((mem8[HISCORE_TABLE_CORRUPT_FLAG] & mem8[TAMPER_STRIKES_TERMINATOR]) !== 0) return advanceLeadActorPrimaryState(m);
+  }
+
+  movePlayerVerticallyAndTickStatusRender(m, ACTOR_TABLE);
+  runLaunchAndTargetActorPipeline(m);
+  blitTwoTileAnimFrameOnHoldTimer(m);
+  renderMarkerColumnExtendOrRetract(m);
+  dispatchFormationPhaseOrQueueLaunchSlots(m);
+}

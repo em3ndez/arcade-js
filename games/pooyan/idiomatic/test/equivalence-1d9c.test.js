@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1d9c (Pooyan) — per-frame gate on ROUND_COUNTER bit 1.
+ * Memory-equivalence test for dispatchLevelIntroElseMainLoop (Pooyan) — per-frame gate on ROUND_COUNTER bit 1.
  *
  * Bit 1 clear: delegate to the main-loop sub-state dispatcher (0x0fd5) and return. Bit 1
  * set: run the level-intro phase dispatcher (idiomatic here / translated oracle), then a code-window
@@ -23,7 +23,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1d9c as oracle } from "../../translated/loc_1d9c.js";
-import { loc_1d9c } from "../loc_1d9c.js";
+import { dispatchLevelIntroElseMainLoop } from "../dispatchLevelIntroElseMainLoop.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -83,12 +83,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1d9c == oracle in RAM (−stack)", () => {
+test("EQUAL: dispatchLevelIntroElseMainLoop == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_1d9c(c);
+    dispatchLevelIntroElseMainLoop(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -101,12 +101,12 @@ test("WRITE-SET: delegate branch mutates RAM; a clean intro run leaves the integ
   // delegate branch: 0x0fd5 does real work -> RAM differs from a no-op baseline
   const before = seat({ round: 0x00, selector: 0 });
   const after = seat({ round: 0x00, selector: 0 });
-  loc_1d9c(after);
+  dispatchLevelIntroElseMainLoop(after);
   assert.notEqual(ramDiffMinusStack(before, after), null, "delegate branch must mutate RAM");
 
   // clean intro run: the probed cell is intact, so no strike is latched
   const intro = seat({ round: ROUND_BIT1, phase: 0 });
-  loc_1d9c(intro);
+  dispatchLevelIntroElseMainLoop(intro);
   assert.equal(intro.mem.read8(INTEGRITY_FLAG_SCAN_BASE), 0x00, "clean ROM leaves the integrity flag clear");
   console.log("  WRITE-SET: delegate mutates RAM; clean probe leaves 0x89e7 == 0");
 });
@@ -117,7 +117,7 @@ test("TEETH: a corrupted integrity flag is CAUGHT; branches are load-bearing", (
   const o = seat({ round: ROUND_BIT1, phase: 0 });
   const c = seat({ round: ROUND_BIT1, phase: 0 });
   oracle(o);
-  loc_1d9c(c);
+  dispatchLevelIntroElseMainLoop(c);
   c.mem.write8(INTEGRITY_FLAG_SCAN_BASE, 0x01); // fake a spurious strike on the module side
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted integrity flag");

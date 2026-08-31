@@ -10,9 +10,9 @@
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so each case uses a FRESH clone
  * per side, compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are not compared (the
  * oracle drives them through m.step/push/ret, the stack ABI the direct-call layer replaces).
- * movePlayerVerticallyAndTickStatusRender has NO register live-out — its only caller (loc_20d4) invokes the next helper straight
+ * movePlayerVerticallyAndTickStatusRender has NO register live-out — its only caller (dispatchPerFrameActorUpdatePasses) invokes the next helper straight
  * after and reads nothing back — so the contract is memory alone. The oracle drives its inlined
- * sub-calls (loc_23d7 / loc_23ec / loc_2405 / loc_0c45 / loc_3325 and the inlined descent) through
+ * sub-calls (loc_23d7 / loc_23ec / loc_2405 / fetchWordFromTableIndex / loc_3325 and the inlined descent) through
  * the full translated registry that new Machine(ROM) builds; the module direct-calls the idiomatic
  * siblings and dissolves the descent into movePlayerDownAndTickStatusRender.
  *

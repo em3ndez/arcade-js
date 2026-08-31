@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { queueSoundCommand00 } from "./queueSoundCommand00.js";
 import { u16 } from "../../../core/int.js";
-import { loc_0020 } from "./loc_0020.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { beginTwoPlayerStartOfLife } from "./beginTwoPlayerStartOfLife.js";
 import { startNewGamePlay } from "./startNewGamePlay.js";
 import {
@@ -53,7 +53,7 @@ export function advanceGameStateOnCreditOrStartPress(m) {
 
     if (!mismatch) {
       const cmp = u16(hl - 0x440); // strip cell the lookup is checked against (0x440 back)
-      const [fetched] = loc_0020(m, EPILOGUE_SUBSTATE_LOOKUP_TABLE, mem8[ATTRACT_SUBSTATE]);
+      const [fetched] = fetchByteFromTableIndex(m, EPILOGUE_SUBSTATE_LOOKUP_TABLE, mem8[ATTRACT_SUBSTATE]);
       if (fetched === mem8[cmp]) break integrity; // lookup agrees -> no tamper
     }
     mem8[BOARD_CLEAR_FLAG] = 0x01; // scan or lookup disagreed -> arm board clear

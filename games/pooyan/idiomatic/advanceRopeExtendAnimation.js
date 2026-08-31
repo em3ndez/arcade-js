@@ -8,7 +8,7 @@ import {
   ROPE_COLUMN_VRAM_PTR,
   ROPE_TILE_BLOCK_TABLE,
 } from "./names.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { blit2x2TileBlock } from "./blit2x2TileBlock.js";
 
 /**
@@ -45,7 +45,7 @@ export function advanceRopeExtendAnimation(m) {
     return;
   }
 
-  const block = loc_0c45(m, frameIndex, ROPE_TILE_BLOCK_TABLE); // tile-block word for this frame
+  const block = fetchWordFromTableIndex(m, frameIndex, ROPE_TILE_BLOCK_TABLE); // tile-block word for this frame
   blit2x2TileBlock(m, mem16[ROPE_COLUMN_VRAM_PTR], block);
   mem8[ROPE_EXTEND_FRAME_INDEX] = u8(mem8[ROPE_EXTEND_FRAME_INDEX] + 1);
 }

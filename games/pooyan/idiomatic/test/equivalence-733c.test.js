@@ -6,7 +6,7 @@
  * the record state (IX+2) and arms an animation (setActorAnimation): odd records (bit 3 of IXL)
  * get anim 0x7403 and IX+9 := 0x38; even records get anim 0x4086 and IX+9 := 0x40, bump
  * WAVE_RECORDS_ARRIVED (0x8f39), and once it equals WAVE_INDEX (0x8f3d) enqueue the wave-arrival
- * display command (0x0630 + arrived) via loc_0038.
+ * display command (0x0630 + arrived) via enqueueDisplayCommand.
  *
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState, minus
  * STACK_SCRATCH). No register/flag live-out is declared: advanceEagleToArrivalAndTallyWave has no direct m.call caller (it

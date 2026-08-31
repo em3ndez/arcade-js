@@ -11,7 +11,7 @@
  *     RAM (dumpState, minus STACK_SCRATCH) + the A live-out.
  *
  * pc is deliberately NOT compared. HL (the pointer) is the only input. A GENUINE live-out is
- * A := 0x20, which the caller loc_0092 kicks the watchdog with (mem.write8(0xa000, A)) right
+ * A := 0x20, which the caller runSelfTestAndInitMachineState kicks the watchdog with (mem.write8(0xa000, A)) right
  * after the call — so the module's return is compared against the oracle clone's final A.
  *
  * Jobs:
@@ -70,7 +70,7 @@ function craft(ptr) {
   return m;
 }
 
-// The real entry pointer (0x8402, from loc_02e3) plus edges/varied bytes.
+// The real entry pointer (0x8402, from armTileFillFromPlayfieldBase) plus edges/varied bytes.
 const PTRS = [0x8402, 0x0000, 0xffff, 0x1234, 0x83c0];
 
 // -- 1. CAPTURE (best-effort) -------------------------------------------------

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_02b9 } from "./loc_02b9.js";
+import { zeroSpriteListAndActorArena } from "./zeroSpriteListAndActorArena.js";
 import {
   loc_8819,
   WATCHDOG_KICK,
@@ -26,5 +26,5 @@ export function primeTileFillCursorAndAdvanceBoardBuild(m) {
   mem16[TILE_FILL_PTR] = PLAYFIELD_PAINT_START;
   mem8[FILL_ROW_COUNTER] = 0x0f;
   mem8[PLAY_STATE_INDEX]++; // sub-state -> 1
-  loc_02b9(m); // clear the board-init RAM regions
+  zeroSpriteListAndActorArena(m); // clear the board-init RAM regions
 }

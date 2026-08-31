@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6f9d (ROM 0x6f9d) — "level-intro phase 4": latch the
+ * Memory-equivalence test for scaleTargetCountAndAdvanceIntroPhase4 (ROM 0x6f9d) — "level-intro phase 4": latch the
  * target-group count into the HUD cell (0x8634), replace the count (0x8f47) with 5x itself, zero
  * the three HUD cells one row up each, inc the intro phase (0x8f51), reprime the intro delay
  * (0x8f48)=0x80, then run a 0x44-byte anti-tamper compare of 0x6ac5.. against its data copy at
@@ -8,7 +8,7 @@
  * mismatch wipe work RAM forward from 0x8800 via a leftover-BC ldir.
  *
  * Cycle-free memory-equivalence gate (docs/decompiler-pipeline): a FRESH clone per side, compared
- * on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are NOT compared. loc_6f9d is a
+ * on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are NOT compared. scaleTargetCountAndAdvanceIntroPhase4 is a
  * tail-dispatched intro-phase handler (dispatchLevelIntroPhase's rst-0x28 table) and leaves no register a caller
  * consumes — the contract is RAM only. The oracle's `push16 + call/rst` on the match path writes a
  * return address into STACK_SCRATCH the idiomatic direct calls do not — excluded by contract.
@@ -19,7 +19,7 @@
  * module still reproduces the mismatch wipe faithfully for fidelity; see notes.)
  *
  * Jobs:
- *   1. EQUAL (crafted sweep) — over target-group counts (incl. the 0 djnz-wrap and 0xff) loc_6f9d
+ *   1. EQUAL (crafted sweep) — over target-group counts (incl. the 0 djnz-wrap and 0xff) scaleTargetCountAndAdvanceIntroPhase4
  *      == oracle in RAM (-stack).
  *   2. POSITIVE CONTROL — the two ROM blocks are byte-equal (why the match path is the live path).
  *   3. WRITE-SET — the match path latches the count, writes 5x, zeroes the three cells up, bumps
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6f9d as oracle } from "../../translated/loc_6f9d.js";
-import { loc_6f9d } from "../loc_6f9d.js";
+import { scaleTargetCountAndAdvanceIntroPhase4 } from "../scaleTargetCountAndAdvanceIntroPhase4.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TARGET_GROUP_COUNT, HUD_INTRO_DIGITS_BASE, INTRO_PHASE_INDEX, INTRO_DELAY_CKSUM_WORD } from "../names.js";
@@ -74,12 +74,12 @@ const CASES = [0x05, 0x06, 0x07, 0x08, 0x00, 0xff, 0x33];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted counts — loc_6f9d == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted counts — scaleTargetCountAndAdvanceIntroPhase4 == oracle in RAM (−stack)", () => {
   for (const count of CASES) {
     const o = craft(count);
     const c = craft(count);
     oracle(o);
-    loc_6f9d(c);
+    scaleTargetCountAndAdvanceIntroPhase4(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} (count=${hx(count)})`);
   }
@@ -126,7 +126,7 @@ test("TEETH: a wrong 5x scaled count is CAUGHT at 0x8f47", () => {
   const o = craft(count);
   const c = craft(count);
   oracle(o);
-  loc_6f9d(c);
+  scaleTargetCountAndAdvanceIntroPhase4(c);
   c.mem.write8(TARGET_GROUP_COUNT, ((5 * count) & 0xff) - 1); // BUG: off-by-one on the scale
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong scaled count — it is worthless");
@@ -139,7 +139,7 @@ test("TEETH: a wrong reprimed delay is CAUGHT at 0x8f48", () => {
   const o = craft(count);
   const c = craft(count);
   oracle(o);
-  loc_6f9d(c);
+  scaleTargetCountAndAdvanceIntroPhase4(c);
   c.mem.write8(INTRO_DELAY_CKSUM_WORD, 0x40); // BUG: must be reprimed to 0x80
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong reprimed delay");

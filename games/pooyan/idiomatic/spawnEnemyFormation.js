@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { initEnemyFormationRecord } from "./initEnemyFormationRecord.js";
 import { ROUND_COUNTER, FORMATION_TABLE, FORMATION_SPAWN_INDEX, FORMATION_STATE_ROW2 } from "./names.js";
 /**
@@ -22,8 +22,8 @@ export function spawnEnemyFormation(m) {
   const { mem8 } = m;
   if ((mem8[ROUND_COUNTER] & 0x01) === 0) return; // even round -> gate closed
 
-  loc_0010(m, FORMATION_SPAWN_INDEX, 0x00, ROW_BYTES);
-  loc_0010(m, FORMATION_STATE_ROW2, 0x00, ROW_BYTES);
+  fillByteRun(m, FORMATION_SPAWN_INDEX, 0x00, ROW_BYTES);
+  fillByteRun(m, FORMATION_STATE_ROW2, 0x00, ROW_BYTES);
 
   let rec = FORMATION_TABLE;
   for (let n = 0; n < RECORD_COUNT; n++) {

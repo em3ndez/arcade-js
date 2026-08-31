@@ -3,7 +3,7 @@
  * Memory-equivalence test for advanceLaunchOnDelayAndClearHunterRecord (ROM 0x28ad) — launch state-3 handler. Runs the state-3
  * hold countdown (HUNTER_SPAWN_COUNTDOWN): while non-zero it just decrements and returns. On expiry it
  * bumps LAUNCH_STATE and — unless PLAY_MODE_LATCH is set — clears the 0x18-byte record addressed by
- * HUNTER_RECORD_PTR (rst 0x10 fill = 0, landing on the bare-ret loc_28c5).
+ * HUNTER_RECORD_PTR (rst 0x10 fill = 0, landing on the bare-ret idleLaunchStateNoop).
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so every case uses a FRESH clone
  * per side. Contract: RAM (dumpState minus STACK_SCRATCH) ONLY — there is no register live-out: the

@@ -49,14 +49,14 @@ function craft(slot, param, cursorLo = 0xc0) {
 // command N (slot byte N, N<0x80) dispatches table entry 2N; bit-7 slots run the worker.
 const CASES = [
   { name: "worker slot (bit 7 set)", slot: 0x80, param: 0x00 },
-  { name: "command 0 -> loc_039b", slot: 0x00, param: 0x11 },
+  { name: "command 0 -> paintActorCountColumn", slot: 0x00, param: 0x11 },
   { name: "command 1 -> renderPhaseGauge", slot: 0x01, param: 0x22 },
-  { name: "command 2 -> loc_03e9", slot: 0x02, param: 0x33 },
-  { name: "command 3 -> loc_0496 (param)", slot: 0x03, param: 0x02 },
-  { name: "command 4 -> loc_0552 (param)", slot: 0x04, param: 0x01 },
-  { name: "command 5 -> loc_056b (param)", slot: 0x05, param: 0x01 },
-  { name: "command 6 -> loc_05b2 (param)", slot: 0x06, param: 0x01 },
-  { name: "command 7 -> loc_05ee", slot: 0x07, param: 0x44 },
+  { name: "command 2 -> paintAttractHudAndHighScores", slot: 0x02, param: 0x33 },
+  { name: "command 3 -> accrueScoreAndUpdateHighScore (param)", slot: 0x03, param: 0x02 },
+  { name: "command 4 -> resetBcdCounterAndRepaintColumn (param)", slot: 0x04, param: 0x01 },
+  { name: "command 5 -> drawBcdCounterColumn (param)", slot: 0x05, param: 0x01 },
+  { name: "command 6 -> drawStackedCharField (param)", slot: 0x06, param: 0x01 },
+  { name: "command 7 -> drawCreditCountAndTamperCheck", slot: 0x07, param: 0x44 },
   { name: "command 8 -> flagHighScore...", slot: 0x08, param: 0x55 },
   { name: "cursor wraps past the ring top", slot: 0x02, param: 0x33, cursorLo: 0xfe },
 ];

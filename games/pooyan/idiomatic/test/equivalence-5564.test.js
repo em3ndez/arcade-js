@@ -4,7 +4,7 @@
  * spawner: tick the reload timer and return while running; on expiry reload it, advance the spawn
  * cursor, pick a spawn count, and tail the scan/seed loop over the formation-spawn blocks.
  *
- * The module dissolves the rst-20 table fetch (loc_0020) and the scan/seed tail (loc_5594) into
+ * The module dissolves the rst-20 table fetch (fetchByteFromTableIndex) and the scan/seed tail (seedFirstFreeSlotForTimedSpawnWithTamperCheck) into
  * direct calls; the oracle keeps them frozen. spawnFormationEnemiesOnTimer is a void spawner (no register survives), so
  * equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack.
  *

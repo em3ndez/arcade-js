@@ -2,7 +2,7 @@
 import { u8, u16 } from "../../../core/int.js";
 import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
 import { resetToAttractScreenStart } from "./resetToAttractScreenStart.js";
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import { HUD_INTEGRITY_STRIP_B, ASCENT_CHECKSUM_REF, DISPLAY_CMD_0613 } from "./names.js";
 /**
  * advanceObjectAscentStep — object ascent step. Runs the object animation sequencer, then subtracts (rec+9) from
@@ -44,5 +44,5 @@ export function advanceObjectAscentStep(m, rec = m.regs.ix) {
   }
 
   if (u8(mem8[de] + c) !== 0) return resetToAttractScreenStart(m); // checksum mismatch -> re-enter
-  loc_0038(m, DISPLAY_CMD_0613); // append the display command
+  enqueueDisplayCommand(m, DISPLAY_CMD_0613); // append the display command
 }

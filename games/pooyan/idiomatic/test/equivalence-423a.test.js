@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_423a (ROM 0x423a) — interior-entry arm: clear the
+ * Memory-equivalence test for clearColumnLimitAndArmTurnAnimation (ROM 0x423a) — interior-entry arm: clear the
  * turn-column limit (0x8d4b := 0), then tail-call loc_381e (setActorAnimation) to point the
  * record at the 0x4212 animation script (ix+0x0c := 0x12, ix+0x0d := 0x42, ix+0x0e := 0).
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine
  * WRITES a flag + the record, so each case uses a FRESH clone per side: the oracle runs on
- * one clone, loc_423a on another, compared on the go-forward contract — RAM (dumpState) minus
- * STACK_SCRATCH. pc/SP/cycles are NOT compared. loc_423a has NO consumed register live-out.
+ * one clone, clearColumnLimitAndArmTurnAnimation on another, compared on the go-forward contract — RAM (dumpState) minus
+ * STACK_SCRATCH. pc/SP/cycles are NOT compared. clearColumnLimitAndArmTurnAnimation has NO consumed register live-out.
  * The oracle tail-jumps into loc_381e whose terminal ret only pops (reads) the stack.
  *
  * The routine takes no inputs (it writes fixed values), so every case is CRAFTED: IX seated
@@ -15,7 +15,7 @@
  * identically on both sides, so the fixed writes — including the zero writes — are observable.
  *
  * Jobs:
- *   1. EQUAL (crafted) — across sentinels loc_423a == oracle in RAM (-stack).
+ *   1. EQUAL (crafted) — across sentinels clearColumnLimitAndArmTurnAnimation == oracle in RAM (-stack).
  *   2. WRITE-SET — the oracle writes exactly four cells: the flag and the three anim bytes.
  *   3. TEETH — a nonzero turn-column-limit twin is CAUGHT at 0x8d4b; a wrong anim high byte
  *      is CAUGHT at ix+0x0d.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_423a as oracle } from "../../translated/loc_423a.js";
-import { loc_423a } from "../loc_423a.js";
+import { clearColumnLimitAndArmTurnAnimation } from "../clearColumnLimitAndArmTurnAnimation.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -66,12 +66,12 @@ function craft(sentinel) {
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted sentinels — loc_423a == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted sentinels — clearColumnLimitAndArmTurnAnimation == oracle in RAM (−stack)", () => {
   for (const sentinel of [0xaa, 0x00, 0xff]) {
     const o = craft(sentinel);
     const c = craft(sentinel);
     oracle(o);
-    loc_423a(c);
+    clearColumnLimitAndArmTurnAnimation(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} (sentinel=${hx(sentinel)})`);
   }
@@ -130,7 +130,7 @@ test("TEETH: a wrong anim high byte is CAUGHT at ix+0x0d", () => {
   const o = craft(0xaa);
   const c = craft(0xaa);
   oracle(o);
-  loc_423a(c);
+  clearColumnLimitAndArmTurnAnimation(c);
   c.mem.write8(IX + 0x0d, 0x00); // BUG: must hold the anim-script high byte 0x42
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong anim byte");

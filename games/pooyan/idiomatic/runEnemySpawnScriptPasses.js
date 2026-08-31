@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_52f6 } from "./loc_52f6.js";
+import { latchFreeSlotCountAndTamperCheck } from "./latchFreeSlotCountAndTamperCheck.js";
 import { armEnemySpawnScript } from "./armEnemySpawnScript.js";
 import { spawnNextScriptedEnemy } from "./spawnNextScriptedEnemy.js";
 /**
@@ -8,6 +8,6 @@ import { spawnNextScriptedEnemy } from "./spawnNextScriptedEnemy.js";
  */
 export function runEnemySpawnScriptPasses(m) {
   armEnemySpawnScript(m); // script-advance
-  loc_52f6(m); // gated slot sweep
+  latchFreeSlotCountAndTamperCheck(m); // gated slot sweep
   spawnNextScriptedEnemy(m); // countdown/expiry
 }

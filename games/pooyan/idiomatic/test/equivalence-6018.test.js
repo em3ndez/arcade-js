@@ -8,11 +8,11 @@
  * a RAM-only gate would pass a wholly wrong stride — so the REGISTER file (the advanced IX/HL, the
  * counter B, the scratch DE) is the contract here, plus the forwarded boolean.
  *
- * SEATING: TAIL-CALL. On B != 0 the oracle tail-jumps the scan pass (loc_5fa2), whose effective
+ * SEATING: TAIL-CALL. On B != 0 the oracle tail-jumps the scan pass (testRecordOverlapRetireOrFlagHit), whose effective
  * seating is a boolean caller-skip (false = a hit must unwind the caller's frame); on B == 0 it rets.
- * The module returns true for the exhausted sweep and forwards loc_5fa2's boolean otherwise. This
- * gate exercises the SELF-CONTAINED exhausted path (B == 1 -> 0), which never enters loc_5fa2; the
- * continue branch is the {loc_5fa2, advanceOverlapScanToNextSlot} cluster's whole-unit responsibility.
+ * The module returns true for the exhausted sweep and forwards testRecordOverlapRetireOrFlagHit's boolean otherwise. This
+ * gate exercises the SELF-CONTAINED exhausted path (B == 1 -> 0), which never enters testRecordOverlapRetireOrFlagHit; the
+ * continue branch is the {testRecordOverlapRetireOrFlagHit, advanceOverlapScanToNextSlot} cluster's whole-unit responsibility.
  *
  * Jobs:
  *   1. REGISTER — the exhausted path advances IX/HL, zeroes B, leaves DE = 0x18: module == oracle.
@@ -55,7 +55,7 @@ function ramDiffMinusStack(ma, mb) {
 
 const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 
-/** Seat the scan cursor with B == 1 so the single decrement exhausts the sweep (no loc_5fa2 entry). */
+/** Seat the scan cursor with B == 1 so the single decrement exhausts the sweep (no testRecordOverlapRetireOrFlagHit entry). */
 function craft() {
   const m = BASE.clone();
   m.regs.ix = IX0;

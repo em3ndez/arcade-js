@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_08e9 (ROM 0x08e9) — attract sub-state 1. It blanks one tick of the
- * row-by-row tilemap fill (loc_02ce, count 0x1d) and returns while the fill is still draining (the
- * fill's Z flag is clear). Once the fill drains it re-arms the fill (loc_02e3), then runs two
+ * Memory-equivalence test for blankRowThenFloodColorsAndAdvanceAttract (ROM 0x08e9) — attract sub-state 1. It blanks one tick of the
+ * row-by-row tilemap fill (blankFillRowAndStepCounter, count 0x1d) and returns while the fill is still draining (the
+ * fill's Z flag is clear). Once the fill drains it re-arms the fill (armTileFillFromPlayfieldBase), then runs two
  * ROM-table integrity guards that straddle the colour-map flood (fillAttributeColumns, source 0x0859):
  * guard 1 sums 0x0859..0x0878 == 0x63, guard 2 sums 0x0831..0x0839 == 0xaa. The oracle spins forever
  * on a guard miss; on an intact ROM neither can miss, so the module models the miss as a throw. On a
@@ -11,16 +11,16 @@
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM (and delegates to several already-gated
  * leaves), so every case uses a FRESH clone per side. Contract: RAM (dumpState minus STACK_SCRATCH)
- * ONLY — loc_08e9 is an attract dispatch handler and no caller consumes a result register, so there is
+ * ONLY — blankRowThenFloodColorsAndAdvanceAttract is an attract dispatch handler and no caller consumes a result register, so there is
  * NO declared register live-out. pc/SP/cycles are NOT compared.
  *
- * The path is selected by the fill's row counter 0x8809: loc_02ce decrements it and returns Z only
+ * The path is selected by the fill's row counter 0x8809: blankFillRowAndStepCounter decrements it and returns Z only
  * when it hits 0. Both paths are CRAFTED on a fresh Machine clone (intact ROM, so both guards pass):
  *   - counter 0x05 -> the fill is still draining -> early return.
  *   - counter 0x01 -> the fill drains -> the full guard/flood/queue/advance path runs.
  *
  * Jobs:
- *   1. EQUAL — both paths: loc_08e9 == oracle in RAM (−stack).
+ *   1. EQUAL — both paths: blankRowThenFloodColorsAndAdvanceAttract == oracle in RAM (−stack).
  *   2. WRITE-SET — the full path advances the attract sub-state (0x8e51 := 7); the early path leaves it
  *      untouched.
  *   3. TEETH — a twin that writes the WRONG sub-state on the full path MUST be caught at 0x8e51; a
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_08e9 as oracle } from "../../translated/loc_08e9.js";
-import { loc_08e9 } from "../loc_08e9.js";
+import { blankRowThenFloodColorsAndAdvanceAttract } from "../blankRowThenFloodColorsAndAdvanceAttract.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -46,8 +46,8 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/pooyan rom'" }, fn);
 
-const FILL_ROW_COUNTER = 0x8809; // loc_02ce decrements this; Z (proceed) only at 0
-const TILE_FILL_PTR = 0x880b;    // 16-bit VRAM cursor loc_02ce blanks from
+const FILL_ROW_COUNTER = 0x8809; // blankFillRowAndStepCounter decrements this; Z (proceed) only at 0
+const TILE_FILL_PTR = 0x880b;    // 16-bit VRAM cursor blankFillRowAndStepCounter blanks from
 const ATTRACT_SUBSTATE = 0x8e51; // the cell the full path advances to 7
 const PLAYFIELD_TILE_BASE = 0x8402;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -77,12 +77,12 @@ const FULL = 0x01;  // row counter -> drains to 0 -> full path
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: early return + full path — loc_08e9 == oracle in RAM (−stack)", () => {
+test("EQUAL: early return + full path — blankRowThenFloodColorsAndAdvanceAttract == oracle in RAM (−stack)", () => {
   for (const [label, counter] of [["early", EARLY], ["full", FULL]]) {
     const o = craft(counter);
     const c = craft(counter);
     oracle(o);
-    loc_08e9(c);
+    blankRowThenFloodColorsAndAdvanceAttract(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -108,7 +108,7 @@ test("TEETH: a wrong full-path sub-state is CAUGHT at 0x8e51", () => {
   const o = craft(FULL);
   const c = craft(FULL);
   oracle(o);
-  loc_08e9(c);
+  blankRowThenFloodColorsAndAdvanceAttract(c);
   assert.equal(o.mem.read8(ATTRACT_SUBSTATE), 0x07, "control: oracle advanced the sub-state to 7");
   c.mem.write8(ATTRACT_SUBSTATE, 0x06); // BUG: wrong next sub-state
 
@@ -122,7 +122,7 @@ test("TEETH: a sub-state wrongly advanced on the early path is CAUGHT at 0x8e51"
   const o = craft(EARLY);
   const c = craft(EARLY);
   oracle(o);
-  loc_08e9(c);
+  blankRowThenFloodColorsAndAdvanceAttract(c);
   assert.equal(o.mem.read8(ATTRACT_SUBSTATE), 0x01, "control: oracle left the sub-state at 1 on the early path");
   c.mem.write8(ATTRACT_SUBSTATE, 0x07); // BUG: advanced the sub-state without draining the fill
 

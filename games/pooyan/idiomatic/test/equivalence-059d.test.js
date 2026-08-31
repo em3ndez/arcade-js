@@ -11,7 +11,7 @@
  *
  *     RAM (dumpState, minus STACK_SCRATCH)  +  the two live-outs { next, blankBudget }.
  *
- * The caller (loc_0552) threads BOTH the advanced cursor (IX) and the blank budget (C) across
+ * The caller (resetBcdCounterAndRepaintColumn) threads BOTH the advanced cursor (IX) and the blank budget (C) across
  * the digits of a field without reloading them, so the module's { next, blankBudget } is compared
  * against the oracle clone's final regs.ix / regs.c.
  *
@@ -92,7 +92,7 @@ test("CRAFTED: all branches — RAM(−stack) identical and { next, blankBudget 
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (digit ${hx(digit)} budget ${budget}): oracle=${d.a} mine=${d.b}`);
     assert.equal(ret[0], o.regs.ix, `advanced cursor mismatch (digit ${hx(digit)} budget ${budget})`);
     assert.equal(ret[1], o.regs.c, `blank budget mismatch (digit ${hx(digit)} budget ${budget})`);
-    // SIDE EFFECT: the bridge must SET IX and C so the frozen translated caller (loc_0552 / loc_056b),
+    // SIDE EFFECT: the bridge must SET IX and C so the frozen translated caller (resetBcdCounterAndRepaintColumn / drawBcdCounterColumn),
     // which threads both without reloading, reads the advance out of the registers — not just return them.
     assert.equal(c.regs.ix, o.regs.ix, `module must SET IX for the translated caller (digit ${hx(digit)} budget ${budget})`);
     assert.equal(c.regs.c, o.regs.c, `module must SET C for the translated caller (digit ${hx(digit)} budget ${budget})`);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_02ef (Pooyan) — "rebuild the sprite display list": copy four
+ * Memory-equivalence test for rebuildSpriteDisplayList (Pooyan) — "rebuild the sprite display list": copy four
  * object-record groups into the list, drop the arrow group's two sprite-Y bytes one pixel, then via
  * the shared tail tick the second byte and (when the screen is flipped) mirror the whole list.
  *
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_02ef as oracle } from "../../translated/loc_02ef.js";
-import { loc_02ef } from "../loc_02ef.js";
+import { rebuildSpriteDisplayList } from "../rebuildSpriteDisplayList.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPRITE_DISPLAY_LIST, FLIP_SCREEN_FLAG } from "../names.js";
@@ -69,12 +69,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: rebuild + tick + (gated) mirror — loc_02ef == oracle in RAM (−stack)", () => {
+test("EQUAL: rebuild + tick + (gated) mirror — rebuildSpriteDisplayList == oracle in RAM (−stack)", () => {
   for (const { name, flip } of CASES) {
     const o = craft(flip);
     const c = craft(flip);
     oracle(o);
-    loc_02ef(c);
+    rebuildSpriteDisplayList(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -110,7 +110,7 @@ test("CRAFTED: the flipped path runs the mirror, differing from the un-mirrored 
   const o = craft(0x00);
   const c = craft(0x00);
   oracle(o);
-  loc_02ef(c);
+  rebuildSpriteDisplayList(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   // sanity: the mirror actually ran — the flipped list differs from the un-mirrored (normal) build.
@@ -130,7 +130,7 @@ test("TEETH: a corrupted copied list byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x01);
   const c = craft(0x01);
   oracle(o);
-  loc_02ef(c);
+  rebuildSpriteDisplayList(c);
   const cell = SPRITE_DISPLAY_LIST + 0x10; // an interior list cell a copy wrote
   c.mem.write8(cell, c.mem.read8(cell) ^ 0xff); // BUG: corrupt one built byte
   const d = ramDiffMinusStack(o, c);
@@ -143,7 +143,7 @@ test("TEETH: an undone sprite-Y tick is CAUGHT at the ticked cell", () => {
   const o = craft(0x01);
   const c = craft(0x01);
   oracle(o);
-  loc_02ef(c);
+  rebuildSpriteDisplayList(c);
   c.mem.write8(Y_A, (c.mem.read8(Y_A) + 1) & 0xff); // BUG: undo the one-pixel drop
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch an undone sprite-Y tick — it is worthless");

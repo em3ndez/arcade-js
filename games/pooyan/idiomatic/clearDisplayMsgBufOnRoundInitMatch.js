@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { DISPLAY_MSG_BUF, ROUND_INIT_MSG_TABLE } from "./names.js";
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { selectRoundDisplayListAndAdvancePhase } from "./selectRoundDisplayListAndAdvancePhase.js";
 /**
  * clearDisplayMsgBufOnRoundInitMatch — compare the terminated pattern against the display message buffer.
@@ -27,5 +27,5 @@ export function clearDisplayMsgBufOnRoundInitMatch(m) {
     dst++;
   }
 
-  loc_0010(m, DISPLAY_MSG_BUF, 0x00, FIELD_LEN);
+  fillByteRun(m, DISPLAY_MSG_BUF, 0x00, FIELD_LEN);
 }

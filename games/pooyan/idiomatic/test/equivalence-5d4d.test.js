@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_5d4d — the CALLER that dissolves the loc_5d68 skip.
+ * Memory-equivalence gate for scanProximityTargetPairsAgainstSource — the CALLER that dissolves the loc_5d68 skip.
  *
- * loc_5d4d scans three target/record pairs against a fixed source object. In the
+ * scanProximityTargetPairsAgainstSource scans three target/record pairs against a fixed source object. In the
  * frozen oracle the skip's `pop af; ret` aborts the scan two frames up; the idiomatic
  * caller instead early-returns when the real idiomatic loc_5d68 returns false. This
  * gate COMPOSES the real idiomatic skip (the module under test imports it) and checks
  * that oracle and module land byte-identical in RAM (dumpState, minus STACK_SCRATCH).
- * loc_5d4d has no register live-out (its caller ignores its registers), so only RAM
+ * scanProximityTargetPairsAgainstSource has no register live-out (its caller ignores its registers), so only RAM
  * is compared.
  *
  * Two situations are seated, per the cluster brief: the skip TAKEN (a hit aborts the
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5d4d as oracle } from "../../translated/loc_5d4d.js";
-import { loc_5d4d } from "../loc_5d4d.js";
+import { scanProximityTargetPairsAgainstSource } from "../scanProximityTargetPairsAgainstSource.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -124,7 +124,7 @@ test("EQUAL: composed module RAM (−stack) matches the oracle for taken + not-t
     const o = craft(state);
     const c = craft(state);
     oracle(o);
-    loc_5d4d(c);
+    scanProximityTargetPairsAgainstSource(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} module=${d.b}`);
@@ -151,7 +151,7 @@ test("TEETH: a failure to abort (a later record wrongly seeded) is caught", () =
   const o = craft(state);
   const c = craft(state);
   oracle(o);
-  loc_5d4d(c);
+  scanProximityTargetPairsAgainstSource(c);
   assert.equal(c.mem.read8(recordSlot(2)), 0x01, "sanity: the aborting scan left the later record untouched");
   c.mem.write8(recordSlot(2), 0x00); // BUG: a non-aborting scan would seed pair 2's record too
   const d = ramDiffMinusStack(o, c);
@@ -165,7 +165,7 @@ test("TEETH: a wrong byte in the hit record is caught by the RAM diff", () => {
   const o = craft(state);
   const c = craft(state);
   oracle(o);
-  loc_5d4d(c);
+  scanProximityTargetPairsAgainstSource(c);
   c.mem.write8((recordSlot(0) + 2) & 0xffff, 0x00); // BUG: this field must be 0x0c on a hit
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong hit-record byte");

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_02ce } from "./loc_02ce.js";
+import { blankFillRowAndStepCounter } from "./blankFillRowAndStepCounter.js";
 import { fillAttributeColumns } from "./fillAttributeColumns.js";
-import { loc_0038 } from "./loc_0038.js";
-import { loc_0010 } from "./loc_0010.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { seedObjectRecord } from "./seedObjectRecord.js";
-import { loc_0a52 } from "./loc_0a52.js";
-import { loc_0a25 } from "./loc_0a25.js";
-import { loc_09f8 } from "./loc_09f8.js";
+import { paintTwo2x2TileBlocks } from "./paintTwo2x2TileBlocks.js";
+import { primeAttractAnimAndPaintTileBlocks } from "./primeAttractAnimAndPaintTileBlocks.js";
+import { advanceFourObjectAnimsAndRebuildList } from "./advanceFourObjectAnimsAndRebuildList.js";
 import {
   ATTRACT_S4_CHECK_SRC, ATTRACT_S4_CHECK_REF, ATTRACT_S4_ATTRIB_SRC, ATTRACT_S4_DISPLAY_CMD,
   ATTRACT_S4_OBJ_COORDS, ATTRACT_S4_OBJ_DESCRIPTORS, ATTRACT_S4_DRAW_SCRIPT, ATTRACT_S4_VRAM_CURSOR,
@@ -35,7 +35,7 @@ const OBJ_SENTINEL = 0xff; //    descriptor byte that ends the build loop
 export function buildAttractSpritesAndPrimeTextScript(m) {
   const { mem8, mem16 } = m;
 
-  if (!loc_02ce(m, ROW_CLEAR_CELLS)) return; // rows remain -> return, resume next frame
+  if (!blankFillRowAndStepCounter(m, ROW_CLEAR_CELLS)) return; // rows remain -> return, resume next frame
 
   // spin-verify: a tampered image pair never matches, so this never advances (deliberate freeze)
   let src = ATTRACT_S4_CHECK_SRC;
@@ -47,8 +47,8 @@ export function buildAttractSpritesAndPrimeTextScript(m) {
   }
 
   fillAttributeColumns(m, ATTRACT_S4_ATTRIB_SRC); // flood the colour map
-  loc_0038(m, ATTRACT_S4_DISPLAY_CMD); // queue one display command
-  loc_0010(m, SPRITE_OBJECT_TABLE, 0x00, 0x00); // zero-fill the 256-byte object arena
+  enqueueDisplayCommand(m, ATTRACT_S4_DISPLAY_CMD); // queue one display command
+  fillByteRun(m, SPRITE_OBJECT_TABLE, 0x00, 0x00); // zero-fill the 256-byte object arena
 
   // build object records from the descriptor+coordinate streams until the descriptor sentinel
   let record = SPRITE_OBJECT_TABLE;
@@ -59,8 +59,8 @@ export function buildAttractSpritesAndPrimeTextScript(m) {
     record = u16(record + RECORD_STRIDE);
   } while (mem8[descPtr] !== OBJ_SENTINEL);
 
-  loc_0a52(m); // stamp the fixed tile blocks
-  loc_0a25(m); // seed the anim cursor + paint the two-slot tiles
+  paintTwo2x2TileBlocks(m); // stamp the fixed tile blocks
+  primeAttractAnimAndPaintTileBlocks(m); // seed the anim cursor + paint the two-slot tiles
 
   mem16[SCRIPT_READ_PTR] = ATTRACT_S4_DRAW_SCRIPT; // source of the text-draw script
   mem16[SCRIPT_WRITE_PTR] = ATTRACT_S4_VRAM_CURSOR; // its VRAM write cursor
@@ -69,5 +69,5 @@ export function buildAttractSpritesAndPrimeTextScript(m) {
   mem8[SCRIPT_STEP_COUNTDOWN] = 0x0d; // row-checksum interval
   mem8[SCRIPT_COL_CHECK_TICK] = 0x05; // column-checksum interval
 
-  return loc_09f8(m); // fall through: step object anims + rebuild the sprite display list
+  return advanceFourObjectAnimsAndRebuildList(m); // fall through: step object anims + rebuild the sprite display list
 }

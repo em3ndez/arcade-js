@@ -12,7 +12,7 @@
  * drivers it skip-returns through read no register back — the whole live-out is memory. pc/SP are
  * not compared. Every case is CRAFTED: IX at a record slot, E and ROUND_COUNTER poked identically.
  *
- * loc_119a is DISSOLVED into its sole caller loc_1171: it returns a BOOLEAN skip-signal — true when
+ * loc_119a is DISSOLVED into its sole caller tickSpawnTimerAndSeedFreeEnemy: it returns a BOOLEAN skip-signal — true when
  * the record was already active (the original's plain early return; the caller keeps scanning), false
  * once it has seeded a free record (the original's pop-af skip-return aborting the caller's sweep).
  * The gate asserts that boolean per path, alongside the RAM footprint.

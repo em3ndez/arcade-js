@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_71b9 (ROM 0x71b9) — the bonus/eagle-stage phase dispatcher. Selects
+ * Memory-equivalence test for dispatchBonusStagePhase (ROM 0x71b9) — the bonus/eagle-stage phase dispatcher. Selects
  * a handler by the outer wave phase (0x8f38) via the inline table 0x71c1, then runs the shared epilogue
  * 0x02ef. Oracle reaches the handler through rst 0x28 with 0x02ef seated as the return; the module calls
- * the handler directly then runs loc_02ef. Compared: RAM (dumpState −STACK_SCRATCH).
+ * the handler directly then runs rebuildSpriteDisplayList. Compared: RAM (dumpState −STACK_SCRATCH).
  *
  * 71b9 seats NO return via m.push16 and does no m.call to a translated routine — it switches to
  * idiomatic handlers then runs the idiomatic epilogue directly, so the missing-push16 class (R36) cannot
@@ -17,10 +17,10 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { loc_71b9 as oracle } from "../../translated/loc_71b9.js";
-import { loc_71b9 } from "../loc_71b9.js";
+import { dispatchBonusStagePhase } from "../dispatchBonusStagePhase.js";
 import { runEagleApproachPhaseFrame } from "../runEagleApproachPhaseFrame.js";
 import { clearWaveStateAndArenaOnHoldExpiry } from "../clearWaveStateAndArenaOnHoldExpiry.js";
-import { loc_02ef } from "../loc_02ef.js";
+import { rebuildSpriteDisplayList } from "../rebuildSpriteDisplayList.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, WAVE_OUTER_PHASE } from "../names.js";
@@ -55,7 +55,7 @@ test("CAPTURE: real 0x71b9 dispatches replay identically", () => {
   const caps = ROM_PRESENT ? captureDispatches(24, 6000) : [];
   for (const cap of caps) {
     const o = cap.clone(), c = cap.clone();
-    const ro = runGuarded(oracle, o), rc = runGuarded(loc_71b9, c);
+    const ro = runGuarded(oracle, o), rc = runGuarded(dispatchBonusStagePhase, c);
     assert.equal(ro.threw, rc.threw, `divergent control flow (oracle=${ro.threw} module=${rc.threw})`);
     if (!ro.threw) { const d = ramDiffMinusStack(o, c); assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}`); }
   }
@@ -65,7 +65,7 @@ test("CAPTURE: real 0x71b9 dispatches replay identically", () => {
 test("CRAFTED: each phase 0/1/2 (dispatch + epilogue) routes identically", () => {
   for (const phase of [0, 1, 2]) {
     const o = craft(phase), c = craft(phase);
-    const ro = runGuarded(oracle, o), rc = runGuarded(loc_71b9, c);
+    const ro = runGuarded(oracle, o), rc = runGuarded(dispatchBonusStagePhase, c);
     assert.equal(ro.threw, rc.threw, `phase ${phase}: divergent control flow`);
     if (!ro.threw) { const d = ramDiffMinusStack(o, c); assert.equal(d, null, d && `phase ${phase}: RAM diff at ${hx(d.addr ?? 0)}`); }
   }
@@ -75,7 +75,7 @@ test("CRAFTED: each phase 0/1/2 (dispatch + epilogue) routes identically", () =>
 test("TEETH: a twin routing phase 0 to the wrong handler is caught", () => {
   const brokenWrong = (m) => {
     switch (m.mem8[WAVE_OUTER_PHASE]) { case 0: clearWaveStateAndArenaOnHoldExpiry(m); break; default: runEagleApproachPhaseFrame(m); break; } // BUG: phase 0 -> clearWaveStateAndArenaOnHoldExpiry
-    return loc_02ef(m);
+    return rebuildSpriteDisplayList(m);
   };
   const o = craft(0), c = craft(0);
   const ro = runGuarded(oracle, o), rc = runGuarded(brokenWrong, c);

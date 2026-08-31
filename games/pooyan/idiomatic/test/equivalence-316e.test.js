@@ -1,31 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_316e (ROM 0x316e, Pooyan) — the lead-hunter swoop step.
+ * Memory-equivalence test for advanceLeadHunterSwoopAndArmDive (ROM 0x316e, Pooyan) — the lead-hunter swoop step.
  *
  * The cycle-free / memory-equivalence gate (docs/decompiler-pipeline): a fresh clone per side, the
- * oracle on one and loc_316e on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
+ * oracle on one and advanceLeadHunterSwoopAndArmDive on the other, compared on RAM (dumpState, minus STACK_SCRATCH).
  * pc/SP/registers are deliberately not compared.
  *
  * The routine takes no register inputs; it reads everything from work RAM. A wave timer gates it: while
  * nonzero it counts down and returns; at zero it advances the hunter record (the FORMATION_SLOT_TABLE
  * word), driven by a movement-script byte (dwell vs sub-pixel step), then either arms the dive (player
  * crossing) or re-primes the timer (armed, past tile 0x1b), stamps three display records, and falls
- * into the four-slot scan loc_323e.
+ * into the four-slot scan scanDisplaySlotsAndTickBoardClear.
  *
- * LIVE-OUT: none — the tail loc_323e leaves an advanced IX / drained B, but no caller reads them
- * (loc_308b discards this routine's return), so they are not compared. Both sides run the SAME
- * loc_323e and queueSoundCommand0F (verified idiomatic modules), so the sub-calls agree by construction; the
- * gate's job is loc_316e's own branching and its display-record stamping.
+ * LIVE-OUT: none — the tail scanDisplaySlotsAndTickBoardClear leaves an advanced IX / drained B, but no caller reads them
+ * (dispatchFormationPhaseOrQueueLaunchSlots discards this routine's return), so they are not compared. Both sides run the SAME
+ * scanDisplaySlotsAndTickBoardClear and queueSoundCommand0F (verified idiomatic modules), so the sub-calls agree by construction; the
+ * gate's job is advanceLeadHunterSwoopAndArmDive's own branching and its display-record stamping.
  *
  * The display-record pointers (slot-table +2/+4/+6) carry a high byte 0x8b (not the 0x8c board-clear
- * tag), so loc_323e's scan skips loc_324d on every slot — it only advances IX and drains B here. The
- * board-clear tail is covered by loc_323e's own gate.
+ * tag), so scanDisplaySlotsAndTickBoardClear's scan skips tickHunterReturnCounterAndCheckBoardClear on every slot — it only advances IX and drains B here. The
+ * board-clear tail is covered by scanDisplaySlotsAndTickBoardClear's own gate.
  *
  * The leaf is not reached in a plain boot, so every case is CRAFTED (identical pokes on both sides).
  *
  * Jobs:
  *   1. EQUAL — over crafted states covering every branch (early return; dwell +/- dive; sub-pixel step
- *      with armed re-prime, armed-no-reprime, and unarmed-no-dive) oracle == loc_316e in RAM (−stack).
+ *      with armed re-prime, armed-no-reprime, and unarmed-no-dive) oracle == advanceLeadHunterSwoopAndArmDive in RAM (−stack).
  *   2. WRITE-SET — the dwell/no-dive case writes only inside the hunter record + the three display
  *      records, with the per-record byte2/byte4 (C vs C+2, B vs B+2) variation exact.
  *   3. TEETH — a wrong stamped display byte is CAUGHT by the RAM diff.
@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_316e as oracle } from "../../translated/loc_316e.js";
-import { loc_316e } from "../loc_316e.js";
+import { advanceLeadHunterSwoopAndArmDive } from "../advanceLeadHunterSwoopAndArmDive.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -104,12 +104,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted branch coverage — loc_316e == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted branch coverage — advanceLeadHunterSwoopAndArmDive == oracle in RAM (−stack)", () => {
   for (const cse of CASES) {
     const o = craft(cse.pokes);
     const c = craft(cse.pokes);
     oracle(o);
-    loc_316e(c);
+    advanceLeadHunterSwoopAndArmDive(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -164,7 +164,7 @@ test("TEETH: a wrong stamped display byte is CAUGHT by the RAM diff", () => {
   const o = craft([]);
   const c = craft([]);
   oracle(o);
-  loc_316e(c);
+  advanceLeadHunterSwoopAndArmDive(c);
   c.mem8[REC2 + 4] = (c.mem8[REC2 + 4] + 1) & 0xff; // BUG: record 2 byte2 must be C+2, not C+3
 
   const d = ramDiffMinusStack(o, c);

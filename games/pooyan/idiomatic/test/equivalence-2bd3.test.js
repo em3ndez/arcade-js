@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2bd3 (ROM 0x2bd3) — "paint the ready-sprite tile": unless
+ * Memory-equivalence test for paintReadySpriteSquareIfAbsent (ROM 0x2bd3) — "paint the ready-sprite tile": unless
  * the video cell 0x87bb already holds the painted marker 0xba, stamp the source block 0x2be1
  * as a 2x2 square there via loc_3325.
  *
@@ -9,8 +9,8 @@
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
- * pc/SP/cycles are NOT compared (the oracle drives them through m.step/m.push/m.ret). loc_2bd3
- * has NO register live-out — its callers (loc_2bbf / loc_2bd2) read no register result — and
+ * pc/SP/cycles are NOT compared (the oracle drives them through m.step/m.push/m.ret). paintReadySpriteSquareIfAbsent
+ * has NO register live-out — its callers (loc_2bbf / paintReadySpriteFromStackAdjustEntry) read no register result — and
  * takes no register inputs (it loads 0x87bb itself), so a case is just the anchor cell's value.
  * The oracle's loc_3325 sub-call resolves through the translated registry new Machine(ROM) builds.
  *
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2bd3 as oracle } from "../../translated/loc_2bd3.js";
-import { loc_2bd3 } from "../loc_2bd3.js";
+import { paintReadySpriteSquareIfAbsent } from "../paintReadySpriteSquareIfAbsent.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -66,12 +66,12 @@ const squareCells = [ANCHOR, (ANCHOR + 0x01) & 0xffff, (ANCHOR + 0x21) & 0xffff,
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: skip arm and paint arm — loc_2bd3 == oracle in RAM (−stack)", () => {
+test("EQUAL: skip arm and paint arm — paintReadySpriteSquareIfAbsent == oracle in RAM (−stack)", () => {
   for (const tile of [PAINTED_MARKER, 0x00, 0x37]) {
     const o = craft(tile);
     const c = craft(tile);
     oracle(o);
-    loc_2bd3(c);
+    paintReadySpriteSquareIfAbsent(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[tile=${hx(tile)}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -110,7 +110,7 @@ test("TEETH: a wrong last-cell byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x00);
   const c = craft(0x00);
   oracle(o);
-  loc_2bd3(c);
+  paintReadySpriteSquareIfAbsent(c);
   const last = squareCells.at(-1);
   c.mem.write8(last, (c.mem.read8(last) + 1) & 0xff); // BUG: corrupt the final square cell
   const d = ramDiffMinusStack(o, c);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence gate for loc_2c3f (ROM 0x2c3f) — the per-hunter-record state dispatcher
- * (DISSOLVED boolean caller-skip: loc_2c2c early-returns on false). Returns true for an inactive slot
+ * (DISSOLVED boolean caller-skip: dispatchAllHunterRecordStates early-returns on false). Returns true for an inactive slot
  * or a state below 0x11; otherwise ((IX+2)&0x1f)-0x11 selects one of four handlers via table 0x2c50
  * and propagates their boolean. The oracle reaches handlers through rst 0x28; the module switches to the
  * same handler directly. Compared per case: RAM (dumpState −STACK_SCRATCH) PLUS the JS boolean.

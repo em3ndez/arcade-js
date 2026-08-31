@@ -9,9 +9,9 @@ import {
   ANIM_TABLE_3838,
   ANIM_TABLE_3856,
 } from "./names.js";
-import { loc_0c45 } from "./loc_0c45.js";
-import { loc_0020 } from "./loc_0020.js";
-import { loc_3617 } from "./loc_3617.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
+import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
+import { enterPreSpawnGateIfBelowLimit } from "./enterPreSpawnGateIfBelowLimit.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 /**
  * resolveTargetColumnAndArmApproach — target-tile resolver + state step for an actor record at IX.
@@ -45,13 +45,13 @@ export function resolveTargetColumnAndArmApproach(m, ix = m.regs.ix) {
     }
   } else {
     const rowIndex = (mem8[ROUND_COUNTER] & 0x0f) >> 1;
-    base = loc_0c45(m, rowIndex, TARGET_TILE_ROW_TABLE); // row base word
+    base = fetchWordFromTableIndex(m, rowIndex, TARGET_TILE_ROW_TABLE); // row base word
     column = mem8[ANIM_FRAME_COUNTER] & 0x07;
   }
 
   if (doLookup) {
-    const [wanted] = loc_0020(m, base, column);
-    if (mem8[ix + 0x06] === wanted) return loc_3617(m, undefined, ix); // exact hit
+    const [wanted] = fetchByteFromTableIndex(m, base, column);
+    if (mem8[ix + 0x06] === wanted) return enterPreSpawnGateIfBelowLimit(m, undefined, ix); // exact hit
   }
 
   if (mem8[ix + 0x06] < TILE_THRESHOLD) return; // below threshold

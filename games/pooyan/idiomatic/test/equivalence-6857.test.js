@@ -8,7 +8,7 @@
  * seeded non-zero so the sequencer just decrements (no ROM walk).
  *
  * Crafted paths: reached-top (rec+6 >= 0x1b -> ret early), and below-top with the tile-block cells
- * tuned so the two-pass checksum resolves to zero -> the loc_0038 append path (self-contained). The
+ * tuned so the two-pass checksum resolves to zero -> the enqueueDisplayCommand append path (self-contained). The
  * checksum-mismatch arm tails to sibling resetToAttractScreenStart and is left to that routine's own gate.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-6857.test.js
@@ -59,7 +59,7 @@ function seat(m, { d6 = 0x30 } = {}) {
   return m;
 }
 
-/** Tune the block so the two-pass checksum resolves to zero -> loc_0038 append (no mismatch tail). */
+/** Tune the block so the two-pass checksum resolves to zero -> enqueueDisplayCommand append (no mismatch tail). */
 function seatChecksumZero(m) {
   seat(m, { d6: 0x10 });
   for (const a of PASS1) m.mem.write8(a, 0x00);

@@ -8,7 +8,7 @@
  * so only RAM is compared; pc/SP/cycles are deliberately not compared.
  *
  * INPUTS: the phase index at 0x8f0f, plus the three ROM tables (byte 0x2712 via the rst-0x20
- * lookup, words 0x271c/0x2730 via the loc_0c45 lookup) which the real ROM supplies to both sides.
+ * lookup, words 0x271c/0x2730 via the fetchWordFromTableIndex lookup) which the real ROM supplies to both sides.
  *
  * The routine's own footprint is 0x8f0e (byte), 0x8f10 + 0x8f12 (two words) and the stepped phase
  * at 0x8f0f; the nested lookups' pushes land in STACK_SCRATCH and drop out of the diff. The leaf is

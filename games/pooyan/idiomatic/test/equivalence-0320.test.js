@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0320 (ROM 0x0320, Pooyan) — "tick a frame counter, then run the
+ * Memory-equivalence test for tickCounterAndMirrorIfFlipped (ROM 0x0320, Pooyan) — "tick a frame counter, then run the
  * flip-screen mirror pass when armed": decrement the byte HL points at, and if the orientation flag
  * (0x881f) is zero, mirror the 24-entry sprite display list vertically (loc_0378).
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so each case runs on a FRESH clone
  * per side. The go-forward contract is RAM (dumpState, minus STACK_SCRATCH). No register live-out:
- * the tamper caller tail-jumps here and loc_02ef inlines the same tail then rets, so nothing reads a
+ * the tamper caller tail-jumps here and rebuildSpriteDisplayList inlines the same tail then rets, so nothing reads a
  * register back — pc/SP/registers are deliberately NOT compared. HL (the counter pointer) is the one
  * input, bridged as a param; the flag and the counter cell are poked identically on both sides.
  *
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0320 as oracle } from "../../translated/loc_0320.js";
-import { loc_0320 } from "../loc_0320.js";
+import { tickCounterAndMirrorIfFlipped } from "../tickCounterAndMirrorIfFlipped.js";
 import { mirrorSpriteListVertically } from "../mirrorSpriteListVertically.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -76,7 +76,7 @@ test("EQUAL: dec + (gated) mirror — module == oracle in RAM (−stack)", () =>
     const o = craft(counter, value, flip);
     const c = craft(counter, value, flip);
     oracle(o);
-    loc_0320(c);
+    tickCounterAndMirrorIfFlipped(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (counter=${hx(counter)} val=${hx(value)} flip=${hx(flip)})`);
   }
@@ -129,7 +129,7 @@ test("CRAFTED: flipped orientation runs the mirror pass identically", () => {
   const o = craft(counter, 0x22, 0x00);
   const c = craft(counter, 0x22, 0x00);
   oracle(o);
-  loc_0320(c);
+  tickCounterAndMirrorIfFlipped(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   // Sanity: the module really mirrored (the list changed from its seed at entry 0).
@@ -145,7 +145,7 @@ test("TEETH: a wrong counter decrement is CAUGHT at the counter cell", () => {
   const o = craft(counter, 0x05, 0x01);
   const c = craft(counter, 0x05, 0x01);
   oracle(o);
-  loc_0320(c);
+  tickCounterAndMirrorIfFlipped(c);
   c.mem.write8(counter, 0x03); // BUG: 0x05 must decrement to 0x04, not 0x03
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong counter decrement — it is worthless");

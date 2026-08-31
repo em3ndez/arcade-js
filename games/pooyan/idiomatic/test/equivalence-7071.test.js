@@ -7,9 +7,9 @@
  * nested attract-step / word-lookup pushes drop out.
  *
  * Crafted paths (column integrity seeded intact so the row guard passes): the ANIM timer both ways
- * (skip vs call loc_0a28), always loc_09f8, the SCRIPT_FRAME_TIMER ret, and the mid-block that seats
- * the next script pointer via loc_0c45 then rets on the SCRIPT_COL_CHECK_TICK guard. The tail column
- * checksum (-> resetActorStateForBoard / resetToAttractScreenStart / loc_08e9) needs a matching (0x8f48) target block
+ * (skip vs call advanceAttractAnimationAndRepaint), always advanceFourObjectAnimsAndRebuildList, the SCRIPT_FRAME_TIMER ret, and the mid-block that seats
+ * the next script pointer via fetchWordFromTableIndex then rets on the SCRIPT_COL_CHECK_TICK guard. The tail column
+ * checksum (-> resetActorStateForBoard / resetToAttractScreenStart / blankRowThenFloodColorsAndAdvanceAttract) needs a matching (0x8f48) target block
  * and is left to those callees' own gates.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-7071.test.js
@@ -62,7 +62,7 @@ function seat(m, { anim = 0x03, frame = 0x03, tick = 0x02 } = {}) {
 
 const CASES = {
   "anim skip, frame ret": (m) => seat(m, { anim: 0x03, frame: 0x03 }),
-  "anim expiry -> loc_0a28, frame ret": (m) => seat(m, { anim: 0x01, frame: 0x03 }),
+  "anim expiry -> advanceAttractAnimationAndRepaint, frame ret": (m) => seat(m, { anim: 0x01, frame: 0x03 }),
   "frame expiry -> mid-block, tick ret": (m) => seat(m, { anim: 0x03, frame: 0x01, tick: 0x02 }),
 };
 

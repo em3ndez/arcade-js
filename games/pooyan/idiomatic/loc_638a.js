@@ -2,7 +2,7 @@
 import { u16 } from "../../../core/int.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { queueSoundCommand07 } from "./queueSoundCommand07.js";
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import {
   FLIP_SCREEN_FLAG,
   OBJ_HIT_FLAG_I0,
@@ -62,7 +62,7 @@ export function loc_638a(m, coord = m.regs.ix, count = m.regs.b, rec = m.regs.hl
           mem8[ireg !== 0 ? OBJ_HIT_FLAG_I1 : OBJ_HIT_FLAG_I0] = 0x01; // interrupt parity picks the flag
           setActorAnimation(m, recPtr, ANIM_SEQ_63FB);
           queueSoundCommand07(m);
-          loc_0038(m, HUNTER_SPAWN_DISPLAY_CMD);
+          enqueueDisplayCommand(m, HUNTER_SPAWN_DISPLAY_CMD);
           return false; // hit claimed — abort the caller's scan
         }
       }

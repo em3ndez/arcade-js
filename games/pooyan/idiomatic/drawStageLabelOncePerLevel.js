@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0c45 } from "./loc_0c45.js";
-import { loc_0010 } from "./loc_0010.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { blitGlyphBlock4x3 } from "./blitGlyphBlock4x3.js";
 import {
   LEVEL_TAG_DONE_LATCH,
@@ -55,10 +55,10 @@ export function drawStageLabelOncePerLevel(m) {
     const bcd = roundBcd(mem8[ROUND_COUNTER]);
     const bank = (bcd & TENS_BIT) !== 0 ? ROUND_DIGIT_GLYPHS_ALT : ROUND_DIGIT_GLYPHS;
     const [after] = blitGlyphBlock4x3(m, bank, HUD_ROUND_TILE);
-    loc_0010(m, after, BLANK_TILE, BLANK_RUN); // blank three trailing tiles
+    fillByteRun(m, after, BLANK_TILE, BLANK_RUN); // blank three trailing tiles
     mem8[HUD_STAGE_DIGIT_LO] = mem8[STAGE_COUNTDOWN];
   }
 
-  const label = loc_0c45(m, column, STAGE_LABEL_PTR_TABLE);
+  const label = fetchWordFromTableIndex(m, column, STAGE_LABEL_PTR_TABLE);
   blitGlyphBlock4x3(m, label, HUD_STAGE_LABEL_TILE);
 }

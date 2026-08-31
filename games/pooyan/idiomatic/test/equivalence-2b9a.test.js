@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2b9a (ROM 0x2b9a) — "formation-spawn tick".
+ * Memory-equivalence test for tickFormationSpawnAndScanSlots (ROM 0x2b9a) — "formation-spawn tick".
  *
- * loc_2b9a is a CALLER: it invokes the dissolved caller-skip loc_2bbf (whose false return
+ * tickFormationSpawnAndScanSlots is a CALLER: it invokes the dissolved caller-skip loc_2bbf (whose false return
  * abandons the tick), then services the spawn countdown, and on expiry falls into the spawn
- * scan loc_2bb3 (which itself composes the dissolved skip loc_2be5). This gate COMPOSES all the
- * real idiomatic pieces: the idiomatic loc_2b9a imports the idiomatic loc_2bbf and loc_2bb3 and
+ * scan scanFormationSlotsAndLaunchFree (which itself composes the dissolved skip loc_2be5). This gate COMPOSES all the
+ * real idiomatic pieces: the idiomatic tickFormationSpawnAndScanSlots imports the idiomatic loc_2bbf and scanFormationSlotsAndLaunchFree and
  * early-returns / tail-calls exactly where the oracle's skips aborted. The oracle side runs the
- * TRANSLATED loc_2b9a, which m.call()s the translated helpers through the registry.
+ * TRANSLATED tickFormationSpawnAndScanSlots, which m.call()s the translated helpers through the registry.
  *
  * Cycle-free / memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
- * STACK_SCRATCH). pc/SP/cycles/registers are NOT compared; loc_2b9a takes no register input
+ * STACK_SCRATCH). pc/SP/cycles/registers are NOT compared; tickFormationSpawnAndScanSlots takes no register input
  * (it reads 0x8903/0x8d30 and seats IX/DE itself) and no caller reads a register back. A case
  * pokes the memory cells (wave counter 0x8903, indicator cells, spawn countdown 0x8d30, and the
  * record table at 0x8c60) identically on both sides.
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2b9a as oracle } from "../../translated/loc_2b9a.js";
-import { loc_2b9a } from "../loc_2b9a.js";
+import { tickFormationSpawnAndScanSlots } from "../tickFormationSpawnAndScanSlots.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -90,7 +90,7 @@ test("EQUAL: all five states agree in RAM (−stack)", () => {
     const o = craft(args);
     const c = craft(args);
     oracle(o);
-    loc_2b9a(c);
+    tickFormationSpawnAndScanSlots(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b} ("${name}")`);
   }
@@ -104,7 +104,7 @@ test("TEETH: a wrong seeded byte on the spawn path (state D) is CAUGHT", () => {
   const o = craft(args);
   const c = craft(args);
   oracle(o);
-  loc_2b9a(c);
+  tickFormationSpawnAndScanSlots(c);
   const victim = recBase(0) + 0x02; // seeded state byte := 0x11
   c.mem.write8(victim, 0x00); // BUG
 

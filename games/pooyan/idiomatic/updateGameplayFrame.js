@@ -3,7 +3,7 @@ import { spawnNextEnemyOnDelay } from "./spawnNextEnemyOnDelay.js";
 import { advanceAllEnemyActorStates } from "./advanceAllEnemyActorStates.js";
 import { blitStackedTwoTileAnimFrameOnHoldTimer } from "./blitStackedTwoTileAnimFrameOnHoldTimer.js";
 import { blinkTilePairOnCountdown } from "./blinkTilePairOnCountdown.js";
-import { loc_02ef } from "./loc_02ef.js";
+import { rebuildSpriteDisplayList } from "./rebuildSpriteDisplayList.js";
 
 /**
  * updateGameplayFrame — dispatch state 2: the per-frame gameplay driver.
@@ -18,5 +18,5 @@ export function updateGameplayFrame(m) {
   advanceAllEnemyActorStates(m); // arrow / object mover
   blitStackedTwoTileAnimFrameOnHoldTimer(m); // enemy two-tile blitter
   blinkTilePairOnCountdown(m); // blink-timer tile swap
-  loc_02ef(m); // rebuild the sprite display list
+  rebuildSpriteDisplayList(m); // rebuild the sprite display list
 }

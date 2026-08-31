@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_05b2 (ROM 0x05b2, Pooyan) — "draw a table-selected field of
+ * Memory-equivalence test for drawStackedCharField (ROM 0x05b2, Pooyan) — "draw a table-selected field of
  * stacked characters bottom-up into video RAM". The selector A's low seven bits (doubled, masked
  * to 7 bits) index a ROM pointer table (0x7a0d) whose entry heads a list of records; each record is
  * a 2-byte destination address followed by an inline string, drawn one tilemap row up per character
@@ -13,7 +13,7 @@
  * STACK_SCRATCH) alone. pc/SP/registers are NOT compared.
  *
  * The routine reads only ROM (the pointer table and strings), so the selectors below are the ones the
- * game actually issues (loc_03e9 uses 0x1a..0x24, loc_05ee uses 0x05); they terminate on a real '?'.
+ * game actually issues (paintAttractHudAndHighScores uses 0x1a..0x24, drawCreditCountAndTamperCheck uses 0x05); they terminate on a real '?'.
  * 0x85 reuses the same list as 0x05 but in blank mode, proving the mode bit changes the WRITTEN VALUES
  * without changing the WRITTEN CELLS.
  *
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_05b2 as oracle } from "../../translated/loc_05b2.js";
-import { loc_05b2 } from "../loc_05b2.js";
+import { drawStackedCharField } from "../drawStackedCharField.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -92,7 +92,7 @@ test("EQUAL: real game selectors (digit + blank modes) — module == oracle in R
     const o = craft(sel);
     const c = craft(sel);
     oracle(o);
-    loc_05b2(c);
+    drawStackedCharField(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `sel=${hx(sel)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -124,7 +124,7 @@ test("TEETH: a corrupted drawn tile is CAUGHT in the tilemap", () => {
   const c = craft(0x05);
   const b0 = c.dumpState();
   oracle(o);
-  loc_05b2(c);
+  drawStackedCharField(c);
   // Corrupt the first cell the module actually drew.
   const a1 = c.dumpState();
   let target = null;

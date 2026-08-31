@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0fef (Pooyan) — the sub-state-0 main-loop handler.
+ * Memory-equivalence test for rearmMainLoopFrame (Pooyan) — the sub-state-0 main-loop handler.
  *
  * Reloads STAGE_COUNTDOWN := 0x0f; runs the integrity walker when ROUND_COUNTER bit 2 is set;
  * re-arms HUNTER_SPAWN_FLIP_FLAG / LAUNCH_ARMED_FLAG / MAINLOOP_SUBSTATE_SELECTOR to 1; enqueues
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0fef as oracle } from "../../translated/loc_0fef.js";
-import { loc_0fef } from "../loc_0fef.js";
+import { rearmMainLoopFrame } from "../rearmMainLoopFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -56,7 +56,7 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Seat the branch selectors; pre-dirty loc_0fef's own targets so each write is observable. */
+/** Seat the branch selectors; pre-dirty rearmMainLoopFrame's own targets so each write is observable. */
 function seat({ bit2 = false, pending = 0x00 } = {}) {
   const m = BASE.clone();
   m.regs.sp = SP0;
@@ -79,12 +79,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0fef == oracle in RAM (−stack)", () => {
+test("EQUAL: rearmMainLoopFrame == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_0fef(c);
+    rearmMainLoopFrame(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -109,7 +109,7 @@ test("TEETH: a corrupted own write is CAUGHT; pending + walker branches load-bea
   const o = seat({ bit2: false, pending: 0x00 });
   const c = seat({ bit2: false, pending: 0x00 });
   oracle(o);
-  loc_0fef(c);
+  rearmMainLoopFrame(c);
   c.mem8[STAGE_COUNTDOWN] = (o.mem8[STAGE_COUNTDOWN] ^ 0xff) & 0xff;
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted countdown");

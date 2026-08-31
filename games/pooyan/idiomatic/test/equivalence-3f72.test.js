@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3f72 (ROM 0x3f72, Pooyan) — an object state handler. It ticks
+ * Memory-equivalence test for advanceObjectStateOnFrameTimerExpiry (ROM 0x3f72, Pooyan) — an object state handler. It ticks
  * the record's animation, counts down the frame timer and returns while it is still running, and
  * on expiry advances the state byte and falls through into the next state handler.
  *
  * SEATING: a plain `ret nz` early exit (net SP 0) plus a fall-through into the next handler whose
  * ret returns to this routine's own caller — WIRE. The module returns the fall-through delegate's
  * result on expiry and returns void while the timer runs. Entry register IX is the record pointer,
- * seated as the param-default bridge. loc_3f72 is void — no register the caller reads — so
+ * seated as the param-default bridge. advanceObjectStateOnFrameTimerExpiry is void — no register the caller reads — so
  * equivalence is RAM (dumpState) minus STACK_SCRATCH; SP is parked so the nested pushes drop out.
  *
  * The record is CRAFTED. The animation frame-hold (+0x0e) is left running so the animation tick
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3f72 as oracle } from "../../translated/loc_3f72.js";
-import { loc_3f72 } from "../loc_3f72.js";
+import { advanceObjectStateOnFrameTimerExpiry } from "../advanceObjectStateOnFrameTimerExpiry.js";
 import { advanceObjectAnimationFrame } from "../advanceObjectAnimationFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -85,7 +85,7 @@ for (const [label, craft] of [["hold (timer running)", craftHold], ["expire (fal
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_3f72(c);
+    advanceObjectStateOnFrameTimerExpiry(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     console.log(`  EQUAL ${label}: RAM identical`);
@@ -113,7 +113,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftHold();
   const c = craftHold();
   oracle(o);
-  loc_3f72(c);
+  advanceObjectStateOnFrameTimerExpiry(c);
   c.mem.write8(REC + TIMER, (o.mem.read8(REC + TIMER) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted timer byte");

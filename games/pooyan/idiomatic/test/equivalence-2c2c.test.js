@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2c2c (ROM 0x2c2c, Pooyan) — the hunter-record sweep. It walks the
+ * Memory-equivalence test for dispatchAllHunterRecordStates (ROM 0x2c2c, Pooyan) — the hunter-record sweep. It walks the
  * 17 enemy-actor records (base ENEMY_ACTOR_TABLE, stride 0x18), marshalling each record pointer
  * through IX into the per-record dispatcher loc_2c3f. The dispatcher returns false when a record
  * reaches its spawn handler, which aborts the sweep.
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c2c as oracle } from "../../translated/loc_2c2c.js";
-import { loc_2c2c } from "../loc_2c2c.js";
+import { dispatchAllHunterRecordStates } from "../dispatchAllHunterRecordStates.js";
 import { loc_2c3f } from "../loc_2c3f.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -82,7 +82,7 @@ for (const [label, craft] of [["boot clone", craftBoot], ["two active records", 
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_2c2c(c);
+    dispatchAllHunterRecordStates(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     console.log(`  EQUAL ${label}: RAM identical`);
@@ -103,7 +103,7 @@ test("OBSERVABLE: the crafted sweep writes RAM (equal is not vacuous)", () => {
 test("SP-TOOTH: the idiomatic sweep leaves SP unchanged (orphaned-push16 regression)", () => {
   const c = craftTwo();
   const sp0 = c.regs.sp;
-  loc_2c2c(c);
+  dispatchAllHunterRecordStates(c);
   const delta = ((c.regs.sp - sp0) << 16) >> 16;
   assert.equal(c.regs.sp, sp0, `sweep leaked SP by ${delta} bytes (an orphaned seated-return push16)`);
   // mutation control: a twin that retains the seated-return push16 MUST leak and be caught.
@@ -148,7 +148,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftTwo();
   const c = craftTwo();
   oracle(o);
-  loc_2c2c(c);
+  dispatchAllHunterRecordStates(c);
   const d0 = firstStateDiff(o.dumpState(), BASE.dumpState(), (off) => o.stateOffsetToAddr(off), inDeadStack);
   const target = d0 ? d0.addr : EAT + LAST * STRIDE + 2;
   c.mem.write8(target, (o.mem.read8(target) ^ 0xff) & 0xff);

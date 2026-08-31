@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_4103 (ROM 0x4103, Pooyan) — "per-object frame-advance step"
+ * Memory-equivalence test for advanceObjectPhaseThenAuditChecksum (ROM 0x4103, Pooyan) — "per-object frame-advance step"
  * for the record based at IX. It advances the object's animation (advanceObjectAnimationFrame), decrements the
  * dwell countdown (IX+0x11) and returns while it is non-zero; on expiry it bumps the phase
  * (IX+0x02), clears (IX+0x13), and only on the FRAME_COUNTER (0x8a5f) zero crossing folds the
@@ -8,7 +8,7 @@
  * (0x8a38) unless the running total hits the intact sentinel (low 0x67, one carry).
  *
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState,
- * minus STACK_SCRATCH). No register/flag live-out is declared: loc_4103 has no direct m.call
+ * minus STACK_SCRATCH). No register/flag live-out is declared: advanceObjectPhaseThenAuditChecksum has no direct m.call
  * caller (it is reached by table dispatch on the object state), so no consuming site can be
  * read off the frozen layer; its exit A/flags/HL are treated as scratch. See the batch notes.
  *
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4103 as oracle } from "../../translated/loc_4103.js";
-import { loc_4103 } from "../loc_4103.js";
+import { advanceObjectPhaseThenAuditChecksum } from "../advanceObjectPhaseThenAuditChecksum.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -83,12 +83,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted dwell/frame cases — loc_4103 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted dwell/frame cases — advanceObjectPhaseThenAuditChecksum == oracle in RAM (−stack)", () => {
   for (const { name, dwell, frame } of CASES) {
     const o = craft(dwell, frame);
     const c = craft(dwell, frame);
     oracle(o);
-    loc_4103(c);
+    advanceObjectPhaseThenAuditChecksum(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -132,7 +132,7 @@ test("CHECKSUM: the frame==0 path over the intact block leaves TAMPER_STRIKES_SI
   const o = craft(dwell, frame);
   const c = craft(dwell, frame);
   oracle(o);
-  loc_4103(c);
+  advanceObjectPhaseThenAuditChecksum(c);
 
   assert.equal(o.mem.read8(TAMPER_STRIKES_SIG), before, "oracle: intact block matches the sentinel, no bump");
   assert.equal(c.mem.read8(TAMPER_STRIKES_SIG), before, "module: intact block matches the sentinel, no bump");
@@ -146,7 +146,7 @@ test("TEETH: a wrong dwell byte is CAUGHT by the RAM diff", () => {
   const o = craft(dwell, frame);
   const c = craft(dwell, frame);
   oracle(o);
-  loc_4103(c);
+  advanceObjectPhaseThenAuditChecksum(c);
   c.mem.write8(DWELL, 0xee); // BUG: dwell must be 0x02 here
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong dwell byte — it is worthless");
@@ -159,7 +159,7 @@ test("TEETH: a wrong phase byte is CAUGHT by the RAM diff", () => {
   const o = craft(dwell, frame);
   const c = craft(dwell, frame);
   oracle(o);
-  loc_4103(c);
+  advanceObjectPhaseThenAuditChecksum(c);
   c.mem.write8(PHASE, 0xee); // BUG: phase must be 0x03 here
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong phase byte — it is worthless");

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5ebd (ROM 0x5ebd, Pooyan) — one iteration of the actor-sweep
+ * Memory-equivalence test for testAndCatchActorSlotOnOverlap (ROM 0x5ebd, Pooyan) — one iteration of the actor-sweep
  * loop body.
  *
- * The cycle-free / memory-equivalence gate: a fresh clone per side, the oracle on one and loc_5ebd
+ * The cycle-free / memory-equivalence gate: a fresh clone per side, the oracle on one and testAndCatchActorSlotOnOverlap
  * on the other, compared on RAM (dumpState) minus STACK_SCRATCH. pc/SP/cycles are NOT compared, and
  * there is no register live-out — it is tail-reached from a sweep dispatcher and its output is the
  * caught slot, the zero-filled struck target and the hit-sound ring writes. The advanced HL/IX/B
@@ -16,7 +16,7 @@
  *
  * Jobs:
  *   1. EQUAL — over empty / busy / off-screen / dx-reject / dy-reject / hit-fill / hit-skip cases,
- *      oracle == loc_5ebd in RAM (−stack).
+ *      oracle == testAndCatchActorSlotOnOverlap in RAM (−stack).
  *   2. WRITE-SET — a hit clears the slot lead byte, stamps 01/08, and (flag bit0 clear) zero-fills
  *      the struck target while a set flag leaves it dirty; an empty slot is inert.
  *   3. TEETH — a wrong caught-slot byte is CAUGHT by the RAM diff.
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5ebd as oracle } from "../../translated/loc_5ebd.js";
-import { loc_5ebd } from "../loc_5ebd.js";
+import { testAndCatchActorSlotOnOverlap } from "../testAndCatchActorSlotOnOverlap.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -93,12 +93,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted sweep-body cases — loc_5ebd == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted sweep-body cases — testAndCatchActorSlotOnOverlap == oracle in RAM (−stack)", () => {
   for (const { name, spec } of CASES) {
     const o = craft(spec);
     oracle(o);
     const c = craft(spec);
-    loc_5ebd(c);
+    testAndCatchActorSlotOnOverlap(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -133,7 +133,7 @@ test("TEETH: a wrong caught-slot byte is CAUGHT by the RAM diff", () => {
   const o = craft({ latch: LFILL });
   const c = craft({ latch: LFILL });
   oracle(o);
-  loc_5ebd(c);
+  testAndCatchActorSlotOnOverlap(c);
   c.mem8[REC + 0] = 0x01; // BUG: a hit must clear the slot lead byte to 0x00
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong caught-slot byte — it is worthless");

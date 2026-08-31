@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_14dc (ROM 0x14dc, Pooyan) — launch/hunter state-1 handler.
+ * Memory-equivalence test for armEnemyState8AnimationAndTallyHudField (ROM 0x14dc, Pooyan) — launch/hunter state-1 handler.
  *
  * Setup picks an animation index and a countdown: with the global level byte live and the record's
  * select field != 0xff it clamps the level to 4, folds its bit into the packed field, bumps the
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_14dc as oracle } from "../../translated/loc_14dc.js";
-import { loc_14dc } from "../loc_14dc.js";
+import { armEnemyState8AnimationAndTallyHudField } from "../armEnemyState8AnimationAndTallyHudField.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -97,12 +97,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_14dc == oracle in RAM (−stack)", () => {
+test("EQUAL: armEnemyState8AnimationAndTallyHudField == oracle in RAM (−stack)", () => {
   for (const { name, cfg } of CASES) {
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_14dc(c);
+    armEnemyState8AnimationAndTallyHudField(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -133,7 +133,7 @@ test("TEETH: a corrupted packed-field byte is CAUGHT; branches are load-bearing"
   const o = seat({ level: 0x03, select: 0x05, field3: 0x00, field2: 0x00 });
   const c = seat({ level: 0x03, select: 0x05, field3: 0x00, field2: 0x00 });
   oracle(o);
-  loc_14dc(c);
+  armEnemyState8AnimationAndTallyHudField(c);
   c.mem.write8(SUBSTATE_FIELD3_VALUE, (o.mem.read8(SUBSTATE_FIELD3_VALUE) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted packed-field byte");

@@ -1,31 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5e98 (ROM 0x5e98, Pooyan) — the per-slot actor-sweep entry.
+ * Memory-equivalence test for dispatchTargetPairCollisionSweep (ROM 0x5e98, Pooyan) — the per-slot actor-sweep entry.
  * The interrupt-parity register picks one of the two pair records (0x8c90 / 0x8ca8); an inactive
  * pair (lead bit0 clear) returns at once. An active pair is latched at 0x8d65 and its bit1 selects
- * one of two sweep variants (bit1 set -> loc_5f11; bit1 clear -> loc_5ebd) over four
+ * one of two sweep variants (bit1 set -> scanActorSlotsMarkStruckAndFlash; bit1 clear -> testAndCatchActorSlotOnOverlap) over four
  * coordinate(0x8888)/state(0x8c30) records with the caller's IY target box.
  *
  * SEATING: TAIL-CALL (both variants) + a BALANCED early ret; the caller ignores the result, so
- * loc_5e98 is void — equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked there so the
+ * dispatchTargetPairCollisionSweep is void — equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked there so the
  * variants' nested pushes drop out of the diff. The oracle drives the translated variants through
  * the routines map; the module calls the idiomatic variants directly.
  *
- * ⚠ CROSS-AGENT: loc_5ebd (the bit1-clear variant) is an in-batch sibling not yet authored. This
- * gate imports it via loc_5e98 and assumes it lands with the family contract
- * `(m, count, ix, hl, iy, ireg)` — the exact signature of its sibling loc_5f11. If the sibling's
+ * ⚠ CROSS-AGENT: testAndCatchActorSlotOnOverlap (the bit1-clear variant) is an in-batch sibling not yet authored. This
+ * gate imports it via dispatchTargetPairCollisionSweep and assumes it lands with the family contract
+ * `(m, count, ix, hl, iy, ireg)` — the exact signature of its sibling scanActorSlotsMarkStruckAndFlash. If the sibling's
  * param order differs the LEAD reconciles the call at merge; the bit1-clear cases below are the
- * ones that exercise it. The bit1-set (loc_5f11) and inactive cases resolve immediately.
+ * ones that exercise it. The bit1-set (scanActorSlotsMarkStruckAndFlash) and inactive cases resolve immediately.
  *
- * Empty formation slots gate both variants to a no-op sweep, isolating loc_5e98's own job (the
- * parity select + bit0 gate + 0x8d65 latch + variant dispatch); one live case drives loc_5f11 to a
+ * Empty formation slots gate both variants to a no-op sweep, isolating dispatchTargetPairCollisionSweep's own job (the
+ * parity select + bit0 gate + 0x8d65 latch + variant dispatch); one live case drives scanActorSlotsMarkStruckAndFlash to a
  * real hit so correct dispatch is observable at the struck slot.
  *
  * Jobs:
  *   1. EQUAL — inactive, variant-A/B empty, parity variant, and a variant-A live hit: module ==
  *      oracle in RAM (−stack).
  *   2. WRITE-SET — inactive is inert; an active sweep latches the selected pair pointer at 0x8d65;
- *      the live hit marks the struck slot 0x03 (proving loc_5f11, not loc_5ebd, ran).
+ *      the live hit marks the struck slot 0x03 (proving scanActorSlotsMarkStruckAndFlash, not testAndCatchActorSlotOnOverlap, ran).
  *   3. TEETH — a corrupted latch byte is caught by the diff; the parity select latches distinct
  *      pointers for I==0 vs I!=0; the live hit's struck-slot marking pins the variant choice.
  *
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5e98 as oracle } from "../../translated/loc_5e98.js";
-import { loc_5e98 } from "../loc_5e98.js";
+import { dispatchTargetPairCollisionSweep } from "../dispatchTargetPairCollisionSweep.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -55,7 +55,7 @@ const PAIR_PTR = 0x8d65; // the latched active-pair pointer
 const FORMATION = 0x8c30; // slot state records, stride 0x18
 const COORD = 0x8888; //   slot coordinate records, stride 0x04
 const FLIP = 0x881f;
-const FLASH0 = 0x8d19; //  loc_5f11's I==0 flash cell
+const FLASH0 = 0x8d19; //  scanActorSlotsMarkStruckAndFlash's I==0 flash cell
 const IY_BOX = 0x8e00; //  target box in scratch work-RAM
 const STRIDE = 0x18;
 const STRUCK = 0x03;
@@ -82,7 +82,7 @@ function craft(spec = {}) {
     m.mem8[FORMATION] = 0x01; //          slot0 live
     m.mem8[COORD + 0x00] = 0x10; //       slot0 coord X
     m.mem8[COORD + 0x02] = 0x20; //       slot0 coord Y
-    m.mem8[IY_BOX + 0x00] = 0x18; //      box X (|dx| in loc_5f11's window)
+    m.mem8[IY_BOX + 0x00] = 0x18; //      box X (|dx| in scanActorSlotsMarkStruckAndFlash's window)
     m.mem8[IY_BOX + 0x02] = 0x22; //      box Y (|dy| in window)
   }
   return m;
@@ -98,12 +98,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5e98 == oracle in RAM (−stack)", () => {
+test("EQUAL: dispatchTargetPairCollisionSweep == oracle in RAM (−stack)", () => {
   for (const { name, spec } of CASES) {
     const o = craft(spec);
     const c = craft(spec);
     oracle(o);
-    loc_5e98(c);
+    dispatchTargetPairCollisionSweep(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -115,15 +115,15 @@ test("EQUAL: loc_5e98 == oracle in RAM (−stack)", () => {
 test("WRITE-SET: inactive is inert; an active sweep latches the pair; a hit marks the struck slot", () => {
   const inert = craft({ ireg: 0, lead: 0x00 });
   const b0 = inert.dumpState();
-  loc_5e98(inert);
+  dispatchTargetPairCollisionSweep(inert);
   assert.deepEqual([...inert.dumpState()], [...b0], "an inactive pair must leave RAM untouched");
 
   const active = craft({ ireg: 0, lead: 0x03 });
-  loc_5e98(active);
+  dispatchTargetPairCollisionSweep(active);
   assert.equal(active.mem16[PAIR_PTR] & 0xffff, REC0, "an active pair latches its pointer at 0x8d65");
 
   const hit = craft({ ireg: 0, lead: 0x03, hit: true, flip: 1 });
-  loc_5e98(hit);
+  dispatchTargetPairCollisionSweep(hit);
   assert.equal(hit.mem8[FORMATION], STRUCK, "the live hit marks slot0 struck (variant A ran)");
   assert.equal(hit.mem8[FLASH0], 0x01, "the live hit sets the I==0 flash cell");
   console.log("  WRITE-SET: inactive inert; latch at 0x8d65; hit -> slot 0x03");
@@ -135,7 +135,7 @@ test("TEETH: a corrupted latch byte is CAUGHT by the RAM diff", () => {
   const o = craft({ ireg: 0, lead: 0x03 });
   const c = craft({ ireg: 0, lead: 0x03 });
   oracle(o);
-  loc_5e98(c);
+  dispatchTargetPairCollisionSweep(c);
   c.mem8[PAIR_PTR] ^= 0xff; // BUG: corrupt the latched pointer
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted latch");
@@ -146,8 +146,8 @@ test("TEETH: a corrupted latch byte is CAUGHT by the RAM diff", () => {
 test("TEETH: the parity select latches distinct pointers for I==0 vs I!=0", () => {
   const i0 = craft({ ireg: 0, lead: 0x03 });
   const i1 = craft({ ireg: 1, lead: 0x03 });
-  loc_5e98(i0);
-  loc_5e98(i1);
+  dispatchTargetPairCollisionSweep(i0);
+  dispatchTargetPairCollisionSweep(i1);
   assert.equal(i0.mem16[PAIR_PTR] & 0xffff, REC0, "I==0 must latch the first pair");
   assert.equal(i1.mem16[PAIR_PTR] & 0xffff, REC1, "I!=0 must latch the second pair");
   assert.notEqual(i0.mem16[PAIR_PTR] & 0xffff, i1.mem16[PAIR_PTR] & 0xffff, "a parity-blind select is rejected");
@@ -157,10 +157,10 @@ test("TEETH: the parity select latches distinct pointers for I==0 vs I!=0", () =
 test("TEETH: the live hit's struck slot pins the variant choice", () => {
   const o = craft({ ireg: 0, lead: 0x03, hit: true, flip: 1 });
   oracle(o);
-  assert.equal(o.mem8[FORMATION], STRUCK, "variant A (loc_5f11) marks the slot struck");
-  // a bit1-clear dispatch would instead run loc_5ebd, which never writes 0x03 to slot0's lead
+  assert.equal(o.mem8[FORMATION], STRUCK, "variant A (scanActorSlotsMarkStruckAndFlash) marks the slot struck");
+  // a bit1-clear dispatch would instead run testAndCatchActorSlotOnOverlap, which never writes 0x03 to slot0's lead
   const c = craft({ ireg: 0, lead: 0x03, hit: true, flip: 1 });
-  loc_5e98(c);
+  dispatchTargetPairCollisionSweep(c);
   assert.equal(c.mem8[FORMATION], STRUCK, "the module dispatched variant A on bit1 set");
   console.log("  TEETH(variant): bit1 set -> struck slot 0x03");
 });

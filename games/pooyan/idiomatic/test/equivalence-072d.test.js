@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_072d (ROM 0x072d, Pooyan) — the attract state-0 handler.
- * It blanks one row of the row-by-row tilemap fill (loc_02ce). While rows remain it returns.
+ * Memory-equivalence test for blankFillRowThenFinishAttractSetup (ROM 0x072d, Pooyan) — the attract state-0 handler.
+ * It blanks one row of the row-by-row tilemap fill (blankFillRowAndStepCounter). While rows remain it returns.
  * Once the fill drains it reads the boot self-test tally at 0x8fff: if != 0x10 it hands off to
  * the main loop (a non-returning `jp`); if == 0x10 it finishes the attract-to-play setup —
  * clears the in-play flag (0x8806), advances the top-level state (0x8805:=1), resets the play
@@ -13,7 +13,7 @@
  * STACK_SCRATCH). No register live-out — this runs inside the frame interrupt, whose register
  * file is saved/restored around it, so only memory survives.
  *
- * Inputs poked identically on both sides: the fill cursor + row counter (loc_02ce's inputs), the
+ * Inputs poked identically on both sides: the fill cursor + row counter (blankFillRowAndStepCounter's inputs), the
  * self-test tally, the display-command ring (write pointer + free slots, so the three commands
  * actually enqueue and a dropped/mis-valued command is caught), and the four state cells
  * pre-dirtied so writing them (some to zero) is observable.
@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_072d as oracle } from "../../translated/loc_072d.js";
-import { loc_072d } from "../loc_072d.js";
+import { blankFillRowThenFinishAttractSetup } from "../blankFillRowThenFinishAttractSetup.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -91,7 +91,7 @@ function craft(cursor, rowCount, tally) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: early-return (rows remain) and finish (tally passed) — loc_072d == oracle in RAM (−stack)", () => {
+test("EQUAL: early-return (rows remain) and finish (tally passed) — blankFillRowThenFinishAttractSetup == oracle in RAM (−stack)", () => {
   const cases = [
     { name: "rows remain -> early return", cursor: 0x8402, rowCount: 0x05, tally: SELFTEST_PASSED },
     { name: "fill drains, tally passed -> finish setup", cursor: 0x8402, rowCount: 0x01, tally: SELFTEST_PASSED },
@@ -100,7 +100,7 @@ test("EQUAL: early-return (rows remain) and finish (tally passed) — loc_072d =
     const o = craft(cursor, rowCount, tally);
     const c = craft(cursor, rowCount, tally);
     oracle(o);
-    loc_072d(c);
+    blankFillRowThenFinishAttractSetup(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -133,7 +133,7 @@ test("BRANCH: tally != 0x10 abandons setup (finish-block cells untouched) — mo
   // The oracle jumps into the infinite main loop on this branch, so it cannot be run here; this
   // arm confirms the module takes the early exit and writes none of the finish-block cells.
   const c = craft(0x8402, 0x01, 0x00); // fill drains, tally NOT passed
-  loc_072d(c);
+  blankFillRowThenFinishAttractSetup(c);
   for (const cell of [GAME_ACTIVE_FLAG, MAIN_GAME_STATE, PLAY_STATE_INDEX, ATTRACT_SUBSTATE]) {
     assert.equal(c.mem.read8(cell), 0xaa, `finish-block cell ${hx(cell)} must be untouched on the abandon path`);
   }
@@ -146,7 +146,7 @@ test("TEETH: a wrong state byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x8402, 0x01, SELFTEST_PASSED);
   const c = craft(0x8402, 0x01, SELFTEST_PASSED);
   oracle(o);
-  loc_072d(c);
+  blankFillRowThenFinishAttractSetup(c);
   c.mem.write8(MAIN_GAME_STATE, 0x02); // BUG: state must advance to exactly 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong state byte — it is worthless");
@@ -158,7 +158,7 @@ test("TEETH: a wrong attribute byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x8402, 0x01, SELFTEST_PASSED);
   const c = craft(0x8402, 0x01, SELFTEST_PASSED);
   oracle(o);
-  loc_072d(c);
+  blankFillRowThenFinishAttractSetup(c);
   c.mem.write8(ATTRIB_MAP_BASE, (c.mem.read8(ATTRIB_MAP_BASE) ^ 0xff) & 0xff); // BUG: corrupt a flooded cell
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong attribute byte — it is worthless");

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0a52 (ROM 0x0a52) — "paint two 2x2 tile blocks": the oracle
+ * Memory-equivalence test for paintTwo2x2TileBlocks (ROM 0x0a52) — "paint two 2x2 tile blocks": the oracle
  * loads HL=0x82aa / DE=0x0a72 and calls the 2x2 block copier (0x0a40), then HL=0x826a / DE=0x0a72
  * and calls it again. Both blocks read the SAME four-byte source pattern at 0x0a72 (in ROM), so the
  * two 2x2 squares end up identical byte-for-byte.
  *
  * This is the cycle-free / memory-equivalence gate. The routine WRITES video RAM and reads a ROM
- * table, so every case uses a FRESH clone per side. The oracle runs on one clone, loc_0a52 on
- * another, compared on RAM (dumpState, minus STACK_SCRATCH). loc_0a52 takes no register inputs (it
+ * table, so every case uses a FRESH clone per side. The oracle runs on one clone, paintTwo2x2TileBlocks on
+ * another, compared on RAM (dumpState, minus STACK_SCRATCH). paintTwo2x2TileBlocks takes no register inputs (it
  * loads its own HL/DE), and leaves nothing live in a register for its caller — so the contract is
  * RAM only; pc/SP/cycles are deliberately NOT compared.
  *
@@ -15,7 +15,7 @@
  * below). So the write footprint is the eight cells of the two blocks.
  *
  * Jobs:
- *   1. EQUAL — loc_0a52 == oracle in RAM (−stack).
+ *   1. EQUAL — paintTwo2x2TileBlocks == oracle in RAM (−stack).
  *   2. WRITE-SET — the oracle changes exactly the eight block cells (minus stack).
  *   3. CRAFTED (overwrite) — pre-dirty the eight cells to 0xAA on both sides; both overwrite.
  *   4. TEETH — a wrong byte at one block cell MUST be caught by the RAM diff.
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0a52 as oracle } from "../../translated/loc_0a52.js";
-import { loc_0a52 } from "../loc_0a52.js";
+import { paintTwo2x2TileBlocks } from "../paintTwo2x2TileBlocks.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -54,7 +54,7 @@ function ramDiffMinusStack(ma, mb) {
 
 const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 
-/** A fresh clone; loc_0a52 has no register inputs, so only SP (in work RAM) is seated. */
+/** A fresh clone; paintTwo2x2TileBlocks has no register inputs, so only SP (in work RAM) is seated. */
 function craft() {
   const m = BASE.clone();
   m.regs.sp = 0x8ffe; // the oracle's inner calls push/pop here; excluded as stack scratch
@@ -69,11 +69,11 @@ const ALL_CELLS = [...blockCells(DEST_A), ...blockCells(DEST_B)];
 
 // -- 1. EQUAL ----------------------------------------------------------------
 
-test("EQUAL: loc_0a52 == oracle in RAM (−stack)", () => {
+test("EQUAL: paintTwo2x2TileBlocks == oracle in RAM (−stack)", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_0a52(c);
+  paintTwo2x2TileBlocks(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
@@ -117,7 +117,7 @@ test("CRAFTED: pre-dirtied block cells are overwritten identically", () => {
     c.mem.write8(cell, 0xaa);
   }
   oracle(o);
-  loc_0a52(c);
+  paintTwo2x2TileBlocks(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
@@ -134,7 +134,7 @@ test("TEETH: a wrong byte at a block cell is CAUGHT by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_0a52(c);
+  paintTwo2x2TileBlocks(c);
   const victim = ALL_CELLS[ALL_CELLS.length - 1];
   c.mem.write8(victim, (o.mem.read8(victim) ^ 0xff) & 0xff); // BUG: corrupt one tile
 

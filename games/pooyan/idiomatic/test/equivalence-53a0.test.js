@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_53a0 — the spawn-one-actor entry wrapper.
+ * Memory-equivalence gate for seedSpawnColumnAndRunBody — the spawn-one-actor entry wrapper.
  *
- * loc_53a0 seeds the spawn body's entry register with 0xff and runs the body (loc_5733). In the
+ * seedSpawnColumnAndRunBody seeds the spawn body's entry register with 0xff and runs the body (loc_5733). In the
  * frozen oracle the body's `pop af; ret` unwinds past this wrapper, landing in the wrapper's own
  * caller; the idiomatic wrapper reproduces that as a plain delegate + return. This gate COMPOSES
  * the real idiomatic body (the module under test imports it) and checks that oracle and module land
- * byte-identical in RAM (dumpState, minus STACK_SCRATCH). loc_53a0 has no register live-out, so only
+ * byte-identical in RAM (dumpState, minus STACK_SCRATCH). seedSpawnColumnAndRunBody has no register live-out, so only
  * RAM is compared; SP sits in STACK_SCRATCH so the body's skip frames drop out of the diff.
  *
  * IX points at a spawn record; the level/round bytes the body reads are seated benign so the body
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_53a0 as oracle } from "../../translated/loc_53a0.js";
-import { loc_53a0 } from "../loc_53a0.js";
+import { seedSpawnColumnAndRunBody } from "../seedSpawnColumnAndRunBody.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_ACTOR_TABLE } from "../names.js";
@@ -72,11 +72,11 @@ function craft() {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_53a0 == oracle in RAM (−stack) after the wrapped spawn", () => {
+test("EQUAL: seedSpawnColumnAndRunBody == oracle in RAM (−stack) after the wrapped spawn", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_53a0(c);
+  seedSpawnColumnAndRunBody(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL: RAM identical (−stack)");
@@ -108,7 +108,7 @@ test("TEETH: a wrong record byte is caught by the RAM diff", () => {
   const o = craft();
   const c = craft();
   oracle(o);
-  loc_53a0(c);
+  seedSpawnColumnAndRunBody(c);
   c.mem.write8(IX + 0x00, (o.mem.read8(IX + 0x00) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong record byte");

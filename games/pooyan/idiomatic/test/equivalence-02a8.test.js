@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_02a8 (ROM 0x02a8) — "stamp a three-tile column": write the
+ * Memory-equivalence test for stampCappedTileColumn (ROM 0x02a8) — "stamp a three-tile column": write the
  * cap tile 0x01 at the start cell, then the mid tile 0x25 one row stride down and the base
  * tile 0x20 a second stride down (the body-tile helper it falls into).
  *
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_02a8 as oracle } from "../../translated/loc_02a8.js";
-import { loc_02a8 } from "../loc_02a8.js";
+import { stampCappedTileColumn } from "../stampCappedTileColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -80,12 +80,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted (start,stride) — loc_02a8 == oracle in RAM (−stack) + advanced pointer", () => {
+test("EQUAL: crafted (start,stride) — stampCappedTileColumn == oracle in RAM (−stack) + advanced pointer", () => {
   for (const { start, stride } of CASES) {
     const o = craft(start, stride);
     const c = craft(start, stride);
     oracle(o);
-    const ret = loc_02a8(c);
+    const ret = stampCappedTileColumn(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} (start=${hx(start)} stride=${hx(stride)})`);
@@ -132,7 +132,7 @@ test("CRAFTED: pre-dirtied target cells are overwritten identically", () => {
     c.mem.write8(cell, 0xaa);
   }
   oracle(o);
-  loc_02a8(c);
+  stampCappedTileColumn(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
@@ -150,7 +150,7 @@ test("TEETH: a wrong cap-cell byte is CAUGHT by the RAM diff", () => {
   const o = craft(start, stride);
   const c = craft(start, stride);
   oracle(o);
-  loc_02a8(c);
+  stampCappedTileColumn(c);
   c.mem.write8(c0, 0x00); // BUG: cap cell must be 0x01, not 0x00
 
   const d = ramDiffMinusStack(o, c);
@@ -164,7 +164,7 @@ test("TEETH: a wrong advanced pointer is CAUGHT by the return check", () => {
   const o = craft(start, stride);
   const c = craft(start, stride);
   oracle(o);
-  const ret = loc_02a8(c);
+  const ret = stampCappedTileColumn(c);
   assert.equal(ret, o.regs.hl, "sanity: the module's advanced pointer matches the oracle");
   // an under-advanced return (one stride short) is a plausible bug the === check must reject
   assert.notEqual((start + stride) & 0xffff, o.regs.hl, "the pointer check must reject an under-advanced value");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6aa8 (ROM 0x6aa8, Pooyan) — "state-1 step of a descending object
+ * Memory-equivalence test for descendObjectThenAdvanceStateAtBottom (ROM 0x6aa8, Pooyan) — "state-1 step of a descending object
  * record (IX)". Runs the shared animation helper (advanceObjectAnimationFrame), then subtracts the speed (IX+9) from the
  * 16-bit position (IX+6):(IX+5) — a low-byte borrow decrements the high byte. While the high byte is
  * non-zero it returns; on reaching zero it re-arms the tilemap-sum latch (0x8f56 := 0) and advances
@@ -9,10 +9,10 @@
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine writes work RAM, so
  * every case uses a FRESH clone per side, compared on RAM (dumpState, minus STACK_SCRATCH).
  *
- * LIVE-OUT: none — memory-only. Reached as a tail dispatch (loc_6a98 table[0]) whose ret unwinds to a
+ * LIVE-OUT: none — memory-only. Reached as a tail dispatch (dispatchDescendingObjectState table[0]) whose ret unwinds to a
  * per-record sweep that reads no result register; all effect is in the record and the latch. The
  * animation helper is exercised on the minimal branch (a non-zero hold, which it merely decrements)
- * so each case isolates loc_6aa8's own descent logic.
+ * so each case isolates descendObjectThenAdvanceStateAtBottom's own descent logic.
  *
  * Jobs:
  *   1. EQUAL (crafted) — no-borrow, borrow-with-high-byte-left, and three ways of reaching zero
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6aa8 as oracle } from "../../translated/loc_6aa8.js";
-import { loc_6aa8 } from "../loc_6aa8.js";
+import { descendObjectThenAdvanceStateAtBottom } from "../descendObjectThenAdvanceStateAtBottom.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -96,12 +96,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted descend cases — loc_6aa8 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted descend cases — descendObjectThenAdvanceStateAtBottom == oracle in RAM (−stack)", () => {
   for (const { name, opts } of CASES) {
     const o = craft(opts);
     const c = craft(opts);
     oracle(o);
-    loc_6aa8(c);
+    descendObjectThenAdvanceStateAtBottom(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -113,14 +113,14 @@ test("EQUAL: crafted descend cases — loc_6aa8 == oracle in RAM (−stack)", ()
 test("WRITE-SET: descending vs reached-zero change identical sets; only zero touches latch + IX+2", () => {
   const descend = { lo: 0x50, hi: 0x02, speed: 0x10 }; // ret path (still descending)
   const oSet = changedAddrs(craft(descend), oracle);
-  const cSet = changedAddrs(craft(descend), loc_6aa8);
+  const cSet = changedAddrs(craft(descend), descendObjectThenAdvanceStateAtBottom);
   assert.deepEqual(cSet, oSet, "descending: module and oracle must change the identical set");
   assert.ok(!oSet.includes(LATCH), "descending must NOT touch the latch");
   assert.ok(!oSet.includes(REC + 2), "descending must NOT advance the state byte");
 
   const zero = { lo: 0x50, hi: 0x00, speed: 0x10 }; // reached-zero path
   const oZero = changedAddrs(craft(zero), oracle);
-  const cZero = changedAddrs(craft(zero), loc_6aa8);
+  const cZero = changedAddrs(craft(zero), descendObjectThenAdvanceStateAtBottom);
   assert.deepEqual(cZero, oZero, "reached-zero: module and oracle must change the identical set");
   assert.ok(oZero.includes(LATCH), "reached-zero must re-arm the latch");
   assert.ok(oZero.includes(REC + 2), "reached-zero must advance the state byte");
@@ -133,7 +133,7 @@ test("TEETH: a wrong stored low byte is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[0].opts);
   const c = craft(CASES[0].opts);
   oracle(o);
-  loc_6aa8(c);
+  descendObjectThenAdvanceStateAtBottom(c);
   c.mem.write8(REC + 5, (c.mem.read8(REC + 5) ^ 0x01) & 0xff); // BUG: wrong descended low byte
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong low byte — it is worthless");
@@ -146,7 +146,7 @@ test("TEETH: a wrong advanced state byte (zero path) is CAUGHT by the RAM diff",
   const o = craft(zero);
   const c = craft(zero);
   oracle(o);
-  loc_6aa8(c);
+  descendObjectThenAdvanceStateAtBottom(c);
   c.mem.write8(REC + 2, (c.mem.read8(REC + 2) + 1) & 0xff); // BUG: state advanced one too far
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong state byte — it is worthless");

@@ -3,13 +3,13 @@
  * Memory-equivalence test for spawnShotTargetOnInterval (ROM 0x5519, Pooyan) — spawn scheduler B: gate on round /
  * difficulty, tick the per-type spawn countdown, and only on zero reload it from the interval table
  * (indexed by the low nibble of the spawn cursor), advance the cursor, and fall through into the
- * spawn loop loc_5544.
+ * spawn loop seedFirstFreeSlotForScheduledSpawn.
  *
- * The module calls the idiomatic loc_0020 / loc_5544 directly; the oracle drives them through the
- * frozen registry. spawnShotTargetOnInterval declares no register live-out (loc_5544 is memory-only and the caller
+ * The module calls the idiomatic fetchByteFromTableIndex / seedFirstFreeSlotForScheduledSpawn directly; the oracle drives them through the
+ * frozen registry. spawnShotTargetOnInterval declares no register live-out (seedFirstFreeSlotForScheduledSpawn is memory-only and the caller
  * reads only memory back), so the register file is not compared; equivalence is RAM (dumpState) minus
  * STACK_SCRATCH (SP parked in dead stack so the loop's push/pop and loc_5489's caller-skip drop out).
- * The SEED case (a free spawn block) exercises loc_5544's caller-skip through loc_5489; the ALL-LIVE
+ * The SEED case (a free spawn block) exercises seedFirstFreeSlotForScheduledSpawn's caller-skip through loc_5489; the ALL-LIVE
  * case makes the block live so the scan falls out with no seed. Both read ROM tables -> ROM required.
  *
  * Jobs:

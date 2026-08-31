@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_416f (ROM 0x416f, Pooyan) — the per-object dwell-then-dispatch
+ * Memory-equivalence test for advanceObjectDwellThenBlankBand (ROM 0x416f, Pooyan) — the per-object dwell-then-dispatch
  * step for the record based at IX. It advances the object's animation, decrements the dwell
  * countdown (IX+0x11), and returns while it is still non-zero; on expiry it tails into the
  * next-state handler, which blanks the object's sprite band (0x17 bytes from IX).
@@ -14,7 +14,7 @@
  * record's animation stream is not walked (that walk is covered by the animation step's own gate).
  *
  * Jobs:
- *   1. EQUAL (crafted) — dwell still counting; dwell expiry -> band blank: oracle == loc_416f in RAM.
+ *   1. EQUAL (crafted) — dwell still counting; dwell expiry -> band blank: oracle == advanceObjectDwellThenBlankBand in RAM.
  *   2. WRITE-SET — the still-dwelling path writes exactly the hold (IX+0x0e) and dwell (IX+0x11).
  *   3. TEETH — a wrong dwell byte (still-dwelling) and a wrong band byte (expiry) are each caught.
  *
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_416f as oracle } from "../../translated/loc_416f.js";
-import { loc_416f } from "../loc_416f.js";
+import { advanceObjectDwellThenBlankBand } from "../advanceObjectDwellThenBlankBand.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -69,12 +69,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted dwell cases — loc_416f == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted dwell cases — advanceObjectDwellThenBlankBand == oracle in RAM (−stack)", () => {
   for (const { name, dwell, dirty } of CASES) {
     const o = craft(dwell, dirty);
     const c = craft(dwell, dirty);
     oracle(o);
-    loc_416f(c);
+    advanceObjectDwellThenBlankBand(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -109,7 +109,7 @@ test("TEETH: a wrong dwell byte (still-dwelling) is CAUGHT by the RAM diff", () 
   const o = craft(CASES[0].dwell, false);
   const c = craft(CASES[0].dwell, false);
   oracle(o);
-  loc_416f(c);
+  advanceObjectDwellThenBlankBand(c);
   c.mem.write8(DWELL, 0xee); // BUG: dwell must be the decremented value
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong dwell byte — it is worthless");
@@ -122,7 +122,7 @@ test("TEETH: a wrong band byte (expiry path) is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[1].dwell, true);
   const c = craft(CASES[1].dwell, true);
   oracle(o);
-  loc_416f(c);
+  advanceObjectDwellThenBlankBand(c);
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: the expiry path is RAM-equal before the twin breaks it");
   assert.equal(c.mem.read8(cell), 0x00, "sanity: the band blank zeroed this cell");
   c.mem.write8(cell, 0xaa); // BUG: leave a band byte un-blanked

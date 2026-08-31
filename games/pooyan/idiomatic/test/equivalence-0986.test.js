@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0986 (ROM 0x0986) — "attract sub-state 3": a per-frame
+ * Memory-equivalence test for tickAttractDelayThenReseedAndAdvance (ROM 0x0986) — "attract sub-state 3": a per-frame
  * countdown gate. Decrement the script frame timer (0x8e50) and, only on the tick it reaches
- * zero, zero the board-init RAM (loc_02b9), re-arm the tile fill (loc_02e3), advance the
+ * zero, zero the board-init RAM (zeroSpriteListAndActorArena), re-arm the tile fill (armTileFillFromPlayfieldBase), advance the
  * attract sub-state (0x8e51), and seat 0x0b26 into the 0x8f48 attract cursor word.
  *
  * Cycle-free memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
@@ -11,7 +11,7 @@
  * register file are deliberately NOT compared.
  *
  * Jobs:
- *   1. EQUAL (crafted) — the still-counting path and the timer-elapsed path: oracle == loc_0986
+ *   1. EQUAL (crafted) — the still-counting path and the timer-elapsed path: oracle == tickAttractDelayThenReseedAndAdvance
  *      in RAM (−stack). Every case is crafted (the leaf runs only in live attract).
  *   2. WRITE-SET — still-counting writes exactly the one timer cell; the elapsed path lands the
  *      sub-state bump and the 16-bit cursor seed 0x0b26 at 0x8f48/0x8f49.
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0986 as oracle } from "../../translated/loc_0986.js";
-import { loc_0986 } from "../loc_0986.js";
+import { tickAttractDelayThenReseedAndAdvance } from "../tickAttractDelayThenReseedAndAdvance.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SCRIPT_FRAME_TIMER, ATTRACT_SUBSTATE, INTRO_DELAY_CKSUM_WORD } from "../names.js";
@@ -65,12 +65,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted timer cases — loc_0986 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted timer cases — tickAttractDelayThenReseedAndAdvance == oracle in RAM (−stack)", () => {
   for (const { timer } of CASES) {
     const o = craft(timer);
     oracle(o);
     const c = craft(timer);
-    loc_0986(c);
+    tickAttractDelayThenReseedAndAdvance(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (timer=${hx(timer)})`);
   }
@@ -108,7 +108,7 @@ test("TEETH: a wrong cursor high byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x01);
   const c = craft(0x01);
   oracle(o);
-  loc_0986(c);
+  tickAttractDelayThenReseedAndAdvance(c);
   c.mem.write8(INTRO_DELAY_CKSUM_WORD + 1, 0x00); // BUG: cursor high byte must be 0x0b, not 0x00
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong cursor high byte — it is worthless");

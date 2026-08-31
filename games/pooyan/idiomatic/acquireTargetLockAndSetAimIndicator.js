@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { driveAimIndicatorHitTimerElseRescan } from "./driveAimIndicatorHitTimerElseRescan.js";
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import {
   GAME_ACTIVE_FLAG,
   GRAB_ACTIVE_FLAG,
@@ -79,14 +79,14 @@ function reevaluateLock(m) {
 
   const blockPtr = mem8[TARGET_LOCK + 3] | (mem8[TARGET_LOCK + 4] << 8);
   if (mem8[blockPtr] !== 0) {
-    loc_0010(m, TARGET_LOCK, 0x00, LOCK_SIZE); // block reactivated: drop the lock
+    fillByteRun(m, TARGET_LOCK, 0x00, LOCK_SIZE); // block reactivated: drop the lock
     return;
   }
 
   const yslotPtr = mem8[TARGET_LOCK + 1] | (mem8[TARGET_LOCK + 2] << 8);
   const target = mem8[yslotPtr];
   if (target < BAND_LO || target >= BAND_HI) {
-    loc_0010(m, TARGET_LOCK, 0x00, LOCK_SIZE); // left the y-band: drop the lock
+    fillByteRun(m, TARGET_LOCK, 0x00, LOCK_SIZE); // left the y-band: drop the lock
     return;
   }
 

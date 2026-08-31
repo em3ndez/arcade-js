@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_53b0 (ROM 0x53b0, Pooyan) — one-shot spawn/init of the
+ * Memory-equivalence test for initFormationRecordAndDeriveSpawnSpeed (ROM 0x53b0, Pooyan) — one-shot spawn/init of the
  * formation record at 0x8c30, gated three ways: the incoming byte A != 0, the spawn latch
  * (0x8d59) == 0, and the frame counter (0x8a5f) == 0. When all hold it latches, fills the record
  * (a byte-table field at rec+0x09 and its negation at rec+0x0a, fixed opening bytes, a cleared
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_53b0 as oracle } from "../../translated/loc_53b0.js";
-import { loc_53b0 } from "../loc_53b0.js";
+import { initFormationRecordAndDeriveSpawnSpeed } from "../initFormationRecordAndDeriveSpawnSpeed.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -74,7 +74,7 @@ function craft(spawnIndex, { latch = 0, frame = 0, round = 0 } = {}) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: early-return gates — loc_53b0 == oracle in RAM (−stack)", () => {
+test("EQUAL: early-return gates — initFormationRecordAndDeriveSpawnSpeed == oracle in RAM (−stack)", () => {
   const gated = [
     craft(0x00, {}), //                 A == 0
     craft(0x05, { latch: 1 }), //       already spawned
@@ -84,20 +84,20 @@ test("EQUAL: early-return gates — loc_53b0 == oracle in RAM (−stack)", () =>
     const o = g;
     const c = craft(o.regs.a, { latch: o.mem.read8(SPAWN_LATCH), frame: o.mem.read8(FRAME_COUNTER) });
     oracle(o);
-    loc_53b0(c);
+    initFormationRecordAndDeriveSpawnSpeed(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `gate case: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
   console.log(`  EQUAL(gates): 3 early-return cases identical (RAM −stack)`);
 });
 
-test("EQUAL: full spawn over round counters — loc_53b0 == oracle in RAM (−stack)", () => {
+test("EQUAL: full spawn over round counters — initFormationRecordAndDeriveSpawnSpeed == oracle in RAM (−stack)", () => {
   const ROUNDS = [0x00, 0x08, 0x0c, 0xff];
   for (const round of ROUNDS) {
     const o = craft(0x05, { round });
     const c = craft(0x05, { round });
     oracle(o);
-    loc_53b0(c);
+    initFormationRecordAndDeriveSpawnSpeed(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `round=${hx(round)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -153,7 +153,7 @@ test("TEETH: a wrong negation field is CAUGHT by the RAM diff", () => {
   const o = craft(0x05, { round: 0x08 });
   const c = craft(0x05, { round: 0x08 });
   oracle(o);
-  loc_53b0(c);
+  initFormationRecordAndDeriveSpawnSpeed(c);
   const correct = c.mem.read8(REC + 0x0a);
   c.mem.write8(REC + 0x0a, correct ^ 0xff); // BUG: rec+0x0a must be the two's-complement of the field
   const d = ramDiffMinusStack(o, c);
@@ -166,7 +166,7 @@ test("TEETH: a wrong (cleared) spawn latch is CAUGHT by the RAM diff", () => {
   const o = craft(0x05, { round: 0x08 });
   const c = craft(0x05, { round: 0x08 });
   oracle(o);
-  loc_53b0(c);
+  initFormationRecordAndDeriveSpawnSpeed(c);
   c.mem.write8(SPAWN_LATCH, 0x00); // BUG: the spawn must latch to 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a cleared latch — it is worthless");

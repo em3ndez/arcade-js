@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5594 (ROM 0x5594, Pooyan) — scan an actor-block table, run the
+ * Memory-equivalence test for seedFirstFreeSlotForTimedSpawnWithTamperCheck (ROM 0x5594, Pooyan) — scan an actor-block table, run the
  * anti-tamper guard-sum, seed the first free slot. Live blocks ((blk+0)|(blk+1) != 0) are skipped
  * (cursor += stride, count times). At the first free block it sums the 8-byte INTEGRITY_GUARD_REGION
  * against INTEGRITY_GUARD_SIGNATURE; any nonzero pair bumps TAMPER_FREEZE_FLAG. Then it seeds the kind
  * byte (blk+0x17) from SPAWN_KIND_TABLE_5627 via rst 0x20 and hands the record to loc_5489, which
- * caller-skips (pop af; ret) past loc_5594. No free block -> the scan falls out.
+ * caller-skips (pop af; ret) past seedFirstFreeSlotForTimedSpawnWithTamperCheck. No free block -> the scan falls out.
  *
  * Compared on RAM (dumpState) minus STACK_SCRATCH; register file not compared (LIVE-OUT: none). The
  * guard region + signature live in ROM, so the guard-sum arm is whatever the built ROM produces —
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5594 as oracle } from "../../translated/loc_5594.js";
-import { loc_5594 } from "../loc_5594.js";
+import { seedFirstFreeSlotForTimedSpawnWithTamperCheck } from "../seedFirstFreeSlotForTimedSpawnWithTamperCheck.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPAWN_SEQUENCE_INDEX_8D14, SPAWN_KIND_TABLE_5627, TAMPER_FREEZE_FLAG } from "../names.js";
@@ -74,7 +74,7 @@ const kindByte = (m) =>
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: FREE-FIRST / LIVE-then-FREE / ALL-LIVE — loc_5594 == oracle in RAM (−stack)", () => {
+test("EQUAL: FREE-FIRST / LIVE-then-FREE / ALL-LIVE — seedFirstFreeSlotForTimedSpawnWithTamperCheck == oracle in RAM (−stack)", () => {
   const cases = [
     { count: 1, live: [0x00], idx: 0x02, round: 0x00 }, // free on iter 1 -> guard-sum + seed
     { count: 3, live: [0x01, 0x00, 0x00], idx: 0x05, round: 0x02 }, // skip one live, seed the second
@@ -86,7 +86,7 @@ test("EQUAL: FREE-FIRST / LIVE-then-FREE / ALL-LIVE — loc_5594 == oracle in RA
     const o = craft(count, live, idx, round);
     const c = craft(count, live, idx, round);
     oracle(o);
-    loc_5594(c);
+    seedFirstFreeSlotForTimedSpawnWithTamperCheck(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null,
       d && `count=${count} idx=${hx(idx)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -99,7 +99,7 @@ test("EQUAL: FREE-FIRST / LIVE-then-FREE / ALL-LIVE — loc_5594 == oracle in RA
 test("WRITE-SET: the free block's kind byte (blk+0x17) is the rst-0x20 table byte", () => {
   const c = craft(1, [0x00], 0x02, 0x05);
   const expected = kindByte(c);
-  loc_5594(c);
+  seedFirstFreeSlotForTimedSpawnWithTamperCheck(c);
   assert.equal(c.mem.read8((REC + KIND_FIELD) & 0xffff), expected,
     `blk+0x17 must be SPAWN_KIND_TABLE_5627[idx] = ${hx(expected)}`);
   assert.equal(c.mem.read8((REC + ACTIVE_FLAG) & 0xffff), 0x01, "loc_5489 must set the active flag");
@@ -112,7 +112,7 @@ test("TEETH: a wrong seeded kind byte is CAUGHT by the RAM diff", () => {
   const o = craft(1, [0x00], 0x02, 0x05);
   const c = craft(1, [0x00], 0x02, 0x05);
   oracle(o);
-  loc_5594(c);
+  seedFirstFreeSlotForTimedSpawnWithTamperCheck(c);
   const correct = c.mem.read8((REC + KIND_FIELD) & 0xffff);
   c.mem.write8((REC + KIND_FIELD) & 0xffff, correct ^ 0xff); // BUG: seed byte must be the table fetch
   const d = ramDiffMinusStack(o, c);
@@ -125,7 +125,7 @@ test("TEETH: a cleared active flag is CAUGHT by the RAM diff", () => {
   const o = craft(1, [0x00], 0x02, 0x05);
   const c = craft(1, [0x00], 0x02, 0x05);
   oracle(o);
-  loc_5594(c);
+  seedFirstFreeSlotForTimedSpawnWithTamperCheck(c);
   c.mem.write8((REC + ACTIVE_FLAG) & 0xffff, 0x00); // BUG: loc_5489 must set the active flag to 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a cleared active flag");
@@ -137,7 +137,7 @@ test("TEETH: a wrong tamper tally (TAMPER_FREEZE_FLAG) is CAUGHT by the RAM diff
   const o = craft(1, [0x00], 0x02, 0x05);
   const c = craft(1, [0x00], 0x02, 0x05);
   oracle(o);
-  loc_5594(c);
+  seedFirstFreeSlotForTimedSpawnWithTamperCheck(c);
   const correct = c.mem.read8(TAMPER_FREEZE_FLAG);
   c.mem.write8(TAMPER_FREEZE_FLAG, (correct + 1) & 0xff); // BUG: guard-sum must bump the tally exactly
   const d = ramDiffMinusStack(o, c);

@@ -4,7 +4,7 @@
  *
  * Clears the state scratch byte, kicks the watchdog, drops the in-play flag, seats the row-fill
  * cursor at the playfield paint origin, primes the row counter, advances the sub-state, then
- * delegates to loc_02b9 to zero the board-init RAM regions. The register live-out (A/B/HL seated by
+ * delegates to zeroSpriteListAndActorArena to zero the board-init RAM regions. The register live-out (A/B/HL seated by
  * the delegate) is not read across the ret's memory footprint, so equivalence is RAM (dumpState)
  * minus STACK_SCRATCH.
  *

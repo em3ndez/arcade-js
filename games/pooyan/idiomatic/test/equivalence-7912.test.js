@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7912 (ROM 0x7912, Pooyan) — the active player's BCD play-timer tick.
+ * Memory-equivalence test for tickActivePlayerPlayTimer (ROM 0x7912, Pooyan) — the active player's BCD play-timer tick.
  * Bails when the game is inactive or the selected gate byte is set; otherwise it advances a frame
  * sub-counter (base byte) up to 0x3b/0x3c (the extra frame chosen by bit0 of the seconds byte) and,
  * on the roll, BCD-carries the seconds then minutes digit (low nibble rolls at 0x0a, high nibble at
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7912 as oracle } from "../../translated/loc_7912.js";
-import { loc_7912 } from "../loc_7912.js";
+import { tickActivePlayerPlayTimer } from "../tickActivePlayerPlayTimer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -54,7 +54,7 @@ function ramDiffMinusStack(ma, mb) {
 
 const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 
-/** Seat all of loc_7912's inputs for the active-player bank on a fresh clone. */
+/** Seat all of tickActivePlayerPlayTimer's inputs for the active-player bank on a fresh clone. */
 function craft({ active = 1, player = 0, gate = 0, base = 0, sec = 0, min = 0 }) {
   const m = BASE.clone();
   m.mem.write8(GAME_ACTIVE_FLAG, active & 0xff);
@@ -85,12 +85,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_7912 == oracle in RAM (−stack) across all timer arms", () => {
+test("EQUAL: tickActivePlayerPlayTimer == oracle in RAM (−stack) across all timer arms", () => {
   for (const cfg of CASES) {
     const o = craft(cfg);
     const c = craft(cfg);
     oracle(o);
-    loc_7912(c);
+    tickActivePlayerPlayTimer(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mod=${d.b} (${cfg.name})`);
   }
@@ -126,7 +126,7 @@ test("TEETH: a wrong written byte is CAUGHT by the RAM diff", () => {
   const o = craft(cfg);
   const c = craft(cfg);
   oracle(o);
-  loc_7912(c);
+  tickActivePlayerPlayTimer(c);
   c.mem.write8((PLAY_TIMER_BCD_P1 + 1) & 0xffff, 0x00); // BUG: seconds should have incremented to 0x01
 
   const d = ramDiffMinusStack(o, c);

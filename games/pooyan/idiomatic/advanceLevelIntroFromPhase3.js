@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import { paintAttractColumnWithTamperChecksum } from "./paintAttractColumnWithTamperChecksum.js";
 import {
   INTRO_DELAY_CKSUM_WORD,
@@ -35,7 +35,7 @@ export function advanceLevelIntroFromPhase3(m) {
   const { mem8 } = m;
 
   if (mem8[INTRO_DELAY_CKSUM_WORD] === DELAY_ACTIVE && mem8[HIT_TALLY] !== 0) {
-    loc_0038(m, HUNTER_SPAWN_DISPLAY_CMD); // queue the hunter-spawn sound
+    enqueueDisplayCommand(m, HUNTER_SPAWN_DISPLAY_CMD); // queue the hunter-spawn sound
     if (mem8[BOARD_CLEAR_FLAG] !== 0) return; // held while the board is clearing
     const sub = (mem8[HIT_TALLY] - 1) & 0xff;
     mem8[HIT_TALLY] = sub;

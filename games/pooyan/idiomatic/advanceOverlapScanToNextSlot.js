@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
-import { loc_5fa2 } from "./loc_5fa2.js";
+import { testRecordOverlapRetireOrFlagHit } from "./testRecordOverlapRetireOrFlagHit.js";
 /**
  * advanceOverlapScanToNextSlot — the advance-and-loop latch of the six-slot overlap scan. It steps the record-index
  * pointer by one record and the geometry pointer by one stride, counts the slot down, then either
@@ -21,7 +21,7 @@ export function advanceOverlapScanToNextSlot(m, index = m.regs.ix, geom = m.regs
 
   // thread the advanced cursors + slot count into the re-entered pass, or finish the sweep
   if (remaining !== 0) {
-    return (m.regs.ix = nextIndex, m.regs.hl = nextGeom, m.regs.b = remaining, m.regs.de = GEOM_STRIDE, loc_5fa2(m, nextGeom, nextIndex, remaining, type, target));
+    return (m.regs.ix = nextIndex, m.regs.hl = nextGeom, m.regs.b = remaining, m.regs.de = GEOM_STRIDE, testRecordOverlapRetireOrFlagHit(m, nextGeom, nextIndex, remaining, type, target));
   }
   return (m.regs.ix = nextIndex, m.regs.hl = nextGeom, m.regs.b = 0, m.regs.de = GEOM_STRIDE, true);
 }

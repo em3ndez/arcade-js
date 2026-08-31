@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import { resetToAttractScreenStart } from "./resetToAttractScreenStart.js";
-import { loc_08e9 } from "./loc_08e9.js";
-import { loc_09f8 } from "./loc_09f8.js";
-import { loc_0a28 } from "./loc_0a28.js";
-import { loc_0c45 } from "./loc_0c45.js";
+import { blankRowThenFloodColorsAndAdvanceAttract } from "./blankRowThenFloodColorsAndAdvanceAttract.js";
+import { advanceFourObjectAnimsAndRebuildList } from "./advanceFourObjectAnimsAndRebuildList.js";
+import { advanceAttractAnimationAndRepaint } from "./advanceAttractAnimationAndRepaint.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { resetActorStateForBoard } from "./resetActorStateForBoard.js";
 import {
   HUD_INTEGRITY_STRIP_A,
@@ -41,8 +41,8 @@ export function advanceAttractToBoardBuildIfImageIntact(m) {
   }
 
   mem8[ANIM_FRAME_COUNTER] = u8(mem8[ANIM_FRAME_COUNTER] - 1);
-  if (mem8[ANIM_FRAME_COUNTER] === 0) loc_0a28(m);
-  loc_09f8(m);
+  if (mem8[ANIM_FRAME_COUNTER] === 0) advanceAttractAnimationAndRepaint(m);
+  advanceFourObjectAnimsAndRebuildList(m);
 
   mem8[SCRIPT_FRAME_TIMER] = u8(mem8[SCRIPT_FRAME_TIMER] - 1);
   if (mem8[SCRIPT_FRAME_TIMER] !== 0) return;
@@ -50,7 +50,7 @@ export function advanceAttractToBoardBuildIfImageIntact(m) {
   mem8[SCRIPT_FRAME_TIMER] = 0x01;
   mem8[ATTRACT_SUBSTATE] = u8(mem8[ATTRACT_SUBSTATE] - 1);
   const idx = u8(mem8[SCRIPT_COL_CHECK_TICK] - 1);
-  mem16[SCRIPT_WRITE_PTR] = loc_0c45(m, idx, ATTRACT_SCRIPT_PTR_TABLE);
+  mem16[SCRIPT_WRITE_PTR] = fetchWordFromTableIndex(m, idx, ATTRACT_SCRIPT_PTR_TABLE);
   mem8[SCRIPT_COL_CHECK_TICK] = u8(mem8[SCRIPT_COL_CHECK_TICK] - 1);
   if (mem8[SCRIPT_COL_CHECK_TICK] !== 0) return;
 
@@ -76,7 +76,7 @@ export function advanceAttractToBoardBuildIfImageIntact(m) {
   let check = mem16[INTRO_DELAY_CKSUM_WORD]; // dereference the stored checksum pointer
   if (e !== mem8[check]) return resetToAttractScreenStart(m);
   check = u16(check + 1);
-  if (mem8[check] !== d) return loc_08e9(m);
+  if (mem8[check] !== d) return blankRowThenFloodColorsAndAdvanceAttract(m);
 
   mem8[INTRO_DELAY_CKSUM_WORD] = 0;
   mem8[LAUNCH_SEQ_COUNTER] = 0;

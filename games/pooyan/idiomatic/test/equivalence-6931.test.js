@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for loc_6931 (ROM 0x6931) — the per-record enemy spawn/init, a
- * DISSOLVED caller-skip that composes the idiomatic siblings setActorAnimation, loc_0038 and
+ * DISSOLVED caller-skip that composes the idiomatic siblings setActorAnimation, enqueueDisplayCommand and
  * queueRoundSoundCommandRun.
  *
  * An already-active record pair takes the plain `ret c` (normal return, SP += 2) and the module
@@ -12,7 +12,7 @@
  *
  * The oracle runs the TRANSLATED subtree through the routines map; the idiomatic module imports the
  * IDIOMATIC siblings directly. The two must land byte-identical in RAM (dumpState) minus
- * STACK_SCRATCH. No register is a live-out: the caller (loc_6905) protects its own loop counter and
+ * STACK_SCRATCH. No register is a live-out: the caller (spawnPairedEnemyOnDelaySweep) protects its own loop counter and
  * stride and advances IX/IY itself, so nothing the spawn leaves in registers is read back —
  * registers are NOT compared. The boolean return IS, and the oracle's SP delta (+2 normal / +4 skip)
  * confirms which path it took.

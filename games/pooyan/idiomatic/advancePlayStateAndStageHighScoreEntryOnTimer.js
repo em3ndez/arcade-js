@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_05b2 } from "./loc_05b2.js";
+import { drawStackedCharField } from "./drawStackedCharField.js";
 import { fillAttributeColumns } from "./fillAttributeColumns.js";
-import { loc_03e9 } from "./loc_03e9.js";
-import { loc_0038 } from "./loc_0038.js";
+import { paintAttractHudAndHighScores } from "./paintAttractHudAndHighScores.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import { u8, u16 } from "../../../core/int.js";
 import { queueFixedSoundCommandRun } from "./queueFixedSoundCommandRun.js";
 import {
@@ -39,12 +39,12 @@ export function advancePlayStateAndStageHighScoreEntryOnTimer(m) {
   mem8[PHASE_TIMER] = u8(mem8[PHASE_TIMER] - 1);
   if (mem8[PHASE_TIMER] !== 0) return; // phase timer not expired
 
-  loc_05b2(m, 0x82); // play sound (id in A)
-  loc_05b2(m, 0x80);
-  loc_05b2(m, 0x89);
+  drawStackedCharField(m, 0x82); // play sound (id in A)
+  drawStackedCharField(m, 0x80);
+  drawStackedCharField(m, 0x89);
   fillAttributeColumns(m, FIELD_ATTRIB_SRC_07D9); // paint the column strip
-  loc_03e9(m); // paint its frame
-  loc_0038(m, OBJECT_SPAWN_DISPLAY_CMD); // enqueue a display command
+  paintAttractHudAndHighScores(m); // paint its frame
+  enqueueDisplayCommand(m, OBJECT_SPAWN_DISPLAY_CMD); // enqueue a display command
 
   mem8[PLAY_STATE_INDEX] = SUBSTATE_ADVANCE;
   const rank = mem8[HIGH_SCORE_INSERT_RANK];

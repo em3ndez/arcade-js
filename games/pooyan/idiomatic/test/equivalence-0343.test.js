@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0343 (ROM 0x0343, Pooyan) — "build sprite display-list entries
+ * Memory-equivalence test for buildDisplayEntriesFromMovingObjects (ROM 0x0343, Pooyan) — "build sprite display-list entries
  * from moving-object records, with coordinate math": list pointer in HL, record base in IX, record
  * stride in DE, count in B. Per record it emits four bytes into successive list slots — a coordinate
  * from the (rec+5:rec+6) sub-pixel pair ((pair>>5)-8), the raw (rec+0x10) byte, a coordinate from
@@ -9,7 +9,7 @@
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so each case runs on a FRESH clone
  * per side. The go-forward contract is RAM (dumpState, minus STACK_SCRATCH) AND the HL live-out.
- * loc_02ef chains its next display-list copy (loc_032a) from the advanced HL without reloading it,
+ * rebuildSpriteDisplayList chains its next display-list copy (loc_032a) from the advanced HL without reloading it,
  * so HL is LOAD-BEARING: the module's return is compared against the oracle clone's final HL, and
  * the module must also SET HL on its own clone. IX/B/A/DE are plumbing (the caller resets IX/B per
  * call), not part of the contract. pc/SP are NOT compared.
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0343 as oracle } from "../../translated/loc_0343.js";
-import { loc_0343 } from "../loc_0343.js";
+import { buildDisplayEntriesFromMovingObjects } from "../buildDisplayEntriesFromMovingObjects.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPRITE_DISPLAY_LIST, ENEMY_ACTOR_TABLE } from "../names.js";
@@ -89,7 +89,7 @@ function craft({ list, rec, stride, count }) {
 }
 
 const CASES = [
-  { list: SPRITE_DISPLAY_LIST, rec: ENEMY_ACTOR_TABLE, stride: 0x18, count: 0x12 }, // the real loc_02ef shape
+  { list: SPRITE_DISPLAY_LIST, rec: ENEMY_ACTOR_TABLE, stride: 0x18, count: 0x12 }, // the real rebuildSpriteDisplayList shape
   { list: SPRITE_DISPLAY_LIST, rec: 0x8a80, stride: 0x18, count: 0x01 },
   { list: 0x8850, rec: 0x8a80, stride: 0x0c, count: 0x05 },
   { list: 0x88fe, rec: 0x8a80, stride: 0x18, count: 0x03 }, // PAGE-WRAP: low byte crosses 0xff
@@ -118,7 +118,7 @@ test("CAPTURE: real 0x0343 dispatches — module == oracle in RAM (−stack) and
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    const ret = loc_0343(c);
+    const ret = buildDisplayEntriesFromMovingObjects(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, o.regs.hl, `HL live-out: module ${hx(ret)} != oracle ${hx(o.regs.hl)}`);
@@ -134,7 +134,7 @@ test("CRAFTED: varied records/stride/count — RAM identical, advanced HL identi
     const o = craft(cs);
     const c = craft(cs);
     oracle(o);
-    const ret = loc_0343(c);
+    const ret = buildDisplayEntriesFromMovingObjects(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${JSON.stringify(cs)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -185,7 +185,7 @@ test("TEETH: a wrong copied byte is CAUGHT in the list", () => {
   const o = craft(cs);
   const c = craft(cs);
   oracle(o);
-  loc_0343(c);
+  buildDisplayEntriesFromMovingObjects(c);
   const firstCell = cs.list & 0xffff; // a real written cell (record 0's first coordinate)
   c.mem.write8(firstCell, (c.mem.read8(firstCell) ^ 0x01) & 0xff); // BUG: corrupt a copied byte
   const d = ramDiffMinusStack(o, c);

@@ -2,11 +2,11 @@
 /**
  * Memory-equivalence test for runPlayStateFrame (ROM 0x159b, Pooyan) — the top-level game state-3 (play)
  * handler: tick the BCD play-timer, then dispatch the in-play sub-state through the frozen rst-0x28
- * dispatcher loc_15a1 with the continuation seated in HL, and run the post-dispatch continuation
+ * dispatcher dispatchInPlaySubState with the continuation seated in HL, and run the post-dispatch continuation
  * resetToBoardBuildToContinuePlay.
  *
- * The module dissolves loc_7912 and the continuation resetToBoardBuildToContinuePlay to direct idiomatic calls and keeps
- * m.call for the frozen sub-state dispatcher loc_15a1 (continuation seated in HL); the oracle drives
+ * The module dissolves tickActivePlayerPlayTimer and the continuation resetToBoardBuildToContinuePlay to direct idiomatic calls and keeps
+ * m.call for the frozen sub-state dispatcher dispatchInPlaySubState (continuation seated in HL); the oracle drives
  * all three through the routines map. runPlayStateFrame is a void handler returning into the NMI service — no
  * register survives — so the
  * register file is not compared; equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in
@@ -103,7 +103,7 @@ test("TEETH: a wrong phase-timer byte is CAUGHT by the RAM diff", () => {
 
 // -- 4. SP-TOOTH --------------------------------------------------------------
 
-test("SP-TOOTH: the register-bridge dispatch through loc_15a1 is seam-placeable", () => {
+test("SP-TOOTH: the register-bridge dispatch through dispatchInPlaySubState is seam-placeable", () => {
   const entry = craft();
   entry.mem.write16(SP0, CALLER_RET); // the caller's return word the seam completes
   const r = seamPlaceable(withOmittedRet, runPlayStateFrame, 0x159b, entry);

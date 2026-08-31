@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { queueCreditDisplayCommands } from "./queueCreditDisplayCommands.js";
 import { resetActorStateForBoard } from "./resetActorStateForBoard.js";
-import { loc_0038 } from "./loc_0038.js";
-import { loc_0010 } from "./loc_0010.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
+import { fillByteRun } from "./fillByteRun.js";
 import {
   ACTIVE_PLAYER,
   TWO_PLAYER_FLAG,
@@ -42,16 +42,16 @@ export function startNewGamePlay(m, player = m.regs.hl) {
   mem8[MAIN_GAME_STATE] = MAIN_STATE_PLAY;
   mem8[GAME_ACTIVE_FLAG] = 1;
   mem8[FLIP_SCREEN_FLAG] = 1;
-  loc_0038(m, ATTRACT_SETUP_DISPLAY_CMD_A); //  enqueue the pre-play start command
+  enqueueDisplayCommand(m, ATTRACT_SETUP_DISPLAY_CMD_A); //  enqueue the pre-play start command
 
   resetActorStateForBoard(m); //  reset the actor/sprite tables
 
   mem8[WAVE_EVENT_LATCH] = 0;
   mem8[PERIODIC_EVENT_TIMER] = PERIODIC_RELOAD;
-  loc_0038(m, START_OF_LIFE_DISPLAY_CMD); //  enqueue the start-of-life sound
+  enqueueDisplayCommand(m, START_OF_LIFE_DISPLAY_CMD); //  enqueue the start-of-life sound
 
   if ((mem8[TWO_PLAYER_FLAG] & 1) === 0) return; //  one-player: done
 
-  loc_0038(m, START_OF_LIFE_DISPLAY_CMD_2P); //  second-player variant
-  loc_0010(m, ANIM_WORK_BLOCK_PTR, 0, 12); //  clear the 12-byte panel block
+  enqueueDisplayCommand(m, START_OF_LIFE_DISPLAY_CMD_2P); //  second-player variant
+  fillByteRun(m, ANIM_WORK_BLOCK_PTR, 0, 12); //  clear the 12-byte panel block
 }

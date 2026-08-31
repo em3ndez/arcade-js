@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2901 (ROM 0x2901, Pooyan) — lead-actor state-0 step. It resets the
+ * Memory-equivalence test for advanceLeadActorDescentToLanding (ROM 0x2901, Pooyan) — lead-actor state-0 step. It resets the
  * frame hold and drives the base Y down; above the floor it refreshes the derived sprite Ys and
  * (unless the tile-anim cursor holds) advances the script and tails the phase render; at the floor it
  * loads the landing shape, reseeds the record, runs two integrity self-checks over the field-attribute
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2901 as oracle } from "../../translated/loc_2901.js";
-import { loc_2901 } from "../loc_2901.js";
+import { advanceLeadActorDescentToLanding } from "../advanceLeadActorDescentToLanding.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ACTOR_TABLE, TILE_ANIM_CURSOR } from "../names.js";
@@ -63,7 +63,7 @@ function seat(m, { baseY = 0x50, cursor = 0x00 } = {}) {
   m.regs.sp = SP0;
   m.mem.write8(BASE_Y, baseY);
   // TILE_ANIM_CURSOR (0x88be) is a 16-bit script pointer; its low byte doubles as the hold selector
-  // loc_2901 checks (0xf9 = held). Seat it as a FULL pointer into tilemap RAM — writing only the low
+  // advanceLeadActorDescentToLanding checks (0xf9 = held). Seat it as a FULL pointer into tilemap RAM — writing only the low
   // byte leaves the high byte 0x00, so loc_2405 dereferences the null pointer and walks into ROM.
   const ptr = (SCRIPT_PTR_PAGE & 0xff00) | (cursor & 0xff);
   m.mem.write16(TILE_ANIM_CURSOR, ptr);
@@ -83,12 +83,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_2901 == oracle in RAM (−stack) across the callee tree", () => {
+test("EQUAL: advanceLeadActorDescentToLanding == oracle in RAM (−stack) across the callee tree", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_2901(c);
+    advanceLeadActorDescentToLanding(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -118,7 +118,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftRunning();
   const c = craftRunning();
   oracle(o);
-  loc_2901(c);
+  advanceLeadActorDescentToLanding(c);
   c.mem.write8(FRAME_HOLD, (o.mem.read8(FRAME_HOLD) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted frame-hold byte");

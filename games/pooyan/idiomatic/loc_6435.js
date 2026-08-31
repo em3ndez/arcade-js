@@ -2,7 +2,7 @@
 import { u16 } from "../../../core/int.js";
 import { setActorAnimation } from "./setActorAnimation.js";
 import { queueSoundCommand06 } from "./queueSoundCommand06.js";
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import { loc_64be } from "./loc_64be.js";
 import {
   PLAY_MODE_LATCH,
@@ -84,7 +84,7 @@ export function loc_6435(m, iy = m.regs.iy, regI = m.regs.i) {
   mem8[regI === 0 ? OBJ_HIT_FLAG_I0 : OBJ_HIT_FLAG_I1] = 0x01;
   setActorAnimation(m, hit, ANIM_SEQ_64DF);
   queueSoundCommand06(m);
-  if (mem8[PLAY_MODE_LATCH] === 0) loc_0038(m, HUNTER_SPAWN_DISPLAY_CMD);
+  if (mem8[PLAY_MODE_LATCH] === 0) enqueueDisplayCommand(m, HUNTER_SPAWN_DISPLAY_CMD);
   mem8[HIT_TALLY] = mem8[HIT_TALLY] + 1;
   return loc_64be(m, TERMINATOR_SCAN_SRC, TERMINATOR_MATCH_TABLE); // always false -> abort caller
 }

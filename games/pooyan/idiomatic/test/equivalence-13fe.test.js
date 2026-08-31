@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_13fe (Pooyan) — advance an actor's X (rec+0x05) by its velocity
+ * Memory-equivalence test for advanceActorPositionByVelocity (Pooyan) — advance an actor's X (rec+0x05) by its velocity
  * (rec+0x0a), spending a lap/lifetime (rec+0x06) when the ROM `cp b` sets carry (current X below the
- * negated velocity). The advanced X is handed to the (already idiomatic) loc_1410, which stashes it
- * into rec+0x05 and tails into the countdown-gated dispatch; loc_13fe forwards that result.
+ * negated velocity). The advanced X is handed to the (already idiomatic) latchActorStepThenDispatchByStageCountdown, which stashes it
+ * into rec+0x05 and tails into the countdown-gated dispatch; advanceActorPositionByVelocity forwards that result.
  *
- * REGISTER BRIDGE: rec = m.regs.ix, threaded to loc_1410. Cases are CRAFTED. Compared on RAM
+ * REGISTER BRIDGE: rec = m.regs.ix, threaded to latchActorStepThenDispatchByStageCountdown. Cases are CRAFTED. Compared on RAM
  * (dumpState) minus STACK_SCRATCH; SP is parked in STACK_SCRATCH so the delegate's push/ret drop
- * out of the diff. STAGE_COUNTDOWN selects loc_1410's own delegate (both already idiomatic); it is
- * held at the spawn/queue gate here so the outcome is deterministic — loc_1410's own gate covers the
+ * out of the diff. STAGE_COUNTDOWN selects latchActorStepThenDispatchByStageCountdown's own delegate (both already idiomatic); it is
+ * held at the spawn/queue gate here so the outcome is deterministic — latchActorStepThenDispatchByStageCountdown's own gate covers the
  * below-three path.
  *
  * Jobs: 1. EQUAL (wrap + no-wrap); 2. WRITE-SET (rec+0x05 always; rec+0x06 only on the wrap);
@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_13fe as oracle } from "../../translated/loc_13fe.js";
-import { loc_13fe } from "../loc_13fe.js";
+import { advanceActorPositionByVelocity } from "../advanceActorPositionByVelocity.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STAGE_COUNTDOWN } from "../names.js";
@@ -39,7 +39,7 @@ const SP0 = 0x8ff0; // inside STACK_SCRATCH
 const X = REC + 0x05;
 const LAP = REC + 0x06;
 const VEL = REC + 0x0a;
-const GATE_COUNTDOWN = 0x05; // >= 3: loc_1410 takes the spawn/queue gate (deterministic here)
+const GATE_COUNTDOWN = 0x05; // >= 3: latchActorStepThenDispatchByStageCountdown takes the spawn/queue gate (deterministic here)
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -67,12 +67,12 @@ const craftNoWrap = () => seat({ vel: 0x02, x: 0xff });
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_13fe == oracle in RAM (−stack)", () => {
+test("EQUAL: advanceActorPositionByVelocity == oracle in RAM (−stack)", () => {
   for (const [name, craft] of [["wrap", craftWrap], ["no-wrap", craftNoWrap]]) {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_13fe(c);
+    advanceActorPositionByVelocity(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -100,7 +100,7 @@ test("TEETH: a corrupted advanced-X is CAUGHT; the wrap gate is load-bearing", (
   const o = craftWrap();
   const c = craftWrap();
   oracle(o);
-  loc_13fe(c);
+  advanceActorPositionByVelocity(c);
   c.mem.write8(X, (o.mem.read8(X) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted advanced-X");

@@ -8,7 +8,7 @@
  *
  * CYCLE-FREE / memory-equivalence gate: the routine WRITES RAM, so every case uses a FRESH clone
  * per side. The go-forward contract is RAM only (dumpState minus STACK_SCRATCH): the caller
- * (loc_5d0b) banks its loop state via exx and reads no register back, so there is no register
+ * (tickEnemyActorAnimHolds) banks its loop state via exx and reads no register back, so there is no register
  * live-out.
  *
  * Jobs:
@@ -38,7 +38,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built" }, fn);
 
 const TARGET = 0x5d1e;
-const REC = 0x8ae0; // a stride-0x18 object record in work RAM (the real base loc_5d0b walks)
+const REC = 0x8ae0; // a stride-0x18 object record in work RAM (the real base tickEnemyActorAnimHolds walks)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;

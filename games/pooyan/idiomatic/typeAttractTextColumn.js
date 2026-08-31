@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_0a28 } from "./loc_0a28.js";
-import { loc_09f8 } from "./loc_09f8.js";
+import { advanceAttractAnimationAndRepaint } from "./advanceAttractAnimationAndRepaint.js";
+import { advanceFourObjectAnimsAndRebuildList } from "./advanceFourObjectAnimsAndRebuildList.js";
 import { runObjectAndEnemyActorUpdate } from "./runObjectAndEnemyActorUpdate.js";
-import { loc_7442 } from "./loc_7442.js";
+import { dispatchSelfTestState } from "./dispatchSelfTestState.js";
 import {
   ANIM_FRAME_COUNTER,
   SCRIPT_FRAME_TIMER,
@@ -30,8 +30,8 @@ export function typeAttractTextColumn(m) {
   const { mem8 } = m;
 
   mem8[ANIM_FRAME_COUNTER]--;
-  if (mem8[ANIM_FRAME_COUNTER] === 0) loc_0a28(m); // wrap -> advance the 4-phase animation
-  loc_09f8(m); // step the scripted sprite records + rebuild the display list
+  if (mem8[ANIM_FRAME_COUNTER] === 0) advanceAttractAnimationAndRepaint(m); // wrap -> advance the 4-phase animation
+  advanceFourObjectAnimsAndRebuildList(m); // step the scripted sprite records + rebuild the display list
 
   mem8[SCRIPT_FRAME_TIMER]--;
   if (mem8[SCRIPT_FRAME_TIMER] !== 0) return; // act only on the frame-timer wrap
@@ -65,7 +65,7 @@ export function typeAttractTextColumn(m) {
 
   // verify the sum against the two bytes at INTRO_DELAY_CKSUM_WORD; a mismatch takes a tamper redirect
   let ck = mem8[INTRO_DELAY_CKSUM_WORD] | (mem8[INTRO_DELAY_CKSUM_WORD + 1] << 8);
-  if (mem8[ck] !== (sum & 0xff)) return loc_7442(m); // low-byte mismatch -> tamper trap
+  if (mem8[ck] !== (sum & 0xff)) return dispatchSelfTestState(m); // low-byte mismatch -> tamper trap
   if (mem8[u16(ck + 1)] !== (sum >> 8)) return runObjectAndEnemyActorUpdate(m); // high-byte mismatch -> tamper redirect
   ck = u16(ck + 2);
   mem8[INTRO_DELAY_CKSUM_WORD] = ck; // low byte

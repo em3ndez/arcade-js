@@ -2,11 +2,11 @@
 /**
  * Memory-equivalence test for fillIntroRowsThenBuildBoardIntro (ROM 0x0c77, Pooyan) — board-intro state 1.
  *
- * Each call fills two 0x1d-byte tile runs (loc_0010) from the fill cursor and ticks the row
+ * Each call fills two 0x1d-byte tile runs (fillByteRun) from the fill cursor and ticks the row
  * countdown (0x8809). While the countdown holds it returns. When it drains it advances the play
  * sub-state (0x880a) and runs the one-shot intro build: a ROM checksum guard, the attribute-column
  * flood (loc_075d, leftover A -> 0x880d), the credit display commands (loc_0e54), the two-plane
- * column stamp (loc_0cf8), a run of rst-0x38 display commands whose 1P/2P variants come from the
+ * column stamp (stampTwoPlaneColumnStrip), a run of rst-0x38 display commands whose 1P/2P variants come from the
  * bonus DSW bit (0x8800 bit0), and two sound commands (loc_0f4e).
  *
  * Cycle-free memory-equivalence: a fresh clone per side, compared on RAM (dumpState, minus

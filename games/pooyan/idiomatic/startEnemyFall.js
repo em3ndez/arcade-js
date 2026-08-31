@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0c45 } from "./loc_0c45.js";
+import { fetchWordFromTableIndex } from "./fetchWordFromTableIndex.js";
 import { setActorAnimation } from "./setActorAnimation.js";
-import { loc_3f72 } from "./loc_3f72.js";
+import { advanceObjectStateOnFrameTimerExpiry } from "./advanceObjectStateOnFrameTimerExpiry.js";
 import { FALL_ANIM_TABLE } from "./names.js";
 /**
  * startEnemyFall — object state handler: begin the fall.
@@ -21,9 +21,9 @@ export function startEnemyFall(m, rec = m.regs.ix) {
   const { mem8 } = m;
 
   const variant = ((mem8[rec + VARIANT_FIELD] & VARIANT_MASK) - 1) & 0xff;
-  const anim = loc_0c45(m, variant, FALL_ANIM_TABLE);
+  const anim = fetchWordFromTableIndex(m, variant, FALL_ANIM_TABLE);
   setActorAnimation(m, rec, anim);
   mem8[rec + VELOCITY_FIELD] = FALL_VELOCITY;
   mem8[rec + STATE_FIELD] = mem8[rec + STATE_FIELD] + 1; // advance the state
-  return loc_3f72(m, rec); // fall through into the next state handler
+  return advanceObjectStateOnFrameTimerExpiry(m, rec); // fall through into the next state handler
 }

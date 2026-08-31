@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_5b86 — the CALLER that dissolves the per-record collision skip.
+ * Memory-equivalence gate for scanEnemyRecordsForCollision — the CALLER that dissolves the per-record collision skip.
  *
- * loc_5b86 sweeps the collision check (loc_5b99) across the six enemy-actor records (stride 0x18).
+ * scanEnemyRecordsForCollision sweeps the collision check (loc_5b99) across the six enemy-actor records (stride 0x18).
  * In the frozen oracle a hit's `pop af; ret` aborts the sweep and unwinds one frame up; the
  * idiomatic caller instead early-returns when the real idiomatic loc_5b99 returns false. This gate
  * COMPOSES the real idiomatic skip (the module under test imports it) and checks that oracle and
- * module land byte-identical in RAM (dumpState, minus STACK_SCRATCH). loc_5b86 has no register
+ * module land byte-identical in RAM (dumpState, minus STACK_SCRATCH). scanEnemyRecordsForCollision has no register
  * live-out (its registers are loop artifacts), so only RAM is compared; SP sits in STACK_SCRATCH so
  * the oracle's skip frames drop out of the diff.
  *
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5b86 as oracle } from "../../translated/loc_5b86.js";
-import { loc_5b86 } from "../loc_5b86.js";
+import { scanEnemyRecordsForCollision } from "../scanEnemyRecordsForCollision.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_ACTOR_TABLE } from "../names.js";
@@ -106,7 +106,7 @@ test("EQUAL: composed module RAM (−stack) matches the oracle for taken + not-t
     const o = build({ hits });
     const c = build({ hits });
     oracle(o);
-    loc_5b86(c);
+    scanEnemyRecordsForCollision(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} module=${d.b}`);
     if (hitAt >= 0) {
@@ -124,7 +124,7 @@ test("TEETH: a failure to abort (a later record wrongly swept) is caught", () =>
   const o = build({ hits: [3, 4] });
   const c = build({ hits: [3, 4] });
   oracle(o);
-  loc_5b86(c);
+  scanEnemyRecordsForCollision(c);
   assert.equal(c.mem.read8(rec(4) + 0x12), 0x00, "sanity: the aborting sweep left record 4 untouched");
   c.mem.write8(rec(4) + 0x12, 0x10); // BUG: a non-aborting sweep would stamp record 4 too
   const d = ramDiffMinusStack(o, c);
@@ -137,7 +137,7 @@ test("TEETH: a wrong byte in the hit record is caught by the RAM diff", () => {
   const o = build({ hits: [0] });
   const c = build({ hits: [0] });
   oracle(o);
-  loc_5b86(c);
+  scanEnemyRecordsForCollision(c);
   c.mem.write8(rec(0) + 0x12, 0x00); // BUG: this field is 0x10 on a hit
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong hit-record byte");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_25a6 (ROM 0x25a6, Pooyan) — the per-frame lift/marker column
+ * Memory-equivalence test for renderMarkerColumnExtendOrRetract (ROM 0x25a6, Pooyan) — the per-frame lift/marker column
  * driver at the layout pointer.
  *
  * SEATING: BALANCED (plain ret) — a void per-frame driver dispatched from the frame coordinator;
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_25a6 as oracle } from "../../translated/loc_25a6.js";
-import { loc_25a6 } from "../loc_25a6.js";
+import { renderMarkerColumnExtendOrRetract } from "../renderMarkerColumnExtendOrRetract.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -117,12 +117,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_25a6 == oracle in RAM (−stack)", () => {
+test("EQUAL: renderMarkerColumnExtendOrRetract == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_25a6(c);
+    renderMarkerColumnExtendOrRetract(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -153,7 +153,7 @@ test("TEETH: a corrupted stamped tile is CAUGHT by the RAM diff", () => {
   const o = craftSteady();
   const c = craftSteady();
   oracle(o);
-  loc_25a6(c);
+  renderMarkerColumnExtendOrRetract(c);
   c.mem.write8(PTR_DEFAULT, (o.mem.read8(PTR_DEFAULT) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted stamped tile — worthless");
@@ -173,7 +173,7 @@ test("TEETH: a no-op module and a skipped-parity module both diverge from the or
   const o2 = craftSteady();
   const skip = craftSteady();
   oracle(o2);
-  loc_25a6(skip);
+  renderMarkerColumnExtendOrRetract(skip);
   skip.mem.write8(ANIM, skip.mem.read8(ANIM) - 1); // undo the parity advance
   const d2 = ramDiffMinusStack(o2, skip);
   assert.notEqual(d2, null, "the gate FAILED to catch a missing parity advance");

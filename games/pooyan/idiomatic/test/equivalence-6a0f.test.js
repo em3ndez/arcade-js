@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6a0f (ROM 0x6a0f) — the enemy-spawn sweep driver, the
+ * Memory-equivalence test for spawnEnemyOnBlinkCountdownSweep (ROM 0x6a0f) — the enemy-spawn sweep driver, the
  * CALLER that composes the idiomatic per-record spawn loc_6a35 (which composes the idiomatic
  * setActorAnimation).
  *
@@ -23,7 +23,7 @@
  *   - captures the caller-oracle over-spawn as a defect tripwire that flips when the oracle is
  *     fixed, at which point the abort case can move into the raw-oracle diff loop.
  *
- * Fidelity contract: RAM (dumpState) minus STACK_SCRATCH. loc_6a0f returns void; registers are
+ * Fidelity contract: RAM (dumpState) minus STACK_SCRATCH. spawnEnemyOnBlinkCountdownSweep returns void; registers are
  * loop bookkeeping and are NOT compared. Cases are CRAFTED.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-6a0f.test.js
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6a0f as oracle } from "../../translated/loc_6a0f.js";
-import { loc_6a0f } from "../loc_6a0f.js";
+import { spawnEnemyOnBlinkCountdownSweep } from "../spawnEnemyOnBlinkCountdownSweep.js";
 import { loc_6a35 as oracle35 } from "../../translated/loc_6a35.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -157,7 +157,7 @@ for (const [label, craft] of [
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_6a0f(c);
+    spawnEnemyOnBlinkCountdownSweep(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (${label})`);
     console.log(`  EQUAL ${label}: RAM identical (composed idiomatic loc_6a35)`);
@@ -168,7 +168,7 @@ test("EQUAL: gate-countdown decrements the countdown by one", () => {
   const o = craftGateCountdown();
   const c = craftGateCountdown();
   oracle(o);
-  loc_6a0f(c);
+  spawnEnemyOnBlinkCountdownSweep(c);
   assert.equal(c.mem.read8(COUNTDOWN), 0x04, "module: countdown 0x05 -> 0x04");
   assert.equal(o.mem.read8(COUNTDOWN), 0x04, "oracle: countdown 0x05 -> 0x04");
   console.log("  EQUAL gate-countdown: 0x05 -> 0x04");
@@ -179,7 +179,7 @@ test("EQUAL: gate-countdown decrements the countdown by one", () => {
 test("ABORT: module == loc_6a35-oracle reference — first empty record spawns, sweep aborts", () => {
   const ref = craftAbortReference();
   const c = craftSpawnAbort();
-  loc_6a0f(c);
+  spawnEnemyOnBlinkCountdownSweep(c);
 
   const d = ramDiffMinusStack(ref, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: ref=${d.a} module=${d.b}`);
@@ -199,7 +199,7 @@ test("FIXED: the guard-fixed caller oracle aborts after one spawn (matches the m
   const o = craftSpawnAbort();
   const c = craftSpawnAbort();
   oracle(o);
-  loc_6a0f(c);
+  spawnEnemyOnBlinkCountdownSweep(c);
   assert.equal(o.mem.read8(rec(2) + 1), 0x00, "guard-fixed oracle left record 2 untouched (aborted after one spawn)");
   assert.equal(c.mem.read8(rec(2) + 1), 0x00, "module correctly left record 2 untouched");
   console.log("  FIXED: guard-fixed oracle == module — one spawn, sweep aborted");
@@ -210,7 +210,7 @@ test("FIXED: the guard-fixed caller oracle aborts after one spawn (matches the m
 test("TEETH: a stray write past the abort (a no-abort bug) is caught by the reference diff", () => {
   const ref = craftAbortReference();
   const c = craftSpawnAbort();
-  loc_6a0f(c);
+  spawnEnemyOnBlinkCountdownSweep(c);
   c.mem.write8(rec(2) + 1, 0x01); // simulate a driver that failed to abort and spawned record 2
 
   const d = ramDiffMinusStack(ref, c);

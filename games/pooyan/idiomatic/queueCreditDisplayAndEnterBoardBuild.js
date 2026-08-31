@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import {
   CREDIT_COUNT,
   MAIN_GAME_STATE,
@@ -19,7 +19,7 @@ export function queueCreditDisplayAndEnterBoardBuild(m) {
 
   const credits = mem8[CREDIT_COUNT];
   if (credits === 0) return;
-  loc_0038(m, credits === 1 ? DISPLAY_CMD_0618 : DISPLAY_CMD_0619);
-  loc_0038(m, DISPLAY_CMD_0300);
+  enqueueDisplayCommand(m, credits === 1 ? DISPLAY_CMD_0618 : DISPLAY_CMD_0619);
+  enqueueDisplayCommand(m, DISPLAY_CMD_0300);
   mem8[MAIN_GAME_STATE] = 2;
 }

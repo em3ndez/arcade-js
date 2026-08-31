@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2b8d (ROM 0x2b8d, Pooyan) — the spawn/formation epilogue. It
+ * Memory-equivalence test for runSpawnTickAndHunterSweep (ROM 0x2b8d, Pooyan) — the spawn/formation epilogue. It
  * returns at once while the lead-actor state (0x8a82) is below 3; at that quorum it runs the
- * formation-spawn tick (loc_2b9a) then drives the hunter records (loc_2c2c), in that order.
+ * formation-spawn tick (tickFormationSpawnAndScanSlots) then drives the hunter records (dispatchAllHunterRecordStates), in that order.
  *
  * SEATING: BALANCED-WIRE. The oracle has a plain `ret c` (net SP 0) on the below-quorum branch,
  * then two pattern-A balanced calls and a plain `ret`; net SP 0. A void epilogue — no register
@@ -14,7 +14,7 @@
  * the timer. The hunter drive is seated with record 0 routed to the hunter move handler (index 1)
  * with its hold field high and its script cursor on a plain delta byte, so it ticks a few
  * record-local bytes; the other 16 hunter records are gate-inert. Each sub-pass thus has a
- * contained, observable footprint, isolating loc_2b8d's own job — the quorum gate, the order,
+ * contained, observable footprint, isolating runSpawnTickAndHunterSweep's own job — the quorum gate, the order,
  * and the wiring — from the sub-passes' internals, which their own gates cover.
  *
  * Jobs:
@@ -31,9 +31,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2b8d as oracle } from "../../translated/loc_2b8d.js";
-import { loc_2b8d } from "../loc_2b8d.js";
-import { loc_2b9a } from "../loc_2b9a.js";
-import { loc_2c2c } from "../loc_2c2c.js";
+import { runSpawnTickAndHunterSweep } from "../runSpawnTickAndHunterSweep.js";
+import { tickFormationSpawnAndScanSlots } from "../tickFormationSpawnAndScanSlots.js";
+import { dispatchAllHunterRecordStates } from "../dispatchAllHunterRecordStates.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, LEAD_ACTOR_STATE, ENEMY_ACTOR_TABLE, WAVE_ARRIVAL_COUNTER, FORMATION_SPAWN_TIMER } from "../names.js";
@@ -92,7 +92,7 @@ for (const [label, craft] of [["below quorum (inert)", craftBelow], ["at quorum 
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_2b8d(c);
+    runSpawnTickAndHunterSweep(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     console.log(`  EQUAL ${label}: RAM identical`);
@@ -121,7 +121,7 @@ test("TEETH: a wrong byte is CAUGHT by the RAM diff", () => {
   const o = craftQuorum();
   const c = craftQuorum();
   oracle(o);
-  loc_2b8d(c);
+  runSpawnTickAndHunterSweep(c);
   c.mem.write8(FORMATION_SPAWN_TIMER, (o.mem.read8(FORMATION_SPAWN_TIMER) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted byte");
@@ -133,29 +133,29 @@ test("TEETH: a no-gate twin (sub-passes run below quorum) diverges from the orac
   const o = craftBelow();
   const twin = craftBelow();
   oracle(o); // below quorum -> inert
-  loc_2b9a(twin); // twin ignores the quorum gate and runs both sub-passes...
-  loc_2c2c(twin);
+  tickFormationSpawnAndScanSlots(twin); // twin ignores the quorum gate and runs both sub-passes...
+  dispatchAllHunterRecordStates(twin);
   const d = ramDiffMinusStack(o, twin);
   assert.notEqual(d, null, "a missing quorum gate must be caught");
   console.log(`  TEETH(no-gate): caught at ${hx(d.addr)}`);
 });
 
-test("TEETH: a missing-tick twin (drops loc_2b9a) diverges at the formation timer", () => {
+test("TEETH: a missing-tick twin (drops tickFormationSpawnAndScanSlots) diverges at the formation timer", () => {
   const o = craftQuorum();
   const twin = craftQuorum();
   oracle(o);
-  loc_2c2c(twin); // runs only the hunter drive
+  dispatchAllHunterRecordStates(twin); // runs only the hunter drive
   const d = ramDiffMinusStack(o, twin);
   assert.notEqual(d, null, "a dropped formation tick must be caught");
   assert.equal(d.addr, FORMATION_SPAWN_TIMER, `missing-tick teeth caught wrong address ${hx(d.addr ?? 0)}`);
   console.log(`  TEETH(missing-tick): caught at ${hx(d.addr)}`);
 });
 
-test("TEETH: a missing-drive twin (drops loc_2c2c) diverges at hunter record 0", () => {
+test("TEETH: a missing-drive twin (drops dispatchAllHunterRecordStates) diverges at hunter record 0", () => {
   const o = craftQuorum();
   const twin = craftQuorum();
   oracle(o);
-  loc_2b9a(twin); // runs only the formation tick
+  tickFormationSpawnAndScanSlots(twin); // runs only the formation tick
   const d = ramDiffMinusStack(o, twin);
   assert.notEqual(d, null, "a dropped hunter drive must be caught");
   assert.ok(d.addr >= EAT && d.addr < EAT + STRIDE, `missing-drive teeth caught outside record 0: ${hx(d.addr ?? 0)}`);

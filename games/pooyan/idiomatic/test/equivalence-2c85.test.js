@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2c85 (ROM 0x2c85) — per-record transition helper: only
+ * Memory-equivalence test for advanceRecordStateAndSeedMoveScript (ROM 0x2c85) — per-record transition helper: only
  * when the record's state (ix+0x02) is 0x11 does it advance the state to 0x12, point the
  * record at an animation sequence via loc_381e (setActorAnimation, writing ix+0x0c..0x0e),
  * seed a little-endian script pointer 0x2d00 into ix+0x16/0x17, and clear ix+0x15.
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine
  * WRITES the record, so each case uses a FRESH clone per side: the oracle runs on one clone,
- * loc_2c85 on another, and they are compared on the go-forward contract — RAM (dumpState)
- * minus STACK_SCRATCH. pc/SP/cycles are NOT compared. loc_2c85 has NO consumed register
+ * advanceRecordStateAndSeedMoveScript on another, and they are compared on the go-forward contract — RAM (dumpState)
+ * minus STACK_SCRATCH. pc/SP/cycles are NOT compared. advanceRecordStateAndSeedMoveScript has NO consumed register
  * live-out (a sweep helper). The oracle's `push16 + call 0x381e` writes a return address into
  * STACK_SCRATCH which the idiomatic direct call does not — excluded by contract.
  *
@@ -18,7 +18,7 @@
  * a missing write are both observable.
  *
  * Jobs:
- *   1. EQUAL (crafted sweep) — over trigger and non-trigger states loc_2c85 == oracle in
+ *   1. EQUAL (crafted sweep) — over trigger and non-trigger states advanceRecordStateAndSeedMoveScript == oracle in
  *      RAM (-stack), the non-trigger states confirming the no-op early return.
  *   2. WRITE-SET — on the trigger the oracle writes exactly seven record cells to their
  *      documented values.
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c85 as oracle } from "../../translated/loc_2c85.js";
-import { loc_2c85 } from "../loc_2c85.js";
+import { advanceRecordStateAndSeedMoveScript } from "../advanceRecordStateAndSeedMoveScript.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -86,12 +86,12 @@ const STATES = [0x11, 0x00, 0x10, 0x12, 0xff];
 
 // -- 1. EQUAL (crafted sweep) -------------------------------------------------
 
-test("EQUAL: crafted states — loc_2c85 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted states — advanceRecordStateAndSeedMoveScript == oracle in RAM (−stack)", () => {
   for (const state of STATES) {
     const o = craft(state);
     const c = craft(state);
     oracle(o);
-    loc_2c85(c);
+    advanceRecordStateAndSeedMoveScript(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b} (state=${hx(state)})`);
   }
@@ -146,7 +146,7 @@ test("TEETH: a wrong animation low byte is CAUGHT at ix+0x0c", () => {
   const o = craft(STATE_TRIGGER);
   const c = craft(STATE_TRIGGER);
   oracle(o);
-  loc_2c85(c);
+  advanceRecordStateAndSeedMoveScript(c);
   c.mem.write8(IX + 0x0c, 0x00); // BUG: must hold the anim-sequence low byte 0xa7
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong animation byte");

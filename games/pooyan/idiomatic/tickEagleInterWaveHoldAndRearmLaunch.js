@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import { WAVE_HOLD_TIMER, WAVE_INDEX, WAVE_LAUNCH_FLAG } from "./names.js";
 /**
  * tickEagleInterWaveHoldAndRearmLaunch — eagle inter-wave idle handler.
@@ -25,7 +25,7 @@ export function tickEagleInterWaveHoldAndRearmLaunch(m) {
   const waveIndex = mem8[WAVE_INDEX];
   if (waveIndex !== 0) {
     const param = (CMD_PARAM_BASE + waveIndex) & 0xff;
-    loc_0038(m, (CMD_OPCODE << 8) | param);
+    enqueueDisplayCommand(m, (CMD_OPCODE << 8) | param);
   }
   mem8[WAVE_HOLD_TIMER] = HOLD_RESEED;
   mem8[WAVE_LAUNCH_FLAG] = 0x00;

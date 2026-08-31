@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_122c (Pooyan) — the per-object state dispatcher.
+ * Memory-equivalence test for stepEnemyActorState (Pooyan) — the per-object state dispatcher.
  *
  * A record whose active flag (bit 0 of the two-byte header) is clear is skipped; a sub-state
  * (state byte & 0x1f) >= 0x11 is skipped; otherwise the matching sub-state handler runs on the
@@ -9,7 +9,7 @@
  * reads of shared RAM match.
  *
  * Compared on RAM (dumpState) minus STACK_SCRATCH; SP is parked in STACK_SCRATCH so the handlers'
- * ret drops fall out of the diff. loc_122c has no register live-out (the caller brackets it with
+ * ret drops fall out of the diff. stepEnemyActorState has no register live-out (the caller brackets it with
  * exx and reloads its own registers), so every case is a memory poke.
  *
  * Jobs: 1. EQUAL across all 17 in-range sub-states and both guard-reject paths; 2. WRITE-SET
@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_122c as oracle } from "../../translated/loc_122c.js";
-import { loc_122c } from "../loc_122c.js";
+import { stepEnemyActorState } from "../stepEnemyActorState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -62,7 +62,7 @@ function seat({ active = 0x01, state = 0x00 } = {}) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_122c == oracle in RAM (−stack), all sub-states + guards", () => {
+test("EQUAL: stepEnemyActorState == oracle in RAM (−stack), all sub-states + guards", () => {
   const cases = [];
   for (let s = 0; s < STATE_COUNT; s++) cases.push({ name: `state ${s}`, cfg: { state: s } });
   cases.push({ name: "inactive record (guard 1)", cfg: { active: 0x00, state: 0x04 } });
@@ -72,7 +72,7 @@ test("EQUAL: loc_122c == oracle in RAM (−stack), all sub-states + guards", () 
     const o = seat(cfg);
     const c = seat(cfg);
     oracle(o);
-    loc_122c(c);
+    stepEnemyActorState(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -85,7 +85,7 @@ test("WRITE-SET: an in-range handler writes RAM; a skipped record does not", () 
   // A dispatched handler mutates RAM.
   const live = seat({ active: 0x01, state: 0x00 });
   const before = live.dumpState().slice();
-  loc_122c(live);
+  stepEnemyActorState(live);
   const after = live.dumpState();
   let handlerWrote = false;
   for (let i = 0; i < after.length; i++) {
@@ -97,7 +97,7 @@ test("WRITE-SET: an in-range handler writes RAM; a skipped record does not", () 
   // An inactive record is a no-op (outside the dead-stack band).
   const skip = seat({ active: 0x00, state: 0x00 });
   const skBefore = skip.dumpState().slice();
-  loc_122c(skip);
+  stepEnemyActorState(skip);
   const skAfter = skip.dumpState();
   for (let i = 0; i < skAfter.length; i++) {
     const addr = skip.stateOffsetToAddr(i);
@@ -114,8 +114,8 @@ test("TEETH: corruption caught; sub-states route distinctly; active guard load-b
   const o = seat({ active: 0x01, state: 0x00 });
   const c = seat({ active: 0x01, state: 0x00 });
   oracle(o);
-  loc_122c(c);
-  const target = REC + 0x11; // a byte state-0 (loc_125f) writes
+  stepEnemyActorState(c);
+  const target = REC + 0x11; // a byte state-0 (advanceActorStateOnTimerAndRestartAnim) writes
   c.mem.write8(target, (o.mem.read8(target) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted handler result");

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0010 } from "./loc_0010.js";
+import { fillByteRun } from "./fillByteRun.js";
 import { LAUNCH_STATE, PLAY_MODE_LATCH, HUNTER_SPAWN_COUNTDOWN, HUNTER_RECORD_PTR } from "./names.js";
 /**
  * advanceLaunchOnDelayAndClearHunterRecord — launch state-3 handler.
@@ -25,5 +25,5 @@ export function advanceLaunchOnDelayAndClearHunterRecord(m) {
   if (mem8[PLAY_MODE_LATCH] !== 0) return;
 
   const record = mem8[HUNTER_RECORD_PTR] | (mem8[HUNTER_RECORD_PTR + 1] << 8);
-  loc_0010(m, record, 0, RECORD_LEN);
+  fillByteRun(m, record, 0, RECORD_LEN);
 }

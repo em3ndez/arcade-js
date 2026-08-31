@@ -8,7 +8,7 @@
  * spawnEnemyWave is void — no register survives — so the register file is not compared; equivalence is
  * RAM (dumpState) minus STACK_SCRATCH via firstStateDiff, SP parked in dead stack. The animator
  * pass (advanceActorAnimationsUnlessGrabbing) is held on its skip arm (grab latch set) so the diff isolates spawnEnemyWave's own
- * writes; the dissolved loc_0c45 / setActorAnimation on the group path read/write identical bytes.
+ * writes; the dissolved fetchWordFromTableIndex / setActorAnimation on the group path read/write identical bytes.
  *
  * Jobs:
  *   1. EQUAL — the zero-branch arm-0x12 path and the nonzero-branch group build: oracle == module.

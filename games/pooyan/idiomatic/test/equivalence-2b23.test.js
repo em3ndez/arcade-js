@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2b23 (ROM 0x2b23, Pooyan) — the phase-timer tick. Each frame it
+ * Memory-equivalence test for tickPhaseTimerAndMaybeRunResetScan (ROM 0x2b23, Pooyan) — the phase-timer tick. Each frame it
  * counts the phase timer down one step; when the reset latch is armed AND the timer has just
  * reached zero it re-enters the integrity-strip reset scan, otherwise it tails to the write-anim
  * dispatch redirect.
  *
  * SEATING: TAIL-CALL. Reached by tail-jump from the frame driver, so both delegatees run in that
- * caller's frame; loc_2b23 has no ret of its own. Both delegatees are lifted and imported: the
+ * caller's frame; tickPhaseTimerAndMaybeRunResetScan has no ret of its own. Both delegatees are lifted and imported: the
  * reset-scan (0x2b59) and the write-anim redirect (0x7e94), which the module now tail-calls directly
  * (its orphaned push16 dropped) while the oracle drives the frozen redirect — both walk identical
  * downstream code (its epilogue gate is held clear so that path stays a shallow no-op).
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2b23 as oracle } from "../../translated/loc_2b23.js";
-import { loc_2b23 } from "../loc_2b23.js";
+import { tickPhaseTimerAndMaybeRunResetScan } from "../tickPhaseTimerAndMaybeRunResetScan.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -87,12 +87,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_2b23 == oracle in RAM (−stack)", () => {
+test("EQUAL: tickPhaseTimerAndMaybeRunResetScan == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_2b23(c);
+    tickPhaseTimerAndMaybeRunResetScan(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -103,12 +103,12 @@ test("EQUAL: loc_2b23 == oracle in RAM (−stack)", () => {
 
 test("WRITE-SET: the reset-scan path blanks the column; a redirect path leaves it seeded", () => {
   const scan = craftScan();
-  loc_2b23(scan);
+  tickPhaseTimerAndMaybeRunResetScan(scan);
   assert.equal(scan.mem.read8(PHASE_TIMER), 0x00, "the phase timer ticks to zero");
   for (const c of colCells()) assert.equal(scan.mem.read8(c), 0x10, `column cell ${hx(c)} blanked`);
 
   const redir = craftRedirectBusy();
-  loc_2b23(redir);
+  tickPhaseTimerAndMaybeRunResetScan(redir);
   assert.equal(redir.mem.read8(PHASE_TIMER), 0x04, "the phase timer ticks but does not reach zero");
   for (const c of colCells()) assert.equal(redir.mem.read8(c), SEED, `column cell ${hx(c)} untouched`);
   console.log("  WRITE-SET: scan blanks; redirect leaves seeded");
@@ -120,7 +120,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftScan();
   const c = craftScan();
   oracle(o);
-  loc_2b23(c);
+  tickPhaseTimerAndMaybeRunResetScan(c);
   c.mem.write8(ATTR_TOP, (o.mem.read8(ATTR_TOP) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted column byte");
@@ -128,7 +128,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   console.log(`  TEETH(RAM): caught at ${hx(d.addr)}`);
 });
 
-// A wrong loc_2b23 that ticks the timer but ALWAYS redirects, never re-entering the reset scan.
+// A wrong tickPhaseTimerAndMaybeRunResetScan that ticks the timer but ALWAYS redirects, never re-entering the reset scan.
 function alwaysRedirect(m) {
   m.mem.write8(PHASE_TIMER, (m.mem.read8(PHASE_TIMER) - 1) & 0xff);
   return m.call(0x7e94);

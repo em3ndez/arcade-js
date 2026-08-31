@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1dd3 (Pooyan) — "paint the playfield attribute map": choose one of
+ * Memory-equivalence test for paintPlayfieldAttributeMapForVariant (Pooyan) — "paint the playfield attribute map": choose one of
  * two colour-map jobs from the in-progress/active flags and the round counter, flood the attribute
  * columns from a source table, and stamp either a short two-column marker or a taller single strip.
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). The routine WRITES the colour map
  * (through its flood callee and its own stamps), so each case runs the oracle on one FRESH clone and
- * loc_1dd3 on another, compared on:
+ * paintPlayfieldAttributeMapForVariant on another, compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
@@ -16,7 +16,7 @@
  *
  * Jobs:
  *   1. EQUAL (crafted) — over flag/round combinations covering the default job (both source
- *      variants), the alternate strip (two ways in), and the attract fall-back, oracle == loc_1dd3
+ *      variants), the alternate strip (two ways in), and the attract fall-back, oracle == paintPlayfieldAttributeMapForVariant
  *      in RAM(−stack).
  *   2. CAPTURED (best-effort) — replay any real dispatch a short boot happens to reach.
  *   3. WRITE-SET — a default-job case leaves the two marker columns' four cells each at the marker
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1dd3 as oracle } from "../../translated/loc_1dd3.js";
-import { loc_1dd3 } from "../loc_1dd3.js";
+import { paintPlayfieldAttributeMapForVariant } from "../paintPlayfieldAttributeMapForVariant.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ROUND_IN_PROGRESS, GAME_ACTIVE_FLAG, ROUND_COUNTER, PLAY_MODE_LATCH } from "../names.js";
@@ -95,12 +95,12 @@ const CASES = [
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted flag/round combos — loc_1dd3 == oracle in RAM(−stack)", () => {
+test("EQUAL: crafted flag/round combos — paintPlayfieldAttributeMapForVariant == oracle in RAM(−stack)", () => {
   for (const cs of CASES) {
     const o = craft(cs);
     const c = craft(cs);
     oracle(o);
-    loc_1dd3(c);
+    paintPlayfieldAttributeMapForVariant(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} for ${JSON.stringify(cs)}: oracle=${d.a} mine=${d.b}`);
   }
@@ -124,7 +124,7 @@ test("CAPTURED: real dispatches replay identically (if reached)", () => {
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    loc_1dd3(c);
+    paintPlayfieldAttributeMapForVariant(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `captured RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} mine=${d.b}`);
   }
@@ -159,7 +159,7 @@ test("TEETH: a wrong marker cell is CAUGHT by the RAM diff", () => {
   const o = craft(cs);
   const c = craft(cs);
   oracle(o);
-  loc_1dd3(c);
+  paintPlayfieldAttributeMapForVariant(c);
   c.mem.write8(victim, 0xaa); // BUG: wrong marker colour
 
   const d = ramDiffMinusStack(o, c);

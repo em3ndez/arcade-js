@@ -12,12 +12,12 @@
  * pc/SP are NOT compared (oracle m.step/m.ret drive the dropped call/stack ABI; neither is in
  * dumpState). The return { next, byte } is checked against the oracle's exit HL and E; the
  * return-assignment bridge ALSO sets HL, E, and BC on m.regs, and each is asserted equal to the
- * oracle clone's exit register — the SIDE EFFECT the frozen caller loc_6f42 reads back (add hl,bc
+ * oracle clone's exit register — the SIDE EFFECT the frozen caller advanceIntroPhaseAndDrawHitTally reads back (add hl,bc
  * twice off BC == 0xffe0, ld a,e off E, HL as the running cursor). A return-value-only check would
  * pass a rewrite that returns the right value but never SETS the register.
  *
- * ABI NOTE (for the lead): BC == 0xffe0 is genuinely consumed (loc_6f42's two add hl,bc), so the
- * bridge SETS it — a real live-out, not dead plumbing. loc_10c2's three call sites read no 0x1119
+ * ABI NOTE (for the lead): BC == 0xffe0 is genuinely consumed (advanceIntroPhaseAndDrawHitTally's two add hl,bc), so the
+ * bridge SETS it — a real live-out, not dead plumbing. adjustCounterAndPaintBcdHudFields's three call sites read no 0x1119
  * register live-out (each reloads HL/A first, and queueSoundCommand13 does ld a,0x13 immediately). A and the
  * flags are NOT restored by the bridge: no caller tail reads either after the call.
  *
@@ -53,7 +53,7 @@ const TARGET = 0x1119;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 
-// Crafted pointer: the round/stage counter base loc_6f42 draws through (video RAM). One row up
+// Crafted pointer: the round/stage counter base advanceIntroPhaseAndDrawHitTally draws through (video RAM). One row up
 // is dst - 0x20, also video RAM. Both are inside dumpState so the writes are observed.
 const DST = 0x8634;
 const ROW_UP = (DST + 0xffe0) & 0xffff; // 0x8614
@@ -108,10 +108,10 @@ test("EQUAL+RETURN: crafted bytes — RAM(−stack) identical and {next,byte} ma
     assert.equal(ret.next, o.regs.hl, `advanced cursor mismatch for byte ${hx(byte)}`);
     assert.equal(ret.byte, o.regs.e, `echoed byte (E) mismatch for byte ${hx(byte)}`);
 
-    // LIVE-OUT side effect: the bridge must SET the registers loc_6f42 reads out (not just return them).
+    // LIVE-OUT side effect: the bridge must SET the registers advanceIntroPhaseAndDrawHitTally reads out (not just return them).
     assert.equal(c.regs.hl, o.regs.hl, `module must SET HL for the frozen dispatch (byte ${hx(byte)})`);
-    assert.equal(c.regs.e, o.regs.e, `module must SET E (source byte) for loc_6f42's ld a,e (byte ${hx(byte)})`);
-    assert.equal(c.regs.bc, o.regs.bc, `module must SET BC (0xffe0 stride) for loc_6f42's add hl,bc (byte ${hx(byte)})`);
+    assert.equal(c.regs.e, o.regs.e, `module must SET E (source byte) for advanceIntroPhaseAndDrawHitTally's ld a,e (byte ${hx(byte)})`);
+    assert.equal(c.regs.bc, o.regs.bc, `module must SET BC (0xffe0 stride) for advanceIntroPhaseAndDrawHitTally's add hl,bc (byte ${hx(byte)})`);
 
     // Spot-check the actual tiles: tens at dst (blank 0x10 when zero), units one row up.
     const tens = (byte >> 4) & 0x0f;

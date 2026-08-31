@@ -3,7 +3,7 @@
  * Memory-equivalence test for activateLaneActorSlot (ROM 0x5374, Pooyan) — the one-shot lane-actor activator,
  * dissolved from a caller-skip into a boolean.
  *
- * The idiomatic module runs the spawn body through loc_53a0 (forwarding the computed kind byte) and
+ * The idiomatic module runs the spawn body through seedSpawnColumnAndRunBody (forwarding the computed kind byte) and
  * dissolves the rst-0x20 lookup; the oracle drives the same frozen spawn chain. activateLaneActorSlot's live-out is
  * memory PLUS the boolean caller-skip signal — true when the slot is already live (keep sweeping),
  * false when it activated one (abort the sweep) — so the boolean is asserted on every arm.

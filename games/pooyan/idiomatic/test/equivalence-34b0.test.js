@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_34b0 (ROM 0x34b0, Pooyan) — the shared enemy-despawn tail. It
+ * Memory-equivalence test for despawnActorAndRenderStageCountdown (ROM 0x34b0, Pooyan) — the shared enemy-despawn tail. It
  * blanks the actor sprite band at IX, decrements the active-enemy count and (while still above
  * zero) the stage countdown, bumps the spawn-phase counter when the play sub-state is the fourth,
  * then repaints the stage countdown as two HUD digits (units, and tens one tilemap row over,
@@ -14,7 +14,7 @@
  *
  * Jobs:
  *   1. EQUAL (crafted) — single-digit, packed-BCD, latch-gated, and play-state-4 (spawn bump)
- *      countdown cases: oracle == loc_34b0 in RAM (−stack).
+ *      countdown cases: oracle == despawnActorAndRenderStageCountdown in RAM (−stack).
  *   2. WRITE-SET — the full-footprint case (two-digit render + spawn bump) writes exactly the band,
  *      the three counters, and the two HUD tiles.
  *   3. TEETH — a wrong HUD units tile and a wrong stage-countdown byte are each caught by the RAM
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_34b0 as oracle } from "../../translated/loc_34b0.js";
-import { loc_34b0 } from "../loc_34b0.js";
+import { despawnActorAndRenderStageCountdown } from "../despawnActorAndRenderStageCountdown.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -92,12 +92,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted countdown/state cases — loc_34b0 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted countdown/state cases — despawnActorAndRenderStageCountdown == oracle in RAM (−stack)", () => {
   for (const [stage, playState, playMode, label] of CASES) {
     const o = craft(stage, playState, playMode);
     const c = craft(stage, playState, playMode);
     oracle(o);
-    loc_34b0(c);
+    despawnActorAndRenderStageCountdown(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${label}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -140,7 +140,7 @@ test("TEETH: a wrong HUD units tile is CAUGHT by the RAM diff", () => {
   const o = craft(stage, playState, playMode);
   const c = craft(stage, playState, playMode);
   oracle(o);
-  loc_34b0(c);
+  despawnActorAndRenderStageCountdown(c);
   c.mem.write8(HUD_UNITS, (c.mem.read8(HUD_UNITS) ^ 0x01) & 0xff); // BUG: corrupt the units digit
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong units tile — it is worthless");
@@ -153,7 +153,7 @@ test("TEETH: a wrong stage-countdown byte is CAUGHT by the RAM diff", () => {
   const o = craft(stage, playState, playMode);
   const c = craft(stage, playState, playMode);
   oracle(o);
-  loc_34b0(c);
+  despawnActorAndRenderStageCountdown(c);
   c.mem.write8(STAGE_COUNTDOWN, 0xee); // BUG: the countdown must be the decremented value
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stage-countdown byte — it is worthless");

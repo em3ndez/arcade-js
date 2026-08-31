@@ -6,8 +6,8 @@
  * (0x1f87), and a miss returns. On column zero it draws the BCD round number and mirrors the
  * countdown; every drawing path then draws the fixed stage label.
  *
- * drawStageLabelOncePerLevel shares the render tail (0x1f4e..0x1f86) with refreshRoundStageHud. The module dissolves loc_0c45,
- * loc_0010, and blitGlyphBlock4x3 (0x1f8c) to direct calls; the oracle drives the frozen originals.
+ * drawStageLabelOncePerLevel shares the render tail (0x1f4e..0x1f86) with refreshRoundStageHud. The module dissolves fetchWordFromTableIndex,
+ * fillByteRun, and blitGlyphBlock4x3 (0x1f8c) to direct calls; the oracle drives the frozen originals.
  * drawStageLabelOncePerLevel is void — its caller reloads every register — so no register is compared; equivalence is
  * RAM (dumpState) minus STACK_SCRATCH, SP parked in dead stack so the oracle's return-slot pushes drop.
  *

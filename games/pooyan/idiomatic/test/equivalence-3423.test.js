@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_3423 (ROM 0x3423, Pooyan) — enemy-actor state-1 entry prologue.
+ * Memory-equivalence test for dispatchActorState1MovementByMode (ROM 0x3423, Pooyan) — enemy-actor state-1 entry prologue.
  * Steps the record's animation frame (loc_4006), then branches on bit0 of the mode byte (rec+0x01):
- *   - clear: dispatch on the state byte (rec+0x08) — nonzero tails into loc_34f2, zero delegates into
- *     loc_343e;
+ *   - clear: dispatch on the state byte (rec+0x08) — nonzero tails into advanceObjectColumnByStepAndDispatch, zero delegates into
+ *     advanceActorColumnAndArmTurnOrBand;
  *   - set: gate on the anim-armed latch (0x8f63) — nonzero returns; otherwise clear rec+0x01 and defer
- *     to loc_3473.
+ *     to armInteriorBandOrMarkActorActive.
  *
- * Cycle-free / memory-equivalence gate: a fresh clone per side, oracle on one and loc_3423 on the
+ * Cycle-free / memory-equivalence gate: a fresh clone per side, oracle on one and dispatchActorState1MovementByMode on the
  * other, compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP/cycles are NOT compared, and there
  * is NO register live-out (the record-dispatch caller reloads A and reads no other register back).
  * The oracle's loc_4006 call (frozen return-slot push at 0x3426) and every tail land inside
@@ -18,10 +18,10 @@
  * (identical pokes on both sides), the record pre-dirtied to 0xAA.
  *
  * Jobs:
- *   1. EQUAL — bit0-clear -> loc_34f2 (nonzero state) and -> loc_343e (zero state); bit0-set -> ret
- *      (latch armed) and -> clear+loc_3473 (latch clear) all agree in RAM (−stack).
+ *   1. EQUAL — bit0-clear -> advanceObjectColumnByStepAndDispatch (nonzero state) and -> advanceActorColumnAndArmTurnOrBand (zero state); bit0-set -> ret
+ *      (latch armed) and -> clear+armInteriorBandOrMarkActorActive (latch clear) all agree in RAM (−stack).
  *   2. WRITE-SET — the latch-armed ret path's only write is the frame-hold decrement (rec+0x0e).
- *   3. TEETH — a wrong frame-hold byte and a wrong advanced sub-position (loc_343e) are each CAUGHT.
+ *   3. TEETH — a wrong frame-hold byte and a wrong advanced sub-position (advanceActorColumnAndArmTurnOrBand) are each CAUGHT.
  *   4. SP-TOOTH — dropping the 0x3426 return-slot push is SP-neutral (seam-placeable); a leak is NOT.
  *
  * Run: node --test games/pooyan/idiomatic/test/equivalence-3423.test.js
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3423 as oracle } from "../../translated/loc_3423.js";
-import { loc_3423 } from "../loc_3423.js";
+import { dispatchActorState1MovementByMode } from "../dispatchActorState1MovementByMode.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
@@ -90,20 +90,20 @@ function craft(f) {
 }
 
 const CASES = [
-  { name: "bit0 clear, state!=0 -> loc_34f2 (col>limit ret)", f: { mode: 0xaa, state: 0x05, col: 0x10, limit: 0x05, step: 0x00, subpos: 0x00 } },
-  { name: "bit0 clear, state==0 -> loc_343e (col<limit ret)", f: { mode: 0xaa, state: 0x00, subpos: 0x10, aim: 0x05, col: 0x01, limit: 0x05 } },
+  { name: "bit0 clear, state!=0 -> advanceObjectColumnByStepAndDispatch (col>limit ret)", f: { mode: 0xaa, state: 0x05, col: 0x10, limit: 0x05, step: 0x00, subpos: 0x00 } },
+  { name: "bit0 clear, state==0 -> advanceActorColumnAndArmTurnOrBand (col<limit ret)", f: { mode: 0xaa, state: 0x00, subpos: 0x10, aim: 0x05, col: 0x01, limit: 0x05 } },
   { name: "bit0 set, latch armed -> ret", f: { mode: 0xab, armed: 0x01 } },
-  { name: "bit0 set, latch clear -> clear mode + loc_3473 (phase capped)", f: { mode: 0xab, armed: 0x00, phase: 0x07 } },
+  { name: "bit0 set, latch clear -> clear mode + armInteriorBandOrMarkActorActive (phase capped)", f: { mode: 0xab, armed: 0x00, phase: 0x07 } },
 ];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted dispatch arms — loc_3423 == oracle in RAM (−stack)", () => {
+test("EQUAL: crafted dispatch arms — dispatchActorState1MovementByMode == oracle in RAM (−stack)", () => {
   for (const cse of CASES) {
     const o = craft(cse.f);
     oracle(o);
     const c = craft(cse.f);
-    loc_3423(c);
+    dispatchActorState1MovementByMode(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${cse.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -117,7 +117,7 @@ test("WRITE-SET: the latch-armed ret path writes exactly the frame-hold decremen
   const before = craft(f);
   const after = craft(f);
   const b = before.dumpState();
-  loc_3423(after);
+  dispatchActorState1MovementByMode(after);
   const a = after.dumpState();
 
   const changed = [];
@@ -138,7 +138,7 @@ test("TEETH: a wrong frame-hold byte is CAUGHT by the RAM diff", () => {
   const o = craft(f);
   const c = craft(f);
   oracle(o);
-  loc_3423(c);
+  dispatchActorState1MovementByMode(c);
   c.mem8[REC + OFF_HOLD] = 0x05; // BUG: loc_4006 must have decremented it
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong frame-hold byte — it is worthless");
@@ -146,13 +146,13 @@ test("TEETH: a wrong frame-hold byte is CAUGHT by the RAM diff", () => {
   console.log(`  TEETH/RAM: wrong frame-hold byte caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 
-test("TEETH: a wrong advanced sub-position (loc_343e delegate) is CAUGHT by the RAM diff", () => {
+test("TEETH: a wrong advanced sub-position (advanceActorColumnAndArmTurnOrBand delegate) is CAUGHT by the RAM diff", () => {
   const f = { mode: 0xaa, state: 0x00, subpos: 0x10, aim: 0x05, col: 0x01, limit: 0x05 };
   const o = craft(f);
   const c = craft(f);
   oracle(o);
-  loc_3423(c);
-  c.mem8[REC + OFF_SUBPOS] = 0x10; // BUG: loc_343e advances it 0x10 + 0x05 -> 0x15
+  dispatchActorState1MovementByMode(c);
+  c.mem8[REC + OFF_SUBPOS] = 0x10; // BUG: advanceActorColumnAndArmTurnOrBand advances it 0x10 + 0x05 -> 0x15
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong sub-position — it is worthless");
   assert.equal(d.addr, REC + OFF_SUBPOS, `teeth caught wrong address ${hx(d.addr ?? 0)}`);
@@ -165,16 +165,16 @@ test("TEETH: a wrong advanced sub-position (loc_343e delegate) is CAUGHT by the 
 test("SP-TOOTH: dropping the 0x3426 return-slot push is SP-neutral (seam-placeable); a leak is NOT", () => {
   const CALLER_RET = 0xfffc;
   const entry = () => {
-    const m = craft({ mode: 0xaa, state: 0x05, col: 0x10, limit: 0x05, step: 0x00, subpos: 0x00 }); // loc_34f2 tail
+    const m = craft({ mode: 0xaa, state: 0x05, col: 0x10, limit: 0x05, step: 0x00, subpos: 0x00 }); // advanceObjectColumnByStepAndDispatch tail
     m.regs.sp = 0x8ff0;
     m.mem.write16(0x8ff0, CALLER_RET);
     return m;
   };
-  const ok = seamPlaceable(withOmittedRet, loc_3423, 0x3423, entry());
+  const ok = seamPlaceable(withOmittedRet, dispatchActorState1MovementByMode, 0x3423, entry());
   assert.equal(ok.placeable, true, `the tail dispatch must be seam-placeable; got: ${ok.error}`);
 
-  const leaky = (mm, rec) => { mm.push16(0x0000); return loc_3423(mm, rec); };
+  const leaky = (mm, rec) => { mm.push16(0x0000); return dispatchActorState1MovementByMode(mm, rec); };
   const bad = seamPlaceable(withOmittedRet, leaky, 0x3423, entry());
   assert.equal(bad.placeable, false, "SP-tooth null-mutant: a leaked stack word MUST NOT be placeable");
-  console.log("  SP-TOOTH: loc_3423 seam-placeable (moved 0, dropped push); leaked-push mutant caught");
+  console.log("  SP-TOOTH: dispatchActorState1MovementByMode seam-placeable (moved 0, dropped push); leaked-push mutant caught");
 });

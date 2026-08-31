@@ -8,7 +8,7 @@
  * record, flags it, restarts its animation, queues effects, bumps HIT_TALLY, then FALLS
  * INTO loc_64be whose `pop af; ret` unwinds the caller (SP += 4); the module returns false.
  *
- * The oracle runs the TRANSLATED subtree (setActorAnimation, queueSoundCommand06, loc_0038, loc_64be)
+ * The oracle runs the TRANSLATED subtree (setActorAnimation, queueSoundCommand06, enqueueDisplayCommand, loc_64be)
  * through the routines map; the idiomatic module imports the IDIOMATIC siblings directly. The
  * two must land byte-identical in RAM (dumpState) minus STACK_SCRATCH. No register is a
  * live-out: the caller (scanActorCollisionsBothSlots) protects its own B/DE via exx and keeps IY, so nothing the

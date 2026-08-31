@@ -46,7 +46,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built" }, fn);
 
 const TARGET = 0x7707;
-const REC = 0x8ba0; // a record base inside the object arena loc_76f4 scans (work RAM)
+const REC = 0x8ba0; // a record base inside the object arena dispatchAllObjectStates scans (work RAM)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 

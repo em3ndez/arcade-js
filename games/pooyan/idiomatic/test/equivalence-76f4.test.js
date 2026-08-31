@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_76f4 (ROM 0x76f4, Pooyan) — the object-record sweep. It walks the
+ * Memory-equivalence test for dispatchAllObjectStates (ROM 0x76f4, Pooyan) — the object-record sweep. It walks the
  * six object records at OBJECT_STATE_RECORD_BASE (stride 0x18) and hands each to the per-object state
  * dispatcher dispatchActiveObjectState.
  *
@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_76f4 as oracle } from "../../translated/loc_76f4.js";
-import { loc_76f4 } from "../loc_76f4.js";
+import { dispatchAllObjectStates } from "../dispatchAllObjectStates.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, OBJECT_STATE_RECORD_BASE } from "../names.js";
@@ -80,7 +80,7 @@ test("EQUAL: boot clone — module == oracle in RAM (−stack)", () => {
   const o = BASE.clone(); o.regs.sp = SP0;
   const c = BASE.clone(); c.regs.sp = SP0;
   oracle(o);
-  loc_76f4(c);
+  dispatchAllObjectStates(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   console.log("  EQUAL boot clone: RAM identical");
@@ -88,7 +88,7 @@ test("EQUAL: boot clone — module == oracle in RAM (−stack)", () => {
 
 test("SWEEP: oracle and module dispatch on exactly the six records, in order", () => {
   const oSeq = sweepOracle(oracle);
-  const cSeq = sweepModule(loc_76f4);
+  const cSeq = sweepModule(dispatchAllObjectStates);
   assert.deepEqual(cSeq, EXPECTED, `module swept ${cSeq.map(hx)} (expected ${EXPECTED.map(hx)})`);
   assert.deepEqual(oSeq, EXPECTED, `oracle swept ${oSeq.map(hx)} (expected ${EXPECTED.map(hx)})`);
   assert.deepEqual(cSeq, oSeq, "module and oracle swept different records");

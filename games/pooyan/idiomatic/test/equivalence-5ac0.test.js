@@ -3,7 +3,7 @@
  * Memory-equivalence test for pulseCoinCounter2Latch (ROM 0x5ac0, Pooyan) — coin-counter 2 pulse generator:
  * strobe the LS259 coin-counter latch (bit 4 @ 0xa184) from the pulse count (0x8826) and phase
  * timer (0x8827). No pulses -> ret; fresh pulse -> seed phase 0x30 + raise latch; counting ->
- * dec phase, drop latch at phase 0x18, retire one pulse at phase 0. Structural twin of loc_5a9c.
+ * dec phase, drop latch at phase 0x18, retire one pulse at phase 0. Structural twin of pulseCoinCounter1Latch.
  *
  * CYCLE-FREE / memory-equivalence gate. pc/SP are NOT compared. The contract has TWO parts:
  *   (a) RAM (dumpState, minus STACK_SCRATCH) — the pulse count + phase cells live in work RAM.

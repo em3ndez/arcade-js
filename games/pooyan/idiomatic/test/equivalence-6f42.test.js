@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6f42 (ROM 0x6f42, Pooyan) — level-intro phase 2: inc the intro
+ * Memory-equivalence test for advanceIntroPhaseAndDrawHitTally (ROM 0x6f42, Pooyan) — level-intro phase 2: inc the intro
  * phase (0x8f51), then draw the target-hit tally (0x8f52) as two stacked digit pairs through
  * drawStackedBcdDigits (0x1119). A nonzero tally is packed via binToPackedBcd (0x1131) and drawn at
  * HUD base 0x8634; the tally is then doubled in BCD (the ROM's `add a,a`/`daa`) and drawn two rows
  * up at 0x85d4. Each pair is tens at the cursor + units one row up (-0x20).
  *
  * CYCLE-FREE / memory-equivalence gate. Writes video + work RAM, so each case runs the oracle on
- * one FRESH clone and loc_6f42 on another, compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP
+ * one FRESH clone and advanceIntroPhaseAndDrawHitTally on another, compared on RAM (dumpState, minus STACK_SCRATCH). pc/SP
  * are NOT compared; there is no register live-out (an intro phase handler; no caller reads a
  * register back). The oracle's calls to 0x1119/0x1131 resolve through the translated registry
  * `new Machine(ROM)` builds; the gate cross-checks the idiomatic drawStackedBcdDigits/binToPackedBcd
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6f42 as oracle } from "../../translated/loc_6f42.js";
-import { loc_6f42 } from "../loc_6f42.js";
+import { advanceIntroPhaseAndDrawHitTally } from "../advanceIntroPhaseAndDrawHitTally.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -71,12 +71,12 @@ const CASES = [0x00, 0x01, 0x0a, 0x14, 0xff];
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL: crafted tallies — loc_6f42 == oracle in RAM(−stack)", () => {
+test("EQUAL: crafted tallies — advanceIntroPhaseAndDrawHitTally == oracle in RAM(−stack)", () => {
   for (const tally of CASES) {
     const o = craft(tally);
     const c = craft(tally);
     oracle(o);
-    loc_6f42(c);
+    advanceIntroPhaseAndDrawHitTally(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (tally ${hx(tally)}): oracle=${d.a} mine=${d.b}`);
@@ -115,7 +115,7 @@ test("TEETH: a wrong tile at the HUD base is caught there", () => {
   const o = craft(0x14);
   const c = craft(0x14);
   oracle(o);
-  loc_6f42(c);
+  advanceIntroPhaseAndDrawHitTally(c);
   c.mem.write8(HUD_BASE, (c.mem.read8(HUD_BASE) ^ 0xff) & 0xff); // BUG: corrupt the first tens tile
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong HUD tile — it is worthless");

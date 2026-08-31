@@ -6,7 +6,7 @@
  * GAME_ACTIVE_FLAG / ROUND_COUNTER: arm sub-state 0x0d, or run the level-start batch and force
  * sub-state 3.
  *
- * The module dissolves paintDisplayListRunToVram, paintPhaseGauge, loc_4a0b and loc_02ef to direct calls and keeps
+ * The module dissolves paintDisplayListRunToVram, paintPhaseGauge, paintSpawnPhaseMarkerColumn and rebuildSpriteDisplayList to direct calls and keeps
  * push16 + m.call for the two unlifted batch callees (0x1ead, 0x540d); the oracle drives the same
  * frozen routines. startRoundAfterIntroDelay is a void handler — no register survives — so equivalence is RAM
  * (dumpState) minus STACK_SCRATCH, SP parked in dead stack.

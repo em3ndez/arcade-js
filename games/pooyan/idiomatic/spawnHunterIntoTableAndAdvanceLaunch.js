@@ -9,7 +9,7 @@ import {
   HUNTER_SPAWN_SUBCOUNTER,
   HUNTER_SPAWN_DISPLAY_CMD,
 } from "./names.js";
-import { loc_0038 } from "./loc_0038.js";
+import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import { u16 } from "../../../core/int.js";
 /**
  * spawnHunterIntoTableAndAdvanceLaunch — launch-state-machine state 2: seed a new hunter, then advance the state.
@@ -55,7 +55,7 @@ export function spawnHunterIntoTableAndAdvanceLaunch(m) {
 
   if (mem8[HUNTER_SPAWN_FLIP_FLAG] === 0) {
     mem8[HUNTER_SPAWN_COUNTDOWN] = 0x20;
-    loc_0038(m, HUNTER_SPAWN_DISPLAY_CMD);
+    enqueueDisplayCommand(m, HUNTER_SPAWN_DISPLAY_CMD);
   } else {
     mem8[HUNTER_SPAWN_SUBCOUNTER] = mem8[HUNTER_SPAWN_SUBCOUNTER] + 1;
   }

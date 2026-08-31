@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1f40 (ROM 0x1f40, Pooyan) — scan a table then draw the stage
+ * Memory-equivalence test for findTableSlotAndPaintStageHeader (ROM 0x1f40, Pooyan) — scan a table then draw the stage
  * header.
  *
  * SEATING: BALANCED. Both exits are a plain `ret`; the module returns nothing and equivalence is
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1f40 as oracle } from "../../translated/loc_1f40.js";
-import { loc_1f40 } from "../loc_1f40.js";
+import { findTableSlotAndPaintStageHeader } from "../findTableSlotAndPaintStageHeader.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -83,12 +83,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1f40 == oracle in RAM (−stack)", () => {
+test("EQUAL: findTableSlotAndPaintStageHeader == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_1f40(c);
+    findTableSlotAndPaintStageHeader(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -117,7 +117,7 @@ test("TEETH: a corrupted rendered byte is CAUGHT by the RAM diff", () => {
   const o = craftSlot0();
   const c = craftSlot0();
   oracle(o);
-  loc_1f40(c);
+  findTableSlotAndPaintStageHeader(c);
   c.mem.write8(LABEL_TILE, (o.mem.read8(LABEL_TILE) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted rendered byte");
@@ -133,7 +133,7 @@ test("TEETH: a twin that skips the round render diverges at the round tile", () 
   twin.regs.c = 0x01; // force the nonzero-slot path
   twin.mem.write8(TABLE + 0x00, 0x11);
   twin.mem.write8(TABLE + 0x01, TARGET);
-  loc_1f40(twin);
+  findTableSlotAndPaintStageHeader(twin);
   const d = ramDiffMinusStack(o, twin);
   assert.notEqual(d, null, "the gate FAILED to catch a missing round render");
   console.log(`  TEETH(skip round): caught at ${hx(d.addr ?? 0)}`);

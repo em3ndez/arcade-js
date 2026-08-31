@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5a9c (ROM 0x5a9c, Pooyan) — coin-counter 1 pulse generator:
+ * Memory-equivalence test for pulseCoinCounter1Latch (ROM 0x5a9c, Pooyan) — coin-counter 1 pulse generator:
  * strobe the LS259 coin-counter latch (bit 3 @ 0xa183) from the pulse count (0x8824) and phase
  * timer (0x8825). No pulses -> ret; fresh pulse -> seed phase 0x30 + raise latch; counting ->
  * dec phase, drop latch at phase 0x18, retire one pulse at phase 0.
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5a9c as oracle } from "../../translated/loc_5a9c.js";
-import { loc_5a9c } from "../loc_5a9c.js";
+import { pulseCoinCounter1Latch } from "../pulseCoinCounter1Latch.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -86,7 +86,7 @@ test("EQUAL: crafted paths — RAM(−stack) AND the coin-counter latch match th
     const o = craft(count, phase, preLatch);
     const c = craft(count, phase, preLatch);
     oracle(o);
-    loc_5a9c(c);
+    pulseCoinCounter1Latch(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} [${label}]: oracle=${d.a} mine=${d.b}`);
@@ -124,7 +124,7 @@ test("TEETH: a wrong phase byte is caught by the RAM diff", () => {
   const o = craft(0x03, 0x20, 1);
   const c = craft(0x03, 0x20, 1);
   oracle(o);
-  loc_5a9c(c);
+  pulseCoinCounter1Latch(c);
   c.mem.write8(PULSE_PHASE, (c.mem.read8(PULSE_PHASE) ^ 0x01) & 0xff); // BUG: wrong phase
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong phase byte — it is worthless");
@@ -136,7 +136,7 @@ test("TEETH: a wrong latch bit is caught by the latch compare (RAM diff is blind
   const o = craft(0x03, 0x19, 1); // drop-point path: oracle lowers the latch to 0
   const c = craft(0x03, 0x19, 1);
   oracle(o);
-  loc_5a9c(c);
+  pulseCoinCounter1Latch(c);
   // Sanity: with the correct rewrite the latch already matches and the RAM diff is clean.
   assert.equal(ramDiffMinusStack(o, c), null, "sanity: RAM identical on the drop-point path");
   assert.equal(latchDiff(o, c), null, "sanity: latch identical before the teeth mutation");

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6ac5 (ROM 0x6ac5, Pooyan) — "one-shot playfield-tilemap integrity
+ * Memory-equivalence test for guardTilemapIntegrity (ROM 0x6ac5, Pooyan) — "one-shot playfield-tilemap integrity
  * checksum".
  *
- * loc_6ac5 returns unless the wave index is exactly 2 and the once-latch is clear; on the first
+ * guardTilemapIntegrity returns unless the wave index is exactly 2 and the once-latch is clear; on the first
  * qualifying pass it latches the flag, sums the tilemap into a 16-bit accumulator (column by column,
  * skipping one column, jumping a fixed span each row end, until the high address byte leaves the
  * tilemap), and returns on the pass value while any other result is a tamper trap. The idiomatic
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6ac5 as oracle } from "../../translated/loc_6ac5.js";
-import { loc_6ac5 } from "../loc_6ac5.js";
+import { guardTilemapIntegrity } from "../guardTilemapIntegrity.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -122,7 +122,7 @@ test("walk visits distinct cells and admits the pass-value construction", () => 
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: valid tilemap / gate-bails — loc_6ac5 == oracle in RAM (−stack)", () => {
+test("EQUAL: valid tilemap / gate-bails — guardTilemapIntegrity == oracle in RAM (−stack)", () => {
   const cases = [
     { name: "valid tilemap (checksum matches)", m: () => craftIntegrity({ build: "valid" }) },
     { name: "gate: wrong wave", m: () => craftIntegrity({ wave: 0x03 }) },
@@ -132,7 +132,7 @@ test("EQUAL: valid tilemap / gate-bails — loc_6ac5 == oracle in RAM (−stack)
     const o = m();
     const c = m();
     oracle(o);
-    loc_6ac5(c);
+    guardTilemapIntegrity(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -145,7 +145,7 @@ test("INTEGRITY: a valid tilemap is accepted by both (oracle arbitrates the walk
   const o = craftIntegrity({ build: "valid" });
   const c = craftIntegrity({ build: "valid" });
   assert.doesNotThrow(() => oracle(o), "oracle must accept the constructed valid tilemap");
-  assert.doesNotThrow(() => loc_6ac5(c), "module must accept the constructed valid tilemap");
+  assert.doesNotThrow(() => guardTilemapIntegrity(c), "module must accept the constructed valid tilemap");
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   assert.equal(c.mem.read8(LATCH), 0x01, "the one-shot latch must be set on the clean path");
@@ -164,8 +164,8 @@ test("WRITE-SET: integrity-clean -> latch only; bails -> none", () => {
 // -- 4. TEETH -----------------------------------------------------------------
 
 test("TEETH: the checksum decision is tight (rets on valid, traps on +1)", () => {
-  assert.doesNotThrow(() => loc_6ac5(craftIntegrity({ build: "valid" })), "module must NOT trap a valid tilemap");
-  assert.throws(() => loc_6ac5(craftIntegrity({ build: "valid", perturb: true })), "module must trap a +1 tilemap");
+  assert.doesNotThrow(() => guardTilemapIntegrity(craftIntegrity({ build: "valid" })), "module must NOT trap a valid tilemap");
+  assert.throws(() => guardTilemapIntegrity(craftIntegrity({ build: "valid", perturb: true })), "module must trap a +1 tilemap");
   console.log("  TEETH/decision: valid accepted, +1 corruption trapped");
 });
 
@@ -173,7 +173,7 @@ test("TEETH: a wrong latch byte (clean path) is CAUGHT by the RAM diff", () => {
   const o = craftIntegrity({ build: "valid" });
   const c = craftIntegrity({ build: "valid" });
   oracle(o);
-  loc_6ac5(c);
+  guardTilemapIntegrity(c);
   c.mem.write8(LATCH, 0x02); // BUG: the latch must be 0x01
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong latch — it is worthless");

@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1410 (Pooyan) — stash the actor's step value into the record
+ * Memory-equivalence test for latchActorStepThenDispatchByStageCountdown (Pooyan) — stash the actor's step value into the record
  * at rec+5, latch it, then branch on the stage countdown: below three tails into the state-timer
  * dispatch (which reads the latch), otherwise tails into the spawn/queue gate.
  *
  * SEATING: TAIL-CALL. The frozen entry has no ret of its own — both exits tail-jp to a delegate;
- * its seating is the delegate's, and the module returns the delegate's result directly. loc_1410
+ * its seating is the delegate's, and the module returns the delegate's result directly. latchActorStepThenDispatchByStageCountdown
  * WIREs as an override (the dispatcher reads the delegate's result back through it). Compared on
  * RAM (dumpState) minus STACK_SCRATCH; the delegates carry their own register live-out, checked by
  * their own gates. SP is parked in STACK_SCRATCH so nested pushes drop out of the diff.
  *
  * Cases are CRAFTED: a plain boot does not seat this record/countdown geometry.
  *
- * NOTE: the below-three branch delegates to loc_1399, which is not yet lifted in this batch, so the
+ * NOTE: the below-three branch delegates to dispatchActorSpawnBySubStateAndPaceCadence, which is not yet lifted in this batch, so the
  * module imports it by its expected sibling path. This test loads (and its below-three case runs)
  * only once that sibling module exists; the at-or-above-three (spawn/queue) branch is fully
  * covered here against the already-lifted gate.
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1410 as oracle } from "../../translated/loc_1410.js";
-import { loc_1410 } from "../loc_1410.js";
+import { latchActorStepThenDispatchByStageCountdown } from "../latchActorStepThenDispatchByStageCountdown.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, STAGE_COUNTDOWN } from "../names.js";
@@ -81,12 +81,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1410 == oracle in RAM (−stack)", () => {
+test("EQUAL: latchActorStepThenDispatchByStageCountdown == oracle in RAM (−stack)", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    loc_1410(c);
+    latchActorStepThenDispatchByStageCountdown(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -114,7 +114,7 @@ test("TEETH: a corrupted delegate byte is CAUGHT by the RAM diff", () => {
   const o = craftWrite();
   const c = craftWrite();
   oracle(o);
-  loc_1410(c);
+  latchActorStepThenDispatchByStageCountdown(c);
   c.mem.write8(REC + 0x08, (o.mem.read8(REC + 0x08) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted delegate byte");
@@ -126,7 +126,7 @@ test("TEETH: a corrupted rec+5 stash is caught; the countdown branch is load-bea
   const o = craftWrite();
   const c = craftWrite();
   oracle(o);
-  loc_1410(c);
+  latchActorStepThenDispatchByStageCountdown(c);
   c.mem.write8(REC + 0x05, (o.mem.read8(REC + 0x05) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "a corrupted rec+5 stash must be caught");

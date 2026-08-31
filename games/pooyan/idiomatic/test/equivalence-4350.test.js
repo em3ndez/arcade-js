@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_4350 (ROM 0x4350) — object state handler. Steps the record's
+ * Memory-equivalence test for countdownThenRearmTurnAnimationByFlag (ROM 0x4350) — object state handler. Steps the record's
  * animation sequencer (advanceObjectAnimationFrame), decrements the phase timer at rec+0x11 and returns until it
- * lapses, then decrements the state byte rec+0x02 and re-arms the turn animation: loc_425c
- * (limit 0xff, script 0x4203) when rec+0x08 bit0 is clear, else loc_423a (limit 0, script 0x4212).
+ * lapses, then decrements the state byte rec+0x02 and re-arms the turn animation: latchColumnLimitAndArmTurnAnimation
+ * (limit 0xff, script 0x4203) when rec+0x08 bit0 is clear, else clearColumnLimitAndArmTurnAnimation (limit 0, script 0x4212).
  *
  * CYCLE-FREE / memory-equivalence gate. The routine WRITES RAM, so every case uses a FRESH clone
  * per side. Contract: RAM (dumpState minus STACK_SCRATCH) ONLY — every callee is memory-only and the
@@ -16,7 +16,7 @@
  * TURN_COLUMN_LIMIT pre-dirtied so each write is visible.
  *
  * Jobs:
- *   1. EQUAL — over the still-running exit and both arm variants oracle == loc_4350 in RAM (−stack).
+ *   1. EQUAL — over the still-running exit and both arm variants oracle == countdownThenRearmTurnAnimationByFlag in RAM (−stack).
  *   2. WRITE-SET — the bit0-clear arm advances the state byte, arms TURN_COLUMN_LIMIT=0xff and points
  *      the record at script 0x4203 with frame index 0.
  *   3. TEETH — a twin that mis-steps the state byte MUST be caught by the RAM diff; a twin that arms
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4350 as oracle } from "../../translated/loc_4350.js";
-import { loc_4350 } from "../loc_4350.js";
+import { countdownThenRearmTurnAnimationByFlag } from "../countdownThenRearmTurnAnimationByFlag.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, TURN_COLUMN_LIMIT } from "../names.js";
@@ -84,12 +84,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: running + both arm variants — loc_4350 == oracle in RAM (−stack)", () => {
+test("EQUAL: running + both arm variants — countdownThenRearmTurnAnimationByFlag == oracle in RAM (−stack)", () => {
   for (const scn of CASES) {
     const o = craft(scn);
     const c = craft(scn);
     oracle(o);
-    loc_4350(c);
+    countdownThenRearmTurnAnimationByFlag(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${scn.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -101,7 +101,7 @@ test("EQUAL: running + both arm variants — loc_4350 == oracle in RAM (−stack
 test("WRITE-SET: the bit0-clear arm steps state, arms limit=0xff, points at script 0x4203", () => {
   const scn = CASES[1];
   const c = craft(scn);
-  loc_4350(c);
+  countdownThenRearmTurnAnimationByFlag(c);
   assert.equal(c.mem.read8(REC + TIMER), 0x00, "phase timer decremented to 0 (lapsed)");
   assert.equal(c.mem.read8(REC + STATE), (scn.state - 1) & 0xff, "state byte stepped down by 1");
   assert.equal(c.mem.read8(TURN_COLUMN_LIMIT), 0xff, "turn-column limit armed to 0xff");
@@ -118,7 +118,7 @@ test("TEETH: a mis-stepped state byte is CAUGHT by the RAM diff", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_4350(c);
+  countdownThenRearmTurnAnimationByFlag(c);
   c.mem.write8(REC + STATE, scn.state); // BUG: state not stepped down
 
   const d = ramDiffMinusStack(o, c);
@@ -132,7 +132,7 @@ test("TEETH: a wrong turn-column limit is CAUGHT by the RAM diff", () => {
   const o = craft(scn);
   const c = craft(scn);
   oracle(o);
-  loc_4350(c);
+  countdownThenRearmTurnAnimationByFlag(c);
   c.mem.write8(TURN_COLUMN_LIMIT, 0x00); // BUG: bit0-clear arm must set 0xff, not 0
 
   const d = ramDiffMinusStack(o, c);

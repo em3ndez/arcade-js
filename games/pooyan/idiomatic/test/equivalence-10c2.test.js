@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_10c2 (ROM 0x10c2, Pooyan) — adjust a counter and repaint a
+ * Memory-equivalence test for adjustCounterAndPaintBcdHudFields (ROM 0x10c2, Pooyan) — adjust a counter and repaint a
  * three-field BCD display. Inputs are B (the counter), A (the signed adjustment), and the entry carry
  * (direction: set = up, clear = down). The counter is walked one step at a time until the adjustment
  * reaches zero, then stored to 0x8f62 and drawn doubled as field 1. Field 2 (source 0x8f5e) draws a
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_10c2 as oracle } from "../../translated/loc_10c2.js";
-import { loc_10c2 } from "../loc_10c2.js";
+import { adjustCounterAndPaintBcdHudFields } from "../adjustCounterAndPaintBcdHudFields.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_ACTIVE_FLAG, SOUND_RING_WRITE_PTR, SOUND_RING_PENDING_BYTE } from "../names.js";
@@ -97,12 +97,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted (counter,adjust,dir,fields) — loc_10c2 == oracle in RAM (−stack) + HL + A", () => {
+test("EQUAL: crafted (counter,adjust,dir,fields) — adjustCounterAndPaintBcdHudFields == oracle in RAM (−stack) + HL + A", () => {
   for (const c of CASES) {
     const o = craft(c);
     oracle(o);
     const m = craft(c);
-    const [retHl, retA] = loc_10c2(m);
+    const [retHl, retA] = adjustCounterAndPaintBcdHudFields(m);
     const d = ramDiffMinusStack(o, m);
     assert.equal(d, null, d && `${c.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(retHl & 0xffff, o.regs.hl & 0xffff, `${c.name}: HL return mismatch`);
@@ -151,7 +151,7 @@ test("TEETH: a wrong field-1 VRAM tile is CAUGHT by the RAM diff", () => {
   const o = craft(c);
   const m = craft(c);
   oracle(o);
-  loc_10c2(m);
+  adjustCounterAndPaintBcdHudFields(m);
   m.mem.write8(FIELD1_VRAM, (o.mem.read8(FIELD1_VRAM) ^ 0x01) & 0xff); // BUG: corrupt the tens tile
   const d = ramDiffMinusStack(o, m);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong VRAM tile — it is worthless");
@@ -164,7 +164,7 @@ test("TEETH: a wrong returned A is CAUGHT by the live-out check", () => {
   const o = craft(c);
   const m = craft(c);
   oracle(o);
-  const [, retA] = loc_10c2(m);
+  const [, retA] = adjustCounterAndPaintBcdHudFields(m);
   assert.equal(retA & 0xff, o.regs.a & 0xff, "sanity: module A matches the oracle");
   assert.notEqual((o.regs.a + 1) & 0xff, o.regs.a & 0xff, "the A live-out check must reject an off-by-one cursor");
   console.log(`  TEETH(A): module A ${hx(retA & 0xff)} == oracle; an off-by-one cursor is rejected`);

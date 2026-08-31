@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1090 (Pooyan) — a main-loop sub-state handler running a frame-delay
+ * Memory-equivalence test for queueBonusStageTallyDisplayOnDelay (Pooyan) — a main-loop sub-state handler running a frame-delay
  * countdown. While SUBSTATE_FIELD1_COUNTER is non-zero it decrements it and returns; when the counter
  * is zero it bumps the sub-state selector (MAINLOOP_SUBSTATE_SELECTOR) and enqueues
- * BONUS_STAGE_TALLY_DISPLAY_CMD via the (already idiomatic) ring helper loc_0038.
+ * BONUS_STAGE_TALLY_DISPLAY_CMD via the (already idiomatic) ring helper enqueueDisplayCommand.
  *
  * No register inputs. The expired case seats a FREE ring slot so the enqueue path actually writes, and
  * the enqueue bytes are part of the compared RAM. Compared on RAM (dumpState) minus STACK_SCRATCH; SP
@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1090 as oracle } from "../../translated/loc_1090.js";
-import { loc_1090 } from "../loc_1090.js";
+import { queueBonusStageTallyDisplayOnDelay } from "../queueBonusStageTallyDisplayOnDelay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -63,12 +63,12 @@ const craftExpired = () => seat({ counter: 0x00 });
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_1090 == oracle in RAM (−stack)", () => {
+test("EQUAL: queueBonusStageTallyDisplayOnDelay == oracle in RAM (−stack)", () => {
   for (const [name, craft] of [["counting", craftCounting], ["expired", craftExpired]]) {
     const o = craft();
     const c = craft();
     oracle(o);
-    loc_1090(c);
+    queueBonusStageTallyDisplayOnDelay(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
   }
@@ -97,7 +97,7 @@ test("TEETH: a corrupted selector bump is CAUGHT; the guard is load-bearing", ()
   const o = craftExpired();
   const c = craftExpired();
   oracle(o);
-  loc_1090(c);
+  queueBonusStageTallyDisplayOnDelay(c);
   c.mem.write8(MAINLOOP_SUBSTATE_SELECTOR, (o.mem.read8(MAINLOOP_SUBSTATE_SELECTOR) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted selector");
