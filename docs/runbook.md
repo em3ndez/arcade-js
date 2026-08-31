@@ -747,8 +747,17 @@ distinct phase, gated on a flag, and runs in this order.
   Do this before the routine sweep, so the sweep references clean names.
 - **Clean every routine, LEAVES-FIRST.** Topo-sort the idiomatic call graph (imports = calls) and clean in
   leaf-first waves — a callee cleaned (and any rename settled) before its callers — fanning out each wave
-  fully. "Cleaned" = verbose explanatory comments PLUS light code cleanup (fix misnomers, simplify locals),
-  never a behaviour change.
+  fully. "Cleaned" = TWO obligations, BOTH required — do NOT let a comment-only verifier silently drop the
+  rename half (that shipped a sweep comment-only once):
+  - **(1) RENAME.** A routine whose role is understood — any `cert:"seen"`, and any `cert:"code"` whose
+    mechanism is confident — still named `loc_<addr>` gets a descriptive EFFECT name, settled leaf-first
+    before its callers. `loc_` is reserved for a genuinely-unclear mechanism, else allowlisted (with a
+    reason) in `games/<game>/names-debt.txt`.
+  - **(2) COMMENT.** Verbose explanatory comments PLUS light code cleanup (fix misnomers, simplify locals).
+  Never a behaviour change. **The byte-identical proof below verifies (2) ONLY** — a rename is not
+  byte-identical, so verify it with the equivalence subset instead. **Enforced:** `done_gate`'s `naming`
+  subsystem (`tools/naming_gate.py`) refuses the ship while any grounded routine is still `loc_`, so a
+  comment-only sweep that skips (1) cannot reach DONE.
   - **Comment standard:** a rich header (what it is, its role in the machine, ROM address, grounding tag,
     live-out) + a block comment before each logical step explaining the mechanism and WHY, citing the
     ROM/hardware — the level where someone who has never seen the game's internals could follow it.

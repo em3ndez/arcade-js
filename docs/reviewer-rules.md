@@ -764,3 +764,17 @@ rests on neither the human's word nor "the gates are green." Run the cheap mecha
 is a precondition, never the audit. Any open criterion, or any gate green-but-blind → WITHHOLD the token and
 name the gap. A `DONE.md` landed WITHOUT such an audit on record is an invalid done-claim.
 *See docs/runbook.md §5 "A game is NOT done until an independent adversarial agent agrees" + the DONE.md bullet.*
+
+## R41 [ALL] a §4-end cleanup commit must RENAME grounded loc_ routines, not only comment them
+
+The §4-end cleanup "cleans every routine" via TWO obligations — **(1) rename** a role-understood routine still
+named `loc_<addr>` to a descriptive EFFECT name (leaf-first), and **(2) comment** it verbosely
+(docs/runbook.md §4-end "Clean every routine"). A verifier that only proves a change is comment-only (code
+byte-identical) certifies (2) while silently dropping (1) — the exact gap that once shipped a whole sweep
+comment-only, leaving every grounded routine as `loc_`. So a reviewer of a §4-end cleanup commit MUST confirm
+the RENAME obligation, not just the comments: any routine in the commit's scope that is `cert:"seen"` (or
+`cert:"code"` with a confident mechanism) and still named `loc_<addr>`, and is not allowlisted with a reason in
+`games/<game>/names-debt.txt`, is a BLOCK — even if every comment is perfect and the code is byte-identical.
+The mechanical backstop is `done_gate`'s `naming` subsystem (`tools/naming_gate.py`), which refuses the ship
+for the same condition; this rule catches it per-commit rather than only at done.
+*See docs/runbook.md §4-end "Clean every routine" (the two obligations) + tools/naming_gate.py.*

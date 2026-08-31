@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
+"""Naming gate -- a grounded (cert:"seen") idiomatic ROUTINE must have a descriptive EFFECT name, never loc_.
+
+runbook §4: 'loc_ is reserved for an UNCLEAR mechanism' + 'Name by EFFECT'. A cert:"seen" routine is
+MAME-grounded -- its mechanism is OBSERVED -- so it must be named by effect; a surviving name:"loc_<addr>"
+on a seen routine is the exact naming debt this gate blocks (documented-is-not-enforced: a rule with no gate
+gets skipped). A cert:"code"/"guess" routine (role genuinely unclear) may stay loc_. The frozen TRANSLATED
+layer is always loc_<addr> and is OUT OF SCOPE -- this reads only the idiomatic registry
+games/<game>/idiomatic/names.js ROUTINES map. Legacy pre-runbook ports are grandfathered.
+
+A genuinely-seen-but-effect-unnameable routine (rare) is accounted for in games/<game>/names-debt.txt (one
+'loc_<addr>  <why the effect is unnameable despite grounding>' per line), reviewer-verified
+(proposer!=confirmer) and SUBTRACTED here. The gate stays honest, exactly like done_gate's grounding-debt:
+a reasonless entry, or one whose routine is NOT actually a cert:"seen" loc_ in names.js, BLOCKS.
+
+Subcommands: check [--game <g>] (exit 0 iff no unaccounted cert:seen loc_ routine), selftest.
+"""
+import argparse
+import glob
+import os
+import re
+import sys
+
+# Pre-runbook ports keep their loc_ routine names (runbook 'Legacy games: do not retrofit'); mirrors the
+# grandfather sets in tools/audio_gate.py and tools/done_gate.py check_pixel. A game born under this runbook
+# (pooyan onward) is enforced to 0.
+LEGACY = {"dkong", "frogger", "thepit", "timeplt"}
+
+# A ROUTINES entry starts at a line-anchored `0xADDR: {`. Delimit an entry by the NEXT such start, NOT by a
+# brace: a role string legitimately contains `{` (a dispatch-table description like "{0 init, 1 run}"), and a
+# `\{[^{}]*?\}` matcher chokes on it and SILENTLY SKIPS that entry -- a false negative exactly at the green
+# boundary (the one grounded loc_ left un-flagged then reaches DONE). Anchoring the start to line-start also
+# keeps a role's mid-line "0xNN: {" from being mistaken for an entry.
+ENTRY_START = re.compile(r'^[ \t]*0x[0-9a-fA-F]+\s*:\s*\{', re.M)
+NAME = re.compile(r'name:\s*"(loc_[0-9a-f]+)"')
+CERT_SEEN = re.compile(r'cert:\s*"seen"')
+
+
+def read_text(path):
+    try:
+        return open(path, encoding="utf-8", errors="replace").read()
+    except OSError:
+        return ""
+
+
+def seen_loc_routines(names_js_text):
+    """Return the set of loc_<addr> routine names in the ROUTINES map that are cert:"seen".
+
+    Entries are delimited by their line-anchored `0xADDR: {` starts (each span runs to the next start),
+    never brace-matched -- a `{` inside a role string must not hide the entry."""
+    out = set()
+    starts = [m.start() for m in ENTRY_START.finditer(names_js_text)]
+    for i, s in enumerate(starts):
+        end = starts[i + 1] if i + 1 < len(starts) else len(names_js_text)
+        blk = names_js_text[s:end]
+        nm = NAME.search(blk)
+        if nm and CERT_SEEN.search(blk):
+            out.add(nm.group(1))
+    return out
+
+
+def read_names_debt(base):
+    """games/<game>/names-debt.txt: 'loc_<addr>  <reason>' per line (# comments / blanks ignored)."""
+    path = f"{base}/names-debt.txt"
+    debt = {}
+    if not os.path.exists(path):
+        return debt
+    for ln in open(path, encoding="utf-8", errors="replace"):
+        ln = ln.split("#", 1)[0].strip()
+        if not ln:
+            continue
+        parts = ln.split(None, 1)
+        if re.fullmatch(r"loc_[0-9a-f]+", parts[0]):
+            debt[parts[0]] = parts[1].strip() if len(parts) > 1 else ""
+    return debt
+
+
+def check(game, base=None):
+    base = base or f"games/{game}"
+    names_js = f"{base}/idiomatic/names.js"
+    if not os.path.exists(names_js):
+        print(f"naming [{game}]: OK (no idiomatic/names.js -- nothing to enforce)")
+        return 0
+    seen_locs = seen_loc_routines(read_text(names_js))
+    if game in LEGACY:
+        print(f"naming [{game}]: OK (legacy pre-runbook port grandfathered; {len(seen_locs)} loc_ seen routines not retrofitted)")
+        return 0
+    debt = read_names_debt(base)
+    # Honesty checks on names-debt (mirror done_gate grounding-debt): every debt entry must have a reason AND
+    # must actually be a cert:seen loc_ routine in names.js; a reasonless or stale/false entry BLOCKS.
+    bad_debt = []
+    for loc, reason in debt.items():
+        if not reason:
+            bad_debt.append(f"{loc} (no reason)")
+        elif loc not in seen_locs:
+            bad_debt.append(f"{loc} (not a cert:seen loc_ routine in names.js -- stale/false)")
+    if bad_debt:
+        print(f"naming [{game}]: BLOCK -- names-debt.txt has invalid entries:", file=sys.stderr)
+        for x in bad_debt:
+            print(f"  - {x}", file=sys.stderr)
+        return 1
+    unaccounted = sorted(seen_locs - set(debt))
+    if unaccounted:
+        print(f"naming [{game}]: BLOCK -- {len(unaccounted)} grounded (cert:seen) routine(s) still named loc_ "
+              f"(name them by EFFECT; runbook §4). loc_ is reserved for an UNCLEAR mechanism:", file=sys.stderr)
+        for loc in unaccounted[:20]:
+            print(f"  - {loc}", file=sys.stderr)
+        if len(unaccounted) > 20:
+            print(f"  ... and {len(unaccounted) - 20} more", file=sys.stderr)
+        return 1
+    extra = f" ({len(debt)} accounted in names-debt.txt)" if debt else ""
+    print(f"naming [{game}]: OK (no grounded routine left as loc_{extra})")
+    return 0
+
+
+def check_all():
+    rc = 0
+    for names_js in sorted(glob.glob("games/*/idiomatic/names.js")):
+        game = names_js.split("/")[1]
+        rc |= check(game)
+    return rc
+
+
+def selftest():
+    import contextlib
+    import io as _io
+    import shutil
+    import tempfile
+    ok = True
+
+    def fail(msg):
+        nonlocal ok
+        print(f"selftest FAIL: {msg}", file=sys.stderr)
+        ok = False
+
+    # seen_loc_routines: flags a cert:seen loc_ entry, ignores a named-seen and a cert:code loc_.
+    js = ('export const ROUTINES = {\n'
+          '  0x0001: { name: "loc_0001", role: "x", cert: "seen" },\n'   # flagged
+          '  0x0002: { name: "advanceThing", role: "y", cert: "seen" },\n'  # named -> ok
+          '  0x0003: { name: "loc_0003", role: "z", cert: "code" },\n'    # unclear -> ok to be loc_
+          '};\n')
+    got = seen_loc_routines(js)
+    if got != {"loc_0001"}:
+        fail(f"seen_loc_routines -> {got}, want {{'loc_0001'}}")
+
+    # regression: a `{` inside a role string must NOT hide a seen loc_ entry (a brace-matched ENTRY skipped it).
+    brace_js = ('export const ROUTINES = {\n'
+                '  0x0abc: { name: "loc_0abc", role: "dispatch table {0 init, 1 run, 2 done}", cert: "seen" },\n'
+                '};\n')
+    if seen_loc_routines(brace_js) != {"loc_0abc"}:
+        fail(f"seen_loc_routines missed a loc_ with a brace in its role -> {seen_loc_routines(brace_js)}")
+
+    def silent_check(game, base):
+        with contextlib.redirect_stdout(_io.StringIO()), contextlib.redirect_stderr(_io.StringIO()):
+            return check(game, base=base)
+
+    tmp = tempfile.mkdtemp(prefix="naming_gate_selftest_")
+    try:
+        def tree(sub, names, debt=None):
+            b = f"{tmp}/{sub}"
+            os.makedirs(f"{b}/idiomatic", exist_ok=True)
+            open(f"{b}/idiomatic/names.js", "w").write(names)
+            if debt is not None:
+                open(f"{b}/names-debt.txt", "w").write(debt)
+            return b
+
+        # a non-legacy game with a cert:seen loc_ -> BLOCK (teeth).
+        if silent_check("synth", tree("bad", js)) == 0:
+            fail("a cert:seen loc_ routine did not BLOCK")
+        # cleaned (no seen loc_) -> OK.
+        clean = 'export const ROUTINES = {\n  0x0002: { name: "advanceThing", role: "y", cert: "seen" },\n};\n'
+        if silent_check("synth", tree("clean", clean)) != 0:
+            fail("a fully-named registry was blocked")
+        # cert:code loc_ only -> OK (unclear mechanism may stay loc_).
+        codeonly = 'export const ROUTINES = {\n  0x0003: { name: "loc_0003", role: "z", cert: "code" },\n};\n'
+        if silent_check("synth", tree("codeonly", codeonly)) != 0:
+            fail("a cert:code loc_ routine was wrongly blocked")
+        # legacy game with a seen loc_ -> OK (grandfathered).
+        if silent_check("frogger", tree("legacy", js)) != 0:
+            fail("a legacy game with a seen loc_ was blocked (should be grandfathered)")
+        # names-debt accounts for the seen loc_ -> OK.
+        if silent_check("synth", tree("debted", js, debt="loc_0001  effect genuinely ambiguous after read+callers\n")) != 0:
+            fail("a valid names-debt entry did not clear the gate")
+        # reasonless names-debt -> BLOCK.
+        if silent_check("synth", tree("noreason", js, debt="loc_0001\n")) == 0:
+            fail("a reasonless names-debt entry did not BLOCK")
+        # stale/false names-debt (routine not a seen loc_) -> BLOCK.
+        if silent_check("synth", tree("stale", clean, debt="loc_9999  bogus\n")) == 0:
+            fail("a stale/false names-debt entry did not BLOCK")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    print("selftest OK" if ok else "selftest FAILED")
+    return 0 if ok else 1
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    c = sub.add_parser("check")
+    c.add_argument("--game", default=None)
+    sub.add_parser("selftest")
+    a = ap.parse_args()
+    if a.cmd == "selftest":
+        return selftest()
+    return check(a.game) if a.game else check_all()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -11,6 +11,7 @@ subsystem with no gate guarding the done-claim. Subsystems:
   idiomatic   - tools/idiomatic_gate.py: the idiomatic layer holds ZERO CPU/memory cruft — no
                 registers, no m.call, no m.push*, no raw 0xHHHH addresses.
   grounding   - no ungrounded [code]/[guess] proposals remain in names.js (the registry).
+  naming      - tools/naming_gate.py: every grounded idiomatic routine has a descriptive name, not loc_.
   audio       - tools/audio_gate.py: a wired, tested audio layer.
   pixel       - the game's idiomatic pixel suite matches MAME golden.
   whole-game  - the standing whole-game tests (boot/attract, tape, transition) pass.
@@ -210,10 +211,23 @@ def check_wiring(game):
     return True, "PASS (registry-coverage, no-stale-mcall, no-frozen-twin-call)"
 
 
+def check_naming(game):
+    """Every grounded (cert:"seen") idiomatic ROUTINE must carry a descriptive EFFECT name, not loc_<addr>
+    (runbook §4-end cleanup: it RENAMES loc_->descriptive leaf-first, it does not only comment). Enforced by
+    tools/naming_gate.py -- legacy pre-runbook ports grandfathered; a reviewed games/<game>/names-debt.txt
+    allowlist subtracts a genuinely-effect-unnameable routine. Wired here so a game cannot reach DONE while
+    the RENAME half of the cleanup is skipped -- the exact gap that once let a sweep ship comment-only."""
+    rc, out = run(["python3", "tools/naming_gate.py", "check", "--game", game])
+    summary = next((ln for ln in out.splitlines() if ln.startswith(f"naming [{game}]:")), "")
+    detail = summary.split(":", 1)[1].strip() if summary else ("PASS" if rc == 0 else "grounded loc_ routines remain")
+    return (rc == 0), detail[:120]
+
+
 SUBSYSTEMS = [
     ("idiomatic", check_idiomatic),
     ("wiring", check_wiring),
     ("grounding", check_grounding),
+    ("naming", check_naming),
     ("audio", check_audio),
     ("pixel", check_pixel),
     ("whole-game", check_wholegame),
