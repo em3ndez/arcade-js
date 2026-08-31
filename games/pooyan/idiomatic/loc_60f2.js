@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_6069 } from "./loc_6069.js";
+import { classifyAndRouteObjectRecordByRound } from "./classifyAndRouteObjectRecordByRound.js";
 /**
  * loc_60f2 — outer-scan epilogue: step to the next actor/record pair and re-enter the scan.
  *
  * ROM 0x60f2-0x60fe. Grounding: [code].
  *
- * WHAT IT IS. The per-iteration loop step of the sprite/collision scan whose head is loc_6069.
+ * WHAT IT IS. The per-iteration loop step of the sprite/collision scan whose head is classifyAndRouteObjectRecordByRound.
  * That scan walks a parallel pair of arrays in lock-step: a stride-0x18 actor RECORD array (the
  * `hl` pointer, into the 0x8a80 actor region) and a stride-4 sprite/actor SLOT list (the `ix`
- * pointer). loc_6069 classifies the record at `hl` — an empty lead byte or a non-live kind byte
- * is skipped, a live record is routed by round parity to the collision handler (loc_61b4) or the
- * proximity gate (loc_6080). However each of those bodies finishes, control lands HERE to close
+ * pointer). classifyAndRouteObjectRecordByRound classifies the record at `hl` — an empty lead byte or a non-live kind byte
+ * is skipped, a live record is routed by round parity to the collision handler (resolveOddRoundCollisionAndAward) or the
+ * proximity gate (gateEvenRoundOverlapAndRouteHit). However each of those bodies finishes, control lands HERE to close
  * out the iteration: advance both pointers by one element, count one record off, and go round
  * again while records remain. It is the scan's shared continuation — the scan bodies jump into it
  * rather than call it, so it is a tail of the loop, not a subroutine of its own.
  *
- * ROLE IN THE MACHINE. Together with loc_6069 this forms the classic "for each record" walk the
+ * ROLE IN THE MACHINE. Together with classifyAndRouteObjectRecordByRound this forms the classic "for each record" walk the
  * game runs to test every actor slot each frame (proximity/collision between shots and targets).
- * loc_6069 is the head that decides what to do with the current record; loc_60f2 is the tail that
+ * classifyAndRouteObjectRecordByRound is the head that decides what to do with the current record; loc_60f2 is the tail that
  * moves to the next one. Draining the count is how the walk terminates when no live record took a
  * hit branch out of the loop.
  *
@@ -45,5 +45,5 @@ export function loc_60f2(m, hl = m.regs.hl, ix = m.regs.ix, count = m.regs.b, iy
   // that selects which target slot the deeper collision/proximity code looks at — survives
   // unchanged across every iteration. The boolean the re-entered scan eventually returns is
   // passed straight back up.
-  return loc_6069(m, u16(hl + RECORD_STRIDE), u16(ix + ACTOR_STRIDE), remaining, iy, ireg);
+  return classifyAndRouteObjectRecordByRound(m, u16(hl + RECORD_STRIDE), u16(ix + ACTOR_STRIDE), remaining, iy, ireg);
 }

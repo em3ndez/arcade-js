@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6c3f (ROM 0x6c3f, Pooyan) — the dissolved caller-skip of
+ * Memory-equivalence test for testTargetProximityAndSetAimDirection (ROM 0x6c3f, Pooyan) — the dissolved caller-skip of
  * clearAimIndicatorUnlessProximityHit's proximity scan. The oracle ends each path either with a plain `ret` (the normal
  * "keep scanning" outcome) or with `pop af; ret` (the skip that aborts the caller's scan on a
  * hit). The idiomatic module replaces that stack protocol with a boolean: true = the normal
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6c3f as oracle } from "../../translated/loc_6c3f.js";
-import { loc_6c3f } from "../loc_6c3f.js";
+import { testTargetProximityAndSetAimDirection } from "../testTargetProximityAndSetAimDirection.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -105,12 +105,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted paths — loc_6c3f boolean == oracle path AND RAM (−stack) identical", () => {
+test("EQUAL: crafted paths — testTargetProximityAndSetAimDirection boolean == oracle path AND RAM (−stack) identical", () => {
   for (const cs of CASES) {
     const o = craft(cs);
     const c = craft(cs);
     const normal = oracleTookNormal(o);
-    const ret = loc_6c3f(c);
+    const ret = testTargetProximityAndSetAimDirection(c);
 
     assert.equal(normal, cs.expect === "normal", `[${cs.name}] oracle SP-path disagrees with the crafted expectation`);
     assert.equal(ret, normal, `[${cs.name}] module boolean (${ret}) must match the oracle path (normal=${normal})`);
@@ -148,7 +148,7 @@ test("CRAFTED: a pre-dirtied AIM byte is read-modify-written identically (opposi
   const o = craft(cs);
   const c = craft(cs);
   oracle(o);
-  loc_6c3f(c);
+  testTargetProximityAndSetAimDirection(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -163,7 +163,7 @@ test("TEETH: a wrong AIM byte is CAUGHT by the RAM diff", () => {
   const o = craft(cs);
   const c = craft(cs);
   oracle(o);
-  loc_6c3f(c);
+  testTargetProximityAndSetAimDirection(c);
   c.mem.write8(AIM, (c.mem.read8(AIM) ^ 0xff) & 0xff); // BUG: corrupt the aim byte
 
   const d = ramDiffMinusStack(o, c);

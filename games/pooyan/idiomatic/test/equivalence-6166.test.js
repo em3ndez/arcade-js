@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for resetActorRecordQueueSoundAndAbortFrame (ROM 0x6166, Pooyan) — "reset the actor record", a
- * caller that dissolves the caller-skip loc_618a.
+ * caller that dissolves the caller-skip clearActiveObjectTypeAndAbortHandler.
  *
  * The routine clears the record IY points at to its idle opening state (+0 := 0, +1 := 1,
  * +2 := 8, +0x16 := 7, +0x17 := 5, +0x14 := 0, +0x13 := 0), enqueues one of two fixed sound
  * commands chosen by ACTIVE_OBJECT_TYPE (!= 3 -> the sound-command ring; == 3 -> the text
- * ring), then continues into the caller-skip loc_618a, which clears the type and aborts the
- * frame. The idiomatic module composes the REAL idiomatic sound helper and idiomatic loc_618a.
+ * ring), then continues into the caller-skip clearActiveObjectTypeAndAbortHandler, which clears the type and aborts the
+ * frame. The idiomatic module composes the REAL idiomatic sound helper and idiomatic clearActiveObjectTypeAndAbortHandler.
  *
  * Cycle-free memory-equivalence gate: the oracle drives the translated chain (its own sound
  * helper + pop-af skip), the module drives the idiomatic chain; both compared on RAM

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5b99 (ROM 0x5b99, Pooyan) — the proximity/collision test of one
+ * Memory-equivalence test for testEnemyRecordHitAndRegister (ROM 0x5b99, Pooyan) — the proximity/collision test of one
  * actor record against the target pair, plus hit registration.
  *
  * SEATING: CALLER-SKIP. The ROM hit exits do `pop af; ret`, unwinding past the caller; the module
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5b99 as oracle } from "../../translated/loc_5b99.js";
-import { loc_5b99 } from "../loc_5b99.js";
+import { testEnemyRecordHitAndRegister } from "../testEnemyRecordHitAndRegister.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { FLIP_SCREEN_FLAG, ROUND_COUNTER, ENEMY_TARGET_REC0, SPRITE_OBJECT_TABLE, STACK_SCRATCH } from "../names.js";
@@ -99,12 +99,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5b99 == oracle in RAM (−stack) + forwarded boolean", () => {
+test("EQUAL: testEnemyRecordHitAndRegister == oracle in RAM (−stack) + forwarded boolean", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    const ret = loc_5b99(c);
+    const ret = testEnemyRecordHitAndRegister(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, cfg.ret, `${cfg.name}: forwarded boolean must be ${cfg.ret}`);
@@ -133,7 +133,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = seat(BASE.clone(), { slotMatch: false });
   const c = seat(BASE.clone(), { slotMatch: false });
   oracle(o);
-  loc_5b99(c);
+  testEnemyRecordHitAndRegister(c);
   c.mem.write8(REC + 0x12, (o.mem.read8(REC + 0x12) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted struck byte");
@@ -143,11 +143,11 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a hit-returns-true twin and a guard-returns-false twin are CAUGHT by the boolean", () => {
   assert.throws(
-    () => assert.equal(((m) => (loc_5b99(m), true))(seat(BASE.clone(), { slotMatch: false })), false),
+    () => assert.equal(((m) => (testEnemyRecordHitAndRegister(m), true))(seat(BASE.clone(), { slotMatch: false })), false),
     "a hit must abort -> false",
   );
   assert.throws(
-    () => assert.equal(((m) => (loc_5b99(m), false))(seat(BASE.clone(), { active: 0x00 })), true),
+    () => assert.equal(((m) => (testEnemyRecordHitAndRegister(m), false))(seat(BASE.clone(), { active: 0x00 })), true),
     "a guard fail must continue -> true",
   );
   console.log("  TEETH(boolean): hit-true and guard-false twins caught");

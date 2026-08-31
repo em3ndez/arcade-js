@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence gate for seedAndRunTargetProximityScan (Pooyan) — the proximity-scan seeder, COMPOSING the
- * dissolved caller-skip loc_638a.
+ * dissolved caller-skip scanTargetSlotsAndSpawnOnProximityHit.
  *
  * seedAndRunTargetProximityScan points the coordinate cursor at the sprite target-slot table and the record cursor at
- * the projectile list, sets the slot count, and hands off to loc_638a. In the frozen layer that
- * hand-off is a fall-through and loc_638a aborts via `pop af; ret`; the idiomatic seedAndRunTargetProximityScan imports
- * the idiomatic loc_638a and forwards its boolean instead. This gate runs the WHOLE caller both
+ * the projectile list, sets the slot count, and hands off to scanTargetSlotsAndSpawnOnProximityHit. In the frozen layer that
+ * hand-off is a fall-through and scanTargetSlotsAndSpawnOnProximityHit aborts via `pop af; ret`; the idiomatic seedAndRunTargetProximityScan imports
+ * the idiomatic scanTargetSlotsAndSpawnOnProximityHit and forwards its boolean instead. This gate runs the WHOLE caller both
  * ways and requires RAM-equivalence: the oracle seedAndRunTargetProximityScan (which internally runs the translated
- * loc_638a) versus seedAndRunTargetProximityScan (which runs the idiomatic loc_638a), compared on dumpState minus
+ * scanTargetSlotsAndSpawnOnProximityHit) versus seedAndRunTargetProximityScan (which runs the idiomatic scanTargetSlotsAndSpawnOnProximityHit), compared on dumpState minus
  * STACK_SCRATCH. pc/SP/cycles are not compared — the oracle's pushes/pops land in STACK_SCRATCH.
  *
  * Two skip states are seated per the CLUSTER contract: SKIP-TAKEN (a record close to the actor box
- * -> loc_638a claims it and aborts) and SKIP-NOT-TAKEN (records present but all out of range ->
- * loc_638a runs to exhaustion). A third case hits on the SECOND slot to exercise the advance.
+ * -> scanTargetSlotsAndSpawnOnProximityHit claims it and aborts) and SKIP-NOT-TAKEN (records present but all out of range ->
+ * scanTargetSlotsAndSpawnOnProximityHit runs to exhaustion). A third case hits on the SECOND slot to exercise the advance.
  *
  * seedAndRunTargetProximityScan hard-seeds IX=0x887c / HL=0x8be8 / B=3 itself, so only IY (actor box), I (interrupt
  * parity) and FLIP_SCREEN_FLAG are inputs here; the scanned cells sit at those fixed bases.

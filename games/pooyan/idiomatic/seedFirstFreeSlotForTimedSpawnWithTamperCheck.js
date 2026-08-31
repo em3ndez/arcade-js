@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
-import { loc_5489 } from "./loc_5489.js";
+import { initSpawnedActorRecordAndDeriveSpeed } from "./initSpawnedActorRecordAndDeriveSpeed.js";
 import {
   SPAWN_SEQUENCE_INDEX_8D14,
   SPAWN_KIND_TABLE_5627,
@@ -88,7 +88,7 @@ export function seedFirstFreeSlotForTimedSpawnWithTamperCheck(m, base = m.regs.i
       // value 0x13. The initializer stamps the record live and seeds its coordinates, facing,
       // animation, and speed, then returns in a way that ends this whole spawner pass — so
       // exactly one actor is seeded per call and the scan does not resume.
-      if (!loc_5489(m, cursor, SPAWN_FIELD_VALUE)) return; // initializer completes the record and ends the pass
+      if (!initSpawnedActorRecordAndDeriveSpeed(m, cursor, SPAWN_FIELD_VALUE)) return; // initializer completes the record and ends the pass
     }
     // Occupied (or just-completed) slot: advance to the next record and keep scanning (0x55cf).
     cursor = u16(cursor + stride);

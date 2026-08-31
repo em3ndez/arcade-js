@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence gate for sweepTargetSlotsForGrab (ROM 0x5e11) — the B-slot proximity sweep, COMPOSING the
- * dissolved caller-skip loc_5e1f. The idiomatic caller imports the idiomatic loc_5e1f and, on a
+ * dissolved caller-skip testTargetSlotGrabAndCatchObject. The idiomatic caller imports the idiomatic testTargetSlotGrabAndCatchObject and, on a
  * grab (false), early-returns to abort the sweep — reproducing the oracle skip whose `pop af; ret`
- * unwound past this routine. The oracle caller runs the TRANSLATED loc_5e1f internally (its pop-af
- * aborts it); the idiomatic caller runs the idiomatic loc_5e1f + early-returns. The two must land
+ * unwound past this routine. The oracle caller runs the TRANSLATED testTargetSlotGrabAndCatchObject internally (its pop-af
+ * aborts it); the idiomatic caller runs the idiomatic testTargetSlotGrabAndCatchObject + early-returns. The two must land
  * byte-identical in RAM (−stack).
  *
  * Contract compared: RAM (dumpState, minus STACK_SCRATCH). There is NO register live-out — the
@@ -31,7 +31,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5e11 as oracle } from "../../translated/loc_5e11.js";
 import { sweepTargetSlotsForGrab } from "../sweepTargetSlotsForGrab.js";
-import { loc_5e1f } from "../loc_5e1f.js";
+import { testTargetSlotGrabAndCatchObject } from "../testTargetSlotGrabAndCatchObject.js";
 import { Machine } from "../../machine.js";
 import { u16 } from "../../../../core/int.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -132,7 +132,7 @@ test("TEETH: a twin that ignores the abort writes an extra slot — CAUGHT by th
   // A caller that composes the real skip but drops the early-return: it keeps sweeping past a hit.
   function nonAborting(m, rec = m.regs.hl, source = m.regs.ix, target = m.regs.iy, count = m.regs.b) {
     for (let i = 0; i < count; i++) {
-      loc_5e1f(m, rec, source, target); // BUG: abort signal ignored
+      testTargetSlotGrabAndCatchObject(m, rec, source, target); // BUG: abort signal ignored
       target = u16(target + SLOT_STRIDE_TGT);
       rec = u16(rec + SLOT_STRIDE_REC);
     }

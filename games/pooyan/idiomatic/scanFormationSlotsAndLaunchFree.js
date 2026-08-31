@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_2be5 } from "./loc_2be5.js";
+import { launchFormationObjectIntoFreeSlot } from "./launchFormationObjectIntoFreeSlot.js";
 /**
  * scanFormationSlotsAndLaunchFree — the formation-spawn scan: launch at most one new
  * formation object per pass, into the first free slot it finds.
  *
  * WHAT IT IS
  *   A single sweep over the formation spawn record table. It walks up to 0x11 (SLOT_COUNT)
- *   records, handing each one in turn to the per-slot launcher (loc_2be5). That launcher
+ *   records, handing each one in turn to the per-slot launcher (launchFormationObjectIntoFreeSlot). That launcher
  *   reports back whether the slot it receives is already occupied: a busy slot leaves the
  *   walk running on to the next record; the first FREE slot is seeded with a brand-new
  *   formation object and the walk stops right there. So one whole sweep either finds an
@@ -26,7 +26,7 @@ import { loc_2be5 } from "./loc_2be5.js";
  * ROM ADDRESS: 0x2bb3–0x2bbe.
  *
  * GROUNDING: [seen] — the scan and the table it walks are observed together. The record
- *   base FORMATION_SPAWN_TABLE (0x8c60) and the per-slot launcher loc_2be5 (0x2be5) are
+ *   base FORMATION_SPAWN_TABLE (0x8c60) and the per-slot launcher launchFormationObjectIntoFreeSlot (0x2be5) are
  *   [seen], as are the cells that launcher touches: the wave arrival counter (0x8903) and
  *   the spawn countdown (0x8d30).
  *
@@ -54,11 +54,11 @@ export function scanFormationSlotsAndLaunchFree(m, rec = m.regs.ix, stride = m.r
   // Visit at most SLOT_COUNT (0x11) records. The first free slot wins the launch and ends
   // the sweep, so this loop only ever runs to completion when every slot is busy.
   for (let remaining = SLOT_COUNT; remaining > 0; remaining--) {
-    // Offer the record at the cursor to the per-slot launcher (loc_2be5, 0x2be5). Its
+    // Offer the record at the cursor to the per-slot launcher (launchFormationObjectIntoFreeSlot, 0x2be5). Its
     // boolean answer is the scan-control signal: true = the slot is busy, so keep scanning;
     // false = it just seeded a fresh formation object into this free slot, so the sweep is
     // finished — bail out here, enforcing at most one launch per pass.
-    if (!loc_2be5(m, cursor)) return; // slot launched -> abort the scan
+    if (!launchFormationObjectIntoFreeSlot(m, cursor)) return; // slot launched -> abort the scan
 
     // Slot is busy: advance the pointer one record down the table. Adding the negative
     // stride and wrapping to 16 bits (u16) lands on the next-lower record address, then the

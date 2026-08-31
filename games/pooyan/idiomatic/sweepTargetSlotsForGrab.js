@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_5e1f } from "./loc_5e1f.js";
+import { testTargetSlotGrabAndCatchObject } from "./testTargetSlotGrabAndCatchObject.js";
 /**
  * sweepTargetSlotsForGrab — the B-slot grab proximity sweep.
  *
@@ -46,7 +46,7 @@ export function sweepTargetSlotsForGrab(m, rec = m.regs.hl, source = m.regs.ix, 
     // empty or ineligible record, or a target coordinate sitting outside the source object's small
     // catch window — and false the instant a catch connects. Because a catch is a one-at-a-time
     // event, a false result ends the whole sweep for this frame right away.
-    if (!loc_5e1f(m, rec, source, target)) return; // grab hit -> abort the sweep
+    if (!testTargetSlotGrabAndCatchObject(m, rec, source, target)) return; // grab hit -> abort the sweep
     // No grab on this slot: step to the next one. The target coordinates are stride-4 records, so
     // the target pointer advances by 0x04...
     target = u16(target + 0x04);

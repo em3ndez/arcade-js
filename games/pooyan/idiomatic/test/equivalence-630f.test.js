@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_630f (ROM 0x630f, Pooyan) — a tight bounding-box proximity test
+ * Memory-equivalence test for testKindF0TightOverlap (ROM 0x630f, Pooyan) — a tight bounding-box proximity test
  * for one dispatch kind. Both axis gaps between the flip-biased actor and the target must fall
  * inside a small box; out of range on either axis skips the record to the outer-scan epilogue, and
  * inside the box engages the hit.
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_630f as oracle } from "../../translated/loc_630f.js";
-import { loc_630f } from "../loc_630f.js";
+import { testKindF0TightOverlap } from "../testKindF0TightOverlap.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -102,12 +102,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_630f == oracle in RAM (−stack) + boolean", () => {
+test("EQUAL: testKindF0TightOverlap == oracle in RAM (−stack) + boolean", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    const ret = loc_630f(c);
+    const ret = testKindF0TightOverlap(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, cfg.ret, `${cfg.name}: boolean must be ${cfg.ret}`);
@@ -136,7 +136,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftHitMain();
   const c = craftHitMain();
   oracle(o);
-  loc_630f(c);
+  testKindF0TightOverlap(c);
   c.mem.write8(OBJ + 0x16, (o.mem.read8(OBJ + 0x16) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted seed byte");
@@ -146,11 +146,11 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a miss-returns-false twin and a match-returns-true twin are CAUGHT by the boolean", () => {
   assert.throws(
-    () => assert.equal(((m) => (loc_630f(m), false))(craftMiss()), true),
+    () => assert.equal(((m) => (testKindF0TightOverlap(m), false))(craftMiss()), true),
     "a miss must continue -> true",
   );
   assert.throws(
-    () => assert.equal(((m) => (loc_630f(m), true))(craftHitMatch()), false),
+    () => assert.equal(((m) => (testKindF0TightOverlap(m), true))(craftHitMatch()), false),
     "a finder match must abort -> false",
   );
   console.log("  TEETH(boolean): miss-false and match-true twins caught");

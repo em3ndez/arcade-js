@@ -2,7 +2,7 @@
 import { u16 } from "../../../core/int.js";
 import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
 import { storeActorAnimationPointer } from "./storeActorAnimationPointer.js";
-import { loc_6274 } from "./loc_6274.js";
+import { retireParityTargetSlotAndQueueSound } from "./retireParityTargetSlotAndQueueSound.js";
 import { ROUND_COUNTER, POSITION_DELTA_TABLE_6360, ANIM_SCRIPT_634F } from "./names.js";
 /**
  * applyRoundDeltaAndRearmMatchedRecord — re-locate an enemy record by its collision tag,
@@ -95,5 +95,5 @@ export function applyRoundDeltaAndRearmMatchedRecord(m, tag = m.regs.a, record =
   // reserved) and reports the abort. Returning that result — always false — makes the
   // caller abandon its remaining collision work and unwinds this frame's hit-resolution
   // path one extra level, matching the machine's skip-return.
-  return loc_6274(m); // paired-record clear -> abort (always false)
+  return retireParityTargetSlotAndQueueSound(m); // paired-record clear -> abort (always false)
 }

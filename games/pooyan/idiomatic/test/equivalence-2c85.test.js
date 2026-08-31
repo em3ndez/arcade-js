@@ -12,7 +12,7 @@
  * live-out (a sweep helper). The oracle's `push16 + call 0x381e` writes a return address into
  * STACK_SCRATCH which the idiomatic direct call does not — excluded by contract.
  *
- * The leaf is reached only during the loc_2c58 record sweep, so every case is CRAFTED: IX is
+ * The leaf is reached only during the climbHunterToLaunchRowThenPromoteGroup record sweep, so every case is CRAFTED: IX is
  * seated at a work-RAM actor slot, its record window pre-dirtied to 0xAA identically on both
  * sides, and the state byte poked — so the trigger path's zero-writes (ix+0x0e/0x15/0x16) and
  * a missing write are both observable.

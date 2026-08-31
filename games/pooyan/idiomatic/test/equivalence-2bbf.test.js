@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2bbf (ROM 0x2bbf) — "formation ready-sprite helper".
+ * Memory-equivalence test for stageFormationReadyMarkersOrSkipTick (ROM 0x2bbf) — "formation ready-sprite helper".
  *
- * loc_2bbf is a DISSOLVED CALLER-SKIP for tickFormationSpawnAndScanSlots. In the oracle one path ends with
+ * stageFormationReadyMarkersOrSkipTick is a DISSOLVED CALLER-SKIP for tickFormationSpawnAndScanSlots. In the oracle one path ends with
  * `pop af; ret` (aborting tickFormationSpawnAndScanSlots) and the others with a plain `ret`. The idiomatic module
  * drops the stack plumbing and returns a BOOLEAN:
  *   true  = normal return (tickFormationSpawnAndScanSlots continues),
@@ -11,7 +11,7 @@
  * COMPOSES the real idiomatic painters (paintReadySpriteSquareIfAbsent + blit2x2TileBlock).
  *
  * Cycle-free / memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
- * STACK_SCRATCH) plus the boolean. pc/SP/cycles/registers are NOT compared. loc_2bbf has NO
+ * STACK_SCRATCH) plus the boolean. pc/SP/cycles/registers are NOT compared. stageFormationReadyMarkersOrSkipTick has NO
  * register live-out — tickFormationSpawnAndScanSlots reloads its own registers. The only input is A (the wave count),
  * bridged via the register default; a case also pokes the two indicator cells (0x877b checked/
  * painted here, 0x87bb painted by paintReadySpriteSquareIfAbsent) identically on both sides.
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2bbf as oracle } from "../../translated/loc_2bbf.js";
-import { loc_2bbf } from "../loc_2bbf.js";
+import { stageFormationReadyMarkersOrSkipTick } from "../stageFormationReadyMarkersOrSkipTick.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, FORMATION_READY_TILE_VRAM, READY_SPRITE_TILE_VRAM } from "../names.js";
@@ -79,7 +79,7 @@ test("EQUAL: all four paths agree in RAM (−stack) and in the boolean", () => {
     const o = craft(args);
     const c = craft(args);
     const oret = oracle(o);
-    const cret = loc_2bbf(c);
+    const cret = stageFormationReadyMarkersOrSkipTick(c);
     assert.equal(oret, ret, `oracle boolean for "${name}"`);
     assert.equal(cret, oret, `module boolean mismatch for "${name}"`);
     const d = ramDiffMinusStack(o, c);
@@ -115,7 +115,7 @@ test("TEETH: a wrong painted byte is CAUGHT by the RAM diff", () => {
   const o = craft(args);
   const c = craft(args);
   oracle(o);
-  loc_2bbf(c);
+  stageFormationReadyMarkersOrSkipTick(c);
   const victim = square(FORMATION_READY_TILE_VRAM)[3]; // bottom-left of the 0x877b square
   c.mem.write8(victim, (c.mem.read8(victim) ^ 0xff) & 0xff); // BUG: corrupt a painted cell
 

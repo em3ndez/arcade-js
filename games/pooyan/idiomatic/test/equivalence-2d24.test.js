@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_2d24 (ROM 0x2d24) — DISSOLVED caller-skip of hunter dispatch state 2.
+ * Memory-equivalence gate for climbHunterStepAndRetireAtTop (ROM 0x2d24) — DISSOLVED caller-skip of hunter dispatch state 2.
  * The oracle carries the boolean protocol (true on the `ret c` climbing path, false on the reached-top
  * `pop af; ret` path); the idiomatic module reproduces the boolean while dropping the stack plumbing.
  * Compared per case: RAM (dumpState −STACK_SCRATCH) PLUS the JS boolean return.
@@ -13,7 +13,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { loc_2d24 as oracle } from "../../translated/loc_2d24.js";
-import { loc_2d24 } from "../loc_2d24.js";
+import { climbHunterStepAndRetireAtTop } from "../climbHunterStepAndRetireAtTop.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -44,7 +44,7 @@ function craft({ lo = 0, step = 0, hi = 0, state = 0x02 } = {}) {
 
 test("NORMAL: high byte below 0x19 -> climbing, oracle == idiomatic (RAM −stack), both true", () => {
   const o = craft({ hi: 0x05 }), c = craft({ hi: 0x05 });
-  const ro = oracle(o), rc = loc_2d24(c);
+  const ro = oracle(o), rc = climbHunterStepAndRetireAtTop(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(ro, true, "climbing path -> true");
@@ -54,7 +54,7 @@ test("NORMAL: high byte below 0x19 -> climbing, oracle == idiomatic (RAM −stac
 
 test("SKIP: high byte at 0x19 -> false, state advanced + position/script cleared", () => {
   const o = craft({ hi: 0x19, state: 0x02 }), c = craft({ hi: 0x19, state: 0x02 });
-  const ro = oracle(o), rc = loc_2d24(c);
+  const ro = oracle(o), rc = climbHunterStepAndRetireAtTop(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(ro, false, "reached-top path -> false");
@@ -68,7 +68,7 @@ test("SKIP: high byte at 0x19 -> false, state advanced + position/script cleared
 
 test("CARRY: low+step carries into high byte but stays below 0x19 -> still true", () => {
   const o = craft({ lo: 0xff, step: 0x02, hi: 0x05 }), c = craft({ lo: 0xff, step: 0x02, hi: 0x05 });
-  const ro = oracle(o), rc = loc_2d24(c);
+  const ro = oracle(o), rc = climbHunterStepAndRetireAtTop(c);
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(ro, true, "high 0x06 still below top -> true");
@@ -80,7 +80,7 @@ test("CARRY: low+step carries into high byte but stays below 0x19 -> still true"
 
 test("TEETH/RAM: a wrong written position byte is caught by the RAM diff", () => {
   const o = craft({ hi: 0x05 }), c = craft({ hi: 0x05 });
-  oracle(o); loc_2d24(c);
+  oracle(o); climbHunterStepAndRetireAtTop(c);
   c.mem.write8(REC + P_LO, 0xee); // BUG
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "gate worthless: wrong position byte not caught");
@@ -90,7 +90,7 @@ test("TEETH/RAM: a wrong written position byte is caught by the RAM diff", () =>
 
 test("TEETH/BOOL: a flipped return is caught by the boolean check", () => {
   const o = craft({ hi: 0x19 }), c = craft({ hi: 0x19 });
-  const ro = oracle(o), rc = loc_2d24(c);
+  const ro = oracle(o), rc = climbHunterStepAndRetireAtTop(c);
   assert.equal(rc, ro, "sanity: boolean matches oracle");
   assert.notEqual(!rc, ro, "the boolean check rejects a flipped return");
   console.log(`  TEETH/BOOL: correct=${rc}, flipped ${!rc} rejected`);

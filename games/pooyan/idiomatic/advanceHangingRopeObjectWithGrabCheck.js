@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_305f } from "./loc_305f.js";
+import { testHangingRopeGrabConnect } from "./testHangingRopeGrabConnect.js";
 import { tickRopeCellFrameTimer } from "./tickRopeCellFrameTimer.js";
 import { computeRopeCellVramColumn } from "./computeRopeCellVramColumn.js";
 import { blit2x2TileBlock } from "./blit2x2TileBlock.js";
@@ -20,7 +20,7 @@ import { FORMATION_TABLE, ROPE_SEGMENT_TILE_SRC } from "./names.js";
  *
  * ITS ROLE IN THE MACHINE
  *   This is the state-2 carry-down step with one addition: before doing anything else it runs the
- *   rope-grab trigger test loc_305f. That test looks a catch-window half-width up from a per-cell
+ *   rope-grab trigger test testHangingRopeGrabConnect. That test looks a catch-window half-width up from a per-cell
  *   table (keyed by the cell index) and compares it against a window around the player coordinate
  *   PLAYER_Y (0x8a84) — a cell labelled a vertical position but read here as the player's
  *   horizontal position for the catch window. With the player standing inside that window, and only
@@ -63,7 +63,7 @@ export function advanceHangingRopeObjectWithGrabCheck(m, ix = m.regs.ix) {
   // table. If the player is inside the window (and no teardown/formation-launch state is busy) the
   // test fires the grab itself and reports caller-skip, and this handler returns at once, leaving
   // the descent frozen for the caught object. Only a clear test (no grab) falls through.
-  if (!loc_305f(m, ix & 0xff)) return; // grab fired: abandon the cell update
+  if (!testHangingRopeGrabConnect(m, ix & 0xff)) return; // grab fired: abandon the cell update
 
   // Tick this cell's frame timer. The same low two bits of IX pick which of the four stride-2
   // rope-cell timers to decrement. The tick hands back that timer's address and whether it just

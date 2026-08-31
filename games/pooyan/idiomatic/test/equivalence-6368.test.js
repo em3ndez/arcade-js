@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence (caller) gate for resolveProjectileCollisionsBothActorSlots (ROM 0x6368) — the two-pass projectile-proximity
- * driver. It runs the scan seeder seedAndRunTargetProximityScan (which hands off to the scan loc_638a) once per pass:
+ * driver. It runs the scan seeder seedAndRunTargetProximityScan (which hands off to the scan scanTargetSlotsAndSpawnOnProximityHit) once per pass:
  * the first box at the actor-record slot base with the I=0 hit-flag selector, the second box one
  * stride on with the stride (=4) as the selector. The instant a pass CLAIMS a hit, the scan reports
  * it (seedAndRunTargetProximityScan forwards `false`) and this driver ABORTS — the remaining pass is not run. With no
  * hit it runs both passes and falls through.
  *
  * This is a CALLER gate per the cluster brief: it COMPOSES the real idiomatic subtree. The test
- * imports the idiomatic resolveProjectileCollisionsBothActorSlots, which imports the idiomatic seedAndRunTargetProximityScan -> loc_638a -> its idiomatic
+ * imports the idiomatic resolveProjectileCollisionsBothActorSlots, which imports the idiomatic seedAndRunTargetProximityScan -> scanTargetSlotsAndSpawnOnProximityHit -> its idiomatic
  * leaves (setActorAnimation, queueSoundCommand07, enqueueDisplayCommand). The ORACLE resolveProjectileCollisionsBothActorSlots runs the FROZEN translated
  * subtree internally via m.call, whose skip path (pop af; ret) aborts pass 2. The two must land
  * byte-identical in RAM (dumpState) MINUS STACK_SCRATCH. There is no register live-out: runActorUpdatePipeline

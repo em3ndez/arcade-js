@@ -3,7 +3,7 @@
  * Memory-equivalence test for tickEnemySpawnTimerAndGateSpawn (ROM 0x56e8, Pooyan) — the enemy-spawn tick.
  *
  * SEATING: BALANCED (plain ret) -> WIRE. Two callees are dissolved: the even-round arm TAIL-CALLS
- * gateEnemySpawnOnActiveCountAndInit (its seating), and the per-slot loc_572b is a +4 SP caller-skip dissolved to a boolean
+ * gateEnemySpawnOnActiveCountAndInit (its seating), and the per-slot spawnEnemyIntoFreeActorSlot is a +4 SP caller-skip dissolved to a boolean
  * (true = spawned -> abort the sweep). The register file is NOT compared: tickEnemySpawnTimerAndGateSpawn has no register
  * live-out — its caller (serviceEnemySpawns tail, dispatched from the runActiveGameplayFrame straight-line sequence) rets
  * straight after and reads nothing back. Compared on RAM (dumpState) minus STACK_SCRATCH only.
@@ -79,7 +79,7 @@ function craft(cfg) {
   w(STAGEC, cfg.stageC ?? 0x00);
   w(ACTIVE, cfg.active ?? 0x00);
   w(SPEED, cfg.speed ?? 0x00);
-  // loc_572b spawn inputs (consumed only when the sweep reaches an empty slot)
+  // spawnEnemyIntoFreeActorSlot spawn inputs (consumed only when the sweep reaches an empty slot)
   w(DIFFICULTY, 0x01);
   w(GAUGE, 0x00);
   w(BIAS, 0x00);

@@ -4,12 +4,12 @@
  * IX stepping DE each pass, and seed one actor into the first block whose first two bytes are both
  * zero.
  *
- * seedFirstFreeActorBlockFromSpawnTypeTable is the CALLER of the dissolved caller-skip loc_5489 (the block seeder, which pop-af/rets
+ * seedFirstFreeActorBlockFromSpawnTypeTable is the CALLER of the dissolved caller-skip initSpawnedActorRecordAndDeriveSpeed (the block seeder, which pop-af/rets
  * to seedFirstFreeActorBlockFromSpawnTypeTable's own caller). This gate COMPOSES the real idiomatic path: the idiomatic seedFirstFreeActorBlockFromSpawnTypeTable
  * picks the kind byte via the idiomatic table-index helper (fetchByteFromTableIndex), writes it to the block's
- * kind field, then calls the idiomatic loc_5489 and returns — exactly where the oracle's rst-20 +
+ * kind field, then calls the idiomatic initSpawnedActorRecordAndDeriveSpeed and returns — exactly where the oracle's rst-20 +
  * call/pop-af aborted the scan. The oracle side runs the TRANSLATED seedFirstFreeActorBlockFromSpawnTypeTable, which m.call()s the
- * translated fetchByteFromTableIndex / loc_5489 through the registry.
+ * translated fetchByteFromTableIndex / initSpawnedActorRecordAndDeriveSpeed through the registry.
  *
  * Cycle-free / memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
  * STACK_SCRATCH). pc/SP/cycles/registers are NOT compared (seedFirstFreeActorBlockFromSpawnTypeTable has no register live-out — the
@@ -17,7 +17,7 @@
  * count (B), bridged via the register defaults, plus the block bytes, the schedule cursor
  * (0x8d12) and the round counter (0x8907) poked identically on both sides.
  *
- * NOTE: the free-slot cases compose the sibling idiomatic loc_5489; they turn green once that
+ * NOTE: the free-slot cases compose the sibling idiomatic initSpawnedActorRecordAndDeriveSpeed; they turn green once that
  * module lands (the LEAD runs the gate in reconcile). The all-live case is self-contained.
  *
  * Jobs: 1. EQUAL (all-live no-write; seed pass 1; step twice then seed pass 3). 2. WRITE-SET

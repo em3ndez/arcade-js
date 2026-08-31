@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for spawnEnemyOnBlinkCountdownSweep (ROM 0x6a0f) — the enemy-spawn sweep driver, the
- * CALLER that composes the idiomatic per-record spawn loc_6a35 (which composes the idiomatic
+ * CALLER that composes the idiomatic per-record spawn spawnEnemyIntoFreeSlotCyclingAnim (which composes the idiomatic
  * setActorAnimation).
  *
  * The driver first runs three gates: it does nothing while the blink phase is clear, while
@@ -9,7 +9,7 @@
  * (that tick only decrements the countdown). With the gates open it sweeps the enemy-actor
  * records: an already-active record is skipped and the sweep continues; the first empty record
  * is spawned into, and in the frozen layer that record's spawn falls into a `pop af; ret` that
- * unwinds this driver — the idiomatic loop reproduces that with `if (!loc_6a35(...)) return;`.
+ * unwinds this driver — the idiomatic loop reproduces that with `if (!spawnEnemyIntoFreeSlotCyclingAnim(...)) return;`.
  *
  * ORACLE DEFECT (reported to the LEAD): translated/loc_6a0f.js does NOT propagate the skip
  * abort. It is missing the `if (m.pc !== 0x6a2f) return;` check that translated/loc_6404.js
@@ -18,7 +18,7 @@
  * one. So this file:
  *   - diffs the raw caller oracle vs the module only on the paths the oracle gets right (the
  *     three gates + an all-active sweep, none of which take the skip);
- *   - grounds the abort behaviour on the loc_6a35 ORACLE (whose equivalence holds — see
+ *   - grounds the abort behaviour on the spawnEnemyIntoFreeSlotCyclingAnim ORACLE (whose equivalence holds — see
  *     equivalence-6a35.test.js), driven record-by-record, as the correct reference;
  *   - captures the caller-oracle over-spawn as a defect tripwire that flips when the oracle is
  *     fixed, at which point the abort case can move into the raw-oracle diff loop.
@@ -130,7 +130,7 @@ function craftSpawnAbort() {
 }
 
 /**
- * The CORRECT post-abort RAM, built from the loc_6a35 ORACLE (equivalence proven separately):
+ * The CORRECT post-abort RAM, built from the spawnEnemyIntoFreeSlotCyclingAnim ORACLE (equivalence proven separately):
  * drive it over record 0 (already active -> normal ret, no writes) then record 1 (empty ->
  * spawn + skip), and stop — exactly what an abort-propagating caller would leave behind.
  */
@@ -160,7 +160,7 @@ for (const [label, craft] of [
     spawnEnemyOnBlinkCountdownSweep(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (${label})`);
-    console.log(`  EQUAL ${label}: RAM identical (composed idiomatic loc_6a35)`);
+    console.log(`  EQUAL ${label}: RAM identical (composed idiomatic spawnEnemyIntoFreeSlotCyclingAnim)`);
   });
 }
 
@@ -174,9 +174,9 @@ test("EQUAL: gate-countdown decrements the countdown by one", () => {
   console.log("  EQUAL gate-countdown: 0x05 -> 0x04");
 });
 
-// -- 2. ABORT (grounded on the loc_6a35 oracle) ------------------------------
+// -- 2. ABORT (grounded on the spawnEnemyIntoFreeSlotCyclingAnim oracle) ------------------------------
 
-test("ABORT: module == loc_6a35-oracle reference — first empty record spawns, sweep aborts", () => {
+test("ABORT: module == spawnEnemyIntoFreeSlotCyclingAnim-oracle reference — first empty record spawns, sweep aborts", () => {
   const ref = craftAbortReference();
   const c = craftSpawnAbort();
   spawnEnemyOnBlinkCountdownSweep(c);

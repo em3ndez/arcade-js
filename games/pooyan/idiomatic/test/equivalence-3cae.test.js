@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3cae (ROM 0x3cae, Pooyan) — per-record spawn helper,
+ * Memory-equivalence gate for seedFormationChildIntoFreeSlotAndLaunchParent (ROM 0x3cae, Pooyan) — per-record spawn helper,
  * a CALLER-SKIP dissolved into a BOOLEAN-returning module.
  *
  * The oracle ends one path with `ret nz` (the slot is already active -> keep scanning) and the
@@ -11,7 +11,7 @@
  * (derived independently from the oracle's SP movement: +2 for a lone ret, +4 for pop-af + ret).
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). Each case runs the oracle on one
- * FRESH clone and loc_3cae on another and compares RAM (dumpState, minus STACK_SCRATCH). The seat
+ * FRESH clone and seedFormationChildIntoFreeSlotAndLaunchParent on another and compares RAM (dumpState, minus STACK_SCRATCH). The seat
  * path composes the idiomatic setActorAnimation/advanceActorAnimFrame on the module side against the
  * translated loc_381e/loc_403c the oracle dispatches; the two must land byte-identical. IY (the
  * formation record) and IX (the parent) are the inputs; SP is seated in the dead stack. pc and the
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3cae as oracle } from "../../translated/loc_3cae.js";
-import { loc_3cae } from "../loc_3cae.js";
+import { seedFormationChildIntoFreeSlotAndLaunchParent } from "../seedFormationChildIntoFreeSlotAndLaunchParent.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, FORMATION_TABLE } from "../names.js";
@@ -89,12 +89,12 @@ function oracleNormalRet(o) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_3cae == oracle in RAM (−stack), and the boolean tracks the oracle path", () => {
+test("EQUAL: seedFormationChildIntoFreeSlotAndLaunchParent == oracle in RAM (−stack), and the boolean tracks the oracle path", () => {
   for (const occupied of [true, false]) {
     const o = craft({ occupied });
     const c = craft({ occupied });
     oracle(o);
-    const ret = loc_3cae(c);
+    const ret = seedFormationChildIntoFreeSlotAndLaunchParent(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${occupied ? "OCCUPIED" : "FREE"}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -136,7 +136,7 @@ test("TEETH: a wrong seated byte is CAUGHT by the RAM diff", () => {
   const o = craft({ occupied: false });
   const c = craft({ occupied: false });
   oracle(o);
-  loc_3cae(c);
+  seedFormationChildIntoFreeSlotAndLaunchParent(c);
   assert.equal(ramDiffMinusStack(o, c), null, "module agrees before the injected bug");
   c.mem.write8(CHILD + 0x01, DIRT); // BUG: the seated slot-active marker must be 0x01
   const d = ramDiffMinusStack(o, c);
@@ -150,7 +150,7 @@ test("TEETH: a flipped boolean is CAUGHT by the path check", () => {
     const o = craft({ occupied });
     const c = craft({ occupied });
     oracle(o);
-    const ret = loc_3cae(c);
+    const ret = seedFormationChildIntoFreeSlotAndLaunchParent(c);
     const normalRet = oracleNormalRet(o);
     assert.equal(ret, normalRet, "sanity: the module boolean matches the oracle path");
     // a twin that returned the OPPOSITE boolean would fail the path check above

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6931 (ROM 0x6931) — the per-record enemy spawn/init, a
+ * Memory-equivalence test for spawnPairedEnemyRecordAndAnnounceWave (ROM 0x6931) — the per-record enemy spawn/init, a
  * DISSOLVED caller-skip that composes the idiomatic siblings setActorAnimation, enqueueDisplayCommand and
  * queueRoundSoundCommandRun.
  *
  * An already-active record pair takes the plain `ret c` (normal return, SP += 2) and the module
- * returns true (caller keeps sweeping). An empty pair is spawned; loc_6931 then FALLS INTO the
+ * returns true (caller keeps sweeping). An empty pair is spawned; spawnPairedEnemyRecordAndAnnounceWave then FALLS INTO the
  * shared `pop af; ret` (SP += 4), unwinding the caller, and the module returns false. On the first
  * spawn of a wave (WAVE_NUMBER == 0) it additionally queues two display commands and paints the
  * arrival count as two BCD digits before bumping WAVE_NUMBER.
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6931 as oracle } from "../../translated/loc_6931.js";
-import { loc_6931 } from "../loc_6931.js";
+import { spawnPairedEnemyRecordAndAnnounceWave } from "../spawnPairedEnemyRecordAndAnnounceWave.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -110,7 +110,7 @@ function craftSpawnFirst() {
 test("EQUAL: active — module == oracle in RAM (−stack), returns true, normal ret (SP += 2)", () => {
   const o = craftActive();
   const c = craftActive();
-  const ret = loc_6931(c);
+  const ret = spawnPairedEnemyRecordAndAnnounceWave(c);
   oracle(o);
 
   assert.equal(ret, true, "an already-active pair must return true (caller keeps sweeping)");
@@ -127,7 +127,7 @@ for (const [label, craft] of [
   test(`EQUAL: ${label} — module == oracle in RAM (−stack), returns false, skip (SP += 4)`, () => {
     const o = craft();
     const c = craft();
-    const ret = loc_6931(c);
+    const ret = spawnPairedEnemyRecordAndAnnounceWave(c);
     oracle(o);
 
     assert.equal(ret, false, "a spawn must return false (abort the caller)");
@@ -162,7 +162,7 @@ test("WRITE-SET: a first spawn activates both records, seeds fields, arms the de
 
 test("TEETH: a twin that reports a spawn as 'continue' (true) is rejected by the boolean check", () => {
   function brokenContinue(m) {
-    loc_6931(m, IX, IY); // real memory effect
+    spawnPairedEnemyRecordAndAnnounceWave(m, IX, IY); // real memory effect
     return true; // BUG: a spawn must abort the caller -> false
   }
   const c = craftSpawnLater();
@@ -177,7 +177,7 @@ test("TEETH: a wrong seeded field byte is caught by the RAM diff", () => {
   const o = craftSpawnLater();
   const c = craftSpawnLater();
   oracle(o);
-  loc_6931(c, IX, IY);
+  spawnPairedEnemyRecordAndAnnounceWave(c, IX, IY);
   c.mem.write8(IX + 0x04, 0x99); // BUG: field 0x04 must be 0x15
 
   const d = ramDiffMinusStack(o, c);

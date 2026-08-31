@@ -6,7 +6,7 @@
  * and then tail-continues into the actor-record reset chain (0x6166), which resets the record
  * IY points at, enqueues one of two fixed sound commands chosen by ACTIVE_OBJECT_TYPE, and ends
  * in the caller-skip (0x618a) that clears the type and aborts the frame. So a full run exercises
- * engageMatchedSpriteObjectAndResetActor -> resetActorRecordQueueSoundAndAbortFrame -> the sound helper -> loc_618a.
+ * engageMatchedSpriteObjectAndResetActor -> resetActorRecordQueueSoundAndAbortFrame -> the sound helper -> clearActiveObjectTypeAndAbortHandler.
  *
  * Cycle-free memory-equivalence gate composed over the REAL idiomatic chain: the oracle drives
  * the translated chain (its own sound helper + pop-af skip) and the module drives the idiomatic

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7644 (ROM 0x7644, Pooyan) — animation-tick state 0, a DISSOLVED
+ * Memory-equivalence test for tickEnemyAnimAndReseedPoolAtCycleEnd (ROM 0x7644, Pooyan) — animation-tick state 0, a DISSOLVED
  * caller-skip that composes the idiomatic advanceObjectAnimationFrame.
  *
  * An inactive entry ((rec+0)==0) takes `ret z` (SP += 2) and returns true (the walk continues). A
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7644 as oracle } from "../../translated/loc_7638.js";
-import { loc_7644 } from "../loc_7644.js";
+import { tickEnemyAnimAndReseedPoolAtCycleEnd } from "../tickEnemyAnimAndReseedPoolAtCycleEnd.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -97,7 +97,7 @@ function craftReset(borrow) {
 test("EQUAL: inactive — module == oracle in RAM (−stack), returns true, plain ret (SP+=2)", () => {
   const o = craftInactive();
   const c = craftInactive();
-  const ret = loc_7644(c);
+  const ret = tickEnemyAnimAndReseedPoolAtCycleEnd(c);
   oracle(o);
   assert.equal(ret, true, "inactive entry must return true (keep walking)");
   assert.equal(o.regs.sp, (SP0 + 2) & 0xffff, "oracle inactive must take the plain ret z (SP += 2)");
@@ -110,7 +110,7 @@ for (const borrow of [true, false]) {
   test(`EQUAL: animating (borrow=${borrow}) — module == oracle in RAM (−stack), true, ret (SP+=2)`, () => {
     const o = craftAnimating(borrow);
     const c = craftAnimating(borrow);
-    const ret = loc_7644(c);
+    const ret = tickEnemyAnimAndReseedPoolAtCycleEnd(c);
     oracle(o);
     assert.equal(ret, true, "a still-animating tick must return true");
     assert.equal(o.regs.sp, (SP0 + 2) & 0xffff, "oracle animating must take `ret nc` (SP += 2)");
@@ -124,7 +124,7 @@ for (const borrow of [true, false]) {
   test(`EQUAL: reset (borrow=${borrow}) — module == oracle in RAM (−stack), false, skip (SP+=4)`, () => {
     const o = craftReset(borrow);
     const c = craftReset(borrow);
-    const ret = loc_7644(c);
+    const ret = tickEnemyAnimAndReseedPoolAtCycleEnd(c);
     oracle(o);
     assert.equal(ret, false, "a frame-elapsed reset must return false (abort the walk)");
     assert.equal(o.regs.sp, (SP0 + 4) & 0xffff, "oracle reset must fall into pop-af/ret (SP += 4)");
@@ -161,7 +161,7 @@ test("WRITE-SET: a still-animating tick advances (rec+5) and holds the animation
 
 test("TEETH: a twin that reports the reset as 'continue' (true) is rejected by the boolean check", () => {
   function brokenContinue(m) {
-    loc_7644(m);
+    tickEnemyAnimAndReseedPoolAtCycleEnd(m);
     return true; // BUG: a reset must abort the walk -> false
   }
   const c = craftReset(true);
@@ -176,7 +176,7 @@ test("TEETH: a wrong reset byte is caught by the RAM diff", () => {
   const o = craftReset(true);
   const c = craftReset(true);
   oracle(o);
-  loc_7644(c);
+  tickEnemyAnimAndReseedPoolAtCycleEnd(c);
   c.mem.write8(COUNTDOWN, 0x99); // BUG: the reset must load 0x20
 
   const d = ramDiffMinusStack(o, c);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_76a6 (ROM 0x76a6, Pooyan) — animation-tick state 2, which composes
+ * Memory-equivalence test for holdEnemyAnimGatedByDrawnFlag (ROM 0x76a6, Pooyan) — animation-tick state 2, which composes
  * the idiomatic advanceObjectAnimationFrame. It never caller-skips: it always takes the plain `ret` (SP += 2) and
  * returns true (the walk always continues).
  *
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_76a6 as oracle } from "../../translated/loc_7638.js";
-import { loc_76a6 } from "../loc_76a6.js";
+import { holdEnemyAnimGatedByDrawnFlag } from "../holdEnemyAnimGatedByDrawnFlag.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -80,7 +80,7 @@ for (const [label, craft] of [["closed", craftClosed], ["open", craftOpen]]) {
   test(`EQUAL: gate ${label} — module == oracle in RAM (−stack), returns true, plain ret (SP+=2)`, () => {
     const o = craft();
     const c = craft();
-    const ret = loc_76a6(c);
+    const ret = holdEnemyAnimGatedByDrawnFlag(c);
     oracle(o);
     assert.equal(ret, true, "state 2 must always return true (keep walking)");
     assert.equal(o.regs.sp, (SP0 + 2) & 0xffff, "oracle must take the plain ret (SP += 2)");
@@ -109,7 +109,7 @@ test("TEETH: a twin that steps while the gate is closed is caught by the RAM dif
   const o = craftClosed();
   const c = craftClosed();
   oracle(o);
-  loc_76a6(c);
+  holdEnemyAnimGatedByDrawnFlag(c);
   c.mem.write8(HOLD, 0x04); // BUG: a closed gate must leave the hold at 0x05
 
   const d = ramDiffMinusStack(o, c);
@@ -120,7 +120,7 @@ test("TEETH: a twin that steps while the gate is closed is caught by the RAM dif
 
 test("TEETH: a twin that returns false is rejected by the boolean check", () => {
   function brokenAbort(m) {
-    loc_76a6(m);
+    holdEnemyAnimGatedByDrawnFlag(m);
     return false; // BUG: state 2 must never abort the walk
   }
   const c = craftOpen();

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_119a } from "./loc_119a.js";
+import { seedFreeEnemyRecordFromRoundTables } from "./seedFreeEnemyRecordFromRoundTables.js";
 /**
  * spawnHunterIntoFreeSlot — the enemy-spawn SLOT SWEEP.
  *
@@ -62,7 +62,7 @@ export function spawnHunterIntoFreeSlot(m, count = m.regs.b, rec = m.regs.ix, ac
     // record untouched and reports that back; on a free record it stamps in a whole fresh enemy.
     // The reported value is the record's PRIOR liveness — true = it was already active, false =
     // this pass just seeded it.
-    const alreadyActive = loc_119a(m, record, POSITION_SEED);
+    const alreadyActive = seedFreeEnemyRecordFromRoundTables(m, record, POSITION_SEED);
 
     // A SLOT WAS CLAIMED (ROM 0x118d loop control). When the record was free and has just been
     // seeded, reload the remaining count from the activation index. From here the number of further

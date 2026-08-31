@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_5b99 } from "./loc_5b99.js";
+import { testEnemyRecordHitAndRegister } from "./testEnemyRecordHitAndRegister.js";
 import { ENEMY_ACTOR_TABLE } from "./names.js";
 /**
  * scanEnemyRecordsForCollision — sweep the per-record collision check across the six enemy-actor records.
@@ -54,7 +54,7 @@ export function scanEnemyRecordsForCollision(m) {
     // resumes above this driver and the rest of the master updater's work for this record set is
     // skipped for the frame. That short-circuit shows up here as an immediate return the moment the
     // check reports a hit — no further records are tested this frame.
-    if (!loc_5b99(m, record)) return; // hit -> abort the sweep
+    if (!testEnemyRecordHitAndRegister(m, record)) return; // hit -> abort the sweep
     // Clean pass: advance the pointer one 0x18-byte stride to the next enemy-actor record. u16 keeps
     // the address inside the 16-bit work-RAM space so the walk stays within the actor arena.
     record = u16(record + RECORD_STRIDE);

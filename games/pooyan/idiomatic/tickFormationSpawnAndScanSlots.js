@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_2bbf } from "./loc_2bbf.js";
+import { stageFormationReadyMarkersOrSkipTick } from "./stageFormationReadyMarkersOrSkipTick.js";
 import { scanFormationSlotsAndLaunchFree } from "./scanFormationSlotsAndLaunchFree.js";
 import { WAVE_ARRIVAL_COUNTER, FORMATION_SPAWN_TIMER, FORMATION_SPAWN_TABLE } from "./names.js";
 /**
@@ -21,7 +21,7 @@ import { WAVE_ARRIVAL_COUNTER, FORMATION_SPAWN_TIMER, FORMATION_SPAWN_TABLE } fr
  *   This is the pacing valve for enemy arrivals. The play field never fills instantly; the
  *   spawn countdown FORMATION_SPAWN_TIMER (0x8d30) meters the arrivals, and this tick is what
  *   turns each frame into either "still waiting", "still staging the wave", or "time to
- *   launch one". It sits above two helpers — the ready-sprite staging helper (loc_2bbf) that
+ *   launch one". It sits above two helpers — the ready-sprite staging helper (stageFormationReadyMarkersOrSkipTick) that
  *   handles the pre-flight markers, and the slot scan (scanFormationSlotsAndLaunchFree) that
  *   performs the actual launch.
  *
@@ -29,7 +29,7 @@ import { WAVE_ARRIVAL_COUNTER, FORMATION_SPAWN_TIMER, FORMATION_SPAWN_TABLE } fr
  *
  * GROUNDING: [seen]. Every cell and helper it touches is [seen]: the per-stage arrival count
  *   WAVE_ARRIVAL_COUNTER (0x8903), the spawn countdown FORMATION_SPAWN_TIMER (0x8d30), the
- *   record table FORMATION_SPAWN_TABLE (0x8c60), the ready-sprite helper loc_2bbf (0x2bbf),
+ *   record table FORMATION_SPAWN_TABLE (0x8c60), the ready-sprite helper stageFormationReadyMarkersOrSkipTick (0x2bbf),
  *   and the slot scan scanFormationSlotsAndLaunchFree (0x2bb3).
  *
  * LIVE-OUT (memory only — no register result is read back by the caller):
@@ -61,11 +61,11 @@ export function tickFormationSpawnAndScanSlots(m) {
   // 0 or 1) do the ready markers still need staging, so only then do we call the helper.
   const wave = mem8[WAVE_ARRIVAL_COUNTER];
   if (wave < WAVE_LOW) {
-    // Run the ready-sprite staging helper (loc_2bbf, 0x2bbf), fed the arrival count. It
+    // Run the ready-sprite staging helper (stageFormationReadyMarkersOrSkipTick, 0x2bbf), fed the arrival count. It
     // makes sure the correct marker artwork is on screen for the wave, and returns a
     // boolean: true = normal (keep going with the tick), false = the formation indicator is
     // already fully staged this frame, so abandon the whole tick and try again next frame.
-    if (!loc_2bbf(m, wave)) return; // indicator already painted -> abandon the tick
+    if (!stageFormationReadyMarkersOrSkipTick(m, wave)) return; // indicator already painted -> abandon the tick
   }
 
   // --- Step 2: service the inter-launch spawn countdown. ---

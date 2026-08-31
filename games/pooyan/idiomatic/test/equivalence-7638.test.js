@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7638 (ROM 0x7638, Pooyan) — the per-entry animation-tick
+ * Memory-equivalence test for dispatchEnemyActorAnimTickState (ROM 0x7638, Pooyan) — the per-entry animation-tick
  * dispatcher, a DISSOLVED caller-skip propagator. It selects a tick-state handler by the low two
  * bits of the entry's state byte (0/1/2) and tail-hands to it, returning the handler's control-flow
  * boolean straight through.
@@ -30,8 +30,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7638 as oracle } from "../../translated/loc_7638.js";
-import { loc_7638 } from "../loc_7638.js";
-import { loc_76a6 } from "../loc_76a6.js"; // for the mis-route teeth twin
+import { dispatchEnemyActorAnimTickState } from "../dispatchEnemyActorAnimTickState.js";
+import { holdEnemyAnimGatedByDrawnFlag } from "../holdEnemyAnimGatedByDrawnFlag.js"; // for the mis-route teeth twin
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -70,7 +70,7 @@ function seatDispatch(state) {
   return m;
 }
 
-/** state 0, live, frame stays >= 6 -> loc_7644 animating (true). */
+/** state 0, live, frame stays >= 6 -> tickEnemyAnimAndReseedPoolAtCycleEnd animating (true). */
 function craftState0Animating() {
   const m = seatDispatch(0x00);
   m.mem.write8(REC + 0x00, 0x01);
@@ -80,7 +80,7 @@ function craftState0Animating() {
   return m;
 }
 
-/** state 0, live, frame drops below 6 -> loc_7644 reset (false). */
+/** state 0, live, frame drops below 6 -> tickEnemyAnimAndReseedPoolAtCycleEnd reset (false). */
 function craftState0Reset() {
   const m = seatDispatch(0x00);
   m.mem.write8(REC + 0x00, 0x01);
@@ -90,14 +90,14 @@ function craftState0Reset() {
   return m;
 }
 
-/** state 1, countdown running -> loc_7675 decrement (true). */
+/** state 1, countdown running -> drainPhaseCountdownAndReseedWave decrement (true). */
 function craftState1Running() {
   const m = seatDispatch(0x01);
   m.mem.write8(COUNTDOWN, 0x05);
   return m;
 }
 
-/** state 1, countdown expired -> loc_7675 reseed (false). Reseed targets pre-set to known non-target
+/** state 1, countdown expired -> drainPhaseCountdownAndReseedWave reseed (false). Reseed targets pre-set to known non-target
  * values so a mis-route (no reseed) diverges regardless of boot RAM. */
 function craftState1Expired() {
   const m = seatDispatch(0x01);
@@ -108,14 +108,14 @@ function craftState1Expired() {
   return m;
 }
 
-/** state 2, gate closed -> loc_76a6 hold (true). */
+/** state 2, gate closed -> holdEnemyAnimGatedByDrawnFlag hold (true). */
 function craftState2Closed() {
   const m = seatDispatch(0x02);
   m.mem.write8(DRAWN, 0x01);
   return m;
 }
 
-/** state 2, gate open -> loc_76a6 step (true). */
+/** state 2, gate open -> holdEnemyAnimGatedByDrawnFlag step (true). */
 function craftState2Open() {
   const m = seatDispatch(0x02);
   m.mem.write8(DRAWN, 0x00);
@@ -135,7 +135,7 @@ for (const [label, craft, wantRet, spDelta] of [
   test(`EQUAL: ${label} — module == oracle in RAM (−stack), ret ${wantRet}, SP+=${spDelta}`, () => {
     const o = craft();
     const c = craft();
-    const ret = loc_7638(c);
+    const ret = dispatchEnemyActorAnimTickState(c);
     oracle(o);
     assert.equal(ret, wantRet, `${label}: boolean must match the handler's path`);
     assert.equal(o.regs.sp, (SP0 + spDelta) & 0xffff, `${label}: oracle SP delta must be +${spDelta}`);
@@ -164,8 +164,8 @@ test("WRITE-SET: state 1 expiry drives the reseed; state 0 reset reloads the sha
 test("TEETH: a mis-routed twin (state 1 handled as state 2) is caught by the RAM diff", () => {
   const o = craftState1Expired();
   const c = craftState1Expired();
-  oracle(o); // correct: routes state 1 -> loc_7675 (reseed)
-  loc_76a6(c); // BUG: a dispatcher that routed state 1 to the state-2 handler (no reseed)
+  oracle(o); // correct: routes state 1 -> drainPhaseCountdownAndReseedWave (reseed)
+  holdEnemyAnimGatedByDrawnFlag(c); // BUG: a dispatcher that routed state 1 to the state-2 handler (no reseed)
 
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "gate FAILED to catch a mis-routed dispatch — worthless");
@@ -175,7 +175,7 @@ test("TEETH: a mis-routed twin (state 1 handled as state 2) is caught by the RAM
 
 test("TEETH: an expiry reported as 'continue' (true) is rejected by the boolean check", () => {
   function brokenContinue(m) {
-    loc_7638(m);
+    dispatchEnemyActorAnimTickState(m);
     return true; // BUG: a state-1 expiry must propagate false (abort the walk)
   }
   const c = craftState1Expired();

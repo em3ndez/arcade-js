@@ -2,14 +2,14 @@
 /**
  * Memory-equivalence test for tickSpawnTimerAndSeedFreeEnemy (ROM 0x1171, Pooyan) — enemy spawn-cadence tick.
  *
- * tickSpawnTimerAndSeedFreeEnemy is the CALLER of the caller-skip loc_119a. In the oracle its record sweep calls 0x119a
+ * tickSpawnTimerAndSeedFreeEnemy is the CALLER of the caller-skip seedFreeEnemyRecordFromRoundTables. In the oracle its record sweep calls 0x119a
  * per record; when 0x119a seeds a free record it does `pop af; ret` (a skip that aborts the sweep
  * and returns from tickSpawnTimerAndSeedFreeEnemy). The idiomatic caller drops the stack plumbing: it imports the
- * idiomatic loc_119a and `if (!loc_119a(...)) return;` — false (the seed path) aborts the sweep.
+ * idiomatic seedFreeEnemyRecordFromRoundTables and `if (!seedFreeEnemyRecordFromRoundTables(...)) return;` — false (the seed path) aborts the sweep.
  *
- * This composes the REAL idiomatic loc_119a. The skip-taken arm therefore REQUIRES loc_119a to be
+ * This composes the REAL idiomatic seedFreeEnemyRecordFromRoundTables. The skip-taken arm therefore REQUIRES seedFreeEnemyRecordFromRoundTables to be
  * a boolean-returning module (true = the `ret c` already-active path, false = the `pop af; ret`
- * seed path). loc_119a was decompiled in an earlier leaves-first pass and currently returns
+ * seed path). seedFreeEnemyRecordFromRoundTables was decompiled in an earlier leaves-first pass and currently returns
  * undefined on both paths — until it is re-dissolved to a boolean, the SKIP-TAKEN-MID-SWEEP arm
  * fails (the caller aborts after the first record instead of at the first FREE record). See the
  * agent notes for tickSpawnTimerAndSeedFreeEnemy.
@@ -64,10 +64,10 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Seat the guard cells; make each record in `active` already-active (odd id -> loc_119a skips it). */
+/** Seat the guard cells; make each record in `active` already-active (odd id -> seedFreeEnemyRecordFromRoundTables skips it). */
 function craft({ timer, stage = 0x20, active = 0, activeRecords = [] }) {
   const m = BASE.clone();
-  m.regs.sp = 0x8fe0; // in STACK_SCRATCH: the m.call pushes + loc_119a's skip-pop hit dead RAM
+  m.regs.sp = 0x8fe0; // in STACK_SCRATCH: the m.call pushes + seedFreeEnemyRecordFromRoundTables's skip-pop hit dead RAM
   m.mem.write8(SPAWN_TIMER, timer);
   m.mem.write8(STAGE, stage);
   m.mem.write8(ACTIVE, active);
@@ -102,7 +102,7 @@ test("EQUAL: all records active — sweep completes, seeds nothing", () => {
   console.log("  EQUAL/all-active: identical (RAM −stack), no record seeded");
 });
 
-test("EQUAL: skip taken mid-sweep — only the first FREE record (2) is seeded [requires boolean loc_119a]", () => {
+test("EQUAL: skip taken mid-sweep — only the first FREE record (2) is seeded [requires boolean seedFreeEnemyRecordFromRoundTables]", () => {
   const o = craft(SKIP_MID);
   const c = craft(SKIP_MID);
   oracle(o);
@@ -113,7 +113,7 @@ test("EQUAL: skip taken mid-sweep — only the first FREE record (2) is seeded [
     null,
     d &&
       `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}. If this points at ${hx(rec(2))} ` +
-      `the module aborted at record 0 — loc_119a must return a boolean (true=already-active, false=seeded).`,
+      `the module aborted at record 0 — seedFreeEnemyRecordFromRoundTables must return a boolean (true=already-active, false=seeded).`,
   );
   // The oracle seeds record 2 (first free); records 3..5 stay untouched.
   assert.equal(o.mem.read8(rec(2)), 0x01, "sanity: oracle seeded record 2 active");

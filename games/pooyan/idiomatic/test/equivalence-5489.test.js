@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5489 (ROM 0x5489, Pooyan) — initialise an actor record at IX.
+ * Memory-equivalence test for initSpawnedActorRecordAndDeriveSpeed (ROM 0x5489, Pooyan) — initialise an actor record at IX.
  *
  * Seeds the opening field bytes, looks up the record's animation sequence from the pointer table at
  * 0x5657 by its kind byte (rec+0x17) and installs it (rec+0x0c..0x0e), seats the dwell countdown
@@ -28,7 +28,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5489 as oracle } from "../../translated/loc_5489.js";
-import { loc_5489 } from "../loc_5489.js";
+import { initSpawnedActorRecordAndDeriveSpeed } from "../initSpawnedActorRecordAndDeriveSpeed.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -73,7 +73,7 @@ const animHi = (m, kind) => m.mem.read8(ANIM_TABLE + 2 * kind + 1);
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: init over (kind, round, seed) combinations — loc_5489 == oracle in RAM (−stack)", () => {
+test("EQUAL: init over (kind, round, seed) combinations — initSpawnedActorRecordAndDeriveSpeed == oracle in RAM (−stack)", () => {
   const cases = [
     [0x00, 0x00, 0x00],
     [0x01, 0x02, 0x11],
@@ -85,7 +85,7 @@ test("EQUAL: init over (kind, round, seed) combinations — loc_5489 == oracle i
     const o = craft(kind, round, seed);
     const c = craft(kind, round, seed);
     oracle(o);
-    loc_5489(c);
+    initSpawnedActorRecordAndDeriveSpeed(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null,
       d && `kind=${hx(kind)} round=${hx(round)}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -134,7 +134,7 @@ test("TEETH: a wrong negated-speed byte is CAUGHT by the RAM diff", () => {
   const o = craft(0x02, 0x05, 0x33);
   const c = craft(0x02, 0x05, 0x33);
   oracle(o);
-  loc_5489(c);
+  initSpawnedActorRecordAndDeriveSpeed(c);
   const correct = c.mem.read8(REC + 0x0a);
   c.mem.write8(REC + 0x0a, correct ^ 0xff); // BUG: rec+0x0a must be the two's-complement speed
   const d = ramDiffMinusStack(o, c);
@@ -147,7 +147,7 @@ test("TEETH: a cleared active flag is CAUGHT by the RAM diff", () => {
   const o = craft(0x01, 0x02, 0x11);
   const c = craft(0x01, 0x02, 0x11);
   oracle(o);
-  loc_5489(c);
+  initSpawnedActorRecordAndDeriveSpeed(c);
   c.mem.write8(REC + 0x00, 0x00); // BUG: the init must set the active flag to 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a cleared active flag");
@@ -156,7 +156,7 @@ test("TEETH: a cleared active flag is CAUGHT by the RAM diff", () => {
 });
 
 test("TEETH: a returns-true twin is CAUGHT by the boolean check", () => {
-  assert.throws(() => assert.equal(((m) => (loc_5489(m), true))(craft(0x00, 0x00, 0x00)), false),
+  assert.throws(() => assert.equal(((m) => (initSpawnedActorRecordAndDeriveSpeed(m), true))(craft(0x00, 0x00, 0x00)), false),
     "the caller-skip must always return false");
   console.log("  TEETH(boolean): returns-true twin caught");
 });

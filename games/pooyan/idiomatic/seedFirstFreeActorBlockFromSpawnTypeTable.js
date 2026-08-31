@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
-import { loc_5489 } from "./loc_5489.js";
+import { initSpawnedActorRecordAndDeriveSpeed } from "./initSpawnedActorRecordAndDeriveSpeed.js";
 import { ACTOR_SPAWN_TYPE_TABLE, SPAWN_TYPE_CURSOR } from "./names.js";
 
 /**
@@ -19,9 +19,9 @@ import { ACTOR_SPAWN_TYPE_TABLE, SPAWN_TYPE_CURSOR } from "./names.js";
  * constructor to be brought to life. Exactly one actor is created per call; if no record is free the
  * routine simply returns having changed nothing.
  *
- * ITS ROLE IN THE MACHINE. It is one of the actor allocators that feed the constructor tail loc_5489
+ * ITS ROLE IN THE MACHINE. It is one of the actor allocators that feed the constructor tail initSpawnedActorRecordAndDeriveSpeed
  * (ROM 0x5489). Whichever spawn path finds a free slot writes the chosen kind into that slot's +0x17
- * kind field and calls into loc_5489, which finishes the record — marking it live, installing its
+ * kind field and calls into initSpawnedActorRecordAndDeriveSpeed, which finishes the record — marking it live, installing its
  * animation, seating a dwell countdown, and computing its starting speed. A successful spawn ends the
  * whole attempt, so this routine stops the walk the instant it has seeded one record.
  *
@@ -61,7 +61,7 @@ export function seedFirstFreeActorBlockFromSpawnTypeTable(m, base = m.regs.ix, s
       mem8[u16(cursor + KIND_FIELD)] = kind;
       // Bring the record to life through the shared constructor at ROM 0x5489, passing the per-spawn
       // count/parameter datum. One spawn ends the whole attempt, so return without walking further.
-      loc_5489(m, cursor, SEED_COUNT); // seed the free block; returns to our caller
+      initSpawnedActorRecordAndDeriveSpeed(m, cursor, SEED_COUNT); // seed the free block; returns to our caller
       return;
     }
     // Record was live: advance to the next record base (16-bit wrapped) and count this one off. The

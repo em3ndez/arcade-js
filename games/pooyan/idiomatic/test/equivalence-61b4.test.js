@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_61b4 (ROM 0x61b4, Pooyan) — the collision handler. It finds the
+ * Memory-equivalence test for resolveOddRoundCollisionAndAward (ROM 0x61b4, Pooyan) — the collision handler. It finds the
  * target slot whose tag matches the record; a busy slot or no match falls back to the proximity
  * gate. A matched slot dispatches on the high nibble of its state byte; one nibble (and the
  * default) runs the award path, which latches the actor onto the record, steps the round-indexed
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_61b4 as oracle } from "../../translated/loc_61b4.js";
-import { loc_61b4 } from "../loc_61b4.js";
+import { resolveOddRoundCollisionAndAward } from "../resolveOddRoundCollisionAndAward.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -114,12 +114,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_61b4 == oracle in RAM (−stack) + boolean", () => {
+test("EQUAL: resolveOddRoundCollisionAndAward == oracle in RAM (−stack) + boolean", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    const ret = loc_61b4(c);
+    const ret = resolveOddRoundCollisionAndAward(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, cfg.ret, `${cfg.name}: boolean must be ${cfg.ret}`);
@@ -144,7 +144,7 @@ test("TEETH: a wrong animation byte is CAUGHT by the RAM diff", () => {
   const o = craftAward();
   const c = craftAward();
   oracle(o);
-  loc_61b4(c);
+  resolveOddRoundCollisionAndAward(c);
   c.mem.write8(OBJ + 0x0c, (o.mem.read8(OBJ + 0x0c) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted animation byte");
@@ -154,11 +154,11 @@ test("TEETH: a wrong animation byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a pathA-returns-false twin and an award-returns-true twin are CAUGHT by the boolean", () => {
   assert.throws(
-    () => assert.equal(((m) => (loc_61b4(m), false))(craftPathAHit()), true),
+    () => assert.equal(((m) => (resolveOddRoundCollisionAndAward(m), false))(craftPathAHit()), true),
     "the pathA finder-main must continue -> true",
   );
   assert.throws(
-    () => assert.equal(((m) => (loc_61b4(m), true))(craftAward()), false),
+    () => assert.equal(((m) => (resolveOddRoundCollisionAndAward(m), true))(craftAward()), false),
     "the award path must abort -> false",
   );
   console.log("  TEETH(boolean): pathA-false and award-true twins caught");

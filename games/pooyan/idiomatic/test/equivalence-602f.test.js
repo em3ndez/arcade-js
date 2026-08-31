@@ -31,7 +31,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_602f as oracle } from "../../translated/loc_602f.js";
 import { resolveObjectProximityHitsBothSlots } from "../resolveObjectProximityHitsBothSlots.js";
-import { loc_6048 } from "../loc_6048.js";
+import { latchObjectTypeAndEnterProximityScan } from "../latchObjectTypeAndEnterProximityScan.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -106,7 +106,7 @@ function craftSlot0Hit() {
 function craftSlot1HitParity() {
   const m = seat(BASE.clone(), { blockA: 0x00, lead: 0x01 });
   m.mem.write8(EAT + 0 * STRIDE + 0x14, KEY); // enemy record 0 matches...
-  m.mem.write8(EAT + 0 * STRIDE + 0x16, 0x02); // ...bit1 set -> loc_60bc parity write -> abort
+  m.mem.write8(EAT + 0 * STRIDE + 0x16, 0x02); // ...bit1 set -> resolveShotHitEngageOrSeedRecord parity write -> abort
   m.regs.i = 0x00; // != slot-1 selector (2); the oracle re-seats it, so only a dropped thread reads this
   return m;
 }
@@ -124,7 +124,7 @@ function skipIgnoringTwin(m) {
   for (let slot = 0; slot < 2; slot++) {
     m.regs.iy = target;
     m.regs.i = slot === 0 ? 0 : 2;
-    loc_6048(m); // return ignored -> the abort is dropped
+    latchObjectTypeAndEnterProximityScan(m); // return ignored -> the abort is dropped
     target = (target + 4) & 0xffff;
   }
 }

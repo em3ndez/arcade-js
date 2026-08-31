@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for clearAimIndicatorUnlessProximityHit (ROM 0x6c18, Pooyan) — the proximity-scan caller that
- * dissolves the loc_6c3f caller-skip. The oracle fixes ix = SPRITE_DISPLAY_LIST and walks three
- * projectile records (iy stride 4, hl stride 0x18), calling loc_6c3f per pass; the skip's
+ * dissolves the testTargetProximityAndSetAimDirection caller-skip. The oracle fixes ix = SPRITE_DISPLAY_LIST and walks three
+ * projectile records (iy stride 4, hl stride 0x18), calling testTargetProximityAndSetAimDirection per pass; the skip's
  * `pop af; ret` aborts the whole scan on the first hit. If no pass hits, the oracle clears the
  * above/below aim bits on PLAYER_AIM_FLAGS and zeroes PROXIMITY_HIT_FLAG.
  *
  * This gate COMPOSES the real idiomatic skip: the imported idiomatic clearAimIndicatorUnlessProximityHit imports the
- * idiomatic loc_6c3f, and the oracle clearAimIndicatorUnlessProximityHit runs the TRANSLATED loc_6c3f through m.call (the
+ * idiomatic testTargetProximityAndSetAimDirection, and the oracle clearAimIndicatorUnlessProximityHit runs the TRANSLATED testTargetProximityAndSetAimDirection through m.call (the
  * default registry). The two must land byte-identical. The oracle's push16/call trampolines
  * write only STACK_SCRATCH (sp seated there), which is excluded; the module spends no stack. So
  * the contract compared is RAM (dumpState, minus STACK_SCRATCH). No register is a live-out (the

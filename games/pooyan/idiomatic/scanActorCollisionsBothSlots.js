@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_6435 } from "./loc_6435.js";
+import { scanObjectBankForActorCollision } from "./scanObjectBankForActorCollision.js";
 import { PLAY_MODE_LATCH, ROUND_COUNTER, SPRITE_ACTOR_RECORD_SLOTS } from "./names.js";
 
 // ---------------------------------------------------------------------------
 // Two-pass tuning constants.
 //
-// The driver runs the per-actor proximity scan (loc_6435) PASSES (2) times per
+// The driver runs the per-actor proximity scan (scanObjectBankForActorCollision) PASSES (2) times per
 // frame, once for each of two adjacent actor coordinate boxes. Between passes it
 // walks the actor pointer forward one coordinate slot — ACTOR_STRIDE (4 bytes,
 // the stride of the stride-4 sprite coordinate slots) — and swaps the pass
@@ -27,12 +27,12 @@ const PASS2_SELECTOR = 0x04; // slot-parity selector handed to the second pass
  *   spawned-object / projectile bank, run twice — once per adjacent coordinate
  *   box. It is one of the per-record collision passes fired in fixed order by the
  *   master actor updater each frame; the heavy lifting is in the per-actor scan
- *   loc_6435, and this routine is just the guarded two-pass wrapper around it.
+ *   scanObjectBankForActorCollision, and this routine is just the guarded two-pass wrapper around it.
  *
  * ROLE IN THE MACHINE
  *   Enemies and objects are killed when a shot/actor box overlaps them. This
  *   driver walks the actor's own coordinate record (screen X at +0, Y at +2)
- *   past two neighbouring boxes and hands each to loc_6435, which tests that box
+ *   past two neighbouring boxes and hands each to scanObjectBankForActorCollision, which tests that box
  *   against up to three live objects and, on the first overlap, tears the struck
  *   object down and tallies the hit. A collision in either pass aborts the whole
  *   driver for the frame, so the remaining box goes unscanned once something is
@@ -42,7 +42,7 @@ const PASS2_SELECTOR = 0x04; // slot-parity selector handed to the second pass
  *
  * LIVE-OUT: none — the caller resumes on its own state; only the scan's memory
  * effects remain (the struck object's record, the raised per-slot hit flag, the
- * bumped hit tally, and the queued sound/display effects, all written by loc_6435).
+ * bumped hit tally, and the queued sound/display effects, all written by scanObjectBankForActorCollision).
  */
 export function scanActorCollisionsBothSlots(m) {
   const { mem8 } = m;
@@ -60,12 +60,12 @@ export function scanActorCollisionsBothSlots(m) {
   let actor = SPRITE_ACTOR_RECORD_SLOTS;
   let selector = 0x00;
   for (let pass = 0; pass < PASSES; pass++) {
-    // Scan this actor box against the object bank. loc_6435 returns true when
+    // Scan this actor box against the object bank. scanObjectBankForActorCollision returns true when
     // nothing was in range (keep sweeping) and false when it hit — a hit runs
     // the object teardown, which ends in the terminator guard that always
     // reports false and unwinds the frame. Propagate that: abort the driver and
     // leave the second box unscanned.
-    if (!loc_6435(m, actor, selector)) return; // collision -> abort the driver
+    if (!scanObjectBankForActorCollision(m, actor, selector)) return; // collision -> abort the driver
     // Advance to the neighbouring box (one coordinate slot on) and switch to the
     // second-pass selector so the next box records its hit into the other
     // per-slot flag cell.

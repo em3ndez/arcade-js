@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_6048 } from "./loc_6048.js";
+import { latchObjectTypeAndEnterProximityScan } from "./latchObjectTypeAndEnterProximityScan.js";
 import { SPRITE_ACTOR_RECORD_SLOTS } from "./names.js";
 /**
  * resolveObjectProximityHitsBothSlots — run the single-slot object-proximity
@@ -9,17 +9,17 @@ import { SPRITE_ACTOR_RECORD_SLOTS } from "./names.js";
  * WHAT IT IS
  *   ROM 0x602f. One of the eleven per-frame collision passes the master actor
  *   updater fires in a fixed order every frame. Its whole job is to drive the
- *   single-slot proximity scan (loc_6048, ROM 0x6048) across the two target
+ *   single-slot proximity scan (latchObjectTypeAndEnterProximityScan, ROM 0x6048) across the two target
  *   boxes that sit back-to-back at SPRITE_ACTOR_RECORD_SLOTS (0x8848), four
  *   bytes apart, so an object that has come within reach of either box is
  *   caught and resolved.
  *
  * ROLE IN THE MACHINE
- *   Each pass hands loc_6048 two things: a slot selector and the base address
- *   of that box. The selector does double duty — inside loc_6048 it picks the
+ *   Each pass hands latchObjectTypeAndEnterProximityScan two things: a slot selector and the base address
+ *   of that box. The selector does double duty — inside latchObjectTypeAndEnterProximityScan it picks the
  *   slot's presence record (record 0 at ENEMY_TARGET_REC0 0x8c90 for slot 0,
  *   record 1 at ENEMY_TARGET_REC1 0x8ca8 otherwise), and it also rides
- *   downstream as the parity/hit-flag tag the scan forwards. loc_6048 reports
+ *   downstream as the parity/hit-flag tag the scan forwards. latchObjectTypeAndEnterProximityScan reports
  *   back true = the scan finished clean, false = an object hit landed and the
  *   frame must unwind. On a hit this routine returns at once, so the remaining
  *   box is left unscanned and at most one hit is resolved per frame.
@@ -29,13 +29,13 @@ import { SPRITE_ACTOR_RECORD_SLOTS } from "./names.js";
  *
  * LIVE-OUT
  *   Memory only — no caller reads back a register. Everything a hit changes,
- *   loc_6048 and its scan write into the target and object records; this
+ *   latchObjectTypeAndEnterProximityScan and its scan write into the target and object records; this
  *   routine only sequences the two passes and short-circuits the frame on the
  *   first hit.
  */
 const SLOT_COUNT = 2; // two target boxes to sweep this frame
 const SLOT_STRIDE = 4; // the two boxes lie four bytes apart (0x8848 then 0x884c)
-const SLOT1_SELECTOR = 2; // selector for the second box: any nonzero routes loc_6048 to presence record 1, and this exact value is the parity tag the scan forwards
+const SLOT1_SELECTOR = 2; // selector for the second box: any nonzero routes latchObjectTypeAndEnterProximityScan to presence record 1, and this exact value is the parity tag the scan forwards
 
 export function resolveObjectProximityHitsBothSlots(m) {
   // Aim the cursor at the base of the first target box, SPRITE_ACTOR_RECORD_SLOTS
@@ -49,10 +49,10 @@ export function resolveObjectProximityHitsBothSlots(m) {
   // pass's parity tag.
   for (let slot = 0; slot < SLOT_COUNT; slot++) {
     // Run the single-slot proximity scan for this box, forwarding the slot
-    // selector and the box base. loc_6048 returns false when an object hit lands,
+    // selector and the box base. latchObjectTypeAndEnterProximityScan returns false when an object hit lands,
     // and a hit must unwind the frame — so bail immediately, leaving the remaining
     // box unscanned and resolving only one hit per frame.
-    if (!loc_6048(m, slot === 0 ? 0 : SLOT1_SELECTOR, target)) return; // a hit skip-returns past the remaining slot
+    if (!latchObjectTypeAndEnterProximityScan(m, slot === 0 ? 0 : SLOT1_SELECTOR, target)) return; // a hit skip-returns past the remaining slot
 
     // No hit: advance the cursor by one box (0x8848 -> 0x884c), held to 16 bits
     // like the address register the machine walks it in, and scan the next slot.

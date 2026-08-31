@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for spawnPairedEnemyOnDelaySweep (ROM 0x6905) — the delay-gated enemy spawn sweep, the
- * CALLER that composes the real idiomatic caller-skip loc_6931 (which itself composes
+ * CALLER that composes the real idiomatic caller-skip spawnPairedEnemyRecordAndAnnounceWave (which itself composes
  * setActorAnimation, enqueueDisplayCommand and queueRoundSoundCommandRun).
  *
  * spawnPairedEnemyOnDelaySweep gates on the shared frame-delay timer, then on the wave-arrival / wave-limit checks,
  * then walks eight enemy/state record pairs, spawning into the FIRST empty one and stopping —
- * loc_6931's `pop af; ret` skip aborts the sweep, so at most one pair spawns per call. The
- * idiomatic driver reproduces that with `if (!loc_6931(...)) return;`.
+ * spawnPairedEnemyRecordAndAnnounceWave's `pop af; ret` skip aborts the sweep, so at most one pair spawns per call. The
+ * idiomatic driver reproduces that with `if (!spawnPairedEnemyRecordAndAnnounceWave(...)) return;`.
  *
  * ⚠ THE FROZEN ORACLE IS BUGGY HERE. The translated spawnPairedEnemyOnDelaySweep has no skip-propagation guard
- * (unlike its sibling scanActorCollisionsBothSlots, which carries `if (m.pc !== <ret>) return`), so after loc_6931's
+ * (unlike its sibling scanActorCollisionsBothSlots, which carries `if (m.pc !== <ret>) return`), so after spawnPairedEnemyRecordAndAnnounceWave's
  * `pop af; ret` the JS loop keeps running and spawns EVERY empty pair — all eight from an
  * all-empty state (verified: WAVE_NUMBER 3 -> 11). Correct hardware spawns exactly one; the
  * dissolution restores that. So oracle and the (correct) module agree ONLY when every pair after

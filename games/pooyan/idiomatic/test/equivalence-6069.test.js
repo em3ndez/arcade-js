@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6069 (ROM 0x6069, Pooyan) — the outer-scan head. It classifies
+ * Memory-equivalence test for classifyAndRouteObjectRecordByRound (ROM 0x6069, Pooyan) — the outer-scan head. It classifies
  * the current record: a zero lead byte or a non-live kind byte is skipped to the epilogue; a live
  * record on an odd round routes to the collision handler and on an even round to the proximity
  * gate.
@@ -30,7 +30,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6069 as oracle } from "../../translated/loc_6069.js";
-import { loc_6069 } from "../loc_6069.js";
+import { classifyAndRouteObjectRecordByRound } from "../classifyAndRouteObjectRecordByRound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -113,12 +113,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_6069 == oracle in RAM (−stack) + forwarded boolean", () => {
+test("EQUAL: classifyAndRouteObjectRecordByRound == oracle in RAM (−stack) + forwarded boolean", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    const ret = loc_6069(c);
+    const ret = classifyAndRouteObjectRecordByRound(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, cfg.ret, `${cfg.name}: forwarded boolean must be ${cfg.ret}`);
@@ -146,7 +146,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftEvenHit();
   const c = craftEvenHit();
   oracle(o);
-  loc_6069(c);
+  classifyAndRouteObjectRecordByRound(c);
   c.mem.write8(OBJ + 0x16, (o.mem.read8(OBJ + 0x16) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted seed byte");
@@ -156,11 +156,11 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a hit-returns-false twin and a skip-returns-true twin are CAUGHT by the boolean", () => {
   assert.throws(
-    () => assert.equal(((m) => (loc_6069(m), false))(craftEvenHit()), true),
+    () => assert.equal(((m) => (classifyAndRouteObjectRecordByRound(m), false))(craftEvenHit()), true),
     "a finder-main hit must continue -> true",
   );
   assert.throws(
-    () => assert.equal(((m) => (loc_6069(m), true))(craftEvenSkip()), false),
+    () => assert.equal(((m) => (classifyAndRouteObjectRecordByRound(m), true))(craftEvenSkip()), false),
     "a skip must abort -> false",
   );
   console.log("  TEETH(boolean): hit-false and skip-true twins caught");

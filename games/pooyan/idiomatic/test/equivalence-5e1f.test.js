@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence + boolean-return gate for loc_5e1f (ROM 0x5e1f) — the proximity trigger,
+ * Memory-equivalence + boolean-return gate for testTargetSlotGrabAndCatchObject (ROM 0x5e1f) — the proximity trigger,
  * decompiled as a DISSOLVED caller-skip. In the frozen oracle the "no grab" outcomes end with a
  * plain `ret` (back into the caller's slot sweep) and the "grab hit" outcome ends with `pop af;
  * ret`, unwinding PAST the immediate caller to abort the sweep. The idiomatic module drops that
@@ -17,7 +17,7 @@
  * cross-checked against the grab latch (set only on a hit).
  *
  * Jobs:
- *   1. EQUAL — over five path cases, oracle == loc_5e1f in RAM (−stack) AND the module's boolean
+ *   1. EQUAL — over five path cases, oracle == testTargetSlotGrabAndCatchObject in RAM (−stack) AND the module's boolean
  *      matches the oracle's path (grab latch).
  *   2. WRITE-SET — the grab-hit path writes exactly the record fields, the grab latch, the landing
  *      animation pointer, and the sound pending byte.
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5e1f as oracle } from "../../translated/loc_5e1f.js";
-import { loc_5e1f } from "../loc_5e1f.js";
+import { testTargetSlotGrabAndCatchObject } from "../testTargetSlotGrabAndCatchObject.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -108,12 +108,12 @@ const HIT_WRITES = new Map([
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: crafted branch paths — loc_5e1f == oracle in RAM (−stack) + boolean matches path", () => {
+test("EQUAL: crafted branch paths — testTargetSlotGrabAndCatchObject == oracle in RAM (−stack) + boolean matches path", () => {
   for (const spec of CASES) {
     const o = craft(spec);
     const c = craft(spec);
     oracle(o);
-    const ret = loc_5e1f(c);
+    const ret = testTargetSlotGrabAndCatchObject(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b} ("${spec.label}")`);
@@ -153,7 +153,7 @@ test("WRITE-SET: the grab-hit path writes exactly the record + latch + anim + pe
 // -- 3. TEETH -----------------------------------------------------------------
 
 test("TEETH: an inverted abort boolean is CAUGHT by the return check", () => {
-  const inverted = (m) => !loc_5e1f(m); // BUG: reports continue on a hit and abort on a miss
+  const inverted = (m) => !testTargetSlotGrabAndCatchObject(m); // BUG: reports continue on a hit and abort on a miss
   const hit = craft(CASES[4]);
   assert.throws(() => {
     const ret = inverted(hit);
@@ -172,7 +172,7 @@ test("TEETH: a wrong record byte is CAUGHT by the RAM diff", () => {
   const o = craft(CASES[4]);
   const c = craft(CASES[4]);
   oracle(o);
-  loc_5e1f(c);
+  testTargetSlotGrabAndCatchObject(c);
   c.mem8[HL + 0x11] = 0x00; // BUG: this record field must hold 0x0a
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong record byte — it is worthless");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence + boolean-return test for loc_6274 (ROM 0x6274, Pooyan) — the
+ * Memory-equivalence + boolean-return test for retireParityTargetSlotAndQueueSound (ROM 0x6274, Pooyan) — the
  * interrupt-parity target-record clear that ends in `pop af; ret` (a caller-skip).
  *
  * The frozen oracle discards its caller's return address (`pop af`) before `ret`, so control
@@ -20,7 +20,7 @@
  * INPUT: the interrupt register I selects the record — I==0 -> 0x8c90, I!=0 -> 0x8ca8.
  *
  * Jobs:
- *   1. EQUAL — for I==0 and I!=0, oracle == loc_6274 in RAM (−stack); the module returns
+ *   1. EQUAL — for I==0 and I!=0, oracle == retireParityTargetSlotAndQueueSound in RAM (−stack); the module returns
  *      false; and the oracle's SP moved +4 (the pop-af skip path ran).
  *   2. WRITE-SET — the selected record's 0x18-byte body is zeroed and its partner record is
  *      left untouched (the sound-ring writes are the enqueue callee's own domain).
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6274 as oracle } from "../../translated/loc_6274.js";
-import { loc_6274 } from "../loc_6274.js";
+import { retireParityTargetSlotAndQueueSound } from "../retireParityTargetSlotAndQueueSound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_TARGET_REC0, ENEMY_TARGET_REC1 } from "../names.js";
@@ -77,12 +77,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_6274 == oracle in RAM (−stack); module returns false; oracle takes pop-af (SP +4)", () => {
+test("EQUAL: retireParityTargetSlotAndQueueSound == oracle in RAM (−stack); module returns false; oracle takes pop-af (SP +4)", () => {
   for (const spec of CASES) {
     const o = craft(spec.ireg, true);
     const c = craft(spec.ireg, true);
     oracle(o);
-    const ret = loc_6274(c);
+    const ret = retireParityTargetSlotAndQueueSound(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -117,7 +117,7 @@ test("TEETH: a wrong zeroed byte is CAUGHT by the RAM diff", () => {
   const o = craft(spec.ireg, true);
   const c = craft(spec.ireg, true);
   oracle(o);
-  loc_6274(c);
+  retireParityTargetSlotAndQueueSound(c);
   c.mem8[spec.base + 5] = 0xff; // BUG: the record body must be zeroed
 
   const d = ramDiffMinusStack(o, c);
@@ -128,7 +128,7 @@ test("TEETH: a wrong zeroed byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a wrong boolean return (true) is CAUGHT by the return-path check", () => {
   const c = craft(CASES[0].ireg, true);
-  const ret = loc_6274(c);
+  const ret = retireParityTargetSlotAndQueueSound(c);
   assert.equal(ret, false, "sanity: the module reports the pop-af abort path as false");
   // A twin that reported the plain-ret path would return true; the `=== false` check must reject it.
   const brokenRet = true;

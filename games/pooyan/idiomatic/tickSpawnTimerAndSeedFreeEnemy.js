@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_119a } from "./loc_119a.js";
+import { seedFreeEnemyRecordFromRoundTables } from "./seedFreeEnemyRecordFromRoundTables.js";
 import {
   ENEMY_SPAWN_TIMER,
   STAGE_COUNTDOWN,
@@ -74,7 +74,7 @@ export function tickSpawnTimerAndSeedFreeEnemy(m) {
   // runs out having done nothing.
   let rec = ENEMY_ACTOR_TABLE;
   for (let i = 0; i < RECORD_COUNT; i++) {
-    if (!loc_119a(m, rec, SPAWN_SEED)) return; // seeded a free record -> sweep done
+    if (!seedFreeEnemyRecordFromRoundTables(m, rec, SPAWN_SEED)) return; // seeded a free record -> sweep done
     rec = rec + RECORD_STRIDE;
   }
 }

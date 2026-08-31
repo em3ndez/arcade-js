@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_618a } from "./loc_618a.js";
+import { clearActiveObjectTypeAndAbortHandler } from "./clearActiveObjectTypeAndAbortHandler.js";
 import { queueSoundCommand05 } from "./queueSoundCommand05.js";
 import { queueSoundCommand08 } from "./queueSoundCommand08.js";
 import { ACTIVE_OBJECT_TYPE } from "./names.js";
@@ -68,5 +68,5 @@ export function resetActorRecordQueueSoundAndAbortFrame(m, iy = m.regs.iy) {
   // behind, then unwinds one extra level of the call stack: control returns past the
   // handler that invoked this reset, so that handler's remaining per-record work for this
   // pass is skipped. Its result — always false — is the value this routine hands back.
-  return loc_618a(m); // clear the object type and abort the frame
+  return clearActiveObjectTypeAndAbortHandler(m); // clear the object type and abort the frame
 }

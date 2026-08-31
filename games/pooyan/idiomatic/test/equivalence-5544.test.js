@@ -3,11 +3,11 @@
  * Memory-equivalence test for seedFirstFreeSlotForScheduledSpawn (ROM 0x5544, Pooyan) — scan an actor-block table, seed the
  * first free slot. Live blocks ((blk+0)|(blk+1) != 0) are skipped (cursor += stride, count times); the
  * first free block is seeded ((blk+0x17) from SPAWN_KIND_TABLE_5647 via rst 0x20) and initialised by
- * loc_5489, which caller-skips (pop af; ret) past seedFirstFreeSlotForScheduledSpawn. No free block -> the scan falls out.
+ * initSpawnedActorRecordAndDeriveSpeed, which caller-skips (pop af; ret) past seedFirstFreeSlotForScheduledSpawn. No free block -> the scan falls out.
  *
  * Compared on RAM (dumpState) minus STACK_SCRATCH; the register file is not compared (LIVE-OUT: none).
- * The oracle drives its rst-0x20 + loc_5489 via the translated registry; the module calls the idiomatic
- * fetchByteFromTableIndex/loc_5489 directly. Both read ROM tables, so the test requires the built ROM.
+ * The oracle drives its rst-0x20 + initSpawnedActorRecordAndDeriveSpeed via the translated registry; the module calls the idiomatic
+ * fetchByteFromTableIndex/initSpawnedActorRecordAndDeriveSpeed directly. Both read ROM tables, so the test requires the built ROM.
  *
  * Jobs:
  *   1. EQUAL — FREE-FIRST, LIVE-then-FREE, ALL-LIVE across index/round values: oracle == module.
@@ -37,7 +37,7 @@ const test = ROM_PRESENT
 const REC = 0x8c48; //         actor-block table base (spawnShotTargetOnInterval's real IX)
 const STRIDE = 0x18; //        block stride
 const KIND_FIELD = 0x17; //    blk+0x17 = seeded kind byte
-const ACTIVE_FLAG = 0x00; //   blk+0x00 = 1 (set by loc_5489)
+const ACTIVE_FLAG = 0x00; //   blk+0x00 = 1 (set by initSpawnedActorRecordAndDeriveSpeed)
 const ROUND_COUNTER = 0x8907;
 const SP0 = 0x8fe0; //         inside STACK_SCRATCH so the oracle's push/pop churn is excluded
 
@@ -100,7 +100,7 @@ test("WRITE-SET: the free block's kind byte (blk+0x17) is the rst-0x20 table byt
   seedFirstFreeSlotForScheduledSpawn(c);
   assert.equal(c.mem.read8((REC + KIND_FIELD) & 0xffff), expected,
     `blk+0x17 must be SPAWN_KIND_TABLE_5647[idx] = ${hx(expected)}`);
-  assert.equal(c.mem.read8((REC + ACTIVE_FLAG) & 0xffff), 0x01, "loc_5489 must set the active flag");
+  assert.equal(c.mem.read8((REC + ACTIVE_FLAG) & 0xffff), 0x01, "initSpawnedActorRecordAndDeriveSpeed must set the active flag");
   console.log(`  WRITE-SET: seeded kind byte ${hx(expected)}, active flag set`);
 });
 
@@ -124,7 +124,7 @@ test("TEETH: a cleared active flag is CAUGHT by the RAM diff", () => {
   const c = craft(1, [0x00], 0x03, 0x05);
   oracle(o);
   seedFirstFreeSlotForScheduledSpawn(c);
-  c.mem.write8((REC + ACTIVE_FLAG) & 0xffff, 0x00); // BUG: loc_5489 must set the active flag to 1
+  c.mem.write8((REC + ACTIVE_FLAG) & 0xffff, 0x00); // BUG: initSpawnedActorRecordAndDeriveSpeed must set the active flag to 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a cleared active flag");
   assert.equal(d.addr, (REC + ACTIVE_FLAG) & 0xffff, `teeth caught wrong address ${hx(d.addr ?? 0)}`);

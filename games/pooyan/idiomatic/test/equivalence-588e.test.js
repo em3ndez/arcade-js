@@ -4,12 +4,12 @@
  * walk B blocks at IX, one block (0x18 bytes) per pass, initialising each with a fixed field seed
  * (E=0x04).
  *
- * seedFirstFreeSpriteBlockInRun is the CALLER of the dissolved caller-skip loc_572b (the per-block initialiser, which
+ * seedFirstFreeSpriteBlockInRun is the CALLER of the dissolved caller-skip spawnEnemyIntoFreeActorSlot (the per-block initialiser, which
  * ret-c's on a live block to keep the walk going and pop-af/rets past this loop once it seeds a
  * fresh block). This gate COMPOSES the real idiomatic skip: the idiomatic seedFirstFreeSpriteBlockInRun imports the
- * idiomatic loc_572b and early-returns when it reports false (seeded), exactly where the oracle's
+ * idiomatic spawnEnemyIntoFreeActorSlot and early-returns when it reports false (seeded), exactly where the oracle's
  * pop-af/ret aborted the run. The oracle side runs the TRANSLATED seedFirstFreeSpriteBlockInRun, which m.call()s the
- * translated loc_572b through the registry.
+ * translated spawnEnemyIntoFreeActorSlot through the registry.
  *
  * Cycle-free / memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
  * STACK_SCRATCH). pc/SP/cycles/registers are NOT compared (seedFirstFreeSpriteBlockInRun has no register live-out).
@@ -17,7 +17,7 @@
  * block bytes and the three shared cells the initialiser reads (0x8907 / 0x8820 / 0x8908) poked
  * identically on both sides.
  *
- * NOTE: every case composes the sibling idiomatic loc_572b; the gate turns green once that module
+ * NOTE: every case composes the sibling idiomatic spawnEnemyIntoFreeActorSlot; the gate turns green once that module
  * lands (the LEAD runs it in reconcile).
  *
  * Jobs: 1. EQUAL (all-live full run; seed pass 1; run past two then seed pass 3). 2. WRITE-SET

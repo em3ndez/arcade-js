@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_572b (ROM 0x572b, Pooyan) — try to spawn one actor into a slot.
+ * Memory-equivalence test for spawnEnemyIntoFreeActorSlot (ROM 0x572b, Pooyan) — try to spawn one actor into a slot.
  *
  * SEATING: +4 SP CALLER-SKIP dissolved to a boolean. A slot whose low bit is set is live: the
  * oracle `ret c`s (balanced) and the module returns false so the caller keeps scanning. An empty
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_572b as oracle } from "../../translated/loc_572b.js";
-import { loc_572b } from "../loc_572b.js";
+import { spawnEnemyIntoFreeActorSlot } from "../spawnEnemyIntoFreeActorSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -95,12 +95,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_572b == oracle in RAM (−stack) + forwarded boolean", () => {
+test("EQUAL: spawnEnemyIntoFreeActorSlot == oracle in RAM (−stack) + forwarded boolean", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    const ret = loc_572b(c);
+    const ret = spawnEnemyIntoFreeActorSlot(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, cfg.ret, `${cfg.name}: forwarded boolean must be ${cfg.ret}`);
@@ -117,7 +117,7 @@ test("WRITE-SET: a live slot is inert; a spawn claims the slot and bumps the act
   assert.deepEqual([...live.dumpState()], [...b0], "a live slot must leave RAM untouched");
 
   const spawn = craftSpawn();
-  loc_572b(spawn);
+  spawnEnemyIntoFreeActorSlot(spawn);
   assert.equal(spawn.mem.read8(SLOT + 0x00), 0x01, "a spawn sets the slot lead byte");
   assert.equal(spawn.mem.read8(ACTIVE_COUNT), 0x01, "a spawn bumps the active enemy count");
   console.log("  WRITE-SET: live inert; spawn claims + counts");
@@ -129,7 +129,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftSpawn();
   const c = craftSpawn();
   oracle(o);
-  loc_572b(c);
+  spawnEnemyIntoFreeActorSlot(c);
   c.mem.write8(SLOT + 0x07, (o.mem.read8(SLOT + 0x07) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted seed byte");
@@ -139,11 +139,11 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a spawn-returns-false twin and a live-returns-true twin are CAUGHT by the boolean", () => {
   assert.throws(
-    () => assert.equal(((m) => (loc_572b(m), false))(craftSpawn()), true),
+    () => assert.equal(((m) => (spawnEnemyIntoFreeActorSlot(m), false))(craftSpawn()), true),
     "a spawn must abort the sweep -> true",
   );
   assert.throws(
-    () => assert.equal(((m) => (loc_572b(m), true))(craftLive()), false),
+    () => assert.equal(((m) => (spawnEnemyIntoFreeActorSlot(m), true))(craftLive()), false),
     "a live slot must keep scanning -> false",
   );
   console.log("  TEETH(boolean): spawn-false and live-true twins caught");

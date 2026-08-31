@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_60bc (ROM 0x60bc, Pooyan) — tail of the hit handler: match an
+ * Memory-equivalence test for resolveShotHitEngageOrSeedRecord (ROM 0x60bc, Pooyan) — tail of the hit handler: match an
  * enemy record by tag, then either engage the struck target pair or seed a fresh actor and scan.
  *
  * The routine scans the enemy-actor table (stride 0x18, six records) for a record whose +0x14
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_60bc as oracle } from "../../translated/loc_60bc.js";
-import { loc_60bc } from "../loc_60bc.js";
+import { resolveShotHitEngageOrSeedRecord } from "../resolveShotHitEngageOrSeedRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -58,7 +58,7 @@ const FLAG_I0 = 0x8d1b; // OBJ_HIT_FLAG_I0 (I == 0)
 const FLAG_I1 = 0x8d1c; // OBJ_HIT_FLAG_I1 (I != 0)
 const SOUND_RING_PTR = 0x8a40;
 const REC_BASE = 0x8c50; // fresh actor record base, clear of the scan region and flag/target cells
-const HL = REC_BASE + 0x14; // caller-advanced pointer (loc_6080 adds 0x14 before falling in)
+const HL = REC_BASE + 0x14; // caller-advanced pointer (gateEvenRoundOverlapAndRouteHit adds 0x14 before falling in)
 const KEY = 0x42;
 const SEED_FIELDS = [0x00, 0x01, 0x02, 0x12, 0x16, 0x17]; // bytes the seed step stamps (not +0x14)
 const SP0 = 0x8ff0; // inside STACK_SCRATCH
@@ -71,7 +71,7 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Seat the register interface loc_6080 hands in, plus the main-path key at mem[HL]. */
+/** Seat the register interface gateEvenRoundOverlapAndRouteHit hands in, plus the main-path key at mem[HL]. */
 function seat(m, ireg) {
   m.regs.hl = HL;
   m.regs.a = KEY;
@@ -146,12 +146,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_60bc == oracle in RAM (−stack) + forwarded boolean", () => {
+test("EQUAL: resolveShotHitEngageOrSeedRecord == oracle in RAM (−stack) + forwarded boolean", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    const ret = loc_60bc(c);
+    const ret = resolveShotHitEngageOrSeedRecord(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -198,7 +198,7 @@ test("TEETH: a wrong flagged target byte is CAUGHT by the RAM diff", () => {
   const o = craftSkip(0x0a);
   const c = craftSkip(0x0a);
   oracle(o);
-  loc_60bc(c);
+  resolveShotHitEngageOrSeedRecord(c);
   c.mem.write8(REC1 + 0x07, 0x00); // BUG: the skip path must flag REC1 +0x07 = 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch an unflagged target byte");
@@ -208,7 +208,7 @@ test("TEETH: a wrong flagged target byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a skip-returns-true twin is CAUGHT by the boolean check", () => {
   function brokenSkip(m) {
-    loc_60bc(m); // real memory effect
+    resolveShotHitEngageOrSeedRecord(m); // real memory effect
     return true; // BUG: the skip path must abort the caller -> false
   }
   const c = craftSkip(0x00);
@@ -221,7 +221,7 @@ test("TEETH: a skip-returns-true twin is CAUGHT by the boolean check", () => {
 
 test("TEETH: a main-returns-false twin (no-match) is CAUGHT by the boolean check", () => {
   function brokenMain(m) {
-    loc_60bc(m);
+    resolveShotHitEngageOrSeedRecord(m);
     return false; // BUG: a no-match main path must continue -> true
   }
   const c = craftMainSound(0x0a);

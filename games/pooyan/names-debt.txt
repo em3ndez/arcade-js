@@ -1,0 +1,6 @@
+# names-debt.txt -- idiomatic loc_ modules whose loc_ name is RETAINED, reviewer-verified (runbook §4-end(1):
+# loc_ is for a genuinely-unclear mechanism, ELSE a reasoned allowlist entry here).
+# Format: loc_<addr>  <reason>   (# comments and blank lines ignored)
+loc_0728  loop-tail continuation of copySpriteAttrAndPositionRun (0x0714): its whole body is `inc ix; djnz 0x0714; ret` -- steps the sprite-attribute cursor and loops the copy while passes remain; no standalone effect, idiomatic-unreachable (imported only by its own equivalence test)
+loc_60f2  shared loop epilogue of classifyAndRouteObjectRecordByRound (0x6069): `dec b; step hl+=0x18/ix+=4; jp nz,6069` -- pure cursor-advance + loopback, jumped-into rather than called; no domain effect of its own
+loc_5733  the bridge-reseat corpus-scan SELFCHECK target (0x5733): tools/bridge_reseat_scan.mjs enumerates it and injects its missing-re-seat mutant BY THIS loc_ filename; renaming it breaks that tooling. A caller-skip re-seating helper direct-called by loc_53a0 (a wired ROUTINES override), not oracle-served.

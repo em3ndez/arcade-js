@@ -10,7 +10,7 @@
  *     RAM (dumpState, minus STACK_SCRATCH).
  *
  * pc/SP/cycles are NOT compared (the oracle drives them through m.step/m.push/m.ret). paintReadySpriteSquareIfAbsent
- * has NO register live-out — its callers (loc_2bbf / paintReadySpriteFromStackAdjustEntry) read no register result — and
+ * has NO register live-out — its callers (stageFormationReadyMarkersOrSkipTick / paintReadySpriteFromStackAdjustEntry) read no register result — and
  * takes no register inputs (it loads 0x87bb itself), so a case is just the anchor cell's value.
  * The oracle's loc_3325 sub-call resolves through the translated registry new Machine(ROM) builds.
  *

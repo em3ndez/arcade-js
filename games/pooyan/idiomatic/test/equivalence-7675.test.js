@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_7675 (ROM 0x7675, Pooyan) — animation-tick state 1, a DISSOLVED
+ * Memory-equivalence test for drainPhaseCountdownAndReseedWave (ROM 0x7675, Pooyan) — animation-tick state 1, a DISSOLVED
  * caller-skip that composes the idiomatic advanceObjectAnimationFrame.
  *
  * It steps the entry's animation, then counts the shared phase countdown down. While that countdown
@@ -31,7 +31,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7675 as oracle } from "../../translated/loc_7638.js";
-import { loc_7675 } from "../loc_7675.js";
+import { drainPhaseCountdownAndReseedWave } from "../drainPhaseCountdownAndReseedWave.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -91,7 +91,7 @@ function craftExpired() {
 test("EQUAL: timer running — module == oracle in RAM (−stack), returns true, plain ret (SP+=2)", () => {
   const o = craftRunning();
   const c = craftRunning();
-  const ret = loc_7675(c);
+  const ret = drainPhaseCountdownAndReseedWave(c);
   oracle(o);
   assert.equal(ret, true, "a running countdown must return true (keep walking)");
   assert.equal(o.regs.sp, (SP0 + 2) & 0xffff, "oracle running must take the plain ret (SP += 2)");
@@ -103,7 +103,7 @@ test("EQUAL: timer running — module == oracle in RAM (−stack), returns true,
 test("EQUAL: timer expired — module == oracle in RAM (−stack), returns false, skip (SP+=4)", () => {
   const o = craftExpired();
   const c = craftExpired();
-  const ret = loc_7675(c);
+  const ret = drainPhaseCountdownAndReseedWave(c);
   oracle(o);
   assert.equal(ret, false, "an expiry must return false (abort the walk)");
   assert.equal(o.regs.sp, (SP0 + 4) & 0xffff, "oracle expiry must fall into pop-af/ret (SP += 4)");
@@ -140,7 +140,7 @@ test("WRITE-SET: an expiry re-seeds the wave (8 states = 2, 6 cleared, ring = 0,
 
 test("TEETH: a twin that reports the expiry as 'continue' (true) is rejected by the boolean check", () => {
   function brokenContinue(m) {
-    loc_7675(m);
+    drainPhaseCountdownAndReseedWave(m);
     return true; // BUG: an expiry must abort the walk -> false
   }
   const c = craftExpired();
@@ -155,7 +155,7 @@ test("TEETH: a wrong seeded byte is caught by the RAM diff", () => {
   const o = craftExpired();
   const c = craftExpired();
   oracle(o);
-  loc_7675(c);
+  drainPhaseCountdownAndReseedWave(c);
   c.mem.write8(SUBSTATE, 0x99); // BUG: the expiry must set the sub-state to 8
 
   const d = ramDiffMinusStack(o, c);

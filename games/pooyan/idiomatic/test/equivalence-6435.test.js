@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6435 (ROM 0x6435) — the proximity/collision scan, a
- * DISSOLVED skip that composes the real idiomatic terminator guard loc_64be.
+ * Memory-equivalence test for scanObjectBankForActorCollision (ROM 0x6435) — the proximity/collision scan, a
+ * DISSOLVED skip that composes the real idiomatic terminator guard verifyTerminatorTableOrCountTamper.
  *
- * loc_6435 scans up to three object records for the actor at IY. No hit takes the plain
+ * scanObjectBankForActorCollision scans up to three object records for the actor at IY. No hit takes the plain
  * `m.ret()` (normal return, SP += 2) and the module returns true. A hit resets the struck
  * record, flags it, restarts its animation, queues effects, bumps HIT_TALLY, then FALLS
- * INTO loc_64be whose `pop af; ret` unwinds the caller (SP += 4); the module returns false.
+ * INTO verifyTerminatorTableOrCountTamper whose `pop af; ret` unwinds the caller (SP += 4); the module returns false.
  *
- * The oracle runs the TRANSLATED subtree (setActorAnimation, queueSoundCommand06, enqueueDisplayCommand, loc_64be)
+ * The oracle runs the TRANSLATED subtree (setActorAnimation, queueSoundCommand06, enqueueDisplayCommand, verifyTerminatorTableOrCountTamper)
  * through the routines map; the idiomatic module imports the IDIOMATIC siblings directly. The
  * two must land byte-identical in RAM (dumpState) minus STACK_SCRATCH. No register is a
  * live-out: the caller (scanActorCollisionsBothSlots) protects its own B/DE via exx and keeps IY, so nothing the
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6435 as oracle } from "../../translated/loc_6435.js";
-import { loc_6435 } from "../loc_6435.js";
+import { scanObjectBankForActorCollision } from "../scanObjectBankForActorCollision.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -112,21 +112,21 @@ function craftNoHitFar() {
 test("EQUAL: hit — module == oracle in RAM (−stack), returns false, oracle skips (SP+=4)", () => {
   const o = craftHit();
   const c = craftHit();
-  const ret = loc_6435(c);
+  const ret = scanObjectBankForActorCollision(c);
   oracle(o);
 
   assert.equal(ret, false, "a hit must return false (abort the caller)");
   assert.equal(o.regs.sp, (SP0 + 4) & 0xffff, "oracle hit must fall into the pop-af/ret skip (SP += 4)");
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
-  console.log("  EQUAL hit: false, SP+=4, RAM identical (composed idiomatic loc_64be)");
+  console.log("  EQUAL hit: false, SP+=4, RAM identical (composed idiomatic verifyTerminatorTableOrCountTamper)");
 });
 
 for (const [label, craft] of [["empty", craftNoHitEmpty], ["far", craftNoHitFar]]) {
   test(`EQUAL: no-hit (${label}) — module == oracle in RAM (−stack), returns true, normal ret (SP+=2)`, () => {
     const o = craft();
     const c = craft();
-    const ret = loc_6435(c);
+    const ret = scanObjectBankForActorCollision(c);
     oracle(o);
 
     assert.equal(ret, true, "no hit must return true (caller keeps scanning)");
@@ -172,7 +172,7 @@ for (const cfg of [
   test(`EQUAL: hit (${cfg.name}) — module == oracle in RAM (−stack), false, SP+=4`, () => {
     const o = craftHitAt(cfg);
     const c = craftHitAt(cfg);
-    const ret = loc_6435(c);
+    const ret = scanObjectBankForActorCollision(c);
     oracle(o);
     assert.equal(ret, false, `${cfg.name}: a hit must return false`);
     assert.equal(o.regs.sp, (SP0 + 4) & 0xffff, `${cfg.name}: oracle hit skips (SP += 4)`);
@@ -210,7 +210,7 @@ test("WRITE-SET: a hit resets the struck record, raises its flag, sets anim, bum
 
 test("TEETH: a twin that reports the hit as 'continue' (true) is rejected by the boolean check", () => {
   function brokenContinue(m) {
-    loc_6435(m); // real memory effect
+    scanObjectBankForActorCollision(m); // real memory effect
     return true; // BUG: a hit must abort the caller -> false
   }
   const c = craftHit();
@@ -225,7 +225,7 @@ test("TEETH: a wrong record-reset byte is caught by the RAM diff", () => {
   const o = craftHit();
   const c = craftHit();
   oracle(o);
-  loc_6435(c);
+  scanObjectBankForActorCollision(c);
   c.mem.write8(P1_RECORD + 1, 0x99); // BUG: record byte 1 must be 0x01
 
   const d = ramDiffMinusStack(o, c);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_6c3f } from "./loc_6c3f.js";
+import { testTargetProximityAndSetAimDirection } from "./testTargetProximityAndSetAimDirection.js";
 import {
   SPRITE_DISPLAY_LIST,
   SPRITE_TARGET_SLOTS,
@@ -22,7 +22,7 @@ import {
  *
  * ROLE IN THE MACHINE
  *   It is a proximity-scan driver. It sweeps three projectile records, asking the per-record
- *   proximity test (loc_6c3f, ROM 0x6c3f) whether each one puts a target inside the aim band
+ *   proximity test (testTargetProximityAndSetAimDirection, ROM 0x6c3f) whether each one puts a target inside the aim band
  *   of the single fixed sprite record. The per-record test itself owns the "hit" bookkeeping:
  *   on a hit it lights the correct above/below bit, raises the proximity-hit flag, and reports
  *   the hit back so the sweep can stop early. This routine's own job is only the negative case:
@@ -62,7 +62,7 @@ export function clearAimIndicatorUnlessProximityHit(m) {
   // hit we return immediately, leaving the indicator lit and the hit flag set. Between passes we
   // step target on by 4 and gate on by 0x18 to reach the next record triple.
   for (let n = 0; n < RECORD_COUNT; n++) {
-    if (!loc_6c3f(m, record, target, gate)) return; // a hit aborts the scan
+    if (!testTargetProximityAndSetAimDirection(m, record, target, gate)) return; // a hit aborts the scan
     target = u16(target + 0x04);
     gate = u16(gate + 0x18);
   }

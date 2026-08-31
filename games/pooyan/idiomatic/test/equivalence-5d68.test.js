@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_5d68 — the DISSOLVED caller-skip of scanProximityTargetPairsAgainstSource.
+ * Memory-equivalence gate for testTargetPairOverlapAndClaimRecord — the DISSOLVED caller-skip of scanProximityTargetPairsAgainstSource.
  *
  * The frozen oracle ends its no-hit paths with a plain `ret` and its hit path with
  * `pop af; ret` (discarding its own return address so control resumes two frames up).
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5d68 as oracle } from "../../translated/loc_5d68.js";
-import { loc_5d68 } from "../loc_5d68.js";
+import { testTargetPairOverlapAndClaimRecord } from "../testTargetPairOverlapAndClaimRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -117,7 +117,7 @@ test("EQUAL: module RAM (−stack) + boolean match the oracle across all paths",
     assert.equal(oracleNormal, expect, `${name}: oracle SP delta ${spDelta} disagrees with the case's expected path`);
 
     const c = craft(input);
-    const ret = loc_5d68(c);
+    const ret = testTargetPairOverlapAndClaimRecord(c);
     assert.equal(ret, expect, `${name}: module returned ${ret}, expected ${expect}`);
     assert.equal(ret, oracleNormal, `${name}: module boolean must match the oracle's SP-derived path`);
 
@@ -166,7 +166,7 @@ test("TEETH: a wrong record byte is caught by the RAM diff", () => {
   const o = craft(HIT_INPUT);
   const c = craft(HIT_INPUT);
   oracle(o);
-  loc_5d68(c);
+  testTargetPairOverlapAndClaimRecord(c);
   c.mem.write8((RECORD + 2) & 0xffff, 0x00); // BUG: this field must be 0x0c on a hit
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong record byte — it is worthless");
@@ -181,7 +181,7 @@ test("TEETH: a flipped boolean is rejected by the path check", () => {
     oracle(o);
     const oracleNormal = ((o.regs.sp - sp0) & 0xffff) === 2;
     const c = craft(input);
-    assert.equal(loc_5d68(c), oracleNormal, "sanity: the module agrees with the oracle path");
+    assert.equal(testTargetPairOverlapAndClaimRecord(c), oracleNormal, "sanity: the module agrees with the oracle path");
     assert.throws(
       () => assert.equal(!oracleNormal, oracleNormal),
       "the boolean path check must reject a flipped return",

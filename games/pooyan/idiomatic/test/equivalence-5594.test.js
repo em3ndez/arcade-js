@@ -4,7 +4,7 @@
  * anti-tamper guard-sum, seed the first free slot. Live blocks ((blk+0)|(blk+1) != 0) are skipped
  * (cursor += stride, count times). At the first free block it sums the 8-byte INTEGRITY_GUARD_REGION
  * against INTEGRITY_GUARD_SIGNATURE; any nonzero pair bumps TAMPER_FREEZE_FLAG. Then it seeds the kind
- * byte (blk+0x17) from SPAWN_KIND_TABLE_5627 via rst 0x20 and hands the record to loc_5489, which
+ * byte (blk+0x17) from SPAWN_KIND_TABLE_5627 via rst 0x20 and hands the record to initSpawnedActorRecordAndDeriveSpeed, which
  * caller-skips (pop af; ret) past seedFirstFreeSlotForTimedSpawnWithTamperCheck. No free block -> the scan falls out.
  *
  * Compared on RAM (dumpState) minus STACK_SCRATCH; register file not compared (LIVE-OUT: none). The
@@ -40,7 +40,7 @@ const test = ROM_PRESENT
 const REC = 0x8c60; //         actor-block table base (spawnFormationEnemiesOnTimer's real IX)
 const STRIDE = 0x18; //        block stride
 const KIND_FIELD = 0x17; //    blk+0x17 = seeded kind byte
-const ACTIVE_FLAG = 0x00; //   blk+0x00 = 1 (set by loc_5489)
+const ACTIVE_FLAG = 0x00; //   blk+0x00 = 1 (set by initSpawnedActorRecordAndDeriveSpeed)
 const ROUND_COUNTER = 0x8907;
 const TALLY_SEED = 0x07; //    baseline for TAMPER_FREEZE_FLAG so any bump shows in the diff
 const SP0 = 0x8fe0; //         inside STACK_SCRATCH so the oracle's push/pop churn is excluded
@@ -102,7 +102,7 @@ test("WRITE-SET: the free block's kind byte (blk+0x17) is the rst-0x20 table byt
   seedFirstFreeSlotForTimedSpawnWithTamperCheck(c);
   assert.equal(c.mem.read8((REC + KIND_FIELD) & 0xffff), expected,
     `blk+0x17 must be SPAWN_KIND_TABLE_5627[idx] = ${hx(expected)}`);
-  assert.equal(c.mem.read8((REC + ACTIVE_FLAG) & 0xffff), 0x01, "loc_5489 must set the active flag");
+  assert.equal(c.mem.read8((REC + ACTIVE_FLAG) & 0xffff), 0x01, "initSpawnedActorRecordAndDeriveSpeed must set the active flag");
   console.log(`  WRITE-SET: seeded kind byte ${hx(expected)}, active flag set`);
 });
 
@@ -126,7 +126,7 @@ test("TEETH: a cleared active flag is CAUGHT by the RAM diff", () => {
   const c = craft(1, [0x00], 0x02, 0x05);
   oracle(o);
   seedFirstFreeSlotForTimedSpawnWithTamperCheck(c);
-  c.mem.write8((REC + ACTIVE_FLAG) & 0xffff, 0x00); // BUG: loc_5489 must set the active flag to 1
+  c.mem.write8((REC + ACTIVE_FLAG) & 0xffff, 0x00); // BUG: initSpawnedActorRecordAndDeriveSpeed must set the active flag to 1
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a cleared active flag");
   assert.equal(d.addr, (REC + ACTIVE_FLAG) & 0xffff, `teeth caught wrong address ${hx(d.addr ?? 0)}`);

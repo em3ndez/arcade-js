@@ -2,9 +2,9 @@
 /**
  * Memory-equivalence gate for scanEnemyRecordsForCollision — the CALLER that dissolves the per-record collision skip.
  *
- * scanEnemyRecordsForCollision sweeps the collision check (loc_5b99) across the six enemy-actor records (stride 0x18).
+ * scanEnemyRecordsForCollision sweeps the collision check (testEnemyRecordHitAndRegister) across the six enemy-actor records (stride 0x18).
  * In the frozen oracle a hit's `pop af; ret` aborts the sweep and unwinds one frame up; the
- * idiomatic caller instead early-returns when the real idiomatic loc_5b99 returns false. This gate
+ * idiomatic caller instead early-returns when the real idiomatic testEnemyRecordHitAndRegister returns false. This gate
  * COMPOSES the real idiomatic skip (the module under test imports it) and checks that oracle and
  * module land byte-identical in RAM (dumpState, minus STACK_SCRATCH). scanEnemyRecordsForCollision has no register
  * live-out (its registers are loop artifacts), so only RAM is compared; SP sits in STACK_SCRATCH so
@@ -43,7 +43,7 @@ const test = ROM_PRESENT
 
 const STRIDE = 0x18;
 const COUNT = 6;
-const OBJPAIR = 0x8c90; // the two-entry object pair loc_5b99 tests against
+const OBJPAIR = 0x8c90; // the two-entry object pair testEnemyRecordHitAndRegister tests against
 const FLIP = 0x881f;
 const ROUND = 0x8907;
 const SP0 = 0x8fe0; // inside STACK_SCRATCH; the oracle pushes/pops its skip frames here
@@ -57,7 +57,7 @@ function ramDiffMinusStack(ma, mb) {
   return firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 }
 
-/** Seat record k so loc_5b99 registers a hit against the 0x8c90 pair (validated geometry). */
+/** Seat record k so testEnemyRecordHitAndRegister registers a hit against the 0x8c90 pair (validated geometry). */
 function seatHit(m, k) {
   const ix = rec(k);
   m.mem.write8(ix + 0x00, 0x01); // active

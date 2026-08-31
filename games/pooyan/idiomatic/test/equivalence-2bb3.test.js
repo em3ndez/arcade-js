@@ -3,10 +3,10 @@
  * Memory-equivalence test for scanFormationSlotsAndLaunchFree (ROM 0x2bb3) — "formation spawn scan": walk up to 0x11
  * records stepping the pointer back one record each pass, launching the first free slot.
  *
- * scanFormationSlotsAndLaunchFree is the CALLER of the dissolved caller-skip loc_2be5. This gate COMPOSES the real
- * idiomatic skip: the idiomatic scanFormationSlotsAndLaunchFree imports the idiomatic loc_2be5 and early-returns when
+ * scanFormationSlotsAndLaunchFree is the CALLER of the dissolved caller-skip launchFormationObjectIntoFreeSlot. This gate COMPOSES the real
+ * idiomatic skip: the idiomatic scanFormationSlotsAndLaunchFree imports the idiomatic launchFormationObjectIntoFreeSlot and early-returns when
  * it reports false (launched), exactly where the oracle's pop-af/ret aborted the loop. The
- * oracle side runs the TRANSLATED scanFormationSlotsAndLaunchFree, which internally m.call()s the translated loc_2be5
+ * oracle side runs the TRANSLATED scanFormationSlotsAndLaunchFree, which internally m.call()s the translated launchFormationObjectIntoFreeSlot
  * (and its anim helper) through the registry.
  *
  * Cycle-free / memory-equivalence gate: fresh clone per side, compared on RAM (dumpState, minus
@@ -16,7 +16,7 @@
  *
  * Two required states plus a mid-loop one:
  *   - skip NOT taken: all 0x11 slots busy -> the full loop runs, nothing is written.
- *   - skip taken on pass 1: the first slot is free -> loc_2be5 seeds it and aborts immediately.
+ *   - skip taken on pass 1: the first slot is free -> launchFormationObjectIntoFreeSlot seeds it and aborts immediately.
  *   - skip taken on pass 3: two busy slots then a free one -> the pointer steps twice, then the
  *     third record is seeded and the loop aborts (proves the stepping + abort target).
  *

@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence test for spawnHunterIntoFreeSlot (ROM 0x118d) — "sweep a run of actor records, initialise the
  * first free one." For up to B records a 0x18 stride apart it hands each to the per-record initialiser
- * (loc_119a) with a fixed 0x1d seed; the first free record is seeded and the sweep ends there.
+ * (seedFreeEnemyRecordFromRoundTables) with a fixed 0x1d seed; the first free record is seeded and the sweep ends there.
  *
  * The initialiser aborts the sweep in the original with a pop-af skip-return, which the ORACLE models
  * by popping the stack while its JS loop keeps running — so after a seed the oracle's djnz counter is

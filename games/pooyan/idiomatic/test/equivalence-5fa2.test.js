@@ -92,7 +92,7 @@ function seat(m, { type = 0x02, flip = 0x01, target = TARGET_A, records = {}, bo
 }
 
 const HIT_REC = { 0: { lead: 0x01, type: 0x05 } };
-const T3_REC = { 0: { lead: 0x02, type: 0x05 } }; // bit0 clear -> retireResetOrEngageObjectRecord retires via loc_618a
+const T3_REC = { 0: { lead: 0x02, type: 0x05 } }; // bit0 clear -> retireResetOrEngageObjectRecord retires via clearActiveObjectTypeAndAbortHandler
 const FAR_BOX = { 0: { x: 0x40, y: 0x00 } }; //     posX=0x46 -> dx way outside the window
 
 const craftExhaust = () => seat(BASE.clone(), { type: 0x02 }); //                    all slots empty
@@ -120,7 +120,7 @@ test("EQUAL: every path â€” testRecordOverlapRetireOrFlagHit == oracle in RAM (â
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(rc, wantBool, `${label}: module boolean`);
     // The frozen oracle dissolves the hit/no-hit outcome into pc/stack control flow and returns
-    // undefined (its advanceOverlapScanToNextSlot/retireResetOrEngageObjectRecord tail-return chain, unlike loc_2c58's explicit `return
+    // undefined (its advanceOverlapScanToNextSlot/retireResetOrEngageObjectRecord tail-return chain, unlike climbHunterToLaunchRowThenPromoteGroup's explicit `return
     // true/false`); the boolean is a module-layer live-out, anchored here by the RAM diff above
     // and the module boolean, so the oracle's own JS return carries no boolean to compare.
     assert.equal(ro, undefined, `${label}: frozen oracle returns no JS boolean`);

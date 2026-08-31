@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for scanActorCollisionsBothSlots (ROM 0x6404) — the two-pass actor collision
- * driver, the CALLER that composes the real idiomatic scan loc_6435 (which itself composes
- * the idiomatic terminator guard loc_64be).
+ * driver, the CALLER that composes the real idiomatic scan scanObjectBankForActorCollision (which itself composes
+ * the idiomatic terminator guard verifyTerminatorTableOrCountTamper).
  *
- * In the frozen layer a hit inside loc_6435 falls into loc_64be, whose `pop af; ret`
+ * In the frozen layer a hit inside scanObjectBankForActorCollision falls into verifyTerminatorTableOrCountTamper, whose `pop af; ret`
  * discards scanActorCollisionsBothSlots's own return and unwinds to scanActorCollisionsBothSlots's caller — skipping the rest of
- * the two-pass loop. The idiomatic driver reproduces that with `if (!loc_6435(...)) return;`:
+ * the two-pass loop. The idiomatic driver reproduces that with `if (!scanObjectBankForActorCollision(...)) return;`:
  * a false (hit) return aborts the loop. This gate seats BOTH a skip-taken state (pass 1
  * hits, pass 2 must NOT run) and a skip-not-taken state (both passes miss, loop completes),
  * plus the early-out guard, and compares oracle vs module in RAM (dumpState) minus
@@ -126,7 +126,7 @@ for (const [label, craft] of [
     scanActorCollisionsBothSlots(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b} (${label})`);
-    console.log(`  EQUAL ${label}: RAM identical (composed idiomatic loc_6435/loc_64be)`);
+    console.log(`  EQUAL ${label}: RAM identical (composed idiomatic scanObjectBankForActorCollision/verifyTerminatorTableOrCountTamper)`);
   });
 }
 

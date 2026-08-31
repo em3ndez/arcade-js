@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for scanProximityTargetPairsAgainstSource — the CALLER that dissolves the loc_5d68 skip.
+ * Memory-equivalence gate for scanProximityTargetPairsAgainstSource — the CALLER that dissolves the testTargetPairOverlapAndClaimRecord skip.
  *
  * scanProximityTargetPairsAgainstSource scans three target/record pairs against a fixed source object. In the
  * frozen oracle the skip's `pop af; ret` aborts the scan two frames up; the idiomatic
- * caller instead early-returns when the real idiomatic loc_5d68 returns false. This
+ * caller instead early-returns when the real idiomatic testTargetPairOverlapAndClaimRecord returns false. This
  * gate COMPOSES the real idiomatic skip (the module under test imports it) and checks
  * that oracle and module land byte-identical in RAM (dumpState, minus STACK_SCRATCH).
  * scanProximityTargetPairsAgainstSource has no register live-out (its caller ignores its registers), so only RAM

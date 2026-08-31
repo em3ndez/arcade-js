@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_2be5 (ROM 0x2be5) — "try to launch one formation slot".
+ * Memory-equivalence test for launchFormationObjectIntoFreeSlot (ROM 0x2be5) — "try to launch one formation slot".
  *
- * loc_2be5 is a DISSOLVED CALLER-SKIP for scanFormationSlotsAndLaunchFree. In the oracle it ends one path with
+ * launchFormationObjectIntoFreeSlot is a DISSOLVED CALLER-SKIP for scanFormationSlotsAndLaunchFree. In the oracle it ends one path with
  * `pop af; ret` (aborting scanFormationSlotsAndLaunchFree's scan) and another with a plain `ret c` (busy slot). The
  * idiomatic module drops the stack plumbing and returns a BOOLEAN in its place:
  *   true  = normal return (slot busy -> keep scanning),
@@ -12,8 +12,8 @@
  * Cycle-free / memory-equivalence gate: the routine WRITES RAM, so every case uses a FRESH
  * clone per side, compared on RAM (dumpState, minus STACK_SCRATCH) plus the boolean return.
  * pc/SP/cycles are NOT compared (the oracle drives them through m.step/m.push/m.pop/m.ret).
- * loc_2be5 has NO register live-out: scanFormationSlotsAndLaunchFree protects its loop counter and stride across the
- * call (exx) and reads back only its own record pointer, which loc_2be5 never modifies.
+ * launchFormationObjectIntoFreeSlot has NO register live-out: scanFormationSlotsAndLaunchFree protects its loop counter and stride across the
+ * call (exx) and reads back only its own record pointer, which launchFormationObjectIntoFreeSlot never modifies.
  *
  * The record pointer is the only input register (IX); the free path also consumes the wave
  * counter (0x8903) and reseeds the spawn countdown (0x8d30). Records live in work RAM, so a
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2be5 as oracle } from "../../translated/loc_2be5.js";
-import { loc_2be5 } from "../loc_2be5.js";
+import { launchFormationObjectIntoFreeSlot } from "../launchFormationObjectIntoFreeSlot.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, WAVE_ARRIVAL_COUNTER, FORMATION_SPAWN_TIMER } from "../names.js";
@@ -79,7 +79,7 @@ test("EQUAL: busy slot — no writes, returns true (keep scanning)", () => {
     const o = craft({ act0, act1 });
     const c = craft({ act0, act1 });
     const oret = oracle(o);
-    const cret = loc_2be5(c);
+    const cret = launchFormationObjectIntoFreeSlot(c);
     assert.equal(oret, true, `oracle should report busy=true for act=${hx(act0)}|${hx(act1)}`);
     assert.equal(cret, oret, `boolean mismatch for busy act=${hx(act0)}|${hx(act1)}`);
     const d = ramDiffMinusStack(o, c);
@@ -93,7 +93,7 @@ test("EQUAL: free slot — full seed, returns false (abort scan)", () => {
     const o = craft({ wave });
     const c = craft({ wave });
     const oret = oracle(o);
-    const cret = loc_2be5(c);
+    const cret = launchFormationObjectIntoFreeSlot(c);
     assert.equal(oret, false, `oracle should report launched=false for wave=${hx(wave)}`);
     assert.equal(cret, oret, `boolean mismatch for free wave=${hx(wave)}`);
     const d = ramDiffMinusStack(o, c);
@@ -140,7 +140,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craft({ wave: 0x05 });
   const c = craft({ wave: 0x05 });
   oracle(o);
-  loc_2be5(c);
+  launchFormationObjectIntoFreeSlot(c);
   c.mem.write8(REC + 0x09, 0x00); // BUG: the spawn field must be 0x10
 
   const d = ramDiffMinusStack(o, c);

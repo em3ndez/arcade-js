@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence gate for spawnFormationChildIntoFreeSlotOnTimer (ROM 0x3c92, Pooyan) — object state-7 handler that ticks
- * animation then periodically spawns a child, COMPOSING the dissolved caller-skip loc_3cae.
+ * animation then periodically spawns a child, COMPOSING the dissolved caller-skip seedFormationChildIntoFreeSlotAndLaunchParent.
  *
  * spawnFormationChildIntoFreeSlotOnTimer advances the parent's animation (advanceObjectAnimationFrame), decrements the parent frame timer (+0x11)
  * and returns while it still holds. On elapse it walks the four formation records (stride 0x18 from
- * the formation table) calling loc_3cae per record; the helper returns false the moment it seats a
+ * the formation table) calling seedFormationChildIntoFreeSlotAndLaunchParent per record; the helper returns false the moment it seats a
  * child, which aborts the scan (no timer reseed this frame). If all four slots were occupied it
- * reseeds the timer to 0x10. The oracle runs the TRANSLATED advanceObjectAnimationFrame/loc_3cae (whose pop-af skip
- * aborts the loop); the idiomatic module imports the IDIOMATIC loc_3cae and early-returns on false.
+ * reseeds the timer to 0x10. The oracle runs the TRANSLATED advanceObjectAnimationFrame/seedFormationChildIntoFreeSlotAndLaunchParent (whose pop-af skip
+ * aborts the loop); the idiomatic module imports the IDIOMATIC seedFormationChildIntoFreeSlotAndLaunchParent and early-returns on false.
  * The two must land byte-identical in RAM(-stack).
  *
  * CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline). Each case runs the oracle on one
@@ -20,7 +20,7 @@
  * animation step just decrements, the timer (+0x11) selects hold-vs-scan, and each formation
  * record's first byte marks it occupied or free.
  *
- * Jobs (one per branch), all seating the real idiomatic loc_3cae:
+ * Jobs (one per branch), all seating the real idiomatic seedFormationChildIntoFreeSlotAndLaunchParent:
  *   1. EQUAL — timerHold (early ret), allOccupied (full scan + reseed), skipFirst and skipThird
  *      (a slot gets seated -> the scan aborts, no reseed) all agree in RAM(−stack).
  *   2. WRITE-SET — allOccupied reseeds the timer to 0x10; skipFirst leaves the timer at 0 and seats

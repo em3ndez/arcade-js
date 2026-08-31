@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_2c58 } from "./loc_2c58.js";
+import { climbHunterToLaunchRowThenPromoteGroup } from "./climbHunterToLaunchRowThenPromoteGroup.js";
 import { enqueueDisplayCommand } from "./enqueueDisplayCommand.js";
 import {
   STATE2_TILE_PAINT_VRAM,
@@ -82,10 +82,10 @@ export function advanceActorState2AndCapWaveArrival(m, rec = m.regs.ix) {
   for (let i = 0; i < CKSUM_LEN; i++) sum = (sum + mem8[FIELD_ATTRIB_SRC_A + i]) & 0xff;
 
   // If the fold does not total 1 the image has been altered: tail-jump into the hunter state-0 climb
-  // guard (loc_2c58) and forward its result unchanged. That guard both drives the hunter climb and
+  // guard (climbHunterToLaunchRowThenPromoteGroup) and forward its result unchanged. That guard both drives the hunter climb and
   // returns a caller-skip boolean the dispatcher uses to abort its epilogue, so on this branch the
   // arrival book-keeping below is skipped entirely. ROM 0x2a21 `jp nz,0x2c58`.
-  if (sum !== CKSUM_TARGET) return loc_2c58(m, rec); // tamper -> tail-jump the hunter guard
+  if (sum !== CKSUM_TARGET) return climbHunterToLaunchRowThenPromoteGroup(m, rec); // tamper -> tail-jump the hunter guard
 
   // Clean check reached — do the arrival book-keeping.
   // Queue display command word 0x0615 into the display-command ring; the frame's display consumer

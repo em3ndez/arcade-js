@@ -8,7 +8,7 @@
  *
  *     RAM (dumpState, minus STACK_SCRATCH)  +  regs.a (the advanced ring cursor).
  *
- * regs.a is a DEFENSIVE arm: the frozen caller (loc_6931) discards A via pop af, so memory carries
+ * regs.a is a DEFENSIVE arm: the frozen caller (spawnPairedEnemyRecordAndAnnounceWave) discards A via pop af, so memory carries
  * the real teeth — but A matches the oracle and asserting it can never false-fail.
  *
  * pc/SP/cycles are NOT compared. The append gate (appendSoundCommandGated) is opened via GAME_ACTIVE_FLAG so the

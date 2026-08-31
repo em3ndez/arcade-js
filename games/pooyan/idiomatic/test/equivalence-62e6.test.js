@@ -2,16 +2,16 @@
 /**
  * Memory-equivalence test for applyRoundDeltaAndRearmMatchedRecord (ROM 0x62e6, Pooyan) — the caller in a caller-skip
  * cluster: it tag-matches a record, applies a per-round position delta, re-arms the record,
- * and tail-jumps into loc_6274, whose `pop af; ret` skips a frame.
+ * and tail-jumps into retireParityTargetSlotAndQueueSound, whose `pop af; ret` skips a frame.
  *
- * This gate composes the REAL idiomatic skip: applyRoundDeltaAndRearmMatchedRecord (idiomatic) imports loc_6274
+ * This gate composes the REAL idiomatic skip: applyRoundDeltaAndRearmMatchedRecord (idiomatic) imports retireParityTargetSlotAndQueueSound
  * (idiomatic) and calls it directly, early-returning on its `false`; the oracle applyRoundDeltaAndRearmMatchedRecord
- * (translated) runs the translated loc_6274 internally, whose pop-af aborts. The two must
+ * (translated) runs the translated retireParityTargetSlotAndQueueSound internally, whose pop-af aborts. The two must
  * land byte-identical in RAM (dumpState, minus STACK_SCRATCH). The oracle's transient stack
- * (its `call` return words plus loc_6274's pop-af/ret unwind) lives in STACK_SCRATCH and is
+ * (its `call` return words plus retireParityTargetSlotAndQueueSound's pop-af/ret unwind) lives in STACK_SCRATCH and is
  * excluded; the idiomatic side spends no stack. pc/SP/cycles/register-file are NOT compared.
  *
- * loc_6274 takes ONLY the pop-af path, so it always returns false and the caller always
+ * retireParityTargetSlotAndQueueSound takes ONLY the pop-af path, so it always returns false and the caller always
  * aborts — but that abort is applyRoundDeltaAndRearmMatchedRecord's own tail, so an early-return and a normal fall-off
  * are the same landing here. (The true one-frame skip lands ABOVE applyRoundDeltaAndRearmMatchedRecord, in whatever
  * called it; that is outside this cluster and irrelevant to RAM equivalence.) There is thus

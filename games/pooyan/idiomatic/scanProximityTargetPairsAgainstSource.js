@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_5d68 } from "./loc_5d68.js";
+import { testTargetPairOverlapAndClaimRecord } from "./testTargetPairOverlapAndClaimRecord.js";
 import { PROXIMITY_SOURCE_OBJECT, SPRITE_TARGET_SLOTS, PROJECTILE_TABLE } from "./names.js";
 /**
  * scanProximityTargetPairsAgainstSource — proximity-scan three target/record pairs against a fixed source.
@@ -53,7 +53,7 @@ export function scanProximityTargetPairsAgainstSource(m) {
     // source. It returns true on a miss (keep scanning) and false on a hit — a hit means it has
     // already claimed the struck record and queued the hit sound, so we abort the entire scan at
     // once and test no further pair this frame (the one-hit-per-pass rule).
-    if (!loc_5d68(m, PROXIMITY_SOURCE_OBJECT, target, record)) return; // hit -> abort scan
+    if (!testTargetPairOverlapAndClaimRecord(m, PROXIMITY_SOURCE_OBJECT, target, record)) return; // hit -> abort scan
     // On a miss, step both pointers forward to the next candidate: the target advances one sprite
     // coordinate slot (TARGET_STRIDE = 4 bytes) and the record advances one object struct
     // (RECORD_STRIDE = 0x18 bytes). Each is wrapped to a 16-bit address, matching how the hardware

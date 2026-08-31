@@ -7,7 +7,7 @@
  *
  * Cycle-free memory-equivalence gate: a fresh clone per side, compared on RAM (dumpState,
  * minus STACK_SCRATCH). The routine's live-out is MEMORY ONLY — the filled slot plus the
- * advanced write pointer. The oracle leaves A==0x09, but its two callers (loc_60bc/5fa2) each
+ * advanced write pointer. The oracle leaves A==0x09, but its two callers (resolveShotHitEngageOrSeedRecord/5fa2) each
  * `pop af` right after the call (discarding a stack frame, not reading queueSoundCommand09's A), so A is
  * not part of the contract and is not compared.
  *

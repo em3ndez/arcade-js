@@ -21,7 +21,7 @@ import {
  *
  * WHAT IT IS
  *   The inner half of the per-slot spawn routine, entered directly — past the "is this slot
- *   already live?" prologue that guards it. Its two entry points are loc_572b (the guarded whole,
+ *   already live?" prologue that guards it. Its two entry points are spawnEnemyIntoFreeActorSlot (the guarded whole,
  *   used when a caller is sweeping the six actor slots) and this body (used when a caller has
  *   already picked an empty slot and just wants it filled). Everything from here on assumes the
  *   slot at IX is free and is to be stamped with a fresh enemy.

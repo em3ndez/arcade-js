@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_5f83 } from "./loc_5f83.js";
+import { latchObjectTypeAndScanEnemyRecords } from "./latchObjectTypeAndScanEnemyRecords.js";
 import { SPRITE_ACTOR_RECORD_SLOTS } from "./names.js";
 /**
  * sweepBothActorRecordSlotsForHit — walk the two actor-record slots through the per-slot
@@ -63,7 +63,7 @@ export function sweepBothActorRecordSlotsForHit(m) {
     // inert or its six-record scan found no overlap, false when an overlap connected. On a claimed
     // hit the scan has already unwound the frame past this loop, so return at once and leave the
     // remaining box unscanned — only one contact resolves per sweep.
-    if (!loc_5f83(m, selector, cursor)) return; // a hit was claimed — skip the remaining pass
+    if (!latchObjectTypeAndScanEnemyRecords(m, selector, cursor)) return; // a hit was claimed — skip the remaining pass
     // No contact on the first box: advance the cursor one stride (four bytes) to the second
     // actor-record slot at 0x884c.
     cursor = u16(cursor + SLOT_STRIDE);

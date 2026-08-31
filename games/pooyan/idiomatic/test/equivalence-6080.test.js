@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6080 (ROM 0x6080, Pooyan) — the proximity gate ahead of the hit
+ * Memory-equivalence test for gateEvenRoundOverlapAndRouteHit (ROM 0x6080, Pooyan) — the proximity gate ahead of the hit
  * handler. It measures the axis gaps between the actor (x biased by the flip flag) and the target;
  * too wide on either axis skips the record to the outer-scan epilogue (a continue), and within
  * range it advances the record pointer to its tag and enters the hit handler with that key.
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6080 as oracle } from "../../translated/loc_6080.js";
-import { loc_6080 } from "../loc_6080.js";
+import { gateEvenRoundOverlapAndRouteHit } from "../gateEvenRoundOverlapAndRouteHit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -52,7 +52,7 @@ const REC0 = 0x8c90; //   parity target rec (I == 0)
 const REC1 = 0x8ca8; //   parity target rec (I != 0)
 const FLAG_I0 = 0x8d1b; // hit flag (I == 0)
 const SOUND_RING_PTR = 0x8a40;
-const OBJ = 0x8c50; //    object record base (HL); loc_6080 advances +0x14 to reach the tag
+const OBJ = 0x8c50; //    object record base (HL); gateEvenRoundOverlapAndRouteHit advances +0x14 to reach the tag
 const IXA = 0x8840; //    actor record (position at +0/+2)
 const IYA = 0x8848; //    target record (position at +0/+2)
 const KEY = 0x42;
@@ -82,7 +82,7 @@ function seat(m, { ireg = 0x00, ixX = 0, ixY = 0, iyX = 0, iyY = 0 } = {}) {
   m.mem.write8(IXA + 2, ixY);
   m.mem.write8(IYA + 0, iyX);
   m.mem.write8(IYA + 2, iyY);
-  m.mem.write8(OBJ + 0x14, KEY); //   the tag loc_6080 reads after advancing
+  m.mem.write8(OBJ + 0x14, KEY); //   the tag gateEvenRoundOverlapAndRouteHit reads after advancing
   for (const off of SEED_FIELDS) m.mem.write8(OBJ + off, 0xee); // pre-dirty so each seed write is a change
   m.mem.write8(SOUND_RING_PTR, 0x43);
   for (let i = 0; i < 6; i++) {
@@ -114,12 +114,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_6080 == oracle in RAM (−stack) + forwarded boolean", () => {
+test("EQUAL: gateEvenRoundOverlapAndRouteHit == oracle in RAM (−stack) + forwarded boolean", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    const ret = loc_6080(c);
+    const ret = gateEvenRoundOverlapAndRouteHit(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, cfg.ret, `${cfg.name}: forwarded boolean must be ${cfg.ret}`);
@@ -157,7 +157,7 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
   const o = craftHitMain(0x00);
   const c = craftHitMain(0x00);
   oracle(o);
-  loc_6080(c);
+  gateEvenRoundOverlapAndRouteHit(c);
   c.mem.write8(OBJ + 0x12, (o.mem.read8(OBJ + 0x12) ^ 0xff) & 0xff); // corrupt a seeded byte
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted seed byte");
@@ -167,11 +167,11 @@ test("TEETH: a wrong seeded byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a miss-returns-false twin and a skip-returns-true twin are CAUGHT by the boolean", () => {
   assert.throws(
-    () => assert.equal(((m) => (loc_6080(m), false))(craftMiss(0x00)), true),
+    () => assert.equal(((m) => (gateEvenRoundOverlapAndRouteHit(m), false))(craftMiss(0x00)), true),
     "a miss must continue -> true",
   );
   assert.throws(
-    () => assert.equal(((m) => (loc_6080(m), true))(craftHitSkip(0x0a)), false),
+    () => assert.equal(((m) => (gateEvenRoundOverlapAndRouteHit(m), true))(craftHitSkip(0x0a)), false),
     "a skip must abort -> false",
   );
   console.log("  TEETH(boolean): miss-false and skip-true twins caught");

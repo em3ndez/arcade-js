@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { gateEnemySpawnOnActiveCountAndInit } from "./gateEnemySpawnOnActiveCountAndInit.js";
-import { loc_572b } from "./loc_572b.js";
+import { spawnEnemyIntoFreeActorSlot } from "./spawnEnemyIntoFreeActorSlot.js";
 import {
   ENEMY_SPAWN_TIMER,
   ROUND_COUNTER,
@@ -98,7 +98,7 @@ export function tickEnemySpawnTimerAndGateSpawn(m) {
   // out over all six records and the frame ends with nothing spawned.
   let rec = ENEMY_ACTOR_TABLE;
   for (let n = SLOT_COUNT; n > 0; n--) {
-    if (loc_572b(m, rec, col, SPAWN_E_FIELD)) return; // spawned -> abort the sweep
+    if (spawnEnemyIntoFreeActorSlot(m, rec, col, SPAWN_E_FIELD)) return; // spawned -> abort the sweep
     rec += SLOT_STRIDE;
   }
 }

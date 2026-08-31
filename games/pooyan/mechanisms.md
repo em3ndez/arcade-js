@@ -1029,10 +1029,10 @@ place — one spawn per pass. The cadence is throttled by a countdown: `tickSpaw
 decrements the spawn-cadence timer at 0x8d07 each tick and does nothing until it hits zero, then
 checks the wave budget (the active enemy count at 0x8d40 against the per-stage target at 0x8901,
 capped at 6) before sweeping the six records at 0x8ae0 and handing each to the initialiser
-`loc_119a` [seen]. `spawnHunterIntoFreeSlot` (0x118d) [seen] is the bare slot-scan loop that drives that
+`seedFreeEnemyRecordFromRoundTables` [seen]. `spawnHunterIntoFreeSlot` (0x118d) [seen] is the bare slot-scan loop that drives that
 initialiser across the pool.
 
-`loc_119a` [seen] is the initialiser. It returns at once if the record's header already reads
+`seedFreeEnemyRecordFromRoundTables` [seen] is the initialiser. It returns at once if the record's header already reads
 active, so the scan naturally lands on the first free slot; otherwise it stamps the record live
 (byte 0 = 1), seeds the state byte to 3, writes the incoming Y, clears the coordinate and flag
 bytes, sets the +0x07 variant flag, derives the +0x09/+0x0a facing pair from a round-counter
@@ -1226,7 +1226,7 @@ per-cell timer handlers that carry the hung object down: each ticks the cell tim
 it reaches zero it re-arms the timer, walks into the formation record table FORMATION_TABLE
 (0x8c30) [seen] by the byte following the timer to adjust one record's tile/position/drop fields,
 advances the cell state, and blits the segment's 2x2 tile at its column. The state-3 variant is
-gated first by the grab test `loc_305f`: it looks a catch-window half-width up (keyed by the cell
+gated first by the grab test `testHangingRopeGrabConnect`: it looks a catch-window half-width up (keyed by the cell
 index) and compares it against a window around the player coordinate at PLAYER_Y (0x8a84) — a cell
 labelled a vertical position but read here as the player's horizontal position for the catch window;
 with the player inside the window, and only when neither the wave-teardown state WAVE_TEARDOWN_STATE (0x8f24) [seen] nor

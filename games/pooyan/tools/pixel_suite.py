@@ -57,10 +57,11 @@ SECONDS = 4                    # 244 golden frames: covers the PREFIX_FRAMES val
 # item (see ARCADE2-RESUME.md), not swept under an inflated budget here. 170 is the last frame before the
 # first extended transient (f177).
 PREFIX_FRAMES = 170
-# Deep-untranslated (documentation): attract + the full ~10-min golden run gap-free; the only untranslated
-# routines are in-play dispatch handlers reached only past a board-clear -- 0x1d9c/0x1d6e/0x6bb2 (in-play
-# sub-state table 0x15a8 idx15-17) + loc_0fd5's subtree (0x0fef/1016/1090/10a2/113c/114f). Translating them
-# plus a phase-2 capture that clears a wave is the open §3-completeness item (no current bot reaches it).
+# §3 completeness (documentation): attract + the full ~10-min golden run gap-free. The former deep-untranslated
+# in-play dispatch handlers reached only past a board-clear -- 0x1d9c/0x1d6e/0x6bb2 (in-play sub-state table
+# 0x15a8 idx15-17) + loc_0fd5's subtree (0x0fef/1016/1090/10a2/113c/114f) -- are now all translated, idiomatic,
+# and grounded cert:"seen", and the bot tape (tapes/coin_start_play.lua) clears a board so PART B reaches
+# round>=1. The §3-completeness item is RESOLVED.
 
 # Nearest-golden search half-width. Distinct-content frames drift about +1; static fill/hold frames match
 # any identical golden frame, so the chosen offset ranges wider but every clean frame still scores 0px --

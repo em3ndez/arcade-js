@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_618a (ROM 0x618a, Pooyan) — the caller-skip.
+ * Memory-equivalence test for clearActiveObjectTypeAndAbortHandler (ROM 0x618a, Pooyan) — the caller-skip.
  *
  * The routine clears ACTIVE_OBJECT_TYPE (0x8d44) and then, in the frozen oracle, discards its
  * own return address (a `pop af`) before `ret`, so control unwinds one frame past the direct
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_618a as oracle } from "../../translated/loc_618a.js";
-import { loc_618a } from "../loc_618a.js";
+import { clearActiveObjectTypeAndAbortHandler } from "../clearActiveObjectTypeAndAbortHandler.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -67,14 +67,14 @@ const SEEDS = [0xaa, 0x00, 0x03, 0x7f];
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_618a clears ACTIVE_OBJECT_TYPE and reports the skip (false) == oracle RAM", () => {
+test("EQUAL: clearActiveObjectTypeAndAbortHandler clears ACTIVE_OBJECT_TYPE and reports the skip (false) == oracle RAM", () => {
   for (const objType of SEEDS) {
     const o = craft(objType);
     oracle(o);
     assert.equal((o.regs.sp - SP_SCRATCH) & 0xffff, 4, `oracle must take the pop-af skip (SP += 4) for objType=${hx(objType)}`);
 
     const c = craft(objType);
-    const ret = loc_618a(c);
+    const ret = clearActiveObjectTypeAndAbortHandler(c);
     assert.equal(ret, false, `module must report the skip path as false (objType=${hx(objType)})`);
 
     const d = ramDiffMinusStack(o, c);
@@ -108,7 +108,7 @@ test("TEETH: a wrong written byte is CAUGHT by the RAM diff", () => {
   const o = craft(0xaa);
   const c = craft(0xaa);
   oracle(o);
-  loc_618a(c);
+  clearActiveObjectTypeAndAbortHandler(c);
   c.mem.write8(ACTIVE_OBJECT_TYPE, 0x01); // BUG: the cell must be 0
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong ACTIVE_OBJECT_TYPE byte — it is worthless");
@@ -118,7 +118,7 @@ test("TEETH: a wrong written byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a skip mislabelled as the normal path (true) is rejected by the boolean contract", () => {
   const c = craft(0xaa);
-  const ret = loc_618a(c);
+  const ret = clearActiveObjectTypeAndAbortHandler(c);
   assert.equal(ret, false, "sanity: the module reports the skip as false");
   // A twin that reported this pop-af skip as a normal m.ret would return true; the EQUAL job
   // asserts `ret === false`, which rejects that:

@@ -10,7 +10,7 @@
  * register survives — so equivalence is RAM (dumpState) minus STACK_SCRATCH, SP parked in
  * STACK_SCRATCH so the handler's nested pushes drop out of the diff.
  *
- * ⚠ CROSS-AGENT: the idiomatic per-slot handler (loc_5f83) is an in-batch sibling. This gate
+ * ⚠ CROSS-AGENT: the idiomatic per-slot handler (latchObjectTypeAndScanEnemyRecords) is an in-batch sibling. This gate
  * assumes it lands with the family contract `(m, cursor, selector)` returning true=continue /
  * false=hit-claimed, exactly like the proximity driver's seeder. If the sibling's signature or
  * boolean polarity differs the LEAD reconciles at merge.
@@ -34,7 +34,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5f6a as oracle } from "../../translated/loc_5f6a.js";
 import { sweepBothActorRecordSlotsForHit } from "../sweepBothActorRecordSlotsForHit.js";
-import { loc_5f83 } from "../loc_5f83.js";
+import { latchObjectTypeAndScanEnemyRecords } from "../latchObjectTypeAndScanEnemyRecords.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPRITE_ACTOR_RECORD_SLOTS } from "../names.js";
@@ -157,7 +157,7 @@ test("TEETH: a single-pass twin leaves the first slot's value and diverges from 
   const o = craftBoth();
   const twin = craftBoth();
   oracle(o); // both passes -> 0x8d44 = second lead
-  loc_5f83(twin, 0x00, SPRITE_ACTOR_RECORD_SLOTS); // a driver that ran only the first pass (selector 0, cursor base)
+  latchObjectTypeAndScanEnemyRecords(twin, 0x00, SPRITE_ACTOR_RECORD_SLOTS); // a driver that ran only the first pass (selector 0, cursor base)
   const d = ramDiffMinusStack(o, twin);
   assert.notEqual(d, null, "the gate FAILED to catch a single-pass sweep");
   assert.equal(d.addr, TYPE, `teeth caught wrong address ${hx(d.addr ?? 0)}`);

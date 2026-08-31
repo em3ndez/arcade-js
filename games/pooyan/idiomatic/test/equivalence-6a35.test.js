@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_6a35 (ROM 0x6a35) — the per-record enemy spawn/init, a
+ * Memory-equivalence test for spawnEnemyIntoFreeSlotCyclingAnim (ROM 0x6a35) — the per-record enemy spawn/init, a
  * DISSOLVED caller-skip that composes the idiomatic setActorAnimation.
  *
  * A record already carrying the active bit takes the plain `ret c` (normal return, SP += 2)
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_6a35 as oracle } from "../../translated/loc_6a35.js";
-import { loc_6a35 } from "../loc_6a35.js";
+import { spawnEnemyIntoFreeSlotCyclingAnim } from "../spawnEnemyIntoFreeSlotCyclingAnim.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -105,7 +105,7 @@ for (const [label, craft] of [["active", craftActive], ["active-low", craftActiv
   test(`EQUAL: ${label} — module == oracle in RAM (−stack), returns true, normal ret (SP+=2)`, () => {
     const o = craft();
     const c = craft();
-    const ret = loc_6a35(c);
+    const ret = spawnEnemyIntoFreeSlotCyclingAnim(c);
     oracle(o);
 
     assert.equal(ret, true, "an already-active record must return true (caller keeps sweeping)");
@@ -120,7 +120,7 @@ for (const [phase, ptr] of [[0, PTR_EARLY], [1, PTR_EARLY], [2, PTR_MID], [3, PT
   test(`EQUAL: spawn phase ${phase} — module == oracle in RAM (−stack), returns false, skip (SP+=4)`, () => {
     const o = craftSpawn(phase);
     const c = craftSpawn(phase);
-    const ret = loc_6a35(c);
+    const ret = spawnEnemyIntoFreeSlotCyclingAnim(c);
     oracle(o);
 
     assert.equal(ret, false, "a spawn must return false (abort the caller)");
@@ -165,7 +165,7 @@ test("WRITE-SET: spawn phase 1 re-arms the countdown to the larger value", () =>
 
 test("TEETH: a twin that reports the spawn as 'continue' (true) is rejected by the boolean check", () => {
   function brokenContinue(m) {
-    loc_6a35(m); // real memory effect
+    spawnEnemyIntoFreeSlotCyclingAnim(m); // real memory effect
     return true; // BUG: a spawn must abort the caller -> false
   }
   const c = craftSpawn(0);
@@ -180,7 +180,7 @@ test("TEETH: a wrong seeded record byte is caught by the RAM diff", () => {
   const o = craftSpawn(0);
   const c = craftSpawn(0);
   oracle(o);
-  loc_6a35(c);
+  spawnEnemyIntoFreeSlotCyclingAnim(c);
   c.mem.write8(REC + 4, 0x99); // BUG: rec+4 must be 0x15
 
   const d = ramDiffMinusStack(o, c);

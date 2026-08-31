@@ -38,7 +38,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_7627 as oracle } from "../../translated/loc_7625.js";
 import { advanceEnemyActorStateWalk } from "../advanceEnemyActorStateWalk.js";
-import { loc_7638 } from "../loc_7638.js"; // for the teeth twins
+import { dispatchEnemyActorAnimTickState } from "../dispatchEnemyActorAnimTickState.js"; // for the teeth twins
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
@@ -153,7 +153,7 @@ test("WRITE-SET: the full walk ticks exactly records 0..7 (base/stride/count pos
 function walkNoAbort(m, count) {
   let ix = REC;
   for (let n = count; n > 0; n--) {
-    loc_7638(m, ix);
+    dispatchEnemyActorAnimTickState(m, ix);
     ix = u16(ix + STRIDE);
   }
 }
@@ -162,7 +162,7 @@ function walkNoAbort(m, count) {
 function walkCount(m, count) {
   let ix = REC;
   for (let n = count; n > 0; n--) {
-    if (!loc_7638(m, ix)) return;
+    if (!dispatchEnemyActorAnimTickState(m, ix)) return;
     ix = u16(ix + STRIDE);
   }
 }

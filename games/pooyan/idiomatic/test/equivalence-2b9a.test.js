@@ -2,10 +2,10 @@
 /**
  * Memory-equivalence test for tickFormationSpawnAndScanSlots (ROM 0x2b9a) — "formation-spawn tick".
  *
- * tickFormationSpawnAndScanSlots is a CALLER: it invokes the dissolved caller-skip loc_2bbf (whose false return
+ * tickFormationSpawnAndScanSlots is a CALLER: it invokes the dissolved caller-skip stageFormationReadyMarkersOrSkipTick (whose false return
  * abandons the tick), then services the spawn countdown, and on expiry falls into the spawn
- * scan scanFormationSlotsAndLaunchFree (which itself composes the dissolved skip loc_2be5). This gate COMPOSES all the
- * real idiomatic pieces: the idiomatic tickFormationSpawnAndScanSlots imports the idiomatic loc_2bbf and scanFormationSlotsAndLaunchFree and
+ * scan scanFormationSlotsAndLaunchFree (which itself composes the dissolved skip launchFormationObjectIntoFreeSlot). This gate COMPOSES all the
+ * real idiomatic pieces: the idiomatic tickFormationSpawnAndScanSlots imports the idiomatic stageFormationReadyMarkersOrSkipTick and scanFormationSlotsAndLaunchFree and
  * early-returns / tail-calls exactly where the oracle's skips aborted. The oracle side runs the
  * TRANSLATED tickFormationSpawnAndScanSlots, which m.call()s the translated helpers through the registry.
  *
@@ -16,8 +16,8 @@
  * record table at 0x8c60) identically on both sides.
  *
  * Five states drive every branch:
- *   A. wave<2 & indicator present -> loc_2bbf skips -> tick abandoned, no writes.
- *   B. wave<2 & indicator absent  -> loc_2bbf blits+paints, then countdown (nonzero) decrements.
+ *   A. wave<2 & indicator present -> stageFormationReadyMarkersOrSkipTick skips -> tick abandoned, no writes.
+ *   B. wave<2 & indicator absent  -> stageFormationReadyMarkersOrSkipTick blits+paints, then countdown (nonzero) decrements.
  *   C. wave>=2 & countdown nonzero -> helper skipped, countdown just decrements.
  *   D. wave>=2 & countdown zero, a free slot -> falls into the scan, seeds one record, aborts.
  *   E. wave>=2 & countdown zero, all slots busy -> full scan, no writes.

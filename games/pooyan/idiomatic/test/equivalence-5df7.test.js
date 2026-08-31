@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence gate for gateAndRunProjectileTargetSweep (Pooyan) — the proximity-sweep gate/seeder, COMPOSING the
- * whole idiomatic sweep chain (sweepTargetSlotsForGrab -> loc_5e1f -> setActorAnimation / queueSoundCommand0D).
+ * whole idiomatic sweep chain (sweepTargetSlotsForGrab -> testTargetSlotGrabAndCatchObject -> setActorAnimation / queueSoundCommand0D).
  *
  * gateAndRunProjectileTargetSweep bails when the grab latch is set or when the formation/teardown states are non-zero;
  * otherwise it aims the sweep at three fixed tables (the sprite display list as the reference

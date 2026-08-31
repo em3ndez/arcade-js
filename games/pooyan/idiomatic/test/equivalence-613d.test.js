@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for retireResetOrEngageObjectRecord (ROM 0x613d, Pooyan) — the matched-record handler and
- * entry of the retire/reset/scan cluster; a caller that dissolves the caller-skip loc_618a.
+ * entry of the retire/reset/scan cluster; a caller that dissolves the caller-skip clearActiveObjectTypeAndAbortHandler.
  *
  * Behaviour by branch off the record IY points at:
  *   - +0 flag bit0 clear   -> straight to the caller-skip (clear ACTIVE_OBJECT_TYPE, abort).

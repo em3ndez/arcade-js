@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_305f (ROM 0x305f) — "rope-grab trigger test", a dissolved
+ * Memory-equivalence test for testHangingRopeGrabConnect (ROM 0x305f) — "rope-grab trigger test", a dissolved
  * caller-skip. It looks up a catch-window half-width from a table (keyed by IXL&3), tests the
  * player coordinate at 0x8a84 against a +/-7 window, and — inside the window with neither the
  * formation state (0x8f08) nor the wave-teardown state (0x8f24) busy — raises the grab latch
@@ -18,8 +18,8 @@
  *
  * Jobs:
  *   1. EQUAL (normal paths) — three no-grab cases (below window, above window, busy): oracle ==
- *      loc_305f in RAM (−stack); both return true; the grab latch stays clear.
- *   2. EQUAL (grab path) — inside the window and idle: oracle == loc_305f in RAM (−stack); both
+ *      testHangingRopeGrabConnect in RAM (−stack); both return true; the grab latch stays clear.
+ *   2. EQUAL (grab path) — inside the window and idle: oracle == testHangingRopeGrabConnect in RAM (−stack); both
  *      return false; the grab latch is raised to 1.
  *   3. FOOTPRINT — the grab path raises 0x8d32 to 1 (the no-grab path leaves it untouched).
  *   4. TEETH — a wrong grab-latch byte is caught by the RAM diff; a twin returning the WRONG
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_305f as oracle } from "../../translated/loc_305f.js";
-import { loc_305f } from "../loc_305f.js";
+import { testHangingRopeGrabConnect } from "../testHangingRopeGrabConnect.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -83,7 +83,7 @@ const POS_INSIDE = HALF; //         low edge < HALF <= high edge -> inside the w
 
 // -- 1. EQUAL (normal / no-grab paths) ----------------------------------------
 
-test("EQUAL: no-grab paths (below / above / busy) — loc_305f == oracle in RAM (−stack), both true", () => {
+test("EQUAL: no-grab paths (below / above / busy) — testHangingRopeGrabConnect == oracle in RAM (−stack), both true", () => {
   const CASES = [
     { label: "below window", pos: POS_BELOW },
     { label: "above window", pos: POS_ABOVE },
@@ -94,7 +94,7 @@ test("EQUAL: no-grab paths (below / above / busy) — loc_305f == oracle in RAM 
     const o = craft({ pos, f08, f24 });
     const c = craft({ pos, f08, f24 });
     const oRet = oracle(o);
-    const cRet = loc_305f(c);
+    const cRet = testHangingRopeGrabConnect(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${label}: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
@@ -107,11 +107,11 @@ test("EQUAL: no-grab paths (below / above / busy) — loc_305f == oracle in RAM 
 
 // -- 2. EQUAL (grab / skip path) ----------------------------------------------
 
-test("EQUAL: grab path (inside + idle) — loc_305f == oracle in RAM (−stack), both false", () => {
+test("EQUAL: grab path (inside + idle) — testHangingRopeGrabConnect == oracle in RAM (−stack), both false", () => {
   const o = craft({ pos: POS_INSIDE });
   const c = craft({ pos: POS_INSIDE });
   const oRet = oracle(o);
-  const cRet = loc_305f(c);
+  const cRet = testHangingRopeGrabConnect(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `grab: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} mine=${d.b}`);
@@ -142,7 +142,7 @@ test("TEETH: a wrong grab-latch byte is CAUGHT by the RAM diff", () => {
   const o = craft({ pos: POS_INSIDE });
   const c = craft({ pos: POS_INSIDE });
   oracle(o);
-  loc_305f(c);
+  testHangingRopeGrabConnect(c);
   c.mem.write8(GRAB_ACTIVE_FLAG, 0x00); // BUG: a twin that fails to raise the latch
 
   const d = ramDiffMinusStack(o, c);
@@ -155,7 +155,7 @@ test("TEETH: a twin returning the WRONG boolean is CAUGHT by the boolean-contrac
   // The EQUAL jobs assert the module boolean equals the oracle path. A twin that always returns
   // true would slip past a memory-only gate but must fail that boolean check on the skip path.
   const brokenAlwaysTrue = (mm) => {
-    loc_305f(mm); // real memory effect
+    testHangingRopeGrabConnect(mm); // real memory effect
     return true; // BUG: never reports the skip
   };
   assert.throws(

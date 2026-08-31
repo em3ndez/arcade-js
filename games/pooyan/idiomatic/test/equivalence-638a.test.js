@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence + skip-dissolution gate for loc_638a (Pooyan) — the per-slot proximity scan.
+ * Memory-equivalence + skip-dissolution gate for scanTargetSlotsAndSpawnOnProximityHit (Pooyan) — the per-slot proximity scan.
  *
- * loc_638a is a CALLER-SKIP in the frozen layer: on a hit it spawns and then `pop af; ret`, a skip
+ * scanTargetSlotsAndSpawnOnProximityHit is a CALLER-SKIP in the frozen layer: on a hit it spawns and then `pop af; ret`, a skip
  * that aborts its caller's caller; with no hit the loop runs out and it plain-`ret`s. The idiomatic
  * module DISSOLVES that: it returns a JS boolean — true = the plain-ret / exhausted path, false =
  * the pop-af skip / hit path — and the caller early-returns on false instead of unwinding the stack.
  *
  * This gate checks both halves:
  *   1. RAM-equivalence (dumpState minus STACK_SCRATCH): a fresh clone per side, oracle on one and
- *      loc_638a on the other, identical over empty / hit-I0 / hit-I1(negate) / dx-reject / dy-reject
+ *      scanTargetSlotsAndSpawnOnProximityHit on the other, identical over empty / hit-I0 / hit-I1(negate) / dx-reject / dy-reject
  *      / two-slot-then-hit cases. pc/SP/cycles are NOT compared — the oracle drives SP through the
  *      modelled pushes/pops the dissolution drops, so those land in STACK_SCRATCH and are excluded.
  *   2. BOOLEAN-vs-oracle-path: the oracle's SP movement tells which path it took (a plain ret pops
@@ -32,7 +32,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_638a as oracle } from "../../translated/loc_638a.js";
-import { loc_638a } from "../loc_638a.js";
+import { scanTargetSlotsAndSpawnOnProximityHit } from "../scanTargetSlotsAndSpawnOnProximityHit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, FLIP_SCREEN_FLAG, OBJ_HIT_FLAG_I0, OBJ_HIT_FLAG_I1 } from "../names.js";
@@ -107,12 +107,12 @@ function oracleNormalPath(o) {
 
 // -- 1. EQUAL + 2. BOOLEAN-vs-oracle-path -------------------------------------
 
-test("EQUAL + BOOLEAN: loc_638a == oracle in RAM (−stack), and its boolean matches the oracle path", () => {
+test("EQUAL + BOOLEAN: scanTargetSlotsAndSpawnOnProximityHit == oracle in RAM (−stack), and its boolean matches the oracle path", () => {
   for (const spec of CASES) {
     const o = craft(spec);
     oracle(o);
     const c = craft(spec);
-    const ret = loc_638a(c);
+    const ret = scanTargetSlotsAndSpawnOnProximityHit(c);
 
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `[${spec.name}] RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
@@ -153,7 +153,7 @@ test("TEETH/RAM: a wrong stamped byte is CAUGHT by the RAM diff", () => {
   const o = craft(spec);
   const c = craft(spec);
   oracle(o);
-  loc_638a(c);
+  scanTargetSlotsAndSpawnOnProximityHit(c);
   c.mem8[HL_REC + 0x11] = 0x00; // BUG: the teardown countdown must be 0x28
 
   const d = ramDiffMinusStack(o, c);

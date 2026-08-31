@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_5f83 (ROM 0x5f83, Pooyan) — arm and enter the enemy-record
+ * Memory-equivalence test for latchObjectTypeAndScanEnemyRecords (ROM 0x5f83, Pooyan) — arm and enter the enemy-record
  * overlap scan for one interrupt-parity slot. It picks the slot's presence block by the parity
  * selector, gates on that block's lead byte (a zero block -> return normally), else latches the
  * kind as the active hit type and enters the six-record overlap scan.
@@ -14,7 +14,7 @@
  * Compared on RAM (dumpState) minus STACK_SCRATCH; the register file is not compared. The slot
  * selector and target box are the param-default register bridge.
  *
- * The oracle runs the TRANSLATED loc_5f83, which m.call()s the scan subtree (testRecordOverlapRetireOrFlagHit -> advanceOverlapScanToNextSlot/
+ * The oracle runs the TRANSLATED latchObjectTypeAndScanEnemyRecords, which m.call()s the scan subtree (testRecordOverlapRetireOrFlagHit -> advanceOverlapScanToNextSlot/
  * queueSoundCommand09) through the registry; the module composes the idiomatic subtree by direct import of
  * testRecordOverlapRetireOrFlagHit (a batch sibling — this gate is green once testRecordOverlapRetireOrFlagHit and the ENEMY_SCAN_BOX_TABLE cell
  * land). Cases are CRAFTED — a plain boot does not seat this block/box/enemy geometry.
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_5f83 as oracle } from "../../translated/loc_5f83.js";
-import { loc_5f83 } from "../loc_5f83.js";
+import { latchObjectTypeAndScanEnemyRecords } from "../latchObjectTypeAndScanEnemyRecords.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -98,12 +98,12 @@ const CASES = [
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_5f83 == oracle in RAM (−stack) + forwarded boolean", () => {
+test("EQUAL: latchObjectTypeAndScanEnemyRecords == oracle in RAM (−stack) + forwarded boolean", () => {
   for (const cfg of CASES) {
     const o = cfg.craft();
     const c = cfg.craft();
     oracle(o);
-    const ret = loc_5f83(c);
+    const ret = latchObjectTypeAndScanEnemyRecords(c);
     const d = ramDiffMinusStack(o, c);
     assert.equal(d, null, d && `${cfg.name}: RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} module=${d.b}`);
     assert.equal(ret, cfg.ret, `${cfg.name}: forwarded boolean must be ${cfg.ret}`);
@@ -136,7 +136,7 @@ test("TEETH: a wrong latched type byte is CAUGHT by the RAM diff", () => {
   const o = craftLiveMiss();
   const c = craftLiveMiss();
   oracle(o);
-  loc_5f83(c);
+  latchObjectTypeAndScanEnemyRecords(c);
   c.mem.write8(TYPE, (o.mem.read8(TYPE) ^ 0xff) & 0xff);
   const d = ramDiffMinusStack(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted type byte");
@@ -146,11 +146,11 @@ test("TEETH: a wrong latched type byte is CAUGHT by the RAM diff", () => {
 
 test("TEETH: a hit-returns-true twin and an inert-returns-false twin are CAUGHT by the boolean", () => {
   assert.throws(
-    () => assert.equal(((m) => (loc_5f83(m), true))(craftLiveHit()), false),
+    () => assert.equal(((m) => (latchObjectTypeAndScanEnemyRecords(m), true))(craftLiveHit()), false),
     "a hit must skip -> false",
   );
   assert.throws(
-    () => assert.equal(((m) => (loc_5f83(m), false))(craftInert()), true),
+    () => assert.equal(((m) => (latchObjectTypeAndScanEnemyRecords(m), false))(craftInert()), true),
     "an inert block must continue -> true",
   );
   console.log("  TEETH(boolean): hit-true and inert-false twins caught");

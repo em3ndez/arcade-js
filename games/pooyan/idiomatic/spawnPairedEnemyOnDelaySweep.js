@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_6931 } from "./loc_6931.js";
+import { spawnPairedEnemyRecordAndAnnounceWave } from "./spawnPairedEnemyRecordAndAnnounceWave.js";
 import {
   SHARED_FRAME_DELAY_TIMER,
   WAVE_NUMBER,
@@ -27,7 +27,7 @@ const WAVE_LIMIT = 0x08; //   no spawning once WAVE_NUMBER reaches this
  * pair that is not yet in use and stamping it live. This routine owns the pacing (through the shared
  * per-frame delay counter) and the "who's next" search (the eight-pair sweep); the actual stamping of
  * a chosen pair — writing its coordinates, animation and flags, re-arming the delay, painting the HUD
- * count on the first spawn of a wave — is done by the per-pair spawn/init helper loc_6931.
+ * count on the first spawn of a wave — is done by the per-pair spawn/init helper spawnPairedEnemyRecordAndAnnounceWave.
  *
  * ROM: 0x6905-0x6930.
  * Grounding: [seen]
@@ -38,13 +38,13 @@ const WAVE_LIMIT = 0x08; //   no spawning once WAVE_NUMBER reaches this
  *   2. Once the delay is clear, release nothing if the wave is finished: either the spawn-progress
  *      index WAVE_NUMBER (0x892d) has caught up to the per-stage arrival tally WAVE_ARRIVAL_COUNTER
  *      (0x8903), or WAVE_NUMBER has reached the eight-wave limit for the stage.
- *   3. Otherwise walk the eight enemy/state record pairs and hand each to loc_6931, which stamps the
+ *   3. Otherwise walk the eight enemy/state record pairs and hand each to spawnPairedEnemyRecordAndAnnounceWave, which stamps the
  *      first pair that is free. That helper returns true for an already-active pair (keep sweeping)
  *      and false the instant it spawns (abort the sweep) — so at most one pair is placed per call,
  *      i.e. exactly one enemy is released per elapsed delay.
  *
  * LIVE-OUT: none — the caller resumes on its own state. What remains is the memory effect: either
- * SHARED_FRAME_DELAY_TIMER decremented by one, or (via loc_6931) one record pair stamped live and the
+ * SHARED_FRAME_DELAY_TIMER decremented by one, or (via spawnPairedEnemyRecordAndAnnounceWave) one record pair stamped live and the
  * shared delay re-armed to time the next release.
  */
 export function spawnPairedEnemyOnDelaySweep(m) {
@@ -73,14 +73,14 @@ export function spawnPairedEnemyOnDelaySweep(m) {
   // ENEMY_ACTOR_TABLE (0x8ae0) and OBJECT_STATE_RECORD_BASE (0x8ba0), RECORD_PAIRS (8) entries each,
   // laid out RECORD_STRIDE (0x18) bytes apart. Two cursors advance in lock-step across the eight
   // pairs — ix over the actor table, iy over the state table — each kept to a 16-bit address. Each
-  // pair is offered to loc_6931: a pair already in use (bit0 of its leading byte set) returns true
+  // pair is offered to spawnPairedEnemyRecordAndAnnounceWave: a pair already in use (bit0 of its leading byte set) returns true
   // and the sweep moves on; the first free pair is stamped live (and the shared delay re-armed) and
   // returns false, which aborts the sweep here. So the loop places exactly one enemy and then stops,
   // even when later pairs are still free — one release per elapsed delay.
   let ix = ENEMY_ACTOR_TABLE;
   let iy = OBJECT_STATE_RECORD_BASE;
   for (let n = 0; n < RECORD_PAIRS; n++) {
-    if (!loc_6931(m, ix, iy)) return; // spawned -> abort the sweep
+    if (!spawnPairedEnemyRecordAndAnnounceWave(m, ix, iy)) return; // spawned -> abort the sweep
     ix = u16(ix + RECORD_STRIDE);
     iy = u16(iy + RECORD_STRIDE);
   }

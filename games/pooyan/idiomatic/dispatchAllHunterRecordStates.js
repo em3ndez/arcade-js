@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { ENEMY_ACTOR_TABLE } from "./names.js";
-import { loc_2c3f } from "./loc_2c3f.js";
+import { dispatchOneHunterRecordState } from "./dispatchOneHunterRecordState.js";
 
 /**
  * dispatchAllHunterRecordStates — run every hunter record's state machine for one frame.
@@ -55,7 +55,7 @@ export function dispatchAllHunterRecordStates(m) {
   for (let i = 0; i < HUNTER_RECORD_COUNT; i++) {
     // Run this one record's state machine. The dispatcher returns false when a handler ends the
     // wave-phase and thereby reshapes the record set, which aborts the rest of this frame's pass.
-    if (!loc_2c3f(m, rec)) return; // per-record dispatcher; false aborts the sweep
+    if (!dispatchOneHunterRecordState(m, rec)) return; // per-record dispatcher; false aborts the sweep
     // Advance to the next record in the arena (one 0x18-byte stride forward).
     rec += RECORD_STRIDE;
   }

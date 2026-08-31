@@ -8,8 +8,8 @@
  * The module calls the idiomatic fetchByteFromTableIndex / seedFirstFreeSlotForScheduledSpawn directly; the oracle drives them through the
  * frozen registry. spawnShotTargetOnInterval declares no register live-out (seedFirstFreeSlotForScheduledSpawn is memory-only and the caller
  * reads only memory back), so the register file is not compared; equivalence is RAM (dumpState) minus
- * STACK_SCRATCH (SP parked in dead stack so the loop's push/pop and loc_5489's caller-skip drop out).
- * The SEED case (a free spawn block) exercises seedFirstFreeSlotForScheduledSpawn's caller-skip through loc_5489; the ALL-LIVE
+ * STACK_SCRATCH (SP parked in dead stack so the loop's push/pop and initSpawnedActorRecordAndDeriveSpeed's caller-skip drop out).
+ * The SEED case (a free spawn block) exercises seedFirstFreeSlotForScheduledSpawn's caller-skip through initSpawnedActorRecordAndDeriveSpeed; the ALL-LIVE
  * case makes the block live so the scan falls out with no seed. Both read ROM tables -> ROM required.
  *
  * Jobs:

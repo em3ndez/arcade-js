@@ -76,34 +76,51 @@ def read_names_debt(base):
     return debt
 
 
+def routine_loc_names(names_js_text):
+    """Every loc_<addr> that IS a ROUTINES entry (any cert) -- the registry accounts for it."""
+    return set(re.findall(r'name:\s*"(loc_[0-9a-f]+)"', names_js_text))
+
+
+def loc_module_files(base):
+    """Basenames of games/<game>/idiomatic/loc_*.js FILES -- each is a routine that must be named or debt-listed."""
+    return {os.path.splitext(os.path.basename(f))[0] for f in glob.glob(f"{base}/idiomatic/loc_*.js")}
+
+
 def check(game, base=None):
     base = base or f"games/{game}"
     names_js = f"{base}/idiomatic/names.js"
     if not os.path.exists(names_js):
         print(f"naming [{game}]: OK (no idiomatic/names.js -- nothing to enforce)")
         return 0
-    seen_locs = seen_loc_routines(read_text(names_js))
+    names_text = read_text(names_js)
+    seen_locs = seen_loc_routines(names_text)      # cert:seen loc_ ROUTINES entries
+    routine_locs = routine_loc_names(names_text)   # ALL loc_ ROUTINES entries (any cert)
+    loc_files = loc_module_files(base)             # every idiomatic/loc_*.js FILE
     if game in LEGACY:
-        print(f"naming [{game}]: OK (legacy pre-runbook port grandfathered; {len(seen_locs)} loc_ seen routines not retrofitted)")
+        print(f"naming [{game}]: OK (legacy pre-runbook port grandfathered; {len(loc_files)} loc_ modules not retrofitted)")
         return 0
     debt = read_names_debt(base)
-    # Honesty checks on names-debt (mirror done_gate grounding-debt): every debt entry must have a reason AND
-    # must actually be a cert:seen loc_ routine in names.js; a reasonless or stale/false entry BLOCKS.
+    # Honesty checks on names-debt: every entry needs a reason AND must be REAL -- either a cert:seen loc_
+    # ROUTINE in names.js, or an actual idiomatic/loc_<addr>.js FILE. Reasonless or stale/false (no such
+    # routine AND no such file) BLOCKS.
     bad_debt = []
     for loc, reason in debt.items():
         if not reason:
             bad_debt.append(f"{loc} (no reason)")
-        elif loc not in seen_locs:
-            bad_debt.append(f"{loc} (not a cert:seen loc_ routine in names.js -- stale/false)")
+        elif loc not in seen_locs and loc not in loc_files:
+            bad_debt.append(f"{loc} (neither a cert:seen loc_ routine in names.js nor a loc_*.js file -- stale/false)")
     if bad_debt:
         print(f"naming [{game}]: BLOCK -- names-debt.txt has invalid entries:", file=sys.stderr)
         for x in bad_debt:
             print(f"  - {x}", file=sys.stderr)
         return 1
-    unaccounted = sorted(seen_locs - set(debt))
+    # (A) a cert:seen loc_ ROUTINES entry must be renamed or debt-listed. (B) every idiomatic loc_*.js FILE
+    # must be a ROUTINES entry (any cert) or debt-listed -- (B) catches a grounded loc_ module the ROUTINES-map
+    # check (A) is blind to (a file with no ROUTINES entry). Either way the fix is a rename or a reasoned debt line.
+    unaccounted = sorted((seen_locs - set(debt)) | (loc_files - routine_locs - set(debt)))
     if unaccounted:
-        print(f"naming [{game}]: BLOCK -- {len(unaccounted)} grounded (cert:seen) routine(s) still named loc_ "
-              f"(name them by EFFECT; runbook §4). loc_ is reserved for an UNCLEAR mechanism:", file=sys.stderr)
+        print(f"naming [{game}]: BLOCK -- {len(unaccounted)} routine(s) named loc_ with no descriptive name and no "
+              f"names-debt.txt reason (name by EFFECT; runbook §4-end). loc_ is for a genuinely-unclear mechanism:", file=sys.stderr)
         for loc in unaccounted[:20]:
             print(f"  - {loc}", file=sys.stderr)
         if len(unaccounted) > 20:
@@ -157,10 +174,12 @@ def selftest():
 
     tmp = tempfile.mkdtemp(prefix="naming_gate_selftest_")
     try:
-        def tree(sub, names, debt=None):
+        def tree(sub, names, debt=None, loc_files=()):
             b = f"{tmp}/{sub}"
             os.makedirs(f"{b}/idiomatic", exist_ok=True)
             open(f"{b}/idiomatic/names.js", "w").write(names)
+            for lf in loc_files:
+                open(f"{b}/idiomatic/{lf}.js", "w").write(f"// {lf} [seen]\nexport function {lf}(m) {{}}\n")
             if debt is not None:
                 open(f"{b}/names-debt.txt", "w").write(debt)
             return b
@@ -185,9 +204,15 @@ def selftest():
         # reasonless names-debt -> BLOCK.
         if silent_check("synth", tree("noreason", js, debt="loc_0001\n")) == 0:
             fail("a reasonless names-debt entry did not BLOCK")
-        # stale/false names-debt (routine not a seen loc_) -> BLOCK.
+        # stale/false names-debt (routine not a seen loc_ and no such loc_*.js file) -> BLOCK.
         if silent_check("synth", tree("stale", clean, debt="loc_9999  bogus\n")) == 0:
             fail("a stale/false names-debt entry did not BLOCK")
+        # (B) a grounded loc_*.js FILE with NO ROUTINES entry and NO debt -> BLOCK (the widened file-level check).
+        if silent_check("synth", tree("locfile", clean, loc_files=["loc_abcd"])) == 0:
+            fail("a loc_*.js file with no ROUTINES entry and no names-debt did not BLOCK")
+        # same file, debt-listed with a reason -> OK.
+        if silent_check("synth", tree("locfiledebt", clean, debt="loc_abcd  dissolved loop tail, no standalone effect\n", loc_files=["loc_abcd"])) != 0:
+            fail("a valid file-based names-debt entry did not clear the gate")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

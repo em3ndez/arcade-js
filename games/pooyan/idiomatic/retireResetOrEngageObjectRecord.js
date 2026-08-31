@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_618a } from "./loc_618a.js";
+import { clearActiveObjectTypeAndAbortHandler } from "./clearActiveObjectTypeAndAbortHandler.js";
 import { resetActorRecordQueueSoundAndAbortFrame } from "./resetActorRecordQueueSoundAndAbortFrame.js";
 import { scanRecordsForTagEngageElseReset } from "./scanRecordsForTagEngageElseReset.js";
 import { ROUND_COUNTER, ACTIVE_OBJECT_TYPE, SPRITE_OBJECT_TABLE } from "./names.js";
@@ -26,7 +26,7 @@ import { ROUND_COUNTER, ACTIVE_OBJECT_TYPE, SPRITE_OBJECT_TABLE } from "./names.
  * them abandons the caller's whole hit-processing pass for this frame (no further per-record
  * work runs once a hit has been resolved):
  *   1. RETIRE — if the record's +0x00 flag bit0 is clear the slot is not live/armed, so there
- *      is nothing to recycle or engage: fall straight into the give-up tail (loc_618a), which
+ *      is nothing to recycle or engage: fall straight into the give-up tail (clearActiveObjectTypeAndAbortHandler), which
  *      clears the active-object selector and bails.
  *   2. RESET — otherwise, on an odd round (ROUND_COUNTER 0x8907 bit0 set) OR when the active
  *      object type (ACTIVE_OBJECT_TYPE 0x8d44) is not 3, the struck actor record is recycled
@@ -57,7 +57,7 @@ export function retireResetOrEngageObjectRecord(m, iy = m.regs.iy) {
   // flag. If it is clear the slot is not an engaged target, so there is nothing to reset or
   // propagate: hand off to the give-up tail (0x618a), which releases ACTIVE_OBJECT_TYPE and
   // unwinds the frame. The false it returns is forwarded straight out.
-  if ((mem8[iy] & 0x01) === 0) return loc_618a(m); // flag bit0 clear -> retire the record, forward abort
+  if ((mem8[iy] & 0x01) === 0) return clearActiveObjectTypeAndAbortHandler(m); // flag bit0 clear -> retire the record, forward abort
   // ARM 2a — RESET on an odd round. Read ROUND_COUNTER (0x8907) and test bit0: an odd round
   // takes the plain-recycle path. The struck actor record (IY) is blanked to its idle opening
   // layout, one sound command is queued, and the frame is aborted.

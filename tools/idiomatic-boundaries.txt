@@ -38,21 +38,21 @@ pooyan 0x638a dead  # caller-skip dissolved into loc_6381; only m.call caller no
 pooyan 0x6c3f dead  # caller-skip dissolved into loc_6c18; only m.call caller now direct-calls the idiomatic module
 pooyan 0x119a dead  # per-record spawn-init caller-skip dissolved into loc_1171 (its only m.call caller, now an override that direct-calls it)
 pooyan 0x6435 dead  # caller-skip dissolved into loc_6404; direct-called by the idiomatic module (boolean), not oracle-served
-pooyan 0x64be dead  # caller-skip dissolved into loc_6435; direct-called by the idiomatic module (boolean), not oracle-served
+pooyan 0x64be dead  # caller-skip dissolved into scanObjectBankForActorCollision; direct-called by the idiomatic module (boolean), not oracle-served
 pooyan 0x6931 dead  # per-record spawn/init caller-skip dissolved into loc_6905; direct-called by the idiomatic module (boolean), not oracle-served
 pooyan 0x6a35 dead  # per-record spawn/init caller-skip dissolved into loc_6a0f; direct-called by the idiomatic module (boolean), not oracle-served
 pooyan 0x7638 dead  # animation-tick dispatch propagator dissolved into an index switch; direct-called by idiomatic loc_7627, not oracle-served
-pooyan 0x7644 dead  # animation-tick state-0 caller-skip dissolved; direct-called by the idiomatic dispatcher loc_7638 (boolean), not oracle-served
-pooyan 0x7675 dead  # animation-tick state-1 caller-skip dissolved; direct-called by the idiomatic dispatcher loc_7638 (boolean), not oracle-served
-pooyan 0x76a6 dead  # animation-tick state-2 handler (plain-ret); direct-called by the idiomatic dispatcher loc_7638, not oracle-served
-pooyan 0x6069 dead  # object-proximity SCC entry (tail-call -> boolean); direct-called by idiomatic loc_6048 via the wired loc_602f, not oracle-served
+pooyan 0x7644 dead  # animation-tick state-0 caller-skip dissolved; direct-called by the idiomatic dispatcher dispatchEnemyActorAnimTickState (boolean), not oracle-served
+pooyan 0x7675 dead  # animation-tick state-1 caller-skip dissolved; direct-called by the idiomatic dispatcher dispatchEnemyActorAnimTickState (boolean), not oracle-served
+pooyan 0x76a6 dead  # animation-tick state-2 handler (plain-ret); direct-called by the idiomatic dispatcher dispatchEnemyActorAnimTickState, not oracle-served
+pooyan 0x6069 dead  # object-proximity SCC entry (tail-call -> boolean); direct-called by idiomatic latchObjectTypeAndEnterProximityScan via the wired loc_602f, not oracle-served
 pooyan 0x6048 dead  # object-proximity fall-through (-> boolean); direct-called by the wired loc_602f, not oracle-served
 pooyan 0x6080 dead  # object-proximity scan (tail-call -> boolean); direct-called within the idiomatic SCC, not oracle-served
 pooyan 0x60f2 dead  # object-proximity scan loop (-> boolean); direct-called within the idiomatic SCC, not oracle-served
 pooyan 0x61b4 dead  # object-proximity award caller-skip (-> boolean); direct-called within the idiomatic SCC, not oracle-served
-pooyan 0x6287 dead  # object-proximity scan (tail-call -> boolean); direct-called by idiomatic loc_61b4, not oracle-served
-pooyan 0x630f dead  # object-proximity scan (tail-call -> boolean); direct-called by idiomatic loc_61b4, not oracle-served
-pooyan 0x60bc dead  # object-proximity hit-handler caller-skip (-> boolean); direct-called by idiomatic loc_6080, not oracle-served
+pooyan 0x6287 dead  # object-proximity scan (tail-call -> boolean); direct-called by idiomatic resolveOddRoundCollisionAndAward, not oracle-served
+pooyan 0x630f dead  # object-proximity scan (tail-call -> boolean); direct-called by idiomatic resolveOddRoundCollisionAndAward, not oracle-served
+pooyan 0x60bc dead  # object-proximity hit-handler caller-skip (-> boolean); direct-called by idiomatic gateEvenRoundOverlapAndRouteHit, not oracle-served
 pooyan 0x0728 dead  # folded into idiomatic loc_0714 (SCC), idiomatic-unreachable, not oracle-served
 pooyan 0x5489 dead  # unconditional caller-skip dissolved; direct-called by idiomatic loc_54f9/loc_5544/loc_5594 (boolean), not oracle-served
 pooyan 0x572b dead  # spawn caller-skip dissolved; direct-called by idiomatic loc_56e8/loc_588e (boolean), not oracle-served
@@ -63,6 +63,6 @@ pooyan 0x42da dead  # slot-init caller-skip dissolved; direct-called by idiomati
 pooyan 0x5374 dead  # lane-actor activation caller-skip dissolved; direct-called by idiomatic spawnNextScriptedEnemy (boolean), not oracle-served
 pooyan 0x7595 dead  # wave-launch caller-skip dissolved; direct-called by idiomatic spawnNextEnemyOnDelay (boolean), not oracle-served
 pooyan 0x2c3f dead  # rst-28 boolean caller-skip dispatcher dissolved; direct-called by idiomatic loc_2c2c, not oracle-served
-pooyan 0x2d24 dead  # hunter state-2 caller-skip dissolved; direct-called by idiomatic loc_2c3f (boolean), not oracle-served
-pooyan 0x2d4a dead  # hunter state-3 caller-skip dissolved; direct-called by idiomatic loc_2c3f (boolean), not oracle-served
+pooyan 0x2d24 dead  # hunter state-2 caller-skip dissolved; direct-called by idiomatic dispatchOneHunterRecordState (boolean), not oracle-served
+pooyan 0x2d4a dead  # hunter state-3 caller-skip dissolved; direct-called by idiomatic dispatchOneHunterRecordState (boolean), not oracle-served
 pooyan 0x0028 dead  # rst-28 dispatch primitive; every caller converted to a switch or dissolved, nothing live calls it

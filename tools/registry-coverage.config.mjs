@@ -92,81 +92,81 @@ export const UNWIRED = {
   },
   pooyan: {
     "mainLoopStep.js": "the main-loop state-driver body (loc_020f), direct-called by the mainLoop generator so it can yield at the vblank; the generator imports it rather than dispatching through ROUTINES. Memory-equivalent to the frozen loop body (equivalence-020f); not a dispatch entry.",
-    "loc_2c3f.js": "DISSOLVED boolean caller-skip dispatcher; direct-called by idiomatic loc_2c2c; switches ((ix+2)&0x1f)-0x11 to loc_2c58/2cb3/2d24/2d4a; not oracle-served",
-    "loc_2d24.js": "DISSOLVED hunter state-2 caller-skip -> boolean; direct-called by idiomatic loc_2c3f; not oracle-served",
-    "loc_2d4a.js": "DISSOLVED hunter state-3 caller-skip -> boolean; direct-called by idiomatic loc_2c3f; not oracle-served",
+    "dispatchOneHunterRecordState.js": "DISSOLVED boolean caller-skip dispatcher; direct-called by idiomatic loc_2c2c; switches ((ix+2)&0x1f)-0x11 to climbHunterToLaunchRowThenPromoteGroup/2cb3/2d24/2d4a; not oracle-served",
+    "climbHunterStepAndRetireAtTop.js": "DISSOLVED hunter state-2 caller-skip -> boolean; direct-called by idiomatic dispatchOneHunterRecordState; not oracle-served",
+    "clearWaveHoldTimerToArmNextWave.js": "DISSOLVED hunter state-3 caller-skip -> boolean; direct-called by idiomatic dispatchOneHunterRecordState; not oracle-served",
     "loc_0728.js": "DISSOLVED into loc_0714 (SCC fold); idiomatic-unreachable; not oracle-served",
-    "loc_5489.js": "DISSOLVED unconditional caller-skip -> false (always skips); direct-called by loc_54f9/loc_5544/loc_5594 (wired overrides); not oracle-served",
-    "loc_572b.js": "DISSOLVED caller-skip -> boolean (spawn path); direct-called by loc_56e8/loc_588e (wired overrides); not oracle-served",
+    "initSpawnedActorRecordAndDeriveSpeed.js": "DISSOLVED unconditional caller-skip -> false (always skips); direct-called by loc_54f9/loc_5544/loc_5594 (wired overrides); not oracle-served",
+    "spawnEnemyIntoFreeActorSlot.js": "DISSOLVED caller-skip -> boolean (spawn path); direct-called by loc_56e8/loc_588e (wired overrides); not oracle-served",
     "loc_5733.js": "DISSOLVED caller-skip -> boolean; direct-called by loc_53a0 (a wired ROUTINES override); not oracle-served",
-    "loc_5b99.js": "DISSOLVED caller-skip -> boolean; direct-called by loc_5b86 (a wired ROUTINES override); not oracle-served",
-    "loc_5f83.js": "DISSOLVED caller-skip -> boolean; direct-called by loc_5f6a (a wired ROUTINES override); not oracle-served",
-    "loc_6435.js": "DISSOLVED caller-skip -> boolean (true=keep scanning, false=abort); direct-called by loc_6404 (a wired ROUTINES override); not oracle-served",
-    "loc_64be.js": "DISSOLVED caller-skip -> boolean (true=keep scanning, false=abort); direct-called by loc_6435 (a wired ROUTINES override); not oracle-served",
-    "loc_6931.js": "DISSOLVED caller-skip -> boolean (true=already active/keep sweeping, false=spawned/abort); direct-called by loc_6905 (a wired ROUTINES override); not oracle-served",
-    "loc_6a35.js": "DISSOLVED caller-skip -> boolean (true=already active/keep sweeping, false=spawned/abort); direct-called by loc_6a0f (a wired ROUTINES override); not oracle-served",
-    "loc_7638.js": "DISSOLVED dispatch propagator -> boolean; direct-called by loc_7627 (a wired ROUTINES override); switches (ix+2)&3 to loc_7644/7675/76a6; not oracle-served",
-    "loc_7644.js": "DISSOLVED caller-skip -> boolean (true=keep walking, false=abort); direct-called by the idiomatic dispatcher loc_7638; not oracle-served",
-    "loc_7675.js": "DISSOLVED caller-skip -> boolean (true=keep walking, false=abort); direct-called by the idiomatic dispatcher loc_7638; not oracle-served",
-    "loc_76a6.js": "DISSOLVED plain-ret handler (returns keep-walking); direct-called by the idiomatic dispatcher loc_7638; not oracle-served",
-    "loc_6069.js": "DISSOLVED tail-call -> boolean (object-proximity SCC entry); direct-called by idiomatic loc_6048 via the wired loc_602f; not oracle-served",
-    "loc_6048.js": "DISSOLVED fall-through -> boolean (true=normal/inert, false=hit skip); direct-called by loc_602f (a wired ROUTINES override); not oracle-served",
-    "loc_6080.js": "DISSOLVED tail-call -> boolean (miss->60f2, hit->60bc); direct-called within the idiomatic SCC; not oracle-served",
-    "loc_60f2.js": "DISSOLVED scan loop -> boolean; direct-called within the idiomatic SCC (recurses to loc_6069); not oracle-served",
-    "loc_61b4.js": "DISSOLVED award caller-skip -> boolean; direct-called within the idiomatic SCC; not oracle-served",
-    "loc_6287.js": "DISSOLVED tail-call -> boolean; direct-called by idiomatic loc_61b4; not oracle-served",
-    "loc_630f.js": "DISSOLVED tail-call -> boolean; direct-called by idiomatic loc_61b4; not oracle-served",
-    "loc_60bc.js": "DISSOLVED hit-handler caller-skip -> boolean; direct-called by idiomatic loc_6080; not oracle-served",
+    "testEnemyRecordHitAndRegister.js": "DISSOLVED caller-skip -> boolean; direct-called by loc_5b86 (a wired ROUTINES override); not oracle-served",
+    "latchObjectTypeAndScanEnemyRecords.js": "DISSOLVED caller-skip -> boolean; direct-called by loc_5f6a (a wired ROUTINES override); not oracle-served",
+    "scanObjectBankForActorCollision.js": "DISSOLVED caller-skip -> boolean (true=keep scanning, false=abort); direct-called by loc_6404 (a wired ROUTINES override); not oracle-served",
+    "verifyTerminatorTableOrCountTamper.js": "DISSOLVED caller-skip -> boolean (true=keep scanning, false=abort); direct-called by scanObjectBankForActorCollision (a wired ROUTINES override); not oracle-served",
+    "spawnPairedEnemyRecordAndAnnounceWave.js": "DISSOLVED caller-skip -> boolean (true=already active/keep sweeping, false=spawned/abort); direct-called by loc_6905 (a wired ROUTINES override); not oracle-served",
+    "spawnEnemyIntoFreeSlotCyclingAnim.js": "DISSOLVED caller-skip -> boolean (true=already active/keep sweeping, false=spawned/abort); direct-called by loc_6a0f (a wired ROUTINES override); not oracle-served",
+    "dispatchEnemyActorAnimTickState.js": "DISSOLVED dispatch propagator -> boolean; direct-called by loc_7627 (a wired ROUTINES override); switches (ix+2)&3 to tickEnemyAnimAndReseedPoolAtCycleEnd/7675/76a6; not oracle-served",
+    "tickEnemyAnimAndReseedPoolAtCycleEnd.js": "DISSOLVED caller-skip -> boolean (true=keep walking, false=abort); direct-called by the idiomatic dispatcher dispatchEnemyActorAnimTickState; not oracle-served",
+    "drainPhaseCountdownAndReseedWave.js": "DISSOLVED caller-skip -> boolean (true=keep walking, false=abort); direct-called by the idiomatic dispatcher dispatchEnemyActorAnimTickState; not oracle-served",
+    "holdEnemyAnimGatedByDrawnFlag.js": "DISSOLVED plain-ret handler (returns keep-walking); direct-called by the idiomatic dispatcher dispatchEnemyActorAnimTickState; not oracle-served",
+    "classifyAndRouteObjectRecordByRound.js": "DISSOLVED tail-call -> boolean (object-proximity SCC entry); direct-called by idiomatic latchObjectTypeAndEnterProximityScan via the wired loc_602f; not oracle-served",
+    "latchObjectTypeAndEnterProximityScan.js": "DISSOLVED fall-through -> boolean (true=normal/inert, false=hit skip); direct-called by loc_602f (a wired ROUTINES override); not oracle-served",
+    "gateEvenRoundOverlapAndRouteHit.js": "DISSOLVED tail-call -> boolean (miss->60f2, hit->60bc); direct-called within the idiomatic SCC; not oracle-served",
+    "loc_60f2.js": "DISSOLVED scan loop -> boolean; direct-called within the idiomatic SCC (recurses to classifyAndRouteObjectRecordByRound); not oracle-served",
+    "resolveOddRoundCollisionAndAward.js": "DISSOLVED award caller-skip -> boolean; direct-called within the idiomatic SCC; not oracle-served",
+    "resolveKind50AndD0CollisionAward.js": "DISSOLVED tail-call -> boolean; direct-called by idiomatic resolveOddRoundCollisionAndAward; not oracle-served",
+    "testKindF0TightOverlap.js": "DISSOLVED tail-call -> boolean; direct-called by idiomatic resolveOddRoundCollisionAndAward; not oracle-served",
+    "resolveShotHitEngageOrSeedRecord.js": "DISSOLVED hit-handler caller-skip -> boolean; direct-called by idiomatic gateEvenRoundOverlapAndRouteHit; not oracle-served",
     // DISSOLVED caller-skips (pop-af; ret -> boolean). A caller-skip pops its own return (a net SP move
     // outside the withOmittedRet seam's 0/+2 window), so it cannot be a ROUTINES override. Per the runbook
     // each is dissolved into a boolean its caller early-returns on and is called DIRECTLY by that (wired)
     // caller -- it runs as JS, never the frozen oracle. Also recorded `dead` in tools/idiomatic-boundaries.txt.
     // The five jump-table dispatchers (0x6da6/0x7442/0x15a1/0x72cf/0x0fd5) are deferred to their own unit.
-    "loc_2bbf.js":
+    "stageFormationReadyMarkersOrSkipTick.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_2b9a " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
-    "loc_2be5.js":
+    "launchFormationObjectIntoFreeSlot.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_2bb3 " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
-    "loc_2c58.js":
+    "climbHunterToLaunchRowThenPromoteGroup.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_2a01 " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
-    "loc_305f.js":
+    "testHangingRopeGrabConnect.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by advanceHangingRopeObjectWithGrabCheck " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
-    "loc_3cae.js":
+    "seedFormationChildIntoFreeSlotAndLaunchParent.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_3c92 " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
-    "loc_5d68.js":
+    "testTargetPairOverlapAndClaimRecord.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_5d4d " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
-    "loc_5e1f.js":
+    "testTargetSlotGrabAndCatchObject.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_5e11 " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
-    "loc_618a.js":
+    "clearActiveObjectTypeAndAbortHandler.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_613d " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
-    "loc_6274.js":
+    "retireParityTargetSlotAndQueueSound.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_62e6 " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
-    "loc_638a.js":
+    "scanTargetSlotsAndSpawnOnProximityHit.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_6381 " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
-    "loc_6c3f.js":
+    "testTargetProximityAndSetAimDirection.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_6c18 " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",
-    "loc_119a.js":
+    "seedFreeEnemyRecordFromRoundTables.js":
       "DISSOLVED caller-skip -> boolean (true=normal, false=skip); direct-called by loc_1171 " +
       "(a wired ROUTINES override), so it runs as JS and is never oracle-served. Not a ROUTINES " +
       "override: the pop-af skip moves SP outside the withOmittedRet seam's 0/+2 window.",

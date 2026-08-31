@@ -2,11 +2,11 @@
 /**
  * Memory-equivalence test for dispatchAllHunterRecordStates (ROM 0x2c2c, Pooyan) — the hunter-record sweep. It walks the
  * 17 enemy-actor records (base ENEMY_ACTOR_TABLE, stride 0x18), marshalling each record pointer
- * through IX into the per-record dispatcher loc_2c3f. The dispatcher returns false when a record
+ * through IX into the per-record dispatcher dispatchOneHunterRecordState. The dispatcher returns false when a record
  * reaches its spawn handler, which aborts the sweep.
  *
- * SEATING: BALANCED — the oracle ends on a plain ret; the abort is a dissolved caller-skip loc_2c3f
- * reports as a boolean the module early-returns on. loc_2c3f is now idiomatic (dissolved this batch),
+ * SEATING: BALANCED — the oracle ends on a plain ret; the abort is a dissolved caller-skip dispatchOneHunterRecordState
+ * reports as a boolean the module early-returns on. dispatchOneHunterRecordState is now idiomatic (dissolved this batch),
  * so the module DIRECT-CALLS it (no seated-return push16) — the frozen oracle consumed the CALL's
  * pushed word via its own ret, so dropping the push keeps the module SP-neutral. Compared on RAM
  * (dumpState) minus STACK_SCRATCH; PLUS an SP-baseline tooth (the sweep must leave SP unchanged — a
@@ -32,7 +32,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c2c as oracle } from "../../translated/loc_2c2c.js";
 import { dispatchAllHunterRecordStates } from "../dispatchAllHunterRecordStates.js";
-import { loc_2c3f } from "../loc_2c3f.js";
+import { dispatchOneHunterRecordState } from "../dispatchOneHunterRecordState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { ENEMY_ACTOR_TABLE, STACK_SCRATCH } from "../names.js";
@@ -112,7 +112,7 @@ test("SP-TOOTH: the idiomatic sweep leaves SP unchanged (orphaned-push16 regress
     for (let i = 0; i < RECORD_COUNT; i++) {
       m.regs.ix = rec;
       m.push16(0x2c39); // BUG: the idiomatic dispatcher never consumes this seated return
-      if (!loc_2c3f(m)) return;
+      if (!dispatchOneHunterRecordState(m)) return;
       rec += STRIDE;
     }
   }

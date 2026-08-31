@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_2c58 (ROM 0x2c58) — the DISSOLVED caller-skip of the hunter
+ * Memory-equivalence gate for climbHunterToLaunchRowThenPromoteGroup (ROM 0x2c58) — the DISSOLVED caller-skip of the hunter
  * dispatch. The oracle already carries the boolean caller-skip protocol (its own source returns
  * `true` on the `ret c` climbing path and `false` on the `pop af; ret` reached-top path), so the
  * idiomatic module reproduces that boolean while dropping the stack plumbing.
  *
  * Contract compared per case: RAM (dumpState, minus STACK_SCRATCH) PLUS the routine's ONLY
  * live-out — the JS boolean return. No register survives as a consumed output: on the climbing
- * path IX/A are left untouched-or-clobbered but unread (loc_2c3f only propagates the boolean, and
+ * path IX/A are left untouched-or-clobbered but unread (dispatchOneHunterRecordState only propagates the boolean, and
  * dispatchAllHunterRecordStates parks its loop counter in the alt register set across the call); on the skip path the
  * oracle's pop-af leaves A as stack garbage and the caller frame is aborted. IX is deliberately
  * NOT compared: the oracle advances it during the top-sweep, the idiomatic module walks a local
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c58 as oracle } from "../../translated/loc_2c58.js";
-import { loc_2c58 } from "../loc_2c58.js";
+import { climbHunterToLaunchRowThenPromoteGroup } from "../climbHunterToLaunchRowThenPromoteGroup.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ENEMY_ACTOR_TABLE } from "../names.js";
@@ -59,14 +59,14 @@ function ramDiffMinusStack(ma, mb) {
 
 const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 
-const REC = 0x8a80; // the hunter record loc_2c58 operates on (distinct from the 0x8ae0 sweep region)
+const REC = 0x8a80; // the hunter record climbHunterToLaunchRowThenPromoteGroup operates on (distinct from the 0x8ae0 sweep region)
 const HOLD = 0x0e; //   record frame-hold offset (nonzero -> advanceObjectAnimationFrame just decrements)
 const P_LO = 0x05;
 const P_HI = 0x06;
 const P_STEP = 0x09;
 const TRIG = 0x02; //   record state offset; 0x11 triggers advanceRecordStateAndSeedMoveScript's transition
 
-/** A fresh clone with loc_2c58's record inputs seated identically on both sides. */
+/** A fresh clone with climbHunterToLaunchRowThenPromoteGroup's record inputs seated identically on both sides. */
 function craft({ lo = 0, step = 0, hi = 0, seedTrigger = false } = {}) {
   const m = BASE.clone();
   m.regs.ix = REC;
@@ -85,7 +85,7 @@ test("EQUAL/NORMAL: high byte below top -> climbing, oracle == idiomatic (RAM �
   const o = craft({ lo: 0, step: 0, hi: 0x05 });
   const c = craft({ lo: 0, step: 0, hi: 0x05 });
   const ro = oracle(o);
-  const rc = loc_2c58(c);
+  const rc = climbHunterToLaunchRowThenPromoteGroup(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
@@ -100,14 +100,14 @@ test("EQUAL/SKIP: high byte at top -> sweep, oracle == idiomatic (RAM −stack),
   const o = craft({ lo: 0, step: 0, hi: 0x12, seedTrigger: true });
   const c = craft({ lo: 0, step: 0, hi: 0x12, seedTrigger: true });
   const ro = oracle(o);
-  const rc = loc_2c58(c);
+  const rc = climbHunterToLaunchRowThenPromoteGroup(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
   assert.equal(ro, false, "oracle takes the reached-top (pop af; ret) path -> false");
   assert.equal(rc, ro, "idiomatic boolean must match the oracle");
   // positive control: the seeded trigger record WAS transitioned (0x11 -> 0x12) by the sweep,
-  // proving loc_2c58 actually ran the record walk rather than short-circuiting.
+  // proving climbHunterToLaunchRowThenPromoteGroup actually ran the record walk rather than short-circuiting.
   assert.equal(c.mem.read8(ENEMY_ACTOR_TABLE + TRIG), 0x12, "sweep must advance the seeded record to 0x12");
   console.log("  EQUAL/SKIP: sweep path identical, both returned false, seeded record transitioned");
 });
@@ -118,7 +118,7 @@ test("EQUAL/CARRY: low+step carries into the high byte but stays below top -> st
   const o = craft({ lo: 0xff, step: 0x02, hi: 0x05 }); // low 0xff+0x02 -> carry, high 0x05->0x06
   const c = craft({ lo: 0xff, step: 0x02, hi: 0x05 });
   const ro = oracle(o);
-  const rc = loc_2c58(c);
+  const rc = climbHunterToLaunchRowThenPromoteGroup(c);
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
@@ -135,7 +135,7 @@ test("TEETH/RAM: a wrong written position byte is CAUGHT by the RAM diff", () =>
   const o = craft({ lo: 0, step: 0, hi: 0x05 });
   const c = craft({ lo: 0, step: 0, hi: 0x05 });
   oracle(o);
-  loc_2c58(c);
+  climbHunterToLaunchRowThenPromoteGroup(c);
   c.mem.write8(REC + P_LO, 0xee); // BUG: the stored low byte must be 0x00, not 0xee
 
   const d = ramDiffMinusStack(o, c);
@@ -150,7 +150,7 @@ test("TEETH/BOOL: a twin returning the WRONG boolean is CAUGHT by the return che
   const o = craft({ lo: 0, step: 0, hi: 0x12, seedTrigger: true });
   const c = craft({ lo: 0, step: 0, hi: 0x12, seedTrigger: true });
   const ro = oracle(o);
-  const rc = loc_2c58(c);
+  const rc = climbHunterToLaunchRowThenPromoteGroup(c);
   assert.equal(rc, ro, "sanity: the module's boolean matches the oracle (false on the skip path)");
   // A twin that flipped the return would be rejected by the very check the EQUAL jobs use.
   assert.notEqual(!rc, ro, "the boolean check must reject a flipped return");

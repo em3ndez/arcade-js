@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import { fetchByteFromTableIndex } from "./fetchByteFromTableIndex.js";
-import { loc_5489 } from "./loc_5489.js";
+import { initSpawnedActorRecordAndDeriveSpeed } from "./initSpawnedActorRecordAndDeriveSpeed.js";
 import { SPAWN_SEQUENCE_INDEX_8D13, SPAWN_KIND_TABLE_5647 } from "./names.js";
 /**
  * seedFirstFreeSlotForScheduledSpawn — find the first empty actor record in a pool and bring one
@@ -66,12 +66,12 @@ export function seedFirstFreeSlotForScheduledSpawn(m, base = m.regs.ix, stride =
       // Stamp the chosen kind into the record's +0x17 field (ROM 0x5558) so the actor constructor can
       // read it back and select the actor's animation and speed.
       mem8[u16(cursor + KIND_FIELD)] = kindByte;
-      // Hand the free record to the shared actor constructor (loc_5489, ROM 0x555b). It marks the
+      // Hand the free record to the shared actor constructor (initSpawnedActorRecordAndDeriveSpeed, ROM 0x555b). It marks the
       // record live (+0x00 = 1), seeds the opening state fields, writes SPAWN_FIELD_VALUE into +0x06,
       // installs the animation and an initial signed speed, and finishes the spawn. The constructor
       // always reports back false, so this guard returns at once — a single spawn ends the whole
       // scan, guaranteeing exactly one record is claimed per call.
-      if (!loc_5489(m, cursor, SPAWN_FIELD_VALUE)) return; // one record seeded -> stop scanning this pass
+      if (!initSpawnedActorRecordAndDeriveSpeed(m, cursor, SPAWN_FIELD_VALUE)) return; // one record seeded -> stop scanning this pass
     }
     // Occupied record: advance to the next record in the pool and keep looking (ROM 0x555f-0x5561).
     cursor = u16(cursor + stride);

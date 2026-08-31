@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_64be (ROM 0x64be) — the terminator match-scan guard,
+ * Memory-equivalence test for verifyTerminatorTableOrCountTamper (ROM 0x64be) — the terminator match-scan guard,
  * a DISSOLVED caller-skip.
  *
- * In the frozen layer BOTH exits of loc_64be end `pop af; ret`: the pop discards the
+ * In the frozen layer BOTH exits of verifyTerminatorTableOrCountTamper end `pop af; ret`: the pop discards the
  * caller's own return so control unwinds to the caller's caller (a skip). There is NO
  * plain-ret path, so the dissolved boolean module ALWAYS returns false (skip taken); the
  * two paths differ only in memory:
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_64be as oracle } from "../../translated/loc_64be.js";
-import { loc_64be } from "../loc_64be.js";
+import { verifyTerminatorTableOrCountTamper } from "../verifyTerminatorTableOrCountTamper.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -92,7 +92,7 @@ function craftSentinel() {
 test("EQUAL: mismatch path — module == oracle in RAM (−stack), returns false, oracle skips", () => {
   const o = craftMismatch();
   const c = craftMismatch();
-  const ret = loc_64be(c);
+  const ret = verifyTerminatorTableOrCountTamper(c);
   oracle(o);
 
   assert.equal(ret, false, "the guard always skips -> boolean must be false");
@@ -106,7 +106,7 @@ test("EQUAL: mismatch path — module == oracle in RAM (−stack), returns false
 test("EQUAL: sentinel path — module == oracle in RAM (−stack), returns false, no strike", () => {
   const o = craftSentinel();
   const c = craftSentinel();
-  const ret = loc_64be(c);
+  const ret = verifyTerminatorTableOrCountTamper(c);
   oracle(o);
 
   assert.equal(ret, false, "the guard always skips -> boolean must be false");
@@ -155,7 +155,7 @@ test("WRITE-SET: mismatch writes exactly TAMPER_STRIKES_TERMINATOR (+1); sentine
 test("TEETH: a twin that reports 'continue' (returns true) is rejected by the boolean check", () => {
   // A twin with the same memory effect but the WRONG boolean: it claims the caller may continue.
   function brokenContinue(m) {
-    loc_64be(m); // real memory effect
+    verifyTerminatorTableOrCountTamper(m); // real memory effect
     return true; // BUG: every path here skips, so this must be false
   }
   const c = craftMismatch();

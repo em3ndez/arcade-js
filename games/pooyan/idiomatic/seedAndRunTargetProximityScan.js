@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_638a } from "./loc_638a.js";
+import { scanTargetSlotsAndSpawnOnProximityHit } from "./scanTargetSlotsAndSpawnOnProximityHit.js";
 import { SPRITE_TARGET_SLOTS, PROJECTILE_TABLE } from "./names.js";
 /**
  * seedAndRunTargetProximityScan — set up and run one object-proximity scan over a target box.
@@ -52,5 +52,5 @@ export function seedAndRunTargetProximityScan(m, box = m.regs.iy, ireg = m.regs.
   //   - SLOT_COUNT (3) caps how many slots the walk covers.
   // The actor box and interrupt-parity register pass through unchanged. Nothing runs after the
   // scan returns, so its boolean is this routine's result.
-  return loc_638a(m, SPRITE_TARGET_SLOTS, SLOT_COUNT, PROJECTILE_TABLE, box, ireg);
+  return scanTargetSlotsAndSpawnOnProximityHit(m, SPRITE_TARGET_SLOTS, SLOT_COUNT, PROJECTILE_TABLE, box, ireg);
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_6a35 } from "./loc_6a35.js";
+import { spawnEnemyIntoFreeSlotCyclingAnim } from "./spawnEnemyIntoFreeSlotCyclingAnim.js";
 import {
   BLINK_PHASE,
   ANIM_PHASE_TOGGLE_892C,
@@ -48,7 +48,7 @@ const TOGGLE_GATE = 0x06; // value of the spawn-phase toggle (0x892c) that suspe
  * scan continues; the first empty record is spawned into and the scan stops for the frame.
  *
  * LIVE-OUT: none. No register value is meant to survive. The effects live in memory: each spawn
- * (performed by the per-record body loc_6a35) seeds one enemy record and re-arms the cadence
+ * (performed by the per-record body spawnEnemyIntoFreeSlotCyclingAnim) seeds one enemy record and re-arms the cadence
  * countdown, and a still-running countdown is decremented here.
  */
 export function spawnEnemyOnBlinkCountdownSweep(m) {
@@ -76,14 +76,14 @@ export function spawnEnemyOnBlinkCountdownSweep(m) {
   // All gates passed and the cadence has expired: scan the enemy pool for a home for one new enemy.
   // Walk from the base of ENEMY_ACTOR_TABLE (0x8ae0), one record every RECORD_STRIDE (0x18) bytes,
   // for up to RECORD_COUNT (18) records. Each record is handed to the per-record spawn body
-  // loc_6a35, which reports back whether it left the slot alone or claimed it:
+  // spawnEnemyIntoFreeSlotCyclingAnim, which reports back whether it left the slot alone or claimed it:
   //   - true  -> that slot was already live; nothing spawned, keep scanning the next record.
   //   - false -> that slot was empty and has now been spawned into; it also re-armed the cadence
   //              countdown (0x892a). We abort the whole sweep so exactly ONE enemy is born per
   //              eligible frame, leaving any further empty slots for future frames.
   let rec = ENEMY_ACTOR_TABLE;
   for (let n = 0; n < RECORD_COUNT; n++) {
-    if (!loc_6a35(m, rec)) return; // spawned into this record -> abort the sweep for this frame
+    if (!spawnEnemyIntoFreeSlotCyclingAnim(m, rec)) return; // spawned into this record -> abort the sweep for this frame
     rec = u16(rec + RECORD_STRIDE); // advance to the next record (wrap kept in 16-bit RAM space)
   }
 }

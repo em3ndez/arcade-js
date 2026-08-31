@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for advanceActorState2AndCapWaveArrival (ROM 0x2a01) — the CALLER that dissolves the loc_2c58
+ * Memory-equivalence gate for advanceActorState2AndCapWaveArrival (ROM 0x2a01) — the CALLER that dissolves the climbHunterToLaunchRowThenPromoteGroup
  * caller-skip. advanceActorState2AndCapWaveArrival reseats a record, paints tiles, advances the record state, then
  * integrity-checks the field attribute source table (8-bit sum of 0x20 bytes == 1). On a clean
  * check it enqueues a display command and caps the wave-arrival counter; on a mismatch it
- * TAIL-JUMPS into loc_2c58, propagating that routine's caller-skip boolean.
+ * TAIL-JUMPS into climbHunterToLaunchRowThenPromoteGroup, propagating that routine's caller-skip boolean.
  *
  * Contract compared per case: RAM (dumpState, minus STACK_SCRATCH). advanceActorState2AndCapWaveArrival has no register
- * live-out of its own; on the tamper branch it forwards loc_2c58's boolean, which the EQUAL jobs
+ * live-out of its own; on the tamper branch it forwards climbHunterToLaunchRowThenPromoteGroup's boolean, which the EQUAL jobs
  * also confirm. pc/cycles/full register file are not compared.
  *
  * The tamper branch is gated on a ROM checksum that PASSES for the intact image (verified: the
  * 0x20 bytes at 0x0839 sum to 1), so the branch is unreachable by poking RAM — and ROM writes
  * throw. To reach the composition we build a SECOND base from a ROM copy with one summed byte
- * bumped, so the checksum fails and BOTH sides tail-jump into loc_2c58. That composes the real
- * idiomatic skip over a skip-NOT-taken state (loc_2c58 climbs -> true) AND a skip-taken state
- * (loc_2c58 reaches the top -> false). The oracle runs the registered translated loc_2c58/enqueueDisplayCommand
+ * bumped, so the checksum fails and BOTH sides tail-jump into climbHunterToLaunchRowThenPromoteGroup. That composes the real
+ * idiomatic skip over a skip-NOT-taken state (climbHunterToLaunchRowThenPromoteGroup climbs -> true) AND a skip-taken state
+ * (climbHunterToLaunchRowThenPromoteGroup reaches the top -> false). The oracle runs the registered translated climbHunterToLaunchRowThenPromoteGroup/enqueueDisplayCommand
  * via m.call; the idiomatic caller imports the idiomatic equivalents — the whole unit is composed.
  *
  * Jobs:
  *   1. EPILOGUE/CAP   — intact ROM, counter 0x09: clean check enqueues the command and caps the
  *                       counter to 0x08; oracle == idiomatic; the enqueue + cap are asserted.
  *   2. EPILOGUE/NOCAP — intact ROM, counter 0x05: below the cap, the counter is left unchanged.
- *   3. TAMPER/CLIMB   — tampered ROM, skip-NOT-taken: loc_2c58 climbs (true); oracle == idiomatic;
+ *   3. TAMPER/CLIMB   — tampered ROM, skip-NOT-taken: climbHunterToLaunchRowThenPromoteGroup climbs (true); oracle == idiomatic;
  *                       positive control — the epilogue ring write did NOT happen (branch taken).
- *   4. TAMPER/TOP     — tampered ROM, skip-taken: loc_2c58 sweeps (false); oracle == idiomatic;
+ *   4. TAMPER/TOP     — tampered ROM, skip-taken: climbHunterToLaunchRowThenPromoteGroup sweeps (false); oracle == idiomatic;
  *                       positive control — the seeded 0x8ae0 record was transitioned by the sweep.
  *   5. BRANCH-LIVE    — the checksum genuinely selects the branch: intact sum == 1, tampered != 1,
  *                       and the idiomatic run over intact vs tampered ROM lands in DIFFERENT RAM.
@@ -72,7 +72,7 @@ function romSum(rom) {
 }
 
 // Intact base (checksum passes -> epilogue) and a tampered base (one summed byte bumped ->
-// checksum fails -> tail-jump into loc_2c58). clone() shares the rom reference, so the tamper
+// checksum fails -> tail-jump into climbHunterToLaunchRowThenPromoteGroup). clone() shares the rom reference, so the tamper
 // propagates to every craft.
 const BASE = ROM_PRESENT ? new Machine(ROM).clone() : null;
 let TAMPERED_ROM = null;
@@ -87,7 +87,7 @@ const REC = 0x8a80; //   the 0x8a80 actor record advanceActorState2AndCapWaveArr
 const RING_PTR = 0x88a0; // DISPLAY_CMD_RING_WRITE_PTR
 const RING_SLOT = 0x88c0; // first ring slot (page 0x88 + 0xc0)
 
-/** A fresh clone off `base` with advanceActorState2AndCapWaveArrival's inputs (and loc_2c58's, for the jp path) seated. */
+/** A fresh clone off `base` with advanceActorState2AndCapWaveArrival's inputs (and climbHunterToLaunchRowThenPromoteGroup's, for the jp path) seated. */
 function craftFrom(base, opts = {}) {
   const m = base.clone();
   m.regs.ix = REC;
@@ -96,7 +96,7 @@ function craftFrom(base, opts = {}) {
   m.mem.write8(RING_PTR, 0xc0);
   m.mem.write8(RING_SLOT, 0x80); // bit7 set => slot free
   m.mem.write8(WAVE_ARRIVAL_COUNTER, opts.counter ?? 0x09);
-  // loc_2c58 record inputs (consumed only when the checksum fails and advanceActorState2AndCapWaveArrival tail-jumps)
+  // climbHunterToLaunchRowThenPromoteGroup record inputs (consumed only when the checksum fails and advanceActorState2AndCapWaveArrival tail-jumps)
   m.mem.write8(REC + 0x0e, 0x05); // frame-hold nonzero: advanceObjectAnimationFrame just decrements
   m.mem.write8(REC + 0x05, opts.lo ?? 0);
   m.mem.write8(REC + 0x09, opts.step ?? 0);
@@ -139,7 +139,7 @@ test("EPILOGUE/NOCAP: intact ROM, counter below the cap is left unchanged; oracl
 
 // -- 3. TAMPER/CLIMB (skip NOT taken) -----------------------------------------
 
-test("TAMPER/CLIMB: failed check -> loc_2c58 climbs (true); oracle == idiomatic; epilogue skipped", () => {
+test("TAMPER/CLIMB: failed check -> climbHunterToLaunchRowThenPromoteGroup climbs (true); oracle == idiomatic; epilogue skipped", () => {
   const o = craftFrom(BASE_TAMPER, { hi: 0x05 });
   const c = craftFrom(BASE_TAMPER, { hi: 0x05 });
   const ro = oracle(o);
@@ -147,16 +147,16 @@ test("TAMPER/CLIMB: failed check -> loc_2c58 climbs (true); oracle == idiomatic;
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
-  assert.equal(rc, ro, "advanceActorState2AndCapWaveArrival must forward loc_2c58's boolean unchanged");
-  assert.equal(rc, true, "loc_2c58 climbs -> true (skip not taken)");
+  assert.equal(rc, ro, "advanceActorState2AndCapWaveArrival must forward climbHunterToLaunchRowThenPromoteGroup's boolean unchanged");
+  assert.equal(rc, true, "climbHunterToLaunchRowThenPromoteGroup climbs -> true (skip not taken)");
   // positive control: the epilogue did NOT run (ring slot still free), so the jp was taken
   assert.equal(c.mem.read8(RING_SLOT), 0x80, "epilogue must be skipped on the tamper branch");
-  console.log("  TAMPER/CLIMB: composed idiomatic loc_2c58 (true), epilogue skipped");
+  console.log("  TAMPER/CLIMB: composed idiomatic climbHunterToLaunchRowThenPromoteGroup (true), epilogue skipped");
 });
 
 // -- 4. TAMPER/TOP (skip taken) -----------------------------------------------
 
-test("TAMPER/TOP: failed check -> loc_2c58 sweeps (false); oracle == idiomatic; sweep ran", () => {
+test("TAMPER/TOP: failed check -> climbHunterToLaunchRowThenPromoteGroup sweeps (false); oracle == idiomatic; sweep ran", () => {
   const o = craftFrom(BASE_TAMPER, { hi: 0x12, seedTrigger: true });
   const c = craftFrom(BASE_TAMPER, { hi: 0x12, seedTrigger: true });
   const ro = oracle(o);
@@ -164,10 +164,10 @@ test("TAMPER/TOP: failed check -> loc_2c58 sweeps (false); oracle == idiomatic; 
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiom=${d.b}`);
-  assert.equal(rc, ro, "advanceActorState2AndCapWaveArrival must forward loc_2c58's boolean unchanged");
-  assert.equal(rc, false, "loc_2c58 reaches the top -> false (skip taken)");
+  assert.equal(rc, ro, "advanceActorState2AndCapWaveArrival must forward climbHunterToLaunchRowThenPromoteGroup's boolean unchanged");
+  assert.equal(rc, false, "climbHunterToLaunchRowThenPromoteGroup reaches the top -> false (skip taken)");
   assert.equal(c.mem.read8(ENEMY_ACTOR_TABLE + 0x02), 0x12, "the sweep must transition the seeded record");
-  console.log("  TAMPER/TOP: composed idiomatic loc_2c58 (false), sweep transitioned the record");
+  console.log("  TAMPER/TOP: composed idiomatic climbHunterToLaunchRowThenPromoteGroup (false), sweep transitioned the record");
 });
 
 // -- 5. BRANCH-LIVE (positive control) ----------------------------------------

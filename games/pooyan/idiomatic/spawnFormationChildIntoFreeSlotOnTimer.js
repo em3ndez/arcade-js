@@ -2,7 +2,7 @@
 import { u8, u16 } from "../../../core/int.js";
 import { FORMATION_TABLE } from "./names.js";
 import { advanceObjectAnimationFrame } from "./advanceObjectAnimationFrame.js";
-import { loc_3cae } from "./loc_3cae.js";
+import { seedFormationChildIntoFreeSlotAndLaunchParent } from "./seedFormationChildIntoFreeSlotAndLaunchParent.js";
 /**
  * spawnFormationChildIntoFreeSlotOnTimer — formation-object state-7 handler: keep the parent
  * animating, then on a timer release exactly one child into the first free formation slot.
@@ -61,7 +61,7 @@ export function spawnFormationChildIntoFreeSlotOnTimer(m, parent = m.regs.ix) {
   // free slot — at which point one child has been released, so the scan is abandoned immediately.
   let record = FORMATION_TABLE;
   for (let n = RECORD_COUNT; n > 0; n--) {
-    if (!loc_3cae(m, record, parent)) return; // child seated here -> release just one, stop scanning
+    if (!seedFormationChildIntoFreeSlotAndLaunchParent(m, record, parent)) return; // child seated here -> release just one, stop scanning
     record = u16(record + RECORD_STRIDE); // advance to the next formation record
   }
 
