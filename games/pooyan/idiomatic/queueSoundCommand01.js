@@ -1,17 +1,46 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { appendSoundCommandGated } from "./appendSoundCommandGated.js";
 /**
- * queueSoundCommand01 — queue sound command 0x01.
+ * queueSoundCommand01 — emit sound command 0x01.
  *
- * Loads the fixed command code and appends it to the command ring through the shared append
- * helper, returning the helper's result unchanged.
+ * WHAT IT IS
+ * One of a crowd of tiny sound emitters, each hard-wired to a single command code. This one owns
+ * the constant 0x01: whenever game logic wants that particular sound, it calls here. The whole job
+ * is to name the byte and hand it to the machine's one shared sound-enqueue routine.
  *
- * LIVE-OUT: A = the append helper's advanced ring cursor (0 when the gates are closed); AF is
- * not restored across the tail call, so the caller reads it back.
+ * ROLE IN THE MACHINE
+ * The audio processor is not poked directly by gameplay code. Instead, sounds are requested by
+ * dropping a one-byte command code into a small circular buffer — the sound-command ring — that a
+ * once-per-frame drain pays out to the audio side one byte at a time. So a "play this sound" request
+ * is really "append this code to the ring". This routine is the producer end for code 0x01: it loads
+ * the fixed byte and jumps into the shared appender appendSoundCommandGated (ROM 0x0ea2), which does
+ * the actual store-into-the-ring-and-advance-the-cursor work. Because the entry point jumps straight
+ * into the appender (rather than calling and returning), the appender's own return carries control
+ * back past here to whoever asked for the sound — so this routine has no epilogue of its own and the
+ * appender's effect and result stand in for its own.
+ *
+ * The append is conditional inside appendSoundCommandGated: the byte is queued only while a game is
+ * live (the in-play flag GAME_ACTIVE_FLAG at 0x8806 set, or the play-state latch PLAY_MODE_LATCH at
+ * 0x8f50 nonzero). In attract or between lives both gates are closed and the request is silently
+ * dropped — so command 0x01 sounds during play but not on the idle screen.
+ *
+ * ROM 0x0ed2-0x0ed5. [seen].
+ *
+ * LIVE-OUT: A = the advanced ring write cursor left behind by appendSoundCommandGated (or 0 when the
+ * gates are closed and nothing was queued). The AF pair is not preserved across the hand-off, so a
+ * caller that cares reads this value straight back.
  */
 
+// The one command code this emitter stands for: the byte appended to the sound-command ring
+// (SOUND_RING_BUFFER, 0x8a43..0x8a5e) to request sound 0x01. Fixed at assembly time; the whole
+// routine exists only to supply it.
 const COMMAND = 0x01;
 
 export function queueSoundCommand01(m) {
+  // Load the fixed code and hand it to the shared gated appender. That routine stashes the byte at
+  // SOUND_RING_PENDING_BYTE (0x8d20), checks the play gates, and — if a game is live — writes it
+  // into the ring slot named by SOUND_RING_WRITE_PTR (0x8a40) and steps that cursor on (wrapping the
+  // last slot 0x5e back to the first 0x43). Its result (the advanced cursor, or 0 when suppressed)
+  // becomes this routine's result unchanged.
   return appendSoundCommandGated(m, COMMAND);
 }

@@ -1,24 +1,39 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * noopHighStateHandler — phantom no-op handler: a routine that does nothing and returns.
+ * noopHighStateHandler — inert handler for the high object-states (14, 15, 16).
  *
- * ROM address: 0x4378 (a single-byte body, `ret`). Grounding tag: [seen].
+ * WHAT IT IS
+ *   A phantom no-op: a real, callable routine whose entire body on the machine is a single
+ *   return instruction. It reads nothing, writes nothing, and touches no hardware register.
  *
- * This is a called stub — a routine that exists only so a caller has a valid target to reach,
- * but whose job is to have NO effect. Its whole body on the machine is one return instruction:
- * it touches no memory, no hardware register, and no state of any kind, then hands control
- * straight back to whoever reached it. Stubs like this are how the original ROM fills a slot in
- * a table of handlers, or occupies a code path, that is meant to be inert for this game — the
- * caller dispatches uniformly and the "do nothing" case is spelled as a real, callable routine
- * rather than a special-cased skip.
+ * ROM address: 0x4378 (a one-byte body: `ret`). Grounding tag: [seen].
  *
- * Because it reads and writes nothing, it is safe to reach from anywhere and in any order; it
- * cannot fail and cannot perturb the machine.
+ * ROLE IN THE MACHINE
+ *   Every animate thing on the field — the player, enemies, projectiles, rope/lift segments,
+ *   spawned objects — is an entry in a stride-0x18 record array, and each record carries a
+ *   per-frame state byte at offset +2. Once a frame, dispatchObjectStateHandler masks that byte
+ *   to five bits ((IX+2)&0x1f), rejects an inactive record and any state index >= 0x11, and
+ *   hands the surviving record to one of seventeen state handlers (indices 0..16). The dispatch
+ *   is a flat table lookup, so every legal index must resolve to a real routine — there is no
+ *   "skip this index" branch.
  *
- * LIVE-OUT: none — the machine is left exactly as it was found.
+ *   Several of those seventeen states are meant to be dormant for this game: the object sits in
+ *   the state but the machine deliberately does nothing to it that frame. Rather than special-
+ *   case those indices, the table points them at a routine that does nothing and returns. This
+ *   handler is the target for the three highest live indices — object-states 14, 15, and 16 —
+ *   while its companion noopLowStateHandler serves the dormant low indices (3 through 7, and 10).
+ *   Splitting the inert slots across two identical stubs is simply how the original code lays the
+ *   jump table out; both behave the same (return at once).
+ *
+ *   Because it reads and writes nothing, it is safe to reach from any of those states in any
+ *   order; it cannot fail, cannot stall a record, and cannot perturb the rest of the machine.
+ *
+ * LIVE-OUT: none — the record and all of memory are left exactly as they were found.
  */
 export function noopHighStateHandler(m) {
-  // Nothing to do: the ROM body is a bare return, so this routine has no memory or hardware
-  // effect. Control simply falls back to the caller.
+  // Object-states 14/15/16 are dormant slots in the per-object state machine: for these states
+  // the machine intentionally performs no update this frame. There is no memory cell to step, no
+  // sprite band to redraw, and no hardware register to poke — control returns immediately, and
+  // dispatchObjectStateHandler moves on to the next record.
   return;
 }
