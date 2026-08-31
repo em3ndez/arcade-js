@@ -661,7 +661,7 @@ import { getCached, putCached, clearCached } from "./romstore.js";
     } catch { return; } // offline/blocked/no recordings — stay silent, no control
     if (!index || !Array.isArray(index.clips)) return;
 
-    const player = new SamplePlayer({ masterGain: 0.7 });
+    const player = new SamplePlayer({ masterGain: SOUNDS.masterGain ?? 0.7 }); // per-game SFX level (default 0.7)
     const clips = new Map(); // command byte -> { name, loop }
     const base = `../games/${gameId}/${spec.samples}`;
 
@@ -695,11 +695,67 @@ import { getCached, putCached, clearCached } from "./romstore.js";
       player.play(clip.name);
       current = clip.name;
     };
+
+    // Looping BACKGROUND MUSIC (data-driven + guarded): only a game whose map declares `backgroundMusic.beds`
+    // gets it, so the clips games without it stay byte-for-byte unchanged. The board's melody is sequenced by
+    // the unemulated sound CPU (its music-select commands sound nothing in isolation), so it can't be a
+    // per-command clip -- the recorder captures one MUSIC-ONLY bed per context and we loop the bed the current
+    // music-select code picks on a SEPARATE voice the effects never stop, crossfading on a context change.
+    // Beds play at bedGain (their natural quiet level UNDER the SFX master -- the faithful balance); a value in
+    // `stop` fades the bed out. See games/pooyan/audio/sounds.js.
+    const bgm = SOUNDS.backgroundMusic;
+    const bgBeds = new Map(Object.entries(bgm?.beds ?? {}).map(([k, v]) => [Number(k), v])); // latch value -> bed name
+    const bgStop = new Set(bgm?.stop ?? []);
+    const bgGain = bgm?.bedGain ?? 1;
+    const bgXfade = (bgm?.xfadeMs ?? 120) / 1000;
+    const bgLoop = bgm?.loop !== false;
+    const bgLoaded = new Set(); // beds that arrived (a missing bed just leaves its context silent)
+    await Promise.all([...new Set(bgBeds.values())].map(async (name) => {
+      try {
+        const r = await fetch(`${base}/${encodeURIComponent(name)}.wav`);
+        if (r.ok && (await player.loadSample(name, await r.arrayBuffer()))) bgLoaded.add(name);
+      } catch { /* absent bed -> that context is silent; the effects are unaffected */ }
+    }));
+    let bgSel = null;    // the bed name currently selected, or null (silence)
+    let bgVoice = null;  // the current bed's voice handle
+    const bgStartBed = (name) => {
+      const v = player.play(name, { loop: bgLoop, gain: 0 });
+      if (v?.gain?.gain) {
+        try {
+          const t = v.gain.context.currentTime;
+          v.gain.gain.setValueAtTime(0, t);
+          v.gain.gain.linearRampToValueAtTime(bgGain, t + bgXfade); // fade the new bed in
+        } catch { v.gain.gain.value = bgGain; }
+      }
+      return v;
+    };
+    const bgStopBed = (v) => {
+      if (v?.gain?.gain) {
+        try {
+          const t = v.gain.context.currentTime;
+          v.gain.gain.cancelScheduledValues(t);
+          v.gain.gain.setValueAtTime(v.gain.gain.value, t);
+          v.gain.gain.linearRampToValueAtTime(0, t + bgXfade); // fade the old bed out, then stop it
+        } catch { /* fall through to the timed stop */ }
+        setTimeout(() => { try { v.stop?.(); } catch { /* already gone */ } }, bgXfade * 1000 + 40);
+      } else v?.stop?.();
+    };
+    const bgFire = (cmd) => {
+      let target = bgSel;
+      if (bgStop.has(cmd)) target = null;
+      else if (bgBeds.has(cmd)) target = bgBeds.get(cmd);
+      if (target === bgSel) return;                 // same context: leave the bed running
+      if (bgVoice) bgStopBed(bgVoice);              // crossfade the outgoing bed out
+      bgVoice = target && bgLoaded.has(target) ? bgStartBed(target) : null;
+      bgSel = target;
+    };
+
     onSoundEvents = (ev) => {
       for (let i = 0; i < ev.length; i += 2) {
         const addr = ev[i], val = ev[i + 1];
         if (addr === LATCH) {
           latched = val;
+          bgFire(val);                     // background-music start/stop (no-op unless the map declares it)
           if (ctrlPort == null) fire(val); // a map with no control port keeps the old latch-trigger
           continue;
         }
@@ -723,8 +779,10 @@ import { getCached, putCached, clearCached } from "./romstore.js";
     audioGesture = () => { void player.init(); };
     audioToggleMute = () => {
       void player.init();
+      const resumeBed = bgSel;
       player.setMuted(!player.muted);
-      if (player.muted) player.stopAll();
+      if (player.muted) { player.stopAll(); bgVoice = null; }
+      else if (resumeBed && bgLoaded.has(resumeBed)) bgVoice = bgStartBed(resumeBed); // restart the current bed
       current = null; // stopAll() killed it; forget it so it can restart
       paintMute();
     };

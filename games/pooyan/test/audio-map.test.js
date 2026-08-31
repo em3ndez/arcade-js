@@ -71,6 +71,41 @@ test("IF a control port is ever declared it must be a coherent LS259 bit (guards
   assert.ok(Number.isInteger(b) && b >= 0 && b <= 7, `intBit ${b} is not a bit index 0-7`);
 });
 
+test("the background-music beds map is a coherent multi-context declaration", () => {
+  // Pooyan loops one MUSIC-ONLY bed per context UNDER the effects (samples/bed_*.wav, gitignored) because its
+  // melody is sequenced by the unemulated 2nd Z80, not carried by a per-command clip. setupClipAudio
+  // (web/player.html) loads each bed, selects by the music-select latch value (a beds key), and crossfades on a
+  // change; a `stop` value fades out. Pin the shape + the grounded rules: stop includes 0x00 (game-over silence),
+  // 0x82 (a per-kill accent) is NEVER a bed key, and bedGain cancels the SFX masterGain so the music stays quiet.
+  const bg = SOUNDS.backgroundMusic;
+  if (bg == null) return; // a game may ship no music; only check the declaration when it is present
+  assert.ok(bg.beds && typeof bg.beds === "object" && !Array.isArray(bg.beds), "backgroundMusic.beds must be a value->bed map");
+  const keys = Object.keys(bg.beds).map(Number);
+  assert.ok(keys.length > 0, "backgroundMusic.beds is empty");
+  for (const k of keys) {
+    assert.ok(Number.isInteger(k) && k >= 0 && k <= 0xff, `bed key ${k} is not a latch byte`);
+    assert.ok(typeof bg.beds[k] === "string" && bg.beds[k].length > 0, `bed key ${h(k)} has no bed file name`);
+  }
+  assert.ok(!keys.includes(0x82), "0x82 is a per-kill accent, not music -- it must not select a bed");
+  assert.ok(Array.isArray(bg.stop) && bg.stop.includes(0x00), "backgroundMusic.stop must include 0x00 (the silence selector)");
+  const overlap = keys.filter((k) => bg.stop.includes(k));
+  assert.equal(overlap.length, 0, `a value both selects and stops the bed: ${overlap.map(h)}`);
+  assert.ok(Number.isFinite(bg.bedGain) && bg.bedGain > 0, "backgroundMusic.bedGain must be a positive number");
+  // The faithful balance: bedGain x masterGain ~= 1, so the beds (which go through the SFX-boosted master)
+  // play back at their natural captured (MAME) music level rather than the SFX boost.
+  const master = SOUNDS.masterGain ?? 0.7;
+  assert.ok(Math.abs(bg.bedGain * master - 1) < 0.15,
+    `bedGain (${bg.bedGain}) x masterGain (${master}) should be ~1 (music at natural level), got ${(bg.bedGain * master).toFixed(2)}`);
+});
+
+test("SOUNDS.masterGain, when declared, is a sane per-game SFX gain", () => {
+  // A per-game SFX level the web player passes to the SamplePlayer master (default 0.7 for the frozen clips
+  // games). Must be a positive number within clampGain's ceiling so a game cannot silence or blow out its SFX.
+  const m = SOUNDS.masterGain;
+  if (m == null) return; // absent -> the player's 0.7 default
+  assert.ok(Number.isFinite(m) && m > 0 && m <= 4, `masterGain ${m} must be in (0, 4] (clampGain's ceiling)`);
+});
+
 // --- optional: cross-check the recorded clips when present (gitignored copyright, so absent in a clone) ---
 
 test("the recorded index.json, when present, is the clip shape the player + latch model expect", (t) => {
@@ -95,5 +130,20 @@ test("the recorded index.json, when present, is the clip shape the player + latc
     if (!c.silent) assert.ok(typeof c.file === "string" && c.file.length > 0, `${where} sounds but has no file`);
     assert.ok(!commands.has(c.command), `${where}: duplicate command ${c.command} in the index`);
     commands.add(c.command);
+  }
+});
+
+test("background-music bed keys are NOT sounding command clips (they select the sequencer)", (t) => {
+  // A music-run lead selects the audio CPU's tune and sounds NOTHING in isolation (it is not in the
+  // recorder's sweep of sounding commands). If a bed key were also a sounding clip, the effect clip and the
+  // looping bed would both fire on that write and collide. Cross-check the bed keys against the recording.
+  const bg = SOUNDS.backgroundMusic;
+  if (bg?.beds == null) { t.skip("no music beds declared"); return; }
+  const idxPath = new URL("../audio/samples/index.json", import.meta.url);
+  if (!existsSync(idxPath)) { t.skip("samples/index.json absent (recorded clips are gitignored, BYO)"); return; }
+  const index = JSON.parse(readFileSync(idxPath, "utf-8"));
+  const sounding = new Set((index.clips ?? []).filter((c) => c && !c.silent).map((c) => c.command));
+  for (const k of Object.keys(bg.beds).map(Number)) {
+    assert.ok(!sounding.has(k), `bed key ${h(k)} is a SOUNDING clip -- a music-select command must sound nothing in isolation`);
   }
 });

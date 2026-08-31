@@ -124,6 +124,73 @@ Still-sounding-at-the-late-stop ⇒ `sustained`, and the clip written is one **l
 period** (normalised autocorrelation) of it, or the whole sustain recording
 (flagged) if no clean period is found.
 
+## The music beds (`--background`)
+
+The per-command sweep records each sound code **in isolation**. But Pooyan's
+**melody** is not any one code: the un-emulated audio Z80 sequences it
+**continuously**, and the main CPU only **selects** it with control codes that are
+silent on their own (the framed music *runs* — a lead byte followed by the trailer
+`0x15,0x16,0x17`). The clip model, which plays one recorded sample per latch write,
+therefore cannot carry it. The port ships a **multi-context stem jukebox**: three
+looping **beds**, one per music-select code, that the web player mixes in under the
+effects. `--background` regenerates all three from your ROM:
+
+```sh
+# regenerate the three beds into games/pooyan/audio/samples/ from YOUR ROM
+games/pooyan/tools/record_samples.py --background --rompath games/pooyan/rom
+# or through the Makefile
+make samples GAME=pooyan ROMPATH=games/pooyan/rom SAMPLEFLAGS=--background
+```
+
+**The three beds**, keyed by the music-select code the sound sequencer uses:
+
+| file | code | context | ~length | ~level (AC) |
+|------|------|---------|---------|-------------|
+| `bed_intro.wav`  | `0x1c` | start-of-game jingle (through-composed cue) | 10.1 s | −32 dBFS |
+| `bed_board1.wav` | `0x1a` | board-1 gameplay music (loop) | 26.4 s | −40 dBFS |
+| `bed_board2.wav` | `0x1e` | board-2 / round music (loop; `0x1f/0x20/0x21` same family) | 49.6 s | −36 dBFS |
+
+**How they are captured.** ONE isolated-music capture yields all three, split on the
+music-select timeline. It plays the gameplay golden tape
+(`games/pooyan/tapes/coin_start_play.lua`) for **150 s** — long enough to reach
+board-2 music (selected at ~t83 s, running to ~t150 s) — under the *same* determinism
+argv as the sweep and the pixel goldens (`mame_golden.build_mame_argv`), with an
+effects-mute tap that **suppresses** the sounding effects `0x00-0x14` **and** the
+per-kill / "caught" accent pair `0x82`/`0x95` (0x82 fires on every enemy retire —
+grounded 1:1 against `STAGE_COUNTDOWN`), letting the framed music runs through so only
+the sequenced melody sounds. Each context is cut from its own window (intro t4-15 s,
+board-1 t15-83 s, board-2 the body after the loud round-2 fanfare t90-140 s) by the
+same method as `games/pooyan/scratchpad/extract_bed.py` (the tool the approved beds
+were cut with): dominant-period **normalised autocorrelation**, median-centre the PSG
+idle DC, cut one period from a **representative** (full-level) rising zero-crossing —
+snapping the end to the lowest-seam rising zero-crossing — then a **~20 ms equal-power
+crossfade** at the seam. A through-composed cue like the intro (autocorrelation below
+`BED_PERIODIC_CORR`) keeps its whole window instead of one period. Levels are the
+**natural** per-context AC levels — deliberately **not** loudness-normalized — so the
+beds keep MAME's real relative mix (intro loud, board-1 quiet, board-2 mid).
+
+**Deterministic and self-checking.** MAME's audio is bit-reproducible under the golden
+argv and the extraction is a fixed function of the capture, so re-running reproduces
+every bed **byte-for-byte** (verified: identical sha256 across runs). The tool prints
+each bed's period, correlation, level and seam, then **fails (exit 1)** if a looping
+bed's `loop_corr` is below its per-bed floor, if a seam is too large a fraction of
+peak for the crossfade to hide, or if a bed comes out (near-)silent. The three wavs
+land in the **gitignored** `games/pooyan/audio/samples/` — ROM-derived, copyrighted
+audio, **never committed**, exactly like the per-command clips.
+
+**What the player does with them.** `games/pooyan/audio/sounds.js` `backgroundMusic`
+selects the bed by the latched **music-select code**: `0x1c → bed_intro`,
+`0x1a → bed_board1`, `0x1e` (and the round family `0x1f/0x20/0x21`) `→ bed_board2`.
+`stop: [0x00]` is the silence selector, fired at game-over (grounded). `0x82` is **not**
+a music trigger and must never be a start value — it is the per-kill accent.
+
+**Honest fidelity limits.** Three beds cover the intro and the first two board types;
+**board 3+ tunes are not captured** (they reuse the round-music family but the sequencer
+varies them). Pooyan's **tempo speeds up** under time pressure; the efficient clearing
+tape never triggers that state, so **no sped-up variant is captured** — the beds are the
+steady tempo. Per-life death does not silence the music (only game-over does), and
+board-clear cross-selects the next board's tune with no intervening stop.
+
 ## DC-offset correction — why the tool needs it
 
 Pooyan's two AY-3-8910s, like every PSG of that family, sit at a large idle DC bias

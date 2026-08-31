@@ -799,6 +799,42 @@ distinct phase, gated on a flag, and runs in this order.
   (silence in a fresh clone is the point). Web side: dedup by raw write **address**, forward only changed
   edges; guard any polled surface behind a board-capability check. **Report evidence disagreements — never
   silently pick a winner**; when the driver and the measured hardware disagree, ship what the hardware does.
+- **Background music the clip model can't carry** (pooyan): the per-command recorder handles SFX and short
+  self-contained tunes, but a game whose MUSIC is *sequenced* by the audio CPU (continuous, evolving,
+  per-board) has NO per-command music clip — the music-select codes sound **nothing** in isolation, so the
+  clip player goes silent/sparse where the real machine plays a score. **Diagnose before building**: tap the
+  soundlatch stream AND the sound chip's register writes over real gameplay — a Konami `timeplt_audio`-style
+  driver shows hundreds of AY-3-8910 writes/sec with continuous *software* pitch-slides + volume envelopes
+  (the hardware envelope/noise generators unused), music and SFX mixed on shared channels, and a tempo read
+  from the game timer. That is NOT reimplementable as "a few note tables". The choices are **(a)** per-context
+  recorded music **beds** the port loops (a "stem jukebox" — simplest, "very similar"), or **(b)** run the real
+  audio ROM on a 2nd CPU instance + a datasheet-simple sound-chip device — **exact**, and because the game CPU
+  core already exists it is often the *smaller* path; a hand-reimplementation of the driver is the worst of
+  both (re-porting the sequencer without the correctness). Default to (a); take (b) when exact is required.
+- **The stem-jukebox method** (a): capture one MUSIC-ONLY bed per context (intro, each board tune) by recording
+  MAME with the SFX/accent commands **suppressed** (the inverse of the recorder's inject-mute) — the real
+  per-note synth detail bakes into the recording. Extract a clean loop (autocorrelation period → zero-cross cut
+  → equal-power seam crossfade), captured long enough for the true musical period (weak self-similarity makes
+  short loops audibly repetitive). At runtime the port already sees every soundlatch write, so **select** the
+  bed by the music-select code, play it looping on a **separate voice**, equal-power **crossfade** on a context
+  change, **stop** on the silence selector; SFX layer on their own voices (they sum — hardware voice-steals, so
+  the port reads slightly fuller; an SFX-triggered duck approximates it). A tempo hurry-up is a **captured fast
+  tier** selected off the timer RAM — never a `playbackRate` stretch (that raises pitch; the hardware shortens
+  note durations, not pitch).
+- **The faithful balance — match the ORIGINAL, not a loudness** (the level trap): measure on **DC-removed (AC)**
+  audio — a PSG idle DC bias inflates raw RMS by tens of dB and makes the music look far quieter than it is; the
+  real music is a **quiet AC background under loud SFX**. Capture beds at their **natural** per-context level
+  (do not normalize them loud) so the port's music sits at the machine's music level, and raise the SFX to the
+  machine's SFX level with a **per-game** gain — **never the shared clip-player master** (it would boost the
+  frozen clips games). **Validate** by (i) per-context AC level match vs MAME, (ii) the port-vs-MAME AC-envelope
+  **correlation flipping clearly positive** — the falsifiable "it tracks the original" test that a music-forward
+  or static-loop mix fails — and (iii) an ear A/B. Do **not** gate on tight sample-aligned spectral
+  cross-correlation: a looped bed drifts phase and scores low even when it sounds right. A select-only control
+  code sounds nothing in isolation — prove it is control, not a missing sound, with a **mutation control**
+  (muting it in a gameplay run removes no audible energy). Honest residuals of record/replay music: frozen
+  loops, a tempo staircase not a continuous ramp, no true voice-stealing. Beds are gitignored copyright with a
+  recorder `--background` mode; the committed map keys beds by music-select code with start/stop + per-context
+  gains; the by-ear sign-off covers the music too.
 - **ROM stays out:** bring-your-own — tests guard on ROM presence and skip when absent; a rom-guard clone
   verifies a no-ROM checkout still passes. The manifest lists part filenames + sha256; `make rom` assembles
   from the user's dump and verifies.
