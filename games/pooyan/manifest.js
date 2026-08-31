@@ -74,7 +74,11 @@ export default {
     },
   },
 
-  entropyPin: null, // TODO §4 — measure the spin-counter fork set
+  entropyPin: null, // §4 MEASURED — nothing to pin: pooyan has no timing-seeded RNG. Attract work RAM is
+  // byte-identical JS-vs-MAME every frame (only the dead stack scratch forks), and the cycle-driven JS
+  // reproduces MAME byte-for-byte on identical inputs through a full board clear; enemy spawns derive from
+  // deterministic counters/tables (ANIM_FRAME_COUNTER&7, spawn-tally). The idiomatic-vs-MAME gameplay
+  // divergence is cycle-free PHASE drift (a few timer cells), not entropy, so a seed pin is a no-op.
 
   // Frame model (MAME-grounded): pooyan's main loop loc_020f FREE-RUNS with no vblank busy-wait — the NMI
   // (0x066d) is the sole per-frame heartbeat. Per real vblank the CPU drains the WHOLE display command ring
