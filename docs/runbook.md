@@ -581,7 +581,11 @@ shows only stage A (the renames + the map) and silently omits stage B.
   script**, never a blanket replace — a blanket replace rewrites the frozen oracle import and the shared
   data-name consts. `git mv` stages the OLD blob, so `git add` the edited file and `git diff --cached` to
   confirm the rename **and** the content landed. The commit subject is `<game>: understanding pass N — …`
-  (classifies UNDERSTANDING for R1).
+  (classifies UNDERSTANDING for R1). **The repoint scope is repo-wide, not just the game dir:** shared
+  tooling (corpus scanners like `tools/bridge_reseat_scan.mjs`, gate configs) imports a game's routines by
+  name/filename, so a bulk rename that scans only `games/<game>/**` leaves those dangling — and a missed one
+  throws only in the FULL pre-push suite (a `tools/` change forces FULL scope), never in the idiomatic-test
+  subset. Run the pre-push suite scope after a rename, not just `node --test games/<game>/idiomatic/test`.
 - **Name by EFFECT**, not internal mechanism — trace each live-out to its final consumer and name the verb
   it causes (`steer`/`spawn`, not `classify`/`detect`); if the output is read in place of another input, the
   routine *generates* that input. Name a routine whose **mechanism** is confident even if its game-purpose is
