@@ -28,6 +28,9 @@ poisoned golden, a boot that stops (any gap) inside the prefix, too few frames, 
 than the budgeted mismatches each print a non-PASS line and exit nonzero.
 """
 import argparse
+import bisect
+import hashlib
+import json
 import os
 import re
 import subprocess
@@ -156,6 +159,56 @@ DONE_DEEP_STATES = [
     ("round>=1 (at least one board cleared / round advanced)", 0x8907, lambda v: v >= 1,
      "ROUND_COUNTER stays 0 for the whole of a wave-1-only golden; >=1 requires a full board completion"),
 ]
+
+# ── PART C  EXTENDED-ATTRACT CORRECTNESS over >=1 complete attract loop ─────────────────────────────
+# Runbook 2/5: "pixel-validate the FULL attract cycle ... expand --seconds to cover >=1 complete attract
+# loop." The short per-commit gate diffs only the byte-exact 170-frame PREFIX; PART A checks the attract
+# only for SURVIVAL (no pixel diff). PART C closes the gap: it pixel-DIFFS the idiomatic attract, input-free,
+# against a fresh MAME golden across >=1 complete attract loop.
+#
+# MEASURED ATTRACT STRUCTURE (2026-08-31, this ROM, idiomatic layer): the loop is
+# title -> story screens -> a ~50s DEMO gameplay segment -> results/high-score -> title, period
+# EXT_LOOP_FRAMES ~= 4515 golden frames (~74.5s) -- NOT the stale "~1357 / 24s" the old SCOPE NOTE cited
+# (that was the pre-idiomatic/oracle characterization; it is wrong for this layer). The idiomatic collapse
+# is early-boot only, so past it a JS frame lands at golden ~= JS + 67 (stable), and EXT_ATTRACT_FRAMES=4900
+# JS frames span golden ~67..4966 == >1 full loop.
+#
+# WHAT THE DIFF SHOWS (ground truth, NOT the stale "~20 ISOLATED, max 1446px" note): the whole title/story
+# sequence is BYTE-EXACT vs MAME; the ONLY divergence is inside the DEMO segment, where small animated
+# elements run one animation-phase off. Over a full loop: 3506/4900 frames byte-exact, 1394 drift frames
+# in 21 runs. Those runs are CASCADES (consecutive; longest 167), NOT the "isolated" the old note claimed --
+# because the demo is continuous motion, so a phase-lagged element stays lagged for many frames then
+# reconverges. BUT every drift frame is TINY: worst 21px = 0.037% of the screen (median 5px, none >40px;
+# nearest-golden windowed min). This is the same CLASS as the gameplay phase-drift PART B already carries,
+# manifesting as small-magnitude cascades here. Both golden and render are bit-reproducible (independent
+# MAME captures byte-identical; the render's frames.rgb hash is stable), so the counts below are exact.
+#
+# THE TEETH (a magnitude band + an exact drift-count tripwire -- NOT a cascade-length veto, which the
+# ground truth falsifies since benign cascades reach 167 frames):
+#   (1) MAGNITUDE BAND EXT_BAND_PX -- every frame's nearest-golden differing-pixel count must be <= 40px.
+#       Benign worst is 21px, so 40 forgives the phase-drift with ~2x margin; but 40 CANNOT represent even
+#       one wrong 8x8 tile (64px), a wrong/missing sprite (100s px), or a persistent wrong region (1000s px)
+#       -- so a GROSS DIFF or a real CASCADE regression (every frame of a wrong region is >40px) FAILS.
+#       This is the primary "real regression" teeth; it is ~125x tighter than PART B's 5% band because the
+#       attract is near-deterministic, not entropy-timing-divergent.
+#   (2) DRIFT-COUNT tripwire EXT_DRIFT_BUDGET -- number of byte-inexact frames must be <= the EXACT measured
+#       benign count (1394; 0 margin, exactly as PART A's TRANSIENT_BUDGET=1 is the exact prefix transient).
+#       A gross regression on a previously-clean frame adds a new drift frame -> 1395 > 1394 -> FAIL; and a
+#       single flipped pixel on a byte-exact frame (the positive control) trips THIS even though its 1px is
+#       under the band. Exact-count is safe because both sides are bit-reproducible.
+#   (3) FROZEN / non-tracking guards -- a magnitude band ALONE is blind to a frozen screen (it matches its
+#       own golden twin); EXT_MIN_DISTINCT + the byte-exact matched-golden SPAN (must cover >=1 loop) reject
+#       a frozen / misaligned / short render.
+EXT_ATTRACT_SECONDS = 90       # golden length: 5456 frames; > EXT_ATTRACT_FRAMES + window (loop is ~4515)
+EXT_ATTRACT_FRAMES = 4900      # idiomatic frames: spans golden ~67..4966 == >1 full attract loop
+EXT_LOOP_FRAMES = 4515         # MEASURED attract loop period (title->story->demo->results->title), golden frames
+EXT_BAND_PX = 40               # per-frame nearest-golden diff cap: forgives the 21px phase-drift, fails an 8x8 tile
+EXT_DRIFT_BUDGET = 1394        # EXACT benign byte-inexact-frame count over the loop (0 margin -> a 1px flip FAILS)
+EXT_MIN_DISTINCT = 1000        # a frozen attract proves nothing; a real loop has ~4183 distinct images
+EXT_MIN_SPAN = 4000            # byte-exact matches must span ~>=1 loop (measured 4937); a stuck render fails
+EXT_WIN = 25                   # nearest-golden half-window for the drift magnitude (offset drift is small/local)
+INJECT_EXT_AT = 300            # positive control: a frame deep in the BYTE-EXACT title region (clear of any drift)
+INJECT_EXT_XY = (100, 100)
 
 
 def _state_offset(addr):
@@ -448,15 +501,189 @@ def _done_partB(a):
     return True
 
 
+def _golden_hashes(golden_dir):
+    """The golden's per-frame sha256 list, from the frames.json the capturer writes."""
+    idx = json.load(open(os.path.join(golden_dir, "frames.json")))
+    return [f["sha256"] for f in idx["frames"]]
+
+
+def _ext_js_hashes(rgb_path, count, inject_at=None, inject_xy=None):
+    """Recompute per-frame sha256 straight from the render's frames.rgb -- so the positive control can flip
+    ONE pixel's byte in ONE frame before hashing (making a byte-exact frame a drift frame). Same digest the
+    golden side stores, so equality == byte-identical images."""
+    _, _, bpf = pixel_gate.screen_geometry(HW)
+    w = pixel_gate.frameio.WIDTH
+    hs = []
+    with open(rgb_path, "rb") as fh:
+        for i in range(count):
+            buf = bytearray(fh.read(bpf))
+            if inject_at is not None and i == inject_at:
+                x, y = inject_xy
+                buf[(y * w + x) * 3] ^= 0xFF
+            hs.append(hashlib.sha256(bytes(buf)).hexdigest())
+    return hs
+
+
+def _ext_classify(gh, jh):
+    """Byte-exact clean/drift classification by frame-hash membership (the attract is deterministic, so a
+    correct idiomatic frame is byte-IDENTICAL to a golden frame). For clean frames, a monotonically
+    non-decreasing matched golden index (drives the tracking-SPAN teeth + anchors the drift magnitude
+    search). Returns (clean_flags, matched_golden_idx_or_None)."""
+    g_by_hash = {}
+    for i, h in enumerate(gh):
+        g_by_hash.setdefault(h, []).append(i)
+    gset = set(gh)
+    clean = [False] * len(jh)
+    matched = [None] * len(jh)
+    lo = 0
+    for i, h in enumerate(jh):
+        if h in gset:
+            cands = [g for g in g_by_hash[h] if g >= lo]
+            gi = cands[0] if cands else g_by_hash[h][-1]
+            lo = gi
+            clean[i] = True
+            matched[i] = gi
+    return clean, matched
+
+
+def _ext_magnitude(jrgb, grgb, n_j, n_g, drift, clean, matched, band):
+    """For each DRIFT js frame, the min differing-pixel count over a golden window anchored on the
+    neighbouring byte-exact frames' EXACT golden indices (the drift is bracketed by clean anchors, so the
+    true match sits within a few frames). EARLY-FAILS on the first frame exceeding `band` -- a gross diff or
+    a persistent wrong region. Returns (ok, worst_px, worst_frame, offender_or_None)."""
+    w, h, _ = pixel_gate.screen_geometry(HW)
+    gm = np.memmap(grgb, dtype=np.uint8, mode="r").reshape(-1, h, w, 3)
+    jm = np.memmap(jrgb, dtype=np.uint8, mode="r").reshape(-1, h, w, 3)
+    cleans = [i for i in range(n_j) if clean[i]]
+
+    def anchor(i):
+        p = bisect.bisect_left(cleans, i)
+        lo_i = cleans[p - 1] if p > 0 else None
+        hi_i = cleans[p] if p < len(cleans) else None
+        if lo_i is not None and hi_i is not None and hi_i != lo_i:
+            t = (i - lo_i) / (hi_i - lo_i)
+            return int(round(matched[lo_i] + t * (matched[hi_i] - matched[lo_i])))
+        if lo_i is not None:
+            return matched[lo_i] + (i - lo_i)
+        return matched[hi_i] - (hi_i - i)
+
+    worst, worstf = 0, None
+    for i in drift:
+        egi = anchor(i)
+        a0, a1 = max(0, egi - EXT_WIN), min(n_g, egi + EXT_WIN + 1)
+        win = gm[a0:a1].astype(np.int16)
+        d = np.any(win != jm[i].astype(np.int16), axis=3).sum(axis=(1, 2))
+        k = int(d.argmin())
+        bd = int(d[k])
+        if bd > worst:
+            worst, worstf = bd, i
+        if bd > band:
+            return False, worst, worstf, (i, bd, a0 + k)
+    return True, worst, worstf, None
+
+
+def _done_partC(a):
+    """PART C -- EXTENDED-ATTRACT correctness over >=1 complete attract loop (runbook 2/5). Capture a fresh
+    input-free MAME golden of the attract, render the idiomatic attract input-free for EXT_ATTRACT_FRAMES
+    (>1 loop), and pixel-DIFF byte-exact, with a magnitude band + an exact drift-count tripwire + frozen/
+    span guards. Closes the gap the short prefix + PART-A-survival leave: the extended attract was
+    pixel-validated vs MAME NOWHERE past the 170-frame prefix. Returns True=clean-within-budget. See the
+    PART C constant block for the full ground-truth characterization + why the teeth cannot swallow a bug."""
+    go, jo = os.path.join(a.work, "ext_golden"), os.path.join(a.work, "ext_js")
+    if not capture_golden(a.rompath, go, EXT_ATTRACT_SECONDS):
+        print("pixel_suite: FAIL -- PART C: mame_golden refused to certify the extended-attract capture (poisoned).")
+        return False
+    _, _, bpf = pixel_gate.screen_geometry(HW)
+    n_g = os.path.getsize(os.path.join(go, "frames.rgb")) // bpf
+    if n_g < EXT_ATTRACT_FRAMES + EXT_WIN:
+        print(f"pixel_suite: FAIL -- PART C: extended-attract golden {n_g} frames < "
+              f"{EXT_ATTRACT_FRAMES}+{EXT_WIN}; capture more --seconds so every frame has a search window.")
+        return False
+
+    painted, gap, dropped, log = render_js(jo, EXT_ATTRACT_FRAMES, idiomatic=True)
+    if dropped:
+        print("pixel_suite: FAIL -- PART C: extended-attract render DROPPED frames (a tick outran a frame).")
+        return False
+    if gap is not None:
+        print(f"pixel_suite: FAIL -- PART C: extended-attract CRASHED at gap 0x{gap:04x} after {painted} "
+              f"frames (a reachable attract state regressed).\n" + log.strip()[-400:])
+        return False
+    if painted < EXT_ATTRACT_FRAMES:
+        print(f"pixel_suite: FAIL -- PART C: extended-attract painted only {painted}/{EXT_ATTRACT_FRAMES} "
+              "frames (short run == a crash / early stop before >=1 loop completed).")
+        return False
+
+    gh = _golden_hashes(go)
+    inj_at = INJECT_EXT_AT if a.inject_ext_defect else None
+    jh = _ext_js_hashes(os.path.join(jo, "frames.rgb"), painted, inj_at, INJECT_EXT_XY)
+    if a.inject_ext_defect:
+        print(f"  [PART C] INJECTED one wrong pixel at BYTE-EXACT frame {INJECT_EXT_AT} {INJECT_EXT_XY} "
+              "(positive control -- expect FAIL).")
+
+    clean, matched = _ext_classify(gh, jh)
+    drift = [i for i in range(painted) if not clean[i]]
+    cleans = [i for i in range(painted) if clean[i]]
+    j_distinct = len(set(jh))
+    runs, s = [], None
+    for i in range(painted):
+        if not clean[i]:
+            if s is None:
+                s = i
+        elif s is not None:
+            runs.append(i - s)
+            s = None
+    if s is not None:
+        runs.append(painted - s)
+    longest = max(runs) if runs else 0
+    cl_gi = [matched[i] for i in cleans]
+    span = (max(cl_gi) - min(cl_gi)) if cl_gi else 0
+
+    # Frozen / non-tracking guards FIRST -- a magnitude band alone is blind to a frozen screen (it matches
+    # its own golden twin at 0px), so the byte-exact SPAN + distinct-frame floor are what reject it.
+    if j_distinct < EXT_MIN_DISTINCT:
+        print(f"pixel_suite: FAIL -- PART C: render has only {j_distinct} distinct frames "
+              f"(< {EXT_MIN_DISTINCT}); a frozen/near-static attract proves nothing.")
+        return False
+    if span < EXT_MIN_SPAN:
+        print(f"pixel_suite: FAIL -- PART C: byte-exact matches span only {span} golden frames "
+              f"(< {EXT_MIN_SPAN}; one loop ~{EXT_LOOP_FRAMES}) -- the render is not tracking >=1 full "
+              "attract loop (frozen / misaligned / short).")
+        return False
+
+    ok_mag, worst, worstf, offender = _ext_magnitude(
+        os.path.join(jo, "frames.rgb"), os.path.join(go, "frames.rgb"),
+        painted, n_g, drift, clean, matched, EXT_BAND_PX)
+    print(f"  [PART C] extended attract: {painted} idiomatic frames vs {n_g}-frame golden -- byte-exact "
+          f"{len(cleans)}, drift {len(drift)} in {len(runs)} run(s) (longest {longest}); worst drift "
+          f"{worst}px @JS {worstf} (band {EXT_BAND_PX}); matched-golden span {span} (>=1 loop "
+          f"~{EXT_LOOP_FRAMES}); distinct {j_distinct}; budget {EXT_DRIFT_BUDGET}")
+    if not ok_mag:
+        i, bd, gj = offender
+        print(f"pixel_suite: FAIL -- PART C: js frame {i} differs from its nearest golden ({gj}) by {bd}px "
+              f"(> band {EXT_BAND_PX}) -- a gross diff / persistent wrong region, NOT the <=21px animation "
+              "phase-drift. A rendering regression.")
+        return False
+    if len(drift) > EXT_DRIFT_BUDGET:
+        print(f"pixel_suite: FAIL -- PART C: {len(drift)} byte-inexact frames (> budget {EXT_DRIFT_BUDGET}) "
+              "-- a new divergence appeared vs the calibrated benign phase-drift (even a single flipped "
+              "pixel on a deterministic frame trips this).")
+        return False
+    print("  [PART C] extended attract tracks MAME within the phase-drift band across >=1 full loop.")
+    return True
+
+
 def run_done(a):
     """The FULL ship-time pixel gate (runbook 5): PART A (attract completeness/crash) + PART B (tape-driven
-    gameplay vs MAME). done_gate.check_pixel runs this. `pixel_suite: PASS` prints ONLY when both are clean;
-    every cannot-run path already exited nonzero above (no mame / no romset), and each part fails closed."""
+    gameplay vs MAME) + PART C (extended-attract correctness over >=1 loop). done_gate.check_pixel runs this.
+    `pixel_suite: PASS` prints ONLY when all three are clean; every cannot-run path already exited nonzero
+    above (no mame / no romset), and each part fails closed."""
     os.makedirs(a.work, exist_ok=True)
-    print(f"pixel_suite --done [{DRIVER}]: attract completeness + tape-driven gameplay vs MAME")
+    print(f"pixel_suite --done [{DRIVER}]: attract completeness + tape-driven gameplay + extended attract vs MAME")
     if not _done_partA(a):
         return 1
     if not _done_partB(a):
+        return 1
+    if not _done_partC(a):
         return 1
     print("pixel_suite: PASS")
     return 0
@@ -526,6 +753,9 @@ def main():
     p.add_argument("--inject-attract-crash", action="store_true",
                    help="POSITIVE CONTROL for --done PART A: truncate the attract render so it looks like a "
                         "crash/short run; PART A must FAIL. (Use the real crash-fix revert for a truer test.)")
+    p.add_argument("--inject-ext-defect", action="store_true",
+                   help="POSITIVE CONTROL for --done PART C: flip ONE pixel in ONE byte-exact extended-attract "
+                        "frame (clear of any drift); the drift-count tripwire must FAIL.")
     p.add_argument("--selftest-deepstates", action="store_true",
                    help="POSITIVE CONTROL for --done PART B deep-state coverage: synthesise a round-0 and a "
                         "round>=1 state.bin and prove the coverage check fails the first, passes the second. "
