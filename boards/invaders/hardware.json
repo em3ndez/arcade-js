@@ -1,0 +1,48 @@
+{
+  "_comment": [
+    "Tool-facing hardware declaration for Space Invaders (Midway/Taito) on the mw8080bw PCB.",
+    "Read from mame-src/src/mame/midw8080/mw8080bw.cpp (mw8080bw_root + invaders_state::invaders,",
+    "ROM_START(invaders)) and mw8080bw.h. Same role as the Konami boards' hardware.json: the single",
+    "source of truth the shared Python tools read via --hardware. Numbers are decimal; '_hex'/'_note'",
+    "fields are annotations the loader ignores.",
+    "★ FIRST-DRAFT for the 8080 skeleton -- unlike the Konami/Z80 boards this is an Intel 8080 with a",
+    "TWO-interrupt-per-frame RST model and PORT (not memory-mapped) I/O. Items marked ★ need confirming",
+    "against MAME at first boot (the equivalence gate)."
+  ],
+
+  "driver": "invaders",
+  "cpu": "8080",
+  "_cpu_note": "Intel 8080 (MAME i8080). See core/cpu/8080.js -- ALU/register model, not an interpreter.",
+
+  "screen": { "width": 256, "height": 224, "_note": "mw8080bw.h: HTOTAL 0x140/HBEND 0, VTOTAL 0x106/VBEND 0, VBSTART 0xe0 -> visible 256x224 PRE-rotation. ROT270 (mw8080bw.cpp:3305 GAMEL invaders) -> displayed 224 wide x 256 tall. Exact ROT lives in the manifest." },
+  "refreshHz": 59.541985,
+  "_refresh_note": "MW8080BW_60HZ = PIXEL_CLOCK/HTOTAL/VTOTAL = (19968000/4)/320/262 = 59.541985. NOT exactly 60.",
+  "cpuHz": 1996800,
+  "_cpu_hz_note": "MW8080BW_CPU_CLOCK = MASTER_CLOCK/10 = 19968000/10 = 1996800 (~2MHz 8080).",
+  "cyclesPerFrame": 33536,
+  "_cycles_note": "1996800 / 59.541985 = 33536. ★ confirm the CPU actually retires ~33536 cyc/frame vs MAME.",
+
+  "stateDumpSize": 8192,
+  "stateRegions": [
+    { "name": "main_ram", "base": 8192, "size": 8192, "_hex": "0x2000-0x3FFF work RAM (0x2000-0x23FF) + 1bpp video framebuffer (0x2400-0x3FFF). .mirror(0x4000) aliases at 0x6000-0x7FFF (same bytes, not a separate region)." }
+  ],
+
+  "writeRanges": [],
+  "_writeRanges_note": "No memory-mapped hardware writes -- all devices (shift reg, watchdog, sound) are on the 8080 OUT PORT space (boards/invaders/io.js portOut), not the memory bus. Port writes are the write-diff surface, traced in io.js if needed.",
+
+  "cpuReset": {
+    "A": 0, "F": 0, "B": 0, "C": 0, "D": 0, "E": 0, "H": 0, "L": 0, "SP": 0,
+    "_note": "8080 reset pinned vs MAME i8080: device_start AF=0, device_reset leaves it -> PC=0, regs 0, raw F=0x00. The always-1 flag bit1 is applied only on PUSH PSW, not the working register."
+  },
+
+  "writeTimestamp": "write-bus-cycle",
+
+  "interrupt": {
+    "kind": "rst-two-per-frame",
+    "_note": "★ NOT the single-NMI model the shared tools assume. Two maskable (INTE via EI/DI) RST interrupts per frame; vector computed from the vsync-chain counter (mw8080bw.cpp interrupt_vector = 0xc7 | ((counter&0x40)>>2) | ((~counter&0x40)>>3)).",
+    "mid":    { "vector": 8,  "_hex_vector": "0x08 (RST 1)", "counter": 128, "_vpos_note": "MW8080BW_INT_TRIGGER_COUNT_1 0x80 -> ~mid-screen (~vpos 96)" },
+    "vblank": { "vector": 16, "_hex_vector": "0x10 (RST 2)", "counter": 218, "_vpos_note": "MW8080BW_INT_TRIGGER_COUNT_2 = VCOUNTER_START_VBLANK 0xda -> vblank (vpos 224 = VBSTART 0xe0)" }
+  },
+
+  "landmarks": []
+}

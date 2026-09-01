@@ -231,11 +231,22 @@ def main():
     ap.add_argument("--frontier", action="store_true")
     ap.add_argument("--reset", default="0x0000")
     ap.add_argument("--nmi", default="0x0066")
+    ap.add_argument("--cpu", default="z80", choices=["z80", "8080"],
+                    help="instruction set (default z80; 8080 for Midway/Taito boards)")
     args = ap.parse_args()
+
+    # Additive: the 8080 decoder exposes the same Instr/kind names, so swapping the module the
+    # Graph walks over (z) is all it takes; z80 games are untouched. 8080 seeds are the reset
+    # vector + the two RST interrupt handlers (mid-screen 0x08, vblank 0x10).
+    global z
+    seeds = {int(args.reset, 16), int(args.nmi, 16)}
+    if args.cpu == "8080":
+        import i8080_decode
+        z = i8080_decode
+        seeds = {0x0000, 0x0008, 0x0010}
 
     mem = load_rom(args.game)
     g = Graph(mem)
-    seeds = {int(args.reset, 16), int(args.nmi, 16)}
     g.run(seeds)
 
     covered = covered_from_registry(args.game)

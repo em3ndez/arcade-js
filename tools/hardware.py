@@ -53,11 +53,16 @@ class Hardware:
             (int(r["start"]), int(r["end"]), r["name"]) for r in data["writeRanges"]
         ]
 
-        self.dsw0_addr = int(data["dsw0"]["addr"])
-        self.dsw0_expected = int(data["dsw0"]["expected"])
-        self.control_byte = int(data["controlByte"])
+        # dsw0 / controlByte are Konami memory-mapped-config facts; 8080 boards (port I/O, no
+        # memory-mapped DSW) omit them, so they are optional -- the shared loader serves both CPU families.
+        dsw0 = data.get("dsw0")
+        self.dsw0_addr = int(dsw0["addr"]) if dsw0 else None
+        self.dsw0_expected = int(dsw0["expected"]) if dsw0 else None
+        self.control_byte = int(data["controlByte"]) if "controlByte" in data else None
 
-        self.z80_reset = {k: int(v) for k, v in data["z80Reset"].items() if k != "_hex"}
+        # z80Reset (Z80 boards) or cpuReset (8080); either maps reg name -> value.
+        reset = data.get("z80Reset") or data.get("cpuReset") or {}
+        self.z80_reset = {k: int(v) for k, v in reset.items() if not k.startswith("_")}
         self.write_timestamp = data["writeTimestamp"]
 
         # (name, cycle, provenance) -- matches scope.LANDMARKS' tuple shape exactly.

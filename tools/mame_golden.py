@@ -422,49 +422,65 @@ def main():
             cfg = dict(
                 ln.split("=", 1) for ln in open(cfg_path).read().split() if "=" in ln
             )
-            manifest["dsw0"] = cfg.get("dsw0")
-            dsw0 = int(cfg.get("dsw0", "0"), 16)
-            control = int(cfg.get("control_rom0000", "0"), 16)
-            if control != scope.ROM0000_CONTROL:
-                poison.append(
-                    f"config probe control failed: ROM 0x0000 read "
-                    f"0x{control:02X}, expected 0x{scope.ROM0000_CONTROL:02X} -- probe broken, so "
-                    f"the DSW0 reading below means nothing"
-                )
-                manifest["dsw0_verified"] = False
-            elif dsw0 != scope.DSW0_EXPECTED:
-                poison.append(
-                    f"DSW0 is 0x{dsw0:02X}, contract pins 0x{scope.DSW0_EXPECTED:02X} "
-                    f"-- a dipswitch differs from the pinned machine configuration "
-                    f"(stray cfg?), so this golden is not comparable to any other"
-                )
-                manifest["dsw0_verified"] = False
-            else:
-                manifest["dsw0_verified"] = True
-
-            # Certify the CPU RESET STATE too -- an input like DSW0. Only IX/IY are
-            # observable (ROM overwrites the rest before NMI). See docs/mame-golden.md.
-            regs = {k[4:]: int(v, 16) for k, v in cfg.items() if k.startswith("reg_")}
-            if regs:
-                manifest["z80_reset"] = {k: f"0x{v:04X}" for k, v in regs.items()}
-                bad = {
-                    k: (v, scope.Z80_RESET_STATE[k])
-                    for k, v in regs.items()
-                    if k in scope.Z80_RESET_STATE and v != scope.Z80_RESET_STATE[k]
-                }
-                manifest["z80_reset_verified"] = not bad
-                if bad:
-                    detail = ", ".join(
-                        f"{k}=0x{got:04X} (contract 0x{want:04X})"
-                        for k, (got, want) in sorted(bad.items())
-                    )
+            if hw.control_byte is None:
+                # 8080 boards (Space Invaders): no memory-mapped DSW / control byte. Certify the program
+                # ROM loaded via a distinctive ROM byte the 8080 dumper wrote (0x0003 = 0xC3, the reset
+                # JMP opcode -- unmapped would read 0x00/0xFF), and record the 8080 reset registers.
+                manifest["dsw0_verified"] = None
+                rom0003 = int(cfg.get("rom0003", "0"), 16)
+                manifest["rom_verified"] = rom0003 == 0xC3
+                if rom0003 != 0xC3:
                     poison.append(
-                        f"Z80 reset state differs from the pinned contract: {detail}"
-                        f" -- MAME's initialisation changed, so this golden is not"
-                        f" comparable to any other"
+                        f"config probe: ROM 0x0003 read 0x{rom0003:02X}, expected 0xC3 (reset JMP) "
+                        f"-- the program ROM did not load, so this golden is meaningless"
                     )
+                regs = {k[4:]: v for k, v in cfg.items() if k.startswith("reg_")}
+                if regs:
+                    manifest["cpu_reset"] = regs
             else:
-                manifest["z80_reset_verified"] = False
+                manifest["dsw0"] = cfg.get("dsw0")
+                dsw0 = int(cfg.get("dsw0", "0"), 16)
+                control = int(cfg.get("control_rom0000", "0"), 16)
+                if control != scope.ROM0000_CONTROL:
+                    poison.append(
+                        f"config probe control failed: ROM 0x0000 read "
+                        f"0x{control:02X}, expected 0x{scope.ROM0000_CONTROL:02X} -- probe broken, so "
+                        f"the DSW0 reading below means nothing"
+                    )
+                    manifest["dsw0_verified"] = False
+                elif dsw0 != scope.DSW0_EXPECTED:
+                    poison.append(
+                        f"DSW0 is 0x{dsw0:02X}, contract pins 0x{scope.DSW0_EXPECTED:02X} "
+                        f"-- a dipswitch differs from the pinned machine configuration "
+                        f"(stray cfg?), so this golden is not comparable to any other"
+                    )
+                    manifest["dsw0_verified"] = False
+                else:
+                    manifest["dsw0_verified"] = True
+
+                # Certify the CPU RESET STATE too -- an input like DSW0. Only IX/IY are
+                # observable (ROM overwrites the rest before NMI). See docs/mame-golden.md.
+                regs = {k[4:]: int(v, 16) for k, v in cfg.items() if k.startswith("reg_")}
+                if regs:
+                    manifest["z80_reset"] = {k: f"0x{v:04X}" for k, v in regs.items()}
+                    bad = {
+                        k: (v, scope.Z80_RESET_STATE[k])
+                        for k, v in regs.items()
+                        if k in scope.Z80_RESET_STATE and v != scope.Z80_RESET_STATE[k]
+                    }
+                    manifest["z80_reset_verified"] = not bad
+                    if bad:
+                        detail = ", ".join(
+                            f"{k}=0x{got:04X} (contract 0x{want:04X})"
+                            for k, (got, want) in sorted(bad.items())
+                        )
+                        poison.append(
+                            f"Z80 reset state differs from the pinned contract: {detail}"
+                            f" -- MAME's initialisation changed, so this golden is not"
+                            f" comparable to any other"
+                        )
+                else:
+                    manifest["z80_reset_verified"] = False
 
         with open(os.path.join(args.out, "manifest.json"), "w") as fh:
             json.dump(manifest, fh, indent=1)

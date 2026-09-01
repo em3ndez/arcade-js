@@ -75,6 +75,13 @@ BUILTIN_ENTRIES = [
     (0x0066, "NMI - vblank interrupt handler"),
 ]
 
+# 8080 boards (Space Invaders): reset + the two per-frame RST interrupt vectors. NO 0x0066 (Z80 NMI).
+BUILTIN_ENTRIES_8080 = [
+    (0x0000, "reset vector"),
+    (0x0008, "RST 1 - mid-screen interrupt handler"),
+    (0x0010, "RST 2 - vblank interrupt handler"),
+]
+
 
 # Depth is tracked relative to a routine's entry. These bounds are a runaway
 # guard, not a real Z80 limit -- exceeding them means we are walking garbage.
@@ -692,7 +699,8 @@ def write_listing(tr: Tracer, path: str):
         if a in labels:
             lines.append("")
             lines.append(f"{labels[a]}:")
-        lines.append(f"    {ins.text:<28} ; {a:04x}  {ins.hexdump()}")
+        cyc = f"  [{ins.cyc}T]" if getattr(ins, "cyc", "") else ""
+        lines.append(f"    {ins.text:<28} ; {a:04x}  {ins.hexdump()}{cyc}")
         a = ins.end
 
     with open(path, "w") as f:
@@ -855,12 +863,22 @@ def main():
     ap.add_argument("--entrypoints", default="games/dkong/entrypoints.json")
     ap.add_argument("--selftest", action="store_true",
                     help="prove the dispatch depth accounting can fail, then exit")
+    ap.add_argument("--cpu", default="z80", choices=["z80", "8080"],
+                    help="instruction set to decode (default z80; 8080 for Midway/Taito boards)")
     args = ap.parse_args()
 
     if args.selftest:
         # Deliberately does not open args.rom: the fixture is synthetic and the
         # accounting under test is game-independent.
         sys.exit(_selftest())
+
+    # Select the decoder (additive; default z80 leaves every existing game untouched). The 8080 decoder
+    # returns the same Instr/kind shape, so the Tracer's control-flow logic is unchanged.
+    builtin_entries = BUILTIN_ENTRIES
+    if args.cpu == "8080":
+        import i8080_decode
+        globals()["decode"] = i8080_decode.decode
+        builtin_entries = BUILTIN_ENTRIES_8080
 
     with open(args.rom, "rb") as f:
         mem = f.read()
@@ -870,7 +888,7 @@ def main():
         sys.exit(f"implausible ROM image size {ROM_SIZE} (Z80 address space is 64 KiB)")
 
     tr = Tracer(mem)
-    for addr, why in BUILTIN_ENTRIES:
+    for addr, why in builtin_entries:
         tr.add_entry(addr, why)
 
     # Discovered entry points (jump-table targets etc.) accumulate here so the
