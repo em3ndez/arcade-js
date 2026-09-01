@@ -105,9 +105,12 @@ state. Pointer helpers select the active player's data by the page's low bit:
 
 ## What is not described yet
 
-The 155 routines still running as the frozen translated oracle — the main frame loop, the `pchl` object-state
+The spine still running as the frozen translated oracle — the main frame loop, the `pchl` object-state
 dispatcher and its handlers, the two RST interrupt handlers, collision and scoring, and the attract-mode demo
-— are not covered here; they lift and get described in later batches. A handful of lifted leaves also keep
-`loc_<addr>` names because their role is not yet confident from the code alone (a timer-wrap flag at 0x2083, a
-per-player byte pair at 0x20e7, a small ROM table at 0x1da0, and a few routines whose game-purpose is open);
-these resolve at grounding or when their callers lift.
+— is not covered here; it lifts and gets described in later batches. A second batch of leaf **caller**
+routines has since been lifted into the idiomatic layer (each dissolving its calls to the helpers above into
+direct calls), but those still carry `loc_<addr>` names at `[code]` confidence pending their own understanding
+pass, so they are not narrated yet. A handful of earlier lifted leaves likewise keep `loc_<addr>` names because
+their role is not yet confident from the code alone (a timer-wrap flag at 0x2083, a per-player byte pair at
+0x20e7, a small ROM table at 0x1da0, and a few routines whose game-purpose is open); these resolve at grounding
+or when their callers lift.

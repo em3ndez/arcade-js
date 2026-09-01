@@ -1,0 +1,82 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Memory-equivalence for loc_0550 (ROM 0x0550) -- stash A at loc_207f, then block-copy 0x0b bytes from
+// (DE) into the loc_2073 strip buffer (tail-jump into blockCopy). Live-out is memory only: every caller
+// overwrites A immediately after the call (loc_0476/loc_04b6/loc_050f), so the contract is RAM (-stack).
+// Run: node --test games/invaders/idiomatic/test/equivalence-0550.test.js
+
+import nodeTest from "node:test";
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+
+import { loc_0550 as oracle } from "../../translated/loc_0550.js";
+import { loc_0550 } from "../loc_0550.js";
+import { Machine } from "../../machine.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
+import { STACK_SCRATCH, loc_2073, loc_207f } from "../names.js";
+
+const ROM_DIR = new URL("../../rom/", import.meta.url);
+const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
+const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM_DIR))) : null;
+const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
+
+const TARGET = 0x0550;
+const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
+const ramDiff = (ma, mb) =>
+  firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
+
+function captureDispatches(K, maxFrames) {
+  const caps = [];
+  const snap = new Map([[TARGET, (mm) => { if (caps.length < K) caps.push(mm.clone()); return oracle(mm); }]]);
+  new Machine(ROM, { overrides: snap }).runFrames(maxFrames);
+  return caps;
+}
+const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
+
+test("CAPTURE: real 0x0550 dispatches -- loc_0550 == oracle in RAM (-stack)", () => {
+  for (const cap of CAPS) {
+    const o = cap.clone(), c = cap.clone();
+    o.io.setInte(false); c.io.setInte(false);
+    oracle(o); loc_0550(c);
+    assert.equal(ramDiff(o, c), null);
+  }
+  console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
+});
+
+function seedPattern(m, addr, n) {
+  for (let i = 0; i < n; i++) m.mem.write8(addr + i, (i * 7 + 3) & 0xff);
+}
+
+test("CRAFTED: A stashed at loc_207f and 0x0b bytes copied (DE)->loc_2073", () => {
+  const SRC = 0x2100; // source strip in work RAM, disjoint from loc_2073
+  for (const a of [0x00, 0x01, 0x7f, 0xff, 0xa5]) {
+    const o = new Machine(ROM); const c = new Machine(ROM);
+    seedPattern(o, SRC, 0x0b); seedPattern(c, SRC, 0x0b);
+    o.regs.a = a; o.regs.de = SRC;
+    c.regs.a = a; c.regs.de = SRC;
+    oracle(o); loc_0550(c);
+    assert.equal(ramDiff(o, c), null, `A=0x${a.toString(16)}`);
+    assert.equal(c.mem.read8(loc_207f), a, `A stashed A=0x${a.toString(16)}`);
+    for (let i = 0; i < 0x0b; i++) {
+      assert.equal(c.mem.read8(loc_2073 + i), (i * 7 + 3) & 0xff, `strip[${i}] A=0x${a.toString(16)}`);
+    }
+  }
+});
+
+test("TEETH: a broken twin (copies one byte short) is caught", () => {
+  function loc_0550_broken(m, a = m.regs.a, de = m.regs.de) {
+    m.mem8[loc_207f] = a;
+    blockCopyShort(m, de, loc_2073, 0x0b);
+  }
+  function blockCopyShort(m, de, hl, b) { // BUG: copies b-1 bytes, leaves the last byte stale
+    for (let i = 0; i < b - 1; i++) m.mem8[hl + i] = m.mem8[de + i];
+  }
+  const SRC = 0x2100;
+  const o = new Machine(ROM); const c = new Machine(ROM);
+  seedPattern(o, SRC, 0x0b); seedPattern(c, SRC, 0x0b);
+  o.regs.a = 0xa5; o.regs.de = SRC;
+  c.regs.a = 0xa5; c.regs.de = SRC;
+  oracle(o); loc_0550_broken(c);
+  const d = ramDiff(o, c);
+  assert.notEqual(d, null, "the gate FAILED to catch a short copy");
+  assert.equal(d.addr, (loc_2073 + 0x0a) & 0xffff);
+});
