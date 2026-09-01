@@ -122,6 +122,87 @@ instruction bytes still reconstruct the ROM exactly). Voice: terse, present-tens
 no trailing period, `--` for asides. A worked pilot is the reset routine
 (`seatTheStackAndSettleTheControlLatch`) in Time Pilot's `Code.md`.
 
+## Anti-tamper crash sites — force the DATA ones to data blocks before shipping
+
+Konami ROMs (and their kin) are studded with **anti-tamper crash sites**: a checksum compares a ROM span
+against a sentinel and, on a mismatch, **derails into data** — `jp nz,$XXXX` / `jr nz,$XXXX` into a byte
+table that is *not* code — or reads a checksum block via `LD HL,$X` / `LD DE,$X` then `CP (HL)`. The
+recursive-descent disassembler follows the conditional edge (or the pointer) and **decodes that data as
+instructions.** Those spans must ship as CA **data blocks**, not code, or the listing is simply wrong.
+
+**The generator's DEFB check is necessary but NOT sufficient — do not rely on it alone.** It only catches
+a span whose bytes hit an *undefined* opcode (which emits a `DEFB` the deploy tool chokes on). A derail /
+checksum span whose bytes happen to decode as **valid** opcodes (`DEC C`, `RLCA`, `NOP`, …) slips through
+as plausible-but-wrong code with **no DEFB**. (This is the trap Karl caught on pooyan after the one DEFB
+was fixed — `$0799`/`$07D0` were data-derailed-as-code with valid opcodes.) So **run a crash-site audit for
+every game before shipping:**
+
+1. **Find them.** `gen_ca_contrib.py` fail-closes on a heuristic net — a conditional-branch target that is
+   ALSO loaded as a data pointer — but that net is partial. Also grep the listing yourself for `JP/JR NZ,$`
+   derail targets and checksum readers (`LD HL/DE,$X` + `CP (HL)` / a sum-fold), and cross-check the game's
+   `grounding-debt.txt` (its anti-tamper entries name the derail sources and the clones).
+2. **Classify each.** A **DATA** span (checksum sentinel, derail-crash table, packed data/text/script table)
+   → `FORCE_DATA`. A byte-for-byte **code CLONE** reached only via a tamper `jp nz` (valid code, merely dead
+   on a good ROM), or **dual-use** real code that is *also* checksum-summed → leave as code → `CRASH_SITE_OK`
+   (it emits no DEFB and is correct). Every flagged/found address must land in one list or the other.
+3. **Bound it exactly.** Find where the data ends and real code resumes (check the adjacent named routines'
+   idiomatic files) so a `FORCE_DATA` span does not swallow real code.
+4. **Verify.** Regenerate until the crash-site check passes, then confirm **0 DEFBs**, leak scan clean, the
+   **byte round-trip is 0-mismatch** (the forced bytes are still emitted, now as data), and no named
+   routine got mislabeled as data.
+
+**There is a SECOND class the derail-heuristic does NOT catch: fall-through mis-decodes.** An *ordinary*
+data table (no anti-tamper involved) gets decoded as code when the recursive descent falls through into it,
+or follows a data byte that happens to be a relative jump landing inside the table (a self-referential web
+of fake `loc_` labels). The derail-heuristic misses these — there is no `jp nz`/`ld hl,$X` derail signature,
+just a table decoded as `inc`/`ld r,r`/`jr` garbage. (Karl caught this on pooyan too: the `$2F93` value-ramp
+table, `$3037` region — a descending ramp read via `ld hl,$2F93`.) Two things surface them:
+- **The byte round-trip is a fail-closed gate in `gen_ca_contrib.py` (when the ROM is present).** These
+  tables often leave a one-byte **coverage HOLE** — a byte with no dk.asm line at all (it fell between an
+  instruction and the next block). The round-trip catches every hole, and a hole almost always sits inside a
+  mis-decoded table → `FORCE_DATA` the table. `FORCE_DATA` reads its span bytes straight from the ROM, so it
+  covers holes and instruction-straddling boundaries a dk.asm scrape can't.
+- **A ramp/self-jump-web static scan**: over maximal runs of consecutive `code` instructions, flag any run
+  dominated by trivial 1-byte ops (`inc`/`dec`/`ld r,r`/`ex af`) plus short self-jumps (`jr`/`djnz` landing
+  inside the run) — the descending-ramp / fake-`loc_`-web signature. Run it with a **positive control**
+  (un-exclude a known table, confirm it re-flags) so you trust an empty result.
+
+**There is a THIRD class, and it can BURY a real routine: dispatch / pointer tables.** A jump table (Konami's
+`rst $28` inline tables, or a `jp (hl)` / indexed pointer table) is a run of little-endian ROM addresses. The
+recursive descent sometimes recognizes only PART of one (truncates it) and decodes the rest as code, or
+follows a fake `jp $X` (whose bytes live inside *other* mis-decoded data) into a table. Worse: the mis-decode
+of the table's last entry often **straddles the real routine that starts right after it**, so that entry gets
+NO dk.asm line at all — the real routine is *buried*, and every `call`/`jp` to it becomes a dangling
+`{code.NAME}` (on pooyan this buried the **boot entry** `$0092`). Find these with a **pointer-run scan**
+(maximal runs of consecutive little-endian words that each land on a known `loc_`/routine target, currently
+rendered as code — require *distinct* targets to drop `srl a` / zero-run false positives; positive-control
+it). Then:
+- **Data part → `FORCE_DATA`** (as above).
+- **Buried entry → `FORCE_CODE`** (`FORCE_CODE[game]` at the top of `gen_ca_contrib.py`): it re-decodes the
+  routine straight from the ROM (the same `z80_decode.decode` the tracer uses) at the buried address, emitting
+  synthetic instruction lines under the routine's name label until the decode resyncs with dk.asm's stream.
+  The byte round-trip proves the synthesized bytes are exact.
+- **Dangling-ref gate (fail-closed).** `gen_ca_contrib.py` now fails if any emitted `{code.NAME}` lacks a
+  matching label line. `token_for` emits a cross-ref ONLY when the target actually gets a label; a derail/jump
+  into a routine *interior* (no label there) renders as a raw `$XXXX` instead. This gate catches the whole
+  buried-entry / interior-ref class.
+
+**Completeness limit — say it honestly.** Round-trip proves every *byte* is present and correct; the scans
+catch the *obvious* mis-decoded tables (ramp and pointer). What no static method can see is data that decodes
+into *plausible* code with no tell (a parameter table reading as sensible `ld`/`jp` with no pointer/ramp
+signature). The only definitive code-vs-data oracle is a **MAME instruction-fetch (M1) trace** — addresses
+the CPU never executes are data. That exceeds the bar the shipped dkong/thepit contribs met (they accept the
+recursive-descent over-approximation); do the M1 trace only when the extra rigor is called for. **Root cause:**
+these mis-decodes are trace.py limitations (RST-$28 table sizing, following fake jumps); fixing them there
+would help every future port, but trace.py is shared with finished games — treat that as a separate call.
+
+`FORCE_DATA`, `CRASH_SITE_OK` and `FORCE_CODE` live at the top of `tools/gen_ca_contrib.py`. Examples: Time
+Pilot's misaligned `$459B`/`$49FA` anti-tamper entries; pooyan's `$5119` checksum sentinel, its `$0799`/`$07D0`
+derail-crash tables, its `$2F93` fall-through value-ramp table, and its `$0083`/`$0247`/`$08A8`/`$30ED`/`$339B`
+dispatch/pointer tables (all `FORCE_DATA`); the three routines those tables buried — `$0092` (the boot entry),
+`$0254`, `$08B3` — recovered via `FORCE_CODE`; vs the `$6DF9`/`$7071` code clones and `$0018`/`$020F`
+heuristic false-positives (left as code).
+
 ## Submitting it to Computer Archeology
 
 Opening the pull request is a **human-authorised** step, never automatic — get the user's explicit go

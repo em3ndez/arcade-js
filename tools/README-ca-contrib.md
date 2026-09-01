@@ -55,6 +55,10 @@ site-generator markup and are emitted verbatim.
   assert (every `0xADDR: {` opener must be captured).
 - `out/dk.asm` — the raw reachability-driven disassembly (itself produced by
   `tools/trace.py` from YOUR ROM). Only ever read.
+- `rom/maincpu.bin` — YOUR ROM (ground truth, local/BYO, never committed). Read only to
+  supply the exact bytes of `FORCE_DATA` spans / `FORCE_CODE` re-decodes (robust to dk.asm
+  coverage holes and straddling boundaries) and to verify the byte round-trip. Absent it,
+  the emitter falls back to scraping dk.asm.
 - `manifest.js` — title / CPU / ROM parts for the top matter.
 
 ## Cell descriptions and shared group headers
