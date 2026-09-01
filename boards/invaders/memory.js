@@ -10,8 +10,8 @@
  * Unlike the Konami boards there is NO memory-mapped I/O here: Space Invaders talks to its devices
  * (inputs, mb14241 shift register, watchdog, sound) over the 8080 IN/OUT PORT space (see io.js), a
  * separate address space the CPU reaches with IN n / OUT n -- never through this AddressSpace. So this
- * layer is pure ROM+RAM. ★ THROWS on any unmapped access (dkong/pooyan discipline) -- if grounding shows
- * the ROM reads 0x4000-0x5FFF (MAME's empty .rom() returns 0), relax that one span to return 0.
+ * layer is pure ROM+RAM. The empty 0x4000-0x5FFF ROM span reads 0 and drops writes (.nopw()); addresses
+ * with no map entry (0x8000+, and a write into 0x0000-0x1FFF ROM) THROW (dkong/pooyan discipline).
  */
 
 export const ROM_BASE = 0x0000;
@@ -21,6 +21,12 @@ export const RAM_BASE = 0x2000;
 export const RAM_SIZE = 0x2000; // 8KB: work RAM + video framebuffer
 export const RAM_END = RAM_BASE + RAM_SIZE - 1; // 0x3fff
 export const RAM_MIRROR = 0x4000; // main_ram .mirror(0x4000): 0x6000-0x7fff aliases 0x2000-0x3fff
+
+// main_map @318 map(0x4000,0x5fff).rom().nopw(): empty on the 4x2KB Midway set -> reads 0, writes dropped.
+// GROUNDED -- loc_15d3 sprite shift-decode spills rows past the framebuffer here; a MAME attract
+// write-tap shows the drops at pc 0x15df/0x15e7, addrs 0x4017.. stepping 0x20.
+export const EMPTY_ROM_BASE = 0x4000;
+export const EMPTY_ROM_END = 0x5fff;
 
 // Work RAM (named cells live here): 0x2000-0x23ff below the framebuffer; names_consistency's window.
 export const WORK_RAM_BASE = 0x2000;
@@ -79,6 +85,7 @@ export class AddressSpace {
     if (addr <= ROM_END) return this.rom[addr];
     const ri = ramIndex(addr);
     if (ri >= 0) return this.ram[ri];
+    if (addr >= EMPTY_ROM_BASE && addr <= EMPTY_ROM_END) return 0; // empty ROM region reads 0
     throw new UnmappedAccess("read", addr, this.pc);
   }
 
@@ -91,6 +98,7 @@ export class AddressSpace {
       this.ram[ri] = value;
       return;
     }
+    if (addr >= EMPTY_ROM_BASE && addr <= EMPTY_ROM_END) return; // .nopw() -- writes dropped
     throw new UnmappedAccess("write", addr, this.pc);
   }
 

@@ -86,12 +86,16 @@ test("state dump is the whole 8KB main_ram; offset<->addr is inverse at both end
   assert.equal(m.dumpState()[0x2400 - RAM_BASE], 0x7e, "dump reflects a written cell");
 });
 
-test("unmapped access throws loudly (board throws where main_map leaves empty/absent)", () => {
-  // 0x4000-0x5fff is main_map @318 .rom().nopw() but EMPTY on the Midway 4x2KB set and never read by
-  // the 8KB program; the board treats it (and everything past RAM) as unmapped -> THROW (dkong/pooyan
-  // discipline: catch a decompiler stray access instead of silently returning 0).
+test("empty ROM region 0x4000-0x5fff reads 0 and drops writes (.nopw); absent addrs still throw", () => {
+  // main_map @318 map(0x4000,0x5fff).rom().nopw(): empty on the Midway 4x2KB set. GROUNDED -- loc_15d3's
+  // sprite shift-decode steps HL past the framebuffer top into this span (a MAME attract write-tap shows
+  // dropped writes at pc 0x15df/0x15e7 to 0x4017.. stepping 0x20), so the board must MATCH the
+  // hardware: read 0, drop the write. Addresses with no map entry (0x8000+) still THROW.
   const m = space();
-  assert.throws(() => m.read8(0x4000), UnmappedAccess, "0x4000 empty ROM region -> throw");
+  assert.equal(m.read8(0x4000), 0, "0x4000 empty ROM region reads 0");
+  assert.equal(m.read8(0x5fff), 0, "0x5fff empty ROM region reads 0");
+  assert.doesNotThrow(() => m.write8(0x4017, 0xff), "write into 0x4000-0x5fff is a no-op, not a fault");
+  assert.equal(m.read8(0x4017), 0, "the dropped write left nothing behind");
   assert.throws(() => m.read8(0x8000), UnmappedAccess, "0x8000 above the map -> throw");
   assert.throws(() => m.write8(0x8000, 0x00), UnmappedAccess);
 });
