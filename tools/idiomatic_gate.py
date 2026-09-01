@@ -179,7 +179,7 @@ def all_games():
 # reachable (translated `_registry.generated.js`, graph-closed) - overridden (idiomatic ROUTINES) -
 # boundary = the still-frozen routines, counted alongside CPU cruft so the total can't reach 0 while
 # anything reachable is oracle-served. Only ENROLLED games are counted; legacy opts in when worked.
-CLOSURE_GAMES = {"frogger", "pooyan"}
+CLOSURE_GAMES = {"frogger", "pooyan", "invaders"}
 BOUNDARY_FILE = "tools/idiomatic-boundaries.txt"
 REG_ENTRY = re.compile(r"^\s*\[\s*0x([0-9a-fA-F]+)\s*,")     # _registry.generated.js address->fn rows
 ROUTINE_KEY = re.compile(r"^\s*0x([0-9a-fA-F]+)\s*:\s*\{")   # names.js ROUTINES map keys

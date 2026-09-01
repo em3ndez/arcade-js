@@ -83,3 +83,4 @@ pooyan 0x8d45  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8d77  # role unknown; promote to a descriptive name at grounding
 pooyan 0x8819  # role unknown (cleared at attract sub-state-0 / play state-0 entry; no reader observed); promote at grounding
 pooyan 0x8dfd  # write-anim work cell (0x7e94 cluster); promote to a descriptive name at grounding
+invaders 0x20c1
