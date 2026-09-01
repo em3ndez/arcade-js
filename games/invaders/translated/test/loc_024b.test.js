@@ -2,9 +2,9 @@
 //
 // Equivalence test for loc_024b (ROM 0x024b-0x028b): the 16-byte-record table walker. Covers the
 // four data-dependent arms -- 0xfe skip + 0xff terminator (ret), the 0x0277/0x027d B-edit arm, the
-// 0x0288 dcr-m arm, and the 0x026e pchl dispatch (rule-10 gap: asserted to throw). CALLER_RET is
-// seated so the terminating `rz` pops a known address. The routine issues no CALLs, so the mock's
-// `call` stays record-only.
+// 0x0288 dcr-m arm, and the 0x026e pchl dispatch (m.call the record's [+3]/[+4] target, then the
+// 0x026f advance-and-loop continuation). CALLER_RET is seated so the terminating `rz` pops a known
+// address; the dispatch cases use a smart mock whose `call` models the handler's pop-h + ret.
 //
 // Run: node --test games/invaders/translated/test/loc_024b.test.js
 
@@ -113,15 +113,40 @@ test("loc_024b dcr-m arm: field zero, gate byte nonzero -> 0x0288 decrements gat
   assert.deepEqual(m.calls, []);
 });
 
-test("loc_024b pchl dispatch: field zero + gate zero -> throws the rule-10 gap", () => {
+test("loc_024b pchl dispatch: field zero + gate zero -> m.call the record's [+3]/[+4] target, then loop", () => {
   const m = makeMachine();
+  // Smart mock: a dispatched handler pops the record pointer (its `pop h`, the push-d frame) and rets
+  // (popping the 0x026f continuation), so the guest stack matches the real machine and the inline
+  // continuation's own `pop h` recovers the outer record pointer.
+  m.call = (addr) => { m.calls.push(addr); if (addr === 0x1234) { m.pop16(); m.pop16(); } };
   seatCaller(m);
   m.regs.hl = 0x2010;
   m.mem.write8(0x2010, 0x00); // A field zero
-  m.mem.write8(0x2011, 0x00); // B field zero
+  m.mem.write8(0x2011, 0x00); // B field zero -> (B|A)==0
   m.mem.write8(0x2012, 0x00); // gate byte zero -> reach the 0x026e pchl
-  m.mem.write8(0x2013, 0x34); // dispatch address low
-  m.mem.write8(0x2014, 0x12); // dispatch address high
+  m.mem.write8(0x2013, 0x34); // dispatch target low
+  m.mem.write8(0x2014, 0x12); // dispatch target high -> 0x1234
+  m.mem.write8(0x2020, 0xff); // next record terminates the walk
 
-  assert.throws(() => loc_024b(m), /pchl @ 0x026e/, "computed jump is an un-lifted gap");
+  loc_024b(m);
+
+  assert.deepEqual(m.calls, [0x1234], "dispatches to the 16-bit target read from record[+3]/[+4]");
+  assert.equal(m.regs.hl, 0x2020, "continuation advanced HL by 0x10 (record+4 + 0x0c) to the next record");
+  assert.equal(m.pc, CALLER_RET, "rz on the 0xff record returns to the caller");
+  assert.equal(m.regs.sp, 0x2400, "stack balanced: dispatch dance + handler pops + continuation pop net zero");
+});
+
+test("loc_024b pchl target MUTATION: reading the wrong record byte dispatches the wrong address", () => {
+  const m = makeMachine();
+  m.call = (addr) => { m.calls.push(addr); m.pop16(); m.pop16(); };
+  seatCaller(m);
+  m.regs.hl = 0x2010;
+  m.mem.write8(0x2010, 0x00); m.mem.write8(0x2011, 0x00); m.mem.write8(0x2012, 0x00);
+  m.mem.write8(0x2013, 0x34); m.mem.write8(0x2014, 0x12);
+  m.mem.write8(0x2020, 0xff);
+  // corrupt the high byte the routine must read (record+4): a wrong offset would not see this
+  m.mem.write8(0x2014, 0x99);
+  loc_024b(m);
+  assert.deepEqual(m.calls, [0x9934], "target high byte comes from record[+4]");
+  assert.notDeepEqual(m.calls, [0x1234], "a wrong read would not track record[+4]");
 });
