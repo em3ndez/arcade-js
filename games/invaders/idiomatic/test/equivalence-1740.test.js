@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1740 (ROM 0x1740) -- the per-frame shot-sound step. Ticks the loc_209b
+// Memory-equivalence for stepFleetMarchSound (ROM 0x1740) -- the per-frame shot-sound step. Ticks the FLEET_SOUND_OFF_TIMER
 // burst timer (calling the sound-off helper loc_176d at zero), bails unless loc_2068 is set, ticks
-// loc_2096, emits SOUND_PORT5_SHADOW to port 5, and when ALIEN_COUNT is set re-seeds loc_2096 from
-// loc_2097 and reloads loc_209b=4. A and flags are dead (loc_0072 reloads A on fall-through), so the
+// FLEET_SOUND_TIMER, emits SOUND_PORT5_SHADOW to port 5, and when ALIEN_COUNT is set re-seeds FLEET_SOUND_TIMER from
+// FLEET_SOUND_PERIOD and reloads FLEET_SOUND_OFF_TIMER=4. A and flags are dead (loc_0072 reloads A on fall-through), so the
 // live-out is memory + the port-5 writes. loc_176d is a dissolved direct call. The oracle's `cz` pushes
 // a return word into stack scratch; that residue is excluded (STACK_SCRATCH / entry-SP relative).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1740.test.js
@@ -12,10 +12,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1740 as oracle } from "../../translated/loc_1740.js";
-import { loc_1740 } from "../loc_1740.js";
+import { stepFleetMarchSound } from "../stepFleetMarchSound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_209b, loc_2068, loc_2096, loc_2097, loc_2095, SOUND_PORT5_SHADOW, ALIEN_COUNT } from "../names.js";
+import { STACK_SCRATCH, FLEET_SOUND_OFF_TIMER, loc_2068, FLEET_SOUND_TIMER, FLEET_SOUND_PERIOD, FLEET_SOUND_STEP, SOUND_PORT5_SHADOW, ALIEN_COUNT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -27,7 +27,7 @@ const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRAT
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
-// The port writes a routine performs (loc_1740's real sound live-out).
+// The port writes a routine performs (stepFleetMarchSound's real sound live-out).
 function portWritesOf(mm, fn) {
   const writes = [];
   const io = mm.io;
@@ -45,7 +45,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1740 dispatches -- loc_1740 == oracle in RAM (-stack) and port writes", () => {
+test("CAPTURE: real 0x1740 dispatches -- stepFleetMarchSound == oracle in RAM (-stack) and port writes", () => {
   for (const cap of CAPS) {
     // The oracle's `cz` push residue sits just below the ENTRY SP; exclude relative to that SP.
     const sp = cap.regs.sp;
@@ -54,7 +54,7 @@ test("CAPTURE: real 0x1740 dispatches -- loc_1740 == oracle in RAM (-stack) and 
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
     const wo = portWritesOf(o, oracle);
-    const wc = portWritesOf(c, loc_1740);
+    const wc = portWritesOf(c, stepFleetMarchSound);
     assert.deepEqual(wc, wo, "port writes match the oracle");
     assert.equal(capDiff(o, c), null);
   }
@@ -73,48 +73,48 @@ test("CRAFTED: each arm matches the oracle in RAM and port writes", () => {
   for (const s of cases) {
     const seed = (m) => {
       m.regs.sp = 0x2400;
-      m.mem.write8(loc_209b, s.b209b); m.mem.write8(loc_2068, s.b2068); m.mem.write8(loc_2096, s.b2096);
-      m.mem.write8(ALIEN_COUNT, s.b2082); m.mem.write8(loc_2097, s.b2097); m.mem.write8(SOUND_PORT5_SHADOW, s.b2098);
+      m.mem.write8(FLEET_SOUND_OFF_TIMER, s.b209b); m.mem.write8(loc_2068, s.b2068); m.mem.write8(FLEET_SOUND_TIMER, s.b2096);
+      m.mem.write8(ALIEN_COUNT, s.b2082); m.mem.write8(FLEET_SOUND_PERIOD, s.b2097); m.mem.write8(SOUND_PORT5_SHADOW, s.b2098);
     };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
     const wo = portWritesOf(o, oracle);
-    const wc = portWritesOf(c, loc_1740);
+    const wc = portWritesOf(c, stepFleetMarchSound);
     const tag = `209b=0x${s.b209b.toString(16)} 2068=0x${s.b2068.toString(16)} 2096=0x${s.b2096.toString(16)} 2082=0x${s.b2082.toString(16)}`;
     assert.deepEqual(wc, wo, `port writes ${tag}`);
     assert.equal(ramDiff(o, c), null, tag);
   }
-  // The full-path arm must have reseeded loc_2096 from loc_2097 and reloaded loc_209b.
+  // The full-path arm must have reseeded FLEET_SOUND_TIMER from FLEET_SOUND_PERIOD and reloaded FLEET_SOUND_OFF_TIMER.
   const seed = (m) => {
     m.regs.sp = 0x2400;
-    m.mem.write8(loc_209b, 0x02); m.mem.write8(loc_2068, 0x01); m.mem.write8(loc_2096, 0x01);
-    m.mem.write8(ALIEN_COUNT, 0x01); m.mem.write8(loc_2097, 0x55); m.mem.write8(SOUND_PORT5_SHADOW, 0x33);
+    m.mem.write8(FLEET_SOUND_OFF_TIMER, 0x02); m.mem.write8(loc_2068, 0x01); m.mem.write8(FLEET_SOUND_TIMER, 0x01);
+    m.mem.write8(ALIEN_COUNT, 0x01); m.mem.write8(FLEET_SOUND_PERIOD, 0x55); m.mem.write8(SOUND_PORT5_SHADOW, 0x33);
   };
   const c = new Machine(ROM); seed(c);
-  loc_1740(c);
-  assert.equal(c.mem.read8(loc_2096), 0x55, "loc_2096 reseeded from loc_2097");
-  assert.equal(c.mem.read8(loc_2095), 0x01, "loc_2095 armed");
-  assert.equal(c.mem.read8(loc_209b), 0x04, "loc_209b reloaded");
+  stepFleetMarchSound(c);
+  assert.equal(c.mem.read8(FLEET_SOUND_TIMER), 0x55, "FLEET_SOUND_TIMER reseeded from FLEET_SOUND_PERIOD");
+  assert.equal(c.mem.read8(FLEET_SOUND_STEP), 0x01, "FLEET_SOUND_STEP armed");
+  assert.equal(c.mem.read8(FLEET_SOUND_OFF_TIMER), 0x04, "FLEET_SOUND_OFF_TIMER reloaded");
 });
 
 test("TEETH: a broken twin that reloads the wrong burst count diverges in RAM", () => {
-  // Full-strength mutant: reloads loc_209b with 0x05 instead of 0x04 on the reseed path.
+  // Full-strength mutant: reloads FLEET_SOUND_OFF_TIMER with 0x05 instead of 0x04 on the reseed path.
   function loc_1740_broken(m) {
-    m.mem8[loc_209b] = m.mem8[loc_209b] - 1;
-    if (m.mem8[loc_209b] === 0) { /* cz elided by construction is fine; the full-path seed skips it */ }
+    m.mem8[FLEET_SOUND_OFF_TIMER] = m.mem8[FLEET_SOUND_OFF_TIMER] - 1;
+    if (m.mem8[FLEET_SOUND_OFF_TIMER] === 0) { /* cz elided by construction is fine; the full-path seed skips it */ }
     if (m.mem8[loc_2068] === 0) return;
-    m.mem8[loc_2096] = m.mem8[loc_2096] - 1;
-    if (m.mem8[loc_2096] !== 0) return;
+    m.mem8[FLEET_SOUND_TIMER] = m.mem8[FLEET_SOUND_TIMER] - 1;
+    if (m.mem8[FLEET_SOUND_TIMER] !== 0) return;
     m.io.portOut(0x05, m.mem8[SOUND_PORT5_SHADOW]);
     if (m.mem8[ALIEN_COUNT] === 0) return;
-    m.mem8[loc_2096] = m.mem8[loc_2097];
-    m.mem8[loc_2095] = 0x01;
-    m.mem8[loc_209b] = 0x05; // BUG: should reload 0x04
+    m.mem8[FLEET_SOUND_TIMER] = m.mem8[FLEET_SOUND_PERIOD];
+    m.mem8[FLEET_SOUND_STEP] = 0x01;
+    m.mem8[FLEET_SOUND_OFF_TIMER] = 0x05; // BUG: should reload 0x04
   }
   const seed = (m) => {
     m.regs.sp = 0x2400;
-    m.mem.write8(loc_209b, 0x02); m.mem.write8(loc_2068, 0x01); m.mem.write8(loc_2096, 0x01);
-    m.mem.write8(ALIEN_COUNT, 0x01); m.mem.write8(loc_2097, 0x55); m.mem.write8(SOUND_PORT5_SHADOW, 0x33);
+    m.mem.write8(FLEET_SOUND_OFF_TIMER, 0x02); m.mem.write8(loc_2068, 0x01); m.mem.write8(FLEET_SOUND_TIMER, 0x01);
+    m.mem.write8(ALIEN_COUNT, 0x01); m.mem.write8(FLEET_SOUND_PERIOD, 0x55); m.mem.write8(SOUND_PORT5_SHADOW, 0x33);
   };
   const o = new Machine(ROM); seed(o);
   const c = new Machine(ROM); seed(c);
@@ -122,5 +122,5 @@ test("TEETH: a broken twin that reloads the wrong burst count diverges in RAM", 
   loc_1740_broken(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong burst reload");
-  assert.equal(d.addr, loc_209b & 0xffff);
+  assert.equal(d.addr, FLEET_SOUND_OFF_TIMER & 0xffff);
 });

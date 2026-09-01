@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_172c (ROM 0x172c) -- mode-gated sound step. Reads loc_2025: nonzero ->
+// Memory-equivalence for loc_172c (ROM 0x172c) -- mode-gated sound step. Reads PLAYER_SHOT_STATUS: nonzero ->
 // startSound(B=0x02) (OR the sound bit into SOUND_PORT3_SHADOW), zero -> loc_19dc(B=0xfd) (mask the
 // shot bit off). Both callees are dissolved direct calls. Live-out: memory (SOUND_PORT3_SHADOW) + A.
 // Run: node --test games/invaders/idiomatic/test/equivalence-172c.test.js
@@ -12,7 +12,7 @@ import { loc_172c as oracle } from "../../translated/loc_172c.js";
 import { loc_172c } from "../loc_172c.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2025, SOUND_PORT3_SHADOW } from "../names.js";
+import { STACK_SCRATCH, PLAYER_SHOT_STATUS, SOUND_PORT3_SHADOW } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -54,7 +54,7 @@ test("CRAFTED: mode nonzero raises the sound bit, zero masks the shot bit", () =
     { mode: 0x00, shadow: 0xa7 },
   ];
   for (const { mode, shadow } of cases) {
-    const seed = (m) => { m.regs.sp = 0x2400; m.mem.write8(loc_2025, mode); m.mem.write8(SOUND_PORT3_SHADOW, shadow); };
+    const seed = (m) => { m.regs.sp = 0x2400; m.mem.write8(PLAYER_SHOT_STATUS, mode); m.mem.write8(SOUND_PORT3_SHADOW, shadow); };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
     oracle(o); loc_172c(c);
@@ -69,10 +69,10 @@ test("CRAFTED: mode nonzero raises the sound bit, zero masks the shot bit", () =
 test("TEETH: a broken twin that swaps the branch masks diverges in RAM", () => {
   // Full-strength mutant: takes the wrong callee on each branch.
   function loc_172c_broken(m) {
-    if (m.mem8[loc_2025] !== 0) { const v = m.mem.read8(SOUND_PORT3_SHADOW) & 0xfd; m.mem.write8(SOUND_PORT3_SHADOW, v); return (m.regs.a = v); }
+    if (m.mem8[PLAYER_SHOT_STATUS] !== 0) { const v = m.mem.read8(SOUND_PORT3_SHADOW) & 0xfd; m.mem.write8(SOUND_PORT3_SHADOW, v); return (m.regs.a = v); }
     const v = m.mem.read8(SOUND_PORT3_SHADOW) | 0x02; m.mem.write8(SOUND_PORT3_SHADOW, v); return (m.regs.a = v);
   }
-  const seed = (m) => { m.regs.sp = 0x2400; m.mem.write8(loc_2025, 0x01); m.mem.write8(SOUND_PORT3_SHADOW, 0x00); };
+  const seed = (m) => { m.regs.sp = 0x2400; m.mem.write8(PLAYER_SHOT_STATUS, 0x01); m.mem.write8(SOUND_PORT3_SHADOW, 0x00); };
   const o = new Machine(ROM); seed(o);
   const c = new Machine(ROM); seed(c);
   oracle(o);

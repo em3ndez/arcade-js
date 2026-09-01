@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_08ff (ROM 0x08ff) -- resolve sprite index A to its 8-byte source at
+// Memory-equivalence for drawSprite8x8 (ROM 0x08ff) -- resolve sprite index A to its 8-byte source at
 // 0x1e00+8*A, latch the shift count to port 6, then tail-blit 8 columns (dissolved into drawSpriteColumn).
 // Inputs A (sprite id), HL (destination). Live-out: the blitted cells (RAM) AND HL (advanced by 0x20*8).
 // The oracle push/pops HL through the stack scratch below the entry SP; the module drops the save/restore,
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_08ff as oracle } from "../../translated/loc_08ff.js";
-import { loc_08ff } from "../loc_08ff.js";
+import { drawSprite8x8 } from "../drawSprite8x8.js";
 import { drawSpriteColumn } from "../drawSpriteColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -36,14 +36,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x08ff dispatches -- loc_08ff == oracle in RAM (-stack) and HL", () => {
+test("CAPTURE: real 0x08ff dispatches -- drawSprite8x8 == oracle in RAM (-stack) and HL", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp; // the oracle's push-h residue sits just below the entry SP
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_08ff(c);
+    oracle(o); drawSprite8x8(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -60,7 +60,7 @@ test("CRAFTED: sprite A blits down 8 columns from 0x1e00+8*A; HL advances by 0x1
   for (const { a, hl } of cases) {
     const o = new Machine(ROM); o.regs.sp = 0x2400; o.regs.a = a; o.regs.hl = hl;
     const c = new Machine(ROM); c.regs.sp = 0x2400; c.regs.a = a; c.regs.hl = hl;
-    oracle(o); loc_08ff(c);
+    oracle(o); drawSprite8x8(c);
     const tag = `A=0x${a.toString(16)} HL=0x${hl.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, o.regs.hl, `HL matches oracle: ${tag}`);

@@ -13,7 +13,7 @@ import { loc_0913 as oracle } from "../../translated/loc_0913.js";
 import { loc_0913 } from "../loc_0913.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2009, loc_2091, loc_2083, TIMER_RELOAD } from "../names.js";
+import { STACK_SCRATCH, loc_2009, SAUCER_TIMER, loc_2083, TIMER_RELOAD } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -53,24 +53,24 @@ const CRAFTED = [
 
 test("CRAFTED: each arm matches the oracle in RAM and hits the expected cells", () => {
   for (const s of CRAFTED) {
-    const seed = (m) => { m.mem.write8(loc_2009, s.gate); m.mem.write16(loc_2091, s.counter); m.mem.write8(loc_2083, s.flag0); };
+    const seed = (m) => { m.mem.write8(loc_2009, s.gate); m.mem.write16(SAUCER_TIMER, s.counter); m.mem.write8(loc_2083, s.flag0); };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
     oracle(o); loc_0913(c);
     const label = `gate=0x${s.gate.toString(16)} counter=0x${s.counter.toString(16)}`;
     assert.equal(ramDiff(o, c), null, label);
-    assert.equal(c.mem.read16(loc_2091), s.wantCounter, `counter ${label}`);
+    assert.equal(c.mem.read16(SAUCER_TIMER), s.wantCounter, `counter ${label}`);
     assert.equal(c.mem.read8(loc_2083), s.wantFlag, `flag ${label}`);
   }
 });
 
 test("TEETH: a wrong stored counter is caught", () => {
-  const seed = (m) => { m.mem.write8(loc_2009, 0x40); m.mem.write16(loc_2091, 0x0000); m.mem.write8(loc_2083, 0x00); };
+  const seed = (m) => { m.mem.write8(loc_2009, 0x40); m.mem.write16(SAUCER_TIMER, 0x0000); m.mem.write8(loc_2083, 0x00); };
   const o = new Machine(ROM); seed(o);
   const c = new Machine(ROM); seed(c);
   oracle(o);
-  loc_0913(c); c.mem.write16(loc_2091, 0x1234); // BUG: wrong stored counter
+  loc_0913(c); c.mem.write16(SAUCER_TIMER, 0x1234); // BUG: wrong stored counter
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stored counter");
-  assert.equal(d.addr, loc_2091 & 0xffff);
+  assert.equal(d.addr, SAUCER_TIMER & 0xffff);
 });

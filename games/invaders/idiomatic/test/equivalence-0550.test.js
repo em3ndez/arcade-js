@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0550 (ROM 0x0550) -- stash A at loc_207f, then block-copy 0x0b bytes from
+// Memory-equivalence for copyRecordToWorkBuffer (ROM 0x0550) -- stash A at loc_207f, then block-copy 0x0b bytes from
 // (DE) into the loc_2073 strip buffer (tail-jump into blockCopy). Live-out is memory only: every caller
 // overwrites A immediately after the call (loc_0476/loc_04b6/loc_050f), so the contract is RAM (-stack).
 // Run: node --test games/invaders/idiomatic/test/equivalence-0550.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0550 as oracle } from "../../translated/loc_0550.js";
-import { loc_0550 } from "../loc_0550.js";
+import { copyRecordToWorkBuffer } from "../copyRecordToWorkBuffer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_2073, loc_207f } from "../names.js";
@@ -32,11 +32,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0550 dispatches -- loc_0550 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0550 dispatches -- copyRecordToWorkBuffer == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0550(c);
+    oracle(o); copyRecordToWorkBuffer(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -53,7 +53,7 @@ test("CRAFTED: A stashed at loc_207f and 0x0b bytes copied (DE)->loc_2073", () =
     seedPattern(o, SRC, 0x0b); seedPattern(c, SRC, 0x0b);
     o.regs.a = a; o.regs.de = SRC;
     c.regs.a = a; c.regs.de = SRC;
-    oracle(o); loc_0550(c);
+    oracle(o); copyRecordToWorkBuffer(c);
     assert.equal(ramDiff(o, c), null, `A=0x${a.toString(16)}`);
     assert.equal(c.mem.read8(loc_207f), a, `A stashed A=0x${a.toString(16)}`);
     for (let i = 0; i < 0x0b; i++) {

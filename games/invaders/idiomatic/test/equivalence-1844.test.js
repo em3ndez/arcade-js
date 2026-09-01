@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1844 -- preserve BC, force a 0x10 row count, and delegate a sprite-column
+// Memory-equivalence for drawSpriteColumn16 -- preserve BC, force a 0x10 row count, and delegate a sprite-column
 // draw (dissolved into drawSpriteColumn). Live-out: the drawn column RAM PLUS the advanced HL; BC is
 // left untouched. DE/A/flags the delegate leaves stale are DEAD -- the script walker re-derives them via
 // loc_1856 before any read -- so only RAM (minus STACK_SCRATCH), HL, and the preserved BC are asserted.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1844 as oracle } from "../../translated/loc_1844.js";
-import { loc_1844 } from "../loc_1844.js";
+import { drawSpriteColumn16 } from "../drawSpriteColumn16.js";
 import { drawSpriteColumn } from "../drawSpriteColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -35,16 +35,16 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1844 dispatches -- loc_1844 == oracle in RAM (-stack), HL and BC", () => {
+test("CAPTURE: real 0x1844 dispatches -- drawSpriteColumn16 == oracle in RAM (-stack), HL and BC", () => {
   for (const cap of CAPS) {
     // The oracle's `push b` + `call 0x1439` residue sits just below the ENTRY SP, which in real
-    // dispatches is not the STACK_SCRATCH window -- exclude it relative to that SP (as loc_1740 does).
+    // dispatches is not the STACK_SCRATCH window -- exclude it relative to that SP (as stepFleetMarchSound does).
     const sp = cap.regs.sp;
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1844(c);
+    oracle(o); drawSpriteColumn16(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
     assert.equal(c.regs.bc, o.regs.bc, "BC is preserved like the oracle");
@@ -68,7 +68,7 @@ test("CRAFTED: 16 rows copied down the column; HL += 0x200, BC preserved", () =>
   };
   const o = new Machine(ROM); seat(o, CASE);
   const c = new Machine(ROM); seat(c, CASE);
-  oracle(o); loc_1844(c);
+  oracle(o); drawSpriteColumn16(c);
 
   assert.equal(ramDiff(o, c), null, "oracle and module leave identical RAM (-stack)");
   for (let i = 0; i < 0x10; i++) {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_15f3 (ROM 0x15f3) -- count non-zero cells across the active player's 0x37-byte
-// alien field into ALIEN_COUNT, and set loc_206b when the count is exactly 1. Live-out is memory only.
+// Memory-equivalence for countLiveAliens (ROM 0x15f3) -- count non-zero cells across the active player's 0x37-byte
+// alien field into ALIEN_COUNT, and set LAST_ALIEN_FLAG when the count is exactly 1. Live-out is memory only.
 // Run: node --test games/invaders/idiomatic/test/equivalence-15f3.test.js
 
 import nodeTest from "node:test";
@@ -8,11 +8,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_15f3 as oracle } from "../../translated/loc_15f3.js";
-import { loc_15f3 } from "../loc_15f3.js";
+import { countLiveAliens } from "../countLiveAliens.js";
 import { activePlayerPageBase } from "../activePlayerPageBase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE, ALIEN_COUNT, loc_206b } from "../names.js";
+import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE, ALIEN_COUNT, LAST_ALIEN_FLAG } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -30,7 +30,7 @@ function brokenLoc_15f3(m) {
   let count = 0;
   for (let i = 0; i < 0x37; i++) if (m.mem8[base + i] === 0) count++; // BUG
   m.mem8[ALIEN_COUNT] = count;
-  if (count === 1) m.mem8[loc_206b] = 0x01;
+  if (count === 1) m.mem8[LAST_ALIEN_FLAG] = 0x01;
 }
 
 function seedField(mm, pageHi, cells) {
@@ -49,17 +49,17 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x15f3 dispatches -- loc_15f3 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x15f3 dispatches -- countLiveAliens == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_15f3(c);
+    oracle(o); countLiveAliens(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: ALIEN_COUNT = number of live cells; loc_206b set only at exactly one survivor", () => {
+test("CRAFTED: ALIEN_COUNT = number of live cells; LAST_ALIEN_FLAG set only at exactly one survivor", () => {
   const cases = [
     { name: "empty", cells: [], count: 0 },
     { name: "one survivor", cells: (() => { const a = new Array(0x37).fill(0); a[10] = 0x42; return a; })(), count: 1 },
@@ -69,10 +69,10 @@ test("CRAFTED: ALIEN_COUNT = number of live cells; loc_206b set only at exactly 
   for (const { name, cells, count } of cases) {
     const o = seedField(new Machine(ROM), 0x21, cells);
     const c = seedField(new Machine(ROM), 0x21, cells);
-    oracle(o); loc_15f3(c);
+    oracle(o); countLiveAliens(c);
     assert.equal(ramDiff(o, c), null, name);
     assert.equal(c.mem.read8(ALIEN_COUNT), count, `count ${name}`);
-    assert.equal(c.mem.read8(loc_206b), count === 1 ? 0x01 : 0x00, `lone-survivor flag ${name}`);
+    assert.equal(c.mem.read8(LAST_ALIEN_FLAG), count === 1 ? 0x01 : 0x00, `lone-survivor flag ${name}`);
   }
 });
 

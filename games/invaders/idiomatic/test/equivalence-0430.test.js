@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_0430 (ROM 0x0430) -- seat the object move-record base and read its 5-byte
+// Equivalence for loadPlayerShotDescriptor (ROM 0x0430) -- seat the object move-record base and read its 5-byte
 // sprite descriptor. Writes NO memory, so RAM is a vacuous contract; the live-out is REGISTERS
 // (HL/DE/A/C/B, consumed by loc_03bb's arms). The oracle tail-dispatches through the seam, which
 // perturbs SP/PC, so we compare only the data-register outputs, not firstRegDiff.
@@ -10,11 +10,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0430 as oracle } from "../../translated/loc_0430.js";
-import { loc_0430 } from "../loc_0430.js";
+import { loadPlayerShotDescriptor } from "../loadPlayerShotDescriptor.js";
 import { loadSpriteDescriptor } from "../loadSpriteDescriptor.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2027 } from "../names.js";
+import { STACK_SCRATCH, PLAYER_SHOT_DESC } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -41,24 +41,24 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0430 dispatches -- loc_0430 == oracle in RAM + live-out registers", () => {
+test("CAPTURE: real 0x0430 dispatches -- loadPlayerShotDescriptor == oracle in RAM + live-out registers", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0430(c);
+    oracle(o); loadPlayerShotDescriptor(c);
     assert.equal(ramDiff(o, c), null);          // neither side touches RAM
     assert.equal(regOutDiff(o, c), null);       // the real contract: HL/DE/A/C/B
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-// Write the 5-byte descriptor at the FIXED base loc_0430 seats (0x2027), run oracle vs module.
+// Write the 5-byte descriptor at the FIXED base loadPlayerShotDescriptor seats (0x2027), run oracle vs module.
 function seedDescriptor(m, bytes) {
   m.io.setInte(false);
-  for (let i = 0; i < bytes.length; i++) m.mem.write8(loc_2027 + i, bytes[i]);
+  for (let i = 0; i < bytes.length; i++) m.mem.write8(PLAYER_SHOT_DESC + i, bytes[i]);
 }
 
-test("CRAFTED: descriptor at loc_2027 -> DE/A/C/B and HL=C:A for several inputs", () => {
+test("CRAFTED: descriptor at PLAYER_SHOT_DESC -> DE/A/C/B and HL=C:A for several inputs", () => {
   for (const bytes of [
     [0x00, 0x00, 0x00, 0x00, 0x00],
     [0x11, 0x22, 0x33, 0x44, 0x55],
@@ -67,7 +67,7 @@ test("CRAFTED: descriptor at loc_2027 -> DE/A/C/B and HL=C:A for several inputs"
   ]) {
     const o = new Machine(ROM); const c = new Machine(ROM);
     seedDescriptor(o, bytes); seedDescriptor(c, bytes);
-    oracle(o); loc_0430(c);
+    oracle(o); loadPlayerShotDescriptor(c);
     assert.equal(ramDiff(o, c), null, `bytes=${bytes}`);
     assert.equal(regOutDiff(o, c), null, `bytes=${bytes}`);
     // The expected register image, computed from the descriptor bytes [e,d,a,c,b].
@@ -80,9 +80,9 @@ test("CRAFTED: descriptor at loc_2027 -> DE/A/C/B and HL=C:A for several inputs"
 });
 
 test("TEETH: a broken twin that reads the descriptor one byte off is caught", () => {
-  // Mutate loc_0430's OWN logic -- the base it seats -- so the descriptor is misaligned.
+  // Mutate loadPlayerShotDescriptor's OWN logic -- the base it seats -- so the descriptor is misaligned.
   function loc_0430_broken(m) {
-    return loadSpriteDescriptor(m, (loc_2027 + 1) & 0xffff); // BUG: wrong base
+    return loadSpriteDescriptor(m, (PLAYER_SHOT_DESC + 1) & 0xffff); // BUG: wrong base
   }
   const bytes = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66]; // one extra byte so the shifted read differs
   const o = new Machine(ROM); const c = new Machine(ROM);

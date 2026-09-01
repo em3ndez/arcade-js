@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_092e (ROM 0x092e) -- build the active player's page base (0x1611, dissolved),
+// Memory-equivalence for readActivePlayerPageTopByte (ROM 0x092e) -- build the active player's page base (0x1611, dissolved),
 // force the low byte to 0xff, and load A from that top-of-page status byte. No input register (the page
 // byte lives in RAM); writes NO game RAM. Live-out: HL = (page<<8)|0xff AND A = mem[HL]. The oracle's
 // call to 0x1611 leaves a return-address residue in the stack scratch below the entry SP -- CAPTURE
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_092e as oracle } from "../../translated/loc_092e.js";
-import { loc_092e } from "../loc_092e.js";
+import { readActivePlayerPageTopByte } from "../readActivePlayerPageTopByte.js";
 import { activePlayerPageBase } from "../activePlayerPageBase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -35,14 +35,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x092e dispatches -- loc_092e == oracle in RAM (-stack), HL and A", () => {
+test("CAPTURE: real 0x092e dispatches -- readActivePlayerPageTopByte == oracle in RAM (-stack), HL and A", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp; // the oracle's call-0x1611 return-address residue sits below the entry SP
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_092e(c);
+    oracle(o); readActivePlayerPageTopByte(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
@@ -61,7 +61,7 @@ test("CRAFTED: HL := (page<<8)|0xff and A := mem[HL] for several pages", () => {
     const ptr = (page << 8) | 0xff;
     const o = new Machine(ROM); o.regs.sp = 0x2400; o.mem8[ACTIVE_PLAYER_PAGE] = page; o.mem8[ptr] = val;
     const c = new Machine(ROM); c.regs.sp = 0x2400; c.mem8[ACTIVE_PLAYER_PAGE] = page; c.mem8[ptr] = val;
-    oracle(o); loc_092e(c);
+    oracle(o); readActivePlayerPageTopByte(c);
     const tag = `page=0x${page.toString(16)} val=0x${val.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, o.regs.hl, `HL matches oracle: ${tag}`);

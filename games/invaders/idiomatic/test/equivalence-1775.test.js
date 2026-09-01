@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1775 (ROM 0x1775) -- the sound-pitch step. When the loc_2095 trigger is
-// set: find the fleet-rate entry for ALIEN_COUNT in the loc_1a11/loc_1a21 tables (store the raw byte at
-// loc_2097), step the port-5 pitch nibble in SOUND_PORT5_SHADOW, and clear the trigger. Then tick the
-// loc_2099 step timer; on its wrap re-arm the shot channel via loc_19dc(B=0xef). loc_19dc is a dissolved
+// Memory-equivalence for advanceFleetMarchSound (ROM 0x1775) -- the sound-pitch step. When the FLEET_SOUND_STEP trigger is
+// set: find the fleet-rate entry for ALIEN_COUNT in the FLEET_RATE_THRESHOLDS/FLEET_RATE_TABLE tables (store the raw byte at
+// FLEET_SOUND_PERIOD), step the port-5 pitch nibble in SOUND_PORT5_SHADOW, and clear the trigger. Then tick the
+// SFX_OFF_TIMER step timer; on its wrap re-arm the shot channel via loc_19dc(B=0xef). loc_19dc is a dissolved
 // direct call. Live-out: memory + A (the caller does OUT 6, A). A is 0 on the non-wrap path.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1775.test.js
 
@@ -11,10 +11,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1775 as oracle } from "../../translated/loc_1775.js";
-import { loc_1775 } from "../loc_1775.js";
+import { advanceFleetMarchSound } from "../advanceFleetMarchSound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2095, loc_2097, loc_2099, SOUND_PORT5_SHADOW, ALIEN_COUNT } from "../names.js";
+import { STACK_SCRATCH, FLEET_SOUND_STEP, FLEET_SOUND_PERIOD, SFX_OFF_TIMER, SOUND_PORT5_SHADOW, ALIEN_COUNT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -37,11 +37,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1775 dispatches -- loc_1775 == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x1775 dispatches -- advanceFleetMarchSound == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1775(c);
+    oracle(o); advanceFleetMarchSound(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
   }
@@ -61,19 +61,19 @@ test("CRAFTED: trigger-clear ticks the timer; trigger-set latches pitch and clea
   for (const s of cases) {
     const seed = (m) => {
       m.regs.sp = 0x2400;
-      m.mem.write8(loc_2095, s.trig); m.mem.write8(ALIEN_COUNT, s.alive);
-      m.mem.write8(SOUND_PORT5_SHADOW, s.shadow); m.mem.write8(loc_2099, s.timer);
+      m.mem.write8(FLEET_SOUND_STEP, s.trig); m.mem.write8(ALIEN_COUNT, s.alive);
+      m.mem.write8(SOUND_PORT5_SHADOW, s.shadow); m.mem.write8(SFX_OFF_TIMER, s.timer);
     };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
-    oracle(o); loc_1775(c);
+    oracle(o); advanceFleetMarchSound(c);
     const tag = `trig=0x${s.trig.toString(16)} alive=0x${s.alive.toString(16)} shadow=0x${s.shadow.toString(16)} timer=0x${s.timer.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.a, o.regs.a, `A ${tag}`);
     if (s.trig !== 0) {
       assert.equal(c.mem.read8(SOUND_PORT5_SHADOW), steppedPitch(s.shadow), `pitch ${tag}`);
-      assert.equal(c.mem.read8(loc_2095), 0x00, `trigger cleared ${tag}`);
-      assert.equal(c.mem.read8(loc_2097), o.mem.read8(loc_2097), `table byte latched ${tag}`);
+      assert.equal(c.mem.read8(FLEET_SOUND_STEP), 0x00, `trigger cleared ${tag}`);
+      assert.equal(c.mem.read8(FLEET_SOUND_PERIOD), o.mem.read8(FLEET_SOUND_PERIOD), `table byte latched ${tag}`);
     } else {
       assert.equal(c.mem.read8(SOUND_PORT5_SHADOW), s.shadow, `shadow untouched ${tag}`);
     }
@@ -83,22 +83,22 @@ test("CRAFTED: trigger-clear ticks the timer; trigger-set latches pitch and clea
 test("TEETH: a broken twin that drops the pitch step diverges in RAM", () => {
   // Full-strength mutant: forgets to step the pitch nibble (writes the shadow back unchanged).
   function loc_1775_broken(m) {
-    if (m.mem8[loc_2095] !== 0) {
+    if (m.mem8[FLEET_SOUND_STEP] !== 0) {
       const alive = m.mem8[ALIEN_COUNT];
       let i = 0;
       while (alive < m.mem.read8(0x1a11 + i)) i++;
-      m.mem8[loc_2097] = m.mem.read8(0x1a21 + i);
+      m.mem8[FLEET_SOUND_PERIOD] = m.mem.read8(0x1a21 + i);
       m.mem8[SOUND_PORT5_SHADOW] = m.mem8[SOUND_PORT5_SHADOW]; // BUG: pitch not stepped
-      m.mem8[loc_2095] = 0;
+      m.mem8[FLEET_SOUND_STEP] = 0;
     }
-    m.mem8[loc_2099] = m.mem8[loc_2099] - 1;
-    if (m.mem8[loc_2099] !== 0) return (m.regs.a = 0);
-    return m.mem8[loc_2099];
+    m.mem8[SFX_OFF_TIMER] = m.mem8[SFX_OFF_TIMER] - 1;
+    if (m.mem8[SFX_OFF_TIMER] !== 0) return (m.regs.a = 0);
+    return m.mem8[SFX_OFF_TIMER];
   }
   const seed = (m) => {
     m.regs.sp = 0x2400;
-    m.mem.write8(loc_2095, 0x01); m.mem.write8(ALIEN_COUNT, 0x1c);
-    m.mem.write8(SOUND_PORT5_SHADOW, 0x25); m.mem.write8(loc_2099, 0x02);
+    m.mem.write8(FLEET_SOUND_STEP, 0x01); m.mem.write8(ALIEN_COUNT, 0x1c);
+    m.mem.write8(SOUND_PORT5_SHADOW, 0x25); m.mem.write8(SFX_OFF_TIMER, 0x02);
   };
   const o = new Machine(ROM); seed(o);
   const c = new Machine(ROM); seed(c);

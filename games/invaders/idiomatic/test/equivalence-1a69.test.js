@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for orBlitBitmap (ROM 0x1a69) -- OR-merge blit. Live-outs: the ORed destination RAM,
 // PLUS the advanced pointers HL (dest base + 0x20*rows) and DE (source run straight through). The
-// caller (loc_021e) restores A/B/C but reads HL and DE back, so those two registers are asserted
+// caller (drawOrSaveShields) restores A/B/C but reads HL and DE back, so those two registers are asserted
 // alongside the RAM diff. Interrupts are disabled on each clone so the oracle's per-instruction tick
 // cannot fire a handler that writes RAM only on its side.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1a69.test.js

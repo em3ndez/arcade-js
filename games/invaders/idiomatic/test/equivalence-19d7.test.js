@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_19d7 (ROM 0x19d7) -- xra a (A:=0) then tail-jmp into the shared store
+// Memory-equivalence for clearGameActive (ROM 0x19d7) -- xra a (A:=0) then tail-jmp into the shared store
 // loc_19d3, which writes A at GAME_ACTIVE. The 0x19d3 dispatch is DISSOLVED into a direct idiomatic call.
 // Live-out is memory only. Run: node --test .../test/equivalence-19d7.test.js
 
@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_19d7 as oracle } from "../../translated/loc_19d7.js";
-import { loc_19d7 } from "../loc_19d7.js";
+import { clearGameActive } from "../clearGameActive.js";
 import { loc_19d3 } from "../loc_19d3.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -32,11 +32,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x19d7 dispatches -- loc_19d7 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x19d7 dispatches -- clearGameActive == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_19d7(c);
+    oracle(o); clearGameActive(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -46,7 +46,7 @@ test("CRAFTED: GAME_ACTIVE cleared to 0 regardless of prior A", () => {
   for (const a of [0x00, 0x01, 0x7f, 0xff, 0xa5]) {
     const o = new Machine(ROM); o.regs.a = a; o.mem.write8(GAME_ACTIVE, 0xff);
     const c = new Machine(ROM); c.regs.a = a; c.mem.write8(GAME_ACTIVE, 0xff);
-    oracle(o); loc_19d7(c);
+    oracle(o); clearGameActive(c);
     assert.equal(ramDiff(o, c), null, `A=0x${a.toString(16)}`);
     assert.equal(c.mem.read8(GAME_ACTIVE), 0x00, `GAME_ACTIVE:=0 A=0x${a.toString(16)}`);
   }

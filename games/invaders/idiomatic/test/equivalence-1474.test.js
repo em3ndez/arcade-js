@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1474 (ROM 0x1474) -- OUT port 2 := (L & 7) (the MB14241 shift offset),
+// Memory-equivalence for seatBlitPosition (ROM 0x1474) -- OUT port 2 := (L & 7) (the MB14241 shift offset),
 // then tail-jump into coordToScreenAddr (0x1a47). The 0x1a47 m.call is DISSOLVED into a direct
 // coordToScreenAddr. Input register HL; live-out is HL (the folded screen address) plus the shift-offset
 // port side effect. The routine writes NO game RAM, so the RAM diff is a guard and the real contracts
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1474 as oracle } from "../../translated/loc_1474.js";
-import { loc_1474 } from "../loc_1474.js";
+import { seatBlitPosition } from "../seatBlitPosition.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -43,7 +43,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1474 dispatches -- loc_1474 == oracle in HL, shift port (and RAM -stack)", () => {
+test("CAPTURE: real 0x1474 dispatches -- seatBlitPosition == oracle in HL, shift port (and RAM -stack)", () => {
   for (const cap of CAPS) {
     // The callee's `push b` residue sits just below the ENTRY SP; exclude relative to that SP. The
     // module drops the save/restore.
@@ -53,7 +53,7 @@ test("CAPTURE: real 0x1474 dispatches -- loc_1474 == oracle in HL, shift port (a
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
     const hl = cap.regs.hl;
-    oracle(o); loc_1474(c);
+    oracle(o); seatBlitPosition(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, `HL live-out (entry HL=0x${hl.toString(16)})`);
     assert.equal(c.regs.hl, expectHl(hl));
@@ -69,7 +69,7 @@ test("CRAFTED: shift offset := L&7 and HL folded into video RAM, for several HL"
     const c = new Machine(ROM); c.regs.sp = 0x2400; c.push16(CALLER_RET); c.io.setInte(false);
     o.regs.hl = hl; c.regs.hl = hl;
     o.regs.bc = 0x1234; c.regs.bc = 0x1234; // saved/restored by the callee -- must survive on both
-    oracle(o); loc_1474(c);
+    oracle(o); seatBlitPosition(c);
     const tag = `HL=0x${hl.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, o.regs.hl, `HL match, ${tag}`);
@@ -81,7 +81,7 @@ test("CRAFTED: shift offset := L&7 and HL folded into video RAM, for several HL"
 });
 
 test("TEETH: a module-mutating twin (wrong folded HL) is caught by the live-out check", () => {
-  // Broken twin of loc_1474: latches the shift offset correctly but mis-folds HL (flips bit 0).
+  // Broken twin of seatBlitPosition: latches the shift offset correctly but mis-folds HL (flips bit 0).
   const loc_1474_broken = (m, l = m.regs.l) => {
     m.io.portOut(0x02, l & 0x07);
     const shifted = m.regs.hl >> 3;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_01cf (ROM 0x01cf) -- seat A=0x01/B=0xe0/HL=play-field base and delegate
+// Memory-equivalence for drawBottomLine (ROM 0x01cf) -- seat A=0x01/B=0xe0/HL=play-field base and delegate
 // to the shared row-fill (0x14cc, lifted as fillScreenRow). Live-out: the filled cells (RAM) AND HL,
 // which the fill leaves one stride past the end. Each side runs on a fresh clone; the contract is RAM
 // (dumpState, minus the oracle's per-row `push b` residue below the entry SP) plus the HL live-out.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_01cf as oracle } from "../../translated/loc_01cf.js";
-import { loc_01cf } from "../loc_01cf.js";
+import { drawBottomLine } from "../drawBottomLine.js";
 import { fillScreenRow } from "../fillScreenRow.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -37,7 +37,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x01cf dispatches -- loc_01cf == oracle in RAM (-stack) and HL", () => {
+test("CAPTURE: real 0x01cf dispatches -- drawBottomLine == oracle in RAM (-stack) and HL", () => {
   for (const cap of CAPS) {
     // The oracle's per-row `push b` residue sits just below the ENTRY SP (the delegated 0x14cc block);
     // exclude relative to that SP, not the fixed window. The module drops the save/restore.
@@ -46,7 +46,7 @@ test("CAPTURE: real 0x01cf dispatches -- loc_01cf == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_01cf(c);
+    oracle(o); drawBottomLine(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -56,7 +56,7 @@ test("CAPTURE: real 0x01cf dispatches -- loc_01cf == oracle in RAM (-stack) and 
 test("CRAFTED: fills 0xe0 rows of the play-field column with 0x01 and lands HL past the end", () => {
   const o = new Machine(ROM); o.regs.sp = 0x2400;
   const c = new Machine(ROM); c.regs.sp = 0x2400;
-  oracle(o); loc_01cf(c);
+  oracle(o); drawBottomLine(c);
   assert.equal(ramDiff(o, c), null, "RAM diverged from the oracle");
   assert.equal(c.regs.hl, END_HL, "HL advanced base + 0xe0*0x20");
   assert.equal(c.regs.hl, o.regs.hl, "HL matches oracle");

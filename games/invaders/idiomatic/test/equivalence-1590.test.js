@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_1590 (ROM 0x1590) -- "normalize A upward". Inputs A (byte) and C (count);
 // runs at least once: add 0x10 / bump C until A's sign bit clears. Live-out: A (normalized) AND C (step
-// count), both read back by the caller loc_1554. No RAM write, so the contract is the (A, C) live-out
+// count), both read back by the caller countStepsToThreshold. No RAM write, so the contract is the (A, C) live-out
 // (RAM diff stays null and is checked for accidental writes).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1590.test.js
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_170e (ROM 0x170e) -- read the key at [recordPtr+1], scan the 4-entry threshold
-// table (loc_1cb8) for the first entry >= key, and store the parallel table's byte (loc_1aa1) to loc_20cf.
+// Memory-equivalence for selectAlienShotRate (ROM 0x170e) -- read the key at [recordPtr+1], scan the 4-entry threshold
+// table (ALIEN_SHOT_RATE_THRESHOLDS) for the first entry >= key, and store the parallel table's byte (ALIEN_SHOT_RATE_TABLE) to loc_20cf.
 // Live-out is memory only. Dissolves the 0x09ca record-pointer call. Run: node --test <thisfile>
 
 import nodeTest from "node:test";
@@ -8,11 +8,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_170e as oracle } from "../../translated/loc_170e.js";
-import { loc_170e } from "../loc_170e.js";
+import { selectAlienShotRate } from "../selectAlienShotRate.js";
 import { currentPlayerRecordPtr } from "../currentPlayerRecordPtr.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE, PLAYER1_OBJ_DESC, loc_1aa1, loc_1cb8, loc_20cf } from "../names.js";
+import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE, PLAYER1_OBJ_DESC, ALIEN_SHOT_RATE_TABLE, ALIEN_SHOT_RATE_THRESHOLDS, loc_20cf } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -27,14 +27,14 @@ const ramDiff = (ma, mb) =>
 // A module-mutating broken twin: never scan -- always take the first table entry.
 function brokenLoc_170e(m) {
   const key = m.mem8[currentPlayerRecordPtr(m) + 1]; // eslint-disable-line no-unused-vars
-  m.mem8[loc_20cf] = m.mem8[loc_1aa1]; // BUG: index 0, ignoring the threshold scan
+  m.mem8[loc_20cf] = m.mem8[ALIEN_SHOT_RATE_TABLE]; // BUG: index 0, ignoring the threshold scan
 }
 
 // Independent oracle for the resolved rate, read straight from the (ROM) tables in the machine.
 function expectedRate(m, key) {
   let i = 0;
-  while (i < 4 && m.mem.read8(loc_1cb8 + i) < key) i++;
-  return m.mem.read8(loc_1aa1 + i);
+  while (i < 4 && m.mem.read8(ALIEN_SHOT_RATE_THRESHOLDS + i) < key) i++;
+  return m.mem.read8(ALIEN_SHOT_RATE_TABLE + i);
 }
 
 // Player-1 selected -> key lives at PLAYER1_OBJ_DESC+1.
@@ -53,11 +53,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x170e dispatches -- loc_170e == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x170e dispatches -- selectAlienShotRate == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_170e(c);
+    oracle(o); selectAlienShotRate(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -67,7 +67,7 @@ test("CRAFTED: loc_20cf = the first threshold >= key, else the default", () => {
   for (const key of [0x00, 0x02, 0x03, 0x10, 0x11, 0x20, 0x21, 0x30, 0x31, 0xff]) {
     const o = seedKey(new Machine(ROM), key);
     const c = seedKey(new Machine(ROM), key);
-    oracle(o); loc_170e(c);
+    oracle(o); selectAlienShotRate(c);
     assert.equal(ramDiff(o, c), null, `key=0x${key.toString(16)}`);
     assert.equal(c.mem.read8(loc_20cf), expectedRate(c, key), `resolved rate key=0x${key.toString(16)}`);
   }

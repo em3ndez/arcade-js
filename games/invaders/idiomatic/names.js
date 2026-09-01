@@ -16,7 +16,7 @@ export const ACTIVE_PLAYER_PAGE = 0x2067;  // [code]
 export const loc_207e = 0x207e;
 export const ALIEN_COUNT = 0x2082;  // [seen]
 export const loc_2083 = 0x2083;
-export const loc_2091 = 0x2091;
+export const SAUCER_TIMER = 0x2091;  // [code]
 export const SOUND_PORT3_SHADOW = 0x2094;  // [seen]
 export const SOUND_PORT5_SHADOW = 0x2098;  // [seen]
 export const TASK_FLAGS = 0x20c1;  // [code]
@@ -27,83 +27,83 @@ export const PLAYER2_OBJ_DESC = 0x20fc;  // [code]
 export const VIDEO_RAM_BASE = 0x2400;  // [seen]
 export const PLAYFIELD_VRAM_BASE = 0x2402;  // [seen]
 export const VIDEO_RAM_END = 0x4000;  // [seen]
-export const DRAW_BLOCK_STRIDE = 0x02e0;
-export const loc_1a11 = 0x1a11;
-export const loc_1a21 = 0x1a21;
-export const loc_1aa1 = 0x1aa1;
-export const loc_1b00 = 0x1b00;
+export const DRAW_BLOCK_STRIDE = 0x02e0;  // [code]
+export const FLEET_RATE_THRESHOLDS = 0x1a11;  // [code]
+export const FLEET_RATE_TABLE = 0x1a21;  // [code]
+export const ALIEN_SHOT_RATE_TABLE = 0x1aa1;  // [code]
+export const WORKRAM_INIT_IMAGE = 0x1b00;  // [code]
 export const loc_1b83 = 0x1b83;
-export const loc_1cb8 = 0x1cb8;
+export const ALIEN_SHOT_RATE_THRESHOLDS = 0x1cb8;  // [code]
 export const loc_1d20 = 0x1d20;
 export const loc_1e00 = 0x1e00;
-export const loc_2000 = 0x2000;
-export const loc_2002 = 0x2002;
+export const ALIEN_DRAW_PENDING = 0x2000;  // [code]
+export const PRIZE_ACTIVE = 0x2002;  // [code]
 export const loc_2008 = 0x2008;
-export const loc_200b = 0x200b;
-export const loc_200d = 0x200d;
-export const loc_2010 = 0x2010;
+export const ALIEN_DRAW_ADDR = 0x200b;  // [code]
+export const FLEET_MOVE_DIR = 0x200d;  // [code]
+export const GAME_OBJECT_TABLE = 0x2010;  // [code]
 export const loc_2011 = 0x2011;
 export const loc_2015 = 0x2015;
 export const loc_201d = 0x201d;
-export const loc_2025 = 0x2025;
-export const loc_2027 = 0x2027;
-export const loc_202d = 0x202d;
+export const PLAYER_SHOT_STATUS = 0x2025;  // [code]
+export const PLAYER_SHOT_DESC = 0x2027;  // [code]
+export const FIRE_BUTTON_LATCH = 0x202d;  // [code]
 export const loc_2062 = 0x2062;
 export const loc_2068 = 0x2068;
-export const loc_206b = 0x206b;
+export const LAST_ALIEN_FLAG = 0x206b;  // [code]
 export const loc_2073 = 0x2073;
 export const loc_207f = 0x207f;
-export const loc_2081 = 0x2081;
+export const SHIELD_SAVE_RESTORE_MODE = 0x2081;  // [code]
 export const loc_2087 = 0x2087;
-export const loc_2095 = 0x2095;
-export const loc_2096 = 0x2096;
-export const loc_2097 = 0x2097;
-export const loc_2099 = 0x2099;
-export const loc_209b = 0x209b;
+export const FLEET_SOUND_STEP = 0x2095;  // [code]
+export const FLEET_SOUND_TIMER = 0x2096;  // [code]
+export const FLEET_SOUND_PERIOD = 0x2097;  // [code]
+export const SFX_OFF_TIMER = 0x2099;  // [code]
+export const FLEET_SOUND_OFF_TIMER = 0x209b;  // [code]
 export const loc_20c2 = 0x20c2;
 export const loc_20cf = 0x20cf;
-export const loc_20ed = 0x20ed;
-export const loc_20ef = 0x20ef;
-export const loc_20f1 = 0x20f1;
-export const loc_20f2 = 0x20f2;
-export const loc_20f3 = 0x20f3;
-export const loc_2100 = 0x2100;
-export const loc_2200 = 0x2200;
-export const loc_2806 = 0x2806;
+export const ATTRACT_DEMO_PTR = 0x20ed;  // [code]
+export const GAME_IN_PROGRESS = 0x20ef;  // [code]
+export const SCORE_ADD_PENDING = 0x20f1;  // [code]
+export const SCORE_ADD_VALUE = 0x20f2;  // [code]
+export const SCORE_ADD_VALUE_HI = 0x20f3;  // [code]
+export const ALIEN_FIELD_P1 = 0x2100;  // [code]
+export const ALIEN_FIELD_P2 = 0x2200;  // [code]
+export const SHIELD_VRAM_BASE = 0x2806;  // [code]
 
 export const ROUTINES = {
-  0x00b1: { name: "loc_00b1", role: "load active record's 16-bit pointer via activeFieldRecordPointer, mirror to loc_2009 and loc_200b, derive count byte at ", cert: "code" },
-  0x01c0: { name: "loc_01c0", role: "seat the alien-status table base loc_2100, then markAllAliensAlive (fill 0x37 bytes with 0x01)", cert: "code" },
-  0x01cf: { name: "loc_01cf", role: "seat A=0x01/B=0xe0/HL=play-field base and fill via fillScreenRow; live-out HL (end pointer)", cert: "code" },
-  0x01e6: { name: "loc_01e6", role: "boot-init: block-copy the caller's B bytes from ROM template loc_1b00 into work-RAM base loc_2000 via blockCopy", cert: "code" },
-  0x01f8: { name: "loc_01f8", role: "replicate the 0x2c-byte ROM source block (loc_1d20) into four consecutive destination slots from HL; live-out HL (end po", cert: "code" },
-  0x021e: { name: "loc_021e", role: "shared draw body: store the mode flag at loc_2081, then run four passes of a 22x2 block down the screen from loc_2806 (c", cert: "code" },
-  0x0430: { name: "loc_0430", role: "seat HL at the object move-record base (loc_2027) and read its 5-byte sprite descriptor into DE/A/C/B, repointing HL at ", cert: "code" },
-  0x0550: { name: "loc_0550", role: "stash A -> loc_207f, then blockCopy 0x0b bytes (DE)->loc_2073 (object strip prime)", cert: "code" },
-  0x055b: { name: "loc_055b", role: "blockCopy 0x0b bytes loc_2073->(HL) (object strip restore, twin of loc_0550)", cert: "code" },
-  0x0707: { name: "loc_0707", role: "clear low sound-latch bit: SOUND_PORT3_SHADOW &= 0xfe via loc_19dc; value-out A", cert: "code" },
-  0x0742: { name: "loc_0742", role: "load sprite descriptor at loc_2087, fold its pointer into a screen address (HL); DE/B/C = descriptor", cert: "code" },
-  0x075f: { name: "loc_075f", role: "block-copy B bytes from ROM table loc_1b83 into (HL) (init object record)", cert: "code" },
-  0x0878: { name: "loc_0878", role: "B := [loc_2008], DE := [loc_2009] word, then HL := active player record pointer", cert: "code" },
-  0x08ff: { name: "loc_08ff", role: "resolve sprite id A to its 8-byte source at loc_1e00+8*A, latch the shift count to port 6, and blit 8 columns via drawSp", cert: "code" },
-  0x092e: { name: "loc_092e", role: "read the status byte at the top of the active player's record page ((page<<8)|0xff); live-out HL, A", cert: "code" },
-  0x0a5f: { name: "loc_0a5f", role: "if [loc_20ef]!=0: startSound(0x08), index the 3-entry table via loc_097c(B), stamp loc_20f2=table byte / loc_20f1=0x01 /", cert: "code" },
-  0x0ae2: { name: "loc_0ae2", role: "copy the 12-byte block from (DE) into loc_20c2 (dissolved tail-call to blockCopy)", cert: "code" },
-  0x1474: { name: "loc_1474", role: "OUT port 2 := L&7 (MB14241 shift offset), then HL := coordToScreenAddr(HL)", cert: "code" },
-  0x14cb: { name: "loc_14cb", role: "zero A then fill B screen rows from HL with 0 (dissolved fall-through to fillScreenRow)", cert: "code" },
-  0x154a: { name: "loc_154a", role: "clear prize-active flag loc_2002, then loc_19dc(0xf7) masks bit 3 off SOUND_PORT3_SHADOW and mirrors to sound port 3; va", cert: "code" },
-  0x1554: { name: "loc_1554", role: "count in C the 0x10 steps that lift A to/above threshold H (CMP H drives it), pre-normalizing a negative A via loc_1590 ", cert: "code" },
-  0x15f3: { name: "loc_15f3", role: "count live cells across the active player's 0x37-byte alien field into ALIEN_COUNT; set loc_206b at exactly one survivor", cert: "code" },
-  0x1618: { name: "loc_1618", role: "gated pre-round advance: bail unless armed (loc_2015==0xff) and loc_2010/loc_2011/loc_2025 clear, then step the march po", cert: "code" },
-  0x170e: { name: "loc_170e", role: "resolve alien-march rate: key = [recordPtr+1]; scan the 4-entry threshold table loc_1cb8 for the first entry >= key; sto", cert: "code" },
-  0x172c: { name: "loc_172c", role: "mode-gated sound step: loc_2025!=0 -> startSound(0x02), else loc_19dc(0xfd)", cert: "code" },
-  0x1740: { name: "loc_1740", role: "shot-sound step: tick loc_209b burst timer (loc_176d at zero), bail unless loc_2068 set; tick loc_2096, emit SOUND_PORT5", cert: "code" },
-  0x1775: { name: "loc_1775", role: "sound-pitch step: on the loc_2095 trigger, pick the fleet-rate byte for ALIEN_COUNT from the loc_1a11/loc_1a21 tables in", cert: "code" },
-  0x1844: { name: "loc_1844", role: "draw a 16-row sprite column (row count forced to 0x10), preserving BC; live-out HL", cert: "code" },
-  0x1904: { name: "loc_1904", role: "mark all aliens alive in the array based at 0x2200 (HL-relative 0x37-byte 0x01 fill)", cert: "code" },
+  0x00b1: { name: "loadReferenceAlienState", role: "load the active player's saved field record: mirror the reference-alien coord word to loc_2009/ALIEN_DRAW_ADDR, derive the count at loc_2008, set FLEET_MOVE_DIR on the 0xfe edge sentinel", cert: "code" },
+  0x01c0: { name: "markAllAliensAliveP1", role: "seat the player-1 alien-status base ALIEN_FIELD_P1 then markAllAliensAlive (fill 0x37 cells with 0x01)", cert: "code" },
+  0x01cf: { name: "drawBottomLine", role: "draw the full-width bottom ground line via fillScreenRow(0x01, 0xe0, PLAYFIELD_VRAM_BASE); live-out HL", cert: "code" },
+  0x01e6: { name: "initWorkRam", role: "boot-init: blockCopy the caller's B bytes from ROM image WORKRAM_INIT_IMAGE into the base of work RAM", cert: "code" },
+  0x01f8: { name: "initShieldBuffers", role: "replicate the 0x2c-byte shield template loc_1d20 into four consecutive shield buffers from HL; live-out HL", cert: "code" },
+  0x021e: { name: "drawOrSaveShields", role: "shield save/restore: store SHIELD_SAVE_RESTORE_MODE, then four 22x2 blocks from SHIELD_VRAM_BASE (stride DRAW_BLOCK_STRIDE) -- captureScreenRect when set, orBlitBitmap when clear", cert: "code" },
+  0x0430: { name: "loadPlayerShotDescriptor", role: "load the player-shot 5-byte descriptor at PLAYER_SHOT_DESC via loadSpriteDescriptor; HL := its screen address", cert: "code" },
+  0x0550: { name: "copyRecordToWorkBuffer", role: "stash A -> loc_207f, then blockCopy 0x0b bytes (DE)->work buffer loc_2073 (prime an object strip)", cert: "code" },
+  0x055b: { name: "copyWorkBufferToRecord", role: "blockCopy 0x0b bytes work buffer loc_2073 ->(HL) (restore the object strip; twin of copyRecordToWorkBuffer)", cert: "code" },
+  0x0707: { name: "stopSaucerSound", role: "clear the saucer sound bit: SOUND_PORT3_SHADOW &= 0xfe via loc_19dc, mirror to sound port 3; value-out A", cert: "code" },
+  0x0742: { name: "resolveSpriteScreenAddr", role: "load the sprite descriptor at loc_2087 then coordToScreenAddr; HL := screen address, DE := gfx pointer", cert: "code" },
+  0x075f: { name: "copyTemplateToRecord", role: "blockCopy B bytes from ROM template loc_1b83 into the caller's object record (HL)", cert: "code" },
+  0x0878: { name: "stageActivePlayerFieldSave", role: "stage the active player's field save: B := [loc_2008], DE := [loc_2009] word, HL := activeFieldRecordPointer", cert: "code" },
+  0x08ff: { name: "drawSprite8x8", role: "resolve sprite id A to its 8-byte source at loc_1e00+8*A, latch A to port 6, blit an 8x8 sprite via drawSpriteColumn; live-out HL", cert: "code" },
+  0x092e: { name: "readActivePlayerPageTopByte", role: "read the byte at the top of the active player's page ((mem[ACTIVE_PLAYER_PAGE]<<8)|0xff); live-out HL, A", cert: "code" },
+  0x0a5f: { name: "loc_0a5f", role: "if [GAME_IN_PROGRESS]!=0: startSound(0x08), index the 3-entry table via loc_097c(B), stamp SCORE_ADD_VALUE=table byte / SCORE_ADD_PENDING=0x01 /", cert: "code" },
+  0x0ae2: { name: "loadDrawSequenceBlock", role: "blockCopy the 12-byte draw/animation sequence from (DE) into loc_20c2", cert: "code" },
+  0x1474: { name: "seatBlitPosition", role: "OUT port 2 := L&7 (MB14241 shift offset), then HL := coordToScreenAddr(HL) -- seat the next blit", cert: "code" },
+  0x14cb: { name: "clearScreenStrip", role: "zero A then fillScreenRow(0) -- blank a run of B screen columns from HL; live-out HL", cert: "code" },
+  0x154a: { name: "deactivatePrize", role: "clear PRIZE_ACTIVE, then loc_19dc(0xf7) masks bit 3 off SOUND_PORT3_SHADOW; value-out A", cert: "code" },
+  0x1554: { name: "countStepsToThreshold", role: "count in C the 0x10 steps that lift A to/above threshold H (pre-normalizing a negative A via loc_1590); live-out A, C, carry clear", cert: "code" },
+  0x15f3: { name: "countLiveAliens", role: "count live cells across the active player's 0x37-byte alien field into ALIEN_COUNT; set LAST_ALIEN_FLAG at exactly one survivor", cert: "code" },
+  0x1618: { name: "advanceRoundState", role: "gated pre-round step: when armed (loc_2015==0xff) and the field is idle, advance ATTRACT_DEMO_PTR (attract) or arm the shot on a fresh fire edge (play, GAME_IN_PROGRESS set)", cert: "code" },
+  0x170e: { name: "selectAlienShotRate", role: "select the alien-shot rate: scan ALIEN_SHOT_RATE_THRESHOLDS for the first entry >= the field-size key, store the parallel ALIEN_SHOT_RATE_TABLE byte to loc_20cf (read by the shot stepper loc_0563)", cert: "code" },
+  0x172c: { name: "loc_172c", role: "mode-gated sound step: PLAYER_SHOT_STATUS!=0 -> startSound(0x02), else loc_19dc(0xfd)", cert: "code" },
+  0x1740: { name: "stepFleetMarchSound", role: "fleet-march sound beat: tick FLEET_SOUND_OFF_TIMER/FLEET_SOUND_TIMER, on beat emit SOUND_PORT5_SHADOW and re-arm, silencing at the edges; set FLEET_SOUND_STEP", cert: "code" },
+  0x1775: { name: "advanceFleetMarchSound", role: "on FLEET_SOUND_STEP, pick the fleet tempo for ALIEN_COUNT from FLEET_RATE_THRESHOLDS/FLEET_RATE_TABLE into FLEET_SOUND_PERIOD and rotate the port-5 fleet tone; tick SFX_OFF_TIMER", cert: "code" },
+  0x1844: { name: "drawSpriteColumn16", role: "draw a fixed 16-row sprite column (row count forced to 0x10) via drawSpriteColumn, preserving BC; live-out HL", cert: "code" },
+  0x1904: { name: "markAllAliensAliveP2", role: "seat the player-2 alien-status base ALIEN_FIELD_P2 then markAllAliensAlive (0x37-byte 0x01 fill)", cert: "code" },
   0x1988: { name: "loc_1988", role: "clear the play-field framebuffer", cert: "code" },
-  0x19d1: { name: "loc_19d1", role: "store 1 -> GAME_ACTIVE (A:=1 then shared tail loc_19d3; mark game active)", cert: "code" },
-  0x19d7: { name: "loc_19d7", role: "store 0 -> GAME_ACTIVE (xra a then shared tail loc_19d3; clear game-active flag)", cert: "code" },
+  0x19d1: { name: "setGameActive", role: "store 1 -> GAME_ACTIVE (shared tail loc_19d3); mark the game active", cert: "code" },
+  0x19d7: { name: "clearGameActive", role: "store 0 -> GAME_ACTIVE (shared tail loc_19d3); clear the game-active flag", cert: "code" },
   0x1982: { name: "loc_1982", role: "store A -> TASK_FLAGS", cert: "seen" },
   0x013b: { name: "selectAlternateSpriteFrame", role: "bump sprite pointer to 2nd bank (DE += 0x30)", cert: "code" },
   0x017a: { name: "alienIndexToScreenCoords", role: "resolve L over 0x0b into (L,C,D) using the B,C pair at loc_2009/loc_200a", cert: "code" },
@@ -113,7 +113,7 @@ export const ROUTINES = {
   0x0886: { name: "activeFieldRecordPointer", role: "build HL = (ACTIVE_PLAYER_PAGE << 8) | 0xfc", cert: "code" },
   0x08d1: { name: "readStartingShips", role: "A = (port2 & 3) + 3", cert: "code" },
   0x08d8: { name: "loc_08d8", role: "if ALIEN_COUNT < 9: loc_207e = 0xfb", cert: "code" },
-  0x0913: { name: "loc_0913", role: "gate on loc_2009<0x78, decrement 16-bit timer loc_2091, reload 0x0600 + set flag loc_2083 on wrap", cert: "code" },
+  0x0913: { name: "loc_0913", role: "gate on loc_2009<0x78, decrement 16-bit timer SAUCER_TIMER, reload 0x0600 + set flag loc_2083 on wrap", cert: "code" },
   0x097c: { name: "loc_097c", role: "HL = loc_1da0 + clamp-index of A (offset 0 if A<2, 1 if 2<=A<4, 2 if A>=4)", cert: "code" },
   0x09ca: { name: "currentPlayerRecordPtr", role: "HL = bit0 of ACTIVE_PLAYER_PAGE ? PLAYER1_OBJ_DESC : PLAYER2_OBJ_DESC (active player's data pointer)", cert: "code" },
   0x09d6: { name: "clearPlayfield", role: "clear the play-field framebuffer", cert: "seen" },

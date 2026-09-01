@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_00b1 (ROM 0x00b1) -- fetch the active record's 16-bit pointer via
-// activeFieldRecordPointer (0x0886 dissolved), mirror it to loc_2009 and loc_200b, then derive the
+// Memory-equivalence for loadReferenceAlienState (ROM 0x00b1) -- fetch the active record's 16-bit pointer via
+// activeFieldRecordPointer (0x0886 dissolved), mirror it to loc_2009 and ALIEN_DRAW_ADDR, then derive the
 // count byte at loc_2008 (dropped by one when the byte just below the pointer is 3) and the edge flag
-// at loc_200d (set when that count reads 0xfe). Live-out is memory only (the sole caller, loc_0814,
+// at FLEET_MOVE_DIR (set when that count reads 0xfe). Live-out is memory only (the sole caller, loc_0814,
 // immediately calls 0x19d1 which reloads A/HL), so each side runs on a clone and the contract is RAM
 // (dumpState, minus STACK_SCRATCH -- the oracle's balanced push/pop scratch is excluded).
 // Run: node --test games/invaders/idiomatic/test/equivalence-00b1.test.js
@@ -12,11 +12,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_00b1 as oracle } from "../../translated/loc_00b1.js";
-import { loc_00b1 } from "../loc_00b1.js";
+import { loadReferenceAlienState } from "../loadReferenceAlienState.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { activeFieldRecordPointer } from "../activeFieldRecordPointer.js";
-import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE, loc_2008, loc_2009, loc_200b, loc_200d } from "../names.js";
+import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE, loc_2008, loc_2009, ALIEN_DRAW_ADDR, FLEET_MOVE_DIR } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -47,16 +47,16 @@ function seed(page, value, below) {
   return m;
 }
 
-test("CAPTURE: real 0x00b1 dispatches -- loc_00b1 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x00b1 dispatches -- loadReferenceAlienState == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_00b1(c);
+    oracle(o); loadReferenceAlienState(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: pointer mirrored to loc_2009/loc_200b; count + edge flag derived", () => {
+test("CRAFTED: pointer mirrored to loc_2009/ALIEN_DRAW_ADDR; count + edge flag derived", () => {
   const cases = [
     { below: 0x03, count: 0x02, flag: 0x00 }, // the one byte the count is dropped for
     { below: 0xfe, count: 0xfe, flag: 0x01 }, // the count that raises the edge flag
@@ -68,13 +68,13 @@ test("CRAFTED: pointer mirrored to loc_2009/loc_200b; count + edge flag derived"
   for (const { below, count, flag } of cases) {
     const o = seed(0x21, value, below);
     const c = seed(0x21, value, below);
-    oracle(o); loc_00b1(c);
+    oracle(o); loadReferenceAlienState(c);
     const label = `below=0x${below.toString(16)}`;
     assert.equal(ramDiff(o, c), null, label);
     assert.equal(c.mem.read16(loc_2009), value, `loc_2009 ${label}`);
-    assert.equal(c.mem.read16(loc_200b), value, `loc_200b ${label}`);
+    assert.equal(c.mem.read16(ALIEN_DRAW_ADDR), value, `ALIEN_DRAW_ADDR ${label}`);
     assert.equal(c.mem.read8(loc_2008), count, `loc_2008 count ${label}`);
-    assert.equal(c.mem.read8(loc_200d), flag, `loc_200d edge flag ${label}`);
+    assert.equal(c.mem.read8(FLEET_MOVE_DIR), flag, `FLEET_MOVE_DIR edge flag ${label}`);
   }
 });
 
@@ -85,10 +85,10 @@ test("TEETH: a module that skips the count decrement is caught by the RAM diff",
     const ptr = activeFieldRecordPointer(m);
     const value = mem16[ptr];
     mem16[loc_2009] = value;
-    mem16[loc_200b] = value;
+    mem16[ALIEN_DRAW_ADDR] = value;
     const below = mem8[(ptr - 1) & 0xffff];
     mem8[loc_2008] = below;                       // BUG: no decrement when below == 3
-    mem8[loc_200d] = below === 0xfe ? 0x01 : 0x00;
+    mem8[FLEET_MOVE_DIR] = below === 0xfe ? 0x01 : 0x00;
   };
   const o = seed(0x21, 0x1234, 0x03);
   const c = seed(0x21, 0x1234, 0x03);

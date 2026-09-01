@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0707 (ROM 0x0707) -- load B=0xfe then tail-jump into loc_19dc: AND the
+// Memory-equivalence for stopSaucerSound (ROM 0x0707) -- load B=0xfe then tail-jump into loc_19dc: AND the
 // port-3 sound shadow with 0xfe (clear the low latch bit), write it back and mirror to port 3.
 // Live-out: memory (SOUND_PORT3_SHADOW) + A (loc_19dc's classification; both callers tail-delegate).
 // Run: node --test games/invaders/idiomatic/test/equivalence-0707.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0707 as oracle } from "../../translated/loc_0707.js";
-import { loc_0707 } from "../loc_0707.js";
+import { stopSaucerSound } from "../stopSaucerSound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SOUND_PORT3_SHADOW } from "../names.js";
@@ -32,11 +32,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0707 dispatches -- loc_0707 == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x0707 dispatches -- stopSaucerSound == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0707(c);
+    oracle(o); stopSaucerSound(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
   }
@@ -47,7 +47,7 @@ test("CRAFTED: SOUND_PORT3_SHADOW &= 0xfe, A = result, for several shadows", () 
   for (const shadow of [0xff, 0x01, 0x3d, 0x00, 0xaa]) {
     const o = new Machine(ROM); o.mem.write8(SOUND_PORT3_SHADOW, shadow);
     const c = new Machine(ROM); c.mem.write8(SOUND_PORT3_SHADOW, shadow);
-    oracle(o); loc_0707(c);
+    oracle(o); stopSaucerSound(c);
     assert.equal(ramDiff(o, c), null, `shadow=0x${shadow.toString(16)}`);
     assert.equal(c.mem.read8(SOUND_PORT3_SHADOW), shadow & 0xfe, "shadow masked in place");
     assert.equal(c.regs.a, shadow & 0xfe, "A = masked result");

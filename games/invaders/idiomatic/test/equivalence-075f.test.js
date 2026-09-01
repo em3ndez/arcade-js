@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_075f (ROM 0x075f) -- seat the source pointer at the ROM template loc_1b83, then
+// Equivalence for copyTemplateToRecord (ROM 0x075f) -- seat the source pointer at the ROM template loc_1b83, then
 // block-copy B bytes into (HL) (blockCopy). Live-out is MEMORY only: the oracle's blockCopy advances
 // HL/DE and zeroes B, but every caller of 0x075f overwrites those before reading (blockCopy's own
 // contract), so the contract is RAM (dumpState, minus STACK_SCRATCH). B and HL come from the caller.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_075f as oracle } from "../../translated/loc_075f.js";
-import { loc_075f } from "../loc_075f.js";
+import { copyTemplateToRecord } from "../copyTemplateToRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_1b83 } from "../names.js";
@@ -34,11 +34,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x075f dispatches -- loc_075f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x075f dispatches -- copyTemplateToRecord == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_075f(c);
+    oracle(o); copyTemplateToRecord(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -51,7 +51,7 @@ test("CRAFTED: B bytes copied from loc_1b83 into (HL) for several counts", () =>
     const c = new Machine(ROM); c.regs.sp = 0x2400; c.push16(CALLER_RET); c.io.setInte(false);
     o.regs.hl = DST; o.regs.b = b;
     c.regs.hl = DST; c.regs.b = b;
-    oracle(o); loc_075f(c);
+    oracle(o); copyTemplateToRecord(c);
     assert.equal(ramDiff(o, c), null, `B=0x${b.toString(16)}`);
     for (let i = 0; i < b; i++) {
       assert.equal(c.mem.read8(DST + i), c.mem.read8(loc_1b83 + i), `dst[${i}] B=0x${b.toString(16)}`);

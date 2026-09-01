@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_01f8 (ROM 0x01f8) -- replicate the 0x2c-byte ROM source block into four
+// Memory-equivalence for initShieldBuffers (ROM 0x01f8) -- replicate the 0x2c-byte ROM source block into four
 // consecutive destination slots from HL up (the oracle loops the block-copy 0x1a32, advancing HL 0x2c
 // per pass and restoring DE each pass). Live-in HL; live-out: the four filled slots (RAM) AND HL, which
 // lands 4*0x2c past the start. DE is left at the source but no caller reads it, so it is not compared.
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_01f8 as oracle } from "../../translated/loc_01f8.js";
-import { loc_01f8 } from "../loc_01f8.js";
+import { initShieldBuffers } from "../initShieldBuffers.js";
 import { blockCopy } from "../blockCopy.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -39,7 +39,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x01f8 dispatches -- loc_01f8 == oracle in RAM (-stack) and HL", () => {
+test("CAPTURE: real 0x01f8 dispatches -- initShieldBuffers == oracle in RAM (-stack) and HL", () => {
   for (const cap of CAPS) {
     // The oracle pushes DE + a return slot each pass, just below the ENTRY SP; exclude relative to it.
     const sp = cap.regs.sp;
@@ -47,7 +47,7 @@ test("CAPTURE: real 0x01f8 dispatches -- loc_01f8 == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_01f8(c);
+    oracle(o); initShieldBuffers(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -58,7 +58,7 @@ test("CRAFTED: four consecutive copies of the source block, HL past the fourth",
   for (const hl of [0x2142, 0x2242, 0x2100]) {
     const o = new Machine(ROM); o.regs.hl = hl; o.regs.sp = 0x2400;
     const c = new Machine(ROM); c.regs.hl = hl; c.regs.sp = 0x2400;
-    oracle(o); loc_01f8(c);
+    oracle(o); initShieldBuffers(c);
     const tag = `HL=0x${hl.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, endHl(hl), `HL advanced 4*0x2c: ${tag}`);

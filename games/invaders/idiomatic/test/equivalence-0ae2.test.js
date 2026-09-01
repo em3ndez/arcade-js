@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0ae2 (ROM 0x0ae2) -- seat HL=0x20c2, B=0x0c, tail-jump into blockCopy
+// Memory-equivalence for loadDrawSequenceBlock (ROM 0x0ae2) -- seat HL=0x20c2, B=0x0c, tail-jump into blockCopy
 // (0x1a32): copy 12 bytes from (DE) to 0x20c2. The 0x1a32 m.call is DISSOLVED into a direct blockCopy.
 // Input register DE (source); live-out is memory only (blockCopy's HL/DE/B advances are dead across its
 // callers), so each side runs on its own machine and the contract is RAM (dumpState, minus STACK_SCRATCH).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0ae2 as oracle } from "../../translated/loc_0ae2.js";
-import { loc_0ae2 } from "../loc_0ae2.js";
+import { loadDrawSequenceBlock } from "../loadDrawSequenceBlock.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_20c2 as DEST } from "../names.js";
@@ -35,7 +35,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0ae2 dispatches -- loc_0ae2 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0ae2 dispatches -- loadDrawSequenceBlock == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     // The oracle tail-rets through the seam (pops the caller word just below the entry SP); exclude
     // relative to that SP as well as the fixed scratch window. The module never touches the stack.
@@ -45,7 +45,7 @@ test("CAPTURE: real 0x0ae2 dispatches -- loc_0ae2 == oracle in RAM (-stack)", ()
       (a) => inDeadStack(a) || (a != null && a >= sp - 0x10 && a < sp));
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0ae2(c);
+    oracle(o); loadDrawSequenceBlock(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -62,7 +62,7 @@ test("CRAFTED: 12 bytes copied (DE)->0x20c2 for several sources", () => {
     c.regs.sp = 0x2400; c.push16(CALLER_RET); c.io.setInte(false);
     if (src >= 0x2000) { seedPattern(o, src, N); seedPattern(c, src, N); }
     o.regs.de = src; c.regs.de = src;
-    oracle(o); loc_0ae2(c);
+    oracle(o); loadDrawSequenceBlock(c);
     assert.equal(ramDiff(o, c), null, `src=0x${src.toString(16)}`);
     for (let i = 0; i < N; i++) {
       assert.equal(c.mem.read8(DEST + i), o.mem.read8(DEST + i), `dst[${i}] src=0x${src.toString(16)}`);
@@ -71,7 +71,7 @@ test("CRAFTED: 12 bytes copied (DE)->0x20c2 for several sources", () => {
 });
 
 test("TEETH: a module-mutating twin (wrong byte count) is caught", () => {
-  // Broken twin of loc_0ae2: copies 11 bytes instead of 12 -- leaves the 12th cell unwritten.
+  // Broken twin of loadDrawSequenceBlock: copies 11 bytes instead of 12 -- leaves the 12th cell unwritten.
   function loc_0ae2_broken(m, de = m.regs.de) {
     for (let i = 0; i < N - 1; i++) m.mem8[DEST + i] = m.mem8[de + i]; // BUG: N-1
   }

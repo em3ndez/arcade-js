@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_14cb (ROM 0x14cb) -- zero A, then fall through into fillScreenRow (0x14cc):
+// Memory-equivalence for clearScreenStrip (ROM 0x14cb) -- zero A, then fall through into fillScreenRow (0x14cc):
 // fill B rows with 0, stepping 0x20 per pass, leaving HL one stride past. The 0x14cc fall-through is
 // DISSOLVED into a direct fillScreenRow(m, 0). Inputs B (row count; 0 => 256), HL (start); A at entry is
 // dead (zeroed). Live-out: the filled cells (RAM) AND HL. Each side runs on a fresh clone; the contract
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_14cb as oracle } from "../../translated/loc_14cb.js";
-import { loc_14cb } from "../loc_14cb.js";
+import { clearScreenStrip } from "../clearScreenStrip.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -37,7 +37,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x14cb dispatches -- loc_14cb == oracle in RAM (-stack) and HL", () => {
+test("CAPTURE: real 0x14cb dispatches -- clearScreenStrip == oracle in RAM (-stack) and HL", () => {
   for (const cap of CAPS) {
     // The oracle's per-row `push b` residue sits just below the ENTRY SP; exclude relative to that SP.
     // The module drops the save/restore.
@@ -46,7 +46,7 @@ test("CAPTURE: real 0x14cb dispatches -- loc_14cb == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_14cb(c);
+    oracle(o); clearScreenStrip(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -61,10 +61,10 @@ test("CRAFTED: the column fills with 0 (A at entry ignored) and HL advances", ()
     { rows: 0, hl: 0x2200 }, // B=0 -> 256 passes
   ];
   for (const { rows, hl } of cases) {
-    // seed A nonzero on both to prove loc_14cb zeroes it before filling
+    // seed A nonzero on both to prove clearScreenStrip zeroes it before filling
     const o = new Machine(ROM); o.regs.a = 0xa5; o.regs.b = rows; o.regs.hl = hl; o.regs.sp = 0x2400;
     const c = new Machine(ROM); c.regs.a = 0xa5; c.regs.b = rows; c.regs.hl = hl; c.regs.sp = 0x2400;
-    oracle(o); loc_14cb(c);
+    oracle(o); clearScreenStrip(c);
     const tag = `B=0x${rows.toString(16)} HL=0x${hl.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, endHl(hl, rows), `HL advanced: ${tag}`);
@@ -78,7 +78,7 @@ test("CRAFTED: the column fills with 0 (A at entry ignored) and HL advances", ()
 });
 
 test("TEETH: a module-mutating twin (fails to zero A) diverges in RAM", () => {
-  // Broken twin of loc_14cb: passes A through instead of zeroing it -- the whole point of loc_14cb.
+  // Broken twin of clearScreenStrip: passes A through instead of zeroing it -- the whole point of clearScreenStrip.
   const loc_14cb_broken = (m) => fillScreenRowBroken(m);
   // inline a fill that uses A (m.regs.a) as the value, matching fillScreenRow's shape
   function fillScreenRowBroken(m) {

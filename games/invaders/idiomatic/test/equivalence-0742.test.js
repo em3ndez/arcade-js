@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_0742 (ROM 0x0742) -- point HL at the sprite record loc_2087, load its 5-byte
+// Equivalence for resolveSpriteScreenAddr (ROM 0x0742) -- point HL at the sprite record loc_2087, load its 5-byte
 // descriptor (loadSpriteDescriptor), then fold the resulting pointer into a screen address
 // (coordToScreenAddr). Live-out is REGISTERS HL/DE/B/C (A is dead: every consumer -- drawSpriteColumn,
 // 0x08f1, 0x14cb -- overwrites A before reading it, and the oracle's coordToScreenAddr leaves A = the
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0742 as oracle } from "../../translated/loc_0742.js";
-import { loc_0742 } from "../loc_0742.js";
+import { resolveSpriteScreenAddr } from "../resolveSpriteScreenAddr.js";
 import { loadSpriteDescriptor } from "../loadSpriteDescriptor.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -57,7 +57,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0742 dispatches -- loc_0742 == oracle in RAM (-stack) and HL/DE/B/C", () => {
+test("CAPTURE: real 0x0742 dispatches -- resolveSpriteScreenAddr == oracle in RAM (-stack) and HL/DE/B/C", () => {
   for (const cap of CAPS) {
     // The oracle's `push b` residue (in coordToScreenAddr) sits just below the ENTRY SP; exclude
     // relative to that SP (SI's attract loop walks SP widely). The module drops the push.
@@ -66,7 +66,7 @@ test("CAPTURE: real 0x0742 dispatches -- loc_0742 == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0742(c);
+    oracle(o); resolveSpriteScreenAddr(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(regOutDiff(o, c), null);
   }
@@ -83,7 +83,7 @@ test("CRAFTED: descriptor at loc_2087 -> DE/B/C and HL = screen addr of C:A", ()
     const o = new Machine(ROM); o.regs.sp = 0x2400; o.push16(CALLER_RET); o.io.setInte(false);
     const c = new Machine(ROM); c.regs.sp = 0x2400; c.push16(CALLER_RET); c.io.setInte(false);
     seedDescriptor(o, bytes); seedDescriptor(c, bytes);
-    oracle(o); loc_0742(c);
+    oracle(o); resolveSpriteScreenAddr(c);
     assert.equal(ramDiff(o, c), null, `bytes=${bytes}`);
     assert.equal(regOutDiff(o, c), null, `bytes=${bytes}`);
     const exp = expectFrom(bytes);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_0878 (ROM 0x0878) -- B := [loc_2008], DE := the 16-bit word at loc_2009, then
+// Equivalence for stageActivePlayerFieldSave (ROM 0x0878) -- B := [loc_2008], DE := the 16-bit word at loc_2009, then
 // build HL := the active player's record pointer (activeFieldRecordPointer). Live-out is REGISTERS
 // HL/DE/B (A is dead: the sole caller 0x02f8 does `pop psw` then `mvi a` before ever reading A, and
 // the oracle's 0x0886 leaves A = the page byte while the module drops it). Neither side writes game
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0878 as oracle } from "../../translated/loc_0878.js";
-import { loc_0878 } from "../loc_0878.js";
+import { stageActivePlayerFieldSave } from "../stageActivePlayerFieldSave.js";
 import { activeFieldRecordPointer } from "../activeFieldRecordPointer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -49,11 +49,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0878 dispatches -- loc_0878 == oracle in RAM (-stack) and HL/DE/B", () => {
+test("CAPTURE: real 0x0878 dispatches -- stageActivePlayerFieldSave == oracle in RAM (-stack) and HL/DE/B", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0878(c);
+    oracle(o); stageActivePlayerFieldSave(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(regOutDiff(o, c), null);
   }
@@ -70,7 +70,7 @@ test("CRAFTED: B/DE from the cells, HL = (page << 8) | 0xfc", () => {
     const o = new Machine(ROM); o.regs.sp = 0x2400; o.push16(CALLER_RET); o.io.setInte(false);
     const c = new Machine(ROM); c.regs.sp = 0x2400; c.push16(CALLER_RET); c.io.setInte(false);
     seed(o, count, deWord, page); seed(c, count, deWord, page);
-    oracle(o); loc_0878(c);
+    oracle(o); stageActivePlayerFieldSave(c);
     assert.equal(ramDiff(o, c), null, `count=0x${count.toString(16)}`);
     assert.equal(regOutDiff(o, c), null, `count=0x${count.toString(16)}`);
     assert.equal(c.regs.b, count, `B count=0x${count.toString(16)}`);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1554 (ROM 0x1554) -- the scale/count helper. Count in C the 0x10 steps
+// Memory-equivalence for countStepsToThreshold (ROM 0x1554) -- the scale/count helper. Count in C the 0x10 steps
 // that lift A to/above threshold H; a negative A is pre-normalized via the dissolved 0x1590. Live-out:
 // A (residual) AND C (step count), both read back by the callers loc_1562/loc_156f. No RAM write, so
 // the contract is the (A, C) live-out (RAM diff stays null, minus the oracle's transient cnc push).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1554 as oracle } from "../../translated/loc_1554.js";
-import { loc_1554 } from "../loc_1554.js";
+import { countStepsToThreshold } from "../countStepsToThreshold.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -42,7 +42,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1554 dispatches -- loc_1554 == oracle in RAM (-stack) and A/C", () => {
+test("CAPTURE: real 0x1554 dispatches -- countStepsToThreshold == oracle in RAM (-stack) and A/C", () => {
   for (const cap of CAPS) {
     // The oracle's `cnc 0x1590` pushes a return word just below the ENTRY SP; the module never touches
     // the stack, so exclude relative to that SP, not the fixed window.
@@ -51,7 +51,7 @@ test("CAPTURE: real 0x1554 dispatches -- loc_1554 == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1554(c);
+    oracle(o); countStepsToThreshold(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
     assert.equal(c.regs.c, o.regs.c, "C live-out matches the oracle");
@@ -74,7 +74,7 @@ test("CRAFTED: C counts the steps and A lands >= H, across cnc-skip / cnc-fire p
     const o = new Machine(ROM); o.regs.a = a; o.regs.h = h; o.regs.sp = 0x2400; o.regs.fC = true;
     const cc = new Machine(ROM); cc.regs.a = a; cc.regs.h = h; cc.regs.sp = 0x2400; cc.regs.fC = true;
     oracle(o);
-    const ret = loc_1554(cc);
+    const ret = countStepsToThreshold(cc);
     const [ea, ec] = expect(a, h);
     const tag = `A=0x${a.toString(16)} H=0x${h.toString(16)}`;
     assert.equal(ramDiff(o, cc), null, tag);
@@ -92,7 +92,7 @@ test("TEETH: a broken twin (0x08 step instead of 0x10) diverges in A/C", () => {
   const a = 0x00, h = 0x30;
   const o = new Machine(ROM); o.regs.a = a; o.regs.h = h; o.regs.sp = 0x2400;
   oracle(o);
-  // broken twin of loc_1554: wrong step size
+  // broken twin of countStepsToThreshold: wrong step size
   let ba = a, bc = 0;
   if (ba >= h) { do { bc = (bc + 1) & 0xff; ba = (ba + 0x08) & 0xff; } while (ba & 0x80); }
   while (ba < h) { ba = (ba + 0x08) & 0xff; bc = (bc + 1) & 0xff; }

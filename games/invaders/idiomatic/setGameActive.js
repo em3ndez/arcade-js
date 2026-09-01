@@ -2,6 +2,6 @@
 import { loc_19d3 } from "./loc_19d3.js";
 
 // Mark the game active by storing 1 through the shared accumulator tail.
-export function loc_19d1(m) {
+export function setGameActive(m) {
   loc_19d3(m, 1);
 }

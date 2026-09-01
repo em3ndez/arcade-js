@@ -4,7 +4,7 @@ import { u16 } from "../../../core/int.js";
 import { loc_1d20 } from "./names.js";
 
 // Replicate the 0x2c-byte source block into four consecutive destination slots; live-out HL is the end.
-export function loc_01f8(m, hl = m.regs.hl) {
+export function initShieldBuffers(m, hl = m.regs.hl) {
   let dst = hl;
   for (let pass = 0; pass < 4; pass++) {
     blockCopy(m, loc_1d20, dst, 0x2c);
