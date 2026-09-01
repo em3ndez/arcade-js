@@ -1,1 +1,7 @@
-[]
+[
+  { "addr": "0x028e", "why": "pchl dispatch target (loc_024b object table @0x2010, +3/+4; recovered from golden RAM, attract)", "provenance": "pchl-target" },
+  { "addr": "0x03bb", "why": "pchl dispatch target (loc_024b object table @0x2010, +3/+4; recovered from golden RAM, attract)", "provenance": "pchl-target" },
+  { "addr": "0x0476", "why": "pchl dispatch target (loc_024b object table @0x2010, +3/+4; recovered from golden RAM, attract)", "provenance": "pchl-target" },
+  { "addr": "0x04b6", "why": "pchl dispatch target (loc_024b object table @0x2010, +3/+4; recovered from golden RAM, attract)", "provenance": "pchl-target" },
+  { "addr": "0x0682", "why": "pchl dispatch target (loc_024b object table @0x2010, +3/+4; recovered from golden RAM, attract)", "provenance": "pchl-target" }
+]

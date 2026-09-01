@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence test for loc_0707 (ROM 0x0707-0x070b): loads B=0xfe then tail-jumps into loc_19dc.
-// Run: node --test games/invaders/translated/test/loc_0707.test.js
+//
+// Equivalence test for loc_0675 (ROM 0x0675-0x067d): points HL at 0x2079, calls 0x1a3b, tail-jumps
+// loc_1452. Pins the HL seat, the exact T-states, the call/delegate sequence, and the return addr.
+//
+// Run: node --test games/invaders/translated/test/loc_0675.test.js
 
 import test from "node:test";
 import assert from "node:assert/strict";
 
 import { Regs } from "../../../../core/cpu/8080.js";
-import { loc_0707 } from "../loc_0707.js";
+import { loc_0675 } from "../loc_0675.js";
 
 function makeMachine() {
   const regs = new Regs();
@@ -27,25 +30,25 @@ function makeMachine() {
   };
 }
 
-test("loc_0707: B:=0xfe, delegates to 0x19dc; 17 T", () => {
+test("loc_0675: HL:=0x2079, call 0x1a3b, tail-jump loc_1452; 37 T", () => {
   const m = makeMachine();
   m.regs.sp = 0x2400;
 
-  loc_0707(m);
+  loc_0675(m);
 
-  assert.equal(m.regs.b, 0xfe, "B := 0xfe");
-  assert.equal(m.tstates, 7 + 10, "T: mvi(7)+jmp(10)");
-  assert.equal(m.pc, 0x19dc, "last step lands at the delegate");
-  assert.deepEqual(m.calls, [0x19dc], "tail-jmp 0x19dc");
-  assert.deepEqual(m.pcSeq, [0x0709, 0x19dc], "step boundaries");
+  assert.equal(m.regs.hl, 0x2079, "hl := 0x2079");
+  assert.equal(m.tstates, 10 + 17 + 10, "T: lxi(10)+call(17)+jmp(10)");
+  assert.deepEqual(m.calls, [0x1a3b, 0x1452], "call 0x1a3b then delegate loc_1452");
+  assert.equal(m.mem.read16(0x23fe), 0x067b, "call 0x1a3b pushes return addr 0x067b");
+  assert.equal(m.pc, 0x1452, "last step lands at the loc_1452 delegate");
 });
 
-test("loc_0707 MUTATION: mvi b mischarged 10T not 7T is caught", () => {
+test("loc_0675 MUTATION: `jmp 0x1452` mis-charged 7T (not 10T) is caught", () => {
   const m = makeMachine();
   m.regs.sp = 0x2400;
   const realStep = m.step.bind(m);
-  m.step = (n, c) => realStep(n, n === 0x0709 ? 10 : c);
-  loc_0707(m);
-  assert.equal(m.tstates, 10 + 10, "mutation adds 3 T");
-  assert.notEqual(m.tstates, 17, "golden T-state total catches the mutant");
+  m.step = (n, c) => realStep(n, n === 0x1452 ? 7 : c);
+  loc_0675(m);
+  assert.equal(m.tstates, 10 + 17 + 7, "mutation loses 3 T (10 -> 7)");
+  assert.notEqual(m.tstates, 37, "golden T-state total catches the mutant");
 });
