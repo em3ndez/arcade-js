@@ -6,8 +6,13 @@ of the port. Every claim is tagged with the confidence of its reading:
 
 - **[seen]** — a role confirmed by a MAME observation.
 - **[code]** — a role read from the routine bodies (the frozen oracle + its idiomatic rewrite); MAME
-  grounding is still open. Everything below is **[code]**: this is the first understanding pass, and stage-B
-  grounding has not yet run.
+  grounding still open. A first stage-B grounding pass has run against a MAME play capture (boot + attract +
+  a coin/start/1-player game): the sound-port shadows, the living-alien count, the game-active gate, the
+  framebuffer draw/clear routines and their video-RAM boundary constants are **[seen]**. The cells and
+  routines a single-player run does not exercise — the per-player object records and page selector, the task
+  bitmask's set path, the timer reload, and the pointer/input compute routines whose reachability that capture
+  does not record — stay **[code]** pending a two-player / saucer / longer capture. The per-item tag lives in
+  names.js (a cell's inline `// [seen]`/`// [code]`, a routine's `cert`).
 - **[guess]** — an unclear reading; these keep a `loc_<addr>` placeholder rather than a descriptive name.
 
 What is described here is the layer of **low-level helper routines** — the primitives the game's spine calls
