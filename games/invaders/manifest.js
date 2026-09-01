@@ -38,14 +38,16 @@ export default {
   // (press each bit, diff vs a no-input baseline) before relying on them.
   inputs: {
     ports: { in0: 0, in1: 1, in2: 2 },
+    // Bits + polarity pinned from INPUT_PORTS(invaders) in mw8080bw.cpp. coin is ACTIVE-LOW (see io.js);
+    // start/controls active-high. Verified by boot+gameplay running gap-free through the emit engine.
     actions: {
-      coin:   { port: 1, bit: 0x01 }, // ★ verify
-      start2: { port: 1, bit: 0x02 }, // ★ verify
-      start1: { port: 1, bit: 0x04 }, // ★ verify
-      fire:   { port: 1, bit: 0x10 }, // ★ verify
-      left:   { port: 1, bit: 0x20 }, // ★ verify
-      right:  { port: 1, bit: 0x40 }, // ★ verify
-      // P2 controls (fire/left/right) live on IN2 bits; DIPs (lives/bonus/coinage) also on IN2. ★ verify.
+      coin:   { port: 1, bit: 0x01, activeLow: true }, // IPT_COIN1
+      start2: { port: 1, bit: 0x02 }, // IPT_START2
+      start1: { port: 1, bit: 0x04 }, // IPT_START1
+      fire:   { port: 1, bit: 0x10 }, // P1 button 1 (IN1 control bits)
+      left:   { port: 1, bit: 0x20 }, // P1 left
+      right:  { port: 1, bit: 0x40 }, // P1 right
+      // P2 controls mirror onto IN2 control bits; DIPs (lives/bonus/coinage) also on IN2.
     },
     keys: {
       ArrowLeft: "left",

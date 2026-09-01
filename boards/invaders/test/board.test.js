@@ -167,14 +167,17 @@ test("OUT 3 / OUT 5 latch the two sound ports and fire the audio sink (io_map_no
   assert.deepEqual(seen, [[3, 0x2a], [5, 0x1b]], "callback carries the OUT port number, not the index");
 });
 
-test("active-high inputs: a pressed bit ORs onto the idle byte, released reads idle", () => {
-  // SI inputs are active-high (io.js) -- opposite the Konami active-low boards; press => bit reads 1.
+test("mixed-polarity inputs: active-high START1 sets, active-low COIN1 clears from its idle pull-up", () => {
+  // io.js folds each pressed bit per its driver polarity (mw8080bw INPUT_PORTS): START1 (IN1 b2) is
+  // active-high; COIN1 (IN1 b0) and the unused pull-up (IN1 b3) are active-low (idle 1, pressed 0).
   const io = new Io();
-  io.in1 = 0x02; // some idle bit already set
-  io.inputAssert = { 1: 0x04 }; // IN1 bit2 (START1 per PORT_START("IN1") @2669)
-  assert.equal(io.portIn(1), 0x06, "0x02 idle | 0x04 pressed");
+  assert.equal(io.portIn(1), 0x09, "idle IN1 = COIN + unused pull-ups (0x01 | 0x08)");
+  io.inputAssert = { 1: 0x04 }; // START1 (active-high) -> bit2 set
+  assert.equal(io.portIn(1), 0x0d, "0x09 idle with START1 bit2 set");
+  io.inputAssert = { 1: 0x01 }; // COIN1 (active-low) -> bit0 CLEARED
+  assert.equal(io.portIn(1), 0x08, "coin press clears bit0 from the idle-high; unused bit3 stays");
   io.inputAssert = null;
-  assert.equal(io.portIn(1), 0x02, "released reads idle");
+  assert.equal(io.portIn(1), 0x09, "released reads idle");
 });
 
 test("--input targeting a non-input port is rejected (only 0,1,2 are input ports)", () => {

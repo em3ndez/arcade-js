@@ -5,10 +5,11 @@
 //   IN  0 -> IN0    IN  1 -> IN1    IN  2 -> IN2    IN  3 -> mb14241 shift result
 //   OUT 2 -> mb14241 shift COUNT/offset   OUT 3 -> sound port 1   OUT 4 -> mb14241 shift DATA
 //   OUT 5 -> sound port 2                 OUT 6 -> watchdog reset
-// SI inputs are ACTIVE HIGH (pressed bit reads 1) -- opposite the Konami active-low boards.
-// ★ VERIFY at build/grounding: exact IN0/1/2 idle + DIP bits (read the driver PORT_START/PORT_BIT and
-// find button bits empirically per runbook §2); the mb14241 shift direction (vs mame mb14241.cpp);
-// EI/DI -> INTE wiring for the interrupt gate (see games/invaders/machine.js, the 2-RST design).
+// Input polarity is MIXED, pinned from the driver INPUT_PORTS(invaders) in mw8080bw.cpp: most buttons are
+// ACTIVE-HIGH (START1/2 IN1 b1/b2, the P1 control bits IN1 b4-6), but IN1 b0 COIN1 and the unused pull-ups
+// (IN0 b3, IN1 b3) are ACTIVE-LOW (read 1 idle, 0 pressed). A tape drives PRESSED bits regardless of
+// polarity; readInN() folds each bit in per its polarity. The DIP-derived bits (IN0 sw5-8, IN2 lives/
+// bonus/coinage) stay at their default-OFF idle; the mb14241 shift direction + EI/DI->INTE are confirmed.
 
 export class NotImplemented extends Error {
   constructor(what) {
@@ -17,11 +18,15 @@ export class NotImplemented extends Error {
   }
 }
 
-// ★ Idle input bytes -- placeholders until pinned from the driver PORT defaults + empirical bit-probe.
-// Active-high: un-pressed buttons read 0; fixed/tie-high bits and DIP defaults still to confirm.
-export const IDLE_IN0 = 0x00; // ★ some bits tie high on real HW -- confirm
-export const IDLE_IN1 = 0x00; // ★ bit3 often ties high; coin/start/fire/left/right are the button bits
-export const IDLE_IN2 = 0x00; // ★ carries the DIP switches (lives/bonus/coinage) -- confirm defaults
+// Idle input bytes (nothing pressed), from the driver: the active-LOW bits read 1 idle. IN0 b3 unused,
+// IN1 b0 COIN1 + b3 unused. IN2 DIP defaults OFF = 3 lives / 1500 bonus / coinage-on = 0x00.
+export const IDLE_IN0 = 0x08; // b3 unused (active-low pull-up); DIP sw5-8 + P2 controls default 0
+export const IDLE_IN1 = 0x09; // b0 COIN1 + b3 unused (both active-low pull-ups)
+export const IDLE_IN2 = 0x00; // DIP defaults + P2 controls
+// Active-LOW bit masks per port (a pressed bit CLEARS from idle-1 to 0); all other driven bits active-high.
+export const ACTIVE_LOW_IN0 = 0x08;
+export const ACTIVE_LOW_IN1 = 0x09;
+export const ACTIVE_LOW_IN2 = 0x00;
 
 // Input ports the tape/--input may drive (the three read ports).
 export const PORT_ADDRS = new Set([0, 1, 2]);
@@ -42,7 +47,7 @@ export class Io {
     this.onSoundWrite = null; // web worker audio sink; null offline
   }
 
-  inputAssert = null; // {port: pressedBits} per frame; ORed in (active-high) here
+  inputAssert = null; // {port: pressedBits} per frame; folded in per bit polarity (see _fold)
 
   _pressed(port) {
     if (!this.inputAssert) return 0;
@@ -54,10 +59,15 @@ export class Io {
     return this.inputAssert[port] || 0;
   }
 
-  // Active-high: a pressed bit reads 1, so OR it onto the idle byte.
-  readIn0() { return (this.in0 | this._pressed(0)) & 0xff; }
-  readIn1() { return (this.in1 | this._pressed(1)) & 0xff; }
-  readIn2() { return (this.in2 | this._pressed(2)) & 0xff; }
+  // Fold the tape's pressed bits into the idle byte per polarity: an active-LOW pressed bit clears from
+  // its idle 1, an active-high pressed bit sets from its idle 0.
+  _fold(idle, port, activeLow) {
+    const p = this._pressed(port);
+    return ((idle & ~(p & activeLow)) | (p & ~activeLow)) & 0xff;
+  }
+  readIn0() { return this._fold(this.in0, 0, ACTIVE_LOW_IN0); }
+  readIn1() { return this._fold(this.in1, 1, ACTIVE_LOW_IN1); }
+  readIn2() { return this._fold(this.in2, 2, ACTIVE_LOW_IN2); }
 
   /** mb14241 result: the 8-bit window of the 16-bit register at the current offset.
    *  ★ direction to confirm vs mame mb14241.cpp shift_result_r. */
