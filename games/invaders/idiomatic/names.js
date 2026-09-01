@@ -16,7 +16,7 @@ export const ACTIVE_PLAYER_PAGE = 0x2067;  // [code]
 export const loc_207e = 0x207e;
 export const ALIEN_COUNT = 0x2082;  // [seen]
 export const loc_2083 = 0x2083;
-export const SAUCER_TIMER = 0x2091;  // [code]
+export const SAUCER_TIMER = 0x2091;  // [seen]
 export const SOUND_PORT3_SHADOW = 0x2094;  // [seen]
 export const SOUND_PORT5_SHADOW = 0x2098;  // [seen]
 export const TASK_FLAGS = 0x20c1;  // [code]
@@ -28,19 +28,19 @@ export const VIDEO_RAM_BASE = 0x2400;  // [seen]
 export const PLAYFIELD_VRAM_BASE = 0x2402;  // [seen]
 export const VIDEO_RAM_END = 0x4000;  // [seen]
 export const DRAW_BLOCK_STRIDE = 0x02e0;  // [code]
-export const FLEET_RATE_THRESHOLDS = 0x1a11;  // [code]
-export const FLEET_RATE_TABLE = 0x1a21;  // [code]
-export const ALIEN_SHOT_RATE_TABLE = 0x1aa1;  // [code]
-export const WORKRAM_INIT_IMAGE = 0x1b00;  // [code]
+export const FLEET_RATE_THRESHOLDS = 0x1a11;  // [seen]
+export const FLEET_RATE_TABLE = 0x1a21;  // [seen]
+export const ALIEN_SHOT_RATE_TABLE = 0x1aa1;  // [seen]
+export const WORKRAM_INIT_IMAGE = 0x1b00;  // [seen]
 export const loc_1b83 = 0x1b83;
-export const ALIEN_SHOT_RATE_THRESHOLDS = 0x1cb8;  // [code]
+export const ALIEN_SHOT_RATE_THRESHOLDS = 0x1cb8;  // [seen]
 export const loc_1d20 = 0x1d20;
 export const loc_1e00 = 0x1e00;
-export const ALIEN_DRAW_PENDING = 0x2000;  // [code]
+export const ALIEN_DRAW_PENDING = 0x2000;  // [seen]
 export const PRIZE_ACTIVE = 0x2002;  // [code]
 export const loc_2008 = 0x2008;
-export const ALIEN_DRAW_ADDR = 0x200b;  // [code]
-export const FLEET_MOVE_DIR = 0x200d;  // [code]
+export const ALIEN_DRAW_ADDR = 0x200b;  // [seen]
+export const FLEET_MOVE_DIR = 0x200d;  // [seen]
 export const GAME_OBJECT_TABLE = 0x2010;  // [code]
 export const loc_2011 = 0x2011;
 export const loc_2015 = 0x2015;
@@ -55,15 +55,15 @@ export const loc_2073 = 0x2073;
 export const loc_207f = 0x207f;
 export const SHIELD_SAVE_RESTORE_MODE = 0x2081;  // [code]
 export const loc_2087 = 0x2087;
-export const FLEET_SOUND_STEP = 0x2095;  // [code]
-export const FLEET_SOUND_TIMER = 0x2096;  // [code]
+export const FLEET_SOUND_STEP = 0x2095;  // [seen]
+export const FLEET_SOUND_TIMER = 0x2096;  // [seen]
 export const FLEET_SOUND_PERIOD = 0x2097;  // [code]
-export const SFX_OFF_TIMER = 0x2099;  // [code]
-export const FLEET_SOUND_OFF_TIMER = 0x209b;  // [code]
+export const SFX_OFF_TIMER = 0x2099;  // [seen]
+export const FLEET_SOUND_OFF_TIMER = 0x209b;  // [seen]
 export const loc_20c2 = 0x20c2;
 export const loc_20cf = 0x20cf;
 export const ATTRACT_DEMO_PTR = 0x20ed;  // [code]
-export const GAME_IN_PROGRESS = 0x20ef;  // [code]
+export const GAME_IN_PROGRESS = 0x20ef;  // [seen]
 export const SCORE_ADD_PENDING = 0x20f1;  // [code]
 export const SCORE_ADD_VALUE = 0x20f2;  // [code]
 export const SCORE_ADD_VALUE_HI = 0x20f3;  // [code]
@@ -72,14 +72,14 @@ export const ALIEN_FIELD_P2 = 0x2200;  // [code]
 export const SHIELD_VRAM_BASE = 0x2806;  // [code]
 
 export const ROUTINES = {
-  0x00b1: { name: "loadReferenceAlienState", role: "load the active player's saved field record: mirror the reference-alien coord word to loc_2009/ALIEN_DRAW_ADDR, derive the count at loc_2008, set FLEET_MOVE_DIR on the 0xfe edge sentinel", cert: "code" },
+  0x00b1: { name: "loadReferenceAlienState", role: "load the active player's saved field record: mirror the reference-alien coord word to loc_2009/ALIEN_DRAW_ADDR, derive the count at loc_2008, set FLEET_MOVE_DIR on the 0xfe edge sentinel", cert: "seen" },
   0x01c0: { name: "markAllAliensAliveP1", role: "seat the player-1 alien-status base ALIEN_FIELD_P1 then markAllAliensAlive (fill 0x37 cells with 0x01)", cert: "code" },
   0x01cf: { name: "drawBottomLine", role: "draw the full-width bottom ground line via fillScreenRow(0x01, 0xe0, PLAYFIELD_VRAM_BASE); live-out HL", cert: "code" },
   0x01e6: { name: "initWorkRam", role: "boot-init: blockCopy the caller's B bytes from ROM image WORKRAM_INIT_IMAGE into the base of work RAM", cert: "code" },
   0x01f8: { name: "initShieldBuffers", role: "replicate the 0x2c-byte shield template loc_1d20 into four consecutive shield buffers from HL; live-out HL", cert: "code" },
-  0x021e: { name: "drawOrSaveShields", role: "shield save/restore: store SHIELD_SAVE_RESTORE_MODE, then four 22x2 blocks from SHIELD_VRAM_BASE (stride DRAW_BLOCK_STRIDE) -- captureScreenRect when set, orBlitBitmap when clear", cert: "code" },
+  0x021e: { name: "drawOrSaveShields", role: "shield save/restore: store SHIELD_SAVE_RESTORE_MODE, then four 22x2 blocks from SHIELD_VRAM_BASE (stride DRAW_BLOCK_STRIDE) -- captureScreenRect when set, orBlitBitmap when clear", cert: "seen" },
   0x0430: { name: "loadPlayerShotDescriptor", role: "load the player-shot 5-byte descriptor at PLAYER_SHOT_DESC via loadSpriteDescriptor; HL := its screen address", cert: "code" },
-  0x0550: { name: "copyRecordToWorkBuffer", role: "stash A -> loc_207f, then blockCopy 0x0b bytes (DE)->work buffer loc_2073 (prime an object strip)", cert: "code" },
+  0x0550: { name: "copyRecordToWorkBuffer", role: "stash A -> loc_207f, then blockCopy 0x0b bytes (DE)->work buffer loc_2073 (prime an object strip)", cert: "seen" },
   0x055b: { name: "copyWorkBufferToRecord", role: "blockCopy 0x0b bytes work buffer loc_2073 ->(HL) (restore the object strip; twin of copyRecordToWorkBuffer)", cert: "code" },
   0x0707: { name: "stopSaucerSound", role: "clear the saucer sound bit: SOUND_PORT3_SHADOW &= 0xfe via loc_19dc, mirror to sound port 3; value-out A", cert: "code" },
   0x0742: { name: "resolveSpriteScreenAddr", role: "load the sprite descriptor at loc_2087 then coordToScreenAddr; HL := screen address, DE := gfx pointer", cert: "code" },
@@ -93,12 +93,12 @@ export const ROUTINES = {
   0x14cb: { name: "clearScreenStrip", role: "zero A then fillScreenRow(0) -- blank a run of B screen columns from HL; live-out HL", cert: "code" },
   0x154a: { name: "deactivatePrize", role: "clear PRIZE_ACTIVE, then loc_19dc(0xf7) masks bit 3 off SOUND_PORT3_SHADOW; value-out A", cert: "code" },
   0x1554: { name: "countStepsToThreshold", role: "count in C the 0x10 steps that lift A to/above threshold H (pre-normalizing a negative A via loc_1590); live-out A, C, carry clear", cert: "code" },
-  0x15f3: { name: "countLiveAliens", role: "count live cells across the active player's 0x37-byte alien field into ALIEN_COUNT; set LAST_ALIEN_FLAG at exactly one survivor", cert: "code" },
+  0x15f3: { name: "countLiveAliens", role: "count live cells across the active player's 0x37-byte alien field into ALIEN_COUNT; set LAST_ALIEN_FLAG at exactly one survivor", cert: "seen" },
   0x1618: { name: "advanceRoundState", role: "gated pre-round step: when armed (loc_2015==0xff) and the field is idle, advance ATTRACT_DEMO_PTR (attract) or arm the shot on a fresh fire edge (play, GAME_IN_PROGRESS set)", cert: "code" },
-  0x170e: { name: "selectAlienShotRate", role: "select the alien-shot rate: scan ALIEN_SHOT_RATE_THRESHOLDS for the first entry >= the field-size key, store the parallel ALIEN_SHOT_RATE_TABLE byte to loc_20cf (read by the shot stepper loc_0563)", cert: "code" },
+  0x170e: { name: "selectAlienShotRate", role: "select the alien-shot rate: scan ALIEN_SHOT_RATE_THRESHOLDS for the first entry >= the field-size key, store the parallel ALIEN_SHOT_RATE_TABLE byte to loc_20cf (read by the shot stepper loc_0563)", cert: "seen" },
   0x172c: { name: "loc_172c", role: "mode-gated sound step: PLAYER_SHOT_STATUS!=0 -> startSound(0x02), else loc_19dc(0xfd)", cert: "code" },
-  0x1740: { name: "stepFleetMarchSound", role: "fleet-march sound beat: tick FLEET_SOUND_OFF_TIMER/FLEET_SOUND_TIMER, on beat emit SOUND_PORT5_SHADOW and re-arm, silencing at the edges; set FLEET_SOUND_STEP", cert: "code" },
-  0x1775: { name: "advanceFleetMarchSound", role: "on FLEET_SOUND_STEP, pick the fleet tempo for ALIEN_COUNT from FLEET_RATE_THRESHOLDS/FLEET_RATE_TABLE into FLEET_SOUND_PERIOD and rotate the port-5 fleet tone; tick SFX_OFF_TIMER", cert: "code" },
+  0x1740: { name: "stepFleetMarchSound", role: "fleet-march sound beat: tick FLEET_SOUND_OFF_TIMER/FLEET_SOUND_TIMER, on beat emit SOUND_PORT5_SHADOW and re-arm, silencing at the edges; set FLEET_SOUND_STEP", cert: "seen" },
+  0x1775: { name: "advanceFleetMarchSound", role: "on FLEET_SOUND_STEP, pick the fleet tempo for ALIEN_COUNT from FLEET_RATE_THRESHOLDS/FLEET_RATE_TABLE into FLEET_SOUND_PERIOD and rotate the port-5 fleet tone; tick SFX_OFF_TIMER", cert: "seen" },
   0x1844: { name: "drawSpriteColumn16", role: "draw a fixed 16-row sprite column (row count forced to 0x10) via drawSpriteColumn, preserving BC; live-out HL", cert: "code" },
   0x1904: { name: "markAllAliensAliveP2", role: "seat the player-2 alien-status base ALIEN_FIELD_P2 then markAllAliensAlive (0x37-byte 0x01 fill)", cert: "code" },
   0x1988: { name: "loc_1988", role: "clear the play-field framebuffer", cert: "code" },

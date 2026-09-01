@@ -21,7 +21,8 @@ _G.gnotify = emu.add_machine_frame_notifier(function()
   _G.gframe = _G.gframe + 1; local f = _G.gframe
   if coin then coin:set_value((f >= 300 and f < 303) and 1 or 0) end
   if start1 then start1:set_value((f >= 360 and f < 363) and 1 or 0) end
-  if fire then fire:set_value((f >= 430) and 1 or 0) end
+  -- Fire must EDGE (the debounce latch ignores a held button), so pulse it: 2 frames on / 28 off.
+  if fire then fire:set_value((f >= 430 and (f % 30) < 2) and 1 or 0) end
   if left then left:set_value((f >= 430 and (f % 160) < 80) and 1 or 0) end
   if right then right:set_value((f >= 430 and (f % 160) >= 80) and 1 or 0) end
 end)
