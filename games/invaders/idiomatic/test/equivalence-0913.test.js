@@ -1,0 +1,76 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Memory-equivalence for loc_0913 -- gate a 16-bit countdown timer: if the gate cell is high, do
+// nothing; else decrement the counter, and when it was zero reload it and raise a wrap flag. Inputs
+// and live-out are all memory, so each side runs on a fresh clone and the contract is RAM
+// (dumpState, minus STACK_SCRATCH).
+// Run: node --test games/invaders/idiomatic/test/equivalence-0913.test.js
+
+import nodeTest from "node:test";
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+
+import { loc_0913 as oracle } from "../../translated/loc_0913.js";
+import { loc_0913 } from "../loc_0913.js";
+import { Machine } from "../../machine.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
+import { STACK_SCRATCH, loc_2009, loc_2091, loc_2083, loc_0600 } from "../names.js";
+
+const ROM_DIR = new URL("../../rom/", import.meta.url);
+const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
+const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM_DIR))) : null;
+const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
+
+const TARGET = 0x0913;
+const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
+const ramDiff = (ma, mb) =>
+  firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
+
+function captureDispatches(K, maxFrames) {
+  const caps = [];
+  const snap = new Map([[TARGET, (mm) => { if (caps.length < K) caps.push(mm.clone()); return oracle(mm); }]]);
+  new Machine(ROM, { overrides: snap }).runFrames(maxFrames);
+  return caps;
+}
+const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
+
+test("CAPTURE: real 0x0913 dispatches -- loc_0913 == oracle in RAM (-stack)", () => {
+  for (const cap of CAPS) {
+    const o = cap.clone(), c = cap.clone();
+    oracle(o); loc_0913(c);
+    assert.equal(ramDiff(o, c), null);
+  }
+  console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
+});
+
+// {gate, counter, flag0, wantCounter, wantFlag} -- every arm of the routine.
+const CRAFTED = [
+  { gate: 0x78, counter: 0x0100, flag0: 0x00, wantCounter: 0x0100, wantFlag: 0x00 }, // gate high (==): early return
+  { gate: 0xff, counter: 0x0005, flag0: 0x00, wantCounter: 0x0005, wantFlag: 0x00 }, // gate high: early return
+  { gate: 0x77, counter: 0x0100, flag0: 0x00, wantCounter: 0x00ff, wantFlag: 0x00 }, // gate low, counter != 0: dec
+  { gate: 0x00, counter: 0x0001, flag0: 0x00, wantCounter: 0x0000, wantFlag: 0x00 }, // gate low, counter -> 0: dec, no wrap
+  { gate: 0x40, counter: 0x0000, flag0: 0x00, wantCounter: (loc_0600 - 1) & 0xffff, wantFlag: 0x01 }, // wrap: reload + flag
+];
+
+test("CRAFTED: each arm matches the oracle in RAM and hits the expected cells", () => {
+  for (const s of CRAFTED) {
+    const seed = (m) => { m.mem.write8(loc_2009, s.gate); m.mem.write16(loc_2091, s.counter); m.mem.write8(loc_2083, s.flag0); };
+    const o = new Machine(ROM); seed(o);
+    const c = new Machine(ROM); seed(c);
+    oracle(o); loc_0913(c);
+    const label = `gate=0x${s.gate.toString(16)} counter=0x${s.counter.toString(16)}`;
+    assert.equal(ramDiff(o, c), null, label);
+    assert.equal(c.mem.read16(loc_2091), s.wantCounter, `counter ${label}`);
+    assert.equal(c.mem.read8(loc_2083), s.wantFlag, `flag ${label}`);
+  }
+});
+
+test("TEETH: a wrong stored counter is caught", () => {
+  const seed = (m) => { m.mem.write8(loc_2009, 0x40); m.mem.write16(loc_2091, 0x0000); m.mem.write8(loc_2083, 0x00); };
+  const o = new Machine(ROM); seed(o);
+  const c = new Machine(ROM); seed(c);
+  oracle(o);
+  loc_0913(c); c.mem.write16(loc_2091, 0x1234); // BUG: wrong stored counter
+  const d = ramDiff(o, c);
+  assert.notEqual(d, null, "the gate FAILED to catch a wrong stored counter");
+  assert.equal(d.addr, loc_2091 & 0xffff);
+});

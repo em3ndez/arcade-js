@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Memory-equivalence for loc_08d8 (ROM 0x08d8) -- "if mem[0x2082] < 9: mem[0x207e] = 0xfb". Input is the
+// counter cell 0x2082; live-out is memory (0x207e), so the contract is RAM (dumpState, minus
+// STACK_SCRATCH). Crafts span the threshold and pre-seed 0x207e to a sentinel to see both branches.
+// Run: node --test games/invaders/idiomatic/test/equivalence-08d8.test.js
+
+import nodeTest from "node:test";
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+
+import { loc_08d8 as oracle } from "../../translated/loc_08d8.js";
+import { loc_08d8 } from "../loc_08d8.js";
+import { Machine } from "../../machine.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
+import { STACK_SCRATCH, loc_2082, loc_207e } from "../names.js";
+
+const ROM_DIR = new URL("../../rom/", import.meta.url);
+const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
+const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM_DIR))) : null;
+const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
+
+const TARGET = 0x08d8;
+const SENTINEL = 0x11; // a non-0xfb marker so "not written" is distinguishable from "written 0xfb"
+const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
+const ramDiff = (ma, mb) =>
+  firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
+
+function captureDispatches(K, maxFrames) {
+  const caps = [];
+  const snap = new Map([[TARGET, (mm) => { if (caps.length < K) caps.push(mm.clone()); return oracle(mm); }]]);
+  new Machine(ROM, { overrides: snap }).runFrames(maxFrames);
+  return caps;
+}
+const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
+
+test("CAPTURE: real 0x08d8 dispatches -- loc_08d8 == oracle in RAM (-stack)", () => {
+  for (const cap of CAPS) {
+    const o = cap.clone(), c = cap.clone();
+    oracle(o); loc_08d8(c);
+    assert.equal(ramDiff(o, c), null);
+  }
+  console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
+});
+
+test("CRAFTED: 0x207e seated 0xfb below the threshold, untouched at/above it", () => {
+  for (const cnt of [0x00, 0x01, 0x08, 0x09, 0x0a, 0xff]) {
+    const o = new Machine(ROM); o.mem.write8(loc_2082, cnt); o.mem.write8(loc_207e, SENTINEL);
+    const c = new Machine(ROM); c.mem.write8(loc_2082, cnt); c.mem.write8(loc_207e, SENTINEL);
+    oracle(o); loc_08d8(c);
+    assert.equal(ramDiff(o, c), null, `cnt=0x${cnt.toString(16)}`);
+    const expected = cnt < 0x09 ? 0xfb : SENTINEL;
+    assert.equal(c.mem.read8(loc_207e), expected, `0x207e for cnt=0x${cnt.toString(16)}`);
+  }
+});
+
+test("TEETH: a wrong stored byte is caught", () => {
+  const brokenLoc08d8 = (m) => { if (m.mem8[loc_2082] < 0x09) m.mem8[loc_207e] = 0x5a; }; // BUG: 0x5a
+  const o = new Machine(ROM); o.mem.write8(loc_2082, 0x00); o.mem.write8(loc_207e, SENTINEL);
+  const c = new Machine(ROM); c.mem.write8(loc_2082, 0x00); c.mem.write8(loc_207e, SENTINEL);
+  oracle(o); brokenLoc08d8(c);
+  const d = ramDiff(o, c);
+  assert.notEqual(d, null, "the gate FAILED to catch a wrong stored byte");
+  assert.equal(d.addr, loc_207e & 0xffff);
+});

@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Memory-equivalence for loc_19dc (ROM 0x19dc) -- AND the sound shadow loc_2094 with B, write it back
+// and mirror to sound port 3. Live-out: memory (loc_2094) + A.
+// Run: node --test games/invaders/idiomatic/test/equivalence-19dc.test.js
+
+import nodeTest from "node:test";
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+
+import { loc_19dc as oracle } from "../../translated/loc_19dc.js";
+import { loc_19dc } from "../loc_19dc.js";
+import { Machine } from "../../machine.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
+import { STACK_SCRATCH, loc_2094 } from "../names.js";
+
+const ROM_DIR = new URL("../../rom/", import.meta.url);
+const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
+const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM_DIR))) : null;
+const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
+
+const TARGET = 0x19dc;
+const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
+const ramDiff = (ma, mb) =>
+  firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
+
+function captureDispatches(K, maxFrames) {
+  const caps = [];
+  const snap = new Map([[TARGET, (mm) => { if (caps.length < K) caps.push(mm.clone()); return oracle(mm); }]]);
+  new Machine(ROM, { overrides: snap }).runFrames(maxFrames);
+  return caps;
+}
+const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
+
+test("CAPTURE: real 0x19dc dispatches -- loc_19dc == oracle in RAM (-stack) and A", () => {
+  for (const cap of CAPS) {
+    const o = cap.clone(), c = cap.clone();
+    o.io.setInte(false); c.io.setInte(false);
+    oracle(o); loc_19dc(c);
+    assert.equal(ramDiff(o, c), null);
+    assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
+  }
+  console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
+});
+
+test("CRAFTED: loc_2094 &= B, A = result, for several (shadow,B)", () => {
+  for (const [shadow, b] of [[0xff, 0x30], [0x3c, 0x0f], [0x00, 0xff], [0xaa, 0x55], [0xf0, 0xf0]]) {
+    const o = new Machine(ROM); o.mem.write8(loc_2094, shadow); o.regs.b = b;
+    const c = new Machine(ROM); c.mem.write8(loc_2094, shadow); c.regs.b = b;
+    oracle(o); loc_19dc(c);
+    assert.equal(ramDiff(o, c), null, `shadow=0x${shadow.toString(16)} b=0x${b.toString(16)}`);
+    assert.equal(c.mem.read8(loc_2094), shadow & b, "shadow masked in place");
+    assert.equal(c.regs.a, shadow & b, "A = masked result");
+  }
+});
+
+test("TEETH: a wrong masked value is caught", () => {
+  const o = new Machine(ROM); o.mem.write8(loc_2094, 0xaa); o.regs.b = 0x55;
+  const c = new Machine(ROM); c.mem.write8(loc_2094, 0xaa); c.regs.b = 0x55;
+  oracle(o);
+  loc_19dc(c); c.mem.write8(loc_2094, (c.mem.read8(loc_2094) ^ 0x01)); // BUG: corrupt the stored byte
+  const d = ramDiff(o, c);
+  assert.notEqual(d, null, "the gate FAILED to catch a wrong masked byte");
+  assert.equal(d.addr, loc_2094 & 0xffff);
+});

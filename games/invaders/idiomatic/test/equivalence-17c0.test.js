@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Memory-equivalence for loc_17c0 (ROM 0x17c0-0x17cc) -- "flag loc_2067 bit0 (via rrc->carry) selects
+// the input port: set -> IN 1, clear -> IN 2; returns A". Input is the flag cell; live-out is register A
+// (the port read value); no RAM write. Contract: RAM (minus STACK_SCRATCH) PLUS the returned A.
+// Run: node --test games/invaders/idiomatic/test/equivalence-17c0.test.js
+
+import nodeTest from "node:test";
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+
+import { loc_17c0 as oracle } from "../../translated/loc_17c0.js";
+import { loc_17c0 } from "../loc_17c0.js";
+import { Machine } from "../../machine.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
+import { STACK_SCRATCH, loc_2067 } from "../names.js";
+
+const ROM_DIR = new URL("../../rom/", import.meta.url);
+const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
+const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM_DIR))) : null;
+const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
+
+const TARGET = 0x17c0;
+const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
+const ramDiff = (ma, mb) =>
+  firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
+
+// Distinct sentinels on the two read ports so the returned-A assertion has teeth (IN1 != IN2).
+const IN1 = 0x5a, IN2 = 0xa5;
+function seed(m, flag) {
+  m.io.in1 = IN1; m.io.in2 = IN2;
+  m.mem.write8(loc_2067, flag);
+  return m;
+}
+
+function captureDispatches(K, maxFrames) {
+  const caps = [];
+  const snap = new Map([[TARGET, (mm) => { if (caps.length < K) caps.push(mm.clone()); return oracle(mm); }]]);
+  new Machine(ROM, { overrides: snap }).runFrames(maxFrames);
+  return caps;
+}
+const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
+
+test("CAPTURE: real 0x17c0 dispatches -- loc_17c0 == oracle (RAM -stack + returned A)", () => {
+  for (const cap of CAPS) {
+    const o = cap.clone(), c = cap.clone();
+    oracle(o); loc_17c0(c);
+    assert.equal(ramDiff(o, c), null);
+    assert.equal(c.regs.a, o.regs.a);
+  }
+  console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
+});
+
+test("CRAFTED: flag bit0 selects the port; A is the read value", () => {
+  for (const flag of [0x00, 0x01, 0x02, 0x03, 0x80, 0xfe, 0xff]) {
+    const o = seed(new Machine(ROM), flag);
+    const c = seed(new Machine(ROM), flag);
+    oracle(o); loc_17c0(c);
+    assert.equal(ramDiff(o, c), null, `flag=0x${flag.toString(16)}`);
+    assert.equal(c.regs.a, o.regs.a, `returned A flag=0x${flag.toString(16)}`);
+    const expected = (flag & 0x01) ? IN1 : IN2;
+    assert.equal(c.regs.a, expected, `port select flag=0x${flag.toString(16)}`);
+  }
+});
+
+test("TEETH: reading the wrong port (a wrong returned A) is caught", () => {
+  const o = seed(new Machine(ROM), 0x01); // bit0 set -> IN 1 -> 0x5a
+  const c = seed(new Machine(ROM), 0x01);
+  oracle(o);
+  loc_17c0(c); c.regs.a = IN2; // BUG: returned the other port's value
+  assert.notEqual(c.regs.a, o.regs.a, "the check FAILED to catch a wrong returned value");
+});
