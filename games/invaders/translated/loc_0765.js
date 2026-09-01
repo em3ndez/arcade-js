@@ -7,7 +7,7 @@ export function loc_0765(m) {
   regs.a = 0x01; m.step(0x0767, 7);                     // 0765  mvi a,0x01
   mem.write8(0x2093, regs.a); m.step(0x076a, 13);       // 0767  sta 0x2093
   regs.sp = 0x2400; m.step(0x076d, 10);                 // 076a  lxi sp,0x2400
-  m.step(0x076e, 4);                                    // 076d  ei (INTE set in board seam)
+  m.io.setInte(true); m.step(0x076e, 4);                // 076d  ei
   m.push16(0x0771); m.step(0x1979, 17); m.call(0x1979); // 076e  call 0x1979
   m.push16(0x0774); m.step(0x09d6, 17); m.call(0x09d6); // 0771  call 0x09d6
   regs.hl = 0x3013; m.step(0x0777, 10);                 // 0774  lxi h,0x3013

@@ -23,9 +23,11 @@ export const CYCLES_PER_FRAME = 33536;
 // Two RST interrupts per frame. Vector = the 8080 RST target PC; cycle = when in the frame it fires.
 export const INT1_VECTOR = 0x08; // RST 1, mid-screen
 export const INT2_VECTOR = 0x10; // RST 2, vblank
-// mid-screen at ~vpos 96 of 262 total lines; vblank at frame end. ★ pin exact offsets vs MAME.
-export const INT1_CYCLE = Math.round((96 / 262) * CYCLES_PER_FRAME); // ~12293
-export const INT2_CYCLE = CYCLES_PER_FRAME; // vblank == boundary
+// mw8080bw fires RST1 at vpos 96 (mid-screen) and RST2 at vpos 224 (vblank START), of 262 total lines
+// (interrupt_vector in mw8080bw.cpp: counter 0x80->vpos96->0xcf, counter 0xda->vpos224->0xd7). The frame
+// boundary / state dump is at vpos 262; RST2 fires BEFORE it, not at it.
+export const INT1_CYCLE = Math.round((96 / 262) * CYCLES_PER_FRAME); // ~12288
+export const INT2_CYCLE = Math.round((224 / 262) * CYCLES_PER_FRAME); // ~28672 (vblank start, not frame end)
 
 export { SCREEN_W, SCREEN_H };
 

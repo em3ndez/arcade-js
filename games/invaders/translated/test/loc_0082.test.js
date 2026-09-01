@@ -29,7 +29,7 @@ function makeMachine() {
     ret(cycles = 10) { this.step(this.pop16(), cycles); },
     call(addr) { this.calls.push(addr); return undefined; }, // record-only dispatch
   };
-  m.io = { portIn: (p) => m.ports[p] ?? 0, portOut: (p, v) => { m.ports[p] = v & 0xff; } };
+  m.io = { inte: false, setInte(v) { this.inte = !!v; }, portIn: (p) => m.ports[p] ?? 0, portOut: (p, v) => { m.ports[p] = v & 0xff; } };
   return m;
 }
 
@@ -53,6 +53,7 @@ test("loc_0082: pops HL/DE/BC/PSW, ei, ret; 54 T", () => {
   assert.equal(m.pc, 0x1234, "ret lands at the popped address");
   assert.equal(m.tstates, 10 + 10 + 10 + 10 + 4 + 10, "T total: 4x pop(10)+ei(4)+ret(10)");
   assert.deepEqual(m.calls, [], "ret is not a call");
+  assert.equal(m.io.inte, true, "ei re-enables interrupts (INTE set) -- the epilogue must re-arm the 2-RST gate");
 });
 
 test("loc_0082 MUTATION: `ret` mis-charged 4T not 10T is caught", () => {

@@ -28,6 +28,7 @@ function makeMachine() {
     pop16() { const lo = mem.read8(regs.sp); const hi = mem.read8((regs.sp + 1) & 0xffff); regs.sp = (regs.sp + 2) & 0xffff; return lo | (hi << 8); },
     ret(cycles = 10) { this.step(this.pop16(), cycles); },
     call(addr) { this.calls.push(addr); return undefined; }, // record-only dispatch
+    io: { inte: false, setInte(v) { this.inte = !!v; } },
   };
 }
 
@@ -45,6 +46,7 @@ test("loc_0765: seats state, calls 1979+09d6+08f3, delegates to loc_077f; 112 T"
   assert.equal(m.tstates, 7 + 13 + 10 + 4 + 17 + 17 + 10 + 10 + 7 + 17, "T total");
   assert.equal(m.pc, 0x08f3, "last step lands at the third callee");
   assert.deepEqual(m.calls, [0x1979, 0x09d6, 0x08f3, 0x077f], "three calls then delegate to loc_077f");
+  assert.equal(m.io.inte, true, "ei enables interrupts (INTE set)");
   assert.deepEqual(
     m.pcSeq,
     [0x0767, 0x076a, 0x076d, 0x076e, 0x1979, 0x09d6, 0x0777, 0x077a, 0x077c, 0x08f3],

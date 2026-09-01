@@ -8,6 +8,6 @@ export function loc_0082(m) {
   regs.de = m.pop16(); m.step(0x0084, 10); // 0083  pop d
   regs.bc = m.pop16(); m.step(0x0085, 10); // 0084  pop b
   regs.af = m.pop16(); m.step(0x0086, 10); // 0085  pop psw
-  m.step(0x0087, 4); // 0086  ei (INTE set in board seam)
+  m.io.setInte(true); m.step(0x0087, 4); // 0086  ei
   return m.ret(10); // 0087  ret
 }
