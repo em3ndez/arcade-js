@@ -12,7 +12,7 @@ import { loc_08d8 as oracle } from "../../translated/loc_08d8.js";
 import { loc_08d8 } from "../loc_08d8.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2082, loc_207e } from "../names.js";
+import { STACK_SCRATCH, ALIEN_COUNT, loc_207e } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -44,8 +44,8 @@ test("CAPTURE: real 0x08d8 dispatches -- loc_08d8 == oracle in RAM (-stack)", ()
 
 test("CRAFTED: 0x207e seated 0xfb below the threshold, untouched at/above it", () => {
   for (const cnt of [0x00, 0x01, 0x08, 0x09, 0x0a, 0xff]) {
-    const o = new Machine(ROM); o.mem.write8(loc_2082, cnt); o.mem.write8(loc_207e, SENTINEL);
-    const c = new Machine(ROM); c.mem.write8(loc_2082, cnt); c.mem.write8(loc_207e, SENTINEL);
+    const o = new Machine(ROM); o.mem.write8(ALIEN_COUNT, cnt); o.mem.write8(loc_207e, SENTINEL);
+    const c = new Machine(ROM); c.mem.write8(ALIEN_COUNT, cnt); c.mem.write8(loc_207e, SENTINEL);
     oracle(o); loc_08d8(c);
     assert.equal(ramDiff(o, c), null, `cnt=0x${cnt.toString(16)}`);
     const expected = cnt < 0x09 ? 0xfb : SENTINEL;
@@ -54,9 +54,9 @@ test("CRAFTED: 0x207e seated 0xfb below the threshold, untouched at/above it", (
 });
 
 test("TEETH: a wrong stored byte is caught", () => {
-  const brokenLoc08d8 = (m) => { if (m.mem8[loc_2082] < 0x09) m.mem8[loc_207e] = 0x5a; }; // BUG: 0x5a
-  const o = new Machine(ROM); o.mem.write8(loc_2082, 0x00); o.mem.write8(loc_207e, SENTINEL);
-  const c = new Machine(ROM); c.mem.write8(loc_2082, 0x00); c.mem.write8(loc_207e, SENTINEL);
+  const brokenLoc08d8 = (m) => { if (m.mem8[ALIEN_COUNT] < 0x09) m.mem8[loc_207e] = 0x5a; }; // BUG: 0x5a
+  const o = new Machine(ROM); o.mem.write8(ALIEN_COUNT, 0x00); o.mem.write8(loc_207e, SENTINEL);
+  const c = new Machine(ROM); c.mem.write8(ALIEN_COUNT, 0x00); c.mem.write8(loc_207e, SENTINEL);
   oracle(o); brokenLoc08d8(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stored byte");

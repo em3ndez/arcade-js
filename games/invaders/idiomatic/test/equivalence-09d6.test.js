@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_09d6 (ROM 0x09d6) -- clear the play-field framebuffer from 0x2402, skip
+// Memory-equivalence for clearPlayfield (ROM 0x09d6) -- clear the play-field framebuffer from 0x2402, skip
 // the 6-byte column margin whenever (L & 0x1f) >= 0x1c, loop until H==0x40. The routine takes NO input
 // register and its live-out is MEMORY ONLY (no caller reads back HL/A/DE/flags -- verified against every
 // call site), so each side runs on a fresh clone and the contract is RAM (dumpState, minus STACK_SCRATCH).
@@ -13,10 +13,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_09d6 as oracle } from "../../translated/loc_09d6.js";
-import { loc_09d6 } from "../loc_09d6.js";
+import { clearPlayfield } from "../clearPlayfield.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2402 } from "../names.js";
+import { STACK_SCRATCH, PLAYFIELD_VRAM_BASE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -42,10 +42,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x09d6 dispatches -- loc_09d6 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x09d6 dispatches -- clearPlayfield == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = noInt(cap.clone()), c = noInt(cap.clone());
-    oracle(o); loc_09d6(c);
+    oracle(o); clearPlayfield(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -54,11 +54,11 @@ test("CAPTURE: real 0x09d6 dispatches -- loc_09d6 == oracle in RAM (-stack)", ()
 test("CRAFTED: clears 0x2402.. with the 6-byte gap skip; skipped cells survive", () => {
   const o = noInt(new Machine(ROM)), c = noInt(new Machine(ROM));
   fillVideo(o, 0xaa); fillVideo(c, 0xaa);
-  oracle(o); loc_09d6(c);
+  oracle(o); clearPlayfield(c);
 
   assert.equal(ramDiff(o, c), null, "module clears identically to the oracle");
   // live-out is MEMORY only -- spot-check the module's clear pattern against the ROM goldens.
-  assert.equal(c.mem.read8(loc_2402), 0x00, "first cell cleared");
+  assert.equal(c.mem.read8(PLAYFIELD_VRAM_BASE), 0x00, "first cell cleared");
   assert.equal(c.mem.read8(0x241b), 0x00, "last cell before the first gap cleared");
   assert.equal(c.mem.read8(0x241c), 0xaa, "gap start skipped");
   assert.equal(c.mem.read8(0x2422), 0x00, "first cell after the gap cleared");
@@ -70,14 +70,14 @@ test("CRAFTED: clears 0x2402.. with the 6-byte gap skip; skipped cells survive",
 test("CRAFTED: a different pre-fill pattern still matches the oracle", () => {
   const o = noInt(new Machine(ROM)), c = noInt(new Machine(ROM));
   fillVideo(o, 0xff); fillVideo(c, 0xff);
-  oracle(o); loc_09d6(c);
+  oracle(o); clearPlayfield(c);
   assert.equal(ramDiff(o, c), null);
   assert.equal(c.mem.read8(0x241c), 0xff, "gap cell keeps the fill");
 });
 
 // A broken twin of the module: it forgets to skip the 6-byte column margin, so it clears the gap cells.
 function loc_09d6_broken(m) {
-  let p = loc_2402;
+  let p = PLAYFIELD_VRAM_BASE;
   for (;;) {
     m.mem8[p] = 0;
     p += 1;

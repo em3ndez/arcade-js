@@ -13,7 +13,7 @@ import { loc_0913 as oracle } from "../../translated/loc_0913.js";
 import { loc_0913 } from "../loc_0913.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2009, loc_2091, loc_2083, loc_0600 } from "../names.js";
+import { STACK_SCRATCH, loc_2009, loc_2091, loc_2083, TIMER_RELOAD } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -48,7 +48,7 @@ const CRAFTED = [
   { gate: 0xff, counter: 0x0005, flag0: 0x00, wantCounter: 0x0005, wantFlag: 0x00 }, // gate high: early return
   { gate: 0x77, counter: 0x0100, flag0: 0x00, wantCounter: 0x00ff, wantFlag: 0x00 }, // gate low, counter != 0: dec
   { gate: 0x00, counter: 0x0001, flag0: 0x00, wantCounter: 0x0000, wantFlag: 0x00 }, // gate low, counter -> 0: dec, no wrap
-  { gate: 0x40, counter: 0x0000, flag0: 0x00, wantCounter: (loc_0600 - 1) & 0xffff, wantFlag: 0x01 }, // wrap: reload + flag
+  { gate: 0x40, counter: 0x0000, flag0: 0x00, wantCounter: (TIMER_RELOAD - 1) & 0xffff, wantFlag: 0x01 }, // wrap: reload + flag
 ];
 
 test("CRAFTED: each arm matches the oracle in RAM and hits the expected cells", () => {

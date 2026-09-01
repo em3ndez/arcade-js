@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 // Fold C and the record's delta byte into its two running totals; return the second total in A.
-export function loc_01d9(m, hl = m.regs.hl, c = m.regs.c) {
+export function advanceRecordTotals(m, hl = m.regs.hl, c = m.regs.c) {
   const { mem8 } = m;
   const delta = mem8[hl + 1];
   mem8[hl + 2] = c + mem8[hl + 2];

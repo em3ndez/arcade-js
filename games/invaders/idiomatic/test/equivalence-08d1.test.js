@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_08d1 (ROM 0x08d1) -- "A = (portIn(2) & 3) + 3". Input is IN2 (io.in2 idle,
+// Memory-equivalence for readStartingShips (ROM 0x08d1) -- "A = (portIn(2) & 3) + 3". Input is IN2 (io.in2 idle,
 // no active-low bits); live-out is the register A (not RAM), so each craft seeds IN2 and asserts A
 // directly, while RAM (dumpState, minus STACK_SCRATCH) must stay identical between oracle and module.
 // Run: node --test games/invaders/idiomatic/test/equivalence-08d1.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_08d1 as oracle } from "../../translated/loc_08d1.js";
-import { loc_08d1 } from "../loc_08d1.js";
+import { readStartingShips } from "../readStartingShips.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -32,10 +32,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x08d1 dispatches -- loc_08d1 == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x08d1 dispatches -- readStartingShips == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_08d1(c);
+    oracle(o); readStartingShips(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out mismatch");
   }
@@ -46,7 +46,7 @@ test("CRAFTED: A = (IN2 & 3) + 3 for several port values", () => {
   for (const p of [0x00, 0x01, 0x02, 0x03, 0x7f, 0xfc, 0xff, 0xa5]) {
     const o = new Machine(ROM); o.io.in2 = p;
     const c = new Machine(ROM); c.io.in2 = p;
-    oracle(o); loc_08d1(c);
+    oracle(o); readStartingShips(c);
     assert.equal(ramDiff(o, c), null, `IN2=0x${p.toString(16)}`);
     assert.equal(c.regs.a, (p & 0x03) + 0x03, `A for IN2=0x${p.toString(16)}`);
     assert.equal(c.regs.a, o.regs.a, `A vs oracle for IN2=0x${p.toString(16)}`);

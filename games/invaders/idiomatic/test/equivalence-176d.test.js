@@ -13,7 +13,7 @@ import { loc_176d as oracle } from "../../translated/loc_176d.js";
 import { loc_176d } from "../loc_176d.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2098 } from "../names.js";
+import { STACK_SCRATCH, SOUND_PORT5_SHADOW } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -61,8 +61,8 @@ test("CAPTURE: real 0x176d dispatches -- loc_176d == oracle in port writes and R
 
 test("CRAFTED: OUT 5 := source & 0x30 for several source bytes", () => {
   for (const v of [0x00, 0x0f, 0x10, 0x20, 0x30, 0x3f, 0xa5, 0xff]) {
-    const o = new Machine(ROM); o.mem8[loc_2098] = v;
-    const c = new Machine(ROM); c.mem8[loc_2098] = v;
+    const o = new Machine(ROM); o.mem8[SOUND_PORT5_SHADOW] = v;
+    const c = new Machine(ROM); c.mem8[SOUND_PORT5_SHADOW] = v;
     const wo = portWritesOf(o, oracle);
     const wc = portWritesOf(c, loc_176d);
     assert.deepEqual(wc, wo, `source=0x${v.toString(16)}`);
@@ -72,8 +72,8 @@ test("CRAFTED: OUT 5 := source & 0x30 for several source bytes", () => {
 });
 
 test("TEETH: a wrong emitted sound byte is caught", () => {
-  const o = new Machine(ROM); o.mem8[loc_2098] = 0xff;
-  const c = new Machine(ROM); c.mem8[loc_2098] = 0xff;
+  const o = new Machine(ROM); o.mem8[SOUND_PORT5_SHADOW] = 0xff;
+  const c = new Machine(ROM); c.mem8[SOUND_PORT5_SHADOW] = 0xff;
   const wo = portWritesOf(o, oracle); // [[5, 0x30]]
   const wc = portWritesOf(c, loc_176d_broken); // [[5, 0xff]]  BUG: unmasked
   assert.notDeepEqual(wc, wo, "the check FAILED to catch a wrong sound byte");

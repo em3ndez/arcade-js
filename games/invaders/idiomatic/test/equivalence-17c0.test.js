@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_17c0 (ROM 0x17c0-0x17cc) -- "flag loc_2067 bit0 (via rrc->carry) selects
+// Memory-equivalence for readActivePlayerInput (ROM 0x17c0-0x17cc) -- "flag ACTIVE_PLAYER_PAGE bit0 (via rrc->carry) selects
 // the input port: set -> IN 1, clear -> IN 2; returns A". Input is the flag cell; live-out is register A
 // (the port read value); no RAM write. Contract: RAM (minus STACK_SCRATCH) PLUS the returned A.
 // Run: node --test games/invaders/idiomatic/test/equivalence-17c0.test.js
@@ -9,10 +9,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_17c0 as oracle } from "../../translated/loc_17c0.js";
-import { loc_17c0 } from "../loc_17c0.js";
+import { readActivePlayerInput } from "../readActivePlayerInput.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2067 } from "../names.js";
+import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -28,7 +28,7 @@ const ramDiff = (ma, mb) =>
 const IN1 = 0x5a, IN2 = 0xa5;
 function seed(m, flag) {
   m.io.in1 = IN1; m.io.in2 = IN2;
-  m.mem.write8(loc_2067, flag);
+  m.mem.write8(ACTIVE_PLAYER_PAGE, flag);
   return m;
 }
 
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x17c0 dispatches -- loc_17c0 == oracle (RAM -stack + returned A)", () => {
+test("CAPTURE: real 0x17c0 dispatches -- readActivePlayerInput == oracle (RAM -stack + returned A)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_17c0(c);
+    oracle(o); readActivePlayerInput(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a);
   }
@@ -54,7 +54,7 @@ test("CRAFTED: flag bit0 selects the port; A is the read value", () => {
   for (const flag of [0x00, 0x01, 0x02, 0x03, 0x80, 0xfe, 0xff]) {
     const o = seed(new Machine(ROM), flag);
     const c = seed(new Machine(ROM), flag);
-    oracle(o); loc_17c0(c);
+    oracle(o); readActivePlayerInput(c);
     assert.equal(ramDiff(o, c), null, `flag=0x${flag.toString(16)}`);
     assert.equal(c.regs.a, o.regs.a, `returned A flag=0x${flag.toString(16)}`);
     const expected = (flag & 0x01) ? IN1 : IN2;
@@ -66,6 +66,6 @@ test("TEETH: reading the wrong port (a wrong returned A) is caught", () => {
   const o = seed(new Machine(ROM), 0x01); // bit0 set -> IN 1 -> 0x5a
   const c = seed(new Machine(ROM), 0x01);
   oracle(o);
-  loc_17c0(c); c.regs.a = IN2; // BUG: returned the other port's value
+  readActivePlayerInput(c); c.regs.a = IN2; // BUG: returned the other port's value
   assert.notEqual(c.regs.a, o.regs.a, "the check FAILED to catch a wrong returned value");
 });

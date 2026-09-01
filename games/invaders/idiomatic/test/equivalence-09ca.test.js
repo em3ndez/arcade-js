@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_09ca -- pick the active player's data pointer from bit0 of the flag cell:
-// HL = (mem[loc_2067] & 1) ? loc_20f8 : loc_20fc. Input is memory, live-out register HL (callers read
+// Memory-equivalence for currentPlayerRecordPtr -- pick the active player's data pointer from bit0 of the flag cell:
+// HL = (mem[ACTIVE_PLAYER_PAGE] & 1) ? PLAYER1_OBJ_DESC : PLAYER2_OBJ_DESC. Input is memory, live-out register HL (callers read
 // mem[HL]); no memory is written, so RAM must stay identical (dumpState, minus STACK_SCRATCH) AND the
 // returned HL must match.
 // Run: node --test games/invaders/idiomatic/test/equivalence-09ca.test.js
@@ -10,10 +10,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_09ca as oracle } from "../../translated/loc_09ca.js";
-import { loc_09ca } from "../loc_09ca.js";
+import { currentPlayerRecordPtr } from "../currentPlayerRecordPtr.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2067, loc_20f8, loc_20fc } from "../names.js";
+import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE, PLAYER1_OBJ_DESC, PLAYER2_OBJ_DESC } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -33,31 +33,31 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x09ca dispatches -- loc_09ca == oracle in RAM and HL", () => {
+test("CAPTURE: real 0x09ca dispatches -- currentPlayerRecordPtr == oracle in RAM and HL", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_09ca(c);
+    oracle(o); currentPlayerRecordPtr(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "returned HL");
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: bit0 of loc_2067 selects the pointer, for several flag values", () => {
+test("CRAFTED: bit0 of ACTIVE_PLAYER_PAGE selects the pointer, for several flag values", () => {
   for (const flag of [0x00, 0x01, 0x02, 0x03, 0xfe, 0xff]) {
-    const o = new Machine(ROM); o.mem.write8(loc_2067, flag);
-    const c = new Machine(ROM); c.mem.write8(loc_2067, flag);
-    oracle(o); loc_09ca(c);
+    const o = new Machine(ROM); o.mem.write8(ACTIVE_PLAYER_PAGE, flag);
+    const c = new Machine(ROM); c.mem.write8(ACTIVE_PLAYER_PAGE, flag);
+    oracle(o); currentPlayerRecordPtr(c);
     assert.equal(ramDiff(o, c), null, `flag=0x${flag.toString(16)}`);
     assert.equal(c.regs.hl, o.regs.hl, `HL vs oracle flag=0x${flag.toString(16)}`);
-    assert.equal(c.regs.hl, (flag & 1) ? loc_20f8 : loc_20fc, `HL value flag=0x${flag.toString(16)}`);
+    assert.equal(c.regs.hl, (flag & 1) ? PLAYER1_OBJ_DESC : PLAYER2_OBJ_DESC, `HL value flag=0x${flag.toString(16)}`);
   }
 });
 
 test("TEETH: a broken twin (swapped pointers) returns a wrong HL that is caught", () => {
-  const broken = (m) => (m.regs.hl = (m.mem8[loc_2067] & 1) ? loc_20fc : loc_20f8); // BUG: pointers swapped
-  const o = new Machine(ROM); o.mem.write8(loc_2067, 0x01);
-  const c = new Machine(ROM); c.mem.write8(loc_2067, 0x01);
+  const broken = (m) => (m.regs.hl = (m.mem8[ACTIVE_PLAYER_PAGE] & 1) ? PLAYER2_OBJ_DESC : PLAYER1_OBJ_DESC); // BUG: pointers swapped
+  const o = new Machine(ROM); o.mem.write8(ACTIVE_PLAYER_PAGE, 0x01);
+  const c = new Machine(ROM); c.mem.write8(ACTIVE_PLAYER_PAGE, 0x01);
   oracle(o); broken(c);
   assert.notEqual(c.regs.hl, o.regs.hl, "the HL check FAILED to catch a swapped pointer");
 });

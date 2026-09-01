@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1a69 (ROM 0x1a69) -- OR-merge blit. Live-outs: the ORed destination RAM,
+// Memory-equivalence for orBlitBitmap (ROM 0x1a69) -- OR-merge blit. Live-outs: the ORed destination RAM,
 // PLUS the advanced pointers HL (dest base + 0x20*rows) and DE (source run straight through). The
 // caller (loc_021e) restores A/B/C but reads HL and DE back, so those two registers are asserted
 // alongside the RAM diff. Interrupts are disabled on each clone so the oracle's per-instruction tick
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1a69 as oracle } from "../../translated/loc_1a69.js";
-import { loc_1a69 } from "../loc_1a69.js";
+import { orBlitBitmap } from "../orBlitBitmap.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -35,11 +35,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1a69 dispatches -- loc_1a69 == oracle in RAM (-stack), HL and DE", () => {
+test("CAPTURE: real 0x1a69 dispatches -- orBlitBitmap == oracle in RAM (-stack), HL and DE", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1a69(c);
+    oracle(o); orBlitBitmap(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out");
     assert.equal(c.regs.de, o.regs.de, "DE live-out");
@@ -66,7 +66,7 @@ test("CRAFTED: each dest byte becomes (src | dest); HL and DE advance", () => {
   };
   const o = new Machine(ROM); seat(o, CASE);
   const c = new Machine(ROM); seat(c, CASE);
-  oracle(o); loc_1a69(c);
+  oracle(o); orBlitBitmap(c);
 
   assert.equal(ramDiff(o, c), null, "oracle and module leave identical RAM (-stack)");
   assert.equal(c.mem.read8(0x2100), 0x81, "0x2100 = 0x01|0x80");
@@ -85,7 +85,7 @@ test("CRAFTED: a single row of one byte (B=1, C=1) advances HL by 0x20 and DE by
   const CASE = { b: 0x01, c: 0x01, de: 0x3400, hl: 0x2200, src: [0x0f], dst: [{ a: 0x2200, v: 0xf0 }] };
   const o = new Machine(ROM); seat(o, CASE);
   const c = new Machine(ROM); seat(c, CASE);
-  oracle(o); loc_1a69(c);
+  oracle(o); orBlitBitmap(c);
 
   assert.equal(ramDiff(o, c), null);
   assert.equal(c.mem.read8(0x2200), 0xff, "0x2200 = 0x0f|0xf0");

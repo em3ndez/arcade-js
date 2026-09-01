@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1910 (ROM 0x1910) -- HL := loc_20e7, or one past it when bit0 of loc_2067
+// Memory-equivalence for loc_1910 (ROM 0x1910) -- HL := loc_20e7, or one past it when bit0 of ACTIVE_PLAYER_PAGE
 // is clear. No memory write; the contract is the HL live-out.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1910.test.js
 
@@ -11,7 +11,7 @@ import { loc_1910 as oracle } from "../../translated/loc_1910.js";
 import { loc_1910 } from "../loc_1910.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2067, loc_20e7 } from "../names.js";
+import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE, loc_20e7 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -43,10 +43,10 @@ test("CAPTURE: real 0x1910 dispatches -- loc_1910 == oracle in HL (and RAM -stac
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: HL selects loc_20e7 vs loc_20e7+1 by bit0 of loc_2067", () => {
+test("CRAFTED: HL selects loc_20e7 vs loc_20e7+1 by bit0 of ACTIVE_PLAYER_PAGE", () => {
   for (const sel of [0x00, 0x01, 0xfe, 0xff, 0x10, 0x03]) {
-    const o = new Machine(ROM); o.mem.write8(loc_2067, sel);
-    const c = new Machine(ROM); c.mem.write8(loc_2067, sel);
+    const o = new Machine(ROM); o.mem.write8(ACTIVE_PLAYER_PAGE, sel);
+    const c = new Machine(ROM); c.mem.write8(ACTIVE_PLAYER_PAGE, sel);
     oracle(o); loc_1910(c);
     assert.equal(ramDiff(o, c), null, `sel=0x${sel.toString(16)}`);
     assert.equal(c.regs.hl, o.regs.hl, `HL match, sel=0x${sel.toString(16)}`);
@@ -55,9 +55,9 @@ test("CRAFTED: HL selects loc_20e7 vs loc_20e7+1 by bit0 of loc_2067", () => {
 });
 
 test("TEETH: a wrong returned HL is caught", () => {
-  const brokenTwin = (m) => (m.regs.hl = (m.mem8[loc_2067] & 1) ? loc_20e7 + 1 : loc_20e7); // BUG: inverted
-  const o = new Machine(ROM); o.mem.write8(loc_2067, 0x01);
-  const c = new Machine(ROM); c.mem.write8(loc_2067, 0x01);
+  const brokenTwin = (m) => (m.regs.hl = (m.mem8[ACTIVE_PLAYER_PAGE] & 1) ? loc_20e7 + 1 : loc_20e7); // BUG: inverted
+  const o = new Machine(ROM); o.mem.write8(ACTIVE_PLAYER_PAGE, 0x01);
+  const c = new Machine(ROM); c.mem.write8(ACTIVE_PLAYER_PAGE, 0x01);
   oracle(o); brokenTwin(c);
   assert.notEqual(c.regs.hl, o.regs.hl, "the live-out check FAILED to catch a wrong HL");
 });

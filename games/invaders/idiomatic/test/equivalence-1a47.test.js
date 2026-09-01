@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1a47 (ROM 0x1a47) -- "shift HL right by 3, force H into the 0x20-0x3f
+// Memory-equivalence for coordToScreenAddr (ROM 0x1a47) -- "shift HL right by 3, force H into the 0x20-0x3f
 // video-RAM page". Input register HL; live-out is HL (every consumer overwrites A before reading it,
 // and BC is saved/restored), so the routine writes NO game RAM: the RAM diff is a guard and the real
 // contract is the HL live-out. Interrupts are disabled on each clone so the oracle's per-instruction
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1a47 as oracle } from "../../translated/loc_1a47.js";
-import { loc_1a47 } from "../loc_1a47.js";
+import { coordToScreenAddr } from "../coordToScreenAddr.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -43,7 +43,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1a47 dispatches -- loc_1a47 == oracle in HL (and RAM -stack)", () => {
+test("CAPTURE: real 0x1a47 dispatches -- coordToScreenAddr == oracle in HL (and RAM -stack)", () => {
   for (const cap of CAPS) {
     // The oracle's `push b` residue sits just below the ENTRY SP, which SI's attract loop walks widely
     // (even above 0x2400); exclude relative to that SP, not a fixed window. The module drops the push.
@@ -52,7 +52,7 @@ test("CAPTURE: real 0x1a47 dispatches -- loc_1a47 == oracle in HL (and RAM -stac
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1a47(c);
+    oracle(o); coordToScreenAddr(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, `HL live-out (entry HL=0x${cap.regs.hl.toString(16)})`);
     assert.equal(c.regs.hl, expectHl(cap.regs.hl));
@@ -66,7 +66,7 @@ test("CRAFTED: HL := (HL >> 3) with H forced into 0x20-0x3f, for several HL", ()
     const c = new Machine(ROM); c.regs.sp = 0x2400; c.push16(CALLER_RET); c.io.setInte(false);
     o.regs.hl = hl; c.regs.hl = hl;
     o.regs.bc = 0x1234; c.regs.bc = 0x1234; // saved/restored by the oracle -- must survive on both
-    oracle(o); loc_1a47(c);
+    oracle(o); coordToScreenAddr(c);
     assert.equal(ramDiff(o, c), null, `HL=0x${hl.toString(16)}`);
     assert.equal(c.regs.hl, o.regs.hl, `HL match, HL=0x${hl.toString(16)}`);
     assert.equal(c.regs.hl, expectHl(hl), `HL value, HL=0x${hl.toString(16)}`);

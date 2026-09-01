@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_017a (ROM 0x017a) -- resolve L over 0x0b, stepping the B,C pair read from
+// Memory-equivalence for alienIndexToScreenCoords (ROM 0x017a) -- resolve L over 0x0b, stepping the B,C pair read from
 // loc_2009/loc_200a: B += 0x10 per whole part (into L), C += 0x10 per remainder, D counts the whole
 // parts. No memory is written, so RAM stays identical on both sides; the contract is the L, C, D
 // live-outs (each read by a still-translated caller).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_017a as oracle } from "../../translated/loc_017a.js";
-import { loc_017a } from "../loc_017a.js";
+import { alienIndexToScreenCoords } from "../alienIndexToScreenCoords.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_2009, loc_200a } from "../names.js";
@@ -34,10 +34,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x017a dispatches -- loc_017a == oracle in RAM and (L,C,D)", () => {
+test("CAPTURE: real 0x017a dispatches -- alienIndexToScreenCoords == oracle in RAM and (L,C,D)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_017a(c);
+    oracle(o); alienIndexToScreenCoords(c);
     assert.equal(ramDiff(o, c), null);
     assert.deepEqual(liveOut(c), liveOut(o), "L,C,D live-outs match the oracle");
   }
@@ -52,7 +52,7 @@ test("CRAFTED: (L,C,D) resolved from L and the loc_2009/loc_200a pair, several s
   for (const [l, b0, c0] of seeds) {
     const o = new Machine(ROM); o.regs.l = l; o.mem.write8(loc_2009, b0); o.mem.write8(loc_200a, c0);
     const c = new Machine(ROM); c.regs.l = l; c.mem.write8(loc_2009, b0); c.mem.write8(loc_200a, c0);
-    oracle(o); const ret = loc_017a(c);
+    oracle(o); const ret = alienIndexToScreenCoords(c);
     const tag = `L=0x${l.toString(16)} B0=0x${b0.toString(16)} C0=0x${c0.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.deepEqual(liveOut(c), liveOut(o), tag);

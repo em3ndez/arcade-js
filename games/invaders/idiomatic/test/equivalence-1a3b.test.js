@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_1a3b (ROM 0x1a3b) -- read a 5-byte descriptor at (HL) into DE, A, C, B, then
+// Equivalence for loadSpriteDescriptor (ROM 0x1a3b) -- read a 5-byte descriptor at (HL) into DE, A, C, B, then
 // repoint HL at C:A. Writes NO memory, so RAM is a vacuous contract; the live-out is REGISTERS
 // (DE/A/C/B/HL, consumed by loc_1a47/loc_1452/loc_1491). The oracle's ret perturbs SP/PC, so we
 // compare only the data-register outputs, not firstRegDiff (which would false-fail on SP).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1a3b as oracle } from "../../translated/loc_1a3b.js";
-import { loc_1a3b } from "../loc_1a3b.js";
+import { loadSpriteDescriptor } from "../loadSpriteDescriptor.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1a3b dispatches -- loc_1a3b == oracle in RAM + live-out registers", () => {
+test("CAPTURE: real 0x1a3b dispatches -- loadSpriteDescriptor == oracle in RAM + live-out registers", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_1a3b(c);
+    oracle(o); loadSpriteDescriptor(c);
     assert.equal(ramDiff(o, c), null);          // neither side touches RAM
     assert.equal(regOutDiff(o, c), null);       // the real contract: DE/A/C/B/HL
   }
@@ -66,7 +66,7 @@ test("CRAFTED: descriptor at (HL) -> DE/A/C/B and HL=C:A for several inputs", ()
     const o = new Machine(ROM); const c = new Machine(ROM);
     seedDescriptor(o, AT, bytes); seedDescriptor(c, AT, bytes);
     o.regs.hl = AT; c.regs.hl = AT;
-    oracle(o); loc_1a3b(c);
+    oracle(o); loadSpriteDescriptor(c);
     assert.equal(regOutDiff(o, c), null, `bytes=${bytes}`);
     // The expected register image, computed from the descriptor bytes [e,d,a,c,b].
     const [e, d, a, cc, b] = bytes;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_19dc (ROM 0x19dc) -- AND the sound shadow loc_2094 with B, write it back
-// and mirror to sound port 3. Live-out: memory (loc_2094) + A.
+// Memory-equivalence for loc_19dc (ROM 0x19dc) -- AND the sound shadow SOUND_PORT3_SHADOW with B, write it back
+// and mirror to sound port 3. Live-out: memory (SOUND_PORT3_SHADOW) + A.
 // Run: node --test games/invaders/idiomatic/test/equivalence-19dc.test.js
 
 import nodeTest from "node:test";
@@ -11,7 +11,7 @@ import { loc_19dc as oracle } from "../../translated/loc_19dc.js";
 import { loc_19dc } from "../loc_19dc.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2094 } from "../names.js";
+import { STACK_SCRATCH, SOUND_PORT3_SHADOW } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -42,23 +42,23 @@ test("CAPTURE: real 0x19dc dispatches -- loc_19dc == oracle in RAM (-stack) and 
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: loc_2094 &= B, A = result, for several (shadow,B)", () => {
+test("CRAFTED: SOUND_PORT3_SHADOW &= B, A = result, for several (shadow,B)", () => {
   for (const [shadow, b] of [[0xff, 0x30], [0x3c, 0x0f], [0x00, 0xff], [0xaa, 0x55], [0xf0, 0xf0]]) {
-    const o = new Machine(ROM); o.mem.write8(loc_2094, shadow); o.regs.b = b;
-    const c = new Machine(ROM); c.mem.write8(loc_2094, shadow); c.regs.b = b;
+    const o = new Machine(ROM); o.mem.write8(SOUND_PORT3_SHADOW, shadow); o.regs.b = b;
+    const c = new Machine(ROM); c.mem.write8(SOUND_PORT3_SHADOW, shadow); c.regs.b = b;
     oracle(o); loc_19dc(c);
     assert.equal(ramDiff(o, c), null, `shadow=0x${shadow.toString(16)} b=0x${b.toString(16)}`);
-    assert.equal(c.mem.read8(loc_2094), shadow & b, "shadow masked in place");
+    assert.equal(c.mem.read8(SOUND_PORT3_SHADOW), shadow & b, "shadow masked in place");
     assert.equal(c.regs.a, shadow & b, "A = masked result");
   }
 });
 
 test("TEETH: a wrong masked value is caught", () => {
-  const o = new Machine(ROM); o.mem.write8(loc_2094, 0xaa); o.regs.b = 0x55;
-  const c = new Machine(ROM); c.mem.write8(loc_2094, 0xaa); c.regs.b = 0x55;
+  const o = new Machine(ROM); o.mem.write8(SOUND_PORT3_SHADOW, 0xaa); o.regs.b = 0x55;
+  const c = new Machine(ROM); c.mem.write8(SOUND_PORT3_SHADOW, 0xaa); c.regs.b = 0x55;
   oracle(o);
-  loc_19dc(c); c.mem.write8(loc_2094, (c.mem.read8(loc_2094) ^ 0x01)); // BUG: corrupt the stored byte
+  loc_19dc(c); c.mem.write8(SOUND_PORT3_SHADOW, (c.mem.read8(SOUND_PORT3_SHADOW) ^ 0x01)); // BUG: corrupt the stored byte
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong masked byte");
-  assert.equal(d.addr, loc_2094 & 0xffff);
+  assert.equal(d.addr, SOUND_PORT3_SHADOW & 0xffff);
 });

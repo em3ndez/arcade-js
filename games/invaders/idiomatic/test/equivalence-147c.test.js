@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_147c -- block-copy a rectangle: for B rows copy C bytes from [HL] to a
+// Memory-equivalence for captureScreenRect -- block-copy a rectangle: for B rows copy C bytes from [HL] to a
 // contiguous [DE] stream, dropping the source base one screen row between rows. Live-out is memory
 // PLUS the two carried pointers DE (stream end) and HL (advanced source base) -- the sole caller
 // threads both across passes -- so each check diffs RAM (minus STACK_SCRATCH) AND asserts DE and HL.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_147c as oracle } from "../../translated/loc_147c.js";
-import { loc_147c } from "../loc_147c.js";
+import { captureScreenRect } from "../captureScreenRect.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -33,10 +33,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x147c dispatches -- loc_147c == oracle in RAM (-stack) and DE/HL live-out", () => {
+test("CAPTURE: real 0x147c dispatches -- captureScreenRect == oracle in RAM (-stack) and DE/HL live-out", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_147c(c);
+    oracle(o); captureScreenRect(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.de, o.regs.de, "DE live-out matches the oracle");
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
@@ -57,7 +57,7 @@ test("CRAFTED: B*C bytes copied into the stream; DE and HL advance", () => {
     o.regs.sp = 0x2400; o.regs.hl = hl; o.regs.de = de; o.regs.b = b; o.regs.c = c;
     const cc = new Machine(ROM);
     cc.regs.sp = 0x2400; cc.regs.hl = hl; cc.regs.de = de; cc.regs.b = b; cc.regs.c = c;
-    oracle(o); loc_147c(cc);
+    oracle(o); captureScreenRect(cc);
     const rows = b || 256, cols = c || 256;
     const label = `hl=0x${hl.toString(16)} de=0x${de.toString(16)} b=0x${b.toString(16)} c=0x${c.toString(16)}`;
     assert.equal(ramDiff(o, cc), null, label);
@@ -73,7 +73,7 @@ test("TEETH: a wrong copied byte is caught by the RAM diff", () => {
   const o = new Machine(ROM); Object.assign(o.regs, seed);
   const cc = new Machine(ROM); Object.assign(cc.regs, seed);
   oracle(o);
-  loc_147c(cc); cc.mem.write8(0x2603, (cc.mem.read8(0x2603) ^ 0xff) & 0xff); // BUG: corrupt a copied cell
+  captureScreenRect(cc); cc.mem.write8(0x2603, (cc.mem.read8(0x2603) ^ 0xff) & 0xff); // BUG: corrupt a copied cell
   const d = ramDiff(o, cc);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong copied byte");
   assert.equal(d.addr, 0x2603 & 0xffff);

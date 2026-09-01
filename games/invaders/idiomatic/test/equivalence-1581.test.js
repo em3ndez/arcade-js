@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_1581 (ROM 0x1581) -- "compute a record pointer". Inputs B (index) and C
-// (offset); reads the page cell loc_2067. Live-out: HL = (page << 8) | (RLCx3(B) + 3B + C - 1) & 0xff,
+// (offset); reads the page cell ACTIVE_PLAYER_PAGE. Live-out: HL = (page << 8) | (RLCx3(B) + 3B + C - 1) & 0xff,
 // which the caller reads back to address a record (the oracle's trailing A = L is dead). No RAM write,
 // so the contract is the HL live-out (RAM diff stays null and is checked for accidental writes).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1581.test.js
@@ -13,7 +13,7 @@ import { loc_1581 as oracle } from "../../translated/loc_1581.js";
 import { loc_1581 } from "../loc_1581.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2067 } from "../names.js";
+import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -59,8 +59,8 @@ test("CRAFTED: HL := (page << 8) | (RLCx3(B) + 3B + C - 1) for several B/C/page"
     { b: 0xff, c: 0xff, page: 0x30 }, // rotate wraps: RLCx3(0xff)=0xff
   ];
   for (const { b, c, page } of cases) {
-    const o = new Machine(ROM); o.regs.b = b; o.regs.c = c; o.mem.write8(loc_2067, page);
-    const cc = new Machine(ROM); cc.regs.b = b; cc.regs.c = c; cc.mem.write8(loc_2067, page);
+    const o = new Machine(ROM); o.regs.b = b; o.regs.c = c; o.mem.write8(ACTIVE_PLAYER_PAGE, page);
+    const cc = new Machine(ROM); cc.regs.b = b; cc.regs.c = c; cc.mem.write8(ACTIVE_PLAYER_PAGE, page);
     oracle(o); loc_1581(cc);
     const tag = `B=0x${b.toString(16)} C=0x${c.toString(16)} page=0x${page.toString(16)}`;
     assert.equal(ramDiff(o, cc), null, tag);
@@ -71,7 +71,7 @@ test("CRAFTED: HL := (page << 8) | (RLCx3(B) + 3B + C - 1) for several B/C/page"
 
 test("TEETH: a broken twin (drops the -1) mis-computes HL", () => {
   const b = 0x05, c = 0x02, page = 0x25;
-  const o = new Machine(ROM); o.regs.b = b; o.regs.c = c; o.mem.write8(loc_2067, page);
+  const o = new Machine(ROM); o.regs.b = b; o.regs.c = c; o.mem.write8(ACTIVE_PLAYER_PAGE, page);
   oracle(o);
   // broken twin of loc_1581: forgets the trailing decrement
   const rot = ((b << 3) | (b >> 5)) & 0xff;

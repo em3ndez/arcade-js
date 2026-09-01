@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1a32 (ROM 0x1a32) -- block-copy of B bytes from (DE) to (HL), both
+// Memory-equivalence for blockCopy (ROM 0x1a32) -- block-copy of B bytes from (DE) to (HL), both
 // advancing. Live-out is memory only (every caller overwrites HL/DE/B/A and none reads a flag), so
 // each side runs on its own machine and the contract is RAM (dumpState, minus STACK_SCRATCH).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1a32.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1a32 as oracle } from "../../translated/loc_1a32.js";
-import { loc_1a32 } from "../loc_1a32.js";
+import { blockCopy } from "../blockCopy.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -32,10 +32,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1a32 dispatches -- loc_1a32 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x1a32 dispatches -- blockCopy == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_1a32(c);
+    oracle(o); blockCopy(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -54,7 +54,7 @@ test("CRAFTED: B bytes copied (DE)->(HL) for several counts, incl. B=0 => 256", 
     seedPattern(o, SRC, n); seedPattern(c, SRC, n);
     o.regs.de = SRC; o.regs.hl = DST; o.regs.b = b;
     c.regs.de = SRC; c.regs.hl = DST; c.regs.b = b;
-    oracle(o); loc_1a32(c);
+    oracle(o); blockCopy(c);
     assert.equal(ramDiff(o, c), null, `B=0x${b.toString(16)}`);
     for (let i = 0; i < n; i++) {
       assert.equal(c.mem.read8(DST + i), (i * 7 + 3) & 0xff, `dst[${i}] B=0x${b.toString(16)}`);
@@ -68,7 +68,7 @@ test("CRAFTED: overlapping forward copy stays faithful (read-then-write interlea
   seedPattern(o, SRC, b); seedPattern(c, SRC, b);
   o.regs.de = SRC; o.regs.hl = DST; o.regs.b = b;
   c.regs.de = SRC; c.regs.hl = DST; c.regs.b = b;
-  oracle(o); loc_1a32(c);
+  oracle(o); blockCopy(c);
   assert.equal(ramDiff(o, c), null, "overlapping copy diverged from oracle");
 });
 

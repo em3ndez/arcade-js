@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_2402 } from "./names.js";
+import { PLAYFIELD_VRAM_BASE } from "./names.js";
 
 // Clear the play-field framebuffer, skipping the six-byte column margin between rows.
-export function loc_09d6(m) {
-  let p = loc_2402;
+export function clearPlayfield(m) {
+  let p = PLAYFIELD_VRAM_BASE;
   for (;;) {
     m.mem8[p] = 0;
     p += 1;

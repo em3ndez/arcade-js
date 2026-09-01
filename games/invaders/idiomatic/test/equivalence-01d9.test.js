@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory+value equivalence for loc_01d9 (ROM 0x01d9) -- with HL just before a 4-byte record, fold C into
+// Memory+value equivalence for advanceRecordTotals (ROM 0x01d9) -- with HL just before a 4-byte record, fold C into
 // [HL+2] and the record's delta byte [HL+1] into [HL+3], leaving the second total in A. Input registers
 // HL and C; live-out = the two stores (RAM) AND A (read back as B by the 0x186e caller). Each side runs
 // on a fresh clone; the contract is RAM (dumpState, minus STACK_SCRATCH) plus the A value assertion.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_01d9 as oracle } from "../../translated/loc_01d9.js";
-import { loc_01d9 } from "../loc_01d9.js";
+import { advanceRecordTotals } from "../advanceRecordTotals.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -33,10 +33,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x01d9 dispatches -- loc_01d9 == oracle in RAM (-stack) and in A", () => {
+test("CAPTURE: real 0x01d9 dispatches -- advanceRecordTotals == oracle in RAM (-stack) and in A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_01d9(c);
+    oracle(o); advanceRecordTotals(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
   }
@@ -60,7 +60,7 @@ test("CRAFTED: [HL+2]+=C, [HL+3]+=[HL+1], A returns the second total", () => {
       mm.mem.write8(t.hl + 2, t.r2);
       mm.mem.write8(t.hl + 3, t.r3);
     }
-    oracle(o); loc_01d9(c);
+    oracle(o); advanceRecordTotals(c);
     assert.equal(ramDiff(o, c), null, `HL=0x${t.hl.toString(16)}`);
     const expA = (t.r1 + t.r3) & 0xff;
     assert.equal(c.regs.a, expA, `A live-out HL=0x${t.hl.toString(16)}`);
@@ -77,7 +77,7 @@ test("TEETH: a wrong stored byte is caught by the RAM diff", () => {
     mm.mem.write8(0x2008, 0x10); mm.mem.write8(0x2009, 0x05); mm.mem.write8(0x200a, 0x20);
   }
   oracle(o);
-  loc_01d9(c); c.mem.write8(0x200a, 0x5a); // BUG: wrong second total
+  advanceRecordTotals(c); c.mem.write8(0x200a, 0x5a); // BUG: wrong second total
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stored byte");
   assert.equal(d.addr, 0x200a);
@@ -87,7 +87,7 @@ test("TEETH: a wrong A live-out would be caught by the value assertion", () => {
   const c = new Machine(ROM);
   c.regs.hl = 0x2007; c.regs.c = 0x03;
   c.mem.write8(0x2008, 0x10); c.mem.write8(0x2009, 0x05); c.mem.write8(0x200a, 0x20);
-  const a = loc_01d9(c);                       // golden second total = 0x10 + 0x20 = 0x30
+  const a = advanceRecordTotals(c);                       // golden second total = 0x10 + 0x20 = 0x30
   assert.equal(a, 0x30, "golden A live-out returned");
   assert.equal(c.regs.a, 0x30, "golden A live-out written to the register");
   assert.notEqual(a ^ 0xff, 0x30, "a mutated twin's A differs from the golden -- the assertion has teeth");

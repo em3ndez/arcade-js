@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 // Read the 5-byte descriptor at the pointer into DE, A, C, B, then repoint at C:A. Live-out: registers; the seam completes the ret.
-export function loc_1a3b(m, hl = m.regs.hl) {
+export function loadSpriteDescriptor(m, hl = m.regs.hl) {
   const e = m.mem8[hl];
   const d = m.mem8[hl + 1];
   const a = m.mem8[hl + 2];

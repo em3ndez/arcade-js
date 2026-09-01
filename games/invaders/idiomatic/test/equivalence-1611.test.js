@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1611 (ROM 0x1611) -- "HL := mem[0x2067] << 8". No input register (the
+// Memory-equivalence for activePlayerPageBase (ROM 0x1611) -- "HL := mem[0x2067] << 8". No input register (the
 // page byte lives in RAM); no memory is written, so the contract is the HL live-out (plus a RAM sanity
 // diff, minus STACK_SCRATCH). Each side runs on a fresh clone.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1611.test.js
@@ -9,10 +9,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1611 as oracle } from "../../translated/loc_1611.js";
-import { loc_1611 } from "../loc_1611.js";
+import { activePlayerPageBase } from "../activePlayerPageBase.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2067 } from "../names.js";
+import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -24,7 +24,7 @@ const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRAT
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
-// A broken twin of loc_1611: drops the high-byte shift, so HL is wrong for any non-zero page byte.
+// A broken twin of activePlayerPageBase: drops the high-byte shift, so HL is wrong for any non-zero page byte.
 function loc_1611_broken(m) {
   return (m.regs.hl = m.mem.read8(0x2067)); // BUG: forgot << 8
 }
@@ -37,10 +37,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1611 dispatches -- loc_1611 == oracle in RAM and HL live-out", () => {
+test("CAPTURE: real 0x1611 dispatches -- activePlayerPageBase == oracle in RAM and HL live-out", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_1611(c);
+    oracle(o); activePlayerPageBase(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl); // HL is the live-out
   }
@@ -49,9 +49,9 @@ test("CAPTURE: real 0x1611 dispatches -- loc_1611 == oracle in RAM and HL live-o
 
 test("CRAFTED: HL := page-byte << 8 for several page bytes", () => {
   for (const v of [0x00, 0x01, 0x20, 0x7f, 0xa5, 0xff]) {
-    const o = new Machine(ROM); o.mem8[loc_2067] = v;
-    const c = new Machine(ROM); c.mem8[loc_2067] = v;
-    oracle(o); loc_1611(c);
+    const o = new Machine(ROM); o.mem8[ACTIVE_PLAYER_PAGE] = v;
+    const c = new Machine(ROM); c.mem8[ACTIVE_PLAYER_PAGE] = v;
+    oracle(o); activePlayerPageBase(c);
     assert.equal(ramDiff(o, c), null, `page=0x${v.toString(16)}`);
     assert.equal(c.regs.hl, o.regs.hl, `HL match page=0x${v.toString(16)}`);
     assert.equal(c.regs.hl, v << 8, `HL value page=0x${v.toString(16)}`);
@@ -59,8 +59,8 @@ test("CRAFTED: HL := page-byte << 8 for several page bytes", () => {
 });
 
 test("TEETH: a wrong HL is caught", () => {
-  const o = new Machine(ROM); o.mem8[loc_2067] = 0xa5;
-  const c = new Machine(ROM); c.mem8[loc_2067] = 0xa5;
+  const o = new Machine(ROM); o.mem8[ACTIVE_PLAYER_PAGE] = 0xa5;
+  const c = new Machine(ROM); c.mem8[ACTIVE_PLAYER_PAGE] = 0xa5;
   oracle(o);
   loc_1611_broken(c); // BUG: HL missing the << 8
   assert.notEqual(c.regs.hl, o.regs.hl, "the check FAILED to catch a wrong HL");

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1982 (ROM 0x1982) -- "store A into loc_20c1". Input register A, live-out
+// Memory-equivalence for loc_1982 (ROM 0x1982) -- "store A into TASK_FLAGS". Input register A, live-out
 // memory only, so each side runs on a fresh clone and the contract is RAM (dumpState, minus STACK_SCRATCH).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1982.test.js
 
@@ -11,7 +11,7 @@ import { loc_1982 as oracle } from "../../translated/loc_1982.js";
 import { loc_1982 } from "../loc_1982.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_20c1 } from "../names.js";
+import { STACK_SCRATCH, TASK_FLAGS } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -40,13 +40,13 @@ test("CAPTURE: real 0x1982 dispatches -- loc_1982 == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: A is stored at loc_20c1 for several values", () => {
+test("CRAFTED: A is stored at TASK_FLAGS for several values", () => {
   for (const a of [0x00, 0x01, 0x7f, 0xff, 0xa5]) {
     const o = new Machine(ROM); o.regs.a = a;
     const c = new Machine(ROM); c.regs.a = a;
     oracle(o); loc_1982(c);
     assert.equal(ramDiff(o, c), null, `A=0x${a.toString(16)}`);
-    assert.equal(c.mem.read8(loc_20c1), a, `stored A=0x${a.toString(16)}`);
+    assert.equal(c.mem.read8(TASK_FLAGS), a, `stored A=0x${a.toString(16)}`);
   }
 });
 
@@ -54,8 +54,8 @@ test("TEETH: a wrong stored byte is caught", () => {
   const o = new Machine(ROM); o.regs.a = 0xa5;
   const c = new Machine(ROM); c.regs.a = 0xa5;
   oracle(o);
-  loc_1982(c); c.mem.write8(loc_20c1, 0x5a); // BUG: wrong byte
+  loc_1982(c); c.mem.write8(TASK_FLAGS, 0x5a); // BUG: wrong byte
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stored byte");
-  assert.equal(d.addr, loc_20c1 & 0xffff);
+  assert.equal(d.addr, TASK_FLAGS & 0xffff);
 });

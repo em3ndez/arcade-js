@@ -12,7 +12,7 @@ import { loc_18e7 as oracle } from "../../translated/loc_18e7.js";
 import { loc_18e7 } from "../loc_18e7.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2067, loc_20e7 } from "../names.js";
+import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE, loc_20e7 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -42,13 +42,13 @@ test("CAPTURE: real 0x18e7 dispatches -- loc_18e7 == oracle in RAM (-stack) and 
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: HL := 0x20e7 + bit0 of (loc_2067)", () => {
+test("CRAFTED: HL := 0x20e7 + bit0 of (ACTIVE_PLAYER_PAGE)", () => {
   for (const v of [0x00, 0x01, 0x02, 0x03, 0xfe, 0xff]) {
-    const o = new Machine(ROM); o.mem.write8(loc_2067, v);
-    const c = new Machine(ROM); c.mem.write8(loc_2067, v);
+    const o = new Machine(ROM); o.mem.write8(ACTIVE_PLAYER_PAGE, v);
+    const c = new Machine(ROM); c.mem.write8(ACTIVE_PLAYER_PAGE, v);
     oracle(o);
     const ret = loc_18e7(c);
-    assert.equal(ramDiff(o, c), null, `(loc_2067)=0x${v.toString(16)}`);
+    assert.equal(ramDiff(o, c), null, `(ACTIVE_PLAYER_PAGE)=0x${v.toString(16)}`);
     const want = loc_20e7 + (v & 1);
     assert.equal(o.regs.hl, want, `oracle HL for 0x${v.toString(16)}`);
     assert.equal(c.regs.hl, want, `module HL for 0x${v.toString(16)}`);
@@ -57,8 +57,8 @@ test("CRAFTED: HL := 0x20e7 + bit0 of (loc_2067)", () => {
 });
 
 test("TEETH: a wrong HL (bit0 bump dropped) is caught", () => {
-  const o = new Machine(ROM); o.mem.write8(loc_2067, 0x01); // bit0=1 -> HL should bump
-  const c = new Machine(ROM); c.mem.write8(loc_2067, 0x01);
+  const o = new Machine(ROM); o.mem.write8(ACTIVE_PLAYER_PAGE, 0x01); // bit0=1 -> HL should bump
+  const c = new Machine(ROM); c.mem.write8(ACTIVE_PLAYER_PAGE, 0x01);
   oracle(o);
   loc_18e7(c); c.regs.hl = loc_20e7; // BUG: dropped the +1 bump
   assert.notEqual(o.regs.hl, c.regs.hl, "the live-out check FAILED to catch a wrong HL");

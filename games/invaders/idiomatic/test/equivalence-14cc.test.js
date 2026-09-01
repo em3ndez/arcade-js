@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_14cc (ROM 0x14cc) -- "fill a run of rows with A, stepping 0x20 per pass".
+// Memory-equivalence for fillScreenRow (ROM 0x14cc) -- "fill a run of rows with A, stepping 0x20 per pass".
 // Inputs A (byte), B (row count; 0 means 256), HL (start). Live-out: the filled cells (RAM) AND HL,
 // which the caller reads back. Each side runs on a fresh clone; the contract is RAM (dumpState, minus
 // STACK_SCRATCH -- the oracle transiently push/pops BC there) plus the HL live-out.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_14cc as oracle } from "../../translated/loc_14cc.js";
-import { loc_14cc } from "../loc_14cc.js";
+import { fillScreenRow } from "../fillScreenRow.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -36,7 +36,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x14cc dispatches -- loc_14cc == oracle in RAM (-stack) and HL", () => {
+test("CAPTURE: real 0x14cc dispatches -- fillScreenRow == oracle in RAM (-stack) and HL", () => {
   for (const cap of CAPS) {
     // The oracle's per-row `push b` residue sits just below the ENTRY SP, which SI's attract loop walks
     // widely; exclude relative to that SP, not the fixed window. The module drops the save/restore.
@@ -45,7 +45,7 @@ test("CAPTURE: real 0x14cc dispatches -- loc_14cc == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_14cc(c);
+    oracle(o); fillScreenRow(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -62,7 +62,7 @@ test("CRAFTED: the fill lands and HL advances, for several A/B/HL (incl. B=0 => 
   for (const { a, rows, hl } of cases) {
     const o = new Machine(ROM); o.regs.a = a; o.regs.b = rows; o.regs.hl = hl; o.regs.sp = 0x2400;
     const c = new Machine(ROM); c.regs.a = a; c.regs.b = rows; c.regs.hl = hl; c.regs.sp = 0x2400;
-    oracle(o); loc_14cc(c);
+    oracle(o); fillScreenRow(c);
     const tag = `A=0x${a.toString(16)} B=0x${rows.toString(16)} HL=0x${hl.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, endHl(hl, rows), `HL advanced: ${tag}`);
@@ -81,7 +81,7 @@ test("TEETH: a broken twin (wrong 0x21 stride) diverges in RAM and in HL", () =>
   const o = new Machine(ROM); o.regs.a = a; o.regs.b = rows; o.regs.hl = hl; o.regs.sp = 0x2400;
   const c = new Machine(ROM); c.regs.a = a; c.regs.b = rows; c.regs.hl = hl; c.regs.sp = 0x2400;
   oracle(o);
-  // broken twin of loc_14cc: steps one byte too far each pass
+  // broken twin of fillScreenRow: steps one byte too far each pass
   let addr = hl, n = rows;
   do { c.mem.write8(addr, a); addr += 0x21; n = (n - 1) & 0xff; } while (n !== 0);
   c.regs.hl = addr;
