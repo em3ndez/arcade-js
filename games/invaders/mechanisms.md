@@ -139,3 +139,6 @@ status), and `loc_073c` (draws a descriptor sprite, saucer-vs-generic open). The
 alien-shot rate cell `loc_20cf`, the saucer sprite pointer `loc_2087` and active flag `loc_2083`, the object work
 buffer `loc_2073`, and several other work-RAM and ROM cells keep `loc_` names pending grounding. These resolve at
 grounding or when their callers lift and their roles become confident from the code.
+
+Additional leaf helper routines — and the work-RAM and ROM cells they touch — are present in the idiomatic
+layer under `loc_<addr>` names, their roles pending a naming pass and so not narrated here until they are named.
