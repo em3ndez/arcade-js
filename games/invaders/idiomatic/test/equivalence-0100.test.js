@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for drawPendingAlien -- redraw the pending sprite object. Three arms: (a) a prize already
-// despawning bails to the despawn tick (DISSOLVED into tickDespawnTimer); (b) the active-slot path builds
+// despawning bails to the despawn tick (DISSOLVED into tickAlienExplosionDespawn); (b) the active-slot path builds
 // the sprite pointer -- sprite id -> rotate-left-3 -> 0x1c00 table offset, +0x30 for the alternate frame
 // (DISSOLVED into selectAlternateSpriteFrame) -- and shift-blits it (DISSOLVED into blitShiftedSprite),
 // clearing the draw-pending flag; (c) an inactive slot only clears the flag. Live-out is MEMORY only: the
@@ -29,7 +29,7 @@ const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM 
 
 const TARGET = 0x0100;
 const CALLER_RET = 0xabcd;
-const PRIZE_ACTIVE = 0x2002, DESPAWN_TIMER = 0x2003, SPRITE_ID = 0x2004, FRAME_FLAG = 0x2005;
+const PLAYER_SHOT_HIT = 0x2002, DESPAWN_TIMER = 0x2003, SPRITE_ID = 0x2004, FRAME_FLAG = 0x2005;
 const OBJ_LOW = 0x2006, OBJ_PAGE = 0x2067, DRAW_ADDR = 0x200b, DRAW_PENDING = 0x2000;
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const ramDiff = (ma, mb) =>
@@ -62,7 +62,7 @@ test("CAPTURE: real 0x0100 dispatches -- drawPendingAlien == oracle in RAM (-sta
 // framebuffer. A is seeded nonzero on both to prove the routine's dead-A divergence never reaches RAM.
 function seat(m, { prize, active, spriteId, frame, drawAddr }) {
   m.regs.sp = 0x2400; m.push16(CALLER_RET); m.io.setInte(false); m.regs.a = 0xa5;
-  m.mem.write8(PRIZE_ACTIVE, prize);
+  m.mem.write8(PLAYER_SHOT_HIT, prize);
   m.mem.write8(DESPAWN_TIMER, 0x05);     // > 1: the bail path just decrements, no expiry side effects
   m.mem.write8(OBJ_LOW, 0x50);
   m.mem.write8(OBJ_PAGE, 0x20);          // objAddr = 0x2050

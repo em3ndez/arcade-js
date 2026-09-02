@@ -105,8 +105,6 @@ invaders 0x2087
 invaders 0x20c2
 invaders 0x20cf
 invaders 0x391c
-invaders 0x2003
-invaders 0x2064
 invaders 0x21fb
 invaders 0x22fb
 # batch-5 leaf cells (role read at decompile; UP5 promotes to descriptive + removes)
