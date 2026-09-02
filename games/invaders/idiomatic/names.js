@@ -8,7 +8,7 @@
 export const STACK_SCRATCH = { lo: 0x23e0, hi: 0x2400 };
 
 export const TIMER_RELOAD = 0x0600;  // [code]
-export const ALIEN_SPRITE_TABLE = 0x1c00;  // [code]
+export const ALIEN_SPRITE_TABLE = 0x1c00;  // [seen]
 export const ALIEN_SHOT_BLOWUP_SPRITE = 0x1cdc;  // [code]
 export const SAUCER_SCORE_KEY_TABLE = 0x1d4c;  // [code]
 export const SAUCER_SCORE_SPRITE_TABLE = 0x1d50;  // [code]
@@ -101,10 +101,10 @@ export const PLAYER1_SHIELD_BUFFER = 0x2142;  // [seen]
 export const PLAYER2_SHIELD_BUFFER = 0x2242;  // [seen]
 export const loc_391c = 0x391c;
 export const TAITO_COPYRIGHT_TEXT = 0x0bf7;  // [code]
-export const SCORE_HEADER_TEXT = 0x1ae4;  // [code]
+export const SCORE_HEADER_TEXT = 0x1ae4;  // [seen]
 export const RESERVE_SHIP_SPRITE = 0x1c60;  // [code]
 export const SAUCER_HIT_SPRITE = 0x1d7c;  // [code]
-export const CREDIT_LABEL_TEXT = 0x1fa9;  // [code]
+export const CREDIT_LABEL_TEXT = 0x1fa9;  // [seen]
 export const ALIEN_EXPLOSION_TIMER = 0x2003;  // [seen]
 export const INPUT_CODE_STAGE_FLAG = 0x201e;  // [code]
 export const ALIEN_EXPLOSION_ADDR = 0x2064;  // [seen]
