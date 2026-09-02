@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0988 -- on a pending score add, fold the two-byte BCD delta into the active
+// Memory-equivalence for applyPendingScoreAdd -- on a pending score add, fold the two-byte BCD delta into the active
 // player's running total (with the 8080 DAA decimal carry) and redraw it at the record's screen address;
 // on a clear pending flag do nothing. The active record pointer is DISSOLVED into currentPlayerRecordPtr
 // and the redraw into drawBcdWord. Live-out is RAM only -- the sole non-tail caller (the in-game frame
 // loop) reloads A immediately after the call, so no register is compared; the score cells and rendered
-// glyphs carry the check. loc_0988 is reached only from that in-game loop, which a headless attract run
+// glyphs carry the check. applyPendingScoreAdd is reached only from that in-game loop, which a headless attract run
 // does not enter, so CAPTURE finds no natural dispatch and CRAFTED carries the branch coverage. The
 // oracle's call/ret residue sits below the entry SP and is excluded from the RAM diff.
 // Run: node --test games/invaders/idiomatic/test/equivalence-0988.test.js
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0988 as oracle } from "../../translated/loc_0988.js";
-import { loc_0988 } from "../loc_0988.js";
+import { applyPendingScoreAdd } from "../applyPendingScoreAdd.js";
 import { currentPlayerRecordPtr } from "../currentPlayerRecordPtr.js";
 import { drawBcdWord } from "../drawBcdWord.js";
 import { Machine } from "../../machine.js";
@@ -40,14 +40,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0988 dispatches -- loc_0988 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0988 dispatches -- applyPendingScoreAdd == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0988(c);
+    oracle(o); applyPendingScoreAdd(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked (in-game only; CRAFTED carries coverage)`);
@@ -78,7 +78,7 @@ test("CRAFTED: pending clear bails; pending set BCD-adds the delta (with decimal
   for (const [page, accLo, accHi, dLo, dHi, pend, expLo, expHi, tag] of cases) {
     const o = new Machine(ROM); const rec = seed(o, page, accLo, accHi, dLo, dHi, pend); o.io.setInte(false);
     const c = new Machine(ROM); seed(c, page, accLo, accHi, dLo, dHi, pend); c.io.setInte(false);
-    oracle(o); loc_0988(c);
+    oracle(o); applyPendingScoreAdd(c);
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.mem.read8(rec), expLo, `acc low: ${tag}`);
     assert.equal(c.mem.read8(rec + 1), expHi, `acc high: ${tag}`);
@@ -86,7 +86,7 @@ test("CRAFTED: pending clear bails; pending set BCD-adds the delta (with decimal
   }
   // Positive control that the redraw ran for a pending add: a glyph is plotted at the screen address.
   const c = new Machine(ROM); seed(c, 0x21, 0x25, 0x00, 0x25, 0x00, 0x01); c.io.setInte(false);
-  loc_0988(c);
+  applyPendingScoreAdd(c);
   let drew = 0;
   for (let i = 0; i < 8; i++) drew |= c.mem.read8(PTR + i * 0x20);
   assert.notEqual(drew, 0, "the updated total was drawn at the record's screen address");

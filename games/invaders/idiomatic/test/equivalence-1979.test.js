@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1979 -- the boot credit-readout sequence. It clears the game-active flag
+// Memory-equivalence for drawCreditReadout -- the boot credit-readout sequence. It clears the game-active flag
 // (DISSOLVED into clearGameActive), repaints the BCD credit tally (DISSOLVED into drawCreditCount), then
 // tail-draws the credit label (DISSOLVED into drawCreditLabel). Straight-line, no own branches; live-out
 // is RAM only -- its single caller (loc_0765) reseats every register before reading, so nothing is
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1979 as oracle } from "../../translated/loc_1979.js";
-import { loc_1979 } from "../loc_1979.js";
+import { drawCreditReadout } from "../drawCreditReadout.js";
 import { clearGameActive } from "../clearGameActive.js";
 import { setGameActive } from "../setGameActive.js";
 import { drawCreditCount } from "../drawCreditCount.js";
@@ -50,11 +50,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1979 dispatches -- loc_1979 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x1979 dispatches -- drawCreditReadout == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1979(c);
+    oracle(o); drawCreditReadout(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -69,14 +69,14 @@ test("CRAFTED: clears game-active, repaints the credit tally + label; equal acro
     };
     const o = new Machine(ROM); seed(o); o.io.setInte(false);
     const c = new Machine(ROM); seed(c); c.io.setInte(false);
-    oracle(o); loc_1979(c);
+    oracle(o); drawCreditReadout(c);
     const tag = `credit=${hx(credit)}`;
     assert.equal(ramDiff(o, c), null, tag);
   }
   // Positive controls: each dissolved limb left its mark.
   const c = new Machine(ROM); c.regs.sp = 0x2400; c.io.setInte(false);
   c.mem.write8(GAME_ACTIVE, 0xff); c.mem.write8(CREDIT_COUNT, 0x12);
-  loc_1979(c);
+  drawCreditReadout(c);
   assert.equal(c.mem.read8(GAME_ACTIVE), 0, "game-active flag cleared");
   assert.notEqual(drawn(c, CREDIT_COUNT_SCREEN_ADDR, 8), 0, "credit tally painted");
   assert.notEqual(drawn(c, CREDIT_LABEL_SCREEN_ADDR, 8), 0, "credit label painted");
@@ -119,7 +119,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   m.mem.write16(0x2400, 0x0771);        // a real caller-return word for the seam to consume
   m.mem.write8(CREDIT_COUNT, 0x12);
   m.io.setInte(false);
-  const r = seamPlaceable(withOmittedRet, loc_1979, TARGET, m);
-  assert.equal(r.placeable, true, `loc_1979 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, drawCreditReadout, TARGET, m);
+  assert.equal(r.placeable, true, `drawCreditReadout must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

@@ -18,7 +18,7 @@ function bcdAdd(x, y, carryIn) {
 
 // When a score add is pending, fold the pending two-byte BCD delta into the active player's running
 // total (clearing the pending flag), then redraw that total at the record's stored screen address.
-export function loc_0988(m) {
+export function applyPendingScoreAdd(m) {
   const rec = currentPlayerRecordPtr(m);
   if (m.mem8[SCORE_ADD_PENDING] === 0) return;
   m.mem8[SCORE_ADD_PENDING] = 0;
