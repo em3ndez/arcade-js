@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_19e6 -- seat HL, and (when the entry Z flag is clear) run an A-counted loop
+// Memory-equivalence for drawReserveLifeIcons -- seat HL, and (when the entry Z flag is clear) run an A-counted loop
 // of 16-byte column fills (DISSOLVED loc_1439 -> drawSpriteColumn), then fall through into the strip-blanker
 // (DISSOLVED clearScreenRegion -> clearScreenRegion). The entry Z flag is a live-IN, captured as a param default. The only
-// live-out is RAM: the sole caller (loc_1a7f) restores A/flags via `pop psw` and hands HL to loc_1a8b, so
+// live-out is RAM: the sole caller (loc_1a7f) restores A/flags via `pop psw` and hands HL to drawLivesDigit, so
 // every register output is dead. Interrupts disabled so the oracle's ticks can't fire a one-sided handler.
 // Run: node --test games/invaders/idiomatic/test/equivalence-19e6.test.js
 
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_19e6 as oracle } from "../../translated/loc_19e6.js";
-import { loc_19e6 } from "../loc_19e6.js";
+import { drawReserveLifeIcons } from "../drawReserveLifeIcons.js";
 import { drawSpriteColumn } from "../drawSpriteColumn.js";
 import { clearScreenStrip } from "../clearScreenStrip.js";
 import { Machine } from "../../machine.js";
@@ -36,7 +36,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x19e6 dispatches -- loc_19e6 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x19e6 dispatches -- drawReserveLifeIcons == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     // The oracle's per-pass push16(0x19f5) + loc_1439/clearScreenRegion push residue sits just below the ENTRY SP.
     const sp = cap.regs.sp;
@@ -44,7 +44,7 @@ test("CAPTURE: real 0x19e6 dispatches -- loc_19e6 == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_19e6(c);
+    oracle(o); drawReserveLifeIcons(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -56,7 +56,7 @@ test("CRAFTED: Z-skip clears strips; Z-clear paints A columns then clears the st
     const o = new Machine(ROM); o.io.setInte(false); o.regs.sp = 0x2400; o.regs.fZ = true;
     const c = new Machine(ROM); c.io.setInte(false); c.regs.sp = 0x2400; c.regs.fZ = true;
     for (let a = 0x2701; a <= 0x35ff; a++) { o.mem.write8(a, 0xaa); c.mem.write8(a, 0xaa); }
-    oracle(o); loc_19e6(c);
+    oracle(o); drawReserveLifeIcons(c);
     assert.equal(ramDiff(o, c), null, "arm A");
     assert.equal(c.mem.read8(0x2701), 0x00, "first strip base cleared");
     assert.equal(c.mem.read8(0x3501), 0xaa, "terminator strip base left untouched");
@@ -66,7 +66,7 @@ test("CRAFTED: Z-skip clears strips; Z-clear paints A columns then clears the st
     const o = new Machine(ROM); o.io.setInte(false); o.regs.sp = 0x2400; o.regs.fZ = false; o.regs.a = 0x02;
     const c = new Machine(ROM); c.io.setInte(false); c.regs.sp = 0x2400; c.regs.fZ = false; c.regs.a = 0x02;
     for (let a = 0x2701; a <= 0x35ff; a++) { o.mem.write8(a, 0xaa); c.mem.write8(a, 0xaa); }
-    oracle(o); loc_19e6(c);
+    oracle(o); drawReserveLifeIcons(c);
     assert.equal(ramDiff(o, c), null, "arm B");
     assert.equal(c.mem.read8(0x2801), 0xff, "column 1 painted (0x2701 + row 8)");
     assert.equal(c.mem.read8(0x2a01), 0xff, "column 2 painted (0x2901 + row 8)");

@@ -5,7 +5,7 @@ import { retirePrize } from "./retirePrize.js";
 
 // Tick the prize despawn timer; while it still counts, do nothing. On expiry, clear the prize's
 // screen column then deactivate the prize; value-out A, live-out HL.
-export function loc_1538(m) {
+export function tickDespawnTimer(m) {
   m.mem8[loc_2003] = m.mem8[loc_2003] - 1;
   if (m.mem8[loc_2003] !== 0) return;
   // seat the column start, clear 16 rows, then run the deactivation tail

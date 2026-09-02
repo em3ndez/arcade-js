@@ -78,28 +78,28 @@ export const TWO_PLAYER_GAME = 0x20ce;  // [code]
 export const PLAYER1_SHIELD_BUFFER = 0x2142;  // [code]
 export const PLAYER2_SHIELD_BUFFER = 0x2242;  // [code]
 export const loc_391c = 0x391c;
-export const loc_0bf7 = 0x0bf7;
-export const loc_1ae4 = 0x1ae4;
-export const loc_1c60 = 0x1c60;
-export const loc_1d7c = 0x1d7c;
-export const loc_1fa9 = 0x1fa9;
+export const TAITO_COPYRIGHT_TEXT = 0x0bf7;  // [code]
+export const SCORE_HEADER_TEXT = 0x1ae4;  // [code]
+export const RESERVE_SHIP_SPRITE = 0x1c60;  // [code]
+export const SAUCER_HIT_SPRITE = 0x1d7c;  // [code]
+export const CREDIT_LABEL_TEXT = 0x1fa9;  // [code]
 export const loc_2003 = 0x2003;
-export const loc_201e = 0x201e;
+export const INPUT_CODE_STAGE_FLAG = 0x201e;  // [code]
 export const loc_2064 = 0x2064;
-export const loc_2079 = 0x2079;
-export const loc_20c3 = 0x20c3;
-export const loc_20c5 = 0x20c5;
-export const loc_20c7 = 0x20c7;
-export const loc_20ca = 0x20ca;
-export const loc_20cb = 0x20cb;
-export const loc_20cc = 0x20cc;
+export const ALIEN_SHOT_SPRITE_PTR = 0x2079;  // [code]
+export const ANIM_COORD_STEP_LO = 0x20c3;  // [code]
+export const ANIM_SPRITE_COORD = 0x20c5;  // [code]
+export const ANIM_SPRITE_SRC = 0x20c7;  // [code]
+export const ANIM_END_COORD = 0x20ca;  // [code]
+export const ANIM_DONE_FLAG = 0x20cb;  // [code]
+export const ANIM_BASE_SPRITE_SRC = 0x20cc;  // [code]
 export const loc_21fb = 0x21fb;
 export const loc_22fb = 0x22fb;
-export const loc_241e = 0x241e;
-export const loc_2501 = 0x2501;
-export const loc_2701 = 0x2701;
-export const loc_2e1b = 0x2e1b;
-export const loc_3501 = 0x3501;
+export const SCORE_HEADER_SCREEN_ADDR = 0x241e;  // [code]
+export const LIVES_DIGIT_SCREEN_ADDR = 0x2501;  // [code]
+export const RESERVE_SHIP_ICONS_SCREEN_ADDR = 0x2701;  // [code]
+export const TAITO_COPYRIGHT_SCREEN_ADDR = 0x2e1b;  // [code]
+export const CREDIT_LABEL_SCREEN_ADDR = 0x3501;  // [code]
 export const ROUTINES = {
   0x00b1: { name: "loadReferenceAlienState", role: "load the active player's saved field record: mirror the reference-alien coord word to loc_2009/ALIEN_DRAW_ADDR, derive the count at loc_2008, set FLEET_MOVE_DIR on the 0xfe edge sentinel", cert: "seen" },
   0x01c0: { name: "markAllAliensAliveP1", role: "seat the player-1 alien-status base ALIEN_FIELD_P1 then markAllAliensAlive (fill 0x37 cells with 0x01)", cert: "code" },
@@ -187,21 +187,21 @@ export const ROUTINES = {
   0x1856: { name: "fetchNextDrawRecord", role: "fetch the next 4-byte draw record addressed by BC (A=(BC), advance BC); live-out A, BC", cert: "code" },
   0x19fa: { name: "clearScreenRegion", role: "repeatedly clearScreenStrip to blank a wider screen region", cert: "code" },
   0x00d7: { name: "loc_00d7", role: "seed the mirrored per-player cells loc_21fb/loc_22fb with 0x02, then blank the fixed 0x20-column screen strip via blankScreenStrip (guarded by TWO_PLAYER_GAME, which rnz-early-outs when nonzero); live-out HL", cert: "code" },
-  0x0209: { name: "loc_0209", role: "force save mode (1), then save the player-1 shield region into the PLAYER1_SHIELD_BUFFER backup buffer via saveOrRestorePlayer1Shields -> drawOrSaveShields (captureScreenRect); memory-only", cert: "code" },
-  0x020e: { name: "loc_020e", role: "force save mode (1), then save the player-2 shield region into the PLAYER2_SHIELD_BUFFER backup buffer via saveOrRestorePlayer2Shields -> drawOrSaveShields (captureScreenRect); memory-only", cert: "code" },
-  0x0213: { name: "loc_0213", role: "force the shield save/restore mode clear (A:=0), then saveOrRestorePlayer2Shields: restore (orBlitBitmap, mode 0) the four 22x2 shield blocks against the player-2 backup base PLAYER2_SHIELD_BUFFER; memory-only, no register live-out", cert: "code" },
-  0x021a: { name: "loc_021a", role: "force the shield save/restore mode clear (A:=0), then saveOrRestorePlayer1Shields: restore (orBlitBitmap, mode 0) the four 22x2 shield blocks against the player-1 backup base PLAYER1_SHIELD_BUFFER; memory-only, no register live-out", cert: "code" },
-  0x066c: { name: "loc_066c", role: "point HL at the shot object's 5-byte sprite descriptor loc_2079, loadSpriteDescriptor it (DE/A/C/B, HL=C:A), then tail-delegate drawSpriteWithCollision to blit the sprite column with collision detect; live-out HL/DE/A + collision flag COLLISION_FLAG", cert: "code" },
-  0x0675: { name: "loc_0675", role: "load the sprite descriptor at record cell loc_2079 (loadSpriteDescriptor), then erase that sprite's B rows off the screen (eraseShiftedSprite tail delegate); live-out HL, DE, A + screen", cert: "code" },
-  0x074b: { name: "loc_074b", role: "OR sound-select bit 0x10 into SOUND_PORT5_SHADOW and latch it (latchSoundPort5), reset the sprite record's gfx pointer loc_2087 to ROM sprite table loc_1d7c, then blit the sprite column (loc_073c tail delegate); live-out HL + screen", cert: "code" },
-  0x08f1: { name: "loc_08f1", role: "seed a fixed 3-entry count then run the sprite-list driver drawSpriteList (fall-through/tail delegate) to blit 3 consecutive sprite ids from DE down the screen from HL; live-out HL, DE, C + screen", cert: "code" },
-  0x09b2: { name: "loc_09b2", role: "draw the byte in A as two hex glyphs (high nibble then low) via drawDigit; live-out HL, DE preserved", cert: "code" },
-  0x1538: { name: "loc_1538", role: "prize despawn timer: decrement loc_2003; while non-zero return early; on expiry reload HL from loc_2064, clear the prize column via clearSpriteColumn (B=0x10), then run the deactivation tail retirePrize; value-out A, live-out HL", cert: "code" },
-  0x1579: { name: "loc_1579", role: "set the prize-landed flag SAUCER_EXITING to 1, then run the deactivation tail retirePrize; value-out A", cert: "code" },
-  0x1868: { name: "loc_1868", role: "step the animation record totals (advanceRecordTotals over loc_20c3); when [loc_20ca] equals the 2nd total latch the done flag loc_20cb=1 (value-out A=1); else compute the frame screen pointer from loc_20cc (+0x30 unless bit2 of loc_20c2), stash it to loc_20c7, read the sprite descriptor at loc_20c5 (loadSpriteDescriptor), XCHG, and shift-blit the sprite via blitShiftedSprite", cert: "code" },
-  0x191a: { name: "loc_191a", role: "draw a preset run of 0x1c sprites (id list from ROM loc_1ae4) into the screen at loc_241e via the sprite-list driver drawSpriteList; live-out HL/DE/C", cert: "code" },
-  0x193c: { name: "loc_193c", role: "draw a preset run of 0x07 sprites (id list from ROM loc_1fa9) into the screen at loc_3501 via the sprite-list driver drawSpriteList; live-out HL/DE/C", cert: "code" },
-  0x199a: { name: "loc_199a", role: "gate on the one-shot flag loc_201e plus two successive port-1 codes (first 0x72 arms the flag to 1, then 0x34); once both match, draw the 9-sprite list from ROM loc_0bf7 to screen loc_2e1b via drawSpriteList (dissolved); early-returns on any code miss. RAM-only live-out", cert: "code" },
-  0x19e6: { name: "loc_19e6", role: "seat strip base loc_2701; if entered with Z set, blank the screen strips via clearScreenRegion (dissolved); else run an A-counted loop painting 16-byte columns from ROM loc_1c60 via drawSpriteColumn (dissolved 0x1439), advancing HL by 0x200 per pass, then fall through into clearScreenRegion. Entry Z live-in; RAM-only live-out", cert: "code" },
-  0x1a8b: { name: "loc_1a8b", role: "seat the glyph screen base loc_2501, mask A to its low nibble, then plot the hex glyph via drawDigit (dissolved). RAM-only live-out (HL/A dead in every caller)", cert: "code" },
+  0x0209: { name: "savePlayer1Shields", role: "force save mode (A=1), then saveOrRestorePlayer1Shields captures the four player-1 shields into PLAYER1_SHIELD_BUFFER; memory-only", cert: "code" },
+  0x020e: { name: "savePlayer2Shields", role: "force save mode (A=1), then saveOrRestorePlayer2Shields captures the four player-2 shields into PLAYER2_SHIELD_BUFFER; memory-only", cert: "code" },
+  0x0213: { name: "restorePlayer2Shields", role: "force restore mode (A=0), then saveOrRestorePlayer2Shields OR-blits the player-2 shields back from PLAYER2_SHIELD_BUFFER; memory-only", cert: "code" },
+  0x021a: { name: "restorePlayer1Shields", role: "force restore mode (A=0), then saveOrRestorePlayer1Shields OR-blits the player-1 shields back from PLAYER1_SHIELD_BUFFER; memory-only", cert: "code" },
+  0x066c: { name: "drawAlienShotWithCollision", role: "seat HL at the alien-shot descriptor ALIEN_SHOT_SPRITE_PTR, loadSpriteDescriptor, then drawSpriteWithCollision; live-out HL/DE/A + COLLISION_FLAG", cert: "code" },
+  0x0675: { name: "eraseAlienShot", role: "seat HL at the alien-shot descriptor ALIEN_SHOT_SPRITE_PTR, loadSpriteDescriptor, then eraseShiftedSprite (AND the sprite's bits out of the screen)", cert: "code" },
+  0x074b: { name: "playSaucerHitSoundAndDrawSprite", role: "on saucer destruction: OR the port-5 UFO-hit sound bit and latchSoundPort5, repoint the saucer sprite record at SAUCER_HIT_SPRITE, then draw it", cert: "code" },
+  0x08f1: { name: "drawThreeSprites", role: "seat count C=3, then drawSpriteList blits three consecutive 8x8 sprites from (DE)", cert: "code" },
+  0x09b2: { name: "drawBcdByte", role: "draw the byte in A as two digit glyphs, high nibble then low, via drawDigit (BCD: each nibble is 0-9)", cert: "code" },
+  0x1538: { name: "tickDespawnTimer", role: "decrement the despawn countdown loc_2003; while nonzero return; on expiry reload the sprite address from loc_2064, clearSpriteColumn, then retirePrize", cert: "code" },
+  0x1579: { name: "markExitingAndRetire", role: "set SAUCER_EXITING, then retirePrize (deactivate) -- reached when the descending object passes the far edge", cert: "code" },
+  0x1868: { name: "stepAnimationFrame", role: "step one scripted-animation frame: bump the counter loc_20c2, advanceRecordTotals over ANIM_COORD_STEP_LO and load the descriptor from ANIM_SPRITE_COORD, set ANIM_DONE_FLAG at ANIM_END_COORD, else compute ANIM_SPRITE_SRC from ANIM_BASE_SPRITE_SRC and blitShiftedSprite", cert: "code" },
+  0x191a: { name: "drawScoreHeader", role: "drawSpriteList the score-header line (SCORE_HEADER_TEXT) to SCORE_HEADER_SCREEN_ADDR", cert: "code" },
+  0x193c: { name: "drawCreditLabel", role: "drawSpriteList the 'CREDIT' label (CREDIT_LABEL_TEXT) to CREDIT_LABEL_SCREEN_ADDR", cert: "code" },
+  0x199a: { name: "drawTaitoCopyright", role: "behind a two-step port-1 input code (INPUT_CODE_STAGE_FLAG), drawSpriteList the Taito copyright (TAITO_COPYRIGHT_TEXT) to TAITO_COPYRIGHT_SCREEN_ADDR", cert: "code" },
+  0x19e6: { name: "drawReserveLifeIcons", role: "draw A reserve-ship icons (RESERVE_SHIP_SPRITE) at RESERVE_SHIP_ICONS_SCREEN_ADDR, blanking the remainder; skip drawing when the count is zero", cert: "code" },
+  0x1a8b: { name: "drawLivesDigit", role: "draw the low nibble of A as a digit glyph at LIVES_DIGIT_SCREEN_ADDR via drawDigit", cert: "code" },
 };

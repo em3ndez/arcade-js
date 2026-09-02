@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0213 -- force the mode flag clear (A:=0), then delegate to saveOrRestorePlayer2Shields (the
+// Memory-equivalence for restorePlayer2Shields -- force the mode flag clear (A:=0), then delegate to saveOrRestorePlayer2Shields (the
 // 0x0214 fall-through DISSOLVED): store SHIELD_SAVE_RESTORE_MODE=0 and OR the four 22x2 shield blocks
 // back onto the player-2 screen region. A at entry is dead (zeroed); live-out is MEMORY only. The oracle
 // push/pops around its dispatch, so the RAM diff excludes the dead stack scratch. Interrupts disabled on
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0213 as oracle } from "../../translated/loc_0213.js";
-import { loc_0213 } from "../loc_0213.js";
+import { restorePlayer2Shields } from "../restorePlayer2Shields.js";
 import { saveOrRestorePlayer2Shields } from "../saveOrRestorePlayer2Shields.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -36,7 +36,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0213 dispatches -- loc_0213 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0213 dispatches -- restorePlayer2Shields == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     // The oracle push/pops around its dispatch, below the ENTRY SP -- exclude relative to that SP.
     const sp = cap.regs.sp;
@@ -44,7 +44,7 @@ test("CAPTURE: real 0x0213 dispatches -- loc_0213 == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0213(c);
+    oracle(o); restorePlayer2Shields(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -62,7 +62,7 @@ test("CRAFTED: A ignored -- restore path leaves the same RAM as the oracle and m
   for (const a of [0x00, 0xff]) {
     const o = new Machine(ROM); seat(o, a);
     const c = new Machine(ROM); seat(c, a);
-    oracle(o); loc_0213(c);
+    oracle(o); restorePlayer2Shields(c);
     const tag = `A=0x${a.toString(16)}`;
     assert.equal(ramDiff(o, c), null, `restore path RAM matches: ${tag}`);
     assert.equal(c.mem.read8(SHIELD_SAVE_RESTORE_MODE), 0x00, `mode flag cleared: ${tag}`);
@@ -72,7 +72,7 @@ test("CRAFTED: A ignored -- restore path leaves the same RAM as the oracle and m
 
 test("TEETH: a module that forwards the entry A (skips the clear) diverges in RAM", () => {
   // Broken twin: delegate WITHOUT zeroing A, so a nonzero entry A takes the wrong (capture) path and
-  // stores the wrong mode flag. Mutates loc_0213's one job -- forcing the mode clear.
+  // stores the wrong mode flag. Mutates restorePlayer2Shields's one job -- forcing the mode clear.
   const broken = (m) => saveOrRestorePlayer2Shields(m); // BUG: forwards m.regs.a instead of 0
   const o = new Machine(ROM); seat(o, 0x01);
   const c = new Machine(ROM); seat(c, 0x01);

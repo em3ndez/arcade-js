@@ -2,6 +2,6 @@
 import { saveOrRestorePlayer2Shields } from "./saveOrRestorePlayer2Shields.js";
 
 // Save the player-2 shield region into its backup buffer.
-export function loc_020e(m) {
+export function savePlayer2Shields(m) {
   saveOrRestorePlayer2Shields(m, 1);
 }

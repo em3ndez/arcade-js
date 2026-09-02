@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_193c -- seat a fixed sprite-id list (count 0x07, source loc_1fa9, screen slot
-// loc_3501) and tail-delegate to the sprite-list driver drawSpriteList (the tail-jump is DISSOLVED into a direct
+// Memory-equivalence for drawCreditLabel -- seat a fixed sprite-id list (count 0x07, source CREDIT_LABEL_TEXT, screen slot
+// CREDIT_LABEL_SCREEN_ADDR) and tail-delegate to the sprite-list driver drawSpriteList (the tail-jump is DISSOLVED into a direct
 // call). Live-out: the blitted cells (RAM) plus HL (advanced 0x100 per sprite), DE (past the id list) and
 // C (= 0). The oracle push/pops through the stack scratch below the entry SP; the module keeps its walk in
 // locals. Run: node --test games/invaders/idiomatic/test/equivalence-193c.test.js
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_193c as oracle } from "../../translated/loc_193c.js";
-import { loc_193c } from "../loc_193c.js";
+import { drawCreditLabel } from "../drawCreditLabel.js";
 import { drawSpriteList } from "../drawSpriteList.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -36,14 +36,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x193c dispatches -- loc_193c == oracle in RAM (-stack), HL, DE and C", () => {
+test("CAPTURE: real 0x193c dispatches -- drawCreditLabel == oracle in RAM (-stack), HL, DE and C", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp; // the oracle's driver push residue sits just below the entry SP
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_193c(c);
+    oracle(o); drawCreditLabel(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
     assert.equal(c.regs.de, o.regs.de, "DE walked past the id list matches the oracle");
@@ -52,13 +52,13 @@ test("CAPTURE: real 0x193c dispatches -- loc_193c == oracle in RAM (-stack), HL,
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-// Seat a fresh Machine with a caller return on the stack; loc_193c supplies its own count/source/slot.
+// Seat a fresh Machine with a caller return on the stack; drawCreditLabel supplies its own count/source/slot.
 function seat(m) { m.regs.sp = 0x2400; m.push16(CALLER_RET); m.io.setInte(false); }
 
 test("CRAFTED: the preset 0x07-sprite list is blitted; HL += 0x700, DE past the list, C := 0", () => {
   const o = new Machine(ROM); seat(o);
   const c = new Machine(ROM); seat(c);
-  oracle(o); loc_193c(c);
+  oracle(o); drawCreditLabel(c);
 
   assert.equal(ramDiff(o, c), null, "oracle and module leave identical RAM (-stack)");
   assert.equal(c.regs.hl, u16(0x3501 + 0x100 * 0x07), "HL advanced 0x100 per sprite");
@@ -70,7 +70,7 @@ test("CRAFTED: the preset 0x07-sprite list is blitted; HL += 0x700, DE past the 
 });
 
 test("TEETH: a twin that seats the wrong screen slot blits to the wrong place and is caught", () => {
-  // Broken twin of loc_193c: real delegation, one mutated constant -- the screen slot is shifted a column.
+  // Broken twin of drawCreditLabel: real delegation, one mutated constant -- the screen slot is shifted a column.
   const loc_193c_broken = (m) => drawSpriteList(m, 0x1fa9, 0x07, (0x3501 + 0x20) & 0xffff);
   const o = new Machine(ROM); seat(o);
   const c = new Machine(ROM); seat(c);

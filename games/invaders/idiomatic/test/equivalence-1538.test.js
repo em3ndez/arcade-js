@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1538 -- tick the prize despawn timer; while it still counts, do nothing;
+// Memory-equivalence for tickDespawnTimer -- tick the prize despawn timer; while it still counts, do nothing;
 // on expiry clear the prize's screen column via clearSpriteColumn (its m.call DISSOLVED) then run the shared
 // deactivation tail retirePrize (also DISSOLVED). Live-out: RAM (the timer cell, the cleared column, the
 // tail's cells); on the expiry path also HL (column end) and A (the tail's masked value). The still-
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1538 as oracle } from "../../translated/loc_1538.js";
-import { loc_1538 } from "../loc_1538.js";
+import { tickDespawnTimer } from "../tickDespawnTimer.js";
 import { retirePrize } from "../retirePrize.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -43,14 +43,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1538 dispatches -- loc_1538 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x1538 dispatches -- tickDespawnTimer == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1538(c);
+    oracle(o); tickDespawnTimer(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -60,7 +60,7 @@ test("CRAFTED still-counting: timer 0x05 -> 0x04, nothing else touched", () => {
   const seed = (m) => { m.regs.sp = 0x2400; m.mem.write8(loc_2003, 0x05); };
   const o = new Machine(ROM); seed(o); o.io.setInte(false);
   const c = new Machine(ROM); seed(c); c.io.setInte(false);
-  oracle(o); loc_1538(c);
+  oracle(o); tickDespawnTimer(c);
   assert.equal(ramDiff(o, c), null);
   assert.equal(c.mem.read8(loc_2003), 0x04, "timer decremented, still counting");
 });
@@ -81,7 +81,7 @@ test("CRAFTED expiry: timer 0x01 -> 0x00, column cleared, tail runs; HL + A live
   };
   const o = new Machine(ROM); seed(o); o.io.setInte(false);
   const c = new Machine(ROM); seed(c); c.io.setInte(false);
-  oracle(o); loc_1538(c);
+  oracle(o); tickDespawnTimer(c);
   assert.equal(ramDiff(o, c), null);
   assert.equal(c.mem.read8(loc_2003), 0x00, "timer expired");
   assert.equal(c.mem.read8(base), 0x00, "column col0 cleared");
@@ -97,7 +97,7 @@ test("CRAFTED expiry: timer 0x01 -> 0x00, column cleared, tail runs; HL + A live
 });
 
 test("TEETH: a module-mutating twin (skips the column clear on expiry) diverges in RAM", () => {
-  // Broken twin of loc_1538: on expiry it jumps straight to the deactivation tail, never clearing the
+  // Broken twin of tickDespawnTimer: on expiry it jumps straight to the deactivation tail, never clearing the
   // prize's screen column -- the dirtied strip survives.
   const loc_1538_broken = (m) => {
     m.mem8[loc_2003] = m.mem8[loc_2003] - 1;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1a8b -- seat the glyph screen base 0x2501, mask A to its low nibble, then
-// tail-jump into the hex-glyph plotter (DISSOLVED drawDigit -> drawDigit). drawDigit reads HL from m.regs, so
+// Memory-equivalence for drawLivesDigit -- seat the glyph screen base 0x2501, mask A to its low nibble, then
+// tail-jump into the decimal-glyph plotter (DISSOLVED drawDigit -> drawDigit). drawDigit reads HL from m.regs, so
 // the seat rides the outgoing return-write. The only live-out is RAM (the glyph pixels): HL/A are dead in
 // every caller (loc_0935 reloads via loc_1910/sta; loc_16e6 via loc_19dc/loc_1671; loc_166d via loc_1671;
 // loc_1a7f -> loc_0aea via seedWorkRamImage). Interrupts disabled so the oracle's ticks can't fire a one-sided handler.
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1a8b as oracle } from "../../translated/loc_1a8b.js";
-import { loc_1a8b } from "../loc_1a8b.js";
+import { drawLivesDigit } from "../drawLivesDigit.js";
 import { drawDigit } from "../drawDigit.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -35,7 +35,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1a8b dispatches -- loc_1a8b == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x1a8b dispatches -- drawLivesDigit == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     // The oracle's tail loc_08ff/loc_1439 push/pop residue sits just below the ENTRY SP.
     const sp = cap.regs.sp;
@@ -43,7 +43,7 @@ test("CAPTURE: real 0x1a8b dispatches -- loc_1a8b == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1a8b(c);
+    oracle(o); drawLivesDigit(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -54,7 +54,7 @@ test("CRAFTED: the low nibble selects the glyph plotted at 0x2501 (high nibble d
   {
     const o = new Machine(ROM); o.io.setInte(false); o.regs.sp = 0x2400; o.regs.a = 0x0f;
     const c = new Machine(ROM); c.io.setInte(false); c.regs.sp = 0x2400; c.regs.a = 0x0f;
-    oracle(o); loc_1a8b(c);
+    oracle(o); drawLivesDigit(c);
     assert.equal(ramDiff(o, c), null, "A=0x0f");
     assert.equal(c.mem.read8(0x2561), 0x78, "glyph pixel row drawn at 0x2501 column");
   }
@@ -62,10 +62,10 @@ test("CRAFTED: the low nibble selects the glyph plotted at 0x2501 (high nibble d
   {
     const o = new Machine(ROM); o.io.setInte(false); o.regs.sp = 0x2400; o.regs.a = 0xf5;
     const c = new Machine(ROM); c.io.setInte(false); c.regs.sp = 0x2400; c.regs.a = 0xf5;
-    oracle(o); loc_1a8b(c);
+    oracle(o); drawLivesDigit(c);
     assert.equal(ramDiff(o, c), null, "A=0xf5 (masks to 0x05)");
     const c5 = new Machine(ROM); c5.io.setInte(false); c5.regs.sp = 0x2400; c5.regs.a = 0x05;
-    loc_1a8b(c5);
+    drawLivesDigit(c5);
     assert.equal(ramDiff(c, c5), null, "A=0xf5 draws the same glyph as A=0x05");
   }
 });

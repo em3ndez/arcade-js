@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1579 -- raise the prize-landed flag to 1, then run the shared prize-
+// Memory-equivalence for markExitingAndRetire -- raise the prize-landed flag to 1, then run the shared prize-
 // deactivation tail retirePrize (its m.call DISSOLVED): set the shot status, clear the prize-active flag,
 // and mask a bit off the sound shadow. Live-out: those cells (RAM) plus A (the masked sound value the
 // tail returns). Neither side pushes, so the RAM diff needs no stack allowance (kept for symmetry).
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1579 as oracle } from "../../translated/loc_1579.js";
-import { loc_1579 } from "../loc_1579.js";
+import { markExitingAndRetire } from "../markExitingAndRetire.js";
 import { retirePrize } from "../retirePrize.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -35,11 +35,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1579 dispatches -- loc_1579 == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x1579 dispatches -- markExitingAndRetire == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1579(c);
+    oracle(o); markExitingAndRetire(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
   }
@@ -57,7 +57,7 @@ test("CRAFTED: flag:=1, shot status:=4, prize cleared, sound bit masked; A = mas
     };
     const o = new Machine(ROM); seed(o); o.io.setInte(false);
     const c = new Machine(ROM); seed(c); c.io.setInte(false);
-    oracle(o); loc_1579(c);
+    oracle(o); markExitingAndRetire(c);
     const tag = `shadow=0x${shadow.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.mem.read8(SAUCER_EXITING), 0x01, `flag set: ${tag}`);
@@ -70,7 +70,7 @@ test("CRAFTED: flag:=1, shot status:=4, prize cleared, sound bit masked; A = mas
 });
 
 test("TEETH: a module-mutating twin (leaves the flag at 0) diverges in RAM", () => {
-  // Broken twin of loc_1579: writes 0 to the prize-landed flag instead of 1, then runs the same tail.
+  // Broken twin of markExitingAndRetire: writes 0 to the prize-landed flag instead of 1, then runs the same tail.
   const loc_1579_broken = (m) => { m.mem8[SAUCER_EXITING] = 0x00; return retirePrize(m); };
   const seed = (m) => {
     m.regs.sp = 0x2400;

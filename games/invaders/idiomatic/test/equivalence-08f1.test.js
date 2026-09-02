@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_08f1 -- seed a fixed 3-entry count then run the sprite-list driver
+// Memory-equivalence for drawThreeSprites -- seed a fixed 3-entry count then run the sprite-list driver
 // (DISSOLVED into drawSpriteList): for those 3 ids starting at DE, blit each sprite down the screen from HL,
 // advancing the id pointer per sprite until the count drains. The incoming C is IGNORED (forced to 3).
 // Live-out: the blitted cells (RAM), HL (advanced 0x100 per sprite), DE (= entry DE + 3), C (= 0). The
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_08f1 as oracle } from "../../translated/loc_08f1.js";
-import { loc_08f1 } from "../loc_08f1.js";
+import { drawThreeSprites } from "../drawThreeSprites.js";
 import { drawSpriteList } from "../drawSpriteList.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -39,14 +39,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x08f1 dispatches -- loc_08f1 == oracle in RAM (-stack), HL, DE and C", () => {
+test("CAPTURE: real 0x08f1 dispatches -- drawThreeSprites == oracle in RAM (-stack), HL, DE and C", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp; // the oracle's push d + delegate push residue sits just below the entry SP
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_08f1(c);
+    oracle(o); drawThreeSprites(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
     assert.equal(c.regs.de, o.regs.de, "DE walked to the end matches the oracle");
@@ -56,7 +56,7 @@ test("CAPTURE: real 0x08f1 dispatches -- loc_08f1 == oracle in RAM (-stack), HL,
 });
 
 // Seat a fresh Machine: a caller return on the stack, a list of ids at DE, a screen base at HL. C is
-// seeded WRONG (0x07) to prove loc_08f1 forces the count to 3 and ignores the incoming C.
+// seeded WRONG (0x07) to prove drawThreeSprites forces the count to 3 and ignores the incoming C.
 function seat(m, { hl, de, ids }) {
   m.regs.sp = 0x2400; m.push16(CALLER_RET); m.io.setInte(false);
   m.regs.hl = hl; m.regs.de = de; m.regs.c = 0x07;
@@ -67,7 +67,7 @@ test("CRAFTED: 3 ids blitted (incoming C ignored); HL += 0x300, DE += 3, C := 0"
   const CASE = { hl: 0x2500, de: 0x2100, ids: [0x01, 0x08, 0x10] };
   const o = new Machine(ROM); seat(o, CASE);
   const c = new Machine(ROM); seat(c, CASE);
-  oracle(o); loc_08f1(c);
+  oracle(o); drawThreeSprites(c);
 
   assert.equal(ramDiff(o, c), null, "oracle and module leave identical RAM (-stack)");
   assert.equal(c.regs.hl, u16(CASE.hl + 0x100 * COUNT), "HL advanced 0x100 per sprite");
@@ -83,7 +83,7 @@ test("CRAFTED: 3 ids blitted (incoming C ignored); HL += 0x300, DE += 3, C := 0"
 });
 
 test("TEETH: a twin that seeds a count of two blits one sprite short and is caught", () => {
-  // Mutate loc_08f1's OWN logic: seed 2 entries instead of 3 -- the third sprite is never blitted.
+  // Mutate drawThreeSprites's OWN logic: seed 2 entries instead of 3 -- the third sprite is never blitted.
   const loc_08f1_broken = (m, de = m.regs.de) => drawSpriteList(m, de, 0x02); // BUG: count 2, not 3
   const CASE = { hl: 0x2500, de: 0x2100, ids: [0x01, 0x08, 0x10] };
   const o = new Machine(ROM); seat(o, CASE);

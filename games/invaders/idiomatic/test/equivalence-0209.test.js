@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0209 -- force save mode (1) then run the shared shield save/restore body
-// against the player-1 backup buffer (DISSOLVED into a direct loc_0209 -> saveOrRestorePlayer1Shields -> drawOrSaveShields).
+// Memory-equivalence for savePlayer1Shields -- force save mode (1) then run the shared shield save/restore body
+// against the player-1 backup buffer (DISSOLVED into a direct savePlayer1Shields -> saveOrRestorePlayer1Shields -> drawOrSaveShields).
 // The mode is unconditional (1 => captureScreenRect saves the screen region into the PLAYER1_SHIELD_BUFFER buffer), so
 // the incoming A is a decoy. Live-out is MEMORY; the callee threads HL/DE but no caller reads them back
 // (the delegate loc_02f8 reloads HL/DE via 0x0878 and restores A via `pop psw`). The oracle push/pops
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0209 as oracle } from "../../translated/loc_0209.js";
-import { loc_0209 } from "../loc_0209.js";
+import { savePlayer1Shields } from "../savePlayer1Shields.js";
 import { saveOrRestorePlayer1Shields } from "../saveOrRestorePlayer1Shields.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -37,7 +37,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0209 dispatches -- loc_0209 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0209 dispatches -- savePlayer1Shields == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     // Residue from the body's per-call push16 sits just below the ENTRY SP -- exclude relative to it.
     const sp = cap.regs.sp;
@@ -45,7 +45,7 @@ test("CAPTURE: real 0x0209 dispatches -- loc_0209 == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x20 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0209(c);
+    oracle(o); savePlayer1Shields(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.mem.read8(SHIELD_SAVE_RESTORE_MODE), 0x01, "save mode stored");
   }
@@ -63,14 +63,14 @@ function seat(m) {
 test("CRAFTED: forced save path -- module leaves the same RAM as the oracle, mode := 1", () => {
   const o = new Machine(ROM); seat(o);
   const c = new Machine(ROM); seat(c);
-  oracle(o); loc_0209(c);
+  oracle(o); savePlayer1Shields(c);
   assert.equal(ramDiff(o, c), null, "save path RAM matches");
   assert.equal(c.mem.read8(SHIELD_SAVE_RESTORE_MODE), 0x01, "mode forced to save (1), not the decoy A");
   assert.equal(c.mem.read8(PLAYER1_SHIELD_BUFFER), o.mem.read8(PLAYER1_SHIELD_BUFFER), "captured into the player-1 buffer, matches oracle");
 });
 
 test("TEETH: a twin that forwards the wrong mode (blit) diverges in RAM at the stored mode", () => {
-  // Mutate loc_0209's OWN contribution: it forwards mode 0 (blit) instead of the forced save mode 1.
+  // Mutate savePlayer1Shields's OWN contribution: it forwards mode 0 (blit) instead of the forced save mode 1.
   function loc_0209_broken(m) {
     saveOrRestorePlayer1Shields(m, 0); // BUG: restore/blit instead of save
   }
