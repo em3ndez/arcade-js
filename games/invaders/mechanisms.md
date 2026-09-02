@@ -180,6 +180,8 @@ lift and their roles become confident from the code.
 
 Additional leaf helper routines — and the work-RAM and ROM cells they touch — are present in the idiomatic
 layer under `loc_<addr>` names, their roles pending a naming pass and so not narrated here until they are named.
+Among these are the alien-fleet edge scan and its direction-reversal step, the attract-mode score-panel repaint,
+and the pre-round arm-trigger poll; their cells keep `loc_<addr>` names until the naming pass grounds their roles.
 
 Three thin wrappers front the shared score draw, one per record: `drawPlayer1Score` (0x1925), `drawPlayer2Score`
 (0x192b) and `drawHighScore` (0x1950) each seat a fixed record base — `PLAYER1_OBJ_DESC`, `PLAYER2_OBJ_DESC`, and
