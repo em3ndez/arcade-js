@@ -15,8 +15,8 @@ export const SAUCER_SCORE_SPRITE_TABLE = 0x1d50;  // [code]
 export const loc_1da0 = 0x1da0;
 export const loc_2004 = 0x2004;
 export const loc_2005 = 0x2005;
-export const ALIEN_DRAW_INDEX = 0x2006;  // [code]
-export const FLEET_STEP_DY = 0x2007;  // [code]
+export const ALIEN_DRAW_INDEX = 0x2006;  // [seen]
+export const FLEET_STEP_DY = 0x2007;  // [seen]
 export const loc_2009 = 0x2009;
 export const loc_200a = 0x200a;
 export const FLEET_DROP_DELTA = 0x200e;  // [code]
@@ -24,8 +24,8 @@ export const loc_2029 = 0x2029;
 export const loc_202a = 0x202a;
 export const loc_2048 = 0x2048;
 export const ACTIVE_PLAYER_PAGE = 0x2067;  // [code]
-export const DRAW_PHASE_FLAG = 0x2072;  // [code]
-export const ALIEN_SHOT_BLOWUP_TIMER = 0x2078;  // [code]
+export const DRAW_PHASE_FLAG = 0x2072;  // [seen]
+export const ALIEN_SHOT_BLOWUP_TIMER = 0x2078;  // [seen]
 export const loc_207b = 0x207b;
 export const loc_207c = 0x207c;
 export const ALIEN_SHOT_ROW_COUNT = 0x207d;  // [code]
@@ -39,7 +39,7 @@ export const SOUND_PORT5_SHADOW = 0x2098;  // [seen]
 export const TASK_FLAGS = 0x20c1;  // [code]
 export const loc_20e7 = 0x20e7;
 export const GAME_ACTIVE = 0x20e9;  // [seen]
-export const CREDIT_COUNT = 0x20eb;  // [code]
+export const CREDIT_COUNT = 0x20eb;  // [seen]
 export const HIGH_SCORE_OBJ_DESC = 0x20f4;  // [code]
 export const PLAYER1_OBJ_DESC = 0x20f8;  // [code]
 export const PLAYER2_OBJ_DESC = 0x20fc;  // [code]
@@ -93,7 +93,7 @@ export const ALIEN_FIELD_P1 = 0x2100;  // [code]
 export const ALIEN_FIELD_P2 = 0x2200;  // [code]
 export const SHIELD_VRAM_BASE = 0x2806;  // [code]
 
-export const COLLISION_FLAG = 0x2061;  // [code]
+export const COLLISION_FLAG = 0x2061;  // [seen]
 export const SAUCER_ACTIVE = 0x2084;  // [code]
 export const SAUCER_EXITING = 0x2085;  // [code]
 export const TWO_PLAYER_GAME = 0x20ce;  // [code]
@@ -108,7 +108,7 @@ export const CREDIT_LABEL_TEXT = 0x1fa9;  // [code]
 export const loc_2003 = 0x2003;
 export const INPUT_CODE_STAGE_FLAG = 0x201e;  // [code]
 export const loc_2064 = 0x2064;
-export const ALIEN_SHOT_SPRITE_PTR = 0x2079;  // [code]
+export const ALIEN_SHOT_SPRITE_PTR = 0x2079;  // [seen]
 export const ANIM_COORD_STEP_LO = 0x20c3;  // [code]
 export const ANIM_SPRITE_COORD = 0x20c5;  // [code]
 export const ANIM_SPRITE_SRC = 0x20c7;  // [code]
@@ -133,7 +133,7 @@ export const ROUTINES = {
   0x0430: { name: "loadPlayerShotDescriptor", role: "load the player-shot 5-byte descriptor at PLAYER_SHOT_DESC via loadSpriteDescriptor; HL := its screen address", cert: "code" },
   0x0550: { name: "copyRecordToWorkBuffer", role: "stash A -> loc_207f, then blockCopy 0x0b bytes (DE)->work buffer loc_2073 (prime an object strip)", cert: "seen" },
   0x055b: { name: "copyWorkBufferToRecord", role: "blockCopy 0x0b bytes work buffer loc_2073 ->(HL) (restore the object strip; twin of copyRecordToWorkBuffer)", cert: "code" },
-  0x0644: { name: "stepAlienShotBlowup", role: "step the alien-shot blowup: decrement ALIEN_SHOT_BLOWUP_TIMER; at 3 eraseAlienShot then re-seat ALIEN_SHOT_SPRITE_PTR=ALIEN_SHOT_BLOWUP_SPRITE and recenter the descriptor (loc_207b/loc_207c -= 2, ALIEN_SHOT_ROW_COUNT=6) and drawAlienShotWithCollision (tail); at 0 just eraseAlienShot (tail); else idle", cert: "code" },
+  0x0644: { name: "stepAlienShotBlowup", role: "step the alien-shot blowup: decrement ALIEN_SHOT_BLOWUP_TIMER; at 3 eraseAlienShot then re-seat ALIEN_SHOT_SPRITE_PTR=ALIEN_SHOT_BLOWUP_SPRITE and recenter the descriptor (loc_207b/loc_207c -= 2, ALIEN_SHOT_ROW_COUNT=6) and drawAlienShotWithCollision (tail); at 0 just eraseAlienShot (tail); else idle", cert: "seen" },
   0x0707: { name: "stopSaucerSound", role: "clear the saucer sound bit: SOUND_PORT3_SHADOW &= 0xfe via loc_19dc, mirror to sound port 3; value-out A", cert: "code" },
   0x070c: { name: "awardSaucerScore", role: "award the mystery-saucer score: raise SCORE_ADD_PENDING, read the key via SAUCER_SCORE_KEY_PTR, match it in SAUCER_SCORE_KEY_TABLE, copy the parallel SAUCER_SCORE_SPRITE_TABLE entry into the saucer sprite record loc_2087, store key*16 to SCORE_ADD_VALUE, resolveSpriteScreenAddr then drawThreeSprites (tail); live-out HL/DE/C", cert: "code" },
   0x0742: { name: "resolveSpriteScreenAddr", role: "load the sprite descriptor at loc_2087 then coordToScreenAddr; HL := screen address, DE := gfx pointer", cert: "code" },
@@ -153,7 +153,7 @@ export const ROUTINES = {
   0x14d8: { name: "loc_14d8", role: "state-2 handler (name DISPUTED pending grounding -- prize-landing vs player-shot/alien-hit): rets unless PLAYER_SHOT_STATUS==2; bounds-checks loc_2029 vs the edges (stand-down state 3 + deactivatePrize, or markExitingAndRetire), else scales coords to grid blocks (scaleXToBlock/scaleYToBlock -> loc_2064), indexes the 55-cell alien grid via loc_1581, on a live cell clears it + awards score/invader-die sound (loc_0a5f), enters state 5, loadSpriteDescriptor + blitShiftedSprite, arms timer loc_2003. Gated on 0x2002 which loc_03bb copies from COLLISION_FLAG -- so the established PRIZE_ACTIVE name for 0x2002 is in question; kept loc_ until MAME grounding settles it", cert: "code" },
   0x154a: { name: "deactivatePrize", role: "clear PRIZE_ACTIVE, then loc_19dc(0xf7) masks bit 3 off SOUND_PORT3_SHADOW; value-out A", cert: "code" },
   0x1554: { name: "countStepsToThreshold", role: "count in C the 0x10 steps that lift A to/above threshold H (pre-normalizing a negative A via loc_1590); live-out A, C, carry clear", cert: "code" },
-  0x1597: { name: "reverseFleetAtEdge", role: "fleet edge / direction reversal: scan the edge column selected by FLEET_MOVE_DIR (fleetReachedEdge); on a hit flip the direction and republish loc_2008 (step count, via loc_18f1) and FLEET_STEP_DY (mirrored from FLEET_DROP_DELTA), else leave state unchanged; RAM-only live-out", cert: "code" },
+  0x1597: { name: "reverseFleetAtEdge", role: "fleet edge / direction reversal: scan the edge column selected by FLEET_MOVE_DIR (fleetReachedEdge); on a hit flip the direction and republish loc_2008 (step count, via loc_18f1) and FLEET_STEP_DY (mirrored from FLEET_DROP_DELTA), else leave state unchanged; RAM-only live-out", cert: "seen" },
   0x15c5: { name: "fleetReachedEdge", role: "scan 0x17 (23) bytes upward from HL for the first nonzero (fleet edge reached); carry live-out set=found (inlines the loc_166b set-carry) / clear=all-zero (trailing ana a), read by reverseFleetAtEdge via rnc; returns the found boolean", cert: "code" },
   0x15f3: { name: "countLiveAliens", role: "count live cells across the active player's 0x37-byte alien field into ALIEN_COUNT; set LAST_ALIEN_FLAG at exactly one survivor", cert: "seen" },
   0x1618: { name: "advanceRoundState", role: "gated pre-round step: when armed (loc_2015==0xff) and the field is idle, advance ATTRACT_DEMO_PTR (attract) or arm the shot on a fresh fire edge (play, GAME_IN_PROGRESS set)", cert: "code" },
@@ -180,11 +180,11 @@ export const ROUTINES = {
   0x017a: { name: "alienIndexToScreenCoords", role: "resolve L over 0x0b into (L,C,D) using the B,C pair at loc_2009/loc_200a", cert: "code" },
   0x01c3: { name: "markAllAliensAlive", role: "HL-relative fill of 0x37 bytes with 0x01", cert: "seen" },
   0x01d9: { name: "advanceRecordTotals", role: "record accumulate: [HL+2]+=C, [HL+3]+=[HL+1]; return 2nd total in A", cert: "seen" },
-  0x067e: { name: "loc_067e", role: "store HL (16-bit) -> loc_2048", cert: "code" },
+  0x067e: { name: "loc_067e", role: "store HL (16-bit) -> loc_2048", cert: "seen" },
   0x0886: { name: "activeFieldRecordPointer", role: "build HL = (ACTIVE_PLAYER_PAGE << 8) | 0xfc", cert: "code" },
   0x08d1: { name: "readStartingShips", role: "A = (port2 & 3) + 3", cert: "code" },
   0x08d8: { name: "loc_08d8", role: "if ALIEN_COUNT < 9: loc_207e = 0xfb", cert: "code" },
-  0x0913: { name: "loc_0913", role: "gate on loc_2009<0x78, decrement 16-bit timer SAUCER_TIMER, reload 0x0600 + set flag loc_2083 on wrap", cert: "code" },
+  0x0913: { name: "loc_0913", role: "gate on loc_2009<0x78, decrement 16-bit timer SAUCER_TIMER, reload 0x0600 + set flag loc_2083 on wrap", cert: "seen" },
   0x097c: { name: "loc_097c", role: "HL = loc_1da0 + clamp-index of A (offset 0 if A<2, 1 if 2<=A<4, 2 if A>=4)", cert: "code" },
   0x09ca: { name: "currentPlayerRecordPtr", role: "HL = bit0 of ACTIVE_PLAYER_PAGE ? PLAYER1_OBJ_DESC : PLAYER2_OBJ_DESC (active player's data pointer)", cert: "code" },
   0x09d6: { name: "clearPlayfield", role: "clear the play-field framebuffer", cert: "seen" },
@@ -221,7 +221,7 @@ export const ROUTINES = {
   0x1400: { name: "orBlitShiftedSprite", role: "seat the pixel-shift offset, then OR-blit a hardware-shifted B-row sprite into (HL)/(HL+1); live-out HL, DE", cert: "code" },
   0x1424: { name: "clearSpriteColumn", role: "seat the shift offset, then zero the 2-byte-wide x B-row sprite footprint at HL; live-out HL", cert: "code" },
   0x1452: { name: "eraseShiftedSprite", role: "erase a hardware-shifted sprite by AND-ing its complemented bits out of the screen over B rows; live-out HL", cert: "code" },
-  0x1491: { name: "drawSpriteWithCollision", role: "OR-blit a hardware-shifted sprite while testing overlap, setting COLLISION_FLAG on any hit; live-out HL, DE", cert: "code" },
+  0x1491: { name: "drawSpriteWithCollision", role: "OR-blit a hardware-shifted sprite while testing overlap, setting COLLISION_FLAG on any hit; live-out HL, DE", cert: "seen" },
   0x1545: { name: "retirePrize", role: "set PLAYER_SHOT_STATUS to 4 (retiring), then deactivatePrize (clear PRIZE_ACTIVE and silence its sound)", cert: "code" },
   0x1562: { name: "scaleXToBlock", role: "scale the X coordinate to a grid block index in B via countStepsToThreshold (threshold loc_2009), residual in L", cert: "code" },
   0x156f: { name: "scaleYToBlock", role: "scale the Y coordinate to a grid block index in C via countStepsToThreshold (threshold loc_200a), residual in H", cert: "code" },
@@ -229,7 +229,7 @@ export const ROUTINES = {
   0x1804: { name: "updateSaucerSound", role: "per-frame saucer sound gate: SAUCER_ACTIVE==0 -> stopSaucerSound, else drive the UFO tone", cert: "code" },
   0x1856: { name: "fetchNextDrawRecord", role: "fetch the next 4-byte draw record addressed by BC (A=(BC), advance BC); live-out A, BC", cert: "code" },
   0x19fa: { name: "clearScreenRegion", role: "repeatedly clearScreenStrip to blank a wider screen region", cert: "code" },
-  0x00d7: { name: "loc_00d7", role: "seed the mirrored per-player cells loc_21fb/loc_22fb with 0x02, then blank the fixed 0x20-column screen strip via blankScreenStrip (guarded by TWO_PLAYER_GAME, which rnz-early-outs when nonzero); live-out HL", cert: "code" },
+  0x00d7: { name: "loc_00d7", role: "seed the mirrored per-player cells loc_21fb/loc_22fb with 0x02, then blank the fixed 0x20-column screen strip via blankScreenStrip (guarded by TWO_PLAYER_GAME, which rnz-early-outs when nonzero); live-out HL", cert: "seen" },
   0x0209: { name: "savePlayer1Shields", role: "force save mode (A=1), then saveOrRestorePlayer1Shields captures the four player-1 shields into PLAYER1_SHIELD_BUFFER; memory-only", cert: "code" },
   0x020e: { name: "savePlayer2Shields", role: "force save mode (A=1), then saveOrRestorePlayer2Shields captures the four player-2 shields into PLAYER2_SHIELD_BUFFER; memory-only", cert: "code" },
   0x0213: { name: "restorePlayer2Shields", role: "force restore mode (A=0), then saveOrRestorePlayer2Shields OR-blits the player-2 shields back from PLAYER2_SHIELD_BUFFER; memory-only", cert: "code" },
@@ -246,6 +246,6 @@ export const ROUTINES = {
   0x193c: { name: "drawCreditLabel", role: "drawSpriteList the 'CREDIT' label (CREDIT_LABEL_TEXT) to CREDIT_LABEL_SCREEN_ADDR", cert: "code" },
   0x199a: { name: "drawTaitoCopyright", role: "behind a two-step port-1 input code (INPUT_CODE_STAGE_FLAG), drawSpriteList the Taito copyright (TAITO_COPYRIGHT_TEXT) to TAITO_COPYRIGHT_SCREEN_ADDR", cert: "code" },
   0x19e6: { name: "drawReserveLifeIcons", role: "draw A reserve-ship icons (RESERVE_SHIP_SPRITE) at RESERVE_SHIP_ICONS_SCREEN_ADDR, blanking the remainder; skip drawing when the count is zero", cert: "code" },
-  0x1a7f: { name: "decrementShipsAndDrawReadout", role: "reserve-ships readout: readActivePlayerPageTopByte gives the count at the active page top; if zero bail; else store count-1 back (a ship enters play), drawReserveLifeIcons(count-1) the reserve row, then drawLivesDigit(count)", cert: "code" },
+  0x1a7f: { name: "decrementShipsAndDrawReadout", role: "reserve-ships readout: readActivePlayerPageTopByte gives the count at the active page top; if zero bail; else store count-1 back (a ship enters play), drawReserveLifeIcons(count-1) the reserve row, then drawLivesDigit(count)", cert: "seen" },
   0x1a8b: { name: "drawLivesDigit", role: "draw the low nibble of A as a digit glyph at LIVES_DIGIT_SCREEN_ADDR via drawDigit", cert: "code" },
 };
