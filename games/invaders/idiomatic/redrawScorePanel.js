@@ -10,7 +10,7 @@ import { drawCreditCount } from "./drawCreditCount.js";
 // Boot/attract score-panel repaint: clear video RAM, then redraw the score header, both player scores,
 // the high score, the CREDIT label, and the credit tally (tail). Every call is a direct idiomatic call;
 // the tail into drawCreditCount collapses to a plain omitted-ret leaf.
-export function loc_1956(m) {
+export function redrawScorePanel(m) {
   clearScreen(m);
   drawScoreHeader(m);
   drawPlayer1Score(m);

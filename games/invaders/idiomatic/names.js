@@ -16,15 +16,15 @@ export const loc_1da0 = 0x1da0;
 export const loc_2004 = 0x2004;
 export const loc_2005 = 0x2005;
 export const ALIEN_DRAW_INDEX = 0x2006;  // [code]
-export const loc_2007 = 0x2007;
+export const FLEET_STEP_DY = 0x2007;  // [code]
 export const loc_2009 = 0x2009;
 export const loc_200a = 0x200a;
-export const loc_200e = 0x200e;
+export const FLEET_DROP_DELTA = 0x200e;  // [code]
 export const loc_2029 = 0x2029;
 export const loc_202a = 0x202a;
 export const loc_2048 = 0x2048;
 export const ACTIVE_PLAYER_PAGE = 0x2067;  // [code]
-export const loc_2072 = 0x2072;
+export const DRAW_PHASE_FLAG = 0x2072;  // [code]
 export const ALIEN_SHOT_BLOWUP_TIMER = 0x2078;  // [code]
 export const loc_207b = 0x207b;
 export const loc_207c = 0x207c;
@@ -45,9 +45,9 @@ export const PLAYER1_OBJ_DESC = 0x20f8;  // [code]
 export const PLAYER2_OBJ_DESC = 0x20fc;  // [code]
 export const VIDEO_RAM_BASE = 0x2400;  // [seen]
 export const PLAYFIELD_VRAM_BASE = 0x2402;  // [seen]
-export const loc_2524 = 0x2524;
+export const FLEET_LEFT_EDGE_VRAM = 0x2524;  // [code]
 export const CREDIT_COUNT_SCREEN_ADDR = 0x3c01;  // [code]
-export const loc_3ea4 = 0x3ea4;
+export const FLEET_RIGHT_EDGE_VRAM = 0x3ea4;  // [code]
 export const VIDEO_RAM_END = 0x4000;  // [seen]
 export const DRAW_BLOCK_STRIDE = 0x02e0;  // [code]
 export const FLEET_RATE_THRESHOLDS = 0x1a11;  // [seen]
@@ -153,24 +153,24 @@ export const ROUTINES = {
   0x14d8: { name: "loc_14d8", role: "state-2 handler (name DISPUTED pending grounding -- prize-landing vs player-shot/alien-hit): rets unless PLAYER_SHOT_STATUS==2; bounds-checks loc_2029 vs the edges (stand-down state 3 + deactivatePrize, or markExitingAndRetire), else scales coords to grid blocks (scaleXToBlock/scaleYToBlock -> loc_2064), indexes the 55-cell alien grid via loc_1581, on a live cell clears it + awards score/invader-die sound (loc_0a5f), enters state 5, loadSpriteDescriptor + blitShiftedSprite, arms timer loc_2003. Gated on 0x2002 which loc_03bb copies from COLLISION_FLAG -- so the established PRIZE_ACTIVE name for 0x2002 is in question; kept loc_ until MAME grounding settles it", cert: "code" },
   0x154a: { name: "deactivatePrize", role: "clear PRIZE_ACTIVE, then loc_19dc(0xf7) masks bit 3 off SOUND_PORT3_SHADOW; value-out A", cert: "code" },
   0x1554: { name: "countStepsToThreshold", role: "count in C the 0x10 steps that lift A to/above threshold H (pre-normalizing a negative A via loc_1590); live-out A, C, carry clear", cert: "code" },
-  0x1597: { name: "loc_1597", role: "fleet edge / direction reversal: scan the edge column selected by FLEET_MOVE_DIR (loc_15c5); on a hit flip the direction and republish loc_2008 (step count, via loc_18f1) and loc_2007 (mirrored from loc_200e), else leave state unchanged; RAM-only live-out", cert: "code" },
-  0x15c5: { name: "loc_15c5", role: "scan 0x17 (23) bytes upward from HL for the first nonzero (fleet edge reached); carry live-out set=found (inlines the loc_166b set-carry) / clear=all-zero (trailing ana a), read by loc_1597 via rnc; returns the found boolean", cert: "code" },
+  0x1597: { name: "reverseFleetAtEdge", role: "fleet edge / direction reversal: scan the edge column selected by FLEET_MOVE_DIR (fleetReachedEdge); on a hit flip the direction and republish loc_2008 (step count, via loc_18f1) and FLEET_STEP_DY (mirrored from FLEET_DROP_DELTA), else leave state unchanged; RAM-only live-out", cert: "code" },
+  0x15c5: { name: "fleetReachedEdge", role: "scan 0x17 (23) bytes upward from HL for the first nonzero (fleet edge reached); carry live-out set=found (inlines the loc_166b set-carry) / clear=all-zero (trailing ana a), read by reverseFleetAtEdge via rnc; returns the found boolean", cert: "code" },
   0x15f3: { name: "countLiveAliens", role: "count live cells across the active player's 0x37-byte alien field into ALIEN_COUNT; set LAST_ALIEN_FLAG at exactly one survivor", cert: "seen" },
   0x1618: { name: "advanceRoundState", role: "gated pre-round step: when armed (loc_2015==0xff) and the field is idle, advance ATTRACT_DEMO_PTR (attract) or arm the shot on a fresh fire edge (play, GAME_IN_PROGRESS set)", cert: "code" },
-  0x166b: { name: "loc_166b", role: "the loc_15c5 scan's 'found' sentinel (stc; ret): set carry and return true; inline candidate -- loc_15c5 already folds this set-carry directly", cert: "code" },
+  0x166b: { name: "loc_166b", role: "the fleetReachedEdge scan's 'found' sentinel (stc; ret): set carry and return true; inline candidate -- fleetReachedEdge already folds this set-carry directly", cert: "code" },
   0x170e: { name: "selectAlienShotRate", role: "select the alien-shot rate: scan ALIEN_SHOT_RATE_THRESHOLDS for the first entry >= the field-size key, store the parallel ALIEN_SHOT_RATE_TABLE byte to loc_20cf (read by the shot stepper loc_0563)", cert: "seen" },
   0x172c: { name: "loc_172c", role: "mode-gated sound step: PLAYER_SHOT_STATUS!=0 -> startSound(0x02), else loc_19dc(0xfd)", cert: "code" },
   0x1740: { name: "stepFleetMarchSound", role: "fleet-march sound beat: tick FLEET_SOUND_OFF_TIMER/FLEET_SOUND_TIMER, on beat emit SOUND_PORT5_SHADOW and re-arm, silencing at the edges; set FLEET_SOUND_STEP", cert: "seen" },
   0x1775: { name: "advanceFleetMarchSound", role: "on FLEET_SOUND_STEP, pick the fleet tempo for ALIEN_COUNT from FLEET_RATE_THRESHOLDS/FLEET_RATE_TABLE into FLEET_SOUND_PERIOD and rotate the port-5 fleet tone; tick SFX_OFF_TIMER", cert: "seen" },
   0x1844: { name: "drawSpriteColumn16", role: "draw a fixed 16-row sprite column (row count forced to 0x10) via drawSpriteColumn, preserving BC; live-out HL", cert: "code" },
   0x1904: { name: "markAllAliensAliveP2", role: "seat the player-2 alien-status base ALIEN_FIELD_P2 then markAllAliensAlive (0x37-byte 0x01 fill)", cert: "code" },
-  0x190a: { name: "loc_190a", role: "run the state-2 handler loc_14d8, then tail into the fleet edge/direction update loc_1597; RAM-only, callers ignore the result", cert: "code" },
+  0x190a: { name: "loc_190a", role: "run the state-2 handler loc_14d8, then tail into the fleet edge/direction update reverseFleetAtEdge; RAM-only, callers ignore the result", cert: "code" },
   0x1925: { name: "drawPlayer1Score", role: "seat the player-1 score record pointer PLAYER1_OBJ_DESC, then drawScoreRecord (tail) -- draw the P1 BCD total as four glyphs at the record's screen address; RAM-only live-out", cert: "code" },
   0x192b: { name: "drawPlayer2Score", role: "seat the player-2 score record pointer PLAYER2_OBJ_DESC, then drawScoreRecord (tail) -- draw the P2 BCD total; RAM-only live-out", cert: "code" },
   0x1931: { name: "drawScoreRecord", role: "shared score-record draw: unpack a four-byte record at HL (a BCD value word then its two-byte screen address) and draw the value as four BCD glyphs there (tail drawBcdWord); reached for P1 (0x20f8), P2 (0x20fc) and the high score (0x20f4)", cert: "code" },
   0x1947: { name: "drawCreditCount", role: "draw the BCD credit tally CREDIT_COUNT as two decimal glyphs at CREDIT_COUNT_SCREEN_ADDR via drawBcdByte (tail dissolved); live-out HL", cert: "code" },
   0x1950: { name: "drawHighScore", role: "seat the high-score record pointer HIGH_SCORE_OBJ_DESC, then drawScoreRecord (tail) -- draw the high-score BCD total; also called by loc_1671 to repaint after a new high; RAM-only live-out", cert: "code" },
-  0x1956: { name: "loc_1956", role: "boot/attract score-panel repaint: clearScreen, then redraw the score header (drawScoreHeader), player-1/2 scores (drawPlayer1Score/drawPlayer2Score), the high score (drawHighScore), the CREDIT label (drawCreditLabel), and the credit tally (tail drawCreditCount); all seven ROM calls dissolved to direct idiomatic calls; RAM-only live-out", cert: "code" },
+  0x1956: { name: "redrawScorePanel", role: "boot/attract score-panel repaint: clearScreen, then redraw the score header (drawScoreHeader), player-1/2 scores (drawPlayer1Score/drawPlayer2Score), the high score (drawHighScore), the CREDIT label (drawCreditLabel), and the credit tally (tail drawCreditCount); all seven ROM calls dissolved to direct idiomatic calls; RAM-only live-out", cert: "code" },
   0x1979: { name: "drawCreditReadout", role: "boot/attract credit readout: clearGameActive, then repaint the credit panel -- drawCreditCount (the BCD credit tally) then drawCreditLabel (the CREDIT label, tail)", cert: "code" },
   0x1988: { name: "loc_1988", role: "clear the play-field framebuffer", cert: "code" },
   0x19d1: { name: "setGameActive", role: "store 1 -> GAME_ACTIVE (shared tail loc_19d3); mark the game active", cert: "code" },
@@ -203,7 +203,7 @@ export const ROUTINES = {
   0x1910: { name: "loc_1910", role: "HL := loc_20e7 + (bit0 of ACTIVE_PLAYER_PAGE clear ? 1 : 0)", cert: "code" },
   0x19d3: { name: "loc_19d3", role: "store A -> GAME_ACTIVE (shared tail)", cert: "seen" },
   0x19dc: { name: "loc_19dc", role: "SOUND_PORT3_SHADOW &= B, mirror to sound port 3, A := result", cert: "seen" },
-  0x1a06: { name: "loc_1a06", role: "object-direction predicate: carry := (mem[DE] & 0x80) === mem[loc_2072] (full-byte compare of the object direction bit vs the reference flag); read by 0x03bb/0x0563/0x0682, which skip the object on a mismatch", cert: "code" },
+  0x1a06: { name: "objectMatchesDrawPhase", role: "raster draw-phase predicate: carry := (mem[DE] & 0x80) === mem[DRAW_PHASE_FLAG] -- true when the object's phase bit (bit7 of its byte) matches the current raster half (DRAW_PHASE_FLAG is 0x80 in the vblank half, 0x00 in the mid-screen half); the three object dispatchers rnc-skip an object that does not belong to this half-frame", cert: "code" },
   0x1a32: { name: "blockCopy", role: "block-copy B bytes (DE)->(HL), both advancing", cert: "seen" },
   0x1a3b: { name: "loadSpriteDescriptor", role: "read 5-byte descriptor at (HL) -> DE/A/C/B, then HL=C:A", cert: "code" },
   0x1a47: { name: "coordToScreenAddr", role: "HL := (HL >> 3) with H forced into the 0x2000-0x3fff video-RAM page", cert: "seen" },

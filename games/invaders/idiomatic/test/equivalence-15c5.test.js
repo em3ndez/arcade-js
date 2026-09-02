@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_15c5 (ROM 0x15c5) -- scan 0x17 bytes upward from HL for the first nonzero.
+// Memory-equivalence for fleetReachedEdge (ROM 0x15c5) -- scan 0x17 bytes upward from HL for the first nonzero.
 // Live-out (DERIVED FROM THE ORACLE): the CARRY flag -- set=found (a hit -> loc_166b sets carry) / clear=all
-// 23 zero (the trailing ana a). Read by loc_1597 via rnc; no RAM write. HL/B/A exit modified but DEAD (no
+// 23 zero (the trailing ana a). Read by reverseFleetAtEdge via rnc; no RAM write. HL/B/A exit modified but DEAD (no
 // caller reads them). The idiomatic form inlines the 0x166b set-carry, returns the found boolean, and omits
 // the ROM ret (seam completes it). Run: node --test games/invaders/idiomatic/test/equivalence-15c5.test.js
 
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_15c5 as oracle } from "../../translated/loc_15c5.js";
-import { loc_15c5 } from "../loc_15c5.js";
+import { fleetReachedEdge } from "../fleetReachedEdge.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -21,7 +21,7 @@ const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM
 const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
 
 const TARGET = 0x15c5;
-const PTR = 0x2524; // a real fleet-edge scan region loc_1597 hands to this scan
+const PTR = 0x2524; // a real fleet-edge scan region reverseFleetAtEdge hands to this scan
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
@@ -34,11 +34,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x15c5 dispatches -- loc_15c5 == oracle in RAM (-stack) and carry", () => {
+test("CAPTURE: real 0x15c5 dispatches -- fleetReachedEdge == oracle in RAM (-stack) and carry", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_15c5(c); // ptr defaults to the captured HL (the real scan pointer)
+    oracle(o); fleetReachedEdge(c); // ptr defaults to the captured HL (the real scan pointer)
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.fC, o.regs.fC, "carry live-out (found) matches the oracle");
   }
@@ -60,7 +60,7 @@ test("CRAFTED: first-nonzero sets carry / all-zero clears it, across positions",
     };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
-    oracle(o); const ret = loc_15c5(c);
+    oracle(o); const ret = fleetReachedEdge(c);
     assert.equal(ramDiff(o, c), null, s.desc);
     assert.equal(c.regs.fC, s.found, `carry: ${s.desc}`);
     assert.equal(ret, s.found, `boolean return: ${s.desc}`);
@@ -86,7 +86,7 @@ test("SP-TOOTH: leaf placeable on both not-found and found entries", () => {
     for (let i = 0; i < 0x17; i++) m.mem.write8(PTR + i, 0);
     if (hit) m.mem.write8(PTR, 0x01);
     m.mem.write16(0x2400, 0x15be); // a real caller-return word for the seam
-    const r = seamPlaceable(withOmittedRet, loc_15c5, TARGET, m);
-    assert.equal(r.placeable, true, `loc_15c5 must be seam-placeable (${desc}); got: ${r.error}`);
+    const r = seamPlaceable(withOmittedRet, fleetReachedEdge, TARGET, m);
+    assert.equal(r.placeable, true, `fleetReachedEdge must be seam-placeable (${desc}); got: ${r.error}`);
   }
 });

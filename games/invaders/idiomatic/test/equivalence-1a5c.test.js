@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for clearScreen (ROM 0x1a5c) -- "zero video RAM 0x2400..0x3fff". Live-out is memory
-// only: the caller (loc_1956) reseats HL/A before reading them, so RAM (dumpState, minus STACK_SCRATCH)
+// only: the caller (redrawScorePanel) reseats HL/A before reading them, so RAM (dumpState, minus STACK_SCRATCH)
 // is the whole contract. Interrupts are disabled on each clone so the oracle's per-instruction tick
 // (this loop spans several frames of cycles) cannot fire a handler that writes RAM only on its side.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1a5c.test.js

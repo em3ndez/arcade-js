@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_190a (ROM 0x190a) -- run loc_14d8 (state-2/landed-prize handler, dissolved to
-// a direct call) then tail into loc_1597 (fleet edge/direction update, same-batch KEPT m.call -- the LEAD
+// a direct call) then tail into reverseFleetAtEdge (fleet edge/direction update, same-batch KEPT m.call -- the LEAD
 // dissolves it in reconcile). Live-out (DERIVED FROM THE ORACLE): RAM only -- both callers (loc_081f,
 // loc_0bf1) run straight into the next call and never read its registers/carry. Dispatching tail -> SP-tooth.
 // The oracle's internal call return-words sit in dead stack scratch (excluded).
@@ -40,7 +40,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(24, 2000) : [];
 test("CAPTURE: real 0x190a dispatches -- loc_190a == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
-    const excl = (a) => a != null && a >= sp - 0x40 && a < sp; // both sides run translated loc_1597 (pushes)
+    const excl = (a) => a != null && a >= sp - 0x40 && a < sp; // both sides run translated reverseFleetAtEdge (pushes)
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
     oracle(o); loc_190a(c);
@@ -49,7 +49,7 @@ test("CAPTURE: real 0x190a dispatches -- loc_190a == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: with loc_14d8 idle, sequences into the fleet update (loc_1597)", () => {
+test("CRAFTED: with loc_14d8 idle, sequences into the fleet update (reverseFleetAtEdge)", () => {
   const cases = [
     { dir: 0x01, found: true, scan: SCAN_RIGHT, wantDir: 0x00 },
     { dir: 0x00, found: true, scan: SCAN_LEFT, wantDir: 0x01 },
@@ -73,7 +73,7 @@ test("CRAFTED: with loc_14d8 idle, sequences into the fleet update (loc_1597)", 
   }
 });
 
-test("TEETH: a twin that drops the loc_1597 tail leaves the fleet cells unchanged", () => {
+test("TEETH: a twin that drops the reverseFleetAtEdge tail leaves the fleet cells unchanged", () => {
   const seed = (m) => {
     m.regs.sp = 0x2400; m.io.setInte(false);
     m.mem.write8(PLAYER_SHOT_STATUS, 0x00);
@@ -85,7 +85,7 @@ test("TEETH: a twin that drops the loc_1597 tail leaves the fleet cells unchange
   const o = new Machine(ROM); seed(o);
   const c = new Machine(ROM); seed(c);
   oracle(o);
-  function loc_190a_noTail(m) { loc_14d8(m); /* BUG: drops the loc_1597 fleet-update tail */ }
+  function loc_190a_noTail(m) { loc_14d8(m); /* BUG: drops the reverseFleetAtEdge fleet-update tail */ }
   loc_190a_noTail(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the RAM diff FAILED to catch the dropped fleet-update tail");
@@ -98,7 +98,7 @@ test("SP-TOOTH: the dispatching tail (moved +2, pc on the caller slot) is seam-p
   m.mem.write16(0x2400, 0x0825); // a real caller-return word (loc_081f's continuation) for the seam
   m.mem.write8(PLAYER_SHOT_STATUS, 0x00);
   m.mem.write8(FLEET_MOVE_DIR, 0x00);
-  for (let i = 0; i < 0x17; i++) m.mem.write8(SCAN_LEFT + i, 0); // all-zero -> loc_1597 bails, rets clean
+  for (let i = 0; i < 0x17; i++) m.mem.write8(SCAN_LEFT + i, 0); // all-zero -> reverseFleetAtEdge bails, rets clean
   m.io.setInte(false);
   const r = seamPlaceable(withOmittedRet, loc_190a, TARGET, m);
   assert.equal(r.placeable, true, `loc_190a must be seam-placeable; got: ${r.error}`);

@@ -6,7 +6,7 @@
 // descriptor and blit the prize (blitShiftedSprite), and arm the despawn timer (loc_2003). Every m.call is
 // DISSOLVED into a direct idiomatic call (deactivatePrize, markExitingAndRetire, scaleXToBlock, scaleYToBlock,
 // loc_1581, loc_0a5f, loadSpriteDescriptor, blitShiftedSprite). Live-out is memory only -- no caller reads a
-// register or flag on return (loc_190a tail-jumps into loc_1597, which reloads A first; loc_16e6 overwrites B).
+// register or flag on return (loc_190a tail-jumps into reverseFleetAtEdge, which reloads A first; loc_16e6 overwrites B).
 // Run: node --test games/invaders/idiomatic/test/equivalence-14d8.test.js
 
 import nodeTest from "node:test";

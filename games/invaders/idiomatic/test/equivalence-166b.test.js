@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_166b (ROM 0x166b) -- the loc_15c5 scan's "found" sentinel (stc; ret). Live-out:
-// the CARRY flag (set), read by loc_1597 via rnc; no RAM write. The idiomatic form omits the ROM ret (the
+// Memory-equivalence for loc_166b (ROM 0x166b) -- the fleetReachedEdge scan's "found" sentinel (stc; ret). Live-out:
+// the CARRY flag (set), read by reverseFleetAtEdge via rnc; no RAM write. The idiomatic form omits the ROM ret (the
 // seam completes it) and returns true. Live-out DERIVED FROM THE ORACLE: its only effect is stc.
 // Run: node --test games/invaders/idiomatic/test/equivalence-166b.test.js
 
@@ -66,7 +66,7 @@ test("TEETH: a twin that leaves carry clear diverges from the oracle's set carry
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x2400;
-  m.mem.write16(0x2400, 0x15cc); // a real caller-return word (loc_15c5's continuation) for the seam
+  m.mem.write16(0x2400, 0x15cc); // a real caller-return word (fleetReachedEdge's continuation) for the seam
   m.io.setInte(false);
   const r = seamPlaceable(withOmittedRet, loc_166b, TARGET, m);
   assert.equal(r.placeable, true, `loc_166b must be seam-placeable; got: ${r.error}`);

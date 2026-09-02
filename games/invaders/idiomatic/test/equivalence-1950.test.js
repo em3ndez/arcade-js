@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for drawHighScore -- seat HL at the fixed high-score record (0x20f4) and delegate to the shared
 // unpack+draw (drawScoreRecord: a four-byte record -- a BCD value word low then high, then its two-byte screen
-// address -- drawn as four BCD glyphs). Live-out is RAM only: the direct callers (loc_1956, loc_1671) reseat HL
+// address -- drawn as four BCD glyphs). Live-out is RAM only: the direct callers (redrawScorePanel, loc_1671) reseat HL
 // / reload A right after, so no register is compared; the rendered glyphs prove the value word and screen
 // address landed. The oracle's draw chain leaves call/ret residue just below the entry SP, so that band is
 // excluded from the RAM diff. Each side runs on a fresh clone.

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1956 (ROM 0x1956) -- the boot/attract score-panel repaint. It clears video RAM
+// Memory-equivalence for redrawScorePanel (ROM 0x1956) -- the boot/attract score-panel repaint. It clears video RAM
 // (DISSOLVED into clearScreen) then redraws six HUD limbs: the score header (drawScoreHeader), P1 score
 // (drawPlayer1Score), P2 score (drawPlayer2Score), the high score (drawHighScore), the CREDIT label
 // (drawCreditLabel), and the credit tally (tail drawCreditCount). All seven ROM calls are already-idiomatic
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1956 as oracle } from "../../translated/loc_1956.js";
-import { loc_1956 } from "../loc_1956.js";
+import { redrawScorePanel } from "../redrawScorePanel.js";
 import { clearScreen } from "../clearScreen.js";
 import { drawScoreHeader } from "../drawScoreHeader.js";
 import { drawPlayer1Score } from "../drawPlayer1Score.js";
@@ -73,7 +73,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1956 dispatches -- loc_1956 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x1956 dispatches -- redrawScorePanel == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     // The oracle's draw-chain call/ret residue sits just below the ENTRY SP.
     const sp = cap.regs.sp;
@@ -81,7 +81,7 @@ test("CAPTURE: real 0x1956 dispatches -- loc_1956 == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => inDeadStack(a) || (a != null && a >= sp - 0x20 && a < sp));
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1956(c);
+    oracle(o); redrawScorePanel(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -90,11 +90,11 @@ test("CAPTURE: real 0x1956 dispatches -- loc_1956 == oracle in RAM (-stack)", ()
 test("CRAFTED: clears the screen then redraws all six HUD limbs; equal across seeded panels", () => {
   const o = new Machine(ROM); seedPanel(o);
   const c = new Machine(ROM); seedPanel(c);
-  oracle(o); loc_1956(c);
+  oracle(o); redrawScorePanel(c);
   assert.equal(ramDiff(o, c), null);
   // Positive controls: the dissolved score/credit limbs (deterministic BCD glyphs) left their mark on
   // screen RAM. (The header/label are covered by the RAM-equivalence above, not a per-glyph control.)
-  const p = new Machine(ROM); seedPanel(p); loc_1956(p);
+  const p = new Machine(ROM); seedPanel(p); redrawScorePanel(p);
   assert.notEqual(drawn(p, 0x2800, 8), 0, "P1 score painted");
   assert.notEqual(drawn(p, 0x2c00, 8), 0, "P2 score painted");
   assert.notEqual(drawn(p, 0x3000, 8), 0, "high score painted");
@@ -141,7 +141,7 @@ test("TEETH: a twin that skips the screen clear diverges (stale VRAM survives)",
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM); seedPanel(m);
-  const r = seamPlaceable(withOmittedRet, loc_1956, TARGET, m);
-  assert.equal(r.placeable, true, `loc_1956 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, redrawScorePanel, TARGET, m);
+  assert.equal(r.placeable, true, `redrawScorePanel must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });
