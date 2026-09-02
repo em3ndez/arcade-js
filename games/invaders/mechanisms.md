@@ -180,3 +180,5 @@ lift and their roles become confident from the code.
 
 Additional leaf helper routines — and the work-RAM and ROM cells they touch — are present in the idiomatic
 layer under `loc_<addr>` names, their roles pending a naming pass and so not narrated here until they are named.
+Among them are the three per-record score wrappers (each seats a fixed record pointer — the two player records
+and the high-score record `loc_20f4` — and tail-delegates to `drawScoreRecord`), pending that pass.

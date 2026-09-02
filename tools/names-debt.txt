@@ -116,3 +116,4 @@ invaders 0x2029
 invaders 0x202a
 invaders 0x207b
 invaders 0x207c
+invaders 0x20f4
