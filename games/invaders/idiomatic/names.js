@@ -37,7 +37,7 @@ export const TASK_FLAGS = 0x20c1;  // [code]
 export const loc_20e7 = 0x20e7;
 export const GAME_ACTIVE = 0x20e9;  // [seen]
 export const CREDIT_COUNT = 0x20eb;  // [code]
-export const loc_20f4 = 0x20f4;
+export const HIGH_SCORE_OBJ_DESC = 0x20f4;  // [code]
 export const PLAYER1_OBJ_DESC = 0x20f8;  // [code]
 export const PLAYER2_OBJ_DESC = 0x20fc;  // [code]
 export const VIDEO_RAM_BASE = 0x2400;  // [seen]
@@ -154,11 +154,11 @@ export const ROUTINES = {
   0x1775: { name: "advanceFleetMarchSound", role: "on FLEET_SOUND_STEP, pick the fleet tempo for ALIEN_COUNT from FLEET_RATE_THRESHOLDS/FLEET_RATE_TABLE into FLEET_SOUND_PERIOD and rotate the port-5 fleet tone; tick SFX_OFF_TIMER", cert: "seen" },
   0x1844: { name: "drawSpriteColumn16", role: "draw a fixed 16-row sprite column (row count forced to 0x10) via drawSpriteColumn, preserving BC; live-out HL", cert: "code" },
   0x1904: { name: "markAllAliensAliveP2", role: "seat the player-2 alien-status base ALIEN_FIELD_P2 then markAllAliensAlive (0x37-byte 0x01 fill)", cert: "code" },
-  0x1925: { name: "loc_1925", role: "seat the player-1 score record pointer PLAYER1_OBJ_DESC, then drawScoreRecord (tail dissolved) -- draw the P1 total as four BCD glyphs at the record's screen address; RAM-only live-out", cert: "code" },
-  0x192b: { name: "loc_192b", role: "seat the player-2 score record pointer PLAYER2_OBJ_DESC, then drawScoreRecord (tail dissolved) -- draw the P2 total; RAM-only live-out", cert: "code" },
+  0x1925: { name: "drawPlayer1Score", role: "seat the player-1 score record pointer PLAYER1_OBJ_DESC, then drawScoreRecord (tail) -- draw the P1 BCD total as four glyphs at the record's screen address; RAM-only live-out", cert: "code" },
+  0x192b: { name: "drawPlayer2Score", role: "seat the player-2 score record pointer PLAYER2_OBJ_DESC, then drawScoreRecord (tail) -- draw the P2 BCD total; RAM-only live-out", cert: "code" },
   0x1931: { name: "drawScoreRecord", role: "shared score-record draw: unpack a four-byte record at HL (a BCD value word then its two-byte screen address) and draw the value as four BCD glyphs there (tail drawBcdWord); reached for P1 (0x20f8), P2 (0x20fc) and the high score (0x20f4)", cert: "code" },
   0x1947: { name: "drawCreditCount", role: "draw the BCD credit tally CREDIT_COUNT as two decimal glyphs at CREDIT_COUNT_SCREEN_ADDR via drawBcdByte (tail dissolved); live-out HL", cert: "code" },
-  0x1950: { name: "loc_1950", role: "seat the high-score record pointer loc_20f4, then drawScoreRecord (tail dissolved) -- draw the high-score total; RAM-only live-out", cert: "code" },
+  0x1950: { name: "drawHighScore", role: "seat the high-score record pointer HIGH_SCORE_OBJ_DESC, then drawScoreRecord (tail) -- draw the high-score BCD total; also called by loc_1671 to repaint after a new high; RAM-only live-out", cert: "code" },
   0x1979: { name: "drawCreditReadout", role: "boot/attract credit readout: clearGameActive, then repaint the credit panel -- drawCreditCount (the BCD credit tally) then drawCreditLabel (the CREDIT label, tail)", cert: "code" },
   0x1988: { name: "loc_1988", role: "clear the play-field framebuffer", cert: "code" },
   0x19d1: { name: "setGameActive", role: "store 1 -> GAME_ACTIVE (shared tail loc_19d3); mark the game active", cert: "code" },

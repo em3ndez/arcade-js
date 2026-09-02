@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1950 -- seat HL at the fixed high-score record (0x20f4) and delegate to the shared
+// Memory-equivalence for drawHighScore -- seat HL at the fixed high-score record (0x20f4) and delegate to the shared
 // unpack+draw (drawScoreRecord: a four-byte record -- a BCD value word low then high, then its two-byte screen
 // address -- drawn as four BCD glyphs). Live-out is RAM only: the direct callers (loc_1956, loc_1671) reseat HL
 // / reload A right after, so no register is compared; the rendered glyphs prove the value word and screen
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1950 as oracle } from "../../translated/loc_1950.js";
-import { loc_1950 as module } from "../loc_1950.js";
+import { drawHighScore as module } from "../drawHighScore.js";
 import { drawBcdWord } from "../drawBcdWord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

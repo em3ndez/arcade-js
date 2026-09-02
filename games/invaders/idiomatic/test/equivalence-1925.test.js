@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1925 -- seat HL at the fixed player-1 score record (0x20f8) and delegate to the
+// Memory-equivalence for drawPlayer1Score -- seat HL at the fixed player-1 score record (0x20f8) and delegate to the
 // shared unpack+draw (drawScoreRecord: a four-byte record -- a BCD value word low then high, then its two-byte
 // screen address -- drawn as four BCD glyphs). Live-out is RAM only: the direct callers (loc_1956, loc_079b)
 // immediately call the next seater, which reseats HL, so no register is compared; the rendered glyphs prove the
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1925 as oracle } from "../../translated/loc_1925.js";
-import { loc_1925 as module } from "../loc_1925.js";
+import { drawPlayer1Score as module } from "../drawPlayer1Score.js";
 import { drawBcdWord } from "../drawBcdWord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

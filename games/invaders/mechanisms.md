@@ -180,5 +180,8 @@ lift and their roles become confident from the code.
 
 Additional leaf helper routines — and the work-RAM and ROM cells they touch — are present in the idiomatic
 layer under `loc_<addr>` names, their roles pending a naming pass and so not narrated here until they are named.
-Among them are the three per-record score wrappers (each seats a fixed record pointer — the two player records
-and the high-score record `loc_20f4` — and tail-delegates to `drawScoreRecord`), pending that pass.
+
+Three thin wrappers front the shared score draw, one per record: `drawPlayer1Score` (0x1925), `drawPlayer2Score`
+(0x192b) and `drawHighScore` (0x1950) each seat a fixed record base — `PLAYER1_OBJ_DESC`, `PLAYER2_OBJ_DESC`, and
+`HIGH_SCORE_OBJ_DESC` (0x20f4), the third sibling of the two player records — and tail-delegate to `drawScoreRecord`,
+which unpacks the four-byte record (a BCD value word then its screen address) and paints the total there [code].
