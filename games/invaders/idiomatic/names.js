@@ -59,7 +59,7 @@ export const ALIEN_SHOT_RATE_THRESHOLDS = 0x1cb8;  // [seen]
 export const loc_1d20 = 0x1d20;
 export const loc_1e00 = 0x1e00;
 export const ALIEN_DRAW_PENDING = 0x2000;  // [seen]
-export const PLAYER_SHOT_HIT = 0x2002;  // [code]
+export const PLAYER_SHOT_HIT = 0x2002;  // [seen]
 export const loc_2008 = 0x2008;
 export const ALIEN_DRAW_ADDR = 0x200b;  // [seen]
 export const FLEET_MOVE_DIR = 0x200d;  // [seen]
@@ -67,7 +67,7 @@ export const GAME_OBJECT_TABLE = 0x2010;  // [code]
 export const loc_2011 = 0x2011;
 export const loc_2015 = 0x2015;
 export const loc_201d = 0x201d;
-export const PLAYER_SHOT_STATUS = 0x2025;  // [code]
+export const PLAYER_SHOT_STATUS = 0x2025;  // [seen]
 export const PLAYER_SHOT_DESC = 0x2027;  // [code]
 export const FIRE_BUTTON_LATCH = 0x202d;  // [code]
 export const loc_2062 = 0x2062;
@@ -150,7 +150,7 @@ export const ROUTINES = {
   0x0bf1: { name: "loc_0bf1", role: "pre-round redraw trampoline: run loc_190a (fleet edge/direction update) then tail into drawTaitoCopyright", cert: "code" },
   0x1474: { name: "seatBlitPosition", role: "OUT port 2 := L&7 (MB14241 shift offset), then HL := coordToScreenAddr(HL) -- seat the next blit", cert: "code" },
   0x14cb: { name: "clearScreenStrip", role: "zero A then fillScreenRow(0) -- blank a run of B screen columns from HL; live-out HL", cert: "code" },
-  0x14d8: { name: "resolvePlayerShotHit", role: "resolve a player-shot collision (dispatched while PLAYER_SHOT_STATUS==2): ret unless a hit is latched (PLAYER_SHOT_HIT, which loc_03bb copies from COLLISION_FLAG); then by the shot Y at loc_2029 either stand down into state 3 + clearShotHitAndSilence (missed off the top), mark the saucer hit + retire the shot (markSaucerHitAndRetireShot, saucer altitude band), or scale the coords to a 55-cell alien-rack index (loc_1581) and on a live cell kill the alien + queue the invader-die sound/explosion (loc_0a5f), enter state 5, blit, and arm the explosion despawn timer ALIEN_EXPLOSION_TIMER", cert: "code" },
+  0x14d8: { name: "resolvePlayerShotHit", role: "resolve a player-shot collision (dispatched while PLAYER_SHOT_STATUS==2): ret unless a hit is latched (PLAYER_SHOT_HIT, which loc_03bb copies from COLLISION_FLAG); then by the shot Y at loc_2029 either stand down into state 3 + clearShotHitAndSilence (missed off the top), mark the saucer hit + retire the shot (markSaucerHitAndRetireShot, saucer altitude band), or scale the coords to a 55-cell alien-rack index (loc_1581) and on a live cell kill the alien + queue the invader-die sound/explosion (loc_0a5f), enter state 5, blit, and arm the explosion despawn timer ALIEN_EXPLOSION_TIMER", cert: "seen" },
   0x154a: { name: "clearShotHitAndSilence", role: "clear PLAYER_SHOT_HIT, then loc_19dc(0xf7) masks bit 3 off SOUND_PORT3_SHADOW; value-out A", cert: "code" },
   0x1554: { name: "countStepsToThreshold", role: "count in C the 0x10 steps that lift A to/above threshold H (pre-normalizing a negative A via loc_1590); live-out A, C, carry clear", cert: "code" },
   0x1597: { name: "reverseFleetAtEdge", role: "fleet edge / direction reversal: scan the edge column selected by FLEET_MOVE_DIR (fleetReachedEdge); on a hit flip the direction and republish loc_2008 (step count, via loc_18f1) and FLEET_STEP_DY (mirrored from FLEET_DROP_DELTA), else leave state unchanged; RAM-only live-out", cert: "seen" },
