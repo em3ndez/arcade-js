@@ -71,6 +71,13 @@ export const ALIEN_FIELD_P1 = 0x2100;  // [code]
 export const ALIEN_FIELD_P2 = 0x2200;  // [code]
 export const SHIELD_VRAM_BASE = 0x2806;  // [code]
 
+export const loc_2061 = 0x2061;
+export const loc_2084 = 0x2084;
+export const loc_2085 = 0x2085;
+export const loc_20ce = 0x20ce;
+export const loc_2142 = 0x2142;
+export const loc_2242 = 0x2242;
+export const loc_391c = 0x391c;
 export const ROUTINES = {
   0x00b1: { name: "loadReferenceAlienState", role: "load the active player's saved field record: mirror the reference-alien coord word to loc_2009/ALIEN_DRAW_ADDR, derive the count at loc_2008, set FLEET_MOVE_DIR on the 0xfe edge sentinel", cert: "seen" },
   0x01c0: { name: "markAllAliensAliveP1", role: "seat the player-1 alien-status base ALIEN_FIELD_P1 then markAllAliensAlive (fill 0x37 cells with 0x01)", cert: "code" },
@@ -137,4 +144,24 @@ export const ROUTINES = {
   0x1a47: { name: "coordToScreenAddr", role: "HL := (HL >> 3) with H forced into the 0x2000-0x3fff video-RAM page", cert: "seen" },
   0x1a5c: { name: "clearScreen", role: "zero video RAM 0x2400..0x3fff", cert: "seen" },
   0x1a69: { name: "orBlitBitmap", role: "OR-merge C source bytes down each of B columns (columns 0x20 apart); advance HL and DE", cert: "seen" },
+  0x01e4: { name: "loc_01e4", role: "boot-init: force the copy count to 0xc0, then blockCopy the ROM template image WORKRAM_INIT_IMAGE (0x1b00) into the work-RAM base ALIEN_DRAW_PENDING (0x2000); memory-only, no register live-out", cert: "code" },
+  0x01ef: { name: "loc_01ef", role: "seat the player-1 shield buffer base loc_2142, then initShieldBuffers replicates the 0x2c-byte shield template into four consecutive slots; live-out HL", cert: "code" },
+  0x01f5: { name: "loc_01f5", role: "seat the player-2 shield buffer base loc_2242, then initShieldBuffers replicates the 0x2c-byte shield template into four consecutive slots; live-out HL", cert: "code" },
+  0x0214: { name: "loc_0214", role: "seat the player-2 shield source/dest base loc_2242, then drawOrSaveShields saves-or-draws the four 22x2 shield blocks under the caller's mode flag A", cert: "code" },
+  0x021b: { name: "loc_021b", role: "seed the shield backup-buffer pointer loc_2142 into DE, then drawOrSaveShields -- save (A!=0, captureScreenRect) or restore (A==0, orBlitBitmap) the four 22x2 shield blocks driven by A as the mode", cert: "code" },
+  0x073c: { name: "loc_073c", role: "resolve the sprite descriptor at loc_2087 to its screen address + gfx pointer (resolveSpriteScreenAddr), then blit the sprite column into video RAM (drawSpriteColumn); live-out HL", cert: "code" },
+  0x08e4: { name: "loc_08e4", role: "blank a fixed 0x20-column screen strip from 0x391c (loc_391c) via clearScreenStrip, unless the mode-guard cell 0x20ce (loc_20ce) is nonzero (rnz early-out); live-out HL", cert: "code" },
+  0x08f3: { name: "loc_08f3", role: "sprite-list driver: for C sprite ids sitting consecutively from DE, blit each 8x8 sprite down the screen from HL via drawSprite8x8, advancing the id pointer per sprite until C hits 0; live-out HL, DE, C", cert: "code" },
+  0x09c5: { name: "loc_09c5", role: "map a low nibble in A to its hex-glyph id (A + 0x1a) then plot the glyph via drawSprite8x8; live-out HL", cert: "code" },
+  0x1400: { name: "loc_1400", role: "seat the blit (0x1474/seatBlitPosition), then over B rows push one source byte [DE] through the MB14241 shifter (OUT 0x04 / IN 0x03) and OR-merge its two overlapping halves into [HL] and [HL+1], stepping HL by 0x20 (one screen row) and DE by 1 per row; live-out HL, DE", cert: "code" },
+  0x1424: { name: "loc_1424", role: "seat the blit (0x1474/seatBlitPosition), then over B rows zero the two adjacent screen bytes [HL],[HL+1] and step HL by 0x20 (one screen row) per row; live-out HL", cert: "code" },
+  0x1452: { name: "loc_1452", role: "erase B sprite rows: seatBlitPosition to seat the MB14241 shift offset, then per row AND the complement of the hardware-shifted source byte (ports 0x04 out / 0x03 in) into two adjacent screen columns, stepping DE +1 and HL +0x20; live-out HL, DE, A + screen", cert: "code" },
+  0x1491: { name: "loc_1491", role: "draw B sprite rows with collision detect: seatBlitPosition, clear the collision flag loc_2061, then per row OR the hardware-shifted source byte (ports 0x04/0x03) into two adjacent screen columns, setting loc_2061 on any overlap; step DE +1, HL +0x20; live-out HL, DE, A + collision flag", cert: "code" },
+  0x1545: { name: "loc_1545", role: "set PLAYER_SHOT_STATUS to 0x04, then fall through into deactivatePrize (dissolved 0x154a): clear PRIZE_ACTIVE and mask bit 3 off SOUND_PORT3_SHADOW (mirrored to sound port 3); value-out A", cert: "code" },
+  0x1562: { name: "loc_1562", role: "X-scale: lift the object X cell (loc_2009) to the threshold in L via countStepsToThreshold, leaving the block index (step count-1) in B and the residual (stepped-0x10) in L/A", cert: "code" },
+  0x156f: { name: "loc_156f", role: "Y-scale: lift the object Y cell (loc_200a) to the threshold in H via countStepsToThreshold, leaving the step count in C and the residual (stepped-0x10) in H/A", cert: "code" },
+  0x15d3: { name: "loc_15d3", role: "shift-decode B source rows: for each row pre-shift the source byte through the MB14241 (OUT 4 / IN 3) into two dest bytes 0x20 apart, from the seatBlitPosition-seated screen address; live-out HL (seated addr), DE (advanced), B=0", cert: "code" },
+  0x1804: { name: "loc_1804", role: "gate the saucer sound on the 0x2084/0x2085 flag pair: [0x2084]==0 -> stopSaucerSound; else [0x2085]!=0 -> return untouched; else arm the sound with request bit 0 (startSound bit 0)", cert: "code" },
+  0x1856: { name: "loc_1856", role: "fetch a 4-byte record through the BC cursor: 0xff first byte -> A=0xff, carry set (end), BC/HL/DE parked; else HL,DE = the two little-endian words, BC += 4, A = last byte, carry clear", cert: "code" },
+  0x19fa: { name: "loc_19fa", role: "blank successive 16-row screen strips from HL (each a clearScreenStrip fill, HL += 0x200 per pass) until the strip base's high byte reaches 0x35; live-out HL/A/B (all dead in callers -- the cleared RAM is the real output)", cert: "code" },
 };

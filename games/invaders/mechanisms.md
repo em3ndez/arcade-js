@@ -164,3 +164,6 @@ and are named here only where they are touched:
   step delta **`loc_207e`**, and the ROM templates **`loc_1b83`**/**`loc_1d20`** and the sprite/glyph table
   **`loc_1e00`** all keep `loc_` names pending grounding. These resolve at grounding, or when their callers
   lift and their roles become confident from the code.
+
+A further set of leaf helper routines (and the work-RAM/ROM cells they touch) is present in the idiomatic
+layer at `loc_<addr>` names, their roles pending a naming pass; they are not narrated here until named.
