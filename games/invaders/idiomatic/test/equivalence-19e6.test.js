@@ -2,7 +2,7 @@
 // Memory-equivalence for drawReserveLifeIcons -- seat HL, and (when the entry Z flag is clear) run an A-counted loop
 // of 16-byte column fills (DISSOLVED loc_1439 -> drawSpriteColumn), then fall through into the strip-blanker
 // (DISSOLVED clearScreenRegion -> clearScreenRegion). The entry Z flag is a live-IN, captured as a param default. The only
-// live-out is RAM: the sole caller (loc_1a7f) restores A/flags via `pop psw` and hands HL to drawLivesDigit, so
+// live-out is RAM: the sole caller (decrementShipsAndDrawReadout) restores A/flags via `pop psw` and hands HL to drawLivesDigit, so
 // every register output is dead. Interrupts disabled so the oracle's ticks can't fire a one-sided handler.
 // Run: node --test games/invaders/idiomatic/test/equivalence-19e6.test.js
 

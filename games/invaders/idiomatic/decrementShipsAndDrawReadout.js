@@ -5,7 +5,7 @@ import { drawReserveLifeIcons } from "./drawReserveLifeIcons.js";
 import { drawLivesDigit } from "./drawLivesDigit.js";
 
 // When ships remain, stash the reserve count in the page cell, paint the reserve-ship row, then plot the lives digit.
-export function loc_1a7f(m) {
+export function decrementShipsAndDrawReadout(m) {
   const [hl, a] = readActivePlayerPageTopByte(m);
   if (a === 0) return;
   const reserve = u8(a - 1);

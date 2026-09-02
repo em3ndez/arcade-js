@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_09ad -- draw the 16-bit value in DE as four BCD glyphs: the high byte (D) then
+// Memory-equivalence for drawBcdWord -- draw the 16-bit value in DE as four BCD glyphs: the high byte (D) then
 // the low byte (E), each plotted via drawBcdByte (which itself draws two decimal glyphs). Both m.call(0x09b2)
 // (the D draw and the E tail-jump) are DISSOLVED into direct drawBcdByte calls. Inputs D, E, HL (screen
 // address). Live-out: the plotted glyph cells (RAM) PLUS HL (advanced two glyph-pairs = 0x400) and DE
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_09ad as oracle } from "../../translated/loc_09ad.js";
-import { loc_09ad } from "../loc_09ad.js";
+import { drawBcdWord } from "../drawBcdWord.js";
 import { drawBcdByte } from "../drawBcdByte.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -36,7 +36,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x09ad dispatches -- loc_09ad == oracle in RAM (-stack), HL and DE", () => {
+test("CAPTURE: real 0x09ad dispatches -- drawBcdWord == oracle in RAM (-stack), HL and DE", () => {
   for (const cap of CAPS) {
     // The oracle's per-call return-addr / push d / push psw residue sits just below the ENTRY SP; exclude
     // relative to that SP. The module keeps no machine stack.
@@ -45,7 +45,7 @@ test("CAPTURE: real 0x09ad dispatches -- loc_09ad == oracle in RAM (-stack), HL 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x20 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_09ad(c);
+    oracle(o); drawBcdWord(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
     assert.equal(c.regs.de, o.regs.de, "DE preserved, matches the oracle");
@@ -58,7 +58,7 @@ test("CRAFTED: four glyphs plotted (D high byte then E low byte); HL advances 0x
     const seed = (m) => { m.regs.sp = 0x2400; m.regs.d = d; m.regs.e = e; m.regs.hl = 0x2400; };
     const o = new Machine(ROM); seed(o); o.io.setInte(false);
     const c = new Machine(ROM); seed(c); c.io.setInte(false);
-    oracle(o); loc_09ad(c);
+    oracle(o); drawBcdWord(c);
     const tag = `DE=0x${d.toString(16)}${e.toString(16).padStart(2, "0")}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, o.regs.hl, `HL matches oracle: ${tag}`);
@@ -72,7 +72,7 @@ test("CRAFTED: four glyphs plotted (D high byte then E low byte); HL advances 0x
 });
 
 test("TEETH: a module-mutating twin (low byte drawn before high) diverges in RAM", () => {
-  // Broken twin of loc_09ad: draws E first then D -- the two byte-pairs land swapped on screen.
+  // Broken twin of drawBcdWord: draws E first then D -- the two byte-pairs land swapped on screen.
   const loc_09ad_broken = (m, d = m.regs.d, e = m.regs.e) => {
     drawBcdByte(m, e);
     return drawBcdByte(m, d);

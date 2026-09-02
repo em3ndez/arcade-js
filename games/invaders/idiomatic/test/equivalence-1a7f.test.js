@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1a7f -- read the active player's ships count (DISSOLVED into
+// Memory-equivalence for decrementShipsAndDrawReadout -- read the active player's ships count (DISSOLVED into
 // readActivePlayerPageTopByte); when nonzero, write the reserve count (ships-1) back to that page cell,
 // paint the reserve-ship icon row (DISSOLVED into drawReserveLifeIcons, entry Z = reserve==0), then plot
 // the lives digit for the full count (DISSOLVED into drawLivesDigit). When the count is zero the routine
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1a7f as oracle } from "../../translated/loc_1a7f.js";
-import { loc_1a7f } from "../loc_1a7f.js";
+import { decrementShipsAndDrawReadout } from "../decrementShipsAndDrawReadout.js";
 import { readActivePlayerPageTopByte } from "../readActivePlayerPageTopByte.js";
 import { drawReserveLifeIcons } from "../drawReserveLifeIcons.js";
 import { drawLivesDigit } from "../drawLivesDigit.js";
@@ -41,7 +41,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1a7f dispatches -- loc_1a7f == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x1a7f dispatches -- decrementShipsAndDrawReadout == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     // The oracle's push psw + call-chain return-addr residue sits just below the ENTRY SP.
     const sp = cap.regs.sp;
@@ -49,7 +49,7 @@ test("CAPTURE: real 0x1a7f dispatches -- loc_1a7f == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1a7f(c);
+    oracle(o); decrementShipsAndDrawReadout(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -64,7 +64,7 @@ test("CRAFTED: zero bails; nonzero stores ships-1 at the page cell, paints reser
     };
     const o = new Machine(ROM); seed(o); o.io.setInte(false);
     const c = new Machine(ROM); seed(c); c.io.setInte(false);
-    oracle(o); loc_1a7f(c);
+    oracle(o); decrementShipsAndDrawReadout(c);
     const tag = `ships=0x${ships.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     if (ships === 0) {
@@ -76,7 +76,7 @@ test("CRAFTED: zero bails; nonzero stores ships-1 at the page cell, paints reser
   // ships=3 -> reserve=2: first reserve column painted (0x2701 + row 8), lives digit '3' at 0x2501.
   const c = new Machine(ROM); c.regs.sp = 0x2400; c.io.setInte(false);
   c.mem.write8(ACTIVE_PLAYER_PAGE, PAGE); c.mem.write8(SHIPS_CELL, 0x03);
-  loc_1a7f(c);
+  decrementShipsAndDrawReadout(c);
   assert.equal(c.mem.read8(0x2801), 0xff, "first reserve-ship column painted");
   let drew = 0;
   for (let i = 0; i < 8; i++) drew |= c.mem.read8(0x2501 + i * 0x20);

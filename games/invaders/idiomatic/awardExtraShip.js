@@ -10,7 +10,7 @@ import { LIVES_DIGIT_SCREEN_ADDR, RESERVE_SHIP_SPRITE, SFX_OFF_TIMER } from "./n
 
 // Award the next reserve ship once the active player's tally reaches its port-2-selected threshold: bump the
 // stored count, redraw the reserve-ship column and lives digit, clear the flag, and cue the award sound.
-export function loc_0935(m) {
+export function awardExtraShip(m) {
   const flagPtr = loc_1910(m);
   if (m.mem8[flagPtr - 2] === 0) return;
 

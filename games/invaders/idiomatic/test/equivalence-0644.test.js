@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0644 -- the alien-shot cadence counter. Three arms: (a) at the reload point
+// Memory-equivalence for stepAlienShotBlowup -- the alien-shot cadence counter. Three arms: (a) at the reload point
 // (counter hits 3) erase the current shot (DISSOLVED into eraseAlienShot), re-seat the shot descriptor
 // pointer + its two step timers, then redraw (DISSOLVED into drawAlienShotWithCollision, tail-jump); (b)
 // at zero just erase (tail-jump); (c) otherwise idle (rnz). Live-out is MEMORY only: the caller (loc_050f)
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0644 as oracle } from "../../translated/loc_0644.js";
-import { loc_0644 } from "../loc_0644.js";
+import { stepAlienShotBlowup } from "../stepAlienShotBlowup.js";
 import { eraseAlienShot } from "../eraseAlienShot.js";
 import { drawAlienShotWithCollision } from "../drawAlienShotWithCollision.js";
 import { Machine } from "../../machine.js";
@@ -43,14 +43,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0644 dispatches -- loc_0644 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0644 dispatches -- stepAlienShotBlowup == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp; // the sprite arms push two routines' saves below the ENTRY SP
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x20 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0644(c);
+    oracle(o); stepAlienShotBlowup(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -75,7 +75,7 @@ test("CRAFTED: reload arm (==3) re-seeds + redraws; zero arm erases; idle arm ju
   {
     const o = new Machine(ROM); seat(o, 0x04);
     const c = new Machine(ROM); seat(c, 0x04);
-    oracle(o); loc_0644(c);
+    oracle(o); stepAlienShotBlowup(c);
     assert.equal(ramDiff(o, c), null, "reload arm RAM");
     assert.equal(c.mem.read8(COUNTER), 0x03, "counter decremented to 3");
     assert.equal(c.mem.read16(SHOT_PTR), 0x1cdc, "shot descriptor pointer re-seeded to 0x1cdc");
@@ -88,7 +88,7 @@ test("CRAFTED: reload arm (==3) re-seeds + redraws; zero arm erases; idle arm ju
   {
     const o = new Machine(ROM); seat(o, 0x01);
     const c = new Machine(ROM); seat(c, 0x01);
-    oracle(o); loc_0644(c);
+    oracle(o); stepAlienShotBlowup(c);
     assert.equal(ramDiff(o, c), null, "zero arm RAM");
     assert.equal(c.mem.read8(COUNTER), 0x00, "counter decremented to 0");
     assert.equal(c.mem.read16(SHOT_PTR), 0x2000, "descriptor pointer untouched (no re-seed)");
@@ -97,7 +97,7 @@ test("CRAFTED: reload arm (==3) re-seeds + redraws; zero arm erases; idle arm ju
   {
     const o = new Machine(ROM); seat(o, 0x05);
     const c = new Machine(ROM); seat(c, 0x05);
-    oracle(o); loc_0644(c);
+    oracle(o); stepAlienShotBlowup(c);
     assert.equal(ramDiff(o, c), null, "idle arm RAM");
     assert.equal(c.mem.read8(COUNTER), 0x04, "counter decremented to 4");
     assert.equal(c.mem.read16(SHOT_PTR), 0x2000, "descriptor pointer untouched");
@@ -105,7 +105,7 @@ test("CRAFTED: reload arm (==3) re-seeds + redraws; zero arm erases; idle arm ju
 });
 
 test("TEETH: a twin that re-seeds the wrong row count blits a short sprite and is caught", () => {
-  // Mutate loc_0644's own reload logic: re-seed 4 rows instead of 6, so the redraw is two rows short.
+  // Mutate stepAlienShotBlowup's own reload logic: re-seed 4 rows instead of 6, so the redraw is two rows short.
   function loc_0644_broken(m) {
     const next = u8(m.mem8[COUNTER] - 1);
     m.mem8[COUNTER] = next;

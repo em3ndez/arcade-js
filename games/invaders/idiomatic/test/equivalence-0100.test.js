@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0100 -- redraw the pending sprite object. Three arms: (a) a prize already
+// Memory-equivalence for drawPendingAlien -- redraw the pending sprite object. Three arms: (a) a prize already
 // despawning bails to the despawn tick (DISSOLVED into tickDespawnTimer); (b) the active-slot path builds
 // the sprite pointer -- sprite id -> rotate-left-3 -> 0x1c00 table offset, +0x30 for the alternate frame
 // (DISSOLVED into selectAlternateSpriteFrame) -- and shift-blits it (DISSOLVED into blitShiftedSprite),
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0100 as oracle } from "../../translated/loc_0100.js";
-import { loc_0100 } from "../loc_0100.js";
+import { drawPendingAlien } from "../drawPendingAlien.js";
 import { blitShiftedSprite } from "../blitShiftedSprite.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -43,7 +43,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0100 dispatches -- loc_0100 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0100 dispatches -- drawPendingAlien == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     // The oracle's object-read push/pop and its two inner call returns sit just below the ENTRY SP; the
     // module keeps the stack untouched. Exclude relative to that SP.
@@ -52,7 +52,7 @@ test("CAPTURE: real 0x0100 dispatches -- loc_0100 == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0100(c);
+    oracle(o); drawPendingAlien(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -82,7 +82,7 @@ test("CRAFTED: active(alt frame), active(base frame), inactive slot, and prize-d
   for (const cs of cases) {
     const o = new Machine(ROM); seat(o, cs);
     const c = new Machine(ROM); seat(c, cs);
-    oracle(o); loc_0100(c);
+    oracle(o); drawPendingAlien(c);
     assert.equal(ramDiff(o, c), null, cs.name);
     assert.equal(c.mem.read8(DRAW_PENDING), o.mem.read8(DRAW_PENDING), `draw-pending ${cs.name}`);
     if (cs.prize === 0) assert.equal(c.mem.read8(DRAW_PENDING), 0x00, `draw-pending cleared ${cs.name}`);
@@ -91,7 +91,7 @@ test("CRAFTED: active(alt frame), active(base frame), inactive slot, and prize-d
 });
 
 test("TEETH: a twin that never applies the alternate-frame bump diverges in the blitted RAM", () => {
-  // Mutate loc_0100's own logic: drop the +0x30 alternate-frame step, so a frame-set object blits the base
+  // Mutate drawPendingAlien's own logic: drop the +0x30 alternate-frame step, so a frame-set object blits the base
   // bank (0x1c55) where the oracle blits the alternate bank (0x1c85) -- different sprite bytes.
   function loc_0100_broken(m) {
     const even = m.mem8[SPRITE_ID] & 0xfe;

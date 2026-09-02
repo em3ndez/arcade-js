@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_070c -- on the mystery ship's destruction. Raise the score-add flag, scan the
+// Memory-equivalence for awardSaucerScore -- on the mystery ship's destruction. Raise the score-add flag, scan the
 // 4-entry type table for the ship's value key, copy the parallel sprite-id entry into the sprite record,
 // store key*16 as the score value, fold that record into a screen address (DISSOLVED into
 // resolveSpriteScreenAddr) and draw its three-part sprite (DISSOLVED into drawThreeSprites, tail-jump).
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_070c as oracle } from "../../translated/loc_070c.js";
-import { loc_070c } from "../loc_070c.js";
+import { awardSaucerScore } from "../awardSaucerScore.js";
 import { resolveSpriteScreenAddr } from "../resolveSpriteScreenAddr.js";
 import { drawThreeSprites } from "../drawThreeSprites.js";
 import { Machine } from "../../machine.js";
@@ -48,14 +48,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x070c dispatches -- loc_070c == oracle in RAM (-stack) and HL/DE/C", () => {
+test("CAPTURE: real 0x070c dispatches -- awardSaucerScore == oracle in RAM (-stack) and HL/DE/C", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_070c(c);
+    oracle(o); awardSaucerScore(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(regOutDiff(o, c), null);
   }
@@ -81,7 +81,7 @@ test("CRAFTED: matched key re-seeds record + score and delegates; unmatched key 
   {
     const o = new Machine(ROM); seat(o, 0x10);
     const c = new Machine(ROM); seat(c, 0x10);
-    oracle(o); loc_070c(c);
+    oracle(o); awardSaucerScore(c);
     assert.equal(ramDiff(o, c), null, "matched RAM");
     assert.equal(regOutDiff(o, c), null, "matched HL/DE/C");
     assert.equal(c.mem.read8(SCORE_FLAG), 0x01, "score-add flag raised");
@@ -92,7 +92,7 @@ test("CRAFTED: matched key re-seeds record + score and delegates; unmatched key 
   {
     const o = new Machine(ROM); seat(o, 0xff);
     const c = new Machine(ROM); seat(c, 0xff);
-    oracle(o); loc_070c(c);
+    oracle(o); awardSaucerScore(c);
     assert.equal(ramDiff(o, c), null, "unmatched RAM");
     assert.equal(regOutDiff(o, c), null, "unmatched HL/DE/C");
     assert.equal(c.mem.read8(SCORE_FLAG), 0x01, "score-add flag raised");
@@ -102,7 +102,7 @@ test("CRAFTED: matched key re-seeds record + score and delegates; unmatched key 
 });
 
 test("TEETH: a twin that scales the score by 8 instead of 16 diverges in the score word", () => {
-  // Mutate loc_070c's own logic: store key*8 (<<3) rather than key*16 (<<4).
+  // Mutate awardSaucerScore's own logic: store key*8 (<<3) rather than key*16 (<<4).
   function loc_070c_broken(m) {
     m.mem8[SCORE_FLAG] = 1;
     const key = m.mem8[m.mem16[KEY_PTR]];

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0935 -- the reserve-ship award: bail unless the active player's flag byte is set
+// Memory-equivalence for awardExtraShip -- the reserve-ship award: bail unless the active player's flag byte is set
 // and its tally has reached the port-2-selected threshold; then bump the stored count, redraw the reserve-ship
 // column (RESERVE_SHIP_SPRITE) and lives digit, clear the flag, seat SFX_OFF_TIMER, and cue the award sound
 // (startSound). Every m.call is DISSOLVED into a direct idiomatic call (loc_1910, currentPlayerRecordPtr,
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0935 as oracle } from "../../translated/loc_0935.js";
-import { loc_0935 } from "../loc_0935.js";
+import { awardExtraShip } from "../awardExtraShip.js";
 import { u8 } from "../../../../core/int.js";
 import { loc_1910 } from "../loc_1910.js";
 import { currentPlayerRecordPtr } from "../currentPlayerRecordPtr.js";
@@ -59,14 +59,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0935 dispatches -- loc_0935 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0935 dispatches -- awardExtraShip == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x20 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0935(c);
+    oracle(o); awardExtraShip(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked (gameplay-only; 0 expected in attract)`);
@@ -75,7 +75,7 @@ test("CAPTURE: real 0x0935 dispatches -- loc_0935 == oracle in RAM (-stack)", ()
 test("CRAFTED: threshold reached -> count bumped, column + digit drawn, flag cleared, sound cued", () => {
   const o = new Machine(ROM); seedAward(o);
   const c = new Machine(ROM); seedAward(c);
-  oracle(o); loc_0935(c);
+  oracle(o); awardExtraShip(c);
   assert.equal(ramDiff(o, c), null, "oracle and module leave identical RAM (-stack)");
   assert.equal(c.mem.read8(PAGE_TOP), 0x04, "stored count incremented (action path ran)");
   assert.equal(c.mem.read8(FLAG), 0x00, "flag cleared");
@@ -93,7 +93,7 @@ test("CRAFTED: flag clear -> early return, nothing touched", () => {
     m.mem.write8(ACTIVE_PLAYER_PAGE, 0x21); m.mem.write8(FLAG, 0x00); m.mem.write8(SFX_OFF_TIMER, 0xaa); };
   const o = new Machine(ROM); seed(o);
   const c = new Machine(ROM); seed(c);
-  oracle(o); loc_0935(c);
+  oracle(o); awardExtraShip(c);
   assert.equal(ramDiff(o, c), null);
   assert.equal(c.mem.read8(SFX_OFF_TIMER), 0xaa, "no side effects on the bail path");
 });
@@ -104,7 +104,7 @@ test("CRAFTED: tally below threshold -> early return", () => {
     m.mem.write8(PAGE_TOP, 0x03); m.mem.write8(SFX_OFF_TIMER, 0xaa); };
   const o = new Machine(ROM); seed(o);
   const c = new Machine(ROM); seed(c);
-  oracle(o); loc_0935(c);
+  oracle(o); awardExtraShip(c);
   assert.equal(ramDiff(o, c), null);
   assert.equal(c.mem.read8(SFX_OFF_TIMER), 0xaa, "no award below threshold");
   assert.equal(c.mem.read8(PAGE_TOP), 0x03, "count untouched below threshold");
@@ -115,7 +115,7 @@ test("CRAFTED: port2-bit3 threshold-select is discriminated (tally 0x12 straddle
     m.io.in2 = in2; m.mem.write8(ACTIVE_PLAYER_PAGE, 0x21); m.mem.write8(FLAG, 0x01);
     m.mem.write8(TALLY, 0x12); m.mem.write8(PAGE_TOP, 0x03); m.mem.write8(SFX_OFF_TIMER, 0xaa); };
   const run = (in2) => { const o = new Machine(ROM); seed(o, in2); const c = new Machine(ROM); seed(c, in2);
-    oracle(o); loc_0935(c);
+    oracle(o); awardExtraShip(c);
     assert.equal(ramDiff(o, c), null, `bit3=0x${in2.toString(16)}: module == oracle`);
     return { oTop: o.mem.read8(PAGE_TOP), cTop: c.mem.read8(PAGE_TOP) }; };
   const set = run(0x08), clr = run(0x00);
