@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for countStepsToThreshold (ROM 0x1554) -- the scale/count helper. Count in C the 0x10 steps
 // that lift A to/above threshold H; a negative A is pre-normalized via the dissolved 0x1590. Live-out:
-// A (residual) AND C (step count), both read back by the callers loc_1562/loc_156f. No RAM write, so
+// A (residual) AND C (step count), both read back by the callers scaleXToBlock/scaleYToBlock. No RAM write, so
 // the contract is the (A, C) live-out (RAM diff stays null, minus the oracle's transient cnc push).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1554.test.js
 

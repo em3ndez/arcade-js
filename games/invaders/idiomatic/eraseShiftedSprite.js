@@ -4,7 +4,7 @@ import { seatBlitPosition } from "./seatBlitPosition.js";
 
 // Erase B sprite rows: seat the shift offset, then per row clear the hardware-shifted source bits
 // from two adjacent screen columns, stepping down one screen row each pass.
-export function loc_1452(m, de = m.regs.de, b = m.regs.b) {
+export function eraseShiftedSprite(m, de = m.regs.de, b = m.regs.b) {
   const rows = b || 256; // a count of 0 wraps to a full 256-row pass
   let dst = seatBlitPosition(m); // screen address for the first row
   let src = de;

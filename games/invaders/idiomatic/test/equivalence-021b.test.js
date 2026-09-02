@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_021b -- seed the shield backup-buffer pointer into DE, then run the shared
-// shield save/restore body (DISSOLVED into a direct drawOrSaveShields, buffer fixed to loc_2142). A at
+// Memory-equivalence for saveOrRestorePlayer1Shields -- seed the shield backup-buffer pointer into DE, then run the shared
+// shield save/restore body (DISSOLVED into a direct drawOrSaveShields, buffer fixed to PLAYER1_SHIELD_BUFFER). A at
 // entry is the save/restore mode (nonzero => capture, zero => OR-blit); DE at entry is DEAD (the routine
 // overwrites it with the fixed buffer). Live-out is MEMORY; the callee's HL/DE thread the loop but no
 // caller reads them back. The oracle push/pops around its body's two m.call's, so the diff excludes dead
@@ -12,11 +12,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_021b as oracle } from "../../translated/loc_021b.js";
-import { loc_021b } from "../loc_021b.js";
+import { saveOrRestorePlayer1Shields } from "../saveOrRestorePlayer1Shields.js";
 import { drawOrSaveShields } from "../drawOrSaveShields.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, SHIELD_SAVE_RESTORE_MODE, loc_2142 } from "../names.js";
+import { STACK_SCRATCH, SHIELD_SAVE_RESTORE_MODE, PLAYER1_SHIELD_BUFFER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -37,7 +37,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x021b dispatches -- loc_021b == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x021b dispatches -- saveOrRestorePlayer1Shields == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     // Residue from the body's per-call push16 sits just below the ENTRY SP -- exclude relative to it.
     const sp = cap.regs.sp;
@@ -45,14 +45,14 @@ test("CAPTURE: real 0x021b dispatches -- loc_021b == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x20 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_021b(c);
+    oracle(o); saveOrRestorePlayer1Shields(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
 // Seat a fresh Machine: a distinct pattern across work + video RAM, a real caller return on the stack,
-// the mode in A, and a DECOY DE that both oracle and module must ignore (they force the buffer loc_2142).
+// the mode in A, and a DECOY DE that both oracle and module must ignore (they force the buffer PLAYER1_SHIELD_BUFFER).
 function seat(m, { a }) {
   for (let addr = 0x2000; addr < 0x4000; addr++) m.mem.write8(addr, addr & 0xff);
   m.regs.sp = 0x2400; m.push16(CALLER_RET); m.io.setInte(false);
@@ -62,7 +62,7 @@ function seat(m, { a }) {
 test("CRAFTED: restore/blit path (A=0) -- module leaves the same RAM as the oracle", () => {
   const o = new Machine(ROM); seat(o, { a: 0x00 });
   const c = new Machine(ROM); seat(c, { a: 0x00 });
-  oracle(o); loc_021b(c);
+  oracle(o); saveOrRestorePlayer1Shields(c);
   assert.equal(ramDiff(o, c), null, "blit path RAM matches");
   assert.equal(c.mem.read8(SHIELD_SAVE_RESTORE_MODE), 0x00, "mode stored");
 });
@@ -70,17 +70,17 @@ test("CRAFTED: restore/blit path (A=0) -- module leaves the same RAM as the orac
 test("CRAFTED: save/capture path (A=1) -- module leaves the same RAM as the oracle", () => {
   const o = new Machine(ROM); seat(o, { a: 0x01 });
   const c = new Machine(ROM); seat(c, { a: 0x01 });
-  oracle(o); loc_021b(c);
+  oracle(o); saveOrRestorePlayer1Shields(c);
   assert.equal(ramDiff(o, c), null, "capture path RAM matches");
   assert.equal(c.mem.read8(SHIELD_SAVE_RESTORE_MODE), 0x01, "mode stored");
   // The captured screen landed in the fixed buffer, not the decoy DE.
-  assert.equal(c.mem.read8(loc_2142), o.mem.read8(loc_2142), "buffer[0] matches oracle");
+  assert.equal(c.mem.read8(PLAYER1_SHIELD_BUFFER), o.mem.read8(PLAYER1_SHIELD_BUFFER), "buffer[0] matches oracle");
 });
 
 test("TEETH: a twin that drops the mode forward (forces blit) diverges in RAM", () => {
-  // Mutate loc_021b's OWN contribution: it no longer forwards A as the mode -- it always blits.
+  // Mutate saveOrRestorePlayer1Shields's OWN contribution: it no longer forwards A as the mode -- it always blits.
   function loc_021b_broken(m) {
-    return drawOrSaveShields(m, 0x00, loc_2142); // BUG: mode hardwired to 0, A ignored
+    return drawOrSaveShields(m, 0x00, PLAYER1_SHIELD_BUFFER); // BUG: mode hardwired to 0, A ignored
   }
   const o = new Machine(ROM); seat(o, { a: 0x01 });   // capture on the oracle
   const c = new Machine(ROM); seat(c, { a: 0x01 });

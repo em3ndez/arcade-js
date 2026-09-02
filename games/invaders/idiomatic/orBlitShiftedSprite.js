@@ -5,7 +5,7 @@ import { seatBlitPosition } from "./seatBlitPosition.js";
 // OR-blit a hardware-shifted sprite column: seat the blit, then per row push one source byte through
 // the shifter and merge its two overlapping halves into the adjacent screen bytes, stepping one screen
 // row down each pass. Live-out: HL (column end) and DE (source end).
-export function loc_1400(m, de = m.regs.de, b = m.regs.b) {
+export function orBlitShiftedSprite(m, de = m.regs.de, b = m.regs.b) {
   let dst = seatBlitPosition(m);
   let src = de;
   const rows = b || 256; // a count of 0 wraps to a full 256-row pass

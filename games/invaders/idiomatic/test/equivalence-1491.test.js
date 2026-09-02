@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1491 -- draw B sprite rows with collision detect: seat the shift offset
-// (dissolved 0x1474 -> seatBlitPosition), clear the collision flag loc_2061, then per row OR the
+// Memory-equivalence for drawSpriteWithCollision -- draw B sprite rows with collision detect: seat the shift offset
+// (dissolved 0x1474 -> seatBlitPosition), clear the collision flag COLLISION_FLAG, then per row OR the
 // hardware-shifted source byte (ports 0x04 out / 0x03 in) into two adjacent screen columns, setting
-// loc_2061 on any overlap; step DE +1 and HL +0x20 per row. Live-out is memory (the drawn screen
+// COLLISION_FLAG on any overlap; step DE +1 and HL +0x20 per row. Live-out is memory (the drawn screen
 // bytes + the collision flag) PLUS the advanced pointers HL, DE and the final A. The oracle push/pops
 // (setup + per-row save + per-column AF), so the RAM diff excludes the dead stack below the entry SP.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1491.test.js
@@ -12,10 +12,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1491 as oracle } from "../../translated/loc_1491.js";
-import { loc_1491 } from "../loc_1491.js";
+import { drawSpriteWithCollision } from "../drawSpriteWithCollision.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2061 } from "../names.js";
+import { STACK_SCRATCH, COLLISION_FLAG } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -23,7 +23,7 @@ const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM
 const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
 
 const TARGET = 0x1491;
-const COLLISION = loc_2061;
+const COLLISION = COLLISION_FLAG;
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
@@ -36,14 +36,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1491 dispatches -- loc_1491 == oracle in RAM (-stack) and HL/DE/A", () => {
+test("CAPTURE: real 0x1491 dispatches -- drawSpriteWithCollision == oracle in RAM (-stack) and HL/DE/A", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1491(c);
+    oracle(o); drawSpriteWithCollision(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
     assert.equal(c.regs.de, o.regs.de, "DE live-out matches the oracle");
@@ -69,7 +69,7 @@ test("CRAFTED: OR-draw into a clear field (no collision) vs a set field (collisi
   for (const { hl, de, b, bg, collide } of cases) {
     const o = new Machine(ROM); seed(o, hl, de, b, bg);
     const c = new Machine(ROM); seed(c, hl, de, b, bg);
-    oracle(o); loc_1491(c);
+    oracle(o); drawSpriteWithCollision(c);
     const label = `hl=0x${hl.toString(16)} de=0x${de.toString(16)} b=0x${b.toString(16)} bg=0x${bg.toString(16)}`;
     assert.equal(ramDiff(o, c), null, label);
     assert.equal(c.regs.hl, o.regs.hl, `HL live-out ${label}`);
@@ -81,7 +81,7 @@ test("CRAFTED: OR-draw into a clear field (no collision) vs a set field (collisi
 });
 
 test("TEETH: a module-mutating twin (never flags overlap) diverges in the collision flag", () => {
-  // Broken twin of loc_1491 that OR-draws correctly but skips the overlap test -- so the collision
+  // Broken twin of drawSpriteWithCollision that OR-draws correctly but skips the overlap test -- so the collision
   // flag stays clear when it should be set. Mutates the real logic, not a post-hoc overwrite.
   function loc_1491_broken(m, de = m.regs.de, b = m.regs.b) {
     const rows = b || 256;

@@ -4,7 +4,7 @@ import { seatBlitPosition } from "./seatBlitPosition.js";
 
 // Clear a two-wide sprite column: seat the blit, then zero the two adjacent screen bytes on each of
 // B rows, stepping one screen row down each pass. Live-out: HL (column end).
-export function loc_1424(m, b = m.regs.b) {
+export function clearSpriteColumn(m, b = m.regs.b) {
   let dst = seatBlitPosition(m);
   const rows = b || 256; // a count of 0 wraps to a full 256-row pass
   for (let i = 0; i < rows; i++) {

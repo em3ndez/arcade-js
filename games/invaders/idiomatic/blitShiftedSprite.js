@@ -3,7 +3,7 @@ import { u16 } from "../../../core/int.js";
 import { seatBlitPosition } from "./seatBlitPosition.js";
 
 // Pre-shift each of B source rows through the hardware shift register, laying each down as two bytes one screen-stride apart from the seated address.
-export function loc_15d3(m, de = m.regs.de, b = m.regs.b) {
+export function blitShiftedSprite(m, de = m.regs.de, b = m.regs.b) {
   const base = seatBlitPosition(m);
   const rows = b || 256; // a count of 0 wraps to a full 256-row pass
   let src = de;

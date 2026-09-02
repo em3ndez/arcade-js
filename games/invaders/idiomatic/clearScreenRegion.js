@@ -2,7 +2,7 @@
 import { clearScreenStrip } from "./clearScreenStrip.js";
 
 // Blank successive 16-row screen strips from HL, advancing one strip (HL += 0x200) per pass, until the strip base's high byte reaches the terminator row. Live-out HL/A/B.
-export function loc_19fa(m, hl = m.regs.hl) {
+export function clearScreenRegion(m, hl = m.regs.hl) {
   let cur = hl;
   do {
     cur = clearScreenStrip(m, 0x10, cur);

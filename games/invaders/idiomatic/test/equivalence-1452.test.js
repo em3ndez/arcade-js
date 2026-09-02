@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1452 -- erase B sprite rows: seat the shift offset (dissolved 0x1474 ->
+// Memory-equivalence for eraseShiftedSprite -- erase B sprite rows: seat the shift offset (dissolved 0x1474 ->
 // seatBlitPosition), then per row AND the complement of the hardware-shifted source byte into two
 // adjacent screen columns (via ports 0x04 out / 0x03 in), stepping DE +1 and HL +0x20 each row.
 // Live-out is memory (the cleared screen bytes) PLUS the advanced pointers HL, DE and the final A.
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1452 as oracle } from "../../translated/loc_1452.js";
-import { loc_1452 } from "../loc_1452.js";
+import { eraseShiftedSprite } from "../eraseShiftedSprite.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -34,7 +34,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1452 dispatches -- loc_1452 == oracle in RAM (-stack) and HL/DE/A", () => {
+test("CAPTURE: real 0x1452 dispatches -- eraseShiftedSprite == oracle in RAM (-stack) and HL/DE/A", () => {
   for (const cap of CAPS) {
     // The oracle's setup push (0x1455) + per-row save residue sits just below the ENTRY SP; exclude
     // relative to that SP. The module drops the save/restore entirely.
@@ -43,7 +43,7 @@ test("CAPTURE: real 0x1452 dispatches -- loc_1452 == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1452(c);
+    oracle(o); eraseShiftedSprite(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
     assert.equal(c.regs.de, o.regs.de, "DE live-out matches the oracle");
@@ -69,7 +69,7 @@ test("CRAFTED: shifted source bits cleared from two columns; HL +0x20*B, DE +B",
   for (const { hl, de, b } of cases) {
     const o = new Machine(ROM); seed(o, hl, de, b);
     const c = new Machine(ROM); seed(c, hl, de, b);
-    oracle(o); loc_1452(c);
+    oracle(o); eraseShiftedSprite(c);
     const label = `hl=0x${hl.toString(16)} de=0x${de.toString(16)} b=0x${b.toString(16)}`;
     assert.equal(ramDiff(o, c), null, label);
     assert.equal(c.regs.hl, o.regs.hl, `HL live-out ${label}`);
@@ -80,7 +80,7 @@ test("CRAFTED: shifted source bits cleared from two columns; HL +0x20*B, DE +B",
 });
 
 test("TEETH: a module-mutating twin (drops the complement) diverges in the erased screen", () => {
-  // Broken twin of loc_1452 that ANDs the RAW shifted byte instead of its complement -- so it fails
+  // Broken twin of eraseShiftedSprite that ANDs the RAW shifted byte instead of its complement -- so it fails
   // to clear the sprite's bits. Mutates the real logic, not a post-hoc overwrite.
   function loc_1452_broken(m, de = m.regs.de, b = m.regs.b) {
     const rows = b || 256;

@@ -3,7 +3,7 @@ import { u16 } from "../../../core/int.js";
 
 // Fetch a 4-byte record through the BC cursor: the 0xff terminator leaves carry set with BC parked;
 // otherwise unpack the two little-endian words into HL and DE, step BC past all four, and clear carry.
-export function loc_1856(m, bc = m.regs.bc) {
+export function fetchNextDrawRecord(m, bc = m.regs.bc) {
   const first = m.mem8[bc];
   if (first === 0xff) {
     return [(m.regs.a = first), (m.regs.fC = true)];

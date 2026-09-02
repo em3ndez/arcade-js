@@ -50,7 +50,7 @@ test("CAPTURE: real 0x021e dispatches -- drawOrSaveShields == oracle in RAM (-st
 });
 
 // Seat a fresh Machine: a distinct pattern across work + video RAM, a real caller return on the stack,
-// the mode flag in A and the source/dest base in DE (as loc_021b/loc_0214 seed it).
+// the mode flag in A and the source/dest base in DE (as saveOrRestorePlayer1Shields/saveOrRestorePlayer2Shields seed it).
 function seat(m, { a, de }) {
   for (let addr = 0x2000; addr < 0x4000; addr++) m.mem.write8(addr, addr & 0xff);
   m.regs.sp = 0x2400; m.push16(CALLER_RET); m.io.setInte(false);

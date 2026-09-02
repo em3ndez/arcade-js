@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_156f (Y-scale) -- read the object Y cell, count the 0x10 steps to lift it to
+// Memory-equivalence for scaleYToBlock (Y-scale) -- read the object Y cell, count the 0x10 steps to lift it to
 // the threshold in H (dissolved into countStepsToThreshold), then leave the leftover (stepped-0x10) in H/A.
 // No RAM write, so the contract is the (H, C) live-out the callers read back: H folds into the SHLD word,
 // and loc_0563 reads C (the step count countStepsToThreshold leaves) straight into A.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_156f as oracle } from "../../translated/loc_156f.js";
-import { loc_156f } from "../loc_156f.js";
+import { scaleYToBlock } from "../scaleYToBlock.js";
 import { countStepsToThreshold } from "../countStepsToThreshold.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -42,7 +42,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x156f dispatches -- loc_156f == oracle in RAM (-stack) and H/C/A", () => {
+test("CAPTURE: real 0x156f dispatches -- scaleYToBlock == oracle in RAM (-stack) and H/C/A", () => {
   for (const cap of CAPS) {
     // The oracle's `call 0x1554` pushes a return word just below the ENTRY SP; the module never touches
     // the stack, so exclude relative to that SP, not the fixed window.
@@ -51,7 +51,7 @@ test("CAPTURE: real 0x156f dispatches -- loc_156f == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_156f(c);
+    oracle(o); scaleYToBlock(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.h, o.regs.h, "H live-out matches the oracle");
     assert.equal(c.regs.c, o.regs.c, "C (step count) live-out matches the oracle");
@@ -72,7 +72,7 @@ test("CRAFTED: H holds stepped-0x10 and C the step count, across cnc-skip / cnc-
     // Seed entry carry on both sides: the SBI 0x10 relies on countStepsToThreshold clearing carry first.
     const o = new Machine(ROM); o.regs.h = thresh; o.regs.sp = 0x2400; o.regs.fC = true; o.mem.write8(loc_200a, val);
     const c = new Machine(ROM); c.regs.h = thresh; c.regs.sp = 0x2400; c.regs.fC = true; c.mem.write8(loc_200a, val);
-    oracle(o); loc_156f(c);
+    oracle(o); scaleYToBlock(c);
     const { residual, count } = scale(val, thresh);
     const tag = `val=0x${val.toString(16)} thresh=0x${thresh.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);

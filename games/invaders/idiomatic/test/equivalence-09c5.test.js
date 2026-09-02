@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_09c5 -- map a nibble in A to its hex-glyph id (A + 0x1a) then plot that glyph
+// Memory-equivalence for drawDigit -- map a nibble in A to its hex-glyph id (A + 0x1a) then plot that glyph
 // (dissolved into drawSprite8x8). Inputs A (nibble), HL (destination). Live-out: the blitted cells (RAM)
 // AND HL (advanced by 0x20*8). A is left stale (callers restore or overwrite it), so it is not compared.
 // The oracle push/pops HL through the stack scratch below the entry SP; the module drops the save/restore,
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_09c5 as oracle } from "../../translated/loc_09c5.js";
-import { loc_09c5 } from "../loc_09c5.js";
+import { drawDigit } from "../drawDigit.js";
 import { drawSprite8x8 } from "../drawSprite8x8.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -37,14 +37,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x09c5 dispatches -- loc_09c5 == oracle in RAM (-stack) and HL", () => {
+test("CAPTURE: real 0x09c5 dispatches -- drawDigit == oracle in RAM (-stack) and HL", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp; // the delegate's push-h residue sits just below the entry SP
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_09c5(c);
+    oracle(o); drawDigit(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -61,7 +61,7 @@ test("CRAFTED: nibble A plots glyph (A+0x1a); HL advances by 0x100", () => {
   for (const { a, hl } of cases) {
     const o = new Machine(ROM); o.regs.sp = 0x2400; o.regs.a = a; o.regs.hl = hl;
     const c = new Machine(ROM); c.regs.sp = 0x2400; c.regs.a = a; c.regs.hl = hl;
-    oracle(o); loc_09c5(c);
+    oracle(o); drawDigit(c);
     const tag = `A=0x${a.toString(16)} HL=0x${hl.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, o.regs.hl, `HL matches oracle: ${tag}`);

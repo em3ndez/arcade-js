@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_08f3 -- the sprite-list driver: for C ids starting at DE, blit each down the
+// Memory-equivalence for drawSpriteList -- the sprite-list driver: for C ids starting at DE, blit each down the
 // screen from HL (dissolved into drawSprite8x8), advancing the id pointer per sprite until C hits zero.
 // Live-out: the blitted cells (RAM), HL (advanced 0x100 per sprite), DE (= entry DE + entry C), C (= 0).
 // A/B the delegate leaves stale are DEAD -- every caller overwrites them before a read -- so they are not
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_08f3 as oracle } from "../../translated/loc_08f3.js";
-import { loc_08f3 } from "../loc_08f3.js";
+import { drawSpriteList } from "../drawSpriteList.js";
 import { drawSprite8x8 } from "../drawSprite8x8.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -38,14 +38,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x08f3 dispatches -- loc_08f3 == oracle in RAM (-stack), HL, DE and C", () => {
+test("CAPTURE: real 0x08f3 dispatches -- drawSpriteList == oracle in RAM (-stack), HL, DE and C", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp; // the oracle's push d + delegate push residue sits just below the entry SP
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_08f3(c);
+    oracle(o); drawSpriteList(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
     assert.equal(c.regs.de, o.regs.de, "DE walked to the end matches the oracle");
@@ -65,7 +65,7 @@ test("CRAFTED: 3 ids blitted down the screen; HL += 0x300, DE += 3, C := 0", () 
   const CASE = { hl: 0x2500, de: 0x2100, c: 3, ids: [0x01, 0x08, 0x10] };
   const o = new Machine(ROM); seat(o, CASE);
   const c = new Machine(ROM); seat(c, CASE);
-  oracle(o); loc_08f3(c);
+  oracle(o); drawSpriteList(c);
 
   assert.equal(ramDiff(o, c), null, "oracle and module leave identical RAM (-stack)");
   assert.equal(c.regs.hl, u16(CASE.hl + 0x100 * CASE.c), "HL advanced 0x100 per sprite");

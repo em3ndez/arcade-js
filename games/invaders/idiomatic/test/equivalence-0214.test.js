@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0214 -- seat the player-2 shield source/dest base, then delegate to
+// Memory-equivalence for saveOrRestorePlayer2Shields -- seat the player-2 shield source/dest base, then delegate to
 // drawOrSaveShields (the 0x021e tail dissolved): store the caller's mode flag A, then run four 22x2
 // blocks -- capture the screen region when the flag is set, else OR the source bitmap in. A is a live-in
 // (the callers seat A=1 for capture / A=0 for blit); live-out is MEMORY only. The oracle push/pops around
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0214 as oracle } from "../../translated/loc_0214.js";
-import { loc_0214 } from "../loc_0214.js";
+import { saveOrRestorePlayer2Shields } from "../saveOrRestorePlayer2Shields.js";
 import { drawOrSaveShields } from "../drawOrSaveShields.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -37,7 +37,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0214 dispatches -- loc_0214 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0214 dispatches -- saveOrRestorePlayer2Shields == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     // The oracle push/pops psw+bc+a return slot around its two dispatches, below the ENTRY SP.
     const sp = cap.regs.sp;
@@ -45,7 +45,7 @@ test("CAPTURE: real 0x0214 dispatches -- loc_0214 == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0214(c);
+    oracle(o); saveOrRestorePlayer2Shields(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -62,7 +62,7 @@ function seat(m, a) {
 test("CRAFTED: blit path (A=0) -- module leaves the same RAM as the oracle", () => {
   const o = new Machine(ROM); seat(o, 0x00);
   const c = new Machine(ROM); seat(c, 0x00);
-  oracle(o); loc_0214(c);
+  oracle(o); saveOrRestorePlayer2Shields(c);
   assert.equal(ramDiff(o, c), null, "blit path RAM matches");
   assert.equal(c.mem.read8(SHIELD_SAVE_RESTORE_MODE), 0x00, "mode flag stored");
 });
@@ -70,7 +70,7 @@ test("CRAFTED: blit path (A=0) -- module leaves the same RAM as the oracle", () 
 test("CRAFTED: capture path (A!=0) -- module leaves the same RAM as the oracle", () => {
   const o = new Machine(ROM); seat(o, 0x01);
   const c = new Machine(ROM); seat(c, 0x01);
-  oracle(o); loc_0214(c);
+  oracle(o); saveOrRestorePlayer2Shields(c);
   assert.equal(ramDiff(o, c), null, "capture path RAM matches");
   assert.equal(c.mem.read8(SHIELD_SAVE_RESTORE_MODE), 0x01, "mode flag stored");
 });

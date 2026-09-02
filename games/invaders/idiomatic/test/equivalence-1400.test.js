@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1400 (ROM 0x1400) -- seat the blit (0x1474 DISSOLVED into
+// Memory-equivalence for orBlitShiftedSprite (ROM 0x1400) -- seat the blit (0x1474 DISSOLVED into
 // seatBlitPosition), then over B rows push one source byte through the MB14241 shifter (OUT 0x04 / IN
 // 0x03) and OR-merge its two overlapping halves into [HL] and [HL+1], stepping HL by 0x20 (one screen
 // row) and DE by 1 each pass. Inputs DE (source), B (row count; 0 => 256), HL/L (fold + shift offset).
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1400 as oracle } from "../../translated/loc_1400.js";
-import { loc_1400 } from "../loc_1400.js";
+import { orBlitShiftedSprite } from "../orBlitShiftedSprite.js";
 import { seatBlitPosition } from "../seatBlitPosition.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -45,7 +45,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1400 dispatches -- loc_1400 == oracle in RAM (-stack), HL, DE", () => {
+test("CAPTURE: real 0x1400 dispatches -- orBlitShiftedSprite == oracle in RAM (-stack), HL, DE", () => {
   for (const cap of CAPS) {
     // The oracle's per-row `push b`/`push h` residue (and the internal 0x1474 call) sits just below the
     // ENTRY SP; exclude relative to that SP. The module drops the save/restore.
@@ -54,7 +54,7 @@ test("CAPTURE: real 0x1400 dispatches -- loc_1400 == oracle in RAM (-stack), HL,
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1400(c);
+    oracle(o); orBlitShiftedSprite(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
     assert.equal(c.regs.de, o.regs.de, "DE live-out matches the oracle");
@@ -82,7 +82,7 @@ test("CRAFTED: the shifted column OR-blits across two columns; HL and DE advance
     };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
-    oracle(o); loc_1400(c);
+    oracle(o); orBlitShiftedSprite(c);
     const tag = `rows=0x${rows.toString(16)} hl=0x${hl.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, o.regs.hl, `HL matches oracle: ${tag}`);
@@ -95,7 +95,7 @@ test("CRAFTED: the shifted column OR-blits across two columns; HL and DE advance
 });
 
 test("TEETH: a module-mutating twin (overwrite instead of OR) diverges in RAM", () => {
-  // Broken twin of loc_1400: STORES the shifted byte instead of OR-ing it into the dest --
+  // Broken twin of orBlitShiftedSprite: STORES the shifted byte instead of OR-ing it into the dest --
   // dropping the merge that is the whole point. With source 0x00 (shift result 0) and dest 0xff, OR
   // leaves 0xff while overwrite writes 0x00.
   function orBlitShiftedColumn_broken(m, de = m.regs.de, b = m.regs.b) {

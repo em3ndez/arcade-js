@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { clearScreenStrip } from "./clearScreenStrip.js";
-import { loc_20ce, loc_391c } from "./names.js";
+import { TWO_PLAYER_GAME, loc_391c } from "./names.js";
 
 // Blank a fixed screen strip, unless the mode-guard cell is already set.
-export function loc_08e4(m) {
-  if (m.mem8[loc_20ce] !== 0) return;
+export function blankScreenStrip(m) {
+  if (m.mem8[TWO_PLAYER_GAME] !== 0) return;
   return clearScreenStrip(m, 0x20, loc_391c);
 }

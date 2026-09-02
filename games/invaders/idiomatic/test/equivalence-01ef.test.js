@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_01ef -- seat the player-1 shield buffer base, then delegate to
+// Memory-equivalence for initPlayer1ShieldBuffers -- seat the player-1 shield buffer base, then delegate to
 // initShieldBuffers (the 0x01f8 tail dissolved): replicate the 0x2c-byte template into four consecutive
 // slots. Live-in: none (the base is seated internally). Live-out: the four filled slots (RAM) AND HL,
 // which lands 4*0x2c past the base. The oracle push/pops its block-copy below the entry SP, so the diff
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_01ef as oracle } from "../../translated/loc_01ef.js";
-import { loc_01ef } from "../loc_01ef.js";
+import { initPlayer1ShieldBuffers } from "../initPlayer1ShieldBuffers.js";
 import { initShieldBuffers } from "../initShieldBuffers.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -37,7 +37,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x01ef dispatches -- loc_01ef == oracle in RAM (-stack) and HL", () => {
+test("CAPTURE: real 0x01ef dispatches -- initPlayer1ShieldBuffers == oracle in RAM (-stack) and HL", () => {
   for (const cap of CAPS) {
     // The oracle pushes DE + a return slot each pass, just below the ENTRY SP; exclude relative to it.
     const sp = cap.regs.sp;
@@ -45,7 +45,7 @@ test("CAPTURE: real 0x01ef dispatches -- loc_01ef == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_01ef(c);
+    oracle(o); initPlayer1ShieldBuffers(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -56,7 +56,7 @@ test("CRAFTED: four copies of the template from the player-1 base, HL past the f
   for (const hl of [0x0000, 0x2400, 0x1111]) { // incoming HL is ignored -- the base is seated internally
     const o = new Machine(ROM); o.regs.hl = hl; o.regs.sp = 0x2400;
     const c = new Machine(ROM); c.regs.hl = hl; c.regs.sp = 0x2400;
-    oracle(o); loc_01ef(c);
+    oracle(o); initPlayer1ShieldBuffers(c);
     const tag = `HL_in=0x${hl.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, endHl(BASE), `HL advanced 4*0x2c: ${tag}`);

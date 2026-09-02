@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1545 -- set PLAYER_SHOT_STATUS to 0x04, then fall through into
+// Memory-equivalence for retirePrize -- set PLAYER_SHOT_STATUS to 0x04, then fall through into
 // deactivatePrize (the dissolved 0x154a tail): clear PRIZE_ACTIVE and mask bit 3 off
 // SOUND_PORT3_SHADOW (mirrored to sound port 3). Live-out: memory (the three cells) + A = masked result.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1545.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1545 as oracle } from "../../translated/loc_1545.js";
-import { loc_1545 } from "../loc_1545.js";
+import { retirePrize } from "../retirePrize.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, PLAYER_SHOT_STATUS, PRIZE_ACTIVE, SOUND_PORT3_SHADOW } from "../names.js";
@@ -32,11 +32,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1545 dispatches -- loc_1545 == oracle in RAM (-stack) and A", () => {
+test("CAPTURE: real 0x1545 dispatches -- retirePrize == oracle in RAM (-stack) and A", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1545(c);
+    oracle(o); retirePrize(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
   }
@@ -53,7 +53,7 @@ test("CRAFTED: 0x2025 := 0x04, PRIZE_ACTIVE cleared, SOUND_PORT3_SHADOW &= 0xf7,
     };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
-    oracle(o); const ret = loc_1545(c);
+    oracle(o); const ret = retirePrize(c);
     const tag = `shadow=0x${shadow.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.mem.read8(PLAYER_SHOT_STATUS), 0x04, `shot status := 0x04: ${tag}`);
@@ -66,7 +66,7 @@ test("CRAFTED: 0x2025 := 0x04, PRIZE_ACTIVE cleared, SOUND_PORT3_SHADOW &= 0xf7,
 });
 
 test("TEETH: a module-mutating twin (writes the wrong status code) diverges at PLAYER_SHOT_STATUS", () => {
-  // Broken twin of loc_1545 that stamps 0x02 instead of 0x04 into the shot-status cell, then
+  // Broken twin of retirePrize that stamps 0x02 instead of 0x04 into the shot-status cell, then
   // deactivates the prize. Mutates the real logic, not a post-hoc overwrite.
   function loc_1545_broken(m) {
     m.mem8[PLAYER_SHOT_STATUS] = 0x02; // BUG: wrong status code

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_01e4 (ROM 0x01e4) -- force the byte count to 0xc0 then fall through into the
+// Memory-equivalence for seedWorkRamImage (ROM 0x01e4) -- force the byte count to 0xc0 then fall through into the
 // boot-init entry (0x01e6/initWorkRam -> block-copy 0x1a32): copy 0xc0 bytes from the ROM template image
 // WORKRAM_INIT_IMAGE into the work-RAM base ALIEN_DRAW_PENDING. The `mvi b,0xc0` seat + the loc_01e6/0x1a32
 // chain are DISSOLVED into a direct blockCopy(m, WORKRAM_INIT_IMAGE, ALIEN_DRAW_PENDING, 0xc0) -- initWorkRam
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_01e4 as oracle } from "../../translated/loc_01e4.js";
-import { loc_01e4 } from "../loc_01e4.js";
+import { seedWorkRamImage } from "../seedWorkRamImage.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, WORKRAM_INIT_IMAGE, ALIEN_DRAW_PENDING } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x01e4 dispatches -- loc_01e4 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x01e4 dispatches -- seedWorkRamImage == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_01e4(c);
+    oracle(o); seedWorkRamImage(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -53,7 +53,7 @@ test("CRAFTED: exactly 0xc0 bytes copied (ROM template)->(work-RAM base), incomi
   for (const b of [0x00, 0x05, 0xc0, 0xff]) {
     const o = new Machine(ROM); o.regs.b = b; o.regs.sp = 0x2400;
     const c = new Machine(ROM); c.regs.b = b; c.regs.sp = 0x2400;
-    oracle(o); loc_01e4(c);
+    oracle(o); seedWorkRamImage(c);
     assert.equal(ramDiff(o, c), null, `incoming B=0x${b.toString(16)}`);
     for (const i of [0, 1, COUNT - 1]) {
       assert.equal(c.mem.read8(ALIEN_DRAW_PENDING + i), c.mem.read8(WORKRAM_INIT_IMAGE + i),

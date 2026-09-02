@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_19fa (ROM 0x19fa-0x1a05) -- blank 16-row screen strips from HL, advancing
+// Memory-equivalence for clearScreenRegion (ROM 0x19fa-0x1a05) -- blank 16-row screen strips from HL, advancing
 // one strip (HL += 0x200) per pass, until the strip base's high byte reaches 0x35. The inner
 // m.call(0x14cb) is DISSOLVED into a direct clearScreenStrip(m, 0x10, cur). Input HL (the first strip
 // base; its high byte must be odd and below 0x35 so the +2-per-pass walk lands on 0x35). Live-out: the
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_19fa as oracle } from "../../translated/loc_19fa.js";
-import { loc_19fa } from "../loc_19fa.js";
+import { clearScreenRegion } from "../clearScreenRegion.js";
 import { clearScreenStrip } from "../clearScreenStrip.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -41,7 +41,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x19fa dispatches -- loc_19fa == oracle in RAM (-stack) and HL/A/B", () => {
+test("CAPTURE: real 0x19fa dispatches -- clearScreenRegion == oracle in RAM (-stack) and HL/A/B", () => {
   for (const cap of CAPS) {
     // The oracle's per-call `push 0x19ff` + loc_14cc's `push b` residue sits just below the ENTRY SP;
     // exclude relative to that SP. The module drops the machine stack entirely.
@@ -50,7 +50,7 @@ test("CAPTURE: real 0x19fa dispatches -- loc_19fa == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_19fa(c);
+    oracle(o); clearScreenRegion(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
@@ -66,7 +66,7 @@ test("CRAFTED: strips clear to 0 up to the terminator row; HL/A/B match; neighbo
     const c = new Machine(ROM); c.io.setInte(false); c.regs.sp = 0x2400; c.regs.hl = hl; c.regs.b = 0x77;
     // Poison the region so a wrong fill count / stride shows up, and a sentinel just before the base.
     for (let a = (hl - 1) & 0xffff; a <= 0x35ff; a++) { o.mem.write8(a, 0xaa); c.mem.write8(a, 0xaa); }
-    oracle(o); loc_19fa(c);
+    oracle(o); clearScreenRegion(c);
     const tag = `HL=0x${hl.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, endHl(hl), `HL advanced: ${tag}`);

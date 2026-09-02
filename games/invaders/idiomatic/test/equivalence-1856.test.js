@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1856 -- fetch a 4-byte record through the BC cursor. The 0xff terminator
+// Memory-equivalence for fetchNextDrawRecord -- fetch a 4-byte record through the BC cursor. The 0xff terminator
 // leaves A=0xff, carry SET and BC/HL/DE parked; otherwise HL = word at (BC), DE = word at (BC+2),
 // BC advances +4, A = the last byte, carry CLEAR. Writes NO memory, so RAM is a vacuous contract; the
 // live-out is REGISTERS (HL/DE/BC/A, consumed by the draw loops in loc_183a/loc_1815/loc_0b89) plus
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1856 as oracle } from "../../translated/loc_1856.js";
-import { loc_1856 } from "../loc_1856.js";
+import { fetchNextDrawRecord } from "../fetchNextDrawRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -43,10 +43,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1856 dispatches -- loc_1856 == oracle in RAM + live-out registers + carry", () => {
+test("CAPTURE: real 0x1856 dispatches -- fetchNextDrawRecord == oracle in RAM + live-out registers + carry", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_1856(c);
+    oracle(o); fetchNextDrawRecord(c);
     assert.equal(ramDiff(o, c), null);    // neither side touches RAM
     assert.equal(regOutDiff(o, c), null); // the real contract: HL/DE/BC/A + carry
   }
@@ -73,7 +73,7 @@ test("CRAFTED: normal record unpacks into HL/DE, advances BC +4, A=last, carry c
     o.regs.de = c.regs.de = 0xbeef;
     o.regs.bc = c.regs.bc = AT;
     o.regs.sp = c.regs.sp = 0x2400; // the oracle's ret reads [sp]; keep it mapped
-    oracle(o); loc_1856(c);
+    oracle(o); fetchNextDrawRecord(c);
     const tag = `bytes=${bytes}`;
     assert.equal(regOutDiff(o, c), null, tag);
     const [l, h, e, d] = bytes;
@@ -93,7 +93,7 @@ test("CRAFTED: 0xff terminator sets A=0xff, carry set, BC/HL/DE parked", () => {
   o.regs.de = c.regs.de = 0xbeef;
   o.regs.bc = c.regs.bc = AT;
   o.regs.sp = c.regs.sp = 0x2400;
-  oracle(o); loc_1856(c);
+  oracle(o); fetchNextDrawRecord(c);
   assert.equal(regOutDiff(o, c), null);
   assert.equal(c.regs.a, 0xff, "A = terminator byte");
   assert.equal(c.regs.fC, true, "carry set on terminator");

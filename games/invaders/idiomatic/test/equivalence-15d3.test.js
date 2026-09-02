@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_15d3 -- seat the blit position (dissolved into seatBlitPosition), then for each
+// Memory-equivalence for blitShiftedSprite -- seat the blit position (dissolved into seatBlitPosition), then for each
 // of B source rows pre-shift the source byte through the MB14241 (OUT 4 / IN 3) into two dest bytes one
 // screen-stride apart, stepping the dest 0x20 per row. Live-out: the shifted dest RAM PLUS HL (restored to
 // the seated address), DE (advanced one byte per row) and B (0 at exit); C is preserved. The oracle's inner
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_15d3 as oracle } from "../../translated/loc_15d3.js";
-import { loc_15d3 } from "../loc_15d3.js";
+import { blitShiftedSprite } from "../blitShiftedSprite.js";
 import { seatBlitPosition } from "../seatBlitPosition.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -50,7 +50,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x15d3 dispatches -- loc_15d3 == oracle in RAM (-stack), HL, DE and B", () => {
+test("CAPTURE: real 0x15d3 dispatches -- blitShiftedSprite == oracle in RAM (-stack), HL, DE and B", () => {
   for (const cap of CAPS) {
     // The oracle's inner `push b`/`push h` residue sits just below the ENTRY SP (not the STACK_SCRATCH
     // window in a real dispatch); exclude relative to that SP. The module keeps the stack untouched.
@@ -59,7 +59,7 @@ test("CAPTURE: real 0x15d3 dispatches -- loc_15d3 == oracle in RAM (-stack), HL,
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_15d3(c);
+    oracle(o); blitShiftedSprite(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL restored to the seated address like the oracle");
     assert.equal(c.regs.de, o.regs.de, "DE advanced like the oracle");
@@ -83,7 +83,7 @@ test("CRAFTED: each row is shift-decoded into two dest bytes; HL restored, DE +=
   const offset = CASE.hl & 0x07;          // 3
   const o = new Machine(ROM); seat(o, CASE);
   const c = new Machine(ROM); seat(c, CASE);
-  oracle(o); loc_15d3(c);
+  oracle(o); blitShiftedSprite(c);
 
   assert.equal(ramDiff(o, c), null, "oracle and module leave identical RAM (-stack)");
   const rows = expectRows(offset, CASE.src);

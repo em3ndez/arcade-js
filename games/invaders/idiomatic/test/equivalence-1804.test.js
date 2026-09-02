@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1804 -- gate the saucer sound on the 0x2084/0x2085 flag pair. When 0x2084
+// Memory-equivalence for updateSaucerSound -- gate the saucer sound on the 0x2084/0x2085 flag pair. When 0x2084
 // is clear it silences the saucer (0x0707 -> loc_19dc, mask 0xfe); else if 0x2085 is nonzero it returns
 // untouched; else it arms the sound with request bit 0 (0x18fa/startSound, OR bit 0). Both tail m.calls
 // are DISSOLVED into direct idiomatic calls (stopSaucerSound / startSound). The caller (0x084e) discards
-// every register loc_1804 leaves, so the contract is RAM only -- the SOUND_PORT3_SHADOW cell (0x2094) and
+// every register updateSaucerSound leaves, so the contract is RAM only -- the SOUND_PORT3_SHADOW cell (0x2094) and
 // its mirror. RAM diff excludes the dead stack scratch (the oracle's dissolved callees only ret, no push).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1804.test.js
 
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1804 as oracle } from "../../translated/loc_1804.js";
-import { loc_1804 } from "../loc_1804.js";
+import { updateSaucerSound } from "../updateSaucerSound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SOUND_PORT3_SHADOW } from "../names.js";
@@ -37,11 +37,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1804 dispatches -- loc_1804 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x1804 dispatches -- updateSaucerSound == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1804(c);
+    oracle(o); updateSaucerSound(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -58,7 +58,7 @@ function seedGate(m, f0, f1, shadow) {
 test("CRAFTED: flag0 clear -> saucer silenced (shadow &= 0xfe)", () => {
   const o = new Machine(ROM); const c = new Machine(ROM);
   seedGate(o, 0x00, 0x00, 0x01); seedGate(c, 0x00, 0x00, 0x01);
-  oracle(o); loc_1804(c);
+  oracle(o); updateSaucerSound(c);
   assert.equal(ramDiff(o, c), null);
   assert.equal(c.mem.read8(SOUND_PORT3_SHADOW), 0x00, "saucer bit cleared");
 });
@@ -66,7 +66,7 @@ test("CRAFTED: flag0 clear -> saucer silenced (shadow &= 0xfe)", () => {
 test("CRAFTED: flag0 set, flag1 nonzero -> untouched (no RAM change)", () => {
   const o = new Machine(ROM); const c = new Machine(ROM);
   seedGate(o, 0x01, 0x01, 0xa5); seedGate(c, 0x01, 0x01, 0xa5);
-  oracle(o); loc_1804(c);
+  oracle(o); updateSaucerSound(c);
   assert.equal(ramDiff(o, c), null);
   assert.equal(c.mem.read8(SOUND_PORT3_SHADOW), 0xa5, "shadow left as-is");
 });
@@ -74,13 +74,13 @@ test("CRAFTED: flag0 set, flag1 nonzero -> untouched (no RAM change)", () => {
 test("CRAFTED: flag0 set, flag1 clear -> sound armed (shadow |= 0x01)", () => {
   const o = new Machine(ROM); const c = new Machine(ROM);
   seedGate(o, 0x01, 0x00, 0x00); seedGate(c, 0x01, 0x00, 0x00);
-  oracle(o); loc_1804(c);
+  oracle(o); updateSaucerSound(c);
   assert.equal(ramDiff(o, c), null);
   assert.equal(c.mem.read8(SOUND_PORT3_SHADOW), 0x01, "sound bit 0 set");
 });
 
 test("TEETH: a broken twin (arms the wrong bit) diverges in RAM", () => {
-  // Broken twin of loc_1804: arms bit 1 instead of bit 0 on the startSound path.
+  // Broken twin of updateSaucerSound: arms bit 1 instead of bit 0 on the startSound path.
   function loc_1804_broken(m) {
     if (m.mem8[FLAG0] === 0) { const v = m.mem8[SOUND_PORT3_SHADOW] & 0xfe; m.mem8[SOUND_PORT3_SHADOW] = v; m.io.portOut(0x03, v); return; }
     if (m.mem8[FLAG1] !== 0) return;

@@ -2,7 +2,7 @@
 // Memory-equivalence for drawSpriteColumn16 -- preserve BC, force a 0x10 row count, and delegate a sprite-column
 // draw (dissolved into drawSpriteColumn). Live-out: the drawn column RAM PLUS the advanced HL; BC is
 // left untouched. DE/A/flags the delegate leaves stale are DEAD -- the script walker re-derives them via
-// loc_1856 before any read -- so only RAM (minus STACK_SCRATCH), HL, and the preserved BC are asserted.
+// fetchNextDrawRecord before any read -- so only RAM (minus STACK_SCRATCH), HL, and the preserved BC are asserted.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1844.test.js
 
 import nodeTest from "node:test";

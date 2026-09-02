@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1424 (ROM 0x1424) -- seat the blit (0x1474 DISSOLVED into
+// Memory-equivalence for clearSpriteColumn (ROM 0x1424) -- seat the blit (0x1474 DISSOLVED into
 // seatBlitPosition), then over B rows zero the two adjacent screen bytes [HL],[HL+1] and step HL by
 // 0x20 (one screen row) each pass. Inputs B (row count; 0 => 256), HL/L (fold + shift offset). Live-out:
 // the zeroed cells (RAM) plus HL (column end). Each side runs on a fresh clone; the contract is RAM
-// (dumpState, minus the transient push/pop stack scratch) plus HL. loc_1424 does not run in the 1500-
+// (dumpState, minus the transient push/pop stack scratch) plus HL. clearSpriteColumn does not run in the 1500-
 // frame attract window (prize-despawn only), so CRAFTED + TEETH carry the load if CAPTURE sees none.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1424.test.js
 
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1424 as oracle } from "../../translated/loc_1424.js";
-import { loc_1424 } from "../loc_1424.js";
+import { clearSpriteColumn } from "../clearSpriteColumn.js";
 import { seatBlitPosition } from "../seatBlitPosition.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -44,7 +44,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1424 dispatches -- loc_1424 == oracle in RAM (-stack) and HL", () => {
+test("CAPTURE: real 0x1424 dispatches -- clearSpriteColumn == oracle in RAM (-stack) and HL", () => {
   for (const cap of CAPS) {
     // The oracle's per-row `push b`/`push h` residue (and the internal 0x1474 call) sits just below the
     // ENTRY SP; exclude relative to that SP. The module drops the save/restore.
@@ -53,7 +53,7 @@ test("CAPTURE: real 0x1424 dispatches -- loc_1424 == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1424(c);
+    oracle(o); clearSpriteColumn(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -79,7 +79,7 @@ test("CRAFTED: two adjacent columns zero over B rows; HL advances by 0x20 per ro
     };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
-    oracle(o); loc_1424(c);
+    oracle(o); clearSpriteColumn(c);
     const tag = `rows=0x${rows.toString(16)} hl=0x${hl.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.hl, o.regs.hl, `HL matches oracle: ${tag}`);
@@ -96,7 +96,7 @@ test("CRAFTED: two adjacent columns zero over B rows; HL advances by 0x20 per ro
 });
 
 test("TEETH: a module-mutating twin (clears only one of the two columns) diverges in RAM", () => {
-  // Broken twin of loc_1424: zeros only [HL], skipping [HL+1] -- the second column stays dirty.
+  // Broken twin of clearSpriteColumn: zeros only [HL], skipping [HL+1] -- the second column stays dirty.
   function clearSpriteColumn_broken(m, b = m.regs.b) {
     let dst = seatBlitPosition(m);
     const rows = b || 256;

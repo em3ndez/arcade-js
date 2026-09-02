@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_08e4 -- if the mode-guard cell (0x20ce) is nonzero it returns unchanged;
+// Memory-equivalence for blankScreenStrip -- if the mode-guard cell (0x20ce) is nonzero it returns unchanged;
 // otherwise it blanks a fixed 0x20-column screen strip from 0x391c (dissolved into clearScreenStrip ->
 // fillScreenRow). Live-out: the cleared cells (RAM) AND HL (the strip's end pointer, or entry HL when the
 // guard short-circuits). The oracle push/pops BC through the stack scratch below the entry SP; the module
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_08e4 as oracle } from "../../translated/loc_08e4.js";
-import { loc_08e4 } from "../loc_08e4.js";
+import { blankScreenStrip } from "../blankScreenStrip.js";
 import { clearScreenStrip } from "../clearScreenStrip.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -39,14 +39,14 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x08e4 dispatches -- loc_08e4 == oracle in RAM (-stack) and HL", () => {
+test("CAPTURE: real 0x08e4 dispatches -- blankScreenStrip == oracle in RAM (-stack) and HL", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp; // the oracle's per-row `push b` residue sits just below the entry SP
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_08e4(c);
+    oracle(o); blankScreenStrip(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -66,7 +66,7 @@ test("CRAFTED: guard set -> no clear, HL untouched; guard clear -> strip blanked
     const CASE = { guard: 0x05, hl: 0x1234 };
     const o = new Machine(ROM); seat(o, CASE);
     const c = new Machine(ROM); seat(c, CASE);
-    oracle(o); loc_08e4(c);
+    oracle(o); blankScreenStrip(c);
     assert.equal(ramDiff(o, c), null, "guard set: identical RAM (-stack)");
     assert.equal(c.regs.hl, CASE.hl, "guard set: HL is left at entry HL");
     assert.equal(c.regs.hl, o.regs.hl, "guard set: HL matches oracle");
@@ -77,7 +77,7 @@ test("CRAFTED: guard set -> no clear, HL untouched; guard clear -> strip blanked
     const CASE = { guard: 0x00, hl: 0x1234 };
     const o = new Machine(ROM); seat(o, CASE);
     const c = new Machine(ROM); seat(c, CASE);
-    oracle(o); loc_08e4(c);
+    oracle(o); blankScreenStrip(c);
     assert.equal(ramDiff(o, c), null, "guard clear: identical RAM (-stack)");
     assert.equal(c.regs.hl, STRIP_END, "guard clear: HL := strip end pointer");
     assert.equal(c.regs.hl, o.regs.hl, "guard clear: HL matches oracle");

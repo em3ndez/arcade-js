@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Equivalence for loadSpriteDescriptor (ROM 0x1a3b) -- read a 5-byte descriptor at (HL) into DE, A, C, B, then
 // repoint HL at C:A. Writes NO memory, so RAM is a vacuous contract; the live-out is REGISTERS
-// (DE/A/C/B/HL, consumed by loc_1a47/loc_1452/loc_1491). The oracle's ret perturbs SP/PC, so we
+// (DE/A/C/B/HL, consumed by loc_1a47/eraseShiftedSprite/drawSpriteWithCollision). The oracle's ret perturbs SP/PC, so we
 // compare only the data-register outputs, not firstRegDiff (which would false-fail on SP).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1a3b.test.js
 
