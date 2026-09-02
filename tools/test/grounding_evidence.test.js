@@ -4,7 +4,7 @@
 // to CONFIRM a [seen] from hardware (docs/reviewer-rules.md R38 [U]).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseGwtrace, routineWrites, cellWrites, stackWindow } from "../grounding_evidence.mjs";
+import { parseGwtrace, routineWrites, cellWrites, stackWindow, bulkCopyPCs } from "../grounding_evidence.mjs";
 
 // pooyan's real dead-return-stack window (games/pooyan/idiomatic/names.js STACK_SCRATCH). The tool reads
 // this per-game; the tests pin the boundary so a wrong band (e.g. 0x8f00) is caught by mutation.
@@ -84,4 +84,47 @@ test("cellWrites: exactly one watched value change grounds the cell", () => {
   assert.equal(chg[0].pc, 0x6546);
   assert.ok(chg[0].changed && chg[0].v0 === 0x1c && chg[0].vN === 0x1a);
   assert.equal(w[0].changed, true, "the value-changing write sorts first");
+});
+
+// ── Bulk-copy exclusion (the write-side analogue of the ROM-checksum-sweep exclusion). A memcpy PC
+// writes MANY cells with MANY values; a FILL writes many cells with ONE value; a role PC writes a few.
+// Only the memcpy's per-cell write is a copied byte that must not fake a [seen]. This pins the exact
+// escaped defect an R38 confirmer caught by hand: a cell's [code]->[seen] "value spread" that was really
+// a block-copy artifact (loc_1a32 pc 0x1a34 wrote 608 cells).
+const BULK_CSV = [
+  "pc,addr,n,v0,vN,cyc0",
+  // 0x1a34 = an LDIR memcpy: 40 distinct cells with varied bytes -> a bulk-copy PC (writes 0x8210=0x10).
+  ...Array.from({ length: 40 }, (_, i) => `1a34,${(0x8200 + i).toString(16)},1,${(i % 17).toString(16)},${(i % 17).toString(16)},0`),
+  // 0x2500 = a FILL: 40 distinct cells, ONE value (0x01) -> NOT bulk-copy (the fill IS its role).
+  ...Array.from({ length: 40 }, (_, i) => `2500,${(0x8300 + i).toString(16)},1,1,1,0`),
+  // cell 0x8210's SOLE role write is a constant 0x34 (pc 0x1792); the memcpy also wrote it 0x10.
+  "1792,8210,30,34,34,0",
+].join("\n");
+const brows = parseGwtrace(BULK_CSV);
+
+test("bulkCopyPCs flags a memcpy (many cells, many values) but NOT a fill (many cells, one value)", () => {
+  const bulk = bulkCopyPCs(brows);
+  assert.ok(bulk.has(0x1a34), "the 40-cell varied-value memcpy PC is bulk-copy");
+  assert.ok(!bulk.has(0x2500), "the 40-cell single-value FILL is NOT bulk-copy (the fill is its role)");
+  assert.ok(!bulk.has(0x1792), "a role PC writing one cell is not bulk-copy");
+});
+
+test("a cell whose only value-spread comes from a bulk-copy PC is NOT grounded (kills the false [seen])", () => {
+  const bulk = bulkCopyPCs(brows);
+  const w = cellWrites(brows, 0x8210, bulk);
+  const roleVals = new Set();
+  for (const r of w) if (!r.bulk) { roleVals.add(r.v0); roleVals.add(r.vN); }
+  assert.equal(w.filter((r) => r.changed && !r.bulk).length, 0, "no role write changes it");
+  assert.equal(roleVals.size, 1, "excluding the memcpy, only the constant role value 0x34 remains -> NOT groundable");
+  // Mutation guard: WITHOUT the exclusion the memcpy's 0x10 fakes a 2-value spread -> the false [seen].
+  const allVals = new Set();
+  for (const r of cellWrites(brows, 0x8210)) { allVals.add(r.v0); allVals.add(r.vN); }
+  assert.ok(allVals.size > 1, "control: without exclusion the memcpy byte fakes a spread — the bug this fix kills");
+});
+
+test("routineWrites flags a bulk-copy PC's write as NOT role-defining", () => {
+  const bulk = bulkCopyPCs(brows);
+  const w = routineWrites(brows, 0x1a34, 0x1a35, { lo: 0x8fc0, hi: 0x9000 }, bulk); // the memcpy PC's own range
+  assert.ok(w.length > 0 && w.every((r) => r.bulk), "every write from the memcpy PC is flagged bulk-copy");
+  assert.equal(w.filter((r) => !r.stack && !r.bulk).length, 0, "so the routine has NO role-defining own write here");
 });
