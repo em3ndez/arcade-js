@@ -59,10 +59,14 @@ export default {
     },
   },
 
-  // ★ PROVISIONAL. The 8080 has NO NMI -- invaders uses two RST interrupts/frame (RST1 0x08 mid, RST2 0x10
-  // vblank). The single-NMI convergence contract does not map cleanly; the idiomatic-path 2-RST design (§4)
-  // settles what the worker needs here. Left provisional so runtime:"idiomatic" is not yet worker-served.
+  // The 8080 has NO NMI -- two RST interrupts/frame (RST1 0x08 mid, RST2 0x10 vblank); machine.fireNmi is
+  // the ordered pair (§4 clock-free). Attract-validated: the two-RST cycle-free run reconverges to a MAME
+  // state golden with only benign residual. Gameplay may expose more pollPCs -- extend from a longer golden.
   convergence: {
+    pollPCs: [0x0a9e, 0x0ada, 0x0b71, 0x0b83], // ISR-timer busy-waits + pre-round loop tops
+    // Excluded from the state reconverge: the ISR per-frame phase flag 0x2072 (set by RST2, cleared by RST1 --
+    // a sampling-timing artifact of firing the pair together), the vblank frame-delay timer 0x20c0, and the stack.
+    stateExclude: { cells: [0x2072, 0x20c0], stack: [0x23e0, 0x2400] },
     idiomatic: {
       // nmiReturnPC: <fill at §4 -- the main-loop PC the vblank RST2 returns to>
     },

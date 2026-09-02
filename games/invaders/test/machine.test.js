@@ -100,6 +100,24 @@ test("tick: both RSTs fire once/frame when INTE set, mid (0x08) before vblank (0
   assert.equal(m.intCount, 2);
 });
 
+test("fireNmi: the clock-free frame interrupt is the RST pair, mid (0x08) before vblank (0x10), and re-asserts pcKnown so the second accept never throws on a stale PC", () => {
+  const order = [];
+  // A real ISR leaves the PC unknown at its tick/ret exit; model that so fireNmi's pcKnown re-assert is exercised.
+  const handler = (tag) => (mm) => { order.push(tag); mm.io.inte = true; mm.pcKnown = false; };
+  const m = makeMachine(new Map([
+    [INT1_VECTOR, handler("mid")],
+    [INT2_VECTOR, handler("vblank")],
+  ]));
+  m.io.inte = true;
+  m.regs.sp = 0x2400;
+  m.pc = 0x1000;
+  m.pcKnown = true;
+  m.nextInt1 = m.nextInt2 = m.nextBoundary = Infinity; // isolate from tick's frame logic
+  assert.doesNotThrow(() => m.fireNmi()); // without the pre-each-fireInt pcKnown re-assert, the 2nd accept would throw
+  assert.deepEqual(order, ["mid", "vblank"]); // ordered RST1 then RST2
+  assert.equal(m.intCount, 2); // both accepted
+});
+
 test("tick: interrupts are suppressed while INTE is clear (DI)", () => {
   const order = [];
   const m = makeMachine(new Map([

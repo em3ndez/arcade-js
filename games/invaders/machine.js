@@ -145,6 +145,18 @@ export class Machine {
     return this.call(vector);
   }
 
+  /** The clock-free frame interrupt: the shared cycle-free engines fire ONE fireNmi per frame boundary,
+   *  but the 8080 board takes TWO RSTs per frame (RST1 mid-screen then RST2 vblank), so one fireNmi is the
+   *  ordered pair. Each fireInt's own step clears pcKnown, so re-assert it before each. (When the ISR spine
+   *  is lifted, idiomaticNmi will make this fire the vector handlers as direct JS calls; until then the
+   *  translated ISRs run through the real fireInt seam.) */
+  fireNmi() {
+    this.pcKnown = true;
+    this.fireInt(INT1_VECTOR);
+    this.pcKnown = true;
+    this.fireInt(INT2_VECTOR);
+  }
+
   push16(value) {
     const { regs, mem } = this;
     regs.sp = (regs.sp - 2) & 0xffff;
