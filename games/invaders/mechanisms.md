@@ -173,3 +173,6 @@ pair `loc_2009`/`loc_200a`, the saucer sprite pointer `loc_2087` and active flag
 cell `loc_20cf`, the object work buffer `loc_2073`, the disputed despawn cells `loc_2003`/`loc_2064`, and several
 other work-RAM and ROM cells keep `loc_` names pending grounding. These resolve at grounding or when their callers
 lift and their roles become confident from the code.
+
+Additional leaf helper routines — and the work-RAM and ROM cells they touch — are present in the idiomatic
+layer under `loc_<addr>` names, their roles pending a naming pass and so not narrated here until they are named.
