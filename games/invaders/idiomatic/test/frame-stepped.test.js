@@ -25,11 +25,9 @@ const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM 
 test("idiomatic generator spine boots invaders clock-free to the attract demo", async () => {
   const m = await Machine.create(ROM, { overrides: await resolveAllIdiomatic() });
   installEntropyPin(m, manifest.entropyPin);
-  // Transitional: the translated ISR fallback (loc_0010) push16s, so seat SP until loc_0010 is idiomatic.
-  if (manifest.convergence.idiomatic.bootSp != null) m.regs.sp = manifest.convergence.idiomatic.bootSp;
-  // Fire the two RSTs only at each generator yield (via the engine's fireNmi), not mid-foreground.
-  m.nextInt1 = Infinity;
-  m.nextInt2 = Infinity;
+  // The idiomatic ISR bodies (idiomaticVblankNmi/idiomaticMidNmi) are pure JS -- no push16 needs a seated
+  // SP, and no m.step ticks the cycle clock -- so the transitional bootSp seat and the nextInt1/nextInt2
+  // = Infinity guards against a cycle-driven RST re-trigger are both retired (fireNmi fires them directly).
 
   // Fast tripwire: drive 200 clock-free frames (node --test process-isolation makes a full ~760-frame run
   // slow; the demo-advance + full-run convergence live in tools/convergence.mjs --idiomatic --mode state).

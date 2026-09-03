@@ -59,7 +59,8 @@ function renderRun(machine, cfg, args, GC, capture) {
   // gameplay golden (coin/start/play) can be validated — not just an input-free attract boot.
   const drive = (m, f) => { m.applyInputs(f + args.tapeOrigin); m.applyPokes(f + args.tapeOrigin); };
   if (args.idiomatic) {
-    if (cfg.idiomatic?.bootSp != null) machine.regs.sp = cfg.idiomatic.bootSp; // transitional: translated ISR fallback push needs SP until loc_0010 is idiomatic
+    // The idiomatic ISR bodies are pure JS (no push16/m.step), so no seated SP is needed -- the
+    // transitional bootSp seat is retired now that fireNmi fires them directly (games/invaders step 3).
     return runIdiomaticGame(machine, {
       nmiReturnPC: cfg.idiomatic?.nmiReturnPC,
       maxFrames: GC,

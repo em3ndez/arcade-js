@@ -16,6 +16,8 @@ import { SCREEN_W, SCREEN_H, renderFrame } from "../../boards/invaders/video.js"
 import { Regs } from "../../core/cpu/8080.js";
 import { makeIndexedView } from "../../core/mem-views.js";
 import { buildRoutines } from "./routines.js";
+import { idiomaticVblankNmi } from "./idiomatic/idiomaticVblankNmi.js";
+import { idiomaticMidNmi } from "./idiomatic/idiomaticMidNmi.js";
 
 /** 1996800 Hz / 59.541985 Hz. MW8080BW_CPU_CLOCK / MW8080BW_60HZ (mw8080bw.h). */
 export const CYCLES_PER_FRAME = 33536;
@@ -89,6 +91,16 @@ export class Machine {
     // MID-FRAME restart (see below). Per-instance so a clone's throw/catch pair share one identity.
     this.nextMain = null;
     this.RESTART = Symbol("restart-main");
+
+    // Clock-free run: register the direct-JS ISR bodies so fireNmi's guard fires them as plain calls
+    // (mid then vblank) instead of the cycle-driven fireInt pair -- no seated SP, no cycle clock. Present
+    // ONLY when built with the idiomatic override map (Machine.create({overrides: resolveAllIdiomatic()}),
+    // as runIdiomaticGame/convergence/render do); the cycle-driven oracle (runCycleFree) and the unit tests
+    // build with no overrides and keep the translated fireInt path.
+    if (opts.overrides) {
+      this.idiomaticVblankNmi = idiomaticVblankNmi;
+      this.idiomaticMidNmi = idiomaticMidNmi;
+    }
   }
 
   /**

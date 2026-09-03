@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * idiomaticMidNmi -- the mid-screen interrupt body: a direct-JS engine-seam leaf fired before the vblank
+ * body at each generator yield. Memory + IO only, no interrupt stack. It stamps the draw-phase flag to the
+ * mid raster half; ends immediately unless GAME_ACTIVE; then draws only when in-game (GAME_IN_PROGRESS) or
+ * the once-per-N-frame TASK_FLAGS bit0 gate is set, running the object walker over the mid record table and
+ * the mid draw-scan. Both are frozen fallbacks until later steps and, like the vblank in-game tail, are
+ * unreached by the attract boot (which never enters in-game play), covered by the acceptance gates.
+ */
+import {
+  DRAW_PHASE_FLAG, GAME_ACTIVE, GAME_IN_PROGRESS, TASK_FLAGS,
+  OBJECT_TABLE_MID, OBJECT_WALKER, MID_DRAW_SCAN,
+} from "./names.js";
+import { callFrozenLeaf } from "./callFrozenLeaf.js";
+
+export function idiomaticMidNmi(m) {
+  m.mem8[DRAW_PHASE_FLAG] = 0; // mid raster half
+  if (m.mem8[GAME_ACTIVE] === 0) return;
+  // In-game always draws; the attract demo gates on the TASK_FLAGS bit0 rotate-out.
+  if (m.mem8[GAME_IN_PROGRESS] === 0 && (m.mem8[TASK_FLAGS] & 0x01) === 0) return;
+  callFrozenLeaf(m, OBJECT_WALKER, OBJECT_TABLE_MID); // seat HL=OBJECT_TABLE_MID, walk the mid record table
+  callFrozenLeaf(m, MID_DRAW_SCAN);
+}

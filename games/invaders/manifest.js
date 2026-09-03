@@ -68,10 +68,10 @@ export default {
     // a sampling-timing artifact of firing the pair together), the vblank frame-delay timer 0x20c0, and the stack.
     stateExclude: { cells: [0x2072, 0x20c0], stack: [0x23e0, 0x2400] },
     idiomatic: {
-      // Cosmetic return PC for the delay-driven attract; the boot leaves the emulated stack unseated, so
-      // the engine seats bootSp for the interrupt fallback's push (retired once that handler is lifted).
+      // Cosmetic return PC for the delay-driven attract (frame-stepped.js just parks the PC there). The
+      // transitional bootSp seat was retired in §4 step 3: the idiomatic ISR bodies are pure JS (no push16),
+      // so fireNmi fires them directly with no seated stack.
       nmiReturnPC: 0x0ada,
-      bootSp: 0x2400,
     },
   },
 
