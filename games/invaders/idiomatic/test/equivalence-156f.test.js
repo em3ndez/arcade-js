@@ -51,11 +51,12 @@ test("CAPTURE: real 0x156f dispatches -- scaleYToBlock == oracle in RAM (-stack)
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); scaleYToBlock(c);
+    oracle(o); const ret = scaleYToBlock(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.h, o.regs.h, "H live-out matches the oracle");
     assert.equal(c.regs.c, o.regs.c, "C (step count) live-out matches the oracle");
     assert.equal(c.regs.a, o.regs.a, "A residual matches the oracle");
+    assert.equal(ret[2], c.regs.c, "3rd return element (C, step count) equals regs.c");
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
@@ -72,13 +73,14 @@ test("CRAFTED: H holds stepped-0x10 and C the step count, across cnc-skip / cnc-
     // Seed entry carry on both sides: the SBI 0x10 relies on countStepsToThreshold clearing carry first.
     const o = new Machine(ROM); o.regs.h = thresh; o.regs.sp = 0x2400; o.regs.fC = true; o.mem.write8(loc_200a, val);
     const c = new Machine(ROM); c.regs.h = thresh; c.regs.sp = 0x2400; c.regs.fC = true; c.mem.write8(loc_200a, val);
-    oracle(o); scaleYToBlock(c);
+    oracle(o); const ret = scaleYToBlock(c);
     const { residual, count } = scale(val, thresh);
     const tag = `val=0x${val.toString(16)} thresh=0x${thresh.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.regs.h, residual, `H = stepped-0x10: ${tag}`);
     assert.equal(c.regs.c, count, `C = step count: ${tag}`);
     assert.equal(c.regs.a, residual, `A = residual: ${tag}`);
+    assert.equal(ret[2], c.regs.c, `3rd return element (C, step count) equals regs.c: ${tag}`);
     assert.equal(c.regs.h, o.regs.h, `H matches oracle: ${tag}`);
     assert.equal(c.regs.c, o.regs.c, `C matches oracle: ${tag}`);
     assert.equal(c.regs.a, o.regs.a, `A matches oracle: ${tag}`);
