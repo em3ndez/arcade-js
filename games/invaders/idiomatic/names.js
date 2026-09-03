@@ -147,10 +147,10 @@ export const loc_21ff = 0x21ff;               // starting-ships latch (loc_0aea)
 export const COIN_INPUT_LATCH = 0x20ea;       // [code] coin-switch edge latch: armed while IN1 b0 idle, banks one CREDIT_COUNT on the press edge (loc_0010)
 export const CREDIT_SCREEN_SHOWN = 0x2093;    // [code] attract credit-screen-shown latch (0 = not yet shown)
 export const OBJECT_TABLE_MID = 0x2020;       // [code] mid-screen object/timer record-table base (loc_008c passes to the walker; vblank uses GAME_OBJECT_TABLE 0x2010)
+export const OBJECT_DISPATCH_VBLANK = 0x0248; // [code] vblank object-dispatch base-seat (loc_0248); idiomatic module direct-called
+export const OBJECT_WALKER = 0x024b;          // [code] 16-byte object/timer record walker (loc_024b); idiomatic module direct-called
 // Frozen (translated) leaves the direct-JS ISR bodies still dispatch via callFrozenLeaf; each lifted in a later §4 step:
 export const TILT_HANDLER = 0x17cd;           // per-frame tilt/panic check (loc_0010 0x001d call)
-export const OBJECT_DISPATCH_VBLANK = 0x0248; // seat HL=GAME_OBJECT_TABLE then the walker (loc_0072 0x007b call)
-export const OBJECT_WALKER = 0x024b;          // 16-byte object/timer record walker (loc_024b; lifted step 5)
 export const MID_DRAW_SCAN = 0x0141;          // mid-screen draw scan (loc_008c 0x00ab call)
 export const ATTRACT_CREDIT_SCREEN = 0x0765;  // attract credit-inserted screen sub-arm (loc_0010 0x0064 jmp)
 export const ATTRACT_TASK_DISPATCH = 0x0abf;  // attract task-flag dispatch sub-arm (loc_0010 0x0057 call)
@@ -200,6 +200,14 @@ export const loc_2086 = 0x2086;
 export const loc_208a = 0x208a;
 export const loc_208c = 0x208c;
 export const loc_208f = 0x208f;
+// record-0 timer/animation handler cells (loc_028e) + its ROM record template and animation sprite base:
+export const loc_2012 = 0x2012;               // record-0 draw-pending flag, cleared after each redraw
+export const loc_2018 = 0x2018;               // record-0 current animation sprite descriptor (5 bytes)
+export const loc_201a = 0x201a;               // record-0 animation coordinate word (low of the descriptor)
+export const loc_206a = 0x206a;               // record-0 animation cursor countdown
+export const loc_206d = 0x206d;               // record-0 warm-restart suppress flag
+export const loc_1b10 = 0x1b10;               // ROM template restored into record 0 on animation expiry
+export const loc_1c70 = 0x1c70;               // record-0 two-frame animation sprite base
 
 // ── in-game main-loop + round-restart cluster cells (see names-debt.txt) ──────────────────────────
 // Screen (video-RAM) destinations and per-record source tables read by the round-start splash, the
