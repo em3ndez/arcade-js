@@ -198,34 +198,40 @@ export const UNWIRED = {
       "engine-seam helper imported only by the interrupt bodies above (themselves seam-dispatched, not in " +
       "ROUTINES); invokes an as-yet-unlifted routine for its memory/IO effects, restoring the cycle " +
       "bookkeeping. Not a ROUTINES override -- reached only from the interrupt seam.",
-    // OBJECT-TABLE handlers reached by the walker's computed dispatch (loc_024b's pchl). The walker PUSHES
-    // the record pointer for the handler to pop; a correct dispatch nets SP +4 (pop the pointer, then ret
-    // through the tail) with pc on the walker's continuation -- outside the withOmittedRet seam's 0/+2
-    // window. The seam does not throw: it accepts moved 0 and supplies ONE ret, SILENTLY misplacing the
-    // handler (it pops the wrong slot and lands pc on a record byte). So these cannot be ROUTINES overrides
-    // while the walker is still translated. The modules and their equivalence-<addr> gates are correct and
-    // stay; the frozen walker serves each in-game via its dynamic m.call. They become dispatchable when
-    // loc_024b is itself lifted and calls them directly with the record pointer (its DE live-in). The
-    // record-pointer live-in is threaded as `= m.regs.de` where a handler uses it.
+    // OBJECT-TABLE walker + its five handlers. The walker loc_024b (seated by loc_0248 for the vblank base)
+    // is now idiomatic: the interrupt bodies direct-call it, and it selects each record's handler from a
+    // static 5-way map and calls it as a plain JS function -- no pchl, no m.call, no ROUTINES dispatch. So
+    // the walker, the base-seat, and the five handlers all run as JS (dissolved); none is a ROUTINES
+    // override. The record pointer live-in is threaded as `= m.regs.de` where a handler uses it. Their
+    // equivalence-<addr> gates are correct and stay; behavioral validation is the in-game convergence run.
+    "loc_0248.js":
+      "seats the vblank object-table base then direct-calls the walker loc_024b; direct-called by the " +
+      "idiomatic vblank interrupt body (runs as JS, dissolved). Not a ROUTINES override.",
+    "loc_024b.js":
+      "the object-table walker: direct-called by the interrupt bodies (vblank via loc_0248, mid directly), " +
+      "it walks the 16-byte records and direct-calls each record's idiomatic handler from a static 5-way map " +
+      "(runs as JS, dissolved). Not a ROUTINES override -- reached only from the interrupt seam.",
+    "loc_028e.js":
+      "record-0 timer/animation handler, direct-called by the idiomatic loc_024b walker (runs as JS, " +
+      "dissolved); on the active player's death it arms the next main-loop flow as a warm restart " +
+      "(m.nextMain). Not a ROUTINES override.",
     "loc_0476.js":
-      "object-table handler (pchl target): mirrors a control byte, gates on a 16-bit countdown, primes the " +
-      "record strip, steps the alien shot (loc_0563), then restores the strip mid-blowup or blits the " +
-      "template band. Not seam-placeable (the walker's pushed record pointer nets SP +4); dispatched by the " +
-      "frozen walker until loc_024b is idiomatic.",
+      "object-table handler: mirrors a control byte, gates on a 16-bit countdown, primes the record strip, " +
+      "steps the alien shot (loc_0563), then restores the strip mid-blowup or blits the template band. " +
+      "Direct-called by the idiomatic loc_024b walker (runs as JS, dissolved). Not a ROUTINES override.",
     "loc_04b6.js":
-      "object-table handler (pchl target): runs while a gate cell is clear and a mode cell is one, primes the " +
-      "record strip, steps the alien shot, clamps the column, restores the strip or blits the template band, " +
-      "latches a gate on the last alien, and publishes the column word. Not seam-placeable (walker pushes the " +
-      "record pointer -> SP +4); dispatched by the frozen walker until loc_024b is idiomatic.",
+      "object-table handler: runs while a gate cell is clear and a mode cell is one, primes the record strip, " +
+      "steps the alien shot, clamps the column, restores the strip or blits the template band, latches a gate " +
+      "on the last alien, and publishes the column word. Direct-called by the idiomatic loc_024b walker " +
+      "(runs as JS, dissolved). Not a ROUTINES override.",
     "loc_0682.js":
-      "the mystery-ship object handler (pchl target): saucer-mode gated, delegates to loc_050f otherwise; " +
-      "launches, walks, and explodes the saucer (hit sound / score award / tone silence) then reloads the " +
-      "record template. Not seam-placeable (walker pushes the record pointer -> SP +4); dispatched by the " +
-      "frozen walker until loc_024b is idiomatic.",
+      "the mystery-ship object handler: saucer-mode gated, delegates to loc_050f otherwise; launches, walks, " +
+      "and explodes the saucer (hit sound / score award / tone silence) then reloads the record template. " +
+      "Direct-called by the idiomatic loc_024b walker (runs as JS, dissolved). Not a ROUTINES override.",
     "loc_03bb.js":
-      "object-table type-dispatch handler, pchl target of loc_024b; the player-shot record: launch, step " +
-      "in flight (erase / advance Y / collision redraw), retire animation, and the shared reseed + saucer-" +
-      "key tally. co-lands + wires when loc_024b is lifted, which nets SP +4 through the walker.",
+      "object-table type-dispatch handler, the player-shot record: launch, step in flight (erase / advance " +
+      "Y / collision redraw), retire animation, and the shared reseed + saucer-key tally. Direct-called by " +
+      "the idiomatic loc_024b walker (runs as JS, dissolved). Not a ROUTINES override.",
     // IN-GAME MAIN-LOOP + RESTART CLUSTER (B step 4), authored ahead and UNWIRED. These are the in-game
     // foreground spine: they are entered only when a game starts, via the nextMain factory swap loc_028e
     // performs at step 6 (m.nextMain = factory; the coroutine engine builds the fresh main generator),
