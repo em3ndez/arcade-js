@@ -184,6 +184,20 @@ export const UNWIRED = {
       "Not a ROUTINES override: the caller-skip's net SP move is outside the withOmittedRet seam's 0/+2 window.",
   },
   invaders: {
+    // Engine-seam interrupt bodies: the board fireNmi calls these directly each clock-free frame (assigned
+    // to machine.idiomaticVblankNmi / machine.idiomaticMidNmi under opts.overrides), NOT the ROUTINES map --
+    // registry-coverage only recognizes ROUTINES dispatch, so they are exempted here with the reason.
+    "idiomaticVblankNmi.js":
+      "engine-seam vblank interrupt body; the board fireNmi calls it each clock-free frame (assigned to " +
+      "machine.idiomaticVblankNmi under opts.overrides). Not a ROUTINES override -- dispatched via the " +
+      "machine interrupt seam, not the object registry.",
+    "idiomaticMidNmi.js":
+      "engine-seam mid-screen interrupt body; the board fireNmi calls it before the vblank body each " +
+      "clock-free frame (assigned to machine.idiomaticMidNmi under opts.overrides). Not a ROUTINES override.",
+    "callFrozenLeaf.js":
+      "engine-seam helper imported only by the interrupt bodies above (themselves seam-dispatched, not in " +
+      "ROUTINES); invokes an as-yet-unlifted routine for its memory/IO effects, restoring the cycle " +
+      "bookkeeping. Not a ROUTINES override -- reached only from the interrupt seam.",
     // OBJECT-TABLE handlers reached by the walker's computed dispatch (loc_024b's pchl). The walker PUSHES
     // the record pointer for the handler to pop; a correct dispatch nets SP +4 (pop the pointer, then ret
     // through the tail) with pc on the walker's continuation -- outside the withOmittedRet seam's 0/+2
