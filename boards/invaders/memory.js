@@ -10,8 +10,14 @@
  * Unlike the Konami boards there is NO memory-mapped I/O here: Space Invaders talks to its devices
  * (inputs, mb14241 shift register, watchdog, sound) over the 8080 IN/OUT PORT space (see io.js), a
  * separate address space the CPU reaches with IN n / OUT n -- never through this AddressSpace. So this
- * layer is pure ROM+RAM. The empty 0x4000-0x5FFF ROM span reads 0 and drops writes (.nopw()); addresses
- * with no map entry (0x8000+, and a write into 0x0000-0x1FFF ROM) THROW (dkong/pooyan discipline).
+ * layer is pure ROM+RAM.
+ *
+ * main_map @315 map.global_mask(0x7fff): only 15 address lines decode, so 0x8000-0xffff aliases
+ * 0x0000-0x7fff -- mask every CPU address to 0x7fff first. Both ROM spans read their data and drop
+ * writes: 0x0000-0x1fff (@316 .rom().nopw()) and the empty 0x4000-0x5fff (@318 .rom().nopw(), reads 0
+ * on the 4x2KB set). After the mask the whole 0x0000-0x7fff decodes, so the residual throw is an
+ * unreachable invariant guard. A fill walking off the framebuffer (loc_14cc past the mirror end ->
+ * masked into ROM, loc_15d3 into 0x4000-0x5fff) is thus a dropped write, as on hardware.
  */
 
 export const ROM_BASE = 0x0000;
@@ -81,7 +87,7 @@ export class AddressSpace {
   }
 
   read8(addr) {
-    addr &= 0xffff;
+    addr &= 0x7fff; // main_map global_mask(0x7fff): 0x8000+ aliases 0x0000-0x7fff
     if (addr <= ROM_END) return this.rom[addr];
     const ri = ramIndex(addr);
     if (ri >= 0) return this.ram[ri];
@@ -90,9 +96,9 @@ export class AddressSpace {
   }
 
   write8(addr, value, _busOffset) {
-    addr &= 0xffff;
+    addr &= 0x7fff; // main_map global_mask(0x7fff): 0x8000+ aliases 0x0000-0x7fff
     value &= 0xff;
-    if (addr <= ROM_END) throw new UnmappedAccess("write to ROM", addr, this.pc);
+    if (addr <= ROM_END) return; // 0x0000-0x1fff .rom().nopw() -- writes dropped
     const ri = ramIndex(addr);
     if (ri >= 0) {
       this.ram[ri] = value;

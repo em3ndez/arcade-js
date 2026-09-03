@@ -18,7 +18,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  AddressSpace, UnmappedAccess,
+  AddressSpace,
   ROM_END, RAM_BASE, RAM_END, STATE_DUMP_SIZE,
 } from "../memory.js";
 import { Io, NotImplemented } from "../io.js";
@@ -36,14 +36,17 @@ test("ROM must be exactly 8KB (0x0000-0x1FFF); wrong sizes throw", () => {
   assert.doesNotThrow(() => new AddressSpace(new Uint8Array(0x2000), new Io()));
 });
 
-test("ROM reads return the image byte; ROM writes throw (main_map .rom().nopw -> here THROW)", () => {
+test("ROM reads return the image byte; ROM writes are dropped (main_map @316 .rom().nopw())", () => {
   const r = rom();
   r[0x0000] = 0xc3; r[0x1fff] = 0x76; // JMP at reset vector, HLT at top of ROM
   const m = new AddressSpace(r, new Io());
   assert.equal(m.read8(0x0000), 0xc3);
   assert.equal(m.read8(0x1fff), 0x76);
-  assert.throws(() => m.write8(0x0000, 0x00), UnmappedAccess);
-  assert.throws(() => m.write8(0x1fff, 0x00), UnmappedAccess);
+  // .nopw(): a write into ROM is silently dropped (open bus), not a fault, and leaves the image intact.
+  assert.doesNotThrow(() => m.write8(0x0000, 0x00));
+  assert.doesNotThrow(() => m.write8(0x1fff, 0x00));
+  assert.equal(m.read8(0x0000), 0xc3, "ROM byte unchanged by the dropped write");
+  assert.equal(m.read8(0x1fff), 0x76, "ROM byte unchanged by the dropped write");
 });
 
 test("RAM round-trips across 0x2000-0x3FFF (work RAM + framebuffer)", () => {
@@ -86,18 +89,22 @@ test("state dump is the whole 8KB main_ram; offset<->addr is inverse at both end
   assert.equal(m.dumpState()[0x2400 - RAM_BASE], 0x7e, "dump reflects a written cell");
 });
 
-test("empty ROM region 0x4000-0x5fff reads 0 and drops writes (.nopw); absent addrs still throw", () => {
+test("empty ROM region 0x4000-0x5fff reads 0 and drops writes (.nopw); 0x8000+ mirrors 0x0000-0x7fff", () => {
   // main_map @318 map(0x4000,0x5fff).rom().nopw(): empty on the Midway 4x2KB set. GROUNDED -- loc_15d3's
   // sprite shift-decode steps HL past the framebuffer top into this span (a MAME attract write-tap shows
   // dropped writes at pc 0x15df/0x15e7 to 0x4017.. stepping 0x20), so the board must MATCH the
-  // hardware: read 0, drop the write. Addresses with no map entry (0x8000+) still THROW.
+  // hardware: read 0, drop the write.
   const m = space();
   assert.equal(m.read8(0x4000), 0, "0x4000 empty ROM region reads 0");
   assert.equal(m.read8(0x5fff), 0, "0x5fff empty ROM region reads 0");
   assert.doesNotThrow(() => m.write8(0x4017, 0xff), "write into 0x4000-0x5fff is a no-op, not a fault");
   assert.equal(m.read8(0x4017), 0, "the dropped write left nothing behind");
-  assert.throws(() => m.read8(0x8000), UnmappedAccess, "0x8000 above the map -> throw");
-  assert.throws(() => m.write8(0x8000, 0x00), UnmappedAccess);
+  // main_map @315 global_mask(0x7fff): 0x8000+ aliases 0x0000-0x7fff (A15 undecoded), never a fault.
+  // A fill walking off the mirror end (loc_14cc: 0x7fe2 -> 0x8002) masks into ROM (0x0002) -> dropped.
+  assert.equal(m.read8(0x8000), m.read8(0x0000), "0x8000 masks to 0x0000 (ROM)");
+  assert.doesNotThrow(() => m.write8(0x8002, 0x55), "0x8002 masks to 0x0002 (ROM) -> nopw, not a fault");
+  m.write8(0xa000, 0x9e); // 0xa000 & 0x7fff = 0x2000 (RAM)
+  assert.equal(m.read8(0x2000), 0x9e, "0xa000 masks to 0x2000 and lands in RAM");
 });
 
 test("no memory-mapped hardware writes on this board (devices live on the port bus)", () => {
