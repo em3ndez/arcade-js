@@ -232,6 +232,27 @@ export const UNWIRED = {
       "object-table type-dispatch handler, the player-shot record: launch, step in flight (erase / advance " +
       "Y / collision redraw), retire animation, and the shared reseed + saucer-key tally. Direct-called by " +
       "the idiomatic loc_024b walker (runs as JS, dissolved). Not a ROUTINES override.",
+    // VBLANK RECORD TAIL + ATTRACT TASK-DISPATCH seam. The idiomatic vblank interrupt body direct-calls
+    // loc_0072 (its in-game record tail) and, on the attract demo sub-arm, loc_0abf (the ISR task dispatch);
+    // loc_0abf direct-calls the attract task-bit arms loc_0aab / loc_0abb. All four run as plain JS reached
+    // only through the interrupt seam -- no ROUTINES dispatch. Behavioral validation is the frame-stepped +
+    // attract-state convergence (attract) and the in-game convergence (in-game tail).
+    "loc_0072.js":
+      "the vblank in-game record tail: latch, redraw the pending alien, walk the vblank object table " +
+      "(idiomatic loc_0248 -> loc_024b), then step the saucer timer, returning early on a warm restart. " +
+      "Direct-called by the idiomatic vblank interrupt body (in-game) and by the idiomatic loc_0abb (attract " +
+      "task bit0). Not a ROUTINES override -- reached only from the interrupt seam.",
+    "loc_0abf.js":
+      "attract-mode ISR task dispatch: selects at most one queued task from the low TASK_FLAGS bits " +
+      "(bit0 -> loc_0abb, bit1 -> stepAnimationFrame, bit2 -> loc_0aab). Direct-called by the idiomatic " +
+      "vblank interrupt body's attract sub-arm (runs as JS, dissolved). Not a ROUTINES override.",
+    "loc_0aab.js":
+      "attract task bit2 arm: walks the attract-demo object table via the idiomatic loc_024b with its base " +
+      "(0x2050). Direct-called by the idiomatic loc_0abf (runs as JS, dissolved). Not a ROUTINES override.",
+    "loc_0abb.js":
+      "attract task bit0 arm: re-enters the idiomatic vblank record tail loc_0072 (without the fleet-march " +
+      "beat the in-game entry runs first). Direct-called by the idiomatic loc_0abf (runs as JS, dissolved). " +
+      "Not a ROUTINES override.",
     // IN-GAME MAIN-LOOP + RESTART CLUSTER (B step 4), authored ahead and UNWIRED. These are the in-game
     // foreground spine: they are entered only when a game starts, via the nextMain factory swap loc_028e
     // performs at step 6 (m.nextMain = factory; the coroutine engine builds the fresh main generator),

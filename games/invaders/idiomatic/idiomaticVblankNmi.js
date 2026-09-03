@@ -4,25 +4,23 @@
  * fires once per generator yield (the mid body first, then this). Memory + IO only, no interrupt stack.
  * Per frame: stamp the draw-phase flag to the vblank half; decrement FRAME_DELAY_TIMER (the counter every
  * busy-wait delay generator spins on); run the frozen tilt/panic check; bank a BCD credit on a coin-switch
- * press edge. Then, only while GAME_ACTIVE: in-game (GAME_IN_PROGRESS) runs the fleet-march beat +
- * pending-alien draw + the object walker + the saucer timer; the attract demo takes the credit-screen or
- * ISR-task sub-arm. The object walker is the idiomatic direct call, and the credit-screen sub-arm arms a
- * warm restart into the credit/start flow (mirroring the interrupt's jump to that screen); the task-dispatch
- * sub-arm stays a frozen fallback. The attract boot exercises the demo sub-arm (GAME_ACTIVE set,
- * GAME_IN_PROGRESS clear), covered by the frame-stepped gate and the attract-state convergence.
+ * press edge. Then, only while GAME_ACTIVE: in-game (GAME_IN_PROGRESS) runs the fleet-march beat then the
+ * shared record tail (pending-alien draw + the object walker + the saucer timer); the attract demo takes
+ * the credit-screen or ISR-task sub-arm. The credit-screen sub-arm arms a warm restart into the
+ * credit/start flow (mirroring the interrupt's jump to that screen), and the task-dispatch sub-arm is an
+ * idiomatic direct call. The attract boot exercises the demo sub-arm (GAME_ACTIVE set, GAME_IN_PROGRESS
+ * clear), covered by the frame-stepped gate and the attract-state convergence.
  */
 import {
   DRAW_PHASE_FLAG, FRAME_DELAY_TIMER, GAME_ACTIVE, GAME_IN_PROGRESS, CREDIT_COUNT, COIN_INPUT_LATCH,
-  loc_2032, loc_2080, CREDIT_SCREEN_SHOWN,
-  TILT_HANDLER, ATTRACT_TASK_DISPATCH,
+  CREDIT_SCREEN_SHOWN, TILT_HANDLER,
 } from "./names.js";
 import { callFrozenLeaf } from "./callFrozenLeaf.js";
 import { creditScreen } from "./creditScreen.js";
-import { loc_0248 } from "./loc_0248.js";
+import { loc_0072 } from "./loc_0072.js";
+import { loc_0abf } from "./loc_0abf.js";
 import { drawCreditCount } from "./drawCreditCount.js";
 import { stepFleetMarchSound } from "./stepFleetMarchSound.js";
-import { drawPendingAlien } from "./drawPendingAlien.js";
-import { loc_0913 } from "./loc_0913.js";
 
 const DRAW_PHASE_VBLANK = 0x80; // DRAW_PHASE_FLAG value for the vblank raster half (mid half = 0)
 const CREDIT_CAP = 0x99;        // credit tally saturates at BCD 99
@@ -53,13 +51,10 @@ export function idiomaticVblankNmi(m) {
   if (m.mem8[GAME_ACTIVE] === 0) return; // attract title/score screens: the ISR ends here
 
   if (m.mem8[GAME_IN_PROGRESS] !== 0) {
-    // in-game vblank tail
+    // in-game vblank tail: the fleet-march beat, then the shared record tail (which returns early on a
+    // warm restart armed during the object walk)
     stepFleetMarchSound(m);
-    m.mem8[loc_2080] = m.mem8[loc_2032];
-    drawPendingAlien(m);
-    loc_0248(m); // walk the vblank object-record table
-    if (m.nextMain) return; // a handler armed a warm restart: SP is reseated into the main flow, so the rest of this tail (the saucer timer) does not run this frame
-    loc_0913(m);
+    loc_0072(m);
     return;
   }
 
@@ -68,5 +63,5 @@ export function idiomaticVblankNmi(m) {
     if (m.mem8[CREDIT_SCREEN_SHOWN] === 0) { m.nextMain = () => creditScreen(m); return; }
     return;
   }
-  callFrozenLeaf(m, ATTRACT_TASK_DISPATCH);
+  loc_0abf(m);
 }

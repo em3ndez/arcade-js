@@ -66,10 +66,17 @@ pooyan 0x2c3f dead  # rst-28 boolean caller-skip dispatcher dissolved; direct-ca
 pooyan 0x2d24 dead  # hunter state-2 caller-skip dissolved; direct-called by idiomatic dispatchOneHunterRecordState (boolean), not oracle-served
 pooyan 0x2d4a dead  # hunter state-3 caller-skip dissolved; direct-called by idiomatic dispatchOneHunterRecordState (boolean), not oracle-served
 pooyan 0x0028 dead  # rst-28 dispatch primitive; every caller converted to a switch or dissolved, nothing live calls it
-invaders 0x0248 dead  # object-table base-seat; idiomatic vblank interrupt body direct-calls the idiomatic loc_0248 instead of m.call
-# 0x024b (the walker) is NOT dead: the still-translated loc_0aab (0x0aab, unlifted) m.calls it with base 0x2050, so it stays oracle-served in the worklist until loc_0aab is lifted -- the idiomatic ISR bodies use the idiomatic module, but that third caller is not yet dissolved.
+invaders 0x0248 dead  # object-table base-seat; the idiomatic vblank ISR + the idiomatic loc_0072 direct-call the idiomatic loc_0248 instead of m.call; the translated loc_0072 (0x007b call 0x0248) is now bypassed by the idiomatic loc_0072, so that last translated caller is dissolved too
+invaders 0x024b dead  # object/timer record walker; all three translated callers are now idiomatic-bypassed: loc_0aab (0x0aae jmp 0x024b, base 0x2050) via the lifted idiomatic loc_0aab->loc_024b(0x2050), loc_0248 (fall-through, already dead) via the idiomatic vblank ISR + loc_0072, and loc_008c (0x00a8 call 0x024b, base 0x2020) via idiomaticMidNmi's direct idiomatic loc_024b(0x2020); no data-word pointer callers
 invaders 0x028e dead  # record-0 timer/animation handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
 invaders 0x03bb dead  # player-shot object handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
 invaders 0x0476 dead  # object handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
 invaders 0x04b6 dead  # object handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
 invaders 0x0682 dead  # mystery-ship object handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
+invaders 0x0072 dead  # vblank in-game record tail; both callers dissolved -- loc_0abb (0x0abc jmp 0x0072) is now the idiomatic loc_0abb, and the RST2 vector loc_0010 (0x006f in-game arm) is bypassed by idiomaticVblankNmi, whose in-game tail is the idiomatic loc_0072
+invaders 0x0082 dead  # shared interrupt epilogue (pop h/d/b/psw; ei; ret); a no-op in the seam model (no register stack, and the idiomatic fireNmi re-fires the ISR bodies without an inte gate); every caller (loc_0010, loc_008c, loc_0072) is a bypassed ISR body
+invaders 0x0abf dead  # attract task-flag dispatch; only caller is the RST2 vector loc_0010 (0x0057 call 0x0abf), bypassed by idiomaticVblankNmi which now direct-calls the idiomatic loc_0abf
+invaders 0x0aab dead  # attract task bit2 arm (lxi h,0x2050; jmp 0x024b); only caller loc_0abf is now the idiomatic module, which direct-calls the idiomatic loc_0aab -> loc_024b(0x2050)
+invaders 0x0abb dead  # attract task bit0 arm (pop h; jmp 0x0072); only caller loc_0abf is now the idiomatic module, which direct-calls the idiomatic loc_0abb -> loc_0072
+invaders 0x0817 dead  # doJ target; only caller loc_028e (0x032f jmp 0x0817) is dead, and translated loc_028e is now unreachable -- Track 1 dissolved every translated loc_024b caller, so its pchl (the sole path to loc_028e) never executes; the idiomatic loc_028e arms nextMain -> doJFlow
+invaders 0x166d dead  # game-over arm; only caller loc_028e (0x02db jz 0x166d) is dead, and translated loc_028e is now unreachable (translated loc_024b has no live caller after Track 1); the idiomatic loc_028e arms nextMain -> gameOverFlow
