@@ -129,7 +129,38 @@ export const LIVES_DIGIT_SCREEN_ADDR = 0x2501;  // [code]
 export const RESERVE_SHIP_ICONS_SCREEN_ADDR = 0x2701;  // [code]
 export const TAITO_COPYRIGHT_SCREEN_ADDR = 0x2e1b;  // [code]
 export const CREDIT_LABEL_SCREEN_ADDR = 0x3501;  // [code]
+
+// ── §4 clock-free spine cells (see names-debt.txt) ────────────────────────────────────────────────
+export const FRAME_DELAY_TIMER = 0x20c0;      // [seen] vblank-decremented busy-wait counter (loc_0010 `dcr m`)
+export const ATTRACT_ANIM_ACK = 0x2055;       // [code] ISR anim-step handshake bit0 (loc_189e set/clear spin)
+export const TYPE_PACE_COUNT = 0x206c;        // [code] per-record type-pace byte (loc_184c/loc_1815)
+export const SCREEN_MODE_TOGGLE = 0x20ec;     // [code] attract-screen alternator, flipped 0/1 each loc_0b89 pass
+export const loc_2050 = 0x2050;               // anim descriptor scratch (loc_189e blockCopy dst)
+export const loc_2080 = 0x2080;               // loc_189e seeds =2 (role ungrounded)
+export const loc_21ff = 0x21ff;               // starting-ships latch (loc_0aea)
+// ROM/screen address literals passed as draw/script args by the spine (placeholders, see names-debt.txt):
+export const loc_3017 = 0x3017;
+export const loc_1cfa = 0x1cfa;
+export const loc_1daf = 0x1daf;
+export const loc_1dab = 0x1dab;
+export const loc_2b14 = 0x2b14;
+export const loc_1a95 = 0x1a95;
+export const loc_1bb0 = 0x1bb0;
+export const loc_1fc9 = 0x1fc9;
+export const loc_33b7 = 0x33b7;
+export const loc_2810 = 0x2810;
+export const loc_1ca3 = 0x1ca3;
+export const loc_1dbe = 0x1dbe;
+export const loc_1dcf = 0x1dcf;
+export const loc_1bc0 = 0x1bc0;
+export const loc_3311 = 0x3311;
+export const loc_2c11 = 0x2c11;
+export const loc_1f90 = 0x1f90;
+export const loc_1f9c = 0x1f9c;
+export const loc_1fa0 = 0x1fa0;
+export const loc_1fd5 = 0x1fd5;
 export const ROUTINES = {
+  // ── §4 clock-free spine: boot chain, attract cycle, and the vblank busy-wait delays ──────────────
   0x00b1: { name: "loadReferenceAlienState", role: "load the active player's saved field record: mirror the reference-alien coord word to loc_2009/ALIEN_DRAW_ADDR, derive the count at loc_2008, set FLEET_MOVE_DIR on the 0xfe edge sentinel", cert: "seen" },
   0x0100: { name: "drawPendingAlien", role: "draw the pending marching alien: bail to tickAlienExplosionDespawn when PLAYER_SHOT_HIT is set; else if the alien at (ACTIVE_PLAYER_PAGE:ALIEN_DRAW_INDEX) is live, build its sprite from ALIEN_SPRITE_TABLE (id bit0-cleared, rotate-left-3; +0x30 alternate frame via selectAlternateSpriteFrame when loc_2005 is set) and blitShiftedSprite 16 rows at ALIEN_DRAW_ADDR; clears ALIEN_DRAW_PENDING on every non-bail path", cert: "code" },
   0x01c0: { name: "markAllAliensAliveP1", role: "seat the player-1 alien-status base ALIEN_FIELD_P1 then markAllAliensAlive (fill 0x37 cells with 0x01)", cert: "code" },

@@ -122,3 +122,28 @@ invaders 0x2071
 invaders 0x2074
 invaders 0x2075
 invaders 0x2076
+# §4 clock-free spine cells + draw/script data pointers (role read at decompile; promote to descriptive
+# names at MAME stage-B grounding). Added with the boot/attract generator lift.
+invaders 0x2050
+invaders 0x2080
+invaders 0x21ff
+invaders 0x3017
+invaders 0x1cfa
+invaders 0x1daf
+invaders 0x1dab
+invaders 0x2b14
+invaders 0x1a95
+invaders 0x1bb0
+invaders 0x1fc9
+invaders 0x33b7
+invaders 0x2810
+invaders 0x1ca3
+invaders 0x1dbe
+invaders 0x1dcf
+invaders 0x1bc0
+invaders 0x3311
+invaders 0x2c11
+invaders 0x1f90
+invaders 0x1f9c
+invaders 0x1fa0
+invaders 0x1fd5
