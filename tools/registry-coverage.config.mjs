@@ -226,6 +226,57 @@ export const UNWIRED = {
       "object-table type-dispatch handler, pchl target of loc_024b; the player-shot record: launch, step " +
       "in flight (erase / advance Y / collision redraw), retire animation, and the shared reseed + saucer-" +
       "key tally. co-lands + wires when loc_024b is lifted, which nets SP +4 through the walker.",
+    // IN-GAME MAIN-LOOP + RESTART CLUSTER (B step 4), authored ahead and UNWIRED. These are the in-game
+    // foreground spine: they are entered only when a game starts, via the nextMain factory swap loc_028e
+    // performs at step 6 (m.nextMain = factory; the coroutine engine builds the fresh main generator),
+    // and via yield* from one another -- NOT the ROUTINES address dispatch registry-coverage recognizes.
+    // Behavioral validation is deferred to step 7 in-game convergence; the two independently drivable
+    // busy-wait generators carry their own drafter tests. They become named as the wiring lands at step 6.
+    "mainLoop.js":
+      "in-game frame loop generator: one frame of round work per pass, forever. Entered by yield* from the " +
+      "field-arm setup tail; hands off to the player-switch restart when the alien count reaches zero. Not " +
+      "a ROUTINES override -- the spine enters it via yield*, not an address dispatch.",
+    "loc_07f9.js":
+      "round-start entry generator (splash delay -> field preamble). Reached by yield* from the new-round " +
+      "factory; not an address dispatch target while the producer loc_028e is still translated.",
+    "loc_0804.js":
+      "shield/field preamble generator, select-bit branched. Reached by yield* from the round-start entry " +
+      "and the player-switch restart; not a ROUTINES override (spine yield* entry, not address dispatch).",
+    "loc_0814.js":
+      "field-arm tail generator (load saved field, mark active, cue sound, fall into the frame loop). " +
+      "Reached by yield* from the preamble; not a ROUTINES override.",
+    "loc_0817.js":
+      "field-arm tail generator without the field reload. Reached by yield* from the extra-life " +
+      "continuation and the preamble; not a ROUTINES override.",
+    "loc_0872.js":
+      "player-1 shield-restore arm of the preamble (generator). Reached by yield* from the preamble; not " +
+      "a ROUTINES override.",
+    "loc_088d.js":
+      "round-start splash busy-wait generator: paint the opening row, then hold a 0xb0-frame counter spin, " +
+      "flashing the score each frame. Reached by yield* from the round-start entry; not a ROUTINES override. " +
+      "Independently driven by its drafter test (busywait-088d).",
+    "loc_0a3c.js":
+      "player-switch handoff wait generator: hold a 0x30-frame counter spin while the arm trigger holds, " +
+      "then wait for it to re-arm. Reached by yield* from the player-switch restart; not a ROUTINES " +
+      "override. Independently driven by its drafter test (busywait-0a3c).",
+    "loc_09ef.js":
+      "player-switch restart generator: wait, advance the player index and rebuild its field/shields, then " +
+      "re-enter the preamble. Reached by yield* from the frame loop's alien-count-zero exit; not a ROUTINES " +
+      "override.",
+    "newRoundFlow.js":
+      "new-round nextMain factory generator: save shields, stage the field record, reseed for the incoming " +
+      "player, then enter the round-start entry. Swapped in as m.nextMain by loc_028e at step 6; not a " +
+      "ROUTINES address dispatch.",
+    "gameOverFlow.js":
+      "game-over nextMain factory generator: promote the high score, then join the attract teardown (one " +
+      "player, or both out) or hand off to the new round for the survivor. Swapped in as m.nextMain by " +
+      "loc_028e at step 6; not a ROUTINES address dispatch.",
+    "loc_16c9.js":
+      "game-over-to-attract join generator: type the closing message, silence, then delegate into the " +
+      "attract teardown. Reached by yield* from the game-over factory; not a ROUTINES override.",
+    "doJFlow.js":
+      "extra-life continuation nextMain factory generator: take a reserve ship, then re-enter the field-arm " +
+      "tail. Swapped in as m.nextMain by loc_028e at step 6; not a ROUTINES address dispatch.",
   },
 };
 

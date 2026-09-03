@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: GPL-3.0-only
+import { advanceRoundState } from "./advanceRoundState.js";
+import { loc_190a } from "./loc_190a.js";
+import { countLiveAliens } from "./countLiveAliens.js";
+import { applyPendingScoreAdd } from "./applyPendingScoreAdd.js";
+import { selectAlienShotRate } from "./selectAlienShotRate.js";
+import { awardExtraShip } from "./awardExtraShip.js";
+import { loc_08d8 } from "./loc_08d8.js";
+import { loc_172c } from "./loc_172c.js";
+import { loc_0a59 } from "./loc_0a59.js";
+import { startSound } from "./startSound.js";
+import { advanceFleetMarchSound } from "./advanceFleetMarchSound.js";
+import { updateSaucerSound } from "./updateSaucerSound.js";
+import { loc_09ef } from "./loc_09ef.js";
+import { ALIEN_COUNT } from "./names.js";
+
+// The in-game frame loop: run one frame of round work per pass, forever. Each pass advances round state,
+// resolves the player shot and fleet, applies any pending score, then (while aliens remain) steps the
+// shot rate, extra-ship award, and the sound services, gated by the arm-trigger poll. When ALIEN_COUNT
+// reaches zero the round is cleared: hand off to the player-switch restart and stop looping here. The
+// closing yield is the once-per-frame boundary the interrupt drives. Generator; memory + IO.
+export function* mainLoop(m) {
+  for (;;) {
+    advanceRoundState(m);
+    loc_190a(m);
+    countLiveAliens(m);
+    applyPendingScoreAdd(m);
+    if (m.mem8[ALIEN_COUNT] === 0) {
+      yield* loc_09ef(m);
+      return;
+    }
+    selectAlienShotRate(m);
+    awardExtraShip(m);
+    loc_08d8(m);
+    loc_172c(m);
+    if (!loc_0a59(m)) startSound(m, 0x04);
+    m.io.portOut(0x06, advanceFleetMarchSound(m));
+    updateSaucerSound(m);
+    yield;
+  }
+}
