@@ -200,6 +200,19 @@ export const loc_2086 = 0x2086;
 export const loc_208a = 0x208a;
 export const loc_208c = 0x208c;
 export const loc_208f = 0x208f;
+
+// ── in-game main-loop + round-restart cluster cells (see names-debt.txt) ──────────────────────────
+// Screen (video-RAM) destinations and per-record source tables read by the round-start splash, the
+// player-switch handoff, and the game-over / new-round flows.
+export const loc_1b70 = 0x1b70;               // round-start sprite-id source strip
+export const loc_2b11 = 0x2b11;               // round-start sprite-list screen destination
+export const loc_3711 = 0x3711;               // round-start extra-sprite screen destination
+export const loc_271c = 0x271c;               // round-start strip-clear screen base (player-1 select)
+export const loc_1aa6 = 0x1aa6;               // typed game-over / new-round text source
+export const loc_2803 = 0x2803;               // two-player game-over text screen destination
+export const loc_3a03 = 0x3a03;               // two-player game-over player-number glyph screen slot
+export const loc_2d18 = 0x2d18;               // game-over field-clear text screen destination
+export const loc_1da2 = 0x1da2;               // player-index-to-field-page lookup table
 export const ROUTINES = {
   // ── §4 clock-free spine: boot chain, attract cycle, and the vblank busy-wait delays ──────────────
   0x0000: { name: "loc_0000", role: "[code] reset vector: tail-hands to boot init (loc_18d4), passing through the attract-loop generator the engine drives", cert: "code" },

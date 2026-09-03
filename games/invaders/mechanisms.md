@@ -17,10 +17,11 @@ of the port. Every claim is tagged with the confidence of its reading:
 
 What is described here is the layer of **helper routines** — the primitives the game's spine calls to touch
 video, sound, the alien field, the player shot and shields, the per-player records, scoring, and the frame
-timers. The game's control-flow spine (the main loop, the object-state dispatcher and its handlers, the
-interrupt handlers) is not yet recovered and is **not** described yet; a routine named `loc_<addr>` anywhere
-below is one still awaiting a descriptive name — its mechanism may already be read at [code], its game-role or
-naming still open.
+timers — and, increasingly, the control-flow spine itself: the interrupt bodies, the attract cycle, the
+object-table handlers, and the in-game main loop and round restarts are recovered and described below. What
+remains is the object-table **dispatcher** `loc_024b` — the walker the interrupt bodies call to run the
+handlers — lifted next. A routine named `loc_<addr>` anywhere below is one still awaiting a descriptive name —
+its mechanism may already be read at [code], its game-role or naming still open.
 
 ## Video RAM and the framebuffer
 
@@ -176,13 +177,19 @@ The state-2 handler `resolvePlayerShotHit` (0x14d8) resolves what a live player 
 
 `loc_03bb` [code] is the player-shot handler for the rec1 record at 0x2020 — the only handler that branches on a record *type* byte (the shot status at `PLAYER_SHOT_STATUS`, 0x2025) rather than a single mode cell. It runs only in the matching raster half, then dispatches on the status: type 1 launches a shot (bump the status, seat the muzzle X from `loc_201b`, blit); type 2 steps a shot in flight — erase the sprite, advance its Y by the per-frame step in `loc_202c`, then redraw with `drawSpriteWithCollision` and copy any `COLLISION_FLAG` into `PLAYER_SHOT_HIT` for the collision resolver; type 3 counts a retiring shot down one animation frame at a time (erase, nudge the descriptor to the next explosion cell, redraw), and when its countdown (0x2026) reaches zero — as does any other status via `doR` — runs a shared tally that reseeds the record from its ROM template (`loc_1b25`), steps the two saucer-key counters at `SAUCER_SCORE_KEY_PTR` (0x208d) and 0x208f, and, when no saucer is active, publishes one of two movement pairs to 0x208a/0x208c chosen by a bit of the byte the counter pointer (loc_208f) addresses. Because it erases then redraws at a recomputed Y, each sprite position is re-read from the descriptor after the erase (the recomputed Y is stored to 0x2029 before the redraw so the descriptor carries it). Like the other computed-dispatch targets it stays served by the frozen walker (SP +4) until `loc_024b` is lifted.
 
+## The in-game main loop and round restarts
+
+Once a game starts, control enters the in-game frame loop `mainLoop` (loc_081f→loc_0849, which tail-jumps back to loc_081f so the body runs one pass per displayed frame). Each pass advances the pre-round arm step (`advanceRoundState`), resolves the player shot and fleet edge (loc_190a), counts the live aliens into `ALIEN_COUNT` (0x2082), and applies any pending score packet. While aliens remain it then steps the alien-shot rate, the extra-ship award, the low-alien flag, and the per-frame sound services, gating the round-start blip on the arm-trigger poll (loc_0a59, [0x2015]==0xff). The loop has two warm-restart exits: when `ALIEN_COUNT` reaches zero the wave is cleared and it hands to the player-switch loc_09ef, and the per-frame object timer loc_028e can, on expiry, reseat the stack and hand off to one of three flows. The round-start chain that feeds the loop is loc_07f9 → loc_0804 → loc_0814/loc_0817: loc_07f9 runs the 0xb0-frame round-start splash (loc_088d, which flashes the active score on the counter's bit 2 while `FRAME_DELAY_TIMER` drains), clears the field and `TASK_FLAGS`; loc_0804 restores the active player's shields (chosen by the `ACTIVE_PLAYER_PAGE` bit); and loc_0814 loads the saved reference-alien field (loc_0817, the doJ re-entry, skips that reload), then both mark the game active, cue the sound, and fall into the loop.
+
+The three flows loc_028e arms are round restarts. `newRoundFlow` (loc_02ed→loc_02f8) saves the outgoing player's shields, stages the field record, reseeds work RAM, and republishes the select byte and sound-select shadow for the incoming player (0x21 / off for player 1, 0x22 / the alternate tone for player 2) before re-entering loc_07f9 — the select byte read at the top is carried across the work-RAM reseed (which overwrites `ACTIVE_PLAYER_PAGE`) to pick both branches, the port's own save/restore of that cell. `gameOverFlow` (loc_166d→loc_1671) zeros the lives digit, promotes the player's score to the high score when it beats it (16-bit compare, high byte then low), and then either joins the attract teardown loc_16c9→loc_0b89 (a one-player game, or both players out) or hands the turn to the survivor via `newRoundFlow`. `doJFlow` (loc_1a7f then loc_0817) is the extra-life continuation: take one reserve ship, then re-enter the field-arm tail without reloading the field. The player-switch loc_09ef likewise preserves `ACTIVE_PLAYER_PAGE` across the reseed, advances the player index within the field page, looks the next field page up in the loc_1da2 table, seeds the incoming player's shields and alien field, and re-enters loc_0804. In the idiomatic layer these are all generators whose per-frame yields reach the coroutine engine; the three restart flows are the nextMain factories loc_028e swaps in, so a cleared frame is abandoned rather than resumed. The busy-wait paces (loc_088d's 0xb0-frame splash, loc_0a3c's 0x30-frame handoff wait) drain `FRAME_DELAY_TIMER` the same way the attract delays do.
+
 ## What is not described yet
 
-The clock-free attract spine (the boot chain, the frame-delay busy-waits, and the attract cycle above) and the
-four object-table handlers above are now recovered. What remains is the object-state dispatcher itself (`loc_024b`,
-whose computed dispatch nets SP +4 and so cannot yet be wired), the
-`loc_028e`→`loc_02ed`/`loc_02f8`/`loc_0332` timer chain, collision, and the in-game play loop — not yet recovered
-and not described here. A few
+The clock-free attract spine, the four object-table handlers, and the in-game main loop with its round-restart
+flows above are now recovered. What remains is the object-state dispatcher itself (`loc_024b`, whose computed
+dispatch nets SP +4 and so cannot yet be wired) and the per-frame object timer `loc_028e` that produces the warm
+restarts and reseats the stack (its wiring lands with the dispatcher and swaps in the restart factories), plus
+collision. A few
 helper routines also keep `loc_<addr>` names because their role is not yet confident from the code alone:
 `loc_0a5f` (queues a points value), `loc_172c` (gates a sound bit on the shot status), `loc_073c` (draws a
 descriptor sprite), and `loc_00d7` (a per-player init seeding `loc_21fb`/`loc_22fb`). The reference-alien anchor
