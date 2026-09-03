@@ -183,6 +183,32 @@ export const UNWIRED = {
       "direct-called by spawnNextEnemyOnDelay (a wired ROUTINES override), so it runs as JS and is never oracle-served. " +
       "Not a ROUTINES override: the caller-skip's net SP move is outside the withOmittedRet seam's 0/+2 window.",
   },
+  invaders: {
+    // OBJECT-TABLE handlers reached by the walker's computed dispatch (loc_024b's pchl). The walker PUSHES
+    // the record pointer for the handler to pop; a correct dispatch nets SP +4 (pop the pointer, then ret
+    // through the tail) with pc on the walker's continuation -- outside the withOmittedRet seam's 0/+2
+    // window. The seam does not throw: it accepts moved 0 and supplies ONE ret, SILENTLY misplacing the
+    // handler (it pops the wrong slot and lands pc on a record byte). So these cannot be ROUTINES overrides
+    // while the walker is still translated. The modules and their equivalence-<addr> gates are correct and
+    // stay; the frozen walker serves each in-game via its dynamic m.call. They become dispatchable when
+    // loc_024b is itself lifted and calls them directly with the record pointer (its DE live-in). The
+    // record-pointer live-in is threaded as `= m.regs.de` where a handler uses it.
+    "loc_0476.js":
+      "object-table handler (pchl target): mirrors a control byte, gates on a 16-bit countdown, primes the " +
+      "record strip, steps the alien shot (loc_0563), then restores the strip mid-blowup or blits the " +
+      "template band. Not seam-placeable (the walker's pushed record pointer nets SP +4); dispatched by the " +
+      "frozen walker until loc_024b is idiomatic.",
+    "loc_04b6.js":
+      "object-table handler (pchl target): runs while a gate cell is clear and a mode cell is one, primes the " +
+      "record strip, steps the alien shot, clamps the column, restores the strip or blits the template band, " +
+      "latches a gate on the last alien, and publishes the column word. Not seam-placeable (walker pushes the " +
+      "record pointer -> SP +4); dispatched by the frozen walker until loc_024b is idiomatic.",
+    "loc_0682.js":
+      "the mystery-ship object handler (pchl target): saucer-mode gated, delegates to loc_050f otherwise; " +
+      "launches, walks, and explodes the saucer (hit sound / score award / tone silence) then reloads the " +
+      "record template. Not seam-placeable (walker pushes the record pointer -> SP +4); dispatched by the " +
+      "frozen walker until loc_024b is idiomatic.",
+  },
 };
 
 /**

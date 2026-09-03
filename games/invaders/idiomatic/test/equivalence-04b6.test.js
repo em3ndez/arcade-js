@@ -1,0 +1,123 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Memory-equivalence for loc_04b6 (ROM 0x04b6) -- an object handler reached by the object-table walker's
+// computed dispatch (which pushes the record pointer for the handler to pop and discard). It runs only
+// while a gate cell is clear and a mode cell is one, then primes the record strip, steps the alien shot,
+// clamps its column, restores the strip mid-blowup or blits the template band, latches the gate on the
+// last surviving alien, and publishes the column word. The arms compare RAM (-stack).
+//
+// NOT seam-placeable, and deliberately UNWIRED -- same class as loc_0476: the walker leaves the record
+// pointer on the stack, so a correct dispatch nets SP +4 with pc on the walker's continuation, outside
+// `withOmittedRet`'s 0/+2 window (the seam accepts moved 0 and misplaces it). Dispatchable only once the
+// walker (loc_024b) is idiomatic and calls it directly; the frozen walker serves it in-game meanwhile.
+// Run: node --test games/invaders/idiomatic/test/equivalence-04b6.test.js
+
+import nodeTest from "node:test";
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+
+import { loc_04b6 as oracle } from "../../translated/loc_04b6.js";
+import { loc_04b6 } from "../loc_04b6.js";
+import { copyRecordToWorkBuffer } from "../copyRecordToWorkBuffer.js";
+import { loc_0563 } from "../loc_0563.js";
+import { copyWorkBufferToRecord } from "../copyWorkBufferToRecord.js";
+import { blockCopy } from "../blockCopy.js";
+import { loc_067e } from "../loc_067e.js";
+import { Machine } from "../../machine.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
+import {
+  STACK_SCRATCH, loc_206e, loc_2080, loc_2045, loc_2036, loc_2070, loc_2056, loc_2071, loc_2076,
+  loc_1b48, ALIEN_SHOT_BLOWUP_TIMER, loc_2040, loc_1b40, ALIEN_COUNT, loc_2069, TASK_FLAGS,
+} from "../names.js";
+
+const ROM_DIR = new URL("../../rom/", import.meta.url);
+const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
+const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM_DIR))) : null;
+const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
+
+const TARGET = 0x04b6;
+const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
+const ramDiff = (ma, mb) =>
+  firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
+
+function captureDispatches(K, maxFrames) {
+  const caps = [];
+  const snap = new Map([[TARGET, (mm) => { if (caps.length < K) caps.push(mm.clone()); return oracle(mm); }]]);
+  new Machine(ROM, { overrides: snap }).runFrames(maxFrames);
+  return caps;
+}
+const CAPS = ROM_PRESENT ? captureDispatches(24, 2500) : [];
+
+test("CAPTURE: real 0x04b6 dispatches -- loc_04b6 == oracle in RAM (-stack)", () => {
+  assert.ok(CAPS.length > 0, "boot must dispatch 0x04b6 at least once");
+  for (const cap of CAPS) {
+    const sp = cap.regs.sp;
+    const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
+      (off) => ma.stateOffsetToAddr(off), (a) => a != null && ((a >= sp - 0x40 && a < sp + 2) || inDeadStack(a)));
+    const o = cap.clone(), c = cap.clone();
+    o.io.setInte(false); c.io.setInte(false);
+    oracle(o); loc_04b6(c);
+    assert.equal(capDiff(o, c), null);
+  }
+  console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
+});
+
+function craft(seed) {
+  const m = new Machine(ROM);
+  m.regs.sp = 0x23fe;
+  m.mem.write16(0x23fe, 0x0000); // record pointer popped + discarded by the oracle
+  m.mem.write16(0x2400, 0xabcd); // caller-return word
+  m.io.setInte(false);
+  seed(m);
+  return m;
+}
+
+// Pass the two entry guards, leave the shot stepper idle with its blowup byte clear, so the handler runs
+// the template-blit band + column publish.
+function bodyIdle(m) {
+  m.mem.write8(loc_206e, 0x00);
+  m.mem.write8(loc_2080, 0x01);
+  for (let a = loc_2045; a < loc_2045 + 0x0b; a++) m.mem.write8(a, 0x00);
+  m.mem.write8(loc_2069, 0x00);
+  m.mem.write8(TASK_FLAGS, 0x00);
+}
+
+test("CRAFTED: branches leave identical RAM (-stack)", () => {
+  const cases = [
+    { tag: "gate cell set -> immediate return", seed: (m) => { m.mem.write8(loc_206e, 0x01); } },
+    { tag: "mode cell not one -> return", seed: (m) => { m.mem.write8(loc_206e, 0x00); m.mem.write8(loc_2080, 0x00); } },
+    { tag: "body idle, blowup clear -> template-blit band + column publish", seed: bodyIdle },
+    { tag: "body idle, last alien -> latch the gate", seed: (m) => { bodyIdle(m); m.mem.write8(ALIEN_COUNT, 0x01); } },
+    {
+      tag: "body idle, blowup set -> restore strip",
+      seed: (m) => { bodyIdle(m); m.mem.write8(loc_2045 + 5, 0x03); },
+    },
+  ];
+  for (const { tag, seed } of cases) {
+    const o = craft(seed), c = craft(seed);
+    oracle(o); loc_04b6(c);
+    assert.equal(ramDiff(o, c), null, tag);
+  }
+});
+
+// TEETH: a broken inline twin that DROPS the last-alien gate latch. Nothing else writes that cell, so the
+// RAM diff must catch it.
+function loc_04b6_droppedLatch(m) {
+  if (m.mem8[loc_206e] !== 0) return;
+  if (m.mem8[loc_2080] !== 1) return;
+  copyRecordToWorkBuffer(m, 0xed, loc_2045);
+  m.mem8[loc_2070] = m.mem8[loc_2036];
+  m.mem8[loc_2071] = m.mem8[loc_2056];
+  loc_0563(m);
+  if (m.mem8[loc_2076] >= 16) m.mem8[loc_2076] = m.mem8[loc_1b48];
+  if (m.mem8[ALIEN_SHOT_BLOWUP_TIMER] !== 0) return copyWorkBufferToRecord(m, loc_2045);
+  blockCopy(m, loc_1b40, loc_2040, 16);
+  // BUG: dropped `if (m.mem8[ALIEN_COUNT] === 1) m.mem8[loc_206e] = 1;`
+  return loc_067e(m, m.mem16[loc_2076]);
+}
+
+test("TEETH: a twin that drops the last-alien gate latch diverges in RAM", () => {
+  const seed = (m) => { bodyIdle(m); m.mem.write8(ALIEN_COUNT, 0x01); };
+  const o = craft(seed), c = craft(seed);
+  oracle(o); loc_04b6_droppedLatch(c);
+  assert.notEqual(ramDiff(o, c), null, "the RAM-diff check FAILED to catch a dropped last-alien gate latch");
+});
