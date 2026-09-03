@@ -6,16 +6,18 @@
  * busy-wait delay generator spins on); run the frozen tilt/panic check; bank a BCD credit on a coin-switch
  * press edge. Then, only while GAME_ACTIVE: in-game (GAME_IN_PROGRESS) runs the fleet-march beat +
  * pending-alien draw + the object walker + the saucer timer; the attract demo takes the credit-screen or
- * ISR-task sub-arm. The object walker is now the idiomatic direct call; the attract sub-arms stay frozen
- * fallbacks until later steps. The attract boot exercises the demo sub-arm (GAME_ACTIVE set,
+ * ISR-task sub-arm. The object walker is the idiomatic direct call, and the credit-screen sub-arm arms a
+ * warm restart into the credit/start flow (mirroring the interrupt's jump to that screen); the task-dispatch
+ * sub-arm stays a frozen fallback. The attract boot exercises the demo sub-arm (GAME_ACTIVE set,
  * GAME_IN_PROGRESS clear), covered by the frame-stepped gate and the attract-state convergence.
  */
 import {
   DRAW_PHASE_FLAG, FRAME_DELAY_TIMER, GAME_ACTIVE, GAME_IN_PROGRESS, CREDIT_COUNT, COIN_INPUT_LATCH,
   loc_2032, loc_2080, CREDIT_SCREEN_SHOWN,
-  TILT_HANDLER, ATTRACT_CREDIT_SCREEN, ATTRACT_TASK_DISPATCH,
+  TILT_HANDLER, ATTRACT_TASK_DISPATCH,
 } from "./names.js";
 import { callFrozenLeaf } from "./callFrozenLeaf.js";
+import { creditScreen } from "./creditScreen.js";
 import { loc_0248 } from "./loc_0248.js";
 import { drawCreditCount } from "./drawCreditCount.js";
 import { stepFleetMarchSound } from "./stepFleetMarchSound.js";
@@ -63,7 +65,7 @@ export function idiomaticVblankNmi(m) {
 
   // attract demo (GAME_ACTIVE, not in-game): the credit-screen or ISR-task sub-arm
   if (m.mem8[CREDIT_COUNT] !== 0) {
-    if (m.mem8[CREDIT_SCREEN_SHOWN] === 0) callFrozenLeaf(m, ATTRACT_CREDIT_SCREEN);
+    if (m.mem8[CREDIT_SCREEN_SHOWN] === 0) { m.nextMain = () => creditScreen(m); return; }
     return;
   }
   callFrozenLeaf(m, ATTRACT_TASK_DISPATCH);

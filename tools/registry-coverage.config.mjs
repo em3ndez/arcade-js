@@ -283,6 +283,25 @@ export const UNWIRED = {
     "doJFlow.js":
       "extra-life continuation nextMain factory generator: take a reserve ship, then re-enter the field-arm " +
       "tail. Swapped in as m.nextMain by loc_028e at step 6; not a ROUTINES address dispatch.",
+    // CREDIT-SCREEN -> GAME-START chain (attract -> in-game transition). The idiomatic vblank interrupt
+    // body arms creditScreen as m.nextMain when a coin has banked a credit during the attract demo; on a
+    // start press it yield*-delegates through the start-init generators into the already-authored round-start
+    // entry (loc_07f9) and the in-game frame loop. Entered by nextMain swap / yield*, NOT the ROUTINES
+    // address dispatch registry-coverage recognizes. Behavioral validation is the in-game convergence run.
+    "creditScreen.js":
+      "credit-inserted screen generator: draw the credit/start prompts and poll the start buttons, then " +
+      "hand off to the matching game-start init. Swapped in as m.nextMain by the idiomatic vblank interrupt " +
+      "body when a credit is banked during the attract demo; not a ROUTINES address dispatch.",
+    "loc_0798.js":
+      "one-player game-start generator: deduct one credit and run the shared start init. Reached by yield* " +
+      "from creditScreen; not a ROUTINES override.",
+    "loc_086d.js":
+      "two-player game-start generator: set the two-player flag, deduct two credits, and run the shared " +
+      "start init. Reached by yield* from creditScreen; not a ROUTINES override.",
+    "loc_079b.js":
+      "shared game-start init generator: seed the score/shield/alien/reserve state for a new game, then fall " +
+      "into the round-start entry. Reached by yield* from the one/two-player start generators; not a " +
+      "ROUTINES override.",
   },
 };
 
