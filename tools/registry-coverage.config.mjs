@@ -253,6 +253,16 @@ export const UNWIRED = {
       "attract task bit0 arm: re-enters the idiomatic vblank record tail loc_0072 (without the fleet-march " +
       "beat the in-game entry runs first). Direct-called by the idiomatic loc_0abf (runs as JS, dissolved). " +
       "Not a ROUTINES override.",
+    // TILT/PANIC seam. The idiomatic vblank interrupt body direct-calls the per-frame tilt check loc_17cd;
+    // on a tilt press it arms the tiltReset generator (screen wipe -> banner -> hold -> attract teardown) as
+    // m.nextMain, so the multi-frame reset paces clock-free without blocking the interrupt body. Reached only
+    // through the interrupt seam + the nextMain swap, not a ROUTINES dispatch. The tilt path is not exercised
+    // by the attract/in-game tapes (faithfulness-only); the no-tilt path is covered by both convergence runs.
+    "loc_17cd.js":
+      "per-frame tilt/panic check and its warm-restart reset flow (tiltReset): the idiomatic vblank interrupt " +
+      "body direct-calls the check each frame; on a tilt press it arms tiltReset as m.nextMain to wipe the " +
+      "field, type the banner, hold, and join the attract teardown. Reached via the interrupt seam and the " +
+      "nextMain swap, not a ROUTINES address dispatch.",
     // IN-GAME MAIN-LOOP + RESTART CLUSTER (B step 4), authored ahead and UNWIRED. These are the in-game
     // foreground spine: they are entered only when a game starts, via the nextMain factory swap loc_028e
     // performs at step 6 (m.nextMain = factory; the coroutine engine builds the fresh main generator),

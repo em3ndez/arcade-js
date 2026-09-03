@@ -3,7 +3,8 @@
  * idiomaticVblankNmi -- the vblank interrupt body: a direct-JS engine-seam leaf the clock-free engine
  * fires once per generator yield (the mid body first, then this). Memory + IO only, no interrupt stack.
  * Per frame: stamp the draw-phase flag to the vblank half; decrement FRAME_DELAY_TIMER (the counter every
- * busy-wait delay generator spins on); run the frozen tilt/panic check; bank a BCD credit on a coin-switch
+ * busy-wait delay generator spins on); run the tilt/panic check, which on a tilt press arms a warm restart
+ * and takes over the frame; bank a BCD credit on a coin-switch
  * press edge. Then, only while GAME_ACTIVE: in-game (GAME_IN_PROGRESS) runs the fleet-march beat then the
  * shared record tail (pending-alien draw + the object walker + the saucer timer); the attract demo takes
  * the credit-screen or ISR-task sub-arm. The credit-screen sub-arm arms a warm restart into the
@@ -13,10 +14,10 @@
  */
 import {
   DRAW_PHASE_FLAG, FRAME_DELAY_TIMER, GAME_ACTIVE, GAME_IN_PROGRESS, CREDIT_COUNT, COIN_INPUT_LATCH,
-  CREDIT_SCREEN_SHOWN, TILT_HANDLER,
+  CREDIT_SCREEN_SHOWN,
 } from "./names.js";
-import { callFrozenLeaf } from "./callFrozenLeaf.js";
 import { creditScreen } from "./creditScreen.js";
+import { loc_17cd } from "./loc_17cd.js";
 import { loc_0072 } from "./loc_0072.js";
 import { loc_0abf } from "./loc_0abf.js";
 import { drawCreditCount } from "./drawCreditCount.js";
@@ -45,7 +46,7 @@ function armCreditOnCoinPress(m) {
 export function idiomaticVblankNmi(m) {
   m.mem8[DRAW_PHASE_FLAG] = DRAW_PHASE_VBLANK;
   m.mem8[FRAME_DELAY_TIMER] = m.mem8[FRAME_DELAY_TIMER] - 1; // mem8 write truncates to a byte
-  callFrozenLeaf(m, TILT_HANDLER);
+  if (loc_17cd(m)) return; // tilt tripped: the armed warm restart abandons the rest of this frame's service
   armCreditOnCoinPress(m);
 
   if (m.mem8[GAME_ACTIVE] === 0) return; // attract title/score screens: the ISR ends here
