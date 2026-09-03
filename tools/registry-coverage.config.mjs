@@ -194,10 +194,13 @@ export const UNWIRED = {
     "idiomaticMidNmi.js":
       "engine-seam mid-screen interrupt body; the board fireNmi calls it before the vblank body each " +
       "clock-free frame (assigned to machine.idiomaticMidNmi under opts.overrides). Not a ROUTINES override.",
-    "callFrozenLeaf.js":
-      "engine-seam helper imported only by the interrupt bodies above (themselves seam-dispatched, not in " +
-      "ROUTINES); invokes an as-yet-unlifted routine for its memory/IO effects, restoring the cycle " +
-      "bookkeeping. Not a ROUTINES override -- reached only from the interrupt seam.",
+    "loc_0141.js":
+      "mid-screen draw scan (next-alien picker): direct-called by the idiomatic mid interrupt body after " +
+      "the object walk; scans the alien-status field, resolves the found cell's screen coordinate, and " +
+      "either latches the pending-draw span or, when an alien has crossed the low row threshold, arms the " +
+      "round-ending warm restart (loc_1971) as m.nextMain. Not a ROUTINES override -- reached only from the " +
+      "interrupt seam. The invasion bail is not exercised by the in-game tape (faithfulness-only); the " +
+      "scan/latch path runs every in-game frame and is covered by the in-game convergence.",
     // OBJECT-TABLE walker + its five handlers. The walker loc_024b (seated by loc_0248 for the vblank base)
     // is now idiomatic: the interrupt bodies direct-call it, and it selects each record's handler from a
     // static 5-way map and calls it as a plain JS function -- no pchl, no m.call, no ROUTINES dispatch. So
@@ -314,6 +317,11 @@ export const UNWIRED = {
     "doJFlow.js":
       "extra-life continuation nextMain factory generator: take a reserve ship, then re-enter the field-arm " +
       "tail. Swapped in as m.nextMain by loc_028e at step 6; not a ROUTINES address dispatch.",
+    "loc_1971.js":
+      "round-ending warm-restart flow generator: mark the reset in progress, hold the interrupt-driven death " +
+      "wait, then teardown and join the game-over flow. Swapped in as m.nextMain by the idiomatic loc_0141 " +
+      "when an alien reaches the base; not a ROUTINES address dispatch. Not exercised by the in-game tape " +
+      "(faithfulness-only), reached only through the nextMain swap.",
     // CREDIT-SCREEN -> GAME-START chain (attract -> in-game transition). The idiomatic vblank interrupt
     // body arms creditScreen as m.nextMain when a coin has banked a credit during the attract demo; on a
     // start press it yield*-delegates through the start-init generators into the already-authored round-start

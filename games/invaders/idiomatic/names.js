@@ -153,9 +153,9 @@ export const loc_3016 = 0x3016;               // tilt banner screen destination
 export const OBJECT_TABLE_MID = 0x2020;       // [code] mid-screen object/timer record-table base (loc_008c passes to the walker; vblank uses GAME_OBJECT_TABLE 0x2010)
 export const OBJECT_DISPATCH_VBLANK = 0x0248; // [code] vblank object-dispatch base-seat (loc_0248); idiomatic module direct-called
 export const OBJECT_WALKER = 0x024b;          // [code] 16-byte object/timer record walker (loc_024b); idiomatic module direct-called
-// Frozen (translated) leaves the direct-JS ISR bodies still dispatch via callFrozenLeaf; each lifted in a later §4 step:
-export const TILT_HANDLER = 0x17cd;           // per-frame tilt/panic check (loc_0010 0x001d call)
-export const MID_DRAW_SCAN = 0x0141;          // mid-screen draw scan (loc_008c 0x00ab call)
+// Former direct-JS ISR-body seam entries -- all now lifted to idiomatic modules; kept as address names:
+export const TILT_HANDLER = 0x17cd;           // per-frame tilt/panic check (now lifted as loc_17cd)
+export const MID_DRAW_SCAN = 0x0141;          // mid-screen draw scan (now lifted as loc_0141)
 export const ATTRACT_CREDIT_SCREEN = 0x0765;  // [code] credit-inserted/press-start screen (now lifted as creditScreen; kept as an address name)
 export const ATTRACT_TASK_DISPATCH = 0x0abf;  // attract task-flag dispatch sub-arm (loc_0010 0x0057 call)
 // ROM/screen address literals passed as draw/script args by the spine (placeholders, see names-debt.txt):
