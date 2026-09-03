@@ -83,6 +83,25 @@ export class Machine {
     this.onVideoFrame = null;
 
     this.mem.clock = () => this.cycles;
+
+    // Coroutine go-live (runIdiomaticGame): the current main generator hands the engine a successor
+    // loop by setting nextMain (a warm restart); RESTART is the sentinel restartMain() throws for a
+    // MID-FRAME restart (see below). Per-instance so a clone's throw/catch pair share one identity.
+    this.nextMain = null;
+    this.RESTART = Symbol("restart-main");
+  }
+
+  /**
+   * Warm-restart from mid-frame: record the successor main generator in nextMain and throw RESTART,
+   * which unwinds up through the plain gameplay call tree (nothing catches it) out of the mainLoop
+   * generator's .next(); runIdiomaticGame catches RESTART and swaps in nextMain, so the abandoned
+   * frame is never resumed. No-op outside the coroutine engine (the throw would escape). Copied from
+   * thepit machine.js. (Invaders' loc_028e warm-restart runs in the NMI, i.e. top level, so it uses
+   * the nextMain-swap style directly; restartMain is here for any mid-gen.next() restart that needs it.)
+   */
+  restartMain(factory) {
+    this.nextMain = factory;
+    throw this.RESTART;
   }
 
   static async create(rom, opts = {}) {
@@ -151,6 +170,15 @@ export class Machine {
    *  is lifted, idiomaticNmi will make this fire the vector handlers as direct JS calls; until then the
    *  translated ISRs run through the real fireInt seam.) */
   fireNmi() {
+    // Idiomatic path: once step 3 registers the direct-JS ISR bodies, fire them as plain calls (mid
+    // then vblank, matching INT1-then-INT2 / vpos 96 then 224) with NO push16/ret, so no seated SP is
+    // needed. Keyed on the body being REGISTERED, not on machine.idiomaticNmi (the engine sets that
+    // truthy while the bodies are still undefined -- keying on it would crash). Inert until then.
+    if (this.idiomaticVblankNmi) {
+      this.idiomaticMidNmi(this);
+      this.idiomaticVblankNmi(this);
+      return;
+    }
     this.pcKnown = true;
     this.fireInt(INT1_VECTOR);
     this.pcKnown = true;
