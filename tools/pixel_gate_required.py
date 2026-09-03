@@ -62,6 +62,7 @@ SUITES = {
     "thepit": [(["python3", "games/thepit/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "frogger": [(["python3", "games/frogger/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "pooyan": [(["python3", "games/pooyan/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
+    "invaders": [(["python3", "games/invaders/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
 }
 
 MANUAL = {
@@ -78,15 +79,6 @@ MANUAL = {
 #: by design: legitimate ONLY when the gate cannot run and the reason is one a reviewer can check --
 #: the canonical case is a NEW game mid-translation that cannot render a frame yet (see docs/runbook.md).
 EXEMPT = {
-    # ★ TEMPORARY (2026-09-01). Space Invaders (8080) is at skeleton stage: games/invaders/routines.js is
-    # empty, so a boot immediately hits the first NotImplemented gap and cannot render a frame vs MAME yet.
-    # A reviewer verifies by booting it to an unregistered-routine gap. REMOVE this and declare the real
-    # pixel suite in SUITES at the FIRST rendered frame -- re-test the render precondition every batch (this
-    # waiver silences the pixel gate for invaders until then).
-    "invaders": (
-        "mid-translation: 8080 skeleton, routines.js empty, boot hits the first NotImplemented gap -- no "
-        "rendered frame vs MAME yet. Remove + declare the pixel suite at the first rendered frame."
-    ),
 }
 
 

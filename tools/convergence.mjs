@@ -85,13 +85,16 @@ async function main() {
   const romDir = join(gameDir, "rom");
   const rom = new Uint8Array(loadBin(join(romDir, "maincpu.bin")));
   const needGfx = args.mode === "pixel";
-  // Some boards ship one gfx.bin (thepit); others split it (pooyan: tiles.bin + sprites.bin). Load
-  // whichever the game has so pixel mode paints instead of throwing "renderFrame needs tiles/sprites".
+  // Some boards ship one gfx.bin (thepit); others split it (pooyan: tiles.bin + sprites.bin); a bitmap
+  // board (invaders) ships none and paints straight from video RAM via m.renderFrame(). Load whatever the
+  // game has so pixel mode paints instead of throwing on a ROM a bitmap game legitimately lacks; a tile
+  // game missing its gfx still fails, at renderFrame() with its own "needs tiles/sprites" message.
   const hasSplit = existsSync(join(romDir, "tiles.bin")) && existsSync(join(romDir, "sprites.bin"));
-  const gfx = needGfx && !hasSplit ? new Uint8Array(loadBin(join(romDir, "gfx.bin"))) : undefined;
+  const hasGfx = existsSync(join(romDir, "gfx.bin"));
+  const gfx = needGfx && hasGfx && !hasSplit ? new Uint8Array(loadBin(join(romDir, "gfx.bin"))) : undefined;
   const tiles = needGfx && hasSplit ? new Uint8Array(loadBin(join(romDir, "tiles.bin"))) : undefined;
   const sprites = needGfx && hasSplit ? new Uint8Array(loadBin(join(romDir, "sprites.bin"))) : undefined;
-  const proms = needGfx ? new Uint8Array(loadBin(join(romDir, "proms.bin"))) : undefined;
+  const proms = needGfx && existsSync(join(romDir, "proms.bin")) ? new Uint8Array(loadBin(join(romDir, "proms.bin"))) : undefined;
 
   // --idiomatic drives runIdiomaticGame, which resumes the idiomatic GENERATOR spine — so the machine
   // must carry the idiomatic override map (resolveAllIdiomatic), exactly as render.js --idiomatic wires

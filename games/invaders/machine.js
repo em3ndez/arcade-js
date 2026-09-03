@@ -12,7 +12,7 @@
 
 import { AddressSpace } from "../../boards/invaders/memory.js";
 import { Io, NotImplemented } from "../../boards/invaders/io.js";
-import { SCREEN_W, SCREEN_H, renderFrame } from "../../boards/invaders/video.js";
+import { SCREEN_W, SCREEN_H, renderFrame as renderFrameRGB } from "../../boards/invaders/video.js";
 import { Regs } from "../../core/cpu/8080.js";
 import { makeIndexedView } from "../../core/mem-views.js";
 import { buildRoutines } from "./routines.js";
@@ -247,9 +247,14 @@ export class Machine {
   }
 
   _captureFrame() {
-    const fb = renderFrame(this.mem.ram);
+    const fb = renderFrameRGB(this.mem.ram);
     if (this.onVideoFrame) this.onVideoFrame(fb);
     else this.videoFrames.push(fb);
+  }
+
+  // Whole-framebuffer RGB888 for the pixel gate (convergence.mjs --mode pixel calls m.renderFrame()).
+  renderFrame() {
+    return renderFrameRGB(this.mem.ram);
   }
 
   runFrames(count) {
