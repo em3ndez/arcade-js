@@ -142,6 +142,18 @@ export const SCREEN_MODE_TOGGLE = 0x20ec;     // [code] attract-screen alternato
 export const loc_2050 = 0x2050;               // anim descriptor scratch (loc_189e blockCopy dst)
 export const loc_2080 = 0x2080;               // loc_189e seeds =2 (role ungrounded)
 export const loc_21ff = 0x21ff;               // starting-ships latch (loc_0aea)
+
+// ── vblank/mid ISR bodies (idiomaticVblankNmi / idiomaticMidNmi) cells + frozen seam-fallback entries ──
+export const COIN_INPUT_LATCH = 0x20ea;       // [code] coin-switch edge latch: armed while IN1 b0 idle, banks one CREDIT_COUNT on the press edge (loc_0010)
+export const CREDIT_SCREEN_SHOWN = 0x2093;    // [code] attract credit-screen-shown latch (0 = not yet shown)
+export const OBJECT_TABLE_MID = 0x2020;       // [code] mid-screen object/timer record-table base (loc_008c passes to the walker; vblank uses GAME_OBJECT_TABLE 0x2010)
+// Frozen (translated) leaves the direct-JS ISR bodies still dispatch via callFrozenLeaf; each lifted in a later §4 step:
+export const TILT_HANDLER = 0x17cd;           // per-frame tilt/panic check (loc_0010 0x001d call)
+export const OBJECT_DISPATCH_VBLANK = 0x0248; // seat HL=GAME_OBJECT_TABLE then the walker (loc_0072 0x007b call)
+export const OBJECT_WALKER = 0x024b;          // 16-byte object/timer record walker (loc_024b; lifted step 5)
+export const MID_DRAW_SCAN = 0x0141;          // mid-screen draw scan (loc_008c 0x00ab call)
+export const ATTRACT_CREDIT_SCREEN = 0x0765;  // attract credit-inserted screen sub-arm (loc_0010 0x0064 jmp)
+export const ATTRACT_TASK_DISPATCH = 0x0abf;  // attract task-flag dispatch sub-arm (loc_0010 0x0057 call)
 // ROM/screen address literals passed as draw/script args by the spine (placeholders, see names-debt.txt):
 export const loc_3017 = 0x3017;
 export const loc_1cfa = 0x1cfa;
