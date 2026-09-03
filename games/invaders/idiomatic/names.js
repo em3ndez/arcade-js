@@ -41,6 +41,7 @@ export const SAUCER_TIMER = 0x2091;  // [seen]
 export const SOUND_PORT3_SHADOW = 0x2094;  // [seen]
 export const SOUND_PORT5_SHADOW = 0x2098;  // [seen]
 export const TASK_FLAGS = 0x20c1;  // [code]
+export const loc_20e5 = 0x20e5;
 export const loc_20e7 = 0x20e7;
 export const GAME_ACTIVE = 0x20e9;  // [seen]
 export const CREDIT_COUNT = 0x20eb;  // [seen]
@@ -152,7 +153,7 @@ export const OBJECT_WALKER = 0x024b;          // [code] 16-byte object/timer rec
 // Frozen (translated) leaves the direct-JS ISR bodies still dispatch via callFrozenLeaf; each lifted in a later §4 step:
 export const TILT_HANDLER = 0x17cd;           // per-frame tilt/panic check (loc_0010 0x001d call)
 export const MID_DRAW_SCAN = 0x0141;          // mid-screen draw scan (loc_008c 0x00ab call)
-export const ATTRACT_CREDIT_SCREEN = 0x0765;  // attract credit-inserted screen sub-arm (loc_0010 0x0064 jmp)
+export const ATTRACT_CREDIT_SCREEN = 0x0765;  // [code] credit-inserted/press-start screen (now lifted as creditScreen; kept as an address name)
 export const ATTRACT_TASK_DISPATCH = 0x0abf;  // attract task-flag dispatch sub-arm (loc_0010 0x0057 call)
 // ROM/screen address literals passed as draw/script args by the spine (placeholders, see names-debt.txt):
 export const loc_3017 = 0x3017;
@@ -175,6 +176,19 @@ export const loc_1f90 = 0x1f90;
 export const loc_1f9c = 0x1f9c;
 export const loc_1fa0 = 0x1fa0;
 export const loc_1fd5 = 0x1fd5;
+
+// ── credit-inserted screen + game-start init (creditScreen / loc_0798 / loc_086d / loc_079b) ──────
+// ROM sprite-list sources and video-RAM destinations for the credit prompt and the one/two-player start
+// prompts, plus the per-player object-record cells seeded once when a game starts.
+export const loc_1ff3 = 0x1ff3;               // credit-screen top prompt sprite-id source
+export const loc_3013 = 0x3013;               // credit-screen top prompt screen destination
+export const loc_1acf = 0x1acf;               // one-player start prompt sprite-id source
+export const loc_1aba = 0x1aba;               // two-player start prompt sprite-id source
+export const loc_21fc = 0x21fc;               // player-1 object-record coordinate word (seeded at game start)
+export const loc_21fe = 0x21fe;               // player-1 object-record byte cleared at game start
+export const loc_22fc = 0x22fc;               // player-2 object-record coordinate word (seeded at game start)
+export const loc_22fe = 0x22fe;               // player-2 object-record byte cleared at game start
+export const loc_22ff = 0x22ff;               // player-2 starting-ships latch (player-1 mirror loc_21ff)
 
 // ── object-record cells + per-record ROM templates (object handlers 0x0476/0x04b6/0x050f/0x0682) ──
 // The object table 0x2010.. holds five 16-byte records; each record's descriptor sub-fields and the
