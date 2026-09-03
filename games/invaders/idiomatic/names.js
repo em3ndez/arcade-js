@@ -8,6 +8,7 @@
 export const STACK_SCRATCH = { lo: 0x23e0, hi: 0x2400 };
 
 export const TIMER_RELOAD = 0x0600;  // [code]
+export const loc_1b25 = 0x1b25;
 export const ALIEN_SPRITE_TABLE = 0x1c00;  // [seen]
 export const ALIEN_SHOT_BLOWUP_SPRITE = 0x1cdc;  // [code]
 export const SAUCER_SCORE_KEY_TABLE = 0x1d4c;  // [seen]
@@ -20,8 +21,11 @@ export const FLEET_STEP_DY = 0x2007;  // [seen]
 export const loc_2009 = 0x2009;
 export const loc_200a = 0x200a;
 export const FLEET_DROP_DELTA = 0x200e;  // [seen]
+export const loc_2026 = 0x2026;
 export const loc_2029 = 0x2029;
 export const loc_202a = 0x202a;
+export const loc_202b = 0x202b;
+export const loc_202c = 0x202c;
 export const loc_2048 = 0x2048;
 export const ACTIVE_PLAYER_PAGE = 0x2067;  // [seen]
 export const DRAW_PHASE_FLAG = 0x2072;  // [seen]
@@ -183,6 +187,7 @@ export const loc_206e = 0x206e;
 export const loc_2086 = 0x2086;
 export const loc_208a = 0x208a;
 export const loc_208c = 0x208c;
+export const loc_208f = 0x208f;
 export const ROUTINES = {
   // ── §4 clock-free spine: boot chain, attract cycle, and the vblank busy-wait delays ──────────────
   0x0000: { name: "loc_0000", role: "[code] reset vector: tail-hands to boot init (loc_18d4), passing through the attract-loop generator the engine drives", cert: "code" },
