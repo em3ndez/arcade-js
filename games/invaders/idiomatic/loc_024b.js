@@ -5,23 +5,28 @@ import { loc_03bb } from "./loc_03bb.js";
 import { loc_0476 } from "./loc_0476.js";
 import { loc_04b6 } from "./loc_04b6.js";
 import { loc_0682 } from "./loc_0682.js";
-import { GAME_OBJECT_TABLE } from "./names.js";
+import {
+  GAME_OBJECT_TABLE,
+  PLAYER_SHIP_HANDLER_ADDR, PLAYER_SHOT_HANDLER_ADDR,
+  ALIEN_SHOT_SLOT2_HANDLER_ADDR, ALIEN_SHOT_SLOT3_HANDLER_ADDR, SAUCER_HANDLER_ADDR,
+} from "./names.js";
 
 // The five in-game object records each carry a fixed handler target that is never rewritten, so the
 // walker's computed dispatch is a static map to the idiomatic handlers.
 const HANDLERS = {
-  0x028e: loc_028e,
-  0x03bb: loc_03bb,
-  0x0476: loc_0476,
-  0x04b6: loc_04b6,
-  0x0682: loc_0682,
+  [PLAYER_SHIP_HANDLER_ADDR]: loc_028e,
+  [PLAYER_SHOT_HANDLER_ADDR]: loc_03bb,
+  [ALIEN_SHOT_SLOT2_HANDLER_ADDR]: loc_0476,
+  [ALIEN_SHOT_SLOT3_HANDLER_ADDR]: loc_04b6,
+  [SAUCER_HANDLER_ADDR]: loc_0682,
 };
 
 // Walk the 16-byte object/timer records from `base`: a first byte of 0xff ends the walk, 0xfe skips the
 // record. Otherwise the record's 16-bit frame timer counts down in place while nonzero; once it reaches
 // zero its gate byte counts down; and only when both are zero does the record dispatch to its handler,
-// which runs directly as JS with the record pointer seated in DE/HL. A handler may arm a warm restart, in
-// which case the walk stops so the interrupt returns promptly and the engine can swap the main flow.
+// which runs directly as JS with the record pointer (rec+4) passed as its argument. A handler may arm a
+// warm restart, in which case the walk stops so the interrupt returns promptly and the engine can swap
+// the main flow.
 export function loc_024b(m, base = GAME_OBJECT_TABLE) {
   let rec = base;
   for (;;) {
@@ -45,8 +50,7 @@ export function loc_024b(m, base = GAME_OBJECT_TABLE) {
               "non-map target is the entropy-residual attract fork",
           );
         }
-        m.regs.de = m.regs.hl = u16(rec + 4);
-        handler(m);
+        handler(m, u16(rec + 4));
         if (m.nextMain) return;
       }
     }

@@ -68,7 +68,7 @@ pooyan 0x2d4a dead  # hunter state-3 caller-skip dissolved; direct-called by idi
 pooyan 0x0028 dead  # rst-28 dispatch primitive; every caller converted to a switch or dissolved, nothing live calls it
 invaders 0x0248 dead  # object-table base-seat; the idiomatic vblank ISR + the idiomatic loc_0072 direct-call the idiomatic loc_0248 instead of m.call; the translated loc_0072 (0x007b call 0x0248) is now bypassed by the idiomatic loc_0072, so that last translated caller is dissolved too
 invaders 0x024b dead  # object/timer record walker; all three translated callers are now idiomatic-bypassed: loc_0aab (0x0aae jmp 0x024b, base 0x2050) via the lifted idiomatic loc_0aab->loc_024b(0x2050), loc_0248 (fall-through, already dead) via the idiomatic vblank ISR + loc_0072, and loc_008c (0x00a8 call 0x024b, base 0x2020) via idiomaticMidNmi's direct idiomatic loc_024b(0x2020); no data-word pointer callers
-invaders 0x028e dead  # record-0 timer/animation handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
+invaders 0x028e dead  # record-0 player-ship handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
 invaders 0x03bb dead  # player-shot object handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
 invaders 0x0476 dead  # object handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
 invaders 0x04b6 dead  # object handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch

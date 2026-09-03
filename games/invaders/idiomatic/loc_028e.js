@@ -19,12 +19,13 @@ import {
   loc_2068, loc_2069, loc_206a, loc_206d, loc_1b10, loc_1c70,
 } from "./names.js";
 
-// The record-0 timer/animation object handler reached by the table walker. Count the record's frame timer
-// down each pass and return while it runs. On each inner expiry step the marching-cursor animation (pick a
-// new sprite frame, nudge the cursor column left/right by demo script or live input, redraw), and when the
-// whole animation counter drains, restore the record from its stored template. If a game is in progress
-// that drain is the active player's death: it arms the next main-loop flow -- game over, an extra-life
-// continuation, or a fresh round -- and returns so the engine swaps in that flow.
+// The record-0 PLAYER-SHIP object handler reached by the table walker. Count the record's frame timer
+// down each pass and return while it runs. On each inner expiry step the ship animation -- pick a new
+// sprite frame, nudge the ship's column left/right by the demo script or live player input,
+// redraw -- and when the whole animation counter drains, clear the old sprite footprint and restore the
+// record from its stored template. If a game is in progress that drain is the active player's death: it
+// consumes the life and arms the next main-loop flow -- game over, an extra-life continuation, or a fresh
+// round -- then returns so the engine swaps in that flow.
 export function loc_028e(m, recPtr = m.regs.de) {
   function doE() { // shared redraw tail
     loadSpriteDescriptor(m, loc_2018);
@@ -96,8 +97,8 @@ export function loc_028e(m, recPtr = m.regs.de) {
   if (outer !== 0) return doH(animByte); // more animation frames to run
 
   // animation done: clear the old sprite footprint and restore the record from its template
-  m.regs.hl = m.mem8[loc_201a] | (m.mem8[loc_201a + 1] << 8);
-  clearSpriteColumn(m, 0x10);
+  const coord = m.mem8[loc_201a] | (m.mem8[loc_201a + 1] << 8);
+  clearSpriteColumn(m, 0x10, coord);
   blockCopy(m, loc_1b10, GAME_OBJECT_TABLE, 0x10);
   loc_19dc(m, 0x00);
   if (m.mem8[loc_206d] !== 0) return;

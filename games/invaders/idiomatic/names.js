@@ -196,6 +196,13 @@ export const loc_22ff = 0x22ff;               // player-2 starting-ships latch (
 // ── object-record cells + per-record ROM templates (object handlers 0x0476/0x04b6/0x050f/0x0682) ──
 // The object table 0x2010.. holds five 16-byte records; each record's descriptor sub-fields and the
 // per-record blit template in ROM 0x1b.. are named here as placeholders (understand half renames).
+// The five object-record handler ROM entry points the walker (loc_024b) computed-dispatches to: each
+// record carries a fixed handler target at rec+3/rec+4 that the walker reads and calls directly.
+export const PLAYER_SHIP_HANDLER_ADDR = 0x028e;       // [code] record-0 player-ship handler (loc_028e): moves the ship X by input (loc_201b), runs the ship's death/explosion animation, and on drain during play consumes a life + arms the next main-loop flow
+export const PLAYER_SHOT_HANDLER_ADDR = 0x03bb;       // [code] record-1 player-shot handler (loc_03bb)
+export const ALIEN_SHOT_SLOT2_HANDLER_ADDR = 0x0476;  // [code] record-2 alien-shot handler (loc_0476): countdown-gated, no column-cursor (specific alien-shot type pending §5 grounding)
+export const ALIEN_SHOT_SLOT3_HANDLER_ADDR = 0x04b6;  // [code] record-3 alien-shot handler (loc_04b6): column-cursor managed, clamps at 16, self-disables at the last alien (specific alien-shot type pending §5 grounding)
+export const SAUCER_HANDLER_ADDR = 0x0682;            // [code] record-4 mystery-ship/saucer handler (loc_0682): delegates to loc_050f (a further alien-shot stepper) in the non-saucer sub-path
 export const loc_1b30 = 0x1b30;
 export const loc_1b32 = 0x1b32;
 export const loc_1b40 = 0x1b40;
@@ -217,7 +224,7 @@ export const loc_2086 = 0x2086;
 export const loc_208a = 0x208a;
 export const loc_208c = 0x208c;
 export const loc_208f = 0x208f;
-// record-0 timer/animation handler cells (loc_028e) + its ROM record template and animation sprite base:
+// record-0 player-ship handler cells (loc_028e) -- its death/explosion animation cells + ROM record template and animation sprite base:
 export const loc_2012 = 0x2012;               // record-0 draw-pending flag, cleared after each redraw
 export const loc_2018 = 0x2018;               // record-0 current animation sprite descriptor (5 bytes)
 export const loc_201a = 0x201a;               // record-0 animation coordinate word (low of the descriptor)
