@@ -59,6 +59,7 @@ function renderRun(machine, cfg, args, GC, capture) {
   // gameplay golden (coin/start/play) can be validated — not just an input-free attract boot.
   const drive = (m, f) => { m.applyInputs(f + args.tapeOrigin); m.applyPokes(f + args.tapeOrigin); };
   if (args.idiomatic) {
+    if (cfg.idiomatic?.bootSp != null) machine.regs.sp = cfg.idiomatic.bootSp; // transitional: translated ISR fallback push needs SP until loc_0010 is idiomatic
     return runIdiomaticGame(machine, {
       nmiReturnPC: cfg.idiomatic?.nmiReturnPC,
       maxFrames: GC,

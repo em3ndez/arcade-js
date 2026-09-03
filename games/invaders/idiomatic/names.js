@@ -161,6 +161,22 @@ export const loc_1fa0 = 0x1fa0;
 export const loc_1fd5 = 0x1fd5;
 export const ROUTINES = {
   // ── §4 clock-free spine: boot chain, attract cycle, and the vblank busy-wait delays ──────────────
+  0x0000: { name: "loc_0000", role: "[code] reset vector: tail-hands to boot init (loc_18d4), passing through the attract-loop generator the engine drives", cert: "code" },
+  0x18d4: { name: "loc_18d4", role: "[code] boot init: seed work RAM (initWorkRam) + score panel (redrawScorePanel), then return the loc_18df attract-loop generator (SP seat dropped; harness seats SP for the NMI push)", cert: "code" },
+  0x18df: { name: "loc_18df", role: "[code] attract-cycle join: set loc_20cf=8 then yield* into loc_0aea; reached from boot fall-through and loc_0b89 loop-back", cert: "code" },
+  0x0aea: { name: "loc_0aea", role: "[code] attract round setup + free-run demo loop: silence sound, ei, type the attract screens (delays yield), seed the field, then per-frame advanceRoundState (advances ATTRACT_DEMO_PTR 0x20ed) until loc_2015 leaves 0xff; falls into loc_0b89", cert: "code" },
+  0x0b89: { name: "loc_0b89", role: "[code] attract round teardown: credit/high-score panel + typed script + ISR-handshaked reveal (loc_189e), flip SCREEN_MODE_TOGGLE 0x20ec, tail-jmp loc_18df", cert: "code" },
+  0x0ad7: { name: "loc_0ad7", role: "[code] vblank busy-wait: seed FRAME_DELAY_TIMER 0x20c0 = a and yield until the ISR drains it to 0", cert: "code" },
+  0x0ab1: { name: "loc_0ab1", role: "[code] 0x40-frame attract delay -> loc_0ad7", cert: "code" },
+  0x0ab6: { name: "loc_0ab6", role: "[code] 0x80-frame attract delay -> loc_0ad7", cert: "code" },
+  0x0acf: { name: "loc_0acf", role: "[code] type the 0x0f-byte block to loc_2b14 using the caller's source de -> loc_0a93", cert: "code" },
+  0x0a93: { name: "loc_0a93", role: "[code] type c sprite bytes from de onto hl, pacing 7 vblank frames per byte on FRAME_DELAY_TIMER (each pace step yields)", cert: "code" },
+  0x0a80: { name: "loc_0a80", role: "[code] arm ISR anim task (TASK_FLAGS 0x20c1=2) and yield until ANIM_DONE_FLAG 0x20cb raised, then clear the task", cert: "code" },
+  0x1815: { name: "loc_1815", role: "[code] draw the attract score-advance table: header string + loc_1dbe column script (no delay), then tail loc_1837 (typed loc_1dcf script)", cert: "code" },
+  0x1837: { name: "loc_1837", role: "[code] point at the loc_1dcf script and fall into loc_183a", cert: "code" },
+  0x183a: { name: "loc_183a", role: "[code] walk a draw script (fetchNextDrawRecord + loc_184c per record) until the 0xff terminator", cert: "code" },
+  0x184c: { name: "loc_184c", role: "[code] type one script record: c = TYPE_PACE_COUNT 0x206c, de/hl from the fetched record -> loc_0a93", cert: "code" },
+  0x189e: { name: "loc_189e", role: "[code] ISR-handshaked attract animation: arm TASK_FLAGS 0x20c1=4, spin ATTRACT_ANIM_ACK 0x2055 bit0 set-then-clear, draw, tail loc_0ab6 (the ISR anim it arms reaches the not-yet-translated object handler 0x050e)", cert: "code" },
   0x00b1: { name: "loadReferenceAlienState", role: "load the active player's saved field record: mirror the reference-alien coord word to loc_2009/ALIEN_DRAW_ADDR, derive the count at loc_2008, set FLEET_MOVE_DIR on the 0xfe edge sentinel", cert: "seen" },
   0x0100: { name: "drawPendingAlien", role: "draw the pending marching alien: bail to tickAlienExplosionDespawn when PLAYER_SHOT_HIT is set; else if the alien at (ACTIVE_PLAYER_PAGE:ALIEN_DRAW_INDEX) is live, build its sprite from ALIEN_SPRITE_TABLE (id bit0-cleared, rotate-left-3; +0x30 alternate frame via selectAlternateSpriteFrame when loc_2005 is set) and blitShiftedSprite 16 rows at ALIEN_DRAW_ADDR; clears ALIEN_DRAW_PENDING on every non-bail path", cert: "code" },
   0x01c0: { name: "markAllAliensAliveP1", role: "seat the player-1 alien-status base ALIEN_FIELD_P1 then markAllAliensAlive (fill 0x37 cells with 0x01)", cert: "code" },
