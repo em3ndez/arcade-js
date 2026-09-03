@@ -102,3 +102,13 @@ invaders 0x081f dead  # field-arm tail (set game active, cue sound, enter the fr
 invaders 0x0849 dead  # field-arm sub-branch; only caller loc_081f (0x0841 jz 0x0849), now dead; folded into the idiomatic in-game main loop
 invaders 0x09ef dead  # player-switch handoff after a round clears; only caller loc_081f (0x082f jz 0x09ef), now dead; idiomatic loc_09ef (reached from mainLoop)
 invaders 0x0a3c dead  # arm-trigger wait before the player switch; only caller loc_09ef (0x09ef call 0x0a3c), now dead; idiomatic loc_0a3c
+# --- Wave A1: the two interrupt vectors + the credit/start cluster (entered only via the RST vectors, now the direct-JS NMI bodies) ---
+invaders 0x0008 dead  # RST1 (mid-screen) interrupt vector (0x000c jmp 0x008c); the hardware RST1 is replaced by the direct-JS idiomaticMidNmi (machine.fireNmi fires the idiomatic NMI bodies, never the Z80 vector), so it is never entered; no m.call or data-word caller
+invaders 0x0010 dead  # RST2 (vblank) interrupt vector + vblank ISR body; the hardware RST2 is replaced by the direct-JS idiomaticVblankNmi; no m.call or data-word caller (the only real-instruction ROM occurrence of 0x0010 is `lxi d,0x0010`, the 16-byte object-record stride constant, not a code pointer; the other byte-occurrences are graphics data)
+invaders 0x008c dead  # RST1 body (mid ISR); only caller loc_0008 (0x000c jmp 0x008c), the bypassed RST1 vector; replaced by idiomaticMidNmi
+invaders 0x0765 dead  # credit-screen entry; only caller loc_0010 (0x0064 jmp 0x0765, the vblank credit arm), bypassed by idiomaticVblankNmi whose credit sub-arm arms nextMain -> the idiomatic creditScreen; no data-word caller
+invaders 0x077f dead  # credit START-poll loop; callers loc_0765 (0x077f fall-through) and loc_0857 (0x086a jmp 0x077f), both dissolved into the idiomatic creditScreen (its multi-frame START-poll is the generator yield loop)
+invaders 0x0798 dead  # one-player start; callers loc_077f (0x0798 fall-through) and loc_0857 (0x0867 jc 0x0798), dissolved into the idiomatic creditScreen which yield* the idiomatic loc_0798 (whose own UNWIRED entry satisfies registry-coverage)
+invaders 0x079b dead  # start tail (-> loc_07f9); callers loc_0798 (0x079b fall-through) and loc_086d (0x086f jmp 0x079b), now the idiomatic modules which yield* the idiomatic loc_079b
+invaders 0x0857 dead  # two-player branch; only caller loc_077f (0x0788 jnz 0x0857), dissolved into the idiomatic creditScreen (in1 & 0x02 -> yield* the idiomatic loc_086d)
+invaders 0x086d dead  # two-player start; only caller loc_0857 (0x0863 jc 0x086d), the idiomatic creditScreen yield* the idiomatic loc_086d
