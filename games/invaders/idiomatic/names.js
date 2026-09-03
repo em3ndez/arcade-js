@@ -159,6 +159,30 @@ export const loc_1f90 = 0x1f90;
 export const loc_1f9c = 0x1f9c;
 export const loc_1fa0 = 0x1fa0;
 export const loc_1fd5 = 0x1fd5;
+
+// ── object-record cells + per-record ROM templates (object handlers 0x0476/0x04b6/0x050f/0x0682) ──
+// The object table 0x2010.. holds five 16-byte records; each record's descriptor sub-fields and the
+// per-record blit template in ROM 0x1b.. are named here as placeholders (understand half renames).
+export const loc_1b30 = 0x1b30;
+export const loc_1b32 = 0x1b32;
+export const loc_1b40 = 0x1b40;
+export const loc_1b48 = 0x1b48;
+export const loc_1b50 = 0x1b50;
+export const loc_1b58 = 0x1b58;
+export const loc_2030 = 0x2030;
+export const loc_2032 = 0x2032;
+export const loc_2035 = 0x2035;
+export const loc_2036 = 0x2036;
+export const loc_2038 = 0x2038;
+export const loc_2040 = 0x2040;
+export const loc_2045 = 0x2045;
+export const loc_2046 = 0x2046;
+export const loc_2056 = 0x2056;
+export const loc_2058 = 0x2058;
+export const loc_206e = 0x206e;
+export const loc_2086 = 0x2086;
+export const loc_208a = 0x208a;
+export const loc_208c = 0x208c;
 export const ROUTINES = {
   // ── §4 clock-free spine: boot chain, attract cycle, and the vblank busy-wait delays ──────────────
   0x0000: { name: "loc_0000", role: "[code] reset vector: tail-hands to boot init (loc_18d4), passing through the attract-loop generator the engine drives", cert: "code" },

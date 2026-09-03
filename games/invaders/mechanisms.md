@@ -170,11 +170,17 @@ Several more leaf routines are now named from the code. `drawPendingAlien` (0x01
 
 The state-2 handler `resolvePlayerShotHit` (0x14d8) resolves what a live player shot struck. Gated on `PLAYER_SHOT_STATUS`==2, it returns unless a hit is latched in `PLAYER_SHOT_HIT` (0x2002, which `loc_03bb` copies straight from `COLLISION_FLAG` (0x2061) [code]). By the shot's Y at `loc_2029` it either stands the shot down (missed off the top), marks the saucer hit and retires the shot (the saucer altitude band), or indexes the 55-cell alien grid (row×11+column via `loc_1581`), tests that cell live and clears it, and queues the killed alien's score and the invader-die sound through `loc_0a5f` — killing the alien and entering the explosion (state 5). Its coordinate inputs `loc_2029`/`loc_202a` are a shared object-coordinate scratch pair; these — together with the alien-shot descriptor coords `loc_207b`/`loc_207c` that `stepAlienShotBlowup` recenters and the alien-draw state bytes `loc_2004`/`loc_2005` that `drawPendingAlien` reads — stay `loc_` until stage-B grounding pins the pixel-axis convention.
 
+## Object-table handlers
+
+`GAME_OBJECT_TABLE` (0x2010) holds five 16-byte records the object dispatcher walks each frame; each record names a handler address the walker computes-dispatches to, and the handler edits its own record in place. Four of the five handlers are recovered. `loc_0476` [code] and `loc_04b6` [code] are the two alien-shot step handlers: each primes the record's descriptor strip into the shared work buffer (`copyRecordToWorkBuffer`), seats the per-column rate cells, steps the shot through the already-named `loc_0563`, and either restores the strip or blits the record template and stows the firing column. `loc_0682` [code] is the mystery-ship (saucer) handler: it copies the record template with a caller-chosen source (`copyTemplateToRecord`), latches a gate on the last alien, publishes the column word, and delegates to `loc_050f` [code] outside its saucer-active window. `loc_050f` is the clean leaf they share — the only one of the four reached by an ordinary call (a tail from `loc_0682`), so it is seam-placeable and wired live. The other three are reached only by the walker's computed dispatch, which pushes the record pointer for the handler to pop, so a live wire would net SP +4 — outside the seam window; they stay dispatched by the frozen walker until the dispatcher `loc_024b` is itself lifted and calls them directly with the record pointer (its `DE` live-in). Their record sub-fields and the per-record ROM blit templates at 0x1b30.. keep `loc_` names pending grounding.
+
 ## What is not described yet
 
-The clock-free attract spine (the boot chain, the frame-delay busy-waits, and the attract cycle above) is now
-recovered. What remains is the object-state dispatcher and its per-state handlers (the loc_024b/loc_03bb pchl
-walkers reached from the ISR), collision, and the in-game play loop — not yet recovered and not described here. A few
+The clock-free attract spine (the boot chain, the frame-delay busy-waits, and the attract cycle above) and the
+four object-table handlers above are now recovered. What remains is the object-state dispatcher itself (`loc_024b`,
+whose computed dispatch nets SP +4 and so cannot yet be wired), the type-dispatch handler `loc_03bb` and the
+`loc_028e`→`loc_02ed`/`loc_02f8`/`loc_0332` timer chain, collision, and the in-game play loop — not yet recovered
+and not described here. A few
 helper routines also keep `loc_<addr>` names because their role is not yet confident from the code alone:
 `loc_0a5f` (queues a points value), `loc_172c` (gates a sound bit on the shot status), `loc_073c` (draws a
 descriptor sprite), and `loc_00d7` (a per-player init seeding `loc_21fb`/`loc_22fb`). The reference-alien anchor
