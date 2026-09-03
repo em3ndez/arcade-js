@@ -147,6 +147,9 @@ export const loc_21ff = 0x21ff;               // starting-ships latch (loc_0aea)
 // ── vblank/mid ISR bodies (idiomaticVblankNmi / idiomaticMidNmi) cells + frozen seam-fallback entries ──
 export const COIN_INPUT_LATCH = 0x20ea;       // [code] coin-switch edge latch: armed while IN1 b0 idle, banks one CREDIT_COUNT on the press edge (loc_0010)
 export const CREDIT_SCREEN_SHOWN = 0x2093;    // [code] attract credit-screen-shown latch (0 = not yet shown)
+export const TILT_RESET_ACTIVE = 0x209a;      // [code] tilt/panic reset-in-progress guard (set while the warm restart runs, cleared at its end)
+export const loc_1cbc = 0x1cbc;               // tilt banner sprite-id source (typed by the tilt reset)
+export const loc_3016 = 0x3016;               // tilt banner screen destination
 export const OBJECT_TABLE_MID = 0x2020;       // [code] mid-screen object/timer record-table base (loc_008c passes to the walker; vblank uses GAME_OBJECT_TABLE 0x2010)
 export const OBJECT_DISPATCH_VBLANK = 0x0248; // [code] vblank object-dispatch base-seat (loc_0248); idiomatic module direct-called
 export const OBJECT_WALKER = 0x024b;          // [code] 16-byte object/timer record walker (loc_024b); idiomatic module direct-called

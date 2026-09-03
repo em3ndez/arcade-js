@@ -199,3 +199,6 @@ invaders 0x21fe
 invaders 0x22fc
 invaders 0x22fe
 invaders 0x22ff
+# tilt/panic warm-restart banner cells (role read at decompile; promote at MAME stage-B grounding)
+invaders 0x1cbc
+invaders 0x3016
