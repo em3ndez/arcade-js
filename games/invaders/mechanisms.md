@@ -187,6 +187,8 @@ The three flows loc_028e arms are round restarts. `newRoundFlow` (loc_02ed→loc
 
 The dispatcher itself is `loc_024b`, which the interrupt bodies call each half-frame (seated at the vblank object table 0x2010 through `loc_0248`, and at the mid table 0x2020 directly). It walks the 16-byte records — 0xff ends the walk, an inactive record's timer field or gate byte is counted down in place — and for each active record reads the handler address the record carries and calls the matching idiomatic handler directly (`0x028e`, `0x03bb`, `0x0476`, `0x04b6`, or `0x0682`), stopping the walk the moment a handler arms a round restart. Because the five in-game handler targets are seeded from a fixed ROM template at round start, the map is static; the only target outside it is the entropy-residual attract-demo fork, which the walker rejects. `loc_028e` is the record-0 handler: it counts that record's frame timer down, steps the sprite animation while it runs, and on expiry clears `GAME_ACTIVE` and arms one of the three restart flows above.
 
+During the attract demo the vblank interrupt reaches the dispatcher through a per-frame task selector, `loc_0abf`: it reads the `TASK_FLAGS` bitfield and runs exactly one arm — the animation step, or (one bit) the attract-demo object walk over its own record table at 0x2050, or (another bit) the shared vblank record tail `loc_0072` (pending-alien draw, the object walk over the main table, and the saucer timer). In-game that same `loc_0072` tail runs every frame after the fleet-march beat, so it is the single body both the demo selector and the live game share.
+
 ## What is not described yet
 
 The clock-free attract spine, the four object-table handlers, and the in-game main loop with its round-restart
