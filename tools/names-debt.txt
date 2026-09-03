@@ -114,3 +114,11 @@ invaders 0x2029
 invaders 0x202a
 invaders 0x207b
 invaders 0x207c
+# loc_0563 alien-shot handler cells (role read at decompile; promote to descriptive at grounding)
+invaders 0x201b
+invaders 0x2069
+invaders 0x2070
+invaders 0x2071
+invaders 0x2074
+invaders 0x2075
+invaders 0x2076
