@@ -5,9 +5,9 @@ import { COLLISION_FLAG } from "./names.js";
 
 // Draw B sprite rows with collision detect: seat the shift offset, clear the collision flag, then per
 // row OR the hardware-shifted source byte into two adjacent screen columns, flagging any overlap.
-export function drawSpriteWithCollision(m, de = m.regs.de, b = m.regs.b) {
+export function drawSpriteWithCollision(m, de = m.regs.de, b = m.regs.b, l = m.regs.l) {
   const rows = b || 256; // a count of 0 wraps to a full 256-row pass
-  let dst = seatBlitPosition(m); // screen address for the first row
+  let dst = seatBlitPosition(m, l); // screen address for the first row (shift offset from l)
   let src = de;
   m.mem8[COLLISION_FLAG] = 0;
   let a = 0;

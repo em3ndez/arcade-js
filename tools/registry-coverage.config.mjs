@@ -208,6 +208,10 @@ export const UNWIRED = {
       "launches, walks, and explodes the saucer (hit sound / score award / tone silence) then reloads the " +
       "record template. Not seam-placeable (walker pushes the record pointer -> SP +4); dispatched by the " +
       "frozen walker until loc_024b is idiomatic.",
+    "loc_03bb.js":
+      "object-table type-dispatch handler, pchl target of loc_024b; the player-shot record: launch, step " +
+      "in flight (erase / advance Y / collision redraw), retire animation, and the shared reseed + saucer-" +
+      "key tally. co-lands + wires when loc_024b is lifted, which nets SP +4 through the walker.",
   },
 };
 
