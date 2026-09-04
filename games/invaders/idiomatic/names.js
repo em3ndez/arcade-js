@@ -7,7 +7,7 @@
 // Return-stack scratch (SP inits 0x2400, grows down; measured deepest 0x23e0). Excluded from the diff.
 export const STACK_SCRATCH = { lo: 0x23e0, hi: 0x2400 };
 
-export const TIMER_RELOAD = 0x0600;  // [code]
+export const TIMER_RELOAD = 0x0600;  // [seen]
 export const loc_1b25 = 0x1b25;
 export const ALIEN_SPRITE_TABLE = 0x1c00;  // [seen]
 export const ALIEN_SHOT_BLOWUP_SPRITE = 0x1cdc;  // [seen]
@@ -147,7 +147,7 @@ export const loc_21ff = 0x21ff;               // starting-ships latch (loc_0aea)
 // ── vblank/mid ISR bodies (idiomaticVblankNmi / idiomaticMidNmi) cells + frozen seam-fallback entries ──
 export const COIN_INPUT_LATCH = 0x20ea;       // [seen] coin-switch edge latch: armed while IN1 b0 idle, banks one CREDIT_COUNT on the press edge (loc_0010)
 export const CREDIT_SCREEN_SHOWN = 0x2093;    // [seen] attract credit-screen-shown latch (0 = not yet shown)
-export const TILT_RESET_ACTIVE = 0x209a;      // [code] tilt/panic reset-in-progress guard (set while the warm restart runs, cleared at its end)
+export const TILT_RESET_ACTIVE = 0x209a;      // [seen] tilt/panic reset-in-progress guard (set while the warm restart runs, cleared at its end)
 export const loc_1cbc = 0x1cbc;               // tilt banner sprite-id source (typed by the tilt reset)
 export const loc_3016 = 0x3016;               // tilt banner screen destination
 export const OBJECT_TABLE_MID = 0x2020;       // [code] mid-screen object/timer record-table base (loc_008c passes to the walker; vblank uses GAME_OBJECT_TABLE 0x2010)
