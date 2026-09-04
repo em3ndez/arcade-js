@@ -129,7 +129,27 @@ def window(vals, fr, t0, t1):
     return vals[int(fr * t0):int(fr * t1)]
 
 
-def run_one(mame, rompath, port, value, mode, boot_frames, pulse_frames, seconds, outdir, sid):
+def trim_wav(path, t0, t1):
+    # Rewrite `path` in place to keep only [t0, t1)s. The 12s capture holds ~6.7s of pre-trigger lead-in
+    # then the sound, between wav-tail click artifacts; playback starts at sample 0, so an untrimmed clip
+    # lags seconds behind -- trimming to the sound's window makes the clip start at the sound.
+    w = wave.open(path, "rb")
+    fr, sw, ch, n = w.getframerate(), w.getsampwidth(), w.getnchannels(), w.getnframes()
+    raw = w.readframes(n)
+    w.close()
+    bpf = sw * ch
+    lo = max(0, int(fr * t0)) * bpf
+    hi = min(n, int(fr * t1)) * bpf
+    seg = raw[lo:hi]
+    o = wave.open(path, "wb")
+    o.setnchannels(ch)
+    o.setsampwidth(sw)
+    o.setframerate(fr)
+    o.writeframes(seg)
+    o.close()
+
+
+def run_one(mame, rompath, port, value, mode, boot_frames, pulse_frames, seconds, clip_seconds, outdir, sid):
     with tempfile.TemporaryDirectory() as tmp:
         lua = os.path.join(tmp, "inj.lua")
         with open(lua, "w") as f:
@@ -150,6 +170,9 @@ def run_one(mame, rompath, port, value, mode, boot_frames, pulse_frames, seconds
     fz = boot_frames / 60.0
     early = window(vals, fr, fz + 0.1, fz + 1.6)
     mid = window(vals, fr, fz + 1.6, fz + 2.6)
+    # Analysis above used the full capture; now trim the saved clip to [trigger-0.05s, trigger+clip_seconds]
+    # so it starts at the sound, not ~6.7s of lead-in (and clear of the ~3s+ tail artifact).
+    trim_wav(wav, max(0.0, fz - 0.05), fz + clip_seconds)
     return wav, early, mid, fr
 
 
@@ -160,7 +183,10 @@ def main():
     ap.add_argument("--out", default=os.path.join(GAME, "audio", "samples"))
     ap.add_argument("--boot-frames", type=int, default=400)
     ap.add_argument("--pulse-frames", type=int, default=3)
-    ap.add_argument("--seconds", type=float, default=12.0)
+    ap.add_argument("--seconds", type=float, default=12.0, help="MAME capture length (analysis window)")
+    ap.add_argument("--clip-seconds", type=float, default=2.5,
+                    help="length of the SAVED clip, measured from the trigger instant; the pre-trigger "
+                         "lead-in and the capture-tail artifact are trimmed off so the clip starts at the sound")
     ap.add_argument("--silent-rms", type=float, default=30.0, help="AC-rms below this = silent (no clip)")
     args = ap.parse_args()
 
@@ -173,9 +199,9 @@ def main():
         # MAME alone cannot tell a game-held loop (UFO) from a game-pulsed one-shot that merely rings while a
         # test harness holds its bit (e.g. the saucer-hit).
         _, p_early, p_mid, fr = run_one(args.mame, args.rompath, port, value, "pulse",
-                                        args.boot_frames, args.pulse_frames, args.seconds, args.out, sid)
+                                        args.boot_frames, args.pulse_frames, args.seconds, args.clip_seconds, args.out, sid)
         wav_h, h_early, h_mid, _ = run_one(args.mame, args.rompath, port, value, "hold",
-                                           args.boot_frames, args.pulse_frames, args.seconds, args.out, sid + "_hold")
+                                           args.boot_frames, args.pulse_frames, args.seconds, args.clip_seconds, args.out, sid + "_hold")
         pe = peak_rms(p_early)[1]
         he = peak_rms(h_early)[1]
         hm = peak_rms(h_mid)[1]
