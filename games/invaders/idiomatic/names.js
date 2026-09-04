@@ -132,7 +132,7 @@ export const loc_22fb = 0x22fb;
 export const SCORE_HEADER_SCREEN_ADDR = 0x241e;  // [seen]
 export const LIVES_DIGIT_SCREEN_ADDR = 0x2501;  // [seen]
 export const RESERVE_SHIP_ICONS_SCREEN_ADDR = 0x2701;  // [seen]
-export const TAITO_COPYRIGHT_SCREEN_ADDR = 0x2e1b;  // [code]
+export const TAITO_COPYRIGHT_SCREEN_ADDR = 0x2e1b;  // [seen]
 export const CREDIT_LABEL_SCREEN_ADDR = 0x3501;  // [seen]
 
 // ── §4 clock-free spine cells (see names-debt.txt) ────────────────────────────────────────────────
@@ -387,7 +387,7 @@ export const ROUTINES = {
   0x1868: { name: "stepAnimationFrame", role: "step one scripted-animation frame: bump the counter loc_20c2, advanceRecordTotals over ANIM_COORD_STEP_LO and load the descriptor from ANIM_SPRITE_COORD, set ANIM_DONE_FLAG at ANIM_END_COORD, else compute ANIM_SPRITE_SRC from ANIM_BASE_SPRITE_SRC and blitShiftedSprite", cert: "seen" },
   0x191a: { name: "drawScoreHeader", role: "drawSpriteList the score-header line (SCORE_HEADER_TEXT) to SCORE_HEADER_SCREEN_ADDR", cert: "seen" },
   0x193c: { name: "drawCreditLabel", role: "drawSpriteList the 'CREDIT' label (CREDIT_LABEL_TEXT) to CREDIT_LABEL_SCREEN_ADDR", cert: "seen" },
-  0x199a: { name: "drawTaitoCopyright", role: "behind a two-step port-1 input code (INPUT_CODE_STAGE_FLAG), drawSpriteList the Taito copyright (TAITO_COPYRIGHT_TEXT) to TAITO_COPYRIGHT_SCREEN_ADDR", cert: "code" },
+  0x199a: { name: "drawTaitoCopyright", role: "behind a two-step port-1 input code (INPUT_CODE_STAGE_FLAG), drawSpriteList the Taito copyright (TAITO_COPYRIGHT_TEXT) to TAITO_COPYRIGHT_SCREEN_ADDR", cert: "seen" },
   0x19e6: { name: "drawReserveLifeIcons", role: "draw A reserve-ship icons (RESERVE_SHIP_SPRITE) at RESERVE_SHIP_ICONS_SCREEN_ADDR, blanking the remainder; skip drawing when the count is zero", cert: "seen" },
   0x1a7f: { name: "decrementShipsAndDrawReadout", role: "reserve-ships readout: readActivePlayerPageTopByte gives the count at the active page top; if zero bail; else store count-1 back (a ship enters play), drawReserveLifeIcons(count-1) the reserve row, then drawLivesDigit(count)", cert: "seen" },
   0x1a8b: { name: "drawLivesDigit", role: "draw the low nibble of A as a digit glyph at LIVES_DIGIT_SCREEN_ADDR via drawDigit", cert: "seen" },
