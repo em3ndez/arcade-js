@@ -2,7 +2,7 @@
 // Memory-equivalence for resolveShotAndFleetEdge (ROM 0x190a) -- run resolvePlayerShotHit (state-2/landed-prize handler, dissolved to
 // a direct call) then tail into reverseFleetAtEdge (fleet edge/direction update, same-batch KEPT m.call -- the LEAD
 // dissolves it in reconcile). Live-out (DERIVED FROM THE ORACLE): RAM only -- both callers (loc_081f,
-// loc_0bf1) run straight into the next call and never read its registers/carry. Dispatching tail -> SP-tooth.
+// updateFleetAndDrawCopyright) run straight into the next call and never read its registers/carry. Dispatching tail -> SP-tooth.
 // The oracle's internal call return-words sit in dead stack scratch (excluded).
 // Run: node --test games/invaders/idiomatic/test/equivalence-190a.test.js
 

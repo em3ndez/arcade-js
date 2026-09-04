@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_18d4 } from "./loc_18d4.js";
+import { bootInit } from "./bootInit.js";
 
 // Reset vector: tail-hand to boot init, passing through the attract-loop generator the engine drives.
 // Not a generator itself.
 export function resetEntry(m) {
-  return loc_18d4(m);
+  return bootInit(m);
 }

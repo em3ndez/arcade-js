@@ -2,6 +2,6 @@
 import { waitFrames } from "./waitFrames.js";
 
 // Short attract delay: wait 0x40 frames. Generator; memory-only.
-export function* loc_0ab1(m) {
+export function* waitShortDelay(m) {
   yield* waitFrames(m, 0x40);
 }

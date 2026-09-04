@@ -4,7 +4,7 @@
 // (drawPlayer1Score), P2 score (drawPlayer2Score), the high score (drawHighScore), the CREDIT label
 // (drawCreditLabel), and the credit tally (tail drawCreditCount). All seven ROM calls are already-idiomatic
 // leaves, so the tail-jmp collapses into a plain omitted-ret leaf: the module leaves SP where it found it
-// and the seam completes the ret (SP-TOOTH). Live-out is RAM only -- both callers (startGameFlow, loc_18d4)
+// and the seam completes the ret (SP-TOOTH). Live-out is RAM only -- both callers (startGameFlow, bootInit)
 // overwrite/fall past HL before reading it, so no register is compared. The oracle's draw-chain call/ret
 // residue sits just below the entry SP and is excluded from the RAM diff.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1956.test.js

@@ -198,7 +198,7 @@ export const UNWIRED = {
       "mid-screen draw scan (next-alien picker): direct-called by the idiomatic mid interrupt body after " +
       "the object walk; scans the alien-status field, resolves the found cell's screen coordinate, and " +
       "either latches the pending-draw span or, when an alien has crossed the low row threshold, arms the " +
-      "round-ending warm restart (loc_1971) as m.nextMain. Not a ROUTINES override -- reached only from the " +
+      "round-ending warm restart (invasionReset) as m.nextMain. Not a ROUTINES override -- reached only from the " +
       "interrupt seam. The invasion bail is not exercised by the in-game tape (faithfulness-only); the " +
       "scan/latch path runs every in-game frame and is covered by the in-game convergence.",
     // OBJECT-TABLE walker + its five handlers. The walker walkObjectTable (seated by walkVblankObjectTable for the vblank base)
@@ -236,32 +236,32 @@ export const UNWIRED = {
       "Y / collision redraw), retire animation, and the shared reseed + saucer-key tally. Direct-called by " +
       "the idiomatic walkObjectTable walker (runs as JS, dissolved). Not a ROUTINES override.",
     // VBLANK RECORD TAIL + ATTRACT TASK-DISPATCH seam. The idiomatic vblank interrupt body direct-calls
-    // serviceVblankObjects (its in-game record tail) and, on the attract demo sub-arm, loc_0abf (the ISR task dispatch);
-    // loc_0abf direct-calls the attract task-bit arms loc_0aab / loc_0abb. All four run as plain JS reached
+    // serviceVblankObjects (its in-game record tail) and, on the attract demo sub-arm, dispatchAttractTask (the ISR task dispatch);
+    // dispatchAttractTask direct-calls the attract task-bit arms walkAttractObjectTable / runAttractObjectTail. All four run as plain JS reached
     // only through the interrupt seam -- no ROUTINES dispatch. Behavioral validation is the frame-stepped +
     // attract-state convergence (attract) and the in-game convergence (in-game tail).
     "serviceVblankObjects.js":
       "the vblank in-game record tail: latch, redraw the pending alien, walk the vblank object table " +
       "(idiomatic walkVblankObjectTable -> walkObjectTable), then step the saucer timer, returning early on a warm restart. " +
-      "Direct-called by the idiomatic vblank interrupt body (in-game) and by the idiomatic loc_0abb (attract " +
+      "Direct-called by the idiomatic vblank interrupt body (in-game) and by the idiomatic runAttractObjectTail (attract " +
       "task bit0). Not a ROUTINES override -- reached only from the interrupt seam.",
-    "loc_0abf.js":
+    "dispatchAttractTask.js":
       "attract-mode ISR task dispatch: selects at most one queued task from the low TASK_FLAGS bits " +
-      "(bit0 -> loc_0abb, bit1 -> stepAnimationFrame, bit2 -> loc_0aab). Direct-called by the idiomatic " +
+      "(bit0 -> runAttractObjectTail, bit1 -> stepAnimationFrame, bit2 -> walkAttractObjectTable). Direct-called by the idiomatic " +
       "vblank interrupt body's attract sub-arm (runs as JS, dissolved). Not a ROUTINES override.",
-    "loc_0aab.js":
+    "walkAttractObjectTable.js":
       "attract task bit2 arm: walks the attract-demo object table via the idiomatic walkObjectTable with its base " +
-      "(0x2050). Direct-called by the idiomatic loc_0abf (runs as JS, dissolved). Not a ROUTINES override.",
-    "loc_0abb.js":
+      "(0x2050). Direct-called by the idiomatic dispatchAttractTask (runs as JS, dissolved). Not a ROUTINES override.",
+    "runAttractObjectTail.js":
       "attract task bit0 arm: re-enters the idiomatic vblank record tail serviceVblankObjects (without the fleet-march " +
-      "beat the in-game entry runs first). Direct-called by the idiomatic loc_0abf (runs as JS, dissolved). " +
+      "beat the in-game entry runs first). Direct-called by the idiomatic dispatchAttractTask (runs as JS, dissolved). " +
       "Not a ROUTINES override.",
-    // TILT/PANIC seam. The idiomatic vblank interrupt body direct-calls the per-frame tilt check loc_17cd;
+    // TILT/PANIC seam. The idiomatic vblank interrupt body direct-calls the per-frame tilt check checkTiltInput;
     // on a tilt press it arms the tiltReset generator (screen wipe -> banner -> hold -> attract teardown) as
     // m.nextMain, so the multi-frame reset paces clock-free without blocking the interrupt body. Reached only
     // through the interrupt seam + the nextMain swap, not a ROUTINES dispatch. The tilt path is not exercised
     // by the attract/in-game tapes (faithfulness-only); the no-tilt path is covered by both convergence runs.
-    "loc_17cd.js":
+    "checkTiltInput.js":
       "per-frame tilt/panic check and its warm-restart reset flow (tiltReset): the idiomatic vblank interrupt " +
       "body direct-calls the check each frame; on a tilt press it arms tiltReset as m.nextMain to wipe the " +
       "field, type the banner, hold, and join the attract teardown. Reached via the interrupt seam and the " +
@@ -299,7 +299,7 @@ export const UNWIRED = {
       "player-switch handoff wait generator: hold a 0x30-frame counter spin while the arm trigger holds, " +
       "then wait for it to re-arm. Reached by yield* from the player-switch restart; not a ROUTINES " +
       "override. Independently driven by its drafter test (busywait-0a3c).",
-    "loc_09ef.js":
+    "advanceToNextRound.js":
       "player-switch restart generator: wait, advance the player index and rebuild its field/shields, then " +
       "re-enter the preamble. Reached by yield* from the frame loop's alien-count-zero exit; not a ROUTINES " +
       "override.",
@@ -311,13 +311,13 @@ export const UNWIRED = {
       "game-over nextMain factory generator: promote the high score, then join the attract teardown (one " +
       "player, or both out) or hand off to the new round for the survivor. Swapped in as m.nextMain by " +
       "playerShipHandler at step 6; not a ROUTINES address dispatch.",
-    "loc_16c9.js":
+    "returnToAttractFlow.js":
       "game-over-to-attract join generator: type the closing message, silence, then delegate into the " +
       "attract teardown. Reached by yield* from the game-over factory; not a ROUTINES override.",
     "doJFlow.js":
       "extra-life continuation nextMain factory generator: take a reserve ship, then re-enter the field-arm " +
       "tail. Swapped in as m.nextMain by playerShipHandler at step 6; not a ROUTINES address dispatch.",
-    "loc_1971.js":
+    "invasionReset.js":
       "round-ending warm-restart flow generator: mark the reset in progress, hold the interrupt-driven death " +
       "wait, then teardown and join the game-over flow. Swapped in as m.nextMain by the idiomatic pickNextMarchingAlien " +
       "when an alien reaches the base; not a ROUTINES address dispatch. Not exercised by the in-game tape " +

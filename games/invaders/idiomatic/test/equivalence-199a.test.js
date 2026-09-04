@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for drawTaitoCopyright -- a one-shot flag + two-code port-1 gate that, when both codes match,
 // tail-jumps into the sprite-list driver (DISSOLVED into a direct drawSpriteList(m, list, count, dst)). The only
-// live-out is RAM: A/flags/HL/DE/C are all dead in the single caller chain (loc_0bf1 -> loc_0aea reads A
+// live-out is RAM: A/flags/HL/DE/C are all dead in the single caller chain (updateFleetAndDrawCopyright -> runAttractCycle reads A
 // only for the OUT-6 watchdog kick then immediately overwrites it via isArmTriggerSet), so this compares RAM only.
 // Interrupts are disabled so the oracle's per-instruction ticks cannot fire a handler that writes RAM on
 // only one side.

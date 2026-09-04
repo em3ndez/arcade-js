@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { storeTaskFlags } from "./storeTaskFlags.js";
-import { loc_0ab1 } from "./loc_0ab1.js";
-import { loc_0ab6 } from "./loc_0ab6.js";
-import { loc_0acf } from "./loc_0acf.js";
+import { waitShortDelay } from "./waitShortDelay.js";
+import { waitLongDelay } from "./waitLongDelay.js";
+import { typeAttractBlock } from "./typeAttractBlock.js";
 import { typePacedSpriteRun } from "./typePacedSpriteRun.js";
 import { runAttractAnimTask } from "./runAttractAnimTask.js";
-import { loc_1815 } from "./loc_1815.js";
+import { drawScoreAdvanceTable } from "./drawScoreAdvanceTable.js";
 import { loadDrawSequenceBlock } from "./loadDrawSequenceBlock.js";
 import { clearScreenStrip } from "./clearScreenStrip.js";
 import { clearPlayfield } from "./clearPlayfield.js";
@@ -17,9 +17,9 @@ import { initPlayer1ShieldBuffers } from "./initPlayer1ShieldBuffers.js";
 import { restorePlayer1Shields } from "./restorePlayer1Shields.js";
 import { drawBottomLine } from "./drawBottomLine.js";
 import { advanceRoundState } from "./advanceRoundState.js";
-import { loc_0bf1 } from "./loc_0bf1.js";
+import { updateFleetAndDrawCopyright } from "./updateFleetAndDrawCopyright.js";
 import { isArmTriggerSet } from "./isArmTriggerSet.js";
-import { loc_0b89 } from "./loc_0b89.js";
+import { finishAttractCycle } from "./finishAttractCycle.js";
 import {
   SCREEN_MODE_TOGGLE, TASK_FLAGS, PLAYER_SHOT_STATUS, loc_21ff,
   loc_3017, loc_1dab, loc_1cfa, loc_1daf, loc_1a95, loc_1bb0, loc_1fc9, loc_33b7,
@@ -29,12 +29,12 @@ import {
 // enable interrupts, type the attract screens (delays yield), seed a fresh field, then free-run the demo
 // one frame per yield until it signals done, and fall through into the round teardown. Which attract screen
 // shows is chosen by SCREEN_MODE_TOGGLE (flipped each teardown pass). Generator; memory + IO.
-export function* loc_0aea(m) {
+export function* runAttractCycle(m) {
   m.io.portOut(0x03, 0x00);
   m.io.portOut(0x05, 0x00);
   storeTaskFlags(m, 0x00);
   m.io.setInte(true);
-  yield* loc_0ab1(m);
+  yield* waitShortDelay(m);
 
   // Type this screen's heading, then its body block.
   if (m.mem8[SCREEN_MODE_TOGGLE] !== 0) {
@@ -42,20 +42,20 @@ export function* loc_0aea(m) {
   } else {
     yield* typePacedSpriteRun(m, loc_1cfa, 0x04, loc_3017); // both branches leave the source positioned for the block below
   }
-  yield* loc_0acf(m, loc_1daf);
-  yield* loc_0ab1(m);
-  yield* loc_1815(m);
-  yield* loc_0ab6(m);
+  yield* typeAttractBlock(m, loc_1daf);
+  yield* waitShortDelay(m);
+  yield* drawScoreAdvanceTable(m);
+  yield* waitLongDelay(m);
 
   // On one screen, run three handshaked reveals with block loads.
   if (m.mem8[SCREEN_MODE_TOGGLE] === 0) {
     loadDrawSequenceBlock(m, loc_1a95); yield* runAttractAnimTask(m);
     loadDrawSequenceBlock(m, loc_1bb0); yield* runAttractAnimTask(m);
-    yield* loc_0ab1(m);
+    yield* waitShortDelay(m);
     loadDrawSequenceBlock(m, loc_1fc9); yield* runAttractAnimTask(m);
-    yield* loc_0ab1(m);
+    yield* waitShortDelay(m);
     clearScreenStrip(m, 0x0a, loc_33b7);
-    yield* loc_0ab6(m);
+    yield* waitLongDelay(m);
   }
 
   clearPlayfield(m);
@@ -74,7 +74,7 @@ export function* loc_0aea(m) {
   // Free-run the demo one frame per yield until the round-state trigger leaves 0xff.
   for (;;) {
     advanceRoundState(m);
-    m.io.portOut(0x06, loc_0bf1(m));
+    m.io.portOut(0x06, updateFleetAndDrawCopyright(m));
     if (!isArmTriggerSet(m)) break;
     yield;
   }
@@ -86,5 +86,5 @@ export function* loc_0aea(m) {
     yield;
   }
 
-  yield* loc_0b89(m);
+  yield* finishAttractCycle(m);
 }

@@ -17,9 +17,9 @@ import {
   CREDIT_SCREEN_SHOWN,
 } from "./names.js";
 import { creditScreen } from "./creditScreen.js";
-import { loc_17cd } from "./loc_17cd.js";
+import { checkTiltInput } from "./checkTiltInput.js";
 import { serviceVblankObjects } from "./serviceVblankObjects.js";
-import { loc_0abf } from "./loc_0abf.js";
+import { dispatchAttractTask } from "./dispatchAttractTask.js";
 import { drawCreditCount } from "./drawCreditCount.js";
 import { stepFleetMarchSound } from "./stepFleetMarchSound.js";
 
@@ -46,7 +46,7 @@ function armCreditOnCoinPress(m) {
 export function idiomaticVblankNmi(m) {
   m.mem8[DRAW_PHASE_FLAG] = DRAW_PHASE_VBLANK;
   m.mem8[FRAME_DELAY_TIMER] = m.mem8[FRAME_DELAY_TIMER] - 1; // mem8 write truncates to a byte
-  if (loc_17cd(m)) return; // tilt tripped: the armed warm restart abandons the rest of this frame's service
+  if (checkTiltInput(m)) return; // tilt tripped: the armed warm restart abandons the rest of this frame's service
   armCreditOnCoinPress(m);
 
   if (m.mem8[GAME_ACTIVE] === 0) return; // attract title/score screens: the ISR ends here
@@ -64,5 +64,5 @@ export function idiomaticVblankNmi(m) {
     if (m.mem8[CREDIT_SCREEN_SHOWN] === 0) { m.nextMain = () => creditScreen(m); return; }
     return;
   }
-  loc_0abf(m);
+  dispatchAttractTask(m);
 }

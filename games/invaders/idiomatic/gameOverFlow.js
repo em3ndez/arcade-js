@@ -5,9 +5,9 @@ import { currentPlayerRecordPtr } from "./currentPlayerRecordPtr.js";
 import { drawHighScore } from "./drawHighScore.js";
 import { typePacedSpriteRun } from "./typePacedSpriteRun.js";
 import { drawSprite8x8 } from "./drawSprite8x8.js";
-import { loc_0ab1 } from "./loc_0ab1.js";
+import { waitShortDelay } from "./waitShortDelay.js";
 import { otherPlayerFlagPtr } from "./otherPlayerFlagPtr.js";
-import { loc_16c9 } from "./loc_16c9.js";
+import { returnToAttractFlow } from "./returnToAttractFlow.js";
 import { newRoundFlow } from "./newRoundFlow.js";
 import { ACTIVE_PLAYER_PAGE, TWO_PLAYER_GAME, HIGH_SCORE_OBJ_DESC, loc_1aa6, loc_2803, loc_3a03 } from "./names.js";
 
@@ -36,17 +36,17 @@ export function* gameOverFlow(m) {
   }
 
   if (m.mem8[TWO_PLAYER_GAME] === 0) {
-    yield* loc_16c9(m);
+    yield* returnToAttractFlow(m);
     return;
   }
 
   yield* typePacedSpriteRun(m, loc_1aa6, 0x14, loc_2803);
   const glyph = m.mem8[ACTIVE_PLAYER_PAGE] & 1 ? 0x1b : 0x1c;
   drawSprite8x8(m, glyph, loc_3a03);
-  yield* loc_0ab1(m);
+  yield* waitShortDelay(m);
   const otherLives = otherPlayerFlagPtr(m);
   if (m.mem8[otherLives] === 0) {
-    yield* loc_16c9(m);
+    yield* returnToAttractFlow(m);
     return;
   }
   yield* newRoundFlow(m);

@@ -3,9 +3,9 @@
 // boot-init entry (0x01e6/initWorkRam -> block-copy 0x1a32): copy 0xc0 bytes from the ROM template image
 // WORKRAM_INIT_IMAGE into the work-RAM base ALIEN_DRAW_PENDING. The `mvi b,0xc0` seat + the loc_01e6/0x1a32
 // chain are DISSOLVED into a direct blockCopy(m, WORKRAM_INIT_IMAGE, ALIEN_DRAW_PENDING, 0xc0) -- initWorkRam
-// itself cannot be reused because it reads B from the caller (loc_18d4 passes B=0x00 => 256), and the count
+// itself cannot be reused because it reads B from the caller (bootInit passes B=0x00 => 256), and the count
 // must be forced. Live-out is memory only: the oracle advances DE/HL and zeroes B, but no caller (loc_02f8,
-// loc_09ef, loc_0aea, startGameFlow) reads them back -- each re-seats HL/DE or saves A/flags across the call. So
+// advanceToNextRound, runAttractCycle, startGameFlow) reads them back -- each re-seats HL/DE or saves A/flags across the call. So
 // each side runs on its own machine and the contract is RAM (dumpState, minus STACK_SCRATCH -- the oracle's
 // tail chain rets, popping one word).
 // Run: node --test games/invaders/idiomatic/test/equivalence-01e4.test.js

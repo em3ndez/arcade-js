@@ -10,12 +10,13 @@ import { restoreShieldsAndEnterRound } from "./restoreShieldsAndEnterRound.js";
 import { u8, u16 } from "../../../core/int.js";
 import { GAME_ACTIVE, ACTIVE_PLAYER_PAGE, SOUND_PORT5_SHADOW, loc_1da2 } from "./names.js";
 
-// Player-switch handoff after a round is cleared: wait for the arm trigger, clear GAME_ACTIVE and the
-// play-field, then hand the turn to the next player. The select byte is preserved across the work-RAM
-// reseed, its player index is advanced within the field page, the next field page is looked up from the
-// index table and stowed in the record, and the incoming player's shields + alien field are seeded before
-// re-entering the shield/field preamble. Generator; memory + IO.
-export function* loc_09ef(m) {
+// Next-round handoff for the SAME player after a wave is cleared: wait for the arm trigger, clear
+// GAME_ACTIVE and the play-field, then advance the current player to the next round. The player select
+// byte (ACTIVE_PLAYER_PAGE) is preserved across the work-RAM reseed; the player's own round counter (at
+// page:0xfe, masked to 0x07) is bumped, the next round's field-config byte is looked up from the loc_1da2
+// index table and stowed in the record, and that same player's shields + alien field are re-seeded before
+// re-entering the shield/field preamble. (The genuine player switch is newRoundFlow.) Generator; memory + IO.
+export function* advanceToNextRound(m) {
   yield* waitNextRoundArm(m);
   m.mem8[GAME_ACTIVE] = 0x00;
   clearPlayfield(m);

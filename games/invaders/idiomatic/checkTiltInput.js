@@ -2,8 +2,8 @@
 import { clearPlayfield } from "./clearPlayfield.js";
 import { clearGameActive } from "./clearGameActive.js";
 import { typePacedSpriteRun } from "./typePacedSpriteRun.js";
-import { loc_0ab1 } from "./loc_0ab1.js";
-import { loc_16c9 } from "./loc_16c9.js";
+import { waitShortDelay } from "./waitShortDelay.js";
+import { returnToAttractFlow } from "./returnToAttractFlow.js";
 import { TILT_RESET_ACTIVE, CREDIT_SCREEN_SHOWN, loc_1cbc, loc_3016 } from "./names.js";
 
 // The tilt/panic warm restart. Wipe the play-field, mark the reset in progress (so the per-frame check
@@ -17,16 +17,16 @@ export function* tiltReset(m) {
   clearGameActive(m);
   m.io.setInte(true);
   yield* typePacedSpriteRun(m, loc_1cbc, 0x04, loc_3016);
-  yield* loc_0ab1(m);
+  yield* waitShortDelay(m);
   m.mem8[TILT_RESET_ACTIVE] = 0x00;
   m.mem8[CREDIT_SCREEN_SHOWN] = 0x00;
-  yield* loc_16c9(m);
+  yield* returnToAttractFlow(m);
 }
 
 // Per-frame tilt check, run by the vblank interrupt body. Read the tilt input; do nothing unless its bit
 // is set and no reset is already in progress. On a fresh tilt press, arm the warm-restart reset flow as
 // the successor frame flow and report true so the caller abandons the rest of this frame's service.
-export function loc_17cd(m) {
+export function checkTiltInput(m) {
   if ((m.io.portIn(0x02) & 0x04) === 0) return false;
   if (m.mem8[TILT_RESET_ACTIVE] !== 0) return false;
   m.nextMain = () => tiltReset(m);

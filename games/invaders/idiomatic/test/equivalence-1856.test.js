@@ -2,7 +2,7 @@
 // Memory-equivalence for fetchNextDrawRecord -- fetch a 4-byte record through the BC cursor. The 0xff terminator
 // leaves A=0xff, carry SET and BC/HL/DE parked; otherwise HL = word at (BC), DE = word at (BC+2),
 // BC advances +4, A = the last byte, carry CLEAR. Writes NO memory, so RAM is a vacuous contract; the
-// live-out is REGISTERS (HL/DE/BC/A, consumed by the draw loops in loc_183a/loc_1815/loc_0b89) plus
+// live-out is REGISTERS (HL/DE/BC/A, consumed by the draw loops in typeDrawScript/drawScoreAdvanceTable/finishAttractCycle) plus
 // the CARRY the loops branch on (rc/jc). The oracle's ret perturbs SP/PC, so we compare only the
 // data-register + carry outputs, not firstRegDiff (which would false-fail on SP).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1856.test.js

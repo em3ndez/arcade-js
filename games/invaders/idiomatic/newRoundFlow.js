@@ -3,7 +3,7 @@ import { savePlayer1Shields } from "./savePlayer1Shields.js";
 import { savePlayer2Shields } from "./savePlayer2Shields.js";
 import { stageActivePlayerFieldSave } from "./stageActivePlayerFieldSave.js";
 import { seedWorkRamImage } from "./seedWorkRamImage.js";
-import { loc_0ab6 } from "./loc_0ab6.js";
+import { waitLongDelay } from "./waitLongDelay.js";
 import { clearPlayfield } from "./clearPlayfield.js";
 import { decrementShipsAndDrawReadout } from "./decrementShipsAndDrawReadout.js";
 import { startRoundFlow } from "./startRoundFlow.js";
@@ -29,7 +29,7 @@ export function* newRoundFlow(m) {
   const pageTile = savedPage & 1 ? 0x22 : 0x21;
   const soundSelect = savedPage & 1 ? 0x20 : 0x00;
   m.mem8[ACTIVE_PLAYER_PAGE] = pageTile;
-  yield* loc_0ab6(m);
+  yield* waitLongDelay(m);
   m.mem8[loc_2011] = 0x00;
   m.io.portOut(0x05, soundSelect);
   m.mem8[SOUND_PORT5_SHADOW] = soundSelect + 1;

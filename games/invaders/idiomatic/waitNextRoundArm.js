@@ -2,7 +2,7 @@
 import { isArmTriggerSet } from "./isArmTriggerSet.js";
 import { FRAME_DELAY_TIMER } from "./names.js";
 
-// Player-switch handoff wait: while the arm-trigger reads its armed value, hold for up to 0x30 displayed
+// Next-round handoff wait: while the arm-trigger reads its armed value, hold for up to 0x30 displayed
 // frames, re-polling the trigger each frame; the moment the trigger leaves that value, fall through and
 // wait until it returns to the armed value before proceeding. Each pass yields one frame; the interrupt
 // drains the counter. Generator; memory-only.

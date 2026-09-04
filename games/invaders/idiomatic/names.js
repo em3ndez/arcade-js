@@ -137,12 +137,12 @@ export const CREDIT_LABEL_SCREEN_ADDR = 0x3501;  // [seen]
 
 // ── §4 clock-free spine cells (see names-debt.txt) ────────────────────────────────────────────────
 export const FRAME_DELAY_TIMER = 0x20c0;      // [seen] vblank-decremented busy-wait counter (loc_0010 `dcr m`)
-export const ATTRACT_ANIM_ACK = 0x2055;       // [code] ISR anim-step handshake bit0 (loc_189e set/clear spin)
-export const TYPE_PACE_COUNT = 0x206c;        // [seen] per-record type-pace byte (loc_184c/loc_1815)
-export const SCREEN_MODE_TOGGLE = 0x20ec;     // [seen] attract-screen alternator, flipped 0/1 each loc_0b89 pass
-export const loc_2050 = 0x2050;               // anim descriptor scratch (loc_189e blockCopy dst)
-export const loc_2080 = 0x2080;               // loc_189e seeds =2 (role ungrounded)
-export const loc_21ff = 0x21ff;               // starting-ships latch (loc_0aea)
+export const ATTRACT_ANIM_ACK = 0x2055;       // [code] ISR anim-step handshake bit0 (runHandshakedAttractAnim set/clear spin)
+export const TYPE_PACE_COUNT = 0x206c;        // [seen] per-record type-pace byte (typeDrawScriptRecord/drawScoreAdvanceTable)
+export const SCREEN_MODE_TOGGLE = 0x20ec;     // [seen] attract-screen alternator, flipped 0/1 each finishAttractCycle pass
+export const loc_2050 = 0x2050;               // anim descriptor scratch (runHandshakedAttractAnim blockCopy dst)
+export const loc_2080 = 0x2080;               // runHandshakedAttractAnim seeds =2 (role ungrounded)
+export const loc_21ff = 0x21ff;               // starting-ships latch (runAttractCycle)
 
 // ── vblank/mid ISR bodies (idiomaticVblankNmi / idiomaticMidNmi) cells + frozen seam-fallback entries ──
 export const COIN_INPUT_LATCH = 0x20ea;       // [seen] coin-switch edge latch: armed while IN1 b0 idle, banks one CREDIT_COUNT on the press edge (loc_0010)
@@ -235,7 +235,7 @@ export const loc_1c70 = 0x1c70;               // record-0 two-frame animation sp
 
 // ── in-game main-loop + round-restart cluster cells (see names-debt.txt) ──────────────────────────
 // Screen (video-RAM) destinations and per-record source tables read by the round-start splash, the
-// player-switch handoff, and the game-over / new-round flows.
+// next-round handoff, and the game-over / new-round flows.
 export const loc_1b70 = 0x1b70;               // round-start sprite-id source strip
 export const loc_2b11 = 0x2b11;               // round-start sprite-list screen destination
 export const loc_3711 = 0x3711;               // round-start extra-sprite screen destination
@@ -247,22 +247,22 @@ export const loc_2d18 = 0x2d18;               // game-over field-clear text scre
 export const loc_1da2 = 0x1da2;               // player-index-to-field-page lookup table
 export const ROUTINES = {
   // ── §4 clock-free spine: boot chain, attract cycle, and the vblank busy-wait delays ──────────────
-  0x0000: { name: "resetEntry", role: "[seen] reset vector: jumps to boot init (loc_18d4), which enters the attract loop", cert: "seen" },
-  0x18d4: { name: "loc_18d4", role: "[seen] boot init: seed work RAM (initWorkRam) and the score panel (redrawScorePanel), then enter the attract loop at loc_18df", cert: "seen" },
-  0x18df: { name: "loc_18df", role: "[seen] attract-cycle join: set loc_20cf=8 then continue into loc_0aea; reached from boot init and the loc_0b89 loop-back", cert: "seen" },
-  0x0aea: { name: "loc_0aea", role: "[seen] attract round setup + free-run demo loop: silence sound, ei, type the attract screens, seed the field, then per-frame advanceRoundState (advances ATTRACT_DEMO_PTR 0x20ed) until loc_2015 leaves 0xff; falls into loc_0b89", cert: "seen" },
-  0x0b89: { name: "loc_0b89", role: "[seen] attract round teardown: credit/high-score panel + typed script + ISR-handshaked reveal (loc_189e), flip SCREEN_MODE_TOGGLE 0x20ec, tail-jmp loc_18df", cert: "seen" },
+  0x0000: { name: "resetEntry", role: "[seen] reset vector: jumps to boot init (bootInit), which enters the attract loop", cert: "seen" },
+  0x18d4: { name: "bootInit", role: "[seen] boot init: seed work RAM (initWorkRam) and the score panel (redrawScorePanel), then enter the attract loop at enterAttractCycle", cert: "seen" },
+  0x18df: { name: "enterAttractCycle", role: "[seen] attract-cycle join: set loc_20cf=8 then continue into runAttractCycle; reached from boot init and the finishAttractCycle loop-back", cert: "seen" },
+  0x0aea: { name: "runAttractCycle", role: "[seen] attract round setup + free-run demo loop: silence sound, ei, type the attract screens, seed the field, then per-frame advanceRoundState (advances ATTRACT_DEMO_PTR 0x20ed) until loc_2015 leaves 0xff; falls into finishAttractCycle", cert: "seen" },
+  0x0b89: { name: "finishAttractCycle", role: "[seen] attract round teardown: credit/high-score panel + typed script + ISR-handshaked reveal (runHandshakedAttractAnim), flip SCREEN_MODE_TOGGLE 0x20ec, tail-jmp enterAttractCycle", cert: "seen" },
   0x0ad7: { name: "waitFrames", role: "[seen] vblank busy-wait: seed FRAME_DELAY_TIMER 0x20c0 = a and wait until the vblank ISR drains it to 0", cert: "seen" },
-  0x0ab1: { name: "loc_0ab1", role: "[seen] 0x40-frame attract delay -> waitFrames", cert: "seen" },
-  0x0ab6: { name: "loc_0ab6", role: "[seen] 0x80-frame attract delay -> waitFrames", cert: "seen" },
-  0x0acf: { name: "loc_0acf", role: "[seen] type the 0x0f-byte block to loc_2b14 using the caller's source de -> typePacedSpriteRun", cert: "seen" },
+  0x0ab1: { name: "waitShortDelay", role: "[seen] 0x40-frame attract delay -> waitFrames", cert: "seen" },
+  0x0ab6: { name: "waitLongDelay", role: "[seen] 0x80-frame attract delay -> waitFrames", cert: "seen" },
+  0x0acf: { name: "typeAttractBlock", role: "[seen] type the 0x0f-byte block to loc_2b14 using the caller's source de -> typePacedSpriteRun", cert: "seen" },
   0x0a93: { name: "typePacedSpriteRun", role: "[seen] type c sprite bytes from de onto hl, pacing 7 vblank frames per byte on FRAME_DELAY_TIMER", cert: "seen" },
   0x0a80: { name: "runAttractAnimTask", role: "[seen] arm ISR anim task (TASK_FLAGS 0x20c1=2) and wait until ANIM_DONE_FLAG 0x20cb is raised, then clear the task", cert: "seen" },
-  0x1815: { name: "loc_1815", role: "[seen] draw the attract score-advance table: header string + loc_1dbe column script (no delay), then tail loc_1837 (typed loc_1dcf script)", cert: "seen" },
-  0x1837: { name: "loc_1837", role: "[seen] point at the loc_1dcf script and fall into loc_183a", cert: "seen" },
-  0x183a: { name: "loc_183a", role: "[seen] walk a draw script (fetchNextDrawRecord + loc_184c per record) until the 0xff terminator", cert: "seen" },
-  0x184c: { name: "loc_184c", role: "[seen] type one script record: c = TYPE_PACE_COUNT 0x206c, de/hl from the fetched record -> typePacedSpriteRun", cert: "seen" },
-  0x189e: { name: "loc_189e", role: "[seen] ISR-handshaked attract animation: arm TASK_FLAGS 0x20c1=4, spin ATTRACT_ANIM_ACK 0x2055 bit0 set-then-clear, draw, tail loc_0ab6 (the ISR anim it arms drives object handler 0x050e)", cert: "seen" },
+  0x1815: { name: "drawScoreAdvanceTable", role: "[seen] draw the attract score-advance table: header string + loc_1dbe column script (no delay), then tail typeSecondDrawScript (typed loc_1dcf script)", cert: "seen" },
+  0x1837: { name: "typeSecondDrawScript", role: "[seen] point at the loc_1dcf script and fall into typeDrawScript", cert: "seen" },
+  0x183a: { name: "typeDrawScript", role: "[seen] walk a draw script (fetchNextDrawRecord + typeDrawScriptRecord per record) until the 0xff terminator", cert: "seen" },
+  0x184c: { name: "typeDrawScriptRecord", role: "[seen] type one script record: c = TYPE_PACE_COUNT 0x206c, de/hl from the fetched record -> typePacedSpriteRun", cert: "seen" },
+  0x189e: { name: "runHandshakedAttractAnim", role: "[seen] ISR-handshaked attract animation: arm TASK_FLAGS 0x20c1=4, spin ATTRACT_ANIM_ACK 0x2055 bit0 set-then-clear, draw, tail waitLongDelay (the ISR anim it arms drives object handler 0x050e)", cert: "seen" },
   0x00b1: { name: "loadReferenceAlienState", role: "load the active player's saved field record: mirror the reference-alien coord word to loc_2009/ALIEN_DRAW_ADDR, derive the count at loc_2008, set FLEET_MOVE_DIR on the 0xfe edge sentinel", cert: "seen" },
   0x0100: { name: "drawPendingAlien", role: "draw the pending marching alien: bail to tickAlienExplosionDespawn when PLAYER_SHOT_HIT is set; else if the alien at (ACTIVE_PLAYER_PAGE:ALIEN_DRAW_INDEX) is live, build its sprite from ALIEN_SPRITE_TABLE (id bit0-cleared, rotate-left-3; +0x30 alternate frame via selectAlternateSpriteFrame when loc_2005 is set) and blitShiftedSprite 16 rows at ALIEN_DRAW_ADDR; clears ALIEN_DRAW_PENDING on every non-bail path", cert: "seen" },
   0x01c0: { name: "markAllAliensAliveP1", role: "seat the player-1 alien-status base ALIEN_FIELD_P1 then markAllAliensAlive (fill 0x37 cells with 0x01)", cert: "seen" },
@@ -290,7 +290,7 @@ export const ROUTINES = {
   0x0a59: { name: "isArmTriggerSet", role: "poll [loc_2015] against 0xff and report equality in the Z flag; reads no register, writes no memory", cert: "seen" },
   0x0a5f: { name: "queueInvaderKillScore", role: "if [GAME_IN_PROGRESS]!=0: startSound(0x08), index the 3-entry table via invaderScoreEntryPtr(B), stamp SCORE_ADD_VALUE=table byte / SCORE_ADD_PENDING=0x01 /", cert: "seen" },
   0x0ae2: { name: "loadDrawSequenceBlock", role: "blockCopy the 12-byte draw/animation sequence from (DE) into loc_20c2", cert: "seen" },
-  0x0bf1: { name: "loc_0bf1", role: "pre-round redraw trampoline: run resolveShotAndFleetEdge (fleet edge/direction update) then tail into drawTaitoCopyright", cert: "seen" },
+  0x0bf1: { name: "updateFleetAndDrawCopyright", role: "pre-round redraw trampoline: run resolveShotAndFleetEdge (fleet edge/direction update) then tail into drawTaitoCopyright", cert: "seen" },
   0x1474: { name: "seatBlitPosition", role: "OUT port 2 := L&7 (MB14241 shift offset), then HL := coordToScreenAddr(HL) -- seat the next blit", cert: "seen" },
   0x14cb: { name: "clearScreenStrip", role: "zero A then fillScreenRow(0) -- blank a run of B screen columns from HL; live-out HL", cert: "seen" },
   0x14d8: { name: "resolvePlayerShotHit", role: "resolve a player-shot collision (dispatched while PLAYER_SHOT_STATUS==2): ret unless a hit is latched (PLAYER_SHOT_HIT, which playerShotHandler copies from COLLISION_FLAG); then by the shot Y at loc_2029 either stand down into state 3 + clearShotHitAndSilence (missed off the top), mark the saucer hit + retire the shot (markSaucerHitAndRetireShot, saucer altitude band), or scale the coords to a 55-cell alien-rack index (alienGridCellPtr) and on a live cell kill the alien + queue the invader-die sound/explosion (queueInvaderKillScore), enter state 5, blit, and arm the explosion despawn timer ALIEN_EXPLOSION_TIMER", cert: "seen" },
@@ -302,7 +302,7 @@ export const ROUTINES = {
   0x1618: { name: "advanceRoundState", role: "gated pre-round step: when armed (loc_2015==0xff) and the field is idle, advance ATTRACT_DEMO_PTR (attract) or arm the shot on a fresh fire edge (play, GAME_IN_PROGRESS set)", cert: "seen" },
   0x166b: { name: "loc_166b", role: "the fleetReachedEdge scan's 'found' sentinel (stc; ret): set carry and return true; inline candidate -- fleetReachedEdge already folds this set-carry directly", cert: "seen" },
   0x170e: { name: "selectAlienShotRate", role: "select the alien-shot rate: scan ALIEN_SHOT_RATE_THRESHOLDS for the first entry >= the field-size key, store the parallel ALIEN_SHOT_RATE_TABLE byte to loc_20cf (read by the shot stepper stepAlienShot)", cert: "seen" },
-  0x172c: { name: "loc_172c", role: "mode-gated sound step: PLAYER_SHOT_STATUS!=0 -> startSound(0x02), else clearSoundPort3Bit(0xfd)", cert: "seen" },
+  0x172c: { name: "updatePlayerShotSound", role: "mode-gated sound step: PLAYER_SHOT_STATUS!=0 -> startSound(0x02), else clearSoundPort3Bit(0xfd)", cert: "seen" },
   0x1740: { name: "stepFleetMarchSound", role: "fleet-march sound beat: tick FLEET_SOUND_OFF_TIMER/FLEET_SOUND_TIMER, on beat emit SOUND_PORT5_SHADOW and re-arm, silencing at the edges; set FLEET_SOUND_STEP", cert: "seen" },
   0x1775: { name: "advanceFleetMarchSound", role: "on FLEET_SOUND_STEP, pick the fleet tempo for ALIEN_COUNT from FLEET_RATE_THRESHOLDS/FLEET_RATE_TABLE into FLEET_SOUND_PERIOD and rotate the port-5 fleet tone; tick SFX_OFF_TIMER", cert: "seen" },
   0x1844: { name: "drawSpriteColumn16", role: "draw a fixed 16-row sprite column (row count forced to 0x10) via drawSpriteColumn, preserving BC; live-out HL", cert: "seen" },

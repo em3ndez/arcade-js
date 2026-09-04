@@ -3,7 +3,7 @@
 // tail-jump into the decimal-glyph plotter (DISSOLVED drawDigit -> drawDigit). drawDigit reads HL from m.regs, so
 // the seat rides the outgoing return-write. The only live-out is RAM (the glyph pixels): HL/A are dead in
 // every caller (awardExtraShip reloads via activePlayerFlagPtr/sta; loc_16e6 via clearSoundPort3Bit/loc_1671; loc_166d via loc_1671;
-// decrementShipsAndDrawReadout -> loc_0aea via seedWorkRamImage). Interrupts disabled so the oracle's ticks can't fire a one-sided handler.
+// decrementShipsAndDrawReadout -> runAttractCycle via seedWorkRamImage). Interrupts disabled so the oracle's ticks can't fire a one-sided handler.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1a8b.test.js
 
 import nodeTest from "node:test";

@@ -15,7 +15,7 @@ import { loc_206d, loc_2015, RESERVE_SHIP_ICONS_SCREEN_ADDR } from "./names.js";
 // blank the reserve-ship readout region, zero the lives digit, silence the sound bit, and join the
 // game-over flow. A generator armed as the successor frame flow, never run inside the interrupt body.
 // Memory + IO.
-export function* loc_1971(m) {
+export function* invasionReset(m) {
   m.mem8[loc_206d] = 0x01;
   m.io.setInte(true);
   m.mem8[loc_2015] = 0x00;
