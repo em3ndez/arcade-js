@@ -470,8 +470,18 @@ it is not optional there and not optional here.)
   no own write, OR derivatively once its dispatch cell and handlers are themselves `[seen]` (`routine` mode
   reporting only stack scratch is the signal to check the vectoring, not an automatic `[code]`). What stays
   `[code]` is a role that is NEITHER write-grounded NOR dispatch-grounded — e.g. a writer whose only writes
-  land in cells still `[code]`/contested (it cannot be more grounded than the cells it writes). Enforced at
-  review by `reviewer-rules.md` R38 [U].
+  land in cells still `[code]`/contested (it cannot be more grounded than the cells it writes). A
+  **REGISTER-COMPUTE helper** (a register live-out with no own memory write and no un-validated side effect of
+  its own — no render, no sound, no port-OUTPUT; but a pure side-effect-free INPUT read, i.e. a port IN or a
+  ROM-table read whose result is returned in a register, DOES qualify, since it carries no side effect the
+  consumer cannot confirm) grounds the same derivative way — `[seen]` when it is REACHED and its register output is consumed by a
+  `[seen]` consumer that uses that output for the consumer's own validated (pixel/state) `[seen]` role, so the
+  consumer's confirmed-correct behaviour confirms the helper's output was correct. It stays `[code]` if its
+  only consumer is itself `[code]`, or its output is not actually consumed for a role — a SPECIFIC `[seen]`
+  consumer must be named, never a rubber-stamp for any reached helper (this is how a game with many pure
+  register/pointer helpers grounds them instead of mis-parking a large set in `grounding-debt.txt`, which is
+  reserved for the genuinely un-groundable-on-a-good-ROM residue). Enforced at review by `reviewer-rules.md`
+  R38 [U].
 
 **★★ Ground at SCALE — capture broadly, then ONE mega-fan. NEVER dribble small serial waves.** Grounding
 the whole `[code]` set is a **capture-then-fan pipeline**, and the failure mode (learned the hard way on
