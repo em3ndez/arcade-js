@@ -5,20 +5,26 @@ import { playerShotHandler } from "./playerShotHandler.js";
 import { alienShotSlot2Handler } from "./alienShotSlot2Handler.js";
 import { alienShotSlot3Handler } from "./alienShotSlot3Handler.js";
 import { saucerHandler } from "./saucerHandler.js";
+import { attractAnimHandler } from "./attractAnimHandler.js";
 import {
   GAME_OBJECT_TABLE,
   PLAYER_SHIP_HANDLER_ADDR, PLAYER_SHOT_HANDLER_ADDR,
   ALIEN_SHOT_SLOT2_HANDLER_ADDR, ALIEN_SHOT_SLOT3_HANDLER_ADDR, SAUCER_HANDLER_ADDR,
+  ATTRACT_ANIM_HANDLER_ADDR,
 } from "./names.js";
 
-// The five in-game object records each carry a fixed handler target that is never rewritten, so the
-// walker's computed dispatch is a static map to the idiomatic handlers.
+// The five in-game object records each carry a fixed handler target that is never rewritten. The
+// attract-demo object table (base 0x2050) adds one more: runHandshakedAttractAnim block-copies a fixed
+// descriptor (ROM 0x1bc0, target 0x050e) into 0x2050, and the walker dispatches it every reveal cycle.
+// Every target is a deterministic constant, so the walker's computed dispatch is a static map to the
+// idiomatic handlers.
 const HANDLERS = {
   [PLAYER_SHIP_HANDLER_ADDR]: playerShipHandler,
   [PLAYER_SHOT_HANDLER_ADDR]: playerShotHandler,
   [ALIEN_SHOT_SLOT2_HANDLER_ADDR]: alienShotSlot2Handler,
   [ALIEN_SHOT_SLOT3_HANDLER_ADDR]: alienShotSlot3Handler,
   [SAUCER_HANDLER_ADDR]: saucerHandler,
+  [ATTRACT_ANIM_HANDLER_ADDR]: attractAnimHandler,
 };
 
 // Walk the 16-byte object/timer records from `base`: a first byte of 0xff ends the walk, 0xfe skips the
@@ -46,8 +52,9 @@ export function walkObjectTable(m, base = GAME_OBJECT_TABLE) {
         if (!handler) {
           throw new Error(
             `unexpected object-handler target 0x${target.toString(16).padStart(4, "0")} at record ` +
-              `0x${rec.toString(16).padStart(4, "0")} -- the five in-game handler targets are static; a ` +
-              "non-map target is the entropy-residual attract fork",
+              `0x${rec.toString(16).padStart(4, "0")} -- every object-record handler target (the five ` +
+              "in-game records plus the attract reveal-animation record) is a deterministic constant; a " +
+              "non-map target means the record table was mis-seeded",
           );
         }
         handler(m, u16(rec + 4));

@@ -231,6 +231,13 @@ export const UNWIRED = {
       "the mystery-ship object handler: saucer-mode gated, delegates to alienShotSlot4Handler otherwise; launches, walks, " +
       "and explodes the saucer (hit sound / score award / tone silence) then reloads the record template. " +
       "Direct-called by the idiomatic walkObjectTable walker (runs as JS, dissolved). Not a ROUTINES override.",
+    "attractAnimHandler.js":
+      "the attract-demo object handler (ROM 0x050e) for the ISR-handshaked reveal animation: runHandshakedAttractAnim " +
+      "block-copies its descriptor (ROM 0x1bc0, target 0x050e) into the attract object table at 0x2050, and the " +
+      "walker dispatches it every reveal cycle. 0x050e is the loc_050f body entered one byte early through a `pop h` " +
+      "that only rebalances the walker's pushed record pointer (no RAM/IO effect, dead HL), so it runs the shared body " +
+      "alienShotSlot4Handler. Direct-called by the idiomatic walkObjectTable walker (runs as JS, dissolved). Not a " +
+      "ROUTINES override -- reached only via the object-table dispatch, never m.call.",
     "playerShotHandler.js":
       "object-table type-dispatch handler, the player-shot record: launch, step in flight (erase / advance " +
       "Y / collision redraw), retire animation, and the shared reseed + saucer-key tally. Direct-called by " +

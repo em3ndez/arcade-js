@@ -204,6 +204,7 @@ export const PLAYER_SHOT_HANDLER_ADDR = 0x03bb;       // [seen] record-1 player-
 export const ALIEN_SHOT_SLOT2_HANDLER_ADDR = 0x0476;  // [seen] record-2 alien-shot handler (alienShotSlot2Handler): countdown-gated, no column-cursor (specific alien-shot type pending §5 grounding)
 export const ALIEN_SHOT_SLOT3_HANDLER_ADDR = 0x04b6;  // [seen] record-3 alien-shot handler (alienShotSlot3Handler): column-cursor managed, clamps at 16, self-disables at the last alien (specific alien-shot type pending §5 grounding)
 export const SAUCER_HANDLER_ADDR = 0x0682;            // [seen] record-4 mystery-ship/saucer handler (saucerHandler): delegates to alienShotSlot4Handler (a further alien-shot stepper) in the non-saucer sub-path
+export const ATTRACT_ANIM_HANDLER_ADDR = 0x050e;      // [seen] attract-demo object handler (attractAnimHandler) for the ISR-handshaked reveal animation (credit/high-score attract screen): block-copied into the attract object table at 0x2050 from ROM 0x1bc0 and walker-dispatched; `pop h` entry one byte before the loc_050f body (alienShotSlot4Handler), which it runs to toggle ATTRACT_ANIM_ACK 0x2055 and complete runHandshakedAttractAnim's handshake
 export const loc_1b30 = 0x1b30;
 export const loc_1b32 = 0x1b32;
 export const loc_1b40 = 0x1b40;
