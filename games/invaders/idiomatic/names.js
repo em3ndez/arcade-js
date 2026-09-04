@@ -340,7 +340,7 @@ export const ROUTINES = {
   0x176d: { name: "loc_176d", role: "OUT 5 := mem[SOUND_PORT5_SHADOW] & 0x30 (sound-off helper)", cert: "code" },
   0x1770: { name: "latchSoundPort5", role: "mask A to the two sound-select bits, OUT sound port 5", cert: "code" },
   0x17c0: { name: "readActivePlayerInput", role: "read the player-selected input port into A", cert: "seen" },
-  0x18e7: { name: "loc_18e7", role: "HL := 0x20e7 + bit0 of (0x2067)", cert: "code" },
+  0x18e7: { name: "loc_18e7", role: "HL := 0x20e7 + bit0 of (0x2067)", cert: "seen" },
   0x18f1: { name: "loc_18f1", role: "B := 2, or 3 when (0x2082) == 1", cert: "seen" },
   0x18fa: { name: "startSound", role: "(0x2094) |= B, mirror to sound port, A := result", cert: "seen" },
   0x1910: { name: "loc_1910", role: "HL := loc_20e7 + (bit0 of ACTIVE_PLAYER_PAGE clear ? 1 : 0)", cert: "seen" },
