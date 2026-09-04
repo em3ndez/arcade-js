@@ -18,7 +18,7 @@ import { Machine, resolveAllIdiomatic } from "../machine.js";
 import manifest from "../manifest.js";
 import {
   GAME_ACTIVE, GAME_IN_PROGRESS, ALIEN_COUNT, ACTIVE_PLAYER_PAGE,
-  GAME_OBJECT_TABLE, loc_2011, loc_2012, loc_2015, loc_206d,
+  GAME_OBJECT_TABLE, loc_2011, PLAYER_SHIP_DRAW_PENDING, loc_2015, WARM_RESTART_SUPPRESS,
   PLAYER_SHIP_HANDLER_ADDR,
 } from "../idiomatic/names.js";
 
@@ -120,7 +120,7 @@ test("round/wave advance: the round counter bumps and a fresh fleet reseeds", { 
 // Seat record-0 (base GAME_OBJECT_TABLE) so the next NMI dispatches playerShipHandler AT its death
 // drain-complete step: frame timer (rec+0/1) + gate (rec+2) zero to dispatch now, target 0x028e, animByte
 // (rec+5) != 0xff (death anim, not the alive sentinel), inner (rec+6)=outer (rec+7)=1 so one pass drains
-// the animation -> the ROM consumes the life and arms the next flow. loc_206d (warm-restart suppress) clear.
+// the animation -> the ROM consumes the life and arms the next flow. WARM_RESTART_SUPPRESS (warm-restart suppress) clear.
 const REC = GAME_OBJECT_TABLE;           // 0x2010, record-0 base
 const REC_TARGET_LO = REC + 3;           // 0x2013 handler-target low byte
 const REC_TARGET_HI = REC + 4;           // 0x2014 handler-target high byte (also the recPtr the handler gets)
@@ -129,13 +129,13 @@ const REC_OUTER = REC + 7;               // 0x2017 outer animation counter
 function seatShipDeathDrain(m) {
   m.mem.write8(REC, 0x00);               // frame-timer hi = 0
   m.mem.write8(loc_2011, 0x00);          // frame-timer lo (rec+1) = 0  -> timer drained, dispatch this NMI
-  m.mem.write8(loc_2012, 0x00);          // gate byte (rec+2) = 0        -> dispatch the handler now
+  m.mem.write8(PLAYER_SHIP_DRAW_PENDING, 0x00);          // gate byte (rec+2) = 0        -> dispatch the handler now
   m.mem.write8(REC_TARGET_LO, PLAYER_SHIP_HANDLER_ADDR & 0xff);   // 0x8e
   m.mem.write8(REC_TARGET_HI, (PLAYER_SHIP_HANDLER_ADDR >> 8) & 0xff); // 0x02  -> target 0x028e (player ship)
   m.mem.write8(loc_2015, 0x00);          // animByte (rec+5) != 0xff     -> death animation (not alive/armed)
   m.mem.write8(REC_INNER, 0x01);         // inner timer -> decrements to 0 this pass
   m.mem.write8(REC_OUTER, 0x01);         // outer counter -> decrements to 0 -> animation done, life consumed
-  m.mem.write8(loc_206d, 0x00);          // warm-restart suppress off
+  m.mem.write8(WARM_RESTART_SUPPRESS, 0x00);          // warm-restart suppress off
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────────────

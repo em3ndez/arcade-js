@@ -15,7 +15,7 @@ import { initShieldBuffers } from "../initShieldBuffers.js";
 import { blockCopy } from "../blockCopy.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_1d20 } from "../names.js";
+import { STACK_SCRATCH, SHIELD_TEMPLATE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -65,7 +65,7 @@ test("CRAFTED: four consecutive copies of the source block, HL past the fourth",
     assert.equal(c.regs.hl, o.regs.hl, `HL matches oracle: ${tag}`);
     for (let k = 0; k < 4; k++) {
       for (const j of [0, BLOCK - 1]) {
-        assert.equal(c.mem.read8(hl + k * BLOCK + j), c.mem.read8(loc_1d20 + j),
+        assert.equal(c.mem.read8(hl + k * BLOCK + j), c.mem.read8(SHIELD_TEMPLATE + j),
           `slot ${k} byte ${j}: ${tag}`);
       }
     }
@@ -77,7 +77,7 @@ test("TEETH: a broken twin that never advances the destination is caught", () =>
   // 2-4 unwritten (the real logic advances dst by 0x2c per pass).
   function loc_01f8_broken(m, hl = m.regs.hl) {
     for (let pass = 0; pass < 4; pass++) {
-      blockCopy(m, loc_1d20, hl, BLOCK); // BUG: destination never advances
+      blockCopy(m, SHIELD_TEMPLATE, hl, BLOCK); // BUG: destination never advances
     }
     return (m.regs.hl = hl);
   }

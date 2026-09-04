@@ -12,7 +12,7 @@ import { loc_08d8 as oracle } from "../../translated/loc_08d8.js";
 import { setAlienShotStepWhenFew } from "../setAlienShotStepWhenFew.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, ALIEN_COUNT, loc_207e } from "../names.js";
+import { STACK_SCRATCH, ALIEN_COUNT, ALIEN_SHOT_STEP } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -44,21 +44,21 @@ test("CAPTURE: real 0x08d8 dispatches -- setAlienShotStepWhenFew == oracle in RA
 
 test("CRAFTED: 0x207e seated 0xfb below the threshold, untouched at/above it", () => {
   for (const cnt of [0x00, 0x01, 0x08, 0x09, 0x0a, 0xff]) {
-    const o = new Machine(ROM); o.mem.write8(ALIEN_COUNT, cnt); o.mem.write8(loc_207e, SENTINEL);
-    const c = new Machine(ROM); c.mem.write8(ALIEN_COUNT, cnt); c.mem.write8(loc_207e, SENTINEL);
+    const o = new Machine(ROM); o.mem.write8(ALIEN_COUNT, cnt); o.mem.write8(ALIEN_SHOT_STEP, SENTINEL);
+    const c = new Machine(ROM); c.mem.write8(ALIEN_COUNT, cnt); c.mem.write8(ALIEN_SHOT_STEP, SENTINEL);
     oracle(o); setAlienShotStepWhenFew(c);
     assert.equal(ramDiff(o, c), null, `cnt=0x${cnt.toString(16)}`);
     const expected = cnt < 0x09 ? 0xfb : SENTINEL;
-    assert.equal(c.mem.read8(loc_207e), expected, `0x207e for cnt=0x${cnt.toString(16)}`);
+    assert.equal(c.mem.read8(ALIEN_SHOT_STEP), expected, `0x207e for cnt=0x${cnt.toString(16)}`);
   }
 });
 
 test("TEETH: a wrong stored byte is caught", () => {
-  const brokenLoc08d8 = (m) => { if (m.mem8[ALIEN_COUNT] < 0x09) m.mem8[loc_207e] = 0x5a; }; // BUG: 0x5a
-  const o = new Machine(ROM); o.mem.write8(ALIEN_COUNT, 0x00); o.mem.write8(loc_207e, SENTINEL);
-  const c = new Machine(ROM); c.mem.write8(ALIEN_COUNT, 0x00); c.mem.write8(loc_207e, SENTINEL);
+  const brokenLoc08d8 = (m) => { if (m.mem8[ALIEN_COUNT] < 0x09) m.mem8[ALIEN_SHOT_STEP] = 0x5a; }; // BUG: 0x5a
+  const o = new Machine(ROM); o.mem.write8(ALIEN_COUNT, 0x00); o.mem.write8(ALIEN_SHOT_STEP, SENTINEL);
+  const c = new Machine(ROM); c.mem.write8(ALIEN_COUNT, 0x00); c.mem.write8(ALIEN_SHOT_STEP, SENTINEL);
   oracle(o); brokenLoc08d8(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stored byte");
-  assert.equal(d.addr, loc_207e & 0xffff);
+  assert.equal(d.addr, ALIEN_SHOT_STEP & 0xffff);
 });

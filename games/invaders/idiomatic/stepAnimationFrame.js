@@ -3,7 +3,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { advanceRecordTotals } from "./advanceRecordTotals.js";
 import { loadSpriteDescriptor } from "./loadSpriteDescriptor.js";
 import { blitShiftedSprite } from "./blitShiftedSprite.js";
-import { loc_20c2, ANIM_COORD_STEP_LO, ANIM_SPRITE_COORD, ANIM_SPRITE_SRC, ANIM_END_COORD, ANIM_DONE_FLAG, ANIM_BASE_SPRITE_SRC } from "./names.js";
+import { ANIM_FRAME_COUNTER, ANIM_COORD_STEP_LO, ANIM_SPRITE_COORD, ANIM_SPRITE_SRC, ANIM_END_COORD, ANIM_DONE_FLAG, ANIM_BASE_SPRITE_SRC } from "./names.js";
 
 // stepAnimationFrame — advance one frame of a scripted sprite animation and draw it.
 //
@@ -15,7 +15,7 @@ import { loc_20c2, ANIM_COORD_STEP_LO, ANIM_SPRITE_COORD, ANIM_SPRITE_SRC, ANIM_
 //   across the display" animation (e.g. the demo alien/saucer glide).
 //
 // ROLE IN THE MACHINE
-//   State lives in a small block of work RAM. loc_20c2 (0x20c2) is the frame counter. advanceRecordTotals
+//   State lives in a small block of work RAM. ANIM_FRAME_COUNTER (0x20c2) is the frame counter. advanceRecordTotals
 //   folds the step byte at ANIM_COORD_STEP_LO (0x20c3) into the two-byte coordinate accumulator whose low
 //   byte is ANIM_SPRITE_COORD (0x20c5): it adds the step into 0x20c5 and the record's delta byte into the
 //   high byte 0x20c6, returning that high total. When that total equals ANIM_END_COORD (0x20ca) the glide
@@ -32,7 +32,7 @@ import { loc_20c2, ANIM_COORD_STEP_LO, ANIM_SPRITE_COORD, ANIM_SPRITE_SRC, ANIM_
 export function stepAnimationFrame(m) {
   // Advance the frame counter. Its bit 2 (below) is what times the two-pose alternation, so it is stepped
   // every frame whether or not the animation is finished.
-  m.mem8[loc_20c2] = u8(m.mem8[loc_20c2] + 1);
+  m.mem8[ANIM_FRAME_COUNTER] = u8(m.mem8[ANIM_FRAME_COUNTER] + 1);
   // Glide the coordinate: advanceRecordTotals adds the step byte (passed as C, read from 0x20c3) into the
   // coordinate's low byte at ANIM_SPRITE_COORD (0x20c5) and the record delta into the high byte (0x20c6),
   // returning that high total — the progress measure this animation runs on.
@@ -46,7 +46,7 @@ export function stepAnimationFrame(m) {
   // Pick this frame's graphic: start from the base sprite source, and while counter bit 2 is clear add
   // 0x30 to reach the alternate-pose bank — so the sprite flips between its two frames every four steps.
   let dst = m.mem16[ANIM_BASE_SPRITE_SRC];
-  if ((m.mem8[loc_20c2] & 0x04) === 0) dst = u16(dst + 0x30);
+  if ((m.mem8[ANIM_FRAME_COUNTER] & 0x04) === 0) dst = u16(dst + 0x30);
   // Publish the chosen source pointer into the descriptor's source field so the decode below reads it.
   m.mem16[ANIM_SPRITE_SRC] = dst;
   // Decode the five-byte descriptor at ANIM_SPRITE_COORD: descHl is the sprite SOURCE pointer (the C:A

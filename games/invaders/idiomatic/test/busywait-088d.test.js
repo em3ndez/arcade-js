@@ -13,7 +13,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { Machine } from "../../machine.js";
 import { showRoundStartSplash } from "../showRoundStartSplash.js";
-import { FRAME_DELAY_TIMER, ACTIVE_PLAYER_PAGE, PLAYER1_OBJ_DESC, loc_271c, loc_2b11 } from "../names.js";
+import { FRAME_DELAY_TIMER, ACTIVE_PLAYER_PAGE, PLAYER1_OBJ_DESC, PLAYER1_SCORE_STRIP_VRAM, ROUND_START_SPLASH_VRAM } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -45,15 +45,15 @@ test("round-start splash: 0xb0-frame spin drains the counter and the per-frame d
   m.mem.write8(PLAYER1_OBJ_DESC + 3, 0x2a);
 
   // Pre-fill the strip the bit-2 branch blanks, so the clear is observable.
-  m.mem.write8(loc_271c, 0xff);
-  m.mem.write8(loc_271c + 0x20, 0xff);
+  m.mem.write8(PLAYER1_SCORE_STRIP_VRAM, 0xff);
+  m.mem.write8(PLAYER1_SCORE_STRIP_VRAM + 0x20, 0xff);
 
   const frames = driveToDone(showRoundStartSplash(m), m);
 
   assert.equal(frames, 0xb0, "spin length is the 0xb0-frame seed");
   assert.equal(m.mem.read8(FRAME_DELAY_TIMER), 0, "counter drained to zero");
-  assert.equal(m.mem.read8(loc_271c), 0, "strip-clear pass zeroed the strip base");
-  assert.equal(m.mem.read8(loc_271c + 0x20), 0, "strip-clear pass zeroed the next strip column");
+  assert.equal(m.mem.read8(PLAYER1_SCORE_STRIP_VRAM), 0, "strip-clear pass zeroed the strip base");
+  assert.equal(m.mem.read8(PLAYER1_SCORE_STRIP_VRAM + 0x20), 0, "strip-clear pass zeroed the next strip column");
 
   // The bit-2-clear pass repaints the seated score; its first glyph lands down the 8-row column at 0x2a01.
   let scoreTouched = false;
@@ -62,7 +62,7 @@ test("round-start splash: 0xb0-frame spin drains the counter and the per-frame d
 
   // The fixed sprite row was painted at the start.
   let rowTouched = false;
-  for (let i = 0; i < 8; i++) if (m.mem.read8(loc_2b11 + i * 0x20) !== 0) rowTouched = true;
+  for (let i = 0; i < 8; i++) if (m.mem.read8(ROUND_START_SPLASH_VRAM + i * 0x20) !== 0) rowTouched = true;
   assert.ok(rowTouched, "opening sprite row was painted");
 });
 

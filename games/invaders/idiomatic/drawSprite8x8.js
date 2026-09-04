@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_1e00 } from "./names.js";
+import { SPRITE_BITMAP_TABLE } from "./names.js";
 import { drawSpriteColumn } from "./drawSpriteColumn.js";
 
 /**
@@ -12,8 +12,8 @@ import { drawSpriteColumn } from "./drawSpriteColumn.js";
  *   an 8-row (byte-aligned) column into video RAM at HL.
  *
  * ROLE IN THE MACHINE
- *   Sprite bitmaps sit in an 8-byte-per-entry table based at loc_1e00 (0x1e00), so id A's source is at
- *   loc_1e00 + 8*A. Writing A to output port 0x06 kicks the mw8080bw watchdog (any write resets it); A
+ *   Sprite bitmaps sit in an 8-byte-per-entry table based at SPRITE_BITMAP_TABLE (0x1e00), so id A's source is at
+ *   SPRITE_BITMAP_TABLE + 8*A. Writing A to output port 0x06 kicks the mw8080bw watchdog (any write resets it); A
  *   lands there only because it still holds the sprite id — port 0x06 is not a shifter control (the
  *   shifter's alignment offset goes to port 0x02, via seatBlitPosition). The actual pixels go down
  *   through drawSpriteColumn (0x1439) as one byte wide by eight rows
@@ -26,8 +26,8 @@ import { drawSpriteColumn } from "./drawSpriteColumn.js";
  * LIVE-OUT: HL (advanced one glyph cell down the screen by the drawSpriteColumn tail).
  */
 export function drawSprite8x8(m, a = m.regs.a, hl = m.regs.hl) {
-  // Resolve sprite id A to its 8-byte source: the glyph table is 8 bytes per entry based at loc_1e00.
-  const src = u16(loc_1e00 + 8 * a);
+  // Resolve sprite id A to its 8-byte source: the glyph table is 8 bytes per entry based at SPRITE_BITMAP_TABLE.
+  const src = u16(SPRITE_BITMAP_TABLE + 8 * a);
 
   // Kick the hardware watchdog on output port 0x06 (any write resets it; the value written, the sprite id still in A, is immaterial).
   m.io.portOut(0x06, a);

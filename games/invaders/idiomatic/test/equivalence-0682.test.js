@@ -32,8 +32,8 @@ import { awardSaucerScore } from "../awardSaucerScore.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_2080, loc_2083, loc_2056, SAUCER_ACTIVE, ALIEN_COUNT, loc_208a, loc_208c,
-  SAUCER_HIT, loc_2086, loc_2087, DRAW_PHASE_FLAG, SAUCER_SCORE_KEY_PTR, loc_2069, TASK_FLAGS,
+  STACK_SCRATCH, loc_2080, loc_2083, loc_2056, SAUCER_ACTIVE, ALIEN_COUNT, loc_208a, SAUCER_STEP_DX,
+  SAUCER_HIT, loc_2086, loc_2087, DRAW_PHASE_FLAG, SAUCER_SCORE_KEY_PTR, SHIP_READY_FLAG, TASK_FLAGS,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -82,7 +82,7 @@ function craft(seed) {
 // case does bounded, blit-free work identical on both sides.
 function stepIdle(m) {
   for (let a = 0x2055; a < 0x2060; a++) m.mem.write8(a, 0x00);
-  m.mem.write8(loc_2069, 0x00);
+  m.mem.write8(SHIP_READY_FLAG, 0x00);
   m.mem.write8(TASK_FLAGS, 0x00);
 }
 
@@ -103,7 +103,7 @@ function saucerCommon(m) {
   m.mem.write8(loc_2056, 0x00);
   m.mem.write8(DRAW_PHASE_FLAG, 0x00); // matches loc_208a bit7 clear (0x50)
   saucerDescriptor(m);
-  m.mem.write8(loc_208c, 0x02);        // saucer step
+  m.mem.write8(SAUCER_STEP_DX, 0x02);        // saucer step
 }
 
 test("CRAFTED: branches leave identical RAM (-stack)", () => {
@@ -157,7 +157,7 @@ function saucerHandler_droppedLaunch(m) {
   }
   if (!objectMatchesDrawPhase(m, loc_208a)) return;
   if (m.mem8[SAUCER_HIT] === 0) {
-    m.mem8[loc_208a] = u8(m.mem8[loc_208a] + m.mem8[loc_208c]);
+    m.mem8[loc_208a] = u8(m.mem8[loc_208a] + m.mem8[SAUCER_STEP_DX]);
     drawSaucerSprite(m);
     const x = m.mem8[loc_208a];
     if (x >= 40 && x < 225) return;

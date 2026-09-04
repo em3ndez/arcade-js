@@ -21,8 +21,8 @@ import { updateFleetAndDrawCopyright } from "./updateFleetAndDrawCopyright.js";
 import { isArmTriggerSet } from "./isArmTriggerSet.js";
 import { finishAttractCycle } from "./finishAttractCycle.js";
 import {
-  SCREEN_MODE_TOGGLE, TASK_FLAGS, PLAYER_SHOT_STATUS, loc_21ff,
-  loc_3017, loc_1dab, loc_1cfa, loc_1daf, loc_1a95, loc_1bb0, loc_1fc9, loc_33b7,
+  SCREEN_MODE_TOGGLE, TASK_FLAGS, PLAYER_SHOT_STATUS, PLAYER1_SHIP_COUNT,
+  ATTRACT_HEADING_SCREEN_ADDR, ATTRACT_PLAY_HEADING_TEXT, ATTRACT_SCREEN0_HEADING_SRC, SPACE_INVADERS_TITLE_TEXT, ATTRACT_REVEAL_BLOCK_1, loc_1bb0, loc_1fc9, ATTRACT_REVEAL_CLEAR_SCREEN_ADDR,
 } from "./names.js";
 
 /**
@@ -61,14 +61,14 @@ export function* runAttractCycle(m) {
   yield* waitShortDelay(m);
 
   // Type this screen's heading, then its body block.
-  // SCREEN_MODE_TOGGLE selects the heading text source; both branches type a 4-glyph run to loc_3017.
+  // SCREEN_MODE_TOGGLE selects the heading text source; both branches type a 4-glyph run to ATTRACT_HEADING_SCREEN_ADDR.
   if (m.mem8[SCREEN_MODE_TOGGLE] !== 0) {
-    yield* typePacedSpriteRun(m, loc_1dab, 0x04, loc_3017);
+    yield* typePacedSpriteRun(m, ATTRACT_PLAY_HEADING_TEXT, 0x04, ATTRACT_HEADING_SCREEN_ADDR);
   } else {
-    yield* typePacedSpriteRun(m, loc_1cfa, 0x04, loc_3017); // both branches leave the source positioned for the block below
+    yield* typePacedSpriteRun(m, ATTRACT_SCREEN0_HEADING_SRC, 0x04, ATTRACT_HEADING_SCREEN_ADDR); // both branches leave the source positioned for the block below
   }
   // Type the attract body block, pause, draw the score-advance ("=? points") table, and pause longer.
-  yield* typeAttractBlock(m, loc_1daf);
+  yield* typeAttractBlock(m, SPACE_INVADERS_TITLE_TEXT);
   yield* waitShortDelay(m);
   yield* drawScoreAdvanceTable(m);
   yield* waitLongDelay(m);
@@ -77,20 +77,20 @@ export function* runAttractCycle(m) {
   // Each loadDrawSequenceBlock stages a draw script; runAttractAnimTask arms the ISR anim task and waits
   // on the ANIM_DONE_FLAG handshake before the next reveal.
   if (m.mem8[SCREEN_MODE_TOGGLE] === 0) {
-    loadDrawSequenceBlock(m, loc_1a95); yield* runAttractAnimTask(m);
+    loadDrawSequenceBlock(m, ATTRACT_REVEAL_BLOCK_1); yield* runAttractAnimTask(m);
     loadDrawSequenceBlock(m, loc_1bb0); yield* runAttractAnimTask(m);
     yield* waitShortDelay(m);
     loadDrawSequenceBlock(m, loc_1fc9); yield* runAttractAnimTask(m);
     yield* waitShortDelay(m);
-    clearScreenStrip(m, 0x0a, loc_33b7);
+    clearScreenStrip(m, 0x0a, ATTRACT_REVEAL_CLEAR_SCREEN_ADDR);
     yield* waitLongDelay(m);
   }
 
   // Clear the playfield (preserving the score band and status strip), then seed the reserve-ship count
-  // from the ships dip switch exactly once (loc_21ff is the starting-ships latch), painting its readout.
+  // from the ships dip switch exactly once (PLAYER1_SHIP_COUNT is the starting-ships latch), painting its readout.
   clearPlayfield(m);
-  if (m.mem8[loc_21ff] === 0) { // seed the reserve-ship count once
-    m.mem8[loc_21ff] = readStartingShips(m);
+  if (m.mem8[PLAYER1_SHIP_COUNT] === 0) { // seed the reserve-ship count once
+    m.mem8[PLAYER1_SHIP_COUNT] = readStartingShips(m);
     decrementShipsAndDrawReadout(m);
   }
 

@@ -21,8 +21,8 @@ import { blockCopy } from "../blockCopy.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, ATTRACT_ANIM_ACK, loc_2046, loc_2070, loc_2036, loc_2071,
-  loc_2069, TASK_FLAGS, loc_2076, loc_1b58, ALIEN_SHOT_BLOWUP_TIMER, loc_1b50, loc_2050, loc_2058,
+  STACK_SCRATCH, ATTRACT_ANIM_ACK, loc_2046, ALIEN_SHOT_RATE_GATE0, loc_2036, ALIEN_SHOT_RATE_GATE_1,
+  SHIP_READY_FLAG, TASK_FLAGS, ALIEN_SHOT_COLUMN_CURSOR, loc_1b58, ALIEN_SHOT_BLOWUP_TIMER, ALIEN_SHOT_RECORD_TEMPLATE, ATTRACT_OBJECT_TABLE, ALIEN_SHOT4_COLUMN_CURSOR,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -69,9 +69,9 @@ function craft(extra) {
   m.mem.write16(0x2400, 0xabcd);
   m.io.setInte(false);
   for (let a = ATTRACT_ANIM_ACK; a < ATTRACT_ANIM_ACK + 0x0b; a++) m.mem.write8(a, 0x00);
-  m.mem.write8(ATTRACT_ANIM_ACK + 3, 0x05); // -> loc_2076 (column low) = 5, below the clamp threshold
+  m.mem.write8(ATTRACT_ANIM_ACK + 3, 0x05); // -> ALIEN_SHOT_COLUMN_CURSOR (column low) = 5, below the clamp threshold
   m.mem.write8(ATTRACT_ANIM_ACK + 4, 0x12); // -> loc_2077 (column high) = 0x12, so the stow word is nonzero
-  m.mem.write8(loc_2069, 0x00);
+  m.mem.write8(SHIP_READY_FLAG, 0x00);
   m.mem.write8(TASK_FLAGS, 0x00);
   if (extra) extra(m);
   return m;
@@ -87,13 +87,13 @@ test("CRAFTED: the template-blit + column-stow branch leaves identical RAM (-sta
 // mutant reproduces the real branch through the shared callees but DROPS the final column-stow store.
 function alienShotSlot4Handler_droppedStow(m) {
   copyRecordToWorkBuffer(m, 0xdb, ATTRACT_ANIM_ACK);
-  m.mem8[loc_2070] = m.mem8[loc_2046];
-  m.mem8[loc_2071] = m.mem8[loc_2036];
+  m.mem8[ALIEN_SHOT_RATE_GATE0] = m.mem8[loc_2046];
+  m.mem8[ALIEN_SHOT_RATE_GATE_1] = m.mem8[loc_2036];
   stepAlienShot(m);
-  if (m.mem8[loc_2076] >= 21) m.mem8[loc_2076] = m.mem8[loc_1b58];
+  if (m.mem8[ALIEN_SHOT_COLUMN_CURSOR] >= 21) m.mem8[ALIEN_SHOT_COLUMN_CURSOR] = m.mem8[loc_1b58];
   if (m.mem8[ALIEN_SHOT_BLOWUP_TIMER] !== 0) return copyWorkBufferToRecord(m, ATTRACT_ANIM_ACK);
-  blockCopy(m, loc_1b50, loc_2050, 16);
-  // BUG: dropped `m.mem16[loc_2058] = m.mem16[loc_2076];`
+  blockCopy(m, ALIEN_SHOT_RECORD_TEMPLATE, ATTRACT_OBJECT_TABLE, 16);
+  // BUG: dropped `m.mem16[ALIEN_SHOT4_COLUMN_CURSOR] = m.mem16[ALIEN_SHOT_COLUMN_CURSOR];`
 }
 
 test("TEETH: a twin that skips the column-stow store diverges in RAM", () => {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { GAME_OBJECT_TABLE, loc_2011, loc_2015, loc_201d, PLAYER_SHOT_STATUS, FIRE_BUTTON_LATCH, ATTRACT_DEMO_PTR, GAME_IN_PROGRESS } from "./names.js";
+import { GAME_OBJECT_TABLE, loc_2011, loc_2015, DEMO_SHIP_DIR, PLAYER_SHOT_STATUS, FIRE_BUTTON_LATCH, ATTRACT_DEMO_PTR, GAME_IN_PROGRESS } from "./names.js";
 import { readActivePlayerInput } from "./readActivePlayerInput.js";
 
 /**
@@ -41,7 +41,7 @@ export function advanceRoundState(m) {
     const lo = ptr & 0xff;
     if (lo >= 0x7e) ptr = ptr - lo + 0x74; // wrap the low byte back to the start of the march window
     m.mem16[ATTRACT_DEMO_PTR] = ptr;
-    m.mem8[loc_201d] = m.mem8[ptr];
+    m.mem8[DEMO_SHIP_DIR] = m.mem8[ptr];
     return;
   }
 

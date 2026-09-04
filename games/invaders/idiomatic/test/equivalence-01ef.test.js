@@ -14,7 +14,7 @@ import { initPlayer1ShieldBuffers } from "../initPlayer1ShieldBuffers.js";
 import { initShieldBuffers } from "../initShieldBuffers.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_1d20 } from "../names.js";
+import { STACK_SCRATCH, SHIELD_TEMPLATE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -63,7 +63,7 @@ test("CRAFTED: four copies of the template from the player-1 base, HL past the f
     assert.equal(c.regs.hl, o.regs.hl, `HL matches oracle: ${tag}`);
     for (let k = 0; k < 4; k++) {
       for (const j of [0, BLOCK - 1]) {
-        assert.equal(c.mem.read8(BASE + k * BLOCK + j), c.mem.read8(loc_1d20 + j),
+        assert.equal(c.mem.read8(BASE + k * BLOCK + j), c.mem.read8(SHIELD_TEMPLATE + j),
           `slot ${k} byte ${j}: ${tag}`);
       }
     }

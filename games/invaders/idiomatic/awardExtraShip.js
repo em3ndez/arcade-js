@@ -21,9 +21,9 @@ import { LIVES_DIGIT_SCREEN_ADDR, RESERVE_SHIP_SPRITE, SFX_OFF_TIMER } from "./n
  *
  * ROLE IN THE MACHINE
  *   Called once per frame from the in-game main loop (mainLoop). The per-player "extra ship still
- *   available" flag lives in the loc_20e5 pair (one byte per player); activePlayerFlagPtr returns the
+ *   available" flag lives in the EXTRA_SHIP_AWARD_FLAG pair (one byte per player); activePlayerFlagPtr returns the
  *   loc_20e7 pair slot for the active player, and this routine reads/writes two bytes below it
- *   (flagPtr - 2 -> the matching loc_20e5-pair byte). The bonus threshold is read live from input
+ *   (flagPtr - 2 -> the matching EXTRA_SHIP_AWARD_FLAG-pair byte). The bonus threshold is read live from input
  *   port 2 bit 3 (the bonus-score dip): set selects 0x10 (BCD 1000), clear selects 0x15 (BCD 1500).
  *   The score compared against it is the high byte of the active player's BCD score, i.e. the second
  *   byte of the descriptor from currentPlayerRecordPtr (PLAYER1_OBJ_DESC / PLAYER2_OBJ_DESC — the
@@ -41,7 +41,7 @@ import { LIVES_DIGIT_SCREEN_ADDR, RESERVE_SHIP_SPRITE, SFX_OFF_TIMER } from "./n
  */
 export function awardExtraShip(m) {
   // Gate 1 — has this player already collected the bonus ship? activePlayerFlagPtr hands back the
-  // active player's loc_20e7-pair slot; two bytes below it is the matching loc_20e5-pair byte, the
+  // active player's loc_20e7-pair slot; two bytes below it is the matching EXTRA_SHIP_AWARD_FLAG-pair byte, the
   // "extra ship not yet awarded" flag (startGameFlow seeds it to 1). Zero means already awarded: bail.
   const flagPtr = activePlayerFlagPtr(m);
   if (m.mem8[flagPtr - 2] === 0) return;

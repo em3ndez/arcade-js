@@ -4,7 +4,7 @@ import { advanceRecordTotals } from "./advanceRecordTotals.js";
 import { invasionReset } from "./invasionReset.js";
 import {
   ALIEN_DRAW_PENDING, ALIEN_DRAW_INDEX, ALIEN_DRAW_ADDR, ACTIVE_PLAYER_PAGE,
-  FLEET_STEP_DY, loc_2004, loc_2005, loc_2068, loc_206d,
+  FLEET_STEP_DY, loc_2004, ALIEN_MARCH_FRAME_TOGGLE, FLEET_MARCH_ENABLE, WARM_RESTART_SUPPRESS,
 } from "./names.js";
 
 /**
@@ -20,12 +20,12 @@ import {
  *
  * ROLE IN THE MACHINE
  *   The mid-frame counterpart to drawPendingAlien (which does the actual blit in the other raster half).
- *   Reads/writes: the march enable/gate loc_2068 (clear = do nothing this frame), the draw handoff flag
+ *   Reads/writes: the march enable/gate FLEET_MARCH_ENABLE (clear = do nothing this frame), the draw handoff flag
  *   ALIEN_DRAW_PENDING (0x2000), the active-player page selector ACTIVE_PLAYER_PAGE (0x2067), the scan
  *   cursor ALIEN_DRAW_INDEX (0x2006), the per-pass vertical drop FLEET_STEP_DY (0x2007), the reference
  *   record it folds totals into (via advanceRecordTotals over FLEET_STEP_DY, i.e. loc_2009/loc_200a), the
- *   frame-alternate bit loc_2005, the resolved draw coordinate ALIEN_DRAW_ADDR (0x200b), the row-span latch
- *   loc_2004, and the warm-restart suppress flag loc_206d. The liveness grid byte at (page<<8 | index)
+ *   frame-alternate bit ALIEN_MARCH_FRAME_TOGGLE, the resolved draw coordinate ALIEN_DRAW_ADDR (0x200b), the row-span latch
+ *   loc_2004, and the warm-restart suppress flag WARM_RESTART_SUPPRESS. The liveness grid byte at (page<<8 | index)
  *   reads 0x01 while that alien is alive. See mechanisms.md "The alien field and its march".
  *
  * Grounding: [seen] (mechanisms.md tags ALIEN_DRAW_PENDING/ALIEN_DRAW_ADDR [seen]; the descend-limit
@@ -34,8 +34,8 @@ import {
  * LIVE-OUT: memory only. May set m.nextMain (arming invasionReset as the next main flow) instead of drawing.
  */
 export function pickNextMarchingAlien(m) {
-  // Gate 1: the march must be enabled (loc_2068 nonzero). While clear, the fleet is frozen -- return.
-  if (m.mem8[loc_2068] === 0) return;
+  // Gate 1: the march must be enabled (FLEET_MARCH_ENABLE nonzero). While clear, the fleet is frozen -- return.
+  if (m.mem8[FLEET_MARCH_ENABLE] === 0) return;
   // Gate 2: never pick a new alien while the previous pick is still awaiting its blit -- the draw pass
   // clears ALIEN_DRAW_PENDING once it has painted, which is what frees this scan to advance again.
   if (m.mem8[ALIEN_DRAW_PENDING] !== 0) return;
@@ -60,7 +60,7 @@ export function pickNextMarchingAlien(m) {
       m.mem8[FLEET_STEP_DY] = 0x00;
       advanceRecordTotals(m, FLEET_STEP_DY, carry);
       // Toggle the two-frame walk-cycle bit so aliens flip between their two poses each pass.
-      m.mem8[loc_2005] = (m.mem8[loc_2005] + 1) & 0x01;
+      m.mem8[ALIEN_MARCH_FRAME_TOGGLE] = (m.mem8[ALIEN_MARCH_FRAME_TOGGLE] + 1) & 0x01;
       // Re-read the page (the active player can change) and restart the index at the grid base.
       page = m.mem8[ACTIVE_PLAYER_PAGE];
       index = 0x00;
@@ -78,9 +78,9 @@ export function pickNextMarchingAlien(m) {
   m.mem16[ALIEN_DRAW_ADDR] = (col << 8) | row;
   // Descend limit: if this alien has reached the bottom band (row < 0x28), the invasion has succeeded --
   // arm the round-ending warm restart as the next main flow, unless a reset is already in progress
-  // (loc_206d set). Either way, do not draw this alien.
+  // (WARM_RESTART_SUPPRESS set). Either way, do not draw this alien.
   if (row < 0x28) {
-    if (m.mem8[loc_206d] === 0) m.nextMain = () => invasionReset(m);
+    if (m.mem8[WARM_RESTART_SUPPRESS] === 0) m.nextMain = () => invasionReset(m);
     return;
   }
   // Normal case: latch the alien's row span and raise ALIEN_DRAW_PENDING to hand the blit to drawPendingAlien.

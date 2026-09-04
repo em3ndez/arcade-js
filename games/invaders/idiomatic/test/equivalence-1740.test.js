@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for stepFleetMarchSound (ROM 0x1740) -- the per-frame shot-sound step. Ticks the FLEET_SOUND_OFF_TIMER
-// burst timer (calling the sound-off helper silenceFleetMarchNote at zero), bails unless loc_2068 is set, ticks
+// burst timer (calling the sound-off helper silenceFleetMarchNote at zero), bails unless FLEET_MARCH_ENABLE is set, ticks
 // FLEET_SOUND_TIMER, emits SOUND_PORT5_SHADOW to port 5, and when ALIEN_COUNT is set re-seeds FLEET_SOUND_TIMER from
 // FLEET_SOUND_PERIOD and reloads FLEET_SOUND_OFF_TIMER=4. A and flags are dead (serviceVblankObjects reloads A on fall-through), so the
 // live-out is memory + the port-5 writes. silenceFleetMarchNote is a dissolved direct call. The oracle's `cz` pushes
@@ -15,7 +15,7 @@ import { loc_1740 as oracle } from "../../translated/loc_1740.js";
 import { stepFleetMarchSound } from "../stepFleetMarchSound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, FLEET_SOUND_OFF_TIMER, loc_2068, FLEET_SOUND_TIMER, FLEET_SOUND_PERIOD, FLEET_SOUND_STEP, SOUND_PORT5_SHADOW, ALIEN_COUNT } from "../names.js";
+import { STACK_SCRATCH, FLEET_SOUND_OFF_TIMER, FLEET_MARCH_ENABLE, FLEET_SOUND_TIMER, FLEET_SOUND_PERIOD, FLEET_SOUND_STEP, SOUND_PORT5_SHADOW, ALIEN_COUNT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -73,7 +73,7 @@ test("CRAFTED: each arm matches the oracle in RAM and port writes", () => {
   for (const s of cases) {
     const seed = (m) => {
       m.regs.sp = 0x2400;
-      m.mem.write8(FLEET_SOUND_OFF_TIMER, s.b209b); m.mem.write8(loc_2068, s.b2068); m.mem.write8(FLEET_SOUND_TIMER, s.b2096);
+      m.mem.write8(FLEET_SOUND_OFF_TIMER, s.b209b); m.mem.write8(FLEET_MARCH_ENABLE, s.b2068); m.mem.write8(FLEET_SOUND_TIMER, s.b2096);
       m.mem.write8(ALIEN_COUNT, s.b2082); m.mem.write8(FLEET_SOUND_PERIOD, s.b2097); m.mem.write8(SOUND_PORT5_SHADOW, s.b2098);
     };
     const o = new Machine(ROM); seed(o);
@@ -87,7 +87,7 @@ test("CRAFTED: each arm matches the oracle in RAM and port writes", () => {
   // The full-path arm must have reseeded FLEET_SOUND_TIMER from FLEET_SOUND_PERIOD and reloaded FLEET_SOUND_OFF_TIMER.
   const seed = (m) => {
     m.regs.sp = 0x2400;
-    m.mem.write8(FLEET_SOUND_OFF_TIMER, 0x02); m.mem.write8(loc_2068, 0x01); m.mem.write8(FLEET_SOUND_TIMER, 0x01);
+    m.mem.write8(FLEET_SOUND_OFF_TIMER, 0x02); m.mem.write8(FLEET_MARCH_ENABLE, 0x01); m.mem.write8(FLEET_SOUND_TIMER, 0x01);
     m.mem.write8(ALIEN_COUNT, 0x01); m.mem.write8(FLEET_SOUND_PERIOD, 0x55); m.mem.write8(SOUND_PORT5_SHADOW, 0x33);
   };
   const c = new Machine(ROM); seed(c);
@@ -102,7 +102,7 @@ test("TEETH: a broken twin that reloads the wrong burst count diverges in RAM", 
   function loc_1740_broken(m) {
     m.mem8[FLEET_SOUND_OFF_TIMER] = m.mem8[FLEET_SOUND_OFF_TIMER] - 1;
     if (m.mem8[FLEET_SOUND_OFF_TIMER] === 0) { /* cz elided by construction is fine; the full-path seed skips it */ }
-    if (m.mem8[loc_2068] === 0) return;
+    if (m.mem8[FLEET_MARCH_ENABLE] === 0) return;
     m.mem8[FLEET_SOUND_TIMER] = m.mem8[FLEET_SOUND_TIMER] - 1;
     if (m.mem8[FLEET_SOUND_TIMER] !== 0) return;
     m.io.portOut(0x05, m.mem8[SOUND_PORT5_SHADOW]);
@@ -113,7 +113,7 @@ test("TEETH: a broken twin that reloads the wrong burst count diverges in RAM", 
   }
   const seed = (m) => {
     m.regs.sp = 0x2400;
-    m.mem.write8(FLEET_SOUND_OFF_TIMER, 0x02); m.mem.write8(loc_2068, 0x01); m.mem.write8(FLEET_SOUND_TIMER, 0x01);
+    m.mem.write8(FLEET_SOUND_OFF_TIMER, 0x02); m.mem.write8(FLEET_MARCH_ENABLE, 0x01); m.mem.write8(FLEET_SOUND_TIMER, 0x01);
     m.mem.write8(ALIEN_COUNT, 0x01); m.mem.write8(FLEET_SOUND_PERIOD, 0x55); m.mem.write8(SOUND_PORT5_SHADOW, 0x33);
   };
   const o = new Machine(ROM); seed(o);

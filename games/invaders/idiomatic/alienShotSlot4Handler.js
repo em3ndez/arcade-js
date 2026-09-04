@@ -4,8 +4,8 @@ import { stepAlienShot } from "./stepAlienShot.js";
 import { copyWorkBufferToRecord } from "./copyWorkBufferToRecord.js";
 import { blockCopy } from "./blockCopy.js";
 import {
-  ATTRACT_ANIM_ACK, loc_2046, loc_2070, loc_2036, loc_2071, loc_2076, loc_1b58,
-  ALIEN_SHOT_BLOWUP_TIMER, loc_1b50, loc_2050, loc_2058,
+  ATTRACT_ANIM_ACK, loc_2046, ALIEN_SHOT_RATE_GATE0, loc_2036, ALIEN_SHOT_RATE_GATE_1, ALIEN_SHOT_COLUMN_CURSOR, loc_1b58,
+  ALIEN_SHOT_BLOWUP_TIMER, ALIEN_SHOT_RECORD_TEMPLATE, ATTRACT_OBJECT_TABLE, ALIEN_SHOT4_COLUMN_CURSOR,
 } from "./names.js";
 
 /**
@@ -22,12 +22,12 @@ import {
  *   saucer-active window (mechanisms.md, object-record handlers). Its body (ROM loc_050f) is ALSO the
  *   fall-through target of the attract-demo object handler at 0x050e (a `pop h` entry one byte before
  *   it), so the credit/high-score reveal animation drives it too. What it touches:
- *     - the shared 11-byte work buffer loc_2073 (via copyRecordToWorkBuffer / copyWorkBufferToRecord),
+ *     - the shared 11-byte work buffer OBJECT_WORK_BUFFER (via copyRecordToWorkBuffer / copyWorkBufferToRecord),
  *       lifted from / restored to the record strip starting at 0x2055 (ATTRACT_ANIM_ACK = record+5);
- *     - the per-column rate cells loc_2070 / loc_2071, which stepAlienShot gates the shot cadence on,
+ *     - the per-column rate cells ALIEN_SHOT_RATE_GATE0 / ALIEN_SHOT_RATE_GATE_1, which stepAlienShot gates the shot cadence on,
  *       staged here from the record source cells loc_2046 / loc_2036 (roles not confidently grounded);
- *     - the firing-column cursor loc_2076, clamped against the ROM base loc_1b58;
- *     - the 16-byte ROM record template loc_1b50, block-copied into the record base loc_2050;
+ *     - the firing-column cursor ALIEN_SHOT_COLUMN_CURSOR, clamped against the ROM base loc_1b58;
+ *     - the 16-byte ROM record template ALIEN_SHOT_RECORD_TEMPLATE, block-copied into the record base ATTRACT_OBJECT_TABLE;
  *     - the blowup gate ALIEN_SHOT_BLOWUP_TIMER (0x2078), which selects the restore-vs-reseed path.
  *
  * ROM 0x050f.  Grounding: [seen].
@@ -37,24 +37,24 @@ import {
  */
 export function alienShotSlot4Handler(m) {
   // Lift the object's 11-byte move-record (starting at record+5 = 0x2055) into the shared work buffer
-  // loc_2073 so the stepper can edit it in place; the per-call marker 0xdb is parked into loc_207f
+  // OBJECT_WORK_BUFFER so the stepper can edit it in place; the per-call marker 0xdb is parked into ALIEN_SHOT_SPRITE_FRAME_CEILING
   // (a scratch cell the stepper reads back — the meaning of 0xdb itself is not grounded).
   copyRecordToWorkBuffer(m, 0xdb, ATTRACT_ANIM_ACK);
   // Stage the two per-column rate cells stepAlienShot gates the shot's firing cadence on, copying them
-  // from this record's source cells (loc_2046 -> loc_2070, loc_2036 -> loc_2071).
-  m.mem8[loc_2070] = m.mem8[loc_2046];
-  m.mem8[loc_2071] = m.mem8[loc_2036];
+  // from this record's source cells (loc_2046 -> ALIEN_SHOT_RATE_GATE0, loc_2036 -> ALIEN_SHOT_RATE_GATE_1).
+  m.mem8[ALIEN_SHOT_RATE_GATE0] = m.mem8[loc_2046];
+  m.mem8[ALIEN_SHOT_RATE_GATE_1] = m.mem8[loc_2036];
   // Run the shared alien-shot stepper: it gates on the raster draw-phase, runs the blowup animation,
   // descends the live shot one step and redraws it with collision, or launches a new shot from a column.
   stepAlienShot(m);
   // Wrap the firing-column cursor: once it reaches column 21 reset it to the ROM base at loc_1b58,
   // so the next shot picks a column from the front of the sweep again.
-  if (m.mem8[loc_2076] >= 21) m.mem8[loc_2076] = m.mem8[loc_1b58];
+  if (m.mem8[ALIEN_SHOT_COLUMN_CURSOR] >= 21) m.mem8[ALIEN_SHOT_COLUMN_CURSOR] = m.mem8[loc_1b58];
   // While the shot is still exploding (blowup timer nonzero) leave the record's live strip untouched:
   // just copy the scratch strip back into the record (restore in place) and return.
   if (m.mem8[ALIEN_SHOT_BLOWUP_TIMER] !== 0) return copyWorkBufferToRecord(m, ATTRACT_ANIM_ACK);
-  // Otherwise re-seed the record: blit the 16-byte ROM template band (loc_1b50) over the record base
-  // (loc_2050), then stow the 16-bit firing-column word (loc_2076) into loc_2058 for the next pass.
-  blockCopy(m, loc_1b50, loc_2050, 16);
-  m.mem16[loc_2058] = m.mem16[loc_2076];
+  // Otherwise re-seed the record: blit the 16-byte ROM template band (ALIEN_SHOT_RECORD_TEMPLATE) over the record base
+  // (ATTRACT_OBJECT_TABLE), then stow the 16-bit firing-column word (ALIEN_SHOT_COLUMN_CURSOR) into ALIEN_SHOT4_COLUMN_CURSOR for the next pass.
+  blockCopy(m, ALIEN_SHOT_RECORD_TEMPLATE, ATTRACT_OBJECT_TABLE, 16);
+  m.mem16[ALIEN_SHOT4_COLUMN_CURSOR] = m.mem16[ALIEN_SHOT_COLUMN_CURSOR];
 }

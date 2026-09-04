@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { FLEET_SOUND_OFF_TIMER, loc_2068, FLEET_SOUND_TIMER, FLEET_SOUND_PERIOD, FLEET_SOUND_STEP, SOUND_PORT5_SHADOW, ALIEN_COUNT } from "./names.js";
+import { FLEET_SOUND_OFF_TIMER, FLEET_MARCH_ENABLE, FLEET_SOUND_TIMER, FLEET_SOUND_PERIOD, FLEET_SOUND_STEP, SOUND_PORT5_SHADOW, ALIEN_COUNT } from "./names.js";
 import { silenceFleetMarchNote } from "./silenceFleetMarchNote.js";
 
 /**
@@ -15,14 +15,14 @@ import { silenceFleetMarchNote } from "./silenceFleetMarchNote.js";
  *   Port 5 carries the fleet march; the game keeps its latch in SOUND_PORT5_SHADOW (0x2098) and mirrors
  *   the whole byte out. FLEET_SOUND_OFF_TIMER (0x209b) is the note-off countdown; silenceFleetMarchNote
  *   re-emits only the two high bits (mask 0x30), muting the four low march tones so each step is a
- *   discrete note. loc_2068 is an enable flag (clear -> silence and stop). FLEET_SOUND_TIMER (0x2096)
+ *   discrete note. FLEET_MARCH_ENABLE is an enable flag (clear -> silence and stop). FLEET_SOUND_TIMER (0x2096)
  *   is the beat countdown; on the beat it writes the full shadow (sounding the tone), and — provided
  *   ALIEN_COUNT (0x2082) is nonzero — reloads the beat from FLEET_SOUND_PERIOD (0x2097), sets the
  *   trigger FLEET_SOUND_STEP (0x2095) that tells advanceFleetMarchSound to step pitch/tempo, and arms
  *   the note-off timer to 4. When the last alien is gone the beat plays but nothing re-arms, so the
  *   march goes quiet.
  *
- * ROM 0x1740-...  Grounding: [seen].  (loc_2068 keeps a placeholder name.)
+ * ROM 0x1740-...  Grounding: [seen].
  *
  * LIVE-OUT: memory + the port-5 sound latch.
  */
@@ -31,7 +31,7 @@ export function stepFleetMarchSound(m) {
   m.mem8[FLEET_SOUND_OFF_TIMER] = m.mem8[FLEET_SOUND_OFF_TIMER] - 1;
   if (m.mem8[FLEET_SOUND_OFF_TIMER] === 0) silenceFleetMarchNote(m);
   // March disabled (enable flag clear): silence and stop for this tick.
-  if (m.mem8[loc_2068] === 0) return silenceFleetMarchNote(m);
+  if (m.mem8[FLEET_MARCH_ENABLE] === 0) return silenceFleetMarchNote(m);
   // Tick the beat countdown; until it expires there is no footstep this tick.
   m.mem8[FLEET_SOUND_TIMER] = m.mem8[FLEET_SOUND_TIMER] - 1;
   if (m.mem8[FLEET_SOUND_TIMER] !== 0) return;

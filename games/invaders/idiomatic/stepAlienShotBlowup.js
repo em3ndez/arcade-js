@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { ALIEN_SHOT_BLOWUP_TIMER, ALIEN_SHOT_SPRITE_PTR, ALIEN_SHOT_BLOWUP_SPRITE, loc_207b, loc_207c, ALIEN_SHOT_ROW_COUNT } from "./names.js";
+import { ALIEN_SHOT_BLOWUP_TIMER, ALIEN_SHOT_SPRITE_PTR, ALIEN_SHOT_BLOWUP_SPRITE, ALIEN_SHOT_COORD, loc_207c, ALIEN_SHOT_ROW_COUNT } from "./names.js";
 import { eraseAlienShot } from "./eraseAlienShot.js";
 import { drawAlienShotWithCollision } from "./drawAlienShotWithCollision.js";
 
@@ -16,7 +16,7 @@ import { drawAlienShotWithCollision } from "./drawAlienShotWithCollision.js";
  *   Reached from the alien-shot stepper stepAlienShot (ROM 0x05cc) while the shot's blowup bit is set.
  *   Decrements ALIEN_SHOT_BLOWUP_TIMER (0x2078). At exactly 3 it erases the current shot sprite, repoints
  *   the shot descriptor ALIEN_SHOT_SPRITE_PTR (0x2079) at the blowup graphic ALIEN_SHOT_BLOWUP_SPRITE
- *   (0x1cdc), nudges the shot's two coordinate bytes (loc_207b/loc_207c) back two pixels each to recenter
+ *   (0x1cdc), nudges the shot's two coordinate bytes (ALIEN_SHOT_COORD/loc_207c) back two pixels each to recenter
  *   the wider burst, forces its height ALIEN_SHOT_ROW_COUNT (0x207d) to six rows, and redraws it with
  *   collision. At 0 it just erases the burst (the shot despawns). Any other value idles this frame.
  *
@@ -41,7 +41,7 @@ export function stepAlienShotBlowup(m) {
   m.mem16[ALIEN_SHOT_SPRITE_PTR] = ALIEN_SHOT_BLOWUP_SPRITE;
   // Recenter for the wider burst: pull both coordinate bytes back two pixels.
   m.mem8[loc_207c] = m.mem8[loc_207c] - 2;
-  m.mem8[loc_207b] = m.mem8[loc_207b] - 2;
+  m.mem8[ALIEN_SHOT_COORD] = m.mem8[ALIEN_SHOT_COORD] - 2;
   // Force the burst's height to six rows, then draw it (with collision so it can still register a hit).
   m.mem8[ALIEN_SHOT_ROW_COUNT] = 0x06;
   return drawAlienShotWithCollision(m);

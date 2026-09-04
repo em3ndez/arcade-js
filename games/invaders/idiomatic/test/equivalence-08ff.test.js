@@ -15,7 +15,7 @@ import { drawSprite8x8 } from "../drawSprite8x8.js";
 import { drawSpriteColumn } from "../drawSpriteColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_1e00 } from "../names.js";
+import { STACK_SCRATCH, SPRITE_BITMAP_TABLE } from "../names.js";
 import { u16 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -66,14 +66,14 @@ test("CRAFTED: sprite A blits down 8 columns from 0x1e00+8*A; HL advances by 0x1
     assert.equal(c.regs.hl, o.regs.hl, `HL matches oracle: ${tag}`);
     assert.equal(c.regs.hl, u16(hl + 0x20 * 8), `HL advanced by 0x100: ${tag}`);
     // the first blitted column holds the sprite's first source byte
-    assert.equal(c.mem.read8(hl), c.mem.read8(u16(loc_1e00 + 8 * a)), `first column blitted: ${tag}`);
+    assert.equal(c.mem.read8(hl), c.mem.read8(u16(SPRITE_BITMAP_TABLE + 8 * a)), `first column blitted: ${tag}`);
   }
 });
 
 test("TEETH: a short column count (7, not 8) mis-lands HL and is caught", () => {
   const a = 0x0a, hl = 0x2500;
   const brokenTwin = (m, aa = m.regs.a, hh = m.regs.hl) => {
-    const src = u16(loc_1e00 + 8 * aa);
+    const src = u16(SPRITE_BITMAP_TABLE + 8 * aa);
     m.io.portOut(0x06, aa);
     return drawSpriteColumn(m, hh, src, 7); // BUG: 7 columns instead of 8
   };

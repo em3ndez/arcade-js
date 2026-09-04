@@ -7,7 +7,7 @@
 // MAME — MAME is the ORACLE, no hand-authored expected value, so a faithful-but-wrong port fails too.
 //
 // WHY THIS DIFFERS FROM frogger/mech_compare.mjs (a full-RAM masked byte-compare). Invaders gameplay carries a
-// NON-DETERMINISTIC subsystem — the alien-shot cadence/column (loc_2069..0x2080 + the shots blitted at
+// NON-DETERMINISTIC subsystem — the alien-shot cadence/column (SHIP_READY_FLAG..0x2080 + the shots blitted at
 // drifting framebuffer positions) accumulates a small per-event timing drift between the two engines (10 bytes
 // at f600 growing to 30+ by f750, MEASURED). A frogger-style whole-RAM pin (require maskedDiff==0) is therefore
 // infeasible mid-play: the drift is spread through work RAM AND the moving shot sprites in video, which no fixed

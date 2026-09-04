@@ -27,8 +27,8 @@ import { blockCopy } from "../blockCopy.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_1b32, loc_2032, loc_2038, loc_2035, loc_2046, loc_2070, loc_2056, loc_2071,
-  loc_2069, TASK_FLAGS, ALIEN_SHOT_BLOWUP_TIMER, loc_2030, loc_1b30,
+  STACK_SCRATCH, loc_1b32, loc_2032, ALIEN_SHOT2_STEP_GATE, loc_2035, loc_2046, ALIEN_SHOT_RATE_GATE0, loc_2056, ALIEN_SHOT_RATE_GATE_1,
+  SHIP_READY_FLAG, TASK_FLAGS, ALIEN_SHOT_BLOWUP_TIMER, ALIEN_SHOT_SLOT2_RECORD, ALIEN_SHOT_SLOT2_TEMPLATE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -82,21 +82,21 @@ function craft(seed) {
 // byte clear, and hold the 16-bit countdown nonzero so the handler runs its body to the template-blit branch.
 function blockCopyBranch(m) {
   for (let a = loc_2035; a < loc_2035 + 0x0b; a++) m.mem.write8(a, 0x00);
-  m.mem.write8(loc_2069, 0x00);
+  m.mem.write8(SHIP_READY_FLAG, 0x00);
   m.mem.write8(TASK_FLAGS, 0x00);
-  m.mem.write16(loc_2038, 0x0001);
+  m.mem.write16(ALIEN_SHOT2_STEP_GATE, 0x0001);
 }
 
 test("CRAFTED: branches leave identical RAM (-stack)", () => {
   const cases = [
-    { tag: "countdown reads zero -> reset to wrap value + return", seed: (m) => { m.mem.write16(loc_2038, 0x0000); } },
+    { tag: "countdown reads zero -> reset to wrap value + return", seed: (m) => { m.mem.write16(ALIEN_SHOT2_STEP_GATE, 0x0000); } },
     { tag: "countdown nonzero, blowup clear -> template-blit band", seed: blockCopyBranch },
     {
       tag: "countdown nonzero, blowup set -> restore strip",
       seed: (m) => {
         for (let a = loc_2035; a < loc_2035 + 0x0b; a++) m.mem.write8(a, 0x00);
-        m.mem.write8(loc_2069, 0x00); m.mem.write8(TASK_FLAGS, 0x00);
-        m.mem.write16(loc_2038, 0x0001);
+        m.mem.write8(SHIP_READY_FLAG, 0x00); m.mem.write8(TASK_FLAGS, 0x00);
+        m.mem.write16(ALIEN_SHOT2_STEP_GATE, 0x0001);
         m.mem.write8(loc_2035 + 5, 0x03); // -> ALIEN_SHOT_BLOWUP_TIMER nonzero after the strip copy
       },
     },
@@ -109,22 +109,22 @@ test("CRAFTED: branches leave identical RAM (-stack)", () => {
 });
 
 // TEETH: a broken inline twin that reproduces the routine through the shared callees but DROPS the second
-// rate-cell staging write (loc_2071). Nothing downstream rewrites that cell on this branch, so the RAM diff
+// rate-cell staging write (ALIEN_SHOT_RATE_GATE_1). Nothing downstream rewrites that cell on this branch, so the RAM diff
 // must catch the missing write.
 function alienShotSlot2Handler_droppedStaging(m) {
   m.mem8[loc_2032] = m.mem8[loc_1b32];
-  const countdown = m.mem16[loc_2038];
-  if (countdown === 0) { m.mem16[loc_2038] = u16(countdown - 1); return; }
+  const countdown = m.mem16[ALIEN_SHOT2_STEP_GATE];
+  if (countdown === 0) { m.mem16[ALIEN_SHOT2_STEP_GATE] = u16(countdown - 1); return; }
   copyRecordToWorkBuffer(m, 0xf9, loc_2035);
-  m.mem8[loc_2070] = m.mem8[loc_2046];
-  // BUG: dropped `m.mem8[loc_2071] = m.mem8[loc_2056];`
+  m.mem8[ALIEN_SHOT_RATE_GATE0] = m.mem8[loc_2046];
+  // BUG: dropped `m.mem8[ALIEN_SHOT_RATE_GATE_1] = m.mem8[loc_2056];`
   stepAlienShot(m);
   if (m.mem8[ALIEN_SHOT_BLOWUP_TIMER] !== 0) return copyWorkBufferToRecord(m, loc_2035);
-  blockCopy(m, loc_1b30, loc_2030, 16);
+  blockCopy(m, ALIEN_SHOT_SLOT2_TEMPLATE, ALIEN_SHOT_SLOT2_RECORD, 16);
 }
 
 test("TEETH: a twin that drops a rate-cell staging write diverges in RAM", () => {
-  const seed = (m) => { blockCopyBranch(m); m.mem.write8(loc_2056, 0x55); m.mem.write8(loc_2071, 0x00); };
+  const seed = (m) => { blockCopyBranch(m); m.mem.write8(loc_2056, 0x55); m.mem.write8(ALIEN_SHOT_RATE_GATE_1, 0x00); };
   const o = craft(seed), c = craft(seed);
   oracle(o); alienShotSlot2Handler_droppedStaging(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM-diff check FAILED to catch a dropped rate-cell staging write");

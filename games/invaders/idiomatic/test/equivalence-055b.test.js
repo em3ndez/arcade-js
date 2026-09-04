@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for copyWorkBufferToRecord (ROM 0x055b) -- block-copy 0x0b bytes from the loc_2073 strip buffer
+// Memory-equivalence for copyWorkBufferToRecord (ROM 0x055b) -- block-copy 0x0b bytes from the OBJECT_WORK_BUFFER strip buffer
 // into (HL) (tail-jump into blockCopy). Reached by `jnz 0x055b` from alienShotSlot2Handler/alienShotSlot3Handler/alienShotSlot4Handler, each a
 // tail-delegate; live-out is memory only (blockCopy's own classification). Contract is RAM (-stack).
 // Run: node --test games/invaders/idiomatic/test/equivalence-055b.test.js
@@ -12,7 +12,7 @@ import { loc_055b as oracle } from "../../translated/loc_055b.js";
 import { copyWorkBufferToRecord } from "../copyWorkBufferToRecord.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2073 } from "../names.js";
+import { STACK_SCRATCH, OBJECT_WORK_BUFFER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -46,10 +46,10 @@ function seedPattern(m, addr, n) {
   for (let i = 0; i < n; i++) m.mem.write8(addr + i, (i * 7 + 3) & 0xff);
 }
 
-test("CRAFTED: 0x0b bytes copied loc_2073->(HL) for several destinations", () => {
+test("CRAFTED: 0x0b bytes copied OBJECT_WORK_BUFFER->(HL) for several destinations", () => {
   for (const DST of [0x2035, 0x2045, 0x2055, 0x2100]) {
     const o = new Machine(ROM); const c = new Machine(ROM);
-    seedPattern(o, loc_2073, 0x0b); seedPattern(c, loc_2073, 0x0b);
+    seedPattern(o, OBJECT_WORK_BUFFER, 0x0b); seedPattern(c, OBJECT_WORK_BUFFER, 0x0b);
     o.regs.hl = DST; c.regs.hl = DST;
     oracle(o); copyWorkBufferToRecord(c);
     assert.equal(ramDiff(o, c), null, `DST=0x${DST.toString(16)}`);
@@ -61,11 +61,11 @@ test("CRAFTED: 0x0b bytes copied loc_2073->(HL) for several destinations", () =>
 
 test("TEETH: a broken twin (wrong source) is caught", () => {
   function loc_055b_broken(m, hl = m.regs.hl) {
-    for (let i = 0; i < 0x0b; i++) m.mem8[hl + i] = (m.mem8[loc_2073 + i] + 1) & 0xff; // BUG: value+1
+    for (let i = 0; i < 0x0b; i++) m.mem8[hl + i] = (m.mem8[OBJECT_WORK_BUFFER + i] + 1) & 0xff; // BUG: value+1
   }
   const DST = 0x2100;
   const o = new Machine(ROM); const c = new Machine(ROM);
-  seedPattern(o, loc_2073, 0x0b); seedPattern(c, loc_2073, 0x0b);
+  seedPattern(o, OBJECT_WORK_BUFFER, 0x0b); seedPattern(c, OBJECT_WORK_BUFFER, 0x0b);
   o.regs.hl = DST; c.regs.hl = DST;
   oracle(o); loc_055b_broken(c);
   const d = ramDiff(o, c);

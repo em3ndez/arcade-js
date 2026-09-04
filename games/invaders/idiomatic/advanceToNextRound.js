@@ -8,7 +8,7 @@ import { initPlayer2ShieldBuffers } from "./initPlayer2ShieldBuffers.js";
 import { markAllAliensAliveP2 } from "./markAllAliensAliveP2.js";
 import { restoreShieldsAndEnterRound } from "./restoreShieldsAndEnterRound.js";
 import { u8, u16 } from "../../../core/int.js";
-import { GAME_ACTIVE, ACTIVE_PLAYER_PAGE, SOUND_PORT5_SHADOW, loc_1da2 } from "./names.js";
+import { GAME_ACTIVE, ACTIVE_PLAYER_PAGE, SOUND_PORT5_SHADOW, ROUND_FLEET_START_TABLE } from "./names.js";
 
 // advanceToNextRound — the next-round handoff for the SAME player after clearing a wave.
 //
@@ -23,7 +23,7 @@ import { GAME_ACTIVE, ACTIVE_PLAYER_PAGE, SOUND_PORT5_SHADOW, loc_1da2 } from ".
 //   Work RAM is per-player: ACTIVE_PLAYER_PAGE (0x2067) names the active player's 0x21xx/0x22xx page in
 //   its low bit and its value. Each player's page holds a round counter at page:0xfe and a field-save
 //   record (the fleet's reference-alien coordinate word) at page:0xfc/0xfd. The round-config table
-//   loc_1da2 maps the bumped round index to the byte that seeds the new fleet's start — so the fleet
+//   ROUND_FLEET_START_TABLE maps the bumped round index to the byte that seeds the new fleet's start — so the fleet
 //   begins lower/harder each successive round. The tricky part is that seedWorkRamImage restamps
 //   0x2000-0x20bf from ROM, which overwrites ACTIVE_PLAYER_PAGE itself; the select byte is therefore saved
 //   and restored around that reseed so the SAME player continues. Per player it also re-stocks shields
@@ -52,9 +52,9 @@ export function* advanceToNextRound(m) {
   const fieldPtr = (page << 8) | 0xfe;
   const idx = u8((m.mem8[fieldPtr] & 0x07) + 1);
   m.mem8[fieldPtr] = idx;
-  // Index the round-config table loc_1da2 by the round index: step the pointer forward `idx` entries
+  // Index the round-config table ROUND_FLEET_START_TABLE by the round index: step the pointer forward `idx` entries
   // (the ROM walks it one byte at a time, counting `idx` down to zero) to land on this round's entry.
-  let tablePtr = loc_1da2;
+  let tablePtr = ROUND_FLEET_START_TABLE;
   let n = idx;
   do {
     tablePtr = u16(tablePtr + 1);

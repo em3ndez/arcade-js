@@ -6,7 +6,7 @@ import { PLAYER1_SHIELD_BUFFER } from "./names.js";
 //
 // WHAT IT IS
 //   A thin front door that seats the player-1 shield-buffer base address and then replicates the ROM
-//   shield template into it. initShieldBuffers copies the 0x2c-byte template (from loc_1d20) four times
+//   shield template into it. initShieldBuffers copies the 0x2c-byte template (from SHIELD_TEMPLATE) four times
 //   into consecutive 0x2c-byte slots — one slot per on-screen bunker — filling the buffer with four
 //   pristine shields.
 //

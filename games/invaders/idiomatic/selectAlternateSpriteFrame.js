@@ -10,7 +10,7 @@ import { u16 } from "../../../core/int.js";
  *
  * ROLE IN THE MACHINE
  *   Each marching alien has a two-frame walk cycle; drawPendingAlien invokes this only when the alien's
- *   descriptor carries the alternate-frame flag (loc_2005), so aliens flip between their two poses as
+ *   descriptor carries the alternate-frame flag (ALIEN_MARCH_FRAME_TOGGLE), so aliens flip between their two poses as
  *   they step. The same +0x30 frame stride shows up in stepAnimationFrame's scripted animation.
  *
  * ROM 0x013b-...  Grounding: [seen].

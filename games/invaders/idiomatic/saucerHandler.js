@@ -10,7 +10,7 @@ import { resolveSpriteScreenAddr } from "./resolveSpriteScreenAddr.js";
 import { clearScreenStrip } from "./clearScreenStrip.js";
 import { copyTemplateToRecord } from "./copyTemplateToRecord.js";
 import { stopSaucerSound } from "./stopSaucerSound.js";
-import { loc_2080, loc_2083, loc_2056, SAUCER_ACTIVE, ALIEN_COUNT, loc_208a, loc_208c, SAUCER_HIT, loc_2086, SOUND_PORT5_SHADOW } from "./names.js";
+import { loc_2080, loc_2083, loc_2056, SAUCER_ACTIVE, ALIEN_COUNT, loc_208a, SAUCER_STEP_DX, SAUCER_HIT, loc_2086, SOUND_PORT5_SHADOW } from "./names.js";
 
 /**
  * saucerHandler — the mystery-ship (flying saucer / UFO) object-table handler.
@@ -29,13 +29,13 @@ import { loc_2080, loc_2083, loc_2056, SAUCER_ACTIVE, ALIEN_COUNT, loc_208a, loc
  *     - SAUCER_HIT (0x2085): set when a player shot struck the saucer; switches it into its death sequence.
  *     - ALIEN_COUNT (0x2082): the live-alien tally; the saucer only appears while >= 8 aliens remain
  *       (like the real machine, the UFO stops appearing near the end of a wave).
- *     - loc_208a / loc_208c: the saucer's horizontal position accumulator and its per-step move amount
+ *     - loc_208a / SAUCER_STEP_DX: the saucer's horizontal position accumulator and its per-step move amount
  *       (a "movement pair" — mechanisms.md); bit 7 of loc_208a is also the object's raster draw-phase bit.
  *     - loc_2086: the hit-sequence phase counter, counted down while SAUCER_HIT is set.
  *     - loc_2083: the saucer object-record base (its first byte gates the whole path); reseeded from ROM
  *       template on retire.
  *     - SOUND_PORT5_SHADOW (0x2098) and sound ports 3/5 for the whine and the hit tone.
- *   loc_2080 / loc_2056 / loc_2083 / loc_2086 / loc_208a / loc_208c keep placeholder names — their exact
+ *   loc_2080 / loc_2056 / loc_2083 / loc_2086 / loc_208a keep placeholder names — their exact
  *   naming/role is not all confidently grounded (loc_2080 is observed seeded to 2 by runHandshakedAttractAnim).
  *
  * ROM 0x0682-....  Grounding: [seen].
@@ -64,7 +64,7 @@ export function saucerHandler(m) {
   if (!objectMatchesDrawPhase(m, loc_208a)) return;
   if (m.mem8[SAUCER_HIT] === 0) {
     // Alive and flying: advance the horizontal position by the step amount and redraw at the new spot.
-    m.mem8[loc_208a] = u8(m.mem8[loc_208a] + m.mem8[loc_208c]);
+    m.mem8[loc_208a] = u8(m.mem8[loc_208a] + m.mem8[SAUCER_STEP_DX]);
     drawSaucerSprite(m);
     // While it is still within the visible band [40,225) keep it on screen and stop here; only once it
     // crosses an edge does it fall through to the erase/reset tail below.

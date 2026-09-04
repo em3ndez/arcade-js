@@ -9,7 +9,7 @@ import { waitShortDelay } from "./waitShortDelay.js";
 import { otherPlayerFlagPtr } from "./otherPlayerFlagPtr.js";
 import { returnToAttractFlow } from "./returnToAttractFlow.js";
 import { newRoundFlow } from "./newRoundFlow.js";
-import { ACTIVE_PLAYER_PAGE, TWO_PLAYER_GAME, HIGH_SCORE_OBJ_DESC, loc_1aa6, loc_2803, loc_3a03 } from "./names.js";
+import { ACTIVE_PLAYER_PAGE, TWO_PLAYER_GAME, HIGH_SCORE_OBJ_DESC, GAME_OVER_TEXT, GAME_OVER_BANNER_SCREEN_ADDR, GAMEOVER_PLAYER_NUM_SCREEN_ADDR } from "./names.js";
 
 /**
  * gameOverFlow (ROM 0x166d -> 0x1671) -- the active player's game-over sequence.
@@ -71,12 +71,12 @@ export function* gameOverFlow(m) {
     return;
   }
 
-  // Two-player game: type the paced "GAME OVER PLAYER<n>" banner (0x14 glyphs from loc_1aa6 to loc_2803),
+  // Two-player game: type the paced "GAME OVER PLAYER<n>" banner (0x14 glyphs from GAME_OVER_TEXT to GAME_OVER_BANNER_SCREEN_ADDR),
   // then stamp this player's number glyph -- 0x1b (digit '1') when ACTIVE_PLAYER_PAGE bit0 is set (player 1),
-  // else 0x1c (digit '2') -- at loc_3a03, and hold a short delay so the message is readable.
-  yield* typePacedSpriteRun(m, loc_1aa6, 0x14, loc_2803);
+  // else 0x1c (digit '2') -- at GAMEOVER_PLAYER_NUM_SCREEN_ADDR, and hold a short delay so the message is readable.
+  yield* typePacedSpriteRun(m, GAME_OVER_TEXT, 0x14, GAME_OVER_BANNER_SCREEN_ADDR);
   const glyph = m.mem8[ACTIVE_PLAYER_PAGE] & 1 ? 0x1b : 0x1c;
-  drawSprite8x8(m, glyph, loc_3a03);
+  drawSprite8x8(m, glyph, GAMEOVER_PLAYER_NUM_SCREEN_ADDR);
   yield* waitShortDelay(m);
   // Survivor check: if the OTHER player is also out of lives, both are done -> attract teardown; otherwise
   // hand the turn to the surviving player via the new-round flow.

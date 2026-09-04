@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { startSound } from "./startSound.js";
 import { invaderScoreEntryPtr } from "./invaderScoreEntryPtr.js";
-import { GAME_IN_PROGRESS, SCORE_ADD_PENDING, SCORE_ADD_VALUE, SCORE_ADD_VALUE_HI, loc_2062 } from "./names.js";
+import { GAME_IN_PROGRESS, SCORE_ADD_PENDING, SCORE_ADD_VALUE, SCORE_ADD_VALUE_HI, ALIEN_EXPLOSION_SPRITE_DESC } from "./names.js";
 
 /**
  * queueInvaderKillScore — sound the invader-die cue and queue the killed alien's points.
@@ -15,17 +15,17 @@ import { GAME_IN_PROGRESS, SCORE_ADD_PENDING, SCORE_ADD_VALUE, SCORE_ADD_VALUE_H
  * ROLE IN THE MACHINE
  *   Reached from resolvePlayerShotHit after it clears the struck alien from the grid. `b` is the
  *   alien's row/block index; invaderScoreEntryPtr clamps it to one of three consecutive point-value
- *   entries at loc_1da0 (the classic per-row scoring: bottom rows worth less, top row most). The three
+ *   entries at INVADER_SCORE_TABLE (the classic per-row scoring: bottom rows worth less, top row most). The three
  *   pending cells are the score-add packet — SCORE_ADD_VALUE (0x20f2) gets the looked-up byte,
  *   SCORE_ADD_VALUE_HI (0x20f3) is cleared, and SCORE_ADD_PENDING (0x20f1) is raised — consumed by
  *   applyPendingScoreAdd. All of this is gated on GAME_IN_PROGRESS (0x20ef) so demo kills score nothing.
- *   startSound(0x08) raises port-3 bit 3, the invader-die cue. The returned HL = loc_2062 is the
+ *   startSound(0x08) raises port-3 bit 3, the invader-die cue. The returned HL = ALIEN_EXPLOSION_SPRITE_DESC is the
  *   sprite-descriptor cell the caller decodes (loadSpriteDescriptor) and blits as the explosion.
  *
- * ROM 0x0a5f-...  Grounding: [seen].  (loc_2062 keeps a placeholder name; its role here is read from
+ * ROM 0x0a5f-...  Grounding: [seen].  (ALIEN_EXPLOSION_SPRITE_DESC's role here is read from
  *   the caller, which feeds the returned pointer to the descriptor decoder.)
  *
- * LIVE-OUT: HL = loc_2062 (also returned); on the in-game path memory + the port-3 sound latch.
+ * LIVE-OUT: HL = ALIEN_EXPLOSION_SPRITE_DESC (also returned); on the in-game path memory + the port-3 sound latch.
  */
 export function queueInvaderKillScore(m, b = m.regs.b) {
   // Only score/sound during a real game — demo (attract) kills are silent and worthless.
@@ -41,5 +41,5 @@ export function queueInvaderKillScore(m, b = m.regs.b) {
     m.mem8[SCORE_ADD_VALUE_HI] = 0x00;
   }
   // Always return the sprite-descriptor pointer the caller decodes and blits as the kill explosion.
-  return (m.regs.hl = loc_2062);
+  return (m.regs.hl = ALIEN_EXPLOSION_SPRITE_DESC);
 }

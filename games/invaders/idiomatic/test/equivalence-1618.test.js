@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for advanceRoundState (ROM 0x1618) -- gated pre-round advance: bail unless the round is armed
 // (loc_2015==0xff) and GAME_OBJECT_TABLE/loc_2011/PLAYER_SHOT_STATUS are clear, then step the march pointer (ATTRACT_DEMO_PTR ->
-// loc_201d) or latch/clear the fire input. Live-out is memory only. Dissolves the 0x17c0 input read.
+// DEMO_SHIP_DIR) or latch/clear the fire input. Live-out is memory only. Dissolves the 0x17c0 input read.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1618.test.js
 
 import nodeTest from "node:test";
@@ -16,7 +16,7 @@ import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import {
   STACK_SCRATCH, ACTIVE_PLAYER_PAGE,
-  GAME_OBJECT_TABLE, loc_2011, loc_2015, loc_201d, PLAYER_SHOT_STATUS, FIRE_BUTTON_LATCH, ATTRACT_DEMO_PTR, GAME_IN_PROGRESS,
+  GAME_OBJECT_TABLE, loc_2011, loc_2015, DEMO_SHIP_DIR, PLAYER_SHOT_STATUS, FIRE_BUTTON_LATCH, ATTRACT_DEMO_PTR, GAME_IN_PROGRESS,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -38,7 +38,7 @@ function brokenLoc_1618(m) {
     m.mem8[PLAYER_SHOT_STATUS] = 0x01;
     const ptr = u16(m.mem16[ATTRACT_DEMO_PTR] + 1); // BUG: dropped the >=0x7e wrap
     m.mem16[ATTRACT_DEMO_PTR] = ptr;
-    m.mem8[loc_201d] = m.mem8[ptr];
+    m.mem8[DEMO_SHIP_DIR] = m.mem8[ptr];
     return;
   }
   if (m.mem8[FIRE_BUTTON_LATCH] !== 0) {
@@ -111,7 +111,7 @@ test("CRAFTED: 0x20ef==0 steps the march pointer and wraps its low byte at 0x7e"
     assert.equal(ramDiff(o, c), null, "no-wrap");
     assert.equal(c.mem.read8(PLAYER_SHOT_STATUS), 0x01);
     assert.equal(c.mem.read16(ATTRACT_DEMO_PTR), 0x2c01);
-    assert.equal(c.mem.read8(loc_201d), 0x99);
+    assert.equal(c.mem.read8(DEMO_SHIP_DIR), 0x99);
   }
   // wrap: low byte reaches 0x7f (>=0x7e) -> reset to 0x74
   {
@@ -119,7 +119,7 @@ test("CRAFTED: 0x20ef==0 steps the march pointer and wraps its low byte at 0x7e"
     oracle(o); advanceRoundState(c);
     assert.equal(ramDiff(o, c), null, "wrap");
     assert.equal(c.mem.read16(ATTRACT_DEMO_PTR), 0x2c74);
-    assert.equal(c.mem.read8(loc_201d), 0x88);
+    assert.equal(c.mem.read8(DEMO_SHIP_DIR), 0x88);
   }
   // boundary: low byte exactly 0x7e -> reset to 0x74
   {
@@ -164,10 +164,10 @@ test("CRAFTED: 0x20ef!=0 arms/clears the fire latch by the input bit", () => {
   }
 });
 
-test("TEETH: a twin that skips the low-byte wrap diverges at loc_201d", () => {
+test("TEETH: a twin that skips the low-byte wrap diverges at DEMO_SHIP_DIR", () => {
   const [o, c] = mk({ ef: 0x00, ed: 0x2c7e, mem: [[0x2c74, 0x11], [0x2c7f, 0x22]] });
   oracle(o); brokenLoc_1618(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch the missing pointer wrap");
-  assert.equal(d.addr, loc_201d & 0xffff);
+  assert.equal(d.addr, DEMO_SHIP_DIR & 0xffff);
 });

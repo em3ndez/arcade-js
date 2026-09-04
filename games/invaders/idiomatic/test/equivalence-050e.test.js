@@ -31,8 +31,8 @@ import { blockCopy } from "../blockCopy.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, ATTRACT_ANIM_ACK, ATTRACT_ANIM_HANDLER_ADDR, loc_2046, loc_2070, loc_2036, loc_2071,
-  loc_2069, TASK_FLAGS, loc_2076, loc_1b58, ALIEN_SHOT_BLOWUP_TIMER, loc_1b50, loc_2050, loc_2058,
+  STACK_SCRATCH, ATTRACT_ANIM_ACK, ATTRACT_ANIM_HANDLER_ADDR, loc_2046, ALIEN_SHOT_RATE_GATE0, loc_2036, ALIEN_SHOT_RATE_GATE_1,
+  SHIP_READY_FLAG, TASK_FLAGS, ALIEN_SHOT_COLUMN_CURSOR, loc_1b58, ALIEN_SHOT_BLOWUP_TIMER, ALIEN_SHOT_RECORD_TEMPLATE, ATTRACT_OBJECT_TABLE, ALIEN_SHOT4_COLUMN_CURSOR,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -83,9 +83,9 @@ function craftAttract(extra) {
   m.regs.sp = 0x2400;
   m.mem.write16(0x2400, 0xabcd);
   m.io.setInte(false);
-  for (let i = 0; i < 0x10; i++) m.mem.write8(loc_2050 + i, ROM[ATTRACT_DESC_ROM + i]); // real reveal descriptor
+  for (let i = 0; i < 0x10; i++) m.mem.write8(ATTRACT_OBJECT_TABLE + i, ROM[ATTRACT_DESC_ROM + i]); // real reveal descriptor
   m.mem.write8(TASK_FLAGS, 0x04); // reveal task armed (bit2), the live gate stepAlienShot reads
-  m.mem.write8(loc_2069, 0x00);
+  m.mem.write8(SHIP_READY_FLAG, 0x00);
   if (extra) extra(m);
   return m;
 }
@@ -102,11 +102,11 @@ test("CRAFTED (attract descriptor): the reveal entry leaves identical RAM (-stac
 // as running the oracle body from the same dispatch state.
 function craftWalk(target = ATTRACT_ANIM_HANDLER_ADDR) {
   const m = craftAttract((mm) => {
-    mm.mem.write8(loc_2050 + 0, 0x00); mm.mem.write8(loc_2050 + 1, 0x00); // 16-bit timer = 0 (expired)
-    mm.mem.write8(loc_2050 + 2, 0x00);                                    // gate byte = 0 (expired)
-    mm.mem.write8(loc_2050 + 3, target & 0xff);                           // handler target lo
-    mm.mem.write8(loc_2050 + 4, (target >> 8) & 0xff);                    // handler target hi
-    mm.mem.write8(loc_2050 + 0x10, 0xff);                                 // walk terminator (next record)
+    mm.mem.write8(ATTRACT_OBJECT_TABLE + 0, 0x00); mm.mem.write8(ATTRACT_OBJECT_TABLE + 1, 0x00); // 16-bit timer = 0 (expired)
+    mm.mem.write8(ATTRACT_OBJECT_TABLE + 2, 0x00);                                    // gate byte = 0 (expired)
+    mm.mem.write8(ATTRACT_OBJECT_TABLE + 3, target & 0xff);                           // handler target lo
+    mm.mem.write8(ATTRACT_OBJECT_TABLE + 4, (target >> 8) & 0xff);                    // handler target hi
+    mm.mem.write8(ATTRACT_OBJECT_TABLE + 0x10, 0xff);                                 // walk terminator (next record)
   });
   return m;
 }
@@ -116,14 +116,14 @@ test("WIRING: walkObjectTable routes the attract record 0x050e -> attractAnimHan
   const o = craftWalk();
   // The oracle body from the same dispatch state: the walker consumes the timer/gate (both 0 -> no writes)
   // then dispatches the record data pointer (rec+4). Run the oracle body directly for the reference.
-  assert.doesNotThrow(() => walkObjectTable(w, loc_2050), "the 0x050e attract target must dispatch, not throw");
+  assert.doesNotThrow(() => walkObjectTable(w, ATTRACT_OBJECT_TABLE), "the 0x050e attract target must dispatch, not throw");
   oracle(o);
   assert.equal(ramDiff(w, o), null, "the walker's 0x050e dispatch diverged from the oracle body in RAM (-stack)");
 });
 
 test("WIRING NEGATIVE CONTROL: an unmapped object-handler target still throws (guard has teeth)", () => {
   const bad = craftWalk(0x1234); // not in the HANDLERS map
-  assert.throws(() => walkObjectTable(bad, loc_2050), /unexpected object-handler target 0x1234/);
+  assert.throws(() => walkObjectTable(bad, ATTRACT_OBJECT_TABLE), /unexpected object-handler target 0x1234/);
 });
 
 // The real reveal descriptor (ROM 0x1bc0 byte 10 = 0x07 -> work-buffer ALIEN_SHOT_BLOWUP_TIMER 0x2078)
@@ -132,13 +132,13 @@ test("WIRING NEGATIVE CONTROL: an unmapped object-handler target still throws (g
 // through the shared callees but DROPS that restore copy; the RAM(-stack) diff must catch it.
 function body_droppedRestore(m) {
   copyRecordToWorkBuffer(m, 0xdb, ATTRACT_ANIM_ACK);
-  m.mem8[loc_2070] = m.mem8[loc_2046];
-  m.mem8[loc_2071] = m.mem8[loc_2036];
+  m.mem8[ALIEN_SHOT_RATE_GATE0] = m.mem8[loc_2046];
+  m.mem8[ALIEN_SHOT_RATE_GATE_1] = m.mem8[loc_2036];
   stepAlienShot(m);
-  if (m.mem8[loc_2076] >= 21) m.mem8[loc_2076] = m.mem8[loc_1b58];
+  if (m.mem8[ALIEN_SHOT_COLUMN_CURSOR] >= 21) m.mem8[ALIEN_SHOT_COLUMN_CURSOR] = m.mem8[loc_1b58];
   if (m.mem8[ALIEN_SHOT_BLOWUP_TIMER] !== 0) return; // BUG: dropped `copyWorkBufferToRecord(m, ATTRACT_ANIM_ACK)`
-  blockCopy(m, loc_1b50, loc_2050, 16);
-  m.mem16[loc_2058] = m.mem16[loc_2076];
+  blockCopy(m, ALIEN_SHOT_RECORD_TEMPLATE, ATTRACT_OBJECT_TABLE, 16);
+  m.mem16[ALIEN_SHOT4_COLUMN_CURSOR] = m.mem16[ALIEN_SHOT_COLUMN_CURSOR];
 }
 
 test("TEETH: a twin that skips the mid-blowup strip restore diverges in RAM (-stack)", () => {

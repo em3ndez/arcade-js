@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for copyRecordToWorkBuffer (ROM 0x0550) -- stash A at loc_207f, then block-copy 0x0b bytes from
-// (DE) into the loc_2073 strip buffer (tail-jump into blockCopy). Live-out is memory only: every caller
+// Memory-equivalence for copyRecordToWorkBuffer (ROM 0x0550) -- stash A at ALIEN_SHOT_SPRITE_FRAME_CEILING, then block-copy 0x0b bytes from
+// (DE) into the OBJECT_WORK_BUFFER strip buffer (tail-jump into blockCopy). Live-out is memory only: every caller
 // overwrites A immediately after the call (alienShotSlot2Handler/alienShotSlot3Handler/alienShotSlot4Handler), so the contract is RAM (-stack).
 // Run: node --test games/invaders/idiomatic/test/equivalence-0550.test.js
 
@@ -12,7 +12,7 @@ import { loc_0550 as oracle } from "../../translated/loc_0550.js";
 import { copyRecordToWorkBuffer } from "../copyRecordToWorkBuffer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2073, loc_207f } from "../names.js";
+import { STACK_SCRATCH, OBJECT_WORK_BUFFER, ALIEN_SHOT_SPRITE_FRAME_CEILING } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -46,8 +46,8 @@ function seedPattern(m, addr, n) {
   for (let i = 0; i < n; i++) m.mem.write8(addr + i, (i * 7 + 3) & 0xff);
 }
 
-test("CRAFTED: A stashed at loc_207f and 0x0b bytes copied (DE)->loc_2073", () => {
-  const SRC = 0x2100; // source strip in work RAM, disjoint from loc_2073
+test("CRAFTED: A stashed at ALIEN_SHOT_SPRITE_FRAME_CEILING and 0x0b bytes copied (DE)->OBJECT_WORK_BUFFER", () => {
+  const SRC = 0x2100; // source strip in work RAM, disjoint from OBJECT_WORK_BUFFER
   for (const a of [0x00, 0x01, 0x7f, 0xff, 0xa5]) {
     const o = new Machine(ROM); const c = new Machine(ROM);
     seedPattern(o, SRC, 0x0b); seedPattern(c, SRC, 0x0b);
@@ -55,17 +55,17 @@ test("CRAFTED: A stashed at loc_207f and 0x0b bytes copied (DE)->loc_2073", () =
     c.regs.a = a; c.regs.de = SRC;
     oracle(o); copyRecordToWorkBuffer(c);
     assert.equal(ramDiff(o, c), null, `A=0x${a.toString(16)}`);
-    assert.equal(c.mem.read8(loc_207f), a, `A stashed A=0x${a.toString(16)}`);
+    assert.equal(c.mem.read8(ALIEN_SHOT_SPRITE_FRAME_CEILING), a, `A stashed A=0x${a.toString(16)}`);
     for (let i = 0; i < 0x0b; i++) {
-      assert.equal(c.mem.read8(loc_2073 + i), (i * 7 + 3) & 0xff, `strip[${i}] A=0x${a.toString(16)}`);
+      assert.equal(c.mem.read8(OBJECT_WORK_BUFFER + i), (i * 7 + 3) & 0xff, `strip[${i}] A=0x${a.toString(16)}`);
     }
   }
 });
 
 test("TEETH: a broken twin (copies one byte short) is caught", () => {
   function loc_0550_broken(m, a = m.regs.a, de = m.regs.de) {
-    m.mem8[loc_207f] = a;
-    blockCopyShort(m, de, loc_2073, 0x0b);
+    m.mem8[ALIEN_SHOT_SPRITE_FRAME_CEILING] = a;
+    blockCopyShort(m, de, OBJECT_WORK_BUFFER, 0x0b);
   }
   function blockCopyShort(m, de, hl, b) { // BUG: copies b-1 bytes, leaves the last byte stale
     for (let i = 0; i < b - 1; i++) m.mem8[hl + i] = m.mem8[de + i];
@@ -78,5 +78,5 @@ test("TEETH: a broken twin (copies one byte short) is caught", () => {
   oracle(o); loc_0550_broken(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a short copy");
-  assert.equal(d.addr, (loc_2073 + 0x0a) & 0xffff);
+  assert.equal(d.addr, (OBJECT_WORK_BUFFER + 0x0a) & 0xffff);
 });

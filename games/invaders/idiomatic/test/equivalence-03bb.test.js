@@ -29,8 +29,8 @@ import { drawSpriteWithCollision } from "../drawSpriteWithCollision.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, PLAYER_SHOT_STATUS, PLAYER_SHOT_DESC, loc_2026, loc_2029, loc_202a, loc_202b, loc_202c,
-  loc_201b, COLLISION_FLAG, PLAYER_SHOT_HIT, DRAW_PHASE_FLAG, SAUCER_SCORE_KEY_PTR, loc_208f, SAUCER_ACTIVE,
+  STACK_SCRATCH, PLAYER_SHOT_STATUS, PLAYER_SHOT_DESC, PLAYER_SHOT_RETIRE_TIMER, loc_2029, loc_202a, PLAYER_SHOT_ROW_COUNT, PLAYER_SHOT_Y_STEP,
+  PLAYER_SHIP_X, COLLISION_FLAG, PLAYER_SHOT_HIT, DRAW_PHASE_FLAG, SAUCER_SCORE_KEY_PTR, SAUCER_DIR_SEQ_PTR, SAUCER_ACTIVE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -86,7 +86,7 @@ function descriptor(m, { y = 0x10, x = 0x50, rows = 0x02, src = 0x1b00 } = {}) {
   m.mem.write8(PLAYER_SHOT_DESC + 1, (src >> 8) & 0xff);
   m.mem.write8(loc_2029, y);
   m.mem.write8(loc_202a, x); // X == coord high; bit7 clear matches the phase flag
-  m.mem.write8(loc_202b, rows);
+  m.mem.write8(PLAYER_SHOT_ROW_COUNT, rows);
 }
 
 // Force a real collision: a seeded all-ones RAM sprite drawn over an all-ones video-RAM band, so the
@@ -100,32 +100,32 @@ test("CRAFTED: each status branch leaves identical RAM (-stack)", () => {
   const cases = [
     { tag: "type 0 idle -> return", seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x00); } },
     { tag: "wrong raster half -> return", seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x02); descriptor(m, { x: 0x80 }); m.mem.write8(DRAW_PHASE_FLAG, 0x00); } },
-    { tag: "type 1 launch", seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x01); m.mem.write8(loc_201b, 0x20); descriptor(m); } },
-    { tag: "type 2 in flight, no collision", seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x02); descriptor(m); m.mem.write8(loc_202c, 0x08); } },
+    { tag: "type 1 launch", seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x01); m.mem.write8(PLAYER_SHIP_X, 0x20); descriptor(m); } },
+    { tag: "type 2 in flight, no collision", seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x02); descriptor(m); m.mem.write8(PLAYER_SHOT_Y_STEP, 0x08); } },
     {
       tag: "type 2 in flight, collision -> PLAYER_SHOT_HIT",
-      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x02); descriptor(m, { src: 0x2100 }); m.mem.write8(loc_202c, 0x08); collideBand(m); },
+      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x02); descriptor(m, { src: 0x2100 }); m.mem.write8(PLAYER_SHOT_Y_STEP, 0x08); collideBand(m); },
     },
     {
       tag: "type 3 countdown hits 0 -> tally (doV bit0 set)",
-      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x03); m.mem.write8(loc_2026, 0x01); descriptor(m); m.mem.write8(SAUCER_ACTIVE, 0x00); m.mem.write16(SAUCER_SCORE_KEY_PTR, 0x1010); m.mem.write16(loc_208f, 0x2100); m.mem.write8(0x2101, 0x01); },
+      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x03); m.mem.write8(PLAYER_SHOT_RETIRE_TIMER, 0x01); descriptor(m); m.mem.write8(SAUCER_ACTIVE, 0x00); m.mem.write16(SAUCER_SCORE_KEY_PTR, 0x1010); m.mem.write16(SAUCER_DIR_SEQ_PTR, 0x2100); m.mem.write8(0x2101, 0x01); },
     },
     {
       tag: "type 3 countdown hits key clamp (>=0x63 -> 0x54)",
-      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x03); m.mem.write8(loc_2026, 0x01); descriptor(m); m.mem.write8(SAUCER_ACTIVE, 0x00); m.mem.write16(SAUCER_SCORE_KEY_PTR, 0x0062); m.mem.write16(loc_208f, 0x2100); m.mem.write8(0x2101, 0x01); },
+      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x03); m.mem.write8(PLAYER_SHOT_RETIRE_TIMER, 0x01); descriptor(m); m.mem.write8(SAUCER_ACTIVE, 0x00); m.mem.write16(SAUCER_SCORE_KEY_PTR, 0x0062); m.mem.write16(SAUCER_DIR_SEQ_PTR, 0x2100); m.mem.write8(0x2101, 0x01); },
     },
     {
       tag: "type 3 countdown hits animation frame -> reset + redraw",
-      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x03); m.mem.write8(loc_2026, 0x10); descriptor(m); },
+      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x03); m.mem.write8(PLAYER_SHOT_RETIRE_TIMER, 0x10); descriptor(m); },
     },
-    { tag: "type 3 countdown mid-run -> return", seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x03); m.mem.write8(loc_2026, 0x05); descriptor(m); } },
+    { tag: "type 3 countdown mid-run -> return", seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x03); m.mem.write8(PLAYER_SHOT_RETIRE_TIMER, 0x05); descriptor(m); } },
     {
       tag: "type 4 -> tally (doV bit0 clear)",
-      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x04); descriptor(m); m.mem.write8(SAUCER_ACTIVE, 0x00); m.mem.write16(SAUCER_SCORE_KEY_PTR, 0x6210); m.mem.write16(loc_208f, 0x2100); m.mem.write8(0x2101, 0x00); },
+      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x04); descriptor(m); m.mem.write8(SAUCER_ACTIVE, 0x00); m.mem.write16(SAUCER_SCORE_KEY_PTR, 0x6210); m.mem.write16(SAUCER_DIR_SEQ_PTR, 0x2100); m.mem.write8(0x2101, 0x00); },
     },
     {
       tag: "type 4 tally, saucer active -> early return",
-      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x04); descriptor(m); m.mem.write8(SAUCER_ACTIVE, 0x01); m.mem.write16(SAUCER_SCORE_KEY_PTR, 0x1010); m.mem.write16(loc_208f, 0x2100); },
+      seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x04); descriptor(m); m.mem.write8(SAUCER_ACTIVE, 0x01); m.mem.write16(SAUCER_SCORE_KEY_PTR, 0x1010); m.mem.write16(SAUCER_DIR_SEQ_PTR, 0x2100); },
     },
     { tag: "type 5 -> return", seed: (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x05); descriptor(m); } },
   ];
@@ -142,7 +142,7 @@ test("CRAFTED: each status branch leaves identical RAM (-stack)", () => {
 function playerShotHandler_droppedHit(m) {
   loadPlayerShotDescriptor(m);
   eraseShiftedSprite(m);
-  const y = u8(m.mem8[loc_202c] + m.mem8[loc_2029]);
+  const y = u8(m.mem8[PLAYER_SHOT_Y_STEP] + m.mem8[loc_2029]);
   m.mem8[loc_2029] = y;
   loadPlayerShotDescriptor(m);
   drawSpriteWithCollision(m, undefined, undefined, y);
@@ -150,7 +150,7 @@ function playerShotHandler_droppedHit(m) {
 }
 
 test("TEETH: a twin that drops the collision-hit latch diverges in RAM", () => {
-  const seed = (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x02); descriptor(m, { src: 0x2100 }); m.mem.write8(loc_202c, 0x08); collideBand(m); };
+  const seed = (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x02); descriptor(m, { src: 0x2100 }); m.mem.write8(PLAYER_SHOT_Y_STEP, 0x08); collideBand(m); };
   const o = craft(seed), c = craft(seed);
   oracle(o); playerShotHandler_droppedHit(c);
   assert.equal(o.mem.read8(PLAYER_SHOT_HIT), 0x01, "the collision seed must latch PLAYER_SHOT_HIT in the oracle");

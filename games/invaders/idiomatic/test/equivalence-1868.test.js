@@ -22,7 +22,7 @@ import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u8, u16 } from "../../../../core/int.js";
 import {
-  STACK_SCRATCH, loc_20c2, ANIM_COORD_STEP_LO, ANIM_SPRITE_COORD, ANIM_SPRITE_SRC, ANIM_END_COORD, ANIM_DONE_FLAG, ANIM_BASE_SPRITE_SRC,
+  STACK_SCRATCH, ANIM_FRAME_COUNTER, ANIM_COORD_STEP_LO, ANIM_SPRITE_COORD, ANIM_SPRITE_SRC, ANIM_END_COORD, ANIM_DONE_FLAG, ANIM_BASE_SPRITE_SRC,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -66,7 +66,7 @@ function seat(m, cells) {
 test("CRAFTED (done path): frame index hits the target -> [ANIM_DONE_FLAG]=1, A=1, counter bumped", () => {
   // [loc_20c4]=0 and [loc_20c6]=0 => second total 0; [ANIM_END_COORD]=0 => equal => the done branch.
   const cells = {
-    [loc_20c2]: 0x22, [ANIM_COORD_STEP_LO]: 0x05,
+    [ANIM_FRAME_COUNTER]: 0x22, [ANIM_COORD_STEP_LO]: 0x05,
     [ANIM_SPRITE_COORD - 1]: 0x00 /* 0x20c4 */, [ANIM_SPRITE_COORD]: 0x11, [ANIM_SPRITE_COORD + 1]: 0x00 /* 0x20c6 */,
     [ANIM_END_COORD]: 0x00,
   };
@@ -76,7 +76,7 @@ test("CRAFTED (done path): frame index hits the target -> [ANIM_DONE_FLAG]=1, A=
 
   assert.equal(ramDiff(o, c), null, "oracle and module leave identical RAM (-stack)");
   assert.equal(c.mem.read8(ANIM_DONE_FLAG), 1, "done flag latched");
-  assert.equal(c.mem.read8(loc_20c2), 0x23, "animation counter bumped");
+  assert.equal(c.mem.read8(ANIM_FRAME_COUNTER), 0x23, "animation counter bumped");
   assert.equal(c.regs.a, 1, "value-out A=1");
   assert.equal(c.regs.a, o.regs.a, "A matches the oracle");
 });
@@ -91,7 +91,7 @@ for (const cfg of drawCfgs) {
     // [loc_20c4]=1,[loc_20c6]=1 => second total 2; [ANIM_END_COORD]=0x99 => not equal => the draw branch.
     // [loc_20c9]=4 rows; [ANIM_BASE_SPRITE_SRC]=0x1c00 source-pointer word (ROM, readable).
     const cells = {
-      [loc_20c2]: cfg.c2, [ANIM_COORD_STEP_LO]: 0x05,
+      [ANIM_FRAME_COUNTER]: cfg.c2, [ANIM_COORD_STEP_LO]: 0x05,
       [ANIM_SPRITE_COORD - 1]: 0x01 /* 0x20c4 */, [ANIM_SPRITE_COORD]: 0x00, [ANIM_SPRITE_COORD + 1]: 0x01 /* 0x20c6 */,
       [ANIM_SPRITE_COORD + 4]: 0x04 /* 0x20c9 rows */,
       [ANIM_END_COORD]: 0x99,
@@ -114,17 +114,17 @@ test("TEETH: a twin that drops the XCHG swaps the blit position and source, dive
   // Real module shape, one broken step: omit the HL<->DE swap before the shift-blit -- the seat and the
   // source pointer are exchanged, so the sprite lands at the wrong screen address from the wrong bytes.
   function loc_1868_broken(m) {
-    m.mem8[loc_20c2] = u8(m.mem8[loc_20c2] + 1);
+    m.mem8[ANIM_FRAME_COUNTER] = u8(m.mem8[ANIM_FRAME_COUNTER] + 1);
     const total = advanceRecordTotals(m, ANIM_COORD_STEP_LO, m.mem8[ANIM_COORD_STEP_LO]);
     if (m.mem8[ANIM_END_COORD] === total) { m.mem8[ANIM_DONE_FLAG] = 1; return (m.regs.a = 1); }
     let dst = m.mem16[ANIM_BASE_SPRITE_SRC];
-    if ((m.mem8[loc_20c2] & 0x04) === 0) dst = u16(dst + 0x30);
+    if ((m.mem8[ANIM_FRAME_COUNTER] & 0x04) === 0) dst = u16(dst + 0x30);
     m.mem16[ANIM_SPRITE_SRC] = dst;
     const [, descDe] = loadSpriteDescriptor(m, ANIM_SPRITE_COORD); // BUG: dropped `m.regs.hl = descDe`
     return blitShiftedSprite(m, descDe);
   }
   const cells = {
-    [loc_20c2]: 0x10, [ANIM_COORD_STEP_LO]: 0x05,
+    [ANIM_FRAME_COUNTER]: 0x10, [ANIM_COORD_STEP_LO]: 0x05,
     [ANIM_SPRITE_COORD - 1]: 0x01, [ANIM_SPRITE_COORD]: 0x00, [ANIM_SPRITE_COORD + 1]: 0x01,
     [ANIM_SPRITE_COORD + 4]: 0x04,
     [ANIM_END_COORD]: 0x99,

@@ -14,7 +14,7 @@ import { runHandshakedAttractAnim } from "./runHandshakedAttractAnim.js";
 import { enterAttractCycle } from "./enterAttractCycle.js";
 import { u8 } from "../../../core/int.js";
 import {
-  SCREEN_MODE_TOGGLE, TASK_FLAGS, loc_3311, loc_2c11, loc_1f90, loc_1f9c, loc_1fa0, loc_1fd5,
+  SCREEN_MODE_TOGGLE, TASK_FLAGS, loc_3311, INSERT_COIN_SCREEN_ADDR, INSERT_COIN_TEXT, ATTRACT_INFO_DRAW_RECORD, ATTRACT_EXTRA_DRAW_SCRIPT, ATTRACT_REVEAL_ANIM_SEQ,
 } from "./names.js";
 
 /**
@@ -50,23 +50,23 @@ export function* finishAttractCycle(m) {
   // Blank the play-field framebuffer (the between-demos screen is drawn fresh below).
   loc_1988(m);
 
-  // Paint the fixed 0x0c-glyph sprite-list panel (ids from loc_1f90) at its screen slot loc_2c11.
-  drawSpriteList(m, loc_1f90, 0x0c, loc_2c11);
+  // Paint the fixed 0x0c-glyph sprite-list panel (ids from INSERT_COIN_TEXT) at its screen slot INSERT_COIN_SCREEN_ADDR.
+  drawSpriteList(m, INSERT_COIN_TEXT, 0x0c, INSERT_COIN_SCREEN_ADDR);
 
   // On the toggle==0 pass only, add one extra 8x8 glyph (sprite id 0x02) at loc_3311.
   if (m.mem8[SCREEN_MODE_TOGGLE] === 0) {
     drawSprite8x8(m, 0x02, loc_3311);
   }
 
-  // Fetch one draw record from the table at loc_1f9c, then type it out character-by-character. The record
+  // Fetch one draw record from the table at ATTRACT_INFO_DRAW_RECORD, then type it out character-by-character. The record
   // unpacks a destination screen address and a source glyph pointer.
-  const rec = fetchNextDrawRecord(m, loc_1f9c); // rec[0] = dest, rec[1] = source
+  const rec = fetchNextDrawRecord(m, ATTRACT_INFO_DRAW_RECORD); // rec[0] = dest, rec[1] = source
   yield* typeDrawScriptRecord(m, rec[1], rec[0]);
 
   // Gated on input port 2 bit 7 (the select bit that decides whether the second attract script shows):
-  // when it is clear, type the additional draw script at loc_1fa0.
+  // when it is clear, type the additional draw script at ATTRACT_EXTRA_DRAW_SCRIPT.
   if ((m.io.portIn(0x02) & 0x80) === 0) { // second-input select bit
-    yield* typeDrawScript(m, loc_1fa0);
+    yield* typeDrawScript(m, ATTRACT_EXTRA_DRAW_SCRIPT);
   }
 
   // Long (0x80-frame) hold so the typed screen stays up to be read.
@@ -75,7 +75,7 @@ export function* finishAttractCycle(m) {
   // Reveal animation, only on the toggle==0 pass: load its 12-byte draw/animation sequence into the work
   // slot, arm the ISR anim task and wait for it to finish, then run the interrupt-handshaked reveal.
   if (m.mem8[SCREEN_MODE_TOGGLE] === 0) {
-    loadDrawSequenceBlock(m, loc_1fd5);
+    loadDrawSequenceBlock(m, ATTRACT_REVEAL_ANIM_SEQ);
     yield* runAttractAnimTask(m);
     yield* runHandshakedAttractAnim(m);
   }

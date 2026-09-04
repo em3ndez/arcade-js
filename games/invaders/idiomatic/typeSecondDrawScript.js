@@ -14,7 +14,7 @@ import { loc_1dcf } from "./names.js";
  *
  * ROLE IN THE MACHINE
  *   Tail-called from drawScoreAdvanceTable (0x1815), which draws the score-advance header string and
- *   the loc_1dbe column script and then falls into this routine. A thin wrapper over typeDrawScript
+ *   the SCORE_ADVANCE_DRAW_SCRIPT column script and then falls into this routine. A thin wrapper over typeDrawScript
  *   (0x183a); its only job is to seat the script pointer at loc_1dcf. A generator because typeDrawScript
  *   yields as it paces the typed output. loc_1dcf keeps a placeholder name — it is the ROM draw-script
  *   data block. Memory-only (writes video RAM).

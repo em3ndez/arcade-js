@@ -4,7 +4,7 @@ import { clearGameActive } from "./clearGameActive.js";
 import { typePacedSpriteRun } from "./typePacedSpriteRun.js";
 import { waitShortDelay } from "./waitShortDelay.js";
 import { returnToAttractFlow } from "./returnToAttractFlow.js";
-import { TILT_RESET_ACTIVE, CREDIT_SCREEN_SHOWN, loc_1cbc, loc_3016 } from "./names.js";
+import { TILT_RESET_ACTIVE, CREDIT_SCREEN_SHOWN, TILT_BANNER_TEXT, TILT_BANNER_VRAM } from "./names.js";
 
 // tiltReset — the tilt/panic warm restart: tear the game down and rejoin attract.
 //
@@ -17,7 +17,7 @@ import { TILT_RESET_ACTIVE, CREDIT_SCREEN_SHOWN, loc_1cbc, loc_3016 } from "./na
 // ROLE IN THE MACHINE
 //   Guarded by TILT_RESET_ACTIVE (0x209a): set to 1 on entry, cleared to 0 at the end, so checkTiltInput
 //   will not re-fire mid-reset. clearGameActive drops GAME_ACTIVE (0x20e9). typePacedSpriteRun draws the
-//   0x04-glyph tilt banner (loc_1cbc -> screen slot loc_3016) paced on FRAME_DELAY_TIMER; waitShortDelay
+//   0x04-glyph tilt banner (TILT_BANNER_TEXT -> screen slot TILT_BANNER_VRAM) paced on FRAME_DELAY_TIMER; waitShortDelay
 //   is the hold. CREDIT_SCREEN_SHOWN (0x2093) is cleared so the credit screen can show again after the
 //   reset. Control ends in returnToAttractFlow (the game-over -> attract join). It runs as a generator so
 //   its typing and holds pace clock-free across many frames, and it is armed via m.nextMain as the
@@ -36,8 +36,8 @@ export function* tiltReset(m) {
   // Drop the game-active flag and re-enable interrupts for the paced teardown that follows.
   clearGameActive(m);
   m.io.setInte(true);
-  // Type the tilt banner (4 glyphs, loc_1cbc -> loc_3016) at the typing cadence, then hold so it reads.
-  yield* typePacedSpriteRun(m, loc_1cbc, 0x04, loc_3016);
+  // Type the tilt banner (4 glyphs, TILT_BANNER_TEXT -> TILT_BANNER_VRAM) at the typing cadence, then hold so it reads.
+  yield* typePacedSpriteRun(m, TILT_BANNER_TEXT, 0x04, TILT_BANNER_VRAM);
   yield* waitShortDelay(m);
   // Release the guard and clear the credit-screen latch so a fresh coin/credit screen can appear again.
   m.mem8[TILT_RESET_ACTIVE] = 0x00;

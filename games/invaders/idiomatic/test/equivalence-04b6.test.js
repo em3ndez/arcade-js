@@ -25,8 +25,8 @@ import { loc_067e } from "../loc_067e.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_206e, loc_2080, loc_2045, loc_2036, loc_2070, loc_2056, loc_2071, loc_2076,
-  loc_1b48, ALIEN_SHOT_BLOWUP_TIMER, loc_2040, loc_1b40, ALIEN_COUNT, loc_2069, TASK_FLAGS,
+  STACK_SCRATCH, ALIEN_SHOT_SLOT3_DISABLE_FLAG, loc_2080, ALIEN_SHOT_SLOT3_DESC, loc_2036, ALIEN_SHOT_RATE_GATE0, loc_2056, ALIEN_SHOT_RATE_GATE_1, ALIEN_SHOT_COLUMN_CURSOR,
+  ALIEN_SHOT_COLUMN_CURSOR_RESET, ALIEN_SHOT_BLOWUP_TIMER, ALIEN_SHOT_SLOT3_RECORD, ALIEN_SHOT_SLOT3_TEMPLATE, ALIEN_COUNT, SHIP_READY_FLAG, TASK_FLAGS,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -74,22 +74,22 @@ function craft(seed) {
 // Pass the two entry guards, leave the shot stepper idle with its blowup byte clear, so the handler runs
 // the template-blit band + column publish.
 function bodyIdle(m) {
-  m.mem.write8(loc_206e, 0x00);
+  m.mem.write8(ALIEN_SHOT_SLOT3_DISABLE_FLAG, 0x00);
   m.mem.write8(loc_2080, 0x01);
-  for (let a = loc_2045; a < loc_2045 + 0x0b; a++) m.mem.write8(a, 0x00);
-  m.mem.write8(loc_2069, 0x00);
+  for (let a = ALIEN_SHOT_SLOT3_DESC; a < ALIEN_SHOT_SLOT3_DESC + 0x0b; a++) m.mem.write8(a, 0x00);
+  m.mem.write8(SHIP_READY_FLAG, 0x00);
   m.mem.write8(TASK_FLAGS, 0x00);
 }
 
 test("CRAFTED: branches leave identical RAM (-stack)", () => {
   const cases = [
-    { tag: "gate cell set -> immediate return", seed: (m) => { m.mem.write8(loc_206e, 0x01); } },
-    { tag: "mode cell not one -> return", seed: (m) => { m.mem.write8(loc_206e, 0x00); m.mem.write8(loc_2080, 0x00); } },
+    { tag: "gate cell set -> immediate return", seed: (m) => { m.mem.write8(ALIEN_SHOT_SLOT3_DISABLE_FLAG, 0x01); } },
+    { tag: "mode cell not one -> return", seed: (m) => { m.mem.write8(ALIEN_SHOT_SLOT3_DISABLE_FLAG, 0x00); m.mem.write8(loc_2080, 0x00); } },
     { tag: "body idle, blowup clear -> template-blit band + column publish", seed: bodyIdle },
     { tag: "body idle, last alien -> latch the gate", seed: (m) => { bodyIdle(m); m.mem.write8(ALIEN_COUNT, 0x01); } },
     {
       tag: "body idle, blowup set -> restore strip",
-      seed: (m) => { bodyIdle(m); m.mem.write8(loc_2045 + 5, 0x03); },
+      seed: (m) => { bodyIdle(m); m.mem.write8(ALIEN_SHOT_SLOT3_DESC + 5, 0x03); },
     },
   ];
   for (const { tag, seed } of cases) {
@@ -102,17 +102,17 @@ test("CRAFTED: branches leave identical RAM (-stack)", () => {
 // TEETH: a broken inline twin that DROPS the last-alien gate latch. Nothing else writes that cell, so the
 // RAM diff must catch it.
 function alienShotSlot3Handler_droppedLatch(m) {
-  if (m.mem8[loc_206e] !== 0) return;
+  if (m.mem8[ALIEN_SHOT_SLOT3_DISABLE_FLAG] !== 0) return;
   if (m.mem8[loc_2080] !== 1) return;
-  copyRecordToWorkBuffer(m, 0xed, loc_2045);
-  m.mem8[loc_2070] = m.mem8[loc_2036];
-  m.mem8[loc_2071] = m.mem8[loc_2056];
+  copyRecordToWorkBuffer(m, 0xed, ALIEN_SHOT_SLOT3_DESC);
+  m.mem8[ALIEN_SHOT_RATE_GATE0] = m.mem8[loc_2036];
+  m.mem8[ALIEN_SHOT_RATE_GATE_1] = m.mem8[loc_2056];
   stepAlienShot(m);
-  if (m.mem8[loc_2076] >= 16) m.mem8[loc_2076] = m.mem8[loc_1b48];
-  if (m.mem8[ALIEN_SHOT_BLOWUP_TIMER] !== 0) return copyWorkBufferToRecord(m, loc_2045);
-  blockCopy(m, loc_1b40, loc_2040, 16);
-  // BUG: dropped `if (m.mem8[ALIEN_COUNT] === 1) m.mem8[loc_206e] = 1;`
-  return loc_067e(m, m.mem16[loc_2076]);
+  if (m.mem8[ALIEN_SHOT_COLUMN_CURSOR] >= 16) m.mem8[ALIEN_SHOT_COLUMN_CURSOR] = m.mem8[ALIEN_SHOT_COLUMN_CURSOR_RESET];
+  if (m.mem8[ALIEN_SHOT_BLOWUP_TIMER] !== 0) return copyWorkBufferToRecord(m, ALIEN_SHOT_SLOT3_DESC);
+  blockCopy(m, ALIEN_SHOT_SLOT3_TEMPLATE, ALIEN_SHOT_SLOT3_RECORD, 16);
+  // BUG: dropped `if (m.mem8[ALIEN_COUNT] === 1) m.mem8[ALIEN_SHOT_SLOT3_DISABLE_FLAG] = 1;`
+  return loc_067e(m, m.mem16[ALIEN_SHOT_COLUMN_CURSOR]);
 }
 
 test("TEETH: a twin that drops the last-alien gate latch diverges in RAM", () => {

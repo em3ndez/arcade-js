@@ -7,9 +7,9 @@ import { drawSpriteWithCollision } from "./drawSpriteWithCollision.js";
 import { orBlitShiftedSprite } from "./orBlitShiftedSprite.js";
 import { blockCopy } from "./blockCopy.js";
 import {
-  PLAYER_SHOT_STATUS, PLAYER_SHOT_DESC, loc_2026, loc_2029, loc_202a, loc_202b, loc_202c,
-  loc_201b, COLLISION_FLAG, PLAYER_SHOT_HIT, loc_1b25, SAUCER_SCORE_KEY_PTR, loc_208f,
-  SAUCER_ACTIVE, loc_208a, loc_208c,
+  PLAYER_SHOT_STATUS, PLAYER_SHOT_DESC, PLAYER_SHOT_RETIRE_TIMER, loc_2029, loc_202a, PLAYER_SHOT_ROW_COUNT, PLAYER_SHOT_Y_STEP,
+  PLAYER_SHIP_X, COLLISION_FLAG, PLAYER_SHOT_HIT, PLAYER_SHOT_RECORD_TEMPLATE, SAUCER_SCORE_KEY_PTR, SAUCER_DIR_SEQ_PTR,
+  SAUCER_ACTIVE, loc_208a, SAUCER_STEP_DX,
 } from "./names.js";
 
 /**
@@ -25,11 +25,11 @@ import {
  * ROLE IN THE MACHINE
  *   Dispatched by the object walker walkObjectTable (keyed by PLAYER_SHOT_HANDLER_ADDR 0x03bb), which passes
  *   the record. It runs only in the raster half matching the object's phase bit, then forks on the status:
- *     - 1 launch:  bump the status to flying, seat the muzzle X from the ship X (loc_201b + 8), blit.
- *     - 2 flying:  erase, advance Y by the per-frame step (loc_202c into loc_2029), redraw with collision,
+ *     - 1 launch:  bump the status to flying, seat the muzzle X from the ship X (PLAYER_SHIP_X + 8), blit.
+ *     - 2 flying:  erase, advance Y by the per-frame step (PLAYER_SHOT_Y_STEP into loc_2029), redraw with collision,
  *                  and copy any COLLISION_FLAG (0x2061) into PLAYER_SHOT_HIT (0x2002) for the shot resolver.
- *     - 3 retiring: count the retire timer (loc_2026) down one frame at a time, stepping the explosion cells.
- *     - 4 / other:  the shared tally doT (via doR) -- reseed the record from the ROM template (loc_1b25) and
+ *     - 3 retiring: count the retire timer (PLAYER_SHOT_RETIRE_TIMER) down one frame at a time, stepping the explosion cells.
+ *     - 4 / other:  the shared tally doT (via doR) -- reseed the record from the ROM template (PLAYER_SHOT_RECORD_TEMPLATE) and
  *                   step the two saucer-key counters; 5 (the explosion state) is idle here.
  *   Because each redraw follows an erase, the descriptor is reloaded after every erase so the erase and the
  *   redraw land on the same (recomputed) rows.
@@ -40,10 +40,10 @@ import {
  */
 export function playerShotHandler(m) {
   // Status 1 -- launch a fresh shot. Bump the status (1 -> 2 "flying"), seat the shot's coordinate byte
-  // to the ship's muzzle (the ship X at loc_201b, offset +8), load its descriptor, and OR-blit it in.
+  // to the ship's muzzle (the ship X at PLAYER_SHIP_X, offset +8), load its descriptor, and OR-blit it in.
   function doP() { // launch a new shot
     m.mem8[PLAYER_SHOT_STATUS] = u8(m.mem8[PLAYER_SHOT_STATUS] + 1);
-    m.mem8[loc_202a] = u8(m.mem8[loc_201b] + 8);
+    m.mem8[loc_202a] = u8(m.mem8[PLAYER_SHIP_X] + 8);
     loadPlayerShotDescriptor(m);
     return orBlitShiftedSprite(m);
   }
@@ -54,7 +54,7 @@ export function playerShotHandler(m) {
   function doQ() { // step a shot in flight
     loadPlayerShotDescriptor(m);
     eraseShiftedSprite(m);
-    const y = u8(m.mem8[loc_202c] + m.mem8[loc_2029]); // advance the shot's Y by its per-frame step
+    const y = u8(m.mem8[PLAYER_SHOT_Y_STEP] + m.mem8[loc_2029]); // advance the shot's Y by its per-frame step
     m.mem8[loc_2029] = y;
     loadPlayerShotDescriptor(m); // re-read the descriptor so the redraw seats the advanced Y
     drawSpriteWithCollision(m, undefined, undefined, y);
@@ -64,24 +64,24 @@ export function playerShotHandler(m) {
   // Write the chosen movement pair to the two publish cells (low byte then high byte).
   function doV(cLow, bHigh) { // publish the picked movement pair
     m.mem8[loc_208a] = cLow;
-    m.mem8[loc_208c] = bHigh;
+    m.mem8[SAUCER_STEP_DX] = bHigh;
   }
 
   // The shared end-of-shot tally. Erase the sprite, reload the 7-byte shot record from its ROM template
-  // (loc_1b25) so a fresh shot can be fired, then advance the two saucer-score-key counters: the key
+  // (PLAYER_SHOT_RECORD_TEMPLATE) so a fresh shot can be fired, then advance the two saucer-score-key counters: the key
   // pointer SAUCER_SCORE_KEY_PTR (0x208d) steps its low byte and wraps 0x63 -> 0x54, and the second
-  // counter loc_208f steps its low byte. Finally, only while no saucer is active, pick one of two movement
-  // pairs from bit 0 of the byte the loc_208f pointer now addresses and publish it via doV.
+  // counter SAUCER_DIR_SEQ_PTR steps its low byte. Finally, only while no saucer is active, pick one of two movement
+  // pairs from bit 0 of the byte the SAUCER_DIR_SEQ_PTR pointer now addresses and publish it via doV.
   function doT() { // shared tally: reseed the record and step the saucer-key counters
     loadPlayerShotDescriptor(m);
     eraseShiftedSprite(m);
-    blockCopy(m, loc_1b25, PLAYER_SHOT_STATUS, 7); // reload the record from its template
+    blockCopy(m, PLAYER_SHOT_RECORD_TEMPLATE, PLAYER_SHOT_STATUS, 7); // reload the record from its template
     let keyLo = u8(m.mem8[SAUCER_SCORE_KEY_PTR] + 1); // only the counter's low byte moves
     if (keyLo >= 0x63) keyLo = 0x54; // wrap the key back to its low bound
     m.mem8[SAUCER_SCORE_KEY_PTR] = keyLo;
-    const ptrLo = u8(m.mem8[loc_208f] + 1);
-    m.mem8[loc_208f] = ptrLo;
-    const ptr = (m.mem8[loc_208f + 1] << 8) | ptrLo; // the pointer this counter walks
+    const ptrLo = u8(m.mem8[SAUCER_DIR_SEQ_PTR] + 1);
+    m.mem8[SAUCER_DIR_SEQ_PTR] = ptrLo;
+    const ptr = (m.mem8[SAUCER_DIR_SEQ_PTR + 1] << 8) | ptrLo; // the pointer this counter walks
     if (m.mem8[SAUCER_ACTIVE] !== 0) return;
     if ((m.mem8[ptr] & 0x01) !== 0) return doV(0x29, 0x02);
     return doV(0xe0, 0xfe);
@@ -104,8 +104,8 @@ export function playerShotHandler(m) {
   if (type === 2) return doQ();
   if (type !== 3) return doR(type);
   // Status 3 -- retiring. Count the retire timer down one frame; store it back.
-  const count = u8(m.mem8[loc_2026] - 1);
-  m.mem8[loc_2026] = count;
+  const count = u8(m.mem8[PLAYER_SHOT_RETIRE_TIMER] - 1);
+  m.mem8[PLAYER_SHOT_RETIRE_TIMER] = count;
   // Timer drained -> run the shared reseed tally (the shot is fully gone).
   if (count === 0) return doT();
   // Only the specific frame-trigger 0x0f advances one animation step; every other count idles this frame.
@@ -116,7 +116,7 @@ export function playerShotHandler(m) {
   m.mem8[PLAYER_SHOT_DESC] = u8(m.mem8[PLAYER_SHOT_DESC] + 1);
   m.mem8[loc_2029] = u8(m.mem8[loc_2029] - 2);
   m.mem8[loc_202a] = u8(m.mem8[loc_202a] - 3);
-  m.mem8[loc_202b] = 8;
+  m.mem8[PLAYER_SHOT_ROW_COUNT] = 8;
   loadPlayerShotDescriptor(m);
   return orBlitShiftedSprite(m);
 }
