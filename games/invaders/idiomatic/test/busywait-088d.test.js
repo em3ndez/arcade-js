@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Drafter test for loc_088d (round-start splash busy-wait generator). The oracle busy-waits on the
+// Drafter test for showRoundStartSplash (round-start splash busy-wait generator). The oracle busy-waits on the
 // vblank-decremented counter 0x20c0, which no in-isolation cycle clock drives, so it cannot be run as a
 // plain function here; the generator makes that wait yield once per displayed frame. This test drives the
 // generator directly, decrementing the counter each yield the way the interrupt would, and checks: the
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { Machine } from "../../machine.js";
-import { loc_088d } from "../loc_088d.js";
+import { showRoundStartSplash } from "../showRoundStartSplash.js";
 import { FRAME_DELAY_TIMER, ACTIVE_PLAYER_PAGE, PLAYER1_OBJ_DESC, loc_271c, loc_2b11 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -27,7 +27,7 @@ function driveToDone(gen, m, cap = 0x300) {
   while (!r.done) {
     m.mem.write8(FRAME_DELAY_TIMER, (m.mem.read8(FRAME_DELAY_TIMER) - 1) & 0xff);
     frames += 1;
-    if (frames > cap) throw new Error("loc_088d busy-wait did not terminate");
+    if (frames > cap) throw new Error("showRoundStartSplash busy-wait did not terminate");
     r = gen.next();
   }
   return frames;
@@ -48,7 +48,7 @@ test("round-start splash: 0xb0-frame spin drains the counter and the per-frame d
   m.mem.write8(loc_271c, 0xff);
   m.mem.write8(loc_271c + 0x20, 0xff);
 
-  const frames = driveToDone(loc_088d(m), m);
+  const frames = driveToDone(showRoundStartSplash(m), m);
 
   assert.equal(frames, 0xb0, "spin length is the 0xb0-frame seed");
   assert.equal(m.mem.read8(FRAME_DELAY_TIMER), 0, "counter drained to zero");
@@ -71,7 +71,7 @@ test("TEETH: a spin that never re-checks the counter would never end (cap guards
   const m = new Machine(ROM);
   m.regs.sp = 0x2400;
   m.mem.write8(ACTIVE_PLAYER_PAGE, 0x21);
-  const gen = loc_088d(m);
+  const gen = showRoundStartSplash(m);
   let frames = 0;
   let r = gen.next();
   let threw = false;

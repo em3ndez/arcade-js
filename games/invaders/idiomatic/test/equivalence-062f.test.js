@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_062f (ROM 0x062f) -- scan five object slots (stride 0x0b) on page
+// Memory-equivalence for findLiveAlienInColumn (ROM 0x062f) -- scan five object slots (stride 0x0b) on page
 // ACTIVE_PLAYER_PAGE from low byte C-1. No RAM write. THREE live-outs (from the oracle): the carry flag (set
 // on the first non-empty slot, else the final adi's carry), C decremented once, and L -- the low byte of the
 // found slot, which the caller feeds to alienIndexToScreenCoords. A leaf: it omits the ROM ret and the seam
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_062f as oracle } from "../../translated/loc_062f.js";
-import { loc_062f } from "../loc_062f.js";
+import { findLiveAlienInColumn } from "../findLiveAlienInColumn.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE } from "../names.js";
@@ -37,11 +37,11 @@ function captureDispatches(K, maxFrames) {
 // gameplay. Until then the CRAFTED cases below (real oracle vs idiomatic, seeded slots) carry the check.
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x062f dispatches -- loc_062f == oracle in RAM (-stack), carry, C and L", () => {
+test("CAPTURE: real 0x062f dispatches -- findLiveAlienInColumn == oracle in RAM (-stack), carry, C and L", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_062f(c);
+    oracle(o); findLiveAlienInColumn(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.fC, o.regs.fC, "carry live-out matches the oracle");
     assert.equal(c.regs.c, o.regs.c, "C live-out matches the oracle");
@@ -67,7 +67,7 @@ test("CRAFTED: carry on the first non-empty slot; C := C-1; no RAM write", () =>
     };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
-    oracle(o); loc_062f(c);
+    oracle(o); findLiveAlienInColumn(c);
     const tag = `page=0x${page.toString(16)} c=0x${cIn.toString(16)} hit=${hit}`;
     assert.equal(ramDiff(o, c), null, `no RAM write: ${tag}`);
     assert.equal(c.regs.fC, hit ? true : o.regs.fC, `carry: ${tag}`);
@@ -112,7 +112,7 @@ test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   m.regs.c = 0x0c;
   m.mem.write8(ACTIVE_PLAYER_PAGE, 0x21);
   m.io.setInte(false);
-  const r = seamPlaceable(withOmittedRet, loc_062f, TARGET, m);
-  assert.equal(r.placeable, true, `loc_062f must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, findLiveAlienInColumn, TARGET, m);
+  assert.equal(r.placeable, true, `findLiveAlienInColumn must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

@@ -7,7 +7,7 @@ import { u8, u16 } from "../../../core/int.js";
 // the id at source `de`, blit an 8-row column at screen dest `hl` (which advances), then pace 7 vblank
 // frames before the next byte. Generator: each pace step is one yield. Args are threaded explicitly (a
 // generator's parameter-default reads are not exempt from the cruft gate). Memory-only.
-export function* loc_0a93(m, de, c, hl) {
+export function* typePacedSpriteRun(m, de, c, hl) {
   let src = de;
   let count = c;
   let dst = hl;

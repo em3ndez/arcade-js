@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for playSaucerHitSoundAndDrawSprite -- OR a sound-select bit into the port-5 shadow and latch it
 // (DISSOLVED into latchSoundPort5), reset the sprite record's gfx pointer to its ROM table (shld ->
-// mem16 store), then blit the sprite column (DISSOLVED into loc_073c, the tail delegate). Live-out is
+// mem16 store), then blit the sprite column (DISSOLVED into drawSaucerSprite, the tail delegate). Live-out is
 // RAM (the shadow byte, the reset record word, and the blitted screen column) PLUS the advanced HL that
-// loc_073c leaves. The oracle's `call 0x1770` / `call 0x0742` return pushes and the leaf's `push b`
+// drawSaucerSprite leaves. The oracle's `call 0x1770` / `call 0x0742` return pushes and the leaf's `push b`
 // residue sit in dead stack scratch below the entry SP, which the diff excludes; the module keeps its
 // walk in locals. Interrupts are disabled per clone so a handler cannot write RAM only on one side.
 // Run: node --test games/invaders/idiomatic/test/equivalence-074b.test.js
@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_074b as oracle } from "../../translated/loc_074b.js";
 import { playSaucerHitSoundAndDrawSprite } from "../playSaucerHitSoundAndDrawSprite.js";
 import { latchSoundPort5 } from "../latchSoundPort5.js";
-import { loc_073c } from "../loc_073c.js";
+import { drawSaucerSprite } from "../drawSaucerSprite.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SOUND_PORT5_SHADOW, loc_2087, SAUCER_HIT_SPRITE } from "../names.js";
@@ -86,7 +86,7 @@ test("TEETH: a twin that ORs the wrong sound bit diverges at the shadow cell", (
     const a = (m.mem8[SOUND_PORT5_SHADOW] |= 0x20); // BUG: wrong sound-select bit (0x20 not 0x10)
     latchSoundPort5(m, a);
     m.mem16[loc_2087] = SAUCER_HIT_SPRITE;
-    return loc_073c(m);
+    return drawSaucerSprite(m);
   }
   const o = new Machine(ROM); seat(o);
   const c = new Machine(ROM); seat(c);

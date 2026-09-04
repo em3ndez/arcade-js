@@ -3,7 +3,7 @@ import { drawLivesDigit } from "./drawLivesDigit.js";
 import { loc_1910 } from "./loc_1910.js";
 import { currentPlayerRecordPtr } from "./currentPlayerRecordPtr.js";
 import { drawHighScore } from "./drawHighScore.js";
-import { loc_0a93 } from "./loc_0a93.js";
+import { typePacedSpriteRun } from "./typePacedSpriteRun.js";
 import { drawSprite8x8 } from "./drawSprite8x8.js";
 import { loc_0ab1 } from "./loc_0ab1.js";
 import { loc_18e7 } from "./loc_18e7.js";
@@ -40,7 +40,7 @@ export function* gameOverFlow(m) {
     return;
   }
 
-  yield* loc_0a93(m, loc_1aa6, 0x14, loc_2803);
+  yield* typePacedSpriteRun(m, loc_1aa6, 0x14, loc_2803);
   const glyph = m.mem8[ACTIVE_PLAYER_PAGE] & 1 ? 0x1b : 0x1c;
   drawSprite8x8(m, glyph, loc_3a03);
   yield* loc_0ab1(m);

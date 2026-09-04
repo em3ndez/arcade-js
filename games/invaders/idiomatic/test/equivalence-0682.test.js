@@ -24,7 +24,7 @@ import { loc_0682 as oracle } from "../../translated/loc_0682.js";
 import { loc_0682 } from "../loc_0682.js";
 import { u8 } from "../../../../core/int.js";
 import { objectMatchesDrawPhase } from "../objectMatchesDrawPhase.js";
-import { loc_073c } from "../loc_073c.js";
+import { drawSaucerSprite } from "../drawSaucerSprite.js";
 import { loc_050f } from "../loc_050f.js";
 import { loc_19dc } from "../loc_19dc.js";
 import { playSaucerHitSoundAndDrawSprite } from "../playSaucerHitSoundAndDrawSprite.js";
@@ -87,7 +87,7 @@ function stepIdle(m) {
 }
 
 // Seat a small saucer sprite descriptor whose coordinate folds to a safe high video-RAM address (far from
-// the stack), with a 2-row blit and a ROM source -- so loc_073c / the score draw touch known video RAM.
+// the stack), with a 2-row blit and a ROM source -- so drawSaucerSprite / the score draw touch known video RAM.
 function saucerDescriptor(m) {
   m.mem.write8(loc_2087 + 0, 0x00);     // descriptor E (source low)
   m.mem.write8(loc_2087 + 1, 0x1b);     // descriptor D (source high -> ROM)
@@ -153,12 +153,12 @@ function loc_0682_droppedLaunch(m) {
   if (m.mem8[SAUCER_ACTIVE] === 0) {
     if (m.mem8[ALIEN_COUNT] < 8) return loc_050f(m);
     // BUG: dropped `m.mem8[SAUCER_ACTIVE] = 1;`
-    loc_073c(m);
+    drawSaucerSprite(m);
   }
   if (!objectMatchesDrawPhase(m, loc_208a)) return;
   if (m.mem8[SAUCER_HIT] === 0) {
     m.mem8[loc_208a] = u8(m.mem8[loc_208a] + m.mem8[loc_208c]);
-    loc_073c(m);
+    drawSaucerSprite(m);
     const x = m.mem8[loc_208a];
     if (x >= 40 && x < 225) return;
   } else {

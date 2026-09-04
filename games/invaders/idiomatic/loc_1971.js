@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0a59 } from "./loc_0a59.js";
+import { isArmTriggerSet } from "./isArmTriggerSet.js";
 import { resolvePlayerShotHit } from "./resolvePlayerShotHit.js";
 import { startSound } from "./startSound.js";
 import { clearGameActive } from "./clearGameActive.js";
@@ -22,7 +22,7 @@ export function* loc_1971(m) {
   for (;;) {
     resolvePlayerShotHit(m);
     startSound(m, 0x04);
-    if (loc_0a59(m)) break;
+    if (isArmTriggerSet(m)) break;
     yield;
   }
   clearGameActive(m);

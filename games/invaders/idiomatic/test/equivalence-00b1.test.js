@@ -2,7 +2,7 @@
 // Memory-equivalence for loadReferenceAlienState (ROM 0x00b1) -- fetch the active record's 16-bit pointer via
 // activeFieldRecordPointer (0x0886 dissolved), mirror it to loc_2009 and ALIEN_DRAW_ADDR, then derive the
 // count byte at loc_2008 (dropped by one when the byte just below the pointer is 3) and the edge flag
-// at FLEET_MOVE_DIR (set when that count reads 0xfe). Live-out is memory only (the sole caller, loc_0814,
+// at FLEET_MOVE_DIR (set when that count reads 0xfe). Live-out is memory only (the sole caller, enterRoundWithFieldReload,
 // immediately calls 0x19d1 which reloads A/HL), so each side runs on a clone and the contract is RAM
 // (dumpState, minus STACK_SCRATCH -- the oracle's balanced push/pop scratch is excluded).
 // Run: node --test games/invaders/idiomatic/test/equivalence-00b1.test.js

@@ -11,7 +11,7 @@ import { ACTIVE_PLAYER_PAGE, FRAME_DELAY_TIMER, loc_1b70, loc_2b11, loc_3711, lo
 // bit 2 is set the score strip is blanked, otherwise the active player's score is repainted -- so the
 // score flashes as the counter counts down. Each pass yields one frame; the interrupt drains the counter.
 // Generator; memory + IO.
-export function* loc_088d(m) {
+export function* showRoundStartSplash(m) {
   drawSpriteList(m, loc_1b70, 0x0e, loc_2b11);
   if (!(m.mem8[ACTIVE_PLAYER_PAGE] & 1)) drawSprite8x8(m, 0x1c, loc_3711);
   m.mem8[FRAME_DELAY_TIMER] = 0xb0;

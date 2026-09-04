@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { drawPendingAlien } from "./drawPendingAlien.js";
 import { loc_0248 } from "./loc_0248.js";
-import { loc_0913 } from "./loc_0913.js";
+import { tickSaucerSpawnTimer } from "./tickSaucerSpawnTimer.js";
 import { loc_2080, loc_2032 } from "./names.js";
 
 // The vblank in-game record tail: copy the per-frame latch cell forward, redraw the pending marching
@@ -12,5 +12,5 @@ export function loc_0072(m) {
   drawPendingAlien(m);
   loc_0248(m);
   if (m.nextMain) return;
-  loc_0913(m);
+  tickSaucerSpawnTimer(m);
 }

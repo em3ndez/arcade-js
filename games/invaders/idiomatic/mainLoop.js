@@ -5,9 +5,9 @@ import { countLiveAliens } from "./countLiveAliens.js";
 import { applyPendingScoreAdd } from "./applyPendingScoreAdd.js";
 import { selectAlienShotRate } from "./selectAlienShotRate.js";
 import { awardExtraShip } from "./awardExtraShip.js";
-import { loc_08d8 } from "./loc_08d8.js";
+import { setAlienShotStepWhenFew } from "./setAlienShotStepWhenFew.js";
 import { loc_172c } from "./loc_172c.js";
-import { loc_0a59 } from "./loc_0a59.js";
+import { isArmTriggerSet } from "./isArmTriggerSet.js";
 import { startSound } from "./startSound.js";
 import { advanceFleetMarchSound } from "./advanceFleetMarchSound.js";
 import { updateSaucerSound } from "./updateSaucerSound.js";
@@ -31,9 +31,9 @@ export function* mainLoop(m) {
     }
     selectAlienShotRate(m);
     awardExtraShip(m);
-    loc_08d8(m);
+    setAlienShotStepWhenFew(m);
     loc_172c(m);
-    if (!loc_0a59(m)) startSound(m, 0x04);
+    if (!isArmTriggerSet(m)) startSound(m, 0x04);
     m.io.portOut(0x06, advanceFleetMarchSound(m));
     updateSaucerSound(m);
     yield;

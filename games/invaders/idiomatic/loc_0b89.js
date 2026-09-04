@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_0ab1 } from "./loc_0ab1.js";
 import { loc_0ab6 } from "./loc_0ab6.js";
-import { loc_0a80 } from "./loc_0a80.js";
+import { runAttractAnimTask } from "./runAttractAnimTask.js";
 import { loc_1988 } from "./loc_1988.js";
 import { clearPlayfield } from "./clearPlayfield.js";
 import { drawSpriteList } from "./drawSpriteList.js";
@@ -38,7 +38,7 @@ export function* loc_0b89(m) {
 
   if (m.mem8[SCREEN_MODE_TOGGLE] === 0) {
     loadDrawSequenceBlock(m, loc_1fd5);
-    yield* loc_0a80(m);
+    yield* runAttractAnimTask(m);
     yield* loc_189e(m);
   }
 

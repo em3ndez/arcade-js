@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0913 -- gate a 16-bit countdown timer: if the gate cell is high, do
+// Memory-equivalence for tickSaucerSpawnTimer -- gate a 16-bit countdown timer: if the gate cell is high, do
 // nothing; else decrement the counter, and when it was zero reload it and raise a wrap flag. Inputs
 // and live-out are all memory, so each side runs on a fresh clone and the contract is RAM
 // (dumpState, minus STACK_SCRATCH).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0913 as oracle } from "../../translated/loc_0913.js";
-import { loc_0913 } from "../loc_0913.js";
+import { tickSaucerSpawnTimer } from "../tickSaucerSpawnTimer.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_2009, SAUCER_TIMER, loc_2083, TIMER_RELOAD } from "../names.js";
@@ -33,10 +33,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0913 dispatches -- loc_0913 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0913 dispatches -- tickSaucerSpawnTimer == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_0913(c);
+    oracle(o); tickSaucerSpawnTimer(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -56,7 +56,7 @@ test("CRAFTED: each arm matches the oracle in RAM and hits the expected cells", 
     const seed = (m) => { m.mem.write8(loc_2009, s.gate); m.mem.write16(SAUCER_TIMER, s.counter); m.mem.write8(loc_2083, s.flag0); };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
-    oracle(o); loc_0913(c);
+    oracle(o); tickSaucerSpawnTimer(c);
     const label = `gate=0x${s.gate.toString(16)} counter=0x${s.counter.toString(16)}`;
     assert.equal(ramDiff(o, c), null, label);
     assert.equal(c.mem.read16(SAUCER_TIMER), s.wantCounter, `counter ${label}`);
@@ -69,7 +69,7 @@ test("TEETH: a wrong stored counter is caught", () => {
   const o = new Machine(ROM); seed(o);
   const c = new Machine(ROM); seed(c);
   oracle(o);
-  loc_0913(c); c.mem.write16(SAUCER_TIMER, 0x1234); // BUG: wrong stored counter
+  tickSaucerSpawnTimer(c); c.mem.write16(SAUCER_TIMER, 0x1234); // BUG: wrong stored counter
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stored counter");
   assert.equal(d.addr, SAUCER_TIMER & 0xffff);

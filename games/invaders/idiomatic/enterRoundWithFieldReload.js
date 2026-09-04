@@ -6,7 +6,7 @@ import { mainLoop } from "./mainLoop.js";
 
 // Field-arm tail: load the active player's saved field, mark the game active, cue the round-start sound,
 // then fall into the in-game frame loop. Generator; memory + IO.
-export function* loc_0814(m) {
+export function* enterRoundWithFieldReload(m) {
   loadReferenceAlienState(m);
   setGameActive(m);
   startSound(m, 0x20);

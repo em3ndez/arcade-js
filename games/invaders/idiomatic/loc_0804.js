@@ -2,7 +2,7 @@
 import { drawBottomLine } from "./drawBottomLine.js";
 import { restorePlayer2Shields } from "./restorePlayer2Shields.js";
 import { loc_0872 } from "./loc_0872.js";
-import { loc_0814 } from "./loc_0814.js";
+import { enterRoundWithFieldReload } from "./enterRoundWithFieldReload.js";
 import { ACTIVE_PLAYER_PAGE } from "./names.js";
 
 // Shield/field preamble: repaint the bottom line, then by the active player's select bit restore this
@@ -16,5 +16,5 @@ export function* loc_0804(m) {
   }
   restorePlayer2Shields(m);
   drawBottomLine(m);
-  yield* loc_0814(m);
+  yield* enterRoundWithFieldReload(m);
 }

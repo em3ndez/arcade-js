@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_097c -- clamp/index: HL = loc_1da0 + (A>=2) + (A>=4). Input register A,
+// Memory-equivalence for invaderScoreEntryPtr -- clamp/index: HL = loc_1da0 + (A>=2) + (A>=4). Input register A,
 // live-out register HL (the caller reads mem[HL]); no memory is written, so RAM must stay identical
 // (dumpState, minus STACK_SCRATCH) AND the returned HL must match.
 // Run: node --test games/invaders/idiomatic/test/equivalence-097c.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_097c as oracle } from "../../translated/loc_097c.js";
-import { loc_097c } from "../loc_097c.js";
+import { invaderScoreEntryPtr } from "../invaderScoreEntryPtr.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_1da0 } from "../names.js";
@@ -32,10 +32,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x097c dispatches -- loc_097c == oracle in RAM and HL", () => {
+test("CAPTURE: real 0x097c dispatches -- invaderScoreEntryPtr == oracle in RAM and HL", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_097c(c);
+    oracle(o); invaderScoreEntryPtr(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "returned HL");
   }
@@ -46,7 +46,7 @@ test("CRAFTED: HL = loc_1da0 + (A>=2) + (A>=4) for several A", () => {
   for (const [a, off] of [[0x00, 0], [0x01, 0], [0x02, 1], [0x03, 1], [0x04, 2], [0x40, 2], [0xff, 2]]) {
     const o = new Machine(ROM); o.regs.a = a;
     const c = new Machine(ROM); c.regs.a = a;
-    oracle(o); loc_097c(c);
+    oracle(o); invaderScoreEntryPtr(c);
     assert.equal(ramDiff(o, c), null, `A=0x${a.toString(16)}`);
     assert.equal(c.regs.hl, o.regs.hl, `HL vs oracle A=0x${a.toString(16)}`);
     assert.equal(c.regs.hl, (loc_1da0 + off) & 0xffff, `HL value A=0x${a.toString(16)}`);

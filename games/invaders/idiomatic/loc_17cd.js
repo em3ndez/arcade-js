@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { clearPlayfield } from "./clearPlayfield.js";
 import { clearGameActive } from "./clearGameActive.js";
-import { loc_0a93 } from "./loc_0a93.js";
+import { typePacedSpriteRun } from "./typePacedSpriteRun.js";
 import { loc_0ab1 } from "./loc_0ab1.js";
 import { loc_16c9 } from "./loc_16c9.js";
 import { TILT_RESET_ACTIVE, CREDIT_SCREEN_SHOWN, loc_1cbc, loc_3016 } from "./names.js";
@@ -16,7 +16,7 @@ export function* tiltReset(m) {
   m.mem8[TILT_RESET_ACTIVE] = 0x01;
   clearGameActive(m);
   m.io.setInte(true);
-  yield* loc_0a93(m, loc_1cbc, 0x04, loc_3016);
+  yield* typePacedSpriteRun(m, loc_1cbc, 0x04, loc_3016);
   yield* loc_0ab1(m);
   m.mem8[TILT_RESET_ACTIVE] = 0x00;
   m.mem8[CREDIT_SCREEN_SHOWN] = 0x00;

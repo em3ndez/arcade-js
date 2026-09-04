@@ -5,7 +5,7 @@ import { mainLoop } from "./mainLoop.js";
 
 // Field-arm tail without the field reload: mark the game active, cue the round-start sound, then fall
 // into the in-game frame loop. Generator; memory + IO.
-export function* loc_0817(m) {
+export function* enterRoundWithoutFieldReload(m) {
   setGameActive(m);
   startSound(m, 0x20);
   yield* mainLoop(m);

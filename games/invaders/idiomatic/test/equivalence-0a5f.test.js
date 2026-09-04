@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_0a5f (ROM 0x0a5f) -- when the trigger cell (GAME_IN_PROGRESS) is nonzero: sound the
-// cue (startSound with bit 0x08), index the 3-entry table via loc_097c using the passed count, and stamp
+// cue (startSound with bit 0x08), index the 3-entry table via invaderScoreEntryPtr using the passed count, and stamp
 // the looked-up byte at SCORE_ADD_VALUE with markers 0x01 at SCORE_ADD_PENDING / 0x00 at SCORE_ADD_VALUE_HI; always return HL=loc_2062.
 // Both m.call(0x18fa) and m.call(0x097c) are DISSOLVED into direct idiomatic calls. Input register B (the
 // table index); live-out is memory PLUS the returned record pointer HL (the caller feeds it to loadSpriteDescriptor).
@@ -13,7 +13,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0a5f as oracle } from "../../translated/loc_0a5f.js";
 import { loc_0a5f } from "../loc_0a5f.js";
 import { startSound } from "../startSound.js";
-import { loc_097c } from "../loc_097c.js";
+import { invaderScoreEntryPtr } from "../invaderScoreEntryPtr.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_IN_PROGRESS, SCORE_ADD_PENDING, SCORE_ADD_VALUE, SCORE_ADD_VALUE_HI, loc_2062 } from "../names.js";
@@ -68,11 +68,11 @@ test("CRAFTED: trigger set -> sound + table byte + markers stamped; HL=loc_2062"
     assert.equal(c.regs.hl, loc_2062 & 0xffff, `HL value ${label}`);
     assert.equal(c.mem.read8(SCORE_ADD_PENDING), 0x01, `active marker ${label}`);
     assert.equal(c.mem.read8(SCORE_ADD_VALUE_HI), 0x00, `clear marker ${label}`);
-    // the looked-up byte matches the oracle (it reads the table via loc_097c's clamp of B)
+    // the looked-up byte matches the oracle (it reads the table via invaderScoreEntryPtr's clamp of B)
     assert.equal(c.mem.read8(SCORE_ADD_VALUE), o.mem.read8(SCORE_ADD_VALUE), `table byte ${label}`);
-    // cross-check: the stamped byte is exactly mem[loc_097c(B)]
+    // cross-check: the stamped byte is exactly mem[invaderScoreEntryPtr(B)]
     const probe = new Machine(ROM); probe.regs.a = b;
-    assert.equal(c.mem.read8(SCORE_ADD_VALUE), probe.mem.read8(loc_097c(probe, b)), `table byte value ${label}`);
+    assert.equal(c.mem.read8(SCORE_ADD_VALUE), probe.mem.read8(invaderScoreEntryPtr(probe, b)), `table byte value ${label}`);
   }
 });
 
@@ -95,7 +95,7 @@ test("TEETH: a module-mutating twin (drops the 0x01 active marker) is caught", (
   function loc_0a5f_broken(m, b = m.regs.b) {
     if (m.mem8[GAME_IN_PROGRESS]) {
       startSound(m, 0x08);
-      m.mem8[SCORE_ADD_VALUE] = m.mem8[loc_097c(m, b)];
+      m.mem8[SCORE_ADD_VALUE] = m.mem8[invaderScoreEntryPtr(m, b)];
       // BUG: dropped the active marker at SCORE_ADD_PENDING
       m.mem8[SCORE_ADD_VALUE_HI] = 0x00;
     }

@@ -5,7 +5,7 @@ import {
   loc_201b, loc_20cf, loc_207b, loc_207c, loc_207e, loc_207f, ALIEN_SHOT_SPRITE_PTR,
   COLLISION_FLAG, loc_2015,
 } from "./names.js";
-import { loc_062f } from "./loc_062f.js";
+import { findLiveAlienInColumn } from "./findLiveAlienInColumn.js";
 import { alienIndexToScreenCoords } from "./alienIndexToScreenCoords.js";
 import { objectMatchesDrawPhase } from "./objectMatchesDrawPhase.js";
 import { stepAlienShotBlowup } from "./stepAlienShotBlowup.js";
@@ -50,7 +50,7 @@ function maybeLaunchShot(m) {
     m.mem16[loc_2076] = cursor + 1;
   }
 
-  const [found, , slot] = loc_062f(m, column);
+  const [found, , slot] = findLiveAlienInColumn(m, column);
   if (!found) return;
   const [cellL, cellC] = alienIndexToScreenCoords(m, slot);
   m.mem16[loc_207b] = (u8(cellC + 7) << 8) | u8(cellL - 10);

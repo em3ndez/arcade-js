@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_08d8 (ROM 0x08d8) -- "if mem[0x2082] < 9: mem[0x207e] = 0xfb". Input is the
+// Memory-equivalence for setAlienShotStepWhenFew (ROM 0x08d8) -- "if mem[0x2082] < 9: mem[0x207e] = 0xfb". Input is the
 // counter cell 0x2082; live-out is memory (0x207e), so the contract is RAM (dumpState, minus
 // STACK_SCRATCH). Crafts span the threshold and pre-seed 0x207e to a sentinel to see both branches.
 // Run: node --test games/invaders/idiomatic/test/equivalence-08d8.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_08d8 as oracle } from "../../translated/loc_08d8.js";
-import { loc_08d8 } from "../loc_08d8.js";
+import { setAlienShotStepWhenFew } from "../setAlienShotStepWhenFew.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ALIEN_COUNT, loc_207e } from "../names.js";
@@ -33,10 +33,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x08d8 dispatches -- loc_08d8 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x08d8 dispatches -- setAlienShotStepWhenFew == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_08d8(c);
+    oracle(o); setAlienShotStepWhenFew(c);
     assert.equal(ramDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -46,7 +46,7 @@ test("CRAFTED: 0x207e seated 0xfb below the threshold, untouched at/above it", (
   for (const cnt of [0x00, 0x01, 0x08, 0x09, 0x0a, 0xff]) {
     const o = new Machine(ROM); o.mem.write8(ALIEN_COUNT, cnt); o.mem.write8(loc_207e, SENTINEL);
     const c = new Machine(ROM); c.mem.write8(ALIEN_COUNT, cnt); c.mem.write8(loc_207e, SENTINEL);
-    oracle(o); loc_08d8(c);
+    oracle(o); setAlienShotStepWhenFew(c);
     assert.equal(ramDiff(o, c), null, `cnt=0x${cnt.toString(16)}`);
     const expected = cnt < 0x09 ? 0xfb : SENTINEL;
     assert.equal(c.mem.read8(loc_207e), expected, `0x207e for cnt=0x${cnt.toString(16)}`);

@@ -95,10 +95,10 @@ invaders 0x02f8 dead  # new-round preamble; callers loc_02ed (now dead) and loc_
 invaders 0x0332 dead  # new-round branch; only caller loc_02ed (0x02f2 jc 0x0332), now dead; folded into idiomatic newRoundFlow
 invaders 0x07f9 dead  # round-start entry; callers loc_02f8 (now dead) and loc_079b (credit cluster rooted at the bypassed RST2 vector loc_0010, replaced by idiomatic creditScreen -> idiomatic loc_0798 -> idiomatic loc_079b, which yield* the idiomatic loc_07f9); idiomatic loc_07f9
 invaders 0x0804 dead  # shield/field preamble; callers loc_07f9 (now dead) and loc_09ef (now dead); idiomatic loc_0804
-invaders 0x0814 dead  # field-arm; callers loc_0804 (now dead) and loc_0872 (now dead); idiomatic loc_0814
+invaders 0x0814 dead  # field-arm; callers loc_0804 (now dead) and loc_0872 (now dead); idiomatic enterRoundWithFieldReload
 invaders 0x0872 dead  # player-1 shield restore + field-arm; only caller loc_0804 (0x080b jc 0x0872), now dead; idiomatic loc_0872
-invaders 0x088d dead  # round-start splash delay; only caller loc_07f9 (0x07f9 call 0x088d), now dead; idiomatic loc_088d
-invaders 0x081f dead  # field-arm tail (set game active, cue sound, enter the frame loop); callers loc_0817 (already dead), loc_0814 (now dead), loc_0849 (now dead); folded into idiomatic loc_0817 -> mainLoop
+invaders 0x088d dead  # round-start splash delay; only caller loc_07f9 (0x07f9 call 0x088d), now dead; idiomatic showRoundStartSplash
+invaders 0x081f dead  # field-arm tail (set game active, cue sound, enter the frame loop); callers enterRoundWithoutFieldReload (already dead), enterRoundWithFieldReload (now dead), loc_0849 (now dead); folded into idiomatic enterRoundWithoutFieldReload -> mainLoop
 invaders 0x0849 dead  # field-arm sub-branch; only caller loc_081f (0x0841 jz 0x0849), now dead; folded into the idiomatic in-game main loop
 invaders 0x09ef dead  # player-switch handoff after a round clears; only caller loc_081f (0x082f jz 0x09ef), now dead; idiomatic loc_09ef (reached from mainLoop)
 invaders 0x0a3c dead  # arm-trigger wait before the player switch; only caller loc_09ef (0x09ef call 0x0a3c), now dead; idiomatic loc_0a3c

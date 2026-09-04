@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_073c -- resolve the sprite's screen address + gfx pointer from its record
+// Memory-equivalence for drawSaucerSprite -- resolve the sprite's screen address + gfx pointer from its record
 // (DISSOLVED into resolveSpriteScreenAddr), then blit its column (DISSOLVED into drawSpriteColumn). The
 // oracle's `call 0x0742` return-address push and drawSpriteColumn's per-row `push b` residue sit in dead
 // stack scratch, which the diff excludes. Live-out is the drawn column (RAM) PLUS the advanced HL; DE is
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_073c as oracle } from "../../translated/loc_073c.js";
-import { loc_073c } from "../loc_073c.js";
+import { drawSaucerSprite } from "../drawSaucerSprite.js";
 import { resolveSpriteScreenAddr } from "../resolveSpriteScreenAddr.js";
 import { drawSpriteColumn } from "../drawSpriteColumn.js";
 import { Machine } from "../../machine.js";
@@ -39,7 +39,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x073c dispatches -- loc_073c == oracle in RAM (-stack) and HL live-out", () => {
+test("CAPTURE: real 0x073c dispatches -- drawSaucerSprite == oracle in RAM (-stack) and HL live-out", () => {
   for (const cap of CAPS) {
     // The oracle's `call 0x0742` return push and drawSpriteColumn's `push b` residue sit just below the
     // ENTRY SP, which at a real dispatch is not the STACK_SCRATCH window -- exclude relative to that SP.
@@ -48,7 +48,7 @@ test("CAPTURE: real 0x073c dispatches -- loc_073c == oracle in RAM (-stack) and 
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x10 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_073c(c);
+    oracle(o); drawSaucerSprite(c);
     assert.equal(capDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -73,7 +73,7 @@ function seat(m) {
 test("CRAFTED: the sprite column is blitted at the resolved screen address; HL advances by 0x20*B", () => {
   const o = new Machine(ROM); seat(o);
   const c = new Machine(ROM); seat(c);
-  oracle(o); loc_073c(c);
+  oracle(o); drawSaucerSprite(c);
 
   assert.equal(ramDiff(o, c), null, "oracle and module leave identical RAM (-stack)");
   for (let i = 0; i < ROWS; i++) {
@@ -84,14 +84,14 @@ test("CRAFTED: the sprite column is blitted at the resolved screen address; HL a
 });
 
 test("TEETH: a twin that blits one row short is caught by the RAM diff", () => {
-  // Mutate loc_073c's OWN body: resolve then blit, but one row short of the descriptor's count.
-  function loc_073c_broken(m) {
+  // Mutate drawSaucerSprite's OWN body: resolve then blit, but one row short of the descriptor's count.
+  function drawSaucerSprite_broken(m) {
     resolveSpriteScreenAddr(m);
     return drawSpriteColumn(m, m.regs.hl, m.regs.de, (m.regs.b - 1) & 0xff); // BUG: drops the last row
   }
   const o = new Machine(ROM); seat(o);
   const c = new Machine(ROM); seat(c);
-  oracle(o); loc_073c_broken(c);
+  oracle(o); drawSaucerSprite_broken(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the RAM diff FAILED to catch a one-row-short blit");
   assert.equal(d.addr, (SCREEN + 0x20 * (ROWS - 1)) & 0xffff, "first divergence is the un-blitted last row");

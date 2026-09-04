@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
 import { objectMatchesDrawPhase } from "./objectMatchesDrawPhase.js";
-import { loc_073c } from "./loc_073c.js";
+import { drawSaucerSprite } from "./drawSaucerSprite.js";
 import { loc_050f } from "./loc_050f.js";
 import { playSaucerHitSoundAndDrawSprite } from "./playSaucerHitSoundAndDrawSprite.js";
 import { awardSaucerScore } from "./awardSaucerScore.js";
@@ -24,12 +24,12 @@ export function loc_0682(m) {
   if (m.mem8[SAUCER_ACTIVE] === 0) {
     if (m.mem8[ALIEN_COUNT] < 8) return loc_050f(m);
     m.mem8[SAUCER_ACTIVE] = 1;
-    loc_073c(m);
+    drawSaucerSprite(m);
   }
   if (!objectMatchesDrawPhase(m, loc_208a)) return;
   if (m.mem8[SAUCER_HIT] === 0) {
     m.mem8[loc_208a] = u8(m.mem8[loc_208a] + m.mem8[loc_208c]);
-    loc_073c(m);
+    drawSaucerSprite(m);
     const x = m.mem8[loc_208a];
     if (x >= 40 && x < 225) return;
   } else {
