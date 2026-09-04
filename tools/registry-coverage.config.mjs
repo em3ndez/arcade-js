@@ -194,55 +194,55 @@ export const UNWIRED = {
     "idiomaticMidNmi.js":
       "engine-seam mid-screen interrupt body; the board fireNmi calls it before the vblank body each " +
       "clock-free frame (assigned to machine.idiomaticMidNmi under opts.overrides). Not a ROUTINES override.",
-    "loc_0141.js":
+    "pickNextMarchingAlien.js":
       "mid-screen draw scan (next-alien picker): direct-called by the idiomatic mid interrupt body after " +
       "the object walk; scans the alien-status field, resolves the found cell's screen coordinate, and " +
       "either latches the pending-draw span or, when an alien has crossed the low row threshold, arms the " +
       "round-ending warm restart (loc_1971) as m.nextMain. Not a ROUTINES override -- reached only from the " +
       "interrupt seam. The invasion bail is not exercised by the in-game tape (faithfulness-only); the " +
       "scan/latch path runs every in-game frame and is covered by the in-game convergence.",
-    // OBJECT-TABLE walker + its five handlers. The walker loc_024b (seated by loc_0248 for the vblank base)
+    // OBJECT-TABLE walker + its five handlers. The walker walkObjectTable (seated by walkVblankObjectTable for the vblank base)
     // is now idiomatic: the interrupt bodies direct-call it, and it selects each record's handler from a
     // static 5-way map and calls it as a plain JS function -- no pchl, no m.call, no ROUTINES dispatch. So
     // the walker, the base-seat, and the five handlers all run as JS (dissolved); none is a ROUTINES
     // override. The record pointer live-in is threaded as `= m.regs.de` where a handler uses it. Their
     // equivalence-<addr> gates are correct and stay; behavioral validation is the in-game convergence run.
-    "loc_0248.js":
-      "seats the vblank object-table base then direct-calls the walker loc_024b; direct-called by the " +
+    "walkVblankObjectTable.js":
+      "seats the vblank object-table base then direct-calls the walker walkObjectTable; direct-called by the " +
       "idiomatic vblank interrupt body (runs as JS, dissolved). Not a ROUTINES override.",
-    "loc_024b.js":
-      "the object-table walker: direct-called by the interrupt bodies (vblank via loc_0248, mid directly), " +
+    "walkObjectTable.js":
+      "the object-table walker: direct-called by the interrupt bodies (vblank via walkVblankObjectTable, mid directly), " +
       "it walks the 16-byte records and direct-calls each record's idiomatic handler from a static 5-way map " +
       "(runs as JS, dissolved). Not a ROUTINES override -- reached only from the interrupt seam.",
-    "loc_028e.js":
-      "record-0 timer/animation handler, direct-called by the idiomatic loc_024b walker (runs as JS, " +
+    "playerShipHandler.js":
+      "record-0 timer/animation handler, direct-called by the idiomatic walkObjectTable walker (runs as JS, " +
       "dissolved); on the active player's death it arms the next main-loop flow as a warm restart " +
       "(m.nextMain). Not a ROUTINES override.",
-    "loc_0476.js":
+    "alienShotSlot2Handler.js":
       "object-table handler: mirrors a control byte, gates on a 16-bit countdown, primes the record strip, " +
-      "steps the alien shot (loc_0563), then restores the strip mid-blowup or blits the template band. " +
-      "Direct-called by the idiomatic loc_024b walker (runs as JS, dissolved). Not a ROUTINES override.",
-    "loc_04b6.js":
+      "steps the alien shot (stepAlienShot), then restores the strip mid-blowup or blits the template band. " +
+      "Direct-called by the idiomatic walkObjectTable walker (runs as JS, dissolved). Not a ROUTINES override.",
+    "alienShotSlot3Handler.js":
       "object-table handler: runs while a gate cell is clear and a mode cell is one, primes the record strip, " +
       "steps the alien shot, clamps the column, restores the strip or blits the template band, latches a gate " +
-      "on the last alien, and publishes the column word. Direct-called by the idiomatic loc_024b walker " +
+      "on the last alien, and publishes the column word. Direct-called by the idiomatic walkObjectTable walker " +
       "(runs as JS, dissolved). Not a ROUTINES override.",
-    "loc_0682.js":
-      "the mystery-ship object handler: saucer-mode gated, delegates to loc_050f otherwise; launches, walks, " +
+    "saucerHandler.js":
+      "the mystery-ship object handler: saucer-mode gated, delegates to alienShotSlot4Handler otherwise; launches, walks, " +
       "and explodes the saucer (hit sound / score award / tone silence) then reloads the record template. " +
-      "Direct-called by the idiomatic loc_024b walker (runs as JS, dissolved). Not a ROUTINES override.",
-    "loc_03bb.js":
+      "Direct-called by the idiomatic walkObjectTable walker (runs as JS, dissolved). Not a ROUTINES override.",
+    "playerShotHandler.js":
       "object-table type-dispatch handler, the player-shot record: launch, step in flight (erase / advance " +
       "Y / collision redraw), retire animation, and the shared reseed + saucer-key tally. Direct-called by " +
-      "the idiomatic loc_024b walker (runs as JS, dissolved). Not a ROUTINES override.",
+      "the idiomatic walkObjectTable walker (runs as JS, dissolved). Not a ROUTINES override.",
     // VBLANK RECORD TAIL + ATTRACT TASK-DISPATCH seam. The idiomatic vblank interrupt body direct-calls
-    // loc_0072 (its in-game record tail) and, on the attract demo sub-arm, loc_0abf (the ISR task dispatch);
+    // serviceVblankObjects (its in-game record tail) and, on the attract demo sub-arm, loc_0abf (the ISR task dispatch);
     // loc_0abf direct-calls the attract task-bit arms loc_0aab / loc_0abb. All four run as plain JS reached
     // only through the interrupt seam -- no ROUTINES dispatch. Behavioral validation is the frame-stepped +
     // attract-state convergence (attract) and the in-game convergence (in-game tail).
-    "loc_0072.js":
+    "serviceVblankObjects.js":
       "the vblank in-game record tail: latch, redraw the pending alien, walk the vblank object table " +
-      "(idiomatic loc_0248 -> loc_024b), then step the saucer timer, returning early on a warm restart. " +
+      "(idiomatic walkVblankObjectTable -> walkObjectTable), then step the saucer timer, returning early on a warm restart. " +
       "Direct-called by the idiomatic vblank interrupt body (in-game) and by the idiomatic loc_0abb (attract " +
       "task bit0). Not a ROUTINES override -- reached only from the interrupt seam.",
     "loc_0abf.js":
@@ -250,10 +250,10 @@ export const UNWIRED = {
       "(bit0 -> loc_0abb, bit1 -> stepAnimationFrame, bit2 -> loc_0aab). Direct-called by the idiomatic " +
       "vblank interrupt body's attract sub-arm (runs as JS, dissolved). Not a ROUTINES override.",
     "loc_0aab.js":
-      "attract task bit2 arm: walks the attract-demo object table via the idiomatic loc_024b with its base " +
+      "attract task bit2 arm: walks the attract-demo object table via the idiomatic walkObjectTable with its base " +
       "(0x2050). Direct-called by the idiomatic loc_0abf (runs as JS, dissolved). Not a ROUTINES override.",
     "loc_0abb.js":
-      "attract task bit0 arm: re-enters the idiomatic vblank record tail loc_0072 (without the fleet-march " +
+      "attract task bit0 arm: re-enters the idiomatic vblank record tail serviceVblankObjects (without the fleet-march " +
       "beat the in-game entry runs first). Direct-called by the idiomatic loc_0abf (runs as JS, dissolved). " +
       "Not a ROUTINES override.",
     // TILT/PANIC seam. The idiomatic vblank interrupt body direct-calls the per-frame tilt check loc_17cd;
@@ -267,7 +267,7 @@ export const UNWIRED = {
       "field, type the banner, hold, and join the attract teardown. Reached via the interrupt seam and the " +
       "nextMain swap, not a ROUTINES address dispatch.",
     // IN-GAME MAIN-LOOP + RESTART CLUSTER (B step 4), authored ahead and UNWIRED. These are the in-game
-    // foreground spine: they are entered only when a game starts, via the nextMain factory swap loc_028e
+    // foreground spine: they are entered only when a game starts, via the nextMain factory swap playerShipHandler
     // performs at step 6 (m.nextMain = factory; the coroutine engine builds the fresh main generator),
     // and via yield* from one another -- NOT the ROUTINES address dispatch registry-coverage recognizes.
     // Behavioral validation is deferred to step 7 in-game convergence; the two independently drivable
@@ -276,10 +276,10 @@ export const UNWIRED = {
       "in-game frame loop generator: one frame of round work per pass, forever. Entered by yield* from the " +
       "field-arm setup tail; hands off to the player-switch restart when the alien count reaches zero. Not " +
       "a ROUTINES override -- the spine enters it via yield*, not an address dispatch.",
-    "loc_07f9.js":
+    "startRoundFlow.js":
       "round-start entry generator (splash delay -> field preamble). Reached by yield* from the new-round " +
-      "factory; not an address dispatch target while the producer loc_028e is still translated.",
-    "loc_0804.js":
+      "factory; not an address dispatch target while the producer playerShipHandler is still translated.",
+    "restoreShieldsAndEnterRound.js":
       "shield/field preamble generator, select-bit branched. Reached by yield* from the round-start entry " +
       "and the player-switch restart; not a ROUTINES override (spine yield* entry, not address dispatch).",
     "enterRoundWithFieldReload.js":
@@ -288,14 +288,14 @@ export const UNWIRED = {
     "enterRoundWithoutFieldReload.js":
       "field-arm tail generator without the field reload. Reached by yield* from the extra-life " +
       "continuation and the preamble; not a ROUTINES override.",
-    "loc_0872.js":
+    "restorePlayer1ShieldsAndEnterRound.js":
       "player-1 shield-restore arm of the preamble (generator). Reached by yield* from the preamble; not " +
       "a ROUTINES override.",
     "showRoundStartSplash.js":
       "round-start splash busy-wait generator: paint the opening row, then hold a 0xb0-frame counter spin, " +
       "flashing the score each frame. Reached by yield* from the round-start entry; not a ROUTINES override. " +
       "Independently driven by its drafter test (busywait-088d).",
-    "loc_0a3c.js":
+    "waitNextRoundArm.js":
       "player-switch handoff wait generator: hold a 0x30-frame counter spin while the arm trigger holds, " +
       "then wait for it to re-arm. Reached by yield* from the player-switch restart; not a ROUTINES " +
       "override. Independently driven by its drafter test (busywait-0a3c).",
@@ -305,39 +305,39 @@ export const UNWIRED = {
       "override.",
     "newRoundFlow.js":
       "new-round nextMain factory generator: save shields, stage the field record, reseed for the incoming " +
-      "player, then enter the round-start entry. Swapped in as m.nextMain by loc_028e at step 6; not a " +
+      "player, then enter the round-start entry. Swapped in as m.nextMain by playerShipHandler at step 6; not a " +
       "ROUTINES address dispatch.",
     "gameOverFlow.js":
       "game-over nextMain factory generator: promote the high score, then join the attract teardown (one " +
       "player, or both out) or hand off to the new round for the survivor. Swapped in as m.nextMain by " +
-      "loc_028e at step 6; not a ROUTINES address dispatch.",
+      "playerShipHandler at step 6; not a ROUTINES address dispatch.",
     "loc_16c9.js":
       "game-over-to-attract join generator: type the closing message, silence, then delegate into the " +
       "attract teardown. Reached by yield* from the game-over factory; not a ROUTINES override.",
     "doJFlow.js":
       "extra-life continuation nextMain factory generator: take a reserve ship, then re-enter the field-arm " +
-      "tail. Swapped in as m.nextMain by loc_028e at step 6; not a ROUTINES address dispatch.",
+      "tail. Swapped in as m.nextMain by playerShipHandler at step 6; not a ROUTINES address dispatch.",
     "loc_1971.js":
       "round-ending warm-restart flow generator: mark the reset in progress, hold the interrupt-driven death " +
-      "wait, then teardown and join the game-over flow. Swapped in as m.nextMain by the idiomatic loc_0141 " +
+      "wait, then teardown and join the game-over flow. Swapped in as m.nextMain by the idiomatic pickNextMarchingAlien " +
       "when an alien reaches the base; not a ROUTINES address dispatch. Not exercised by the in-game tape " +
       "(faithfulness-only), reached only through the nextMain swap.",
     // CREDIT-SCREEN -> GAME-START chain (attract -> in-game transition). The idiomatic vblank interrupt
     // body arms creditScreen as m.nextMain when a coin has banked a credit during the attract demo; on a
     // start press it yield*-delegates through the start-init generators into the already-authored round-start
-    // entry (loc_07f9) and the in-game frame loop. Entered by nextMain swap / yield*, NOT the ROUTINES
+    // entry (startRoundFlow) and the in-game frame loop. Entered by nextMain swap / yield*, NOT the ROUTINES
     // address dispatch registry-coverage recognizes. Behavioral validation is the in-game convergence run.
     "creditScreen.js":
       "credit-inserted screen generator: draw the credit/start prompts and poll the start buttons, then " +
       "hand off to the matching game-start init. Swapped in as m.nextMain by the idiomatic vblank interrupt " +
       "body when a credit is banked during the attract demo; not a ROUTINES address dispatch.",
-    "loc_0798.js":
+    "startOnePlayerGame.js":
       "one-player game-start generator: deduct one credit and run the shared start init. Reached by yield* " +
       "from creditScreen; not a ROUTINES override.",
-    "loc_086d.js":
+    "startTwoPlayerGame.js":
       "two-player game-start generator: set the two-player flag, deduct two credits, and run the shared " +
       "start init. Reached by yield* from creditScreen; not a ROUTINES override.",
-    "loc_079b.js":
+    "startGameFlow.js":
       "shared game-start init generator: seed the score/shield/alien/reserve state for a new game, then fall " +
       "into the round-start entry. Reached by yield* from the one/two-player start generators; not a " +
       "ROUTINES override.",

@@ -2,10 +2,10 @@
 // Memory-equivalence for resolvePlayerShotHit -- the state-2 prize-landing handler: bail unless PLAYER_SHOT_STATUS == 2
 // (a 5 also rets); bounds-check the descent (loc_2029), stand the prize down (state 3 + clearShotHitAndSilence) or
 // retire it (markSaucerHitAndRetireShot) at the edges; else scale the descriptor coords to grid blocks (stashed at
-// ALIEN_EXPLOSION_ADDR), enter state 5, and if the target cell is set blank it, award (loc_0a5f), load the sprite
+// ALIEN_EXPLOSION_ADDR), enter state 5, and if the target cell is set blank it, award (queueInvaderKillScore), load the sprite
 // descriptor and blit the prize (blitShiftedSprite), and arm the despawn timer (ALIEN_EXPLOSION_TIMER). Every m.call is
 // DISSOLVED into a direct idiomatic call (clearShotHitAndSilence, markSaucerHitAndRetireShot, scaleXToBlock, scaleYToBlock,
-// alienGridCellPtr, loc_0a5f, loadSpriteDescriptor, blitShiftedSprite). Live-out is memory only -- no caller reads a
+// alienGridCellPtr, queueInvaderKillScore, loadSpriteDescriptor, blitShiftedSprite). Live-out is memory only -- no caller reads a
 // register or flag on return (resolveShotAndFleetEdge tail-jumps into reverseFleetAtEdge, which reloads A first; loc_16e6 overwrites B).
 // Run: node --test games/invaders/idiomatic/test/equivalence-14d8.test.js
 
@@ -21,7 +21,7 @@ import { markSaucerHitAndRetireShot } from "../markSaucerHitAndRetireShot.js";
 import { scaleXToBlock } from "../scaleXToBlock.js";
 import { scaleYToBlock } from "../scaleYToBlock.js";
 import { alienGridCellPtr } from "../alienGridCellPtr.js";
-import { loc_0a5f } from "../loc_0a5f.js";
+import { queueInvaderKillScore } from "../queueInvaderKillScore.js";
 import { loadSpriteDescriptor } from "../loadSpriteDescriptor.js";
 import { blitShiftedSprite } from "../blitShiftedSprite.js";
 import { Machine } from "../../machine.js";
@@ -115,7 +115,7 @@ function seedCommit(m) {
   m.mem.write8(loc_200a, 0xff);   // scaleY threshold
   m.mem.write8(loc_202a, 0x30);   // Y coord source
   m.mem.write8(ACTIVE_PLAYER_PAGE, 0x21);
-  m.mem.write8(GAME_IN_PROGRESS, 0x00); // keep loc_0a5f on its no-op branch
+  m.mem.write8(GAME_IN_PROGRESS, 0x00); // keep queueInvaderKillScore on its no-op branch
   for (let a = 0x2100; a < 0x2200; a++) m.mem.write8(a, 0x7f); // record cells nonzero -> commit path
 }
 
@@ -175,7 +175,7 @@ test("TEETH: a module-mutating twin (grid-block bytes swapped) diverges at ALIEN
     const recPtr = alienGridCellPtr(m, xBlock);
     if (m.mem8[recPtr] === 0) return standDown();
     m.mem8[recPtr] = 0x00;
-    loadSpriteDescriptor(m, loc_0a5f(m, xBlock));
+    loadSpriteDescriptor(m, queueInvaderKillScore(m, xBlock));
     blitShiftedSprite(m);
     m.mem8[ALIEN_EXPLOSION_TIMER] = 0x10;
   }

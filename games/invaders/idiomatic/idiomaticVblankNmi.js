@@ -18,7 +18,7 @@ import {
 } from "./names.js";
 import { creditScreen } from "./creditScreen.js";
 import { loc_17cd } from "./loc_17cd.js";
-import { loc_0072 } from "./loc_0072.js";
+import { serviceVblankObjects } from "./serviceVblankObjects.js";
 import { loc_0abf } from "./loc_0abf.js";
 import { drawCreditCount } from "./drawCreditCount.js";
 import { stepFleetMarchSound } from "./stepFleetMarchSound.js";
@@ -55,7 +55,7 @@ export function idiomaticVblankNmi(m) {
     // in-game vblank tail: the fleet-march beat, then the shared record tail (which returns early on a
     // warm restart armed during the object walk)
     stepFleetMarchSound(m);
-    loc_0072(m);
+    serviceVblankObjects(m);
     return;
   }
 

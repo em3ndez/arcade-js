@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { copyRecordToWorkBuffer } from "./copyRecordToWorkBuffer.js";
-import { loc_0563 } from "./loc_0563.js";
+import { stepAlienShot } from "./stepAlienShot.js";
 import { copyWorkBufferToRecord } from "./copyWorkBufferToRecord.js";
 import { blockCopy } from "./blockCopy.js";
 import { loc_067e } from "./loc_067e.js";
@@ -13,13 +13,13 @@ import {
 // is one: prime the record's strip, stage the rate cells, step the alien shot, clamp its column at 16,
 // then restore the strip mid-blowup or blit the record's template band. When only one alien survives it
 // latches the gate; finally it publishes the column word.
-export function loc_04b6(m) {
+export function alienShotSlot3Handler(m) {
   if (m.mem8[loc_206e] !== 0) return;
   if (m.mem8[loc_2080] !== 1) return;
   copyRecordToWorkBuffer(m, 0xed, loc_2045);
   m.mem8[loc_2070] = m.mem8[loc_2036];
   m.mem8[loc_2071] = m.mem8[loc_2056];
-  loc_0563(m);
+  stepAlienShot(m);
   if (m.mem8[loc_2076] >= 16) m.mem8[loc_2076] = m.mem8[loc_1b48];
   if (m.mem8[ALIEN_SHOT_BLOWUP_TIMER] !== 0) return copyWorkBufferToRecord(m, loc_2045);
   blockCopy(m, loc_1b40, loc_2040, 16);

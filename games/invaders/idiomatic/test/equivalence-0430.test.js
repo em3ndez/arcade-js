@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Equivalence for loadPlayerShotDescriptor (ROM 0x0430) -- seat the object move-record base and read its 5-byte
 // sprite descriptor. Writes NO memory, so RAM is a vacuous contract; the live-out is REGISTERS
-// (HL/DE/A/C/B, consumed by loc_03bb's arms). The oracle tail-dispatches through the seam, which
+// (HL/DE/A/C/B, consumed by playerShotHandler's arms). The oracle tail-dispatches through the seam, which
 // perturbs SP/PC, so we compare only the data-register outputs, not firstRegDiff.
 // Run: node --test games/invaders/idiomatic/test/equivalence-0430.test.js
 

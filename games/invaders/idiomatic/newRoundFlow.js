@@ -6,7 +6,7 @@ import { seedWorkRamImage } from "./seedWorkRamImage.js";
 import { loc_0ab6 } from "./loc_0ab6.js";
 import { clearPlayfield } from "./clearPlayfield.js";
 import { decrementShipsAndDrawReadout } from "./decrementShipsAndDrawReadout.js";
-import { loc_07f9 } from "./loc_07f9.js";
+import { startRoundFlow } from "./startRoundFlow.js";
 import { ACTIVE_PLAYER_PAGE, SOUND_PORT5_SHADOW, loc_2011 } from "./names.js";
 
 // New-round handoff: save the outgoing player's shields (by select bit), stow the field count and source
@@ -35,5 +35,5 @@ export function* newRoundFlow(m) {
   m.mem8[SOUND_PORT5_SHADOW] = soundSelect + 1;
   clearPlayfield(m);
   decrementShipsAndDrawReadout(m);
-  yield* loc_07f9(m);
+  yield* startRoundFlow(m);
 }

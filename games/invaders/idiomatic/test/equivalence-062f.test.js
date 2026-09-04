@@ -32,7 +32,7 @@ function captureDispatches(K, maxFrames) {
   new Machine(ROM, { overrides: snap }).runFrames(maxFrames);
   return caps;
 }
-// 0x062f runs only from loc_0563's alien-shot SPAWN path -- a gameplay state the attract boot does not
+// 0x062f runs only from stepAlienShot's alien-shot SPAWN path -- a gameplay state the attract boot does not
 // reach (0 dispatches through 12000 frames), gated on the clock-free block that would let a poke-tape drive
 // gameplay. Until then the CRAFTED cases below (real oracle vs idiomatic, seeded slots) carry the check.
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];

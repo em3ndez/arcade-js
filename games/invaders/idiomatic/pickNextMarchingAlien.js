@@ -14,7 +14,7 @@ import {
 // column and stash the draw coordinate. If that alien has crossed the low row threshold, end the round --
 // unless a reset is already running -- by arming the warm restart. Otherwise latch the row span and raise
 // the pending-draw flag for the other raster half to paint. Memory only.
-export function loc_0141(m) {
+export function pickNextMarchingAlien(m) {
   if (m.mem8[loc_2068] === 0) return;
   if (m.mem8[ALIEN_DRAW_PENDING] !== 0) return;
 

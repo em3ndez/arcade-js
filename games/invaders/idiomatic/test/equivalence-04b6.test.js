@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_04b6 (ROM 0x04b6) -- an object handler reached by the object-table walker's
+// Memory-equivalence for alienShotSlot3Handler (ROM 0x04b6) -- an object handler reached by the object-table walker's
 // computed dispatch (which pushes the record pointer for the handler to pop and discard). It runs only
 // while a gate cell is clear and a mode cell is one, then primes the record strip, steps the alien shot,
 // clamps its column, restores the strip mid-blowup or blits the template band, latches the gate on the
 // last surviving alien, and publishes the column word. The arms compare RAM (-stack).
 //
-// NOT seam-placeable, and deliberately UNWIRED -- same class as loc_0476: the walker leaves the record
+// NOT seam-placeable, and deliberately UNWIRED -- same class as alienShotSlot2Handler: the walker leaves the record
 // pointer on the stack, so a correct dispatch nets SP +4 with pc on the walker's continuation, outside
 // `withOmittedRet`'s 0/+2 window (the seam accepts moved 0 and misplaces it). Dispatchable only once the
-// walker (loc_024b) is idiomatic and calls it directly; the frozen walker serves it in-game meanwhile.
+// walker (walkObjectTable) is idiomatic and calls it directly; the frozen walker serves it in-game meanwhile.
 // Run: node --test games/invaders/idiomatic/test/equivalence-04b6.test.js
 
 import nodeTest from "node:test";
@@ -16,9 +16,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_04b6 as oracle } from "../../translated/loc_04b6.js";
-import { loc_04b6 } from "../loc_04b6.js";
+import { alienShotSlot3Handler } from "../alienShotSlot3Handler.js";
 import { copyRecordToWorkBuffer } from "../copyRecordToWorkBuffer.js";
-import { loc_0563 } from "../loc_0563.js";
+import { stepAlienShot } from "../stepAlienShot.js";
 import { copyWorkBufferToRecord } from "../copyWorkBufferToRecord.js";
 import { blockCopy } from "../blockCopy.js";
 import { loc_067e } from "../loc_067e.js";
@@ -47,7 +47,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(24, 2500) : [];
 
-test("CAPTURE: real 0x04b6 dispatches -- loc_04b6 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x04b6 dispatches -- alienShotSlot3Handler == oracle in RAM (-stack)", () => {
   assert.ok(CAPS.length > 0, "boot must dispatch 0x04b6 at least once");
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
@@ -55,7 +55,7 @@ test("CAPTURE: real 0x04b6 dispatches -- loc_04b6 == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && ((a >= sp - 0x40 && a < sp + 2) || inDeadStack(a)));
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_04b6(c);
+    oracle(o); alienShotSlot3Handler(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -94,20 +94,20 @@ test("CRAFTED: branches leave identical RAM (-stack)", () => {
   ];
   for (const { tag, seed } of cases) {
     const o = craft(seed), c = craft(seed);
-    oracle(o); loc_04b6(c);
+    oracle(o); alienShotSlot3Handler(c);
     assert.equal(ramDiff(o, c), null, tag);
   }
 });
 
 // TEETH: a broken inline twin that DROPS the last-alien gate latch. Nothing else writes that cell, so the
 // RAM diff must catch it.
-function loc_04b6_droppedLatch(m) {
+function alienShotSlot3Handler_droppedLatch(m) {
   if (m.mem8[loc_206e] !== 0) return;
   if (m.mem8[loc_2080] !== 1) return;
   copyRecordToWorkBuffer(m, 0xed, loc_2045);
   m.mem8[loc_2070] = m.mem8[loc_2036];
   m.mem8[loc_2071] = m.mem8[loc_2056];
-  loc_0563(m);
+  stepAlienShot(m);
   if (m.mem8[loc_2076] >= 16) m.mem8[loc_2076] = m.mem8[loc_1b48];
   if (m.mem8[ALIEN_SHOT_BLOWUP_TIMER] !== 0) return copyWorkBufferToRecord(m, loc_2045);
   blockCopy(m, loc_1b40, loc_2040, 16);
@@ -118,6 +118,6 @@ function loc_04b6_droppedLatch(m) {
 test("TEETH: a twin that drops the last-alien gate latch diverges in RAM", () => {
   const seed = (m) => { bodyIdle(m); m.mem.write8(ALIEN_COUNT, 0x01); };
   const o = craft(seed), c = craft(seed);
-  oracle(o); loc_04b6_droppedLatch(c);
+  oracle(o); alienShotSlot3Handler_droppedLatch(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM-diff check FAILED to catch a dropped last-alien gate latch");
 });

@@ -4,7 +4,7 @@
 // the sprite pointer -- sprite id -> rotate-left-3 -> 0x1c00 table offset, +0x30 for the alternate frame
 // (DISSOLVED into selectAlternateSpriteFrame) -- and shift-blits it (DISSOLVED into blitShiftedSprite),
 // clearing the draw-pending flag; (c) an inactive slot only clears the flag. Live-out is MEMORY only: the
-// caller (loc_0072) reloads every register before reading it, so A/HL/DE left by the routine are dead. The
+// caller (serviceVblankObjects) reloads every register before reading it, so A/HL/DE left by the routine are dead. The
 // module clears the draw-pending flag just before the blit (disjoint work-RAM vs video-RAM), a safe reorder
 // since a real draw address always folds into the framebuffer (>= 0x2400). The oracle push/pops around the
 // object read and the two inner calls; the RAM diff excludes the dead stack below the entry SP.

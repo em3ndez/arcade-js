@@ -13,7 +13,7 @@ import { markAllAliensAliveP1 } from "./markAllAliensAliveP1.js";
 import { markAllAliensAliveP2 } from "./markAllAliensAliveP2.js";
 import { seedWorkRamImage } from "./seedWorkRamImage.js";
 import { decrementShipsAndDrawReadout } from "./decrementShipsAndDrawReadout.js";
-import { loc_07f9 } from "./loc_07f9.js";
+import { startRoundFlow } from "./startRoundFlow.js";
 import {
   TWO_PLAYER_GAME, CREDIT_COUNT, PLAYER1_OBJ_DESC, PLAYER2_OBJ_DESC, GAME_IN_PROGRESS,
   loc_20e5, loc_20e7, loc_21fc, loc_21fe, loc_21ff, loc_22fc, loc_22fe, loc_22ff,
@@ -26,7 +26,7 @@ import {
 // both player records, clear the fixed strip, mark every alien alive for both players, seat both player
 // object records at their spawn cell, reseed work RAM from its template, take the first ship into play
 // (updating the reserve readout), then fall into the round-start entry. Generator; memory + IO.
-export function* loc_079b(m, twoPlayerFlag, creditDelta) {
+export function* startGameFlow(m, twoPlayerFlag, creditDelta) {
   m.mem8[TWO_PLAYER_GAME] = twoPlayerFlag;
   m.mem8[CREDIT_COUNT] = bcdAddByte(m.mem8[CREDIT_COUNT], creditDelta).value;
   drawCreditCount(m);
@@ -64,5 +64,5 @@ export function* loc_079b(m, twoPlayerFlag, creditDelta) {
   seedWorkRamImage(m);
   decrementShipsAndDrawReadout(m);
 
-  yield* loc_07f9(m);
+  yield* startRoundFlow(m);
 }

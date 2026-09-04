@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0682 (ROM 0x0682) -- the mystery-ship object handler, reached by the object-
+// Memory-equivalence for saucerHandler (ROM 0x0682) -- the mystery-ship object handler, reached by the object-
 // table walker's computed dispatch (which pushes the record pointer for the handler to pop and discard).
 // It only runs in the saucer mode, else delegates to the plain step handler; it launches a saucer once
 // enough aliens are gone, walks it across the row gated on the draw phase, and on a hit counts its
@@ -10,9 +10,9 @@
 // attract, so every dispatch delegates to the step handler); the CRAFTED cases drive the saucer body with
 // a small, safely-placed sprite descriptor so the shared blit/score callees run identically on both sides.
 //
-// NOT seam-placeable, and deliberately UNWIRED -- same class as loc_0476/loc_04b6: the walker leaves the
+// NOT seam-placeable, and deliberately UNWIRED -- same class as alienShotSlot2Handler/alienShotSlot3Handler: the walker leaves the
 // record pointer on the stack, so a correct dispatch nets SP +4 with pc on the walker's continuation,
-// outside `withOmittedRet`'s 0/+2 window. Dispatchable only once the walker (loc_024b) is idiomatic and
+// outside `withOmittedRet`'s 0/+2 window. Dispatchable only once the walker (walkObjectTable) is idiomatic and
 // calls it directly; the frozen walker serves it in-game meanwhile.
 // Run: node --test games/invaders/idiomatic/test/equivalence-0682.test.js
 
@@ -21,11 +21,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0682 as oracle } from "../../translated/loc_0682.js";
-import { loc_0682 } from "../loc_0682.js";
+import { saucerHandler } from "../saucerHandler.js";
 import { u8 } from "../../../../core/int.js";
 import { objectMatchesDrawPhase } from "../objectMatchesDrawPhase.js";
 import { drawSaucerSprite } from "../drawSaucerSprite.js";
-import { loc_050f } from "../loc_050f.js";
+import { alienShotSlot4Handler } from "../alienShotSlot4Handler.js";
 import { clearSoundPort3Bit } from "../clearSoundPort3Bit.js";
 import { playSaucerHitSoundAndDrawSprite } from "../playSaucerHitSoundAndDrawSprite.js";
 import { awardSaucerScore } from "../awardSaucerScore.js";
@@ -54,7 +54,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(24, 2500) : [];
 
-test("CAPTURE: real 0x0682 dispatches -- loc_0682 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0682 dispatches -- saucerHandler == oracle in RAM (-stack)", () => {
   assert.ok(CAPS.length > 0, "boot must dispatch 0x0682 at least once");
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
@@ -62,7 +62,7 @@ test("CAPTURE: real 0x0682 dispatches -- loc_0682 == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && ((a >= sp - 0x40 && a < sp + 2) || inDeadStack(a)));
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0682(c);
+    oracle(o); saucerHandler(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -139,19 +139,19 @@ test("CRAFTED: branches leave identical RAM (-stack)", () => {
   ];
   for (const { tag, seed } of cases) {
     const o = craft(seed), c = craft(seed);
-    oracle(o); loc_0682(c);
+    oracle(o); saucerHandler(c);
     assert.equal(ramDiff(o, c), null, tag);
   }
 });
 
 // TEETH: a broken inline twin that reproduces the alive-walk path through the shared callees but DROPS the
 // saucer-launch latch. Nothing on the walk path rewrites that cell, so the RAM diff must catch it.
-function loc_0682_droppedLaunch(m) {
+function saucerHandler_droppedLaunch(m) {
   if (m.mem8[loc_2080] !== 2) return;
-  if (m.mem8[loc_2083] === 0) return loc_050f(m);
-  if (m.mem8[loc_2056] !== 0) return loc_050f(m);
+  if (m.mem8[loc_2083] === 0) return alienShotSlot4Handler(m);
+  if (m.mem8[loc_2056] !== 0) return alienShotSlot4Handler(m);
   if (m.mem8[SAUCER_ACTIVE] === 0) {
-    if (m.mem8[ALIEN_COUNT] < 8) return loc_050f(m);
+    if (m.mem8[ALIEN_COUNT] < 8) return alienShotSlot4Handler(m);
     // BUG: dropped `m.mem8[SAUCER_ACTIVE] = 1;`
     drawSaucerSprite(m);
   }
@@ -174,6 +174,6 @@ function loc_0682_droppedLaunch(m) {
 test("TEETH: a twin that drops the saucer-launch latch diverges in RAM", () => {
   const seed = (m) => { saucerCommon(m); m.mem.write8(SAUCER_ACTIVE, 0x00); m.mem.write8(ALIEN_COUNT, 0x20); m.mem.write8(SAUCER_HIT, 0x00); };
   const o = craft(seed), c = craft(seed);
-  oracle(o); loc_0682_droppedLaunch(c);
+  oracle(o); saucerHandler_droppedLaunch(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM-diff check FAILED to catch a dropped saucer-launch latch");
 });

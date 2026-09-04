@@ -2,7 +2,7 @@
 // Memory-equivalence for scaleYToBlock (Y-scale) -- read the object Y cell, count the 0x10 steps to lift it to
 // the threshold in H (dissolved into countStepsToThreshold), then leave the leftover (stepped-0x10) in H/A.
 // No RAM write, so the contract is the (H, C) live-out the callers read back: H folds into the SHLD word,
-// and loc_0563 reads C (the step count countStepsToThreshold leaves) straight into A.
+// and stepAlienShot reads C (the step count countStepsToThreshold leaves) straight into A.
 // Run: node --test games/invaders/idiomatic/test/equivalence-156f.test.js
 
 import nodeTest from "node:test";

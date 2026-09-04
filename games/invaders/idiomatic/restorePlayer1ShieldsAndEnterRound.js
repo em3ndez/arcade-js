@@ -4,7 +4,7 @@ import { enterRoundWithFieldReload } from "./enterRoundWithFieldReload.js";
 
 // Player-1 shield-restore arm of the preamble: restore this player's shields, then join the field-arm
 // tail. Generator; memory + IO.
-export function* loc_0872(m) {
+export function* restorePlayer1ShieldsAndEnterRound(m) {
   restorePlayer1Shields(m);
   yield* enterRoundWithFieldReload(m);
 }

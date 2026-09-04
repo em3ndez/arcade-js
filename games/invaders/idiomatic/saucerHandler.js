@@ -2,7 +2,7 @@
 import { u8 } from "../../../core/int.js";
 import { objectMatchesDrawPhase } from "./objectMatchesDrawPhase.js";
 import { drawSaucerSprite } from "./drawSaucerSprite.js";
-import { loc_050f } from "./loc_050f.js";
+import { alienShotSlot4Handler } from "./alienShotSlot4Handler.js";
 import { playSaucerHitSoundAndDrawSprite } from "./playSaucerHitSoundAndDrawSprite.js";
 import { awardSaucerScore } from "./awardSaucerScore.js";
 import { clearSoundPort3Bit } from "./clearSoundPort3Bit.js";
@@ -17,12 +17,12 @@ import { loc_2080, loc_2083, loc_2056, SAUCER_ACTIVE, ALIEN_COUNT, loc_208a, loc
 // gated on the draw phase: if the saucer is alive it walks across the row and stops at the screen edges; if
 // it was just hit it counts its explosion phases down, cueing the hit sound, awarding the score, and
 // silencing the tone, then clears the strip and reloads the record template.
-export function loc_0682(m) {
+export function saucerHandler(m) {
   if (m.mem8[loc_2080] !== 2) return;
-  if (m.mem8[loc_2083] === 0) return loc_050f(m);
-  if (m.mem8[loc_2056] !== 0) return loc_050f(m);
+  if (m.mem8[loc_2083] === 0) return alienShotSlot4Handler(m);
+  if (m.mem8[loc_2056] !== 0) return alienShotSlot4Handler(m);
   if (m.mem8[SAUCER_ACTIVE] === 0) {
-    if (m.mem8[ALIEN_COUNT] < 8) return loc_050f(m);
+    if (m.mem8[ALIEN_COUNT] < 8) return alienShotSlot4Handler(m);
     m.mem8[SAUCER_ACTIVE] = 1;
     drawSaucerSprite(m);
   }

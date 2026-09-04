@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0476 (ROM 0x0476) -- an object handler reached by the object-table walker's
-// computed dispatch, which PUSHES the record pointer for the handler to pop. loc_0476 discards that
+// Memory-equivalence for alienShotSlot2Handler (ROM 0x0476) -- an object handler reached by the object-table walker's
+// computed dispatch, which PUSHES the record pointer for the handler to pop. alienShotSlot2Handler discards that
 // pointer, so its idiomatic form takes no parameter and models no stack: it mirrors a control byte, gates
 // on a 16-bit countdown (resetting it while it reads zero), then primes the record strip, steps the alien
 // shot, and either restores the strip mid-blowup or blits the template band. The arms compare RAM (-stack).
@@ -9,7 +9,7 @@
 // handler to consume, so a correct dispatch nets SP +4 (pop the pointer, then ret through the tail) with pc
 // on the walker's continuation -- outside `withOmittedRet`'s 0/+2 window. The seam would SILENTLY misplace
 // it (it accepts moved 0 and supplies one ret, popping the wrong slot). It becomes dispatchable only once
-// the walker (loc_024b) is itself idiomatic and calls it directly with the record pointer. So there is no
+// the walker (walkObjectTable) is itself idiomatic and calls it directly with the record pointer. So there is no
 // SP-TOOTH here; the frozen walker serves it in-game meanwhile.
 // Run: node --test games/invaders/idiomatic/test/equivalence-0476.test.js
 
@@ -18,10 +18,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0476 as oracle } from "../../translated/loc_0476.js";
-import { loc_0476 } from "../loc_0476.js";
+import { alienShotSlot2Handler } from "../alienShotSlot2Handler.js";
 import { u16 } from "../../../../core/int.js";
 import { copyRecordToWorkBuffer } from "../copyRecordToWorkBuffer.js";
-import { loc_0563 } from "../loc_0563.js";
+import { stepAlienShot } from "../stepAlienShot.js";
 import { copyWorkBufferToRecord } from "../copyWorkBufferToRecord.js";
 import { blockCopy } from "../blockCopy.js";
 import { Machine } from "../../machine.js";
@@ -49,7 +49,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(24, 2500) : [];
 
-test("CAPTURE: real 0x0476 dispatches -- loc_0476 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0476 dispatches -- alienShotSlot2Handler == oracle in RAM (-stack)", () => {
   assert.ok(CAPS.length > 0, "boot must dispatch 0x0476 at least once");
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
@@ -60,7 +60,7 @@ test("CAPTURE: real 0x0476 dispatches -- loc_0476 == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && ((a >= sp - 0x40 && a < sp + 2) || inDeadStack(a)));
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0476(c);
+    oracle(o); alienShotSlot2Handler(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -103,7 +103,7 @@ test("CRAFTED: branches leave identical RAM (-stack)", () => {
   ];
   for (const { tag, seed } of cases) {
     const o = craft(seed), c = craft(seed);
-    oracle(o); loc_0476(c);
+    oracle(o); alienShotSlot2Handler(c);
     assert.equal(ramDiff(o, c), null, tag);
   }
 });
@@ -111,14 +111,14 @@ test("CRAFTED: branches leave identical RAM (-stack)", () => {
 // TEETH: a broken inline twin that reproduces the routine through the shared callees but DROPS the second
 // rate-cell staging write (loc_2071). Nothing downstream rewrites that cell on this branch, so the RAM diff
 // must catch the missing write.
-function loc_0476_droppedStaging(m) {
+function alienShotSlot2Handler_droppedStaging(m) {
   m.mem8[loc_2032] = m.mem8[loc_1b32];
   const countdown = m.mem16[loc_2038];
   if (countdown === 0) { m.mem16[loc_2038] = u16(countdown - 1); return; }
   copyRecordToWorkBuffer(m, 0xf9, loc_2035);
   m.mem8[loc_2070] = m.mem8[loc_2046];
   // BUG: dropped `m.mem8[loc_2071] = m.mem8[loc_2056];`
-  loc_0563(m);
+  stepAlienShot(m);
   if (m.mem8[ALIEN_SHOT_BLOWUP_TIMER] !== 0) return copyWorkBufferToRecord(m, loc_2035);
   blockCopy(m, loc_1b30, loc_2030, 16);
 }
@@ -126,6 +126,6 @@ function loc_0476_droppedStaging(m) {
 test("TEETH: a twin that drops a rate-cell staging write diverges in RAM", () => {
   const seed = (m) => { blockCopyBranch(m); m.mem.write8(loc_2056, 0x55); m.mem.write8(loc_2071, 0x00); };
   const o = craft(seed), c = craft(seed);
-  oracle(o); loc_0476_droppedStaging(c);
+  oracle(o); alienShotSlot2Handler_droppedStaging(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM-diff check FAILED to catch a dropped rate-cell staging write");
 });

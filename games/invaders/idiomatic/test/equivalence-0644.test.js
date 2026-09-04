@@ -2,7 +2,7 @@
 // Memory-equivalence for stepAlienShotBlowup -- the alien-shot cadence counter. Three arms: (a) at the reload point
 // (counter hits 3) erase the current shot (DISSOLVED into eraseAlienShot), re-seat the shot descriptor
 // pointer + its two step timers, then redraw (DISSOLVED into drawAlienShotWithCollision, tail-jump); (b)
-// at zero just erase (tail-jump); (c) otherwise idle (rnz). Live-out is MEMORY only: the caller (loc_050f)
+// at zero just erase (tail-jump); (c) otherwise idle (rnz). Live-out is MEMORY only: the caller (alienShotSlot4Handler)
 // reloads A/HL/DE before reading them, so every register the routine leaves is dead -- the contract is RAM
 // (the drawn/erased screen bytes, the collision flag, the counter and the re-seeded cells). The oracle
 // push/pops the inner call return plus the sprite routines' per-row saves below the entry SP; the RAM diff

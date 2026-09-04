@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_0a3c } from "./loc_0a3c.js";
+import { waitNextRoundArm } from "./waitNextRoundArm.js";
 import { clearPlayfield } from "./clearPlayfield.js";
 import { seedWorkRamImage } from "./seedWorkRamImage.js";
 import { initPlayer1ShieldBuffers } from "./initPlayer1ShieldBuffers.js";
 import { markAllAliensAliveP1 } from "./markAllAliensAliveP1.js";
 import { initPlayer2ShieldBuffers } from "./initPlayer2ShieldBuffers.js";
 import { markAllAliensAliveP2 } from "./markAllAliensAliveP2.js";
-import { loc_0804 } from "./loc_0804.js";
+import { restoreShieldsAndEnterRound } from "./restoreShieldsAndEnterRound.js";
 import { u8, u16 } from "../../../core/int.js";
 import { GAME_ACTIVE, ACTIVE_PLAYER_PAGE, SOUND_PORT5_SHADOW, loc_1da2 } from "./names.js";
 
@@ -16,7 +16,7 @@ import { GAME_ACTIVE, ACTIVE_PLAYER_PAGE, SOUND_PORT5_SHADOW, loc_1da2 } from ".
 // index table and stowed in the record, and the incoming player's shields + alien field are seeded before
 // re-entering the shield/field preamble. Generator; memory + IO.
 export function* loc_09ef(m) {
-  yield* loc_0a3c(m);
+  yield* waitNextRoundArm(m);
   m.mem8[GAME_ACTIVE] = 0x00;
   clearPlayfield(m);
   const savedPage = m.mem8[ACTIVE_PLAYER_PAGE];
@@ -44,5 +44,5 @@ export function* loc_09ef(m) {
     initPlayer2ShieldBuffers(m);
     markAllAliensAliveP2(m);
   }
-  yield* loc_0804(m);
+  yield* restoreShieldsAndEnterRound(m);
 }

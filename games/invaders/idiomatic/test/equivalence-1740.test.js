@@ -2,7 +2,7 @@
 // Memory-equivalence for stepFleetMarchSound (ROM 0x1740) -- the per-frame shot-sound step. Ticks the FLEET_SOUND_OFF_TIMER
 // burst timer (calling the sound-off helper silenceFleetMarchNote at zero), bails unless loc_2068 is set, ticks
 // FLEET_SOUND_TIMER, emits SOUND_PORT5_SHADOW to port 5, and when ALIEN_COUNT is set re-seeds FLEET_SOUND_TIMER from
-// FLEET_SOUND_PERIOD and reloads FLEET_SOUND_OFF_TIMER=4. A and flags are dead (loc_0072 reloads A on fall-through), so the
+// FLEET_SOUND_PERIOD and reloads FLEET_SOUND_OFF_TIMER=4. A and flags are dead (serviceVblankObjects reloads A on fall-through), so the
 // live-out is memory + the port-5 writes. silenceFleetMarchNote is a dissolved direct call. The oracle's `cz` pushes
 // a return word into stack scratch; that residue is excluded (STACK_SCRATCH / entry-SP relative).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1740.test.js

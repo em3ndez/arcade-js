@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for drawPlayer1Score -- seat HL at the fixed player-1 score record (0x20f8) and delegate to the
 // shared unpack+draw (drawScoreRecord: a four-byte record -- a BCD value word low then high, then its two-byte
-// screen address -- drawn as four BCD glyphs). Live-out is RAM only: the direct callers (redrawScorePanel, loc_079b)
+// screen address -- drawn as four BCD glyphs). Live-out is RAM only: the direct callers (redrawScorePanel, startGameFlow)
 // immediately call the next seater, which reseats HL, so no register is compared; the rendered glyphs prove the
 // value word and screen address landed. The oracle's draw chain leaves call/ret residue just below the entry
 // SP, so that band is excluded from the RAM diff. Each side runs on a fresh clone.

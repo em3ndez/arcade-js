@@ -151,8 +151,8 @@ export const TILT_RESET_ACTIVE = 0x209a;      // [seen] tilt/panic reset-in-prog
 export const loc_1cbc = 0x1cbc;               // tilt banner sprite-id source (typed by the tilt reset)
 export const loc_3016 = 0x3016;               // tilt banner screen destination
 export const OBJECT_TABLE_MID = 0x2020;       // [seen] mid-screen object/timer record-table base (loc_008c passes to the walker; vblank uses GAME_OBJECT_TABLE 0x2010)
-export const OBJECT_DISPATCH_VBLANK = 0x0248; // [seen] vblank object-dispatch base-seat (loc_0248)
-export const OBJECT_WALKER = 0x024b;          // [seen] 16-byte object/timer record walker (loc_024b)
+export const OBJECT_DISPATCH_VBLANK = 0x0248; // [seen] vblank object-dispatch base-seat (walkVblankObjectTable)
+export const OBJECT_WALKER = 0x024b;          // [seen] 16-byte object/timer record walker (walkObjectTable)
 // Former direct-JS ISR-body seam entries -- all now lifted to idiomatic modules; kept as address names:
 export const TILT_HANDLER = 0x17cd;           // per-frame tilt/panic check
 export const MID_DRAW_SCAN = 0x0141;          // mid-screen draw scan
@@ -180,7 +180,7 @@ export const loc_1f9c = 0x1f9c;
 export const loc_1fa0 = 0x1fa0;
 export const loc_1fd5 = 0x1fd5;
 
-// ── credit-inserted screen + game-start init (creditScreen / loc_0798 / loc_086d / loc_079b) ──────
+// ── credit-inserted screen + game-start init (creditScreen / startOnePlayerGame / startTwoPlayerGame / startGameFlow) ──────
 // ROM sprite-list sources and video-RAM destinations for the credit prompt and the one/two-player start
 // prompts, plus the per-player object-record cells seeded once when a game starts.
 export const loc_1ff3 = 0x1ff3;               // credit-screen top prompt sprite-id source
@@ -196,13 +196,13 @@ export const loc_22ff = 0x22ff;               // player-2 starting-ships latch (
 // ── object-record cells + per-record ROM templates (object handlers 0x0476/0x04b6/0x050f/0x0682) ──
 // The object table 0x2010.. holds five 16-byte records; each record's descriptor sub-fields and the
 // per-record blit template in ROM 0x1b.. are named here as placeholders (understand half renames).
-// The five object-record handler ROM entry points the walker (loc_024b) computed-dispatches to: each
+// The five object-record handler ROM entry points the walker (walkObjectTable) computed-dispatches to: each
 // record carries a fixed handler target at rec+3/rec+4 that the walker reads and calls directly.
-export const PLAYER_SHIP_HANDLER_ADDR = 0x028e;       // [seen] record-0 player-ship handler (loc_028e): moves the ship X by input (loc_201b), runs the ship's death/explosion animation, and on drain during play consumes a life + arms the next main-loop flow
-export const PLAYER_SHOT_HANDLER_ADDR = 0x03bb;       // [seen] record-1 player-shot handler (loc_03bb)
-export const ALIEN_SHOT_SLOT2_HANDLER_ADDR = 0x0476;  // [seen] record-2 alien-shot handler (loc_0476): countdown-gated, no column-cursor (specific alien-shot type pending §5 grounding)
-export const ALIEN_SHOT_SLOT3_HANDLER_ADDR = 0x04b6;  // [seen] record-3 alien-shot handler (loc_04b6): column-cursor managed, clamps at 16, self-disables at the last alien (specific alien-shot type pending §5 grounding)
-export const SAUCER_HANDLER_ADDR = 0x0682;            // [seen] record-4 mystery-ship/saucer handler (loc_0682): delegates to loc_050f (a further alien-shot stepper) in the non-saucer sub-path
+export const PLAYER_SHIP_HANDLER_ADDR = 0x028e;       // [seen] record-0 player-ship handler (playerShipHandler): moves the ship X by input (loc_201b), runs the ship's death/explosion animation, and on drain during play consumes a life + arms the next main-loop flow
+export const PLAYER_SHOT_HANDLER_ADDR = 0x03bb;       // [seen] record-1 player-shot handler (playerShotHandler)
+export const ALIEN_SHOT_SLOT2_HANDLER_ADDR = 0x0476;  // [seen] record-2 alien-shot handler (alienShotSlot2Handler): countdown-gated, no column-cursor (specific alien-shot type pending §5 grounding)
+export const ALIEN_SHOT_SLOT3_HANDLER_ADDR = 0x04b6;  // [seen] record-3 alien-shot handler (alienShotSlot3Handler): column-cursor managed, clamps at 16, self-disables at the last alien (specific alien-shot type pending §5 grounding)
+export const SAUCER_HANDLER_ADDR = 0x0682;            // [seen] record-4 mystery-ship/saucer handler (saucerHandler): delegates to alienShotSlot4Handler (a further alien-shot stepper) in the non-saucer sub-path
 export const loc_1b30 = 0x1b30;
 export const loc_1b32 = 0x1b32;
 export const loc_1b40 = 0x1b40;
@@ -224,7 +224,7 @@ export const loc_2086 = 0x2086;
 export const loc_208a = 0x208a;
 export const loc_208c = 0x208c;
 export const loc_208f = 0x208f;
-// record-0 player-ship handler cells (loc_028e) -- its death/explosion animation cells + ROM record template and animation sprite base:
+// record-0 player-ship handler cells (playerShipHandler) -- its death/explosion animation cells + ROM record template and animation sprite base:
 export const loc_2012 = 0x2012;               // record-0 draw-pending flag, cleared after each redraw
 export const loc_2018 = 0x2018;               // record-0 current animation sprite descriptor (5 bytes)
 export const loc_201a = 0x201a;               // record-0 animation coordinate word (low of the descriptor)
@@ -247,7 +247,7 @@ export const loc_2d18 = 0x2d18;               // game-over field-clear text scre
 export const loc_1da2 = 0x1da2;               // player-index-to-field-page lookup table
 export const ROUTINES = {
   // ── §4 clock-free spine: boot chain, attract cycle, and the vblank busy-wait delays ──────────────
-  0x0000: { name: "loc_0000", role: "[seen] reset vector: jumps to boot init (loc_18d4), which enters the attract loop", cert: "seen" },
+  0x0000: { name: "resetEntry", role: "[seen] reset vector: jumps to boot init (loc_18d4), which enters the attract loop", cert: "seen" },
   0x18d4: { name: "loc_18d4", role: "[seen] boot init: seed work RAM (initWorkRam) and the score panel (redrawScorePanel), then enter the attract loop at loc_18df", cert: "seen" },
   0x18df: { name: "loc_18df", role: "[seen] attract-cycle join: set loc_20cf=8 then continue into loc_0aea; reached from boot init and the loc_0b89 loop-back", cert: "seen" },
   0x0aea: { name: "loc_0aea", role: "[seen] attract round setup + free-run demo loop: silence sound, ei, type the attract screens, seed the field, then per-frame advanceRoundState (advances ATTRACT_DEMO_PTR 0x20ed) until loc_2015 leaves 0xff; falls into loc_0b89", cert: "seen" },
@@ -271,10 +271,10 @@ export const ROUTINES = {
   0x01f8: { name: "initShieldBuffers", role: "replicate the 0x2c-byte shield template loc_1d20 into four consecutive shield buffers from HL; live-out HL", cert: "seen" },
   0x021e: { name: "drawOrSaveShields", role: "shield save/restore: store SHIELD_SAVE_RESTORE_MODE, then four 22x2 blocks from SHIELD_VRAM_BASE (stride DRAW_BLOCK_STRIDE) -- captureScreenRect when set, orBlitBitmap when clear", cert: "seen" },
   0x0430: { name: "loadPlayerShotDescriptor", role: "load the player-shot 5-byte descriptor at PLAYER_SHOT_DESC via loadSpriteDescriptor; HL := its screen address", cert: "seen" },
-  0x050f: { name: "loc_050f", role: "[seen] object step handler called by the saucer handler loc_0682: prime the record's strip (copyRecordToWorkBuffer), stage the two per-column rate cells, step the alien shot (loc_0563), clamp the firing column at 21, then either restore the strip or blit the record template and stow the column", cert: "seen" },
+  0x050f: { name: "alienShotSlot4Handler", role: "[seen] object step handler called by the saucer handler saucerHandler: prime the record's strip (copyRecordToWorkBuffer), stage the two per-column rate cells, step the alien shot (stepAlienShot), clamp the firing column at 21, then either restore the strip or blit the record template and stow the column", cert: "seen" },
   0x0550: { name: "copyRecordToWorkBuffer", role: "stash A -> loc_207f, then blockCopy 0x0b bytes (DE)->work buffer loc_2073 (prime an object strip)", cert: "seen" },
   0x055b: { name: "copyWorkBufferToRecord", role: "blockCopy 0x0b bytes work buffer loc_2073 ->(HL) (restore the object strip; twin of copyRecordToWorkBuffer)", cert: "seen" },
-  0x0563: { name: "loc_0563", role: "alien-shot handler -- step the active alien shot (draw-phase gate, blowup animation, descend one step, redraw with collision, retire across the shield/ground bands) or, when idle, spawn a new one from a firing column (task-flag/rate-timer gated, column picked via the cursor list or a Y-scale)", cert: "seen" },
+  0x0563: { name: "stepAlienShot", role: "alien-shot handler -- step the active alien shot (draw-phase gate, blowup animation, descend one step, redraw with collision, retire across the shield/ground bands) or, when idle, spawn a new one from a firing column (task-flag/rate-timer gated, column picked via the cursor list or a Y-scale)", cert: "seen" },
   0x062f: { name: "findLiveAlienInColumn", role: "scan five object slots (stride 0x0b) on ACTIVE_PLAYER_PAGE from low byte C-1; live-outs: carry set on the first non-empty slot (else the final pointer add's carry), C decremented once, and L (the found slot's low byte, which the caller feeds to alienIndexToScreenCoords)", cert: "seen" },
   0x0644: { name: "stepAlienShotBlowup", role: "step the alien-shot blowup: decrement ALIEN_SHOT_BLOWUP_TIMER; at 3 eraseAlienShot then re-seat ALIEN_SHOT_SPRITE_PTR=ALIEN_SHOT_BLOWUP_SPRITE and recenter the descriptor (loc_207b/loc_207c -= 2, ALIEN_SHOT_ROW_COUNT=6) and drawAlienShotWithCollision (tail); at 0 just eraseAlienShot (tail); else idle", cert: "seen" },
   0x0707: { name: "stopSaucerSound", role: "clear the saucer sound bit: SOUND_PORT3_SHADOW &= 0xfe via clearSoundPort3Bit, mirror to sound port 3; value-out A", cert: "seen" },
@@ -288,12 +288,12 @@ export const ROUTINES = {
   0x0988: { name: "applyPendingScoreAdd", role: "when SCORE_ADD_PENDING is set, clear it and BCD-add the two-byte SCORE_ADD_VALUE into the active player's record accumulator (base from currentPlayerRecordPtr, 8080 DAA decimal carry), then redraw the total as four BCD glyphs at the record's screen address (tail drawBcdWord); a clear flag is a no-op", cert: "seen" },
   0x09ad: { name: "drawBcdWord", role: "draw the 16-bit value in DE as four BCD digit glyphs -- high byte D then low byte E -- via drawBcdByte; live-out HL (advanced two glyph-pairs), DE preserved", cert: "seen" },
   0x0a59: { name: "isArmTriggerSet", role: "poll [loc_2015] against 0xff and report equality in the Z flag; reads no register, writes no memory", cert: "seen" },
-  0x0a5f: { name: "loc_0a5f", role: "if [GAME_IN_PROGRESS]!=0: startSound(0x08), index the 3-entry table via invaderScoreEntryPtr(B), stamp SCORE_ADD_VALUE=table byte / SCORE_ADD_PENDING=0x01 /", cert: "seen" },
+  0x0a5f: { name: "queueInvaderKillScore", role: "if [GAME_IN_PROGRESS]!=0: startSound(0x08), index the 3-entry table via invaderScoreEntryPtr(B), stamp SCORE_ADD_VALUE=table byte / SCORE_ADD_PENDING=0x01 /", cert: "seen" },
   0x0ae2: { name: "loadDrawSequenceBlock", role: "blockCopy the 12-byte draw/animation sequence from (DE) into loc_20c2", cert: "seen" },
   0x0bf1: { name: "loc_0bf1", role: "pre-round redraw trampoline: run resolveShotAndFleetEdge (fleet edge/direction update) then tail into drawTaitoCopyright", cert: "seen" },
   0x1474: { name: "seatBlitPosition", role: "OUT port 2 := L&7 (MB14241 shift offset), then HL := coordToScreenAddr(HL) -- seat the next blit", cert: "seen" },
   0x14cb: { name: "clearScreenStrip", role: "zero A then fillScreenRow(0) -- blank a run of B screen columns from HL; live-out HL", cert: "seen" },
-  0x14d8: { name: "resolvePlayerShotHit", role: "resolve a player-shot collision (dispatched while PLAYER_SHOT_STATUS==2): ret unless a hit is latched (PLAYER_SHOT_HIT, which loc_03bb copies from COLLISION_FLAG); then by the shot Y at loc_2029 either stand down into state 3 + clearShotHitAndSilence (missed off the top), mark the saucer hit + retire the shot (markSaucerHitAndRetireShot, saucer altitude band), or scale the coords to a 55-cell alien-rack index (alienGridCellPtr) and on a live cell kill the alien + queue the invader-die sound/explosion (loc_0a5f), enter state 5, blit, and arm the explosion despawn timer ALIEN_EXPLOSION_TIMER", cert: "seen" },
+  0x14d8: { name: "resolvePlayerShotHit", role: "resolve a player-shot collision (dispatched while PLAYER_SHOT_STATUS==2): ret unless a hit is latched (PLAYER_SHOT_HIT, which playerShotHandler copies from COLLISION_FLAG); then by the shot Y at loc_2029 either stand down into state 3 + clearShotHitAndSilence (missed off the top), mark the saucer hit + retire the shot (markSaucerHitAndRetireShot, saucer altitude band), or scale the coords to a 55-cell alien-rack index (alienGridCellPtr) and on a live cell kill the alien + queue the invader-die sound/explosion (queueInvaderKillScore), enter state 5, blit, and arm the explosion despawn timer ALIEN_EXPLOSION_TIMER", cert: "seen" },
   0x154a: { name: "clearShotHitAndSilence", role: "clear PLAYER_SHOT_HIT, then clearSoundPort3Bit(0xf7) masks bit 3 off SOUND_PORT3_SHADOW; value-out A", cert: "seen" },
   0x1554: { name: "countStepsToThreshold", role: "count in C the 0x10 steps that lift A to/above threshold H (pre-normalizing a negative A via normalizeUpBySteps); live-out A, C, carry clear", cert: "seen" },
   0x1597: { name: "reverseFleetAtEdge", role: "fleet edge / direction reversal: scan the edge column selected by FLEET_MOVE_DIR (fleetReachedEdge); on a hit flip the direction and republish loc_2008 (step count, via fleetStepSize) and FLEET_STEP_DY (mirrored from FLEET_DROP_DELTA), else leave state unchanged; RAM-only live-out", cert: "seen" },
@@ -301,7 +301,7 @@ export const ROUTINES = {
   0x15f3: { name: "countLiveAliens", role: "count live cells across the active player's 0x37-byte alien field into ALIEN_COUNT; set LAST_ALIEN_FLAG at exactly one survivor", cert: "seen" },
   0x1618: { name: "advanceRoundState", role: "gated pre-round step: when armed (loc_2015==0xff) and the field is idle, advance ATTRACT_DEMO_PTR (attract) or arm the shot on a fresh fire edge (play, GAME_IN_PROGRESS set)", cert: "seen" },
   0x166b: { name: "loc_166b", role: "the fleetReachedEdge scan's 'found' sentinel (stc; ret): set carry and return true; inline candidate -- fleetReachedEdge already folds this set-carry directly", cert: "seen" },
-  0x170e: { name: "selectAlienShotRate", role: "select the alien-shot rate: scan ALIEN_SHOT_RATE_THRESHOLDS for the first entry >= the field-size key, store the parallel ALIEN_SHOT_RATE_TABLE byte to loc_20cf (read by the shot stepper loc_0563)", cert: "seen" },
+  0x170e: { name: "selectAlienShotRate", role: "select the alien-shot rate: scan ALIEN_SHOT_RATE_THRESHOLDS for the first entry >= the field-size key, store the parallel ALIEN_SHOT_RATE_TABLE byte to loc_20cf (read by the shot stepper stepAlienShot)", cert: "seen" },
   0x172c: { name: "loc_172c", role: "mode-gated sound step: PLAYER_SHOT_STATUS!=0 -> startSound(0x02), else clearSoundPort3Bit(0xfd)", cert: "seen" },
   0x1740: { name: "stepFleetMarchSound", role: "fleet-march sound beat: tick FLEET_SOUND_OFF_TIMER/FLEET_SOUND_TIMER, on beat emit SOUND_PORT5_SHADOW and re-arm, silencing at the edges; set FLEET_SOUND_STEP", cert: "seen" },
   0x1775: { name: "advanceFleetMarchSound", role: "on FLEET_SOUND_STEP, pick the fleet tempo for ALIEN_COUNT from FLEET_RATE_THRESHOLDS/FLEET_RATE_TABLE into FLEET_SOUND_PERIOD and rotate the port-5 fleet tone; tick SFX_OFF_TIMER", cert: "seen" },

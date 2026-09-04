@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
-import { loc_028e } from "./loc_028e.js";
-import { loc_03bb } from "./loc_03bb.js";
-import { loc_0476 } from "./loc_0476.js";
-import { loc_04b6 } from "./loc_04b6.js";
-import { loc_0682 } from "./loc_0682.js";
+import { playerShipHandler } from "./playerShipHandler.js";
+import { playerShotHandler } from "./playerShotHandler.js";
+import { alienShotSlot2Handler } from "./alienShotSlot2Handler.js";
+import { alienShotSlot3Handler } from "./alienShotSlot3Handler.js";
+import { saucerHandler } from "./saucerHandler.js";
 import {
   GAME_OBJECT_TABLE,
   PLAYER_SHIP_HANDLER_ADDR, PLAYER_SHOT_HANDLER_ADDR,
@@ -14,11 +14,11 @@ import {
 // The five in-game object records each carry a fixed handler target that is never rewritten, so the
 // walker's computed dispatch is a static map to the idiomatic handlers.
 const HANDLERS = {
-  [PLAYER_SHIP_HANDLER_ADDR]: loc_028e,
-  [PLAYER_SHOT_HANDLER_ADDR]: loc_03bb,
-  [ALIEN_SHOT_SLOT2_HANDLER_ADDR]: loc_0476,
-  [ALIEN_SHOT_SLOT3_HANDLER_ADDR]: loc_04b6,
-  [SAUCER_HANDLER_ADDR]: loc_0682,
+  [PLAYER_SHIP_HANDLER_ADDR]: playerShipHandler,
+  [PLAYER_SHOT_HANDLER_ADDR]: playerShotHandler,
+  [ALIEN_SHOT_SLOT2_HANDLER_ADDR]: alienShotSlot2Handler,
+  [ALIEN_SHOT_SLOT3_HANDLER_ADDR]: alienShotSlot3Handler,
+  [SAUCER_HANDLER_ADDR]: saucerHandler,
 };
 
 // Walk the 16-byte object/timer records from `base`: a first byte of 0xff ends the walk, 0xfe skips the
@@ -27,7 +27,7 @@ const HANDLERS = {
 // which runs directly as JS with the record pointer (rec+4) passed as its argument. A handler may arm a
 // warm restart, in which case the walk stops so the interrupt returns promptly and the engine can swap
 // the main flow.
-export function loc_024b(m, base = GAME_OBJECT_TABLE) {
+export function walkObjectTable(m, base = GAME_OBJECT_TABLE) {
   let rec = base;
   for (;;) {
     const hi = m.mem8[rec];

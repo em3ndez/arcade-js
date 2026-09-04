@@ -26,7 +26,7 @@ import {
 // record from its stored template. If a game is in progress that drain is the active player's death: it
 // consumes the life and arms the next main-loop flow -- game over, an extra-life continuation, or a fresh
 // round -- then returns so the engine swaps in that flow.
-export function loc_028e(m, recPtr = m.regs.de) {
+export function playerShipHandler(m, recPtr = m.regs.de) {
   function doE() { // shared redraw tail
     loadSpriteDescriptor(m, loc_2018);
     coordToScreenAddr(m);

@@ -2,8 +2,8 @@
 import { drawCreditReadout } from "./drawCreditReadout.js";
 import { clearPlayfield } from "./clearPlayfield.js";
 import { drawSpriteList } from "./drawSpriteList.js";
-import { loc_0798 } from "./loc_0798.js";
-import { loc_086d } from "./loc_086d.js";
+import { startOnePlayerGame } from "./startOnePlayerGame.js";
+import { startTwoPlayerGame } from "./startTwoPlayerGame.js";
 import {
   CREDIT_SCREEN_SHOWN, CREDIT_COUNT,
   loc_1ff3, loc_3013, loc_1acf, loc_1aba, loc_2810,
@@ -27,12 +27,12 @@ export function* creditScreen(m) {
       // two or more credits: the two-player select prompt
       drawSpriteList(m, loc_1aba, 0x14, loc_2810);
       const in1 = m.io.portIn(0x01);
-      if (in1 & 0x02) { yield* loc_086d(m); return; } // two-player start
-      if (in1 & 0x04) { yield* loc_0798(m); return; } // one-player start
+      if (in1 & 0x02) { yield* startTwoPlayerGame(m); return; } // two-player start
+      if (in1 & 0x04) { yield* startOnePlayerGame(m); return; } // one-player start
     } else {
       // a single credit: only the one-player start prompt
       drawSpriteList(m, loc_1acf, 0x14, loc_2810);
-      if (m.io.portIn(0x01) & 0x04) { yield* loc_0798(m); return; } // one-player start
+      if (m.io.portIn(0x01) & 0x04) { yield* startOnePlayerGame(m); return; } // one-player start
     }
     yield;
   }

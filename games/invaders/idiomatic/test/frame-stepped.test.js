@@ -3,7 +3,7 @@
 // T-state clock) and reaches the ATTRACT DEMO. This is the milestone the §4 clock-free spine cluster
 // asserts -- the busy-wait delays (0x20c0-spun) become function* generators that yield per frame, and the
 // engine fires the vblank NMI at each yield. The object-dispatch handlers are still the translated
-// fallback, so the run stops in loc_024b's pchl dispatch (0x2100) -- that is the wire-last work, not a
+// fallback, so the run stops in walkObjectTable's pchl dispatch (0x2100) -- that is the wire-last work, not a
 // spine defect; the full-run convergence proof lives in tools/convergence.mjs --idiomatic --mode state.
 // Run: node --test games/invaders/idiomatic/test/frame-stepped.test.js
 

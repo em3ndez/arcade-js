@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_0563 (ROM 0x0563) -- the alien-shot object handler. When the shot is live
+// Memory-equivalence for stepAlienShot (ROM 0x0563) -- the alien-shot object handler. When the shot is live
 // (bit 7 of the status byte loc_2073) it advances one step (draw-phase gate, blowup animation, descend,
 // redraw with collision, retire across the shield/ground bands); when idle it decides whether to launch
 // a new shot (task-flag / rate-timer gated, firing column via the cursor list or a Y-scale). The callers
-// (loc_0476 / loc_050f) re-read MEMORY after the call, so the live-out is MEMORY-ONLY: the arms compare
-// RAM (-stack), NOT registers. loc_0563 is a leaf (omits the ROM ret; the seam completes it).
+// (alienShotSlot2Handler / alienShotSlot4Handler) re-read MEMORY after the call, so the live-out is MEMORY-ONLY: the arms compare
+// RAM (-stack), NOT registers. stepAlienShot is a leaf (omits the ROM ret; the seam completes it).
 // Run: node --test games/invaders/idiomatic/test/equivalence-0563.test.js
 
 import nodeTest from "node:test";
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0563 as oracle } from "../../translated/loc_0563.js";
-import { loc_0563 } from "../loc_0563.js";
+import { stepAlienShot } from "../stepAlienShot.js";
 import { objectMatchesDrawPhase } from "../objectMatchesDrawPhase.js";
 import { stepAlienShotBlowup } from "../stepAlienShotBlowup.js";
 import { eraseAlienShot } from "../eraseAlienShot.js";
@@ -83,14 +83,14 @@ function captureDispatches(K, maxFrames) {
 // collision-band sub-tree are driven by the CRAFTED cases below (real oracle vs idiomatic, seeded per branch).
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x0563 dispatches -- loc_0563 == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x0563 dispatches -- stepAlienShot == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
     const capDiff = (ma, mb) => firstStateDiff(ma.dumpState(), mb.dumpState(),
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && a >= sp - 0x40 && a < sp);
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_0563(c);
+    oracle(o); stepAlienShot(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -183,7 +183,7 @@ test("CRAFTED: each branch of the handler leaves identical RAM (-stack)", () => 
   for (const { tag, seed } of cases) {
     const o = make(seed);
     const c = make(seed);
-    oracle(o); loc_0563(c);
+    oracle(o); stepAlienShot(c);
     assert.equal(ramDiff(o, c), null, tag);
   }
 });
@@ -192,7 +192,7 @@ test("CRAFTED: each branch of the handler leaves identical RAM (-stack)", () => 
 // check catches the corruption -- a mutant whose only change is one wrong operation must diverge.
 test("TEETH: a twin that activates the wrong status bit diverges in RAM", () => {
   // Real activate path, one broken op: sets bit 6 instead of the live bit 7.
-  function loc_0563_wrongActivateBit(m) {
+  function stepAlienShot_wrongActivateBit(m) {
     if (m.mem8[loc_2073] & 0x80) return;                 // (seed keeps us on the spawn path)
     if (m.mem8[TASK_FLAGS] === 4) {
       m.mem8[loc_2073] |= 0x40;                          // BUG: should be 0x80
@@ -202,13 +202,13 @@ test("TEETH: a twin that activates the wrong status bit diverges in RAM", () => 
   }
   const seed = (m) => { m.mem.write8(loc_2073, 0x00); m.mem.write8(TASK_FLAGS, 4); m.mem.write8(loc_2074, 9); };
   const o = make(seed); const c = make(seed);
-  oracle(o); loc_0563_wrongActivateBit(c);
+  oracle(o); stepAlienShot_wrongActivateBit(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM-diff check FAILED to catch a wrong activation bit");
 });
 
 test("TEETH: a twin that skips clearing loc_2074 diverges in RAM", () => {
   // Real spawn-gating path, one broken op: drops the `loc_2074 = 0` write before the rate gate returns.
-  function loc_0563_droppedClear(m) {
+  function stepAlienShot_droppedClear(m) {
     if (m.mem8[loc_2073] & 0x80) return;
     if (m.mem8[TASK_FLAGS] === 4) { m.mem8[loc_2073] |= 0x80; m.mem8[loc_2074] = m.mem8[loc_2074] + 1; return; }
     if (m.mem8[loc_2069] === 0) return;
@@ -222,14 +222,14 @@ test("TEETH: a twin that skips clearing loc_2074 diverges in RAM", () => {
     m.mem.write8(loc_2074, 5); m.mem.write8(loc_2070, 1); m.mem.write8(loc_20cf, 1);
   };
   const o = make(seed); const c = make(seed);
-  oracle(o); loc_0563_droppedClear(c);
+  oracle(o); stepAlienShot_droppedClear(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM-diff check FAILED to catch a dropped loc_2074 clear");
 });
 
 test("TEETH: a twin with the wrong collision-band upper bound diverges in RAM", () => {
   // Real active-shot tail, one broken op: band-hi 0x27 -> 0x26, so at y=0x26 the loc_2015=0 band write is
   // skipped. Only reachable because activeDescend forces a real collision at the band boundary.
-  function loc_0563_wrongBandHi(m) {
+  function stepAlienShot_wrongBandHi(m) {
     if ((m.mem8[loc_2073] & 0x80) === 0) return;
     if (!objectMatchesDrawPhase(m, loc_207c)) return;
     if (m.mem8[loc_2073] & 0x01) return stepAlienShotBlowup(m);
@@ -249,16 +249,16 @@ test("TEETH: a twin with the wrong collision-band upper bound diverges in RAM", 
   }
   const seed = activeDescend(0x26, true);
   const o = make(seed); const c = make(seed);
-  oracle(o); loc_0563_wrongBandHi(c);
+  oracle(o); stepAlienShot_wrongBandHi(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM-diff check FAILED to catch a wrong collision-band upper bound");
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
-  // Seed the spawn early-return path (loc_2069 == 0): loc_0563 does no stack work, so the seam completes
-  // its ret (SP unmoved). loc_0563 dissolves every call, so no path is a +2 tail-dispatch.
+  // Seed the spawn early-return path (loc_2069 == 0): stepAlienShot does no stack work, so the seam completes
+  // its ret (SP unmoved). stepAlienShot dissolves every call, so no path is a +2 tail-dispatch.
   const m = make((mm) => { mm.mem.write8(loc_2073, 0x00); mm.mem.write8(TASK_FLAGS, 0); mm.mem.write8(loc_2069, 0); });
   m.mem.write16(0x2400, 0xabcd); // a real caller-return word for the seam to consume
-  const r = seamPlaceable(withOmittedRet, loc_0563, TARGET, m);
-  assert.equal(r.placeable, true, `loc_0563 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, stepAlienShot, TARGET, m);
+  assert.equal(r.placeable, true, `stepAlienShot must be seam-placeable; got: ${r.error}`);
   console.log("  SP-TOOTH: omitted-ret leaf (moved 0) placeable");
 });

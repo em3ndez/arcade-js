@@ -18,7 +18,7 @@ import {
 // a time, or -- when the retire countdown reaches its trigger -- run the tally that reseeds the record
 // from the template and advances the two saucer-key counters. Each sprite's screen position is re-read
 // from its descriptor after every erase, so the erase and the redraw land on the right rows.
-export function loc_03bb(m) {
+export function playerShotHandler(m) {
   function doP() { // launch a new shot
     m.mem8[PLAYER_SHOT_STATUS] = u8(m.mem8[PLAYER_SHOT_STATUS] + 1);
     m.mem8[loc_202a] = u8(m.mem8[loc_201b] + 8);

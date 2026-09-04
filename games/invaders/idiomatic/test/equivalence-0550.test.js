@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for copyRecordToWorkBuffer (ROM 0x0550) -- stash A at loc_207f, then block-copy 0x0b bytes from
 // (DE) into the loc_2073 strip buffer (tail-jump into blockCopy). Live-out is memory only: every caller
-// overwrites A immediately after the call (loc_0476/loc_04b6/loc_050f), so the contract is RAM (-stack).
+// overwrites A immediately after the call (alienShotSlot2Handler/alienShotSlot3Handler/alienShotSlot4Handler), so the contract is RAM (-stack).
 // Run: node --test games/invaders/idiomatic/test/equivalence-0550.test.js
 
 import nodeTest from "node:test";

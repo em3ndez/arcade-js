@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_03bb (ROM 0x03bb) -- the player-shot object handler, reached by the object-
+// Memory-equivalence for playerShotHandler (ROM 0x03bb) -- the player-shot object handler, reached by the object-
 // table walker's computed dispatch (which pushes the record pointer for the handler to pop and discard).
 // It skips a raster-half mismatch, then dispatches on the shot status byte at 0x2025: launch (type 1),
 // step-in-flight with an erase / Y-advance / collision redraw (type 2), a per-frame retire animation and
 // a shared reseed+saucer-key tally (type 3 / others), and an idle return (type 5). The arms compare RAM
-// (-stack); loc_03bb is memory-driven, so the walker discards its registers -- no register live-out.
+// (-stack); playerShotHandler is memory-driven, so the walker discards its registers -- no register live-out.
 //
 // The attract boot dispatches it heavily across statuses 0/1/2/3 (both raster phases), so the CAPTURE arm
 // exercises those on real states; the CRAFTED cases drive statuses 4/5, each type-3 sub-branch, and a
 // forced collision that latches PLAYER_SHOT_HIT, with a small safely-placed descriptor so the shared
 // erase/blit/collision callees run identically on both sides.
 //
-// NOT seam-placeable, and deliberately UNWIRED -- same class as loc_0476/loc_04b6/loc_0682: the walker
+// NOT seam-placeable, and deliberately UNWIRED -- same class as alienShotSlot2Handler/alienShotSlot3Handler/saucerHandler: the walker
 // leaves the record pointer on the stack, so a correct dispatch nets SP +4 with pc on the walker's
-// continuation. Dispatchable only once the walker (loc_024b) is idiomatic and calls it directly.
+// continuation. Dispatchable only once the walker (walkObjectTable) is idiomatic and calls it directly.
 // Run: node --test games/invaders/idiomatic/test/equivalence-03bb.test.js
 
 import nodeTest from "node:test";
@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_03bb as oracle } from "../../translated/loc_03bb.js";
-import { loc_03bb } from "../loc_03bb.js";
+import { playerShotHandler } from "../playerShotHandler.js";
 import { u8 } from "../../../../core/int.js";
 import { loadPlayerShotDescriptor } from "../loadPlayerShotDescriptor.js";
 import { eraseShiftedSprite } from "../eraseShiftedSprite.js";
@@ -51,7 +51,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(24, 3000) : [];
 
-test("CAPTURE: real 0x03bb dispatches -- loc_03bb == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x03bb dispatches -- playerShotHandler == oracle in RAM (-stack)", () => {
   assert.ok(CAPS.length > 0, "boot must dispatch 0x03bb at least once");
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
@@ -59,7 +59,7 @@ test("CAPTURE: real 0x03bb dispatches -- loc_03bb == oracle in RAM (-stack)", ()
       (off) => ma.stateOffsetToAddr(off), (a) => a != null && ((a >= sp - 0x40 && a < sp + 2) || inDeadStack(a)));
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_03bb(c);
+    oracle(o); playerShotHandler(c);
     assert.equal(capDiff(o, c), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -131,7 +131,7 @@ test("CRAFTED: each status branch leaves identical RAM (-stack)", () => {
   ];
   for (const { tag, seed } of cases) {
     const o = craft(seed), c = craft(seed);
-    oracle(o); loc_03bb(c);
+    oracle(o); playerShotHandler(c);
     assert.equal(ramDiff(o, c), null, tag);
   }
 });
@@ -139,7 +139,7 @@ test("CRAFTED: each status branch leaves identical RAM (-stack)", () => {
 // TEETH: a broken inline twin of the in-flight (type 2) path that DROPS the collision -> PLAYER_SHOT_HIT
 // latch. On a forced collision the oracle sets PLAYER_SHOT_HIT while the twin leaves it clear, so the RAM
 // diff must catch it. The seed reaches the doQ path (phase matches, status 2), so the twin is invoked.
-function loc_03bb_droppedHit(m) {
+function playerShotHandler_droppedHit(m) {
   loadPlayerShotDescriptor(m);
   eraseShiftedSprite(m);
   const y = u8(m.mem8[loc_202c] + m.mem8[loc_2029]);
@@ -152,7 +152,7 @@ function loc_03bb_droppedHit(m) {
 test("TEETH: a twin that drops the collision-hit latch diverges in RAM", () => {
   const seed = (m) => { m.mem.write8(PLAYER_SHOT_STATUS, 0x02); descriptor(m, { src: 0x2100 }); m.mem.write8(loc_202c, 0x08); collideBand(m); };
   const o = craft(seed), c = craft(seed);
-  oracle(o); loc_03bb_droppedHit(c);
+  oracle(o); playerShotHandler_droppedHit(c);
   assert.equal(o.mem.read8(PLAYER_SHOT_HIT), 0x01, "the collision seed must latch PLAYER_SHOT_HIT in the oracle");
   assert.notEqual(ramDiff(o, c), null, "the RAM-diff check FAILED to catch a dropped collision-hit latch");
 });

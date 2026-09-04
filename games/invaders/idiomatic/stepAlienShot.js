@@ -16,7 +16,7 @@ import { scaleYToBlock } from "./scaleYToBlock.js";
 // The alien-shot object handler. When the shot is live (bit 7 of its status byte) it advances one
 // step; otherwise it decides whether to launch a fresh shot this frame. The status byte carries the
 // live flag in bit 7 and the blowup-in-progress flag in bit 0.
-export function loc_0563(m) {
+export function stepAlienShot(m) {
   if (m.mem8[loc_2073] & 0x80) return stepActiveShot(m);
   return maybeLaunchShot(m);
 }

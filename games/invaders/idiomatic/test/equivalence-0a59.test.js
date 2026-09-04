@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for isArmTriggerSet (ROM 0x0a59) -- "is [loc_2015] == 0xff?". The oracle loads A from
 // loc_2015 and `cp 0xff`, leaving the answer in the Z flag; A is dead (no caller reads it -- the frozen
-// callers loc_0a3c/loc_081f/loc_0aea/loc_16e6 branch on Z only). So the declared live-out is the Z flag,
+// callers waitNextRoundArm/loc_081f/loc_0aea/loc_16e6 branch on Z only). So the declared live-out is the Z flag,
 // and isArmTriggerSet sets it (return-assignment bridge) and returns the boolean. It writes no memory, so the
 // contract is the Z-flag register-comparison arm (RAM diff stays null, checked for accidental writes).
 // Run: node --test games/invaders/idiomatic/test/equivalence-0a59.test.js

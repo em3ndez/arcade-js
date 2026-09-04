@@ -66,49 +66,49 @@ pooyan 0x2c3f dead  # rst-28 boolean caller-skip dispatcher dissolved; direct-ca
 pooyan 0x2d24 dead  # hunter state-2 caller-skip dissolved; direct-called by idiomatic dispatchOneHunterRecordState (boolean), not oracle-served
 pooyan 0x2d4a dead  # hunter state-3 caller-skip dissolved; direct-called by idiomatic dispatchOneHunterRecordState (boolean), not oracle-served
 pooyan 0x0028 dead  # rst-28 dispatch primitive; every caller converted to a switch or dissolved, nothing live calls it
-invaders 0x0248 dead  # object-table base-seat; the idiomatic vblank ISR + the idiomatic loc_0072 direct-call the idiomatic loc_0248 instead of m.call; the translated loc_0072 (0x007b call 0x0248) is now bypassed by the idiomatic loc_0072, so that last translated caller is dissolved too
-invaders 0x024b dead  # object/timer record walker; all three translated callers are now idiomatic-bypassed: loc_0aab (0x0aae jmp 0x024b, base 0x2050) via the lifted idiomatic loc_0aab->loc_024b(0x2050), loc_0248 (fall-through, already dead) via the idiomatic vblank ISR + loc_0072, and loc_008c (0x00a8 call 0x024b, base 0x2020) via idiomaticMidNmi's direct idiomatic loc_024b(0x2020); no data-word pointer callers
-invaders 0x028e dead  # record-0 player-ship handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
-invaders 0x03bb dead  # player-shot object handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
-invaders 0x0476 dead  # object handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
-invaders 0x04b6 dead  # object handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
-invaders 0x0682 dead  # mystery-ship object handler; idiomatic loc_024b direct-calls the idiomatic module instead of the pchl dispatch
-invaders 0x0072 dead  # vblank in-game record tail; both callers dissolved -- loc_0abb (0x0abc jmp 0x0072) is now the idiomatic loc_0abb, and the RST2 vector loc_0010 (0x006f in-game arm) is bypassed by idiomaticVblankNmi, whose in-game tail is the idiomatic loc_0072
-invaders 0x0082 dead  # shared interrupt epilogue (pop h/d/b/psw; ei; ret); a no-op in the seam model (no register stack, and the idiomatic fireNmi re-fires the ISR bodies without an inte gate); every caller (loc_0010, loc_008c, loc_0072) is a bypassed ISR body
+invaders 0x0248 dead  # object-table base-seat; the idiomatic vblank ISR + the idiomatic serviceVblankObjects direct-call the idiomatic walkVblankObjectTable instead of m.call; the translated serviceVblankObjects (0x007b call 0x0248) is now bypassed by the idiomatic serviceVblankObjects, so that last translated caller is dissolved too
+invaders 0x024b dead  # object/timer record walker; all three translated callers are now idiomatic-bypassed: loc_0aab (0x0aae jmp 0x024b, base 0x2050) via the lifted idiomatic loc_0aab->walkObjectTable(0x2050), walkVblankObjectTable (fall-through, already dead) via the idiomatic vblank ISR + serviceVblankObjects, and loc_008c (0x00a8 call 0x024b, base 0x2020) via idiomaticMidNmi's direct idiomatic walkObjectTable(0x2020); no data-word pointer callers
+invaders 0x028e dead  # record-0 player-ship handler; idiomatic walkObjectTable direct-calls the idiomatic module instead of the pchl dispatch
+invaders 0x03bb dead  # player-shot object handler; idiomatic walkObjectTable direct-calls the idiomatic module instead of the pchl dispatch
+invaders 0x0476 dead  # object handler; idiomatic walkObjectTable direct-calls the idiomatic module instead of the pchl dispatch
+invaders 0x04b6 dead  # object handler; idiomatic walkObjectTable direct-calls the idiomatic module instead of the pchl dispatch
+invaders 0x0682 dead  # mystery-ship object handler; idiomatic walkObjectTable direct-calls the idiomatic module instead of the pchl dispatch
+invaders 0x0072 dead  # vblank in-game record tail; both callers dissolved -- loc_0abb (0x0abc jmp 0x0072) is now the idiomatic loc_0abb, and the RST2 vector loc_0010 (0x006f in-game arm) is bypassed by idiomaticVblankNmi, whose in-game tail is the idiomatic serviceVblankObjects
+invaders 0x0082 dead  # shared interrupt epilogue (pop h/d/b/psw; ei; ret); a no-op in the seam model (no register stack, and the idiomatic fireNmi re-fires the ISR bodies without an inte gate); every caller (loc_0010, loc_008c, serviceVblankObjects) is a bypassed ISR body
 invaders 0x0abf dead  # attract task-flag dispatch; only caller is the RST2 vector loc_0010 (0x0057 call 0x0abf), bypassed by idiomaticVblankNmi which now direct-calls the idiomatic loc_0abf
-invaders 0x0aab dead  # attract task bit2 arm (lxi h,0x2050; jmp 0x024b); only caller loc_0abf is now the idiomatic module, which direct-calls the idiomatic loc_0aab -> loc_024b(0x2050)
-invaders 0x0abb dead  # attract task bit0 arm (pop h; jmp 0x0072); only caller loc_0abf is now the idiomatic module, which direct-calls the idiomatic loc_0abb -> loc_0072
-invaders 0x0817 dead  # doJ target; only caller loc_028e (0x032f jmp 0x0817) is dead, and translated loc_028e is now unreachable -- Track 1 dissolved every translated loc_024b caller, so its pchl (the sole path to loc_028e) never executes; the idiomatic loc_028e arms nextMain -> doJFlow
-invaders 0x166d dead  # game-over arm; only caller loc_028e (0x02db jz 0x166d) is dead, and translated loc_028e is now unreachable (translated loc_024b has no live caller after Track 1); the idiomatic loc_028e arms nextMain -> gameOverFlow
+invaders 0x0aab dead  # attract task bit2 arm (lxi h,0x2050; jmp 0x024b); only caller loc_0abf is now the idiomatic module, which direct-calls the idiomatic loc_0aab -> walkObjectTable(0x2050)
+invaders 0x0abb dead  # attract task bit0 arm (pop h; jmp 0x0072); only caller loc_0abf is now the idiomatic module, which direct-calls the idiomatic loc_0abb -> serviceVblankObjects
+invaders 0x0817 dead  # doJ target; only caller playerShipHandler (0x032f jmp 0x0817) is dead, and translated playerShipHandler is now unreachable -- Track 1 dissolved every translated walkObjectTable caller, so its pchl (the sole path to playerShipHandler) never executes; the idiomatic playerShipHandler arms nextMain -> doJFlow
+invaders 0x166d dead  # game-over arm; only caller playerShipHandler (0x02db jz 0x166d) is dead, and translated playerShipHandler is now unreachable (translated walkObjectTable has no live caller after Track 1); the idiomatic playerShipHandler arms nextMain -> gameOverFlow
 invaders 0x17cd dead  # tilt/panic handler; only caller is the RST2 vector loc_0010 (0x001d call 0x17cd), bypassed by idiomaticVblankNmi which now direct-calls the idiomatic loc_17cd (its no-tilt path is the faithful no-op; a tilt press arms nextMain -> tiltReset, the warm-restart reset flow that joins the idiomatic loc_16c9 teardown)
 # --- Track 3 (mid draw-scan + the round-ending warm restart) + the flow cluster it cascade-frees ---
-invaders 0x0141 dead  # mid draw-scan (next-alien picker); only caller loc_008c (0x00ab call 0x0141), the RST1 body bypassed by idiomaticMidNmi which now direct-calls the idiomatic loc_0141; its invasion bail arms nextMain -> the idiomatic loc_1971 restart flow
-invaders 0x01a1 dead  # field-wrap subroutine; only caller loc_0141 (0x0157 cz 0x01a1), now the idiomatic loc_0141 which inlines the wrap (reset index, fold the pass totals, toggle the frame-alternate bit)
-invaders 0x01cd dead  # two-level abort (pop h; ret); only caller loc_01a1 (0x01a2 jz 0x01cd), dissolved into the idiomatic loc_0141's give-up-after-two-passes return
-invaders 0x1971 dead  # warm-restart entry (sta 0x206d; jmp 0x16e6); only caller loc_0141 (0x016d jc 0x1971), now the idiomatic loc_0141 which arms nextMain -> the idiomatic loc_1971 restart flow
+invaders 0x0141 dead  # mid draw-scan (next-alien picker); only caller loc_008c (0x00ab call 0x0141), the RST1 body bypassed by idiomaticMidNmi which now direct-calls the idiomatic pickNextMarchingAlien; its invasion bail arms nextMain -> the idiomatic loc_1971 restart flow
+invaders 0x01a1 dead  # field-wrap subroutine; only caller pickNextMarchingAlien (0x0157 cz 0x01a1), now the idiomatic pickNextMarchingAlien which inlines the wrap (reset index, fold the pass totals, toggle the frame-alternate bit)
+invaders 0x01cd dead  # two-level abort (pop h; ret); only caller loc_01a1 (0x01a2 jz 0x01cd), dissolved into the idiomatic pickNextMarchingAlien's give-up-after-two-passes return
+invaders 0x1971 dead  # warm-restart entry (sta 0x206d; jmp 0x16e6); only caller pickNextMarchingAlien (0x016d jc 0x1971), now the idiomatic pickNextMarchingAlien which arms nextMain -> the idiomatic loc_1971 restart flow
 invaders 0x16e6 dead  # SP-reseat death-wait + teardown; only caller loc_1971 (0x1976 jmp 0x16e6), dissolved into the idiomatic loc_1971 restart flow (its wait loop is the generator yield loop)
 invaders 0x196b dead  # game-over tail (call 0x19dc; jmp 0x1671); only caller loc_16e6 (0x170b jmp 0x196b), dissolved into the idiomatic loc_1971 restart flow (silence + yield* gameOverFlow)
 invaders 0x1671 dead  # game-over / high-score flow; callers loc_166d (already dead) and loc_196b (now dead); idiomatic gameOverFlow
 invaders 0x16c9 dead  # game-over-to-attract teardown; callers loc_17cd (already dead) and loc_1671 (now dead); idiomatic loc_16c9
-invaders 0x02ed dead  # new-round entry; callers loc_028e (already dead) and loc_1671 (now dead); idiomatic newRoundFlow
+invaders 0x02ed dead  # new-round entry; callers playerShipHandler (already dead) and loc_1671 (now dead); idiomatic newRoundFlow
 invaders 0x02f8 dead  # new-round preamble; callers loc_02ed (now dead) and loc_0332 (now dead); folded into idiomatic newRoundFlow
 invaders 0x0332 dead  # new-round branch; only caller loc_02ed (0x02f2 jc 0x0332), now dead; folded into idiomatic newRoundFlow
-invaders 0x07f9 dead  # round-start entry; callers loc_02f8 (now dead) and loc_079b (credit cluster rooted at the bypassed RST2 vector loc_0010, replaced by idiomatic creditScreen -> idiomatic loc_0798 -> idiomatic loc_079b, which yield* the idiomatic loc_07f9); idiomatic loc_07f9
-invaders 0x0804 dead  # shield/field preamble; callers loc_07f9 (now dead) and loc_09ef (now dead); idiomatic loc_0804
-invaders 0x0814 dead  # field-arm; callers loc_0804 (now dead) and loc_0872 (now dead); idiomatic enterRoundWithFieldReload
-invaders 0x0872 dead  # player-1 shield restore + field-arm; only caller loc_0804 (0x080b jc 0x0872), now dead; idiomatic loc_0872
-invaders 0x088d dead  # round-start splash delay; only caller loc_07f9 (0x07f9 call 0x088d), now dead; idiomatic showRoundStartSplash
+invaders 0x07f9 dead  # round-start entry; callers loc_02f8 (now dead) and startGameFlow (credit cluster rooted at the bypassed RST2 vector loc_0010, replaced by idiomatic creditScreen -> idiomatic startOnePlayerGame -> idiomatic startGameFlow, which yield* the idiomatic startRoundFlow); idiomatic startRoundFlow
+invaders 0x0804 dead  # shield/field preamble; callers startRoundFlow (now dead) and loc_09ef (now dead); idiomatic restoreShieldsAndEnterRound
+invaders 0x0814 dead  # field-arm; callers restoreShieldsAndEnterRound (now dead) and restorePlayer1ShieldsAndEnterRound (now dead); idiomatic enterRoundWithFieldReload
+invaders 0x0872 dead  # player-1 shield restore + field-arm; only caller restoreShieldsAndEnterRound (0x080b jc 0x0872), now dead; idiomatic restorePlayer1ShieldsAndEnterRound
+invaders 0x088d dead  # round-start splash delay; only caller startRoundFlow (0x07f9 call 0x088d), now dead; idiomatic showRoundStartSplash
 invaders 0x081f dead  # field-arm tail (set game active, cue sound, enter the frame loop); callers enterRoundWithoutFieldReload (already dead), enterRoundWithFieldReload (now dead), loc_0849 (now dead); folded into idiomatic enterRoundWithoutFieldReload -> mainLoop
 invaders 0x0849 dead  # field-arm sub-branch; only caller loc_081f (0x0841 jz 0x0849), now dead; folded into the idiomatic in-game main loop
 invaders 0x09ef dead  # player-switch handoff after a round clears; only caller loc_081f (0x082f jz 0x09ef), now dead; idiomatic loc_09ef (reached from mainLoop)
-invaders 0x0a3c dead  # arm-trigger wait before the player switch; only caller loc_09ef (0x09ef call 0x0a3c), now dead; idiomatic loc_0a3c
+invaders 0x0a3c dead  # arm-trigger wait before the player switch; only caller loc_09ef (0x09ef call 0x0a3c), now dead; idiomatic waitNextRoundArm
 # --- Wave A1: the two interrupt vectors + the credit/start cluster (entered only via the RST vectors, now the direct-JS NMI bodies) ---
 invaders 0x0008 dead  # RST1 (mid-screen) interrupt vector (0x000c jmp 0x008c); the hardware RST1 is replaced by the direct-JS idiomaticMidNmi (machine.fireNmi fires the idiomatic NMI bodies, never the Z80 vector), so it is never entered; no m.call or data-word caller
 invaders 0x0010 dead  # RST2 (vblank) interrupt vector + vblank ISR body; the hardware RST2 is replaced by the direct-JS idiomaticVblankNmi; no m.call or data-word caller (the only real-instruction ROM occurrence of 0x0010 is `lxi d,0x0010`, the 16-byte object-record stride constant, not a code pointer; the other byte-occurrences are graphics data)
 invaders 0x008c dead  # RST1 body (mid ISR); only caller loc_0008 (0x000c jmp 0x008c), the bypassed RST1 vector; replaced by idiomaticMidNmi
 invaders 0x0765 dead  # credit-screen entry; only caller loc_0010 (0x0064 jmp 0x0765, the vblank credit arm), bypassed by idiomaticVblankNmi whose credit sub-arm arms nextMain -> the idiomatic creditScreen; no data-word caller
 invaders 0x077f dead  # credit START-poll loop; callers loc_0765 (0x077f fall-through) and loc_0857 (0x086a jmp 0x077f), both dissolved into the idiomatic creditScreen (its multi-frame START-poll is the generator yield loop)
-invaders 0x0798 dead  # one-player start; callers loc_077f (0x0798 fall-through) and loc_0857 (0x0867 jc 0x0798), dissolved into the idiomatic creditScreen which yield* the idiomatic loc_0798 (whose own UNWIRED entry satisfies registry-coverage)
-invaders 0x079b dead  # start tail (-> loc_07f9); callers loc_0798 (0x079b fall-through) and loc_086d (0x086f jmp 0x079b), now the idiomatic modules which yield* the idiomatic loc_079b
-invaders 0x0857 dead  # two-player branch; only caller loc_077f (0x0788 jnz 0x0857), dissolved into the idiomatic creditScreen (in1 & 0x02 -> yield* the idiomatic loc_086d)
-invaders 0x086d dead  # two-player start; only caller loc_0857 (0x0863 jc 0x086d), the idiomatic creditScreen yield* the idiomatic loc_086d
+invaders 0x0798 dead  # one-player start; callers loc_077f (0x0798 fall-through) and loc_0857 (0x0867 jc 0x0798), dissolved into the idiomatic creditScreen which yield* the idiomatic startOnePlayerGame (whose own UNWIRED entry satisfies registry-coverage)
+invaders 0x079b dead  # start tail (-> startRoundFlow); callers startOnePlayerGame (0x079b fall-through) and startTwoPlayerGame (0x086f jmp 0x079b), now the idiomatic modules which yield* the idiomatic startGameFlow
+invaders 0x0857 dead  # two-player branch; only caller loc_077f (0x0788 jnz 0x0857), dissolved into the idiomatic creditScreen (in1 & 0x02 -> yield* the idiomatic startTwoPlayerGame)
+invaders 0x086d dead  # two-player start; only caller loc_0857 (0x0863 jc 0x086d), the idiomatic creditScreen yield* the idiomatic startTwoPlayerGame

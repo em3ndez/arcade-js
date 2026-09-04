@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for copyWorkBufferToRecord (ROM 0x055b) -- block-copy 0x0b bytes from the loc_2073 strip buffer
-// into (HL) (tail-jump into blockCopy). Reached by `jnz 0x055b` from loc_0476/loc_04b6/loc_050f, each a
+// into (HL) (tail-jump into blockCopy). Reached by `jnz 0x055b` from alienShotSlot2Handler/alienShotSlot3Handler/alienShotSlot4Handler, each a
 // tail-delegate; live-out is memory only (blockCopy's own classification). Contract is RAM (-stack).
 // Run: node --test games/invaders/idiomatic/test/equivalence-055b.test.js
 

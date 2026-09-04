@@ -6,7 +6,7 @@ import { FRAME_DELAY_TIMER } from "./names.js";
 // frames, re-polling the trigger each frame; the moment the trigger leaves that value, fall through and
 // wait until it returns to the armed value before proceeding. Each pass yields one frame; the interrupt
 // drains the counter. Generator; memory-only.
-export function* loc_0a3c(m) {
+export function* waitNextRoundArm(m) {
   if (isArmTriggerSet(m)) {
     m.mem8[FRAME_DELAY_TIMER] = 0x30;
     for (;;) {

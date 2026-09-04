@@ -5,7 +5,7 @@ import { markSaucerHitAndRetireShot } from "./markSaucerHitAndRetireShot.js";
 import { scaleXToBlock } from "./scaleXToBlock.js";
 import { scaleYToBlock } from "./scaleYToBlock.js";
 import { alienGridCellPtr } from "./alienGridCellPtr.js";
-import { loc_0a5f } from "./loc_0a5f.js";
+import { queueInvaderKillScore } from "./queueInvaderKillScore.js";
 import { loadSpriteDescriptor } from "./loadSpriteDescriptor.js";
 import { blitShiftedSprite } from "./blitShiftedSprite.js";
 import { PLAYER_SHOT_STATUS, PLAYER_SHOT_HIT, loc_2009, loc_2029, loc_202a, ALIEN_EXPLOSION_ADDR, ALIEN_EXPLOSION_TIMER } from "./names.js";
@@ -42,7 +42,7 @@ export function resolvePlayerShotHit(m) {
   if (m.mem8[recPtr] === 0) return standDown();
   m.mem8[recPtr] = 0x00;
 
-  loadSpriteDescriptor(m, loc_0a5f(m, xBlock));
+  loadSpriteDescriptor(m, queueInvaderKillScore(m, xBlock));
   blitShiftedSprite(m);
   m.mem8[ALIEN_EXPLOSION_TIMER] = 0x10;
 }
