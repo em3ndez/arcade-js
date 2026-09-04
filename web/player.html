@@ -447,6 +447,9 @@ import { getCached, putCached, clearCached } from "./romstore.js";
     // The Pit hands one command byte to a second CPU we don't emulate, so its audio
     // is one recorded clip per command. Dispatch on the map's declared shape.
     if (SOUNDS?.model === "clips") return setupClipAudio(spec, SOUNDS, SamplePlayer);
+    // Space Invaders latches one discrete sound per OUT-port BIT (two ports); a sound fires on its bit's
+    // rising edge, the UFO rings while its bit is held. `model: "bitports"` picks that path.
+    if (SOUNDS?.model === "bitports") return setupBitPortAudio(spec, SOUNDS, SamplePlayer);
     if (!SOUNDS?.ports || !SOUNDS?.triggers || !SOUNDS?.latch) return;
 
     // A map entry may be given a sound only if it is a sound at all, is measured
@@ -792,6 +795,71 @@ import { getCached, putCached, clearCached } from "./romstore.js";
     const legend = document.querySelector(".legend");
     if (legend) { legend.append(" · "); legend.append(el("kbd", "M")); legend.append(" mute"); }
     armWorkerAudio(); // the worker may already be running; arm it now
+  }
+
+  // The OUT-port bit-edge clip model (Space Invaders). The board latches one discrete-analogue sound per
+  // bit across two ports; a sound fires on its bit's RISING edge (the game pulses one-shots; the UFO is
+  // held) and the recorded clip carries the full envelope. Clips are named by the map; a `none` bit is
+  // silent. `ev` is the flat [port,value,...] stream from the board's io.onSoundWrite.
+  async function setupBitPortAudio(spec, SOUNDS, SamplePlayer) {
+    if (!spec.samples) return;
+    const map = SOUNDS.sounds || {};
+    const player = new SamplePlayer({ masterGain: SOUNDS.masterGain ?? 0.7 });
+    const base = `../games/${gameId}/${spec.samples}`;
+    const loaded = new Map(); // "port:bit" -> { name, kind }
+    await Promise.all(Object.entries(map)
+      .filter(([, e]) => e && e.kind !== "none" && e.clip)
+      .map(async ([key, e]) => {
+        try {
+          const r = await fetch(`${base}/${encodeURIComponent(e.clip)}`);
+          if (!r.ok) return;
+          if (!(await player.loadSample(e.clip, await r.arrayBuffer()))) return;
+          loaded.set(key, { name: e.clip, kind: e.kind });
+        } catch { /* one missing clip must not cost us the others */ }
+      }));
+    if (!loaded.size) return; // no recordings -> stay silent, show no control
+
+    const prev = new Map();    // port -> last written value
+    const looping = new Set();  // "port:bit" currently looping
+    onSoundEvents = (ev) => {
+      for (let i = 0; i < ev.length; i += 2) {
+        const port = ev[i], val = ev[i + 1];
+        const was = prev.get(port) ?? 0;
+        prev.set(port, val);
+        const rose = val & ~was, fell = was & ~val;
+        for (let b = 0; b < 8; b++) {
+          const bit = 1 << b, key = `${port}:${b}`, entry = loaded.get(key);
+          if (!entry) continue;
+          if (entry.kind === "loop") {
+            if ((rose & bit) && !looping.has(key)) { player.play(entry.name, { loop: true }); looping.add(key); }
+            else if ((fell & bit) && looping.has(key)) { player.stop(entry.name); looping.delete(key); }
+          } else if (rose & bit) {
+            player.play(entry.name); // oneshot: one voice, plays the recorded envelope once
+          }
+        }
+      }
+    };
+
+    const muteBtn = document.getElementById("mute");
+    const paintMute = () => {
+      muteBtn.textContent = "";
+      muteBtn.append(player.muted ? "Sound: off " : "Sound: on ", el("span", "(M)", "#8a8aa5"));
+      muteBtn.classList.toggle("hot", !player.muted);
+      muteBtn.setAttribute("aria-pressed", String(player.muted));
+    };
+    audioGesture = () => { void player.init(); };
+    audioToggleMute = () => {
+      void player.init();
+      player.setMuted(!player.muted);
+      if (player.muted) { player.stopAll(); looping.clear(); }
+      paintMute();
+    };
+    muteBtn.onclick = audioToggleMute;
+    paintMute();
+    muteBtn.classList.remove("hide");
+    const legend = document.querySelector(".legend");
+    if (legend) { legend.append(" · "); legend.append(el("kbd", "M")); legend.append(" mute"); }
+    armWorkerAudio();
   }
   // Kicked off alongside ROM acquisition, never awaited by it: audio must not
   // be able to delay — or fail — the start of the game. The catch is the last

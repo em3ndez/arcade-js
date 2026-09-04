@@ -75,6 +75,13 @@ export default {
     },
   },
 
+  // Discrete-analogue audio (no sound CPU/ROM): `map` = the OUT-port bit-edge sound map (audio/sounds.js,
+  // model "bitports"); `samples` = the gitignored bring-your-own clip dir. No `synth` (recorded clips).
+  audio: {
+    map: "audio/sounds.js",
+    samples: "audio/samples",
+  },
+
   // ★ PROVISIONAL -- the boot-time entropy/seed cell to pin for a deterministic diff (find in §3).
   entropyPin: null,
 };

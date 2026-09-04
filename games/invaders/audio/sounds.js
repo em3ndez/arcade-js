@@ -23,3 +23,7 @@ export const SOUNDS = {
   "5:3": { name: "fleetMove4", kind: "oneshot", source: "discrete", clip: "out5_b3.wav", measured: "steady-tone" },
   "5:4": { name: "saucerHit", kind: "oneshot", source: "discrete", clip: "out5_b4.wav", measured: "steady-tone" },
 };
+
+// The web adapter (web/player.html setupBitPortAudio) reads this default: `model` selects the OUT-port
+// bit-edge path, `sounds` is the bit map above, `masterGain` the per-game SFX level.
+export default { model: "bitports", ports: PORTS, sounds: SOUNDS, masterGain: 0.7 };
