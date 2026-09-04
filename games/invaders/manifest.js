@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Grounded in mame-src/src/mame/midw8080/mw8080bw.cpp (ROM_START(invaders), invaders_state::invaders,
-// GAMEL macro) + mw8080bw.h. inputs.actions bits / convergence.* / entropyPin are PROVISIONAL until the
-// §2 empirical input-bit probe + §3 disasm + boot-first MAME measurement.
+// GAMEL macro) + mw8080bw.h. entropyPin is PROVISIONAL (the attract-fork open item).
 
 export default {
   id: "invaders",
@@ -34,8 +33,6 @@ export default {
   },
 
   // 8080 PORT space (IN/OUT), ACTIVE HIGH (pressed bit reads 1). Ports 0/1/2 read via io.portIn.
-  // ★ action bits PROVISIONAL (standard Space Invaders layout) -- confirm empirically per runbook §2
-  // (press each bit, diff vs a no-input baseline) before relying on them.
   inputs: {
     ports: { in0: 0, in1: 1, in2: 2 },
     // Bits + polarity pinned from INPUT_PORTS(invaders) in mw8080bw.cpp. coin is ACTIVE-LOW (see io.js);
@@ -58,6 +55,9 @@ export default {
       "2": "start2",
     },
   },
+
+  // Mechanics needing a poke-vs-MAME test (tools/mechanics_gate.py); collision/death are stage-2.
+  mechanics: ["extra_ship_award"],
 
   // The 8080 has NO NMI -- two RST interrupts/frame (RST1 0x08 mid, RST2 0x10 vblank); machine.fireNmi is
   // the ordered pair (§4 clock-free). Attract-validated: the two-RST cycle-free run reconverges to a MAME
