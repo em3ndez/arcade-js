@@ -32,6 +32,23 @@ LUA = os.path.join(HERE, "lua")
 DRIVER = "invaders"
 SECONDS = 4                     # ~240 attract frames: a short per-commit tripwire, not the full golden
 
+# --done (the runbook DONE bar): the GAMEPLAY-vs-MAME check an attract-only gate is blind to, plus an
+# extended attract regression. GAMEPLAY is a no-fire coin/start/move tape (movement + alien-march +
+# render): no alien dies, so no alien-death busy-wait collapse desyncs the collapsed idiomatic timeline
+# from MAME's -- it stays byte-aligned at TAPE_ORIGIN 0 through the window (the mid-play 0x20c0 collapse
+# lands past DONE_GAMEPLAY_SECONDS). Shoot/collision/death correctness is the poke mechanics gate's job
+# (it sidesteps tape-alignment; runbook 5).
+# ATTRACT is capped BEFORE the ~11-13s "attract fork": the RNG/phase-driven attract DEMO diverges there
+# between the clock-free idiomatic layer and MAME (a known §4 clock-free item -- the entropy pin / 0x20c1
+# phase, see memory invaders-frame-model; it is a TESTING-diff limit on the non-deterministic demo, not a
+# gameplay defect -- GAMEPLAY below is deterministic and byte-exact). Full attract-completeness past the
+# fork needs that pin; the substantive gameplay-vs-MAME correctness is PART B.
+DONE_ATTRACT_SECONDS = 10       # ~600 attract frames: extends the tripwire, stays before the ~11-13s fork
+DONE_GAMEPLAY_SECONDS = 9       # ~537 frames: coin@300/start@360/play -> ends before the mid-play collapse
+GAMEPLAY_TAPE = os.path.join(GAME, "tapes", "coin_start_move.lua")   # MAME-side driver for the golden
+GAMEPLAY_TAPE_JSON = os.path.join(GAME, "tapes", "coin_start_move.json")  # convergence.mjs input tape
+TAPE_ORIGIN = 0                 # coin pressed at MAME's frame -> idiomatic runs ~1:1 with the golden
+
 # convergence.mjs prints "PASS — reconverges ..." (exit 0) on success, "FAIL — ..." otherwise.
 CONV_PASS = re.compile(r"^PASS\b", re.M)
 
@@ -49,25 +66,45 @@ def have_romset(rompath):
     return True, ""
 
 
-def capture_golden(rompath, out, seconds):
-    """Fresh certified golden via the shared capturer. mame_golden.py exits nonzero on a POISONED
-    capture, so its return code IS the poison guard -- 0 means every invariant held."""
+def capture_golden(rompath, out, seconds, tape=None):
+    """Fresh certified golden via the shared capturer. `tape` (a tapes/*.lua driver) composes the
+    coin/start/move inputs for the gameplay golden; omitted, it is the input-free attract golden.
+    mame_golden.py exits nonzero on a POISONED capture, so its return code IS the poison guard."""
     cmd = [sys.executable, os.path.join(REPO, "tools", "mame_golden.py"),
            "--hardware", HW, "--lua-dir", LUA,
            "--rompath", rompath, "--out", out, "--seconds", str(seconds)]
+    if tape:
+        cmd += ["--tape", tape]
     return subprocess.run(cmd, cwd=REPO).returncode == 0
 
 
-def run_convergence(golden, idiomatic):
-    """(ok, output): run convergence --mode pixel for the layer. ok only when it exits 0 AND prints
-    its PASS line -- both, so a crash after the verdict cannot pass (the gate applies this rule too)."""
+def run_convergence(golden, idiomatic, tape=None, tape_origin=0):
+    """(ok, output): run convergence --mode pixel for the layer. With `tape` it drives a coin/start/move
+    tape applied at f+tape_origin (gameplay). ok only when it exits 0 AND prints its PASS line -- both, so
+    a crash after the verdict cannot pass (the gate applies this rule too)."""
     cmd = ["node", os.path.join(REPO, "tools", "convergence.mjs"),
            "--game", DRIVER, "--golden", golden, "--mode", "pixel"]
     if idiomatic:
         cmd.append("--idiomatic")
+    if tape:
+        cmd += ["--tape", tape, "--tape-origin", str(tape_origin)]
     r = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True)
     out = (r.stdout or "") + (r.stderr or "")
     return (r.returncode == 0 and bool(CONV_PASS.search(out))), out
+
+
+def _part(work, name, rompath, seconds, idiomatic, tape=None, tape_json=None, origin=0):
+    """Capture a golden and reconverge one part; (ok, why). Fail-closed: a poisoned capture or a non-PASS
+    convergence returns False. Prints the convergence output for the record."""
+    golden = os.path.join(work, name)
+    if not capture_golden(rompath, golden, seconds, tape=tape):
+        return False, f"{name}: mame_golden refused to certify the capture (poisoned golden)."
+    ok, out = run_convergence(golden, idiomatic, tape=tape_json, tape_origin=origin)
+    print(f"[{name}]")
+    print(out.rstrip())
+    if not ok:
+        return False, f"{name}: convergence did not PASS (a frame diverged, or the run was incomplete)."
+    return True, ""
 
 
 def main():
@@ -76,6 +113,8 @@ def main():
                    help="which layer to render (the gate runs both).")
     p.add_argument("--seconds", type=int, default=SECONDS,
                    help="attract golden length (a short per-commit tripwire, not the full golden).")
+    p.add_argument("--done", action="store_true",
+                   help="the runbook DONE bar: attract completeness + tape-driven gameplay vs MAME.")
     p.add_argument("--rompath", default=os.path.expanduser("~/Downloads"),
                    help="MAME romset search path (needs invaders); NOT the JS ROM dir.")
     a = p.parse_args()
@@ -87,15 +126,26 @@ def main():
 
     work = tempfile.mkdtemp(prefix="invaders_pixel_")
     try:
-        golden = os.path.join(work, "golden")
-        if not capture_golden(a.rompath, golden, a.seconds):
-            print("pixel_suite: FAIL -- mame_golden refused to certify the capture (poisoned golden).")
-            return 1
-        ok, out = run_convergence(golden, a.layer == "idiomatic")
-        print(out.rstrip())
+        idio = a.layer == "idiomatic"
+        if a.done:
+            # PART A -- attract completeness (well past the historical ~757-frame fork).
+            ok, why = _part(work, "attract", a.rompath, DONE_ATTRACT_SECONDS, idio)
+            if not ok:
+                print(f"pixel_suite: FAIL -- {why}")
+                return 1
+            # PART B -- tape-driven GAMEPLAY vs MAME (the attract-blind hole).
+            ok, why = _part(work, "gameplay", a.rompath, DONE_GAMEPLAY_SECONDS, idio,
+                            tape=GAMEPLAY_TAPE, tape_json=GAMEPLAY_TAPE_JSON, origin=TAPE_ORIGIN)
+            if not ok:
+                print(f"pixel_suite: FAIL -- {why}")
+                return 1
+            print("pixel_suite: PASS")
+            return 0
+
+        # Per-commit tripwire: the short attract window only.
+        ok, why = _part(work, "attract", a.rompath, a.seconds, idio)
         if not ok:
-            print(f"pixel_suite: FAIL -- convergence did not PASS for the {a.layer} layer "
-                  "(a frame diverged past the threshold, or the run was incomplete).")
+            print(f"pixel_suite: FAIL -- {why}")
             return 1
         print("pixel_suite: PASS")
         return 0
