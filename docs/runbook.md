@@ -16,11 +16,14 @@ MAME — with no decision kicked to a human.
 ## Standing discipline (applies to every step)
 
 **Keep going — don't stop.** Drive the work to done autonomously: a landed milestone or a green gate is
-never a stopping point, and neither is a decision you can make yourself. Pause only for a genuine
-human-only dependency (a by-ear audio sign-off, a hardware playthrough) or an explicit block — and even
-then keep driving every OTHER track. After a unit lands, launch the next in-order work the SAME turn;
+never a stopping point, and neither is any decision, validation, or sign-off: **there is no human in
+this loop.** The system makes every call itself — grounded in MAME, the truthful/conservative reading,
+act. Nothing is human-only: audio and the deepest gameplay test are validated against MAME BY THE SYSTEM
+(below), not a human ear or eye. The only legitimate wait is on the system's OWN in-flight work (a build,
+a review, a golden capture); resume the instant it reports and drive every OTHER track meanwhile. After a unit lands, launch the next in-order work the SAME turn;
 never end on a status-and-wait. Set the idle-timer as a keep-going backstop.
-Commit **locally**; a human gates the push. ROM is **never** committed
+Commit **and push** each unit; the system gates its own push (pre-push suite + independent review), no
+human in the loop. ROM is **never** committed
 (bring-your-own, sha256-verified). Stage **explicit paths** (never `git add -A`); python not sed for
 identifier renames; never `--no-verify` without per-commit approval. Work **in batches — ~15 agents ×
 3–4 routines each (≈50/batch); fan aggressively**, **one commit per batch, single-threaded** (don't
@@ -709,10 +712,12 @@ deliberate handling. These four are one problem and are decided together, once, 
   and poke tapes are each too short to catch time-accumulated bugs that surface only deep into a session.
   ⚠ A RAM diff is BLIND to render and audio: the RAM can be byte-correct while the screen or the sound is
   wrong, so RAM-clean is necessary, not sufficient.
-- **The deepest gameplay test is a real human PLAYTHROUGH — play it / WATCH it, do not just replay-diff
-  it.** Record a human playing a long session (`mame -record`, and pass NO `-input_directory` or it
-  silently no-ops). It drives the collision / scroll / audio paths the attract gates and RAM state-diffs
-  cannot see; in practice these bugs surface by EYE and EAR, never a diff (a tilemap scroll drawn with the
+- **The deepest gameplay test is a long DRIVEN playthrough validated against MAME on pixels AND audio —
+  not just a RAM replay-diff.** The system drives a long session itself (a scripted/agent input tape that
+  exercises the collision / scroll / audio paths the attract gates and RAM state-diffs cannot see), run in
+  BOTH the idiomatic engine and MAME (`mame -record`/`-playback`, and pass NO `-input_directory` or it
+  silently no-ops). What a human would catch by EYE and EAR the system catches by diffing the two render +
+  audio streams against MAME (the oracle), because these bugs never surface in RAM alone (a tilemap scroll drawn with the
   wrong sign renders every lane backwards yet stays RAM-clean and ~2-4% pixel-similar; a repeated effect
   that played only once because each hop re-writes the SAME sound-latch byte and the edge-deduped stream
   dropped the repeats).
@@ -836,15 +841,15 @@ distinct phase, gated on a flag, and runs in this order.
   real music is a **quiet AC background under loud SFX**. Capture beds at their **natural** per-context level
   (do not normalize them loud) so the port's music sits at the machine's music level, and raise the SFX to the
   machine's SFX level with a **per-game** gain — **never the shared clip-player master** (it would boost the
-  frozen clips games). **Validate** by (i) per-context AC level match vs MAME, (ii) the port-vs-MAME AC-envelope
-  **correlation flipping clearly positive** — the falsifiable "it tracks the original" test that a music-forward
-  or static-loop mix fails — and (iii) an ear A/B. Do **not** gate on tight sample-aligned spectral
+  frozen clips games). **Validate** autonomously against MAME by (i) per-context AC level match vs MAME and (ii) the port-vs-MAME
+  AC-envelope **correlation flipping clearly positive** — the falsifiable "it tracks the original" test that a
+  music-forward or static-loop mix fails (both are objective MAME comparisons, no human ear). Do **not** gate on tight sample-aligned spectral
   cross-correlation: a looped bed drifts phase and scores low even when it sounds right. A select-only control
   code sounds nothing in isolation — prove it is control, not a missing sound, with a **mutation control**
   (muting it in a gameplay run removes no audible energy). Honest residuals of record/replay music: frozen
   loops, a tempo staircase not a continuous ramp, no true voice-stealing. Beds are gitignored copyright with a
   recorder `--background` mode; the committed map keys beds by music-select code with start/stop + per-context
-  gains; the by-ear sign-off covers the music too.
+  gains; the audio sign-off covers the music too.
 - **ROM stays out:** bring-your-own — tests guard on ROM presence and skip when absent; a rom-guard clone
   verifies a no-ROM checkout still passes. The manifest lists part filenames + sha256; `make rom` assembles
   from the user's dump and verifies.
@@ -905,8 +910,8 @@ distinct phase, gated on a flag, and runs in this order.
   reviewer-rules **R40**). So a *landed* `DONE.md` is itself proof that an independent agent verified done;
   **no committed `DONE.md` ⇒ the game is not done.** Honest ceiling (already stated in `review_gate`'s own
   header): `--no-verify` bypasses any hook and an agent could forge a token — the same trust the whole repo
-  rests on for every commit; the human can re-run the audit at any time to check it.
-- **Audio-coverage gate.** Audio was the only ship step with no gate ("by ear, no oracle"), so it is the
+  rests on for every commit; the audit can be re-run at any time to check it.
+- **Audio-coverage gate.** Audio was the only ship step with no gate (historically "by ear"), so it is the
   step that silently gets skipped. `tools/audio_gate.py` is a completion gate requiring the committed
   artifacts a complete audio layer has (the model is dkong): `manifest.audio.map` + the map file; for a clips
   model, a `soundLatch` matching names.js `SOUND_CMD_LATCH`; and BOTH `test/audio-map.test.js` (coverage —
@@ -914,11 +919,14 @@ distinct phase, gated on a flag, and runs in this order.
   player). Those two committed tests do the enumeration/verification in the standing suite — the WAVs +
   index.json are gitignored copyright, so the gate cannot parse coverage itself; it guarantees the tests were
   not skipped. Because structure alone cannot tell a recorded+auditioned layer from an un-recorded stub,
-  GREEN also requires a committed by-ear sign-off `games/<game>/audio/RECORDING-SIGNOFF.md` (`rom_sha256`,
-  `clips`>0, `date`, `by_ear`) — evidence a human ran the recorder AND listened; legacy pre-runbook ports
-  are grandfathered. Fail-closed when the layer, a test, or the sign-off is absent. It **cannot** check correctness — no oracle —
-  so "does it sound right" stays a recorded by-ear sign-off, but a *missing or untested* audio layer becomes
-  impossible to ship.
+  GREEN also requires a committed audio sign-off `games/<game>/audio/RECORDING-SIGNOFF.md` (`rom_sha256`,
+  `clips`>0, `date`, `by_ear`) — an AUTONOMOUS attestation, not a human listen: the recorder
+  (`record_samples.py`) drives MAME and captures MAME's OWN audio per sound trigger, so the clips are
+  oracle-correct BY SOURCE (MAME is the reference — stronger than "sounds plausible"). The `by_ear` line
+  records that basis (MAME-sourced clips + the map/wiring coverage above); rom_sha + clip count come from
+  the recorder run. Legacy pre-runbook ports are grandfathered. Fail-closed when the layer, a test, or the
+  sign-off is absent. The gate cannot re-audition the gitignored WAVs, but because they are captured from
+  MAME their correctness is pinned at the source; a *missing or untested* audio layer becomes impossible to ship.
 
 ---
 
