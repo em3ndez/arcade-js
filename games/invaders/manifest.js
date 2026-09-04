@@ -16,7 +16,7 @@ export default {
   mameDriver: "mw8080bw.cpp",
 
   runtime: "idiomatic", // born-live on the generator engine; translated fallback until routines land
-  idiomaticComplete: false, // NEW game -- §3/§4 in progress
+  idiomaticComplete: true, // §3/§4 complete -- idiomatic_gate reports total 0
 
   rom: {
     zip: "invaders.zip",
