@@ -10,7 +10,7 @@ export const STACK_SCRATCH = { lo: 0x23e0, hi: 0x2400 };
 export const TIMER_RELOAD = 0x0600;  // [code]
 export const loc_1b25 = 0x1b25;
 export const ALIEN_SPRITE_TABLE = 0x1c00;  // [seen]
-export const ALIEN_SHOT_BLOWUP_SPRITE = 0x1cdc;  // [code]
+export const ALIEN_SHOT_BLOWUP_SPRITE = 0x1cdc;  // [seen]
 export const SAUCER_SCORE_KEY_TABLE = 0x1d4c;  // [seen]
 export const SAUCER_SCORE_SPRITE_TABLE = 0x1d50;  // [seen]
 export const loc_1da0 = 0x1da0;
@@ -40,21 +40,21 @@ export const SAUCER_SCORE_KEY_PTR = 0x208d;  // [code]
 export const SAUCER_TIMER = 0x2091;  // [seen]
 export const SOUND_PORT3_SHADOW = 0x2094;  // [seen]
 export const SOUND_PORT5_SHADOW = 0x2098;  // [seen]
-export const TASK_FLAGS = 0x20c1;  // [code]
+export const TASK_FLAGS = 0x20c1;  // [seen]
 export const loc_20e5 = 0x20e5;
 export const loc_20e7 = 0x20e7;
 export const GAME_ACTIVE = 0x20e9;  // [seen]
 export const CREDIT_COUNT = 0x20eb;  // [seen]
 export const HIGH_SCORE_OBJ_DESC = 0x20f4;  // [code]
-export const PLAYER1_OBJ_DESC = 0x20f8;  // [code]
-export const PLAYER2_OBJ_DESC = 0x20fc;  // [code]
+export const PLAYER1_OBJ_DESC = 0x20f8;  // [seen]
+export const PLAYER2_OBJ_DESC = 0x20fc;  // [seen]
 export const VIDEO_RAM_BASE = 0x2400;  // [seen]
 export const PLAYFIELD_VRAM_BASE = 0x2402;  // [seen]
 export const FLEET_LEFT_EDGE_VRAM = 0x2524;  // [code]
-export const CREDIT_COUNT_SCREEN_ADDR = 0x3c01;  // [code]
-export const FLEET_RIGHT_EDGE_VRAM = 0x3ea4;  // [code]
+export const CREDIT_COUNT_SCREEN_ADDR = 0x3c01;  // [seen]
+export const FLEET_RIGHT_EDGE_VRAM = 0x3ea4;  // [seen]
 export const VIDEO_RAM_END = 0x4000;  // [seen]
-export const DRAW_BLOCK_STRIDE = 0x02e0;  // [code]
+export const DRAW_BLOCK_STRIDE = 0x02e0;  // [seen]
 export const FLEET_RATE_THRESHOLDS = 0x1a11;  // [seen]
 export const FLEET_RATE_TABLE = 0x1a21;  // [seen]
 export const ALIEN_SHOT_RATE_TABLE = 0x1aa1;  // [seen]
@@ -68,7 +68,7 @@ export const PLAYER_SHOT_HIT = 0x2002;  // [seen]
 export const loc_2008 = 0x2008;
 export const ALIEN_DRAW_ADDR = 0x200b;  // [seen]
 export const FLEET_MOVE_DIR = 0x200d;  // [seen]
-export const GAME_OBJECT_TABLE = 0x2010;  // [code]
+export const GAME_OBJECT_TABLE = 0x2010;  // [seen]
 export const loc_2011 = 0x2011;
 export const loc_2015 = 0x2015;
 export const loc_201b = 0x201b;
@@ -103,7 +103,7 @@ export const SCORE_ADD_VALUE = 0x20f2;  // [seen]
 export const SCORE_ADD_VALUE_HI = 0x20f3;  // [seen]
 export const ALIEN_FIELD_P1 = 0x2100;  // [seen]
 export const ALIEN_FIELD_P2 = 0x2200;  // [seen]
-export const SHIELD_VRAM_BASE = 0x2806;  // [code]
+export const SHIELD_VRAM_BASE = 0x2806;  // [seen]
 
 export const COLLISION_FLAG = 0x2061;  // [seen]
 export const SAUCER_ACTIVE = 0x2084;  // [seen]
@@ -114,7 +114,7 @@ export const PLAYER2_SHIELD_BUFFER = 0x2242;  // [seen]
 export const loc_391c = 0x391c;
 export const TAITO_COPYRIGHT_TEXT = 0x0bf7;  // [seen]
 export const SCORE_HEADER_TEXT = 0x1ae4;  // [seen]
-export const RESERVE_SHIP_SPRITE = 0x1c60;  // [code]
+export const RESERVE_SHIP_SPRITE = 0x1c60;  // [seen]
 export const SAUCER_HIT_SPRITE = 0x1d7c;  // [seen]
 export const CREDIT_LABEL_TEXT = 0x1fa9;  // [seen]
 export const ALIEN_EXPLOSION_TIMER = 0x2003;  // [seen]
@@ -122,41 +122,41 @@ export const INPUT_CODE_STAGE_FLAG = 0x201e;  // [seen]
 export const ALIEN_EXPLOSION_ADDR = 0x2064;  // [seen]
 export const ALIEN_SHOT_SPRITE_PTR = 0x2079;  // [seen]
 export const ANIM_COORD_STEP_LO = 0x20c3;  // [seen]
-export const ANIM_SPRITE_COORD = 0x20c5;  // [code]
+export const ANIM_SPRITE_COORD = 0x20c5;  // [seen]
 export const ANIM_SPRITE_SRC = 0x20c7;  // [seen]
 export const ANIM_END_COORD = 0x20ca;  // [seen]
 export const ANIM_DONE_FLAG = 0x20cb;  // [seen]
 export const ANIM_BASE_SPRITE_SRC = 0x20cc;  // [seen]
 export const loc_21fb = 0x21fb;
 export const loc_22fb = 0x22fb;
-export const SCORE_HEADER_SCREEN_ADDR = 0x241e;  // [code]
-export const LIVES_DIGIT_SCREEN_ADDR = 0x2501;  // [code]
-export const RESERVE_SHIP_ICONS_SCREEN_ADDR = 0x2701;  // [code]
+export const SCORE_HEADER_SCREEN_ADDR = 0x241e;  // [seen]
+export const LIVES_DIGIT_SCREEN_ADDR = 0x2501;  // [seen]
+export const RESERVE_SHIP_ICONS_SCREEN_ADDR = 0x2701;  // [seen]
 export const TAITO_COPYRIGHT_SCREEN_ADDR = 0x2e1b;  // [code]
-export const CREDIT_LABEL_SCREEN_ADDR = 0x3501;  // [code]
+export const CREDIT_LABEL_SCREEN_ADDR = 0x3501;  // [seen]
 
 // ── §4 clock-free spine cells (see names-debt.txt) ────────────────────────────────────────────────
 export const FRAME_DELAY_TIMER = 0x20c0;      // [seen] vblank-decremented busy-wait counter (loc_0010 `dcr m`)
 export const ATTRACT_ANIM_ACK = 0x2055;       // [code] ISR anim-step handshake bit0 (loc_189e set/clear spin)
-export const TYPE_PACE_COUNT = 0x206c;        // [code] per-record type-pace byte (loc_184c/loc_1815)
-export const SCREEN_MODE_TOGGLE = 0x20ec;     // [code] attract-screen alternator, flipped 0/1 each loc_0b89 pass
+export const TYPE_PACE_COUNT = 0x206c;        // [seen] per-record type-pace byte (loc_184c/loc_1815)
+export const SCREEN_MODE_TOGGLE = 0x20ec;     // [seen] attract-screen alternator, flipped 0/1 each loc_0b89 pass
 export const loc_2050 = 0x2050;               // anim descriptor scratch (loc_189e blockCopy dst)
 export const loc_2080 = 0x2080;               // loc_189e seeds =2 (role ungrounded)
 export const loc_21ff = 0x21ff;               // starting-ships latch (loc_0aea)
 
 // ── vblank/mid ISR bodies (idiomaticVblankNmi / idiomaticMidNmi) cells + frozen seam-fallback entries ──
-export const COIN_INPUT_LATCH = 0x20ea;       // [code] coin-switch edge latch: armed while IN1 b0 idle, banks one CREDIT_COUNT on the press edge (loc_0010)
-export const CREDIT_SCREEN_SHOWN = 0x2093;    // [code] attract credit-screen-shown latch (0 = not yet shown)
+export const COIN_INPUT_LATCH = 0x20ea;       // [seen] coin-switch edge latch: armed while IN1 b0 idle, banks one CREDIT_COUNT on the press edge (loc_0010)
+export const CREDIT_SCREEN_SHOWN = 0x2093;    // [seen] attract credit-screen-shown latch (0 = not yet shown)
 export const TILT_RESET_ACTIVE = 0x209a;      // [code] tilt/panic reset-in-progress guard (set while the warm restart runs, cleared at its end)
 export const loc_1cbc = 0x1cbc;               // tilt banner sprite-id source (typed by the tilt reset)
 export const loc_3016 = 0x3016;               // tilt banner screen destination
 export const OBJECT_TABLE_MID = 0x2020;       // [code] mid-screen object/timer record-table base (loc_008c passes to the walker; vblank uses GAME_OBJECT_TABLE 0x2010)
-export const OBJECT_DISPATCH_VBLANK = 0x0248; // [code] vblank object-dispatch base-seat (loc_0248); idiomatic module direct-called
-export const OBJECT_WALKER = 0x024b;          // [code] 16-byte object/timer record walker (loc_024b); idiomatic module direct-called
+export const OBJECT_DISPATCH_VBLANK = 0x0248; // [seen] vblank object-dispatch base-seat (loc_0248); idiomatic module direct-called
+export const OBJECT_WALKER = 0x024b;          // [seen] 16-byte object/timer record walker (loc_024b); idiomatic module direct-called
 // Former direct-JS ISR-body seam entries -- all now lifted to idiomatic modules; kept as address names:
 export const TILT_HANDLER = 0x17cd;           // per-frame tilt/panic check (now lifted as loc_17cd)
 export const MID_DRAW_SCAN = 0x0141;          // mid-screen draw scan (now lifted as loc_0141)
-export const ATTRACT_CREDIT_SCREEN = 0x0765;  // [code] credit-inserted/press-start screen (now lifted as creditScreen; kept as an address name)
+export const ATTRACT_CREDIT_SCREEN = 0x0765;  // [seen] credit-inserted/press-start screen (now lifted as creditScreen; kept as an address name)
 export const ATTRACT_TASK_DISPATCH = 0x0abf;  // attract task-flag dispatch sub-arm (loc_0010 0x0057 call)
 // ROM/screen address literals passed as draw/script args by the spine (placeholders, see names-debt.txt):
 export const loc_3017 = 0x3017;
@@ -198,11 +198,11 @@ export const loc_22ff = 0x22ff;               // player-2 starting-ships latch (
 // per-record blit template in ROM 0x1b.. are named here as placeholders (understand half renames).
 // The five object-record handler ROM entry points the walker (loc_024b) computed-dispatches to: each
 // record carries a fixed handler target at rec+3/rec+4 that the walker reads and calls directly.
-export const PLAYER_SHIP_HANDLER_ADDR = 0x028e;       // [code] record-0 player-ship handler (loc_028e): moves the ship X by input (loc_201b), runs the ship's death/explosion animation, and on drain during play consumes a life + arms the next main-loop flow
-export const PLAYER_SHOT_HANDLER_ADDR = 0x03bb;       // [code] record-1 player-shot handler (loc_03bb)
-export const ALIEN_SHOT_SLOT2_HANDLER_ADDR = 0x0476;  // [code] record-2 alien-shot handler (loc_0476): countdown-gated, no column-cursor (specific alien-shot type pending §5 grounding)
-export const ALIEN_SHOT_SLOT3_HANDLER_ADDR = 0x04b6;  // [code] record-3 alien-shot handler (loc_04b6): column-cursor managed, clamps at 16, self-disables at the last alien (specific alien-shot type pending §5 grounding)
-export const SAUCER_HANDLER_ADDR = 0x0682;            // [code] record-4 mystery-ship/saucer handler (loc_0682): delegates to loc_050f (a further alien-shot stepper) in the non-saucer sub-path
+export const PLAYER_SHIP_HANDLER_ADDR = 0x028e;       // [seen] record-0 player-ship handler (loc_028e): moves the ship X by input (loc_201b), runs the ship's death/explosion animation, and on drain during play consumes a life + arms the next main-loop flow
+export const PLAYER_SHOT_HANDLER_ADDR = 0x03bb;       // [seen] record-1 player-shot handler (loc_03bb)
+export const ALIEN_SHOT_SLOT2_HANDLER_ADDR = 0x0476;  // [seen] record-2 alien-shot handler (loc_0476): countdown-gated, no column-cursor (specific alien-shot type pending §5 grounding)
+export const ALIEN_SHOT_SLOT3_HANDLER_ADDR = 0x04b6;  // [seen] record-3 alien-shot handler (loc_04b6): column-cursor managed, clamps at 16, self-disables at the last alien (specific alien-shot type pending §5 grounding)
+export const SAUCER_HANDLER_ADDR = 0x0682;            // [seen] record-4 mystery-ship/saucer handler (loc_0682): delegates to loc_050f (a further alien-shot stepper) in the non-saucer sub-path
 export const loc_1b30 = 0x1b30;
 export const loc_1b32 = 0x1b32;
 export const loc_1b40 = 0x1b40;
