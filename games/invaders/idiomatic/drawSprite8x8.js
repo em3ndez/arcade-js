@@ -3,9 +3,35 @@ import { u16 } from "../../../core/int.js";
 import { loc_1e00 } from "./names.js";
 import { drawSpriteColumn } from "./drawSpriteColumn.js";
 
-// Point DE at sprite A's 8-byte source, latch its shift count, and blit it down 8 columns. Live-out: HL.
+/**
+ * drawSprite8x8 — plot one 8x8 glyph identified by a sprite id.
+ *
+ * WHAT IT IS
+ *   The glyph plotter that underlies all of Space Invaders' fixed text and digits. Given a sprite id in
+ *   A, it resolves that id to its eight source bytes, kicks the hardware watchdog (output port 0x06), and blits
+ *   an 8-row (byte-aligned) column into video RAM at HL.
+ *
+ * ROLE IN THE MACHINE
+ *   Sprite bitmaps sit in an 8-byte-per-entry table based at loc_1e00 (0x1e00), so id A's source is at
+ *   loc_1e00 + 8*A. Writing A to output port 0x06 kicks the mw8080bw watchdog (any write resets it); A
+ *   lands there only because it still holds the sprite id — port 0x06 is not a shifter control (the
+ *   shifter's alignment offset goes to port 0x02, via seatBlitPosition). The actual pixels go down
+ *   through drawSpriteColumn (0x1439) as one byte wide by eight rows
+ *   (stride 0x20 per row), and that routine leaves HL advanced 0x20*8 down the screen — one glyph cell —
+ *   which is what lets drawSpriteList / drawThreeSprites string glyphs into a line by re-calling this per
+ *   id. Callers include the text/label draws and drawDigit (0x09c5).
+ *
+ * ROM 0x08ff-0x0912.  Grounding: [seen].
+ *
+ * LIVE-OUT: HL (advanced one glyph cell down the screen by the drawSpriteColumn tail).
+ */
 export function drawSprite8x8(m, a = m.regs.a, hl = m.regs.hl) {
+  // Resolve sprite id A to its 8-byte source: the glyph table is 8 bytes per entry based at loc_1e00.
   const src = u16(loc_1e00 + 8 * a);
+
+  // Kick the hardware watchdog on output port 0x06 (any write resets it; the value written, the sprite id still in A, is immaterial).
   m.io.portOut(0x06, a);
+
+  // Blit the 8 source bytes as an 8-row column into video RAM at HL.
   return drawSpriteColumn(m, hl, src, 8);
 }
