@@ -151,12 +151,12 @@ export const TILT_RESET_ACTIVE = 0x209a;      // [seen] tilt/panic reset-in-prog
 export const loc_1cbc = 0x1cbc;               // tilt banner sprite-id source (typed by the tilt reset)
 export const loc_3016 = 0x3016;               // tilt banner screen destination
 export const OBJECT_TABLE_MID = 0x2020;       // [seen] mid-screen object/timer record-table base (loc_008c passes to the walker; vblank uses GAME_OBJECT_TABLE 0x2010)
-export const OBJECT_DISPATCH_VBLANK = 0x0248; // [seen] vblank object-dispatch base-seat (loc_0248); idiomatic module direct-called
-export const OBJECT_WALKER = 0x024b;          // [seen] 16-byte object/timer record walker (loc_024b); idiomatic module direct-called
+export const OBJECT_DISPATCH_VBLANK = 0x0248; // [seen] vblank object-dispatch base-seat (loc_0248)
+export const OBJECT_WALKER = 0x024b;          // [seen] 16-byte object/timer record walker (loc_024b)
 // Former direct-JS ISR-body seam entries -- all now lifted to idiomatic modules; kept as address names:
-export const TILT_HANDLER = 0x17cd;           // per-frame tilt/panic check (now lifted as loc_17cd)
-export const MID_DRAW_SCAN = 0x0141;          // mid-screen draw scan (now lifted as loc_0141)
-export const ATTRACT_CREDIT_SCREEN = 0x0765;  // [seen] credit-inserted/press-start screen (now lifted as creditScreen; kept as an address name)
+export const TILT_HANDLER = 0x17cd;           // per-frame tilt/panic check
+export const MID_DRAW_SCAN = 0x0141;          // mid-screen draw scan
+export const ATTRACT_CREDIT_SCREEN = 0x0765;  // [seen] credit-inserted/press-start screen
 export const ATTRACT_TASK_DISPATCH = 0x0abf;  // attract task-flag dispatch sub-arm (loc_0010 0x0057 call)
 // ROM/screen address literals passed as draw/script args by the spine (placeholders, see names-debt.txt):
 export const loc_3017 = 0x3017;
@@ -247,22 +247,22 @@ export const loc_2d18 = 0x2d18;               // game-over field-clear text scre
 export const loc_1da2 = 0x1da2;               // player-index-to-field-page lookup table
 export const ROUTINES = {
   // ── §4 clock-free spine: boot chain, attract cycle, and the vblank busy-wait delays ──────────────
-  0x0000: { name: "loc_0000", role: "[seen] reset vector: tail-hands to boot init (loc_18d4), passing through the attract-loop generator the engine drives", cert: "seen" },
-  0x18d4: { name: "loc_18d4", role: "[seen] boot init: seed work RAM (initWorkRam) + score panel (redrawScorePanel), then return the loc_18df attract-loop generator (SP seat dropped; harness seats SP for the NMI push)", cert: "seen" },
-  0x18df: { name: "loc_18df", role: "[seen] attract-cycle join: set loc_20cf=8 then yield* into loc_0aea; reached from boot fall-through and loc_0b89 loop-back", cert: "seen" },
-  0x0aea: { name: "loc_0aea", role: "[seen] attract round setup + free-run demo loop: silence sound, ei, type the attract screens (delays yield), seed the field, then per-frame advanceRoundState (advances ATTRACT_DEMO_PTR 0x20ed) until loc_2015 leaves 0xff; falls into loc_0b89", cert: "seen" },
+  0x0000: { name: "loc_0000", role: "[seen] reset vector: jumps to boot init (loc_18d4), which enters the attract loop", cert: "seen" },
+  0x18d4: { name: "loc_18d4", role: "[seen] boot init: seed work RAM (initWorkRam) and the score panel (redrawScorePanel), then enter the attract loop at loc_18df", cert: "seen" },
+  0x18df: { name: "loc_18df", role: "[seen] attract-cycle join: set loc_20cf=8 then continue into loc_0aea; reached from boot init and the loc_0b89 loop-back", cert: "seen" },
+  0x0aea: { name: "loc_0aea", role: "[seen] attract round setup + free-run demo loop: silence sound, ei, type the attract screens, seed the field, then per-frame advanceRoundState (advances ATTRACT_DEMO_PTR 0x20ed) until loc_2015 leaves 0xff; falls into loc_0b89", cert: "seen" },
   0x0b89: { name: "loc_0b89", role: "[seen] attract round teardown: credit/high-score panel + typed script + ISR-handshaked reveal (loc_189e), flip SCREEN_MODE_TOGGLE 0x20ec, tail-jmp loc_18df", cert: "seen" },
-  0x0ad7: { name: "loc_0ad7", role: "[seen] vblank busy-wait: seed FRAME_DELAY_TIMER 0x20c0 = a and yield until the ISR drains it to 0", cert: "seen" },
+  0x0ad7: { name: "loc_0ad7", role: "[seen] vblank busy-wait: seed FRAME_DELAY_TIMER 0x20c0 = a and wait until the vblank ISR drains it to 0", cert: "seen" },
   0x0ab1: { name: "loc_0ab1", role: "[seen] 0x40-frame attract delay -> loc_0ad7", cert: "seen" },
   0x0ab6: { name: "loc_0ab6", role: "[seen] 0x80-frame attract delay -> loc_0ad7", cert: "seen" },
   0x0acf: { name: "loc_0acf", role: "[seen] type the 0x0f-byte block to loc_2b14 using the caller's source de -> loc_0a93", cert: "seen" },
-  0x0a93: { name: "loc_0a93", role: "[seen] type c sprite bytes from de onto hl, pacing 7 vblank frames per byte on FRAME_DELAY_TIMER (each pace step yields)", cert: "seen" },
-  0x0a80: { name: "loc_0a80", role: "[seen] arm ISR anim task (TASK_FLAGS 0x20c1=2) and yield until ANIM_DONE_FLAG 0x20cb raised, then clear the task", cert: "seen" },
+  0x0a93: { name: "loc_0a93", role: "[seen] type c sprite bytes from de onto hl, pacing 7 vblank frames per byte on FRAME_DELAY_TIMER", cert: "seen" },
+  0x0a80: { name: "loc_0a80", role: "[seen] arm ISR anim task (TASK_FLAGS 0x20c1=2) and wait until ANIM_DONE_FLAG 0x20cb is raised, then clear the task", cert: "seen" },
   0x1815: { name: "loc_1815", role: "[seen] draw the attract score-advance table: header string + loc_1dbe column script (no delay), then tail loc_1837 (typed loc_1dcf script)", cert: "seen" },
   0x1837: { name: "loc_1837", role: "[seen] point at the loc_1dcf script and fall into loc_183a", cert: "seen" },
   0x183a: { name: "loc_183a", role: "[seen] walk a draw script (fetchNextDrawRecord + loc_184c per record) until the 0xff terminator", cert: "seen" },
   0x184c: { name: "loc_184c", role: "[seen] type one script record: c = TYPE_PACE_COUNT 0x206c, de/hl from the fetched record -> loc_0a93", cert: "seen" },
-  0x189e: { name: "loc_189e", role: "[seen] ISR-handshaked attract animation: arm TASK_FLAGS 0x20c1=4, spin ATTRACT_ANIM_ACK 0x2055 bit0 set-then-clear, draw, tail loc_0ab6 (the ISR anim it arms reaches the not-yet-translated object handler 0x050e)", cert: "seen" },
+  0x189e: { name: "loc_189e", role: "[seen] ISR-handshaked attract animation: arm TASK_FLAGS 0x20c1=4, spin ATTRACT_ANIM_ACK 0x2055 bit0 set-then-clear, draw, tail loc_0ab6 (the ISR anim it arms drives object handler 0x050e)", cert: "seen" },
   0x00b1: { name: "loadReferenceAlienState", role: "load the active player's saved field record: mirror the reference-alien coord word to loc_2009/ALIEN_DRAW_ADDR, derive the count at loc_2008, set FLEET_MOVE_DIR on the 0xfe edge sentinel", cert: "seen" },
   0x0100: { name: "drawPendingAlien", role: "draw the pending marching alien: bail to tickAlienExplosionDespawn when PLAYER_SHOT_HIT is set; else if the alien at (ACTIVE_PLAYER_PAGE:ALIEN_DRAW_INDEX) is live, build its sprite from ALIEN_SPRITE_TABLE (id bit0-cleared, rotate-left-3; +0x30 alternate frame via selectAlternateSpriteFrame when loc_2005 is set) and blitShiftedSprite 16 rows at ALIEN_DRAW_ADDR; clears ALIEN_DRAW_PENDING on every non-bail path", cert: "seen" },
   0x01c0: { name: "markAllAliensAliveP1", role: "seat the player-1 alien-status base ALIEN_FIELD_P1 then markAllAliensAlive (fill 0x37 cells with 0x01)", cert: "seen" },
@@ -271,7 +271,7 @@ export const ROUTINES = {
   0x01f8: { name: "initShieldBuffers", role: "replicate the 0x2c-byte shield template loc_1d20 into four consecutive shield buffers from HL; live-out HL", cert: "seen" },
   0x021e: { name: "drawOrSaveShields", role: "shield save/restore: store SHIELD_SAVE_RESTORE_MODE, then four 22x2 blocks from SHIELD_VRAM_BASE (stride DRAW_BLOCK_STRIDE) -- captureScreenRect when set, orBlitBitmap when clear", cert: "seen" },
   0x0430: { name: "loadPlayerShotDescriptor", role: "load the player-shot 5-byte descriptor at PLAYER_SHOT_DESC via loadSpriteDescriptor; HL := its screen address", cert: "seen" },
-  0x050f: { name: "loc_050f", role: "[seen] object step handler (tail-target of the loc_0682 saucer handler): prime the record's strip (copyRecordToWorkBuffer), stage the two per-column rate cells, step the alien shot (loc_0563), clamp the firing column at 21, then either restore the strip or blit the record template and stow the column; a clean leaf, seam-placeable, reached via m.call from the frozen loc_0682", cert: "seen" },
+  0x050f: { name: "loc_050f", role: "[seen] object step handler called by the saucer handler loc_0682: prime the record's strip (copyRecordToWorkBuffer), stage the two per-column rate cells, step the alien shot (loc_0563), clamp the firing column at 21, then either restore the strip or blit the record template and stow the column", cert: "seen" },
   0x0550: { name: "copyRecordToWorkBuffer", role: "stash A -> loc_207f, then blockCopy 0x0b bytes (DE)->work buffer loc_2073 (prime an object strip)", cert: "seen" },
   0x055b: { name: "copyWorkBufferToRecord", role: "blockCopy 0x0b bytes work buffer loc_2073 ->(HL) (restore the object strip; twin of copyRecordToWorkBuffer)", cert: "seen" },
   0x0563: { name: "loc_0563", role: "alien-shot handler -- step the active alien shot (draw-phase gate, blowup animation, descend one step, redraw with collision, retire across the shield/ground bands) or, when idle, spawn a new one from a firing column (task-flag/rate-timer gated, column picked via the cursor list or a Y-scale)", cert: "seen" },
@@ -287,7 +287,7 @@ export const ROUTINES = {
   0x0935: { name: "awardExtraShip", role: "award the next reserve ship once the active player's tally passes the port-2-selected threshold: bump the stored ship count, redraw the reserve-ship column (RESERVE_SHIP_SPRITE) and lives digit, clear the award flag, seat SFX_OFF_TIMER=0xff, and cue the extra-ship sound (tail startSound 0x10)", cert: "seen" },
   0x0988: { name: "applyPendingScoreAdd", role: "when SCORE_ADD_PENDING is set, clear it and BCD-add the two-byte SCORE_ADD_VALUE into the active player's record accumulator (base from currentPlayerRecordPtr, 8080 DAA decimal carry), then redraw the total as four BCD glyphs at the record's screen address (tail drawBcdWord); a clear flag is a no-op", cert: "seen" },
   0x09ad: { name: "drawBcdWord", role: "draw the 16-bit value in DE as four BCD digit glyphs -- high byte D then low byte E -- via drawBcdByte; live-out HL (advanced two glyph-pairs), DE preserved", cert: "seen" },
-  0x0a59: { name: "loc_0a59", role: "poll [loc_2015] against 0xff and report equality in the Z flag (set via the return-assignment bridge for the still-frozen callers loc_0a3c/loc_081f/loc_0aea/loc_16e6, plus a boolean for idiomatic callers); reads no register, writes no memory", cert: "seen" },
+  0x0a59: { name: "loc_0a59", role: "poll [loc_2015] against 0xff and report equality in the Z flag; reads no register, writes no memory", cert: "seen" },
   0x0a5f: { name: "loc_0a5f", role: "if [GAME_IN_PROGRESS]!=0: startSound(0x08), index the 3-entry table via loc_097c(B), stamp SCORE_ADD_VALUE=table byte / SCORE_ADD_PENDING=0x01 /", cert: "seen" },
   0x0ae2: { name: "loadDrawSequenceBlock", role: "blockCopy the 12-byte draw/animation sequence from (DE) into loc_20c2", cert: "seen" },
   0x0bf1: { name: "loc_0bf1", role: "pre-round redraw trampoline: run loc_190a (fleet edge/direction update) then tail into drawTaitoCopyright", cert: "seen" },
@@ -311,9 +311,9 @@ export const ROUTINES = {
   0x1925: { name: "drawPlayer1Score", role: "seat the player-1 score record pointer PLAYER1_OBJ_DESC, then drawScoreRecord (tail) -- draw the P1 BCD total as four glyphs at the record's screen address; RAM-only live-out", cert: "seen" },
   0x192b: { name: "drawPlayer2Score", role: "seat the player-2 score record pointer PLAYER2_OBJ_DESC, then drawScoreRecord (tail) -- draw the P2 BCD total; RAM-only live-out", cert: "seen" },
   0x1931: { name: "drawScoreRecord", role: "shared score-record draw: unpack a four-byte record at HL (a BCD value word then its two-byte screen address) and draw the value as four BCD glyphs there (tail drawBcdWord); reached for P1 (0x20f8), P2 (0x20fc) and the high score (0x20f4)", cert: "seen" },
-  0x1947: { name: "drawCreditCount", role: "draw the BCD credit tally CREDIT_COUNT as two decimal glyphs at CREDIT_COUNT_SCREEN_ADDR via drawBcdByte (tail dissolved); live-out HL", cert: "seen" },
+  0x1947: { name: "drawCreditCount", role: "draw the BCD credit tally CREDIT_COUNT as two decimal glyphs at CREDIT_COUNT_SCREEN_ADDR via drawBcdByte; live-out HL", cert: "seen" },
   0x1950: { name: "drawHighScore", role: "seat the high-score record pointer HIGH_SCORE_OBJ_DESC, then drawScoreRecord (tail) -- draw the high-score BCD total; also called by loc_1671 to repaint after a new high; RAM-only live-out", cert: "seen" },
-  0x1956: { name: "redrawScorePanel", role: "boot/attract score-panel repaint: clearScreen, then redraw the score header (drawScoreHeader), player-1/2 scores (drawPlayer1Score/drawPlayer2Score), the high score (drawHighScore), the CREDIT label (drawCreditLabel), and the credit tally (tail drawCreditCount); all seven ROM calls dissolved to direct idiomatic calls; RAM-only live-out", cert: "seen" },
+  0x1956: { name: "redrawScorePanel", role: "boot/attract score-panel repaint: clearScreen, then redraw the score header (drawScoreHeader), player-1/2 scores (drawPlayer1Score/drawPlayer2Score), the high score (drawHighScore), the CREDIT label (drawCreditLabel), and the credit tally (drawCreditCount); RAM-only live-out", cert: "seen" },
   0x1979: { name: "drawCreditReadout", role: "boot/attract credit readout: clearGameActive, then repaint the credit panel -- drawCreditCount (the BCD credit tally) then drawCreditLabel (the CREDIT label, tail)", cert: "seen" },
   0x1988: { name: "loc_1988", role: "clear the play-field framebuffer", cert: "seen" },
   0x19d1: { name: "setGameActive", role: "store 1 -> GAME_ACTIVE (shared tail loc_19d3); mark the game active", cert: "seen" },
