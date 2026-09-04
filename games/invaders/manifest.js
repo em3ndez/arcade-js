@@ -35,8 +35,7 @@ export default {
   // 8080 PORT space (IN/OUT), ACTIVE HIGH (pressed bit reads 1). Ports 0/1/2 read via io.portIn.
   inputs: {
     ports: { in0: 0, in1: 1, in2: 2 },
-    // Bits + polarity pinned from INPUT_PORTS(invaders) in mw8080bw.cpp. coin is ACTIVE-LOW (see io.js);
-    // start/controls active-high. Verified by boot+gameplay running gap-free through the emit engine.
+    // Bits/polarity from INPUT_PORTS(invaders) in mw8080bw.cpp: coin ACTIVE-LOW (see io.js), rest active-high; verified by gap-free boot+gameplay.
     actions: {
       coin:   { port: 1, bit: 0x01, activeLow: true }, // IPT_COIN1
       start2: { port: 1, bit: 0x02 }, // IPT_START2
@@ -46,13 +45,13 @@ export default {
       right:  { port: 1, bit: 0x40 }, // P1 right
       // P2 controls mirror onto IN2 control bits; DIPs (lives/bonus/coinage) also on IN2.
     },
+    // KeyboardEvent.code values (web/player.html matches on e.code) -- NOT e.key characters.
     keys: {
-      ArrowLeft: "left",
-      ArrowRight: "right",
-      " ": "fire",
-      "5": "coin",
-      "1": "start1",
-      "2": "start2",
+      ArrowLeft: "left", KeyA: "left",
+      ArrowRight: "right", KeyD: "right",
+      Space: "fire",
+      Digit5: "coin", KeyC: "coin",
+      Digit1: "start1", Digit2: "start2",
     },
   },
 

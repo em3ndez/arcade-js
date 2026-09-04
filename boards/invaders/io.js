@@ -117,3 +117,10 @@ export class Io {
     this.inputAssert = other.inputAssert;
   }
 }
+
+// The shared web worker (web/worker.js) constructs one board `Inputs` per Machine and passes it as
+// opts.inputs. On Space Invaders the per-frame input path is the Io's `inputAssert` instead: the worker's
+// readInputsInto writes `machine.io.inputAssert = {0:IN0, 1:IN1, 2:IN2}` each frame, which readIn0/1/2 fold
+// by polarity (see Io above). So this board holds no separate input state; the class exists to satisfy the
+// worker's board contract (`new Inputs()`). The ROM reads inputs on the three 8080 IN ports 0/1/2.
+export class Inputs {}
