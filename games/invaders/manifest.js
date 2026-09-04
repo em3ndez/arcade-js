@@ -56,8 +56,9 @@ export default {
     },
   },
 
-  // Mechanics needing a poke-vs-MAME test (tools/mechanics_gate.py); collision/death are stage-2.
-  mechanics: ["extra_ship_award"],
+  // Mechanics needing a poke-vs-MAME test (tools/mechanics_gate.py). Each is poked identically into the
+  // idiomatic JS engine and MAME, and its own write-set asserted to agree (tools/mechanics_suite.py).
+  mechanics: ["extra_ship_award", "player_shot_hits_alien", "player_death"],
 
   // The 8080 has NO NMI -- two RST interrupts/frame (RST1 0x08 mid, RST2 0x10 vblank); machine.fireNmi is
   // the ordered pair (§4 clock-free). Attract-validated: the two-RST cycle-free run reconverges to a MAME
