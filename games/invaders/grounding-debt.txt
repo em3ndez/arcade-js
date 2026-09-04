@@ -1,0 +1,17 @@
+# grounding-debt.txt -- invaders' honestly-IRREDUCIBLE ungrounded items.
+#
+# Stage-B grounding lifts a names.js [code]/cert:"code" proposal to [seen]/cert:"seen" only on a MAME
+# observation. A few roles can never terminate in a write-tap [seen] on a good ROM: a routine with no OWN
+# memory write (a register-stager / pure dispatcher -- grounding_evidence.mjs: "a pure dispatcher that
+# writes only its return-stack scratch cannot be [seen] from its own writes"), or a cell whose ONLY writer
+# is the shared block-copy primitive (a bulk-copy PC grounding_evidence.mjs excludes as a copied byte, the
+# write-side analogue of the ROM-checksum sweep read-grounding excludes). The runbook accounts for these
+# "by a reasoned note" rather than manufacturing a false [seen] from a narrowed tap.
+#
+# Each line accounts for ONE such address:   0xADDR   <why it can never be write-tap-grounded on a good ROM>
+# done_gate check_grounding SUBTRACTS these from the ungrounded count, and stays honest: an entry with no
+# reason, or one whose address is NOT actually ungrounded in names.js, BLOCKS the gate. Each entry is
+# independently reviewed as genuinely irreducible (proposer != confirmer) -- see reviewer-rules R39.
+
+0x0878  Register-stager, NO own memory write: loc_0878 (0x0878-0x088d) only READS (lda 0x2008, lhld 0x2009, lda ACTIVE_PLAYER_PAGE 0x2067) and stages B/DE/HL; grounding_evidence.mjs cannot [seen] a routine from its own write-set when the set is empty. Effect grounds through its consumer newRoundFlow (call 0x0878 at 0x02f8), whose stows carry the staged values -- unattributable to loc_0878's PC range per the write-tap harness.
+0x2055  Cell has NO role-specific writer: MAME per-write trace shows all 632 writes come from the shared blockCopy primitive loc_1a32 (write pc 0x1a34), a bulk-copy PC (copies 432 distinct cells / 74 values across a run) dispatched by object handlers (caller 0x026f) rendering the anim descriptor block 0x2050-0x205f. The observed bit0 handshake TOGGLE (0x80<->0x81<->0x00, matching runHandshakedAttractAnim's bit0 spin at 0x18b8/0x18c0) rides inside that copied descriptor, so grounding_evidence.mjs excludes it as a copied byte (bulk-copy PC), leaving no own role write to ground [seen]. 0x2055 is never the target of a direct sta anywhere in ROM.

@@ -137,7 +137,8 @@ export const CREDIT_LABEL_SCREEN_ADDR = 0x3501;  // [seen]
 
 // ── §4 clock-free spine cells (see names-debt.txt) ────────────────────────────────────────────────
 export const FRAME_DELAY_TIMER = 0x20c0;      // [seen] vblank-decremented busy-wait counter (loc_0010 `dcr m`)
-export const ATTRACT_ANIM_ACK = 0x2055;       // [code] ISR anim-step handshake bit0 (runHandshakedAttractAnim set/clear spin)
+/** [code] ISR anim-step handshake bit0 (runHandshakedAttractAnim spins on it) -- a descriptor-mirror byte maintained by the shared blockCopy loc_1a32; MAME shows bit0 toggling 0->1->0 but there is no own role-write to ground it [seen], see grounding-debt.txt */
+export const ATTRACT_ANIM_ACK = 0x2055;
 export const TYPE_PACE_COUNT = 0x206c;        // [seen] per-record type-pace byte (typeDrawScriptRecord/drawScoreAdvanceTable)
 export const SCREEN_MODE_TOGGLE = 0x20ec;     // [seen] attract-screen alternator, flipped 0/1 each finishAttractCycle pass
 export const loc_2050 = 0x2050;               // anim descriptor scratch (runHandshakedAttractAnim blockCopy dst)
