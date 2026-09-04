@@ -774,9 +774,11 @@ distinct phase, gated on a flag, and runs in this order.
     reason) in `games/<game>/names-debt.txt`.
   - **(2) COMMENT.** Verbose explanatory comments PLUS light code cleanup (fix misnomers, simplify locals).
   Never a behaviour change. **The byte-identical proof below verifies (2) ONLY** — a rename is not
-  byte-identical, so verify it with the equivalence subset instead. **Enforced:** `done_gate`'s `naming`
-  subsystem (`tools/naming_gate.py`) refuses the ship while any grounded routine is still `loc_`, so a
-  comment-only sweep that skips (1) cannot reach DONE.
+  byte-identical, so verify it with the equivalence subset instead. **Enforced BOTH WAYS:** `done_gate`'s
+  `naming` subsystem (`tools/naming_gate.py`) refuses the ship while any grounded routine is still `loc_`, and
+  its `comments` subsystem (`tools/comment_gate.py floor`) refuses it while any idiomatic file sits below the
+  comment floor (`code // 2 + 3`). So a comment-only sweep that skips (1), OR a rename-only sweep that skips
+  (2) (the gap that let invaders ship DONE with a 0.27 comment ratio), cannot reach DONE.
   - **Comment standard:** a rich header (what it is, its role in the machine, ROM address, grounding tag,
     live-out) + a block comment before each logical step explaining the mechanism and WHY, citing the
     ROM/hardware — the level where someone who has never seen the game's internals could follow it.

@@ -12,6 +12,7 @@ subsystem with no gate guarding the done-claim. Subsystems:
                 registers, no m.call, no m.push*, no raw 0xHHHH addresses.
   grounding   - no ungrounded [code]/[guess] proposals remain in names.js (the registry).
   naming      - tools/naming_gate.py: every grounded idiomatic routine has a descriptive name, not loc_.
+  comments    - tools/comment_gate.py floor: a cleaned game's idiomatic files carry verbose comments.
   audio       - tools/audio_gate.py: a wired, tested audio layer.
   pixel       - the game's idiomatic pixel suite matches MAME golden.
   whole-game  - the standing whole-game tests (boot/attract, tape, transition) pass.
@@ -223,11 +224,25 @@ def check_naming(game):
     return (rc == 0), detail[:120]
 
 
+def check_comment_floor(game):
+    """The COMMENT half of the §4-end cleanup, symmetric to check_naming's RENAME half: every idiomatic
+    file of a cleaned (idiomaticComplete) game must carry verbose comments (>= code // 2 + 3 lines).
+    Enforced by tools/comment_gate.py floor; a reviewed games/<game>/comment-debt.txt allowlist subtracts a
+    genuinely-trivial file. Wired here because the density CAP steps aside for idiomaticComplete games with
+    nothing then requiring the comments -- the exact gap that let invaders ship DONE at a 0.27 comment ratio."""
+    rc, out = run(["python3", "tools/comment_gate.py", "floor", "--game", game])
+    line = next((ln for ln in out.splitlines() if ln.strip()), "")
+    detail = re.sub(rf"^comment_gate floor \[{re.escape(game)}\]:\s*", "", line) or (
+        "OK" if rc == 0 else "idiomatic files below the comment floor")
+    return (rc == 0), detail[:120]
+
+
 SUBSYSTEMS = [
     ("idiomatic", check_idiomatic),
     ("wiring", check_wiring),
     ("grounding", check_grounding),
     ("naming", check_naming),
+    ("comments", check_comment_floor),
     ("audio", check_audio),
     ("pixel", check_pixel),
     ("whole-game", check_wholegame),

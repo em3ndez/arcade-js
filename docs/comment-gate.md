@@ -111,3 +111,22 @@ only once the flag itself is committed.
 **Enforced, not trusted.** `idiomatic_gate check` blocks any game that declares `idiomaticComplete: true`
 while it still holds cruft (cruft + unlifted must be 0). A game earns the verbose exemption only by actually
 being done — the flag cannot be flipped merely to escape the comment rules on an unfinished port.
+
+## The floor — the cleanup COMMENT obligation, enforced
+
+Stepping the density cap aside *permits* verbose comments but nothing *requires* them, so the cleanup phase's
+COMMENT obligation could ship skipped — and did: Space Invaders reached DONE with descriptive names (the
+RENAME half, which `naming_gate` enforces) but a ~0.27 comment ratio, versus the ~1.9 the other cleaned games
+carry. The `floor` subcommand closes that gap, symmetric to `naming_gate`: for a game that declares
+`idiomaticComplete: true`, every `idiomatic/**.js` file (minus `names.js` and `test/`) must carry at least
+`code // DENSITY_DIVISOR + FLOOR_MIN` comment lines — the same per-code rate as the cap, with a lower flat
+minimum (a header). A game that is not `idiomaticComplete` is N/A (the floor is a cleanup-phase bar, not a
+per-commit rule).
+
+- **Calibration.** At `code // 2 + 3`, the cleaned games pass with room (pooyan, frogger: zero files under),
+  while a wholesale-uncleaned layer fails almost every file (pre-sweep invaders: 174/178). The floor sits
+  below the old cap, so a cleaned file lives in a valid band `[code // 2 + 3, ∞)`.
+- **`games/<game>/comment-debt.txt`.** A reasoned allowlist (one path per line, `#`/blank ignored) for a
+  genuinely-trivial file where the floor is silly — the same shape as `names-debt.txt` / `grounding-debt.txt`.
+- **Run at ship**, wired into `done_gate` as the `comments` subsystem (not per-commit; the working tree). It
+  reads the manifest flag from the INDEX like the cleanup exemption, so both switch on together.

@@ -496,6 +496,53 @@ def report_density(hits, stream):
             print("      ^ generated — fix the generator's template, not this file", file=stream)
 
 
+# ── floor: a cleaned (idiomaticComplete) game must carry ENOUGH comment ───────────────────────
+# The density CAP steps aside for idiomaticComplete games, so nothing then REQUIRES the cleanup phase's
+# verbose comments -- invaders shipped DONE with descriptive names but a ~0.27 comment ratio (vs ~1.9 the
+# other cleaned games carry). The FLOOR closes that gap: each idiomatic file must carry at least
+# code // DENSITY_DIVISOR + FLOOR_MIN comment lines. Rationale + calibration: docs/comment-gate.md.
+FLOOR_MIN = 3  # >=3 comment lines always required (a header) regardless of code size
+
+
+def comment_debt(game):
+    """Idiomatic paths allowlisted off the floor, from games/<game>/comment-debt.txt ('#'/blank ignored)."""
+    debt = set()
+    try:
+        text = blob(":0", f"games/{game}/comment-debt.txt")
+    except GitError:
+        return debt  # no debt file -> no exemptions
+    for line in text.splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            debt.add(line)
+    return debt
+
+
+def floor_files(game):
+    """Idiomatic .js files the floor governs: games/<game>/idiomatic/**.js minus names.js and test/."""
+    base = os.path.join("games", game, "idiomatic")
+    out = []
+    for dirpath, dirs, files in os.walk(os.path.join(repo_root(), base)):
+        dirs[:] = [d for d in dirs if d != "test"]
+        for f in files:
+            if f.endswith(".js") and f != EXEMPT_LEAF:
+                out.append(os.path.relpath(os.path.join(dirpath, f), repo_root()))
+    return out
+
+
+def floor_violations(files, read, debt=frozenset()):
+    """[(path, code, comment, floor)] for each file whose comment count is below the floor, minus debt."""
+    out = []
+    for path in sorted(files):
+        if path in debt:
+            continue
+        code, comment = count_lines(path, read(path))
+        floor = code // DENSITY_DIVISOR + FLOOR_MIN
+        if comment < floor:
+            out.append((path, code, comment, floor))
+    return out
+
+
 # ── extracting comments ───────────────────────────────────────────────────────────────────────
 
 _MARKER = re.compile(r"^\s*(?:/\*+|\*/|\*)\s?")
@@ -952,6 +999,17 @@ def cmd_selftest(_args):
         failures.append("CLEANUP _COMPLETE_RE must not match a commented-out flag")
     for _k in ("donecx", "wipcx"):
         _complete_cache.pop(_k, None)
+    # FLOOR: a cleaned file must carry >= code // DENSITY_DIVISOR + FLOOR_MIN comments. Fixtures DERIVE from
+    # the constants (tuning them must not read as a defect). DENSITY_DIVISOR code lines -> floor 1 + FLOOR_MIN.
+    _fcode = "".join(f"let v{i} = {i};\n" for i in range(DENSITY_DIVISOR))
+    _fcom = lambda n: "".join(f"// c{i}\n" for i in range(n))
+    _floor = 1 + FLOOR_MIN
+    if not floor_violations(["x.js"], lambda _p: _fcom(_floor - 1) + _fcode):
+        failures.append("FLOOR: a file below the floor must be reported")
+    if floor_violations(["x.js"], lambda _p: _fcom(_floor) + _fcode):
+        failures.append("FLOOR: a file at the floor must not be reported")
+    if floor_violations(["x.js"], lambda _p: _fcom(_floor - 1) + _fcode, debt={"x.js"}):
+        failures.append("FLOOR: a debt-allowlisted file must be exempt")
     if failures:
         print("comment_gate selftest: FAIL", file=sys.stderr)
         for f in failures:
@@ -995,6 +1053,39 @@ def cmd_density(args):
     return 1 if hits else 0
 
 
+def cmd_floor(args):
+    """Comment FLOOR for a cleaned game: each idiomatic file must carry enough comment. Working tree."""
+    game = args.game
+    if not _game_idiomatic_complete(game):
+        print(f"comment_gate floor [{game}]: N/A (not idiomaticComplete — the floor is a cleanup-phase bar)")
+        return 0
+    root = repo_root()
+    try:
+        hits = floor_violations(
+            floor_files(game), lambda p: open(os.path.join(root, p), encoding="utf-8").read(),
+            comment_debt(game),
+        )
+    except LexError as e:
+        print(f"comment_gate floor: BLOCKED — cannot lex: {e}", file=sys.stderr)
+        return 1
+    if hits:
+        print(
+            f"comment_gate floor [{game}]: BLOCK — idiomatic files below the comment floor "
+            f"(code // {DENSITY_DIVISOR} + {FLOOR_MIN}); the cleanup COMMENT obligation is incomplete:",
+            file=sys.stderr,
+        )
+        for path, code, comment, floor in hits:
+            print(f"  {path}: {comment} comment lines, {code} code — floor is {floor}", file=sys.stderr)
+        print(
+            "  Add verbose explanatory comments, or allowlist a genuinely-trivial file (with a reason) "
+            f"in games/{game}/comment-debt.txt.",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"comment_gate floor [{game}]: OK (every idiomatic file carries >= code // {DENSITY_DIVISOR} + {FLOOR_MIN} comments)")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1005,6 +1096,9 @@ def main():
     d = sub.add_parser("density")
     d.add_argument("paths", nargs="*")
     d.set_defaults(fn=cmd_density)
+    fl = sub.add_parser("floor")
+    fl.add_argument("--game", required=True)
+    fl.set_defaults(fn=cmd_floor)
     sub.add_parser("selftest").set_defaults(fn=cmd_selftest)
     args = ap.parse_args()
     # EVERY subcommand fails closed, not just `check`. `scan` is what docs/understanding.md
