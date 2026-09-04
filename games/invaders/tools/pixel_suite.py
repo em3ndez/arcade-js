@@ -38,11 +38,12 @@ SECONDS = 4                     # ~240 attract frames: a short per-commit tripwi
 # from MAME's -- it stays byte-aligned at TAPE_ORIGIN 0 through the window (the mid-play 0x20c0 collapse
 # lands past DONE_GAMEPLAY_SECONDS). Shoot/collision/death correctness is the poke mechanics gate's job
 # (it sidesteps tape-alignment; runbook 5).
-# ATTRACT is capped BEFORE the ~11-13s "attract fork": the RNG/phase-driven attract DEMO diverges there
-# between the clock-free idiomatic layer and MAME (a known §4 clock-free item -- the entropy pin / 0x20c1
-# phase, see memory invaders-frame-model; it is a TESTING-diff limit on the non-deterministic demo, not a
-# gameplay defect -- GAMEPLAY below is deterministic and byte-exact). Full attract-completeness past the
-# fork needs that pin; the substantive gameplay-vs-MAME correctness is PART B.
+# ATTRACT is capped BEFORE the ~11-13s "attract fork": the non-deterministic attract DEMO diverges there
+# between the clock-free idiomatic layer and MAME. It is NOT a pinnable RNG item -- it is an inherent §4
+# clock-free (model-b) mid-ISR-PHASE residual: the engine fires the RST pair at the vblank yield while MAME
+# fires RST1 at true mid-frame (vpos 96), so the mid-frame alien-draw walker's phase drifts in the phase-
+# sensitive demo (an entropy pin cannot close a phase drift). A demo-only cosmetic residual (bounded, static
+# screens byte-exact either side), accepted -- see DONE.md; the gameplay-vs-MAME correctness is PART B.
 DONE_ATTRACT_SECONDS = 10       # ~600 attract frames: extends the tripwire, stays before the ~11-13s fork
 DONE_GAMEPLAY_SECONDS = 9       # ~537 frames: coin@300/start@360/play -> ends before the mid-play collapse
 GAMEPLAY_TAPE = os.path.join(GAME, "tapes", "coin_start_move.lua")   # MAME-side driver for the golden

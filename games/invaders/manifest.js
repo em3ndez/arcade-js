@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Grounded in mame-src/src/mame/midw8080/mw8080bw.cpp (ROM_START(invaders), invaders_state::invaders,
-// GAMEL macro) + mw8080bw.h. entropyPin is PROVISIONAL (the attract-fork open item).
+// GAMEL macro) + mw8080bw.h. entropyPin is null -- the attract-demo fork is a clock-free mid-ISR-phase residual (see DONE.md), not a pinnable counter.
 
 export default {
   id: "invaders",
@@ -83,6 +83,7 @@ export default {
     samples: "audio/samples",
   },
 
-  // ★ PROVISIONAL -- the boot-time entropy/seed cell to pin for a deterministic diff (find in §3).
+  // null: no pinnable spin counter. The attract-demo pixel fork past ~11-13s is a clock-free (model-b)
+  // mid-ISR-phase residual, not RNG -- an entropy pin cannot close a phase drift; accepted, see DONE.md.
   entropyPin: null,
 };
