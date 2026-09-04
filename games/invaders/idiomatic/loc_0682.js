@@ -5,7 +5,7 @@ import { drawSaucerSprite } from "./drawSaucerSprite.js";
 import { loc_050f } from "./loc_050f.js";
 import { playSaucerHitSoundAndDrawSprite } from "./playSaucerHitSoundAndDrawSprite.js";
 import { awardSaucerScore } from "./awardSaucerScore.js";
-import { loc_19dc } from "./loc_19dc.js";
+import { clearSoundPort3Bit } from "./clearSoundPort3Bit.js";
 import { resolveSpriteScreenAddr } from "./resolveSpriteScreenAddr.js";
 import { clearScreenStrip } from "./clearScreenStrip.js";
 import { copyTemplateToRecord } from "./copyTemplateToRecord.js";
@@ -33,7 +33,7 @@ export function loc_0682(m) {
     const x = m.mem8[loc_208a];
     if (x >= 40 && x < 225) return;
   } else {
-    loc_19dc(m, 0xfe);
+    clearSoundPort3Bit(m, 0xfe);
     m.mem8[loc_2086] = u8(m.mem8[loc_2086] - 1);
     const phase = m.mem8[loc_2086];
     if (phase === 31) return playSaucerHitSoundAndDrawSprite(m);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for setGameActive (ROM 0x19d1) -- A:=1 then fall through into the shared store loc_19d3,
+// Memory-equivalence for setGameActive (ROM 0x19d1) -- A:=1 then fall through into the shared store storeGameActive,
 // which writes A at GAME_ACTIVE. The 0x19d3 call is DISSOLVED into a direct idiomatic call. Live-out is
 // memory only (callers overwrite A / delegate immediately). Run: node --test .../test/equivalence-19d1.test.js
 
@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_19d1 as oracle } from "../../translated/loc_19d1.js";
 import { setGameActive } from "../setGameActive.js";
-import { loc_19d3 } from "../loc_19d3.js";
+import { storeGameActive } from "../storeGameActive.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_ACTIVE } from "../names.js";
@@ -54,7 +54,7 @@ test("CRAFTED: GAME_ACTIVE set to 1 regardless of prior A", () => {
 
 test("TEETH: a broken twin (stores 0, not 1) is caught", () => {
   function loc_19d1_broken(m) { // BUG: marshals the wrong constant into the shared store
-    loc_19d3(m, 0);
+    storeGameActive(m, 0);
   }
   const o = new Machine(ROM); o.mem.write8(GAME_ACTIVE, 0xcc);
   const c = new Machine(ROM); c.mem.write8(GAME_ACTIVE, 0xcc);

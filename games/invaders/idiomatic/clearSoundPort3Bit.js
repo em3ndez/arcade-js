@@ -2,7 +2,7 @@
 import { SOUND_PORT3_SHADOW } from "./names.js";
 
 // AND the sound shadow with B (mask bits off), write it back and mirror to the sound port. Value-out: A.
-export function loc_19dc(m, b = m.regs.b) {
+export function clearSoundPort3Bit(m, b = m.regs.b) {
   const v = m.mem8[SOUND_PORT3_SHADOW] & b;
   m.mem8[SOUND_PORT3_SHADOW] = v;
   m.io.portOut(0x03, v);

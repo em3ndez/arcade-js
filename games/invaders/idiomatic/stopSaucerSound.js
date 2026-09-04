@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_19dc } from "./loc_19dc.js";
+import { clearSoundPort3Bit } from "./clearSoundPort3Bit.js";
 
 // Clear the low sound-latch bit (mask 0xfe) through the shared port-3 helper. Value-out: A.
 export function stopSaucerSound(m) {
-  return loc_19dc(m, 0xfe);
+  return clearSoundPort3Bit(m, 0xfe);
 }

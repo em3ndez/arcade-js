@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_1982 } from "./loc_1982.js";
+import { storeTaskFlags } from "./storeTaskFlags.js";
 import { loc_0ab1 } from "./loc_0ab1.js";
 import { loc_0ab6 } from "./loc_0ab6.js";
 import { loc_0acf } from "./loc_0acf.js";
@@ -32,7 +32,7 @@ import {
 export function* loc_0aea(m) {
   m.io.portOut(0x03, 0x00);
   m.io.portOut(0x05, 0x00);
-  loc_1982(m, 0x00);
+  storeTaskFlags(m, 0x00);
   m.io.setInte(true);
   yield* loc_0ab1(m);
 

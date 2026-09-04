@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for stopSaucerSound (ROM 0x0707) -- load B=0xfe then tail-jump into loc_19dc: AND the
+// Memory-equivalence for stopSaucerSound (ROM 0x0707) -- load B=0xfe then tail-jump into clearSoundPort3Bit: AND the
 // port-3 sound shadow with 0xfe (clear the low latch bit), write it back and mirror to port 3.
-// Live-out: memory (SOUND_PORT3_SHADOW) + A (loc_19dc's classification; both callers tail-delegate).
+// Live-out: memory (SOUND_PORT3_SHADOW) + A (clearSoundPort3Bit's classification; both callers tail-delegate).
 // Run: node --test games/invaders/idiomatic/test/equivalence-0707.test.js
 
 import nodeTest from "node:test";

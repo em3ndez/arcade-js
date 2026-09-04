@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_19d3 } from "./loc_19d3.js";
+import { storeGameActive } from "./storeGameActive.js";
 
 // Clear the game-active flag by storing 0 through the shared accumulator tail.
 export function clearGameActive(m) {
-  loc_19d3(m, 0);
+  storeGameActive(m, 0);
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { FLEET_SOUND_STEP, FLEET_SOUND_PERIOD, SFX_OFF_TIMER, FLEET_RATE_THRESHOLDS, FLEET_RATE_TABLE, SOUND_PORT5_SHADOW, ALIEN_COUNT } from "./names.js";
-import { loc_19dc } from "./loc_19dc.js";
+import { clearSoundPort3Bit } from "./clearSoundPort3Bit.js";
 
 // On the trigger, pick a fleet-rate byte for the alien count and step the port-5 pitch nibble; tick the
 // SFX-off timer and mask its port-5 bit off on wrap.
@@ -17,5 +17,5 @@ export function advanceFleetMarchSound(m) {
   }
   m.mem8[SFX_OFF_TIMER] = m.mem8[SFX_OFF_TIMER] - 1;
   if (m.mem8[SFX_OFF_TIMER] !== 0) return (m.regs.a = 0);
-  return loc_19dc(m, 0xef);
+  return clearSoundPort3Bit(m, 0xef);
 }

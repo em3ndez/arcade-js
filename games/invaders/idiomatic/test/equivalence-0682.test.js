@@ -26,7 +26,7 @@ import { u8 } from "../../../../core/int.js";
 import { objectMatchesDrawPhase } from "../objectMatchesDrawPhase.js";
 import { drawSaucerSprite } from "../drawSaucerSprite.js";
 import { loc_050f } from "../loc_050f.js";
-import { loc_19dc } from "../loc_19dc.js";
+import { clearSoundPort3Bit } from "../clearSoundPort3Bit.js";
 import { playSaucerHitSoundAndDrawSprite } from "../playSaucerHitSoundAndDrawSprite.js";
 import { awardSaucerScore } from "../awardSaucerScore.js";
 import { Machine } from "../../machine.js";
@@ -162,7 +162,7 @@ function loc_0682_droppedLaunch(m) {
     const x = m.mem8[loc_208a];
     if (x >= 40 && x < 225) return;
   } else {
-    loc_19dc(m, 0xfe);
+    clearSoundPort3Bit(m, 0xfe);
     m.mem8[loc_2086] = u8(m.mem8[loc_2086] - 1);
     const phase = m.mem8[loc_2086];
     if (phase === 31) return playSaucerHitSoundAndDrawSprite(m);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_176d (ROM 0x176d) -- "OUT 5 := mem[0x2098] & 0x30" (sound-off helper). No
+// Memory-equivalence for silenceFleetMarchNote (ROM 0x176d) -- "OUT 5 := mem[0x2098] & 0x30" (sound-off helper). No
 // input register (the source byte lives in RAM); no memory is written, so the contract is the port-5
 // write (captured by wrapping io.portOut) plus a RAM sanity diff, minus STACK_SCRATCH. A/flags are dead
 // (every caller path overwrites A before reading it), so only the port write is asserted.
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_176d as oracle } from "../../translated/loc_176d.js";
-import { loc_176d } from "../loc_176d.js";
+import { silenceFleetMarchNote } from "../silenceFleetMarchNote.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SOUND_PORT5_SHADOW } from "../names.js";
@@ -35,8 +35,8 @@ function portWritesOf(mm, fn) {
   return writes;
 }
 
-// A broken twin of loc_176d: drops the 0x30 mask, so the emitted sound byte is wrong.
-function loc_176d_broken(m) {
+// A broken twin of silenceFleetMarchNote: drops the 0x30 mask, so the emitted sound byte is wrong.
+function silenceFleetMarchNote_broken(m) {
   m.io.portOut(0x05, m.mem.read8(0x2098)); // BUG: forgot the & 0x30 mask
 }
 
@@ -48,11 +48,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x176d dispatches -- loc_176d == oracle in port writes and RAM", () => {
+test("CAPTURE: real 0x176d dispatches -- silenceFleetMarchNote == oracle in port writes and RAM", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     const wo = portWritesOf(o, oracle);
-    const wc = portWritesOf(c, loc_176d);
+    const wc = portWritesOf(c, silenceFleetMarchNote);
     assert.deepEqual(wc, wo); // the port-5 sound write is the live-out
     assert.equal(ramDiff(o, c), null);
   }
@@ -64,7 +64,7 @@ test("CRAFTED: OUT 5 := source & 0x30 for several source bytes", () => {
     const o = new Machine(ROM); o.mem8[SOUND_PORT5_SHADOW] = v;
     const c = new Machine(ROM); c.mem8[SOUND_PORT5_SHADOW] = v;
     const wo = portWritesOf(o, oracle);
-    const wc = portWritesOf(c, loc_176d);
+    const wc = portWritesOf(c, silenceFleetMarchNote);
     assert.deepEqual(wc, wo, `source=0x${v.toString(16)}`);
     assert.deepEqual(wc, [[0x05, v & 0x30]], `port write source=0x${v.toString(16)}`);
     assert.equal(ramDiff(o, c), null, `source=0x${v.toString(16)}`);
@@ -75,6 +75,6 @@ test("TEETH: a wrong emitted sound byte is caught", () => {
   const o = new Machine(ROM); o.mem8[SOUND_PORT5_SHADOW] = 0xff;
   const c = new Machine(ROM); c.mem8[SOUND_PORT5_SHADOW] = 0xff;
   const wo = portWritesOf(o, oracle); // [[5, 0x30]]
-  const wc = portWritesOf(c, loc_176d_broken); // [[5, 0xff]]  BUG: unmasked
+  const wc = portWritesOf(c, silenceFleetMarchNote_broken); // [[5, 0xff]]  BUG: unmasked
   assert.notDeepEqual(wc, wo, "the check FAILED to catch a wrong sound byte");
 });

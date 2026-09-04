@@ -1,0 +1,7 @@
+# names-debt.txt -- idiomatic loc_ modules whose loc_ name is RETAINED, reviewer-verified (runbook §4-end(1):
+# loc_ is for a genuinely-unclear mechanism, ELSE a reasoned allowlist entry here).
+# Format: loc_<addr>  <reason>   (# comments and blank lines ignored)
+loc_00d7  per-player init that seeds the write-only, ungrounded fleet-delta cells loc_21fb/loc_22fb=0x02 then tails blankScreenStrip; its only distinctive effect targets cells with no idiomatic reader, so an effect-name would overclaim their role
+loc_067e  stores HL into the write-only, ungrounded cell loc_2048 (record-3 shot column cursor); no idiomatic reader, so a store-name would overclaim the destination's role
+loc_166b  trivial set-carry "found" sentinel with no idiomatic caller (fleetReachedEdge inlines the set-carry); no consumer by which to name it by effect
+loc_1988  second entry point / alias of clearPlayfield (0x09d6) with identical effect; the descriptive name is taken and it has no distinct effect of its own

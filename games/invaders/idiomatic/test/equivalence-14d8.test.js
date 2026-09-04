@@ -5,8 +5,8 @@
 // ALIEN_EXPLOSION_ADDR), enter state 5, and if the target cell is set blank it, award (loc_0a5f), load the sprite
 // descriptor and blit the prize (blitShiftedSprite), and arm the despawn timer (ALIEN_EXPLOSION_TIMER). Every m.call is
 // DISSOLVED into a direct idiomatic call (clearShotHitAndSilence, markSaucerHitAndRetireShot, scaleXToBlock, scaleYToBlock,
-// loc_1581, loc_0a5f, loadSpriteDescriptor, blitShiftedSprite). Live-out is memory only -- no caller reads a
-// register or flag on return (loc_190a tail-jumps into reverseFleetAtEdge, which reloads A first; loc_16e6 overwrites B).
+// alienGridCellPtr, loc_0a5f, loadSpriteDescriptor, blitShiftedSprite). Live-out is memory only -- no caller reads a
+// register or flag on return (resolveShotAndFleetEdge tail-jumps into reverseFleetAtEdge, which reloads A first; loc_16e6 overwrites B).
 // Run: node --test games/invaders/idiomatic/test/equivalence-14d8.test.js
 
 import nodeTest from "node:test";
@@ -20,7 +20,7 @@ import { clearShotHitAndSilence } from "../clearShotHitAndSilence.js";
 import { markSaucerHitAndRetireShot } from "../markSaucerHitAndRetireShot.js";
 import { scaleXToBlock } from "../scaleXToBlock.js";
 import { scaleYToBlock } from "../scaleYToBlock.js";
-import { loc_1581 } from "../loc_1581.js";
+import { alienGridCellPtr } from "../alienGridCellPtr.js";
 import { loc_0a5f } from "../loc_0a5f.js";
 import { loadSpriteDescriptor } from "../loadSpriteDescriptor.js";
 import { blitShiftedSprite } from "../blitShiftedSprite.js";
@@ -172,7 +172,7 @@ test("TEETH: a module-mutating twin (grid-block bytes swapped) diverges at ALIEN
     const [, residualY] = scaleYToBlock(m, m.mem8[loc_202a]);
     m.mem16[ALIEN_EXPLOSION_ADDR] = (residualX << 8) | residualY; // BUG: residuals swapped (should be Y<<8 | X)
     m.mem8[PLAYER_SHOT_STATUS] = 0x05;
-    const recPtr = loc_1581(m, xBlock);
+    const recPtr = alienGridCellPtr(m, xBlock);
     if (m.mem8[recPtr] === 0) return standDown();
     m.mem8[recPtr] = 0x00;
     loadSpriteDescriptor(m, loc_0a5f(m, xBlock));

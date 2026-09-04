@@ -2,7 +2,7 @@
 // Memory-equivalence for reverseFleetAtEdge (ROM 0x1597) -- fleet edge / direction reversal. Reads FLEET_MOVE_DIR to
 // pick an edge column, scans it (fleetReachedEdge); on a hit flips the direction and republishes the derived cells,
 // else bails unchanged. Live-out (DERIVED FROM THE ORACLE): RAM only -- FLEET_MOVE_DIR, loc_2008 (step, via
-// loc_18f1), FLEET_STEP_DY (mirrored from FLEET_DROP_DELTA). Its only caller (loc_190a) ignores the result, so no
+// fleetStepSize), FLEET_STEP_DY (mirrored from FLEET_DROP_DELTA). Its only caller (resolveShotAndFleetEdge) ignores the result, so no
 // register/carry live-out. The oracle's internal call return-words sit in dead stack scratch (excluded).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1597.test.js
 
@@ -108,7 +108,7 @@ test("TEETH: a twin that drops the fleet update leaves FLEET_MOVE_DIR unflipped"
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x2400;
-  m.mem.write16(0x2400, 0x190d); // a real caller-return word (loc_190a's continuation) for the seam
+  m.mem.write16(0x2400, 0x190d); // a real caller-return word (resolveShotAndFleetEdge's continuation) for the seam
   m.mem.write8(FLEET_MOVE_DIR, 0x00);
   for (let i = 0; i < 0x17; i++) m.mem.write8(SCAN_LEFT + i, 0); // all-zero -> bail path
   m.io.setInte(false);

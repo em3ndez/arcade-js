@@ -2,7 +2,7 @@
 // Memory-equivalence for scaleXToBlock (X-scale) -- read the object X cell, count the 0x10 steps to lift it to
 // the threshold in L (dissolved into countStepsToThreshold), then leave the block index (count-1) in B and
 // the leftover (stepped-0x10) in L/A. No RAM write, so the contract is the (L, B) live-out the caller reads
-// back: L folds into the SHLD word, B is the index handed to loc_1581 (it survives the intervening Y-scale).
+// back: L folds into the SHLD word, B is the index handed to alienGridCellPtr (it survives the intervening Y-scale).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1562.test.js
 
 import nodeTest from "node:test";

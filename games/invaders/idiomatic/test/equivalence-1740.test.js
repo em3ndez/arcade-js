@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for stepFleetMarchSound (ROM 0x1740) -- the per-frame shot-sound step. Ticks the FLEET_SOUND_OFF_TIMER
-// burst timer (calling the sound-off helper loc_176d at zero), bails unless loc_2068 is set, ticks
+// burst timer (calling the sound-off helper silenceFleetMarchNote at zero), bails unless loc_2068 is set, ticks
 // FLEET_SOUND_TIMER, emits SOUND_PORT5_SHADOW to port 5, and when ALIEN_COUNT is set re-seeds FLEET_SOUND_TIMER from
 // FLEET_SOUND_PERIOD and reloads FLEET_SOUND_OFF_TIMER=4. A and flags are dead (loc_0072 reloads A on fall-through), so the
-// live-out is memory + the port-5 writes. loc_176d is a dissolved direct call. The oracle's `cz` pushes
+// live-out is memory + the port-5 writes. silenceFleetMarchNote is a dissolved direct call. The oracle's `cz` pushes
 // a return word into stack scratch; that residue is excluded (STACK_SCRATCH / entry-SP relative).
 // Run: node --test games/invaders/idiomatic/test/equivalence-1740.test.js
 
@@ -64,10 +64,10 @@ test("CAPTURE: real 0x1740 dispatches -- stepFleetMarchSound == oracle in RAM (-
 test("CRAFTED: each arm matches the oracle in RAM and port writes", () => {
   // {b209b, b2068, b2096, b2082, b2097, b2098} exercising every branch.
   const cases = [
-    { b209b: 0x01, b2068: 0x00, b2096: 0x05, b2082: 0x00, b2097: 0x11, b2098: 0x33 }, // dcr->0 (cz), then bail via loc_176d (2068==0)
-    { b209b: 0x02, b2068: 0x00, b2096: 0x05, b2082: 0x00, b2097: 0x11, b2098: 0x33 }, // no cz, bail via loc_176d (2068==0)
+    { b209b: 0x01, b2068: 0x00, b2096: 0x05, b2082: 0x00, b2097: 0x11, b2098: 0x33 }, // dcr->0 (cz), then bail via silenceFleetMarchNote (2068==0)
+    { b209b: 0x02, b2068: 0x00, b2096: 0x05, b2082: 0x00, b2097: 0x11, b2098: 0x33 }, // no cz, bail via silenceFleetMarchNote (2068==0)
     { b209b: 0x02, b2068: 0x01, b2096: 0x02, b2082: 0x00, b2097: 0x11, b2098: 0x33 }, // 2096 dcr->1: early return, no port
-    { b209b: 0x02, b2068: 0x01, b2096: 0x01, b2082: 0x00, b2097: 0x11, b2098: 0x33 }, // 2096 dcr->0, out5, then loc_176d (2082==0)
+    { b209b: 0x02, b2068: 0x01, b2096: 0x01, b2082: 0x00, b2097: 0x11, b2098: 0x33 }, // 2096 dcr->0, out5, then silenceFleetMarchNote (2082==0)
     { b209b: 0x02, b2068: 0x01, b2096: 0x01, b2082: 0x01, b2097: 0x55, b2098: 0x33 }, // full path: reseed + reload
   ];
   for (const s of cases) {

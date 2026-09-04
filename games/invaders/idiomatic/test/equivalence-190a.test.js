@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_190a (ROM 0x190a) -- run resolvePlayerShotHit (state-2/landed-prize handler, dissolved to
+// Memory-equivalence for resolveShotAndFleetEdge (ROM 0x190a) -- run resolvePlayerShotHit (state-2/landed-prize handler, dissolved to
 // a direct call) then tail into reverseFleetAtEdge (fleet edge/direction update, same-batch KEPT m.call -- the LEAD
 // dissolves it in reconcile). Live-out (DERIVED FROM THE ORACLE): RAM only -- both callers (loc_081f,
 // loc_0bf1) run straight into the next call and never read its registers/carry. Dispatching tail -> SP-tooth.
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_190a as oracle } from "../../translated/loc_190a.js";
-import { loc_190a } from "../loc_190a.js";
+import { resolveShotAndFleetEdge } from "../resolveShotAndFleetEdge.js";
 import { resolvePlayerShotHit } from "../resolvePlayerShotHit.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
@@ -37,13 +37,13 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(24, 2000) : [];
 
-test("CAPTURE: real 0x190a dispatches -- loc_190a == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0x190a dispatches -- resolveShotAndFleetEdge == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const sp = cap.regs.sp;
     const excl = (a) => a != null && a >= sp - 0x40 && a < sp; // both sides run translated reverseFleetAtEdge (pushes)
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_190a(c);
+    oracle(o); resolveShotAndFleetEdge(c);
     assert.equal(ramDiff(o, c, excl), null);
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -66,7 +66,7 @@ test("CRAFTED: with resolvePlayerShotHit idle, sequences into the fleet update (
     };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
-    oracle(o); loc_190a(c);
+    oracle(o); resolveShotAndFleetEdge(c);
     const tag = `dir=${hx(t.dir)} found=${t.found}`;
     assert.equal(ramDiff(o, c), null, tag);
     assert.equal(c.mem.read8(FLEET_MOVE_DIR), t.wantDir, `fleet update applied: ${tag}`);
@@ -85,8 +85,8 @@ test("TEETH: a twin that drops the reverseFleetAtEdge tail leaves the fleet cell
   const o = new Machine(ROM); seed(o);
   const c = new Machine(ROM); seed(c);
   oracle(o);
-  function loc_190a_noTail(m) { resolvePlayerShotHit(m); /* BUG: drops the reverseFleetAtEdge fleet-update tail */ }
-  loc_190a_noTail(c);
+  function resolveShotAndFleetEdge_noTail(m) { resolvePlayerShotHit(m); /* BUG: drops the reverseFleetAtEdge fleet-update tail */ }
+  resolveShotAndFleetEdge_noTail(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the RAM diff FAILED to catch the dropped fleet-update tail");
   assert.notEqual(o.mem.read8(FLEET_MOVE_DIR), c.mem.read8(FLEET_MOVE_DIR), "the twin leaves FLEET_MOVE_DIR unflipped");
@@ -100,6 +100,6 @@ test("SP-TOOTH: the dispatching tail (moved +2, pc on the caller slot) is seam-p
   m.mem.write8(FLEET_MOVE_DIR, 0x00);
   for (let i = 0; i < 0x17; i++) m.mem.write8(SCAN_LEFT + i, 0); // all-zero -> reverseFleetAtEdge bails, rets clean
   m.io.setInte(false);
-  const r = seamPlaceable(withOmittedRet, loc_190a, TARGET, m);
-  assert.equal(r.placeable, true, `loc_190a must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, resolveShotAndFleetEdge, TARGET, m);
+  assert.equal(r.placeable, true, `resolveShotAndFleetEdge must be seam-placeable; got: ${r.error}`);
 });

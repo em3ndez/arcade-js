@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for clearGameActive (ROM 0x19d7) -- xra a (A:=0) then tail-jmp into the shared store
-// loc_19d3, which writes A at GAME_ACTIVE. The 0x19d3 dispatch is DISSOLVED into a direct idiomatic call.
+// storeGameActive, which writes A at GAME_ACTIVE. The 0x19d3 dispatch is DISSOLVED into a direct idiomatic call.
 // Live-out is memory only. Run: node --test .../test/equivalence-19d7.test.js
 
 import nodeTest from "node:test";
@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_19d7 as oracle } from "../../translated/loc_19d7.js";
 import { clearGameActive } from "../clearGameActive.js";
-import { loc_19d3 } from "../loc_19d3.js";
+import { storeGameActive } from "../storeGameActive.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, GAME_ACTIVE } from "../names.js";
@@ -54,7 +54,7 @@ test("CRAFTED: GAME_ACTIVE cleared to 0 regardless of prior A", () => {
 
 test("TEETH: a broken twin (stores 1, not 0) is caught", () => {
   function loc_19d7_broken(m) { // BUG: marshals the wrong constant into the shared store
-    loc_19d3(m, 1);
+    storeGameActive(m, 1);
   }
   const o = new Machine(ROM); o.mem.write8(GAME_ACTIVE, 0xff);
   const c = new Machine(ROM); c.mem.write8(GAME_ACTIVE, 0xff);

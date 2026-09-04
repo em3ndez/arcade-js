@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { advanceRoundState } from "./advanceRoundState.js";
-import { loc_190a } from "./loc_190a.js";
+import { resolveShotAndFleetEdge } from "./resolveShotAndFleetEdge.js";
 import { countLiveAliens } from "./countLiveAliens.js";
 import { applyPendingScoreAdd } from "./applyPendingScoreAdd.js";
 import { selectAlienShotRate } from "./selectAlienShotRate.js";
@@ -22,7 +22,7 @@ import { ALIEN_COUNT } from "./names.js";
 export function* mainLoop(m) {
   for (;;) {
     advanceRoundState(m);
-    loc_190a(m);
+    resolveShotAndFleetEdge(m);
     countLiveAliens(m);
     applyPendingScoreAdd(m);
     if (m.mem8[ALIEN_COUNT] === 0) {

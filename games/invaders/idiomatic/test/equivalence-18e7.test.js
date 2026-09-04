@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory+register equivalence for loc_18e7 -- HL := base + bit0 of the select byte; the caller reads
+// Memory+register equivalence for otherPlayerFlagPtr -- HL := base + bit0 of the select byte; the caller reads
 // [HL]. Neither side writes RAM, so the observable live-out is HL: each side runs on a clone and the
 // contract is RAM (dumpState, minus STACK_SCRATCH) AND the returned HL.
 // Run: node --test games/invaders/idiomatic/test/equivalence-18e7.test.js
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_18e7 as oracle } from "../../translated/loc_18e7.js";
-import { loc_18e7 } from "../loc_18e7.js";
+import { otherPlayerFlagPtr } from "../otherPlayerFlagPtr.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE, loc_20e7 } from "../names.js";
@@ -32,10 +32,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x18e7 dispatches -- loc_18e7 == oracle in RAM (-stack) and HL", () => {
+test("CAPTURE: real 0x18e7 dispatches -- otherPlayerFlagPtr == oracle in RAM (-stack) and HL", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_18e7(c);
+    oracle(o); otherPlayerFlagPtr(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "live-out HL");
   }
@@ -47,7 +47,7 @@ test("CRAFTED: HL := 0x20e7 + bit0 of (ACTIVE_PLAYER_PAGE)", () => {
     const o = new Machine(ROM); o.mem.write8(ACTIVE_PLAYER_PAGE, v);
     const c = new Machine(ROM); c.mem.write8(ACTIVE_PLAYER_PAGE, v);
     oracle(o);
-    const ret = loc_18e7(c);
+    const ret = otherPlayerFlagPtr(c);
     assert.equal(ramDiff(o, c), null, `(ACTIVE_PLAYER_PAGE)=0x${v.toString(16)}`);
     const want = loc_20e7 + (v & 1);
     assert.equal(o.regs.hl, want, `oracle HL for 0x${v.toString(16)}`);
@@ -60,6 +60,6 @@ test("TEETH: a wrong HL (bit0 bump dropped) is caught", () => {
   const o = new Machine(ROM); o.mem.write8(ACTIVE_PLAYER_PAGE, 0x01); // bit0=1 -> HL should bump
   const c = new Machine(ROM); c.mem.write8(ACTIVE_PLAYER_PAGE, 0x01);
   oracle(o);
-  loc_18e7(c); c.regs.hl = loc_20e7; // BUG: dropped the +1 bump
+  otherPlayerFlagPtr(c); c.regs.hl = loc_20e7; // BUG: dropped the +1 bump
   assert.notEqual(o.regs.hl, c.regs.hl, "the live-out check FAILED to catch a wrong HL");
 });

@@ -2,14 +2,14 @@
 import { u8 } from "../../../core/int.js";
 import { clearGameActive } from "./clearGameActive.js";
 import { readActivePlayerPageTopByte } from "./readActivePlayerPageTopByte.js";
-import { loc_18e7 } from "./loc_18e7.js";
+import { otherPlayerFlagPtr } from "./otherPlayerFlagPtr.js";
 import { readActivePlayerInput } from "./readActivePlayerInput.js";
 import { loadSpriteDescriptor } from "./loadSpriteDescriptor.js";
 import { coordToScreenAddr } from "./coordToScreenAddr.js";
 import { drawSpriteColumn } from "./drawSpriteColumn.js";
 import { clearSpriteColumn } from "./clearSpriteColumn.js";
 import { blockCopy } from "./blockCopy.js";
-import { loc_19dc } from "./loc_19dc.js";
+import { clearSoundPort3Bit } from "./clearSoundPort3Bit.js";
 import { newRoundFlow } from "./newRoundFlow.js";
 import { gameOverFlow } from "./gameOverFlow.js";
 import { doJFlow } from "./doJFlow.js";
@@ -100,7 +100,7 @@ export function loc_028e(m, recPtr = m.regs.de) {
   const coord = m.mem8[loc_201a] | (m.mem8[loc_201a + 1] << 8);
   clearSpriteColumn(m, 0x10, coord);
   blockCopy(m, loc_1b10, GAME_OBJECT_TABLE, 0x10);
-  loc_19dc(m, 0x00);
+  clearSoundPort3Bit(m, 0x00);
   if (m.mem8[loc_206d] !== 0) return;
   if (m.mem8[GAME_IN_PROGRESS] === 0) return; // attract: nothing to restart
 
@@ -109,7 +109,7 @@ export function loc_028e(m, recPtr = m.regs.de) {
   clearGameActive(m);
   const [, top] = readActivePlayerPageTopByte(m);
   if (top === 0) { m.nextMain = () => gameOverFlow(m); return; }
-  const otherPtr = loc_18e7(m);
+  const otherPtr = otherPlayerFlagPtr(m);
   if (m.mem8[otherPtr] === 0) { m.nextMain = () => doJFlow(m); return; }
   if (m.mem8[TWO_PLAYER_GAME] === 0) { m.nextMain = () => doJFlow(m); return; }
   m.nextMain = () => newRoundFlow(m);

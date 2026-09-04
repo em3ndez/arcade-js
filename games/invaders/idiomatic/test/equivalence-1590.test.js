@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1590 (ROM 0x1590) -- "normalize A upward". Inputs A (byte) and C (count);
+// Memory-equivalence for normalizeUpBySteps (ROM 0x1590) -- "normalize A upward". Inputs A (byte) and C (count);
 // runs at least once: add 0x10 / bump C until A's sign bit clears. Live-out: A (normalized) AND C (step
 // count), both read back by the caller countStepsToThreshold. No RAM write, so the contract is the (A, C) live-out
 // (RAM diff stays null and is checked for accidental writes).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1590 as oracle } from "../../translated/loc_1590.js";
-import { loc_1590 } from "../loc_1590.js";
+import { normalizeUpBySteps } from "../normalizeUpBySteps.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -39,10 +39,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1590 dispatches -- loc_1590 == oracle in RAM (-stack) and A/C", () => {
+test("CAPTURE: real 0x1590 dispatches -- normalizeUpBySteps == oracle in RAM (-stack) and A/C", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_1590(c);
+    oracle(o); normalizeUpBySteps(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.a, o.regs.a, "A live-out matches the oracle");
     assert.equal(c.regs.c, o.regs.c, "C live-out matches the oracle");
@@ -62,7 +62,7 @@ test("CRAFTED: A normalizes and C counts the steps, for several A/C", () => {
     const o = new Machine(ROM); o.regs.a = a; o.regs.c = c;
     const cc = new Machine(ROM); cc.regs.a = a; cc.regs.c = c;
     oracle(o);
-    const ret = loc_1590(cc);
+    const ret = normalizeUpBySteps(cc);
     const [ea, ec] = expect(a, c);
     const tag = `A=0x${a.toString(16)} C=0x${c.toString(16)}`;
     assert.equal(ramDiff(o, cc), null, tag);
@@ -79,7 +79,7 @@ test("TEETH: a broken twin (0x08 step instead of 0x10) diverges in A/C", () => {
   const a = 0x80, c = 0x00;
   const o = new Machine(ROM); o.regs.a = a; o.regs.c = c;
   oracle(o);
-  // broken twin of loc_1590: adds the wrong step
+  // broken twin of normalizeUpBySteps: adds the wrong step
   let ba = a, bc = c;
   do { bc = (bc + 1) & 0xff; ba = (ba + 0x08) & 0xff; } while (ba & 0x80);
   assert.ok(ba !== o.regs.a || bc !== o.regs.c,

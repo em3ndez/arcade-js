@@ -2,7 +2,7 @@
 // Memory-equivalence for advanceFleetMarchSound (ROM 0x1775) -- the sound-pitch step. When the FLEET_SOUND_STEP trigger is
 // set: find the fleet-rate entry for ALIEN_COUNT in the FLEET_RATE_THRESHOLDS/FLEET_RATE_TABLE tables (store the raw byte at
 // FLEET_SOUND_PERIOD), step the port-5 pitch nibble in SOUND_PORT5_SHADOW, and clear the trigger. Then tick the
-// SFX_OFF_TIMER step timer; on its wrap re-arm the shot channel via loc_19dc(B=0xef). loc_19dc is a dissolved
+// SFX_OFF_TIMER step timer; on its wrap re-arm the shot channel via clearSoundPort3Bit(B=0xef). clearSoundPort3Bit is a dissolved
 // direct call. Live-out: memory + A (the caller does OUT 6, A). A is 0 on the non-wrap path.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1775.test.js
 
@@ -52,7 +52,7 @@ test("CRAFTED: trigger-clear ticks the timer; trigger-set latches pitch and clea
   // {trig, alive, shadow, timer} across both branches and the wrap.
   const cases = [
     { trig: 0x00, alive: 0x14, shadow: 0x25, timer: 0x02 }, // clear: dec 2099 -> 1, A=0
-    { trig: 0x00, alive: 0x14, shadow: 0x25, timer: 0x01 }, // clear: dec 2099 -> 0, re-arm via loc_19dc
+    { trig: 0x00, alive: 0x14, shadow: 0x25, timer: 0x01 }, // clear: dec 2099 -> 0, re-arm via clearSoundPort3Bit
     { trig: 0x01, alive: 0x37, shadow: 0x00, timer: 0x02 }, // set: pitch step from 0x00
     { trig: 0x01, alive: 0x0b, shadow: 0x08, timer: 0x02 }, // set: nibble 8 -> 0x01
     { trig: 0x01, alive: 0x00, shadow: 0x3f, timer: 0x02 }, // set: nibble 0xf -> 0x1e (| 0x30)

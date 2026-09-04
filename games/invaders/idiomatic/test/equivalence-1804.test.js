@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for updateSaucerSound -- gate the saucer sound on the 0x2084/0x2085 flag pair. When 0x2084
-// is clear it silences the saucer (0x0707 -> loc_19dc, mask 0xfe); else if 0x2085 is nonzero it returns
+// is clear it silences the saucer (0x0707 -> clearSoundPort3Bit, mask 0xfe); else if 0x2085 is nonzero it returns
 // untouched; else it arms the sound with request bit 0 (0x18fa/startSound, OR bit 0). Both tail m.calls
 // are DISSOLVED into direct idiomatic calls (stopSaucerSound / startSound). The caller (0x084e) discards
 // every register updateSaucerSound leaves, so the contract is RAM only -- the SOUND_PORT3_SHADOW cell (0x2094) and

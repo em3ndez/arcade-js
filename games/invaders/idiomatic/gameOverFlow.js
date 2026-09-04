@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { drawLivesDigit } from "./drawLivesDigit.js";
-import { loc_1910 } from "./loc_1910.js";
+import { activePlayerFlagPtr } from "./activePlayerFlagPtr.js";
 import { currentPlayerRecordPtr } from "./currentPlayerRecordPtr.js";
 import { drawHighScore } from "./drawHighScore.js";
 import { typePacedSpriteRun } from "./typePacedSpriteRun.js";
 import { drawSprite8x8 } from "./drawSprite8x8.js";
 import { loc_0ab1 } from "./loc_0ab1.js";
-import { loc_18e7 } from "./loc_18e7.js";
+import { otherPlayerFlagPtr } from "./otherPlayerFlagPtr.js";
 import { loc_16c9 } from "./loc_16c9.js";
 import { newRoundFlow } from "./newRoundFlow.js";
 import { ACTIVE_PLAYER_PAGE, TWO_PLAYER_GAME, HIGH_SCORE_OBJ_DESC, loc_1aa6, loc_2803, loc_3a03 } from "./names.js";
@@ -18,7 +18,7 @@ import { ACTIVE_PLAYER_PAGE, TWO_PLAYER_GAME, HIGH_SCORE_OBJ_DESC, loc_1aa6, loc
 // round for the surviving player. Generator; memory + IO.
 export function* gameOverFlow(m) {
   drawLivesDigit(m, 0x00);
-  m.mem8[loc_1910(m)] = 0x00;
+  m.mem8[activePlayerFlagPtr(m)] = 0x00;
 
   const rec = currentPlayerRecordPtr(m);
   let hl = rec + 1;
@@ -44,7 +44,7 @@ export function* gameOverFlow(m) {
   const glyph = m.mem8[ACTIVE_PLAYER_PAGE] & 1 ? 0x1b : 0x1c;
   drawSprite8x8(m, glyph, loc_3a03);
   yield* loc_0ab1(m);
-  const otherLives = loc_18e7(m);
+  const otherLives = otherPlayerFlagPtr(m);
   if (m.mem8[otherLives] === 0) {
     yield* loc_16c9(m);
     return;

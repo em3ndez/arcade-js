@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { fleetReachedEdge } from "./fleetReachedEdge.js";
-import { loc_18f1 } from "./loc_18f1.js";
+import { fleetStepSize } from "./fleetStepSize.js";
 import { FLEET_MOVE_DIR, FLEET_STEP_DY, loc_2008, FLEET_DROP_DELTA, FLEET_LEFT_EDGE_VRAM, FLEET_RIGHT_EDGE_VRAM } from "./names.js";
 
 // Fleet edge / direction reversal: scan the edge column selected by FLEET_MOVE_DIR; if the fleet has
@@ -10,7 +10,7 @@ export function reverseFleetAtEdge(m) {
   let dir, step;
   if (m.mem8[FLEET_MOVE_DIR] !== 0) {
     if (!fleetReachedEdge(m, FLEET_LEFT_EDGE_VRAM)) return;
-    step = loc_18f1(m);
+    step = fleetStepSize(m);
     dir = 0x00;
   } else {
     if (!fleetReachedEdge(m, FLEET_RIGHT_EDGE_VRAM)) return;

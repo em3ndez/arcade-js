@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1581 (ROM 0x1581) -- "compute a record pointer". Inputs B (index) and C
+// Memory-equivalence for alienGridCellPtr (ROM 0x1581) -- "compute a record pointer". Inputs B (index) and C
 // (offset); reads the page cell ACTIVE_PLAYER_PAGE. Live-out: HL = (page << 8) | (RLCx3(B) + 3B + C - 1) & 0xff,
 // which the caller reads back to address a record (the oracle's trailing A = L is dead). No RAM write,
 // so the contract is the HL live-out (RAM diff stays null and is checked for accidental writes).
@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1581 as oracle } from "../../translated/loc_1581.js";
-import { loc_1581 } from "../loc_1581.js";
+import { alienGridCellPtr } from "../alienGridCellPtr.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE } from "../names.js";
@@ -40,10 +40,10 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1581 dispatches -- loc_1581 == oracle in RAM (-stack) and HL", () => {
+test("CAPTURE: real 0x1581 dispatches -- alienGridCellPtr == oracle in RAM (-stack) and HL", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_1581(c);
+    oracle(o); alienGridCellPtr(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -61,7 +61,7 @@ test("CRAFTED: HL := (page << 8) | (RLCx3(B) + 3B + C - 1) for several B/C/page"
   for (const { b, c, page } of cases) {
     const o = new Machine(ROM); o.regs.b = b; o.regs.c = c; o.mem.write8(ACTIVE_PLAYER_PAGE, page);
     const cc = new Machine(ROM); cc.regs.b = b; cc.regs.c = c; cc.mem.write8(ACTIVE_PLAYER_PAGE, page);
-    oracle(o); loc_1581(cc);
+    oracle(o); alienGridCellPtr(cc);
     const tag = `B=0x${b.toString(16)} C=0x${c.toString(16)} page=0x${page.toString(16)}`;
     assert.equal(ramDiff(o, cc), null, tag);
     assert.equal(cc.regs.hl, expectHl(page, b, c), `HL computed: ${tag}`);
@@ -73,7 +73,7 @@ test("TEETH: a broken twin (drops the -1) mis-computes HL", () => {
   const b = 0x05, c = 0x02, page = 0x25;
   const o = new Machine(ROM); o.regs.b = b; o.regs.c = c; o.mem.write8(ACTIVE_PLAYER_PAGE, page);
   oracle(o);
-  // broken twin of loc_1581: forgets the trailing decrement
+  // broken twin of alienGridCellPtr: forgets the trailing decrement
   const rot = ((b << 3) | (b >> 5)) & 0xff;
   const brokenLow = (rot + 3 * b + c) & 0xff; // BUG: no `- 1`
   const brokenHl = (page << 8) | brokenLow;

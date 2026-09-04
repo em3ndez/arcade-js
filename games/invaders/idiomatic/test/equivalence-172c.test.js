@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_172c (ROM 0x172c) -- mode-gated sound step. Reads PLAYER_SHOT_STATUS: nonzero ->
-// startSound(B=0x02) (OR the sound bit into SOUND_PORT3_SHADOW), zero -> loc_19dc(B=0xfd) (mask the
+// startSound(B=0x02) (OR the sound bit into SOUND_PORT3_SHADOW), zero -> clearSoundPort3Bit(B=0xfd) (mask the
 // shot bit off). Both callees are dissolved direct calls. Live-out: memory (SOUND_PORT3_SHADOW) + A.
 // Run: node --test games/invaders/idiomatic/test/equivalence-172c.test.js
 
@@ -49,7 +49,7 @@ test("CRAFTED: mode nonzero raises the sound bit, zero masks the shot bit", () =
     { mode: 0x02, shadow: 0x00 }, // players -> startSound(0x02): shadow | 0x02
     { mode: 0x01, shadow: 0x30 }, // any nonzero -> startSound(0x02)
     { mode: 0xff, shadow: 0x0d },
-    { mode: 0x00, shadow: 0xff }, // no players -> loc_19dc(0xfd): shadow & 0xfd
+    { mode: 0x00, shadow: 0xff }, // no players -> clearSoundPort3Bit(0xfd): shadow & 0xfd
     { mode: 0x00, shadow: 0x02 },
     { mode: 0x00, shadow: 0xa7 },
   ];

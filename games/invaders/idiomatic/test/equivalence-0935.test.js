@@ -2,7 +2,7 @@
 // Memory-equivalence for awardExtraShip -- the reserve-ship award: bail unless the active player's flag byte is set
 // and its tally has reached the port-2-selected threshold; then bump the stored count, redraw the reserve-ship
 // column (RESERVE_SHIP_SPRITE) and lives digit, clear the flag, seat SFX_OFF_TIMER, and cue the award sound
-// (startSound). Every m.call is DISSOLVED into a direct idiomatic call (loc_1910, currentPlayerRecordPtr,
+// (startSound). Every m.call is DISSOLVED into a direct idiomatic call (activePlayerFlagPtr, currentPlayerRecordPtr,
 // readActivePlayerPageTopByte, drawSpriteColumn, drawLivesDigit, and the tail startSound). Live-out is memory
 // only -- the caller (loc_081f) reads no register or flag on return. This is a GAMEPLAY-ONLY routine: its
 // caller loc_081f is not reached within the attract-mode frame budget (the engine hits a translation gap
@@ -16,7 +16,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0935 as oracle } from "../../translated/loc_0935.js";
 import { awardExtraShip } from "../awardExtraShip.js";
 import { u8 } from "../../../../core/int.js";
-import { loc_1910 } from "../loc_1910.js";
+import { activePlayerFlagPtr } from "../activePlayerFlagPtr.js";
 import { currentPlayerRecordPtr } from "../currentPlayerRecordPtr.js";
 import { readActivePlayerPageTopByte } from "../readActivePlayerPageTopByte.js";
 import { drawSpriteColumn } from "../drawSpriteColumn.js";
@@ -38,7 +38,7 @@ const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRAT
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
-// Player-1 record page 0x21: bit0 set -> loc_1910 = loc_20e7, currentPlayerRecordPtr = PLAYER1_OBJ_DESC,
+// Player-1 record page 0x21: bit0 set -> activePlayerFlagPtr = loc_20e7, currentPlayerRecordPtr = PLAYER1_OBJ_DESC,
 // active-page base 0x2100 (top byte at 0x21ff). Flag byte the routine tests sits at loc_20e7 - 2.
 const FLAG = loc_20e7 - 2;
 const TALLY = PLAYER1_OBJ_DESC + 1;
@@ -129,7 +129,7 @@ test("CRAFTED: port2-bit3 threshold-select is discriminated (tally 0x12 straddle
 test("TEETH: a module-mutating twin (lives digit off by one) diverges in RAM", () => {
   // Real module shape, one broken step: draws the digit for `count` instead of count+1.
   function loc_0935_broken(m) {
-    const flagPtr = loc_1910(m);
+    const flagPtr = activePlayerFlagPtr(m);
     if (m.mem8[flagPtr - 2] === 0) return;
     const threshold = (m.io.portIn(0x02) & 0x08) ? 0x10 : 0x15;
     const tally = m.mem8[currentPlayerRecordPtr(m) + 1];
@@ -142,7 +142,7 @@ test("TEETH: a module-mutating twin (lives digit off by one) diverges in RAM", (
     do { hi = u8(hi + 2); n = u8(n - 1); } while (n !== 0);
     drawSpriteColumn(m, (hi << 8) | (LIVES_DIGIT_SCREEN_ADDR & 0xff), RESERVE_SHIP_SPRITE, 0x10);
     drawLivesDigit(m, count); // BUG: should be count + 1
-    m.mem8[loc_1910(m) - 2] = 0x00;
+    m.mem8[activePlayerFlagPtr(m) - 2] = 0x00;
     m.mem8[SFX_OFF_TIMER] = 0xff;
     return startSound(m, 0x10);
   }

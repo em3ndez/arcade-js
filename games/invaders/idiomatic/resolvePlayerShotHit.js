@@ -4,7 +4,7 @@ import { clearShotHitAndSilence } from "./clearShotHitAndSilence.js";
 import { markSaucerHitAndRetireShot } from "./markSaucerHitAndRetireShot.js";
 import { scaleXToBlock } from "./scaleXToBlock.js";
 import { scaleYToBlock } from "./scaleYToBlock.js";
-import { loc_1581 } from "./loc_1581.js";
+import { alienGridCellPtr } from "./alienGridCellPtr.js";
 import { loc_0a5f } from "./loc_0a5f.js";
 import { loadSpriteDescriptor } from "./loadSpriteDescriptor.js";
 import { blitShiftedSprite } from "./blitShiftedSprite.js";
@@ -38,7 +38,7 @@ export function resolvePlayerShotHit(m) {
   m.mem16[ALIEN_EXPLOSION_ADDR] = (residualY << 8) | residualX;
   m.mem8[PLAYER_SHOT_STATUS] = 0x05;
 
-  const recPtr = loc_1581(m, xBlock);
+  const recPtr = alienGridCellPtr(m, xBlock);
   if (m.mem8[recPtr] === 0) return standDown();
   m.mem8[recPtr] = 0x00;
 

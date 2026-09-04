@@ -4,7 +4,7 @@ import { reverseFleetAtEdge } from "./reverseFleetAtEdge.js";
 
 // Run the state-2 handler, then tail into the fleet edge/direction update.
 // Live-out: RAM only; the callers ignore the result.
-export function loc_190a(m) {
+export function resolveShotAndFleetEdge(m) {
   resolvePlayerShotHit(m);
   return reverseFleetAtEdge(m);
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_1910 (ROM 0x1910) -- HL := loc_20e7, or one past it when bit0 of ACTIVE_PLAYER_PAGE
+// Memory-equivalence for activePlayerFlagPtr (ROM 0x1910) -- HL := loc_20e7, or one past it when bit0 of ACTIVE_PLAYER_PAGE
 // is clear. No memory write; the contract is the HL live-out.
 // Run: node --test games/invaders/idiomatic/test/equivalence-1910.test.js
 
@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1910 as oracle } from "../../translated/loc_1910.js";
-import { loc_1910 } from "../loc_1910.js";
+import { activePlayerFlagPtr } from "../activePlayerFlagPtr.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, ACTIVE_PLAYER_PAGE, loc_20e7 } from "../names.js";
@@ -32,11 +32,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 1500) : [];
 
-test("CAPTURE: real 0x1910 dispatches -- loc_1910 == oracle in HL (and RAM -stack)", () => {
+test("CAPTURE: real 0x1910 dispatches -- activePlayerFlagPtr == oracle in HL (and RAM -stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     o.io.setInte(false); c.io.setInte(false);
-    oracle(o); loc_1910(c);
+    oracle(o); activePlayerFlagPtr(c);
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.hl, o.regs.hl, "HL live-out matches the oracle");
   }
@@ -47,7 +47,7 @@ test("CRAFTED: HL selects loc_20e7 vs loc_20e7+1 by bit0 of ACTIVE_PLAYER_PAGE",
   for (const sel of [0x00, 0x01, 0xfe, 0xff, 0x10, 0x03]) {
     const o = new Machine(ROM); o.mem.write8(ACTIVE_PLAYER_PAGE, sel);
     const c = new Machine(ROM); c.mem.write8(ACTIVE_PLAYER_PAGE, sel);
-    oracle(o); loc_1910(c);
+    oracle(o); activePlayerFlagPtr(c);
     assert.equal(ramDiff(o, c), null, `sel=0x${sel.toString(16)}`);
     assert.equal(c.regs.hl, o.regs.hl, `HL match, sel=0x${sel.toString(16)}`);
     assert.equal(c.regs.hl, expectHl(sel), `HL value, sel=0x${sel.toString(16)}`);

@@ -5,7 +5,7 @@ import { startSound } from "./startSound.js";
 import { clearGameActive } from "./clearGameActive.js";
 import { clearScreenRegion } from "./clearScreenRegion.js";
 import { drawLivesDigit } from "./drawLivesDigit.js";
-import { loc_19dc } from "./loc_19dc.js";
+import { clearSoundPort3Bit } from "./clearSoundPort3Bit.js";
 import { gameOverFlow } from "./gameOverFlow.js";
 import { loc_206d, loc_2015, RESERVE_SHIP_ICONS_SCREEN_ADDR } from "./names.js";
 
@@ -28,6 +28,6 @@ export function* loc_1971(m) {
   clearGameActive(m);
   clearScreenRegion(m, RESERVE_SHIP_ICONS_SCREEN_ADDR);
   drawLivesDigit(m, 0x00);
-  loc_19dc(m, 0xfb);
+  clearSoundPort3Bit(m, 0xfb);
   yield* gameOverFlow(m);
 }

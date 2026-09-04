@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_1910 } from "./loc_1910.js";
+import { activePlayerFlagPtr } from "./activePlayerFlagPtr.js";
 import { currentPlayerRecordPtr } from "./currentPlayerRecordPtr.js";
 import { readActivePlayerPageTopByte } from "./readActivePlayerPageTopByte.js";
 import { drawSpriteColumn } from "./drawSpriteColumn.js";
@@ -11,7 +11,7 @@ import { LIVES_DIGIT_SCREEN_ADDR, RESERVE_SHIP_SPRITE, SFX_OFF_TIMER } from "./n
 // Award the next reserve ship once the active player's tally reaches its port-2-selected threshold: bump the
 // stored count, redraw the reserve-ship column and lives digit, clear the flag, and cue the award sound.
 export function awardExtraShip(m) {
-  const flagPtr = loc_1910(m);
+  const flagPtr = activePlayerFlagPtr(m);
   if (m.mem8[flagPtr - 2] === 0) return;
 
   const threshold = (m.io.portIn(0x02) & 0x08) ? 0x10 : 0x15;
@@ -28,7 +28,7 @@ export function awardExtraShip(m) {
   drawSpriteColumn(m, (hi << 8) | (LIVES_DIGIT_SCREEN_ADDR & 0xff), RESERVE_SHIP_SPRITE, 0x10);
 
   drawLivesDigit(m, u8(count + 1));
-  m.mem8[loc_1910(m) - 2] = 0x00;
+  m.mem8[activePlayerFlagPtr(m) - 2] = 0x00;
   m.mem8[SFX_OFF_TIMER] = 0xff;
   return startSound(m, 0x10);
 }
