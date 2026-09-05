@@ -529,3 +529,7 @@ slot was already occupied and the queue was left untouched.
   video/audio-visible capture grounds it.
 - Many work-RAM cells are still named `loc_<addr>`: their role is understood from the routines that touch them
   (described above) but a descriptive identifier is deferred to the cleanup phase rather than promoted piecemeal.
+- A further set of leaf routines has been decompiled to clean JavaScript but is **not yet narrated here** — it keeps
+  `loc_<addr>` names and `[code]` certs pending its own understanding pass (blind naming + MAME grounding), which will
+  fold these leaves into the subsystem sections above. Until then this map covers the routines named in the sections
+  above; the newly-decompiled leaves are correct-by-equivalence but their roles are not yet claimed.
