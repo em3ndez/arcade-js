@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_0473 as cand } from "../loc_0473.js";
+import { driveStartButtonLamps as cand } from "../driveStartButtonLamps.js";
 import { loc_0473 as oracle } from "../../translated/loc_0473.js";
 
 const MODE_FLAG = 0x425f; // bit 5 gates the lamps

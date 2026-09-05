@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_1621 as cand } from "../loc_1621.js";
+import { armFormationAdvanceTrigger as cand } from "../armFormationAdvanceTrigger.js";
 import { loc_1621 as oracle } from "../../translated/loc_1621.js";
 
 const GATE_A = 0x4220;

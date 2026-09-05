@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { romsPresent, craft, ramDiff } from "./_bootSetup.js";
-import { loc_032e as cand } from "../loc_032e.js";
+import { tickSequenceDwellTimer as cand } from "../tickSequenceDwellTimer.js";
 import { loc_032e as oracle } from "../../translated/loc_032e.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";

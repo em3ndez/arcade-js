@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_03c0 as cand } from "../loc_03c0.js";
+import { blankTileColumns as cand } from "../blankTileColumns.js";
 import { loc_03c0 as oracle } from "../../translated/loc_03c0.js";
 
 const SENTINEL = 0xaa; // != blank tile 0x10, so the stamp is observable

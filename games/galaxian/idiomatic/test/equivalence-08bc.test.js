@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_08bc as cand } from "../loc_08bc.js";
+import { advancePlayerShot as cand } from "../advancePlayerShot.js";
 import { loc_08bc as oracle } from "../../translated/loc_08bc.js";
 
 const GATE = 0x4208;

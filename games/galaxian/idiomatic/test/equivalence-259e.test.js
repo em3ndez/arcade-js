@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_259e as cand } from "../loc_259e.js";
+import { drawFixedTilePairHorizontal as cand } from "../drawFixedTilePairHorizontal.js";
 import { loc_259e as oracle } from "../../translated/loc_259e.js";
 
 const DEST = 0x5100; // VIDEO RAM (0x5000-0x53ff), captured by dumpState, clear of the masked stack window

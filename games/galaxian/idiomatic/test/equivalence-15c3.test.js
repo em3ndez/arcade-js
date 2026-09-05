@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_15c3 as cand } from "../loc_15c3.js";
+import { fireDelayedEventRequest as cand } from "../fireDelayedEventRequest.js";
 import { loc_15c3 as oracle } from "../../translated/loc_15c3.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";

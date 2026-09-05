@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_20cd as cand } from "../loc_20cd.js";
+import { paintPlayerStatusColumn as cand } from "../paintPlayerStatusColumn.js";
 import { loc_20cd as oracle } from "../../translated/loc_20cd.js";
 
 const CODE = 0x40;

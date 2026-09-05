@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_0a74 as cand } from "../loc_0a74.js";
+import { advanceAndRenderProjectiles as cand } from "../advanceAndRenderProjectiles.js";
 import { loc_0a74 as oracle } from "../../translated/loc_0a74.js";
 
 const PHASE = 0x425f; // bit0 selects the leading sub-slot

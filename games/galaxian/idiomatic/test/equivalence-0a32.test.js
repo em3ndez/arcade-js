@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_0a32 as cand } from "../loc_0a32.js";
+import { armBehaviorGateOnInputOrTimer as cand } from "../armBehaviorGateOnInputOrTimer.js";
 import { loc_0a32 as oracle } from "../../translated/loc_0a32.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";

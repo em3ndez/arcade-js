@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_25a7 as cand } from "../loc_25a7.js";
+import { drawFixedTilePairVertical as cand } from "../drawFixedTilePairVertical.js";
 import { loc_25a7 as oracle } from "../../translated/loc_25a7.js";
 
 const DEST = 0x5100; // interior of VRAM 0x5000-0x53ff; DEST + 0x20 = 0x5120 is still in VRAM

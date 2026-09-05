@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { romsPresent, craft, ramDiff } from "./_bootSetup.js";
-import { loc_0595 as cand } from "../loc_0595.js";
+import { seedObjectShadowFromRom as cand } from "../seedObjectShadowFromRom.js";
 import { loc_0595 as oracle } from "../../translated/loc_0595.js";
 import { seedObjectRamShadowField as loc_0598 } from "../seedObjectRamShadowField.js";
 

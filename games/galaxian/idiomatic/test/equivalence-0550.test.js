@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_0550 as cand } from "../loc_0550.js";
+import { initPlayfieldState as cand } from "../initPlayfieldState.js";
 import { loc_0550 as oracle } from "../../translated/loc_0550.js";
 
 const SPANS = [[0x4100, 128], [0x4200, 23], [0x4218, 24], [0x4260, 70]];

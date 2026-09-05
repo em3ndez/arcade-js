@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_116b as cand } from "../loc_116b.js";
+import { advanceObjectFlightCurve as cand } from "../advanceObjectFlightCurve.js";
 import { loc_116b as oracle } from "../../translated/loc_116b.js";
 
 const REC = 0x4100; // object record base (work RAM, in the state dump, clear of the masked stack window)

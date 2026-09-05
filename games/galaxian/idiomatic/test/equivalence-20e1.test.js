@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_20e1 as cand } from "../loc_20e1.js";
+import { mapPackedCoordToVram as cand } from "../mapPackedCoordToVram.js";
 import { loc_20e1 as oracle } from "../../translated/loc_20e1.js";
 
 const SCRATCH_RAM = 0x4100;

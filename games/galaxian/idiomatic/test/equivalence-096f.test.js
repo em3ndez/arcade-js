@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_096f as cand } from "../loc_096f.js";
+import { broadcastNegatedSweepToStridedTable as cand } from "../broadcastNegatedSweepToStridedTable.js";
 import { loc_096f as oracle } from "../../translated/loc_096f.js";
 
 const BASE = 0x4028;
