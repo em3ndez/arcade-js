@@ -109,10 +109,13 @@ writes `RAMUse.md` + `Code.md`, cleaning each role for the routine header (it dr
 evidence tags, `§`, and "grounded in MAME" citations). It never opens the port. `Hardware.md` and
 `README.md` stay hand-authored per game.
 
-Per-instruction glosses live in an optional per-game **`games/<game>/ca-lines.md`** — one
-`ADDR<TAB>gloss` line per instruction (4-hex address, a tab, the gloss) — which the generator lays at
-column 50 after any cross-reference token (`AAAA: BB  MNE OPS  ; {token} <gloss>`). Absent the file,
-the tool is inert, so it drops onto a new game unchanged.
+Per-instruction glosses are **REQUIRED for a complete contribution** — a per-game
+**`games/<game>/ca-lines.md`**, one `ADDR<TAB>gloss` line per instruction (4-hex address, a tab, the
+gloss), which the generator lays at column 50 after any cross-reference token (`AAAA: BB  MNE OPS  ;
+{token} <gloss>`). They are the difference between a rich page (pooyan/timeplt/frogger gloss ~70% of
+instructions) and a bare byte-dump anyone could regenerate from the ROM. The generator runs (inert)
+without the file, but `gen_ca_contrib.py` WARNS when it is absent — a page with no glosses is
+INCOMPLETE, not the bar. (dkong/thepit predate this and shipped bare; do not treat them as the bar.)
 
 Author `ca-lines.md` as a **parallel sweep**: slice the named routines into batches; each agent reads
 `idiomatic/<name>.js` to understand its routines, then writes a terse clean-room gloss for each
