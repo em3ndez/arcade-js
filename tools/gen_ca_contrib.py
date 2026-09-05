@@ -37,6 +37,10 @@ def strip_grounding(s):
     s = re.sub(r"\s*[-–—]{1,2}\s*(?:grounded|grounding)\b.*$", "", s, flags=re.I)  # em-dash aside -> EOL
     s = re.sub(r"\.\s+(?:grounded|grounding)\b.*$", ".", s, flags=re.I)            # trailing ". Grounded ..."
     s = re.sub(r"[;,]?\s*(?:grounded|grounding)\b[^);]*", "", s, flags=re.I)       # inline clause -> ) or ;
+    s = re.sub(r"[;,]\s*MAME\b[^;.]*", "", s, flags=re.I)                          # "; MAME shows ..." method clause
+    s = re.sub(r"\s*(?:but )?there is no own role-write to ground it\b", "", s, flags=re.I)
+    s = re.sub(r",?\s*see\s+[\w-]+-debt\.txt\.?", "", s, flags=re.I)               # "see grounding-debt.txt" pointer
+    s = re.sub(r"[;,]?\s*\blive-?outs?\b[^;.]*", "", s, flags=re.I)                # live-out(s) clause (any plurality)
     s = re.sub(r"\btranslated\s+", "", s)
     s = re.sub(r"\(\s*\)", "", s)                                                  # tidy seams left behind
     s = re.sub(r"\(\s*;\s*", "(", s)
@@ -198,6 +202,7 @@ def clean_desc(text, upper_name=None):
     s = TAG_RE.sub("", s)                  # evidence tags anywhere
     s = re.sub(r"\s+", " ", s).strip()     # normalise inner whitespace
     s = strip_grounding(s)                 # drop RE-provenance method-language
+    s = re.sub(r"\bloc_([0-9a-f]{4})\b", lambda mm: "$" + mm.group(1).upper(), s, flags=re.I)  # no raw label leaks
     if upper_name:                         # drop `NAME (0xADDR) —` / `NAME —` self-preamble
         s = re.sub(r"^" + re.escape(upper_name) +
                    r"\s*(?:\(0x[0-9a-fA-F]+\))?\s*[—–:\-]+\s*", "", s)
@@ -412,10 +417,20 @@ def build_notes(gdir):
     return notes
 
 
+# A game whose hardware.json combines work RAM and the video framebuffer in ONE stateRegion -- invaders'
+# `main_ram` spans 0x2000-0x3fff (work RAM 0x2000-0x23ff + the 1bpp framebuffer 0x2400-0x3fff), kept one
+# region so the state dump captures both. RAMUse wants only the work-RAM sub-range (the framebuffer holds
+# no named cells and its VRAM-address constants are not work-RAM cells), so name the (lo, hi) here.
+CA_WORK_RAM = {
+    "invaders": (0x2000, 0x23ff),
+}
+
+
 def work_ram_region(game):
-    """(lo, hi) of the work-RAM region from boards/<game>/hardware.json -- the board's own
-    truth. Its region name varies: dkong/thepit `work`, frogger `ram`; prefer `work`, fall
-    back to `ram`, fail loud if neither."""
+    """(lo, hi inclusive) of the work-RAM region. Prefer a `work`/`ram` stateRegion (dkong/thepit `work`,
+    frogger `ram`); for a game whose stateRegion combines work RAM + video, take CA_WORK_RAM; else fail."""
+    if game in CA_WORK_RAM:
+        return CA_WORK_RAM[game]
     hw_path = os.path.join(REPO, "boards", game, "hardware.json")
     regions = json.load(open(hw_path)).get("stateRegions", [])
     work = (next((r for r in regions if r.get("name") == "work"), None)
@@ -515,7 +530,8 @@ def token_for(mnem, operand, routines, labels, wr_lo, wr_hi, rom_hi):
 
 def xform_instr(raw, routines, labels, wr_lo, wr_hi, rom_hi, notes):
     code, _, comment = raw.partition(";")
-    m = re.match(r"\s*([0-9a-f]+)\s+([0-9a-f ]+?)\s*$", comment)
+    # `; ADDR BYTES` on the Z80 games; the 8080 tracer appends a `[NT]` T-state annotation -- tolerate it.
+    m = re.match(r"\s*([0-9a-f]+)\s+([0-9a-f ]+?)\s*(?:\[[^\]]*\])?\s*$", comment)
     addr = m.group(1).upper()
     rawbytes = " ".join(b.upper() for b in m.group(2).split())
     code = code.strip()
