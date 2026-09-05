@@ -12,12 +12,13 @@ ROMPATH ?= $(HOME)/Downloads
 # Extra flags forwarded to the recorder, e.g. SAMPLEFLAGS="--dry-run".
 SAMPLEFLAGS ?=
 
-.PHONY: help test serve rom-dkong rom-pooyan samples trace verify stepcheck pixel golden-mp4
+.PHONY: help test serve rom-dkong rom-pooyan rom-galaxian samples trace verify stepcheck pixel golden-mp4
 
 help:
 	@echo "arcade-js targets:"
 	@echo "  make rom-dkong    assemble + sha256-verify the Donkey Kong ROM from your dkong.zip"
 	@echo "  make rom-pooyan   assemble + sha256-verify the Pooyan ROM from your pooyan.zip"
+	@echo "  make rom-galaxian assemble + sha256-verify the Galaxian ROM from your galaxian.zip"
 	@echo "  make samples      record GAME's sounds from YOUR MAME + YOUR ROM into"
 	@echo "                    games/$(GAME)/audio/samples/ (gitignored, never committed)."
 	@echo "                    Needs MAME on PATH and your own romset in ROMPATH=$(ROMPATH)."
@@ -48,6 +49,10 @@ rom-dkong:
 
 rom-pooyan:
 	$(MAKE) -C games/pooyan rom
+
+# Galaxian (runbook-built) uses the generic assembler directly (no per-game Makefile).
+rom-galaxian:
+	node tools/build-rom.mjs galaxian
 
 # Drives YOUR MAME against YOUR romset and writes clips to a gitignored
 # directory on YOUR machine. arcade-js ships no game audio, ever — same posture

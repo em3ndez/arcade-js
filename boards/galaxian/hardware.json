@@ -1,0 +1,79 @@
+{
+  "_comment": [
+    "Tool-facing hardware/address declaration for the Namco Galaxian board (parent set `galaxian`).",
+    "Galaxian/Scramble family (MAME src/mame/galaxian/galaxian.cpp), Namco base hardware -- direct port",
+    "reads + single-byte latches (NO PPI), custom discrete sound (galaxian_a.cpp, no sound CPU). Read from",
+    "galaxian.cpp: galaxian_map_base@1746, galaxian_map_discrete@1739, irq_enable_w@761/779, INPUT_PORTS",
+    "(galaxian)@3069, GAME()@16795 (ROT90), gfx layouts@7391; galaxian.h timing@30-56; and galaxian_v.cpp:",
+    "galaxian_palette@238, screen_update_galaxian@460.",
+    "Numbers are decimal (JSON has no 0x); '_hex'/'_note' fields are annotations the loader ignores.",
+    "",
+    "controlByte=0xAF is MEASURED (games/galaxian/rom/maincpu.bin byte 0 = XOR A). Input idle values below",
+    "are MEASURED from a MAME golden run (SDL_VIDEODRIVER=dummy, fresh -cfg_directory, -noreadconfig):",
+    "in0=0x00, in1=0x00, in2=0x04, control=0xAF, Z80 reset regs -- == the DIPSETTING defaults, and dsw0 is",
+    "verified by the config-probe. Landmarks still EMPTY (boot-init/first-vblank cycles come with the",
+    "state-diff/pixel-gate wiring)."
+  ],
+
+  "driver": "galaxian",
+  "screen": { "width": 256, "height": 224, "_note": "galaxian_base set_raw(PIXEL_CLOCK=18.432MHz, HTOTAL=1152, HBEND 0, HBSTART 768, VTOTAL 264, VBEND 16, VBSTART 240) -> visible 256x224. ROT90 (portrait). XSCALE=3 is an internal horizontal render scale; the state/tile model is native 256 wide. galaxian.cpp:7498-7501, galaxian.h:41-56." },
+  "refreshHz": 60.606061,
+  "_refresh_note": "18.432e6 / (HTOTAL 1152 * VTOTAL 264) = 60.6060... -- same as dkong/pooyan/frogger. galaxian.cpp:7499.",
+  "cpuHz": 3072000,
+  "_cpu_note": "Z80 at GALAXIAN_PIXEL_CLOCK/3/2 = 18.432MHz/3/2 = 3.072MHz. galaxian.cpp:7489, galaxian.h:32,37,41.",
+  "cyclesPerFrame": 50688,
+  "_cycles_note": "3072000 / 60.606061 = 50688 = HTOTAL 1152 * VTOTAL 264 / 6. Same as frogger/pooyan/dkong.",
+
+  "stateDumpSize": 2304,
+  "stateRegions": [
+    { "name": "ram",    "base": 16384, "size": 1024, "_hex": "0x4000-0x43FF work RAM (mirror 0x0400) -- galaxian_map_base@1750" },
+    { "name": "vram",   "base": 20480, "size": 1024, "_hex": "0x5000-0x53FF VIDEORAM tile codes (galaxian_videoram_w, mirror 0x0400) -- @1751" },
+    { "name": "objram", "base": 22528, "size": 256,  "_hex": "0x5800-0x58FF OBJRAM (per-column scroll+color 0x00-0x3F, 8 sprites 0x40-0x5F, bullets 0x60-0x7F; mirror 0x0700) -- @1752" }
+  ],
+
+  "writeRanges": [
+    { "name": "videoram",     "start": 20480, "end": 21503, "_hex": "0x5000-0x53FF galaxian_videoram_w (mirror block 0x5000-0x57FF, offset A&0x3FF) -- @1751" },
+    { "name": "objram",       "start": 22528, "end": 22783, "_hex": "0x5800-0x58FF galaxian_objram_w (mirror block 0x5800-0x5FFF, offset A&0xFF) -- @1752" },
+    { "name": "start_lamp",   "start": 24576, "end": 24577, "_hex": "0x6000-0x6001 start_lamp_w D0 (mirror 0x07F8, reg=A&7) -- @1754" },
+    { "name": "coin_lock",    "start": 24578, "end": 24578, "_hex": "0x6002 coin_lock_w D0 -- @1755" },
+    { "name": "coin_count_0", "start": 24579, "end": 24579, "_hex": "0x6003 coin_count_0_w D0 -- @1756" },
+    { "name": "sound_lfo",    "start": 24580, "end": 24583, "_hex": "0x6004-0x6007 galaxian_sound_device::lfo_freq_w -- galaxian_map_discrete@1741" },
+    { "name": "sound_w",      "start": 26624, "end": 26631, "_hex": "0x6800-0x6807 galaxian_sound_device::sound_w -- @1742" },
+    { "name": "irq_enable",   "start": 28673, "end": 28673, "_hex": "0x7001 irq_enable_w D0 = NMI-ON latch -- @1761, irq_enable_w@779" },
+    { "name": "stars_enable", "start": 28676, "end": 28676, "_hex": "0x7004 galaxian_stars_enable_w D0 -- @1762" },
+    { "name": "flip_x",       "start": 28678, "end": 28678, "_hex": "0x7006 galaxian_flip_screen_x_w D0 -- @1763" },
+    { "name": "flip_y",       "start": 28679, "end": 28679, "_hex": "0x7007 galaxian_flip_screen_y_w D0 -- @1764" },
+    { "name": "sound_pitch",  "start": 30720, "end": 30720, "_hex": "0x7800 galaxian_sound_device::pitch_w -- @1743" }
+  ],
+
+  "_watchdog_note": "0x7800 mirror 0x07FF is a READ (watchdog reset_r), not a write; reset_r pets the dog and returns 0xFF (unmap_value_high). The 0x7800 WRITE is the sound pitch_w. galaxian_map_base@1766, galaxian_map_discrete@1743.",
+
+  "_inputs_note": "Galaxian has NO standalone DSW port: the dip bits are interleaved into IN1 (Coinage 0xC0) and IN2 (Bonus 0x03, Lives 0x04). All input bits are IP_ACTIVE_HIGH (pressed reads 1, idle 0). Idle values below MEASURED from a MAME golden config-probe (in0=0x00, in1=0x00, in2=0x04) and equal the DIPSETTING defaults (galaxian.cpp:3069-3106).",
+  "inputs": {
+    "IN0": { "addr": 24576, "idle": 0, "_hex_addr": "0x6000", "_bits": "b0=COIN1 b1=COIN2 b2=LEFT(2way) b3=RIGHT(2way) b4=BUTTON1 b5=DSW Cabinet(0=upright default) b6=SERVICE b7=SERVICE1. idle 0x00. ✓ MEASURED 0x00." },
+    "IN1": { "addr": 26624, "idle": 0, "_hex_addr": "0x6800", "_bits": "b0=START1 b1=START2 b2=LEFT(cocktail) b3=RIGHT(cocktail) b4=BUTTON1(cocktail) b5=unused b6-7=DSW Coinage(default 0x00=1C/1C). idle 0x00. ✓ MEASURED 0x00." },
+    "IN2": { "addr": 28672, "idle": 4, "_hex_addr": "0x7000", "_hex_idle": "0x04", "_bits": "b0-1=DSW Bonus_Life(default 0x00=7000) b2=DSW Lives(default 0x04=3) b3=unused b4-7=unused. idle = Lives-default 0x04. ✓ MEASURED 0x04." }
+  },
+
+  "dsw0": { "addr": 28672, "expected": 4, "_hex_addr": "0x7000 (IN2)", "_hex_expected": "0x04 -- Lives DIP default (3). Galaxian has NO standalone DSW port; IN2 (Bonus b0-1 + Lives b2) is the config-probe port most able to corrupt a golden. ✓ MEASURED 0x04 (dsw0_verified by the mame_golden config-probe at t=0)." },
+
+  "controlByte": 175,
+  "_controlByte_hex": "0xAF -- ROM[0x0000] first byte (XOR A at reset; then LD (0x7001),A to clear irq_enable, JP 0x1A55). MEASURED from games/galaxian/rom/maincpu.bin byte 0. Non-0xFF, so it distinguishes a real ROM read from this board's 0xFF unmap_value_high float.",
+
+  "z80Reset": {
+    "AF": 64, "BC": 0, "DE": 0, "HL": 0, "IX": 65535, "IY": 65535, "SP": 0,
+    "_hex": "MAME Z80 reset: AF=0x0040 (Z flag set), IX=IY=0xFFFF, rest 0 -- same for every MAME Z80"
+  },
+
+  "writeTimestamp": "write-bus-cycle",
+
+  "interrupt": {
+    "kind": "NMI",
+    "vector": 102,
+    "_hex_vector": "0x0066",
+    "_note": "vblank_interrupt_w asserts INPUT_LINE_NMI only while irq_enable_w's D0 latch (0x7001) is set; clearing it clears the line. m_irq_line defaults to INPUT_LINE_NMI. galaxian.cpp:761-767,779-787, galaxian.h:435."
+  },
+
+  "landmarks": [],
+  "_landmarks_todo": "EMPTY -- boot-init-done and first-vblank-NMI cycles need a MAME golden run with the verified romset. BLOCKED on the first golden capture (§2)."
+}
