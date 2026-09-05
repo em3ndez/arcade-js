@@ -894,6 +894,19 @@ def main():
     print(f"workRAM: 0x{wr_lo:04X}-0x{wr_hi:04X}   ROM: 0x0000-0x{rom_hi:04X}")
     print(f"routines: {len(routines)} total, {named} English-named, {len(routines)-named} loc_")
 
+    # ca-lines.md carries the per-instruction glosses that make the listing readable (~70% coverage in the
+    # peer pages pooyan/timeplt/frogger). A page with none is an INCOMPLETE byte-dump. Warn LOUDLY rather
+    # than fail (dkong/thepit predate ca-lines and are grandfathered). docs/contributing-disassembly.md.
+    n_instr = sum(1 for ln in code.split("\n") if re.match(r"^[0-9A-F]{4}: ", ln))
+    if not notes:
+        print(f"\n*** WARNING: no games/{game}/ca-lines.md — Code.md has NO per-instruction glosses (only\n"
+              f"    cross-ref tokens). That is an INCOMPLETE contribution, a bare byte-dump. Author the glosses\n"
+              f"    (parallel sweep — docs/contributing-disassembly.md) before treating the pages as done.",
+              file=sys.stderr)
+    elif len(notes) < n_instr * 0.4:
+        print(f"\n*** WARNING: games/{game}/ca-lines.md glosses only {len(notes)} of ~{n_instr} instructions "
+              f"(<40%); the peer pages carry ~70%. Deepen the gloss sweep.", file=sys.stderr)
+
     # Guardrail: a DEFB is the disassembler's undefined-opcode fallback -- off-convention for a
     # CA submission (it chokes the deploy tool). Fail loud so each is resolved before submitting.
     defbs = [ln.strip() for ln in code.split("\n") if re.search(r"\bDEFB\b", ln)]
