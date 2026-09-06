@@ -13,11 +13,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_0267 as cand } from "../loc_0267.js";
+import { queueColumnDrawAndAdvanceSequence as cand } from "../queueColumnDrawAndAdvanceSequence.js";
 import { loc_0267 as oracle } from "../../translated/loc_0267.js";
 import { clearStridedTable } from "../clearStridedTable.js";
 import { stageObjectsToSpriteShadow } from "../stageObjectsToSpriteShadow.js";
-import { loc_0cc3 } from "../loc_0cc3.js";
+import { driveAllObjectSlots } from "../driveAllObjectSlots.js";
 import { redrawTileColumnsPeriodically } from "../redrawTileColumnsPeriodically.js";
 import { enqueueCommandWord } from "../enqueueCommandWord.js";
 
@@ -48,7 +48,7 @@ function seed(t9) {
 function subsysOnly(m) {
   clearStridedTable(m);
   stageObjectsToSpriteShadow(m);
-  loc_0cc3(m);
+  driveAllObjectSlots(m);
   redrawTileColumnsPeriodically(m);
 }
 

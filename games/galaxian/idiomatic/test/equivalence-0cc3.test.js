@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_0cc3 as cand } from "../loc_0cc3.js";
+import { driveAllObjectSlots as cand } from "../driveAllObjectSlots.js";
 import { loc_0cc3 as oracle } from "../../translated/loc_0cc3.js";
 import { driveObjectSlot } from "../driveObjectSlot.js";
 

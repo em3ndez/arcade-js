@@ -14,7 +14,7 @@ import {
 import { moveControlledObjectAndStageSprite } from "./moveControlledObjectAndStageSprite.js";
 import { advancePlayerShotAndStageSprite } from "./advancePlayerShotAndStageSprite.js";
 import { advanceAndRenderProjectiles } from "./advanceAndRenderProjectiles.js";
-import { loc_0cc3 } from "./loc_0cc3.js";
+import { driveAllObjectSlots } from "./driveAllObjectSlots.js";
 import { stageObjectsToSpriteShadow } from "./stageObjectsToSpriteShadow.js";
 import { armBehaviorGateOnInputOrTimer } from "./armBehaviorGateOnInputOrTimer.js";
 import { flagPlayerShotHitOnFormation } from "./flagPlayerShotHitOnFormation.js";
@@ -39,14 +39,14 @@ import { driveSoundVoicesFromOccupancy } from "./driveSoundVoicesFromOccupancy.j
 import { expireActivityGatedTimer } from "./expireActivityGatedTimer.js";
 import { computeControlledObjectMoveCommand } from "./computeControlledObjectMoveCommand.js";
 
-export function loc_0661(m) {
+export function runGameplayFrameAndAdvanceOnFieldClear(m) {
   const { mem8 } = m;
 
   // 27 per-frame subsystem updates, in order.
   moveControlledObjectAndStageSprite(m);
   advancePlayerShotAndStageSprite(m);
   advanceAndRenderProjectiles(m);
-  loc_0cc3(m);
+  driveAllObjectSlots(m);
   stageObjectsToSpriteShadow(m);
   armBehaviorGateOnInputOrTimer(m);
   flagPlayerShotHitOnFormation(m);

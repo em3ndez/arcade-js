@@ -8,7 +8,7 @@
 import { loc_4008, loc_4009, loc_4058, SEQUENCE_STATE, DRAWN_COLUMN_COUNT } from "./names.js";
 import { clearStridedTable } from "./clearStridedTable.js";
 import { stageObjectsToSpriteShadow } from "./stageObjectsToSpriteShadow.js";
-import { loc_0cc3 } from "./loc_0cc3.js";
+import { driveAllObjectSlots } from "./driveAllObjectSlots.js";
 import { redrawTileColumnsPeriodically } from "./redrawTileColumnsPeriodically.js";
 import { enqueueCommandWord } from "./enqueueCommandWord.js";
 
@@ -16,12 +16,12 @@ const SEQUENCE_TIMER_PTR = (0x11 << 8) | 0x40; // pointer word installed into /
 const CMD_CHANNEL = 6;
 const CMD_ARG = 0x0f;
 
-export function loc_0267(m) {
+export function queueColumnDrawAndAdvanceSequence(m) {
   const { mem8 } = m;
 
   clearStridedTable(m);
   stageObjectsToSpriteShadow(m);
-  loc_0cc3(m);
+  driveAllObjectSlots(m);
   redrawTileColumnsPeriodically(m);
 
   const remaining = (mem8[loc_4009] - 1) & 0xff;

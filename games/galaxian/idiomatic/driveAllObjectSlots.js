@@ -9,7 +9,7 @@ import { driveObjectSlot } from "./driveObjectSlot.js";
 const SLOT_COUNT = 8;
 const SLOT_STRIDE = 0x20; // bytes per object record
 
-export function loc_0cc3(m) {
+export function driveAllObjectSlots(m) {
   let rec = SPRITE_SOURCE_OBJ_BASE;
   for (let slot = 0; slot < SLOT_COUNT; slot++) {
     driveObjectSlot(m, rec); // drive one slot: dying-anim handoff / inactive skip / state handler

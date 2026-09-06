@@ -4,14 +4,14 @@
 // direct call, with the `ret` left off so the dispatch seam completes it.
 import { clearStridedTable } from "./clearStridedTable.js";
 import { stageObjectsToSpriteShadow } from "./stageObjectsToSpriteShadow.js";
-import { loc_0cc3 } from "./loc_0cc3.js";
+import { driveAllObjectSlots } from "./driveAllObjectSlots.js";
 import { redrawTileColumnsPeriodically } from "./redrawTileColumnsPeriodically.js";
 import { tickPrescaledSequenceTimer } from "./tickPrescaledSequenceTimer.js";
 
-export function loc_028e(m) {
+export function dwellThenAdvanceSequence(m) {
   clearStridedTable(m);
   stageObjectsToSpriteShadow(m);
-  loc_0cc3(m);
+  driveAllObjectSlots(m);
   redrawTileColumnsPeriodically(m);
 
   return tickPrescaledSequenceTimer(m);

@@ -8,18 +8,18 @@
 import { loc_4008, loc_4009, loc_4058, SEQUENCE_STATE, DRAWN_COLUMN_COUNT } from "./names.js";
 import { clearStridedTable } from "./clearStridedTable.js";
 import { stageObjectsToSpriteShadow } from "./stageObjectsToSpriteShadow.js";
-import { loc_0cc3 } from "./loc_0cc3.js";
+import { driveAllObjectSlots } from "./driveAllObjectSlots.js";
 import { redrawTileColumnsPeriodically } from "./redrawTileColumnsPeriodically.js";
 import { activateDescriptorSlot } from "./activateDescriptorSlot.js";
 
 const TIMER_RELOAD = 0xd2;
 
-export function loc_023f(m) {
+export function activateDescriptorSlotsThenAdvanceSequence(m) {
   const { mem8 } = m;
 
   clearStridedTable(m);
   stageObjectsToSpriteShadow(m);
-  loc_0cc3(m);
+  driveAllObjectSlots(m);
   redrawTileColumnsPeriodically(m);
 
   // Phase 1: sub-timer countdown.

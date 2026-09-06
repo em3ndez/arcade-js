@@ -16,7 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_0661 as cand } from "../loc_0661.js";
+import { runGameplayFrameAndAdvanceOnFieldClear as cand } from "../runGameplayFrameAndAdvanceOnFieldClear.js";
 import { loc_0661 as oracle } from "../../translated/loc_0661.js";
 import {
   OBJ_ACTIVE_FLAG, SEQUENCE_STATE, VRAM_WRITE_PTR,

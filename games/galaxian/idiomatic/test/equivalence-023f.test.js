@@ -13,11 +13,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_023f as cand } from "../loc_023f.js";
+import { activateDescriptorSlotsThenAdvanceSequence as cand } from "../activateDescriptorSlotsThenAdvanceSequence.js";
 import { loc_023f as oracle } from "../../translated/loc_023f.js";
 import { clearStridedTable } from "../clearStridedTable.js";
 import { stageObjectsToSpriteShadow } from "../stageObjectsToSpriteShadow.js";
-import { loc_0cc3 } from "../loc_0cc3.js";
+import { driveAllObjectSlots } from "../driveAllObjectSlots.js";
 import { redrawTileColumnsPeriodically } from "../redrawTileColumnsPeriodically.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -46,7 +46,7 @@ function seed(t8, t9) {
 function subsysOnly(m) {
   clearStridedTable(m);
   stageObjectsToSpriteShadow(m);
-  loc_0cc3(m);
+  driveAllObjectSlots(m);
   redrawTileColumnsPeriodically(m);
 }
 
