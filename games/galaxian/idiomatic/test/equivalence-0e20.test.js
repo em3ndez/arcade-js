@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_0e20 as cand } from "../loc_0e20.js";
+import { commitMoveToStoredOrPlayerTargetX as cand } from "../commitMoveToStoredOrPlayerTargetX.js";
 import { loc_0e20 as oracle } from "../../translated/loc_0e20.js";
 import { commitMoveAcrossPlayerX } from "../commitMoveAcrossPlayerX.js";
 import { commitMoveToTargetX } from "../commitMoveToTargetX.js";

@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_145c as cand } from "../loc_145c.js";
+import { activateObjectSlotAndEnqueueSpawn as cand } from "../activateObjectSlotAndEnqueueSpawn.js";
 import { loc_145c as oracle } from "../../translated/loc_145c.js";
 import { OBJ_TABLE, loc_40a0, loc_4000 } from "../names.js";
 

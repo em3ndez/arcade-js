@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_0d06 as cand } from "../loc_0d06.js";
+import { initSpawnedObjectFromGridCell as cand } from "../initSpawnedObjectFromGridCell.js";
 import { loc_0d06 as oracle } from "../../translated/loc_0d06.js";
 import { loc_41c2, ACTIVE_NEIGHBOR_COUNT, OBJ_TABLE, loc_40a0, loc_4000 } from "../names.js";
 

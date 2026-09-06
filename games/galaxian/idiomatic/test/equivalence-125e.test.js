@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_125e as cand } from "../loc_125e.js";
+import { awardKillScoreByBandAndDeactivate as cand } from "../awardKillScoreByBandAndDeactivate.js";
 import { loc_125e as oracle } from "../../translated/loc_125e.js";
 
 const IX = 0x42b0;          // object base (work RAM; ix, ix+0x20, ix+0x40 all in the dump)

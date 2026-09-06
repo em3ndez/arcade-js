@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_215f as cand } from "../loc_215f.js";
+import { draw4x4TileForm as cand } from "../draw4x4TileForm.js";
 import { loc_215f as oracle } from "../../translated/loc_215f.js";
 import { drawTileBlock2x2 } from "../drawTileBlock2x2.js";
 

@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_191e as cand } from "../loc_191e.js";
+import { addCreditForCoin as cand } from "../addCreditForCoin.js";
 import { loc_191e as oracle } from "../../translated/loc_191e.js";
 
 const COUNTER = 0x4002;

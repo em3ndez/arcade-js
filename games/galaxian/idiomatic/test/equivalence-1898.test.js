@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_1898 as cand } from "../loc_1898.js";
+import { driveSoundLfoLevel as cand } from "../driveSoundLfoLevel.js";
 import { loc_1898 as oracle } from "../../translated/loc_1898.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";

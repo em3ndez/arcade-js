@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_1637 as cand } from "../loc_1637.js";
+import { advanceStageAndReseedFormation as cand } from "../advanceStageAndReseedFormation.js";
 import { loc_1637 as oracle } from "../../translated/loc_1637.js";
 
 const ENABLE = 0x4222, COUNTDOWN = 0x4223, SELECTOR = 0x421b, REQUEST = 0x421e;

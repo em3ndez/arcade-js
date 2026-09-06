@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_0408 as cand } from "../loc_0408.js";
+import { resetObjectRamAndAdvanceSequence as cand } from "../resetObjectRamAndAdvanceSequence.js";
 import { loc_0408 as oracle } from "../../translated/loc_0408.js";
 
 const SPRITE_SHADOW = 0x4060;

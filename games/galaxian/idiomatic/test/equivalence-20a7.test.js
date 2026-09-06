@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_20a7 as cand } from "../loc_20a7.js";
+import { repaintPlayerStatusColumnIfSaved as cand } from "../repaintPlayerStatusColumnIfSaved.js";
 import { loc_20a7 as oracle } from "../../translated/loc_20a7.js";
 import { repaintPlayerStatusColumn } from "../repaintPlayerStatusColumn.js";
 

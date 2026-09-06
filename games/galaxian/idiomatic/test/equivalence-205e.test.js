@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_205e as cand } from "../loc_205e.js";
+import { drawFixedTileFigureAtPackedCoord as cand } from "../drawFixedTileFigureAtPackedCoord.js";
 import { loc_205e as oracle } from "../../translated/loc_205e.js";
 
 const BLOCK_COORD = 0x11;   // bit4 set -> 2x2 block; maps to VRAM cell 0x504d

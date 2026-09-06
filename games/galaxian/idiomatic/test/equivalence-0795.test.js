@@ -16,7 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_0795 as cand } from "../loc_0795.js";
+import { restoreSavedStateAndEnterPlaySubstate as cand } from "../restoreSavedStateAndEnterPlaySubstate.js";
 import { loc_0795 as oracle } from "../../translated/loc_0795.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";

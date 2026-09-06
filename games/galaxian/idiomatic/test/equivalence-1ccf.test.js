@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_1ccf as cand } from "../loc_1ccf.js";
+import { drawTextColumnByIndex as cand } from "../drawTextColumnByIndex.js";
 import { loc_1ccf as oracle } from "../../translated/loc_1ccf.js";
 
 const TABLE = 0x1cf6, STRIDE = 5, INDEX = 3, CHAR_ZERO = 48;
