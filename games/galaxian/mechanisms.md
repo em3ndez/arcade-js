@@ -363,4 +363,8 @@ Every glyph, block, and cleared row this subsystem paints lands in the tilemap h
 - Many work-RAM cells are still named `loc_<addr>`: their role is understood from the routines that touch them
   (described above) but a descriptive identifier is deferred to the cleanup phase rather than promoted piecemeal.
 - A further tier of routines remains translated (not yet decompiled); the map grows to cover them as the spiral
-  climbs.
+  climbs. Most recently lifted are the per-slot object-state dispatcher — which gates an inactive slot, hands a
+  dying object to the death-animation dispatcher, and otherwise selects one of sixteen object-AI handlers by the
+  object's state index through the absorbed rst-28 table — and the per-frame main-loop input step that drives the
+  sound tick and reads IN0 before the input scan. Both are correct-by-equivalence but still carry `loc_<addr>`
+  names and `[code]` certs pending their own understanding pass.
