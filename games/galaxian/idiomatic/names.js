@@ -231,9 +231,6 @@ export const loc_2157 = 0x2157;
 export const loc_40ad = 0x40ad;
 export const loc_40ae = 0x40ae;
 
-// batch 7 -- descriptive cells ([code], grounding pending)
-// batch 7 -- loc_ placeholders (role not yet consensus-confident)
-
 // Idiomatic overrides wired OVER the translated oracle (batch 1, leaves-first). Names stay loc_<addr>
 // this pass; role is a [code] reading; cert lifts to "seen" at grounding.
 export const ROUTINES = {
@@ -452,4 +449,6 @@ export const ROUTINES = {
   0x17d0: { name: "updateSoundSweepVoice", role: "[code] Per-frame sound-sweep voice updater (2nd of the sound-driver tick loc_16f5's channel/effect updaters): gated on 0x4006 bit0; while its counter cell 0x41c2 != 1 delegate to the sound-counter manager advanceSoundSweepAndStagePitch (steps sweep cell 0x41c3 while sound counter 0x41c4 < 96 ceiling, stages SOUND_PITCH 0x41c1); on the tick where 0x41c2 == 1, reload the idle template -- 0x41c2=0, 0x41c3=2, 0x41c4=160 (counter parked past the 96 ceiling so the sweep stops bumping until it decays). Own writes are only that constant idle-template reload (grounds no cell); the sweep/pitch production is delegated to [code] routines, so this stays [code].", cert: "code" },
   0x1c5d: { name: "requestSound6AndContinueInputScan", role: "[code] On folded input IN0|IN1 bits 2-3 (mask 0x0c), seeds sound-request selector 0x41df=6 (the value armSoundSequenceBySelector 0x1819 keys on to arm sound sequence 0x1ebd, gated on sound driver 0x4006 bit0), then falls through to armInputFlagAndDrawInputColumns (0x1c68) to continue the input-column scan.", cert: "code" },
   0x2055: { name: "drawAnimatedTileFigureAtPackedCoord", role: "[code] Draw-dispatch table entry 0 (jump table 0x203d, dispatched by loc_202c): maps the packed coordinate in A to its tilemap-VRAM cell (mapPackedCoordToVram 0x20e1), folds that coord into a frame-timer-animated 2-bit tile variant (computeTileVariantFromValueAndTimer 0x2104 vs frame counter 0x425f), then draws a 2x2 block when coord bit4 is set (mapper carry live-out) else a double-height glyph into VRAM; animated counterpart to sibling entry 0x205e (fixed tile).", cert: "code" },
+  0x03f2: { name: "loc_03f2", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x10e4: { name: "loc_10e4", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
 };

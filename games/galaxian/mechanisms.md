@@ -511,4 +511,7 @@ Finally, loc_090b is a deliberately unnamed, pure-stack epilogue — it merely r
 - Many work-RAM cells are still named `loc_<addr>`: their role is understood from the routines that touch them
   (described above) but a descriptive identifier is deferred to the cleanup phase rather than promoted piecemeal.
 - A further tier of routines remains translated (not yet decompiled); the map grows to cover them as the spiral
-  climbs.
+  climbs. The two most recently decompiled routines are the first RST-28 sub-state dispatchers lifted into JS switches
+  (the state-2 sub-state dispatcher and the dying-object animation dispatcher); they are correct-by-equivalence but still
+  carry `loc_<addr>` names and `[code]` certs pending their own understanding pass, which folds them into the sections
+  above; until then the shared RST-28 primitive stays translated for its other (still-translated) callers.
