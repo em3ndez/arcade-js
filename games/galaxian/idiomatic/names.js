@@ -222,6 +222,15 @@ export const loc_4004 = 0x4004;
 export const loc_4015 = 0x4015;
 export const loc_4016 = 0x4016;
 
+// batch 6 -- descriptive cells ([code], grounding pending)
+export const PRIMARY_TRIGGER_BLOCK = 0x4176; // [code] primary spawn trigger-flag block (4 flags, 0x4176..0x4179)
+export const SECONDARY_TRIGGER_BLOCK = 0x4165; // [code] secondary spawn trigger-flag block (primary index remapped -17)
+// batch 6 -- loc_ placeholders (role not yet consensus-confident)
+export const loc_4003 = 0x4003;
+export const loc_2157 = 0x2157;
+export const loc_40ad = 0x40ad;
+export const loc_40ae = 0x40ae;
+
 // Idiomatic overrides wired OVER the translated oracle (batch 1, leaves-first). Names stay loc_<addr>
 // this pass; role is a [code] reading; cert lifts to "seen" at grounding.
 export const ROUTINES = {
@@ -423,4 +432,17 @@ export const ROUTINES = {
   0x213d: { name: "drawSelectedTileBlockOrFallback", role: "[code] Select a 2x2 tile block by the signed selector B: non-negative -> look the block up in the tile-block table by that index and stamp it at the pending DE destination; negative -> stamp the fixed fallback block (tile 0xa4) there.", cert: "code" },
   0x2231: { name: "drawScoreFieldByIndex", role: "[code] Redraw the packed-BCD score column selected by counter index: 0 -> player-1 score (primary field), 1 -> player-2 score (drawn only when the live flag 0x400e is set, which also picks the alt field), 2 -> high score; index >=3 recurses down, redrawing every field from index-1 to 0.", cert: "code" },
   0x22b3: { name: "drawMarkerRow", role: "[code] Redraw the 5-slot marker row at MARKER_ROW_VRAM (0x539e): paint `markers` marker tiles (102) growing upward, then blank the remaining slots until the signed slot counter goes negative; when OBJ_ACTIVE_FLAG (0x4200) is set the displayed count is dropped by one, and if that empties it every slot is blanked instead.", cert: "code" },
+  0x0492: { name: "loc_0492", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x05a5: { name: "loc_05a5", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1227: { name: "loc_1227", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x129e: { name: "loc_129e", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1472: { name: "loc_1472", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x14be: { name: "loc_14be", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x17e5: { name: "loc_17e5", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1931: { name: "loc_1931", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1c68: { name: "loc_1c68", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1d28: { name: "loc_1d28", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x2131: { name: "loc_2131", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x21fe: { name: "loc_21fe", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x229c: { name: "loc_229c", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
 };

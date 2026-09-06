@@ -540,4 +540,6 @@ Finally, `loc_090b` is a deliberately unnamed pure-stack epilogue: it pops the c
 - Many work-RAM cells are still named `loc_<addr>`: their role is understood from the routines that touch them
   (described above) but a descriptive identifier is deferred to the cleanup phase rather than promoted piecemeal.
 - A further tier of routines remains translated (not yet decompiled); the map grows to cover them as the spiral
-  climbs.
+  climbs. The most recently decompiled leaves are correct-by-equivalence but still carry `loc_<addr>` names and
+  `[code]` certs pending their own understanding pass (blind naming + MAME grounding), which folds them into the
+  sections above; until then this map covers the named routines and those leaves are not yet narrated.
