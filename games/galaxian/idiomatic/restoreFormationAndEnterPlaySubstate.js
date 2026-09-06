@@ -5,7 +5,7 @@
 // the sound gate is open, post the board-start cue: the paired-player burst when the paired-player flag is
 // set, else a plain channel-5 prologue word plus the standard burst.
 import {
-  PACKED_FLAG_BITMAP, loc_4218, loc_425f, loc_4220, FLIP_SCREEN_X, FLIP_SCREEN_Y,
+  PACKED_FLAG_BITMAP, loc_4218, FRAME_COUNTER, loc_4220, FLIP_SCREEN_X, FLIP_SCREEN_Y,
   loc_4018, SEQUENCE_STATE, loc_4009, loc_4245, loc_0640, loc_4006, loc_400e,
 } from "./names.js";
 import { unpackBitmaskToFlagBytes } from "./unpackBitmaskToFlagBytes.js";
@@ -24,7 +24,7 @@ export function restoreFormationAndEnterPlaySubstate(m) {
   const template = unpackBitmaskToFlagBytes(m, PACKED_FLAG_BITMAP);
   for (let i = 0; i < TEMPLATE_BYTES; i++) mem8[loc_4218 + i] = mem8[template + i];
 
-  mem8[loc_425f] = 0;
+  mem8[FRAME_COUNTER] = 0;
   mem8[loc_4220] = 0;
   mem8[FLIP_SCREEN_X] = 0;
   mem8[FLIP_SCREEN_Y] = 0;

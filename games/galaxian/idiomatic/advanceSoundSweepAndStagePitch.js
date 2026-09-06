@@ -4,7 +4,7 @@
 // Failing that, bump the pointed cell while the sound counter stays below its ceiling, then fall into the
 // counter tick.
 import { u16 } from "../../../core/int.js";
-import { loc_4226, loc_425f, loc_41c4 } from "./names.js";
+import { loc_4226, FRAME_COUNTER, loc_41c4 } from "./names.js";
 import { stageSoundPitchBySelector } from "./stageSoundPitchBySelector.js";
 import { tickSoundCounterAndStagePitch } from "./tickSoundCounterAndStagePitch.js";
 
@@ -15,7 +15,7 @@ export function advanceSoundSweepAndStagePitch(m, ptr = m.regs.hl) {
 
   if (mem8[loc_4226] & 1) return;
   ptr = u16(ptr + 1);
-  if (mem8[loc_425f] & 1) return stageSoundPitchBySelector(m, ptr);
+  if (mem8[FRAME_COUNTER] & 1) return stageSoundPitchBySelector(m, ptr);
 
   const count = mem8[loc_41c4];
   if (count < COUNTER_CEILING) mem8[ptr] = mem8[ptr] + 1;

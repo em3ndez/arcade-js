@@ -5,7 +5,7 @@ import {
   START_LAMP_0,
   START_LAMP_1,
   FLAG_BITS_BASE,
-  loc_425f,
+  FRAME_COUNTER,
   OBJ_ACTIVE_FLAG,
   loc_4218,
   loc_4226,
@@ -25,7 +25,7 @@ export function initPlayfieldState(m) {
   mem8[START_LAMP_1] = 0;
 
   for (let i = 0; i < 128; i++) mem8[FLAG_BITS_BASE + i] = 0;
-  mem8[loc_425f] = 0;
+  mem8[FRAME_COUNTER] = 0;
   for (let i = 0; i < 23; i++) mem8[OBJ_ACTIVE_FLAG + i] = 0; // two spans with a one-byte gap between them
   for (let i = 0; i < 24; i++) mem8[loc_4218 + i] = 0;
   for (let i = 0; i < 70; i++) mem8[loc_4260 + i] = 0;

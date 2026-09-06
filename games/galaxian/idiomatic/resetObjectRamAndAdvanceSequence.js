@@ -7,7 +7,7 @@ import { fillMemoryBlock } from "./fillMemoryBlock.js";
 import {
   SPRITE_SHADOW_BASE,
   loc_4260,
-  loc_4238,
+  OBJECT_DRAW_SUPPRESS,
   MESSAGE_SCROLL_ENABLE,
   VRAM_WRITE_PTR,
   VRAM_BASE,
@@ -29,7 +29,7 @@ export function resetObjectRamAndAdvanceSequence(m) {
   fillMemoryBlock(m, loc_4260, 0, FULL_PAGE);
   fillMemoryBlock(m, loc_4260 + FULL_PAGE, 0, 80);
 
-  mem8[loc_4238] = 0;
+  mem8[OBJECT_DRAW_SUPPRESS] = 0;
   mem8[MESSAGE_SCROLL_ENABLE] = 0;
 
   mem16[VRAM_WRITE_PTR] = VRAM_BASE + 2;

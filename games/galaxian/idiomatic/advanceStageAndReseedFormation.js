@@ -6,7 +6,7 @@
 import { unpackBitmaskToFlagBytes } from "./unpackBitmaskToFlagBytes.js";
 import { enqueueCommandWord } from "./enqueueCommandWord.js";
 import {
-  loc_4222, loc_4223, loc_421a, loc_425f, loc_420e, loc_421b, loc_421e,
+  loc_4222, loc_4223, loc_421a, FRAME_COUNTER, loc_420e, loc_421b, loc_421e,
   loc_4177, loc_4178, loc_051b, loc_0700,
 } from "./names.js";
 
@@ -26,7 +26,7 @@ export function advanceStageAndReseedFormation(m) {
   unpackBitmaskToFlagBytes(m, loc_051b);
 
   mem8[loc_421a] = 0;
-  mem8[loc_425f] = 0;
+  mem8[FRAME_COUNTER] = 0;
   mem16[loc_420e] = 1; // reseed the formation anchor
 
   // Step the stage selector: its high byte counts up, its low byte advances but saturates at the max.

@@ -8,7 +8,7 @@
 import { advanceObjectFlightCurve } from "./advanceObjectFlightCurve.js";
 import { aimObjectAtTarget } from "./aimObjectAtTarget.js";
 import { spawnAimedProjectileAtPlayer } from "./spawnAimedProjectileAtPlayer.js";
-import { OBJ_ACTIVE_FLAG, loc_4202, loc_422b, loc_4213, loc_425f } from "./names.js";
+import { OBJ_ACTIVE_FLAG, loc_4202, loc_422b, loc_4213, FRAME_COUNTER } from "./names.js";
 
 // Field offsets within the object record addressed by `obj`.
 const OBJ_STATE = 0x02;     // dispatch state index
@@ -30,7 +30,7 @@ export function advanceHomingObjectFlightAndFire(m, obj = m.regs.ix) {
   //   mode == 4 -> home only on odd frame parity; mode > 4 -> always home; mode < 4 -> skip.
   const mode = mem8[obj + OBJ_MODE];
   let chase;
-  if (mode === 0x04) chase = (mem8[loc_425f] & 0x01) !== 0;
+  if (mode === 0x04) chase = (mem8[FRAME_COUNTER] & 0x01) !== 0;
   else if (mode > 0x04) chase = true;
   else chase = false;
 

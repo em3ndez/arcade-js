@@ -1,31 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2067 — memory-equivalent to the frozen oracle at ROM 0x2067 (object-slot scan head).
+ * drawObjectFigureGridColumn — memory-equivalent to the frozen oracle at ROM 0x2067 (object-slot scan head).
  * Three crafted paths off the shared attract seed:
- *   - FALL  : 0x425f low nibble != 0, 0x4238 bit0 clear -> seed the 6-slot loop (stride 0x10) and fall into
- *             loc_207d; the loop draws a tile figure per slot, so work/VRAM changes are observable.
+ *   - FALL  : 0x425f low nibble != 0, 0x4238 bit0 clear -> seed the 6-row column loop (stride 0x10) and fall into
+ *             routeObjectGridCellDraw; the loop draws a tile figure per slot, so work/VRAM changes are observable.
  *   - TAIL  : 0x425f low nibble == 0 -> repaint the player-status column (0x4006 seeded nonzero so 0x40ab +
  *             the status column are written -> observable).
  *   - RET   : 0x425f low nibble != 0, 0x4238 bit0 set -> return with NO memory write.
  * Fidelity is memory-only (ramDiff masks the return-stack window). No register live-out: the caller
- * loc_200a reloads all its state after the call, and the BC/C/HL seeding is consumed inside the loc_207d
+ * loc_200a reloads all its state after the call, and the BC/C/HL seeding is consumed inside the routeObjectGridCellDraw
  * loop (handed over as explicit params) — so there is no register-comparison arm.
  * Teeth: no-op, swapped tails, a dropped bit0 gate, a wrong grid base, a wrong nibble mask.
  * NON-VACUOUS positive control: the no-op twin diverges on FALL and TAIL (each writes RAM), and the
  * dropped-bit0 twin diverges on RET (proving that path is observable and the gate is load-bearing).
- * The candidate and twins delegate to the idiomatic loc_207d as loc_207d(m, bc, hl) -- bc = (count<<8)|stride,
+ * The candidate and twins delegate to the idiomatic routeObjectGridCellDraw as routeObjectGridCellDraw(m, bc, hl) -- bc = (count<<8)|stride,
  * hl = the slot pointer -- the push-free co-batch ABI the loop epilogue forwards.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_2067 as cand } from "../loc_2067.js";
+import { drawObjectFigureGridColumn as cand } from "../drawObjectFigureGridColumn.js";
 import { loc_2067 as oracle } from "../../translated/loc_2067.js";
-import { loc_207d } from "../loc_207d.js";
+import { routeObjectGridCellDraw } from "../routeObjectGridCellDraw.js";
 import { repaintPlayerStatusColumnFromModeGate } from "../repaintPlayerStatusColumnFromModeGate.js";
 
-const COUNTER = 0x425f;   // frame/slot counter; low nibble = active-slot count
+const COUNTER = 0x425f;   // frame counter; low nibble = grid-column phase
 const FLAGS = 0x4238;     // flags byte; bit0 gates the scan
 const GRID = 0x4120;      // object grid base
 const MODE_GATE = 0x4006; // repaint mode-gate byte read by loc_209c
@@ -53,16 +53,16 @@ function brokenNoOp() {}
 function brokenWrongTail(m) { // nibble 0 falls into the loop instead of repainting
   const { mem8 } = m;
   const nibble = mem8[COUNTER] & 0x0f;
-  if (nibble === 0) return loc_207d(m, (COUNT << 8) | STRIDE, GRID);
+  if (nibble === 0) return routeObjectGridCellDraw(m, (COUNT << 8) | STRIDE, GRID);
   const ptr = GRID + nibble;
   if (mem8[FLAGS] & 0x01) return;
-  return loc_207d(m, (COUNT << 8) | STRIDE, ptr);
+  return routeObjectGridCellDraw(m, (COUNT << 8) | STRIDE, ptr);
 }
 function brokenIgnoreBit0(m) { // drops the flags bit0 gate -> always scans
   const { mem8 } = m;
   const nibble = mem8[COUNTER] & 0x0f;
   if (nibble === 0) return repaintPlayerStatusColumnFromModeGate(m);
-  return loc_207d(m, (COUNT << 8) | STRIDE, GRID + nibble);
+  return routeObjectGridCellDraw(m, (COUNT << 8) | STRIDE, GRID + nibble);
 }
 function brokenWrongBase(m) { // wrong grid base -> loop reads/draws at wrong coords
   const { mem8 } = m;
@@ -70,7 +70,7 @@ function brokenWrongBase(m) { // wrong grid base -> loop reads/draws at wrong co
   if (nibble === 0) return repaintPlayerStatusColumnFromModeGate(m);
   const ptr = GRID + 0x10 + nibble;
   if (mem8[FLAGS] & 0x01) return;
-  return loc_207d(m, (COUNT << 8) | STRIDE, ptr);
+  return routeObjectGridCellDraw(m, (COUNT << 8) | STRIDE, ptr);
 }
 function brokenWrongMask(m) { // wrong nibble mask -> wrong index/path
   const { mem8 } = m;
@@ -78,14 +78,14 @@ function brokenWrongMask(m) { // wrong nibble mask -> wrong index/path
   if (nibble === 0) return repaintPlayerStatusColumnFromModeGate(m);
   const ptr = GRID + nibble;
   if (mem8[FLAGS] & 0x01) return;
-  return loc_207d(m, (COUNT << 8) | STRIDE, ptr);
+  return routeObjectGridCellDraw(m, (COUNT << 8) | STRIDE, ptr);
 }
 
-test("EQUAL: loc_2067 == oracle across the three paths", { skip }, () => {
-  assert.equal(ramDiff(oracle, cand, entryFall()), null, "FALL: seed + fall into loc_207d diverged");
+test("EQUAL: drawObjectFigureGridColumn == oracle across the three paths", { skip }, () => {
+  assert.equal(ramDiff(oracle, cand, entryFall()), null, "FALL: seed + fall into routeObjectGridCellDraw diverged");
   assert.equal(ramDiff(oracle, cand, entryTail()), null, "TAIL: repaint path diverged");
   assert.equal(ramDiff(oracle, cand, entryRet()), null, "RET: bit0-set return path diverged");
-  console.log("  EQUAL: loc_2067 == oracle (RAM) on fall/tail/ret");
+  console.log("  EQUAL: drawObjectFigureGridColumn == oracle (RAM) on fall/tail/ret");
 });
 
 test("TEETH: broken twins are caught (with non-vacuous positive controls)", { skip }, () => {

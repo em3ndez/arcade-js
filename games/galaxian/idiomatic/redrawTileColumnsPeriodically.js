@@ -4,7 +4,7 @@
 // them -- the first from a frame-selected source row, the rest from the consecutive source stream.
 import { blankTileColumns } from "./blankTileColumns.js";
 import { drawTileColumnTriple } from "./drawTileColumnTriple.js";
-import { DRAWN_COLUMN_COUNT, loc_425f, loc_5193, TILE_COLUMN_TABLE, TILE_COLUMN_TABLE_CONT } from "./names.js";
+import { DRAWN_COLUMN_COUNT, FRAME_COUNTER, loc_5193, TILE_COLUMN_TABLE, TILE_COLUMN_TABLE_CONT } from "./names.js";
 
 const ROW_BYTES = 3;    // one source row = three cells stamped up a column
 const DRAW_PHASE = 32;  // frame-counter low-6 value that triggers a draw
@@ -16,7 +16,7 @@ export function redrawTileColumnsPeriodically(m) {
   if (count < 2) return;
   const columns = count - 1;
 
-  const frame = mem8[loc_425f];
+  const frame = mem8[FRAME_COUNTER];
   const phase = frame & 0x3f;
   if (phase === 0) {
     blankTileColumns(m, columns);

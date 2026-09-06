@@ -2,7 +2,7 @@
 // Arm the trigger flags when a masked input line reads active. Skips when the enable gate bit is
 // clear or the armed flag is already set; a control bit then picks between an input-mask test (arms
 // both flags) and a low-5-bits range test (arms one flag).
-import { OBJ_ACTIVE_FLAG, loc_4208, loc_4006, loc_4018, loc_4013, IN0_SHADOW, loc_4014, IN1_SHADOW, loc_41cc, loc_425f } from "./names.js";
+import { OBJ_ACTIVE_FLAG, loc_4208, loc_4006, loc_4018, loc_4013, IN0_SHADOW, loc_4014, IN1_SHADOW, loc_41cc, FRAME_COUNTER } from "./names.js";
 
 export function armBehaviorGateOnInputOrTimer(m) {
   const { mem8 } = m;
@@ -12,7 +12,7 @@ export function armBehaviorGateOnInputOrTimer(m) {
 
   if ((mem8[loc_4006] & 1) === 0) {
     // range test: arm only when the low five bits are all clear
-    if (mem8[loc_425f] & 0x1f) return;
+    if (mem8[FRAME_COUNTER] & 0x1f) return;
     mem8[loc_4208] = 1;
     return;
   }

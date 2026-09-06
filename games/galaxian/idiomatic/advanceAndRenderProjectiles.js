@@ -6,7 +6,7 @@
 // window. Deactivating zeros the active/sub-position/high bytes. The sprite's Y and code are then written
 // from the sub-slot, mirrored by a direction flag, with a +/-1 code nudge on the first three records.
 import { u16 } from "../../../core/int.js";
-import { loc_425f, loc_4018, loc_4260, loc_4081 } from "./names.js";
+import { FRAME_COUNTER, loc_4018, loc_4260, loc_4081 } from "./names.js";
 
 // Sub-slot layout (5 bytes) addressed by `rec`.
 const ACTIVE = 0; // bit0 = slot active
@@ -28,7 +28,7 @@ export function advanceAndRenderProjectiles(m) {
 
   let rec = loc_4260;
   // Phase bit clear: bump the first sub-slot's sub-position and start on the second sub-slot.
-  if ((mem8[loc_425f] & 0x01) === 0) {
+  if ((mem8[FRAME_COUNTER] & 0x01) === 0) {
     mem8[rec + SUBPOS] = mem8[rec + SUBPOS] + 2;
     rec = u16(rec + SLOT_STRIDE);
   }

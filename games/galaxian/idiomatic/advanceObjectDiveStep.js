@@ -4,7 +4,7 @@
 // fold its heading hi-byte plus the per-object increment into a new Y; a carry that crosses the signed
 // boundary bumps the state index instead of storing the Y.
 import { advanceObjectFlightCurve } from "./advanceObjectFlightCurve.js";
-import { loc_425f } from "./names.js";
+import { FRAME_COUNTER } from "./names.js";
 
 const OBJ_STATE = 0x02;   // state index (bumped when the object is inside the window)
 const OBJ_POS = 0x03;     // stepped position
@@ -17,7 +17,7 @@ export function advanceObjectDiveStep(m, obj = m.regs.ix) {
   const bumpState = () => { mem8[obj + OBJ_STATE] = mem8[obj + OBJ_STATE] + 1; };
 
   // Step the position by 1 or 2 depending on the frame-parity bit.
-  const step = (mem8[loc_425f] & 0x01) + 1;
+  const step = (mem8[FRAME_COUNTER] & 0x01) + 1;
   const pos = (mem8[obj + OBJ_POS] + step) & 0xff;
   mem8[obj + OBJ_POS] = pos;
 

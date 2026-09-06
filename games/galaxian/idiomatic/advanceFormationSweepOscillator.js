@@ -4,7 +4,7 @@
 // proximity gate (the shot lined up on the swept column) shortcuts straight to the formation broadcast.
 import { u16 } from "../../../core/int.js";
 import {
-  loc_4208, loc_4209, loc_420a, loc_420e, loc_425f,
+  loc_4208, loc_4209, loc_420a, loc_420e, FRAME_COUNTER,
   FORMATION_X_BOUNDS, OBJ_SWEEP_DIRECTION, COLUMN_OCCUPANCY,
 } from "./names.js";
 import { broadcastNegatedFormationSweepToStridedTable } from "./broadcastNegatedFormationSweepToStridedTable.js";
@@ -26,12 +26,12 @@ export function advanceFormationSweepOscillator(m) {
   if (mem8[OBJ_SWEEP_DIRECTION] === 0) {
     // Ascending: turn around at the upper bound, else step up.
     if (!negative && low >= boundLo) return setSweepDescending(m);
-    if (mem8[loc_425f] & 0x03) return;            // 1-frame-in-4 throttle
+    if (mem8[FRAME_COUNTER] & 0x03) return;            // 1-frame-in-4 throttle
     word = u16(word + 1);
   } else {
     // Descending: turn around at the lower bound, else step down.
     if (negative && low < boundHi) return setSweepAscending(m);
-    if (mem8[loc_425f] & 0x03) return;
+    if (mem8[FRAME_COUNTER] & 0x03) return;
     word = u16(word - 1);
   }
 

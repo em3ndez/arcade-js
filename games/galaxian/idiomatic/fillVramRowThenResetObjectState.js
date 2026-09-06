@@ -5,7 +5,7 @@
 import { u16 } from "../../../core/int.js";
 import {
   VRAM_WRITE_PTR, loc_4009, SEQUENCE_STATE, loc_4008, OBJ_ACTIVE_FLAG,
-  FLIP_SCREEN_X, FLIP_SCREEN_Y, loc_4018, loc_4238, OBJ_SHADOW_RESEED_TEMPLATE,
+  FLIP_SCREEN_X, FLIP_SCREEN_Y, loc_4018, OBJECT_DRAW_SUPPRESS, OBJ_SHADOW_RESEED_TEMPLATE,
 } from "./names.js";
 import { fillMemoryBlock } from "./fillMemoryBlock.js";
 import { seedObjectRamShadowField } from "./seedObjectRamShadowField.js";
@@ -34,7 +34,7 @@ export function fillVramRowThenResetObjectState(m) {
   mem8[FLIP_SCREEN_X] = 0;
   mem8[FLIP_SCREEN_Y] = 0;
   mem8[loc_4018] = 0;
-  mem8[loc_4238] = 1;
+  mem8[OBJECT_DRAW_SUPPRESS] = 1;
 
   return seedObjectRamShadowField(m, OBJ_SHADOW_RESEED_TEMPLATE);
 }

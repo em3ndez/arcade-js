@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Active-slot draw handler + the slot-loop epilogue. Map the slot's packed coordinate (A) to its
-// tilemap-VRAM cell, fold the loop counter into a tile variant, and stamp the glyph / 2x2 block; then
-// restore the slot pointer and stride/count saved across the register-clobbering subcalls, advance the
-// pointer's low byte by the stride, and loop for the next of the six slots -- or return once the counter
+// Animated object-grid cell draw + the loop epilogue. Map the cell's packed coordinate (A) to its
+// tilemap-VRAM cell, fold the frame counter into a tile variant, and stamp the glyph / 2x2 block; then
+// restore the grid pointer and stride/count saved across the register-clobbering subcalls, advance the
+// pointer's low byte by the row stride, and loop for the next of the six rows -- or return once the counter
 // reaches zero. The layer never pushes, so the walk head forwards the pointer (HL) and stride/count (BC)
 // here as savedHl / savedBc; omitted (isolated tests, the born-live entry) they are popped from the stack.
 import { mapPackedCoordToVram } from "./mapPackedCoordToVram.js";
 import { computeTileVariantFromTimer } from "./computeTileVariantFromTimer.js";
 import { drawTileGlyphOrBlock } from "./drawTileGlyphOrBlock.js";
-import { loc_207d } from "./loc_207d.js";
+import { routeObjectGridCellDraw } from "./routeObjectGridCellDraw.js";
 
-export function loc_2089(m, savedHl, savedBc, coord = m.regs.a) {
+export function drawAnimatedObjectGridCellAndAdvance(m, savedHl, savedBc, coord = m.regs.a) {
   mapPackedCoordToVram(m, coord);           // coord -> HL = VRAM cell, A = coord bits 6..5, carry
   computeTileVariantFromTimer(m, coord, 0); // fold the coord into the 2-bit tile variant (into B)
   drawTileGlyphOrBlock(m);                  // stamp the glyph / 2x2 block
 
-  // Restore the saved loop state, advance the pointer's low byte by the stride, and spend one slot (djnz).
+  // Restore the saved loop state, advance the pointer's low byte by the row stride, and spend one row (djnz).
   const slotPtr = savedHl === undefined ? m.pop16() : savedHl;
   const strideCount = savedBc === undefined ? m.pop16() : savedBc;
   const stride = strideCount & 0xff;
@@ -25,7 +25,7 @@ export function loc_2089(m, savedHl, savedBc, coord = m.regs.a) {
   const advancedPtr = ((slotPtr >> 8) << 8) | advancedLow;
   const strideCountOut = (remaining << 8) | stride;
 
-  // Live-outs HL / A / BC ride the return; loop for the next slot, else return.
+  // Live-outs HL / A / BC ride the return; loop for the next row, else return.
   return (m.regs.hl = advancedPtr, m.regs.a = advancedLow, m.regs.bc = strideCountOut,
-    remaining !== 0 ? loc_207d(m) : m.ret());
+    remaining !== 0 ? routeObjectGridCellDraw(m) : m.ret());
 }

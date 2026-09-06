@@ -4,7 +4,7 @@
 // result bucketed into a 0/4/8 movement selector.
 import { advanceRandomSeed } from "./advanceRandomSeed.js";
 import { accumulateObjectPositionWeight } from "./accumulateObjectPositionWeight.js";
-import { loc_425f, loc_4007, OBJ_ACTIVE_FLAG, OBJ_TABLE, loc_4260, loc_4202, loc_420e, OBJ_MOVE_CMD } from "./names.js";
+import { FRAME_COUNTER, loc_4007, OBJ_ACTIVE_FLAG, OBJ_TABLE, loc_4260, loc_4202, loc_420e, OBJ_MOVE_CMD } from "./names.js";
 
 // Arithmetic shift right of a signed byte by n, re-masked to a byte.
 const asr = (v, n) => ((v << 24 >> 24) >> n) & 0xff;
@@ -13,7 +13,7 @@ export function computeControlledObjectMoveCommand(m) {
   const { mem8 } = m;
 
   // Act only when the 32-frame phase lands, and only while both master enables have bit 0 set.
-  if (((mem8[loc_425f] + 9) & 0x1f) !== 0) return;
+  if (((mem8[FRAME_COUNTER] + 9) & 0x1f) !== 0) return;
   if (!(mem8[loc_4007] & 0x01)) return;
   if (!(mem8[OBJ_ACTIVE_FLAG] & 0x01)) return;
 

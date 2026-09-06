@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2089 — memory-equivalent to the frozen oracle at ROM 0x2089. The active-slot handler maps the slot's
+ * drawAnimatedObjectGridCellAndAdvance — memory-equivalent to the frozen oracle at ROM 0x2089. The active-slot handler maps the slot's
  * packed coordinate (A) to a VRAM cell, folds the loop counter into a tile variant, and stamps a glyph /
- * 2x2 block; then it restores the slot pointer + stride/count loc_207d saved, advances the pointer by the
- * stride, and djnz-loops back into loc_207d (or returns). A crafted entry stages the registers loc_207d
+ * 2x2 block; then it restores the slot pointer + stride/count routeObjectGridCellDraw saved, advances the pointer by the
+ * stride, and djnz-loops back into routeObjectGridCellDraw (or returns). A crafted entry stages the registers routeObjectGridCellDraw
  * hands over and seeds the stack ([hl][bc][ret]) for the oracle's pop hl / pop bc.
  *
  * The real effects are the VRAM stamp (seen by ramDiff) and the loop-carried register live-outs HL / BC /
@@ -12,13 +12,13 @@
  * null across carry-clear (glyph) and carry-set (block) coordinates, with the glyph target cells pre-seeded
  * to a sentinel so the stamp is observably non-vacuous. TEETH catch a no-op, a skipped stamp, advancing by
  * the wrong register, a missed djnz decrement, and a stray write. LOOP drives B=2 through the djnz
- * recursion into the co-batch loc_207d and asserts it terminates with matching RAM.
+ * recursion into the co-batch routeObjectGridCellDraw and asserts it terminates with matching RAM.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_2089 as cand } from "../loc_2089.js";
+import { drawAnimatedObjectGridCellAndAdvance as cand } from "../drawAnimatedObjectGridCellAndAdvance.js";
 import { loc_2089 as oracle } from "../../translated/loc_2089.js";
 import { mapPackedCoordToVram } from "../mapPackedCoordToVram.js";
 import { computeTileVariantFromTimer } from "../computeTileVariantFromTimer.js";
@@ -32,7 +32,7 @@ const STRAY = 0x50c0;    // a VRAM cell the draws never touch, for the stray-wri
 // The VRAM cell mapPackedCoordToVram derives from a packed coordinate (pure arithmetic, no ROM).
 const glyphCell = (coord) => mapPackedCoordToVram({ regs: {} }, coord);
 
-// Craft an active-slot entry the way loc_207d hands it over: A = slot index (packed coordinate), B = loop
+// Craft an active-slot entry the way routeObjectGridCellDraw hands it over: A = slot index (packed coordinate), B = loop
 // counter, DE = block-draw pointer, the frame counter seeded, and the slot pointer + stride/count on the
 // stack top-to-bottom as [hl][bc][caller-ret] for the oracle's pop hl / pop bc. `seedCells` pre-seeds VRAM
 // cells so a stamp there is observable against a no-op.
@@ -50,8 +50,8 @@ function entry({ coord, count, stride, de, timer, slotPtr, seedCells = [] }) {
   });
 }
 
-// The loop carries HL (advanced pointer), BC (decremented counter + stride) and A between loc_2089 and
-// loc_207d; ramDiff is memory-only, so compare those live-out registers directly. DE is NOT compared: the
+// The loop carries HL (advanced pointer), BC (decremented counter + stride) and A between drawAnimatedObjectGridCellAndAdvance and
+// routeObjectGridCellDraw; ramDiff is memory-only, so compare those live-out registers directly. DE is NOT compared: the
 // oracle's mapper leaves DE at its glyph-table-lookup scratch (0x2157+index) which the idiomatic mapper,
 // deriving the cell in JS, never reproduces -- and the GLYPH->BLOCK arm proves nothing downstream consumes
 // it (RAM identical there, its positive control biting), so DE is excluded scratch, not a live-out.
@@ -113,7 +113,7 @@ function brokenNoDecrement(m) {
 
 const brokenStray = (m) => { cand(m); m.mem8[STRAY] = (m.mem8[STRAY] + 1) & 0xff; };
 
-test("EQUAL: loc_2089 == oracle (RAM + register live-outs) across glyph and block slots", { skip }, () => {
+test("EQUAL: drawAnimatedObjectGridCellAndAdvance == oracle (RAM + register live-outs) across glyph and block slots", { skip }, () => {
   for (const c of [...GLYPH, ...BLOCK]) {
     assert.equal(ramDiff(oracle, cand, entry(c)), null, `RAM diverged at coord 0x${c.coord.toString(16)}`);
     assert.equal(regDiff(cand, entry(c)), null, `register live-out diverged at coord 0x${c.coord.toString(16)}`);
@@ -123,7 +123,7 @@ test("EQUAL: loc_2089 == oracle (RAM + register live-outs) across glyph and bloc
   // block path likewise stamps its 2x2 cells.
   assert.ok(ramDiff(oracle, brokenNoOp, entry(GLYPH[0])), "vacuous: oracle stamped nothing (glyph)");
   assert.ok(ramDiff(oracle, brokenNoOp, entry(BLOCK[0])), "vacuous: oracle stamped nothing (block)");
-  console.log("  EQUAL: loc_2089 == oracle — glyph + block stamps and HL/BC/A live-outs match");
+  console.log("  EQUAL: drawAnimatedObjectGridCellAndAdvance == oracle — glyph + block stamps and HL/BC/A live-outs match");
 });
 
 test("TEETH: no-op, skipped stamp, wrong advance register, missed decrement, stray write all caught", { skip }, () => {
@@ -137,14 +137,14 @@ test("TEETH: no-op, skipped stamp, wrong advance register, missed decrement, str
   console.log("  TEETH: no-op, skipped stamp, wrong-advance (register), missed decrement, stray write all caught");
 });
 
-// Integration: B=2 drives the djnz recursion back into the co-batch loc_207d (both slots active so it stays
+// Integration: B=2 drives the djnz recursion back into the co-batch routeObjectGridCellDraw (both slots active so it stays
 // on the bit0-set path); asserts the loop terminates with RAM matching the oracle.
-test("LOOP (B=2, both slots active): djnz recurses into loc_207d, terminates, RAM matches", { skip }, () => {
+test("LOOP (B=2, both slots active): djnz recurses into routeObjectGridCellDraw, terminates, RAM matches", { skip }, () => {
   const stride = 0x10, slotPtr = 0x4130;
   const e = entry({ coord: 0x30, count: 2, stride, de: 0x5220, timer: 0x5a, slotPtr });
-  e.mem8[(slotPtr + stride) & 0xffff] |= 0x01; // advanced slot active -> loc_207d re-enters loc_2089
+  e.mem8[(slotPtr + stride) & 0xffff] |= 0x01; // advanced slot active -> routeObjectGridCellDraw re-enters drawAnimatedObjectGridCellAndAdvance
   assert.equal(ramDiff(oracle, cand, e), null, "the multi-slot loop diverged from the oracle");
-  console.log("  LOOP: B=2 djnz recursion into loc_207d terminates with matching RAM");
+  console.log("  LOOP: B=2 djnz recursion into routeObjectGridCellDraw terminates with matching RAM");
 });
 
 // A twin that drives the whole walk itself and, on the block path, stamps the 2x2 at the CARRIED DE

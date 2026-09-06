@@ -8,7 +8,7 @@ import { enqueueCommandWord } from "./enqueueCommandWord.js";
 import {
   SAVED_STATE_SNAPSHOT,
   loc_4218,
-  loc_425f,
+  FRAME_COUNTER,
   loc_4220,
   loc_400f,
   loc_4018,
@@ -36,7 +36,7 @@ export function restoreSavedStateAndEnterPlaySubstate(m) {
   const template = unpackBitmaskToFlagBytes(m, SAVED_STATE_SNAPSHOT);
   for (let i = 0; i < TEMPLATE_BYTES; i++) mem8[loc_4218 + i] = mem8[template + i];
 
-  mem8[loc_425f] = 0;
+  mem8[FRAME_COUNTER] = 0;
   mem8[loc_4220] = 0;
 
   const flip = mem8[loc_400f];

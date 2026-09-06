@@ -3,7 +3,7 @@
 // saturate to the out-of-range marker; otherwise take the low nibble, set a carry when the counter's
 // low nibble is smaller, and fold to a 2-bit variant index. Result is register B.
 import { computeTileVariantFromTimer } from "./computeTileVariantFromTimer.js";
-import { loc_425f } from "./names.js";
+import { FRAME_COUNTER } from "./names.js";
 
 const RANGE_LIMIT = 112;  // values at or above this saturate
 const OUT_OF_RANGE = 128; // saturation marker
@@ -14,6 +14,6 @@ export function computeTileVariantFromValueAndTimer(m, value = m.regs.b) {
   if (value >= RANGE_LIMIT) return (m.regs.b = OUT_OF_RANGE);
 
   const low = value & 0x0f;
-  const carryIn = (mem8[loc_425f] & 0x0f) < low ? 0xff : 0;
+  const carryIn = (mem8[FRAME_COUNTER] & 0x0f) < low ? 0xff : 0;
   return computeTileVariantFromTimer(m, low, carryIn);
 }
