@@ -68,8 +68,11 @@ export default {
 
   // audio (§5): recorded from MAME. Sound-write surface 0x6004-7 lfo / 0x6800-7 sound_w / 0x7800 pitch.
   //   audio: { map: "audio/sounds.js", samples: "audio/samples" },
-  // convergence (§4 clock-free): nmiReturnPC filled once the main loop is disassembled. Interrupt is the
-  //   vblank NMI gated by irq_enable @0x7001 (hardware.json). entropyPin discovered in §4.
+  // convergence (§4 clock-free): the vblank NMI (gated by irq_enable @0x7001) is the sole heartbeat; the main
+  //   loop free-runs and yields once per frame at nmiReturnPC (the dispatch-loop top 0x200a). entropyPin: §4.
+  convergence: {
+    idiomatic: { nmiReturnPC: 0x200a },
+  },
 
   entropyPin: null,
 };

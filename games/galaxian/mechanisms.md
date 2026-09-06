@@ -2,10 +2,10 @@
 
 A code-grounded model of how Galaxian plays, derived from the idiomatic and frozen-oracle routine bodies and
 confirmed against the real ROM under MAME. This is a **living** document: it is regenerated whole as the
-idiomatic decompile spiral climbs. It covers the play-pipeline leaf helpers and the object-figure draw walk; the
+idiomatic decompile spiral climbs. It covers the play-pipeline leaf helpers, the object-figure draw walk, and the
 born-live spine that drives them — the free-running main loop, the vblank-NMI heartbeat, and the top-level state
-dispatchers — is still the frozen oracle, so it is described here from its oracle body and from the leaves it
-schedules, not yet as decompiled JS.
+dispatch — now lifted to idiomatic JS (the interrupt is the sole heartbeat, fired as a direct call); the spine's
+detailed cell/role grounding is still being filled in by following understanding passes.
 
 **Confidence tags** — never recalled, always grounded or derived: `[seen]` a MAME observation terminates the
 chain (a write-tap value trajectory, a confirmed dispatch/consumer); `[code]` a confident reading from the
@@ -1692,11 +1692,12 @@ deactivates the entry and raises `HIT_EVENT_FLAG` [code] for the hit handler to 
 
 ## Open questions
 
-- The born-live spine — the free-running main loop, the vblank-NMI heartbeat, and the top-level state
-  dispatchers (the rst-28 handler and the jp(hl) dispatcher that select the sequence, formation, combat, and
-  sound handlers each frame) — is still the frozen oracle, not yet decompiled to idiomatic JS, so the way the
-  handlers here are scheduled is described from the oracle body and the leaves they call. That spine is the next
-  lift, and is what most of the remaining translated routines are reached through.
+- The born-live spine now runs as idiomatic JS: the vblank-NMI heartbeat (enterVblankService) does the
+  per-frame work and dispatches the top-level game state, the free-running main loop (mainLoop) drains the
+  display list and yields once per frame, and the power-on self-test path (the OBJRAM ramp fill/scan and its
+  mode dispatch) is lifted; the interrupt is the sole heartbeat, fired as a direct call. Its detailed
+  cell/role grounding beyond the frame structure is understanding-pending (a following pass names the spine's
+  cells and confirms the per-state scheduling against MAME).
 - Many handlers stay `[code]` because their state was not reached by the attract + coin/one-player captures (a
   deep formation/dive state, a later board), or because their only side effect lands in VRAM or a hardware latch
   the work-RAM tap cannot see; a deeper poke-cycle / video-visible capture is owed to lift them.

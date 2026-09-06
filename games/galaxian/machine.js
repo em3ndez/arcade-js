@@ -18,6 +18,7 @@ import {
 import { Regs } from "../../core/cpu/z80.js";
 import { makeIndexedView } from "../../core/mem-views.js";
 import { buildRoutines } from "./routines.js";
+import { enterVblankService } from "./idiomatic/enterVblankService.js";
 
 /** 3072000 / 60.606061 = 50688. boards/galaxian/hardware.json cyclesPerFrame; galaxian.cpp:7499. */
 export const CYCLES_PER_FRAME = 50688;
@@ -164,6 +165,11 @@ export class Machine {
   /** The pushed PC lands in work RAM, which IS diffed, so it must be real and not a sentinel. Reentrancy is
    *  guarded by the hardware — the handler clears the enable bit itself. */
   fireNmi() {
+    if (this.idiomaticNmi) {
+      // Idiomatic engine: the vblank handler is pure JS, fired directly -- no guest push, no call/ret seam, so SP is unused.
+      this.nmiCount += 1;
+      return enterVblankService(this);
+    }
     if (!this.pcKnown) {
       throw new Error(
         `NMI at cycle ${this.cycles} but the ROM PC is unknown: a routine here used ` +

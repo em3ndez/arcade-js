@@ -23,11 +23,14 @@ export const SOUND_W_REG5 = 0x6805; // [code] discrete-sound write register 5
 
 // Tilemap VRAM.
 export const VRAM_BASE = 0x5000; // [code] tilemap VRAM base
+export const OBJRAM_HW_BASE = 0x5800; // [seen] sprite/scroll/bullet hardware OBJRAM; the vblank DMA destination
+export const OBJRAM_SHADOW_BASE = 0x4020; // [seen] work-RAM OBJRAM shadow, block-copied to OBJRAM_HW_BASE each vblank
 export const PLAYER2_STATUS_VRAM = 0x50e0; // [code] player-2 status tilemap cell
 export const PLAYER1_STATUS_VRAM = 0x5340; // [code] player-1 status tilemap cell
 
 // Work RAM.
 export const RNG_SEED = 0x401e; // [code] 8-bit LCG PRNG seed
+export const SELFTEST_MODE = 0x401a; // [seen] power-on self-test mode; nonzero routes the vblank NMI to the self-test path (3->1->2->0 then normal)
 export const GAME_STATE = 0x4005; // [code] game state index (cleared by the fill re-seed)
 export const SEQUENCE_STATE = 0x400a; // [code] top-level sequence state-machine step index
 export const VRAM_WRITE_PTR = 0x400b; // [code] 16-bit VRAM fill write cursor
@@ -98,6 +101,7 @@ export const SOUND_W_REG2 = 0x6802; // [code] batch 2
 export const IRQ_ENABLE = 0x7001; // [code] batch 2
 export const STARS_ENABLE = 0x7004; // [code] batch 2
 export const SOUND_PITCH_W = 0x7800; // [code] batch 2
+export const WATCHDOG_RESET = 0x7800; // [seen] read = watchdog kick (write side is SOUND_PITCH_W)
 // batch 2 -- loc_ placeholders (role not yet consensus-confident)
 export const loc_4006 = 0x4006;
 export const loc_4013 = 0x4013;
@@ -466,6 +470,7 @@ export const ROUTINES = {
   0x140c: { name: "spawnObjectsOnDelayedEvent", role: "[code] Delayed-spawn dispatcher (per-frame from update pipeline runGameplayFrameAndAdvanceOnFieldClear): gated on region-clear 0x4220 bit0 clear, OBJ_ACTIVE_FLAG 0x4200 bit0 set, and DELAYED_EVENT_REQUEST 0x4229 bit0 set (consumed as a one-shot), and only while the OBJ_TABLE 0x42d0 head word is even; then route by launch direction 0x4215 bit0 -- set = full trigger-block spawn (spawnObjectsFromTriggerFlags 0x14be), else scan the primary trigger block 0x4176.. high->low (spawnPrimaryAndSecondaryObjects 0x1472), then the secondary window (spawnIntoFreeDescriptorSlot 0x1446).", cert: "code" },
   0x17d0: { name: "updateSoundSweepVoice", role: "[code] Per-frame sound-sweep voice updater (2nd of the sound-driver tick driveSoundFrame's channel/effect updaters): gated on 0x4006 bit0; while its counter cell 0x41c2 != 1 delegate to the sound-counter manager advanceSoundSweepAndStagePitch (steps sweep cell 0x41c3 while sound counter 0x41c4 < 96 ceiling, stages SOUND_PITCH 0x41c1); on the tick where 0x41c2 == 1, reload the idle template -- 0x41c2=0, 0x41c3=2, 0x41c4=160 (counter parked past the 96 ceiling so the sweep stops bumping until it decays). Own writes are only that constant idle-template reload (grounds no cell); the sweep/pitch production is delegated to [code] routines, so this stays [code].", cert: "code" },
   0x1c5d: { name: "requestSound6AndContinueInputScan", role: "[code] On folded input IN0|IN1 bits 2-3 (mask 0x0c), seeds sound-request selector 0x41df=6 (the value armSoundSequenceBySelector 0x1819 keys on to arm sound sequence 0x1ebd, gated on sound driver 0x4006 bit0), then falls through to armInputFlagAndDrawInputColumns (0x1c68) to continue the input-column scan.", cert: "code" },
+  0x2000: { name: "loc_2000", role: "[code] Main-loop entry: clear the score/HUD scratch block (0x40a2-0x40bf), then hand off to the free-running per-frame main loop generator.", cert: "code" },
   0x2055: { name: "drawAnimatedTileFigureAtPackedCoord", role: "[code] Draw-dispatch table entry 0 (jump table 0x203d, dispatched by loc_202c): maps the packed coordinate in A to its tilemap-VRAM cell (mapPackedCoordToVram 0x20e1), folds that coord into a frame-timer-animated 2-bit tile variant (computeTileVariantFromValueAndTimer 0x2104 vs frame counter 0x425f), then draws a 2x2 block when coord bit4 is set (mapper carry live-out) else a double-height glyph into VRAM; animated counterpart to sibling entry 0x205e (fixed tile).", cert: "code" },
   0x2067: { name: "drawObjectFigureGridColumn", role: "[seen] Object-figure draw head, run as the display-list drain's idle-work step (when the queue is free): on FRAME_COUNTER low-nibble phase 0 repaint the player-status column (repaintPlayerStatusColumnFromModeGate); otherwise, unless OBJECT_DRAW_SUPPRESS bit0 gates it off, index the object grid OBJECT_GRID_BASE by that phase and draw its column of six rows (stride 0x10) through routeObjectGridCellDraw.", cert: "seen" },
   0x207d: { name: "routeObjectGridCellDraw", role: "[seen] One cell of the object-figure grid column: the grid pointer low byte is the packed draw coordinate; if the cell flag bit0 is set draw its timer-animated figure (drawAnimatedObjectGridCellAndAdvance), else stamp the fixed tile figure (drawFixedTileFigureAtPackedCoord) and run the loop epilogue objectGridWalkLoopEpilogue over the remaining rows.", cert: "seen" },
