@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_1c3a as cand } from "../loc_1c3a.js";
+import { driveSoundFrameAndScanInput as cand } from "../driveSoundFrameAndScanInput.js";
 import { loc_1c3a as oracle } from "../../translated/loc_1c3a.js";
 import { driveSoundFrame } from "../driveSoundFrame.js";
 import { driveDecayingSoundSweep } from "../driveDecayingSoundSweep.js";

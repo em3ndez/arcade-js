@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// loc_1c3a — the per-frame main-loop input step. Run the sound driver's per-frame tick and the
+// driveSoundFrameAndScanInput — the per-frame main-loop input step. Run the sound driver's per-frame tick and the
 // once-every-other-frame decaying sweep, pet the watchdog, then read IN0: if any of its arm bits
 // (7, 1, 0) is set, raise the pitch-ramp arm cell; then fall through into the input scan chain,
 // handing it the raw IN0 byte for the chain's downstream IN0|IN1 bit tests.
@@ -10,7 +10,7 @@ import { requestSoundOnInput1AndContinueScan } from "./requestSoundOnInput1AndCo
 
 const IN0_ARM_MASK = 0x83; // IN0 bits 7, 1, 0 -> arm the pitch-ramp cell
 
-export function loc_1c3a(m) {
+export function driveSoundFrameAndScanInput(m) {
   const { mem8 } = m;
 
   driveSoundFrame(m);

@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_0cd6 as cand } from "../loc_0cd6.js";
+import { driveObjectSlot as cand } from "../driveObjectSlot.js";
 import { loc_0cd6 as oracle } from "../../translated/loc_0cd6.js";
 import { settleObjectXAtRest } from "../settleObjectXAtRest.js";
 import { initSpawnedObjectFromGridCell } from "../initSpawnedObjectFromGridCell.js";

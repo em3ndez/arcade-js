@@ -48,7 +48,7 @@ const STATE_HANDLERS = [
   settleObjectXAtRest, // 15
 ];
 
-export function loc_0cd6(m, record = m.regs.ix) {
+export function driveObjectSlot(m, record = m.regs.ix) {
   const { mem8 } = m;
 
   // Dying object: tail-hand off to the death-animation dispatcher (its return is this driver's return).
