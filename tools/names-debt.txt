@@ -285,3 +285,34 @@ galaxian 0x41ca
 galaxian 0x421d
 galaxian 0x421e
 galaxian 0x51fc
+
+# galaxian §4 decompile batch 4 — loc_ cell placeholders (role not yet consensus-confident)
+galaxian 0x0152
+galaxian 0x0503
+galaxian 0x0603
+galaxian 0x0604
+galaxian 0x0682
+galaxian 0x0700
+galaxian 0x0703
+galaxian 0x0830
+galaxian 0x1d91
+galaxian 0x400f
+galaxian 0x401f
+galaxian 0x4058
+galaxian 0x405a
+galaxian 0x40ac
+galaxian 0x4178
+galaxian 0x41c7
+galaxian 0x4205
+galaxian 0x4206
+galaxian 0x4223
+galaxian 0x4238
+galaxian 0x42b2
+galaxian 0x42b3
+galaxian 0x4391
+galaxian 0x51dc
+galaxian 0x521a
+galaxian 0x521c
+galaxian 0x5241
+galaxian 0x5300
+galaxian 0x5320

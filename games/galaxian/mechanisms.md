@@ -316,4 +316,6 @@ Two adapters sit over the block builder. `drawFixedTileBlock2x2` [code] seeds th
 - Many work-RAM cells are still named `loc_<addr>`: their role is understood from the routines that touch them
   (described above) but a descriptive identifier is deferred to the cleanup phase rather than promoted piecemeal.
 - A further tier of routines remains translated (not yet decompiled); the map grows to cover them as the spiral
-  climbs.
+  climbs. A newly-decompiled tier of leaf routines is correct-by-equivalence but keeps `loc_<addr>` names and `[code]`
+  certs pending its own understanding pass (blind naming + MAME grounding), which will fold them into the sections
+  above; until then this map covers the named routines and the newly-lifted leaves are not yet narrated.

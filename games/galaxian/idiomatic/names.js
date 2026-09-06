@@ -169,6 +169,51 @@ export const loc_421d = 0x421d;
 export const loc_421e = 0x421e;
 export const loc_51fc = 0x51fc;
 
+// batch 4 -- descriptive cells ([code], grounding pending)
+export const DIGIT_FIELD_ALT = 0x5121; // [code] alt-player score-digit VRAM field base
+export const DIGIT_FIELD_PRIMARY = 0x5381; // [code] primary-player score-digit VRAM field base
+export const FLIP_SCREEN_X = 0x7006; // [code] screen-flip X latch
+export const FLIP_SCREEN_Y = 0x7007; // [code] screen-flip Y latch
+export const IN2_PORT = 0x7000; // [code] IN2 input port (read)
+export const IN2_SHADOW = 0x4012; // [code] IN2 input shadow
+export const OBJ_SHADOW_RESEED_TEMPLATE = 0x1db1; // [code] ROM template for the object-shadow reseed
+export const SOUND_LFO_RESET_REQUEST = 0x41d0; // [code] sound LFO reset-request flag
+export const SOUND_W_REG3 = 0x6803; // [code] discrete-sound write register 3
+export const SPAWN_RECORD_TABLE = 0x1dd1; // [code] ROM spawn-record table
+export const TEXT_DESCRIPTOR_TABLE = 0x1cf6; // [code] ROM text-descriptor table
+export const TILE_BLOCK_TABLE = 0x215b; // [code] ROM tile-block source table
+export const advanceObjectPathStepAscending_ADDR = 0x1060; // [code] address of advanceObjectPathStepAscending, published as a handler pointer
+// batch 4 -- loc_ placeholders (role not yet consensus-confident; ROM-addr ones are handler/data pointers)
+export const loc_0152 = 0x0152;
+export const loc_0503 = 0x0503;
+export const loc_0603 = 0x0603;
+export const loc_0604 = 0x0604;
+export const loc_0682 = 0x0682;
+export const loc_0700 = 0x0700;
+export const loc_0703 = 0x0703;
+export const loc_0830 = 0x0830;
+export const loc_1d91 = 0x1d91;
+export const loc_400f = 0x400f;
+export const loc_401f = 0x401f;
+export const loc_4058 = 0x4058;
+export const loc_405a = 0x405a;
+export const loc_40ac = 0x40ac;
+export const loc_4178 = 0x4178;
+export const loc_41c7 = 0x41c7;
+export const loc_4205 = 0x4205;
+export const loc_4206 = 0x4206;
+export const loc_4223 = 0x4223;
+export const loc_4238 = 0x4238;
+export const loc_42b2 = 0x42b2;
+export const loc_42b3 = 0x42b3;
+export const loc_4391 = 0x4391;
+export const loc_51dc = 0x51dc;
+export const loc_521a = 0x521a;
+export const loc_521c = 0x521c;
+export const loc_5241 = 0x5241;
+export const loc_5300 = 0x5300;
+export const loc_5320 = 0x5320;
+
 // Idiomatic overrides wired OVER the translated oracle (batch 1, leaves-first). Names stay loc_<addr>
 // this pass; role is a [code] reading; cert lifts to "seen" at grounding.
 export const ROUTINES = {
@@ -304,4 +349,50 @@ export const ROUTINES = {
   0x2261: { name: "drawBcdNumberColumn", role: "[code] Paint three packed-BCD bytes (walked downward from the DE source) as six digit tiles up the IX VRAM column -- high nibble then low per byte, stepping the cursor one row up (-32) per digit -- with a 4-digit leading-zero blank budget via drawBcdDigit; callers point it at the score/high-score VRAM fields.", cert: "code" },
   0x2583: { name: "drawFixedTileBlock2x2", role: "[code] Stamp a 2x2 tile block at the HL destination seeded from the fixed glyph code 44 (0x2c), laying tiles 0x2c..0x2f; the block form of the fixed 0x2c glyph family.", cert: "code" },
   0x2593: { name: "drawTileBlock2x2Up", role: "[code] Draw a 2x2 tile block growing upward from HL: a top pair (tile, tile+1) via stampTilePair with a -33 net stride, then a bottom pair seeded four codes lower one row above; preserves DE. The upward counterpart of drawTileBlock2x2.", cert: "code" },
+  0x1344: { name: "loc_1344", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0b0b: { name: "loc_0b0b", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x090d: { name: "loc_090d", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x00e6: { name: "loc_00e6", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0e20: { name: "loc_0e20", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0d06: { name: "loc_0d06", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x145c: { name: "loc_145c", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1637: { name: "loc_1637", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1ccf: { name: "loc_1ccf", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x20a7: { name: "loc_20a7", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0430: { name: "loc_0430", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0605: { name: "loc_0605", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0795: { name: "loc_0795", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x2591: { name: "loc_2591", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0722: { name: "loc_0722", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x12ed: { name: "loc_12ed", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1801: { name: "loc_1801", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x194f: { name: "loc_194f", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x01e1: { name: "loc_01e1", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1327: { name: "loc_1327", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1d43: { name: "loc_1d43", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x2146: { name: "loc_2146", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x029d: { name: "loc_029d", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x05e2: { name: "loc_05e2", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x149b: { name: "loc_149b", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1898: { name: "loc_1898", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x02e8: { name: "loc_02e8", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0f07: { name: "loc_0f07", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x184f: { name: "loc_184f", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x2104: { name: "loc_2104", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x018c: { name: "loc_018c", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0443: { name: "loc_0443", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x10c2: { name: "loc_10c2", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x2256: { name: "loc_2256", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0408: { name: "loc_0408", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x125e: { name: "loc_125e", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x191e: { name: "loc_191e", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x205e: { name: "loc_205e", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0218: { name: "loc_0218", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x04bc: { name: "loc_04bc", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0583: { name: "loc_0583", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x21f8: { name: "loc_21f8", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x02d1: { name: "loc_02d1", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0614: { name: "loc_0614", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0f7b: { name: "loc_0f7b", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x215f: { name: "loc_215f", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
 };
