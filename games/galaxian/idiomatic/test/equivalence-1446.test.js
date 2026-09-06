@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_1446 as cand } from "../loc_1446.js";
+import { spawnIntoFreeDescriptorSlot as cand } from "../spawnIntoFreeDescriptorSlot.js";
 import { loc_1446 as oracle } from "../../translated/loc_1446.js";
 
 const S0 = 0x4390, S1 = 0x4370, S2 = 0x4350, S3 = 0x4330; // the four slots, scan order

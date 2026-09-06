@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { fillMemoryBlock } from "../fillMemoryBlock.js";
-import { loc_04f2 as cand } from "../loc_04f2.js";
+import { startOnePlayerGame as cand } from "../startOnePlayerGame.js";
 import { loc_04f2 as oracle } from "../../translated/loc_04f2.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";

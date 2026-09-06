@@ -11,7 +11,7 @@ const WINDOW_LO = 96, WINDOW_SPAN = 64; // in-window when u8(field-96) < 64, i.e
 
 const inWindow = (v) => u8(v - WINDOW_LO) < WINDOW_SPAN;
 
-export function loc_0f66(m, record = m.regs.ix) {
+export function armDirectedMoveWhenInWindow(m, record = m.regs.ix) {
   const { mem8 } = m;
 
   mem8[record + 0x03] = u8(mem8[record + 0x03] + 1);

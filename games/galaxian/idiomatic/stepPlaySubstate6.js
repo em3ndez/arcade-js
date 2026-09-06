@@ -11,7 +11,7 @@ import { enqueueCommandWord } from "./enqueueCommandWord.js";
 
 const DWELL_RELOAD = 130; // dwell timer value armed on the inlined tail
 
-export function loc_06d8(m) {
+export function stepPlaySubstate6(m) {
   const { mem8 } = m;
 
   if (mem8[loc_421d]) {

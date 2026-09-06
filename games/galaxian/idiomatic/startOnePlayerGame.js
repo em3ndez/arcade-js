@@ -7,7 +7,7 @@ import { loc_4002, GAME_STATE, SAVED_STATE_SNAPSHOT } from "./names.js";
 
 const SNAPSHOT_BYTES = 32;
 
-export function loc_04f2(m) {
+export function startOnePlayerGame(m) {
   const { mem8 } = m;
 
   if (mem8[loc_4002] === 0) {

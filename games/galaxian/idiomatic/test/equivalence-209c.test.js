@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_209c as cand } from "../loc_209c.js";
+import { repaintPlayerStatusColumnFromModeGate as cand } from "../repaintPlayerStatusColumnFromModeGate.js";
 import { loc_209c as oracle } from "../../translated/loc_209c.js";
 import { repaintPlayerStatusColumn } from "../repaintPlayerStatusColumn.js";
 

@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_05fc as cand } from "../loc_05fc.js";
+import { queueBoardStartSoundBurst as cand } from "../queueBoardStartSoundBurst.js";
 import { loc_05fc as oracle } from "../../translated/loc_05fc.js";
 import { enqueueCommandWord } from "../enqueueCommandWord.js";
 import { enqueueCommandWordBurst } from "../enqueueCommandWordBurst.js";

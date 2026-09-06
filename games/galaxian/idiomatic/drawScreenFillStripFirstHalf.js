@@ -9,7 +9,7 @@ const STRIP_TILE_A = 48;
 const STRIP_TILE_B = 50;
 const SECOND_HALF_PAIRS = 16;
 
-export function loc_1d39(m, cursor = m.regs.hl, count = m.regs.b) {
+export function drawScreenFillStripFirstHalf(m, cursor = m.regs.hl, count = m.regs.b) {
   const { mem8 } = m;
 
   let ptr = cursor;

@@ -7,7 +7,7 @@ import { commitMoveAcrossPlayerX } from "./commitMoveAcrossPlayerX.js";
 const KIND_MASK = 0x70;
 const KIND_STORED_TARGET = 0x60;
 
-export function loc_0dd1(m, record = m.regs.ix) {
+export function advanceActorPhaseAndCommitMove(m, record = m.regs.ix) {
   const { mem8 } = m;
   mem8[record + 0x03] = mem8[record + 0x03] + 1; // phase/anim counter
 

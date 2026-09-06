@@ -9,7 +9,7 @@ import { setSequenceStateByModeAndReloadDwell } from "./setSequenceStateByModeAn
 import { advanceDwellOrResetToState1 } from "./advanceDwellOrResetToState1.js";
 import { enqueueCommandWord } from "./enqueueCommandWord.js";
 
-export function loc_07e8(m) {
+export function stepAltPlaySubstate6(m) {
   const { mem8 } = m;
   const advanceArmed = mem8[loc_4195] !== 0; // gate open -> advance the sub-state inline
 

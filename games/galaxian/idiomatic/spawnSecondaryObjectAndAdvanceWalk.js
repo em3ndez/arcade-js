@@ -7,7 +7,7 @@ import { spawnSecondaryObjectIntoSlot } from "./spawnSecondaryObjectIntoSlot.js"
 
 const SLOT_STRIDE = 32; // bytes between consecutive secondary slots
 
-export function loc_148e(m, slot = m.regs.iy, budget = m.regs.c) {
+export function spawnSecondaryObjectAndAdvanceWalk(m, slot = m.regs.iy, budget = m.regs.c) {
   spawnSecondaryObjectIntoSlot(m, slot);
 
   const nextSlot = u16(slot + SLOT_STRIDE);

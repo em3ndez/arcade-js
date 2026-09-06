@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_22b3 as cand } from "../loc_22b3.js";
+import { drawMarkerRow as cand } from "../drawMarkerRow.js";
 import { loc_22b3 as oracle } from "../../translated/loc_22b3.js";
 import { drawTileBlock2x2Up } from "../drawTileBlock2x2Up.js";
 import { drawFixedTileBlock2x2Up } from "../drawFixedTileBlock2x2Up.js";

@@ -8,7 +8,7 @@ import { activateObjectSlotAndEnqueueSpawn } from "./activateObjectSlotAndEnqueu
 const SLOT_COUNT = 4;   // descriptor slots scanned
 const SLOT_STRIDE = 32; // bytes per slot; the scan walks high -> low
 
-export function loc_1446(m, trigger = m.regs.hl, spawnCode = m.regs.c) {
+export function spawnIntoFreeDescriptorSlot(m, trigger = m.regs.hl, spawnCode = m.regs.c) {
   const { mem8 } = m;
   let slot = DESCRIPTOR_SLOT_TABLE + (SLOT_COUNT - 1) * SLOT_STRIDE;
   for (let i = 0; i < SLOT_COUNT; i++, slot -= SLOT_STRIDE) {

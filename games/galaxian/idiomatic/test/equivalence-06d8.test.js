@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_06d8 as cand } from "../loc_06d8.js";
+import { stepPlaySubstate6 as cand } from "../stepPlaySubstate6.js";
 import { loc_06d8 as oracle } from "../../translated/loc_06d8.js";
 import { advanceDwellOrResetToState1 } from "../advanceDwellOrResetToState1.js";
 import { setSequenceStateByModeAndReloadDwell } from "../setSequenceStateByModeAndReloadDwell.js";

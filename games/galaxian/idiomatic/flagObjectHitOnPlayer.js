@@ -14,7 +14,7 @@ const LOW_BAND = 15;
 const HIGH_MARGIN = 10;
 const HIGH_BAND = 21;
 
-export function loc_12b6(m, obj = m.regs.ix) {
+export function flagObjectHitOnPlayer(m, obj = m.regs.ix) {
   const { mem8 } = m;
 
   if ((mem8[obj] & 1) === 0) return; // inactive object

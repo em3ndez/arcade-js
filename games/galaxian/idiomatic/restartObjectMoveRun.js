@@ -3,7 +3,7 @@
 // cross-player move tail that picks and commits the actor's next horizontal target.
 import { beginObjectCrossPlayerMove } from "./beginObjectCrossPlayerMove.js";
 
-export function loc_1091(m, record = m.regs.ix) {
+export function restartObjectMoveRun(m, record = m.regs.ix) {
   const { mem8 } = m;
 
   mem8[record + 3] = mem8[record + 3] + 1;

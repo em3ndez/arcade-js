@@ -10,7 +10,7 @@ import { u8 } from "../../../core/int.js";
 const SLOTS = 5;
 const MARKER_TILE = 102;
 
-export function loc_22b3(m, markers = m.regs.b) {
+export function drawMarkerRow(m, markers = m.regs.b) {
   const { mem8 } = m;
   let dst = MARKER_ROW_VRAM;
   let slot = SLOTS;

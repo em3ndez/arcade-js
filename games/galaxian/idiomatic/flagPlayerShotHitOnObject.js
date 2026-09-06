@@ -8,7 +8,7 @@ import { loc_4209, loc_420a, loc_420b } from "./names.js";
 const X_WINDOW = 6, X_BIAS = 2;    // in-band when (entryX - refX + bias) lands in [0, window)
 const Y_WINDOW = 12, Y_BIAS = 5;
 
-export function loc_123f(m, obj = m.regs.ix) {
+export function flagPlayerShotHitOnObject(m, obj = m.regs.ix) {
   const { mem8 } = m;
 
   if ((mem8[obj + 0] & 1) === 0) return;                     // inactive entry

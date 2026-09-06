@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_1c73 as cand } from "../loc_1c73.js";
+import { drawInputTextColumnsAndSeedScreenFill as cand } from "../drawInputTextColumnsAndSeedScreenFill.js";
 import { loc_1c73 as oracle } from "../../translated/loc_1c73.js";
 import { drawTextColumnByIndex } from "../drawTextColumnByIndex.js";
 

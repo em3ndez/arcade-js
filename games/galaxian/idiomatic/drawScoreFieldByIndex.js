@@ -10,14 +10,14 @@ import { PLAYER1_SCORE_BCD, PLAYER2_SCORE_BCD, HIGH_SCORE_BCD, loc_400e } from "
 const BCD_TOP = 2;         // a field's most-significant byte; drawBcd walks downward from here
 const PRIMARY_FIELD = 0;   // field selector 0 -> primary player field
 
-export function loc_2231(m, index = m.regs.a) {
+export function drawScoreFieldByIndex(m, index = m.regs.a) {
   const { mem8 } = m;
 
   if (index >= 3) {
     let i = index;
     for (;;) {
       i = u8(i - 1);
-      loc_2231(m, i);
+      drawScoreFieldByIndex(m, i);
       if (i === 0) return;
     }
   }

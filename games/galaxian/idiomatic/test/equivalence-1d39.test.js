@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_1d39 as cand } from "../loc_1d39.js";
+import { drawScreenFillStripFirstHalf as cand } from "../drawScreenFillStripFirstHalf.js";
 import { loc_1d39 as oracle } from "../../translated/loc_1d39.js";
 import { drawScreenFillStripSecondHalf } from "../drawScreenFillStripSecondHalf.js";
 

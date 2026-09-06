@@ -13,7 +13,7 @@ import { silenceSoundAndDisableIrqStars } from "./silenceSoundAndDisableIrqStars
 
 const LATCH_BLOCK_BYTES = 4; // start_lamp 0/1, coin_lock, coin_count_0
 
-export function loc_1c73(m) {
+export function drawInputTextColumnsAndSeedScreenFill(m) {
   const { mem8 } = m;
 
   drawTextColumnByIndex(m, (mem8[IN1] >> 6) & 0x03);

@@ -5,7 +5,7 @@ import { loc_4001, loc_4002 } from "./names.js";
 import { setCoinPhaseFlag } from "./setCoinPhaseFlag.js";
 import { incrementCreditCount } from "./incrementCreditCount.js";
 
-export function loc_1964(m) {
+export function awardCreditEverySecondCoin(m) {
   const { mem8 } = m;
 
   if (!(mem8[loc_4001] & 1)) return setCoinPhaseFlag(m, loc_4001);

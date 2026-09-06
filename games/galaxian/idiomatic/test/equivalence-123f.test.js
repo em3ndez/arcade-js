@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_123f as cand } from "../loc_123f.js";
+import { flagPlayerShotHitOnObject as cand } from "../flagPlayerShotHitOnObject.js";
 import { loc_123f as oracle } from "../../translated/loc_123f.js";
 import { awardKillScoreByBandAndDeactivate } from "../awardKillScoreByBandAndDeactivate.js";
 

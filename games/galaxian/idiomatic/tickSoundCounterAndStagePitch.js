@@ -5,7 +5,7 @@ import { u8 } from "../../../core/int.js";
 import { loc_41c4 } from "./names.js";
 import { stageSoundPitchBySelector } from "./stageSoundPitchBySelector.js";
 
-export function loc_17f9(m, count = m.regs.a, cell = m.regs.hl) {
+export function tickSoundCounterAndStagePitch(m, count = m.regs.a, cell = m.regs.hl) {
   if (count !== 0) m.mem8[loc_41c4] = u8(count - 1);
   return stageSoundPitchBySelector(m, cell);
 }

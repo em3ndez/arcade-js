@@ -6,7 +6,7 @@ import { drawTileBlock2x2AtDe } from "./drawTileBlock2x2AtDe.js";
 
 const FALLBACK_TILE = 0xa4; // block-base tile stamped when the selector is negative
 
-export function loc_213d(m, selector = m.regs.b) {
+export function drawSelectedTileBlockOrFallback(m, selector = m.regs.b) {
   if ((selector & 0x80) === 0) return drawIndexedTileBlock(m, selector);
   return drawTileBlock2x2AtDe(m, FALLBACK_TILE);
 }

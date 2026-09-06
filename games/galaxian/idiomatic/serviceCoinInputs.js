@@ -10,7 +10,7 @@ import { addCreditForCoin } from "./addCreditForCoin.js";
 const MODE_PRESET = 3;
 const COIN_BIT = 0x80;
 
-export function loc_18ef(m) {
+export function serviceCoinInputs(m) {
   const { mem8 } = m;
 
   if (mem8[loc_4000] === MODE_PRESET) return presetCreditCount(m);

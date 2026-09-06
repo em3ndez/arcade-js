@@ -5,7 +5,7 @@ import { loc_4006, loc_40ab } from "./names.js";
 import { repaintPlayerStatusColumnIfSaved } from "./repaintPlayerStatusColumnIfSaved.js";
 import { repaintPlayerStatusColumn } from "./repaintPlayerStatusColumn.js";
 
-export function loc_209c(m) {
+export function repaintPlayerStatusColumnFromModeGate(m) {
   const { mem8 } = m;
   const gate = mem8[loc_4006];
   if (gate === 0) return repaintPlayerStatusColumnIfSaved(m);

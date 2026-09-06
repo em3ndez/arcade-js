@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_18ef as cand } from "../loc_18ef.js";
+import { serviceCoinInputs as cand } from "../serviceCoinInputs.js";
 import { loc_18ef as oracle } from "../../translated/loc_18ef.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";

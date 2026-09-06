@@ -17,7 +17,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_07e8 as cand } from "../loc_07e8.js";
+import { stepAltPlaySubstate6 as cand } from "../stepAltPlaySubstate6.js";
 import { loc_07e8 as oracle } from "../../translated/loc_07e8.js";
 import { SEQUENCE_STATE } from "../names.js";
 import { setSequenceStateByModeAndReloadDwell } from "../setSequenceStateByModeAndReloadDwell.js";

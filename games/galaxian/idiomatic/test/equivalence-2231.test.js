@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_2231 as cand } from "../loc_2231.js";
+import { drawScoreFieldByIndex as cand } from "../drawScoreFieldByIndex.js";
 import { loc_2231 as oracle } from "../../translated/loc_2231.js";
 import { drawScoreToSelectedPlayerField } from "../drawScoreToSelectedPlayerField.js";
 
