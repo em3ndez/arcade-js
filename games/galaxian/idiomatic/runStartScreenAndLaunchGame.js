@@ -12,7 +12,7 @@ import { driveStartButtonLamps } from "./driveStartButtonLamps.js";
 import { beginGameOnStartButton } from "./beginGameOnStartButton.js";
 import { SEQUENCE_STATE } from "./names.js";
 
-export function loc_03f2(m) {
+export function runStartScreenAndLaunchGame(m) {
   advanceFormationSweepOscillator(m);
   summarizeFormationOccupancy(m);
 

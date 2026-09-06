@@ -11,7 +11,7 @@ import { noopAnimDispatchSlot } from "./noopAnimDispatchSlot.js";
 // Object-record field offset: the animation sub-state index (0..3) that selects the handler.
 const SUBSTATE = 2;
 
-export function loc_10e4(m, record = m.regs.ix) {
+export function dispatchDeactivatedObjectAnim(m, record = m.regs.ix) {
   switch (m.mem8[u16(record + SUBSTATE)]) {
     case 0:
       return armObjectAnimAndRequestSound(m, record);

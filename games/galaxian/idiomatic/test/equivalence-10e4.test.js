@@ -20,7 +20,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_10e4 as cand } from "../loc_10e4.js";
+import { dispatchDeactivatedObjectAnim as cand } from "../dispatchDeactivatedObjectAnim.js";
 import { loc_10e4 as oracle } from "../../translated/loc_10e4.js";
 import { armObjectAnimAndRequestSound } from "../armObjectAnimAndRequestSound.js";
 import { tickDeactivatedObjectAnim } from "../tickDeactivatedObjectAnim.js";
