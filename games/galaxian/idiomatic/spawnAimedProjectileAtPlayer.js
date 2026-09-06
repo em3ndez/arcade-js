@@ -2,7 +2,7 @@
 // Claim a free slot in the 14-entry object table and populate it from the IX object: mark it active, copy
 // the sprite Y and X, and store a scaled X velocity toward the target (mirrored when the target is to the
 // left). Returns without writing when the table is full. Feeds the moving-object subsystem.
-import { loc_1218 } from "./loc_1218.js";
+import { computeJitteredXVelocity } from "./computeJitteredXVelocity.js";
 import { loc_4202, loc_4260 } from "./names.js";
 
 const SLOT_COUNT = 14; // entries in the table
@@ -10,7 +10,7 @@ const SLOT_STRIDE = 5; // bytes per entry
 const OBJ_Y = 3;       // sprite Y within the IX object record
 const OBJ_X = 4;       // sprite X
 
-export function loc_11e0(m, obj = m.regs.ix) {
+export function spawnAimedProjectileAtPlayer(m, obj = m.regs.ix) {
   const { mem8 } = m;
 
   // Find the first free slot: bit 0 of its first byte clear.
@@ -30,10 +30,10 @@ export function loc_11e0(m, obj = m.regs.ix) {
   // entry[4]: scaled X velocity toward the target, mirrored when the target is to the left.
   const horizontal = mem8[loc_4202] - mem8[obj + OBJ_X];
   if (horizontal < 0) {
-    const scaled = loc_1218(m, (-horizontal) & 0xff, vertical);
+    const scaled = computeJitteredXVelocity(m, (-horizontal) & 0xff, vertical);
     const mirrored = (-scaled) & 0xff;
     mem8[slot + 4] = mirrored;
   } else {
-    mem8[slot + 4] = loc_1218(m, horizontal, vertical);
+    mem8[slot + 4] = computeJitteredXVelocity(m, horizontal, vertical);
   }
 }

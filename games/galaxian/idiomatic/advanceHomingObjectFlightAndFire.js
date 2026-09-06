@@ -6,8 +6,8 @@
 // (dec). Failing that, gated by the object-active flag, it computes the octant and — when the
 // delayed-event bit is clear — scans the row table, handing off the slot-claim on a match.
 import { advanceObjectFlightCurve } from "./advanceObjectFlightCurve.js";
-import { loc_11b0 } from "./loc_11b0.js";
-import { loc_11e0 } from "./loc_11e0.js";
+import { aimObjectAtTarget } from "./aimObjectAtTarget.js";
+import { spawnAimedProjectileAtPlayer } from "./spawnAimedProjectileAtPlayer.js";
 import { OBJ_ACTIVE_FLAG, loc_4202, loc_422b, loc_4213, loc_425f } from "./names.js";
 
 // Field offsets within the object record addressed by `obj`.
@@ -19,7 +19,7 @@ const MOVE_THROTTLE = 0x10; // move-throttle countdown
 const OBJ_MODE = 0x17;      // mode selector
 const OBJ_HEADING = 0x19;   // flight-curve heading hi-byte
 
-export function loc_0faf(m, obj = m.regs.ix) {
+export function advanceHomingObjectFlightAndFire(m, obj = m.regs.ix) {
   const { mem8 } = m;
 
   // Advance the per-object counter, then run the flight-curve integrator (updates the heading bytes).
@@ -71,7 +71,7 @@ export function loc_0faf(m, obj = m.regs.ix) {
   if ((mem8[OBJ_ACTIVE_FLAG] & 0x01) === 0) return;
 
   // Compute the direction octant toward the target and store it in the object record.
-  loc_11b0(m, obj);
+  aimObjectAtTarget(m, obj);
 
   // Gated by the delayed-event bit0: set -> stop.
   if ((mem8[loc_422b] & 0x01) !== 0) return;
@@ -81,7 +81,7 @@ export function loc_0faf(m, obj = m.regs.ix) {
   const matchValue = mem8[loc_4213 + 1];
   let a = mem8[obj + OBJ_POS];
   for (;;) {
-    if (a === matchValue) return loc_11e0(m, obj); // row matched -> hand off
+    if (a === matchValue) return spawnAimedProjectileAtPlayer(m, obj); // row matched -> hand off
     a = (a + 0x19) & 0xff;                         // next row stride
     count = (count - 1) & 0xff;
     if (count === 0) break;

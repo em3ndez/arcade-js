@@ -2,11 +2,11 @@
 // Turn a slope (dividend/divisor) into a 0-7 direction octant: divide the two, treat a top-bit-set
 // (too-steep / "negative") quotient as the steepest slope by clamping it to 0x80, then take the top
 // three bits of the quotient as the octant.
-import { loc_0048 } from "./loc_0048.js";
+import { divideUnsigned8 } from "./divideUnsigned8.js";
 
-export function loc_11d0(m, dividend = m.regs.a, divisor = m.regs.d) {
+export function computeDirectionOctantFromSlope(m, dividend = m.regs.a, divisor = m.regs.d) {
   // The quotient's magnitude is the slope: divide the dividend by the divisor.
-  const quotient = loc_0048(m, dividend, divisor);
+  const quotient = divideUnsigned8(m, dividend, divisor);
 
   // A quotient with its top bit set means the steepest slope -- clamp it to 0x80.
   const clamped = quotient & 0x80 ? 0x80 : quotient;

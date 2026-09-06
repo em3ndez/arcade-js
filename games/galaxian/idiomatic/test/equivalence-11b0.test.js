@@ -12,9 +12,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { romsPresent, craft, ramDiff } from "./_bootSetup.js";
-import { loc_11b0 as cand } from "../loc_11b0.js";
+import { aimObjectAtTarget as cand } from "../aimObjectAtTarget.js";
 import { loc_11b0 as oracle } from "../../translated/loc_11b0.js";
-import { loc_11d0 } from "../loc_11d0.js";
+import { computeDirectionOctantFromSlope } from "../computeDirectionOctantFromSlope.js";
 
 const IX = 0x4300; // object record base (work RAM)
 const REF_X = 0x4202; // target-X anchor
@@ -64,7 +64,7 @@ test("TEETH: broken twins are caught in RAM", { skip }, () => {
     const { mem8 } = m; const ix = m.regs.ix;
     const vertical = (0xf0 - mem8[ix + 3]) & 0xff;
     const h = mem8[REF_X] - mem8[ix + 4];
-    mem8[ix + 5] = loc_11d0(m, h < 0 ? (-h) & 0xff : h, vertical);
+    mem8[ix + 5] = computeDirectionOctantFromSlope(m, h < 0 ? (-h) & 0xff : h, vertical);
   };
 
   assert.ok(ramDiff(oracle, noOp, entry(0x80, 0x20, 0xa0)), "no-op twin escaped");

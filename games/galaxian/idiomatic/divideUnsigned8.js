@@ -6,7 +6,7 @@
 // D, with the round counter B spent to 0. Pure register math -- no memory effect. Callers read the quotient
 // out of C. The three restoring-divide fragments (entry, compare/subtract, shift-and-loop) collapse into
 // this one JS loop.
-export function loc_0048(m, dividend = m.regs.a, divisor = m.regs.d) {
+export function divideUnsigned8(m, dividend = m.regs.a, divisor = m.regs.d) {
   let a = dividend & 0xff; // running dividend / remainder
   let d = divisor & 0xff;  // divisor, shifted down one bit per round
   let quotient = 0;        // C: quotient accumulator

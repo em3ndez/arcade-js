@@ -11,9 +11,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { romsPresent, craft, ramDiff, STUBS } from "./_bootSetup.js";
-import { loc_11d0 as cand } from "../loc_11d0.js";
+import { computeDirectionOctantFromSlope as cand } from "../computeDirectionOctantFromSlope.js";
 import { loc_11d0 as oracle } from "../../translated/loc_11d0.js";
-import { loc_0048 } from "../loc_0048.js";
+import { divideUnsigned8 } from "../divideUnsigned8.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
@@ -37,7 +37,7 @@ function aDiff(twin, e) {
 }
 
 // (dividend, divisor, expected octant) -- octants 0..3 from the quotient, 4 from the negative clamp.
-// Verified against the frozen oracle + the real divide (loc_0048).
+// Verified against the frozen oracle + the real divide (divideUnsigned8).
 const VECTORS = [[0x00, 0x04, 0], [0x00, 0x02, 1], [0x02, 0x04, 2], [0x00, 0x01, 3], [0x90, 0x01, 4]];
 
 test("EQUAL (crafted): loc_11d0 == oracle across octants 0-4", { skip }, () => {
@@ -56,11 +56,11 @@ test("EQUAL (crafted): loc_11d0 == oracle across octants 0-4", { skip }, () => {
 test("TEETH: broken twins are caught on register A", { skip }, () => {
   const noOp = () => {};
   // Skips the negative clamp: a top-bit-set quotient leaks its high bits instead of clamping to 0x80.
-  const noClamp = (m) => { const q = loc_0048(m, m.regs.a, m.regs.d); m.regs.a = (q >> 5) & 0x07; };
+  const noClamp = (m) => { const q = divideUnsigned8(m, m.regs.a, m.regs.d); m.regs.a = (q >> 5) & 0x07; };
   // Wrong shift amount (>>4 instead of >>5).
-  const wrongShift = (m) => { const q = loc_0048(m, m.regs.a, m.regs.d); const c = q & 0x80 ? 0x80 : q; m.regs.a = (c >> 4) & 0x07; };
+  const wrongShift = (m) => { const q = divideUnsigned8(m, m.regs.a, m.regs.d); const c = q & 0x80 ? 0x80 : q; m.regs.a = (c >> 4) & 0x07; };
   // Wrong clamp constant (0x00 instead of 0x80) -- the drafter's mutation.
-  const wrongClamp = (m) => { const q = loc_0048(m, m.regs.a, m.regs.d); const c = q & 0x80 ? 0x00 : q; m.regs.a = (c >> 5) & 0x07; };
+  const wrongClamp = (m) => { const q = divideUnsigned8(m, m.regs.a, m.regs.d); const c = q & 0x80 ? 0x00 : q; m.regs.a = (c >> 5) & 0x07; };
 
   assert.ok(aDiff(noOp, entry(0x90, 0x01)), "no-op twin escaped");
   assert.ok(aDiff(noClamp, entry(0x90, 0x01)), "no-clamp twin escaped");

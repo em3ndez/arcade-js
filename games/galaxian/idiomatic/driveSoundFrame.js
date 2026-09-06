@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// loc_16f5 — the sound driver's per-frame tick. Start the frame's sound composition from a clean slate (the
+// driveSoundFrame — the sound driver's per-frame tick. Start the frame's sound composition from a clean slate (the
 // composite flag byte cleared, the pitch shadow primed high), run the seven channel/effect updaters that
 // compose this frame's sound into those shadows, then latch the composed bytes to the sound hardware: the
 // composite -> sound register 6, its rotate-right -> register 7, and the staged pitch -> the pitch latch.
@@ -12,7 +12,7 @@ import { advancePulseToneEnvelope } from "./advancePulseToneEnvelope.js";
 import { driveRisingPitchRamp } from "./driveRisingPitchRamp.js";
 import { advanceGatedSquareTone } from "./advanceGatedSquareTone.js";
 
-export function loc_16f5(m) {
+export function driveSoundFrame(m) {
   const { mem8 } = m;
 
   // Clean slate: composite flag byte cleared, pitch shadow primed high (0xFF).

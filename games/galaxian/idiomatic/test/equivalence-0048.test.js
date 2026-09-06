@@ -4,7 +4,7 @@
  * connected 0x0048/004c/0050 loop, collapsed here into one JS loop). The divide is PURE REGISTER math: it
  * writes NO work RAM, so a memory-only ramDiff would pass a wholly-wrong divide. EQUAL therefore asserts
  * ramDiff==null (no RAM effect, stack window masked) AND the register live-outs via regDiff: C=quotient
- * (the value loc_11d0/loc_1218 read back), A=remainder, D=shifted divisor, B=spent counter (0). Teeth:
+ * (the value computeDirectionOctantFromSlope/computeJitteredXVelocity read back), A=remainder, D=shifted divisor, B=spent counter (0). Teeth:
  * no-op, a wrong seat of each of C/A/D/B, and two ALGORITHMIC mutants (no carry-complement -> inverted
  * quotient bits; a 7-round loop) that a register-blind test would miss.
  */
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_0048 as cand } from "../loc_0048.js";
+import { divideUnsigned8 as cand } from "../divideUnsigned8.js";
 import { loc_0048 as oracle } from "../../translated/loc_0048.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";

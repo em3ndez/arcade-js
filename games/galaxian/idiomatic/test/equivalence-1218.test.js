@@ -12,9 +12,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { romsPresent, craft, ramDiff, STUBS } from "./_bootSetup.js";
-import { loc_1218 as cand } from "../loc_1218.js";
+import { computeJitteredXVelocity as cand } from "../computeJitteredXVelocity.js";
 import { loc_1218 as oracle } from "../../translated/loc_1218.js";
-import { loc_0048 } from "../loc_0048.js";
+import { divideUnsigned8 } from "../divideUnsigned8.js";
 import { advanceRandomSeed as loc_003c } from "../advanceRandomSeed.js";
 
 const RNG_SEED = 0x401e;
@@ -65,10 +65,10 @@ test("EQUAL (crafted): loc_1218 == oracle on A and the RNG advance", { skip }, (
 
 test("TEETH: broken twins are caught (A, RNG advanced identically)", { skip }, () => {
   const noOp = () => {}; // never advances RNG and never sets A
-  const droppedFloor = (m) => { const q = loc_0048(m, m.regs.a, m.regs.d); const j = loc_003c(m) & 0x1f; const s = (j + q) & 0xff; m.regs.a = s & 0x80 ? 0x7f : s; };
-  const wrongMask = (m) => { const q = loc_0048(m, m.regs.a, m.regs.d); const j = loc_003c(m) & 0x0f; const s = (j + q + 6) & 0xff; m.regs.a = s & 0x80 ? 0x7f : s; };
-  const noClamp = (m) => { const q = loc_0048(m, m.regs.a, m.regs.d); const j = loc_003c(m) & 0x1f; m.regs.a = (j + q + 6) & 0xff; };
-  const dropQuotient = (m) => { loc_0048(m, m.regs.a, m.regs.d); const j = loc_003c(m) & 0x1f; const s = (j + 6) & 0xff; m.regs.a = s & 0x80 ? 0x7f : s; };
+  const droppedFloor = (m) => { const q = divideUnsigned8(m, m.regs.a, m.regs.d); const j = loc_003c(m) & 0x1f; const s = (j + q) & 0xff; m.regs.a = s & 0x80 ? 0x7f : s; };
+  const wrongMask = (m) => { const q = divideUnsigned8(m, m.regs.a, m.regs.d); const j = loc_003c(m) & 0x0f; const s = (j + q + 6) & 0xff; m.regs.a = s & 0x80 ? 0x7f : s; };
+  const noClamp = (m) => { const q = divideUnsigned8(m, m.regs.a, m.regs.d); const j = loc_003c(m) & 0x1f; m.regs.a = (j + q + 6) & 0xff; };
+  const dropQuotient = (m) => { divideUnsigned8(m, m.regs.a, m.regs.d); const j = loc_003c(m) & 0x1f; const s = (j + 6) & 0xff; m.regs.a = s & 0x80 ? 0x7f : s; };
 
   assert.ok(aDiff(noOp, entry(0x40, 0x08, 0x37)), "no-op twin escaped");
   assert.ok(aDiff(droppedFloor, entry(0x40, 0x08, 0x37)), "dropped-+6 twin escaped");

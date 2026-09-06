@@ -2,7 +2,7 @@
 /**
  * loc_11e0 — crafted-entry equivalence vs the frozen slot-claim-and-fill handler.
  * The live-out is RAM: the first free 5-byte slot in the table at 0x4260 is marked active and populated
- * from the IX object (entry[1]=Y, entry[3]=X, entry[4]=scaled X velocity via loc_1218; entry[2] is left
+ * from the IX object (entry[1]=Y, entry[3]=X, entry[4]=scaled X velocity via computeJitteredXVelocity; entry[2] is left
  * untouched), and RNG_SEED is advanced by the scaler. A full table writes nothing. A post-attract seed is
  * cloned; the table, the IX object, the target-X anchor and RNG_SEED are poked, with a sentinel at
  * entry[2]. EQUAL asserts ramDiff==null across fill (positive + mirrored), full-table, and second-slot
@@ -13,9 +13,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { romsPresent, craft, ramDiff } from "./_bootSetup.js";
-import { loc_11e0 as cand } from "../loc_11e0.js";
+import { spawnAimedProjectileAtPlayer as cand } from "../spawnAimedProjectileAtPlayer.js";
 import { loc_11e0 as oracle } from "../../translated/loc_11e0.js";
-import { loc_1218 } from "../loc_1218.js";
+import { computeJitteredXVelocity } from "../computeJitteredXVelocity.js";
 
 const BASE = 0x4260; // table base
 const STRIDE = 5;
@@ -85,8 +85,8 @@ test("TEETH: broken twins are caught in RAM", { skip }, () => {
       if (opts.touch2) mem8[slot + 2] = 0x99;
       mem8[slot + 3] = mem8[obj + 4];
       const h = mem8[REF_X] - mem8[obj + 4];
-      if (h < 0) { const sc = loc_1218(m, (-h) & 0xff, vertical); mem8[slot + 4] = opts.noMirror ? sc : (-sc) & 0xff; }
-      else { mem8[slot + 4] = loc_1218(m, h, vertical); }
+      if (h < 0) { const sc = computeJitteredXVelocity(m, (-h) & 0xff, vertical); mem8[slot + 4] = opts.noMirror ? sc : (-sc) & 0xff; }
+      else { mem8[slot + 4] = computeJitteredXVelocity(m, h, vertical); }
     };
   }
   const noOp = () => {};
