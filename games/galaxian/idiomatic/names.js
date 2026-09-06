@@ -235,6 +235,18 @@ export const loc_40ae = 0x40ae;
 export const SOUND_W_REG6 = 0x6806; // [code] discrete-sound write register 6 (sound-driver composite latch)
 export const SOUND_W_REG7 = 0x6807; // [code] discrete-sound write register 7 (rotate-right of the composite)
 
+// loc_21a6 decompile -- ROM score-award table
+export const SCORE_INCREMENT_TABLE = 0x22d0;
+export const DISPLAY_LIST_CURSOR = 0x40a1; // [code] display-list read cursor (low byte of a page-0x40 pointer): next ready draw-command slot, +2 per slot, wraps to 0xc0 // [code] 3-byte packed-BCD score increments indexed by kill/score type (*3)
+
+// loc_24b7 decompile -- HUD sub-dispatch cells (role not yet consensus-confident; names-debt)
+export const loc_421c = 0x421c;
+export const loc_507e = 0x507e;
+export const loc_5138 = 0x5138;
+export const loc_5158 = 0x5158;
+export const loc_529f = 0x529f;
+export const loc_527f = 0x527f;
+
 // Idiomatic overrides wired OVER the translated oracle (batch 1, leaves-first). Names stay loc_<addr>
 // this pass; role is a [code] reading; cert lifts to "seen" at grounding.
 export const ROUTINES = {
@@ -478,4 +490,8 @@ export const ROUTINES = {
   0x0156: { name: "runAttractSequenceAndAdvanceOnCredit", role: "[code] Attract/demo game-state handler (game-state 1): run the per-frame formation prep, dispatch on SEQUENCE_STATE (0x400a) to the current attract sub-state handler (title/starfield/message-column/canned-demo), then tail-run advanceGameStateOnCredit to leave attract for the press-start screen once a credit is present.", cert: "code" },
   0x0536: { name: "runPlayerOnePlayFrame", role: "[code] First/active player's play-state handler (game-state 3): run the per-frame formation prep, then tail-dispatch on SEQUENCE_STATE (0x400a) to one of eight play sub-states (init/blank/restore-from-PACKED_FLAG_BITMAP/dwell/activate/gameplay-frame/substate-6/pack-and-switch); its terminal saves this board to PACKED_FLAG_BITMAP (0x4180), sets CURRENT_PLAYER=1 and hands off to game-state 4.", cert: "code" },
   0x077b: { name: "runPlayerTwoPlayFrame", role: "[code] Second player's play-state handler (game-state 4; sibling of runPlayerOnePlayFrame, differing at sub-states 2/6/7): run the per-frame formation prep, then tail-dispatch on SEQUENCE_STATE (0x400a) to one of eight play sub-states that restore/save via SAVED_STATE_SNAPSHOT (0x41a0); its terminal saves this board to 0x41a0, sets CURRENT_PLAYER=0 and hands back to game-state 3.", cert: "code" },
+  // RST-08 score cluster + HUD dispatcher (loc_ names, [code] certs; understanding pending)
+  0x21a6: { name: "loc_21a6", role: "[code] BCD score update: add the score-type increment into the current player's packed-BCD score, award the bonus marker once a derived threshold is reached, repaint the score digits, and copy+repaint the high score when the new total is higher; (0x4007) bit0 skips the whole update", cert: "code" },
+  0x24b7: { name: "loc_24b7", role: "[code] HUD sub-dispatch on selector A: 0 credit/coin line, 1 1P score line (clamped BCD digits to 0x529f/0x527f), 2 convoy/level nibble readout (0x40ac low->0x5138, high->0x5158), else marker-row redraw from 0x421d; coin and marker arms gated by the 0x4007 frame-parity skip flag", cert: "code" },
+  0x2019: { name: "loc_2019", role: "[code] decode a ready display-list slot: retire both slot bytes to 0xff, advance the read cursor (DISPLAY_LIST_CURSOR, wrapping to 0xc0 below the list base), then dispatch the slot's argument byte to one of 8 draw handlers selected by the control byte's low nibble", cert: "code" },
 };

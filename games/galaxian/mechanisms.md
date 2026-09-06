@@ -419,4 +419,8 @@ Collision is a second pass. flagProjectileHitsOnPlayer [code] runs only when pro
 - Many work-RAM cells are still named `loc_<addr>`: their role is understood from the routines that touch them
   (described above) but a descriptive identifier is deferred to the cleanup phase rather than promoted piecemeal.
 - A further tier of routines remains translated (not yet decompiled); the map grows to cover them as the spiral
-  climbs.
+  climbs. Most recently lifted is the RST-08 score/HUD cluster: the BCD score-update and the HUD sub-dispatch
+  routine each inline the rst-08 conditional early-return (its shared vector dissolves), and the display-list
+  slot decoder absorbs its jp(hl) draw-handler table into a direct switch. They are correct-by-equivalence but
+  still carry `loc_<addr>` names and `[code]` certs pending their own understanding pass. What remains translated
+  is the born-live spine only — the vblank NMI vector, the shared rst-28 primitive, and the top-level frame loop.
