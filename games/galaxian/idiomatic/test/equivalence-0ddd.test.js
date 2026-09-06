@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_0ddd as cand } from "../loc_0ddd.js";
+import { commitMoveAcrossPlayerX as cand } from "../commitMoveAcrossPlayerX.js";
 import { loc_0ddd as oracle } from "../../translated/loc_0ddd.js";
 import { commitMoveToTargetX } from "../commitMoveToTargetX.js";
 

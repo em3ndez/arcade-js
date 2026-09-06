@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_180c as cand } from "../loc_180c.js";
+import { stagePitchFromSoundCounter as cand } from "../stagePitchFromSoundCounter.js";
 import { loc_180c as oracle } from "../../translated/loc_180c.js";
 
 const COUNTER = 0x41c4;

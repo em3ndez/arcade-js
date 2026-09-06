@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_214a as cand } from "../loc_214a.js";
+import { drawTileBlock2x2AtDe as cand } from "../drawTileBlock2x2AtDe.js";
 import { loc_214a as oracle } from "../../translated/loc_214a.js";
 import { drawTileBlock2x2 } from "../drawTileBlock2x2.js";
 

@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_101f as cand } from "../loc_101f.js";
+import { advanceObjectPathStepDescending as cand } from "../advanceObjectPathStepDescending.js";
 import { loc_101f as oracle } from "../../translated/loc_101f.js";
 import { PATH_STEP_TABLE } from "../names.js";
 

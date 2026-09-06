@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_2583 as cand } from "../loc_2583.js";
+import { drawFixedTileBlock2x2 as cand } from "../drawFixedTileBlock2x2.js";
 import { loc_2583 as oracle } from "../../translated/loc_2583.js";
 
 const FIRST_TILE = 0x2c;    // the fixed seed code

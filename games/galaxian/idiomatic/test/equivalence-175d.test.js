@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_175d as cand } from "../loc_175d.js";
+import { advanceAllSoundSequenceChannels as cand } from "../advanceAllSoundSequenceChannels.js";
 import { loc_175d as oracle } from "../../translated/loc_175d.js";
 import { advanceSoundSequenceChannel } from "../advanceSoundSequenceChannel.js";
 

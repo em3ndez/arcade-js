@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_18c0 as cand } from "../loc_18c0.js";
+import { advanceMessageScroller as cand } from "../advanceMessageScroller.js";
 import { loc_18c0 as oracle } from "../../translated/loc_18c0.js";
 
 const ENABLE = 0x40b0;

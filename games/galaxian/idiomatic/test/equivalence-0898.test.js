@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_0898 as cand } from "../loc_0898.js";
+import { advancePlayerShotAndStageSprite as cand } from "../advancePlayerShotAndStageSprite.js";
 import { loc_0898 as oracle } from "../../translated/loc_0898.js";
 
 const DIR_FLAG = 0x4018;

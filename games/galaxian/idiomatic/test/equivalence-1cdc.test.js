@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_1cdc as cand } from "../loc_1cdc.js";
+import { drawTextColumnFromDescriptor as cand } from "../drawTextColumnFromDescriptor.js";
 import { loc_1cdc as oracle } from "../../translated/loc_1cdc.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";

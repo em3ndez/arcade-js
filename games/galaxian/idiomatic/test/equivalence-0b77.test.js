@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_0b77 as cand } from "../loc_0b77.js";
+import { flagProjectileHitsOnPlayer as cand } from "../flagProjectileHitsOnPlayer.js";
 import { loc_0b77 as oracle } from "../../translated/loc_0b77.js";
 
 const ENABLE = 0x4200;      // OBJ_ACTIVE_FLAG

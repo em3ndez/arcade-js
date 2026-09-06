@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_2593 as cand } from "../loc_2593.js";
+import { drawTileBlock2x2Up as cand } from "../drawTileBlock2x2Up.js";
 import { loc_2593 as oracle } from "../../translated/loc_2593.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";

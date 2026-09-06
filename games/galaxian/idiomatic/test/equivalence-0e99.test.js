@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { romsPresent, craft, ramDiff, STUBS } from "./_bootSetup.js";
-import { loc_0e99 as cand } from "../loc_0e99.js";
+import { reseedFormationObjectState as cand } from "../reseedFormationObjectState.js";
 import { loc_0e99 as oracle } from "../../translated/loc_0e99.js";
 import {
   OBJ_TABLE,

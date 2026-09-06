@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_2261 as cand } from "../loc_2261.js";
+import { drawBcdNumberColumn as cand } from "../drawBcdNumberColumn.js";
 import { loc_2261 as oracle } from "../../translated/loc_2261.js";
 
 const SOURCE = 0x4140;   // three BCD bytes read downward: 0x4140, 0x413f, 0x413e
