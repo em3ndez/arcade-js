@@ -353,4 +353,9 @@ The last group is the projectile/moving-object path. It is a *rendering* path li
 - Many work-RAM cells are still named `loc_<addr>`: their role is understood from the routines that touch them
   (described above) but a descriptive identifier is deferred to the cleanup phase rather than promoted piecemeal.
 - A further tier of routines remains translated (not yet decompiled); the map grows to cover them as the spiral
-  climbs.
+  climbs. Most recently lifted are the three top-level SEQUENCE_STATE dispatchers — the attract/sequence handler
+  and the two play-state handlers (fresh board and restore-saved board) — each of which absorbs its rst-28 table
+  into a direct switch over the now-idiomatic sub-state handlers; they are correct-by-equivalence but still carry
+  `loc_<addr>` names and `[code]` certs pending their own understanding pass. What still runs as translated code is
+  the NMI/main-loop spine that dispatches into them (the vblank vector, the top-level GAME_STATE selector, and the
+  shared rst-28 primitive), which is the born-live spine handled separately.
