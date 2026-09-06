@@ -9,11 +9,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_21a6 as cand } from "../loc_21a6.js";
+import { addBcdScoreIncrementAndUpdateHighScore as cand } from "../addBcdScoreIncrementAndUpdateHighScore.js";
 import { loc_21a6 as oracle } from "../../translated/loc_21a6.js";
 import {
   SCORE_INCREMENT_TABLE, CURRENT_PLAYER, HIGH_SCORE_BCD,
-  PLAYER1_SCORE_BCD, PLAYER2_SCORE_BCD, loc_4007, loc_40ac, loc_40ad, loc_421d,
+  PLAYER1_SCORE_BCD, PLAYER2_SCORE_BCD, loc_4007, loc_40ac, PLAYER1_BONUS_MARKER_AWARDED, loc_421d,
 } from "../names.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -34,7 +34,7 @@ function seed(mut) {
     mem8[SCORE] = 0; mem8[SCORE + 1] = 0; mem8[SCORE + 2] = 0;
     mem8[HS] = 0x99; mem8[HS + 1] = 0x99; mem8[HS + 2] = 0x99;
     mem8[loc_40ac] = 0xff;
-    mem8[loc_40ad] = 0; mem8[loc_40ad + 1] = 0;
+    mem8[PLAYER1_BONUS_MARKER_AWARDED] = 0; mem8[PLAYER1_BONUS_MARKER_AWARDED + 1] = 0;
     mem8[loc_421d] = 0;
     if (mut) mut(mem8, m);
   });
@@ -84,7 +84,7 @@ test("EQUAL (crafted): loc_21a6 == oracle across gate/BCD/high-score/bonus paths
   assert.deepEqual([cc[SCORE], cc[SCORE + 1], cc[SCORE + 2]], [0x29, 0x00, 0x01], "9999+30 -> 10029 packed BCD");
   assert.equal(runOracle(beat()).mem8[HS], 0x30, "new high score: low byte copied to 0x30");
   assert.equal(runOracle(bonus()).mem8[loc_421d], 1, "bonus tripped: marker counter 0 -> 1");
-  assert.equal(runOracle(bonus()).mem8[loc_40ad], 1, "bonus tripped: player-1 one-shot flag raised");
+  assert.equal(runOracle(bonus()).mem8[PLAYER1_BONUS_MARKER_AWARDED], 1, "bonus tripped: player-1 one-shot flag raised");
   assert.equal(runOracle(gateSet()).mem8[SCORE], 0x00, "gate set: no score write");
   console.log("  EQUAL: loc_21a6 == oracle (gate skip, BCD add+carry, high-score copy, bonus, P2 field)");
 });

@@ -10,11 +10,11 @@
 import { drawAnimatedTileFigureAtPackedCoord } from "./drawAnimatedTileFigureAtPackedCoord.js";
 import { drawFixedTileFigureAtPackedCoord } from "./drawFixedTileFigureAtPackedCoord.js";
 import { draw4x4TileForm } from "./draw4x4TileForm.js";
-import { loc_21a6 } from "./loc_21a6.js";
+import { addBcdScoreIncrementAndUpdateHighScore } from "./addBcdScoreIncrementAndUpdateHighScore.js";
 import { clearAndRedrawScoreField } from "./clearAndRedrawScoreField.js";
 import { drawScoreFieldByIndex } from "./drawScoreFieldByIndex.js";
 import { renderMessageColumn } from "./renderMessageColumn.js";
-import { loc_24b7 } from "./loc_24b7.js";
+import { renderHudFieldBySelector } from "./renderHudFieldBySelector.js";
 import { DISPLAY_LIST_CURSOR } from "./names.js";
 
 const LIST_BASE = 0xc0; // slot list occupies..; the cursor wraps here when it underflows
@@ -24,14 +24,14 @@ const HANDLERS = {
   0x0: drawAnimatedTileFigureAtPackedCoord,
   0x2: drawFixedTileFigureAtPackedCoord,
   0x4: draw4x4TileForm,
-  0x6: loc_21a6,
+  0x6: addBcdScoreIncrementAndUpdateHighScore,
   0x8: clearAndRedrawScoreField,
   0xa: drawScoreFieldByIndex,
   0xc: renderMessageColumn,
-  0xe: loc_24b7,
+  0xe: renderHudFieldBySelector,
 };
 
-export function loc_2019(m, ctrl = m.regs.a, hl = m.regs.hl) {
+export function decodeDisplayListSlotAndDispatch(m, ctrl = m.regs.a, hl = m.regs.hl) {
   const { mem8 } = m;
 
   const index = ctrl & 0x0f; // control low nibble -> even handler index 0,2,..,e
@@ -48,7 +48,7 @@ export function loc_2019(m, ctrl = m.regs.a, hl = m.regs.hl) {
 
   const handler = HANDLERS[index];
   if (handler === undefined) {
-    throw new Error(`loc_2019: no draw handler for slot index 0x${index.toString(16)}`);
+    throw new Error(`decodeDisplayListSlotAndDispatch: no draw handler for slot index 0x${index.toString(16)}`);
   }
   // Re-seat A with the argument (the 's `ld a,e` before jp(hl)) so a register-bridged handler reads it,
   // and pass it explicitly; the direct call returns to the dispatch loop, no return word pushed.

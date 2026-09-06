@@ -5,7 +5,7 @@
 // clearing+repainting every field from index-1 down to 0.
 import { drawScoreFieldByIndex } from "./drawScoreFieldByIndex.js";
 import { u8 } from "../../../core/int.js";
-import { PLAYER1_SCORE_BCD, PLAYER2_SCORE_BCD, HIGH_SCORE_BCD, loc_40ad, loc_40ae } from "./names.js";
+import { PLAYER1_SCORE_BCD, PLAYER2_SCORE_BCD, HIGH_SCORE_BCD, PLAYER1_BONUS_MARKER_AWARDED, PLAYER2_BONUS_MARKER_AWARDED } from "./names.js";
 
 export function clearAndRedrawScoreField(m, index = m.regs.a) {
   const { mem8 } = m;
@@ -20,8 +20,8 @@ export function clearAndRedrawScoreField(m, index = m.regs.a) {
   }
 
   let base, scratch;
-  if (index === 0) { base = PLAYER1_SCORE_BCD; scratch = loc_40ad; }
-  else if (index === 1) { base = PLAYER2_SCORE_BCD; scratch = loc_40ae; }
+  if (index === 0) { base = PLAYER1_SCORE_BCD; scratch = PLAYER1_BONUS_MARKER_AWARDED; }
+  else if (index === 1) { base = PLAYER2_SCORE_BCD; scratch = PLAYER2_BONUS_MARKER_AWARDED; }
   else { base = HIGH_SCORE_BCD; scratch = HIGH_SCORE_BCD; }
 
   mem8[base] = 0;

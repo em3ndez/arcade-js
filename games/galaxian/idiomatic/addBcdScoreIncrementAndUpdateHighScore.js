@@ -12,7 +12,7 @@ import { SCORE_INCREMENT_TABLE, CURRENT_PLAYER, HIGH_SCORE_BCD, loc_4007, loc_40
 const fromBcd = (b) => (b >> 4) * 10 + (b & 0x0f);
 const toBcd = (d) => (((d / 10) | 0) << 4) | (d % 10);
 
-export function loc_21a6(m, index = m.regs.a) {
+export function addBcdScoreIncrementAndUpdateHighScore(m, index = m.regs.a) {
   const { mem8 } = m;
 
   // rst 08: bit0 set double-returns past this routine — an early skip of the whole update.

@@ -228,24 +228,24 @@ export const SECONDARY_TRIGGER_BLOCK = 0x4165; // [code] secondary spawn trigger
 // batch 6 -- loc_ placeholders (role not yet consensus-confident)
 export const loc_4003 = 0x4003;
 export const loc_2157 = 0x2157;
-export const loc_40ad = 0x40ad;
-export const loc_40ae = 0x40ae;
+export const PLAYER1_BONUS_MARKER_AWARDED = 0x40ad; // [code] player-1 bonus-marker one-shot flag; base of the per-player bonus-marker table
+export const PLAYER2_BONUS_MARKER_AWARDED = 0x40ae; // [code] player-2 bonus-marker one-shot flag; per-player bonus-marker table slot 1
 
 // spine-unblock batch -- descriptive cells ([code], grounding pending)
 export const SOUND_W_REG6 = 0x6806; // [code] discrete-sound write register 6 (sound-driver composite latch)
 export const SOUND_W_REG7 = 0x6807; // [code] discrete-sound write register 7 (rotate-right of the composite)
 
-// loc_21a6 decompile -- ROM score-award table
+// addBcdScoreIncrementAndUpdateHighScore decompile -- ROM score-award table
 export const SCORE_INCREMENT_TABLE = 0x22d0;
 export const DISPLAY_LIST_CURSOR = 0x40a1; // [code] display-list read cursor (low byte of a page-0x40 pointer): next ready draw-command slot, +2 per slot, wraps to 0xc0 // [code] 3-byte packed-BCD score increments indexed by kill/score type (*3)
 
-// loc_24b7 decompile -- HUD sub-dispatch cells (role not yet consensus-confident; names-debt)
-export const loc_421c = 0x421c;
-export const loc_507e = 0x507e;
-export const loc_5138 = 0x5138;
-export const loc_5158 = 0x5158;
-export const loc_529f = 0x529f;
-export const loc_527f = 0x527f;
+// renderHudFieldBySelector decompile -- HUD sub-dispatch cells (role not yet consensus-confident; names-debt)
+export const COIN_CREDIT_ROW_COUNT = 0x421c; // [code] coin/credit icon-tally count (drawn value = count+1, clamped)
+export const COIN_CREDIT_ROW_VRAM = 0x507e; // [code] VRAM base for the coin/credit icon-tally row
+export const HUD_NIBBLE_LO_VRAM = 0x5138; // [code] VRAM low-nibble cell of a two-nibble HUD status readout
+export const HUD_NIBBLE_HI_VRAM = 0x5158; // [code] VRAM high-nibble cell of a two-nibble HUD status readout
+export const CREDIT_COUNT_TENS_VRAM = 0x529f; // [code] VRAM tens-digit cell of the credit-count line
+export const CREDIT_COUNT_UNITS_VRAM = 0x527f; // [code] VRAM units-digit cell of the credit-count line
 
 // Idiomatic overrides wired OVER the translated oracle (batch 1, leaves-first). Names stay loc_<addr>
 // this pass; role is a [code] reading; cert lifts to "seen" at grounding.
@@ -423,7 +423,7 @@ export const ROUTINES = {
   0x0218: { name: "emitMessageColumnsThenAdvanceSequence", role: "[seen] runAttractSequenceAndAdvanceOnCredit sequence-state handler (rst-28 dispatch table @0x0164, state 4): run clearStridedTable, then a two-tier dwell (prescaler 0x4008 / dwell 0x4009) — each low-tier expiry reloads it to 80 and enqueues a channel-6 renderMessageColumn command (index = mid count + 6); on mid-tier expiry advance SEQUENCE_STATE(0x400a), reload both tiers (32/4), clear SPRITE_SOURCE_OBJ_BASE(0x42b0) and DRAWN_COLUMN_COUNT(0x4241).", cert: "seen" },
   0x04bc: { name: "startGameRoundAndClearScores", role: "[code] Game/round-start entry (fall-through from beginGameOnStartButton, jp from startOnePlayerGame): store the player-count/spawn word in CURRENT_PLAYER(0x400d), blit the 32-byte ROM row template 0x051b into PACKED_FLAG_BITMAP(0x4180), arm the substate-advance gate when 0x401f bit0 is set, enter play (GAME_STATE=3, SEQUENCE_STATE=0, 0x4006=1, 0x41d1=1), and queue a start message (ch6) plus two channel-4 score-slot clears.", cert: "code" },
   0x0583: { name: "blankScreenRowsThenAdvanceSequence", role: "[code] Play-state sub-state-1 progressive screen clear (state 1 of both play tables runPlayerOnePlayFrame/runPlayerTwoPlayFrame): blank 32 VRAM cells (tile 16) at VRAM_WRITE_PTR(0x400b), advance the cursor +32, tick phase counter 0x4009; on the last phase advance the sequence and reseed the OBJRAM shadow (advanceSequenceStateAndReseedObjectShadow).", cert: "code" },
-  0x21f8: { name: "drawHighScoreDigits", role: "[code] Paint the high-score number: set the VRAM cursor to field 0x5241 and draw 6 packed-BCD digits from the caller's source pointer (drawBcdNumberColumn); reached from the high-score update tail loc_21a6 (after a higher total is copied to 0x40a8) and the opcode-5 high-score redraw drawScoreFieldByIndex.", cert: "code" },
+  0x21f8: { name: "drawHighScoreDigits", role: "[code] Paint the high-score number: set the VRAM cursor to field 0x5241 and draw 6 packed-BCD digits from the caller's source pointer (drawBcdNumberColumn); reached from the high-score update tail addBcdScoreIncrementAndUpdateHighScore (after a higher total is copied to 0x40a8) and the opcode-5 high-score redraw drawScoreFieldByIndex.", cert: "code" },
   0x02d1: { name: "postCreditAndMessageDrawsAndAdvance", role: "[code] Sequence-state handler: enqueue a channel-7 (arg 1) credit-count redraw and a channel-6 (arg 0) message-column draw, increment SEQUENCE_STATE (0x400a), and re-arm both dwell-timer tiers (0x4008=96 sub-timer, 0x4009=16 mid-tier).", cert: "code" },
   0x0614: { name: "activateObjectsAndBeginPlayPhase", role: "[code] State-timer handler: tick dwell 0x4009; while nonzero return. On expiry reload 0x4009=10, advance SEQUENCE_STATE, set OBJ_ACTIVE_FLAG (0x4200)=1 to enable the object/AI/projectile subsystem, seed player-X reference 0x4202=128, refill the 16-byte enemy-launch sub-counter block 0x424a from SUBCOUNTER_RELOAD_TABLE (0x15e3), clear scratch 0x4058/0x405a, and enqueue channel-7 (arg 3) and channel-2 (arg 0, the 4x4 indicator draw) display commands.", cert: "code" },
   0x0f7b: { name: "beginObjectCrossPlayerMove", role: "[code] Shared object-AI tail: call commitMoveAcrossPlayerX (0x0ddd) to pick and commit a horizontal target on the far/opposite side of the player-X reference, then arm the object's flight-curve step seed record+0x18=3 (-> (3&3)+1 = 4 curve steps in advanceObjectFlightCurve 0x116b) and its move throttle record+0x10=100.", cert: "code" },
@@ -491,7 +491,7 @@ export const ROUTINES = {
   0x0536: { name: "runPlayerOnePlayFrame", role: "[code] First/active player's play-state handler (game-state 3): run the per-frame formation prep, then tail-dispatch on SEQUENCE_STATE (0x400a) to one of eight play sub-states (init/blank/restore-from-PACKED_FLAG_BITMAP/dwell/activate/gameplay-frame/substate-6/pack-and-switch); its terminal saves this board to PACKED_FLAG_BITMAP (0x4180), sets CURRENT_PLAYER=1 and hands off to game-state 4.", cert: "code" },
   0x077b: { name: "runPlayerTwoPlayFrame", role: "[code] Second player's play-state handler (game-state 4; sibling of runPlayerOnePlayFrame, differing at sub-states 2/6/7): run the per-frame formation prep, then tail-dispatch on SEQUENCE_STATE (0x400a) to one of eight play sub-states that restore/save via SAVED_STATE_SNAPSHOT (0x41a0); its terminal saves this board to 0x41a0, sets CURRENT_PLAYER=0 and hands back to game-state 3.", cert: "code" },
   // RST-08 score cluster + HUD dispatcher (loc_ names, [code] certs; understanding pending)
-  0x21a6: { name: "loc_21a6", role: "[code] BCD score update: add the score-type increment into the current player's packed-BCD score, award the bonus marker once a derived threshold is reached, repaint the score digits, and copy+repaint the high score when the new total is higher; (0x4007) bit0 skips the whole update", cert: "code" },
-  0x24b7: { name: "loc_24b7", role: "[code] HUD sub-dispatch on selector A: 0 credit/coin line, 1 1P score line (clamped BCD digits to 0x529f/0x527f), 2 convoy/level nibble readout (0x40ac low->0x5138, high->0x5158), else marker-row redraw from 0x421d; coin and marker arms gated by the 0x4007 frame-parity skip flag", cert: "code" },
-  0x2019: { name: "loc_2019", role: "[code] decode a ready display-list slot: retire both slot bytes to 0xff, advance the read cursor (DISPLAY_LIST_CURSOR, wrapping to 0xc0 below the list base), then dispatch the slot's argument byte to one of 8 draw handlers selected by the control byte's low nibble", cert: "code" },
+  0x21a6: { name: "addBcdScoreIncrementAndUpdateHighScore", role: "[code] add this score type's packed-BCD increment into the current player's score, award the bonus marker at the threshold, repaint the score digits, and promote the high score when beaten", cert: "code" },
+  0x24b7: { name: "renderHudFieldBySelector", role: "[code] render one HUD field selected by the argument: the coin/credit icon-tally row, the credit-count digits, the two-nibble status readout, or the bonus-marker row", cert: "code" },
+  0x2019: { name: "decodeDisplayListSlotAndDispatch", role: "[seen] decode one ready display-list slot (control low nibble selects an even draw-handler index), retire both slot bytes, advance and wrap the display-list read cursor, then dispatch the selected draw handler", cert: "seen" },
 };

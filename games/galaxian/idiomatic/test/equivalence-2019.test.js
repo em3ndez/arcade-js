@@ -19,7 +19,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_2019 as cand } from "../loc_2019.js";
+import { decodeDisplayListSlotAndDispatch as cand } from "../decodeDisplayListSlotAndDispatch.js";
 import { loc_2019 as oracle } from "../../translated/loc_2019.js";
 import { drawAnimatedTileFigureAtPackedCoord } from "../drawAnimatedTileFigureAtPackedCoord.js";
 import { drawScoreFieldByIndex } from "../drawScoreFieldByIndex.js";

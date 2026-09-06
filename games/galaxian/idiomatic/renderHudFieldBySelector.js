@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// HUD sub-dispatch on a selector: 0 = coin/credits line, 1 = 1P score line,
+// HUD sub-dispatch on a selector: 0 = coin/credits line, 1 = credit-count line,
 // 2 = convoy/level nibble readout, else = marker-row redraw. Each arm renders BCD/nibble digits
 // into VRAM via the shared tile-stamp helpers; the coin and marker arms are gated by the
 // frame-parity skip flag ( bit0 set -> early return, the dissolved rst-08 caller-skip).
@@ -13,18 +13,18 @@ import { u8 } from "../../../core/int.js";
 import {
   loc_4007,
   loc_4220,
-  loc_421c,
+  COIN_CREDIT_ROW_COUNT,
   loc_421d,
   loc_40ac,
   loc_4006,
   loc_4002,
   IN1_SHADOW,
   SOUND_LFO_RESET_REQUEST,
-  loc_507e,
-  loc_5138,
-  loc_5158,
-  loc_529f,
-  loc_527f,
+  COIN_CREDIT_ROW_VRAM,
+  HUD_NIBBLE_LO_VRAM,
+  HUD_NIBBLE_HI_VRAM,
+  CREDIT_COUNT_TENS_VRAM,
+  CREDIT_COUNT_UNITS_VRAM,
 } from "./names.js";
 
 const CREDIT_CEIL = 0x30; // credit-line count ceiling
@@ -32,10 +32,10 @@ const COIN_SLOTS = 0x10; // coin-line slot budget (2 per tens tile, 1 per units 
 const TENS_TILE = 0x68; // 2x2 tens-digit tile seed
 const UNITS_TILE = 0x6c; // units-digit tile seed
 const PAIR_STRIDE = 0x1f; // VRAM stride between stamped tile pairs
-const SCORE_CEIL = 0x63; // 1P score-line value ceiling (99 dec)
+const CREDIT_LINE_CEIL = 0x63; // credit-count line value ceiling (99 dec)
 const CONVOY_SENTINEL = 0xff; // == 0xff -> nothing to show
 
-export function loc_24b7(m, sel = m.regs.a) {
+export function renderHudFieldBySelector(m, sel = m.regs.a) {
   const { mem8 } = m;
 
   if (sel === 0) {
@@ -43,11 +43,11 @@ export function loc_24b7(m, sel = m.regs.a) {
     if (mem8[loc_4007] & 1) return; // frame-parity caller-skip
     if (mem8[loc_4220] !== 0) mem8[SOUND_LFO_RESET_REQUEST] = 1;
 
-    let count = u8(mem8[loc_421c] + 1);
+    let count = u8(mem8[COIN_CREDIT_ROW_COUNT] + 1);
     if (count >= CREDIT_CEIL) count = CREDIT_CEIL;
     const packed = byteToPackedBcd(m, count);
 
-    let dst = loc_507e;
+    let dst = COIN_CREDIT_ROW_VRAM;
     let slots;
     if (packed & 0xf0) {
       slots = COIN_SLOTS;
@@ -78,16 +78,16 @@ export function loc_24b7(m, sel = m.regs.a) {
   }
 
   if (sel === 1) {
-    // ── 1P score line ──────────────────────────────────────────────────────────────
+    // ── credit-count line ──────────────────────────────────────────────────────────
     if (mem8[loc_4006] & 1) return; // bit0 of set -> skip
     if ((mem8[IN1_SHADOW] & 0xc0) === 0xc0) return renderMessageColumn(m, 0x10); // both dip bits
     renderMessageColumn(m, 0x05);
 
     let value = mem8[loc_4002];
-    if (value >= SCORE_CEIL) value = SCORE_CEIL;
+    if (value >= CREDIT_LINE_CEIL) value = CREDIT_LINE_CEIL;
     const packed = byteToPackedBcd(m, value);
-    if (packed & 0xf0) mem8[loc_529f] = packed >> 4; // tens digit
-    mem8[loc_527f] = packed & 0x0f; // units digit
+    if (packed & 0xf0) mem8[CREDIT_COUNT_TENS_VRAM] = packed >> 4; // tens digit
+    mem8[CREDIT_COUNT_UNITS_VRAM] = packed & 0x0f; // units digit
     return;
   }
 
@@ -96,10 +96,10 @@ export function loc_24b7(m, sel = m.regs.a) {
     if (mem8[loc_40ac] === CONVOY_SENTINEL) return;
     renderMessageColumn(m, 0x06);
     const conv = mem8[loc_40ac];
-    mem8[loc_5138] = conv & 0x0f; // low nibble
+    mem8[HUD_NIBBLE_LO_VRAM] = conv & 0x0f; // low nibble
     let hi = conv & 0xf0;
     if (hi === 0) hi = 1; // high nibble 0 renders tile 0x10
-    mem8[loc_5158] = (hi >> 4) | (hi << 4); // nibble swap (rrca x4); the byte store truncates
+    mem8[HUD_NIBBLE_HI_VRAM] = (hi >> 4) | (hi << 4); // nibble swap (rrca x4); the byte store truncates
     return;
   }
 

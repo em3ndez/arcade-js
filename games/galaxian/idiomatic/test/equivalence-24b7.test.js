@@ -16,7 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_24b7 as cand } from "../loc_24b7.js";
+import { renderHudFieldBySelector as cand } from "../renderHudFieldBySelector.js";
 import { loc_24b7 as oracle } from "../../translated/loc_24b7.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
