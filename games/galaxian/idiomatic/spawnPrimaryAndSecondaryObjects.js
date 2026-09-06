@@ -13,7 +13,7 @@ const TRIGGER_BLOCK_BACKOFF = 15; // primary trigger low byte -> top of the trig
 const TRIGGER_WALK = 3; // flags examined
 const SECONDARY_BUDGET = 2; // secondaries this pass may spawn
 
-export function loc_1472(m, trigger = m.regs.hl, spawnCode = m.regs.c) {
+export function spawnPrimaryAndSecondaryObjects(m, trigger = m.regs.hl, spawnCode = m.regs.c) {
   const { mem8 } = m;
 
   // Spawn the primary; the trigger pointer is returned unchanged.

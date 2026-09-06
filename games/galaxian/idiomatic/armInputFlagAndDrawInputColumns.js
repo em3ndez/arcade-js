@@ -6,7 +6,7 @@ import { drawInputTextColumnsAndSeedScreenFill } from "./drawInputTextColumnsAnd
 
 const START_BIT = 0x10; // bit 4 of the folded input ports
 
-export function loc_1c68(m, in0 = m.regs.b, in1 = m.regs.c) {
+export function armInputFlagAndDrawInputColumns(m, in0 = m.regs.b, in1 = m.regs.c) {
   const { mem8 } = m;
 
   if ((in0 | in1) & START_BIT) mem8[loc_41cc] = 1;

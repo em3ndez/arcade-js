@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_1c68 as cand } from "../loc_1c68.js";
+import { armInputFlagAndDrawInputColumns as cand } from "../armInputFlagAndDrawInputColumns.js";
 import { loc_1c68 as oracle } from "../../translated/loc_1c68.js";
 import { drawInputTextColumnsAndSeedScreenFill } from "../drawInputTextColumnsAndSeedScreenFill.js";
 

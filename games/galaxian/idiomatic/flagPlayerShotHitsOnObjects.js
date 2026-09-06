@@ -8,7 +8,7 @@ import { loc_4208, OBJ_TABLE } from "./names.js";
 const OBJECT_COUNT = 7;
 const OBJECT_STRIDE = 32; // 0x20
 
-export function loc_1227(m) {
+export function flagPlayerShotHitsOnObjects(m) {
   const { mem8 } = m;
 
   if ((mem8[loc_4208] & 1) === 0) return; // shot gate closed

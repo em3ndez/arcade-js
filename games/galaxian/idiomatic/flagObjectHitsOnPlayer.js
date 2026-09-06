@@ -7,7 +7,7 @@ import { OBJ_ACTIVE_FLAG, OBJ_TABLE } from "./names.js";
 const OBJ_COUNT = 7;
 const OBJ_STRIDE = 32;
 
-export function loc_129e(m) {
+export function flagObjectHitsOnPlayer(m) {
   const { mem8 } = m;
 
   if ((mem8[OBJ_ACTIVE_FLAG] & 1) === 0) return; // subsystem disabled

@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_229c as cand } from "../loc_229c.js";
+import { awardBonusMarker as cand } from "../awardBonusMarker.js";
 import { loc_229c as oracle } from "../../translated/loc_229c.js";
 import { drawMarkerRow } from "../drawMarkerRow.js";
 

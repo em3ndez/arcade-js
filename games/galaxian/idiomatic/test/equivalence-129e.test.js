@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_129e as cand } from "../loc_129e.js";
+import { flagObjectHitsOnPlayer as cand } from "../flagObjectHitsOnPlayer.js";
 import { loc_129e as oracle } from "../../translated/loc_129e.js";
 
 const ENABLE = 0x4200;      // OBJ_ACTIVE_FLAG

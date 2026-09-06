@@ -18,7 +18,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_0492 as cand } from "../loc_0492.js";
+import { beginGameOnStartButton as cand } from "../beginGameOnStartButton.js";
 import { loc_0492 as oracle } from "../../translated/loc_0492.js";
 import { armStateAdvanceGate } from "../armStateAdvanceGate.js";
 

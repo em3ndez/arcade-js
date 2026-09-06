@@ -11,7 +11,7 @@ const CREDITS_PER_START = 2;
 const TEMPLATE_BYTES = 32;
 const SPAWN_PTR = 256;
 
-export function loc_0492(m) {
+export function beginGameOnStartButton(m) {
   const { mem8 } = m;
 
   const input = mem8[IN1_SHADOW];

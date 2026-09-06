@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_05a5 as cand } from "../loc_05a5.js";
+import { restoreFormationAndEnterPlaySubstate as cand } from "../restoreFormationAndEnterPlaySubstate.js";
 import { loc_05a5 as oracle } from "../../translated/loc_05a5.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";

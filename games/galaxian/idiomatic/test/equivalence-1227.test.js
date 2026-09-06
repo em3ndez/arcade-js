@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_1227 as cand } from "../loc_1227.js";
+import { flagPlayerShotHitsOnObjects as cand } from "../flagPlayerShotHitsOnObjects.js";
 import { loc_1227 as oracle } from "../../translated/loc_1227.js";
 import { flagPlayerShotHitOnObject } from "../flagPlayerShotHitOnObject.js";
 

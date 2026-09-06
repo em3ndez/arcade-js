@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_1d28 as cand } from "../loc_1d28.js";
+import { advanceScreenFillStrip as cand } from "../advanceScreenFillStrip.js";
 import { loc_1d28 as oracle } from "../../translated/loc_1d28.js";
 import { restartScreenFillOnDwellExpiry } from "../restartScreenFillOnDwellExpiry.js";
 

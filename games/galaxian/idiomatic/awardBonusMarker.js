@@ -5,7 +5,7 @@
 import { drawMarkerRow } from "./drawMarkerRow.js";
 import { CURRENT_PLAYER, loc_40ad, loc_41c7, loc_421d } from "./names.js";
 
-export function loc_229c(m) {
+export function awardBonusMarker(m) {
   const { mem8 } = m;
 
   const flag = loc_40ad + mem8[CURRENT_PLAYER];

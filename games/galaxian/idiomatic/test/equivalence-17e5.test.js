@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
-import { loc_17e5 as cand } from "../loc_17e5.js";
+import { advanceSoundSweepAndStagePitch as cand } from "../advanceSoundSweepAndStagePitch.js";
 import { loc_17e5 as oracle } from "../../translated/loc_17e5.js";
 import { tickSoundCounterAndStagePitch } from "../tickSoundCounterAndStagePitch.js";
 

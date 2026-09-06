@@ -10,7 +10,7 @@ import { incrementCreditCount } from "./incrementCreditCount.js";
 
 const RELOAD_VALUE = 15; // refilled into the reload cell whenever the coarse timer ticks
 
-export function loc_1931(m) {
+export function tickCoinMeterAndAwardCredits(m) {
   const { mem8 } = m;
 
   const reload = mem8[loc_4003];

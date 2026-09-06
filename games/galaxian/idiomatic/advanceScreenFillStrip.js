@@ -8,7 +8,7 @@ import { SOUND_PITCH_W, loc_4008, VRAM_WRITE_PTR } from "./names.js";
 
 const FIRST_HALF_PAIRS = 16;
 
-export function loc_1d28(m) {
+export function advanceScreenFillStrip(m) {
   const { mem8, mem16 } = m;
 
   mem8[SOUND_PITCH_W]; // watchdog pet (value discarded)

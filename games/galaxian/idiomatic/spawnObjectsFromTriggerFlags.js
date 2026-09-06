@@ -17,7 +17,7 @@ const SECONDARY_BUDGET = 2;                          // at most two secondaries 
 const SLOT_STRIDE = 32;
 const SECONDARY_SLOT_BASE = OBJ_TABLE + SLOT_STRIDE; // secondaries fill from the table's second slot
 
-export function loc_14be(m, spawnCode = m.regs.c) {
+export function spawnObjectsFromTriggerFlags(m, spawnCode = m.regs.c) {
   const { mem8 } = m;
 
   let hit = -1;

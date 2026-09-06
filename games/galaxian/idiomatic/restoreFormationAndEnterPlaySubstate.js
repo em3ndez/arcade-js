@@ -17,7 +17,7 @@ const TEMPLATE_BYTES = 8;
 const DWELL_RELOAD = 150;
 const CHANNEL = 5; // board-start sound cue channel
 
-export function loc_05a5(m) {
+export function restoreFormationAndEnterPlaySubstate(m) {
   const { mem8, mem16 } = m;
 
   // Unpack the packed bitmap into the flag block; the returned pointer sits on the trailing template.

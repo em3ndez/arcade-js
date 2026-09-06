@@ -10,7 +10,7 @@ import { tickSoundCounterAndStagePitch } from "./tickSoundCounterAndStagePitch.j
 
 const COUNTER_CEILING = 96; // the pointed cell is bumped only while the sound counter stays below this
 
-export function loc_17e5(m, ptr = m.regs.hl) {
+export function advanceSoundSweepAndStagePitch(m, ptr = m.regs.hl) {
   const { mem8 } = m;
 
   if (mem8[loc_4226] & 1) return;

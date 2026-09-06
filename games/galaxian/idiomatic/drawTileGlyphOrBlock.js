@@ -8,7 +8,7 @@ import { drawSelectedTileBlockOrFallback } from "./drawSelectedTileBlockOrFallba
 import { fetchIndexedTableByte } from "./fetchIndexedTableByte.js";
 import { drawDoubleHeightTile } from "./drawDoubleHeightTile.js";
 
-export function loc_2131(m, carry = m.regs.fC, index = m.regs.b, hl = m.regs.hl, de = m.regs.de) {
+export function drawTileGlyphOrBlock(m, carry = m.regs.fC, index = m.regs.b, hl = m.regs.hl, de = m.regs.de) {
   if (carry) return (m.regs.hl = de, m.regs.de = hl, drawSelectedTileBlockOrFallback(m, index));
 
   const dest = hl;

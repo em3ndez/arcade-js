@@ -16,7 +16,7 @@ import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { loc_2131 as cand } from "../loc_2131.js";
+import { drawTileGlyphOrBlock as cand } from "../drawTileGlyphOrBlock.js";
 import { loc_2131 as oracle } from "../../translated/loc_2131.js";
 import { drawSelectedTileBlockOrFallback } from "../drawSelectedTileBlockOrFallback.js";
 import { drawDoubleHeightTile } from "../drawDoubleHeightTile.js";

@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_1931 as cand } from "../loc_1931.js";
+import { tickCoinMeterAndAwardCredits as cand } from "../tickCoinMeterAndAwardCredits.js";
 import { loc_1931 as oracle } from "../../translated/loc_1931.js";
 import { incrementCreditCount } from "../incrementCreditCount.js";
 

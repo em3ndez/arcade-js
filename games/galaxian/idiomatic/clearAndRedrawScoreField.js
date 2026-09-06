@@ -7,14 +7,14 @@ import { drawScoreFieldByIndex } from "./drawScoreFieldByIndex.js";
 import { u8 } from "../../../core/int.js";
 import { PLAYER1_SCORE_BCD, PLAYER2_SCORE_BCD, HIGH_SCORE_BCD, loc_40ad, loc_40ae } from "./names.js";
 
-export function loc_21fe(m, index = m.regs.a) {
+export function clearAndRedrawScoreField(m, index = m.regs.a) {
   const { mem8 } = m;
 
   if (index >= 3) {
     let i = index;
     for (;;) {
       i = u8(i - 1);
-      loc_21fe(m, i);
+      clearAndRedrawScoreField(m, i);
       if (i === 0) return;
     }
   }
