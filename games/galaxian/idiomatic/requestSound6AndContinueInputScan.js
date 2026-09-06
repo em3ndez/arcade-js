@@ -7,7 +7,7 @@ import { armInputFlagAndDrawInputColumns } from "./armInputFlagAndDrawInputColum
 const SCAN_BITS = 0x0c;   // bits 2-3 of the folded input ports
 const CONTROL_SEED = 6;
 
-export function loc_1c5d(m, in0 = m.regs.b, in1 = m.regs.c) {
+export function requestSound6AndContinueInputScan(m, in0 = m.regs.b, in1 = m.regs.c) {
   const { mem8 } = m;
 
   if ((in0 | in1) & SCAN_BITS) mem8[loc_41df] = CONTROL_SEED;

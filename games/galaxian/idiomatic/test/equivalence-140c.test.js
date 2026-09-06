@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_140c as cand } from "../loc_140c.js";
+import { spawnObjectsOnDelayedEvent as cand } from "../spawnObjectsOnDelayedEvent.js";
 import { loc_140c as oracle } from "../../translated/loc_140c.js";
 import { spawnIntoFreeDescriptorSlot } from "../spawnIntoFreeDescriptorSlot.js";
 

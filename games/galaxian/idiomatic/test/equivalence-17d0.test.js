@@ -16,7 +16,7 @@ import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
 import { u8 } from "../../../../core/int.js";
-import { loc_17d0 as cand } from "../loc_17d0.js";
+import { updateSoundSweepVoice as cand } from "../updateSoundSweepVoice.js";
 import { loc_17d0 as oracle } from "../../translated/loc_17d0.js";
 import { advanceSoundSweepAndStagePitch } from "../advanceSoundSweepAndStagePitch.js";
 

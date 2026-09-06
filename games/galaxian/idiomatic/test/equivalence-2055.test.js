@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_2055 as cand } from "../loc_2055.js";
+import { drawAnimatedTileFigureAtPackedCoord as cand } from "../drawAnimatedTileFigureAtPackedCoord.js";
 import { loc_2055 as oracle } from "../../translated/loc_2055.js";
 import { mapPackedCoordToVram } from "../mapPackedCoordToVram.js";
 import { computeTileVariantFromValueAndTimer } from "../computeTileVariantFromValueAndTimer.js";

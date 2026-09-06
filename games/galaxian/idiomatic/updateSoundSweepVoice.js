@@ -9,7 +9,7 @@ import { advanceSoundSweepAndStagePitch } from "./advanceSoundSweepAndStagePitch
 const SWEEP_IDLE = 2;     // low byte of the idle template -> the sweep cell (counter + 1)
 const COUNTER_IDLE = 160; // high byte of the idle template -> the sound counter (parked past its ceiling)
 
-export function loc_17d0(m) {
+export function updateSoundSweepVoice(m) {
   const { mem8 } = m;
 
   if ((mem8[loc_4006] & 1) === 0) return;

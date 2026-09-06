@@ -19,7 +19,7 @@ import {
 const GROUP_SIZE = 4;
 const SECONDARY_BACKOFF = 15; // the secondary window sits 15 below the primary trigger block
 
-export function loc_140c(m) {
+export function spawnObjectsOnDelayedEvent(m) {
   const { mem8 } = m;
 
   if (mem8[loc_4220] & 1) return;

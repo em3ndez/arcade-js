@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_1c5d as cand } from "../loc_1c5d.js";
+import { requestSound6AndContinueInputScan as cand } from "../requestSound6AndContinueInputScan.js";
 import { loc_1c5d as oracle } from "../../translated/loc_1c5d.js";
 import { armInputFlagAndDrawInputColumns } from "../armInputFlagAndDrawInputColumns.js";
 

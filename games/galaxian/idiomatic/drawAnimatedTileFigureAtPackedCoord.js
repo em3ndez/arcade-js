@@ -9,7 +9,7 @@ import { computeTileVariantFromValueAndTimer } from "./computeTileVariantFromVal
 import { drawTileGlyphOrBlock } from "./drawTileGlyphOrBlock.js";
 import { VRAM_BASE } from "./names.js";
 
-export function loc_2055(m, coord = m.regs.a) {
+export function drawAnimatedTileFigureAtPackedCoord(m, coord = m.regs.a) {
   const cell = mapPackedCoordToVram(m, coord);
   const variant = computeTileVariantFromValueAndTimer(m, coord); // mapper leaves B = coord; the fold biases that
   const drawBlock = ((coord >> 4) & 1) === 1; // mapper carry live-out = coord bit 4
