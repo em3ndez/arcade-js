@@ -231,6 +231,9 @@ export const loc_2157 = 0x2157;
 export const loc_40ad = 0x40ad;
 export const loc_40ae = 0x40ae;
 
+// batch 7 -- descriptive cells ([code], grounding pending)
+// batch 7 -- loc_ placeholders (role not yet consensus-confident)
+
 // Idiomatic overrides wired OVER the translated oracle (batch 1, leaves-first). Names stay loc_<addr>
 // this pass; role is a [code] reading; cert lifts to "seen" at grounding.
 export const ROUTINES = {
@@ -445,4 +448,8 @@ export const ROUTINES = {
   0x2131: { name: "drawTileGlyphOrBlock", role: "[code] Tile-figure draw dispatch keyed on carry: carry set stamps a 2x2 tile block selected by B (drawSelectedTileBlockOrFallback, fallback tile 0xa4 when B negative); carry clear fetches B's tile code from table 0x2157 and paints a double-height glyph at HL (drawDoubleHeightTile).", cert: "code" },
   0x21fe: { name: "clearAndRedrawScoreField", role: "[seen] Clear the packed-BCD score field selected by index A (0=P1 0x40a2, 1=P2 0x40a5, 2=high 0x40a8) -- zero its three digit bytes plus the per-player bonus companion (0x40ad/0x40ae; high score re-zeros its own first byte) -- then repaint via drawScoreFieldByIndex; index>=3 descends over all lower fields.", cert: "seen" },
   0x229c: { name: "awardBonusMarker", role: "[code] One-shot per current player (guard flag table 0x40ad indexed by CURRENT_PLAYER 0x400d): on the first score-threshold trip flag the player's slot, raise sound-envelope trigger 0x41c7=1, increment marker counter 0x421d, and repaint the marker row (drawMarkerRow).", cert: "code" },
+  0x140c: { name: "loc_140c", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x17d0: { name: "loc_17d0", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1c5d: { name: "loc_1c5d", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x2055: { name: "loc_2055", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
 };
