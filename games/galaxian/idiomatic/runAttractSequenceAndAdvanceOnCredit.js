@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Top-level game-state handler (attract game-state): run the per-frame formation prep
-// (sweep oscillator + occupancy summary), dispatch on the sequence-state selector (SEQUENCE_STATE,
-// ) to one of the sub-state handlers, then finish at the post-dispatch continuation
-// advanceGameStateOnCredit, the post-dispatch continuation.
+// (sweep oscillator + occupancy summary), dispatch on the sequence-state selector (SEQUENCE_STATE) to
+// one of the sub-state handlers, then finish at the post-dispatch continuation advanceGameStateOnCredit.
 
 // The idiomatic form ABSORBS the rst-28 computed jump into the SEQUENCE_HANDLERS table below, calling
 // the named handler for each state index directly, so the push + rst-28 and its inline
@@ -57,7 +56,7 @@ const SEQUENCE_HANDLERS = [
   enterSequenceStep1, // 18
 ];
 
-export function loc_0156(m) {
+export function runAttractSequenceAndAdvanceOnCredit(m) {
   advanceFormationSweepOscillator(m);
   summarizeFormationOccupancy(m);
 
@@ -66,7 +65,7 @@ export function loc_0156(m) {
   // Indices 0..18 are the real sub-state handlers; index 19 (a cold-reset sentinel) and any higher index
   // are unreachable for a valid SEQUENCE_STATE, so guard the invariant loudly instead of soft-resetting.
   if (!handler) {
-    throw new Error(`loc_0156: SEQUENCE_STATE ${state} has no sub-state handler (0..18 expected; 19 is the cold-reset sentinel)`);
+    throw new Error(`runAttractSequenceAndAdvanceOnCredit: SEQUENCE_STATE ${state} has no sub-state handler (0..18 expected; 19 is the cold-reset sentinel)`);
   }
   handler(m);
 

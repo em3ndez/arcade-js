@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Top-level game-state handler (the restore-saved-board play-state dispatcher; sibling of, which
+// Top-level game-state handler (the restore-saved-board play-state dispatcher; sibling of the fresh-board
 // differs at sub-states 2/6/7). Runs the per-frame formation prep (sweep oscillator + occupancy summary),
 // then tail-dispatches on the sequence-state selector to one of eight play sub-state handlers.
 
-// The pushes the inline word table base and rst-28s into it; unlike it pushes
-// NO continuation first, so the selected handler's own return goes straight to 's caller -- a pure
-// tail dispatch. The idiomatic form ABSORBS the rst-28 computed jump into a JS switch that calls the named
-// handler for each index directly, so the m.call and its inline word table dissolve.
+// The dispatch pushes NO continuation first, so the selected handler's own return goes straight to the
+// caller -- a pure tail dispatch. The idiomatic form ABSORBS the rst-28 computed jump into a JS switch
+// that calls the named handler for each index directly, so the inline word table dissolves.
 
 // The selector holds 0..7 in this game state (all eight table slots are real handlers); an out-of-range
 // value cannot occur here (the would jp past the eight-entry table into code bytes), so the switch has
@@ -23,7 +22,7 @@ import { stepAltPlaySubstate6 } from "./stepAltPlaySubstate6.js";
 import { saveFlagsToSnapshotAndSwitchPlayerState } from "./saveFlagsToSnapshotAndSwitchPlayerState.js";
 import { SEQUENCE_STATE } from "./names.js";
 
-export function loc_077b(m) {
+export function runPlayerTwoPlayFrame(m) {
   advanceFormationSweepOscillator(m);
   summarizeFormationOccupancy(m);
 

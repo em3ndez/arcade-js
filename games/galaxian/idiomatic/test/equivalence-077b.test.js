@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_077b as cand } from "../loc_077b.js";
+import { runPlayerTwoPlayFrame as cand } from "../runPlayerTwoPlayFrame.js";
 import { loc_077b as oracle } from "../../translated/loc_077b.js";
 
 import { advanceFormationSweepOscillator } from "../advanceFormationSweepOscillator.js";

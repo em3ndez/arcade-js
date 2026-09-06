@@ -16,7 +16,7 @@ import { packFlagsToBitmapAndSwitchPlayerState } from "./packFlagsToBitmapAndSwi
 import { SEQUENCE_STATE } from "./names.js";
 
 // The eight play sub-state handlers, indexed by SEQUENCE_STATE — one entry per word of the absorbed
-// rst-28 jump table at {,,,,,,,}.
+// rst-28 jump table.
 const SEQUENCE_HANDLERS = [
   initPlayfieldState, // 0
   blankScreenRowsThenAdvanceSequence, // 1
@@ -28,7 +28,7 @@ const SEQUENCE_HANDLERS = [
   packFlagsToBitmapAndSwitchPlayerState, // 7
 ];
 
-export function loc_0536(m) {
+export function runPlayerOnePlayFrame(m) {
   advanceFormationSweepOscillator(m);
   summarizeFormationOccupancy(m);
 

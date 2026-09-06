@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { craft, ramDiff, romsPresent, STUBS } from "./_bootSetup.js";
 import { withOmittedRet } from "../../machine.js";
 import { seamPlaceable } from "../../../../core/equivalence.js";
-import { loc_0156 as cand } from "../loc_0156.js";
+import { runAttractSequenceAndAdvanceOnCredit as cand } from "../runAttractSequenceAndAdvanceOnCredit.js";
 import { loc_0156 as oracle } from "../../translated/loc_0156.js";
 import { advanceFormationSweepOscillator } from "../advanceFormationSweepOscillator.js";
 import { summarizeFormationOccupancy } from "../summarizeFormationOccupancy.js";
