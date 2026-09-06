@@ -502,4 +502,9 @@ Finally, a couple of these paths bottom out in tiny stack-only exits shared acro
 - Many work-RAM cells are still named `loc_<addr>`: their role is understood from the routines that touch them
   (described above) but a descriptive identifier is deferred to the cleanup phase rather than promoted piecemeal.
 - A further tier of routines remains translated (not yet decompiled); the map grows to cover them as the spiral
-  climbs.
+  climbs. A group of leaves-first spine-unblock routines has most recently been lifted into JS — an 8-bit divide
+  helper, the sound-driver per-frame tick, an input-port scan, the object-aim/slope-to-octant and slot-claim
+  helpers, and two object state-handlers — correct-by-equivalence but still carrying `loc_<addr>` names and
+  `[code]` certs pending their own understanding pass, which folds them into the sections above. The object
+  dispatchers they feed (the 16-way object state dispatch and its callers) stay translated until their handlers
+  are all lifted, at which point the dispatchers become the next spine to absorb.
