@@ -213,6 +213,15 @@ export const loc_5241 = 0x5241;
 export const loc_5300 = 0x5300;
 export const loc_5320 = 0x5320;
 
+// batch 5 -- descriptive cells ([code], grounding pending)
+export const IN1 = 0x6800; // [code] IN1 input port (read; write side is SOUND_W_REG0)
+export const HIGH_SCORE_BCD = 0x40a8; // [code] high-score packed-BCD score (3 bytes)
+export const MARKER_ROW_VRAM = 0x539e; // [code] marker-row VRAM base (5-slot marker row)
+// batch 5 -- loc_ placeholders (role not yet consensus-confident)
+export const loc_4004 = 0x4004;
+export const loc_4015 = 0x4015;
+export const loc_4016 = 0x4016;
+
 // Idiomatic overrides wired OVER the translated oracle (batch 1, leaves-first). Names stay loc_<addr>
 // this pass; role is a [code] reading; cert lifts to "seen" at grounding.
 export const ROUTINES = {
@@ -394,4 +403,24 @@ export const ROUTINES = {
   0x0614: { name: "activateObjectsAndBeginPlayPhase", role: "[code] State-timer handler: tick dwell 0x4009; while nonzero return. On expiry reload 0x4009=10, advance SEQUENCE_STATE, set OBJ_ACTIVE_FLAG (0x4200)=1 to enable the object/AI/projectile subsystem, seed player-X reference 0x4202=128, refill the 16-byte enemy-launch sub-counter block 0x424a from SUBCOUNTER_RELOAD_TABLE (0x15e3), clear scratch 0x4058/0x405a, and enqueue channel-7 (arg 3) and channel-2 (arg 0, the 4x4 indicator draw) display commands.", cert: "code" },
   0x0f7b: { name: "beginObjectCrossPlayerMove", role: "[code] Shared object-AI tail: call commitMoveAcrossPlayerX (0x0ddd) to pick and commit a horizontal target on the far/opposite side of the player-X reference, then arm the object's flight-curve step seed record+0x18=3 (-> (3&3)+1 = 4 curve steps in advanceObjectFlightCurve 0x116b) and its move throttle record+0x10=100.", cert: "code" },
   0x215f: { name: "draw4x4TileForm", role: "[code] Display-list channel-2 handler: draw one of three 4x4-tile forms at a fixed VRAM region selected by the command arg -- form 0 blanks the block then overlays a 2x2 icon (blank4x4AndDraw2x2Icon 0x219b), form 1 just blanks it (blankTileBlock4x4 0x2187), else fold (form-2) into a complemented tile code over base 0xc0 and stamp four 2x2 tile blocks at 0x51da/0x51dc/0x521a/0x521c (a contiguous 4x4 cell region, seed +4 per block, via drawTileBlock2x2 0x2585).", cert: "code" },
+  0x04f2: { name: "loc_04f2", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x05fc: { name: "loc_05fc", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x06d8: { name: "loc_06d8", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x07e8: { name: "loc_07e8", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0dd1: { name: "loc_0dd1", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x0f66: { name: "loc_0f66", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1091: { name: "loc_1091", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x123f: { name: "loc_123f", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x12b6: { name: "loc_12b6", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1446: { name: "loc_1446", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x148e: { name: "loc_148e", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x17f9: { name: "loc_17f9", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x18ef: { name: "loc_18ef", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1964: { name: "loc_1964", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1c73: { name: "loc_1c73", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x1d39: { name: "loc_1d39", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x209c: { name: "loc_209c", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x213d: { name: "loc_213d", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x2231: { name: "loc_2231", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
+  0x22b3: { name: "loc_22b3", role: "[code] decompiled leaf; understanding pass pending", cert: "code" },
 };

@@ -314,5 +314,8 @@ Three routines grouped here operate on the enemy-shot records rather than the ti
   owed to lift them.
 - Many work-RAM cells are still named `loc_<addr>`: their role is understood from the routines that touch them
   (described above) but a descriptive identifier is deferred to the cleanup phase rather than promoted piecemeal.
-- A further tier of routines remains translated (not yet decompiled); the map grows to cover them as the spiral
-  climbs.
+- A further tier of routines remains translated (not yet decompiled): most are reached only through the top-level
+  dispatchers above, so lifting those dispatchers is what unblocks them. The most recently decompiled leaves are
+  correct-by-equivalence but still carry `loc_<addr>` names and `[code]` certs pending their own understanding pass
+  (blind naming + MAME grounding), which will fold them into the sections above; until then this map covers the named
+  routines and those leaves are not yet narrated.

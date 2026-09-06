@@ -316,3 +316,8 @@ galaxian 0x521c
 galaxian 0x5241
 galaxian 0x5300
 galaxian 0x5320
+
+# galaxian §4 decompile batch 5 -- loc_ cell placeholders (role not yet consensus-confident)
+galaxian 0x4004
+galaxian 0x4015
+galaxian 0x4016
