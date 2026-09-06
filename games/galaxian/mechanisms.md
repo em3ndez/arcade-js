@@ -530,4 +530,7 @@ through `drawBottomTilePairRestoreDe`.
 - Many work-RAM cells are still named `loc_<addr>`: their role is understood from the routines that touch them
   (described above) but a descriptive identifier is deferred to the cleanup phase rather than promoted piecemeal.
 - A further tier of routines remains translated (not yet decompiled); the map grows to cover them as the spiral
-  climbs.
+  climbs. Most recently lifted is the object-spawn/play pipeline reached through the per-slot object driver —
+  the eight-slot object update loop, the per-frame play pipeline, and the sequence-state handlers that share the
+  four subsystem updates — now that the object dispatcher they call is itself idiomatic. They are
+  correct-by-equivalence but still carry `loc_<addr>` names and `[code]` certs pending their own understanding pass.
