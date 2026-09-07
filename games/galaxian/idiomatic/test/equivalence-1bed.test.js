@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1bed — memory-equivalent to the frozen power-on self-test ramp scan at ROM 0x1bed. A crafted entry lays
- * the OBJRAM colour ramp (seed +0x2f per cell) and seats HL = OBJRAM + A = seed the way loc_1be3 hands over;
+ * scanObjRamTestRampAndFinishSelfTest — memory-equivalent to the frozen power-on self-test ramp scan at ROM 0x1bed. A crafted entry lays
+ * the OBJRAM colour ramp (seed +0x2f per cell) and seats HL = OBJRAM + A = seed the way fillObjRamTestRamp hands over;
  * the scan verifies the ramp, and on the final pass (the pass counter 0x4008 decrements to 0) it clears OBJRAM
  * and seeds the next boot phase (mode/lamps/flags + two diagnostic VRAM cells). EQUAL asserts idiomatic ==
  * oracle RAM on both an early-ret entry (0x4008 > 1) and the final-pass entry (0x4008 == 1), non-vacuously.
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { craft, ramDiff, romsPresent } from "./_bootSetup.js";
-import { loc_1bed as cand } from "../loc_1bed.js";
+import { scanObjRamTestRampAndFinishSelfTest as cand } from "../scanObjRamTestRampAndFinishSelfTest.js";
 import { loc_1bed as oracle } from "../../translated/loc_1bed.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -30,11 +30,11 @@ function entry(seed, passes) {
   });
 }
 
-test("EQUAL: loc_1bed == oracle on early-ret and final-pass entries", { skip }, () => {
+test("EQUAL: scanObjRamTestRampAndFinishSelfTest == oracle on early-ret and final-pass entries", { skip }, () => {
   assert.equal(ramDiff(oracle, cand, entry(0x3c, 2)), null, "early-ret (0x4008 > 1) diverged");
   assert.equal(ramDiff(oracle, cand, entry(0x3c, 1)), null, "final-pass (0x4008 == 1) diverged");
   assert.ok(ramDiff(oracle, () => {}, entry(0x3c, 1)), "vacuous: the final pass wrote no RAM");
-  console.log("  EQUAL: loc_1bed == oracle on early-ret + final-pass");
+  console.log("  EQUAL: scanObjRamTestRampAndFinishSelfTest == oracle on early-ret + final-pass");
 });
 
 test("TEETH: corrupted ramp throws (scan load-bearing); no-op misses the final-pass writes", { skip }, () => {

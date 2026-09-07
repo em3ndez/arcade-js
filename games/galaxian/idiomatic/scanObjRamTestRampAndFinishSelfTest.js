@@ -8,7 +8,7 @@ import { advanceRandomSeed } from "./advanceRandomSeed.js";
 
 const RAMP_STEP = 0x2f;
 
-export function loc_1bed(m, seed = m.regs.a) {
+export function scanObjRamTestRampAndFinishSelfTest(m, seed = m.regs.a) {
   const { mem8 } = m;
   let v = seed & 0xff;
   for (let i = 0; i < 0x100; i++) {

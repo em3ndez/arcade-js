@@ -73,8 +73,8 @@ the interrupt-enable latch `IRQ_ENABLE` (0x7001 [code]) to acknowledge the inter
 
 Immediately after the acknowledgement the handler consults a mode flag at 0x401a and forks. When that
 flag is zero — the normal case, all through attract and play — the frame takes the main path below.
-When it is non-zero the frame is diverted wholesale to the alternate handler at ROM 0x1bcd (described in
-its own subsection), and none of the main-path work happens that frame. Both forks eventually converge
+When it is non-zero the frame is diverted wholesale to the alternate handler `dispatchSelfTestMode` at ROM
+0x1bcd (described in its own subsection), and none of the main-path work happens that frame. Both forks eventually converge
 on the same exit epilogue, so the fork is a choice of *which* per-frame work to do, not whether to
 finish cleanly.
 
@@ -124,14 +124,14 @@ would freeze.
 
 ### The alternate per-frame path
 
-When the mode flag at 0x401a is non-zero the frame is diverted to the handler at ROM 0x1bcd, used during
-the boot self-test and screen-fill phases. It is itself a small one-of-four dispatch keyed on the flag's
+When the mode flag at 0x401a is non-zero the frame is diverted to the handler `dispatchSelfTestMode` at ROM
+0x1bcd, used during the boot self-test and screen-fill phases. It is itself a small one-of-four dispatch keyed on the flag's
 value, and it arranges for whichever handler it selects to return to the same exit epilogue at 0x00d8
 that the main path uses, so re-arming and register restore still happen. Value 1 routes to
 `driveSoundFrameAndScanInput` [code] (0x1c3a), which ticks the sound driver and sweep, pets the
 watchdog, and scans IN0 for its arm bits. Value 2 routes to `advanceScreenFillStrip` [code] (0x1d28),
 the per-frame tile-strip fill that paints the screen a strip at a time. Value 3 falls through into the
-object-RAM color-fill pass (ROM 0x1be3), which takes the object hardware base (0x5800) and the current
+object-RAM color-fill pass `fillObjRamTestRamp` (ROM 0x1be3), which takes the object hardware base (0x5800) and the current
 random seed at 0x401e as the ramp's starting point, stepping the color +0x2f per cell across the
 256-byte OBJRAM page. Any other value is treated as invalid and drops the machine to the
 cold-reset vector at 0x0000. So during these boot and screen-clearing phases the frame does a single

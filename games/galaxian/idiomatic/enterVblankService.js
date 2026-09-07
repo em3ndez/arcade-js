@@ -5,7 +5,7 @@
 // dispatch on the game state, and re-arm the interrupt for the next frame.
 import { IRQ_ENABLE, SELFTEST_MODE, OBJRAM_HW_BASE, OBJRAM_SHADOW_BASE, WATCHDOG_RESET, FRAME_COUNTER,
   GAME_STATE, IN0, IN1, IN2_PORT, IN0_SHADOW, IN1_SHADOW, IN2_SHADOW, loc_4013, loc_4015, loc_4016 } from "./names.js";
-import { loc_1bcd } from "./loc_1bcd.js";
+import { dispatchSelfTestMode } from "./dispatchSelfTestMode.js";
 import { serviceCoinInputs } from "./serviceCoinInputs.js";
 import { tickCoinMeterAndAwardCredits } from "./tickCoinMeterAndAwardCredits.js";
 import { updateCoinLockoutFromCredits } from "./updateCoinLockoutFromCredits.js";
@@ -33,7 +33,7 @@ export function enterVblankService(m) {
 
   const mode = mem8[SELFTEST_MODE];
   if (mode !== 0) {
-    loc_1bcd(m, mode); // power-on self-test path
+    dispatchSelfTestMode(m, mode); // power-on self-test path
     mem8[IRQ_ENABLE] = 1; // re-arm for the next frame
     return;
   }

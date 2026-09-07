@@ -5,11 +5,11 @@
 import { RNG_SEED } from "./names.js";
 import { driveSoundFrameAndScanInput } from "./driveSoundFrameAndScanInput.js";
 import { advanceScreenFillStrip } from "./advanceScreenFillStrip.js";
-import { loc_1be3 } from "./loc_1be3.js";
+import { fillObjRamTestRamp } from "./fillObjRamTestRamp.js";
 
-export function loc_1bcd(m, mode = m.regs.a) {
+export function dispatchSelfTestMode(m, mode = m.regs.a) {
   if (mode === 1) return driveSoundFrameAndScanInput(m);
   if (mode === 2) return advanceScreenFillStrip(m);
   if (mode !== 3) throw new Error(`self-test mode ${mode}: the reset arm is unreachable on a good boot`);
-  return loc_1be3(m, m.mem8[RNG_SEED]); // mode 3: fill + scan the OBJRAM ramp
+  return fillObjRamTestRamp(m, m.mem8[RNG_SEED]); // mode 3: fill + scan the OBJRAM ramp
 }

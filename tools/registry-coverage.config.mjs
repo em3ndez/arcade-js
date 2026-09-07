@@ -359,16 +359,16 @@ export const UNWIRED = {
       "counter, runs the per-frame service routines, dispatches on game state, and re-arms the irq. The " +
       "born-live engine calls it directly, so no ROUTINES entry can seat it; not oracle-served.",
     "mainLoop.js":
-      "the free-running main loop, run as the generator by runIdiomaticGame (returned by loc_2000): it drains " +
+      "the free-running main loop, run as the generator by runIdiomaticGame (returned by enterMainLoop): it drains " +
       "the display list and yields once per frame at the vblank. Not a ROM-address routine and not a dispatch " +
       "target; not oracle-served.",
-    "loc_1bcd.js":
+    "dispatchSelfTestMode.js":
       "power-on self-test mode dispatch, direct-called by enterVblankService while the self-test mode is " +
       "nonzero; routes to the already-idiomatic mode handlers or the ramp fill/scan. Not oracle-served.",
-    "loc_1be3.js":
-      "self-test OBJRAM ramp fill, direct-called by loc_1bcd (falls into the scan). Not oracle-served.",
-    "loc_1bed.js":
-      "self-test ramp scan + final-pass boot seeding, direct-called by loc_1be3. Not oracle-served.",
+    "fillObjRamTestRamp.js":
+      "self-test OBJRAM ramp fill, direct-called by dispatchSelfTestMode (falls into the scan). Not oracle-served.",
+    "scanObjRamTestRampAndFinishSelfTest.js":
+      "self-test ramp scan + final-pass boot seeding, direct-called by fillObjRamTestRamp. Not oracle-served.",
   },
 };
 
