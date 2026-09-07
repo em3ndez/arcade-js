@@ -14,7 +14,7 @@
 export const STACK_SCRATCH = { lo: 0x43e0, hi: 0x4400 };
 
 // Hardware ports / discrete-sound latches (board-mapped).
-export const IN0 = 0x6000; // [code] IN0 input port (read)
+export const IN0 = 0x6000; // [seen] IN0 input port (read)
 export const COIN_LOCKOUT = 0x6002; // [seen] coin-lockout latch (D0 = coin_lock output)
 export const COIN_COUNTER_0_LATCH = 0x6003; // [seen] coin-counter 0 hardware output
 export const SOUND_LFO_FREQ = 0x6004; // [seen] discrete-sound LFO frequency latch base
@@ -29,7 +29,7 @@ export const PLAYER2_STATUS_VRAM = 0x50e0; // [seen] player-2 status tilemap cel
 export const PLAYER1_STATUS_VRAM = 0x5340; // [seen] player-1 status tilemap cell
 
 // Work RAM.
-export const RNG_SEED = 0x401e; // [code] 8-bit LCG PRNG seed
+export const RNG_SEED = 0x401e; // [seen] 8-bit LCG PRNG seed
 export const SELFTEST_MODE = 0x401a; // [seen] power-on self-test mode; nonzero routes the vblank NMI to the self-test path (3->1->2->0 then normal)
 export const GAME_STATE = 0x4005; // [seen] game state index (cleared by the fill re-seed)
 export const SEQUENCE_STATE = 0x400a; // [seen] top-level sequence state-machine step index
@@ -178,7 +178,7 @@ export const DIGIT_FIELD_ALT = 0x5121; // [seen] alt-player score-digit VRAM fie
 export const DIGIT_FIELD_PRIMARY = 0x5381; // [seen] primary-player score-digit VRAM field base
 export const FLIP_SCREEN_X = 0x7006; // [seen] screen-flip X latch
 export const FLIP_SCREEN_Y = 0x7007; // [seen] screen-flip Y latch
-export const IN2_PORT = 0x7000; // [code] IN2 input port (read)
+export const IN2_PORT = 0x7000; // [seen] IN2 input port (read)
 export const IN2_SHADOW = 0x4012; // [code] IN2 input shadow
 export const OBJ_SHADOW_RESEED_TEMPLATE = 0x1db1; // [seen] ROM template for the object-shadow reseed
 export const SOUND_LFO_RESET_REQUEST = 0x41d0; // [seen] sound LFO reset-request flag
@@ -218,7 +218,7 @@ export const loc_5300 = 0x5300;
 export const loc_5320 = 0x5320;
 
 // batch 5 -- descriptive cells ([code], grounding pending)
-export const IN1 = 0x6800; // [code] IN1 input port (read; write side is SOUND_W_REG0)
+export const IN1 = 0x6800; // [seen] IN1 input port (read; write side is SOUND_W_REG0)
 export const HIGH_SCORE_BCD = 0x40a8; // [seen] high-score packed-BCD score (3 bytes)
 export const MARKER_ROW_VRAM = 0x539e; // [seen] marker-row VRAM base (5-slot marker row)
 // batch 5 -- loc_ placeholders (role not yet consensus-confident)
@@ -241,7 +241,7 @@ export const SOUND_W_REG7 = 0x6807; // [code] discrete-sound write register 7 (r
 
 // addBcdScoreIncrementAndUpdateHighScore decompile -- ROM score-award table
 export const SCORE_INCREMENT_TABLE = 0x22d0;
-export const DISPLAY_LIST_CURSOR = 0x40a1; // [code] display-list read cursor (low byte of a page-0x40 pointer): next ready draw-command slot, +2 per slot, wraps to 0xc0 // [code] 3-byte packed-BCD score increments indexed by kill/score type (*3)
+export const DISPLAY_LIST_CURSOR = 0x40a1; // [seen] display-list read cursor (low byte of a page-0x40 pointer): next ready draw-command slot, +2 per slot, wraps to 0xc0 // [code] 3-byte packed-BCD score increments indexed by kill/score type (*3)
 
 // renderHudFieldBySelector decompile -- HUD sub-dispatch cells (role not yet consensus-confident; names-debt)
 export const COIN_CREDIT_ROW_COUNT = 0x421c; // [code] coin/credit icon-tally count (drawn value = count+1, clamped)
