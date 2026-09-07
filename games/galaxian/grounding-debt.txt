@@ -1,0 +1,4 @@
+# Galaxian grounding debt (R39): items genuinely un-groundable on a good ROM. Each is independently
+# reviewer-verified (proposer != confirmer). done_gate.check_grounding subtracts these from the ungrounded
+# count. One "0xADDR  reason" per line.
+0x259e  drawFixedTilePairHorizontal (coin-cell-row drawer): its sole caller is the 0x421c-gated coin-drain loop in loc_24b7; COIN_CREDIT_ROW_COUNT 0x421c is board-reset to 0 with no non-zero writer in any valid play, so the loop never iterates and 0x259e's body runs only under a forced poke -- dead on a good ROM. R38 confirmer verified.

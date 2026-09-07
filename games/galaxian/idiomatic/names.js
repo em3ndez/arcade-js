@@ -6,7 +6,7 @@
  * resolveAllIdiomatic() reads ROUTINES: each 0xADDR maps to ./idiomatic/<name>.js exporting <name>,
  * wired OVER the translated oracle; a routine with no entry falls back to its frozen oracle.
  * This is §4 decompile batch 1 (leaves): routines keep loc_<addr> names — the understand pass renames.
- * Tag: [code] understood from the routines that touch the cell; grounding ([seen]) is a later pass.
+ * Tag: `code` understood from the routines that touch the cell; grounding (`seen`) is a later pass.
  * Cells whose role two derivers read differently stay loc_<addr> placeholders (names-debt.txt).
  */
 
@@ -19,7 +19,7 @@ export const COIN_LOCKOUT = 0x6002; // [seen] coin-lockout latch (D0 = coin_lock
 export const COIN_COUNTER_0_LATCH = 0x6003; // [seen] coin-counter 0 hardware output
 export const SOUND_LFO_FREQ = 0x6004; // [seen] discrete-sound LFO frequency latch base
 export const SOUND_W_REG4 = 0x6804; // [seen] discrete-sound write register 4
-export const SOUND_W_REG5 = 0x6805; // [code] discrete-sound write register 5
+export const SOUND_W_REG5 = 0x6805; // [seen] discrete-sound write register 5
 
 // Tilemap VRAM.
 export const VRAM_BASE = 0x5000; // [seen] tilemap VRAM base
@@ -80,10 +80,10 @@ export const OBJ_STAGE_BLOCK = 0x4054; // [seen] batch 2
 export const MESSAGE_CURSOR_PTR = 0x40b1; // [seen] batch 2
 export const MESSAGE_TEXT_PTR = 0x40b3; // [seen] batch 2
 export const MESSAGE_DEST_PTR = 0x40b5; // [seen] batch 2
-export const FLAG_BITS_BASE = 0x4100; // [code] batch 2
+export const FLAG_BITS_BASE = 0x4100; // [seen] batch 2
 export const OCCUPANCY_GRID = 0x4123; // [seen] batch 2
-export const ROW_OCCUPANCY = 0x41e8; // [code] batch 2
-export const COLUMN_OCCUPANCY = 0x41f0; // [code] batch 2
+export const ROW_OCCUPANCY = 0x41e8; // [seen] batch 2
+export const COLUMN_OCCUPANCY = 0x41f0; // [seen] batch 2
 export const OBJ_ACTIVE_FLAG = 0x4200; // [seen] batch 2
 export const HIT_EVENT_FLAG = 0x4204; // [seen] batch 2
 export const FORMATION_X_BOUNDS = 0x4210; // [seen] batch 2
@@ -92,7 +92,7 @@ export const DELAYED_EVENT_ARMED = 0x422e; // [seen] batch 2
 export const DELAYED_EVENT_TIMER = 0x422f; // [seen] batch 2
 export const OBJ_MOVE_CMD = 0x423f; // [seen] batch 2
 export const OBJ_TABLE = 0x42d0; // [seen] batch 2
-export const DESCRIPTOR_SLOT_TABLE = 0x4330; // [code] batch 2
+export const DESCRIPTOR_SLOT_TABLE = 0x4330; // [seen] batch 2
 export const START_LAMP_0 = 0x6000; // [seen] 1-player start-button lamp latch (LS259)
 export const START_LAMP_1 = 0x6001; // [seen] batch 2
 export const SOUND_W_REG0 = 0x6800; // [seen] sound-driver voice-0 latch (lit from formation occupancy)
@@ -147,10 +147,10 @@ export const loc_51da = 0x51da;
 // batch 3 -- descriptive cells ([code], grounding pending)
 export const ACTIVE_NEIGHBOR_COUNT = 0x422a; // [seen] count of active neighbouring object slots
 export const DRAWN_COLUMN_COUNT = 0x4241; // [seen] running count of tile-columns queued to redraw
-export const PACKED_FLAG_BITMAP = 0x4180; // [code] 16-byte packed bitmap (bit-per-flag) destination
-export const SAVED_STATE_SNAPSHOT = 0x41a0; // [code] base of a 32-byte saved-state block
+export const PACKED_FLAG_BITMAP = 0x4180; // [seen] 16-byte packed bitmap (bit-per-flag) destination
+export const SAVED_STATE_SNAPSHOT = 0x41a0; // [seen] base of a 32-byte saved-state block
 export const SPRITE_SHADOW_BASE = 0x4060; // [seen] base of the sprite staging/shadow area (4-byte records)
-export const SPRITE_SOURCE_OBJ_BASE = 0x42b0; // [code] base of 8 object records read as sprite sources (32-byte stride)
+export const SPRITE_SOURCE_OBJ_BASE = 0x42b0; // [seen] base of 8 object records read as sprite sources (32-byte stride)
 export const SUBCOUNTER_REFILL_FLAG = 0x4228; // [seen] one-shot flag set when a sub-counter refilled this pass
 export const SUBCOUNTER_RELOAD_TABLE = 0x15e3; // [seen] reload-value table indexed by sub-counter offset
 export const TILE_COLUMN_TABLE = 0x039a; // [seen] base of 3-byte source rows for the tile-column draw
@@ -179,11 +179,11 @@ export const DIGIT_FIELD_PRIMARY = 0x5381; // [seen] primary-player score-digit 
 export const FLIP_SCREEN_X = 0x7006; // [seen] screen-flip X latch
 export const FLIP_SCREEN_Y = 0x7007; // [seen] screen-flip Y latch
 export const IN2_PORT = 0x7000; // [seen] IN2 input port (read)
-export const IN2_SHADOW = 0x4012; // [code] IN2 input shadow
+export const IN2_SHADOW = 0x4012; // [seen] IN2 input shadow
 export const OBJ_SHADOW_RESEED_TEMPLATE = 0x1db1; // [seen] ROM template for the object-shadow reseed
 export const SOUND_LFO_RESET_REQUEST = 0x41d0; // [seen] sound LFO reset-request flag
 export const SOUND_W_REG3 = 0x6803; // [seen] discrete-sound write register 3
-export const SPAWN_RECORD_TABLE = 0x1dd1; // [code] ROM spawn-record table
+export const SPAWN_RECORD_TABLE = 0x1dd1; // [seen] ROM spawn-record table
 export const TEXT_DESCRIPTOR_TABLE = 0x1cf6; // [seen] ROM text-descriptor table
 export const TILE_BLOCK_TABLE = 0x215b; // [seen] ROM tile-block source table
 // batch 4 -- loc_ placeholders (role not yet consensus-confident; ROM-addr ones are handler/data pointers)
@@ -233,18 +233,18 @@ export const SECONDARY_TRIGGER_BLOCK = 0x4165; // [seen] secondary spawn trigger
 export const loc_4003 = 0x4003;
 export const loc_2157 = 0x2157;
 export const PLAYER1_BONUS_MARKER_AWARDED = 0x40ad; // [seen] player-1 bonus-marker one-shot flag; base of the per-player bonus-marker table
-export const PLAYER2_BONUS_MARKER_AWARDED = 0x40ae; // [code] player-2 bonus-marker one-shot flag; per-player bonus-marker table slot 1
+export const PLAYER2_BONUS_MARKER_AWARDED = 0x40ae; // [seen] player-2 bonus-marker one-shot flag; per-player bonus-marker table slot 1
 
 // spine-unblock batch -- descriptive cells ([code], grounding pending)
-export const SOUND_W_REG6 = 0x6806; // [code] discrete-sound write register 6 (sound-driver composite latch)
-export const SOUND_W_REG7 = 0x6807; // [code] discrete-sound write register 7 (rotate-right of the composite)
+export const SOUND_W_REG6 = 0x6806; // [seen] discrete-sound write register 6 (sound-driver composite latch)
+export const SOUND_W_REG7 = 0x6807; // [seen] discrete-sound write register 7 (rotate-right of the composite)
 
 // addBcdScoreIncrementAndUpdateHighScore decompile -- ROM score-award table
 export const SCORE_INCREMENT_TABLE = 0x22d0; // [seen] 3-byte packed-BCD score increments indexed by kill/score type (*3)
 export const DISPLAY_LIST_CURSOR = 0x40a1; // [seen] display-list read cursor (low byte of a page-0x40 pointer): next ready draw-command slot, +2 per slot, wraps to 0xc0
 
 // renderHudFieldBySelector decompile -- HUD sub-dispatch cells (role not yet consensus-confident; names-debt)
-export const COIN_CREDIT_ROW_COUNT = 0x421c; // [code] coin/credit icon-tally count (drawn value = count+1, clamped)
+export const COIN_CREDIT_ROW_COUNT = 0x421c; // [seen] coin/credit icon-tally count (drawn value = count+1, clamped)
 export const COIN_CREDIT_ROW_VRAM = 0x507e; // [seen] VRAM base for the coin/credit icon-tally row
 export const HUD_NIBBLE_LO_VRAM = 0x5138; // [seen] VRAM low-nibble cell of a two-nibble HUD status readout
 export const HUD_NIBBLE_HI_VRAM = 0x5158; // [seen] VRAM high-nibble cell of a two-nibble HUD status readout
@@ -253,7 +253,7 @@ export const CREDIT_COUNT_UNITS_VRAM = 0x527f; // [seen] VRAM units-digit cell o
 
 // Idiomatic overrides wired OVER the translated oracle (batch 1, leaves-first). Names stay loc_<addr>
 // this pass; role is a [code] reading; cert lifts to "seen" at grounding.
-export const OBJECT_GRID_BASE = 0x4120; // [code] base of the 6-row object/occupancy grid (row stride 0x10; occupancy cells at +3)
+export const OBJECT_GRID_BASE = 0x4120; // [seen] base of the 6-row object/occupancy grid (row stride 0x10; occupancy cells at +3)
 
 export const ROUTINES = {
   0x003c: { name: "advanceRandomSeed", role: "[seen] advance the 8-bit LCG PRNG seed (RNG_SEED, 0x401e) one step (seed*5+1) and return the new byte as this frame's random draw", cert: "seen" },
@@ -443,7 +443,7 @@ export const ROUTINES = {
   0x1091: { name: "restartObjectMoveRun", role: "[seen] Object-AI state-12 handler: tick sub-counter ix+3, force state ix+2=8 (re-enter the arm-window state armDirectedMoveWhenInWindow), and begin a fresh cross-player horizontal move (beginObjectCrossPlayerMove)", cert: "seen" },
   0x123f: { name: "flagPlayerShotHitOnObject", role: "[seen] Per-object hit test: for an active object at IX, box-test its position (ix+3/ix+4) against the player-shot reference (0x4209/0x420a) inside a 6-wide x 12-tall window; on overlap raise shot-retire flag 0x420b=1 and tail-call awardKillScoreByBandAndDeactivate to score+deactivate the object. Sibling of flagPlayerShotHitOnFormation (0x0b0b).", cert: "seen" },
   0x12b6: { name: "flagObjectHitOnPlayer", role: "[seen] Per-object player-collision test: for an active object at IX, classify (ix+3)+0x21 into a near (<5) or far (<0x11) window and test player-X reference 0x4202 minus (ix+4) against the window's band (near +7/0x0f, far +0x0a/0x15); on overlap raise HIT_EVENT_FLAG 0x4204=1 (consumed by handlePlayerHitEvent 0x12ed) and tail-call awardKillScoreByBandAndDeactivate.", cert: "seen" },
-  0x1446: { name: "spawnIntoFreeDescriptorSlot", role: "[code] Free-slot finder: scan the 4 descriptor slots at DESCRIPTOR_SLOT_TABLE (0x4330) high->low (stride 32) for one whose two guard bytes are both zero; on a hit tail-call activateObjectSlotAndEnqueueSpawn(trigger,slot,spawnCode) to seed the slot and enqueue its spawn word; no free slot -> no-op. Reached from spawnObjectsOnDelayedEvent/spawnObjectsFromTriggerFlags.", cert: "code" },
+  0x1446: { name: "spawnIntoFreeDescriptorSlot", role: "[seen] Free-slot finder: scan the 4 descriptor slots at DESCRIPTOR_SLOT_TABLE (0x4330) high->low (stride 32) for one whose two guard bytes are both zero; on a hit tail-call activateObjectSlotAndEnqueueSpawn(trigger,slot,spawnCode) to seed the slot and enqueue its spawn word; no free slot -> no-op. Reached from spawnObjectsOnDelayedEvent/spawnObjectsFromTriggerFlags.", cert: "seen" },
   0x148e: { name: "spawnSecondaryObjectAndAdvanceWalk", role: "[seen] Per-slot step of the secondary-object spawn walk: spawn into the current IY slot via spawnSecondaryObjectIntoSlot (0x149b), advance IY by 32 to the next record and decrement the C budget; when the budget reaches 0 also force the caller's B loop counter to 1 so the enclosing walk ends after this pass. Called from spawnPrimaryAndSecondaryObjects/spawnObjectsFromTriggerFlags.", cert: "seen" },
   0x17f9: { name: "tickSoundCounterAndStagePitch", role: "[seen] Sound-counter tick tail (entered by fall-through from advanceSoundSweepAndStagePitch): when the count in A is nonzero, decrement sound-counter 0x41c4 and store it back, then tail-call stageSoundPitchBySelector to stage the pitch keyed on (HL)&3.", cert: "seen" },
   0x18ef: { name: "serviceCoinInputs", role: "[seen] Per-frame coin/input service front-end (first in loc_0066's service cluster): in config mode 3 (0x4000==3) delegate to presetCreditCount; else combine input shadows (IN0_SHADOW 0x4010 | 0x4013), complement, and mask by guard cells 0x4015 & 0x4016 -- bit7 set -> addCreditForCoin; else the low two bits each tick coin-pulse counter 0x4004 (up to twice).", cert: "seen" },
