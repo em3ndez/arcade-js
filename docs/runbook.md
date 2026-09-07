@@ -494,7 +494,11 @@ workflow+review+push cycle. Do it once, wide. The steps:
   need different evidence:
   - **Write-tap** (`games/<game>/tools/lua/ground_writes.lua`): per-instruction write attribution over
     attract+coin/start/1P-play → grounds *producer* routines (own role-defining write) and work-RAM cells
-    (value change).
+    (value change). ⚠ **Tap the FULL RAM+MMIO write space, not just work RAM** — a renderer's role write
+    lands in VRAM, a sound/port-writer's in the sound/control latches; a work-RAM-only tap misreads every
+    such producer as a writeless register-helper (the confirmer then can't reproduce the evidence). Also run
+    a **deep-gameplay** write capture (coin/start then drive real play — sweep + fire through waves, death,
+    game-over): it reaches far more of the play code than a coin+hold-fire tape, cheaply.
   - **Variant captures** (a lua read-tap that OVERRIDES an input port): a **DSW-variant** forces a
     non-default dip value so DSW-derived cells hold a different value → grounded by **value-SPREAD across the
     union of captures**; a **2P capture** (coin×2 + "2 Players Start") reaches the two-player cells.
@@ -513,11 +517,28 @@ workflow+review+push cycle. Do it once, wide. The steps:
   it: routine = *producer* (own write) / *driver-dispatcher* (reached, writes only stack-scratch → ground on
   reachability + correct vectoring: the pushed return vectors back into its OWN body and the handler it calls
   is reached) / *unreached*; cell = *write-change* / *direct-ROM-read* / *range-ROM-read* / *deep*.
+  ⚠ **Measure reachability from the PC (curpc) column, NEVER the read-tap's addr column.** The boot
+  checksum/anti-tamper sweep reads *every* ROM byte (e.g. `0x0000-0x27ff`), so a routine's address appears in
+  the read **addr** column even if it never executed — addr-column "reached" is a false positive that
+  mis-tags deep routines as groundable register-helpers. A routine truly executed iff its body PCs appear as
+  **curpc** values (in the write-tap or read-tap pc column). This is the same sweep the read-grounding step
+  excludes — it contaminates reachability too.
 - **Fan the ENTIRE groundable-now set in ONE workflow** (proposer≠confirmer — the fan agents are not the
   namers), one slice per agent, returning compact schema verdicts `{seen|insufficient|overturn}`; **fan the
   independent grounding-review at scale too**. Apply is a pure **tag-flip** (`[code]→[seen]` /
   `cert:"code"→"seen"`) — it clears the gates with **no `mechanisms.md` regen** — one commit per fan, the R38
   reviewer re-deriving from the same capture.
+- **★ Fan WIDE, and run the reached-set and deep-tail tracks CONCURRENTLY, collapsed into ONE commit.**
+  Size the fan for wall-clock, not caution: **~3–4 routines per agent (≈20–25 agents for a full set), not
+  ~10** — the routines are independent, so width is nearly-free speed; the same goes for the review-fan.
+  The two grounding tracks — the reached-set fan (above) and the deep-tail poke-capture fan (below) — are
+  INDEPENDENT: **launch them at the same time**, then combine both sets of verdicts into ONE apply + ONE
+  wide review-fan + ONE commit, rather than as separate serial waves. The dominant serial cost of a
+  grounding wave is the per-commit **push — the pre-push suite plus the rom-guard stranger-clone, minutes
+  each** — so **collapsing concurrent tracks into fewer commits saves more wall-clock than any narrower
+  split**. That push tax, not just reviewer cost, is *why* the "ONE mega-fan / never dribble" rule exists.
+  (Grounding-only tag-flips do not trip `understanding_gate` CHECK A — the export SET is unchanged — so
+  batching more per commit is safe.)
 - **⚠ Use each routine's TIGHT body range** (its translated `// loc_<addr> (ROM 0x<lo>-0x<hi>)` header), NOT
   the next-registry address — the latter overshoots into a fall-through callee and **mis-credits the callee's
   writes**, manufacturing false groundings (the confirmer must verify the grounding write's PC is inside the
