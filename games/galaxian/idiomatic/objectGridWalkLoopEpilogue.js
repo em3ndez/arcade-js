@@ -17,7 +17,9 @@ export function objectGridWalkLoopEpilogue(m, savedHl, savedBc) {
   const ptr = ((savedPtr >> 8) << 8) | low;
   const bcOut = (count << 8) | stride;
 
-  // Re-seat the pointer/count/accumulator the walk head reads back, then loop for the next row while the
-  // count holds, else return through the loop caller.
-  return (m.regs.hl = ptr, m.regs.bc = bcOut, m.regs.a = low, count !== 0 ? routeObjectGridCellDraw(m) : m.ret());
+  // Re-seat the pointer/count/accumulator the walk head reads back, then loop while the count holds, else
+  // terminate: the ret pops the guest stack only on the stack-entry path (savedHl undefined); born-live
+  // (savedHl set) JS-returns, else the never-pushed return address leaks +2 SP/frame.
+  return (m.regs.hl = ptr, m.regs.bc = bcOut, m.regs.a = low,
+    count !== 0 ? routeObjectGridCellDraw(m) : (savedHl === undefined ? m.ret() : undefined));
 }

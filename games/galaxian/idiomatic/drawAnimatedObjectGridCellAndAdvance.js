@@ -25,7 +25,9 @@ export function drawAnimatedObjectGridCellAndAdvance(m, savedHl, savedBc, coord 
   const advancedPtr = ((slotPtr >> 8) << 8) | advancedLow;
   const strideCountOut = (remaining << 8) | stride;
 
-  // Live-outs HL / A / BC ride the return; loop for the next row, else return.
+  // Live-outs HL / A / BC ride the return; loop for the next row, else terminate. The terminal ret pops the
+  // guest stack only on the stack-entry path (savedHl undefined -- isolated tests seed one); the born-live
+  // push-free entry forwards savedHl, so it JS-returns -- popping there leaks the never-pushed return (+2 SP/frame).
   return (m.regs.hl = advancedPtr, m.regs.a = advancedLow, m.regs.bc = strideCountOut,
-    remaining !== 0 ? routeObjectGridCellDraw(m) : m.ret());
+    remaining !== 0 ? routeObjectGridCellDraw(m) : (savedHl === undefined ? m.ret() : undefined));
 }
