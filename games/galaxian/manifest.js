@@ -2,7 +2,7 @@
 // Namco Galaxian (1979), parent set `galaxian`. Grounded in mame-src/src/mame/galaxian/galaxian.cpp:
 // galaxian_base@7486, galaxian_map_base@1746 + galaxian_map_discrete@1739, INPUT_PORTS(galaxian)@3069,
 // ROM_START(galaxian)@9749, GAME()@16795 (ROT90); timing in galaxian.h; video in galaxian_v.cpp.
-// Custom discrete sound (galaxian_a.cpp) -- NO sound CPU, so audio is record/replay (§5), not emulated.
+// Custom discrete sound (galaxian_a.cpp) -- NO sound CPU, so audio is a synth model (§5), not emulated.
 
 export default {
   id: "galaxian",
@@ -66,8 +66,11 @@ export default {
     },
   },
 
-  // audio (§5): recorded from MAME. Sound-write surface 0x6004-7 lfo / 0x6800-7 sound_w / 0x7800 pitch.
-  //   audio: { map: "audio/sounds.js", samples: "audio/samples" },
+  // audio (§5): a SYNTH model -- galaxian's discrete-analogue sound (galaxian_a.cpp, no sound CPU/ROM) is a
+  //   live parameterized tone, synthesised above the emulation (audio/synth.js) from the sound-register
+  //   writes (0x6004-7 lfo / 0x6800-7 sound_w / 0x7800 pitch), not clip replay. Validated ~+0.7 envelope
+  //   correlation vs a MAME reference (record_samples.py). No soundLatch (that is the clips model).
+  audio: { map: "audio/sounds.js", model: "synth", samples: "audio/samples" },
   // convergence (§4 clock-free): the vblank NMI (gated by irq_enable @0x7001) is the sole heartbeat; the main
   //   loop free-runs and yields once per frame at nmiReturnPC (the dispatch-loop top 0x200a). entropyPin: §4.
   convergence: {

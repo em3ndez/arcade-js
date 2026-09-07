@@ -153,16 +153,16 @@ test("sound writes route to the io sink: 0x6004-7 lfo, 0x6800-7 sound_w, 0x7800 
   const io = new Io();
   const m = space(io);
   const seen = [];
-  io.onSoundWrite = (kind, reg, v) => seen.push([kind, reg, v]);
+  io.onSoundWrite = (addr, v) => seen.push([addr, v]); // (addr,value): the full sound-register address
   m.write8(0x6004, 0x11); // lfo reg 0
   m.write8(0x6007, 0x22); // lfo reg 3
   m.write8(0x6800, 0x33); // sound_w reg 0
   m.write8(0x6807, 0x44); // sound_w reg 7
   m.write8(0x7800, 0x55); // pitch
   assert.deepEqual(seen, [
-    ["lfo", 0, 0x11], ["lfo", 3, 0x22],
-    ["sound", 0, 0x33], ["sound", 7, 0x44],
-    ["pitch", 0, 0x55],
+    [0x6004, 0x11], [0x6007, 0x22],
+    [0x6800, 0x33], [0x6807, 0x44],
+    [0x7800, 0x55],
   ]);
   assert.equal(io.soundLfo[0], 0x11);
   assert.equal(io.soundReg[7], 0x44);

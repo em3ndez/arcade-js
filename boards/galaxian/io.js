@@ -47,7 +47,7 @@ export class Io {
     this.soundLfo = [0, 0, 0, 0];
     this.soundReg = new Uint8Array(8);
     this.soundPitchVal = 0;
-    this.onSoundWrite = null; // (kind, reg, value) audio sink; null offline
+    this.onSoundWrite = null; // (addr, value) audio sink; null offline
 
     this.inputAssert = null; // {port: pressedBits} per frame (port in {0,1,2}); folded active-high in readInN
   }
@@ -86,17 +86,20 @@ export class Io {
   setCoinCounter(idx, d0) { this.coinCounter[idx & 1] = d0 & 1; }
 
   // ---- discrete sound writes (recorded, not modelled) -----------------------------------
+  // onSoundWrite(addr, value): the FULL sound-register address (0x6004-7 lfo / 0x6800-7 sound / 0x7800
+  // pitch) + value, matching web/worker.js emitSound(addr,value) + the player's flat [addr,value,...] stream
+  // (the address encodes the kind). Null offline, so headless runs stay byte-identical.
   soundLfoFreq(reg, value) {
     this.soundLfo[reg & 3] = value & 0xff;
-    if (this.onSoundWrite) this.onSoundWrite("lfo", reg & 3, value & 0xff);
+    if (this.onSoundWrite) this.onSoundWrite(0x6004 + (reg & 3), value & 0xff);
   }
   soundWrite(reg, value) {
     this.soundReg[reg & 7] = value & 0xff;
-    if (this.onSoundWrite) this.onSoundWrite("sound", reg & 7, value & 0xff);
+    if (this.onSoundWrite) this.onSoundWrite(0x6800 + (reg & 7), value & 0xff);
   }
   soundPitch(value) {
     this.soundPitchVal = value & 0xff;
-    if (this.onSoundWrite) this.onSoundWrite("pitch", 0, value & 0xff);
+    if (this.onSoundWrite) this.onSoundWrite(0x7800, value & 0xff);
   }
 
   /** The engine's vblank interrupt gate: the NMI is delivered only while irq_enable_w's D0 latch is set. */

@@ -450,6 +450,9 @@ import { getCached, putCached, clearCached } from "./romstore.js";
     // Space Invaders latches one discrete sound per OUT-port BIT (two ports); a sound fires on its bit's
     // rising edge, the UFO rings while its bit is held. `model: "bitports"` picks that path.
     if (SOUNDS?.model === "bitports") return setupBitPortAudio(spec, SOUNDS, SamplePlayer);
+    // Galaxian latches a LIVE parameterized tone to its sound registers (discrete netlist, no clips);
+    // `model: "synth"` picks a continuous synth fed by the register-write stream.
+    if (SOUNDS?.model === "synth") return setupSynthAudio(spec, SOUNDS);
     if (!SOUNDS?.ports || !SOUNDS?.triggers || !SOUNDS?.latch) return;
 
     // A map entry may be given a sound only if it is a sound at all, is measured
@@ -795,6 +798,50 @@ import { getCached, putCached, clearCached } from "./romstore.js";
     const legend = document.querySelector(".legend");
     if (legend) { legend.append(" · "); legend.append(el("kbd", "M")); legend.append(" mute"); }
     armWorkerAudio(); // the worker may already be running; arm it now
+  }
+
+  // Galaxian's discrete synth: a LIVE parameterized tone, not clips. We synthesise it
+  // (games/galaxian/audio/synth.js) into a ScriptProcessor's output and feed it the sound-register writes
+  // from the [addr,value,...] stream (boards/galaxian/io.js onSoundWrite -> worker emitSound). No assets to
+  // load -> the control shows as soon as the game has audio. masterGain + mute like the other paths.
+  async function setupSynthAudio(spec, SOUNDS) {
+    let mod;
+    try { mod = await import(`../games/${gameId}/${SOUNDS.synth}`); } catch { return; }
+    const { GalaxianSynth } = mod;
+    const gainOf = () => SOUNDS.masterGain ?? 0.7;
+    let ctx = null, gain = null, synth = null, muted = false;
+    const pending = [];
+    onSoundEvents = (ev) => {
+      for (let i = 0; i < ev.length; i += 2) {
+        if (synth) synth.write(ev[i], ev[i + 1]); else pending.push(ev[i], ev[i + 1]);
+      }
+    };
+    const start = () => {
+      if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      synth = new GalaxianSynth(ctx.sampleRate);
+      for (let i = 0; i < pending.length; i += 2) synth.write(pending[i], pending[i + 1]);
+      pending.length = 0;
+      const node = ctx.createScriptProcessor(2048, 0, 1);
+      node.onaudioprocess = (e) => synth.render(e.outputBuffer.getChannelData(0));
+      gain = ctx.createGain(); gain.gain.value = muted ? 0 : gainOf();
+      node.connect(gain).connect(ctx.destination);
+    };
+    audioGesture = () => start();
+    const muteBtn = document.getElementById("mute");
+    const paintMute = () => {
+      muteBtn.textContent = "";
+      muteBtn.append(muted ? "Sound: off " : "Sound: on ", el("span", "(M)", "#8a8aa5"));
+      muteBtn.classList.toggle("hot", !muted);
+      muteBtn.setAttribute("aria-pressed", String(muted));
+    };
+    audioToggleMute = () => { start(); muted = !muted; if (gain) gain.gain.value = muted ? 0 : gainOf(); paintMute(); };
+    muteBtn.onclick = audioToggleMute;
+    paintMute();
+    muteBtn.classList.remove("hide");
+    const legend = document.querySelector(".legend");
+    if (legend) { legend.append(" · "); legend.append(el("kbd", "M")); legend.append(" mute"); }
+    armWorkerAudio();
   }
 
   // The OUT-port bit-edge clip model (Space Invaders). The board latches one discrete-analogue sound per
