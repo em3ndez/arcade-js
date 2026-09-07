@@ -10,7 +10,7 @@ local cpu = manager.machine.devices[":maincpu"]
 local prog = cpu.spaces["program"]
 local function now() return manager.machine.time:as_double() end
 
-_G.__wtap = prog:install_write_tap(0x4000, 0x43ff, "gw", function(off, data, mask)
+_G.__wtap = prog:install_write_tap(0x4000, 0x7fff, "gw", function(off, data, mask)
   out:write(string.format("%.3f,%04x,%04x,%02x\n", now(), cpu.state["CURPC"].value, off, data))
 end)
 
