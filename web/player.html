@@ -822,8 +822,13 @@ import { getCached, putCached, clearCached } from "./romstore.js";
       synth = new GalaxianSynth(ctx.sampleRate);
       for (let i = 0; i < pending.length; i += 2) synth.write(pending[i], pending[i + 1]);
       pending.length = 0;
-      const node = ctx.createScriptProcessor(2048, 0, 1);
-      node.onaudioprocess = (e) => synth.render(e.outputBuffer.getChannelData(0));
+      // 1 INPUT channel, not 0: Safari never fires onaudioprocess on a 0-input ScriptProcessor (a
+      // generator with no source), so the synth would render nothing -> silence. The input is ignored.
+      const node = ctx.createScriptProcessor(2048, 1, 1);
+      node.onaudioprocess = (e) => {
+        const out = e.outputBuffer.getChannelData(0);
+        synth.render(out);
+      };
       gain = ctx.createGain(); gain.gain.value = muted ? 0 : gainOf();
       node.connect(gain).connect(ctx.destination);
     };

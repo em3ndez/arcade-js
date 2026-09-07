@@ -7,10 +7,16 @@
 // ROM, no audio, no browser. Run: node --test
 import test from "node:test";
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join, isAbsolute } from "node:path";
 import map, { MODEL, REGISTERS, TONE_HZ_NUM } from "../audio/sounds.js";
+
+const GAME_ROOT = join(dirname(fileURLToPath(import.meta.url)), ".."); // games/galaxian
 
 // Restated here (not imported) so a change to the map's own values can't redefine "valid".
 const EXPECT = {
+  lfo: [0x6004, 0x6005, 0x6006, 0x6007],
   fs: [0x6800, 0x6801, 0x6802],
   hit: 0x6803,
   fire: 0x6805,
@@ -23,6 +29,7 @@ test("the model is the synth model", () => {
 });
 
 test("the register set names galaxian's sound-write surface exactly", () => {
+  assert.deepEqual(REGISTERS.lfo, EXPECT.lfo);
   assert.deepEqual(REGISTERS.fs, EXPECT.fs);
   assert.equal(REGISTERS.hit, EXPECT.hit);
   assert.equal(REGISTERS.fire, EXPECT.fire);
@@ -31,7 +38,7 @@ test("the register set names galaxian's sound-write surface exactly", () => {
 });
 
 test("every tapped register is in the board's sound-write space (0x6004-0x7800)", () => {
-  const all = [...REGISTERS.fs, REGISTERS.hit, REGISTERS.fire, ...REGISTERS.vol, REGISTERS.pitch];
+  const all = [...REGISTERS.lfo, ...REGISTERS.fs, REGISTERS.hit, REGISTERS.fire, ...REGISTERS.vol, REGISTERS.pitch];
   for (const a of all) assert.ok(a >= 0x6004 && a <= 0x7800, `${a.toString(16)} outside the sound-write space`);
 });
 
@@ -39,9 +46,13 @@ test("the pitch law numerator is the measured 555/pitch-DAC constant", () => {
   assert.equal(TONE_HZ_NUM, 192000); // freq = 192000/(256-pitch); measured 0x80->1500, 0xC0->3000 Hz
 });
 
-test("the default export is the synth contract the adapter reads", () => {
+test("the default export is the synth contract the adapter reads, and its synth path resolves to a real file", () => {
   assert.equal(map.model, "synth");
-  assert.equal(map.synth, "./synth.js");
+  // web/player.html setupSynthAudio imports this GAME-ROOT-relative: ../games/<id>/<map.synth>.
+  // A "./"-prefixed value resolves to games/<id>/synth.js (404) — pin the value AND that the file exists.
+  assert.equal(map.synth, "audio/synth.js");
+  assert.ok(!map.synth.startsWith("./") && !isAbsolute(map.synth), "synth path must be game-root-relative");
+  assert.ok(existsSync(join(GAME_ROOT, map.synth)), `synth module missing at games/galaxian/${map.synth}`);
   assert.equal(map.registers, REGISTERS);
   assert.equal(map.toneHzNum, TONE_HZ_NUM);
   assert.ok(typeof map.masterGain === "number" && map.masterGain > 0 && map.masterGain <= 4);

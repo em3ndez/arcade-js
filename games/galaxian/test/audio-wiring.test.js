@@ -43,19 +43,20 @@ function toneHz(pitch, fsBits) {
 test("the tone follows the measured pitch law freq = 192000/(256-pitch)", () => {
   for (const pitch of [0x40, 0x80, 0xc0]) {
     const want = TONE_HZ_NUM / (256 - pitch);
-    const got = toneHz(pitch, 1);
+    const got = toneHz(pitch, 0); // FS OFF: the PITCH voice alone -- it is an independent mixer input
     assert.ok(Math.abs(got - want) < want * 0.05, `pitch ${pitch.toString(16)}: tone ${got}Hz != ~${want}Hz`);
   }
 });
 
-test("no lit FS voice = silent; lighting voices raises amplitude", () => {
+test("PITCH is independent of the background (start-tune fix); FS voices add the background tone", () => {
   const rate = 48000;
-  const rms = (fsBits) => {
-    const s = new GalaxianSynth(rate); s.write(REGISTERS.pitch, 0x80); s.write(REGISTERS.vol[0], 1);
+  const rms = (pitch, fsBits) => {
+    const s = new GalaxianSynth(rate); s.write(REGISTERS.pitch, pitch); s.write(REGISTERS.vol[0], 1);
     for (let i = 0; i < fsBits; i++) s.write(REGISTERS.fs[i], 1);
     const b = new Float32Array(rate); s.render(b);
     return Math.sqrt(b.reduce((a, x) => a + x * x, 0) / b.length);
   };
-  assert.equal(rms(0), 0, "no FS voice lit must be silent");
-  assert.ok(rms(3) > rms(1), "more lit FS voices must be louder (amplitude ~ count)");
+  assert.equal(rms(0xff, 0), 0, "note-off with no background must be silent");
+  assert.ok(rms(0x80, 0) > 0.01, "the PITCH voice must sound with the background OFF (fused model silenced the start tune)");
+  assert.ok(rms(0xff, 3) > rms(0xff, 1), "more lit FS voices must raise the background amplitude");
 });
