@@ -202,11 +202,40 @@ function putPixel(out, o, palette, pen) {
   out[o + 2] = palette[p + 2];
 }
 
-/** Paint output rows [y0,y1] inclusive into `out`: background(black; STARFIELD TODO), tilemap (transparent
- * pen 0), sprites (7->0, low wins, transparent pen 0), bullets. mem={videoRam,objRam}, gfx={tiles,sprites,
- * palette}. */
+/* Hardware starfield (galaxian_v.cpp stars_init@789 / stars_draw_row@869): a 2^17-1 LFSR table + a 64-entry
+ * colour palette, built once. MAME renders natively 3x wide (GALAXIAN_XSCALE=3) and the golden decimates to
+ * 256 by nearest-neighbour centre-column sampling (out[x] == native[3x+1]), so output pixel x is the SECOND
+ * RNG clock of native iteration x -> table index origin + y*512 + 2x + 1. A star paints when the scanline/
+ * column checkerboard (y ^ (x>>3)) & 1 holds and the entry's enable bit (top bit) is set. */
+const STAR_RNG_PERIOD = (1 << 17) - 1;
+let _starTable = null, _starPalette = null;
+function buildStars() {
+  const stars = new Uint8Array(STAR_RNG_PERIOD);
+  let sr = 0;
+  for (let i = 0; i < STAR_RNG_PERIOD; i++) {
+    const enabled = (sr & 0x1fe01) === 0x1fe00 ? 1 : 0; // upper 8 bits set + low bit clear
+    stars[i] = ((~sr & 0x1f8) >> 3) | (enabled << 7);   // colour (6 bits) + enable (top bit)
+    sr = (sr >>> 1) | (((((sr >>> 12) ^ ~sr) & 1) << 16) >>> 0); // feedback: bit12 ^ ~bit0 -> bit16
+  }
+  const starmap = [0, 194, 214, 255]; // resnet levels: 0, minval, mid-interp, full (RGB_MAXIMUM basis)
+  const bit = (v, n) => (v >> n) & 1;
+  const pal = new Array(64);
+  for (let i = 0; i < 64; i++) {
+    pal[i] = [
+      starmap[(bit(i, 4) << 1) | bit(i, 5)], // R: bits 5,4
+      starmap[(bit(i, 2) << 1) | bit(i, 3)], // G: bits 3,2
+      starmap[(bit(i, 0) << 1) | bit(i, 1)], // B: bits 1,0
+    ];
+  }
+  _starTable = stars;
+  _starPalette = pal;
+}
+
+/** Paint output rows [y0,y1] inclusive into `out`: background(black + starfield when starsEnable), tilemap
+ * (transparent pen 0), sprites (7->0, low wins, transparent pen 0), bullets. mem={videoRam,objRam},
+ * gfx={tiles,sprites,palette}. opts.starOrigin scrolls the starfield (see buildStars). */
 export function renderRowsRGB(out, y0, y1, mem, gfx, opts = {}) {
-  const { flipScreenX = false, flipScreenY = false } = opts;
+  const { flipScreenX = false, flipScreenY = false, starsEnable = false, starOrigin = 0 } = opts;
   const { videoRam, objRam } = mem;
   const { tiles, sprites, palette } = gfx;
 
@@ -217,9 +246,22 @@ export function renderRowsRGB(out, y0, y1, mem, gfx, opts = {}) {
     const nativeY = row + VISIBLE_Y0;
     const rowBase = row * SCREEN_W * 3;
 
-    // 1) Background: black. galaxian_draw_background@950 fills black then draws the STARFIELD (TODO --
-    //    galaxian_draw_stars; see header). Until the star layer lands the pixel gate keeps galaxian EXEMPT.
+    // 1) Background: black, then the scrolling starfield when enabled (galaxian_draw_background@950).
     out.fill(0, rowBase, rowBase + SCREEN_W * 3);
+    if (starsEnable) {
+      if (!_starTable) buildStars();
+      const yb = starOrigin + row * 512;
+      for (let x = 0; x < SCREEN_W; x++) {
+        if (!((row ^ (x >> 3)) & 1)) continue; // scanline/column checkerboard suppress
+        const st = _starTable[(yb + 2 * x + 1) % STAR_RNG_PERIOD]; // centre-column = 2nd RNG clock
+        if (!(st & 0x80)) continue;
+        const c = _starPalette[st & 0x3f];
+        const o = rowBase + x * 3;
+        out[o] = c[0];
+        out[o + 1] = c[1];
+        out[o + 2] = c[2];
+      }
+    }
 
     // 2) Tilemap over background, transparent pen 0. Per-column scroll-Y (objram even byte) + color (odd).
     for (let cx = 0; cx < COLS; cx++) {

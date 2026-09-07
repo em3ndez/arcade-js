@@ -23,6 +23,11 @@ import { enterVblankService } from "./idiomatic/enterVblankService.js";
 /** 3072000 / 60.606061 = 50688. boards/galaxian/hardware.json cyclesPerFrame; galaxian.cpp:7499. */
 export const CYCLES_PER_FRAME = 50688;
 
+/** Starfield LFSR period + calibrated power-on scroll origin (advances -1 per frame; see starOrigin /
+ *  boards/galaxian/video.js). STAR_ORIGIN_INIT is calibrated against the MAME pixel golden. */
+const STAR_RNG_PERIOD = (1 << 17) - 1;
+const STAR_ORIGIN_INIT = 86173;
+
 /** The vblank NMI vector. Asserted only while the irq_enable latch (0x7001 D0) is set. */
 export const NMI_VECTOR = 0x0066;
 
@@ -248,6 +253,8 @@ export class Machine {
       renderRowsRGB(this.rasterBuf, this.rasterRow, this.rasterRow, this.mem, this.video, {
         flipScreenX: this.io.flipScreenX,
         flipScreenY: this.io.flipScreenY,
+        starsEnable: this.io.starsEnable === 1,
+        starOrigin: this.starOrigin(),
       });
       this.rasterRow++;
       this.nextRowCycle += CYCLES_PER_SCANLINE;
@@ -275,11 +282,19 @@ export class Machine {
     this.startRasterFrame(this.frames.length - 1);
   }
 
+  /** Starfield scroll origin for the current frame: the LFSR origin advances -1 per frame (galaxian_v.cpp
+   *  stars_update_origin, upright), from a calibrated power-on value. See boards/galaxian/video.js. */
+  starOrigin() {
+    return ((STAR_ORIGIN_INIT - this.nmiCount) % STAR_RNG_PERIOD + STAR_RNG_PERIOD) % STAR_RNG_PERIOD;
+  }
+
   renderFrame() {
     if (!this.video) throw new Error("renderFrame needs the gfx and proms images");
     return renderFrameRGB(this.mem, this.video, {
       flipScreenX: this.io.flipScreenX,
       flipScreenY: this.io.flipScreenY,
+      starsEnable: this.io.starsEnable === 1,
+      starOrigin: this.starOrigin(),
     });
   }
 

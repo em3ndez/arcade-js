@@ -90,8 +90,10 @@ async function main() {
   // game has so pixel mode paints instead of throwing on a ROM a bitmap game legitimately lacks; a tile
   // game missing its gfx still fails, at renderFrame() with its own "needs tiles/sprites" message.
   const hasSplit = existsSync(join(romDir, "tiles.bin")) && existsSync(join(romDir, "sprites.bin"));
-  const hasGfx = existsSync(join(romDir, "gfx.bin"));
-  const gfx = needGfx && hasGfx && !hasSplit ? new Uint8Array(loadBin(join(romDir, "gfx.bin"))) : undefined;
+  // one gfx image: "gfx.bin" or the MAME region name "gfx1.bin" (galaxian) — one file, tiles+sprites decode from it.
+  const gfxFile = existsSync(join(romDir, "gfx.bin")) ? "gfx.bin"
+    : existsSync(join(romDir, "gfx1.bin")) ? "gfx1.bin" : null;
+  const gfx = needGfx && gfxFile && !hasSplit ? new Uint8Array(loadBin(join(romDir, gfxFile))) : undefined;
   const tiles = needGfx && hasSplit ? new Uint8Array(loadBin(join(romDir, "tiles.bin"))) : undefined;
   const sprites = needGfx && hasSplit ? new Uint8Array(loadBin(join(romDir, "sprites.bin"))) : undefined;
   const proms = needGfx && existsSync(join(romDir, "proms.bin")) ? new Uint8Array(loadBin(join(romDir, "proms.bin"))) : undefined;

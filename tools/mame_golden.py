@@ -326,7 +326,12 @@ def main():
 
             hits = watchdog_check(fh)
             manifest["watchdog_suspect_frames"] = hits
-            if hits:
+            # The frame-0 image is a ZEROED-VRAM screen; a game that blanks the screen mid-attract WITHOUT
+            # a reset (galaxian blanks between attract phases) reproduces it -- a false positive. A REAL
+            # watchdog reset also reverts RAM, so the STATE-signature check below is the authority whenever
+            # state is captured; only poison on the frame signature ALONE when there is no state dump to
+            # corroborate. (Frame hits are still recorded in the manifest for the record.)
+            if hits and args.no_state:
                 poison.append(
                     f"boot-frame signature reappears at frames {hits[:10]} -- MAME "
                     f"likely watchdog-reset mid-capture, so these frames are WRONG"

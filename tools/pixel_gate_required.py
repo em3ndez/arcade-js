@@ -63,6 +63,7 @@ SUITES = {
     "frogger": [(["python3", "games/frogger/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "pooyan": [(["python3", "games/pooyan/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "invaders": [(["python3", "games/invaders/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
+    "galaxian": [(["python3", "games/galaxian/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
 }
 
 MANUAL = {
@@ -79,17 +80,6 @@ MANUAL = {
 #: by design: legitimate ONLY when the gate cannot run and the reason is one a reviewer can check --
 #: the canonical case is a NEW game mid-translation that cannot render a frame yet (see docs/runbook.md).
 EXEMPT = {
-    # NEW game mid-translation (docs/runbook.md §2 bootstrap): only the reset routine (loc_0000) is
-    # translated so far, so the boot stops at the first untranslated m.call (0x1a55) BEFORE rendering any
-    # frame -- there is no JS frame to pixel-diff yet. A reviewer checks this by booting it:
-    #   node games/galaxian/tools/emit.js --frames all --state-out /tmp/x   ->  "stopped at boot gap 0x1a55"
-    # REMOVE this and declare the real suite in SUITES the moment the boot renders a frame matching MAME
-    # (and the starfield in boards/galaxian/video.js lands -- it is stubbed to black until then).
-    "galaxian": (
-        "NEW game mid-translation -- boot reaches only the first gap (0x1a55) before any rendered frame, "
-        "so there is nothing to pixel-diff yet. Verify: emit.js --frames all stops at boot gap 0x1a55. "
-        "Remove + declare the real suite at the first MAME-matching rendered frame (starfield still stubbed)."
-    ),
 }
 
 

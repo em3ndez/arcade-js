@@ -71,6 +71,7 @@ export default {
   // convergence (§4 clock-free): the vblank NMI (gated by irq_enable @0x7001) is the sole heartbeat; the main
   //   loop free-runs and yields once per frame at nmiReturnPC (the dispatch-loop top 0x200a). entropyPin: §4.
   convergence: {
+    pollPCs: [0x200a], // the vblank-yield poll PC where the frame-stepped engine fires the NMI (dispatch-loop top)
     idiomatic: { nmiReturnPC: 0x200a },
   },
 
