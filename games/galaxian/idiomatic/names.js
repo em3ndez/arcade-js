@@ -68,12 +68,12 @@ export const loc_4208 = 0x4208;
 export const loc_420b = 0x420b;
 
 // batch 2 -- descriptive cells ([code], grounding pending)
-export const SOUND_TONE_TABLE = 0x17a9; // [code] batch 2
-export const SOUND_DURATION_TABLE = 0x17c8; // [code] batch 2
-export const OBJ_STEP_TABLE = 0x1a45; // [code] batch 2
-export const STRIDED_TABLE_SRC = 0x1d71; // [code] batch 2
-export const PATH_STEP_TABLE = 0x1e00; // [code] batch 2
-export const MESSAGE_PTR_TABLE = 0x235c; // [code] batch 2
+export const SOUND_TONE_TABLE = 0x17a9; // [seen] batch 2
+export const SOUND_DURATION_TABLE = 0x17c8; // [seen] batch 2
+export const OBJ_STEP_TABLE = 0x1a45; // [seen] batch 2
+export const STRIDED_TABLE_SRC = 0x1d71; // [seen] batch 2
+export const PATH_STEP_TABLE = 0x1e00; // [seen] batch 2
+export const MESSAGE_PTR_TABLE = 0x235c; // [seen] batch 2
 export const IN0_SHADOW = 0x4010; // [seen] batch 2
 export const IN1_SHADOW = 0x4011; // [seen] batch 2
 export const OBJ_STAGE_BLOCK = 0x4054; // [seen] batch 2
@@ -152,9 +152,9 @@ export const SAVED_STATE_SNAPSHOT = 0x41a0; // [code] base of a 32-byte saved-st
 export const SPRITE_SHADOW_BASE = 0x4060; // [seen] base of the sprite staging/shadow area (4-byte records)
 export const SPRITE_SOURCE_OBJ_BASE = 0x42b0; // [code] base of 8 object records read as sprite sources (32-byte stride)
 export const SUBCOUNTER_REFILL_FLAG = 0x4228; // [seen] one-shot flag set when a sub-counter refilled this pass
-export const SUBCOUNTER_RELOAD_TABLE = 0x15e3; // [code] reload-value table indexed by sub-counter offset
-export const TILE_COLUMN_TABLE = 0x039a; // [code] base of 3-byte source rows for the tile-column draw
-export const TILE_COLUMN_TABLE_CONT = 0x03a6; // [code] continuation of the tile-column source-row table
+export const SUBCOUNTER_RELOAD_TABLE = 0x15e3; // [seen] reload-value table indexed by sub-counter offset
+export const TILE_COLUMN_TABLE = 0x039a; // [seen] base of 3-byte source rows for the tile-column draw
+export const TILE_COLUMN_TABLE_CONT = 0x03a6; // [seen] continuation of the tile-column source-row table
 // batch 3 -- loc_ placeholders (role not yet consensus-confident; first two demoted from low-confidence proposals)
 export const loc_4000 = 0x4000;
 export const loc_4215 = 0x4215;
@@ -180,12 +180,12 @@ export const FLIP_SCREEN_X = 0x7006; // [seen] screen-flip X latch
 export const FLIP_SCREEN_Y = 0x7007; // [seen] screen-flip Y latch
 export const IN2_PORT = 0x7000; // [code] IN2 input port (read)
 export const IN2_SHADOW = 0x4012; // [code] IN2 input shadow
-export const OBJ_SHADOW_RESEED_TEMPLATE = 0x1db1; // [code] ROM template for the object-shadow reseed
+export const OBJ_SHADOW_RESEED_TEMPLATE = 0x1db1; // [seen] ROM template for the object-shadow reseed
 export const SOUND_LFO_RESET_REQUEST = 0x41d0; // [seen] sound LFO reset-request flag
 export const SOUND_W_REG3 = 0x6803; // [seen] discrete-sound write register 3
 export const SPAWN_RECORD_TABLE = 0x1dd1; // [code] ROM spawn-record table
-export const TEXT_DESCRIPTOR_TABLE = 0x1cf6; // [code] ROM text-descriptor table
-export const TILE_BLOCK_TABLE = 0x215b; // [code] ROM tile-block source table
+export const TEXT_DESCRIPTOR_TABLE = 0x1cf6; // [seen] ROM text-descriptor table
+export const TILE_BLOCK_TABLE = 0x215b; // [seen] ROM tile-block source table
 // batch 4 -- loc_ placeholders (role not yet consensus-confident; ROM-addr ones are handler/data pointers)
 export const loc_0152 = 0x0152;
 export const loc_0503 = 0x0503;
