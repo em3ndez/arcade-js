@@ -16,17 +16,17 @@ export const STACK_SCRATCH = { lo: 0x43e0, hi: 0x4400 };
 // Hardware ports / discrete-sound latches (board-mapped).
 export const IN0 = 0x6000; // [code] IN0 input port (read)
 export const COIN_LOCKOUT = 0x6002; // [seen] coin-lockout latch (D0 = coin_lock output)
-export const COIN_COUNTER_0_LATCH = 0x6003; // [code] coin-counter 0 hardware output
-export const SOUND_LFO_FREQ = 0x6004; // [code] discrete-sound LFO frequency latch base
-export const SOUND_W_REG4 = 0x6804; // [code] discrete-sound write register 4
+export const COIN_COUNTER_0_LATCH = 0x6003; // [seen] coin-counter 0 hardware output
+export const SOUND_LFO_FREQ = 0x6004; // [seen] discrete-sound LFO frequency latch base
+export const SOUND_W_REG4 = 0x6804; // [seen] discrete-sound write register 4
 export const SOUND_W_REG5 = 0x6805; // [code] discrete-sound write register 5
 
 // Tilemap VRAM.
-export const VRAM_BASE = 0x5000; // [code] tilemap VRAM base
+export const VRAM_BASE = 0x5000; // [seen] tilemap VRAM base
 export const OBJRAM_HW_BASE = 0x5800; // [seen] sprite/scroll/bullet hardware OBJRAM; the vblank DMA destination
 export const OBJRAM_SHADOW_BASE = 0x4020; // [seen] work-RAM OBJRAM shadow, block-copied to OBJRAM_HW_BASE each vblank
-export const PLAYER2_STATUS_VRAM = 0x50e0; // [code] player-2 status tilemap cell
-export const PLAYER1_STATUS_VRAM = 0x5340; // [code] player-1 status tilemap cell
+export const PLAYER2_STATUS_VRAM = 0x50e0; // [seen] player-2 status tilemap cell
+export const PLAYER1_STATUS_VRAM = 0x5340; // [seen] player-1 status tilemap cell
 
 // Work RAM.
 export const RNG_SEED = 0x401e; // [code] 8-bit LCG PRNG seed
@@ -37,12 +37,12 @@ export const VRAM_WRITE_PTR = 0x400b; // [seen] 16-bit VRAM fill write cursor
 export const CURRENT_PLAYER = 0x400d; // [code] active player index (0/1)
 export const PLAYER1_SCORE_BCD = 0x40a2; // [seen] player-1 packed-BCD score (3 bytes)
 export const PLAYER2_SCORE_BCD = 0x40a5; // [code] player-2 packed-BCD score (3 bytes)
-export const MESSAGE_SCROLL_ENABLE = 0x40b0; // [code] message-scroller enable/countdown flag
+export const MESSAGE_SCROLL_ENABLE = 0x40b0; // [seen] message-scroller enable/countdown flag
 export const SOUND_SEQ_ACTIVE = 0x41cd; // [code] sound-sequence active flag
 export const SOUND_TONE_DURATION = 0x41ce; // [code] sound tone duration
 export const SOUND_PITCH = 0x41c1; // [seen] staged sound pitch value (fed to 0x7800)
 export const SOUND_SEQ_PTR = 0x41d3; // [seen] sound-sequence 16-bit pointer
-export const OBJ_SWEEP_DIRECTION = 0x420d; // [code] object sweep direction flag (0=ascending, 1=descending)
+export const OBJ_SWEEP_DIRECTION = 0x420d; // [seen] object sweep direction flag (0=ascending, 1=descending)
 export const SOUND_LFO_LEVEL = 0x421f; // [seen] sound LFO level shadow
 
 // loc_<addr> placeholders — role not yet consensus-confident; allowlisted in names-debt.txt, named at grounding.
@@ -74,14 +74,14 @@ export const OBJ_STEP_TABLE = 0x1a45; // [code] batch 2
 export const STRIDED_TABLE_SRC = 0x1d71; // [code] batch 2
 export const PATH_STEP_TABLE = 0x1e00; // [code] batch 2
 export const MESSAGE_PTR_TABLE = 0x235c; // [code] batch 2
-export const IN0_SHADOW = 0x4010; // [code] batch 2
-export const IN1_SHADOW = 0x4011; // [code] batch 2
+export const IN0_SHADOW = 0x4010; // [seen] batch 2
+export const IN1_SHADOW = 0x4011; // [seen] batch 2
 export const OBJ_STAGE_BLOCK = 0x4054; // [seen] batch 2
-export const MESSAGE_CURSOR_PTR = 0x40b1; // [code] batch 2
-export const MESSAGE_TEXT_PTR = 0x40b3; // [code] batch 2
-export const MESSAGE_DEST_PTR = 0x40b5; // [code] batch 2
+export const MESSAGE_CURSOR_PTR = 0x40b1; // [seen] batch 2
+export const MESSAGE_TEXT_PTR = 0x40b3; // [seen] batch 2
+export const MESSAGE_DEST_PTR = 0x40b5; // [seen] batch 2
 export const FLAG_BITS_BASE = 0x4100; // [code] batch 2
-export const OCCUPANCY_GRID = 0x4123; // [code] batch 2
+export const OCCUPANCY_GRID = 0x4123; // [seen] batch 2
 export const ROW_OCCUPANCY = 0x41e8; // [code] batch 2
 export const COLUMN_OCCUPANCY = 0x41f0; // [code] batch 2
 export const OBJ_ACTIVE_FLAG = 0x4200; // [seen] batch 2
@@ -90,16 +90,16 @@ export const FORMATION_X_BOUNDS = 0x4210; // [seen] batch 2
 export const DELAYED_EVENT_REQUEST = 0x4229; // [seen] batch 2
 export const DELAYED_EVENT_ARMED = 0x422e; // [seen] batch 2
 export const DELAYED_EVENT_TIMER = 0x422f; // [seen] batch 2
-export const OBJ_MOVE_CMD = 0x423f; // [code] batch 2
+export const OBJ_MOVE_CMD = 0x423f; // [seen] batch 2
 export const OBJ_TABLE = 0x42d0; // [seen] batch 2
 export const DESCRIPTOR_SLOT_TABLE = 0x4330; // [code] batch 2
 export const START_LAMP_0 = 0x6000; // [code] batch 2
-export const START_LAMP_1 = 0x6001; // [code] batch 2
+export const START_LAMP_1 = 0x6001; // [seen] batch 2
 export const SOUND_W_REG0 = 0x6800; // [code] batch 2
-export const SOUND_W_REG1 = 0x6801; // [code] batch 2
-export const SOUND_W_REG2 = 0x6802; // [code] batch 2
-export const IRQ_ENABLE = 0x7001; // [code] batch 2
-export const STARS_ENABLE = 0x7004; // [code] batch 2
+export const SOUND_W_REG1 = 0x6801; // [seen] batch 2
+export const SOUND_W_REG2 = 0x6802; // [seen] batch 2
+export const IRQ_ENABLE = 0x7001; // [seen] batch 2
+export const STARS_ENABLE = 0x7004; // [seen] batch 2
 export const SOUND_PITCH_W = 0x7800; // [code] batch 2
 export const WATCHDOG_RESET = 0x7800; // [seen] read = watchdog kick (write side is SOUND_PITCH_W)
 // batch 2 -- loc_ placeholders (role not yet consensus-confident)
@@ -146,10 +146,10 @@ export const loc_51da = 0x51da;
 
 // batch 3 -- descriptive cells ([code], grounding pending)
 export const ACTIVE_NEIGHBOR_COUNT = 0x422a; // [code] count of active neighbouring object slots
-export const DRAWN_COLUMN_COUNT = 0x4241; // [code] running count of tile-columns queued to redraw
+export const DRAWN_COLUMN_COUNT = 0x4241; // [seen] running count of tile-columns queued to redraw
 export const PACKED_FLAG_BITMAP = 0x4180; // [code] 16-byte packed bitmap (bit-per-flag) destination
 export const SAVED_STATE_SNAPSHOT = 0x41a0; // [code] base of a 32-byte saved-state block
-export const SPRITE_SHADOW_BASE = 0x4060; // [code] base of the sprite staging/shadow area (4-byte records)
+export const SPRITE_SHADOW_BASE = 0x4060; // [seen] base of the sprite staging/shadow area (4-byte records)
 export const SPRITE_SOURCE_OBJ_BASE = 0x42b0; // [code] base of 8 object records read as sprite sources (32-byte stride)
 export const SUBCOUNTER_REFILL_FLAG = 0x4228; // [seen] one-shot flag set when a sub-counter refilled this pass
 export const SUBCOUNTER_RELOAD_TABLE = 0x15e3; // [code] reload-value table indexed by sub-counter offset
@@ -174,15 +174,15 @@ export const loc_421e = 0x421e;
 export const loc_51fc = 0x51fc;
 
 // batch 4 -- descriptive cells ([code], grounding pending)
-export const DIGIT_FIELD_ALT = 0x5121; // [code] alt-player score-digit VRAM field base
-export const DIGIT_FIELD_PRIMARY = 0x5381; // [code] primary-player score-digit VRAM field base
-export const FLIP_SCREEN_X = 0x7006; // [code] screen-flip X latch
-export const FLIP_SCREEN_Y = 0x7007; // [code] screen-flip Y latch
+export const DIGIT_FIELD_ALT = 0x5121; // [seen] alt-player score-digit VRAM field base
+export const DIGIT_FIELD_PRIMARY = 0x5381; // [seen] primary-player score-digit VRAM field base
+export const FLIP_SCREEN_X = 0x7006; // [seen] screen-flip X latch
+export const FLIP_SCREEN_Y = 0x7007; // [seen] screen-flip Y latch
 export const IN2_PORT = 0x7000; // [code] IN2 input port (read)
 export const IN2_SHADOW = 0x4012; // [code] IN2 input shadow
 export const OBJ_SHADOW_RESEED_TEMPLATE = 0x1db1; // [code] ROM template for the object-shadow reseed
 export const SOUND_LFO_RESET_REQUEST = 0x41d0; // [seen] sound LFO reset-request flag
-export const SOUND_W_REG3 = 0x6803; // [code] discrete-sound write register 3
+export const SOUND_W_REG3 = 0x6803; // [seen] discrete-sound write register 3
 export const SPAWN_RECORD_TABLE = 0x1dd1; // [code] ROM spawn-record table
 export const TEXT_DESCRIPTOR_TABLE = 0x1cf6; // [code] ROM text-descriptor table
 export const TILE_BLOCK_TABLE = 0x215b; // [code] ROM tile-block source table
@@ -220,15 +220,15 @@ export const loc_5320 = 0x5320;
 // batch 5 -- descriptive cells ([code], grounding pending)
 export const IN1 = 0x6800; // [code] IN1 input port (read; write side is SOUND_W_REG0)
 export const HIGH_SCORE_BCD = 0x40a8; // [seen] high-score packed-BCD score (3 bytes)
-export const MARKER_ROW_VRAM = 0x539e; // [code] marker-row VRAM base (5-slot marker row)
+export const MARKER_ROW_VRAM = 0x539e; // [seen] marker-row VRAM base (5-slot marker row)
 // batch 5 -- loc_ placeholders (role not yet consensus-confident)
 export const loc_4004 = 0x4004;
 export const loc_4015 = 0x4015;
 export const loc_4016 = 0x4016;
 
 // batch 6 -- descriptive cells ([code], grounding pending)
-export const PRIMARY_TRIGGER_BLOCK = 0x4176; // [code] primary spawn trigger-flag block (4 flags, 0x4176..0x4179)
-export const SECONDARY_TRIGGER_BLOCK = 0x4165; // [code] secondary spawn trigger-flag block (primary index remapped -17)
+export const PRIMARY_TRIGGER_BLOCK = 0x4176; // [seen] primary spawn trigger-flag block (4 flags, 0x4176..0x4179)
+export const SECONDARY_TRIGGER_BLOCK = 0x4165; // [seen] secondary spawn trigger-flag block (primary index remapped -17)
 // batch 6 -- loc_ placeholders (role not yet consensus-confident)
 export const loc_4003 = 0x4003;
 export const loc_2157 = 0x2157;
