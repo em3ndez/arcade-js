@@ -17,7 +17,7 @@ export default {
   mameDriver: "galaxian.cpp",
 
   runtime: "idiomatic", // born-live on the generator engine; translated fallback until each routine lands
-  idiomaticComplete: false, // §3/§4 in progress -- skeleton stage
+  idiomaticComplete: true, // §3/§4 complete -- idiomatic_gate reports total 0
 
   rom: {
     zip: "galaxian.zip",

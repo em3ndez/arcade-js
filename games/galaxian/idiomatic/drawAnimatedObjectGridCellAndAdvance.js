@@ -1,4 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
+// drawAnimatedObjectGridCellAndAdvance -- ROM 0x2089 [seen]. Reached from routeObjectGridCellDraw (0x207d)
+// when an object-grid cell's flag bit0 marks it animated; the tail is also shared as objectGridWalkLoopEpilogue
+// (0x2094), the fixed-figure path's loop epilogue. The object-figure grid is the standing formation the
+// display-list drain repaints as idle work, one six-row column (stride 0x10) at a time.
+// Live-outs on return: HL = advanced grid pointer, A = its low byte (next packed draw coord), BC = repacked
+// (remaining-count << 8) | row-stride.
 // Animated object-grid cell draw + the loop epilogue. Map the cell's packed coordinate (A) to its
 // tilemap-VRAM cell, fold the frame counter into a tile variant, and stamp the glyph / 2x2 block; then
 // restore the grid pointer and stride/count saved across the register-clobbering subcalls, advance the

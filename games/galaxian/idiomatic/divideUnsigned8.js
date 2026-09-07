@@ -1,11 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// 8-bit unsigned divide A / D by 8 rounds of compare-subtract-shift (the classic restoring divide, with
-// the divisor walked DOWN one bit per round). Each round: if the dividend still holds the current divisor,
-// subtract it and record a 1 quotient bit, else record 0; shift the bit into the quotient and shift the
-// divisor right. After 8 rounds the quotient is in C, the remainder in A and the (fully shifted) divisor in
-// D, with the round counter B spent to 0. Pure register math -- no memory effect. Callers read the quotient
-// out of C. The three restoring-divide fragments (entry, compare/subtract, shift-and-loop) collapse into
-// this one JS loop.
+/**
+ * divideUnsigned8 (ROM 0x0048) -- 8-bit unsigned divide A / D.
+ *
+ * WHAT IT IS
+ *   The classic restoring divide, done in 8 rounds of compare-subtract-shift with the divisor walked
+ *   DOWN one bit per round. Each round: if the running dividend still holds the current divisor,
+ *   subtract it and record a 1 quotient bit, else record 0; the bit is rotated into the quotient (C)
+ *   and, in the same carry thread, the divisor (D) is rotated right one place. After 8 rounds the
+ *   quotient is in C, the remainder in A, the fully-shifted divisor in D, and the round counter B has
+ *   been spent to 0. Pure register math -- no memory effect. The three ROM fragments (entry,
+ *   compare/subtract, shift-and-loop) collapse into this one JS loop.
+ *
+ * ROLE IN THE MACHINE
+ *   The shared integer divide behind the enemy-aiming math. computeDirectionOctantFromSlope (0x11d0)
+ *   divides a vertical drop by a horizontal delta and takes the top three bits as a 0-7 heading octant;
+ *   computeJitteredXVelocity (0x1218) divides the same slope to scale an aimed shot's X velocity.
+ *   Callers read the quotient out of C.
+ *
+ * ROM 0x0048.  Grounding: [seen] (names.js cert for 0x0048).
+ *
+ * LIVE-OUT: C = quotient (the interface value), A = remainder, D = shifted divisor, B = 0.
+ */
 export function divideUnsigned8(m, dividend = m.regs.a, divisor = m.regs.d) {
   let a = dividend & 0xff; // running dividend / remainder
   let d = divisor & 0xff;  // divisor, shifted down one bit per round

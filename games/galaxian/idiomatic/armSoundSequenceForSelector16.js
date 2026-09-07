@@ -2,6 +2,8 @@
 // A dispatch arm of the sound-request handler: handles only selector 0x16 and ignores every other
 // value. On a match it arms a sound sequence — clear the sub-flag, raise the active flag and its
 // companion, and point the sequence-data pointer at this sequence's table.
+// SOUND_SEQ_PTR is aimed at the ROM sequence table loc_1edf; advanceSoundSequenceChannel then walks it
+// byte-by-byte each frame to play the tune, so this arm just latches the selector's start state.
 import { loc_41cf, SOUND_SEQ_ACTIVE, loc_41d6, SOUND_SEQ_PTR, loc_1edf } from "./names.js";
 
 // The one sound-request selector this arm handles.

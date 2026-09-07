@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Paints a double-height glyph: the caller's tile at the top cell (HL) and tile+2 in the cell one tilemap
 // row (+32) below. Memory only.
+// Double-height glyphs (used for the large attract/logo characters) occupy two vertically-adjacent tilemap
+// cells; the hardware draws each cell independently, so the routine stamps both halves from one call.
 
 // One tilemap row is 32 cells, so the bottom half sits directly beneath the top half.
 const ROW_STRIDE = 32;

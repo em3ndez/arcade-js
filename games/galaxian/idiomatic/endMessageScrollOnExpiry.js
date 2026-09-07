@@ -2,6 +2,8 @@
 // Countdown-and-finish tail of the message scroller: tick the step/delay counter at
 // the pointer down one; on the exact zero-crossing clear the scroll-enable flag so the
 // scroller stops running.
+// MESSAGE_SCROLL_ENABLE gates the per-frame scroller (advanceMessageScroller); clearing it on the
+// zero-crossing is what freezes the attract/HUD text once its dwell has fully counted out.
 import { MESSAGE_SCROLL_ENABLE } from "./names.js";
 
 export function endMessageScrollOnExpiry(m, counterPtr = m.regs.hl) {

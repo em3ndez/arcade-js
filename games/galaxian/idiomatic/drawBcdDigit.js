@@ -1,4 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
+// drawBcdDigit -- ROM 0x2279 [seen]. The single-digit leaf of the score / high-score column painter: called
+// twice per byte by drawBcdNumberColumn (0x2261), once per BCD nibble. The tilemap character set holds the
+// glyphs '0'..'9' contiguously at tile codes 0x90..0x99, so a digit d maps to tile 0x90 + d; a blanked
+// leading zero resolves (mod 256) to tile 0x10, the blank tile.
+// Inputs: A = digit nibble, C = leading-zero blank counter, IX = VRAM cursor cell, DE = cursor stride.
+// Live-outs: IX advanced by the stride, C = updated blank counter.
 // Paints one BCD digit glyph into the cursor cell, then advances the cursor. Suppresses leading zeros:
 // while the blank counter is nonzero a leading zero draws a blank tile and decrements it; the first
 // significant digit ends suppression. Returns the advanced cursor (IX) and blank counter (C).

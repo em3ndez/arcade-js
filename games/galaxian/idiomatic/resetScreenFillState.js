@@ -2,6 +2,8 @@
 // Input-gated re-seed of the screen-fill state. Unless IN0 bit 6 is asserted, rewind the
 // VRAM write cursor to the top of video RAM, arm the fill-length counter to a full page,
 // clear the alternate-dispatch flag, and reset the game-state index to 0.
+// IN0 bit 6 is the service/test switch; while it is held the fill state is frozen. Resetting GAME_STATE to
+// 0 drops the machine back to the boot/screen-fill sequence, which repaints video RAM a full page at a time.
 import { IN0, VRAM_WRITE_PTR, VRAM_BASE, loc_4008, loc_401a, GAME_STATE } from "./names.js";
 
 // A full page of VRAM rows.

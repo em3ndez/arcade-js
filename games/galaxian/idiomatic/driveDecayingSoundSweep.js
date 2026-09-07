@@ -2,6 +2,8 @@
 // Once-every-other-frame decaying sound sweep. While its countdown is non-zero,
 // on even frames it emits the countdown (rotated right two bits) to SOUND_W_REG4
 // and ticks the countdown down one step, so the emitted value shrinks to silence.
+// loc_41df is the sweep countdown; SOUND_W_REG4 is a discrete sound latch. The rotate-right-two spreads the
+// shrinking count across the latch bits, producing the falling "whoosh" that decays as the count drains.
 import { loc_4007, loc_41df, SOUND_W_REG4 } from "./names.js";
 
 export function driveDecayingSoundSweep(m) {
