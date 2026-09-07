@@ -34,12 +34,12 @@ export const SELFTEST_MODE = 0x401a; // [seen] power-on self-test mode; nonzero 
 export const GAME_STATE = 0x4005; // [seen] game state index (cleared by the fill re-seed)
 export const SEQUENCE_STATE = 0x400a; // [seen] top-level sequence state-machine step index
 export const VRAM_WRITE_PTR = 0x400b; // [seen] 16-bit VRAM fill write cursor
-export const CURRENT_PLAYER = 0x400d; // [code] active player index (0/1)
+export const CURRENT_PLAYER = 0x400d; // [seen] active player index (0/1)
 export const PLAYER1_SCORE_BCD = 0x40a2; // [seen] player-1 packed-BCD score (3 bytes)
-export const PLAYER2_SCORE_BCD = 0x40a5; // [code] player-2 packed-BCD score (3 bytes)
+export const PLAYER2_SCORE_BCD = 0x40a5; // [seen] player-2 packed-BCD score (3 bytes)
 export const MESSAGE_SCROLL_ENABLE = 0x40b0; // [seen] message-scroller enable/countdown flag
-export const SOUND_SEQ_ACTIVE = 0x41cd; // [code] sound-sequence active flag
-export const SOUND_TONE_DURATION = 0x41ce; // [code] sound tone duration
+export const SOUND_SEQ_ACTIVE = 0x41cd; // [seen] sound-sequence active flag
+export const SOUND_TONE_DURATION = 0x41ce; // [seen] sound tone duration
 export const SOUND_PITCH = 0x41c1; // [seen] staged sound pitch value (fed to 0x7800)
 export const SOUND_SEQ_PTR = 0x41d3; // [seen] sound-sequence 16-bit pointer
 export const OBJ_SWEEP_DIRECTION = 0x420d; // [seen] object sweep direction flag (0=ascending, 1=descending)
@@ -93,14 +93,14 @@ export const DELAYED_EVENT_TIMER = 0x422f; // [seen] batch 2
 export const OBJ_MOVE_CMD = 0x423f; // [seen] batch 2
 export const OBJ_TABLE = 0x42d0; // [seen] batch 2
 export const DESCRIPTOR_SLOT_TABLE = 0x4330; // [code] batch 2
-export const START_LAMP_0 = 0x6000; // [code] batch 2
+export const START_LAMP_0 = 0x6000; // [seen] 1-player start-button lamp latch (LS259)
 export const START_LAMP_1 = 0x6001; // [seen] batch 2
-export const SOUND_W_REG0 = 0x6800; // [code] batch 2
+export const SOUND_W_REG0 = 0x6800; // [seen] sound-driver voice-0 latch (lit from formation occupancy)
 export const SOUND_W_REG1 = 0x6801; // [seen] batch 2
 export const SOUND_W_REG2 = 0x6802; // [seen] batch 2
 export const IRQ_ENABLE = 0x7001; // [seen] batch 2
 export const STARS_ENABLE = 0x7004; // [seen] batch 2
-export const SOUND_PITCH_W = 0x7800; // [code] batch 2
+export const SOUND_PITCH_W = 0x7800; // [seen] sound pitch write latch (write side; read side is the watchdog kick)
 export const WATCHDOG_RESET = 0x7800; // [seen] read = watchdog kick (write side is SOUND_PITCH_W)
 // batch 2 -- loc_ placeholders (role not yet consensus-confident)
 export const loc_4006 = 0x4006;
@@ -145,7 +145,7 @@ export const loc_5193 = 0x5193;
 export const loc_51da = 0x51da;
 
 // batch 3 -- descriptive cells ([code], grounding pending)
-export const ACTIVE_NEIGHBOR_COUNT = 0x422a; // [code] count of active neighbouring object slots
+export const ACTIVE_NEIGHBOR_COUNT = 0x422a; // [seen] count of active neighbouring object slots
 export const DRAWN_COLUMN_COUNT = 0x4241; // [seen] running count of tile-columns queued to redraw
 export const PACKED_FLAG_BITMAP = 0x4180; // [code] 16-byte packed bitmap (bit-per-flag) destination
 export const SAVED_STATE_SNAPSHOT = 0x41a0; // [code] base of a 32-byte saved-state block
@@ -240,16 +240,16 @@ export const SOUND_W_REG6 = 0x6806; // [code] discrete-sound write register 6 (s
 export const SOUND_W_REG7 = 0x6807; // [code] discrete-sound write register 7 (rotate-right of the composite)
 
 // addBcdScoreIncrementAndUpdateHighScore decompile -- ROM score-award table
-export const SCORE_INCREMENT_TABLE = 0x22d0;
-export const DISPLAY_LIST_CURSOR = 0x40a1; // [seen] display-list read cursor (low byte of a page-0x40 pointer): next ready draw-command slot, +2 per slot, wraps to 0xc0 // [code] 3-byte packed-BCD score increments indexed by kill/score type (*3)
+export const SCORE_INCREMENT_TABLE = 0x22d0; // [seen] 3-byte packed-BCD score increments indexed by kill/score type (*3)
+export const DISPLAY_LIST_CURSOR = 0x40a1; // [seen] display-list read cursor (low byte of a page-0x40 pointer): next ready draw-command slot, +2 per slot, wraps to 0xc0
 
 // renderHudFieldBySelector decompile -- HUD sub-dispatch cells (role not yet consensus-confident; names-debt)
 export const COIN_CREDIT_ROW_COUNT = 0x421c; // [code] coin/credit icon-tally count (drawn value = count+1, clamped)
-export const COIN_CREDIT_ROW_VRAM = 0x507e; // [code] VRAM base for the coin/credit icon-tally row
-export const HUD_NIBBLE_LO_VRAM = 0x5138; // [code] VRAM low-nibble cell of a two-nibble HUD status readout
-export const HUD_NIBBLE_HI_VRAM = 0x5158; // [code] VRAM high-nibble cell of a two-nibble HUD status readout
-export const CREDIT_COUNT_TENS_VRAM = 0x529f; // [code] VRAM tens-digit cell of the credit-count line
-export const CREDIT_COUNT_UNITS_VRAM = 0x527f; // [code] VRAM units-digit cell of the credit-count line
+export const COIN_CREDIT_ROW_VRAM = 0x507e; // [seen] VRAM base for the coin/credit icon-tally row
+export const HUD_NIBBLE_LO_VRAM = 0x5138; // [seen] VRAM low-nibble cell of a two-nibble HUD status readout
+export const HUD_NIBBLE_HI_VRAM = 0x5158; // [seen] VRAM high-nibble cell of a two-nibble HUD status readout
+export const CREDIT_COUNT_TENS_VRAM = 0x529f; // [seen] VRAM tens-digit cell of the credit-count line
+export const CREDIT_COUNT_UNITS_VRAM = 0x527f; // [seen] VRAM units-digit cell of the credit-count line
 
 // Idiomatic overrides wired OVER the translated oracle (batch 1, leaves-first). Names stay loc_<addr>
 // this pass; role is a [code] reading; cert lifts to "seen" at grounding.
