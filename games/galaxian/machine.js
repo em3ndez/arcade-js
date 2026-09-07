@@ -98,7 +98,11 @@ export class Machine {
     // Decoded once or not at all. gfx1 is ONE region used as BOTH the tile and sprite source
     // (galaxian_charlayout/spritelayout read different strides of the same halves). Without the gfx + proms
     // images this.video stays null and the raster hooks are inert.
-    this.video = opts.gfx && opts.proms ? decodeGraphics(opts.gfx, opts.gfx, opts.proms) : null;
+    // web/worker.js passes the non-maincpu ROM images by their MANIFEST NAME (new Machine(maincpu, {...gfx})
+    // -> opts.gfx1), while the convergence/pixel harness normalizes the single gfx region to opts.gfx -- accept
+    // either, or the browser worker's renderFrame() throws every frame ("needs the images") -> a black screen.
+    const gfxRom = opts.gfx1 ?? opts.gfx;
+    this.video = gfxRom && opts.proms ? decodeGraphics(gfxRom, gfxRom, opts.proms) : null;
 
     // Raster capture, off by default.
     this.captureVideo = false;

@@ -34,11 +34,11 @@ const { idiomatic } = manifest.convergence;
 const { nmiReturnPC } = idiomatic;
 
 // coin/start only — that alone settles a live 1-player round; no fire/move needed to reach the force.
-const PMAP = { in0: 0, in1: 1, in2: 2 };
+// manifest action ports ARE the io.inputAssert indices (0/1/2, boards/galaxian/io.js).
 const A = manifest.inputs.actions;
 function tapeInput(f) {
   const a = {};
-  const press = (act) => { a[PMAP[act.port]] = (a[PMAP[act.port]] || 0) | act.bit; };
+  const press = (act) => { a[act.port] = (a[act.port] || 0) | act.bit; };
   if (f >= 182 && f < 190) press(A.coin);
   if (f >= 240 && f < 248) press(A.start1);
   return a;

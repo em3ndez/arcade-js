@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// games-boot — the WEB-INTEGRATION smoke gate. Every node gate and the §5 done-audit exercise the
-// idiomatic layer DIRECTLY; NONE construct the board `Inputs` the shared web player passes, or boot the
-// worker's run loop. So a game can pass every gate + a two-auditor §5 done-audit and still be UNPLAYABLE
-// in the browser: invaders shipped DONE while `boards/invaders/io.js` had no `Inputs` export, so the
-// worker's `new Inputs()` threw at construction. This gate replays web/worker.js's per-game boot in node —
-// import the board `Inputs` + the game `Machine`, load the bring-your-own ROM, resolve the idiomatic
-// overrides, `new Machine(maincpu, {inputs: new Inputs(), ...gfx, overrides})` (the EXACT worker form), and
-// drive runIdiomaticGame — asserting no throw and that frames advance. ROM-guarded per game (skips a game
-// whose ROM the developer hasn't built). "Passes the gates" must mean "runs in the browser".
+// games-boot — WEB-INTEGRATION smoke gate. Node gates + the §5 done-audit exercise the idiomatic layer
+// directly; none construct the board `Inputs` or boot the worker loop, so a game can pass every gate and be
+// UNPLAYABLE (invaders: no `Inputs` export; galaxian: input ports as hw addresses -> crash-loop; gfx1 key ->
+// black screen; synth 404 -> silent). This replays web/worker.js's boot in node: worker-form construction +
+// per-frame input keyed by the manifest port VALUES + sound tap armed, then asserts no throw, frames advance,
+// a rendered frame is non-uniform, and an audio game drives the tap. ROM-guarded. Gates must mean "runs".
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
@@ -27,12 +24,9 @@ for (const gameId of GAMES) {
   const romPath = (n) => join(ROOT, "games", gameId, "rom", `${n}.bin`);
   const haveRom = names.every((n) => existsSync(romPath(n)));
 
-  // A game mid-translation (§2 skeleton) is registered but not yet worker-bootable: it declares runtime
-  // "idiomatic" yet has no convergence.idiomatic.nmiReturnPC until the §4 clock-free pass wires the vblank
-  // NMI, and its boot stops at the first untranslated routine well short of FRAMES. SKIP it here (the worker
-  // itself refuses runtime "idiomatic" without nmiReturnPC) -- this is a DONE-time "runs in the browser"
-  // gate, not a skeleton gate, and it ENGAGES the moment nmiReturnPC lands. Every finished game declares
-  // nmiReturnPC, so only a skeleton skips (same lifecycle as the pixel-gate EXEMPT bootstrap, runbook §2).
+  // A §2 skeleton has no convergence.idiomatic.nmiReturnPC yet (the worker itself refuses idiomatic without
+  // it) and boots short of FRAMES -- SKIP until nmiReturnPC lands. A DONE-time "runs in the browser" gate,
+  // not a skeleton gate; it engages the moment nmiReturnPC lands.
   const nmiReturnPC = manifest.convergence?.idiomatic?.nmiReturnPC;
   const notReady = nmiReturnPC === undefined;
   test(`${gameId}: boots the way the web worker constructs it`, { skip: !haveRom || notReady }, async () => {
@@ -62,13 +56,34 @@ for (const gameId of GAMES) {
     // The EXACT worker construction (web/worker.js): (rom, {inputs, ...gfx, overrides}).
     const m = new Machine(maincpu, { inputs, ...gfx, overrides });
 
+    // Feed input the worker way (readInputsInto): inputAssert keyed by the manifest PORT VALUES, not {}.
+    // galaxian shipped ports as hw addresses (0x6000...) not io indices, so the worker keying crash-looped;
+    // a bare {} never exercised the port keys.
+    const zeroInput = Object.fromEntries(Object.values(manifest.inputs.ports).map((v) => [v, 0]));
+
+    // Arm the sound tap as the worker does; an audio game must drive it during attract (galaxian shipped
+    // silent -- a 404 synth path + a model that never voiced the background/tune).
+    let soundWrites = 0;
+    m.io.onSoundWrite = () => { soundWrites++; };
+
     const r = runIdiomaticGame(m, {
       bootAddr: 0x0000,
       nmiReturnPC,
       maxFrames: FRAMES,
-      onFrame: (mm) => { mm.io.inputAssert = {}; }, // no input; matches the worker's per-frame assert shape
+      onFrame: (mm) => { mm.io.inputAssert = zeroInput; },
     });
     assert.equal(r.stopError, null, `${gameId}: worker-form run threw: ${r.stop}`);
     assert.ok(r.frames >= FRAMES, `${gameId}: only advanced ${r.frames}/${FRAMES} frames (${r.stop})`);
+
+    // Render the worker way (machine.renderFrame) and assert a NON-uniform buffer: the gfx1 key mismatch left
+    // this.video null -> an all-black (uniform) frame that boots fine but shows nothing.
+    const frame = m.renderFrame();
+    assert.ok(frame && frame.length > 0, `${gameId}: renderFrame produced no buffer`);
+    let uniform = true;
+    for (let i = 1; i < frame.length; i++) if (frame[i] !== frame[0]) { uniform = false; break; }
+    assert.ok(!uniform, `${gameId}: rendered attract frame is uniform (decoded graphics missing? black screen)`);
+
+    // "Tick audio": a game declaring an audio block must drive the sound tap during attract.
+    if (manifest.audio) assert.ok(soundWrites > 0, `${gameId}: declares audio but wrote no sound in ${FRAMES} frames (dead sound seam?)`);
   });
 }

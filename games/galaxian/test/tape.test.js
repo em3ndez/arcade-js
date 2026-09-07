@@ -34,12 +34,11 @@ const { nmiReturnPC } = idiomatic;
 const hex = (v) => `0x${(v & 0xffff).toString(16).padStart(4, "0")}`;
 const brief = (xs) => (xs.length <= 6 ? xs.join("; ") : `${xs.slice(0, 6).join("; ")} … (${xs.length} in all)`);
 
-// The tape in PRESSED-BIT form. galaxian ports are named ("in0"/"in1"); io.inputAssert is keyed 0/1/2.
-const PMAP = { in0: 0, in1: 1, in2: 2 };
+// The tape in PRESSED-BIT form. manifest action ports ARE the io.inputAssert indices (0/1/2, boards/galaxian/io.js).
 const A = manifest.inputs.actions;
 function tapeInput(f) {
   const a = {};
-  const press = (act) => { a[PMAP[act.port]] = (a[PMAP[act.port]] || 0) | act.bit; };
+  const press = (act) => { a[act.port] = (a[act.port] || 0) | act.bit; };
   if (f >= 182 && f < 190) press(A.coin);
   if (f >= 240 && f < 248) press(A.start1);
   if (f >= 360) {

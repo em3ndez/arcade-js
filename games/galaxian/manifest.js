@@ -46,16 +46,19 @@ export default {
 
   // Direct memory-mapped input ports (no PPI), all IP_ACTIVE_HIGH (pressed=1). Bits from
   // INPUT_PORTS(galaxian)@3069; idle IN0=0 IN1=0 IN2=0x04 (Lives=3), MAME-measured (boards/galaxian/io.js).
+    // ports are the input-index keys boards/galaxian/io.js reads (io.inputAssert[0/1/2] -> portIn 0/1/2);
+    // web/worker.js keys inputAssert by these, so they MUST be the io indices, not the hardware read
+    // addresses (IN0=0x6000, IN1=0x6800, IN2=0x7000 — the CPU-side map, hardcoded in memory.js).
   inputs: {
-    ports: { in0: 0x6000, in1: 0x6800, in2: 0x7000 },
+    ports: { in0: 0, in1: 1, in2: 2 },
     actions: {
-      coin:   { port: "in0", bit: 0x01 }, // IPT_COIN1
-      coin2:  { port: "in0", bit: 0x02 }, // IPT_COIN2
-      left:   { port: "in0", bit: 0x04 }, // P1 left (2-way)
-      right:  { port: "in0", bit: 0x08 }, // P1 right (2-way)
-      fire:   { port: "in0", bit: 0x10 }, // P1 button 1
-      start1: { port: "in1", bit: 0x01 }, // IPT_START1
-      start2: { port: "in1", bit: 0x02 }, // IPT_START2
+      coin:   { port: 0, bit: 0x01 }, // IN0 IPT_COIN1
+      coin2:  { port: 0, bit: 0x02 }, // IN0 IPT_COIN2
+      left:   { port: 0, bit: 0x04 }, // IN0 P1 left (2-way)
+      right:  { port: 0, bit: 0x08 }, // IN0 P1 right (2-way)
+      fire:   { port: 0, bit: 0x10 }, // IN0 P1 button 1
+      start1: { port: 1, bit: 0x01 }, // IN1 IPT_START1
+      start2: { port: 1, bit: 0x02 }, // IN1 IPT_START2
     },
     keys: { // KeyboardEvent.code values (web/player.html matches on e.code)
       ArrowLeft: "left", KeyA: "left",
