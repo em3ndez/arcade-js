@@ -91,6 +91,10 @@
       return { id, m };
     } catch (e) { return { id, err: String(e.message || e) }; }
   }));
+  // List the catalog CHRONOLOGICALLY by release year (manifest.year); within a year keep registry order
+  // (stable tiebreak), and float a card whose manifest failed to import to the end.
+  cards.sort((a, b) =>
+    (a.m?.year ?? Infinity) - (b.m?.year ?? Infinity) || GAMES.indexOf(a.id) - GAMES.indexOf(b.id));
   grid.textContent = "";
   if (!cards.length) {
     const empty = document.createElement("div");
