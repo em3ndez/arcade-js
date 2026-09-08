@@ -1,0 +1,136 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Whole-machine STATE convergence for centiped: the cycle-driven oracle vs a MAME golden, entropy-matched by
+// REPLAYING MAME's exact $100a POKEY-RANDOM stream (captured observe-only) so RNG cannot fork the two, then
+// compared with the drift-tolerant reconverge rule (each frame vs its nearest golden frame within ±W, since
+// the oracle snapshots a frame a sub-frame instant off MAME's notifier). PASS requires: RNG read-count in
+// sync (the oracle consumes $100a bit-for-bit like MAME — a control-flow tooth), the drift residual under a
+// floor calibrated ABOVE the measured correct residual and BELOW a bug, distinct frames on both sides, and a
+// baked-in NULL-MUTANT that MUST fail (a gate that cannot fail is decoration).
+//
+//   node games/centiped/tools/convergence.mjs [--seconds N] [--drift W] [--rompath DIR] [--mame PATH]
+//        [--golden DIR]   # reuse a prior capture instead of running MAME
+//   exit 0 = PASS (prints "centiped_convergence: PASS"), 1 = FAIL, 2 = setup/IO error.
+import { readFileSync, existsSync, mkdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { Machine } from "../machine.js";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const GAME = dirname(HERE);
+const REPO = dirname(dirname(GAME));
+const FRAME = 2048;
+
+function parseArgs(argv) {
+  const a = { seconds: 120, drift: 2, rompath: join(process.env.HOME || "", "Downloads"),
+    mame: "/opt/homebrew/bin/mame", set: "centiped3", golden: null,
+    tAvg: 70, tMax: 130, minDistinct: 100 };
+  for (let i = 0; i < argv.length; i++) {
+    const k = argv[i];
+    if (k === "--seconds") a.seconds = parseInt(argv[++i], 10);
+    else if (k === "--drift") a.drift = parseInt(argv[++i], 10);
+    else if (k === "--rompath") a.rompath = argv[++i];
+    else if (k === "--mame") a.mame = argv[++i];
+    else if (k === "--set") a.set = argv[++i];
+    else if (k === "--golden") a.golden = argv[++i];
+    else if (k === "--t-avg") a.tAvg = parseFloat(argv[++i]);
+    else if (k === "--t-max") a.tMax = parseFloat(argv[++i]);
+  }
+  return a;
+}
+
+function fail(msg) { console.log(`centiped_convergence: FAIL -- ${msg}`); process.exit(1); }
+function ioerr(msg) { console.error(`convergence: ${msg}`); process.exit(2); }
+
+// Capture a fresh MAME golden (state + RNG stream) into `dir`, or reuse an existing one.
+function captureGolden(opts) {
+  const dir = opts.golden || join(HERE, `.golden-${opts.seconds}s`);
+  const stateOut = join(dir, "state.bin");
+  const rngOut = join(dir, "rng.bin");
+  if (opts.golden && existsSync(stateOut) && existsSync(rngOut)) return { dir, stateOut, rngOut };
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const lua = join(HERE, "lua", "dump_state_rng.lua");
+  try {
+    execFileSync(opts.mame, [opts.set, "-rompath", opts.rompath, "-norotate", "-video", "none",
+      "-sound", "none", "-nothrottle", "-frameskip", "0", "-nonvram_save", "-nocheat", "-noautosave",
+      "-seconds_to_run", String(opts.seconds), "-autoboot_script", lua, "-autoboot_delay", "0"],
+      { env: { ...process.env, STATE_OUT: stateOut, RNG_OUT: rngOut }, stdio: "ignore", timeout: 300000 });
+  } catch (e) { ioerr(`MAME capture failed (rompath ${opts.rompath}, set ${opts.set}): ${e.message}`); }
+  return { dir, stateOut, rngOut };
+}
+
+// Run the oracle replaying `rng`; return sampled frames + how many RNG values it consumed / over-consumed.
+function runOracle(rom, gfx1, rng, frames, mutate) {
+  const m = new Machine(rom, { gfx1 });
+  let ri = 0, over = 0;
+  const orig = m.io.pokeyRandom.bind(m.io);
+  m.io.pokeyRandom = (c) => { if (ri < rng.length) return rng[ri++]; over++; return orig(c); };
+  if (mutate) { const w = m.mem.write8.bind(m.mem); m.mem.write8 = (a, v) => w(a, (a & 0xffff) === 0x0056 ? (v + 3) & 0xff : v); }
+  const out = m.runFrames(frames);
+  return { out, ri, over, stoppedBy: m.stoppedBy };
+}
+
+function diff(a, b) { let n = 0; for (let i = 0; i < FRAME; i++) if (a[i] !== b[i]) n++; return n; }
+
+// Drift-tolerant score: each oracle frame vs its nearest golden frame within ±W.
+function score(out, gframe, gN, W) {
+  let s = 0, c = 0, mx = 0;
+  for (let k = W + 2; k < out.length - W - 2 && k < gN - W; k++) {
+    if (!out[k]) continue;
+    let best = Infinity;
+    for (let o = -W; o <= W; o++) { const d = diff(out[k], gframe(k + o)); if (d < best) best = d; }
+    s += best; c++; if (best > mx) mx = best;
+  }
+  return { avg: s / c, max: mx };
+}
+
+function main() {
+  const opts = parseArgs(process.argv.slice(2));
+  const romP = join(GAME, "rom", "maincpu.bin"), gfxP = join(GAME, "rom", "gfx1.bin");
+  if (!existsSync(romP) || !existsSync(gfxP)) ioerr(`ROM not built -- run: node ${join(REPO, "tools/build-rom.mjs")} centiped <zip>`);
+  const rom = readFileSync(romP), gfx1 = readFileSync(gfxP);
+
+  const { stateOut, rngOut } = captureGolden(opts);
+  const golden = readFileSync(stateOut), rng = readFileSync(rngOut);
+  const gN = Math.floor(golden.length / FRAME);
+  const gframe = (i) => golden.subarray(i * FRAME, (i + 1) * FRAME);
+  if (gN < opts.minDistinct * 2) ioerr(`golden too short: ${gN} frames`);
+  // A fresh capture that silently under-runs (MAME exits early) would let the oracle match a short golden.
+  if (!opts.golden) { const want = opts.seconds * 60; if (gN < want * 0.9) fail(`golden under-ran: ${gN} frames for --seconds ${opts.seconds} (expected ~${want}) -- capture cut short`); }
+  // certify: state[0] all-zero (power-on invariant), and distinct golden frames (not a frozen screen).
+  if (gframe(0).some((b) => b !== 0)) fail("golden state[0] is not all-zero (poisoned capture)");
+  const gsigs = new Set(); for (let k = 0; k < gN; k += 7) gsigs.add(gframe(k).slice(0, 0x40).join(","));
+  if (gsigs.size < opts.minDistinct) fail(`golden has only ${gsigs.size} distinct frames (frozen?)`);
+
+  const frames = gN - 1;
+  const good = runOracle(rom, gfx1, rng, frames, false);
+  // The read-count tooth is TWO-SIDED: over-read AND under-read both mean the oracle diverged from MAME's
+  // control flow. Under-read is the important case -- a translation gap/crash truncates runFrames, which
+  // returns the partial frames it sampled; those few frames still match the golden, so without this the
+  // most likely regression (a gap) certifies PASS. Also require the full frame count + a clean stop.
+  if (good.stoppedBy) fail(`oracle did not run clean to budget: stoppedBy=${good.stoppedBy.message || good.stoppedBy} -- a translation gap or crash`);
+  if (good.over > 0) fail(`RNG OVER-READ: oracle read $100a ${good.ri + good.over}x, MAME captured ${rng.length}x -- oracle diverged from MAME's control flow`);
+  if (good.ri !== rng.length) fail(`RNG UNDER-READ: oracle read $100a ${good.ri}x, MAME captured ${rng.length}x -- oracle truncated/diverged (a gap or control-flow change)`);
+  if (good.out.length < frames) fail(`oracle produced ${good.out.length}/${frames} frames -- truncated (translation gap or crash)`);
+  const gs = score(good.out, gframe, gN, opts.drift);
+
+  // positive control #1: oracle frames are distinct (not frozen).
+  const osigs = new Set(); for (let k = 1; k < good.out.length; k += 7) if (good.out[k]) osigs.add(good.out[k].slice(0, 0x40).join(","));
+  if (osigs.size < opts.minDistinct) fail(`oracle produced only ${osigs.size} distinct frames (froze/crashed early)`);
+
+  // positive control #2 (NULL-MUTANT): a corrupted oracle MUST break past the floor -- proves teeth.
+  const bad = runOracle(rom, gfx1, rng, frames, true);
+  const bs = score(bad.out, gframe, gN, opts.drift);
+  const mutantCaught = bs.avg >= opts.tAvg || bad.over > 0;
+
+  console.log(`  golden ${gN} frames, ${gsigs.size} distinct; RNG reads oracle ${good.ri} / MAME ${rng.length} (over ${good.over}); oracle ran ${good.out.length}/${frames} frames.`);
+  console.log(`  correct: avg=${gs.avg.toFixed(1)}B max=${gs.max}B   null-mutant: avg=${bs.avg.toFixed(1)}B max=${bs.max}B over=${bad.over}`);
+  console.log(`  thresholds: avg<${opts.tAvg} max<${opts.tMax}`);
+
+  if (!mutantCaught) fail(`NULL-MUTANT NOT CAUGHT (avg ${bs.avg.toFixed(1)} < ${opts.tAvg}) -- the gate has no teeth`);
+  if (gs.avg >= opts.tAvg) fail(`residual avg ${gs.avg.toFixed(1)}B >= ${opts.tAvg}B`);
+  if (gs.max >= opts.tMax) fail(`residual max ${gs.max}B >= ${opts.tMax}B`);
+  console.log("centiped_convergence: PASS");
+}
+
+main();
