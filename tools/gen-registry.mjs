@@ -57,7 +57,10 @@ export async function discover(game) {
     }
     if (names.length) perFile.push({ file, names: names.sort() });
   }
-  if (!owner.has(0x0000)) throw new Error(`registry: ${game} has no reset routine at 0x0000`);
+  // Non-empty is the CPU-agnostic sanity: a Z80 reset sits at 0x0000, but a 6502 reset is ROM-derived
+  // (centiped: the 0x3FFC vector -> 0x3B04), so requiring 0x0000 wrongly rejects every 6502 registry. A
+  // missing reset routine is caught at boot (m.call throws NotImplemented), for any CPU.
+  if (owner.size === 0) throw new Error(`registry: ${game} has no loc_ routines in translated/`);
   return perFile;
 }
 

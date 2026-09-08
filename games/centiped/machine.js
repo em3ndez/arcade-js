@@ -128,6 +128,12 @@ export class Machine {
     this.step((this.pull16() + 1) & 0xffff, cycles);
   }
 
+  /** RTI: pull P then PC (fireIrq's push order). Unlike RTS the PC resumes directly, no +1. */
+  rti(cycles = 6) {
+    this.regs.p = this.pull8();
+    this.step(this.pull16() & 0xffff, cycles);
+  }
+
   /**
    * IRQ service (level-triggered, masked while I set → stays pending). Push PC then P (B clear, U set),
    * set I, vector through 0x3FFE; the handler ACKs by writing 0x1800. ⚠ WHEN it fires (the 32V cadence)

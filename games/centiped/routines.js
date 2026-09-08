@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// The address->function table m.call() dispatches through. SKELETON (§2): the translated layer does not
-// exist yet, so this is EMPTY — reset() dispatches the 6502 reset vector and the first m.call throws
-// NotImplemented (the boot-gap crawl, §3). Once translation starts, gen-registry.mjs writes
-// translated/_registry.generated.js and this imports ROUTINE_ENTRIES from it (see games/galaxian/routines.js).
+// The address->function table m.call() dispatches through, including the reset (0x3FFC vector -> 0x3B04).
+// Regenerate: node tools/gen-registry.mjs centiped
 
-export const ROUTINES = new Map();
+import { ROUTINE_ENTRIES } from "./translated/_registry.generated.js";
+
+export const ROUTINES = new Map(ROUTINE_ENTRIES);
 
 export function buildRoutines() {
   return new Map(ROUTINES);
