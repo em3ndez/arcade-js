@@ -91,12 +91,11 @@ export class AddressSpace {
       case 0x0c02: return this.io.readIn2();
       case 0x0c03: return this.io.readIn3();
     }
+    if (addr === 0x100a) return this.io.pokeyRandom(this.clock ? this.clock() : 0); // POKEY RANDOM (RNG)
     if (addr >= 0x1000 && addr <= 0x100f) {
       throw new NotImplemented(`POKEY read 0x${hex4(addr)} (RANDOM/ALLPOT) -- §5 audio unimplemented`);
     }
-    if (addr >= 0x1700 && addr <= 0x173f) {
-      throw new NotImplemented(`EAROM read 0x${hex4(addr)} (high-score NVRAM unimplemented)`);
-    }
+    if (addr >= 0x1700 && addr <= 0x173f) return this.io.earomRead(); // earom_read (ER2055 data out)
     throw new UnmappedAccess("read", addr, this.pc);
   }
 
@@ -106,14 +105,14 @@ export class AddressSpace {
     if (addr < VIDEO_RAM_BASE) { this.workRam[addr] = value; return; }
     if (addr < OBJ_RAM_BASE) { this.videoRam[addr - VIDEO_RAM_BASE] = value; return; } // centiped_videoram_w
     if (addr < 0x0800) { this.objRam[addr - OBJ_RAM_BASE] = value; return; }
-    if (addr >= 0x1000 && addr <= 0x100f) { this.io.pokeyWrite(addr & 0x0f, value); return; } // recorded, §5
+    if (addr >= 0x1000 && addr <= 0x100f) { this.io.pokeyWrite(addr & 0x0f, value, this.clock ? this.clock() : 0); return; } // recorded, §5 + RNG sync point
     if (addr >= 0x1400 && addr <= 0x140f) { this.paletteRam[addr & 0x0f] = value; return; } // centiped_paletteram_w
     if (addr === 0x1800) { this.io.ackIrq(); return; } // irq_ack_w clears the IRQ line
     if (addr >= 0x1c00 && addr <= 0x1c07) { this.io.setLatch(addr & 7, (value >> 7) & 1); return; } // LS259 write_d7
     if (addr === 0x2000) { this.watchdogKicks++; return; } // watchdog reset_w -- WRITE side of 0x2000 (READ = ROM)
-    if (addr >= 0x1600 && addr <= 0x163f) throw new NotImplemented(`EAROM write 0x${hex4(addr)} unimplemented`);
-    if (addr === 0x1680) throw new NotImplemented("EAROM control 0x1680 unimplemented");
-    if (addr > 0x2000) throw new UnmappedAccess("write to ROM", addr, this.pc); // 0x2001-0x3FFF read-only
+    if (addr >= 0x1600 && addr <= 0x163f) { this.io.earomWrite(addr & 0x3f, value); return; } // earom_write
+    if (addr === 0x1680) { this.io.earomControl(value); return; } // earom_control_w
+    if (addr > 0x2000) return; // 0x2001-0x3FFF is .rom() (read-only): MAME ignores the write, e.g. reset's sta $2400
     throw new UnmappedAccess("write", addr, this.pc); // decode holes (DSW/IN read ports, gaps)
   }
 

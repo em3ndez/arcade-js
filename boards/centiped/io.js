@@ -29,6 +29,78 @@ export const IDLE_IN3 = 0xff;
 // 0 = IN0 switch bits (service, bit5), 1 = IN1 buttons/coins, 3 = IN3 cocktail joystick.
 export const PORT_ADDRS = new Set([0, 1, 3]);
 
+// ER2055 EAROM -- GI 64x8 electrically-alterable ROM (high-score NVRAM). Fresh = 0xff. Erase-before-write
+// (a write ANDs into the cell); reads latch on the CLK falling edge with C1. mame-src/.../machine/er2055.cpp.
+class Er2055 {
+  constructor() {
+    this.cells = new Uint8Array(64).fill(0xff); // fresh nvram
+    this.addr = 0;     // 6-bit address latch
+    this.latch = 0xff; // data latch == read output
+    this.cs1 = 0; this.cs2 = 0; this.c1 = 0; this.c2 = 0; this.ck = 0;
+  }
+  setAddress(a) { this.addr = a & 0x3f; }
+  setData(d) { this.latch = d & 0xff; }
+  read() { return this.latch; }
+  setControl(cs1, cs2, c1, c2) {
+    const changed = cs1 !== this.cs1 || cs2 !== this.cs2 || c1 !== this.c1 || c2 !== this.c2;
+    this.cs1 = cs1; this.cs2 = cs2; this.c1 = c1; this.c2 = c2;
+    if (!(cs1 && cs2) || !changed) return; // updates only while both chip-selects are high and state moved
+    this._update();
+  }
+  setClk(state) {
+    const old = this.ck;
+    this.ck = state ? 1 : 0;
+    if (this.cs1 && this.cs2 && this.ck !== old && !state) { // falling edge, selected
+      if (this.c1) this.latch = this.cells[this.addr]; // read mode (C2 don't care)
+      this._update();
+    }
+  }
+  _update() {
+    if (!this.c1 && !this.c2) this.cells[this.addr] &= this.latch; // write (erase-before-write AND)
+    else if (this.c2 && !this.c1) this.cells[this.addr] = 0xff; // erase
+  }
+  clone() {
+    const e = new Er2055();
+    e.cells.set(this.cells);
+    e.addr = this.addr; e.latch = this.latch;
+    e.cs1 = this.cs1; e.cs2 = this.cs2; e.c1 = this.c1; e.c2 = this.c2; e.ck = this.ck;
+    return e;
+  }
+}
+
+// POKEY poly-counter RNG tables (RANDOM register, mame-src/.../sound/pokey.cpp poly_init_9_17). Lazy, shared.
+let POLY17 = null;
+let POLY9 = null;
+function poly17Table() {
+  if (POLY17) return POLY17;
+  const n = 0x1ffff;
+  const t = new Uint8Array(n);
+  let lfsr = n;
+  for (let i = 0; i < n; i++) {
+    const in8 = (((lfsr >> 8) & 1) ^ ((lfsr >> 13) & 1)) & 1;
+    const in0 = lfsr & 1;
+    lfsr = lfsr >>> 1;
+    lfsr = (lfsr & 0xff7f) | (in8 << 7);
+    lfsr = ((in0 << 16) | lfsr) >>> 0;
+    t[i] = (lfsr >> 8) & 0xff; // RANDOM read = (poly17>>8)&0xff
+  }
+  POLY17 = t;
+  return t;
+}
+function poly9Table() {
+  if (POLY9) return POLY9;
+  const n = 0x1ff;
+  const t = new Uint8Array(n);
+  let lfsr = n;
+  for (let i = 0; i < n; i++) {
+    const in0 = ((lfsr & 1) ^ ((lfsr >> 5) & 1)) & 1;
+    lfsr = ((in0 << 8) | (lfsr >>> 1)) & 0x1ff;
+    t[i] = lfsr & 0xff;
+  }
+  POLY9 = t;
+  return t;
+}
+
 export class Io {
   constructor() {
     this.dsw1 = IDLE_DSW1;
@@ -58,8 +130,14 @@ export class Io {
     // galaxian's discrete-sound recording -- headless runs stay byte-identical.
     this.pokeyReg = new Uint8Array(16);
     this.onSoundWrite = null; // (addr, value) sink; null offline
+    // POKEY RANDOM phase (cross-validated vs MAME): a $100A read latches the poly at the PREVIOUS pokey
+    // access's clock; p17 counts from the SKCTL(reg 0x0F) SK_RESET(0x03) enable. See ARCADE2-RESUME.md.
+    this.pokeyC0 = null; // m.cycles when SK_RESET enabled the counter (p17 origin); null = held at 0
+    this.pokeyLastAccess = 0; // m.cycles of the previous pokey access (read $100A or write $1000-$100F)
 
     this.inputAssert = null; // {port: pressedBits} per frame (ports in PORT_ADDRS)
+
+    this.earom = new Er2055(); // high-score NVRAM (0x1600-0x163F W / 0x1680 ctrl / 0x1700-0x173F R)
   }
 
   _pressed(port) {
@@ -112,9 +190,35 @@ export class Io {
   ackIrq() { this.irqAsserted = false; }
 
   // ---- POKEY writes (recorded, not modelled; §5) ----------------------------------------
-  pokeyWrite(reg, value) {
+  pokeyWrite(reg, value, cycle = 0) {
     this.pokeyReg[reg & 0x0f] = value & 0xff;
+    if ((reg & 0x0f) === 0x0f) { // SKCTL: low 2 bits (SK_RESET) gate the poly counter
+      if ((value & 0x03) === 0x03) { if (this.pokeyC0 === null) this.pokeyC0 = cycle >>> 0; }
+      else this.pokeyC0 = null; // SK_RESET cleared -> p17 held at 0 until re-enabled
+    }
+    this.pokeyLastAccess = cycle >>> 0; // a write is a pokey access/sync point too
     if (this.onSoundWrite) this.onSoundWrite(0x1000 + (reg & 0x0f), value & 0xff);
+  }
+
+  // ---- EAROM (ER2055) -- earom_write / earom_control_w / earom_read ----------------------
+  earomWrite(offset, value) { this.earom.setAddress(offset & 0x3f); this.earom.setData(value); }
+  earomControl(value) {
+    // earom_control_w: set_control(bit3, 1, !bit1, bit2), set_clk(bit0)
+    this.earom.setControl((value >> 3) & 1, 1, ((value >> 1) & 1) ? 0 : 1, (value >> 2) & 1);
+    this.earom.setClk(value & 1);
+  }
+  earomRead() { return this.earom.read(); }
+
+  // POKEY RANDOM ($100A): poly-counter RNG (poly17, or poly9 if AUDCTL POLY9). A read returns the poly at the
+  // PREVIOUS pokey access's clock (MAME synchronize() timing); p17 counts from the SKCTL SK_RESET enable (C0).
+  // Phase cross-validated vs MAME (gameplay reads exact); the ~2/48 misses are unmodeled scheduler-quantum lag.
+  pokeyRandom(cycle) {
+    const t = (this.pokeyReg[8] & 0x80) ? poly9Table() : poly17Table();
+    // Value is the poly at the PREVIOUS access's clock (MAME synchronize() timing); p17 origin = C0.
+    const p = this.pokeyC0 === null ? 0 : (((this.pokeyLastAccess - this.pokeyC0) % t.length) + t.length) % t.length;
+    const v = t[p];
+    this.pokeyLastAccess = cycle >>> 0; // this read is now the latest access
+    return v;
   }
 
   loadStateFrom(other) {
@@ -127,6 +231,9 @@ export class Io {
     this.latch = other.latch.slice();
     this.irqAsserted = other.irqAsserted;
     this.pokeyReg = other.pokeyReg.slice();
+    this.pokeyC0 = other.pokeyC0;
+    this.pokeyLastAccess = other.pokeyLastAccess;
+    this.earom = other.earom.clone();
     this.inputAssert = other.inputAssert;
   }
 }
