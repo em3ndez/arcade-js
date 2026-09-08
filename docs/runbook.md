@@ -837,6 +837,21 @@ distinct phase, gated on a flag, and runs in this order.
   (silence in a fresh clone is the point). Web side: dedup by raw write **address**, forward only changed
   edges; guard any polled surface behind a board-capability check. **Report evidence disagreements — never
   silently pick a winner**; when the driver and the measured hardware disagree, ship what the hardware does.
+- **SYNTH model (discrete-analogue sound — no sound CPU, no sample ROM; galaxian `galaxian_a.cpp`):** there
+  are no clips to record — the sound is a live parameterized tone synthesised above the emulation from the
+  register writes (`manifest.audio.model: "synth"`, `audio/synth.js`). Its oracle is NOT a by-ear clip
+  sign-off (nothing to audition) and NOT an aggregate envelope correlation — an aggregate CANNOT FAIL
+  per-voice, so a model missing whole voices passes it (galaxian shipped silent on 3 of its 4 voices under a
+  passing +0.7). The oracle is a **per-voice NULL-MUTANT test** (`test/synth-voices.test.js`: silence any one
+  voice → the test goes RED), which `audio_gate.py` REQUIRES and RUNS for a synth game, and which refuses a
+  synth that self-documents a stubbed/collapsed voice. Model every register; never dress a simplification as
+  coverage.
+- **★ New-subsystem DONE doctrine (the general rule the synth-audio gate instances):** the first time a game
+  needs a NEW subsystem (a synthesised sound, a browser shell, a new render path), the DONE-gate almost
+  certainly has NO TEETH for it — maximal rigor on the OLD surfaces manufactures false confidence (galaxian
+  passed R40 "zero open" + an adversarial audio review, then a human found the browser + audio defects). Before
+  DONE, run a **null-mutant "can this gate even fail?" pass** on each subsystem's gate: break the thing it
+  checks; if it stays green it is decoration, not a gate. Build the teeth before claiming DONE.
 - **Background music the clip model can't carry** (pooyan): the per-command recorder handles SFX and short
   self-contained tunes, but a game whose MUSIC is *sequenced* by the audio CPU (continuous, evolving,
   per-board) has NO per-command music clip — the music-select codes sound **nothing** in isolation, so the

@@ -24,6 +24,13 @@ grandfathered off the sign-off requirement (exactly like tools/done_gate.py chec
 them off the --done gameplay bar); they still owe the structure checks. A non-legacy game with no
 sign-off => RED. A game needs BOTH structure AND sign-off.
 
+SYNTH model (manifest `audio.model == "synth"`, e.g. galaxian: a discrete-analogue netlist, no clips) has no
+recorded clips to audition -- so instead of a by-ear sign-off it is proven by a per-voice NULL-MUTANT test
+(test/synth-voices.test.js: silence any one voice -> the test goes RED), which this gate REQUIRES and RUNS
+(must pass), and it refuses a synth that self-documents a stubbed/collapsed voice. The un-shippable-if-un-
+null-mutant-tested rule: an aggregate correlation cannot fail per-voice (galaxian shipped silent on 3 of 4
+voices under a passing +0.7 correlation); a null-mutant can. by_ear/RECORDING-SIGNOFF is the CLIPS path only.
+
 Subcommands: check --game <game> (exit 0 iff complete), selftest.
 """
 import argparse
@@ -43,12 +50,41 @@ import tempfile
 # this gate, not unrecorded; a new game with no committed clips (e.g. pooyan) is NOT grandfathered.
 LEGACY_NO_SIGNOFF = {"frogger", "timeplt", "thepit", "dkong"}
 
-# The by-ear sign-off attestation. Each must be present with a non-empty value; `clips` must be int > 0.
+# The by-ear sign-off attestation (CLIPS model only). Each must be present + non-empty; `clips` int > 0.
 SIGNOFF_FIELDS = ("rom_sha256", "clips", "date", "by_ear")
+
+# A SYNTH model has no recorded clips to audition -- it is committed parameterized source, so its oracle is a
+# per-voice NULL-MUTANT test (silence any one voice -> the test must go RED), NOT a by-ear clip sign-off.
+# These lowercase markers, if present in the synth module, self-document a stubbed/collapsed/unmodeled voice
+# (the exact class that shipped galaxian silent on 3 of 4 voices under a passing aggregate metric) -> RED.
+SYNTH_SIMPLIFICATION_MARKERS = ("not modeled", "collapsed", "loudness proxy", "never enabled",
+                                "simplification", "todo")
 
 
 def read_text(path):
     return open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+
+
+def audio_model(manifest_text):
+    """The audio model from a manifest `audio: { model: "..." }` block; defaults to "clips" if unstated."""
+    m = re.search(r"audio\s*:\s*\{[^}]*?\bmodel\s*:\s*[\"']([^\"']+)[\"']", manifest_text, re.S)
+    return m.group(1) if m else "clips"
+
+
+def synth_rel(maptext):
+    """The synth module path from the map's `synth: "..."` field; defaults to audio/synth.js."""
+    m = re.search(r"\bsynth\s*:\s*[\"']([^\"']+)[\"']", maptext)
+    return m.group(1) if m else "audio/synth.js"
+
+
+def run_node_test(path):
+    """Run one node test file; return (rc, tail-of-output). rc 0 == the test passed."""
+    import subprocess
+    try:
+        p = subprocess.run(["node", "--test", path], capture_output=True, text=True, timeout=180)
+        return p.returncode, (p.stdout + p.stderr)[-500:]
+    except Exception as e:  # node missing / timeout -> treat as failure (a gate never passes on "could not run")
+        return 1, str(e)
 
 
 def read_hex(path, name):
@@ -87,7 +123,9 @@ def check(game, base=None):
     base = base or f"games/{game}"
     fails = []
 
-    maprel = audio_map_rel(read_text(f"{base}/manifest.js"))
+    manifest_text = read_text(f"{base}/manifest.js")
+    maprel = audio_map_rel(manifest_text)
+    model = audio_model(manifest_text)
     mappath = None
     if not maprel:
         fails.append("manifest declares no audio.map (the audio layer was never built)")
@@ -97,10 +135,10 @@ def check(game, base=None):
             fails.append(f"audio.map file missing: {mappath}")
             mappath = None
 
+    maptext = read_text(mappath) if mappath else ""
     if mappath:
         # Latch correctness applies only to the clips model (a synth model has no soundLatch). When the
         # map declares one AND names.js names SOUND_CMD_LATCH, they must agree or the player is mis-wired.
-        maptext = read_text(mappath)
         mlatch = re.search(r"soundLatch\s*:\s*(0x[0-9a-fA-F]+|\d+)", maptext)
         game_latch = read_hex(f"{base}/idiomatic/names.js", "SOUND_CMD_LATCH")
         if mlatch and game_latch is not None and int(mlatch.group(1), 0) != game_latch:
@@ -111,11 +149,28 @@ def check(game, base=None):
         if not os.path.exists(f"{base}/test/audio-{kind}.test.js"):
             fails.append(f"no test/audio-{kind}.test.js (the audio {kind} is unproven)")
 
-    # By-ear recording sign-off. The WAVs are gitignored copyright (no oracle, runbook §5), so structure
-    # alone cannot tell a recorded+auditioned layer from an un-recorded stub. A committed sign-off is the
-    # enforceable evidence that a human ran the recorder (rom sha + clip count) AND listened + confirmed.
-    # Legacy pre-runbook ports are grandfathered off this (they still owe the structure checks above).
-    if game not in LEGACY_NO_SIGNOFF:
+    if model == "synth":
+        # SYNTH: no recorded clips to audition; the oracle is a per-voice NULL-MUTANT test (silence any voice
+        # -> the test goes RED). Require it, RUN it (must PASS), and refuse a synth that self-documents a
+        # stubbed/collapsed voice -- the class that shipped galaxian silent on 3 of 4 voices while a by-ear
+        # note and an aggregate correlation both passed. An aggregate metric cannot fail per-voice; this can.
+        svpath = f"{base}/test/synth-voices.test.js"
+        if not os.path.exists(svpath):
+            fails.append("model is synth but no test/synth-voices.test.js (the per-voice null-mutant gate) -- "
+                         "a synth ships proven by per-voice presence, not a clip sign-off")
+        else:
+            rc, out = run_node_test(svpath)
+            if rc != 0:
+                fails.append(f"test/synth-voices.test.js does not pass (per-voice null-mutant RED): {out.strip()}")
+        synthpath = f"{base}/{synth_rel(maptext)}"
+        hits = [k for k in SYNTH_SIMPLIFICATION_MARKERS if k in read_text(synthpath).lower()]
+        if hits:
+            fails.append(f"{synthpath} self-documents a simplified/stubbed voice ({', '.join(hits)}) -- "
+                         "a synth must voice every register, not admit a collapsed/unmodeled one")
+    elif game not in LEGACY_NO_SIGNOFF:
+        # CLIPS: the WAVs are gitignored copyright (no oracle, runbook §5), so a committed by-ear sign-off is
+        # the enforceable evidence a human ran the recorder (rom sha + clip count) AND listened + confirmed.
+        # Legacy pre-runbook ports are grandfathered off this (they still owe the structure checks above).
         signoff_path = f"{base}/audio/RECORDING-SIGNOFF.md"
         if not os.path.exists(signoff_path):
             fails.append(f"no audio/RECORDING-SIGNOFF.md - audio not recorded/signed off "
@@ -131,9 +186,13 @@ def check(game, base=None):
         for x in fails:
             print(f"  - {x}", file=sys.stderr)
         return 1
-    signed = "" if game in LEGACY_NO_SIGNOFF else " + recording sign-off"
-    print(f"audio-coverage [{game}]: OK (map present + latch-correct + map/wiring tests committed"
-          f"{signed}). Clip correctness is a by-ear sign-off (no oracle).")
+    if model == "synth":
+        proof = "per-voice null-mutant test passes + no self-documented simplification"
+    elif game in LEGACY_NO_SIGNOFF:
+        proof = "legacy (no sign-off)"
+    else:
+        proof = "recording sign-off"
+    print(f"audio-coverage [{game}]: OK (model={model}; map + map/wiring tests + {proof}).")
     return 0
 
 
@@ -178,6 +237,20 @@ def selftest():
         if with_signoff:
             open(f"{root}/audio/RECORDING-SIGNOFF.md", "w", encoding="utf-8").write(body if body is not None else good)
 
+    def make_synth_tree(root, with_test=True, test_passes=True, synth_body="export const x = 1;\n"):
+        # A synth-model tree: proven by test/synth-voices.test.js (RUN by the gate), NOT a clip sign-off.
+        os.makedirs(f"{root}/audio", exist_ok=True)
+        os.makedirs(f"{root}/test", exist_ok=True)
+        open(f"{root}/manifest.js", "w", encoding="utf-8").write('audio: {\n  map: "audio/sounds.js",\n  model: "synth",\n}\n')
+        open(f"{root}/audio/sounds.js", "w", encoding="utf-8").write('export default { synth: "audio/synth.js" };\n')
+        open(f"{root}/audio/synth.js", "w", encoding="utf-8").write(synth_body)
+        open(f"{root}/test/audio-map.test.js", "w", encoding="utf-8").write("// map test\n")
+        open(f"{root}/test/audio-wiring.test.js", "w", encoding="utf-8").write("// wiring test\n")
+        if with_test:
+            body = ("import test from 'node:test';\ntest('voices', () => {});\n" if test_passes else
+                    "import test from 'node:test';\nimport assert from 'node:assert';\ntest('voices', () => assert.fail('nulled'));\n")
+            open(f"{root}/test/synth-voices.test.js", "w", encoding="utf-8").write(body)
+
     def silent_check(game, base):
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             return check(game, base=base)
@@ -203,6 +276,27 @@ def selftest():
         make_tree(g_legacy, with_signoff=False)
         if silent_check("frogger", g_legacy) != 0:
             fail("a legacy-named game without a sign-off was blocked (should be grandfathered)")
+
+        # SYNTH branch: proven by a per-voice null-mutant test (RUN), no clip sign-off needed.
+        g_syn = f"{tmp}/synth_ok"
+        make_synth_tree(g_syn)
+        if silent_check("synthg", g_syn) != 0:
+            fail("a synth game with a passing synth-voices test + clean synth was blocked")
+
+        g_syn_notest = f"{tmp}/synth_notest"
+        make_synth_tree(g_syn_notest, with_test=False)
+        if silent_check("synthg", g_syn_notest) == 0:
+            fail("a synth game WITHOUT synth-voices.test.js passed (must be RED)")
+
+        g_syn_fail = f"{tmp}/synth_failtest"
+        make_synth_tree(g_syn_fail, test_passes=False)
+        if silent_check("synthg", g_syn_fail) == 0:
+            fail("a synth game with a FAILING (null-mutant RED) synth-voices test passed (must be RED)")
+
+        g_syn_marker = f"{tmp}/synth_marker"
+        make_synth_tree(g_syn_marker, synth_body="// the third voice is a loudness proxy for now\nexport const x = 1;\n")
+        if silent_check("synthg", g_syn_marker) == 0:
+            fail("a synth whose module self-documents a simplification passed (must be RED)")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
