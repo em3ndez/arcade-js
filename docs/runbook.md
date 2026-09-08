@@ -281,6 +281,12 @@ Stand up these pieces in the skeleton; none of them needs a finished layer.
   it — it surfaces only at pre-push. Also grep the whole translated layer for external `m.call`/`jp` into
   the region's interior addresses and for pre-existing `loc_` files overlapping the range: a purely-internal
   recursive descent misses boundaries introduced by external callers and prior SPLITs.
+  ⚠ **A decompile batch is ADD-ONLY w.r.t. previously-committed routines — enforced.** A partition that
+  overlaps a committed routine once had agents re-translate + DELETE shipped, reviewed code, caught only by a
+  stray "41 M" in staging. `tools/decompile_addonly_gate.py` (pre-commit) REFUSES a commit that ADDS new
+  idiomatic/translated routine modules AND ALSO modifies/deletes a previously-committed one. A rename
+  (loc_->descriptive) is an understanding pass (git `R`) and is allowed; a genuine one-off dissolve takes the
+  per-commit-approved `--no-verify`.
   ⚠ **Balance the split by estimated CODE VOLUME, not seed-entry count.** A seed entry with a large gap to
   the next known entry expands into however many in-range sub-routines the disassembly holds, so "N entries
   per agent" fans out wildly lopsided. In setup, ESTIMATE routines-per-range from each span's decoded
