@@ -80,6 +80,13 @@ MANUAL = {
 #: by design: legitimate ONLY when the gate cannot run and the reason is one a reviewer can check --
 #: the canonical case is a NEW game mid-translation that cannot render a frame yet (see docs/runbook.md).
 EXEMPT = {
+    "centiped": (
+        "NEW game mid-translation (§2 skeleton): translated/ is empty, so the idiomatic layer cannot\n"
+        "  render a frame vs MAME yet -- reset() boots to the first unregistered-routine gap at 0x3B04\n"
+        "  (a reviewer verifies by constructing the Machine and booting to that NotImplemented). MAME\n"
+        "  golden capture is additionally blocked: the centiped3 dump is missing the sync PROM\n"
+        "  136001-213.p4. REMOVE this the moment the boot reaches a rendered frame (§3, docs/runbook.md)."
+    ),
 }
 
 

@@ -1,0 +1,95 @@
+{
+  "_comment": [
+    "Tool-facing hardware/address declaration for the Atari Centipede PCB (MOS 6502). Set: centiped3.",
+    "Read from MAME atari/centiped.cpp: centiped_base_map@695, centiped_map@718, generate_interrupt@434,",
+    "irq_ack_w@487, LS259 wiring@1784-1816, INPUT_PORTS(centiped)@1047, gfx layouts@1722-1737, machine",
+    "config@1775-1824; and atari/centiped_v.cpp: screen_update_centiped@414, centiped_paletteram_w@211.",
+    "Numbers are decimal (JSON has no 0x); '_hex'/'_note' fields are annotations the loader ignores.",
+    "",
+    "NOT YET MEASURED: this is the board-layer draft. There is no 6502 Machine/ROM golden yet, and the",
+    "centiped3 dump is missing the sync/decode PROM (136001-213.p4, NOT a colour PROM) so MAME cannot run.",
+    "controlByte, input idle probes, reset registers, and landmarks come with the state-diff/pixel wiring."
+  ],
+
+  "driver": "centiped",
+  "cpu": "6502",
+  "_cpu_note": "MOS 6502 @ 12.096MHz/8 = 1.512MHz; slows to 0.756MHz while accessing playfield RAM 0x0400-0x07BF (bus contention). centiped.cpp:1778.",
+
+  "screen": { "width": 256, "height": 240, "rot": "ROT270", "_note": "set_size(32*8,32*8)=256x256; set_visarea(0,255,0,239)=256x240 visible, top row = native row 0. ROT270 (90 CCW) applied downstream, NOT in video.js. centiped.cpp:1799-1801,2378." },
+  "refreshHz": 60,
+  "_refresh_note": "set_refresh_hz(60) directly (no set_raw pixel clock), so the frame is exactly 1/60s. centiped.cpp:1798.",
+  "cpuHz": 1512000,
+
+  "cyclesPerFrame": 25200,
+  "_cycles_note": "NOMINAL 1512000/60 = 25200. ⚠ FLAG: the 6502 slows to 0.756MHz during playfield-RAM access (bus contention, centiped.cpp:1778) so the REAL per-frame instruction count is lower and data-dependent. MAME's m6502 does not model the stall, so it executes 25200; using the nominal, pending a MAME cycle capture. Do NOT guess a contended value.",
+
+  "stateDumpSize": 2048,
+  "stateRegions": [
+    { "name": "ram",       "base": 0,    "size": 1024, "_hex": "0x0000-0x03FF work RAM ('rambase') -- centiped.cpp:698" },
+    { "name": "vram",      "base": 1024, "size": 960,  "_hex": "0x0400-0x07BF video RAM (centiped_videoram_w, 32x30 tile codes) -- @699" },
+    { "name": "spriteram", "base": 1984, "size": 64,   "_hex": "0x07C0-0x07FF sprite RAM (16 objs x 4 fields) -- @700" }
+  ],
+
+  "_rw_differ_note": "0x2000 READ = program ROM, WRITE = watchdog reset_w. Modelled as two devices. centiped.cpp:713-714.",
+  "readRanges": [
+    { "name": "dsw1",     "start": 2048,  "end": 2048,  "_hex": "0x0800 portr DSW1 -- @701" },
+    { "name": "dsw2",     "start": 2049,  "end": 2049,  "_hex": "0x0801 portr DSW2 -- @702" },
+    { "name": "in0",      "start": 3072,  "end": 3072,  "_hex": "0x0C00 centiped_IN0_r = read_trackball(0,0) -- @703" },
+    { "name": "in1",      "start": 3073,  "end": 3073,  "_hex": "0x0C01 portr IN1 -- @704" },
+    { "name": "in2",      "start": 3074,  "end": 3074,  "_hex": "0x0C02 centiped_IN2_r = read_trackball(1,2) -- @705" },
+    { "name": "in3",      "start": 3075,  "end": 3075,  "_hex": "0x0C03 portr IN3 (cocktail P2 joy; unused on real board) -- @706" },
+    { "name": "pokey",    "start": 4096,  "end": 4111,  "_hex": "0x1000-0x100F POKEY read (RANDOM/ALLPOT) -- centiped_map@721 -- UNIMPLEMENTED: read THROWS" },
+    { "name": "earom",    "start": 5888,  "end": 5951,  "_hex": "0x1700-0x173F EAROM read (high-score NVRAM) -- @710 -- UNIMPLEMENTED: read THROWS" },
+    { "name": "rom",      "start": 8192,  "end": 16383, "_hex": "0x2000-0x3FFF program ROM -- @714" }
+  ],
+
+  "writeRanges": [
+    { "name": "videoram",      "start": 1024, "end": 1983,  "_hex": "0x0400-0x07BF centiped_videoram_w -- @699" },
+    { "name": "spriteram",     "start": 1984, "end": 2047,  "_hex": "0x07C0-0x07FF sprite RAM -- @700" },
+    { "name": "pokey",         "start": 4096, "end": 4111,  "_hex": "0x1000-0x100F POKEY write -- recorded to io sink (§5 audio), not thrown -- centiped_map@721" },
+    { "name": "paletteram",    "start": 5120, "end": 5135,  "_hex": "0x1400-0x140F centiped_paletteram_w -- video reads it (dynamic palette); NOT state-diffed -- @707" },
+    { "name": "earom_write",   "start": 5632, "end": 5695,  "_hex": "0x1600-0x163F EAROM write -- @708 -- UNIMPLEMENTED: THROWS" },
+    { "name": "earom_control", "start": 5760, "end": 5760,  "_hex": "0x1680 EAROM control -- @709 -- UNIMPLEMENTED: THROWS" },
+    { "name": "irq_ack",       "start": 6144, "end": 6144,  "_hex": "0x1800 irq_ack_w -> clears the 6502 IRQ line -- @711, irq_ack_w@487" },
+    { "name": "outlatch",      "start": 7168, "end": 7175,  "_hex": "0x1C00-0x1C07 LS259 write_d7 (one addr/bit, datum=D7) -- @712" },
+    { "name": "watchdog",      "start": 8192, "end": 8192,  "_hex": "0x2000 watchdog reset_w (WRITE side of 0x2000) -- @713" }
+  ],
+
+  "_ls259_note": "LS259 outlatch bits (write_d7, centiped.cpp:1784-1816): q0 coin_counter_left, q1 coin_counter_center, q2 coin_counter_right, q3 led0(inv), q4 led1(inv), q7 flip_screen. q5,q6 unused.",
+
+  "_inputs_note": "MIXED polarity. IN0 bits0-3=trackball-X counter, bit4=Cabinet DIP(0=upright), bit5=Service(ACTIVE-LOW, idle set), bit6=VBLANK(ACTIVE-HIGH, Machine-driven), bit7=trackball-X sign. IN1 all ACTIVE-LOW (idle 0xFF). IN2 bits0-3=trackball-Y, bit7=sign. Trackball axes are analog deltas (io.applyTrackball), not a joystick bitfield. Idle values below are DIPSETTING defaults, pending a MAME probe.",
+  "inputs": {
+    "DSW1": { "addr": 2048, "idle": 84,  "_hex_addr": "0x0800", "_hex_idle": "0x54", "_bits": "b1-0 Language(EN), b3-2 Lives(3=0x04), b5-4 Bonus(12k=0x10), b6 Difficulty(easy=0x40), b7 CreditMin(1). default 0x54. centiped.cpp:1082-1103." },
+    "DSW2": { "addr": 2049, "idle": 2,   "_hex_addr": "0x0801", "_hex_idle": "0x02", "_bits": "b1-0 Coinage(1C/1C=0x02), b3-2 RightCoin, b4 LeftCoin, b7-5 BonusCoins. default 0x02. centiped.cpp:1105-1125." },
+    "IN1":  { "addr": 3073, "idle": 255, "_hex_addr": "0x0C01", "_hex_idle": "0xFF", "_bits": "ACTIVE-LOW: b0 START1, b1 START2, b2 BUTTON1(fire), b3 BUTTON1-cocktail, b4 TILT, b5 COIN1, b6 COIN2, b7 SERVICE1. idle 0xFF. centiped.cpp:1057-1065." },
+    "IN3":  { "addr": 3075, "idle": 255, "_hex_addr": "0x0C03", "_hex_idle": "0xFF", "_bits": "ACTIVE-LOW cocktail P2 8-way joystick; unused on the real upright board. idle 0xFF. centiped.cpp:1072-1080." }
+  },
+
+  "manifestInputs": {
+    "coin":   { "port": 1, "bit": 32, "_hex": "IN1 (0x0C01) bit5 COIN1, active-low" },
+    "start1": { "port": 1, "bit": 1,  "_hex": "IN1 bit0 START1, active-low" },
+    "fire":   { "port": 1, "bit": 4,  "_hex": "IN1 bit2 BUTTON1, active-low" },
+    "_trackball_note": "trackball X/Y are analog deltas fed via io.applyTrackball(axis, delta), not IN bits."
+  },
+
+  "controlByte": null,
+  "_controlByte_note": "TODO: ROM[0x2000] first opcode after reset, MEASURED once games/centiped/rom is present. Distinguishes a real ROM read from an unmapped throw.",
+
+  "interrupt": {
+    "kind": "IRQ",
+    "_vectors_hex": "6502 vectors fold under global_mask(0x3fff): NMI 0x3FFA/B, RESET 0x3FFC/D, IRQ/BRK 0x3FFE/F.",
+    "nmiVector": 16378,
+    "resetVector": 16380,
+    "irqVector": 16382,
+    "_note": "Level-triggered IRQ on the '32v' scanline timer (centiped.cpp:1794, generate_interrupt@434): TIMER configure_scanline(..., 0, 16) fires at scanlines 0,16,32,...; when (scanline & 16), IRQ = ((scanline-1)&32) ? ASSERT : CLEAR. Net: the IRQ line toggles at 16-scanline boundaries (a few IRQs/frame). The ROM ACKs by writing 0x1800 (irq_ack_w). The Machine drives assert/clear via io.setIrq()/io.ackIrq(), gated by the 6502 I flag. Separately, IN0 bit6 is a CPU-pollable VBLANK bit (active-high) -- the likely §4 frame-sync yield point. MACHINE_RESET clears the IRQ line. centiped.cpp:469-490."
+  },
+
+  "_scanline_note": "VTOTAL = 256 lines (set_size height). cyclesPerScanline = 25200/256 = 98.4375 (non-integer; the Machine accumulates fractionally). Render raster and the 32V IRQ schedule both key off this.",
+
+  "reset6502": {
+    "_note": "14-bit global_mask folds the 6502 vectors to 0x3FFA/C/E (top of program ROM). PC loads from resetVector; the I (interrupt-disable) flag is set at reset and MACHINE_RESET clears the IRQ line. Register reset state (A/X/Y/SP/P exact values) is owned by core/cpu/6502.js -- do not duplicate here."
+  },
+
+  "landmarks": [],
+  "_landmarks_todo": "EMPTY -- boot-init-done and first-IRQ cycles need a 6502 Machine + the verified romset + the missing sync PROM for a MAME golden. BLOCKED on the first golden capture (§2)."
+}
