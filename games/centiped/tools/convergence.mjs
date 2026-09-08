@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Whole-machine STATE convergence for centiped: the cycle-driven oracle vs a MAME golden, entropy-matched by
-// REPLAYING MAME's exact $100a POKEY-RANDOM stream (captured observe-only) so RNG cannot fork the two, then
-// compared with the drift-tolerant reconverge rule (each frame vs its nearest golden frame within ±W, since
-// the oracle snapshots a frame a sub-frame instant off MAME's notifier). PASS requires: RNG read-count in
-// sync (the oracle consumes $100a bit-for-bit like MAME — a control-flow tooth), the drift residual under a
-// floor calibrated ABOVE the measured correct residual and BELOW a bug, distinct frames on both sides, and a
-// baked-in NULL-MUTANT that MUST fail (a gate that cannot fail is decoration).
+// Whole-machine convergence for centiped (--mode state | pixel): the cycle-driven oracle vs a MAME golden,
+// entropy-matched by REPLAYING MAME's exact $100a POKEY-RANDOM stream (captured observe-only) so RNG cannot
+// fork the two, then compared with the drift-tolerant reconverge rule (each frame vs its nearest golden frame
+// within ±W, since the oracle snapshots a sub-frame instant off MAME's notifier). state mode diffs RAM; pixel
+// mode diffs the rendered frame vs the golden AVI. PASS requires: RNG read-count in sync (the oracle consumes
+// $100a bit-for-bit like MAME — a control-flow tooth), full frame count + clean stop, the drift residual under
+// a floor calibrated ABOVE the measured correct residual and BELOW a bug, distinct frames, and a baked-in
+// NULL-MUTANT that MUST fail (a gate that cannot fail is decoration).
 //
-//   node games/centiped/tools/convergence.mjs [--seconds N] [--drift W] [--rompath DIR] [--mame PATH]
-//        [--golden DIR]   # reuse a prior capture instead of running MAME
+//   node games/centiped/tools/convergence.mjs [--mode state|pixel] [--golden DIR] [--seconds N] [--drift W]
+//   state captures its own golden (or --golden); pixel REQUIRES --golden (frames.rgb+rng.bin from pixel_suite.py).
 //   exit 0 = PASS (prints "centiped_convergence: PASS"), 1 = FAIL, 2 = setup/IO error.
 import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -20,21 +21,26 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const GAME = dirname(HERE);
 const REPO = dirname(dirname(GAME));
 const FRAME = 2048;
+const FPX = 256 * 240 * 3; // one rendered RGB frame
 
 function parseArgs(argv) {
-  const a = { seconds: 120, drift: 2, rompath: join(process.env.HOME || "", "Downloads"),
+  const a = { seconds: 120, drift: 2, mode: "state", rompath: join(process.env.HOME || "", "Downloads"),
     mame: "/opt/homebrew/bin/mame", set: "centiped3", golden: null,
-    tAvg: 70, tMax: 130, minDistinct: 100 };
+    tAvg: 70, tMax: 130, pxAvg: 0.15, pxMax: 0.30, minDistinct: 100 };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === "--seconds") a.seconds = parseInt(argv[++i], 10);
     else if (k === "--drift") a.drift = parseInt(argv[++i], 10);
+    else if (k === "--mode") a.mode = argv[++i];
+    else if (k === "--layer") i++; // accepted; centiped has no idiomatic layer yet, so it renders the oracle
     else if (k === "--rompath") a.rompath = argv[++i];
     else if (k === "--mame") a.mame = argv[++i];
     else if (k === "--set") a.set = argv[++i];
     else if (k === "--golden") a.golden = argv[++i];
     else if (k === "--t-avg") a.tAvg = parseFloat(argv[++i]);
     else if (k === "--t-max") a.tMax = parseFloat(argv[++i]);
+    else if (k === "--px-avg") a.pxAvg = parseFloat(argv[++i]);
+    else if (k === "--px-max") a.pxMax = parseFloat(argv[++i]);
   }
   return a;
 }
@@ -72,16 +78,76 @@ function runOracle(rom, gfx1, rng, frames, mutate) {
 
 function diff(a, b) { let n = 0; for (let i = 0; i < FRAME; i++) if (a[i] !== b[i]) n++; return n; }
 
-// Drift-tolerant score: each oracle frame vs its nearest golden frame within ±W.
-function score(out, gframe, gN, W) {
+// Drift-tolerant score: each oracle frame vs its nearest golden frame within ±W (byte diff for state, %px
+// for pixel). `cmp` maps two Uint8Arrays to a scalar distance; `gframe` yields golden frame i.
+function drift(out, gframe, gN, W, cmp) {
   let s = 0, c = 0, mx = 0;
   for (let k = W + 2; k < out.length - W - 2 && k < gN - W; k++) {
     if (!out[k]) continue;
     let best = Infinity;
-    for (let o = -W; o <= W; o++) { const d = diff(out[k], gframe(k + o)); if (d < best) best = d; }
+    for (let o = -W; o <= W; o++) { const d = cmp(out[k], gframe(k + o)); if (d < best) best = d; }
     s += best; c++; if (best > mx) mx = best;
   }
   return { avg: s / c, max: mx };
+}
+const score = (out, gframe, gN, W) => drift(out, gframe, gN, W, diff);
+
+function pxDiff(a, b) { let n = 0; for (let i = 0; i < FPX; i++) if (a[i] !== b[i]) n++; return (100 * n) / FPX; }
+
+// Render the oracle replaying `rng`, capturing renderFrame() at each frame boundary (dumpState fires once per
+// boundary in tick()). Returns the rendered frames + RNG consumption + stop reason (same teeth as runOracle).
+function renderOracle(rom, gfx1, rng, frames, mutate) {
+  const m = new Machine(rom, { gfx1 });
+  let ri = 0, over = 0;
+  const orig = m.io.pokeyRandom.bind(m.io);
+  m.io.pokeyRandom = (c) => { if (ri < rng.length) return rng[ri++]; over++; return orig(c); };
+  if (mutate) { const w = m.mem.write8.bind(m.mem); m.mem.write8 = (a, v) => w(a, (a & 0xffff) === 0x0056 ? (v + 3) & 0xff : v); }
+  const rendered = [];
+  const origDump = m.mem.dumpState.bind(m.mem);
+  m.mem.dumpState = () => { try { rendered.push(m.renderFrame()); } catch { rendered.push(null); } return origDump(); };
+  m.runFrames(frames);
+  return { rendered, ri, over, stoppedBy: m.stoppedBy };
+}
+
+// --mode pixel: diff the RNG-replayed oracle's RENDERED frame vs the golden AVI (frames.rgb, from pixel_suite.py).
+function pixelMain(opts, rom, gfx1) {
+  if (!opts.golden) ioerr("--mode pixel requires --golden DIR (frames.rgb + rng.bin from pixel_suite.py)");
+  const framesP = join(opts.golden, "frames.rgb"), rngP = join(opts.golden, "rng.bin");
+  if (!existsSync(framesP) || !existsSync(rngP)) ioerr(`--golden ${opts.golden} is missing frames.rgb or rng.bin`);
+  const gpxBuf = readFileSync(framesP), rng = readFileSync(rngP);
+  const gN = Math.floor(gpxBuf.length / FPX);
+  const gpx = (i) => gpxBuf.subarray(i * FPX, (i + 1) * FPX);
+  if (gN < opts.minDistinct * 2) ioerr(`golden too short: ${gN} frames`);
+  // Frozen-screen guard: rendered attract is far less distinct than RAM (static title/score screens), so the
+  // pixel floor is lower than state's -- it only needs to prove the screen is NOT frozen (a frozen golden = 1).
+  const pxMin = 12;
+  // distinctness: strided sample across the WHOLE frame (the top rows are static border in attract).
+  const psig = (f) => { let s = ""; for (let i = 0; i < FPX; i += 499) s += f[i] + ","; return s; };
+  const gsigs = new Set(); for (let k = 0; k < gN; k += 7) gsigs.add(psig(gpx(k)));
+  if (gsigs.size < pxMin) fail(`golden has only ${gsigs.size} distinct rendered frames (frozen?)`);
+
+  const frames = gN - 1;
+  const good = renderOracle(rom, gfx1, rng, frames, false);
+  if (good.stoppedBy) fail(`oracle did not run clean to budget: stoppedBy=${good.stoppedBy.message || good.stoppedBy} -- a gap or crash`);
+  if (good.over > 0) fail(`RNG OVER-READ: oracle ${good.ri + good.over}x vs MAME ${rng.length}x -- diverged`);
+  if (good.ri !== rng.length) fail(`RNG UNDER-READ: oracle ${good.ri}x vs MAME ${rng.length}x -- truncated/diverged`);
+  if (good.rendered.length < frames) fail(`oracle rendered ${good.rendered.length}/${frames} frames -- truncated`);
+  const gs = drift(good.rendered, gpx, gN, opts.drift, pxDiff);
+
+  const osigs = new Set(); for (let k = 1; k < good.rendered.length; k += 7) if (good.rendered[k]) osigs.add(psig(good.rendered[k]));
+  if (osigs.size < pxMin) fail(`oracle rendered only ${osigs.size} distinct frames (froze/crashed)`);
+
+  const bad = renderOracle(rom, gfx1, rng, frames, true);
+  const bs = drift(bad.rendered, gpx, gN, opts.drift, pxDiff);
+  const mutantCaught = bs.avg >= opts.pxAvg || bad.over > 0;
+
+  console.log(`  golden ${gN} frames, ${gsigs.size} distinct; RNG reads oracle ${good.ri} / MAME ${rng.length}; rendered ${good.rendered.length}/${frames}.`);
+  console.log(`  correct: avg=${gs.avg.toFixed(3)}% max=${gs.max.toFixed(3)}%   null-mutant: avg=${bs.avg.toFixed(3)}% max=${bs.max.toFixed(3)}%`);
+  console.log(`  thresholds: avg<${opts.pxAvg}% max<${opts.pxMax}%`);
+  if (!mutantCaught) fail(`NULL-MUTANT NOT CAUGHT (avg ${bs.avg.toFixed(3)}% < ${opts.pxAvg}%) -- the gate has no teeth`);
+  if (gs.avg >= opts.pxAvg) fail(`pixel residual avg ${gs.avg.toFixed(3)}% >= ${opts.pxAvg}%`);
+  if (gs.max >= opts.pxMax) fail(`pixel residual max ${gs.max.toFixed(3)}% >= ${opts.pxMax}%`);
+  console.log("centiped_convergence: PASS");
 }
 
 function main() {
@@ -89,6 +155,8 @@ function main() {
   const romP = join(GAME, "rom", "maincpu.bin"), gfxP = join(GAME, "rom", "gfx1.bin");
   if (!existsSync(romP) || !existsSync(gfxP)) ioerr(`ROM not built -- run: node ${join(REPO, "tools/build-rom.mjs")} centiped <zip>`);
   const rom = readFileSync(romP), gfx1 = readFileSync(gfxP);
+
+  if (opts.mode === "pixel") { pixelMain(opts, rom, gfx1); return; }
 
   const { stateOut, rngOut } = captureGolden(opts);
   const golden = readFileSync(stateOut), rng = readFileSync(rngOut);

@@ -64,6 +64,7 @@ SUITES = {
     "pooyan": [(["python3", "games/pooyan/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "invaders": [(["python3", "games/invaders/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "galaxian": [(["python3", "games/galaxian/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
+    "centiped": [(["python3", "games/centiped/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
 }
 
 MANUAL = {
@@ -80,14 +81,6 @@ MANUAL = {
 #: by design: legitimate ONLY when the gate cannot run and the reason is one a reviewer can check --
 #: the canonical case is a NEW game mid-translation that cannot render a frame yet (see docs/runbook.md).
 EXEMPT = {
-    "centiped": (
-        "NEW game mid-translation (§3): the whole reachable set is translated and the oracle now boots\n"
-        "  clean through the spine into the running game (a reviewer verifies by constructing the Machine\n"
-        "  and running frames: coin/start drives 1P play, state advances, zero NotImplemented). The pixel\n"
-        "  render-vs-golden diff is not yet wired/validated, so no frame is compared to MAME yet -- that\n"
-        "  is the next §3->§2 step. REMOVE this the moment the pixel suite diffs a frame vs the golden\n"
-        "  (§3, docs/runbook.md)."
-    ),
 }
 
 
