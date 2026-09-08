@@ -94,7 +94,7 @@ export function loc_323e(m) {
         m.step(0x32bd, 2);
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x32bf, 2);                     // 32bd lda #$00
         mem.write8(0x0001, regs.a); m.step(0x32c1, 3);
-        m.step(0x32c4, 6); m.call(0x2d5c);                                        // 32c1 jsr $2d5c
+        m.push16(0x32c3); m.step(0x32c4, 6); m.call(0x2d5c);                                        // 32c1 jsr $2d5c
         label = 0x32c4; continue;
       }
       case 0x32c4: {

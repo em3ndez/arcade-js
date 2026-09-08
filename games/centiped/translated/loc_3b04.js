@@ -44,8 +44,8 @@ export function loc_3b04(m) {
         mem.write8(0x00c2, regs.x); m.step(0x3b3d, 3);                          // 3b3b stx $c2
         regs.a = 0x01; regs.setNZ(regs.a); m.step(0x3b3f, 2);                   // 3b3d lda #$01
         mem.write8(0x00ff, regs.a); m.step(0x3b41, 3);                          // 3b3f sta $ff
-        m.step(0x3b44, 6); m.call(0x3a99);                                      // 3b41 jsr $3a99
-        m.step(0x3b47, 6); m.call(0x3a1d);                                      // 3b44 jsr $3a1d
+        m.push16(0x3b43); m.step(0x3b44, 6); m.call(0x3a99);                                      // 3b41 jsr $3a99
+        m.push16(0x3b46); m.step(0x3b47, 6); m.call(0x3a1d);                                      // 3b44 jsr $3a1d
         m.step(0x200e, 3); return m.call(0x200e);                               // 3b47 jmp $200e
       }
       case 0x3b4a: {

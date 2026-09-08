@@ -80,7 +80,7 @@ export function loc_2962(m) {
         regs.a = mem.read8((0x63 + regs.x) & 0xff); regs.setNZ(regs.a); m.step(0x29b4, 4);
         regs.sec(); m.step(0x29b5, 2);
         regs.sbc(mem.read8((0x64 + regs.x) & 0xff)); m.step(0x29b7, 4);
-        m.step(0x29ba, 6); m.call(0x382b);
+        m.push16(0x29b9); m.step(0x29ba, 6); m.call(0x382b);
         regs.cmp(0x08); m.step(0x29bc, 2);
         if (regs.fC) { m.step(0x2a03, 4); blk = 0x2a03; break; }                            // 29bc bcs $2a03
         m.step(0x29be, 2);                                                                  // 29bc bcs (fall)
@@ -124,8 +124,8 @@ export function loc_2962(m) {
         m.step(0x29e6, 2); blk = 0x29e6; break;                                             // 29e4 bmi (fall)
       }
       case 0x29e6: {
-        m.step(0x29e9, 6); m.call(0x2310);
-        m.step(0x29ec, 6); m.call(0x2c2b);
+        m.push16(0x29e8); m.step(0x29e9, 6); m.call(0x2310);
+        m.push16(0x29eb); m.step(0x29ec, 6); m.call(0x2c2b);
         if (regs.fZ) { m.step(0x29fe, 3); blk = 0x29fe; break; }                            // 29ec beq $29fe
         m.step(0x29ee, 2);                                                                  // 29ec beq (fall)
         regs.cmp(0x38); m.step(0x29f0, 2);
@@ -141,7 +141,7 @@ export function loc_2962(m) {
         m.step(0x29fe, 2); blk = 0x29fe; break;                                             // 29fc bcc (fall)
       }
       case 0x29fe: {
-        m.step(0x2a01, 6); m.call(0x2c6b);
+        m.push16(0x2a00); m.step(0x2a01, 6); m.call(0x2c6b);
         if (regs.fNC) { m.step(0x29be, 4); blk = 0x29be; break; }                           // 2a01 bcc $29be
         m.step(0x2a03, 2); blk = 0x2a03; break;                                             // 2a01 bcc (fall)
       }
@@ -213,7 +213,7 @@ export function loc_2962(m) {
         regs.and(0x07); m.step(0x2a5a, 2);
         mem.write8((0x0034 + regs.y) & 0xffff, regs.a); m.step(0x2a5d, 5);
         { const ea = (0x0044 + regs.y) & 0xffff; regs.a = mem.read8(ea); regs.setNZ(regs.a); m.step(0x2a60, (0x0044 & 0xff00) !== (ea & 0xff00) ? 5 : 4); }
-        m.step(0x2a63, 6); m.call(0x382d);
+        m.push16(0x2a62); m.step(0x2a63, 6); m.call(0x382d);
         mem.write8((0x0044 + regs.y) & 0xffff, regs.a); m.step(0x2a66, 5);
         { const ea = (0x0064 + regs.y) & 0xffff; regs.a = mem.read8(ea); regs.setNZ(regs.a); m.step(0x2a69, (0x0064 & 0xff00) !== (ea & 0xff00) ? 5 : 4); }
         regs.and(0xf8); m.step(0x2a6b, 2);
@@ -230,7 +230,7 @@ export function loc_2962(m) {
       }
       case 0x2a7a: {
         regs.a = mem.read8((0x74 + regs.x) & 0xff); regs.setNZ(regs.a); m.step(0x2a7c, 4);
-        m.step(0x2a7f, 6); m.call(0x382d);
+        m.push16(0x2a7e); m.step(0x2a7f, 6); m.call(0x382d);
         mem.write8((0x74 + regs.x) & 0xff, regs.a); m.step(0x2a81, 4);
         blk = 0x2a81; break;
       }

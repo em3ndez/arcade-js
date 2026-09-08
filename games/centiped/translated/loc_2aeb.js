@@ -9,7 +9,7 @@ export function loc_2aeb(m) {
   mem.write8(0x008b, regs.a); m.step(0x2af0, 3);
   regs.y = 0x00; regs.setNZ(regs.y); m.step(0x2af2, 2);
   regs.a = mem.read8(0x0073); regs.setNZ(regs.a); m.step(0x2af4, 3);
-  m.step(0x2af7, 6); m.call(0x2c2b);                                     // 2af4 jsr $2c2b
+  m.push16(0x2af6); m.step(0x2af7, 6); m.call(0x2c2b);                                     // 2af4 jsr $2c2b
   let at2b0c = false;
   if (regs.fNZ) {
     m.step(0x2b0a, 4);                                                   // 2af7 bne $2b0a (taken)
@@ -46,8 +46,8 @@ export function loc_2aeb(m) {
   regs.y = 0x00; regs.setNZ(regs.y); m.step(0x2b15, 2);
   regs.a = mem.read8(0x00bb); regs.setNZ(regs.a); m.step(0x2b17, 3);     // 2b15 lda $bb
   mem.write8(0x00bb, regs.y); m.step(0x2b19, 3);
-  m.step(0x2b1c, 6); m.call(0x382d);                                     // 2b19 jsr $382d
-  m.step(0x2b1f, 6); m.call(0x3226);                                     // 2b1c jsr $3226
+  m.push16(0x2b1b); m.step(0x2b1c, 6); m.call(0x382d);                                     // 2b19 jsr $382d
+  m.push16(0x2b1e); m.step(0x2b1f, 6); m.call(0x3226);                                     // 2b1c jsr $3226
   regs.adc(mem.read8(0x0085)); m.step(0x2b21, 3);                        // 2b1f adc $85
   mem.write8(0x0085, regs.a); m.step(0x2b23, 3);                         // 2b21 sta $85
   regs.a = regs.y; regs.setNZ(regs.a); m.step(0x2b24, 2);

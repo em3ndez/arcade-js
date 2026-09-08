@@ -7,7 +7,7 @@ export function loc_2c96(m) {
   regs.a = mem.read8((0x54 + regs.x) & 0xff); regs.setNZ(regs.a); m.step(0x2c98, 4);
   regs.sec(); m.step(0x2c99, 2);
   regs.sbc(mem.read8(0x0063)); m.step(0x2c9b, 3);
-  m.step(0x2c9e, 6); m.call(0x382b);
+  m.push16(0x2c9d); m.step(0x2c9e, 6); m.call(0x382b);
   regs.cpx(0x0d); m.step(0x2ca0, 2);                                     // 2c9e cpx #$0d
   if (regs.fNZ) {
     m.step(0x2ca7, 3);                                                   // 2ca0 bne $2ca7 (taken)
@@ -24,7 +24,7 @@ export function loc_2c96(m) {
   regs.a = mem.read8((0x64 + regs.x) & 0xff); regs.setNZ(regs.a); m.step(0x2caf, 4);
   regs.sec(); m.step(0x2cb0, 2);
   regs.sbc(mem.read8(0x0073)); m.step(0x2cb2, 3);
-  m.step(0x2cb5, 6); m.call(0x382b);
+  m.push16(0x2cb4); m.step(0x2cb5, 6); m.call(0x382b);
   regs.cmp(0x07); m.step(0x2cb7, 2);                                     // 2cb5 cmp #$07
   if (regs.fC) { m.step(0x2ca6, 3); return m.ret(6); }                   // 2cb7 bcs $2ca6 (taken -> rts)
   m.step(0x2cb9, 2);                                                     // 2cb7 bcs (not taken)

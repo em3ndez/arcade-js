@@ -26,7 +26,7 @@ export function loc_23da(m) {
         if (regs.fZ) { m.step(0x23fa, 3); label = 0x23fa; continue; }      // 23e9 beq $23fa
         m.step(0x23eb, 2);
         regs.a = 0x80; regs.setNZ(regs.a); m.step(0x23ed, 2);
-        m.step(0x23f0, 6); m.call(0x37d5);                                 // 23ed jsr $37d5
+        m.push16(0x23ef); m.step(0x23f0, 6); m.call(0x37d5);                                 // 23ed jsr $37d5
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x23f2, 2);
         regs.y = regs.a; regs.setNZ(regs.y); m.step(0x23f3, 2);
         mem.write8((mem.read16(0x0091) + regs.y) & 0xffff, regs.a); m.step(0x23f5, 6); // 23f3 sta ($91),y
@@ -41,7 +41,7 @@ export function loc_23da(m) {
         m.step(0x2505, 3); return m.call(0x2505);                          // 2400 jmp $2505
       }
       case 0x2403: {
-        m.step(0x2406, 6); m.call(0x2932);                                 // 2403 jsr $2932
+        m.push16(0x2405); m.step(0x2406, 6); m.call(0x2932);                                 // 2403 jsr $2932
         regs.a = mem.read8(0x0086); regs.setNZ(regs.a); m.step(0x2408, 3); // 2406 lda $86
         if (regs.fPl) { m.step(0x241b, 3); label = 0x241b; continue; }     // 2408 bpl $241b
         m.step(0x240a, 2);
@@ -50,8 +50,8 @@ export function loc_23da(m) {
         m.step(0x240e, 2);
         regs.and(0x7f); m.step(0x2410, 2);
         mem.write8(0x0001, regs.a); m.step(0x2412, 3);                     // 2410 sta $01
-        m.step(0x2415, 6); m.call(0x31d5);                                 // 2412 jsr $31d5
-        m.step(0x2418, 6); m.call(0x2d5c);                                 // 2415 jsr $2d5c
+        m.push16(0x2414); m.step(0x2415, 6); m.call(0x31d5);                                 // 2412 jsr $31d5
+        m.push16(0x2417); m.step(0x2418, 6); m.call(0x2d5c);                                 // 2415 jsr $2d5c
         label = 0x2418; continue;
       }
       case 0x2418: {
@@ -63,7 +63,7 @@ export function loc_23da(m) {
         if (regs.fNZ) { m.step(0x2467, 3); label = 0x2467; continue; }     // 241f bne $2467
         m.step(0x2421, 2);
         mem.write8(0x0086, regs.dec8(mem.read8(0x0086))); m.step(0x2423, 5); // 2421 dec $86
-        m.step(0x2426, 6); m.call(0x323e);                                 // 2423 jsr $323e
+        m.push16(0x2425); m.step(0x2426, 6); m.call(0x323e);                                 // 2423 jsr $323e
         regs.a = mem.read8(0x00ef); regs.setNZ(regs.a); m.step(0x2428, 3); // 2426 lda $ef
         if (regs.fZ) { m.step(0x2442, 3); label = 0x2442; continue; }      // 2428 beq $2442
         m.step(0x242a, 2);
@@ -72,27 +72,27 @@ export function loc_23da(m) {
         m.step(0x242e, 2);
         regs.a = 0x80; regs.setNZ(regs.a); m.step(0x2430, 2);
         mem.write8(0x00ee, regs.a); m.step(0x2432, 3);                     // 2430 sta $ee
-        m.step(0x2435, 6); m.call(0x2509);                                 // 2432 jsr $2509
-        m.step(0x2438, 6); m.call(0x2932);                                 // 2435 jsr $2932
-        m.step(0x243b, 6); m.call(0x31d5);                                 // 2438 jsr $31d5
+        m.push16(0x2434); m.step(0x2435, 6); m.call(0x2509);                                 // 2432 jsr $2509
+        m.push16(0x2437); m.step(0x2438, 6); m.call(0x2932);                                 // 2435 jsr $2932
+        m.push16(0x243a); m.step(0x243b, 6); m.call(0x31d5);                                 // 2438 jsr $31d5
         regs.a = mem.read8(0x00c1); regs.setNZ(regs.a); m.step(0x243d, 3); // 243b lda $c1
         if (regs.fPl) { m.step(0x2442, 3); label = 0x2442; continue; }     // 243d bpl $2442
         m.step(0x243f, 2);
-        m.step(0x2442, 6); m.call(0x2d5c);                                 // 243f jsr $2d5c
+        m.push16(0x2441); m.step(0x2442, 6); m.call(0x2d5c);                                 // 243f jsr $2d5c
         label = 0x2442; continue;
       }
       case 0x2442: {
-        m.step(0x2445, 6); m.call(0x21c7);                                 // 2442 jsr $21c7
-        m.step(0x2448, 6); m.call(0x231f);                                 // 2445 jsr $231f
-        m.step(0x244b, 6); m.call(0x20e8);                                 // 2448 jsr $20e8
+        m.push16(0x2444); m.step(0x2445, 6); m.call(0x21c7);                                 // 2442 jsr $21c7
+        m.push16(0x2447); m.step(0x2448, 6); m.call(0x231f);                                 // 2445 jsr $231f
+        m.push16(0x244a); m.step(0x244b, 6); m.call(0x20e8);                                 // 2448 jsr $20e8
         regs.a = 0x01; regs.setNZ(regs.a); m.step(0x244d, 2);
         mem.write8(0x0000, regs.a); m.step(0x244f, 3);                     // 244d sta $00
         regs.a = 0x04; regs.setNZ(regs.a); m.step(0x2451, 2);
-        m.step(0x2454, 6); m.call(0x37d5);                                 // 2451 jsr $37d5
+        m.push16(0x2453); m.step(0x2454, 6); m.call(0x37d5);                                 // 2451 jsr $37d5
         regs.x = mem.read8(0x0089); regs.setNZ(regs.x); m.step(0x2456, 3); // 2454 ldx $89
         regs.a = 0xff; regs.setNZ(regs.a); m.step(0x2458, 2);
         mem.write8((0x1c02 + regs.x) & 0xffff, regs.a); m.step(0x245b, 5); // 2458 sta $1c02,x
-        m.step(0x245e, 6); m.call(0x3a08);                                 // 245b jsr $3a08
+        m.push16(0x245d); m.step(0x245e, 6); m.call(0x3a08);                                 // 245b jsr $3a08
         regs.a = 0x3d; regs.setNZ(regs.a); m.step(0x2460, 2);
         mem.write8(0x00f9, regs.a); m.step(0x2462, 3);                     // 2460 sta $f9
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x2464, 2);
@@ -121,12 +121,12 @@ export function loc_23da(m) {
         mem.write8(0x0043, regs.a); m.step(0x2483, 3);                     // 2481 sta $43
         mem.write8(0x0042, regs.a); m.step(0x2485, 3);                     // 2483 sta $42
         regs.a = 0x04; regs.setNZ(regs.a); m.step(0x2487, 2);
-        m.step(0x248a, 6); m.call(0x37d5);                                 // 2487 jsr $37d5
+        m.push16(0x2489); m.step(0x248a, 6); m.call(0x37d5);                                 // 2487 jsr $37d5
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x248c, 2);
-        m.step(0x248f, 6); m.call(0x37d5);                                 // 248c jsr $37d5
+        m.push16(0x248e); m.step(0x248f, 6); m.call(0x37d5);                                 // 248c jsr $37d5
         regs.a = mem.read8(0x0088); regs.setNZ(regs.a); m.step(0x2491, 3); // 248f lda $88
         regs.ora(0x20); m.step(0x2493, 2);
-        m.step(0x2496, 6); m.call(0x3836);                                 // 2493 jsr $3836
+        m.push16(0x2495); m.step(0x2496, 6); m.call(0x3836);                                 // 2493 jsr $3836
         return m.ret(6);                                                   // 2496 rts
       }
       case 0x2497: {
@@ -148,7 +148,7 @@ export function loc_23da(m) {
         regs.cmp(0x82); m.step(0x24ae, 2);
         if (regs.fNZ) { m.step(0x24b3, 3); label = 0x24b3; continue; }     // 24ae bne $24b3
         m.step(0x24b0, 2);
-        m.step(0x24b3, 6); m.call(0x252a);                                 // 24b0 jsr $252a
+        m.push16(0x24b2); m.step(0x24b3, 6); m.call(0x252a);                                 // 24b0 jsr $252a
         label = 0x24b3; continue;
       }
       case 0x24b3: {
@@ -158,11 +158,11 @@ export function loc_23da(m) {
         regs.cpx(0x01); m.step(0x24bb, 2);
         if (regs.fNZ) { m.step(0x24c0, 3); label = 0x24c0; continue; }     // 24bb bne $24c0
         m.step(0x24bd, 2);
-        m.step(0x24c0, 6); m.call(0x2509);                                 // 24bd jsr $2509
+        m.push16(0x24bf); m.step(0x24c0, 6); m.call(0x2509);                                 // 24bd jsr $2509
         label = 0x24c0; continue;
       }
       case 0x24c0: {
-        m.step(0x24c3, 6); m.call(0x31d5);                                 // 24c0 jsr $31d5
+        m.push16(0x24c2); m.step(0x24c3, 6); m.call(0x31d5);                                 // 24c0 jsr $31d5
         regs.x = mem.read8(0x0088); regs.setNZ(regs.x); m.step(0x24c5, 3); // 24c3 ldx $88
         regs.cpx(0x02); m.step(0x24c7, 2);
         if (regs.fNZ) { m.step(0x24da, 3); label = 0x24da; continue; }     // 24c7 bne $24da
@@ -176,7 +176,7 @@ export function loc_23da(m) {
         m.step(0x24d3, 2);
         regs.a = 0x0c; regs.setNZ(regs.a); m.step(0x24d5, 2);
         mem.write8((0x0094 + regs.x) & 0xff, regs.a); m.step(0x24d7, 4);   // 24d5 sta $94,x
-        m.step(0x24da, 6); m.call(0x28bf);                                 // 24d7 jsr $28bf
+        m.push16(0x24d9); m.step(0x24da, 6); m.call(0x28bf);                                 // 24d7 jsr $28bf
         label = 0x24da; continue;
       }
       case 0x24da: {
@@ -186,10 +186,10 @@ export function loc_23da(m) {
         regs.a = 0xa0; regs.setNZ(regs.a); m.step(0x24e2, 2);
         mem.write8(0x0087, regs.a); m.step(0x24e4, 3);                     // 24e2 sta $87
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x24e6, 2);
-        m.step(0x24e9, 6); m.call(0x37d5);                                 // 24e6 jsr $37d5
+        m.push16(0x24e8); m.step(0x24e9, 6); m.call(0x37d5);                                 // 24e6 jsr $37d5
         regs.a = mem.read8(0x0088); regs.setNZ(regs.a); m.step(0x24eb, 3); // 24e9 lda $88
         regs.ora(0x20); m.step(0x24ed, 2);
-        m.step(0x24f0, 6); m.call(0x3836);                                 // 24ed jsr $3836
+        m.push16(0x24ef); m.step(0x24f0, 6); m.call(0x3836);                                 // 24ed jsr $3836
         regs.a = 0xf9; regs.setNZ(regs.a); m.step(0x24f2, 2);
         mem.write8(0x0043, regs.a); m.step(0x24f4, 3);                     // 24f2 sta $43
         mem.write8(0x0042, regs.a); m.step(0x24f6, 3);                     // 24f4 sta $42

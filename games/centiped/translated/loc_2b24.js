@@ -9,7 +9,7 @@ export function loc_2b24(m) {
   regs.y = mem.read8(0x0063); regs.setNZ(regs.y); m.step(0x2b29, 3);
   mem.write8(0x008b, regs.y); m.step(0x2b2b, 3);
   regs.y = 0x00; regs.setNZ(regs.y); m.step(0x2b2d, 2);
-  m.step(0x2b30, 6); m.call(0x2c2b);                                     // 2b2d jsr $2c2b
+  m.push16(0x2b2f); m.step(0x2b30, 6); m.call(0x2c2b);                                     // 2b2d jsr $2c2b
   let jump = null; // the merge address a forward branch jumped to, or null while flowing sequentially
   if (regs.fNZ) { m.step(0x2b57, 3); jump = 0x2b57; }                    // 2b30 bne $2b57 (taken)
   else { m.step(0x2b32, 2); }                                            // 2b30 bne (not taken)

@@ -26,7 +26,7 @@ export function loc_2e94(m) {
   }
   regs.y = 0x00; regs.setNZ(regs.y); m.step(0x2eb2, 2);                  // 2eb0 ldy #$00
   regs.a = mem.read8(0x0070); regs.setNZ(regs.a); m.step(0x2eb4, 3);     // 2eb2 lda $70
-  m.step(0x2eb7, 6); m.call(0x2c2b);                                     // 2eb4 jsr $2c2b
+  m.push16(0x2eb6); m.step(0x2eb7, 6); m.call(0x2c2b);                                     // 2eb4 jsr $2c2b
   regs.cmp(0x40); m.step(0x2eb9, 2);                                     // 2eb7 cmp #$40
   if (regs.fC) { m.step(0x2ec5, 3); return m.call(0x2ec5); }             // 2eb9 bcs $2ec5 (out -> rts)
   m.step(0x2ebb, 2);                                                     // 2eb9 bcs (not taken)

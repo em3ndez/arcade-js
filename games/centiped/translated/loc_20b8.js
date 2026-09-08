@@ -8,12 +8,12 @@ export function loc_20b8(m) {
   regs.cmp(0x04); m.step(0x20be, 2);                                            // 20bc cmp #$04
   if (regs.fNC) {                                                              // 20be bcc $20e4 (taken)
     m.step(0x20e4, 3);
-    m.step(0x20e7, 6); m.call(0x20e8);                                          // 20e4 jsr $20e8
+    m.push16(0x20e6); m.step(0x20e7, 6); m.call(0x20e8);                                          // 20e4 jsr $20e8
     return m.ret(6);                                                            // 20e7 rts
   }
   m.step(0x20c0, 2);
   regs.x = 0x0c; regs.setNZ(regs.x); m.step(0x20c2, 2);                         // 20c0 ldx #$0c
-  m.step(0x20c5, 6); m.call(0x2c96);                                            // 20c2 jsr $2c96
+  m.push16(0x20c4); m.step(0x20c5, 6); m.call(0x2c96);                                            // 20c2 jsr $2c96
   if (regs.fNC) {  // 20c5 bcc $20e3 (taken -> rts)
     m.step(0x20e3, 3); return m.ret(6);
   }
@@ -35,7 +35,7 @@ export function loc_20b8(m) {
   regs.clc(); m.step(0x20d9, 2);                                                // 20d8 clc
   regs.adc(mem.read8(0x0070)); m.step(0x20db, 3);                              // 20d9 adc $70
   regs.y = 0x00; regs.setNZ(regs.y); m.step(0x20dd, 2);                         // 20db ldy #$00
-  m.step(0x20e0, 6); m.call(0x2c2b);                                            // 20dd jsr $2c2b
-  m.step(0x20e3, 6); m.call(0x2ba8);                                            // 20e0 jsr $2ba8
+  m.push16(0x20df); m.step(0x20e0, 6); m.call(0x2c2b);                                            // 20dd jsr $2c2b
+  m.push16(0x20e2); m.step(0x20e3, 6); m.call(0x2ba8);                                            // 20e0 jsr $2ba8
   return m.ret(6);                                                              // 20e3 rts
 }

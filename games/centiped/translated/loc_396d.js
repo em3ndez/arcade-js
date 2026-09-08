@@ -41,7 +41,7 @@ export function loc_396d(m) {
         label = 0x3993; continue;
       }
       case 0x3993: {
-        m.step(0x3996, 6); m.call(0x335e);                                            // 3993 jsr $335e
+        m.push16(0x3995); m.step(0x3996, 6); m.call(0x335e);                                            // 3993 jsr $335e
         regs.x = 0x02; regs.setNZ(regs.x); m.step(0x3998, 2);                         // 3996 ldx #$02
         label = 0x3998; continue;
       }

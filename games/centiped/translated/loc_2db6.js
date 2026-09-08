@@ -40,7 +40,7 @@ export function loc_2db6(m) {
         regs.sbc(mem.read8((0x00af + regs.x) & 0xff)); m.step(0x2de4, 4);               // 2de2 sbc $af,x
         if (regs.fNC) { m.step(0x2e08, 4); label = 0x2e08; continue; }                  // 2de4 bcc $2e08 (page cross)
         m.step(0x2de6, 2);
-        m.step(0x2de9, 6); m.call(0x21b3);                                             // 2de6 jsr $21b3
+        m.push16(0x2de8); m.step(0x2de9, 6); m.call(0x21b3);                                             // 2de6 jsr $21b3
         regs.sed(); m.step(0x2dea, 2);
         regs.clc(); m.step(0x2deb, 2);
         regs.adc(mem.read8((0x00ad + regs.x) & 0xff)); m.step(0x2ded, 4);               // 2deb adc $ad,x
@@ -58,7 +58,7 @@ export function loc_2db6(m) {
         mem.write8((0x00a4 + regs.x) & 0xff, regs.inc8(mem.read8((0x00a4 + regs.x) & 0xff))); m.step(0x2e01, 6); // 2dff inc $a4,x
         regs.a = 0x11; regs.setNZ(regs.a); m.step(0x2e03, 2);
         mem.write8(0x00b6, regs.a); m.step(0x2e05, 3);                                  // 2e03 sta $b6
-        m.step(0x2e08, 6); m.call(0x26b8);                                             // 2e05 jsr $26b8
+        m.push16(0x2e07); m.step(0x2e08, 6); m.call(0x26b8);                                             // 2e05 jsr $26b8
         label = 0x2e08; continue;
       }
       case 0x2e08: {

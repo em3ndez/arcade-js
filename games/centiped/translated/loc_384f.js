@@ -10,7 +10,7 @@ export function loc_384f(m) {
   regs.a = regs.lsr(regs.a); m.step(0x3854, 2);              // 3853 lsr a
   regs.a = regs.lsr(regs.a); m.step(0x3855, 2);              // 3854 lsr a
   regs.p = m.pull8(); m.step(0x3856, 4);                     // 3855 plp
-  m.step(0x3859, 6); m.call(0x385c);                         // 3856 jsr $385c
+  m.push16(0x3858); m.step(0x3859, 6); m.call(0x385c);                         // 3856 jsr $385c
   regs.a = m.pull8(); regs.setNZ(regs.a); m.step(0x385a, 4); // 3859 pla
   regs.and(0x0f); m.step(0x385c, 2);                         // 385a and #$0f
   return m.call(0x385c);                                     // 385c fall-through -> loc_385c

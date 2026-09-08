@@ -33,7 +33,7 @@ export function loc_385c(m) {
         label = 0x386c; continue;
       }
       case 0x386c: {
-        m.step(0x386f, 6); m.call(0x3836); // 386c jsr $3836
+        m.push16(0x386e); m.step(0x386f, 6); m.call(0x3836); // 386c jsr $3836
         regs.p = m.pull8(); m.step(0x3870, 4); // 386f plp
         return m.ret(6); // 3870 rts
       }

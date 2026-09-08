@@ -94,19 +94,19 @@ export function loc_3c97(m) {
         m.push8(regs.a); m.step(0x3d07, 3);                                       // 3d06 pha
         regs.a = regs.x; regs.setNZ(regs.a); m.step(0x3d08, 2);                   // 3d07 txa
         regs.ora(0x20); m.step(0x3d0a, 2);                                        // 3d08 ora #$20
-        m.step(0x3d0d, 6); m.call(0x3836);                                        // 3d0a jsr $3836
+        m.push16(0x3d0c); m.step(0x3d0d, 6); m.call(0x3836);                                        // 3d0a jsr $3836
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x3d0f, 2);                     // 3d0d lda #$00
-        m.step(0x3d12, 6); m.call(0x3836);                                        // 3d0f jsr $3836
+        m.push16(0x3d11); m.step(0x3d12, 6); m.call(0x3836);                                        // 3d0f jsr $3836
         regs.a = m.pull8(); regs.setNZ(regs.a); m.step(0x3d13, 4);                // 3d12 pla
         regs.clc(); m.step(0x3d14, 2);                                            // 3d13 clc
-        m.step(0x3d17, 6); m.call(0x384f);                                        // 3d14 jsr $384f
+        m.push16(0x3d16); m.step(0x3d17, 6); m.call(0x384f);                                        // 3d14 jsr $384f
         label = 0x3d17; continue;
       }
       case 0x3d17: {
         regs.x = regs.dec8(regs.x); m.step(0x3d18, 2);                            // 3d17 dex
         if (regs.fPl) { m.step(0x3cfe, 4); label = 0x3cfe; continue; }            // 3d18 bpl $3cfe
         m.step(0x3d1a, 2);
-        m.step(0x3d1d, 6); m.call(0x3a99);                                        // 3d1a jsr $3a99
+        m.push16(0x3d1c); m.step(0x3d1d, 6); m.call(0x3a99);                                        // 3d1a jsr $3a99
         regs.y = 0x06; regs.setNZ(regs.y); m.step(0x3d1f, 2);                     // 3d1d ldy #$06
         label = 0x3d1f; continue;
       }

@@ -34,7 +34,7 @@ export function loc_3ac0(m) {
         label = 0x3adf; continue;
       }
       case 0x3adf: {
-        m.step(0x3ae2, 6); m.call(0x3aa7);                                                              // 3adf jsr $3aa7
+        m.push16(0x3ae1); m.step(0x3ae2, 6); m.call(0x3aa7);                                                              // 3adf jsr $3aa7
         { const base = 0x0178; const ea = (base + regs.x) & 0xffff; regs.cmp(mem.read8(ea)); m.step(0x3ae5, 4 + ((base & 0xff00) !== (ea & 0xff00) ? 1 : 0)); } // 3ae2 cmp $0178,x
         if (regs.fNZ) { m.step(0x3aee, 3); label = 0x3aee; continue; }                                  // 3ae5 bne $3aee
         m.step(0x3ae7, 2);                                                                              // 3ae5 bne (fall)

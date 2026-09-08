@@ -80,7 +80,7 @@ function runFrom(m, label) {
         label = 0x3819; continue;
       }
       case 0x3819: {
-        m.step(0x381c, 6); m.call(0x3836); // 3819 jsr $3836
+        m.push16(0x381b); m.step(0x381c, 6); m.call(0x3836); // 3819 jsr $3836
         regs.y = mem.read8(0x008b); regs.setNZ(regs.y); m.step(0x381e, 3); // 381c ldy $8b
         mem.write8(0x008b, regs.inc8(mem.read8(0x008b))); m.step(0x3820, 5); // 381e inc $8b
         { const b = mem.read16(0x0093); const a = (b + regs.y) & 0xffff; regs.a = mem.read8(a); regs.setNZ(regs.a); m.step(0x3822, 5 + (((b & 0xff00) !== (a & 0xff00)) ? 1 : 0)); } // 3820 lda ($93),y

@@ -59,7 +59,7 @@ export function loc_231f(m) {
       }
       case 0x2354: {
         regs.a = regs.y; regs.setNZ(regs.a); m.step(0x2355, 2);                         // 2354 tya
-        m.step(0x2358, 6); m.call(0x382d);                                              // 2355 jsr $382d
+        m.push16(0x2357); m.step(0x2358, 6); m.call(0x382d);                                              // 2355 jsr $382d
         regs.y = regs.a; regs.setNZ(regs.y); m.step(0x2359, 2);                         // 2358 tay
         block = 0x2359; break;
       }
@@ -154,7 +154,7 @@ export function loc_231f(m) {
         m.step(0x23bc, 2); block = 0x23bc; break;
       }
       case 0x23bc: {
-        m.step(0x23bf, 6); m.call(0x382d);                                              // 23bc jsr $382d
+        m.push16(0x23be); m.step(0x23bf, 6); m.call(0x382d);                                              // 23bc jsr $382d
         block = 0x23bf; break;
       }
       case 0x23bf: {

@@ -10,7 +10,7 @@ export function loc_28bf(m) {
   regs.a = 0x00; regs.setNZ(regs.a); m.step(0x28c8, 2);
   mem.write8((0x00c2 + regs.x) & 0xff, regs.a); m.step(0x28ca, 4);
   regs.x = regs.a; regs.setNZ(regs.x); m.step(0x28cb, 2);
-  m.step(0x28ce, 6); m.call(0x2656);
+  m.push16(0x28cd); m.step(0x28ce, 6); m.call(0x2656);
   regs.x = 0x00; regs.setNZ(regs.x); m.step(0x28d0, 2);
   regs.a = regs.x; regs.setNZ(regs.a); m.step(0x28d1, 2);
   while (true) {

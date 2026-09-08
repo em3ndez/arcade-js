@@ -52,7 +52,7 @@ export function loc_2cef(m) {
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x2d20, 2);
         mem.write8(0x008b, regs.a); m.step(0x2d22, 3);                            // 2d20 sta $8b
         regs.a = 0x05; regs.setNZ(regs.a); m.step(0x2d24, 2);
-        m.step(0x2d27, 6); m.call(0x2db6);                                        // 2d24 jsr $2db6
+        m.push16(0x2d26); m.step(0x2d27, 6); m.call(0x2db6);                                        // 2d24 jsr $2db6
         regs.a = 0xff; regs.setNZ(regs.a); m.step(0x2d29, 2);
         mem.write8(0x003f, regs.a); m.step(0x2d2b, 3);                            // 2d29 sta $3f
         regs.a = mem.read8(0x00db); regs.setNZ(regs.a); m.step(0x2d2d, 3);        // 2d2b lda $db

@@ -146,7 +146,7 @@ export function loc_3d57(m) {
         label = 0x3e1f; continue;
       }
       case 0x3e1f: {
-        m.step(0x3e22, 6); m.call(0x3836); // 3e1f jsr $3836
+        m.push16(0x3e21); m.step(0x3e22, 6); m.call(0x3836); // 3e1f jsr $3836
         mem.write8(0x008b, regs.dec8(mem.read8(0x008b))); m.step(0x3e24, 5); // 3e22 dec $8b
         regs.x = regs.dec8(regs.x); m.step(0x3e25, 2); // 3e24 dex
         if (regs.fNZ) { m.step(0x3e17, 3); label = 0x3e17; continue; } // 3e25 bne $3e17
@@ -154,7 +154,7 @@ export function loc_3d57(m) {
         regs.a = 0x37; regs.setNZ(regs.a); m.step(0x3e29, 2);
         mem.write8(0x0091, regs.a); m.step(0x3e2b, 3);
         regs.a = 0x21; regs.setNZ(regs.a); m.step(0x3e2d, 2);
-        m.step(0x3e30, 6); m.call(0x3836); // 3e2d jsr $3836
+        m.push16(0x3e2f); m.step(0x3e30, 6); m.call(0x3836); // 3e2d jsr $3836
         regs.a = mem.read8(0x0801); regs.setNZ(regs.a); m.step(0x3e33, 4);
         regs.and(0x10); m.step(0x3e35, 2); // 3e33 and #$10
         regs.a = regs.lsr(regs.a); m.step(0x3e36, 2); // 3e35 lsr a
@@ -163,7 +163,7 @@ export function loc_3d57(m) {
         regs.a = regs.lsr(regs.a); m.step(0x3e39, 2); // 3e38 lsr a
         regs.adc(0x01); m.step(0x3e3b, 2); // 3e39 adc #$01
         regs.ora(0x20); m.step(0x3e3d, 2); // 3e3b ora #$20
-        m.step(0x3e40, 6); m.call(0x3836); // 3e3d jsr $3836
+        m.push16(0x3e3f); m.step(0x3e40, 6); m.call(0x3836); // 3e3d jsr $3836
         regs.a = mem.read8(0x0801); regs.setNZ(regs.a); m.step(0x3e43, 4);
         regs.and(0x0c); m.step(0x3e45, 2); // 3e43 and #$0c
         regs.a = regs.lsr(regs.a); m.step(0x3e46, 2); // 3e45 lsr a
@@ -176,7 +176,7 @@ export function loc_3d57(m) {
       case 0x3e4b: {
         regs.adc(0x03); m.step(0x3e4d, 2); // 3e4b adc #$03
         regs.ora(0x20); m.step(0x3e4f, 2); // 3e4d ora #$20
-        m.step(0x3e52, 6); m.call(0x3836); // 3e4f jsr $3836
+        m.push16(0x3e51); m.step(0x3e52, 6); m.call(0x3836); // 3e4f jsr $3836
         regs.a = 0x36; regs.setNZ(regs.a); m.step(0x3e54, 2);
         mem.write8(0x0091, regs.a); m.step(0x3e56, 3);
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x3e58, 2);
@@ -197,9 +197,9 @@ export function loc_3d57(m) {
         if (regs.fC) { m.step(0x3e84, 3); label = 0x3e84; continue; } // 3e6c bcs $3e84
         m.step(0x3e6e, 2);
         { const a = (0x3fd8 + regs.x) & 0xffff; regs.a = mem.read8(a); regs.setNZ(regs.a); m.step(0x3e71, 4 + ((0x3fd8 & 0xff00) !== (a & 0xff00) ? 1 : 0)); }
-        m.step(0x3e74, 6); m.call(0x3836); // 3e71 jsr $3836
+        m.push16(0x3e73); m.step(0x3e74, 6); m.call(0x3836); // 3e71 jsr $3836
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x3e76, 2);
-        m.step(0x3e79, 6); m.call(0x3836); // 3e76 jsr $3836
+        m.push16(0x3e78); m.step(0x3e79, 6); m.call(0x3836); // 3e76 jsr $3836
         regs.a = 0x21; regs.setNZ(regs.a); m.step(0x3e7b, 2);
         regs.cpx(0x03); m.step(0x3e7d, 2); // 3e7b cpx #$03
         if (regs.fNZ) { m.step(0x3e81, 3); label = 0x3e81; continue; } // 3e7d bne $3e81
@@ -208,7 +208,7 @@ export function loc_3d57(m) {
         label = 0x3e81; continue;
       }
       case 0x3e81: {
-        m.step(0x3e84, 6); m.call(0x3836); // 3e81 jsr $3836
+        m.push16(0x3e83); m.step(0x3e84, 6); m.call(0x3836); // 3e81 jsr $3836
         label = 0x3e84; continue;
       }
       case 0x3e84: {
@@ -225,7 +225,7 @@ export function loc_3d57(m) {
         mem.write8(0x0093, regs.a); m.step(0x3e93, 3);
         regs.a = 0x35; regs.setNZ(regs.a); m.step(0x3e95, 2);
         mem.write8(0x0091, regs.a); m.step(0x3e97, 3);
-        m.step(0x3e9a, 6); m.call(0x3825); // 3e97 jsr $3825
+        m.push16(0x3e99); m.step(0x3e9a, 6); m.call(0x3825); // 3e97 jsr $3825
         regs.a = mem.read8(0x0c01); regs.setNZ(regs.a); m.step(0x3e9d, 4);
         mem.write8(0x00df, regs.a); m.step(0x3e9f, 3);
         regs.a = mem.read8(0x0800); regs.setNZ(regs.a); m.step(0x3ea2, 4);
@@ -332,9 +332,9 @@ export function loc_3d57(m) {
         label = 0x3f31; continue;
       }
       case 0x3f31: {
-        m.step(0x3f34, 6); m.call(0x3836); // 3f31 jsr $3836
-        m.step(0x3f37, 6); m.call(0x3ac0); // 3f34 jsr $3ac0
-        m.step(0x3f3a, 6); m.call(0x3a08); // 3f37 jsr $3a08
+        m.push16(0x3f33); m.step(0x3f34, 6); m.call(0x3836); // 3f31 jsr $3836
+        m.push16(0x3f36); m.step(0x3f37, 6); m.call(0x3ac0); // 3f34 jsr $3ac0
+        m.push16(0x3f39); m.step(0x3f3a, 6); m.call(0x3a08); // 3f37 jsr $3a08
         mem.write8(0x01b5, regs.y); m.step(0x3f3d, 4); // 3f3a sty $01b5
         if (regs.fZ) { m.step(0x3f55, 3); label = 0x3f55; continue; } // 3f3d beq $3f55
         m.step(0x3f3f, 2);
@@ -342,11 +342,11 @@ export function loc_3d57(m) {
         regs.a = 0x3b; regs.setNZ(regs.a); m.step(0x3f42, 2);
         mem.write8(0x0091, regs.a); m.step(0x3f44, 3);
         regs.a = 0x24; regs.setNZ(regs.a); m.step(0x3f46, 2);
-        m.step(0x3f49, 6); m.call(0x3836); // 3f46 jsr $3836
+        m.push16(0x3f48); m.step(0x3f49, 6); m.call(0x3836); // 3f46 jsr $3836
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x3f4b, 2);
-        m.step(0x3f4e, 6); m.call(0x3836); // 3f4b jsr $3836
+        m.push16(0x3f4d); m.step(0x3f4e, 6); m.call(0x3836); // 3f4b jsr $3836
         regs.a = m.pull8(); regs.setNZ(regs.a); m.step(0x3f4f, 4); // 3f4e pla
-        m.step(0x3f52, 6); m.call(0x384f); // 3f4f jsr $384f
+        m.push16(0x3f51); m.step(0x3f52, 6); m.call(0x384f); // 3f4f jsr $384f
         m.step(0x3fd6, 3); return m.call(0x3fd6); // 3f52 jmp $3fd6
       }
       case 0x3f55: {
@@ -356,17 +356,17 @@ export function loc_3d57(m) {
         mem.write8(0x0091, regs.a); m.step(0x3f5d, 3);
         regs.sec(); m.step(0x3f5e, 2); // 3f5d sec
         regs.a = mem.read8(0x018d); regs.setNZ(regs.a); m.step(0x3f61, 4);
-        m.step(0x3f64, 6); m.call(0x384f); // 3f61 jsr $384f
+        m.push16(0x3f63); m.step(0x3f64, 6); m.call(0x384f); // 3f61 jsr $384f
         regs.a = mem.read8(0x018c); regs.setNZ(regs.a); m.step(0x3f67, 4);
-        m.step(0x3f6a, 6); m.call(0x384f); // 3f67 jsr $384f
+        m.push16(0x3f69); m.step(0x3f6a, 6); m.call(0x384f); // 3f67 jsr $384f
         regs.a = mem.read8(0x018b); regs.setNZ(regs.a); m.step(0x3f6d, 4);
         regs.clc(); m.step(0x3f6e, 2); // 3f6d clc
-        m.step(0x3f71, 6); m.call(0x384f); // 3f6e jsr $384f
+        m.push16(0x3f70); m.step(0x3f71, 6); m.call(0x384f); // 3f6e jsr $384f
         regs.a = 0xde; regs.setNZ(regs.a); m.step(0x3f73, 2);
         mem.write8(0x0093, regs.a); m.step(0x3f75, 3);
         regs.a = 0x3f; regs.setNZ(regs.a); m.step(0x3f77, 2);
         mem.write8(0x0094, regs.a); m.step(0x3f79, 3);
-        m.step(0x3f7c, 6); m.call(0x3825); // 3f79 jsr $3825
+        m.push16(0x3f7b); m.step(0x3f7c, 6); m.call(0x3825); // 3f79 jsr $3825
         regs.a = 0x05; regs.setNZ(regs.a); m.step(0x3f7e, 2);
         mem.write8(0x0092, regs.a); m.step(0x3f80, 3);
         regs.a = 0x08; regs.setNZ(regs.a); m.step(0x3f82, 2);
@@ -381,9 +381,9 @@ export function loc_3d57(m) {
         regs.adc(0x00); m.step(0x3f8e, 2); // 3f8c adc #$00
         regs.cld(); m.step(0x3f8f, 2); // 3f8e cld
         regs.sec(); m.step(0x3f90, 2); // 3f8f sec
-        m.step(0x3f93, 6); m.call(0x384f); // 3f90 jsr $384f
+        m.push16(0x3f92); m.step(0x3f93, 6); m.call(0x384f); // 3f90 jsr $384f
         regs.a = 0x2e; regs.setNZ(regs.a); m.step(0x3f95, 2);
-        m.step(0x3f98, 6); m.call(0x3836); // 3f95 jsr $3836
+        m.push16(0x3f97); m.step(0x3f98, 6); m.call(0x3836); // 3f95 jsr $3836
         regs.a = mem.read8(0x008d); regs.setNZ(regs.a); m.step(0x3f9a, 3);
         regs.and(0x0f); m.step(0x3f9c, 2); // 3f9a and #$0f
         regs.sed(); m.step(0x3f9d, 2); // 3f9c sed
@@ -402,12 +402,12 @@ export function loc_3d57(m) {
       }
       case 0x3faf: {
         regs.clc(); m.step(0x3fb0, 2); // 3faf clc
-        m.step(0x3fb3, 6); m.call(0x384f); // 3fb0 jsr $384f
+        m.push16(0x3fb2); m.step(0x3fb3, 6); m.call(0x384f); // 3fb0 jsr $384f
         regs.a = 0xe4; regs.setNZ(regs.a); m.step(0x3fb5, 2);
         mem.write8(0x0093, regs.a); m.step(0x3fb7, 3);
         regs.a = 0x3f; regs.setNZ(regs.a); m.step(0x3fb9, 2);
         mem.write8(0x0094, regs.a); m.step(0x3fbb, 3);
-        m.step(0x3fbe, 6); m.call(0x3825); // 3fbb jsr $3825
+        m.push16(0x3fbd); m.step(0x3fbe, 6); m.call(0x3825); // 3fbb jsr $3825
         regs.a = mem.read8(0x00ea); regs.setNZ(regs.a); m.step(0x3fc0, 3);
         regs.ora(mem.read8(0x00eb)); m.step(0x3fc2, 3); // 3fc0 ora $eb
         regs.ora(mem.read8(0x00ec)); m.step(0x3fc4, 3); // 3fc2 ora $ec

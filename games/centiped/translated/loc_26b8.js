@@ -22,7 +22,7 @@ export function loc_26b8(m) {
       m.step(0x26d1, 2);                                             // 26cf bpl $26d3 (fall)
       regs.a = 0x00; regs.setNZ(regs.a); m.step(0x26d3, 2);
     }
-    m.step(0x26d6, 6); m.call(0x3836);                                // 26d3 jsr $3836
+    m.push16(0x26d5); m.step(0x26d6, 6); m.call(0x3836);                                // 26d3 jsr $3836
     mem.write8(0x008b, regs.dec8(mem.read8(0x008b))); m.step(0x26d8, 5);
     if (regs.fNZ) { m.step(0x26cc, 3); continue; }                    // 26d8 bne $26cc
     m.step(0x26da, 2); break;                                         // 26d8 bne $26cc (fall)
@@ -47,7 +47,7 @@ export function loc_26b8(m) {
       m.step(0x26f3, 2);                                             // 26f1 bpl $26f5 (fall)
       regs.a = 0x1f; regs.setNZ(regs.a); m.step(0x26f5, 2);
     }
-    m.step(0x26f8, 6); m.call(0x3836);                                // 26f5 jsr $3836
+    m.push16(0x26f7); m.step(0x26f8, 6); m.call(0x3836);                                // 26f5 jsr $3836
     mem.write8(0x008b, regs.dec8(mem.read8(0x008b))); m.step(0x26fa, 5); // 26f8 dec $8b
     if (regs.fNZ) { m.step(0x26ee, 3); continue; }                    // 26fa bne $26ee
     m.step(0x26fc, 2); break;                                         // 26fa bne $26ee (fall)

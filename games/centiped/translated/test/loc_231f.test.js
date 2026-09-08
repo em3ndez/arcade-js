@@ -21,10 +21,10 @@ function makeMachine() {
     step(next, c) { this.pc = next; this.cycles += c; this.pcSeq.push(next); },
     push8(v) { mem.write8(0x0100 | regs.s, v & 0xff); regs.s = (regs.s - 1) & 0xff; },
     pull8() { regs.s = (regs.s + 1) & 0xff; return mem.read8(0x0100 | regs.s); },
-    push16(v) { this.push8((v >> 8) & 0xff); this.push8(v & 0xff); },
+    push16(v) { this.push8((v >> 8) & 0xff); this.push8(v & 0xff); this._retPushed = true; },
     pull16() { const lo = this.pull8(); const hi = this.pull8(); return lo | (hi << 8); },
     ret(c = 6) { this.step((this.pull16() + 1) & 0xffff, c); },
-    call(a) { this.calls.push(a); return undefined; },
+    call(a) { this.calls.push(a); if (this._retPushed) { this._retPushed = false; this.pull16(); } return undefined; },
   };
 }
 

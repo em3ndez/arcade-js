@@ -17,6 +17,13 @@ export const CYCLES_PER_FRAME = 25200; // 1.512MHz/60 nominal; bus contention un
 export const RESET_VECTOR = 0x3ffc; // 6502 vectors fold under global_mask(0x3fff) to the top of ROM
 export const IRQ_VECTOR = 0x3ffe;
 
+// 32V scanline IRQ. TIMER "32v" configure_scanline(generate_interrupt, screen, 0, 16) (centiped.cpp:1794)
+// runs every 16V; generate_interrupt (centiped.cpp:434) sets IRQ=((scanline-1)&32), so the line ASSERTS at
+// scanlines 48/112/176/240. Screen VTOTAL=256, visarea 0-239 (centiped.cpp:1799-1800): vblank=240-255. One
+// 16V step = 25200/256*16 = 1575 cycles, so the assert scanlines land on exact cycle offsets:
+export const IRQ_CYCLES = [4725, 11025, 17325, 23625]; // scanlines {48,112,176,240} * 1575/16
+export const VBLANK_START = 23625; // scanline 240 * (25200/256); IN0 bit6 high for cycles [23625,25200)
+
 export class FramesComplete extends Error {
   constructor() {
     super("frame budget exhausted");
@@ -52,6 +59,11 @@ export class Machine {
     this.maxCycles = opts.maxCycles ?? Infinity;
     this.nextBoundary = CYCLES_PER_FRAME;
 
+    // 32V IRQ schedule (armed by runFrames; Infinity = quiescent, e.g. a clone/boot-gap crawl).
+    this.nextIrqCycle = Infinity;
+    this.irqSlot = 0;
+    this.irqFrameBase = 0;
+
     // gfx1 is the sole graphics region (tiles + sprites decode from it). No colour PROM.
     const gfx1 = opts.gfx1 ?? opts.gfx;
     this.video = gfx1 ? decodeGraphics(gfx1) : null;
@@ -85,8 +97,19 @@ export class Machine {
 
   tick(n) {
     this.cycles += n;
-    // Frame boundary: sample state once per frame. ⚠ 32V IRQ scheduling + the vblank point are a FIRST
-    // DRAFT — the cadence is pinned vs MAME in §3. Not exercised until translated code runs.
+    // IN0 bit6 = screen vblank (centiped.cpp:1054), driven by raster position within the frame.
+    this.io.vblank = this.cycles % CYCLES_PER_FRAME >= VBLANK_START ? 1 : 0;
+    // 32V IRQ: assert the 6502 IRQ line at the four grounded cycle offsets each frame. fireIrq is a no-op
+    // while I is set (masked → dropped, as MAME auto-clears the line at the next 16V edge); the handler
+    // (0x3FFE→loc_3871) acks by writing 0x1800. Advance the slot BEFORE firing (the handler re-enters tick).
+    while (this.cycles >= this.nextIrqCycle) {
+      this.irqSlot = (this.irqSlot + 1) % IRQ_CYCLES.length;
+      if (this.irqSlot === 0) this.irqFrameBase += CYCLES_PER_FRAME;
+      this.nextIrqCycle = this.irqFrameBase + IRQ_CYCLES[this.irqSlot];
+      this.io.setIrq(true);
+      this.fireIrq();
+    }
+    // Frame boundary: sample state once per frame.
     while (this.cycles >= this.nextBoundary && this.frames.length < this.maxFrames) {
       this.applyInputs(this.frames.length);
       this.frames.push(this.mem.dumpState());
@@ -135,9 +158,10 @@ export class Machine {
   }
 
   /**
-   * IRQ service (level-triggered, masked while I set → stays pending). Push PC then P (B clear, U set),
-   * set I, vector through 0x3FFE; the handler ACKs by writing 0x1800. ⚠ WHEN it fires (the 32V cadence)
-   * is §3/MAME work — this is only the mechanism.
+   * IRQ service (masked while I set). Push PC then P (B clear, U set), set I, vector through 0x3FFE; the
+   * handler restores A/X/Y and ACKs by writing 0x1800, then RTIs. The 32V firing cadence is scheduled in
+   * tick(). NOTE: a faithful handler self-restores via the stack, which needs the guest stack maintained —
+   * see the return-address-push gap flagged for the translated JSR sites.
    */
   fireIrq() {
     if (this.regs.fI) return false;
@@ -155,10 +179,12 @@ export class Machine {
     const assert = {};
     for (const t of this.inputTape) {
       const due = frameIndex >= t.frame && (t.dur == null || frameIndex < t.frame + t.dur);
-      if (due) assert[t.port] = (assert[t.port] || 0) | t.bits;
+      if (!due) continue;
+      // {track:[axis,delta]} feeds one frame of analog trackball motion (read_trackball); else a digital port.
+      if (t.track) this.io.applyTrackball(t.track[0], t.track[1]);
+      else assert[t.port] = (assert[t.port] || 0) | t.bits;
     }
     this.io.inputAssert = assert;
-    // TODO §3: analog trackball deltas (io.applyTrackball) once input tapes exist.
   }
 
   /** Bounded run for the boot-gap crawl: boot never returns, so NotImplemented localises the next gap. */
@@ -169,6 +195,9 @@ export class Machine {
     this.maxCycles = count * CYCLES_PER_FRAME + CYCLES_PER_FRAME;
     this.cycles = 0;
     this.nextBoundary = CYCLES_PER_FRAME;
+    this.irqFrameBase = 0; // arm the 32V IRQ schedule at the first assert offset
+    this.irqSlot = 0;
+    this.nextIrqCycle = IRQ_CYCLES[0];
     if (count <= 1) return this.frames;
     try {
       this.reset();
@@ -181,6 +210,7 @@ export class Machine {
       this.maxFrames = Infinity;
       this.maxCycles = Infinity;
       this.nextBoundary = Infinity;
+      this.nextIrqCycle = Infinity;
     }
     return this.frames;
   }

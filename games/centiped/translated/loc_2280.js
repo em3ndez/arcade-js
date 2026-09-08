@@ -10,7 +10,7 @@ export function loc_2280(m) {
       case 0x2280: {
         mem.write8(0x0071, regs.a); m.step(0x2282, 3);                                                 // 2280 sta $71
         regs.y = 0x00; regs.setNZ(regs.y); m.step(0x2284, 2);                                           // 2282 ldy #$00
-        m.step(0x2287, 6); m.call(0x2c2b);                                                              // 2284 jsr $2c2b
+        m.push16(0x2286); m.step(0x2287, 6); m.call(0x2c2b);                                                              // 2284 jsr $2c2b
         if (regs.fZ) { m.step(0x229c, 3); label = 0x229c; continue; }                                   // 2287 beq $229c
         m.step(0x2289, 2);                                                                              // 2287 beq (fall)
         regs.y = 0x00; regs.setNZ(regs.y); m.step(0x228b, 2);                                           // 2289 ldy #$00
@@ -21,7 +21,7 @@ export function loc_2280(m) {
         m.step(0x2293, 2);                                                                              // 2291 bcc (fall)
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x2295, 2);
         { const ea = (mem.read16(0x0032) + regs.y) & 0xffff; mem.write8(ea, regs.a); m.step(0x2297, 6); } // 2295 sta ($32),y
-        m.step(0x229a, 6); m.call(0x2b91);                                                              // 2297 jsr $2b91
+        m.push16(0x2299); m.step(0x229a, 6); m.call(0x2b91);                                                              // 2297 jsr $2b91
         regs.x = 0x0d; regs.setNZ(regs.x); m.step(0x229c, 2);                                           // 229a ldx #$0d
         label = 0x229c; continue;
       }
@@ -95,24 +95,24 @@ export function loc_2280(m) {
       }
       case 0x22e2: {
         regs.x = 0x0d; regs.setNZ(regs.x); m.step(0x22e4, 2);                                           // 22e2 ldx #$0d
-        m.step(0x22e7, 6); m.call(0x2c6b);                                                              // 22e4 jsr $2c6b
+        m.push16(0x22e6); m.step(0x22e7, 6); m.call(0x2c6b);                                                              // 22e4 jsr $2c6b
         if (regs.fNC) { m.step(0x22f0, 3); label = 0x22f0; continue; }                                  // 22e7 bcc $22f0
         m.step(0x22e9, 2);                                                                              // 22e7 bcc (fall)
         regs.a = mem.read8(0x0081); regs.setNZ(regs.a); m.step(0x22eb, 3);                              // 22e9 lda $81
         label = 0x22eb; continue;
       }
       case 0x22eb: {
-        m.step(0x22ee, 6); m.call(0x382d);                                                              // 22eb jsr $382d
+        m.push16(0x22ed); m.step(0x22ee, 6); m.call(0x382d);                                                              // 22eb jsr $382d
         mem.write8(0x0081, regs.a); m.step(0x22f0, 3);                                                  // 22ee sta $81
         label = 0x22f0; continue;
       }
       case 0x22f0: {
         regs.x = 0x0d; regs.setNZ(regs.x); m.step(0x22f2, 2);                                           // 22f0 ldx #$0d
-        m.step(0x22f5, 6); m.call(0x2c96);                                                              // 22f2 jsr $2c96
+        m.push16(0x22f4); m.step(0x22f5, 6); m.call(0x2c96);                                                              // 22f2 jsr $2c96
         return m.ret(6);                                                                                // 22f5 rts
       }
       case 0x22f6: {
-        m.step(0x22f9, 6); m.call(0x21c7);                                                              // 22f6 jsr $21c7
+        m.push16(0x22f8); m.step(0x22f9, 6); m.call(0x21c7);                                                              // 22f6 jsr $21c7
         return m.ret(6);                                                                                // 22f9 rts
       }
     }

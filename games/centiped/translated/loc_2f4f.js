@@ -35,7 +35,7 @@ export function loc_2f4f(m) {
         regs.eor(mem.read8(0x00f0)); m.step(0x2f67, 3); // 2f65 eor $f0
         regs.sec(); m.step(0x2f68, 2); // 2f67 sec
         regs.sbc(mem.read8(0x0072)); m.step(0x2f6a, 3); // 2f68 sbc $72
-        m.step(0x2f6d, 6); m.call(0x382b); // 2f6a jsr $382b
+        m.push16(0x2f6c); m.step(0x2f6d, 6); m.call(0x382b); // 2f6a jsr $382b
         regs.y = regs.a; regs.setNZ(regs.y); m.step(0x2f6e, 2); // 2f6d tay
         regs.cpx(0x0c); m.step(0x2f70, 2); // 2f6e cpx #$0c
         if (regs.fNZ) { // 2f70 bne $2f88
@@ -79,7 +79,7 @@ export function loc_2f4f(m) {
         regs.a = mem.read8((0x54 + regs.x) & 0xff); regs.setNZ(regs.a); m.step(0x2f8e, 4); // 2f8c lda $54,x
         regs.sec(); m.step(0x2f8f, 2); // 2f8e sec
         regs.sbc(mem.read8(0x0062)); m.step(0x2f91, 3); // 2f8f sbc $62
-        m.step(0x2f94, 6); m.call(0x382b); // 2f91 jsr $382b
+        m.push16(0x2f93); m.step(0x2f94, 6); m.call(0x382b); // 2f91 jsr $382b
         regs.y = regs.a; regs.setNZ(regs.y); m.step(0x2f95, 2); // 2f94 tay
         regs.cpx(0x0d); m.step(0x2f97, 2); // 2f95 cpx #$0d
         if (regs.fZ) { // 2f97 beq $2fbe
@@ -147,7 +147,7 @@ export function loc_2f4f(m) {
         regs.a = mem.read8(0x0071); regs.setNZ(regs.a); m.step(0x2fcd, 3); // 2fcb lda $71
         regs.sec(); m.step(0x2fce, 2); // 2fcd sec
         regs.sbc(mem.read8(0x0073)); m.step(0x2fd0, 3); // 2fce sbc $73
-        m.step(0x2fd3, 6); m.call(0x382b); // 2fd0 jsr $382b
+        m.push16(0x2fd2); m.step(0x2fd3, 6); m.call(0x382b); // 2fd0 jsr $382b
         regs.cmp(0x40); m.step(0x2fd5, 2); // 2fd3 cmp #$40
         if (regs.fC) { // 2fd5 bcs $2fe3
           m.step(0x2fe3, 3); label = 0x2fe3; continue;
@@ -213,7 +213,7 @@ export function loc_2f4f(m) {
       }
       case 0x3011: {
         regs.a = regs.y; regs.setNZ(regs.a); m.step(0x3012, 2); // 3011 tya
-        m.step(0x3015, 6); m.call(0x2dae); // 3012 jsr $2dae
+        m.push16(0x3014); m.step(0x3015, 6); m.call(0x2dae); // 3012 jsr $2dae
         regs.cpx(0x0b); m.step(0x3017, 2); // 3015 cpx #$0b
         if (regs.fZ) { // 3017 beq $3021
           m.step(0x3021, 3); label = 0x3021; continue;
@@ -229,10 +229,10 @@ export function loc_2f4f(m) {
         label = 0x3021; continue;
       }
       case 0x3021: {
-        m.step(0x3024, 6); m.call(0x2310); // 3021 jsr $2310
-        m.step(0x3027, 6); m.call(0x2c2b); // 3024 jsr $2c2b
+        m.push16(0x3023); m.step(0x3024, 6); m.call(0x2310); // 3021 jsr $2310
+        m.push16(0x3026); m.step(0x3027, 6); m.call(0x2c2b); // 3024 jsr $2c2b
         mem.write8(0x008d, regs.x); m.step(0x3029, 3); // 3027 stx $8d
-        m.step(0x302c, 6); m.call(0x2ba8); // 3029 jsr $2ba8
+        m.push16(0x302b); m.step(0x302c, 6); m.call(0x2ba8); // 3029 jsr $2ba8
         regs.x = mem.read8(0x008d); regs.setNZ(regs.x); m.step(0x302e, 3); // 302c ldx $8d
         m.step(0x303e, 3); return m.call(0x303e); // 302e jmp $303e
       }

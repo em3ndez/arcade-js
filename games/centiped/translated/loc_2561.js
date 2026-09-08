@@ -33,7 +33,7 @@ export function loc_2561(m) {
         regs.a = mem.read8(0x008d); regs.setNZ(regs.a); m.step(0x2581, 3);        // 257f lda $8d
         if (regs.fZ) { m.step(0x2586, 3); label = 0x2586; continue; }             // 2581 beq $2586 (taken)
         m.step(0x2583, 2);
-        m.step(0x2586, 6); m.call(0x37d5);                                        // 2583 jsr $37d5
+        m.push16(0x2585); m.step(0x2586, 6); m.call(0x37d5);                                        // 2583 jsr $37d5
         label = 0x2586; continue;
       }
       case 0x2586: {
@@ -64,7 +64,7 @@ export function loc_2561(m) {
         regs.and(0x80); m.step(0x25a8, 2);
         mem.write8(0x00dc, regs.a); m.step(0x25aa, 3);                            // 25a8 sta $dc
         regs.eor(0x8a); m.step(0x25ac, 2);                                        // 25aa eor #$8a
-        m.step(0x25af, 6); m.call(0x37d5);                                        // 25ac jsr $37d5
+        m.push16(0x25ae); m.step(0x25af, 6); m.call(0x37d5);                                        // 25ac jsr $37d5
         regs.x = 0xff; regs.setNZ(regs.x); m.step(0x25b1, 2);                     // 25af ldx #$ff
         mem.write8(0x1c03, regs.x); m.step(0x25b4, 4);                            // 25b1 stx $1c03
         mem.write8(0x1c04, regs.x); m.step(0x25b7, 4);                            // 25b4 stx $1c04
@@ -79,18 +79,18 @@ export function loc_2561(m) {
         label = 0x25bc; continue;
       }
       case 0x25bc: {
-        m.step(0x25bf, 6); m.call(0x37d5);                                        // 25bc jsr $37d5
+        m.push16(0x25be); m.step(0x25bf, 6); m.call(0x37d5);                                        // 25bc jsr $37d5
         label = 0x25bf; continue;
       }
       case 0x25bf: {
         regs.a = 0x09; regs.setNZ(regs.a); m.step(0x25c1, 2);
-        m.step(0x25c4, 6); m.call(0x37d5);                                        // 25c1 jsr $37d5
+        m.push16(0x25c3); m.step(0x25c4, 6); m.call(0x37d5);                                        // 25c1 jsr $37d5
         regs.a = mem.read8(0x00c8); regs.setNZ(regs.a); m.step(0x25c6, 3);        // 25c4 lda $c8
         regs.cmp(0x0a); m.step(0x25c8, 2);                                        // 25c6 cmp #$0a
         if (regs.fNC) { m.step(0x25d4, 3); label = 0x25d4; continue; }            // 25c8 bcc $25d4 (taken)
         m.step(0x25ca, 2);
         regs.a = 0x21; regs.setNZ(regs.a); m.step(0x25cc, 2);
-        m.step(0x25cf, 6); m.call(0x3836);                                        // 25cc jsr $3836
+        m.push16(0x25ce); m.step(0x25cf, 6); m.call(0x3836);                                        // 25cc jsr $3836
         regs.a = mem.read8(0x00c8); regs.setNZ(regs.a); m.step(0x25d1, 3);        // 25cf lda $c8
         regs.sec(); m.step(0x25d2, 2);
         regs.sbc(0x0a); m.step(0x25d4, 2);
@@ -98,7 +98,7 @@ export function loc_2561(m) {
       }
       case 0x25d4: {
         regs.ora(0x20); m.step(0x25d6, 2);
-        m.step(0x25d9, 6); m.call(0x3836);                                        // 25d6 jsr $3836
+        m.push16(0x25d8); m.step(0x25d9, 6); m.call(0x3836);                                        // 25d6 jsr $3836
         regs.a = mem.read8(0x00c9); regs.setNZ(regs.a); m.step(0x25db, 3);        // 25d9 lda $c9
         if (regs.fZ) { m.step(0x25df, 3); label = 0x25df; continue; }             // 25db beq $25df (taken)
         m.step(0x25dd, 2);
@@ -106,7 +106,7 @@ export function loc_2561(m) {
         label = 0x25df; continue;
       }
       case 0x25df: {
-        m.step(0x25e2, 6); m.call(0x3836);                                        // 25df jsr $3836
+        m.push16(0x25e1); m.step(0x25e2, 6); m.call(0x3836);                                        // 25df jsr $3836
         regs.x = mem.read8(0x00c8); regs.setNZ(regs.x); m.step(0x25e4, 3);        // 25e2 ldx $c8
         if (regs.fZ) { m.step(0x25b7, 3); label = 0x25b7; continue; }             // 25e4 beq $25b7 (taken)
         m.step(0x25e6, 2);
@@ -156,8 +156,8 @@ export function loc_2561(m) {
         regs.x = regs.dec8(regs.x); m.step(0x262d, 2);                            // 262c dex
         mem.write8(0x00a5, regs.x); m.step(0x262f, 3);                            // 262d stx $a5
         mem.write8(0x0086, regs.inc8(mem.read8(0x0086))); m.step(0x2631, 5);      // 262f inc $86
-        m.step(0x2634, 6); m.call(0x26a0);                                        // 2631 jsr $26a0
-        m.step(0x2637, 6); m.call(0x21b3);                                        // 2634 jsr $21b3
+        m.push16(0x2633); m.step(0x2634, 6); m.call(0x26a0);                                        // 2631 jsr $26a0
+        m.push16(0x2636); m.step(0x2637, 6); m.call(0x21b3);                                        // 2634 jsr $21b3
         mem.write8(0x00ae, regs.a); m.step(0x2639, 3);                            // 2637 sta $ae
         mem.write8(0x00af, regs.a); m.step(0x263b, 3);                            // 2639 sta $af
         {
@@ -173,11 +173,11 @@ export function loc_2561(m) {
         m.step(0x2649, 2);
         regs.a = 0x80; regs.setNZ(regs.a); m.step(0x264b, 2);
         mem.write8(0x00ee, regs.a); m.step(0x264d, 3);                            // 264b sta $ee
-        m.step(0x2650, 6); m.call(0x2509);                                        // 264d jsr $2509
+        m.push16(0x264f); m.step(0x2650, 6); m.call(0x2509);                                        // 264d jsr $2509
         label = 0x2650; continue;
       }
       case 0x2650: {
-        m.step(0x2653, 6); m.call(0x2872);                                        // 2650 jsr $2872
+        m.push16(0x2652); m.step(0x2653, 6); m.call(0x2872);                                        // 2650 jsr $2872
         m.step(0x26b8, 3); return m.call(0x26b8);                                 // 2653 jmp $26b8
       }
     }

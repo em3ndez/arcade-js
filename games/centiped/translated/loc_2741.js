@@ -25,10 +25,10 @@ export function loc_2741(m) {
         m.step(0x2754, 2);                                                 // 2752 bne (fall)
         regs.a = 0x82; regs.setNZ(regs.a); m.step(0x2756, 2);
         mem.write8(0x00ee, regs.a); m.step(0x2758, 3);
-        m.step(0x275b, 6); m.call(0x252a);
-        m.step(0x275e, 6); m.call(0x31d5);
-        m.step(0x2761, 6); m.call(0x32fe);
-        m.step(0x2764, 6); m.call(0x2932);
+        m.push16(0x275a); m.step(0x275b, 6); m.call(0x252a);
+        m.push16(0x275d); m.step(0x275e, 6); m.call(0x31d5);
+        m.push16(0x2760); m.step(0x2761, 6); m.call(0x32fe);
+        m.push16(0x2763); m.step(0x2764, 6); m.call(0x2932);
         label = 0x2764; continue;                                         // fall into 2764
       }
       case 0x2764: {
@@ -37,7 +37,7 @@ export function loc_2741(m) {
         if (regs.fZ) { m.step(0x277d, 3); label = 0x277d; continue; }      // 2767 beq $277d
         m.step(0x2769, 2);                                                 // 2767 beq (fall)
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x276b, 2);
-        m.step(0x276e, 6); m.call(0x37d5);
+        m.push16(0x276d); m.step(0x276e, 6); m.call(0x37d5);
         regs.y = 0x02; regs.setNZ(regs.y); m.step(0x2770, 2);
         regs.x = mem.read8(0x00c2); regs.setNZ(regs.x); m.step(0x2772, 3);
         if (regs.fPl) { m.step(0x2775, 3); label = 0x2775; continue; }     // 2772 bpl $2775
@@ -49,14 +49,14 @@ export function loc_2741(m) {
         mem.write8(0x0088, regs.y); m.step(0x2777, 3);
         regs.a = regs.y; regs.setNZ(regs.a); m.step(0x2778, 2);
         regs.ora(0x20); m.step(0x277a, 2);
-        m.step(0x277d, 6); m.call(0x3836);
+        m.push16(0x277c); m.step(0x277d, 6); m.call(0x3836);
         label = 0x277d; continue;                                         // fall into 277d
       }
       case 0x277d: {
         regs.a = 0x08; regs.setNZ(regs.a); m.step(0x277f, 2);
-        m.step(0x2782, 6); m.call(0x37d5);
+        m.push16(0x2781); m.step(0x2782, 6); m.call(0x37d5);
         regs.a = 0x05; regs.setNZ(regs.a); m.step(0x2784, 2);
-        m.step(0x2787, 6); m.call(0x37d5);
+        m.push16(0x2786); m.step(0x2787, 6); m.call(0x37d5);
         regs.a = 0x89; regs.setNZ(regs.a); m.step(0x2789, 2);
         regs.eor(mem.read8(0x00f5)); m.step(0x278b, 3);
         mem.write8(0x0091, regs.a); m.step(0x278d, 3);
@@ -70,14 +70,14 @@ export function loc_2741(m) {
         regs.clc(); m.step(0x279b, 2);
         regs.adc(mem.read8(0x00c0)); m.step(0x279d, 3);
         mem.write8(0x008e, regs.a); m.step(0x279f, 3);
-        m.step(0x27a2, 6); m.call(0x3833);
+        m.push16(0x27a1); m.step(0x27a2, 6); m.call(0x3833);
         regs.y = mem.read8(0x008d); regs.setNZ(regs.y); m.step(0x27a4, 3);
         regs.y = regs.inc8(regs.y); m.step(0x27a5, 2);
-        m.step(0x27a8, 6); m.call(0x3833);
+        m.push16(0x27a7); m.step(0x27a8, 6); m.call(0x3833);
         regs.y = mem.read8(0x008d); regs.setNZ(regs.y); m.step(0x27aa, 3);
         regs.y = regs.inc8(regs.y); m.step(0x27ab, 2);
         regs.y = regs.inc8(regs.y); m.step(0x27ac, 2);
-        m.step(0x27af, 6); m.call(0x3833);
+        m.push16(0x27ae); m.step(0x27af, 6); m.call(0x3833);
         regs.a = mem.read8(0x0c01); regs.setNZ(regs.a); m.step(0x27b2, 4);
         regs.x = mem.read8(0x00ef); regs.setNZ(regs.x); m.step(0x27b4, 3);
         if (regs.fZ) { m.step(0x27b7, 3); label = 0x27b7; continue; }      // 27b4 beq $27b7
@@ -111,13 +111,13 @@ export function loc_2741(m) {
         m.step(0x27d6, 2);                                                 // 27d4 beq (fall)
         regs.a = 0x80; regs.setNZ(regs.a); m.step(0x27d8, 2);
         mem.write8(0x00ee, regs.a); m.step(0x27da, 3);
-        m.step(0x27dd, 6); m.call(0x2509);
-        m.step(0x27e0, 6); m.call(0x31d5);
-        m.step(0x27e3, 6); m.call(0x2932);
-        m.step(0x27e6, 6); m.call(0x32fe);
-        m.step(0x27e9, 6); m.call(0x231f);
-        m.step(0x27ec, 6); m.call(0x21c7);
-        m.step(0x27ef, 6); m.call(0x20e8);
+        m.push16(0x27dc); m.step(0x27dd, 6); m.call(0x2509);
+        m.push16(0x27df); m.step(0x27e0, 6); m.call(0x31d5);
+        m.push16(0x27e2); m.step(0x27e3, 6); m.call(0x2932);
+        m.push16(0x27e5); m.step(0x27e6, 6); m.call(0x32fe);
+        m.push16(0x27e8); m.step(0x27e9, 6); m.call(0x231f);
+        m.push16(0x27eb); m.step(0x27ec, 6); m.call(0x21c7);
+        m.push16(0x27ee); m.step(0x27ef, 6); m.call(0x20e8);
         regs.a = mem.read8(0x00c1); regs.setNZ(regs.a); m.step(0x27f1, 3);
         if (regs.fN) { m.step(0x2825, 4); label = 0x2825; continue; }      // 27f1 bmi $2825 (page-cross)
         m.step(0x27f3, 2);                                                 // 27f1 bmi (fall)
@@ -154,9 +154,9 @@ export function loc_2741(m) {
       }
       case 0x2810: {
         regs.a = 0x88; regs.setNZ(regs.a); m.step(0x2812, 2);
-        m.step(0x2815, 6); m.call(0x37d5);
+        m.push16(0x2814); m.step(0x2815, 6); m.call(0x37d5);
         regs.a = 0x85; regs.setNZ(regs.a); m.step(0x2817, 2);
-        m.step(0x281a, 6); m.call(0x37d5);
+        m.push16(0x2819); m.step(0x281a, 6); m.call(0x37d5);
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x281c, 2);
         mem.write8(0x0589, regs.a); m.step(0x281f, 4);
         mem.write8(0x05a9, regs.a); m.step(0x2822, 4);
@@ -164,15 +164,15 @@ export function loc_2741(m) {
         label = 0x2825; continue;                                         // fall into 2825
       }
       case 0x2825: {
-        m.step(0x2828, 6); m.call(0x26a0);
-        m.step(0x282b, 6); m.call(0x2d5c);
+        m.push16(0x2827); m.step(0x2828, 6); m.call(0x26a0);
+        m.push16(0x282a); m.step(0x282b, 6); m.call(0x2d5c);
         regs.x = mem.read8(0x0089); regs.setNZ(regs.x); m.step(0x282d, 3);
         mem.write8(0x0001, regs.x); m.step(0x282f, 3);
         regs.x = regs.dec8(regs.x); m.step(0x2830, 2);
         if (regs.fZ) { m.step(0x27f9, 4); label = 0x27f9; continue; }      // 2830 beq $27f9 (page-cross)
         m.step(0x2832, 2);                                                 // 2830 beq (fall)
         regs.a = 0x80; regs.setNZ(regs.a); m.step(0x2834, 2);
-        m.step(0x2837, 6); m.call(0x37d5);
+        m.push16(0x2836); m.step(0x2837, 6); m.call(0x37d5);
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x2839, 2);
         regs.y = regs.a; regs.setNZ(regs.y); m.step(0x283a, 2);
         mem.write8((mem.read16(0x0091) + regs.y) & 0xffff, regs.a); m.step(0x283c, 6);
@@ -193,7 +193,7 @@ export function loc_2741(m) {
         m.step(0x284e, 2);                                                 // 284c bpl (fall)
         regs.x = 0x01; regs.setNZ(regs.x); m.step(0x2850, 2);
         regs.a = regs.y; regs.setNZ(regs.a); m.step(0x2851, 2);
-        m.step(0x2854, 6); m.call(0x382d);
+        m.push16(0x2853); m.step(0x2854, 6); m.call(0x382d);
         regs.y = regs.a; regs.setNZ(regs.y); m.step(0x2855, 2);
         label = 0x2855; continue;                                         // fall into 2855
       }

@@ -19,7 +19,7 @@ export function loc_2ace(m) {
   regs.y = mem.read8(0x00fe); regs.setNZ(regs.y); m.step(0x2adf, 3);   // 2add ldy $fe
   regs.a = mem.read8(0x00b9); regs.setNZ(regs.a); m.step(0x2ae1, 3);   // 2adf lda $b9
   mem.write8(0x00b9, regs.y); m.step(0x2ae3, 3);                       // 2ae1 sty $b9
-  m.step(0x2ae6, 6); m.call(0x3226);                                   // 2ae3 jsr $3226
+  m.push16(0x2ae5); m.step(0x2ae6, 6); m.call(0x3226);                                   // 2ae3 jsr $3226
   regs.adc(mem.read8(0x0084)); m.step(0x2ae8, 3);                      // 2ae6 adc $84
   mem.write8(0x0084, regs.a); m.step(0x2aea, 3);                       // 2ae8 sta $84
   regs.a = regs.y; regs.setNZ(regs.a); m.step(0x2aeb, 2);              // 2aea tya

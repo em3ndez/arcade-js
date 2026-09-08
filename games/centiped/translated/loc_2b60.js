@@ -23,7 +23,7 @@ export function loc_2b60(m) {
     if (regs.fNC) { m.step(0x2b79, 3); return m.call(0x2b79); }          // 2b70 bcc $2b79 (out -> loc_2b79)
     m.step(0x2b72, 2);                                                   // 2b70 bcc (not taken) -> 2b72
   }
-  m.step(0x2b75, 6); m.call(0x382b);                                     // 2b72 jsr $382b
+  m.push16(0x2b74); m.step(0x2b75, 6); m.call(0x382b);                                     // 2b72 jsr $382b
   regs.cmp(0x05); m.step(0x2b77, 2);                                     // 2b75 cmp #$05
   if (regs.fC) { m.step(0x2b86, 3); return m.call(0x2b86); }             // 2b77 bcs $2b86 (out)
   m.step(0x2b79, 2); return m.call(0x2b79);                              // 2b77 bcs (nt) -> fall through to loc_2b79

@@ -24,27 +24,27 @@ export function loc_2015(m) {
         label = 0x2023; continue;
       }
       case 0x2023: {
-        m.step(0x2026, 6); m.call(0x2561);                                  // 2023 jsr $2561
-        m.step(0x2029, 6); m.call(0x3068);                                  // 2026 jsr $3068
-        m.step(0x202c, 6); m.call(0x2741);                                  // 2029 jsr $2741
+        m.push16(0x2025); m.step(0x2026, 6); m.call(0x2561);                                  // 2023 jsr $2561
+        m.push16(0x2028); m.step(0x2029, 6); m.call(0x3068);                                  // 2026 jsr $3068
+        m.push16(0x202b); m.step(0x202c, 6); m.call(0x2741);                                  // 2029 jsr $2741
         if (regs.fPl) { m.step(0x2015, 3); label = 0x2015; continue; }      // 202c bpl $2015
         m.step(0x202e, 2);
         label = 0x202e; continue;
       }
       case 0x202e: {
-        m.step(0x2031, 6); m.call(0x3ac0);                                  // 202e jsr $3ac0
-        m.step(0x2034, 6); m.call(0x2119);                                  // 2031 jsr $2119
-        m.step(0x2037, 6); m.call(0x32fe);                                  // 2034 jsr $32fe
-        m.step(0x203a, 6); m.call(0x2951);                                  // 2037 jsr $2951
-        m.step(0x203d, 6); m.call(0x26fd);                                  // 203a jsr $26fd
-        m.step(0x2040, 6); m.call(0x2ace);                                  // 203d jsr $2ace
-        m.step(0x2043, 6); m.call(0x2202);                                  // 2040 jsr $2202
-        m.step(0x2046, 6); m.call(0x2ec6);                                  // 2043 jsr $2ec6
-        m.step(0x2049, 6); m.call(0x2bd9);                                  // 2046 jsr $2bd9
-        m.step(0x204c, 6); m.call(0x2e0b);                                  // 2049 jsr $2e0b
-        m.step(0x204f, 6); m.call(0x2059);                                  // 204c jsr $2059
-        m.step(0x2052, 6); m.call(0x23da);                                  // 204f jsr $23da
-        m.step(0x2055, 6); m.call(0x2cef);                                  // 2052 jsr $2cef
+        m.push16(0x2030); m.step(0x2031, 6); m.call(0x3ac0);                                  // 202e jsr $3ac0
+        m.push16(0x2033); m.step(0x2034, 6); m.call(0x2119);                                  // 2031 jsr $2119
+        m.push16(0x2036); m.step(0x2037, 6); m.call(0x32fe);                                  // 2034 jsr $32fe
+        m.push16(0x2039); m.step(0x203a, 6); m.call(0x2951);                                  // 2037 jsr $2951
+        m.push16(0x203c); m.step(0x203d, 6); m.call(0x26fd);                                  // 203a jsr $26fd
+        m.push16(0x203f); m.step(0x2040, 6); m.call(0x2ace);                                  // 203d jsr $2ace
+        m.push16(0x2042); m.step(0x2043, 6); m.call(0x2202);                                  // 2040 jsr $2202
+        m.push16(0x2045); m.step(0x2046, 6); m.call(0x2ec6);                                  // 2043 jsr $2ec6
+        m.push16(0x2048); m.step(0x2049, 6); m.call(0x2bd9);                                  // 2046 jsr $2bd9
+        m.push16(0x204b); m.step(0x204c, 6); m.call(0x2e0b);                                  // 2049 jsr $2e0b
+        m.push16(0x204e); m.step(0x204f, 6); m.call(0x2059);                                  // 204c jsr $2059
+        m.push16(0x2051); m.step(0x2052, 6); m.call(0x23da);                                  // 204f jsr $23da
+        m.push16(0x2054); m.step(0x2055, 6); m.call(0x2cef);                                  // 2052 jsr $2cef
         m.step(0x2015, 3); label = 0x2015; continue;                        // 2055 jmp $2015
       }
     }

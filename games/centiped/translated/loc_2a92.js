@@ -7,7 +7,7 @@ export function loc_2a92(m) {
   regs.clc(); m.step(0x2a95, 2);                                                        // 2a94 clc
   regs.adc(mem.read8((0x0054 + regs.x) & 0xff)); m.step(0x2a97, 4);                     // 2a95 adc $54,x
   mem.write8((0x0054 + regs.x) & 0xff, regs.a); m.step(0x2a99, 4);                      // 2a97 sta $54,x
-  m.step(0x2a9c, 6); m.call(0x2c96);                                                    // 2a99 jsr $2c96
+  m.push16(0x2a9b); m.step(0x2a9c, 6); m.call(0x2c96);                                                    // 2a99 jsr $2c96
   if (regs.fNC) { m.step(0x2acd, 3); return m.call(0x2acd); }                           // 2a9c bcc $2acd
   m.step(0x2a9e, 2);                                                                    // 2a9c bcc (fall)
   regs.a = mem.read8((0x0064 + regs.x) & 0xff); regs.setNZ(regs.a); m.step(0x2aa0, 4);  // 2a9e lda $64,x

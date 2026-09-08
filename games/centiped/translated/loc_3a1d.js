@@ -20,7 +20,7 @@ export function loc_3a1d(m) {
         label = 0x3a27; continue;
       }
       case 0x3a27: {
-        m.step(0x3a2a, 6); m.call(0x3a08);
+        m.push16(0x3a29); m.step(0x3a2a, 6); m.call(0x3a08);
         if (regs.fNZ) { m.step(0x3a57, 3); label = 0x3a57; continue; }                                  // 3a2a bne $3a57
         m.step(0x3a2c, 2);                                                                              // 3a2a bne (fall)
         regs.a = mem.read8(0x00fd); regs.setNZ(regs.a); m.step(0x3a2e, 3);

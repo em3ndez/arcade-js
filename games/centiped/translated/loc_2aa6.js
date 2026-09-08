@@ -4,7 +4,7 @@
 export function loc_2aa6(m) {
   const { regs, mem } = m;
   regs.a = mem.read8((0x44 + regs.x) & 0xff); regs.setNZ(regs.a); m.step(0x2aa8, 4); // 2aa6 lda $44,x
-  m.step(0x2aab, 6); m.call(0x382d);                                                 // 2aa8 jsr $382d
+  m.push16(0x2aaa); m.step(0x2aab, 6); m.call(0x382d);                                                 // 2aa8 jsr $382d
   mem.write8((0x44 + regs.x) & 0xff, regs.a); m.step(0x2aad, 4);                      // 2aab sta $44,x
   regs.y = mem.read8((0x74 + regs.x) & 0xff); regs.setNZ(regs.y); m.step(0x2aaf, 4);  // 2aad ldy $74,x
   if (regs.fNZ) { m.step(0x2ac7, 3); return m.call(0x2ac7); }                         // 2aaf bne $2ac7
@@ -14,7 +14,7 @@ export function loc_2aa6(m) {
     m.step(0x2ab8, 3);                                                                // 2ab3 bmi $2ab8
   } else {
     m.step(0x2ab5, 2);                                                                // 2ab3 bmi (fall)
-    m.step(0x2ab8, 6); m.call(0x382d);                                                // 2ab5 jsr $382d
+    m.push16(0x2ab7); m.step(0x2ab8, 6); m.call(0x382d);                                                // 2ab5 jsr $382d
   }
   mem.write8((0x74 + regs.x) & 0xff, regs.a); m.step(0x2aba, 4);                      // 2ab8 sta $74,x
   regs.a = 0x04; regs.setNZ(regs.a); m.step(0x2abc, 2);                               // 2aba lda #$04

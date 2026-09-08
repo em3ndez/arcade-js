@@ -79,7 +79,7 @@ export function loc_2ec6(m) {
         regs.clc(); m.step(0x2f1b, 2);
         regs.adc(mem.read8(0x008d)); m.step(0x2f1d, 3);                               // 2f1b adc $8d
         regs.y = 0x00; regs.setNZ(regs.y); m.step(0x2f1f, 2);                         // 2f1d ldy #$00
-        m.step(0x2f22, 6); m.call(0x2c2b);                                            // 2f1f jsr $2c2b
+        m.push16(0x2f21); m.step(0x2f22, 6); m.call(0x2c2b);                                            // 2f1f jsr $2c2b
         if (regs.fZ) { m.step(0x2f4d, 3); label = 0x2f4d; continue; }                 // 2f22 beq $2f4d
         m.step(0x2f24, 2);
         regs.and(0x3f); m.step(0x2f26, 2);                                            // 2f24 and #$3f
@@ -99,7 +99,7 @@ export function loc_2ec6(m) {
         regs.a = 0x00; regs.setNZ(regs.a); m.step(0x2f36, 2);                         // 2f34 lda #$00
         mem.write8(0x008b, regs.a); m.step(0x2f38, 3);                                // 2f36 sta $8b
         regs.a = 0x01; regs.setNZ(regs.a); m.step(0x2f3a, 2);
-        m.step(0x2f3d, 6); m.call(0x2db6);                                            // 2f3a jsr $2db6
+        m.push16(0x2f3c); m.step(0x2f3d, 6); m.call(0x2db6);                                            // 2f3a jsr $2db6
         regs.y = 0x00; regs.setNZ(regs.y); m.step(0x2f3f, 2);                         // 2f3d ldy #$00
         regs.a = mem.read8(0x00ef); regs.setNZ(regs.a); m.step(0x2f41, 3);            // 2f3f lda $ef
         label = 0x2f41; continue;
@@ -109,7 +109,7 @@ export function loc_2ec6(m) {
         mem.write8((mem.read16(0x0032) + regs.y) & 0xffff, regs.a); m.step(0x2f45, 6); // 2f43 sta ($32),y
         if (regs.fNZ) { m.step(0x2f4a, 3); label = 0x2f4a; continue; }                // 2f45 bne $2f4a
         m.step(0x2f47, 2);
-        m.step(0x2f4a, 6); m.call(0x2b91);                                            // 2f47 jsr $2b91
+        m.push16(0x2f49); m.step(0x2f4a, 6); m.call(0x2b91);                                            // 2f47 jsr $2b91
         label = 0x2f4a; continue;
       }
       case 0x2f4a: {

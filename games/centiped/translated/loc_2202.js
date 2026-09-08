@@ -102,7 +102,7 @@ export function loc_2202(m) {
       }
       case 0x225d: {
         regs.a = mem.read8(0x0081); regs.setNZ(regs.a); m.step(0x225f, 3);              // 225d lda $81
-        m.step(0x2262, 6); m.call(0x382d);                                              // 225f jsr $382d
+        m.push16(0x2261); m.step(0x2262, 6); m.call(0x382d);                                              // 225f jsr $382d
         mem.write8(0x0081, regs.a); m.step(0x2264, 3);                                  // 2262 sta $81
         block = 0x2264; break;
       }

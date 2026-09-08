@@ -81,12 +81,12 @@ MANUAL = {
 #: the canonical case is a NEW game mid-translation that cannot render a frame yet (see docs/runbook.md).
 EXEMPT = {
     "centiped": (
-        "NEW game mid-translation (§3): translated/ holds leaf routines but the boot still hits the\n"
-        "  first unregistered-routine gap at 0x3B04 (reset/spine untranslated), so the idiomatic layer\n"
-        "  cannot render a frame vs MAME yet (a reviewer verifies by constructing the Machine and\n"
-        "  booting to that NotImplemented). MAME golden capture is additionally blocked: the centiped3\n"
-        "  dump is missing the sync PROM 136001-213.p4. REMOVE this the moment the boot reaches a\n"
-        "  rendered frame (§3, docs/runbook.md)."
+        "NEW game mid-translation (§3): the whole reachable set is translated and the oracle now boots\n"
+        "  clean through the spine into the running game (a reviewer verifies by constructing the Machine\n"
+        "  and running frames: coin/start drives 1P play, state advances, zero NotImplemented). The pixel\n"
+        "  render-vs-golden diff is not yet wired/validated, so no frame is compared to MAME yet -- that\n"
+        "  is the next §3->§2 step. REMOVE this the moment the pixel suite diffs a frame vs the golden\n"
+        "  (§3, docs/runbook.md)."
     ),
 }
 

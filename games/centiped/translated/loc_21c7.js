@@ -27,7 +27,7 @@ export function loc_21c7(m) {
   if (regs.fNZ) {                                                                        // 21e2 beq $21e9
     m.step(0x21e4, 2);
     regs.a = regs.y; regs.setNZ(regs.a); m.step(0x21e5, 2);                             // 21e4 tya
-    m.step(0x21e8, 6); m.call(0x382d);                                                   // 21e5 jsr $382d
+    m.push16(0x21e7); m.step(0x21e8, 6); m.call(0x382d);                                                   // 21e5 jsr $382d
     regs.y = regs.a; regs.setNZ(regs.y); m.step(0x21e9, 2);                             // 21e8 tay
   } else {
     m.step(0x21e9, 3);

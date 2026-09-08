@@ -77,7 +77,7 @@ function run3871(m, label) {
       }
       case 0x38c5: {
         regs.y = mem.read8(0x01b8); regs.setNZ(regs.y); m.step(0x38c8, 4);              // 38c5 ldy $01b8
-        m.step(0x38cb, 6); m.call(0x39ea);                                             // 38c8 jsr $39ea
+        m.push16(0x38ca); m.step(0x38cb, 6); m.call(0x39ea);                                             // 38c8 jsr $39ea
         mem.write8(0x01b8, regs.y); m.step(0x38ce, 4);
         m.push8(regs.a); m.step(0x38cf, 3);
         regs.a = regs.y; regs.setNZ(regs.a); m.step(0x38d0, 2);
@@ -86,10 +86,10 @@ function run3871(m, label) {
         mem.write8(0x00b9, regs.a); m.step(0x38d5, 3);
         regs.a = m.pull8(); regs.setNZ(regs.a); m.step(0x38d6, 4);
         regs.y = mem.read8(0x01b9); regs.setNZ(regs.y); m.step(0x38d9, 4);
-        m.step(0x38dc, 6); m.call(0x39ea);                                             // 38d9 jsr $39ea
+        m.push16(0x38db); m.step(0x38dc, 6); m.call(0x39ea);                                             // 38d9 jsr $39ea
         mem.write8(0x01b9, regs.y); m.step(0x38df, 4);
         regs.a = regs.y; regs.setNZ(regs.a); m.step(0x38e0, 2);
-        m.step(0x38e3, 6); m.call(0x382d);                                             // 38e0 jsr $382d
+        m.push16(0x38e2); m.step(0x38e3, 6); m.call(0x382d);                                             // 38e0 jsr $382d
         regs.clc(); m.step(0x38e4, 2);
         regs.adc(mem.read8(0x00bb)); m.step(0x38e6, 3);
         mem.write8(0x00bb, regs.a); m.step(0x38e8, 3);
@@ -117,7 +117,7 @@ function run3871(m, label) {
       case 0x38ff: {
         mem.write8((0x00c2 + regs.x) & 0xff, regs.a); m.step(0x3901, 4);                // 38ff sta $c2,x
         regs.x = regs.a; regs.setNZ(regs.x); m.step(0x3902, 2);
-        m.step(0x3905, 6); m.call(0x2656);                                             // 3902 jsr $2656
+        m.push16(0x3904); m.step(0x3905, 6); m.call(0x2656);                                             // 3902 jsr $2656
         label = 0x3905; continue;
       }
       case 0x3905: {

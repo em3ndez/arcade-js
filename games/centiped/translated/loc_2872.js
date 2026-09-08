@@ -38,12 +38,12 @@ export function loc_2872(m) {
   mem.write8(0x00c8, regs.a); m.step(0x28a9, 3);                                 // 28a7 sta $c8
   regs.a = 0x03; regs.setNZ(regs.a); m.step(0x28ab, 2);                          // 28a9 lda #$03
   mem.write8(0x100f, regs.a); m.step(0x28ae, 4);                                 // 28ab sta $100f
-  m.step(0x28b1, 6); m.call(0x231f);                                             // 28ae jsr $231f
+  m.push16(0x28b0); m.step(0x28b1, 6); m.call(0x231f);                                             // 28ae jsr $231f
   regs.a = 0xc0; regs.setNZ(regs.a); m.step(0x28b3, 2);                          // 28b1 lda #$c0
   mem.write8(0x00a0, regs.a); m.step(0x28b5, 3);                                 // 28b3 sta $a0
   mem.write8(0x00a2, regs.a); m.step(0x28b7, 3);                                 // 28b5 sta $a2
   mem.write8(0x00a3, regs.a); m.step(0x28b9, 3);
-  m.step(0x28bc, 6); m.call(0x21c7);                                             // 28b9 jsr $21c7
-  m.step(0x28bf, 6); m.call(0x20e8);                                             // 28bc jsr $20e8
+  m.push16(0x28bb); m.step(0x28bc, 6); m.call(0x21c7);                                             // 28b9 jsr $21c7
+  m.push16(0x28be); m.step(0x28bf, 6); m.call(0x20e8);                                             // 28bc jsr $20e8
   return m.call(0x28bf);                                                         // fall-through into loc_28bf
 }

@@ -10,7 +10,7 @@ export function loc_2119(m) {
         regs.a = mem.read8(0x0086); regs.setNZ(regs.a); m.step(0x211b, 3);        // 2119 lda $86
         if (regs.fPl) { m.step(0x218c, 3); label = 0x218c; continue; }            // 211b bpl $218c
         m.step(0x211d, 2);
-        m.step(0x2120, 6); m.call(0x2195);                                        // 211d jsr $2195
+        m.push16(0x211f); m.step(0x2120, 6); m.call(0x2195);                                        // 211d jsr $2195
         regs.a = 0x03; regs.setNZ(regs.a); m.step(0x2122, 2);                     // 2120 lda #$03
         mem.write8(0x0093, regs.a); m.step(0x2124, 3);
         regs.a = 0x20; regs.setNZ(regs.a); m.step(0x2126, 2);                     // 2124 lda #$20
@@ -19,12 +19,12 @@ export function loc_2119(m) {
         mem.write8(0x0091, regs.a); m.step(0x212c, 3);
         regs.a = 0x05; regs.setNZ(regs.a); m.step(0x212e, 2);                     // 212c lda #$05
         mem.write8(0x0092, regs.a); m.step(0x2130, 3);
-        m.step(0x2133, 6); m.call(0x3825);                                        // 2130 jsr $3825
+        m.push16(0x2132); m.step(0x2133, 6); m.call(0x3825);                                        // 2130 jsr $3825
         regs.a = mem.read8(0x0000); regs.setNZ(regs.a); m.step(0x2135, 3);        // 2133 lda $00
         if (regs.fNZ) { m.step(0x213c, 3); label = 0x213c; continue; }            // 2135 bne $213c
         m.step(0x2137, 2);
         regs.a = 0x84; regs.setNZ(regs.a); m.step(0x2139, 2);                     // 2137 lda #$84
-        m.step(0x213c, 6); m.call(0x37d5);                                        // 2139 jsr $37d5
+        m.push16(0x213b); m.step(0x213c, 6); m.call(0x37d5);                                        // 2139 jsr $37d5
         label = 0x213c; continue;
       }
       case 0x213c: {
@@ -54,7 +54,7 @@ export function loc_2119(m) {
         regs.a = regs.y; regs.setNZ(regs.a); m.step(0x215e, 2);                   // 215d tya
         mem.write8(0x0053, regs.y); m.step(0x2160, 3);
         regs.clc(); m.step(0x2161, 2);                                            // 2160 clc
-        m.step(0x2164, 6); m.call(0x2aeb);                                        // 2161 jsr $2aeb
+        m.push16(0x2163); m.step(0x2164, 6); m.call(0x2aeb);                                        // 2161 jsr $2aeb
         regs.a = mem.read8(0x0073); regs.setNZ(regs.a); m.step(0x2166, 3);        // 2164 lda $73
         mem.write8(0x008d, regs.a); m.step(0x2168, 3);
         regs.y = 0xff; regs.setNZ(regs.y); m.step(0x216a, 2);                     // 2168 ldy #$ff
@@ -72,11 +72,11 @@ export function loc_2119(m) {
         regs.a = regs.y; regs.setNZ(regs.a); m.step(0x2177, 2);                   // 2176 tya
         mem.write8(0x0083, regs.y); m.step(0x2179, 3);
         regs.clc(); m.step(0x217a, 2);                                            // 2179 clc
-        m.step(0x217d, 6); m.call(0x2b24);                                        // 217a jsr $2b24
+        m.push16(0x217c); m.step(0x217d, 6); m.call(0x2b24);                                        // 217a jsr $2b24
         label = 0x217d; continue;
       }
       case 0x217d: {
-        m.step(0x2180, 6); m.call(0x2b60);                                        // 217d jsr $2b60
+        m.push16(0x217f); m.step(0x2180, 6); m.call(0x2b60);                                        // 217d jsr $2b60
         regs.x = 0x13; regs.setNZ(regs.x); m.step(0x2182, 2);                     // 2180 ldx #$13
         regs.a = 0xfa; regs.setNZ(regs.a); m.step(0x2184, 2);                     // 2182 lda #$fa
         for (;;) {

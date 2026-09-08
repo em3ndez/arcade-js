@@ -28,6 +28,6 @@ export function loc_3049(m) {
     return m.ret(6);                                                                              // 3060 rts
   }
   m.step(0x305d, 2);
-  m.step(0x3060, 6); m.call(0x21c7);                                                              // 305d jsr $21c7
+  m.push16(0x305f); m.step(0x3060, 6); m.call(0x21c7);                                                              // 305d jsr $21c7
   return m.ret(6);                                                                                // 3060 rts
 }
