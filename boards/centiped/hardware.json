@@ -72,8 +72,16 @@
     "_trackball_note": "trackball X/Y are analog deltas fed via io.applyTrackball(axis, delta), not IN bits."
   },
 
-  "controlByte": null,
-  "_controlByte_note": "TODO: ROM[0x2000] first opcode after reset, MEASURED once games/centiped/rom is present. Distinguishes a real ROM read from an unmapped throw.",
+  "cpu": "6502",
+  "_cpu_family_note": "Selects the 6502 config-certification probe in tools/mame_golden.py (ROM loaded via control byte at the 0x2000 ROM base + pinned DSW1; two dip ports, no single Konami DSW byte).",
+
+  "dsw0": { "addr": 2048, "expected": 84, "_hex_addr": "0x0800 (DSW1)", "_hex_expected": "0x54 -- Language(EN)/Lives(3)/Bonus(12k)/Difficulty(easy)/CreditMin(1) DIP defaults. The gameplay-affecting dip port; DSW2 (0x0801 coinage) is recorded, not pinned. ✓ MEASURED 0x54 at load from centiped3." },
+
+  "controlByte": 76,
+  "_controlByte_note": "0x4C = 6502 JMP opcode at ROM[0x2000] (program-ROM base). MEASURED at load from the centiped3 romset (mem:read_u8(0x2000)); the reset vector 0x3FFC/D = 0x3B4B also lands in ROM. Distinguishes a real ROM read from an unmapped 0x00/0xFF float. Config-probe key: control_rom2000 in dump_state.lua.",
+
+  "writeTimestamp": "write-bus-cycle",
+  "_writeTimestamp_note": "MAME's universal convention (a traced write is timestamped at its write bus cycle), CPU-independent -- adopted for §3 write-diffing exactly as on the Z80 boards.",
 
   "interrupt": {
     "kind": "IRQ",
@@ -81,6 +89,8 @@
     "nmiVector": 16378,
     "resetVector": 16380,
     "irqVector": 16382,
+    "expectedResetVector": 15108,
+    "_expectedResetVector_hex": "0x3B04 -- the TARGET entry the reset vector POINTS TO (read16(0x3FFC)), NOT the vector location (resetVector=0x3FFC above). MEASURED at load from the centiped3 rev3 romset. The rev4 PARENT 'centiped' boots to 0x3B4B instead; tools/mame_golden.py's 6502 config-cert POISONS the capture if the booted reset target != this, making a wrong-set (parent-vs-clone) golden impossible. (0x3B04 = 15108 decimal.)",
     "_note": "Level-triggered IRQ on the '32v' scanline timer (centiped.cpp:1794, generate_interrupt@434): TIMER configure_scanline(..., 0, 16) fires at scanlines 0,16,32,...; when (scanline & 16), IRQ = ((scanline-1)&32) ? ASSERT : CLEAR. Net: the IRQ line toggles at 16-scanline boundaries (a few IRQs/frame). The ROM ACKs by writing 0x1800 (irq_ack_w). The Machine drives assert/clear via io.setIrq()/io.ackIrq(), gated by the 6502 I flag. Separately, IN0 bit6 is a CPU-pollable VBLANK bit (active-high) -- the likely §4 frame-sync yield point. MACHINE_RESET clears the IRQ line. centiped.cpp:469-490."
   },
 

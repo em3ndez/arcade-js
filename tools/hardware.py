@@ -34,6 +34,8 @@ class Hardware:
         self._raw = data
 
         self.driver = data["driver"]
+        # CPU family ("6502"/"8080"/"z80"), optional -- picks the config-cert probe; absent on Z80 boards.
+        self.cpu = data.get("cpu")
 
         screen = data["screen"]
         self.screen_width = int(screen["width"])
@@ -58,12 +60,22 @@ class Hardware:
         dsw0 = data.get("dsw0")
         self.dsw0_addr = int(dsw0["addr"]) if dsw0 else None
         self.dsw0_expected = int(dsw0["expected"]) if dsw0 else None
-        self.control_byte = int(data["controlByte"]) if "controlByte" in data else None
+        # controlByte may be JSON null (declared before its ROM was measured) -- treat null like absent, not int(None).
+        self.control_byte = (
+            int(data["controlByte"]) if data.get("controlByte") is not None else None
+        )
 
         # z80Reset (Z80 boards) or cpuReset (8080); either maps reg name -> value.
         reset = data.get("z80Reset") or data.get("cpuReset") or {}
         self.z80_reset = {k: int(v) for k, v in reset.items() if not k.startswith("_")}
-        self.write_timestamp = data["writeTimestamp"]
+        # writeTimestamp: only the §3 write-diff harness uses it; a §2-stage board may omit it.
+        self.write_timestamp = data.get("writeTimestamp")
+
+        # Optional expected reset-vector TARGET: a port targeting a CLONE set pins it so the golden
+        # capturer rejects a wrong-set boot (parent vs clone run different programs). Absent -> None.
+        interrupt = data.get("interrupt") or {}
+        erv = interrupt.get("expectedResetVector")
+        self.expected_reset_vector = int(erv) if erv is not None else None
 
         # (name, cycle, provenance) -- matches scope.LANDMARKS' tuple shape exactly.
         self.landmarks = [

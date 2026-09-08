@@ -51,7 +51,12 @@ def build_mame_argv(args, hw, workdir, avi_name="out"):
     """The known-good command line. Every flag is load-bearing; MAME-flag gotchas: docs/mame-golden.md."""
     argv = [
         args.mame,
-        hw.driver,
+        # The MAME machine to launch. Usually the hardware.json driver, but a port can target a
+        # CLONE set whose program differs from the parent driver (Centipede: driver "centiped" is
+        # the rev4 parent, but the port targets the "centiped3" rev3 clone -- a different program,
+        # reset 0x3B04 vs 0x3B4B). --set overrides which machine runs; it defaults to hw.driver so
+        # every existing game (driver == set == parent) is unchanged.
+        args.set or hw.driver,
         "-rompath",
         args.rompath,
         "-norotate",  # frame contract: compare unrotated WxH
@@ -220,6 +225,15 @@ def main():
         "game's RNG matches the pinned JS engine. See docs/idiomatic-generation.md (Entropy pinning).",
     )
     p.add_argument("--rompath", default=os.path.expanduser("~/Downloads"))
+    p.add_argument(
+        "--set",
+        dest="set",
+        default=None,
+        help="MAME machine/set to launch, overriding the hardware.json driver -- for a port "
+        "that targets a CLONE set whose program differs from the parent (e.g. --set centiped3, "
+        "the rev3 clone of parent driver 'centiped'). Defaults to the driver, so games where "
+        "driver == set are unchanged.",
+    )
     p.add_argument("--mame", default="mame")
     p.add_argument("--no-frames", action="store_true", help="skip AVI/frame capture")
     p.add_argument("--no-state", action="store_true", help="skip Lua state capture")
@@ -282,6 +296,7 @@ def main():
 
         manifest = {
             "mame_argv": argv,
+            "mame_set": args.set or hw.driver,  # the machine actually launched (may be a clone != driver)
             "seconds": args.seconds,
             "refresh_hz": hw.refresh_hz,
             "playback": args.playback,
@@ -427,7 +442,64 @@ def main():
             cfg = dict(
                 ln.split("=", 1) for ln in open(cfg_path).read().split() if "=" in ln
             )
-            if hw.control_byte is None:
+            if hw.cpu == "6502":
+                # 6502 boards (Centipede): the program ROM is memory-mapped high (0x2000-0x3FFF),
+                # not at 0x0000, and there is no single Konami-style DSW byte -- there are two dip
+                # ports (DSW1 0x0800 gameplay bits, DSW2 0x0801 coinage). Certify (a) the ROM loaded
+                # via its measured first opcode byte at the ROM base (control_rom2000 == controlByte;
+                # 0x4C = JMP, an unmapped/absent ROM would read 0x00/0xFF), and (b) the pinned
+                # gameplay dip (DSW1) matches -- a stray cfg silently changing lives/bonus/difficulty
+                # would poison every frame. DSW2 (coinage) is recorded, not gated: it does not affect
+                # attract-mode determinism (no coin is inserted), so pinning it would only add a
+                # brittle check. 6502 reset registers are recorded (not contract-pinned: the 6502
+                # reset state is owned by core/cpu/6502.js and not independently re-derived here).
+                control = int(cfg.get("control_rom2000", "-1"), 16)
+                manifest["rom_verified"] = control == hw.control_byte
+                if hw.control_byte is None or control != hw.control_byte:
+                    poison.append(
+                        f"config probe: ROM 0x2000 read 0x{control:02X}, expected "
+                        f"0x{(hw.control_byte or 0):02X} (measured first opcode) -- the program ROM "
+                        f"did not load, so this golden is meaningless"
+                    )
+                if hw.dsw0_expected is None:
+                    manifest["dsw0_verified"] = None
+                else:
+                    dsw1 = int(cfg.get("dsw1", "-1"), 16)
+                    manifest["dsw0"] = cfg.get("dsw1")
+                    if dsw1 != hw.dsw0_expected:
+                        poison.append(
+                            f"DSW1 is 0x{dsw1:02X}, contract pins 0x{hw.dsw0_expected:02X} "
+                            f"-- a gameplay dipswitch differs from the pinned machine "
+                            f"configuration (stray cfg?), so this golden is not comparable"
+                        )
+                        manifest["dsw0_verified"] = False
+                    else:
+                        manifest["dsw0_verified"] = True
+                manifest["dsw2"] = cfg.get("dsw2")  # coinage: recorded, not gated (see above)
+                # Record the reset-vector TARGET the ROM booted from: it identifies WHICH program ran
+                # (Centipede rev3 centiped3 -> 0x3B04; rev4 parent centiped -> 0x3B4B). This is the
+                # provenance that catches a wrong-set capture -- a port targeting a clone must see its
+                # clone's entry, not the parent driver's.
+                manifest["reset_vector"] = cfg.get("reset_vector")
+                # GATE (fail-closed) the booted reset target against the pinned entry, when the board
+                # declares one. This is what makes a wrong-set capture IMPOSSIBLE: a port targeting a
+                # clone (centiped3, reset 0x3B04) that accidentally ran the parent driver (centiped,
+                # reset 0x3B4B) is caught here instead of silently producing a diverging golden. Boards
+                # that do not pin expectedResetVector keep this record-only (no forced declaration).
+                if hw.expected_reset_vector is not None:
+                    got = int(cfg.get("reset_vector", "-1"), 16)
+                    manifest["reset_vector_verified"] = got == hw.expected_reset_vector
+                    if got != hw.expected_reset_vector:
+                        poison.append(
+                            f"reset vector target is 0x{got:04X}, contract pins "
+                            f"0x{hw.expected_reset_vector:04X} -- the machine booted a DIFFERENT "
+                            f"program than the port targets (wrong --set / parent-vs-clone?), so "
+                            f"this golden is not comparable to the port"
+                        )
+                regs = {k[4:]: v for k, v in cfg.items() if k.startswith("reg_")}
+                if regs:
+                    manifest["cpu_reset"] = regs
+            elif hw.control_byte is None:
                 # 8080 boards (Space Invaders): no memory-mapped DSW / control byte. Certify the program
                 # ROM loaded via a distinctive ROM byte the 8080 dumper wrote (0x0003 = 0xC3, the reset
                 # JMP opcode -- unmapped would read 0x00/0xFF), and record the 8080 reset registers.
