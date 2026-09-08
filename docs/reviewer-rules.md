@@ -778,3 +778,18 @@ the RENAME obligation, not just the comments: any routine in the commit's scope 
 The mechanical backstop is `done_gate`'s `naming` subsystem (`tools/naming_gate.py`), which refuses the ship
 for the same condition; this rule catches it per-commit rather than only at done.
 *See docs/runbook.md §4-end "Clean every routine" (the two obligations) + tools/naming_gate.py.*
+
+## R42 [ALL] a gate/harness constructs through the shared factory and feeds manifest values RAW — never restated or translated
+
+The web player builds a game's Machine ONE way: `web/machine-factory.js buildGameMachine()` (the worker's exact
+`new Machine(maincpu, {inputs, ...gfx, overrides})`, non-maincpu images spread by their `manifest.rom.images`
+NAME) and keys input by the manifest port VALUES. A gate/harness that RE-STATES a declared manifest value —
+reads `opts.gfx` when the manifest names the image `gfx1`, or TRANSLATES a port through a private map (a `PMAP`)
+— is blind to a divergence in that very value and passes green while the browser is broken. All four galaxian
+browser-only defects shared this root (black screen from a gfx image key; input crash-loop from a translated
+port index). So a reviewer of any gate/harness/test that constructs a Machine or feeds it input MUST confirm it
+builds via `buildGameMachine` and feeds RAW manifest keys/values — not a hand-rolled `new Machine(...)` nor a
+restated/translated value. The mechanical backstop is `done_gate`'s `browser` subsystem (the shared games-boot
+boot). Node cannot exercise the browser audio/canvas RUNTIME (the synth-404 + Safari 0-input bugs were
+runtime-only), so a human browser confirm stays a DONE step.
+*See docs/runbook.md §5 "New-subsystem DONE doctrine" + web/machine-factory.js + tools/done_gate.py check_browser.*

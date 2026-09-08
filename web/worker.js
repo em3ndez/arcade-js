@@ -151,6 +151,7 @@ async function run(gameId, provided) {
   const machineMod = await import(`../games/${gameId}/machine.js`);
   const { Machine } = machineMod;
   const { Inputs } = await import(`../boards/${manifest.board}/io.js`);
+  const { buildGameMachine } = await import("./machine-factory.js");
 
   // manifest.runtime "idiomatic" runs the readable idiomatic layer on the coroutine engine
   // (generators yielding at each vblank); absent/other runs the translated layer on the
@@ -184,16 +185,13 @@ async function run(gameId, provided) {
     return fetchBin(`../games/${gameId}/rom/${n}.bin`);
   }));
   const images = Object.fromEntries(names.map((n, i) => [n, bins[i]]));
-  const { maincpu, ...gfx } = images;
 
   const sw = manifest.screen?.width ?? 256, sh = manifest.screen?.height ?? 224;
   FRAME_BYTES = sw * sh * 3;
   postMessage({ type: "ready" });
 
   while (Atomics.load(ctrl, C_RUNNING) === 1) {
-    const m = idiomatic
-      ? new Machine(maincpu, { inputs: new Inputs(), ...gfx, overrides })
-      : new LiveMachine(maincpu, { inputs: new Inputs(), ...gfx, overrides });
+    const m = buildGameMachine(idiomatic ? Machine : LiveMachine, new Inputs(), images, overrides);
     if (!idiomatic) m.captureVideo = true; // idiomatic renders on demand in serviceIdiomaticFrame
     m._next = performance.now();
     // A fresh machine has fresh latches -- clear the remembered edge state or the first frame

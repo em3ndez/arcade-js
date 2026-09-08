@@ -12,6 +12,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { runIdiomaticGame } from "../../core/frame-stepped.js";
+import { buildGameMachine } from "../machine-factory.js";
 import { GAMES } from "../../games/registry.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -51,39 +52,48 @@ for (const gameId of GAMES) {
     const { Machine } = machineMod;
     const overrides = await machineMod.resolveAllIdiomatic();
     const bins = Object.fromEntries(names.map((n) => [n, new Uint8Array(readFileSync(romPath(n)))]));
-    const { maincpu, ...gfx } = bins;
 
-    // The EXACT worker construction (web/worker.js): (rom, {inputs, ...gfx, overrides}).
-    const m = new Machine(maincpu, { inputs, ...gfx, overrides });
+    // Construct via the SHARED factory the worker uses (machine-factory.js), NOT a hand-rolled new Machine():
+    // a manifest<->constructor divergence (a gfx image key, a port index) then cannot hide in a harness that
+    // builds it differently -- the shared root of all four galaxian browser bugs.
+    const m = buildGameMachine(Machine, inputs, bins, overrides);
 
-    // Feed input the worker way (readInputsInto): inputAssert keyed by the manifest PORT VALUES, not {}.
-    // galaxian shipped ports as hw addresses (0x6000...) not io indices, so the worker keying crash-looped;
-    // a bare {} never exercised the port keys.
-    const zeroInput = Object.fromEntries(Object.values(manifest.inputs.ports).map((v) => [v, 0]));
+    // Feed input the worker way (readInputsInto): keyed by the manifest PORT VALUES (addresses OR io indices,
+    // per board), with a REAL coin pressed for a window -- not an all-zero {}. `action.port` is the port key in
+    // every convention; polarity is the board's job, so assert the keyed input does NOT throw (galaxian's
+    // ports-as-addresses crash-looped here), not that it banks a credit (that varies per game).
+    const coin = manifest.inputs.actions.coin;
+    const portKeys = Object.values(manifest.inputs.ports);
+    const frameInput = (f) => {
+      const a = {};
+      for (const k of portKeys) a[k] = 0;
+      if (coin && f >= 90 && f < 130) a[coin.port] = (a[coin.port] || 0) | coin.bit;
+      return a;
+    };
 
-    // Arm the sound tap as the worker does; an audio game must drive it during attract (galaxian shipped
-    // silent -- a 404 synth path + a model that never voiced the background/tune).
+    // Arm the sound tap as the worker does: an audio game must drive it during attract (a DEAD seam -> 0). This
+    // proves the SEAM is live, NOT that the synth voices right -- per-voice fidelity is audio_gate's synth
+    // null-mutant (test/synth-voices.test.js).
     let soundWrites = 0;
     m.io.onSoundWrite = () => { soundWrites++; };
 
     const r = runIdiomaticGame(m, {
-      bootAddr: 0x0000,
-      nmiReturnPC,
-      maxFrames: FRAMES,
-      onFrame: (mm) => { mm.io.inputAssert = zeroInput; },
+      bootAddr: 0x0000, nmiReturnPC, maxFrames: FRAMES,
+      onFrame: (mm, f) => { mm.io.inputAssert = frameInput(f); },
     });
     assert.equal(r.stopError, null, `${gameId}: worker-form run threw: ${r.stop}`);
     assert.ok(r.frames >= FRAMES, `${gameId}: only advanced ${r.frames}/${FRAMES} frames (${r.stop})`);
 
-    // Render the worker way (machine.renderFrame) and assert a NON-uniform buffer: the gfx1 key mismatch left
-    // this.video null -> an all-black (uniform) frame that boots fine but shows nothing.
+    // Render the worker way and assert a NON-uniform buffer: the gfx1 key mismatch left this.video null -> an
+    // all-black (uniform) frame that boots fine but shows nothing.
     const frame = m.renderFrame();
     assert.ok(frame && frame.length > 0, `${gameId}: renderFrame produced no buffer`);
     let uniform = true;
     for (let i = 1; i < frame.length; i++) if (frame[i] !== frame[0]) { uniform = false; break; }
     assert.ok(!uniform, `${gameId}: rendered attract frame is uniform (decoded graphics missing? black screen)`);
 
-    // "Tick audio": a game declaring an audio block must drive the sound tap during attract.
     if (manifest.audio) assert.ok(soundWrites > 0, `${gameId}: declares audio but wrote no sound in ${FRAMES} frames (dead sound seam?)`);
+    // Node can't exercise the browser AUDIO RUNTIME (Web Audio/Safari) or the canvas -- the synth-404 + Safari
+    // 0-input bugs were runtime-only. A human browser confirm stays a DONE step (runbook §5 doctrine).
   });
 }

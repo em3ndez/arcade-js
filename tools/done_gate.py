@@ -237,6 +237,24 @@ def check_comment_floor(game):
     return (rc == 0), detail[:120]
 
 
+def check_browser(game):
+    """The web-worker boot the shared player runs -- construction via the SAME factory (web/machine-factory.js)
+    the worker uses, worker-form input keying, a rendered NON-uniform frame, and a live sound seam -- exercised
+    in node (web/test/games-boot.test.js). This is the class every OTHER gate is blind to: none construct the
+    board Inputs or boot the worker loop, so a game passed everything and was UNPLAYABLE (invaders: no Inputs
+    export; galaxian: black screen from a gfx key + an input crash-loop). Wired here so DONE fail-closes on it
+    BEFORE the R40 DONE.md lands. Node CANNOT exercise the browser audio/canvas RUNTIME (the galaxian synth-404
+    + Safari 0-input bugs were runtime-only), so a human browser confirm remains a DONE step; this gate covers
+    construction/render/seam. A SKIP (ROM absent / §2 skeleton) is NOT verified -> RED."""
+    rc, out = run(["node", "--test", "--test-reporter", "tap", "web/test/games-boot.test.js"])
+    line = next((ln for ln in out.splitlines() if re.search(rf" - {re.escape(game)}: boots", ln)), "")
+    if line.startswith("ok") and "skip" not in line.lower():
+        return True, "PASS (worker-form construct+render+input+sound seam; browser runtime = human confirm)"
+    if "skip" in line.lower():
+        return False, "games-boot SKIPPED (ROM absent or §2 skeleton) -- browser boot NOT verified"
+    return False, "games-boot FAILED (worker-form boot broke)"
+
+
 SUBSYSTEMS = [
     ("idiomatic", check_idiomatic),
     ("wiring", check_wiring),
@@ -246,6 +264,7 @@ SUBSYSTEMS = [
     ("audio", check_audio),
     ("pixel", check_pixel),
     ("whole-game", check_wholegame),
+    ("browser", check_browser),
 ]
 
 
