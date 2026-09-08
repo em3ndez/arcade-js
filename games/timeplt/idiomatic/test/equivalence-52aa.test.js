@@ -2,7 +2,7 @@
 /**
  * seedGameConfigFromDipSwitches — memory-equivalent to the frozen oracle at ROM 0x52AA. The routine seeds the settings
  * block from the two switch banks and tail-jumps into the DIP-unpack chain, which cold-starts and
- * hands the machine to the foreground loop. The chain's go-live tail returns a COROUTINE rather than
+ * hands the machine to the foreground loop. The chain's generator-engine tail returns a COROUTINE rather than
  * dispatching through the registry, so a stub inside it no longer stops the rewrite; both arms are
  * run with the foreground loop (0x0B93) SEVERED to an empty coroutine, reached by the frozen side's
  * plain call and the rewrite's `yield*` alike, with `drive` iterating the rewrite to that handover.

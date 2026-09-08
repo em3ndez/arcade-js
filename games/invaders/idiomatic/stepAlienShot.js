@@ -52,7 +52,7 @@ function activateShot(m) {
 }
 
 // Idle path: decide whether to launch a shot this frame. Gated by task state and the two per-column rate
-// timers; then pick a firing column and, if it holds a live alien, seat the shot's start and go live.
+// timers; then pick a firing column and, if it holds a live alien, seat the shot's start and activate it.
 function maybeLaunchShot(m) {
   // TASK_FLAGS == 4 is the unconditional-fire request: launch immediately.
   if (m.mem8[TASK_FLAGS] === 4) return activateShot(m);

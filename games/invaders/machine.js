@@ -86,7 +86,7 @@ export class Machine {
 
     this.mem.clock = () => this.cycles;
 
-    // Coroutine go-live (runIdiomaticGame): the current main generator hands the engine a successor
+    // Coroutine generator (runIdiomaticGame): the current main generator hands the engine a successor
     // loop by setting nextMain (a warm restart); RESTART is the sentinel restartMain() throws for a
     // MID-FRAME restart (see below). Per-instance so a clone's throw/catch pair share one identity.
     this.nextMain = null;

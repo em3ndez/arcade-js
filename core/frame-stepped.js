@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Cycle-free ("frame-stepped") engines: fire the vblank NMI at the game's vblank yield, not on a cycle
 // count. runCycleFree (poll-PC, translated), runWatchdogGame (watchdog read), runIdiomaticGame (coroutine,
-// the model for a new game). TEST seams; the shipped game stays cycle-driven. Go-live traps and poll-PC
-// choice: docs/idiomatic-generation.md and docs/integration-testing.md "Go-live". Validate via convergence.mjs.
+// the model for a new game). TEST seams; the shipped game stays cycle-driven. Coroutine-generator traps and poll-PC
+// choice: docs/idiomatic-generation.md and docs/integration-testing.md "The generator engine". Validate via convergence.mjs.
 
 // Unwinds out of the call tree when a run is done; boot + main loop never return. Not an error.
 class RunComplete extends Error {

@@ -61,7 +61,7 @@ for (const game of gamesWithIdiomaticLayer(GAMES)) {
   });
 }
 
-// The SPINE exemption, on synthetic fixtures so it does not ride real game state. A go-live spine
+// The SPINE exemption, on synthetic fixtures so it does not ride real game state. A coroutine-generator spine
 // layer names no gate legitimately; the exemption must stay NARROW and must not blind the leak scan.
 function fixture(files, gates = []) {
   const root = mkdtempSync(join(tmpdir(), "stalemcall-"));

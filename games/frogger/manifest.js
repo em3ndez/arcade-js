@@ -74,7 +74,7 @@ export default {
   // sides once identified (core/entropy-pin.js, [[entropy-pinning-strategy]]).
   entropyPin: null,
 
-  // Idiomatic go-live (runIdiomaticGame). nmiReturnPC = the pace tail 0x0368, where control sits at the
+  // Idiomatic coroutine generator (runIdiomaticGame). nmiReturnPC = the pace tail 0x0368, where control sits at the
   // vblank yield; the foreground FREE-RUNS (no poll), so pollPCs mirrors it only for manifest shape.
   // stateExclude.stack [start,end) is the measured Z80 stack below SP=0x8800 (deepest push 0x87e2).
   convergence: {

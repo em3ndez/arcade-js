@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 /**
- * SPINE: the go-live coroutine spine files, which carry no equivalence-<addr> gate by design (the
+ * SPINE: the coroutine-generator spine files, which carry no equivalence-<addr> gate by design (the
  * coroutine and pixel gates subsume it; docs/integration-testing.md). A layer of only spine files
  * names no decompiled address; they are exempt from SEEDING the set but still scanned for leaks.
  */

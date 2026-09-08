@@ -10,7 +10,7 @@ then modules keep their `loc_<addr>` names.
 The idiomatic layer is a second implementation of the game's routines — small, readable JavaScript
 — that runs *in place of* the frozen translated oracle in `games/frogger/translated/`. It is born
 live: where an address has an idiomatic module the machine runs it; where none exists yet, the
-translated routine runs. There is no go-live switch and no dormant layer — coverage grows one
+translated routine runs. There is no separate activation step and no dormant layer — coverage grows one
 address at a time as modules land.
 
 ## The correctness contract
@@ -31,7 +31,7 @@ dead scratch on the stack that the register-free rewrite never writes, the gate 
 where live-out escapes RAM (a sound-command port, a screen-flip latch), the gate compares the IO
 surface directly.
 
-## The go-live loop
+## The coroutine-generator loop
 
 `runIdiomaticGame` drives the layer with the clock ignored — `maxCycles` / `nextNmi` /
 `nextBoundary` are Infinity and the scheduler's NMI is disabled. The frame boundary is a **vblank

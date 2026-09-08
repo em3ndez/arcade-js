@@ -37,7 +37,7 @@ BAND_MAX_PX = 16
 # A frozen/black screen (distinct ~1) lets two dead frames match and PASS over nothing; require motion.
 MIN_DISTINCT = 10
 
-# Idiomatic go-live alignment, MEASURED: the "ignore the clock" boot collapses ~49 frames, so idio
+# Idiomatic coroutine-generator alignment, MEASURED: the "ignore the clock" boot collapses ~49 frames, so idio
 # render frame i matches golden i+GEN_OFFSET, and the first GEN_BOOT_SKIP frames are the boot transient
 # (no golden match, excluded). Past it, idio is PIXEL-EXACT (0px) to MAME -- the DK --tape-origin case.
 GEN_OFFSET = 49

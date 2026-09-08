@@ -7,7 +7,7 @@
  *   runPlayerOnePlayFrame and runPlayerTwoPlayFrame: a pure hold that waits out a short dwell and then
  *   nudges the top-level sequence forward. Galaxian's attract/play flow walks itself along a cascade of
  *   dwell timers, and this is one of those holds -- the round pauses in sub-state 3 until the timer
- *   expires, then advances to sub-state 4 ("go live").
+ *   expires, then advances to sub-state 4 (begins the play phase).
  *
  * ROLE IN THE MACHINE
  *   Selected off SEQUENCE_STATE (0x400a), the top-level sequence step index. It ticks the dwell-tier

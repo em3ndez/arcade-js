@@ -72,7 +72,7 @@ export function* drainForegroundThenYieldEachVblank(m) {
  * runOneForegroundPass  —  ROM loop body: head 0x0341 / pace tail 0x0368  ·  [seen]
  *
  * Runs ONE pass of the foreground loop body starting at `entry` and returns the entry the NEXT pass should
- * take (MAIN_LOOP_HEAD or PACE_TAIL). Exported so the go-live byte-exact harness can drive it from a golden
+ * take (MAIN_LOOP_HEAD or PACE_TAIL). Exported so the coroutine-generator byte-exact harness can drive it from a golden
  * anchor, isolating the model from boot. Memory-only in effect; the return value is a re-entry selector,
  * not game state the caller consumes.
  */

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * assembled-swap — RETIRED AT THE COROUTINE GO-LIVE. NOTHING BELOW RUNS: 9 tests, 9 skipped.
+ * assembled-swap — RETIRED AT THE COROUTINE-GENERATOR CUTOVER. NOTHING BELOW RUNS: 9 tests, 9 skipped.
  *
  * ⛔ READ THIS BEFORE THE REST OF THE HEADER, WHICH DESCRIBES THE GATE AS IT WAS. Every sentence
  * after this block is written in the present tense about a gate that no longer executes — it

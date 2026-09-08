@@ -286,7 +286,7 @@ from setup through play to hand-off:
   gate `loc_4006` is open — cues the board-start sound.
 - **3 — dwell.** `advanceSubstateAfterDwellAndQueue` [seen] ticks `loc_4009`; on its zero-cross it reloads
   it to 20, advances the state, and enqueues this step's command word.
-- **4 — go live.** `activateObjectsAndBeginPlayPhase` [seen] ticks the dwell and, on expiry, reloads it to
+- **4 — begin play.** `activateObjectsAndBeginPlayPhase` [seen] ticks the dwell and, on expiry, reloads it to
   10, advances the state, raises `OBJ_ACTIVE_FLAG` (0x4200) [seen] to switch on the object/AI/projectile
   subsystem, seeds the reference X, refills the 16-byte enemy-launch sub-counter block from
   `SUBCOUNTER_RELOAD_TABLE` (0x15e3) [seen], and queues two display commands.

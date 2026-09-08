@@ -298,7 +298,7 @@ export function loc_43f0_4663(m) {
   regs.a = mem8[X(HOLD_COUNTER)];
   regs.cp(0x06);
   if (regs.fC) mem8[X(HOLD_COUNTER)] = 0x05; // floor
-  mem8[X(STATE)] = 0xff; // go live
+  mem8[X(STATE)] = 0xff; // activate the mothership
   return requestCurrentEraSound(m);
 }
 

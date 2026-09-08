@@ -25,7 +25,7 @@ export function decompiledAddresses(idiomaticDir) {
  * Every stale m.call in one game's idiomatic layer. `allow` maps a caller file to m.call targets it
  * may keep (never-returning boundaries the harness stubs through the registry, which needs m.call).
  * REFUSES to score ungated files against an empty decompiled set -- that reads clean while seeing
- * nothing. The lone legit exception is the go-live foundation, whose only files are the coroutine
+ * nothing. The lone legit exception is the coroutine-generator foundation, whose only files are the coroutine
  * SPINE (no equivalence gate by design): excused from seeding the set, still scanned, so a spine
  * m.call to a later-decompiled leaf is still caught. `spine` overrides the config, for the selftest.
  */

@@ -6,7 +6,7 @@
 //
 // ⛔ THE ORACLE IS THE CYCLE-DRIVEN RUN. Under runCycleFree the drain takes one command per
 // interrupt and the ring backs up (26 of 64 cells against 0 here), so that comparand goes red for
-// the very behaviour this go-live fixes. ★ Align by NMI ORDINAL, never frame index: boot burns no
+// the very behaviour the coroutine generator fixes. ★ Align by NMI ORDINAL, never frame index: boot burns no
 // frames on a yield clock, and the tape must ride that same ordinal.
 //
 // COVERAGE THIS DOES NOT GIVE, and it is cited to retire another gate. MEMORY ONLY: dumpState is

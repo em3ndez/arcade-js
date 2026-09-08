@@ -4,7 +4,7 @@
  *
  * THE TAIL NEVER RETURNS. 0x2E19 opens three settings cells and tail-jumps to 0x49A8, which cold-
  * starts and hands the machine to the foreground loop. The dissolution calls the lifted 0x49A8
- * directly, and its go-live tail returns a COROUTINE rather than dispatching through the registry, so
+ * directly, and its generator-engine tail returns a COROUTINE rather than dispatching through the registry, so
  * a stub at 0x49A8 no longer stops the rewrite. Both arms are therefore run with the foreground loop
  * (0x0B93) SEVERED to an empty coroutine, reached by the frozen side's plain call and the rewrite's
  * `yield*` alike; `drive` iterates the rewrite's coroutine to that handover. What is compared there is

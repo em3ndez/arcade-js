@@ -4,7 +4,7 @@
 // modes -- main (the measurement) | mutate (plant a second poll) | inject (post an unissued command)
 //
 // The question: does any PC other than 0x0B93 wait on a cell only the vblank NMI writes? The
-// manifest declared `pollPCs: [0x0b93]` from elimination, and the generator go-live turns the poll
+// manifest declared `pollPCs: [0x0b93]` from elimination, and the coroutine generator turns the poll
 // set into load-bearing structure -- every wait must become a `yield` -- so it needs measuring.
 //
 // HARNESS: the CYCLE-DRIVEN engine, which takes no poll set at all -- the NMI comes off the
