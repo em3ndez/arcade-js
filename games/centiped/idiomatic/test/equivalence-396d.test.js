@@ -2,9 +2,11 @@
 // Memory-equivalence for accumulateTrackballAndReturnFromIrq (the 0x396d interrupt tail). Its diffed output
 // is work RAM: the two per-axis accumulators ($b9/$ba,X) and their previous-sample cells ($bd,X), plus the
 // $d5 diagnostic counter on the service branch. Its latch writes ($1404-$1407 palette, $1c00, $1800) land
-// outside dumpState. This routine RESTORES the saved registers and RTIs, so it is NOT an omitted-ret leaf:
-// the seam does not complete it (SP-NOTE below). CAPTURE replays every real dispatch byte-exact; a crafted
-// arm drives the service-pressed counter branch; TEETH proves the RAM diff and the SP discipline have teeth.
+// outside dumpState. SP is RETIRED: the idiomatic tail is fired as a direct call, so it restores no register
+// frame and does not RTI -- it leaves SP INERT (never moves), deliberately diverging from the oracle, which
+// still pulls+RTIs. So the arms assert SP is inert, not that it matches the oracle. CAPTURE replays every
+// real dispatch; a crafted arm drives the service-pressed counter branch; TEETH proves the RAM diff and the
+// SP-inert invariant have teeth.
 // Run: node --test games/centiped/idiomatic/test/equivalence-396d.test.js
 
 import nodeTest from "node:test";
@@ -13,8 +15,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_396d as oracle } from "../../translated/loc_396d.js";
 import { accumulateTrackballAndReturnFromIrq } from "../accumulateTrackballAndReturnFromIrq.js";
-import { Machine, withOmittedRet } from "../../machine.js";
-import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
+import { Machine } from "../../machine.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_d5, loc_bd, TRACKBALL_LAST_DELTA, loc_b9, loc_c5 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -40,7 +42,7 @@ test("CAPTURE: real 0x396d dispatches == accumulateTrackballAndReturnFromIrq in 
     const o = cap.clone(), c = cap.clone();
     oracle(o); accumulateTrackballAndReturnFromIrq(c);
     assert.equal(ramDiff(o, c), null);
-    assert.equal(c.regs.s, o.regs.s, "SP after the rewrite must match the oracle");
+    assert.equal(c.regs.s, cap.regs.s, "SP inert -- the rewrite never touches the stack");
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
@@ -72,9 +74,10 @@ test("CRAFTED: the service-pressed counter / accumulate branch == oracle in RAM"
   for (const s of cases) {
     const o = new Machine(ROM); seedService(o, s);
     const c = new Machine(ROM); seedService(c, s);
+    const entrySP = c.regs.s;
     oracle(o); accumulateTrackballAndReturnFromIrq(c);
     assert.equal(ramDiff(o, c), null, s.tag);
-    assert.equal(c.regs.s, o.regs.s, `SP: ${s.tag}`);
+    assert.equal(c.regs.s, entrySP, `SP inert: ${s.tag}`);
   }
 });
 
@@ -91,22 +94,14 @@ test("TEETH: a skipped accumulator write is caught by the RAM diff", () => {
   assert.equal(d.addr, loc_b9 & 0xffff);
 });
 
-test("TEETH(SP): the rewrite keeps the oracle's stack discipline; a leaked push is caught", () => {
+test("TEETH(SP): the rewrite is SP-inert; a stray stack touch is caught", () => {
   const cap = CAPS[0].clone();
-  const o = cap.clone(), c = cap.clone();
-  oracle(o); accumulateTrackballAndReturnFromIrq(c);
-  assert.equal(c.regs.s, o.regs.s, "precondition: SP matches");
+  const entrySP = cap.regs.s;
+  const c = cap.clone();
+  accumulateTrackballAndReturnFromIrq(c);
+  assert.equal(c.regs.s, entrySP, "precondition: the rewrite leaves SP inert (fired as a direct call)");
   const leaky = (m) => { m.push8(0x00); return accumulateTrackballAndReturnFromIrq(m); };
   const c2 = cap.clone();
   leaky(c2);
-  assert.notEqual(c2.regs.s, o.regs.s, "the SP tooth FAILED to catch a leaked push");
-});
-
-test("SP-NOTE: an interrupt-chain rewrite returns via RTI, so it is not omitted-ret seam-placeable", () => {
-  const m = CAPS[0].clone();
-  m.regs.s = 0xff;
-  m.push16(0xabcd);
-  const r = seamPlaceable(withOmittedRet, accumulateTrackballAndReturnFromIrq, TARGET, m.clone());
-  // It restores the register frame and RTIs (net SP move), so the omitted-ret seam is not its completion.
-  assert.equal(r.placeable, false);
+  assert.notEqual(c2.regs.s, entrySP, "the SP-inert tooth FAILED to catch a stray push");
 });

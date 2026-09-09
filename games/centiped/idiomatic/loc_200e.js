@@ -4,12 +4,12 @@ import { plotRecordFieldColumns } from "./plotRecordFieldColumns.js";
 import { mainLoop } from "./mainLoop.js";
 
 /**
- * loc_200e — the game entry: seed round state, enable interrupts, lay the record field, then run the
- * per-frame main loop forever. A generator so the main loop's vblank yields propagate to the engine.
+ * loc_200e — the game entry: seed round state, lay the record field, then run the per-frame main loop
+ * forever. A generator so the main loop's vblank yields propagate to the engine. (The cli here is
+ * vestigial in the idiomatic layer -- the engine fires the 32V IRQ as a direct call, unmasked.)
  */
 export function* loc_200e(m) {
   initRoundState(m);
-  m.regs.fI = false; // cli — enable the 32V interrupt now that state is seeded
   plotRecordFieldColumns(m);
   yield* mainLoop(m);
 }

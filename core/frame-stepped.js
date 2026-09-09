@@ -132,8 +132,8 @@ export function runWatchdogGame(machine, { watchdogPort, nmiReturnPC, maxFrames 
 // scanline IRQ fired N times per frame (centiped: the 32V line, 4/frame), rather than a single vblank NMI.
 // The idiomatic main-loop spine is a generator that yields at the vblank poll; at each yield the engine
 // fires the frame's scanline IRQs with the per-slot vblank input driven, so the in-vblank slot raises the
-// heartbeat cell ($8a) the loop was waiting on and the rest fold trackball. The board fireIrq seam is reused
-// (SP retire is a later step, so the interrupt still rides push16/rti). opts: {bootAddr, irqVblank, maxFrames,
+// heartbeat cell ($8a) the loop was waiting on and the rest fold trackball. The IRQ fires as a DIRECT JS call
+// (machine.idiomaticIrq): the SP is retired, so no push16/rti seam rides it. opts: {bootAddr, irqVblank, maxFrames,
 // onFrame}. irqVblank = io.vblank for each IRQ slot in firing order (centiped [0,0,0,1]: only scanline 240
 // is inside vblank). onFrame samples at the yield, before the frame's IRQs -- one iteration behind the
 // cycle-driven boundary sample, absorbed by the drift-tolerant reconverge.
@@ -145,6 +145,7 @@ export function runIdiomaticIrqGame(machine, { bootAddr = 0x0000, irqVblank, max
   machine.nextNmi = Infinity;
   machine.nextIrqCycle = Infinity; // the cycle IRQ scheduler is off; this engine fires the IRQ at each yield
   machine.clockFree = true; // suppress tick()'s cycle-derived vblank recompute; this engine drives io.vblank
+  machine.idiomaticIrq = true; // fire the 32V IRQ as a direct JS call (SP retired -- no push16/rti seam)
   machine.booted = true;
 
   let frame = 0;

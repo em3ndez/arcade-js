@@ -8,20 +8,18 @@ import {
   loc_1c00,
   loc_c5,
   loc_2003,
-  loc_0104,
   loc_bd,
   TRACKBALL_LAST_DELTA,
   loc_b9,
   IRQ_ACK,
+  STACK_SCRATCH,
 } from "./names.js";
 
 /**
  * accumulateTrackballAndReturnFromIrq — the interrupt tail. Off self-test it advances the $d5 diagnostic
  * counter and ramps the four diag colour cells; under self-test it emits the output latches and folds a
  * table checksum. Then, for the two axes, it folds each raw counter's signed nibble delta into the per-axis
- * accumulator ($b9/$ba,X), acks the interrupt, restores the saved registers and returns. [code]
- *
- * Keeps the spine call (dissolved when that batch lands). Ends by restoring the frame the entry saved.
+ * accumulator ($b9/$ba,X), acks the interrupt, and returns. Fired as a direct call, it restores no frame. [code]
  */
 export function accumulateTrackballAndReturnFromIrq(m) {
   const { mem8 } = m;
@@ -34,7 +32,9 @@ export function accumulateTrackballAndReturnFromIrq(m) {
     let sum = 0xf4;
     for (let x = 0x0a; x >= 0; x--) sum ^= mem8[u16(loc_2003 + x)];
     sum = u8(sum);
-    if (sum !== 0) mem8[u16(loc_0104 + m.regs.s)] = 3; // mismatch marker into the live stack page
+    // Tamper-only marker (the checksum passes on a good image): a 3 is stashed at the stack top. SP is
+    // retired, so write the fixed stack-top slot directly -- dead scratch either way.
+    if (sum !== 0) mem8[STACK_SCRATCH.hi - 1] = 3;
   } else {
     let d5 = mem8[loc_d5];
     if ((d5 & 0x80) === 0) {
@@ -72,9 +72,5 @@ export function accumulateTrackballAndReturnFromIrq(m) {
     }
   }
   mem8[IRQ_ACK] = a; // interrupt acknowledge
-
-  m.regs.y = m.pull8();
-  m.regs.x = m.pull8();
-  m.regs.a = m.pull8();
-  return m.rti(6);
+  // Fired as a direct JS call (SP retired): no saved register frame to restore and no rti -- just return.
 }

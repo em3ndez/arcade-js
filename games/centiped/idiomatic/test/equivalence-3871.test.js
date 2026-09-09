@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for the 0x3871 interrupt front, which has TWO entries the frozen oracle dispatches:
-//   * 0x3871 -> serviceFrameIrq: save the registers, pulse the coin sound latch, bump the frame + packed-
-//     decimal counters on the 32V beat, read both trackball axes into their accumulators, normalize the
-//     current object, then drop into the shadow builder.  <- the module's MAIN fn.
+//   * 0x3871 -> serviceFrameIrq: pulse the coin sound latch, bump the frame + packed-decimal counters on
+//     the 32V beat, read both trackball axes into their accumulators, normalize the current object, then
+//     drop into the shadow builder.  <- the module's MAIN fn.
 //   * 0x3907 -> buildObjectShadowEntry: one pass of the per-object shadow refresh (index in X).
-// The DISSOLVE_NOW callees (palette pair / negate / axis step) are called directly; the shadow-loop and
-// interrupt-tail transfers keep their m.calls (siblings/spine, dissolved at merge). A real dispatch runs the
-// whole chain through the frozen fallback and RTIs, so neither entry is an omitted-ret leaf (SP-NOTE).
-// CAPTURE replays every real dispatch of both entries byte-exact; TEETH proves the RAM/SP diffs bite.
+// SP is RETIRED: the interrupt fires as a direct call, so the idiomatic chain neither pushes a register
+// frame (serviceFrameIrq entry) nor pulls+RTIs (the tail) -- it leaves SP INERT, deliberately diverging
+// from the oracle, which still runs the push/pull/RTI chain. So the arms assert SP is inert, not that it
+// matches the oracle. CAPTURE replays every real dispatch of both entries; TEETH proves the RAM diff and
+// the SP-inert invariant bite.
 // Run: node --test games/centiped/idiomatic/test/equivalence-3871.test.js
 
 import nodeTest from "node:test";
@@ -16,8 +17,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3871 as oracleService, loc_3907 as oracleBuild } from "../../translated/loc_3871.js";
 import { serviceFrameIrq, buildObjectShadowEntry } from "../serviceFrameIrq.js";
-import { Machine, withOmittedRet } from "../../machine.js";
-import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
+import { Machine } from "../../machine.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, loc_bb, SHADOW_SIGN_LATCH, loc_bd } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -61,7 +62,7 @@ test("CAPTURE: real 0x3871 dispatches == serviceFrameIrq in RAM (-stack)", () =>
     const o = cap.clone(), c = cap.clone();
     oracleService(o); serviceFrameIrq(c);
     assert.equal(ramDiff(o, c), null);
-    assert.equal(c.regs.s, o.regs.s, "SP after the rewrite must match the oracle");
+    assert.equal(c.regs.s, cap.regs.s, "SP inert -- the rewrite never touches the stack");
   }
   console.log(`  CAPTURE(service): ${CAPS_SERVICE.length} dispatch(es) checked`);
 });
@@ -73,7 +74,7 @@ test("CAPTURE: real 0x3907 dispatches == buildObjectShadowEntry in RAM (-stack),
     const o = cap.clone(), c = cap.clone();
     oracleBuild(o); buildObjectShadowEntry(c);
     assert.equal(ramDiff(o, c), null);
-    assert.equal(c.regs.s, o.regs.s, "SP after the rewrite must match the oracle");
+    assert.equal(c.regs.s, cap.regs.s, "SP inert -- the rewrite never touches the stack");
   }
   // The loop walks X from 0x0f down, so both the high-slot (>=12) and low-slot arms are exercised.
   console.log(`  CAPTURE(build): ${CAPS_BUILD.length} dispatch(es), ${seen.size} distinct index(es)`);
@@ -105,31 +106,19 @@ test("TEETH: a wrong sign latch is caught by the RAM diff (build entry)", () => 
   assert.equal(d.addr, SHADOW_SIGN_LATCH & 0xffff);
 });
 
-test("TEETH(SP): both entries keep the oracle's stack discipline; a leaked push is caught", () => {
-  for (const [cap, oracle, fn] of [
-    [CAPS_SERVICE[0], oracleService, serviceFrameIrq],
-    [CAPS_BUILD[0], oracleBuild, buildObjectShadowEntry],
+test("TEETH(SP): both entries are SP-inert; a stray stack touch is caught", () => {
+  for (const [cap, fn] of [
+    [CAPS_SERVICE[0], serviceFrameIrq],
+    [CAPS_BUILD[0], buildObjectShadowEntry],
   ]) {
     const base = cap.clone();
-    const o = base.clone(), c = base.clone();
-    oracle(o); fn(c);
-    assert.equal(c.regs.s, o.regs.s, "precondition: SP matches");
+    const entrySP = base.regs.s;
+    const c = base.clone();
+    fn(c);
+    assert.equal(c.regs.s, entrySP, "precondition: the rewrite leaves SP inert (fired as a direct call)");
     const leaky = (m) => { m.push8(0x00); return fn(m); };
     const c2 = base.clone();
     leaky(c2);
-    assert.notEqual(c2.regs.s, o.regs.s, "the SP tooth FAILED to catch a leaked push");
-  }
-});
-
-test("SP-NOTE: both entries run the interrupt chain to RTI, so neither is omitted-ret seam-placeable", () => {
-  for (const [TARGET, fn, caps] of [
-    [SERVICE, serviceFrameIrq, CAPS_SERVICE],
-    [BUILD, buildObjectShadowEntry, CAPS_BUILD],
-  ]) {
-    const m = caps[0].clone();
-    m.regs.s = 0xff;
-    m.push16(0xabcd);
-    const r = seamPlaceable(withOmittedRet, fn, TARGET, m.clone());
-    assert.equal(r.placeable, false);
+    assert.notEqual(c2.regs.s, entrySP, "the SP-inert tooth FAILED to catch a stray push");
   }
 });

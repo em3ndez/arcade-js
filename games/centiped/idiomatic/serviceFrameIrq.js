@@ -24,20 +24,17 @@ function decAdd(a, v, c) {
 }
 
 /**
- * serviceFrameIrq — the frame interrupt front. Saves the interrupted registers, pulses the coin sound
+ * serviceFrameIrq — the frame interrupt front, fired as a direct call each 32V slot. Pulses the coin sound
  * latch while the reload cell is armed, and (only on the 32V beat) bumps the frame counter and its
  * packed-decimal companion. It then reads the two trackball axes, folds each into its accumulator, derives
  * a normalized value for the current object, and drops into the per-object shadow builder. [code]
  *
- * Off-beat it tail-calls the interrupt tail directly. Keeps the shadow-loop and tail calls (dissolved at
- * merge/spine). buildObjectShadowEntry is a second entry into this same machine.
+ * Off-beat it tail-calls the interrupt tail directly. buildObjectShadowEntry is a second entry into this
+ * same machine.
  */
 export function serviceFrameIrq(m) {
   const { mem8 } = m;
-  // Interrupt prologue: stack the registers the tail restores before it returns.
-  m.push8(m.regs.a);
-  m.push8(m.regs.x);
-  m.push8(m.regs.y);
+  // Fired as a direct JS call (SP retired): no interrupt prologue to stack -- nothing live to save.
 
   if (mem8[SEGMENT_RELOAD_TIMER] !== 0) { mem8[AUDF2] = 0x10; mem8[AUDC2] = 0xaf; }
 

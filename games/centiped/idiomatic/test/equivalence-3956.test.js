@@ -2,9 +2,10 @@
 // Memory-equivalence for storeSpriteShadowEntry (0x3956) -- the tail of the per-object shadow loop. It
 // stores the passed value to the object's shadow slot ($07c0,X), derives its attribute byte from bit6 of
 // $34,X (a raised floor for the low slots) into $07f0,X, then decrements X and either re-enters the shadow
-// builder or drops into the interrupt tail. It keeps the loop/tail m.calls (batch siblings), so a real
-// dispatch runs the rest of the interrupt chain through the frozen fallback and RTIs -- not an omitted-ret
-// leaf (SP-NOTE). CAPTURE replays every real dispatch byte-exact; TEETH proves the RAM/SP diffs bite.
+// builder or drops into the interrupt tail. SP is RETIRED: the interrupt fires as a direct call, so the
+// idiomatic chain it drops into pulls no frame and does not RTI -- it leaves SP INERT, deliberately
+// diverging from the oracle (which still RTIs). So the arms assert SP is inert, not that it matches the
+// oracle. CAPTURE replays every real dispatch byte-exact; TEETH proves the RAM diff and the SP-inert bite.
 //
 // This dispatch keeps the loop/tail m.calls, so the oracle runs the whole shadow loop AND the interrupt
 // tail (loc_396d) through the frozen fallback -- which STEPS, advancing m.cycles, so the tail's IN0 read
@@ -23,8 +24,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3956 as oracle } from "../../translated/loc_3956.js";
 import { storeSpriteShadowEntry } from "../storeSpriteShadowEntry.js";
-import { Machine, withOmittedRet } from "../../machine.js";
-import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
+import { Machine } from "../../machine.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH, SPRITE_SHADOW_CODE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -62,7 +63,7 @@ test("CAPTURE: real 0x3956 dispatches == storeSpriteShadowEntry in RAM (-stack)"
     if (cap.regs.x >= 12) sawTop = true; else sawLow = true; // both attribute floors exercised
     oracle(o); storeSpriteShadowEntry(c);
     assert.equal(ramDiff(o, c), null);
-    assert.equal(c.regs.s, o.regs.s, "SP after the rewrite must match the oracle");
+    assert.equal(c.regs.s, cap.regs.s, "SP inert -- the rewrite never touches the stack");
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked (highSlot=${sawTop} lowSlot=${sawLow})`);
 });
@@ -81,21 +82,14 @@ test("TEETH: a wrong shadow slot is caught by the RAM diff", () => {
   assert.equal(d.addr, cell);
 });
 
-test("TEETH(SP): the rewrite keeps the oracle's stack discipline; a leaked push is caught", () => {
+test("TEETH(SP): the rewrite is SP-inert; a stray stack touch is caught", () => {
   const cap = CAPS[0].clone();
-  const o = cap.clone(), c = cap.clone();
-  oracle(o); storeSpriteShadowEntry(c);
-  assert.equal(c.regs.s, o.regs.s, "precondition: SP matches");
+  const entrySP = cap.regs.s;
+  const c = cap.clone();
+  storeSpriteShadowEntry(c);
+  assert.equal(c.regs.s, entrySP, "precondition: the rewrite leaves SP inert (fired as a direct call)");
   const leaky = (m) => { m.push8(0x00); return storeSpriteShadowEntry(m); };
   const c2 = cap.clone();
   leaky(c2);
-  assert.notEqual(c2.regs.s, o.regs.s, "the SP tooth FAILED to catch a leaked push");
-});
-
-test("SP-NOTE: the loop tail runs the interrupt chain to RTI, so it is not omitted-ret seam-placeable", () => {
-  const m = CAPS[0].clone();
-  m.regs.s = 0xff;
-  m.push16(0xabcd);
-  const r = seamPlaceable(withOmittedRet, storeSpriteShadowEntry, TARGET, m.clone());
-  assert.equal(r.placeable, false);
+  assert.notEqual(c2.regs.s, entrySP, "the SP-inert tooth FAILED to catch a stray push");
 });

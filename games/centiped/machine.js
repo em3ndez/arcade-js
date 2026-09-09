@@ -166,6 +166,12 @@ export class Machine {
    * see the return-address-push gap flagged for the translated JSR sites.
    */
   fireIrq() {
+    if (this.idiomaticIrq) {
+      // Idiomatic clock-free mode: the main loop holds no live CPU registers across the vblank yield and the
+      // handler is SP-neutral, so fire the vector handler as a DIRECT call -- no PC/P push, no I mask, no seam.
+      // This retires the guest stack pointer (the last CPU register) from the idiomatic layer.
+      return this.call(this.mem.read16(IRQ_VECTOR));
+    }
     if (this.regs.fI) return false;
     if (!this.pcKnown) throw new Error("IRQ with unknown PC: a routine used tick() rather than step()");
     this.push16(this.pc);
