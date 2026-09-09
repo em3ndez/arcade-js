@@ -25,7 +25,7 @@ import { loc_3956 as oracle } from "../../translated/loc_3956.js";
 import { storeSpriteShadowEntry } from "../storeSpriteShadowEntry.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_07c0 } from "../names.js";
+import { STACK_SCRATCH, SPRITE_SHADOW_CODE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -69,7 +69,7 @@ test("CAPTURE: real 0x3956 dispatches == storeSpriteShadowEntry in RAM (-stack)"
 
 test("TEETH: a wrong shadow slot is caught by the RAM diff", () => {
   const cap = CAPS[0].clone();
-  const cell = (loc_07c0 + (cap.regs.x & 0xff)) & 0xffff;
+  const cell = (SPRITE_SHADOW_CODE + (cap.regs.x & 0xff)) & 0xffff;
   const o = pinVblank(cap.clone()), c = pinVblank(cap.clone());
   oracle(o); storeSpriteShadowEntry(c);
   assert.equal(ramDiff(o, c), null, "precondition: the rewrite matches");

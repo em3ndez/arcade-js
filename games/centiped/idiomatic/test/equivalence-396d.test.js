@@ -15,7 +15,7 @@ import { loc_396d as oracle } from "../../translated/loc_396d.js";
 import { accumulateTrackballAndReturnFromIrq } from "../accumulateTrackballAndReturnFromIrq.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_d5, loc_bd, loc_ba, loc_b9, loc_c5 } from "../names.js";
+import { STACK_SCRATCH, loc_d5, loc_bd, TRACKBALL_LAST_DELTA, loc_b9, loc_c5 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -55,7 +55,7 @@ function seedService(m, s) {
   m.mem8[loc_d5] = s.d5 ?? 0;
   for (let i = 0; i < 3; i++) {
     m.mem8[(loc_bd + i * 2) & 0xff] = (s.prev ?? [0, 0, 0])[i] ?? 0;
-    m.mem8[(loc_ba + i * 2) & 0xff] = (s.last ?? [0, 0, 0])[i] ?? 0;
+    m.mem8[(TRACKBALL_LAST_DELTA + i * 2) & 0xff] = (s.last ?? [0, 0, 0])[i] ?? 0;
     m.mem8[(loc_b9 + i * 2) & 0xff] = (s.acc ?? [0, 0, 0])[i] ?? 0;
     m.mem8[(loc_c5 + i) & 0xff] = (s.c5 ?? [0, 0, 0])[i] ?? 0;
   }

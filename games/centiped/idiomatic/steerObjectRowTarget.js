@@ -6,7 +6,7 @@ import { detectColumnCollision } from "./detectColumnCollision.js";
 import { negateA } from "./negateA.js";
 import { armSlotWhenObjectInRange } from "./armSlotWhenObjectInRange.js";
 import {
-  loc_71, loc_61, loc_f0, loc_88, loc_ab, loc_8d, loc_ef, loc_81, TILEMAP_PTR_LO,
+  loc_71, loc_61, loc_f0, loc_88, loc_ab, loc_8d, loc_ef, OBJECT_Y_STEER, TILEMAP_PTR_LO,
 } from "./names.js";
 
 // Packed-BCD subtract of 6 with no borrow-in (the caller handles the sign via the plain-binary result).
@@ -63,9 +63,9 @@ export function steerObjectRowTarget(m, a = m.regs.a) {
     const dist = ((0x60 ^ mem8[loc_f0]) - scaled) & 0xff;
     const near = mem8[loc_ef] === 0 ? dist >= mem8[loc_71] : dist < mem8[loc_71];
     if (near) collisionTest = true;
-    else if (mem8[loc_81] & 0x80) steer = true; // negative heading -> steer
+    else if (mem8[OBJECT_Y_STEER] & 0x80) steer = true; // negative heading -> steer
     else collisionTest = true;
-  } else if (mem8[loc_81] & 0x80) {
+  } else if (mem8[OBJECT_Y_STEER] & 0x80) {
     collisionTest = true; // negative heading -> collision dispatch
   } else {
     steer = true;         // positive heading -> steer
@@ -73,7 +73,7 @@ export function steerObjectRowTarget(m, a = m.regs.a) {
 
   // A real same-column collision flips the drift cell before the dispatch.
   if (collisionTest && detectColumnCollision(m, 0x0d)) steer = true;
-  if (steer) mem8[loc_81] = negateA(m, mem8[loc_81]);
+  if (steer) mem8[OBJECT_Y_STEER] = negateA(m, mem8[OBJECT_Y_STEER]);
 
   // Dispatch the distance-fold step (it reads the object index the seat provides).
   return armSlotWhenObjectInRange(m, 0x0d);

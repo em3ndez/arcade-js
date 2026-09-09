@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_c5, loc_c8, SEGMENT_MOVE_ACCUM_B, SEGMENT_ROW_CROSS_COUNT, loc_d3, loc_d4 } from "./names.js";
+import { loc_c5, loc_c8, SEGMENT_MOVE_ACCUM_B, SEGMENT_ROW_CROSS_COUNT, loc_d3, SEGMENT_MOVE_FRAME_COUNTER } from "./names.js";
 
 /**
  * stepPhasedCountersAndWrapCells — a per-tick bookkeeping step. A 2-bit phase
@@ -53,8 +53,8 @@ export function stepPhasedCountersAndWrapCells(m) {
   }
 
   // tick the frame counter; on odd frames skip the cell sweep.
-  const frame = (mem8[loc_d4] + 1) & 0xff;
-  mem8[loc_d4] = frame;
+  const frame = (mem8[SEGMENT_MOVE_FRAME_COUNTER] + 1) & 0xff;
+  mem8[SEGMENT_MOVE_FRAME_COUNTER] = frame;
   if (frame & 0x01) return;
 
   // Even frame — Pass 1: subtract 0x10 from each cell >= 0x10, counting adjustments.

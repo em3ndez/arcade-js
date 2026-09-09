@@ -18,7 +18,7 @@ import { loc_3871 as oracleService, loc_3907 as oracleBuild } from "../../transl
 import { serviceFrameIrq, buildObjectShadowEntry } from "../serviceFrameIrq.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_bb, loc_99, loc_bd } from "../names.js";
+import { STACK_SCRATCH, loc_bb, SHADOW_SIGN_LATCH, loc_bd } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -97,12 +97,12 @@ test("TEETH: a wrong sign latch is caught by the RAM diff (build entry)", () => 
   const o = cap.clone(), c = cap.clone();
   oracleBuild(o); buildObjectShadowEntry(c);
   assert.equal(ramDiff(o, c), null, "precondition: the rewrite matches");
-  const broken = (m) => { buildObjectShadowEntry(m); m.mem8[loc_99] = (m.mem8[loc_99] ^ 0x80) & 0xff; };
+  const broken = (m) => { buildObjectShadowEntry(m); m.mem8[SHADOW_SIGN_LATCH] = (m.mem8[SHADOW_SIGN_LATCH] ^ 0x80) & 0xff; };
   const c2 = cap.clone();
   broken(c2);
   const d = ramDiff(o, c2);
   assert.notEqual(d, null, "the RAM diff FAILED to catch a wrong sign latch");
-  assert.equal(d.addr, loc_99 & 0xffff);
+  assert.equal(d.addr, SHADOW_SIGN_LATCH & 0xffff);
 });
 
 test("TEETH(SP): both entries keep the oracle's stack discipline; a leaked push is caught", () => {

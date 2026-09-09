@@ -16,7 +16,7 @@ import { loc_20e8 as oracle } from "../../translated/loc_20e8.js";
 import { seedWaveState } from "../seedWaveState.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_ef, loc_f0, loc_40, loc_70, loc_60, loc_88, loc_ab, loc_80, loc_50, loc_b8 } from "../names.js";
+import { STACK_SCRATCH, loc_ef, loc_f0, loc_40, loc_70, loc_60, loc_88, loc_ab, loc_80, HEAD_VELOCITY_SEED, loc_b8 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -70,7 +70,7 @@ test("CRAFTED: $40/$70 folded, $60 from RNG-4, $80 = 3-or-2, $50/$b8 cleared", (
     assert.equal(c.mem.read8(loc_70), 0xf8 ^ tc.f0, `$70 folded: ${tag}`);
     assert.equal(c.mem.read8(loc_60), 0xf8 - 4, `$60 = masked(0xf8)-4: ${tag}`); // default RNG 0xff
     assert.equal(c.mem.read8(loc_80), tc.want80, `$80 count: ${tag}`);
-    assert.equal(c.mem.read8(loc_50), 0x00, `$50 cleared: ${tag}`);
+    assert.equal(c.mem.read8(HEAD_VELOCITY_SEED), 0x00, `$50 cleared: ${tag}`);
     assert.equal(c.mem.read8(loc_b8), 0x00, `$b8 cleared: ${tag}`);
   }
 });
@@ -86,7 +86,7 @@ test("TEETH: a twin that stores the raw masked byte (not masked-4) into $60 dive
     mem8[loc_60] = masked;            // BUG: dropped the -4
     const sel = mem8[(loc_ab + mem8[loc_88]) & 0xff];
     mem8[loc_80] = sel >= 0x06 ? 0x03 : 0x02;
-    mem8[loc_50] = 0x00; mem8[loc_b8] = 0x00;
+    mem8[HEAD_VELOCITY_SEED] = 0x00; mem8[loc_b8] = 0x00;
   }
   const tc = { ef: 0x11, f0: 0x22, x88: 0x00, abVal: 0x06 };
   const o = new Machine(ROM); seed(o, tc);

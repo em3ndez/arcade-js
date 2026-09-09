@@ -16,7 +16,7 @@ import { advanceAllSegmentColumns } from "../advanceAllSegmentColumns.js";
 import { advanceSegmentColumns } from "../advanceSegmentColumns.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_c5, SEGMENT_MOVE_ACCUM_B, SEGMENT_MOVE_ACCUM, SEGMENT_ROW_CROSS_COUNT, SEGMENT_COL_LIFE_TIMER, SEGMENT_COL_BODY, SEGMENT_RELOAD_TIMER, loc_d3, loc_d4 } from "../names.js";
+import { STACK_SCRATCH, loc_c5, SEGMENT_MOVE_ACCUM_B, SEGMENT_MOVE_ACCUM, SEGMENT_ROW_CROSS_COUNT, SEGMENT_COL_LIFE_TIMER, SEGMENT_COL_BODY, SEGMENT_RELOAD_TIMER, loc_d3, SEGMENT_MOVE_FRAME_COUNTER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -43,7 +43,7 @@ function seed({ in1 = 0xff, d2 = 0x00, d3 = 0x00, d4 = 0x00, c9 = 0x00, ca = 0x0
   m.io.in1 = in1 & 0xff;
   m.mem.write8(SEGMENT_RELOAD_TIMER, d2 & 0xff);
   m.mem.write8(loc_d3, d3 & 0xff);
-  m.mem.write8(loc_d4, d4 & 0xff);
+  m.mem.write8(SEGMENT_MOVE_FRAME_COUNTER, d4 & 0xff);
   m.mem.write8(SEGMENT_MOVE_ACCUM_B, c9 & 0xff);
   m.mem.write8(SEGMENT_MOVE_ACCUM, ca & 0xff);
   m.mem.write8(SEGMENT_ROW_CROSS_COUNT, cb & 0xff);

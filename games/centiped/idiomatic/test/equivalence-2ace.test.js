@@ -18,7 +18,7 @@ import { loc_2ace as oracle } from "../../translated/loc_2ace.js";
 import { loc_2ace as integrate } from "../loc_2ace.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_43, loc_73, loc_84, loc_86, loc_8d, loc_b9, loc_fe } from "../names.js";
+import { STACK_SCRATCH, loc_43, loc_73, MOVE_SUBSTEP_ACCUM_A, loc_86, loc_8d, loc_b9, loc_fe } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -55,7 +55,7 @@ function seed({ m86 = 0x10, m43 = 0x00, m73 = 0x22, mfe = 0x44, mb9 = 0x90, m84 
   m.mem.write8(loc_73, m73);
   m.mem.write8(loc_fe, mfe);
   m.mem.write8(loc_b9, mb9);
-  m.mem.write8(loc_84, m84);
+  m.mem.write8(MOVE_SUBSTEP_ACCUM_A, m84);
   return pinClock(m);
 }
 
@@ -98,11 +98,11 @@ test("TEETH: a dropped $84 accumulate is caught by the RAM diff", () => {
   oracle(o);
   integrate(c);
   assert.equal(ramDiff(o, c), null, "precondition: loc_2ace matches the oracle on the fall-through");
-  assert.notEqual(o.mem.read8(loc_84), s.m84, "oracle accumulated into $84");
-  c.mem8[loc_84] = s.m84; // BUG: never accumulated the halved delta into $84
+  assert.notEqual(o.mem.read8(MOVE_SUBSTEP_ACCUM_A), s.m84, "oracle accumulated into $84");
+  c.mem8[MOVE_SUBSTEP_ACCUM_A] = s.m84; // BUG: never accumulated the halved delta into $84
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the RAM diff FAILED to catch a dropped $84 accumulate");
-  assert.equal(d.addr, loc_84, "diff should be at the $84 accumulator");
+  assert.equal(d.addr, MOVE_SUBSTEP_ACCUM_A, "diff should be at the $84 accumulator");
   console.log("  TEETH: dropped-accumulate twin caught at $84");
 });
 

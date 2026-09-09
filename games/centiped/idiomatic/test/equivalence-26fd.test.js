@@ -15,7 +15,7 @@ import { loc_26fd as oracle } from "../../translated/loc_26fd.js";
 import { serviceTimerBank } from "../serviceTimerBank.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_34, loc_41, loc_43, loc_d7, loc_ef, loc_da, loc_db, loc_00 } from "../names.js";
+import { STACK_SCRATCH, loc_34, loc_41, loc_43, loc_d7, loc_ef, FIELD_SCAN_PTR_LO, FIELD_SCAN_PTR_HI, loc_00 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -46,8 +46,8 @@ function craftBase() {
   m.mem.write8(loc_00, 0x00);
   m.mem.write8(loc_d7, 0x00);
   m.mem.write8(loc_ef, 0x00);
-  m.mem.write8(loc_da, 0xaa);
-  m.mem.write8(loc_db, 0xaa);
+  m.mem.write8(FIELD_SCAN_PTR_LO, 0xaa);
+  m.mem.write8(FIELD_SCAN_PTR_HI, 0xaa);
   return m;
 }
 
@@ -88,8 +88,8 @@ test("CRAFTED wrap: 0x43 advances 0x27->0x28 and arms 0xDA/0xDB", () => {
   oracle(o); serviceTimerBank(c);
   assert.equal(ramDiff(o, c), null, "wrap path RAM (-stack) mismatch");
   assert.equal(c.mem.read8(loc_43), 0x28, "counter advanced to 0x28");
-  assert.equal(c.mem.read8(loc_da), 0x00, "0xDA armed");
-  assert.equal(c.mem.read8(loc_db), 0x04, "0xDB armed");
+  assert.equal(c.mem.read8(FIELD_SCAN_PTR_LO), 0x00, "0xDA armed");
+  assert.equal(c.mem.read8(FIELD_SCAN_PTR_HI), 0x04, "0xDB armed");
 });
 
 // A broken twin that reproduces the scan but DROPS the master re-arm reload of 0x41.

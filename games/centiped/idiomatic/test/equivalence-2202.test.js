@@ -14,8 +14,8 @@ import { advanceColumnHeadingState } from "../advanceColumnHeadingState.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_43, loc_41, loc_00, loc_f2, loc_a1, loc_51, loc_be, loc_61,
-  loc_81, loc_71, loc_ef, POKEY_RANDOM, CONFIG_DIP_BYTE, TILEMAP_PTR_LO, TILEMAP_PTR_HI,
+  STACK_SCRATCH, loc_43, loc_41, loc_00, loc_f2, loc_a1, loc_51, OBJECT_X_DRIFT_STASH, loc_61,
+  OBJECT_Y_STEER, loc_71, loc_ef, POKEY_RANDOM, CONFIG_DIP_BYTE, TILEMAP_PTR_LO, TILEMAP_PTR_HI,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -47,9 +47,9 @@ function seat(m, s = {}) {
   m.mem.write8(loc_f2, s.f2 ?? 0x00);
   m.mem.write8(loc_a1, s.a1 ?? 0x05);
   m.mem.write8(loc_51, s.c51 ?? 0x00);
-  m.mem.write8(loc_be, s.be ?? 0x00);
+  m.mem.write8(OBJECT_X_DRIFT_STASH, s.be ?? 0x00);
   m.mem.write8(loc_61, s.c61 ?? 0x10);
-  m.mem.write8(loc_81, s.c81 ?? 0x00);
+  m.mem.write8(OBJECT_Y_STEER, s.c81 ?? 0x00);
   m.mem.write8(loc_71, s.c71 ?? 0x00);
   m.mem.write8(loc_ef, s.ef ?? 0x00);
   m.mem.write8(POKEY_RANDOM, s.rnd ?? 0x00);

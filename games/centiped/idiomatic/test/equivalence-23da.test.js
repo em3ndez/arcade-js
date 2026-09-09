@@ -17,7 +17,7 @@ import { advanceDeathRespawnSequence } from "../advanceDeathRespawnSequence.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_87, loc_db, loc_d6, loc_43, loc_86, loc_01, loc_89, loc_88,
+  STACK_SCRATCH, loc_87, FIELD_SCAN_PTR_HI, loc_d6, loc_43, loc_86, loc_01, loc_89, loc_88,
   loc_a7, loc_ee, loc_ad, loc_ef, loc_c1, loc_c2, loc_a4, loc_a5, loc_a6, loc_ab,
 } from "../names.js";
 
@@ -53,7 +53,7 @@ test("CAPTURE: real 0x23da dispatches -- advanceDeathRespawnSequence == oracle i
 function seed(m, s) {
   const w = (a, v) => m.mem.write8(a, v);
   w(loc_87, s.c87 ?? 0);
-  w(loc_db, s.db ?? 0);
+  w(FIELD_SCAN_PTR_HI, s.db ?? 0);
   w(loc_d6, s.d6 ?? 0);
   w(loc_43, s.c43 ?? 0);
   w(loc_86, s.c86 ?? 0);

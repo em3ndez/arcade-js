@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_34, loc_41, loc_43, loc_d7, loc_ef, loc_da, loc_db, loc_00 } from "./names.js";
+import { loc_34, loc_41, loc_43, loc_d7, loc_ef, FIELD_SCAN_PTR_LO, FIELD_SCAN_PTR_HI, loc_00 } from "./names.js";
 
 const TIMER_BASE = loc_34; // base of the 14 countdown-timer bytes
 
@@ -44,6 +44,6 @@ export function serviceTimerBank(m) {
   mem8[loc_43] = counter + 1;        // inc $43 (A keeps the pre-inc value)
   if (counter !== 0x27) return;                    // fired only as 0x27 -> 0x28
 
-  mem8[loc_da] = 0x00;
-  mem8[loc_db] = 0x04;
+  mem8[FIELD_SCAN_PTR_LO] = 0x00;
+  mem8[FIELD_SCAN_PTR_HI] = 0x04;
 }

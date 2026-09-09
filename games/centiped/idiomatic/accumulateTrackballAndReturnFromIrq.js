@@ -10,7 +10,7 @@ import {
   loc_2003,
   loc_0104,
   loc_bd,
-  loc_ba,
+  TRACKBALL_LAST_DELTA,
   loc_b9,
   loc_1800,
 } from "./names.js";
@@ -63,10 +63,10 @@ export function accumulateTrackballAndReturnFromIrq(m) {
     if (a >= 8) a = a | 0xf0;           // sign-extend the negative nibble
     let y = a;
     if (a !== 0) {
-      if ((a ^ mem8[u8(loc_ba + x)]) & 0x80) {          // sign flip vs last committed delta
-        if ((y ^ mem8[u16(loc_0c00 + x)]) & 0x80) y = mem8[u8(loc_ba + x)]; // reject a reversal
+      if ((a ^ mem8[u8(TRACKBALL_LAST_DELTA + x)]) & 0x80) {          // sign flip vs last committed delta
+        if ((y ^ mem8[u16(loc_0c00 + x)]) & 0x80) y = mem8[u8(TRACKBALL_LAST_DELTA + x)]; // reject a reversal
       }
-      mem8[u8(loc_ba + x)] = y;
+      mem8[u8(TRACKBALL_LAST_DELTA + x)] = y;
       a = u8(y + mem8[u8(loc_b9 + x)]);
       mem8[u8(loc_b9 + x)] = a;
     }

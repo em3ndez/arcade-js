@@ -18,7 +18,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_00, SFX_TIMER_CH1_PRIORITY, loc_da, loc_db, loc_ef, loc_86, loc_88, loc_5f, loc_6f, loc_3f, loc_b2,
+  loc_00, SFX_TIMER_CH1_PRIORITY, FIELD_SCAN_PTR_LO, FIELD_SCAN_PTR_HI, loc_ef, loc_86, loc_88, loc_5f, loc_6f, loc_3f, loc_b2,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -45,8 +45,8 @@ function seed({ frame = 0x00, b7 = 0x00, da, db, ef = 0x0f, m86 = 0x80, cells, e
   const m = new Machine(ROM);
   m.mem8[loc_00] = frame;
   m.mem8[SFX_TIMER_CH1_PRIORITY] = b7;
-  if (da !== undefined) m.mem8[loc_da] = da;
-  if (db !== undefined) m.mem8[loc_db] = db;
+  if (da !== undefined) m.mem8[FIELD_SCAN_PTR_LO] = da;
+  if (db !== undefined) m.mem8[FIELD_SCAN_PTR_HI] = db;
   m.mem8[loc_ef] = ef;
   m.mem8[loc_86] = m86;
   if (cells) for (const [a, v] of Object.entries(cells)) m.mem8[Number(a)] = v;
@@ -93,7 +93,7 @@ test("CRAFTED: the hit erases the cell and seeds the coord/timer cells byte-for-
   assert.equal(c.mem8[0x0150], 0x3f ^ 0x0f, "cell erased with the mask fold");
   assert.equal(c.mem8[loc_3f], 0xff, "$3f sentinel set");
   assert.equal(c.mem8[loc_b2], 0x13, "timer cell re-armed");
-  assert.equal(c.mem8[loc_da], 0x51, "pointer bumped past the cell");
+  assert.equal(c.mem8[FIELD_SCAN_PTR_LO], 0x51, "pointer bumped past the cell");
   assert.equal(o.mem8[loc_5f], c.mem8[loc_5f], "$5f seed matches oracle");
   assert.equal(o.mem8[loc_6f], c.mem8[loc_6f], "$6f seed matches oracle");
 });

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import {
-  loc_88, loc_ab, CONFIG_DIP_BYTE, loc_a9, loc_81, loc_51, loc_f0, loc_71, loc_61,
+  loc_88, loc_ab, CONFIG_DIP_BYTE, loc_a9, OBJECT_Y_STEER, loc_51, loc_f0, loc_71, loc_61,
   loc_41, loc_a1, SFX_TIMER_CH4, POKEY_RANDOM,
 } from "./names.js";
 
@@ -18,7 +18,7 @@ export function seedSegmentSpawnState(m) {
     const threshold = (m.mem8[CONFIG_DIP_BYTE] & 0x40) | 0x10; // config-derived threshold
     if (threshold >= m.mem8[(loc_a9 + x) & 0xff]) sel = 0x01; // drop the selector to 1
   }
-  m.mem8[loc_81] = sel; // stash the selector
+  m.mem8[OBJECT_Y_STEER] = sel; // stash the selector
 
   if (m.mem8[POKEY_RANDOM] & 0x04) sel = (0x100 - sel) & 0xff; // random bit -> negate
   m.mem8[loc_51] = sel; // and its (possibly negated) copy

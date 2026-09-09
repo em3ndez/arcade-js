@@ -11,7 +11,7 @@ import {
   SEGMENT_COL_BODY,
   SEGMENT_RELOAD_TIMER,
   loc_d3,
-  loc_d4,
+  SEGMENT_MOVE_FRAME_COUNTER,
 } from "./names.js";
 import { stepPhasedCountersAndWrapCells } from "./stepPhasedCountersAndWrapCells.js";
 
@@ -66,7 +66,7 @@ export function advanceSegmentColumns(m, x = m.regs.x) {
       if (value !== 0) {
         if (value >= 0x1b) {
           value = u8(value - 1); // past the high clamp: back off one
-        } else if ((mem8[loc_d4] & 0x07) === 0x07) {
+        } else if ((mem8[SEGMENT_MOVE_FRAME_COUNTER] & 0x07) === 0x07) {
           value = u8(value - 1); // every 8th frame (low bits all set): back off one
         }
       }

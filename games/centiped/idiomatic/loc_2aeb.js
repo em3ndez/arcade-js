@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_63, loc_73, loc_85, loc_86, loc_8b, loc_bb } from "./names.js";
+import { loc_63, loc_73, MOVE_SUBSTEP_ACCUM_B, loc_86, loc_8b, loc_bb } from "./names.js";
 import { clampAndHalveSignedDelta } from "./clampAndHalveSignedDelta.js";
 import { resolveTileCellAtXY } from "./resolveTileCellAtXY.js";
 import { negateA } from "./negateA.js";
@@ -36,8 +36,8 @@ export function loc_2aeb(m, a = m.regs.a, carryIn = m.regs.fC) {
   mem8[loc_bb] = 0x00;
   const neg = negateA(m, oldBb);
   const [aClamp, halvedY] = clampAndHalveSignedDelta(m, neg);
-  const sum = aClamp + mem8[loc_85];
-  mem8[loc_85] = u8(sum);
+  const sum = aClamp + mem8[MOVE_SUBSTEP_ACCUM_B];
+  mem8[MOVE_SUBSTEP_ACCUM_B] = u8(sum);
   // Fall through into the next stage: A = halved delta, carry = the accumulate carry.
   return clampCoordToBand(m, halvedY, sum > 0xff);
 }

@@ -3,8 +3,8 @@ import { tickColumnCountdown } from "./tickColumnCountdown.js";
 import { negateA } from "./negateA.js";
 import { steerObjectRowTarget } from "./steerObjectRowTarget.js";
 import {
-  loc_43, loc_41, loc_00, loc_f2, loc_a1, loc_51, loc_be, loc_61,
-  loc_81, loc_8b, loc_71, loc_ef, POKEY_RANDOM, CONFIG_DIP_BYTE,
+  loc_43, loc_41, loc_00, loc_f2, loc_a1, loc_51, OBJECT_X_DRIFT_STASH, loc_61,
+  OBJECT_Y_STEER, loc_8b, loc_71, loc_ef, POKEY_RANDOM, CONFIG_DIP_BYTE,
 } from "./names.js";
 
 /**
@@ -44,15 +44,15 @@ export function advanceColumnHeadingState(m) {
     if ((mem8[POKEY_RANDOM] & 0x80) !== 0) {
       const delta = mem8[loc_51];
       if (delta === 0) {
-        mem8[loc_51] = mem8[loc_be]; // resume: restore the stashed delta
+        mem8[loc_51] = mem8[OBJECT_X_DRIFT_STASH]; // resume: restore the stashed delta
       } else if (mem8[loc_61] >= 0x05 && mem8[loc_61] < 0xfb) {
-        mem8[loc_be] = delta; // pause: stash the delta and zero it
+        mem8[OBJECT_X_DRIFT_STASH] = delta; // pause: stash the delta and zero it
         mem8[loc_51] = 0x00;
       }
     }
     // Conditionally negate the drift cell.
     if (((((mem8[CONFIG_DIP_BYTE] & 0x40) | 0x20) & mem8[POKEY_RANDOM])) !== 0) {
-      mem8[loc_81] = negateA(m, mem8[loc_81]);
+      mem8[OBJECT_Y_STEER] = negateA(m, mem8[OBJECT_Y_STEER]);
     }
     mem8[loc_a1] = 0x30;
   }
@@ -62,7 +62,7 @@ export function advanceColumnHeadingState(m) {
   mem8[loc_61] = row;
   mem8[loc_8b] = row;
   let heading2 = mem8[loc_71];
-  if (mem8[loc_ef] === 0) heading2 = (heading2 - mem8[loc_81]) & 0xff;
-  else heading2 = (heading2 + mem8[loc_81]) & 0xff;
+  if (mem8[loc_ef] === 0) heading2 = (heading2 - mem8[OBJECT_Y_STEER]) & 0xff;
+  else heading2 = (heading2 + mem8[OBJECT_Y_STEER]) & 0xff;
   return steerObjectRowTarget(m, heading2);
 }

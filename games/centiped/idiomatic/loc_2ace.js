@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_43, loc_73, loc_84, loc_86, loc_8d, loc_b9, loc_fe } from "./names.js";
+import { loc_43, loc_73, MOVE_SUBSTEP_ACCUM_A, loc_86, loc_8d, loc_b9, loc_fe } from "./names.js";
 import { clampAndHalveSignedDelta } from "./clampAndHalveSignedDelta.js";
 import { loc_2aeb } from "./loc_2aeb.js";
 
@@ -20,8 +20,8 @@ export function loc_2ace(m) {
   const oldB9 = mem8[loc_b9];
   mem8[loc_b9] = swapped;
   const [aClamp, halvedY] = clampAndHalveSignedDelta(m, oldB9);
-  const sum = aClamp + mem8[loc_84];
-  mem8[loc_84] = u8(sum);
+  const sum = aClamp + mem8[MOVE_SUBSTEP_ACCUM_A];
+  mem8[MOVE_SUBSTEP_ACCUM_A] = u8(sum);
   // Fall through into the companion integrator: A = halved delta, carry = the accumulate carry.
   return loc_2aeb(m, halvedY, sum > 0xff);
 }

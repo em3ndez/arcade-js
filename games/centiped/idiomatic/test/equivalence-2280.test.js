@@ -15,7 +15,7 @@ import { steerObjectRowTarget } from "../steerObjectRowTarget.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_71, loc_61, loc_f0, loc_88, loc_ab, loc_8d, loc_ef, loc_81,
+  STACK_SCRATCH, loc_71, loc_61, loc_f0, loc_88, loc_ab, loc_8d, loc_ef, OBJECT_Y_STEER,
   TILEMAP_PTR_LO, TILEMAP_PTR_HI, loc_8b,
 } from "../names.js";
 
@@ -47,7 +47,7 @@ function seat(m, s = {}) {
   m.mem.write8(loc_88, s.c88 ?? 0x00);
   m.mem.write8(loc_ab, s.ab0 ?? 0x00);
   m.mem.write8(loc_ef, s.ef ?? 0x00);
-  m.mem.write8(loc_81, s.c81 ?? 0x00);
+  m.mem.write8(OBJECT_Y_STEER, s.c81 ?? 0x00);
   m.mem.write8(loc_8b, s.c8b ?? 0x00);
   m.regs.a = s.a ?? 0x40;
 }

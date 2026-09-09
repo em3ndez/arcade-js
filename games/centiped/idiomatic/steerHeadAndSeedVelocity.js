@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
 import {
-  loc_00, loc_40, loc_43, loc_50, loc_60, loc_70, loc_80, loc_88,
+  loc_00, loc_40, loc_43, HEAD_VELOCITY_SEED, loc_60, loc_70, loc_80, loc_88,
   loc_9a, loc_ab, loc_b8, loc_ef, loc_f0, POKEY_RANDOM,
 } from "./names.js";
 import { seedWaveState } from "./seedWaveState.js";
@@ -18,7 +18,7 @@ function seedHead(m) {
   const wide = mem8[u8(loc_ab + mem8[loc_88])] >= 0x02 && (mem8[POKEY_RANDOM] & 0x03) !== 0;
   const magnitude = wide ? 0x02 : 0x01;
   const velocity = mem8[POKEY_RANDOM] & 0x80 ? u8(-magnitude) : magnitude;
-  mem8[loc_50] = velocity;
+  mem8[HEAD_VELOCITY_SEED] = velocity;
   mem8[loc_60] = 0;
   mem8[loc_80] = 0;
   mem8[loc_70] = u8(((mem8[POKEY_RANDOM] & 0x78) + 0x70) ^ mem8[loc_f0]);
@@ -30,7 +30,7 @@ function commitVelocity(m) {
   const { mem8 } = m;
   if ((mem8[loc_43] & 0xaf) !== 0) return seedWaveState(m);
   const base = mem8[loc_60];
-  const step = mem8[loc_50];
+  const step = mem8[HEAD_VELOCITY_SEED];
   const velocity = mem8[loc_ef] === 0 ? u8(base + step) : u8(base - step);
   return storeHeadVelocity(m, velocity, velocity === 0);
 }

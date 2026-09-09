@@ -20,7 +20,7 @@ import { loc_2aeb as oracle } from "../../translated/loc_2aeb.js";
 import { loc_2aeb as integrate } from "../loc_2aeb.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_63, loc_73, loc_85, loc_86, loc_8b, loc_bb } from "../names.js";
+import { STACK_SCRATCH, loc_63, loc_73, MOVE_SUBSTEP_ACCUM_B, loc_86, loc_8b, loc_bb } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -58,7 +58,7 @@ function seed({ a = 0x40, carry = false, m63 = 0x30, m73 = 0x20, m86 = 0x10, mbb
   m.mem.write8(loc_73, m73);
   m.mem.write8(loc_86, m86);
   m.mem.write8(loc_bb, mbb);
-  m.mem.write8(loc_85, m85);
+  m.mem.write8(MOVE_SUBSTEP_ACCUM_B, m85);
   return pinClock(m);
 }
 

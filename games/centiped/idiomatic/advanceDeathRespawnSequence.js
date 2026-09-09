@@ -3,7 +3,7 @@ import { u8, u16 } from "../../../core/int.js";
 import {
   loc_00, loc_01, loc_42, loc_43, loc_86, loc_87, loc_88, loc_89, loc_91, loc_94,
   SPAWN_TIMER, loc_a1, loc_a4, loc_a5, loc_a6, loc_a7, loc_ad, loc_c1, loc_c2,
-  loc_d6, loc_db, loc_ee, loc_ef, loc_f9, loc_fa, loc_1c02,
+  loc_d6, FIELD_SCAN_PTR_HI, loc_ee, loc_ef, loc_f9, loc_fa, loc_1c02,
 } from "./names.js";
 import { seedWaveState } from "./seedWaveState.js";
 import { seedSegmentSpawnState } from "./seedSegmentSpawnState.js";
@@ -32,7 +32,7 @@ export function advanceDeathRespawnSequence(m) {
   const { mem8, mem16 } = m;
 
   if (mem8[loc_87] === 0) return; // idle timer clear -> nothing to do
-  if (mem8[loc_db] !== 0) return; // paused
+  if (mem8[FIELD_SCAN_PTR_HI] !== 0) return; // paused
   mem8[loc_87] = u8(mem8[loc_87] - 1); // tick the countdown
   if (mem8[loc_87] !== 0) return; // still counting down
 

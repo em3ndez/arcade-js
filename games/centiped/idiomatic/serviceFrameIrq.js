@@ -5,8 +5,8 @@ import {
   AUDF2, AUDC2,
   loc_0c00,
   loc_8a, loc_00, loc_01, loc_fb, loc_fc, loc_c8, loc_88,
-  loc_01b8, loc_01b9, loc_b9, loc_bb, loc_c2,
-  loc_64, loc_07e0, loc_54, loc_44, loc_07d0, loc_99, loc_34, loc_98,
+  TRACKBALL_AXIS0_STEP_STATE, TRACKBALL_AXIS1_STEP_STATE, loc_b9, loc_bb, loc_c2,
+  loc_64, SPRITE_SHADOW_VPOS, loc_54, loc_44, SPRITE_SHADOW_HPOS, SHADOW_SIGN_LATCH, loc_34, SHADOW_TILE_LOW_NIBBLE,
 } from "./names.js";
 import { loadPaletteRecordPair } from "./loadPaletteRecordPair.js";
 import { negateA } from "./negateA.js";
@@ -63,12 +63,12 @@ export function serviceFrameIrq(m) {
   if (xObj === 2) axisA = u8(axisA << 4);
 
   // Axis 0: step the selector, store the nudged value, fold it into the first accumulator.
-  const [y0, a0] = stepAxisBySelectorBits(m, axisA, mem8[loc_01b8]);
-  mem8[loc_01b8] = y0;
+  const [y0, a0] = stepAxisBySelectorBits(m, axisA, mem8[TRACKBALL_AXIS0_STEP_STATE]);
+  mem8[TRACKBALL_AXIS0_STEP_STATE] = y0;
   mem8[loc_b9] = u8(y0 + mem8[loc_b9]);
   // Axis 1: step from the shifted selector, store, fold the negated nudge into the second accumulator.
-  const [y1] = stepAxisBySelectorBits(m, a0, mem8[loc_01b9]);
-  mem8[loc_01b9] = y1;
+  const [y1] = stepAxisBySelectorBits(m, a0, mem8[TRACKBALL_AXIS1_STEP_STATE]);
+  mem8[TRACKBALL_AXIS1_STEP_STATE] = y1;
   mem8[loc_bb] = u8(negateA(m, y1) + mem8[loc_bb]);
 
   // Normalize this object's cell into a wrapped angle, then refresh its palette pair.
@@ -94,15 +94,15 @@ export function serviceFrameIrq(m) {
  */
 export function buildObjectShadowEntry(m, x = m.regs.x) {
   const { mem8 } = m;
-  mem8[u16(loc_07e0 + x)] = mem8[u8(loc_64 + x)];
+  mem8[u16(SPRITE_SHADOW_VPOS + x)] = mem8[u8(loc_64 + x)];
   let a = mem8[u8(loc_54 + x)];
   let y = 0;
   if (x !== 13) {
     y = mem8[u8(loc_44 + x)];
     if (y & 0x80) a = u8(a + 1);
   }
-  mem8[u16(loc_07d0 + x)] = a;
-  mem8[loc_99] = y & 0x80;
+  mem8[u16(SPRITE_SHADOW_HPOS + x)] = a;
+  mem8[SHADOW_SIGN_LATCH] = y & 0x80;
 
   if ((mem8[loc_0c00] & 0x20) === 0) {
     return storeSpriteShadowEntry(m, x, mem8[u8(loc_34 + x)]);
@@ -118,12 +118,12 @@ export function buildObjectShadowEntry(m, x = m.regs.x) {
       sub = low6;
     } else {
       const nib = cell & 0x0f;
-      mem8[loc_98] = nib;
+      mem8[SHADOW_TILE_LOW_NIBBLE] = nib;
       const bits = mem8[u8(loc_64 + x)] & 0x07;
       let acc = 0;
       if (bits !== 0) acc = bits >= 3 && bits <= 5 ? 0x0c : 0x08;
       sub = acc ^ nib;
     }
   }
-  return storeSpriteShadowEntry(m, x, sub ^ mem8[loc_99]);
+  return storeSpriteShadowEntry(m, x, sub ^ mem8[SHADOW_SIGN_LATCH]);
 }

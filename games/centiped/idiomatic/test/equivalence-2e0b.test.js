@@ -20,7 +20,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_00, loc_40, loc_43, loc_50, loc_60, loc_70, loc_80, loc_88, loc_9a, loc_ab, loc_b8, loc_ef, loc_f0,
+  loc_00, loc_40, loc_43, HEAD_VELOCITY_SEED, loc_60, loc_70, loc_80, loc_88, loc_9a, loc_ab, loc_b8, loc_ef, loc_f0,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -69,8 +69,8 @@ test("CRAFTED: every branch (guard / commit / noop / reseed) == oracle", () => {
   const arms = [
     { tag: "orient >= 0x34 -> guard wrap", cells: { [loc_40]: 0x40, [loc_ef]: 0x00 } },
     { tag: "orient in [0x30,0x34) -> commit, live $43 reseeds wave", cells: { [loc_40]: 0x31, [loc_ef]: 0x00, [loc_43]: 0x01 } },
-    { tag: "orient in [0x30,0x34) -> commit velocity (add, $ef==0)", cells: { [loc_40]: 0x31, [loc_ef]: 0x00, [loc_43]: 0x00, [loc_60]: 0x05, [loc_50]: 0x03 } },
-    { tag: "orient in [0x30,0x34) -> commit velocity (sub, $ef!=0)", cells: { [loc_40]: 0x31, [loc_ef]: 0x22, [loc_43]: 0x00, [loc_60]: 0x05, [loc_50]: 0x03, [loc_f0]: 0x00, [loc_70]: 0x00 } },
+    { tag: "orient in [0x30,0x34) -> commit velocity (add, $ef==0)", cells: { [loc_40]: 0x31, [loc_ef]: 0x00, [loc_43]: 0x00, [loc_60]: 0x05, [HEAD_VELOCITY_SEED]: 0x03 } },
+    { tag: "orient in [0x30,0x34) -> commit velocity (sub, $ef!=0)", cells: { [loc_40]: 0x31, [loc_ef]: 0x22, [loc_43]: 0x00, [loc_60]: 0x05, [HEAD_VELOCITY_SEED]: 0x03, [loc_f0]: 0x00, [loc_70]: 0x00 } },
     { tag: "orient < 0x30, position < 0xf8 -> noop", cells: { [loc_40]: 0x00, [loc_ef]: 0x00, [loc_70]: 0x00, [loc_f0]: 0x00 } },
     { tag: "position >= 0xf8 but tick phase busy -> noop", cells: { [loc_40]: 0x00, [loc_ef]: 0x00, [loc_70]: 0xf8, [loc_f0]: 0x00, [loc_00]: 0x01 } },
     { tag: "slot too old ($9a >= 0x0b) -> noop", cells: { [loc_40]: 0x00, [loc_ef]: 0x00, [loc_70]: 0xf8, [loc_f0]: 0x00, [loc_00]: 0x00, [loc_88]: 0x00, [loc_9a]: 0x0b }, rng: 0x00 },

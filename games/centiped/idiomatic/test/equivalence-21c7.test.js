@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for seedSegmentSpawnState (ROM 0x21c7) -- derive the loc_81 selector (2, dropped to
+// Memory-equivalence for seedSegmentSpawnState (ROM 0x21c7) -- derive the OBJECT_Y_STEER selector (2, dropped to
 // 1 when the loc_ab entry is 0 and the CONFIG_DIP_BYTE threshold clears the loc_a9 gate), mirror it into loc_51
 // (two's-complemented -- the dissolved loc_382d negate -- when POKEY RANDOM $100A bit2 is set), then seed
 // the constant spawn cells loc_71/loc_61/loc_41/loc_a1/SFX_TIMER_CH4. Live-out is RAM only, so each side runs on
@@ -16,7 +16,7 @@ import { seedSegmentSpawnState } from "../seedSegmentSpawnState.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_88, loc_ab, CONFIG_DIP_BYTE, loc_a9, loc_81, loc_51, loc_f0,
+  STACK_SCRATCH, loc_88, loc_ab, CONFIG_DIP_BYTE, loc_a9, OBJECT_Y_STEER, loc_51, loc_f0,
   loc_71, loc_61, loc_41, loc_a1, SFX_TIMER_CH4,
 } from "../names.js";
 
@@ -79,7 +79,7 @@ test("CRAFTED: selector branches + constant spawn cells match the oracle in RAM 
     oracle(o); seedSegmentSpawnState(c);
     const label = `slot=${slot} ab=0x${ab.toString(16)}`;
     assert.equal(ramDiff(o, c), null, label);
-    assert.equal(c.mem.read8(loc_81), sel, `loc_81 selector ${label}`);
+    assert.equal(c.mem.read8(OBJECT_Y_STEER), sel, `OBJECT_Y_STEER selector ${label}`);
     assert.equal(c.mem.read8(loc_71), (0x60 ^ f0) & 0xff, `loc_71 ${label}`);
     assert.equal(c.mem.read8(loc_61), 0xff, `loc_61 ${label}`);
     assert.equal(c.mem.read8(loc_41), 0xf8, `loc_41 ${label}`);
@@ -93,7 +93,7 @@ test("TEETH: a twin that never drops the selector to 1 diverges in RAM", () => {
   const broken = (m) => {
     const x = m.mem8[loc_88];
     let sel = 0x02; // BUG: never drops to 1
-    m.mem8[loc_81] = sel;
+    m.mem8[OBJECT_Y_STEER] = sel;
     if (m.mem8[0x100a] & 0x04) sel = (0x100 - sel) & 0xff;
     m.mem8[loc_51] = sel;
     m.mem8[loc_71] = 0x60 ^ m.mem8[loc_f0];
@@ -104,7 +104,7 @@ test("TEETH: a twin that never drops the selector to 1 diverges in RAM", () => {
   oracle(o); broken(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the RAM-diff check FAILED to catch the missing selector drop");
-  // The selector feeds loc_81 (raw) and loc_51 (mirrored); the first differing address is loc_51.
+  // The selector feeds OBJECT_Y_STEER (raw) and loc_51 (mirrored); the first differing address is loc_51.
   assert.equal(d.addr, loc_51 & 0xffff);
 });
 
