@@ -112,3 +112,12 @@ At boot `validateOrResetHighScores` decides whether the retained high-score tabl
 ### Tile-drawing primitives (writeMaskedByteAndAdvancePointer, writePointerTableRow, transposeScreenBitmap)
 
 `writeMaskedByteAndAdvancePointer` is the shared store primitive that lays tiles into video RAM: a nonzero code is XOR'd with the display mask cell ($ef) and a zero code is stored raw, both through the 16-bit output cursor `loc_91/HI` ($91/$92), which is then advanced by a flip-aware stride (0x20^mask) with a per-column high adjust ($f3) [seen — the cursor advances on every one of thousands of calls; the ROM body was disassembled and matches its model exactly, so the store's video-RAM target is simply unwatched rather than missing]. `writePointerTableRow` sits above it: it indexes a ROM pointer table (0x346d) by a row selector combined with the mode bits of `CONFIG_DIP_BYTE`, fetches a row descriptor, seeds the output cursor from the descriptor's leading word, and then emits each tile code through the store primitive until a descriptor byte with its top bit set ends the row — folding space and 0x30-range codes to blanks along the way, with `rewritePointerTableRowFromStart` re-entering the same loop from descriptor offset 0 [code — not reached in this capture, though its store sub is exercised heavily by other renderers]. `transposeScreenBitmap` is a standalone screen-transition effect that reads the whole tilemap as a monochrome bit image, packs eight tiles per byte, rotates the image one column per pass through a scratch column ($0100), and rewrites every cell as blank or solid; it is a wipe used at transitions and does not run during ordinary play [code].
+
+## Batch-2 routines — understanding pending
+
+The batch-2 acyclic routines (the round/death-respawn sequence, object marshalling and steering, the
+segment-column advance and its clamps, the config/high-score readout printers, the frame-IRQ service and
+trackball accumulate, and their helpers) are now decompiled to idiomatic modules with equivalence tests,
+but their cell naming and MAME grounding are deferred to understanding pass 2 — their cells keep loc_
+placeholders and their roles are [code] until that pass names and grounds them. The 16-routine main-loop
+spine cycle remains on the translated fallback (batch 3).

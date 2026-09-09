@@ -252,6 +252,19 @@ export const SEGMENT_ROW_THRESHOLD_TABLE = 0x3413; // [code] ROM table of per-ro
 export const loc_346d = 0x346d; // ROM row-descriptor pointer table read by writePointerTableRow [code]
 export const loc_3a69 = 0x3a69; // ROM high-score init table read by validateOrResetHighScores [code]
 
+export const loc_0801 = 0x0801; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_0c00 = 0x0c00; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1008 = 0x1008; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_100f = 0x100f; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1800 = 0x1800; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1c00 = 0x1c00; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1c02 = 0x1c02; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1c03 = 0x1c03; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1c04 = 0x1c04; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_2003 = 0x2003; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_2120 = 0x2120; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_21c0 = 0x21c0; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+
 // Routine override map: addr -> { name, entry? }. Empty until the decompile batches land idiomatic modules;
 // resolveAllIdiomatic walks this, so an unlisted routine runs as the frozen oracle fallback.
 export const ROUTINES = {
@@ -299,4 +312,41 @@ export const ROUTINES = {
   0x3a99: { name: "loadHighScoreTableFromEarom" },
   0x3aa7: { name: "readEaromCell" },
   0x3ac0: { name: "tickEaromWriteback" },
+  0x335e: { name: "advanceAllSegmentColumns" },
+  0x3825: { name: "redrawPointerTableRowUnblanked" },
+  0x384f: { name: "plotByteAsTwoDigits" },
+  0x2b24: { name: "clampCoordToBand" },
+  0x2b60: { name: "routeByCoordDelta" },
+  0x2c96: { name: "armSlotWhenObjectInRange" },
+  0x3037: { name: "loc_3037" },
+  0x303e: { name: "loc_303e" },
+  0x3046: { name: "loc_3046" },
+  0x2872: { name: "initRoundState" },
+  0x2ace: { name: "loc_2ace" },
+  0x2aeb: { name: "loc_2aeb" },
+  0x23da: { name: "advanceDeathRespawnSequence" },
+  0x24f8: { name: "decrementSlotAndRedrawBorders" },
+  0x24ff: { name: "reseedSegmentSpawnState" },
+  0x2059: { name: "loc_2059" },
+  0x20b8: { name: "stampGridCellAtObject" },
+  0x2119: { name: "loc_2119" },
+  0x2cef: { name: "scanForRangedCellAndSeed" },
+  0x2d5c: { name: "plotRecordFieldColumns" },
+  0x2dae: { name: "decrementActiveObjectDelay" },
+  0x2db6: { name: "advancePathAccumulator" },
+  0x2e0b: { name: "steerHeadAndSeedVelocity" },
+  0x2e8c: { name: "storeHeadVelocity" },
+  0x3049: { name: "tickSpawnCadence" },
+  0x323e: { name: "buildSortedObjectTable" },
+  0x32fe: { name: "plotObjectCoordinates" },
+  0x2505: { name: "loc_2505" },
+  0x2561: { name: "loc_2561" },
+  0x2741: { name: "loc_2741" },
+  0x2195: { name: "plotConfigTableRow" },
+  0x2202: { name: "advanceColumnHeadingState" },
+  0x2280: { name: "steerObjectRowTarget" },
+  0x3871: { name: "serviceFrameIrq" },
+  0x3907: { name: "serviceFrameIrq", entry: "buildObjectShadowEntry" },
+  0x3956: { name: "storeSpriteShadowEntry" },
+  0x396d: { name: "accumulateTrackballAndReturnFromIrq" },
 };

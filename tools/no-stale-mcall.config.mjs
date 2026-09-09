@@ -54,6 +54,13 @@ export const ALLOWED = {
  */
 export const DEBT = {
   frogger: {}, // idiomatic port complete (call=0): every m.call dissolved, no generator debt remains
+  centiped: {
+    // batch-2 transient: plotConfigTableRow prints a config row through writePointerTableRow (0x37d5)
+    // then plotNormalizedCharCode (0x385c); both batch-1 callees leave a load-bearing EXIT CARRY the chain
+    // consumes, but neither exposes it via return yet. Dissolving would drop the carry. A follow-up exposes
+    // the carry on those batch-1 modules (its own commit — modifying committed batch-1) then dissolves these.
+    "plotConfigTableRow.js": [0x37d5, 0x385c],
+  },
   dkong: {
     "advanceBarrelMotion.js": [0x1fac, 0x1fe5, 0x1fef, 0x2053, 0x20ec],
     "advanceBarrelTileAnimation.js": [0x21ba],
