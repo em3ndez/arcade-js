@@ -189,12 +189,12 @@ export const SPRITE_SHADOW_ATTR = 0x07f0; // [seen] Per-object sprite-shadow att
 // dumpState/the RAM diff). loc_2656 fans a 3-byte ROM record into two palette triples. [code]
 // placeholders -- cellRenames proposes descriptive names for the LEAD to apply.
 export const PALETTE_COLOR_04 = 0x1404; // [code] Playfield color RAM cell. resetPlayfieldAndSeedMushrooms writes the fixed 0x0f palette val
-export const PALETTE_COLOR_05 = 0x1405; // [code] Palette RAM colour byte (video palette region 0x1400-0x140f). Entry of triple A (0x1405-0x
-export const PALETTE_COLOR_06 = 0x1406; // [code] Palette RAM colour byte. Entry of triple A, receives record byte b2.
-export const PALETTE_COLOR_07 = 0x1407; // [code] Palette RAM colour byte. Entry of triple A, receives record byte b1.
-export const PALETTE_COLOR_0D = 0x140d; // [code] Palette RAM colour byte. Entry of triple B (0x140d-0x140f), receives record byte b1.
-export const PALETTE_COLOR_0E = 0x140e; // [code] Palette RAM colour byte. Entry of triple B, receives record byte b2.
-export const PALETTE_COLOR_0F = 0x140f; // [code] Palette RAM colour byte. Entry of triple B, receives record byte b0.
+export const PALETTE_COLOR_05 = 0x1405; // [seen] Palette RAM colour byte (video palette region 0x1400-0x140f). Entry of triple A (0x1405-0x
+export const PALETTE_COLOR_06 = 0x1406; // [seen] Palette RAM colour byte. Entry of triple A, receives record byte b2.
+export const PALETTE_COLOR_07 = 0x1407; // [seen] Palette RAM colour byte. Entry of triple A, receives record byte b1.
+export const PALETTE_COLOR_0D = 0x140d; // [seen] Palette RAM colour byte. Entry of triple B (0x140d-0x140f), receives record byte b1.
+export const PALETTE_COLOR_0E = 0x140e; // [seen] Palette RAM colour byte. Entry of triple B, receives record byte b2.
+export const PALETTE_COLOR_0F = 0x140f; // [seen] Palette RAM colour byte. Entry of triple B, receives record byte b0.
 
 // ROM data table at 0x2676: 3-byte palette-color records, indexed by X in loc_2656. [code]
 export const PALETTE_RECORD_TABLE = 0x2676;
@@ -209,7 +209,7 @@ export const POKEY_RANDOM = 0x100a; // [seen] POKEY RANDOM register (read-only h
 // Hardware-port placeholders (added for the 0x2509/0x252a decompile batch). Board decode
 // (boards/centiped/memory.js): 0x1C00-0x1C07 is the LS259 outlatch (write_d7); index 7 -> Q7 ->
 // flip_screen_w, so a write of A stores bit7 of A to the flip-screen latch. Propose rename FLIP_SCREEN_LATCH.
-export const FLIP_SCREEN = 0x1c07; // [code] Hardware flip-screen output latch (driven by bit7 of the broadcast value).
+export const FLIP_SCREEN = 0x1c07; // [seen] Hardware flip-screen output latch (driven by bit7 of the broadcast value).
 // 0x2400 sits in ROM read-space (0x2001-0x3FFF); memory.js write8 IGNORES the store ("e.g. reset's sta $2400").
 // A dead/no-op write the ROM performs; kept so the idiomatic layer mirrors the oracle's write exactly. [code]
 export const loc_2400 = 0x2400;
@@ -257,10 +257,10 @@ export const IN0 = 0x0c00; // [seen] I/O port or ROM table (batch-2 decompile pl
 export const AUDCTL = 0x1008; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
 export const SKCTL = 0x100f; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
 export const IRQ_ACK = 0x1800; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_1c00 = 0x1c00; // [code] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_1c02 = 0x1c02; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1c00 = 0x1c00; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1c02 = 0x1c02; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_1c03 = 0x1c03; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_1c04 = 0x1c04; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1c04 = 0x1c04; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_2003 = 0x2003; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_2120 = 0x2120; // [code] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_21c0 = 0x21c0; // [code] I/O port or ROM table (batch-2 decompile placeholder)
