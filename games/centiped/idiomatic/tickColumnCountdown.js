@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_a1, loc_b5, loc_41, loc_f2, loc_100a } from "./names.js";
+import { loc_a1, SFX_TIMER_CH4, loc_41, loc_f2, POKEY_RANDOM } from "./names.js";
 
 /**
  * tickColumnCountdown — tick a per-tick column countdown. Most ticks just
@@ -15,7 +15,7 @@ export function tickColumnCountdown(m) {
   if (next !== 0) return;
 
   // Wrapped: reload a fresh random interval (0x0f or 0x2f) and re-arm the companion cells.
-  mem8[loc_a1] = (m.mem8[loc_100a] & 0x2f) | 0x0f;
-  mem8[loc_b5] = 0x14;
+  mem8[loc_a1] = (m.mem8[POKEY_RANDOM] & 0x2f) | 0x0f;
+  mem8[SFX_TIMER_CH4] = 0x14;
   mem8[loc_41] = 0x14 ^ mem8[loc_f2];
 }

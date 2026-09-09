@@ -15,7 +15,7 @@ import { loc_22fa as oracle } from "../../translated/loc_22fa.js";
 import { tickColumnCountdown } from "../tickColumnCountdown.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_a1, loc_b5, loc_41, loc_f2 } from "../names.js";
+import { STACK_SCRATCH, loc_a1, SFX_TIMER_CH4, loc_41, loc_f2 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -45,13 +45,13 @@ test("CAPTURE: real 0x22fa dispatches -- tickColumnCountdown == oracle in RAM (-
 });
 
 test("CRAFTED: early-return path ($a1 stays non-zero) touches only $a1", () => {
-  const seed = (m) => { m.mem.write8(loc_a1, 0x05); m.mem.write8(loc_b5, 0x99); m.mem.write8(loc_41, 0x77); };
+  const seed = (m) => { m.mem.write8(loc_a1, 0x05); m.mem.write8(SFX_TIMER_CH4, 0x99); m.mem.write8(loc_41, 0x77); };
   const o = new Machine(ROM); seed(o);
   const c = new Machine(ROM); seed(c);
   oracle(o); tickColumnCountdown(c);
   assert.equal(ramDiff(o, c), null, "RAM matches on the early path");
   assert.equal(c.mem.read8(loc_a1), 0x04, "$a1 decremented");
-  assert.equal(c.mem.read8(loc_b5), 0x99, "$b5 untouched on the early path");
+  assert.equal(c.mem.read8(SFX_TIMER_CH4), 0x99, "$b5 untouched on the early path");
   assert.equal(c.mem.read8(loc_41), 0x77, "$41 untouched on the early path");
 });
 
@@ -62,7 +62,7 @@ test("CRAFTED: wrap path ($a1 == 1 -> 0) reloads $a1 and re-arms $b5/$41", () =>
   oracle(o); tickColumnCountdown(c);
   assert.equal(ramDiff(o, c), null, "RAM matches on the wrap path");
   assert.equal(c.mem.read8(loc_a1), (0xff & 0x2f) | 0x0f, "$a1 reloaded from RNG (default 0xff -> 0x2f)");
-  assert.equal(c.mem.read8(loc_b5), 0x14, "$b5 armed to 0x14");
+  assert.equal(c.mem.read8(SFX_TIMER_CH4), 0x14, "$b5 armed to 0x14");
   assert.equal(c.mem.read8(loc_41), 0x14 ^ 0x33, "$41 = 0x14 ^ $f2");
 });
 
@@ -78,7 +78,7 @@ test("TEETH: a twin that never re-arms on wrap (only decrements) diverges in $a1
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the RAM diff FAILED to catch the missing wrap re-arm");
   // First divergence is $41 or $b5 or $a1 -- all part of the dropped re-arm; assert it is one of them.
-  assert.ok([loc_a1 & 0xffff, loc_b5 & 0xffff, loc_41 & 0xffff].includes(d.addr), `first divergence in the re-arm set (got 0x${(d.addr ?? 0).toString(16)})`);
+  assert.ok([loc_a1 & 0xffff, SFX_TIMER_CH4 & 0xffff, loc_41 & 0xffff].includes(d.addr), `first divergence in the re-arm set (got 0x${(d.addr ?? 0).toString(16)})`);
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {

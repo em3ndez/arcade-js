@@ -2,7 +2,7 @@
 import {
   loc_88, loc_94, loc_c2, loc_9c, loc_9a, loc_ab, loc_34, loc_74, loc_00, loc_44,
   loc_f0, loc_64, loc_54, loc_8b, loc_73, loc_43, loc_53, loc_f4, loc_fe, loc_97,
-  loc_100a,
+  POKEY_RANDOM,
 } from "./names.js";
 
 /**
@@ -78,9 +78,9 @@ export function rebuildSegmentSpriteTables(m) {
       const f4 = m.mem8[loc_f4];
       if (f4 !== 0) a = f4;
       m.mem8[(loc_74 + x) & 0xff] = a;
-      if (m.mem8[loc_100a] & 0x80) a = (0x100 - a) & 0xff; // negate on random bit7
+      if (m.mem8[POKEY_RANDOM] & 0x80) a = (0x100 - a) & 0xff; // negate on random bit7
       m.mem8[(loc_44 + x) & 0xff] = a;
-      m.mem8[(loc_54 + x) & 0xff] = m.mem8[loc_100a] & 0xf8; // random & 0xf8
+      m.mem8[(loc_54 + x) & 0xff] = m.mem8[POKEY_RANDOM] & 0xf8; // random & 0xf8
       carry = m.mem8[(loc_64 + x) & 0xff]; // reload the value just stored (invariant)
       x = (x + 1) & 0xff;
     } while (x < 0x0c);

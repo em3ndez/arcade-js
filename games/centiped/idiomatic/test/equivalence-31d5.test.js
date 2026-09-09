@@ -13,7 +13,7 @@ import { loc_31d5 as oracle } from "../../translated/loc_31d5.js";
 import { transposeScreenBitmap } from "../transposeScreenBitmap.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_32, loc_33, loc_8b, loc_8d, loc_8e, loc_ef, loc_0100 } from "../names.js";
+import { STACK_SCRATCH, TILEMAP_PTR_LO, TILEMAP_PTR_HI, loc_8b, loc_8d, loc_8e, loc_ef, loc_0100 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -66,20 +66,20 @@ test("CRAFTED: seeded tile maps transpose identically to the oracle (RAM -stack)
     for (let a = VRAM_LO, i = 0; a < VRAM_HI; a++, i++) if (o.mem8[a] !== before[i]) changed++;
     assert.ok(changed > 0, `positive control: the routine must rewrite video RAM (k=${k})`);
     // it terminates having paged the pointer up to $0700 and Y to 0xc0.
-    assert.equal(o.mem8[loc_33], 0x07, `pointer paged to 0x07 (k=${k})`);
-    assert.equal(c.mem8[loc_33], 0x07, `idiomatic paged to 0x07 (k=${k})`);
+    assert.equal(o.mem8[TILEMAP_PTR_HI], 0x07, `pointer paged to 0x07 (k=${k})`);
+    assert.equal(c.mem8[TILEMAP_PTR_HI], 0x07, `idiomatic paged to 0x07 (k=${k})`);
   }
 });
 
 test("TEETH: an off-by-one threshold twin (>= 0x39) diverges in the RAM diff", () => {
   // A faithful copy of the transform with ONE bug: the pack threshold is 0x39, not 0x38.
   const brokenTranspose = (m) => {
-    m.mem8[loc_32] = 0x00; m.mem8[loc_33] = 0x04; m.mem8[loc_8d] = 0x00;
+    m.mem8[TILEMAP_PTR_LO] = 0x00; m.mem8[TILEMAP_PTR_HI] = 0x04; m.mem8[loc_8d] = 0x00;
     let y = 0x00;
     for (;;) {
       m.mem8[loc_8b] = 0x00; m.mem8[loc_8e] = y; let carry = false;
       for (let x = 8; x > 0; x--) {
-        const tile = m.mem8[(m.mem16[loc_32] + y) & 0xffff] & 0x3f;
+        const tile = m.mem8[(m.mem16[TILEMAP_PTR_LO] + y) & 0xffff] & 0x3f;
         carry = tile >= 0x39; // BUG: should be >= 0x38
         const v = m.mem8[loc_8b];
         m.mem8[loc_8b] = ((v << 1) | (carry ? 1 : 0)) & 0xff;
@@ -94,12 +94,12 @@ test("TEETH: an off-by-one threshold twin (>= 0x39) diverges in the RAM diff", (
         const v = m.mem8[loc_8b];
         m.mem8[loc_8b] = ((v << 1) | (carry ? 1 : 0)) & 0xff;
         carry = (v & 0x80) !== 0;
-        m.mem8[(m.mem16[loc_32] + y) & 0xffff] = carry ? (0x3f ^ m.mem8[loc_ef]) & 0xff : 0x00;
+        m.mem8[(m.mem16[TILEMAP_PTR_LO] + y) & 0xffff] = carry ? (0x3f ^ m.mem8[loc_ef]) & 0xff : 0x00;
         y = (y + 1) & 0xff;
       }
-      if (y === 0x00) m.mem8[loc_33] = (m.mem8[loc_33] + 1) & 0xff;
+      if (y === 0x00) m.mem8[TILEMAP_PTR_HI] = (m.mem8[TILEMAP_PTR_HI] + 1) & 0xff;
       if (y !== 0xc0) continue;
-      if (m.mem8[loc_33] !== 0x07) continue;
+      if (m.mem8[TILEMAP_PTR_HI] !== 0x07) continue;
       return;
     }
   };

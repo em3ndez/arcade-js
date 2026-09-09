@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_ef, loc_f0, loc_40, loc_70, loc_60, loc_88, loc_ab, loc_80, loc_50, loc_b8, loc_100a } from "./names.js";
+import { loc_ef, loc_f0, loc_40, loc_70, loc_60, loc_88, loc_ab, loc_80, loc_50, loc_b8, POKEY_RANDOM } from "./names.js";
 
 /**
  * seedWaveState — round/wave-start initializer. Folds the two difficulty seed
@@ -18,7 +18,7 @@ export function seedWaveState(m) {
   // Keep bits 7-3 of the RNG and require >= 0x10; store that value minus 4.
   let masked;
   do {
-    masked = m.mem8[loc_100a] & 0xf8;
+    masked = m.mem8[POKEY_RANDOM] & 0xf8;
   } while (masked < 0x10);
   mem8[loc_60] = masked - 4; // masked is in [0x10,0xf8], so masked-4 is a valid byte
 

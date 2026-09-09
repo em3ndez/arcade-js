@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_0178, loc_01b5 } from "./names.js";
+import { HIGH_SCORE_TABLE, HIGH_SCORE_CHECKSUM } from "./names.js";
 
 /**
  * foldHighScoreChecksum -- XOR-fold the high-score table into a one-byte checksum,
@@ -17,10 +17,10 @@ export function foldHighScoreChecksum(m) {
   const { mem8 } = m;
   let acc = 0xff;
   for (let i = 0x3c; i >= 0; i--) {
-    acc = u8(acc ^ mem8[loc_0178 + i]);
+    acc = u8(acc ^ mem8[HIGH_SCORE_TABLE + i]);
   }
-  const oldChecksum = mem8[loc_01b5];
-  mem8[loc_01b5] = acc;                       // publish the fresh fold
+  const oldChecksum = mem8[HIGH_SCORE_CHECKSUM];
+  mem8[HIGH_SCORE_CHECKSUM] = acc;                       // publish the fresh fold
   const delta = u8(oldChecksum ^ acc);
   return [(m.regs.a = delta), (m.regs.y = oldChecksum), (m.regs.fZ = delta === 0), (m.regs.fN = (delta & 0x80) !== 0)];
 }

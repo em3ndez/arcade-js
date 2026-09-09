@@ -17,7 +17,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH, PALETTE_RECORD_TABLE,
-  loc_1405, loc_1406, loc_1407, loc_140d, loc_140e, loc_140f,
+  PALETTE_COLOR_05, PALETTE_COLOR_06, PALETTE_COLOR_07, PALETTE_COLOR_0D, PALETTE_COLOR_0E, PALETTE_COLOR_0F,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -31,7 +31,7 @@ const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
 // Palette RAM is not in dumpState -- compare it directly (index = cell & 0x0f).
-const PAL_CELLS = [loc_1405, loc_1406, loc_1407, loc_140d, loc_140e, loc_140f];
+const PAL_CELLS = [PALETTE_COLOR_05, PALETTE_COLOR_06, PALETTE_COLOR_07, PALETTE_COLOR_0D, PALETTE_COLOR_0E, PALETTE_COLOR_0F];
 const palDiff = (ma, mb) => {
   for (const cell of PAL_CELLS) {
     const i = cell & 0x0f;
@@ -84,25 +84,25 @@ test("CRAFTED: several record indices fan out to both palette triples in the fix
     // The permutation of the ROM record [b0,b1,b2]: A=(b1,b2,b0), B=(b0,b2,b1).
     const base = (PALETTE_RECORD_TABLE + idx) & 0xffff;
     const b0 = c.mem.read8(base), b1 = c.mem.read8((base + 1) & 0xffff), b2 = c.mem.read8((base + 2) & 0xffff);
-    assert.equal(c.mem.paletteRam[loc_140d & 0x0f], b1, `140d ${label}`);
-    assert.equal(c.mem.paletteRam[loc_140e & 0x0f], b2, `140e ${label}`);
-    assert.equal(c.mem.paletteRam[loc_140f & 0x0f], b0, `140f ${label}`);
-    assert.equal(c.mem.paletteRam[loc_1405 & 0x0f], b0, `1405 ${label}`);
-    assert.equal(c.mem.paletteRam[loc_1406 & 0x0f], b2, `1406 ${label}`);
-    assert.equal(c.mem.paletteRam[loc_1407 & 0x0f], b1, `1407 ${label}`);
+    assert.equal(c.mem.paletteRam[PALETTE_COLOR_0D & 0x0f], b1, `140d ${label}`);
+    assert.equal(c.mem.paletteRam[PALETTE_COLOR_0E & 0x0f], b2, `140e ${label}`);
+    assert.equal(c.mem.paletteRam[PALETTE_COLOR_0F & 0x0f], b0, `140f ${label}`);
+    assert.equal(c.mem.paletteRam[PALETTE_COLOR_05 & 0x0f], b0, `1405 ${label}`);
+    assert.equal(c.mem.paletteRam[PALETTE_COLOR_06 & 0x0f], b2, `1406 ${label}`);
+    assert.equal(c.mem.paletteRam[PALETTE_COLOR_07 & 0x0f], b1, `1407 ${label}`);
   }
 });
 
 test("TEETH: a twin that miswrites one palette entry is caught by the palette read-back", () => {
-  // The RAM diff is BLIND to palette (not in dumpState); only palDiff can catch this. Corrupt loc_140d
+  // The RAM diff is BLIND to palette (not in dumpState); only palDiff can catch this. Corrupt PALETTE_COLOR_0D
   // with ^0xff so the divergence is guaranteed regardless of the record's actual bytes.
   const broken = (m, x = m.regs.x) => {
     const base = (PALETTE_RECORD_TABLE + (x & 0xff)) & 0xffff;
     const b0 = m.mem.read8(base), b1 = m.mem.read8((base + 1) & 0xffff), b2 = m.mem.read8((base + 2) & 0xffff);
-    m.mem.write8(loc_140e, b2); m.mem.write8(loc_1406, b2);
-    m.mem.write8(loc_140f, b0); m.mem.write8(loc_1405, b0);
-    m.mem.write8(loc_140d, b1 ^ 0xff); // BUG
-    m.mem.write8(loc_1407, b1);
+    m.mem.write8(PALETTE_COLOR_0E, b2); m.mem.write8(PALETTE_COLOR_06, b2);
+    m.mem.write8(PALETTE_COLOR_0F, b0); m.mem.write8(PALETTE_COLOR_05, b0);
+    m.mem.write8(PALETTE_COLOR_0D, b1 ^ 0xff); // BUG
+    m.mem.write8(PALETTE_COLOR_07, b1);
   };
   const o = craft(0x03), c = craft(0x03);
   oracle(o); broken(c);

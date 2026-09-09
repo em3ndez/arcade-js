@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import {
   loc_88, loc_8b, loc_8d, loc_8e, loc_8f, loc_c2, loc_d7, loc_ef,
-  loc_100a, loc_1404, loc_0400, loc_0500, loc_0600, loc_0700,
+  POKEY_RANDOM, PALETTE_COLOR_04, loc_0400, loc_0500, loc_0600, loc_0700,
 } from "./names.js";
 import { loadPaletteRecordPair } from "./loadPaletteRecordPair.js";
 import { seedPlayerShotStartCells } from "./seedPlayerShotStartCells.js";
@@ -27,7 +27,7 @@ export function resetPlayfieldAndSeedMushrooms(m) {
   const { mem8, mem16 } = m;
 
   // (1) Palette color + clear $C2+$88, then fan the first motion-object record via loadPaletteRecordPair.
-  mem8[loc_1404] = PALETTE_RESET_VALUE;
+  mem8[PALETTE_COLOR_04] = PALETTE_RESET_VALUE;
   mem8[(loc_c2 + mem8[loc_88]) & 0xff] = 0x00;
   loadPaletteRecordPair(m, 0x00); // record index 0
 
@@ -49,8 +49,8 @@ export function resetPlayfieldAndSeedMushrooms(m) {
   let col = SWEEP_START;
   do {
     // Build the pseudo-random cell pointer from POKEY RANDOM + the column stride.
-    mem8[loc_8d] = (mem8[loc_100a] & 0xe0) | mem8[loc_8b];
-    mem8[loc_8e] = (mem8[loc_100a] & 0x03) | 0x04;
+    mem8[loc_8d] = (mem8[POKEY_RANDOM] & 0xe0) | mem8[loc_8b];
+    mem8[loc_8e] = (mem8[POKEY_RANDOM] & 0x03) | 0x04;
     mem8[loc_8f] = col; // park the outer counter across the inner register clobbers
 
     // Decide whether this (empty) cell bumps the $D7+$88 tally. The index compared is $8D & 0x1F

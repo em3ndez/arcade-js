@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory+carry equivalence for armSlotState (ROM 0x2cc2) -- when entry carry is CLEAR it arms
-// loc_87/loc_43/loc_34,X/loc_42 (+loc_b7 unless loc_86 is negative) and zeroes loc_b2..loc_b5/loc_b8,
+// loc_87/loc_43/loc_34,X/loc_42 (+SFX_TIMER_CH1_PRIORITY unless loc_86 is negative) and zeroes loc_b2..SFX_TIMER_CH4/loc_b8,
 // returning carry CLEAR; when entry carry is SET it is a no-op (the ROM's BCS bail to a bare RTS),
 // leaving carry SET. The arms assert BOTH the RAM diff (-stack) AND the carry, since the entry carry is
 // consumed and the clear/preserve is a LIVE-OUT the RAM diff cannot see. It is a leaf (omits the ROM
@@ -17,7 +17,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH, loc_34, loc_42, loc_43, loc_86, loc_87,
-  loc_b2, loc_b3, loc_b4, loc_b5, loc_b7, loc_b8,
+  loc_b2, SFX_TIMER_CH2, SFX_TIMER_CH3, SFX_TIMER_CH4, SFX_TIMER_CH1_PRIORITY, loc_b8,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -58,15 +58,15 @@ test("CAPTURE: real 0x2cc2 dispatches -- armSlotState == oracle in RAM (-stack) 
 test("CRAFTED: each branch leaves identical RAM (-stack) and identical carry", () => {
   const cases = [
     {
-      tag: "arm path (carry clear, loc_86 >= 0) -> arms every field incl loc_b7, carry CLEAR",
+      tag: "arm path (carry clear, loc_86 >= 0) -> arms every field incl SFX_TIMER_CH1_PRIORITY, carry CLEAR",
       carry: false, x: 0x03,
       seed: (m) => { m.mem.write8(loc_86, 0x00); },
       expectCarry: false,
     },
     {
-      tag: "arm path (carry clear, loc_86 negative) -> arms all EXCEPT loc_b7, carry CLEAR",
+      tag: "arm path (carry clear, loc_86 negative) -> arms all EXCEPT SFX_TIMER_CH1_PRIORITY, carry CLEAR",
       carry: false, x: 0x03,
-      seed: (m) => { m.mem.write8(loc_86, 0x80); m.mem.write8(loc_b7, 0x99); }, // loc_b7 must stay 0x99
+      seed: (m) => { m.mem.write8(loc_86, 0x80); m.mem.write8(SFX_TIMER_CH1_PRIORITY, 0x99); }, // SFX_TIMER_CH1_PRIORITY must stay 0x99
       expectCarry: false,
     },
     {
@@ -76,7 +76,7 @@ test("CRAFTED: each branch leaves identical RAM (-stack) and identical carry", (
       seed: (m) => {
         m.mem.write8(loc_87, 0xaa); m.mem.write8(loc_43, 0xbb); m.mem.write8(loc_42, 0xcc);
         m.mem.write8((loc_34 + 0x03) & 0xff, 0xdd); m.mem.write8(loc_86, 0x00);
-        m.mem.write8(loc_b2, 0x11); m.mem.write8(loc_b7, 0x22); m.mem.write8(loc_b8, 0x33);
+        m.mem.write8(loc_b2, 0x11); m.mem.write8(SFX_TIMER_CH1_PRIORITY, 0x22); m.mem.write8(loc_b8, 0x33);
       },
       expectCarry: true,
     },
@@ -98,40 +98,40 @@ test("CRAFTED: each branch leaves identical RAM (-stack) and identical carry", (
   }
 });
 
-test("TEETH: a twin that skips zeroing loc_b4 diverges in RAM", () => {
-  // Real arm path, one broken op: drops the `loc_b4 = 0` clear.
+test("TEETH: a twin that skips zeroing SFX_TIMER_CH3 diverges in RAM", () => {
+  // Real arm path, one broken op: drops the `SFX_TIMER_CH3 = 0` clear.
   function armSlotState_droppedClear(m, x = m.regs.x, carryIn = m.regs.fC) {
     if (carryIn) return;
     const { mem8 } = m;
     mem8[loc_87] = 0x30; mem8[loc_43] = 0x20; mem8[(loc_34 + x) & 0xff] = 0xff; mem8[loc_42] = 0x28;
-    if ((mem8[loc_86] & 0x80) === 0) mem8[loc_b7] = 0x13;
-    mem8[loc_b2] = 0x00; mem8[loc_b3] = 0x00; /* BUG: dropped loc_b4 = 0 */ mem8[loc_b5] = 0x00; mem8[loc_b8] = 0x00;
+    if ((mem8[loc_86] & 0x80) === 0) mem8[SFX_TIMER_CH1_PRIORITY] = 0x13;
+    mem8[loc_b2] = 0x00; mem8[SFX_TIMER_CH2] = 0x00; /* BUG: dropped SFX_TIMER_CH3 = 0 */ mem8[SFX_TIMER_CH4] = 0x00; mem8[loc_b8] = 0x00;
     return (m.regs.fC = false);
   }
-  const setup = (m) => { m.regs.fC = false; m.regs.x = 0x03; m.mem.write8(loc_86, 0x00); m.mem.write8(loc_b4, 0x77); };
+  const setup = (m) => { m.regs.fC = false; m.regs.x = 0x03; m.mem.write8(loc_86, 0x00); m.mem.write8(SFX_TIMER_CH3, 0x77); };
   const o = make(setup); const c = make(setup);
   oracle(o); armSlotState_droppedClear(c);
   const d = ramDiff(o, c);
-  assert.notEqual(d, null, "the RAM diff FAILED to catch a dropped loc_b4 clear");
-  assert.equal(d.addr, loc_b4 & 0xffff);
+  assert.notEqual(d, null, "the RAM diff FAILED to catch a dropped SFX_TIMER_CH3 clear");
+  assert.equal(d.addr, SFX_TIMER_CH3 & 0xffff);
 });
 
-test("TEETH: a twin that arms loc_b7 unconditionally diverges on the loc_86-negative case", () => {
-  // Broken twin: drops the `loc_86 >= 0` guard, so it arms loc_b7 even when loc_86 is negative.
+test("TEETH: a twin that arms SFX_TIMER_CH1_PRIORITY unconditionally diverges on the loc_86-negative case", () => {
+  // Broken twin: drops the `loc_86 >= 0` guard, so it arms SFX_TIMER_CH1_PRIORITY even when loc_86 is negative.
   function armSlotState_unconditionalB7(m, x = m.regs.x, carryIn = m.regs.fC) {
     if (carryIn) return;
     const { mem8 } = m;
     mem8[loc_87] = 0x30; mem8[loc_43] = 0x20; mem8[(loc_34 + x) & 0xff] = 0xff; mem8[loc_42] = 0x28;
-    mem8[loc_b7] = 0x13; // BUG: no `if ((mem8[loc_86] & 0x80) === 0)` guard
-    mem8[loc_b2] = 0x00; mem8[loc_b3] = 0x00; mem8[loc_b4] = 0x00; mem8[loc_b5] = 0x00; mem8[loc_b8] = 0x00;
+    mem8[SFX_TIMER_CH1_PRIORITY] = 0x13; // BUG: no `if ((mem8[loc_86] & 0x80) === 0)` guard
+    mem8[loc_b2] = 0x00; mem8[SFX_TIMER_CH2] = 0x00; mem8[SFX_TIMER_CH3] = 0x00; mem8[SFX_TIMER_CH4] = 0x00; mem8[loc_b8] = 0x00;
     return (m.regs.fC = false);
   }
-  const setup = (m) => { m.regs.fC = false; m.regs.x = 0x03; m.mem.write8(loc_86, 0x80); m.mem.write8(loc_b7, 0x99); };
+  const setup = (m) => { m.regs.fC = false; m.regs.x = 0x03; m.mem.write8(loc_86, 0x80); m.mem.write8(SFX_TIMER_CH1_PRIORITY, 0x99); };
   const o = make(setup); const c = make(setup);
   oracle(o); armSlotState_unconditionalB7(c);
   const d = ramDiff(o, c);
-  assert.notEqual(d, null, "the RAM diff FAILED to catch an unconditional loc_b7 arm");
-  assert.equal(d.addr, loc_b7 & 0xffff);
+  assert.notEqual(d, null, "the RAM diff FAILED to catch an unconditional SFX_TIMER_CH1_PRIORITY arm");
+  assert.equal(d.addr, SFX_TIMER_CH1_PRIORITY & 0xffff);
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {

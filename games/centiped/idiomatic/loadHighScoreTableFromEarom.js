@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { readEaromCell } from "./readEaromCell.js";
-import { loc_0178, loc_f9 } from "./names.js";
+import { HIGH_SCORE_TABLE, loc_f9 } from "./names.js";
 
 /**
  * loadHighScoreTableFromEarom -- slurp the whole 64-byte high-score NVRAM into the
@@ -17,7 +17,7 @@ export function loadHighScoreTableFromEarom(m, a = m.regs.a) {
   const { mem8 } = m;
   for (let x = 0x3f; x >= 0; x--) {
     a = readEaromCell(m, a, x); // A = cells[X]; A_in is threaded but a don't-care (the read overwrites it)
-    mem8[loc_0178 + x] = a;
+    mem8[HIGH_SCORE_TABLE + x] = a;
   }
   mem8[loc_f9] = 0xff; // stx $f9 — X wrapped to 0xff: no writeback pending
 }

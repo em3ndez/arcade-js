@@ -13,7 +13,7 @@ import { loc_37d5 as oracle } from "../../translated/loc_37d5.js";
 import { writePointerTableRow } from "../writePointerTableRow.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_8c, loc_fd } from "../names.js";
+import { STACK_SCRATCH, loc_8c, CONFIG_DIP_BYTE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -46,15 +46,15 @@ test("CAPTURE: real 0x37d5 dispatches -- writePointerTableRow == oracle in RAM (
 });
 
 // The capture happens to select only a subset of the ROM pointer-table rows (attract draws a fixed set).
-// Re-index the table via loc_fd's low two bits and flip the blank-out flag seed loc_8c on the SAME real
+// Re-index the table via CONFIG_DIP_BYTE's low two bits and flip the blank-out flag seed loc_8c on the SAME real
 // captured entries: each variant still fetches a genuine ROM descriptor (so the emit loop terminates on a
 // real top-bit byte) while exercising table rows / blank states the raw capture missed.
 test("CRAFTED: re-indexed table rows and blank-flag seeds == oracle (RAM -stack)", () => {
   const variants = [
-    { tag: "fd&3 == 0", mut: (m) => m.mem.write8(loc_fd, 0x00) },
-    { tag: "fd&3 == 1", mut: (m) => m.mem.write8(loc_fd, 0x01) },
-    { tag: "fd&3 == 2", mut: (m) => m.mem.write8(loc_fd, 0x02) },
-    { tag: "fd&3 == 3", mut: (m) => m.mem.write8(loc_fd, 0x03) },
+    { tag: "fd&3 == 0", mut: (m) => m.mem.write8(CONFIG_DIP_BYTE, 0x00) },
+    { tag: "fd&3 == 1", mut: (m) => m.mem.write8(CONFIG_DIP_BYTE, 0x01) },
+    { tag: "fd&3 == 2", mut: (m) => m.mem.write8(CONFIG_DIP_BYTE, 0x02) },
+    { tag: "fd&3 == 3", mut: (m) => m.mem.write8(CONFIG_DIP_BYTE, 0x03) },
     { tag: "loc_8c bit7 set (blank seed)", mut: (m) => m.mem.write8(loc_8c, 0x80) },
     { tag: "loc_8c bit7 clear (no blank)", mut: (m) => m.mem.write8(loc_8c, 0x00) },
   ];

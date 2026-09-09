@@ -20,7 +20,7 @@ import { advanceHeadOrientationAndStampTile, guardHeadOrientationWrap } from "..
 import { resolveTileCellAtXY } from "../resolveTileCellAtXY.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_00, loc_32, loc_40, loc_70, loc_8b, loc_ef } from "../names.js";
+import { STACK_SCRATCH, loc_00, TILEMAP_PTR_LO, loc_40, loc_70, loc_8b, loc_ef } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -44,7 +44,7 @@ function pointerFor(x) {
   const p = new Machine(ROM);
   p.mem8[loc_8b] = 0x00;
   resolveTileCellAtXY(p, x, 0x00);
-  return p.mem16[loc_32];
+  return p.mem16[TILEMAP_PTR_LO];
 }
 
 function captureDispatches(K, maxFrames) {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_c1, loc_c2, loc_02, loc_1a, loc_0178, loc_0181 } from "./names.js";
+import { loc_c1, loc_c2, loc_02, loc_1a, HIGH_SCORE_TABLE, loc_0181 } from "./names.js";
 import { foldHighScoreChecksum } from "./foldHighScoreChecksum.js";
 
 /**
@@ -13,7 +13,7 @@ export function copyZpStateToSnapshot(m) {
   m.mem8[loc_c1] = 0xff;
   m.mem8[loc_c2] = 0xff;
   for (let x = 8; x >= 0; x--) { // copy both nine-byte blocks, high index first
-    m.mem8[loc_0178 + x] = m.mem8[(loc_02 + x) & 0xff];
+    m.mem8[HIGH_SCORE_TABLE + x] = m.mem8[(loc_02 + x) & 0xff];
     m.mem8[loc_0181 + x] = m.mem8[(loc_1a + x) & 0xff];
   }
   return foldHighScoreChecksum(m); // tail-call: fold the snapshot into the checksum

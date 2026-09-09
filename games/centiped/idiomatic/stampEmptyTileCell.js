@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_32, loc_ef, loc_88, loc_d7 } from "./names.js";
+import { TILEMAP_PTR_LO, loc_ef, loc_88, loc_d7 } from "./names.js";
 
 /**
  * stampEmptyTileCell — stamp a value into the pointed grid cell, but only when it
@@ -10,9 +10,9 @@ import { loc_32, loc_ef, loc_88, loc_d7 } from "./names.js";
  */
 export function stampEmptyTileCell(m) {
   const { mem8, mem16 } = m;
-  const ptr = mem16[loc_32]; // ($32) 16-bit tile-map cell pointer
+  const ptr = mem16[TILEMAP_PTR_LO]; // ($32) 16-bit tile-map cell pointer
   if (mem8[ptr] !== 0) return; // cell already occupied -> leave it untouched
-  const col = mem8[loc_32] & 0x1f; // low-5-bit column code (from the pointer low byte)
+  const col = mem8[TILEMAP_PTR_LO] & 0x1f; // low-5-bit column code (from the pointer low byte)
   if (col === 0 || col === 0x1f) return; // the two edge columns are never stamped
   const ef = mem8[loc_ef]; // fold mask: selects the thresholds AND is XORed into the stamp
   let bump;

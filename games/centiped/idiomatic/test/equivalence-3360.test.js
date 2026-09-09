@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for advanceSegmentColumns (ROM 0x3360) -- the per-column centipede-body advance that
-// steps loc_cf,X, runs the loc_d2 / loc_cc,X timers, folds a row delta into the loc_c9/loc_ca accumulator
-// and, after the last column, subtracts the loc_3413,Y threshold before handing off to
+// steps SEGMENT_COL_BODY,X, runs the SEGMENT_RELOAD_TIMER / SEGMENT_COL_LIFE_TIMER,X timers, folds a row delta into the SEGMENT_MOVE_ACCUM_B/SEGMENT_MOVE_ACCUM accumulator
+// and, after the last column, subtracts the SEGMENT_ROW_THRESHOLD_TABLE,Y threshold before handing off to
 // stepPhasedCountersAndWrapCells (the loc_341b tail). CAPTURE replays every real boot dispatch; a
 // deterministic fuzz plus hand-crafted cases exercise the control-clear/set, timer-expiry and threshold
 // paths; TEETH proves the RAM diff catches a one-off in the accumulator; the SP-tooth proves the rewrite
@@ -16,7 +16,7 @@ import { loc_3360 as oracle } from "../../translated/loc_3360.js";
 import { advanceSegmentColumns } from "../advanceSegmentColumns.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_c5, loc_c9, loc_ca, loc_cb, loc_cc, loc_cf, loc_d2, loc_d3, loc_d4 } from "../names.js";
+import { STACK_SCRATCH, loc_c5, SEGMENT_MOVE_ACCUM_B, SEGMENT_MOVE_ACCUM, SEGMENT_ROW_CROSS_COUNT, SEGMENT_COL_LIFE_TIMER, SEGMENT_COL_BODY, SEGMENT_RELOAD_TIMER, loc_d3, loc_d4 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -42,15 +42,15 @@ function seed({ x = 0x02, in1 = 0xff, d2 = 0x00, d3 = 0x00, d4 = 0x00, c9 = 0x00
   const m = new Machine(ROM);
   m.io.in1 = in1 & 0xff;
   m.regs.x = x & 0xff;
-  m.mem.write8(loc_d2, d2 & 0xff);
+  m.mem.write8(SEGMENT_RELOAD_TIMER, d2 & 0xff);
   m.mem.write8(loc_d3, d3 & 0xff);
   m.mem.write8(loc_d4, d4 & 0xff);
-  m.mem.write8(loc_c9, c9 & 0xff);
-  m.mem.write8(loc_ca, ca & 0xff);
-  m.mem.write8(loc_cb, cb & 0xff);
+  m.mem.write8(SEGMENT_MOVE_ACCUM_B, c9 & 0xff);
+  m.mem.write8(SEGMENT_MOVE_ACCUM, ca & 0xff);
+  m.mem.write8(SEGMENT_ROW_CROSS_COUNT, cb & 0xff);
   for (let i = 0; i < 3; i++) {
-    m.mem.write8((loc_cf + i) & 0xff, cf[i] & 0xff);
-    m.mem.write8((loc_cc + i) & 0xff, cc[i] & 0xff);
+    m.mem.write8((SEGMENT_COL_BODY + i) & 0xff, cf[i] & 0xff);
+    m.mem.write8((SEGMENT_COL_LIFE_TIMER + i) & 0xff, cc[i] & 0xff);
     m.mem.write8((loc_c5 + i) & 0xff, c5[i] & 0xff);
   }
   return m;
@@ -104,16 +104,16 @@ test("FUZZ: deterministic random states agree with the oracle in RAM (-stack)", 
   }
 });
 
-test("TEETH: a one-off in the loc_ca accumulator is caught by the RAM diff", () => {
-  // A twin that computes everything correctly but leaves loc_ca one high (the dropped-`+1` accumulator
-  // defect class). The RAM diff must flag loc_ca; a positive control that the CRAFTED arm can fail.
+test("TEETH: a one-off in the SEGMENT_MOVE_ACCUM accumulator is caught by the RAM diff", () => {
+  // A twin that computes everything correctly but leaves SEGMENT_MOVE_ACCUM one high (the dropped-`+1` accumulator
+  // defect class). The RAM diff must flag SEGMENT_MOVE_ACCUM; a positive control that the CRAFTED arm can fail.
   const spec = { in1: 0x10, d2: 0x00, d3: 0x0c, cf: [0x05, 0x05, 0x05], cc: [0x01, 0x01, 0x01], c9: 0x20, ca: 0x20 };
-  const broken = (m) => { advanceSegmentColumns(m); m.mem8[loc_ca] = (m.mem8[loc_ca] + 1) & 0xff; };
+  const broken = (m) => { advanceSegmentColumns(m); m.mem8[SEGMENT_MOVE_ACCUM] = (m.mem8[SEGMENT_MOVE_ACCUM] + 1) & 0xff; };
   const o = seed(spec), c = seed(spec);
   oracle(o); broken(c);
   const d = ramDiff(o, c);
-  assert.notEqual(d, null, "the RAM diff FAILED to catch a one-off in loc_ca");
-  assert.equal(d.addr, loc_ca & 0xffff);
+  assert.notEqual(d, null, "the RAM diff FAILED to catch a one-off in SEGMENT_MOVE_ACCUM");
+  assert.equal(d.addr, SEGMENT_MOVE_ACCUM & 0xffff);
 });
 
 test("TEETH(SP): the rewrite is seam-placeable; a pushing twin is not", () => {

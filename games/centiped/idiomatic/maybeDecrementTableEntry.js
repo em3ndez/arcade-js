@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_32, loc_88, loc_d7, loc_ef } from "./names.js";
+import { TILEMAP_PTR_LO, loc_88, loc_d7, loc_ef } from "./names.js";
 
 /**
  * maybeDecrementTableEntry — conditionally decrement one byte of a zero-page table.
@@ -9,7 +9,7 @@ import { loc_32, loc_88, loc_d7, loc_ef } from "./names.js";
  */
 export function maybeDecrementTableEntry(m) {
   const { mem8 } = m;
-  const v = mem8[loc_32] & 0x1f;
+  const v = mem8[TILEMAP_PTR_LO] & 0x1f;
   const bandLow = mem8[loc_ef] === 0; // loc_ef == 0 selects the low band (< 0x0c); else the high band (>= 0x14)
   const decrement = bandLow ? v < 0x0c : v >= 0x14;
   if (!decrement) return;

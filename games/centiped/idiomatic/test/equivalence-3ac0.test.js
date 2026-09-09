@@ -14,7 +14,7 @@ import { tickEaromWriteback } from "../tickEaromWriteback.js";
 import { readEaromCell } from "../readEaromCell.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_00, loc_f9, loc_fa, loc_0178 } from "../names.js";
+import { STACK_SCRATCH, loc_00, loc_f9, loc_fa, HIGH_SCORE_TABLE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -92,7 +92,7 @@ test("CRAFTED: scan half finds a dirty slot, parks the cursor, erases the cell, 
   const [o, c] = seedPair((m) => {
     m.mem.write8(loc_00, 0x00); m.mem.write8(loc_f9, 0x05); m.mem.write8(loc_fa, 0x00);
     // slots 5,4 match; slot 3 is dirty (RAM != EAROM) -> first mismatch parks at 3
-    for (const [x, v] of [[5, 0x11], [4, 0x22], [3, 0x33]]) { m.mem.write8(loc_0178 + x, v); m.io.earom.cells[x] = v; }
+    for (const [x, v] of [[5, 0x11], [4, 0x22], [3, 0x33]]) { m.mem.write8(HIGH_SCORE_TABLE + x, v); m.io.earom.cells[x] = v; }
     m.io.earom.cells[3] = 0x99; // make slot 3 disagree with RAM (0x33)
   });
   oracle(o); tickEaromWriteback(c);
@@ -106,7 +106,7 @@ test("CRAFTED: scan half finds a dirty slot, parks the cursor, erases the cell, 
 test("CRAFTED: scan half with every slot clean runs the cursor to 0xff", () => {
   const [o, c] = seedPair((m) => {
     m.mem.write8(loc_00, 0x00); m.mem.write8(loc_f9, 0x02); m.mem.write8(loc_fa, 0x00);
-    for (let x = 0; x <= 2; x++) { m.mem.write8(loc_0178 + x, 0x40 + x); m.io.earom.cells[x] = 0x40 + x; }
+    for (let x = 0; x <= 2; x++) { m.mem.write8(HIGH_SCORE_TABLE + x, 0x40 + x); m.io.earom.cells[x] = 0x40 + x; }
   });
   oracle(o); tickEaromWriteback(c);
   assert.equal(ramDiff(o, c), null);
@@ -130,7 +130,7 @@ test("TEETH: a twin that skips the erase/write strobe is caught by the EAROM dev
     if ((phase & 0x01) !== 0) { mem8[0x1680] = 0x02; mem8[0x1680] = 0x0a; mem8[loc_f9] = (x - 1) & 0xff; return; }
     for (;;) {
       a = readEaromCell(m, a, x);
-      if (a !== mem8[loc_0178 + x]) {
+      if (a !== mem8[HIGH_SCORE_TABLE + x]) {
         mem8[loc_f9] = x;
         mem8[loc_fa] = (mem8[loc_fa] + 1) & 0xff; // BUG: no erase/write strobe before this
         return;
@@ -142,7 +142,7 @@ test("TEETH: a twin that skips the erase/write strobe is caught by the EAROM dev
   }
   const seed = (m) => {
     m.mem.write8(loc_00, 0x00); m.mem.write8(loc_f9, 0x03); m.mem.write8(loc_fa, 0x00);
-    m.mem.write8(loc_0178 + 3, 0x22); m.io.earom.cells[3] = 0x11; // dirty slot at the cursor
+    m.mem.write8(HIGH_SCORE_TABLE + 3, 0x22); m.io.earom.cells[3] = 0x11; // dirty slot at the cursor
   };
   const o = new Machine(ROM), c = new Machine(ROM);
   seed(o); seed(c);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for maybeDecrementTableEntry (ROM 0x2b91-0x2ba8) -- a leaf range-check that forms
-// v = (loc_32 & 0x1f), picks a band from loc_ef, and when v is in-band decrements the loc_d7-table entry
+// v = (TILEMAP_PTR_LO & 0x1f), picks a band from loc_ef, and when v is in-band decrements the loc_d7-table entry
 // at (loc_d7 + loc_88) & 0xff:  loc_ef == 0 -> decrement when v < 0x0c;  loc_ef != 0 -> decrement when
 // v >= 0x14. Live-out is memory only (A/X/flags at RTS are incidental), so each side runs on a clone and
 // the contract is RAM (dumpState, minus STACK_SCRATCH). A leaf: the module omits the ROM ret and the seam
@@ -15,7 +15,7 @@ import { loc_2b91 as oracle } from "../../translated/loc_2b91.js";
 import { maybeDecrementTableEntry } from "../maybeDecrementTableEntry.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_32, loc_88, loc_d7, loc_ef } from "../names.js";
+import { STACK_SCRATCH, TILEMAP_PTR_LO, loc_88, loc_d7, loc_ef } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -62,7 +62,7 @@ test("CRAFTED: the two bands (loc_ef==0 -> v<0x0c; loc_ef!=0 -> v>=0x14) gate th
   for (const { c32, cef, dec } of cases) {
     const seed = (m) => {
       m.regs.s = 0x30;
-      m.mem.write8(loc_32, c32); m.mem.write8(loc_ef, cef); m.mem.write8(loc_88, IDX); m.mem.write8(EA, START);
+      m.mem.write8(TILEMAP_PTR_LO, c32); m.mem.write8(loc_ef, cef); m.mem.write8(loc_88, IDX); m.mem.write8(EA, START);
     };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
@@ -78,7 +78,7 @@ test("CRAFTED: the index (loc_88) selects which zero-page entry is decremented (
     const EA = (loc_d7 + IDX) & 0xff;
     const seed = (m) => {
       m.regs.s = 0x30;
-      m.mem.write8(loc_32, 0x05); m.mem.write8(loc_ef, 0x00); m.mem.write8(loc_88, IDX); m.mem.write8(EA, 0x09);
+      m.mem.write8(TILEMAP_PTR_LO, 0x05); m.mem.write8(loc_ef, 0x00); m.mem.write8(loc_88, IDX); m.mem.write8(EA, 0x09);
     };
     const o = new Machine(ROM); seed(o);
     const c = new Machine(ROM); seed(c);
@@ -93,7 +93,7 @@ test("TEETH: a twin that decrements unconditionally is caught on a no-op case", 
   const IDX = 0x03, EA = (loc_d7 + IDX) & 0xff;
   const seed = (m) => {
     m.regs.s = 0x30;
-    m.mem.write8(loc_32, 0x13); m.mem.write8(loc_ef, 0x01); m.mem.write8(loc_88, IDX); m.mem.write8(EA, 0x05);
+    m.mem.write8(TILEMAP_PTR_LO, 0x13); m.mem.write8(loc_ef, 0x01); m.mem.write8(loc_88, IDX); m.mem.write8(EA, 0x05);
   }; // high band, v=0x13 < 0x14 -> the oracle does NOT decrement
   const o = new Machine(ROM); seed(o);
   const c = new Machine(ROM); seed(c);

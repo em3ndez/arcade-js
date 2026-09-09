@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for seedSegmentSpawnState (ROM 0x21c7) -- derive the loc_81 selector (2, dropped to
-// 1 when the loc_ab entry is 0 and the loc_fd threshold clears the loc_a9 gate), mirror it into loc_51
+// 1 when the loc_ab entry is 0 and the CONFIG_DIP_BYTE threshold clears the loc_a9 gate), mirror it into loc_51
 // (two's-complemented -- the dissolved loc_382d negate -- when POKEY RANDOM $100A bit2 is set), then seed
-// the constant spawn cells loc_71/loc_61/loc_41/loc_a1/loc_b5. Live-out is RAM only, so each side runs on
+// the constant spawn cells loc_71/loc_61/loc_41/loc_a1/SFX_TIMER_CH4. Live-out is RAM only, so each side runs on
 // a clone and the contract is RAM (dumpState, minus STACK_SCRATCH). $100A is read exactly ONCE, so its
 // value depends only on the pokey state captured at entry -- clock-free reads it byte-identically.
 // Run: node --test games/centiped/idiomatic/test/equivalence-21c7.test.js
@@ -16,8 +16,8 @@ import { seedSegmentSpawnState } from "../seedSegmentSpawnState.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_88, loc_ab, loc_fd, loc_a9, loc_81, loc_51, loc_f0,
-  loc_71, loc_61, loc_41, loc_a1, loc_b5,
+  STACK_SCRATCH, loc_88, loc_ab, CONFIG_DIP_BYTE, loc_a9, loc_81, loc_51, loc_f0,
+  loc_71, loc_61, loc_41, loc_a1, SFX_TIMER_CH4,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -61,7 +61,7 @@ function craft(slot, ab, fd, a9, f0) {
   m.mem.write8(0x0100 | 0xfc, 0xab); // caller return = 0xabcd
   m.mem.write8(loc_88, slot);
   m.mem.write8((loc_ab + slot) & 0xff, ab);
-  m.mem.write8(loc_fd, fd);
+  m.mem.write8(CONFIG_DIP_BYTE, fd);
   m.mem.write8((loc_a9 + slot) & 0xff, a9);
   m.mem.write8(loc_f0, f0);
   return m;
@@ -84,7 +84,7 @@ test("CRAFTED: selector branches + constant spawn cells match the oracle in RAM 
     assert.equal(c.mem.read8(loc_61), 0xff, `loc_61 ${label}`);
     assert.equal(c.mem.read8(loc_41), 0xf8, `loc_41 ${label}`);
     assert.equal(c.mem.read8(loc_a1), 0x60, `loc_a1 ${label}`);
-    assert.equal(c.mem.read8(loc_b5), 0x00, `loc_b5 ${label}`);
+    assert.equal(c.mem.read8(SFX_TIMER_CH4), 0x00, `SFX_TIMER_CH4 ${label}`);
   }
 });
 
@@ -97,7 +97,7 @@ test("TEETH: a twin that never drops the selector to 1 diverges in RAM", () => {
     if (m.mem8[0x100a] & 0x04) sel = (0x100 - sel) & 0xff;
     m.mem8[loc_51] = sel;
     m.mem8[loc_71] = 0x60 ^ m.mem8[loc_f0];
-    m.mem8[loc_61] = 0xff; m.mem8[loc_41] = 0xf8; m.mem8[loc_a1] = 0x60; m.mem8[loc_b5] = 0x00;
+    m.mem8[loc_61] = 0xff; m.mem8[loc_41] = 0xf8; m.mem8[loc_a1] = 0x60; m.mem8[SFX_TIMER_CH4] = 0x00;
     void x;
   };
   const o = craft(0, 0x00, 0x40, 0x10, 0x00), c = craft(0, 0x00, 0x40, 0x10, 0x00);

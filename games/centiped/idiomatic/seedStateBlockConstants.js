@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import {
   loc_ef, loc_f0, loc_f1, loc_f2, loc_f3, loc_f4, loc_f5, loc_f6, loc_f7, loc_f8,
-  loc_bd, loc_bf, loc_1c07, loc_2400,
+  loc_bd, loc_bf, FLIP_SCREEN, loc_2400,
 } from "./names.js";
 
 /**
@@ -21,7 +21,7 @@ export function seedStateBlockConstants(m) {
   mem8[loc_f5] = 0xbf;
   mem8[loc_f7] = 0x03;
   mem8[loc_f6] = 0x3f;
-  mem8[loc_1c07] = 0x80; // flip-screen latch: bit7 set
+  mem8[FLIP_SCREEN] = 0x80; // flip-screen latch: bit7 set
   mem8[loc_2400] = 0x80; // dead store, ignored by the board
   mem8[loc_bd] = 0x00;
   mem8[loc_bf] = 0x00;

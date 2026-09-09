@@ -23,7 +23,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH, loc_88, loc_8b, loc_8d, loc_8e, loc_8f, loc_c2, loc_d7, loc_ef,
-  loc_100a, loc_0400, loc_0500, loc_0600, loc_0700,
+  POKEY_RANDOM, loc_0400, loc_0500, loc_0600, loc_0700,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -117,8 +117,8 @@ test("TEETH: a twin that drops the $D7 tally bump diverges in RAM", () => {
     mem.write8(loc_8b, 0x1b);
     let col = 0x2d;
     do {
-      mem.write8(loc_8d, (mem.read8(loc_100a) & 0xe0) | mem.read8(loc_8b));
-      mem.write8(loc_8e, (mem.read8(loc_100a) & 0x03) | 0x04);
+      mem.write8(loc_8d, (mem.read8(POKEY_RANDOM) & 0xe0) | mem.read8(loc_8b));
+      mem.write8(loc_8e, (mem.read8(POKEY_RANDOM) & 0x03) | 0x04);
       mem.write8(loc_8f, col);
       // (the $D7+$88 tally increment is intentionally omitted here)
       mem.write8(mem.read16(loc_8d), (0x3f ^ mem.read8(loc_ef)) & 0xff);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for foldHighScoreChecksum (ROM 0x3a08) -- XOR-fold 0x0178..0x01b4 into loc_01b5 and return
-// the old^new delta. Live-out is RAM (loc_01b5, the fresh fold) AND registers A (the delta, with N/Z so
+// Equivalence for foldHighScoreChecksum (ROM 0x3a08) -- XOR-fold 0x0178..0x01b4 into HIGH_SCORE_CHECKSUM and return
+// the old^new delta. Live-out is RAM (HIGH_SCORE_CHECKSUM, the fresh fold) AND registers A (the delta, with N/Z so
 // the caller's BNE/BEQ read it) and Y (the OLD checksum, which loc_3d57 stores back). We compare RAM plus
 // A/Y and the Z/N flags -- not firstRegDiff, which would false-fail on S.
 // Run: node --test games/centiped/idiomatic/test/equivalence-3a08.test.js
@@ -13,7 +13,7 @@ import { loc_3a08 as oracle } from "../../translated/loc_3a08.js";
 import { foldHighScoreChecksum } from "../foldHighScoreChecksum.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_0178, loc_01b5 } from "../names.js";
+import { STACK_SCRATCH, HIGH_SCORE_TABLE, HIGH_SCORE_CHECKSUM } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -37,8 +37,8 @@ const regOutDiff = (o, c) => {
 const foldOf = (bytes) => bytes.reduce((acc, b) => acc ^ b, 0xff) & 0xff;
 
 function seedTable(m, oldChecksum, bytes) {
-  for (let i = 0; i < TABLE_LEN; i++) m.mem.write8(loc_0178 + i, bytes[i]);
-  m.mem.write8(loc_01b5, oldChecksum);
+  for (let i = 0; i < TABLE_LEN; i++) m.mem.write8(HIGH_SCORE_TABLE + i, bytes[i]);
+  m.mem.write8(HIGH_SCORE_CHECKSUM, oldChecksum);
 }
 
 function captureDispatches(K, maxFrames) {
@@ -53,7 +53,7 @@ test("CAPTURE: real 0x3a08 dispatches -- foldHighScoreChecksum == oracle in RAM 
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
     oracle(o); foldHighScoreChecksum(c);
-    assert.equal(ramDiff(o, c), null);      // the fold stored at loc_01b5
+    assert.equal(ramDiff(o, c), null);      // the fold stored at HIGH_SCORE_CHECKSUM
     assert.equal(regOutDiff(o, c), null);   // delta in A (+ N/Z), old checksum in Y
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
@@ -79,7 +79,7 @@ test("CRAFTED: fold, publish, delta for several tables (incl. a delta==0 case)",
     const label = `old=0x${old.toString(16)} fold=0x${fold.toString(16)}`;
     assert.equal(ramDiff(o, c), null, label);
     assert.equal(regOutDiff(o, c), null, label);
-    assert.equal(c.mem.read8(loc_01b5), fold, `loc_01b5 fold ${label}`);
+    assert.equal(c.mem.read8(HIGH_SCORE_CHECKSUM), fold, `HIGH_SCORE_CHECKSUM fold ${label}`);
     assert.equal(c.regs.a, delta, `A delta ${label}`);
     assert.equal(c.regs.y, old, `Y old checksum ${label}`);
     assert.equal(c.regs.fZ, delta === 0, `fZ ${label}`);
@@ -87,13 +87,13 @@ test("CRAFTED: fold, publish, delta for several tables (incl. a delta==0 case)",
 });
 
 test("TEETH: a broken twin (wrong seed) is caught by the RAM + register contract", () => {
-  // Broken: seeds the accumulator 0x00 instead of 0xff -- a different fold at loc_01b5 and a different delta.
+  // Broken: seeds the accumulator 0x00 instead of 0xff -- a different fold at HIGH_SCORE_CHECKSUM and a different delta.
   function loc_3a08_broken(m) {
     const { mem8 } = m;
     let acc = 0x00; // BUG: seed should be 0xff
-    for (let i = 0x3c; i >= 0; i--) acc = (acc ^ mem8[loc_0178 + i]) & 0xff;
-    const oldChecksum = mem8[loc_01b5];
-    mem8[loc_01b5] = acc;
+    for (let i = 0x3c; i >= 0; i--) acc = (acc ^ mem8[HIGH_SCORE_TABLE + i]) & 0xff;
+    const oldChecksum = mem8[HIGH_SCORE_CHECKSUM];
+    mem8[HIGH_SCORE_CHECKSUM] = acc;
     const delta = (oldChecksum ^ acc) & 0xff;
     m.regs.y = oldChecksum;
     m.regs.fZ = delta === 0;
@@ -106,7 +106,7 @@ test("TEETH: a broken twin (wrong seed) is caught by the RAM + register contract
   oracle(o); loc_3a08_broken(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong fold seed");
-  assert.equal(d.addr, loc_01b5 & 0xffff);
+  assert.equal(d.addr, HIGH_SCORE_CHECKSUM & 0xffff);
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {

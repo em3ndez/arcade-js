@@ -4,7 +4,7 @@
 // loc_43/loc_53/loc_73 descriptor rows, mirroring values via the dissolved loc_382d negate. Live-out is
 // RAM only, so each side runs on a clone and the contract is RAM (dumpState, minus STACK_SCRATCH).
 //
-// POKEY NOTE -- the step-4 fill loop reads $100A (loc_100a) twice per iteration. $100A's value tracks the
+// POKEY NOTE -- the step-4 fill loop reads $100A (POKEY_RANDOM) twice per iteration. $100A's value tracks the
 // PREVIOUS pokey access's clock, so a clock-free layer matches the oracle's SECOND read only while the
 // poly counter is idle (io.pokeyC0 === null -> $100A is the constant t[0]). The real boot dispatches all
 // early-exit before the fill loop (0 reads of $100A), so CAPTURE is unaffected; the CRAFTED arm exercises

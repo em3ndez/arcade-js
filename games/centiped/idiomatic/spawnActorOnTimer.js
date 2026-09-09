@@ -4,7 +4,7 @@ import {
   loc_87,
   loc_88,
   loc_97,
-  loc_a0,
+  SPAWN_TIMER,
   loc_a1,
   loc_34,
   loc_44,
@@ -12,7 +12,7 @@ import {
   loc_64,
   loc_74,
   loc_94,
-  loc_100a,
+  POKEY_RANDOM,
   loc_f0,
 } from "./names.js";
 
@@ -30,8 +30,8 @@ export function spawnActorOnTimer(m) {
   const { mem8 } = m;
   if (mem8[loc_97] === 0) return; // spawner disabled
   if (mem8[loc_87] !== 0) return; // busy -> skip this frame
-  if (mem8[loc_a0] !== 0) {
-    mem8[loc_a0] = u8(mem8[loc_a0] - 1); // countdown still running: tick and leave
+  if (mem8[SPAWN_TIMER] !== 0) {
+    mem8[SPAWN_TIMER] = u8(mem8[SPAWN_TIMER] - 1); // countdown still running: tick and leave
     return;
   }
   const x = mem8[loc_88]; // per-index selector (which spawn "channel")
@@ -49,8 +49,8 @@ export function spawnActorOnTimer(m) {
     reload = u8(reload - 0x08); // ratchet the reload down by 8 while it stays >= 0x60...
     mem8[u8(loc_a1 + x)] = reload; // ...and write it back so spawns speed up over time
   }
-  mem8[loc_a0] = reload; // reset the countdown
-  if (mem8[loc_100a] & 0x02) {
+  mem8[SPAWN_TIMER] = reload; // reset the countdown
+  if (mem8[POKEY_RANDOM] & 0x02) {
     mem8[u16(loc_44 + y)] = 0x02; // random variant A
   } else {
     mem8[u16(loc_54 + y)] = 0x04; // random variant B: override the motion seed...

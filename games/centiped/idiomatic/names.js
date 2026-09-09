@@ -17,8 +17,8 @@ export const loc_17 = 0x0017;
 export const loc_1a = 0x001a;
 export const loc_1b = 0x001b;
 export const loc_1c = 0x001c;
-export const loc_32 = 0x0032;
-export const loc_33 = 0x0033;
+export const TILEMAP_PTR_LO = 0x0032; // [seen] 16-bit working tile/screen pointer (lo 0x32 / hi 0x33) through which advanceHeadOrientatio
+export const TILEMAP_PTR_HI = 0x0033; // [seen] Tile-map cell pointer, high byte. resolveTileCellAtXY seeds 0x01 then rol's the column's t
 export const loc_34 = 0x0034;
 export const loc_35 = 0x0035;
 export const loc_3f = 0x003f;
@@ -72,7 +72,7 @@ export const loc_9c = 0x009c;
 export const loc_9d = 0x009d;
 export const loc_9e = 0x009e;
 export const loc_9f = 0x009f;
-export const loc_a0 = 0x00a0;
+export const SPAWN_TIMER = 0x00a0; // [seen] spawnActorOnTimer's own periodic countdown timer: decremented each enabled frame and, on r
 export const loc_a1 = 0x00a1;
 export const loc_a2 = 0x00a2;
 export const loc_a3 = 0x00a3;
@@ -91,11 +91,11 @@ export const loc_af = 0x00af;
 export const loc_b0 = 0x00b0;
 export const loc_b1 = 0x00b1;
 export const loc_b2 = 0x00b2;
-export const loc_b3 = 0x00b3;
-export const loc_b4 = 0x00b4;
-export const loc_b5 = 0x00b5;
-export const loc_b6 = 0x00b6;
-export const loc_b7 = 0x00b7;
+export const SFX_TIMER_CH2 = 0x00b3; // [seen] SFX countdown timer feeding POKEY ch2 (AUDF2/AUDC2)
+export const SFX_TIMER_CH3 = 0x00b4; // [seen] SFX countdown timer feeding POKEY ch3 (AUDF3/AUDC3, fixed AUDC3=0x64)
+export const SFX_TIMER_CH4 = 0x00b5; // [seen] Companion timer cell re-armed to 0x14 by tickColumnCountdown; consumed (counted down) by a
+export const SFX_TIMER_CH2_PRIORITY = 0x00b6; // [code] Pitched pre-empt timer for POKEY ch2 (takes AUDF2 before the collision decision)
+export const SFX_TIMER_CH1_PRIORITY = 0x00b7; // [seen] ch1 priority SFX timer: armed to 0x13 by armSlotState, decremented by the ch1 voice updater
 export const loc_b8 = 0x00b8;
 export const loc_b9 = 0x00b9;
 export const loc_ba = 0x00ba;
@@ -108,12 +108,12 @@ export const loc_c1 = 0x00c1;
 export const loc_c2 = 0x00c2;
 export const loc_c5 = 0x00c5;
 export const loc_c8 = 0x00c8;
-export const loc_c9 = 0x00c9;
-export const loc_ca = 0x00ca;
-export const loc_cb = 0x00cb;
-export const loc_cc = 0x00cc;
-export const loc_cf = 0x00cf;
-export const loc_d2 = 0x00d2;
+export const SEGMENT_MOVE_ACCUM_B = 0x00c9; // [code] Second parallel segment-movement accumulator, advanced by delta+1 alongside 0xca on each c
+export const SEGMENT_MOVE_ACCUM = 0x00ca; // [code] Shared segment-movement accumulator. Each firing column folds delta+1 into it; on the last
+export const SEGMENT_ROW_CROSS_COUNT = 0x00cb; // [code] Row-crossing counter: bumped once when the accumulator clears the threshold, and a second
+export const SEGMENT_COL_LIFE_TIMER = 0x00cc; // [seen] Per-column life countdown (array 0xcc,0xcd,0xce). Reloaded to 0x78, decremented each pass;
+export const SEGMENT_COL_BODY = 0x00cf; // [seen] Per-column centipede body/step cell (array 0xcf,0xd0,0xd1 for cols 0..2). Holds the low-5-
+export const SEGMENT_RELOAD_TIMER = 0x00d2; // [code] Shared reload timer: reloaded to 0xf0 unless IN1 bit4 is set; while nonzero it decrements
 export const loc_d3 = 0x00d3;
 export const loc_d4 = 0x00d4;
 export const loc_d5 = 0x00d5;
@@ -154,15 +154,15 @@ export const loc_f9 = 0x00f9;
 export const loc_fa = 0x00fa;
 export const loc_fb = 0x00fb;
 export const loc_fc = 0x00fc;
-export const loc_fd = 0x00fd;
+export const CONFIG_DIP_BYTE = 0x00fd; // [code] Mode/control byte whose bits 5-4 select a ROM table variant in readFdBitsTableByte.
 export const loc_fe = 0x00fe;
 export const loc_ff = 0x00ff;
 export const loc_0100 = 0x0100;
 export const loc_0104 = 0x0104;
-export const loc_0178 = 0x0178;
+export const HIGH_SCORE_TABLE = 0x0178; // [code] High-score table RAM mirror base — first byte of the 64-byte EAROM-backed high-score block
 export const loc_017a = 0x017a;
 export const loc_0181 = 0x0181;
-export const loc_018a = 0x018a;
+export const HIGH_SCORE_CONFIG_BYTE = 0x018a; // [seen] Config-byte snapshot stored inside the hi-score table (table+0x12); validate compares/reco
 export const loc_018b = 0x018b;
 export const loc_018c = 0x018c;
 export const loc_018d = 0x018d;
@@ -170,7 +170,7 @@ export const loc_018e = 0x018e;
 export const loc_018f = 0x018f;
 export const loc_0190 = 0x0190;
 export const loc_0191 = 0x0191;
-export const loc_01b5 = 0x01b5;
+export const HIGH_SCORE_CHECKSUM = 0x01b5; // [seen] High-score table integrity checksum byte (last used byte of the hs block; foldHighScoreChe
 export const loc_01b8 = 0x01b8;
 export const loc_01b9 = 0x01b9;
 export const loc_0400 = 0x0400;
@@ -188,13 +188,13 @@ export const loc_07f0 = 0x07f0;
 // Palette RAM (0x1400-0x140F, centiped_paletteram_w; the video layer reads it, so it is NOT in
 // dumpState/the RAM diff). loc_2656 fans a 3-byte ROM record into two palette triples. [code]
 // placeholders -- cellRenames proposes descriptive names for the LEAD to apply.
-export const loc_1404 = 0x1404; // loc_28bf writes 0x0f here at board reset (a fixed palette color). [code]
-export const loc_1405 = 0x1405;
-export const loc_1406 = 0x1406;
-export const loc_1407 = 0x1407;
-export const loc_140d = 0x140d;
-export const loc_140e = 0x140e;
-export const loc_140f = 0x140f;
+export const PALETTE_COLOR_04 = 0x1404; // [code] Playfield color RAM cell. resetPlayfieldAndSeedMushrooms writes the fixed 0x0f palette val
+export const PALETTE_COLOR_05 = 0x1405; // [code] Palette RAM colour byte (video palette region 0x1400-0x140f). Entry of triple A (0x1405-0x
+export const PALETTE_COLOR_06 = 0x1406; // [code] Palette RAM colour byte. Entry of triple A, receives record byte b2.
+export const PALETTE_COLOR_07 = 0x1407; // [code] Palette RAM colour byte. Entry of triple A, receives record byte b1.
+export const PALETTE_COLOR_0D = 0x140d; // [code] Palette RAM colour byte. Entry of triple B (0x140d-0x140f), receives record byte b1.
+export const PALETTE_COLOR_0E = 0x140e; // [code] Palette RAM colour byte. Entry of triple B, receives record byte b2.
+export const PALETTE_COLOR_0F = 0x140f; // [code] Palette RAM colour byte. Entry of triple B, receives record byte b0.
 
 // ROM data table at 0x2676: 3-byte palette-color records, indexed by X in loc_2656. [code]
 export const PALETTE_RECORD_TABLE = 0x2676;
@@ -204,12 +204,12 @@ export const PALETTE_RECORD_TABLE = 0x2676;
 // clock-dependent (poly phase = m.cycles delta), so the clock-free idiomatic layer can only reproduce
 // it when the poly counter is held at origin (pokeyC0 === null -> t[0]); see equivalence-28bf.test.js.
 // Propose rename POKEY_RANDOM. [code]
-export const loc_100a = 0x100a;
+export const POKEY_RANDOM = 0x100a; // [code] POKEY RANDOM register (read-only hardware RNG). rebuildSegmentSpriteTables and resetPlayfi
 
 // Hardware-port placeholders (added for the 0x2509/0x252a decompile batch). Board decode
 // (boards/centiped/memory.js): 0x1C00-0x1C07 is the LS259 outlatch (write_d7); index 7 -> Q7 ->
 // flip_screen_w, so a write of A stores bit7 of A to the flip-screen latch. Propose rename FLIP_SCREEN_LATCH.
-export const loc_1c07 = 0x1c07;
+export const FLIP_SCREEN = 0x1c07; // [code] Hardware flip-screen output latch (driven by bit7 of the broadcast value).
 // 0x2400 sits in ROM read-space (0x2001-0x3FFF); memory.js write8 IGNORES the store ("e.g. reset's sta $2400").
 // A dead/no-op write the ROM performs; kept so the idiomatic layer mirrors the oracle's write exactly. [code]
 export const loc_2400 = 0x2400;
@@ -218,14 +218,14 @@ export const loc_2400 = 0x2400;
 // AUDF/AUDC layout). Memory-mapped: boards/centiped/memory.js routes writes to io.pokeyWrite (the audio
 // sink), so they are NOT in dumpState/the RAM diff. Written by updateSoundChannels (0x3068). [code]
 // placeholders -- cellRenames proposes POKEY_AUDF1/AUDC1..AUDF4/AUDC4 for the LEAD to apply.
-export const loc_1000 = 0x1000; // AUDF1 (ch1 frequency)
-export const loc_1001 = 0x1001; // AUDC1 (ch1 control/volume)
-export const loc_1002 = 0x1002; // AUDF2 (ch2 frequency)
-export const loc_1003 = 0x1003; // AUDC2 (ch2 control/volume)
-export const loc_1004 = 0x1004; // AUDF3 (ch3 frequency)
-export const loc_1005 = 0x1005; // AUDC3 (ch3 control/volume)
-export const loc_1006 = 0x1006; // AUDF4 (ch4 frequency)
-export const loc_1007 = 0x1007; // AUDC4 (ch4 control/volume)
+export const AUDF1 = 0x1000; // [seen] POKEY channel-1 frequency register
+export const AUDC1 = 0x1001; // [seen] POKEY channel-1 control/volume register
+export const AUDF2 = 0x1002; // [seen] POKEY channel-2 frequency register
+export const AUDC2 = 0x1003; // [code] POKEY channel-2 control/volume register
+export const AUDF3 = 0x1004; // [code] POKEY channel-3 frequency register
+export const AUDC3 = 0x1005; // [code] POKEY channel-3 control/volume register
+export const AUDF4 = 0x1006; // [seen] POKEY channel-4 frequency register
+export const AUDC4 = 0x1007; // [code] POKEY channel-4 control/volume register
 
 // Sound-engine ROM data tables (added for the 0x3068 decompile batch). Per-effect waveform/frequency
 // byte tables in program ROM, indexed by the effect timers $b2-$b8; updateSoundChannels copies one byte
@@ -243,12 +243,12 @@ export const loc_31c0 = 0x31c0; // -> AUDF2 (via $b8 sweep)
 
 // I/O ports + ROM data-table bases referenced by batch-1 modules. [code] placeholders (loc_ pending
 // the understanding pass, which names/grounds them under two-blind-deriver convergence).
-export const loc_0c01 = 0x0c01; // input port read by advanceSegmentColumns [code]
-export const loc_1600 = 0x1600; // EAROM data window base (read/write) [code]
-export const loc_1680 = 0x1680; // EAROM control/second window [code]
-export const loc_1700 = 0x1700; // EAROM control latch [code]
+export const IN1 = 0x0c01; // [code] Hardware input port IN1. advanceSegmentColumns reads per-column control bits (bit5 col0, b
+export const EAROM_DATA_WINDOW = 0x1600; // [seen] EAROM (ER2055 high-score NVRAM) address-latch / data window base; readEaromCell writes $16
+export const EAROM_CONTROL = 0x1680; // [seen] EAROM control register; readEaromCell pulses 0x08/0x09/0x08/0x00 to clock the ER2055 (C1 r
+export const EAROM_DATA_OUT = 0x1700; // [code] EAROM data-out window; readEaromCell reads $1700+X to get the latched cell byte after the
 export const loc_21bf = 0x21bf; // ROM table read by readFdBitsTableByte [code]
-export const loc_3413 = 0x3413; // ROM table (column-advance thresholds) read by advanceSegmentColumns [code]
+export const SEGMENT_ROW_THRESHOLD_TABLE = 0x3413; // [code] ROM table of per-row (Y) accumulator thresholds, indexed by SEGMENT_ROW_PHASE>>5 in the la
 export const loc_346d = 0x346d; // ROM row-descriptor pointer table read by writePointerTableRow [code]
 export const loc_3a69 = 0x3a69; // ROM high-score init table read by validateOrResetHighScores [code]
 

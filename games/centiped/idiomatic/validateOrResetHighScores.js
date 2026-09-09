@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { foldHighScoreChecksum } from "./foldHighScoreChecksum.js";
-import { loc_02, loc_1a, loc_0178, loc_017a, loc_0181, loc_018a, loc_3a69, loc_fd } from "./names.js";
+import { loc_02, loc_1a, HIGH_SCORE_TABLE, loc_017a, loc_0181, HIGH_SCORE_CONFIG_BYTE, loc_3a69, CONFIG_DIP_BYTE } from "./names.js";
 
 /**
  * validateOrResetHighScores — boot-time integrity gate for the high-score table. Verifies it
@@ -19,9 +19,9 @@ export function validateOrResetHighScores(m) {
   if (delta !== 0) return zeroFillAndRecordConfig(mem8);
 
   // (3) config byte: store the new snapshot; bail (no rebuild) if it changed
-  const cfg = mem8[loc_fd] & 0x7c;
-  const configChanged = cfg !== mem8[loc_018a]; // compare before the store
-  mem8[loc_018a] = cfg;
+  const cfg = mem8[CONFIG_DIP_BYTE] & 0x7c;
+  const configChanged = cfg !== mem8[HIGH_SCORE_CONFIG_BYTE]; // compare before the store
+  mem8[HIGH_SCORE_CONFIG_BYTE] = cfg;
   if (configChanged) return;
 
   // (4) a zero here means an empty entry -> reset
@@ -29,7 +29,7 @@ export function validateOrResetHighScores(m) {
 
   // (5) validate + promote the top entry (X = 8..0)
   for (let x = 0x08; x >= 0; x--) {
-    const v = mem8[loc_0178 + x];
+    const v = mem8[HIGH_SCORE_TABLE + x];
     mem8[loc_02 + x] = v;                         // stage before the range checks
     if (v >= 0x9a) return zeroFillAndRecordConfig(mem8);
     if ((v & 0x0f) >= 0x0a) return zeroFillAndRecordConfig(mem8); // illegal BCD low nibble
@@ -39,6 +39,6 @@ export function validateOrResetHighScores(m) {
 
 // Wipe the table and store the config snapshot.
 function zeroFillAndRecordConfig(mem8) {
-  for (let x = 0x3e; x >= 0; x--) mem8[loc_0178 + x] = 0x00;
-  mem8[loc_018a] = mem8[loc_fd] & 0x7c;
+  for (let x = 0x3e; x >= 0; x--) mem8[HIGH_SCORE_TABLE + x] = 0x00;
+  mem8[HIGH_SCORE_CONFIG_BYTE] = mem8[CONFIG_DIP_BYTE] & 0x7c;
 }

@@ -17,7 +17,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_87, loc_88, loc_97, loc_a0, loc_a1,
+  loc_87, loc_88, loc_97, SPAWN_TIMER, loc_a1,
   loc_34, loc_44, loc_54, loc_64, loc_74, loc_94, loc_f0,
 } from "../names.js";
 
@@ -46,7 +46,7 @@ function seed({ a0, slotY, x = 0, a1x = 0x30, f0 = 0x11, rng, enable = 0x01, bus
   const m = new Machine(ROM);
   m.mem.write8(loc_97, enable);
   m.mem.write8(loc_87, busy);
-  m.mem.write8(loc_a0, a0);
+  m.mem.write8(SPAWN_TIMER, a0);
   m.mem.write8(loc_88, x);
   for (let s = 0; s <= 0x0b; s++) m.mem.write8((loc_34 + s) & 0xffff, 0x00);
   if (slotY !== undefined) m.mem.write8((loc_34 + slotY) & 0xffff, 0x80);
@@ -94,7 +94,7 @@ test("CRAFTED: the spawned slot fields + timer reset match the oracle byte-for-b
   assert.equal(c.mem.read8((loc_44 + y) & 0xffff), 0xfe, "$44+Y variant-B value");
   assert.equal(c.mem.read8((loc_74 + y) & 0xffff), 0x02, "$74+Y seed");
   assert.equal(c.mem.read8((loc_a1 + x) & 0xff), 0x60, "reload ratcheted down by 8");
-  assert.equal(c.mem.read8(loc_a0), 0x60, "timer reset to the ratcheted reload");
+  assert.equal(c.mem.read8(SPAWN_TIMER), 0x60, "timer reset to the ratcheted reload");
   assert.equal(c.mem.read8((loc_94 + x) & 0xff), 0x01, "$94,X spawn counter bumped");
 
   // rng bit set -> variant A: $54 keeps 0xfc, $44 = 0x02.
@@ -112,7 +112,7 @@ test("TEETH: a twin that drops the reload ratchet mis-sets the timer / reload", 
     const { mem8 } = mm;
     if (mem8[loc_97] === 0) return;
     if (mem8[loc_87] !== 0) return;
-    if (mem8[loc_a0] !== 0) { mem8[loc_a0] = (mem8[loc_a0] - 1) & 0xff; return; }
+    if (mem8[SPAWN_TIMER] !== 0) { mem8[SPAWN_TIMER] = (mem8[SPAWN_TIMER] - 1) & 0xff; return; }
     const x = mem8[loc_88];
     let y = -1;
     for (let s = 0x0b; s >= 0; s--) { if (mem8[(loc_34 + s) & 0xffff] & 0x80) { y = s; break; } }
@@ -122,7 +122,7 @@ test("TEETH: a twin that drops the reload ratchet mis-sets the timer / reload", 
     mem8[(loc_54 + y) & 0xffff] = 0xfc;
     mem8[(loc_74 + y) & 0xffff] = 0x02;
     const reload = mem8[(loc_a1 + x) & 0xff]; // BUG: no ratchet, no write-back
-    mem8[loc_a0] = reload;
+    mem8[SPAWN_TIMER] = reload;
     if (mem8[0x100a] & 0x02) mem8[(loc_44 + y) & 0xffff] = 0x02;
     else { mem8[(loc_54 + y) & 0xffff] = 0x04; mem8[(loc_44 + y) & 0xffff] = 0xfe; }
     mem8[(loc_94 + x) & 0xff] = (mem8[(loc_94 + x) & 0xff] + 1) & 0xff;

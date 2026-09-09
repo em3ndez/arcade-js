@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_00, loc_32, loc_40, loc_70, loc_ef } from "./names.js";
+import { loc_00, TILEMAP_PTR_LO, loc_40, loc_70, loc_ef } from "./names.js";
 import { seedWaveState } from "./seedWaveState.js";
 import { resolveTileCellAtXY } from "./resolveTileCellAtXY.js";
 
@@ -37,6 +37,6 @@ export function advanceHeadOrientationAndStampTile(m) {
   if (cell < 0x3c) return;
   // Stamp the masked marker (cell & 0xfb) back into the tile cell.
   const marker = ((cell & 0xfb) ^ mem8[loc_ef]) & 0xff;
-  mem8[mem16[loc_32]] = marker;
+  mem8[mem16[TILEMAP_PTR_LO]] = marker;
   return (m.regs.a = marker);
 }

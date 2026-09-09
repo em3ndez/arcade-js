@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for copyZpStateToSnapshot (ROM 0x26a0) -- mark loc_c1/loc_c2 = 0xff, copy the two
 // nine-byte zero-page blocks loc_02..loc_0a and loc_1a..loc_22 up into the page-1 snapshot buffer
-// (loc_0178..loc_0180 and loc_0181..loc_0189), then TAIL-JUMP to loc_3a08, which XOR-folds
-// 0x0178..0x01b4 into the loc_01b5 checksum. Live-out is RAM only, so each side runs on a clone and the
+// (HIGH_SCORE_TABLE..loc_0180 and loc_0181..loc_0189), then TAIL-JUMP to loc_3a08, which XOR-folds
+// 0x0178..0x01b4 into the HIGH_SCORE_CHECKSUM checksum. Live-out is RAM only, so each side runs on a clone and the
 // contract is RAM (dumpState, minus STACK_SCRATCH). The tail transfer is preserved as m.call(0x3a08), so
 // loc_3a08 owns the RTS -- the seam observes the "+2, pc on the caller slot" translated-tail-transfer
 // case, not the omitted-ret case.
@@ -19,7 +19,7 @@ import { loc_26a0 as oracle } from "../../translated/loc_26a0.js";
 import { copyZpStateToSnapshot } from "../copyZpStateToSnapshot.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_c1, loc_c2, loc_02, loc_1a, loc_0178, loc_0181, loc_01b5 } from "../names.js";
+import { STACK_SCRATCH, loc_c1, loc_c2, loc_02, loc_1a, HIGH_SCORE_TABLE, loc_0181, HIGH_SCORE_CHECKSUM } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -53,7 +53,7 @@ test("CAPTURE: real 0x26a0 dispatches -- copyZpStateToSnapshot == oracle in RAM 
 
 // A pristine crafted machine: SP seated so loc_3a08's RTS pops a dead scratch word (or, with retSeat, a
 // real caller-return word for the seam tooth). Seeds the two source blocks and the rest of the fold range
-// so the copy and the loc_01b5 checksum are both observable.
+// so the copy and the HIGH_SCORE_CHECKSUM checksum are both observable.
 function craft(retSeat) {
   const m = new Machine(ROM);
   if (retSeat) {
@@ -80,10 +80,10 @@ test("CRAFTED: both zp blocks copied + loc_c1/loc_c2 marked + loc_3a08 checksum 
   assert.equal(c.mem.read8(loc_c1), 0xff, "loc_c1");
   assert.equal(c.mem.read8(loc_c2), 0xff, "loc_c2");
   for (let i = 0; i <= 8; i++) {
-    assert.equal(c.mem.read8((loc_0178 + i) & 0xffff), 0x50 + i, `loc_0178+${i}`);
+    assert.equal(c.mem.read8((HIGH_SCORE_TABLE + i) & 0xffff), 0x50 + i, `HIGH_SCORE_TABLE+${i}`);
     assert.equal(c.mem.read8((loc_0181 + i) & 0xffff), 0xa0 + i, `loc_0181+${i}`);
   }
-  assert.notEqual(c.mem.read8(loc_01b5), 0x00, "loc_3a08 must have folded a checksum into loc_01b5");
+  assert.notEqual(c.mem.read8(HIGH_SCORE_CHECKSUM), 0x00, "loc_3a08 must have folded a checksum into HIGH_SCORE_CHECKSUM");
 });
 
 test("TEETH: a twin that skips the loc_c1 mark diverges in RAM", () => {
@@ -91,7 +91,7 @@ test("TEETH: a twin that skips the loc_c1 mark diverges in RAM", () => {
     // m.mem8[loc_c1] = 0xff;  BUG dropped
     m.mem8[loc_c2] = 0xff;
     for (let x = 8; x >= 0; x--) {
-      m.mem8[(loc_0178 + x) & 0xffff] = m.mem8[(loc_02 + x) & 0xff];
+      m.mem8[(HIGH_SCORE_TABLE + x) & 0xffff] = m.mem8[(loc_02 + x) & 0xff];
       m.mem8[(loc_0181 + x) & 0xffff] = m.mem8[(loc_1a + x) & 0xff];
     }
     return m.call(0x3a08);

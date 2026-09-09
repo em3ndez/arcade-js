@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_34, loc_42, loc_43, loc_86, loc_87, loc_b2, loc_b3, loc_b4, loc_b5, loc_b7, loc_b8 } from "./names.js";
+import { loc_34, loc_42, loc_43, loc_86, loc_87, loc_b2, SFX_TIMER_CH2, SFX_TIMER_CH3, SFX_TIMER_CH4, SFX_TIMER_CH1_PRIORITY, loc_b8 } from "./names.js";
 
 /**
  * armSlotState — arm the fixed timer/flag cells and free object X's slot.
@@ -16,11 +16,11 @@ export function armSlotState(m, x = m.regs.x, carryIn = m.regs.fC) {
   mem8[loc_43] = 0x20;
   mem8[(loc_34 + x) & 0xff] = 0xff; // retire/free slot X's row byte
   mem8[loc_42] = 0x28;
-  if ((mem8[loc_86] & 0x80) === 0) mem8[loc_b7] = 0x13; // sign cell non-negative -> arm the flag
+  if ((mem8[loc_86] & 0x80) === 0) mem8[SFX_TIMER_CH1_PRIORITY] = 0x13; // sign cell non-negative -> arm the flag
   mem8[loc_b2] = 0x00;
-  mem8[loc_b3] = 0x00;
-  mem8[loc_b4] = 0x00;
-  mem8[loc_b5] = 0x00;
+  mem8[SFX_TIMER_CH2] = 0x00;
+  mem8[SFX_TIMER_CH3] = 0x00;
+  mem8[SFX_TIMER_CH4] = 0x00;
   mem8[loc_b8] = 0x00;
   return (m.regs.fC = false); // CLC
 }

@@ -16,9 +16,9 @@ import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
   loc_00, loc_40, loc_43, loc_70, loc_86,
-  loc_b2, loc_b3, loc_b4, loc_b5, loc_b6, loc_b7, loc_b8,
+  loc_b2, SFX_TIMER_CH2, SFX_TIMER_CH3, SFX_TIMER_CH4, SFX_TIMER_CH2_PRIORITY, SFX_TIMER_CH1_PRIORITY, loc_b8,
   loc_ef, loc_f0, loc_f4,
-  loc_1000, loc_1001, loc_1002, loc_1003, loc_1004, loc_1005, loc_1006, loc_1007,
+  AUDF1, AUDC1, AUDF2, AUDC2, AUDF3, AUDC3, AUDF4, AUDC4,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -45,7 +45,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-const POKEY = [loc_1000, loc_1001, loc_1002, loc_1003, loc_1004, loc_1005, loc_1006, loc_1007];
+const POKEY = [AUDF1, AUDC1, AUDF2, AUDC2, AUDF3, AUDC3, AUDF4, AUDC4];
 
 // Seat a full sound state; both sides get an identical seed. pokeyReg is pre-dirtied to 0xff so any
 // write (or absence of a write) to $1000-$1007 is observable.
@@ -54,11 +54,11 @@ function seed(m, s) {
   m.mem.write8(loc_00, s.frame ?? 0);
   m.mem.write8(loc_86, s.master ?? 0x10);
   m.mem.write8(loc_b2, s.b2 ?? 0);
-  m.mem.write8(loc_b3, s.b3 ?? 0);
-  m.mem.write8(loc_b4, s.b4 ?? 0);
-  m.mem.write8(loc_b5, s.b5 ?? 0);
-  m.mem.write8(loc_b6, s.b6 ?? 0);
-  m.mem.write8(loc_b7, s.b7 ?? 0);
+  m.mem.write8(SFX_TIMER_CH2, s.b3 ?? 0);
+  m.mem.write8(SFX_TIMER_CH3, s.b4 ?? 0);
+  m.mem.write8(SFX_TIMER_CH4, s.b5 ?? 0);
+  m.mem.write8(SFX_TIMER_CH2_PRIORITY, s.b6 ?? 0);
+  m.mem.write8(SFX_TIMER_CH1_PRIORITY, s.b7 ?? 0);
   m.mem.write8(loc_b8, s.b8 ?? 0);
   m.mem.write8(loc_70, s.c70 ?? 0);
   m.mem.write8(loc_f0, s.f0 ?? 0);
@@ -103,18 +103,18 @@ test("CRAFTED: the silence path zeroes AUDC1/2/3/4 and leaves AUDF untouched", (
   const o = new Machine(ROM); seed(o, { master: 0x80, frame: 0x01 });
   const c = new Machine(ROM); seed(c, { master: 0x80, frame: 0x01 });
   oracle(o); updateSoundChannels(c);
-  for (const [reg, addr] of [[loc_1001, "AUDC1"], [loc_1003, "AUDC2"], [loc_1005, "AUDC3"], [loc_1007, "AUDC4"]]) {
+  for (const [reg, addr] of [[AUDC1, "AUDC1"], [AUDC2, "AUDC2"], [AUDC3, "AUDC3"], [AUDC4, "AUDC4"]]) {
     assert.equal(c.io.pokeyReg[reg & 0x0f], 0x00, `${addr} silenced`);
   }
   // AUDF1 (0x1000) was pre-dirtied to 0xff and the silence path never writes it.
-  assert.equal(c.io.pokeyReg[loc_1000 & 0x0f], 0xff, "AUDF1 untouched on the silence path");
+  assert.equal(c.io.pokeyReg[AUDF1 & 0x0f], 0xff, "AUDF1 untouched on the silence path");
 });
 
 test("TEETH: a wrong POKEY latch is caught by the pokeyReg comparison", () => {
   const o = new Machine(ROM); seed(o, { master: 0x80, frame: 0x01 });
   oracle(o); // silence path: pokeyReg[1] (AUDC1) == 0
   const brokenAudc1 = 0xff; // BUG: failed to silence AUDC1
-  assert.notEqual(brokenAudc1, o.io.pokeyReg[loc_1001 & 0x0f], "the POKEY comparison FAILED to catch a wrong AUDC1");
+  assert.notEqual(brokenAudc1, o.io.pokeyReg[AUDC1 & 0x0f], "the POKEY comparison FAILED to catch a wrong AUDC1");
 });
 
 test("TEETH: a skipped timer decrement is caught by the RAM diff", () => {

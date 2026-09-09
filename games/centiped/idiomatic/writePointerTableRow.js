@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
-import { loc_346d, loc_8b, loc_8c, loc_91, loc_92, loc_93, loc_94, loc_ef, loc_fd } from "./names.js";
+import { loc_346d, loc_8b, loc_8c, loc_91, loc_92, loc_93, loc_94, loc_ef, CONFIG_DIP_BYTE } from "./names.js";
 import { writeMaskedByteAndAdvancePointer } from "./writeMaskedByteAndAdvancePointer.js";
 
 /**
@@ -21,7 +21,7 @@ export function writePointerTableRow(m, a = m.regs.a) {
   // Derive the pointer-table index from (A << 2) OR'd with the mode cell's low two bits, then doubled.
   const doubled = u8(a << 2);
   mem8[loc_8b] = doubled;
-  const idx = u8(((mem8[loc_fd] & 0x03) | doubled) << 1);
+  const idx = u8(((mem8[CONFIG_DIP_BYTE] & 0x03) | doubled) << 1);
   // Fetch the row descriptor pointer from the table.
   mem8[loc_93] = mem8[u16(loc_346d + idx)];
   mem8[loc_94] = mem8[u16(loc_346d + 1 + idx)];

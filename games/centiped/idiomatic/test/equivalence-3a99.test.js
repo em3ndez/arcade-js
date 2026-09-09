@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Equivalence for loadHighScoreTableFromEarom (ROM 0x3a99) -- read EAROM cells 0x3f..0 into the RAM mirror
-// at loc_0178.. and park loc_f9 at 0xff. The contract is RAM (dumpState minus STACK_SCRATCH: the mirror +
+// at HIGH_SCORE_TABLE.. and park loc_f9 at 0xff. The contract is RAM (dumpState minus STACK_SCRATCH: the mirror +
 // loc_f9) AND the ER2055 device state, since every fetch drives the EAROM (0x1600 W / 0x1680 ctrl / 0x1700 R).
 // We diff RAM and the earom object directly; A/X are dead (both callers reload), so no register diff.
 // Run: node --test games/centiped/idiomatic/test/equivalence-3a99.test.js
@@ -13,7 +13,7 @@ import { loc_3a99 as oracle } from "../../translated/loc_3a99.js";
 import { loadHighScoreTableFromEarom } from "../loadHighScoreTableFromEarom.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_0178, loc_f9 } from "../names.js";
+import { STACK_SCRATCH, HIGH_SCORE_TABLE, loc_f9 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -54,7 +54,7 @@ test("CAPTURE: real 0x3a99 dispatches -- loadHighScoreTableFromEarom == oracle i
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: cells[X] land at loc_0178+X for all 64 slots; loc_f9 parked at 0xff", () => {
+test("CRAFTED: cells[X] land at HIGH_SCORE_TABLE+X for all 64 slots; loc_f9 parked at 0xff", () => {
   const patterns = [
     (i) => (i * 3 + 1) & 0xff,
     (i) => (0xff - i) & 0xff,
@@ -67,7 +67,7 @@ test("CRAFTED: cells[X] land at loc_0178+X for all 64 slots; loc_f9 parked at 0x
     assert.equal(ramDiff(o, c), null);
     assert.equal(earomDiff(o, c), null);
     for (let i = 0; i < 64; i++) {
-      assert.equal(c.mem.read8(loc_0178 + i), pat(i) & 0xff, `mirror[${i}]`);
+      assert.equal(c.mem.read8(HIGH_SCORE_TABLE + i), pat(i) & 0xff, `mirror[${i}]`);
     }
     assert.equal(c.mem.read8(loc_f9), 0xff, "loc_f9 == 0xff");
   }
@@ -78,7 +78,7 @@ test("TEETH: a twin that copies cells without driving the EAROM is caught by the
   // address/data latch is left at its defaults -- the RAM diff is clean, only the device-state diff fires.
   function loadHighScoreTableFromEarom_broken(m) {
     const { mem8 } = m;
-    for (let x = 0x3f; x >= 0; x--) mem8[loc_0178 + x] = m.io.earom.cells[x]; // BUG: no EAROM I/O
+    for (let x = 0x3f; x >= 0; x--) mem8[HIGH_SCORE_TABLE + x] = m.io.earom.cells[x]; // BUG: no EAROM I/O
     mem8[loc_f9] = 0xff;
   }
   const o = new Machine(ROM), c = new Machine(ROM);

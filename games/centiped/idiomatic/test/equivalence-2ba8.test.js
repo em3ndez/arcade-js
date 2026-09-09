@@ -15,7 +15,7 @@ import { loc_2ba8 as oracle } from "../../translated/loc_2ba8.js";
 import { stampEmptyTileCell } from "../stampEmptyTileCell.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_32, loc_33, loc_ef, loc_88, loc_d7 } from "../names.js";
+import { STACK_SCRATCH, TILEMAP_PTR_LO, TILEMAP_PTR_HI, loc_ef, loc_88, loc_d7 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -39,8 +39,8 @@ const CAPS = ROM_PRESENT ? captureDispatches(24, 1500) : [];
 // target cell. Pointer high byte kept in 0x04..0x07 so the cell lands in readable RAM.
 function seed({ ptrLo, ptrHi = 0x05, ef, slot = 0x03, cell }) {
   const m = new Machine(ROM);
-  m.mem.write8(loc_32, ptrLo);
-  m.mem.write8(loc_33, ptrHi);
+  m.mem.write8(TILEMAP_PTR_LO, ptrLo);
+  m.mem.write8(TILEMAP_PTR_HI, ptrHi);
   m.mem.write8(loc_ef, ef);
   m.mem.write8(loc_88, slot);
   if (cell !== undefined) m.mem.write8((ptrHi << 8) | ptrLo, cell);
@@ -87,9 +87,9 @@ test("TEETH: a twin that bumps the counter for a write-only column is caught by 
   // Broken twin: real gate + stamp, but bumps $d7,X for EVERY stampable column (drops the class split).
   const brokenAlwaysBump = (mm) => {
     const { mem8, mem16 } = mm;
-    const ptr = mem16[loc_32];
+    const ptr = mem16[TILEMAP_PTR_LO];
     if (mem8[ptr] !== 0) return;
-    const col = mem8[loc_32] & 0x1f;
+    const col = mem8[TILEMAP_PTR_LO] & 0x1f;
     if (col === 0 || col === 0x1f) return;
     const ef = mem8[loc_ef];
     if (ef === 0 ? col === 0x01 : col === 0x1e) return;

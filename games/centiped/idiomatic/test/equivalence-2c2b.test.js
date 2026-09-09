@@ -15,7 +15,7 @@ import { loc_2c2b as oracle } from "../../translated/loc_2c2b.js";
 import { resolveTileCellAtXY } from "../resolveTileCellAtXY.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_32, loc_8b, loc_ef } from "../names.js";
+import { STACK_SCRATCH, TILEMAP_PTR_LO, loc_8b, loc_ef } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -88,7 +88,7 @@ test("TEETH: a twin that skips the top-row wrap mis-writes the pointer low byte"
   const brokenNoWrap = (mm, a = mm.regs.a, y = mm.regs.y) => {
     const { mem8, mem16 } = mm;
     const lo = ((a >> 3) + ((a >> 2) & 1)) & 0xff;
-    mem8[loc_32] = lo;
+    mem8[TILEMAP_PTR_LO] = lo;
     mem8[0x33] = 0x01;
     const acc = (((y << 3) & 0xff) + mem8[loc_8b]) & 0xff;
     mem8[loc_8b] = acc;
@@ -98,8 +98,8 @@ test("TEETH: a twin that skips the top-row wrap mis-writes the pointer low byte"
     hi = ((hi << 1) | ((col >> 7) & 1)) & 0xff; col = (col << 1) & 0xff;
     mem8[0x33] = hi;
     const val = col | lo; // BUG: no top-row wrap
-    mem8[loc_32] = val;
-    const ptr = mem16[loc_32];
+    mem8[TILEMAP_PTR_LO] = val;
+    const ptr = mem16[TILEMAP_PTR_LO];
     let result = mem8[ptr];
     if (result !== 0) result = (result ^ mem8[loc_ef]) & 0xff;
     mm.regs.setNZ(result);
@@ -110,7 +110,7 @@ test("TEETH: a twin that skips the top-row wrap mis-writes the pointer low byte"
   oracle(o); brokenNoWrap(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the gate FAILED to catch the skipped top-row wrap");
-  assert.equal(d.addr, loc_32 & 0xffff);
+  assert.equal(d.addr, TILEMAP_PTR_LO & 0xffff);
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {

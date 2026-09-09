@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_c5, loc_c8, loc_c9, loc_cb, loc_d3, loc_d4 } from "./names.js";
+import { loc_c5, loc_c8, SEGMENT_MOVE_ACCUM_B, SEGMENT_ROW_CROSS_COUNT, loc_d3, loc_d4 } from "./names.js";
 
 /**
  * stepPhasedCountersAndWrapCells — a per-tick bookkeeping step. A 2-bit phase
@@ -16,13 +16,13 @@ export function stepPhasedCountersAndWrapCells(m) {
 
   if (phase === 0) {
     // Phase 0: clear the accumulator low byte; no wrap-counter bump.
-    mem8[loc_c9] = 0;
+    mem8[SEGMENT_MOVE_ACCUM_B] = 0;
   } else {
     // LSR / ADC #0 -> step = round(phase/2): phase 1->1, 2->1, 3->2.
     const carryIn = phase & 0x01;
     const step = ((phase >> 1) + carryIn) & 0xff;
     // low - step; carry set == no borrow (low >= step).
-    let acc = (step ^ 0xff) + mem8[loc_c9] + 1;
+    let acc = (step ^ 0xff) + mem8[SEGMENT_MOVE_ACCUM_B] + 1;
     let value = acc & 0xff;
     const noBorrow = acc > 0xff;
 
@@ -30,14 +30,14 @@ export function stepPhasedCountersAndWrapCells(m) {
     let bumpC8 = true;
     if (!noBorrow) {
       // borrow: fold the low result into the high byte.
-      acc = value + mem8[loc_cb];
+      acc = value + mem8[SEGMENT_ROW_CROSS_COUNT];
       value = acc & 0xff;
       if (value & 0x80) {
         // high byte went negative -> discard the whole update.
         storeC9 = false;
         bumpC8 = false;
       } else {
-        mem8[loc_cb] = value; // store high byte
+        mem8[SEGMENT_ROW_CROSS_COUNT] = value; // store high byte
         value = 0; // the low-byte store below writes 0
       }
     }
@@ -48,7 +48,7 @@ export function stepPhasedCountersAndWrapCells(m) {
       mem8[loc_c8] = mem8[loc_c8] + 1;
     }
     if (storeC9) {
-      mem8[loc_c9] = value; // store accumulator low byte
+      mem8[SEGMENT_MOVE_ACCUM_B] = value; // store accumulator low byte
     }
   }
 

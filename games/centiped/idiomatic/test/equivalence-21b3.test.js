@@ -14,7 +14,7 @@ import { loc_21b3 as oracle } from "../../translated/loc_21b3.js";
 import { readFdBitsTableByte } from "../readFdBitsTableByte.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_fd } from "../names.js";
+import { STACK_SCRATCH, CONFIG_DIP_BYTE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -55,8 +55,8 @@ test("CRAFTED: each of the four $fd bit-5/4 selections -> index {0,2,4,6}, A = R
     { fd: 0xff, idx: 6 }, // bits 5-4 both set -> idx 6
   ];
   for (const { fd, idx } of cases) {
-    const o = new Machine(ROM); o.mem.write8(loc_fd, fd);
-    const c = new Machine(ROM); c.mem.write8(loc_fd, fd);
+    const o = new Machine(ROM); o.mem.write8(CONFIG_DIP_BYTE, fd);
+    const c = new Machine(ROM); c.mem.write8(CONFIG_DIP_BYTE, fd);
     const ret = readFdBitsTableByte(c); oracle(o);
     const tag = `fd=0x${fd.toString(16)}`;
     assert.equal(ramDiff(o, c), null, `no RAM write: ${tag}`);
@@ -68,14 +68,14 @@ test("CRAFTED: each of the four $fd bit-5/4 selections -> index {0,2,4,6}, A = R
 });
 
 test("TEETH: a twin that drops the Y live-out leaves the wrong index", () => {
-  const o = new Machine(ROM); o.mem.write8(loc_fd, 0x30); // idx 6
+  const o = new Machine(ROM); o.mem.write8(CONFIG_DIP_BYTE, 0x30); // idx 6
   oracle(o);
   const brokenY = 0x00; // BUG: never sets Y from the $fd bits
   assert.notEqual(brokenY, o.regs.y, "the Y live-out check FAILED to catch a dropped index");
 });
 
 test("TEETH: a twin that returns the raw index (not the table byte) diverges in A", () => {
-  const o = new Machine(ROM); o.mem.write8(loc_fd, 0x30); // idx 6
+  const o = new Machine(ROM); o.mem.write8(CONFIG_DIP_BYTE, 0x30); // idx 6
   oracle(o);
   const brokenA = 6; // BUG: returns the index instead of ROM[0x21bf+6]
   // Only meaningful if the real table byte differs from the index (it does for centiped's 0x21c5 byte).
@@ -84,7 +84,7 @@ test("TEETH: a twin that returns the raw index (not the table byte) diverges in 
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM);
-  m.mem.write8(loc_fd, 0x10);
+  m.mem.write8(CONFIG_DIP_BYTE, 0x10);
   m.regs.s = 0xff;
   m.push16(0xabcd); // a real caller-return word on the 6502 page-1 stack
   const r = seamPlaceable(withOmittedRet, readFdBitsTableByte, TARGET, m);
