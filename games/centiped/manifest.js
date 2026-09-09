@@ -51,7 +51,12 @@ export default {
     keys: { Space: "fire", Digit5: "coin", KeyC: "coin", Digit1: "start1", Digit2: "start2" },
   },
 
-  audio: null, // POKEY PSG (§5), pending — no sound CPU/sample ROM; blocked on MAME reference
+  // audio (§5): a SYNTH model -- centiped's sound is a single POKEY PSG driven straight off the 6502
+  //   (centiped.cpp:1821, no sound CPU / no sample ROM). The board taps the POKEY register writes
+  //   (boards/centiped/io.js pokeyWrite -> onSoundWrite, 0x1000-0x100F) and audio/synth.js synthesises four
+  //   independent voices from them (audio/sounds.js is the register map), not clip replay. Grounded from a
+  //   MAME play-time write tap (scratchpad/deep_capture/tracked_deep.csv) + mame-src/.../sound/pokey.cpp.
+  audio: { map: "audio/sounds.js", model: "synth" },
 
   // §4 clock-free: frame sync is a CPU-polled vblank (IN0 bit6) plus a 32V IRQ, not a vblank NMI. The main
   // loop 0x2015 is the vblank-poll PC / main-loop top; the idiomatic layer runs on runIdiomaticIrqGame (the

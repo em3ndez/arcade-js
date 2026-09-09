@@ -807,7 +807,10 @@ import { getCached, putCached, clearCached } from "./romstore.js";
   async function setupSynthAudio(spec, SOUNDS) {
     let mod;
     try { mod = await import(`../games/${gameId}/${SOUNDS.synth}`); } catch { return; }
-    const { GalaxianSynth } = mod;
+    // Resolve the synth constructor generically so any game's synth module works (galaxian exports
+    // GalaxianSynth; centiped exports a generic `Synth`). Each module's class shares the write/render API.
+    const SynthCtor = mod.Synth ?? mod.GalaxianSynth ?? mod.default;
+    if (!SynthCtor) return;
     const gainOf = () => SOUNDS.masterGain ?? 0.7;
     let ctx = null, gain = null, synth = null, muted = false;
     const pending = [];
@@ -819,7 +822,7 @@ import { getCached, putCached, clearCached } from "./romstore.js";
     const start = () => {
       if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
       ctx = new (window.AudioContext || window.webkitAudioContext)();
-      synth = new GalaxianSynth(ctx.sampleRate);
+      synth = new SynthCtor(ctx.sampleRate);
       for (let i = 0; i < pending.length; i += 2) synth.write(pending[i], pending[i + 1]);
       pending.length = 0;
       // 1 INPUT channel, not 0: Safari never fires onaudioprocess on a 0-input ScriptProcessor (a
