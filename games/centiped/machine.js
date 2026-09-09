@@ -246,7 +246,51 @@ export class Machine {
   }
 }
 
-/** §4 idiomatic override table — empty until the decompile pass starts. */
-export async function resolveAllIdiomatic() {
-  return new Map();
+// ---- §4 idiomatic dispatch seam ---------------------------------------------------------------------
+// An idiomatic routine OMITS its ROM ret; withOmittedRet completes it. 6502 page-1 stack: regs.s is 8-bit,
+// the JSR pushed the return (ret-1) at 0x0100|(s+1),(s+2), m.ret pulls it +1. moved 0 = omitted ret (seam
+// rets); moved 2 with pc on the caller slot = a translated tail-transfer already ret'd; anything else adrift.
+const GeneratorFunction = function* () {}.constructor;
+
+export function withOmittedRet(fn, addr = null) {
+  if (fn instanceof GeneratorFunction) return fn;
+  const at = addr === null ? "" : ` at 0x${(addr & 0xffff).toString(16).padStart(4, "0")}`;
+  return (m, ...args) => {
+    const seat = m.regs.s;
+    const lo = m.mem.read8(0x0100 | ((seat + 1) & 0xff));
+    const hi = m.mem.read8(0x0100 | ((seat + 2) & 0xff));
+    const callerRet = (((hi << 8) | lo) + 1) & 0xffff;
+    const r = fn(m, ...args);
+    if (r && typeof r.next === "function" && typeof r.throw === "function") return r; // coroutine: not done
+    const moved = (m.regs.s - seat) & 0xff;
+    if (moved === 0) { m.ret(); return r; }
+    if (moved === 2 && m.pc === callerRet) return r;
+    throw new Error(
+      `the seam cannot place this dispatch${at}: SP moved ${moved}, pc 0x${(m.pc & 0xffff).toString(16)}. ` +
+        "A placeable rewrite either omits its ROM ret (SP unmoved) or reaches it via a translated " +
+        "tail-transfer (SP +2, pc on the caller slot); a net-nonzero SP move must be DISSOLVED, not overridden.",
+    );
+  };
+}
+
+export async function resolveOverrides(spec = {}, baseUrl = import.meta.url) {
+  const map = new Map();
+  for (const [key, ent] of Object.entries(spec)) {
+    const addr = parseInt(key, 16);
+    const mod = await import(new URL(ent.module, baseUrl).href);
+    const fn = mod[ent.export];
+    if (typeof fn !== "function") throw new Error(`override ${key}: ${ent.module} has no export "${ent.export}"`);
+    map.set(addr, withOmittedRet(fn, addr));
+  }
+  return map;
+}
+
+/** §4 idiomatic override table: build the live map from idiomatic/names.js ROUTINES {addr:{name,entry?}}. */
+export async function resolveAllIdiomatic(baseUrl = import.meta.url) {
+  const { ROUTINES } = await import(new URL("idiomatic/names.js", baseUrl).href);
+  const spec = {};
+  for (const [addr, meta] of Object.entries(ROUTINES)) {
+    spec[Number(addr).toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: meta.entry ?? meta.name };
+  }
+  return resolveOverrides(spec, baseUrl);
 }

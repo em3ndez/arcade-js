@@ -185,6 +185,118 @@ export const loc_07d0 = 0x07d0;
 export const loc_07e0 = 0x07e0;
 export const loc_07f0 = 0x07f0;
 
+// Palette RAM (0x1400-0x140F, centiped_paletteram_w; the video layer reads it, so it is NOT in
+// dumpState/the RAM diff). loc_2656 fans a 3-byte ROM record into two palette triples. [code]
+// placeholders -- cellRenames proposes descriptive names for the LEAD to apply.
+export const loc_1404 = 0x1404; // loc_28bf writes 0x0f here at board reset (a fixed palette color). [code]
+export const loc_1405 = 0x1405;
+export const loc_1406 = 0x1406;
+export const loc_1407 = 0x1407;
+export const loc_140d = 0x140d;
+export const loc_140e = 0x140e;
+export const loc_140f = 0x140f;
+
+// ROM data table at 0x2676: 3-byte palette-color records, indexed by X in loc_2656. [code]
+export const PALETTE_RECORD_TABLE = 0x2676;
+
+// POKEY RANDOM register (0x100A): a poly-counter RNG read (boards/centiped/memory.js read8 ->
+// io.pokeyRandom). loc_28bf reads it to seed the mushroom-grid pointer $8d/$8e. The value is
+// clock-dependent (poly phase = m.cycles delta), so the clock-free idiomatic layer can only reproduce
+// it when the poly counter is held at origin (pokeyC0 === null -> t[0]); see equivalence-28bf.test.js.
+// Propose rename POKEY_RANDOM. [code]
+export const loc_100a = 0x100a;
+
+// Hardware-port placeholders (added for the 0x2509/0x252a decompile batch). Board decode
+// (boards/centiped/memory.js): 0x1C00-0x1C07 is the LS259 outlatch (write_d7); index 7 -> Q7 ->
+// flip_screen_w, so a write of A stores bit7 of A to the flip-screen latch. Propose rename FLIP_SCREEN_LATCH.
+export const loc_1c07 = 0x1c07;
+// 0x2400 sits in ROM read-space (0x2001-0x3FFF); memory.js write8 IGNORES the store ("e.g. reset's sta $2400").
+// A dead/no-op write the ROM performs; kept so the idiomatic layer mirrors the oracle's write exactly. [code]
+export const loc_2400 = 0x2400;
+
+// POKEY audio registers (0x1000-0x1007), the four sound channels' freq/control pairs (standard POKEY
+// AUDF/AUDC layout). Memory-mapped: boards/centiped/memory.js routes writes to io.pokeyWrite (the audio
+// sink), so they are NOT in dumpState/the RAM diff. Written by updateSoundChannels (0x3068). [code]
+// placeholders -- cellRenames proposes POKEY_AUDF1/AUDC1..AUDF4/AUDC4 for the LEAD to apply.
+export const loc_1000 = 0x1000; // AUDF1 (ch1 frequency)
+export const loc_1001 = 0x1001; // AUDC1 (ch1 control/volume)
+export const loc_1002 = 0x1002; // AUDF2 (ch2 frequency)
+export const loc_1003 = 0x1003; // AUDC2 (ch2 control/volume)
+export const loc_1004 = 0x1004; // AUDF3 (ch3 frequency)
+export const loc_1005 = 0x1005; // AUDC3 (ch3 control/volume)
+export const loc_1006 = 0x1006; // AUDF4 (ch4 frequency)
+export const loc_1007 = 0x1007; // AUDC4 (ch4 control/volume)
+
+// Sound-engine ROM data tables (added for the 0x3068 decompile batch). Per-effect waveform/frequency
+// byte tables in program ROM, indexed by the effect timers $b2-$b8; updateSoundChannels copies one byte
+// per frame into the POKEY register named in each comment. [code] placeholders -- roles are which POKEY
+// register they feed; cellRenames proposes descriptive names for the LEAD to apply.
+export const loc_3148 = 0x3148; // -> AUDF1 (via $b2 and $b7 timers)
+export const loc_315b = 0x315b; // -> AUDC1 (via $b2 and $b7 timers)
+export const loc_316e = 0x316e; // -> AUDF2 (via $b3 timer)
+export const loc_3175 = 0x3175; // -> AUDC2 (via $b3 timer)
+export const loc_317c = 0x317c; // -> AUDF3 (via $b4 timer)
+export const loc_3187 = 0x3187; // -> AUDF4 (via $b5 timer)
+export const loc_319b = 0x319b; // -> AUDC4 (via $b5 timer)
+export const loc_31af = 0x31af; // -> AUDF2 (via $b6 timer)
+export const loc_31c0 = 0x31c0; // -> AUDF2 (via $b8 sweep)
+
+// I/O ports + ROM data-table bases referenced by batch-1 modules. [code] placeholders (loc_ pending
+// the understanding pass, which names/grounds them under two-blind-deriver convergence).
+export const loc_0c01 = 0x0c01; // input port read by advanceSegmentColumns [code]
+export const loc_1600 = 0x1600; // EAROM data window base (read/write) [code]
+export const loc_1680 = 0x1680; // EAROM control/second window [code]
+export const loc_1700 = 0x1700; // EAROM control latch [code]
+export const loc_21bf = 0x21bf; // ROM table read by readFdBitsTableByte [code]
+export const loc_3413 = 0x3413; // ROM table (column-advance thresholds) read by advanceSegmentColumns [code]
+export const loc_346d = 0x346d; // ROM row-descriptor pointer table read by writePointerTableRow [code]
+export const loc_3a69 = 0x3a69; // ROM high-score init table read by validateOrResetHighScores [code]
+
 // Routine override map: addr -> { name, entry? }. Empty until the decompile batches land idiomatic modules;
 // resolveAllIdiomatic walks this, so an unlisted routine runs as the frozen oracle fallback.
-export const ROUTINES = {};
+export const ROUTINES = {
+  0x20e8: { name: "seedWaveState" },
+  0x21b3: { name: "readFdBitsTableByte" },
+  0x21c7: { name: "seedSegmentSpawnState" },
+  0x22fa: { name: "tickColumnCountdown" },
+  0x2310: { name: "loadObjectTileInputs" },
+  0x231f: { name: "rebuildSegmentSpriteTables" },
+  0x2509: { name: "broadcastByteToStateBlock" },
+  0x252a: { name: "seedStateBlockConstants" },
+  0x2656: { name: "loadPaletteRecordPair" },
+  0x26a0: { name: "copyZpStateToSnapshot" },
+  0x26b8: { name: "drawGridSideBorders" },
+  0x26fd: { name: "serviceTimerBank" },
+  0x28bf: { name: "resetPlayfieldAndSeedMushrooms" },
+  0x2932: { name: "seedPlayerShotStartCells" },
+  0x2acd: { name: "returnImmediately" },
+  0x2b79: { name: "loc_2b79" },
+  0x2b91: { name: "maybeDecrementTableEntry" },
+  0x2ba8: { name: "stampEmptyTileCell" },
+  0x2bd9: { name: "spawnActorOnTimer" },
+  0x2c2b: { name: "resolveTileCellAtXY" },
+  0x2c6b: { name: "detectColumnCollision" },
+  0x2cc2: { name: "armSlotState" },
+  0x2cea: { name: "enterArmBlockUnlessValueHigh" },
+  0x2e94: { name: "advanceHeadOrientation", entry: "guardHeadOrientationWrap" },
+  0x2e9d: { name: "advanceHeadOrientation", entry: "advanceHeadOrientationAndStampTile" },
+  0x2ec5: { name: "returnNoop" },
+  0x3068: { name: "updateSoundChannels" },
+  0x31d5: { name: "transposeScreenBitmap" },
+  0x3226: { name: "clampAndHalveSignedDelta" },
+  0x3360: { name: "advanceSegmentColumns" },
+  0x341b: { name: "stepPhasedCountersAndWrapCells" },
+  0x37d5: { name: "writePointerTableRow" },
+  0x3801: { name: "writePointerTableRow", entry: "rewritePointerTableRowFromStart" },
+  0x382b: { name: "foldSignedMagnitude" },
+  0x382d: { name: "negateA" },
+  0x3833: { name: "plotZpTableByteAtCursor" },
+  0x3836: { name: "writeMaskedByteAndAdvancePointer" },
+  0x385c: { name: "plotNormalizedCharCode" },
+  0x39ea: { name: "stepAxisBySelectorBits" },
+  0x3a08: { name: "foldHighScoreChecksum" },
+  0x3a1d: { name: "validateOrResetHighScores" },
+  0x3a99: { name: "loadHighScoreTableFromEarom" },
+  0x3aa7: { name: "readEaromCell" },
+  0x3ac0: { name: "tickEaromWriteback" },
+};
