@@ -1,0 +1,14 @@
+# grounding-debt.txt -- centiped's honestly-accounted-for ungrounded cells.
+#
+# Stage-B grounding lifts a names.js [code] proposal to [seen] only on a role-defining MAME observation.
+# These cells set their role value only on an arm reached in sustained real single-life play, which a
+# frame-scripted deep-capture driver cannot produce on a GOOD ROM; each is accounted for by its writing
+# routine's own grounding plus the reasoned note below (reviewer-rules R39). Format: `0xADDR  reason`.
+#
+# (The still-loc_-named [code] cells 0x140c/0x21c0/0x2120/0x3fd8 are a RENAME debt handled in the cleanup
+#  phase -- 0x2120/0x3fd8 are code/data overlaps to reclassify, 0x21c0/0x140c are self-test/deeper-wave
+#  reads to debt once renamed to a descriptive UPPERCASE identifier the surface counts.)
+#
+0x0050  HEAD_VELOCITY_SEED -- steerHeadAndSeedVelocity writes a non-zero velocity only on the head steer / orientation-wrap-reseed arm; the scripted driver only ever hit the 0x2114 clear. Reachable in sustained single-life head navigation, not by a frame-scripted driver; accounted for by steerHeadAndSeedVelocity's grounding.
+0x00b6  SFX_TIMER_CH2_PRIORITY -- the pitched CH2 pre-empt timer is armed only on a specific collision-SFX decision, never reached in capture (only the 0x2892 clear fires). Accounted for by the collision/sound routine's grounding.
+0x00cb  SEGMENT_ROW_CROSS_COUNT -- the bump needs SEGMENT_MOVE_ACCUM to reach threshold 0x7f (SEGMENT_ROW_THRESHOLD_TABLE[0], DSW2>>5=0), i.e. ~127 column firings in one un-cleared wave without dying; scripted drives sustained ~20. Reachable in sustained single-life marching only.

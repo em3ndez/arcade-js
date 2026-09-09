@@ -47,7 +47,7 @@ export const loc_80 = 0x0080;
 export const OBJECT_Y_STEER = 0x0081; // [seen] Steered object's vertical (Y) steer delta: loc_71 is stepped by +/- loc_81 (sign from
 export const loc_83 = 0x0083;
 export const MOVE_SUBSTEP_ACCUM_A = 0x0084; // [seen] Sub-step (fractional) accumulator for the $63-axis coordinate integrator: loc_2ace ac
-export const MOVE_SUBSTEP_ACCUM_B = 0x0085; // [code] Sub-step (fractional) accumulator for the $73-axis coordinate integrator: loc_2aeb ac
+export const MOVE_SUBSTEP_ACCUM_B = 0x0085; // [seen] Sub-step (fractional) accumulator for the $73-axis coordinate integrator: loc_2aeb ac
 export const loc_86 = 0x0086;
 export const loc_87 = 0x0087;
 export const loc_88 = 0x0088;
@@ -113,7 +113,7 @@ export const SEGMENT_MOVE_ACCUM = 0x00ca; // [seen] Shared segment-movement accu
 export const SEGMENT_ROW_CROSS_COUNT = 0x00cb; // [code] Row-crossing counter: bumped once when the accumulator clears the threshold, and a second
 export const SEGMENT_COL_LIFE_TIMER = 0x00cc; // [seen] Per-column life countdown (array 0xcc,0xcd,0xce). Reloaded to 0x78, decremented each pass;
 export const SEGMENT_COL_BODY = 0x00cf; // [seen] Per-column centipede body/step cell (array 0xcf,0xd0,0xd1 for cols 0..2). Holds the low-5-
-export const SEGMENT_RELOAD_TIMER = 0x00d2; // [code] Shared reload timer: reloaded to 0xf0 unless IN1 bit4 is set; while nonzero it decrements
+export const SEGMENT_RELOAD_TIMER = 0x00d2; // [seen] Shared reload timer: reloaded to 0xf0 unless IN1 bit4 is set; while nonzero it decrements
 export const loc_d3 = 0x00d3;
 export const SEGMENT_MOVE_FRAME_COUNTER = 0x00d4; // [seen] Free-running movement frame counter: stepPhasedCountersAndWrapCells increments it eve
 export const loc_d5 = 0x00d5;
@@ -171,8 +171,8 @@ export const loc_018f = 0x018f;
 export const loc_0190 = 0x0190;
 export const loc_0191 = 0x0191;
 export const HIGH_SCORE_CHECKSUM = 0x01b5; // [seen] High-score table integrity checksum byte (last used byte of the hs block; foldHighScoreChe
-export const TRACKBALL_AXIS0_STEP_STATE = 0x01b8; // [code] Per-axis (axis 0) trackball step-state carried between IRQ frames and fed to stepAxis
-export const TRACKBALL_AXIS1_STEP_STATE = 0x01b9; // [code] Per-axis (axis 1) trackball step-state, companion to loc_01b8
+export const TRACKBALL_AXIS0_STEP_STATE = 0x01b8; // [seen] Per-axis (axis 0) trackball step-state carried between IRQ frames and fed to stepAxis
+export const TRACKBALL_AXIS1_STEP_STATE = 0x01b9; // [seen] Per-axis (axis 1) trackball step-state, companion to loc_01b8
 export const loc_0400 = 0x0400;
 export const loc_0500 = 0x0500;
 export const loc_0589 = 0x0589;
@@ -188,7 +188,7 @@ export const SPRITE_SHADOW_ATTR = 0x07f0; // [seen] Per-object sprite-shadow att
 // Palette RAM (0x1400-0x140F, centiped_paletteram_w; the video layer reads it, so it is NOT in
 // dumpState/the RAM diff). loc_2656 fans a 3-byte ROM record into two palette triples. [code]
 // placeholders -- cellRenames proposes descriptive names for the LEAD to apply.
-export const PALETTE_COLOR_04 = 0x1404; // [code] Playfield color RAM cell. resetPlayfieldAndSeedMushrooms writes the fixed 0x0f palette val
+export const PALETTE_COLOR_04 = 0x1404; // [seen] Playfield color RAM cell. resetPlayfieldAndSeedMushrooms writes the fixed 0x0f palette val
 export const PALETTE_COLOR_05 = 0x1405; // [seen] Palette RAM colour byte (video palette region 0x1400-0x140f). Entry of triple A (0x1405-0x
 export const PALETTE_COLOR_06 = 0x1406; // [seen] Palette RAM colour byte. Entry of triple A, receives record byte b2.
 export const PALETTE_COLOR_07 = 0x1407; // [seen] Palette RAM colour byte. Entry of triple A, receives record byte b1.
@@ -221,11 +221,11 @@ export const loc_2400 = 0x2400;
 export const AUDF1 = 0x1000; // [seen] POKEY channel-1 frequency register
 export const AUDC1 = 0x1001; // [seen] POKEY channel-1 control/volume register
 export const AUDF2 = 0x1002; // [seen] POKEY channel-2 frequency register
-export const AUDC2 = 0x1003; // [code] POKEY channel-2 control/volume register
+export const AUDC2 = 0x1003; // [seen] POKEY channel-2 control/volume register
 export const AUDF3 = 0x1004; // [seen] POKEY channel-3 frequency register
-export const AUDC3 = 0x1005; // [code] POKEY channel-3 control/volume register
+export const AUDC3 = 0x1005; // [seen] POKEY channel-3 control/volume register
 export const AUDF4 = 0x1006; // [seen] POKEY channel-4 frequency register
-export const AUDC4 = 0x1007; // [code] POKEY channel-4 control/volume register
+export const AUDC4 = 0x1007; // [seen] POKEY channel-4 control/volume register
 
 // Sound-engine ROM data tables (added for the 0x3068 decompile batch). Per-effect waveform/frequency
 // byte tables in program ROM, indexed by the effect timers $b2-$b8; updateSoundChannels copies one byte
@@ -246,10 +246,10 @@ export const loc_31c0 = 0x31c0; // -> AUDF2 (via $b8 sweep)
 export const IN1 = 0x0c01; // [seen] Hardware input port IN1. advanceSegmentColumns reads per-column control bits (bit5 col0, b
 export const EAROM_DATA_WINDOW = 0x1600; // [seen] EAROM (ER2055 high-score NVRAM) address-latch / data window base; readEaromCell writes $16
 export const EAROM_CONTROL = 0x1680; // [seen] EAROM control register; readEaromCell pulses 0x08/0x09/0x08/0x00 to clock the ER2055 (C1 r
-export const EAROM_DATA_OUT = 0x1700; // [code] EAROM data-out window; readEaromCell reads $1700+X to get the latched cell byte after the
-export const loc_21bf = 0x21bf; // ROM table read by readFdBitsTableByte [code]
+export const EAROM_DATA_OUT = 0x1700; // [seen] EAROM data-out window; readEaromCell reads $1700+X to get the latched cell byte after the
+export const loc_21bf = 0x21bf; // ROM table read by readFdBitsTableByte [seen]
 export const SEGMENT_ROW_THRESHOLD_TABLE = 0x3413; // [seen] ROM table of per-row (Y) accumulator thresholds, indexed by SEGMENT_ROW_PHASE>>5 in the la
-export const loc_346d = 0x346d; // ROM row-descriptor pointer table read by writePointerTableRow [code]
+export const loc_346d = 0x346d; // ROM row-descriptor pointer table read by writePointerTableRow [seen]
 export const HIGH_SCORE_INIT_TABLE = 0x3a69; // ROM high-score init table read by validateOrResetHighScores [seen]
 
 export const DSW2 = 0x0801; // [seen] I/O port or ROM table (batch-2 decompile placeholder)

@@ -3,14 +3,16 @@
 // Extract the per-cert MAME evidence a GROUNDING reviewer needs to CONFIRM a [seen] from hardware,
 // rather than infer it from the code diff (a MAME fact is absent from the diff, so a code-only review
 // can only flag a [code]->[seen] promotion as unrecorded — never confirm it). Reads a gwtrace capture
-// (the write-tap CSV the grounding harness produces under MAME: `pc,addr,n,v0,vN,cyc0`) and answers,
+// (the write-tap CSV the grounding harness produces under MAME: `pc,addr,n,v0,vN,vmin,vmax,cyc0`, older
+// traces without the vmin/vmax pair still parse) and answers,
 // for one cert under review:
 //
 //   routine <lo> <hi>   the routine's OWN write-set — every cell written at a PC inside [lo,hi). A
 //                       role-defining own write here grounds the routine [seen]; a pure dispatcher that
 //                       writes only its return-stack scratch cannot be [seen] from its own writes.
-//   cell <addr>         the writes TO one cell — which PCs write it and the value transitions (v0->vN).
-//                       A watched value change (drain/toggle/seed) grounds the cell [seen].
+//   cell <addr>         the writes TO one cell — which PCs write it and the value transitions (v0->vN,
+//                       plus vmin/vmax so a PULSING cell that returns to rest still reads as changed).
+//                       A watched value change (drain/toggle/seed/pulse) grounds the cell [seen].
 //
 // This is the tool the grounding-commit-review workflow hands each reviewer per cert (docs/runbook.md
 // §4 "The grounding CONFIRMER confirms a [seen] from EVIDENCE"; docs/reviewer-rules.md R38 [U]). The
@@ -41,7 +43,12 @@ export function parseGwtrace(text) {
     const pc = parseInt(c[0], 16), addr = parseInt(c[1], 16), n = parseInt(c[2], 10);
     const v0 = parseInt(c[3], 16), vN = parseInt(c[4], 16);
     if (Number.isNaN(pc) || Number.isNaN(addr)) continue;
-    rows.push({ pc, addr, n, v0, vN });
+    // Newer traces carry vmin,vmax before cyc0 (pc,addr,n,v0,vN,vmin,vmax,cyc0); older ones stop at cyc0,
+    // where first==last is all we have. vmin!=vmax catches a PULSING cell v0==vN would hide.
+    const hasMinMax = c.length >= 8;
+    const vmin = hasMinMax ? parseInt(c[5], 16) : v0;
+    const vmax = hasMinMax ? parseInt(c[6], 16) : vN;
+    rows.push({ pc, addr, n, v0, vN, vmin, vmax });
   }
   return rows;
 }
@@ -60,15 +67,16 @@ export function routineWrites(rows, lo, hi, stack, bulk = new Set()) {
   return [...seen.values()].sort((a, b) => Number(a.stack || a.bulk) - Number(b.stack || b.bulk) || b.n - a.n);
 }
 
-/** The writes to one cell: [{pc, v0, vN, n, changed, bulk}], value-changing writes first. */
+/** The writes to one cell: [{pc, v0, vN, vmin, vmax, n, changed, bulk}], value-changing writes first.
+ *  `changed` counts a PULSING cell (vmin!=vmax) as watched-changing, not just first!=last (v0!=vN). */
 export function cellWrites(rows, addr, bulk = new Set()) {
   const out = rows.filter((r) => r.addr === addr);
   const seen = new Map();
   for (const r of out) {
     const k = r.pc + ":" + r.v0 + ":" + r.vN;
     const e = seen.get(k);
-    if (!e) seen.set(k, { pc: r.pc, v0: r.v0, vN: r.vN, n: r.n, changed: r.v0 !== r.vN, bulk: bulk.has(r.pc) });
-    else e.n += r.n;
+    if (!e) seen.set(k, { pc: r.pc, v0: r.v0, vN: r.vN, vmin: r.vmin, vmax: r.vmax, n: r.n, changed: r.v0 !== r.vN || r.vmin !== r.vmax, bulk: bulk.has(r.pc) });
+    else { e.n += r.n; if (r.vmin < e.vmin) e.vmin = r.vmin; if (r.vmax > e.vmax) e.vmax = r.vmax; e.changed = e.changed || e.vmin !== e.vmax; }
   }
   return [...seen.values()].sort((a, b) => Number(b.changed) - Number(a.changed) || b.n - a.n);
 }
@@ -117,11 +125,14 @@ async function main(argv) {
     // A state cell advanced by DIFFERENT role PCs (each writing a constant) shows no per-write change but a
     // SPREAD of distinct values across the write-sites — that is still watched-changing, hence groundable.
     const vals = new Set();
-    for (const r of w) { if (!r.bulk) { vals.add(r.v0); vals.add(r.vN); } }
+    for (const r of w) { if (!r.bulk) { vals.add(r.v0); vals.add(r.vN); vals.add(r.vmin); vals.add(r.vmax); } }
     const grounded = chg.length > 0 || vals.size > 1;
     const nbulk = w.filter((r) => r.bulk).length;
     console.log(`cell ${hx(addr)}: ${chg.length} in-write change(s), ${vals.size} distinct role value(s) across ${w.length - nbulk} role write-site(s)${nbulk ? ` (+${nbulk} bulk-copy, excluded)` : ""}`);
-    for (const r of w) console.log(`  pc ${hx(r.pc)}  ${hx(r.v0)}->${hx(r.vN)}  n=${r.n}${r.changed ? "" : "  [no in-write change]"}${r.bulk ? "  [bulk-copy PC — excluded from grounding]" : ""}`);
+    for (const r of w) {
+      const pulse = r.vmin !== r.vmax && (r.vmin !== r.v0 || r.vmax !== r.vN) ? `  [min ${hx(r.vmin)} max ${hx(r.vmax)} — pulsed]` : "";
+      console.log(`  pc ${hx(r.pc)}  ${hx(r.v0)}->${hx(r.vN)}${pulse}  n=${r.n}${r.changed ? "" : "  [no in-write change]"}${r.bulk ? "  [bulk-copy PC — excluded from grounding]" : ""}`);
+    }
     if (!grounded) console.log("  (a single constant value, never watched changing by a role write — this cell is not [seen] from this capture)");
     else if (!chg.length) console.log(`  (${vals.size} distinct values written across role PCs -> watched changing, [seen]-groundable even though each write is a constant)`);
   } else {

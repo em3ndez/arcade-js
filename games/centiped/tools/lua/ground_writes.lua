@@ -26,9 +26,11 @@ local function tapfn(offset, data, mask)
   local p = T[pc]; if not p then p = {}; T[pc] = p end
   local e = p[offset]
   if not e then
-    p[offset] = { n = 1, v0 = data, vN = data, c0 = manager.machine.time:as_double() }
+    p[offset] = { n = 1, v0 = data, vN = data, vmin = data, vmax = data, c0 = manager.machine.time:as_double() }
   else
     e.n = e.n + 1; e.vN = data
+    if data < e.vmin then e.vmin = data end
+    if data > e.vmax then e.vmax = data end
   end
   return data
 end
@@ -52,35 +54,43 @@ assert(#_G.__wtaps == #RANGES, "not all write taps installed")
 
 local function dump()
   local f = assert(io.open(OUT, "w"))
-  f:write("pc,addr,n,v0,vN,cyc0\n")
+  -- vmin/vmax (not just first/last) so a PULSING cell -- a sound volume set non-zero then back to 0 --
+  -- is seen changing; v0==vN would hide it whenever the capture ends on the resting value.
+  f:write("pc,addr,n,v0,vN,vmin,vmax,cyc0\n")
   for pc, p in pairs(T) do
     for addr, e in pairs(p) do
-      f:write(string.format("%04x,%04x,%d,%02x,%02x,%.0f\n", pc, addr, e.n, e.v0, e.vN, e.c0 * 1512000))
+      f:write(string.format("%04x,%04x,%d,%02x,%02x,%02x,%02x,%.0f\n", pc, addr, e.n, e.v0, e.vN, e.vmin, e.vmax, e.c0 * 1512000))
     end
   end
   f:close()
 end
 
--- Inline coin -> start -> fire + trackball sweep so the trace reaches gameplay, not just attract.
--- MAME 0.2xx has no stop hook; dump periodically so the trace survives a kill.
+-- Coin -> start -> deep play: RE-COIN across many short games and sweep BOTH trackball axes with rapid
+-- reversals, so the trace reaches deep play states + the sound-event volume cells (set non-zero only by
+-- specific effects), not just the first life's attract-adjacent code. MAME 0.2xx has no stop hook; dump
+-- periodically so the trace survives a kill.
 local FLD = nil
 local frames = 0
 _G.__wt_frame = emu.add_machine_frame_notifier(function()
   if not FLD then
     local IN1 = manager.machine.ioport.ports[":IN1"]
     local TX = manager.machine.ioport.ports[":TRACK0_X"]
+    local TY = manager.machine.ioport.ports[":TRACK0_Y"]
     FLD = {
       coin = IN1.fields["Coin 1"], start = IN1.fields["1 Player Start"],
-      fire = IN1.fields["P1 Button 1"], tx = TX.fields["Trackball X"],
+      fire = IN1.fields["P1 Button 1"],
+      tx = TX.fields["Trackball X"], ty = TY and TY.fields["Trackball Y"] or nil,
     }
     assert(FLD.coin and FLD.start and FLD.fire and FLD.tx, "centiped input fields missing")
   end
   local f = frames + 1; frames = f
-  FLD.coin:set_value((f >= 300 and f < 306) and 1 or 0)
-  FLD.start:set_value((f >= 360 and f < 366) and 1 or 0)
-  if f >= 420 then
-    FLD.fire:set_value(((f - 420) % 20 < 4) and 1 or 0)      -- pulse fire
-    FLD.tx:set_value((((f - 420) % 120 < 60) and 6 or 250))  -- sweep the shooter left/right (250 = -6 as u8)
+  local ph = f % 900                                        -- re-coin each ~900-frame cycle (a life ends by then)
+  FLD.coin:set_value((ph >= 60 and ph < 66) and 1 or 0)
+  FLD.start:set_value((ph >= 120 and ph < 126) and 1 or 0)
+  if ph >= 180 then
+    FLD.fire:set_value((f % 12 < 4) and 1 or 0)             -- pulse fire
+    FLD.tx:set_value(((f % 40 < 20) and 8 or 248))          -- sweep X +8 / -8 (248 = -8 as u8)
+    if FLD.ty then FLD.ty:set_value(((f % 26 < 13) and 6 or 250)) end -- sweep Y +6 / -6, offset period
   end
   if f % 300 == 0 then dump() end
 end)

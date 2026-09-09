@@ -89,11 +89,17 @@ def _count_grounding(lines):
         elif _line_ungrounded(ln):
             cells += 1
             a = None
-            for j in range(i + 1, min(i + 8, len(lines))):
-                mc = CELL_CONST.match(lines[j])
-                if mc:
-                    a = int(mc.group(1), 16)
-                    break
+            # An INLINE tag (`export const X = 0xADDR; // [code] ...`) carries the address on its OWN line;
+            # a JSDoc-block tag sits above the const, so scan forward for it. Prefer the self match.
+            mc_self = CELL_CONST.match(ln)
+            if mc_self:
+                a = int(mc_self.group(1), 16)
+            else:
+                for j in range(i + 1, min(i + 8, len(lines))):
+                    mc = CELL_CONST.match(lines[j])
+                    if mc:
+                        a = int(mc.group(1), 16)
+                        break
             cell_addrs.append(a)
     return cells, routines, cell_addrs, rout_addrs
 
