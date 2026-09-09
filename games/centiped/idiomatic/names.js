@@ -65,7 +65,7 @@ export const loc_93 = 0x0093;
 export const loc_94 = 0x0094;
 export const loc_97 = 0x0097;
 export const SHADOW_TILE_LOW_NIBBLE = 0x0098; // [seen] Transient low-nibble of the tile/attribute source (loc_34+x) captured during the per-
-export const SHADOW_SIGN_LATCH = 0x0099; // [code] Sign-bit latch of loc_44+x held during shadow build, XORed into the shadow sub-value
+export const SHADOW_SIGN_LATCH = 0x0099; // [seen] Sign-bit latch of loc_44+x held during shadow build, XORed into the shadow sub-value
 export const loc_9a = 0x009a;
 export const loc_9b = 0x009b;
 export const loc_9c = 0x009c;
@@ -108,8 +108,8 @@ export const loc_c1 = 0x00c1;
 export const loc_c2 = 0x00c2;
 export const loc_c5 = 0x00c5;
 export const loc_c8 = 0x00c8;
-export const SEGMENT_MOVE_ACCUM_B = 0x00c9; // [code] Second parallel segment-movement accumulator, advanced by delta+1 alongside 0xca on each c
-export const SEGMENT_MOVE_ACCUM = 0x00ca; // [code] Shared segment-movement accumulator. Each firing column folds delta+1 into it; on the last
+export const SEGMENT_MOVE_ACCUM_B = 0x00c9; // [seen] Second parallel segment-movement accumulator, advanced by delta+1 alongside 0xca on each c
+export const SEGMENT_MOVE_ACCUM = 0x00ca; // [seen] Shared segment-movement accumulator. Each firing column folds delta+1 into it; on the last
 export const SEGMENT_ROW_CROSS_COUNT = 0x00cb; // [code] Row-crossing counter: bumped once when the accumulator clears the threshold, and a second
 export const SEGMENT_COL_LIFE_TIMER = 0x00cc; // [seen] Per-column life countdown (array 0xcc,0xcd,0xce). Reloaded to 0x78, decremented each pass;
 export const SEGMENT_COL_BODY = 0x00cf; // [seen] Per-column centipede body/step cell (array 0xcf,0xd0,0xd1 for cols 0..2). Holds the low-5-
@@ -154,12 +154,12 @@ export const loc_f9 = 0x00f9;
 export const loc_fa = 0x00fa;
 export const loc_fb = 0x00fb;
 export const loc_fc = 0x00fc;
-export const CONFIG_DIP_BYTE = 0x00fd; // [code] Mode/control byte whose bits 5-4 select a ROM table variant in readFdBitsTableByte.
+export const CONFIG_DIP_BYTE = 0x00fd; // [seen] Mode/control byte whose bits 5-4 select a ROM table variant in readFdBitsTableByte.
 export const loc_fe = 0x00fe;
 export const loc_ff = 0x00ff;
 export const loc_0100 = 0x0100;
 export const loc_0104 = 0x0104;
-export const HIGH_SCORE_TABLE = 0x0178; // [code] High-score table RAM mirror base — first byte of the 64-byte EAROM-backed high-score block
+export const HIGH_SCORE_TABLE = 0x0178; // [seen] High-score table RAM mirror base — first byte of the 64-byte EAROM-backed high-score block
 export const loc_017a = 0x017a;
 export const loc_0181 = 0x0181;
 export const HIGH_SCORE_CONFIG_BYTE = 0x018a; // [seen] Config-byte snapshot stored inside the hi-score table (table+0x12); validate compares/reco
@@ -204,7 +204,7 @@ export const PALETTE_RECORD_TABLE = 0x2676;
 // clock-dependent (poly phase = m.cycles delta), so the clock-free idiomatic layer can only reproduce
 // it when the poly counter is held at origin (pokeyC0 === null -> t[0]); see equivalence-28bf.test.js.
 // Propose rename POKEY_RANDOM. [code]
-export const POKEY_RANDOM = 0x100a; // [code] POKEY RANDOM register (read-only hardware RNG). rebuildSegmentSpriteTables and resetPlayfi
+export const POKEY_RANDOM = 0x100a; // [seen] POKEY RANDOM register (read-only hardware RNG). rebuildSegmentSpriteTables and resetPlayfi
 
 // Hardware-port placeholders (added for the 0x2509/0x252a decompile batch). Board decode
 // (boards/centiped/memory.js): 0x1C00-0x1C07 is the LS259 outlatch (write_d7); index 7 -> Q7 ->
@@ -222,7 +222,7 @@ export const AUDF1 = 0x1000; // [seen] POKEY channel-1 frequency register
 export const AUDC1 = 0x1001; // [seen] POKEY channel-1 control/volume register
 export const AUDF2 = 0x1002; // [seen] POKEY channel-2 frequency register
 export const AUDC2 = 0x1003; // [code] POKEY channel-2 control/volume register
-export const AUDF3 = 0x1004; // [code] POKEY channel-3 frequency register
+export const AUDF3 = 0x1004; // [seen] POKEY channel-3 frequency register
 export const AUDC3 = 0x1005; // [code] POKEY channel-3 control/volume register
 export const AUDF4 = 0x1006; // [seen] POKEY channel-4 frequency register
 export const AUDC4 = 0x1007; // [code] POKEY channel-4 control/volume register
@@ -243,33 +243,33 @@ export const loc_31c0 = 0x31c0; // -> AUDF2 (via $b8 sweep)
 
 // I/O ports + ROM data-table bases referenced by batch-1 modules. [code] placeholders (loc_ pending
 // the understanding pass, which names/grounds them under two-blind-deriver convergence).
-export const IN1 = 0x0c01; // [code] Hardware input port IN1. advanceSegmentColumns reads per-column control bits (bit5 col0, b
+export const IN1 = 0x0c01; // [seen] Hardware input port IN1. advanceSegmentColumns reads per-column control bits (bit5 col0, b
 export const EAROM_DATA_WINDOW = 0x1600; // [seen] EAROM (ER2055 high-score NVRAM) address-latch / data window base; readEaromCell writes $16
 export const EAROM_CONTROL = 0x1680; // [seen] EAROM control register; readEaromCell pulses 0x08/0x09/0x08/0x00 to clock the ER2055 (C1 r
 export const EAROM_DATA_OUT = 0x1700; // [code] EAROM data-out window; readEaromCell reads $1700+X to get the latched cell byte after the
 export const loc_21bf = 0x21bf; // ROM table read by readFdBitsTableByte [code]
-export const SEGMENT_ROW_THRESHOLD_TABLE = 0x3413; // [code] ROM table of per-row (Y) accumulator thresholds, indexed by SEGMENT_ROW_PHASE>>5 in the la
+export const SEGMENT_ROW_THRESHOLD_TABLE = 0x3413; // [seen] ROM table of per-row (Y) accumulator thresholds, indexed by SEGMENT_ROW_PHASE>>5 in the la
 export const loc_346d = 0x346d; // ROM row-descriptor pointer table read by writePointerTableRow [code]
-export const loc_3a69 = 0x3a69; // ROM high-score init table read by validateOrResetHighScores [code]
+export const loc_3a69 = 0x3a69; // ROM high-score init table read by validateOrResetHighScores [seen]
 
-export const loc_0801 = 0x0801; // [code] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_0c00 = 0x0c00; // [code] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_1008 = 0x1008; // [code] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_100f = 0x100f; // [code] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_1800 = 0x1800; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_0801 = 0x0801; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_0c00 = 0x0c00; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1008 = 0x1008; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_100f = 0x100f; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1800 = 0x1800; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_1c00 = 0x1c00; // [code] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_1c02 = 0x1c02; // [code] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_1c03 = 0x1c03; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_1c03 = 0x1c03; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_1c04 = 0x1c04; // [code] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_2003 = 0x2003; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const loc_2003 = 0x2003; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_2120 = 0x2120; // [code] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_21c0 = 0x21c0; // [code] I/O port or ROM table (batch-2 decompile placeholder)
 
-export const loc_0800 = 0x0800; // [code] I/O port / ROM (batch-3 placeholder)
-export const loc_0c02 = 0x0c02; // [code] I/O port / ROM (batch-3 placeholder)
-export const loc_0c03 = 0x0c03; // [code] I/O port / ROM (batch-3 placeholder)
+export const loc_0800 = 0x0800; // [seen] I/O port / ROM (batch-3 placeholder)
+export const loc_0c02 = 0x0c02; // [seen] I/O port / ROM (batch-3 placeholder)
+export const loc_0c03 = 0x0c03; // [seen] I/O port / ROM (batch-3 placeholder)
 export const loc_140c = 0x140c; // [code] I/O port / ROM (batch-3 placeholder)
-export const loc_2000 = 0x2000; // [code] I/O port / ROM (batch-3 placeholder)
+export const loc_2000 = 0x2000; // [seen] I/O port / ROM (batch-3 placeholder)
 export const loc_3fd8 = 0x3fd8; // [code] I/O port / ROM (batch-3 placeholder)
 
 // Routine override map: addr -> { name, entry? }. Empty until the decompile batches land idiomatic modules;
