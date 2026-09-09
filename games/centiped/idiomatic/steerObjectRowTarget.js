@@ -9,7 +9,12 @@ import {
   loc_71, loc_61, loc_f0, loc_88, loc_ab, loc_8d, loc_ef, OBJECT_Y_STEER, TILEMAP_PTR_LO,
 } from "./names.js";
 
-// Packed-BCD subtract of 6 with no borrow-in (the caller handles the sign via the plain-binary result).
+// bcdReduceBy6 -- subtract 6 from a packed-BCD byte (two decimal digits per byte), emulating the
+// 6502's decimal-mode SBC #6 with no borrow-in. The low nibble is reduced first and, if it borrows,
+// the 6502's decimal fix-up (-6 on the nibble) is applied and 0x10 taken from the high half; a final
+// negative result is corrected by -0x60, the decimal wrap. The caller decides the sign separately from
+// the plain-binary result, so this returns only the magnitude byte. It scales a per-object counter into
+// a small "distance" figure used to judge how near the object is to its row target.
 function bcdReduceBy6(v) {
   let low = (v & 0x0f) - 6;
   if (low < 0) low = ((low - 6) & 0x0f) - 0x10;
@@ -19,13 +24,28 @@ function bcdReduceBy6(v) {
 }
 
 /**
- * steerObjectRowTarget — commit a new row target for an object and steer its drift toward it.
+ * steerObjectRowTarget — commit an object's new row target and steer its drift toward it
+ * (ROM 0x2280). [code]
  *
- * Stores the target row, and if the resolved tile cell there is occupied by a high tile class, clears
- * it and decrements the matching table entry. When the column is retired it just reseeds the spawn
- * state. Otherwise it decides — from a keyed distance derived from a BCD-reduced per-object counter, a
- * heading sign check, and a same-column collision test — whether to flip the drift cell, then dispatches
- * the distance-fold step. [code]
+ * ROLE. Part of the small machine (fed by advanceColumnHeadingState) that walks a
+ * non-centipede object — spider, flea, scorpion — vertically toward a chosen row rather
+ * than marching it like a centipede segment. The caller hands the new target row in A; this
+ * routine records it, deals with any mushroom sitting at that row, and then decides which
+ * way the object's vertical drift should point before handing off to the step that actually
+ * folds the object one notch toward the target.
+ *
+ * MECHANISM. Three decisions in sequence. (1) Consume a mushroom: if the tile cell at the
+ * target is occupied by a HIGH tile class (>= 0x38 in its low six bits — the mushroom band)
+ * it is cleared and the matching count is decremented, i.e. the object ate it. (2) Bail on a
+ * retired column: loc_61 == 0xff means this column is dead, so just reseed spawn state. (3)
+ * Otherwise choose the drift direction by combining a keyed DISTANCE to the target (from the
+ * BCD-reduced per-object counter above, halved, clamped and scaled), the sign of the object's
+ * vertical steer delta OBJECT_Y_STEER (0x81, [seen] — a negative delta means "heading up"),
+ * and a same-column collision test — flipping the steer delta only when the evidence says the
+ * object should turn around. Finally it dispatches the distance-fold step.
+ *
+ * LIVE-OUT. Writes loc_71 (the row target), possibly a tile cell + its count, loc_8d (scaled
+ * distance scratch), and OBJECT_Y_STEER; tail-calls armSlotWhenObjectInRange (or reseeds).
  */
 export function steerObjectRowTarget(m, a = m.regs.a) {
   const { mem8, mem16 } = m;

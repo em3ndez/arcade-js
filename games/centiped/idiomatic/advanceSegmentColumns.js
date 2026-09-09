@@ -19,18 +19,40 @@ import { stepPhasedCountersAndWrapCells } from "./stepPhasedCountersAndWrapCells
  * advanceSegmentColumns — step every column of one centipede-body strip and fold the motion into the
  * shared movement accumulator.
  *
- * Called with a column index X, this walks X down a column at a time. For each column it advances that
- * column's body byte, services the per-column life timer and the shared reload timer, and — when the
- * column's carry gate fires — folds a small per-column "row delta" into the two accumulator bytes and
- * bumps the column's progress counter. After the last column it subtracts a per-row threshold from the
- * accumulator and hands off to the phased-counter tail.
+ * ROM 0x3360 (loop body; entered from `advanceAllSegmentColumns` at 0x335e, which preloads X=2).
+ * Grounding: [code] for the control flow. Load-bearing MAME-confirmed [seen] cells: the input port IN1
+ * (0x0c01) whose bits select each column's control, the per-column body array SEGMENT_COL_BODY
+ * (0xcf..0xd1), the per-column life-timer array SEGMENT_COL_LIFE_TIMER (0xcc..0xce), the shared reload
+ * timer SEGMENT_RELOAD_TIMER (0xd2), the two parallel accumulators SEGMENT_MOVE_ACCUM (0xca) and
+ * SEGMENT_MOVE_ACCUM_B (0xc9), the frame counter SEGMENT_MOVE_FRAME_COUNTER (0xd4), and the ROM
+ * threshold table SEGMENT_ROW_THRESHOLD_TABLE (0x3413). The row-cross counter (0xcb) and `loc_c5`/
+ * `loc_d3` are behaviour-read [code].
+ *
+ * ROLE IN THE MACHINE. This is the coarse "how fast does the whole centipede march" engine. The body is
+ * three columns; each column carries a low-5-bit step index in its SEGMENT_COL_BODY cell. Once per frame
+ * this walks the three columns (cursor X from 2 down to 0 via a 6502 DEX loop), advancing each column's
+ * step index and running its timers. A column only "fires" — contributes to motion — on the exact frame
+ * its per-column life timer decrements to zero, which is the once-per-life-cycle heartbeat that keeps the
+ * march slow and even rather than every-frame. Each firing column folds a small per-column row delta plus
+ * one into TWO accumulators kept in lockstep (so the phased tail can consume one while the other survives).
+ * After the last column, the accumulator is measured against a per-row ROM threshold: clearing it is what
+ * advances the centipede one row down the field, and the top row (Y==3) is bumped twice so it crosses
+ * faster. Every exit continues into `stepPhasedCountersAndWrapCells`, the per-tick bookkeeping tail.
  *
  * A per-column control bit selected out of the IN1 port (bit 7 for columns >= 2, bit 6 for column 1,
  * bit 5 for column 0) decides whether the column steps forward normally or takes the wrap/reset branch.
+ *
+ * LIVE-OUT. Per-column bodies/life-timers, the shared reload timer, both movement accumulators, the
+ * `loc_c5` progress counters, and the row-cross counter; then it returns the phased-tail's value.
  */
 export function advanceSegmentColumns(m, x = m.regs.x) {
   const { mem8, mem16 } = m;
 
+  // storeAndTick — the shared per-column timer service, factored out because both the normal-step and
+  // the wrap/reset branch need it. It commits the column's new body value, runs the shared reload timer
+  // and the column's own life timer, and returns the "carry gate": true only on the exact frame the
+  // life timer decrements to zero. That single-frame gate is the centipede's slow forward heartbeat —
+  // without it the creature would advance every frame instead of once per life cycle.
   // Store the column body then run the per-column life/reload timers; returns the carry gate
   // that decides whether this column contributes to the accumulator.
   const storeAndTick = (col, value) => {
@@ -93,6 +115,12 @@ export function advanceSegmentColumns(m, x = m.regs.x) {
       }
     }
 
+    // Carry gate set: this column fired this frame, so it contributes to forward motion. The per-column
+    // "row delta" is 0 for column 0, and for columns 1/2 it is read out of packed bits of loc_d3 (the
+    // row-phase/config cell) — this is how different columns push the creature by slightly different
+    // amounts. The delta plus one is folded into BOTH parallel accumulators (kept in lockstep so the
+    // phased tail can drain one while the other survives), and the column's own progress counter in the
+    // loc_c5 array is bumped.
     // Carry gate set: fold this column's row delta into the accumulator and bump its progress counter.
     if (carry) {
       let delta;

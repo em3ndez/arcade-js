@@ -2,16 +2,34 @@
 import { loc_c5, loc_c8, SEGMENT_MOVE_ACCUM_B, SEGMENT_ROW_CROSS_COUNT, loc_d3, SEGMENT_MOVE_FRAME_COUNTER } from "./names.js";
 
 /**
- * stepPhasedCountersAndWrapCells — a per-tick bookkeeping step. A 2-bit phase
- * picks a sub-step {0,1,2} that is subtracted from a 16-bit accumulator (high:low
- * with a wrap counter); the accumulator floors at zero instead of wrapping past
- * it. Then a frame counter ticks, and on even frames a two-pass sweep normalises
- * three coordinate cells into a modulo-0x10 grid: pass 1 subtracts 0x10 from any
- * cell >= 0x10, and only if that changed nothing, pass 2 subtracts 0x11 from each
- * nonzero cell, stopping the moment a result goes negative.
+ * stepPhasedCountersAndWrapCells — the per-tick bookkeeping tail of the centipede
+ * body strip (ROM 0x341b). [code]
+ *
+ * ROLE. Every exit from advanceSegmentColumns (the marching-accumulator walk that
+ * inches the three-column centipede body across the field a row at a time) continues
+ * into this routine. Its job is pure housekeeping on the movement counters: bleed a
+ * small phase-picked amount out of the shared movement accumulator, tick the free-
+ * running movement frame counter, and periodically fold the three per-column progress
+ * cells back into a small grid so their readings stay bounded frame after frame.
+ * Nothing here moves a sprite; it keeps the numbers the mover depends on in range.
+ *
+ * MECHANISM. A 2-bit phase (from loc_d3) picks a sub-step of 0, 1, or 2 that is
+ * subtracted from a 16-bit accumulator held as high byte SEGMENT_ROW_CROSS_COUNT :
+ * low byte SEGMENT_MOVE_ACCUM_B, with loc_c8 as an extra wrap counter. The subtract
+ * is done the way the 6502 does it (add the one's-complement + carry), and the
+ * accumulator FLOORS at zero rather than wrapping past it — so an underflow never
+ * makes the creature's motion run backward. Then SEGMENT_MOVE_FRAME_COUNTER ticks;
+ * only on even frames does a two-pass sweep normalise the three loc_c5 progress cells
+ * into a modulo-0x10 grid (pass 1 subtracts 0x10 from any cell >= 0x10; only if pass 1
+ * changed nothing does pass 2 subtract 0x11 from each nonzero cell, stopping at the
+ * first negative result).
+ *
+ * LIVE-OUT. Writes SEGMENT_MOVE_ACCUM_B, SEGMENT_ROW_CROSS_COUNT, loc_c8,
+ * SEGMENT_MOVE_FRAME_COUNTER, and the three loc_c5 progress cells; returns nothing.
  */
 export function stepPhasedCountersAndWrapCells(m) {
   const { mem8 } = m;
+  // The low two bits of loc_d3 select which of four sub-step behaviours this tick takes.
   const phase = mem8[loc_d3] & 0x03;
 
   if (phase === 0) {
