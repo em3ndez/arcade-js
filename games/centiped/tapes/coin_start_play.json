@@ -1,0 +1,12 @@
+[
+  {"port": 1, "bits": 32, "frame": 300, "dur": 8},
+  {"port": 1, "bits": 1, "frame": 380, "dur": 8},
+  {"port": 1, "bits": 4, "frame": 450, "dur": 260},
+  {"track": [0, 7], "frame": 450, "dur": 40},
+  {"track": [0, 249], "frame": 490, "dur": 40},
+  {"track": [0, 7], "frame": 530, "dur": 40},
+  {"track": [0, 249], "frame": 570, "dur": 40},
+  {"track": [0, 7], "frame": 610, "dur": 40},
+  {"track": [0, 249], "frame": 650, "dur": 40},
+  {"track": [0, 7], "frame": 690, "dur": 20}
+]
