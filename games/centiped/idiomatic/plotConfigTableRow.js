@@ -3,7 +3,7 @@ import { readFdBitsTableByte } from "./readFdBitsTableByte.js";
 import { plotByteAsTwoDigits } from "./plotByteAsTwoDigits.js";
 import { writePointerTableRow } from "./writePointerTableRow.js";
 import { plotNormalizedCharCode } from "./plotNormalizedCharCode.js";
-import { CONFIG_DIP_BYTE, loc_ae, loc_b0, loc_21c0 } from "./names.js";
+import { CONFIG_DIP_BYTE, loc_ae, loc_b0, CONFIG_PARALLEL_TABLE } from "./names.js";
 
 /**
  * plotConfigTableRow — draw one config-selected readout line onto the screen.
@@ -19,7 +19,7 @@ import { CONFIG_DIP_BYTE, loc_ae, loc_b0, loc_21c0 } from "./names.js";
  * Carry threading: the digit/glyph printers expose their exit carry, so leading-zero suppression
  * flows in one continuous chain — layout row -> glyph -> first number -> trailing zero. [code]
  *
- * Grounding: [code] overall; `CONFIG_DIP_BYTE` is [seen], and `loc_21c0` is a batch-2 placeholder
+ * Grounding: [code] overall; `CONFIG_DIP_BYTE` is [seen], and `CONFIG_PARALLEL_TABLE` is a batch-2 placeholder
  * for the adjacent ROM value table ([code]).
  *
  * Live-out: returns the trailing digit-pair's exit carry (dead at the caller); the visible effect is
@@ -33,7 +33,7 @@ export function plotConfigTableRow(m) {
   // of byte tables.
   const idx = (mem8[CONFIG_DIP_BYTE] & 0x30) >> 3;
   mem8[loc_ae] = readFdBitsTableByte(m); // first table byte (also seats the shared index)
-  mem8[loc_b0] = mem8[loc_21c0 + idx];   // adjacent parallel-table byte
+  mem8[loc_b0] = mem8[CONFIG_PARALLEL_TABLE + idx];   // adjacent parallel-table byte
 
   // Lay the fixed layout row first (selector 6 into the ROM row-descriptor table); it returns an
   // exit carry that seeds the glyph plot's mode, whose exit carry in turn seeds the first digit-pair

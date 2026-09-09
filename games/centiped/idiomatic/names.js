@@ -249,7 +249,7 @@ export const EAROM_CONTROL = 0x1680; // [seen] EAROM control register; readEarom
 export const EAROM_DATA_OUT = 0x1700; // [seen] EAROM data-out window; readEaromCell reads $1700+X to get the latched cell byte after the
 export const loc_21bf = 0x21bf; // ROM table read by readFdBitsTableByte [seen]
 export const SEGMENT_ROW_THRESHOLD_TABLE = 0x3413; // [seen] ROM table of per-row (Y) accumulator thresholds, indexed by SEGMENT_ROW_PHASE>>5 in the la
-export const loc_346d = 0x346d; // ROM row-descriptor pointer table read by writePointerTableRow [seen]
+export const loc_346d = 0x346d; // ROM row-descriptor pointer table; writePointerTableRow and stepPhasedCountersAndWrapCells read a descriptor pointer from $346d+idx [seen]
 export const HIGH_SCORE_INIT_TABLE = 0x3a69; // ROM high-score init table read by validateOrResetHighScores [seen]
 
 export const DSW2 = 0x0801; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
@@ -262,15 +262,15 @@ export const loc_1c02 = 0x1c02; // [seen] I/O port or ROM table (batch-2 decompi
 export const loc_1c03 = 0x1c03; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_1c04 = 0x1c04; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_2003 = 0x2003; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_2120 = 0x2120; // [code] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_21c0 = 0x21c0; // [code] I/O port or ROM table (batch-2 decompile placeholder)
+export const CODE_CHECKSUM_BASE = 0x2120; // [code] Base of loc_2119's own code region ($2120..$2133), which it EOR-self-checksums each frame; a code byte (an `lda #$03` opcode) read as a checksum bound -- code/data overlap
+export const CONFIG_PARALLEL_TABLE = 0x21c0; // [code] ROM value table indexed by the option-DIP config selector; plotConfigTableRow and advancePathAccumulator read a per-config byte from $21c0+idx
 
 export const DSW1 = 0x0800; // [seen] I/O port / ROM (batch-3 placeholder)
 export const IN2 = 0x0c02; // [seen] I/O port / ROM (batch-3 placeholder)
 export const IN3 = 0x0c03; // [seen] I/O port / ROM (batch-3 placeholder)
-export const loc_140c = 0x140c; // [code] I/O port / ROM (batch-3 placeholder)
+export const PALETTE_COLOR_0C = 0x140c; // [code] Palette colour register 0x0C (sibling of PALETTE_COLOR_04..0F); written only by the operator self-test colour ramp
 export const WATCHDOG = 0x2000; // [seen] I/O port / ROM (batch-3 placeholder)
-export const loc_3fd8 = 0x3fd8; // [code] I/O port / ROM (batch-3 placeholder)
+export const LIVES_GLYPH_TABLE = 0x3fd8; // [code] ROM glyph table indexed by the lives count for the self-test lives display; the byte also overlaps the jmp $3d57 operand at 0x3fd6 -- code/data overlap
 
 // Routine override map: addr -> { name, entry? }. Empty until the decompile batches land idiomatic modules;
 // resolveAllIdiomatic walks this, so an unlisted routine runs as the frozen oracle fallback.

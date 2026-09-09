@@ -3,7 +3,7 @@ import { u8 } from "../../../core/int.js";
 import {
   loc_86, loc_88, loc_8b, loc_8d,
   loc_a1, loc_a4, loc_a7, loc_a9, loc_ab, loc_ad, loc_af,
-  CONFIG_DIP_BYTE, loc_21c0, SFX_TIMER_CH2_PRIORITY,
+  CONFIG_DIP_BYTE, CONFIG_PARALLEL_TABLE, SFX_TIMER_CH2_PRIORITY,
 } from "./names.js";
 import { readFdBitsTableByte } from "./readFdBitsTableByte.js";
 import { drawGridSideBorders } from "./drawGridSideBorders.js";
@@ -108,7 +108,7 @@ export function advancePathAccumulator(m, a = m.regs.a, x = m.regs.x) {
   const stepLo = readFdBitsTableByte(m);
   let s = bcdAdd(stepLo, mem8[u8(loc_ad + i)], 0);
   mem8[u8(loc_ad + i)] = s.value;
-  s = bcdAdd(mem8[loc_21c0 + idx], mem8[u8(loc_af + i)], s.carry);
+  s = bcdAdd(mem8[CONFIG_PARALLEL_TABLE + idx], mem8[u8(loc_af + i)], s.carry);
   mem8[u8(loc_af + i)] = s.value;
 
   // Advance the object's path phase. $a4 (indexed) counts the waypoints walked so far. Phases 0..5 are the

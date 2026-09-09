@@ -2,7 +2,7 @@
 import { u8 } from "../../../core/int.js";
 import {
   loc_00, loc_43, loc_53, loc_63, loc_73, loc_83, loc_86, loc_8d,
-  loc_91, loc_92, loc_93, loc_94, loc_ff, loc_fe, loc_0600, loc_2120,
+  loc_91, loc_92, loc_93, loc_94, loc_ff, loc_fe, loc_0600, CODE_CHECKSUM_BASE,
 } from "./names.js";
 import { writePointerTableRow } from "./writePointerTableRow.js";
 import { plotConfigTableRow } from "./plotConfigTableRow.js";
@@ -82,7 +82,7 @@ function runTailWriters(m) {
   routeByCoordDelta(m);
   // Fold the 20-byte block at $2120 into a single EOR checksum byte, seeded at 0xfa.
   let sum = 0xfa;
-  for (let i = 19; i >= 0; i--) sum = u8(sum ^ mem8[loc_2120 + i]);
+  for (let i = 19; i >= 0; i--) sum = u8(sum ^ mem8[CODE_CHECKSUM_BASE + i]);
   // Publish the fingerprint into $fe.
   mem8[loc_fe] = sum;
 }

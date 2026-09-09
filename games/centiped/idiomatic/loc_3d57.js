@@ -6,7 +6,7 @@ import {
   loc_e6, loc_e7, loc_e8, loc_e9, loc_ea, loc_eb, loc_ec, loc_ed, loc_f9, loc_fa,
   loc_018b, loc_018c, loc_018d, HIGH_SCORE_CHECKSUM,
   loc_0400, DSW1, DSW2, IN0, IN2, IN3, IN1,
-  POKEY_RANDOM, AUDF1, AUDC1, PALETTE_COLOR_04, loc_140c, FLIP_SCREEN, WATCHDOG, loc_2400, loc_3fd8,
+  POKEY_RANDOM, AUDF1, AUDC1, PALETTE_COLOR_04, PALETTE_COLOR_0C, FLIP_SCREEN, WATCHDOG, loc_2400, LIVES_GLYPH_TABLE,
 } from "./names.js";
 import { redrawPointerTableRowUnblanked } from "./redrawPointerTableRowUnblanked.js";
 import { writeMaskedByteAndAdvancePointer } from "./writeMaskedByteAndAdvancePointer.js";
@@ -87,7 +87,7 @@ export function selfTestInputPass(m) {
     for (let y = 1; y < 4; y++) {
       a = (a + 1) & 0x0f;
       mem8[(PALETTE_COLOR_04 + y)] = a;
-      mem8[(loc_140c + y)] = a;
+      mem8[(PALETTE_COLOR_0C + y)] = a;
     }
   }
 
@@ -139,7 +139,7 @@ export function selfTestInputPass(m) {
   mem8[(mem16[loc_91] + 0x40)] = 0;
   const lives = mem8[DSW2] >> 5;
   if (lives !== 0 && lives < 6) {
-    writeMaskedByteAndAdvancePointer(m, mem8[loc_3fd8 + lives]);
+    writeMaskedByteAndAdvancePointer(m, mem8[LIVES_GLYPH_TABLE + lives]);
     writeMaskedByteAndAdvancePointer(m, 0);
     writeMaskedByteAndAdvancePointer(m, lives === 3 ? 0x22 : 0x21);
   }

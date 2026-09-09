@@ -4,7 +4,7 @@ import {
   DSW2, loc_d3, loc_8d, loc_c8, CONFIG_DIP_BYTE, loc_a4, loc_86, loc_00,
   SEGMENT_MOVE_ACCUM_B, loc_dc, loc_1c02, loc_1c03, loc_1c04, loc_a5, loc_a6,
   IN1, loc_ff, loc_fb, loc_fc, loc_9a, SEGMENT_ROW_CROSS_COUNT, SEGMENT_MOVE_ACCUM,
-  loc_89, loc_ae, loc_af, loc_21c0, loc_b0, loc_b1, IN0, loc_ee,
+  loc_89, loc_ae, loc_af, CONFIG_PARALLEL_TABLE, loc_b0, loc_b1, IN0, loc_ee,
 } from "./names.js";
 import { readFdBitsTableByte } from "./readFdBitsTableByte.js";
 import { broadcastByteToStateBlock } from "./broadcastByteToStateBlock.js";
@@ -160,7 +160,7 @@ export function loc_2561(m) {
   const tableByte = readFdBitsTableByte(m);
   mem8[loc_ae] = tableByte;
   mem8[loc_af] = tableByte;
-  const rowB = mem8[loc_21c0 + dipIdx];
+  const rowB = mem8[CONFIG_PARALLEL_TABLE + dipIdx];
   mem8[loc_b0] = rowB;
   mem8[loc_b1] = rowB;
 
