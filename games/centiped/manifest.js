@@ -53,9 +53,11 @@ export default {
 
   audio: null, // POKEY PSG (§5), pending — no sound CPU/sample ROM; blocked on MAME reference
 
-  // §4 clock-free: frame sync is a CPU-polled vblank (IN0 bit6) plus a 32V IRQ, not a vblank NMI. pollPCs
-  // + idiomatic.nmiReturnPC land in §3 — OMITTED (not null) so the DONE-time web-boot gate stays skipped.
-  convergence: { pollPCs: [] },
+  // §4 clock-free: frame sync is a CPU-polled vblank (IN0 bit6) plus a 32V IRQ, not a vblank NMI. The main
+  // loop 0x2015 is the vblank-poll PC / main-loop top; the idiomatic layer runs on runIdiomaticIrqGame (the
+  // generator yields at that poll). idiomatic.nmiReturnPC stays OMITTED (an IRQ game, no vblank NMI) so the
+  // DONE-time web-boot gate stays skipped until the §5 worker wires the coroutine engine.
+  convergence: { pollPCs: [0x2015] },
 
   entropyPin: null,
 };

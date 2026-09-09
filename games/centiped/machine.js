@@ -97,8 +97,10 @@ export class Machine {
 
   tick(n) {
     this.cycles += n;
-    // IN0 bit6 = screen vblank (centiped.cpp:1054), driven by raster position within the frame.
-    this.io.vblank = this.cycles % CYCLES_PER_FRAME >= VBLANK_START ? 1 : 0;
+    // IN0 bit6 = screen vblank (centiped.cpp:1054), driven by raster position within the frame. The clock-free
+    // idiomatic engine drives the vblank input itself (per-IRQ-slot), so it suppresses this cycle recompute --
+    // otherwise the IRQ handler's own step(7) would clobber the engine-set beat bit back to 0.
+    if (!this.clockFree) this.io.vblank = this.cycles % CYCLES_PER_FRAME >= VBLANK_START ? 1 : 0;
     // 32V IRQ: assert the 6502 IRQ line at the four grounded cycle offsets each frame. fireIrq is a no-op
     // while I is set (masked → dropped, as MAME auto-clears the line at the next 16V edge); the handler
     // (0x3FFE→loc_3871) acks by writing 0x1800. Advance the slot BEFORE firing (the handler re-enters tick).
@@ -280,7 +282,9 @@ export async function resolveOverrides(spec = {}, baseUrl = import.meta.url) {
     const mod = await import(new URL(ent.module, baseUrl).href);
     const fn = mod[ent.export];
     if (typeof fn !== "function") throw new Error(`override ${key}: ${ent.module} has no export "${ent.export}"`);
-    map.set(addr, withOmittedRet(fn, addr));
+    // An interrupt handler (irq) is entered via the vector push and self-manages its stack (push a/x/y + rti),
+    // so it is dispatched RAW -- the withOmittedRet return-seam would mis-read its +3 SP move and throw.
+    map.set(addr, ent.irq ? fn : withOmittedRet(fn, addr));
   }
   return map;
 }
@@ -290,7 +294,7 @@ export async function resolveAllIdiomatic(baseUrl = import.meta.url) {
   const { ROUTINES } = await import(new URL("idiomatic/names.js", baseUrl).href);
   const spec = {};
   for (const [addr, meta] of Object.entries(ROUTINES)) {
-    spec[Number(addr).toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: meta.entry ?? meta.name };
+    spec[Number(addr).toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: meta.entry ?? meta.name, irq: meta.irq };
   }
   return resolveOverrides(spec, baseUrl);
 }

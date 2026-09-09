@@ -89,6 +89,29 @@ test("CRAFTED: every branch of the spawn spine matches the oracle (RAM -stack)",
   }
 });
 
+// The main loop's `bpl $2015` after this call reads loc_2741's exit N-flag: N set (both slots idle, the top
+// gate) -> run the full frame chain; N clear (spawn work done) -> skip it. Memory-eq is BLIND to that live-out
+// (it escaped as a chain-skip bug), so assert the idiomatic return tracks the oracle's exit N across branches.
+test("N-TOOTH: the frame-chain gate return matches the oracle's exit N-flag", () => {
+  const cases = [
+    { name: "top gate -> chain runs (N set)", mut: (m) => { m.mem8[0xc1] = 0x80; m.mem8[0xc2] = 0x80; } },
+    { name: "idle kick -> chain skipped (N clear)", mut: (m) => { m.mem8[0xc1] = 0; m.mem8[0xc2] = 0; m.mem8[0xee] = 0x80; m.mem8[0xef] = 0; } },
+    { name: "respawn chain -> chain skipped", mut: (m) => { m.mem8[0xc1] = 0; m.mem8[0xc2] = 0; m.mem8[0xee] = 0x80; m.mem8[0xef] = 0; m.mem8[0x9a] = 0x0c; m.mem8[0xc0] = 2; } },
+    { name: "object tail -> chain skipped", mut: (m) => { m.mem8[0xc1] = 1; m.mem8[0xc2] = 1; m.mem8[0x9a] = 0; m.mem8[0x01] = 5; m.mem8[0x00] = 0; m.mem8[0xb9] = 0x10; } },
+  ];
+  for (const { name, mut } of cases) {
+    const o = craft(CAPS[0], mut), c = craft(CAPS[0], mut);
+    oracle(o);
+    const ret = loc_2741(c);
+    assert.equal(!!ret, o.regs.fN, `exit-N mismatch: ${name}`);
+  }
+  // TEETH: a twin that always reports "chain runs" must diverge from the oracle's N on a spawn-processing exit.
+  const mut = (m) => { m.mem8[0xc1] = 0; m.mem8[0xc2] = 0; m.mem8[0xee] = 0x80; m.mem8[0xef] = 0; };
+  const o = craft(CAPS[0], mut);
+  oracle(o);
+  assert.notEqual(true, o.regs.fN, "the N tooth cannot fail (a spawn exit must leave N clear)");
+});
+
 test("TEETH: a twin that skips the column-counter advance diverges in RAM", () => {
   const mut = (m) => { m.mem8[0xc1] = 1; m.mem8[0xc2] = 1; m.mem8[0xee] = 0; m.mem8[0x9a] = 0x0c; m.mem8[0xc0] = 0; };
   const o = craft(CAPS[0], mut), c = craft(CAPS[0], mut);

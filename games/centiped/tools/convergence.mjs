@@ -15,16 +15,22 @@ import { readFileSync, existsSync, mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Machine } from "../machine.js";
+import { Machine, resolveAllIdiomatic } from "../machine.js";
+import { runIdiomaticIrqGame } from "../../../core/frame-stepped.js";
+import { STACK_SCRATCH } from "../idiomatic/names.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+const STACK_LO = STACK_SCRATCH.lo, STACK_HI = STACK_SCRATCH.hi; // the guest return-stack window (page-1
+// tail): the idiomatic engine's stack ops land here and are excluded from the diff, exactly as the eq tests
+// do. It is the ONLY region excluded -- real state elsewhere in page 1 (high scores, trackball) is diffed.
+const IRQ_VBLANK = [0, 0, 0, 1]; // per-slot io.vblank for the four 32V IRQs; only scanline 240 is in vblank
 const GAME = dirname(HERE);
 const REPO = dirname(dirname(GAME));
 const FRAME = 2048;
 const FPX = 256 * 240 * 3; // one rendered RGB frame
 
 function parseArgs(argv) {
-  const a = { seconds: 120, drift: 2, mode: "state", rompath: join(process.env.HOME || "", "Downloads"),
+  const a = { seconds: 120, drift: 2, mode: "state", layer: "oracle", rompath: join(process.env.HOME || "", "Downloads"),
     mame: "/opt/homebrew/bin/mame", set: "centiped3", golden: null,
     tAvg: 70, tMax: 130, pxAvg: 0.15, pxMax: 0.30, minDistinct: 100 };
   for (let i = 0; i < argv.length; i++) {
@@ -32,7 +38,7 @@ function parseArgs(argv) {
     if (k === "--seconds") a.seconds = parseInt(argv[++i], 10);
     else if (k === "--drift") a.drift = parseInt(argv[++i], 10);
     else if (k === "--mode") a.mode = argv[++i];
-    else if (k === "--layer") i++; // accepted; centiped has no idiomatic layer yet, so it renders the oracle
+    else if (k === "--layer") a.layer = argv[++i]; // "oracle" (translated, cycle-driven) | "idiomatic" (clock-free)
     else if (k === "--rompath") a.rompath = argv[++i];
     else if (k === "--mame") a.mame = argv[++i];
     else if (k === "--set") a.set = argv[++i];
@@ -77,6 +83,22 @@ function runOracle(rom, gfx1, rng, frames, mutate) {
 }
 
 function diff(a, b) { let n = 0; for (let i = 0; i < FRAME; i++) if (a[i] !== b[i]) n++; return n; }
+function diffNoStack(a, b) { let n = 0; for (let i = 0; i < FRAME; i++) { if (i >= STACK_LO && i < STACK_HI) continue; if (a[i] !== b[i]) n++; } return n; }
+
+// Run the IDIOMATIC layer on the clock-free coroutine engine (runIdiomaticIrqGame), replaying `rng`. Same
+// teeth as runOracle (RNG count, clean stop, distinct frames, mutant); the stack page is excluded downstream.
+async function runIdiomatic(rom, gfx1, rng, frames, mutate) {
+  const overrides = await resolveAllIdiomatic();
+  const m = new Machine(rom, { gfx1, overrides });
+  m.booted = true;
+  let ri = 0, over = 0;
+  const orig = m.io.pokeyRandom.bind(m.io);
+  m.io.pokeyRandom = (c) => { if (ri < rng.length) return rng[ri++]; over++; return orig(c); };
+  if (mutate) { const w = m.mem.write8.bind(m.mem); m.mem.write8 = (a, v) => w(a, (a & 0xffff) === 0x0056 ? (v + 3) & 0xff : v); }
+  const out = [];
+  const res = runIdiomaticIrqGame(m, { bootAddr: 0x3b04, irqVblank: IRQ_VBLANK, maxFrames: frames, onFrame: (mm) => out.push(mm.mem.dumpState()) });
+  return { out, ri, over, stoppedBy: res.stopError || null };
+}
 
 // Drift-tolerant score: each oracle frame vs its nearest golden frame within ±W (byte diff for state, %px
 // for pixel). `cmp` maps two Uint8Arrays to a scalar distance; `gframe` yields golden frame i.
@@ -150,7 +172,7 @@ function pixelMain(opts, rom, gfx1) {
   console.log("centiped_convergence: PASS");
 }
 
-function main() {
+async function main() {
   const opts = parseArgs(process.argv.slice(2));
   const romP = join(GAME, "rom", "maincpu.bin"), gfxP = join(GAME, "rom", "gfx1.bin");
   if (!existsSync(romP) || !existsSync(gfxP)) ioerr(`ROM not built -- run: node ${join(REPO, "tools/build-rom.mjs")} centiped <zip>`);
@@ -170,28 +192,35 @@ function main() {
   const gsigs = new Set(); for (let k = 0; k < gN; k += 7) gsigs.add(gframe(k).slice(0, 0x40).join(","));
   if (gsigs.size < opts.minDistinct) fail(`golden has only ${gsigs.size} distinct frames (frozen?)`);
 
+  // Layer select: oracle = the translated layer cycle-driven; idiomatic = the §4 layer on the clock-free
+  // coroutine engine, whose guest-stack scratch (page 1) is excluded from the diff.
+  const idio = opts.layer === "idiomatic";
+  const runLayer = idio ? runIdiomatic : (rom, g, r, f, mut) => Promise.resolve(runOracle(rom, g, r, f, mut));
+  const cmp = idio ? diffNoStack : diff;
+  const scoreL = (out, gf, gn, w) => drift(out, gf, gn, w, cmp);
+
   const frames = gN - 1;
-  const good = runOracle(rom, gfx1, rng, frames, false);
-  // The read-count tooth is TWO-SIDED: over-read AND under-read both mean the oracle diverged from MAME's
+  const good = await runLayer(rom, gfx1, rng, frames, false);
+  // The read-count tooth is TWO-SIDED: over-read AND under-read both mean the layer diverged from MAME's
   // control flow. Under-read is the important case -- a translation gap/crash truncates runFrames, which
   // returns the partial frames it sampled; those few frames still match the golden, so without this the
   // most likely regression (a gap) certifies PASS. Also require the full frame count + a clean stop.
-  if (good.stoppedBy) fail(`oracle did not run clean to budget: stoppedBy=${good.stoppedBy.message || good.stoppedBy} -- a translation gap or crash`);
-  if (good.over > 0) fail(`RNG OVER-READ: oracle read $100a ${good.ri + good.over}x, MAME captured ${rng.length}x -- oracle diverged from MAME's control flow`);
-  if (good.ri !== rng.length) fail(`RNG UNDER-READ: oracle read $100a ${good.ri}x, MAME captured ${rng.length}x -- oracle truncated/diverged (a gap or control-flow change)`);
-  if (good.out.length < frames) fail(`oracle produced ${good.out.length}/${frames} frames -- truncated (translation gap or crash)`);
-  const gs = score(good.out, gframe, gN, opts.drift);
+  if (good.stoppedBy) fail(`${opts.layer} did not run clean to budget: stoppedBy=${good.stoppedBy.message || good.stoppedBy} -- a gap or crash`);
+  if (good.over > 0) fail(`RNG OVER-READ: ${opts.layer} read $100a ${good.ri + good.over}x, MAME captured ${rng.length}x -- diverged from MAME's control flow`);
+  if (good.ri !== rng.length) fail(`RNG UNDER-READ: ${opts.layer} read $100a ${good.ri}x, MAME captured ${rng.length}x -- truncated/diverged (a gap or control-flow change)`);
+  if (good.out.length < frames) fail(`${opts.layer} produced ${good.out.length}/${frames} frames -- truncated (gap or crash)`);
+  const gs = scoreL(good.out, gframe, gN, opts.drift);
 
-  // positive control #1: oracle frames are distinct (not frozen).
+  // positive control #1: the layer's frames are distinct (not frozen).
   const osigs = new Set(); for (let k = 1; k < good.out.length; k += 7) if (good.out[k]) osigs.add(good.out[k].slice(0, 0x40).join(","));
-  if (osigs.size < opts.minDistinct) fail(`oracle produced only ${osigs.size} distinct frames (froze/crashed early)`);
+  if (osigs.size < opts.minDistinct) fail(`${opts.layer} produced only ${osigs.size} distinct frames (froze/crashed early)`);
 
-  // positive control #2 (NULL-MUTANT): a corrupted oracle MUST break past the floor -- proves teeth.
-  const bad = runOracle(rom, gfx1, rng, frames, true);
-  const bs = score(bad.out, gframe, gN, opts.drift);
+  // positive control #2 (NULL-MUTANT): a corrupted layer MUST break past the floor -- proves teeth.
+  const bad = await runLayer(rom, gfx1, rng, frames, true);
+  const bs = scoreL(bad.out, gframe, gN, opts.drift);
   const mutantCaught = bs.avg >= opts.tAvg || bad.over > 0;
 
-  console.log(`  golden ${gN} frames, ${gsigs.size} distinct; RNG reads oracle ${good.ri} / MAME ${rng.length} (over ${good.over}); oracle ran ${good.out.length}/${frames} frames.`);
+  console.log(`  golden ${gN} frames, ${gsigs.size} distinct; RNG reads ${opts.layer} ${good.ri} / MAME ${rng.length} (over ${good.over}); ${opts.layer} ran ${good.out.length}/${frames} frames.`);
   console.log(`  correct: avg=${gs.avg.toFixed(1)}B max=${gs.max}B   null-mutant: avg=${bs.avg.toFixed(1)}B max=${bs.max}B over=${bad.over}`);
   console.log(`  thresholds: avg<${opts.tAvg} max<${opts.tMax}`);
 

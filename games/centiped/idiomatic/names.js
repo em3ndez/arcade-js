@@ -265,6 +265,13 @@ export const loc_2003 = 0x2003; // [code] I/O port or ROM table (batch-2 decompi
 export const loc_2120 = 0x2120; // [code] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_21c0 = 0x21c0; // [code] I/O port or ROM table (batch-2 decompile placeholder)
 
+export const loc_0800 = 0x0800; // [code] I/O port / ROM (batch-3 placeholder)
+export const loc_0c02 = 0x0c02; // [code] I/O port / ROM (batch-3 placeholder)
+export const loc_0c03 = 0x0c03; // [code] I/O port / ROM (batch-3 placeholder)
+export const loc_140c = 0x140c; // [code] I/O port / ROM (batch-3 placeholder)
+export const loc_2000 = 0x2000; // [code] I/O port / ROM (batch-3 placeholder)
+export const loc_3fd8 = 0x3fd8; // [code] I/O port / ROM (batch-3 placeholder)
+
 // Routine override map: addr -> { name, entry? }. Empty until the decompile batches land idiomatic modules;
 // resolveAllIdiomatic walks this, so an unlisted routine runs as the frozen oracle fallback.
 export const ROUTINES = {
@@ -284,6 +291,7 @@ export const ROUTINES = {
   0x2932: { name: "seedPlayerShotStartCells" },
   0x2acd: { name: "returnImmediately" },
   0x2b79: { name: "loc_2b79" },
+  0x2b86: { name: "loc_2b79", entry: "loc_2b86" }, // second entry: the $43-mask gate tail
   0x2b91: { name: "maybeDecrementTableEntry" },
   0x2ba8: { name: "stampEmptyTileCell" },
   0x2bd9: { name: "spawnActorOnTimer" },
@@ -345,8 +353,25 @@ export const ROUTINES = {
   0x2195: { name: "plotConfigTableRow" },
   0x2202: { name: "advanceColumnHeadingState" },
   0x2280: { name: "steerObjectRowTarget" },
-  0x3871: { name: "serviceFrameIrq" },
+  0x3871: { name: "serviceFrameIrq", irq: true }, // 32V interrupt handler: self-manages its stack (push a/x/y
+  // + rti), so it is dispatched RAW past the withOmittedRet return-seam, which would mis-read its +3 SP move.
   0x3907: { name: "serviceFrameIrq", entry: "buildObjectShadowEntry" },
   0x3956: { name: "storeSpriteShadowEntry" },
   0x396d: { name: "accumulateTrackballAndReturnFromIrq" },
+  0x2951: { name: "beginCentipedeSegmentSweep" },
+  0x2962: { name: "moveCentipedeSegment" },
+  0x2a90: { name: "commitSegmentCoord" },
+  0x2a92: { name: "advanceSegmentCoordAndArm" },
+  0x2aa6: { name: "reverseSegmentDeltaAndStepCoord" },
+  0x2ac7: { name: "advanceSegmentLoopIndex" },
+  0x2ec6: { name: "stepHeadSegment" },
+  0x2f4f: { name: "routeSegmentByRange" },
+  0x3031: { name: "advanceSegmentSlotLoop" },
+  0x200e: { name: "loc_200e" }, // game-entry generator (yield* into the main-loop spine)
+  0x2015: { name: "mainLoop" },  // per-frame main-loop generator (vblank yield = clock-free frame boundary)
+  0x3b04: { name: "coldBootReset" },
+  0x3c97: { name: "loc_3c97" },
+  0x3d57: { name: "loc_3d57" },
+  0x3fd6: { name: "loc_3fd6" },
+  0x3ff6: { name: "spinToSelfHalt" },
 };

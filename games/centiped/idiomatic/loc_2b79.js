@@ -12,5 +12,12 @@ export function loc_2b79(m) {
   const { mem8 } = m;
   mem8[loc_72] = mem8[loc_73] + (0x04 ^ mem8[loc_f0]); // derive (store through mem8 truncates the add)
   mem8[loc_62] = mem8[loc_63];                          // mirror
-  if ((mem8[loc_43] & 0xaf) !== 0) mem8[loc_42] = 0x28; // gate
+  loc_2b86(m);                                          // fall into the $43-mask gate tail
+}
+
+// A second entry into this range (a sibling's carry branch lands here): the $43-mask gate tail --
+// arm $42 to 0x28 whenever any of the $43 mode bits (& 0xaf) are set. [code]
+export function loc_2b86(m) {
+  const { mem8 } = m;
+  if ((mem8[loc_43] & 0xaf) !== 0) mem8[loc_42] = 0x28;
 }

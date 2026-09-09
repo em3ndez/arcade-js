@@ -128,6 +128,57 @@ export function runWatchdogGame(machine, { watchdogPort, nmiReturnPC, maxFrames 
   return { frames: frame, stop, stopError };
 }
 
+// runIdiomaticIrqGame -- the COROUTINE engine for a game whose frame sync is a CPU-polled vblank PLUS a
+// scanline IRQ fired N times per frame (centiped: the 32V line, 4/frame), rather than a single vblank NMI.
+// The idiomatic main-loop spine is a generator that yields at the vblank poll; at each yield the engine
+// fires the frame's scanline IRQs with the per-slot vblank input driven, so the in-vblank slot raises the
+// heartbeat cell ($8a) the loop was waiting on and the rest fold trackball. The board fireIrq seam is reused
+// (SP retire is a later step, so the interrupt still rides push16/rti). opts: {bootAddr, irqVblank, maxFrames,
+// onFrame}. irqVblank = io.vblank for each IRQ slot in firing order (centiped [0,0,0,1]: only scanline 240
+// is inside vblank). onFrame samples at the yield, before the frame's IRQs -- one iteration behind the
+// cycle-driven boundary sample, absorbed by the drift-tolerant reconverge.
+export function runIdiomaticIrqGame(machine, { bootAddr = 0x0000, irqVblank, maxFrames = Infinity, onFrame } = {}) {
+  if (!irqVblank || !irqVblank.length) throw new Error("runIdiomaticIrqGame needs irqVblank slots");
+  machine.nextBoundary = Infinity;
+  machine.maxFrames = Infinity;
+  machine.maxCycles = Infinity;
+  machine.nextNmi = Infinity;
+  machine.nextIrqCycle = Infinity; // the cycle IRQ scheduler is off; this engine fires the IRQ at each yield
+  machine.clockFree = true; // suppress tick()'s cycle-derived vblank recompute; this engine drives io.vblank
+  machine.booted = true;
+
+  let frame = 0;
+  let stop = "returned";
+  let stopError = null;
+
+  if (onFrame) onFrame(machine, 0);
+
+  let gen = machine.call(bootAddr); // coldBootReset generator: yield* loc_200e -> yield* mainLoop
+
+  try {
+    for (;;) {
+      const r = gen.next();
+      if (r.done) { stop = "returned"; break; }
+      frame += 1;
+      if (onFrame) onFrame(machine, frame); // sample at the vblank yield
+      if (frame >= maxFrames) { stop = "reached maxFrames"; break; }
+      // Fire this frame's scanline IRQs. The idiomatic routines never step(), so seat pcKnown for fireIrq's
+      // guard; fI is clear (loc_200e cli'd, the loop never sets it) so the line is taken every slot.
+      for (const vb of irqVblank) {
+        machine.io.vblank = vb;
+        machine.pcKnown = true;
+        machine.fireIrq();
+      }
+      machine.io.vblank = 0; // active-video state for the per-frame chain that runs before the next yield
+    }
+  } catch (e) {
+    stop = `${e.name}: ${e.message}`;
+    stopError = e;
+  }
+
+  return { frames: frame, stop, stopError };
+}
+
 // runIdiomaticGame -- the COROUTINE engine, model for a new game. The idiomatic spine (boot, main/wait
 // loops) are GENERATORS that yield at each vblank wait; the engine resumes to the next yield, samples
 // pre-NMI, fires the NMI. A coin/start/level/game-over transition is a WARM RESTART: the handler sets

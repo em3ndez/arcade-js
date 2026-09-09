@@ -26,12 +26,17 @@ import { plotRecordFieldColumns } from "./plotRecordFieldColumns.js";
  * kicks a fresh wave/screen setup; otherwise it lays the status rows, folds an input bit into the phase
  * accumulator $9a, and advances the spawn-column counter $c0 — on a full cycle it re-arms the column and,
  * when a spawn is pending, drives the whole respawn sequence, else steps the per-slot spawn table. [code]
+ *
+ * Returns the main loop's frame-chain gate (the branch the caller takes after this call): TRUE only when
+ * both object slots are idle (the gate exit below, left N-set) so the caller runs the full per-frame
+ * subsystem chain; every spawn-processing exit returns falsy (left N-clear), telling the caller this tick's
+ * heavy work is done and to skip the chain.
  */
 export function loc_2741(m) {
   const { mem8 } = m;
 
-  // Gate: both object flags negative means nothing active this tick.
-  if ((mem8[loc_c1] & mem8[loc_c2]) & 0x80) return;
+  // Gate: both object slots idle (c1 & c2 negative) -> no spawn work; caller runs the full frame chain.
+  if ((mem8[loc_c1] & mem8[loc_c2]) & 0x80) return true;
 
   // Idle-kick: when no object is up and no spawn pending, seed a fresh screen/wave.
   if ((mem8[loc_c2] & 0x80) === 0 && (mem8[loc_ee] & 0x80) && mem8[loc_ef] === 0) {

@@ -60,6 +60,14 @@ export const DEBT = {
     // consumes, but neither exposes it via return yet. Dissolving would drop the carry. A follow-up exposes
     // the carry on those batch-1 modules (its own commit — modifying committed batch-1) then dissolves these.
     "plotConfigTableRow.js": [0x37d5, 0x385c],
+    // batch-3 boot/self-test transient: coldBootReset's operator-self-test arm and the self-test screen
+    // routines form a small cycle (only reachable with the service switch held), kept as m.calls; a follow-up
+    // dissolves them. The gameplay segment-mover cycle was dissolved to direct calls in this batch.
+    "coldBootReset.js": [0x3c97],
+    "loc_3c97.js": [0x3d57],
+    "loc_3d57.js": [0x3836, 0x3fd6],
+    "loc_3fd6.js": [0x3d57],
+    "spinToSelfHalt.js": [0x3ff6],
   },
   dkong: {
     "advanceBarrelMotion.js": [0x1fac, 0x1fe5, 0x1fef, 0x2053, 0x20ec],

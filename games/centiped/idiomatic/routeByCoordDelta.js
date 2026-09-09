@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
 import { foldSignedMagnitude } from "./foldSignedMagnitude.js";
-import { loc_2b79 } from "./loc_2b79.js";
+import { loc_2b79, loc_2b86 } from "./loc_2b79.js";
 import { loc_72, loc_8d, loc_ef } from "./names.js";
 
 /**
@@ -18,6 +18,6 @@ export function routeByCoordDelta(m) {
   if ((mem8[loc_ef] !== 0) === noBorrow) return loc_2b79(m); // fixup side
   const diff = u8(sub);
   const mag = foldSignedMagnitude(m, diff, (diff & 0x80) !== 0);
-  if (mag >= 0x05) return m.call(0x2b86); // wide gap -> arm-flag tail
+  if (mag >= 0x05) return loc_2b86(m); // wide gap -> arm-flag tail
   return loc_2b79(m); // narrow gap -> fixup
 }
