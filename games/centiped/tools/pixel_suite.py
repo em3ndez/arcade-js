@@ -41,8 +41,13 @@ def capture(rompath, mame, out, seconds):
     avi = os.path.join(out, "out.avi")
     env = {**os.environ, "STATE_OUT": os.path.join(out, "state.bin"), "RNG_OUT": os.path.join(out, "rng.bin")}
     try:
+        # ISOLATE cfg/nvram to this fresh per-run dir: without -cfg_directory MAME reads the working-dir
+        # cfg/<game>.cfg, which an ad-hoc grounding capture can poison (a self-test capture leaves the
+        # service switch HELD -> the golden boots into the frozen self-test screen). `out` is empty, so MAME
+        # falls back to default dips (service idle) and the golden is immune to a stale working-dir cfg.
         subprocess.run([mame, DRIVER, "-rompath", rompath, "-norotate", "-video", "none", "-sound", "none",
                         "-nothrottle", "-frameskip", "0", "-nonvram_save", "-nocheat", "-noautosave",
+                        "-cfg_directory", out, "-nvram_directory", out,
                         "-seconds_to_run", str(seconds), "-aviwrite", avi,
                         "-autoboot_script", LUA, "-autoboot_delay", "0"],
                        cwd=REPO, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=300)

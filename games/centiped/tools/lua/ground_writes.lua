@@ -6,8 +6,10 @@
 -- Model: games/pooyan/tools/lua/ground_writes.lua. Ranges: boards/centiped/hardware.json write space
 -- (centiped.cpp centiped_base_map@695). Cycle scale = 1.512 MHz 6502 (matches dump_writes.lua).
 --
--- Run (repo root; ROM in games/centiped/rom/):
---   mame centiped -rompath games/centiped/rom -window -sound none -nothrottle \
+-- Run (repo root; ROM in games/centiped/rom/) -- ISOLATE cfg/nvram to a scratch dir so a self-test /
+-- dip capture does not poison the working-dir cfg the pixel_suite golden reads:
+--   mame centiped -rompath games/centiped/rom -video none -sound none -nothrottle \
+--     -cfg_directory /tmp/mamecap -nvram_directory /tmp/mamecap \
 --     -autoboot_script games/centiped/tools/lua/ground_writes.lua
 -- then: node tools/grounding_evidence.mjs gwtrace.csv centiped routine <lo> <hi> | cell <addr>
 -- Env: WTRACE_OUT (default gwtrace.csv). ⚠ Retain every tap token in _G or a GC'd tap flatlines silently.
