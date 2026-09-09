@@ -19,7 +19,7 @@ export default {
   mameDriver: "centiped.cpp",
 
   runtime: "idiomatic", // born-live on the generator engine; translated fallback until each routine lands
-  idiomaticComplete: false,
+  idiomaticComplete: true,
 
   rom: {
     zip: "centiped.zip",
