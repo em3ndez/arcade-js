@@ -10,6 +10,7 @@ import {
 import { loadHighScoreTableFromEarom } from "./loadHighScoreTableFromEarom.js";
 import { validateOrResetHighScores } from "./validateOrResetHighScores.js";
 import { loc_200e } from "./loc_200e.js";
+import { loc_3c97 } from "./loc_3c97.js";
 
 // Service-port bit masks: bit6 = beam vblank (edges once per frame), bit5 = service switch (idle high,
 // cleared while held).  [code]
@@ -120,7 +121,7 @@ function runSelfTest(m) {
   }
 
   // Marches passed. Branch on the coin/self-test option bit into the checksum-display screen.
-  if ((mem8[IN1] & 0x10) !== 0) return m.call(0x3c97); // cyclic spine — kept
+  if ((mem8[IN1] & 0x10) !== 0) return loc_3c97(m); // into the checksum screen (non-returning self-test)
 
   // Re-clear zeropage, seed the $64.. row, and paint the self-test glyph grid.
   for (let cell = 0; ; cell = (cell + 1) & 0xff) {

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_3c97 (ROM 0x3c97) -- the self-test checksum screen. It re-clears the pages,
-// folds the program-ROM banks into four checksums it plots through the dissolved draw spine
-// (0x3836/0x384f), reloads the high-score mirror (dissolved 0x3a99), and runs a packed-BCD countdown into
-// $8d before chaining into loc_3d57 (kept as a cyclic-spine m.call). loc_3c97 is reached only from the
-// operator self-test, so it is never dispatched in a normal boot; the arms drive it from crafted seeds
-// with the tail stubbed. It reads the POKEY RANDOM register ($100a) -- clock-coupled -- so both sides pin
-// it to a constant. All observable output is RAM (work + video, both in dumpState); arms compare RAM minus
-// the dead stack.
+// Memory-equivalence for selfTestChecksumPass -- the memory-effecting body of the self-test checksum screen
+// at ROM 0x3c97 (loc_3c97 runs it then falls into the non-returning input-test loop). It re-clears the
+// pages, folds the program-ROM banks into four checksums it plots through the draw spine, reloads the
+// high-score mirror, and runs a packed-BCD countdown into $8d. Reached only from the operator self-test, so
+// it is never dispatched in a normal boot; the arms drive it from crafted seeds, comparing against the
+// oracle run with its tail loop-back stubbed. It reads the POKEY RANDOM register ($100a) -- clock-coupled
+// -- so both sides pin it to a constant. All observable output is RAM (work + video, both in dumpState);
+// arms compare RAM minus the dead stack.
 // Run: node --test games/centiped/idiomatic/test/equivalence-3c97.test.js
 
 import nodeTest from "node:test";
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3c97 as oracle } from "../../translated/loc_3c97.js";
-import { loc_3c97 } from "../loc_3c97.js";
+import { selfTestChecksumPass } from "../loc_3c97.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -48,7 +48,7 @@ const CASES = [
 test("CRAFTED: checksum fold, plots, and the BCD countdown == oracle in RAM (-stack)", () => {
   for (const s of CASES) {
     const o = mk(s), c = mk(s);
-    oracle(o); loc_3c97(c);
+    oracle(o); selfTestChecksumPass(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
   }
 });
@@ -71,8 +71,8 @@ test("SP-TOOTH: the fall-through dispatch is seam-placeable, and an unbalanced m
   const m = mk({ 0x018b: 0, 0x018c: 0, 0x018d: 0, 0xef: 0, 0xf3: 0 });
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0xcd); m.mem.write8(0x01fd, 0xab);
-  const r = seamPlaceable(withOmittedRet, loc_3c97, TARGET, m);
-  assert.equal(r.placeable, true, `loc_3c97 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, selfTestChecksumPass, TARGET, m);
+  assert.equal(r.placeable, true, `selfTestChecksumPass must be seam-placeable; got: ${r.error}`);
   const nullMutant = (mm) => { mm.push16(0x1234); };
   const bad = seamPlaceable(withOmittedRet, nullMutant, TARGET, new Machine(ROM));
   assert.equal(bad.placeable, false, "the SP-TOOTH FAILED to refuse a stack-adrift mutant");

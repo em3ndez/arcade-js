@@ -8,6 +8,7 @@ import {
 import { writeMaskedByteAndAdvancePointer } from "./writeMaskedByteAndAdvancePointer.js";
 import { plotByteAsTwoDigits } from "./plotByteAsTwoDigits.js";
 import { loadHighScoreTableFromEarom } from "./loadHighScoreTableFromEarom.js";
+import { loc_3d57 } from "./loc_3d57.js";
 
 // One packed-BCD subtract byte in NMOS 6502 style: the VALUE is decimal-corrected, but the carry-out and
 // N flag come from the plain binary subtraction (that is what a multi-byte chain threads/tests). [code]
@@ -24,12 +25,13 @@ function decSubByte(a, v, carryIn) {
 }
 
 /**
- * loc_3c97 — the self-test checksum screen. Re-clears the work/video/object pages, seeds the $54/$64 rows,
- * folds each 2KB program bank into a one-byte XOR checksum and plots the four results, reloads the
- * high-score mirror from NVRAM, then runs a packed-BCD countdown that lands an iteration count in $8d
- * before chaining into the input-test screen. [code]
+ * loc_3c97 — the self-test checksum screen (only reached with the service switch held). selfTestChecksumPass
+ * re-clears the work/video/object pages, seeds the $54/$64 rows, folds each 2KB program bank into a one-byte
+ * XOR checksum and plots the four results, reloads the high-score mirror from NVRAM, then runs a packed-BCD
+ * countdown that lands an iteration count in $8d. loc_3c97 runs that pass then falls into the input-test
+ * screen (the non-returning service loop). [code]
  */
-export function loc_3c97(m) {
+export function selfTestChecksumPass(m) {
   const { mem8, mem16 } = m;
 
   // Re-clear zeropage and pages 4/5/6; fill page 7 with its own index.
@@ -106,6 +108,10 @@ export function loc_3c97(m) {
     }
   }
   mem8[loc_8d] = y;
+}
 
-  return m.call(0x3d57); // fall into the input-test screen (cyclic spine — kept)
+// Run the checksum pass, then fall into the input-test screen (the non-returning service loop).
+export function loc_3c97(m) {
+  selfTestChecksumPass(m);
+  return loc_3d57(m);
 }

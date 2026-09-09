@@ -54,16 +54,6 @@ export const ALLOWED = {
  */
 export const DEBT = {
   frogger: {}, // idiomatic port complete (call=0): every m.call dissolved, no generator debt remains
-  centiped: {
-    // batch-3 boot/self-test transient: coldBootReset's operator-self-test arm and the self-test screen
-    // routines form a small cycle (only reachable with the service switch held), kept as m.calls; a follow-up
-    // dissolves them. The gameplay segment-mover cycle was dissolved to direct calls in this batch.
-    "coldBootReset.js": [0x3c97],
-    "loc_3c97.js": [0x3d57],
-    "loc_3d57.js": [0x3fd6],
-    "loc_3fd6.js": [0x3d57],
-    "spinToSelfHalt.js": [0x3ff6],
-  },
   dkong: {
     "advanceBarrelMotion.js": [0x1fac, 0x1fe5, 0x1fef, 0x2053, 0x20ec],
     "advanceBarrelTileAnimation.js": [0x21ba],

@@ -26,15 +26,15 @@ function decAddByte(a, v, carryIn) {
 }
 
 /**
- * loc_3d57 — the operator self-test input screen. Paces on the $8a bit-walk and the service switch, folds
- * each input port into a rolling 2-bit debounce that drives colour/flip/counter side effects, draws the DIP
- * and port states through the row/glyph/digit writers, serialises the port snapshot bytes into a bit grid,
- * then either plots the running high-score checksum digits or, when it is stable, the stored score before
- * chaining into the next screen. The entry pacing loops poll the beam/switch, so they are clock-coupled.
- * The stack pointer is used as a scratch counter here (modelled as a local), so its self-test churn of the
- * page-1 stack is not reproduced. [code]
+ * loc_3d57 — the operator self-test input screen: an endless per-frame loop, only reached with the service
+ * switch held. selfTestInputPass is one pass; loc_3d57 runs it forever. Each pass paces on the $8a bit-walk
+ * and the service switch, folds each input port into a rolling 2-bit debounce that drives colour/flip/counter
+ * side effects, draws the DIP and port states through the row/glyph/digit writers, serialises the port
+ * snapshot bytes into a bit grid, then either plots the running high-score checksum digits or, when it is
+ * stable, the stored score. The pacing loops poll the beam/switch (clock-coupled). The stack pointer is a
+ * scratch counter here (modelled as a local), so its page-1 churn is not reproduced. [code]
  */
-export function loc_3d57(m) {
+export function selfTestInputPass(m) {
   const { mem8, mem16 } = m;
 
   // Pace: walk the $8a timing bit down until a set bit falls out, then wait for the service switch.
@@ -183,7 +183,7 @@ export function loc_3d57(m) {
     writeMaskedByteAndAdvancePointer(m, 0x24);
     const zeroCarry = writeMaskedByteAndAdvancePointer(m, 0); // its exit carry feeds the digit plot below
     plotByteAsTwoDigits(m, delta, zeroCarry);
-    return m.call(0x3fd6); // cyclic spine — kept
+    return; // end this pass; the wrapper re-runs it next frame
   }
 
   // Checksum stable: plot the stored score and its bonus multiple.
@@ -221,5 +221,11 @@ export function loc_3d57(m) {
     mem8[loc_f9] = 0x3d;
     mem8[loc_fa] = 0;
   }
-  return m.call(0x3fd6); // cyclic spine — kept
+  // end this pass; the wrapper re-runs it next frame
+}
+
+// The self-test input screen re-runs forever (a per-frame service loop; only the service switch, held,
+// reaches here). Never returns.
+export function loc_3d57(m) {
+  for (;;) selfTestInputPass(m);
 }

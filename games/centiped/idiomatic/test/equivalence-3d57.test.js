@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_3d57 (ROM 0x3d57) -- the self-test input screen. It debounces the input
-// ports into colour/flip/counter side effects, draws the DIP/port state through the dissolved draw spine
-// (0x3825/0x3836/0x384f), serialises the port snapshot into a bit grid, and then either plots the running
-// high-score checksum (dissolved 0x3a08/0x3ac0) or the stored score before chaining into loc_3fd6 (kept
-// as a cyclic-spine m.call). Reached only from the operator self-test, so it is never dispatched in a
-// normal boot; the arms drive it from crafted seeds with the tail stubbed, the service switch held, and
-// the $8a pacing bit pre-seeded. It reads POKEY RANDOM ($100a), pinned to a constant on both sides.
+// Memory-equivalence for selfTestInputPass -- one pass of the self-test input screen at ROM 0x3d57 (its
+// endless per-frame loop is folded into loc_3d57's for(;;) wrapper; this tests the memory-effecting pass).
+// It debounces the input ports into colour/flip/counter side effects, draws the DIP/port state through the
+// draw spine, serialises the port snapshot into a bit grid, and then either plots the running high-score
+// checksum or the stored score. Reached only from the operator self-test, so it is never dispatched in a
+// normal boot; the arms drive it from crafted seeds, the service switch held, and the $8a pacing bit
+// pre-seeded, comparing against the oracle run one pass (its tail loop-back stubbed). It reads POKEY
+// RANDOM ($100a), pinned to a constant on both sides.
 //
 // Dead stack: this routine uses the stack POINTER as a scratch counter (self-test quirk), so under the
 // oracle every dissolved jsr pushes into an S=0 page-1 stack; the idiomatic layer models the counter with
@@ -18,7 +19,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3d57 as oracle } from "../../translated/loc_3d57.js";
-import { loc_3d57 } from "../loc_3d57.js";
+import { selfTestInputPass } from "../loc_3d57.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 
@@ -76,7 +77,7 @@ const CASES = [
 test("CRAFTED: every debounce/draw/score branch == oracle in RAM (-page1)", () => {
   for (const s of CASES) {
     const o = mk(s), c = mk(s);
-    oracle(o); loc_3d57(c);
+    oracle(o); selfTestInputPass(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
   }
 });
@@ -98,8 +99,8 @@ test("TEETH: a wrong bit-grid roll diverges from the oracle", () => {
 test("SP-TOOTH: the fall-through dispatch is seam-placeable, and an unbalanced mutant is refused", () => {
   // Score path (delta == 0): no kept spine call touches SP, so the rewrite reaches its tail SP-balanced.
   const m = mk({ dsw1: 0, dsw2: 0, in1: 0xff, ram: zeroTable({ 0x01b5: 0xff }) });
-  const r = seamPlaceable(withOmittedRet, loc_3d57, TARGET, m);
-  assert.equal(r.placeable, true, `loc_3d57 must be seam-placeable; got: ${r.error}`);
+  const r = seamPlaceable(withOmittedRet, selfTestInputPass, TARGET, m);
+  assert.equal(r.placeable, true, `selfTestInputPass must be seam-placeable; got: ${r.error}`);
   const nullMutant = (mm) => { mm.push16(0x1234); };
   const bad = seamPlaceable(withOmittedRet, nullMutant, TARGET, new Machine(ROM));
   assert.equal(bad.placeable, false, "the SP-TOOTH FAILED to refuse a stack-adrift mutant");
