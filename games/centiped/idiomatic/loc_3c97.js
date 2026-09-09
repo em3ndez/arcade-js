@@ -3,7 +3,7 @@ import {
   loc_00, loc_0400, loc_0500, loc_0600, loc_0700, loc_54, loc_64,
   loc_8b, loc_8c, loc_8d, loc_8e, loc_8f, loc_90, loc_91, loc_92, loc_93, loc_94,
   loc_d5, loc_e3, loc_e5, loc_018b, loc_018c, loc_018d,
-  POKEY_RANDOM, loc_100f, loc_1c03, loc_1c04, loc_2000,
+  POKEY_RANDOM, SKCTL, loc_1c03, loc_1c04, WATCHDOG,
 } from "./names.js";
 import { writeMaskedByteAndAdvancePointer } from "./writeMaskedByteAndAdvancePointer.js";
 import { plotByteAsTwoDigits } from "./plotByteAsTwoDigits.js";
@@ -55,7 +55,7 @@ export function loc_3c97(m) {
 
   // Two RNG reads XOR to zero (clock-free layer holds the poly counter constant).
   mem8[loc_e5] = mem8[POKEY_RANDOM] ^ mem8[POKEY_RANDOM];
-  mem8[loc_100f] = 3;
+  mem8[SKCTL] = 3;
 
   // Fold each 2KB program bank into a one-byte checksum: XOR 8 pages, push, reset the accumulator.
   mem8[loc_8b] = 0;
@@ -63,7 +63,7 @@ export function loc_3c97(m) {
   const checksums = [];
   let acc = 0xff;
   for (let bank = 0x1f; bank >= 0; bank--) {
-    mem8[loc_2000] = bank; // watchdog kick
+    mem8[WATCHDOG] = bank; // watchdog kick
     for (let y = 0; ; y = (y + 1) & 0xff) {
       acc ^= mem8[(mem16[loc_8b] + y)];
       if (((y + 1) & 0xff) === 0) break;

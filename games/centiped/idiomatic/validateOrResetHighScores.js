@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { foldHighScoreChecksum } from "./foldHighScoreChecksum.js";
-import { loc_02, loc_1a, HIGH_SCORE_TABLE, loc_017a, loc_0181, HIGH_SCORE_CONFIG_BYTE, loc_3a69, CONFIG_DIP_BYTE } from "./names.js";
+import { loc_02, loc_1a, HIGH_SCORE_TABLE, loc_017a, loc_0181, HIGH_SCORE_CONFIG_BYTE, HIGH_SCORE_INIT_TABLE, CONFIG_DIP_BYTE } from "./names.js";
 
 /**
  * validateOrResetHighScores — boot-time integrity gate for the high-score table. Verifies it
@@ -12,7 +12,7 @@ export function validateOrResetHighScores(m) {
   const { mem8 } = m;
 
   // (1) copy the template into zeropage
-  for (let x = 0x2f; x >= 0; x--) mem8[loc_02 + x] = m.mem8[loc_3a69 + x];
+  for (let x = 0x2f; x >= 0; x--) mem8[loc_02 + x] = m.mem8[HIGH_SCORE_INIT_TABLE + x];
 
   // (2) checksum probe — nonzero delta means the table changed -> reset
   const [delta] = foldHighScoreChecksum(m);

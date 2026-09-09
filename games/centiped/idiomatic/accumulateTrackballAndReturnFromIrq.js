@@ -2,7 +2,7 @@
 import { u8, u16 } from "../../../core/int.js";
 import { advanceAllSegmentColumns } from "./advanceAllSegmentColumns.js";
 import {
-  loc_0c00,
+  IN0,
   loc_d5,
   PALETTE_COLOR_04,
   loc_1c00,
@@ -12,7 +12,7 @@ import {
   loc_bd,
   TRACKBALL_LAST_DELTA,
   loc_b9,
-  loc_1800,
+  IRQ_ACK,
 } from "./names.js";
 
 /**
@@ -25,7 +25,7 @@ import {
  */
 export function accumulateTrackballAndReturnFromIrq(m) {
   const { mem8 } = m;
-  const io = mem8[loc_0c00];
+  const io = mem8[IN0];
 
   if (io & 0x20) {
     // Self-test active: run the spine service, mirror $c5,X to the output latch, then fold a table checksum.
@@ -40,7 +40,7 @@ export function accumulateTrackballAndReturnFromIrq(m) {
     if ((d5 & 0x80) === 0) {
       d5 = u8(d5 + 1);
       mem8[loc_d5] = d5;
-      if (mem8[loc_0c00] & 0x40) { d5 = 0x00; mem8[loc_d5] = d5; } // 32V edge resets the counter
+      if (mem8[IN0] & 0x40) { d5 = 0x00; mem8[loc_d5] = d5; } // 32V edge resets the counter
       // Ramp the four diag colour cells from d5<<2, carrying +1 up the run (carry seeded by the shift-out).
       let a = u8(d5 << 2);
       let carry = (d5 >> 6) & 1;
@@ -56,7 +56,7 @@ export function accumulateTrackballAndReturnFromIrq(m) {
   // Per-axis (X = 2 then 0): signed nibble delta of the raw counter, hysteresis-filtered, into $b9,X.
   let a = 0;
   for (let x = 2; x >= 0; x -= 2) {
-    const raw = mem8[u16(loc_0c00 + x)];
+    const raw = mem8[u16(IN0 + x)];
     a = u8(raw - mem8[u8(loc_bd + x)]); // delta since last sample
     mem8[u8(loc_bd + x)] = raw;
     a = a & 0x0f;
@@ -64,14 +64,14 @@ export function accumulateTrackballAndReturnFromIrq(m) {
     let y = a;
     if (a !== 0) {
       if ((a ^ mem8[u8(TRACKBALL_LAST_DELTA + x)]) & 0x80) {          // sign flip vs last committed delta
-        if ((y ^ mem8[u16(loc_0c00 + x)]) & 0x80) y = mem8[u8(TRACKBALL_LAST_DELTA + x)]; // reject a reversal
+        if ((y ^ mem8[u16(IN0 + x)]) & 0x80) y = mem8[u8(TRACKBALL_LAST_DELTA + x)]; // reject a reversal
       }
       mem8[u8(TRACKBALL_LAST_DELTA + x)] = y;
       a = u8(y + mem8[u8(loc_b9 + x)]);
       mem8[u8(loc_b9 + x)] = a;
     }
   }
-  mem8[loc_1800] = a; // interrupt acknowledge
+  mem8[IRQ_ACK] = a; // interrupt acknowledge
 
   m.regs.y = m.pull8();
   m.regs.x = m.pull8();

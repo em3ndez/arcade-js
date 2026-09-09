@@ -3,7 +3,7 @@ import { u8, u16 } from "../../../core/int.js";
 import {
   SEGMENT_RELOAD_TIMER,
   AUDF2, AUDC2,
-  loc_0c00,
+  IN0,
   loc_8a, loc_00, loc_01, loc_fb, loc_fc, loc_c8, loc_88,
   TRACKBALL_AXIS0_STEP_STATE, TRACKBALL_AXIS1_STEP_STATE, loc_b9, loc_bb, loc_c2,
   loc_64, SPRITE_SHADOW_VPOS, loc_54, loc_44, SPRITE_SHADOW_HPOS, SHADOW_SIGN_LATCH, loc_34, SHADOW_TILE_LOW_NIBBLE,
@@ -42,7 +42,7 @@ export function serviceFrameIrq(m) {
   if (mem8[SEGMENT_RELOAD_TIMER] !== 0) { mem8[AUDF2] = 0x10; mem8[AUDC2] = 0xaf; }
 
   // 32V beat gate: bit6 of the input latch. Off-beat, go straight to the tail.
-  if ((mem8[loc_0c00] & 0x40) === 0) return accumulateTrackballAndReturnFromIrq(m);
+  if ((mem8[IN0] & 0x40) === 0) return accumulateTrackballAndReturnFromIrq(m);
 
   mem8[loc_8a] = u8(mem8[loc_8a] + 1);
   mem8[loc_00] = u8(mem8[loc_00] + 1);
@@ -59,7 +59,7 @@ export function serviceFrameIrq(m) {
   if (limit >= 19) mem8[loc_c8] = 18;
 
   const xObj = mem8[loc_88];
-  let axisA = mem8[u16(loc_0c00 + 3)];
+  let axisA = mem8[u16(IN0 + 3)];
   if (xObj === 2) axisA = u8(axisA << 4);
 
   // Axis 0: step the selector, store the nudged value, fold it into the first accumulator.
@@ -104,7 +104,7 @@ export function buildObjectShadowEntry(m, x = m.regs.x) {
   mem8[u16(SPRITE_SHADOW_HPOS + x)] = a;
   mem8[SHADOW_SIGN_LATCH] = y & 0x80;
 
-  if ((mem8[loc_0c00] & 0x20) === 0) {
+  if ((mem8[IN0] & 0x20) === 0) {
     return storeSpriteShadowEntry(m, x, mem8[u8(loc_34 + x)]);
   }
 

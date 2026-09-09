@@ -2,8 +2,8 @@
 import {
   loc_00, loc_0100, loc_0400, loc_0500, loc_0600, loc_0700, loc_64,
   loc_86, loc_8a, loc_8b, loc_8c, loc_c1, loc_c2, loc_ff, CONFIG_DIP_BYTE,
-  loc_0800, loc_0c00, IN1,
-  AUDF1, AUDC1, AUDC2, AUDC3, AUDC4, loc_1008, loc_100f, loc_2000, loc_2400,
+  DSW1, IN0, IN1,
+  AUDF1, AUDC1, AUDC2, AUDC3, AUDC4, AUDCTL, SKCTL, WATCHDOG, loc_2400,
   PALETTE_COLOR_04, PALETTE_COLOR_05, PALETTE_COLOR_06, PALETTE_COLOR_07,
   PALETTE_COLOR_0D, PALETTE_COLOR_0E, PALETTE_COLOR_0F, FLIP_SCREEN,
 } from "./names.js";
@@ -45,14 +45,14 @@ export function* coldBootReset(m) {
   } while (x !== 0);
 
   // Quiet the sound-status/coin regs and drop the flip-screen latch.
-  mem8[loc_100f] = 0;
-  mem8[loc_1008] = 0;
+  mem8[SKCTL] = 0;
+  mem8[AUDCTL] = 0;
   mem8[loc_2400] = 0;
   mem8[FLIP_SCREEN] = 0;
 
-  if ((mem8[loc_0c00] & SERVICE) !== 0) {
+  if ((mem8[IN0] & SERVICE) !== 0) {
     // Normal boot: the service switch is idle.
-    mem8[CONFIG_DIP_BYTE] = mem8[loc_0800];
+    mem8[CONFIG_DIP_BYTE] = mem8[DSW1];
     mem8[loc_86] = 0xff;
     mem8[loc_c1] = 0xff;
     mem8[loc_c2] = 0xff;
@@ -152,9 +152,9 @@ function runSelfTest(m) {
 
   // Input-response screen: wait for the service switch, kick the dog, wait for a control.
   for (;;) {
-    while ((mem8[loc_0c00] & SERVICE) !== 0) { /* wait for the service switch to clear */ }
+    while ((mem8[IN0] & SERVICE) !== 0) { /* wait for the service switch to clear */ }
     mem8[loc_8a] = mem8[loc_8a] >> 1;
-    mem8[loc_2000] = 0; // watchdog
+    mem8[WATCHDOG] = 0; // watchdog
     if ((((mem8[IN1] & 0xe0) ^ 0xe0)) !== 0) break; // a control was actuated
   }
 
@@ -172,8 +172,8 @@ function runSelfTest(m) {
 
   // Review loop: kick the dog and pace on $8a while the service switch is held clear (holds here). [code]
   for (;;) {
-    while ((mem8[loc_0c00] & SERVICE) !== 0) { /* wait for service clear */ }
-    mem8[loc_2000] = 0;
+    while ((mem8[IN0] & SERVICE) !== 0) { /* wait for service clear */ }
+    mem8[WATCHDOG] = 0;
     mem8[loc_8a] = mem8[loc_8a] >> 1;
   }
 }
@@ -196,23 +196,23 @@ function selfTestBeepAndHalt(m, seed, carry) {
   const { mem8 } = m;
   let count = ((seed << 1) | carry) & 0xff;
   mem8[AUDF1] = 0x40;
-  mem8[loc_100f] = 3;
+  mem8[SKCTL] = 3;
   do {
     mem8[AUDC1] = 0xaf;
     for (let x = 0x10; x > 0; x--) {
-      while ((mem8[loc_0c00] & VBLANK) === 0) { /* wait for vblank */ }
-      while ((mem8[loc_0c00] & VBLANK) !== 0) { /* wait for active video */ }
-      mem8[loc_2000] = 0;
+      while ((mem8[IN0] & VBLANK) === 0) { /* wait for vblank */ }
+      while ((mem8[IN0] & VBLANK) !== 0) { /* wait for active video */ }
+      mem8[WATCHDOG] = 0;
     }
     mem8[AUDC1] = 0;
     for (let x = 0x10; x > 0; x--) {
-      while ((mem8[loc_0c00] & VBLANK) === 0) { /* wait for vblank */ }
-      while ((mem8[loc_0c00] & VBLANK) !== 0) { /* wait for active video */ }
-      mem8[loc_2000] = 0;
+      while ((mem8[IN0] & VBLANK) === 0) { /* wait for vblank */ }
+      while ((mem8[IN0] & VBLANK) !== 0) { /* wait for active video */ }
+      mem8[WATCHDOG] = 0;
     }
     count = (count - 1) & 0xff;
   } while ((count & 0x80) === 0);
 
-  while ((mem8[loc_0c00] & SERVICE) === 0) { mem8[loc_2000] = 0; } // wait for service, kicking the dog
+  while ((mem8[IN0] & SERVICE) === 0) { mem8[WATCHDOG] = 0; } // wait for service, kicking the dog
   for (;;) { /* halt: an error stops the machine until it is power-cycled */ }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import {
-  loc_8a, loc_2000, loc_0c00,
+  loc_8a, WATCHDOG, IN0,
 } from "./names.js";
 import { loc_2561 } from "./loc_2561.js";
 import { updateSoundChannels } from "./updateSoundChannels.js";
@@ -35,7 +35,7 @@ export function* mainLoop(m) {
     // Vblank sync: wait for the heartbeat bit and the vblank input. The wait is the frame boundary.
     yield;
     mem8[loc_8a] = mem8[loc_8a] >> 1; // consume the interrupt-raised heartbeat bit
-    mem8[loc_2000] = mem8[loc_0c00];  // kick the watchdog (value is the just-read vblank input; not diffed)
+    mem8[WATCHDOG] = mem8[IN0];  // kick the watchdog (value is the just-read vblank input; not diffed)
 
     loc_2561(m);
     updateSoundChannels(m);

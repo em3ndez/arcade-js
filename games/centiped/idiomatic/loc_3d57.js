@@ -5,8 +5,8 @@ import {
   loc_dd, loc_de, loc_df, loc_e0, loc_e1, loc_e2, loc_e3, loc_e4, loc_e5,
   loc_e6, loc_e7, loc_e8, loc_e9, loc_ea, loc_eb, loc_ec, loc_ed, loc_f9, loc_fa,
   loc_018b, loc_018c, loc_018d, HIGH_SCORE_CHECKSUM,
-  loc_0400, loc_0800, loc_0801, loc_0c00, loc_0c02, loc_0c03, IN1,
-  POKEY_RANDOM, AUDF1, AUDC1, PALETTE_COLOR_04, loc_140c, FLIP_SCREEN, loc_2000, loc_2400, loc_3fd8,
+  loc_0400, DSW1, DSW2, IN0, IN2, IN3, IN1,
+  POKEY_RANDOM, AUDF1, AUDC1, PALETTE_COLOR_04, loc_140c, FLIP_SCREEN, WATCHDOG, loc_2400, loc_3fd8,
 } from "./names.js";
 import { redrawPointerTableRowUnblanked } from "./redrawPointerTableRowUnblanked.js";
 import { writeMaskedByteAndAdvancePointer } from "./writeMaskedByteAndAdvancePointer.js";
@@ -39,8 +39,8 @@ export function loc_3d57(m) {
 
   // Pace: walk the $8a timing bit down until a set bit falls out, then wait for the service switch.
   for (;;) { const bit = mem8[loc_8a] & 1; mem8[loc_8a] = mem8[loc_8a] >> 1; if (bit) break; }
-  while ((mem8[loc_0c00] & SERVICE) !== 0) { /* wait for the service switch to clear */ }
-  mem8[loc_2000] = 0; // watchdog
+  while ((mem8[IN0] & SERVICE) !== 0) { /* wait for the service switch to clear */ }
+  mem8[WATCHDOG] = 0; // watchdog
 
   // Debounce IN1 bit0 into $ea; on a 0b10 edge advance the sound/colour cursors.
   mem8[loc_ea] = ((mem8[loc_ea] << 1) | (mem8[IN1] & 1));
@@ -86,7 +86,7 @@ export function loc_3d57(m) {
   // Draw the option DIP row: five cells reading down the high bit of the DIP index.
   mem8[loc_92] = 5;
   mem8[loc_91] = 0x38;
-  mem8[loc_8b] = (((mem8[loc_0800] & 0x0c) >> 2) + 1);
+  mem8[loc_8b] = (((mem8[DSW1] & 0x0c) >> 2) + 1);
   for (let x = 5; x > 0; x--) {
     writeMaskedByteAndAdvancePointer(m, (mem8[loc_8b] & 0x80) ? 0 : 0x1f);
     mem8[loc_8b] = (mem8[loc_8b] - 1);
@@ -95,15 +95,15 @@ export function loc_3d57(m) {
   // Draw the coin/bonus config glyphs.
   mem8[loc_91] = 0x37;
   writeMaskedByteAndAdvancePointer(m, 0x21);
-  writeMaskedByteAndAdvancePointer(m, (((mem8[loc_0801] & 0x10) >> 4) + 1) | 0x20);
-  let sel = (mem8[loc_0801] & 0x0c) >> 2;
+  writeMaskedByteAndAdvancePointer(m, (((mem8[DSW2] & 0x10) >> 4) + 1) | 0x20);
+  let sel = (mem8[DSW2] & 0x0c) >> 2;
   if (sel === 0) sel = 0xfe;
   writeMaskedByteAndAdvancePointer(m, ((sel + 3) & 0xff) | 0x20);
 
   mem8[loc_91] = 0x36;
   mem8[(mem16[loc_91] + 0)] = 0;
   mem8[(mem16[loc_91] + 0x40)] = 0;
-  const lives = mem8[loc_0801] >> 5;
+  const lives = mem8[DSW2] >> 5;
   if (lives !== 0 && lives < 6) {
     writeMaskedByteAndAdvancePointer(m, mem8[loc_3fd8 + lives]);
     writeMaskedByteAndAdvancePointer(m, 0);
@@ -112,17 +112,17 @@ export function loc_3d57(m) {
 
   // Row header colour depends on a DIP flag; redraw the row from its first descriptor.
   mem8[loc_94] = 0x3f;
-  mem8[loc_93] = (mem8[loc_0800] & 0x40) ? 0xf2 : 0xee;
+  mem8[loc_93] = (mem8[DSW1] & 0x40) ? 0xf2 : 0xee;
   mem8[loc_91] = 0x35;
   redrawPointerTableRowUnblanked(m);
 
   // Snapshot the input ports for the bit grid.
   mem8[loc_df] = mem8[IN1];
-  mem8[loc_dd] = mem8[loc_0800];
-  mem8[loc_de] = mem8[loc_0801];
-  mem8[loc_e0] = mem8[loc_0c00] & 0x8f;
-  mem8[loc_e1] = mem8[loc_0c02] & 0x8f;
-  mem8[loc_e2] = mem8[loc_0c03];
+  mem8[loc_dd] = mem8[DSW1];
+  mem8[loc_de] = mem8[DSW2];
+  mem8[loc_e0] = mem8[IN0] & 0x8f;
+  mem8[loc_e1] = mem8[IN2] & 0x8f;
+  mem8[loc_e2] = mem8[IN3];
   const rnd = mem8[POKEY_RANDOM];
   mem8[loc_e3] = mem8[loc_e3] & rnd;
   mem8[loc_e4] = mem8[loc_e4] | rnd;

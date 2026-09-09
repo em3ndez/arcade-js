@@ -250,13 +250,13 @@ export const EAROM_DATA_OUT = 0x1700; // [code] EAROM data-out window; readEarom
 export const loc_21bf = 0x21bf; // ROM table read by readFdBitsTableByte [code]
 export const SEGMENT_ROW_THRESHOLD_TABLE = 0x3413; // [seen] ROM table of per-row (Y) accumulator thresholds, indexed by SEGMENT_ROW_PHASE>>5 in the la
 export const loc_346d = 0x346d; // ROM row-descriptor pointer table read by writePointerTableRow [code]
-export const loc_3a69 = 0x3a69; // ROM high-score init table read by validateOrResetHighScores [seen]
+export const HIGH_SCORE_INIT_TABLE = 0x3a69; // ROM high-score init table read by validateOrResetHighScores [seen]
 
-export const loc_0801 = 0x0801; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_0c00 = 0x0c00; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_1008 = 0x1008; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_100f = 0x100f; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
-export const loc_1800 = 0x1800; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
+export const DSW2 = 0x0801; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
+export const IN0 = 0x0c00; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
+export const AUDCTL = 0x1008; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
+export const SKCTL = 0x100f; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
+export const IRQ_ACK = 0x1800; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_1c00 = 0x1c00; // [code] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_1c02 = 0x1c02; // [code] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_1c03 = 0x1c03; // [seen] I/O port or ROM table (batch-2 decompile placeholder)
@@ -265,11 +265,11 @@ export const loc_2003 = 0x2003; // [seen] I/O port or ROM table (batch-2 decompi
 export const loc_2120 = 0x2120; // [code] I/O port or ROM table (batch-2 decompile placeholder)
 export const loc_21c0 = 0x21c0; // [code] I/O port or ROM table (batch-2 decompile placeholder)
 
-export const loc_0800 = 0x0800; // [seen] I/O port / ROM (batch-3 placeholder)
-export const loc_0c02 = 0x0c02; // [seen] I/O port / ROM (batch-3 placeholder)
-export const loc_0c03 = 0x0c03; // [seen] I/O port / ROM (batch-3 placeholder)
+export const DSW1 = 0x0800; // [seen] I/O port / ROM (batch-3 placeholder)
+export const IN2 = 0x0c02; // [seen] I/O port / ROM (batch-3 placeholder)
+export const IN3 = 0x0c03; // [seen] I/O port / ROM (batch-3 placeholder)
 export const loc_140c = 0x140c; // [code] I/O port / ROM (batch-3 placeholder)
-export const loc_2000 = 0x2000; // [seen] I/O port / ROM (batch-3 placeholder)
+export const WATCHDOG = 0x2000; // [seen] I/O port / ROM (batch-3 placeholder)
 export const loc_3fd8 = 0x3fd8; // [code] I/O port / ROM (batch-3 placeholder)
 
 // Routine override map: addr -> { name, entry? }. Empty until the decompile batches land idiomatic modules;
