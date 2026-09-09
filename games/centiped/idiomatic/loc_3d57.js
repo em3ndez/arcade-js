@@ -181,8 +181,8 @@ export function loc_3d57(m) {
     // Checksum changed: plot its two digits (the digit carry rides the pointer advance of the zero plot).
     mem8[loc_91] = 0x3b;
     writeMaskedByteAndAdvancePointer(m, 0x24);
-    m.regs.a = 0; m.push16(0x3f4d); m.call(0x3836); // kept: its exit carry feeds the digit plot below
-    plotByteAsTwoDigits(m, delta); // carrySet defaults to the kept call's exit carry (m.regs.fC)
+    const zeroCarry = writeMaskedByteAndAdvancePointer(m, 0); // its exit carry feeds the digit plot below
+    plotByteAsTwoDigits(m, delta, zeroCarry);
     return m.call(0x3fd6); // cyclic spine — kept
   }
 

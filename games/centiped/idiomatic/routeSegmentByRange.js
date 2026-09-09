@@ -64,8 +64,7 @@ export function routeSegmentByRange(m, x = m.regs.x) {
       step = 0x00;
       mem8[loc_8b] = u8(mem8[loc_8b] + 1);
     }
-    m.regs.a = step; // bridge the step into the delay/advance spine (no A param on the callee)
-    decrementActiveObjectDelay(m, x);
+    decrementActiveObjectDelay(m, x, step); // pass the step into the delay/advance spine explicitly
     if (x !== 0x0b && (mem8[(loc_35 + x) & 0xff] & 0x80) === 0) {
       mem8[(loc_35 + x) & 0xff] = mem8[(loc_35 + x) & 0xff] & 0xbf;
     }

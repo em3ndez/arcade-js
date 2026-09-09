@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { readFdBitsTableByte } from "./readFdBitsTableByte.js";
 import { plotByteAsTwoDigits } from "./plotByteAsTwoDigits.js";
+import { writePointerTableRow } from "./writePointerTableRow.js";
+import { plotNormalizedCharCode } from "./plotNormalizedCharCode.js";
 import { CONFIG_DIP_BYTE, loc_ae, loc_b0, loc_21c0 } from "./names.js";
 
 /**
@@ -18,12 +20,10 @@ export function plotConfigTableRow(m) {
   mem8[loc_ae] = readFdBitsTableByte(m); // first table byte (also seats the shared index)
   mem8[loc_b0] = mem8[loc_21c0 + idx];   // adjacent parallel-table byte
 
-  // Lay the layout row (selector 6), then plot the parallel byte as a glyph.
-  m.regs.a = 0x06; m.push16(0x21a3); m.call(0x37d5);
-  m.regs.a = mem8[loc_b0]; m.push16(0x21a8); m.call(0x385c);
-  // Print the first byte, then a trailing zero, as digit pairs. The first print's carry-in is m.regs.fC
-  // from the kept glyph plot above; its exit carry rides back into m.regs.fC via the printer's return.
-  plotByteAsTwoDigits(m, mem8[loc_ae], m.regs.fC);
-  // Tail zero-print: carry defaults from m.regs.fC, which the first-print's return-assignment above set.
+  // Lay the layout row (selector 6); its exit carry seeds the glyph plot's mode, whose exit carry in
+  // turn seeds the first digit-pair print. Print the first byte, then a trailing zero, as digit pairs.
+  const rowCarry = writePointerTableRow(m, 0x06);
+  const glyphCarry = plotNormalizedCharCode(m, mem8[loc_b0], rowCarry);
+  plotByteAsTwoDigits(m, mem8[loc_ae], glyphCarry);
   return plotByteAsTwoDigits(m, 0);
 }

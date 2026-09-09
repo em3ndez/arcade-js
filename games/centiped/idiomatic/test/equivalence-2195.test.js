@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for plotConfigTableRow (ROM 0x2195). It draws a config-selected readout through
-// the shared row/glyph/digit spine writers; all observable output is RAM (work + video RAM, both in
-// dumpState), so each arm checks the RAM diff (minus the dead stack). The row/glyph/digit writers are
-// carry-coupled and kept as spine calls, so this runs them as the frozen fallback on both sides.
+// the shared row/glyph/digit writers, threading each writer's exposed exit carry into the next; all
+// observable output is RAM (work + video RAM, both in dumpState), so each arm checks the RAM diff (minus
+// the dead stack). The writers are carry-coupled: the glyph plot's exit carry is php-saved (not its
+// store's carry), which diverges from the store's carry only when the cursor high byte overflows -- so
+// the CRAFTED arm sweeps the flip mask (ef/f3) to exercise that coupled path on both sides.
 // Run: node --test games/centiped/idiomatic/test/equivalence-2195.test.js
 
 import nodeTest from "node:test";
@@ -55,16 +57,20 @@ test("CAPTURE: real 0x2195 dispatches -- plotConfigTableRow == oracle in RAM (-s
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: every select index x incoming carry == oracle (RAM)", () => {
+test("CRAFTED: every select index x incoming carry x screen flip == oracle (RAM)", () => {
   // fd bits 5-4 select the table index {0,2,4,6}; index 0/6 make the printed byte 0x00, whose digit
-  // print is the carry-sensitive case, so both incoming-carry values are exercised.
+  // print is the carry-sensitive case, so both incoming-carry values are exercised. The flip mask
+  // (ef/f3 = 0xff) couples the cursor high-byte overflow into the writers, so the glyph plot's true
+  // php-saved exit carry diverges from its store's carry there -- the case a upright-only seed misses.
   for (const fd of [0x00, 0x10, 0x20, 0x30]) {
     for (const carry of [false, true]) {
-      const s = { fd, carry };
-      const o = new Machine(ROM); seat(o, s);
-      const c = new Machine(ROM); seat(c, s);
-      oracle(o); plotConfigTableRow(c);
-      assert.equal(ramDiff(o, c), null, `fd=${fd.toString(16)} carry=${carry}`);
+      for (const flip of [false, true]) {
+        const s = { fd, carry, ef: flip ? 0xff : 0x00, f3: flip ? 0xff : 0x00 };
+        const o = new Machine(ROM); seat(o, s);
+        const c = new Machine(ROM); seat(c, s);
+        oracle(o); plotConfigTableRow(c);
+        assert.equal(ramDiff(o, c), null, `fd=${fd.toString(16)} carry=${carry} flip=${flip}`);
+      }
     }
   }
 });

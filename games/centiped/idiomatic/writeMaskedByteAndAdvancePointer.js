@@ -25,4 +25,5 @@ export function writeMaskedByteAndAdvancePointer(m, a = m.regs.a) {
   const carry = lowSum > 0xff ? 1 : 0;
   const highSum = mem8[loc_f3] + mem8[loc_92] + carry;
   mem8[loc_92] = highSum;
+  return (m.regs.fC = highSum > 0xff); // exit carry (register-out): the high-byte advance carry-out
 }

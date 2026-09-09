@@ -10,6 +10,10 @@ import { writeMaskedByteAndAdvancePointer } from "./writeMaskedByteAndAdvancePoi
  */
 export function plotNormalizedCharCode(m, a = m.regs.a, carrySet = m.regs.fC) {
   let v = a & 0xff;
+  // Exit carry is php-saved before the store and restored by the matching plp (the store's own carry is
+  // discarded): set only when the entry carry held AND the low nibble was zero -- the sole path reaching
+  // the php without an intervening clc.
+  const exitCarry = carrySet && (v & 0x0f) === 0;
   if (carrySet) {
     v &= 0x0f;
     if (v !== 0) v = (v | 0x20) & 0xff;
@@ -18,4 +22,5 @@ export function plotNormalizedCharCode(m, a = m.regs.a, carrySet = m.regs.fC) {
   }
   if (v >= 0x2a) v = (v - 0x29) & 0xff;
   writeMaskedByteAndAdvancePointer(m, v);
+  return (m.regs.fC = exitCarry); // expose the true exit carry (register-out), not the store's carry
 }

@@ -47,6 +47,7 @@ export function rewritePointerTableRowFromStart(m, y = m.regs.y) {
 function runEmitLoop(m) {
   const { mem8, mem16 } = m;
   const descriptor = mem16[loc_93]; // the descriptor pointer is stable across the loop (the emit sub moves the output cursor)
+  let carry; // exit carry (register-out): the last emit's cursor-advance carry-out
   for (;;) {
     const idx = mem8[loc_8b];
     const raw = mem8[u16(descriptor + idx)];
@@ -56,9 +57,9 @@ function runEmitLoop(m) {
     // Fold a 0x30-range code down into the 0x20 range.
     if (byte >= 0x30) byte &= 0x2f;
     // Emit through the output cursor (advances it) via the store sub.
-    writeMaskedByteAndAdvancePointer(m, byte);
+    carry = writeMaskedByteAndAdvancePointer(m, byte);
     mem8[loc_8b] = u8(idx + 1);
     // Re-read the raw descriptor byte just processed: its top bit terminates the row.
-    if (mem8[u16(descriptor + idx)] & 0x80) return;
+    if (mem8[u16(descriptor + idx)] & 0x80) return carry;
   }
 }
