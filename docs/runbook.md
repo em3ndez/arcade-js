@@ -852,6 +852,15 @@ distinct phase, gated on a flag, and runs in this order.
   `games/<game>/contrib/computerarcheology/<game>.jpg` (so `![<Game>](<game>.jpg)`, a path relative to the
   `.md`, resolves and renders on GitHub). Keep it small (native or ~2x); do NOT commit a full-res sheet or
   the raw frames.
+- **Ground the sound-register writes during real gameplay BEFORE choosing the audio model.** The model
+  (per-command clips vs a parameterized synth) is a decision to GROUND, not to guess from the MAME
+  sound-device class: run a **write-tap on the sound registers over real play** (coin/start, then drive
+  the game through its actual sounds) and classify each register — a **gated one-shot** (a brief pulse
+  produces the whole sound) fits the **clip** recorder; a **sustained/parameterized** register (written
+  continuously, the tone tracked by ongoing writes) needs the **synth** (`audio/synth.js`). Choose from
+  that ground truth. Galaxian's audio phase started on the invaders per-clip model by analogy and had to
+  reorient wholesale once the tap showed the dominant sound was a continuous synth (FS tones written ~900×,
+  pitch continuously varying, the "fire" register never even enabled) — hours a five-minute tap saves.
 - **Audio by record/replay** (don't emulate the second CPU): tap the soundlatch write and play a recorded
   clip per command (the tap is a nullable field, runs after the store, return discarded, must not throw).
   **Record, don't extract** — a game's sound may be discrete-analog or only exist once the audio CPU runs. A
