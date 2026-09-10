@@ -10,6 +10,11 @@ games/*/rom/*/
 #     Same posture as the ROM data above: the repo ships the tool, not the sound.
 games/*/audio/samples/
 
+# --- Game SCREENSHOTS are COMMITTED (fair use — one small representative shot per
+#     game, produced by tools/screenshot.py). This is a deliberate carve-out from
+#     the raw-graphics rule above; do NOT commit full sprite/tile sheets or raw
+#     frames. See runbook §5 "Ship a representative screenshot."
+
 # --- Build & capture artifacts ---
 out/
 **/golden/**/*.rgb

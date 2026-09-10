@@ -109,6 +109,12 @@ writes `RAMUse.md` + `Code.md`, cleaning each role for the routine header (it dr
 evidence tags, `§`, and "grounded in MAME" citations). It never opens the port. `Hardware.md` and
 `README.md` stay hand-authored per game.
 
+The pages reference a game screenshot (`![<Game>](<game>.jpg)` + the README's `>>> deploy:
++<game>.jpg`). Produce it with `tools/screenshot.py <game> --golden <dir>` from the pixel-gate golden
+(a representative attract/gameplay frame, ROT applied) — see runbook §5. Commit it (fair use) BOTH at
+`games/<game>/<game>.jpg` and beside the pages at `games/<game>/contrib/computerarcheology/<game>.jpg`
+so `![<Game>](<game>.jpg)` renders on GitHub. Placing it beside the pages on the archive is step 2 below.
+
 Per-instruction glosses are **REQUIRED for a complete contribution** — a per-game
 **`games/<game>/ca-lines.md`**, one `ADDR<TAB>gloss` line per instruction (4-hex address, a tab, the
 gloss), which the generator lays at column 50 after any cross-reference token (`AAAA: BB  MNE OPS  ;
