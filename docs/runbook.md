@@ -605,10 +605,18 @@ shows only stage A (the renames + the map) and silently omits stage B.
   this is the harder, still-open case, so tag it `[code]` honestly when the chain cannot yet terminate in a
   MAME observation. Ground the cells a routine touches in the SAME pass as the routine — never lift the
   routine roles to `[seen]` and leave their cells at `[code]`.
-- Both get **three looks**: two BLIND independent derivations (from body + callers, neither sees the
-  other), promote **only on convergence**, then a third **adversarial** re-derivation — two blind derivers
-  can converge on the same wrong reading. The lead edits `names.js`, never a proposer. A name isn't done
-  until code **uses** it (`names.js` + retrofit in one commit).
+- **Every understanding-pass worker reads `games/<game>/gameplay.md` first** — the naming derivers, the
+  adversarial re-deriver, the grounders, and the mechanisms.md writers. It is the game's cast/objective/
+  controls written outside-in from public sources, blind to the ROM (§0): the sanctioned *vocabulary* for
+  saying what a routine does **in the game** (so a "spawn-gate counter that fires when the field thins" is
+  named for *the flea*, not a generic counter). It is a **frame, not a source** — a name is still earned
+  from the code effect and grounded in MAME, keeps its tag, and where gameplay.md disagrees with the code
+  the code+MAME win (flag the gameplay.md line overturned). It matters most on the FIRST pass, when
+  mechanisms.md does not exist yet. Full rule in `understanding.md` ("The outside-in frame: gameplay.md").
+- Both get **three looks**: two BLIND independent derivations (from body + callers **+ gameplay.md as the
+  outside-in frame**, neither sees the other), promote **only on convergence**, then a third **adversarial**
+  re-derivation — two blind derivers can converge on the same wrong reading. The lead edits `names.js`,
+  never a proposer. A name isn't done until code **uses** it (`names.js` + retrofit in one commit).
 - **Promoting an idiomatic name = a rename retrofit in ONE commit — the concrete steps:** `git mv
   games/<game>/idiomatic/loc_<addr>.js <name>.js`; rename the **exported function** to match the file
   (`resolveAllIdiomatic` imports `mod[name]`, so export name = the ROUTINES `name` = the filename); in the
@@ -648,7 +656,8 @@ shows only stage A (the renames + the map) and silently omits stage B.
 - **`mechanisms.md` is REGENERATED WHOLE every understanding pass — never patched, never an incremental
   edit, even for a one-routine change.** Throw the prior map away and re-derive the ENTIRE document from the
   current code, every time. Method: fan out one code-reading subagent per subsystem, each re-deriving
-  mechanism from the ACTUAL routine bodies (idiomatic override + frozen oracle) — **blind to the prior
+  mechanism from the ACTUAL routine bodies (idiomatic override + frozen oracle) **with `gameplay.md` as the
+  outside-in frame** (the game's vocabulary, not a source — the code+MAME still decide) — **blind to the prior
   map**, forbidden to paraphrase it or the `names.js` role strings; the lead stitches the sections, VERIFIES
   every mechanism claim against the code, and carries grounding TAGS from the `names.js` `cert` field
   (`[seen]` is never re-invented by a code read — the TAG, not prose, is how the map records that MAME
@@ -781,8 +790,8 @@ distinct phase, gated on a flag, and runs in this order.
   **both** its rules (density + reference) for that game's `idiomatic/**`, so cleaned routines may carry
   verbose comments that cite the ROM/hardware. The flag is the phase's precondition. (`docs/comment-gate.md`.)
 - **Regenerate `mechanisms.md` whole, from code (blank-slate).** Per-subsystem agents write each section
-  FROM THE CODE BODIES (forbidden to read the old map or paraphrase role strings); tags come from `names.js`
-  certs. The lead assembles, PRESERVES the grounding provenance (`[seen]` narratives — not code-derivable),
+  FROM THE CODE BODIES **with `gameplay.md` as the outside-in frame** (forbidden to read the old map or
+  paraphrase role strings); tags come from `names.js` certs. The lead assembles, PRESERVES the grounding provenance (`[seen]` narratives — not code-derivable),
   writes intro/legend/open, and **verifies every claim against code** — fan that out: one adversarial
   checker per section, fold the real findings. The map carries **NO port plumbing** (`m.call`, the seam,
   `withOmittedRet`, `push16`, "address-dispatched") — that is how the port is wired, not how the machine

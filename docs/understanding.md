@@ -34,6 +34,25 @@ was written to catch already said "attract run".
 A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — it is the
 [sprite-record trap](idiomatic-generation.md) at the level of the whole game. Tag honestly.
 
+## The outside-in frame: gameplay.md
+
+**Every worker in an understanding pass reads `games/<game>/gameplay.md` first** — the naming
+proposers, the adversarial re-deriver, the grounders, and the mechanisms.md writers. It is the game's
+cast, objective, controls, and win/lose written from **public sources, blind to the ROM** (runbook §0):
+the sanctioned *vocabulary* for saying what the code does **in the game**. Without it a proposer names
+"a counter that gates a spawn when the field near the bottom thins" as a generic counter; with it, that
+routine is *the flea's* drop trigger. This is not a contradiction of "grounded, not recalled" — it is
+how you honor it. The discipline forbids smuggling in a *role* from a wiki; gameplay.md is not a wiki
+reading of the ROM, it is the outside-in description you wrote *before* opening it.
+
+It is a **frame, not a source.** It hands you the words, never the answer: a name is still earned from
+the code's **effect** and lifted to `[seen]` only by **MAME**, and every claim keeps its tag. Two hard
+rules: **(1)** never copy a role out of gameplay.md as a fact — a match to it is corroboration for a
+`[code]` reading, not grounding. **(2)** Where gameplay.md and the code disagree, the **code + MAME
+win**, and you flag the gameplay.md line as overturned (it was written blind to the ROM and *expects*
+to be — runbook §0 says "expect play to overturn some"). On the FIRST pass gameplay.md is the only
+outside-in frame the workers have — mechanisms.md does not exist yet — so it matters most there.
+
 ## The formula — how to run an understanding pass
 
 Run one after every decompile batch. Never two decompile batches in a row.
@@ -43,9 +62,12 @@ Count dispatches per unnamed routine. Work highest-first.
 Unreached means "not reached by this sweep" — not dead.
 
 **2. Two proposers, blind.**
-Same routines, separate files, forbidden to read each other's.
+Same routines, separate files, forbidden to read each other's. Each proposer reads **gameplay.md** (the
+outside-in frame, above) plus the routine bodies + callers + names.js + mechanisms.md if it exists.
 Each entry: NAME / MECHANISM / EFFECT / CORROBORATION / NOT CLAIMED. Append per routine.
-Name by effect, not method. `loc_` only when the mechanism itself is unreadable.
+Name by effect, not method — but say the effect in the game's own words from gameplay.md when the code
+supports it. `loc_` only when the mechanism itself is unreadable. A name that matches gameplay.md is
+still a `[code]` proposal, not `[seen]` — the match is corroboration, grounding is stage B.
 
 **3. Diff them.**
 Every fresh name is a `[code]` proposal and goes on the grounding list (see "A naming pass produces
