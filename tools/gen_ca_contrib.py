@@ -11,7 +11,19 @@ import sys
 import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from z80_decode import decode  # noqa: E402  (same Z80 decoder tools/trace.py uses)
+from z80_decode import decode as _z80_decode  # noqa: E402  (same decoder tools/trace.py uses)
+
+try:
+    from m6502_decode import decode as _m6502_decode  # noqa: E402  (6502 games; tools/trace6502.py)
+except Exception:  # pragma: no cover -- m6502_decode absent on a Z80-only checkout
+    _m6502_decode = None
+
+# The CPU config is resolved per game in main(): the decoder used for the FORCE_CODE
+# re-decode path, and the mnemonic/operand conventions the cross-ref + memory-token
+# builders key on. Defaults are Z80 so the shipped Z80 games are unaffected.
+CPU = "z80"
+DECODE = _z80_decode
+ROM_LO = 0  # CPU address of the ROM's first byte (per-game in main; 0 for Z80/8080)
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -22,7 +34,12 @@ MNEM_W = 8           # mnemonic field
 OPER_W = 20          # operand field  (6+16+8+20 = 50 -> ';' lands at column 50)
 ROLE_WRAP = 72       # role-block prose wrap width (content, before the "; ")
 
-BRANCH = ("call", "jp", "jr", "djnz")
+BRANCH = ("call", "jp", "jr", "djnz")  # Z80; reassigned per-CPU in main()
+BRANCH_BY_CPU = {
+    "z80": ("call", "jp", "jr", "djnz"),
+    "8080": ("call", "jp", "jr"),
+    "6502": ("jmp", "jsr", "bcc", "bcs", "beq", "bmi", "bne", "bpl", "bvc", "bvs"),
+}
 TAG_RE = re.compile(r"\[(?:code|seen|guess)(?:,\s*[a-z]+)*\]")
 
 
@@ -379,17 +396,21 @@ def build_routines(names_path):
     trailing `why:` field (single- or double-quoted)."""
     text = open(names_path).read()
     block = text[text.index("export const ROUTINES = {"):]
+    # name is required; entry/role/cert are OPTIONAL (in that field order): the Z80
+    # games carry name+role+cert (+ an optional secondary `entry` label), the leaner
+    # 6502 schema (centiped) carries name only. A missing role/cert defaults to "".
     entry = re.compile(
-        r'0x([0-9a-f]{4}):\s*\{\s*name:\s*"([^"]*)"\s*,\s*'
-        r'(?:entry:\s*"([^"]*)"\s*,\s*)?'  # optional secondary entry-point label
-        r'role:\s*"((?:[^"\\]|\\.)*)"\s*,\s*cert:\s*"([^"]*)"',
+        r'0x([0-9a-f]{4}):\s*\{\s*name:\s*"([^"]*)"'
+        r'(?:\s*,\s*entry:\s*"([^"]*)")?'
+        r'(?:\s*,\s*role:\s*"((?:[^"\\]|\\.)*)")?'
+        r'(?:\s*,\s*cert:\s*"([^"]*)")?',
         re.S,
     )
     m = {}
     for a, n, e, r, c in entry.findall(block):
-        # label at this address = the override's `entry` secondary-entry name when present
-        # (mirrors the loader's `meta.entry ?? meta.name`; keeps each address's label unique)
-        m[int(a, 16)] = (e or n, unescape(r), c)
+        # label = the secondary-entry name when present (mirrors the loader's
+        # meta.entry ?? meta.name), else the routine name.
+        m[int(a, 16)] = (e or n, unescape(r) if r else "", c or "")
     # sanity: every `0xADDR: {` opener must have been captured.
     openers = re.findall(r"^  0x[0-9a-f]{4}: \{", block, re.M)
     assert len(openers) == len(m), \
@@ -429,6 +450,13 @@ def build_notes(gdir):
 # no named cells and its VRAM-address constants are not work-RAM cells), so name the (lo, hi) here.
 CA_WORK_RAM = {
     "invaders": (0x2000, 0x23ff),
+}
+
+# CPU address where the maincpu ROM image begins. Z80/8080 games map it at 0x0000
+# (the default); centiped's 0x2000-byte 6502 image maps at 0x2000-0x3FFF, so the byte
+# round-trip must compare emitted[base+i] against rom[i].
+CA_ROM_BASE = {
+    "centiped": 0x2000,
 }
 
 
@@ -522,15 +550,24 @@ def token_for(mnem, operand, routines, labels, wr_lo, wr_hi, rom_hi):
                 return "{code.%s}" % rn[0]
             return "{code.loc_%04x}" % tgt
         return None
-    m = re.search(r"\(0x([0-9a-f]{4})\)", operand)  # only absolute (..) accesses
+    if CPU == "6502":
+        # 6502 memory access is a bare `0xADDR` operand (abs/zeropage, with an
+        # optional ,x/,y or index-indirect parens); an immediate is `#0x..` and is
+        # NOT a memory access. The Z80 `(0xADDR)` paren form does not apply.
+        if operand.startswith("#"):
+            return None
+        m = re.search(r"0x([0-9a-f]+)", operand)
+    else:
+        m = re.search(r"\(0x([0-9a-f]{4})\)", operand)  # Z80: only absolute (..) accesses
     if not m:
         return None
     tgt = int(m.group(1), 16)
     if wr_lo <= tgt <= wr_hi:
         off = tgt - wr_lo
         return "{hard.workRam}" if off == 0 else "{hard.workRam+%X}" % off
-    if 0 <= tgt <= rom_hi:
-        return "{hard.rom}" if tgt == 0 else "{hard.rom+%X}" % tgt
+    if ROM_LO <= tgt <= rom_hi:
+        off = tgt - ROM_LO
+        return "{hard.rom}" if off == 0 else "{hard.rom+%X}" % off
     return None
 
 
@@ -699,9 +736,17 @@ def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi, notes, rom=None):
         if body and body[-1] != "":
             body.append("")
 
-    # start at the first label; drop dk.asm's own header preamble.
+    # Drop dk.asm's own header-comment preamble, but stop at the FIRST real content --
+    # a label, an UNREACHED/data-block marker, OR an instruction. A Z80 listing opens
+    # with loc_0000, but a 6502 listing can open with a leading UNREACHED DATA span
+    # (bytes before the first routine); skipping only to the first `loc_` would drop
+    # those bytes and fail the byte round-trip.
+    def _is_body_start(l):
+        return (l.startswith("loc_") or l.startswith("; ==== UNREACHED")
+                or l.startswith("; ---- ") or bool(re.match(r"^    [a-z.]", l)))
+
     j = 0
-    while j < len(raw_lines) and not raw_lines[j].startswith("loc_"):
+    while j < len(raw_lines) and not _is_body_start(raw_lines[j]):
         j += 1
     n = len(raw_lines)
     while j < n:
@@ -757,7 +802,7 @@ def gen_code(meta, raw_lines, routines, wr_lo, wr_hi, rom_hi, notes, rom=None):
                 else:
                     body.append("loc_%04x:" % pc)
                 for _ in range(64):  # bounded; a real entry resyncs in 1-2 instrs
-                    ins = decode(rom, pc)
+                    ins = DECODE(rom, pc)
                     synth = f"    {ins.text:<28} ; {pc:04x}  {ins.hexdump()}"
                     body.append(xform_instr(synth, eff, labels, wr_lo, wr_hi, rom_hi, notes))
                     pc += ins.length
@@ -867,7 +912,19 @@ def main():
 
     meta = parse_manifest(gdir)
     meta["_game"] = game
-    rom_hi = meta["rom_size"] - 1
+
+    # Resolve the CPU config: the decoder for the FORCE_CODE re-decode path, the
+    # branch/jump mnemonics the cross-ref builder keys on, the memory-operand
+    # convention token_for uses (via CPU), and the ROM's CPU base (via ROM_LO, so
+    # {hard.rom} cross-refs resolve for a ROM not based at 0x0000). Z80 stays default.
+    global CPU, BRANCH, DECODE, ROM_LO
+    CPU = meta["cpu"].lower()
+    BRANCH = BRANCH_BY_CPU.get(CPU, BRANCH)
+    if CPU == "6502":
+        assert _m6502_decode is not None, "m6502_decode unavailable for a 6502 game"
+        DECODE = _m6502_decode
+    ROM_LO = CA_ROM_BASE.get(game, 0)
+    rom_hi = ROM_LO + meta["rom_size"] - 1
 
     # work-RAM region from the board layer (TP 0xA800-0xAFFF, The Pit 0x8000-0x87FF);
     # cells outside it (ROM tables, colour/video/sprite RAM) are not RAMUse rows.
@@ -897,7 +954,7 @@ def main():
     print(f"game   : {game}  ({meta['title']}, {meta['cpu']})")
     print(f"out    : {out_dir}/RAMUse.md  ({len(cells)} work-RAM cells)")
     print(f"out    : {out_dir}/Code.md")
-    print(f"workRAM: 0x{wr_lo:04X}-0x{wr_hi:04X}   ROM: 0x0000-0x{rom_hi:04X}")
+    print(f"workRAM: 0x{wr_lo:04X}-0x{wr_hi:04X}   ROM: 0x{ROM_LO:04X}-0x{rom_hi:04X}")
     print(f"routines: {len(routines)} total, {named} English-named, {len(routines)-named} loc_")
 
     # ca-lines.md carries the per-instruction glosses that make the listing readable (~70% coverage in the
@@ -934,8 +991,14 @@ def main():
     # until each is classified: FORCE_DATA the DATA ones, CRASH_SITE_OK the valid dead code-clones. This
     # is a NET, not the whole audit -- also do the manual sweep in docs/contributing-disassembly.md
     # "Anti-tamper crash sites" (script tables, text, checksum blocks the heuristic may not catch).
+    # The signature (a conditional-branch target ALSO loaded as a 16-bit data pointer)
+    # is Z80-specific: it keys on `ld hl,nn`, which the 6502 has no equivalent of (it
+    # builds pointers a byte at a time). For a 6502 game the trace itself is bounded by
+    # the port's MAME-validated reachability (tools/trace6502.py prunes any static
+    # over-read of a data table to a data span), and the byte round-trip below is the
+    # definitive completeness teeth, so this heuristic is skipped.
     cond_tgt, data_ptr = set(), set()
-    for ln in raw_lines:
+    for ln in (raw_lines if CPU != "6502" else []):
         m = re.search(r"\b(?:jp|jr)\s+n?z,0x([0-9a-f]+)", ln)
         if m:
             cond_tgt.add(int(m.group(1), 16))
@@ -974,14 +1037,15 @@ def main():
             base = int(m.group(1), 16)
             for k, t in enumerate(toks):
                 emitted[base + k] = int(t, 16)
-        mism = [a for a in range(len(rom)) if emitted.get(a) != rom[a]]
+        rbase = CA_ROM_BASE.get(game, 0)
+        mism = [rbase + i for i in range(len(rom)) if emitted.get(rbase + i) != rom[i]]
         if mism:
             print(f"\n*** Byte round-trip FAILED: {len(mism)} of {len(rom)} ROM bytes wrong/missing "
                   "in Code.md -- the listing does not reconstruct the ROM:", file=sys.stderr)
             for a in mism[:20]:
                 g = emitted.get(a)
                 print(f"      0x{a:04x}: Code.md {('%02x' % g) if g is not None else 'MISSING'}  "
-                      f"ROM {rom[a]:02x}", file=sys.stderr)
+                      f"ROM {rom[a - rbase]:02x}", file=sys.stderr)
             print("    A MISSING byte is usually a dk.asm coverage hole inside a mis-decoded data table "
                   "-> FORCE_DATA the table. See docs/contributing-disassembly.md.", file=sys.stderr)
             sys.exit(1)
