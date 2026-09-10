@@ -4,12 +4,17 @@
 // or fetches the built .bin, and runs the real engine unedited.
 
 const C_IN0 = 0, C_IN1 = 1, C_IN2 = 2, C_PAUSED = 3, C_COUNTER = 4,
-      C_RUNNING = 5, C_RESET = 6, C_SLEEP = 7;
+      C_RUNNING = 5, C_RESET = 6, C_SLEEP = 7,
+      // Accumulated analog trackball deltas (player.html Atomics.add's pointer movement; the worker
+      // consumes+zeroes them each frame). Only used by a game whose manifest declares inputs.trackball.
+      C_TRACK_X = 8, C_TRACK_Y = 9;
 
 let ctrl = null;
 let fb = null;
 let FRAME_BYTES = 0;
 let PORTS = null;  // {in0,in1,in2} input port addresses, from manifest.inputs.ports
+let TRACKBALL = null;  // {xPort,yPort} from manifest.inputs.trackball, or null -- those ports are analog
+                       // (driven via io.applyTrackball), so they are EXCLUDED from the digital inputAssert
 
 // SOUND EVENTS. The board exposes an optional write tap (io.onSoundWrite), armed here only
 // when the page has samples (default/headless runs stay byte-identical). Only a CHANGED latch
@@ -42,11 +47,24 @@ function readInputsInto(machine) {
     Atomics.store(ctrl, C_RESET, 0);
     throw new Error("__reset__"); // unwinds the run; worker reboots to attract
   }
-  machine.io.inputAssert = {
-    [PORTS.in0]: Atomics.load(ctrl, C_IN0) & 0xff,
-    [PORTS.in1]: Atomics.load(ctrl, C_IN1) & 0xff,
-    [PORTS.in2]: Atomics.load(ctrl, C_IN2) & 0xff,
-  };
+  // Digital ports go into inputAssert; a trackball port (analog) is EXCLUDED -- the board rejects a digital
+  // assert on it (centiped IN2), and its motion arrives via applyTrackball below.
+  const tb = TRACKBALL;
+  const isTrack = (p) => tb && (p === tb.xPort || p === tb.yPort);
+  const assert = {};
+  if (!isTrack(PORTS.in0)) assert[PORTS.in0] = Atomics.load(ctrl, C_IN0) & 0xff;
+  if (!isTrack(PORTS.in1)) assert[PORTS.in1] = Atomics.load(ctrl, C_IN1) & 0xff;
+  if (!isTrack(PORTS.in2)) assert[PORTS.in2] = Atomics.load(ctrl, C_IN2) & 0xff;
+  machine.io.inputAssert = assert;
+  // Analog trackball: consume the accumulated pointer deltas (zeroing them) and feed one frame of motion.
+  // axis 0 = X, axis 1 = Y (io.applyTrackball); the board folds them into its counter/sign the reads return.
+  if (tb && typeof machine.io.applyTrackball === "function") {
+    const clampB = (d) => Math.max(-127, Math.min(127, d)) & 0xff; // one frame's motion is a signed byte
+    const dx = Atomics.exchange(ctrl, C_TRACK_X, 0);
+    const dy = Atomics.exchange(ctrl, C_TRACK_Y, 0);
+    if (dx) machine.io.applyTrackball(0, clampB(dx));
+    if (dy) machine.io.applyTrackball(1, clampB(dy));
+  }
 }
 
 /** Publish an RGB frame to the shared double-buffered framebuffer. */
@@ -148,6 +166,7 @@ async function prewarmModules(idiomatic, gameId, manifest, machineBase, manifest
 async function run(gameId, provided) {
   const manifest = (await import(`../games/${gameId}/manifest.js`)).default;
   PORTS = manifest.inputs.ports;
+  TRACKBALL = manifest.inputs.trackball || null; // analog ports (excluded from digital inputAssert)
   const machineMod = await import(`../games/${gameId}/machine.js`);
   const { Machine } = machineMod;
   const { Inputs } = await import(`../boards/${manifest.board}/io.js`);
@@ -158,11 +177,17 @@ async function run(gameId, provided) {
   // cycle-driven engine. Idiomatic is validated byte-for-byte vs the oracle (idiomatic/test/).
   const idiomatic = manifest.runtime === "idiomatic";
   const liveCfg = manifest.convergence?.idiomatic;
-  // Refuse idiomatic without nmiReturnPC specifically: runIdiomaticGame defaults it to undefined and
-  // silently skips the per-NMI PC reseat, so a present-but-empty convergence.idiomatic would run wrong.
-  if (idiomatic && liveCfg?.nmiReturnPC == null)
-    throw new Error(`${gameId}: runtime "idiomatic" needs manifest.convergence.idiomatic.nmiReturnPC`);
-  const runIdiomaticGame = idiomatic ? (await import("../core/frame-stepped.js")).runIdiomaticGame : null;
+  // An IRQ game (centiped) boots at irq.bootAddr and the engine fires the four 32V IRQs per frame
+  // (irq.irqVblank) -- there is no vblank NMI, so it has no nmiReturnPC.
+  const irqCfg = liveCfg?.irq;
+  // Refuse idiomatic without an engine entry: the NMI engine needs nmiReturnPC (runIdiomaticGame defaults it
+  // undefined and silently skips the per-NMI PC reseat, so a present-but-empty convergence.idiomatic runs
+  // wrong); the clock-free IRQ engine (runIdiomaticIrqGame) needs irq.
+  if (idiomatic && !irqCfg && liveCfg?.nmiReturnPC == null)
+    throw new Error(`${gameId}: runtime "idiomatic" needs manifest.convergence.idiomatic.nmiReturnPC or .irq`);
+  const fs = idiomatic ? await import("../core/frame-stepped.js") : null;
+  const runIdiomaticGame = fs?.runIdiomaticGame ?? null;
+  const runIdiomaticIrqGame = fs?.runIdiomaticIrqGame ?? null;
   const LiveMachine = idiomatic ? null : makeLive(Machine);
 
   // Resolved ONCE and reused for every (re)boot: idiomatic wires every routine to its
@@ -203,12 +228,17 @@ async function run(gameId, provided) {
     let reason = null;
     try {
       if (idiomatic) {
-        // runIdiomaticGame drives the main generator frame by frame, calling serviceIdiomaticFrame
-        // at each pre-NMI yield; it catches its own unwinds, so read the returned stop reason.
-        const r = runIdiomaticGame(m, {
-          nmiReturnPC: liveCfg.nmiReturnPC,
-          onFrame: serviceIdiomaticFrame,
-        });
+        // The idiomatic engine drives the main generator frame by frame, calling serviceIdiomaticFrame at
+        // each vblank-poll yield; it catches its own unwinds, so read the returned stop reason. An IRQ game
+        // uses runIdiomaticIrqGame (boots at irq.bootAddr, fires the 32V IRQs per frame); an NMI game uses
+        // runIdiomaticGame (per-NMI PC reseat via nmiReturnPC).
+        const r = irqCfg
+          ? runIdiomaticIrqGame(m, {
+              bootAddr: irqCfg.bootAddr, irqVblank: irqCfg.irqVblank, onFrame: serviceIdiomaticFrame,
+            })
+          : runIdiomaticGame(m, {
+              nmiReturnPC: liveCfg.nmiReturnPC, onFrame: serviceIdiomaticFrame,
+            });
         if (r.stopError) {
           if (r.stopError.message === "__reset__") { postMessage({ type: "reset" }); continue; }
           reason = r.stopError.message;

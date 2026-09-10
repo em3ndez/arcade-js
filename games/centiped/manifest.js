@@ -60,9 +60,11 @@ export default {
 
   // §4 clock-free: frame sync is a CPU-polled vblank (IN0 bit6) plus a 32V IRQ, not a vblank NMI. The main
   // loop 0x2015 is the vblank-poll PC / main-loop top; the idiomatic layer runs on runIdiomaticIrqGame (the
-  // generator yields at that poll). idiomatic.nmiReturnPC stays OMITTED (an IRQ game, no vblank NMI) so the
-  // DONE-time web-boot gate stays skipped until the §5 worker wires the coroutine engine.
-  convergence: { pollPCs: [0x2015] },
+  // generator boots at 0x3b04 and yields at that poll, and the engine fires the four 32V IRQs per frame).
+  // idiomatic.nmiReturnPC stays OMITTED (an IRQ game, no vblank NMI); instead idiomatic.irq gives the web
+  // worker + games-boot gate the IRQ-engine entry: bootAddr + the per-slot vblank pattern (only scanline 240
+  // is inside vblank, so [0,0,0,1]). This is what wires the coroutine engine for the browser (runbook §5).
+  convergence: { pollPCs: [0x2015], idiomatic: { irq: { bootAddr: 0x3b04, irqVblank: [0, 0, 0, 1] } } },
 
   entropyPin: null,
 };

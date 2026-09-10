@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { runIdiomaticGame } from "../../core/frame-stepped.js";
+import { runIdiomaticGame, runIdiomaticIrqGame } from "../../core/frame-stepped.js";
 import { buildGameMachine } from "../machine-factory.js";
 import { GAMES } from "../../games/registry.js";
 
@@ -25,11 +25,13 @@ for (const gameId of GAMES) {
   const romPath = (n) => join(ROOT, "games", gameId, "rom", `${n}.bin`);
   const haveRom = names.every((n) => existsSync(romPath(n)));
 
-  // A §2 skeleton has no convergence.idiomatic.nmiReturnPC yet (the worker itself refuses idiomatic without
-  // it) and boots short of FRAMES -- SKIP until nmiReturnPC lands. A DONE-time "runs in the browser" gate,
-  // not a skeleton gate; it engages the moment nmiReturnPC lands.
+  // A §2 skeleton has no idiomatic engine entry yet (the worker itself refuses idiomatic without one) and
+  // boots short of FRAMES -- SKIP until one lands. An NMI game declares convergence.idiomatic.nmiReturnPC;
+  // an IRQ game (centiped, no vblank NMI) declares convergence.idiomatic.irq {bootAddr, irqVblank}. A
+  // DONE-time "runs in the browser" gate, not a skeleton gate; it engages the moment either lands.
   const nmiReturnPC = manifest.convergence?.idiomatic?.nmiReturnPC;
-  const notReady = nmiReturnPC === undefined;
+  const irqCfg = manifest.convergence?.idiomatic?.irq;
+  const notReady = nmiReturnPC === undefined && irqCfg === undefined;
   test(`${gameId}: boots the way the web worker constructs it`, { skip: !haveRom || notReady }, async () => {
     // The worker only runs runtime "idiomatic" games this way; all registered games are idiomatic.
     assert.equal(manifest.runtime, "idiomatic", `${gameId} runtime must be idiomatic for this boot path`);
@@ -63,7 +65,11 @@ for (const gameId of GAMES) {
     // every convention; polarity is the board's job, so assert the keyed input does NOT throw (galaxian's
     // ports-as-addresses crash-looped here), not that it banks a credit (that varies per game).
     const coin = manifest.inputs.actions.coin;
-    const portKeys = Object.values(manifest.inputs.ports);
+    // Trackball ports are analog (driven by applyTrackball, not digital inputAssert -- the board throws on a
+    // digital assert to a trackball port, e.g. centiped IN2). Exclude them, exactly as the worker does.
+    const tb = manifest.inputs.trackball;
+    const trackPorts = new Set(tb ? [tb.xPort, tb.yPort] : []);
+    const portKeys = Object.values(manifest.inputs.ports).filter((p) => !trackPorts.has(p));
     const frameInput = (f) => {
       const a = {};
       for (const k of portKeys) a[k] = 0;
@@ -77,10 +83,17 @@ for (const gameId of GAMES) {
     let soundWrites = 0;
     m.io.onSoundWrite = () => { soundWrites++; };
 
-    const r = runIdiomaticGame(m, {
-      bootAddr: 0x0000, nmiReturnPC, maxFrames: FRAMES,
-      onFrame: (mm, f) => { mm.io.inputAssert = frameInput(f); },
-    });
+    // An IRQ game boots via runIdiomaticIrqGame (bootAddr + the per-frame 32V IRQ pattern); an NMI game via
+    // runIdiomaticGame (per-NMI PC reseat). Both call onFrame(mm, f) at the vblank yield, so the seam is the same.
+    const r = irqCfg
+      ? runIdiomaticIrqGame(m, {
+          bootAddr: irqCfg.bootAddr, irqVblank: irqCfg.irqVblank, maxFrames: FRAMES,
+          onFrame: (mm, f) => { mm.io.inputAssert = frameInput(f); },
+        })
+      : runIdiomaticGame(m, {
+          bootAddr: 0x0000, nmiReturnPC, maxFrames: FRAMES,
+          onFrame: (mm, f) => { mm.io.inputAssert = frameInput(f); },
+        });
     assert.equal(r.stopError, null, `${gameId}: worker-form run threw: ${r.stop}`);
     assert.ok(r.frames >= FRAMES, `${gameId}: only advanced ${r.frames}/${FRAMES} frames (${r.stop})`);
 
