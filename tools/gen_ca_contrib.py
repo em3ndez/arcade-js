@@ -179,6 +179,12 @@ CRASH_SITE_OK = {
         0x0018,                                  # code loop (ld (hl),a/djnz); the ld de,$0018 load the const 24
         0x020F,                                  # real code (jp/jr $020F targets); the ld hl,$020F loads a code addr
     ],
+    "galaxian": [
+        0x0000,  # the reset/boot entry (xor a; ld ($7001),a; jp $1a55) -- real code; $0000 also appears as a null pointer const
+        0x0701,  # a play-substate handler: reads gate $41b5, tests mode flags, falls into advanceSubstateAndReloadDwell ($070d).
+                 # Reached as code via `jr nz,$0701` ($06df) AND used as a handler address (`ld de,$0701`) -- dual-use code, not data
+        0x1060,  # advanceObjectPathStepAscending -- a named path-walk routine; a jp-target that is also loaded as a pointer
+    ],
 }
 
 
