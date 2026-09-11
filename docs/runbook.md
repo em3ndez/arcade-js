@@ -836,22 +836,27 @@ distinct phase, gated on a flag, and runs in this order.
   manifest-driven across IN0/IN1/IN2; (6) exact ROT (step 1); (7) unported audio → silent, not broken; (8)
   `runtime: "idiomatic"` reads `manifest.convergence.idiomatic.nmiReturnPC` (§2) — the worker throws
   without it.
-- **Ship a representative screenshot.** Every game gets `games/<game>/<game>.jpg` — one representative
-  frame (an attract title or clean gameplay, **never** a black boot/self-test frame), produced by
-  `tools/screenshot.py <game> --golden <dir>` from the pixel-gate MAME golden's `frames.rgb` (decode a
-  compressed golden with `golden_mp4.py decode` first). The tool applies the manifest's **ROT** so the
-  image is oriented the way the cabinet displays it (a portrait game comes out portrait, not sideways) —
-  verify that by eye. This image documents the game (the web-player selector/gallery and the game's docs)
-  **and is the picture the Computer-Archaeology contrib pages reference** (`![<Game>](<game>.jpg)` and the
-  README's `>>> deploy: +<game>.jpg`), so **producing it is part of both the game ship and the external
-  disassembly**. **Commit it** — a single small representative screenshot is **fair use** (the same
-  posture computerarcheology.com and every game wiki takes), and it is committed so the pages render on
-  GitHub, an explicit carve-out from the "no ROM graphics" guardrail that covers *raw* graphics data (the
-  gfx ROM, whole sprite/tile sheets), NOT one attract screenshot. Place it in **two** spots: the game's own
-  `games/<game>/<game>.jpg` (the web-player gallery / docs) and a copy in the CA pages' own directory
-  `games/<game>/contrib/computerarcheology/<game>.jpg` (so `![<Game>](<game>.jpg)`, a path relative to the
-  `.md`, resolves and renders on GitHub). Keep it small (native or ~2x); do NOT commit a full-res sheet or
-  the raw frames.
+- **Ship a representative screenshot — the web selector REQUIRES it.** Every game gets
+  `games/<game>/screenshot.png` — **this exact filename**, because `web/index.html` loads
+  `games/<game>/screenshot.png` for the game's card; a game without it renders a broken card image on the
+  live site (centiped shipped that way once — its card had no picture until the file was added). It is one
+  representative frame (an attract title or clean gameplay, **never** a black boot/self-test frame),
+  produced by `tools/screenshot.py <game> --golden <dir>` from the pixel-gate MAME golden's `frames.rgb`
+  (decode a compressed golden with `golden_mp4.py decode` first). The tool applies the manifest's **ROT**
+  (a portrait game comes out portrait, not sideways — verify by eye), scales ~3× to match the other games'
+  cards, and writes `screenshot.png` by default. **Commit it** — a single small representative screenshot
+  is **fair use** (the posture computerarcheology.com and every game wiki takes), an explicit carve-out
+  from the "no ROM graphics" guardrail that covers *raw* graphics data (the gfx ROM, whole sprite/tile
+  sheets), NOT one attract screenshot. **If the game also has a Computer-Archaeology disassembly**, produce
+  the same frame as a smaller `.jpg` in **two** spots for the CA pages — `games/<game>/<game>.jpg` and a
+  copy at `games/<game>/contrib/computerarcheology/<game>.jpg` (so `![<Game>](<game>.jpg)`, a path relative
+  to the `.md`, resolves on GitHub). Do NOT commit a full-res sheet or the raw frames.
+- **Deploy: the live site is a re-deploy, not per-game work.** The games appear from `games/registry.js`,
+  so `https://www.qarl.com/arcade-js/` is refreshed by re-deploying the current `main` HEAD — coordinate
+  with Jimmy-www.qarl.com (she owns the docroot + the live write); do not push the server yourself. After a
+  deploy, spot-check the new game's CARD renders (its `screenshot.png` loads) and its manifest serves with
+  the COOP/COEP headers. ROMs stay BYO — new games show as drag-and-drop "ROM required" cards unless a
+  demo ROM is separately hosted for them.
 - **Ground the sound-register writes during real gameplay BEFORE choosing the audio model.** The model
   (per-command clips vs a parameterized synth) is a decision to GROUND, not to guess from the MAME
   sound-device class: run a **write-tap on the sound registers over real play** (coin/start, then drive
@@ -981,7 +986,7 @@ distinct phase, gated on a flag, and runs in this order.
   audited at; a **per-§5-criterion verdict table** (each criterion → PASS + its evidence — the full ~10-min
   pixel golden, stage-B grounding complete, idiomatic gate at 0, the whole-game tapes + forced transitions,
   the external disasm if in scope, audio recorded+signed-off, the §3 completeness crawl, `loc_` naming, the
-  cleanup phase, a representative `<game>.jpg` screenshot produced); and the auditor agent's identity + an
+  cleanup phase, the `games/<game>/screenshot.png` selector image produced); and the auditor agent's identity + an
   explicit "zero open criteria" conclusion.
   Committing `DONE.md` triggers `review_gate`; the reviewer of that commit is a SECOND, independent
   adversarial agent (proposer≠confirmer) that re-runs the FULL §5 audit against the game state at that

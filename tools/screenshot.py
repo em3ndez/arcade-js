@@ -13,8 +13,11 @@ Usage:
     <dir> holds frames.rgb (+ frames.json/index.json giving width/height/
     bytes_per_frame); width/height/rot fall back to the game's manifest.
     --frame: which frame (default: a representative frame ~1/4 into the capture,
-    past the black boot). --scale: integer upscale (default 1). --out defaults
-    to games/<game>/<game>.jpg.
+    past the black boot). --scale: integer upscale (default 3, matching the
+    other games' selector shots). --out defaults to games/<game>/screenshot.png
+    (the file the web selector loads, `games/<game>/screenshot.png`). Pass a
+    .jpg --out to also produce the smaller Computer-Archaeology page image.
+    Output format follows the --out extension (.png or .jpg).
 """
 import argparse
 import json
@@ -59,7 +62,7 @@ def main():
     ap.add_argument("--golden", required=True, help="dir containing frames.rgb")
     ap.add_argument("--frame", type=int, default=None)
     ap.add_argument("--out")
-    ap.add_argument("--scale", type=int, default=1)
+    ap.add_argument("--scale", type=int, default=3)
     args = ap.parse_args()
 
     w, h, rot = manifest_screen(args.game)
@@ -89,9 +92,12 @@ def main():
     if args.scale > 1:
         img = img.resize((img.width * args.scale, img.height * args.scale), Image.NEAREST)
 
-    out = args.out or os.path.join(REPO, "games", args.game, f"{args.game}.jpg")
+    # Default: the web selector's screenshot.png (web/index.html loads
+    # games/<game>/screenshot.png). A .jpg --out is the Computer-Archaeology page image.
+    out = args.out or os.path.join(REPO, "games", args.game, "screenshot.png")
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    img.convert("RGB").save(out, "JPEG", quality=90)
+    fmt = "PNG" if out.lower().endswith(".png") else "JPEG"
+    img.convert("RGB").save(out, fmt, **({"quality": 90} if fmt == "JPEG" else {}))
     print(f"wrote {out}  ({img.width}x{img.height}, frame {frame}/{nframes - 1}, rot {rot})")
 
 
