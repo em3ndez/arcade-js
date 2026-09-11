@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// loc_a34b  (ROM 0xa34b-0xa36e) -- sets $013b=0xff, A=1, then falls through into loc_a352 (the shared tail):
+// loc_a34b  (ROM 0xa34b-0xa36e) -- A=$ff head into loc_a34d, the $013b-seed mid-entry (0xa34d, jmp'd from
+// loc_a343/loc_a347 with A=9/7), which stores A->$013b, sets A=1, falls into loc_a352 (the shared tail):
 // stores A->$2c, copies $0202->$29 and $0200->$2d, calls ccb0 then a3d6, sets $0201=0x81 and $013c=1, rts.
-// loc_a352 is a mid-routine entry point (jsr'd from loc_a33a) that skips the $013b/A=1 head and runs the
-// tail with the caller's A as the $2c value (sta sets no flags, so A is a pure input there).
+// loc_a352 is a mid-routine entry (jsr'd from loc_a33a) with the caller's A as the $2c value (sta sets no flags).
 export function loc_a34b(m) {
-  const { regs, mem } = m;
+  const { regs } = m;
   regs.a = 0xff; regs.setNZ(regs.a); m.step(0xa34d, 2);
+  return loc_a34d(m);
+}
+
+export function loc_a34d(m) {
+  const { regs, mem } = m;
   mem.write8(0x013b, regs.a); m.step(0xa350, 4);
   regs.a = 0x01; regs.setNZ(regs.a); m.step(0xa352, 2);
   return loc_a352(m);

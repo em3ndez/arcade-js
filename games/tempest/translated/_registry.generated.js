@@ -63,7 +63,7 @@ import { loc_a23f } from "./loc_a23f.js";
 import { loc_a2a6 } from "./loc_a2a6.js";
 import { loc_a309 } from "./loc_a309.js";
 import { loc_a33a } from "./loc_a33a.js";
-import { loc_a34b, loc_a352 } from "./loc_a34b.js";
+import { loc_a34b, loc_a34d, loc_a352 } from "./loc_a34b.js";
 import { loc_a36f } from "./loc_a36f.js";
 import { loc_a38e } from "./loc_a38e.js";
 import { loc_a398 } from "./loc_a398.js";
@@ -327,6 +327,7 @@ export const ROUTINE_ENTRIES = [
   [0xa309, loc_a309],
   [0xa33a, loc_a33a],
   [0xa34b, loc_a34b],
+  [0xa34d, loc_a34d],
   [0xa352, loc_a352],
   [0xa36f, loc_a36f],
   [0xa38e, loc_a38e],
