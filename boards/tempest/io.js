@@ -76,9 +76,10 @@ export class Io {
       new Pokey(() => this.pokey2PotBits(), (r, v, c) => this.onPokeyWrite && this.onPokeyWrite(1, r, v, c)),
     ];
 
-    // Input idle values (active-low ports read high). ⚠ PENDING exact MAME probe.
+    // Input idle values (grounded vs tempest.cpp INPUT_PORTS + pokey.cpp pokey_potgo).
+    this.dsw1 = 0x00; // 0x0D00 DSW1 (coinage), all defaults -> 0x00
     this.dsw2 = 0x00;
-    this.cabinet = 0x10; // IN1 bit4: 1 = upright (default)
+    this.cabinet = 0x10; // IN1_DSW0 (pokey1 pot) bit4: 1 = upright (default)
   }
 
   attachMemory(mem) {
@@ -102,9 +103,10 @@ export class Io {
     return v;
   }
 
-  // IN1 (0x0D00): b0-3 spinner knob (tempest_knob_r), b4 cabinet dip. Knob idle 0 pending input grounding.
-  readIn1() {
-    return (this.cabinet & 0x10) | 0x20; // b5 IPT_UNKNOWN reads high; knob idle 0
+  // 0x0D00 = DSW1 (tempest.cpp map: portr("DSW1")), the coinage dip bank -- NOT the knob (the spinner is a
+  // POKEY pot, see pokey1PotBits). Default dips = 0x00.
+  readDsw1() {
+    return this.dsw1;
   }
   readDsw2() {
     return this.dsw2;
@@ -148,10 +150,12 @@ export class Io {
     this.earom.setControl((v >> 3) & 1, 1, ((v >> 2) & 1) ? 0 : 1, (v >> 1) & 1);
     this.earom.setClk(v & 1);
   }
-  // POKEY pot inputs (1-bit paddles): pokey1 <- IN1 (spinner b0-3, cabinet b4), pokey2 <- IN2 (dips/buttons/
-  // start). ⚠ idle 0 (all inactive) PENDING the input-grounding pass; refine the exact bit map then.
-  pokey1PotBits() { return 0; }
-  pokey2PotBits() { return 0; }
+  // POKEY pots as 1-bit paddles (tempest.cpp input_port_{1,2}_bit_r): a SET bit -> pot value 0 (pokey_potgo
+  // asserts ALLPOT-done instantly); a clear bit -> 228 (ramps). Attract-idle port values (grounded vs the
+  // golden ALLPOT reads): IN1_DSW0 = knob 0 | cabinet b4 | active-low unknowns b5-7 = 0xf0; IN2 = 0xff.
+  // Dynamic spinner/button/start mapping is future gameplay-input grounding.
+  pokey1PotBits() { return this.cabinet | 0xe0; }
+  pokey2PotBits() { return 0xff; }
   pokeyRead(chip, reg, cycles) { return this.pokeys[chip].read(reg, cycles); }
   pokeyWrite(chip, reg, v, cycles) { this.pokeys[chip].write(reg, v, cycles); }
 }

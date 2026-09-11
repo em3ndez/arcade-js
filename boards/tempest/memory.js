@@ -5,7 +5,7 @@
  *
  *   0x0000-0x07FF RW work RAM (2K)                                     -- diffed
  *   0x0800-0x080F W  color RAM (avg:colorram, 16x4-bit, write-only)    -- diffed (render input)
- *   0x0C00 R IN0 · 0x0D00 R IN1/DSW1 (knob+cabinet) · 0x0E00 R DSW2    (via io.js)
+ *   0x0C00 R IN0 · 0x0D00 R DSW1 (coinage) · 0x0E00 R DSW2    (via io.js; knob/buttons are POKEY pots)
  *   0x2000-0x2FFF RW vector RAM (4K, the AVG display list)             -- diffed
  *   0x3000-0x3FFF R  vector ROM (region "vectorrom")
  *   0x4000 W coin counters + AVG flip_x(0x08)/flip_y(0x10)
@@ -77,7 +77,7 @@ export class AddressSpace {
     if (addr >= 0xf000) return this.rom[addr];
     switch (addr) {
       case 0x0c00: return this.io.readIn0(this.clock ? this.clock() : 0);
-      case 0x0d00: return this.io.readIn1();
+      case 0x0d00: return this.io.readDsw1();
       case 0x0e00: return this.io.readDsw2();
       case 0x6040: return this.io.mathboxStatus();
       case 0x6050: return this.io.earomRead();
