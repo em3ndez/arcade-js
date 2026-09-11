@@ -170,7 +170,11 @@ import { loc_b5ad } from "./loc_b5ad.js";
 import { loc_b5d7 } from "./loc_b5d7.js";
 import { loc_b5eb } from "./loc_b5eb.js";
 import { loc_b60f } from "./loc_b60f.js";
+import { loc_b622 } from "./loc_b622.js";
 import { loc_b634 } from "./loc_b634.js";
+import { loc_b69b } from "./loc_b69b.js";
+import { loc_b6fa } from "./loc_b6fa.js";
+import { loc_b71b } from "./loc_b71b.js";
 import { loc_b75b } from "./loc_b75b.js";
 import { loc_b79a } from "./loc_b79a.js";
 import { loc_b7eb } from "./loc_b7eb.js";
@@ -473,7 +477,11 @@ export const ROUTINE_ENTRIES = [
   [0xb5d7, loc_b5d7],
   [0xb5eb, loc_b5eb],
   [0xb60f, loc_b60f],
+  [0xb622, loc_b622],
   [0xb634, loc_b634],
+  [0xb69b, loc_b69b],
+  [0xb6fa, loc_b6fa],
+  [0xb71b, loc_b71b],
   [0xb75b, loc_b75b],
   [0xb79a, loc_b79a],
   [0xb7eb, loc_b7eb],
