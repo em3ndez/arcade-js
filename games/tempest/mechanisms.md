@@ -312,3 +312,9 @@ routines decompiled so far keep `loc_<addr>` identifiers this pass, and the deep
 (the enemy-flip and per-slot motion path, the mathbox helpers reached only in specific states) lift to
 `[seen]` once a capture drives the play states that exercise them.
 
+A further batch of **caller** routines has since been decompiled — each dissolving its calls into direct
+invocations of the already-idiomatic routines above — but is **not yet grounded or named** here; its
+routines keep `loc_<addr>` placeholders and carry no role claim until the next understanding pass folds
+them in. (`loc_9e5c`, a caller that falls into the shared mid-entry `loc_9e5f`, is deferred to a dedicated
+2-entry split.)
+
