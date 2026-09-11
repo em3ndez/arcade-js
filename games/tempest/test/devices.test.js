@@ -7,6 +7,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { Er2055, Io } from "../../../boards/tempest/io.js";
 import { Pokey } from "../../../boards/tempest/pokey.js";
+import { Mathbox } from "../../../boards/tempest/mathbox.js";
 
 test("ER2055: erase-before-write then read round-trips a byte", () => {
   const e = new Er2055();
@@ -52,6 +53,26 @@ test("POKEY RANDOM: 0xFF right after reset, then varies over the period; determi
   r.read(0x0a, 100);
   r.write(0x0f, 0x00, 100); // enter reset -> p17=0
   assert.equal(r.p17, 0, "SKCTL reset zeroes the poly index");
+});
+
+test("Mathbox: load/read round-trip + octagonal distance approx (max + 3/8*min)", () => {
+  // Additionally validated BYTE-EXACT vs MAME by replaying the attract mathbox op stream (38k writes / 19k
+  // result reads, 0 mismatches) -- see scratchpad/tempest/dump_mathbox.lua; the whole-machine crawl re-checks
+  // it via the tube geometry in vector RAM.
+  const m = new Mathbox();
+  m.goW(0x00, 0x34); m.goW(0x01, 0x12); // R0 lo/hi -> R0=0x1234, result=R0
+  assert.equal(m.loR(), 0x34);
+  assert.equal(m.hiR(), 0x12);
+  m.goW(0x0c, 0x05); // R6 = 5 (whole reg), result=5
+  assert.equal(m.loR(), 0x05);
+  // distance: R0=R1=0, R2=200, R3=0 -> 0x1d makes |dx|=200,|dy|=0 -> 0x1e result = max(200,0)+3/8*0 = 200.
+  const d = new Mathbox();
+  d.goW(0x00, 0); d.goW(0x01, 0); // R0=0
+  d.goW(0x02, 0); d.goW(0x03, 0); // R1=0
+  d.goW(0x04, 200); d.goW(0x05, 0); // R2=200
+  d.goW(0x06, 0); d.goW(0x07, 0); // R3=0
+  d.goW(0x1d, 0); // load R3-hi=0, |dx|/|dy|, fall into 0x1e
+  assert.equal((d.hiR() << 8) | d.loR(), 200, "octagonal distance = max(200,0)+3/8*0 = 200");
 });
 
 test("POKEY pot ADC: active line reads 0 instantly, inactive ramps to 228; ALLPOT inverted-done", () => {

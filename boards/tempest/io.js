@@ -7,6 +7,7 @@
 
 import { Avg } from "./avg.js";
 import { Pokey } from "./pokey.js";
+import { Mathbox } from "./mathbox.js";
 
 export class NotImplemented extends Error {
   constructor(msg) {
@@ -65,6 +66,7 @@ export class Io {
     this.onPokeyWrite = null; // §5 audio capture seam
     this.avg = null; // built in attachMemory (needs vector RAM/ROM readback)
     this.earom = new Er2055(); // ER2055 high-score NVRAM (0x6000-603F write, 0x6040 control, 0x6050 read)
+    this.mathbox = new Mathbox(); // 3D-tube math coprocessor (0x6080-609F go, 0x6040 R status, 0x6060/70 result)
     // 2x POKEY @0x60C0/0x60D0: pots carry input (spinner+buttons+dips as 1-bit paddles), RANDOM RNG, sound.
     // pot bit set => that line reads active (0); clear => inactive (228, ramps). ⚠ exact pot<-input mapping
     // PENDING grounding -- idle (0) for now so all lines read inactive (attract-consistent). Sound writes
@@ -132,10 +134,10 @@ export class Io {
   }
 
   // --- unimplemented devices: THROW until §3 reaches them (runbook §2) ---
-  mathboxStatus() { throw new NotImplemented("mathbox status_r (0x6040) -- unimplemented"); }
-  mathboxLo() { throw new NotImplemented("mathbox lo_r (0x6060) -- unimplemented"); }
-  mathboxHi() { throw new NotImplemented("mathbox hi_r (0x6070) -- unimplemented"); }
-  mathboxGo(op, v) { throw new NotImplemented(`mathbox go_w (0x6080+${op.toString(16)}) -- unimplemented`); }
+  mathboxStatus() { return this.mathbox.statusR(); } // 0x6040 R: bit7 busy = 0 (instantaneous)
+  mathboxLo() { return this.mathbox.loR(); }
+  mathboxHi() { return this.mathbox.hiR(); }
+  mathboxGo(op, v) { this.mathbox.goW(op, v); } // 0x6080-609F: offset = opcode, data = operand
   // EAROM (ER2055): earom_write @0x6000-603F, earom_control_w @0x6040, earom_read @0x6050 (tempest.cpp:451-467).
   // Control wiring: CK=EDB0, C1=/EDB2, C2=EDB1, CS1=EDB3, /CS2=GND -> set_control(bit3, 1, !bit2, bit1).
   earomRead() { return this.earom.read(); }

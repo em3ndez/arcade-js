@@ -105,9 +105,12 @@ export class Machine {
     // (ground vs MAME). Irrelevant to the first boot gap (reset does SEI then hits its first m.call).
     while (this.cycles >= this.nextIrqCycle) {
       this.nextIrqCycle += IRQ_PERIOD;
-      this.irqLine = true;
-      this.fireIrq();
+      this.irqLine = true; // asserts; stays asserted until wdclr (0x5000) acks it -- MAME's periodic_int
     }
+    // Take a pending IRQ at THIS instruction boundary if unmasked; an IRQ asserted while I is set is PENDING
+    // and fires at the boundary after I next clears (CLI/RTI/PLP) -- not dropped. This matches MAME and keeps
+    // the IRQ COUNT (and $53, the main-loop frame counter) in lockstep with the reference.
+    if (this.irqLine && !this.regs.fI && this.pcKnown) this.fireIrq();
     while (this.cycles >= this.nextBoundary && this.frames.length < this.maxFrames) {
       this.applyInputs(this.frames.length);
       this.frames.push(this.mem.dumpState());
@@ -217,6 +220,7 @@ export class Machine {
     c.io.flipX = this.io.flipX;
     c.io.flipY = this.io.flipY;
     c.io.earom = this.io.earom.clone();
+    c.io.mathbox = this.io.mathbox.clone();
     c.io.pokeys = this.io.pokeys.map((p) => p.clone());
     if (c.io.avg) { c.io.avg.flipX = this.io.flipX; c.io.avg.flipY = this.io.flipY; }
     c.regs.copyFrom(this.regs);
