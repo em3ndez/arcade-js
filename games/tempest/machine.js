@@ -216,6 +216,8 @@ export class Machine {
     c.io.colorram.set(this.io.colorram);
     c.io.flipX = this.io.flipX;
     c.io.flipY = this.io.flipY;
+    c.io.earom = this.io.earom.clone();
+    c.io.pokeys = this.io.pokeys.map((p) => p.clone());
     if (c.io.avg) { c.io.avg.flipX = this.io.flipX; c.io.avg.flipY = this.io.flipY; }
     c.regs.copyFrom(this.regs);
     c.cycles = this.cycles;
