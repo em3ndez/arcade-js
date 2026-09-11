@@ -1,182 +1,314 @@
 # Tempest — mechanisms
 
-A code-grounded model of how Tempest actually runs, built from the translated 6502 lift and the
-idiomatic rewrite, and confirmed against the real ROM under MAME. It grows with the port: this first
-edition covers the subsystems reached by the first idiomatic decompile batch (leaf routines), framed
-inside the overall machine structure. Everything outside those leaves is still described only where the
-surrounding lift makes it certain.
+A code-grounded model of how Tempest actually runs, built from the translated 6502 lift and the idiomatic
+rewrite and confirmed against the real ROM under MAME. It covers the subsystems reached by the idiomatic
+decompile so far; routines still on the frozen oracle are noted at the end. The machine is a colour vector
+game: the 6502 builds a display list in AVG vector RAM (`0x2000-0x2FFF`) each frame and the Analog Vector
+Generator draws it, with the vblank interrupt as the per-frame heartbeat and a game-state index driving a
+computed-jump dispatch that selects the mode handler (attract, coin-in, play, transitions).
 
-**Confidence tags.** Every claim carries one. `[seen]` — a role-defining observation on the real ROM
-under MAME (a watched write, a value change, confirmed reachability). `[code]` — derived from the
-faithful lift's behaviour, mechanically exact but the *role* is inference. `[guess]` — plausible,
-unverified. A `[code]` routine is real code whose game-purpose is simply not yet pinned; where the
-purpose is genuinely open the identifier stays `loc_<addr>` rather than assert a confident-wrong name.
-
-## The shape of the machine
-
-Tempest is a colour vector game: the CPU builds a display list in AVG vector RAM (`0x2000-0x2FFF`)
-each frame and the Analog Vector Generator draws it. The 6502 runs a free-running main loop with the
-vblank interrupt as the per-frame heartbeat; a game-state index in the low RAM drives a computed-jump
-dispatch that selects the handler for the current mode (attract, coin-in, play, transitions). Most of
-the work below sits *under* that dispatcher: the per-object animation engine, the vector-list builders,
-and the state-reset chains that run when a mode or level begins. This altitude is machine plumbing —
-the vector and object machinery beneath the visible cast — so many roles are legible from the code yet
-carry no direct line in the outside-in game description.
+**Confidence tags.** `[seen]` — a role-defining observation on the real ROM under MAME (a watched write, a
+value change, confirmed reachability). `[code]` — derived from the faithful lift's behaviour, mechanically
+exact but the role is inference. `[guess]` — plausible, unverified. A `[code]` routine is real code whose
+game-purpose is not yet pinned; where the purpose is genuinely open the identifier stays `loc_<addr>`.
 
 ## The object motion-script engine
 
-Objects are animated by a small byte-coded **motion script**, not by open-coded per-object logic. A
-driver walks a per-object script whose bytes are fetched through the ROM tables at `0xa0f7`/`0xa0f8`,
-maintaining an instruction pointer in `0x010b`, a branch/condition flag in `0x010c`, and a
-loop-continuation flag in `0x010a`; the object being written is selected by the slot base `0x0298`.
-Each script byte is an opcode dispatched through a computed (RTS-trick) table, and the opcode handlers
-are leaves:
+Each scripted object is driven by a tiny byte-code program — a motion script — stored in a ROM table based at `loc_a0f7`. A single rolling cursor, `loc_10b`, is the interpreter's instruction pointer into that table: it selects which script byte is read next, and every handler below leaves it pointing one step further along. A per-object driver (`loc_9b1e`, elsewhere) walks the script one opcode at a time, and the routines in this section are the opcode handlers it runs. Three cells thread the whole engine together and are what make the individual handlers cohere: `loc_10b` (the script cursor / IP), `loc_10c` (a branch flag that the conditional opcodes read), and `loc_10a` (a walk-continuation flag the driver keeps set so its loop stays alive until a handler decides to stop it). The `loc_a0f8` constant is simply `loc_a0f7 + 1`, so a fetch of `loc_a0f8[i]` reads the byte one position past index `i` — the engine's way of reading an opcode's trailing operand.
 
-- **`loc_9bd0`** advances the instruction pointer and copies the next script byte straight into the
-  object's slot — an immediate store. `[seen]`: the pointer bump and the slot writes into `0x029b-0x029e`
-  are observed under MAME.
-- **`loc_9bdd`** advances the pointer, then treats the next script byte as a zero-page address and copies
-  *that* live variable into the slot — an indirect store, the variable-operand counterpart of `loc_9bd0`.
-  `[seen]`.
-- **`loc_9bee`** is a conditional skip: when the branch flag `0x010c` is clear it advances the pointer by
-  two, stepping over a two-byte operand; when set it does nothing. `[seen]` (both increments observed).
-- **`loc_9bfa`** is a conditional goto: it advances the pointer, and when the branch flag is clear it
-  reloads the pointer from the script operand, jumping to a target. `[seen]` (advance and table-reload
-  writes observed).
-- **`loc_9c17`** is the unconditional goto, reloading the pointer from the operand table; it is also the
-  loop-back tail of a timer opcode, and runs very heavily. `[seen]`.
-- **`loc_9bca`** clears the continuation flag `0x010a`, terminating the driver's inner walk — the
-  "stop iterating" signal. `[seen]` (the flag clear is observed thousands of times).
+**Writing script data into an object's slot.** The two store opcodes are how a script pokes values into the object it animates, whose per-object fields live in the slot array based at `loc_298`, indexed by the object's slot number `x`. `loc_9bd0` [seen] is the immediate store: it bumps the cursor `loc_10b` by one, reads the byte the cursor now selects from the script table (`loc_a0f7[loc_10b]`), and copies it straight into the object's slot cell `loc_298 + x`. The value is a literal baked into the script. `loc_9bdd` [seen] is the indirect store and shares the same shape, but the fetched table byte is not the value — it is used as a zero-page address (`loc_00 + ptr`), and the *live* variable found there is what gets copied into `loc_298 + x`. So the immediate form writes a constant the script author chose, while the indirect form writes whatever a running game variable currently holds, letting a script mirror dynamic state into the object's field.
 
-Two opcodes are TEST instructions that produce the branch flag `0x010c` the skip/goto handlers read.
-Both were dormant in the captured window, so their roles are `[code]`, exact but unconfirmed on
-hardware:
+**Moving the cursor around — the control flow.** `loc_9c17` [seen] is the unconditional goto and is the most heavily exercised handler in the engine: it reloads `loc_10b` from `loc_a0f8[loc_10b]`, i.e. it takes the operand byte sitting just after the current opcode and makes that the new cursor, jumping the interpreter to that position in the script. (It also serves as the loop-back tail of the timer opcode `loc_9c0c`, so a script that waits on a countdown ultimately re-enters the stream through this same jump.) `loc_9bfa` [seen] is the conditional counterpart: it first advances `loc_10b` by one so the cursor rests on the operand, then consults the branch flag `loc_10c`. If that flag is non-zero it returns, leaving the cursor stepped past the operand so execution simply continues; only when the flag is zero does it reload `loc_10b` from the table (`loc_a0f7[loc_10b]`), taking the jump to the operand's target. `loc_9bee` [seen] is the lighter conditional skip: when the branch flag `loc_10c` is non-zero it does nothing, and when it is zero it advances `loc_10b` by two, stepping the cursor over a two-byte operand so the following instruction is bypassed. Both conditionals thus act only when the flag is clear, which fixes the polarity of the tests below: a test that leaves `loc_10c` non-zero suppresses the following skip or jump, while a zero result lets it fire.
 
-- **`loc_9c21`** reads a slot's segment `0x02b9`, looks up a per-segment bound in the table at `0x03ac`
-  (an absent entry reads as maximum), compares it to the slot's depth `0x02df`, and sets the branch flag
-  from that comparison — a position-versus-boundary test consistent with a lane/segment limit. `[code]`.
-- **`loc_9c3b`** sets the branch flag from bit arithmetic on the `0x0147`/`0x0148` accumulator pair
-  (`0x0148` being a signed phase accumulator the driver advances by `0x0147`) — a phase/overflow test.
-  `[code]`.
+**Halting the walk.** `loc_9bca` [seen] writes zero into the continuation flag `loc_10a`. Because the driver's loop keeps stepping only while that flag is set, this is the opcode that terminates a script's walk — the interpreter runs it, the flag drops, and the driver falls out of its per-byte loop for this object.
+
+**Producing the branch flag — the test opcodes.** The conditionals above are only as useful as whatever sets `loc_10c`, and two handlers here compute it. `loc_9c21` [code] tests the object against tube geometry: it reads the object's segment from `loc_2b9 + x`, looks up that segment's boundary in the per-segment table `loc_3ac` (a stored zero is treated as the maximum, `0xff`), compares it against the object's depth/coordinate in `loc_2df + x`, and sets `loc_10c` to 1 when the boundary is at or beyond the object's position and 0 otherwise — the code supports "has this object reached/crossed its segment boundary," though the game meaning is code-derived only. `loc_9c3b` [code] instead derives the flag from a two-byte accumulator pair, `loc_147` and `loc_148`: it forms `((loc_147 << 2) + loc_148) & loc_148 & 0x80`, then inverts bit 7, storing `0x00` when that high bit was set and `0x80` when it was clear. `loc_148` reads as a signed phase accumulator that the driver's tail advances by `loc_147`, so this opcode gates a branch on the sign/phase of that accumulator; both tests are code-derived and were not exercised in the capture, so their exact role in play is unconfirmed.
+
+**A sibling cursor-skip.** `loc_96c7` [code] is a register-only list-cursor advance rather than a `loc_10b` script opcode, and it rides a different dispatch path — the `loc_969d` table reached through `loc_9683` keyed on `loc_015e` — but it belongs to the same family of "walk a packed structure" primitives. Its two entry points step the `y` list cursor past a packed record without reading it: entering at `loc_96c7` advances `y` by three (it bumps `y` by one and falls into the second entry), while entering at `loc_96c8` advances by two. It is the skip-this-record move used while scanning a packed list; with no memory writes of its own it left nothing to observe, so its precise consumer is code-derived only.
 
 ## Vector coordinate lists and the display cursor
 
-The picture is assembled by walking coordinate lists and appending to the display list. A pointer into
-the current coordinate list lives at `0x2c`/`0x2d`, and the running display cursor at `0x74`/`0x75`
-sweeps AVG vector RAM.
+Tempest draws its tube, its enemies, and its Blaster as vector geometry, and the shapes are stored as packed lists of coordinate entries in ROM. A small family of zero-page helpers navigates those lists: they select which list to read, walk from entry to entry, resolve a stored entry into an actual coordinate, and — separately — advance the write cursor that lays vectors down into the vector display's RAM. All of them share a single indirect pointer in zero page, the pair `loc_2c`/`loc_2d`, which holds the little-endian address of the coordinate list currently being read.
 
-- **`loc_9aee`** selects a coordinate list: indexed by a register it loads a pointer from the ROM tables
-  `0x9b02` (low) / `0x9afd` (high) into `0x2c`/`0x2d` and records the chosen index at `0x2b`. `[seen]`
-  (all three writes observed) — the producer the walkers below chase.
-- **`loc_96cb`** steps the list cursor by an inter-entry delta: it differences an entry against its
-  predecessor, stashes the step at `0x29`, and advances by that delta plus two. `[seen]` (the observed
-  delta values are real inter-entry steps).
-- **`loc_96db`** resolves a list entry to an absolute coordinate by adding the base `0x0160`; a pure
-  compute helper with no memory write, reached through a computed jump, so `[code]`.
-- **`loc_96c7`** advances the cursor past a packed record without reading it (a register-only skip of
-  three or two bytes at its two entries); `[code]`, register-only.
-- **`loc_df5f`** advances the 16-bit display cursor `0x74`/`0x75` by a count-plus-one, carrying into the
-  high byte, sweeping the pointer across the `0x22xx-0x2fxx` vector RAM. `[seen]` — its callers are the
-  vector-list builders, and the cursor is observed sweeping vector RAM continuously.
+### Selecting a list
 
-## Building and emitting draw pointers
+`loc_9aee` [seen] installs that pointer. Given an index in Y, it reads a low byte from the ROM table at `loc_9b02` and a high byte from the table at `loc_9afd`, storing them into `loc_2c` and `loc_2d` respectively, so the two parallel tables form a directory of coordinate-list addresses keyed by Y. It also records which entry was chosen by stashing Y into `loc_2b` (the selected-list index, kept for later helpers that need to know *which* list is active), and finishes by reloading A from the `loc_29` scratch cell. In effect this is the "open this coordinate list" step: after it runs, the pointer helpers below read through `loc_2c`/`loc_2d`.
 
-Above the coordinate walkers sits the per-subsystem draw setup that aims the display cursor at the right
-data before each subsystem's shapes are drawn.
+### Walking the list
 
-- **`loc_b2be`** picks a two-byte pointer from one of two ROM tables (`0xce68` or `0xce7a`, chosen by the
-  flag byte `0x0415`) and publishes it into the `0x74`/`0x75` indirect draw pointer. `[seen]`: the frame
-  drawer calls it before each of several subsystem draws, and the published pointer is observed changing.
-- **`loc_91b5`** loads an indexed pointer from the ROM table at `0x91c6` into the general working pointer
-  `0x2a`/`0x2b`, clearing `0x29`; its caller then drives a three-byte indirect draw/copy from that
-  pointer. `[seen]`.
-- **`loc_c43c`** gathers an object's attributes into the draw working block: from the slot index `0x37` it
-  copies four parallel attribute tables (`0x036a`→`0x61`, `0x035a`→`0x62`, `0x038a`→`0x63`,
-  `0x037a`→`0x64`) that the shape drawer then consumes. `[seen]` (all four writes observed with varying
-  values from real attribute arrays).
-- **`loc_b896`** writes the cursor into the vector-RAM tail record (`0x2ffc`/`0x2ffd` with the high byte
-  flagged, `0x2fff` a terminator) and decrements the cursor by a fixed stride; **`loc_b944`** swaps the
-  `0x74`/`0x75` pointer with `0x76`/`0x77`; **`loc_b967`** selects one of two ROM pointer-table entries by
-  the flag `0x0415` for its caller's draw struct. All three sit in an object-draw loop that stayed dormant
-  in the captured window, so each is `[code]` — mechanism exact, reach unconfirmed.
+`loc_96cb` [seen] steps the cursor from one entry to the next by the amount the list itself encodes. Through the `loc_2c`/`loc_2d` pointer it reads the entry at the current index Y and the entry just before it (Y−1), takes their difference, and stores that difference at `loc_29` as the inter-entry step delta. It then advances the cursor to `Y + delta + 2`, i.e. moves Y forward by the delta plus two. Because the step size is carried *in* the list rather than being a fixed stride, the coordinate entries can be variable-length runs; this routine is what turns "next" into the correct byte offset. The observed deltas are small positive steps (roughly 1 through 0xf), consistent with real spacing between successive packed entries.
 
-## State-reset chains
+`loc_96ab` [seen] is a coordinate helper over the same list, sharing its body with one sibling, `loc_96b7`, that differs only in the value fed in; a third entry `loc_96c4` in the same file is instead a standalone plain read of the current entry rather than the shared arithmetic. For `loc_96ab` the fed value is derived from the selected-list index in `loc_2b`, wrapped into the range 1..16 (`((loc_2b − 1) & 0x0f) + 1`), while `loc_96b7` uses the raw `loc_2b`. The shared body first stashes the incoming cursor Y into `loc_29`, then reads the entry two positions back in the list (at `ptr + (Y−2)`) and subtracts it from that value, re-adds the stashed cursor, and uses the result as a fresh index into the same list — returning both the entry it lands on (in A) and that new index (in Y). It is a compute-and-reindex helper: it folds a delta drawn from earlier in the list back into the cursor to jump to a related entry, rather than reading strictly forward. Its only memory write is the `loc_29` scratch, so it is grounded as reached with its cursor arithmetic exercised, and its output feeds the vector-coordinate generation that draws the on-screen shape.
 
-When a mode or level begins, a chain of reset routines (entered through the init sequences around
-`loc_902b`/`loc_9009`/`loc_90c4`) clears working blocks and seeds constants. These are legible as resets
-and were reached under MAME, but the *game meaning* of each block is not yet settled, so the routines and
-their cells keep `loc_` names:
+### Resolving an entry to a coordinate
 
-- **`loc_921b`** seeds a fixed set of init constants across `0x0200`, `0x51`, `0x0106`, `0x0201`, `0x0202`.
-  `[seen]` (reached; `0x0200` and `0x51` are real state cells that vary elsewhere, so this is a genuine
-  seed).
-- **`loc_9234`** sets a table header `0x03ab` from a per-level source `0x015b` and fills the 16-entry array
-  `0x03ac..0x03bb` from `0x015a` — a per-lane-width table reset (sixteen entries matching the tube's
-  segment count). `[seen]` on the header write.
-- **`loc_926f`**, **`loc_928f`**, **`loc_929f`** each zero a working array (`0x02df..0x02e5`,
-  `0x02d3..0x02de`, `0x030a..0x0311` respectively) plus a handful of associated flags; **`loc_92ad`** clears
-  the single state byte `0x50`; **`loc_ca62`** clears the six-byte scratch/staging block `0x40..0x45` its
-  caller then reads as two three-byte entries; **`loc_a831`** clears `0x03aa` and the latch `0x0125`. All
-  `[seen]` (each was reached and its clears observed) except where a target is only ever cleared in the
-  capture.
-- **`loc_a789`** zeroes the 16-byte per-slot state table `0x0283..0x0292` and seeds five scalar cells
-  (`0x010e`, `0x010d`, `0x01`, `0x68`, `0x69`); its caller runs it as part of a mode/level re-init. `[code]`:
-  the whole per-slot enemy path was dormant in the capture, so the reset is legible from the code but
-  MAME-unconfirmed here.
-- **`loc_b0e7`** seeds startup work cells (`0x00`, `0x02`, `0x04`, `0x01`, `0x014e`, `0x014d`) with fixed
-  constants; **`loc_c97b`** and **`loc_ca18`** are state-entry seeders of the zero-page config block
-  `0x00-0x04` (with `loc_ca18` first masking the flag byte `0x05`), each writing a different constant set for
-  its state. All `[seen]` as producers; the individual cells are constant-only in the capture so their own
-  roles stay `[code]`.
+`loc_96db` [code] converts one list entry into an absolute coordinate. It reads the byte at the pointer indexed by Y (again through `loc_2c`/`loc_2d`) and adds the base value held in `loc_160`, returning the sum in A. The stored entries are therefore relative offsets from a movable origin, and this routine applies that origin so the same list can be drawn at different positions. Its base cell `loc_160` is exercised, but this is a pure compute helper with no memory write of its own to observe, and its reach through the dispatch that would call it cannot be confirmed from a write-tap — hence the [code] tag: the mechanism (offset + base → coordinate) is what the code plainly does, but a MAME-confirmed consumer of its result is not established here.
 
-## Enemy rim motion and the spike
+### Advancing the display-write cursor
 
-Enemies travel around the rim of the tube by segment; a small cluster computes and applies their
-direction. Most of this path was dormant in an attract-plus-brief-play capture, so it is `[code]` except
-where a routine was independently reached:
+Distinct from the read pointer above, `loc_df5f` [seen] advances the 16-bit cursor `loc_74`/`loc_75` that addresses the vector display RAM. It takes a stride in Y and adds Y+1 to the low byte `loc_74` (the carry is forced in, so the effective step is Y+1), and on overflow past 0xff it increments the high byte `loc_75`, carrying into it. This little-endian pointer sweeps through the 0x22xx–0x2fxx region — the AVG vector/display buffer — and it is written enormously often (hundreds of thousands of low-byte updates per session), which is what a per-frame cursor stepping across every vector emitted for the tube and its actors would look like. Where the list helpers above *read* coordinates out of ROM, this routine *walks the pen* forward through the memory those coordinates are ultimately drawn into.
 
-- **`loc_a7a6`** computes the signed segment distance from a reference to a target (masking to a signed
-  low nibble unless a full-byte flag `0x0111` is set); its consumers use the sign to set or clear an
-  enemy's travel-direction bit. `[seen]` (the signed result is observed).
-- **`loc_9c4f`** toggles bit 6 of a slot's state `0x0283` — the flip/travel-direction bit an enemy
-  reverses at a segment limit. `[code]` (the enemy-flip path was dormant).
-- **`loc_a69b`** returns a signed random step in the range −7..+7 from the POKEY random register `0x60da`,
-  negating on a caller flag; its consumer is the enemy-spawn routine that fills velocity/coordinate deltas.
-  `[code]` (spawn dormant in capture).
-- **`loc_a7bd`** resets an eight-entry table (`0x03fe..0x0405`, seeding the last entry to a height value)
-  and arms the flag `0x0115`; its caller runs it once a descending object passes a threshold, and the
-  seeded entry is later observed draining as a live counter — consistent with the spiker's spike. `[seen]`.
+## Draw-pointer setup and vector emission
+
+Everything the machine puts on the tube is written as a stream of records into the vector RAM at `loc_2000`–`loc_2fff`, the region the hardware's vector generator scans each frame to draw the well, the enemies, the Blaster, and the text. The CPU builds that stream through a shared little-endian write cursor `loc_74`/`loc_75`, with a second running byte offset `loc_a9` that several emitters add on top of the base pointer. The routines here fall into two groups: those that aim the cursor at the right place before a subsystem draws, and those that lay down the individual records once it is aimed.
+
+### Aiming the cursor
+
+`loc_b2be` [seen] is the per-subsystem setup step. Given a selector in A it forms a two-byte stride `2*A` and pulls a 16-bit pointer out of one of two ROM tables — `loc_ce68` when the per-index flag `loc_415[A]` is nonzero, `loc_ce7a` when it is zero — publishing the low and high halves into the draw cursor `loc_74`/`loc_75` and zeroing the offset `loc_a9` so the next emitter starts at the head of that structure. In MAME the two cursor bytes are seen pulsing across the `0x20`–`0x2e` high range, i.e. addresses inside vector RAM, confirming this is the routine that points the writer at a fresh draw list.
+
+`loc_91b5` [seen] is the same idea for a different consumer: it doubles its selector into a word index, clears the paired scratch byte `loc_29`, and copies the little-endian pointer from the in-page ROM table at `loc_91c6` into the general working pointer `loc_2a`/`loc_2b` (observed installing `$0540`). It is a table-driven pointer loader rather than a vector-RAM aim, feeding whatever indirect reader the caller runs next.
+
+Two more routines rearrange which structure the cursor addresses, though neither ran during the capture. `loc_b944` [code] swaps the `loc_74`/`loc_75` pointer with a second pair `loc_76`/`loc_77`, so the same emit code can be redirected to the other of two draw structures and back. `loc_b967` [code] selects a pointer pair from ROM by the mode flag `loc_415` — the first pair when the flag is zero, the second otherwise — returning it for the caller to store as `loc_76`/`loc_77`. Both are reachable only through an object-draw loop that stayed dormant in this run, so their game role is legible from the code but unconfirmed against MAME.
+
+### Gathering the source coordinates
+
+Before the geometry emitters run, `loc_c43c` [seen] pulls one object's coordinates into the working block. It reads the active slot index `loc_37` and copies that column of four parallel per-object tables — `loc_35a`/`loc_36a`/`loc_37a`/`loc_38a`, which hold the object's two 16-bit coordinate pairs — into `loc_61`/`loc_62` and `loc_63`/`loc_64`. Those tables carry real, varying per-object values, so this is the producer that stages a point for the delta emitter.
+
+### Laying down records
+
+`loc_b56a` [seen] is the primitive append: it writes the four bytes `0, 0, 0, A` at the cursor and advances `loc_74`/`loc_75` by four, carrying into the high byte on overflow. It is exercised heavily, sweeping the whole `0x22f4`–`0x2b67` span of vector RAM, and is the workhorse that lays down plain records with a single caller-supplied payload byte.
+
+`loc_b332` [seen] emits a linking record but guards it against a mid-build frame change: it compares the live source `loc_cec4` against the checkpoint stored at `loc_2000`, and if they differ it latches the new value and returns carry set to tell the caller the frame moved and the list must be rebuilt. When they match it copies a two-byte word from `loc_ce9e` (choosing the slot at offset 8 or 2 by the `loc_415` mode flag) through the cursor, clears `loc_16e`, and reloads `loc_74`/`loc_75` from the matching `loc_ce68` entry so the writer continues into the next chained block, returning carry clear.
+
+`loc_b896` [code] closes out a list. It writes the 16-bit build cursor `loc_139`/`loc_13a` into the tail of vector RAM — low byte to `loc_2ffc`, high byte tagged with `0x70` to `loc_2ffd`, and the terminator byte `0xc0` to `loc_2fff` (the vector generator's stop opcode) — then steps the cursor down by `0x20` with a 16-bit borrow and masks the low byte to `0x7f`. It did not run in this capture, so the role is code-derived; the five target cells show only the boot-clear otherwise.
+
+Three routines emit the tube's own vector geometry, and they work as a set. `loc_c66d` [seen] builds a rim vertex: it averages slot `loc_38`'s two coordinate pairs with those of its wrap-around neighbour (`(slot+1) & 0x0f`), using a sign-preserving round-up halve, to get the midpoint between two adjacent lane boundaries. It stashes the two midpoint pairs in `loc_61`–`loc_64`, appends the four bytes through the `loc_74` pointer at offset `loc_a9` — the high bytes masked to five bits so the top bits stay free for the generator's opcode field — and mirrors the same midpoint into `loc_6a`–`loc_6d` as the "previous point." `loc_c73c` [seen] then draws the connecting stroke: it emits two 16-bit differences through the same cursor, `(loc_63:loc_64) − (loc_6c:loc_6d)` and `(loc_61:loc_62) − (loc_6a:loc_6b)`, i.e. the delta from the mirrored previous point to the current one; each high byte is masked to five bits and the second is OR'd with `0xa0`, the vector-draw opcode the generator acts on. In MAME the offset `loc_a9` is seen advancing and the `0xa0`/`0xbf` opcode high bytes landing across `0x220f`–`0x2403` of vector RAM, so this pair genuinely produces the drawn line segments.
+
+`loc_a9fc` [seen] handles text. It maps the low nibble of A to a single font byte from the ROM table `loc_31e4` at index `2*y` — where a zero nibble with carry set selects entry 0 and any other nibble steps one past itself — stores that byte at the `loc_2f60` glyph cursor, and steps the cursor by two, so it fills every other (even) slot of the buffer. Its writes are seen filling the even slots of the `0x2f60` buffer with real, varying font values, so this is the routine that appends one glyph's stroke to the on-screen text.
+
+Finally, `loc_bd3e` [seen] appends a normalized (mantissa, exponent) pair, the form the display uses for perspective-scaled points. For a small input (`loc_57 < 0x10`) it emits the trivial pair `(1, 0)`; otherwise it forms the 16-bit difference `loc_57`/`loc_5b` against `loc_5f`, feeds it to the math coprocessor's operand registers (`loc_6095`/`loc_6096`, issued via `loc_608c`/`loc_608e`/`loc_6094`), spins until the busy bit of `loc_6040` clears, reads the result out of `loc_6060`/`loc_6070`, and normalizes it by rolling the value left until a 1 bit falls out — the roll count becoming the mantissa (kept in `loc_78`) and the leftover value the exponent. The exponent byte is written raw through the `loc_74` cursor at offset `loc_a9`, and the mantissa byte — tagged with `0x70` — at the next offset. The observed operand and normalization writes confirm the math box is actually driven here.
+
+## Enemy spawning and lane selection
+
+New enemies do not appear at fixed places; the machine keeps a small set of parallel per-slot arrays and, each time it wants another attacker on the tube, it looks for an unused slot, decides which lane that enemy should occupy, and stamps its starting state into every array at the same index. This subsystem is the front half of that pipeline — finding room for an enemy and choosing where on the rim it enters — together with the separate timed-object table that meters out follow-on spawns over time.
+
+### Allocating and seeding an enemy slot
+
+`loc_994d` [seen] is the allocator. It walks the presence array `loc_2df` downward from the current fill index `loc_11c`, and the first entry it finds already holding zero is the free slot; if the scan runs off the bottom (the index goes negative) it gives up and returns 0, the machine's signal that the tube is full and no enemy could be placed. On a hit it commits the enemy into that slot's column of every parallel table at once: the presence/depth cell `loc_2df` takes the incoming depth from scratch `loc_29`; the target segment `loc_2b9` takes the incoming lane from `loc_2a`, with one twist — when that lane arrives as the sentinel `0x0f` and the global gate `loc_111` has its high bit set, the routine substitutes a POKEY-random even lane (`loc_60ca & 0x0e`) instead of the sentinel, so a "wildcard" request lands on a random rim segment. The successor segment `loc_2cc` is set to the target plus one (mod 16), the phase cell `loc_2a6` is cleared, and the two coordinate halves `loc_28a`/`loc_291` are seeded from `loc_2c`/`loc_2d`. It then bumps the active-enemy count `loc_108`, writes the slot flags `loc_283` from `loc_2b`, and increments the per-lane population counter `loc_142` at the lane in the low three bits of those flags. It reports `0x10` for success. So a caller hands `loc_994d` a depth, a lane, a coordinate pair and a flag byte, and gets back either a fully-stitched slot or a "no room" zero.
+
+### Choosing the lane a new enemy enters on
+
+`loc_9abb` [seen] is the lane picker that feeds the allocator. It starts from a POKEY-random rim position (`loc_60ca & 0x03`, one of four candidate slots), primes a countdown of four in `loc_2b`, and stashes the caller's X in `loc_39`. It then loops: each pass decrements the countdown — if that underflows it returns 0, meaning none of the four candidates was usable — and steps a wrapping index through the four-entry candidate-lane table `loc_149`. An entry equal to `0x03` is remapped to `0x05`, and the candidate qualifies only when its lane is currently occupied per the per-lane table `loc_13c` (a nonzero entry). The first candidate that qualifies breaks the loop. On success it takes that lane from `loc_149`, OR's in `0x40`, and publishes it as `loc_2c`; it loads the list-high byte from ROM table `loc_9afd` into `loc_2d`, records the selected index `0x02` in `loc_2b`, and returns the value in `loc_29`. In other words it hunts among a handful of random rim lanes for one that already has activity and builds the pointer/tag pair that the spawn machinery downstream consumes.
+
+### Seeding the per-slot random tag table
+
+`loc_9246` [seen] is a wave-setup producer that fills the tag table the pickers draw against. It first clears the 64-byte table at `loc_243`, then, counting down from one below the active-slot count `loc_3ab`, gives every slot two things: a fresh POKEY-random nibble (`loc_60ca & 0x0f`) written to the per-slot random array `loc_203`, and a packed tag written to `loc_243` formed from the slot index in the high nibble OR'd with that random nibble — with the special case that a tag computing to zero is stored as `0x0f` instead, so no slot's tag reads as empty. This gives each slot a randomized identity used to vary spawn/pathing choices across a wave.
+
+### Steering an enemy toward the deepest column
+
+Once an enemy exists, `loc_a028` [code] decides which segment it should aim for. It scans the 16-column depth table `loc_3ac` starting from a POKEY2-random column (`loc_60da & 0x0f`) and walks all sixteen via the loop counter `loc_140`, keeping the column with the greatest depth — and an empty column (depth 0) is treated as `0xff`, i.e. maximal, so unoccupied columns are the most attractive targets. The final column `0x0f` is skipped while the gate `loc_111` is nonzero. The winning column is written as the slot's target segment `loc_2b9` and its successor (winner+1, mod 16) as `loc_2cc`, and bit7 of the slot flag `loc_28a` is cleared. The effect the code supports is "pick the deepest/emptiest lane to head for"; note this routine carries a code-only tag — its two write paths were not exercised in the capture, so the role is read from the code rather than confirmed under MAME.
+
+### Direction-flag bookkeeping as the enemy rides the rim
+
+Two small helpers manage the direction bit that governs an enemy flipping around the rim. `loc_9eab` [code], active only while the gate `loc_111` is on, is a keeper for bit6 of the slot flag `loc_283`: when that bit is set it clears it once the slot's depth `loc_2b9` reaches `0x0e`, and when the bit is clear it sets it only while the depth is exactly 0 — a hysteresis that toggles the flip/travel direction at the two ends of the enemy's depth range. `loc_9ed7` [code] is a pure lookup that resolves the actual direction byte: it reads a value from the ring table `loc_3ee` at index Y and forces bit7 on, but when bit6 of the caller's value is set it takes the half-turn instead — stepping the index back one within a 16-entry ring and adding 8 to the looked-up value (also mod 16) before forcing bit7. Both routines carry code-only tags: their write/consume paths did not fire in the capture, so their game roles are inferred from the code, not grounded in MAME.
+
+### The timed-object spawn table
+
+Separate from the enemy slots, an 8-slot table meters out timed objects (follow-on spawns) that appear and expire on a schedule. `loc_a3d6` [seen] inserts one: it saves X/Y to `loc_35`/`loc_36`, then scans all eight slots for a free entry in the presence array `loc_30a` — the first zero wins outright, but if none is free it evicts the slot holding the largest counter, tracked in `loc_312` via scratch `loc_2a`/`loc_2b`, dropping the live count `loc_116` by one first. It then fills the chosen slot's four parallel fields — counter `loc_312` reset to 0, type `loc_302` from `loc_2c`, presence/position `loc_30a` from `loc_29`, lane `loc_2fa` from `loc_2d` — and bumps `loc_116`. Its counterpart `loc_a416` [seen] runs the table forward each pass: if the pending flag `loc_116` is zero it does nothing, otherwise it clears the flag and, for every occupied slot (`loc_30a` nonzero), advances that slot's counter `loc_312` by a per-type step read from ROM table `loc_a44e[type]`. A slot whose counter reaches its per-type limit in `loc_a448[type]` is freed (its presence cell `loc_30a` zeroed); any slot still short re-raises `loc_116` so the loop is visited again next pass. Together these two are the birth-and-expiry cycle for the timed objects that keep feeding the tube between the main enemy spawns.
+
+## Enemy motion around the tube
+
+An enemy occupies a numbered slot (the index `x` threaded through this whole subsystem), and its position on the tube is not a single coordinate but three parallel motion axes, each carried as a low/whole velocity pair driving a fraction/whole position pair. The heart of that stepping is **loc_a6a9** (`integrateEnemyMotionAxes`, code-derived only). For each of the three axes it adds a velocity-low byte into a position fraction, keeps the fractional carry, then folds that carry together with a signed velocity-whole byte into a whole coordinate. Axis 0 works on velocity `loc_2e3`/`loc_343` and coordinate `loc_223`/`loc_283`; axis 1 on `loc_2c3`/`loc_323` into `loc_203`/`loc_263`; axis 2 on `loc_303`/`loc_363` into `loc_243`/`loc_2a3`. The sign of each velocity-whole decides which tube edge is a wall: a rising axis (sign clear) that reaches `0xf0` and a falling axis (sign set) that drops below `0x10` are both treated as overflow, holding the coordinate inside the ring band `[0x10, 0xf0)`. The three axes are not independent at the finish — axis 0's fresh whole coordinate is the one written back to the shared cell `loc_283,x`, but it is forced to zero if *any* axis (0, 1, or 2) overflowed, so an enemy that runs off the end of one axis has its primary coordinate collapsed rather than clamped in place.
+
+Two smaller fixed-point helpers feed the same style of accumulation but were not reached in the capture, so their exact role here is code-derived only. **loc_a75d** (`stepVelocityTowardZero`, code-derived only) damps a signed 16-bit velocity (whole in the Y argument spilled to `loc_2b`, low in A) one fixed increment `loc_a788` (= 0x20) toward zero each call — adding the increment when the whole is negative, subtracting it otherwise — and when the step crosses zero it snaps the velocity to exactly zero and bumps a saturation counter at `loc_29`. **loc_adce** (`integrateFractionalStep`, code-derived only) folds a signed sub-step times eight (`loc_50 << 3`) into a fractional accumulator `loc_51`, propagates the fold-carry plus the step's sign up into A, and then clears the sub-step cell `loc_50`. Both read as the general fixed-point plumbing motion is built on rather than a specific enemy behaviour, and neither exercised its defining path in the trace.
+
+Where an enemy sits *around* the rim, as opposed to along it, is a matter of segments, and the segment arithmetic is what wraps a linear distance onto the closed ring. **loc_a7a6** (`computeSignedSegmentDelta`, MAME-confirmed) computes the signed distance `A - Y`, stashes it in `loc_2a`, and then — unless the flag `loc_111`'s high bit says keep the full byte — masks it to the low four bits and sign-extends bit 3, i.e. reduces the difference to a signed lane count modulo sixteen. Its consumer walks a slot's target segment `loc_2b9,x` against a reference and uses the small signed delta to decide which way around the ring is shorter. The direction an enemy travels along the rim is a single bit: **loc_9c4f** (`toggleSlotFlipDirectionBit`, code-derived only) flips bit 6 of the slot's direction/flags cell `loc_283,x` in place and returns the new value; its caller toggles it exactly when the slot's target reaches a segment boundary, i.e. the enemy reverses its flip direction at the ends of its travel. Fresh motion for a newly placed enemy gets its jitter from **loc_a69b** (`signedRandomStep`, code-derived only): it reads a 3-bit random magnitude 0..7 from `loc_60da` and negates it when the caller's incoming value has bit 0 set, yielding a signed nudge in [-7, +7] that a spawn routine uses to seed per-axis velocity/coordinate deltas.
+
+Turning a slot's ring position into something the display can draw is **loc_b634** (`computeSlotScreenPoint`, MAME-confirmed). It reads the slot's segment `loc_2b9,x`, indexes the base-coordinate tables `loc_3ce`/`loc_3de` with it to get `loc_56`/`loc_58`, then offsets each base by a signed table delta chosen by the low nibble of the slot's phase counter `loc_2cc,x` — the deltas `loc_b68b`/`loc_b687` are added with a 0x80-biased signed-saturating add — landing the screen point in `loc_2e` (X) and `loc_30` (Y), copying `loc_57` to `loc_2f`, and loading a style byte pair `loc_bcdc`/`loc_bcec` (indexed by `loc_112`) into `loc_59`/`loc_5a`. The phase counter that selects which offset within a segment is used is exactly the fraction that **loc_b6fa** (`scaleDeltaByPhaseFraction`, code-derived only) consumes: it stashes the input in `loc_29`, takes the low 3 bits of `loc_2cc,x` as a fraction in `loc_2c`, and runs three rounds of consume-LSB / shift-add / sign-preserving `>>1` to scale a delta by that fraction — the interpolation between segment endpoints as an enemy slides across a lane. Its caller only invokes it on the interpolating branch (a nonzero phase), which is why the trace never entered it.
+
+Two routines act on the spike/rail rail-line table and on high-nibble tables and are correspondingly less pinned. **loc_a7d2** (`remapObjectTableTowardRail`, MAME-confirmed) is a no-op unless the reference `loc_115` is nonzero; otherwise it walks the 8-entry table `loc_3fe` from index 7 down, shrinking large entries (`>= 0x17`) by seven, snapping mid entries to one of two rails (`0xf0` or `0`) chosen by the reference's sign, and letting a zero entry adopt a rail from its next neighbour (neighbour nonzero and below `0xd5` snaps to `0xf0` while the reference is negative). It OR-folds every result into `loc_29`, stamps `loc_37 = 0xff`, and clears the reference `loc_115` if the whole table collapsed to zero — the shape of a set of eight lane values (spike heights, plausibly) being driven toward or off a rail. **loc_b875** (`rotateTriadDownAndMirror`, code-derived only) rotates the three-cell array `loc_22..loc_24` down by one with wraparound and mirrors each new value into the display-paired array `loc_809..loc_80b`; it has no callers anywhere in the port, so its game role here is unconfirmed and it is included only for its mechanism.
+
+Finally, two reached producers touch the per-slot bookkeeping around motion but whose game-vocabulary meaning the code does not settle. **loc_c81b** (`applyPendingStepsAndBumpTally`, MAME-confirmed as mechanism, role unresolved) reads a two-bit gate (bits 5/6 of `loc_4e`) and a `>= 2` test on counter `loc_6`, clears `loc_4e`, and from those derives a step of 0..2 which it subtracts out of the counter and records in `loc_3e`; when the gate is clear it may instead seed four intro cells (`loc_1`/`loc_4`/`loc_0`/`loc_2`) guarded on `loc_50` and the sign of `loc_5`; when the step is nonzero it sets status bits `loc_5 |= 0xc0`, zeroes `loc_16`/`loc_18`/`loc_0`, bumps a 16-bit tally at `loc_40c`/`loc_40d` (indexed 0 or 3 by the step), and clamps `loc_100 + step` to `0x63`. The mechanism is confirmed but its place in enemy motion is not, so it is flagged rather than named. **loc_c9f1** (`computePeakSlotValueAndSetTimer`, MAME-confirmed) scans the zero-page window `loc_46,x` for `x` running from a cursor `loc_3e` down to 0, taking the maximum into `loc_126`, decrementing that peak when nonzero, and then setting the timer cell `loc_0` to `0x14` — or `0x10` when the status byte `loc_5` is negative. Values 0..7 were observed flowing through the window under MAME, so this reads as pacing driven by a per-slot peak, though which population it measures is left to grounding.
+
+## The mathbox: projection and level tables
+
+Tempest draws its tube in perspective, and the arithmetic that turns a point in the world into a point on the vector screen runs on a dedicated math coprocessor rather than on the 6502. The processor talks to that coprocessor through a block of hardware registers: operands are written into `loc_6080`..`loc_6096`, a control byte `loc_608c` selects the operation, results come back on the low/high result pair `loc_6060`/`loc_6070`, and `loc_6040` bit 7 reads high while a computation is still in flight. Three of the routines here drive that coprocessor; the other three build and select the per-level tables that feed it.
+
+### Priming the coprocessor — loc_c1c3 `[seen]`
+
+`loc_c1c3` is the reset that puts the coprocessor and its associated accumulators into a known state. It first clears the zero-page working cells `loc_81`, `loc_91`, `loc_80`, `loc_78`, `loc_90`, and `loc_88`, then zeroes most of the coprocessor input block from `loc_6080` through `loc_6090` (leaving `loc_6082`, `loc_6088`, `loc_608a`, `loc_608b` and the control byte `loc_608c` untouched) — and finally writes `loc_608c = 0x0f` to arm the control register. The effect is to blank the operand registers and the scratch cells before a fresh projection pass begins. (The grounding caveat is worth keeping honest: because the observed capture already found these cells at zero, each clear is consistent with `[seen]` behaviour but no individual cell was watched transitioning from a non-zero value to zero — the routine writes zeros, but the capture could not prove they mattered on that frame.)
+
+### Projecting a point — loc_c098 `[seen]`
+
+`loc_c098` is the projection driver, and it operates on two three-byte coordinate operands held in zero page. It begins by forming a 16-bit signed difference: `loc_57 − loc_5f` becomes the low byte written to `loc_6095`, and the high half is `0 − loc_5b` adjusted by the borrow, written to `loc_6096` — so the delta being fed in is `loc_57` minus the 16-bit reference `loc_5b:loc_5f`. A negative result is clamped up to `+1` (high byte forced to `0x00`, low byte to `0x01`), preventing the coprocessor from being handed a below-zero magnitude. It then computes the two component magnitudes: `|loc_58 − loc_60|` with its sign recorded in `loc_33`, issued to the coprocessor via `loc_608e`/`loc_6094`, and `|loc_56 − loc_5e|` held in `loc_32` with its sign in `loc_34`.
+
+Having posted operands, the routine spins on `loc_6040` bit 7 until the coprocessor reports done, then reads the result pair `loc_6060`/`loc_6070` into the accumulator `loc_63`/`loc_64`. It re-issues the `loc_32` magnitude and, keyed on the sign flag `loc_33`, folds the offset pair `loc_68`/`loc_69` into that accumulator with a full 16-bit signed add-or-subtract; the add and subtract paths each carry an overflow check that saturates the accumulator at the signed limits (`0xff:0x7f` on positive overflow, `0x00:0x80` on negative) rather than letting it wrap. It then waits on the busy bit a second time, reads the next coprocessor result into `loc_61`/`loc_62`, and folds the second offset pair `loc_66`/`loc_67` into it the same saturating way, this time keyed on sign flag `loc_34`. The routine thus produces two saturated 16-bit accumulated coordinates — the transformed point — from the coprocessor's output combined with the paired offsets.
+
+### Snapping a coordinate to its reference — loc_c453 `[seen]`
+
+`loc_c453` works on the same coordinate operands that `loc_c098` feeds to the coprocessor: `loc_5b:loc_57` measured against the reference `loc_5f`. It is a guarded nudge. If the guard byte `loc_5b` is non-zero it does nothing; if `loc_57` already sits `0x0c` or more above the reference `loc_5f` it also does nothing; otherwise it snaps `loc_57` up to `loc_5f + 0x0f`, clamped to a ceiling of `0xf0`. In the capture this was seen making a large jump (e.g. `0x14 → 0xe7`), pulling the coordinate up to hug its reference before that coordinate is projected. It is a convergence step on the projection input rather than a coprocessor operation itself.
+
+### Unpacking the level's tables — loc_c196 `[seen]`
+
+`loc_c196` fills the per-level geometry/colour tables from packed ROM data, indexed by the current level. It masks the level selector `loc_9f` with `0x70` and clamps it to at most `0x5f`, then forms the ROM index `x = (sel >> 1) | 0x07`. Walking `y` from 7 down to 0 (and `x` downward alongside), it reads one packed byte from the ROM table at `loc_c1fd + x` and splits it into two nibbles: the low nibble is written both to the zero-page table `loc_19 + y` and to its display/colour-RAM mirror `loc_800 + y`, and the high nibble goes to `loc_21 + y` and its mirror `loc_808 + y`. One pass therefore expands eight packed ROM bytes into two eight-entry live tables plus their two mirrored copies — the shape/colour parameters the current level's tube is drawn from.
+
+### Building a packed table byte — loc_c2e8 `[seen]`
+
+`loc_c2e8` produces bytes in the same packed nibble format that `loc_c196` consumes. Given an input value, it first bounds it: any value `>= 0x62` is discarded in favour of a masked hardware byte, `loc_60ca & 0x5f`, a fallback drawn from a running hardware source. It splits the value into a `/16` quotient and a remainder, uses the remainder to index the ROM lookup `loc_bc7c`, and stores the looked-up entry to `loc_112`. It returns that entry packed into the high nibble with the low nibble forced to `0x0f` — `(entry << 4) | 0x0f` — the quotient handed back alongside as an index. This is the encoder counterpart: a raw value is mapped through the ROM table into the high-nibble/`0xf`-low packed form the level tables are stored in.
+
+### Selecting the mode flag and scale — loc_ca48 `[seen]`
+
+`loc_ca48` chooses a flag bit and a paired scale/count value from two gate cells. By default it selects `(a, y) = (0x00, 0x10)`; only when both gates `loc_117` and `loc_3d` are non-zero does it switch to the alternate pair `(0x04, 0x08)`. It then copies bit 2 of the chosen `a` into flag `loc_a1` while preserving that byte's other bits, and stores the chosen `y` into `loc_b4`. The observable effect is a scale/count byte (`loc_b4` = `0x10` or `0x08`) gated by two mode conditions, with a single flag bit tracking which branch was taken. In the capture only the default branch was exercised — `loc_a1` was written with bit 2 staying clear and `loc_b4` took `0x10` — so while `loc_a1` is `[seen]` varying globally, the alternate `a = 0x04` path here was not directly witnessed; the two-value selection is what the code supports.
+
+## Sound, POKEY and the interrupt heartbeat
+
+Tempest makes all of its noise through two POKEY chips, mapped side by side in the
+hardware page: the first occupies `loc_60c0`–`loc_60cf`, the second the mirrored block
+`loc_60d0`–`loc_60df`. The code treats each chip by the standard POKEY register layout,
+and several routines here confirm that layout from the inside — the four audio
+frequency/control pairs live in the low eight registers of each chip, offset `0x08`
+carries AUDCTL on write and the pot-completion mask on read, offset `0x0a` reads the
+free-running RANDOM generator, offset `0x0b` restarts the pot scan, and offset `0x0f`
+is SKCTL. Around those chips the game keeps a bank of zero-page shadows — sixteen
+per-voice slots at `loc_c0` (current frame), `loc_d0` (output level), `loc_e0` (fast
+timer) and `loc_f0` (slow timer) — that a small software sound engine advances every
+interrupt and pushes out to the chips.
+
+**Cold-starting both chips** is `loc_cd95` `[seen]`. It performs the textbook dual-POKEY
+init: it first drops SKCTL on both chips (`loc_60cf`/`loc_60df` = 0) and clears
+`loc_720`, then samples each chip's RANDOM register (`loc_60ca`/`loc_60da`) and polls it
+up to five times; if either value moves it latches the first sample into `loc_720`, a
+self-test that proves the noise generators are actually running before the game trusts
+them for randomness. It then writes the canonical SKCTL init value 7 to both chips
+(releasing them from reset with keyboard/serial debounce enabled), zeroes all eight audio
+registers of each chip (`loc_60c0`..`loc_60c7` and `loc_60d0`..`loc_60d7`) together with
+their zero-page shadows `loc_c0`/`loc_d0`, and finally clears both AUDCTL registers
+(`loc_60c8`/`loc_60d8`). After this call every voice is silent and both chips are armed.
+
+**Asking for a sound** goes through `loc_ccc7` `[seen]`. The caller passes a sound id in A;
+the routine parks the caller's X and Y in `loc_31`/`loc_32` so it can use them freely, then
+walks the sixteen voice slots from `0x0f` down to 0. For each slot it steps a table index
+down through the sound-definition table based at `loc_cb01` and reads one byte. A zero byte
+means "this slot is not part of this sound" and is skipped; a nonzero byte claims the slot —
+it stamps the byte into that slot's frame shadow `loc_c0`, arms both of the slot's timers
+(`loc_e0` and `loc_f0` set to 1 so the voice fires on the very next engine step), and
+brackets the write by setting `loc_bf` to the slot number and then back to the `0xff`
+sentinel. `loc_bf` names the slot currently being loaded so the per-frame engine will not
+touch a half-written voice. Because the walk covers all sixteen slots, one sound effect can
+light up several voices at once — a chord or a layered effect is described as a run of
+nonzero table bytes.
+
+**Turning the voices into POKEY writes** is `loc_cd0a` `[seen]`, the per-interrupt sound
+engine step. It sweeps the same sixteen slots, skipping any whose frame shadow `loc_c0` is
+zero (idle) and skipping the one slot named in `loc_bf` (mid-load). For a live slot it counts
+down the fast timer `loc_e0`; while that is still running the voice simply holds. When the
+fast timer expires it counts down the slow timer `loc_f0`, and the two outcomes drive two
+depths of animation. If only the fast timer expired, the engine takes a single step through
+the voice's envelope: it doubles the frame byte into a table index and reads the next
+fast-timer reload plus a level delta from the paired tables at `loc_cbcc`/`loc_cbcd` (or the
+high-bank tables `loc_cccc`/`loc_cccd` when the frame's high bit is set), adds the delta into
+the slot's running level `loc_d0`, and — for odd-numbered slots — preserves the previous high
+nibble of the level so those slots carry a fixed upper field. If both timers expired, it walks
+the frame forward (advancing `loc_c0` two at a time) through the tables at `loc_cbcb`/`loc_cbce`
+until it lands on a nonzero frame, reloading level and both timers as it goes; this is how a
+sound reaches the end of one phase and either loops or falls silent. Whatever the path, the
+slot's finished level `loc_d0` is published to POKEY: slots 0–7 write into the first chip at
+`loc_60c0`+slot, slots 8–15 into the second at `loc_60c8`+slot. So the sixteen software slots
+map onto the two chips' eight registers apiece, and this routine is the bridge between the
+shadow bank and the audible chips on every tick.
+
+**Sharing that tick** is `loc_cf24` `[seen]`, which the interrupt path runs immediately before
+the sound stepper, making the two the recurring body of the game's interrupt heartbeat. It
+drives three parallel lanes indexed 2..0, each enabled by its own bit of the control byte
+`loc_8` (bits 0/1/2). For each enabled lane it advances a position value (`loc_d`+lane) held
+clamped and wrapped into the range 0..`0x1f`, services a per-lane down-timer (`loc_10`+lane)
+that reloads to `0x78` when a lane rolls over, and bumps a per-lane counter (`loc_13`+lane).
+It then folds a per-lane contribution into a set of running accumulators `loc_16`/`loc_17`/
+`loc_18`, applies a threshold taken from the table at `loc_cfd9` (indexed by the high bits of
+`loc_9`) with side effects into `loc_6`, and closes with two clamp passes back over the
+`loc_13` lane triple. What the code establishes firmly is the shape — three gated counters
+integrated into accumulators once per interrupt — but the code alone does not pin down which
+game quantity these accumulators become; it runs as the sound stepper's companion in the
+interrupt, and the specific effect is left open rather than asserted.
+
+**Reading the pot side of the chips** is `loc_dbe0` `[code]`. It writes its incoming argument
+to the second chip's POTGO register (`loc_60db`, restarting that chip's pot conversion), then
+builds a four-bit selector: the low three bits come from the second chip's ALLPOT read
+(`loc_60d8` & `0x07`) and the top bit is one relocated bit of the first chip's ALLPOT read
+(`loc_60c8` & `0x20`, shifted down). Only the low three bits are written to the scratch byte
+`loc_37` and to the first chip's POTGO register (`loc_60cb`); the full four-bit selector (with
+the relocated top bit) is the return value. Its consumers are draw
+routines (one stashes it at `loc_16a`, another uses it as a table index). The mechanism is a
+pot-status packer — the pots are how a POKEY reads the spinner and switch lines — but in the
+captured run every observed write was a constant, so the packing was never exercised with
+varying inputs and the role stays code-derived only.
+
+**Scanning a hardware result block** is `loc_dce6` `[code]`, which was not reached at all in the
+capture. By the code it seeds a small computation in a `0x60xx` hardware block distinct from the
+POKEYs: it zeroes `loc_73`, `loc_414` and `loc_6090`, writes its two arguments as operands into
+`loc_608e` and `loc_608f`, and sets a count of `0x10` into `loc_608c`/`loc_6094`. It then polls
+the single status register `loc_6040` in a wait loop bounded by a `0x10` timeout counter, spinning
+until its high bit clears (a "ready" marker), and returns the result pair from
+`loc_6060`/`loc_6070` in A and Y — or falls out on timeout if it never becomes ready.
+The idiomatic reading is a divide-and-poll against a `0x60xx` math/result device, and its callers
+do store the returned pair; but because nothing exercised it in the capture, the device's exact
+identity is not settled by the code and the tag stays `[code]`.
+
+## The EAROM high-score store
+
+The high-score table and the other settings the cabinet must remember across a power cycle live in an ER-2055 EAROM — a small electrically-alterable NVRAM wired behind the port block at `loc_6000`, its control line at `loc_6040`, and its read-back byte at `loc_6050`. Because that part is slow and must be clocked one cell at a time, the game never touches it directly from gameplay code. Instead it posts a request into a three-byte mailbox and lets a background state machine drain it a little each tick. Three cells make up that mailbox: `loc_1c7` is the pending-request bitmask (each set bit names one EAROM region that needs servicing), `loc_1c8` is the companion mask that says, per region, whether the transfer is a save or a load, and `loc_1c6` is a mode byte that, when nonzero, forces the machine to blank each cell as it goes rather than copy live data.
+
+### Posting a request — `loc_ddf1` [code] and `loc_ddfb` [seen]
+
+Both setters funnel into the same short tail: they stamp a value into `loc_1c6` and OR a mask into both `loc_1c7` and `loc_1c8`, so a new request is added to whatever is already queued rather than replacing it. `loc_ddf1` [code] is the fixed "commit everything" entry — it ORs all three region bits (`0x07`) into the request and direction masks at once and writes `0xff` into `loc_1c6`, arming the blank-as-you-write behaviour; this is the shape used when the machine wants to push all its persistent state out to the EAROM. This commit-everything path was not exercised in the capture — only the narrower `loc_ddfb` region request ran through the shared tail — so its role is code-derived. `loc_ddfb` [seen] is the narrower entry point of the same family: it presets the mask to `0x04` and the mode byte to `0`, then runs the shared tail. Its two inner steps let a caller instead supply the mask (and, at the innermost step, both the mask and the mode byte) directly, so different callers can queue a single region or a caller-chosen set without the blanking flag set. Neither setter does any I/O — they only mark work as pending and return.
+
+### Servicing the queue — `loc_de1b` [seen]
+
+`loc_de1b` [seen] is the EAROM transfer step, and it is entered repeatedly (once the work is queued it is one of the most-reached routines on the machine) because a whole region cannot move in a single pass — the part has to be walked one entry at a time with real clocking between entries.
+
+When the machine is idle for a fresh region (`loc_1ca`, the live-transfer mode byte, is zero) and a request is pending (`loc_1c7` is nonzero), it starts a new region. It rebuilds a single walking bit in `loc_1ce` by rotating `loc_1c7` until it isolates one set request bit, counting the shifts as it goes; that shift count indexes four packed per-region descriptor tables — `loc_dddd` gives the starting port entry index (copied to the cursor `loc_1cc`), `loc_ddde` the end index (`loc_1cd`), and `loc_dde3`/`loc_dde4` the low and high bytes of the RAM buffer pointer for that region, loaded into `loc_bd`/`loc_be`. It then decides the direction for this region by testing the isolated bit against `loc_1c8`: a hit selects the write path (`loc_1ca` = `0x80`), a miss the read path (`0x20`). Finally it clears that bit out of `loc_1c7` (XOR with the walking mask) so the region is not picked again, and zeroes the entry cursor `loc_1cb`, the walking-checksum accumulator `loc_1cf`, and `loc_1ce`.
+
+Every pass then resets the control port at `loc_6040`, and returns immediately if there is nothing live (`loc_1ca` == 0). Otherwise it rotates `loc_1ca` to advance a tiny per-entry sub-state and branches:
+
+- On the setup pass before each write entry (whenever the rotate exposes the seed bit — `loc_1ca` is reset to `0x80` after each data byte, so this recurs) it writes the mode word out to the port, drops `loc_1ca` to `0x40`, latches a control value (`0x0e`) into `loc_6040`, and returns — yielding so the EAROM settles before the next tick.
+- On the **write path** it reads the next byte from the RAM buffer through the `loc_bd`/`loc_be` pointer (first zeroing that RAM cell when the blank-mode byte `loc_1c6` is set), and when the cursor has reached the region's end index it instead emits the running checksum from `loc_1cf` and marks the region finished. Each byte written is folded into that checksum and both cursors (`loc_1cb`, `loc_1cc`) advance.
+- On the **read path** it performs the EAROM read handshake — pulsing `loc_6040` through `0x08`/`0x09`/`0x08` and reading the byte back from `loc_6050` — stores the byte through the RAM pointer, and folds it into the same checksum. At the region's last entry it compares the accumulated checksum against the stored one; a mismatch means the region is corrupt, so it walks back through the RAM buffer zeroing every cell it just loaded and records the region's bit in `loc_1c9` (the completed / verify-result mask) before finishing.
+
+When a region completes, `loc_1ca` returns to zero and the loop falls back to the top; if there is still another request bit pending it begins the next region in the same call, otherwise it latches its final control value and returns. In this way `loc_de1b` steadily clocks each requested EAROM region in or out a byte per pass, checksum-protecting the load so a bad save can never surface as garbage in the high-score table, and blanking on demand so the store can be wiped as cleanly as it is written.
+
+These routines are the game's leaf-level state setters: short, straight-line blocks that either blank a region of work RAM back to a baseline or stamp fixed startup constants into it. They cluster into a handful of distinct init chains — the early power-on/attract seeding, the per-lane tube-parameter seeding, and the several overlapping "entering this state" seeders that all rewrite the same zero-page config bytes with different values depending on where the machine is heading.
+
+**The power-on seeding chain (via loc_902b).** A run of clearers hangs off the early init path, each responsible for one slice of RAM. `loc_921b` [seen] seeds five fixed scalars — `loc_200`=0x0e, `loc_51`=0xf0, `loc_106`=0x00, `loc_201`=0x0f, `loc_202`=0x10 — where `loc_200` and `loc_51` are genuine state cells that vary elsewhere, so this is a real seed rather than dead writes. `loc_926f` [seen] zeroes the 7-byte block `loc_2df..loc_2df+6` top-down and then clears seven scattered flag cells (`loc_108`, `loc_109`, `loc_145`, `loc_142`, `loc_144`, `loc_143`, `loc_146`); several of those hold non-zero values during play, so the block is a meaningful reset. `loc_928f` [seen] does the same shape for a 12-byte block `loc_2d3..loc_2d3+11` plus two flags (`loc_135`, `loc_a6`), and `loc_929f` [seen] blanks an 8-byte table `loc_30a..loc_30a+7` and a trailing flag `loc_116`. `loc_92ad` [seen] is the smallest of the family — a single write clearing `loc_50` to zero — but `loc_50` is a live cell (it ranges across play elsewhere), so even this one-liner is a deliberate reset. Each block owns a disjoint region, so the chain as a whole wipes several independent subsystems' scratch state to a known baseline before the machine starts running. The precise game meaning of each cleared region is not settled from the code alone; the routines keep their `loc_` names.
+
+**Per-lane tube parameter seeding.** `loc_9234` [seen] fills the 17-byte parameter block that shadows the tube's 16 lanes: it copies one source byte (`loc_15b`) into the header cell `loc_3ab`, then writes a second source byte (`loc_15a`) into all sixteen body cells `loc_3ac..loc_3ac+15`, one per lane. `loc_3ab` is a real draining counter elsewhere, so the header write is role-defining. This block — the 16-entry `loc_3ac` array — is the same per-lane structure that later code tallies against.
+
+**Wave/level (re)init and the per-lane tally.** `loc_a831` [seen] (`clearCells03aaAnd0125`) is a two-cell reset run as part of a state reset: it clears `loc_3aa` and the latch `loc_125` (the latter is set to 0xff elsewhere, so clearing it here is meaningful). `loc_a5cb` [seen] (`initWaveStateAndTallySpikedSegments`) is the substantive one: it seeds `loc_0`=0x20, ORs bit 7 into `loc_106`, clears `loc_104`/`loc_107`/`loc_5c`/`loc_123`, sets `loc_105`=2, then walks the 16-entry per-lane array `loc_3ac` and counts how many entries are non-zero into `loc_123` — grounded as the tally of occupied/spiked lane segments (observed pulsing 0..0xe, e.g. 6 live segments). If any segment is live and the level `loc_9f` is below 0x07, it loads an intro/parameter block (`loc_4`=0x1e, `loc_0`=0x0a, `loc_2`=0x20, and overwrites `loc_123` with the sentinel 0x80); finally it always marks the block ready by setting `loc_125`=0xff. In the game's terms this is the entry point that surveys the tube's spiked/occupied lanes at wave start and, on early levels, arms an intro sequence — though only the counting-of-live-segments effect is grounded; the specific state the intro block drives is not settled from the code.
+
+**Overlapping state-entry seeders (`loc_00`..`loc_04`).** Three routines stamp the same zero-page config bytes with different constant sets, one per destination state. `loc_b0e7` [seen] (`seedStartupWorkCells`) writes `loc_0`=0x0a, `loc_2`=0x00, `loc_4`=0xdf, `loc_1`=0x12, plus `loc_14e`=0x19 and `loc_14d`=0x18 — all six writes observed. `loc_c97b` [seen] (`seedZpConfigConstants_c97b`) seeds `loc_2`=0x04, `loc_1`=0x00, `loc_0`=0x0a, `loc_4`=0x14. `loc_ca18` [seen] (`maskFlagsAndSeedInitConstants_ca18`) first masks `loc_5` down to its low six bits (clearing the top two flag bits), then seeds `loc_3e`=0, `loc_2`=0x1a, `loc_0`=0x0a, `loc_4`=0xa0, `loc_16b`=0x01, `loc_1`=0x0a. The three share the `loc_0`/`loc_1`/`loc_2`/`loc_4` config block but disagree on the constants, so each corresponds to a different mode or screen being entered; the constants are role-defining but which state each configures is not resolved from the code, so the names stay descriptive.
+
+**Slot table and scratch pre-clears.** `loc_a789` [code] (`resetSlotStateTable`) — the one routine here not reached in capture, so its role is read from the code only — zeroes the 16-byte per-slot state/flags table `loc_283..loc_283+15`, then re-seeds scalars `loc_10e`=`loc_10d`=0x20, `loc_1`=0x04, and clears `loc_68`/`loc_69`; its caller runs it as a mode/level (re)init after seeding related cells. `loc_ca62` [seen] (`clearBlock40`) zeroes the 6-byte scratch block `loc_40..loc_40+5`; its callers use it as an optional pre-clear before reusing that region as staging entries (later read as 3-byte groups), so it is scratch hygiene rather than a persistent-state reset.
 
 ## Utilities and shared tails
 
-- **`loc_aaf5`** converts a binary byte to packed BCD by double-dabble (eight passes, decimal-mode
-  accumulate) into `0x29`/`0x2c`, feeding an on-screen numeric field. `[seen]` (BCD-shaped values observed).
-- **`loc_ac36`** sets the two pending-rebuild request bits in `0x01c9`, then falls through to a shared
-  return; its request bits drive later block rebuilds. `[seen]`.
-- **`loc_92b2`** swaps two 18-entry parallel arrays (`0x03aa` and `0x03bc`) slot-for-slot, and **`loc_b85f`**
-  seeds two paired three-entry arrays; both are readable but were not reached in the capture, so `[code]`.
-- **`loc_b955`** always returns the constant pair (2, 0): it reads `0x57` and runs a bit-count loop whose
-  result is then discarded, so the shift/count is dead code and the constant is the only observable output —
-  a trap for a name derived from the loop rather than the effect. `[code]`.
-- **`loc_9bcf`**, **`loc_ac07`**, **`loc_ac3e`**, **`loc_af6e`** are bare-RTS handler/return tails a caller
-  branches to when there is nothing to do (an empty dispatch slot, a "no rebuild needed" path, an empty draw
-  path). No observable effect, so `[code]`; they are candidates to dissolve into their callers.
+This subsystem gathers the small, general-purpose helpers that other routines lean on — a numeric converter, a byte splitter, a couple of table primers, a request-flag setter, one constant-returning leaf, and a family of bare return points that several callers share as their "nothing to do" exit. None of them own a piece of game state outright; each does one narrow job for a caller elsewhere.
 
-## Decompiled, understanding pending
+### Numeric conversion helpers
 
-A second leaf batch has since been rewritten to idiomatic JS (memory-equivalent, gated) but **not yet
-grounded or named** — its routines and the cells they touch keep `loc_<addr>` placeholders and carry no
-role claim here. They cover further arithmetic and bit-fold helpers, more state-table seed/clear routines,
-additional vector-list and draw-pointer builders, and hardware-register (POKEY/mathbox/EAROM) access
-routines. Their roles are established by the next understanding pass, which grounds them against MAME and
-folds them into the sections above; until then this map makes no claim about them.
+`loc_aaf5` (**[seen]**) turns a binary byte into packed binary-coded decimal by the classic double-dabble method. It walks the source byte eight times, and on each pass shifts the top bit out of the source while doubling a decimal accumulator and folding that bit back in — the decimal doubling is exactly the six-correction on each nibble that keeps the accumulator a valid two-digit BCD number. The finished value is written to both `loc_29` and `loc_2c`, so a single conversion leaves the same BCD result in two scratch cells at once. In practice its caller `loc_af77` runs the conversion and then copies `loc_29` onward into a display/score field, which is why this helper reads as the front half of "render a binary count as decimal digits." The BCD writes to `loc_29`/`loc_2c` were observed live, grounding the role.
 
-## Open edges
+`loc_93e0` (**[seen]**) is a bit-field splitter that partitions one input byte into two useful pieces. It seeds an accumulator with `0xff` and, three times over, shifts the input's high bit into the accumulator's low end — so after the loop the accumulator holds `0xf8` with the input's top three bits packed into its low three (a "seed" value), and this seed is stored in `loc_29`. Meanwhile the input itself, shifted left three times, keeps only its low five bits scaled up by eight — a fine offset value. From the seed's complement the routine also derives a small coarse index of the form `((seed ^ 0xff) + 0x0d) >> 1`, which lands in the range 6–10. All three products — the shifted fine value, the coarse index, and the seed — are handed back together to the caller. It was reached many times exclusively through its consumer `loc_92c5`, and only the `loc_29` seed write is its own, so it grounds as a pure compute helper whose output another routine acts on. Note that `loc_29` doubles as scratch for both this splitter and the BCD converter above; neither treats it as durable state, only as a place to leave a just-computed value for the immediate caller.
 
-The motion-script TEST opcodes (`loc_9c21`, `loc_9c3b`), the enemy-flip and spawn path
-(`loc_9c4f`, `loc_a69b`, `loc_a789`), the object-draw loop (`loc_b896`, `loc_b944`, `loc_b967`,
-`loc_92b2`, `loc_b85f`), and `loc_c43c`'s deeper consumers were not exercised by an attract-plus-brief-play
-capture; their roles are `[code]` pending a capture that reaches the states that drive them. The many
-`loc_<addr>` cells the reset routines touch keep placeholder names because their game roles are legible
-only once the routines that *consume* them (still translated) are decompiled — the naming compounds as the
-call graph is climbed.
+`loc_b955` (**[code]**) looks at a glance like a bit-counter over `loc_57` — it reads that cell, shifts it, and runs a count-the-ones loop — but the loop's result is thrown away: the code clears carry, adds two to a zeroed accumulator, and reloads the index register with zero, so it *always* returns the same constant pair (a value of 2 alongside a zeroed second register) no matter what `loc_57` holds. The idiomatic form drops the dead loop entirely and returns the constant. This is a deliberate proposer trap; the honest reading is a constant-returning leaf, and its tag stays **[code]** because it writes no memory to observe.
+
+### Table and array primers
+
+`loc_92b2` (**[code]**) swaps two parallel 18-entry tables slot for slot. Counting an index from 0x11 down to 0, it exchanges each entry of the table at `loc_3aa` with the matching entry of the table at `loc_3bc`, so afterward every slot holds what its sibling held — a wholesale exchange of the two arrays' contents, useful for flipping a "current" and "other" copy of some per-slot geometry data. The swap stores were never reached in the capture, so the routine is accounted not-exercised there and stays **[code]**; its role is read straight from the body.
+
+`loc_b85f` (**[code]**) primes two paired three-entry arrays with a fixed ramp. It writes the constants 0, 4, and 12 into the trio at `loc_22`/`loc_23`/`loc_24` and the same three constants into the parallel trio at `loc_809`/`loc_80a`/`loc_80b`, then returns. It is a straight-line initializer — the kind of fixed seeding a subsystem does once before it starts using those cells as running values. No own-cell write fired in the capture, so it too is accounted not-exercised and tagged **[code]** on a body-level reading.
+
+### Rebuild-request setter and its shared tail
+
+`loc_ac36` (**[seen]**) is the "ask for both blocks to be rebuilt" primitive. It ORs the low two request bits (0x03) into the working flags cell `loc_1c9` and writes the merged value back, then falls straight through into the shared return point at `loc_ac3e`. The two request bits it sets are later consumed in `loc_abac`, where bit 0 drives one block copy and bit 1 fills another block — so this helper is how callers such as `loc_ac20` (on a state mismatch) and `loc_abac` register that the rebuild is pending. The OR-in write to `loc_1c9` was observed, grounding the role **[seen]**.
+
+### Shared return leaves
+
+Several routines end at a lone `rts` that more than one caller branches to as its early exit; these carry no writes to observe and are each tagged **[code]**. `loc_ac3e` is the shared return tail that `loc_ac36` falls through into, and that `loc_ac20` also branches to directly when the live geometry state already matches its latched copy (`loc_a`'s high bits versus `loc_71e`, and `loc_16a`'s low bits versus `loc_71f`) — i.e. the "geometry unchanged, nothing to rebuild" path. `loc_ac07` is the matching no-rebuild exit for `loc_aba2`, taken when its pending-work test comes up empty. `loc_af6e` is the exposed return tail of the `loc_af3f` draw routine, which `loc_af26` branches to when both draw slots (`loc_600`/`loc_601`) are empty and there is nothing to draw. Finally, `loc_9bcf` is a do-nothing handler occupying a slot in a computed-dispatch table: it returns at once, letting an unused table entry resolve harmlessly. All four are readable-but-inert return points that let their callers bail out cleanly without special-casing the empty case.
+
+## Still on the frozen oracle
+
+The routines above are the idiomatic layer's decompiled set; the rest of the reachable call graph still runs
+as the frozen translated oracle and is not yet described here. Naming compounds as the graph is climbed: the
+routines decompiled so far keep `loc_<addr>` identifiers this pass, and the deep-tail roles tagged `[code]`
+(the enemy-flip and per-slot motion path, the mathbox helpers reached only in specific states) lift to
+`[seen]` once a capture drives the play states that exercise them.
+
