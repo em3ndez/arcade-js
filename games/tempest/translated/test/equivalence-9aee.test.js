@@ -5,7 +5,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { Regs } from "../../../../core/cpu/6502.js";
-import { loc_9aee } from "../loc_9aee.js";
+import { loc_9aee, loc_9af1, loc_9af6 } from "../loc_9aee.js";
 
 function makeMachine() {
   const regs = new Regs();
@@ -43,4 +43,32 @@ test("loc_9aee: Y=1 -> $2c=[0x9b03], $2d=[0x9afe], $2b=Y, A=[0x29]; returns push
   assert.equal(m.regs.fN, true, "0xcc -> N set (from final lda $29)");
   assert.equal(m.pc, 0x2001, "rts -> pushed + 1");
   assert.equal(m.cycles, 26, "4+3+4+3+3+3+6");
+});
+
+test("loc_9af1 mid-entry: enters at sta $2c (skips 0x9b02,y load) -- $2c = caller A", () => {
+  const m = makeMachine();
+  m.regs.y = 0x02; m.regs.a = 0x77; m.regs.s = 0xfd; m.push16(0x2000);
+  m.ram[0x9aff] = 0xdd; // 0x9afd + 2
+  m.ram[0x29] = 0x10;
+  loc_9af1(m);
+  assert.equal(m.ram[0x2c], 0x77, "$2c = caller A (not the 0x9b02 table)");
+  assert.equal(m.ram[0x2d], 0xdd, "$2d = 0x9afd,y");
+  assert.equal(m.ram[0x2b], 0x02, "$2b = Y");
+  assert.equal(m.regs.a, 0x10, "A = $29");
+  assert.equal(m.pc, 0x2001, "rts");
+  assert.equal(m.cycles, 3 + 4 + 3 + 3 + 3 + 6, "sta 3 + lda 4 + sty 3 + sta 3 + lda 3 + rts 6 = 22");
+});
+
+test("loc_9af6 mid-entry: enters at sty $2b (skips both table loads) -- $2d = caller A", () => {
+  const m = makeMachine();
+  m.regs.y = 0x05; m.regs.a = 0x99; m.regs.s = 0xfd; m.push16(0x2000);
+  m.ram[0x2c] = 0xee; // pre-set by caller, must be untouched
+  m.ram[0x29] = 0x20;
+  loc_9af6(m);
+  assert.equal(m.ram[0x2b], 0x05, "$2b = Y");
+  assert.equal(m.ram[0x2d], 0x99, "$2d = caller A");
+  assert.equal(m.ram[0x2c], 0xee, "$2c untouched (loc_9af6 skips the sta $2c)");
+  assert.equal(m.regs.a, 0x20, "A = $29");
+  assert.equal(m.pc, 0x2001, "rts");
+  assert.equal(m.cycles, 3 + 3 + 3 + 6, "sty 3 + sta 3 + lda 3 + rts 6 = 15");
 });
