@@ -28,8 +28,10 @@ import { loc_96db } from "./loc_96db.js";
 import { loc_96e2 } from "./loc_96e2.js";
 import { loc_96f4, loc_9700 } from "./loc_96f4.js";
 import { loc_970b } from "./loc_970b.js";
+import { loc_9729 } from "./loc_9729.js";
 import { loc_9749 } from "./loc_9749.js";
 import { loc_97c5 } from "./loc_97c5.js";
+import { loc_97f8 } from "./loc_97f8.js";
 import { loc_98a2 } from "./loc_98a2.js";
 import { loc_9923 } from "./loc_9923.js";
 import { loc_994d } from "./loc_994d.js";
@@ -91,6 +93,7 @@ import { loc_a504 } from "./loc_a504.js";
 import { loc_a5cb } from "./loc_a5cb.js";
 import { loc_a789 } from "./loc_a789.js";
 import { loc_a7a6 } from "./loc_a7a6.js";
+import { loc_a7bd } from "./loc_a7bd.js";
 import { loc_a7d2 } from "./loc_a7d2.js";
 import { loc_a831 } from "./loc_a831.js";
 import { loc_a83a } from "./loc_a83a.js";
@@ -211,6 +214,8 @@ import { loc_ccc1 } from "./loc_ccc1.js";
 import { loc_ccc3 } from "./loc_ccc3.js";
 import { loc_ccc7 } from "./loc_ccc7.js";
 import { loc_ccea } from "./loc_ccea.js";
+import { loc_ccee } from "./loc_ccee.js";
+import { loc_ccf2 } from "./loc_ccf2.js";
 import { loc_ccf6 } from "./loc_ccf6.js";
 import { loc_ccfa } from "./loc_ccfa.js";
 import { loc_ccfe } from "./loc_ccfe.js";
@@ -299,8 +304,10 @@ export const ROUTINE_ENTRIES = [
   [0x96f4, loc_96f4],
   [0x9700, loc_9700],
   [0x970b, loc_970b],
+  [0x9729, loc_9729],
   [0x9749, loc_9749],
   [0x97c5, loc_97c5],
+  [0x97f8, loc_97f8],
   [0x98a2, loc_98a2],
   [0x9923, loc_9923],
   [0x994d, loc_994d],
@@ -371,6 +378,7 @@ export const ROUTINE_ENTRIES = [
   [0xa5cb, loc_a5cb],
   [0xa789, loc_a789],
   [0xa7a6, loc_a7a6],
+  [0xa7bd, loc_a7bd],
   [0xa7d2, loc_a7d2],
   [0xa831, loc_a831],
   [0xa83a, loc_a83a],
@@ -493,6 +501,8 @@ export const ROUTINE_ENTRIES = [
   [0xccc3, loc_ccc3],
   [0xccc7, loc_ccc7],
   [0xccea, loc_ccea],
+  [0xccee, loc_ccee],
+  [0xccf2, loc_ccf2],
   [0xccf6, loc_ccf6],
   [0xccfa, loc_ccfa],
   [0xccfe, loc_ccfe],
