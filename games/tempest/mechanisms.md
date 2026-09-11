@@ -162,6 +162,15 @@ where a routine was independently reached:
   branches to when there is nothing to do (an empty dispatch slot, a "no rebuild needed" path, an empty draw
   path). No observable effect, so `[code]`; they are candidates to dissolve into their callers.
 
+## Decompiled, understanding pending
+
+A second leaf batch has since been rewritten to idiomatic JS (memory-equivalent, gated) but **not yet
+grounded or named** — its routines and the cells they touch keep `loc_<addr>` placeholders and carry no
+role claim here. They cover further arithmetic and bit-fold helpers, more state-table seed/clear routines,
+additional vector-list and draw-pointer builders, and hardware-register (POKEY/mathbox/EAROM) access
+routines. Their roles are established by the next understanding pass, which grounds them against MAME and
+folds them into the sections above; until then this map makes no claim about them.
+
 ## Open edges
 
 The motion-script TEST opcodes (`loc_9c21`, `loc_9c3b`), the enemy-flip and spawn path
