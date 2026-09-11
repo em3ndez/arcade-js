@@ -21,7 +21,13 @@ export function loc_9a9d(m) {
   m.step(0x9ab3, 2);
   regs.y = 0x04; regs.setNZ(regs.y); m.step(0x9ab5, 2);
   if (!regs.fZ) { m.step(0x9aee, 3); return loc_9aee(m); } // bne 0x9aee
-  m.step(0x9ab7, 2);
+  m.step(0x9ab7, 2); return loc_9ab7(m); // falls into loc_9ab7 (also an external dispatch entry)
+}
+
+// loc_9ab7 (ROM 0x9ab7-0x9aba) -- mid-entry dispatched externally: ldy #3; bne loc_9aee (Z always clear so
+// always taken); the fall into loc_9abb is dead (kept faithful).
+export function loc_9ab7(m) {
+  const { regs } = m;
   regs.y = 0x03; regs.setNZ(regs.y); m.step(0x9ab9, 2);
   if (!regs.fZ) { m.step(0x9aee, 3); return loc_9aee(m); } // bne 0x9aee
   m.step(0x9abb, 2); return loc_9abb(m); // falls into loc_9abb
