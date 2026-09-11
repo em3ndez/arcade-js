@@ -2,7 +2,8 @@
 // loc_bda0  (ROM 0xbda0-0xbfb4) -- early-out unless $5b<0 or $57>=$5f; sets up $56/$57/$58 pairs,
 // calls df4c/c098/c765/c098/df6c, forms clamped signed deltas ($79 from $61-$6a, $89 from $63-$6c),
 // runs a 24-bit x5 spread math block, then loops the $bfd2/$bfd3 table writing 4-byte records via
-// ($74),y ($99 times); tail-jumps to df5f.
+// ($74),y ($99 times); tail-jumps to df5f. loc_bdcb is a mid-entry (jsr'd from 0xb607/0xb751): it
+// enters at the $5b<0/$57>=$5f early-out check (0xbdcb), skipping loc_bda0's 0xbda0-0xbdca setup.
 export function loc_bda0(m) {
   const { regs, mem } = m;
   mem.write8(0x36, regs.a); m.step(0xbda2, 3);
@@ -26,6 +27,11 @@ export function loc_bda0(m) {
   regs.a = 0x04; regs.setNZ(regs.a); m.step(0xbdc7, 2);
   mem.write8(0x5a, regs.a); m.step(0xbdc9, 3);
   regs.y = mem.read8(0x36); regs.setNZ(regs.y); m.step(0xbdcb, 3);
+  return loc_bdcb(m);
+}
+
+export function loc_bdcb(m) {
+  const { regs, mem } = m;
   regs.a = mem.read8(0x5b); regs.setNZ(regs.a); m.step(0xbdcd, 3);
   if (regs.fN) {
     m.step(0xbdd6, 3);

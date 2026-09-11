@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { Regs } from "../../../../core/cpu/6502.js";
-import { loc_bda0 } from "../loc_bda0.js";
+import { loc_bda0, loc_bdcb } from "../loc_bda0.js";
 
 function makeMachine() {
   const regs = new Regs();
@@ -142,3 +142,17 @@ test("loc_bda0: $5b<0 forces the main body even when $57<$5f", () => {
   assert.equal(m.pc, 0xdf5f, "reached the tail-call, not the early RTS");
   assert.ok(m.calls.length > 0, "main body issued the external calls");
 });
+
+test("loc_bdcb mid-entry: $5b>=0 && $57<$5f -> early-out rts, skips loc_bda0's 0xbda0-0xbdca setup", () => {
+  const m = makeMachine(); m.regs.s = 0xfd; m.push16(0x7000);
+  m.ram[0x5b] = 0x10; // >= 0 -> bmi not taken
+  m.ram[0x57] = 0x02; m.ram[0x5f] = 0x08; // 0x02 < 0x08 -> bcs not taken -> early rts
+  m.ram[0x56] = 0xee; m.ram[0x2f] = 0xee; // must stay untouched (loc_bdcb skips the setup that writes them)
+  loc_bdcb(m);
+  assert.deepEqual(m.calls, [], "early-out makes no calls");
+  assert.equal(m.ram[0x56], 0xee, "$56 untouched (0xbda0-0xbdca setup skipped)");
+  assert.equal(m.ram[0x2f], 0xee, "$2f untouched");
+  assert.equal(m.pc, 0x7001, "rts -> pushed + 1");
+  assert.equal(m.cycles, 3 + 2 + 3 + 3 + 2 + 6, "lda $5b 3 + bmi nt 2 + lda $57 3 + cmp $5f 3 + bcc 2 + rts 6 = 19");
+});
+// (loc_bdcb's shared body path is the same code loc_bda0's body tests above exercise.)
