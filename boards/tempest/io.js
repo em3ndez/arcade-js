@@ -124,10 +124,12 @@ export class Io {
   }
 
   avgGo() {
-    if (this.avg) this.avg.goPending = true; // §2: the CPU signals "draw the list" (see video.js)
+    // 0x4800 go_w: MAME vg_set_halt(0); the endless-loop VG hits HALT before the next IRQ poll -> done=1.
+    // Model the draw as completing (doneFlag=true); render walks vector RAM independently (video.js).
+    if (this.avg) { this.avg.goPending = true; this.avg.doneFlag = true; }
   }
   avgReset() {
-    if (this.avg) this.avg.doneFlag = false;
+    if (this.avg) this.avg.doneFlag = true; // 0x5800 reset_w: MAME vg_set_halt(1) -> halt=done=1
   }
   wdclr() {
     if (this.onAckIrq) this.onAckIrq();
