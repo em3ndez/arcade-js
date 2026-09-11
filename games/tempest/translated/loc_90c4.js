@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // loc_90c4  (ROM 0x90c4-0x91b4) -- picks a start index by scanning table 0x91fe against $0126, clamps it
-// against $29, then reinitialises a wave: seeds $7c/$5b/$0200/$51/$7b/$0605, on $05 sign runs the extra
-// setup + 0xc196, ticks $0605/$04 (decimal countdown), and on $4e bits reseeds an entry from $0200/$3d.
-// Cycle notes: abs,x/abs,y reads charge 4 (+1 on a page-carry into 0x92xx); STA abs,x is 5; the top
-// dex/cmp/bcc is a do-while loop.
+// against $29, then falls into loc_9108. loc_9108 (mid-entry, dispatched from the c7da state table) reseeds
+// $3d and the wave ($7c/$5b/$0200/$51/$7b/$0605, plus $05-sign extra setup + 0xc196), then falls into
+// loc_9149. loc_9149 (mid-entry) ticks $0605/$04 (decimal countdown) and on $4e bits reseeds an entry from
+// $0200/$3d, then rts. Cycle notes: abs,x/abs,y reads charge 4 (+1 on a page-carry into 0x92xx); STA abs,x 5.
 export function loc_90c4(m) {
   const { regs, mem } = m;
   let ea;
@@ -65,13 +65,15 @@ export function loc_90c4(m) {
   }
   mem.write8(0x0127, regs.x); m.step(0x90ff, 4);
   regs.a = mem.read8(0x05); regs.setNZ(regs.a); m.step(0x9101, 3);
-  if (regs.fPl) {
-    m.step(0x9108, 3);
-  } else {
-    m.step(0x9103, 2);
-    regs.a = 0x00; regs.setNZ(regs.a); m.step(0x9105, 2);
-    mem.write8(0x0126, regs.a); m.step(0x9108, 4);
-  }
+  if (regs.fPl) { m.step(0x9108, 3); return loc_9108(m); }
+  m.step(0x9103, 2);
+  regs.a = 0x00; regs.setNZ(regs.a); m.step(0x9105, 2);
+  mem.write8(0x0126, regs.a); m.step(0x9108, 4);
+  return loc_9108(m);
+}
+
+export function loc_9108(m) {
+  const { regs, mem } = m;
   regs.x = mem.read8(0x3f); regs.setNZ(regs.x); m.step(0x910a, 3);
   mem.write8(0x3d, regs.x); m.step(0x910c, 3);
   if (regs.fZ) {
@@ -109,6 +111,12 @@ export function loc_90c4(m) {
   }
   mem.write8(0x04, regs.a); m.step(0x9146, 3);
   m.push16(0x9148); m.step(0x9149, 6); m.call(0x92ad);
+  return loc_9149(m);
+}
+
+export function loc_9149(m) {
+  const { regs, mem } = m;
+  let ea;
   mem.write8(0x0605, regs.dec8(mem.read8(0x0605))); m.step(0x914c, 6);
   if (regs.fPl) {
     m.step(0x9169, 3);

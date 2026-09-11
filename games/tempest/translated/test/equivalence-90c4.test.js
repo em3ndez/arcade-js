@@ -6,7 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { Regs } from "../../../../core/cpu/6502.js";
-import { loc_90c4 } from "../loc_90c4.js";
+import { loc_90c4, loc_9108, loc_9149 } from "../loc_90c4.js";
 
 function makeMachine() {
   const regs = new Regs();
@@ -81,4 +81,38 @@ test("loc_90c4: scan loops twice, y-adjust runs, $29 clamp raises X; same bottom
   assert.deepEqual(m.calls, [0xc196, 0x92ad, 0xb0ab], "same bottom-half call sequence");
   assert.equal(m.pc, 0x4101, "RTS -> pushed + 1");
   assert.equal(m.cycles, 222, "82 (2-iter scan + y-adjust + clamp) + 140 (shared bottom)");
+});
+
+// loc_9108 is a mid-entry (dispatched from the c7da state table at 0x9108, and fallen into by loc_90c4's
+// head): reseed $3d + the wave, then fall into loc_9149. Enter directly with the seedBottom state.
+test("loc_9108 mid-entry: reseed + 0x9129 block + fall into loc_9149; 129 T", () => {
+  const m = makeMachine();
+  m.regs.s = 0xfd;
+  m.push16(0x4000);
+  seedBottom(m);
+  loc_9108(m);
+  assert.equal(m.mem.read8(0x0605), 0x13, "$0605 = 0x14 (0x9129 block) then DEC -> 0x13");
+  assert.equal(m.mem.read8(0x04), 0x10, "$04 = 0x10 from the 0x9129 block");
+  assert.equal(m.mem.read8(0x00), 0x16, "$00 = 0x16 from the 0x9129 block");
+  assert.deepEqual(m.calls, [0xc196, 0x92ad, 0xb0ab], "0x9129-block JSR, 0x9146, 0x9169");
+  assert.equal(m.pc, 0x4001, "reaches loc_9149 tail RTS -> pushed + 1");
+  assert.equal(m.cycles, 129, "reinit + 0x9129 block + shared loc_9149 tail (countdown skipped, no reseed)");
+});
+
+// loc_9149 is a mid-entry (dispatched from the c7da state table at 0x9149): the $0605/$04 countdown tail.
+// Enter directly with $0605 positive so the decimal countdown is skipped and $4e == 0 skips the reseed.
+test("loc_9149 mid-entry: DEC $0605 tail, jsr $b0ab, no reseed; 45 T", () => {
+  const m = makeMachine();
+  m.regs.s = 0xfd;
+  m.push16(0x4200);
+  m.ram[0x0605] = 0x14;   // DEC -> 0x13 positive -> BPL 0x9169 (skip countdown)
+  m.ram[0x05] = 0x80;
+  m.ram[0x04] = 0x10;     // ldy $04 = 0x10 >= 8 -> BCS (a stays 0x18)
+  m.ram[0x4e] = 0x00;     // AND 0x4e == 0 -> BEQ 0x91ae (no reseed)
+  loc_9149(m);
+  assert.equal(m.mem.read8(0x0605), 0x13, "0x14 DEC -> 0x13");
+  assert.equal(m.mem.read8(0x4e), 0x00, "$4e & 7 stays 0");
+  assert.deepEqual(m.calls, [0xb0ab], "only jsr $b0ab on this path");
+  assert.equal(m.pc, 0x4201, "RTS -> pushed + 1");
+  assert.equal(m.cycles, 45, "DEC(6)+BPL(3)+jsr b0ab(6)+ldy/cpy/bcs+and/beq+lda/and/sta/rts");
 });
