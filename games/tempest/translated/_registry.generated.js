@@ -49,7 +49,7 @@ import { loc_9c58, loc_9c63, loc_9c99 } from "./loc_9c58.js";
 import { loc_9d06 } from "./loc_9d06.js";
 import { loc_9d67 } from "./loc_9d67.js";
 import { loc_9e2f } from "./loc_9e2f.js";
-import { loc_9e5c } from "./loc_9e5c.js";
+import { loc_9e5c, loc_9e5f } from "./loc_9e5c.js";
 import { loc_9eab } from "./loc_9eab.js";
 import { loc_9ed7 } from "./loc_9ed7.js";
 import { loc_a06f } from "./loc_a06f.js";
@@ -308,6 +308,7 @@ export const ROUTINE_ENTRIES = [
   [0x9d67, loc_9d67],
   [0x9e2f, loc_9e2f],
   [0x9e5c, loc_9e5c],
+  [0x9e5f, loc_9e5f],
   [0x9eab, loc_9eab],
   [0x9ed7, loc_9ed7],
   [0xa06f, loc_a06f],

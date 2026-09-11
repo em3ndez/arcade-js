@@ -7,7 +7,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { Regs } from "../../../../core/cpu/6502.js";
-import { loc_9e5c } from "../loc_9e5c.js";
+import { loc_9e5c, loc_9e5f } from "../loc_9e5c.js";
 
 function makeMachine() {
   const regs = new Regs();
@@ -116,4 +116,16 @@ test("edge: abs,x page cross adds +1 per crossing load (seg != 4, beq taken)", (
   assert.deepEqual(m.calls, [0x9eab, 0x9ed7]);
   assert.equal(m.retAddrs[1], 0x9ea6);
   assert.equal(m.cycles, 62, "58 base + 4 crossing loads (0x0283,0x0283,0x0283,0x02b9)");
+});
+
+test("loc_9e5f mid-entry: enters at 0x9e5f, skips the $9eab guard jsr (no call to 9eab)", () => {
+  const m = makeMachine(); m.regs.s = 0xfd; m.push16(0x6000);
+  m.regs.x = 0x00;
+  m.ram[0x0283] = 0x03; // segment low3 = 3 (!=4), bit6 clear, bit7 set by ora #$80
+  m.ram[0x02b9] = 0x05;
+  // segment != 4 path, bit6 clear -> no increment, then jsr 9ed7 (stubbed) -> $02cc,x
+  loc_9e5f(m);
+  assert.ok(!m.calls.includes(0x9eab), "loc_9e5f skips the guard -- no jsr $9eab");
+  assert.ok(m.calls.includes(0x9ed7), "reaches the $9ed7 direction lookup (segment != 4 path)");
+  assert.equal(m.ram[0x0283] & 0x80, 0x80, "bit7 of $0283,x set (ora #$80)");
 });

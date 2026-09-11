@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// loc_9e5c (ROM 0x9e5c-0x9eaa) -- per-slot(x) step: jsr $9eab (pre-step guard), then set bit7 of $0283,x.
-// segment = $0283,x & 7. If segment == 4 (spoke/rim seam): bit6 of $0283,x picks direction -- set ->
-// decrement $02b9,x (mod 16) and load $02cc,x = $87; clear -> load $02cc,x = $81. If segment != 4: bit6
-// set -> increment $02b9,x (mod 16); either way $02cc,x = jsr $9ed7(A=$0283,x, Y=$02b9,x).
+// loc_9e5c (ROM 0x9e5c-0x9eaa) -- per-slot(x) step: jsr $9eab (pre-step guard), then falls into loc_9e5f.
+// loc_9e5f is a mid-entry (tail-jmp'd from loc_9f81/loc_9f99 at 0x9fc1): the same body starting at
+// 0x9e5f, run WITHOUT the $9eab guard. Sets bit7 of $0283,x; segment=$0283,x&7; segment==4 (seam):
+// bit6 picks dec $02b9,x + $02cc,x=$87 vs $02cc,x=$81; segment!=4: bit6 -> inc, then $02cc,x=jsr $9ed7.
 export function loc_9e5c(m) {
+  m.push16(0x9e5e); m.step(0x9e5f, 6); m.call(0x9eab); // jsr $9eab guard, then fall into loc_9e5f
+  return loc_9e5f(m);
+}
+
+export function loc_9e5f(m) {
   const { regs, mem } = m;
-  m.push16(0x9e5e); m.step(0x9e5f, 6); m.call(0x9eab); // jsr $9eab
   { const b = 0x0283, e = (b + regs.x) & 0xffff; regs.a = mem.read8(e); regs.setNZ(regs.a); m.step(0x9e62, 4 + ((b & 0xff00) !== (e & 0xff00) ? 1 : 0)); }
   regs.ora(0x80); m.step(0x9e64, 2);
   mem.write8((0x0283 + regs.x) & 0xffff, regs.a); m.step(0x9e67, 5);
