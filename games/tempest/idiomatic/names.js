@@ -1,7 +1,160 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// §4 idiomatic override table for Tempest. resolveAllIdiomatic() (machine.js) walks this map and swaps each
-// listed idiomatic module in for its translated (frozen-oracle) routine at the given ROM address. Empty at
-// the start of §4; grows leaves-first, batch by batch, until every reachable routine is served idiomatic and
-// the translated layer is fully replaced (runbook §4). Shape: { <addr>: { name, entry?, irq? } } where
-// module = ./idiomatic/<name>.js and export = entry ?? name.
-export const ROUTINES = {};
+// Tempest idiomatic-layer name registry: RAM/hardware cell symbols + the ROUTINES override map (resolveAllIdiomatic).
+// Cell consts are loc_<addr> placeholders (names-debt) until the understand pass renames + grounds them.
+// STACK_SCRATCH = return-stack range excluded from the equivalence diff (measured deepest attract push SP=0x01e8).
+
+export const STACK_SCRATCH = { lo: 0x01e0, hi: 0x0200 };
+
+export const loc_0 = 0x0000;
+export const loc_00 = 0x0000;
+export const loc_1 = 0x0001;
+export const loc_2 = 0x0002;
+export const loc_3 = 0x0003;
+export const loc_4 = 0x0004;
+export const loc_5 = 0x0005;
+export const loc_22 = 0x0022;
+export const loc_23 = 0x0023;
+export const loc_24 = 0x0024;
+export const loc_29 = 0x0029;
+export const loc_2a = 0x002a;
+export const loc_2b = 0x002b;
+export const loc_2c = 0x002c;
+export const loc_2d = 0x002d;
+export const loc_37 = 0x0037;
+export const loc_3e = 0x003e;
+export const loc_40 = 0x0040;
+export const loc_41 = 0x0041;
+export const loc_42 = 0x0042;
+export const loc_43 = 0x0043;
+export const loc_44 = 0x0044;
+export const loc_45 = 0x0045;
+export const loc_50 = 0x0050;
+export const loc_51 = 0x0051;
+export const loc_61 = 0x0061;
+export const loc_62 = 0x0062;
+export const loc_63 = 0x0063;
+export const loc_64 = 0x0064;
+export const loc_68 = 0x0068;
+export const loc_69 = 0x0069;
+export const loc_74 = 0x0074;
+export const loc_75 = 0x0075;
+export const loc_76 = 0x0076;
+export const loc_77 = 0x0077;
+export const loc_a6 = 0x00a6;
+export const loc_a9 = 0x00a9;
+export const loc_106 = 0x0106;
+export const loc_108 = 0x0108;
+export const loc_109 = 0x0109;
+export const loc_10a = 0x010a;
+export const loc_10b = 0x010b;
+export const loc_10c = 0x010c;
+export const loc_10d = 0x010d;
+export const loc_10e = 0x010e;
+export const loc_111 = 0x0111;
+export const loc_115 = 0x0115;
+export const loc_116 = 0x0116;
+export const loc_125 = 0x0125;
+export const loc_135 = 0x0135;
+export const loc_139 = 0x0139;
+export const loc_13a = 0x013a;
+export const loc_142 = 0x0142;
+export const loc_143 = 0x0143;
+export const loc_144 = 0x0144;
+export const loc_145 = 0x0145;
+export const loc_146 = 0x0146;
+export const loc_147 = 0x0147;
+export const loc_148 = 0x0148;
+export const loc_14d = 0x014d;
+export const loc_14e = 0x014e;
+export const loc_15a = 0x015a;
+export const loc_15b = 0x015b;
+export const loc_160 = 0x0160;
+export const loc_16b = 0x016b;
+export const loc_1c9 = 0x01c9;
+export const loc_200 = 0x0200;
+export const loc_201 = 0x0201;
+export const loc_202 = 0x0202;
+export const loc_283 = 0x0283;
+export const loc_298 = 0x0298;
+export const loc_2b9 = 0x02b9;
+export const loc_2d3 = 0x02d3;
+export const loc_2df = 0x02df;
+export const loc_30a = 0x030a;
+export const loc_35a = 0x035a;
+export const loc_36a = 0x036a;
+export const loc_37a = 0x037a;
+export const loc_38a = 0x038a;
+export const loc_3aa = 0x03aa;
+export const loc_3ab = 0x03ab;
+export const loc_3ac = 0x03ac;
+export const loc_3bc = 0x03bc;
+export const loc_3fe = 0x03fe;
+export const loc_405 = 0x0405;
+export const loc_415 = 0x0415;
+export const loc_809 = 0x0809;
+export const loc_80a = 0x080a;
+export const loc_80b = 0x080b;
+export const loc_2ffc = 0x2ffc;
+export const loc_2ffd = 0x2ffd;
+export const loc_2fff = 0x2fff;
+export const loc_60da = 0x60da;
+export const loc_91c6 = 0x91c6;
+export const loc_91c7 = 0x91c7;
+export const loc_9afd = 0x9afd;
+export const loc_9b02 = 0x9b02;
+export const loc_a0f7 = 0xa0f7;
+export const loc_a0f8 = 0xa0f8;
+export const loc_ce68 = 0xce68;
+export const loc_ce6e = 0xce6e;
+export const loc_ce6f = 0xce6f;
+export const loc_ce7a = 0xce7a;
+export const loc_ce86 = 0xce86;
+export const loc_ce87 = 0xce87;
+
+export const ROUTINES = {
+  0x91b5: { name: "loc_91b5" },
+  0x921b: { name: "loc_921b" },
+  0x9234: { name: "loc_9234" },
+  0x926f: { name: "loc_926f" },
+  0x928f: { name: "loc_928f" },
+  0x929f: { name: "loc_929f" },
+  0x92ad: { name: "loc_92ad" },
+  0x92b2: { name: "loc_92b2" },
+  0x96c7: { name: "loc_96c7" },
+  0x96c8: { name: "loc_96c7", entry: "loc_96c8" },
+  0x96cb: { name: "loc_96cb" },
+  0x96db: { name: "loc_96db" },
+  0x9aee: { name: "loc_9aee" },
+  0x9bca: { name: "loc_9bca" },
+  0x9bcf: { name: "loc_9bcf" },
+  0x9bd0: { name: "loc_9bd0" },
+  0x9bdd: { name: "loc_9bdd" },
+  0x9bee: { name: "loc_9bee" },
+  0x9bfa: { name: "loc_9bfa" },
+  0x9c17: { name: "loc_9c17" },
+  0x9c21: { name: "loc_9c21" },
+  0x9c3b: { name: "loc_9c3b" },
+  0x9c4f: { name: "loc_9c4f" },
+  0xa69b: { name: "loc_a69b" },
+  0xa789: { name: "loc_a789" },
+  0xa7a6: { name: "loc_a7a6" },
+  0xa7bd: { name: "loc_a7bd" },
+  0xa831: { name: "loc_a831" },
+  0xaaf5: { name: "loc_aaf5" },
+  0xac07: { name: "loc_ac07" },
+  0xac36: { name: "loc_ac36" },
+  0xac3e: { name: "loc_ac3e" },
+  0xaf6e: { name: "loc_af6e" },
+  0xb0e7: { name: "loc_b0e7" },
+  0xb2be: { name: "loc_b2be" },
+  0xb85f: { name: "loc_b85f" },
+  0xb896: { name: "loc_b896" },
+  0xb944: { name: "loc_b944" },
+  0xb955: { name: "loc_b955" },
+  0xb967: { name: "loc_b967" },
+  0xc43c: { name: "loc_c43c" },
+  0xc97b: { name: "loc_c97b" },
+  0xca18: { name: "loc_ca18" },
+  0xca62: { name: "loc_ca62" },
+  0xdf5f: { name: "loc_df5f" },
+};

@@ -57,7 +57,7 @@ export class AddressSpace {
     this.rom = new Uint8Array(0x10000);
     this.rom.set(rom.subarray(0, 0x10000));
     this.vectorRom = new Uint8Array(VEC_ROM_SIZE);
-    this.vectorRom.set(vectorRom.subarray(0, VEC_ROM_SIZE));
+    if (vectorRom) this.vectorRom.set(vectorRom.subarray(0, VEC_ROM_SIZE)); // optional (zeros for RAM-only tests), like Io's avgprom
     this.io = io;
 
     this.workRam = new Uint8Array(WORK_RAM_SIZE);
