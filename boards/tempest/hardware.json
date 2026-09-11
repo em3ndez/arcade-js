@@ -1,0 +1,82 @@
+{
+  "_comment": [
+    "Tool-facing hardware declaration for the Atari Tempest PCB (MOS 6502, color VECTOR / QuadraScan).",
+    "Read from MAME atari/tempest.cpp: main_map@488, machine config@640-661, INPUT_PORTS@523, clock_r@401,",
+    "irq set_periodic_int@644; and devices/video/avgdvg.cpp (AVG_TEMPEST). Numbers decimal (JSON has no 0x);",
+    "'_hex'/'_note' fields are annotations the loader ignores. VECTOR display: no tilemap/framebuffer -- the",
+    "6502 builds a display list in vector RAM, the AVG walks it, and the render is byte-exact vs MAME's",
+    "headless AVI (480x640). See boards/tempest/{avg.js,vector-raster.js} and scratch machine-notes.md."
+  ],
+
+  "driver": "tempest",
+  "cpu": "6502",
+  "_cpu_note": "MOS 6502 @ MASTER_CLOCK(12.096MHz)/8 = 1.512MHz. No bus contention (unlike centiped).",
+
+  "screen": { "width": 480, "height": 640, "rot": "ROT270", "_note": "VECTOR. The AVI/render target is 480x640 (MAME render.cpp:1609 hard-coded vector visarea 640x480, swapped by ROT270). set_size(400,300)/set_visarea(0,580,0,570) do NOT set the frame size. ROT270 is baked into the render transform (vector-raster.js), so the 480x640 frame is already display-oriented." },
+  "refreshHz": 60,
+  "_refresh_note": "screen.set_refresh_hz(60). tempest.cpp:653.",
+  "cpuHz": 1512000,
+
+  "cyclesPerFrame": 25200,
+  "_cycles_note": "1512000/60 = 25200 nominal.",
+
+  "stateDumpSize": 6160,
+  "stateRegions": [
+    { "name": "workram",  "base": 0,    "size": 2048, "_hex": "0x0000-0x07FF work RAM -- tempest.cpp:490" },
+    { "name": "vectorram","base": 8192, "size": 4096, "_hex": "0x2000-0x2FFF vector RAM (the display list) -- @495" },
+    { "name": "colorram", "base": 2048, "size": 16,   "_hex": "0x0800-0x080F color RAM (avg:colorram, write-only; shadowed). Render input. -- @491" }
+  ],
+  "_stateregion_note": "dump order (dump_state.lua / memory.dumpState): workram, then vectorram, then colorram. 'base' is the CPU address; colorram's out-of-order base reflects that it dumps LAST.",
+
+  "_rw_differ_note": "0x5000 W = watchdog clear + IRQ ack (no read). 0x6040 R = mathbox status, W = EAROM control -- different devices.",
+  "readRanges": [
+    { "name": "in0",       "start": 3072,  "end": 3072,  "_hex": "0x0C00 IN0 (coin/tilt/selftest/diag/AVG-done/3kHz)" },
+    { "name": "in1",       "start": 3328,  "end": 3328,  "_hex": "0x0D00 IN1 (spinner knob b0-3 + cabinet dip b4)" },
+    { "name": "dsw2",      "start": 3584,  "end": 3584,  "_hex": "0x0E00 DSW2 (lives/bonus/language)" },
+    { "name": "vectorrom", "start": 12288, "end": 16383, "_hex": "0x3000-0x3FFF vector ROM" },
+    { "name": "mathbox_status", "start": 24640, "end": 24640, "_hex": "0x6040 R mathbox status -- UNIMPLEMENTED: THROWS" },
+    { "name": "earom_read",     "start": 24656, "end": 24656, "_hex": "0x6050 R EAROM read -- UNIMPLEMENTED: THROWS" },
+    { "name": "mathbox_lo",     "start": 24672, "end": 24672, "_hex": "0x6060 R mathbox lo -- UNIMPLEMENTED: THROWS" },
+    { "name": "mathbox_hi",     "start": 24688, "end": 24688, "_hex": "0x6070 R mathbox hi -- UNIMPLEMENTED: THROWS" },
+    { "name": "pokey1",    "start": 24768, "end": 24783, "_hex": "0x60C0-0x60CF POKEY1 read (pots=input ADC / RANDOM) -- UNIMPLEMENTED: THROWS" },
+    { "name": "pokey2",    "start": 24784, "end": 24799, "_hex": "0x60D0-0x60DF POKEY2 read -- UNIMPLEMENTED: THROWS" },
+    { "name": "prog_rom",  "start": 36864, "end": 57343, "_hex": "0x9000-0xDFFF program ROM" },
+    { "name": "vectors",   "start": 61440, "end": 65535, "_hex": "0xF000-0xFFFF program ROM reload (reset/IRQ vectors)" }
+  ],
+
+  "writeRanges": [
+    { "name": "workram",   "start": 0,    "end": 2047,  "_hex": "0x0000-0x07FF work RAM" },
+    { "name": "colorram",  "start": 2048, "end": 2063,  "_hex": "0x0800-0x080F color RAM (avg:colorram)" },
+    { "name": "vectorram", "start": 8192, "end": 12287, "_hex": "0x2000-0x2FFF vector RAM" },
+    { "name": "coin",      "start": 16384,"end": 16384, "_hex": "0x4000 coin counters + AVG flip_x(0x08)/flip_y(0x10)" },
+    { "name": "avg_go",    "start": 18432,"end": 18432, "_hex": "0x4800 AVG go_w" },
+    { "name": "wdclr",     "start": 20480,"end": 20480, "_hex": "0x5000 watchdog clear + IRQ ack" },
+    { "name": "avg_reset", "start": 22528,"end": 22528, "_hex": "0x5800 AVG reset_w" },
+    { "name": "earom_write","start": 24576,"end": 24639,"_hex": "0x6000-0x603F EAROM write -- UNIMPLEMENTED: THROWS" },
+    { "name": "earom_ctrl","start": 24640,"end": 24640, "_hex": "0x6040 W EAROM control -- UNIMPLEMENTED: THROWS" },
+    { "name": "mathbox_go","start": 24704,"end": 24735, "_hex": "0x6080-0x609F mathbox go -- UNIMPLEMENTED: THROWS" },
+    { "name": "pokey1",    "start": 24768,"end": 24783, "_hex": "0x60C0-0x60CF POKEY1 write -- recorded to io sink (§5 audio)" },
+    { "name": "pokey2",    "start": 24784,"end": 24799, "_hex": "0x60D0-0x60DF POKEY2 write -- recorded to io sink (§5 audio)" },
+    { "name": "led",       "start": 24800,"end": 24800, "_hex": "0x60E0 LEDs + FLIP (player select)" }
+  ],
+
+  "_inputs_note": "IN0 (0x0C00) MIXED polarity: b0 coin3, b1 coin2, b2 coin1, b3 tilt, b4 self-test, b5 diag-step -- all ACTIVE-LOW (idle 1); b6 AVG done_r (ACTIVE-HIGH, 0=busy default); b7 3kHz clock = (total_cycles & 0x100). Idle IN0 = 0x3F. The SPINNER is a 4-bit rotary at IN1 (0x0D00) b0-3; FIRE/SUPERZAPPER read via POKEY pots -- input wiring pending grounding.",
+  "inputs": {
+    "IN0": { "addr": 3072, "idle": 63, "_hex_addr": "0x0C00", "_hex_idle": "0x3F", "_bits": "b0-5 active-low idle high; b6 AVG done; b7 3kHz. tempest.cpp:523-534." }
+  },
+
+  "controlByte": null,
+  "_controlByte_note": "Program ROM base is 0x9000 (not 0x2000 like centiped). The config-cert reads the reset-vector target at 0xFFFC and the first program byte; pending a MAME golden probe (mame_golden 6502 path assumes ROM@0x2000 -- vector-game golden tooling is a §2 item).",
+
+  "interrupt": {
+    "kind": "IRQ",
+    "_vectors_hex": "6502 vectors at 0xFFFA (NMI), 0xFFFC (RESET), 0xFFFE (IRQ/BRK) -- 0xF000-0xFFFF is a reload of the 0xD000 program ROM.",
+    "nmiVector": 65530,
+    "resetVector": 65532,
+    "irqVector": 65534,
+    "_note": "PERIODIC IRQ at CLOCK_3KHZ/12 = 12.096MHz/4096/12 = 246.09Hz (tempest.cpp:644 set_periodic_int(irq0_line_assert)). One IRQ every 1512000/246.09 = 6144 CPU cycles (= 4.10 IRQs/frame). Acked by write to 0x5000 (wdclr_w -> CLEAR_LINE). NOT vblank-tied; there is NO vblank NMI. Frame sync is via the AVG done_r poll (IN0 bit6) + the 3kHz bit. Watchdog = CLOCK_3KHZ/256 ~= 11.5Hz."
+  },
+
+  "landmarks": [],
+  "_landmarks_todo": "EMPTY -- boot-init-done + first-IRQ cycles pending the first MAME golden (§2 vector golden tooling)."
+}
