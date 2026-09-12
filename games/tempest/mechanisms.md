@@ -420,7 +420,9 @@ The subsystems above are the idiomatic layer's decompiled set — leaves and the
 them; the rest of the reachable call graph (deeper callers whose callees are not yet decompiled, and the
 computed-jump dispatchers that form the game's spine) still runs as the frozen translated oracle and is not
 described here. Naming compounds as the graph is climbed: the routines decompiled so far keep `loc_<addr>`
-identifiers this pass. Two structural items are deferred to dedicated passes: `loc_9e5c`, a caller that
+identifiers this pass. A further batch of caller routines has since been decompiled (dissolving their calls
+into the already-idiomatic routines above) but is not yet grounded or named here — the next understanding
+pass folds it in. Two structural items are deferred to dedicated passes: `loc_9e5c`, a caller that
 falls into the shared mid-entry `loc_9e5f` (a 2-entry split), and the computed-jump dispatchers, which are
 wired last and validated serially. Deep-tail roles tagged `[code]` (the enemy-flip set/clear outcome, the
 mathbox helpers and object-draw loop reached only in specific states) lift to `[seen]` once a capture
