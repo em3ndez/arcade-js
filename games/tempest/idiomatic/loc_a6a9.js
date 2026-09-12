@@ -10,6 +10,8 @@ import {
 // pair into a fraction+whole coordinate, resetting the whole on ring overflow
 // (>= 0xf0 for a rising axis, < 0x10 for a falling one). Axis 0's whole lands in
 // the shared cell only at the end and is also forced to 0 if axis 1 or 2 overflows.
+// Returns the axis-0 whole (the value stored to the shared coordinate cell), forced to
+// 0 on any axis's ring overflow, as a register live-out.
 function integrate(mem8, frac, vlow, sign, whole, x) {
   const sum = mem8[u16(frac + x)] + mem8[u16(vlow + x)];
   mem8[u16(frac + x)] = sum;
@@ -33,4 +35,5 @@ export function loc_a6a9(m, x = m.regs.x) {
   mem8[u16(loc_2a3 + x)] = a2.w;
 
   mem8[u16(loc_283 + x)] = whole0;
+  return whole0; // exit Y live-out
 }

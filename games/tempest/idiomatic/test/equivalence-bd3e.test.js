@@ -60,18 +60,32 @@ test("CAPTURE: real 0xbd3e dispatches -- loc_bd3e == oracle in RAM (-stack)", ()
 test("CRAFTED: math-coprocessor branch ($57>=0x10) matches the oracle", () => {
   const o = new Machine(ROM, OPTS); seedElse(o);
   const c = new Machine(ROM, OPTS); seedElse(c);
-  oracle(o); loc_bd3e(c);
+  oracle(o); const y = loc_bd3e(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the coprocessor path");
+  // LIVE-OUT: the oracle leaves the real Y register at RTS; the module must return it.
+  assert.equal(y, o.regs.y, "returned Y == oracle exit Y (else path)");
+  assert.equal(y, (c.mem.read8(loc_a9) + 2) & 0xff, "exit Y == ($a9 + 2) & 0xff");
 });
 
 test("CRAFTED: trivial branch ($57<0x10) writes the fixed (0x00, 0x71) entry", () => {
   const o = new Machine(ROM, OPTS); seedTrivial(o);
   const c = new Machine(ROM, OPTS); seedTrivial(c);
-  oracle(o); loc_bd3e(c);
+  oracle(o); const y = loc_bd3e(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the trivial path");
   assert.equal(c.mem.read8(loc_78), 0x01, "$78 = 0x01");
   assert.equal(c.mem.read8(0x0620), 0x00, "first entry byte = 0x00");
   assert.equal(c.mem.read8(0x0621), 0x71, "second entry byte = 0x71");
+  // LIVE-OUT: exit Y is set in the shared convergence, so the trivial path returns it too.
+  assert.equal(y, o.regs.y, "returned Y == oracle exit Y (trivial path)");
+  assert.equal(y, (c.mem.read8(loc_a9) + 2) & 0xff, "exit Y == ($a9 + 2) & 0xff");
+});
+
+test("TEETH: a wrong exit-Y return ($a9 + 1) diverges from the oracle's Y", () => {
+  const o = new Machine(ROM, OPTS); seedElse(o);
+  oracle(o);
+  // The most tempting off-by-one: stopping at the first iny (bd99) instead of bd9f.
+  const wrongY = (o.mem.read8(loc_a9) + 1) & 0xff;
+  assert.notEqual(wrongY, o.regs.y, "a return of $a9+1 must NOT equal the oracle exit Y ($a9+2)");
 });
 
 test("TEETH: a twin that skips the second entry byte diverges from the oracle", () => {

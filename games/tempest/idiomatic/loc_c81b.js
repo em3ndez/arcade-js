@@ -9,7 +9,13 @@ import {
 // step of 0..2 and subtract it from the counter. When the gate is clear, maybe
 // seed four intro cells; when the step is nonzero, set two status bits, zero
 // three cells, bump a 16-bit tally, and clamp a value to 0x63.
-export function loc_c81b(m) {
+//
+// Live-out: exit X/Y (a deferred caller threads both to a sound/insert stash).
+// Y = ldy #0 at entry, bumped only in the seed loops -> equals `step` (0 on the
+// early returns, 1..2 on the main path). X is never loaded until c853, so every
+// return before the status block leaves entry X untouched (the `xIn` live-in);
+// on the main path X = $3e (step-1) then ldx #3 if nonzero. Returns [x, y].
+export function loc_c81b(m, xIn = m.regs.x) {
   const { mem8 } = m;
   const gate = mem8[loc_4e] & 0x60;
   const counterGE2 = mem8[loc_6] >= 2;
@@ -24,7 +30,7 @@ export function loc_c81b(m) {
       mem8[loc_50] = 0x00;
       mem8[loc_123] = 0x00;
     }
-    return;
+    return [xIn, 0x00]; // X = entry X (never loaded); Y = ldy #0 (untouched)
   }
 
   let step = 0;
@@ -41,7 +47,7 @@ export function loc_c81b(m) {
   }
 
   mem8[loc_3e] = step;
-  if (step === 0) return;
+  if (step === 0) return [xIn, step]; // X = entry X (still not loaded); Y = 0
 
   mem8[loc_5] = mem8[loc_5] | 0xc0;
   mem8[loc_16] = 0x00;
@@ -59,4 +65,6 @@ export function loc_c81b(m) {
   let sum = (mem8[loc_100] + mem8[loc_3e] + 1) & 0xff;
   if (sum >= 0x63) sum = 0x63;
   mem8[loc_100] = sum;
+
+  return [x, step]; // X = c853 result (step-1 or ldx #3); Y = step (1..2)
 }

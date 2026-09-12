@@ -47,8 +47,9 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 test("CAPTURE: real 0xa6a9 dispatches -- loc_a6a9 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_a6a9(c);
+    oracle(o); const y = loc_a6a9(c);
     assert.equal(ramDiff(o, c), null);
+    assert.equal(y, o.regs.y, "returned register (exit Y = whole0) matches oracle's live-out Y");
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
@@ -65,12 +66,39 @@ function seed(m) {
 test("CRAFTED: three axes integrate; axis-2 ring overflow forces the shared whole to 0", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_a6a9(c);
+  oracle(o); const y = loc_a6a9(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after integrate");
   assert.equal(c.mem.read8(loc_223 + X), 0x10, "axis0 fraction wrapped");
   assert.equal(c.mem.read8(loc_263 + X), 0x95, "axis1 whole stored");
   assert.equal(c.mem.read8(loc_2a3 + X), 0xf5, "axis2 whole stored (raw, unclamped)");
   assert.equal(c.mem.read8(loc_283 + X), 0x00, "shared whole zeroed by axis2 overflow");
+  // register live-out: exit Y = whole0 (0 here, forced by axis-2 overflow) == oracle's Y at RTS
+  assert.equal(y, o.regs.y, "returned register (exit Y) matches oracle's live-out Y");
+  assert.equal(y, 0x00, "exit Y is 0 (axis-2 overflow zeroed whole0)");
+});
+
+test("REG-LIVE-OUT: no-overflow axes -- exit Y carries axis-0 whole and matches oracle Y", () => {
+  // seed all three axes to stay inside the ring so whole0 survives to exit Y as the axis-0 whole.
+  function seedNoOverflow(m) {
+    m.regs.x = X;
+    m.mem.write8(loc_223 + X, 0x10); m.mem.write8(loc_2e3 + X, 0x00); m.mem.write8(loc_343 + X, 0x02); m.mem.write8(loc_283 + X, 0x40);
+    m.mem.write8(loc_203 + X, 0x10); m.mem.write8(loc_2c3 + X, 0x00); m.mem.write8(loc_323 + X, 0x02); m.mem.write8(loc_263 + X, 0x40);
+    m.mem.write8(loc_243 + X, 0x10); m.mem.write8(loc_303 + X, 0x00); m.mem.write8(loc_363 + X, 0x02); m.mem.write8(loc_2a3 + X, 0x40);
+  }
+  const o = new Machine(ROM, OPTS); seedNoOverflow(o);
+  const c = new Machine(ROM, OPTS); seedNoOverflow(c);
+  oracle(o); const y = loc_a6a9(c);
+  assert.equal(ramDiff(o, c), null, "RAM equal after integrate (no overflow)");
+  assert.equal(y, o.regs.y, "exit Y matches oracle Y");
+  assert.equal(y, 0x42, "exit Y is the axis-0 whole (0x40 + 0x02)");
+});
+
+test("TEETH-RET: a twin returning a wrong exit register diverges from the oracle Y", () => {
+  const o = new Machine(ROM, OPTS); seed(o);
+  const c = new Machine(ROM, OPTS); seed(c);
+  oracle(o);
+  const badReturn = loc_a6a9(c) ^ 0xff; // any corruption of the true whole0
+  assert.notEqual(badReturn, o.regs.y, "a wrong return would (correctly) fail the live-out check");
 });
 
 test("TEETH: a twin that ignores axis-1/2 ring overflow (never zeroes the shared whole) diverges", () => {

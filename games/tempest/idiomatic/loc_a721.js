@@ -5,6 +5,7 @@ import { loc_a75d } from "./loc_a75d.js";
 
 // Step a slot's three axis velocities one increment toward zero; when all three
 // saturate, clear the slot's whole coordinate.
+// Returns the last axis's stepped whole byte as a register live-out (unchanged on both exits).
 export function loc_a721(m, x = m.regs.x) {
   const { mem8 } = m;
   mem8[loc_29] = 0xfd; // seed the saturation counter
@@ -19,12 +20,15 @@ export function loc_a721(m, x = m.regs.x) {
     mem8[u16(loc_2e3 + x)] = low;
     mem8[u16(loc_343 + x)] = whole;
   }
+  let exitY; // Y register at RTS = axis-2 stepped whole
   {
     const [low, whole] = loc_a75d(m, mem8[u16(loc_303 + x)], mem8[u16(loc_363 + x)]);
     mem8[u16(loc_303 + x)] = low;
     mem8[u16(loc_363 + x)] = whole;
+    exitY = whole;
   }
   // Counter reaches zero only when every axis saturated.
-  if (mem8[loc_29] !== 0) return;
+  if (mem8[loc_29] !== 0) return exitY;
   mem8[u16(loc_283 + x)] = 0x00;
+  return exitY;
 }

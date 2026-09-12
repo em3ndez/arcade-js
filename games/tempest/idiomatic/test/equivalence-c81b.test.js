@@ -48,11 +48,15 @@ const seed = (m) => {
   m.mem.write8(loc_100, 0x10);
 };
 
-test("CAPTURE: real 0xc81b dispatches -- loc_c81b == oracle in RAM (-stack)", () => {
+test("CAPTURE: real 0xc81b dispatches -- loc_c81b == oracle in RAM (-stack) + exit X/Y", () => {
   for (const cap of CAPS) {
     const o = cap.clone(), c = cap.clone();
-    oracle(o); loc_c81b(c);
+    oracle(o);
+    const [rx, ry] = loc_c81b(c);
     assert.equal(ramDiff(o, c), null);
+    // Live-out: the module's returned [X,Y] equal the oracle's registers at RTS.
+    assert.equal(rx, o.regs.x, "exit X matches oracle register");
+    assert.equal(ry, o.regs.y, "exit Y matches oracle register");
   }
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
@@ -60,7 +64,8 @@ test("CAPTURE: real 0xc81b dispatches -- loc_c81b == oracle in RAM (-stack)", ()
 test("CRAFTED: gate/step path sets $3e, $05|=0xc0, zeroes $16/$18/$00, bumps $040f, clamps $0100", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
-  oracle(o); loc_c81b(c);
+  oracle(o);
+  const [rx, ry] = loc_c81b(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after step path");
   assert.equal(c.mem.read8(loc_4e), 0x00, "$4e cleared");
   assert.equal(c.mem.read8(loc_6), 0x03, "$06 -= 2");
@@ -69,6 +74,27 @@ test("CRAFTED: gate/step path sets $3e, $05|=0xc0, zeroes $16/$18/$00, bumps $04
   assert.equal(c.mem.read8(loc_16), 0x00, "$16 cleared");
   assert.equal(c.mem.read8(loc_40c + 3), 0x01, "$040f bumped");
   assert.equal(c.mem.read8(loc_100), 0x12, "$0100 clamped sum");
+  // Live-out on the step=2 path: X = ldx #3 (step-1=1 -> 3), Y = step = 2.
+  assert.equal(rx, o.regs.x, "exit X matches oracle register");
+  assert.equal(ry, o.regs.y, "exit Y matches oracle register");
+  assert.equal(rx, 0x03, "exit X = 0x03 on the step=2 path");
+  assert.equal(ry, 0x02, "exit Y = step = 2");
+});
+
+test("TEETH-RET: a wrong exit-register model diverges from the oracle registers", () => {
+  const o = new Machine(ROM, OPTS); seed(o);
+  const c = new Machine(ROM, OPTS); seed(c);
+  oracle(o);
+  const [rx, ry] = loc_c81b(c);
+  // The real return matches the oracle's registers at RTS...
+  assert.equal(rx, o.regs.x);
+  assert.equal(ry, o.regs.y);
+  // ...but a twin that returned entry X / Y=0 (forgetting the main-path work)
+  // would be caught: on the step=2 path the real exit is X=3, Y=2.
+  const wrongX = c.regs.x; // entry X (unchanged live-in), != main-path exit 3
+  const wrongY = 0x00;     // pre-bump Y, != step 2
+  assert.notEqual(wrongX, o.regs.x, "a stale entry-X return would be caught");
+  assert.notEqual(wrongY, o.regs.y, "a pre-bump Y=0 return would be caught");
 });
 
 test("TEETH: a twin that clears $4e but skips the status block diverges from the oracle", () => {

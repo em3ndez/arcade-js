@@ -7,6 +7,11 @@ import {
 
 // Append a (mantissa, exponent) pair to the table: small inputs use a fixed pair,
 // otherwise drive the math coprocessor and normalize its result into an exponent.
+// Returns exit Y (= ($a9 + 2) & 0xff) -- the shared convergence at bd90..bd9f loads Y
+// from $a9 (bd96) and does two iny (bd99, bd9f), so both RTS paths leave Y = $a9 + 2.
+// Callers (b69b sty $a9; bd09/c6c7 iny (($74),y)) consume this Y. Exit X is NOT returned:
+// the trivial ($57<0x10) path never sets X, so its exit X is the incoming register (cruft,
+// not expressible), and every caller overwrites X before use -- see selfAssessment/notes.
 export function loc_bd3e(m) {
   const { mem8 } = m;
   let a, y;
@@ -46,6 +51,8 @@ export function loc_bd3e(m) {
   y = mem8[loc_a9];
   const ptr = mem8[loc_74] | (mem8[loc_75] << 8);
   mem8[u16(ptr + y)] = a;
-  y = (y + 1) & 0xff;
+  y = (y + 1) & 0xff;                 // bd99 iny
   mem8[u16(ptr + y)] = (saved | 0x70);
+  y = (y + 1) & 0xff;                 // bd9f iny -- second post-write iny; exit Y = $a9 + 2
+  return y;
 }

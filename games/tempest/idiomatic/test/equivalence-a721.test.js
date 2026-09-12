@@ -112,6 +112,45 @@ test("TEETH (marshalling): a twin that swaps axis-0 (low,whole) args diverges fr
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the swapped (low,whole) marshalling");
 });
 
+test("LIVE-OUT: returned Y equals the oracle's exit Y on BOTH RTS paths", () => {
+  // Non-saturating (distinct): exits via the bne-skip RTS at 0xa75c. Exit Y = axis-2 stepped whole.
+  {
+    const o = new Machine(ROM, OPTS); seedDistinct(o); oracle(o);
+    const c = new Machine(ROM, OPTS); seedDistinct(c); const ry = loc_a721(c);
+    assert.equal(ramDiff(o, c), null, "RAM still equal (non-saturating)");
+    assert.equal(ry, o.regs.y, "returned Y must equal oracle exit Y (bne-skip path)");
+  }
+  // Saturating: exits via the fall-through RTS after `sta $0283,x`. All axes saturate -> exit Y = 0.
+  {
+    const o = new Machine(ROM, OPTS); seedSaturating(o); oracle(o);
+    const c = new Machine(ROM, OPTS); seedSaturating(c); const ry = loc_a721(c);
+    assert.equal(ramDiff(o, c), null, "RAM still equal (saturating)");
+    assert.equal(ry, o.regs.y, "returned Y must equal oracle exit Y (fall-through path)");
+  }
+});
+
+test("TEETH (live-out): a twin returning the wrong axis's whole diverges from oracle exit Y", () => {
+  const o = new Machine(ROM, OPTS); seedDistinct(o); oracle(o);
+  const c = new Machine(ROM, OPTS); seedDistinct(c);
+  const wrongTwin = (m, x = m.regs.x) => {
+    const { mem8 } = m;
+    mem8[loc_29] = 0xfd;
+    let whole0;
+    { const [low, whole] = loc_a75d(m, mem8[u16(loc_2c3 + x)], mem8[u16(loc_323 + x)]);
+      mem8[u16(loc_2c3 + x)] = low; mem8[u16(loc_323 + x)] = whole; whole0 = whole; }
+    { const [low, whole] = loc_a75d(m, mem8[u16(loc_2e3 + x)], mem8[u16(loc_343 + x)]);
+      mem8[u16(loc_2e3 + x)] = low; mem8[u16(loc_343 + x)] = whole; }
+    { const [low, whole] = loc_a75d(m, mem8[u16(loc_303 + x)], mem8[u16(loc_363 + x)]);
+      mem8[u16(loc_303 + x)] = low; mem8[u16(loc_363 + x)] = whole; }
+    // BUG: returns axis-0 whole (0x40) instead of the axis-2 exit whole (0x42).
+    if (mem8[loc_29] !== 0) return whole0;
+    mem8[u16(loc_283 + x)] = 0x00;
+    return whole0;
+  };
+  const ry = wrongTwin(c);
+  assert.notEqual(ry, o.regs.y, "the live-out check FAILED to catch a wrong-axis return");
+});
+
 test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
