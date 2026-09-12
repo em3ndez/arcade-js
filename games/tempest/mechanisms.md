@@ -456,3 +456,7 @@ an intervening frozen leaf leaves that cannot yet be faithfully modelled: `loc_c
 `loc_ccfa` needs the X/Y left by a leaf with too many exit paths) and `loc_9749` (whose call to `loc_ccb5`
 needs the Y left by `loc_97c5`, not yet extended to return it). Deep-tail roles tagged `[code]` lift to
 `[seen]` once a capture drives the states that exercise them.
+
+Understanding pending: a small deep-tail pass moved the object-insert callers (`loc_a33a`/`loc_a343`,
+with the `loc_a347` mid-entry), the `loc_b5d7` draw-dispatch targets `loc_b5eb`/`loc_b71b`, and the
+`loc_9e2f`/`loc_9e48` spawn callers into the idiomatic set; their roles are grounded in the next pass.
