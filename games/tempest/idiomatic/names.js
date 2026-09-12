@@ -621,6 +621,7 @@ export const ROUTINES = {
   0xb498: { name: "loc_b498" },
   0xb56a: { name: "loc_b56a" },
   0xb586: { name: "loc_b586" },
+  0xb5d7: { name: "loc_b5d7" },
   0xb5eb: { name: "loc_b5eb" },
   0xb60f: { name: "loc_b60f" },
   0xb622: { name: "loc_b622" },
