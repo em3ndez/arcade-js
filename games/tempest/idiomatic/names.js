@@ -45,6 +45,7 @@ export const loc_36 = 0x0036;
 export const loc_37 = 0x0037;
 export const loc_38 = 0x0038;
 export const loc_39 = 0x0039;
+export const loc_3a = 0x003a;
 export const loc_3b = 0x003b;
 export const loc_3c = 0x003c;
 export const loc_3d = 0x003d;
@@ -64,6 +65,7 @@ export const loc_4d = 0x004d;
 export const loc_4e = 0x004e;
 export const loc_50 = 0x0050;
 export const loc_51 = 0x0051;
+export const loc_53 = 0x0053;
 export const loc_55 = 0x0055;
 export const loc_56 = 0x0056;
 export const loc_57 = 0x0057;
@@ -92,6 +94,7 @@ export const loc_6e = 0x006e;
 export const loc_6f = 0x006f;
 export const loc_70 = 0x0070;
 export const loc_71 = 0x0071;
+export const loc_72 = 0x0072;
 export const loc_73 = 0x0073;
 export const loc_74 = 0x0074;
 export const loc_75 = 0x0075;
@@ -100,17 +103,47 @@ export const loc_77 = 0x0077;
 export const loc_78 = 0x0078;
 export const loc_79 = 0x0079;
 export const loc_7a = 0x007a;
+export const loc_7b = 0x007b;
 export const loc_7c = 0x007c;
+export const loc_7d = 0x007d;
+export const loc_7e = 0x007e;
+export const loc_7f = 0x007f;
 export const loc_80 = 0x0080;
 export const loc_81 = 0x0081;
+export const loc_82 = 0x0082;
+export const loc_83 = 0x0083;
+export const loc_84 = 0x0084;
+export const loc_85 = 0x0085;
+export const loc_86 = 0x0086;
+export const loc_87 = 0x0087;
 export const loc_88 = 0x0088;
+export const loc_89 = 0x0089;
+export const loc_8a = 0x008a;
+export const loc_8b = 0x008b;
+export const loc_8c = 0x008c;
+export const loc_8d = 0x008d;
+export const loc_8e = 0x008e;
+export const loc_8f = 0x008f;
 export const loc_90 = 0x0090;
 export const loc_91 = 0x0091;
+export const loc_92 = 0x0092;
+export const loc_93 = 0x0093;
+export const loc_94 = 0x0094;
+export const loc_95 = 0x0095;
+export const loc_96 = 0x0096;
+export const loc_97 = 0x0097;
+export const loc_99 = 0x0099;
+export const loc_9b = 0x009b;
+export const loc_9d = 0x009d;
+export const loc_9e = 0x009e;
 export const loc_9f = 0x009f;
 export const loc_a0 = 0x00a0;
 export const loc_a1 = 0x00a1;
+export const loc_a2 = 0x00a2;
 export const loc_a6 = 0x00a6;
 export const loc_a9 = 0x00a9;
+export const loc_aa = 0x00aa;
+export const loc_ab = 0x00ab;
 export const loc_ac = 0x00ac;
 export const loc_ad = 0x00ad;
 export const loc_ae = 0x00ae;
@@ -118,6 +151,9 @@ export const loc_af = 0x00af;
 export const loc_b0 = 0x00b0;
 export const loc_b1 = 0x00b1;
 export const loc_b4 = 0x00b4;
+export const loc_b5 = 0x00b5;
+export const loc_b6 = 0x00b6;
+export const loc_b7 = 0x00b7;
 export const loc_bd = 0x00bd;
 export const loc_be = 0x00be;
 export const loc_bf = 0x00bf;
@@ -126,6 +162,7 @@ export const loc_d0 = 0x00d0;
 export const loc_e0 = 0x00e0;
 export const loc_f0 = 0x00f0;
 export const loc_100 = 0x0100;
+export const loc_102 = 0x0102;
 export const loc_104 = 0x0104;
 export const loc_105 = 0x0105;
 export const loc_106 = 0x0106;
@@ -151,6 +188,7 @@ export const loc_119 = 0x0119;
 export const loc_11a = 0x011a;
 export const loc_11b = 0x011b;
 export const loc_11c = 0x011c;
+export const loc_11f = 0x011f;
 export const loc_120 = 0x0120;
 export const loc_121 = 0x0121;
 export const loc_123 = 0x0123;
@@ -158,6 +196,7 @@ export const loc_124 = 0x0124;
 export const loc_125 = 0x0125;
 export const loc_126 = 0x0126;
 export const loc_127 = 0x0127;
+export const loc_133 = 0x0133;
 export const loc_135 = 0x0135;
 export const loc_139 = 0x0139;
 export const loc_13a = 0x013a;
@@ -175,6 +214,7 @@ export const loc_149 = 0x0149;
 export const loc_14d = 0x014d;
 export const loc_14e = 0x014e;
 export const loc_156 = 0x0156;
+export const loc_157 = 0x0157;
 export const loc_158 = 0x0158;
 export const loc_159 = 0x0159;
 export const loc_15a = 0x015a;
@@ -184,6 +224,7 @@ export const loc_15f = 0x015f;
 export const loc_160 = 0x0160;
 export const loc_16a = 0x016a;
 export const loc_16b = 0x016b;
+export const loc_16c = 0x016c;
 export const loc_16e = 0x016e;
 export const loc_1c6 = 0x01c6;
 export const loc_1c7 = 0x01c7;
@@ -195,6 +236,7 @@ export const loc_1cc = 0x01cc;
 export const loc_1cd = 0x01cd;
 export const loc_1ce = 0x01ce;
 export const loc_1cf = 0x01cf;
+export const loc_1ff = 0x01ff;
 export const loc_200 = 0x0200;
 export const loc_201 = 0x0201;
 export const loc_202 = 0x0202;
@@ -246,10 +288,18 @@ export const loc_3de = 0x03de;
 export const loc_3ee = 0x03ee;
 export const loc_3fe = 0x03fe;
 export const loc_405 = 0x0405;
+export const loc_409 = 0x0409;
+export const loc_40a = 0x040a;
+export const loc_40b = 0x040b;
 export const loc_40c = 0x040c;
 export const loc_40d = 0x040d;
+export const loc_40f = 0x040f;
+export const loc_410 = 0x0410;
+export const loc_412 = 0x0412;
+export const loc_413 = 0x0413;
 export const loc_414 = 0x0414;
 export const loc_415 = 0x0415;
+export const loc_425 = 0x0425;
 export const loc_435 = 0x0435;
 export const loc_445 = 0x0445;
 export const loc_455 = 0x0455;
@@ -263,10 +313,13 @@ export const loc_603 = 0x0603;
 export const loc_604 = 0x0604;
 export const loc_605 = 0x0605;
 export const loc_606 = 0x0606;
+export const loc_61b = 0x061b;
 export const loc_61e = 0x061e;
 export const loc_61f = 0x061f;
 export const loc_620 = 0x0620;
 export const loc_706 = 0x0706;
+export const loc_707 = 0x0707;
+export const loc_708 = 0x0708;
 export const loc_71b = 0x071b;
 export const loc_71c = 0x071c;
 export const loc_71d = 0x071d;
@@ -282,16 +335,21 @@ export const loc_c00 = 0x0c00;
 export const loc_d00 = 0x0d00;
 export const loc_e00 = 0x0e00;
 export const loc_2000 = 0x2000;
+export const loc_2001 = 0x2001;
 export const loc_2f60 = 0x2f60;
+export const loc_2fa6 = 0x2fa6;
+export const loc_2fa8 = 0x2fa8;
 export const loc_2ffc = 0x2ffc;
 export const loc_2ffd = 0x2ffd;
 export const loc_2fff = 0x2fff;
 export const loc_31e4 = 0x31e4;
+export const loc_31e5 = 0x31e5;
 export const loc_31fa = 0x31fa;
 export const loc_3284 = 0x3284;
 export const loc_3286 = 0x3286;
 export const loc_3db2 = 0x3db2;
 export const loc_3db3 = 0x3db3;
+export const loc_5800 = 0x5800;
 export const loc_6000 = 0x6000;
 export const loc_6040 = 0x6040;
 export const loc_6050 = 0x6050;
@@ -314,17 +372,21 @@ export const loc_6094 = 0x6094;
 export const loc_6095 = 0x6095;
 export const loc_6096 = 0x6096;
 export const loc_60c0 = 0x60c0;
+export const loc_60c1 = 0x60c1;
 export const loc_60c8 = 0x60c8;
 export const loc_60ca = 0x60ca;
 export const loc_60cb = 0x60cb;
 export const loc_60cf = 0x60cf;
 export const loc_60d0 = 0x60d0;
+export const loc_60d1 = 0x60d1;
 export const loc_60d8 = 0x60d8;
 export const loc_60da = 0x60da;
 export const loc_60db = 0x60db;
 export const loc_60df = 0x60df;
+export const loc_60e0 = 0x60e0;
 export const loc_91c6 = 0x91c6;
 export const loc_91c7 = 0x91c7;
+export const loc_91fe = 0x91fe;
 export const loc_9afd = 0x9afd;
 export const loc_9b02 = 0x9b02;
 export const loc_a0f7 = 0xa0f7;
@@ -333,11 +395,24 @@ export const loc_a304 = 0xa304;
 export const loc_a448 = 0xa448;
 export const loc_a44e = 0xa44e;
 export const loc_a788 = 0xa788;
+export const loc_a8b0 = 0xa8b0;
 export const loc_a97d = 0xa97d;
+export const loc_aace = 0xaace;
+export const loc_aaf3 = 0xaaf3;
+export const loc_aaf4 = 0xaaf4;
 export const loc_ac08 = 0xac08;
+export const loc_af6f = 0xaf6f;
+export const loc_b096 = 0xb096;
+export const loc_b09b = 0xb09b;
+export const loc_b0a3 = 0xb0a3;
+export const loc_b476 = 0xb476;
+export const loc_b487 = 0xb487;
 export const loc_b61e = 0xb61e;
 export const loc_b687 = 0xb687;
 export const loc_b68b = 0xb68b;
+export const loc_b7e5 = 0xb7e5;
+export const loc_b82a = 0xb82a;
+export const loc_b83d = 0xb83d;
 export const loc_b97c = 0xb97c;
 export const loc_ba7c = 0xba7c;
 export const loc_bb7c = 0xbb7c;
@@ -349,7 +424,13 @@ export const loc_bcbc = 0xbcbc;
 export const loc_bccc = 0xbccc;
 export const loc_bcdc = 0xbcdc;
 export const loc_bcec = 0xbcec;
+export const loc_bfb6 = 0xbfb6;
+export const loc_bfc4 = 0xbfc4;
+export const loc_bfd2 = 0xbfd2;
+export const loc_bfd3 = 0xbfd3;
 export const loc_c1fd = 0xc1fd;
+export const loc_c22d = 0xc22d;
+export const loc_c669 = 0xc669;
 export const loc_caf1 = 0xcaf1;
 export const loc_caf9 = 0xcaf9;
 export const loc_cb01 = 0xcb01;
@@ -364,27 +445,45 @@ export const loc_ccce = 0xccce;
 export const loc_cdde = 0xcdde;
 export const loc_cde0 = 0xcde0;
 export const loc_cde2 = 0xcde2;
+export const loc_cde4 = 0xcde4;
+export const loc_cde5 = 0xcde5;
+export const loc_cde6 = 0xcde6;
+export const loc_ce66 = 0xce66;
 export const loc_ce68 = 0xce68;
 export const loc_ce6e = 0xce6e;
 export const loc_ce6f = 0xce6f;
 export const loc_ce7a = 0xce7a;
 export const loc_ce86 = 0xce86;
 export const loc_ce87 = 0xce87;
+export const loc_ce8c = 0xce8c;
+export const loc_ce8d = 0xce8d;
 export const loc_ce9e = 0xce9e;
+export const loc_ce9f = 0xce9f;
+export const loc_ceb0 = 0xceb0;
+export const loc_ceb1 = 0xceb1;
 export const loc_cec4 = 0xcec4;
+export const loc_cec6 = 0xcec6;
+export const loc_cec7 = 0xcec7;
 export const loc_cec8 = 0xcec8;
 export const loc_cec9 = 0xcec9;
 export const loc_cfd9 = 0xcfd9;
+export const loc_d121 = 0xd121;
+export const loc_d122 = 0xd122;
+export const loc_d575 = 0xd575;
 export const loc_d6b3 = 0xd6b3;
 export const loc_d6b4 = 0xd6b4;
 export const loc_d6f7 = 0xd6f7;
 export const loc_d6ff = 0xd6ff;
+export const loc_dbd5 = 0xdbd5;
+export const loc_dbd6 = 0xdbd6;
 export const loc_dddd = 0xdddd;
 export const loc_ddde = 0xddde;
 export const loc_dde3 = 0xdde3;
 export const loc_dde4 = 0xdde4;
+export const loc_dfdc = 0xdfdc;
 
 export const ROUTINES = {
+  0x902b: { name: "loc_902b" },
   0x91b5: { name: "loc_91b5" },
   0x921b: { name: "loc_921b" },
   0x9234: { name: "loc_9234" },
@@ -402,6 +501,8 @@ export const ROUTINES = {
   0x96c8: { name: "loc_96c7", entry: "loc_96c8" },
   0x96cb: { name: "loc_96cb" },
   0x96db: { name: "loc_96db" },
+  0x96e2: { name: "loc_96e2" },
+  0x96f4: { name: "loc_96f4" },
   0x97c5: { name: "loc_97c5" },
   0x994d: { name: "loc_994d" },
   0x9a9d: { name: "loc_9a9d" },
@@ -453,11 +554,27 @@ export const ROUTINES = {
   0xa7bd: { name: "loc_a7bd" },
   0xa7d2: { name: "loc_a7d2" },
   0xa831: { name: "loc_a831" },
+  0xa8b4: { name: "loc_a8b4" },
+  0xa8e7: { name: "loc_a8e7" },
   0xa97f: { name: "loc_a97f" },
   0xa9d7: { name: "loc_a9d7" },
   0xa9fc: { name: "loc_a9fc" },
+  0xaa13: { name: "loc_aa13" },
+  0xaa5a: { name: "loc_aa5a" },
+  0xaa62: { name: "loc_aa62" },
+  0xaa69: { name: "loc_aa69" },
+  0xaa6f: { name: "loc_aa6f" },
+  0xaa79: { name: "loc_aa79" },
+  0xaa92: { name: "loc_aa92" },
+  0xaa97: { name: "loc_aa97" },
   0xaa9e: { name: "loc_aa9e" },
+  0xaaa8: { name: "loc_aaa8" },
   0xaaf5: { name: "loc_aaf5" },
+  0xab0d: { name: "loc_ab0d" },
+  0xab14: { name: "loc_ab14" },
+  0xab17: { name: "loc_ab17" },
+  0xab3b: { name: "loc_ab3b" },
+  0xab98: { name: "loc_ab98" },
   0xaba2: { name: "loc_aba2" },
   0xabac: { name: "loc_abac" },
   0xac07: { name: "loc_ac07" },
@@ -468,45 +585,72 @@ export const ROUTINES = {
   0xad22: { name: "loc_ad22" },
   0xad6e: { name: "loc_ad6e" },
   0xadce: { name: "loc_adce" },
+  0xadea: { name: "loc_adea" },
+  0xae1c: { name: "loc_ae1c" },
+  0xae4e: { name: "loc_ae4e" },
+  0xaeca: { name: "loc_aeca" },
   0xaef8: { name: "loc_aef8" },
+  0xaf26: { name: "loc_af26" },
+  0xaf3f: { name: "loc_af3f" },
   0xaf6e: { name: "loc_af6e" },
   0xaf71: { name: "loc_af71" },
   0xaf77: { name: "loc_af77" },
+  0xaf81: { name: "loc_af81" },
   0xb0ab: { name: "loc_b0ab" },
   0xb0c6: { name: "loc_b0c6" },
+  0xb0d1: { name: "loc_b0d1" },
+  0xb0dd: { name: "loc_b0dd" },
   0xb0e7: { name: "loc_b0e7" },
+  0xb102: { name: "loc_b102" },
+  0xb131: { name: "loc_b131" },
+  0xb15a: { name: "loc_b15a" },
   0xb2be: { name: "loc_b2be" },
   0xb2de: { name: "loc_b2de" },
+  0xb2fe: { name: "loc_b2fe" },
   0xb332: { name: "loc_b332" },
+  0xb367: { name: "loc_b367" },
+  0xb498: { name: "loc_b498" },
   0xb56a: { name: "loc_b56a" },
+  0xb586: { name: "loc_b586" },
   0xb60f: { name: "loc_b60f" },
   0xb622: { name: "loc_b622" },
   0xb634: { name: "loc_b634" },
   0xb69b: { name: "loc_b69b" },
   0xb6fa: { name: "loc_b6fa" },
   0xb75b: { name: "loc_b75b" },
+  0xb79a: { name: "loc_b79a" },
+  0xb7eb: { name: "loc_b7eb" },
   0xb84e: { name: "loc_b84e" },
   0xb85f: { name: "loc_b85f" },
   0xb875: { name: "loc_b875" },
   0xb888: { name: "loc_b888" },
   0xb896: { name: "loc_b896" },
+  0xb8ba: { name: "loc_b8ba" },
   0xb944: { name: "loc_b944" },
   0xb955: { name: "loc_b955" },
   0xb967: { name: "loc_b967" },
   0xbcfd: { name: "loc_bcfd" },
   0xbd09: { name: "loc_bd09" },
   0xbd3e: { name: "loc_bd3e" },
+  0xbda0: { name: "loc_bda0" },
+  0xbdcb: { name: "loc_bda0", entry: "loc_bdcb" },
   0xc098: { name: "loc_c098" },
+  0xc16e: { name: "loc_c16e" },
   0xc196: { name: "loc_c196" },
   0xc1c3: { name: "loc_c1c3" },
   0xc235: { name: "loc_c235" },
   0xc2e8: { name: "loc_c2e8" },
+  0xc30d: { name: "loc_c30d" },
   0xc36e: { name: "loc_c36e" },
   0xc3ba: { name: "loc_c3ba" },
+  0xc3ee: { name: "loc_c3ee" },
   0xc423: { name: "loc_c423" },
   0xc43c: { name: "loc_c43c" },
   0xc453: { name: "loc_c453" },
   0xc473: { name: "loc_c473" },
+  0xc4e1: { name: "loc_c4e1" },
+  0xc54d: { name: "loc_c54d" },
+  0xc5c2: { name: "loc_c5c2" },
   0xc66d: { name: "loc_c66d" },
   0xc6c7: { name: "loc_c6c7" },
   0xc73c: { name: "loc_c73c" },
@@ -542,12 +686,19 @@ export const ROUTINES = {
   0xd6bb: { name: "loc_d6bb" },
   0xd7e1: { name: "loc_d7e1" },
   0xd8a9: { name: "loc_d8a9" },
+  0xdb22: { name: "loc_db22" },
   0xdb5a: { name: "loc_db5a" },
+  0xdb6f: { name: "loc_db6f" },
+  0xdb7e: { name: "loc_db7e" },
+  0xdb84: { name: "loc_db84" },
+  0xdb88: { name: "loc_db88" },
+  0xdb9a: { name: "loc_db9a" },
   0xdbe0: { name: "loc_dbe0" },
   0xdce6: { name: "loc_dce6" },
   0xdd27: { name: "loc_dd27" },
   0xdd29: { name: "loc_dd29" },
   0xdd2b: { name: "loc_dd2b" },
+  0xdd41: { name: "loc_dd41" },
   0xdde9: { name: "loc_dde9" },
   0xdded: { name: "loc_dded" },
   0xddf1: { name: "loc_ddf1" },
@@ -558,15 +709,21 @@ export const ROUTINES = {
   0xddff: { name: "loc_ddfb", entry: "loc_ddff" },
   0xde11: { name: "loc_de11" },
   0xde1b: { name: "loc_de1b" },
+  0xdf09: { name: "loc_df09" },
   0xdf0d: { name: "loc_df0d" },
   0xdf12: { name: "loc_df0d", entry: "loc_df12" },
   0xdf19: { name: "loc_df19" },
   0xdf1f: { name: "loc_df1f" },
   0xdf24: { name: "loc_df1f", entry: "loc_df24" },
+  0xdf39: { name: "loc_df39" },
+  0xdf4a: { name: "loc_df4a" },
+  0xdf4c: { name: "loc_df4c" },
   0xdf53: { name: "loc_df53" },
   0xdf57: { name: "loc_df53", entry: "loc_df57" },
   0xdf59: { name: "loc_df59" },
   0xdf5f: { name: "loc_df5f" },
+  0xdf6a: { name: "loc_df6a" },
+  0xdf6c: { name: "loc_df6c" },
   0xdf73: { name: "loc_df73" },
   0xdf75: { name: "loc_df75" },
   0xdf92: { name: "loc_df92" },

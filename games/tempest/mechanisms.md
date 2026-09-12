@@ -525,3 +525,7 @@ an intervening frozen leaf leaves that cannot yet be faithfully modelled: `loc_c
 `loc_ccfa` needs the X/Y left by a leaf with too many exit paths) and `loc_9749` (whose call to `loc_ccb5`
 needs the Y left by `loc_97c5`, not yet extended to return it). Deep-tail roles tagged `[code]` lift to
 `[seen]` once a capture drives the states that exercise them.
+
+Understanding pending: a large dissolve pass moved the vector-emitter and object-render caller cascade
+(the df/ab/aa/ae/af/b0/b1/db families rooted at the shared `loc_df57` tail) into the idiomatic set; their
+game-vocabulary roles are grounded in the next understanding pass over this map.
