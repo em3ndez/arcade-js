@@ -564,6 +564,7 @@ export const ROUTINES = {
   0xdf1f: { name: "loc_df1f" },
   0xdf24: { name: "loc_df1f", entry: "loc_df24" },
   0xdf53: { name: "loc_df53" },
+  0xdf57: { name: "loc_df53", entry: "loc_df57" },
   0xdf59: { name: "loc_df59" },
   0xdf5f: { name: "loc_df5f" },
   0xdf73: { name: "loc_df73" },
