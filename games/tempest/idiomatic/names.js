@@ -87,6 +87,10 @@ export const loc_6a = 0x006a;
 export const loc_6b = 0x006b;
 export const loc_6c = 0x006c;
 export const loc_6d = 0x006d;
+export const loc_6e = 0x006e;
+export const loc_6f = 0x006f;
+export const loc_70 = 0x0070;
+export const loc_71 = 0x0071;
 export const loc_73 = 0x0073;
 export const loc_74 = 0x0074;
 export const loc_75 = 0x0075;
@@ -139,6 +143,8 @@ export const loc_114 = 0x0114;
 export const loc_115 = 0x0115;
 export const loc_116 = 0x0116;
 export const loc_117 = 0x0117;
+export const loc_119 = 0x0119;
+export const loc_11a = 0x011a;
 export const loc_11b = 0x011b;
 export const loc_11c = 0x011c;
 export const loc_121 = 0x0121;
@@ -194,9 +200,11 @@ export const loc_291 = 0x0291;
 export const loc_298 = 0x0298;
 export const loc_2a3 = 0x02a3;
 export const loc_2a6 = 0x02a6;
+export const loc_2ad = 0x02ad;
 export const loc_2b5 = 0x02b5;
 export const loc_2b9 = 0x02b9;
 export const loc_2c3 = 0x02c3;
+export const loc_2c8 = 0x02c8;
 export const loc_2cc = 0x02cc;
 export const loc_2d3 = 0x02d3;
 export const loc_2db = 0x02db;
@@ -261,6 +269,7 @@ export const loc_808 = 0x0808;
 export const loc_809 = 0x0809;
 export const loc_80a = 0x080a;
 export const loc_80b = 0x080b;
+export const loc_c00 = 0x0c00;
 export const loc_d00 = 0x0d00;
 export const loc_e00 = 0x0e00;
 export const loc_2000 = 0x2000;
@@ -311,6 +320,7 @@ export const loc_9afd = 0x9afd;
 export const loc_9b02 = 0x9b02;
 export const loc_a0f7 = 0xa0f7;
 export const loc_a0f8 = 0xa0f8;
+export const loc_a304 = 0xa304;
 export const loc_a448 = 0xa448;
 export const loc_a44e = 0xa44e;
 export const loc_a788 = 0xa788;
@@ -402,6 +412,8 @@ export const ROUTINES = {
   0x9ed7: { name: "loc_9ed7" },
   0x9fc4: { name: "loc_9fc4" },
   0xa028: { name: "loc_a028" },
+  0xa1e4: { name: "loc_a1e4" },
+  0xa2a6: { name: "loc_a2a6" },
   0xa34b: { name: "loc_a34b" },
   0xa36f: { name: "loc_a36f" },
   0xa3ca: { name: "loc_a3ca" },
@@ -425,6 +437,7 @@ export const ROUTINES = {
   0xa9fc: { name: "loc_a9fc" },
   0xaa9e: { name: "loc_aa9e" },
   0xaaf5: { name: "loc_aaf5" },
+  0xaba2: { name: "loc_aba2" },
   0xabac: { name: "loc_abac" },
   0xac07: { name: "loc_ac07" },
   0xac20: { name: "loc_ac20" },
@@ -436,6 +449,7 @@ export const ROUTINES = {
   0xadce: { name: "loc_adce" },
   0xaef8: { name: "loc_aef8" },
   0xaf6e: { name: "loc_af6e" },
+  0xaf71: { name: "loc_af71" },
   0xaf77: { name: "loc_af77" },
   0xb0ab: { name: "loc_b0ab" },
   0xb0c6: { name: "loc_b0c6" },
@@ -460,6 +474,7 @@ export const ROUTINES = {
   0xc1c3: { name: "loc_c1c3" },
   0xc235: { name: "loc_c235" },
   0xc2e8: { name: "loc_c2e8" },
+  0xc3ba: { name: "loc_c3ba" },
   0xc43c: { name: "loc_c43c" },
   0xc453: { name: "loc_c453" },
   0xc473: { name: "loc_c473" },
@@ -477,6 +492,7 @@ export const ROUTINES = {
   0xca48: { name: "loc_ca48" },
   0xca62: { name: "loc_ca62" },
   0xccb0: { name: "loc_ccb0" },
+  0xccb9: { name: "loc_ccb9" },
   0xccbd: { name: "loc_ccbd" },
   0xccc1: { name: "loc_ccc1" },
   0xccc3: { name: "loc_ccc3" },
@@ -486,12 +502,14 @@ export const ROUTINES = {
   0xccf2: { name: "loc_ccf2" },
   0xccf6: { name: "loc_ccf6" },
   0xccfa: { name: "loc_ccfa" },
+  0xccfe: { name: "loc_ccfe" },
   0xcd02: { name: "loc_cd02" },
   0xcd06: { name: "loc_cd06" },
   0xcd0a: { name: "loc_cd0a" },
   0xcd95: { name: "loc_cd95" },
   0xcf24: { name: "loc_cf24" },
   0xd6bb: { name: "loc_d6bb" },
+  0xd7e1: { name: "loc_d7e1" },
   0xdb5a: { name: "loc_db5a" },
   0xdbe0: { name: "loc_dbe0" },
   0xdce6: { name: "loc_dce6" },
@@ -511,6 +529,7 @@ export const ROUTINES = {
   0xdf53: { name: "loc_df53" },
   0xdf59: { name: "loc_df59" },
   0xdf5f: { name: "loc_df5f" },
+  0xdf75: { name: "loc_df75" },
   0xdf92: { name: "loc_df92" },
   0xdfac: { name: "loc_df92", entry: "loc_dfac" },
   0xdfb1: { name: "loc_dfb1" },

@@ -287,6 +287,9 @@ graph still runs as the frozen translated oracle: the deeper callers whose calle
 and the remaining computed-jump dispatchers that form the game's spine (each is decompiled only once all of
 its jump-table targets are idiomatic). Deferred to dedicated commits: `loc_9e5c` (a caller that falls into
 the shared mid-entry `loc_9e5f`, a 2-entry split); `loc_c891` (whose call to `loc_ccfa` needs the X/Y left
-by intervening frozen leaves threaded through as returns); and `loc_b69b`/`loc_bd09` (whose call to
-`loc_bd3e` has the same intervening-clobber register thread). Deep-tail roles tagged `[code]` lift to
-`[seen]` once a capture drives the states that exercise them.
+by intervening frozen leaves threaded through as returns); `loc_b69b`/`loc_bd09` (whose call to
+`loc_bd3e` has the same intervening-clobber register thread); and `loc_a618` (whose call to `loc_a65b`
+needs the Y left by the intervening frozen motion steppers `loc_a6a9`/`loc_a721`). Deep-tail roles tagged
+`[code]` lift to `[seen]` once a capture drives the states that exercise them. The routines added in the
+latest decompile batch are described by mechanism above; their full grounding-tagged write-up lands in the
+next understanding pass.
