@@ -486,8 +486,13 @@ drive them; the rest of the reachable call graph still runs as the frozen transl
 described here: the deeper callers whose callees are not yet decompiled, and the computed-jump dispatchers
 that form the game's spine (each is decompiled only once all of its jump-table targets are idiomatic).
 Naming compounds as the graph is climbed: the routines decompiled so far keep `loc_<addr>` identifiers this
-pass. Deferred to dedicated commits: `loc_9e5c` (a caller that falls into the shared mid-entry `loc_9e5f`,
-a 2-entry split) and `loc_c891` (whose call to `loc_ccfa` needs the X/Y left by intervening leaves threaded
-through as returns). Deep-tail roles tagged `[code]` lift to `[seen]` once a capture drives the states that
-exercise them.
+pass. The first computed-jump dispatcher, `loc_b84e`, is now idiomatic (its four jump-table targets were all
+decompiled), a function-reference table replacing the RTS trick; the rest of the spine follows as its targets
+land. Deferred to dedicated commits: `loc_9e5c` (a caller that falls into the shared mid-entry `loc_9e5f`,
+a 2-entry split); `loc_c891` (whose call to `loc_ccfa` needs the X/Y left by intervening leaves threaded
+through as returns); and `loc_b69b`/`loc_bd09` (whose call to `loc_bd3e` has the same intervening-clobber
+register thread — the value it consumes is left by a prior frozen call, so it needs a coordinated callee
+return rather than a direct dissolve). Deep-tail roles tagged `[code]` lift to `[seen]` once a capture drives
+the states that exercise them. The routines added in the latest decompile batch are described by mechanism
+above; their full grounding-tagged write-up lands in the next understanding pass.
 
