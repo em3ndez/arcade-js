@@ -348,4 +348,5 @@ its jump-table targets are idiomatic). Two register-thread callers remain deferr
 an intervening frozen leaf leaves that cannot yet be faithfully modelled: `loc_c891` (whose call to
 `loc_ccfa` needs the X/Y left by a leaf with too many exit paths) and `loc_9749` (whose call to `loc_ccb5`
 needs the Y left by `loc_97c5`, not yet extended to return it). Deep-tail roles tagged `[code]` lift to
-`[seen]` once a capture drives the states that exercise them.
+`[seen]` once a capture drives the states that exercise them. The routines added in the latest
+decompile batch are described by mechanism above; their full grounding-tagged write-up lands in the next understanding pass.

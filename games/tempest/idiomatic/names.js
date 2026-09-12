@@ -146,10 +146,12 @@ export const loc_114 = 0x0114;
 export const loc_115 = 0x0115;
 export const loc_116 = 0x0116;
 export const loc_117 = 0x0117;
+export const loc_118 = 0x0118;
 export const loc_119 = 0x0119;
 export const loc_11a = 0x011a;
 export const loc_11b = 0x011b;
 export const loc_11c = 0x011c;
+export const loc_120 = 0x0120;
 export const loc_121 = 0x0121;
 export const loc_123 = 0x0123;
 export const loc_124 = 0x0124;
@@ -214,6 +216,7 @@ export const loc_2d3 = 0x02d3;
 export const loc_2db = 0x02db;
 export const loc_2df = 0x02df;
 export const loc_2e3 = 0x02e3;
+export const loc_2e6 = 0x02e6;
 export const loc_2f2 = 0x02f2;
 export const loc_2fa = 0x02fa;
 export const loc_302 = 0x0302;
@@ -330,6 +333,7 @@ export const loc_a44e = 0xa44e;
 export const loc_a788 = 0xa788;
 export const loc_a97d = 0xa97d;
 export const loc_ac08 = 0xac08;
+export const loc_b61e = 0xb61e;
 export const loc_b687 = 0xb687;
 export const loc_b68b = 0xb68b;
 export const loc_b97c = 0xb97c;
@@ -414,6 +418,7 @@ export const ROUTINES = {
   0x9c4f: { name: "loc_9c4f" },
   0x9d06: { name: "loc_9d06" },
   0x9d67: { name: "loc_9d67" },
+  0x9d82: { name: "loc_9d82" },
   0x9e5c: { name: "loc_9e5c" },
   0x9e5f: { name: "loc_9e5f" },
   0x9eab: { name: "loc_9eab" },
@@ -422,6 +427,7 @@ export const ROUTINES = {
   0x9f8a: { name: "loc_9f81", entry: "loc_9f8a" },
   0x9fc4: { name: "loc_9fc4" },
   0xa028: { name: "loc_a028" },
+  0xa18f: { name: "loc_a18f" },
   0xa1e4: { name: "loc_a1e4" },
   0xa1fa: { name: "loc_a1fa" },
   0xa2a6: { name: "loc_a2a6" },
@@ -470,9 +476,12 @@ export const ROUTINES = {
   0xb2de: { name: "loc_b2de" },
   0xb332: { name: "loc_b332" },
   0xb56a: { name: "loc_b56a" },
+  0xb60f: { name: "loc_b60f" },
+  0xb622: { name: "loc_b622" },
   0xb634: { name: "loc_b634" },
   0xb69b: { name: "loc_b69b" },
   0xb6fa: { name: "loc_b6fa" },
+  0xb75b: { name: "loc_b75b" },
   0xb84e: { name: "loc_b84e" },
   0xb85f: { name: "loc_b85f" },
   0xb875: { name: "loc_b875" },
@@ -533,6 +542,7 @@ export const ROUTINES = {
   0xdb5a: { name: "loc_db5a" },
   0xdbe0: { name: "loc_dbe0" },
   0xdce6: { name: "loc_dce6" },
+  0xdd27: { name: "loc_dd27" },
   0xdd29: { name: "loc_dd29" },
   0xdd2b: { name: "loc_dd2b" },
   0xdde9: { name: "loc_dde9" },
