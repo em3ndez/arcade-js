@@ -536,6 +536,8 @@ export const ROUTINES = {
   0xa1fa: { name: "loc_a1fa" },
   0xa2a6: { name: "loc_a2a6" },
   0xa34b: { name: "loc_a34b" },
+  0xa34d: { name: "loc_a34b", entry: "loc_a34d" },
+  0xa352: { name: "loc_a34b", entry: "loc_a352" },
   0xa36f: { name: "loc_a36f" },
   0xa3ca: { name: "loc_a3ca" },
   0xa3d4: { name: "loc_a3d4" },
