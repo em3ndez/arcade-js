@@ -353,7 +353,8 @@ The subsystems above are the idiomatic layer's decompiled set — the leaves, th
 them, and the first computed-jump dispatcher (`loc_b84e`, described above). The rest of the reachable call
 graph still runs as the frozen translated oracle: the deeper callers whose callees are not yet decompiled,
 and the remaining computed-jump dispatchers that form the game's spine (each is decompiled only once all of
-its jump-table targets are idiomatic). One register-thread caller remains deferred: `loc_c891`, whose call
-to `loc_ccfa` needs the X/Y left by an intervening frozen leaf whose exit registers cannot be faithfully
-modelled across its many paths, so it stays on the oracle until that leaf can be resolved. Deep-tail roles
-tagged `[code]` lift to `[seen]` once a capture drives the states that exercise them.
+its jump-table targets are idiomatic). Two register-thread callers remain deferred, each needing a register
+an intervening frozen leaf leaves that cannot yet be faithfully modelled: `loc_c891` (whose call to
+`loc_ccfa` needs the X/Y left by a leaf with too many exit paths) and `loc_9749` (whose call to `loc_ccb5`
+needs the Y left by `loc_97c5`, not yet extended to return it). Both stay on the oracle until that leaf is
+resolved. Deep-tail roles tagged `[code]` lift to `[seen]` once a capture drives the states that exercise them.

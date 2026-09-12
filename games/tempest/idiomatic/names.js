@@ -115,6 +115,8 @@ export const loc_ac = 0x00ac;
 export const loc_ad = 0x00ad;
 export const loc_ae = 0x00ae;
 export const loc_af = 0x00af;
+export const loc_b0 = 0x00b0;
+export const loc_b1 = 0x00b1;
 export const loc_b4 = 0x00b4;
 export const loc_bd = 0x00bd;
 export const loc_be = 0x00be;
@@ -416,9 +418,12 @@ export const ROUTINES = {
   0x9e5f: { name: "loc_9e5f" },
   0x9eab: { name: "loc_9eab" },
   0x9ed7: { name: "loc_9ed7" },
+  0x9f81: { name: "loc_9f81" },
+  0x9f8a: { name: "loc_9f81", entry: "loc_9f8a" },
   0x9fc4: { name: "loc_9fc4" },
   0xa028: { name: "loc_a028" },
   0xa1e4: { name: "loc_a1e4" },
+  0xa1fa: { name: "loc_a1fa" },
   0xa2a6: { name: "loc_a2a6" },
   0xa34b: { name: "loc_a34b" },
   0xa36f: { name: "loc_a36f" },
@@ -476,6 +481,7 @@ export const ROUTINES = {
   0xb944: { name: "loc_b944" },
   0xb955: { name: "loc_b955" },
   0xb967: { name: "loc_b967" },
+  0xbcfd: { name: "loc_bcfd" },
   0xbd09: { name: "loc_bd09" },
   0xbd3e: { name: "loc_bd3e" },
   0xc098: { name: "loc_c098" },
@@ -483,6 +489,7 @@ export const ROUTINES = {
   0xc1c3: { name: "loc_c1c3" },
   0xc235: { name: "loc_c235" },
   0xc2e8: { name: "loc_c2e8" },
+  0xc36e: { name: "loc_c36e" },
   0xc3ba: { name: "loc_c3ba" },
   0xc423: { name: "loc_c423" },
   0xc43c: { name: "loc_c43c" },
@@ -526,6 +533,7 @@ export const ROUTINES = {
   0xdb5a: { name: "loc_db5a" },
   0xdbe0: { name: "loc_dbe0" },
   0xdce6: { name: "loc_dce6" },
+  0xdd29: { name: "loc_dd29" },
   0xdd2b: { name: "loc_dd2b" },
   0xdde9: { name: "loc_dde9" },
   0xdded: { name: "loc_dded" },
