@@ -62,6 +62,7 @@ export default {
       fire: { port: 2, bit: 0x10 }, // IN2 b4 = BUTTON1 fire (tempest_buttons_r << 3)
       superzapper: { port: 2, bit: 0x08 }, // IN2 b3 = BUTTON2 superzapper
     },
+    trackball: { xPort: 1 }, // the SPINNER (a 1-axis rotary): analog on IN1/pokey1, driven via io.applyTrackball
     keys: { Digit5: "coin", Digit1: "start1", Space: "fire", ShiftLeft: "superzapper" },
   },
 

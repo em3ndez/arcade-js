@@ -44,3 +44,19 @@ test("input folding is scoped by port: an IN0 press does not touch the pokey2 po
   io.inputAssert = { 2: 0x20 };
   assert.equal(io.readIn0(0) & 0x3f, 0x3f, "start1 (port 2) leaves IN0 idle");
 });
+
+test("spinner (analog): applyTrackball folds the 4-bit knob into the pokey1 pots, wrapping mod 16", () => {
+  const io = new Io();
+  assert.equal(io.pokey1PotBits() & 0x0f, 0, "idle knob = 0");
+  io.applyTrackball(0, 3);
+  assert.equal(io.pokey1PotBits() & 0x0f, 3, "rotate +3 -> knob 3");
+  io.applyTrackball(0, 0xff); // -1 as a signed byte
+  assert.equal(io.pokey1PotBits() & 0x0f, 2, "rotate -1 -> knob 2");
+  io.knob = 15;
+  io.applyTrackball(0, 1);
+  assert.equal(io.pokey1PotBits() & 0x0f, 0, "wraps mod 16");
+  io.knob = 5;
+  io.applyTrackball(1, 9); // the vertical axis is ignored -- the spinner is one axis
+  assert.equal(io.pokey1PotBits() & 0x0f, 5, "axis 1 leaves the knob unchanged");
+  assert.equal(io.pokey1PotBits() & 0xf0, 0xf0, "the high bits (cabinet | unknowns) stay set");
+});

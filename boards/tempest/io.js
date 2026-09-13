@@ -84,6 +84,11 @@ export class Io {
     // Digital input tape: {port: pressedBits} per frame (Machine.applyInputs). Port 0 = IN0 (coins), port 2
     // = IN2 (start/fire/superzapper, read through the pokey2 pots). The spinner (IN1 pot, analog) is separate.
     this.inputAssert = null;
+
+    // Spinner: a 4-bit relative rotary encoder on the pokey1 pots (IN1 b0-3, tempest_knob_r). ANALOG, so
+    // it arrives via applyTrackball (the worker's analog seam) not the digital tape; the game reads the
+    // 4-bit position and deltas it per frame. Idle 0 keeps pokey1PotBits at its attract value.
+    this.knob = 0;
   }
 
   attachMemory(mem) {
@@ -165,8 +170,17 @@ export class Io {
   // IN2 start/fire/superzapper are active-low: a pressed bit CLEARS, so that pot ramps and ALLPOT (which the
   // pokey model inverts under SK_RESET) reports it -- grounded via MAME: start1 -> ALLPOT 0x20 (bit5), matching
   // this model exactly. IN2 bits: superzapper 0x08 (b3), fire 0x10 (b4), start1 0x20 (b5), start2 0x40 (b6).
-  pokey1PotBits() { return this.cabinet | 0xe0; } // spinner (b0-3) idle 0; analog knob injection is separate
+  pokey1PotBits() { return (this.knob & 0x0f) | this.cabinet | 0xe0; } // spinner b0-3 | cabinet b4 | unknowns
   pokey2PotBits() { return (0xff & ~this._pressed(2)) & 0xff; }
+
+  // The worker's analog seam (manifest.inputs.trackball {xPort:1}); the spinner is a single horizontal axis,
+  // so only axis 0 moves the encoder. delta is a signed byte (worker clamps to [-127,127] & 0xff); the game
+  // reads the 4-bit position and computes its own per-frame delta, so a rotation is just a running position.
+  applyTrackball(axis, delta) {
+    if (axis !== 0) return;
+    const d = delta > 127 ? delta - 256 : delta;
+    this.knob = (this.knob + d) & 0x0f;
+  }
   pokeyRead(chip, reg, cycles) { return this.pokeys[chip].read(reg, cycles); }
   pokeyWrite(chip, reg, v, cycles) { this.pokeys[chip].write(reg, v, cycles); }
 }
