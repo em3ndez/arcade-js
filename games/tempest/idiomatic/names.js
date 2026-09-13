@@ -20,6 +20,8 @@ export const loc_c = 0x000c;
 export const loc_d = 0x000d;
 export const loc_10 = 0x0010;
 export const loc_13 = 0x0013;
+export const loc_14 = 0x0014;
+export const loc_15 = 0x0015;
 export const loc_16 = 0x0016;
 export const loc_17 = 0x0017;
 export const loc_18 = 0x0018;
@@ -501,6 +503,7 @@ export const loc_dfe4 = 0xdfe4;
 export const loc_dfe8 = 0xdfe8;
 
 export const loc_4c = 0x4c;
+export const loc_4f = 0x004f;
 export const loc_a7 = 0xa7;
 export const loc_b3 = 0xb3;
 export const loc_129 = 0x0129;
@@ -524,6 +527,13 @@ export const loc_167 = 0x0167;
 export const loc_168 = 0x0168;
 export const loc_27f = 0x027f;
 export const loc_2c0 = 0x02c0;
+export const loc_3f16 = 0x3f16;
+export const loc_3f17 = 0x3f17;
+export const loc_3f1e = 0x3f1e;
+export const loc_3f1f = 0x3f1f;
+export const loc_406 = 0x0406;
+export const loc_407 = 0x0407;
+export const loc_408 = 0x0408;
 export const loc_4800 = 0x4800;
 export const loc_5000 = 0x5000;
 export const loc_60c4 = 0x60c4;
@@ -533,6 +543,11 @@ export const loc_969d = 0x969d;
 export const loc_a3c5 = 0xa3c5;
 export const loc_a883 = 0xa883;
 export const loc_ca38 = 0xca38;
+export const loc_cec5 = 0xcec5;
+export const loc_d7dd = 0xd7dd;
+export const loc_d8b6 = 0xd8b6;
+export const loc_d8ba = 0xd8ba;
+export const loc_d8c2 = 0xd8c2;
 export const loc_daf9 = 0xdaf9;
 
 export const ROUTINES = {
@@ -542,6 +557,7 @@ export const ROUTINES = {
   0xa309: { name: "loc_a309" },
   0xa398: { name: "loc_a398" },
   0xda62: { name: "loc_da62" },
+  0xd93f: { name: "loc_d93f" },
   0x92c5: { name: "loc_92c5" },
   0x99a5: { name: "loc_99a5" },
   0xa38e: { name: "loc_a38e" },
@@ -714,6 +730,8 @@ export const ROUTINES = {
   0xb131: { name: "loc_b131" },
   0xb15a: { name: "loc_b15a" },
   0xb230: { name: "loc_b230" },
+  0xb1b6: { name: "loc_b1b6" },
+  0xb20d: { name: "loc_b20d" },
   0xb2be: { name: "loc_b2be" },
   0xb2de: { name: "loc_b2de" },
   0xb2fe: { name: "loc_b2fe" },
@@ -772,6 +790,7 @@ export const ROUTINES = {
   0xc772: { name: "loc_c772" },
   0xc774: { name: "loc_c772", entry: "loc_c774" },
   0xc7bd: { name: "loc_c7bd" },
+  0xc7a0: { name: "loc_c7a0" },
   0xc800: { name: "loc_c800" },
   0xc81b: { name: "loc_c81b" },
   0xc891: { name: "loc_c891" },
@@ -801,8 +820,10 @@ export const ROUTINES = {
   0xcd95: { name: "loc_cd95" },
   0xcf24: { name: "loc_cf24" },
   0xd6bb: { name: "loc_d6bb" },
+  0xd704: { name: "loc_d704", irq: true }, // the ~246Hz interrupt handler: dispatched RAW (no seam ret)
   0xd7e1: { name: "loc_d7e1" },
   0xd8a9: { name: "loc_d8a9" },
+  0xd804: { name: "loc_d804" },
   0xdb0f: { name: "loc_db0f" },
   0xdb22: { name: "loc_db22" },
   0xdb5a: { name: "loc_db5a" },

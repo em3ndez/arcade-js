@@ -508,16 +508,47 @@ This subsystem gathers the small format-and-scratch helpers that other routines 
 
 **Bare return leaves.** The remaining routines are do-nothing terminators, each grounded [code] with no write to ground. loc_9bcf is a no-op dispatch stub: a single bare return occupying a slot in a computed-dispatch set, so selecting it simply falls straight back to the caller. loc_ac07 is the nothing-to-rebuild leaf, tail-branched to when the rebuild-request bits in loc_1c9 are clear. loc_ac3e is the shared return tail reached when the live geometry snapshot ((loc_a & 0xf8) against the latch loc_71e, and (loc_16a & 3) against loc_71f) already matches and no rebuild is needed. loc_af6e is the exposed return tail of the loc_af3f draw routine, branched to when both draw slots (loc_600 and loc_601) are empty and there is nothing to draw. Each is a genuine control-flow terminator whose only job is to unwind.
 
-## Still on the frozen oracle
+## The RESET / IRQ / main-loop spine
 
-The subsystems above are the idiomatic layer's decompiled set — the leaves, the caller routines that drive
-them, and the computed-jump dispatchers `loc_b84e`, `loc_b5d7` and `loc_9a88` (all described above). A
-handful of reachable routines still run as the frozen translated oracle. The bulk is the RESET / self-test
-and main-loop spine: `loc_d93f` (the RESET entry and display-finalize block), `loc_c7a0` (the main loop),
-`loc_b1b6`, the computed-jump dispatcher `loc_b20d`, and `loc_d804` are strongly connected — the cycle runs
-through `loc_b20d`'s dynamic dispatch into `loc_d804` — so they land as one unit, with `loc_d704` following
-once `loc_d93f` is idiomatic. Deep-tail roles tagged `[code]`
-lift to `[seen]` once a capture drives the states that exercise them.
+Every reachable routine now runs as idiomatic JavaScript — the frozen translated oracle serves none of the
+live game. The last set decompiled was the strongly-connected spine that drives the whole machine: the
+power-on RESET, the periodic interrupt handler, the main loop, and the computed-jump trampoline they turn
+on. Because Tempest has no vblank NMI — a fixed ~246Hz timer interrupt is the only heartbeat — this spine is
+where the clock-free model lives: the main loop is a generator whose wait for the interrupt counter is the
+frame boundary, and the interrupt handler is fired directly per slot.
+
+`loc_d93f` [code] is the power-on RESET entry (the reset vector target), written as a generator. It clears
+the two mapped RAM windows (`loc_00`-page work RAM and the `loc_2000` vector/display pages), seeds the
+`loc_60c0` control block, then splits on the self-test switch (`loc_c00` bit4): held, it spins the operator
+diagnostic; released (normal boot), it seeds `loc_b4`, runs the device-init chain (EAROM + POKEY setup) and
+delegates into the main loop, which never returns. The CPU stack seat, interrupt-enable and decimal-clear
+the ROM performs here are vestigial in the clock-free engine (the stack pointer is retired and the engine
+gates interrupts itself), so they carry no memory effect and are dropped.
+
+`loc_c7a0` [code] is the main loop, a generator. After a one-time board-init pass (`loc_cd95`) it free-runs
+forever: each pass waits until the interrupt counter `loc_53` reaches nine, clears it, and runs the three
+per-update passes `loc_c7bd`, `loc_c891` and `loc_b1b6`. The wait is the frame boundary — the engine fires
+nine interrupts per resume, so `loc_53` climbs to nine and the loop advances once per game update (~26.5Hz,
+below the 60Hz display; the game logic updates slower than the beam refreshes).
+
+`loc_d704` [code] is the ~246Hz interrupt handler — the heartbeat. Guarded against a corrupt stack or
+counter (a path unreachable in the clock-free layer, where the stack pointer is retired), it kicks the
+watchdog, advances the frame counter `loc_50`/`loc_52` from the spinner, folds the coin/switch inputs
+through `loc_4c`-`loc_4f`, drives the coin/LED latch `loc_4000`, picks a state code from the `loc_d7dd`
+table into `loc_a1`/`loc_60e0`, runs the per-tick updaters `loc_cf24`/`loc_cd0a`, ticks the software timer
+cascades (`loc_53`, `loc_7`, and the `loc_406`/`loc_409` chains), pulses the vector generator when the
+AVG-done input is asserted, and latches the raw input port into `loc_8`. It is dispatched raw (self-managing
+its own entry/exit) rather than through the routine seam.
+
+`loc_b20d` [code] is the computed-jump trampoline the main loop's housekeeping turns on: the pre-doubled
+selector in `loc_1` picks one of twelve targets from the word table at 0xb218 and runs it. `loc_b1b6` [code]
+is that housekeeping — per-frame vector bookkeeping that early-returns when the guard cells report the frame
+settled, otherwise publishes the active pointer, runs the trampoline, and folds a block into a checksum via
+a carry-chained subtract (decimal-aware when the CPU decimal flag is live — a mode gated on `loc_16c`, not
+reached in normal play). `loc_d804` [code] is one of the trampoline's targets: it builds a set of vector
+items into display RAM via a dec-counted draw loop over the `loc_d8b6` table.
+
+Deep-tail roles tagged `[code]` lift to `[seen]` once a capture drives the states that exercise them.
 
 `loc_c891` [code] is a per-frame dispatcher. From the coin input `loc_c00`, the mode flag `loc_5`, and the
 phase counters `loc_a`/`loc_6`, it seeds the speed/mode cells `loc_00`/`loc_1`/`loc_a2`, running the setup

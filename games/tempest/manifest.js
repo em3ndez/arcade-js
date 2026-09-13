@@ -66,4 +66,14 @@ export default {
   audio: null,
 
   entropyPin: null,
+
+  // Clock-free convergence (§4). Tempest is an IRQ game (no vblank NMI): the ~246.09Hz periodic IRQ
+  // (vector 0xfffe -> loc_d704) is the heartbeat, and the main loop loc_c7a0 paces off the IRQ-incremented
+  // counter loc_53 (>=9 per update). idiomatic.irq drives runIdiomaticIrqGame: bootAddr is the RESET
+  // generator loc_d93f; irqVblank fires nine IRQ slots per game-update (all 0 -- the AVG-done input is
+  // never raised in the headless golden config, so there is no scanline-heartbeat slot). nmiReturnPC is
+  // omitted (an IRQ game). See scratchpad cadence measurement + docs/runbook.md clock-free block.
+  convergence: {
+    idiomatic: { irq: { bootAddr: 0xd93f, irqVblank: [0, 0, 0, 0, 0, 0, 0, 0, 0] } },
+  },
 };
