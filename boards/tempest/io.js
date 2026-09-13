@@ -63,7 +63,10 @@ export class Io {
     this.flipY = false;
     this.playerSelect = 0; // 0x60E0 bit2 (cocktail P1/P2 select)
     this.onAckIrq = null; // Machine sets this (wdclr clears the IRQ line)
-    this.onPokeyWrite = null; // §5 audio capture seam
+    this.onPokeyWrite = null; // §5 audio capture seam: (chip, reg, value, cycles) -- grounding/write-tap tools
+    this.onSoundWrite = null; // §5 web-audio seam: (addr, value) -- the generic worker tap (web/worker.js).
+                              // addr = 0x60C0 + chip*0x10 + reg, the POKEY's memory address, matching what
+                              // games/tempest/audio/synth.js write() decodes.
     this.avg = null; // built in attachMemory (needs vector RAM/ROM readback)
     this.earom = new Er2055(); // ER2055 high-score NVRAM (0x6000-603F write, 0x6040 control, 0x6050 read)
     this.mathbox = new Mathbox(); // 3D-tube math coprocessor (0x6080-609F go, 0x6040 R status, 0x6060/70 result)
@@ -72,8 +75,8 @@ export class Io {
     // PENDING grounding -- idle (0) for now so all lines read inactive (attract-consistent). Sound writes
     // are recorded via onPokeyWrite for §5 (no synth yet).
     this.pokeys = [
-      new Pokey(() => this.pokey1PotBits(), (r, v, c) => this.onPokeyWrite && this.onPokeyWrite(0, r, v, c)),
-      new Pokey(() => this.pokey2PotBits(), (r, v, c) => this.onPokeyWrite && this.onPokeyWrite(1, r, v, c)),
+      new Pokey(() => this.pokey1PotBits(), (r, v, c) => this._soundWrite(0, r, v, c)),
+      new Pokey(() => this.pokey2PotBits(), (r, v, c) => this._soundWrite(1, r, v, c)),
     ];
 
     // Input idle values (grounded vs tempest.cpp INPUT_PORTS + pokey.cpp pokey_potgo).
@@ -183,6 +186,14 @@ export class Io {
   }
   pokeyRead(chip, reg, cycles) { return this.pokeys[chip].read(reg, cycles); }
   pokeyWrite(chip, reg, v, cycles) { this.pokeys[chip].write(reg, v, cycles); }
+
+  // Fan a POKEY sound-register write out to both §5 seams: onPokeyWrite (chip,reg,value,cycles) for the
+  // grounding/write-tap tools, and onSoundWrite (addr,value) for the generic web-audio tap. Called by the
+  // pokey model on every AUDF/AUDC/AUDCTL/STIMER write (reg 0-9).
+  _soundWrite(chip, reg, v, cycles) {
+    if (this.onPokeyWrite) this.onPokeyWrite(chip, reg, v, cycles);
+    if (this.onSoundWrite) this.onSoundWrite(0x60c0 + chip * 0x10 + reg, v);
+  }
 }
 
 // The web worker's input interface (web/worker.js `new Inputs()`); the digital tape reaches the board via

@@ -66,9 +66,11 @@ export default {
     keys: { Digit5: "coin", Digit1: "start1", Space: "fire", ShiftLeft: "superzapper" },
   },
 
-  // audio (§5): 2x POKEY @ 1.512MHz -> SYNTH model (like centiped/galaxian). Grounded from a play-time
-  // register write-tap before choosing clips-vs-synth (runbook §5). Placeholder until the audio pass.
-  audio: null,
+  // audio (§5): 2x POKEY @ 1.512MHz -> SYNTH model (like galaxian). Grounded from a play-time register
+  // write-tap (games/tempest/tools/lua/audio_tape.lua): POKEY1 ch3 is written continuously as a pitch-tracked
+  // PURE tone (a sustained parameterized voice), so the model is a live synth, not clips. audio/synth.js is a
+  // faithful cycle-stepped port of MAME's POKEY DSP; audio/sounds.js is the register map the web adapter reads.
+  audio: { map: "audio/sounds.js", model: "synth" },
 
   entropyPin: null,
 
