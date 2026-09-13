@@ -725,11 +725,26 @@ deliberate handling. These four are one problem and are decided together, once, 
   two engines per frame (the spin counter forks first), declare `manifest.entropyPin`, express the pin
   **twice** (a JS seam and a cycle-neutral ROM operand patch) so the two check each other, and **never pin
   the shipped game.**
+  - **A hardware-LFSR RNG read directly has no seed to freeze — pin it by RECORD/REPLAY.** Some machines read
+    the RNG straight from a device register clocked by hardware (Tempest reads the two POKEYs' RANDOM registers
+    at 0x60ca/0x60da), so there is no RAM seed and no store operand to patch — the `seedBytes`/`romPatches`
+    model does not apply. Capture MAME's actual RANDOM read VALUES in read order, per register, from the SAME
+    run as the golden (a lua read-tap), and replay them into the JS device read. The "express twice" cross-check
+    becomes the per-register read COUNT matching MAME's — a drained or unread queue is a code-path divergence,
+    not just an RNG one (surface it, never pad silently). Falsifiability is weaker than a seed-freeze (you feed
+    the layer MAME's own RNG), so the real correctness anchors stay the DETERMINISTIC screens (no RNG —
+    byte-exact WITHOUT any pin) and input-tape gameplay; the record/replay pin only removes RNG-fork noise so a
+    genuine logic regression still shows (it never touches vector generation, proven by the gate's null-mutant).
+    A clock-free layer that runs one update per rendered frame consumes RNG faster than MAME's higher-Hz render,
+    so the capture must cover the JS layer's game-time.
 - **Loose (convergent) pixel gating.** With entropy pinned, RNG- and DMA-driven pixels don't land
   byte-identical — they **converge**. Gate them with an **align-tolerant diff** (each frame vs its nearest
   golden frame): small deviations allowed, but the residual must **reconverge, never diverge**. **Never
   lower the floor to reach green** — the tolerance is a hardware-jitter property, calibrated once and
-  committed, not a knob.
+  committed, not a knob. **For a VECTOR game, diff PIXELS, never raw vector RAM:** bytes past the AVG's
+  display-list terminator are stale and never render, so two byte-different vecrams can be pixel-identical (a
+  large raw-vecram "diff" that is 0 pixels). Render both sides through the proven vector pipeline and compare
+  the frames; a separate gate proves that pipeline byte-exact vs MAME.
 - **Scan-line tricks (sprite multiplexing, split-scroll, status/palette splits).** Wherever the game
   mutates video state mid-frame in step with the raster, a single end-of-frame snapshot can't reproduce it.
   Use a **beam-sync band accumulator** (`startBeamFrame` / `paintBeamBand(row)` / `finishBeamFrame`)
