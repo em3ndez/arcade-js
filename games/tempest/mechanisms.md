@@ -517,46 +517,52 @@ on. Because Tempest has no vblank NMI — a fixed ~246Hz timer interrupt is the 
 where the clock-free model lives: the main loop is a generator whose wait for the interrupt counter is the
 frame boundary, and the interrupt handler is fired directly per slot.
 
-`loc_d93f` [code] is the power-on RESET entry (the reset vector target), written as a generator. It clears
+`loc_d93f` [seen] is the power-on RESET entry (the reset vector target), written as a generator. It clears
 the two mapped RAM windows (`loc_00`-page work RAM and the `loc_2000` vector/display pages), seeds the
 `loc_60c0` control block, then splits on the self-test switch (`loc_c00` bit4): held, it spins the operator
 diagnostic; released (normal boot), it seeds `loc_b4`, runs the device-init chain (EAROM + POKEY setup) and
 delegates into the main loop, which never returns. The CPU stack seat, interrupt-enable and decimal-clear
 the ROM performs here are vestigial in the clock-free engine (the stack pointer is retired and the engine
-gates interrupts itself), so they carry no memory effect and are dropped.
+gates interrupts itself), so they carry no memory effect and are dropped. Reached at boot: its RAM-clear
+and init writes are observed (e.g. pc 0xd98d, 0xd94d; ~6141 own writes).
 
-`loc_c7a0` [code] is the main loop, a generator. After a one-time board-init pass (`loc_cd95`) it free-runs
+`loc_c7a0` [seen] is the main loop, a generator. After a one-time board-init pass (`loc_cd95`) it free-runs
 forever: each pass waits until the interrupt counter `loc_53` reaches nine, clears it, and runs the three
 per-update passes `loc_c7bd`, `loc_c891` and `loc_b1b6`. The wait is the frame boundary — the engine fires
 nine interrupts per resume, so `loc_53` climbs to nine and the loop advances once per game update (~26.5Hz,
-below the 60Hz display; the game logic updates slower than the beam refreshes).
+below the 60Hz display; the game logic updates slower than the beam refreshes). Reached: the loc_53 clear
+(pc 0xc7af, n=2431) and the one-time loc_00 seed (pc 0xc7a5) are observed.
 
-`loc_d704` [code] is the ~246Hz interrupt handler — the heartbeat. Guarded against a corrupt stack or
+`loc_d704` [seen] is the ~246Hz interrupt handler — the heartbeat. Guarded against a corrupt stack or
 counter (a path unreachable in the clock-free layer, where the stack pointer is retired), it kicks the
 watchdog, advances the frame counter `loc_50`/`loc_52` from the spinner, folds the coin/switch inputs
 through `loc_4c`-`loc_4f`, drives the coin/LED latch `loc_4000`, picks a state code from the `loc_d7dd`
 table into `loc_a1`/`loc_60e0`, runs the per-tick updaters `loc_cf24`/`loc_cd0a`, ticks the software timer
 cascades (`loc_53`, `loc_7`, and the `loc_406`/`loc_409` chains), pulses the vector generator when the
 AVG-done input is asserted, and latches the raw input port into `loc_8`. It is dispatched raw (self-managing
-its own entry/exit) rather than through the routine seam.
+its own entry/exit) rather than through the routine seam. Heavily reached — the heartbeat advance loc_53
+(pc 0xd7a5, n=43996) and its other own writes are observed.
 
-`loc_b20d` [code] is the computed-jump trampoline the main loop's housekeeping turns on: the pre-doubled
-selector in `loc_1` picks one of twelve targets from the word table at 0xb218 and runs it. `loc_b1b6` [code]
+`loc_b20d` [seen] is the computed-jump trampoline the main loop's housekeeping turns on: the pre-doubled
+selector in `loc_1` picks one of twelve targets from the word table at 0xb218 and runs it. `loc_b1b6` [seen]
 is that housekeeping — per-frame vector bookkeeping that early-returns when the guard cells report the frame
 settled, otherwise publishes the active pointer, runs the trampoline, and folds a block into a checksum via
 a carry-chained subtract (decimal-aware when the CPU decimal flag is live — a mode gated on `loc_16c`, not
 reached in normal play). `loc_d804` [code] is one of the trampoline's targets: it builds a set of vector
-items into display RAM via a dec-counted draw loop over the `loc_d8b6` table.
+items into display RAM via a dec-counted draw loop over the `loc_d8b6` table. loc_b20d is reached (its
+dispatch observed, n=971) and loc_b1b6 producing (vector-RAM loc_2000/loc_2001 at pc 0xb1fd/0xb203, checksum
+loc_455 at pc 0xb1f2); loc_d804 is not reached in the capture (a display-path target), so it stands [code].
 
 Deep-tail roles tagged `[code]` lift to `[seen]` once a capture drives the states that exercise them.
 
-`loc_c891` [code] is a per-frame dispatcher. From the coin input `loc_c00`, the mode flag `loc_5`, and the
+`loc_c891` [seen] is a per-frame dispatcher. From the coin input `loc_c00`, the mode flag `loc_5`, and the
 phase counters `loc_a`/`loc_6`, it seeds the speed/mode cells `loc_00`/`loc_1`/`loc_a2`, running the setup
 step `loc_c81b` on the appropriate phase; a common tail then advances the frame counter `loc_3` and fires
 the periodic sub-steps — the EAROM step `loc_de1b` on odd frames and the sound-register call `loc_ccfa` when
 `loc_c` is live — carrying the slot index (X/Y) from one sub-step into the next. When `loc_16c` is set and
 `loc_9f` exceeds 0x13 it leaves the CPU in decimal mode for the arithmetic that follows the dispatcher, and
-finally it trims bit7 of `loc_4e`. Its per-frame role is grounded in the next understanding pass.
+finally it trims bit7 of `loc_4e`. Reached and producing: the frame-counter write loc_3 (pc 0xc8e3, n=4862)
+and the loc_4e trim (pc 0xc909) are observed.
 
 `loc_db0f` [code] is the draw-handler dispatcher on the display-finalize path: it selects one of seven per-frame draw handlers — `loc_db5a`, `loc_dbf7`, `loc_db84`, `loc_db9a`, `loc_db7e`, `loc_db6f`, `loc_db22` — by a byte offset held in `loc_00` (handler index offset>>1); an out-of-range offset (>= 0x0e) is clamped to the second handler and the clamp persisted to `loc_00`. It is called from `loc_d93f`'s display-finalize block, which seats the display cursor at vector RAM 0x2000, derives `loc_4c`/`loc_4e`/`loc_50`/`loc_52` from an input port and a POKEY read, and pre-doubles the offset in `loc_00` before entering. Not reached in the gameplay+attract write-tap capture: that finalize block did not execute in the captured window (its sibling `loc_df0d` on the same path is likewise [code] not-reached), so it stands [code]; once a capture drives the display state that enters the block, it grounds derivatively on its dispatch cell `loc_00` plus its handlers.
 
