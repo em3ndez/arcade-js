@@ -23,6 +23,7 @@ export default {
   board: "tempest",
   mameDriver: "tempest.cpp",
   runtime: "idiomatic", // born-live on runIdiomaticIrqGame; the worker reads convergence.idiomatic.irq (no vblank NMI)
+  idiomaticComplete: true, // §4 complete -- idiomatic_gate total 0 (no registers/calls/pushes/addrs/mem); cleanup phase
 
   rom: {
     zip: "tempest.zip",
