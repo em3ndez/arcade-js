@@ -65,6 +65,7 @@ SUITES = {
     "invaders": [(["python3", "games/invaders/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "galaxian": [(["python3", "games/galaxian/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "centiped": [(["python3", "games/centiped/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
+    "tempest": [(["python3", "games/tempest/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
 }
 
 MANUAL = {
@@ -81,13 +82,8 @@ MANUAL = {
 #: by design: legitimate ONLY when the gate cannot run and the reason is one a reviewer can check --
 #: the canonical case is a NEW game mid-translation that cannot render a frame yet (see docs/runbook.md).
 EXEMPT = {
-    # TEMPORARY (runbook §2 bootstrapping): Tempest is a new VECTOR game mid-skeleton -- the board device
-    # layer + the byte-exact vector pipeline (boards/tempest/{avg,vector-raster}.js) are up and the pipeline
-    # is verified byte-exact vs MAME by games/tempest/tools/vector_gate.py, but there is no machine.js boot
-    # yet, so the game cannot render a frame through render.js. REMOVE this and declare the real suite the
-    # moment the boot reaches a rendered frame (a reviewer verifies by booting it to an unregistered-routine
-    # gap). Meanwhile the standalone vector_gate.py is the pipeline's teeth.
-    "tempest": "§2 skeleton: no machine.js boot yet; vector pipeline byte-exact via games/tempest/tools/vector_gate.py",
+    # (empty) -- Tempest's waiver came off once its idiomatic layer rendered frames vs MAME; its real suite is
+    # games/tempest/tools/pixel_suite.py (drift-tolerant reconverge + a null-mutant), declared in SUITES above.
 }
 
 

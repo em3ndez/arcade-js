@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
+"""Tempest pixel gate: a fresh MAME golden vs the JS render, drift-tolerant reconverge.
+
+Tempest is a color VECTOR game. Its render pipeline (boards/tempest/{avg,vector-raster}.js) is proven
+byte-exact vs MAME by games/tempest/tools/vector_gate.py; THIS gate proves the IDIOMATIC GAME LOGIC produces
+MAME-equivalent frames. The clock-free idiomatic layer runs ~26.5Hz (one game-update per frame) vs MAME's
+60Hz AVI, so the timelines warp -- games/tempest/tools/pixel_suite.mjs scores each golden frame against its
+NEAREST idiomatic frame (the reconverge rule, docs/pixel-gate.md), NEVER a fixed offset.
+
+BORN-LIVE: Tempest's whole spine is idiomatic and runs on runIdiomaticIrqGame; there is no separate oracle
+whole-game render. So this suite always renders the --idiomatic layer (the shipped layer) for either --layer
+flag (the translated oracle is the per-routine equivalence reference, not a whole-game pixel target).
+
+ENTROPY PIN (testing only, never shipped): the attract demo's RNG is a hardware POKEY LFSR read directly,
+which the clock-free layer freezes; the capture also taps the RANDOM reads (lua/dump_random.lua) and the .mjs
+replays them so the demo is comparable. Deterministic attract screens are byte-exact without it, and the pin
+never touches vector generation, so a real logic regression still fails (proven each run by the .mjs null-mutant).
+
+FAIL-CLOSED: `pixel_suite: PASS` prints ONLY on a clean run. No mame / no romset -> SKIP + nonzero (never
+PASS). A poisoned capture, a ffmpeg failure, a non-OK .mjs, a crash, or a short run each print a non-PASS line
+and exit nonzero.
+"""
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+GAME = os.path.dirname(HERE)                        # games/tempest
+REPO = os.path.dirname(os.path.dirname(GAME))       # arcade-js
+ROM_DIR = os.path.join(GAME, "rom")
+LUA = os.path.join(HERE, "lua", "dump_random.lua")
+SUITE = os.path.join(HERE, "pixel_suite.mjs")
+DRIVER = "tempest"
+SECONDS = 8                     # ~480 attract frames: a per-commit regression tripwire, not the full golden
+
+
+def have_romset(rompath):
+    try:
+        r = subprocess.run(["mame", "-rompath", rompath, "-verifyroms", DRIVER],
+                           capture_output=True, text=True)
+    except FileNotFoundError:
+        return False, "pixel_suite: SKIP -- no `mame` on PATH; cannot build a golden to compare against."
+    if r.returncode != 0:
+        return False, f"pixel_suite: SKIP -- romset {DRIVER} not found under {rompath}."
+    if shutil.which("ffmpeg") is None:
+        return False, "pixel_suite: SKIP -- no `ffmpeg` on PATH; cannot convert the MAME AVI to frames.rgb."
+    return True, ""
+
+
+def capture_golden(rompath, out, seconds):
+    """Capture a MAME golden (AVI -> frames.rgb) plus the RANDOM read sequence, one deterministic run.
+
+    Returns True only if both artifacts are present. A wrong control byte / short run leaves MAME nonzero;
+    ffmpeg's two mandatory flags: -pix_fmt rgb24 (MAME's AVI is bgr24) and -map 0:v:0 (an audio stream exists
+    even under -sound none).
+    """
+    os.makedirs(os.path.join(out, "nvram"), exist_ok=True)
+    os.makedirs(os.path.join(out, "cfg"), exist_ok=True)
+    avi = os.path.join(out, "out.avi")
+    frames = os.path.join(out, "frames.rgb")
+    random_txt = os.path.join(out, "random.txt")
+    argv = [
+        "mame", DRIVER, "-rompath", rompath,
+        "-video", "none", "-sound", "none", "-nothrottle", "-frameskip", "0",
+        "-aviwrite", avi, "-snapshot_directory", out, "-snapview", "auto",
+        "-nvram_directory", os.path.join(out, "nvram"), "-cfg_directory", os.path.join(out, "cfg"),
+        "-nonvram_save", "-noautosave", "-nocheat",
+        "-seconds_to_run", str(seconds), "-autoboot_script", LUA,
+    ]
+    env = dict(os.environ, RANDOM_OUT=random_txt, SDL_VIDEODRIVER="dummy")
+    r = subprocess.run(argv, env=env, capture_output=True, text=True)
+    if r.returncode != 0 or not os.path.exists(avi) or not os.path.exists(random_txt):
+        sys.stderr.write(r.stdout + r.stderr)
+        return False
+    ff = subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", avi, "-map", "0:v:0", "-fps_mode", "passthrough",
+         "-pix_fmt", "rgb24", "-f", "rawvideo", "-y", frames],
+        capture_output=True, text=True)
+    os.path.exists(avi) and os.remove(avi)          # drop the ~445MB AVI as soon as frames.rgb exists
+    if ff.returncode != 0 or not os.path.exists(frames):
+        sys.stderr.write(ff.stderr)
+        return False
+    return True
+
+
+def run_suite(golden):
+    """Run the .mjs diff; PASS only on exit 0 AND its literal OK line (the null-mutant refuted inside it)."""
+    # --idiomatic: this suite renders the shipped idiomatic layer (born-live); the flag documents that and is
+    # what tools/pixel_gate_required.py's suite_renders_idiomatic predicate checks for.
+    r = subprocess.run(["node", SUITE, ROM_DIR, golden, "--idiomatic"], cwd=REPO, capture_output=True, text=True)
+    out = (r.stdout or "") + (r.stderr or "")
+    return (r.returncode == 0 and "tempest_pixel: OK" in out), out
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    # --layer is accepted (the gate passes it) but tempest renders idiomatic for both -- see the born-live note.
+    p.add_argument("--layer", default="idiomatic", choices=["oracle", "idiomatic"])
+    p.add_argument("--seconds", type=int, default=SECONDS)
+    p.add_argument("--done", action="store_true")
+    p.add_argument("--rompath", default=os.path.expanduser("~/Downloads"))
+    a = p.parse_args()
+
+    if a.done:
+        # The DONE bar (full ~10-min golden + deterministic-static byte-exact + gameplay input-tape replay +
+        # forced transitions) is not authored yet, so --done must fail closed -- it cannot count green for DONE.
+        print("pixel_suite: FAIL -- DONE parts (full golden + deterministic-static byte-exact + gameplay "
+              "tape) not yet authored.")
+        return 1
+
+    ok, skip = have_romset(a.rompath)
+    if not ok:
+        print(skip)
+        return 1
+
+    work = tempfile.mkdtemp(prefix="tempest_pixel_")
+    try:
+        if not capture_golden(a.rompath, work, a.seconds):
+            print("pixel_suite: FAIL -- MAME/ffmpeg refused to produce a golden (poisoned or short capture).")
+            return 1
+        ok, out = run_suite(work)
+        print(out.rstrip())
+        if not ok:
+            print("pixel_suite: FAIL -- the idiomatic render did not reconverge on the golden.")
+            return 1
+        print("pixel_suite: PASS")
+        return 0
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Atari Tempest (1981), set `tempest` (rev 3). MOS 6502 + Atari Vector Generator (QuadraScan color VECTOR).
 // Driver atari/tempest.cpp; board spec boards/tempest/hardware.json + scratch machine-notes.md.
-// ⚠ §2 SKELETON IN PROGRESS: the vector render pipeline (boards/tempest/{avg.js,vector-raster.js}) is built
-// and byte-exact-verified vs MAME; the board device layer (memory/io/video) is up; machine.js boot + the
-// §3 lift are pending, so this game is NOT yet registered in games/registry.js and NOT yet bootable.
+// The vector render pipeline (boards/tempest/{avg.js,vector-raster.js}) is byte-exact-verified vs MAME; the
+// board device layer (memory/io/video) and machine.js are up; the idiomatic layer boots clock-free on
+// runIdiomaticIrqGame (§4 complete). §5 (registry registration, audio, web-boot) is in progress.
 //
 // VECTOR display: no tilemap/framebuffer. The 6502 builds a display list in vector RAM (0x2000-0x2FFF), the
 // AVG walks it (256B state PROM), and the render is byte-exact vs MAME's headless AVI (480x640). ROT270 is
@@ -22,6 +22,7 @@ export default {
   cpu: "6502", // MOS 6502 @ 1.512MHz (12.096MHz/8)
   board: "tempest",
   mameDriver: "tempest.cpp",
+  runtime: "idiomatic", // born-live on runIdiomaticIrqGame; the worker reads convergence.idiomatic.irq (no vblank NMI)
 
   rom: {
     zip: "tempest.zip",
