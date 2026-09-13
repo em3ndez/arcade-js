@@ -44,11 +44,11 @@ export function loc_a06f(m, y = m.regs.y, x = m.regs.x) {
   mem8[loc_2a] = seat;
 
   // First draw: build the coordinate list, seed the lane counters, spawn.
-  loc_9b07(m, y);
+  loc_9b07(m, y, x); // slot x threaded on to the list-setup dispatch that reads it
   mem8[loc_10b] = mem8[loc_2d];
   mem8[loc_10b] = mem8[loc_10b] - 1;
   mem8[loc_10a] = 0x00;
-  const spawned = loc_994d(m, y);
+  const spawned = loc_994d(m, y, x); // slot x threaded on to the spawn step that stashes it
   if (spawned === 0x00) return (m.regs.a = spawned); // no free slot -> done (A live-out is 0)
 
   // Second draw: advance loc_2a by 2 (snap 0x0f -> 0x0e on loc_111 bit7), set loc_2b bit6, spawn.
@@ -56,5 +56,5 @@ export function loc_a06f(m, y = m.regs.y, x = m.regs.x) {
   if (seat2 === 0x0f && mem8[loc_111] & 0x80) seat2 = 0x0e;
   mem8[loc_2a] = seat2;
   mem8[loc_2b] = mem8[loc_2b] | 0x40;
-  return loc_994d(m, y); // the final draw sets the A live-out
+  return loc_994d(m, y, x); // the final draw sets the A live-out
 }

@@ -26,7 +26,9 @@ const TABLE = [
   loc_9bca, loc_9bd0, loc_9bee, loc_9c17, loc_9c0c, loc_9bcf, loc_9c58, loc_9fc4, loc_9bdd, loc_9e5c,
   loc_9d82, loc_9c4f, loc_9e2f, loc_9bfa, loc_9c21, loc_9ef1, loc_9e48, loc_9cb6, loc_9d67, loc_9c3b,
 ];
-export function loc_9b98(m, a = m.regs.a) {
-  m.regs.y = a; // the index also rides Y into the handlers' deeper callees (the object-insert tail)
-  return TABLE[a >> 1](m);
+export function loc_9b98(m, a = m.regs.a, x = m.regs.x) {
+  // The pre-doubled index a selects one of twenty handlers; the slot x rides in as an explicit arg.
+  // a is also the seed Y for the two collision handlers' object-insert tail, so it is threaded as the
+  // third arg (ignored by the other handlers).
+  return TABLE[a >> 1](m, x, a);
 }

@@ -2,11 +2,13 @@
 // Equivalence for loc_c891 (ROM 0xc891-0xc90b) -- the per-frame dispatcher. It sets speed/mode cells from
 // the coin input + phase counters, then a common tail advances loc_3 and fires the sub-steps loc_c81b
 // (c8d2), loc_de1b (odd frames) and loc_ccfa (when loc_c is live), threading the slot index X/Y from one to
-// the next. Contract: RAM (dumpState minus STACK_SCRATCH) PLUS the decimal (D) flag, which loc_c891 sets
-// (sed, when loc_16c != 0 and loc_9f > 0x13) and NEVER clears -- a load-bearing processor-flag live-out the
-// frozen sbc downstream reads. c891 is a full JS dispatcher (calls its sub-steps as JS), not an omitted-ret
-// leaf, so there is no SP-tooth. The X/Y threading into loc_ccfa is load-bearing: ccfa forwards them to
-// loc_ccc7, which stamps loc_31/loc_32 -- a stale (entry) X/Y writes the wrong cells.
+// the next. Contract: RAM (dumpState minus STACK_SCRATCH). The ROM's decimal-mode arm (SED gated on
+// loc_16c != 0 && loc_9f > 0x13) is DEAD -- loc_16c is the checksum 0xa7 ^ fold(ROM[0xaace..0xaad8]) of a
+// fixed program-ROM span, which is 0, so the gate never opens (verified statically and by a MAME tap over
+// gameplay). The idiomatic routine omits it; on every reachable state D is left untouched, matching the
+// oracle, which the CAPTURE test still checks. c891 is a full JS dispatcher (calls its sub-steps as JS),
+// not an omitted-ret leaf, so there is no SP-tooth. The X/Y threading into loc_ccfa is load-bearing: ccfa
+// forwards them to loc_ccc7, which stamps loc_31/loc_32 -- a stale (entry) X/Y writes the wrong cells.
 // Run: node --test games/tempest/idiomatic/test/equivalence-c891.test.js
 
 import nodeTest from "node:test";
@@ -19,7 +21,7 @@ import { loc_de1b } from "../loc_de1b.js";
 import { loc_ccfa } from "../loc_ccfa.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_3, loc_c, loc_9f, loc_16c } from "../names.js";
+import { STACK_SCRATCH, loc_3, loc_c } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -75,26 +77,6 @@ test("CRAFTED: loc_ccfa reached (odd frame + loc_c live) -- RAM equal, X/Y threa
   assert.ok(checked >= 1, "no state reached the ccfa tail cleanly");
 });
 
-const forceSed = (m) => { m.mem.write8(loc_16c, 0x01); m.mem.write8(loc_9f, 0x20); };
-
-test("CRAFTED: sed condition (loc_16c!=0 && loc_9f>0x13) -> D flag set, matching oracle", () => {
-  let checked = 0;
-  for (const cap of CAPS) {
-    const o = freezePokey(cap.clone()); o.regs.cld(); forceSed(o);
-    const c = freezePokey(cap.clone()); c.regs.cld(); forceSed(c);
-    let threw = false;
-    try { oracle(o); } catch { threw = true; }
-    if (threw) continue;
-    loc_c891(c);
-    assert.equal(ramDiff(o, c), null, "RAM equal on the sed path");
-    assert.equal(o.regs.fD, true, "oracle set decimal mode");
-    assert.equal(c.regs.fD, true, "idiomatic set decimal mode");
-    checked++;
-  }
-  console.log(`  CRAFTED sed: ${checked} states`);
-  assert.ok(checked >= 1, "no state exercised the sed path");
-});
-
 // A full copy of loc_c891 identical EXCEPT the ccfa call hands over the stale (entry-register) X/Y
 // instead of the threaded locals -- the exact R37 defect this routine's threading prevents.
 function brokenStaleBridge(m, x = m.regs.x, y = m.regs.y) {
@@ -117,7 +99,6 @@ function brokenStaleBridge(m, x = m.regs.x, y = m.regs.y) {
   wr(0x03, rd(0x03) + 1);
   if ((rd(0x03) & 0x01) !== 0) [x, y] = loc_de1b(m, x, y);
   if (rd(0x0c) !== 0) loc_ccfa(m); // BUG: stale entry X/Y from the bridge, not the threaded de1b/c81b exit
-  if (rd(0x16c) !== 0 && rd(0x9f) > 0x13) m.regs.sed();
   if ((rd(0x4e) & 0x80) !== 0) wr(0x4e, 0x00);
 }
 
@@ -137,21 +118,4 @@ test("TEETH (X/Y threading): a twin that lets loc_ccfa read the stale bridge div
   }
   assert.ok(tried > 0, "no state could be exercised for the threading teeth");
   assert.ok(caught, "the RAM diff FAILED to catch a stale-bridge ccfa on every exercised state");
-});
-
-test("TEETH (D flag): a twin that skips the sed leaves the D flag wrong", () => {
-  for (const cap of CAPS) {
-    const o = freezePokey(cap.clone()); o.regs.cld(); forceSed(o);
-    let threw = false;
-    try { oracle(o); } catch { threw = true; }
-    if (threw) continue;
-    if (o.regs.fD !== true) continue; // want a state where the oracle actually set D
-    const c = freezePokey(cap.clone()); c.regs.cld(); forceSed(c);
-    // Broken twin: everything real EXCEPT it never sets decimal mode.
-    // (Run the real dispatcher, then forcibly clear D to model the omitted sed.)
-    loc_c891(c); c.regs.cld();
-    assert.notEqual(c.regs.fD, o.regs.fD, "the D-flag arm FAILED to catch the omitted sed");
-    return;
-  }
-  assert.fail("no state exercised the sed path for the D-flag teeth");
 });

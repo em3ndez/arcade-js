@@ -7,12 +7,12 @@ import { loc_9aee } from "./loc_9aee.js";
 // index in loc_36 around the call. When the held count loc_29 is 0x20 or more the index selects
 // one of the list-setup entries through the dispatcher; otherwise the pointer pair is seated
 // directly at that index. The caller's index is returned unchanged.
-export function loc_9b07(m, y = m.regs.y) {
+export function loc_9b07(m, y = m.regs.y, x = m.regs.x) {
   const { mem8 } = m;
   mem8[loc_36] = y;
   const idx = mem8[loc_2b];
   if (mem8[loc_29] >= 0x20) {
-    loc_9a88(m, idx);
+    loc_9a88(m, idx, x); // slot x threaded on to the list-setup dispatch
   } else {
     loc_9aee(m, idx);
   }

@@ -12,19 +12,24 @@ import { loc_cd02 } from "./loc_cd02.js";
 // until the continue flag loc_10a clears — then store loc_10b back to loc_291,x. Then signed-accumulate the
 // delta loc_147 into loc_148; a sign flip triggers the cd06/cd02 corrections; finally, when loc_148 leaves
 // the [0x0f, 0xc0] band, negate loc_147 to reverse direction.
-export function loc_9b1e(m) {
+// xIn seeds the value the loop leaves in X for the tail sound cue: no routine in this dispatch
+// subtree rewrites X, so after the walk X = the last non-empty slot processed (or the incoming X if
+// the walk seated none). lastX mirrors that and is threaded to the tail sound cue that stores it.
+export function loc_9b1e(m, xIn = m.regs.x) {
   const { mem8 } = m;
+  let lastX = xIn;
 
   if ((mem8[loc_201] & 0x80) === 0) {          // loc_201 >= 0 (else the outer walk is skipped)
     mem8[loc_37] = mem8[loc_11c];
     do {
       const x = mem8[loc_37];
       if (mem8[u16(loc_2df + x)] !== 0) {
+        lastX = x; // the slot the loop leaves in X
         mem8[loc_10a] = 1;
         mem8[loc_10b] = mem8[u16(loc_291 + x)];
         do {
-          m.regs.x = x; // the slot rides X into the dispatcher's handlers (which read m.regs.x)
-          loc_9b98(m, mem8[u16(loc_a0f7 + mem8[loc_10b])]); // dispatch on the table entry at the cursor
+          // the slot x rides into the dispatcher's handlers as an explicit arg
+          loc_9b98(m, mem8[u16(loc_a0f7 + mem8[loc_10b])], x); // dispatch on the table entry at the cursor
           mem8[loc_10b] = u8(mem8[loc_10b] + 1);
         } while (mem8[loc_10a] !== 0);
         mem8[u16(loc_291 + x)] = mem8[loc_10b];
@@ -39,9 +44,9 @@ export function loc_9b1e(m) {
   mem8[loc_148] = sum;
   if ((sum ^ old148) & 0x80) {                  // the accumulate crossed a sign boundary
     if (sum & 0x80) {
-      loc_cd06(m);
+      loc_cd06(m, lastX); // the loop's leftover X feeds the sound cue; Y stays the loop's leftover
     } else if (mem8[loc_143] !== 0 && (mem8[loc_201] & 0x80) === 0) {
-      loc_cd02(m);
+      loc_cd02(m, lastX);
     }
   }
 

@@ -10,7 +10,7 @@ import { loc_a347 } from "./loc_a343.js";
 //  - bit7 set: SUB-step; probe = loc_3ab!=0 ? the step's new hi : 0xff; if probe >= loc_157 flip bit7
 //    of loc_28a,x. Y into the tail = loc_3ab.
 //  - bit7 clear: ADD-step with y = (loc_2df,x >= loc_157 ? 0 : 1); Y into the tail = whatever the add
-//    step LEFT (its deep arms overwrite the index, shallow arms keep it), read back from the register.
+//    step returns (its deep arms overwrite the index, shallow arms keep it).
 //  - common tail: with loc_148 bit7 clear AND loc_2df,x < loc_157 AND loc_200 == loc_2b9,x AND
 //    loc_201 == loc_2cc,x, seed a fresh object with X = the slot and that Y (which the seed stores).
 // X passes through; A on each tail exit is the last compare operand (incidental on the seed arm).
@@ -23,10 +23,8 @@ export function loc_9cb6(m, x = m.regs.x) {
     const probe = y !== 0 ? stepped : 0xff;
     if (probe >= mem8[loc_157]) mem8[u16(loc_28a + x)] ^= 0x80; // reached threshold -> flip direction
   } else {
-    y = mem8[u16(loc_2df + x)] >= mem8[loc_157] ? 0 : 1;
-    m.regs.y = y;      // enter the add step with the steering index in Y
-    loc_9c63(m, x, y);
-    y = m.regs.y;      // the tail's seed reads whatever the add step left in Y (no reload)
+    y = mem8[u16(loc_2df + x)] >= mem8[loc_157] ? 0 : 1; // steering index into the add step
+    [, y] = loc_9c63(m, x, y); // the tail's seed uses the Y the add step returns
   }
   // common tail
   const c148 = mem8[loc_148];

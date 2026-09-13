@@ -84,20 +84,21 @@ test("CRAFTED: seeded states across every branch == oracle (RAM)", () => {
 });
 
 test("Y-LIVE-OUT: the scan index / 9d67 Y is reproduced (loc_9cb6 reads it after the delegate)", () => {
+  // The Y live-out is now the RETURN value (threaded to loc_9c63's tail), not m.regs.y.
   // scan-match arm: the oracle leaves Y = the matched scan slot index.
   const scan = { c109: 1, flags: [0, 0, 0, 0x02, 0, 0, 0], shared: 0x55, stash: [0, 0, 0, 0, 0, 0, 0x55] };
   let o = new Machine(ROM, OPTS); seat(o, scan);
   let c = new Machine(ROM, OPTS); seat(c, scan);
-  oracle(o); loc_9d06(c);
+  oracle(o); const scanY = loc_9d06(c);
   assert.equal(ramDiff(o, c), null, "scan arm RAM");
-  assert.equal(c.regs.y, o.regs.y, "scan arm: Y live-out (the scan index) matches the oracle");
+  assert.equal(scanY, o.regs.y, "scan arm: Y live-out (the scan index) matches the oracle");
   // 9d67 arm: the oracle leaves Y = loc_2b9,x.
   const j = { c109: 2, flags: [0, 0, 0, 0x02, 0, 0, 0] };
   o = new Machine(ROM, OPTS); seat(o, j);
   c = new Machine(ROM, OPTS); seat(c, j);
-  oracle(o); loc_9d06(c);
+  oracle(o); const jY = loc_9d06(c);
   assert.equal(ramDiff(o, c), null, "9d67 arm RAM");
-  assert.equal(c.regs.y, o.regs.y, "9d67 arm: Y live-out (loc_2b9,x) matches the oracle");
+  assert.equal(jY, o.regs.y, "9d67 arm: Y live-out (loc_2b9,x) matches the oracle");
 });
 
 test("TEETH: a twin that skips the $010b tail store diverges from the oracle", () => {

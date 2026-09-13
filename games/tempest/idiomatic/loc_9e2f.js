@@ -5,10 +5,10 @@ import { loc_a33a } from "./loc_a33a.js";
 
 // Per-slot guard: act only when the slot is live and both of its cell coords match
 // the current target pair; otherwise leave everything untouched.
-export function loc_9e2f(m, x = m.regs.x) {
+export function loc_9e2f(m, x = m.regs.x, seedY = m.regs.y) {
   const { mem8 } = m;
   if (mem8[u16(loc_283 + x)] & 0x80) return;             // dead slot
   if (mem8[u16(loc_2b9 + x)] !== mem8[loc_200]) return;  // first coord mismatch
   if (mem8[u16(loc_2cc + x)] !== mem8[loc_201]) return;  // second coord mismatch
-  loc_a33a(m, x);
+  loc_a33a(m, x, seedY); // seedY (the dispatch index) is the seed's Y, threaded explicitly
 }

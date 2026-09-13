@@ -6,6 +6,8 @@ import {
 import { loc_9d67 } from "./loc_9d67.js";
 
 // Per-slot step: stash the shared byte into slot x, then act on the slot's kind.
+// Returns the Y live-out the caller's tail reads (the scan index / loc_2b9,x); the two early
+// exits leave Y untouched, so they return undefined ("keep the caller's Y").
 export function loc_9d06(m, x = m.regs.x) {
   const { mem8 } = m;
   const shared = mem8[loc_202];
@@ -23,6 +25,7 @@ export function loc_9d06(m, x = m.regs.x) {
   }
 
   mem8[loc_108] = u8(mem8[loc_108] - 1);
+  let yOut;
   if (mem8[loc_109] === 1) {
     // Scan slots 6..0 for a non-empty, non-self entry whose stashed byte matches
     // the shared one; the loser index leaks through when none matches.
@@ -37,12 +40,13 @@ export function loc_9d06(m, x = m.regs.x) {
     }
     // Copy the matched slot's bit6, inverted, into slot x's flag byte.
     mem8[u16(loc_283 + x)] = (mem8[u16(loc_283 + y)] & 0x40) ^ 0x40;
-    m.regs.y = y; // Y here is the scan index (matched slot, or 0xff on no match), a tail live-out
+    yOut = y; // the scan index (matched slot, or 0xff on no match)
   } else {
     loc_9d67(m, x);
-    m.regs.y = mem8[u16(loc_2b9 + x)]; // the deeper step leaves Y = loc_2b9,x
+    yOut = mem8[u16(loc_2b9 + x)]; // the deeper step leaves Y = loc_2b9,x
   }
 
   mem8[loc_10b] = 0x41;
   mem8[loc_109] = u8(mem8[loc_109] + 1);
+  return yOut; // Y live-out for the caller's seed tail
 }

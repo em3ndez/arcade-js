@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_9c58 (ROM 0x9c58-0x9c62, the direction selector) -- reads the slot's segment
-// (loc_283,x & 7) into Y, then delegates to the ADD path (loc_9c63) when loc_28a,x bit7 is clear or the
-// SUBTRACT path (loc_9c99) when it is set. Live-out is RAM (dumpState minus STACK_SCRATCH) plus A/X/Y.
-// X is the slot index throughout (never rewritten). Y is the segment index the selector seats (tay).
-// A is the delegate's result. On the loc_9c63 -> loc_9d06 sub-path A and Y are INCIDENTAL (loc_9d06's own
-// eq test declares A/X/Y incidental), so this compares A/Y only on dispatches that did NOT enter loc_9d06.
-// Oracle is the frozen translated loc_9c58. Run: node --test games/tempest/idiomatic/test/equivalence-9c58.test.js
+// (loc_283,x & 7), then delegates to the ADD path (loc_9c63) when loc_28a,x bit7 is clear or the
+// SUBTRACT path (loc_9c99) when it is set. Live-out is RAM (dumpState minus STACK_SCRATCH) plus A/X.
+// X is the slot index throughout (never rewritten). A is the delegate's result. The segment index is now
+// threaded as an EXPLICIT arg (no register Y bridge); on the ADD path loc_9c63 returns [A, Y], so the
+// Y live-out the seed tail reads is checked as that tuple element (loc_9d06/loc_9cb6 tests cover the
+// deeper arms). On the loc_9c63 -> loc_9d06 sub-path A is INCIDENTAL, so A is compared only on dispatches
+// that did NOT enter loc_9d06. Oracle is the frozen translated loc_9c58.
+// Run: node --test games/tempest/idiomatic/test/equivalence-9c58.test.js
 
 import nodeTest from "node:test";
 import assert from "node:assert/strict";
@@ -40,11 +42,11 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(24, 4000) : [];
 
-test("CAPTURE: real 0x9c58 dispatches -- loc_9c58 == oracle in RAM (-stack), X always, A/Y off the 9d06 sub-path", () => {
-  let withAY = 0, ram = 0, path9d06 = 0;
+test("CAPTURE: real 0x9c58 dispatches -- loc_9c58 == oracle in RAM (-stack), X always, A off the 9d06 sub-path", () => {
+  let withA = 0, ram = 0, path9d06 = 0;
   for (const cap of CAPS) {
     // Run the oracle with a flag-wrapper on 0x9d06 so we can tell whether it entered that sub-call (where
-    // A and Y are incidental). The clone shares the routines Map -- copy before wrapping so we don't mutate it.
+    // A is incidental). The clone shares the routines Map -- copy before wrapping so we don't mutate it.
     const o = cap.clone();
     o.routines = new Map(o.routines);
     let hit9d06 = false;
@@ -59,16 +61,16 @@ test("CAPTURE: real 0x9c58 dispatches -- loc_9c58 == oracle in RAM (-stack), X a
     assert.equal(ramDiff(o, c), null);
     assert.equal(c.regs.x, o.regs.x, "X live-out (the slot index) matches");
     ram++;
-    if (hit9d06) { path9d06++; continue; } // A/Y incidental through loc_9d06
+    if (hit9d06) { path9d06++; continue; } // A incidental through loc_9d06
     assert.equal(c.regs.a, o.regs.a, "A live-out matches");
-    assert.equal(c.regs.y, o.regs.y, "Y live-out (the segment index) matches");
-    withAY++;
+    withA++;
   }
-  console.log(`  CAPTURE: ${ram} RAM+X compared (${withAY} also A/Y, ${path9d06} 9d06-path RAM+X only), ${CAPS.length} total`);
+  console.log(`  CAPTURE: ${ram} RAM+X compared (${withA} also A, ${path9d06} 9d06-path RAM+X only), ${CAPS.length} total`);
 });
 
 // Seed a full loc_9c58 entry: slot x=3, segment 2 (loc_283,x low bits), a +2 low delta. The DIRECTION comes
-// from bit7 of loc_28a,x. m.regs.y is dirtied to prove the selector reseats it to the segment index (tay).
+// from bit7 of loc_28a,x. m.regs.y is dirtied to prove the segment index no longer flows through the
+// register -- it is passed explicitly, and the add path returns it in loc_9c63's [A, Y] tuple.
 function seed(m, { dir }) {
   const X = 3, SEG = 2;
   m.regs.x = X; m.regs.y = 0x77;
@@ -81,30 +83,28 @@ function seed(m, { dir }) {
   m.mem.write8(loc_202, 0x05);                          // below the new hi (0x30) -> plain add path
 }
 
-test("CRAFTED: add direction (loc_28a,x bit7 clear) takes loc_9c63 -- RAM and A/X/Y equal", () => {
+test("CRAFTED: add direction (loc_28a,x bit7 clear) takes loc_9c63 -- RAM, A/X, and the returned Y tuple equal", () => {
   const m = new Machine(ROM, OPTS); seed(m, { dir: "add" });
   const o = m.clone(), c = m.clone();
-  oracle(o); loc_9c58(c);
+  oracle(o); const r = loc_9c58(c); // add path forwards loc_9c63's [A, Y] tuple
   assert.equal(ramDiff(o, c), null, "RAM equal after the add path");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.a, 0x30, "A is the new hi byte (plain-add exit)");
   assert.equal(c.regs.x, o.regs.x, "X preserved");
   assert.equal(c.regs.x, 3, "X is the slot index");
-  assert.equal(c.regs.y, o.regs.y, "Y matches");
-  assert.equal(c.regs.y, 2, "Y is the segment index the selector seated");
+  assert.equal(r[1], o.regs.y, "returned Y (the seed-tail live-out) matches the oracle's Y");
+  assert.equal(r[1], 2, "returned Y is the segment index threaded through");
   assert.equal(c.mem.read8(u16(loc_29f + 3)), 0x42, "coordinate low moved UP by the delta (0x40 -> 0x42)");
 });
 
-test("CRAFTED: sub direction (loc_28a,x bit7 set) takes loc_9c99 -- RAM and A/X/Y equal", () => {
+test("CRAFTED: sub direction (loc_28a,x bit7 set) takes loc_9c99 -- RAM and A/X equal", () => {
   const m = new Machine(ROM, OPTS); seed(m, { dir: "sub" });
   const o = m.clone(), c = m.clone();
-  oracle(o); loc_9c58(c);
+  oracle(o); loc_9c58(c); // sub path forwards loc_9c99's A; its Y is not a live-out (no consumer reads it)
   assert.equal(ramDiff(o, c), null, "RAM equal after the sub path");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.a, 0x30, "A is the new hi byte (no underflow floor)");
   assert.equal(c.regs.x, o.regs.x, "X preserved");
-  assert.equal(c.regs.y, o.regs.y, "Y matches");
-  assert.equal(c.regs.y, 2, "Y is the segment index");
   assert.equal(c.mem.read8(u16(loc_29f + 3)), 0x3e, "coordinate low moved DOWN by the delta (0x40 -> 0x3e)");
 });
 

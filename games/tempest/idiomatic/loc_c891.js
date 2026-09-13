@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
 import {
-  loc_00, loc_1, loc_3, loc_5, loc_6, loc_9, loc_a, loc_c, loc_a2, loc_4e, loc_9f, loc_16c, loc_c00,
+  loc_00, loc_1, loc_3, loc_5, loc_6, loc_9, loc_a, loc_c, loc_a2, loc_4e, loc_c00,
 } from "./names.js";
 import { loc_c81b } from "./loc_c81b.js";
 import { loc_de1b } from "./loc_de1b.js";
@@ -47,7 +47,8 @@ export function loc_c891(m, x = m.regs.x, y = m.regs.y) {
   mem8[loc_3] = u8(mem8[loc_3] + 1);
   if ((mem8[loc_3] & 0x01) !== 0) [x, y] = loc_de1b(m, x, y);  // odd frames
   if (mem8[loc_c] !== 0) loc_ccfa(m, x, y);                    // live -> register the sound
-  if (mem8[loc_16c] !== 0 && mem8[loc_9f] > 0x13) m.regs.sed();
-  // Decimal mode is left set for the frozen sbc that runs after this dispatcher; it is not cleared here.
+  // (The decimal-mode arm here -- SED gated on loc_16c != 0 && loc_9f > 0x13 -- is dead: loc_16c holds a
+  // fixed checksum that is always 0, so the gate never opens. Verified statically and by observation of the
+  // running game, where loc_16c is written 0 every time.)
   if ((mem8[loc_4e] & 0x80) !== 0) mem8[loc_4e] = 0x00;
 }
