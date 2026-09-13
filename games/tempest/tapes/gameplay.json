@@ -1,0 +1,10 @@
+{
+  "_comment": "JS-side gameplay tape for pixel_suite --done: coin -> start1 -> fire (twice) to reach play. Keyed on the idiomatic game-update tick; the MAME golden uses games/tempest/tools/lua/gameplay_tape.lua (frame-keyed), and the pixel suite reconverges drift-tolerant, so the two need only reach the same states. Ports: 0=IN0 (coin 0x04), 2=IN2 via pokey2 (start1 0x20, fire 0x10). No spinner motion yet (passive-player validation of the entry + fire mapping).",
+  "inputs": [
+    { "port": 0, "bits": 4, "frame": 30, "dur": 15 },
+    { "port": 2, "bits": 32, "frame": 70, "dur": 20 },
+    { "port": 2, "bits": 16, "frame": 150, "dur": 12 },
+    { "port": 2, "bits": 16, "frame": 180, "dur": 12 }
+  ],
+  "spinner": []
+}

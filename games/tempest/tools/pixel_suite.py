@@ -33,7 +33,10 @@ GAME = os.path.dirname(HERE)                        # games/tempest
 REPO = os.path.dirname(os.path.dirname(GAME))       # arcade-js
 ROM_DIR = os.path.join(GAME, "rom")
 LUA = os.path.join(HERE, "lua", "dump_random.lua")
+GAMEPLAY_LUA = os.path.join(HERE, "lua", "gameplay_tape.lua")   # drives coin->start->fire so the golden is play
+GAMEPLAY_TAPE = os.path.join(GAME, "tapes", "gameplay.json")    # the matching JS-side tape (tick-keyed)
 SUITE = os.path.join(HERE, "pixel_suite.mjs")
+GAMEPLAY_SECONDS = 14
 DRIVER = "tempest"
 SECONDS = 8                     # ~480 attract frames: a per-commit regression tripwire, not the full golden
 
@@ -51,7 +54,7 @@ def have_romset(rompath):
     return True, ""
 
 
-def capture_golden(rompath, out, seconds):
+def capture_golden(rompath, out, seconds, lua=LUA):
     """Capture a MAME golden (AVI -> frames.rgb) plus the RANDOM read sequence, one deterministic run.
 
     Returns True only if both artifacts are present. A wrong control byte / short run leaves MAME nonzero;
@@ -69,7 +72,7 @@ def capture_golden(rompath, out, seconds):
         "-aviwrite", avi, "-snapshot_directory", out, "-snapview", "auto",
         "-nvram_directory", os.path.join(out, "nvram"), "-cfg_directory", os.path.join(out, "cfg"),
         "-nonvram_save", "-noautosave", "-nocheat",
-        "-seconds_to_run", str(seconds), "-autoboot_script", LUA,
+        "-seconds_to_run", str(seconds), "-autoboot_script", lua,
     ]
     env = dict(os.environ, RANDOM_OUT=random_txt, SDL_VIDEODRIVER="dummy")
     r = subprocess.run(argv, env=env, capture_output=True, text=True)
@@ -87,11 +90,15 @@ def capture_golden(rompath, out, seconds):
     return True
 
 
-def run_suite(golden):
+def run_suite(golden, tape=None):
     """Run the .mjs diff; PASS only on exit 0 AND its literal OK line (the null-mutant refuted inside it)."""
     # --idiomatic: this suite renders the shipped idiomatic layer (born-live); the flag documents that and is
-    # what tools/pixel_gate_required.py's suite_renders_idiomatic predicate checks for.
-    r = subprocess.run(["node", SUITE, ROM_DIR, golden, "--idiomatic"], cwd=REPO, capture_output=True, text=True)
+    # what tools/pixel_gate_required.py's suite_renders_idiomatic predicate checks for. --tape drives a
+    # gameplay tape on the JS side (matching the MAME-side gameplay golden).
+    argv = ["node", SUITE, ROM_DIR, golden, "--idiomatic"]
+    if tape:
+        argv += ["--tape", tape]
+    r = subprocess.run(argv, cwd=REPO, capture_output=True, text=True)
     out = (r.stdout or "") + (r.stderr or "")
     return (r.returncode == 0 and "tempest_pixel: OK" in out), out
 
@@ -106,11 +113,43 @@ def main():
     a = p.parse_args()
 
     if a.done:
-        # The DONE bar (full ~10-min golden + deterministic-static byte-exact + gameplay input-tape replay +
-        # forced transitions) is not authored yet, so --done must fail closed -- it cannot count green for DONE.
-        print("pixel_suite: FAIL -- DONE parts (full golden + deterministic-static byte-exact + gameplay "
-              "tape) not yet authored.")
-        return 1
+        ok, skip = have_romset(a.rompath)
+        if not ok:
+            print(skip)
+            return 1
+        work = tempfile.mkdtemp(prefix="tempest_done_")
+        try:
+            # PART A -- attract reconverge over a longer window.
+            attract = os.path.join(work, "attract")
+            if not capture_golden(a.rompath, attract, GAMEPLAY_SECONDS):
+                print("pixel_suite: FAIL -- attract golden capture failed.")
+                return 1
+            ok_a, out_a = run_suite(attract)
+            print("[attract]")
+            print(out_a.rstrip())
+            if not ok_a:
+                print("pixel_suite: FAIL -- attract did not reconverge.")
+                return 1
+            # PART B -- GAMEPLAY reconverge: a coin/start/fire tape drives play on both sides (the golden via
+            # gameplay_tape.lua, the JS via tapes/gameplay.json), validating the fire/start input mappings.
+            play = os.path.join(work, "gameplay")
+            if not capture_golden(a.rompath, play, GAMEPLAY_SECONDS, lua=GAMEPLAY_LUA):
+                print("pixel_suite: FAIL -- gameplay golden capture failed.")
+                return 1
+            ok_b, out_b = run_suite(play, tape=GAMEPLAY_TAPE)
+            print("[gameplay]")
+            print(out_b.rstrip())
+            if not ok_b:
+                print("pixel_suite: FAIL -- gameplay did not reconverge vs MAME.")
+                return 1
+            # PART C -- forced transitions (life loss / level advance / game-over) are NOT authored yet, so
+            # --done fails closed: attract + gameplay-entry are validated, but the DONE bar needs the forced
+            # transitions too (runbook §5). This keeps --done honestly not-green while the gameplay check is real.
+            print("pixel_suite: FAIL -- attract + gameplay reconverge, but forced transitions "
+                  "(life/level/game-over) are not yet authored; --done cannot be counted green.")
+            return 1
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
 
     ok, skip = have_romset(a.rompath)
     if not ok:
