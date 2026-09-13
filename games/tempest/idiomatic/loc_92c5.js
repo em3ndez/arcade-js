@@ -54,15 +54,13 @@ export function loc_92c5(m) {
         advance = k > hi;
         if (!advance) {                     // lo <= key <= hi -> range hit
           y = u8(y + 1);
-          m.regs.y = y;                     // cursor rides Y into the hit resolver
-          const r = loc_9677(m);            // yields the byte to store (first element if it also returns an index)
+          const r = loc_9677(m, y);         // yields the byte to store (first element if it also returns an index)
           resolved = Array.isArray(r) ? r[0] : r;
           break;
         }
       }
-      m.regs.y = y;                         // cursor rides Y into the step helper, which advances it
-      loc_9683(m);
-      y = m.regs.y;                         // continue from the advanced cursor (not a reset)
+      const [, yy] = loc_9683(m, y);        // the step helper advances the cursor; continue from it
+      y = yy;
     }
 
     mem8[u16(mem16[loc_3b])] = resolved;    // store through the destination pointer

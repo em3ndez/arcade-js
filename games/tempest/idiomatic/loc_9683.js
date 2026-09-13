@@ -10,9 +10,12 @@ import { loc_96cb } from "./loc_96cb.js";
 // Y-only handlers leave A untouched, so that byte is the value the caller reads back.
 const TABLE = [null, loc_96c8, loc_96cb, loc_96cb, loc_96c7, loc_96c8, loc_96c7];
 
-export function loc_9683(m) {
+export function loc_9683(m, y = m.regs.y) {
   const { mem8 } = m;
   const index = mem8[loc_15e];
-  m.regs.a = mem8[u16(loc_969d + index)]; // low pointer byte; live-out on the Y-only handlers
-  return TABLE[index >> 1](m);
+  const aSeed = mem8[u16(loc_969d + index)]; // low pointer byte; A live-out on the Y-only handlers
+  const r = TABLE[index >> 1](m, y);
+  // 96cb returns [a, advancedY]; the Y-only handlers return the advanced Y scalar (A stays the seed).
+  if (Array.isArray(r)) return [(m.regs.a = r[0]), r[1]];
+  return [(m.regs.a = aSeed), r];
 }

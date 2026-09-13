@@ -116,16 +116,16 @@ test("CRAFTED advance clamp: hi < floor -> hi clamped to floor, loc_159 sign cle
   }
 });
 
-test("CRAFTED advance keep, early rts: hi >= floor and loc_3ab == 0 -- RAM + A/X/Y equal (A = new hi, Y = 0)", () => {
-  // hi 0x50 >= floor 0x10, loc_3ab == 0 -> beq -> early rts, no delegation
+test("CRAFTED advance keep, early rts: hi >= floor and loc_3ab == 0 -- RAM + A live-out equal (A = new hi)", () => {
+  // hi 0x50 >= floor 0x10, loc_3ab == 0 -> beq -> early rts, no delegation. A is the live-out the caller
+  // reads; the oracle's ldy #0 leaves Y=0 but that Y is UNCONSUMED (loc_9b98/loc_9b1e discard it), so the
+  // idiomatic form no longer seats it and Y is not compared here.
   const [o, c] = pair({ x: 0x00, gate: 0x00, lo: 0x00, dlo: 0x00, hi: 0x50, dhi: 0x00, floor: 0x10, ab: 0x00 });
   oracle(o); loc_9ef1(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.x, o.regs.x, "X live-out matches");
-  assert.equal(c.regs.y, o.regs.y, "Y live-out matches");
   assert.equal(c.regs.a, 0x50, "A is the new hi byte");
-  assert.equal(c.regs.y, 0x00, "Y is 0 (ldy loc_3ab)");
   assert.equal(c.mem.read8(u16(loc_2df)), 0x50, "hi kept (>= floor)");
 });
 

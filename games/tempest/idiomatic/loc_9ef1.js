@@ -37,7 +37,7 @@ export function loc_9ef1(m, x = m.regs.x) {
   let fire; // the carry that selects the fire step
   if (hi >= floor) {
     // keep the new hi
-    if (mem8[loc_3ab] === 0) { m.regs.y = 0x00; return (m.regs.a = hi); } // beq -> early rts
+    if (mem8[loc_3ab] === 0) return (m.regs.a = hi); // beq -> early rts (Y-out unconsumed, not seated)
     fire = (mem8[loc_9f] >= 0x11) ? 1 : (hi >= 0x20 ? 1 : 0); // cpy #0x11 / cmp #0x20
   } else {
     mem8[u16(loc_2df + x)] = floor; // clamp the hi byte to the floor
