@@ -62,6 +62,12 @@ async function main() {
         case "--avgprom": a.avgprom = next(); return true;
         case "--frames-out": a.framesOut = next(); return true;
         case "--pin": a.pin = next(); return true;
+        case "--spinner": { // the analog knob: <delta-per-frame>@<frame>[:<dur>] (applied via io.applyTrackball)
+          const mt = /^(-?\d+)@(\d+)(?::(\d+))?$/.exec(next());
+          if (!mt) throw new Error("--spinner expects <delta>@<frame>[:<dur>]");
+          (a.spinner ??= []).push({ delta: +mt[1], frame: +mt[2], dur: mt[3] ? +mt[3] : 1 });
+          return true;
+        }
         default: return false;
       }
     },
@@ -76,6 +82,12 @@ async function main() {
 
   const overrides = await resolveAllIdiomatic();
   const machine = new Machine(maincpu, { overrides, vectorrom, avgprom });
+
+  // Input tape: digital inputs (coin/start/fire/superzapper) via machine.inputTape/applyInputs; the analog
+  // spinner via io.applyTrackball. Both key on the game-update frame (the idiomatic tick), so a gameplay
+  // tape lands at the same logical points on the JS side that a state-keyed golden does on MAME.
+  machine.inputTape = args.inputs.length ? args.inputs : null;
+  const spinner = args.spinner ?? [];
 
   let pinCounters = null;
   if (args.pin) {
@@ -98,6 +110,10 @@ async function main() {
     maxFrames: args.frames,
     onFrame: (m, f) => {
       if (f === 0) return; // power-on, before the boot chain runs: no golden frame matches it
+      m.applyInputs(f); // fold the digital tape (coin/start/fire/...) into io.inputAssert for this frame
+      for (const s of spinner) {
+        if (f >= s.frame && f < s.frame + s.dur) m.io.applyTrackball(0, s.delta & 0xff);
+      }
       const buf = m.renderFrame(); // AVG walk -> 480x640 RGB888 (persists last complete list, MAME behaviour)
       writeSync(fd, buf, 0, buf.length);
       hashes.push(createHash("sha256").update(buf).digest("hex"));
