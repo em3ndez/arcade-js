@@ -170,3 +170,7 @@ export class Io {
   pokeyRead(chip, reg, cycles) { return this.pokeys[chip].read(reg, cycles); }
   pokeyWrite(chip, reg, v, cycles) { this.pokeys[chip].write(reg, v, cycles); }
 }
+
+// The web worker's input interface (web/worker.js `new Inputs()`); the digital tape reaches the board via
+// machine.io.inputAssert (set each frame by readInputsInto from the manifest keys), so this is a marker.
+export class Inputs {}
