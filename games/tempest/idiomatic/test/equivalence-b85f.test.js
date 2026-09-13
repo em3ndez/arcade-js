@@ -13,7 +13,7 @@ import { loc_b85f as oracle } from "../../translated/loc_b85f.js";
 import { loc_b85f } from "../loc_b85f.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_22, loc_23, loc_24, loc_809, loc_80a, loc_80b } from "../names.js";
+import { STACK_SCRATCH, COLOR_CYCLE_0, COLOR_CYCLE_1, COLOR_CYCLE_2, COLOR_RAM_9, COLOR_RAM_A, COLOR_RAM_B } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -38,7 +38,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-const PAIRS = [[loc_22, 0x00], [loc_23, 0x04], [loc_24, 0x0c], [loc_809, 0x00], [loc_80a, 0x04], [loc_80b, 0x0c]];
+const PAIRS = [[COLOR_CYCLE_0, 0x00], [COLOR_CYCLE_1, 0x04], [COLOR_CYCLE_2, 0x0c], [COLOR_RAM_9, 0x00], [COLOR_RAM_A, 0x04], [COLOR_RAM_B, 0x0c]];
 
 test("CAPTURE: real 0xb85f dispatches -- loc_b85f == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
@@ -68,8 +68,8 @@ test("TEETH: a twin that skips the $24/$080b entry2 store diverges from the orac
   const brokenB85f = (m) => {
     const mem = m.mem8;
     // BUG: never writes entry2 (0x0c) to $24 / $080b
-    mem[loc_80a] = 0x04; mem[loc_23] = 0x04;
-    mem[loc_22] = 0x00; mem[loc_809] = 0x00;
+    mem[COLOR_RAM_A] = 0x04; mem[COLOR_CYCLE_1] = 0x04;
+    mem[COLOR_CYCLE_0] = 0x00; mem[COLOR_RAM_9] = 0x00;
   };
   brokenB85f(c);
   const d = ramDiff(o, c);

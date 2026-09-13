@@ -14,7 +14,7 @@ import { loc_aef8 as oracle } from "../../translated/loc_aef8.js";
 import { loc_aef8 } from "../loc_aef8.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_38, loc_74, loc_75, loc_606 } from "../names.js";
+import { STACK_SCRATCH, TABLE_CURSOR, DRAW_CURSOR_LO, DRAW_CURSOR_HI, SLOT_VALUE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const rd = (n) => new Uint8Array(readFileSync(new URL(n, ROM_DIR)));
@@ -42,11 +42,11 @@ const A_IN = 0x04;
 function seeded(a = A_IN) {
   const m = new Machine(ROM, OPTS);
   m.regs.a = a;
-  m.mem.write8(loc_74, 0x00);
-  m.mem.write8(loc_75, 0x04); // pointer -> 0x0400
-  m.mem.write8((loc_606 + a + 0) & 0xffff, 0x02);
-  m.mem.write8((loc_606 + a + 1) & 0xffff, 0x05);
-  m.mem.write8((loc_606 + a + 2) & 0xffff, 0x0a);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00);
+  m.mem.write8(DRAW_CURSOR_HI, 0x04); // pointer -> 0x0400
+  m.mem.write8((SLOT_VALUE + a + 0) & 0xffff, 0x02);
+  m.mem.write8((SLOT_VALUE + a + 1) & 0xffff, 0x05);
+  m.mem.write8((SLOT_VALUE + a + 2) & 0xffff, 0x0a);
   return m;
 }
 
@@ -63,14 +63,14 @@ test("CRAFTED: three glyph words copied and the cursor advanced via df5f (== ora
   const o = seeded(), c = seeded();
   oracle(o); loc_aef8(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after copy + advance");
-  assert.equal(c.mem.read8(loc_74), 0x06, "cursor advanced by 6");
+  assert.equal(c.mem.read8(DRAW_CURSOR_LO), 0x06, "cursor advanced by 6");
 });
 
 test("TEETH: a twin that skips the df5f dissolve leaves the cursor unadvanced and diverges", () => {
   const o = seeded(); oracle(o);
-  assert.equal(o.mem.read8(loc_74), 0x06, "precondition: oracle advanced the cursor");
+  assert.equal(o.mem.read8(DRAW_CURSOR_LO), 0x06, "precondition: oracle advanced the cursor");
   const c = seeded(); loc_aef8(c);
-  c.mem.write8(loc_74, 0x00); // BUG: as if the df5f call never ran
+  c.mem.write8(DRAW_CURSOR_LO, 0x00); // BUG: as if the df5f call never ran
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped df5f");
 });
 

@@ -14,7 +14,7 @@ import { loc_aaf5 as oracle } from "../../translated/loc_aaf5.js";
 import { loc_aaf5 } from "../loc_aaf5.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_2c } from "../names.js";
+import { STACK_SCRATCH, loc_29, COORD_LIST_PTR_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -57,7 +57,7 @@ test("CRAFTED: BCD conversion == oracle across a spread of inputs (RAM -stack + 
     oracle(o);
     const ret = loc_aaf5(c);
     assert.equal(ramDiff(o, c), null, `RAM: A=0x${av.toString(16)}`);
-    assert.equal(c.mem.read8(loc_29), c.mem.read8(loc_2c), `$29==$2c for A=0x${av.toString(16)}`);
+    assert.equal(c.mem.read8(loc_29), c.mem.read8(COORD_LIST_PTR_LO), `$29==$2c for A=0x${av.toString(16)}`);
     assert.equal(ret, o.regs.a, `A live-out for A=0x${av.toString(16)}`);
   }
 });
@@ -66,9 +66,9 @@ test("TEETH: a twin that skips decimal mode (binary double) diverges", () => {
   const av = 0x2a; // 42 -> BCD 0x42; a no-sed binary run would leave $2c = 0x2a
   const o = new Machine(ROM, OPTS); o.regs.a = av;
   oracle(o);
-  assert.notEqual(o.mem.read8(loc_2c), 0x00, "precondition: oracle produced a non-zero BCD result");
+  assert.notEqual(o.mem.read8(COORD_LIST_PTR_LO), 0x00, "precondition: oracle produced a non-zero BCD result");
   const brokenBinary = 0x2a; // BUG: forgot `sed` -> $2c stays the binary value
-  assert.notEqual(brokenBinary, o.mem.read8(loc_2c), "the RAM diff FAILED to catch a missing decimal mode");
+  assert.notEqual(brokenBinary, o.mem.read8(COORD_LIST_PTR_LO), "the RAM diff FAILED to catch a missing decimal mode");
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {

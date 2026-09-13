@@ -14,7 +14,7 @@ import { loc_97c5 as oracle } from "../../translated/loc_97c5.js";
 import { loc_97c5 } from "../loc_97c5.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_2a, loc_11c, loc_2df, loc_2b9, loc_200 } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_2a, ENEMY_SLOT_TOP, ENEMY_DEPTH, ENEMY_SEGMENT, PLAYER_SEGMENT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,11 +52,11 @@ test("CAPTURE: real 0x97c5 dispatches -- loc_97c5 == oracle in RAM (-stack) and 
 test("CRAFTED: found -> A code by sign; none-found -> last entry seen", () => {
   // found: smallest nonzero at index 2; a7a6 derives the sign-coded return
   const seedFound = (m) => {
-    m.mem.write8(loc_11c, 0x04);
-    for (let i = 0; i <= 4; i++) m.mem.write8((loc_2df + i) & 0xffff, 0x00);
-    m.mem.write8((loc_2df + 2) & 0xffff, 0x03);
-    m.mem.write8((loc_2b9 + 2) & 0xffff, 0x10);
-    m.mem.write8(loc_200, 0x40);
+    m.mem.write8(ENEMY_SLOT_TOP, 0x04);
+    for (let i = 0; i <= 4; i++) m.mem.write8((ENEMY_DEPTH + i) & 0xffff, 0x00);
+    m.mem.write8((ENEMY_DEPTH + 2) & 0xffff, 0x03);
+    m.mem.write8((ENEMY_SEGMENT + 2) & 0xffff, 0x10);
+    m.mem.write8(PLAYER_SEGMENT, 0x40);
   };
   let o = new Machine(ROM, OPTS); seedFound(o);
   let c = new Machine(ROM, OPTS); seedFound(c);
@@ -67,8 +67,8 @@ test("CRAFTED: found -> A code by sign; none-found -> last entry seen", () => {
 
   // none found: every entry 0x00 -> $2a stays 0xff -> return last entry (0x00)
   const seedNone = (m) => {
-    m.mem.write8(loc_11c, 0x04);
-    for (let i = 0; i <= 4; i++) m.mem.write8((loc_2df + i) & 0xffff, 0x00);
+    m.mem.write8(ENEMY_SLOT_TOP, 0x04);
+    for (let i = 0; i <= 4; i++) m.mem.write8((ENEMY_DEPTH + i) & 0xffff, 0x00);
   };
   o = new Machine(ROM, OPTS); seedNone(o);
   c = new Machine(ROM, OPTS); seedNone(c);
@@ -80,11 +80,11 @@ test("CRAFTED: found -> A code by sign; none-found -> last entry seen", () => {
 
 test("TEETH: a twin that returns the wrong code (or mis-scans) diverges from the oracle", () => {
   const seed = (m) => {
-    m.mem.write8(loc_11c, 0x04);
-    for (let i = 0; i <= 4; i++) m.mem.write8((loc_2df + i) & 0xffff, 0x00);
-    m.mem.write8((loc_2df + 2) & 0xffff, 0x03);
-    m.mem.write8((loc_2b9 + 2) & 0xffff, 0x10);
-    m.mem.write8(loc_200, 0x40);
+    m.mem.write8(ENEMY_SLOT_TOP, 0x04);
+    for (let i = 0; i <= 4; i++) m.mem.write8((ENEMY_DEPTH + i) & 0xffff, 0x00);
+    m.mem.write8((ENEMY_DEPTH + 2) & 0xffff, 0x03);
+    m.mem.write8((ENEMY_SEGMENT + 2) & 0xffff, 0x10);
+    m.mem.write8(PLAYER_SEGMENT, 0x40);
   };
   // A live-out arm: same memory effect, but a wrong return code must be caught.
   let o = new Machine(ROM, OPTS); seed(o);

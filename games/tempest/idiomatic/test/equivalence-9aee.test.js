@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_9aee (ROM 0x9aee) -- load a vector-list pointer pair from two ROM tables by Y
-// (loc_9b02[Y]->loc_2c, loc_9afd[Y]->loc_2d), stash Y at loc_2b, re-latch A from loc_29. Live-out is three
-// RAM cells (loc_2b/loc_2c/loc_2d) plus A, so the arms compare RAM (-stack) + A. A leaf: it omits the ROM
+// (LIST_PTR_TABLE_LO[Y]->COORD_LIST_PTR_LO, LIST_PTR_TABLE_HI[Y]->COORD_LIST_PTR_HI), stash Y at loc_2b, re-latch A from loc_29. Live-out is three
+// RAM cells (loc_2b/COORD_LIST_PTR_LO/COORD_LIST_PTR_HI) plus A, so the arms compare RAM (-stack) + A. A leaf: it omits the ROM
 // ret and the seam completes it. Serves the full 0x9aee entry only (the 0x9af1/0x9af6 mid-entries stay
 // translated). No POKEY/clock read, so the CRAFTED diff is deterministic.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9aee.test.js
@@ -14,7 +14,7 @@ import { loc_9aee as oracle } from "../../translated/loc_9aee.js";
 import { loc_9aee } from "../loc_9aee.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_2b, loc_2c, loc_2d, loc_9b02 } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI, LIST_PTR_TABLE_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const rd = (f) => (existsSync(new URL(f, ROM_DIR)) ? new Uint8Array(readFileSync(new URL(f, ROM_DIR))) : null);
@@ -47,7 +47,7 @@ test("CAPTURE: real 0x9aee dispatches -- loc_9aee == oracle in RAM (-stack) and 
   console.log(`  CAPTURE: ${CAPS.length} dispatch(es) checked`);
 });
 
-test("CRAFTED: loc_9b02[Y]->loc_2c, loc_9afd[Y]->loc_2d, Y->loc_2b, A<-loc_29", () => {
+test("CRAFTED: LIST_PTR_TABLE_LO[Y]->COORD_LIST_PTR_LO, LIST_PTR_TABLE_HI[Y]->COORD_LIST_PTR_HI, Y->loc_2b, A<-loc_29", () => {
   const cases = [
     { tag: "Y=0", y: 0x00, a29: 0x11 },
     { tag: "Y=1", y: 0x01, a29: 0x22 },
@@ -64,10 +64,10 @@ test("CRAFTED: loc_9b02[Y]->loc_2c, loc_9afd[Y]->loc_2d, Y->loc_2b, A<-loc_29", 
   }
 });
 
-test("TEETH: a twin that ignores Y (always table index 0) diverges in loc_2c on Y!=0", () => {
-  const o = new Machine(ROM, OPTS); o.regs.y = 1; oracle(o); // loc_9b02[1] != loc_9b02[0]
-  const idx0c = new Machine(ROM, OPTS).mem.read8(loc_9b02); // table entry at index 0
-  assert.notEqual(idx0c, o.mem.read8(loc_2c), "the RAM diff FAILED to catch a Y-independent twin");
+test("TEETH: a twin that ignores Y (always table index 0) diverges in COORD_LIST_PTR_LO on Y!=0", () => {
+  const o = new Machine(ROM, OPTS); o.regs.y = 1; oracle(o); // LIST_PTR_TABLE_LO[1] != LIST_PTR_TABLE_LO[0]
+  const idx0c = new Machine(ROM, OPTS).mem.read8(LIST_PTR_TABLE_LO); // table entry at index 0
+  assert.notEqual(idx0c, o.mem.read8(COORD_LIST_PTR_LO), "the RAM diff FAILED to catch a Y-independent twin");
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {

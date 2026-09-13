@@ -13,7 +13,7 @@ import { loc_9c4f as oracle } from "../../translated/loc_9c4f.js";
 import { loc_9c4f } from "../loc_9c4f.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_283 } from "../names.js";
+import { STACK_SCRATCH, ENEMY_SLOT_FLAGS } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -55,7 +55,7 @@ test("CRAFTED: bit $40 toggles in $0283,x; A = toggled value", () => {
     { x: 0x00, seed: 0x00 }, // 0x00 -> 0x40
   ];
   for (const { x, seed } of cases) {
-    const addr = (loc_283 + x) & 0xffff;
+    const addr = (ENEMY_SLOT_FLAGS + x) & 0xffff;
     const o = new Machine(ROM, OPTS); o.regs.x = x; o.mem.write8(addr, seed);
     const c = new Machine(ROM, OPTS); c.regs.x = x; c.mem.write8(addr, seed);
     oracle(o); const ret = loc_9c4f(c);
@@ -68,7 +68,7 @@ test("CRAFTED: bit $40 toggles in $0283,x; A = toggled value", () => {
 });
 
 test("TEETH: a twin that skips the $40 toggle diverges (non-default seed)", () => {
-  const x = 0x03, seed = 0x85, addr = (loc_283 + x) & 0xffff;
+  const x = 0x03, seed = 0x85, addr = (ENEMY_SLOT_FLAGS + x) & 0xffff;
   const o = new Machine(ROM, OPTS); o.regs.x = x; o.mem.write8(addr, seed);
   oracle(o);
   assert.notEqual(o.mem.read8(addr), seed, "precondition: oracle changed the cell off its seed");
@@ -78,7 +78,7 @@ test("TEETH: a twin that skips the $40 toggle diverges (non-default seed)", () =
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
-  m.regs.x = 0x03; m.mem.write8((loc_283 + 0x03) & 0xffff, 0x85);
+  m.regs.x = 0x03; m.mem.write8((ENEMY_SLOT_FLAGS + 0x03) & 0xffff, 0x85);
   m.regs.s = 0xff;
   m.push16(0xabcd); // a real caller-return word on the 6502 page-1 stack
   const r = seamPlaceable(withOmittedRet, loc_9c4f, TARGET, m);

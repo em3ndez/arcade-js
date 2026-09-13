@@ -12,7 +12,7 @@ import { loc_b586 as oracle } from "../../translated/loc_b586.js";
 import { loc_b586 } from "../loc_b586.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_9e, loc_200, loc_201, loc_202, loc_2f, loc_51, loc_57, loc_5b, loc_5f } from "../names.js";
+import { STACK_SCRATCH, loc_9e, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH, loc_2f, RIM_ROT_OFFSET, OBJ_DEPTH, DEPTH_LO, DEPTH_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -49,12 +49,12 @@ test("CAPTURE: real 0xb586 dispatches -- loc_b586 == oracle in RAM (-stack)", ()
 // Gate byte in range and marker not the skip value: latches the gate, then reaches the spread build,
 // which itself early-exits (guard clear and counter below reference), keeping the RAM effect bounded.
 function seedBuild(m) {
-  m.mem.write8(loc_202, 0x40); // gate: nonzero and < 0xf0
-  m.mem.write8(loc_201, 0x00); // marker: not 0x81
-  m.mem.write8(loc_200, 0x03); // index
-  m.mem.write8(loc_51, 0x08);  // size source
-  m.mem.write8(loc_5b, 0x00);  // guard clear
-  m.mem.write8(loc_5f, 0x50);  // reference > gate -> callee early-outs
+  m.mem.write8(PLAYER_SHOT_DEPTH, 0x40); // gate: nonzero and < 0xf0
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x00); // marker: not 0x81
+  m.mem.write8(PLAYER_SEGMENT, 0x03); // index
+  m.mem.write8(RIM_ROT_OFFSET, 0x08);  // size source
+  m.mem.write8(DEPTH_LO, 0x00);  // guard clear
+  m.mem.write8(DEPTH_HI, 0x50);  // reference > gate -> callee early-outs
 }
 
 test("CRAFTED: in-range gate -- slots latched and RAM matches the oracle", () => {
@@ -62,7 +62,7 @@ test("CRAFTED: in-range gate -- slots latched and RAM matches the oracle", () =>
   const c = new Machine(ROM, OPTS); seedBuild(c);
   oracle(o); loc_b586(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after build");
-  assert.equal(c.mem.read8(loc_57), 0x40, "gate latched into $57");
+  assert.equal(c.mem.read8(OBJ_DEPTH), 0x40, "gate latched into $57");
   assert.equal(c.mem.read8(loc_2f), 0x40, "gate latched into $2f");
 });
 
@@ -76,7 +76,7 @@ test("TEETH: a twin that skips latching the gate diverges from the oracle", () =
 });
 
 test("TEETH-OUTRANGE: gate >= 0xf0 -- oracle and idiomatic both early-out identically", () => {
-  const seed = (m) => { m.mem.write8(loc_202, 0xf5); };
+  const seed = (m) => { m.mem.write8(PLAYER_SHOT_DEPTH, 0xf5); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_b586(c);

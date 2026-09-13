@@ -19,8 +19,8 @@ import { u16 } from "../../../../core/int.js";
 import { loc_c772 } from "../loc_c772.js";
 import { loc_c423 } from "../loc_c423.js";
 import {
-  STACK_SCRATCH, loc_37, loc_38, loc_61, loc_73, loc_74, loc_b0, loc_b1,
-  loc_111, loc_31a, loc_32a, loc_33a, loc_34a,
+  STACK_SCRATCH, SLOT_LOOP_INDEX, TABLE_CURSOR, PROJ_Y_LO, VG_RECORD_HEADER, DRAW_CURSOR_LO, DRAW_PATCH_PTR_LO, DRAW_PATCH_PTR_HI,
+  TUBE_GEOM_FLAG, COL_VAL_A, COL_SUB_A, COL_VAL_B, COL_SUB_B,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -59,11 +59,11 @@ test("CAPTURE: real 0xc36e dispatches -- loc_c36e == oracle in RAM (-stack)", ()
 // ($74) cursor into vector RAM so the emitted records land in diffed RAM.
 function seedRun(m) {
   m.regs.a = 0x00; m.regs.y = 0x03; m.regs.setNZ(m.regs.a);
-  for (const b of [loc_31a, loc_32a, loc_33a, loc_34a]) {
+  for (const b of [COL_VAL_A, COL_SUB_A, COL_VAL_B, COL_SUB_B]) {
     for (let i = 0; i < 8; i++) m.mem.write8(u16(b + i), (b + i) & 0xff);
   }
-  m.mem.write8(loc_111, 0x00);
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_74 + 1, 0x20); // ($74) -> 0x2000
+  m.mem.write8(TUBE_GEOM_FLAG, 0x00);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x20); // ($74) -> 0x2000
 }
 
 test("CRAFTED: gate open (A=0) -- loc_c36e == oracle in RAM, fields + cursor seated", () => {
@@ -71,9 +71,9 @@ test("CRAFTED: gate open (A=0) -- loc_c36e == oracle in RAM, fields + cursor sea
   const c = new Machine(ROM, OPTS); seedRun(c);
   oracle(o); loc_c36e(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after header + record draws");
-  assert.equal(c.mem.read8(loc_61), c.mem.read8(u16(loc_32a + 3)), "$61 = [$032a+Y]");
-  assert.equal(c.mem.read8(loc_73), 0xc0, "$73 constant seated");
-  assert.equal(c.mem.read8(loc_38), 0xff, "record loop ran the counter to 0xff");
+  assert.equal(c.mem.read8(PROJ_Y_LO), c.mem.read8(u16(COL_SUB_A + 3)), "$61 = [$032a+Y]");
+  assert.equal(c.mem.read8(VG_RECORD_HEADER), 0xc0, "$73 constant seated");
+  assert.equal(c.mem.read8(TABLE_CURSOR), 0xff, "record loop ran the counter to 0xff");
 });
 
 test("CRAFTED: gate closed (A!=0) -- both skip, RAM unchanged and equal", () => {
@@ -81,7 +81,7 @@ test("CRAFTED: gate closed (A!=0) -- both skip, RAM unchanged and equal", () => 
   const c = new Machine(ROM, OPTS); seedRun(c); c.regs.a = 0x01; c.regs.setNZ(0x01);
   oracle(o); loc_c36e(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the skip path");
-  assert.equal(c.mem.read8(loc_73), o.mem.read8(loc_73), "no write on skip");
+  assert.equal(c.mem.read8(VG_RECORD_HEADER), o.mem.read8(VG_RECORD_HEADER), "no write on skip");
 });
 
 test("TEETH: a twin that runs the body regardless of the gate diverges from the oracle", () => {
@@ -90,8 +90,8 @@ test("TEETH: a twin that runs the body regardless of the gate diverges from the 
   const brokenGate = (m, a = m.regs.a, y = m.regs.y) => {
     const mem8 = m.mem8;
     // BUG: ignores the gate and always draws the header
-    mem8[loc_37] = y;
-    mem8[loc_61] = mem8[u16(loc_32a + y)];
+    mem8[SLOT_LOOP_INDEX] = y;
+    mem8[PROJ_Y_LO] = mem8[u16(COL_SUB_A + y)];
     loc_c772(m, 0x61);
   };
   brokenGate(c);
@@ -104,14 +104,14 @@ test("TEETH: a twin that skips the record loop diverges from the oracle", () => 
   const brokenLoop = (m, a = m.regs.a, y = m.regs.y) => {
     const mem8 = m.mem8;
     if (a !== 0) return;
-    mem8[loc_37] = y;
-    mem8[loc_61] = mem8[u16(loc_32a + y)];
-    mem8[0x62] = mem8[u16(loc_31a + y)];
-    mem8[0x63] = mem8[u16(loc_34a + y)];
-    mem8[0x64] = mem8[u16(loc_33a + y)];
+    mem8[SLOT_LOOP_INDEX] = y;
+    mem8[PROJ_Y_LO] = mem8[u16(COL_SUB_A + y)];
+    mem8[0x62] = mem8[u16(COL_VAL_A + y)];
+    mem8[0x63] = mem8[u16(COL_SUB_B + y)];
+    mem8[0x64] = mem8[u16(COL_VAL_B + y)];
     loc_c772(m, 0x61);
-    mem8[loc_b0] = mem8[loc_74];
-    mem8[loc_b1] = mem8[loc_74 + 1];
+    mem8[DRAW_PATCH_PTR_LO] = mem8[DRAW_CURSOR_LO];
+    mem8[DRAW_PATCH_PTR_HI] = mem8[DRAW_CURSOR_LO + 1];
     // BUG: never runs the loc_c423 record loop
   };
   brokenLoop(c);

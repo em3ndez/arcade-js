@@ -13,7 +13,7 @@ import { loc_929f as oracle } from "../../translated/loc_929f.js";
 import { loc_929f } from "../loc_929f.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_30a, loc_116 } from "../names.js";
+import { STACK_SCRATCH, SHAPE_ACTIVE, TIMED_OBJECT_COUNT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -49,28 +49,28 @@ test("CAPTURE: real 0x929f dispatches -- loc_929f == oracle in RAM (-stack)", ()
 
 test("CRAFTED: table $030a..$0311 and flag $0116 all clear to 0x00", () => {
   const seed = (m) => {
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_30a + i) & 0xffff, 0xa0 + i); // dirty sentinels
-    m.mem.write8(loc_116, 0x5c);
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ACTIVE + i) & 0xffff, 0xa0 + i); // dirty sentinels
+    m.mem.write8(TIMED_OBJECT_COUNT, 0x5c);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_929f(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after clear");
-  for (let i = 0; i < 8; i++) assert.equal(c.mem.read8((loc_30a + i) & 0xffff), 0x00, `entry ${i} cleared`);
-  assert.equal(c.mem.read8(loc_116), 0x00, "$0116 cleared");
+  for (let i = 0; i < 8; i++) assert.equal(c.mem.read8((SHAPE_ACTIVE + i) & 0xffff), 0x00, `entry ${i} cleared`);
+  assert.equal(c.mem.read8(TIMED_OBJECT_COUNT), 0x00, "$0116 cleared");
 });
 
 test("TEETH: a twin that leaves $0116 (or the last entry) untouched diverges from the oracle", () => {
   const seed = (m) => {
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_30a + i) & 0xffff, 0xa0 + i);
-    m.mem.write8(loc_116, 0x5c);
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ACTIVE + i) & 0xffff, 0xa0 + i);
+    m.mem.write8(TIMED_OBJECT_COUNT, 0x5c);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const broken929f = (m) => {
     const mem = m.mem8;
-    for (let x = 7; x >= 1; x--) mem[(loc_30a + x) & 0xffff] = 0x00; // BUG: never clears entry 0 or $0116
+    for (let x = 7; x >= 1; x--) mem[(SHAPE_ACTIVE + x) & 0xffff] = 0x00; // BUG: never clears entry 0 or $0116
   };
   broken929f(c);
   const d = ramDiff(o, c);

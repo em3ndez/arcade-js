@@ -13,7 +13,7 @@ import { loc_9d67 as oracle } from "../../translated/loc_9d67.js";
 import { loc_9d67 } from "../loc_9d67.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2b9, loc_200, loc_283, loc_111 } from "../names.js";
+import { STACK_SCRATCH, ENEMY_SEGMENT, PLAYER_SEGMENT, ENEMY_SLOT_FLAGS, TUBE_GEOM_FLAG } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -55,30 +55,30 @@ test("CRAFTED: both branches -- clear bit6 when diff negative, set bit6 when non
   // A - Y negative (full byte bit7 set) -> asl carry set -> clear bit6
   const seedA = (m) => {
     m.regs.x = 2;
-    m.mem.write8(loc_111, 0x80);                // $0111 bit7 -> keep full difference
-    m.mem.write8((loc_2b9 + 2) & 0xffff, 0x40); // Y
-    m.mem.write8(loc_200, 0x10);                // A ; A - Y = 0xd0 (negative)
-    m.mem.write8((loc_283 + 2) & 0xffff, 0xff); // all flag bits set
+    m.mem.write8(TUBE_GEOM_FLAG, 0x80);                // $0111 bit7 -> keep full difference
+    m.mem.write8((ENEMY_SEGMENT + 2) & 0xffff, 0x40); // Y
+    m.mem.write8(PLAYER_SEGMENT, 0x10);                // A ; A - Y = 0xd0 (negative)
+    m.mem.write8((ENEMY_SLOT_FLAGS + 2) & 0xffff, 0xff); // all flag bits set
   };
   let o = new Machine(ROM, OPTS); seedA(o);
   let c = new Machine(ROM, OPTS); seedA(c);
   oracle(o); loc_9d67(c);
   assert.equal(ramDiff(o, c), null, "clear-bit6 branch RAM equal");
-  assert.equal((c.mem.read8((loc_283 + 2) & 0xffff) & 0x40) !== 0, false, "bit6 cleared");
+  assert.equal((c.mem.read8((ENEMY_SLOT_FLAGS + 2) & 0xffff) & 0x40) !== 0, false, "bit6 cleared");
 
   // A - Y non-negative (full byte bit7 clear) -> asl carry clear -> set bit6
   const seedB = (m) => {
     m.regs.x = 5;
-    m.mem.write8(loc_111, 0x80);                // $0111 bit7 -> keep full difference
-    m.mem.write8((loc_2b9 + 5) & 0xffff, 0x08); // Y
-    m.mem.write8(loc_200, 0x20);                // A ; A - Y = 0x18 (positive)
-    m.mem.write8((loc_283 + 5) & 0xffff, 0x00); // all flag bits clear
+    m.mem.write8(TUBE_GEOM_FLAG, 0x80);                // $0111 bit7 -> keep full difference
+    m.mem.write8((ENEMY_SEGMENT + 5) & 0xffff, 0x08); // Y
+    m.mem.write8(PLAYER_SEGMENT, 0x20);                // A ; A - Y = 0x18 (positive)
+    m.mem.write8((ENEMY_SLOT_FLAGS + 5) & 0xffff, 0x00); // all flag bits clear
   };
   o = new Machine(ROM, OPTS); seedB(o);
   c = new Machine(ROM, OPTS); seedB(c);
   oracle(o); loc_9d67(c);
   assert.equal(ramDiff(o, c), null, "set-bit6 branch RAM equal");
-  assert.equal((c.mem.read8((loc_283 + 5) & 0xffff) & 0x40) !== 0, true, "bit6 set");
+  assert.equal((c.mem.read8((ENEMY_SLOT_FLAGS + 5) & 0xffff) & 0x40) !== 0, true, "bit6 set");
 });
 
 test("TEETH: a twin that inverts the bit6 decision diverges from the oracle", () => {
@@ -87,16 +87,16 @@ test("TEETH: a twin that inverts the bit6 decision diverges from the oracle", ()
   // RAM diff must then diverge on $0283,x specifically, not on some skipped side effect.
   const seed = (m) => {
     m.regs.x = 5;
-    m.mem.write8(loc_111, 0x80);                // keep full difference
-    m.mem.write8((loc_2b9 + 5) & 0xffff, 0x08);
-    m.mem.write8(loc_200, 0x40);                // A - Y = 0x38 (positive) -> oracle sets bit6
-    m.mem.write8((loc_283 + 5) & 0xffff, 0x00);
+    m.mem.write8(TUBE_GEOM_FLAG, 0x80);                // keep full difference
+    m.mem.write8((ENEMY_SEGMENT + 5) & 0xffff, 0x08);
+    m.mem.write8(PLAYER_SEGMENT, 0x40);                // A - Y = 0x38 (positive) -> oracle sets bit6
+    m.mem.write8((ENEMY_SLOT_FLAGS + 5) & 0xffff, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   oracle(c); // c now identical to o (correct bit6 set + a7a6 $2a stash)
-  const e = (loc_283 + c.regs.x) & 0xffff;
+  const e = (ENEMY_SLOT_FLAGS + c.regs.x) & 0xffff;
   c.mem.write8(e, c.mem.read8(e) & 0xbf); // BUG: invert the decision -- clear the bit6 the oracle set
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the inverted decision");
 });

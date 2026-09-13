@@ -14,7 +14,7 @@ import { loc_ca6c as oracle } from "../../translated/loc_ca6c.js";
 import { loc_ca6c } from "../loc_ca6c.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_29, loc_2a, loc_2b, loc_3d, loc_40, loc_41, loc_42, loc_48, loc_124, loc_156 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, loc_29, loc_2a, loc_2b, loc_3d, loc_40, loc_41, loc_42, SLOT_COUNTDOWN, RIM_COLOR_ANIM, BONUS_LIFE_INTERVAL } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,15 +50,15 @@ test("CAPTURE: real 0xca6c dispatches -- loc_ca6c == oracle in RAM (-stack)", ()
 
 // Valid-BCD seed that runs the X>=8 operand-triplet add and reaches the award+sound path.
 function seed(m) {
-  m.mem.write8(loc_5, m.mem.read8(loc_5) | 0x80); // gate on
+  m.mem.write8(STATUS_FLAGS, m.mem.read8(STATUS_FLAGS) | 0x80); // gate on
   m.mem.write8(loc_3d, 0x00);   // y = 0, award slot 0
   m.mem.write8(loc_29, 0x11);   // addend low
   m.mem.write8(loc_2a, 0x22);   // addend mid
   m.mem.write8(loc_2b, 0x50);   // addend high (nonzero)
   m.mem.write8(loc_40, 0x00); m.mem.write8(loc_41, 0x00); m.mem.write8(loc_42, 0x00);
-  m.mem.write8(loc_156, 0x10);  // threshold, nonzero and <= $2b
-  m.mem.write8(loc_48, 0x00);   // counter under six
-  m.mem.write8(loc_124, 0x00);
+  m.mem.write8(BONUS_LIFE_INTERVAL, 0x10);  // threshold, nonzero and <= $2b
+  m.mem.write8(SLOT_COUNTDOWN, 0x00);   // counter under six
+  m.mem.write8(RIM_COLOR_ANIM, 0x00);
   m.regs.x = 0x08;              // >= 8 operand path
 }
 
@@ -70,12 +70,12 @@ test("CRAFTED: BCD add lands the score, then the award bumps the counter and set
   assert.equal(c.mem.read8(loc_40), 0x11, "$40 score low");
   assert.equal(c.mem.read8(loc_41), 0x22, "$41 score mid");
   assert.equal(c.mem.read8(loc_42), 0x50, "$42 score high");
-  assert.equal(c.mem.read8(loc_48), 0x01, "$48 counter bumped");
-  assert.equal(c.mem.read8(loc_124), 0x20, "$0124 flag raised");
+  assert.equal(c.mem.read8(SLOT_COUNTDOWN), 0x01, "$48 counter bumped");
+  assert.equal(c.mem.read8(RIM_COLOR_ANIM), 0x20, "$0124 flag raised");
 });
 
 test("GATED: with $05 bit7 clear the routine is a no-op vs the oracle", () => {
-  const prep = (m) => { seed(m); m.mem.write8(loc_5, m.mem.read8(loc_5) & 0x7f); };
+  const prep = (m) => { seed(m); m.mem.write8(STATUS_FLAGS, m.mem.read8(STATUS_FLAGS) & 0x7f); };
   const o = new Machine(ROM, OPTS); prep(o);
   const c = new Machine(ROM, OPTS); prep(c);
   oracle(o); loc_ca6c(c);

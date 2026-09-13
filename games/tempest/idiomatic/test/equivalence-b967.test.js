@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_b967 (ROM 0xb967) -- select an (A,X) pair from two ROM slots by the RAM flag
-// loc_415: flag==0 -> (loc_ce87, loc_ce86), else (loc_ce6f, loc_ce6e). No RAM write, so the RAM diff is
+// POINTER_PARITY: flag==0 -> (ALT_DRAW_PTR_CLR_HI, ALT_DRAW_PTR_CLR_LO), else (ALT_DRAW_PTR_SET_HI, ALT_DRAW_PTR_SET_LO). No RAM write, so the RAM diff is
 // vacuously null; the real contract is the TWO register live-outs A and X. A leaf: it omits the ROM ret and
 // the seam completes it, so the arms compare RAM (-stack) + A + X, NOT pc/SP. No POKEY/clock read.
 // Run: node --test games/tempest/idiomatic/test/equivalence-b967.test.js
@@ -13,7 +13,7 @@ import { loc_b967 as oracle } from "../../translated/loc_b967.js";
 import { loc_b967 } from "../loc_b967.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_415, loc_ce86, loc_ce87, loc_ce6e, loc_ce6f } from "../names.js";
+import { STACK_SCRATCH, POINTER_PARITY, ALT_DRAW_PTR_CLR_LO, ALT_DRAW_PTR_CLR_HI, ALT_DRAW_PTR_SET_LO, ALT_DRAW_PTR_SET_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const rd = (f) => (existsSync(new URL(f, ROM_DIR)) ? new Uint8Array(readFileSync(new URL(f, ROM_DIR))) : null);
@@ -54,8 +54,8 @@ test("CRAFTED: flag==0 -> (ce87,ce86); flag!=0 -> (ce6f,ce6e)", () => {
     { tag: "flag 0xff -> else-arm", flag: 0xff },
   ];
   for (const { tag, flag } of cases) {
-    const o = new Machine(ROM, OPTS); o.mem.write8(loc_415, flag);
-    const c = new Machine(ROM, OPTS); c.mem.write8(loc_415, flag);
+    const o = new Machine(ROM, OPTS); o.mem.write8(POINTER_PARITY, flag);
+    const c = new Machine(ROM, OPTS); c.mem.write8(POINTER_PARITY, flag);
     oracle(o); const ret = loc_b967(c);
     assert.equal(ramDiff(o, c), null, `no RAM write: ${tag}`);
     assert.equal(c.regs.a, o.regs.a, `A matches oracle: ${tag}`);
@@ -65,10 +65,10 @@ test("CRAFTED: flag==0 -> (ce87,ce86); flag!=0 -> (ce6f,ce6e)", () => {
 });
 
 test("TEETH: a twin that ignores the flag (always the then-arm) diverges in A/X on the else path", () => {
-  const o = new Machine(ROM, OPTS); o.mem.write8(loc_415, 1); // non-default flag: oracle takes the ELSE arm
+  const o = new Machine(ROM, OPTS); o.mem.write8(POINTER_PARITY, 1); // non-default flag: oracle takes the ELSE arm
   oracle(o);
-  const thenA = new Machine(ROM, OPTS).mem.read8(loc_ce87);
-  const thenX = new Machine(ROM, OPTS).mem.read8(loc_ce86);
+  const thenA = new Machine(ROM, OPTS).mem.read8(ALT_DRAW_PTR_CLR_HI);
+  const thenX = new Machine(ROM, OPTS).mem.read8(ALT_DRAW_PTR_CLR_LO);
   assert.notEqual(thenA, o.regs.a, "the A live-out check FAILED to catch an ignored flag");
   assert.notEqual(thenX, o.regs.x, "the X live-out check FAILED to catch an ignored flag");
 });

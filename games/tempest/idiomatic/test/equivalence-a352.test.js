@@ -14,7 +14,7 @@ import { loc_a352 as oracle } from "../../translated/loc_a34b.js";
 import { loc_a352 } from "../loc_a34b.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_29, loc_2c, loc_2d, loc_13c, loc_200, loc_201, loc_202 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, loc_29, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI, OBJECT_ANIM_TIMER, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,9 +52,9 @@ test("CAPTURE: real 0xa352 dispatches -- loc_a352 == oracle in RAM (-stack)", ()
 
 function seed(m, a) {
   m.regs.a = a; m.regs.x = 0x05; m.regs.y = 0x03; // A = type byte; X/Y bridge to $31/$32 + $35/$36
-  m.mem.write8(loc_5, 0x80);   // sound enable high bit set so the gate runs its body
-  m.mem.write8(loc_202, 0x77); // source byte -> $29
-  m.mem.write8(loc_200, 0x88); // target byte -> $2d
+  m.mem.write8(STATUS_FLAGS, 0x80);   // sound enable high bit set so the gate runs its body
+  m.mem.write8(PLAYER_SHOT_DEPTH, 0x77); // source byte -> $29
+  m.mem.write8(PLAYER_SEGMENT, 0x88); // target byte -> $2d
 }
 
 test("CRAFTED: type byte seated, gate + insert run -- RAM equal and X/Y preserved", () => {
@@ -64,18 +64,18 @@ test("CRAFTED: type byte seated, gate + insert run -- RAM equal and X/Y preserve
   assert.equal(ramDiff(o, c), null, "RAM equal after setup");
   assert.equal(c.regs.x, o.regs.x, "X preserved");
   assert.equal(c.regs.y, o.regs.y, "Y preserved");
-  assert.equal(c.mem.read8(loc_2c), 0x05, "$2c = A (type byte)");
+  assert.equal(c.mem.read8(COORD_LIST_PTR_LO), 0x05, "$2c = A (type byte)");
   assert.equal(c.mem.read8(loc_29), 0x77, "$29 = $0202 source");
-  assert.equal(c.mem.read8(loc_2d), 0x88, "$2d = $0200 target");
-  assert.equal(c.mem.read8(loc_201), 0x81, "$0201 ready flag");
-  assert.equal(c.mem.read8(loc_13c), 0x01, "$013c ready flag");
+  assert.equal(c.mem.read8(COORD_LIST_PTR_HI), 0x88, "$2d = $0200 target");
+  assert.equal(c.mem.read8(PLAYER_FINE_ANGLE), 0x81, "$0201 ready flag");
+  assert.equal(c.mem.read8(OBJECT_ANIM_TIMER), 0x01, "$013c ready flag");
 });
 
 test("TEETH: a twin that seats the wrong type byte into $2c diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x05);
   const c = new Machine(ROM, OPTS); seed(c, 0x05);
   oracle(o);
-  const broken = (m, a = m.regs.a) => { m.mem8[loc_2c] = (a + 1) & 0xff; /* BUG: wrong type + skips the rest */ };
+  const broken = (m, a = m.regs.a) => { m.mem8[COORD_LIST_PTR_LO] = (a + 1) & 0xff; /* BUG: wrong type + skips the rest */ };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong type byte / skipped body");
 });

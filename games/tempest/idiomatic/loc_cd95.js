@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import {
-  loc_c0, loc_d0, loc_720,
-  loc_60c0, loc_60c8, loc_60ca, loc_60cf,
-  loc_60d0, loc_60d8, loc_60da, loc_60df,
+  SOUND_VOICE_VALUE, SOUND_VOICE_LEVEL, loc_720,
+  POKEY1_AUDF1, POKEY1_AUDCTL, POKEY1_RANDOM, POKEY1_SKCTL,
+  POKEY2_AUDF1, POKEY2_AUDCTL, POKEY2_RANDOM, POKEY2_SKCTL,
 } from "./names.js";
 
 // Clear two control cells and a flag, sample two counters across five polls and latch
@@ -11,27 +11,27 @@ import {
 // to 7 and zero the paired 8-entry arrays.
 export function loc_cd95(m) {
   const { mem8 } = m;
-  mem8[loc_60cf] = 0;
-  mem8[loc_60df] = 0;
+  mem8[POKEY1_SKCTL] = 0;
+  mem8[POKEY2_SKCTL] = 0;
   mem8[loc_720] = 0;
 
-  const a = mem8[loc_60ca];
-  const y = mem8[loc_60da];
+  const a = mem8[POKEY1_RANDOM];
+  const y = mem8[POKEY2_RANDOM];
   for (let x = 4; x >= 0; x--) {
-    if (a !== mem8[loc_60ca] || y !== mem8[loc_60da]) {
+    if (a !== mem8[POKEY1_RANDOM] || y !== mem8[POKEY2_RANDOM]) {
       mem8[loc_720] = a;
       break;
     }
   }
 
-  mem8[loc_60cf] = 7;
-  mem8[loc_60df] = 7;
+  mem8[POKEY1_SKCTL] = 7;
+  mem8[POKEY2_SKCTL] = 7;
   for (let x = 7; x >= 0; x--) {
-    mem8[u16(loc_60c0 + x)] = 0;
-    mem8[u16(loc_60d0 + x)] = 0;
-    mem8[u8(loc_c0 + x)] = 0;
-    mem8[u8(loc_d0 + x)] = 0;
+    mem8[u16(POKEY1_AUDF1 + x)] = 0;
+    mem8[u16(POKEY2_AUDF1 + x)] = 0;
+    mem8[u8(SOUND_VOICE_VALUE + x)] = 0;
+    mem8[u8(SOUND_VOICE_LEVEL + x)] = 0;
   }
-  mem8[loc_60c8] = 0;
-  mem8[loc_60d8] = 0;
+  mem8[POKEY1_AUDCTL] = 0;
+  mem8[POKEY2_AUDCTL] = 0;
 }

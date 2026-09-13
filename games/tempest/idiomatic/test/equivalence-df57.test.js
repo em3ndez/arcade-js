@@ -17,7 +17,7 @@ import { loc_df57 } from "../loc_df53.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -35,7 +35,7 @@ const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
 function seedRegs(m, a, x) { m.regs.a = a; m.regs.x = x; }
-function seedCursor(m, lo, hi) { m.mem.write8(loc_74, lo); m.mem.write8(loc_75, hi); }
+function seedCursor(m, lo, hi) { m.mem.write8(DRAW_CURSOR_LO, lo); m.mem.write8(DRAW_CURSOR_HI, hi); }
 
 function captureDispatches(K, maxFrames) {
   const caps = [];
@@ -79,11 +79,11 @@ test("TEETH: a twin that swaps the two bytes (X first, A second) diverges from t
   const c = new Machine(ROM, OPTS); seedCursor(c, lo, hi); seedRegs(c, a, x);
   const swapped = (m, aa = m.regs.a, xx = m.regs.x) => {
     const { mem8, mem16 } = m;
-    const ptr = mem16[loc_74];
+    const ptr = mem16[DRAW_CURSOR_LO];
     mem8[ptr] = xx;               // BUG: X first
     mem8[u16(ptr + 1)] = aa;      // BUG: A second
     // (still advances via the shared tail so only the byte order differs)
-    mem8[loc_74] = mem8[loc_74] + 2;
+    mem8[DRAW_CURSOR_LO] = mem8[DRAW_CURSOR_LO] + 2;
   };
   swapped(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the swapped byte order");
@@ -95,7 +95,7 @@ test("TEETH: a twin that skips the cursor advance diverges from the oracle", () 
   const c = new Machine(ROM, OPTS); seedCursor(c, lo, hi); seedRegs(c, a, x);
   const noAdvance = (m, aa = m.regs.a, xx = m.regs.x) => {
     const { mem8, mem16 } = m;
-    const ptr = mem16[loc_74];
+    const ptr = mem16[DRAW_CURSOR_LO];
     mem8[ptr] = aa;
     mem8[u16(ptr + 1)] = xx;      // BUG: never advances the cursor
   };

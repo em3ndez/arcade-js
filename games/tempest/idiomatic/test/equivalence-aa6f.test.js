@@ -14,7 +14,7 @@ import { loc_aa6f } from "../loc_aa6f.js";
 import { loc_ab17 } from "../loc_ab17.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_00, loc_5 } from "../names.js";
+import { STACK_SCRATCH, GAME_MODE, STATUS_FLAGS } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -62,7 +62,7 @@ test("CRAFTED: idle and active prep states == oracle (RAM)", () => {
     { tag: "active: $00==0x18, $05<0", c00: 0x18, c05: 0x80 },
   ];
   for (const s of cases) {
-    const seat = (m) => { seedPipe(m); m.mem.write8(loc_00, s.c00); m.mem.write8(loc_5, s.c05); };
+    const seat = (m) => { seedPipe(m); m.mem.write8(GAME_MODE, s.c00); m.mem.write8(STATUS_FLAGS, s.c05); };
     const o = new Machine(ROM, OPTS); seat(o);
     const c = new Machine(ROM, OPTS); seat(c);
     oracle(o); loc_aa6f(c);
@@ -71,7 +71,7 @@ test("CRAFTED: idle and active prep states == oracle (RAM)", () => {
 });
 
 test("TEETH: a twin that omits the a8b4 prep and only primes the slot MUST diverge", () => {
-  const seat = (m) => { seedPipe(m); m.mem.write8(loc_00, 0x04); m.mem.write8(loc_5, 0x00); };
+  const seat = (m) => { seedPipe(m); m.mem.write8(GAME_MODE, 0x04); m.mem.write8(STATUS_FLAGS, 0x00); };
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
   oracle(o);
@@ -83,7 +83,7 @@ test("TEETH: a twin that omits the a8b4 prep and only primes the slot MUST diver
 test("SP-TOOTH: the omitted-ret rewrite is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   seedPipe(m);
-  m.mem.write8(loc_00, 0x04);
+  m.mem.write8(GAME_MODE, 0x04);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
   const r = seamPlaceable(withOmittedRet, loc_aa6f, TARGET, m);

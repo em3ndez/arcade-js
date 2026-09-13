@@ -18,7 +18,7 @@ import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_37, loc_4d, loc_50, loc_51, loc_74, loc_75, loc_158, loc_200, loc_1c9,
+  SLOT_LOOP_INDEX, INPUT_DEBOUNCED, SPINNER_ACCUM, RIM_ROT_OFFSET, DRAW_CURSOR_LO, DRAW_CURSOR_HI, DSW_BONUS_CONFIG, PLAYER_SEGMENT, PENDING_WORK_FLAGS,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -66,12 +66,12 @@ test("CAPTURE: real 0xd804 dispatches -- loc_d804 == oracle in RAM (-stack)", ()
 // CMP to MISS ($004d=0 so the AND is 0 while every $d8b6 mask entry is nonzero) -> the dex/reset block is
 // skipped entirely and control drops to the common tail (df53 + two loc_d8a9 records).
 function seedSkip(m) {
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20); // cursor -> $2000, keeps writes in vector RAM
-  m.mem.write8(loc_158, 0x01);                            // draw loop runs once, $37 ends at 0
-  m.mem.write8(loc_37, 0x11);                             // overwritten by the $0158 copy then decremented
-  m.mem.write8(loc_50, 0x00); m.mem.write8(loc_51, 0x00); // adce fold -> no carry/sign -> folded = $0200
-  m.mem.write8(loc_200, 0x00);                            // folded 0 -> sel 0 -> x 0
-  m.mem.write8(loc_4d, 0x00);                             // AND result 0 != mask -> CMP miss -> skip block
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); // cursor -> $2000, keeps writes in vector RAM
+  m.mem.write8(DSW_BONUS_CONFIG, 0x01);                            // draw loop runs once, $37 ends at 0
+  m.mem.write8(SLOT_LOOP_INDEX, 0x11);                             // overwritten by the $0158 copy then decremented
+  m.mem.write8(SPINNER_ACCUM, 0x00); m.mem.write8(RIM_ROT_OFFSET, 0x00); // adce fold -> no carry/sign -> folded = $0200
+  m.mem.write8(PLAYER_SEGMENT, 0x00);                            // folded 0 -> sel 0 -> x 0
+  m.mem.write8(INPUT_DEBOUNCED, 0x00);                             // AND result 0 != mask -> CMP miss -> skip block
 }
 
 test("CRAFTED: mask-miss path skips the dex block -- RAM equal; draw count $37 zeroed", () => {
@@ -82,8 +82,8 @@ test("CRAFTED: mask-miss path skips the dex block -- RAM equal; draw count $37 z
   if (threw) { console.log("  CRAFTED(skip): oracle threw -- skipped"); return; }
   loc_d804(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the mask-miss path");
-  assert.equal(c.mem.read8(loc_37), 0x00, "draw-loop counter $37 decremented to 0");
-  assert.equal(c.mem.read8(loc_200), 0x00, "folded step written back to $0200");
+  assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0x00, "draw-loop counter $37 decremented to 0");
+  assert.equal(c.mem.read8(PLAYER_SEGMENT), 0x00, "folded step written back to $0200");
 });
 
 // Hit seed: drive the mask CMP to MATCH on slot index x=3 (mask $d8b6+3 = 0x50) with $004d = 0x50, and
@@ -91,12 +91,12 @@ test("CRAFTED: mask-miss path skips the dex block -- RAM equal; draw count $37 z
 // runs, ORing 0x03 into $01c9. This exercises a dissolved-call arm without reaching the reset (x stays
 // non-negative).
 function seedHit(m) {
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20);
-  m.mem.write8(loc_158, 0x01);
-  m.mem.write8(loc_50, 0x00); m.mem.write8(loc_51, 0x00);
-  m.mem.write8(loc_200, 0x06);   // folded 6 -> sel = 6&6 = 6 -> x = 3
-  m.mem.write8(loc_4d, 0x50);    // 0x50 & mask(0x50) = 0x50 -> CMP match
-  m.mem.write8(loc_1c9, 0x80);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20);
+  m.mem.write8(DSW_BONUS_CONFIG, 0x01);
+  m.mem.write8(SPINNER_ACCUM, 0x00); m.mem.write8(RIM_ROT_OFFSET, 0x00);
+  m.mem.write8(PLAYER_SEGMENT, 0x06);   // folded 6 -> sel = 6&6 = 6 -> x = 3
+  m.mem.write8(INPUT_DEBOUNCED, 0x50);    // 0x50 & mask(0x50) = 0x50 -> CMP match
+  m.mem.write8(PENDING_WORK_FLAGS, 0x80);
 }
 
 test("CRAFTED: mask-match on x=3 runs the ora arm -- RAM equal; $01c9 |= 0x03", () => {
@@ -107,7 +107,7 @@ test("CRAFTED: mask-match on x=3 runs the ora arm -- RAM equal; $01c9 |= 0x03", 
   if (threw) { console.log("  CRAFTED(hit): oracle threw -- skipped"); return; }
   loc_d804(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the mask-match ora path");
-  assert.equal(c.mem.read8(loc_1c9) & 0x03, 0x03, "0x03 ORed into $01c9 on the dded arm");
+  assert.equal(c.mem.read8(PENDING_WORK_FLAGS) & 0x03, 0x03, "0x03 ORed into $01c9 on the dded arm");
 });
 
 test("TEETH: a twin that leaves the draw-count store $37 non-zero MUST diverge in RAM", () => {
@@ -119,7 +119,7 @@ test("TEETH: a twin that leaves the draw-count store $37 non-zero MUST diverge i
   let ran = false;
   const broken = (m) => {
     loc_d804(m);
-    m.mem.write8(loc_37, 0x11); // BUG: revert the counter the draw loop decremented to 0
+    m.mem.write8(SLOT_LOOP_INDEX, 0x11); // BUG: revert the counter the draw loop decremented to 0
     ran = true;
   };
   broken(c);

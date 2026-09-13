@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a888 (ROM 0xa888-0xa8ae). Acts only when loc_125 >= 3 and even: it scans
-// loc_2df,y downward from y = loc_11c for the first nonzero slot. Found -> clears the low two bits of
-// loc_28a,y and TAIL-DELEGATES to loc_a398 for that slot; none found -> resets loc_125 to 0; below the
+// Memory-equivalence for loc_a888 (ROM 0xa888-0xa8ae). Acts only when WAVE_PHASE_LATCH >= 3 and even: it scans
+// ENEMY_DEPTH,y downward from y = ENEMY_SLOT_TOP for the first nonzero slot. Found -> clears the low two bits of
+// ENEMY_SLOT_DIR,y and TAIL-DELEGATES to loc_a398 for that slot; none found -> resets WAVE_PHASE_LATCH to 0; below the
 // guard -> no-op. Contract is RAM (dumpState minus STACK_SCRATCH). No live-out register is compared: the
 // found path tail-delegates to loc_a398 (its exit registers are the delegate's chain), and the other
 // exits are plain returns whose registers no caller distinguishes here. Oracle is the frozen translated
@@ -17,7 +17,7 @@ import { loc_a888 } from "../loc_a888.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_11c, loc_125, loc_28a, loc_2df } from "../names.js";
+import { STACK_SCRATCH, ENEMY_SLOT_TOP, WAVE_PHASE_LATCH, ENEMY_SLOT_DIR, ENEMY_DEPTH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -56,48 +56,48 @@ test("CAPTURE: real 0xa888 dispatches -- loc_a888 == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// Below the guard: loc_125 < 3 -> no-op.
-test("CRAFTED: loc_125 below 3 -- no-op, RAM equal", () => {
-  const o = new Machine(ROM, OPTS); o.mem.write8(loc_125, 0x02);
-  const c = new Machine(ROM, OPTS); c.mem.write8(loc_125, 0x02);
+// Below the guard: WAVE_PHASE_LATCH < 3 -> no-op.
+test("CRAFTED: WAVE_PHASE_LATCH below 3 -- no-op, RAM equal", () => {
+  const o = new Machine(ROM, OPTS); o.mem.write8(WAVE_PHASE_LATCH, 0x02);
+  const c = new Machine(ROM, OPTS); c.mem.write8(WAVE_PHASE_LATCH, 0x02);
   oracle(o); loc_a888(c);
   assert.equal(ramDiff(o, c), null, "RAM equal for the below-guard exit");
-  assert.equal(c.mem.read8(loc_125), 0x02, "loc_125 untouched below the guard");
+  assert.equal(c.mem.read8(WAVE_PHASE_LATCH), 0x02, "WAVE_PHASE_LATCH untouched below the guard");
 });
 
-// Below the guard: loc_125 >= 3 but odd -> no-op.
-test("CRAFTED: loc_125 odd -- no-op, RAM equal", () => {
-  const o = new Machine(ROM, OPTS); o.mem.write8(loc_125, 0x05);
-  const c = new Machine(ROM, OPTS); c.mem.write8(loc_125, 0x05);
+// Below the guard: WAVE_PHASE_LATCH >= 3 but odd -> no-op.
+test("CRAFTED: WAVE_PHASE_LATCH odd -- no-op, RAM equal", () => {
+  const o = new Machine(ROM, OPTS); o.mem.write8(WAVE_PHASE_LATCH, 0x05);
+  const c = new Machine(ROM, OPTS); c.mem.write8(WAVE_PHASE_LATCH, 0x05);
   oracle(o); loc_a888(c);
   assert.equal(ramDiff(o, c), null, "RAM equal for the odd-phase exit");
-  assert.equal(c.mem.read8(loc_125), 0x05, "loc_125 untouched for odd phase");
+  assert.equal(c.mem.read8(WAVE_PHASE_LATCH), 0x05, "WAVE_PHASE_LATCH untouched for odd phase");
 });
 
-// None-found path: phase >= 3 and even, every scanned loc_2df,y slot zero -> loc_125 reset to 0.
+// None-found path: phase >= 3 and even, every scanned ENEMY_DEPTH,y slot zero -> WAVE_PHASE_LATCH reset to 0.
 function seedNoneFound(m) {
-  m.mem.write8(loc_125, 0x04);   // >= 3 and even -> scans
-  m.mem.write8(loc_11c, 0x03);   // scan y = 3..0
-  for (let y = 0; y <= 0x03; y++) m.mem.write8(u16(loc_2df + y), 0x00); // all slots empty
+  m.mem.write8(WAVE_PHASE_LATCH, 0x04);   // >= 3 and even -> scans
+  m.mem.write8(ENEMY_SLOT_TOP, 0x03);   // scan y = 3..0
+  for (let y = 0; y <= 0x03; y++) m.mem.write8(u16(ENEMY_DEPTH + y), 0x00); // all slots empty
 }
 
-test("CRAFTED: none-found -- loc_125 reset to 0, RAM equal", () => {
+test("CRAFTED: none-found -- WAVE_PHASE_LATCH reset to 0, RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedNoneFound(o);
   const c = new Machine(ROM, OPTS); seedNoneFound(c);
   oracle(o); loc_a888(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the none-found reset");
-  assert.equal(c.mem.read8(loc_125), 0x00, "loc_125 reset to 0 when no slot is found");
+  assert.equal(c.mem.read8(WAVE_PHASE_LATCH), 0x00, "WAVE_PHASE_LATCH reset to 0 when no slot is found");
 });
 
-// Found path: a nonzero slot -> clear low 2 bits of loc_28a,y then tail-delegate to loc_a398.
+// Found path: a nonzero slot -> clear low 2 bits of ENEMY_SLOT_DIR,y then tail-delegate to loc_a398.
 function seedFound(m) {
-  m.mem.write8(loc_125, 0x04);   // >= 3 and even -> scans
-  m.mem.write8(loc_11c, 0x03);   // scan starts at y = 3
-  m.mem.write8(u16(loc_2df + 0x02), 0x01); // slot 2 nonzero -> found at y = 2
-  m.mem.write8(u16(loc_28a + 0x02), 0x07); // low bits set -> masking to 0xfc is observable (0x07 -> 0x04)
+  m.mem.write8(WAVE_PHASE_LATCH, 0x04);   // >= 3 and even -> scans
+  m.mem.write8(ENEMY_SLOT_TOP, 0x03);   // scan starts at y = 3
+  m.mem.write8(u16(ENEMY_DEPTH + 0x02), 0x01); // slot 2 nonzero -> found at y = 2
+  m.mem.write8(u16(ENEMY_SLOT_DIR + 0x02), 0x07); // low bits set -> masking to 0xfc is observable (0x07 -> 0x04)
 }
 
-test("CRAFTED: found slot -- clears loc_28a,y bits then delegates, RAM equal", () => {
+test("CRAFTED: found slot -- clears ENEMY_SLOT_DIR,y bits then delegates, RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedFound(o);
   const c = new Machine(ROM, OPTS); seedFound(c);
   let threw = false;
@@ -105,21 +105,21 @@ test("CRAFTED: found slot -- clears loc_28a,y bits then delegates, RAM equal", (
   if (threw) { console.log("  CRAFTED found: oracle threw in the delegate -- skipped"); return; }
   loc_a888(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the found-slot delegate");
-  assert.equal(c.mem.read8(u16(loc_28a + 0x02)), 0x04, "low two bits of loc_28a,y cleared (0x07 -> 0x04)");
+  assert.equal(c.mem.read8(u16(ENEMY_SLOT_DIR + 0x02)), 0x04, "low two bits of ENEMY_SLOT_DIR,y cleared (0x07 -> 0x04)");
 });
 
-test("TEETH: a twin that skips the loc_28a,y bit-clear MUST diverge in RAM", () => {
+test("TEETH: a twin that skips the ENEMY_SLOT_DIR,y bit-clear MUST diverge in RAM", () => {
   const o = new Machine(ROM, OPTS); seedFound(o);
   const c = new Machine(ROM, OPTS); seedFound(c);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw in the delegate -- skipped"); return; }
-  // Broken twin: run the real routine, then revert the loc_28a,y bit-clear the found path performs.
+  // Broken twin: run the real routine, then revert the ENEMY_SLOT_DIR,y bit-clear the found path performs.
   const broken = (m) => {
-    const before = m.mem.read8(u16(loc_28a + 0x02));
+    const before = m.mem.read8(u16(ENEMY_SLOT_DIR + 0x02));
     loc_a888(m);
-    m.mem.write8(u16(loc_28a + 0x02), before | 0x03); // BUG: restore the low bits the routine cleared
+    m.mem.write8(u16(ENEMY_SLOT_DIR + 0x02), before | 0x03); // BUG: restore the low bits the routine cleared
   };
   broken(c);
-  assert.notEqual(ramDiff(o, c), null, "the skipped loc_28a,y bit-clear was NOT caught by the RAM compare");
+  assert.notEqual(ramDiff(o, c), null, "the skipped ENEMY_SLOT_DIR,y bit-clear was NOT caught by the RAM compare");
 });

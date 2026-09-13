@@ -13,7 +13,7 @@ import { loc_c9f1 as oracle } from "../../translated/loc_c9f1.js";
 import { loc_c9f1 } from "../loc_c9f1.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_0, loc_5, loc_3e, loc_46, loc_126 } from "../names.js";
+import { STACK_SCRATCH, GAME_MODE, STATUS_FLAGS, ACTIVE_SLOT_COUNT, PLAYER_LEVEL_TBL, WAVE_PEAK_SEED } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -40,10 +40,10 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 // window $46..$49 = {02,09,05,01}, max=09; $05=0 -> $00=0x14
 const seed = (m) => {
-  m.mem.write8(loc_3e, 0x03);
-  m.mem.write8(loc_46 + 0, 0x02); m.mem.write8(loc_46 + 1, 0x09);
-  m.mem.write8(loc_46 + 2, 0x05); m.mem.write8(loc_46 + 3, 0x01);
-  m.mem.write8(loc_5, 0x00);
+  m.mem.write8(ACTIVE_SLOT_COUNT, 0x03);
+  m.mem.write8(PLAYER_LEVEL_TBL + 0, 0x02); m.mem.write8(PLAYER_LEVEL_TBL + 1, 0x09);
+  m.mem.write8(PLAYER_LEVEL_TBL + 2, 0x05); m.mem.write8(PLAYER_LEVEL_TBL + 3, 0x01);
+  m.mem.write8(STATUS_FLAGS, 0x00);
 };
 
 test("CAPTURE: real 0xc9f1 dispatches -- loc_c9f1 == oracle in RAM (-stack)", () => {
@@ -60,8 +60,8 @@ test("CRAFTED: max-1 lands in $0126 and $00 = 0x14 for non-negative $05", () => 
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_c9f1(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after scan");
-  assert.equal(c.mem.read8(loc_126), 0x08, "$0126 = max(09)-1");
-  assert.equal(c.mem.read8(loc_0), 0x14, "$00 = 0x14");
+  assert.equal(c.mem.read8(WAVE_PEAK_SEED), 0x08, "$0126 = max(09)-1");
+  assert.equal(c.mem.read8(GAME_MODE), 0x14, "$00 = 0x14");
 });
 
 test("TEETH: a twin that stores the max without decrementing diverges from the oracle", () => {
@@ -71,13 +71,13 @@ test("TEETH: a twin that stores the max without decrementing diverges from the o
   const broken = (m) => {
     const mem = m.mem8;
     let max = 0;
-    for (let x = mem[loc_3e]; ; x = (x - 1) & 0xff) {
-      const v = mem[(loc_46 + x) & 0xff];
+    for (let x = mem[ACTIVE_SLOT_COUNT]; ; x = (x - 1) & 0xff) {
+      const v = mem[(PLAYER_LEVEL_TBL + x) & 0xff];
       if (v >= max) max = v;
       if (x === 0) break;
     }
-    mem[loc_126] = max; // BUG: no decrement when nonzero
-    mem[loc_0] = (mem[loc_5] & 0x80) ? 0x10 : 0x14;
+    mem[WAVE_PEAK_SEED] = max; // BUG: no decrement when nonzero
+    mem[GAME_MODE] = (mem[STATUS_FLAGS] & 0x80) ? 0x10 : 0x14;
   };
   broken(c);
   const d = ramDiff(o, c);

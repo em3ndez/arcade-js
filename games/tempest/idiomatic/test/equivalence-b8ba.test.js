@@ -15,8 +15,8 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import {
-  STACK_SCRATCH, loc_5b, loc_5f, loc_68, loc_69, loc_74, loc_75, loc_202, loc_283,
-  loc_263, loc_2a3, loc_37, loc_56, loc_57, loc_58, loc_73, loc_76, loc_77, loc_9e,
+  STACK_SCRATCH, DEPTH_LO, DEPTH_HI, PROJ_OFS_X_LO, PROJ_OFS_X_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI, PLAYER_SHOT_DEPTH, ENEMY_SLOT_FLAGS,
+  OBJECT_AXIS1_POS, ENEMY_POS2, SLOT_LOOP_INDEX, PROJ_PT_Y, OBJ_DEPTH, PROJ_PT_X, VG_RECORD_HEADER, DRAW_CURSOR_ALT_LO, DRAW_CURSOR_ALT_HI, loc_9e,
 } from "../names.js";
 import { loc_df39 } from "../loc_df39.js";
 import { loc_df4a } from "../loc_df4a.js";
@@ -67,9 +67,9 @@ test("CAPTURE: real 0xb8ba dispatches -- loc_b8ba == oracle in RAM (-stack)", ()
 // No active slots: exercises the reset/seed prologue, the pointer caching, and the close (pointer swap
 // plus the base list draw) without entering the per-slot record body (which drives the coprocessor).
 function seedEmpty(m) {
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x28); // cursor into vector RAM
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x28); // cursor into vector RAM
   m.mem.write8(0x0076, 0x00); m.mem.write8(0x0077, 0x2c); // second pointer
-  for (let i = 0; i <= 0x0f; i++) m.mem.write8(u16(loc_283 + i), 0x00); // no active slots
+  for (let i = 0; i <= 0x0f; i++) m.mem.write8(u16(ENEMY_SLOT_FLAGS + i), 0x00); // no active slots
 }
 
 test("CRAFTED: no active slots -- prologue and close match the oracle in RAM", () => {
@@ -77,11 +77,11 @@ test("CRAFTED: no active slots -- prologue and close match the oracle in RAM", (
   const c = new Machine(ROM, OPTS); seedEmpty(c);
   oracle(o); loc_b8ba(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after empty frame");
-  assert.equal(c.mem.read8(loc_5f), 0xe0, "seed $5f");
-  assert.equal(c.mem.read8(loc_5b), 0xff, "seed $5b");
-  assert.equal(c.mem.read8(loc_202), 0x00, "cleared $0202");
-  assert.equal(c.mem.read8(loc_68), 0x00, "cleared $68");
-  assert.equal(c.mem.read8(loc_69), 0x00, "cleared $69");
+  assert.equal(c.mem.read8(DEPTH_HI), 0xe0, "seed $5f");
+  assert.equal(c.mem.read8(DEPTH_LO), 0xff, "seed $5b");
+  assert.equal(c.mem.read8(PLAYER_SHOT_DEPTH), 0x00, "cleared $0202");
+  assert.equal(c.mem.read8(PROJ_OFS_X_LO), 0x00, "cleared $68");
+  assert.equal(c.mem.read8(PROJ_OFS_X_HI), 0x00, "cleared $69");
 });
 
 test("TEETH: a twin that skips the seed writes diverges from the oracle", () => {
@@ -97,12 +97,12 @@ test("TEETH: a twin that skips the seed writes diverges from the oracle", () => 
 // so the whole dissolve chain (c098/b944/c3ba/b56a/c772/b955->df6c/df4c/df4a/b967->df39) is exercised
 // against the oracle. Cursor + second pointer aim at vector RAM so the emitted records land in the diff.
 function seedActive(m) {
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x28); // cursor into vector RAM
-  m.mem.write8(loc_76, 0x00); m.mem.write8(loc_77, 0x2c); // second pointer
-  for (let i = 0; i <= 0x0f; i++) m.mem.write8(u16(loc_283 + i), 0x00);
-  m.mem.write8(u16(loc_283 + 0), 0x01);  // slot 0 active
-  m.mem.write8(u16(loc_263 + 0), 0x40);  // its delta bytes (distinct)
-  m.mem.write8(u16(loc_2a3 + 0), 0x30);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x28); // cursor into vector RAM
+  m.mem.write8(DRAW_CURSOR_ALT_LO, 0x00); m.mem.write8(DRAW_CURSOR_ALT_HI, 0x2c); // second pointer
+  for (let i = 0; i <= 0x0f; i++) m.mem.write8(u16(ENEMY_SLOT_FLAGS + i), 0x00);
+  m.mem.write8(u16(ENEMY_SLOT_FLAGS + 0), 0x01);  // slot 0 active
+  m.mem.write8(u16(OBJECT_AXIS1_POS + 0), 0x40);  // its delta bytes (distinct)
+  m.mem.write8(u16(ENEMY_POS2 + 0), 0x30);
 }
 
 test("CRAFTED: one active slot -- per-slot record body marshalling matches the oracle in RAM", () => {
@@ -119,19 +119,19 @@ function brokenMarshal(m) {
   const { mem8 } = m;
   loc_df39(m, 0x3f, 0xf2);
   mem8[0x6a] = 0x00; mem8[0x6b] = 0x00; mem8[0x6c] = 0x00; mem8[0x6d] = 0x00;
-  mem8[loc_202] = 0x00; mem8[loc_68] = 0x00; mem8[loc_69] = 0x00;
-  mem8[loc_5f] = 0xe0; mem8[loc_5b] = 0xff;
-  { const [a, x] = loc_b967(m); mem8[loc_77] = a; mem8[loc_76] = x; }
-  mem8[loc_37] = 0x0f;
+  mem8[PLAYER_SHOT_DEPTH] = 0x00; mem8[PROJ_OFS_X_LO] = 0x00; mem8[PROJ_OFS_X_HI] = 0x00;
+  mem8[DEPTH_HI] = 0xe0; mem8[DEPTH_LO] = 0xff;
+  { const [a, x] = loc_b967(m); mem8[DRAW_CURSOR_ALT_HI] = a; mem8[DRAW_CURSOR_ALT_LO] = x; }
+  mem8[SLOT_LOOP_INDEX] = 0x0f;
   do {
-    const x = mem8[loc_37];
-    const active = mem8[u16(loc_283 + x)];
+    const x = mem8[SLOT_LOOP_INDEX];
+    const active = mem8[u16(ENEMY_SLOT_FLAGS + x)];
     if (active !== 0) {
-      mem8[loc_57] = active;
-      mem8[loc_56] = mem8[u16(loc_263 + x)];
-      mem8[loc_58] = mem8[u16(loc_2a3 + x)];
+      mem8[OBJ_DEPTH] = active;
+      mem8[PROJ_PT_Y] = mem8[u16(OBJECT_AXIS1_POS + x)];
+      mem8[PROJ_PT_X] = mem8[u16(ENEMY_POS2 + x)];
       loc_c098(m);
-      mem8[loc_73] = 0x00;
+      mem8[VG_RECORD_HEADER] = 0x00;
       loc_b944(m);
       loc_c3ba(m);
       loc_b56a(m, 0x00);          // BUG: shadow-header arg should be 0xa0
@@ -139,7 +139,7 @@ function brokenMarshal(m) {
       loc_c772(m, 0x61);
       const [pa, py] = loc_b955(m);
       loc_df6c(m, pa, py);
-      let phase = mem8[loc_37] & 0x07;
+      let phase = mem8[SLOT_LOOP_INDEX] & 0x07;
       if (phase === 0x07) phase = 0x00;
       mem8[loc_9e] = phase;
       loc_df4c(m, 0x08, phase);
@@ -147,8 +147,8 @@ function brokenMarshal(m) {
       const [ha, hx] = loc_b967(m);
       loc_df39(m, ha, hx);
     }
-    const next = (mem8[loc_37] - 1) & 0xff;
-    mem8[loc_37] = next;
+    const next = (mem8[SLOT_LOOP_INDEX] - 1) & 0xff;
+    mem8[SLOT_LOOP_INDEX] = next;
     if (next & 0x80) break;
   } while (true);
   loc_b944(m);

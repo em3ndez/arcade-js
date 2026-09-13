@@ -15,7 +15,7 @@ import { loc_df4a as oracle } from "../../translated/loc_df4a.js";
 import { loc_df4a } from "../loc_df4a.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_73, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, VG_RECORD_HEADER, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -61,7 +61,7 @@ test("CRAFTED: emits {$73, A|0x60} at the cursor and advances it by 2 == oracle 
     { tag: "top of vec RAM: ptr=0x2ffe", a: 0x00, d: 0x7f, lo: 0xfe, hi: 0x2f },
   ];
   for (const t of cases) {
-    const s = { a: t.a, mem: { [loc_73]: t.d, [loc_74]: t.lo, [loc_75]: t.hi } };
+    const s = { a: t.a, mem: { [VG_RECORD_HEADER]: t.d, [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi } };
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
     oracle(o); loc_df4a(c);
@@ -69,21 +69,21 @@ test("CRAFTED: emits {$73, A|0x60} at the cursor and advances it by 2 == oracle 
   }
   // Explicit content/advance check on the clean case.
   const m = new Machine(ROM, OPTS);
-  seed(m, { a: 0x05, mem: { [loc_73]: 0x1a, [loc_74]: 0x00, [loc_75]: 0x20 } });
+  seed(m, { a: 0x05, mem: { [VG_RECORD_HEADER]: 0x1a, [DRAW_CURSOR_LO]: 0x00, [DRAW_CURSOR_HI]: 0x20 } });
   loc_df4a(m);
   assert.equal(m.mem.read8(0x2000), 0x1a, "byte 0 = $73 data");
   assert.equal(m.mem.read8(0x2001), 0x65, "byte 1 = A|0x60");
-  assert.equal(m.mem.read8(loc_74) | (m.mem.read8(loc_75) << 8), 0x2002, "cursor += 2");
+  assert.equal(m.mem.read8(DRAW_CURSOR_LO) | (m.mem.read8(DRAW_CURSOR_HI) << 8), 0x2002, "cursor += 2");
 });
 
 test("TEETH: twins that skip the header byte or the cursor advance diverge from the oracle", () => {
-  const s = { a: 0x05, mem: { [loc_73]: 0x1a, [loc_74]: 0x00, [loc_75]: 0x20 } };
+  const s = { a: 0x05, mem: { [VG_RECORD_HEADER]: 0x1a, [DRAW_CURSOR_LO]: 0x00, [DRAW_CURSOR_HI]: 0x20 } };
   // Twin A: writes the data byte but never the A|0x60 header second byte.
   {
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
     oracle(o);
-    const broken = (mm) => { const ptr = mm.mem16[loc_74]; mm.mem8[ptr] = mm.mem8[loc_73]; mm.mem8[loc_74] = (ptr + 2) & 0xff; };
+    const broken = (mm) => { const ptr = mm.mem16[DRAW_CURSOR_LO]; mm.mem8[ptr] = mm.mem8[VG_RECORD_HEADER]; mm.mem8[DRAW_CURSOR_LO] = (ptr + 2) & 0xff; };
     broken(c);
     assert.notEqual(ramDiff(o, c), null, "RAM diff FAILED to catch the missing header byte");
   }
@@ -92,7 +92,7 @@ test("TEETH: twins that skip the header byte or the cursor advance diverge from 
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
     oracle(o);
-    const broken = (mm) => { const ptr = mm.mem16[loc_74]; mm.mem8[ptr] = mm.mem8[loc_73]; mm.mem8[(ptr + 1) & 0xffff] = (mm.regs.a | 0x60) & 0xff; };
+    const broken = (mm) => { const ptr = mm.mem16[DRAW_CURSOR_LO]; mm.mem8[ptr] = mm.mem8[VG_RECORD_HEADER]; mm.mem8[(ptr + 1) & 0xffff] = (mm.regs.a | 0x60) & 0xff; };
     broken(c);
     assert.notEqual(ramDiff(o, c), null, "RAM diff FAILED to catch the un-advanced cursor");
   }

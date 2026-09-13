@@ -14,7 +14,7 @@ import { loc_b888 as oracle } from "../../translated/loc_b888.js";
 import { loc_b888 } from "../loc_b888.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_139, loc_13a } from "../names.js";
+import { STACK_SCRATCH, VECRAM_TAIL_CURSOR_LO, VECRAM_TAIL_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -49,21 +49,21 @@ test("CAPTURE: real 0xb888 dispatches -- loc_b888 == oracle in RAM (-stack)", ()
 });
 
 test("CRAFTED: $0139/$013a seated and the $c196 fold matches the oracle", () => {
-  const seed = (m) => { m.mem.write8(0x9f, 0x30); m.mem.write8(loc_139, 0xaa); m.mem.write8(loc_13a, 0xbb); };
+  const seed = (m) => { m.mem.write8(0x9f, 0x30); m.mem.write8(VECRAM_TAIL_CURSOR_LO, 0xaa); m.mem.write8(VECRAM_TAIL_CURSOR_HI, 0xbb); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_b888(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
-  assert.equal(c.mem.read8(loc_139), 0x7f, "$0139 = 0x7f");
-  assert.equal(c.mem.read8(loc_13a), 0x04, "$013a = 0x04");
+  assert.equal(c.mem.read8(VECRAM_TAIL_CURSOR_LO), 0x7f, "$0139 = 0x7f");
+  assert.equal(c.mem.read8(VECRAM_TAIL_CURSOR_HI), 0x04, "$013a = 0x04");
 });
 
 test("TEETH: a twin that leaves $013a untouched diverges from the oracle", () => {
-  const seed = (m) => { m.mem.write8(0x9f, 0x30); m.mem.write8(loc_139, 0xaa); m.mem.write8(loc_13a, 0xbb); };
+  const seed = (m) => { m.mem.write8(0x9f, 0x30); m.mem.write8(VECRAM_TAIL_CURSOR_LO, 0xaa); m.mem.write8(VECRAM_TAIL_CURSOR_HI, 0xbb); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_b888(c);
-  c.mem.write8(loc_13a, (c.mem.read8(loc_13a) ^ 0xff) & 0xff); // BUG: $013a corrupted
+  c.mem.write8(VECRAM_TAIL_CURSOR_HI, (c.mem.read8(VECRAM_TAIL_CURSOR_HI) ^ 0xff) & 0xff); // BUG: $013a corrupted
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted store");
 });
 

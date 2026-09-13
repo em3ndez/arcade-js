@@ -13,7 +13,7 @@ import { loc_c81b as oracle } from "../../translated/loc_c81b.js";
 import { loc_c81b } from "../loc_c81b.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_0, loc_1, loc_2, loc_4, loc_5, loc_6, loc_16, loc_18, loc_3e, loc_4e, loc_50, loc_100, loc_123, loc_40c, loc_40d } from "../names.js";
+import { STACK_SCRATCH, GAME_MODE, MODE_DISPATCH_SEL, GAME_MODE_PENDING, MODE_DELAY_TIMER, STATUS_FLAGS, PHASE_COUNTER, HEARTBEAT_ACCUM_LO, HEARTBEAT_ACCUM_OVERFLOW, ACTIVE_SLOT_COUNT, INPUT_EDGE_FLAGS, SPINNER_ACCUM, loc_100, SPIKED_SEGMENT_COUNT, COORD_ACC_LO, COORD_ACC_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -40,11 +40,11 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 // gate=0x60, $06=5 -> step=2; $05=0 -> |0xc0; x clamps to 3; $040f++; $0100=0x10+1+1=0x12
 const seed = (m) => {
-  m.mem.write8(loc_4e, 0x60);
-  m.mem.write8(loc_6, 0x05);
-  m.mem.write8(loc_5, 0x00);
-  m.mem.write8(loc_16, 0x77); m.mem.write8(loc_18, 0x77); m.mem.write8(loc_0, 0x77);
-  m.mem.write8(loc_40c + 3, 0x00); m.mem.write8(loc_40d + 3, 0x00);
+  m.mem.write8(INPUT_EDGE_FLAGS, 0x60);
+  m.mem.write8(PHASE_COUNTER, 0x05);
+  m.mem.write8(STATUS_FLAGS, 0x00);
+  m.mem.write8(HEARTBEAT_ACCUM_LO, 0x77); m.mem.write8(HEARTBEAT_ACCUM_OVERFLOW, 0x77); m.mem.write8(GAME_MODE, 0x77);
+  m.mem.write8(COORD_ACC_LO + 3, 0x00); m.mem.write8(COORD_ACC_HI + 3, 0x00);
   m.mem.write8(loc_100, 0x10);
 };
 
@@ -67,12 +67,12 @@ test("CRAFTED: gate/step path sets $3e, $05|=0xc0, zeroes $16/$18/$00, bumps $04
   oracle(o);
   const [rx, ry] = loc_c81b(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after step path");
-  assert.equal(c.mem.read8(loc_4e), 0x00, "$4e cleared");
-  assert.equal(c.mem.read8(loc_6), 0x03, "$06 -= 2");
-  assert.equal(c.mem.read8(loc_3e), 0x01, "$3e = step-1");
-  assert.equal(c.mem.read8(loc_5), 0xc0, "$05 |= 0xc0");
-  assert.equal(c.mem.read8(loc_16), 0x00, "$16 cleared");
-  assert.equal(c.mem.read8(loc_40c + 3), 0x01, "$040f bumped");
+  assert.equal(c.mem.read8(INPUT_EDGE_FLAGS), 0x00, "$4e cleared");
+  assert.equal(c.mem.read8(PHASE_COUNTER), 0x03, "$06 -= 2");
+  assert.equal(c.mem.read8(ACTIVE_SLOT_COUNT), 0x01, "$3e = step-1");
+  assert.equal(c.mem.read8(STATUS_FLAGS), 0xc0, "$05 |= 0xc0");
+  assert.equal(c.mem.read8(HEARTBEAT_ACCUM_LO), 0x00, "$16 cleared");
+  assert.equal(c.mem.read8(COORD_ACC_LO + 3), 0x01, "$040f bumped");
   assert.equal(c.mem.read8(loc_100), 0x12, "$0100 clamped sum");
   // Live-out on the step=2 path: X = ldx #3 (step-1=1 -> 3), Y = step = 2.
   assert.equal(rx, o.regs.x, "exit X matches oracle register");
@@ -101,7 +101,7 @@ test("TEETH: a twin that clears $4e but skips the status block diverges from the
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const broken = (m) => { m.mem8[loc_4e] = 0x00; }; // BUG: none of the step/status work
+  const broken = (m) => { m.mem8[INPUT_EDGE_FLAGS] = 0x00; }; // BUG: none of the step/status work
   broken(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the RAM diff FAILED to catch the skipped status block");

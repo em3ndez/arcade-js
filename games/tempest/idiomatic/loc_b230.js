@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_5, loc_b6, loc_b7, loc_114, loc_11b, loc_cec2, loc_cec3, loc_2000, loc_2001 } from "./names.js";
+import { STATUS_FLAGS, DRAW_RECORD_PTR_LO, DRAW_RECORD_PTR_HI, REDRAW_COUNTER, PLAYER_SHAPE_SUM, VECHEAD0_FRAME, VECHEAD1_FRAME, VEC_LIST_HEADER_LO, VEC_LIST_HEADER_HI } from "./names.js";
 import { loc_b2be } from "./loc_b2be.js";
 import { loc_b2fe } from "./loc_b2fe.js";
 import { loc_b586 } from "./loc_b586.js";
@@ -41,8 +41,8 @@ export function loc_b230(m) {
 
   loc_b2be(m, 0x00);
   loc_a8b4(m);
-  if (!(mem8[loc_5] & 0x80)) {
-    const ptr = mem8[loc_b6] | (mem8[loc_b7] << 8);
+  if (!(mem8[STATUS_FLAGS] & 0x80)) {
+    const ptr = mem8[DRAW_RECORD_PTR_LO] | (mem8[DRAW_RECORD_PTR_HI] << 8);
     let a = 0xf2;
     let carry = 0;
     for (let y = 0x27; y >= 0; y--) {
@@ -50,7 +50,7 @@ export function loc_b230(m) {
       a = s & 0xff;
       carry = s > 0xff ? 1 : 0;
     }
-    mem8[loc_11b] = a;
+    mem8[PLAYER_SHAPE_SUM] = a;
   }
   loc_b2fe(m, 0x00);
   loc_b367(m);
@@ -63,7 +63,7 @@ export function loc_b230(m) {
   loc_c54d(m);
   loc_b2fe(m, 0x08);
 
-  mem8[loc_114] = 0x00;
-  mem8[loc_2000] = mem8[loc_cec2];
-  mem8[loc_2001] = mem8[loc_cec3];
+  mem8[REDRAW_COUNTER] = 0x00;
+  mem8[VEC_LIST_HEADER_LO] = mem8[VECHEAD0_FRAME];
+  mem8[VEC_LIST_HEADER_HI] = mem8[VECHEAD1_FRAME];
 }

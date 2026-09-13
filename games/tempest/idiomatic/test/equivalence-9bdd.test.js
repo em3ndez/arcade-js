@@ -14,7 +14,7 @@ import { loc_9bdd as oracle } from "../../translated/loc_9bdd.js";
 import { loc_9bdd } from "../loc_9bdd.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_10b, loc_298 } from "../names.js";
+import { STACK_SCRATCH, SCRIPT_CURSOR, loc_298 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -69,8 +69,8 @@ test("CRAFTED: counter bump + table/indirect fetch + slot store == oracle (RAM -
     { tag: "x=0x2a, counter=0x00", x: 0x2a, counter: 0x00, zp: 0x55 },
   ];
   for (const t of cases) {
-    const o = new Machine(ROM, OPTS); fillZeroPage(o, t.zp); seed(o, { [loc_10b]: t.counter }); o.regs.x = t.x;
-    const c = new Machine(ROM, OPTS); fillZeroPage(c, t.zp); seed(c, { [loc_10b]: t.counter }); c.regs.x = t.x;
+    const o = new Machine(ROM, OPTS); fillZeroPage(o, t.zp); seed(o, { [SCRIPT_CURSOR]: t.counter }); o.regs.x = t.x;
+    const c = new Machine(ROM, OPTS); fillZeroPage(c, t.zp); seed(c, { [SCRIPT_CURSOR]: t.counter }); c.regs.x = t.x;
     oracle(o); loc_9bdd(c, c.regs.x);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
   }
@@ -80,12 +80,12 @@ test("TEETH: a twin that skips the $0298,x store diverges from the oracle", () =
   // ZP all 0x55 -> the fetched byte is 0x55 for any pointer; $0298,x starts 0x00. The oracle stamps
   // 0x55 into the slot; a twin that bumps the counter but never stores must be caught by the RAM diff.
   const x = 0x04, counter = 0x05;
-  const o = new Machine(ROM, OPTS); fillZeroPage(o, 0x55); seed(o, { [loc_10b]: counter }); o.regs.x = x;
-  const c = new Machine(ROM, OPTS); fillZeroPage(c, 0x55); seed(c, { [loc_10b]: counter }); c.regs.x = x;
+  const o = new Machine(ROM, OPTS); fillZeroPage(o, 0x55); seed(o, { [SCRIPT_CURSOR]: counter }); o.regs.x = x;
+  const c = new Machine(ROM, OPTS); fillZeroPage(c, 0x55); seed(c, { [SCRIPT_CURSOR]: counter }); c.regs.x = x;
   const brokenSkipStore = (mm, xr = mm.regs.x) => {
     // BUG: performs the counter bump but omits sta $0298,x entirely.
     void xr;
-    mm.mem8[loc_10b] = mm.mem8[loc_10b] + 1;
+    mm.mem8[SCRIPT_CURSOR] = mm.mem8[SCRIPT_CURSOR] + 1;
   };
   oracle(o);
   brokenSkipStore(c, c.regs.x);

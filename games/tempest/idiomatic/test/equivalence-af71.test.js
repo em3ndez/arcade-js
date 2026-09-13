@@ -14,7 +14,7 @@ import { loc_af71 } from "../loc_af71.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { loc_af77 } from "../loc_af77.js";
-import { STACK_SCRATCH, loc_29, loc_2c, loc_74 } from "../names.js";
+import { STACK_SCRATCH, loc_29, COORD_LIST_PTR_LO, DRAW_CURSOR_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,7 +51,7 @@ test("CAPTURE: real 0xaf71 dispatches -- loc_af71 == oracle in RAM (-stack)", ()
 // Cursor aimed into vector RAM so the emit lands in the diffed region.
 function seed(m, aVal) {
   m.regs.a = aVal;
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_74 + 1, 0x21); // ($74) -> 0x2100
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x21); // ($74) -> 0x2100
 }
 
 test("CRAFTED: A=0x40 (< 0x63, passes through) -- RAM equal", () => {
@@ -66,7 +66,7 @@ test("CRAFTED: A=0x80 (>= 0x63, clamps to 0x63) -- RAM equal", () => {
   const c = new Machine(ROM, OPTS); seed(c, 0x80);
   oracle(o); loc_af71(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the clamp");
-  assert.equal(c.mem.read8(loc_29), c.mem.read8(loc_2c), "packed BCD of the clamped 0x63 landed");
+  assert.equal(c.mem.read8(loc_29), c.mem.read8(COORD_LIST_PTR_LO), "packed BCD of the clamped 0x63 landed");
 });
 
 test("TEETH: a twin that skips the clamp diverges from the oracle (A=0x80)", () => {
@@ -81,7 +81,7 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_74 + 1, 0x21);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x21);
   const r = seamPlaceable(withOmittedRet, loc_af71, TARGET, m);
   assert.equal(r.placeable, true, `loc_af71 must be seam-placeable; got: ${r.error}`);
 });

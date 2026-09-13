@@ -16,8 +16,8 @@ import { loc_c235 } from "../loc_c235.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_2, loc_3d, loc_46, loc_5b, loc_66, loc_67,
-  loc_68, loc_69, loc_10f, loc_110, loc_113, loc_435,
+  STACK_SCRATCH, GAME_MODE_PENDING, loc_3d, PLAYER_LEVEL_TBL, DEPTH_LO, PROJ_OFS_Y_LO, PROJ_OFS_Y_HI,
+  PROJ_OFS_X_LO, PROJ_OFS_X_HI, loc_10f, loc_110, loc_113, SEG_MID_X,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -55,10 +55,10 @@ test("CAPTURE: real 0xc235 dispatches -- loc_c235 == oracle in RAM (-stack)", ()
 // Difference branch: $02 != 0x1e drives the 16-bit subtract + 4-step shift into $0121.
 const seedDiff = (m) => {
   m.mem.write8(loc_3d, 0x00);
-  m.mem.write8(loc_46, 0x30); // c2e8 input (< 0x62 -> deterministic, no random)
-  m.mem.write8(loc_2, 0x00);
-  m.mem.write8(loc_68, 0x20);
-  m.mem.write8(loc_69, 0x10);
+  m.mem.write8(PLAYER_LEVEL_TBL, 0x30); // c2e8 input (< 0x62 -> deterministic, no random)
+  m.mem.write8(GAME_MODE_PENDING, 0x00);
+  m.mem.write8(PROJ_OFS_X_LO, 0x20);
+  m.mem.write8(PROJ_OFS_X_HI, 0x10);
 };
 
 test("CRAFTED-DIFF: $02!=0x1e path -- constant cells set, RAM matches the oracle", () => {
@@ -67,28 +67,28 @@ test("CRAFTED-DIFF: $02!=0x1e path -- constant cells set, RAM matches the oracle
   oracle(o); loc_c235(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   assert.equal(c.mem.read8(loc_113), 0x2c, "$0113 = 0x2c");
-  assert.equal(c.mem.read8(loc_5b), 0xff, "$5b = 0xff");
-  assert.equal(c.mem.read8(loc_66), 0x00, "$66 cleared");
-  assert.equal(c.mem.read8(loc_67), 0x00, "$67 cleared");
+  assert.equal(c.mem.read8(DEPTH_LO), 0xff, "$5b = 0xff");
+  assert.equal(c.mem.read8(PROJ_OFS_Y_LO), 0x00, "$66 cleared");
+  assert.equal(c.mem.read8(PROJ_OFS_Y_HI), 0x00, "$67 cleared");
   assert.equal(c.mem.read8(loc_10f), 0x00, "$010f cleared");
   assert.equal(c.mem.read8(loc_110), 0x00, "$0110 cleared");
 });
 
 test("CRAFTED-COPY: $02==0x1e path -- offset pair copied, RAM matches the oracle", () => {
-  const seedCopy = (m) => { seedDiff(m); m.mem.write8(loc_2, 0x1e); };
+  const seedCopy = (m) => { seedDiff(m); m.mem.write8(GAME_MODE_PENDING, 0x1e); };
   const o = new Machine(ROM, OPTS); seedCopy(o);
   const c = new Machine(ROM, OPTS); seedCopy(c);
   oracle(o); loc_c235(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
-  assert.equal(c.mem.read8(loc_68), o.mem.read8(loc_68), "$68 copied identically");
-  assert.equal(c.mem.read8(loc_69), o.mem.read8(loc_69), "$69 copied identically");
+  assert.equal(c.mem.read8(PROJ_OFS_X_LO), o.mem.read8(PROJ_OFS_X_LO), "$68 copied identically");
+  assert.equal(c.mem.read8(PROJ_OFS_X_HI), o.mem.read8(PROJ_OFS_X_HI), "$69 copied identically");
 });
 
 test("TEETH: a twin whose $0435[0] average is corrupted diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seedDiff(o);
   const c = new Machine(ROM, OPTS); seedDiff(c);
   oracle(o); loc_c235(c);
-  c.mem.write8(loc_435, (c.mem.read8(loc_435) ^ 0xff) & 0xff); // BUG: averaged output corrupted
+  c.mem.write8(SEG_MID_X, (c.mem.read8(SEG_MID_X) ^ 0xff) & 0xff); // BUG: averaged output corrupted
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted store");
 });
 

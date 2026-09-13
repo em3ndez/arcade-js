@@ -17,7 +17,7 @@ import { loc_9246 as oracle } from "../../translated/loc_9246.js";
 import { loc_9246 } from "../loc_9246.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_203, loc_243, loc_3ab } from "../names.js";
+import { STACK_SCRATCH, OBJECT_INDEX_TABLE, OBJECT_RECORD_TABLE, FIRE_GATE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -57,9 +57,9 @@ test("CAPTURE: real 0x9246 dispatches -- loc_9246 == oracle in RAM (-stack, poly
 test("CRAFTED: table cleared, then 4 active slots packed with (x<<4 | random)", () => {
   const seed = (m) => {
     freezePokey(m);
-    m.mem.write8(loc_3ab, 0x04); // slots X = 3..0
-    for (let i = 0; i < 0x40; i++) m.mem.write8((loc_243 + i) & 0xffff, 0xd0 + (i & 0x0f)); // dirty sentinels
-    for (let i = 0; i < 0x04; i++) m.mem.write8((loc_203 + i) & 0xffff, 0xee);
+    m.mem.write8(FIRE_GATE, 0x04); // slots X = 3..0
+    for (let i = 0; i < 0x40; i++) m.mem.write8((OBJECT_RECORD_TABLE + i) & 0xffff, 0xd0 + (i & 0x0f)); // dirty sentinels
+    for (let i = 0; i < 0x04; i++) m.mem.write8((OBJECT_INDEX_TABLE + i) & 0xffff, 0xee);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -67,29 +67,29 @@ test("CRAFTED: table cleared, then 4 active slots packed with (x<<4 | random)", 
   assert.equal(ramDiff(o, c), null, "RAM equal after fill");
   const rand = c.mem.read8(0x60ca) & 0x0f; // frozen -> same byte the routine saw
   for (let x = 0; x < 4; x++) {
-    assert.equal(c.mem.read8((loc_203 + x) & 0xffff), rand, `random slot ${x}`);
+    assert.equal(c.mem.read8((OBJECT_INDEX_TABLE + x) & 0xffff), rand, `random slot ${x}`);
     const tag = ((x << 4) | rand) & 0xff;
-    assert.equal(c.mem.read8((loc_243 + x) & 0xffff), tag === 0 ? 0x0f : tag, `tag slot ${x}`);
+    assert.equal(c.mem.read8((OBJECT_RECORD_TABLE + x) & 0xffff), tag === 0 ? 0x0f : tag, `tag slot ${x}`);
   }
-  for (let x = 4; x < 0x40; x++) assert.equal(c.mem.read8((loc_243 + x) & 0xffff), 0x00, `cleared slot ${x}`);
+  for (let x = 4; x < 0x40; x++) assert.equal(c.mem.read8((OBJECT_RECORD_TABLE + x) & 0xffff), 0x00, `cleared slot ${x}`);
 });
 
 test("TEETH: a twin that drops the index bits from the tag diverges from the oracle", () => {
   const seed = (m) => {
     freezePokey(m);
-    m.mem.write8(loc_3ab, 0x04);
-    for (let i = 0; i < 0x40; i++) m.mem.write8((loc_243 + i) & 0xffff, 0xd0 + (i & 0x0f));
+    m.mem.write8(FIRE_GATE, 0x04);
+    for (let i = 0; i < 0x40; i++) m.mem.write8((OBJECT_RECORD_TABLE + i) & 0xffff, 0xd0 + (i & 0x0f));
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const broken9246 = (m) => {
     const mem = m.mem8;
-    for (let x = 0x3f; x >= 0; x--) mem[(loc_243 + x) & 0xffff] = 0;
+    for (let x = 0x3f; x >= 0; x--) mem[(OBJECT_RECORD_TABLE + x) & 0xffff] = 0;
     for (let x = 3; x >= 0; x--) {
       const rand = mem[0x60ca] & 0x0f;
-      mem[(loc_203 + x) & 0xffff] = rand;
-      mem[(loc_243 + x) & 0xffff] = rand === 0 ? 0x0f : rand; // BUG: never packs x<<4 into the tag
+      mem[(OBJECT_INDEX_TABLE + x) & 0xffff] = rand;
+      mem[(OBJECT_RECORD_TABLE + x) & 0xffff] = rand === 0 ? 0x0f : rand; // BUG: never packs x<<4 into the tag
     }
   };
   broken9246(c);

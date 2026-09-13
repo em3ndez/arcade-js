@@ -13,7 +13,7 @@ import { loc_a9d7 as oracle } from "../../translated/loc_a9d7.js";
 import { loc_a9d7 } from "../loc_a9d7.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2a, loc_3b, loc_3c, loc_2f60 } from "../names.js";
+import { STACK_SCRATCH, loc_2a, WORK_PTR_LO, WORK_PTR_HI, VEC_GLYPH_BUFFER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,7 +51,7 @@ test("CAPTURE: real 0xa9d7 dispatches -- loc_a9d7 == oracle in RAM (-stack) and 
 // Point $3b/$3c at three nibble-rich source bytes and seat the write cursor X at 0.
 function seedGlyphs(m) {
   m.regs.x = 0x00;
-  m.mem.write8(loc_3b, 0x90); m.mem.write8(loc_3c, 0x00); // source pointer -> $0090
+  m.mem.write8(WORK_PTR_LO, 0x90); m.mem.write8(WORK_PTR_HI, 0x00); // source pointer -> $0090
   m.mem.write8(0x0090, 0xab); // read on pass 1
   m.mem.write8(0x008f, 0xcd); // read on pass 2 (pointer stepped back)
   m.mem.write8(0x008e, 0xef); // read on pass 3
@@ -64,7 +64,7 @@ test("CRAFTED: three glyphs emitted -- RAM equal, X advanced by 12, pointer step
   assert.equal(ramDiff(o, c), null, "RAM equal after emit");
   assert.equal(c.regs.x, o.regs.x, "X live-out matches oracle");
   assert.equal(c.regs.x, 0x0c, "six nibble writes advance X by 12");
-  assert.equal(c.mem.read8(loc_3b), 0x8d, "source pointer stepped back by 3");
+  assert.equal(c.mem.read8(WORK_PTR_LO), 0x8d, "source pointer stepped back by 3");
 });
 
 test("TEETH: a twin that never advances the cursor diverges (RAM and X)", () => {

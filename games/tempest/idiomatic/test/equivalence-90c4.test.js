@@ -16,8 +16,8 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_4, loc_5, loc_9, loc_3f, loc_4e, loc_5b, loc_7c,
-  loc_126, loc_127, loc_16a, loc_200, loc_605, loc_71d,
+  MODE_DELAY_TIMER, STATUS_FLAGS, DSW1_SNAPSHOT, LEVEL_ID, INPUT_EDGE_FLAGS, DEPTH_LO, SEG_SPREAD_A_LO_4,
+  WAVE_PEAK_SEED, DEPTH_CEILING, DSW_DIFFICULTY, PLAYER_SEGMENT, PASS_COUNTER, loc_71d,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -65,21 +65,21 @@ test("CAPTURE: real 0x90c4 dispatches -- loc_90c4 == oracle in RAM (-stack)", ()
 });
 
 // Main path: the scan + clamp block runs (wave bit set, mid-range wave -> floor 6), loc_9108 skips the
-// intro-prime (sign bit clear) and the table swap (seat 0). NOTE loc_9108 unconditionally zeroes loc_605,
-// so loc_9149's tick underflows -> the decimal phase decrement runs and arms loc_4e, and the emit block
+// intro-prime (sign bit clear) and the table swap (seat 0). NOTE loc_9108 unconditionally zeroes PASS_COUNTER,
+// so loc_9149's tick underflows -> the decimal phase decrement runs and arms INPUT_EDGE_FLAGS, and the emit block
 // then runs its safe (non-throwing) leaf chain -- reads $60ca (RANDOM, frozen by the caller) and re-scales
 // $29 as scratch. The oracle does not throw. The scan seed is BELOW the smallest threshold, so the picked
-// index is 0 and clamps UP to the floor, publishing floor -> loc_127 (loc_29 itself is later clobbered by
+// index is 0 and clamps UP to the floor, publishing floor -> DEPTH_CEILING (loc_29 itself is later clobbered by
 // the loc_92c5 scratch chain, so the floor is observed via the published index, not $29).
 function seedMain(m) {
-  m.mem.write8(loc_126, 0x00); // scan seed below table[0] -> index 0 -> clamps up to the floor
-  m.mem.write8(loc_16a, 0x04); // wave bit -> clamp-floor block runs
+  m.mem.write8(WAVE_PEAK_SEED, 0x00); // scan seed below table[0] -> index 0 -> clamps up to the floor
+  m.mem.write8(DSW_DIFFICULTY, 0x04); // wave bit -> clamp-floor block runs
   m.mem.write8(loc_71d, 0x55); // >=48 and >=80, <112 -> floor = 4 + 2
-  m.mem.write8(loc_9, 0x00);  // no 0x40 override
-  m.mem.write8(loc_5, 0x00);  // sign clear: skip intro-prime, keep scan seed
-  m.mem.write8(loc_3f, 0x00);  // seat 0 -> skip the table swap
-  m.mem.write8(loc_4e, 0x00);  // flag zero at entry (the phase tick re-arms it before the emit gate)
-  m.mem.write8(loc_605, 0x20); // frame counter (loc_9108 zeroes it anyway before the tick)
+  m.mem.write8(DSW1_SNAPSHOT, 0x00);  // no 0x40 override
+  m.mem.write8(STATUS_FLAGS, 0x00);  // sign clear: skip intro-prime, keep scan seed
+  m.mem.write8(LEVEL_ID, 0x00);  // seat 0 -> skip the table swap
+  m.mem.write8(INPUT_EDGE_FLAGS, 0x00);  // flag zero at entry (the phase tick re-arms it before the emit gate)
+  m.mem.write8(PASS_COUNTER, 0x20); // frame counter (loc_9108 zeroes it anyway before the tick)
 }
 
 test("CRAFTED (main): scan + clamp + reseed + safe tick -- RAM equal", () => {
@@ -90,25 +90,25 @@ test("CRAFTED (main): scan + clamp + reseed + safe tick -- RAM equal", () => {
   if (threw) { console.log("  CRAFTED(main): oracle threw -- skipped"); return; }
   loc_90c4(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the main path");
-  assert.equal(c.mem.read8(loc_127), 6, "clamp floor = 4 + 2 (index 0 clamps up to the floor)");
-  assert.equal(c.mem.read8(loc_127), o.mem.read8(loc_127), "published start index matches the oracle");
-  assert.equal(c.mem.read8(loc_7c), 4, "reseed wrote the working-set constant");
-  assert.equal(c.mem.read8(loc_5b), 0xff, "reseed wrote the sentinel cell");
-  assert.equal(c.mem.read8(loc_4), o.mem.read8(loc_4), "phase count matches the oracle");
+  assert.equal(c.mem.read8(DEPTH_CEILING), 6, "clamp floor = 4 + 2 (index 0 clamps up to the floor)");
+  assert.equal(c.mem.read8(DEPTH_CEILING), o.mem.read8(DEPTH_CEILING), "published start index matches the oracle");
+  assert.equal(c.mem.read8(SEG_SPREAD_A_LO_4), 4, "reseed wrote the working-set constant");
+  assert.equal(c.mem.read8(DEPTH_LO), 0xff, "reseed wrote the sentinel cell");
+  assert.equal(c.mem.read8(MODE_DELAY_TIMER), o.mem.read8(MODE_DELAY_TIMER), "phase count matches the oracle");
 });
 
 // Sign-set + table-swap + phase-decrement + emit-block path. Exercises loc_92b2, the intro-prime, the
 // decimal phase countdown, and the full emit chain. These reach draw/spawn arms that may be
 // unimplemented on a bare boot, so it is skip-on-oracle-throw; when it runs it validates the rest.
 function seedRich(m) {
-  m.mem.write8(loc_126, 0x30);
-  m.mem.write8(loc_16a, 0x00);
-  m.mem.write8(loc_5, 0x80); // sign set -> intro-prime; and inner emit-branch (bit7) taken
-  m.mem.write8(loc_3f, 0x05); // seat nonzero -> table swap runs
-  m.mem.write8(loc_4e, 0x18); // flag & mask nonzero -> emit block runs
-  m.mem.write8(loc_605, 0x00); // tick underflows -> phase decrement runs
-  m.mem.write8(loc_4, 0x10); // BCD phase countdown value
-  m.mem.write8(loc_200, 0x02);
+  m.mem.write8(WAVE_PEAK_SEED, 0x30);
+  m.mem.write8(DSW_DIFFICULTY, 0x00);
+  m.mem.write8(STATUS_FLAGS, 0x80); // sign set -> intro-prime; and inner emit-branch (bit7) taken
+  m.mem.write8(LEVEL_ID, 0x05); // seat nonzero -> table swap runs
+  m.mem.write8(INPUT_EDGE_FLAGS, 0x18); // flag & mask nonzero -> emit block runs
+  m.mem.write8(PASS_COUNTER, 0x00); // tick underflows -> phase decrement runs
+  m.mem.write8(MODE_DELAY_TIMER, 0x10); // BCD phase countdown value
+  m.mem.write8(PLAYER_SEGMENT, 0x02);
 }
 
 test("CRAFTED (rich): swap + intro-prime + phase countdown + emit -- RAM equal (skip on throw)", () => {
@@ -129,8 +129,8 @@ test("TEETH: a twin that skips the reseed sentinel write MUST diverge in RAM", (
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw -- skipped"); return; }
   // loc_9108 unconditionally writes the sentinel cell to 0xff; reverting it guarantees a RAM divergence.
-  const before5b = c.mem.read8(loc_5b);
-  const broken = (mm) => { loc_90c4(mm); mm.mem.write8(loc_5b, before5b); }; // BUG: drop the sentinel write
+  const before5b = c.mem.read8(DEPTH_LO);
+  const broken = (mm) => { loc_90c4(mm); mm.mem.write8(DEPTH_LO, before5b); }; // BUG: drop the sentinel write
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the dropped sentinel write was NOT caught by the RAM compare");
 });

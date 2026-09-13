@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_1 } from "./names.js";
+import { MODE_DISPATCH_SEL } from "./names.js";
 import { loc_b230 } from "./loc_b230.js";
 import { loc_d804 } from "./loc_d804.js";
 import { loc_b8ba } from "./loc_b8ba.js";
@@ -21,5 +21,5 @@ const TABLE = [
 ];
 
 export function loc_b20d(m) {
-  return TABLE[m.mem8[loc_1] >> 1](m);
+  return TABLE[m.mem8[MODE_DISPATCH_SEL] >> 1](m);
 }

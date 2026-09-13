@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_56, loc_57, loc_37, loc_14d, loc_14e, loc_16e } from "./names.js";
+import { PROJ_PT_Y, OBJ_DEPTH, SLOT_LOOP_INDEX, loc_14d, loc_14e, SCORE_DISPLAY_TIMER } from "./names.js";
 import { loc_df6c } from "./loc_df6c.js";
 import { loc_df4c } from "./loc_df4c.js";
 import { loc_df39 } from "./loc_df39.js";
@@ -11,12 +11,12 @@ import { loc_ab17 } from "./loc_ab17.js";
 // two fixed trailer words.
 export function loc_b15a(m, a = m.regs.a, x = m.regs.x) {
   const { mem8 } = m;
-  mem8[loc_57] = a;
-  mem8[loc_56] = x;
-  mem8[loc_37] = mem8[loc_14d];
-  mem8[loc_16e] = mem8[loc_16e] - 1;
+  mem8[OBJ_DEPTH] = a;
+  mem8[PROJ_PT_Y] = x;
+  mem8[SLOT_LOOP_INDEX] = mem8[loc_14d];
+  mem8[SCORE_DISPLAY_TIMER] = mem8[SCORE_DISPLAY_TIMER] - 1;
   do {
-    const cur = mem8[loc_37];
+    const cur = mem8[SLOT_LOOP_INDEX];
     loc_df6c(m, cur >> 5, (cur << 2) & 0x7f);
     let marker;
     if (cur === mem8[loc_14d]) {
@@ -26,9 +26,9 @@ export function loc_b15a(m, a = m.regs.a, x = m.regs.x) {
       marker = seg === 0x07 ? 0x03 : seg;
     }
     loc_df4c(m, 0x68, marker);
-    loc_df39(m, mem8[loc_57], mem8[loc_56]);
-    mem8[loc_37] = mem8[loc_37] + 2;
-  } while (mem8[loc_37] < mem8[loc_14e]);
+    loc_df39(m, mem8[OBJ_DEPTH], mem8[PROJ_PT_Y]);
+    mem8[SLOT_LOOP_INDEX] = mem8[SLOT_LOOP_INDEX] + 2;
+  } while (mem8[SLOT_LOOP_INDEX] < mem8[loc_14e]);
   loc_ab17(m, 0xd0, 0x2c);
   loc_df39(m, 0x3f, 0xf2);
 }

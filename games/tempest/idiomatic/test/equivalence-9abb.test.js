@@ -15,7 +15,7 @@ import { loc_9abb as oracle } from "../../translated/loc_9abb.js";
 import { loc_9abb } from "../loc_9abb.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_60ca, loc_2b, loc_39, loc_149, loc_13c, loc_2c, loc_9afd, loc_2d, loc_29 } from "../names.js";
+import { STACK_SCRATCH, POKEY1_RANDOM, loc_2b, loc_39, CANDIDATE_LANE_0, OBJECT_ANIM_TIMER, COORD_LIST_PTR_LO, LIST_PTR_TABLE_HI, COORD_LIST_PTR_HI, loc_29 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -43,8 +43,8 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 // Seed every candidate lane non-empty so the walk qualifies on the first pass regardless of the random start.
 function seedHit(m) {
   m.regs.x = 0x2a;
-  for (let i = 0; i < 4; i++) m.mem.write8((loc_149 + i) & 0xffff, i); // index table (values 0..3)
-  for (let i = 0; i < 8; i++) m.mem.write8((loc_13c + i) & 0xffff, 0x11); // all lanes non-empty
+  for (let i = 0; i < 4; i++) m.mem.write8((CANDIDATE_LANE_0 + i) & 0xffff, i); // index table (values 0..3)
+  for (let i = 0; i < 8; i++) m.mem.write8((OBJECT_ANIM_TIMER + i) & 0xffff, 0x11); // all lanes non-empty
   m.mem.write8(loc_29, 0x7e);
 }
 
@@ -65,7 +65,7 @@ test("CRAFTED (qualifying walk): loc_9abb == oracle in RAM; tail sets $2b/$2d, r
   assert.equal(c.regs.a, o.regs.a, "A live-out equal (oracle sets regs.a, returns undefined)");
   assert.equal(c.regs.a, 0x7e, "on a hit A = $29");
   assert.equal(c.mem.read8(loc_2b), 0x02, "$2b tag = 2 (non-poke, deterministic)");
-  assert.equal(c.mem.read8(loc_2d), c.mem.read8((loc_9afd + 2) & 0xffff), "$2d = list-hi table[2]");
+  assert.equal(c.mem.read8(COORD_LIST_PTR_HI), c.mem.read8((LIST_PTR_TABLE_HI + 2) & 0xffff), "$2d = list-hi table[2]");
   assert.equal(c.mem.read8(loc_39), 0x2a, "$39 = stashed X");
 });
 
@@ -75,7 +75,7 @@ test("TEETH: a twin that skips the tail $2b tag store diverges from the oracle",
   oracle(o);
   const broken = (m) => {
     const mem = m.mem8;
-    let y = mem[loc_60ca] & 0x03;
+    let y = mem[POKEY1_RANDOM] & 0x03;
     mem[loc_2b] = 0x04;
     mem[loc_39] = m.regs.x;
     let idx;
@@ -85,15 +85,15 @@ test("TEETH: a twin that skips the tail $2b tag store diverges from the oracle",
       if (tag & 0x80) return;
       y = (y - 1) & 0xff;
       if (y & 0x80) y = 0x03;
-      idx = mem[(loc_149 + y) & 0xffff];
+      idx = mem[(CANDIDATE_LANE_0 + y) & 0xffff];
       if (idx === 0x03) idx = 0x05;
-      if (mem[(loc_13c + idx) & 0xffff] !== 0) break;
+      if (mem[(OBJECT_ANIM_TIMER + idx) & 0xffff] !== 0) break;
     }
-    const a = mem[(loc_149 + y) & 0xffff] | 0x40;
+    const a = mem[(CANDIDATE_LANE_0 + y) & 0xffff] | 0x40;
     y = 0x02;
-    mem[loc_2c] = a;
+    mem[COORD_LIST_PTR_LO] = a;
     // BUG: never writes the tail $2b tag (leaves the loop's decremented value)
-    mem[loc_2d] = mem[(loc_9afd + y) & 0xffff];
+    mem[COORD_LIST_PTR_HI] = mem[(LIST_PTR_TABLE_HI + y) & 0xffff];
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped $2b store");

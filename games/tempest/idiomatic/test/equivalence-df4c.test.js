@@ -14,7 +14,7 @@ import { loc_df4c } from "../loc_df4c.js";
 import { loc_df57 } from "../loc_df53.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -41,7 +41,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 // Aim the cursor into diffed vector RAM and preset the A/Y payload.
 function seed(m, a, y) {
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20); // cursor -> $2000
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); // cursor -> $2000
   m.regs.a = a; m.regs.y = y;
 }
 

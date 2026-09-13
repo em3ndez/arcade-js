@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_29, loc_56, loc_58, loc_13b, loc_13c, loc_435, loc_445, loc_b82a, loc_b83d, loc_cec8, loc_cec9 } from "./names.js";
+import { loc_29, PROJ_PT_Y, PROJ_PT_X, OBJECT_ANIM_PHASE, OBJECT_ANIM_TIMER, SEG_MID_X, SEG_MID_Y, ANIM_PHASE_DURATION, ANIM_PHASE_CODE, OBJ_TEMPLATE_WORD_LO, OBJ_TEMPLATE_WORD_HI } from "./names.js";
 import { loc_c098 } from "./loc_c098.js";
 import { loc_c765 } from "./loc_c765.js";
 import { loc_b84e } from "./loc_b84e.js";
@@ -12,20 +12,20 @@ import { loc_df57 } from "./loc_df53.js";
 export function loc_b7eb(m) {
   const { mem8, mem16 } = m;
   const y = mem8[loc_29];
-  mem8[loc_56] = mem8[u16(loc_435 + y)];
-  mem8[loc_58] = mem8[u16(loc_445 + y)];
+  mem8[PROJ_PT_Y] = mem8[u16(SEG_MID_X + y)];
+  mem8[PROJ_PT_X] = mem8[u16(SEG_MID_Y + y)];
   loc_c098(m);
   loc_c765(m, 0x61);
-  let x = mem8[loc_13b];
-  const ticked = (mem8[loc_13c] - 1) & 0xff;
-  mem8[loc_13c] = ticked;
+  let x = mem8[OBJECT_ANIM_PHASE];
+  const ticked = (mem8[OBJECT_ANIM_TIMER] - 1) & 0xff;
+  mem8[OBJECT_ANIM_TIMER] = ticked;
   if (ticked === 0) {
     x = (x + 1) & 0xff;
-    mem8[loc_13b] = x;
-    mem8[loc_13c] = mem8[u16(loc_b82a + x)];
+    mem8[OBJECT_ANIM_PHASE] = x;
+    mem8[OBJECT_ANIM_TIMER] = mem8[u16(ANIM_PHASE_DURATION + x)];
   }
-  const phase = mem8[u16(loc_b83d + x)];
+  const phase = mem8[u16(ANIM_PHASE_CODE + x)];
   if (phase < 0x80) loc_b84e(m, phase);
-  const idx = ((mem8[loc_13b] << 1) + 0x28) & 0xff;
-  loc_df57(m, mem8[u16(loc_cec8 + idx)], mem8[u16(loc_cec9 + idx)]);
+  const idx = ((mem8[OBJECT_ANIM_PHASE] << 1) + 0x28) & 0xff;
+  loc_df57(m, mem8[u16(OBJ_TEMPLATE_WORD_LO + idx)], mem8[u16(OBJ_TEMPLATE_WORD_HI + idx)]);
 }

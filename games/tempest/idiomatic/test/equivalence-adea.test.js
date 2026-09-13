@@ -20,7 +20,7 @@ import { loc_ae4e } from "../loc_ae4e.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_16e, loc_602, loc_604 } from "../names.js";
+import { STACK_SCRATCH, SCORE_DISPLAY_TIMER, ACTIVE_SLOT, REARM_COUNTER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,9 +51,9 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 // object-draw block (loc_aaa8 would otherwise overwrite $016e -- that block has its own coverage in
 // equivalence-a8b4). loc_adea's own loc_ab14(0x0a)/(0x2c) draws still run through the seeded table.
 function seat(m, { c602 = 0x40, c604 = 0x07, c16e = 0x09 } = {}) {
-  m.mem.write8(loc_602, c602);
-  m.mem.write8(loc_604, c604);
-  m.mem.write8(loc_16e, c16e);
+  m.mem.write8(ACTIVE_SLOT, c602);
+  m.mem.write8(REARM_COUNTER, c604);
+  m.mem.write8(SCORE_DISPLAY_TIMER, c16e);
   m.mem.write8(0x05, 0x80);                                    // skip loc_a8b4's object-draw block
   m.mem.write8(0x74, 0x00); m.mem.write8(0x75, 0x28);          // ($74) cursor -> 0x2800 (vector RAM)
   m.mem.write8(0xac, 0x00); m.mem.write8(0xad, 0x24);          // ($ac) object table -> 0x2400 (vector RAM)
@@ -75,7 +75,7 @@ test("CRAFTED: frame draw + $016e-- + delta thread to loc_ae4e == oracle (RAM)",
   const c = new Machine(ROM, OPTS); seat(c);
   oracle(o); loc_adea(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the frame build");
-  assert.equal(c.mem.read8(loc_16e), 0x08, "$016e decremented");
+  assert.equal(c.mem.read8(SCORE_DISPLAY_TIMER), 0x08, "$016e decremented");
 });
 
 test("TEETH (delta thread): a twin that hands loc_ae4e the wrong A (0x00) diverges", () => {
@@ -86,7 +86,7 @@ test("TEETH (delta thread): a twin that hands loc_ae4e the wrong A (0x00) diverg
     const { mem8 } = m;
     loc_a8b4(m);
     loc_ab17(m, 0xc0, 0x02);
-    mem8[loc_16e] = u8(mem8[loc_16e] - 1);
+    mem8[SCORE_DISPLAY_TIMER] = u8(mem8[SCORE_DISPLAY_TIMER] - 1);
     loc_aa97(m);
     loc_ab14(m, 0x0a);
     loc_ab17(m, 0xa6, 0x0c);

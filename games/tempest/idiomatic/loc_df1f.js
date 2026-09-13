@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_74, loc_31e4 } from "./names.js";
+import { DRAW_CURSOR_LO, NIBBLE_GLYPH_TABLE } from "./names.js";
 import { loc_df5f } from "./loc_df5f.js";
 
 // Turn the low nibble into a word-table index (nibble+1), then emit that entry.
@@ -14,8 +14,8 @@ export function loc_df1f(m, a = m.regs.a) {
 // cursor past them.
 export function loc_df24(m, a = m.regs.a) {
   const { mem8, mem16 } = m;
-  const src = u16(loc_31e4 + (a << 1));
-  const dst = mem16[loc_74];
+  const src = u16(NIBBLE_GLYPH_TABLE + (a << 1));
+  const dst = mem16[DRAW_CURSOR_LO];
   mem8[u16(dst)] = mem8[src];
   mem8[u16(dst + 1)] = mem8[u16(src + 1)];
   return loc_df5f(m, 1);

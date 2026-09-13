@@ -13,7 +13,7 @@ import { loc_9c21 as oracle } from "../../translated/loc_9c21.js";
 import { loc_9c21 } from "../loc_9c21.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2b9, loc_2df, loc_3ac, loc_10c } from "../names.js";
+import { STACK_SCRATCH, ENEMY_SEGMENT, ENEMY_DEPTH, LANE_LIMIT, SCRIPT_BRANCH_FLAG } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const rd = (n) => new Uint8Array(readFileSync(new URL(n, ROM_DIR)));
@@ -50,10 +50,10 @@ const SENTINEL10C = 0x99;
 function seeded(x, seg, boundEntry, coord) {
   const m = new Machine(ROM, OPTS);
   m.regs.x = x;
-  m.mem.write8(loc_2b9 + x, seg);
-  m.mem.write8(loc_3ac + seg, boundEntry);
-  m.mem.write8(loc_2df + x, coord);
-  m.mem.write8(loc_10c, SENTINEL10C);
+  m.mem.write8(ENEMY_SEGMENT + x, seg);
+  m.mem.write8(LANE_LIMIT + seg, boundEntry);
+  m.mem.write8(ENEMY_DEPTH + x, coord);
+  m.mem.write8(SCRIPT_BRANCH_FLAG, SENTINEL10C);
   return m;
 }
 
@@ -68,7 +68,7 @@ test("CRAFTED: flag = (bound >= coord); 0-entry reads as 0xff (== oracle, RAM)",
     const o = seeded(x, seg, entry, coord), c = seeded(x, seg, entry, coord);
     oracle(o); loc_9c21(c);
     assert.equal(ramDiff(o, c), null, tag);
-    assert.equal(c.mem.read8(loc_10c), flag, tag);
+    assert.equal(c.mem.read8(SCRIPT_BRANCH_FLAG), flag, tag);
   }
 });
 
@@ -76,9 +76,9 @@ test("TEETH: a twin that skips the 0-entry -> 0xff substitution diverges", () =>
   // seg entry is 0, coord is 0x80: oracle treats bound as 0xff -> flag 1; a twin that uses bound=0 -> flag 0.
   const o = seeded(3, 0x07, 0x00, 0x80);
   oracle(o);
-  assert.equal(o.mem.read8(loc_10c), 1, "precondition: oracle set flag via the 0xff substitution");
+  assert.equal(o.mem.read8(SCRIPT_BRANCH_FLAG), 1, "precondition: oracle set flag via the 0xff substitution");
   const c = seeded(3, 0x07, 0x00, 0x80);
   loc_9c21(c);
-  c.mem.write8(loc_10c, 0x00); // BUG: bound left 0, so 0 >= 0x80 is false -> flag 0
+  c.mem.write8(SCRIPT_BRANCH_FLAG, 0x00); // BUG: bound left 0, so 0 >= 0x80 is false -> flag 0
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a missing 0->0xff substitution");
 });

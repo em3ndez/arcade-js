@@ -14,7 +14,7 @@ import { loc_c4e1 as oracle } from "../../translated/loc_c4e1.js";
 import { loc_c4e1 } from "../loc_c4e1.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_56, loc_74, loc_75, loc_112 } from "../names.js";
+import { STACK_SCRATCH, PROJ_PT_Y, DRAW_CURSOR_LO, DRAW_CURSOR_HI, TUBE_SHAPE_INDEX } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -38,9 +38,9 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
 // Seed a valid display-list pointer into vector RAM plus the shape selector byte.
 function seat(m, s = {}) {
-  m.mem.write8(loc_74, 0x00);
-  m.mem.write8(loc_75, 0x24);
-  m.mem.write8(loc_112, s.shape ?? 0x03);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00);
+  m.mem.write8(DRAW_CURSOR_HI, 0x24);
+  m.mem.write8(TUBE_SHAPE_INDEX, s.shape ?? 0x03);
   m.regs.a = s.a ?? 0x30;
 }
 
@@ -67,7 +67,7 @@ test("TEETH: a twin that corrupts the running delta field diverges from the orac
   const o = new Machine(ROM, OPTS); seat(o, s);
   const c = new Machine(ROM, OPTS); seat(c, s);
   oracle(o);
-  const broken = (mm) => { loc_c4e1(mm, s.a); mm.mem8[loc_56] ^= 0xff; }; // BUG: perturbs $56 after the walk
+  const broken = (mm) => { loc_c4e1(mm, s.a); mm.mem8[PROJ_PT_Y] ^= 0xff; }; // BUG: perturbs $56 after the walk
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted delta field");
 });

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_92c5 (ROM 0x92c5-0x93df) -- the state re-seed. Builds the search key loc_2b,
-// walks the 4-byte records at loc_9604 (index 111..3 step -4) scanning each record's source list for the
+// walks the 4-byte records at STATE_RESEED_RECORD_TABLE (index 111..3 step -4) scanning each record's source list for the
 // range bracketing the key and storing the resolved byte through the record's destination pointer, then
-// rescales loc_160/loc_15b per loc_16a & 3 and folds loc_163/loc_120/loc_160 through the helper, seeding
+// rescales ENEMY_CLIMB_DELTA_LO_0/INITIAL_ACTIVE_COUNT per DSW_DIFFICULTY & 3 and folds ENEMY_CLIMB_DELTA_LO_3/OBJECT_VELOCITY_LO/ENEMY_CLIMB_DELTA_LO_0 through the helper, seeding
 // many loc_01xx cells. loc_92c5 takes no input register and ends with its OWN return (no tail-delegation),
 // and every caller overwrites A/X/Y before reading them, so there is NO live-out register: the contract is
 // pure RAM-equivalence (dumpState minus STACK_SCRATCH). Oracle is the frozen translated loc_92c5.
@@ -16,7 +16,7 @@ import { loc_92c5 as oracle } from "../../translated/loc_92c5.js";
 import { loc_92c5 } from "../loc_92c5.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_9f, loc_16a, loc_149 } from "../names.js";
+import { STACK_SCRATCH, loc_9f, DSW_DIFFICULTY, CANDIDATE_LANE_0 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -58,7 +58,7 @@ test("CAPTURE: real 0x92c5 dispatches -- loc_92c5 == oracle in RAM (-stack)", ()
 // Seed the search key and a rescale mode, then let the real ROM records drive the list scan.
 function seed(m, keyByte, modeByte) {
   m.mem.write8(loc_9f, keyByte);
-  m.mem.write8(loc_16a, modeByte);
+  m.mem.write8(DSW_DIFFICULTY, modeByte);
 }
 
 for (const [name, keyByte, modeByte] of [
@@ -83,12 +83,12 @@ test("TEETH: a twin that corrupts a signature seed MUST diverge in RAM", () => {
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
-  // Broken twin: identical to loc_92c5 but corrupts the unconditional loc_149 = 1 signature write.
+  // Broken twin: identical to loc_92c5 but corrupts the unconditional CANDIDATE_LANE_0 = 1 signature write.
   let tried = 0;
   const broken = (m) => {
     tried++;
     loc_92c5(m);
-    m.mem.write8(loc_149, m.mem.read8(loc_149) ^ 0xff); // BUG: corrupt the final seed
+    m.mem.write8(CANDIDATE_LANE_0, m.mem.read8(CANDIDATE_LANE_0) ^ 0xff); // BUG: corrupt the final seed
   };
   broken(c);
   assert.ok(tried > 0, "teeth arm ran");

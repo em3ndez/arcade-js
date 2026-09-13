@@ -13,7 +13,7 @@ import { loc_a3d4 as oracle } from "../../translated/loc_a3d4.js";
 import { loc_a3d4 } from "../loc_a3d4.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2c, loc_29, loc_2d, loc_116, loc_30a, loc_302, loc_2fa, loc_312 } from "../names.js";
+import { STACK_SCRATCH, COORD_LIST_PTR_LO, loc_29, COORD_LIST_PTR_HI, TIMED_OBJECT_COUNT, SHAPE_ACTIVE, SHAPE_ID, SHAPE_COORD, SHAPE_ANIM } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -40,13 +40,13 @@ function seat(m, s = {}) {
   m.regs.a = s.a ?? 0x77;
   m.regs.x = s.x ?? 0x03;
   m.regs.y = s.y ?? 0x05;
-  m.mem.write8(loc_2c, s.c2c ?? 0x11);   // distinct from A so the $2c store is observable
+  m.mem.write8(COORD_LIST_PTR_LO, s.c2c ?? 0x11);   // distinct from A so the $2c store is observable
   m.mem.write8(loc_29, s.c29 ?? 0x22);
-  m.mem.write8(loc_2d, s.c2d ?? 0x33);
-  m.mem.write8(loc_116, s.count ?? 0x02);
+  m.mem.write8(COORD_LIST_PTR_HI, s.c2d ?? 0x33);
+  m.mem.write8(TIMED_OBJECT_COUNT, s.count ?? 0x02);
   for (let i = 0; i < 8; i++) {
-    m.mem.write8((loc_30a + i) & 0xffff, (s.table ?? [0, 0, 0, 0, 0, 0, 0, 0])[i]);
-    m.mem.write8((loc_312 + i) & 0xffff, (s.ages ?? [1, 2, 3, 4, 5, 6, 7, 8])[i]);
+    m.mem.write8((SHAPE_ACTIVE + i) & 0xffff, (s.table ?? [0, 0, 0, 0, 0, 0, 0, 0])[i]);
+    m.mem.write8((SHAPE_ANIM + i) & 0xffff, (s.ages ?? [1, 2, 3, 4, 5, 6, 7, 8])[i]);
   }
 }
 
@@ -71,7 +71,7 @@ test("CRAFTED: seeded states across every branch == oracle (RAM)", () => {
     const c = new Machine(ROM, OPTS); seat(c, s);
     oracle(o); loc_a3d4(c);
     assert.equal(ramDiff(o, c), null, s.tag);
-    assert.equal(c.mem.read8(loc_2c), s.a ?? 0x77, `${s.tag}: A stored into $2c`);
+    assert.equal(c.mem.read8(COORD_LIST_PTR_LO), s.a ?? 0x77, `${s.tag}: A stored into $2c`);
   }
 });
 
@@ -85,16 +85,16 @@ test("TEETH: a twin that skips the $2c store diverges from the oracle", () => {
     const { mem8 } = m;
     let slot = -1, best = 0, bestI = 0;
     for (let i = 7; i >= 0; i--) {
-      if (mem8[(loc_30a + i) & 0xffff] === 0) { slot = i; break; }
-      const age = mem8[(loc_312 + i) & 0xffff];
+      if (mem8[(SHAPE_ACTIVE + i) & 0xffff] === 0) { slot = i; break; }
+      const age = mem8[(SHAPE_ANIM + i) & 0xffff];
       if (age >= best) { best = age; bestI = i; }
     }
-    if (slot < 0) { mem8[loc_116] = (mem8[loc_116] - 1) & 0xff; slot = bestI; }
-    mem8[(loc_312 + slot) & 0xffff] = 0;
-    mem8[(loc_302 + slot) & 0xffff] = mem8[loc_2c];   // stale $2c (store skipped)
-    mem8[(loc_30a + slot) & 0xffff] = mem8[loc_29];
-    mem8[(loc_2fa + slot) & 0xffff] = mem8[loc_2d];
-    mem8[loc_116] = (mem8[loc_116] + 1) & 0xff;
+    if (slot < 0) { mem8[TIMED_OBJECT_COUNT] = (mem8[TIMED_OBJECT_COUNT] - 1) & 0xff; slot = bestI; }
+    mem8[(SHAPE_ANIM + slot) & 0xffff] = 0;
+    mem8[(SHAPE_ID + slot) & 0xffff] = mem8[COORD_LIST_PTR_LO];   // stale $2c (store skipped)
+    mem8[(SHAPE_ACTIVE + slot) & 0xffff] = mem8[loc_29];
+    mem8[(SHAPE_COORD + slot) & 0xffff] = mem8[COORD_LIST_PTR_HI];
+    mem8[TIMED_OBJECT_COUNT] = (mem8[TIMED_OBJECT_COUNT] + 1) & 0xff;
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped $2c store");

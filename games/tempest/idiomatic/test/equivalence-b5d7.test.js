@@ -22,7 +22,7 @@ import { loc_b69b } from "../loc_b69b.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_74, loc_75, loc_ac, loc_ad } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI, loc_ac, loc_ad } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -40,11 +40,11 @@ const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRAT
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
-// Point the draw pipeline at mapped RAM so the targets' (loc_ac)->list->(loc_74) chases land in vector RAM
+// Point the draw pipeline at mapped RAM so the targets' (loc_ac)->list->(DRAW_CURSOR_LO) chases land in vector RAM
 // and a slot index is valid, then aim A at a table entry.
 function seed(m, a) {
   m.regs.a = a; m.regs.x = 0x00;
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x28); // cursor into vector RAM 0x2800
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x28); // cursor into vector RAM 0x2800
   m.mem.write8(loc_ac, 0x00); m.mem.write8(loc_ad, 0x04); // (loc_ac) -> object pointer table at 0x0400
   for (let i = 0; i < 0x20; i++) m.mem.write8(u16(0x0400 + i), 0x20); // every slot -> a list at 0x0420
   m.mem.write8(0x0420, 0x80); // one bit7-terminated list entry

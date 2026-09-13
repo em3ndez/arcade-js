@@ -13,7 +13,7 @@ import { loc_db22 as oracle } from "../../translated/loc_db22.js";
 import { loc_db22 } from "../loc_db22.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -36,7 +36,7 @@ function captureDispatches(K, maxFrames) {
 const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 
 // Point the framing record ($74) into vector RAM so df39's word write is diffed.
-function seat(m) { m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x24); }
+function seat(m) { m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x24); }
 
 test("CAPTURE: real 0xdb22 dispatches -- loc_db22 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {

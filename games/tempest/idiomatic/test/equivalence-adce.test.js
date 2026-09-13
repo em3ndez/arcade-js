@@ -13,7 +13,7 @@ import { loc_adce as oracle } from "../../translated/loc_adce.js";
 import { loc_adce } from "../loc_adce.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_50, loc_51 } from "../names.js";
+import { STACK_SCRATCH, SPINNER_ACCUM, RIM_ROT_OFFSET } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,8 +50,8 @@ test("CAPTURE: real 0xadce dispatches -- loc_adce == oracle in RAM (-stack) and 
 
 function seed(m, s) {
   m.regs.a = s.a;
-  m.mem8[loc_50] = s.step;
-  m.mem8[loc_51] = s.lo;
+  m.mem8[SPINNER_ACCUM] = s.step;
+  m.mem8[RIM_ROT_OFFSET] = s.lo;
 }
 
 test("CRAFTED: fold and sign-carry over various step/lo/A == oracle (RAM -stack, and A)", () => {
@@ -79,7 +79,7 @@ test("TEETH: a twin that forgets to clear the step cell diverges from the oracle
   oracle(o);
   const brokenAdce = (m) => {
     const mem = m.mem8;
-    mem[loc_51] = ((mem[loc_50] << 3) & 0xff) + mem[loc_51]; // BUG: never clears $50
+    mem[RIM_ROT_OFFSET] = ((mem[SPINNER_ACCUM] << 3) & 0xff) + mem[RIM_ROT_OFFSET]; // BUG: never clears $50
   };
   brokenAdce(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the uncleared step cell");

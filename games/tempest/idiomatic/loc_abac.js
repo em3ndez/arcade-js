@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_a, loc_100, loc_16a, loc_1c9, loc_606, loc_706, loc_71b, loc_71c, loc_71d, loc_71e, loc_71f, loc_ac08 } from "./names.js";
+import { DSW2_SNAPSHOT, loc_100, DSW_DIFFICULTY, PENDING_WORK_FLAGS, SLOT_VALUE, GLYPH_PARAM_X, loc_71b, loc_71c, loc_71d, INPUT_SNAPSHOT_HI, INPUT_SNAPSHOT_LO, TEXT_BUFFER_TEMPLATE } from "./names.js";
 import { loc_ac20 } from "./loc_ac20.js";
 import { loc_ac36 } from "./loc_ac36.js";
 
@@ -13,14 +13,14 @@ export function loc_abac(m) {
   mem8[loc_100] = 0x08;
   if ((mem8[loc_71b] | mem8[loc_71c] | mem8[loc_71d]) === 0) loc_ac36(m);
 
-  const flags = mem8[loc_1c9];
+  const flags = mem8[PENDING_WORK_FLAGS];
   const copyTop = flags & 0x01 ? 0x17 : 0x0e;
-  for (let x = copyTop; x >= 0; x--) mem8[u16(loc_606 + x)] = mem8[u16(loc_ac08 + x)];
+  for (let x = copyTop; x >= 0; x--) mem8[u16(SLOT_VALUE + x)] = mem8[u16(TEXT_BUFFER_TEMPLATE + x)];
   const fillTop = flags & 0x02 ? 0x17 : 0x0e;
-  for (let x = fillTop; x >= 0; x--) mem8[u16(loc_706 + x)] = 0x01;
+  for (let x = fillTop; x >= 0; x--) mem8[u16(GLYPH_PARAM_X + x)] = 0x01;
   if (flags & 0x03) {
-    mem8[loc_71e] = mem8[loc_a] & 0xf8;
-    mem8[loc_71f] = mem8[loc_16a] & 0x03;
+    mem8[INPUT_SNAPSHOT_HI] = mem8[DSW2_SNAPSHOT] & 0xf8;
+    mem8[INPUT_SNAPSHOT_LO] = mem8[DSW_DIFFICULTY] & 0x03;
   }
-  mem8[loc_1c9] = flags & 0xfc;
+  mem8[PENDING_WORK_FLAGS] = flags & 0xfc;
 }

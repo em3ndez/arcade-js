@@ -14,7 +14,7 @@ import { loc_ccbd as oracle } from "../../translated/loc_ccbd.js";
 import { loc_ccbd } from "../loc_ccbd.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_31, loc_32 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, loc_31, loc_32 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,7 +52,7 @@ test("CAPTURE: real 0xccbd dispatches -- loc_ccbd == oracle in RAM (-stack)", ()
 // different value so the stamp is a real change.
 function seed(m) {
   m.regs.x = 0x12; m.regs.y = 0x34;
-  m.mem.write8(loc_5, 0x80);   // open the ccc3 enable gate so registration actually runs
+  m.mem.write8(STATUS_FLAGS, 0x80);   // open the ccc3 enable gate so registration actually runs
   m.mem.write8(loc_31, 0xaa);
   m.mem.write8(loc_32, 0xbb);
 }

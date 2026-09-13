@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_55, loc_74, loc_78, loc_a9, loc_cec8, loc_cec9 } from "./names.js";
+import { DRAW_STYLE, DRAW_CURSOR_LO, SEG_SPREAD_A_LO, DRAW_CURSOR_OFFSET, OBJ_TEMPLATE_WORD_LO, OBJ_TEMPLATE_WORD_HI } from "./names.js";
 import { loc_c098 } from "./loc_c098.js";
 import { loc_c765 } from "./loc_c765.js";
 import { loc_bd3e } from "./loc_bd3e.js";
@@ -14,27 +14,27 @@ export function loc_bd09(m) {
   const { mem8, mem16 } = m;
   loc_c098(m);
   loc_c765(m, 0x61);
-  mem8[loc_a9] = 0x00;
+  mem8[DRAW_CURSOR_OFFSET] = 0x00;
   const yExit = loc_bd3e(m); // appended pair returns its exit cursor
 
   // Clamp the color/intensity nibble, then shift it into the high nibble of the first byte.
-  let a = mem8[loc_78] ^ 0x07;
+  let a = mem8[SEG_SPREAD_A_LO] ^ 0x07;
   a = (a << 1) & 0xff;
   if (a < 0x0a) a = 0x0a;
   a = (a << 4) & 0xff;
 
-  const ptr = mem16[loc_74];
+  const ptr = mem16[DRAW_CURSOR_LO];
   let y = yExit;
   mem8[u16(ptr + y)] = a;
   y = (y + 1) & 0xff;
   mem8[u16(ptr + y)] = 0x60;
   y = (y + 1) & 0xff;
-  mem8[loc_a9] = y; // record the advanced cursor length
+  mem8[DRAW_CURSOR_OFFSET] = y; // record the advanced cursor length
 
   // Reload the template, restore the cursor, tail out.
-  y = mem8[loc_55];
-  const x = mem8[u16(loc_cec9 + y)];
-  a = mem8[u16(loc_cec8 + y)];
-  y = mem8[loc_a9];
+  y = mem8[DRAW_STYLE];
+  const x = mem8[u16(OBJ_TEMPLATE_WORD_HI + y)];
+  a = mem8[u16(OBJ_TEMPLATE_WORD_LO + y)];
+  y = mem8[DRAW_CURSOR_OFFSET];
   return loc_df59(m, a, x, y);
 }

@@ -13,7 +13,7 @@ import { loc_96f4 as oracle } from "../../translated/loc_96f4.js";
 import { loc_96f4 } from "../loc_96f4.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_2b, loc_2c, loc_2d } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -42,8 +42,8 @@ function seed(m, s = {}) {
   const ptr = s.ptr ?? 0x2500;
   m.regs.y = y;
   m.mem.write8(loc_2b, s.base ?? 0x90);
-  m.mem.write8(loc_2c, ptr & 0xff);
-  m.mem.write8(loc_2d, (ptr >> 8) & 0xff);
+  m.mem.write8(COORD_LIST_PTR_LO, ptr & 0xff);
+  m.mem.write8(COORD_LIST_PTR_HI, (ptr >> 8) & 0xff);
   m.mem.write8((ptr + ((y - 2) & 0xff)) & 0xffff, s.operand ?? 0x30);
   return { y, ptr };
 }
@@ -92,7 +92,7 @@ test("TEETH (live-out): a twin that indexes at the raw index (not index-2) diver
     const { mem8 } = m;
     const base = mem8[loc_2b];
     mem8[loc_29] = y;
-    const ptr = mem8[loc_2c] | (mem8[loc_2d] << 8);
+    const ptr = mem8[COORD_LIST_PTR_LO] | (mem8[COORD_LIST_PTR_HI] << 8);
     return (base - mem8[(ptr + y) & 0xffff]) & 0xff; // BUG: uses y, not (y-2)
   };
   const ra = wrongTwin(c);

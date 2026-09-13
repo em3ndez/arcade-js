@@ -14,7 +14,7 @@ import { loc_aaa8 as oracle } from "../../translated/loc_aaa8.js";
 import { loc_aaa8 } from "../loc_aaa8.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_3, loc_6, loc_9, loc_a, loc_17, loc_16e } from "../names.js";
+import { STACK_SCRATCH, FRAME_COUNTER, PHASE_COUNTER, DSW1_SNAPSHOT, DSW2_SNAPSHOT, HEARTBEAT_ACCUM_HI, SCORE_DISPLAY_TIMER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -39,12 +39,12 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 // The aeca/alternate choice is steered by $0a bit0 and $03 bit5; $06 exercises the clamp; $17 gates the
 // trailing df39 post. Seed each to walk both sides of every branch.
 function seat(m, s = {}) {
-  m.mem.write8(loc_9, s.c9 ?? 0x00);
-  m.mem.write8(loc_a, s.ca ?? 0x00);
-  m.mem.write8(loc_3, s.c3 ?? 0x00);
-  m.mem.write8(loc_6, s.c6 ?? 0x00);
-  m.mem.write8(loc_17, s.c17 ?? 0x00);
-  m.mem.write8(loc_16e, s.c16e ?? 0x40);
+  m.mem.write8(DSW1_SNAPSHOT, s.c9 ?? 0x00);
+  m.mem.write8(DSW2_SNAPSHOT, s.ca ?? 0x00);
+  m.mem.write8(FRAME_COUNTER, s.c3 ?? 0x00);
+  m.mem.write8(PHASE_COUNTER, s.c6 ?? 0x00);
+  m.mem.write8(HEARTBEAT_ACCUM_HI, s.c17 ?? 0x00);
+  m.mem.write8(SCORE_DISPLAY_TIMER, s.c16e ?? 0x40);
 }
 
 test("CAPTURE: real 0xaaa8 dispatches -- loc_aaa8 == oracle in RAM (-stack)", () => {

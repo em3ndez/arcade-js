@@ -15,7 +15,7 @@ import { loc_ccc3 } from "../loc_ccc3.js";
 import { loc_ccc7 } from "../loc_ccc7.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_31, loc_32, loc_c0 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, loc_31, loc_32, SOUND_VOICE_VALUE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,7 +51,7 @@ test("CAPTURE: real 0xccc3 dispatches -- loc_ccc3 == oracle in RAM (-stack)", ()
 
 test("CRAFTED gate-open: bit7 of $05 set -> the sound in A registers via the dissolved call", () => {
   const seed = (m) => {
-    m.mem.write8(loc_5, 0x80);   // enable flag high bit set
+    m.mem.write8(STATUS_FLAGS, 0x80);   // enable flag high bit set
     m.regs.a = 0x20;             // sound id
     m.regs.x = 0x5a;             // caller X -> $31
     m.regs.y = 0x3c;             // caller Y -> $32
@@ -62,12 +62,12 @@ test("CRAFTED gate-open: bit7 of $05 set -> the sound in A registers via the dis
   assert.equal(ramDiff(o, c), null, "RAM equal after gated registration");
   assert.equal(c.mem.read8(loc_31), 0x5a, "$31 = caller X (call fired)");
   assert.equal(c.mem.read8(loc_32), 0x3c, "$32 = caller Y (call fired)");
-  assert.equal(c.mem.read8((loc_c0 + 2) & 0xffff), 0x4a, "sound id 0x20 claimed slot 2");
+  assert.equal(c.mem.read8((SOUND_VOICE_VALUE + 2) & 0xffff), 0x4a, "sound id 0x20 claimed slot 2");
 });
 
 test("CRAFTED gate-closed: bit7 of $05 clear -> nothing registers", () => {
   const seed = (m) => {
-    m.mem.write8(loc_5, 0x00);   // gate closed
+    m.mem.write8(STATUS_FLAGS, 0x00);   // gate closed
     m.regs.a = 0x20;
     m.regs.x = 0x5a;
     m.regs.y = 0x3c;
@@ -81,7 +81,7 @@ test("CRAFTED gate-closed: bit7 of $05 clear -> nothing registers", () => {
 
 test("TEETH: a twin that ignores the gate diverges from the oracle when gate is closed", () => {
   const seed = (m) => {
-    m.mem.write8(loc_5, 0x00);   // gate closed: oracle does nothing
+    m.mem.write8(STATUS_FLAGS, 0x00);   // gate closed: oracle does nothing
     m.regs.a = 0x20;
     m.regs.x = 0x5a;
     m.regs.y = 0x3c;

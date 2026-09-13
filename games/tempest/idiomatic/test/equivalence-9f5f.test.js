@@ -15,7 +15,7 @@ import { loc_9f5f as oracle } from "../../translated/loc_9f5f.js";
 import { loc_9f5f } from "../loc_9f5f.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2df, loc_15f, loc_159 } from "../names.js";
+import { STACK_SCRATCH, ENEMY_DEPTH, ENEMY_FIRE_THRESHOLD, ENEMY_FIRE_SELECT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -54,9 +54,9 @@ test("CAPTURE: real 0x9f5f dispatches -- loc_9f5f == oracle in RAM (-stack)", ()
 function fireArm(x, flag159) {
   const seed = (m) => {
     m.regs.x = x;
-    m.mem.write8((loc_2df + x) & 0xffff, 0x20); // fire bit set
-    m.mem.write8(loc_15f, 0x00);                // threshold 0 -> random passes
-    m.mem.write8(loc_159, flag159);
+    m.mem.write8((ENEMY_DEPTH + x) & 0xffff, 0x20); // fire bit set
+    m.mem.write8(ENEMY_FIRE_THRESHOLD, 0x00);                // threshold 0 -> random passes
+    m.mem.write8(ENEMY_FIRE_SELECT, flag159);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -75,7 +75,7 @@ test("CRAFTED: bit6 set + odd slot -> loc_9f81 path, RAM equal", () => {
 test("CRAFTED: fire bit clear -> both no-op, RAM equal", () => {
   const seed = (m) => {
     m.regs.x = 0x03;
-    m.mem.write8((loc_2df + 0x03) & 0xffff, 0x00); // fire bit clear
+    m.mem.write8((ENEMY_DEPTH + 0x03) & 0xffff, 0x00); // fire bit clear
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -87,9 +87,9 @@ test("TEETH: a twin that skips the dissolved fire call diverges from the oracle"
   const x = 0x04;
   const seed = (m) => {
     m.regs.x = x;
-    m.mem.write8((loc_2df + x) & 0xffff, 0x20);
-    m.mem.write8(loc_15f, 0x00);
-    m.mem.write8(loc_159, 0x00);
+    m.mem.write8((ENEMY_DEPTH + x) & 0xffff, 0x20);
+    m.mem.write8(ENEMY_FIRE_THRESHOLD, 0x00);
+    m.mem.write8(ENEMY_FIRE_SELECT, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);

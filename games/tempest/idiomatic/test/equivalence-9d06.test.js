@@ -16,7 +16,7 @@ import { loc_9d06 } from "../loc_9d06.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_202, loc_2df, loc_283, loc_3ab, loc_28a, loc_108, loc_109, loc_38, loc_10b,
+  STACK_SCRATCH, PLAYER_SHOT_DEPTH, ENEMY_DEPTH, ENEMY_SLOT_FLAGS, FIRE_GATE, ENEMY_SLOT_DIR, ENEMY_TOTAL_COUNT, ENEMY_TYPE_COUNT, TABLE_CURSOR, SCRIPT_CURSOR,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -42,20 +42,20 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
 function seat(m, s = {}) {
   m.regs.x = s.x ?? X;
-  m.mem.write8(loc_202, s.shared ?? 0x55);
+  m.mem.write8(PLAYER_SHOT_DEPTH, s.shared ?? 0x55);
   const stash = s.stash ?? [0, 0, 0, 0, 0, 0, 0];
   const flags = s.flags ?? [0, 0, 0, 0, 0, 0, 0];
   const alt = s.alt ?? [0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16];
   for (let i = 0; i < 7; i++) {
-    m.mem.write8((loc_2df + i) & 0xffff, stash[i]);
-    m.mem.write8((loc_283 + i) & 0xffff, flags[i]);
-    m.mem.write8((loc_28a + i) & 0xffff, alt[i]);
+    m.mem.write8((ENEMY_DEPTH + i) & 0xffff, stash[i]);
+    m.mem.write8((ENEMY_SLOT_FLAGS + i) & 0xffff, flags[i]);
+    m.mem.write8((ENEMY_SLOT_DIR + i) & 0xffff, alt[i]);
   }
-  m.mem.write8(loc_3ab, s.gate ?? 0x00);
-  m.mem.write8(loc_108, s.c108 ?? 0x05);
-  m.mem.write8(loc_109, s.c109 ?? 0x02);
-  m.mem.write8(loc_10b, s.c10b ?? 0x00);
-  m.mem.write8(loc_38, s.c38 ?? 0x00);
+  m.mem.write8(FIRE_GATE, s.gate ?? 0x00);
+  m.mem.write8(ENEMY_TOTAL_COUNT, s.c108 ?? 0x05);
+  m.mem.write8(ENEMY_TYPE_COUNT, s.c109 ?? 0x02);
+  m.mem.write8(SCRIPT_CURSOR, s.c10b ?? 0x00);
+  m.mem.write8(TABLE_CURSOR, s.c38 ?? 0x00);
 }
 
 test("CAPTURE: real 0x9d06 dispatches -- loc_9d06 == oracle in RAM (-stack)", () => {
@@ -92,13 +92,13 @@ test("Y-LIVE-OUT: the scan index / 9d67 Y is reproduced (loc_9cb6 reads it after
   oracle(o); const scanY = loc_9d06(c);
   assert.equal(ramDiff(o, c), null, "scan arm RAM");
   assert.equal(scanY, o.regs.y, "scan arm: Y live-out (the scan index) matches the oracle");
-  // 9d67 arm: the oracle leaves Y = loc_2b9,x.
+  // 9d67 arm: the oracle leaves Y = ENEMY_SEGMENT,x.
   const j = { c109: 2, flags: [0, 0, 0, 0x02, 0, 0, 0] };
   o = new Machine(ROM, OPTS); seat(o, j);
   c = new Machine(ROM, OPTS); seat(c, j);
   oracle(o); const jY = loc_9d06(c);
   assert.equal(ramDiff(o, c), null, "9d67 arm RAM");
-  assert.equal(jY, o.regs.y, "9d67 arm: Y live-out (loc_2b9,x) matches the oracle");
+  assert.equal(jY, o.regs.y, "9d67 arm: Y live-out (ENEMY_SEGMENT,x) matches the oracle");
 });
 
 test("TEETH: a twin that skips the $010b tail store diverges from the oracle", () => {
@@ -109,8 +109,8 @@ test("TEETH: a twin that skips the $010b tail store diverges from the oracle", (
   // BUG: performs the shared stash + counter dec but never lays the $010b marker or bumps $0109.
   const broken = (m) => {
     const { mem8 } = m;
-    mem8[(loc_2df + X) & 0xffff] = mem8[loc_202];
-    mem8[loc_108] = (mem8[loc_108] - 1) & 0xff;
+    mem8[(ENEMY_DEPTH + X) & 0xffff] = mem8[PLAYER_SHOT_DEPTH];
+    mem8[ENEMY_TOTAL_COUNT] = (mem8[ENEMY_TOTAL_COUNT] - 1) & 0xff;
     // (skips $010b = 0x41 and $0109++)
   };
   broken(c);

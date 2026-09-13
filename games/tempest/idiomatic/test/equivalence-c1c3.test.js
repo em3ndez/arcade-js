@@ -13,7 +13,7 @@ import { loc_c1c3 as oracle } from "../../translated/loc_c1c3.js";
 import { loc_c1c3 } from "../loc_c1c3.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_78, loc_80, loc_81, loc_88, loc_90, loc_91 } from "../names.js";
+import { STACK_SCRATCH, SEG_SPREAD_A_LO, SEG_SPREAD_A_HI, SEG_SPREAD_A_HI_1, SEG_SPREAD_B_LO, SEG_SPREAD_B_HI, SEG_SPREAD_B_HI_1 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -38,7 +38,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-const ZP = [loc_81, loc_91, loc_80, loc_78, loc_90, loc_88];
+const ZP = [SEG_SPREAD_A_HI_1, SEG_SPREAD_B_HI_1, SEG_SPREAD_A_HI, SEG_SPREAD_A_LO, SEG_SPREAD_B_HI, SEG_SPREAD_B_LO];
 
 test("CAPTURE: real 0xc1c3 dispatches -- loc_c1c3 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
@@ -65,7 +65,7 @@ test("TEETH: a twin that leaves one zero-page cell untouched diverges from the o
   oracle(o);
   const brokenC1c3 = (m) => {
     const mem = m.mem8;
-    for (const a of ZP) if (a !== loc_88) mem[a] = 0x00; // BUG: never clears loc_88
+    for (const a of ZP) if (a !== SEG_SPREAD_B_LO) mem[a] = 0x00; // BUG: never clears SEG_SPREAD_B_LO
   };
   brokenC1c3(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped store");

@@ -14,7 +14,7 @@ import { loc_ca18 as oracle } from "../../translated/loc_ca18.js";
 import { loc_ca18 } from "../loc_ca18.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_3e, loc_2, loc_0, loc_4, loc_16b, loc_1 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, ACTIVE_SLOT_COUNT, GAME_MODE_PENDING, GAME_MODE, MODE_DELAY_TIMER, MODE_DELAY_GUARD, MODE_DISPATCH_SEL } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -50,13 +50,13 @@ test("CAPTURE: real 0xca18 dispatches -- loc_ca18 == oracle in RAM (-stack)", ()
 
 // $05 high bits set (0xc0) so the &0x3f mask is observable; block cells pre-dirtied.
 function seed(m) {
-  m.mem8[loc_5] = 0xc5;   // low six bits 0x05 survive; high two (0xc0) get masked off
-  m.mem8[loc_3e] = 0x77;
-  m.mem8[loc_2] = 0x77;
-  m.mem8[loc_0] = 0x77;
-  m.mem8[loc_4] = 0x77;
-  m.mem8[loc_16b] = 0x77;
-  m.mem8[loc_1] = 0x77;
+  m.mem8[STATUS_FLAGS] = 0xc5;   // low six bits 0x05 survive; high two (0xc0) get masked off
+  m.mem8[ACTIVE_SLOT_COUNT] = 0x77;
+  m.mem8[GAME_MODE_PENDING] = 0x77;
+  m.mem8[GAME_MODE] = 0x77;
+  m.mem8[MODE_DELAY_TIMER] = 0x77;
+  m.mem8[MODE_DELAY_GUARD] = 0x77;
+  m.mem8[MODE_DISPATCH_SEL] = 0x77;
 }
 
 test("CRAFTED: $05 masked + fixed block written == oracle (RAM -stack)", () => {
@@ -65,13 +65,13 @@ test("CRAFTED: $05 masked + fixed block written == oracle (RAM -stack)", () => {
   oracle(o); loc_ca18(c);
   assert.equal(ramDiff(o, c), null, "masked $05 + init block match oracle");
   // Independent confirmation of each field.
-  assert.equal(c.mem8[loc_5], 0x05, "$05 masked to low six bits");
-  assert.equal(c.mem8[loc_3e], 0x00, "$3e = 0");
-  assert.equal(c.mem8[loc_2], 0x1a, "$02 = 0x1a");
-  assert.equal(c.mem8[loc_0], 0x0a, "$00 = 0x0a");
-  assert.equal(c.mem8[loc_4], 0xa0, "$04 = 0xa0");
-  assert.equal(c.mem8[loc_16b], 0x01, "$016b = 0x01");
-  assert.equal(c.mem8[loc_1], 0x0a, "$01 = 0x0a");
+  assert.equal(c.mem8[STATUS_FLAGS], 0x05, "$05 masked to low six bits");
+  assert.equal(c.mem8[ACTIVE_SLOT_COUNT], 0x00, "$3e = 0");
+  assert.equal(c.mem8[GAME_MODE_PENDING], 0x1a, "$02 = 0x1a");
+  assert.equal(c.mem8[GAME_MODE], 0x0a, "$00 = 0x0a");
+  assert.equal(c.mem8[MODE_DELAY_TIMER], 0xa0, "$04 = 0xa0");
+  assert.equal(c.mem8[MODE_DELAY_GUARD], 0x01, "$016b = 0x01");
+  assert.equal(c.mem8[MODE_DISPATCH_SEL], 0x0a, "$01 = 0x0a");
 });
 
 test("TEETH: a rewrite that skips masking $05 diverges from the oracle", () => {
@@ -79,12 +79,12 @@ test("TEETH: a rewrite that skips masking $05 diverges from the oracle", () => {
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const brokenSkipMask = (m) => { // BUG: writes the block but leaves $05 unmasked at 0xc5
-    m.mem8[loc_3e] = 0x00;
-    m.mem8[loc_2] = 0x1a;
-    m.mem8[loc_0] = 0x0a;
-    m.mem8[loc_4] = 0xa0;
-    m.mem8[loc_16b] = 0x01;
-    m.mem8[loc_1] = 0x0a;
+    m.mem8[ACTIVE_SLOT_COUNT] = 0x00;
+    m.mem8[GAME_MODE_PENDING] = 0x1a;
+    m.mem8[GAME_MODE] = 0x0a;
+    m.mem8[MODE_DELAY_TIMER] = 0xa0;
+    m.mem8[MODE_DELAY_GUARD] = 0x01;
+    m.mem8[MODE_DISPATCH_SEL] = 0x0a;
   };
   brokenSkipMask(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped $05 mask");

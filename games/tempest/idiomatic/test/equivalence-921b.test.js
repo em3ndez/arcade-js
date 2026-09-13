@@ -13,7 +13,7 @@ import { loc_921b as oracle } from "../../translated/loc_921b.js";
 import { loc_921b } from "../loc_921b.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_51, loc_106, loc_200, loc_201, loc_202 } from "../names.js";
+import { STACK_SCRATCH, RIM_ROT_OFFSET, SPIKE_ACTIVE_FLAG, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => { const u = new URL(name, ROM_DIR); return existsSync(u) ? new Uint8Array(readFileSync(u)) : null; };
@@ -35,7 +35,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
-const CELLS = [loc_51, loc_106, loc_200, loc_201, loc_202];
+const CELLS = [RIM_ROT_OFFSET, SPIKE_ACTIVE_FLAG, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH];
 // Pre-dirty the target cells with a non-default pattern so a seed that misses any of them is caught.
 function seed(m, fill = 0xa5) { for (const a of CELLS) m.mem8[a] = fill; }
 
@@ -56,21 +56,21 @@ test("CRAFTED: the five constant seeds == oracle (RAM -stack)", () => {
     assert.equal(ramDiff(o, c), null, `fill=0x${fill.toString(16)}`);
   }
   const c = new Machine(ROM, OPTS); seed(c, 0xa5); loc_921b(c);
-  assert.equal(c.mem8[loc_200], 0x0e, "$0200");
-  assert.equal(c.mem8[loc_51], 0xf0, "$51");
-  assert.equal(c.mem8[loc_106], 0x00, "$0106");
-  assert.equal(c.mem8[loc_201], 0x0f, "$0201");
-  assert.equal(c.mem8[loc_202], 0x10, "$0202");
+  assert.equal(c.mem8[PLAYER_SEGMENT], 0x0e, "$0200");
+  assert.equal(c.mem8[RIM_ROT_OFFSET], 0xf0, "$51");
+  assert.equal(c.mem8[SPIKE_ACTIVE_FLAG], 0x00, "$0106");
+  assert.equal(c.mem8[PLAYER_FINE_ANGLE], 0x0f, "$0201");
+  assert.equal(c.mem8[PLAYER_SHOT_DEPTH], 0x10, "$0202");
 });
 
 test("TEETH: a rewrite that skips the $51 seed diverges from the oracle (non-default pre-fill)", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0xa5);
   const c = new Machine(ROM, OPTS); seed(c, 0xa5);
   const broken = (m) => { // BUG: never seeds $51 (leaves the 0xa5 pre-fill)
-    m.mem8[loc_200] = 0x0e; m.mem8[loc_106] = 0x00; m.mem8[loc_201] = 0x0f; m.mem8[loc_202] = 0x10;
+    m.mem8[PLAYER_SEGMENT] = 0x0e; m.mem8[SPIKE_ACTIVE_FLAG] = 0x00; m.mem8[PLAYER_FINE_ANGLE] = 0x0f; m.mem8[PLAYER_SHOT_DEPTH] = 0x10;
   };
   oracle(o); broken(c);
-  assert.equal(o.mem8[loc_51], 0xf0, "precondition: oracle seeded $51");
+  assert.equal(o.mem8[RIM_ROT_OFFSET], 0xf0, "precondition: oracle seeded $51");
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped $51 seed");
 });
 

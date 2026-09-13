@@ -14,7 +14,7 @@ import { loc_af81 as oracle } from "../../translated/loc_af81.js";
 import { loc_af81 } from "../loc_af81.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_7b, loc_7c, loc_127, loc_200, loc_16e } from "../names.js";
+import { STACK_SCRATCH, SEG_SPREAD_A_LO_3, SEG_SPREAD_A_LO_4, DEPTH_CEILING, PLAYER_SEGMENT, SCORE_DISPLAY_TIMER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,11 +51,11 @@ function seatAb14Chain(m) {
 // The nudge diamond is steered by ($0200 vs $7b) and ($7c vs $0127); seed each direction so both the
 // step-toward and settle paths run. $016e is the frame timer the prologue ticks.
 function seat(m, s = {}) {
-  m.mem.write8(loc_7b, s.c7b ?? 0x40);
-  m.mem.write8(loc_7c, s.c7c ?? 0x40);
-  m.mem.write8(loc_127, s.c127 ?? 0x60);
-  m.mem.write8(loc_200, s.c200 ?? 0x40);
-  m.mem.write8(loc_16e, s.c16e ?? 0x40);
+  m.mem.write8(SEG_SPREAD_A_LO_3, s.c7b ?? 0x40);
+  m.mem.write8(SEG_SPREAD_A_LO_4, s.c7c ?? 0x40);
+  m.mem.write8(DEPTH_CEILING, s.c127 ?? 0x60);
+  m.mem.write8(PLAYER_SEGMENT, s.c200 ?? 0x40);
+  m.mem.write8(SCORE_DISPLAY_TIMER, s.c16e ?? 0x40);
   seatAb14Chain(m);
 }
 

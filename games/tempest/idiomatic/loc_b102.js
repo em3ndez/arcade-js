@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { loc_b15a } from "./loc_b15a.js";
-import { loc_14e, loc_14d, loc_1 } from "./names.js";
+import { loc_14e, loc_14d, MODE_DISPATCH_SEL } from "./names.js";
 
 // Rebuild the paired cursors, then clamp them: wrap the far cursor upward, and
 // once it clears a floor, step the near cursor and pin it at the ceiling.
@@ -17,5 +17,5 @@ export function loc_b102(m) {
   mem8[loc_14d] = near;
   if (near < far) return;
   mem8[loc_14d] = 0xa0;
-  mem8[loc_1] = 0x14;
+  mem8[MODE_DISPATCH_SEL] = 0x14;
 }

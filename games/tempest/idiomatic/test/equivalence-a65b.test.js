@@ -22,7 +22,7 @@ import { loc_ccc1 } from "../loc_ccc1.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8, u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_263, loc_283, loc_2a3, loc_2c3, loc_2e3, loc_303, loc_323, loc_343, loc_363, loc_60ca, loc_60da } from "../names.js";
+import { STACK_SCRATCH, OBJECT_AXIS1_POS, ENEMY_SLOT_FLAGS, ENEMY_POS2, ENEMY_VEL1_LO, ENEMY_VEL0_LO, ENEMY_VEL2_LO, ENEMY_VEL1_HI, ENEMY_VEL0_HI, ENEMY_VEL2_HI, POKEY1_RANDOM, POKEY2_RANDOM } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -64,7 +64,7 @@ const XREG = 0x02, YREG = 0x05;
 function seed(m) {
   freezePokey(m);
   m.regs.x = XREG; m.regs.y = YREG;
-  for (const b of [loc_263, loc_283, loc_2a3, loc_2c3, loc_2e3, loc_303, loc_323, loc_343, loc_363]) {
+  for (const b of [OBJECT_AXIS1_POS, ENEMY_SLOT_FLAGS, ENEMY_POS2, ENEMY_VEL1_LO, ENEMY_VEL0_LO, ENEMY_VEL2_LO, ENEMY_VEL1_HI, ENEMY_VEL0_HI, ENEMY_VEL2_HI]) {
     m.mem.write8(u16(b + XREG), 0x77); // dirty sentinels
   }
 }
@@ -74,7 +74,7 @@ test("CRAFTED: state bytes -> 0x80 and RAM equal after the RNG fill", () => {
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_a65b(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after spawn");
-  for (const b of [loc_263, loc_283, loc_2a3]) assert.equal(c.mem.read8(u16(b + XREG)), 0x80, "state byte active");
+  for (const b of [OBJECT_AXIS1_POS, ENEMY_SLOT_FLAGS, ENEMY_POS2]) assert.equal(c.mem.read8(u16(b + XREG)), 0x80, "state byte active");
 });
 
 test("TEETH: a twin that skips the 0x80 state-byte seeding diverges from the oracle", () => {
@@ -83,10 +83,10 @@ test("TEETH: a twin that skips the 0x80 state-byte seeding diverges from the ora
   const brokenA65b = (m, x = m.regs.x, y = m.regs.y) => {
     const { mem8 } = m;
     // BUG: never marks the three state bytes active
-    const r0 = mem8[loc_60da]; mem8[u16(loc_2c3 + x)] = r0; mem8[u16(loc_323 + x)] = loc_a69b(m, r0);
-    const r1 = mem8[loc_60ca]; mem8[u16(loc_2e3 + x)] = r1;
-    let step = loc_a69b(m, r1); if ((step & 0x80) === 0) step = u8(-step); mem8[u16(loc_343 + x)] = step;
-    const r2 = mem8[loc_60ca]; mem8[u16(loc_303 + x)] = r2; mem8[u16(loc_363 + x)] = loc_a69b(m, r2);
+    const r0 = mem8[POKEY2_RANDOM]; mem8[u16(ENEMY_VEL1_LO + x)] = r0; mem8[u16(ENEMY_VEL1_HI + x)] = loc_a69b(m, r0);
+    const r1 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL0_LO + x)] = r1;
+    let step = loc_a69b(m, r1); if ((step & 0x80) === 0) step = u8(-step); mem8[u16(ENEMY_VEL0_HI + x)] = step;
+    const r2 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL2_LO + x)] = r2; mem8[u16(ENEMY_VEL2_HI + x)] = loc_a69b(m, r2);
     loc_ccc1(m, x, y);
   };
   brokenA65b(c);
@@ -95,17 +95,17 @@ test("TEETH: a twin that skips the 0x80 state-byte seeding diverges from the ora
 
 test("TEETH (marshalling): a twin that always negates the middle step diverges when it is already negative", () => {
   const o = new Machine(ROM, OPTS); seed(o); oracle(o);
-  const correctMid = o.mem.read8(u16(loc_343 + XREG));
+  const correctMid = o.mem.read8(u16(ENEMY_VEL0_HI + XREG));
   // Frozen RANDOM (0xff) drives $60ca bit0=1 -> the middle step comes back already negative and must be kept.
   assert.equal((correctMid & 0x80) !== 0, true, "precondition: the correct middle step is negative (kept, not negated)");
   const c = new Machine(ROM, OPTS); seed(c);
   const alwaysNegate = (m, x = m.regs.x, y = m.regs.y) => {
     const { mem8 } = m;
-    mem8[u16(loc_263 + x)] = 0x80; mem8[u16(loc_283 + x)] = 0x80; mem8[u16(loc_2a3 + x)] = 0x80;
-    const r0 = mem8[loc_60da]; mem8[u16(loc_2c3 + x)] = r0; mem8[u16(loc_323 + x)] = loc_a69b(m, r0);
-    const r1 = mem8[loc_60ca]; mem8[u16(loc_2e3 + x)] = r1;
-    mem8[u16(loc_343 + x)] = u8(-loc_a69b(m, r1)); // BUG: unconditional negate
-    const r2 = mem8[loc_60ca]; mem8[u16(loc_303 + x)] = r2; mem8[u16(loc_363 + x)] = loc_a69b(m, r2);
+    mem8[u16(OBJECT_AXIS1_POS + x)] = 0x80; mem8[u16(ENEMY_SLOT_FLAGS + x)] = 0x80; mem8[u16(ENEMY_POS2 + x)] = 0x80;
+    const r0 = mem8[POKEY2_RANDOM]; mem8[u16(ENEMY_VEL1_LO + x)] = r0; mem8[u16(ENEMY_VEL1_HI + x)] = loc_a69b(m, r0);
+    const r1 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL0_LO + x)] = r1;
+    mem8[u16(ENEMY_VEL0_HI + x)] = u8(-loc_a69b(m, r1)); // BUG: unconditional negate
+    const r2 = mem8[POKEY1_RANDOM]; mem8[u16(ENEMY_VEL2_LO + x)] = r2; mem8[u16(ENEMY_VEL2_HI + x)] = loc_a69b(m, r2);
     loc_ccc1(m, x, y);
   };
   alwaysNegate(c);

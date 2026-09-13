@@ -13,7 +13,7 @@ import { loc_c423 as oracle } from "../../translated/loc_c423.js";
 import { loc_c423 } from "../loc_c423.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_37, loc_31a, loc_32a, loc_33a, loc_34a, loc_61, loc_62, loc_63, loc_64, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, SLOT_LOOP_INDEX, COL_VAL_A, COL_SUB_A, COL_VAL_B, COL_SUB_B, PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -48,12 +48,12 @@ test("CAPTURE: real 0xc423 dispatches -- loc_c423 == oracle in RAM (-stack)", ()
 });
 
 function seed(m) {
-  m.mem.write8(loc_37, 0x05);
-  m.mem.write8((loc_32a + 5) & 0xffff, 0x11);
-  m.mem.write8((loc_31a + 5) & 0xffff, 0x22);
-  m.mem.write8((loc_34a + 5) & 0xffff, 0x33);
-  m.mem.write8((loc_33a + 5) & 0xffff, 0x44);
-  m.mem.write8(loc_74, 0x30); m.mem.write8(loc_75, 0x02); // record cursor into safe RAM
+  m.mem.write8(SLOT_LOOP_INDEX, 0x05);
+  m.mem.write8((COL_SUB_A + 5) & 0xffff, 0x11);
+  m.mem.write8((COL_VAL_A + 5) & 0xffff, 0x22);
+  m.mem.write8((COL_SUB_B + 5) & 0xffff, 0x33);
+  m.mem.write8((COL_VAL_B + 5) & 0xffff, 0x44);
+  m.mem.write8(DRAW_CURSOR_LO, 0x30); m.mem.write8(DRAW_CURSOR_HI, 0x02); // record cursor into safe RAM
 }
 
 test("CRAFTED: the four indexed cells land in $61..$64 and RAM matches the oracle", () => {
@@ -61,10 +61,10 @@ test("CRAFTED: the four indexed cells land in $61..$64 and RAM matches the oracl
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_c423(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after copy + emit");
-  assert.equal(c.mem.read8(loc_61), 0x11, "$61");
-  assert.equal(c.mem.read8(loc_62), 0x22, "$62");
-  assert.equal(c.mem.read8(loc_63), 0x33, "$63");
-  assert.equal(c.mem.read8(loc_64), 0x44, "$64");
+  assert.equal(c.mem.read8(PROJ_Y_LO), 0x11, "$61");
+  assert.equal(c.mem.read8(PROJ_Y_HI), 0x22, "$62");
+  assert.equal(c.mem.read8(PROJ_X_LO), 0x33, "$63");
+  assert.equal(c.mem.read8(PROJ_X_HI), 0x44, "$64");
 });
 
 test("TEETH: a twin that skips the $63 copy diverges from the oracle", () => {
@@ -73,11 +73,11 @@ test("TEETH: a twin that skips the $63 copy diverges from the oracle", () => {
   oracle(o);
   const broken = (m) => {
     const { mem8 } = m;
-    const x = mem8[loc_37];
-    mem8[loc_61] = mem8[(loc_32a + x) & 0xffff];
-    mem8[loc_62] = mem8[(loc_31a + x) & 0xffff];
+    const x = mem8[SLOT_LOOP_INDEX];
+    mem8[PROJ_Y_LO] = mem8[(COL_SUB_A + x) & 0xffff];
+    mem8[PROJ_Y_HI] = mem8[(COL_VAL_A + x) & 0xffff];
     // BUG: never copies into $63
-    mem8[loc_64] = mem8[(loc_33a + x) & 0xffff];
+    mem8[PROJ_X_HI] = mem8[(COL_VAL_B + x) & 0xffff];
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped copy");

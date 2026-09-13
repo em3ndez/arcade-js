@@ -15,7 +15,7 @@ import { loc_ab17 } from "../loc_ab17.js";
 import { loc_a8b4 } from "../loc_a8b4.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_3 } from "../names.js";
+import { STACK_SCRATCH, FRAME_COUNTER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -63,8 +63,8 @@ test("CRAFTED: low status draws both lists, high status draws only one -- both =
     { tag: "$03 nibble high -> second draw skipped", c03: 0x1a },
   ];
   for (const s of cases) {
-    const o = new Machine(ROM, OPTS); seedPipe(o); o.mem.write8(loc_3, s.c03);
-    const c = new Machine(ROM, OPTS); seedPipe(c); c.mem.write8(loc_3, s.c03);
+    const o = new Machine(ROM, OPTS); seedPipe(o); o.mem.write8(FRAME_COUNTER, s.c03);
+    const c = new Machine(ROM, OPTS); seedPipe(c); c.mem.write8(FRAME_COUNTER, s.c03);
     oracle(o); loc_aa79(c);
     assert.equal(ramDiff(o, c), null, s.tag);
   }
@@ -72,8 +72,8 @@ test("CRAFTED: low status draws both lists, high status draws only one -- both =
 
 test("TEETH: a twin that always draws the second list diverges on the high-status case", () => {
   const c03 = 0x1a; // >= 0x10 -> oracle must skip the second draw
-  const o = new Machine(ROM, OPTS); seedPipe(o); o.mem.write8(loc_3, c03); oracle(o);
-  const c = new Machine(ROM, OPTS); seedPipe(c); c.mem.write8(loc_3, c03);
+  const o = new Machine(ROM, OPTS); seedPipe(o); o.mem.write8(FRAME_COUNTER, c03); oracle(o);
+  const c = new Machine(ROM, OPTS); seedPipe(c); c.mem.write8(FRAME_COUNTER, c03);
   // BUG: ignores the gate and always draws the second list.
   const broken = (m) => { loc_ab17(m, 0x00, 0x32); loc_ab17(m, 0xe0, 0x22); loc_a8b4(m); };
   broken(c);

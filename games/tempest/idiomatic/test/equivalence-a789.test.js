@@ -13,7 +13,7 @@ import { loc_a789 as oracle } from "../../translated/loc_a789.js";
 import { loc_a789 } from "../loc_a789.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_283, loc_10e, loc_10d, loc_1, loc_68, loc_69 } from "../names.js";
+import { STACK_SCRATCH, ENEMY_SLOT_FLAGS, SPAWN_BUDGET_TIMER, SPAWN_FOUND_FLAG, MODE_DISPATCH_SEL, PROJ_OFS_X_LO, PROJ_OFS_X_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -52,28 +52,28 @@ function seed(m, s) { for (const [a, v] of Object.entries(s)) m.mem.write8(Numbe
 test("CRAFTED: table cleared + scalars re-seeded from a non-default seed", () => {
   // NON-default so every write actually bites (table ends != seed, scalars end != seed).
   const s = {
-    [loc_283]: 0xaa, [loc_283 + 7]: 0x5a, [loc_283 + 15]: 0x55,
-    [loc_10e]: 0x11, [loc_10d]: 0x22, [loc_1]: 0x33, [loc_68]: 0x44, [loc_69]: 0x66,
+    [ENEMY_SLOT_FLAGS]: 0xaa, [ENEMY_SLOT_FLAGS + 7]: 0x5a, [ENEMY_SLOT_FLAGS + 15]: 0x55,
+    [SPAWN_BUDGET_TIMER]: 0x11, [SPAWN_FOUND_FLAG]: 0x22, [MODE_DISPATCH_SEL]: 0x33, [PROJ_OFS_X_LO]: 0x44, [PROJ_OFS_X_HI]: 0x66,
   };
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o); loc_a789(c);
   assert.equal(ramDiff(o, c), null, "RAM matches oracle");
-  for (let i = 0; i < 16; i++) assert.equal(c.mem.read8(loc_283 + i), 0x00, `$0283+${i} cleared`);
-  assert.equal(c.mem.read8(loc_10e), 0x20, "$010e = 0x20");
-  assert.equal(c.mem.read8(loc_10d), 0x20, "$010d = 0x20");
-  assert.equal(c.mem.read8(loc_1), 0x04, "$01 = 0x04");
-  assert.equal(c.mem.read8(loc_68), 0x00, "$68 = 0");
-  assert.equal(c.mem.read8(loc_69), 0x00, "$69 = 0");
+  for (let i = 0; i < 16; i++) assert.equal(c.mem.read8(ENEMY_SLOT_FLAGS + i), 0x00, `$0283+${i} cleared`);
+  assert.equal(c.mem.read8(SPAWN_BUDGET_TIMER), 0x20, "$010e = 0x20");
+  assert.equal(c.mem.read8(SPAWN_FOUND_FLAG), 0x20, "$010d = 0x20");
+  assert.equal(c.mem.read8(MODE_DISPATCH_SEL), 0x04, "$01 = 0x04");
+  assert.equal(c.mem.read8(PROJ_OFS_X_LO), 0x00, "$68 = 0");
+  assert.equal(c.mem.read8(PROJ_OFS_X_HI), 0x00, "$69 = 0");
 });
 
 test("TEETH: a twin that leaves $01 unchanged diverges", () => {
-  const s = { [loc_1]: 0x33 };
+  const s = { [MODE_DISPATCH_SEL]: 0x33 };
   const o = new Machine(ROM, OPTS); seed(o, s);
   oracle(o);
-  assert.equal(o.mem.read8(loc_1), 0x04, "precondition: oracle set $01 = 0x04");
+  assert.equal(o.mem.read8(MODE_DISPATCH_SEL), 0x04, "precondition: oracle set $01 = 0x04");
   const broken01 = 0x33; // BUG: never re-seeded $01
-  assert.notEqual(broken01, o.mem.read8(loc_1), "the RAM diff FAILED to catch a skipped $01 write");
+  assert.notEqual(broken01, o.mem.read8(MODE_DISPATCH_SEL), "the RAM diff FAILED to catch a skipped $01 write");
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {

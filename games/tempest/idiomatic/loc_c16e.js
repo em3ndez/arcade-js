@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import {
-  loc_5e, loc_114, loc_133, loc_5800, loc_2000, loc_2001, loc_cec6, loc_cec7,
-  loc_9f, loc_c1fd, loc_19, loc_21, loc_800, loc_808,
+  PROJ_Y_REF, REDRAW_COUNTER, LEVEL_LAYOUT_TRIGGER, AVG_RESET_STROBE, VEC_LIST_HEADER_LO, VEC_LIST_HEADER_HI, VECHEAD0_LEVEL, VECHEAD1_LEVEL,
+  loc_9f, LEVEL_LAYOUT_PACKED, LEVEL_GEOM_LO, LEVEL_GEOM_HI, COLOR_RAM, COLOR_RAM_8,
 } from "./names.js";
 import { loc_aa13 } from "./loc_aa13.js";
 import { loc_c235 } from "./loc_c235.js";
@@ -12,27 +12,27 @@ import { loc_c235 } from "./loc_c235.js";
 export function loc_c16e(m) {
   const { mem8 } = m;
   loc_aa13(m);
-  mem8[loc_5e] = 0x80;
-  mem8[loc_114] = 0xff;
+  mem8[PROJ_Y_REF] = 0x80;
+  mem8[REDRAW_COUNTER] = 0xff;
   loc_c235(m);
   // Reset the mode flag, kicking the trigger byte only when it was already clear.
-  if (mem8[loc_133] === 0) mem8[loc_5800] = 0x00;
-  mem8[loc_133] = 0x00;
-  mem8[loc_2000] = mem8[loc_cec6];
-  mem8[loc_2001] = mem8[loc_cec7];
+  if (mem8[LEVEL_LAYOUT_TRIGGER] === 0) mem8[AVG_RESET_STROBE] = 0x00;
+  mem8[LEVEL_LAYOUT_TRIGGER] = 0x00;
+  mem8[VEC_LIST_HEADER_LO] = mem8[VECHEAD0_LEVEL];
+  mem8[VEC_LIST_HEADER_HI] = mem8[VECHEAD1_LEVEL];
 
   // Clamp the selector, halve it, force the low bits, then walk eight entries down.
   let idx = mem8[loc_9f] & 0x70;
   if (idx >= 0x5f) idx = 0x5f;
   idx = (idx >> 1) | 0x07;
   for (let y = 7; y >= 0; y--) {
-    const packed = mem8[u16(loc_c1fd + idx)];
+    const packed = mem8[u16(LEVEL_LAYOUT_PACKED + idx)];
     const lo = packed & 0x0f;
-    mem8[u16(loc_19 + y)] = lo;
-    mem8[u16(loc_800 + y)] = lo;
+    mem8[u16(LEVEL_GEOM_LO + y)] = lo;
+    mem8[u16(COLOR_RAM + y)] = lo;
     const hi = packed >> 4;
-    mem8[u16(loc_21 + y)] = hi;
-    mem8[u16(loc_808 + y)] = hi;
+    mem8[u16(LEVEL_GEOM_HI + y)] = hi;
+    mem8[u16(COLOR_RAM_8 + y)] = hi;
     idx = u8(idx - 1);
   }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_29, loc_2a, loc_2b, loc_37, loc_135, loc_2ad, loc_2d3, loc_2f2, loc_39a, loc_3ac } from "./names.js";
+import { loc_29, loc_2a, loc_2b, SLOT_LOOP_INDEX, ACTIVE_OBJECT_COUNT, TARGET_SEG, SLOT_STATE, HIT_TALLY, LANE_TARGET_FLAG, LANE_LIMIT } from "./names.js";
 import { loc_ccf6 } from "./loc_ccf6.js";
 import { loc_ca6c } from "./loc_ca6c.js";
 
@@ -9,27 +9,27 @@ import { loc_ca6c } from "./loc_ca6c.js";
 // counter and drop a life. Returns the slot index live at exit.
 export function loc_a1fa(m, x = m.regs.x) {
   const { mem8 } = m;
-  const y = mem8[u16(loc_2ad + x)];
-  const limit = mem8[u16(loc_3ac + y)];
+  const y = mem8[u16(TARGET_SEG + x)];
+  const limit = mem8[u16(LANE_LIMIT + y)];
   if (limit === 0) return x;
 
   let xEff = x;
-  const counter = mem8[u16(loc_2d3 + x)];
+  const counter = mem8[u16(SLOT_STATE + x)];
   if (counter >= limit) {
-    mem8[u16(loc_3ac + y)] = counter < 0xf0 ? counter : 0x00; // clamp: clear unless already saturated
-    mem8[u16(loc_2f2 + x)] = mem8[u16(loc_2f2 + x)] + 1;      // bump hit tally
-    mem8[u16(loc_39a + y)] = 0xc0;                            // flag the target
+    mem8[u16(LANE_LIMIT + y)] = counter < 0xf0 ? counter : 0x00; // clamp: clear unless already saturated
+    mem8[u16(HIT_TALLY + x)] = mem8[u16(HIT_TALLY + x)] + 1;      // bump hit tally
+    mem8[u16(LANE_TARGET_FLAG + y)] = 0xc0;                            // flag the target
     loc_ccf6(m, x, y);                                        // chime
     mem8[loc_2a] = 0x00;
     mem8[loc_2b] = 0x00;
     mem8[loc_29] = 0x01;
     loc_ca6c(m, 0xff);                                        // award
-    xEff = mem8[loc_37];
+    xEff = mem8[SLOT_LOOP_INDEX];
   }
 
-  if (mem8[u16(loc_2f2 + xEff)] >= 0x02) {                    // second hit: reset + drop a life
-    mem8[u16(loc_2d3 + xEff)] = 0x00;
-    mem8[loc_135] = mem8[loc_135] - 1;
+  if (mem8[u16(HIT_TALLY + xEff)] >= 0x02) {                    // second hit: reset + drop a life
+    mem8[u16(SLOT_STATE + xEff)] = 0x00;
+    mem8[ACTIVE_OBJECT_COUNT] = mem8[ACTIVE_OBJECT_COUNT] - 1;
   }
   return xEff;
 }

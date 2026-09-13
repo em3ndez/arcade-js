@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_9c58 (ROM 0x9c58-0x9c62, the direction selector) -- reads the slot's segment
-// (loc_283,x & 7), then delegates to the ADD path (loc_9c63) when loc_28a,x bit7 is clear or the
+// (ENEMY_SLOT_FLAGS,x & 7), then delegates to the ADD path (loc_9c63) when ENEMY_SLOT_DIR,x bit7 is clear or the
 // SUBTRACT path (loc_9c99) when it is set. Live-out is RAM (dumpState minus STACK_SCRATCH) plus A/X.
 // X is the slot index throughout (never rewritten). A is the delegate's result. The segment index is now
 // threaded as an EXPLICIT arg (no register Y bridge); on the ADD path loc_9c63 returns [A, Y], so the
@@ -19,7 +19,7 @@ import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import {
-  STACK_SCRATCH, loc_160, loc_165, loc_202, loc_283, loc_28a, loc_29f, loc_2df,
+  STACK_SCRATCH, ENEMY_CLIMB_DELTA_LO_0, ENEMY_CLIMB_DELTA_HI_0, PLAYER_SHOT_DEPTH, ENEMY_SLOT_FLAGS, ENEMY_SLOT_DIR, ENEMY_DEPTH_LO, ENEMY_DEPTH,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -68,22 +68,22 @@ test("CAPTURE: real 0x9c58 dispatches -- loc_9c58 == oracle in RAM (-stack), X a
   console.log(`  CAPTURE: ${ram} RAM+X compared (${withA} also A, ${path9d06} 9d06-path RAM+X only), ${CAPS.length} total`);
 });
 
-// Seed a full loc_9c58 entry: slot x=3, segment 2 (loc_283,x low bits), a +2 low delta. The DIRECTION comes
-// from bit7 of loc_28a,x. m.regs.y is dirtied to prove the segment index no longer flows through the
+// Seed a full loc_9c58 entry: slot x=3, segment 2 (ENEMY_SLOT_FLAGS,x low bits), a +2 low delta. The DIRECTION comes
+// from bit7 of ENEMY_SLOT_DIR,x. m.regs.y is dirtied to prove the segment index no longer flows through the
 // register -- it is passed explicitly, and the add path returns it in loc_9c63's [A, Y] tuple.
 function seed(m, { dir }) {
   const X = 3, SEG = 2;
   m.regs.x = X; m.regs.y = 0x77;
-  m.mem.write8(u16(loc_283 + X), 0x02);                 // segment 2 (& 7)
-  m.mem.write8(u16(loc_28a + X), dir === "sub" ? 0x80 : 0x00); // bit7: sub vs add; low bits 0 (no a06f gate)
-  m.mem.write8(u16(loc_160 + SEG), 0x02);               // delta low
-  m.mem.write8(u16(loc_165 + SEG), 0x00);               // delta high
-  m.mem.write8(u16(loc_29f + X), 0x40);                 // coordinate low
-  m.mem.write8(u16(loc_2df + X), 0x30);                 // coordinate high
-  m.mem.write8(loc_202, 0x05);                          // below the new hi (0x30) -> plain add path
+  m.mem.write8(u16(ENEMY_SLOT_FLAGS + X), 0x02);                 // segment 2 (& 7)
+  m.mem.write8(u16(ENEMY_SLOT_DIR + X), dir === "sub" ? 0x80 : 0x00); // bit7: sub vs add; low bits 0 (no a06f gate)
+  m.mem.write8(u16(ENEMY_CLIMB_DELTA_LO_0 + SEG), 0x02);               // delta low
+  m.mem.write8(u16(ENEMY_CLIMB_DELTA_HI_0 + SEG), 0x00);               // delta high
+  m.mem.write8(u16(ENEMY_DEPTH_LO + X), 0x40);                 // coordinate low
+  m.mem.write8(u16(ENEMY_DEPTH + X), 0x30);                 // coordinate high
+  m.mem.write8(PLAYER_SHOT_DEPTH, 0x05);                          // below the new hi (0x30) -> plain add path
 }
 
-test("CRAFTED: add direction (loc_28a,x bit7 clear) takes loc_9c63 -- RAM, A/X, and the returned Y tuple equal", () => {
+test("CRAFTED: add direction (ENEMY_SLOT_DIR,x bit7 clear) takes loc_9c63 -- RAM, A/X, and the returned Y tuple equal", () => {
   const m = new Machine(ROM, OPTS); seed(m, { dir: "add" });
   const o = m.clone(), c = m.clone();
   oracle(o); const r = loc_9c58(c); // add path forwards loc_9c63's [A, Y] tuple
@@ -94,10 +94,10 @@ test("CRAFTED: add direction (loc_28a,x bit7 clear) takes loc_9c63 -- RAM, A/X, 
   assert.equal(c.regs.x, 3, "X is the slot index");
   assert.equal(r[1], o.regs.y, "returned Y (the seed-tail live-out) matches the oracle's Y");
   assert.equal(r[1], 2, "returned Y is the segment index threaded through");
-  assert.equal(c.mem.read8(u16(loc_29f + 3)), 0x42, "coordinate low moved UP by the delta (0x40 -> 0x42)");
+  assert.equal(c.mem.read8(u16(ENEMY_DEPTH_LO + 3)), 0x42, "coordinate low moved UP by the delta (0x40 -> 0x42)");
 });
 
-test("CRAFTED: sub direction (loc_28a,x bit7 set) takes loc_9c99 -- RAM and A/X equal", () => {
+test("CRAFTED: sub direction (ENEMY_SLOT_DIR,x bit7 set) takes loc_9c99 -- RAM and A/X equal", () => {
   const m = new Machine(ROM, OPTS); seed(m, { dir: "sub" });
   const o = m.clone(), c = m.clone();
   oracle(o); loc_9c58(c); // sub path forwards loc_9c99's A; its Y is not a live-out (no consumer reads it)
@@ -105,7 +105,7 @@ test("CRAFTED: sub direction (loc_28a,x bit7 set) takes loc_9c99 -- RAM and A/X 
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.a, 0x30, "A is the new hi byte (no underflow floor)");
   assert.equal(c.regs.x, o.regs.x, "X preserved");
-  assert.equal(c.mem.read8(u16(loc_29f + 3)), 0x3e, "coordinate low moved DOWN by the delta (0x40 -> 0x3e)");
+  assert.equal(c.mem.read8(u16(ENEMY_DEPTH_LO + 3)), 0x3e, "coordinate low moved DOWN by the delta (0x40 -> 0x3e)");
 });
 
 test("TEETH: a twin that takes the WRONG direction (sub on an add seed) MUST diverge in RAM", () => {

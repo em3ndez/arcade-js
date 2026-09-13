@@ -14,8 +14,8 @@ import { loc_a504 } from "../loc_a504.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_00, loc_3d, loc_48, loc_a6, loc_106, loc_108, loc_109,
-  loc_116, loc_11b, loc_11c, loc_135, loc_201, loc_202, loc_2df, loc_3ab, loc_455,
+  STACK_SCRATCH, GAME_MODE, loc_3d, SLOT_COUNTDOWN, ACTIVE_ENEMY_COUNT, SPIKE_ACTIVE_FLAG, ENEMY_TOTAL_COUNT, ENEMY_TYPE_COUNT,
+  TIMED_OBJECT_COUNT, PLAYER_SHAPE_SUM, ENEMY_SLOT_TOP, ACTIVE_OBJECT_COUNT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH, ENEMY_DEPTH, FIRE_GATE, loc_455,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -53,20 +53,20 @@ test("CAPTURE: real 0xa504 dispatches -- loc_a504 == oracle in RAM (-stack)", ()
 // Negative arm, full path: age the shot table, take the $0202 counter branch past its ceiling, then
 // run the tail (sets $00, jsr $928f, clamps the $03ab total).
 function seedNegative(m) {
-  m.mem.write8(loc_201, 0x80);            // bit7 set -> negative arm
-  m.mem.write8(loc_135, 0x00);
-  m.mem.write8(loc_a6, 0x00);
-  m.mem.write8(loc_116, 0x00);            // gate clear -> proceed to age loop
-  m.mem.write8(loc_11c, 0x02);            // age three shot entries
-  m.mem.write8((loc_2df + 0) & 0xffff, 0x05);
-  m.mem.write8((loc_2df + 1) & 0xffff, 0x00);
-  m.mem.write8((loc_2df + 2) & 0xffff, 0xf5); // ceiling -> snaps to 0
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x80);            // bit7 set -> negative arm
+  m.mem.write8(ACTIVE_OBJECT_COUNT, 0x00);
+  m.mem.write8(ACTIVE_ENEMY_COUNT, 0x00);
+  m.mem.write8(TIMED_OBJECT_COUNT, 0x00);            // gate clear -> proceed to age loop
+  m.mem.write8(ENEMY_SLOT_TOP, 0x02);            // age three shot entries
+  m.mem.write8((ENEMY_DEPTH + 0) & 0xffff, 0x05);
+  m.mem.write8((ENEMY_DEPTH + 1) & 0xffff, 0x00);
+  m.mem.write8((ENEMY_DEPTH + 2) & 0xffff, 0xf5); // ceiling -> snaps to 0
   m.mem.write8(loc_3d, 0x00);
-  m.mem.write8((loc_48 + 0) & 0xff, 0x00); // != 1 -> the $0202 branch
-  m.mem.write8(loc_202, 0xf0);             // +0x0f crosses the ceiling -> proceed
-  m.mem.write8(loc_108, 0x10);
-  m.mem.write8(loc_109, 0x10);
-  m.mem.write8(loc_3ab, 0x05);
+  m.mem.write8((SLOT_COUNTDOWN + 0) & 0xff, 0x00); // != 1 -> the $0202 branch
+  m.mem.write8(PLAYER_SHOT_DEPTH, 0xf0);             // +0x0f crosses the ceiling -> proceed
+  m.mem.write8(ENEMY_TOTAL_COUNT, 0x10);
+  m.mem.write8(ENEMY_TYPE_COUNT, 0x10);
+  m.mem.write8(FIRE_GATE, 0x05);
 }
 
 test("CRAFTED negative: age + counter + tail -- RAM equal, $0202 stepped, $03ab clamped", () => {
@@ -74,21 +74,21 @@ test("CRAFTED negative: age + counter + tail -- RAM equal, $0202 stepped, $03ab 
   const c = new Machine(ROM, OPTS); seedNegative(c);
   oracle(o); loc_a504(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the negative arm");
-  assert.equal(c.mem.read8(loc_202), 0xff, "$0202 advanced by 0x0f");
-  assert.equal(c.mem.read8(loc_00), 0x06, "tail seeded $00");
-  assert.equal(c.mem.read8(loc_3ab), 0x25, "$03ab total clamped");
+  assert.equal(c.mem.read8(PLAYER_SHOT_DEPTH), 0xff, "$0202 advanced by 0x0f");
+  assert.equal(c.mem.read8(GAME_MODE), 0x06, "tail seeded $00");
+  assert.equal(c.mem.read8(FIRE_GATE), 0x25, "$03ab total clamped");
 });
 
 // Positive arm, reset path: gate clear, no shot past threshold -> loc_a5cb + loc_928f both run.
 function seedPositive(m) {
-  m.mem.write8(loc_201, 0x00);   // bit7 clear -> positive arm
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x00);   // bit7 clear -> positive arm
   m.mem.write8(loc_455, 0x00);
-  m.mem.write8(loc_11b, 0x00); // gate byte
-  m.mem.write8(loc_106, 0x00);   // don't early-return
-  m.mem.write8(loc_3ab, 0x00);
-  m.mem.write8(loc_116, 0x00);   // enter the reset scan
-  m.mem.write8(loc_11c, 0x02);
-  for (let i = 0; i <= 2; i++) m.mem.write8((loc_2df + i) & 0xffff, 0x00); // nothing past threshold
+  m.mem.write8(PLAYER_SHAPE_SUM, 0x00); // gate byte
+  m.mem.write8(SPIKE_ACTIVE_FLAG, 0x00);   // don't early-return
+  m.mem.write8(FIRE_GATE, 0x00);
+  m.mem.write8(TIMED_OBJECT_COUNT, 0x00);   // enter the reset scan
+  m.mem.write8(ENEMY_SLOT_TOP, 0x02);
+  for (let i = 0; i <= 2; i++) m.mem.write8((ENEMY_DEPTH + i) & 0xffff, 0x00); // nothing past threshold
 }
 
 test("CRAFTED positive: reset path dissolves loc_a5cb + loc_928f -- RAM equal", () => {

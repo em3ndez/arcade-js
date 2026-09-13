@@ -15,8 +15,8 @@ import { loc_a8b4 } from "../loc_a8b4.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_5, loc_3, loc_6, loc_a2, loc_0, loc_3e, loc_43, loc_44, loc_45,
-  loc_123, loc_3d, loc_31e4, loc_cde4, loc_cde5, loc_16c, loc_102,
+  STACK_SCRATCH, STATUS_FLAGS, FRAME_COUNTER, PHASE_COUNTER, loc_a2, GAME_MODE, ACTIVE_SLOT_COUNT, loc_43, loc_44, loc_45,
+  SPIKED_SEGMENT_COUNT, loc_3d, NIBBLE_GLYPH_TABLE, GLYPH_LIST_BUF_OFS, MIRROR_COPY_BUF_OFS, DECIMAL_MODE_FLAG, loc_102,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -58,20 +58,20 @@ function seedRender(m) {
 
 function seat(m, s = {}) {
   seedRender(m);
-  m.mem.write8(loc_5, s.m5 ?? 0x00);
-  m.mem.write8(loc_3, s.m3 ?? 0x00);
-  m.mem.write8(loc_6, s.m6 ?? 0x00);
+  m.mem.write8(STATUS_FLAGS, s.m5 ?? 0x00);
+  m.mem.write8(FRAME_COUNTER, s.m3 ?? 0x00);
+  m.mem.write8(PHASE_COUNTER, s.m6 ?? 0x00);
   m.mem.write8(loc_a2, s.ma2 ?? 0x00);
-  m.mem.write8(loc_0, s.m0 ?? 0x00);
-  m.mem.write8(loc_3e, s.m3e ?? 0x00);
+  m.mem.write8(GAME_MODE, s.m0 ?? 0x00);
+  m.mem.write8(ACTIVE_SLOT_COUNT, s.m3e ?? 0x00);
   m.mem.write8(loc_43, s.m43 ?? 0x00);
   m.mem.write8(loc_44, s.m44 ?? 0x00);
   m.mem.write8(loc_45, s.m45 ?? 0x00);
-  m.mem.write8(loc_123, s.m123 ?? 0x00);
+  m.mem.write8(SPIKED_SEGMENT_COUNT, s.m123 ?? 0x00);
   m.mem.write8(loc_3d, s.m3d ?? 0x00);
-  m.mem.write8(loc_31e4, s.snap ?? 0x00);
-  m.mem.write8(loc_cde4, s.cde4 ?? 0x00);
-  m.mem.write8(loc_cde5, s.cde5 ?? 0x00);
+  m.mem.write8(NIBBLE_GLYPH_TABLE, s.snap ?? 0x00);
+  m.mem.write8(GLYPH_LIST_BUF_OFS, s.cde4 ?? 0x00);
+  m.mem.write8(MIRROR_COPY_BUF_OFS, s.cde5 ?? 0x00);
   m.mem.write8((loc_102 + (s.m3d ?? 0x00)) & 0xffff, s.slot ?? 0x00);
 }
 
@@ -108,7 +108,7 @@ test("TEETH: a twin that perturbs the checksum output byte diverges (the RAM dif
   const c = freezePokey(new Machine(ROM, OPTS)); seat(c, s);
   oracle(o);
   // BUG: builds the frame correctly but leaves the checksum cell one off.
-  const broken = (m) => { loc_a8b4(m); m.mem8[loc_16c] = (m.mem8[loc_16c] + 1) & 0xff; };
+  const broken = (m) => { loc_a8b4(m); m.mem8[DECIMAL_MODE_FLAG] = (m.mem8[DECIMAL_MODE_FLAG] + 1) & 0xff; };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the perturbed $016c checksum");
 });

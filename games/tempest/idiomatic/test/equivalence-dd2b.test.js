@@ -16,7 +16,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { loc_df75 } from "../loc_df75.js";
 import { loc_df1f } from "../loc_df1f.js";
-import { STACK_SCRATCH, loc_35, loc_37, loc_74 } from "../names.js";
+import { STACK_SCRATCH, SAVED_INDEX, SLOT_LOOP_INDEX, DRAW_CURSOR_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -55,7 +55,7 @@ test("CAPTURE: real 0xdd2b dispatches -- loc_dd2b == oracle in RAM (-stack) and 
 // vector RAM so the eight emitted digits land in diffed RAM.
 function seedDistinct(m) {
   m.regs.a = 0x11; m.regs.y = 0xb4; m.regs.x = 0x33;
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_74 + 1, 0x21); // ($74) -> 0x2100
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x21); // ($74) -> 0x2100
 }
 
 test("CRAFTED: distinct A/X and a mixed bit pattern -- loc_dd2b == oracle in RAM", () => {
@@ -64,8 +64,8 @@ test("CRAFTED: distinct A/X and a mixed bit pattern -- loc_dd2b == oracle in RAM
   oracle(o); loc_dd2b(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after scale + 8 digit emits");
   assert.equal(c.regs.a, o.regs.a, "A live-out (last df1f cursor value) matches");
-  assert.equal(c.mem.read8(loc_35), 0x00, "$35 shifted fully out to 0");
-  assert.equal(c.mem.read8(loc_37), 0xff, "$37 loop counter ran to 0xff");
+  assert.equal(c.mem.read8(SAVED_INDEX), 0x00, "$35 shifted fully out to 0");
+  assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xff, "$37 loop counter ran to 0xff");
 });
 
 test("TEETH: a twin that skips the digit loop diverges from the oracle", () => {
@@ -74,7 +74,7 @@ test("TEETH: a twin that skips the digit loop diverges from the oracle", () => {
   oracle(o);
   const brokenDd2b = (m, y = m.regs.y, a = m.regs.a, x = m.regs.x) => {
     const mem8 = m.mem8;
-    mem8[loc_35] = y;
+    mem8[SAVED_INDEX] = y;
     loc_df75(m, a, x); // BUG: never runs the 8-pass digit-emit loop
   };
   brokenDd2b(c);
@@ -86,15 +86,15 @@ test("TEETH (marshalling): a twin that scales X,A swapped diverges from the orac
   const c = new Machine(ROM, OPTS); seedDistinct(c);
   const swappedTwin = (m, y = m.regs.y, a = m.regs.a, x = m.regs.x) => {
     const mem8 = m.mem8;
-    mem8[loc_35] = y;
+    mem8[SAVED_INDEX] = y;
     loc_df75(m, x, a); // BUG: A and X args swapped
-    mem8[loc_37] = 0x07;
+    mem8[SLOT_LOOP_INDEX] = 0x07;
     do {
-      const shifted = mem8[loc_35] << 1;
-      mem8[loc_35] = shifted;
+      const shifted = mem8[SAVED_INDEX] << 1;
+      mem8[SAVED_INDEX] = shifted;
       loc_df1f(m, (shifted >> 8) & 1);
-      mem8[loc_37] = mem8[loc_37] - 1;
-    } while (mem8[loc_37] < 0x80);
+      mem8[SLOT_LOOP_INDEX] = mem8[SLOT_LOOP_INDEX] - 1;
+    } while (mem8[SLOT_LOOP_INDEX] < 0x80);
   };
   swappedTwin(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the swapped scale args");

@@ -13,7 +13,7 @@ import { loc_d7e1 as oracle } from "../../translated/loc_d7e1.js";
 import { loc_d7e1 } from "../loc_d7e1.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_0, loc_1, loc_5, loc_1c9, loc_1ca } from "../names.js";
+import { STACK_SCRATCH, GAME_MODE, MODE_DISPATCH_SEL, STATUS_FLAGS, PENDING_WORK_FLAGS, EAROM_MODE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -48,31 +48,31 @@ test("CAPTURE: real 0xd7e1 dispatches -- loc_d7e1 == oracle in RAM (-stack)", ()
 });
 
 test("CRAFTED: all guards open -- delegate runs, RAM matches oracle", () => {
-  // delegate runs only when (loc_1c9 & 3) != 0 (idle=0 takes the rts), so seed a pending request
-  const seed = (m) => { m.mem.write8(loc_1ca, 0x00); m.mem.write8(loc_1c9, 0x03); };
+  // delegate runs only when (PENDING_WORK_FLAGS & 3) != 0 (idle=0 takes the rts), so seed a pending request
+  const seed = (m) => { m.mem.write8(EAROM_MODE, 0x00); m.mem.write8(PENDING_WORK_FLAGS, 0x03); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_d7e1(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after delegate");
-  assert.equal(c.mem.read8(loc_1), 0x02, "$0001 armed");
-  assert.equal(c.mem.read8(loc_0), 0x00, "$0000 stamped past second guard");
+  assert.equal(c.mem.read8(MODE_DISPATCH_SEL), 0x02, "$0001 armed");
+  assert.equal(c.mem.read8(GAME_MODE), 0x00, "$0000 stamped past second guard");
 });
 
 test("CRAFTED: first guard shut ($01ca!=0) -- no delegate, RAM still matches oracle", () => {
-  const seed = (m) => { m.mem.write8(loc_1ca, 0x01); m.mem.write8(loc_1c9, 0x00); };
+  const seed = (m) => { m.mem.write8(EAROM_MODE, 0x01); m.mem.write8(PENDING_WORK_FLAGS, 0x00); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_d7e1(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the guarded-out path");
-  assert.equal(c.mem.read8(loc_1), 0x02, "$0001 still armed before the guard");
+  assert.equal(c.mem.read8(MODE_DISPATCH_SEL), 0x02, "$0001 still armed before the guard");
 });
 
 test("TEETH: a twin that fails to arm $0001 diverges from the oracle", () => {
-  const seed = (m) => { m.mem.write8(loc_1ca, 0x00); m.mem.write8(loc_1c9, 0x00); };
+  const seed = (m) => { m.mem.write8(EAROM_MODE, 0x00); m.mem.write8(PENDING_WORK_FLAGS, 0x00); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const broken = (m) => { m.mem8[loc_5] = 0x00; }; // BUG: never arms $0001 nor delegates
+  const broken = (m) => { m.mem8[STATUS_FLAGS] = 0x00; }; // BUG: never arms $0001 nor delegates
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the missing arm/delegate");
 });

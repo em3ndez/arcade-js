@@ -17,7 +17,7 @@ import { loc_cd95 } from "../loc_cd95.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8, u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_c0, loc_d0, loc_720, loc_60c0, loc_60d0 } from "../names.js";
+import { STACK_SCRATCH, SOUND_VOICE_VALUE, SOUND_VOICE_LEVEL, loc_720, POKEY1_AUDF1, POKEY2_AUDF1 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -43,7 +43,7 @@ function captureDispatches(K, maxFrames) {
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 const SLOTS = [];
-for (let i = 0; i < 8; i++) { SLOTS.push(u8(loc_c0 + i), u8(loc_d0 + i)); }
+for (let i = 0; i < 8; i++) { SLOTS.push(u8(SOUND_VOICE_VALUE + i), u8(SOUND_VOICE_LEVEL + i)); }
 
 test("CAPTURE: real 0xcd95 dispatches -- loc_cd95 == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
@@ -57,7 +57,7 @@ test("CAPTURE: real 0xcd95 dispatches -- loc_cd95 == oracle in RAM (-stack)", ()
 test("CRAFTED: the $00c0/$00d0 slot arrays and $0720 flag clear to 0 (POKEY frozen on a fresh machine)", () => {
   const seed = (m) => {
     m.mem.write8(loc_720, 0x5c);
-    for (let i = 0; i < 8; i++) { m.mem.write8(u8(loc_c0 + i), 0xa0 + i); m.mem.write8(u8(loc_d0 + i), 0xb0 + i); }
+    for (let i = 0; i < 8; i++) { m.mem.write8(u8(SOUND_VOICE_VALUE + i), 0xa0 + i); m.mem.write8(u8(SOUND_VOICE_LEVEL + i), 0xb0 + i); }
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -70,7 +70,7 @@ test("CRAFTED: the $00c0/$00d0 slot arrays and $0720 flag clear to 0 (POKEY froz
 test("TEETH: a twin that leaves the entry-0 slots untouched diverges from the oracle", () => {
   const seed = (m) => {
     m.mem.write8(loc_720, 0x5c);
-    for (let i = 0; i < 8; i++) { m.mem.write8(u8(loc_c0 + i), 0xa0 + i); m.mem.write8(u8(loc_d0 + i), 0xb0 + i); }
+    for (let i = 0; i < 8; i++) { m.mem.write8(u8(SOUND_VOICE_VALUE + i), 0xa0 + i); m.mem.write8(u8(SOUND_VOICE_LEVEL + i), 0xb0 + i); }
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -79,8 +79,8 @@ test("TEETH: a twin that leaves the entry-0 slots untouched diverges from the or
     const mem = m.mem8;
     mem[loc_720] = 0;
     for (let x = 7; x >= 1; x--) { // BUG: never clears the entry-0 slots ($00c0 / $00d0)
-      mem[u16(loc_60c0 + x)] = 0; mem[u16(loc_60d0 + x)] = 0;
-      mem[u8(loc_c0 + x)] = 0; mem[u8(loc_d0 + x)] = 0;
+      mem[u16(POKEY1_AUDF1 + x)] = 0; mem[u16(POKEY2_AUDF1 + x)] = 0;
+      mem[u8(SOUND_VOICE_VALUE + x)] = 0; mem[u8(SOUND_VOICE_LEVEL + x)] = 0;
     }
   };
   brokenCd95(c);

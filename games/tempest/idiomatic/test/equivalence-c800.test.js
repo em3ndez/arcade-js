@@ -15,7 +15,7 @@ import { loc_c800 as oracle } from "../../translated/loc_c800.js";
 import { loc_c800 } from "../loc_c800.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_201, loc_3, loc_16b, loc_4, loc_0, loc_2 } from "../names.js";
+import { STACK_SCRATCH, PLAYER_FINE_ANGLE, FRAME_COUNTER, MODE_DELAY_GUARD, MODE_DELAY_TIMER, GAME_MODE, GAME_MODE_PENDING } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -48,64 +48,64 @@ test("CAPTURE: real 0xc800 dispatches -- loc_c800 == oracle in RAM (-stack)", ()
 
 test("CRAFTED: guard clear + counter reaches zero -- arm next state, clear guard", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x80);   // steer the delegated update to its early-out
-    m.mem.write8(loc_3, 0x00);     // guard clear
-    m.mem.write8(loc_16b, 0x01);
-    m.mem.write8(loc_4, 0x01);     // -> decrements to 0 -> arm
-    m.mem.write8(loc_2, 0x37);
-    m.mem.write8(loc_0, 0x00);
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x80);   // steer the delegated update to its early-out
+    m.mem.write8(FRAME_COUNTER, 0x00);     // guard clear
+    m.mem.write8(MODE_DELAY_GUARD, 0x01);
+    m.mem.write8(MODE_DELAY_TIMER, 0x01);     // -> decrements to 0 -> arm
+    m.mem.write8(GAME_MODE_PENDING, 0x37);
+    m.mem.write8(GAME_MODE, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_c800(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the arm path");
-  assert.equal(c.mem.read8(loc_0), 0x37, "$00 armed from $02");
-  assert.equal(c.mem.read8(loc_16b), 0x00, "guard cleared");
-  assert.equal(c.mem.read8(loc_4), 0x00, "counter landed on zero");
+  assert.equal(c.mem.read8(GAME_MODE), 0x37, "$00 armed from $02");
+  assert.equal(c.mem.read8(MODE_DELAY_GUARD), 0x00, "guard cleared");
+  assert.equal(c.mem.read8(MODE_DELAY_TIMER), 0x00, "counter landed on zero");
 });
 
 test("CRAFTED: guard set -- tail-delegate with no arm", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x80);
-    m.mem.write8(loc_3, 0xff);     // guard bits present
-    m.mem.write8(loc_16b, 0x01);
-    m.mem.write8(loc_4, 0x05);
-    m.mem.write8(loc_2, 0x37);
-    m.mem.write8(loc_0, 0x00);
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x80);
+    m.mem.write8(FRAME_COUNTER, 0xff);     // guard bits present
+    m.mem.write8(MODE_DELAY_GUARD, 0x01);
+    m.mem.write8(MODE_DELAY_TIMER, 0x05);
+    m.mem.write8(GAME_MODE_PENDING, 0x37);
+    m.mem.write8(GAME_MODE, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_c800(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the guarded path");
-  assert.equal(c.mem.read8(loc_0), 0x00, "$00 not armed");
-  assert.equal(c.mem.read8(loc_4), 0x05, "counter untouched");
+  assert.equal(c.mem.read8(GAME_MODE), 0x00, "$00 not armed");
+  assert.equal(c.mem.read8(MODE_DELAY_TIMER), 0x05, "counter untouched");
 });
 
 test("CRAFTED: guard clear + counter still counting -- decrement only, no arm", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x80);
-    m.mem.write8(loc_3, 0x00);
-    m.mem.write8(loc_16b, 0x01);
-    m.mem.write8(loc_4, 0x05);     // -> 4, no arm
-    m.mem.write8(loc_2, 0x37);
-    m.mem.write8(loc_0, 0x00);
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x80);
+    m.mem.write8(FRAME_COUNTER, 0x00);
+    m.mem.write8(MODE_DELAY_GUARD, 0x01);
+    m.mem.write8(MODE_DELAY_TIMER, 0x05);     // -> 4, no arm
+    m.mem.write8(GAME_MODE_PENDING, 0x37);
+    m.mem.write8(GAME_MODE, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_c800(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the counting path");
-  assert.equal(c.mem.read8(loc_4), 0x04, "counter decremented");
-  assert.equal(c.mem.read8(loc_0), 0x00, "no arm while counting");
+  assert.equal(c.mem.read8(MODE_DELAY_TIMER), 0x04, "counter decremented");
+  assert.equal(c.mem.read8(GAME_MODE), 0x00, "no arm while counting");
 });
 
 test("TEETH: a twin that arms regardless of the guard diverges from the oracle", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x80);
-    m.mem.write8(loc_3, 0xff);     // guard set -> oracle must NOT arm
-    m.mem.write8(loc_16b, 0x01);
-    m.mem.write8(loc_4, 0x01);
-    m.mem.write8(loc_2, 0x37);
-    m.mem.write8(loc_0, 0x00);
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x80);
+    m.mem.write8(FRAME_COUNTER, 0xff);     // guard set -> oracle must NOT arm
+    m.mem.write8(MODE_DELAY_GUARD, 0x01);
+    m.mem.write8(MODE_DELAY_TIMER, 0x01);
+    m.mem.write8(GAME_MODE_PENDING, 0x37);
+    m.mem.write8(GAME_MODE, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -113,9 +113,9 @@ test("TEETH: a twin that arms regardless of the guard diverges from the oracle",
   // BUG: ignores the guard and always arms when the counter runs down.
   const broken = (m) => {
     const { mem8 } = m;
-    let count = mem8[loc_4];
-    if (count !== 0) { count = (count - 1) & 0xff; mem8[loc_4] = count; }
-    if (count === 0) { mem8[loc_0] = mem8[loc_2]; mem8[loc_16b] = 0x00; }
+    let count = mem8[MODE_DELAY_TIMER];
+    if (count !== 0) { count = (count - 1) & 0xff; mem8[MODE_DELAY_TIMER] = count; }
+    if (count === 0) { mem8[GAME_MODE] = mem8[GAME_MODE_PENDING]; mem8[MODE_DELAY_GUARD] = 0x00; }
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the ignored guard");
@@ -123,8 +123,8 @@ test("TEETH: a twin that arms regardless of the guard diverges from the oracle",
 
 test("SP-TOOTH: the omitted-ret dispatch (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
-  m.mem.write8(loc_201, 0x80);
-  m.mem.write8(loc_3, 0xff);
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x80);
+  m.mem.write8(FRAME_COUNTER, 0xff);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
   const r = seamPlaceable(withOmittedRet, loc_c800, TARGET, m);

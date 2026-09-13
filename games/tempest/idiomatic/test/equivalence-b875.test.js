@@ -13,7 +13,7 @@ import { loc_b875 as oracle } from "../../translated/loc_b875.js";
 import { loc_b875 } from "../loc_b875.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_22, loc_23, loc_24, loc_809, loc_80a, loc_80b } from "../names.js";
+import { STACK_SCRATCH, COLOR_CYCLE_0, COLOR_CYCLE_1, COLOR_CYCLE_2, COLOR_RAM_9, COLOR_RAM_A, COLOR_RAM_B } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,26 +51,26 @@ test("CAPTURE: real 0xb875 dispatches -- loc_b875 == oracle in RAM (-stack)", ()
 
 test("CRAFTED: $22..$24 rotate down by one and $0809..$080b mirror the result", () => {
   const seed = (m) => {
-    m.mem.write8(loc_22, 0x11); m.mem.write8(loc_23, 0x22); m.mem.write8(loc_24, 0x33);
-    m.mem.write8(loc_809, 0xa0); m.mem.write8(loc_80a, 0xa1); m.mem.write8(loc_80b, 0xa2); // dirty sentinels
+    m.mem.write8(COLOR_CYCLE_0, 0x11); m.mem.write8(COLOR_CYCLE_1, 0x22); m.mem.write8(COLOR_CYCLE_2, 0x33);
+    m.mem.write8(COLOR_RAM_9, 0xa0); m.mem.write8(COLOR_RAM_A, 0xa1); m.mem.write8(COLOR_RAM_B, 0xa2); // dirty sentinels
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_b875(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after rotate");
   // rotate: new $22=old $23, new $23=old $24, new $24=old $22; the pair mirrors the new values.
-  assert.equal(readCell(c, loc_22), 0x22, "$22 <- old $23");
-  assert.equal(readCell(c, loc_23), 0x33, "$23 <- old $24");
-  assert.equal(readCell(c, loc_24), 0x11, "$24 <- old $22");
-  assert.equal(readCell(c, loc_809), 0x22, "$0809 mirrors $22");
-  assert.equal(readCell(c, loc_80a), 0x33, "$080a mirrors $23");
-  assert.equal(readCell(c, loc_80b), 0x11, "$080b mirrors $24");
+  assert.equal(readCell(c, COLOR_CYCLE_0), 0x22, "$22 <- old $23");
+  assert.equal(readCell(c, COLOR_CYCLE_1), 0x33, "$23 <- old $24");
+  assert.equal(readCell(c, COLOR_CYCLE_2), 0x11, "$24 <- old $22");
+  assert.equal(readCell(c, COLOR_RAM_9), 0x22, "$0809 mirrors $22");
+  assert.equal(readCell(c, COLOR_RAM_A), 0x33, "$080a mirrors $23");
+  assert.equal(readCell(c, COLOR_RAM_B), 0x11, "$080b mirrors $24");
 });
 
 test("TEETH: a twin that copies instead of rotating diverges from the oracle", () => {
   const seed = (m) => {
-    m.mem.write8(loc_22, 0x11); m.mem.write8(loc_23, 0x22); m.mem.write8(loc_24, 0x33);
-    m.mem.write8(loc_809, 0xa0); m.mem.write8(loc_80a, 0xa1); m.mem.write8(loc_80b, 0xa2);
+    m.mem.write8(COLOR_CYCLE_0, 0x11); m.mem.write8(COLOR_CYCLE_1, 0x22); m.mem.write8(COLOR_CYCLE_2, 0x33);
+    m.mem.write8(COLOR_RAM_9, 0xa0); m.mem.write8(COLOR_RAM_A, 0xa1); m.mem.write8(COLOR_RAM_B, 0xa2);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -78,7 +78,7 @@ test("TEETH: a twin that copies instead of rotating diverges from the oracle", (
   const brokenB875 = (m) => {
     const mem = m.mem8;
     // BUG: mirrors the unrotated array (no down-shift)
-    mem[loc_809] = mem[loc_22]; mem[loc_80a] = mem[loc_23]; mem[loc_80b] = mem[loc_24];
+    mem[COLOR_RAM_9] = mem[COLOR_CYCLE_0]; mem[COLOR_RAM_A] = mem[COLOR_CYCLE_1]; mem[COLOR_RAM_B] = mem[COLOR_CYCLE_2];
   };
   brokenB875(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the missing rotation");

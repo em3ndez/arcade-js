@@ -14,7 +14,7 @@ import { loc_b75b } from "../loc_b75b.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_2d3, loc_2ad, loc_3, loc_135, loc_808, loc_37 } from "../names.js";
+import { STACK_SCRATCH, SLOT_STATE, TARGET_SEG, FRAME_COUNTER, ACTIVE_OBJECT_COUNT, COLOR_RAM_8, SLOT_LOOP_INDEX } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -53,11 +53,11 @@ const seed = (m, stage) => {
   seedVectorRam(m);
   for (let i = 0; i <= 0x0b; i++) {
     // mix in some empty entries (skipped) and some live ones across the near/far split
-    m.mem.write8(u16(loc_2d3 + i), i % 3 === 0 ? 0x00 : (0x10 + i));
-    m.mem.write8(u16(loc_2ad + i), 0x40 + i);
+    m.mem.write8(u16(SLOT_STATE + i), i % 3 === 0 ? 0x00 : (0x10 + i));
+    m.mem.write8(u16(TARGET_SEG + i), 0x40 + i);
   }
-  m.mem.write8(loc_3, 0x33);
-  m.mem.write8(loc_135, stage);
+  m.mem.write8(FRAME_COUNTER, 0x33);
+  m.mem.write8(ACTIVE_OBJECT_COUNT, stage);
 };
 
 test("CRAFTED: seeded loop is RAM-equivalent and latches the level byte", () => {
@@ -65,8 +65,8 @@ test("CRAFTED: seeded loop is RAM-equivalent and latches the level byte", () => 
   const c = new Machine(ROM, OPTS); seed(c, 0x04);
   oracle(o); loc_b75b(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the walk");
-  assert.equal(c.io.colorram[loc_808 & 0x0f], 0x04, "level byte latched to 0x04");
-  assert.equal(c.mem.read8(loc_37), o.mem.read8(loc_37), "loop counter matches oracle");
+  assert.equal(c.io.colorram[COLOR_RAM_8 & 0x0f], 0x04, "level byte latched to 0x04");
+  assert.equal(c.mem.read8(SLOT_LOOP_INDEX), o.mem.read8(SLOT_LOOP_INDEX), "loop counter matches oracle");
 });
 
 test("CRAFTED: stage in [6,8) latches 0x0b; stage >= 8 latches 0x0c", () => {
@@ -75,7 +75,7 @@ test("CRAFTED: stage in [6,8) latches 0x0b; stage >= 8 latches 0x0c", () => {
     const c = new Machine(ROM, OPTS); seed(c, stage);
     oracle(o); loc_b75b(c);
     assert.equal(ramDiff(o, c), null, `RAM equal at stage ${stage}`);
-    assert.equal(c.io.colorram[loc_808 & 0x0f], want, `level byte at stage ${stage}`);
+    assert.equal(c.io.colorram[COLOR_RAM_8 & 0x0f], want, `level byte at stage ${stage}`);
   }
 });
 
@@ -84,6 +84,6 @@ test("TEETH (non-default seed): a twin that latches the wrong level byte diverge
   const c = new Machine(ROM, OPTS); seed(c, 0x09);
   oracle(o);
   loc_b75b(c);
-  c.mem.write8(loc_808, 0x00); // BUG: clobber the latched level byte
+  c.mem.write8(COLOR_RAM_8, 0x00); // BUG: clobber the latched level byte
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong level byte");
 });

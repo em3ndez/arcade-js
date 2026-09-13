@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_29, loc_2a, loc_2b, loc_a788 } from "./names.js";
+import { loc_29, loc_2a, loc_2b, VELOCITY_DECAY_STEP } from "./names.js";
 
 // Step a signed 16-bit velocity (whole:low) one fixed increment toward zero:
 // add when the whole is negative, subtract otherwise. On crossing zero, snap to
@@ -7,7 +7,7 @@ import { loc_29, loc_2a, loc_2b, loc_a788 } from "./names.js";
 export function loc_a75d(m, a = m.regs.a, y = m.regs.y) {
   const { mem8 } = m;
   mem8[loc_2b] = y;
-  const step = mem8[loc_a788];
+  const step = mem8[VELOCITY_DECAY_STEP];
 
   let low, whole, crossed;
   if (y & 0x80) {

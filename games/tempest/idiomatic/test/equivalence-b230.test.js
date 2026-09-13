@@ -14,7 +14,7 @@ import { loc_b230 as oracle } from "../../translated/loc_b230.js";
 import { loc_b230 } from "../loc_b230.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_114, loc_cec2, loc_cec3, loc_2000, loc_2001 } from "../names.js";
+import { STACK_SCRATCH, REDRAW_COUNTER, VECHEAD0_FRAME, VECHEAD1_FRAME, VEC_LIST_HEADER_LO, VEC_LIST_HEADER_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -56,15 +56,15 @@ test("CRAFTED: warm frame draw -- full subsystem sequence matches the oracle", (
   const o = BASE(); const c = BASE();
   oracle(o); loc_b230(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the frame draw");
-  assert.equal(c.mem.read8(loc_2000), c.mem.read8(loc_cec2), "display word 0 latched from its source");
-  assert.equal(c.mem.read8(loc_2001), c.mem.read8(loc_cec3), "display word 1 latched from its source");
-  assert.equal(c.mem.read8(loc_114), 0x00, "change counter cleared");
+  assert.equal(c.mem.read8(VEC_LIST_HEADER_LO), c.mem.read8(VECHEAD0_FRAME), "display word 0 latched from its source");
+  assert.equal(c.mem.read8(VEC_LIST_HEADER_HI), c.mem.read8(VECHEAD1_FRAME), "display word 1 latched from its source");
+  assert.equal(c.mem.read8(REDRAW_COUNTER), 0x00, "change counter cleared");
 });
 
 test("TEETH: a twin that draws nothing diverges from the oracle", () => {
   const o = BASE(); const c = BASE();
   oracle(o);
-  const brokenB230 = (m) => { m.mem8[loc_114] = 0x00; /* BUG: never runs any subsystem nor latches display */ };
+  const brokenB230 = (m) => { m.mem8[REDRAW_COUNTER] = 0x00; /* BUG: never runs any subsystem nor latches display */ };
   brokenB230(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped frame");
 });
@@ -72,7 +72,7 @@ test("TEETH: a twin that draws nothing diverges from the oracle", () => {
 test("TEETH-LATCH: a twin that latches the wrong display word diverges from the oracle", () => {
   const o = BASE(); const c = BASE();
   oracle(o);
-  const brokenB230 = (m) => { loc_b230(m); m.mem8[loc_2000] = (m.mem8[loc_cec2] ^ 0xff) & 0xff; };
+  const brokenB230 = (m) => { loc_b230(m); m.mem8[VEC_LIST_HEADER_LO] = (m.mem8[VECHEAD0_FRAME] ^ 0xff) & 0xff; };
   brokenB230(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted latch");
 });

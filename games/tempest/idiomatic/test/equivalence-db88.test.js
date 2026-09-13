@@ -14,7 +14,7 @@ import { loc_db88 } from "../loc_db88.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_60c1, loc_60d1, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, POKEY1_AUDC1, POKEY2_AUDC1, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,10 +50,10 @@ test("CAPTURE: real 0xdb88 dispatches -- loc_db88 == oracle in RAM (-stack)", ()
 
 function seed(m) {
   m.regs.a = 0x5c; m.regs.x = 0x37;               // header pair into loc_df39
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20); // cursor into vector RAM
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); // cursor into vector RAM
   for (let i = 0; i <= 6; i += 2) {
-    m.mem.write8(u16(loc_60c1 + i), 0xa0 + i);     // dirty sentinels
-    m.mem.write8(u16(loc_60d1 + i), 0xb0 + i);
+    m.mem.write8(u16(POKEY1_AUDC1 + i), 0xa0 + i);     // dirty sentinels
+    m.mem.write8(u16(POKEY2_AUDC1 + i), 0xb0 + i);
   }
 }
 
@@ -63,8 +63,8 @@ test("CRAFTED: even slots of both tables clear to 0x00, header word emitted", ()
   oracle(o); loc_db88(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after blank");
   for (let i = 0; i <= 6; i += 2) {
-    assert.equal(c.mem.read8(u16(loc_60c1 + i)), 0x00, `60c1 slot ${i} cleared`);
-    assert.equal(c.mem.read8(u16(loc_60d1 + i)), 0x00, `60d1 slot ${i} cleared`);
+    assert.equal(c.mem.read8(u16(POKEY1_AUDC1 + i)), 0x00, `60c1 slot ${i} cleared`);
+    assert.equal(c.mem.read8(u16(POKEY2_AUDC1 + i)), 0x00, `60d1 slot ${i} cleared`);
   }
 });
 

@@ -14,8 +14,8 @@ import { loc_b634 } from "../loc_b634.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_2e, loc_2f, loc_30, loc_56, loc_57, loc_58, loc_59, loc_5a,
-  loc_112, loc_2b9, loc_2cc, loc_3ce, loc_3de, loc_b687, loc_b68b,
+  STACK_SCRATCH, loc_2e, loc_2f, loc_30, PROJ_PT_Y, OBJ_DEPTH, PROJ_PT_X, CLAMP_TALLY, RUN_SIZE,
+  TUBE_SHAPE_INDEX, ENEMY_SEGMENT, ENEMY_PHASE, SEG_BASE_X, SEG_BASE_Y, VERTEX_Y_OFS_BY_PHASE, VERTEX_X_OFS_BY_PHASE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -52,12 +52,12 @@ test("CAPTURE: real 0xb634 dispatches -- loc_b634 == oracle in RAM (-stack)", ()
 
 function seed(m, s) {
   m.regs.x = s.x;
-  m.mem8[loc_57] = s.b57;
-  m.mem8[(loc_2b9 + s.x) & 0xffff] = s.coordIdx;
-  m.mem8[(loc_3ce + s.coordIdx) & 0xffff] = s.baseX;
-  m.mem8[(loc_3de + s.coordIdx) & 0xffff] = s.baseY;
-  m.mem8[(loc_2cc + s.x) & 0xffff] = s.deltaIdx;
-  m.mem8[loc_112] = s.styleIdx;
+  m.mem8[OBJ_DEPTH] = s.b57;
+  m.mem8[(ENEMY_SEGMENT + s.x) & 0xffff] = s.coordIdx;
+  m.mem8[(SEG_BASE_X + s.coordIdx) & 0xffff] = s.baseX;
+  m.mem8[(SEG_BASE_Y + s.coordIdx) & 0xffff] = s.baseY;
+  m.mem8[(ENEMY_PHASE + s.x) & 0xffff] = s.deltaIdx;
+  m.mem8[TUBE_SHAPE_INDEX] = s.styleIdx;
 }
 
 test("CRAFTED: coord fetch, saturating add and style load == oracle across seeds (RAM -stack)", () => {
@@ -83,7 +83,7 @@ test("TEETH: a twin that adds without signed saturation diverges on an overflowi
   const probe = new Machine(ROM, OPTS);
   let deltaIdx = -1;
   for (let i = 0; i < 16; i++) {
-    const d = probe.mem8[(loc_b68b + i) & 0xffff];
+    const d = probe.mem8[(VERTEX_X_OFS_BY_PHASE + i) & 0xffff];
     if (d >= 1 && d <= 0x7f) { deltaIdx = i; break; }
   }
   assert.notEqual(deltaIdx, -1, "no positive delta in $b68b[0..15] to force overflow");
@@ -92,12 +92,12 @@ test("TEETH: a twin that adds without signed saturation diverges on an overflowi
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o);
   const broken = (m) => { // BUG: plain wrapping add for the first coord, no signed saturation
-    const cIdx = m.mem8[(loc_2b9 + m.regs.x) & 0xffff];
-    const dIdx = m.mem8[(loc_2cc + m.regs.x) & 0xffff] & 0x0f;
-    m.mem8[loc_2f] = m.mem8[loc_57];
-    const bx = m.mem8[(loc_3ce + cIdx) & 0xffff];
-    m.mem8[loc_56] = bx;
-    const sum = ((bx ^ 0x80) + m.mem8[(loc_b68b + dIdx) & 0xffff]) & 0xff;
+    const cIdx = m.mem8[(ENEMY_SEGMENT + m.regs.x) & 0xffff];
+    const dIdx = m.mem8[(ENEMY_PHASE + m.regs.x) & 0xffff] & 0x0f;
+    m.mem8[loc_2f] = m.mem8[OBJ_DEPTH];
+    const bx = m.mem8[(SEG_BASE_X + cIdx) & 0xffff];
+    m.mem8[PROJ_PT_Y] = bx;
+    const sum = ((bx ^ 0x80) + m.mem8[(VERTEX_X_OFS_BY_PHASE + dIdx) & 0xffff]) & 0xff;
     m.mem8[loc_2e] = sum ^ 0x80;
   };
   broken(c);

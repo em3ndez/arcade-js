@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_9cb6 (ROM 0x9cb6-0x9d04) -- the per-slot(x) steering step keyed on the
-// direction/flags cell loc_28a,x bit7. bit7 set -> SUB-step (loc_9c99) + maybe flip bit7; bit7 clear ->
+// direction/flags cell ENEMY_SLOT_DIR,x bit7. bit7 set -> SUB-step (loc_9c99) + maybe flip bit7; bit7 clear ->
 // ADD-step (loc_9c63); a common tail may seed an object via loc_a347. Output is RAM (dumpState minus the
 // dead STACK_SCRATCH); the slot register X is passed through, and A tracks the oracle's final compare
 // operand on every tail exit EXCEPT the loc_a347 arm (there A is that callee's incidental leftover). Y
 // IS a live-out into the loc_a347 seed arm -- the ADD step (loc_9c63 -> loc_9d06) leaves the scan index
-// in Y and the seed stores it to loc_36 -- so the bit7-clear->loc_9d06->a347 path is exercised below.
+// in Y and the seed stores it to SAVED_INDEX2 -- so the bit7-clear->loc_9d06->a347 path is exercised below.
 // Oracle is the frozen translated/loc_9cb6.js. Reached only by indirect dispatch (no direct jsr/jmp in ROM).
 // Run: node --test games/tempest/idiomatic/test/equivalence-9cb6.test.js
 
@@ -20,8 +20,8 @@ import { loc_a347 } from "../loc_a343.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_36, loc_108, loc_109, loc_13b, loc_13c, loc_148, loc_157, loc_160, loc_165,
-  loc_200, loc_201, loc_202, loc_283, loc_28a, loc_2b9, loc_2cc, loc_2df, loc_3ab,
+  STACK_SCRATCH, SAVED_INDEX2, ENEMY_TOTAL_COUNT, ENEMY_TYPE_COUNT, OBJECT_ANIM_PHASE, OBJECT_ANIM_TIMER, ENEMY_ANIM_ACCUM, NEAR_DEPTH_THRESHOLD, ENEMY_CLIMB_DELTA_LO_0, ENEMY_CLIMB_DELTA_HI_0,
+  PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH, ENEMY_SLOT_FLAGS, ENEMY_SLOT_DIR, ENEMY_SEGMENT, ENEMY_PHASE, ENEMY_DEPTH, FIRE_GATE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -71,15 +71,15 @@ function fresh(x) {
   return m;
 }
 
-test("CRAFTED: bit7 set -- loc_3ab==0 forces probe 0xff >= threshold -> eor #$80 flip of loc_28a,x", () => {
+test("CRAFTED: bit7 set -- FIRE_GATE==0 forces probe 0xff >= threshold -> eor #$80 flip of ENEMY_SLOT_DIR,x", () => {
   const setup = (m) => {
-    m.mem.write8((loc_28a + 0x00) & 0xffff, 0x80); // bit7 set -> SUB path
-    m.mem.write8((loc_2df + 0x00) & 0xffff, 0x50); // hi coord; delta 0 -> loc_9c99 returns 0x50
-    m.mem.write8((loc_160 + 0x01) & 0xffff, 0x00);
-    m.mem.write8((loc_165 + 0x01) & 0xffff, 0x00);
-    m.mem.write8(loc_3ab, 0x00);                    // ldy loc_3ab == 0 -> probe = 0xff
-    m.mem.write8(loc_157, 0x40);                    // 0xff >= 0x40 -> flip
-    m.mem.write8(loc_148, 0x80);                    // tail bit7 set -> exit, A = 0x80
+    m.mem.write8((ENEMY_SLOT_DIR + 0x00) & 0xffff, 0x80); // bit7 set -> SUB path
+    m.mem.write8((ENEMY_DEPTH + 0x00) & 0xffff, 0x50); // hi coord; delta 0 -> loc_9c99 returns 0x50
+    m.mem.write8((ENEMY_CLIMB_DELTA_LO_0 + 0x01) & 0xffff, 0x00);
+    m.mem.write8((ENEMY_CLIMB_DELTA_HI_0 + 0x01) & 0xffff, 0x00);
+    m.mem.write8(FIRE_GATE, 0x00);                    // ldy FIRE_GATE == 0 -> probe = 0xff
+    m.mem.write8(NEAR_DEPTH_THRESHOLD, 0x40);                    // 0xff >= 0x40 -> flip
+    m.mem.write8(ENEMY_ANIM_ACCUM, 0x80);                    // tail bit7 set -> exit, A = 0x80
   };
   const o = fresh(0x00); setup(o);
   const c = fresh(0x00); setup(c);
@@ -87,80 +87,80 @@ test("CRAFTED: bit7 set -- loc_3ab==0 forces probe 0xff >= threshold -> eor #$80
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.regs.x, o.regs.x, "X passed through");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
-  assert.equal(c.mem.read8((loc_28a + 0x00) & 0xffff), 0x00, "bit7 flipped: 0x80 ^ 0x80 = 0x00");
+  assert.equal(c.mem.read8((ENEMY_SLOT_DIR + 0x00) & 0xffff), 0x00, "bit7 flipped: 0x80 ^ 0x80 = 0x00");
 });
 
-test("CRAFTED: bit7 set -- loc_3ab!=0, probe = loc_9c99 return < threshold -> bcc, no flip", () => {
+test("CRAFTED: bit7 set -- FIRE_GATE!=0, probe = loc_9c99 return < threshold -> bcc, no flip", () => {
   const setup = (m) => {
-    m.mem.write8((loc_28a + 0x00) & 0xffff, 0x80);
-    m.mem.write8((loc_2df + 0x00) & 0xffff, 0x05); // loc_9c99 returns 0x05
-    m.mem.write8((loc_160 + 0x01) & 0xffff, 0x00);
-    m.mem.write8((loc_165 + 0x01) & 0xffff, 0x00);
-    m.mem.write8(loc_3ab, 0x01);                    // ldy loc_3ab != 0 -> probe = stepped (0x05)
-    m.mem.write8(loc_157, 0x40);                    // 0x05 < 0x40 -> bcc -> no flip
-    m.mem.write8(loc_148, 0x80);                    // tail bit7 set -> exit, A = 0x80
+    m.mem.write8((ENEMY_SLOT_DIR + 0x00) & 0xffff, 0x80);
+    m.mem.write8((ENEMY_DEPTH + 0x00) & 0xffff, 0x05); // loc_9c99 returns 0x05
+    m.mem.write8((ENEMY_CLIMB_DELTA_LO_0 + 0x01) & 0xffff, 0x00);
+    m.mem.write8((ENEMY_CLIMB_DELTA_HI_0 + 0x01) & 0xffff, 0x00);
+    m.mem.write8(FIRE_GATE, 0x01);                    // ldy FIRE_GATE != 0 -> probe = stepped (0x05)
+    m.mem.write8(NEAR_DEPTH_THRESHOLD, 0x40);                    // 0x05 < 0x40 -> bcc -> no flip
+    m.mem.write8(ENEMY_ANIM_ACCUM, 0x80);                    // tail bit7 set -> exit, A = 0x80
   };
   const o = fresh(0x00); setup(o);
   const c = fresh(0x00); setup(c);
   oracle(o); loc_9cb6(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
-  assert.equal(c.mem.read8((loc_28a + 0x00) & 0xffff), 0x80, "no flip (bcc taken)");
+  assert.equal(c.mem.read8((ENEMY_SLOT_DIR + 0x00) & 0xffff), 0x80, "no flip (bcc taken)");
 });
 
 test("CRAFTED: bit7 clear -- coord < threshold picks Y=1 -> loc_9c63 reads delta[1]", () => {
   const setup = (m) => {
-    m.mem.write8((loc_28a + 0x00) & 0xffff, 0x00); // bit7 clear -> ADD path
-    m.mem.write8((loc_2df + 0x00) & 0xffff, 0x25); // 0x25 < 0x40 -> Y stays 1
-    m.mem.write8(loc_157, 0x40);
-    m.mem.write8(loc_202, 0x00);                    // floor 0 -> loc_9c63 hi > floor, skips loc_9d06
-    m.mem.write8((loc_160 + 0x01) & 0xffff, 0x00);
-    m.mem.write8((loc_165 + 0x01) & 0xffff, 0x02); // delta[1] hi +2
-    m.mem.write8((loc_160 + 0x00) & 0xffff, 0x00);
-    m.mem.write8((loc_165 + 0x00) & 0xffff, 0x10); // delta[0] differs -> a wrong Y would diverge in RAM
-    m.mem.write8(loc_148, 0x80);                    // tail bit7 set -> exit, A = 0x80
+    m.mem.write8((ENEMY_SLOT_DIR + 0x00) & 0xffff, 0x00); // bit7 clear -> ADD path
+    m.mem.write8((ENEMY_DEPTH + 0x00) & 0xffff, 0x25); // 0x25 < 0x40 -> Y stays 1
+    m.mem.write8(NEAR_DEPTH_THRESHOLD, 0x40);
+    m.mem.write8(PLAYER_SHOT_DEPTH, 0x00);                    // floor 0 -> loc_9c63 hi > floor, skips loc_9d06
+    m.mem.write8((ENEMY_CLIMB_DELTA_LO_0 + 0x01) & 0xffff, 0x00);
+    m.mem.write8((ENEMY_CLIMB_DELTA_HI_0 + 0x01) & 0xffff, 0x02); // delta[1] hi +2
+    m.mem.write8((ENEMY_CLIMB_DELTA_LO_0 + 0x00) & 0xffff, 0x00);
+    m.mem.write8((ENEMY_CLIMB_DELTA_HI_0 + 0x00) & 0xffff, 0x10); // delta[0] differs -> a wrong Y would diverge in RAM
+    m.mem.write8(ENEMY_ANIM_ACCUM, 0x80);                    // tail bit7 set -> exit, A = 0x80
   };
   const o = fresh(0x00); setup(o);
   const c = fresh(0x00); setup(c);
   oracle(o); loc_9cb6(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
-  assert.equal(c.mem.read8((loc_2df + 0x00) & 0xffff), 0x27, "hi stepped by delta[1]: 0x25 + 0x02");
+  assert.equal(c.mem.read8((ENEMY_DEPTH + 0x00) & 0xffff), 0x27, "hi stepped by delta[1]: 0x25 + 0x02");
 });
 
 test("CRAFTED: bit7 clear -- coord >= threshold picks Y=0 -> loc_9c63 reads delta[0]", () => {
   const setup = (m) => {
-    m.mem.write8((loc_28a + 0x00) & 0xffff, 0x00);
-    m.mem.write8((loc_2df + 0x00) & 0xffff, 0x50); // 0x50 >= 0x40 -> ldy #0 -> Y=0
-    m.mem.write8(loc_157, 0x40);
-    m.mem.write8(loc_202, 0x00);
-    m.mem.write8((loc_160 + 0x00) & 0xffff, 0x00);
-    m.mem.write8((loc_165 + 0x00) & 0xffff, 0x01); // delta[0] hi +1
-    m.mem.write8((loc_160 + 0x01) & 0xffff, 0x00);
-    m.mem.write8((loc_165 + 0x01) & 0xffff, 0x02); // delta[1] differs
-    m.mem.write8(loc_148, 0x80);                    // tail bit7 set -> exit, A = 0x80
+    m.mem.write8((ENEMY_SLOT_DIR + 0x00) & 0xffff, 0x00);
+    m.mem.write8((ENEMY_DEPTH + 0x00) & 0xffff, 0x50); // 0x50 >= 0x40 -> ldy #0 -> Y=0
+    m.mem.write8(NEAR_DEPTH_THRESHOLD, 0x40);
+    m.mem.write8(PLAYER_SHOT_DEPTH, 0x00);
+    m.mem.write8((ENEMY_CLIMB_DELTA_LO_0 + 0x00) & 0xffff, 0x00);
+    m.mem.write8((ENEMY_CLIMB_DELTA_HI_0 + 0x00) & 0xffff, 0x01); // delta[0] hi +1
+    m.mem.write8((ENEMY_CLIMB_DELTA_LO_0 + 0x01) & 0xffff, 0x00);
+    m.mem.write8((ENEMY_CLIMB_DELTA_HI_0 + 0x01) & 0xffff, 0x02); // delta[1] differs
+    m.mem.write8(ENEMY_ANIM_ACCUM, 0x80);                    // tail bit7 set -> exit, A = 0x80
   };
   const o = fresh(0x00); setup(o);
   const c = fresh(0x00); setup(c);
   oracle(o); loc_9cb6(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
-  assert.equal(c.mem.read8((loc_2df + 0x00) & 0xffff), 0x51, "hi stepped by delta[0]: 0x50 + 0x01");
+  assert.equal(c.mem.read8((ENEMY_DEPTH + 0x00) & 0xffff), 0x51, "hi stepped by delta[0]: 0x50 + 0x01");
 });
 
 // The common tail with all four conditions true -> jsr loc_a347. Reached via the bit7-set path so no
-// deep loc_9c63 dispatch is involved; Y at the a347 site = loc_3ab's value (0x01), which loc_a3d6 writes.
+// deep loc_9c63 dispatch is involved; Y at the a347 site = FIRE_GATE's value (0x01), which loc_a3d6 writes.
 function seedTailA347(m) {
-  m.mem.write8((loc_28a + 0x00) & 0xffff, 0x80);   // bit7 set
-  m.mem.write8((loc_2df + 0x00) & 0xffff, 0x20);   // loc_9c99 returns/writes 0x20
-  m.mem.write8((loc_160 + 0x01) & 0xffff, 0x00);
-  m.mem.write8((loc_165 + 0x01) & 0xffff, 0x00);
-  m.mem.write8(loc_3ab, 0x01);                      // probe = 0x20 (< thr) -> no flip; Y = 0x01
-  m.mem.write8(loc_157, 0x40);                      // cond2: loc_2df,x (0x20) < 0x40
-  m.mem.write8(loc_148, 0x00);                      // cond1: bit7 clear -> continue
-  m.mem.write8(loc_200, 0x88); m.mem.write8((loc_2b9 + 0x00) & 0xffff, 0x88); // cond3 equal
-  m.mem.write8(loc_201, 0x33); m.mem.write8((loc_2cc + 0x00) & 0xffff, 0x33); // cond4 equal
-  m.mem.write8(loc_202, 0x77);                      // loc_a352 copies loc_202
+  m.mem.write8((ENEMY_SLOT_DIR + 0x00) & 0xffff, 0x80);   // bit7 set
+  m.mem.write8((ENEMY_DEPTH + 0x00) & 0xffff, 0x20);   // loc_9c99 returns/writes 0x20
+  m.mem.write8((ENEMY_CLIMB_DELTA_LO_0 + 0x01) & 0xffff, 0x00);
+  m.mem.write8((ENEMY_CLIMB_DELTA_HI_0 + 0x01) & 0xffff, 0x00);
+  m.mem.write8(FIRE_GATE, 0x01);                      // probe = 0x20 (< thr) -> no flip; Y = 0x01
+  m.mem.write8(NEAR_DEPTH_THRESHOLD, 0x40);                      // cond2: ENEMY_DEPTH,x (0x20) < 0x40
+  m.mem.write8(ENEMY_ANIM_ACCUM, 0x00);                      // cond1: bit7 clear -> continue
+  m.mem.write8(PLAYER_SEGMENT, 0x88); m.mem.write8((ENEMY_SEGMENT + 0x00) & 0xffff, 0x88); // cond3 equal
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x33); m.mem.write8((ENEMY_PHASE + 0x00) & 0xffff, 0x33); // cond4 equal
+  m.mem.write8(PLAYER_SHOT_DEPTH, 0x77);                      // loc_a352 copies PLAYER_SHOT_DEPTH
 }
 
 test("CRAFTED: common tail all four conditions match -> loc_a347 seeds the object (RAM + X; A dropped)", () => {
@@ -171,32 +171,32 @@ test("CRAFTED: common tail all four conditions match -> loc_a347 seeds the objec
   assert.equal(c.regs.x, o.regs.x, "X passed through");
   // A is NOT compared here: on the loc_a347 arm A is that callee-chain's incidental leftover, not a
   // reproduced live-out (loc_a352 ends on a mem store, leaving A as loc_a3d6/loc_ccb0's last value).
-  assert.equal(c.mem.read8(loc_13b), 0x07, "loc_a347 stamped the head flag 0x07");
-  assert.equal(c.mem.read8(loc_13c), 0x01, "loc_a347 raised the ready flag");
-  assert.equal(c.mem.read8(loc_201), 0x81, "loc_a352 set loc_201 = 0x81");
+  assert.equal(c.mem.read8(OBJECT_ANIM_PHASE), 0x07, "loc_a347 stamped the head flag 0x07");
+  assert.equal(c.mem.read8(OBJECT_ANIM_TIMER), 0x01, "loc_a347 raised the ready flag");
+  assert.equal(c.mem.read8(PLAYER_FINE_ANGLE), 0x81, "loc_a352 set PLAYER_FINE_ANGLE = 0x81");
 });
 
-test("CRAFTED: common tail with one condition false (loc_200 != loc_2b9,x) -> no loc_a347, A = loc_200", () => {
-  const setup = (m) => { seedTailA347(m); m.mem.write8((loc_2b9 + 0x00) & 0xffff, 0x99); }; // break cond3
+test("CRAFTED: common tail with one condition false (PLAYER_SEGMENT != ENEMY_SEGMENT,x) -> no loc_a347, A = PLAYER_SEGMENT", () => {
+  const setup = (m) => { seedTailA347(m); m.mem.write8((ENEMY_SEGMENT + 0x00) & 0xffff, 0x99); }; // break cond3
   const o = fresh(0x00); setup(o);
   const c = fresh(0x00); setup(c);
   oracle(o); loc_9cb6(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
-  assert.equal(c.regs.a, 0x88, "A = loc_200 (bne exit before loc_a347)");
-  assert.equal(c.mem.read8(loc_13c), 0x00, "loc_a347 did NOT run (ready flag untouched)");
-  assert.equal(c.mem.read8(loc_201), 0x33, "loc_201 untouched (still 0x33)");
+  assert.equal(c.regs.a, 0x88, "A = PLAYER_SEGMENT (bne exit before loc_a347)");
+  assert.equal(c.mem.read8(OBJECT_ANIM_TIMER), 0x00, "loc_a347 did NOT run (ready flag untouched)");
+  assert.equal(c.mem.read8(PLAYER_FINE_ANGLE), 0x33, "PLAYER_FINE_ANGLE untouched (still 0x33)");
 });
 
 test("TEETH: a twin that skips the eor #$80 flip diverges from the oracle in RAM", () => {
   const setup = (m) => {
-    m.mem.write8((loc_28a + 0x00) & 0xffff, 0x80);
-    m.mem.write8((loc_2df + 0x00) & 0xffff, 0x50);
-    m.mem.write8((loc_160 + 0x01) & 0xffff, 0x00);
-    m.mem.write8((loc_165 + 0x01) & 0xffff, 0x00);
-    m.mem.write8(loc_3ab, 0x00);                    // probe = 0xff >= threshold -> oracle flips
-    m.mem.write8(loc_157, 0x40);
-    m.mem.write8(loc_148, 0x80);                    // tail exits immediately (no tail RAM writes)
+    m.mem.write8((ENEMY_SLOT_DIR + 0x00) & 0xffff, 0x80);
+    m.mem.write8((ENEMY_DEPTH + 0x00) & 0xffff, 0x50);
+    m.mem.write8((ENEMY_CLIMB_DELTA_LO_0 + 0x01) & 0xffff, 0x00);
+    m.mem.write8((ENEMY_CLIMB_DELTA_HI_0 + 0x01) & 0xffff, 0x00);
+    m.mem.write8(FIRE_GATE, 0x00);                    // probe = 0xff >= threshold -> oracle flips
+    m.mem.write8(NEAR_DEPTH_THRESHOLD, 0x40);
+    m.mem.write8(ENEMY_ANIM_ACCUM, 0x80);                    // tail exits immediately (no tail RAM writes)
   };
   const o = fresh(0x00); setup(o);
   const c = fresh(0x00); setup(c);
@@ -207,43 +207,43 @@ test("TEETH: a twin that skips the eor #$80 flip diverges from the oracle in RAM
 });
 
 // The wrong-Y bug path (the reason 9cb6 was deferred): bit7-CLEAR -> loc_9c63 enters loc_9d06 because
-// the stepped hi <= loc_202; loc_9d06's scan arm leaves the SCAN INDEX in Y; the common tail then seeds
-// via loc_a347, whose chain (loc_a352 -> loc_994d -> loc_a3d6) stores that Y to loc_36. The pre-fix
-// idiomatic handed a347 the pre-call steering y instead. Drive it and require loc_36 = the scan index.
+// the stepped hi <= PLAYER_SHOT_DEPTH; loc_9d06's scan arm leaves the SCAN INDEX in Y; the common tail then seeds
+// via loc_a347, whose chain (loc_a352 -> loc_994d -> loc_a3d6) stores that Y to SAVED_INDEX2. The pre-fix
+// idiomatic handed a347 the pre-call steering y instead. Drive it and require SAVED_INDEX2 = the scan index.
 function seedClear9d06ToA347(m) {
-  m.mem.write8((loc_28a + 0x00) & 0xffff, 0x00);   // bit7 clear -> ADD path
-  m.mem.write8((loc_2df + 0x00) & 0xffff, 0x05);   // < loc_157 -> steering y = 1; also the add base
-  m.mem.write8(loc_157, 0x40);
-  m.mem.write8((loc_160 + 0x01) & 0xffff, 0x00);
-  m.mem.write8((loc_165 + 0x01) & 0xffff, 0x00);   // delta[1] = 0 -> stepped hi = 0x05
-  m.mem.write8(loc_202, 0x10);                      // hi 0x05 <= 0x10 -> enter loc_9d06; 0x10 < loc_157 -> tail passes
-  m.mem.write8(loc_109, 0x01);                      // loc_9d06 scan arm
-  m.mem.write8(loc_108, 0x05);
-  m.mem.write8((loc_283 + 0x00) & 0xffff, 0x00);   // kind 0 (not 1, not negative) -> scan
-  m.mem.write8((loc_2df + 0x06) & 0xffff, 0x10);   // slot 6 stash == shared(loc_202) -> scan matches at y = 6
-  m.mem.write8((loc_283 + 0x06) & 0xffff, 0x00);
-  m.mem.write8(loc_148, 0x00);                      // tail cond1: bit7 clear
-  m.mem.write8(loc_200, 0x88); m.mem.write8((loc_2b9 + 0x00) & 0xffff, 0x88); // cond3 equal
-  m.mem.write8(loc_201, 0x33); m.mem.write8((loc_2cc + 0x00) & 0xffff, 0x33); // cond4 equal
+  m.mem.write8((ENEMY_SLOT_DIR + 0x00) & 0xffff, 0x00);   // bit7 clear -> ADD path
+  m.mem.write8((ENEMY_DEPTH + 0x00) & 0xffff, 0x05);   // < NEAR_DEPTH_THRESHOLD -> steering y = 1; also the add base
+  m.mem.write8(NEAR_DEPTH_THRESHOLD, 0x40);
+  m.mem.write8((ENEMY_CLIMB_DELTA_LO_0 + 0x01) & 0xffff, 0x00);
+  m.mem.write8((ENEMY_CLIMB_DELTA_HI_0 + 0x01) & 0xffff, 0x00);   // delta[1] = 0 -> stepped hi = 0x05
+  m.mem.write8(PLAYER_SHOT_DEPTH, 0x10);                      // hi 0x05 <= 0x10 -> enter loc_9d06; 0x10 < NEAR_DEPTH_THRESHOLD -> tail passes
+  m.mem.write8(ENEMY_TYPE_COUNT, 0x01);                      // loc_9d06 scan arm
+  m.mem.write8(ENEMY_TOTAL_COUNT, 0x05);
+  m.mem.write8((ENEMY_SLOT_FLAGS + 0x00) & 0xffff, 0x00);   // kind 0 (not 1, not negative) -> scan
+  m.mem.write8((ENEMY_DEPTH + 0x06) & 0xffff, 0x10);   // slot 6 stash == shared(PLAYER_SHOT_DEPTH) -> scan matches at y = 6
+  m.mem.write8((ENEMY_SLOT_FLAGS + 0x06) & 0xffff, 0x00);
+  m.mem.write8(ENEMY_ANIM_ACCUM, 0x00);                      // tail cond1: bit7 clear
+  m.mem.write8(PLAYER_SEGMENT, 0x88); m.mem.write8((ENEMY_SEGMENT + 0x00) & 0xffff, 0x88); // cond3 equal
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x33); m.mem.write8((ENEMY_PHASE + 0x00) & 0xffff, 0x33); // cond4 equal
 }
 
-test("CRAFTED (wrong-Y path): bit7-clear -> loc_9d06 scan -> a347 stores the scan index to loc_36", () => {
+test("CRAFTED (wrong-Y path): bit7-clear -> loc_9d06 scan -> a347 stores the scan index to SAVED_INDEX2", () => {
   const o = fresh(0x00); seedClear9d06ToA347(o);
   const c = fresh(0x00); seedClear9d06ToA347(c);
   oracle(o); loc_9cb6(c);
-  assert.equal(ramDiff(o, c), null, "RAM equal incl. loc_36 (the a347 Y-store)");
+  assert.equal(ramDiff(o, c), null, "RAM equal incl. SAVED_INDEX2 (the a347 Y-store)");
   assert.equal(c.regs.x, o.regs.x, "X passed through");
-  assert.equal(c.mem.read8(loc_36), o.mem.read8(loc_36), "loc_36 = the scan index Y (not the steering y)");
-  assert.equal(o.mem.read8(loc_36), 0x06, "the oracle stored the scan index 0x06 to loc_36");
+  assert.equal(c.mem.read8(SAVED_INDEX2), o.mem.read8(SAVED_INDEX2), "SAVED_INDEX2 = the scan index Y (not the steering y)");
+  assert.equal(o.mem.read8(SAVED_INDEX2), 0x06, "the oracle stored the scan index 0x06 to SAVED_INDEX2");
 });
 
-test("TEETH (wrong-Y): a twin passing the pre-call steering y to the seed diverges at loc_36", () => {
+test("TEETH (wrong-Y): a twin passing the pre-call steering y to the seed diverges at SAVED_INDEX2", () => {
   const o = fresh(0x00); seedClear9d06ToA347(o);
   const c = fresh(0x00); seedClear9d06ToA347(c);
   oracle(o);
   // Broken twin = the pre-fix behaviour: run the same delegate (loc_9c63 -> loc_9d06), then seed with the
-  // STEERING y (1) instead of the Y loc_9c63 left (the scan index 6). Must diverge at loc_36.
+  // STEERING y (1) instead of the Y loc_9c63 left (the scan index 6). Must diverge at SAVED_INDEX2.
   const broken = (m, x = 0x00) => { loc_9c63(m, x, 1); return loc_a347(m, x, 1); };
   broken(c);
-  assert.notEqual(ramDiff(o, c), null, "the wrong Y into a347 was NOT caught at loc_36");
+  assert.notEqual(ramDiff(o, c), null, "the wrong Y into a347 was NOT caught at SAVED_INDEX2");
 });

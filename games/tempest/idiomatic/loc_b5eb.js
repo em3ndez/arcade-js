@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_9e, loc_55, loc_283, loc_2b9, loc_b60b } from "./names.js";
+import { loc_9e, DRAW_STYLE, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT, SEG_SHAPE_BY_STYLE } from "./names.js";
 import { loc_b634 } from "./loc_b634.js";
 import { loc_bda0, loc_bdcb } from "./loc_bda0.js";
 
@@ -10,12 +10,12 @@ import { loc_bda0, loc_bdcb } from "./loc_bda0.js";
 export function loc_b5eb(m, x = m.regs.x) {
   const { mem8 } = m;
   mem8[loc_9e] = 0x03;
-  if (mem8[u16(loc_283 + x)] & 0x80) {
+  if (mem8[u16(ENEMY_SLOT_FLAGS + x)] & 0x80) {
     loc_b634(m, x);
     loc_bdcb(m, 0x00);
     return;
   }
-  const corner = mem8[u16(loc_2b9 + x)];
-  const style = mem8[loc_55];
-  loc_bda0(m, mem8[u16(loc_b60b + style)], corner);
+  const corner = mem8[u16(ENEMY_SEGMENT + x)];
+  const style = mem8[DRAW_STYLE];
+  loc_bda0(m, mem8[u16(SEG_SHAPE_BY_STYLE + style)], corner);
 }

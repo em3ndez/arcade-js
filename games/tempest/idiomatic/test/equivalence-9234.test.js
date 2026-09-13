@@ -12,7 +12,7 @@ import { loc_9234 as oracle } from "../../translated/loc_9234.js";
 import { loc_9234 } from "../loc_9234.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_15a, loc_15b, loc_3ab, loc_3ac } from "../names.js";
+import { STACK_SCRATCH, LANE_FILL_INIT, INITIAL_ACTIVE_COUNT, FIRE_GATE, LANE_LIMIT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -47,8 +47,8 @@ test("CAPTURE: real 0x9234 dispatches -- loc_9234 == oracle in RAM (-stack)", ()
 });
 
 function seed(m, s) {
-  m.mem8[loc_15a] = s.s15a;
-  m.mem8[loc_15b] = s.s15b;
+  m.mem8[LANE_FILL_INIT] = s.s15a;
+  m.mem8[INITIAL_ACTIVE_COUNT] = s.s15b;
 }
 
 test("CRAFTED: header from $15b and 16-byte fill from $15a == oracle (RAM -stack)", () => {
@@ -72,9 +72,9 @@ test("TEETH: a rewrite that fills the body from $15b (wrong source) diverges fro
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o);
   const brokenFill = (m) => { // BUG: fills the body from $15b instead of $15a
-    m.mem8[loc_3ab] = m.mem8[loc_15b];
-    const fill = m.mem8[loc_15b];
-    for (let x = 0x0f; x >= 0; x--) m.mem8[(loc_3ac + x) & 0xffff] = fill;
+    m.mem8[FIRE_GATE] = m.mem8[INITIAL_ACTIVE_COUNT];
+    const fill = m.mem8[INITIAL_ACTIVE_COUNT];
+    for (let x = 0x0f; x >= 0; x--) m.mem8[(LANE_LIMIT + x) & 0xffff] = fill;
   };
   brokenFill(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a wrong body source");

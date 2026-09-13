@@ -15,7 +15,7 @@ import { loc_9700 } from "../loc_96f4.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_2b, loc_2c, loc_2d } from "../names.js";
+import { STACK_SCRATCH, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -31,11 +31,11 @@ const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRAT
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
-// Point the zero-page cursor pointer loc_2c/2d at a list in work RAM, seed the key loc_2b and a few list
+// Point the zero-page cursor pointer COORD_LIST_PTR_LO/2d at a list in work RAM, seed the key loc_2b and a few list
 // bytes, and enter with a cursor Y so both loc_96f4's (Y-2) read and the final (2c),y read land in the list.
 function seed(m, y, key) {
-  m.mem.write8(loc_2c, 0x40);
-  m.mem.write8(loc_2d, 0x00); // pointer -> 0x0040
+  m.mem.write8(COORD_LIST_PTR_LO, 0x40);
+  m.mem.write8(COORD_LIST_PTR_HI, 0x00); // pointer -> 0x0040
   m.mem.write8(loc_2b, key);
   for (let i = 0; i < 0x10; i++) m.mem.write8(u16(0x0040 + i), 0x10 + i);
   m.regs.y = y;
@@ -70,7 +70,7 @@ test("TEETH: a twin that skips the low-bit cursor advance MUST diverge in the re
   // Broken twin: never advances the cursor by the low bit -> reads (2c),y instead of (2c),y+1.
   const broken = (m) => {
     const yy = m.regs.y;
-    return m.mem.read8(u16((m.mem.read8(loc_2c) | (m.mem.read8(loc_2d) << 8)) + yy)) & 0xff;
+    return m.mem.read8(u16((m.mem.read8(COORD_LIST_PTR_LO) | (m.mem.read8(COORD_LIST_PTR_HI) << 8)) + yy)) & 0xff;
   };
   const rb = broken(c);
   assert.notEqual(rb, ra & 0xff, "the dropped low-bit advance was NOT caught by the returned byte");

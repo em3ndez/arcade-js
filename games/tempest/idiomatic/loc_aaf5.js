@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8 } from "../../../core/int.js";
-import { loc_29, loc_2c } from "./names.js";
+import { loc_29, COORD_LIST_PTR_LO } from "./names.js";
 
 // Convert the binary byte in A to packed BCD (double-dabble): 8 passes each shift
 // the top bit out of the source and double the BCD accumulator, folding that bit in.
@@ -24,6 +24,6 @@ export function loc_aaf5(m, a = m.regs.a) {
     bcd = bcdDouble(bcd, carry);
   }
   mem8[loc_29] = bcd;
-  mem8[loc_2c] = bcd;
+  mem8[COORD_LIST_PTR_LO] = bcd;
   return (m.regs.a = bcd);
 }

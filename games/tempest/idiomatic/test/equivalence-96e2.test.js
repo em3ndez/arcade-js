@@ -15,7 +15,7 @@ import { loc_96e2 } from "../loc_96e2.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_2b, loc_2c, loc_2d } from "../names.js";
+import { STACK_SCRATCH, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -42,7 +42,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 // Point (0x2c) at diffed vector RAM, seed a count basis at $2b plus table entries, and preset Y.
 function seed(m, y) {
-  m.mem.write8(loc_2c, 0x00); m.mem.write8(loc_2d, 0x20); // (0x2c) -> $2000
+  m.mem.write8(COORD_LIST_PTR_LO, 0x00); m.mem.write8(COORD_LIST_PTR_HI, 0x20); // (0x2c) -> $2000
   m.mem.write8(loc_2b, 0x05);                             // count basis
   m.mem.write8(u16(0x2000 + (y - 2)), 0x02);             // (0x2c),y-2  -> count = 0x05 - 0x02 = 3
   m.mem.write8(u16(0x2000 + y), 0x10);                    // first entry
@@ -74,7 +74,7 @@ test("TEETH: a twin returning only the first entry (no fold) diverges from oracl
   const c = new Machine(ROM, OPTS); seed(c, 0x04);
   const brokenE2 = (m, y = m.regs.y) => {
     const { mem8, mem16 } = m;
-    const ptr = mem16[loc_2c];
+    const ptr = mem16[COORD_LIST_PTR_LO];
     return mem8[u16(ptr + y)]; // BUG: never folds the count copies
   };
   assert.notEqual(brokenE2(c) & 0xff, o.regs.a, "the live-out check FAILED to catch the missing fold");

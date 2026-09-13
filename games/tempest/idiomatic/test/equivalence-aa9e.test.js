@@ -16,7 +16,7 @@ import { loc_dfb1 } from "../loc_dfb1.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_61 } from "../names.js";
+import { STACK_SCRATCH, PROJ_Y_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -58,7 +58,7 @@ test("CRAFTED: $61 <- x+1 and RAM equal after the one-byte emit", () => {
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_aa9e(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after emit");
-  assert.equal(c.mem.read8(loc_61), u8(XREG + 1), "$61 took the advanced slot index");
+  assert.equal(c.mem.read8(PROJ_Y_LO), u8(XREG + 1), "$61 took the advanced slot index");
 });
 
 test("TEETH: a twin that publishes x (not x+1) diverges from the oracle", () => {
@@ -66,7 +66,7 @@ test("TEETH: a twin that publishes x (not x+1) diverges from the oracle", () => 
   const c = new Machine(ROM, OPTS); seed(c);
   const brokenAa9e = (m, x = m.regs.x) => {
     const { mem8 } = m;
-    mem8[loc_61] = x; // BUG: forgot the increment -> wrong pointer byte AND wrong emitted run
+    mem8[PROJ_Y_LO] = x; // BUG: forgot the increment -> wrong pointer byte AND wrong emitted run
     return loc_dfb1(m, 0x61, 0x01);
   };
   brokenAa9e(c);

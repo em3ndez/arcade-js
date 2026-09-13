@@ -17,7 +17,7 @@ import { loc_a3d4 } from "../loc_a3d4.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_5, loc_29, loc_2c, loc_2df, loc_31, loc_32 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, loc_29, COORD_LIST_PTR_LO, ENEMY_DEPTH, loc_31, loc_32 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -56,10 +56,10 @@ test("CAPTURE: real 0xa3ca dispatches -- loc_a3ca == oracle in RAM (-stack)", ()
 const Y = 0x03, XREG = 0x12, AREG = 0x5c, SRC = 0xa7;
 function seed(m) {
   m.regs.a = AREG; m.regs.x = XREG; m.regs.y = Y;
-  m.mem.write8(loc_5, 0x80);            // open the ccc1->ccc3 sound gate so the X/Y stamp actually runs
+  m.mem.write8(STATUS_FLAGS, 0x80);            // open the ccc1->ccc3 sound gate so the X/Y stamp actually runs
   m.mem.write8(loc_31, 0xaa);           // pre-dirty the $31/$32 stamp cells so the marshalling is observable
   m.mem.write8(loc_32, 0xbb);
-  m.mem.write8(u16(loc_2df + Y), SRC);  // y-indexed source byte
+  m.mem.write8(u16(ENEMY_DEPTH + Y), SRC);  // y-indexed source byte
 }
 
 test("CRAFTED: $29 <- $02df,y and A -> $2c; RAM equal after the insert", () => {
@@ -68,7 +68,7 @@ test("CRAFTED: $29 <- $02df,y and A -> $2c; RAM equal after the insert", () => {
   oracle(o); loc_a3ca(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after ring/copy/insert");
   assert.equal(c.mem.read8(loc_29), SRC, "$29 took the y-indexed source byte");
-  assert.equal(c.mem.read8(loc_2c), AREG, "$2c took the incoming A");
+  assert.equal(c.mem.read8(COORD_LIST_PTR_LO), AREG, "$2c took the incoming A");
   assert.equal(c.mem.read8(loc_31), XREG, "$31 = X (ccc1 marshalling, gate open)");
   assert.equal(c.mem.read8(loc_32), Y, "$32 = Y (ccc1 marshalling, gate open)");
 });
@@ -77,7 +77,7 @@ test("CRAFTED: $29 <- $02df,y and A -> $2c; RAM equal after the insert", () => {
 // X/Y are threaded through in the right order (only visible with the sound gate open, as seed() sets it).
 function loc_a3caSwapped(m, a = m.regs.a, x = m.regs.x, y = m.regs.y) {
   loc_ccc1(m, y, x); // BUG: X and Y swapped into ccc1
-  m.mem8[loc_29] = m.mem8[u16(loc_2df + y)];
+  m.mem8[loc_29] = m.mem8[u16(ENEMY_DEPTH + y)];
   return loc_a3d4(m, a, x, y);
 }
 
@@ -91,7 +91,7 @@ test("TEETH (marshalling): swapped X/Y into ccc1 diverges from the oracle", () =
 // A faithful twin minus the single defect (the $02df,y -> $29 copy): proves the omission alone is caught.
 function loc_a3caPartial(m, a = m.regs.a, x = m.regs.x, y = m.regs.y) {
   loc_ccc1(m, x, y);
-  // BUG: skip mem8[loc_29] = mem8[loc_2df + y]
+  // BUG: skip mem8[loc_29] = mem8[ENEMY_DEPTH + y]
   return loc_a3d4(m, a, x, y);
 }
 

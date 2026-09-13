@@ -13,7 +13,7 @@ import { loc_9c3b as oracle } from "../../translated/loc_9c3b.js";
 import { loc_9c3b } from "../loc_9c3b.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_147, loc_148, loc_10c } from "../names.js";
+import { STACK_SCRATCH, ENEMY_ANIM_DELTA, ENEMY_ANIM_ACCUM, SCRIPT_BRANCH_FLAG } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -59,33 +59,33 @@ test("CRAFTED: $010c = high bit of ((($0147<<2)+$0148)&$0148), inverted", () => 
     { c147: 0x11, c148: 0x50 }, // (0x44 + 0x50)=0x94 & 0x50 = 0x10; &0x80=0 -> 0x80
   ];
   for (const { c147, c148 } of cases) {
-    const seed = (m) => { m.mem.write8(loc_147, c147); m.mem.write8(loc_148, c148); m.mem.write8(loc_10c, 0x99); };
+    const seed = (m) => { m.mem.write8(ENEMY_ANIM_DELTA, c147); m.mem.write8(ENEMY_ANIM_ACCUM, c148); m.mem.write8(SCRIPT_BRANCH_FLAG, 0x99); };
     const o = new Machine(ROM, OPTS); seed(o);
     const c = new Machine(ROM, OPTS); seed(c);
     oracle(o); loc_9c3b(c);
     const tag = `147=0x${c147.toString(16)} 148=0x${c148.toString(16)}`;
     assert.equal(ramDiff(o, c), null, tag);
-    assert.equal(c.mem.read8(loc_10c), expect(c147, c148), `$010c ${tag}`);
+    assert.equal(c.mem.read8(SCRIPT_BRANCH_FLAG), expect(c147, c148), `$010c ${tag}`);
   }
 });
 
 test("TEETH: a twin that drops the final EOR #$80 diverges from the oracle", () => {
   const c147 = 0x30, c148 = 0xc0; // oracle -> 0x00; a dropped EOR would leave 0x80
-  const seed = (m) => { m.mem.write8(loc_147, c147); m.mem.write8(loc_148, c148); m.mem.write8(loc_10c, 0x99); };
+  const seed = (m) => { m.mem.write8(ENEMY_ANIM_DELTA, c147); m.mem.write8(ENEMY_ANIM_ACCUM, c148); m.mem.write8(SCRIPT_BRANCH_FLAG, 0x99); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const broken9c3b = (m) => {
     const mem = m.mem8;
-    let a = (mem[loc_147] << 2) & 0xff;
-    a = (a + mem[loc_148]) & 0xff;
-    a = a & mem[loc_148] & 0x80; // BUG: no final ^ 0x80
-    mem[loc_10c] = a;
+    let a = (mem[ENEMY_ANIM_DELTA] << 2) & 0xff;
+    a = (a + mem[ENEMY_ANIM_ACCUM]) & 0xff;
+    a = a & mem[ENEMY_ANIM_ACCUM] & 0x80; // BUG: no final ^ 0x80
+    mem[SCRIPT_BRANCH_FLAG] = a;
   };
   broken9c3b(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the RAM diff FAILED to catch the dropped EOR");
-  assert.equal(d.addr, loc_10c & 0xffff);
+  assert.equal(d.addr, SCRIPT_BRANCH_FLAG & 0xffff);
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {

@@ -14,7 +14,7 @@ import { loc_96cb as oracle } from "../../translated/loc_96cb.js";
 import { loc_96cb } from "../loc_96cb.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_2c, loc_2d } from "../names.js";
+import { STACK_SCRATCH, loc_29, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const rd = (f) => (existsSync(new URL(f, ROM_DIR)) ? new Uint8Array(readFileSync(new URL(f, ROM_DIR))) : null);
@@ -56,7 +56,7 @@ test("CRAFTED: (ptr),Y minus (ptr),Y-1 -> delta at loc_29, Y advanced by delta+2
   ];
   for (const { tag, ptr, y, cur, prev } of cases) {
     const seed = (mm) => {
-      mm.mem.write8(loc_2c, ptr & 0xff); mm.mem.write8(loc_2d, (ptr >> 8) & 0xff);
+      mm.mem.write8(COORD_LIST_PTR_LO, ptr & 0xff); mm.mem.write8(COORD_LIST_PTR_HI, (ptr >> 8) & 0xff);
       mm.mem.write8((ptr + y) & 0xffff, cur);
       mm.mem.write8((ptr + y - 1) & 0xffff, prev);
       mm.regs.y = y;
@@ -74,7 +74,7 @@ test("CRAFTED: (ptr),Y minus (ptr),Y-1 -> delta at loc_29, Y advanced by delta+2
 test("TEETH: a twin that skips the delta write to loc_29 is caught by the RAM diff", () => {
   const ptr = 0x0500, y = 0x10, cur = 0x20, prev = 0x05; // non-default seed -> delta 0x1b (non-zero)
   const o = new Machine(ROM, OPTS);
-  o.mem.write8(loc_2c, ptr & 0xff); o.mem.write8(loc_2d, (ptr >> 8) & 0xff);
+  o.mem.write8(COORD_LIST_PTR_LO, ptr & 0xff); o.mem.write8(COORD_LIST_PTR_HI, (ptr >> 8) & 0xff);
   o.mem.write8(ptr + y, cur); o.mem.write8(ptr + y - 1, prev); o.regs.y = y;
   oracle(o);
   assert.notEqual(o.mem.read8(loc_29), 0x00, "precondition: oracle wrote a non-zero delta at loc_29");
@@ -84,7 +84,7 @@ test("TEETH: a twin that skips the delta write to loc_29 is caught by the RAM di
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
-  m.mem.write8(loc_2c, 0x00); m.mem.write8(loc_2d, 0x05); m.regs.y = 0x10;
+  m.mem.write8(COORD_LIST_PTR_LO, 0x00); m.mem.write8(COORD_LIST_PTR_HI, 0x05); m.regs.y = 0x10;
   m.regs.s = 0xff;
   m.push16(0xabcd);
   const r = seamPlaceable(withOmittedRet, loc_96cb, TARGET, m);

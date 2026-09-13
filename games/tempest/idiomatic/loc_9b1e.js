@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import {
-  loc_37, loc_10a, loc_10b, loc_11c, loc_143, loc_147, loc_148, loc_201, loc_291, loc_2df, loc_a0f7,
+  SLOT_LOOP_INDEX, SCRIPT_WALK_CONTINUE, SCRIPT_CURSOR, ENEMY_SLOT_TOP, LANE_ENEMY_COUNT_1, ENEMY_ANIM_DELTA, ENEMY_ANIM_ACCUM, PLAYER_FINE_ANGLE, ENEMY_SCRIPT_CURSOR, ENEMY_DEPTH, MOTION_SCRIPT_TABLE,
 } from "./names.js";
 import { loc_9b98 } from "./loc_9b98.js";
 import { loc_cd06 } from "./loc_cd06.js";
 import { loc_cd02 } from "./loc_cd02.js";
 
-// When loc_201 is nonnegative, walk slots loc_37 = loc_11c down to 0: for each nonzero loc_2df,x run a
-// per-entry motion pass — loc_10b indexes a table into the motion dispatcher, advancing loc_10b
-// until the continue flag loc_10a clears — then store loc_10b back to loc_291,x. Then signed-accumulate the
-// delta loc_147 into loc_148; a sign flip triggers the cd06/cd02 corrections; finally, when loc_148 leaves
-// the [0x0f, 0xc0] band, negate loc_147 to reverse direction.
+// When PLAYER_FINE_ANGLE is nonnegative, walk slots SLOT_LOOP_INDEX = ENEMY_SLOT_TOP down to 0: for each nonzero ENEMY_DEPTH,x run a
+// per-entry motion pass — SCRIPT_CURSOR indexes a table into the motion dispatcher, advancing SCRIPT_CURSOR
+// until the continue flag SCRIPT_WALK_CONTINUE clears — then store SCRIPT_CURSOR back to ENEMY_SCRIPT_CURSOR,x. Then signed-accumulate the
+// delta ENEMY_ANIM_DELTA into ENEMY_ANIM_ACCUM; a sign flip triggers the cd06/cd02 corrections; finally, when ENEMY_ANIM_ACCUM leaves
+// the [0x0f, 0xc0] band, negate ENEMY_ANIM_DELTA to reverse direction.
 // xIn seeds the value the loop leaves in X for the tail sound cue: no routine in this dispatch
 // subtree rewrites X, so after the walk X = the last non-empty slot processed (or the incoming X if
 // the walk seated none). lastX mirrors that and is threaded to the tail sound cue that stores it.
@@ -19,39 +19,39 @@ export function loc_9b1e(m, xIn = m.regs.x) {
   const { mem8 } = m;
   let lastX = xIn;
 
-  if ((mem8[loc_201] & 0x80) === 0) {          // loc_201 >= 0 (else the outer walk is skipped)
-    mem8[loc_37] = mem8[loc_11c];
+  if ((mem8[PLAYER_FINE_ANGLE] & 0x80) === 0) {          // PLAYER_FINE_ANGLE >= 0 (else the outer walk is skipped)
+    mem8[SLOT_LOOP_INDEX] = mem8[ENEMY_SLOT_TOP];
     do {
-      const x = mem8[loc_37];
-      if (mem8[u16(loc_2df + x)] !== 0) {
+      const x = mem8[SLOT_LOOP_INDEX];
+      if (mem8[u16(ENEMY_DEPTH + x)] !== 0) {
         lastX = x; // the slot the loop leaves in X
-        mem8[loc_10a] = 1;
-        mem8[loc_10b] = mem8[u16(loc_291 + x)];
+        mem8[SCRIPT_WALK_CONTINUE] = 1;
+        mem8[SCRIPT_CURSOR] = mem8[u16(ENEMY_SCRIPT_CURSOR + x)];
         do {
           // the slot x rides into the dispatcher's handlers as an explicit arg
-          loc_9b98(m, mem8[u16(loc_a0f7 + mem8[loc_10b])], x); // dispatch on the table entry at the cursor
-          mem8[loc_10b] = u8(mem8[loc_10b] + 1);
-        } while (mem8[loc_10a] !== 0);
-        mem8[u16(loc_291 + x)] = mem8[loc_10b];
+          loc_9b98(m, mem8[u16(MOTION_SCRIPT_TABLE + mem8[SCRIPT_CURSOR])], x); // dispatch on the table entry at the cursor
+          mem8[SCRIPT_CURSOR] = u8(mem8[SCRIPT_CURSOR] + 1);
+        } while (mem8[SCRIPT_WALK_CONTINUE] !== 0);
+        mem8[u16(ENEMY_SCRIPT_CURSOR + x)] = mem8[SCRIPT_CURSOR];
       }
-      mem8[loc_37] = u8(mem8[loc_37] - 1);
-    } while ((mem8[loc_37] & 0x80) === 0);      // until loc_37 decrements past 0
+      mem8[SLOT_LOOP_INDEX] = u8(mem8[SLOT_LOOP_INDEX] - 1);
+    } while ((mem8[SLOT_LOOP_INDEX] & 0x80) === 0);      // until SLOT_LOOP_INDEX decrements past 0
   }
 
-  // signed accumulate loc_147 into loc_148
-  const old148 = mem8[loc_148];
-  const sum = u8(old148 + mem8[loc_147]);
-  mem8[loc_148] = sum;
+  // signed accumulate ENEMY_ANIM_DELTA into ENEMY_ANIM_ACCUM
+  const old148 = mem8[ENEMY_ANIM_ACCUM];
+  const sum = u8(old148 + mem8[ENEMY_ANIM_DELTA]);
+  mem8[ENEMY_ANIM_ACCUM] = sum;
   if ((sum ^ old148) & 0x80) {                  // the accumulate crossed a sign boundary
     if (sum & 0x80) {
       loc_cd06(m, lastX); // the loop's leftover X feeds the sound cue; Y stays the loop's leftover
-    } else if (mem8[loc_143] !== 0 && (mem8[loc_201] & 0x80) === 0) {
+    } else if (mem8[LANE_ENEMY_COUNT_1] !== 0 && (mem8[PLAYER_FINE_ANGLE] & 0x80) === 0) {
       loc_cd02(m, lastX);
     }
   }
 
-  // clamp: negate the delta when loc_148 sits in the [0x0f, 0xc0] band
-  const v = mem8[loc_148];
+  // clamp: negate the delta when ENEMY_ANIM_ACCUM sits in the [0x0f, 0xc0] band
+  const v = mem8[ENEMY_ANIM_ACCUM];
   const negate = (v & 0x80) === 0 ? v >= 0x0f : v < 0xc1;
-  if (negate) mem8[loc_147] = u8((mem8[loc_147] ^ 0xff) + 1);
+  if (negate) mem8[ENEMY_ANIM_DELTA] = u8((mem8[ENEMY_ANIM_DELTA] ^ 0xff) + 1);
 }

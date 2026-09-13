@@ -14,7 +14,7 @@ import { loc_cd06 } from "../loc_cd06.js";
 import { loc_ccc3 } from "../loc_ccc3.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_31, loc_32 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, loc_31, loc_32 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,7 +51,7 @@ test("CAPTURE: real 0xcd06 dispatches -- loc_cd06 == oracle in RAM (-stack)", ()
 test("CRAFTED: gate open ($0005 bit7 set) -- sound id 0xcf registered, X/Y mirrored into $31/$32", () => {
   const seed = (m) => {
     m.regs.s = 0xfb; m.regs.x = 0x24; m.regs.y = 0x59;
-    m.mem.write8(loc_5, 0x80);   // enable high bit
+    m.mem.write8(STATUS_FLAGS, 0x80);   // enable high bit
     m.mem.write8(loc_31, 0xaa);  // sentinel != X
     m.mem.write8(loc_32, 0xbb);  // sentinel != Y
   };
@@ -66,7 +66,7 @@ test("CRAFTED: gate open ($0005 bit7 set) -- sound id 0xcf registered, X/Y mirro
 test("CRAFTED: gate closed ($0005 bit7 clear) -- nothing registered, RAM unchanged", () => {
   const seed = (m) => {
     m.regs.s = 0xfb; m.regs.x = 0x24; m.regs.y = 0x59;
-    m.mem.write8(loc_5, 0x00);   // enable high bit clear
+    m.mem.write8(STATUS_FLAGS, 0x00);   // enable high bit clear
     m.mem.write8(loc_31, 0xaa);
     m.mem.write8(loc_32, 0xbb);
   };
@@ -80,7 +80,7 @@ test("CRAFTED: gate closed ($0005 bit7 clear) -- nothing registered, RAM unchang
 test("TEETH: a twin that skips the gated call (non-default seed) diverges from the oracle", () => {
   const seed = (m) => {
     m.regs.s = 0xfb; m.regs.x = 0x24; m.regs.y = 0x59;
-    m.mem.write8(loc_5, 0x80);   // gate open so the skipped work shows
+    m.mem.write8(STATUS_FLAGS, 0x80);   // gate open so the skipped work shows
     m.mem.write8(loc_31, 0xaa);
     m.mem.write8(loc_32, 0xbb);
   };
@@ -95,7 +95,7 @@ test("TEETH: a twin that skips the gated call (non-default seed) diverges from t
 test("TEETH: passing the wrong id (0x00) diverges from the oracle", () => {
   const seed = (m) => {
     m.regs.s = 0xfb; m.regs.x = 0x24; m.regs.y = 0x59;
-    m.mem.write8(loc_5, 0x80);
+    m.mem.write8(STATUS_FLAGS, 0x80);
     m.mem.write8(loc_31, 0xaa);
     m.mem.write8(loc_32, 0xbb);
   };

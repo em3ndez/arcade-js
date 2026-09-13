@@ -16,7 +16,7 @@ import { loc_c2e8 as oracle } from "../../translated/loc_c2e8.js";
 import { loc_c2e8 } from "../loc_c2e8.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_112 } from "../names.js";
+import { STACK_SCRATCH, TUBE_SHAPE_INDEX } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -65,7 +65,7 @@ test("CRAFTED: A < 0x62 -- quotient/remainder split, table lookup, $0112 store, 
     assert.equal(c.regs.a, o.regs.a, `A_in=0x${ain.toString(16)}: A diverged`);
     assert.equal(c.regs.x, o.regs.x, `A_in=0x${ain.toString(16)}: X diverged`);
     assert.equal(c.regs.y, o.regs.y, `A_in=0x${ain.toString(16)}: Y diverged`);
-    assert.equal(c.mem.read8(loc_112), o.mem.read8(loc_112), `A_in=0x${ain.toString(16)}: $0112 diverged`);
+    assert.equal(c.mem.read8(TUBE_SHAPE_INDEX), o.mem.read8(TUBE_SHAPE_INDEX), `A_in=0x${ain.toString(16)}: $0112 diverged`);
     assert.deepEqual(r, [o.regs.a, o.regs.x, o.regs.y], `A_in=0x${ain.toString(16)}: return tuple`);
   }
 });
@@ -79,7 +79,7 @@ test("TEETH: a twin that stores the wrong $0112 byte diverges from the oracle", 
     const mem = m.mem8;
     const rem = (ain & 0xff) & 0x0f;
     const entry = mem[(0xbc7c + rem) & 0xffff];
-    mem[loc_112] = (entry + 1) & 0xff; // BUG: off-by-one on the stored byte
+    mem[TUBE_SHAPE_INDEX] = (entry + 1) & 0xff; // BUG: off-by-one on the stored byte
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong $0112 store");

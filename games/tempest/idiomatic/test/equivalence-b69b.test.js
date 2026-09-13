@@ -28,8 +28,8 @@ import { loc_c765 } from "../loc_c765.js";
 import { loc_bd3e } from "../loc_bd3e.js";
 import { loc_df59 } from "../loc_df59.js";
 import {
-  STACK_SCRATCH, loc_3, loc_56, loc_57, loc_58, loc_a9,
-  loc_2b9, loc_2cc, loc_2df, loc_3ce, loc_3de, loc_cec8, loc_cec9,
+  STACK_SCRATCH, FRAME_COUNTER, PROJ_PT_Y, OBJ_DEPTH, PROJ_PT_X, DRAW_CURSOR_OFFSET,
+  ENEMY_SEGMENT, ENEMY_PHASE, ENEMY_DEPTH, SEG_BASE_X, SEG_BASE_Y, OBJ_TEMPLATE_WORD_LO, OBJ_TEMPLATE_WORD_HI,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -61,20 +61,20 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 8000) : [];
 // behavioural difference (not a seed artifact).
 function seedInterp(m) {
   m.regs.x = 0;
-  m.mem.write8(loc_2df, 0x40);              // slot coord -> $57
-  m.mem.write8(loc_2b9, 0x03);              // segment index (Y)
-  m.mem.write8(loc_2cc, 0x85);             // phase: bit7 set, low bits = fraction 5
-  m.mem.write8((loc_3ce + 3) & 0xffff, 0x40); // $03ce[seg]
-  m.mem.write8((loc_3de + 3) & 0xffff, 0x50); // $03de[seg]
-  m.mem.write8((loc_3ce + 4) & 0xffff, 0x60); // $03ce[next]
-  m.mem.write8((loc_3de + 4) & 0xffff, 0x30); // $03de[next]
+  m.mem.write8(ENEMY_DEPTH, 0x40);              // slot coord -> $57
+  m.mem.write8(ENEMY_SEGMENT, 0x03);              // segment index (Y)
+  m.mem.write8(ENEMY_PHASE, 0x85);             // phase: bit7 set, low bits = fraction 5
+  m.mem.write8((SEG_BASE_X + 3) & 0xffff, 0x40); // $03ce[seg]
+  m.mem.write8((SEG_BASE_Y + 3) & 0xffff, 0x50); // $03de[seg]
+  m.mem.write8((SEG_BASE_X + 4) & 0xffff, 0x60); // $03ce[next]
+  m.mem.write8((SEG_BASE_Y + 4) & 0xffff, 0x30); // $03de[next]
   m.mem.write8(0x74, 0x00); m.mem.write8(0x75, 0x28); // cursor -> 0x2800 (vector RAM)
   m.mem.write8(0x5b, 0x00); m.mem.write8(0x5e, 0x30); m.mem.write8(0x5f, 0x10); m.mem.write8(0x60, 0x20);
   m.mem.write8(0x66, 0x03); m.mem.write8(0x67, 0x00); m.mem.write8(0x68, 0x05); m.mem.write8(0x69, 0x00);
   m.mem.write8(0xa0, 0x08);                 // bd3e exponent operand
-  m.mem.write8(loc_3, 0x02);                // $03 -> cec8/cec9 table index
+  m.mem.write8(FRAME_COUNTER, 0x02);                // $03 -> cec8/cec9 table index
 }
-function seedNoInterp(m) { seedInterp(m); m.mem.write8(loc_2cc, 0x05); } // phase bit7 CLEAR -> no interpolation
+function seedNoInterp(m) { seedInterp(m); m.mem.write8(ENEMY_PHASE, 0x05); } // phase bit7 CLEAR -> no interpolation
 
 test("CAPTURE: real 0xb69b dispatches -- loc_b69b == oracle in RAM (-stack)", () => {
   for (const cap of CAPS) {
@@ -90,10 +90,10 @@ test("CRAFTED (interpolation): phase bit7 set -- loc_b69b == oracle, $56/$58 int
   const c = new Machine(ROM, OPTS); seedInterp(c);
   oracle(o); loc_b69b(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run (interpolation path)");
-  assert.notEqual(c.mem.read8(loc_56), 0x40, "interpolation moved $56 off its direct seg value");
-  assert.equal(c.mem.read8(loc_56), o.mem.read8(loc_56), "$56 matches oracle");
-  assert.equal(c.mem.read8(loc_58), o.mem.read8(loc_58), "$58 matches oracle");
-  assert.equal(c.mem.read8(loc_a9), 0x02, "bd3e exit Y (= seeded $a9 0 + 2) persisted to $a9");
+  assert.notEqual(c.mem.read8(PROJ_PT_Y), 0x40, "interpolation moved $56 off its direct seg value");
+  assert.equal(c.mem.read8(PROJ_PT_Y), o.mem.read8(PROJ_PT_Y), "$56 matches oracle");
+  assert.equal(c.mem.read8(PROJ_PT_X), o.mem.read8(PROJ_PT_X), "$58 matches oracle");
+  assert.equal(c.mem.read8(DRAW_CURSOR_OFFSET), 0x02, "bd3e exit Y (= seeded $a9 0 + 2) persisted to $a9");
 });
 
 test("CRAFTED (no interpolation): phase bit7 clear -- direct seg values, RAM equal", () => {
@@ -101,8 +101,8 @@ test("CRAFTED (no interpolation): phase bit7 clear -- direct seg values, RAM equ
   const c = new Machine(ROM, OPTS); seedNoInterp(c);
   oracle(o); loc_b69b(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (no-interpolation path)");
-  assert.equal(c.mem.read8(loc_56), 0x40, "$56 is the direct seg value (no interpolation)");
-  assert.equal(c.mem.read8(loc_58), 0x50, "$58 is the direct seg value (no interpolation)");
+  assert.equal(c.mem.read8(PROJ_PT_Y), 0x40, "$56 is the direct seg value (no interpolation)");
+  assert.equal(c.mem.read8(PROJ_PT_X), 0x50, "$58 is the direct seg value (no interpolation)");
 });
 
 test("TEETH (register thread): a twin that discards bd3e's return (stale $a9) diverges in $a9 + cursor", () => {
@@ -112,31 +112,31 @@ test("TEETH (register thread): a twin that discards bd3e's return (stale $a9) di
   // pre-call 0, and df59's cursor offset reloads that stale 0 instead of the extended callee's exit Y.
   const wrongThread = (m, x = m.regs.x) => {
     const { mem8 } = m;
-    mem8[loc_57] = mem8[u16(loc_2df + x)];
-    const seg = mem8[u16(loc_2b9 + x)];
-    mem8[loc_56] = mem8[u16(loc_3ce + seg)];
-    mem8[loc_58] = mem8[u16(loc_3de + seg)];
-    const phase = mem8[u16(loc_2cc + x)];
+    mem8[OBJ_DEPTH] = mem8[u16(ENEMY_DEPTH + x)];
+    const seg = mem8[u16(ENEMY_SEGMENT + x)];
+    mem8[PROJ_PT_Y] = mem8[u16(SEG_BASE_X + seg)];
+    mem8[PROJ_PT_X] = mem8[u16(SEG_BASE_Y + seg)];
+    const phase = mem8[u16(ENEMY_PHASE + x)];
     if (phase & 0x80) {
       const next = (seg + 1) & 0x0f;
-      let d0 = (mem8[u16(loc_3ce + next)] - mem8[loc_56]) & 0xff;
-      d0 = loc_b6fa(m, d0, x); mem8[loc_56] = (d0 + mem8[loc_56]) & 0xff;
-      let d1 = (mem8[u16(loc_3de + next)] - mem8[loc_58]) & 0xff;
-      d1 = loc_b6fa(m, d1, x); mem8[loc_58] = (d1 + mem8[loc_58]) & 0xff;
+      let d0 = (mem8[u16(SEG_BASE_X + next)] - mem8[PROJ_PT_Y]) & 0xff;
+      d0 = loc_b6fa(m, d0, x); mem8[PROJ_PT_Y] = (d0 + mem8[PROJ_PT_Y]) & 0xff;
+      let d1 = (mem8[u16(SEG_BASE_Y + next)] - mem8[PROJ_PT_X]) & 0xff;
+      d1 = loc_b6fa(m, d1, x); mem8[PROJ_PT_X] = (d1 + mem8[PROJ_PT_X]) & 0xff;
     }
     loc_c098(m);
     loc_c765(m, 0x61);
-    mem8[loc_a9] = 0x00;
+    mem8[DRAW_CURSOR_OFFSET] = 0x00;
     loc_bd3e(m); // BUG: return discarded, $a9 left at the stale 0
-    const idx = (((mem8[loc_3] & 0x03) << 1) + 0x4e) & 0xff;
-    const a = mem8[u16(loc_cec8 + idx)];
-    const hx = mem8[u16(loc_cec9 + idx)];
-    const y = mem8[loc_a9]; // = 0 (stale), NOT the threaded exit Y (= 2)
+    const idx = (((mem8[FRAME_COUNTER] & 0x03) << 1) + 0x4e) & 0xff;
+    const a = mem8[u16(OBJ_TEMPLATE_WORD_LO + idx)];
+    const hx = mem8[u16(OBJ_TEMPLATE_WORD_HI + idx)];
+    const y = mem8[DRAW_CURSOR_OFFSET]; // = 0 (stale), NOT the threaded exit Y (= 2)
     return loc_df59(m, a, hx, y);
   };
   wrongThread(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong (stale) register thread");
-  assert.notEqual(c.mem.read8(loc_a9), o.mem.read8(loc_a9), "$a9 (the persistently-stashed cell) must diverge");
+  assert.notEqual(c.mem.read8(DRAW_CURSOR_OFFSET), o.mem.read8(DRAW_CURSOR_OFFSET), "$a9 (the persistently-stashed cell) must diverge");
 });
 
 test("TEETH (mutation): a twin that skips interpolation when phase bit7 is set diverges from the oracle", () => {
@@ -144,20 +144,20 @@ test("TEETH (mutation): a twin that skips interpolation when phase bit7 is set d
   const c = new Machine(ROM, OPTS); seedInterp(c);
   const noInterpTwin = (m, x = m.regs.x) => {
     const { mem8 } = m;
-    mem8[loc_57] = mem8[u16(loc_2df + x)];
-    const seg = mem8[u16(loc_2b9 + x)];
-    mem8[loc_56] = mem8[u16(loc_3ce + seg)];
-    mem8[loc_58] = mem8[u16(loc_3de + seg)];
+    mem8[OBJ_DEPTH] = mem8[u16(ENEMY_DEPTH + x)];
+    const seg = mem8[u16(ENEMY_SEGMENT + x)];
+    mem8[PROJ_PT_Y] = mem8[u16(SEG_BASE_X + seg)];
+    mem8[PROJ_PT_X] = mem8[u16(SEG_BASE_Y + seg)];
     // BUG: never interpolates, even though phase bit7 is set.
     loc_c098(m);
     loc_c765(m, 0x61);
-    mem8[loc_a9] = 0x00;
+    mem8[DRAW_CURSOR_OFFSET] = 0x00;
     const yExit = loc_bd3e(m);
-    mem8[loc_a9] = yExit;
-    const idx = (((mem8[loc_3] & 0x03) << 1) + 0x4e) & 0xff;
-    const a = mem8[u16(loc_cec8 + idx)];
-    const hx = mem8[u16(loc_cec9 + idx)];
-    const y = mem8[loc_a9];
+    mem8[DRAW_CURSOR_OFFSET] = yExit;
+    const idx = (((mem8[FRAME_COUNTER] & 0x03) << 1) + 0x4e) & 0xff;
+    const a = mem8[u16(OBJ_TEMPLATE_WORD_LO + idx)];
+    const hx = mem8[u16(OBJ_TEMPLATE_WORD_HI + idx)];
+    const y = mem8[DRAW_CURSOR_OFFSET];
     return loc_df59(m, a, hx, y);
   };
   noInterpTwin(c);

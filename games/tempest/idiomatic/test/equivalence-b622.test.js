@@ -15,7 +15,7 @@ import { loc_bcfd } from "../loc_bcfd.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_2b9, loc_3 } from "../names.js";
+import { STACK_SCRATCH, ENEMY_SEGMENT, FRAME_COUNTER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -53,8 +53,8 @@ const seedVectorRam = (m) => { for (let a = 0x2000; a < 0x2100; a++) m.mem.write
 const seed = (m, x, phase, idx) => {
   seedVectorRam(m);
   m.regs.x = x;
-  m.mem.write8(u16(loc_2b9 + x), idx);
-  m.mem.write8(loc_3, phase);
+  m.mem.write8(u16(ENEMY_SEGMENT + x), idx);
+  m.mem.write8(FRAME_COUNTER, phase);
 };
 
 test("CRAFTED: seeded dispatch is RAM-equivalent through the dissolved callee", () => {
@@ -69,8 +69,8 @@ test("TEETH (non-default seed): a twin that omits the +0x12 offset diverges from
   const c = new Machine(ROM, OPTS); seed(c, 0x05, 0x2b, 0x1f);
   oracle(o);
   const mem8 = c.mem8;
-  const y = mem8[u16(loc_2b9 + c.regs.x)];
-  const a = ((mem8[loc_3] & 0x03) << 1) & 0xff; // BUG: drops the +0x12
+  const y = mem8[u16(ENEMY_SEGMENT + c.regs.x)];
+  const a = ((mem8[FRAME_COUNTER] & 0x03) << 1) & 0xff; // BUG: drops the +0x12
   loc_bcfd(c, a, y);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the missing offset");
 });

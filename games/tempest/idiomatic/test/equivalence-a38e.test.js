@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_a38e (ROM 0xa38e-0xa397) -- flags slot X active by writing 0xff to
-// loc_2f2,x, steps the incoming lane index Y back by four, then TAIL-DELEGATES to loc_a398 with the
+// HIT_TALLY,x, steps the incoming lane index Y back by four, then TAIL-DELEGATES to loc_a398 with the
 // unchanged X and the stepped-back index. loc_a38e takes X and Y as live-in registers (the write index
 // and the lane index) and its exit registers are the delegate's, so live-out is RAM only (dumpState
 // minus STACK_SCRATCH) -- no register is produced by loc_a38e itself, exactly as its tail-delegate leaves
@@ -15,7 +15,7 @@ import { loc_a38e as oracle } from "../../translated/loc_a38e.js";
 import { loc_a38e } from "../loc_a38e.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_283, loc_2b9, loc_2f2 } from "../names.js";
+import { STACK_SCRATCH, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT, HIT_TALLY } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -55,13 +55,13 @@ test("CAPTURE: real 0xa38e dispatches -- loc_a38e == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// Seed X (the loc_2f2,x flag index) and Y (the lane index, stepped back by four into loc_a398), and
+// Seed X (the HIT_TALLY,x flag index) and Y (the lane index, stepped back by four into loc_a398), and
 // give the stepped-back slot a plausible descriptor/seated pair so the delegate walks a real path.
 function seed(m) {
   m.regs.x = 0x05;
   m.regs.y = 0x08;                 // priorSlot = 0x08 - 4 = 0x04
-  m.mem.write8(loc_283 + 0x04, 0x21); // slot descriptor for the stepped-back slot
-  m.mem.write8(loc_2b9 + 0x04, 0x07); // seated value for the stepped-back slot
+  m.mem.write8(ENEMY_SLOT_FLAGS + 0x04, 0x21); // slot descriptor for the stepped-back slot
+  m.mem.write8(ENEMY_SEGMENT + 0x04, 0x07); // seated value for the stepped-back slot
 }
 
 test("CRAFTED: flag write + step-back + tail-delegate -- RAM equal", () => {
@@ -72,11 +72,11 @@ test("CRAFTED: flag write + step-back + tail-delegate -- RAM equal", () => {
   if (threw) { console.log("  CRAFTED: oracle threw on this seed -- skipped"); return; }
   loc_a38e(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the flag write and tail-delegate");
-  // The unconditional signature write landed at loc_2f2 + X = loc_2f2 + 5.
-  assert.equal(c.mem.read8(loc_2f2 + 0x05), 0xff, "slot flag set");
+  // The unconditional signature write landed at HIT_TALLY + X = HIT_TALLY + 5.
+  assert.equal(c.mem.read8(HIT_TALLY + 0x05), 0xff, "slot flag set");
 });
 
-test("TEETH: a twin that drops the loc_2f2,x flag write MUST diverge in RAM", () => {
+test("TEETH: a twin that drops the HIT_TALLY,x flag write MUST diverge in RAM", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   let threw = false;
@@ -85,9 +85,9 @@ test("TEETH: a twin that drops the loc_2f2,x flag write MUST diverge in RAM", ()
   // Broken twin: identical to loc_a38e but reverts the unconditional 0xff flag write.
   const broken = (m) => {
     const x = m.regs.x;
-    const before = m.mem.read8(loc_2f2 + x);
+    const before = m.mem.read8(HIT_TALLY + x);
     loc_a38e(m);
-    m.mem.write8(loc_2f2 + x, before); // BUG: undo the signature write
+    m.mem.write8(HIT_TALLY + x, before); // BUG: undo the signature write
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the dropped flag write was NOT caught by the RAM compare");

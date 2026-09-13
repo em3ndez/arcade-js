@@ -12,7 +12,7 @@ import { loc_db9a as oracle } from "../../translated/loc_db9a.js";
 import { loc_db9a } from "../loc_db9a.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_3, loc_39, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, FRAME_COUNTER, loc_39, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -48,15 +48,15 @@ test("CAPTURE: real 0xdb9a dispatches -- loc_db9a == oracle in RAM (-stack)", ()
 
 // frame gate CLEAR (low six bits zero) -> the counter advances; a distinct $39 selects a table slot.
 function seedAdvance(m) {
-  m.mem.write8(loc_3, 0x00);   // (& 0x3f) == 0 -> increment $39
+  m.mem.write8(FRAME_COUNTER, 0x00);   // (& 0x3f) == 0 -> increment $39
   m.mem.write8(loc_39, 0x02);
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20);
 }
 // frame gate SET -> the counter is frozen; a different slot index.
 function seedFrozen(m) {
-  m.mem.write8(loc_3, 0x25);   // (& 0x3f) != 0 -> $39 unchanged
+  m.mem.write8(FRAME_COUNTER, 0x25);   // (& 0x3f) != 0 -> $39 unchanged
   m.mem.write8(loc_39, 0x05);
-  m.mem.write8(loc_74, 0x10); m.mem.write8(loc_75, 0x20);
+  m.mem.write8(DRAW_CURSOR_LO, 0x10); m.mem.write8(DRAW_CURSOR_HI, 0x20);
 }
 
 test("CRAFTED (advance): counter steps, slot seeded, words emitted -- RAM equal", () => {

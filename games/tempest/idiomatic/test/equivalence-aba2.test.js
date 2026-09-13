@@ -15,7 +15,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { loc_ac20 } from "../loc_ac20.js";
 import { loc_ac07 } from "../loc_ac07.js";
-import { STACK_SCRATCH, loc_100, loc_1c9, loc_71e, loc_71f } from "../names.js";
+import { STACK_SCRATCH, loc_100, PENDING_WORK_FLAGS, INPUT_SNAPSHOT_HI, INPUT_SNAPSHOT_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,9 +52,9 @@ test("CAPTURE: real 0xaba2 dispatches -- loc_aba2 == oracle in RAM (-stack)", ()
 // Force the loc_abac branch: mismatched cached target bytes make loc_ac20 request a rebuild, which sets
 // ($01c9 | 3) so the low two bits are non-zero. Vector RAM dirtied so the copy/fill lands in the diffed region.
 function seedRebuild(m) {
-  m.mem.write8(loc_71e, 0xff);
-  m.mem.write8(loc_71f, 0xff);
-  m.mem.write8(loc_1c9, 0x00);
+  m.mem.write8(INPUT_SNAPSHOT_HI, 0xff);
+  m.mem.write8(INPUT_SNAPSHOT_LO, 0xff);
+  m.mem.write8(PENDING_WORK_FLAGS, 0x00);
   for (let i = 0; i < 0x40; i++) m.mem.write8((0x2100 + i) & 0xffff, 0x5a);
 }
 
@@ -63,7 +63,7 @@ test("CRAFTED: forced rebuild -> loc_abac path -- loc_aba2 == oracle in RAM", ()
   const c = new Machine(ROM, OPTS); seedRebuild(c);
   oracle(o); loc_aba2(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the rebuild/copy path");
-  // loc_abac consumes (clears) the loc_1c9 request bits; its durable $0100=0x08 write marks that the
+  // loc_abac consumes (clears) the PENDING_WORK_FLAGS request bits; its durable $0100=0x08 write marks that the
   // rebuild branch ran (the no-op loc_ac07 path never writes $0100).
   assert.equal(c.mem.read8(loc_100), 0x08, "loc_abac branch ran (its $0100 write is present)");
 });

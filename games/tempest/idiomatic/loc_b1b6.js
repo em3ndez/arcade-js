@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import {
-  loc_1, loc_b6, loc_133, loc_16e, loc_455,
-  loc_2000, loc_2001, loc_cec4, loc_cec5, loc_cec6,
+  MODE_DISPATCH_SEL, DRAW_RECORD_PTR_LO, LEVEL_LAYOUT_TRIGGER, SCORE_DISPLAY_TIMER, loc_455,
+  VEC_LIST_HEADER_LO, VEC_LIST_HEADER_HI, VECHEAD0_PLAY, VECHEAD1_PLAY, VECHEAD0_LEVEL,
 } from "./names.js";
 import { loc_c1c3 } from "./loc_c1c3.js";
 import { loc_b20d } from "./loc_b20d.js";
@@ -27,17 +27,17 @@ export function loc_b1b6(m, dFlag = m.regs.fD) {
   loc_c1c3(m);
 
   // Frame already settled: guard cell matches its checkpoint and the pending flag is clear.
-  if (mem8[loc_2000] === mem8[loc_cec6] && mem8[loc_133] === 0) return;
+  if (mem8[VEC_LIST_HEADER_LO] === mem8[VECHEAD0_LEVEL] && mem8[LEVEL_LAYOUT_TRIGGER] === 0) return;
 
   // Mode zero routes the entire draw through the frame builder.
-  if (mem8[loc_1] === 0) { loc_b230(m); return; }
+  if (mem8[MODE_DISPATCH_SEL] === 0) { loc_b230(m); return; }
 
   loc_b2be(m, 0x00);
   const changed = loc_b332(m); // true = a change was published; skip the checksum path
   if (!changed) {
     loc_b20d(m); // computed-jump dispatch
-    if (mem8[loc_16e] !== 0) {
-      const ptr = mem16[loc_b6];
+    if (mem8[SCORE_DISPLAY_TIMER] !== 0) {
+      const ptr = mem16[DRAW_RECORD_PTR_LO];
       let a = 0x0e;
       let carry = 1; // seeded set
       for (let y = 0x27; y >= 0; y--) {
@@ -63,6 +63,6 @@ export function loc_b1b6(m, dFlag = m.regs.fD) {
   }
 
   loc_b2fe(m, 0x00);
-  mem8[loc_2000] = mem8[loc_cec4];
-  mem8[loc_2001] = mem8[loc_cec5];
+  mem8[VEC_LIST_HEADER_LO] = mem8[VECHEAD0_PLAY];
+  mem8[VEC_LIST_HEADER_HI] = mem8[VECHEAD1_PLAY];
 }

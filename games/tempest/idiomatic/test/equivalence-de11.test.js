@@ -16,7 +16,7 @@ import { loc_de1b as brokenTail } from "../loc_de1b.js"; // shared tail, for the
 
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_1c7, loc_1c8, loc_1ca } from "../names.js";
+import { STACK_SCRATCH, EAROM_REGION_PENDING, EAROM_REGION_DIR, EAROM_MODE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -52,28 +52,28 @@ test("CAPTURE: real 0xde11 dispatches -- loc_de11 == oracle in RAM (-stack)", ()
 
 test("CRAFTED: seeds the mode byte and runs the fresh-row walk == oracle (RAM -stack)", () => {
   const seed = (m) => {
-    m.mem.write8(loc_1ca, 0x00); // idle -> fresh-row block will run and read $01c8
-    m.mem.write8(loc_1c7, 0x33); // garbage; loc_de11 overwrites with 7
-    m.mem.write8(loc_1c8, 0x77); // garbage; loc_de11 clears to 0
+    m.mem.write8(EAROM_MODE, 0x00); // idle -> fresh-row block will run and read $01c8
+    m.mem.write8(EAROM_REGION_PENDING, 0x33); // garbage; loc_de11 overwrites with 7
+    m.mem.write8(EAROM_REGION_DIR, 0x77); // garbage; loc_de11 clears to 0
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_de11(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the walk");
-  assert.equal(c.mem.read8(loc_1c8), 0x00, "$01c8 cleared");
+  assert.equal(c.mem.read8(EAROM_REGION_DIR), 0x00, "$01c8 cleared");
 });
 
 test("TEETH: a twin that skips clearing $01c8 diverges (the mask select flips y 0x20->0x80)", () => {
   const seed = (m) => {
-    m.mem.write8(loc_1ca, 0x00);
-    m.mem.write8(loc_1c7, 0x33);
-    m.mem.write8(loc_1c8, 0xff); // all bits set: AND with the walking mask is nonzero -> y=0x80
+    m.mem.write8(EAROM_MODE, 0x00);
+    m.mem.write8(EAROM_REGION_PENDING, 0x33);
+    m.mem.write8(EAROM_REGION_DIR, 0xff); // all bits set: AND with the walking mask is nonzero -> y=0x80
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const broken = (m) => {
-    m.mem.write8(loc_1c7, 0x07); // BUG: sets the mode byte but never clears $01c8
+    m.mem.write8(EAROM_REGION_PENDING, 0x07); // BUG: sets the mode byte but never clears $01c8
     // run the shared state machine on the un-cleared target
     // (import kept local to the twin to mirror loc_de11's tail)
     return brokenTail(m);

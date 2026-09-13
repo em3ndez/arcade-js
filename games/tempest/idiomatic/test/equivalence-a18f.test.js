@@ -13,7 +13,7 @@ import { loc_a18f as oracle } from "../../translated/loc_a18f.js";
 import { loc_a18f } from "../loc_a18f.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_37, loc_a6, loc_118, loc_120, loc_135, loc_200, loc_202, loc_2d3, loc_2e6, loc_2f2 } from "../names.js";
+import { STACK_SCRATCH, SLOT_LOOP_INDEX, ACTIVE_ENEMY_COUNT, OBJECT_VELOCITY_HI, OBJECT_VELOCITY_LO, ACTIVE_OBJECT_COUNT, PLAYER_SEGMENT, PLAYER_SHOT_DEPTH, SLOT_STATE, loc_2e6, HIT_TALLY } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -56,16 +56,16 @@ test("CAPTURE: real 0xa18f dispatches -- loc_a18f == oracle in RAM (-stack)", ()
 // $0200=0x77 (!= $02ad,x=0) makes a1e4 early-return without the heavy a34b path; a1fa early-returns
 // because $03ac,($02ad,x) is 0. Both jsrs still run on both sides -> validates the dissolves + x marshalling.
 function seed(m) {
-  m.mem.write8(loc_120, 0x30);
-  m.mem.write8(loc_118, 0x01);
-  m.mem.write8(loc_202, 0x05);
-  m.mem.write8(loc_a6, 0x20);
-  m.mem.write8(loc_135, 0x08);
-  m.mem.write8(loc_200, 0x77);
-  m.mem.write8(loc_2d3 + 0x0a, 0x10); m.mem.write8(loc_2e6 + 0x0a, 0xf0);
-  m.mem.write8(loc_2d3 + 0x09, 0x02); m.mem.write8(loc_2e6 + 0x09, 0x10);
-  m.mem.write8(loc_2d3 + 0x03, 0xf0); m.mem.write8(loc_2f2 + 0x03, 0x00);
-  m.mem.write8(loc_2d3 + 0x02, 0x40); m.mem.write8(loc_2f2 + 0x02, 0x00);
+  m.mem.write8(OBJECT_VELOCITY_LO, 0x30);
+  m.mem.write8(OBJECT_VELOCITY_HI, 0x01);
+  m.mem.write8(PLAYER_SHOT_DEPTH, 0x05);
+  m.mem.write8(ACTIVE_ENEMY_COUNT, 0x20);
+  m.mem.write8(ACTIVE_OBJECT_COUNT, 0x08);
+  m.mem.write8(PLAYER_SEGMENT, 0x77);
+  m.mem.write8(SLOT_STATE + 0x0a, 0x10); m.mem.write8(loc_2e6 + 0x0a, 0xf0);
+  m.mem.write8(SLOT_STATE + 0x09, 0x02); m.mem.write8(loc_2e6 + 0x09, 0x10);
+  m.mem.write8(SLOT_STATE + 0x03, 0xf0); m.mem.write8(HIT_TALLY + 0x03, 0x00);
+  m.mem.write8(SLOT_STATE + 0x02, 0x40); m.mem.write8(HIT_TALLY + 0x02, 0x00);
 }
 
 test("CRAFTED: all four branches (both dissolves) -- RAM equal to the oracle", () => {
@@ -73,11 +73,11 @@ test("CRAFTED: all four branches (both dissolves) -- RAM equal to the oracle", (
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_a18f(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the full slot sweep");
-  assert.equal(c.mem.read8(loc_2d3 + 0x0a), 0x12, "carry propagated into the high byte");
+  assert.equal(c.mem.read8(SLOT_STATE + 0x0a), 0x12, "carry propagated into the high byte");
   assert.equal(c.mem.read8(loc_2e6 + 0x0a), 0x20, "low byte wrapped");
-  assert.equal(c.mem.read8(loc_2d3 + 0x09), 0x00, "past-edge slot cleared");
-  assert.equal(c.mem.read8(loc_2d3 + 0x03), 0x00, "counter slot cleared at the far limit");
-  assert.equal(c.mem.read8(loc_2d3 + 0x02), 0x49, "counter slot advanced");
+  assert.equal(c.mem.read8(SLOT_STATE + 0x09), 0x00, "past-edge slot cleared");
+  assert.equal(c.mem.read8(SLOT_STATE + 0x03), 0x00, "counter slot cleared at the far limit");
+  assert.equal(c.mem.read8(SLOT_STATE + 0x02), 0x49, "counter slot advanced");
 });
 
 test("TEETH: a twin that drops the 16-bit carry diverges from the oracle", () => {
@@ -87,25 +87,25 @@ test("TEETH: a twin that drops the 16-bit carry diverges from the oracle", () =>
   // Replays loc_a18f faithfully EXCEPT the high-byte add ignores the low-byte carry.
   const broken = (m) => {
     const { mem8 } = m;
-    mem8[loc_37] = 0x0b;
+    mem8[SLOT_LOOP_INDEX] = 0x0b;
     for (;;) {
-      const x = mem8[loc_37];
-      if (mem8[(loc_2d3 + x) & 0xffff] !== 0) {
+      const x = mem8[SLOT_LOOP_INDEX];
+      if (mem8[(SLOT_STATE + x) & 0xffff] !== 0) {
         if (x >= 0x08) {
-          const lo = mem8[(loc_2e6 + x) & 0xffff] + mem8[loc_120];
+          const lo = mem8[(loc_2e6 + x) & 0xffff] + mem8[OBJECT_VELOCITY_LO];
           mem8[(loc_2e6 + x) & 0xffff] = lo;
-          const hi = (mem8[(loc_2d3 + x) & 0xffff] + mem8[loc_118]) & 0xff; // BUG: no carry
-          if (hi >= mem8[loc_202]) mem8[(loc_2d3 + x) & 0xffff] = hi;
-          else { mem8[loc_a6] = mem8[loc_a6] - 1; mem8[(loc_2d3 + x) & 0xffff] = 0x00; }
+          const hi = (mem8[(SLOT_STATE + x) & 0xffff] + mem8[OBJECT_VELOCITY_HI]) & 0xff; // BUG: no carry
+          if (hi >= mem8[PLAYER_SHOT_DEPTH]) mem8[(SLOT_STATE + x) & 0xffff] = hi;
+          else { mem8[ACTIVE_ENEMY_COUNT] = mem8[ACTIVE_ENEMY_COUNT] - 1; mem8[(SLOT_STATE + x) & 0xffff] = 0x00; }
         } else {
-          let counter = mem8[(loc_2d3 + x) & 0xffff] + 0x09;
-          if (mem8[(loc_2f2 + x) & 0xffff] !== 0) counter -= 0x04;
-          mem8[(loc_2d3 + x) & 0xffff] = counter;
-          if (mem8[(loc_2d3 + x) & 0xffff] >= 0xf0) { mem8[loc_135] = mem8[loc_135] - 1; mem8[(loc_2d3 + x) & 0xffff] = 0x00; }
+          let counter = mem8[(SLOT_STATE + x) & 0xffff] + 0x09;
+          if (mem8[(HIT_TALLY + x) & 0xffff] !== 0) counter -= 0x04;
+          mem8[(SLOT_STATE + x) & 0xffff] = counter;
+          if (mem8[(SLOT_STATE + x) & 0xffff] >= 0xf0) { mem8[ACTIVE_OBJECT_COUNT] = mem8[ACTIVE_OBJECT_COUNT] - 1; mem8[(SLOT_STATE + x) & 0xffff] = 0x00; }
         }
       }
-      const next = (mem8[loc_37] - 1) & 0xff;
-      mem8[loc_37] = next;
+      const next = (mem8[SLOT_LOOP_INDEX] - 1) & 0xff;
+      mem8[SLOT_LOOP_INDEX] = next;
       if (next & 0x80) break;
     }
   };

@@ -13,7 +13,7 @@ import { loc_b5ad as oracle } from "../../translated/loc_b5ad.js";
 import { loc_b5ad } from "../loc_b5ad.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_106, loc_37, loc_2df, loc_57, loc_283, loc_55 } from "../names.js";
+import { STACK_SCRATCH, SPIKE_ACTIVE_FLAG, SLOT_LOOP_INDEX, ENEMY_DEPTH, OBJ_DEPTH, ENEMY_SLOT_FLAGS, DRAW_STYLE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,13 +50,13 @@ test("CAPTURE: real 0xb5ad dispatches -- loc_b5ad == oracle in RAM (-stack)", ()
 // Guard clear and one slot armed: slot 3 has a nonzero control byte and a paired byte that
 // yields style 0 and selector 4, so the walk caches the control byte and dispatches the handler.
 function seedWalk(m) {
-  m.mem.write8(loc_106, 0x00); // guard clear (bit7 = 0) -> do not exit
+  m.mem.write8(SPIKE_ACTIVE_FLAG, 0x00); // guard clear (bit7 = 0) -> do not exit
   for (let i = 0; i <= 6; i++) {
-    m.mem.write8((loc_2df + i) & 0xffff, 0x00); // all slots idle...
-    m.mem.write8((loc_283 + i) & 0xffff, 0x00);
+    m.mem.write8((ENEMY_DEPTH + i) & 0xffff, 0x00); // all slots idle...
+    m.mem.write8((ENEMY_SLOT_FLAGS + i) & 0xffff, 0x00);
   }
-  m.mem.write8((loc_2df + 3) & 0xffff, 0x08); // ...except slot 3 armed
-  m.mem.write8((loc_283 + 3) & 0xffff, 0x02); // style nibble 0, selector 4
+  m.mem.write8((ENEMY_DEPTH + 3) & 0xffff, 0x08); // ...except slot 3 armed
+  m.mem.write8((ENEMY_SLOT_FLAGS + 3) & 0xffff, 0x02); // style nibble 0, selector 4
 }
 
 test("CRAFTED: armed slot -- control byte cached and RAM matches the oracle", () => {
@@ -64,22 +64,22 @@ test("CRAFTED: armed slot -- control byte cached and RAM matches the oracle", ()
   const c = new Machine(ROM, OPTS); seedWalk(c);
   oracle(o); loc_b5ad(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the walk");
-  assert.equal(c.mem.read8(loc_57), 0x08, "control byte cached into $57");
-  assert.equal(c.mem.read8(loc_55), o.mem.read8(loc_55), "$55 matches the oracle (a dispatched draw handler leaves the final value)");
-  assert.equal(c.mem.read8(loc_37), 0xff, "loop counter decremented past 0 to 0xff at exit");
+  assert.equal(c.mem.read8(OBJ_DEPTH), 0x08, "control byte cached into $57");
+  assert.equal(c.mem.read8(DRAW_STYLE), o.mem.read8(DRAW_STYLE), "$55 matches the oracle (a dispatched draw handler leaves the final value)");
+  assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xff, "loop counter decremented past 0 to 0xff at exit");
 });
 
 test("TEETH: a twin that skips caching + dispatch diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seedWalk(o);
   const c = new Machine(ROM, OPTS); seedWalk(c);
   oracle(o);
-  const brokenB5ad = (m) => { m.mem8[loc_37] = 0x00; /* BUG: never caches $57 nor dispatches a draw */ };
+  const brokenB5ad = (m) => { m.mem8[SLOT_LOOP_INDEX] = 0x00; /* BUG: never caches $57 nor dispatches a draw */ };
   brokenB5ad(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped walk");
 });
 
 test("TEETH-GUARD: guard flag set -- oracle and idiomatic both early-out identically", () => {
-  const seed = (m) => { m.mem.write8(loc_106, 0x80); };
+  const seed = (m) => { m.mem.write8(SPIKE_ACTIVE_FLAG, 0x80); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_b5ad(c);

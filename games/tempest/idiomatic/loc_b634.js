@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import {
-  loc_2e, loc_2f, loc_30, loc_56, loc_57, loc_58, loc_59, loc_5a,
-  loc_112, loc_2b9, loc_2cc, loc_3ce, loc_3de,
-  loc_b687, loc_b68b, loc_bcdc, loc_bcec,
+  loc_2e, loc_2f, loc_30, PROJ_PT_Y, OBJ_DEPTH, PROJ_PT_X, CLAMP_TALLY, RUN_SIZE,
+  TUBE_SHAPE_INDEX, ENEMY_SEGMENT, ENEMY_PHASE, SEG_BASE_X, SEG_BASE_Y,
+  VERTEX_Y_OFS_BY_PHASE, VERTEX_X_OFS_BY_PHASE, STYLE_TABLE_59, STYLE_TABLE_5A,
 } from "./names.js";
 
 // Signed-saturating add of a delta to a base value, both offset by a 0x80 bias.
@@ -20,14 +20,14 @@ function clampAdd(base, delta) {
 // table delta with saturation, and load a paired style byte pair into $59/$5a.
 export function loc_b634(m, x = m.regs.x) {
   const { mem8 } = m;
-  mem8[loc_2f] = mem8[loc_57];
-  const coordIdx = mem8[u16(loc_2b9 + x)];
-  mem8[loc_56] = mem8[u16(loc_3ce + coordIdx)];
-  mem8[loc_58] = mem8[u16(loc_3de + coordIdx)];
-  const deltaIdx = mem8[u16(loc_2cc + x)] & 0x0f;
-  mem8[loc_2e] = clampAdd(mem8[loc_56], mem8[u16(loc_b68b + deltaIdx)]);
-  mem8[loc_30] = clampAdd(mem8[loc_58], mem8[u16(loc_b687 + deltaIdx)]);
-  const styleIdx = mem8[loc_112];
-  mem8[loc_59] = mem8[u16(loc_bcdc + styleIdx)];
-  mem8[loc_5a] = mem8[u16(loc_bcec + styleIdx)];
+  mem8[loc_2f] = mem8[OBJ_DEPTH];
+  const coordIdx = mem8[u16(ENEMY_SEGMENT + x)];
+  mem8[PROJ_PT_Y] = mem8[u16(SEG_BASE_X + coordIdx)];
+  mem8[PROJ_PT_X] = mem8[u16(SEG_BASE_Y + coordIdx)];
+  const deltaIdx = mem8[u16(ENEMY_PHASE + x)] & 0x0f;
+  mem8[loc_2e] = clampAdd(mem8[PROJ_PT_Y], mem8[u16(VERTEX_X_OFS_BY_PHASE + deltaIdx)]);
+  mem8[loc_30] = clampAdd(mem8[PROJ_PT_X], mem8[u16(VERTEX_Y_OFS_BY_PHASE + deltaIdx)]);
+  const styleIdx = mem8[TUBE_SHAPE_INDEX];
+  mem8[CLAMP_TALLY] = mem8[u16(STYLE_TABLE_59 + styleIdx)];
+  mem8[RUN_SIZE] = mem8[u16(STYLE_TABLE_5A + styleIdx)];
 }

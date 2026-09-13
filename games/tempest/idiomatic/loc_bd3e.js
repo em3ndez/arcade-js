@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import {
-  loc_57, loc_5b, loc_5f, loc_74, loc_75, loc_78, loc_79, loc_7a, loc_a0, loc_a9,
-  loc_6040, loc_6060, loc_6070, loc_608c, loc_608e, loc_6094, loc_6095, loc_6096,
+  OBJ_DEPTH, DEPTH_LO, DEPTH_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI, SEG_SPREAD_A_LO, SEG_SPREAD_A_LO_1, SEG_SPREAD_A_LO_2, loc_a0, DRAW_CURSOR_OFFSET,
+  MATHBOX_STATUS, MATHBOX_RESULT_LO, MATHBOX_RESULT_HI, MATHBOX_LD_R6_COUNT, MATHBOX_LD_RA_HI, MATHBOX_DIVIDE, MATHBOX_LD_R7_LO, MATHBOX_LD_R7_HI,
 } from "./names.js";
 
 // Append a (mantissa, exponent) pair to the table: small inputs use a fixed pair,
@@ -15,29 +15,29 @@ import {
 export function loc_bd3e(m) {
   const { mem8 } = m;
   let a, y;
-  if (mem8[loc_57] < 0x10) {
+  if (mem8[OBJ_DEPTH] < 0x10) {
     a = 0x01;
     y = 0x00;
   } else {
     // 16-bit difference into the coprocessor operand registers.
-    let t = mem8[loc_57] - mem8[loc_5f];
+    let t = mem8[OBJ_DEPTH] - mem8[DEPTH_HI];
     const borrow = t < 0 ? 1 : 0;
-    mem8[loc_6095] = t;
-    mem8[loc_6096] = (0 - mem8[loc_5b] - borrow);
-    mem8[loc_608c] = 0x18;
-    mem8[loc_608e] = mem8[loc_a0];
-    mem8[loc_6094] = mem8[loc_a0];         // issue the compute
-    while ((mem8[loc_6040] & 0x80) !== 0) {}      // wait for done
-    mem8[loc_79] = mem8[loc_6060];
-    a = mem8[loc_7a] = mem8[loc_6070];
-    mem8[loc_608c] = 0x0f;
+    mem8[MATHBOX_LD_R7_LO] = t;
+    mem8[MATHBOX_LD_R7_HI] = (0 - mem8[DEPTH_LO] - borrow);
+    mem8[MATHBOX_LD_R6_COUNT] = 0x18;
+    mem8[MATHBOX_LD_RA_HI] = mem8[loc_a0];
+    mem8[MATHBOX_DIVIDE] = mem8[loc_a0];         // issue the compute
+    while ((mem8[MATHBOX_STATUS] & 0x80) !== 0) {}      // wait for done
+    mem8[SEG_SPREAD_A_LO_1] = mem8[MATHBOX_RESULT_LO];
+    a = mem8[SEG_SPREAD_A_LO_2] = mem8[MATHBOX_RESULT_HI];
+    mem8[MATHBOX_LD_R6_COUNT] = 0x0f;
     a = (a - 1) & 0xff;
     if (a === 0) a = 0x01;
     let x = 0;
     for (;;) {
       x = (x + 1) & 0xff;
-      const shiftOut = (mem8[loc_79] >> 7) & 1;
-      mem8[loc_79] = (mem8[loc_79] << 1);
+      const shiftOut = (mem8[SEG_SPREAD_A_LO_1] >> 7) & 1;
+      mem8[SEG_SPREAD_A_LO_1] = (mem8[SEG_SPREAD_A_LO_1] << 1);
       const top = (a >> 7) & 1;
       a = ((a << 1) | shiftOut) & 0xff;
       if (top !== 0) break;                       // stop once a 1 rolls out
@@ -45,11 +45,11 @@ export function loc_bd3e(m) {
     y = ((((a >> 1) ^ 0x7f) + 1) & 0xff);         // exponent
     a = x;                                        // mantissa shift count
   }
-  mem8[loc_78] = a;
+  mem8[SEG_SPREAD_A_LO] = a;
   const saved = a & 0xff;
   a = y;
-  y = mem8[loc_a9];
-  const ptr = mem8[loc_74] | (mem8[loc_75] << 8);
+  y = mem8[DRAW_CURSOR_OFFSET];
+  const ptr = mem8[DRAW_CURSOR_LO] | (mem8[DRAW_CURSOR_HI] << 8);
   mem8[u16(ptr + y)] = a;
   y = (y + 1) & 0xff;                 // bd99 iny
   mem8[u16(ptr + y)] = (saved | 0x70);

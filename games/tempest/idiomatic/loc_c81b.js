@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import {
-  loc_0, loc_1, loc_2, loc_4, loc_5, loc_6, loc_16, loc_18, loc_3e,
-  loc_4e, loc_50, loc_100, loc_123, loc_40c, loc_40d,
+  GAME_MODE, MODE_DISPATCH_SEL, GAME_MODE_PENDING, MODE_DELAY_TIMER, STATUS_FLAGS, PHASE_COUNTER, HEARTBEAT_ACCUM_LO, HEARTBEAT_ACCUM_OVERFLOW, ACTIVE_SLOT_COUNT,
+  INPUT_EDGE_FLAGS, SPINNER_ACCUM, loc_100, SPIKED_SEGMENT_COUNT, COORD_ACC_LO, COORD_ACC_HI,
 } from "./names.js";
 
 // From a two-bit gate in one flag byte and a >=2 test on a counter, derive a
@@ -17,18 +17,18 @@ import {
 // on the main path X = $3e (step-1) then ldx #3 if nonzero. Returns [x, y].
 export function loc_c81b(m, xIn = m.regs.x) {
   const { mem8 } = m;
-  const gate = mem8[loc_4e] & 0x60;
-  const counterGE2 = mem8[loc_6] >= 2;
-  mem8[loc_4e] = 0x00;
+  const gate = mem8[INPUT_EDGE_FLAGS] & 0x60;
+  const counterGE2 = mem8[PHASE_COUNTER] >= 2;
+  mem8[INPUT_EDGE_FLAGS] = 0x00;
 
   if (gate === 0) {
-    if (mem8[loc_50] !== 0 && (mem8[loc_5] & 0x80) === 0) {
-      mem8[loc_1] = 0x10;
-      mem8[loc_4] = 0x20;
-      mem8[loc_0] = 0x0a;
-      mem8[loc_2] = 0x14;
-      mem8[loc_50] = 0x00;
-      mem8[loc_123] = 0x00;
+    if (mem8[SPINNER_ACCUM] !== 0 && (mem8[STATUS_FLAGS] & 0x80) === 0) {
+      mem8[MODE_DISPATCH_SEL] = 0x10;
+      mem8[MODE_DELAY_TIMER] = 0x20;
+      mem8[GAME_MODE] = 0x0a;
+      mem8[GAME_MODE_PENDING] = 0x14;
+      mem8[SPINNER_ACCUM] = 0x00;
+      mem8[SPIKED_SEGMENT_COUNT] = 0x00;
     }
     return [xIn, 0x00]; // X = entry X (never loaded); Y = ldy #0 (untouched)
   }
@@ -36,33 +36,33 @@ export function loc_c81b(m, xIn = m.regs.x) {
   let step = 0;
   if (counterGE2) {
     step = 1;
-    mem8[loc_6] = (mem8[loc_6] - 1);
+    mem8[PHASE_COUNTER] = (mem8[PHASE_COUNTER] - 1);
     if ((gate & 0x40) !== 0) {
       step = 2;
-      mem8[loc_6] = (mem8[loc_6] - 1);
+      mem8[PHASE_COUNTER] = (mem8[PHASE_COUNTER] - 1);
     }
   } else if ((gate & 0x20) !== 0) {
     step = 1;
-    mem8[loc_6] = (mem8[loc_6] - 1);
+    mem8[PHASE_COUNTER] = (mem8[PHASE_COUNTER] - 1);
   }
 
-  mem8[loc_3e] = step;
+  mem8[ACTIVE_SLOT_COUNT] = step;
   if (step === 0) return [xIn, step]; // X = entry X (still not loaded); Y = 0
 
-  mem8[loc_5] = mem8[loc_5] | 0xc0;
-  mem8[loc_16] = 0x00;
-  mem8[loc_18] = 0x00;
-  mem8[loc_0] = 0x00;
+  mem8[STATUS_FLAGS] = mem8[STATUS_FLAGS] | 0xc0;
+  mem8[HEARTBEAT_ACCUM_LO] = 0x00;
+  mem8[HEARTBEAT_ACCUM_OVERFLOW] = 0x00;
+  mem8[GAME_MODE] = 0x00;
 
-  mem8[loc_3e] = (mem8[loc_3e] - 1);
-  let x = mem8[loc_3e];
+  mem8[ACTIVE_SLOT_COUNT] = (mem8[ACTIVE_SLOT_COUNT] - 1);
+  let x = mem8[ACTIVE_SLOT_COUNT];
   if (x !== 0) x = 0x03;
 
-  const lo = (mem8[u16(loc_40c + x)] + 1) & 0xff;
-  mem8[u16(loc_40c + x)] = lo;
-  if (lo === 0) mem8[u16(loc_40d + x)] = (mem8[u16(loc_40d + x)] + 1);
+  const lo = (mem8[u16(COORD_ACC_LO + x)] + 1) & 0xff;
+  mem8[u16(COORD_ACC_LO + x)] = lo;
+  if (lo === 0) mem8[u16(COORD_ACC_HI + x)] = (mem8[u16(COORD_ACC_HI + x)] + 1);
 
-  let sum = (mem8[loc_100] + mem8[loc_3e] + 1) & 0xff;
+  let sum = (mem8[loc_100] + mem8[ACTIVE_SLOT_COUNT] + 1) & 0xff;
   if (sum >= 0x63) sum = 0x63;
   mem8[loc_100] = sum;
 

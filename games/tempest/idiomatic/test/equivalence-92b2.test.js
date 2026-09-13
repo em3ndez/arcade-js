@@ -12,7 +12,7 @@ import { loc_92b2 as oracle } from "../../translated/loc_92b2.js";
 import { loc_92b2 } from "../loc_92b2.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_3aa, loc_3bc } from "../names.js";
+import { STACK_SCRATCH, SWEEP_STAGE, loc_3bc } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -37,7 +37,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 // Fill the two tables with distinguishable values so a swap is observable.
 function seed(m) {
   for (let x = 0; x <= 0x11; x++) {
-    m.mem.write8(loc_3aa + x, (0x40 + x) & 0xff);
+    m.mem.write8(SWEEP_STAGE + x, (0x40 + x) & 0xff);
     m.mem.write8(loc_3bc + x, (0x90 + x) & 0xff);
   }
 }
@@ -58,7 +58,7 @@ test("CRAFTED: entry-for-entry swap == oracle (RAM -stack)", () => {
   assert.equal(ramDiff(o, c), null);
   // Sanity: the tables actually crossed over.
   assert.equal(c.mem.read8(loc_3bc + 0x05), 0x45, "$03bc,5 holds old $03aa,5");
-  assert.equal(c.mem.read8(loc_3aa + 0x05), 0x95, "$03aa,5 holds old $03bc,5");
+  assert.equal(c.mem.read8(SWEEP_STAGE + 0x05), 0x95, "$03aa,5 holds old $03bc,5");
 });
 
 test("TEETH: a twin that skips the top slot (x=0x11) diverges from the oracle", () => {
@@ -67,8 +67,8 @@ test("TEETH: a twin that skips the top slot (x=0x11) diverges from the oracle", 
   oracle(o);
   // BUG: swap only x=0x10..0, leaving slot 0x11 untouched -- the RAM diff must catch it.
   for (let x = 0x10; x >= 0; x--) {
-    const lo = c.mem.read8(loc_3aa + x), hi = c.mem.read8(loc_3bc + x);
-    c.mem.write8(loc_3bc + x, lo); c.mem.write8(loc_3aa + x, hi);
+    const lo = c.mem.read8(SWEEP_STAGE + x), hi = c.mem.read8(loc_3bc + x);
+    c.mem.write8(loc_3bc + x, lo); c.mem.write8(SWEEP_STAGE + x, hi);
   }
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped top slot");
 });

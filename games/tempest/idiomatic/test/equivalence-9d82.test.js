@@ -13,7 +13,7 @@ import { loc_9d82 as oracle } from "../../translated/loc_9d82.js";
 import { loc_9d82 } from "../loc_9d82.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2cc, loc_283, loc_2b9, loc_28a, loc_3ab, loc_2df, loc_202, loc_10c, loc_3ee } from "../names.js";
+import { STACK_SCRATCH, ENEMY_PHASE, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT, ENEMY_SLOT_DIR, FIRE_GATE, ENEMY_DEPTH, PLAYER_SHOT_DEPTH, SCRIPT_BRANCH_FLAG, SEG_DIRECTION } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -54,11 +54,11 @@ test("CAPTURE: real 0x9d82 dispatches -- loc_9d82 == oracle in RAM (-stack)", ()
 // table[5]=9 -> dir=0x81 == stepped phase -> subtract branch: $02cc<-$02b9(6), $02b9<-5.
 function seedMatch(m) {
   m.regs.x = 0x03;
-  m.mem.write8(loc_283 + 3, 0x02);
-  m.mem.write8(loc_2cc + 3, 0x50);
-  m.mem.write8(loc_2b9 + 3, 0x06);
-  m.mem.write8(loc_3ee + 5, 0x09);
-  m.mem.write8(loc_10c, 0x5c); // dirty flag sentinel
+  m.mem.write8(ENEMY_SLOT_FLAGS + 3, 0x02);
+  m.mem.write8(ENEMY_PHASE + 3, 0x50);
+  m.mem.write8(ENEMY_SEGMENT + 3, 0x06);
+  m.mem.write8(SEG_DIRECTION + 5, 0x09);
+  m.mem.write8(SCRIPT_BRANCH_FLAG, 0x5c); // dirty flag sentinel
 }
 
 test("CRAFTED (9ed7 dissolve): direction matches -> walk branch fires, RAM equal", () => {
@@ -66,9 +66,9 @@ test("CRAFTED (9ed7 dissolve): direction matches -> walk branch fires, RAM equal
   const c = new Machine(ROM, OPTS); seedMatch(c);
   oracle(o); loc_9d82(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the matched walk");
-  assert.equal(c.mem.read8(loc_2cc + 3), 0x06, "phase took the coord");
-  assert.equal(c.mem.read8(loc_2b9 + 3), 0x05, "coord walked one step");
-  assert.equal(c.mem.read8(loc_10c), 0x00, "state bit7 stashed");
+  assert.equal(c.mem.read8(ENEMY_PHASE + 3), 0x06, "phase took the coord");
+  assert.equal(c.mem.read8(ENEMY_SEGMENT + 3), 0x05, "coord walked one step");
+  assert.equal(c.mem.read8(SCRIPT_BRANCH_FLAG), 0x00, "state bit7 stashed");
 });
 
 // state == 4 settling with $02df == $0202 -> the jsr $9f81 next-step kick fires. Slot 3, $0283=0x04
@@ -76,13 +76,13 @@ test("CRAFTED (9ed7 dissolve): direction matches -> walk branch fires, RAM equal
 // $03ab=0 and $02df==$0202 -> loc_9f81 runs. Validates the $9f81 dissolve.
 function seedSettle(m) {
   m.regs.x = 0x03;
-  m.mem.write8(loc_283 + 3, 0x04);
-  m.mem.write8(loc_2cc + 3, 0x87);
-  m.mem.write8(loc_2b9 + 3, 0x0a);
-  m.mem.write8(loc_28a + 3, 0x11);
-  m.mem.write8(loc_3ab, 0x00);
-  m.mem.write8(loc_202, 0x55);
-  m.mem.write8(loc_2df + 3, 0x55);
+  m.mem.write8(ENEMY_SLOT_FLAGS + 3, 0x04);
+  m.mem.write8(ENEMY_PHASE + 3, 0x87);
+  m.mem.write8(ENEMY_SEGMENT + 3, 0x0a);
+  m.mem.write8(ENEMY_SLOT_DIR + 3, 0x11);
+  m.mem.write8(FIRE_GATE, 0x00);
+  m.mem.write8(PLAYER_SHOT_DEPTH, 0x55);
+  m.mem.write8(ENEMY_DEPTH + 3, 0x55);
 }
 
 test("CRAFTED (9f81 dissolve): state 4 settles and kicks the next step, RAM equal", () => {
@@ -90,7 +90,7 @@ test("CRAFTED (9f81 dissolve): state 4 settles and kicks the next step, RAM equa
   const c = new Machine(ROM, OPTS); seedSettle(c);
   oracle(o); loc_9d82(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the settle + 9f81 kick");
-  assert.equal(c.mem.read8(loc_2cc + 3), o.mem.read8(loc_2cc + 3), "phase reseeded (matches oracle)");
+  assert.equal(c.mem.read8(ENEMY_PHASE + 3), o.mem.read8(ENEMY_PHASE + 3), "phase reseeded (matches oracle)");
 });
 
 test("TEETH: a twin that skips the $010c stash diverges from the oracle", () => {
@@ -99,9 +99,9 @@ test("TEETH: a twin that skips the $010c stash diverges from the oracle", () => 
   oracle(o);
   const broken9d82 = (m, x = m.regs.x) => {
     const { mem8 } = m;
-    const stepDown = mem8[(loc_283 + x) & 0xffff] & 0x40;
-    const phase = (stepDown ? mem8[(loc_2cc + x) & 0xffff] - 1 : mem8[(loc_2cc + x) & 0xffff] + 1) & 0xff;
-    mem8[(loc_2cc + x) & 0xffff] = (phase & 0x0f) | 0x80;
+    const stepDown = mem8[(ENEMY_SLOT_FLAGS + x) & 0xffff] & 0x40;
+    const phase = (stepDown ? mem8[(ENEMY_PHASE + x) & 0xffff] - 1 : mem8[(ENEMY_PHASE + x) & 0xffff] + 1) & 0xff;
+    mem8[(ENEMY_PHASE + x) & 0xffff] = (phase & 0x0f) | 0x80;
     // BUG: never runs the state dispatch or the $010c stash
   };
   broken9d82(c);

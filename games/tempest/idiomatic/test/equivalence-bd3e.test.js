@@ -14,7 +14,7 @@ import { loc_bd3e as oracle } from "../../translated/loc_bd3e.js";
 import { loc_bd3e } from "../loc_bd3e.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_57, loc_5b, loc_5f, loc_74, loc_75, loc_78, loc_a0, loc_a9 } from "../names.js";
+import { STACK_SCRATCH, OBJ_DEPTH, DEPTH_LO, DEPTH_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI, SEG_SPREAD_A_LO, loc_a0, DRAW_CURSOR_OFFSET } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -41,11 +41,11 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 // ptr ($74/$75) points into work RAM so the two entry writes land in the diffed dump.
 const seedElse = (m) => {
-  m.mem.write8(loc_57, 0x40); m.mem.write8(loc_5f, 0x10); m.mem.write8(loc_5b, 0x00);
-  m.mem.write8(loc_a0, 0x02); m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x06); m.mem.write8(loc_a9, 0x10);
+  m.mem.write8(OBJ_DEPTH, 0x40); m.mem.write8(DEPTH_HI, 0x10); m.mem.write8(DEPTH_LO, 0x00);
+  m.mem.write8(loc_a0, 0x02); m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x06); m.mem.write8(DRAW_CURSOR_OFFSET, 0x10);
 };
 const seedTrivial = (m) => {
-  m.mem.write8(loc_57, 0x05); m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x06); m.mem.write8(loc_a9, 0x20);
+  m.mem.write8(OBJ_DEPTH, 0x05); m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x06); m.mem.write8(DRAW_CURSOR_OFFSET, 0x20);
 };
 
 test("CAPTURE: real 0xbd3e dispatches -- loc_bd3e == oracle in RAM (-stack)", () => {
@@ -64,7 +64,7 @@ test("CRAFTED: math-coprocessor branch ($57>=0x10) matches the oracle", () => {
   assert.equal(ramDiff(o, c), null, "RAM equal after the coprocessor path");
   // LIVE-OUT: the oracle leaves the real Y register at RTS; the module must return it.
   assert.equal(y, o.regs.y, "returned Y == oracle exit Y (else path)");
-  assert.equal(y, (c.mem.read8(loc_a9) + 2) & 0xff, "exit Y == ($a9 + 2) & 0xff");
+  assert.equal(y, (c.mem.read8(DRAW_CURSOR_OFFSET) + 2) & 0xff, "exit Y == ($a9 + 2) & 0xff");
 });
 
 test("CRAFTED: trivial branch ($57<0x10) writes the fixed (0x00, 0x71) entry", () => {
@@ -72,19 +72,19 @@ test("CRAFTED: trivial branch ($57<0x10) writes the fixed (0x00, 0x71) entry", (
   const c = new Machine(ROM, OPTS); seedTrivial(c);
   oracle(o); const y = loc_bd3e(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the trivial path");
-  assert.equal(c.mem.read8(loc_78), 0x01, "$78 = 0x01");
+  assert.equal(c.mem.read8(SEG_SPREAD_A_LO), 0x01, "$78 = 0x01");
   assert.equal(c.mem.read8(0x0620), 0x00, "first entry byte = 0x00");
   assert.equal(c.mem.read8(0x0621), 0x71, "second entry byte = 0x71");
   // LIVE-OUT: exit Y is set in the shared convergence, so the trivial path returns it too.
   assert.equal(y, o.regs.y, "returned Y == oracle exit Y (trivial path)");
-  assert.equal(y, (c.mem.read8(loc_a9) + 2) & 0xff, "exit Y == ($a9 + 2) & 0xff");
+  assert.equal(y, (c.mem.read8(DRAW_CURSOR_OFFSET) + 2) & 0xff, "exit Y == ($a9 + 2) & 0xff");
 });
 
 test("TEETH: a wrong exit-Y return ($a9 + 1) diverges from the oracle's Y", () => {
   const o = new Machine(ROM, OPTS); seedElse(o);
   oracle(o);
   // The most tempting off-by-one: stopping at the first iny (bd99) instead of bd9f.
-  const wrongY = (o.mem.read8(loc_a9) + 1) & 0xff;
+  const wrongY = (o.mem.read8(DRAW_CURSOR_OFFSET) + 1) & 0xff;
   assert.notEqual(wrongY, o.regs.y, "a return of $a9+1 must NOT equal the oracle exit Y ($a9+2)");
 });
 
@@ -94,9 +94,9 @@ test("TEETH: a twin that skips the second entry byte diverges from the oracle", 
   oracle(o);
   const brokenBd3e = (m) => {
     const mem = m.mem8;
-    mem[loc_78] = 0x01;
-    const ptr = mem[loc_74] | (mem[loc_75] << 8);
-    mem[(ptr + mem[loc_a9]) & 0xffff] = 0x00; // BUG: never writes the exponent byte
+    mem[SEG_SPREAD_A_LO] = 0x01;
+    const ptr = mem[DRAW_CURSOR_LO] | (mem[DRAW_CURSOR_HI] << 8);
+    mem[(ptr + mem[DRAW_CURSOR_OFFSET]) & 0xffff] = 0x00; // BUG: never writes the exponent byte
   };
   brokenBd3e(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the missing exponent byte");

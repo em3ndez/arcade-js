@@ -14,7 +14,7 @@ import { loc_b0ab as oracle } from "../../translated/loc_b0ab.js";
 import { loc_b0ab } from "../loc_b0ab.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_50, loc_51, loc_127, loc_200 } from "../names.js";
+import { STACK_SCRATCH, SPINNER_ACCUM, RIM_ROT_OFFSET, DEPTH_CEILING, PLAYER_SEGMENT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const rd = (n) => new Uint8Array(readFileSync(new URL(n, ROM_DIR)));
@@ -39,10 +39,10 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 function seeded(v, step, s51, ceil) {
   const m = new Machine(ROM, OPTS);
-  m.mem.write8(loc_200, v);
-  m.mem.write8(loc_50, step);
-  m.mem.write8(loc_51, s51);
-  m.mem.write8(loc_127, ceil);
+  m.mem.write8(PLAYER_SEGMENT, v);
+  m.mem.write8(SPINNER_ACCUM, step);
+  m.mem.write8(RIM_ROT_OFFSET, s51);
+  m.mem.write8(DEPTH_CEILING, ceil);
   return m;
 }
 
@@ -69,7 +69,7 @@ test("CRAFTED: keep / clamp-to-ceiling / negative-floors-to-zero (== oracle, RAM
     const o = seeded(v, step, s51, ceil), c = seeded(v, step, s51, ceil);
     oracle(o); const [ra, ry] = loc_b0ab(c);
     assert.equal(ramDiff(o, c), null, `RAM v=0x${v.toString(16)}`);
-    assert.equal(c.mem.read8(loc_200), want, `$0200 v=0x${v.toString(16)}`);
+    assert.equal(c.mem.read8(PLAYER_SEGMENT), want, `$0200 v=0x${v.toString(16)}`);
     assert.equal(c.regs.a, o.regs.a, `A v=0x${v.toString(16)}`);
     assert.equal(c.regs.y, o.regs.y, `Y v=0x${v.toString(16)}`);
     assert.equal(ra, o.regs.a, `return[0] v=0x${v.toString(16)}`);
@@ -80,7 +80,7 @@ test("CRAFTED: keep / clamp-to-ceiling / negative-floors-to-zero (== oracle, RAM
 test("TEETH: a twin that skips the ceiling clamp diverges", () => {
   const o = seeded(0x40, 0x30, 0x00, 0x20); oracle(o);
   const c = seeded(0x40, 0x30, 0x00, 0x20); loc_b0ab(c);
-  c.mem.write8(loc_200, 0x41); // BUG: unclamped result
+  c.mem.write8(PLAYER_SEGMENT, 0x41); // BUG: unclamped result
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a missing clamp");
 });
 

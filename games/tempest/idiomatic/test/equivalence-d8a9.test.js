@@ -15,7 +15,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { loc_df75 } from "../loc_df75.js";
 import { loc_dfb1 } from "../loc_dfb1.js";
-import { STACK_SCRATCH, loc_29, loc_74 } from "../names.js";
+import { STACK_SCRATCH, loc_29, DRAW_CURSOR_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -53,7 +53,7 @@ test("CAPTURE: real 0xd8a9 dispatches -- loc_d8a9 == oracle in RAM (-stack)", ()
 // diffed RAM, making the marshalling (df75 gets Y then X, dfb1 gets $29) a real memory check.
 function seedDistinct(m) {
   m.regs.a = 0x11; m.regs.y = 0x22; m.regs.x = 0x33;
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_74 + 1, 0x21); // ($74) -> 0x2100 (vector RAM, diffed)
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x21); // ($74) -> 0x2100 (vector RAM, diffed)
 }
 
 test("CRAFTED: distinct A/Y/X -- loc_d8a9 == oracle in RAM", () => {

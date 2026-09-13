@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_298, loc_10b } from "./names.js";
+import { loc_298, SCRIPT_CURSOR } from "./names.js";
 import { loc_9c17 } from "./loc_9c17.js";
 
 // Count slot x's timer down; while it stays nonzero run the table-driven state step,
@@ -13,5 +13,5 @@ export function loc_9c0c(m, x = m.regs.x) {
     loc_9c17(m);
     return;
   }
-  mem8[loc_10b]++;
+  mem8[SCRIPT_CURSOR]++;
 }

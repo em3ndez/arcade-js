@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_9b07 (ROM 0x9b07-0x9b1d) -- sets up a coordinate list for the packed index in
-// loc_2b, saving/restoring the caller's index in loc_36 around the call. When loc_29 >= 0x20 the index is
+// loc_2b, saving/restoring the caller's index in SAVED_INDEX2 around the call. When loc_29 >= 0x20 the index is
 // dispatched through the loc_9a88 list-setup selector; otherwise loc_9aee seats the pointer pair directly.
 // The caller's index (entry Y) is preserved across the call, so live-out is RAM (dumpState minus
 // STACK_SCRATCH) PLUS Y (and A, which the setup callee reloads). Oracle is the frozen translated loc_9b07.
@@ -15,7 +15,7 @@ import { loc_9b07 } from "../loc_9b07.js";
 import { loc_9aee } from "../loc_9aee.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_2b, loc_36 } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_2b, SAVED_INDEX2 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -85,7 +85,7 @@ test("TEETH: a twin that skips the Y restore is RAM-clean but diverges in the Y 
   oracle(o);
   const broken = (m, y = m.regs.y) => {
     const { mem8 } = m;
-    mem8[loc_36] = y;
+    mem8[SAVED_INDEX2] = y;
     const idx = mem8[loc_2b];
     loc_9aee(m, idx);
     m.regs.y = idx; // BUG: leaves Y as the packed index instead of restoring the saved entry index

@@ -14,7 +14,7 @@ import { loc_b896 as oracle } from "../../translated/loc_b896.js";
 import { loc_b896 } from "../loc_b896.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_139, loc_13a, loc_2ffc, loc_2ffd, loc_2fff } from "../names.js";
+import { STACK_SCRATCH, VECRAM_TAIL_CURSOR_LO, VECRAM_TAIL_CURSOR_HI, VEC_LIST_JMP_LO, VEC_LIST_JMP_HI, VEC_LIST_HALT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -52,9 +52,9 @@ function seed(m, s) { for (const [a, v] of Object.entries(s)) m.mem.write8(Numbe
 
 test("CRAFTED: both the no-borrow and borrow paths == oracle (RAM -stack)", () => {
   const cases = [
-    { tag: "no borrow ($0139>=0x20): keep low, hi unchanged", [loc_139]: 0x50, [loc_13a]: 0x03 },
-    { tag: "borrow ($0139<0x20): wrap low to 0x00-0x7f, dec hi", [loc_139]: 0x10, [loc_13a]: 0x03 },
-    { tag: "exact edge ($0139==0x20): result 0, no borrow", [loc_139]: 0x20, [loc_13a]: 0x03 },
+    { tag: "no borrow ($0139>=0x20): keep low, hi unchanged", [VECRAM_TAIL_CURSOR_LO]: 0x50, [VECRAM_TAIL_CURSOR_HI]: 0x03 },
+    { tag: "borrow ($0139<0x20): wrap low to 0x00-0x7f, dec hi", [VECRAM_TAIL_CURSOR_LO]: 0x10, [VECRAM_TAIL_CURSOR_HI]: 0x03 },
+    { tag: "exact edge ($0139==0x20): result 0, no borrow", [VECRAM_TAIL_CURSOR_LO]: 0x20, [VECRAM_TAIL_CURSOR_HI]: 0x03 },
   ];
   for (const s of cases) {
     const o = new Machine(ROM, OPTS); seed(o, s);
@@ -65,12 +65,12 @@ test("CRAFTED: both the no-borrow and borrow paths == oracle (RAM -stack)", () =
 });
 
 test("TEETH: a twin that skips the $013a borrow diverges on the borrow path", () => {
-  const s = { [loc_139]: 0x10, [loc_13a]: 0x03 }; // borrow path: oracle decrements $013a to 0x02
+  const s = { [VECRAM_TAIL_CURSOR_LO]: 0x10, [VECRAM_TAIL_CURSOR_HI]: 0x03 }; // borrow path: oracle decrements $013a to 0x02
   const o = new Machine(ROM, OPTS); seed(o, s);
   oracle(o);
-  assert.equal(o.mem.read8(loc_13a), 0x02, "precondition: oracle carried the borrow into $013a");
+  assert.equal(o.mem.read8(VECRAM_TAIL_CURSOR_HI), 0x02, "precondition: oracle carried the borrow into $013a");
   const brokenHi = 0x03; // BUG: never decremented $013a on borrow
-  assert.notEqual(brokenHi, o.mem.read8(loc_13a), "the RAM diff FAILED to catch a skipped $013a borrow");
+  assert.notEqual(brokenHi, o.mem.read8(VECRAM_TAIL_CURSOR_HI), "the RAM diff FAILED to catch a skipped $013a borrow");
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {

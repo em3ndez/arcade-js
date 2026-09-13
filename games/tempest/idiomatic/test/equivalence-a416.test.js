@@ -14,7 +14,7 @@ import { loc_a416 as oracle } from "../../translated/loc_a416.js";
 import { loc_a416 } from "../loc_a416.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_116, loc_302, loc_30a, loc_312 } from "../names.js";
+import { STACK_SCRATCH, TIMED_OBJECT_COUNT, SHAPE_ID, SHAPE_ACTIVE, SHAPE_ANIM } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,10 +52,10 @@ test("CRAFTED: flag set + one live slot -- counter advances by the type step (RA
   const TYPE = 0;
   const CNT = 0x02;
   const seed = (m) => {
-    m.mem.write8(loc_116, 0x01);
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_30a + i) & 0xffff, i === 5 ? 0xaa : 0x00);
-    m.mem.write8((loc_312 + 5) & 0xffff, CNT);
-    m.mem.write8((loc_302 + 5) & 0xffff, TYPE);
+    m.mem.write8(TIMED_OBJECT_COUNT, 0x01);
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ACTIVE + i) & 0xffff, i === 5 ? 0xaa : 0x00);
+    m.mem.write8((SHAPE_ANIM + 5) & 0xffff, CNT);
+    m.mem.write8((SHAPE_ID + 5) & 0xffff, TYPE);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -65,32 +65,32 @@ test("CRAFTED: flag set + one live slot -- counter advances by the type step (RA
   oracle(o); loc_a416(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after advance");
   if (next < limit) {
-    assert.equal(c.mem.read8((loc_312 + 5) & 0xffff), next, "counter advanced by step");
-    assert.equal(c.mem.read8((loc_30a + 5) & 0xffff), 0xaa, "slot stays live while short of limit");
+    assert.equal(c.mem.read8((SHAPE_ANIM + 5) & 0xffff), next, "counter advanced by step");
+    assert.equal(c.mem.read8((SHAPE_ACTIVE + 5) & 0xffff), 0xaa, "slot stays live while short of limit");
   } else {
-    assert.equal(c.mem.read8((loc_30a + 5) & 0xffff), 0x00, "slot freed once limit reached");
+    assert.equal(c.mem.read8((SHAPE_ACTIVE + 5) & 0xffff), 0x00, "slot freed once limit reached");
   }
 });
 
 test("CRAFTED: flag clear -- routine is a no-op (RAM equal)", () => {
   const seed = (m) => {
-    m.mem.write8(loc_116, 0x00);
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_30a + i) & 0xffff, 0xaa);
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_312 + i) & 0xffff, 0x03);
+    m.mem.write8(TIMED_OBJECT_COUNT, 0x00);
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ACTIVE + i) & 0xffff, 0xaa);
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ANIM + i) & 0xffff, 0x03);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_a416(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after no-op");
-  assert.equal(c.mem.read8((loc_312 + 4) & 0xffff), 0x03, "counter untouched when flag clear");
+  assert.equal(c.mem.read8((SHAPE_ANIM + 4) & 0xffff), 0x03, "counter untouched when flag clear");
 });
 
 test("TEETH: a twin that does nothing when the flag is set diverges from the oracle", () => {
   const seed = (m) => {
-    m.mem.write8(loc_116, 0x01);
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_30a + i) & 0xffff, i === 5 ? 0xaa : 0x00);
-    m.mem.write8((loc_312 + 5) & 0xffff, 0x02);
-    m.mem.write8((loc_302 + 5) & 0xffff, 0x00);
+    m.mem.write8(TIMED_OBJECT_COUNT, 0x01);
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ACTIVE + i) & 0xffff, i === 5 ? 0xaa : 0x00);
+    m.mem.write8((SHAPE_ANIM + 5) & 0xffff, 0x02);
+    m.mem.write8((SHAPE_ID + 5) & 0xffff, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);

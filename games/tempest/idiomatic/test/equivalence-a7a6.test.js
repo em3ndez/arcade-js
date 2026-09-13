@@ -14,7 +14,7 @@ import { loc_a7a6 as oracle } from "../../translated/loc_a7a6.js";
 import { loc_a7a6 } from "../loc_a7a6.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2a, loc_111 } from "../names.js";
+import { STACK_SCRATCH, loc_2a, TUBE_GEOM_FLAG } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -52,7 +52,7 @@ test("CAPTURE: real 0xa7a6 dispatches -- loc_a7a6 == oracle in A and RAM (-stack
 function seed(m, s) {
   m.regs.a = s.a;
   m.regs.y = s.y;
-  m.mem8[loc_111] = s.s111;
+  m.mem8[TUBE_GEOM_FLAG] = s.s111;
 }
 
 test("CRAFTED: keep-full / nibble / sign-extend branches == oracle in A and RAM (-stack)", () => {

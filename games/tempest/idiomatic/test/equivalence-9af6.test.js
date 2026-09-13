@@ -14,7 +14,7 @@ import { loc_9af6 as oracle } from "../../translated/loc_9aee.js";
 import { loc_9af6 } from "../loc_9aee.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_2b, loc_2c, loc_2d } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,7 +52,7 @@ test("CAPTURE: real 0x9af6 dispatches -- loc_9af6 == oracle in RAM (-stack) and 
 function seed(m, high, y, a29) {
   m.regs.a = high; m.regs.y = y; // A carries the high pointer, Y the index
   m.mem.write8(loc_29, a29);
-  m.mem.write8(loc_2c, 0xa1); m.mem.write8(loc_2b, 0xa2); m.mem.write8(loc_2d, 0xa3); // dirty sentinels
+  m.mem.write8(COORD_LIST_PTR_LO, 0xa1); m.mem.write8(loc_2b, 0xa2); m.mem.write8(COORD_LIST_PTR_HI, 0xa3); // dirty sentinels
 }
 
 test("CRAFTED: caller high pointer + index seated, A reloaded -- RAM and A equal", () => {
@@ -62,9 +62,9 @@ test("CRAFTED: caller high pointer + index seated, A reloaded -- RAM and A equal
     oracle(o); loc_9af6(c);
     assert.equal(ramDiff(o, c), null, `RAM equal after setup (high=${high},y=${y})`);
     assert.equal(c.regs.a, o.regs.a, `A live-out matches (high=${high},y=${y})`);
-    assert.equal(c.mem.read8(loc_2d), high, `$2d = caller high pointer (high=${high},y=${y})`);
+    assert.equal(c.mem.read8(COORD_LIST_PTR_HI), high, `$2d = caller high pointer (high=${high},y=${y})`);
     assert.equal(c.mem.read8(loc_2b), y, `$2b holds the index (high=${high},y=${y})`);
-    assert.equal(c.mem.read8(loc_2c), 0xa1, `$2c untouched -- caller already set the low pointer (high=${high},y=${y})`);
+    assert.equal(c.mem.read8(COORD_LIST_PTR_LO), 0xa1, `$2c untouched -- caller already set the low pointer (high=${high},y=${y})`);
     assert.equal(c.regs.a, 0x42, `A reloaded from $29 (high=${high},y=${y})`);
   }
 });
@@ -77,7 +77,7 @@ test("MUTATION: a twin that stores A into $2c (like loc_9af1) instead of $2d div
   const broken = (m, a = m.regs.a, yy = m.regs.y) => {
     const { mem8 } = m;
     mem8[loc_2b] = yy;
-    mem8[loc_2c] = a; // BUG: writes the low pointer cell, clobbering the caller's $2c and skipping $2d
+    mem8[COORD_LIST_PTR_LO] = a; // BUG: writes the low pointer cell, clobbering the caller's $2c and skipping $2d
     m.regs.a = mem8[loc_29];
   };
   broken(c);

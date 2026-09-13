@@ -15,7 +15,7 @@ import { loc_9f81, loc_9f8a } from "../loc_9f81.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_283, loc_2b9, loc_111 } from "../names.js";
+import { STACK_SCRATCH, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT, TUBE_GEOM_FLAG } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,9 +50,9 @@ test("CAPTURE: real 0x9f81 dispatches -- loc_9f81 == oracle in RAM (-stack) and 
 // slot 0; a live board ($0111 != 0) so the tail's toggle condition runs.
 function seed(m, s) {
   m.regs.x = 0x00;
-  m.mem.write8(loc_111, s.board ?? 0x01);
-  m.mem.write8(u16(loc_283 + 0), s.flag ?? 0x00);
-  m.mem.write8(u16(loc_2b9 + 0), s.depth ?? 0x00);
+  m.mem.write8(TUBE_GEOM_FLAG, s.board ?? 0x01);
+  m.mem.write8(u16(ENEMY_SLOT_FLAGS + 0), s.flag ?? 0x00);
+  m.mem.write8(u16(ENEMY_SEGMENT + 0), s.depth ?? 0x00);
 }
 
 test("CRAFTED (9f81): flip / no-flip / skip -- loc_9f81 == oracle (RAM + A)", () => {
@@ -91,7 +91,7 @@ test("TEETH: a twin that never flips bit6 diverges from the oracle on the flip c
     const { mem8 } = m;
     // dissolve the two heads as usual...
     // BUG: skip the whole shared-tail toggle+step so bit6 never flips and $9e5f never runs.
-    mem8[loc_111]; void x;
+    mem8[TUBE_GEOM_FLAG]; void x;
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped flip/step");

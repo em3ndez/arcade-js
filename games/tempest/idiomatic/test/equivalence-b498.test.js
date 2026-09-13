@@ -15,8 +15,8 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import {
-  STACK_SCRATCH, loc_37, loc_46, loc_56, loc_68, loc_69, loc_74, loc_75, loc_b5,
-  loc_203, loc_243, loc_35a, loc_36a, loc_37a, loc_38a,
+  STACK_SCRATCH, SLOT_LOOP_INDEX, PLAYER_LEVEL_TBL, PROJ_PT_Y, PROJ_OFS_X_LO, PROJ_OFS_X_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI, CHECKSUM_ACC,
+  OBJECT_INDEX_TABLE, OBJECT_RECORD_TABLE, OBJ_DY_HI, OBJ_DY_LO, OBJ_DX_HI, OBJ_DX_LO,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -54,16 +54,16 @@ test("CAPTURE: real 0xb498 dispatches -- loc_b498 == oracle in RAM (-stack)", ()
 // One active object near the top of the table: exercises the header build, the two coordinate
 // words, the shadow negation, and the byte layout at the cursor.
 function seedOneObject(m) {
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x28); // cursor into vector RAM
-  for (let i = 0; i <= 0x3f; i++) m.mem.write8(u16(loc_243 + i), 0x00); // no objects
-  m.mem.write8(u16(loc_243 + 0x3f), 0x33); // one active object, kind < 0x50
-  m.mem.write8(u16(loc_203 + 0x3f), 0x05); // object index 5
-  m.mem.write8(u16(loc_38a + 0x05), 0x90);
-  m.mem.write8(u16(loc_37a + 0x05), 0x02);
-  m.mem.write8(u16(loc_36a + 0x05), 0x44);
-  m.mem.write8(u16(loc_35a + 0x05), 0x03);
-  m.mem.write8(loc_68, 0x10); m.mem.write8(loc_69, 0x00);
-  m.mem.write8(loc_b5, 0x00); m.mem.write8(loc_46, 0x00);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x28); // cursor into vector RAM
+  for (let i = 0; i <= 0x3f; i++) m.mem.write8(u16(OBJECT_RECORD_TABLE + i), 0x00); // no objects
+  m.mem.write8(u16(OBJECT_RECORD_TABLE + 0x3f), 0x33); // one active object, kind < 0x50
+  m.mem.write8(u16(OBJECT_INDEX_TABLE + 0x3f), 0x05); // object index 5
+  m.mem.write8(u16(OBJ_DX_LO + 0x05), 0x90);
+  m.mem.write8(u16(OBJ_DX_HI + 0x05), 0x02);
+  m.mem.write8(u16(OBJ_DY_LO + 0x05), 0x44);
+  m.mem.write8(u16(OBJ_DY_HI + 0x05), 0x03);
+  m.mem.write8(PROJ_OFS_X_LO, 0x10); m.mem.write8(PROJ_OFS_X_HI, 0x00);
+  m.mem.write8(CHECKSUM_ACC, 0x00); m.mem.write8(PLAYER_LEVEL_TBL, 0x00);
 }
 
 test("CRAFTED: one active object -- display list and coord scratch match the oracle in RAM", () => {
@@ -79,9 +79,9 @@ test("TEETH: a twin that skips the shadow-negation words diverges from the oracl
   oracle(o);
   const brokenB498 = (m) => {
     const mem8 = m.mem8;
-    const base = mem8[loc_74] | (mem8[loc_75] << 8);
+    const base = mem8[DRAW_CURSOR_LO] | (mem8[DRAW_CURSOR_HI] << 8);
     for (let i = 0; i < 6; i++) mem8[u16(base + i)] = 0x00; // BUG: only a stub, no real list
-    mem8[loc_56] = 0x11; mem8[loc_37] = 0xff;
+    mem8[PROJ_PT_Y] = 0x11; mem8[SLOT_LOOP_INDEX] = 0xff;
   };
   brokenB498(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the stubbed build");

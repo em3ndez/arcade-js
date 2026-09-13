@@ -17,7 +17,7 @@ import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import { loc_ccc1 } from "../loc_ccc1.js";
 import { loc_a3d4 } from "../loc_a3d4.js";
-import { STACK_SCRATCH, loc_5, loc_29, loc_2d, loc_a6, loc_2db, loc_2b5, loc_2f2 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, loc_29, COORD_LIST_PTR_HI, ACTIVE_ENEMY_COUNT, loc_2db, loc_2b5, HIT_TALLY } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -55,11 +55,11 @@ test("CAPTURE: real 0xa36f dispatches -- loc_a36f == oracle in RAM (-stack)", ()
 
 function seed(m) {
   m.regs.x = 0x04; m.regs.y = 0x02;  // Y indexes the slot; X flags the lane
-  m.mem.write8(loc_5, 0x80);         // sound enable high bit so the gate runs its body
+  m.mem.write8(STATUS_FLAGS, 0x80);         // sound enable high bit so the gate runs its body
   m.mem.write8(u16(loc_2db + 0x02), 0x5a); // source at slot Y -> $29
   m.mem.write8(u16(loc_2b5 + 0x02), 0x6b); // target at slot Y -> $2d
-  m.mem.write8(loc_a6, 0x09);        // live count to decrement
-  m.mem.write8(u16(loc_2f2 + 0x04), 0x11); // dirty lane flag sentinel
+  m.mem.write8(ACTIVE_ENEMY_COUNT, 0x09);        // live count to decrement
+  m.mem.write8(u16(HIT_TALLY + 0x04), 0x11); // dirty lane flag sentinel
 }
 
 test("CRAFTED: sound gate, stage, re-insert, clear and flag -- RAM equal and X/Y preserved", () => {
@@ -70,8 +70,8 @@ test("CRAFTED: sound gate, stage, re-insert, clear and flag -- RAM equal and X/Y
   assert.equal(c.regs.x, o.regs.x, "X preserved");
   assert.equal(c.regs.y, o.regs.y, "Y preserved");
   assert.equal(c.mem.read8(u16(loc_2db + 0x02)), 0x00, "slot cleared");
-  assert.equal(c.mem.read8(loc_a6), 0x08, "live count decremented");
-  assert.equal(c.mem.read8(u16(loc_2f2 + 0x04)), 0xff, "lane flagged");
+  assert.equal(c.mem.read8(ACTIVE_ENEMY_COUNT), 0x08, "live count decremented");
+  assert.equal(c.mem.read8(u16(HIT_TALLY + 0x04)), 0xff, "lane flagged");
 });
 
 test("TEETH: a twin that indexes with a stale Y (and lane X) diverges in RAM", () => {
@@ -82,11 +82,11 @@ test("TEETH: a twin that indexes with a stale Y (and lane X) diverges in RAM", (
     const { mem8 } = m;
     loc_ccc1(m, x, y);
     mem8[loc_29] = mem8[u16(loc_2db + 0x00)]; // BUG: stale Y=0 index
-    mem8[loc_2d] = mem8[u16(loc_2b5 + 0x00)];
+    mem8[COORD_LIST_PTR_HI] = mem8[u16(loc_2b5 + 0x00)];
     loc_a3d4(m, 0x00, x, y);
     mem8[u16(loc_2db + 0x00)] = 0x00;         // BUG: clears wrong slot
-    mem8[loc_a6]--;
-    mem8[u16(loc_2f2 + 0x00)] = 0xff;         // BUG: flags wrong lane
+    mem8[ACTIVE_ENEMY_COUNT]--;
+    mem8[u16(HIT_TALLY + 0x00)] = 0xff;         // BUG: flags wrong lane
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the stale index");

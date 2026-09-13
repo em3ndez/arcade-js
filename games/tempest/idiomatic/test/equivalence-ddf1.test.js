@@ -12,7 +12,7 @@ import { loc_ddf1 as oracle } from "../../translated/loc_ddf1.js";
 import { loc_ddf1 } from "../loc_ddf1.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_1c6, loc_1c7, loc_1c8 } from "../names.js";
+import { STACK_SCRATCH, EAROM_BLANK_FLAG, EAROM_REGION_PENDING, EAROM_REGION_DIR } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -49,33 +49,33 @@ test("CAPTURE: real 0xddf1 dispatches -- loc_ddf1 == oracle in RAM (-stack)", ()
 test("CRAFTED: $01c6 <- 0xff and $01c7/$01c8 get 0x07 OR-ed in", () => {
   const seed = (m) => {
     m.regs.s = 0xfb; // keep the oracle's push scratch in the excluded window
-    m.mem.write8(loc_1c6, 0x11);
-    m.mem.write8(loc_1c7, 0x50);
-    m.mem.write8(loc_1c8, 0x88);
+    m.mem.write8(EAROM_BLANK_FLAG, 0x11);
+    m.mem.write8(EAROM_REGION_PENDING, 0x50);
+    m.mem.write8(EAROM_REGION_DIR, 0x88);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_ddf1(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
-  assert.equal(c.mem.read8(loc_1c6), 0xff, "$01c6 stamped 0xff");
-  assert.equal(c.mem.read8(loc_1c7), 0x50 | 0x07, "$01c7 OR 0x07");
-  assert.equal(c.mem.read8(loc_1c8), 0x88 | 0x07, "$01c8 OR 0x07");
+  assert.equal(c.mem.read8(EAROM_BLANK_FLAG), 0xff, "$01c6 stamped 0xff");
+  assert.equal(c.mem.read8(EAROM_REGION_PENDING), 0x50 | 0x07, "$01c7 OR 0x07");
+  assert.equal(c.mem.read8(EAROM_REGION_DIR), 0x88 | 0x07, "$01c8 OR 0x07");
 });
 
 test("TEETH: a twin that leaves $01c8 untouched diverges from the oracle", () => {
   const seed = (m) => {
     m.regs.s = 0xfb;
-    m.mem.write8(loc_1c6, 0x11);
-    m.mem.write8(loc_1c7, 0x50);
-    m.mem.write8(loc_1c8, 0x88); // non-default so the skipped OR shows
+    m.mem.write8(EAROM_BLANK_FLAG, 0x11);
+    m.mem.write8(EAROM_REGION_PENDING, 0x50);
+    m.mem.write8(EAROM_REGION_DIR, 0x88); // non-default so the skipped OR shows
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const broken = (m) => {
     const mem = m.mem8;
-    mem[loc_1c6] = 0xff;
-    mem[loc_1c7] = (mem[loc_1c7] | 0x07) & 0xff; // BUG: never touches $01c8
+    mem[EAROM_BLANK_FLAG] = 0xff;
+    mem[EAROM_REGION_PENDING] = (mem[EAROM_REGION_PENDING] | 0x07) & 0xff; // BUG: never touches $01c8
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped OR");

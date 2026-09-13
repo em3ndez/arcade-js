@@ -14,7 +14,7 @@ import { loc_df19 as oracle } from "../../translated/loc_df19.js";
 import { loc_df19 } from "../loc_df19.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -61,8 +61,8 @@ test("CRAFTED: index selection (carry / low-nibble) copies the right table entry
     { tag: "high bits ignored: A=0xf7 nibble 7 -> idx 8", a: 0xf7, c: true },
   ];
   for (const t of cases) {
-    const o = new Machine(ROM, OPTS); o.mem.write8(loc_74, 0x00); o.mem.write8(loc_75, 0x24); o.regs.a = t.a; o.regs.fC = t.c;
-    const c = new Machine(ROM, OPTS); c.mem.write8(loc_74, 0x00); c.mem.write8(loc_75, 0x24); c.regs.a = t.a; c.regs.fC = t.c;
+    const o = new Machine(ROM, OPTS); o.mem.write8(DRAW_CURSOR_LO, 0x00); o.mem.write8(DRAW_CURSOR_HI, 0x24); o.regs.a = t.a; o.regs.fC = t.c;
+    const c = new Machine(ROM, OPTS); c.mem.write8(DRAW_CURSOR_LO, 0x00); c.mem.write8(DRAW_CURSOR_HI, 0x24); c.regs.a = t.a; c.regs.fC = t.c;
     oracle(o); loc_df19(c, c.regs.a, c.regs.fC);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
   }
@@ -71,14 +71,14 @@ test("CRAFTED: index selection (carry / low-nibble) copies the right table entry
 test("TEETH: a twin that ignores the carry-set/zero special case picks the wrong entry", () => {
   // carry set + low nibble 0: correct idx = 0, the buggy idx = 1 -> a different table word -> RAM diverges.
   const seedC = true, seedA = 0x00;
-  const o = new Machine(ROM, OPTS); o.mem.write8(loc_74, 0x00); o.mem.write8(loc_75, 0x24); o.regs.a = seedA; o.regs.fC = seedC;
-  const c = new Machine(ROM, OPTS); c.mem.write8(loc_74, 0x00); c.mem.write8(loc_75, 0x24); c.regs.a = seedA; c.regs.fC = seedC;
+  const o = new Machine(ROM, OPTS); o.mem.write8(DRAW_CURSOR_LO, 0x00); o.mem.write8(DRAW_CURSOR_HI, 0x24); o.regs.a = seedA; o.regs.fC = seedC;
+  const c = new Machine(ROM, OPTS); c.mem.write8(DRAW_CURSOR_LO, 0x00); c.mem.write8(DRAW_CURSOR_HI, 0x24); c.regs.a = seedA; c.regs.fC = seedC;
   oracle(o);
   const broken = (m, a) => {
     const { mem8, mem16 } = m;
     const idx = (a & 0x0f) + 1; // BUG: always nibble+1, never 0
     const src = (0x31e4 + (idx << 1)) & 0xffff;
-    const dst = mem16[loc_74];
+    const dst = mem16[DRAW_CURSOR_LO];
     mem8[dst & 0xffff] = mem8[src];
     mem8[(dst + 1) & 0xffff] = mem8[(src + 1) & 0xffff];
   };

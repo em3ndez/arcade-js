@@ -14,7 +14,7 @@ import { loc_a3d6 as oracle } from "../../translated/loc_a3d6.js";
 import { loc_a3d6 } from "../loc_a3d6.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_2c, loc_2d, loc_116, loc_30a, loc_312 } from "../names.js";
+import { STACK_SCRATCH, loc_29, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI, TIMED_OBJECT_COUNT, SHAPE_ACTIVE, SHAPE_ANIM } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,47 +51,47 @@ test("CAPTURE: real 0xa3d6 dispatches -- loc_a3d6 == oracle in RAM (-stack)", ()
 test("CRAFTED: free-slot insert -- new object lands in the first empty slot, count bumps", () => {
   const seed = (m) => {
     m.regs.x = 0x11; m.regs.y = 0x22;
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_30a + i) & 0xffff, i === 3 ? 0x00 : 0x90 + i);
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_312 + i) & 0xffff, 0x10 + i);
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ACTIVE + i) & 0xffff, i === 3 ? 0x00 : 0x90 + i);
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ANIM + i) & 0xffff, 0x10 + i);
     m.mem.write8(loc_29, 0xab);
-    m.mem.write8(loc_2c, 0xcd);
-    m.mem.write8(loc_2d, 0xef);
-    m.mem.write8(loc_116, 0x05);
+    m.mem.write8(COORD_LIST_PTR_LO, 0xcd);
+    m.mem.write8(COORD_LIST_PTR_HI, 0xef);
+    m.mem.write8(TIMED_OBJECT_COUNT, 0x05);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_a3d6(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after insert");
-  assert.equal(c.mem.read8((loc_30a + 3) & 0xffff), 0xab, "type field written to free slot 3");
-  assert.equal(c.mem.read8((loc_312 + 3) & 0xffff), 0x00, "counter zeroed in free slot 3");
-  assert.equal(c.mem.read8(loc_116), 0x06, "count incremented");
+  assert.equal(c.mem.read8((SHAPE_ACTIVE + 3) & 0xffff), 0xab, "type field written to free slot 3");
+  assert.equal(c.mem.read8((SHAPE_ANIM + 3) & 0xffff), 0x00, "counter zeroed in free slot 3");
+  assert.equal(c.mem.read8(TIMED_OBJECT_COUNT), 0x06, "count incremented");
 });
 
 test("CRAFTED: no free slot -- max-$0312 slot evicted, count net-unchanged", () => {
   const seed = (m) => {
     m.regs.x = 0x00; m.regs.y = 0x00;
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_30a + i) & 0xffff, 0x90 + i); // all occupied
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_312 + i) & 0xffff, i === 2 ? 0xf0 : 0x10); // slot 2 is max
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ACTIVE + i) & 0xffff, 0x90 + i); // all occupied
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ANIM + i) & 0xffff, i === 2 ? 0xf0 : 0x10); // slot 2 is max
     m.mem.write8(loc_29, 0x77);
-    m.mem.write8(loc_2c, 0x66);
-    m.mem.write8(loc_2d, 0x55);
-    m.mem.write8(loc_116, 0x08);
+    m.mem.write8(COORD_LIST_PTR_LO, 0x66);
+    m.mem.write8(COORD_LIST_PTR_HI, 0x55);
+    m.mem.write8(TIMED_OBJECT_COUNT, 0x08);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_a3d6(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after eviction");
-  assert.equal(c.mem.read8((loc_30a + 2) & 0xffff), 0x77, "new object evicts the max slot (2)");
-  assert.equal(c.mem.read8(loc_116), 0x08, "count dec then inc -- net unchanged");
+  assert.equal(c.mem.read8((SHAPE_ACTIVE + 2) & 0xffff), 0x77, "new object evicts the max slot (2)");
+  assert.equal(c.mem.read8(TIMED_OBJECT_COUNT), 0x08, "count dec then inc -- net unchanged");
 });
 
 test("TEETH: a twin that skips the final count-increment diverges from the oracle", () => {
   const seed = (m) => {
     m.regs.x = 0x11; m.regs.y = 0x22;
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_30a + i) & 0xffff, i === 3 ? 0x00 : 0x90 + i);
-    for (let i = 0; i < 8; i++) m.mem.write8((loc_312 + i) & 0xffff, 0x10 + i);
-    m.mem.write8(loc_29, 0xab); m.mem.write8(loc_2c, 0xcd); m.mem.write8(loc_2d, 0xef);
-    m.mem.write8(loc_116, 0x05);
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ACTIVE + i) & 0xffff, i === 3 ? 0x00 : 0x90 + i);
+    for (let i = 0; i < 8; i++) m.mem.write8((SHAPE_ANIM + i) & 0xffff, 0x10 + i);
+    m.mem.write8(loc_29, 0xab); m.mem.write8(COORD_LIST_PTR_LO, 0xcd); m.mem.write8(COORD_LIST_PTR_HI, 0xef);
+    m.mem.write8(TIMED_OBJECT_COUNT, 0x05);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -99,9 +99,9 @@ test("TEETH: a twin that skips the final count-increment diverges from the oracl
   const broken = (m) => {
     const mem = m.mem8;
     // fill the free slot 3 but BUG: never increment the count $0116
-    mem[(loc_312 + 3) & 0xffff] = 0x00;
+    mem[(SHAPE_ANIM + 3) & 0xffff] = 0x00;
     mem[(0x0302 + 3) & 0xffff] = mem[0x2c];
-    mem[(loc_30a + 3) & 0xffff] = mem[0x29];
+    mem[(SHAPE_ACTIVE + 3) & 0xffff] = mem[0x29];
     mem[(0x02fa + 3) & 0xffff] = mem[0x2d];
     mem[0x35] = m.regs.x; mem[0x36] = m.regs.y; mem[0x2a] = 0; mem[0x2b] = 0;
   };

@@ -14,7 +14,7 @@ import { loc_ca48 as oracle } from "../../translated/loc_ca48.js";
 import { loc_ca48 } from "../loc_ca48.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_117, loc_3d, loc_a1, loc_b4 } from "../names.js";
+import { STACK_SCRATCH, loc_117, loc_3d, VG_MODE_FLAG, VG_SCALE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,47 +52,47 @@ test("CRAFTED: both gates open -> bit 2 set in $a1 and $b4 = 0x08", () => {
   const seed = (m) => {
     m.mem.write8(loc_117, 0x01);
     m.mem.write8(loc_3d, 0x01);
-    m.mem.write8(loc_a1, 0x03);   // bit 2 clear; low bits kept
-    m.mem.write8(loc_b4, 0x77);
+    m.mem.write8(VG_MODE_FLAG, 0x03);   // bit 2 clear; low bits kept
+    m.mem.write8(VG_SCALE, 0x77);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_ca48(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after apply");
-  assert.equal(c.mem.read8(loc_a1), 0x07, "$a1 bit 2 set, low bits preserved");
-  assert.equal(c.mem.read8(loc_b4), 0x08, "$b4 = 0x08");
+  assert.equal(c.mem.read8(VG_MODE_FLAG), 0x07, "$a1 bit 2 set, low bits preserved");
+  assert.equal(c.mem.read8(VG_SCALE), 0x08, "$b4 = 0x08");
 });
 
 test("CRAFTED: a closed gate -> bit 2 cleared in $a1 and $b4 = 0x10", () => {
   const seed = (m) => {
     m.mem.write8(loc_117, 0x01);
     m.mem.write8(loc_3d, 0x00);   // second gate closed
-    m.mem.write8(loc_a1, 0x07);   // bit 2 set; expect it cleared
-    m.mem.write8(loc_b4, 0x77);
+    m.mem.write8(VG_MODE_FLAG, 0x07);   // bit 2 set; expect it cleared
+    m.mem.write8(VG_SCALE, 0x77);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_ca48(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after apply");
-  assert.equal(c.mem.read8(loc_a1), 0x03, "$a1 bit 2 cleared, low bits preserved");
-  assert.equal(c.mem.read8(loc_b4), 0x10, "$b4 = 0x10");
+  assert.equal(c.mem.read8(VG_MODE_FLAG), 0x03, "$a1 bit 2 cleared, low bits preserved");
+  assert.equal(c.mem.read8(VG_SCALE), 0x10, "$b4 = 0x10");
 });
 
 test("TEETH: a twin that always stores 0x10 to $b4 diverges from the oracle", () => {
   const seed = (m) => {
     m.mem.write8(loc_117, 0x01);
     m.mem.write8(loc_3d, 0x01);   // both gates open -> oracle picks 0x08
-    m.mem.write8(loc_a1, 0x03);
-    m.mem.write8(loc_b4, 0x77);
+    m.mem.write8(VG_MODE_FLAG, 0x03);
+    m.mem.write8(VG_SCALE, 0x77);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const brokenCa48 = (m) => {
     const mem = m.mem8;
-    const cur = mem[loc_a1];
-    mem[loc_a1] = ((((0x04 ^ cur) & 0x04) ^ cur)) & 0xff;
-    mem[loc_b4] = 0x10; // BUG: never selects the 0x08 count
+    const cur = mem[VG_MODE_FLAG];
+    mem[VG_MODE_FLAG] = ((((0x04 ^ cur) & 0x04) ^ cur)) & 0xff;
+    mem[VG_SCALE] = 0x10; // BUG: never selects the 0x08 count
   };
   brokenCa48(c);
   const d = ramDiff(o, c);

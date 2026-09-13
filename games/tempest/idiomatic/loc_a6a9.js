@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import {
-  loc_223, loc_2e3, loc_343, loc_283,
-  loc_203, loc_2c3, loc_323, loc_263,
-  loc_243, loc_303, loc_363, loc_2a3,
+  OBJECT_AXIS0_FRAC, ENEMY_VEL0_LO, ENEMY_VEL0_HI, ENEMY_SLOT_FLAGS,
+  OBJECT_INDEX_TABLE, ENEMY_VEL1_LO, ENEMY_VEL1_HI, OBJECT_AXIS1_POS,
+  OBJECT_RECORD_TABLE, ENEMY_VEL2_LO, ENEMY_VEL2_HI, ENEMY_POS2,
 } from "./names.js";
 
 // Integrate slot x's three motion axes: each axis folds a low/whole velocity
@@ -23,17 +23,17 @@ function integrate(mem8, frac, vlow, sign, whole, x) {
 
 export function loc_a6a9(m, x = m.regs.x) {
   const { mem8 } = m;
-  const a0 = integrate(mem8, loc_223, loc_2e3, loc_343, loc_283, x);
+  const a0 = integrate(mem8, OBJECT_AXIS0_FRAC, ENEMY_VEL0_LO, ENEMY_VEL0_HI, ENEMY_SLOT_FLAGS, x);
   let whole0 = a0.overflow ? 0 : a0.w;
 
-  const a1 = integrate(mem8, loc_203, loc_2c3, loc_323, loc_263, x);
+  const a1 = integrate(mem8, OBJECT_INDEX_TABLE, ENEMY_VEL1_LO, ENEMY_VEL1_HI, OBJECT_AXIS1_POS, x);
   if (a1.overflow) whole0 = 0;
-  mem8[u16(loc_263 + x)] = a1.w;
+  mem8[u16(OBJECT_AXIS1_POS + x)] = a1.w;
 
-  const a2 = integrate(mem8, loc_243, loc_303, loc_363, loc_2a3, x);
+  const a2 = integrate(mem8, OBJECT_RECORD_TABLE, ENEMY_VEL2_LO, ENEMY_VEL2_HI, ENEMY_POS2, x);
   if (a2.overflow) whole0 = 0;
-  mem8[u16(loc_2a3 + x)] = a2.w;
+  mem8[u16(ENEMY_POS2 + x)] = a2.w;
 
-  mem8[u16(loc_283 + x)] = whole0;
+  mem8[u16(ENEMY_SLOT_FLAGS + x)] = whole0;
   return whole0; // exit Y live-out
 }

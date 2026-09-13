@@ -14,7 +14,7 @@ import { loc_c196 as oracle } from "../../translated/loc_c196.js";
 import { loc_c196 } from "../loc_c196.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_9f, loc_19, loc_21 } from "../names.js";
+import { STACK_SCRATCH, loc_9f, LEVEL_GEOM_LO, LEVEL_GEOM_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -42,7 +42,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 // Non-default level index so the split runs over real table data and the teeth bite.
 const seed = (m) => {
   m.mem.write8(loc_9f, 0x30);
-  for (let y = 0; y < 8; y++) { m.mem.write8((loc_19 + y) & 0xffff, 0x77); m.mem.write8((loc_21 + y) & 0xffff, 0x77); }
+  for (let y = 0; y < 8; y++) { m.mem.write8((LEVEL_GEOM_LO + y) & 0xffff, 0x77); m.mem.write8((LEVEL_GEOM_HI + y) & 0xffff, 0x77); }
 };
 
 test("CAPTURE: real 0xc196 dispatches -- loc_c196 == oracle in RAM (-stack)", () => {
@@ -61,8 +61,8 @@ test("CRAFTED: nibbles split into zp and color RAM, mirrored low/high pairs cons
   assert.equal(ramDiff(o, c), null, "RAM equal after split");
   // color RAM (0x0800-0x080f) is CPU write-only (read8 throws) -- read via io.colorram
   for (let y = 0; y < 8; y++) {
-    const lo = c.mem.read8((loc_19 + y) & 0xffff);
-    const hi = c.mem.read8((loc_21 + y) & 0xffff);
+    const lo = c.mem.read8((LEVEL_GEOM_LO + y) & 0xffff);
+    const hi = c.mem.read8((LEVEL_GEOM_HI + y) & 0xffff);
     assert.ok(lo <= 0x0f, `low nibble ${y} in range`);
     assert.ok(hi <= 0x0f, `high nibble ${y} in range`);
     assert.equal(c.io.colorram[y], lo, `color low ${y} mirrors zp`);
@@ -76,7 +76,7 @@ test("TEETH: a twin that skips one zp store diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_c196(c);
-  c.mem.write8(loc_19, (c.mem.read8(loc_19) ^ 0xff) & 0xff); // BUG: entry-0 low nibble corrupted
+  c.mem.write8(LEVEL_GEOM_LO, (c.mem.read8(LEVEL_GEOM_LO) ^ 0xff) & 0xff); // BUG: entry-0 low nibble corrupted
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted store");
 });
 

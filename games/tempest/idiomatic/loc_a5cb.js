@@ -1,27 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
-import { loc_0, loc_2, loc_4, loc_5c, loc_9f, loc_104, loc_105, loc_106, loc_107, loc_123, loc_125, loc_3ac } from "./names.js";
+import { GAME_MODE, GAME_MODE_PENDING, MODE_DELAY_TIMER, DEPTH_ACCUM_LO, loc_9f, SPIKE_STEP_LO, SPIKE_STEP_HI, SPIKE_ACTIVE_FLAG, SPIKE_HEIGHT_LO, SPIKED_SEGMENT_COUNT, WAVE_PHASE_LATCH, LANE_LIMIT } from "./names.js";
 
 // Reset a batch of state bytes, then count how many of the 16 entries are live.
 // If any are live and the level is below seven, load the intro parameter block.
 // Always mark the block ready at the end.
 export function loc_a5cb(m) {
   const { mem8 } = m;
-  mem8[loc_0] = 0x20;
-  mem8[loc_106] = mem8[loc_106] | 0x80;
-  mem8[loc_104] = 0;
-  mem8[loc_107] = 0;
-  mem8[loc_5c] = 0;
-  mem8[loc_123] = 0;
-  mem8[loc_105] = 0x02;
+  mem8[GAME_MODE] = 0x20;
+  mem8[SPIKE_ACTIVE_FLAG] = mem8[SPIKE_ACTIVE_FLAG] | 0x80;
+  mem8[SPIKE_STEP_LO] = 0;
+  mem8[SPIKE_HEIGHT_LO] = 0;
+  mem8[DEPTH_ACCUM_LO] = 0;
+  mem8[SPIKED_SEGMENT_COUNT] = 0;
+  mem8[SPIKE_STEP_HI] = 0x02;
   for (let x = 0x0f; x >= 0; x--) {
-    if (mem8[u16(loc_3ac + x)] !== 0) mem8[loc_123] = u8(mem8[loc_123] + 1);
+    if (mem8[u16(LANE_LIMIT + x)] !== 0) mem8[SPIKED_SEGMENT_COUNT] = u8(mem8[SPIKED_SEGMENT_COUNT] + 1);
   }
-  if (mem8[loc_123] !== 0 && mem8[loc_9f] < 0x07) {
-    mem8[loc_4] = 0x1e;
-    mem8[loc_0] = 0x0a;
-    mem8[loc_2] = 0x20;
-    mem8[loc_123] = 0x80;
+  if (mem8[SPIKED_SEGMENT_COUNT] !== 0 && mem8[loc_9f] < 0x07) {
+    mem8[MODE_DELAY_TIMER] = 0x1e;
+    mem8[GAME_MODE] = 0x0a;
+    mem8[GAME_MODE_PENDING] = 0x20;
+    mem8[SPIKED_SEGMENT_COUNT] = 0x80;
   }
-  mem8[loc_125] = 0xff;
+  mem8[WAVE_PHASE_LATCH] = 0xff;
 }

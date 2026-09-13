@@ -14,7 +14,7 @@ import { loc_a34d as oracle } from "../../translated/loc_a34b.js";
 import { loc_a34d } from "../loc_a34b.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_2c, loc_13b, loc_13c, loc_200, loc_201, loc_202 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, COORD_LIST_PTR_LO, OBJECT_ANIM_PHASE, OBJECT_ANIM_TIMER, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, PLAYER_SHOT_DEPTH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,9 +52,9 @@ test("CAPTURE: real 0xa34d dispatches -- loc_a34d == oracle in RAM (-stack)", ()
 
 function seed(m, a) {
   m.regs.a = a; m.regs.x = 0x05; m.regs.y = 0x03; // A = head-flag value; X/Y bridge to the callees
-  m.mem.write8(loc_5, 0x80);
-  m.mem.write8(loc_202, 0x77);
-  m.mem.write8(loc_200, 0x88);
+  m.mem.write8(STATUS_FLAGS, 0x80);
+  m.mem.write8(PLAYER_SHOT_DEPTH, 0x77);
+  m.mem.write8(PLAYER_SEGMENT, 0x88);
 }
 
 test("CRAFTED: head flag seeded, then the type-1 insert runs -- RAM equal and X/Y preserved", () => {
@@ -64,17 +64,17 @@ test("CRAFTED: head flag seeded, then the type-1 insert runs -- RAM equal and X/
   assert.equal(ramDiff(o, c), null, "RAM equal after setup");
   assert.equal(c.regs.x, o.regs.x, "X preserved");
   assert.equal(c.regs.y, o.regs.y, "Y preserved");
-  assert.equal(c.mem.read8(loc_13b), 0x09, "$013b = A (head flag)");
-  assert.equal(c.mem.read8(loc_2c), 0x01, "$2c = 0x01 (fixed type)");
-  assert.equal(c.mem.read8(loc_201), 0x81, "$0201 ready flag");
-  assert.equal(c.mem.read8(loc_13c), 0x01, "$013c ready flag");
+  assert.equal(c.mem.read8(OBJECT_ANIM_PHASE), 0x09, "$013b = A (head flag)");
+  assert.equal(c.mem.read8(COORD_LIST_PTR_LO), 0x01, "$2c = 0x01 (fixed type)");
+  assert.equal(c.mem.read8(PLAYER_FINE_ANGLE), 0x81, "$0201 ready flag");
+  assert.equal(c.mem.read8(OBJECT_ANIM_TIMER), 0x01, "$013c ready flag");
 });
 
 test("TEETH: a twin that stores the wrong head flag / skips the tail diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x09);
   const c = new Machine(ROM, OPTS); seed(c, 0x09);
   oracle(o);
-  const broken = (m, a = m.regs.a) => { m.mem8[loc_13b] = (a ^ 0xff); /* BUG: wrong head flag + skips insert */ };
+  const broken = (m, a = m.regs.a) => { m.mem8[OBJECT_ANIM_PHASE] = (a ^ 0xff); /* BUG: wrong head flag + skips insert */ };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong head flag / skipped tail");
 });

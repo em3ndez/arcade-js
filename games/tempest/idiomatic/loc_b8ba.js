@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import {
-  loc_37, loc_56, loc_57, loc_58, loc_5b, loc_5f, loc_68, loc_69,
-  loc_6a, loc_6b, loc_6c, loc_6d, loc_73, loc_76, loc_77, loc_9e,
-  loc_202, loc_263, loc_283, loc_2a3,
+  SLOT_LOOP_INDEX, PROJ_PT_Y, OBJ_DEPTH, PROJ_PT_X, DEPTH_LO, DEPTH_HI, PROJ_OFS_X_LO, PROJ_OFS_X_HI,
+  PREV_Y_LO, PREV_Y_HI, PREV_X_LO, PREV_X_HI, VG_RECORD_HEADER, DRAW_CURSOR_ALT_LO, DRAW_CURSOR_ALT_HI, loc_9e,
+  PLAYER_SHOT_DEPTH, OBJECT_AXIS1_POS, ENEMY_SLOT_FLAGS, ENEMY_POS2,
 } from "./names.js";
 import { loc_df39 } from "./loc_df39.js";
 import { loc_df4a } from "./loc_df4a.js";
@@ -25,30 +25,30 @@ import { loc_c772 } from "./loc_c772.js";
 export function loc_b8ba(m) {
   const { mem8 } = m;
   loc_df39(m, 0x3f, 0xf2);
-  mem8[loc_6a] = 0x00;
-  mem8[loc_6b] = 0x00;
-  mem8[loc_6c] = 0x00;
-  mem8[loc_6d] = 0x00;
-  mem8[loc_202] = 0x00;
-  mem8[loc_68] = 0x00;
-  mem8[loc_69] = 0x00;
-  mem8[loc_5f] = 0xe0;
-  mem8[loc_5b] = 0xff;
+  mem8[PREV_Y_LO] = 0x00;
+  mem8[PREV_Y_HI] = 0x00;
+  mem8[PREV_X_LO] = 0x00;
+  mem8[PREV_X_HI] = 0x00;
+  mem8[PLAYER_SHOT_DEPTH] = 0x00;
+  mem8[PROJ_OFS_X_LO] = 0x00;
+  mem8[PROJ_OFS_X_HI] = 0x00;
+  mem8[DEPTH_HI] = 0xe0;
+  mem8[DEPTH_LO] = 0xff;
   {
     const [a, x] = loc_b967(m);
-    mem8[loc_77] = a;
-    mem8[loc_76] = x;
+    mem8[DRAW_CURSOR_ALT_HI] = a;
+    mem8[DRAW_CURSOR_ALT_LO] = x;
   }
-  mem8[loc_37] = 0x0f;
+  mem8[SLOT_LOOP_INDEX] = 0x0f;
   do {
-    const x = mem8[loc_37];
-    const active = mem8[u16(loc_283 + x)];
+    const x = mem8[SLOT_LOOP_INDEX];
+    const active = mem8[u16(ENEMY_SLOT_FLAGS + x)];
     if (active !== 0) {
-      mem8[loc_57] = active;
-      mem8[loc_56] = mem8[u16(loc_263 + x)];
-      mem8[loc_58] = mem8[u16(loc_2a3 + x)];
+      mem8[OBJ_DEPTH] = active;
+      mem8[PROJ_PT_Y] = mem8[u16(OBJECT_AXIS1_POS + x)];
+      mem8[PROJ_PT_X] = mem8[u16(ENEMY_POS2 + x)];
       loc_c098(m);
-      mem8[loc_73] = 0x00;
+      mem8[VG_RECORD_HEADER] = 0x00;
       loc_b944(m);
       loc_c3ba(m);
       loc_b56a(m, 0xa0);
@@ -56,7 +56,7 @@ export function loc_b8ba(m) {
       loc_c772(m, 0x61);
       const [pa, py] = loc_b955(m);
       loc_df6c(m, pa, py);
-      let phase = mem8[loc_37] & 0x07;
+      let phase = mem8[SLOT_LOOP_INDEX] & 0x07;
       if (phase === 0x07) phase = 0x00;
       mem8[loc_9e] = phase;
       loc_df4c(m, 0x08, phase);
@@ -64,8 +64,8 @@ export function loc_b8ba(m) {
       const [ha, hx] = loc_b967(m);
       loc_df39(m, ha, hx);
     }
-    const next = (mem8[loc_37] - 1) & 0xff;
-    mem8[loc_37] = next;
+    const next = (mem8[SLOT_LOOP_INDEX] - 1) & 0xff;
+    mem8[SLOT_LOOP_INDEX] = next;
     if (next & 0x80) break;
   } while (true);
   loc_b944(m);

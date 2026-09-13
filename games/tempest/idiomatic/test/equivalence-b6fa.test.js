@@ -13,7 +13,7 @@ import { loc_b6fa as oracle } from "../../translated/loc_b6fa.js";
 import { loc_b6fa } from "../loc_b6fa.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_2b, loc_2c, loc_2cc } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, ENEMY_PHASE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -55,21 +55,21 @@ test("CRAFTED: scaled A matches the oracle across values, x-slots and fractions"
     [0x7f, 3, 0x06], [0xc0, 5, 0x01], [0x33, 7, 0x04], [0x01, 4, 0x02],
   ];
   for (const [a, x, phase] of cases) {
-    const o = new Machine(ROM, OPTS); o.regs.a = a; o.regs.x = x; o.mem.write8((loc_2cc + x) & 0xffff, phase);
-    const c = new Machine(ROM, OPTS); c.regs.a = a; c.regs.x = x; c.mem.write8((loc_2cc + x) & 0xffff, phase);
+    const o = new Machine(ROM, OPTS); o.regs.a = a; o.regs.x = x; o.mem.write8((ENEMY_PHASE + x) & 0xffff, phase);
+    const c = new Machine(ROM, OPTS); c.regs.a = a; c.regs.x = x; c.mem.write8((ENEMY_PHASE + x) & 0xffff, phase);
     oracle(o); const r = loc_b6fa(c);
     assert.equal(ramDiff(o, c), null, `RAM equal: a=${a} x=${x} phase=${phase}`);
     assert.equal(c.regs.a, o.regs.a, `A matches oracle: a=${a} x=${x} phase=${phase}`);
     assert.equal(r, o.regs.a, `return == A: a=${a} x=${x} phase=${phase}`);
     assert.equal(c.mem.read8(loc_29), a, "$29 holds the input");
     assert.equal(c.mem.read8(loc_2b), x, "$2b holds x");
-    assert.equal(c.mem.read8(loc_2c), 0x00, "$2c fully consumed");
+    assert.equal(c.mem.read8(COORD_LIST_PTR_LO), 0x00, "$2c fully consumed");
   }
 });
 
 test("TEETH: a twin that uses a logical (not arithmetic) shift diverges in A for a negative input", () => {
   const a = 0xf0, x = 0, phase = 0x07;
-  const o = new Machine(ROM, OPTS); o.regs.a = a; o.regs.x = x; o.mem.write8((loc_2cc + x) & 0xffff, phase);
+  const o = new Machine(ROM, OPTS); o.regs.a = a; o.regs.x = x; o.mem.write8((ENEMY_PHASE + x) & 0xffff, phase);
   oracle(o);
   // BUG: >>1 without sign extension
   let acc = 0, frac = phase & 0x07;

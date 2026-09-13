@@ -19,7 +19,7 @@ import { loc_b888 } from "../loc_b888.js";
 import { loc_b896 } from "../loc_b896.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_22, loc_809, loc_139, loc_13a } from "../names.js";
+import { STACK_SCRATCH, COLOR_CYCLE_0, COLOR_RAM_9, VECRAM_TAIL_CURSOR_LO, VECRAM_TAIL_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -39,11 +39,11 @@ const ramDiff = (ma, mb) =>
 // Dirty the cells the four table targets read/write so distinct entries produce distinct RAM.
 function seed(m) {
   for (let i = 0; i < 3; i++) {
-    m.mem.write8((loc_22 + i) & 0xffff, 0xa0 + i);
-    m.mem.write8((loc_809 + i) & 0xffff, 0xb0 + i);
+    m.mem.write8((COLOR_CYCLE_0 + i) & 0xffff, 0xa0 + i);
+    m.mem.write8((COLOR_RAM_9 + i) & 0xffff, 0xb0 + i);
   }
-  m.mem.write8(loc_139, 0x33);
-  m.mem.write8(loc_13a, 0x05);
+  m.mem.write8(VECRAM_TAIL_CURSOR_LO, 0x33);
+  m.mem.write8(VECRAM_TAIL_CURSOR_HI, 0x05);
 }
 
 function captureDispatches(K, maxFrames) {

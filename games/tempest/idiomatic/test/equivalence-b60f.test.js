@@ -14,7 +14,7 @@ import { loc_b60f } from "../loc_b60f.js";
 import { loc_bcfd } from "../loc_bcfd.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_28a, loc_2b9, loc_b61e, loc_435, loc_445, loc_55, loc_56, loc_58 } from "../names.js";
+import { STACK_SCRATCH, ENEMY_SLOT_DIR, ENEMY_SEGMENT, JUMP_MODE_SHAPE, SEG_MID_X, SEG_MID_Y, DRAW_STYLE, PROJ_PT_Y, PROJ_PT_X } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -53,12 +53,12 @@ test("CAPTURE: real 0xb60f dispatches -- loc_b60f == oracle in RAM (-stack)", ()
 // those two cells makes the target (y) marshalling observable.
 function seed(m) {
   m.regs.x = 0x03;
-  m.mem.write8(loc_28a + 3, 0x02); // mode = 2
-  m.mem.write8(loc_2b9 + 3, 0x07); // target = 7
-  m.mem.write8(loc_435 + 7, 0xab);
-  m.mem.write8(loc_445 + 7, 0xcd);
-  m.mem.write8(loc_435 + 8, 0x11); // distinct neighbour (for the wrong-y teeth)
-  m.mem.write8(loc_445 + 8, 0x22);
+  m.mem.write8(ENEMY_SLOT_DIR + 3, 0x02); // mode = 2
+  m.mem.write8(ENEMY_SEGMENT + 3, 0x07); // target = 7
+  m.mem.write8(SEG_MID_X + 7, 0xab);
+  m.mem.write8(SEG_MID_Y + 7, 0xcd);
+  m.mem.write8(SEG_MID_X + 8, 0x11); // distinct neighbour (for the wrong-y teeth)
+  m.mem.write8(SEG_MID_Y + 8, 0x22);
 }
 
 test("CRAFTED: mode/target marshalled into loc_bcfd -- RAM equal to the oracle", () => {
@@ -66,11 +66,11 @@ test("CRAFTED: mode/target marshalled into loc_bcfd -- RAM equal to the oracle",
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_b60f(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the emit");
-  assert.equal(c.mem.read8(loc_55), m0(c), "mode byte stashed");
-  assert.equal(c.mem.read8(loc_56), 0xab, "target indexed the $0435 table");
-  assert.equal(c.mem.read8(loc_58), 0xcd, "target indexed the $0445 table");
+  assert.equal(c.mem.read8(DRAW_STYLE), m0(c), "mode byte stashed");
+  assert.equal(c.mem.read8(PROJ_PT_Y), 0xab, "target indexed the $0435 table");
+  assert.equal(c.mem.read8(PROJ_PT_X), 0xcd, "target indexed the $0445 table");
 });
-function m0(m) { return m.mem.read8((loc_b61e + 2) & 0xffff); }
+function m0(m) { return m.mem.read8((JUMP_MODE_SHAPE + 2) & 0xffff); }
 
 test("TEETH: a twin that skips the emit entirely diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seed(o);
@@ -87,9 +87,9 @@ test("TEETH (marshalling): a twin that passes the wrong target y diverges from t
   oracle(o);
   const wrongY = (m, x = m.regs.x) => {
     const { mem8 } = m;
-    const mode = mem8[(loc_28a + x) & 0xffff] & 0x03;
+    const mode = mem8[(ENEMY_SLOT_DIR + x) & 0xffff] & 0x03;
     // BUG: target off by one -> reads the neighbour table entries into $0056/$0058
-    return loc_bcfd(m, mem8[(loc_b61e + mode) & 0xffff], (mem8[(loc_2b9 + x) & 0xffff] + 1) & 0xff);
+    return loc_bcfd(m, mem8[(JUMP_MODE_SHAPE + mode) & 0xffff], (mem8[(ENEMY_SEGMENT + x) & 0xffff] + 1) & 0xff);
   };
   wrongY(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong target y");

@@ -15,8 +15,8 @@ import { loc_c66d } from "../loc_c66d.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_38, loc_61, loc_62, loc_63, loc_64, loc_a9,
-  loc_74, loc_35a, loc_36a, loc_37a, loc_38a,
+  STACK_SCRATCH, TABLE_CURSOR, PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI, DRAW_CURSOR_OFFSET,
+  DRAW_CURSOR_LO, OBJ_DY_HI, OBJ_DY_LO, OBJ_DX_HI, OBJ_DX_LO,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -47,14 +47,14 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 const DLIST = 0x0300;
 function seed(m, slot) {
   for (let i = 0; i < 16; i++) {
-    m.mem.write8((loc_35a + i) & 0xffff, 0x20 + i);       // pair1 high
-    m.mem.write8((loc_36a + i) & 0xffff, (i * 7) & 0xff); // pair1 low
-    m.mem.write8((loc_37a + i) & 0xffff, 0x30 + i);       // pair2 high
-    m.mem.write8((loc_38a + i) & 0xffff, (i * 5) & 0xff); // pair2 low
+    m.mem.write8((OBJ_DY_HI + i) & 0xffff, 0x20 + i);       // pair1 high
+    m.mem.write8((OBJ_DY_LO + i) & 0xffff, (i * 7) & 0xff); // pair1 low
+    m.mem.write8((OBJ_DX_HI + i) & 0xffff, 0x30 + i);       // pair2 high
+    m.mem.write8((OBJ_DX_LO + i) & 0xffff, (i * 5) & 0xff); // pair2 low
   }
-  m.mem.write8(loc_38, slot);
-  m.mem.write8(loc_a9, 0x10);
-  m.mem.write16(loc_74, DLIST);
+  m.mem.write8(TABLE_CURSOR, slot);
+  m.mem.write8(DRAW_CURSOR_OFFSET, 0x10);
+  m.mem.write16(DRAW_CURSOR_LO, DLIST);
 }
 
 test("CAPTURE: real 0xc66d dispatches -- loc_c66d == oracle in RAM (-stack)", () => {
@@ -73,7 +73,7 @@ test("CRAFTED: midpoints, display-list append, mirrors and cursor all match the 
     oracle(o); loc_c66d(c);
     const label = `slot=0x${slot.toString(16)}`;
     assert.equal(ramDiff(o, c), null, `RAM diverged: ${label}`);
-    for (const a of [loc_61, loc_62, loc_63, loc_64, loc_a9])
+    for (const a of [PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI, DRAW_CURSOR_OFFSET])
       assert.equal(c.mem.read8(a), o.mem.read8(a), `cell 0x${a.toString(16)} diverged: ${label}`);
     for (let k = 0; k < 4; k++)
       assert.equal(c.mem.read8(DLIST + 0x10 + k), o.mem.read8(DLIST + 0x10 + k), `dlist[${k}] diverged: ${label}`);
@@ -87,20 +87,20 @@ test("TEETH: a twin that skips the 0x1f high-byte mask diverges from the oracle"
   oracle(o);
   const broken = (m) => {
     const mem = m.mem8;
-    const next = (mem[loc_38] + 1) & 0x0f;
-    const p1 = ((mem[(loc_35a + slot) & 0xffff] << 8) | mem[(loc_36a + slot) & 0xffff])
-             + ((mem[(loc_35a + next) & 0xffff] << 8) | mem[(loc_36a + next) & 0xffff]) + 1;
+    const next = (mem[TABLE_CURSOR] + 1) & 0x0f;
+    const p1 = ((mem[(OBJ_DY_HI + slot) & 0xffff] << 8) | mem[(OBJ_DY_LO + slot) & 0xffff])
+             + ((mem[(OBJ_DY_HI + next) & 0xffff] << 8) | mem[(OBJ_DY_LO + next) & 0xffff]) + 1;
     const h1 = ((p1 & 0xffff) >> 1) | (p1 & 0x8000);
-    const p2 = ((mem[(loc_37a + slot) & 0xffff] << 8) | mem[(loc_38a + slot) & 0xffff])
-             + ((mem[(loc_37a + next) & 0xffff] << 8) | mem[(loc_38a + next) & 0xffff]) + 1;
+    const p2 = ((mem[(OBJ_DX_HI + slot) & 0xffff] << 8) | mem[(OBJ_DX_LO + slot) & 0xffff])
+             + ((mem[(OBJ_DX_HI + next) & 0xffff] << 8) | mem[(OBJ_DX_LO + next) & 0xffff]) + 1;
     const h2 = ((p2 & 0xffff) >> 1) | (p2 & 0x8000);
-    const ptr = m.mem.read16(loc_74);
-    let cur = mem[loc_a9];
+    const ptr = m.mem.read16(DRAW_CURSOR_LO);
+    let cur = mem[DRAW_CURSOR_OFFSET];
     mem[(ptr + cur) & 0xffff] = h2 & 0xff; cur = (cur + 1) & 0xff;
     mem[(ptr + cur) & 0xffff] = (h2 >> 8) & 0xff; cur = (cur + 1) & 0xff; // BUG: no & 0x1f
     mem[(ptr + cur) & 0xffff] = h1 & 0xff; cur = (cur + 1) & 0xff;
     mem[(ptr + cur) & 0xffff] = (h1 >> 8) & 0xff; cur = (cur + 1) & 0xff; // BUG: no & 0x1f
-    mem[loc_a9] = cur;
+    mem[DRAW_CURSOR_OFFSET] = cur;
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the unmasked high bytes");

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Equivalence for loc_c891 (ROM 0xc891-0xc90b) -- the per-frame dispatcher. It sets speed/mode cells from
-// the coin input + phase counters, then a common tail advances loc_3 and fires the sub-steps loc_c81b
-// (c8d2), loc_de1b (odd frames) and loc_ccfa (when loc_c is live), threading the slot index X/Y from one to
+// the coin input + phase counters, then a common tail advances FRAME_COUNTER and fires the sub-steps loc_c81b
+// (c8d2), loc_de1b (odd frames) and loc_ccfa (when SOUND_STEP_GATE is live), threading the slot index X/Y from one to
 // the next. Contract: RAM (dumpState minus STACK_SCRATCH). The ROM's decimal-mode arm (SED gated on
-// loc_16c != 0 && loc_9f > 0x13) is DEAD -- loc_16c is the checksum 0xa7 ^ fold(ROM[0xaace..0xaad8]) of a
+// DECIMAL_MODE_FLAG != 0 && loc_9f > 0x13) is DEAD -- DECIMAL_MODE_FLAG is the checksum 0xa7 ^ fold(ROM[0xaace..0xaad8]) of a
 // fixed program-ROM span, which is 0, so the gate never opens (verified statically and by a MAME tap over
 // gameplay). The idiomatic routine omits it; on every reachable state D is left untouched, matching the
 // oracle, which the CAPTURE test still checks. c891 is a full JS dispatcher (calls its sub-steps as JS),
@@ -21,7 +21,7 @@ import { loc_de1b } from "../loc_de1b.js";
 import { loc_ccfa } from "../loc_ccfa.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_3, loc_c } from "../names.js";
+import { STACK_SCRATCH, FRAME_COUNTER, SOUND_STEP_GATE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -58,10 +58,10 @@ test("CAPTURE: real 0xc891 dispatches -- loc_c891 == oracle in RAM (-stack) and 
   console.log(`  CAPTURE: ${checked}/${CAPS.length} compared`);
 });
 
-// Force the tail sub-steps: odd frame (so loc_de1b runs) and loc_c live (so loc_ccfa runs).
-const forceTailSubsteps = (m) => { m.mem.write8(loc_3, 0x00); m.mem.write8(loc_c, 0x01); };
+// Force the tail sub-steps: odd frame (so loc_de1b runs) and SOUND_STEP_GATE live (so loc_ccfa runs).
+const forceTailSubsteps = (m) => { m.mem.write8(FRAME_COUNTER, 0x00); m.mem.write8(SOUND_STEP_GATE, 0x01); };
 
-test("CRAFTED: loc_ccfa reached (odd frame + loc_c live) -- RAM equal, X/Y threaded correctly", () => {
+test("CRAFTED: loc_ccfa reached (odd frame + SOUND_STEP_GATE live) -- RAM equal, X/Y threaded correctly", () => {
   let checked = 0;
   for (const cap of CAPS) {
     const o = freezePokey(cap.clone()); forceTailSubsteps(o);

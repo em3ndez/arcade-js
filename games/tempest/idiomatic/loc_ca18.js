@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_5, loc_3e, loc_2, loc_0, loc_4, loc_16b, loc_1 } from "./names.js";
+import { STATUS_FLAGS, ACTIVE_SLOT_COUNT, GAME_MODE_PENDING, GAME_MODE, MODE_DELAY_TIMER, MODE_DELAY_GUARD, MODE_DISPATCH_SEL } from "./names.js";
 
 // Mask one cell to its low six bits, then write a block of fixed init constants.
 export function loc_ca18(m) {
   const { mem8 } = m;
-  mem8[loc_5] = mem8[loc_5] & 0x3f; // keep only the low six bits
-  mem8[loc_3e] = 0x00;
-  mem8[loc_2] = 0x1a;
-  mem8[loc_0] = 0x0a;
-  mem8[loc_4] = 0xa0;
-  mem8[loc_16b] = 0x01;
-  mem8[loc_1] = 0x0a;
+  mem8[STATUS_FLAGS] = mem8[STATUS_FLAGS] & 0x3f; // keep only the low six bits
+  mem8[ACTIVE_SLOT_COUNT] = 0x00;
+  mem8[GAME_MODE_PENDING] = 0x1a;
+  mem8[GAME_MODE] = 0x0a;
+  mem8[MODE_DELAY_TIMER] = 0xa0;
+  mem8[MODE_DELAY_GUARD] = 0x01;
+  mem8[MODE_DISPATCH_SEL] = 0x0a;
 }

@@ -18,7 +18,7 @@ import { loc_a028 as oracle } from "../../translated/loc_a028.js";
 import { loc_a028 } from "../loc_a028.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_111, loc_2b9, loc_2cc, loc_28a, loc_3ac } from "../names.js";
+import { STACK_SCRATCH, loc_29, TUBE_GEOM_FLAG, ENEMY_SEGMENT, ENEMY_PHASE, ENEMY_SLOT_DIR, LANE_LIMIT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -60,26 +60,26 @@ test("CRAFTED: scan keeps the deepest column; winner+successor+bit7 clear == ora
   // Fresh + frozen -> $60da=0xff -> start column 0x0f, gate $0111=0 so column 0x0f is considered.
   // Seed every column non-zero (a 0 depth would read as maximal 0xff) with the deepest at column 7.
   const seed = (m) => {
-    for (let i = 0; i < 16; i++) m.mem.write8((loc_3ac + i) & 0xffff, 0x02);
-    m.mem.write8((loc_3ac + 7) & 0xffff, 0x30); // deepest column
-    m.mem.write8((loc_28a + X) & 0xffff, 0xff); // bit7 set -> routine must clear it
+    for (let i = 0; i < 16; i++) m.mem.write8((LANE_LIMIT + i) & 0xffff, 0x02);
+    m.mem.write8((LANE_LIMIT + 7) & 0xffff, 0x30); // deepest column
+    m.mem.write8((ENEMY_SLOT_DIR + X) & 0xffff, 0xff); // bit7 set -> routine must clear it
   };
   const o = freezePokey(new Machine(ROM, OPTS)); o.regs.x = X; seed(o);
   const c = freezePokey(new Machine(ROM, OPTS)); c.regs.x = X; seed(c);
   oracle(o); loc_a028(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the scan");
   assert.equal(c.mem.read8(loc_29), 0x07, "winning column recorded in $29");
-  assert.equal(c.mem.read8((loc_2b9 + X) & 0xffff), 0x07, "segment := winner");
-  assert.equal(c.mem.read8((loc_2cc + X) & 0xffff), 0x08, "successor := (winner+1)&0x0f");
-  assert.equal(c.mem.read8((loc_28a + X) & 0xffff), 0x7f, "bit7 of the slot flag cleared");
+  assert.equal(c.mem.read8((ENEMY_SEGMENT + X) & 0xffff), 0x07, "segment := winner");
+  assert.equal(c.mem.read8((ENEMY_PHASE + X) & 0xffff), 0x08, "successor := (winner+1)&0x0f");
+  assert.equal(c.mem.read8((ENEMY_SLOT_DIR + X) & 0xffff), 0x7f, "bit7 of the slot flag cleared");
 });
 
 test("TEETH: a twin that keeps the random start column instead of scanning diverges", () => {
   const X = 3;
   const seed = (m) => {
-    for (let i = 0; i < 16; i++) m.mem.write8((loc_3ac + i) & 0xffff, 0x02);
-    m.mem.write8((loc_3ac + 7) & 0xffff, 0x30);
-    m.mem.write8((loc_28a + X) & 0xffff, 0xff);
+    for (let i = 0; i < 16; i++) m.mem.write8((LANE_LIMIT + i) & 0xffff, 0x02);
+    m.mem.write8((LANE_LIMIT + 7) & 0xffff, 0x30);
+    m.mem.write8((ENEMY_SLOT_DIR + X) & 0xffff, 0xff);
   };
   const o = freezePokey(new Machine(ROM, OPTS)); o.regs.x = X; seed(o);
   oracle(o);

@@ -18,8 +18,8 @@ import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { loc_ccbd } from "../loc_ccbd.js";
 import {
-  STACK_SCRATCH, loc_5, loc_119, loc_11a, loc_201, loc_283, loc_28a, loc_2a6,
-  loc_2b5, loc_2b9, loc_2c8, loc_2cc, loc_2db, loc_2df, loc_60ca, loc_a6, loc_a304,
+  STACK_SCRATCH, STATUS_FLAGS, SPAWN_TIMER_RELOAD, FLYER_SLOT_TOP, PLAYER_FINE_ANGLE, ENEMY_SLOT_FLAGS, ENEMY_SLOT_DIR, ENEMY_TIMER,
+  loc_2b5, ENEMY_SEGMENT, loc_2c8, ENEMY_PHASE, loc_2db, ENEMY_DEPTH, POKEY1_RANDOM, ACTIVE_ENEMY_COUNT, SPAWN_RATE_TABLE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -60,18 +60,18 @@ const SRC = 3; // the one source slot rigged to fire
 // per-wave RNG gate for any table byte.
 function seedFire(m) {
   freezePokey(m);
-  m.mem.write8(loc_201, 0x00); // not negative -> scan runs
-  m.mem.write8(loc_5, 0x80); // sound enabled -> ccbd stamps $31/$32
-  for (let x = 0; x <= 6; x++) m.mem.write8(u16(loc_2df + x), 0x00); // all slots inert...
-  m.mem.write8(u16(loc_2df + SRC), 0x40); // ...except SRC (nonzero, >= 0x30)
-  m.mem.write8(u16(loc_28a + SRC), 0x40); // flag bit6 set
-  m.mem.write8(u16(loc_2a6 + SRC), 0x00); // timer 0 -> dec underflows -> fire
-  m.mem.write8(u16(loc_283 + SRC), 0x00); // bit7 clear
-  m.mem.write8(loc_a6, 0x00); // wave index
-  m.mem.write8(u16(loc_2b9 + SRC), 0xaa); // spawn source fields
-  m.mem.write8(u16(loc_2cc + SRC), 0xbb);
-  m.mem.write8(loc_119, 0xcc); // timer reseed value
-  m.mem.write8(loc_11a, 0x04); // free-slot scan starts at y=4
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x00); // not negative -> scan runs
+  m.mem.write8(STATUS_FLAGS, 0x80); // sound enabled -> ccbd stamps $31/$32
+  for (let x = 0; x <= 6; x++) m.mem.write8(u16(ENEMY_DEPTH + x), 0x00); // all slots inert...
+  m.mem.write8(u16(ENEMY_DEPTH + SRC), 0x40); // ...except SRC (nonzero, >= 0x30)
+  m.mem.write8(u16(ENEMY_SLOT_DIR + SRC), 0x40); // flag bit6 set
+  m.mem.write8(u16(ENEMY_TIMER + SRC), 0x00); // timer 0 -> dec underflows -> fire
+  m.mem.write8(u16(ENEMY_SLOT_FLAGS + SRC), 0x00); // bit7 clear
+  m.mem.write8(ACTIVE_ENEMY_COUNT, 0x00); // wave index
+  m.mem.write8(u16(ENEMY_SEGMENT + SRC), 0xaa); // spawn source fields
+  m.mem.write8(u16(ENEMY_PHASE + SRC), 0xbb);
+  m.mem.write8(SPAWN_TIMER_RELOAD, 0xcc); // timer reseed value
+  m.mem.write8(FLYER_SLOT_TOP, 0x04); // free-slot scan starts at y=4
   m.mem.write8(u16(loc_2db + 4), 0x11); // occupied
   m.mem.write8(u16(loc_2db + 3), 0x22); // occupied
   m.mem.write8(u16(loc_2db + 2), 0x00); // FREE -> spawns here
@@ -85,8 +85,8 @@ test("CRAFTED: one armed slot spawns into the free destination; RAM equal", () =
   assert.equal(c.mem.read8(u16(loc_2db + 2)), 0x40, "spawn kind copied to free slot");
   assert.equal(c.mem.read8(u16(loc_2b5 + 2)), 0xaa, "field b copied");
   assert.equal(c.mem.read8(u16(loc_2c8 + 2)), 0xbb, "field c copied");
-  assert.equal(c.mem.read8(u16(loc_2a6 + SRC)), 0xcc, "timer reseeded");
-  assert.equal(c.mem.read8(loc_a6), 0x01, "wave index advanced");
+  assert.equal(c.mem.read8(u16(ENEMY_TIMER + SRC)), 0xcc, "timer reseeded");
+  assert.equal(c.mem.read8(ACTIVE_ENEMY_COUNT), 0x01, "wave index advanced");
 });
 
 test("TEETH: a twin that never spawns diverges from the oracle", () => {
@@ -104,26 +104,26 @@ test("TEETH (marshalling): a twin that passes the wrong Y to ccbd diverges", () 
   const c = new Machine(ROM, OPTS); seedFire(c);
   const wrongY = (m) => {
     const { mem8 } = m;
-    if (mem8[loc_201] & 0x80) return;
+    if (mem8[PLAYER_FINE_ANGLE] & 0x80) return;
     for (let x = 6; x >= 0; x--) {
-      if (mem8[u16(loc_2df + x)] === 0) continue;
-      if (mem8[u16(loc_2df + x)] < 0x30) continue;
-      if ((mem8[u16(loc_28a + x)] & 0x40) === 0) continue;
-      const dec = u8(mem8[u16(loc_2a6 + x)] - 1);
-      mem8[u16(loc_2a6 + x)] = dec;
+      if (mem8[u16(ENEMY_DEPTH + x)] === 0) continue;
+      if (mem8[u16(ENEMY_DEPTH + x)] < 0x30) continue;
+      if ((mem8[u16(ENEMY_SLOT_DIR + x)] & 0x40) === 0) continue;
+      const dec = u8(mem8[u16(ENEMY_TIMER + x)] - 1);
+      mem8[u16(ENEMY_TIMER + x)] = dec;
       if ((dec & 0x80) === 0) continue;
-      mem8[u16(loc_2a6 + x)] = u8(dec + 1);
-      if (mem8[u16(loc_283 + x)] & 0x80) continue;
-      if (mem8[loc_60ca] < mem8[u16(loc_a304 + mem8[loc_a6])]) continue;
-      let y = mem8[loc_11a];
+      mem8[u16(ENEMY_TIMER + x)] = u8(dec + 1);
+      if (mem8[u16(ENEMY_SLOT_FLAGS + x)] & 0x80) continue;
+      if (mem8[POKEY1_RANDOM] < mem8[u16(SPAWN_RATE_TABLE + mem8[ACTIVE_ENEMY_COUNT])]) continue;
+      let y = mem8[FLYER_SLOT_TOP];
       while (true) {
         if (mem8[u16(loc_2db + y)] === 0) {
-          mem8[u16(loc_2db + y)] = mem8[u16(loc_2df + x)];
-          mem8[u16(loc_2b5 + y)] = mem8[u16(loc_2b9 + x)];
-          mem8[u16(loc_2c8 + y)] = mem8[u16(loc_2cc + x)];
-          mem8[u16(loc_2a6 + x)] = mem8[loc_119];
+          mem8[u16(loc_2db + y)] = mem8[u16(ENEMY_DEPTH + x)];
+          mem8[u16(loc_2b5 + y)] = mem8[u16(ENEMY_SEGMENT + x)];
+          mem8[u16(loc_2c8 + y)] = mem8[u16(ENEMY_PHASE + x)];
+          mem8[u16(ENEMY_TIMER + x)] = mem8[SPAWN_TIMER_RELOAD];
           loc_ccbd(m, x, 0); // BUG: stale/wrong Y
-          mem8[loc_a6] = u8(mem8[loc_a6] + 1);
+          mem8[ACTIVE_ENEMY_COUNT] = u8(mem8[ACTIVE_ENEMY_COUNT] + 1);
           y = 0;
         }
         y = u8(y - 1);

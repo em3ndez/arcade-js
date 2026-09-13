@@ -15,7 +15,7 @@ import { loc_b367 } from "../loc_b367.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_425 } from "../names.js";
+import { STACK_SCRATCH, LANE_FLAGS } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,16 +52,16 @@ test("CAPTURE: real 0xb367 dispatches -- loc_b367 == oracle in RAM (-stack)", ()
 test("CRAFTED: a dirtied flag block is rebuilt identically to the oracle", () => {
   if (!CAPS.length) { console.log("  CRAFTED: no dispatch captured -- skipped"); return; }
   const o = CAPS[0].clone(), c = CAPS[0].clone();
-  for (let i = 0; i < 16; i++) { o.mem.write8(u16(loc_425 + i), 0xa0 + i); c.mem.write8(u16(loc_425 + i), 0xa0 + i); }
+  for (let i = 0; i < 16; i++) { o.mem.write8(u16(LANE_FLAGS + i), 0xa0 + i); c.mem.write8(u16(LANE_FLAGS + i), 0xa0 + i); }
   oracle(o); loc_b367(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the rebuild");
-  for (let i = 0; i < 16; i++) assert.equal(c.mem.read8(u16(loc_425 + i)), o.mem.read8(u16(loc_425 + i)), `flag ${i} matches oracle`);
+  for (let i = 0; i < 16; i++) assert.equal(c.mem.read8(u16(LANE_FLAGS + i)), o.mem.read8(u16(LANE_FLAGS + i)), `flag ${i} matches oracle`);
 });
 
 test("TEETH: a twin that leaves the dirtied flag block untouched diverges from the oracle", () => {
   if (!CAPS.length) { console.log("  TEETH: no dispatch captured -- skipped"); return; }
   const o = CAPS[0].clone(), c = CAPS[0].clone();
-  for (let i = 0; i < 16; i++) { o.mem.write8(u16(loc_425 + i), 0xa0 + i); c.mem.write8(u16(loc_425 + i), 0xa0 + i); }
+  for (let i = 0; i < 16; i++) { o.mem.write8(u16(LANE_FLAGS + i), 0xa0 + i); c.mem.write8(u16(LANE_FLAGS + i), 0xa0 + i); }
   oracle(o);
   const brokenB367 = (_m) => { /* BUG: never clears or rebuilds the flag block */ };
   brokenB367(c);

@@ -13,7 +13,7 @@ import { loc_b2fe as oracle } from "../../translated/loc_b2fe.js";
 import { loc_b2fe } from "../loc_b2fe.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_415, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, POINTER_PARITY, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,8 +51,8 @@ test("CAPTURE: real 0xb2fe dispatches -- loc_b2fe == oracle in RAM (-stack)", ()
 // pre-state selects which of the two branch words gets written through ($3b).
 function seedSlot(m, a, parityPre) {
   m.regs.a = a;
-  m.mem.write8(loc_74, 0x40); m.mem.write8(loc_75, 0x20); // ($74) -> 0x2040
-  m.mem.write8((loc_415 + a) & 0xffff, parityPre);
+  m.mem.write8(DRAW_CURSOR_LO, 0x40); m.mem.write8(DRAW_CURSOR_HI, 0x20); // ($74) -> 0x2040
+  m.mem.write8((POINTER_PARITY + a) & 0xffff, parityPre);
 }
 
 test("CRAFTED: parity pre=0 -> toggles to 1 (nonzero branch); RAM equal", () => {
@@ -60,7 +60,7 @@ test("CRAFTED: parity pre=0 -> toggles to 1 (nonzero branch); RAM equal", () => 
   const c = new Machine(ROM, OPTS); seedSlot(c, 0x03, 0x00);
   oracle(o); loc_b2fe(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (toggled parity nonzero)");
-  assert.equal(c.mem.read8((loc_415 + 0x03) & 0xffff), 0x01, "parity flag toggled to 1");
+  assert.equal(c.mem.read8((POINTER_PARITY + 0x03) & 0xffff), 0x01, "parity flag toggled to 1");
 });
 
 test("CRAFTED: parity pre=1 -> toggles to 0 (zero branch); RAM equal", () => {
@@ -68,7 +68,7 @@ test("CRAFTED: parity pre=1 -> toggles to 0 (zero branch); RAM equal", () => {
   const c = new Machine(ROM, OPTS); seedSlot(c, 0x02, 0x01);
   oracle(o); loc_b2fe(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (toggled parity zero)");
-  assert.equal(c.mem.read8((loc_415 + 0x02) & 0xffff), 0x00, "parity flag toggled to 0");
+  assert.equal(c.mem.read8((POINTER_PARITY + 0x02) & 0xffff), 0x00, "parity flag toggled to 0");
 });
 
 test("TEETH: a twin that skips the parity toggle diverges from the oracle", () => {
@@ -79,7 +79,7 @@ test("TEETH: a twin that skips the parity toggle diverges from the oracle", () =
     const { mem8, mem16 } = m;
     // no df09, no emit, but write the pointer target so only the flag differs
     const idx = (a << 1) & 0xff;
-    const parity = mem8[(loc_415 + a) & 0xffff] ^ 0x01; // BUG: computed but never stored back
+    const parity = mem8[(POINTER_PARITY + a) & 0xffff] ^ 0x01; // BUG: computed but never stored back
     void parity; void idx; void mem16;
   };
   broken(c);

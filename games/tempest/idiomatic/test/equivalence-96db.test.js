@@ -12,7 +12,7 @@ import { loc_96db as oracle } from "../../translated/loc_96db.js";
 import { loc_96db } from "../loc_96db.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2c, loc_160 } from "../names.js";
+import { STACK_SCRATCH, COORD_LIST_PTR_LO, ENEMY_CLIMB_DELTA_LO_0 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -49,10 +49,10 @@ test("CAPTURE: real 0x96db dispatches -- loc_96db == oracle in A and RAM (-stack
 
 // Seed a 16-bit list pointer at $2c/$2d, the list byte at (ptr)+y, and the base at $0160.
 function seed(m, s) {
-  m.mem8[loc_2c] = s.ptr & 0xff;
-  m.mem8[(loc_2c + 1) & 0xffff] = (s.ptr >> 8) & 0xff;
+  m.mem8[COORD_LIST_PTR_LO] = s.ptr & 0xff;
+  m.mem8[(COORD_LIST_PTR_LO + 1) & 0xffff] = (s.ptr >> 8) & 0xff;
   m.mem8[(s.ptr + s.y) & 0xffff] = s.entry;
-  m.mem8[loc_160] = s.base;
+  m.mem8[ENEMY_CLIMB_DELTA_LO_0] = s.base;
   m.regs.y = s.y;
 }
 
@@ -79,7 +79,7 @@ test("TEETH: a twin that skips the $0160 base add diverges in A", () => {
   const o = new Machine(ROM, OPTS); seed(o, s);
   oracle(o);
   const broken = (m, y = m.regs.y) => { // BUG: returns the list byte without adding $0160
-    const ptr = m.mem8[loc_2c] | (m.mem8[(loc_2c + 1) & 0xffff] << 8);
+    const ptr = m.mem8[COORD_LIST_PTR_LO] | (m.mem8[(COORD_LIST_PTR_LO + 1) & 0xffff] << 8);
     return (m.regs.a = m.mem8[(ptr + y) & 0xffff]);
   };
   const c = new Machine(ROM, OPTS); seed(c, s);

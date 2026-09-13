@@ -14,7 +14,7 @@ import { loc_cf24 as oracle } from "../../translated/loc_cf24.js";
 import { loc_cf24 } from "../loc_cf24.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_d, loc_13 } from "../names.js";
+import { STACK_SCRATCH, LANE_WRAP_POS, LANE_COUNTER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -64,8 +64,8 @@ test("CRAFTED: a seeded lane update + accumulation + clamp passes matches the or
   oracle(o); loc_cf24(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   // spot-check two cells the seed drives deterministically
-  assert.equal(c.mem.read8(loc_13), 0x10, "$0013 lane clamped down by 0x10");
-  assert.equal(c.mem.read8(loc_d), 0x00, "$000d lane zeroed by the flash-decrement path");
+  assert.equal(c.mem.read8(LANE_COUNTER), 0x10, "$0013 lane clamped down by 0x10");
+  assert.equal(c.mem.read8(LANE_WRAP_POS), 0x00, "$000d lane zeroed by the flash-decrement path");
 });
 
 test("TEETH: the seeded run actually mutates RAM, so the diff has teeth (untouched != oracle)", () => {

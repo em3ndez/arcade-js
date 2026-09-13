@@ -13,7 +13,7 @@ import { loc_df73 } from "../loc_df73.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { loc_df75 } from "../loc_df75.js";
-import { STACK_SCRATCH, loc_73 } from "../names.js";
+import { STACK_SCRATCH, VG_RECORD_HEADER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -57,7 +57,7 @@ test("CRAFTED: distinct A/Y/X -- loc_df73 == oracle in RAM", () => {
   const c = new Machine(ROM, OPTS); seedDistinct(c);
   oracle(o); loc_df73(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after stash + scale");
-  assert.equal(c.mem.read8(loc_73), 0x22, "Y stashed at $73");
+  assert.equal(c.mem.read8(VG_RECORD_HEADER), 0x22, "Y stashed at $73");
 });
 
 test("TEETH: a twin that skips the $73 stash diverges from the oracle", () => {
@@ -75,7 +75,7 @@ test("TEETH (marshalling): a twin that scales X,A swapped diverges from the orac
   const o = new Machine(ROM, OPTS); seedDistinct(o); oracle(o);
   const c = new Machine(ROM, OPTS); seedDistinct(c);
   const swappedTwin = (m, y = m.regs.y, a = m.regs.a, x = m.regs.x) => {
-    m.mem8[loc_73] = y;
+    m.mem8[VG_RECORD_HEADER] = y;
     return loc_df75(m, x, a); // BUG: A and X args swapped
   };
   swappedTwin(c);

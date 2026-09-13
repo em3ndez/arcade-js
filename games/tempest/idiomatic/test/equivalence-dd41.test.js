@@ -15,8 +15,8 @@ import { loc_dd41 } from "../loc_dd41.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_6095, loc_6096, loc_40c, loc_40d, loc_40f, loc_410,
-  loc_409, loc_40a, loc_40b, loc_74, loc_75,
+  STACK_SCRATCH, MATHBOX_LD_R7_LO, MATHBOX_LD_R7_HI, COORD_ACC_LO, COORD_ACC_HI, DIGIT_IN_LO, DIGIT_IN_HI,
+  TIMER2_LO, TIMER2_MID, TIMER2_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -52,11 +52,11 @@ test("CAPTURE: real 0xdd41 dispatches -- loc_dd41 == oracle in RAM (-stack)", ()
 });
 
 function seed(m, s) {
-  m.mem.write8(loc_40c, s.c); m.mem.write8(loc_40d, s.d);
-  m.mem.write8(loc_40f, s.f); m.mem.write8(loc_410, s.g);
-  m.mem.write8(loc_409, 0x11); m.mem.write8(loc_40a, s.a); m.mem.write8(loc_40b, s.b);
+  m.mem.write8(COORD_ACC_LO, s.c); m.mem.write8(COORD_ACC_HI, s.d);
+  m.mem.write8(DIGIT_IN_LO, s.f); m.mem.write8(DIGIT_IN_HI, s.g);
+  m.mem.write8(TIMER2_LO, 0x11); m.mem.write8(TIMER2_MID, s.a); m.mem.write8(TIMER2_HI, s.b);
   for (let i = 0; i < 20; i++) m.mem.write8((0x0400 + i) & 0xffff, (s.base + i) & 0xff); // ($3b) source run
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20);
 }
 
 test("CRAFTED: prologue sums and five BCD passes -- RAM equal (opposite entry carry)", () => {
@@ -85,11 +85,11 @@ test("CRAFTED (min-clamp): zero magnitude forces $6095 to 0x01 -- RAM equal", ()
   // cannot zero the magnitude. Force those four cells to zero AFTER the fill so ($40c:$40d) + 2*($40f:$410)
   // is truly zero and the min-clamp path fires (both machines get the same input -> ramDiff stays valid).
   for (const mm of [o, c]) {
-    mm.mem.write8(loc_40c, 0x00); mm.mem.write8(loc_40d, 0x00);
-    mm.mem.write8(loc_40f, 0x00); mm.mem.write8(loc_410, 0x00);
+    mm.mem.write8(COORD_ACC_LO, 0x00); mm.mem.write8(COORD_ACC_HI, 0x00);
+    mm.mem.write8(DIGIT_IN_LO, 0x00); mm.mem.write8(DIGIT_IN_HI, 0x00);
   }
-  const o95 = recordWrites(o, loc_6095), o96 = recordWrites(o, loc_6096);
-  const c95 = recordWrites(c, loc_6095), c96 = recordWrites(c, loc_6096);
+  const o95 = recordWrites(o, MATHBOX_LD_R7_LO), o96 = recordWrites(o, MATHBOX_LD_R7_HI);
+  const c95 = recordWrites(c, MATHBOX_LD_R7_LO), c96 = recordWrites(c, MATHBOX_LD_R7_HI);
   oracle(o); loc_dd41(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.deepEqual(c95, o95, "module reproduces the oracle's $6095 write stream");

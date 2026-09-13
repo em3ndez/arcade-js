@@ -14,7 +14,7 @@ import { loc_db5a } from "../loc_db5a.js";
 import { loc_de11 } from "../loc_de11.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_0, loc_7c, loc_1c7, loc_1c9, loc_1ca } from "../names.js";
+import { STACK_SCRATCH, GAME_MODE, SEG_SPREAD_A_LO_4, EAROM_REGION_PENDING, PENDING_WORK_FLAGS, EAROM_MODE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,53 +51,53 @@ test("CAPTURE: real 0xdb5a dispatches -- loc_db5a == oracle in RAM (-stack)", ()
 test("CRAFTED: guards clear -- seeder runs and $7c <- $01c9, $00 <- 0x02", () => {
   const seed = (m) => {
     m.regs.s = 0xfb;
-    m.mem.write8(loc_1ca, 0x00);
-    m.mem.write8(loc_1c7, 0x00);
-    m.mem.write8(loc_1c9, 0x77);
-    m.mem.write8(loc_7c, 0x11);
-    m.mem.write8(loc_0, 0x55);
+    m.mem.write8(EAROM_MODE, 0x00);
+    m.mem.write8(EAROM_REGION_PENDING, 0x00);
+    m.mem.write8(PENDING_WORK_FLAGS, 0x77);
+    m.mem.write8(SEG_SPREAD_A_LO_4, 0x11);
+    m.mem.write8(GAME_MODE, 0x55);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_db5a(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
-  assert.equal(c.mem.read8(loc_7c), 0x77, "$7c <- $01c9");
-  assert.equal(c.mem.read8(loc_0), 0x02, "$00 <- 0x02");
+  assert.equal(c.mem.read8(SEG_SPREAD_A_LO_4), 0x77, "$7c <- $01c9");
+  assert.equal(c.mem.read8(GAME_MODE), 0x02, "$00 <- 0x02");
 });
 
 test("CRAFTED: a guard set -- early return, $7c and $00 untouched", () => {
   const seed = (m) => {
     m.regs.s = 0xfb;
-    m.mem.write8(loc_1ca, 0x40); // guard set
-    m.mem.write8(loc_1c7, 0x00);
-    m.mem.write8(loc_1c9, 0x77);
-    m.mem.write8(loc_7c, 0x11);
-    m.mem.write8(loc_0, 0x55);
+    m.mem.write8(EAROM_MODE, 0x40); // guard set
+    m.mem.write8(EAROM_REGION_PENDING, 0x00);
+    m.mem.write8(PENDING_WORK_FLAGS, 0x77);
+    m.mem.write8(SEG_SPREAD_A_LO_4, 0x11);
+    m.mem.write8(GAME_MODE, 0x55);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_db5a(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after early return");
-  assert.equal(c.mem.read8(loc_7c), 0x11, "$7c untouched");
-  assert.equal(c.mem.read8(loc_0), 0x55, "$00 untouched");
+  assert.equal(c.mem.read8(SEG_SPREAD_A_LO_4), 0x11, "$7c untouched");
+  assert.equal(c.mem.read8(GAME_MODE), 0x55, "$00 untouched");
 });
 
 test("TEETH: a twin that skips the $7c store (non-default seed) diverges from the oracle", () => {
   const seed = (m) => {
     m.regs.s = 0xfb;
-    m.mem.write8(loc_1ca, 0x00);
-    m.mem.write8(loc_1c7, 0x00);
-    m.mem.write8(loc_1c9, 0x77);
-    m.mem.write8(loc_7c, 0x11); // non-default so the skipped store shows
-    m.mem.write8(loc_0, 0x55);
+    m.mem.write8(EAROM_MODE, 0x00);
+    m.mem.write8(EAROM_REGION_PENDING, 0x00);
+    m.mem.write8(PENDING_WORK_FLAGS, 0x77);
+    m.mem.write8(SEG_SPREAD_A_LO_4, 0x11); // non-default so the skipped store shows
+    m.mem.write8(GAME_MODE, 0x55);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const broken = (m) => {
-    if ((m.mem8[loc_1ca] | m.mem8[loc_1c7]) !== 0) return;
+    if ((m.mem8[EAROM_MODE] | m.mem8[EAROM_REGION_PENDING]) !== 0) return;
     loc_de11(m);
-    m.mem8[loc_0] = 0x02; // BUG: never stores $7c
+    m.mem8[GAME_MODE] = 0x02; // BUG: never stores $7c
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped $7c store");

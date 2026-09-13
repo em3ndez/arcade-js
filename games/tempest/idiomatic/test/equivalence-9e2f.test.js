@@ -13,7 +13,7 @@ import { loc_9e2f as oracle } from "../../translated/loc_9e2f.js";
 import { loc_9e2f } from "../loc_9e2f.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_200, loc_201, loc_283, loc_2b9, loc_2cc } from "../names.js";
+import { STACK_SCRATCH, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT, ENEMY_PHASE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,9 +50,9 @@ test("CAPTURE: real 0x9e2f dispatches -- loc_9e2f == oracle in RAM (-stack)", ()
 // Guard passes on slot 0: live slot, both coords match -> jsr $a33a fires on both arms.
 function seedMatch(m) {
   m.regs.x = 0; m.regs.y = 0;
-  m.mem.write8(loc_283, 0x10);            // live slot (bit7 clear)
-  m.mem.write8(loc_2b9, 0x33); m.mem.write8(loc_200, 0x33); // first coord matches target
-  m.mem.write8(loc_2cc, 0x44); m.mem.write8(loc_201, 0x44); // second coord matches target
+  m.mem.write8(ENEMY_SLOT_FLAGS, 0x10);            // live slot (bit7 clear)
+  m.mem.write8(ENEMY_SEGMENT, 0x33); m.mem.write8(PLAYER_SEGMENT, 0x33); // first coord matches target
+  m.mem.write8(ENEMY_PHASE, 0x44); m.mem.write8(PLAYER_FINE_ANGLE, 0x44); // second coord matches target
 }
 
 test("CRAFTED (call path): live slot with both coords matching -- loc_9e2f == oracle in RAM", () => {
@@ -60,27 +60,27 @@ test("CRAFTED (call path): live slot with both coords matching -- loc_9e2f == or
   const c = new Machine(ROM, OPTS); seedMatch(c);
   oracle(o); loc_9e2f(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the $a33a call");
-  assert.equal(c.mem.read8(loc_201), 0x80, "the $a33a tail set $0201=0x81 then decremented it");
+  assert.equal(c.mem.read8(PLAYER_FINE_ANGLE), 0x80, "the $a33a tail set $0201=0x81 then decremented it");
 });
 
 // Each bail path: dead slot, first-coord mismatch, second-coord mismatch. No sub-call fires.
 function seedDead(m) {
   m.regs.x = 0; m.regs.y = 0;
-  m.mem.write8(loc_283, 0x80);            // dead slot (bit7 set)
-  m.mem.write8(loc_2b9, 0x33); m.mem.write8(loc_200, 0x33);
-  m.mem.write8(loc_2cc, 0x44); m.mem.write8(loc_201, 0x44);
+  m.mem.write8(ENEMY_SLOT_FLAGS, 0x80);            // dead slot (bit7 set)
+  m.mem.write8(ENEMY_SEGMENT, 0x33); m.mem.write8(PLAYER_SEGMENT, 0x33);
+  m.mem.write8(ENEMY_PHASE, 0x44); m.mem.write8(PLAYER_FINE_ANGLE, 0x44);
 }
-function seedMiss1(m) { seedMatch(m); m.mem.write8(loc_200, 0x99); } // first coord differs
-function seedMiss2(m) { seedMatch(m); m.mem.write8(loc_201, 0x99); } // second coord differs
+function seedMiss1(m) { seedMatch(m); m.mem.write8(PLAYER_SEGMENT, 0x99); } // first coord differs
+function seedMiss2(m) { seedMatch(m); m.mem.write8(PLAYER_FINE_ANGLE, 0x99); } // second coord differs
 
 for (const [name, seed] of [["dead slot", seedDead], ["first-coord mismatch", seedMiss1], ["second-coord mismatch", seedMiss2]]) {
   test(`CRAFTED (bail): ${name} -- RAM equal, $0201 untouched`, () => {
     const o = new Machine(ROM, OPTS); seed(o);
     const c = new Machine(ROM, OPTS); seed(c);
-    const before = c.mem.read8(loc_201);
+    const before = c.mem.read8(PLAYER_FINE_ANGLE);
     oracle(o); loc_9e2f(c);
     assert.equal(ramDiff(o, c), null, "RAM equal on the bail path");
-    assert.equal(c.mem.read8(loc_201), before, "$0201 unchanged (no $a33a)");
+    assert.equal(c.mem.read8(PLAYER_FINE_ANGLE), before, "$0201 unchanged (no $a33a)");
   });
 }
 
@@ -88,7 +88,7 @@ test("TEETH: a twin that always calls $a33a diverges from the oracle on a bail s
   const o = new Machine(ROM, OPTS); seedDead(o);
   const c = new Machine(ROM, OPTS); seedDead(c);
   oracle(o); // bails: leaves state untouched
-  const brokenGuard = (m, x = m.regs.x) => { void x; oracle(m); m.mem.write8(loc_201, 0x00); }; // BUG: fires side-effects unconditionally
+  const brokenGuard = (m, x = m.regs.x) => { void x; oracle(m); m.mem.write8(PLAYER_FINE_ANGLE, 0x00); }; // BUG: fires side-effects unconditionally
   brokenGuard(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the unconditional side-effect");
 });

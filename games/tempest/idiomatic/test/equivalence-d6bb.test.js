@@ -13,7 +13,7 @@ import { loc_d6bb as oracle } from "../../translated/loc_d6bb.js";
 import { loc_d6bb } from "../loc_d6bb.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_a, loc_9, loc_ac, loc_ad, loc_156, loc_158, loc_16a, loc_d00, loc_e00 } from "../names.js";
+import { STACK_SCRATCH, DSW2_SNAPSHOT, DSW1_SNAPSHOT, loc_ac, loc_ad, BONUS_LIFE_INTERVAL, DSW_BONUS_CONFIG, DSW_DIFFICULTY, DSW1_COINAGE, DSW2_OPTIONS } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -60,9 +60,9 @@ test("CRAFTED: three lookups + toggled copy + folded return all match the oracle
   oracle(o); loc_d6bb(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   assert.equal(c.regs.a, o.regs.a, "regs.a live-out equal");
-  assert.equal(c.mem.read8(loc_a), 0xba, "$000a <- $0e00");
-  assert.equal(c.mem.read8(loc_9), 0x55 ^ 0x02, "$0009 = $0d00 ^ 2");
-  for (const cell of [loc_156, loc_158, loc_ac, loc_ad, loc_16a])
+  assert.equal(c.mem.read8(DSW2_SNAPSHOT), 0xba, "$000a <- $0e00");
+  assert.equal(c.mem.read8(DSW1_SNAPSHOT), 0x55 ^ 0x02, "$0009 = $0d00 ^ 2");
+  for (const cell of [BONUS_LIFE_INTERVAL, DSW_BONUS_CONFIG, loc_ac, loc_ad, DSW_DIFFICULTY])
     assert.equal(c.mem.read8(cell), o.mem.read8(cell), `cell ${cell.toString(16)} matches oracle`);
 });
 
@@ -77,9 +77,9 @@ test("TEETH: a twin that skips the $0158 lookup and the folded $016a store diver
   oracle(o);
   const broken = (m) => {
     const mem = m.mem8;
-    const a0 = mem[loc_e00];
-    mem[loc_a] = a0;
-    mem[loc_9] = mem[loc_d00] ^ 0x02;
+    const a0 = mem[DSW2_OPTIONS];
+    mem[DSW2_SNAPSHOT] = a0;
+    mem[DSW1_SNAPSHOT] = mem[DSW1_COINAGE] ^ 0x02;
     // BUG: never writes the $0156/$0158 lookups, $00ac/$00ad, or the folded $016a -- all REAL role writes
     // the oracle makes nonzero for this seed ($0158<-0x04, $00ac<-0xa9, ...), so the RAM diff MUST catch it.
     // ($016a folds to 0 here, so it is not relied on -- $0158/$0156/$00ac carry the divergence.)

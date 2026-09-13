@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import {
-  loc_9f, loc_2b, loc_2c, loc_2d, loc_37, loc_38, loc_3b, loc_3c,
-  loc_a7, loc_b3, loc_15e, loc_15b, loc_16a, loc_16d, loc_11a, loc_118, loc_120,
-  loc_149, loc_14a, loc_151, loc_152, loc_153, loc_154, loc_155, loc_160, loc_161,
-  loc_162, loc_163, loc_164, loc_165, loc_166, loc_167, loc_168, loc_169,
-  loc_60da, loc_9604,
+  loc_9f, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI, SLOT_LOOP_INDEX, TABLE_CURSOR, WORK_PTR_LO, WORK_PTR_HI,
+  HIT_DISTANCE_THRESHOLD, loc_b3, COORD_DISPATCH_SEL, INITIAL_ACTIVE_COUNT, DSW_DIFFICULTY, LIST_SELECT_FLAGS, FLYER_SLOT_TOP, OBJECT_VELOCITY_HI, OBJECT_VELOCITY_LO,
+  CANDIDATE_LANE_0, CANDIDATE_LANE_1, ENEMY_BAND_THRESHOLD_0, ENEMY_BAND_THRESHOLD_1, ENEMY_BAND_THRESHOLD_2, ENEMY_BAND_THRESHOLD_3, ENEMY_BAND_THRESHOLD_4, ENEMY_CLIMB_DELTA_LO_0, ENEMY_CLIMB_DELTA_LO_1,
+  ENEMY_CLIMB_DELTA_LO_2, ENEMY_CLIMB_DELTA_LO_3, ENEMY_CLIMB_DELTA_LO_4, ENEMY_CLIMB_DELTA_HI_0, ENEMY_CLIMB_DELTA_HI_1, ENEMY_CLIMB_DELTA_HI_2, ENEMY_CLIMB_DELTA_HI_3, ENEMY_CLIMB_DELTA_HI_4,
+  POKEY2_RANDOM, STATE_RESEED_RECORD_TABLE,
 } from "./names.js";
 import { loc_9677 } from "./loc_9677.js";
 import { loc_9683 } from "./loc_9683.js";
@@ -13,36 +13,36 @@ import { loc_93e0 } from "./loc_93e0.js";
 
 // State re-seed. Builds the search key loc_2b (loc_9f, or a fresh masked value when loc_9f is too large),
 // then walks a 4-byte-record table for record index 111 down to 3 (step -4): each record
-// gives a source list pointer (loc_2c/loc_2d) and a destination pointer (loc_3b/loc_3c). For each record it
+// gives a source list pointer (COORD_LIST_PTR_LO/COORD_LIST_PTR_HI) and a destination pointer (WORK_PTR_LO/WORK_PTR_HI). For each record it
 // scans the source list for the range that brackets the key, storing the range's resolved byte (0 if the
-// list runs out) through the destination pointer. Finally it rescales loc_160/loc_15b per loc_16a & 3 and
-// re-scales three cells (loc_163, loc_120, loc_160) through the folding helper, seeding many loc_01xx cells.
+// list runs out) through the destination pointer. Finally it rescales ENEMY_CLIMB_DELTA_LO_0/INITIAL_ACTIVE_COUNT per DSW_DIFFICULTY & 3 and
+// re-scales three cells (ENEMY_CLIMB_DELTA_LO_3, OBJECT_VELOCITY_LO, ENEMY_CLIMB_DELTA_LO_0) through the folding helper, seeding many loc_01xx cells.
 export function loc_92c5(m) {
   const { mem8, mem16 } = m;
 
   // search key: loc_9f, unless >= 98 -> a fresh value from (the POKEY random register & 0x1f) | 0x40; then +1
   let key = mem8[loc_9f];
-  if (key >= 98) key = (mem8[loc_60da] & 0x1f) | 0x40;
+  if (key >= 98) key = (mem8[POKEY2_RANDOM] & 0x1f) | 0x40;
   mem8[loc_2b] = key;
   mem8[loc_2b] = mem8[loc_2b] + 1;
 
   // record index 111 -> 3, step -4 (stop when it underflows past 3 to 255)
-  mem8[loc_37] = 111;
+  mem8[SLOT_LOOP_INDEX] = 111;
   while (true) {
-    const index = mem8[loc_37];
-    mem8[loc_3c] = mem8[u16(loc_9604 + index + 3)];
-    mem8[loc_3b] = mem8[u16(loc_9604 + index + 2)];
-    mem8[loc_2d] = mem8[u16(loc_9604 + index + 1)];
-    mem8[loc_2c] = mem8[u16(loc_9604 + index)];
-    mem8[loc_38] = 1;
+    const index = mem8[SLOT_LOOP_INDEX];
+    mem8[WORK_PTR_HI] = mem8[u16(STATE_RESEED_RECORD_TABLE + index + 3)];
+    mem8[WORK_PTR_LO] = mem8[u16(STATE_RESEED_RECORD_TABLE + index + 2)];
+    mem8[COORD_LIST_PTR_HI] = mem8[u16(STATE_RESEED_RECORD_TABLE + index + 1)];
+    mem8[COORD_LIST_PTR_LO] = mem8[u16(STATE_RESEED_RECORD_TABLE + index)];
+    mem8[TABLE_CURSOR] = 1;
 
     // scan the source list for the [lo, hi] range that brackets the search key
     let resolved = 0;
     let y = 0;
     while (true) {
-      const listPtr = mem16[loc_2c];
+      const listPtr = mem16[COORD_LIST_PTR_LO];
       const entry = mem8[u16(listPtr + y)];
-      mem8[loc_15e] = entry;
+      mem8[COORD_DISPATCH_SEL] = entry;
       if (entry === 0) { resolved = 0; break; } // list exhausted
       const k = mem8[loc_2b];
       y = u8(y + 1);
@@ -63,56 +63,56 @@ export function loc_92c5(m) {
       y = yy;
     }
 
-    mem8[u16(mem16[loc_3b])] = resolved;    // store through the destination pointer
+    mem8[u16(mem16[WORK_PTR_LO])] = resolved;    // store through the destination pointer
 
-    mem8[loc_37] = u8(index - 4);
-    if (mem8[loc_37] === 255) break;
+    mem8[SLOT_LOOP_INDEX] = u8(index - 4);
+    if (mem8[SLOT_LOOP_INDEX] === 255) break;
   }
 
-  // rescale on loc_16a & 3: 1 -> down, 2 -> up, else none
-  const mode = mem8[loc_16a] & 0x03;
+  // rescale on DSW_DIFFICULTY & 3: 1 -> down, 2 -> up, else none
+  const mode = mem8[DSW_DIFFICULTY] & 0x03;
   if (mode === 1) {
-    mem8[loc_11a] = u8(mem8[loc_11a] - 1);
-    const v = mem8[loc_160];
+    mem8[FLYER_SLOT_TOP] = u8(mem8[FLYER_SLOT_TOP] - 1);
+    const v = mem8[ENEMY_CLIMB_DELTA_LO_0];
     const inv = v ^ 0xff;
-    mem8[loc_160] = (inv >> 3) + v + ((inv >> 2) & 1);
+    mem8[ENEMY_CLIMB_DELTA_LO_0] = (inv >> 3) + v + ((inv >> 2) & 1);
     if (mem8[loc_9f] < 17) mem8[loc_b3] = u8(mem8[loc_b3] - 1);
   } else if (mode === 2) {
-    const bumped = u8(mem8[loc_11a] + 1);
-    mem8[loc_11a] = bumped >= 3 ? 3 : bumped;
-    const v = mem8[loc_160];
-    mem8[loc_160] = ((v >> 3) | 0xe0) + v + ((v >> 2) & 1);
-    const w = mem8[loc_15b];
-    mem8[loc_15b] = (w >> 3) + w + ((w >> 2) & 1);
-    mem8[loc_16d] = mem8[loc_16d] | 0x40;
+    const bumped = u8(mem8[FLYER_SLOT_TOP] + 1);
+    mem8[FLYER_SLOT_TOP] = bumped >= 3 ? 3 : bumped;
+    const v = mem8[ENEMY_CLIMB_DELTA_LO_0];
+    mem8[ENEMY_CLIMB_DELTA_LO_0] = ((v >> 3) | 0xe0) + v + ((v >> 2) & 1);
+    const w = mem8[INITIAL_ACTIVE_COUNT];
+    mem8[INITIAL_ACTIVE_COUNT] = (w >> 3) + w + ((w >> 2) & 1);
+    mem8[LIST_SELECT_FLAGS] = mem8[LIST_SELECT_FLAGS] | 0x40;
   }
 
   // fold three cells through the helper (returns [A, X, Y]) and fan the results out
-  const [a163, x163, y163] = loc_93e0(m, mem8[loc_163]);
-  mem8[loc_163] = a163;
-  mem8[loc_168] = y163;
-  mem8[loc_154] = x163;
+  const [a163, x163, y163] = loc_93e0(m, mem8[ENEMY_CLIMB_DELTA_LO_3]);
+  mem8[ENEMY_CLIMB_DELTA_LO_3] = a163;
+  mem8[ENEMY_CLIMB_DELTA_HI_3] = y163;
+  mem8[ENEMY_BAND_THRESHOLD_3] = x163;
 
-  const [a120, x120, y120] = loc_93e0(m, mem8[loc_120]);
-  mem8[loc_120] = a120;
-  mem8[loc_118] = y120;
-  mem8[loc_a7] = x120;
+  const [a120, x120, y120] = loc_93e0(m, mem8[OBJECT_VELOCITY_LO]);
+  mem8[OBJECT_VELOCITY_LO] = a120;
+  mem8[OBJECT_VELOCITY_HI] = y120;
+  mem8[HIT_DISTANCE_THRESHOLD] = x120;
 
-  const [a160, x160, y160] = loc_93e0(m, mem8[loc_160]);
-  mem8[loc_160] = a160;
-  mem8[loc_162] = a160;
-  mem8[loc_167] = y160;
-  mem8[loc_165] = y160;
-  mem8[loc_151] = x160;
-  mem8[loc_153] = x160;
-  mem8[loc_152] = x160;
+  const [a160, x160, y160] = loc_93e0(m, mem8[ENEMY_CLIMB_DELTA_LO_0]);
+  mem8[ENEMY_CLIMB_DELTA_LO_0] = a160;
+  mem8[ENEMY_CLIMB_DELTA_LO_2] = a160;
+  mem8[ENEMY_CLIMB_DELTA_HI_2] = y160;
+  mem8[ENEMY_CLIMB_DELTA_HI_0] = y160;
+  mem8[ENEMY_BAND_THRESHOLD_0] = x160;
+  mem8[ENEMY_BAND_THRESHOLD_2] = x160;
+  mem8[ENEMY_BAND_THRESHOLD_1] = x160;
 
-  mem8[loc_164] = mem8[loc_160] << 1;               // shift left, carry out is bit 7
-  mem8[loc_169] = (mem8[loc_165] << 1) | (mem8[loc_160] >> 7);
+  mem8[ENEMY_CLIMB_DELTA_LO_4] = mem8[ENEMY_CLIMB_DELTA_LO_0] << 1;               // shift left, carry out is bit 7
+  mem8[ENEMY_CLIMB_DELTA_HI_4] = (mem8[ENEMY_CLIMB_DELTA_HI_0] << 1) | (mem8[ENEMY_CLIMB_DELTA_LO_0] >> 7);
 
-  mem8[loc_155] = 6;
-  mem8[loc_161] = 160;
-  mem8[loc_166] = 254;
-  mem8[loc_14a] = 1;
-  mem8[loc_149] = 1;
+  mem8[ENEMY_BAND_THRESHOLD_4] = 6;
+  mem8[ENEMY_CLIMB_DELTA_LO_1] = 160;
+  mem8[ENEMY_CLIMB_DELTA_HI_1] = 254;
+  mem8[CANDIDATE_LANE_1] = 1;
+  mem8[CANDIDATE_LANE_0] = 1;
 }

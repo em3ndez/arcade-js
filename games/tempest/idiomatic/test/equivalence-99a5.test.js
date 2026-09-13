@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_99a5 (ROM 0x99a5-0x9a86) -- builds the five-column deficit table loc_13d from
-// loc_12e minus loc_142 (clamped nonnegative), deducts per active lane (loc_2df/loc_28a), caps every column
-// at (loc_11c + 1) minus the loc_142 total, then by the count of nonzero columns (0 / 1 / >=2) tries loc_9a87
+// Memory-equivalence for loc_99a5 (ROM 0x99a5-0x9a86) -- builds the five-column deficit table SPAWN_DEFICIT_C0 from
+// COLUMN_ENEMY_TARGET minus LANE_ENEMY_COUNT_0 (clamped nonnegative), deducts per active lane (ENEMY_DEPTH/ENEMY_SLOT_DIR), caps every column
+// at (ENEMY_SLOT_TOP + 1) minus the LANE_ENEMY_COUNT_0 total, then by the count of nonzero columns (0 / 1 / >=2) tries loc_9a87
 // to place a list, returning on the first success; every exhausted path clears loc_29. The idiomatic form
 // dissolves the mid-routine JSRs to loc_9a87 into direct calls and the m.ret(6) tails into plain returns.
 // Contract is RAM only (dumpState minus STACK_SCRATCH): the sole caller (loc_9923) reads loc_29 back from
@@ -19,7 +19,7 @@ import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_11c, loc_129, loc_12e, loc_13d, loc_13f, loc_140, loc_142, loc_2df, loc_29, loc_60da,
+  ENEMY_SLOT_TOP, COLUMN_SPAWN_CAP, COLUMN_ENEMY_TARGET, SPAWN_DEFICIT_C0, SPAWN_DEFICIT_C2, SPAWN_DEFICIT_C3, LANE_ENEMY_COUNT_0, ENEMY_DEPTH, loc_29, POKEY2_RANDOM,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -59,17 +59,17 @@ test("CAPTURE: real 0x99a5 dispatches -- loc_99a5 == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// One nonzero column, no loc_129 entry: block A scans the deficit column, finds no list slot, and falls to
-// the tail that clears loc_29. loc_11c=0 with loc_2df[0]=0 makes the lane loop a single no-op pass; loc_142
-// all zero makes the cap = loc_11c + 1 = 1, so loc_13d[4] = min(loc_12e[4], 1) = 1 and the count is 1.
+// One nonzero column, no COLUMN_SPAWN_CAP entry: block A scans the deficit column, finds no list slot, and falls to
+// the tail that clears loc_29. ENEMY_SLOT_TOP=0 with ENEMY_DEPTH[0]=0 makes the lane loop a single no-op pass; LANE_ENEMY_COUNT_0
+// all zero makes the cap = ENEMY_SLOT_TOP + 1 = 1, so SPAWN_DEFICIT_C0[4] = min(COLUMN_ENEMY_TARGET[4], 1) = 1 and the count is 1.
 function seedOneNoCall(m) {
-  m.mem.write8(loc_11c, 0x00);
-  m.mem.write8(loc_2df, 0x00);
-  m.mem.write8(loc_12e + 4, 0x05);
+  m.mem.write8(ENEMY_SLOT_TOP, 0x00);
+  m.mem.write8(ENEMY_DEPTH, 0x00);
+  m.mem.write8(COLUMN_ENEMY_TARGET + 4, 0x05);
   m.mem.write8(loc_29, 0xf0); // the request flag the caller seats before calling
 }
 
-test("CRAFTED: single column, no loc_129 slot -- scans then clears loc_29; RAM equal", () => {
+test("CRAFTED: single column, no COLUMN_SPAWN_CAP slot -- scans then clears loc_29; RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedOneNoCall(o);
   const c = new Machine(ROM, OPTS); seedOneNoCall(c);
   let threw = false;
@@ -78,16 +78,16 @@ test("CRAFTED: single column, no loc_129 slot -- scans then clears loc_29; RAM e
   loc_99a5(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the single-column no-slot path");
   assert.equal(c.mem.read8(loc_29), 0x00, "loc_29 was cleared on the no-placement tail");
-  assert.equal(c.mem.read8(loc_13d + 4), 0x01, "column 4 deficit capped to 1");
+  assert.equal(c.mem.read8(SPAWN_DEFICIT_C0 + 4), 0x01, "column 4 deficit capped to 1");
 });
 
-// One nonzero column WITH a loc_129 slot: block A now invokes loc_9a87(m, 4). Exercises the dissolved call.
+// One nonzero column WITH a COLUMN_SPAWN_CAP slot: block A now invokes loc_9a87(m, 4). Exercises the dissolved call.
 function seedOneCall(m) {
   seedOneNoCall(m);
-  m.mem.write8(loc_129 + 4, 0x01);
+  m.mem.write8(COLUMN_SPAWN_CAP + 4, 0x01);
 }
 
-test("CRAFTED: single column with a loc_129 slot -- loc_9a87 dissolution; RAM equal", () => {
+test("CRAFTED: single column with a COLUMN_SPAWN_CAP slot -- loc_9a87 dissolution; RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedOneCall(o);
   const c = new Machine(ROM, OPTS); seedOneCall(c);
   let threw = false;
@@ -97,13 +97,13 @@ test("CRAFTED: single column with a loc_129 slot -- loc_9a87 dissolution; RAM eq
   assert.equal(ramDiff(o, c), null, "RAM equal after the placement path through loc_9a87");
 });
 
-// Two nonzero columns (0 and 4) with columns 2 and 3 zero and no loc_129 slots: block B runs (loc_61 set),
-// its scan and the round-robin sweep find nothing, and the loc_140/loc_13f extra is skipped -> tail clears loc_29.
+// Two nonzero columns (0 and 4) with columns 2 and 3 zero and no COLUMN_SPAWN_CAP slots: block B runs (PROJ_Y_LO set),
+// its scan and the round-robin sweep find nothing, and the SPAWN_DEFICIT_C3/SPAWN_DEFICIT_C2 extra is skipped -> tail clears loc_29.
 function seedManyNoCall(m) {
-  m.mem.write8(loc_11c, 0x00);
-  m.mem.write8(loc_2df, 0x00);
-  m.mem.write8(loc_12e + 0, 0x03);
-  m.mem.write8(loc_12e + 4, 0x03);
+  m.mem.write8(ENEMY_SLOT_TOP, 0x00);
+  m.mem.write8(ENEMY_DEPTH, 0x00);
+  m.mem.write8(COLUMN_ENEMY_TARGET + 0, 0x03);
+  m.mem.write8(COLUMN_ENEMY_TARGET + 4, 0x03);
   m.mem.write8(loc_29, 0xf0);
 }
 
@@ -116,8 +116,8 @@ test("CRAFTED: two columns, block B with no placements -- RAM equal", () => {
   loc_99a5(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the block-B no-placement path");
   assert.equal(c.mem.read8(loc_29), 0x00, "loc_29 cleared on the tail");
-  assert.equal(c.mem.read8(loc_140), 0x00, "column 3 stayed zero (b40 extra skipped)");
-  assert.equal(c.mem.read8(loc_13f), 0x00, "column 2 stayed zero");
+  assert.equal(c.mem.read8(SPAWN_DEFICIT_C3), 0x00, "column 3 stayed zero (b40 extra skipped)");
+  assert.equal(c.mem.read8(SPAWN_DEFICIT_C2), 0x00, "column 2 stayed zero");
 });
 
 test("TEETH: a twin that skips the tail loc_29 clear MUST diverge in RAM", () => {

@@ -14,7 +14,7 @@ import { loc_9ed7 as oracle } from "../../translated/loc_9ed7.js";
 import { loc_9ed7 } from "../loc_9ed7.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_3ee } from "../names.js";
+import { STACK_SCRATCH, SEG_DIRECTION } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -32,7 +32,7 @@ const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
 // Seed the 16-entry ring table $03ee..$03fd with distinct low-nibble values so the +8 half-turn bites.
-const seedRing = (m) => { for (let i = 0; i < 16; i++) m.mem.write8((loc_3ee + i) & 0xffff, i); return m; };
+const seedRing = (m) => { for (let i = 0; i < 16; i++) m.mem.write8((SEG_DIRECTION + i) & 0xffff, i); return m; };
 
 function captureDispatches(K, maxFrames) {
   const caps = [];
@@ -74,7 +74,7 @@ test("TEETH: a twin that skips the half-turn (+8) diverges from the oracle when 
   const o = seedRing(new Machine(ROM, OPTS)); o.regs.a = a; o.regs.y = y;
   oracle(o);
   // BUG: plain lookup at (y-1)&0x0f without the +8, then ora 0x80
-  const broken = (seedRing(new Machine(ROM, OPTS)).mem.read8((loc_3ee + ((y - 1) & 0x0f)) & 0xffff) & 0x0f) | 0x80;
+  const broken = (seedRing(new Machine(ROM, OPTS)).mem.read8((SEG_DIRECTION + ((y - 1) & 0x0f)) & 0xffff) & 0x0f) | 0x80;
   assert.notEqual(broken, o.regs.a, "the A compare FAILED to catch the skipped half-turn");
 });
 

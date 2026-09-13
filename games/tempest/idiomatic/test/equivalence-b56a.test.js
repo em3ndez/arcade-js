@@ -13,7 +13,7 @@ import { loc_b56a as oracle } from "../../translated/loc_b56a.js";
 import { loc_b56a } from "../loc_b56a.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -49,8 +49,8 @@ test("CAPTURE: real 0xb56a dispatches -- loc_b56a == oracle in RAM (-stack)", ()
 
 function seed(m, s) {
   m.regs.a = s.a;
-  m.mem8[loc_74] = s.ptr & 0xff;
-  m.mem8[loc_75] = (s.ptr >> 8) & 0xff;
+  m.mem8[DRAW_CURSOR_LO] = s.ptr & 0xff;
+  m.mem8[DRAW_CURSOR_HI] = (s.ptr >> 8) & 0xff;
 }
 
 test("CRAFTED: writes 0,0,0,A and advances $74/$75 by four == oracle (RAM -stack)", () => {
@@ -66,7 +66,7 @@ test("CRAFTED: writes 0,0,0,A and advances $74/$75 by four == oracle (RAM -stack
     oracle(o); loc_b56a(c);
     assert.equal(ramDiff(o, c), null, `RAM: ${s.tag}`);
     // pointer advanced by exactly four
-    const adv = (c.mem8[loc_74] | (c.mem8[loc_75] << 8));
+    const adv = (c.mem8[DRAW_CURSOR_LO] | (c.mem8[DRAW_CURSOR_HI] << 8));
     assert.equal(adv, (s.ptr + 4) & 0xffff, `ptr advance: ${s.tag}`);
   }
 });
@@ -77,13 +77,13 @@ test("TEETH: a twin that skips the A byte diverges from the oracle", () => {
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o);
   const broken = (m) => { // BUG: writes only three zero bytes, never the A byte, and still advances by 4
-    const ptr = m.mem8[loc_74] | (m.mem8[loc_75] << 8);
+    const ptr = m.mem8[DRAW_CURSOR_LO] | (m.mem8[DRAW_CURSOR_HI] << 8);
     m.mem8[(ptr) & 0xffff] = 0;
     m.mem8[(ptr + 1) & 0xffff] = 0;
     m.mem8[(ptr + 2) & 0xffff] = 0;
-    const sum = m.mem8[loc_74] + 4;
-    m.mem8[loc_74] = sum & 0xff;
-    if (sum > 0xff) m.mem8[loc_75] = (m.mem8[loc_75] + 1) & 0xff;
+    const sum = m.mem8[DRAW_CURSOR_LO] + 4;
+    m.mem8[DRAW_CURSOR_LO] = sum & 0xff;
+    if (sum > 0xff) m.mem8[DRAW_CURSOR_HI] = (m.mem8[DRAW_CURSOR_HI] + 1) & 0xff;
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the missing A store");

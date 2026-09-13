@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_9b1e -- when loc_201>=0, walks slots loc_37=loc_11c..0 running a per-entry motion
-// pass through loc_9b98 (loc_a0f7-indexed) and storing loc_10b back to loc_291,x; then signed-accumulates
-// loc_147 into loc_148 (cd06/cd02 on a sign flip) and negates loc_147 when loc_148 leaves [0x0f,0xc0].
+// Equivalence for loc_9b1e -- when PLAYER_FINE_ANGLE>=0, walks slots SLOT_LOOP_INDEX=ENEMY_SLOT_TOP..0 running a per-entry motion
+// pass through loc_9b98 (MOTION_SCRIPT_TABLE-indexed) and storing SCRIPT_CURSOR back to ENEMY_SCRIPT_CURSOR,x; then signed-accumulates
+// ENEMY_ANIM_DELTA into ENEMY_ANIM_ACCUM (cd06/cd02 on a sign flip) and negates ENEMY_ANIM_DELTA when ENEMY_ANIM_ACCUM leaves [0x0f,0xc0].
 // Contract: RAM (dumpState minus STACK_SCRATCH). Oracle = frozen translated/loc_9b1e.js.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9b1e.test.js
 
@@ -15,7 +15,7 @@ import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import {
-  STACK_SCRATCH, loc_37, loc_10a, loc_10b, loc_11c, loc_143, loc_147, loc_148, loc_201, loc_291, loc_2df, loc_a0f7,
+  STACK_SCRATCH, SLOT_LOOP_INDEX, SCRIPT_WALK_CONTINUE, SCRIPT_CURSOR, ENEMY_SLOT_TOP, LANE_ENEMY_COUNT_1, ENEMY_ANIM_DELTA, ENEMY_ANIM_ACCUM, PLAYER_FINE_ANGLE, ENEMY_SCRIPT_CURSOR, ENEMY_DEPTH, MOTION_SCRIPT_TABLE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -51,47 +51,47 @@ test("CAPTURE: real 0x9b1e dispatches -- loc_9b1e == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// loc_201 negative -> the outer walk is skipped, isolating the tail accumulate + clamp (no loc_9b98).
-test("CRAFTED (tail): accumulate loc_147 into loc_148 + negate in-band -- RAM equal", () => {
+// PLAYER_FINE_ANGLE negative -> the outer walk is skipped, isolating the tail accumulate + clamp (no loc_9b98).
+test("CRAFTED (tail): accumulate ENEMY_ANIM_DELTA into ENEMY_ANIM_ACCUM + negate in-band -- RAM equal", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x80);  // negative -> skip the walk
-    m.mem.write8(loc_148, 0x10);
-    m.mem.write8(loc_147, 0x05);  // sum 0x15, both positive -> no sign flip; 0x15 in [0x0f,0xc0] -> negate
-    m.mem.write8(loc_143, 0x00);
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x80);  // negative -> skip the walk
+    m.mem.write8(ENEMY_ANIM_ACCUM, 0x10);
+    m.mem.write8(ENEMY_ANIM_DELTA, 0x05);  // sum 0x15, both positive -> no sign flip; 0x15 in [0x0f,0xc0] -> negate
+    m.mem.write8(LANE_ENEMY_COUNT_1, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_9b1e(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the tail");
-  assert.equal(c.mem.read8(loc_148), 0x15, "loc_148 = 0x10 + 0x05");
-  assert.equal(c.mem.read8(loc_147), 0xfb, "loc_147 negated (0x05 -> 0xfb) since loc_148 is in-band");
+  assert.equal(c.mem.read8(ENEMY_ANIM_ACCUM), 0x15, "ENEMY_ANIM_ACCUM = 0x10 + 0x05");
+  assert.equal(c.mem.read8(ENEMY_ANIM_DELTA), 0xfb, "ENEMY_ANIM_DELTA negated (0x05 -> 0xfb) since ENEMY_ANIM_ACCUM is in-band");
 });
 
-// loc_148 out of band (< 0x0f) -> no negate.
-test("CRAFTED (tail, out-of-band): loc_148 < 0x0f leaves loc_147 unchanged -- RAM equal", () => {
+// ENEMY_ANIM_ACCUM out of band (< 0x0f) -> no negate.
+test("CRAFTED (tail, out-of-band): ENEMY_ANIM_ACCUM < 0x0f leaves ENEMY_ANIM_DELTA unchanged -- RAM equal", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x80);
-    m.mem.write8(loc_148, 0x02);
-    m.mem.write8(loc_147, 0x05);  // sum 0x07 < 0x0f -> no negate
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x80);
+    m.mem.write8(ENEMY_ANIM_ACCUM, 0x02);
+    m.mem.write8(ENEMY_ANIM_DELTA, 0x05);  // sum 0x07 < 0x0f -> no negate
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_9b1e(c);
   assert.equal(ramDiff(o, c), null, "RAM equal");
-  assert.equal(c.mem.read8(loc_147), 0x05, "loc_147 unchanged (loc_148 0x07 below the band)");
+  assert.equal(c.mem.read8(ENEMY_ANIM_DELTA), 0x05, "ENEMY_ANIM_DELTA unchanged (ENEMY_ANIM_ACCUM 0x07 below the band)");
 });
 
-// The outer walk: one slot with loc_2df,x nonzero drives loc_9b98 via the loc_a0f7 table. Skip-on-throw
+// The outer walk: one slot with ENEMY_DEPTH,x nonzero drives loc_9b98 via the MOTION_SCRIPT_TABLE table. Skip-on-throw
 // if loc_9b98 reaches an unimplemented arm on this seed.
 test("CRAFTED (walk): one active slot runs the loc_9b98 pass -- RAM equal (skip on oracle throw)", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x00);                 // >= 0 -> walk runs
-    m.mem.write8(loc_11c, 0x00);                 // one slot (loc_37 = 0)
-    m.mem.write8(u16(loc_2df + 0x00), 0x40);     // slot 0 active
-    m.mem.write8(u16(loc_291 + 0x00), 0x00);     // cursor start
-    m.mem.write8(u16(loc_a0f7 + 0x00), 0x00);    // table entry -> loc_9b98 index 0 (a benign handler)
-    m.mem.write8(loc_147, 0x00);                 // no accumulate delta
-    m.mem.write8(loc_148, 0x20);
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x00);                 // >= 0 -> walk runs
+    m.mem.write8(ENEMY_SLOT_TOP, 0x00);                 // one slot (SLOT_LOOP_INDEX = 0)
+    m.mem.write8(u16(ENEMY_DEPTH + 0x00), 0x40);     // slot 0 active
+    m.mem.write8(u16(ENEMY_SCRIPT_CURSOR + 0x00), 0x00);     // cursor start
+    m.mem.write8(u16(MOTION_SCRIPT_TABLE + 0x00), 0x00);    // table entry -> loc_9b98 index 0 (a benign handler)
+    m.mem.write8(ENEMY_ANIM_DELTA, 0x00);                 // no accumulate delta
+    m.mem.write8(ENEMY_ANIM_ACCUM, 0x20);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -102,14 +102,14 @@ test("CRAFTED (walk): one active slot runs the loc_9b98 pass -- RAM equal (skip 
   assert.equal(ramDiff(o, c), null, "RAM equal after the walk + tail");
 });
 
-test("TEETH: a twin that skips the loc_148 accumulate MUST diverge in RAM", () => {
-  const seed = (m) => { m.mem.write8(loc_201, 0x80); m.mem.write8(loc_148, 0x10); m.mem.write8(loc_147, 0x05); };
+test("TEETH: a twin that skips the ENEMY_ANIM_ACCUM accumulate MUST diverge in RAM", () => {
+  const seed = (m) => { m.mem.write8(PLAYER_FINE_ANGLE, 0x80); m.mem.write8(ENEMY_ANIM_ACCUM, 0x10); m.mem.write8(ENEMY_ANIM_DELTA, 0x05); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  // Broken twin: everything except it leaves loc_148 unchanged (never adds loc_147).
-  const before148 = c.mem.read8(loc_148);
+  // Broken twin: everything except it leaves ENEMY_ANIM_ACCUM unchanged (never adds ENEMY_ANIM_DELTA).
+  const before148 = c.mem.read8(ENEMY_ANIM_ACCUM);
   loc_9b1e(c);
-  c.mem.write8(loc_148, before148); // BUG: revert the accumulate
-  assert.notEqual(ramDiff(o, c), null, "the dropped loc_148 accumulate was NOT caught");
+  c.mem.write8(ENEMY_ANIM_ACCUM, before148); // BUG: revert the accumulate
+  assert.notEqual(ramDiff(o, c), null, "the dropped ENEMY_ANIM_ACCUM accumulate was NOT caught");
 });

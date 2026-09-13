@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Equivalence for loc_9683 -- a computed-jump dispatcher. loc_15e is an even byte index that selects a
+// Equivalence for loc_9683 -- a computed-jump dispatcher. COORD_DISPATCH_SEL is an even byte index that selects a
 // little-endian pointer; the target (pointer+1) is tail-called and consumes loc_9683's own caller's return.
 // Before dispatching, A is seated to the low byte of the selected pointer; the Y-only targets leave A alone,
 // so that byte is a live-out the caller reads back (it stores A right after the dispatch). The 96cb target
@@ -19,7 +19,7 @@ import { loc_96c7, loc_96c8 } from "../loc_96c7.js";
 import { loc_96cb } from "../loc_96cb.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_15e, loc_29, loc_2c, loc_2d } from "../names.js";
+import { STACK_SCRATCH, COORD_DISPATCH_SEL, loc_29, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -32,7 +32,7 @@ function opt(name) {
 const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
 
 const TARGET = 0x9683;
-// The same handler set the idiomatic module dispatches, indexed by loc_15e >> 1 (entry 0 is a disabled slot).
+// The same handler set the idiomatic module dispatches, indexed by COORD_DISPATCH_SEL >> 1 (entry 0 is a disabled slot).
 const TABLE = [null, loc_96c8, loc_96cb, loc_96cb, loc_96c7, loc_96c8, loc_96c7];
 const VALID_INDICES = [2, 4, 6, 8, 10, 12];
 
@@ -50,10 +50,10 @@ function stateDiff(ma, mb) {
 // Point the packed-list pointer (0x2c) at vector RAM so the 96cb target's reads land in mapped memory,
 // set a mid-list cursor Y, and select a table entry by its even index.
 function seed(m, index) {
-  m.mem.write8(loc_15e, index);
+  m.mem.write8(COORD_DISPATCH_SEL, index);
   m.regs.y = 0x04;
-  m.mem.write8(loc_2c, 0x00);
-  m.mem.write8(loc_2d, 0x20); // (0x2c) -> 0x2000
+  m.mem.write8(COORD_LIST_PTR_LO, 0x00);
+  m.mem.write8(COORD_LIST_PTR_HI, 0x20); // (0x2c) -> 0x2000
 }
 
 function captureDispatches(K, maxFrames) {
@@ -68,7 +68,7 @@ test("CAPTURE: real 0x9683 dispatches -- loc_9683 == oracle in RAM (-stack) + A"
   let checked = 0;
   const idx = new Set();
   for (const cap of CAPS) {
-    idx.add(cap.mem.read8(loc_15e));
+    idx.add(cap.mem.read8(COORD_DISPATCH_SEL));
     const o = cap.clone(), c = cap.clone();
     let threw = false;
     try { oracle(o); } catch { threw = true; } // a real dispatch may reach an unimplemented arm
@@ -77,7 +77,7 @@ test("CAPTURE: real 0x9683 dispatches -- loc_9683 == oracle in RAM (-stack) + A"
     assert.equal(stateDiff(o, c), null, "captured dispatch equal");
     checked++;
   }
-  console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared; distinct loc_15e seen: [${[...idx].sort((a, b) => a - b).join(",")}]`);
+  console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared; distinct COORD_DISPATCH_SEL seen: [${[...idx].sort((a, b) => a - b).join(",")}]`);
 });
 
 test("CRAFTED: each even index -- loc_9683 == oracle in RAM (-stack) + A", () => {
@@ -105,7 +105,7 @@ test("TEETH (A live-out): a twin that skips seating A MUST diverge", () => {
   const c = new Machine(ROM, OPTS); seed(c, 2);
   c.regs.a = 0x00; // a sentinel distinct from the low pointer byte the real routine seats
   // Broken twin: dispatches correctly but NEVER seats A -- the routine's signature write.
-  const index = c.mem.read8(loc_15e);
+  const index = c.mem.read8(COORD_DISPATCH_SEL);
   TABLE[index >> 1](c);
   assert.notEqual(stateDiff(o, c), null, "the dropped A seat was NOT caught");
 });

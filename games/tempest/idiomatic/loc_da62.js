@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import {
-  loc_0, loc_3, loc_4c, loc_4e, loc_50, loc_52, loc_74, loc_75, loc_7c,
-  loc_1c9, loc_800, loc_c00, loc_daf9,
-  loc_4000, loc_4800, loc_5000, loc_5800, loc_60c8, loc_60cb, loc_60e0,
+  GAME_MODE, FRAME_COUNTER, INPUT_CUR, INPUT_EDGE_FLAGS, SPINNER_ACCUM, SPINNER_POT_PREV, DRAW_CURSOR_LO, DRAW_CURSOR_HI, SEG_SPREAD_A_LO_4,
+  PENDING_WORK_FLAGS, COLOR_RAM, IN0_PORT, SELFTEST_COLOR_TABLE,
+  COIN_FLIP_LATCH, AVG_GO_STROBE, WATCHDOG_CLEAR, AVG_RESET_STROBE, POKEY1_AUDCTL, POKEY1_POTGO, LED_FLIP_LATCH,
 } from "./names.js";
 import { loc_de11 } from "./loc_de11.js";
 import { loc_ddf1 } from "./loc_ddf1.js";
@@ -21,47 +21,47 @@ export function loc_da62(m) {
 
   // ---- one-time preamble ----
   loc_de11(m);
-  const pending = mem8[loc_1c9];
+  const pending = mem8[PENDING_WORK_FLAGS];
   if (pending === 0) {
-    mem8[loc_0] = 2;
+    mem8[GAME_MODE] = 2;
   } else {
-    mem8[loc_7c] = pending;
+    mem8[SEG_SPREAD_A_LO_4] = pending;
     loc_ddf1(m);
-    mem8[loc_1c9] = 0;
-    mem8[loc_0] = 0;
+    mem8[PENDING_WORK_FLAGS] = 0;
+    mem8[GAME_MODE] = 0;
   }
-  for (let i = 7; i >= 0; i--) mem8[loc_800 + i] = mem8[u16(loc_daf9 + i)];
-  mem8[loc_60e0] = 0;
-  mem8[loc_4000] = 0x10;
+  for (let i = 7; i >= 0; i--) mem8[COLOR_RAM + i] = mem8[u16(SELFTEST_COLOR_TABLE + i)];
+  mem8[LED_FLIP_LATCH] = 0;
+  mem8[COIN_FLIP_LATCH] = 0x10;
 
   // ---- per-frame self-test loop ----
   for (;;) {
-    mem8[loc_5000] = 0; // watchdog clear (value-ignoring strobe)
-    mem8[loc_5800] = 0; // display reset (value-ignoring strobe)
+    mem8[WATCHDOG_CLEAR] = 0; // watchdog clear (value-ignoring strobe)
+    mem8[AVG_RESET_STROBE] = 0; // display reset (value-ignoring strobe)
 
-    mem8[loc_74] = 0;
-    mem8[loc_75] = 0x20;
-    mem8[loc_60cb] = 0x20;
-    const options = mem8[loc_60c8];
-    mem8[loc_52] = options;
-    mem8[loc_50] = options & 0x0f;
+    mem8[DRAW_CURSOR_LO] = 0;
+    mem8[DRAW_CURSOR_HI] = 0x20;
+    mem8[POKEY1_POTGO] = 0x20;
+    const options = mem8[POKEY1_AUDCTL];
+    mem8[SPINNER_POT_PREV] = options;
+    mem8[SPINNER_ACCUM] = options & 0x0f;
 
-    const active = (mem8[loc_c00] ^ 0xff) & 0x2f;
-    mem8[loc_4e] = active;
+    const active = (mem8[IN0_PORT] ^ 0xff) & 0x2f;
+    mem8[INPUT_EDGE_FLAGS] = active;
     if ((active & 0x28) === 0) {
-      mem8[loc_4c] = 0x20;
+      mem8[INPUT_CUR] = 0x20;
     } else {
-      const packed = mem8[loc_4c];
-      mem8[loc_4c] = packed << 1;
-      if ((packed & 0x80) !== 0) mem8[loc_0] = mem8[loc_0] + 2; // top bit shifted out -> double-bump
+      const packed = mem8[INPUT_CUR];
+      mem8[INPUT_CUR] = packed << 1;
+      if ((packed & 0x80) !== 0) mem8[GAME_MODE] = mem8[GAME_MODE] + 2; // top bit shifted out -> double-bump
     }
 
     loc_db0f(m);
-    mem8[loc_4800] = loc_df0d(m); // build the frame, then strobe display go
+    mem8[AVG_GO_STROBE] = loc_df0d(m); // build the frame, then strobe display go
 
-    mem8[loc_3] = mem8[loc_3] + 1;
-    if ((mem8[loc_3] & 0x03) === 0) loc_de1b(m); // every fourth frame
+    mem8[FRAME_COUNTER] = mem8[FRAME_COUNTER] + 1;
+    if ((mem8[FRAME_COUNTER] & 0x03) === 0) loc_de1b(m); // every fourth frame
 
-    if ((mem8[loc_c00] & 0x10) !== 0) return; // self-test switch released -> leave
+    if ((mem8[IN0_PORT] & 0x10) !== 0) return; // self-test switch released -> leave
   }
 }

@@ -29,7 +29,7 @@ import { loc_a65b } from "../loc_a65b.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8, u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_0, loc_3, loc_5, loc_32, loc_37, loc_10d, loc_10e, loc_283 } from "../names.js";
+import { STACK_SCRATCH, GAME_MODE, FRAME_COUNTER, STATUS_FLAGS, loc_32, SLOT_LOOP_INDEX, SPAWN_FOUND_FLAG, SPAWN_BUDGET_TIMER, ENEMY_SLOT_FLAGS } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -73,11 +73,11 @@ function seedCrafted(m, { frame = 0x00 } = {}) {
   freezePokey(m);
   m.regs.y = ENTRY_Y;
   m.regs.x = 0x00;
-  m.mem.write8(loc_5, 0x80);   // open the sound gate so ccc7 stamps $31/$32
-  m.mem.write8(loc_3, frame);  // $03 frame parity
-  m.mem.write8(loc_10e, 0x08); // spawn countdown nonzero -> free slots spawn (also seeds $010d)
-  for (let x = 0; x < 16; x++) m.mem.write8(u16(loc_283 + x), 0x00); // all free...
-  m.mem.write8(u16(loc_283 + LIVE), 0x40); // ...except one live slot
+  m.mem.write8(STATUS_FLAGS, 0x80);   // open the sound gate so ccc7 stamps $31/$32
+  m.mem.write8(FRAME_COUNTER, frame);  // $03 frame parity
+  m.mem.write8(SPAWN_BUDGET_TIMER, 0x08); // spawn countdown nonzero -> free slots spawn (also seeds $010d)
+  for (let x = 0; x < 16; x++) m.mem.write8(u16(ENEMY_SLOT_FLAGS + x), 0x00); // all free...
+  m.mem.write8(u16(ENEMY_SLOT_FLAGS + LIVE), 0x40); // ...except one live slot
   // give the live slot some velocity so a721's stepped whole (the threaded register) is nonzero
   for (const b of [0x02c3, 0x0323, 0x02e3, 0x0343, 0x0303, 0x0363]) m.mem.write8(u16(b + LIVE), 0x11);
 }
@@ -87,8 +87,8 @@ test("CRAFTED: live slot integrates+steps, free slots spawn; RAM == oracle and $
   const c = new Machine(ROM, OPTS); seedCrafted(c);
   oracle(o); loc_a618(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the slot walk");
-  assert.equal(c.mem.read8(loc_10d), 0xff, "live slot marked the frame active");
-  assert.equal(c.mem.read8(loc_37), 0xff, "slot counter fell through to 0xff");
+  assert.equal(c.mem.read8(SPAWN_FOUND_FLAG), 0xff, "live slot marked the frame active");
+  assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xff, "slot counter fell through to 0xff");
   assert.equal(c.mem.read8(loc_32), o.mem.read8(loc_32), "threaded register stamped identically into $32");
 });
 
@@ -101,18 +101,18 @@ test("TEETH (register thread): threading the STALE entry Y instead of a721's ret
   // BUG: discards a721's return, so every spawn consumes the stale entry Y.
   const brokenA618 = (m, y = m.regs.y) => {
     const { mem8 } = m;
-    mem8[loc_10d] = mem8[loc_10e];
+    mem8[SPAWN_FOUND_FLAG] = mem8[SPAWN_BUDGET_TIMER];
     for (let x = 0x0f; x >= 0; x--) {
-      if (mem8[u16(loc_283 + x)] !== 0) {
+      if (mem8[u16(ENEMY_SLOT_FLAGS + x)] !== 0) {
         loc_a6a9(m, x); loc_a721(m, x); // return discarded -> y never updated
-        mem8[loc_10d] = 0xff;
-      } else if (mem8[loc_10e] !== 0) {
+        mem8[SPAWN_FOUND_FLAG] = 0xff;
+      } else if (mem8[SPAWN_BUDGET_TIMER] !== 0) {
         loc_a65b(m, x, y);
       }
     }
-    mem8[loc_37] = 0xff;
-    if ((mem8[loc_3] & 0x01) === 0 && mem8[loc_10e] !== 0) mem8[loc_10e] = u8(mem8[loc_10e] - 1);
-    if (mem8[loc_10d] === 0) mem8[loc_0] = 0x12;
+    mem8[SLOT_LOOP_INDEX] = 0xff;
+    if ((mem8[FRAME_COUNTER] & 0x01) === 0 && mem8[SPAWN_BUDGET_TIMER] !== 0) mem8[SPAWN_BUDGET_TIMER] = u8(mem8[SPAWN_BUDGET_TIMER] - 1);
+    if (mem8[SPAWN_FOUND_FLAG] === 0) mem8[GAME_MODE] = 0x12;
   };
   brokenA618(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong threaded register");
@@ -127,18 +127,18 @@ test("TEETH (countdown gate): a twin that ticks $010e on an ODD $03 frame diverg
   // BUG: always decrements the countdown, ignoring the even/odd frame gate.
   const brokenA618 = (m, y = m.regs.y) => {
     const { mem8 } = m;
-    mem8[loc_10d] = mem8[loc_10e];
+    mem8[SPAWN_FOUND_FLAG] = mem8[SPAWN_BUDGET_TIMER];
     for (let x = 0x0f; x >= 0; x--) {
-      if (mem8[u16(loc_283 + x)] !== 0) {
+      if (mem8[u16(ENEMY_SLOT_FLAGS + x)] !== 0) {
         loc_a6a9(m, x); y = loc_a721(m, x);
-        mem8[loc_10d] = 0xff;
-      } else if (mem8[loc_10e] !== 0) {
+        mem8[SPAWN_FOUND_FLAG] = 0xff;
+      } else if (mem8[SPAWN_BUDGET_TIMER] !== 0) {
         loc_a65b(m, x, y);
       }
     }
-    mem8[loc_37] = 0xff;
-    if (mem8[loc_10e] !== 0) mem8[loc_10e] = u8(mem8[loc_10e] - 1); // BUG: no frame gate
-    if (mem8[loc_10d] === 0) mem8[loc_0] = 0x12;
+    mem8[SLOT_LOOP_INDEX] = 0xff;
+    if (mem8[SPAWN_BUDGET_TIMER] !== 0) mem8[SPAWN_BUDGET_TIMER] = u8(mem8[SPAWN_BUDGET_TIMER] - 1); // BUG: no frame gate
+    if (mem8[SPAWN_FOUND_FLAG] === 0) mem8[GAME_MODE] = 0x12;
   };
   brokenA618(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the ungated countdown tick");

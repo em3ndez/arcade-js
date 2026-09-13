@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_74 } from "./names.js";
+import { DRAW_CURSOR_LO } from "./names.js";
 import { loc_df53 } from "./loc_df53.js";
 import { loc_dfac } from "./loc_df92.js";
 
@@ -13,6 +13,6 @@ export function loc_df0d(m) {
 // Store one body byte at the cursor origin, then continue the shared record tail.
 export function loc_df12(m, a = m.regs.a) {
   const { mem8, mem16 } = m;
-  mem8[mem16[loc_74]] = a;   // store at cursor + 0
+  mem8[mem16[DRAW_CURSOR_LO]] = a;   // store at cursor + 0
   return loc_dfac(m, a, 0);
 }

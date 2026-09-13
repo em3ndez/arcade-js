@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import {
-  loc_bd, loc_be,
-  loc_1c6, loc_1c7, loc_1c8, loc_1c9, loc_1ca, loc_1cb, loc_1cc, loc_1cd, loc_1ce, loc_1cf,
-  loc_6000, loc_6040, loc_6050,
-  loc_dddd, loc_ddde, loc_dde3, loc_dde4,
+  NVRAM_SCAN_PTR_LO, NVRAM_SCAN_PTR_HI,
+  EAROM_BLANK_FLAG, EAROM_REGION_PENDING, EAROM_REGION_DIR, PENDING_WORK_FLAGS, EAROM_MODE, EAROM_PASS_COUNTER, EAROM_CURSOR, EAROM_LIMIT, EAROM_REGION_MASK, EAROM_CHECKSUM_ACC,
+  EAROM_DATA, MATHBOX_STATUS, EAROM_READ,
+  EAROM_REGION_START, EAROM_REGION_LIMIT, EAROM_REGION_PTR_LO, EAROM_REGION_PTR_HI,
 } from "./names.js";
 
 // EAROM state-machine step. When the mode byte and its target are both live it
@@ -15,45 +15,45 @@ import {
 // across the outer passes rather than resetting each one.
 export function loc_de1b(m, x = m.regs.x, y = m.regs.y) {
   const { mem8 } = m;
-  const ind = (yy) => u16(((mem8[loc_be] << 8) | mem8[loc_bd]) + yy);
+  const ind = (yy) => u16(((mem8[NVRAM_SCAN_PTR_HI] << 8) | mem8[NVRAM_SCAN_PTR_LO]) + yy);
 
   outer: for (;;) {
     let a = 0, c = false;
 
-    if (mem8[loc_1ca] === 0 && mem8[loc_1c7] !== 0) {
+    if (mem8[EAROM_MODE] === 0 && mem8[EAROM_REGION_PENDING] !== 0) {
       // Fresh row: clear the counters and rebuild the walking mask in $1ce.
-      mem8[loc_1cb] = 0;
-      mem8[loc_1cf] = 0;
-      mem8[loc_1ce] = 0;
+      mem8[EAROM_PASS_COUNTER] = 0;
+      mem8[EAROM_CHECKSUM_ACC] = 0;
+      mem8[EAROM_REGION_MASK] = 0;
       x = 0x08;
-      a = mem8[loc_1c7];
+      a = mem8[EAROM_REGION_PENDING];
       c = true; // seed the rotate
       for (;;) {
-        mem8[loc_1ce] = ((c ? 0x80 : 0) | (mem8[loc_1ce] >> 1));
+        mem8[EAROM_REGION_MASK] = ((c ? 0x80 : 0) | (mem8[EAROM_REGION_MASK] >> 1));
         c = (a & 0x80) !== 0;
         a = (a << 1) & 0xff;
         x = u8(x - 1);
         if (!c) continue;
         break;
       }
-      y = (mem8[loc_1ce] & mem8[loc_1c8]) !== 0 ? 0x80 : 0x20;
-      mem8[loc_1ca] = y;
-      mem8[loc_1c7] = mem8[loc_1ce] ^ mem8[loc_1c7];
+      y = (mem8[EAROM_REGION_MASK] & mem8[EAROM_REGION_DIR]) !== 0 ? 0x80 : 0x20;
+      mem8[EAROM_MODE] = y;
+      mem8[EAROM_REGION_PENDING] = mem8[EAROM_REGION_MASK] ^ mem8[EAROM_REGION_PENDING];
       x = (x << 1) & 0xff;
-      mem8[loc_1cc] = mem8[u16(loc_dddd + x)];
-      mem8[loc_1cd] = mem8[u16(loc_ddde + x)];
-      mem8[loc_bd] = mem8[u16(loc_dde3 + x)];
-      mem8[loc_be] = mem8[u16(loc_dde4 + x)];
+      mem8[EAROM_CURSOR] = mem8[u16(EAROM_REGION_START + x)];
+      mem8[EAROM_LIMIT] = mem8[u16(EAROM_REGION_LIMIT + x)];
+      mem8[NVRAM_SCAN_PTR_LO] = mem8[u16(EAROM_REGION_PTR_LO + x)];
+      mem8[NVRAM_SCAN_PTR_HI] = mem8[u16(EAROM_REGION_PTR_HI + x)];
     }
 
     // Common block: clear Y (LDY #0), reset the control port, bail when the mode byte is clear.
     y = 0x00;
-    mem8[loc_6040] = y;
-    a = mem8[loc_1ca];
+    mem8[MATHBOX_STATUS] = y;
+    a = mem8[EAROM_MODE];
     if (a === 0) return [x, y];
 
-    y = mem8[loc_1cb];
-    x = mem8[loc_1cc];
+    y = mem8[EAROM_PASS_COUNTER];
+    x = mem8[EAROM_CURSOR];
     c = (a & 0x80) !== 0;
     a = (a << 1) & 0xff;
 
@@ -63,46 +63,46 @@ export function loc_de1b(m, x = m.regs.x, y = m.regs.y) {
           deee: {
             dee6: {
               if (c) {
-                mem8[u16(loc_6000 + x)] = a;
-                mem8[loc_1ca] = 0x40;
+                mem8[u16(EAROM_DATA + x)] = a;
+                mem8[EAROM_MODE] = 0x40;
                 y = 0x0e;
                 break deff;
               }
               if ((a & 0x80) !== 0) {
-                mem8[loc_1ca] = 0x80;
-                if (mem8[loc_1c6] !== 0) mem8[ind(y)] = 0;
+                mem8[EAROM_MODE] = 0x80;
+                if (mem8[EAROM_BLANK_FLAG] !== 0) mem8[ind(y)] = 0;
                 a = mem8[ind(y)];
-                if (x >= mem8[loc_1cd]) {
-                  mem8[loc_1ca] = 0;
-                  a = mem8[loc_1cf];
+                if (x >= mem8[EAROM_LIMIT]) {
+                  mem8[EAROM_MODE] = 0;
+                  a = mem8[EAROM_CHECKSUM_ACC];
                 }
-                mem8[u16(loc_6000 + x)] = a;
+                mem8[u16(EAROM_DATA + x)] = a;
                 y = 0x0c;
                 break def2;
               }
               // EAROM read handshake for this entry.
-              mem8[loc_6040] = 0x08;
-              mem8[u16(loc_6000 + x)] = 0x08;
-              mem8[loc_6040] = 0x09;
-              mem8[loc_6040] = 0x08;
-              c = x >= mem8[loc_1cd];
-              a = mem8[loc_6050];
+              mem8[MATHBOX_STATUS] = 0x08;
+              mem8[u16(EAROM_DATA + x)] = 0x08;
+              mem8[MATHBOX_STATUS] = 0x09;
+              mem8[MATHBOX_STATUS] = 0x08;
+              c = x >= mem8[EAROM_LIMIT];
+              a = mem8[EAROM_READ];
               if (!c) break deee;
-              a = a ^ mem8[loc_1cf];
+              a = a ^ mem8[EAROM_CHECKSUM_ACC];
               if (a === 0) break dee6;
-              y = mem8[loc_1cb];
+              y = mem8[EAROM_PASS_COUNTER];
               for (;;) {
                 mem8[ind(y)] = 0;
                 y = u8(y - 1);
                 if ((y & 0x80) === 0) continue;
                 break;
               }
-              mem8[loc_1c9] = mem8[loc_1ce] | mem8[loc_1c9];
+              mem8[PENDING_WORK_FLAGS] = mem8[EAROM_REGION_MASK] | mem8[PENDING_WORK_FLAGS];
               break dee6;
             }
             // dee6: retire the mode byte.
             a = 0;
-            mem8[loc_1ca] = 0;
+            mem8[EAROM_MODE] = 0;
             break def0;
           }
           // deee: store the read-back byte through the row pointer.
@@ -112,13 +112,13 @@ export function loc_de1b(m, x = m.regs.x, y = m.regs.y) {
         y = 0;
       }
       // def2: fold the entry into the running total and bump both cursors.
-      a = u8(a + mem8[loc_1cf]);
-      mem8[loc_1cf] = a;
-      mem8[loc_1cb] = u8(mem8[loc_1cb] + 1);
-      mem8[loc_1cc] = u8(mem8[loc_1cc] + 1);
+      a = u8(a + mem8[EAROM_CHECKSUM_ACC]);
+      mem8[EAROM_CHECKSUM_ACC] = a;
+      mem8[EAROM_PASS_COUNTER] = u8(mem8[EAROM_PASS_COUNTER] + 1);
+      mem8[EAROM_CURSOR] = u8(mem8[EAROM_CURSOR] + 1);
     }
     // deff
-    mem8[loc_6040] = y;
+    mem8[MATHBOX_STATUS] = y;
     if (y !== 0) return [x, y];
     continue outer;
   }

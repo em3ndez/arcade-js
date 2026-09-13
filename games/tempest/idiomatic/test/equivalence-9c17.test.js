@@ -12,7 +12,7 @@ import { loc_9c17 as oracle } from "../../translated/loc_9c17.js";
 import { loc_9c17 } from "../loc_9c17.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_10b } from "../names.js";
+import { STACK_SCRATCH, SCRIPT_CURSOR } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -48,8 +48,8 @@ test("CAPTURE: real 0x9c17 dispatches -- loc_9c17 == oracle in RAM (-stack)", ()
 
 test("CRAFTED: $010b <- $a0f8[$010b] == oracle across index seeds", () => {
   for (const idx of [0x00, 0x01, 0x05, 0x7f, 0xff]) {
-    const o = new Machine(ROM, OPTS); o.mem8[loc_10b] = idx;
-    const c = new Machine(ROM, OPTS); c.mem8[loc_10b] = idx;
+    const o = new Machine(ROM, OPTS); o.mem8[SCRIPT_CURSOR] = idx;
+    const c = new Machine(ROM, OPTS); c.mem8[SCRIPT_CURSOR] = idx;
     oracle(o); loc_9c17(c);
     assert.equal(ramDiff(o, c), null, `idx=0x${idx.toString(16)}`);
   }
@@ -59,12 +59,12 @@ test("TEETH: a twin that leaves $010b unchanged diverges from the oracle", () =>
   // Non-default seed so the mutation bites: pick an index whose table byte differs from the index itself.
   const c0 = new Machine(ROM, OPTS);
   let idx = 0x01;
-  for (let i = 0; i <= 0xff; i++) { c0.mem8[loc_10b] = i; const t = new Machine(ROM, OPTS); t.mem8[loc_10b] = i; oracle(t); if (t.mem8[loc_10b] !== i) { idx = i; break; } }
-  const o = new Machine(ROM, OPTS); o.mem8[loc_10b] = idx;
+  for (let i = 0; i <= 0xff; i++) { c0.mem8[SCRIPT_CURSOR] = i; const t = new Machine(ROM, OPTS); t.mem8[SCRIPT_CURSOR] = i; oracle(t); if (t.mem8[SCRIPT_CURSOR] !== i) { idx = i; break; } }
+  const o = new Machine(ROM, OPTS); o.mem8[SCRIPT_CURSOR] = idx;
   oracle(o);
-  assert.notEqual(o.mem8[loc_10b], idx, "precondition: oracle advanced $010b off its seed");
+  assert.notEqual(o.mem8[SCRIPT_CURSOR], idx, "precondition: oracle advanced $010b off its seed");
   const broken = (m) => { /* BUG: never advances $010b */ };
-  const c = new Machine(ROM, OPTS); c.mem8[loc_10b] = idx;
+  const c = new Machine(ROM, OPTS); c.mem8[SCRIPT_CURSOR] = idx;
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped $010b advance");
 });

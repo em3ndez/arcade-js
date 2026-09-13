@@ -12,7 +12,7 @@ import { loc_a7bd as oracle } from "../../translated/loc_a7bd.js";
 import { loc_a7bd } from "../loc_a7bd.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_3fe, loc_405, loc_115 } from "../names.js";
+import { STACK_SCRATCH, loc_3fe, loc_405, SPIKE_TABLE_GUARD } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -38,7 +38,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 const S115 = 0x55;
 function seed(m) {
   for (let x = 0; x <= 7; x++) m.mem.write8(loc_3fe + x, (0xa0 + x) & 0xff);
-  m.mem.write8(loc_115, S115);
+  m.mem.write8(SPIKE_TABLE_GUARD, S115);
 }
 
 test("CAPTURE: real 0xa7bd dispatches -- loc_a7bd == oracle in RAM (-stack)", () => {
@@ -57,7 +57,7 @@ test("CRAFTED: table zeroed, $0405 = 0xf0, $0115 = 0xff == oracle (RAM -stack)",
   assert.equal(ramDiff(o, c), null);
   for (let x = 0; x <= 6; x++) assert.equal(c.mem.read8(loc_3fe + x), 0x00, `zeroed $03fe+${x}`);
   assert.equal(c.mem.read8(loc_405), 0xf0, "$0405 overwritten with 0xf0");
-  assert.equal(c.mem.read8(loc_115), 0xff, "$0115 armed to 0xff");
+  assert.equal(c.mem.read8(SPIKE_TABLE_GUARD), 0xff, "$0115 armed to 0xff");
 });
 
 test("TEETH: a twin that forgets the $0115 = 0xff fixup diverges from the oracle", () => {

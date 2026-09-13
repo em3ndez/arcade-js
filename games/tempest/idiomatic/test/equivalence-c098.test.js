@@ -16,8 +16,8 @@ import { loc_c098 } from "../loc_c098.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_32, loc_33, loc_34, loc_56, loc_57, loc_58, loc_5b, loc_5e, loc_5f, loc_60,
-  loc_66, loc_67, loc_68, loc_69,
+  STACK_SCRATCH, loc_32, MATHBOX_SIGN_X, MATHBOX_SIGN_Y, PROJ_PT_Y, OBJ_DEPTH, PROJ_PT_X, DEPTH_LO, PROJ_Y_REF, DEPTH_HI, PROJ_X_REF,
+  PROJ_OFS_Y_LO, PROJ_OFS_Y_HI, PROJ_OFS_X_LO, PROJ_OFS_X_HI,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -45,11 +45,11 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 // Non-default deltas: |dx|=0x30 (sign 0x00), |dy|=0x20 (sign 0xff), positive 16-bit delta (no clamp).
 const seed = (m) => {
-  m.mem.write8(loc_57, 0x40); m.mem.write8(loc_5f, 0x10); m.mem.write8(loc_5b, 0x00);
-  m.mem.write8(loc_58, 0x50); m.mem.write8(loc_60, 0x20);
-  m.mem.write8(loc_56, 0x10); m.mem.write8(loc_5e, 0x30);
-  m.mem.write8(loc_66, 0x03); m.mem.write8(loc_67, 0x00);
-  m.mem.write8(loc_68, 0x05); m.mem.write8(loc_69, 0x00);
+  m.mem.write8(OBJ_DEPTH, 0x40); m.mem.write8(DEPTH_HI, 0x10); m.mem.write8(DEPTH_LO, 0x00);
+  m.mem.write8(PROJ_PT_X, 0x50); m.mem.write8(PROJ_X_REF, 0x20);
+  m.mem.write8(PROJ_PT_Y, 0x10); m.mem.write8(PROJ_Y_REF, 0x30);
+  m.mem.write8(PROJ_OFS_Y_LO, 0x03); m.mem.write8(PROJ_OFS_Y_HI, 0x00);
+  m.mem.write8(PROJ_OFS_X_LO, 0x05); m.mem.write8(PROJ_OFS_X_HI, 0x00);
 };
 
 test("CAPTURE: real 0xc098 dispatches -- loc_c098 == oracle in RAM (-stack)", () => {
@@ -68,8 +68,8 @@ test("CRAFTED: deltas + signs land, coprocessor-fed RAM matches the oracle", () 
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   // deterministic (non-coprocessor) results
   assert.equal(c.mem.read8(loc_32), 0x20, "|dy| stored");
-  assert.equal(c.mem.read8(loc_33), 0x00, "dx sign stored");
-  assert.equal(c.mem.read8(loc_34), 0xff, "dy sign stored");
+  assert.equal(c.mem.read8(MATHBOX_SIGN_X), 0x00, "dx sign stored");
+  assert.equal(c.mem.read8(MATHBOX_SIGN_Y), 0xff, "dy sign stored");
 });
 
 test("TEETH: a twin whose delta store is corrupted diverges from the oracle", () => {

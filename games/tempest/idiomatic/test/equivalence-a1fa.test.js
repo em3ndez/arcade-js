@@ -16,7 +16,7 @@ import { loc_a1fa } from "../loc_a1fa.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_5, loc_37, loc_2ad, loc_2d3, loc_2f2, loc_3ac } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, SLOT_LOOP_INDEX, TARGET_SEG, SLOT_STATE, HIT_TALLY, LANE_LIMIT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,13 +51,13 @@ test("CAPTURE: real 0xa1fa dispatches -- loc_a1fa == oracle in RAM (-stack) and 
 // slot 0, target index y=5. gate ($0005 bit7) off by default so ca6c's award path is deterministic.
 function seed(m, s) {
   m.regs.x = 0x00;
-  m.mem.write8(loc_5, s.gate ?? 0x00);
-  m.mem.write8(loc_37, s.s37 ?? 0x02);
-  m.mem.write8(u16(loc_2ad + 0), 0x05);          // y = target index
-  m.mem.write8(u16(loc_3ac + 5), s.limit ?? 0x10);
-  m.mem.write8(u16(loc_2d3 + 0), s.counter ?? 0x00);
-  m.mem.write8(u16(loc_2f2 + 0), s.tally ?? 0x00); // entry-slot tally
-  m.mem.write8(u16(loc_2f2 + (s.s37 ?? 0x02)), s.tally37 ?? 0x00); // work-path xEff tally
+  m.mem.write8(STATUS_FLAGS, s.gate ?? 0x00);
+  m.mem.write8(SLOT_LOOP_INDEX, s.s37 ?? 0x02);
+  m.mem.write8(u16(TARGET_SEG + 0), 0x05);          // y = target index
+  m.mem.write8(u16(LANE_LIMIT + 5), s.limit ?? 0x10);
+  m.mem.write8(u16(SLOT_STATE + 0), s.counter ?? 0x00);
+  m.mem.write8(u16(HIT_TALLY + 0), s.tally ?? 0x00); // entry-slot tally
+  m.mem.write8(u16(HIT_TALLY + (s.s37 ?? 0x02)), s.tally37 ?? 0x00); // work-path xEff tally
 }
 
 test("CRAFTED: limit-not-reached / reached / reached+second-hit -- loc_a1fa == oracle (RAM + X)", () => {
@@ -84,8 +84,8 @@ test("TEETH: a twin that skips the work block diverges from the oracle on the re
   const c = new Machine(ROM, OPTS); seed(c, s);
   const broken = (m, x = m.regs.x) => {
     const { mem8 } = m;
-    const y = mem8[u16(loc_2ad + x)];
-    if (mem8[u16(loc_3ac + y)] === 0) return x;
+    const y = mem8[u16(TARGET_SEG + x)];
+    if (mem8[u16(LANE_LIMIT + y)] === 0) return x;
     // BUG: never enters the work block, never reloads xEff from $37, never resets/drops a life.
     return x;
   };

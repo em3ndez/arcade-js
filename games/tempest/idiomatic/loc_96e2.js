@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_2c } from "./names.js";
+import { COORD_LIST_PTR_LO } from "./names.js";
 import { loc_96f4 } from "./loc_96f4.js";
 
 // Fetch a repeat count, load the first entry it selects from a table pointer,
@@ -8,7 +8,7 @@ import { loc_96f4 } from "./loc_96f4.js";
 export function loc_96e2(m, y = m.regs.y) {
   const { mem8, mem16 } = m;
   let count = loc_96f4(m, y);
-  const ptr = mem16[loc_2c];
+  const ptr = mem16[COORD_LIST_PTR_LO];
   let sum = mem8[u16(ptr + y)];
   y = (y + 1) & 0xff;
   if (count !== 0) {

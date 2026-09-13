@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
-import { loc_0, loc_3d, loc_4e, loc_50, loc_600, loc_602, loc_603, loc_604, loc_605 } from "./names.js";
+import { GAME_MODE, loc_3d, INPUT_EDGE_FLAGS, SPINNER_ACCUM, SLOT_METRIC, ACTIVE_SLOT, REQUEST_BITS, REARM_COUNTER, PASS_COUNTER } from "./names.js";
 import { loc_ca48 } from "./loc_ca48.js";
 import { loc_a789 } from "./loc_a789.js";
 
@@ -9,30 +9,30 @@ import { loc_a789 } from "./loc_a789.js";
 export function loc_ad22(m) {
   const { mem8 } = m;
   while (true) {
-    if (mem8[loc_603] === 0) {
-      mem8[loc_0] = 0x14; // exhausted
+    if (mem8[REQUEST_BITS] === 0) {
+      mem8[GAME_MODE] = 0x14; // exhausted
       return;
     }
     // Low two bits pick the slot index; consume them from the word.
-    mem8[loc_3d] = u8((mem8[loc_603] & 0x03) - 1);
-    mem8[loc_603] = mem8[loc_603] >> 1;
-    mem8[loc_603] = mem8[loc_603] >> 1;
+    mem8[loc_3d] = u8((mem8[REQUEST_BITS] & 0x03) - 1);
+    mem8[REQUEST_BITS] = mem8[REQUEST_BITS] >> 1;
+    mem8[REQUEST_BITS] = mem8[REQUEST_BITS] >> 1;
     const x = mem8[loc_3d];
-    const n = mem8[u16(loc_600 + x)];
+    const n = mem8[u16(SLOT_METRIC + x)];
     if (n === 0 || n >= 0x09) continue; // skip empty / out-of-range slots
     // Scale, invert, and offset the slot byte into the paired value.
     let a = u8(n << 1);
     a = u8(a + n);
     a = a ^ 0xff;
     a = u8(a - 0xe5);
-    mem8[loc_602] = a;
+    mem8[ACTIVE_SLOT] = a;
     loc_ca48(m);
-    mem8[loc_605] = 0x60;
-    mem8[loc_4e] = 0x00;
-    mem8[loc_50] = 0x00;
-    mem8[loc_604] = 0x02;
+    mem8[PASS_COUNTER] = 0x60;
+    mem8[INPUT_EDGE_FLAGS] = 0x00;
+    mem8[SPINNER_ACCUM] = 0x00;
+    mem8[REARM_COUNTER] = 0x02;
     loc_a789(m);
-    mem8[loc_0] = 0x24; // armed
+    mem8[GAME_MODE] = 0x24; // armed
     return;
   }
 }

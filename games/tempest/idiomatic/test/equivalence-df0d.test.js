@@ -14,7 +14,7 @@ import { loc_df0d as oracle } from "../../translated/loc_df0d.js";
 import { loc_df0d } from "../loc_df0d.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,8 +51,8 @@ test("CAPTURE: real 0xdf0d dispatches -- loc_df0d == oracle in RAM (-stack)", ()
 // Point the cursor into diffed vector RAM and emit a record through both sides.
 function cursorArm(lo, hi) {
   const seed = (m) => {
-    m.mem.write8(loc_74, lo);
-    m.mem.write8(loc_75, hi);
+    m.mem.write8(DRAW_CURSOR_LO, lo);
+    m.mem.write8(DRAW_CURSOR_HI, hi);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -74,14 +74,14 @@ test("CRAFTED: cursor at a different origin 0x2800, RAM equal", () => {
 });
 
 test("TEETH: a twin that omits the trailing dfac store diverges from the oracle", () => {
-  const seed = (m) => { m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20); };
+  const seed = (m) => { m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   // BUG: writes only the header + first body byte, never runs the dfac tail store/advance.
   const broken = (m) => {
     const { mem8, mem16 } = m;
-    const ptr = mem16[loc_74];
+    const ptr = mem16[DRAW_CURSOR_LO];
     mem8[ptr] = 0x40; mem8[(ptr + 1) & 0xffff] = 0x80;
     mem8[(ptr + 2) & 0xffff] = 0x20;
   };

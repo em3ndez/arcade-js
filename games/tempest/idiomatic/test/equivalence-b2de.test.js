@@ -14,7 +14,7 @@ import { loc_b2de as oracle } from "../../translated/loc_b2de.js";
 import { loc_b2de } from "../loc_b2de.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_3b, loc_3c, loc_a9, loc_415 } from "../names.js";
+import { STACK_SCRATCH, WORK_PTR_LO, WORK_PTR_HI, DRAW_CURSOR_OFFSET, POINTER_PARITY } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -50,8 +50,8 @@ test("CAPTURE: real 0xb2de dispatches -- loc_b2de == oracle in RAM (-stack)", ()
 
 function seed(m, s) {
   m.regs.a = s.a;
-  if (s.flag !== undefined) m.mem8[(loc_415 + s.a) & 0xffff] = s.flag;
-  if (s.pre_a9 !== undefined) m.mem8[loc_a9] = s.pre_a9;
+  if (s.flag !== undefined) m.mem8[(POINTER_PARITY + s.a) & 0xffff] = s.flag;
+  if (s.pre_a9 !== undefined) m.mem8[DRAW_CURSOR_OFFSET] = s.pre_a9;
 }
 
 test("CRAFTED: table selection by $0415+A and 2*A stride == oracle (RAM -stack)", () => {
@@ -83,9 +83,9 @@ test("TEETH: a twin that ignores the flag and always reads $ce68 diverges from t
   oracle(o);
   const brokenAlwaysCe68 = (m) => { // BUG: hard-codes table $ce68, ignoring the $0415+A flag
     const off2 = (m.regs.a << 1) & 0xff;
-    m.mem8[loc_3b] = m.mem8[(0xce68 + off2) & 0xffff];
-    m.mem8[loc_3c] = m.mem8[(0xce68 + 1 + off2) & 0xffff];
-    m.mem8[loc_a9] = 0;
+    m.mem8[WORK_PTR_LO] = m.mem8[(0xce68 + off2) & 0xffff];
+    m.mem8[WORK_PTR_HI] = m.mem8[(0xce68 + 1 + off2) & 0xffff];
+    m.mem8[DRAW_CURSOR_OFFSET] = 0;
   };
   brokenAlwaysCe68(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a wrong table selection");

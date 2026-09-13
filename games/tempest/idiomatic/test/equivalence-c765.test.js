@@ -16,7 +16,7 @@ import { loc_c765 } from "../loc_c765.js";
 import { loc_c774 } from "../loc_c772.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_1, loc_2, loc_3, loc_00, loc_6a, loc_6b, loc_6c, loc_6d, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, MODE_DISPATCH_SEL, GAME_MODE_PENDING, FRAME_COUNTER, GAME_MODE, PREV_Y_LO, PREV_Y_HI, PREV_X_LO, PREV_X_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,12 +52,12 @@ test("CAPTURE: real 0xc765 dispatches -- loc_c765 == oracle in RAM (-stack)", ()
 
 // Point the ($74) cursor at vector RAM (0x2000, RW + diffed) and seat the zeropage coordinate pairs at X.
 function seed(m, x) {
-  m.mem.write8(loc_74, 0x00);
-  m.mem.write8(loc_75, 0x20);
-  m.mem.write8((loc_00 + x) & 0xff, 0x11); // Y lo
-  m.mem.write8((loc_1 + x) & 0xff, 0xe4);  // Y hi (bits above 0x1f set)
-  m.mem.write8((loc_2 + x) & 0xff, 0x22);  // X lo
-  m.mem.write8((loc_3 + x) & 0xff, 0xd7);  // X hi (bits above 0x1f set)
+  m.mem.write8(DRAW_CURSOR_LO, 0x00);
+  m.mem.write8(DRAW_CURSOR_HI, 0x20);
+  m.mem.write8((GAME_MODE + x) & 0xff, 0x11); // Y lo
+  m.mem.write8((MODE_DISPATCH_SEL + x) & 0xff, 0xe4);  // Y hi (bits above 0x1f set)
+  m.mem.write8((GAME_MODE_PENDING + x) & 0xff, 0x22);  // X lo
+  m.mem.write8((FRAME_COUNTER + x) & 0xff, 0xd7);  // X hi (bits above 0x1f set)
   m.regs.x = x;
   m.regs.y = 0x00;
 }
@@ -76,10 +76,10 @@ test("CRAFTED: c765 lays {0x00,0x71} header then the c774 header + two 5-bit-cla
   assert.equal(c.mem.read8(0x2005), 0xd7 & 0x1f, "X hi clamped");
   assert.equal(c.mem.read8(0x2006), 0x11, "Y lo raw");
   assert.equal(c.mem.read8(0x2007), 0xe4 & 0x1f, "Y hi clamped");
-  assert.equal(c.mem.read8(loc_6c), 0x22, "$6c cache");
-  assert.equal(c.mem.read8(loc_6d), 0xd7, "$6d cache raw");
-  assert.equal(c.mem.read8(loc_6a), 0x11, "$6a cache");
-  assert.equal(c.mem.read8(loc_6b), 0xe4, "$6b cache raw");
+  assert.equal(c.mem.read8(PREV_X_LO), 0x22, "$6c cache");
+  assert.equal(c.mem.read8(PREV_X_HI), 0xd7, "$6d cache raw");
+  assert.equal(c.mem.read8(PREV_Y_LO), 0x11, "$6a cache");
+  assert.equal(c.mem.read8(PREV_Y_HI), 0xe4, "$6b cache raw");
 });
 
 test("TEETH: a twin that writes the wrong alt-header byte (0x70) diverges from the oracle", () => {
@@ -88,7 +88,7 @@ test("TEETH: a twin that writes the wrong alt-header byte (0x70) diverges from t
   const c = new Machine(ROM, OPTS); seed(c, x);
   oracle(o);
   const broken = (m) => {
-    const base = m.mem.read8(loc_74) | (m.mem.read8(loc_75) << 8);
+    const base = m.mem.read8(DRAW_CURSOR_LO) | (m.mem.read8(DRAW_CURSOR_HI) << 8);
     m.mem.write8((base + 0) & 0xffff, 0x00);
     m.mem.write8((base + 1) & 0xffff, 0x70); // BUG: should be 0x71
     loc_c774(m, m.regs.x, 2);

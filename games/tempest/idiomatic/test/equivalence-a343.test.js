@@ -14,7 +14,7 @@ import { loc_a343, loc_a347 } from "../loc_a343.js";
 import { loc_a34d } from "../loc_a34b.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_2c, loc_200, loc_202, loc_13b, loc_13c } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, COORD_LIST_PTR_LO, PLAYER_SEGMENT, PLAYER_SHOT_DEPTH, OBJECT_ANIM_PHASE, OBJECT_ANIM_TIMER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -38,9 +38,9 @@ const CAPS347 = ROM_PRESENT ? captureDispatches(0xa347, oracle347, 16, 2000) : [
 
 function seed(m) {
   m.regs.x = 0x05; m.regs.y = 0x03;
-  m.mem.write8(loc_5, 0x80);
-  m.mem.write8(loc_202, 0x77);
-  m.mem.write8(loc_200, 0x88);
+  m.mem.write8(STATUS_FLAGS, 0x80);
+  m.mem.write8(PLAYER_SHOT_DEPTH, 0x77);
+  m.mem.write8(PLAYER_SEGMENT, 0x88);
 }
 
 test("CAPTURE: real 0xa343 dispatches -- loc_a343 == oracle in RAM (-stack)", () => {
@@ -74,9 +74,9 @@ test("CRAFTED: a343 stamps $013b=0x09, a347 stamps 0x07 -- RAM equal, X/Y preser
     assert.equal(ramDiff(o, c), null, `${name} RAM equal`);
     assert.equal(c.regs.x, o.regs.x, `${name} X preserved`);
     assert.equal(c.regs.y, o.regs.y, `${name} Y preserved`);
-    assert.equal(c.mem.read8(loc_13b), tag, `${name} head flag`);
-    assert.equal(c.mem.read8(loc_2c), 0x01, `${name} $2c type-1`);
-    assert.equal(c.mem.read8(loc_13c), 0x01, `${name} $013c ready flag`);
+    assert.equal(c.mem.read8(OBJECT_ANIM_PHASE), tag, `${name} head flag`);
+    assert.equal(c.mem.read8(COORD_LIST_PTR_LO), 0x01, `${name} $2c type-1`);
+    assert.equal(c.mem.read8(OBJECT_ANIM_TIMER), 0x01, `${name} $013c ready flag`);
   }
 });
 

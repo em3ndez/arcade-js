@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_29, loc_37, loc_115, loc_3fe } from "./names.js";
+import { loc_29, SLOT_LOOP_INDEX, SPIKE_TABLE_GUARD, loc_3fe } from "./names.js";
 
 // Remap an 8-entry table against a reference value: large entries shrink by a
 // fixed offset, mid entries snap to a rail chosen by the reference's sign, and a
@@ -9,7 +9,7 @@ import { loc_29, loc_37, loc_115, loc_3fe } from "./names.js";
 // reference is already zero.
 export function loc_a7d2(m) {
   const { mem8 } = m;
-  const ref = mem8[loc_115];
+  const ref = mem8[SPIKE_TABLE_GUARD];
   if (ref === 0) return;
 
   let acc = 0;
@@ -17,7 +17,7 @@ export function loc_a7d2(m) {
     const entry = mem8[u16(loc_3fe + x)];
     let result;
     if (entry === 0) {
-      if (mem8[loc_115] & 0x80) {
+      if (mem8[SPIKE_TABLE_GUARD] & 0x80) {
         const next = x === 7 ? 0 : x + 1;
         const nbr = mem8[u16(loc_3fe + next)];
         result = nbr !== 0 && nbr < 0xd5 ? 0xf0 : 0;
@@ -27,13 +27,13 @@ export function loc_a7d2(m) {
     } else if (entry >= 0x17) {
       result = entry - 7;
     } else {
-      result = mem8[loc_115] & 0x80 ? 0xf0 : 0;
+      result = mem8[SPIKE_TABLE_GUARD] & 0x80 ? 0xf0 : 0;
     }
     mem8[u16(loc_3fe + x)] = result;
     acc |= result;
   }
 
   mem8[loc_29] = acc;
-  mem8[loc_37] = 0xff;
-  if (acc === 0) mem8[loc_115] = 0;
+  mem8[SLOT_LOOP_INDEX] = 0xff;
+  if (acc === 0) mem8[SPIKE_TABLE_GUARD] = 0;
 }

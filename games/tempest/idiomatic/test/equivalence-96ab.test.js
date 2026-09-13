@@ -16,7 +16,7 @@ import { loc_96ab as oracleAb, loc_96b7 as oracleB7, loc_96c4 as oracleC4 } from
 import { loc_96ab, loc_96b7, loc_96c4 } from "../loc_96ab.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_2b, loc_2c, loc_2d } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -44,8 +44,8 @@ const CAPS_C4 = ROM_PRESENT ? captureDispatches(0x96c4, oracleC4, 16, 4000) : []
 
 // Point ($2c) at a work-RAM table seeded with a known ramp, and set the incoming Y.
 const seedCraft = (m, { p2b, y, base = 0x0400 }) => {
-  m.mem.write8(loc_2c, base & 0xff);
-  m.mem.write8(loc_2d, (base >> 8) & 0xff);
+  m.mem.write8(COORD_LIST_PTR_LO, base & 0xff);
+  m.mem.write8(COORD_LIST_PTR_HI, (base >> 8) & 0xff);
   for (let i = 0; i < 0x100; i++) m.mem.write8((base + i) & 0xffff, i & 0xff);
   if (p2b !== undefined) m.mem.write8(loc_2b, p2b);
   m.regs.y = y;
@@ -113,7 +113,7 @@ test("TEETH: a twin that skips the (($2c),Y-2) subtraction diverges from the ora
     let a = ((mem[loc_2b] - 1) & 0x0f) + 1;
     a = (a + mem[loc_29]) & 0xff; // BUG: never subtracts the delta two entries back
     m.regs.y = a;
-    m.regs.a = mem[(mem16[loc_2c] + a) & 0xffff];
+    m.regs.a = mem[(mem16[COORD_LIST_PTR_LO] + a) & 0xffff];
   };
   broken96ab(c);
   const diverged = ramDiff(o, c) !== null || c.regs.a !== o.regs.a || c.regs.y !== o.regs.y;

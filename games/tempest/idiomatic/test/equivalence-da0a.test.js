@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_da0a -- the power-on ROM-checksum + POKEY entropy settle. It walks 12 ROM
 // banks (8 pages each), XORing every byte into a per-bank checksum seeded with the bank index, strobing
-// the watchdog (loc_5000) each page; the 12 checksums land at loc_7d..loc_88 and a nonzero bank-0 checksum
-// arms the error tone (loc_60c4/loc_60c5). It then settles each POKEY random register (loc_60ca->loc_7a,
-// loc_60da->loc_7b): sample once, store only if six consecutive re-reads all match. Control TAIL-DELEGATES
+// the watchdog (WATCHDOG_CLEAR) each page; the 12 checksums land at SEG_SPREAD_A_LO_5..SEG_SPREAD_B_LO and a nonzero bank-0 checksum
+// arms the error tone (POKEY1_AUDF3/POKEY1_AUDC3). It then settles each POKEY random register (POKEY1_RANDOM->SEG_SPREAD_A_LO_2,
+// POKEY2_RANDOM->SEG_SPREAD_A_LO_3): sample once, store only if six consecutive re-reads all match. Control TAIL-DELEGATES
 // to loc_da62 (the self-test session loop), which never returns in the oracle -- with the switch idle it
 // runs one frame then spins, so the oracle is run under a CYCLE BUDGET and its spin trips FramesComplete,
 // leaving RAM at its post-frame rest. The idiomatic layer has no clock, so its tail returns after one pass.
@@ -21,7 +21,7 @@ import { Machine, FramesComplete, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_2e, loc_2f, loc_78, loc_7a, loc_7b, loc_7d, loc_1c9,
+  loc_2e, loc_2f, SEG_SPREAD_A_LO, SEG_SPREAD_A_LO_2, SEG_SPREAD_A_LO_3, SEG_SPREAD_A_LO_5, PENDING_WORK_FLAGS,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -88,10 +88,10 @@ test("CAPTURE: real 0xda0a dispatches -- loc_da0a == oracle in RAM (-stack)", ()
 // walk. Seed the tail's per-frame emit counter (loc_2e/loc_2f) and clear any pending request so loc_da62
 // builds a real frame before its exit poll.
 function seed(m) {
-  m.mem.write8(loc_1c9, 0x00);
+  m.mem.write8(PENDING_WORK_FLAGS, 0x00);
   m.mem.write8(loc_2e, 0x37);
   m.mem.write8(loc_2f, 0x12);
-  m.mem.write8(loc_78 + 0x01, 0x01);
+  m.mem.write8(SEG_SPREAD_A_LO + 0x01, 0x01);
 }
 
 test("CRAFTED: full checksum walk + settle + tail frame -- RAM equal (-stack)", () => {
@@ -103,9 +103,9 @@ test("CRAFTED: full checksum walk + settle + tail frame -- RAM equal (-stack)", 
   if (runIdiomatic(c) === "notimpl") { console.log("  CRAFTED: idiomatic hit a stubbed draw arm in the tail -- skipped"); return; }
   assert.equal(ramDiff(o, c), null, "RAM equal after the checksum walk, settle, and one tail frame");
   // Checksum + settle signatures the routine always produces.
-  assert.equal(c.mem.read8(loc_7d), o.mem.read8(loc_7d), "bank-0 checksum matches the oracle");
-  assert.equal(c.mem.read8(loc_7a), o.mem.read8(loc_7a), "loc_60ca settle result matches the oracle");
-  assert.equal(c.mem.read8(loc_7b), o.mem.read8(loc_7b), "loc_60da settle result matches the oracle");
+  assert.equal(c.mem.read8(SEG_SPREAD_A_LO_5), o.mem.read8(SEG_SPREAD_A_LO_5), "bank-0 checksum matches the oracle");
+  assert.equal(c.mem.read8(SEG_SPREAD_A_LO_2), o.mem.read8(SEG_SPREAD_A_LO_2), "POKEY1_RANDOM settle result matches the oracle");
+  assert.equal(c.mem.read8(SEG_SPREAD_A_LO_3), o.mem.read8(SEG_SPREAD_A_LO_3), "POKEY2_RANDOM settle result matches the oracle");
 });
 
 test("TEETH: a twin that corrupts the bank-0 checksum MUST diverge in RAM", () => {
@@ -114,12 +114,12 @@ test("TEETH: a twin that corrupts the bank-0 checksum MUST diverge in RAM", () =
   const os = runBoundedOracle(o);
   if (os === "notimpl") { console.log("  TEETH: oracle hit a stubbed draw arm in the tail -- skipped"); return; }
   assert.equal(os, "done");
-  // Broken twin: run the real routine, then flip the bank-0 checksum at loc_7d -- a byte the routine
+  // Broken twin: run the real routine, then flip the bank-0 checksum at SEG_SPREAD_A_LO_5 -- a byte the routine
   // ALWAYS writes. The RAM compare MUST catch the flip; proves the test can fail.
   let tried = 0;
   const broken = (m) => {
     if (runIdiomatic(m) === "notimpl") return false;
-    m.mem.write8(loc_7d, m.mem.read8(loc_7d) ^ 0xff); // BUG: corrupt the stored checksum
+    m.mem.write8(SEG_SPREAD_A_LO_5, m.mem.read8(SEG_SPREAD_A_LO_5) ^ 0xff); // BUG: corrupt the stored checksum
     tried++;
     return true;
   };
@@ -131,8 +131,8 @@ test("TEETH: a twin that corrupts the bank-0 checksum MUST diverge in RAM", () =
 test("SP-TOOTH: the omitted-ret tail-delegator is seam-placeable", () => {
   // The oracle seats a return then tail-falls into loc_da62; the idiomatic form omits its ROM ret and never
   // touches the stack, so the seam must place it (SP unmoved). The tail (loc_da62) leaves its per-frame loop
-  // when the self-test switch (loc_c00 bit4) reads set; that bit is ACTIVE-LOW and idle-high, so the default
-  // readIn0 (0x3f) already carries it -- the idiomatic da62 returns after one pass with no port poke. loc_c00
+  // when the self-test switch (IN0_PORT bit4) reads set; that bit is ACTIVE-LOW and idle-high, so the default
+  // readIn0 (0x3f) already carries it -- the idiomatic da62 returns after one pass with no port poke. IN0_PORT
   // is a READ-ONLY input port, so we must NOT mem.write8 it (that throws UnmappedAccess). Probe first without
   // the seam: if the tail hits a stubbed draw the seam cannot be probed cleanly, so skip rather than mis-read
   // a downstream throw as SP drift.

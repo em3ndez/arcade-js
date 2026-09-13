@@ -15,7 +15,7 @@ import { loc_df1f as oracle, loc_df24 as oracle24 } from "../../translated/loc_d
 import { loc_df1f, loc_df24 } from "../loc_df1f.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -65,8 +65,8 @@ test("CRAFTED: index = (A&0x0f)+1 copies the right table entry == oracle (RAM -s
     { tag: "A=0x0f -> idx 16", a: 0x0f },
   ];
   for (const t of cases) {
-    const o = new Machine(ROM, OPTS); o.mem.write8(loc_74, 0x00); o.mem.write8(loc_75, 0x24); o.regs.a = t.a;
-    const c = new Machine(ROM, OPTS); c.mem.write8(loc_74, 0x00); c.mem.write8(loc_75, 0x24); c.regs.a = t.a;
+    const o = new Machine(ROM, OPTS); o.mem.write8(DRAW_CURSOR_LO, 0x00); o.mem.write8(DRAW_CURSOR_HI, 0x24); o.regs.a = t.a;
+    const c = new Machine(ROM, OPTS); c.mem.write8(DRAW_CURSOR_LO, 0x00); c.mem.write8(DRAW_CURSOR_HI, 0x24); c.regs.a = t.a;
     oracle(o); loc_df1f(c, c.regs.a);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
     assert.equal(c.regs.a, o.regs.a, `A live-out: ${t.tag}`);
@@ -75,8 +75,8 @@ test("CRAFTED: index = (A&0x0f)+1 copies the right table entry == oracle (RAM -s
 
 test("CRAFTED (df24 tail): the index-in-A entry point == oracle (RAM -stack)", () => {
   for (const idx of [0x00, 0x03, 0x08]) {
-    const o = new Machine(ROM, OPTS); o.mem.write8(loc_74, 0x00); o.mem.write8(loc_75, 0x24); o.regs.a = idx;
-    const c = new Machine(ROM, OPTS); c.mem.write8(loc_74, 0x00); c.mem.write8(loc_75, 0x24); c.regs.a = idx;
+    const o = new Machine(ROM, OPTS); o.mem.write8(DRAW_CURSOR_LO, 0x00); o.mem.write8(DRAW_CURSOR_HI, 0x24); o.regs.a = idx;
+    const c = new Machine(ROM, OPTS); c.mem.write8(DRAW_CURSOR_LO, 0x00); c.mem.write8(DRAW_CURSOR_HI, 0x24); c.regs.a = idx;
     oracle24(o); loc_df24(c, c.regs.a);
     assert.equal(ramDiff(o, c), null, `df24 idx=${idx}`);
     assert.equal(c.regs.a, o.regs.a, `df24 A live-out idx=${idx}`);
@@ -85,14 +85,14 @@ test("CRAFTED (df24 tail): the index-in-A entry point == oracle (RAM -stack)", (
 
 test("TEETH: a twin that drops the +1 picks the wrong entry and diverges", () => {
   const seedA = 0x00; // correct idx=1 (offset 2); the bug uses idx=0 (offset 0)
-  const o = new Machine(ROM, OPTS); o.mem.write8(loc_74, 0x00); o.mem.write8(loc_75, 0x24); o.regs.a = seedA;
-  const c = new Machine(ROM, OPTS); c.mem.write8(loc_74, 0x00); c.mem.write8(loc_75, 0x24); c.regs.a = seedA;
+  const o = new Machine(ROM, OPTS); o.mem.write8(DRAW_CURSOR_LO, 0x00); o.mem.write8(DRAW_CURSOR_HI, 0x24); o.regs.a = seedA;
+  const c = new Machine(ROM, OPTS); c.mem.write8(DRAW_CURSOR_LO, 0x00); c.mem.write8(DRAW_CURSOR_HI, 0x24); c.regs.a = seedA;
   oracle(o);
   const broken = (m, a) => {
     const { mem8, mem16 } = m;
     const idx = a & 0x0f; // BUG: missing the +1
     const src = (0x31e4 + (idx << 1)) & 0xffff;
-    const dst = mem16[loc_74];
+    const dst = mem16[DRAW_CURSOR_LO];
     mem8[dst & 0xffff] = mem8[src];
     mem8[(dst + 1) & 0xffff] = mem8[(src + 1) & 0xffff];
   };

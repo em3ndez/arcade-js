@@ -15,7 +15,7 @@ import { loc_df59 as oracle } from "../../translated/loc_df59.js";
 import { loc_df59 } from "../loc_df59.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -67,48 +67,48 @@ test("CRAFTED: pair stored at Y/Y+1 and cursor advanced by Y+2 == oracle (RAM -s
     { tag: "carry: $74 near top so Y+2 carries into $75", a: 0x01, x: 0x02, y: 0x10, lo: 0xf0, hi: 0x20 },
   ];
   for (const t of cases) {
-    const o = new Machine(ROM, OPTS); seed(o, { [loc_74]: t.lo, [loc_75]: t.hi }); o.regs.a = t.a; o.regs.x = t.x; o.regs.y = t.y;
-    const c = new Machine(ROM, OPTS); seed(c, { [loc_74]: t.lo, [loc_75]: t.hi }); c.regs.a = t.a; c.regs.x = t.x; c.regs.y = t.y;
+    const o = new Machine(ROM, OPTS); seed(o, { [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi }); o.regs.a = t.a; o.regs.x = t.x; o.regs.y = t.y;
+    const c = new Machine(ROM, OPTS); seed(c, { [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi }); c.regs.a = t.a; c.regs.x = t.x; c.regs.y = t.y;
     oracle(o); loc_df59(c, c.regs.a, c.regs.x, c.regs.y);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
   }
   // Explicit content/advance check.
-  const m = new Machine(ROM, OPTS); seed(m, { [loc_74]: 0x10, [loc_75]: 0x20 }); m.regs.a = 0xab; m.regs.x = 0xcd; m.regs.y = 0x03;
+  const m = new Machine(ROM, OPTS); seed(m, { [DRAW_CURSOR_LO]: 0x10, [DRAW_CURSOR_HI]: 0x20 }); m.regs.a = 0xab; m.regs.x = 0xcd; m.regs.y = 0x03;
   loc_df59(m, m.regs.a, m.regs.x, m.regs.y);
   assert.equal(m.mem.read8(0x2013), 0xab, "A at ptr+3");
   assert.equal(m.mem.read8(0x2014), 0xcd, "X at ptr+4");
-  assert.equal(m.mem.read8(loc_74) | (m.mem.read8(loc_75) << 8), 0x2015, "cursor += Y+2");
+  assert.equal(m.mem.read8(DRAW_CURSOR_LO) | (m.mem.read8(DRAW_CURSOR_HI) << 8), 0x2015, "cursor += Y+2");
 });
 
 test("TEETH: a non-default-seed twin that stores X before A (swapped pair) diverges from the oracle", () => {
   // Non-default A != X and Y != 0 so a swap and an off-by-one are both observable.
-  const s = { [loc_74]: 0x20, [loc_75]: 0x21 }; // cursor in vector RAM (0x2120) so the stores are diffable
+  const s = { [DRAW_CURSOR_LO]: 0x20, [DRAW_CURSOR_HI]: 0x21 }; // cursor in vector RAM (0x2120) so the stores are diffable
   const A = 0x5a, X = 0xa5, Y = 0x07;
   const o = new Machine(ROM, OPTS); seed(o, s); o.regs.a = A; o.regs.x = X; o.regs.y = Y;
   const c = new Machine(ROM, OPTS); seed(c, s); c.regs.a = A; c.regs.x = X; c.regs.y = Y;
   oracle(o);
   const brokenSwap = (mm, a, x, y) => {
-    const ptr = mm.mem16[loc_74];
+    const ptr = mm.mem16[DRAW_CURSOR_LO];
     const next = (y + 1) & 0xff;
     mm.mem8[(ptr + y) & 0xffff] = x;      // BUG: A and X swapped
     mm.mem8[(ptr + next) & 0xffff] = a;
-    mm.mem8[loc_74] = ptr + next + 1;     // low-byte advance (matches on this case)
+    mm.mem8[DRAW_CURSOR_LO] = ptr + next + 1;     // low-byte advance (matches on this case)
   };
   brokenSwap(c, A, X, Y);
   assert.notEqual(ramDiff(o, c), null, "RAM diff FAILED to catch the swapped pair");
 });
 
 test("MUTATION: Y matters -- a twin that ignores Y (stores at ptr+0/+1) diverges when Y != 0", () => {
-  const s = { [loc_74]: 0x20, [loc_75]: 0x21 }; // cursor in vector RAM (0x2120) so the stores are diffable
+  const s = { [DRAW_CURSOR_LO]: 0x20, [DRAW_CURSOR_HI]: 0x21 }; // cursor in vector RAM (0x2120) so the stores are diffable
   const A = 0x5a, X = 0xa5, Y = 0x07;
   const o = new Machine(ROM, OPTS); seed(o, s); o.regs.a = A; o.regs.x = X; o.regs.y = Y;
   const c = new Machine(ROM, OPTS); seed(c, s); c.regs.a = A; c.regs.x = X; c.regs.y = Y;
   oracle(o);
   const brokenIgnoreY = (mm, a, x) => {
-    const ptr = mm.mem16[loc_74];
+    const ptr = mm.mem16[DRAW_CURSOR_LO];
     mm.mem8[ptr] = a;                 // BUG: ignores Y offset
     mm.mem8[(ptr + 1) & 0xffff] = x;
-    mm.mem8[loc_74] = ptr + 2;
+    mm.mem8[DRAW_CURSOR_LO] = ptr + 2;
   };
   brokenIgnoreY(c, A, X);
   assert.notEqual(ramDiff(o, c), null, "RAM diff FAILED to catch the ignored Y offset");

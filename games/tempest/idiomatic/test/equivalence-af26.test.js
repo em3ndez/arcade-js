@@ -14,7 +14,7 @@ import { loc_af26 } from "../loc_af26.js";
 import { loc_ab14 } from "../loc_ab14.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_600, loc_601 } from "../names.js";
+import { STACK_SCRATCH, SLOT_METRIC, loc_601 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -41,7 +41,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 // the oracle's real dispatch reaches those helpers instead of faulting on an unmapped read. (($ac)->0x0200;
 // the X=0x12 pair and the X=4 pair both point at the 0x0260 list; 0x0261 is the terminator; ($74)->vec RAM.)
 function seat(m, s = {}) {
-  m.mem.write8(loc_600, s.c600 ?? 0x00);
+  m.mem.write8(SLOT_METRIC, s.c600 ?? 0x00);
   m.mem.write8(loc_601, s.c601 ?? 0x00);
   m.mem.write8(0x00ac, 0x00); m.mem.write8(0x00ad, 0x02); // ($ac) -> 0x0200
   m.mem.write8(0x0212, 0x60); m.mem.write8(0x0213, 0x02); // ($ac),0x12 -> 0x0260 (ab14 list)

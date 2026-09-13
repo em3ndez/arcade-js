@@ -14,7 +14,7 @@ import { loc_ab98 as oracle } from "../../translated/loc_ab98.js";
 import { loc_ab98 } from "../loc_ab98.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2b, loc_35 } from "../names.js";
+import { STACK_SCRATCH, loc_2b, SAVED_INDEX } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const rd = (n) => new Uint8Array(readFileSync(new URL(n, ROM_DIR)));
@@ -61,7 +61,7 @@ test("CRAFTED: seat X/A/0 then build the record -- loc_ab98 == oracle in RAM", (
   const c = new Machine(ROM, OPTS); seat(c);
   oracle(o); loc_ab98(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after seat + ab3b");
-  assert.equal(c.mem.read8(loc_35), 0x20, "$35 = X");
+  assert.equal(c.mem.read8(SAVED_INDEX), 0x20, "$35 = X");
 });
 
 test("TEETH: a twin that leaves $2b uncleared diverges from the oracle", () => {

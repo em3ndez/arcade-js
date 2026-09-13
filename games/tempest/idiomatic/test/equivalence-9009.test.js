@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_9009 (ROM 0x9009-0x9024) -- an init sequence: run four setup subroutines
-// (loc_92c5, loc_9234, loc_902b, loc_a831) in order, then seed loc_5b = 250 and clear
-// loc_106/loc_5f/loc_1. No input register; ends with a plain return (not a tail-delegate) and no caller
+// (loc_92c5, loc_9234, loc_902b, loc_a831) in order, then seed DEPTH_LO = 250 and clear
+// SPIKE_ACTIVE_FLAG/DEPTH_HI/MODE_DISPATCH_SEL. No input register; ends with a plain return (not a tail-delegate) and no caller
 // reads a register back, so live-out is RAM only (dumpState minus STACK_SCRATCH). Oracle is the frozen
 // translated loc_9009.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9009.test.js
@@ -14,10 +14,10 @@ import { loc_9009 as oracle } from "../../translated/loc_9009.js";
 import { loc_9009 } from "../loc_9009.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5b, loc_5f } from "../names.js";
+import { STACK_SCRATCH, DEPTH_LO, DEPTH_HI } from "../names.js";
 
-const loc_1 = 0x0001;
-const loc_106 = 0x0106;
+const MODE_DISPATCH_SEL = 0x0001;
+const SPIKE_ACTIVE_FLAG = 0x0106;
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -74,28 +74,28 @@ test("CRAFTED: full init sequence -- RAM equal, and the seed/clear writes landed
   loc_9009(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the full init sequence");
   // The routine's own signature writes.
-  assert.equal(c.mem.read8(loc_5b), 250, "loc_5b seeded to 250");
-  assert.equal(c.mem.read8(loc_106), 0, "loc_106 cleared");
-  assert.equal(c.mem.read8(loc_5f), 0, "loc_5f cleared");
-  assert.equal(c.mem.read8(loc_1), 0, "loc_1 cleared");
+  assert.equal(c.mem.read8(DEPTH_LO), 250, "DEPTH_LO seeded to 250");
+  assert.equal(c.mem.read8(SPIKE_ACTIVE_FLAG), 0, "SPIKE_ACTIVE_FLAG cleared");
+  assert.equal(c.mem.read8(DEPTH_HI), 0, "DEPTH_HI cleared");
+  assert.equal(c.mem.read8(MODE_DISPATCH_SEL), 0, "MODE_DISPATCH_SEL cleared");
 });
 
-test("TEETH: a twin that drops the loc_5b seed MUST diverge in RAM", () => {
+test("TEETH: a twin that drops the DEPTH_LO seed MUST diverge in RAM", () => {
   const o = new Machine(ROM, OPTS);
   const c = new Machine(ROM, OPTS);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
   let tried = 0;
-  // Broken twin: identical to loc_9009 but reverts the loc_5b = 250 signature write. The oracle always
-  // seeds loc_5b, so dropping it alone guarantees a RAM divergence.
+  // Broken twin: identical to loc_9009 but reverts the DEPTH_LO = 250 signature write. The oracle always
+  // seeds DEPTH_LO, so dropping it alone guarantees a RAM divergence.
   const broken = (m) => {
     tried++;
-    const before5b = m.mem.read8(loc_5b);
+    const before5b = m.mem.read8(DEPTH_LO);
     loc_9009(m);
-    m.mem.write8(loc_5b, before5b); // BUG: revert the seed
+    m.mem.write8(DEPTH_LO, before5b); // BUG: revert the seed
   };
   broken(c);
   assert.ok(tried > 0, "the broken twin ran");
-  assert.notEqual(ramDiff(o, c), null, "the dropped loc_5b seed was NOT caught by the RAM compare");
+  assert.notEqual(ramDiff(o, c), null, "the dropped DEPTH_LO seed was NOT caught by the RAM compare");
 });

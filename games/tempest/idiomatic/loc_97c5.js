@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_29, loc_2a, loc_11c, loc_2df, loc_2b9, loc_200 } from "./names.js";
+import { loc_29, loc_2a, ENEMY_SLOT_TOP, ENEMY_DEPTH, ENEMY_SEGMENT, PLAYER_SEGMENT } from "./names.js";
 import { loc_a7a6 } from "./loc_a7a6.js";
 
 // Scan the table for the smallest nonzero entry, keeping its index. If none, return the last
@@ -11,9 +11,9 @@ export function loc_97c5(m) {
   mem8[loc_29] = 0xff; // smallest value seen
   mem8[loc_2a] = 0xff; // its index, 0xff meaning none
   let a;
-  let x = mem8[loc_11c];
+  let x = mem8[ENEMY_SLOT_TOP];
   do {
-    a = mem8[u16(loc_2df + x)];
+    a = mem8[u16(ENEMY_DEPTH + x)];
     if (a !== 0 && a < mem8[loc_29]) {
       mem8[loc_29] = a;
       mem8[loc_2a] = x;
@@ -23,7 +23,7 @@ export function loc_97c5(m) {
 
   const idx = mem8[loc_2a];
   if (idx & 0x80) return (m.regs.a = a); // none found
-  const diff = loc_a7a6(m, mem8[u16(loc_2b9 + idx)], mem8[loc_200]);
+  const diff = loc_a7a6(m, mem8[u16(ENEMY_SEGMENT + idx)], mem8[PLAYER_SEGMENT]);
   if (diff === 0) return (m.regs.a = diff);
   if (diff & 0x80) return (m.regs.a = 0x09);
   return (m.regs.a = 0xf7);

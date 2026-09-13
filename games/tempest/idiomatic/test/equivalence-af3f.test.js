@@ -14,7 +14,7 @@ import { loc_af3f as oracle } from "../../translated/loc_af3f.js";
 import { loc_af3f } from "../loc_af3f.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_600, loc_2e } from "../names.js";
+import { STACK_SCRATCH, SLOT_METRIC, loc_2e } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const rd = (n) => new Uint8Array(readFileSync(new URL(n, ROM_DIR)));
@@ -41,7 +41,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 // byte at 0x0261 has bit7 set so the copy loop exits after one pass. ($74) -> vector RAM 0x2000 (diffed).
 function seatDeep(m) {
   m.regs.x = 0x00;
-  m.mem.write8(loc_600, 0x05);                              // slot 0 count non-zero
+  m.mem.write8(SLOT_METRIC, 0x05);                              // slot 0 count non-zero
   m.mem.write8(0x00ac, 0x00); m.mem.write8(0x00ad, 0x02);  // ($ac) -> 0x0200
   m.mem.write8(0x0204, 0x60); m.mem.write8(0x0205, 0x02);  // ($ac),4 -> 0x0260
   m.mem.write8(0x0261, 0x80);                               // copy-loop terminator (bit7 set)
@@ -49,7 +49,7 @@ function seatDeep(m) {
 }
 function seatEmpty(m) {
   m.regs.x = 0x00;
-  m.mem.write8(loc_600, 0x00); // slot 0 count zero -> immediate return
+  m.mem.write8(SLOT_METRIC, 0x00); // slot 0 count zero -> immediate return
 }
 
 test("CAPTURE: real 0xaf3f dispatches -- loc_af3f == oracle in RAM (-stack)", () => {

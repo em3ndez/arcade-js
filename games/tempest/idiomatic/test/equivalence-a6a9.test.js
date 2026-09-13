@@ -16,9 +16,9 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_223, loc_2e3, loc_343, loc_283,
-  loc_203, loc_2c3, loc_323, loc_263,
-  loc_243, loc_303, loc_363, loc_2a3,
+  OBJECT_AXIS0_FRAC, ENEMY_VEL0_LO, ENEMY_VEL0_HI, ENEMY_SLOT_FLAGS,
+  OBJECT_INDEX_TABLE, ENEMY_VEL1_LO, ENEMY_VEL1_HI, OBJECT_AXIS1_POS,
+  OBJECT_RECORD_TABLE, ENEMY_VEL2_LO, ENEMY_VEL2_HI, ENEMY_POS2,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -58,9 +58,9 @@ test("CAPTURE: real 0xa6a9 dispatches -- loc_a6a9 == oracle in RAM (-stack)", ()
 const X = 3;
 function seed(m) {
   m.regs.x = X;
-  m.mem.write8(loc_223 + X, 0x90); m.mem.write8(loc_2e3 + X, 0x80); m.mem.write8(loc_343 + X, 0x10); m.mem.write8(loc_283 + X, 0x50);
-  m.mem.write8(loc_203 + X, 0x02); m.mem.write8(loc_2c3 + X, 0x01); m.mem.write8(loc_323 + X, 0x90); m.mem.write8(loc_263 + X, 0x05);
-  m.mem.write8(loc_243 + X, 0x00); m.mem.write8(loc_303 + X, 0x00); m.mem.write8(loc_363 + X, 0x10); m.mem.write8(loc_2a3 + X, 0xe5);
+  m.mem.write8(OBJECT_AXIS0_FRAC + X, 0x90); m.mem.write8(ENEMY_VEL0_LO + X, 0x80); m.mem.write8(ENEMY_VEL0_HI + X, 0x10); m.mem.write8(ENEMY_SLOT_FLAGS + X, 0x50);
+  m.mem.write8(OBJECT_INDEX_TABLE + X, 0x02); m.mem.write8(ENEMY_VEL1_LO + X, 0x01); m.mem.write8(ENEMY_VEL1_HI + X, 0x90); m.mem.write8(OBJECT_AXIS1_POS + X, 0x05);
+  m.mem.write8(OBJECT_RECORD_TABLE + X, 0x00); m.mem.write8(ENEMY_VEL2_LO + X, 0x00); m.mem.write8(ENEMY_VEL2_HI + X, 0x10); m.mem.write8(ENEMY_POS2 + X, 0xe5);
 }
 
 test("CRAFTED: three axes integrate; axis-2 ring overflow forces the shared whole to 0", () => {
@@ -68,10 +68,10 @@ test("CRAFTED: three axes integrate; axis-2 ring overflow forces the shared whol
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); const y = loc_a6a9(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after integrate");
-  assert.equal(c.mem.read8(loc_223 + X), 0x10, "axis0 fraction wrapped");
-  assert.equal(c.mem.read8(loc_263 + X), 0x95, "axis1 whole stored");
-  assert.equal(c.mem.read8(loc_2a3 + X), 0xf5, "axis2 whole stored (raw, unclamped)");
-  assert.equal(c.mem.read8(loc_283 + X), 0x00, "shared whole zeroed by axis2 overflow");
+  assert.equal(c.mem.read8(OBJECT_AXIS0_FRAC + X), 0x10, "axis0 fraction wrapped");
+  assert.equal(c.mem.read8(OBJECT_AXIS1_POS + X), 0x95, "axis1 whole stored");
+  assert.equal(c.mem.read8(ENEMY_POS2 + X), 0xf5, "axis2 whole stored (raw, unclamped)");
+  assert.equal(c.mem.read8(ENEMY_SLOT_FLAGS + X), 0x00, "shared whole zeroed by axis2 overflow");
   // register live-out: exit Y = whole0 (0 here, forced by axis-2 overflow) == oracle's Y at RTS
   assert.equal(y, o.regs.y, "returned register (exit Y) matches oracle's live-out Y");
   assert.equal(y, 0x00, "exit Y is 0 (axis-2 overflow zeroed whole0)");
@@ -81,9 +81,9 @@ test("REG-LIVE-OUT: no-overflow axes -- exit Y carries axis-0 whole and matches 
   // seed all three axes to stay inside the ring so whole0 survives to exit Y as the axis-0 whole.
   function seedNoOverflow(m) {
     m.regs.x = X;
-    m.mem.write8(loc_223 + X, 0x10); m.mem.write8(loc_2e3 + X, 0x00); m.mem.write8(loc_343 + X, 0x02); m.mem.write8(loc_283 + X, 0x40);
-    m.mem.write8(loc_203 + X, 0x10); m.mem.write8(loc_2c3 + X, 0x00); m.mem.write8(loc_323 + X, 0x02); m.mem.write8(loc_263 + X, 0x40);
-    m.mem.write8(loc_243 + X, 0x10); m.mem.write8(loc_303 + X, 0x00); m.mem.write8(loc_363 + X, 0x02); m.mem.write8(loc_2a3 + X, 0x40);
+    m.mem.write8(OBJECT_AXIS0_FRAC + X, 0x10); m.mem.write8(ENEMY_VEL0_LO + X, 0x00); m.mem.write8(ENEMY_VEL0_HI + X, 0x02); m.mem.write8(ENEMY_SLOT_FLAGS + X, 0x40);
+    m.mem.write8(OBJECT_INDEX_TABLE + X, 0x10); m.mem.write8(ENEMY_VEL1_LO + X, 0x00); m.mem.write8(ENEMY_VEL1_HI + X, 0x02); m.mem.write8(OBJECT_AXIS1_POS + X, 0x40);
+    m.mem.write8(OBJECT_RECORD_TABLE + X, 0x10); m.mem.write8(ENEMY_VEL2_LO + X, 0x00); m.mem.write8(ENEMY_VEL2_HI + X, 0x02); m.mem.write8(ENEMY_POS2 + X, 0x40);
   }
   const o = new Machine(ROM, OPTS); seedNoOverflow(o);
   const c = new Machine(ROM, OPTS); seedNoOverflow(c);
@@ -114,11 +114,11 @@ test("TEETH: a twin that ignores axis-1/2 ring overflow (never zeroes the shared
       const w = (s + mem8[(whole + x) & 0xffff] + (sum > 0xff ? 1 : 0)) & 0xff;
       return { w, overflow: (s & 0x80) ? w < 0x10 : w >= 0xf0 };
     };
-    const a0 = axis(loc_223, loc_2e3, loc_343, loc_283);
+    const a0 = axis(OBJECT_AXIS0_FRAC, ENEMY_VEL0_LO, ENEMY_VEL0_HI, ENEMY_SLOT_FLAGS);
     const whole0 = a0.overflow ? 0 : a0.w; // BUG: axis1/2 overflow never re-zeroes this
-    const a1 = axis(loc_203, loc_2c3, loc_323, loc_263); mem8[(loc_263 + x) & 0xffff] = a1.w;
-    const a2 = axis(loc_243, loc_303, loc_363, loc_2a3); mem8[(loc_2a3 + x) & 0xffff] = a2.w;
-    mem8[(loc_283 + x) & 0xffff] = whole0;
+    const a1 = axis(OBJECT_INDEX_TABLE, ENEMY_VEL1_LO, ENEMY_VEL1_HI, OBJECT_AXIS1_POS); mem8[(OBJECT_AXIS1_POS + x) & 0xffff] = a1.w;
+    const a2 = axis(OBJECT_RECORD_TABLE, ENEMY_VEL2_LO, ENEMY_VEL2_HI, ENEMY_POS2); mem8[(ENEMY_POS2 + x) & 0xffff] = a2.w;
+    mem8[(ENEMY_SLOT_FLAGS + x) & 0xffff] = whole0;
   };
   brokenA6a9(c, X);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the missing overflow-zero");

@@ -15,7 +15,7 @@ import { loc_ac20 } from "../loc_ac20.js";
 import { loc_d6bb } from "../loc_d6bb.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_71e, loc_71f, loc_1c9 } from "../names.js";
+import { STACK_SCRATCH, INPUT_SNAPSHOT_HI, INPUT_SNAPSHOT_LO, PENDING_WORK_FLAGS } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -43,9 +43,9 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 // $01c9 so an ac36 request write is observable.
 function seat(m, s = {}) {
   m.io.dsw2 = s.dsw2 ?? 0x00;
-  m.mem.write8(loc_71e, s.t71e ?? 0x00);
-  m.mem.write8(loc_71f, s.t71f ?? 0x00);
-  m.mem.write8(loc_1c9, s.c1c9 ?? 0x00);
+  m.mem.write8(INPUT_SNAPSHOT_HI, s.t71e ?? 0x00);
+  m.mem.write8(INPUT_SNAPSHOT_LO, s.t71f ?? 0x00);
+  m.mem.write8(PENDING_WORK_FLAGS, s.c1c9 ?? 0x00);
 }
 
 test("CAPTURE: real 0xac20 dispatches -- loc_ac20 == oracle in RAM (-stack)", () => {
@@ -80,7 +80,7 @@ test("TEETH: a twin that always requests a rebuild diverges on the match case", 
   const broken = (m) => {
     const { mem8 } = m;
     loc_d6bb(m);
-    mem8[loc_1c9] |= 0x03;
+    mem8[PENDING_WORK_FLAGS] |= 0x03;
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the spurious $01c9 request");

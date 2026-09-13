@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Equivalence for loc_b20d (ROM 0xb20d-0xb217) -- an RTS-trampoline computed-jump dispatcher: it reads the
-// pre-doubled selector in loc_1, pushes word(0xb218+sel)(target-1), and rts-dispatches to target. The word
-// table at 0xb218 holds twelve entries; the idiomatic form dissolves the trick into TABLE[loc_1>>1](m).
+// pre-doubled selector in MODE_DISPATCH_SEL, pushes word(0xb218+sel)(target-1), and rts-dispatches to target. The word
+// table at 0xb218 holds twelve entries; the idiomatic form dissolves the trick into TABLE[MODE_DISPATCH_SEL>>1](m).
 // Contract: RAM (dumpState minus STACK_SCRATCH). A dispatching rewrite -> SP-tooth (seamPlaceable). Some
 // targets reach the clock-coupled POKEY RANDOM, so CAPTURE freezes it on both clones.
 // Run: node --test games/tempest/idiomatic/test/equivalence-b20d.test.js
@@ -26,7 +26,7 @@ import { loc_b131 } from "../loc_b131.js";
 import { loc_aa79 } from "../loc_aa79.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_1 } from "../names.js";
+import { STACK_SCRATCH, MODE_DISPATCH_SEL } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -66,8 +66,8 @@ test("CAPTURE: real 0xb20d dispatches -- loc_b20d == oracle in RAM (-stack)", ()
 test("CRAFTED: each of the twelve entries -> loc_b20d == oracle in RAM; skip on oracle throw", () => {
   let checked = 0;
   for (let i = 0; i < TABLE.length; i++) {
-    const o = freezePokey(new Machine(ROM, OPTS)); o.mem.write8(loc_1, i * 2);
-    const c = freezePokey(new Machine(ROM, OPTS)); c.mem.write8(loc_1, i * 2);
+    const o = freezePokey(new Machine(ROM, OPTS)); o.mem.write8(MODE_DISPATCH_SEL, i * 2);
+    const c = freezePokey(new Machine(ROM, OPTS)); c.mem.write8(MODE_DISPATCH_SEL, i * 2);
     let threw = false;
     try { oracle(o); } catch { threw = true; }
     if (threw) continue;
@@ -84,7 +84,7 @@ test("TEETH: a twin that dispatches the WRONG entry (idx^1) diverges in RAM", ()
   // must reach a different RAM outcome on at least one state.
   let caught = false, tried = 0;
   for (const cap of CAPS) {
-    const idx = cap.mem.read8(loc_1) >> 1;
+    const idx = cap.mem.read8(MODE_DISPATCH_SEL) >> 1;
     const flipped = idx ^ 1;
     if (idx >= TABLE.length || flipped >= TABLE.length) continue;
     const o = freezePokey(cap.clone());

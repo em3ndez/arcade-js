@@ -14,7 +14,7 @@ import { loc_a9fc as oracle } from "../../translated/loc_a9fc.js";
 import { loc_a9fc } from "../loc_a9fc.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2f60, loc_31e4 } from "../names.js";
+import { STACK_SCRATCH, VEC_GLYPH_BUFFER, NIBBLE_GLYPH_TABLE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -83,7 +83,7 @@ test("TEETH (X): a twin that advances the cursor by one instead of two diverges 
     const mem = m.mem8;
     const nibble = m.regs.a & 0x0f;
     const y = nibble === 0 && m.regs.fC ? 0 : nibble + 1;
-    mem[(loc_2f60 + m.regs.x) & 0xffff] = mem[(loc_31e4 + ((y << 1) & 0xff)) & 0xffff];
+    mem[(VEC_GLYPH_BUFFER + m.regs.x) & 0xffff] = mem[(NIBBLE_GLYPH_TABLE + ((y << 1) & 0xff)) & 0xffff];
     m.regs.x = (m.regs.x + 1) & 0xff; // BUG: advances the cursor by one, not two
   };
   brokenA9fc(c);
@@ -96,8 +96,8 @@ test("TEETH: a twin that ignores carry-in (zero nibble always -> entry 1) diverg
   // byte differs from entry 1. Verified against the vector-ROM table at run time so the arm truly bites.
   const s = { a: 0xb0, x: 0x02, carry: true };
   const probe = new Machine(ROM, OPTS);
-  const entry0 = probe.mem8[(loc_31e4 + 0) & 0xffff];
-  const entry1 = probe.mem8[(loc_31e4 + 2) & 0xffff];
+  const entry0 = probe.mem8[(NIBBLE_GLYPH_TABLE + 0) & 0xffff];
+  const entry1 = probe.mem8[(NIBBLE_GLYPH_TABLE + 2) & 0xffff];
   assert.notEqual(entry0, entry1, "vector-ROM entries 0 and 1 must differ for the teeth to bite");
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
@@ -105,7 +105,7 @@ test("TEETH: a twin that ignores carry-in (zero nibble always -> entry 1) diverg
   const brokenA9fc = (m) => {
     const mem = m.mem8;
     const y = (m.regs.a & 0x0f) + 1; // BUG: never honors carry-in for the zero nibble
-    mem[(loc_2f60 + m.regs.x) & 0xffff] = mem[(loc_31e4 + ((y << 1) & 0xff)) & 0xffff];
+    mem[(VEC_GLYPH_BUFFER + m.regs.x) & 0xffff] = mem[(NIBBLE_GLYPH_TABLE + ((y << 1) & 0xff)) & 0xffff];
   };
   brokenA9fc(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the ignored carry-in");

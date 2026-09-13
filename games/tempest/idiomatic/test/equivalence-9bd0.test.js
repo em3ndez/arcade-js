@@ -12,7 +12,7 @@ import { loc_9bd0 as oracle } from "../../translated/loc_9bd0.js";
 import { loc_9bd0 } from "../loc_9bd0.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_10b, loc_298 } from "../names.js";
+import { STACK_SCRATCH, SCRIPT_CURSOR, loc_298 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -48,7 +48,7 @@ test("CAPTURE: real 0x9bd0 dispatches -- loc_9bd0 == oracle in RAM (-stack)", ()
 
 // Seed the $010b cursor and the object slot index X.
 function seed(m, s) {
-  m.mem8[loc_10b] = s.cur;
+  m.mem8[SCRIPT_CURSOR] = s.cur;
   m.regs.x = s.x;
 }
 
@@ -74,7 +74,7 @@ test("TEETH: a twin that skips the $010b increment (wrong index) diverges from t
   const o = new Machine(ROM, OPTS); seed(o, s);
   oracle(o);
   const broken = (m, x = m.regs.x) => { // BUG: never increments $010b; indexes at the stale cursor
-    const idx = m.mem8[loc_10b];
+    const idx = m.mem8[SCRIPT_CURSOR];
     m.mem8[(loc_298 + x) & 0xffff] = m.mem8[(0xa0f7 + idx) & 0xffff];
   };
   const c = new Machine(ROM, OPTS); seed(c, s);

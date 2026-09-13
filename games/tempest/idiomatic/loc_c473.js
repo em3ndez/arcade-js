@@ -2,9 +2,9 @@
 import { u8, u16 } from "../../../core/int.js";
 import { loc_c098 } from "./loc_c098.js";
 import {
-  loc_37, loc_38, loc_56, loc_57, loc_58, loc_59,
-  loc_61, loc_62, loc_63, loc_64,
-  loc_31a, loc_32a, loc_33a, loc_34a, loc_3ce, loc_3de,
+  SLOT_LOOP_INDEX, TABLE_CURSOR, PROJ_PT_Y, OBJ_DEPTH, PROJ_PT_X, CLAMP_TALLY,
+  PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI,
+  COL_VAL_A, COL_SUB_A, COL_VAL_B, COL_SUB_B, SEG_BASE_X, SEG_BASE_Y,
 } from "./names.js";
 
 // Sixteen passes: feed each column pair through the delta integrator, then clamp both
@@ -12,35 +12,35 @@ import {
 // $38 and tallying every clamp in $59; hands back the clamp count.
 export function loc_c473(m, a = m.regs.a, x = m.regs.x) {
   const { mem8 } = m;
-  mem8[loc_57] = a;
-  mem8[loc_38] = x;
-  mem8[loc_59] = 0x00;
-  mem8[loc_37] = 0x0f;
+  mem8[OBJ_DEPTH] = a;
+  mem8[TABLE_CURSOR] = x;
+  mem8[CLAMP_TALLY] = 0x00;
+  mem8[SLOT_LOOP_INDEX] = 0x0f;
 
   for (;;) {
-    const col = mem8[loc_37];
-    mem8[loc_56] = mem8[u16(loc_3ce + col)];
-    mem8[loc_58] = mem8[u16(loc_3de + col)];
+    const col = mem8[SLOT_LOOP_INDEX];
+    mem8[PROJ_PT_Y] = mem8[u16(SEG_BASE_X + col)];
+    mem8[PROJ_PT_X] = mem8[u16(SEG_BASE_Y + col)];
     loc_c098(m);
 
-    const out = mem8[loc_38];
-    const [v1, s1, c1] = clamp(mem8[loc_62], mem8[loc_61]);
-    if (c1) mem8[loc_59] = u8(mem8[loc_59] + 1);
-    mem8[u16(loc_31a + out)] = v1;
-    mem8[u16(loc_32a + out)] = s1;
+    const out = mem8[TABLE_CURSOR];
+    const [v1, s1, c1] = clamp(mem8[PROJ_Y_HI], mem8[PROJ_Y_LO]);
+    if (c1) mem8[CLAMP_TALLY] = u8(mem8[CLAMP_TALLY] + 1);
+    mem8[u16(COL_VAL_A + out)] = v1;
+    mem8[u16(COL_SUB_A + out)] = s1;
 
-    const [v2, s2, c2] = clamp(mem8[loc_64], mem8[loc_63]);
-    if (c2) mem8[loc_59] = u8(mem8[loc_59] + 1);
-    mem8[u16(loc_33a + out)] = v2;
-    mem8[u16(loc_34a + out)] = s2;
+    const [v2, s2, c2] = clamp(mem8[PROJ_X_HI], mem8[PROJ_X_LO]);
+    if (c2) mem8[CLAMP_TALLY] = u8(mem8[CLAMP_TALLY] + 1);
+    mem8[u16(COL_VAL_B + out)] = v2;
+    mem8[u16(COL_SUB_B + out)] = s2;
 
-    mem8[loc_38] = u8(mem8[loc_38] - 1);
-    const next = u8(mem8[loc_37] - 1);
-    mem8[loc_37] = next;
+    mem8[TABLE_CURSOR] = u8(mem8[TABLE_CURSOR] - 1);
+    const next = u8(mem8[SLOT_LOOP_INDEX] - 1);
+    mem8[SLOT_LOOP_INDEX] = next;
     if (next & 0x80) break;
   }
 
-  return (m.regs.a = mem8[loc_59]);
+  return (m.regs.a = mem8[CLAMP_TALLY]);
 }
 
 // Saturate a signed value/sign pair to the [-4..+3] window, reporting whether it clamped.

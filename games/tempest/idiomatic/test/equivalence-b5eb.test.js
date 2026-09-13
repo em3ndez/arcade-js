@@ -16,7 +16,7 @@ import { loc_b5eb } from "../loc_b5eb.js";
 import { loc_bda0 } from "../loc_bda0.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_9e, loc_55, loc_57, loc_5b, loc_5f, loc_283, loc_2b9 } from "../names.js";
+import { STACK_SCRATCH, loc_9e, DRAW_STYLE, OBJ_DEPTH, DEPTH_LO, DEPTH_HI, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -41,22 +41,22 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 const SLOT = 0x03;
 // Seed the bdcb early-out so segment emission stays deterministic: $5b bit7 clear and $57 < $5f.
 function seatCommon(m) {
-  m.mem.write8(loc_5b, 0x00);
-  m.mem.write8(loc_57, 0x00);
-  m.mem.write8(loc_5f, 0x01);
+  m.mem.write8(DEPTH_LO, 0x00);
+  m.mem.write8(OBJ_DEPTH, 0x00);
+  m.mem.write8(DEPTH_HI, 0x01);
 }
 function seatPos(m) {
   m.regs.x = SLOT;
   seatCommon(m);
-  m.mem.write8((loc_283 + SLOT) & 0xffff, 0x10);  // bit7 clear -> table/bda0 path
-  m.mem.write8((loc_2b9 + SLOT) & 0xffff, 0x02);  // corner
-  m.mem.write8(loc_55, 0x03);                      // style index
+  m.mem.write8((ENEMY_SLOT_FLAGS + SLOT) & 0xffff, 0x10);  // bit7 clear -> table/bda0 path
+  m.mem.write8((ENEMY_SEGMENT + SLOT) & 0xffff, 0x02);  // corner
+  m.mem.write8(DRAW_STYLE, 0x03);                      // style index
 }
 function seatNeg(m) {
   m.regs.x = SLOT;
   seatCommon(m);
-  m.mem.write8((loc_283 + SLOT) & 0xffff, 0x80);  // bit7 set -> b634 + bdcb path
-  m.mem.write8((loc_2b9 + SLOT) & 0xffff, 0x02);
+  m.mem.write8((ENEMY_SLOT_FLAGS + SLOT) & 0xffff, 0x80);  // bit7 set -> b634 + bdcb path
+  m.mem.write8((ENEMY_SEGMENT + SLOT) & 0xffff, 0x02);
 }
 
 test("CAPTURE: real 0xb5eb dispatches -- loc_b5eb == oracle in RAM (-stack)", () => {
@@ -85,8 +85,8 @@ test("TEETH: a twin that ignores the sign and always builds the table segment di
   const broken = (m, x = m.regs.x) => {
     const { mem8 } = m;
     mem8[loc_9e] = 0x03;
-    const corner = mem8[(loc_2b9 + x) & 0xffff];
-    const style = mem8[loc_55];
+    const corner = mem8[(ENEMY_SEGMENT + x) & 0xffff];
+    const style = mem8[DRAW_STYLE];
     loc_bda0(m, mem8[(0xb60b + style) & 0xffff], corner); // BUG: skips the b634/bdcb negative path
   };
   broken(c);

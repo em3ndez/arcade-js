@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import {
-  loc_2b, loc_2d, loc_2e, loc_2f, loc_30, loc_36, loc_38,
-  loc_56, loc_57, loc_58, loc_59, loc_5a, loc_5b, loc_5f,
-  loc_61, loc_62, loc_63, loc_64, loc_6a, loc_6b, loc_6c, loc_6d,
-  loc_73, loc_74, loc_78, loc_79, loc_7a, loc_7b, loc_7c, loc_7d, loc_7e, loc_7f,
-  loc_80, loc_82, loc_83, loc_84, loc_85, loc_86, loc_87,
-  loc_88, loc_89, loc_8a, loc_8b, loc_8c, loc_8d, loc_8e, loc_8f,
-  loc_90, loc_92, loc_93, loc_94, loc_95, loc_96, loc_97, loc_99, loc_9b, loc_9d, loc_9e, loc_a9,
-  loc_3ce, loc_3de, loc_bfb6, loc_bfc4, loc_bfd2, loc_bfd3,
+  loc_2b, COORD_LIST_PTR_HI, loc_2e, loc_2f, loc_30, SAVED_INDEX2, TABLE_CURSOR,
+  PROJ_PT_Y, OBJ_DEPTH, PROJ_PT_X, CLAMP_TALLY, RUN_SIZE, DEPTH_LO, DEPTH_HI,
+  PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI, PREV_Y_LO, PREV_Y_HI, PREV_X_LO, PREV_X_HI,
+  VG_RECORD_HEADER, DRAW_CURSOR_LO, SEG_SPREAD_A_LO, SEG_SPREAD_A_LO_1, SEG_SPREAD_A_LO_2, SEG_SPREAD_A_LO_3, SEG_SPREAD_A_LO_4, SEG_SPREAD_A_LO_5, SEG_SPREAD_A_LO_6, SEG_SPREAD_A_LO_7,
+  SEG_SPREAD_A_HI, SEG_SPREAD_A_HI_2, SEG_SPREAD_A_HI_3, SEG_SPREAD_A_HI_4, SEG_SPREAD_A_HI_5, SEG_SPREAD_A_HI_6, SEG_SPREAD_A_HI_7,
+  SEG_SPREAD_B_LO, SEG_SPREAD_B_LO_1, SEG_SPREAD_B_LO_2, SEG_SPREAD_B_LO_3, SEG_SPREAD_B_LO_4, SEG_SPREAD_B_LO_5, SEG_SPREAD_B_LO_6, SEG_SPREAD_B_LO_7,
+  SEG_SPREAD_B_HI, SEG_SPREAD_B_HI_2, SEG_SPREAD_B_HI_3, SEG_SPREAD_B_HI_4, SEG_SPREAD_B_HI_5, SEG_SPREAD_B_HI_6, SEG_SPREAD_B_HI_7, DRAW_RECORD_COUNT, SEG_DELTA_A_SIGN, SEG_DELTA_B_SIGN, loc_9e, DRAW_CURSOR_OFFSET,
+  SEG_BASE_X, SEG_BASE_Y, SEG_RECORD_COUNT, SEG_PACK_CURSOR, SEG_PACKED_BYTE, SEG_HEADER_BYTE,
 } from "./names.js";
 import { loc_c098 } from "./loc_c098.js";
 import { loc_c765 } from "./loc_c765.js";
@@ -20,16 +20,16 @@ import { loc_df6c } from "./loc_df6c.js";
 // then hand off to the shared builder.
 export function loc_bda0(m, a = m.regs.a, y = m.regs.y) {
   const { mem8 } = m;
-  mem8[loc_36] = a;
-  mem8[loc_56] = mem8[u16(loc_3ce + y)];
-  mem8[loc_58] = mem8[u16(loc_3de + y)];
-  mem8[loc_2f] = mem8[loc_57];
+  mem8[SAVED_INDEX2] = a;
+  mem8[PROJ_PT_Y] = mem8[u16(SEG_BASE_X + y)];
+  mem8[PROJ_PT_X] = mem8[u16(SEG_BASE_Y + y)];
+  mem8[loc_2f] = mem8[OBJ_DEPTH];
   const nc = (y + 1) & 0x0f;
-  mem8[loc_2e] = mem8[u16(loc_3ce + nc)];
-  mem8[loc_30] = mem8[u16(loc_3de + nc)];
-  mem8[loc_59] = 0x00;
-  mem8[loc_5a] = 0x04;
-  return loc_bdcb(m, mem8[loc_36]);
+  mem8[loc_2e] = mem8[u16(SEG_BASE_X + nc)];
+  mem8[loc_30] = mem8[u16(SEG_BASE_Y + nc)];
+  mem8[CLAMP_TALLY] = 0x00;
+  mem8[RUN_SIZE] = 0x04;
+  return loc_bdcb(m, mem8[SAVED_INDEX2]);
 }
 
 // Shared builder (also entered directly): early-out unless active, transform both endpoints,
@@ -37,160 +37,160 @@ export function loc_bda0(m, a = m.regs.a, y = m.regs.y) {
 // records into the ($74) cursor and advance it.
 export function loc_bdcb(m, corner = m.regs.y) {
   const { mem8, mem16 } = m;
-  if (!(mem8[loc_5b] & 0x80)) {
-    if (mem8[loc_57] < mem8[loc_5f]) return;
+  if (!(mem8[DEPTH_LO] & 0x80)) {
+    if (mem8[OBJ_DEPTH] < mem8[DEPTH_HI]) return;
   }
-  mem8[loc_99] = mem8[u16(loc_bfb6 + corner)];
-  mem8[loc_38] = mem8[u16(loc_bfc4 + corner)];
+  mem8[DRAW_RECORD_COUNT] = mem8[u16(SEG_RECORD_COUNT + corner)];
+  mem8[TABLE_CURSOR] = mem8[u16(SEG_PACK_CURSOR + corner)];
   loc_df4c(m, 0x08, mem8[loc_9e]);
   loc_c098(m);
   loc_c765(m, 0x61);
-  mem8[loc_56] = mem8[loc_2e];
-  mem8[loc_57] = mem8[loc_2f];
-  mem8[loc_58] = mem8[loc_30];
+  mem8[PROJ_PT_Y] = mem8[loc_2e];
+  mem8[OBJ_DEPTH] = mem8[loc_2f];
+  mem8[PROJ_PT_X] = mem8[loc_30];
   loc_c098(m);
-  loc_df6c(m, mem8[loc_5a], mem8[loc_59]);
+  loc_df6c(m, mem8[RUN_SIZE], mem8[CLAMP_TALLY]);
 
   // delta 1 -> clamped magnitude in $79, sign high byte in $9b
   {
-    const d = mem8[loc_61] - mem8[loc_6a];
-    mem8[loc_79] = d;
-    mem8[loc_9b] = mem8[loc_62] - mem8[loc_6b] - (d < 0 ? 1 : 0);
-    if (mem8[loc_9b] & 0x80) {
-      if (mem8[loc_9b] === 0xff) mem8[loc_79] = mem8[loc_79] === 0 ? 0xff : 256 - mem8[loc_79];
-      else mem8[loc_79] = 0xff;
-    } else if (mem8[loc_9b] !== 0) {
-      mem8[loc_79] = 0xff;
+    const d = mem8[PROJ_Y_LO] - mem8[PREV_Y_LO];
+    mem8[SEG_SPREAD_A_LO_1] = d;
+    mem8[SEG_DELTA_A_SIGN] = mem8[PROJ_Y_HI] - mem8[PREV_Y_HI] - (d < 0 ? 1 : 0);
+    if (mem8[SEG_DELTA_A_SIGN] & 0x80) {
+      if (mem8[SEG_DELTA_A_SIGN] === 0xff) mem8[SEG_SPREAD_A_LO_1] = mem8[SEG_SPREAD_A_LO_1] === 0 ? 0xff : 256 - mem8[SEG_SPREAD_A_LO_1];
+      else mem8[SEG_SPREAD_A_LO_1] = 0xff;
+    } else if (mem8[SEG_DELTA_A_SIGN] !== 0) {
+      mem8[SEG_SPREAD_A_LO_1] = 0xff;
     }
   }
   // delta 2 -> clamped magnitude in $89, sign high byte in $9d
   {
-    const d = mem8[loc_63] - mem8[loc_6c];
-    mem8[loc_89] = d;
-    mem8[loc_9d] = mem8[loc_64] - mem8[loc_6d] - (d < 0 ? 1 : 0);
-    if (mem8[loc_9d] & 0x80) {
-      if (mem8[loc_9d] === 0xff) mem8[loc_89] = 256 - mem8[loc_89];
-      else mem8[loc_89] = 0xff;
-    } else if (mem8[loc_9d] !== 0) {
-      mem8[loc_89] = 0xff;
+    const d = mem8[PROJ_X_LO] - mem8[PREV_X_LO];
+    mem8[SEG_SPREAD_B_LO_1] = d;
+    mem8[SEG_DELTA_B_SIGN] = mem8[PROJ_X_HI] - mem8[PREV_X_HI] - (d < 0 ? 1 : 0);
+    if (mem8[SEG_DELTA_B_SIGN] & 0x80) {
+      if (mem8[SEG_DELTA_B_SIGN] === 0xff) mem8[SEG_SPREAD_B_LO_1] = 256 - mem8[SEG_SPREAD_B_LO_1];
+      else mem8[SEG_SPREAD_B_LO_1] = 0xff;
+    } else if (mem8[SEG_DELTA_B_SIGN] !== 0) {
+      mem8[SEG_SPREAD_B_LO_1] = 0xff;
     }
   }
 
   // fivefold spread: two 24-bit chains ($82/$83/$84... and $92/$93/$94...) built from $79 and $89
   let a = 0, cf = 0;
-  mem8[loc_82] = 0x00;
-  mem8[loc_92] = 0x00;
-  a = mem8[loc_79]; cf = (a >> 7) & 1; a = (a << 1) & 0xff;
-  { const t = ((mem8[loc_82] << 1) | cf) & 0xff; cf = (mem8[loc_82] >> 7) & 1; mem8[loc_82] = t; }
-  mem8[loc_7a] = a;
+  mem8[SEG_SPREAD_A_HI_2] = 0x00;
+  mem8[SEG_SPREAD_B_HI_2] = 0x00;
+  a = mem8[SEG_SPREAD_A_LO_1]; cf = (a >> 7) & 1; a = (a << 1) & 0xff;
+  { const t = ((mem8[SEG_SPREAD_A_HI_2] << 1) | cf) & 0xff; cf = (mem8[SEG_SPREAD_A_HI_2] >> 7) & 1; mem8[SEG_SPREAD_A_HI_2] = t; }
+  mem8[SEG_SPREAD_A_LO_2] = a;
   cf = (a >> 7) & 1; a = (a << 1) & 0xff;
-  mem8[loc_7c] = a;
-  a = mem8[loc_82]; { const c0 = cf; cf = (a >> 7) & 1; a = ((a << 1) | c0) & 0xff; }
-  mem8[loc_84] = a;
-  a = mem8[loc_7c]; { const s = a + mem8[loc_79] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_7d] = a;
-  a = mem8[loc_84]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_85] = a;
-  a = mem8[loc_7a]; { const s = a + mem8[loc_79] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_7b] = a;
-  a = mem8[loc_82]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_83] = a;
-  mem8[loc_86] = a;
-  a = mem8[loc_7b]; cf = (a >> 7) & 1; a = (a << 1) & 0xff;
-  mem8[loc_7e] = a;
-  { const t = ((mem8[loc_86] << 1) | cf) & 0xff; cf = (mem8[loc_86] >> 7) & 1; mem8[loc_86] = t; }
-  { const s = a + mem8[loc_79] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_7f] = a;
-  a = mem8[loc_86]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_87] = a;
-  a = mem8[loc_89]; cf = (a >> 7) & 1; a = (a << 1) & 0xff;
-  { const t = ((mem8[loc_92] << 1) | cf) & 0xff; cf = (mem8[loc_92] >> 7) & 1; mem8[loc_92] = t; }
-  mem8[loc_8a] = a;
+  mem8[SEG_SPREAD_A_LO_4] = a;
+  a = mem8[SEG_SPREAD_A_HI_2]; { const c0 = cf; cf = (a >> 7) & 1; a = ((a << 1) | c0) & 0xff; }
+  mem8[SEG_SPREAD_A_HI_4] = a;
+  a = mem8[SEG_SPREAD_A_LO_4]; { const s = a + mem8[SEG_SPREAD_A_LO_1] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_A_LO_5] = a;
+  a = mem8[SEG_SPREAD_A_HI_4]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_A_HI_5] = a;
+  a = mem8[SEG_SPREAD_A_LO_2]; { const s = a + mem8[SEG_SPREAD_A_LO_1] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_A_LO_3] = a;
+  a = mem8[SEG_SPREAD_A_HI_2]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_A_HI_3] = a;
+  mem8[SEG_SPREAD_A_HI_6] = a;
+  a = mem8[SEG_SPREAD_A_LO_3]; cf = (a >> 7) & 1; a = (a << 1) & 0xff;
+  mem8[SEG_SPREAD_A_LO_6] = a;
+  { const t = ((mem8[SEG_SPREAD_A_HI_6] << 1) | cf) & 0xff; cf = (mem8[SEG_SPREAD_A_HI_6] >> 7) & 1; mem8[SEG_SPREAD_A_HI_6] = t; }
+  { const s = a + mem8[SEG_SPREAD_A_LO_1] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_A_LO_7] = a;
+  a = mem8[SEG_SPREAD_A_HI_6]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_A_HI_7] = a;
+  a = mem8[SEG_SPREAD_B_LO_1]; cf = (a >> 7) & 1; a = (a << 1) & 0xff;
+  { const t = ((mem8[SEG_SPREAD_B_HI_2] << 1) | cf) & 0xff; cf = (mem8[SEG_SPREAD_B_HI_2] >> 7) & 1; mem8[SEG_SPREAD_B_HI_2] = t; }
+  mem8[SEG_SPREAD_B_LO_2] = a;
   cf = (a >> 7) & 1; a = (a << 1) & 0xff;
-  mem8[loc_8c] = a;
-  a = mem8[loc_92]; { const c0 = cf; cf = (a >> 7) & 1; a = ((a << 1) | c0) & 0xff; }
-  mem8[loc_94] = a;
-  a = mem8[loc_8c]; { const s = a + mem8[loc_89] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_8d] = a;
-  a = mem8[loc_94]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_95] = a;
-  a = mem8[loc_8a]; { const s = a + mem8[loc_89] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_8b] = a;
-  a = mem8[loc_92]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_93] = a;
-  mem8[loc_96] = a;
-  a = mem8[loc_8b]; cf = (a >> 7) & 1; a = (a << 1) & 0xff;
-  mem8[loc_8e] = a;
-  { const t = ((mem8[loc_96] << 1) | cf) & 0xff; cf = (mem8[loc_96] >> 7) & 1; mem8[loc_96] = t; }
-  { const s = a + mem8[loc_89] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_8f] = a;
-  a = mem8[loc_96]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
-  mem8[loc_97] = a;
-  mem8[loc_a9] = 0x00;
+  mem8[SEG_SPREAD_B_LO_4] = a;
+  a = mem8[SEG_SPREAD_B_HI_2]; { const c0 = cf; cf = (a >> 7) & 1; a = ((a << 1) | c0) & 0xff; }
+  mem8[SEG_SPREAD_B_HI_4] = a;
+  a = mem8[SEG_SPREAD_B_LO_4]; { const s = a + mem8[SEG_SPREAD_B_LO_1] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_B_LO_5] = a;
+  a = mem8[SEG_SPREAD_B_HI_4]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_B_HI_5] = a;
+  a = mem8[SEG_SPREAD_B_LO_2]; { const s = a + mem8[SEG_SPREAD_B_LO_1] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_B_LO_3] = a;
+  a = mem8[SEG_SPREAD_B_HI_2]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_B_HI_3] = a;
+  mem8[SEG_SPREAD_B_HI_6] = a;
+  a = mem8[SEG_SPREAD_B_LO_3]; cf = (a >> 7) & 1; a = (a << 1) & 0xff;
+  mem8[SEG_SPREAD_B_LO_6] = a;
+  { const t = ((mem8[SEG_SPREAD_B_HI_6] << 1) | cf) & 0xff; cf = (mem8[SEG_SPREAD_B_HI_6] >> 7) & 1; mem8[SEG_SPREAD_B_HI_6] = t; }
+  { const s = a + mem8[SEG_SPREAD_B_LO_1] + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_B_LO_7] = a;
+  a = mem8[SEG_SPREAD_B_HI_6]; { const s = a + cf; cf = s > 0xff ? 1 : 0; a = s & 0xff; }
+  mem8[SEG_SPREAD_B_HI_7] = a;
+  mem8[DRAW_CURSOR_OFFSET] = 0x00;
 
   // emit $99 four-byte records: per record pick a header, decode a packed corner byte, then
   // combine the spread offsets by the packed sign bits into a rotated point pair.
   do {
-    const yTab = mem8[loc_38];
-    let header = mem8[u16(loc_bfd3 + yTab)];
+    const yTab = mem8[TABLE_CURSOR];
+    let header = mem8[u16(SEG_HEADER_BYTE + yTab)];
     if (header === 1) header = 0xc0;
-    mem8[loc_73] = header;
-    const packed = mem8[u16(loc_bfd2 + yTab)];
-    mem8[loc_2d] = packed;
-    mem8[loc_38] = yTab + 2;
+    mem8[VG_RECORD_HEADER] = header;
+    const packed = mem8[u16(SEG_PACKED_BYTE + yTab)];
+    mem8[COORD_LIST_PTR_HI] = packed;
+    mem8[TABLE_CURSOR] = yTab + 2;
     const dbl = (packed << 1) & 0xff;
     mem8[loc_2b] = dbl;
     const yLo = packed & 0x07;
     const xHi = (dbl >> 4) & 0x07;
 
     // point A low/high, optionally negated by $9b's sign
-    if ((dbl ^ mem8[loc_9b]) & 0x80) {
-      const lo = (~mem8[u16(loc_78 + yLo)] & 0xff) + 1;
-      mem8[loc_61] = lo;
-      mem8[loc_62] = (~mem8[u16(loc_80 + yLo)] & 0xff) + (lo > 0xff ? 1 : 0);
+    if ((dbl ^ mem8[SEG_DELTA_A_SIGN]) & 0x80) {
+      const lo = (~mem8[u16(SEG_SPREAD_A_LO + yLo)] & 0xff) + 1;
+      mem8[PROJ_Y_LO] = lo;
+      mem8[PROJ_Y_HI] = (~mem8[u16(SEG_SPREAD_A_HI + yLo)] & 0xff) + (lo > 0xff ? 1 : 0);
     } else {
-      mem8[loc_61] = mem8[u16(loc_78 + yLo)];
-      mem8[loc_62] = mem8[u16(loc_80 + yLo)];
+      mem8[PROJ_Y_LO] = mem8[u16(SEG_SPREAD_A_LO + yLo)];
+      mem8[PROJ_Y_HI] = mem8[u16(SEG_SPREAD_A_HI + yLo)];
     }
     // combine with the x offset by $9d's sign
-    if (!((mem8[loc_2d] ^ mem8[loc_9d]) & 0x80)) {
-      const d = mem8[loc_61] - mem8[u8(loc_88 + xHi)];
-      mem8[loc_61] = d;
-      mem8[loc_62] = mem8[loc_62] - mem8[u8(loc_90 + xHi)] - (d < 0 ? 1 : 0);
+    if (!((mem8[COORD_LIST_PTR_HI] ^ mem8[SEG_DELTA_B_SIGN]) & 0x80)) {
+      const d = mem8[PROJ_Y_LO] - mem8[u8(SEG_SPREAD_B_LO + xHi)];
+      mem8[PROJ_Y_LO] = d;
+      mem8[PROJ_Y_HI] = mem8[PROJ_Y_HI] - mem8[u8(SEG_SPREAD_B_HI + xHi)] - (d < 0 ? 1 : 0);
     } else {
-      const s = mem8[u8(loc_88 + xHi)] + mem8[loc_61];
-      mem8[loc_61] = s;
-      mem8[loc_62] = mem8[u8(loc_90 + xHi)] + mem8[loc_62] + (s > 0xff ? 1 : 0);
+      const s = mem8[u8(SEG_SPREAD_B_LO + xHi)] + mem8[PROJ_Y_LO];
+      mem8[PROJ_Y_LO] = s;
+      mem8[PROJ_Y_HI] = mem8[u8(SEG_SPREAD_B_HI + xHi)] + mem8[PROJ_Y_HI] + (s > 0xff ? 1 : 0);
     }
     // point B low/high, optionally negated by $9d's sign
-    if ((dbl ^ mem8[loc_9d]) & 0x80) {
-      const lo = (~mem8[u16(loc_88 + yLo)] & 0xff) + 1;
-      mem8[loc_63] = lo;
-      mem8[loc_64] = (~mem8[u16(loc_90 + yLo)] & 0xff) + (lo > 0xff ? 1 : 0);
+    if ((dbl ^ mem8[SEG_DELTA_B_SIGN]) & 0x80) {
+      const lo = (~mem8[u16(SEG_SPREAD_B_LO + yLo)] & 0xff) + 1;
+      mem8[PROJ_X_LO] = lo;
+      mem8[PROJ_X_HI] = (~mem8[u16(SEG_SPREAD_B_HI + yLo)] & 0xff) + (lo > 0xff ? 1 : 0);
     } else {
-      mem8[loc_63] = mem8[u16(loc_88 + yLo)];
-      mem8[loc_64] = mem8[u16(loc_90 + yLo)];
+      mem8[PROJ_X_LO] = mem8[u16(SEG_SPREAD_B_LO + yLo)];
+      mem8[PROJ_X_HI] = mem8[u16(SEG_SPREAD_B_HI + yLo)];
     }
     // combine with the y offset by $9b's sign
-    if (!((mem8[loc_2d] ^ mem8[loc_9b]) & 0x80)) {
-      const s = mem8[loc_63] + mem8[u8(loc_78 + xHi)];
-      mem8[loc_63] = s;
-      mem8[loc_64] = mem8[loc_64] + mem8[u8(loc_80 + xHi)] + (s > 0xff ? 1 : 0);
+    if (!((mem8[COORD_LIST_PTR_HI] ^ mem8[SEG_DELTA_A_SIGN]) & 0x80)) {
+      const s = mem8[PROJ_X_LO] + mem8[u8(SEG_SPREAD_A_LO + xHi)];
+      mem8[PROJ_X_LO] = s;
+      mem8[PROJ_X_HI] = mem8[PROJ_X_HI] + mem8[u8(SEG_SPREAD_A_HI + xHi)] + (s > 0xff ? 1 : 0);
     } else {
-      const d = mem8[loc_63] - mem8[u8(loc_78 + xHi)];
-      mem8[loc_63] = d;
-      mem8[loc_64] = mem8[loc_64] - mem8[u8(loc_80 + xHi)] - (d < 0 ? 1 : 0);
+      const d = mem8[PROJ_X_LO] - mem8[u8(SEG_SPREAD_A_LO + xHi)];
+      mem8[PROJ_X_LO] = d;
+      mem8[PROJ_X_HI] = mem8[PROJ_X_HI] - mem8[u8(SEG_SPREAD_A_HI + xHi)] - (d < 0 ? 1 : 0);
     }
 
-    let yy = mem8[loc_a9];
-    const base = mem16[loc_74];
-    mem8[u16(base + yy)] = mem8[loc_63]; yy = (yy + 1) & 0xff;
-    mem8[u16(base + yy)] = mem8[loc_64] & 0x1f; yy = (yy + 1) & 0xff;
-    mem8[u16(base + yy)] = mem8[loc_61]; yy = (yy + 1) & 0xff;
-    mem8[u16(base + yy)] = (mem8[loc_62] & 0x1f) | mem8[loc_73]; yy = (yy + 1) & 0xff;
-    mem8[loc_a9] = yy;
-    mem8[loc_99] = mem8[loc_99] - 1;
-  } while (mem8[loc_99] !== 0);
+    let yy = mem8[DRAW_CURSOR_OFFSET];
+    const base = mem16[DRAW_CURSOR_LO];
+    mem8[u16(base + yy)] = mem8[PROJ_X_LO]; yy = (yy + 1) & 0xff;
+    mem8[u16(base + yy)] = mem8[PROJ_X_HI] & 0x1f; yy = (yy + 1) & 0xff;
+    mem8[u16(base + yy)] = mem8[PROJ_Y_LO]; yy = (yy + 1) & 0xff;
+    mem8[u16(base + yy)] = (mem8[PROJ_Y_HI] & 0x1f) | mem8[VG_RECORD_HEADER]; yy = (yy + 1) & 0xff;
+    mem8[DRAW_CURSOR_OFFSET] = yy;
+    mem8[DRAW_RECORD_COUNT] = mem8[DRAW_RECORD_COUNT] - 1;
+  } while (mem8[DRAW_RECORD_COUNT] !== 0);
 
-  loc_df5f(m, (mem8[loc_a9] - 1) & 0xff);
+  loc_df5f(m, (mem8[DRAW_CURSOR_OFFSET] - 1) & 0xff);
 }

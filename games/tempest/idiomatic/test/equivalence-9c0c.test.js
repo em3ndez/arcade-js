@@ -13,7 +13,7 @@ import { loc_9c0c as oracle } from "../../translated/loc_9c0c.js";
 import { loc_9c0c } from "../loc_9c0c.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_298, loc_10b } from "../names.js";
+import { STACK_SCRATCH, loc_298, SCRIPT_CURSOR } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -49,7 +49,7 @@ test("CAPTURE: real 0x9c0c dispatches -- loc_9c0c == oracle in RAM (-stack)", ()
 
 test("CRAFTED: nonzero-after-dec delegates to the step; zero-after-dec bumps $010b", () => {
   // slot x=3, timer decrements to a nonzero value -> loc_9c17 runs (table step on $010b)
-  const seedA = (m) => { m.regs.x = 3; m.mem.write8((loc_298 + 3) & 0xffff, 0x05); m.mem.write8(loc_10b, 0x02); };
+  const seedA = (m) => { m.regs.x = 3; m.mem.write8((loc_298 + 3) & 0xffff, 0x05); m.mem.write8(SCRIPT_CURSOR, 0x02); };
   let o = new Machine(ROM, OPTS); seedA(o);
   let c = new Machine(ROM, OPTS); seedA(c);
   oracle(o); loc_9c0c(c);
@@ -57,17 +57,17 @@ test("CRAFTED: nonzero-after-dec delegates to the step; zero-after-dec bumps $01
   assert.equal(c.mem.read8((loc_298 + 3) & 0xffff), 0x04, "timer decremented");
 
   // slot x=1, timer was 1 -> hits zero -> $010b bumped, no step
-  const seedB = (m) => { m.regs.x = 1; m.mem.write8((loc_298 + 1) & 0xffff, 0x01); m.mem.write8(loc_10b, 0x07); };
+  const seedB = (m) => { m.regs.x = 1; m.mem.write8((loc_298 + 1) & 0xffff, 0x01); m.mem.write8(SCRIPT_CURSOR, 0x07); };
   o = new Machine(ROM, OPTS); seedB(o);
   c = new Machine(ROM, OPTS); seedB(c);
   oracle(o); loc_9c0c(c);
   assert.equal(ramDiff(o, c), null, "counter branch RAM equal");
   assert.equal(c.mem.read8((loc_298 + 1) & 0xffff), 0x00, "timer hit zero");
-  assert.equal(c.mem.read8(loc_10b), 0x08, "$010b bumped");
+  assert.equal(c.mem.read8(SCRIPT_CURSOR), 0x08, "$010b bumped");
 });
 
 test("TEETH: a twin that skips the step (or the bump) diverges from the oracle", () => {
-  const seed = (m) => { m.regs.x = 3; m.mem.write8((loc_298 + 3) & 0xffff, 0x05); m.mem.write8(loc_10b, 0x02); };
+  const seed = (m) => { m.regs.x = 3; m.mem.write8((loc_298 + 3) & 0xffff, 0x05); m.mem.write8(SCRIPT_CURSOR, 0x02); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);

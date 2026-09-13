@@ -14,7 +14,7 @@ import { loc_9749 as oracle } from "../../translated/loc_9749.js";
 import { loc_9749 } from "../loc_9749.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_50, loc_51, loc_2a, loc_2b, loc_2c, loc_111, loc_200, loc_201, loc_31, loc_32 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, SPINNER_ACCUM, RIM_ROT_OFFSET, loc_2a, loc_2b, COORD_LIST_PTR_LO, TUBE_GEOM_FLAG, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, loc_31, loc_32 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -49,20 +49,20 @@ test("CAPTURE: real 0x9749 dispatches -- loc_9749 == oracle in RAM (-stack)", ()
 });
 
 test("TEETH-NEGATIVE: $0201 negative -- both early-out with no state change", () => {
-  const seed = (m) => { m.mem.write8(loc_201, 0x80); m.mem.write8(loc_50, 0x77); };
+  const seed = (m) => { m.mem.write8(PLAYER_FINE_ANGLE, 0x80); m.mem.write8(SPINNER_ACCUM, 0x77); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_9749(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the negative early-out");
-  assert.equal(c.mem.read8(loc_50), 0x77, "$50 untouched (routine returned before the clamp)");
+  assert.equal(c.mem.read8(SPINNER_ACCUM), 0x77, "$50 untouched (routine returned before the clamp)");
 });
 
 test("CRAFTED: $05 bit7 CLEAR -- delta comes from the table scan (97c5 path)", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x00);   // non-negative -> proceed
-    m.mem.write8(loc_5, 0x00);     // bit7 clear -> scan path
-    m.mem.write8(loc_51, 0x12);
-    m.mem.write8(loc_111, 0x00);   // skip the nested clamp
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x00);   // non-negative -> proceed
+    m.mem.write8(STATUS_FLAGS, 0x00);     // bit7 clear -> scan path
+    m.mem.write8(RIM_ROT_OFFSET, 0x12);
+    m.mem.write8(TUBE_GEOM_FLAG, 0x00);   // skip the nested clamp
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -72,26 +72,26 @@ test("CRAFTED: $05 bit7 CLEAR -- delta comes from the table scan (97c5 path)", (
 
 test("CRAFTED: $05 bit7 SET, $50 positive >=0x1f -- capped to 0x1f then $50 consumed", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x00);
-    m.mem.write8(loc_5, 0x80);     // bit7 set -> $50 clamp path
-    m.mem.write8(loc_50, 0x40);    // positive, >=0x1f
-    m.mem.write8(loc_51, 0x03);
-    m.mem.write8(loc_111, 0x00);
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x00);
+    m.mem.write8(STATUS_FLAGS, 0x80);     // bit7 set -> $50 clamp path
+    m.mem.write8(SPINNER_ACCUM, 0x40);    // positive, >=0x1f
+    m.mem.write8(RIM_ROT_OFFSET, 0x03);
+    m.mem.write8(TUBE_GEOM_FLAG, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_9749(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the positive-clamp path");
-  assert.equal(c.mem.read8(loc_50), 0x00, "$50 consumed to 0");
+  assert.equal(c.mem.read8(SPINNER_ACCUM), 0x00, "$50 consumed to 0");
 });
 
 test("CRAFTED: $05 bit7 SET, $50 negative <0xe1 -- floored to 0xe1", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x00);
-    m.mem.write8(loc_5, 0x80);
-    m.mem.write8(loc_50, 0x90);    // negative, <0xe1
-    m.mem.write8(loc_51, 0x03);
-    m.mem.write8(loc_111, 0x00);
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x00);
+    m.mem.write8(STATUS_FLAGS, 0x80);
+    m.mem.write8(SPINNER_ACCUM, 0x90);    // negative, <0xe1
+    m.mem.write8(RIM_ROT_OFFSET, 0x03);
+    m.mem.write8(TUBE_GEOM_FLAG, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -101,11 +101,11 @@ test("CRAFTED: $05 bit7 SET, $50 negative <0xe1 -- floored to 0xe1", () => {
 
 test("CRAFTED: $05 bit7 SET, $50 negative >=0xe1 -- kept as-is", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x00);
-    m.mem.write8(loc_5, 0x80);
-    m.mem.write8(loc_50, 0xf0);    // negative, >=0xe1 -> no clamp
-    m.mem.write8(loc_51, 0x03);
-    m.mem.write8(loc_111, 0x00);
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x00);
+    m.mem.write8(STATUS_FLAGS, 0x80);
+    m.mem.write8(SPINNER_ACCUM, 0xf0);    // negative, >=0xe1 -> no clamp
+    m.mem.write8(RIM_ROT_OFFSET, 0x03);
+    m.mem.write8(TUBE_GEOM_FLAG, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -117,12 +117,12 @@ test("CRAFTED: $05 bit7 SET, $50 negative >=0xe1 -- kept as-is", () => {
 // $50=0x40 -> a=0x1f, $51=0x14 -> $2c = 0x14-0x1f = 0xf5 -> capped 0xef; $2c/$2b and $2c/$51 both flip sign,
 // $51 positive -> $2c saturates to 0x00.
 function seedNested(m) {
-  m.mem.write8(loc_201, 0x00);
-  m.mem.write8(loc_5, 0x80);
-  m.mem.write8(loc_50, 0x40);
-  m.mem.write8(loc_51, 0x14);
-  m.mem.write8(loc_111, 0x07);   // active -> nested clamp
-  m.mem.write8(loc_200, 0xff);   // != the folded $2a -> ccb5 fires
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x00);
+  m.mem.write8(STATUS_FLAGS, 0x80);
+  m.mem.write8(SPINNER_ACCUM, 0x40);
+  m.mem.write8(RIM_ROT_OFFSET, 0x14);
+  m.mem.write8(TUBE_GEOM_FLAG, 0x07);   // active -> nested clamp
+  m.mem.write8(PLAYER_SEGMENT, 0xff);   // != the folded $2a -> ccb5 fires
 }
 
 test("CRAFTED: $0111 active -- nested cap + sign-flip saturation of $2c", () => {
@@ -152,22 +152,22 @@ test("TEETH: a twin that skips the ccb5 gate diverges from the oracle", () => {
   // BUG: identical fold but the ccb5 call (the open sound gate seating $31/$32) is skipped.
   const broken = (m) => {
     const { mem8 } = m;
-    if (mem8[loc_201] & 0x80) return;
-    let a = mem8[loc_50];
+    if (mem8[PLAYER_FINE_ANGLE] & 0x80) return;
+    let a = mem8[SPINNER_ACCUM];
     if ((a & 0x80) === 0) { if (a >= 0x1f) a = 0x1f; } else if (a < 0xe1) a = 0xe1;
-    mem8[loc_50] = 0x00;
+    mem8[SPINNER_ACCUM] = 0x00;
     mem8[loc_2b] = a;
-    let cc = (((a ^ 0xff) + mem8[loc_51] + 1) & 0xff);
-    mem8[loc_2c] = cc;
-    if (cc >= 0xf0) { cc = 0xef; mem8[loc_2c] = cc; }
-    if ((cc ^ mem8[loc_2b]) & 0x80 && (cc ^ mem8[loc_51]) & 0x80) mem8[loc_2c] = mem8[loc_51] & 0x80 ? 0xef : 0x00;
-    const hi = mem8[loc_2c] >> 4;
+    let cc = (((a ^ 0xff) + mem8[RIM_ROT_OFFSET] + 1) & 0xff);
+    mem8[COORD_LIST_PTR_LO] = cc;
+    if (cc >= 0xf0) { cc = 0xef; mem8[COORD_LIST_PTR_LO] = cc; }
+    if ((cc ^ mem8[loc_2b]) & 0x80 && (cc ^ mem8[RIM_ROT_OFFSET]) & 0x80) mem8[COORD_LIST_PTR_LO] = mem8[RIM_ROT_OFFSET] & 0x80 ? 0xef : 0x00;
+    const hi = mem8[COORD_LIST_PTR_LO] >> 4;
     mem8[loc_2a] = hi;
     mem8[loc_2b] = (hi + 1) & 0x0f;
     /* BUG: no loc_ccb5 call -- $31/$32 never seated */
-    mem8[loc_200] = mem8[loc_2a];
-    mem8[loc_201] = mem8[loc_2b];
-    mem8[loc_51] = mem8[loc_2c];
+    mem8[PLAYER_SEGMENT] = mem8[loc_2a];
+    mem8[PLAYER_FINE_ANGLE] = mem8[loc_2b];
+    mem8[RIM_ROT_OFFSET] = mem8[COORD_LIST_PTR_LO];
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped ccb5 gate");
@@ -175,30 +175,30 @@ test("TEETH: a twin that skips the ccb5 gate diverges from the oracle", () => {
 
 test("TEETH: a wrong positive-clamp constant diverges from the oracle", () => {
   const seed = (m) => {
-    m.mem.write8(loc_201, 0x00);
-    m.mem.write8(loc_5, 0x80);
-    m.mem.write8(loc_50, 0x40);
-    m.mem.write8(loc_51, 0x03);
-    m.mem.write8(loc_111, 0x00);
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x00);
+    m.mem.write8(STATUS_FLAGS, 0x80);
+    m.mem.write8(SPINNER_ACCUM, 0x40);
+    m.mem.write8(RIM_ROT_OFFSET, 0x03);
+    m.mem.write8(TUBE_GEOM_FLAG, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const broken = (m) => {
     const { mem8 } = m;
-    if (mem8[loc_201] & 0x80) return;
-    let a = mem8[loc_50];
+    if (mem8[PLAYER_FINE_ANGLE] & 0x80) return;
+    let a = mem8[SPINNER_ACCUM];
     if ((a & 0x80) === 0) { if (a >= 0x1f) a = 0x2f; } else if (a < 0xe1) a = 0xe1; // BUG: 0x2f not 0x1f
-    mem8[loc_50] = 0x00;
+    mem8[SPINNER_ACCUM] = 0x00;
     mem8[loc_2b] = a;
-    const cc = (((a ^ 0xff) + mem8[loc_51] + 1) & 0xff);
-    mem8[loc_2c] = cc;
-    const hi = mem8[loc_2c] >> 4;
+    const cc = (((a ^ 0xff) + mem8[RIM_ROT_OFFSET] + 1) & 0xff);
+    mem8[COORD_LIST_PTR_LO] = cc;
+    const hi = mem8[COORD_LIST_PTR_LO] >> 4;
     mem8[loc_2a] = hi;
     mem8[loc_2b] = (hi + 1) & 0x0f;
-    mem8[loc_200] = mem8[loc_2a];
-    mem8[loc_201] = mem8[loc_2b];
-    mem8[loc_51] = mem8[loc_2c];
+    mem8[PLAYER_SEGMENT] = mem8[loc_2a];
+    mem8[PLAYER_FINE_ANGLE] = mem8[loc_2b];
+    mem8[RIM_ROT_OFFSET] = mem8[COORD_LIST_PTR_LO];
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the wrong clamp constant");
@@ -206,9 +206,9 @@ test("TEETH: a wrong positive-clamp constant diverges from the oracle", () => {
 
 test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
-  m.mem.write8(loc_201, 0x00);
-  m.mem.write8(loc_5, 0x80);
-  m.mem.write8(loc_50, 0x40);
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x00);
+  m.mem.write8(STATUS_FLAGS, 0x80);
+  m.mem.write8(SPINNER_ACCUM, 0x40);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
   const r = seamPlaceable(withOmittedRet, loc_9749, TARGET, m);

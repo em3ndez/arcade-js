@@ -13,7 +13,7 @@ import { loc_9eab as oracle } from "../../translated/loc_9eab.js";
 import { loc_9eab } from "../loc_9eab.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_111, loc_283, loc_2b9 } from "../names.js";
+import { STACK_SCRATCH, TUBE_GEOM_FLAG, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -60,29 +60,29 @@ test("CRAFTED: gate-off no-op; bit6-set clears at depth>=0x0e; bit6-clear sets a
   ];
   for (const [gate, flag, depth, exp] of cases) {
     const seed = (m) => {
-      m.mem.write8(loc_111, gate);
-      m.mem.write8((loc_283 + X) & 0xffff, flag);
-      m.mem.write8((loc_2b9 + X) & 0xffff, depth);
+      m.mem.write8(TUBE_GEOM_FLAG, gate);
+      m.mem.write8((ENEMY_SLOT_FLAGS + X) & 0xffff, flag);
+      m.mem.write8((ENEMY_SEGMENT + X) & 0xffff, depth);
     };
     const o = new Machine(ROM, OPTS); o.regs.x = X; seed(o);
     const c = new Machine(ROM, OPTS); c.regs.x = X; seed(c);
     oracle(o); loc_9eab(c);
     assert.equal(ramDiff(o, c), null, `RAM equal: gate=${gate} flag=0x${flag.toString(16)} depth=0x${depth.toString(16)}`);
-    assert.equal(c.mem.read8((loc_283 + X) & 0xffff), exp, `flag result: gate=${gate} flag=0x${flag.toString(16)} depth=0x${depth.toString(16)}`);
+    assert.equal(c.mem.read8((ENEMY_SLOT_FLAGS + X) & 0xffff), exp, `flag result: gate=${gate} flag=0x${flag.toString(16)} depth=0x${depth.toString(16)}`);
   }
 });
 
 test("TEETH: a twin that always clears bit6 (ignores the depth test) diverges from the oracle", () => {
   const X = 3;
   const seed = (m) => {
-    m.mem.write8(loc_111, 0x01);
-    m.mem.write8((loc_283 + X) & 0xffff, 0x40);
-    m.mem.write8((loc_2b9 + X) & 0xffff, 0x0d); // depth < 0x0e -> oracle KEEPS bit6
+    m.mem.write8(TUBE_GEOM_FLAG, 0x01);
+    m.mem.write8((ENEMY_SLOT_FLAGS + X) & 0xffff, 0x40);
+    m.mem.write8((ENEMY_SEGMENT + X) & 0xffff, 0x0d); // depth < 0x0e -> oracle KEEPS bit6
   };
   const o = new Machine(ROM, OPTS); o.regs.x = X; seed(o);
   const c = new Machine(ROM, OPTS); c.regs.x = X; seed(c);
   oracle(o);
-  const broken = (m) => { m.mem.write8((loc_283 + X) & 0xffff, m.mem.read8((loc_283 + X) & 0xffff) & 0xbf); }; // BUG: clear unconditionally
+  const broken = (m) => { m.mem.write8((ENEMY_SLOT_FLAGS + X) & 0xffff, m.mem.read8((ENEMY_SLOT_FLAGS + X) & 0xffff) & 0xbf); }; // BUG: clear unconditionally
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the unconditional bit6 clear");
 });

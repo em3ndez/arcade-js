@@ -14,7 +14,7 @@ import { loc_dd29 } from "../loc_dd29.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { loc_dd2b } from "../loc_dd2b.js";
-import { STACK_SCRATCH, loc_35, loc_37, loc_74 } from "../names.js";
+import { STACK_SCRATCH, SAVED_INDEX, SLOT_LOOP_INDEX, DRAW_CURSOR_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,7 +51,7 @@ test("CAPTURE: real 0xdd29 dispatches -- loc_dd29 == oracle in RAM (-stack)", ()
 // Distinct A/Y and a ($74) cursor into vector RAM so the eight emitted digits land in diffed RAM.
 function seedDistinct(m) {
   m.regs.a = 0x11; m.regs.y = 0xb4;
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_74 + 1, 0x22); // ($74) -> 0x2200
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x22); // ($74) -> 0x2200
 }
 
 test("CRAFTED: distinct A/Y -- loc_dd29 == oracle in RAM", () => {
@@ -59,8 +59,8 @@ test("CRAFTED: distinct A/Y -- loc_dd29 == oracle in RAM", () => {
   const c = new Machine(ROM, OPTS); seedDistinct(c);
   oracle(o); loc_dd29(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after preset + 8 digit emits");
-  assert.equal(c.mem.read8(loc_35), 0x00, "$35 shifted fully out to 0");
-  assert.equal(c.mem.read8(loc_37), 0xff, "$37 loop counter ran to 0xff");
+  assert.equal(c.mem.read8(SAVED_INDEX), 0x00, "$35 shifted fully out to 0");
+  assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xff, "$37 loop counter ran to 0xff");
 });
 
 test("TEETH: a twin that presets the wrong X diverges from the oracle", () => {

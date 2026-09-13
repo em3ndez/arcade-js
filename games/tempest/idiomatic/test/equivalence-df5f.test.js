@@ -14,7 +14,7 @@ import { loc_df5f as oracle } from "../../translated/loc_df5f.js";
 import { loc_df5f } from "../loc_df5f.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -69,8 +69,8 @@ test("CRAFTED: no-carry / carry / boundary cursor advance == oracle (RAM -stack)
     { tag: "big stride carry: $74=0x80 + y+1(0x80)=0x100", y: 0x7f, lo: 0x80, hi: 0x00 },
   ];
   for (const t of cases) {
-    const o = new Machine(ROM, OPTS); seed(o, { [loc_74]: t.lo, [loc_75]: t.hi }); o.regs.y = t.y;
-    const c = new Machine(ROM, OPTS); seed(c, { [loc_74]: t.lo, [loc_75]: t.hi }); c.regs.y = t.y;
+    const o = new Machine(ROM, OPTS); seed(o, { [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi }); o.regs.y = t.y;
+    const c = new Machine(ROM, OPTS); seed(c, { [DRAW_CURSOR_LO]: t.lo, [DRAW_CURSOR_HI]: t.hi }); c.regs.y = t.y;
     oracle(o); loc_df5f(c, c.regs.y);
     assert.equal(ramDiff(o, c), null, `RAM: ${t.tag}`);
     assert.equal(c.regs.a, o.regs.a, `A live-out: ${t.tag}`);
@@ -80,16 +80,16 @@ test("CRAFTED: no-carry / carry / boundary cursor advance == oracle (RAM -stack)
 test("TEETH: a twin that drops the carry into $75 diverges on the carry case", () => {
   // Carry case with $75 seeded to a NON-default 0x30 so a skipped inc (leaving 0x30) is caught even though
   // the correct result (0x31) is also nonzero. The twin advances $74 identically but never carries.
-  const s = { [loc_74]: 0xf0, [loc_75]: 0x30 };
+  const s = { [DRAW_CURSOR_LO]: 0xf0, [DRAW_CURSOR_HI]: 0x30 };
   const o = new Machine(ROM, OPTS); seed(o, s); o.regs.y = 0x20;
   const c = new Machine(ROM, OPTS); seed(c, s); c.regs.y = 0x20;
   const brokenNoCarry = (mm, y = mm.regs.y) => {
     // BUG: commits the low byte but never carries into $75.
-    const sum = mm.mem8[loc_74] + y + 1;
-    mm.mem8[loc_74] = sum;
+    const sum = mm.mem8[DRAW_CURSOR_LO] + y + 1;
+    mm.mem8[DRAW_CURSOR_LO] = sum;
   };
   oracle(o);
   brokenNoCarry(c, c.regs.y);
-  assert.equal(o.mem.read8(loc_75), 0x31, "precondition: oracle carried $75 0x30 -> 0x31");
+  assert.equal(o.mem.read8(DRAW_CURSOR_HI), 0x31, "precondition: oracle carried $75 0x30 -> 0x31");
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a dropped carry into $75");
 });

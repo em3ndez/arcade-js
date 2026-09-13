@@ -15,7 +15,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import { loc_a75d } from "../loc_a75d.js";
-import { STACK_SCRATCH, loc_29, loc_2c3, loc_2e3, loc_303, loc_323, loc_343, loc_363, loc_283 } from "../names.js";
+import { STACK_SCRATCH, loc_29, ENEMY_VEL1_LO, ENEMY_VEL0_LO, ENEMY_VEL2_LO, ENEMY_VEL1_HI, ENEMY_VEL0_HI, ENEMY_VEL2_HI, ENEMY_SLOT_FLAGS } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -53,9 +53,9 @@ test("CAPTURE: real 0xa721 dispatches -- loc_a721 == oracle in RAM (-stack)", ()
 // axis -> all three saturate ($29: 0xfd + 3 wraps to 0x00) -> the slot coord is zeroed.
 function seedSaturating(m) {
   m.regs.x = 0;
-  for (const b of [loc_2c3, loc_2e3, loc_303]) m.mem.write8(b, 0x00); // low bytes
-  for (const b of [loc_323, loc_343, loc_363]) m.mem.write8(b, 0x00); // whole bytes (0x0000 -> step crosses zero)
-  m.mem.write8(loc_283, 0x77); // dirty coord sentinel
+  for (const b of [ENEMY_VEL1_LO, ENEMY_VEL0_LO, ENEMY_VEL2_LO]) m.mem.write8(b, 0x00); // low bytes
+  for (const b of [ENEMY_VEL1_HI, ENEMY_VEL0_HI, ENEMY_VEL2_HI]) m.mem.write8(b, 0x00); // whole bytes (0x0000 -> step crosses zero)
+  m.mem.write8(ENEMY_SLOT_FLAGS, 0x77); // dirty coord sentinel
 }
 
 test("CRAFTED: three saturating axes -- RAM equal and the slot coord clears to 0", () => {
@@ -63,7 +63,7 @@ test("CRAFTED: three saturating axes -- RAM equal and the slot coord clears to 0
   const c = new Machine(ROM, OPTS); seedSaturating(c);
   oracle(o); loc_a721(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after step");
-  assert.equal(c.mem.read8(loc_283), 0x00, "coord cleared on full saturation");
+  assert.equal(c.mem.read8(ENEMY_SLOT_FLAGS), 0x00, "coord cleared on full saturation");
 });
 
 test("TEETH: a twin that skips the axis steps diverges from the oracle", () => {
@@ -79,10 +79,10 @@ test("TEETH: a twin that skips the axis steps diverges from the oracle", () => {
 // marshalling check -- a swapped (low,whole) arg to loc_a75d would diverge from the oracle here.
 function seedDistinct(m) {
   m.regs.x = 0;
-  m.mem.write8(loc_2c3, 0x03); m.mem.write8(loc_323, 0x41); // axis 0: low != whole, whole large -> no saturate
-  m.mem.write8(loc_2e3, 0x05); m.mem.write8(loc_343, 0x42); // axis 1
-  m.mem.write8(loc_303, 0x07); m.mem.write8(loc_363, 0x43); // axis 2
-  m.mem.write8(loc_283, 0x77);
+  m.mem.write8(ENEMY_VEL1_LO, 0x03); m.mem.write8(ENEMY_VEL1_HI, 0x41); // axis 0: low != whole, whole large -> no saturate
+  m.mem.write8(ENEMY_VEL0_LO, 0x05); m.mem.write8(ENEMY_VEL0_HI, 0x42); // axis 1
+  m.mem.write8(ENEMY_VEL2_LO, 0x07); m.mem.write8(ENEMY_VEL2_HI, 0x43); // axis 2
+  m.mem.write8(ENEMY_SLOT_FLAGS, 0x77);
 }
 
 test("CRAFTED (marshalling): distinct low!=whole per axis -- loc_a721 == oracle in RAM", () => {
@@ -99,14 +99,14 @@ test("TEETH (marshalling): a twin that swaps axis-0 (low,whole) args diverges fr
     const mem8 = m.mem8;
     mem8[loc_29] = 0xfd;
     // BUG: axis-0 args swapped (whole, low) instead of (low, whole)
-    { const [low, whole] = loc_a75d(m, mem8[u16(loc_323 + x)], mem8[u16(loc_2c3 + x)]);
-      mem8[u16(loc_2c3 + x)] = low; mem8[u16(loc_323 + x)] = whole; }
-    { const [low, whole] = loc_a75d(m, mem8[u16(loc_2e3 + x)], mem8[u16(loc_343 + x)]);
-      mem8[u16(loc_2e3 + x)] = low; mem8[u16(loc_343 + x)] = whole; }
-    { const [low, whole] = loc_a75d(m, mem8[u16(loc_303 + x)], mem8[u16(loc_363 + x)]);
-      mem8[u16(loc_303 + x)] = low; mem8[u16(loc_363 + x)] = whole; }
+    { const [low, whole] = loc_a75d(m, mem8[u16(ENEMY_VEL1_HI + x)], mem8[u16(ENEMY_VEL1_LO + x)]);
+      mem8[u16(ENEMY_VEL1_LO + x)] = low; mem8[u16(ENEMY_VEL1_HI + x)] = whole; }
+    { const [low, whole] = loc_a75d(m, mem8[u16(ENEMY_VEL0_LO + x)], mem8[u16(ENEMY_VEL0_HI + x)]);
+      mem8[u16(ENEMY_VEL0_LO + x)] = low; mem8[u16(ENEMY_VEL0_HI + x)] = whole; }
+    { const [low, whole] = loc_a75d(m, mem8[u16(ENEMY_VEL2_LO + x)], mem8[u16(ENEMY_VEL2_HI + x)]);
+      mem8[u16(ENEMY_VEL2_LO + x)] = low; mem8[u16(ENEMY_VEL2_HI + x)] = whole; }
     if (mem8[loc_29] !== 0) return;
-    mem8[u16(loc_283 + x)] = 0x00;
+    mem8[u16(ENEMY_SLOT_FLAGS + x)] = 0x00;
   };
   swappedTwin(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the swapped (low,whole) marshalling");
@@ -136,15 +136,15 @@ test("TEETH (live-out): a twin returning the wrong axis's whole diverges from or
     const { mem8 } = m;
     mem8[loc_29] = 0xfd;
     let whole0;
-    { const [low, whole] = loc_a75d(m, mem8[u16(loc_2c3 + x)], mem8[u16(loc_323 + x)]);
-      mem8[u16(loc_2c3 + x)] = low; mem8[u16(loc_323 + x)] = whole; whole0 = whole; }
-    { const [low, whole] = loc_a75d(m, mem8[u16(loc_2e3 + x)], mem8[u16(loc_343 + x)]);
-      mem8[u16(loc_2e3 + x)] = low; mem8[u16(loc_343 + x)] = whole; }
-    { const [low, whole] = loc_a75d(m, mem8[u16(loc_303 + x)], mem8[u16(loc_363 + x)]);
-      mem8[u16(loc_303 + x)] = low; mem8[u16(loc_363 + x)] = whole; }
+    { const [low, whole] = loc_a75d(m, mem8[u16(ENEMY_VEL1_LO + x)], mem8[u16(ENEMY_VEL1_HI + x)]);
+      mem8[u16(ENEMY_VEL1_LO + x)] = low; mem8[u16(ENEMY_VEL1_HI + x)] = whole; whole0 = whole; }
+    { const [low, whole] = loc_a75d(m, mem8[u16(ENEMY_VEL0_LO + x)], mem8[u16(ENEMY_VEL0_HI + x)]);
+      mem8[u16(ENEMY_VEL0_LO + x)] = low; mem8[u16(ENEMY_VEL0_HI + x)] = whole; }
+    { const [low, whole] = loc_a75d(m, mem8[u16(ENEMY_VEL2_LO + x)], mem8[u16(ENEMY_VEL2_HI + x)]);
+      mem8[u16(ENEMY_VEL2_LO + x)] = low; mem8[u16(ENEMY_VEL2_HI + x)] = whole; }
     // BUG: returns axis-0 whole (0x40) instead of the axis-2 exit whole (0x42).
     if (mem8[loc_29] !== 0) return whole0;
-    mem8[u16(loc_283 + x)] = 0x00;
+    mem8[u16(ENEMY_SLOT_FLAGS + x)] = 0x00;
     return whole0;
   };
   const ry = wrongTwin(c);

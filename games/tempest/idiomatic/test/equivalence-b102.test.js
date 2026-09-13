@@ -14,7 +14,7 @@ import { loc_b102 } from "../loc_b102.js";
 import { loc_b15a } from "../loc_b15a.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_14e, loc_14d, loc_1 } from "../names.js";
+import { STACK_SCRATCH, loc_14e, loc_14d, MODE_DISPATCH_SEL } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -40,7 +40,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 function seat(m, s = {}) {
   m.mem.write8(loc_14e, s.far ?? 0x00);
   m.mem.write8(loc_14d, s.near ?? 0x00);
-  m.mem.write8(loc_1, s.one ?? 0x00);
+  m.mem.write8(MODE_DISPATCH_SEL, s.one ?? 0x00);
 }
 
 test("CAPTURE: real 0xb102 dispatches -- loc_b102 == oracle in RAM (-stack, poly frozen)", () => {

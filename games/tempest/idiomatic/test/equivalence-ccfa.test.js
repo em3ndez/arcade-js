@@ -14,7 +14,7 @@ import { loc_ccfa } from "../loc_ccfa.js";
 import { loc_ccc7 } from "../loc_ccc7.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_31, loc_32, loc_c0 } from "../names.js";
+import { STACK_SCRATCH, loc_31, loc_32, SOUND_VOICE_VALUE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -60,7 +60,7 @@ test("CRAFTED: A=0xaf is registered regardless of caller A, caller X/Y land in $
   assert.equal(ramDiff(o, c), null, "RAM equal after fixed-id registration");
   assert.equal(c.mem.read8(loc_31), 0x5a, "$31 = caller X");
   assert.equal(c.mem.read8(loc_32), 0x3c, "$32 = caller Y");
-  assert.equal(c.mem.read8((loc_c0 + 1) & 0xffff), 0x50, "sound id 0xaf claimed slot 1");
+  assert.equal(c.mem.read8((SOUND_VOICE_VALUE + 1) & 0xffff), 0x50, "sound id 0xaf claimed slot 1");
 });
 
 test("TEETH: a twin that forwards caller A (not 0xaf) diverges from the oracle", () => {

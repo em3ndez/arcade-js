@@ -16,7 +16,7 @@ import { loc_df09 } from "../loc_df09.js";
 import { loc_df12 } from "../loc_df0d.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -42,8 +42,8 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 // tail's writes land in a seedable, comparable region.
 function seed(m, s = {}) {
   const ptr = s.ptr ?? 0x2500;
-  m.mem.write8(loc_74, ptr & 0xff);
-  m.mem.write8(loc_75, (ptr >> 8) & 0xff);
+  m.mem.write8(DRAW_CURSOR_LO, ptr & 0xff);
+  m.mem.write8(DRAW_CURSOR_HI, (ptr >> 8) & 0xff);
   return ptr;
 }
 

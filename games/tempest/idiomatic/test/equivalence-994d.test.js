@@ -15,8 +15,8 @@ import { loc_994d } from "../loc_994d.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_36, loc_11c, loc_2df, loc_29, loc_2a, loc_2b, loc_2c, loc_2d,
-  loc_2b9, loc_2cc, loc_2a6, loc_28a, loc_291, loc_108, loc_283, loc_142,
+  STACK_SCRATCH, SAVED_INDEX2, ENEMY_SLOT_TOP, ENEMY_DEPTH, loc_29, loc_2a, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI,
+  ENEMY_SEGMENT, ENEMY_PHASE, ENEMY_TIMER, ENEMY_SLOT_DIR, ENEMY_SCRIPT_CURSOR, ENEMY_TOTAL_COUNT, ENEMY_SLOT_FLAGS, LANE_ENEMY_COUNT_0,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -45,26 +45,26 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 // A free slot at index 1 (indices 3,2 occupied; 1 free). $2a=0x05 avoids the POKEY-random branch.
 function seedFree(m) {
   m.regs.y = 5; m.regs.x = 7;
-  m.mem.write8(loc_11c, 0x03);
-  m.mem.write8((loc_2df + 3) & 0xffff, 0x81);
-  m.mem.write8((loc_2df + 2) & 0xffff, 0x82);
-  m.mem.write8((loc_2df + 1) & 0xffff, 0x00);
+  m.mem.write8(ENEMY_SLOT_TOP, 0x03);
+  m.mem.write8((ENEMY_DEPTH + 3) & 0xffff, 0x81);
+  m.mem.write8((ENEMY_DEPTH + 2) & 0xffff, 0x82);
+  m.mem.write8((ENEMY_DEPTH + 1) & 0xffff, 0x00);
   m.mem.write8(loc_29, 0xaa);
   m.mem.write8(loc_2a, 0x05);
   m.mem.write8(loc_2b, 0x0b);
-  m.mem.write8(loc_2c, 0xcc);
-  m.mem.write8(loc_2d, 0xdd);
-  m.mem.write8(loc_108, 0x20);
-  m.mem.write8((loc_2a6 + 1) & 0xffff, 0x55); // sentinel the zero-store must clear
-  m.mem.write8((loc_142 + 3) & 0xffff, 0x40); // lane = 0x0b & 7 = 3
+  m.mem.write8(COORD_LIST_PTR_LO, 0xcc);
+  m.mem.write8(COORD_LIST_PTR_HI, 0xdd);
+  m.mem.write8(ENEMY_TOTAL_COUNT, 0x20);
+  m.mem.write8((ENEMY_TIMER + 1) & 0xffff, 0x55); // sentinel the zero-store must clear
+  m.mem.write8((LANE_ENEMY_COUNT_0 + 3) & 0xffff, 0x40); // lane = 0x0b & 7 = 3
 }
 
 // No free slot: indices 2..0 all occupied, count=2.
 function seedFull(m) {
   m.regs.y = 9; m.regs.x = 4;
-  m.mem.write8(loc_11c, 0x02);
-  for (let i = 0; i <= 2; i++) m.mem.write8((loc_2df + i) & 0xffff, 0x90 + i);
-  m.mem.write8(loc_108, 0x20);
+  m.mem.write8(ENEMY_SLOT_TOP, 0x02);
+  for (let i = 0; i <= 2; i++) m.mem.write8((ENEMY_DEPTH + i) & 0xffff, 0x90 + i);
+  m.mem.write8(ENEMY_TOTAL_COUNT, 0x20);
 }
 
 test("CAPTURE: real 0x994d dispatches -- loc_994d == oracle in RAM (-stack)", () => {
@@ -83,16 +83,16 @@ test("CRAFTED (free slot): loc_994d == oracle in RAM; slot 1 arrays seeded, coun
   assert.equal(ramDiff(o, c), null, "RAM equal after seed");
   assert.equal(c.regs.a, o.regs.a, "A live-out equal (oracle sets regs.a; module returns it)");
   assert.equal(rc, 0x10, "found -> A=0x10");
-  assert.equal(c.mem.read8((loc_2df + 1) & 0xffff), 0xaa, "$02df[1] = $29");
-  assert.equal(c.mem.read8((loc_2b9 + 1) & 0xffff), 0x05, "$02b9[1] = $2a");
-  assert.equal(c.mem.read8((loc_2cc + 1) & 0xffff), 0x06, "$02cc[1] = ($2a+1)&0x0f");
-  assert.equal(c.mem.read8((loc_2a6 + 1) & 0xffff), 0x00, "$02a6[1] cleared");
-  assert.equal(c.mem.read8((loc_28a + 1) & 0xffff), 0xcc, "$028a[1] = $2c");
-  assert.equal(c.mem.read8((loc_291 + 1) & 0xffff), 0xdd, "$0291[1] = $2d");
-  assert.equal(c.mem.read8((loc_283 + 1) & 0xffff), 0x0b, "$0283[1] = $2b");
-  assert.equal(c.mem.read8(loc_108), 0x21, "count incremented");
-  assert.equal(c.mem.read8((loc_142 + 3) & 0xffff), 0x41, "lane counter incremented");
-  assert.equal(c.mem.read8(loc_36), 0x07, "$36 = X on success");
+  assert.equal(c.mem.read8((ENEMY_DEPTH + 1) & 0xffff), 0xaa, "$02df[1] = $29");
+  assert.equal(c.mem.read8((ENEMY_SEGMENT + 1) & 0xffff), 0x05, "$02b9[1] = $2a");
+  assert.equal(c.mem.read8((ENEMY_PHASE + 1) & 0xffff), 0x06, "$02cc[1] = ($2a+1)&0x0f");
+  assert.equal(c.mem.read8((ENEMY_TIMER + 1) & 0xffff), 0x00, "$02a6[1] cleared");
+  assert.equal(c.mem.read8((ENEMY_SLOT_DIR + 1) & 0xffff), 0xcc, "$028a[1] = $2c");
+  assert.equal(c.mem.read8((ENEMY_SCRIPT_CURSOR + 1) & 0xffff), 0xdd, "$0291[1] = $2d");
+  assert.equal(c.mem.read8((ENEMY_SLOT_FLAGS + 1) & 0xffff), 0x0b, "$0283[1] = $2b");
+  assert.equal(c.mem.read8(ENEMY_TOTAL_COUNT), 0x21, "count incremented");
+  assert.equal(c.mem.read8((LANE_ENEMY_COUNT_0 + 3) & 0xffff), 0x41, "lane counter incremented");
+  assert.equal(c.mem.read8(SAVED_INDEX2), 0x07, "$36 = X on success");
 });
 
 test("CRAFTED (no free slot): loc_994d == oracle in RAM; returns A=0, count untouched", () => {
@@ -102,8 +102,8 @@ test("CRAFTED (no free slot): loc_994d == oracle in RAM; returns A=0, count unto
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.regs.a, o.regs.a, "A live-out equal (oracle sets regs.a; module returns it)");
   assert.equal(rc, 0x00, "none free -> A=0");
-  assert.equal(c.mem.read8(loc_108), 0x20, "count untouched");
-  assert.equal(c.mem.read8(loc_36), 0x09, "$36 = Y on failure");
+  assert.equal(c.mem.read8(ENEMY_TOTAL_COUNT), 0x20, "count untouched");
+  assert.equal(c.mem.read8(SAVED_INDEX2), 0x09, "$36 = Y on failure");
 });
 
 test("TEETH: a twin that skips the active-count increment diverges from the oracle", () => {
@@ -113,21 +113,21 @@ test("TEETH: a twin that skips the active-count increment diverges from the orac
   const broken = (m) => {
     const mem = m.mem8;
     let y = m.regs.y;
-    mem[loc_36] = y;
-    y = mem[loc_11c];
-    while (mem[(loc_2df + y) & 0xffff] !== 0) { y = (y - 1) & 0xff; if (y & 0x80) return; }
-    mem[(loc_2df + y) & 0xffff] = mem[loc_29];
+    mem[SAVED_INDEX2] = y;
+    y = mem[ENEMY_SLOT_TOP];
+    while (mem[(ENEMY_DEPTH + y) & 0xffff] !== 0) { y = (y - 1) & 0xff; if (y & 0x80) return; }
+    mem[(ENEMY_DEPTH + y) & 0xffff] = mem[loc_29];
     const a = mem[loc_2a];
-    mem[(loc_2b9 + y) & 0xffff] = a;
-    mem[(loc_2cc + y) & 0xffff] = (a + 1) & 0x0f;
-    mem[(loc_2a6 + y) & 0xffff] = 0x00;
-    mem[(loc_28a + y) & 0xffff] = mem[loc_2c];
-    mem[(loc_291 + y) & 0xffff] = mem[loc_2d];
+    mem[(ENEMY_SEGMENT + y) & 0xffff] = a;
+    mem[(ENEMY_PHASE + y) & 0xffff] = (a + 1) & 0x0f;
+    mem[(ENEMY_TIMER + y) & 0xffff] = 0x00;
+    mem[(ENEMY_SLOT_DIR + y) & 0xffff] = mem[COORD_LIST_PTR_LO];
+    mem[(ENEMY_SCRIPT_CURSOR + y) & 0xffff] = mem[COORD_LIST_PTR_HI];
     // BUG: never increments the active count at $0108
-    mem[(loc_283 + y) & 0xffff] = mem[loc_2b];
+    mem[(ENEMY_SLOT_FLAGS + y) & 0xffff] = mem[loc_2b];
     const lane = mem[loc_2b] & 0x07;
-    mem[loc_36] = m.regs.x;
-    mem[(loc_142 + lane) & 0xffff] = mem[(loc_142 + lane) & 0xffff] + 1;
+    mem[SAVED_INDEX2] = m.regs.x;
+    mem[(LANE_ENEMY_COUNT_0 + lane) & 0xffff] = mem[(LANE_ENEMY_COUNT_0 + lane) & 0xffff] + 1;
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped count increment");

@@ -15,7 +15,7 @@ import { loc_c473 as oracle } from "../../translated/loc_c473.js";
 import { loc_c473 } from "../loc_c473.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_59 } from "../names.js";
+import { STACK_SCRATCH, CLAMP_TALLY } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -67,7 +67,7 @@ test("CRAFTED: RAM + clamp-count A live-out match the oracle", () => {
   const cr = loc_c473(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
   assert.equal(c.regs.a, o.regs.a, "A (clamp count) equal via regs");
-  assert.equal(c.regs.a, c.mem.read8(loc_59), "returned A mirrors $59");
+  assert.equal(c.regs.a, c.mem.read8(CLAMP_TALLY), "returned A mirrors $59");
   assert.equal(cr, c.regs.a, "return value seats regs.a");
   void or;
 });

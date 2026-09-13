@@ -15,7 +15,7 @@ import { loc_dfb1 } from "../loc_dfb1.js";
 import { loc_df19 } from "../loc_df19.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -54,8 +54,8 @@ test("CAPTURE: real 0xdfb1 dispatches -- loc_dfb1 == oracle in RAM (-stack)", ()
 
 // ($74) -> 0x2400 vector RAM; seed the zeropage object run + A/Y registers, compare emitted list.
 function seed(m, a, y, bytes) {
-  m.mem.write8(loc_74, 0x00);
-  m.mem.write8(loc_75, 0x24);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00);
+  m.mem.write8(DRAW_CURSOR_HI, 0x24);
   for (const [addr, v] of bytes) m.mem.write8(addr & 0xff, v);
   m.regs.a = a;
   m.regs.y = y;

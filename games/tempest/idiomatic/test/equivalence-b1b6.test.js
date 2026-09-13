@@ -19,7 +19,7 @@ import { loc_b1b6 as oracle } from "../../translated/loc_b1b6.js";
 import { loc_b1b6 } from "../loc_b1b6.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_1, loc_16e, loc_b6, loc_2000, loc_cec4 } from "../names.js";
+import { STACK_SCRATCH, MODE_DISPATCH_SEL, SCORE_DISPLAY_TIMER, DRAW_RECORD_PTR_LO, VEC_LIST_HEADER_LO, VECHEAD0_PLAY } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -66,11 +66,11 @@ test("CAPTURE: real 0xb1b6 dispatches -- loc_b1b6 == oracle in RAM (-stack)", ()
 // differs from its checkpoint), mode nonzero, checkpoint helper reports no change (so the checksum path
 // runs), and the block under the active pointer is filled with a value that separates decimal from binary.
 function seedReachChecksum(m, { fill }) {
-  const cec4 = m.mem.read8(loc_cec4);           // 0xe4 in ROM; also != $cec6 (0xe6) so the guard is broken
-  m.mem.write8(loc_2000, cec4);                 // == $cec4 -> checkpoint helper returns no-change
-  m.mem.write8(loc_1, 0x00);                    // trampoline selector -> loc_b230 (a terminating dispatch)
-  m.mem.write8(loc_b6, 0x00);                   // active pointer -> 0x0500 (work RAM)
-  m.mem.write8(loc_b6 + 1, 0x05);
+  const cec4 = m.mem.read8(VECHEAD0_PLAY);           // 0xe4 in ROM; also != $cec6 (0xe6) so the guard is broken
+  m.mem.write8(VEC_LIST_HEADER_LO, cec4);                 // == $cec4 -> checkpoint helper returns no-change
+  m.mem.write8(MODE_DISPATCH_SEL, 0x00);                    // trampoline selector -> loc_b230 (a terminating dispatch)
+  m.mem.write8(DRAW_RECORD_PTR_LO, 0x00);                   // active pointer -> 0x0500 (work RAM)
+  m.mem.write8(DRAW_RECORD_PTR_LO + 1, 0x05);
   for (let i = 0; i < 0x28; i++) m.mem.write8(0x0500 + i, fill);
   return m;
 }
@@ -79,8 +79,8 @@ function craftMachine() {
   return new Machine(ROM, OPTS);
 }
 
-// NOTE: the D-set (decimal) checksum path is exercised only in the loc_16c!=0 mode, which loc_c891's sed
-// gates and which is NOT reached in the gameplay+attract capture (loc_16c is always 0 there), so it is a
+// NOTE: the D-set (decimal) checksum path is exercised only in the DECIMAL_MODE_FLAG!=0 mode, which loc_c891's sed
+// gates and which is NOT reached in the gameplay+attract capture (DECIMAL_MODE_FLAG is always 0 there), so it is a
 // dead/unreachable path in the shipped game. It also cannot be isolated in this per-routine test: loc_b1b6
 // now calls the real loc_b20d directly (the seam stub that once kept the checksum on the seeded block is
 // gone), and the live dispatch targets (loc_b230 et al.) are not themselves decimal-aware, so a full-frame
@@ -105,7 +105,7 @@ test("TEETH-SKIP: a twin that never latches the display words diverges from the 
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH-SKIP: oracle threw -- skipped"); return; }
-  const broken = (m) => { m.mem8[loc_16e] = 0x00; /* BUG: no housekeeping at all */ };
+  const broken = (m) => { m.mem8[SCORE_DISPLAY_TIMER] = 0x00; /* BUG: no housekeeping at all */ };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped housekeeping");
 });

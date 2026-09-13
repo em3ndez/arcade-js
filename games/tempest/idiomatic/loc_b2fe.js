@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import {
-  loc_3b, loc_3c, loc_415,
-  loc_ce8c, loc_ce8d, loc_ce9e, loc_ce9f, loc_ceb0, loc_ceb1,
+  WORK_PTR_LO, WORK_PTR_HI, POINTER_PARITY,
+  DRAW_BASE_PTR_LO, DRAW_BASE_PTR_HI, DRAW_PTR_EVEN_LO, DRAW_PTR_EVEN_HI, DRAW_PTR_ODD_LO, DRAW_PTR_ODD_HI,
 } from "./names.js";
 import { loc_df09 } from "./loc_df09.js";
 
@@ -13,19 +13,19 @@ export function loc_b2fe(m, a = m.regs.a) {
   loc_df09(m);
   const slot = a;
   const idx = (a << 1) & 0xff;
-  mem8[loc_3b] = mem8[u16(loc_ce8c + idx)];
-  mem8[loc_3c] = mem8[u16(loc_ce8d + idx)];
-  const parity = mem8[u16(loc_415 + slot)] ^ 0x01;
-  mem8[u16(loc_415 + slot)] = parity;
+  mem8[WORK_PTR_LO] = mem8[u16(DRAW_BASE_PTR_LO + idx)];
+  mem8[WORK_PTR_HI] = mem8[u16(DRAW_BASE_PTR_HI + idx)];
+  const parity = mem8[u16(POINTER_PARITY + slot)] ^ 0x01;
+  mem8[u16(POINTER_PARITY + slot)] = parity;
   let lo, hi;
   if (parity !== 0) {
-    lo = mem8[u16(loc_ceb0 + idx)];
-    hi = mem8[u16(loc_ceb1 + idx)];
+    lo = mem8[u16(DRAW_PTR_ODD_LO + idx)];
+    hi = mem8[u16(DRAW_PTR_ODD_HI + idx)];
   } else {
-    lo = mem8[u16(loc_ce9e + idx)];
-    hi = mem8[u16(loc_ce9f + idx)];
+    lo = mem8[u16(DRAW_PTR_EVEN_LO + idx)];
+    hi = mem8[u16(DRAW_PTR_EVEN_HI + idx)];
   }
-  const dst = mem16[loc_3b];
+  const dst = mem16[WORK_PTR_LO];
   mem8[u16(dst)] = lo;
   mem8[u16(dst + 1)] = hi;
 }

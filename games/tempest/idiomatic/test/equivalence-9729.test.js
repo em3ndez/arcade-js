@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_9729 (ROM 0x9729-0x9748) -- the per-frame update chain. It clears bit7 of
-// loc_123, runs the five state updaters loc_9749/loc_97f8/loc_a416/loc_a23f/loc_a18f in order, then when
-// loc_201 is negative (bit7 set) runs loc_a504. It is a plain call-and-return routine (no computed
+// SPIKED_SEGMENT_COUNT, runs the five state updaters loc_9749/loc_97f8/loc_a416/loc_a23f/loc_a18f in order, then when
+// PLAYER_FINE_ANGLE is negative (bit7 set) runs loc_a504. It is a plain call-and-return routine (no computed
 // dispatch, no tail delegate) that leaves no value a caller reads back, so the contract is RAM only
 // (dumpState minus STACK_SCRATCH); no register is compared and there is no seam tooth. Oracle is the
 // frozen translated loc_9729.
@@ -15,7 +15,7 @@ import { loc_9729 as oracle } from "../../translated/loc_9729.js";
 import { loc_9729 } from "../loc_9729.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_123, loc_201 } from "../names.js";
+import { STACK_SCRATCH, SPIKED_SEGMENT_COUNT, PLAYER_FINE_ANGLE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -54,22 +54,22 @@ test("CAPTURE: real 0x9729 dispatches -- loc_9729 == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// loc_201 negative -> the two flag-guarded updaters (loc_9749, loc_97f8) early-return and the extra
-// updater loc_a504 runs; loc_123 has bit7 set so the signature clear is observable.
+// PLAYER_FINE_ANGLE negative -> the two flag-guarded updaters (loc_9749, loc_97f8) early-return and the extra
+// updater loc_a504 runs; SPIKED_SEGMENT_COUNT has bit7 set so the signature clear is observable.
 function seedExtra(m) {
-  m.mem.write8(loc_123, 0xff); // bit7 set -> the clear must land
-  m.mem.write8(loc_201, 0x80); // negative -> loc_a504 runs, loc_9749/loc_97f8 skip
+  m.mem.write8(SPIKED_SEGMENT_COUNT, 0xff); // bit7 set -> the clear must land
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x80); // negative -> loc_a504 runs, loc_9749/loc_97f8 skip
   m.regs.x = 0x00; m.regs.y = 0x00;
 }
 
-// loc_201 positive -> loc_9749/loc_97f8 run their bodies and loc_a504 is skipped.
+// PLAYER_FINE_ANGLE positive -> loc_9749/loc_97f8 run their bodies and loc_a504 is skipped.
 function seedBodies(m) {
-  m.mem.write8(loc_123, 0xc4); // bit7 set -> clear observable, low bits survive
-  m.mem.write8(loc_201, 0x00); // positive -> updaters run, loc_a504 skipped
+  m.mem.write8(SPIKED_SEGMENT_COUNT, 0xc4); // bit7 set -> clear observable, low bits survive
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x00); // positive -> updaters run, loc_a504 skipped
   m.regs.x = 0x00; m.regs.y = 0x00;
 }
 
-test("CRAFTED: loc_201 negative -- chain runs, loc_a504 fires, RAM equal", () => {
+test("CRAFTED: PLAYER_FINE_ANGLE negative -- chain runs, loc_a504 fires, RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedExtra(o);
   const c = new Machine(ROM, OPTS); seedExtra(c);
   let threw = false;
@@ -77,11 +77,11 @@ test("CRAFTED: loc_201 negative -- chain runs, loc_a504 fires, RAM equal", () =>
   if (threw) { console.log("  CRAFTED(extra): oracle threw on this seed -- skipped"); return; }
   loc_9729(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the chain + loc_a504");
-  assert.equal(c.mem.read8(loc_123), o.mem.read8(loc_123), "loc_123 matches the oracle");
-  assert.equal(c.mem.read8(loc_123) & 0x80, 0, "bit7 of loc_123 cleared");
+  assert.equal(c.mem.read8(SPIKED_SEGMENT_COUNT), o.mem.read8(SPIKED_SEGMENT_COUNT), "SPIKED_SEGMENT_COUNT matches the oracle");
+  assert.equal(c.mem.read8(SPIKED_SEGMENT_COUNT) & 0x80, 0, "bit7 of SPIKED_SEGMENT_COUNT cleared");
 });
 
-test("CRAFTED: loc_201 positive -- updaters run, loc_a504 skipped, RAM equal", () => {
+test("CRAFTED: PLAYER_FINE_ANGLE positive -- updaters run, loc_a504 skipped, RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedBodies(o);
   const c = new Machine(ROM, OPTS); seedBodies(c);
   let threw = false;
@@ -89,21 +89,21 @@ test("CRAFTED: loc_201 positive -- updaters run, loc_a504 skipped, RAM equal", (
   if (threw) { console.log("  CRAFTED(bodies): oracle threw on this seed -- skipped"); return; }
   loc_9729(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the update chain");
-  assert.equal(c.mem.read8(loc_123) & 0x80, 0, "bit7 of loc_123 cleared");
+  assert.equal(c.mem.read8(SPIKED_SEGMENT_COUNT) & 0x80, 0, "bit7 of SPIKED_SEGMENT_COUNT cleared");
 });
 
-test("TEETH: a twin that skips the bit7 clear of loc_123 MUST diverge in RAM", () => {
+test("TEETH: a twin that skips the bit7 clear of SPIKED_SEGMENT_COUNT MUST diverge in RAM", () => {
   const o = new Machine(ROM, OPTS); seedExtra(o);
   const c = new Machine(ROM, OPTS); seedExtra(c);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
-  // Broken twin: identical to loc_9729 but restores loc_123's original value, dropping the signature
-  // clear. loc_123 was seeded with bit7 set, so the dropped clear guarantees a RAM divergence.
+  // Broken twin: identical to loc_9729 but restores SPIKED_SEGMENT_COUNT's original value, dropping the signature
+  // clear. SPIKED_SEGMENT_COUNT was seeded with bit7 set, so the dropped clear guarantees a RAM divergence.
   const broken = (m) => {
-    const before123 = m.mem.read8(loc_123);
+    const before123 = m.mem.read8(SPIKED_SEGMENT_COUNT);
     loc_9729(m);
-    m.mem.write8(loc_123, before123); // BUG: revert the bit7 clear
+    m.mem.write8(SPIKED_SEGMENT_COUNT, before123); // BUG: revert the bit7 clear
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the dropped bit7 clear was NOT caught by the RAM compare");

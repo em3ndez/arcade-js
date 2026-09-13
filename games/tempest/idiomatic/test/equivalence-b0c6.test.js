@@ -14,7 +14,7 @@ import { loc_b0c6 } from "../loc_b0c6.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { loc_91b5 } from "../loc_91b5.js";
-import { STACK_SCRATCH, loc_2a, loc_2b, loc_74 } from "../names.js";
+import { STACK_SCRATCH, loc_2a, loc_2b, DRAW_CURSOR_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,7 +52,7 @@ test("CAPTURE: real 0xb0c6 dispatches -- loc_b0c6 == oracle in RAM (-stack)", ()
 // into vector RAM makes the three-byte emit land in the diffed region. X is the input (default bridge).
 function seed(m, xVal) {
   m.regs.x = xVal;
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_74 + 1, 0x21); // ($74) -> 0x2100 (vector RAM, diffed)
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x21); // ($74) -> 0x2100 (vector RAM, diffed)
 }
 
 test("CRAFTED: index X=0x02 selects a pointer and emits three bytes -- RAM equal", () => {
@@ -81,7 +81,7 @@ test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_74 + 1, 0x21);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x21);
   const r = seamPlaceable(withOmittedRet, loc_b0c6, TARGET, m);
   assert.equal(r.placeable, true, `loc_b0c6 must be seam-placeable; got: ${r.error}`);
 });

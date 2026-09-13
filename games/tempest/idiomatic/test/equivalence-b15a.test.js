@@ -14,7 +14,7 @@ import { loc_b15a as oracle } from "../../translated/loc_b15a.js";
 import { loc_b15a } from "../loc_b15a.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_56, loc_57 } from "../names.js";
+import { STACK_SCRATCH, PROJ_PT_Y, OBJ_DEPTH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -55,8 +55,8 @@ test("CRAFTED: a chosen A/X input is stashed and marshalled identically to the o
   c.regs.a = 0x5a; c.regs.x = 0xa5;
   oracle(o); loc_b15a(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the crafted input");
-  assert.equal(c.mem.read8(loc_57), 0x5a, "$57 holds the stashed A");
-  assert.equal(c.mem.read8(loc_56), 0xa5, "$56 holds the stashed X");
+  assert.equal(c.mem.read8(OBJ_DEPTH), 0x5a, "$57 holds the stashed A");
+  assert.equal(c.mem.read8(PROJ_PT_Y), 0xa5, "$56 holds the stashed X");
 });
 
 test("TEETH: a twin that stashes nothing and emits nothing diverges from the oracle", () => {

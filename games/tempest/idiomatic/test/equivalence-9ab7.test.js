@@ -14,7 +14,7 @@ import { loc_9ab7 } from "../loc_9a9d.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_29, loc_2b, loc_2c, loc_2d, loc_9afd, loc_9b02 } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI, LIST_PTR_TABLE_HI, LIST_PTR_TABLE_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,7 +52,7 @@ test("CAPTURE: real 0x9ab7 dispatches -- loc_9ab7 == oracle in RAM (-stack) and 
 function seed(m, a29) {
   m.regs.a = 0x00; m.regs.y = 0x77; // incoming A/Y are dead -- the entry sets its own index
   m.mem.write8(loc_29, a29);
-  m.mem.write8(loc_2c, 0xa1); m.mem.write8(loc_2b, 0xa2); m.mem.write8(loc_2d, 0xa3); // dirty sentinels
+  m.mem.write8(COORD_LIST_PTR_LO, 0xa1); m.mem.write8(loc_2b, 0xa2); m.mem.write8(COORD_LIST_PTR_HI, 0xa3); // dirty sentinels
 }
 
 test("CRAFTED: index-3 pointer-pair seated and A reloaded -- RAM and A equal", () => {
@@ -62,8 +62,8 @@ test("CRAFTED: index-3 pointer-pair seated and A reloaded -- RAM and A equal", (
   assert.equal(ramDiff(o, c), null, "RAM equal after setup");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.mem.read8(loc_2b), 0x03, "$2b holds the index");
-  assert.equal(c.mem.read8(loc_2c), o.mem.read8(loc_2c), "$2c low pointer matches oracle");
-  assert.equal(c.mem.read8(loc_2d), o.mem.read8(loc_2d), "$2d high pointer matches oracle");
+  assert.equal(c.mem.read8(COORD_LIST_PTR_LO), o.mem.read8(COORD_LIST_PTR_LO), "$2c low pointer matches oracle");
+  assert.equal(c.mem.read8(COORD_LIST_PTR_HI), o.mem.read8(COORD_LIST_PTR_HI), "$2d high pointer matches oracle");
   assert.equal(c.regs.a, 0x42, "A reloaded from $29");
 });
 
@@ -73,8 +73,8 @@ test("MUTATION: a twin that skips the index stash diverges from the oracle in RA
   oracle(o);
   const broken = (m) => {
     const { mem8 } = m;
-    mem8[loc_2c] = mem8[u16(loc_9b02 + 0x03)];
-    mem8[loc_2d] = mem8[u16(loc_9afd + 0x03)];
+    mem8[COORD_LIST_PTR_LO] = mem8[u16(LIST_PTR_TABLE_LO + 0x03)];
+    mem8[COORD_LIST_PTR_HI] = mem8[u16(LIST_PTR_TABLE_HI + 0x03)];
     // BUG: never stashes the index, so the $2b sentinel survives
     m.regs.a = mem8[loc_29];
   };

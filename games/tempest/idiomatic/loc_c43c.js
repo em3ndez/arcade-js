@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
-import { loc_37, loc_35a, loc_36a, loc_37a, loc_38a, loc_61, loc_62, loc_63, loc_64 } from "./names.js";
+import { SLOT_LOOP_INDEX, OBJ_DY_HI, OBJ_DY_LO, OBJ_DX_HI, OBJ_DX_LO, PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI } from "./names.js";
 
 // Read the current slot index and copy that column of four parallel tables into the working block.
 export function loc_c43c(m) {
   const { mem8 } = m;
-  const x = mem8[loc_37];
-  mem8[loc_61] = mem8[u16(loc_36a + x)];
-  mem8[loc_62] = mem8[u16(loc_35a + x)];
-  mem8[loc_63] = mem8[u16(loc_38a + x)];
-  mem8[loc_64] = mem8[u16(loc_37a + x)];
+  const x = mem8[SLOT_LOOP_INDEX];
+  mem8[PROJ_Y_LO] = mem8[u16(OBJ_DY_LO + x)];
+  mem8[PROJ_Y_HI] = mem8[u16(OBJ_DY_HI + x)];
+  mem8[PROJ_X_LO] = mem8[u16(OBJ_DX_LO + x)];
+  mem8[PROJ_X_HI] = mem8[u16(OBJ_DX_HI + x)];
   return;
 }

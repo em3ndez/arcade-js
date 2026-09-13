@@ -14,7 +14,7 @@ import { loc_926f as oracle } from "../../translated/loc_926f.js";
 import { loc_926f } from "../loc_926f.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_108, loc_109, loc_145, loc_142, loc_144, loc_143, loc_146 } from "../names.js";
+import { STACK_SCRATCH, ENEMY_TOTAL_COUNT, ENEMY_TYPE_COUNT, LANE_ENEMY_COUNT_3, LANE_ENEMY_COUNT_0, LANE_ENEMY_COUNT_2, LANE_ENEMY_COUNT_1, LANE_ENEMY_COUNT_4 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -27,7 +27,7 @@ const OPTS = { vectorrom: opt("vectorrom.bin"), avgprom: opt("avgprom.bin") };
 const test = ROM_PRESENT ? nodeTest : (name, fn) => nodeTest(name, { skip: "ROM not built" }, fn);
 
 const TARGET = 0x926f;
-const FLAGS = [loc_108, loc_109, loc_145, loc_142, loc_144, loc_143, loc_146];
+const FLAGS = [ENEMY_TOTAL_COUNT, ENEMY_TYPE_COUNT, LANE_ENEMY_COUNT_3, LANE_ENEMY_COUNT_0, LANE_ENEMY_COUNT_2, LANE_ENEMY_COUNT_1, LANE_ENEMY_COUNT_4];
 const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
@@ -71,7 +71,7 @@ test("TEETH: a rewrite that skips clearing $146 diverges from the oracle", () =>
   oracle(o);
   const brokenSkip146 = (m) => { // BUG: clears the array and six flags but leaves $146 dirty
     for (let x = 0x06; x >= 0; x--) m.mem8[(0x02df + x) & 0xffff] = 0x00;
-    for (const a of [loc_108, loc_109, loc_145, loc_142, loc_144, loc_143]) m.mem8[a] = 0x00;
+    for (const a of [ENEMY_TOTAL_COUNT, ENEMY_TYPE_COUNT, LANE_ENEMY_COUNT_3, LANE_ENEMY_COUNT_0, LANE_ENEMY_COUNT_2, LANE_ENEMY_COUNT_1]) m.mem8[a] = 0x00;
   };
   brokenSkip146(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped $146 clear");

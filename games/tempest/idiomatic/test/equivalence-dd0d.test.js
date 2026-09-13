@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_dd0d (ROM 0xdd0d-0xdd26) -- builds the spinner/pot readout vector list: a fixed
-// header word, a zero-tagged word, an eight-digit run keyed by (loc_d00), a second run keyed by (loc_e00),
+// header word, a zero-tagged word, an eight-digit run keyed by (DSW1_COINAGE), a second run keyed by (DSW2_OPTIONS),
 // then loc_dbe0 (pulses the POKEY pot-scan trigger $60db -- DISCARDED by the board, so the A fed in is
-// unobservable in RAM -- and returns the assembled pot-status byte from loc_60d8/loc_60c8), whose result
+// unobservable in RAM -- and returns the assembled pot-status byte from POKEY2_AUDCTL/POKEY1_AUDCTL), whose result
 // keys a final eight-digit run via Y. loc_dd0d is UNREACHED in the capture, so this is CRAFTED-only.
 // Live-out is RAM (dumpState minus STACK_SCRATCH) plus A/Y. Oracle is the frozen translated loc_dd0d.
 // Run: node --test games/tempest/idiomatic/test/equivalence-dd0d.test.js
@@ -20,7 +20,7 @@ import { loc_dd27 } from "../loc_dd27.js";
 import { loc_dbe0 } from "../loc_dbe0.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75, loc_d00, loc_e00, loc_60d8, loc_60c8 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI, DSW1_COINAGE, DSW2_OPTIONS, POKEY2_AUDCTL, POKEY1_AUDCTL } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -58,10 +58,10 @@ test("CAPTURE: real 0xdd0d dispatches (if any) -- loc_dd0d == oracle in RAM (-st
 });
 
 function seed(m) {
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20); // display-list cursor -> vector RAM 0x2000
-  // loc_d00 (0x0d00) / loc_e00 (0x0e00) are read-only DIP-switch input ports; both clones read the same
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); // display-list cursor -> vector RAM 0x2000
+  // DSW1_COINAGE (0x0d00) / DSW2_OPTIONS (0x0e00) are read-only DIP-switch input ports; both clones read the same
   // configured default through the port, so no seeding is needed (and write8 there would throw).
-  m.mem.write8(loc_60d8, 0x05); m.mem.write8(loc_60c8, 0x20); // loc_dbe0's pot-status inputs
+  m.mem.write8(POKEY2_AUDCTL, 0x05); m.mem.write8(POKEY1_AUDCTL, 0x20); // loc_dbe0's pot-status inputs
 }
 
 test("CRAFTED: full readout build -- RAM and A/Y equal to the oracle", () => {
@@ -70,10 +70,10 @@ test("CRAFTED: full readout build -- RAM and A/Y equal to the oracle", () => {
   oracle(o); loc_dd0d(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the readout build");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
-  assert.notEqual(c.mem.read8(loc_74), 0x00, "the cursor advanced (words were emitted)");
+  assert.notEqual(c.mem.read8(DRAW_CURSOR_LO), 0x00, "the cursor advanced (words were emitted)");
 });
 
-test("TEETH: a twin that skips loc_dbe0 (its loc_37 pot-status write) diverges from the oracle in RAM", () => {
+test("TEETH: a twin that skips loc_dbe0 (its SLOT_LOOP_INDEX pot-status write) diverges from the oracle in RAM", () => {
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
@@ -81,9 +81,9 @@ test("TEETH: a twin that skips loc_dbe0 (its loc_37 pot-status write) diverges f
     const { mem8 } = m;
     loc_df53(m);
     loc_df6a(m, 0x00);
-    loc_dd29(m, mem8[loc_d00], 0xe8);
-    const a = loc_dd27(m, mem8[loc_e00]);
-    // BUG: skips loc_dbe0 entirely, so its loc_37 = (loc_60d8 & 7) write never happens
+    loc_dd29(m, mem8[DSW1_COINAGE], 0xe8);
+    const a = loc_dd27(m, mem8[DSW2_OPTIONS]);
+    // BUG: skips loc_dbe0 entirely, so its SLOT_LOOP_INDEX = (POKEY2_AUDCTL & 7) write never happens
     return loc_dd27(m, a);
   };
   broken(c);

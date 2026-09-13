@@ -16,8 +16,8 @@ import { loc_a97f } from "../loc_a97f.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_2b, loc_3d, loc_5, loc_2f60, loc_48, loc_38, loc_00, loc_3b, loc_3c,
-  loc_3284, loc_3286, loc_cdde,
+  STACK_SCRATCH, loc_2b, loc_3d, STATUS_FLAGS, VEC_GLYPH_BUFFER, SLOT_COUNTDOWN, TABLE_CURSOR, GAME_MODE, WORK_PTR_LO, WORK_PTR_HI,
+  BAR_GLYPH_LOW, BAR_GLYPH_HIGH, MARKERROW_HEAD_OFS,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -45,16 +45,16 @@ function seat(m, s = {}) {
   m.regs.y = s.y ?? 1;
   m.regs.x = 0x00;
   m.mem.write8(loc_3d, s.c3d ?? 0x05);
-  m.mem.write8(loc_5, s.c5 ?? 0x00);
-  m.mem.write8(loc_00, s.c00 ?? 0x00);
-  m.mem.write8(loc_3284, s.g0 ?? 0xaa);
-  m.mem.write8(loc_3286, s.g1 ?? 0xbb);
+  m.mem.write8(STATUS_FLAGS, s.c5 ?? 0x00);
+  m.mem.write8(GAME_MODE, s.c00 ?? 0x00);
+  m.mem.write8(BAR_GLYPH_LOW, s.g0 ?? 0xaa);
+  m.mem.write8(BAR_GLYPH_HIGH, s.g1 ?? 0xbb);
   const cnt = s.cnt ?? [0, 3, 3, 3, 3, 3, 3, 3];
-  for (let i = 0; i < 8; i++) m.mem.write8((loc_48 + i) & 0xffff, cnt[i]);
-  m.mem.write8(loc_38, 0x00);
+  for (let i = 0; i < 8; i++) m.mem.write8((SLOT_COUNTDOWN + i) & 0xffff, cnt[i]);
+  m.mem.write8(TABLE_CURSOR, 0x00);
   m.mem.write8(loc_2b, 0x00);
-  m.mem.write8(loc_3b, 0x00);
-  m.mem.write8(loc_3c, 0x00);
+  m.mem.write8(WORK_PTR_LO, 0x00);
+  m.mem.write8(WORK_PTR_HI, 0x00);
 }
 
 test("CAPTURE: real 0xa97f dispatches -- loc_a97f == oracle in RAM (-stack)", () => {
@@ -91,8 +91,8 @@ test("TEETH: a twin that skips the head-zero + emit tail diverges (RAM + cursor)
     const { mem8 } = m;
     mem8[loc_2b] = y;
     const a = 0x0c | 0x70; // head NOT zeroed
-    const x = mem8[(loc_cdde + y) & 0xffff];
-    mem8[(loc_2f60 + x) & 0xffff] = a;
+    const x = mem8[(MARKERROW_HEAD_OFS + y) & 0xffff];
+    mem8[(VEC_GLYPH_BUFFER + x) & 0xffff] = a;
   };
   broken(c, s.y);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped emit tail");

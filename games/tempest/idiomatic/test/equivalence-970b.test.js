@@ -66,7 +66,7 @@ test("CRAFTED: a fresh-machine frame -- loc_970b == oracle in RAM (skip on oracl
 });
 
 test("TEETH: a twin that DROPS the loc_9b1e pass MUST diverge from the oracle in RAM", () => {
-  // Seed loc_148/loc_147 so loc_9b1e's accumulate is observable (a fresh frame leaves it inert).
+  // Seed ENEMY_ANIM_ACCUM/ENEMY_ANIM_DELTA so loc_9b1e's accumulate is observable (a fresh frame leaves it inert).
   const seed = (m) => { m.mem.write8(0x0148, 0x10); m.mem.write8(0x0147, 0x05); };
   const o = new Machine(ROM, OPTS); seed(o);
   let threw = false;

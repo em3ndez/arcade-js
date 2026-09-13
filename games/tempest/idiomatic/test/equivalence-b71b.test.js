@@ -16,7 +16,7 @@ import { loc_b71b } from "../loc_b71b.js";
 import { loc_bda0 } from "../loc_bda0.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_9e, loc_148, loc_57, loc_5b, loc_5f, loc_283, loc_2b9 } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_9e, ENEMY_ANIM_ACCUM, OBJ_DEPTH, DEPTH_LO, DEPTH_HI, ENEMY_SLOT_FLAGS, ENEMY_SEGMENT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -41,22 +41,22 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 const SLOT = 0x03;
 // Seed the bdcb early-out so segment emission stays deterministic: $5b bit7 clear and $57 < $5f.
 function seatCommon(m, c148) {
-  m.mem.write8(loc_5b, 0x00);
-  m.mem.write8(loc_57, 0x00);
-  m.mem.write8(loc_5f, 0x01);
-  m.mem.write8(loc_148, c148);
+  m.mem.write8(DEPTH_LO, 0x00);
+  m.mem.write8(OBJ_DEPTH, 0x00);
+  m.mem.write8(DEPTH_HI, 0x01);
+  m.mem.write8(ENEMY_ANIM_ACCUM, c148);
 }
 function seatPos(m, c148 = 0x30) {
   m.regs.x = SLOT;
   seatCommon(m, c148);
-  m.mem.write8((loc_283 + SLOT) & 0xffff, 0x10);  // bit7 clear -> bda0 path
-  m.mem.write8((loc_2b9 + SLOT) & 0xffff, 0x02);  // corner
+  m.mem.write8((ENEMY_SLOT_FLAGS + SLOT) & 0xffff, 0x10);  // bit7 clear -> bda0 path
+  m.mem.write8((ENEMY_SEGMENT + SLOT) & 0xffff, 0x02);  // corner
 }
 function seatNeg(m, c148 = 0xb0) {
   m.regs.x = SLOT;
   seatCommon(m, c148);
-  m.mem.write8((loc_283 + SLOT) & 0xffff, 0x80);  // bit7 set -> b634 + bdcb path
-  m.mem.write8((loc_2b9 + SLOT) & 0xffff, 0x02);
+  m.mem.write8((ENEMY_SLOT_FLAGS + SLOT) & 0xffff, 0x80);  // bit7 set -> b634 + bdcb path
+  m.mem.write8((ENEMY_SEGMENT + SLOT) & 0xffff, 0x02);
 }
 
 test("CAPTURE: real 0xb71b dispatches -- loc_b71b == oracle in RAM (-stack)", () => {
@@ -89,11 +89,11 @@ test("TEETH: a twin that inverts the $9e sign latch writes the wrong run flag an
   oracle(o);
   const broken = (m, x = m.regs.x) => {
     const { mem8 } = m;
-    mem8[loc_9e] = (mem8[loc_148] & 0x80) ? 0x00 : 0x04;  // BUG: inverted -> $9e = 0
-    let idx = ((mem8[loc_148] + 0x40) & 0xff) >> 4;
+    mem8[loc_9e] = (mem8[ENEMY_ANIM_ACCUM] & 0x80) ? 0x00 : 0x04;  // BUG: inverted -> $9e = 0
+    let idx = ((mem8[ENEMY_ANIM_ACCUM] + 0x40) & 0xff) >> 4;
     if (idx >= 0x05) idx = 0x00;
     mem8[loc_29] = mem8[(0xb755 + idx) & 0xffff];
-    const corner = mem8[(loc_2b9 + x) & 0xffff];
+    const corner = mem8[(ENEMY_SEGMENT + x) & 0xffff];
     loc_bda0(m, mem8[loc_29], corner);
   };
   broken(c);

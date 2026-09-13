@@ -15,7 +15,7 @@ import { loc_df75 } from "../loc_df75.js";
 import { loc_df92 } from "../loc_df92.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_6e, loc_6f, loc_70, loc_71, loc_73, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, VEC_DELTA_Y_LO, DRAW_DELTA_A_HI, DRAW_DELTA_B_LO, DRAW_DELTA_B_HI, VG_RECORD_HEADER, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -55,9 +55,9 @@ test("CAPTURE: real 0xdf75 dispatches -- loc_df75 == oracle in RAM (-stack)", ()
 function seedRecord(m) {
   m.regs.a = 0x37;
   m.regs.x = 0xa5;
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20); // ($74) -> 0x2000
-  m.mem.write8(loc_73, 0x04); // key folded through df92's last byte
-  for (const c of [loc_6e, loc_6f, loc_70, loc_71]) m.mem.write8(c, 0xee); // dirty sentinels
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); // ($74) -> 0x2000
+  m.mem.write8(VG_RECORD_HEADER, 0x04); // key folded through df92's last byte
+  for (const c of [VEC_DELTA_Y_LO, DRAW_DELTA_A_HI, DRAW_DELTA_B_LO, DRAW_DELTA_B_HI]) m.mem.write8(c, 0xee); // dirty sentinels
 }
 
 test("CRAFTED: pairs widened at $6e/$6f, $70/$71 then record emitted -- loc_df75 == oracle in RAM", () => {
@@ -65,10 +65,10 @@ test("CRAFTED: pairs widened at $6e/$6f, $70/$71 then record emitted -- loc_df75
   const c = new Machine(ROM, OPTS); seedRecord(c);
   oracle(o); loc_df75(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after widen + emit");
-  assert.equal(c.mem.read8(loc_6e), 0xdc, "$6e = (0x37<<2)&0xff");
-  assert.equal(c.mem.read8(loc_6f), 0x00, "$6f = A sign-extended (positive)");
-  assert.equal(c.mem.read8(loc_70), 0x94, "$70 = (0xa5<<2)&0xff");
-  assert.equal(c.mem.read8(loc_71), 0xfe, "$71 = X sign-extended (negative)");
+  assert.equal(c.mem.read8(VEC_DELTA_Y_LO), 0xdc, "$6e = (0x37<<2)&0xff");
+  assert.equal(c.mem.read8(DRAW_DELTA_A_HI), 0x00, "$6f = A sign-extended (positive)");
+  assert.equal(c.mem.read8(DRAW_DELTA_B_LO), 0x94, "$70 = (0xa5<<2)&0xff");
+  assert.equal(c.mem.read8(DRAW_DELTA_B_HI), 0xfe, "$71 = X sign-extended (negative)");
 });
 
 test("TEETH: a twin that skips the X pair (marshalling) diverges from the oracle", () => {
@@ -77,8 +77,8 @@ test("TEETH: a twin that skips the X pair (marshalling) diverges from the oracle
   const brokenDf75 = (m, a = m.regs.a) => {
     const { mem8 } = m;
     // BUG: only widens A; leaves $70/$71 dirty, then emits the record anyway
-    mem8[loc_6e] = (a << 2) & 0xff;
-    mem8[loc_6f] = (a & 0x80 ? 0xff : 0x00) & 0xff;
+    mem8[VEC_DELTA_Y_LO] = (a << 2) & 0xff;
+    mem8[DRAW_DELTA_A_HI] = (a & 0x80 ? 0xff : 0x00) & 0xff;
     return loc_df92(m, 0x6e);
   };
   brokenDf75(c);
@@ -90,9 +90,9 @@ test("TEETH: a twin that skips the X pair (marshalling) diverges from the oracle
 function seedMut(m) {
   m.regs.a = 0xc3;
   m.regs.x = 0x9b;
-  m.mem.write8(loc_74, 0x40); m.mem.write8(loc_75, 0x24); // ($74) -> 0x2440
-  m.mem.write8(loc_73, 0x1a);
-  for (const c of [loc_6e, loc_6f, loc_70, loc_71]) m.mem.write8(c, 0x11);
+  m.mem.write8(DRAW_CURSOR_LO, 0x40); m.mem.write8(DRAW_CURSOR_HI, 0x24); // ($74) -> 0x2440
+  m.mem.write8(VG_RECORD_HEADER, 0x1a);
+  for (const c of [VEC_DELTA_Y_LO, DRAW_DELTA_A_HI, DRAW_DELTA_B_LO, DRAW_DELTA_B_HI]) m.mem.write8(c, 0x11);
 }
 
 test("MUTATION: non-default seed -- loc_df75 == oracle in RAM", () => {
@@ -108,8 +108,8 @@ test("MUTATION TEETH: a twin that shifts by one instead of two diverges from the
   const brokenScale = (m, a = m.regs.a, x = m.regs.x) => {
     const { mem8 } = m;
     // BUG: single shift (<<1) instead of the /4-scale (<<2)
-    mem8[loc_6e] = (a << 1) & 0xff; mem8[loc_6f] = (a & 0x80 ? 0xff : 0x00) & 0xff;
-    mem8[loc_70] = (x << 1) & 0xff; mem8[loc_71] = (x & 0x80 ? 0xff : 0x00) & 0xff;
+    mem8[VEC_DELTA_Y_LO] = (a << 1) & 0xff; mem8[DRAW_DELTA_A_HI] = (a & 0x80 ? 0xff : 0x00) & 0xff;
+    mem8[DRAW_DELTA_B_LO] = (x << 1) & 0xff; mem8[DRAW_DELTA_B_HI] = (x & 0x80 ? 0xff : 0x00) & 0xff;
     return loc_df92(m, 0x6e);
   };
   brokenScale(c);

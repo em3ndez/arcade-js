@@ -13,7 +13,7 @@ import { loc_c453 as oracle } from "../../translated/loc_c453.js";
 import { loc_c453 } from "../loc_c453.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_57, loc_5b, loc_5f } from "../names.js";
+import { STACK_SCRATCH, OBJ_DEPTH, DEPTH_LO, DEPTH_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -39,9 +39,9 @@ function captureDispatches(K, maxFrames) {
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 const seed = (m, guard, m57, m5f) => {
-  m.mem.write8(loc_5b, guard);
-  m.mem.write8(loc_57, m57);
-  m.mem.write8(loc_5f, m5f);
+  m.mem.write8(DEPTH_LO, guard);
+  m.mem.write8(OBJ_DEPTH, m57);
+  m.mem.write8(DEPTH_HI, m5f);
 };
 // [guard, $57, $5f]: guarded, far-above (no bump), below (bump), close-above (bump), clamp ceiling.
 const CASES = [
@@ -65,7 +65,7 @@ test("CRAFTED: guard/window/clamp branches all match the oracle in RAM", () => {
     oracle(o); loc_c453(c);
     const label = `g=${g} $57=0x${s57.toString(16)} $5f=0x${s5f.toString(16)}`;
     assert.equal(ramDiff(o, c), null, `RAM diverged: ${label}`);
-    assert.equal(c.mem.read8(loc_57), o.mem.read8(loc_57), `$57 diverged: ${label}`);
+    assert.equal(c.mem.read8(OBJ_DEPTH), o.mem.read8(OBJ_DEPTH), `$57 diverged: ${label}`);
   }
 });
 
@@ -74,7 +74,7 @@ test("TEETH: a twin that never applies the 0xf0 cap diverges from the oracle", (
   const o = new Machine(ROM, OPTS); seed(o, g, s57, s5f);
   const c = new Machine(ROM, OPTS); seed(c, g, s57, s5f);
   oracle(o);
-  const broken = (m) => { m.mem8[loc_57] = (m.mem8[loc_5f] + 0x0f) & 0xff; }; // BUG: no ceiling -> 0x0e
+  const broken = (m) => { m.mem8[OBJ_DEPTH] = (m.mem8[DEPTH_HI] + 0x0f) & 0xff; }; // BUG: no ceiling -> 0x0e
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the missing 0xf0 cap");
 });

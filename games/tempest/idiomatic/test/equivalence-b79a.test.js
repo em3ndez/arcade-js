@@ -14,8 +14,8 @@ import { loc_b79a } from "../loc_b79a.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_9e, loc_9f, loc_37, loc_720, loc_1ff,
-  loc_30a, loc_2fa, loc_302, loc_312, loc_74, loc_75,
+  STACK_SCRATCH, loc_9e, loc_9f, SLOT_LOOP_INDEX, loc_720, HIGH_LEVEL_MARKER,
+  SHAPE_ACTIVE, SHAPE_COORD, SHAPE_ID, SHAPE_ANIM, DRAW_CURSOR_LO, DRAW_CURSOR_HI,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -53,17 +53,17 @@ test("CAPTURE: real 0xb79a dispatches -- loc_b79a == oracle in RAM (-stack)", ()
 // Slot 0 non-empty shape 0 (bcfd path); slot 1 non-empty shape 1 (b7eb path); the rest empty.
 // Cursor into vector RAM so both emit paths write to a diffed region.
 function seedSlots(m, flag720, saved9f) {
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20); // ($74) -> 0x2000
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); // ($74) -> 0x2000
   for (let i = 0; i < 8; i++) {
-    m.mem.write8((loc_30a + i) & 0xffff, 0x00);
-    m.mem.write8((loc_2fa + i) & 0xffff, 0x00);
-    m.mem.write8((loc_302 + i) & 0xffff, 0x00);
-    m.mem.write8((loc_312 + i) & 0xffff, 0x00);
+    m.mem.write8((SHAPE_ACTIVE + i) & 0xffff, 0x00);
+    m.mem.write8((SHAPE_COORD + i) & 0xffff, 0x00);
+    m.mem.write8((SHAPE_ID + i) & 0xffff, 0x00);
+    m.mem.write8((SHAPE_ANIM + i) & 0xffff, 0x00);
   }
-  m.mem.write8((loc_30a + 0) & 0xffff, 0x44); m.mem.write8((loc_2fa + 0) & 0xffff, 0x02);
-  m.mem.write8((loc_302 + 0) & 0xffff, 0x00); m.mem.write8((loc_312 + 0) & 0xffff, 0x30);
-  m.mem.write8((loc_30a + 1) & 0xffff, 0x55); m.mem.write8((loc_2fa + 1) & 0xffff, 0x01);
-  m.mem.write8((loc_302 + 1) & 0xffff, 0x01);
+  m.mem.write8((SHAPE_ACTIVE + 0) & 0xffff, 0x44); m.mem.write8((SHAPE_COORD + 0) & 0xffff, 0x02);
+  m.mem.write8((SHAPE_ID + 0) & 0xffff, 0x00); m.mem.write8((SHAPE_ANIM + 0) & 0xffff, 0x30);
+  m.mem.write8((SHAPE_ACTIVE + 1) & 0xffff, 0x55); m.mem.write8((SHAPE_COORD + 1) & 0xffff, 0x01);
+  m.mem.write8((SHAPE_ID + 1) & 0xffff, 0x01);
   m.mem.write8(loc_720, flag720);
   m.mem.write8(loc_9f, saved9f);
 }
@@ -74,8 +74,8 @@ test("CRAFTED: mixed slots + $0720 set, $9f>=0x0d -- RAM equal and $01ff latched
   oracle(o); loc_b79a(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after slot walk + latch");
   assert.equal(c.mem.read8(loc_9e), 0x00, "$9e cleared");
-  assert.equal(c.mem.read8(loc_37), 0xff, "$37 counter wrapped to 0xff");
-  assert.equal(c.mem.read8(loc_1ff), 0x20, "$01ff latched from $9f");
+  assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xff, "$37 counter wrapped to 0xff");
+  assert.equal(c.mem.read8(HIGH_LEVEL_MARKER), 0x20, "$01ff latched from $9f");
 });
 
 test("CRAFTED: $9f below threshold -- no latch; RAM equal", () => {
@@ -92,10 +92,10 @@ test("TEETH: a twin that skips the final $01ff latch diverges from the oracle", 
   const o = new Machine(ROM, OPTS); seedSlots(o, 0x01, 0x20); oracle(o);
   const c = new Machine(ROM, OPTS); seedSlots(c, 0x01, 0x20);
   loc_b79a(c);
-  assert.equal(o.mem.read8(loc_1ff), 0x20, "oracle must latch $01ff from $9f");
-  assert.equal(c.mem.read8(loc_1ff), o.mem.read8(loc_1ff), "module must reproduce the $01ff latch");
-  c.mem.write8(loc_1ff, 0x00); // BUG: undo the latch the oracle performed
-  assert.notEqual(c.mem.read8(loc_1ff), o.mem.read8(loc_1ff), "skipping the $01ff latch must diverge");
+  assert.equal(o.mem.read8(HIGH_LEVEL_MARKER), 0x20, "oracle must latch $01ff from $9f");
+  assert.equal(c.mem.read8(HIGH_LEVEL_MARKER), o.mem.read8(HIGH_LEVEL_MARKER), "module must reproduce the $01ff latch");
+  c.mem.write8(HIGH_LEVEL_MARKER, 0x00); // BUG: undo the latch the oracle performed
+  assert.notEqual(c.mem.read8(HIGH_LEVEL_MARKER), o.mem.read8(HIGH_LEVEL_MARKER), "skipping the $01ff latch must diverge");
 });
 
 test("SP-TOOTH: the omitted-ret routine (moved 0) is seam-placeable", () => {

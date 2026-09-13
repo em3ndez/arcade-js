@@ -13,7 +13,7 @@ import { loc_c73c as oracle } from "../../translated/loc_c73c.js";
 import { loc_c73c } from "../loc_c73c.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_a9, loc_61, loc_62, loc_63, loc_64, loc_6a, loc_6b, loc_6c, loc_6d, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_OFFSET, PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI, PREV_Y_LO, PREV_Y_HI, PREV_X_LO, PREV_X_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -40,12 +40,12 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 // base 0x0300, cursor 0x10; ($1234-$0211)=0x1023 -> 23,10 ; ($0200-$0001)=0x01ff -> ff,a1
 const seed = (m) => {
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x03);
-  m.mem.write8(loc_a9, 0x10);
-  m.mem.write8(loc_63, 0x34); m.mem.write8(loc_64, 0x12);
-  m.mem.write8(loc_6c, 0x11); m.mem.write8(loc_6d, 0x02);
-  m.mem.write8(loc_61, 0x00); m.mem.write8(loc_62, 0x02);
-  m.mem.write8(loc_6a, 0x01); m.mem.write8(loc_6b, 0x00);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x03);
+  m.mem.write8(DRAW_CURSOR_OFFSET, 0x10);
+  m.mem.write8(PROJ_X_LO, 0x34); m.mem.write8(PROJ_X_HI, 0x12);
+  m.mem.write8(PREV_X_LO, 0x11); m.mem.write8(PREV_X_HI, 0x02);
+  m.mem.write8(PROJ_Y_LO, 0x00); m.mem.write8(PROJ_Y_HI, 0x02);
+  m.mem.write8(PREV_Y_LO, 0x01); m.mem.write8(PREV_Y_HI, 0x00);
 };
 
 test("CAPTURE: real 0xc73c dispatches -- loc_c73c == oracle in RAM (-stack)", () => {
@@ -66,7 +66,7 @@ test("CRAFTED: two 16-bit deltas stored at $0310.. and $a9 advanced by four", ()
   assert.equal(c.mem.read8(0x0311), 0x10, "delta1 hi (5-bit)");
   assert.equal(c.mem.read8(0x0312), 0xff, "delta2 lo");
   assert.equal(c.mem.read8(0x0313), 0xa1, "delta2 hi (5-bit | 0xa0)");
-  assert.equal(c.mem.read8(loc_a9), 0x14, "$a9 advanced by four");
+  assert.equal(c.mem.read8(DRAW_CURSOR_OFFSET), 0x14, "$a9 advanced by four");
 });
 
 test("TEETH: a twin that skips the 0xa0 on the second high byte diverges from the oracle", () => {
@@ -75,15 +75,15 @@ test("TEETH: a twin that skips the 0xa0 on the second high byte diverges from th
   oracle(o);
   const broken = (m) => {
     const mem = m.mem8;
-    let y = mem[loc_a9];
-    const base = mem[loc_74] | (mem[loc_75] << 8);
-    const d1 = ((mem[loc_63] | (mem[loc_64] << 8)) - (mem[loc_6c] | (mem[loc_6d] << 8))) & 0xffff;
+    let y = mem[DRAW_CURSOR_OFFSET];
+    const base = mem[DRAW_CURSOR_LO] | (mem[DRAW_CURSOR_HI] << 8);
+    const d1 = ((mem[PROJ_X_LO] | (mem[PROJ_X_HI] << 8)) - (mem[PREV_X_LO] | (mem[PREV_X_HI] << 8))) & 0xffff;
     mem[(base + y) & 0xffff] = d1 & 0xff; y = (y + 1) & 0xff;
     mem[(base + y) & 0xffff] = (d1 >> 8) & 0x1f; y = (y + 1) & 0xff;
-    const d2 = ((mem[loc_61] | (mem[loc_62] << 8)) - (mem[loc_6a] | (mem[loc_6b] << 8))) & 0xffff;
+    const d2 = ((mem[PROJ_Y_LO] | (mem[PROJ_Y_HI] << 8)) - (mem[PREV_Y_LO] | (mem[PREV_Y_HI] << 8))) & 0xffff;
     mem[(base + y) & 0xffff] = d2 & 0xff; y = (y + 1) & 0xff;
     mem[(base + y) & 0xffff] = (d2 >> 8) & 0x1f; y = (y + 1) & 0xff; // BUG: dropped | 0xa0
-    mem[loc_a9] = y;
+    mem[DRAW_CURSOR_OFFSET] = y;
   };
   broken(c);
   const d = ramDiff(o, c);

@@ -14,7 +14,7 @@ import { loc_a7d2 as oracle } from "../../translated/loc_a7d2.js";
 import { loc_a7d2 } from "../loc_a7d2.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_37, loc_115, loc_3fe } from "../names.js";
+import { STACK_SCRATCH, loc_29, SLOT_LOOP_INDEX, SPIKE_TABLE_GUARD, loc_3fe } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -40,7 +40,7 @@ function captureDispatches(K, maxFrames) {
 const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 const seedTable = (m, ref, vals) => {
-  m.mem.write8(loc_115, ref);
+  m.mem.write8(SPIKE_TABLE_GUARD, ref);
   for (let i = 0; i < 8; i++) m.mem.write8(loc_3fe + i, vals[i]);
   m.mem.write8(loc_29, 0x33); // dirty accumulator
 };
@@ -60,8 +60,8 @@ test("CRAFTED: negative reference -- shrink/rail/neighbour mix leaves a nonzero 
   const c = new Machine(ROM, OPTS); seedTable(c, 0x80, vals);
   oracle(o); loc_a7d2(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after remap");
-  assert.equal(c.mem.read8(loc_37), 0xff, "$37 loop counter ran to 0xff");
-  assert.equal(c.mem.read8(loc_115), 0x80, "$0115 kept (fold was nonzero)");
+  assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xff, "$37 loop counter ran to 0xff");
+  assert.equal(c.mem.read8(SPIKE_TABLE_GUARD), 0x80, "$0115 kept (fold was nonzero)");
 });
 
 test("CRAFTED: positive reference, all mid entries -> every result 0 -> $0115 cleared", () => {
@@ -71,7 +71,7 @@ test("CRAFTED: positive reference, all mid entries -> every result 0 -> $0115 cl
   oracle(o); loc_a7d2(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after remap");
   assert.equal(c.mem.read8(loc_29), 0x00, "fold is zero");
-  assert.equal(c.mem.read8(loc_115), 0x00, "$0115 cleared");
+  assert.equal(c.mem.read8(SPIKE_TABLE_GUARD), 0x00, "$0115 cleared");
 });
 
 test("CRAFTED: zero reference is a no-op (RAM untouched)", () => {
@@ -90,19 +90,19 @@ test("TEETH: a twin that never clears $0115 on an all-zero fold diverges", () =>
   oracle(o);
   const brokenA7d2 = (m) => {
     const mem8 = m.mem8;
-    if (mem8[loc_115] === 0) return;
+    if (mem8[SPIKE_TABLE_GUARD] === 0) return;
     let acc = 0;
     for (let x = 7; x >= 0; x--) {
       const entry = mem8[(loc_3fe + x) & 0xffff];
       let result;
-      if (entry === 0) result = (mem8[loc_115] & 0x80) ? 0xf0 : 0; // (neighbour path elided for the mutation)
+      if (entry === 0) result = (mem8[SPIKE_TABLE_GUARD] & 0x80) ? 0xf0 : 0; // (neighbour path elided for the mutation)
       else if (entry >= 0x17) result = entry - 7;
-      else result = mem8[loc_115] & 0x80 ? 0xf0 : 0;
+      else result = mem8[SPIKE_TABLE_GUARD] & 0x80 ? 0xf0 : 0;
       mem8[(loc_3fe + x) & 0xffff] = result;
       acc |= result;
     }
     mem8[loc_29] = acc;
-    mem8[loc_37] = 0xff;
+    mem8[SLOT_LOOP_INDEX] = 0xff;
     // BUG: never clears $0115 even when acc === 0
   };
   brokenA7d2(c);

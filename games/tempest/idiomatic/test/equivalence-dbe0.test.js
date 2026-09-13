@@ -15,7 +15,7 @@ import { loc_dbe0 as oracle } from "../../translated/loc_dbe0.js";
 import { loc_dbe0 } from "../loc_dbe0.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_37 } from "../names.js";
+import { STACK_SCRATCH, SLOT_LOOP_INDEX } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,18 +50,18 @@ test("CAPTURE: real 0xdbe0 dispatches -- loc_dbe0 == oracle in RAM (-stack)", ()
 });
 
 test("CRAFTED: $0037 = low 3 bits of the ALLPOT read (0 on a fresh POKEY), and the return matches", () => {
-  const seed = (m) => { m.regs.a = 0x5a; m.mem.write8(loc_37, 0x99); }; // 0x99 sentinel, 0x5a incoming
+  const seed = (m) => { m.regs.a = 0x5a; m.mem.write8(SLOT_LOOP_INDEX, 0x99); }; // 0x99 sentinel, 0x5a incoming
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const rc = loc_dbe0(c, 0x5a);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
-  assert.equal(c.mem.read8(loc_37), 0x00, "$0037 = low 3 bits of ALLPOT (0 on a fresh POKEY)");
+  assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0x00, "$0037 = low 3 bits of ALLPOT (0 on a fresh POKEY)");
   assert.equal(rc, o.regs.a, "return value matches the oracle's A");
 });
 
 test("TEETH: a twin that skips the $0037 store diverges from the oracle (non-default sentinel bites)", () => {
-  const seed = (m) => { m.regs.a = 0x5a; m.mem.write8(loc_37, 0x99); };
+  const seed = (m) => { m.regs.a = 0x5a; m.mem.write8(SLOT_LOOP_INDEX, 0x99); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);

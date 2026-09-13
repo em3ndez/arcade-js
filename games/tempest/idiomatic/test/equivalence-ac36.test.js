@@ -13,7 +13,7 @@ import { loc_ac36 as oracle } from "../../translated/loc_ac36.js";
 import { loc_ac36 } from "../loc_ac36.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_1c9 } from "../names.js";
+import { STACK_SCRATCH, PENDING_WORK_FLAGS } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -58,12 +58,12 @@ test("CRAFTED: bits 0-1 set in $01c9, other bits preserved; A = merged value", (
     { seed: 0xfc }, // 1111_1100 -> 1111_1111 = 0xff
   ];
   for (const { seed: sv } of cases) {
-    const o = new Machine(ROM, OPTS); seed(o, { [loc_1c9]: sv });
-    const c = new Machine(ROM, OPTS); seed(c, { [loc_1c9]: sv });
+    const o = new Machine(ROM, OPTS); seed(o, { [PENDING_WORK_FLAGS]: sv });
+    const c = new Machine(ROM, OPTS); seed(c, { [PENDING_WORK_FLAGS]: sv });
     oracle(o); const ret = loc_ac36(c);
     const tag = `seed=0x${sv.toString(16)}`;
     assert.equal(ramDiff(o, c), null, `RAM: ${tag}`);
-    assert.equal(c.mem.read8(loc_1c9), sv | 0x03, `bits 0-1 set, rest kept: ${tag}`);
+    assert.equal(c.mem.read8(PENDING_WORK_FLAGS), sv | 0x03, `bits 0-1 set, rest kept: ${tag}`);
     assert.equal(c.regs.a, o.regs.a, `A matches oracle: ${tag}`);
     assert.equal(ret, o.regs.a, `return value == A live-out: ${tag}`);
   }
@@ -71,16 +71,16 @@ test("CRAFTED: bits 0-1 set in $01c9, other bits preserved; A = merged value", (
 
 test("TEETH: a twin that skips the ora diverges (non-default seed)", () => {
   const sv = 0x84;
-  const o = new Machine(ROM, OPTS); seed(o, { [loc_1c9]: sv });
+  const o = new Machine(ROM, OPTS); seed(o, { [PENDING_WORK_FLAGS]: sv });
   oracle(o);
-  assert.notEqual(o.mem.read8(loc_1c9), sv, "precondition: oracle raised bits off the seed");
+  assert.notEqual(o.mem.read8(PENDING_WORK_FLAGS), sv, "precondition: oracle raised bits off the seed");
   const brokenCell = sv; // BUG: never OR-ed $03 in
-  assert.notEqual(brokenCell, o.mem.read8(loc_1c9), "the RAM diff FAILED to catch a skipped ora");
+  assert.notEqual(brokenCell, o.mem.read8(PENDING_WORK_FLAGS), "the RAM diff FAILED to catch a skipped ora");
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
-  m.mem.write8(loc_1c9, 0x84);
+  m.mem.write8(PENDING_WORK_FLAGS, 0x84);
   m.regs.s = 0xff;
   m.push16(0xabcd); // a real caller-return word on the 6502 page-1 stack
   const r = seamPlaceable(withOmittedRet, loc_ac36, TARGET, m);

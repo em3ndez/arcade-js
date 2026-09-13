@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_98a2 (ROM 0x98a2-0x9922) -- the slot-timer scan over loc_243 (slot 63..0). It
-// zeroes loc_14f, sets the gate byte loc_2f (0xff when loc_108+loc_109 overshoots loc_11c or loc_125 is set),
+// Memory-equivalence for loc_98a2 (ROM 0x98a2-0x9922) -- the slot-timer scan over OBJECT_RECORD_TABLE (slot 63..0). It
+// zeroes SPIKE_LANE_MASK_ACC, sets the gate byte loc_2f (0xff when ENEMY_TOTAL_COUNT+ENEMY_TYPE_COUNT overshoots ENEMY_SLOT_TOP or WAVE_PHASE_LATCH is set),
 // then for each active slot ages the timer (unless the gate is raised), fires loc_9923 on expiry, re-arms on
-// the 0x3f boundary when the loc_14f/loc_ca38 mask hits, accumulates the loc_ca38[loc_203] bit into loc_14f
-// for timers in [0x20,0x40), advances loc_203 (mod 16) for timers >= 0x40 on even loc_3 frames, and finally
-// copies loc_14f -> loc_150. The caller (the per-frame dispatcher) reads no exit register, so the contract is
+// the 0x3f boundary when the SPIKE_LANE_MASK_ACC/SLOT_BIT_MASK mask hits, accumulates the SLOT_BIT_MASK[OBJECT_INDEX_TABLE] bit into SPIKE_LANE_MASK_ACC
+// for timers in [0x20,0x40), advances OBJECT_INDEX_TABLE (mod 16) for timers >= 0x40 on even FRAME_COUNTER frames, and finally
+// copies SPIKE_LANE_MASK_ACC -> SPIKE_LANE_MASK_OUT. The caller (the per-frame dispatcher) reads no exit register, so the contract is
 // RAM only (dumpState minus STACK_SCRATCH); there are no live-out registers. The oracle's JSR to loc_9923 is
 // a plain subroutine call, dissolved to a direct loc_9923(m, slot); loc_98a2 itself RTSs, so no seam tooth.
 // Oracle is the frozen translated loc_98a2.
@@ -20,7 +20,7 @@ import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_2f, loc_3, loc_108, loc_109, loc_11c, loc_125, loc_14f, loc_150, loc_203, loc_243,
+  loc_2f, FRAME_COUNTER, ENEMY_TOTAL_COUNT, ENEMY_TYPE_COUNT, ENEMY_SLOT_TOP, WAVE_PHASE_LATCH, SPIKE_LANE_MASK_ACC, SPIKE_LANE_MASK_OUT, OBJECT_INDEX_TABLE, OBJECT_RECORD_TABLE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -60,18 +60,18 @@ test("CAPTURE: real 0x98a2 dispatches -- loc_98a2 == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// Gate clear (sum 2 < loc_11c, loc_125 = 0) so ageing runs; loc_3 even so the >=0x40 branch advances loc_203.
+// Gate clear (sum 2 < ENEMY_SLOT_TOP, WAVE_PHASE_LATCH = 0) so ageing runs; FRAME_COUNTER even so the >=0x40 branch advances OBJECT_INDEX_TABLE.
 // Slots exercise: mask-accumulation [0x20,0x40), the 0x40 re-arm boundary, a sub-0x20 age, and an expiry.
 function seed(m) {
-  m.mem.write8(loc_108, 0x01);
-  m.mem.write8(loc_109, 0x01);
-  m.mem.write8(loc_11c, 0x10); // sum 0x02 < 0x10 -> gate stays clear from this test
-  m.mem.write8(loc_125, 0x00);
-  m.mem.write8(loc_3, 0x00);   // even -> the timer>=0x40 branch advances loc_203
-  m.mem.write8(loc_243 + 0x30, 0x25); // ages to 0x24, lands in [0x20,0x40) -> mask accumulate
-  m.mem.write8(loc_243 + 0x20, 0x40); // ages to 0x3f (re-arm boundary), then classified
-  m.mem.write8(loc_243 + 0x10, 0x02); // ages to 0x01, below 0x20 -> no mask
-  m.mem.write8(loc_243 + 0x05, 0x01); // expires -> loc_9923 fires
+  m.mem.write8(ENEMY_TOTAL_COUNT, 0x01);
+  m.mem.write8(ENEMY_TYPE_COUNT, 0x01);
+  m.mem.write8(ENEMY_SLOT_TOP, 0x10); // sum 0x02 < 0x10 -> gate stays clear from this test
+  m.mem.write8(WAVE_PHASE_LATCH, 0x00);
+  m.mem.write8(FRAME_COUNTER, 0x00);   // even -> the timer>=0x40 branch advances OBJECT_INDEX_TABLE
+  m.mem.write8(OBJECT_RECORD_TABLE + 0x30, 0x25); // ages to 0x24, lands in [0x20,0x40) -> mask accumulate
+  m.mem.write8(OBJECT_RECORD_TABLE + 0x20, 0x40); // ages to 0x3f (re-arm boundary), then classified
+  m.mem.write8(OBJECT_RECORD_TABLE + 0x10, 0x02); // ages to 0x01, below 0x20 -> no mask
+  m.mem.write8(OBJECT_RECORD_TABLE + 0x05, 0x01); // expires -> loc_9923 fires
 }
 
 test("CRAFTED: gate-clear scan with mask/re-arm/expiry slots -- RAM equal", () => {
@@ -82,20 +82,20 @@ test("CRAFTED: gate-clear scan with mask/re-arm/expiry slots -- RAM equal", () =
   if (threw) { console.log("  CRAFTED: oracle threw on this seed -- skipped"); return; }
   loc_98a2(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the full scan");
-  // loc_150 is the routine's signature copy of loc_14f.
-  assert.equal(c.mem.read8(loc_150), c.mem.read8(loc_14f), "loc_150 mirrors loc_14f");
-  assert.equal(c.mem.read8(loc_150), o.mem.read8(loc_150), "loc_150 matches the oracle");
-  assert.equal(c.mem.read8(loc_243 + 0x10), 0x01, "the sub-0x20 slot aged 0x02 -> 0x01");
+  // SPIKE_LANE_MASK_OUT is the routine's signature copy of SPIKE_LANE_MASK_ACC.
+  assert.equal(c.mem.read8(SPIKE_LANE_MASK_OUT), c.mem.read8(SPIKE_LANE_MASK_ACC), "SPIKE_LANE_MASK_OUT mirrors SPIKE_LANE_MASK_ACC");
+  assert.equal(c.mem.read8(SPIKE_LANE_MASK_OUT), o.mem.read8(SPIKE_LANE_MASK_OUT), "SPIKE_LANE_MASK_OUT matches the oracle");
+  assert.equal(c.mem.read8(OBJECT_RECORD_TABLE + 0x10), 0x01, "the sub-0x20 slot aged 0x02 -> 0x01");
 });
 
-test("CRAFTED gate-raised: loc_125 set freezes ageing -- RAM equal, timers untouched", () => {
+test("CRAFTED gate-raised: WAVE_PHASE_LATCH set freezes ageing -- RAM equal, timers untouched", () => {
   const s = (m) => {
-    m.mem.write8(loc_108, 0x01);
-    m.mem.write8(loc_109, 0x01);
-    m.mem.write8(loc_11c, 0x10);
-    m.mem.write8(loc_125, 0x01);        // raises the gate loc_2f = 0xff
-    m.mem.write8(loc_243 + 0x30, 0x25); // stays >= 0x20 -> mask accumulate, but never aged
-    m.mem.write8(loc_243 + 0x10, 0x02);
+    m.mem.write8(ENEMY_TOTAL_COUNT, 0x01);
+    m.mem.write8(ENEMY_TYPE_COUNT, 0x01);
+    m.mem.write8(ENEMY_SLOT_TOP, 0x10);
+    m.mem.write8(WAVE_PHASE_LATCH, 0x01);        // raises the gate loc_2f = 0xff
+    m.mem.write8(OBJECT_RECORD_TABLE + 0x30, 0x25); // stays >= 0x20 -> mask accumulate, but never aged
+    m.mem.write8(OBJECT_RECORD_TABLE + 0x10, 0x02);
   };
   const o = new Machine(ROM, OPTS); s(o);
   const c = new Machine(ROM, OPTS); s(c);
@@ -104,7 +104,7 @@ test("CRAFTED gate-raised: loc_125 set freezes ageing -- RAM equal, timers untou
   if (threw) { console.log("  gate-raised: oracle threw -- skipped"); return; }
   loc_98a2(c);
   assert.equal(ramDiff(o, c), null, "RAM equal with the gate raised");
-  assert.equal(c.mem.read8(loc_243 + 0x30), 0x25, "gated slot NOT aged");
+  assert.equal(c.mem.read8(OBJECT_RECORD_TABLE + 0x30), 0x25, "gated slot NOT aged");
   assert.equal(c.mem.read8(loc_2f), 0xff, "gate byte raised");
 });
 
@@ -117,9 +117,9 @@ test("TEETH: a twin that skips one slot's age MUST diverge in RAM", () => {
   // Broken twin: run the real routine, then revert one active slot's decrement. With the gate clear an
   // active slot is unconditionally aged, so reverting it alone guarantees a RAM divergence.
   const broken = (m) => {
-    const before10 = m.mem.read8(loc_243 + 0x10); // 0x02 pre-run
+    const before10 = m.mem.read8(OBJECT_RECORD_TABLE + 0x10); // 0x02 pre-run
     loc_98a2(m);
-    m.mem.write8(loc_243 + 0x10, before10);       // BUG: undo the 0x02 -> 0x01 age
+    m.mem.write8(OBJECT_RECORD_TABLE + 0x10, before10);       // BUG: undo the 0x02 -> 0x01 age
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the skipped age was NOT caught by the RAM compare");

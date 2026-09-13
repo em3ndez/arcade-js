@@ -1,50 +1,50 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
 import {
-  loc_38, loc_3b, loc_3c, loc_7a, loc_7b, loc_7d,
-  loc_5000, loc_60c4, loc_60c5, loc_60ca, loc_60da,
+  TABLE_CURSOR, WORK_PTR_LO, WORK_PTR_HI, SEG_SPREAD_A_LO_2, SEG_SPREAD_A_LO_3, SEG_SPREAD_A_LO_5,
+  WATCHDOG_CLEAR, POKEY1_AUDF3, POKEY1_AUDC3, POKEY1_RANDOM, POKEY2_RANDOM,
 } from "./names.js";
 import { loc_da62 } from "./loc_da62.js";
 
 // Power-on checksum + entropy settle. Walks 12 banks (8 pages each), XORing every byte into a per-bank
 // checksum seeded with the bank index; the pointer high byte starts at 0x30, then jumps to the high
 // window at bank 2. Each page strobes the watchdog cell. The 12 checksums land in consecutive cells from
-// loc_7d; if bank 0's is nonzero it arms the error tone. Then it settles each entropy register: sample
+// SEG_SPREAD_A_LO_5; if bank 0's is nonzero it arms the error tone. Then it settles each entropy register: sample
 // once, and store it only if six consecutive re-reads all match. Tail-delegates to the self-test loop.
 export function loc_da0a(m) {
   const { mem8 } = m;
 
-  mem8[loc_3b] = 0;      // bank pointer low byte (stays 0 -- pages are 256-aligned)
-  mem8[loc_3c] = 0x30;   // bank pointer high byte -> first bank
+  mem8[WORK_PTR_LO] = 0;      // bank pointer low byte (stays 0 -- pages are 256-aligned)
+  mem8[WORK_PTR_HI] = 0x30;   // bank pointer high byte -> first bank
 
   let offset = 0;        // byte offset within a page, shared across banks (always 0 at bank entry)
   let bank = 0;
   do {
-    mem8[loc_38] = 8;    // pages remaining in this bank
+    mem8[TABLE_CURSOR] = 8;    // pages remaining in this bank
     let checksum = bank; // seed the running checksum with the bank index
     do {
       do {
-        const base = mem8[loc_3b] | (mem8[loc_3c] << 8);
+        const base = mem8[WORK_PTR_LO] | (mem8[WORK_PTR_HI] << 8);
         checksum ^= mem8[u16(base + offset)];
         offset = u8(offset + 1);
       } while (offset !== 0);
-      mem8[loc_3c] = mem8[loc_3c] + 1; // advance to the next page
-      mem8[loc_5000] = checksum;       // watchdog strobe (value ignored by the device)
-      mem8[loc_38] = mem8[loc_38] - 1;
-    } while (mem8[loc_38] !== 0);
+      mem8[WORK_PTR_HI] = mem8[WORK_PTR_HI] + 1; // advance to the next page
+      mem8[WATCHDOG_CLEAR] = checksum;       // watchdog strobe (value ignored by the device)
+      mem8[TABLE_CURSOR] = mem8[TABLE_CURSOR] - 1;
+    } while (mem8[TABLE_CURSOR] !== 0);
 
-    mem8[loc_7d + bank] = checksum;    // store this bank's checksum
+    mem8[SEG_SPREAD_A_LO_5 + bank] = checksum;    // store this bank's checksum
     bank = bank + 1;
-    if (bank === 2) mem8[loc_3c] = 0x90; // banks 2..11 live in the high window
+    if (bank === 2) mem8[WORK_PTR_HI] = 0x90; // banks 2..11 live in the high window
   } while (bank < 12);
 
-  if (mem8[loc_7d] !== 0) {            // bank-0 checksum bad -> arm the error tone
-    mem8[loc_60c4] = 0x40;
-    mem8[loc_60c5] = 0xa4;
+  if (mem8[SEG_SPREAD_A_LO_5] !== 0) {            // bank-0 checksum bad -> arm the error tone
+    mem8[POKEY1_AUDF3] = 0x40;
+    mem8[POKEY1_AUDC3] = 0xa4;
   }
 
-  settleRandom(mem8, loc_60ca, loc_7a);
-  settleRandom(mem8, loc_60da, loc_7b);
+  settleRandom(mem8, POKEY1_RANDOM, SEG_SPREAD_A_LO_2);
+  settleRandom(mem8, POKEY2_RANDOM, SEG_SPREAD_A_LO_3);
 
   return loc_da62(m);
 }

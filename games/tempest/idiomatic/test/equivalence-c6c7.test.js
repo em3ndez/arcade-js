@@ -14,7 +14,7 @@ import { loc_c6c7 as oracle } from "../../translated/loc_c6c7.js";
 import { loc_c6c7 } from "../loc_c6c7.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_38, loc_3ac, loc_74, loc_75, loc_a9 } from "../names.js";
+import { STACK_SCRATCH, TABLE_CURSOR, LANE_LIMIT, DRAW_CURSOR_LO, DRAW_CURSOR_HI, DRAW_CURSOR_OFFSET } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,16 +50,16 @@ test("CAPTURE: real 0xc6c7 dispatches -- loc_c6c7 == oracle in RAM (-stack)", ()
 
 // Point the ($74) cursor at vector RAM (0x2000, RW + diffed) and start the write cursor at 0.
 function seedCursor(m) {
-  m.mem.write8(loc_74, 0x00);
-  m.mem.write8(loc_75, 0x20);
-  m.mem.write8(loc_a9, 0x00);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00);
+  m.mem.write8(DRAW_CURSOR_HI, 0x20);
+  m.mem.write8(DRAW_CURSOR_OFFSET, 0x00);
 }
 
 test("CRAFTED: inactive slot ($03ac,x == 0) writes four 0x00/0x71 pairs and advances $a9", () => {
   const seed = (m) => {
     seedCursor(m);
-    m.mem.write8(loc_38, 0x00);
-    m.mem.write8((loc_3ac + 0x00) & 0xffff, 0x00); // slot inactive
+    m.mem.write8(TABLE_CURSOR, 0x00);
+    m.mem.write8((LANE_LIMIT + 0x00) & 0xffff, 0x00); // slot inactive
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -69,21 +69,21 @@ test("CRAFTED: inactive slot ($03ac,x == 0) writes four 0x00/0x71 pairs and adva
     assert.equal(c.mem.read8(0x2000 + i * 2), 0x00, `pair ${i} lo`);
     assert.equal(c.mem.read8(0x2001 + i * 2), 0x71, `pair ${i} hi`);
   }
-  assert.equal(c.mem.read8(loc_a9), 0x08, "cursor advanced by 8");
+  assert.equal(c.mem.read8(DRAW_CURSOR_OFFSET), 0x08, "cursor advanced by 8");
 });
 
 test("TEETH: a twin that emits only three pairs (and skips the $a9 update) diverges from the oracle", () => {
   const seed = (m) => {
     seedCursor(m);
-    m.mem.write8(loc_38, 0x00);
-    m.mem.write8((loc_3ac + 0x00) & 0xffff, 0x00);
+    m.mem.write8(TABLE_CURSOR, 0x00);
+    m.mem.write8((LANE_LIMIT + 0x00) & 0xffff, 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   const broken = (m) => {
-    const base = m.mem.read8(loc_74) | (m.mem.read8(loc_75) << 8);
-    let y = m.mem.read8(loc_a9);
+    const base = m.mem.read8(DRAW_CURSOR_LO) | (m.mem.read8(DRAW_CURSOR_HI) << 8);
+    let y = m.mem.read8(DRAW_CURSOR_OFFSET);
     for (let i = 0; i < 3; i++) { // BUG: three pairs, never writes the fourth or $a9
       m.mem.write8((base + y) & 0xffff, 0x00); y = (y + 1) & 0xff;
       m.mem.write8((base + y) & 0xffff, 0x71); y = (y + 1) & 0xff;

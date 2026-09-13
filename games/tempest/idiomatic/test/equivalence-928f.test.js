@@ -13,7 +13,7 @@ import { loc_928f as oracle } from "../../translated/loc_928f.js";
 import { loc_928f } from "../loc_928f.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_a6, loc_135, loc_2d3 } from "../names.js";
+import { STACK_SCRATCH, ACTIVE_ENEMY_COUNT, ACTIVE_OBJECT_COUNT, SLOT_STATE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -50,8 +50,8 @@ test("CAPTURE: real 0x928f dispatches -- loc_928f == oracle in RAM (-stack)", ()
 // Pre-dirty every touched cell so the clear is a visible change on both arms.
 function seedDirty(m) {
   for (let a = 0x02d3; a <= 0x02de; a++) m.mem8[a] = 0x5a;
-  m.mem8[loc_135] = 0x77;
-  m.mem8[loc_a6] = 0x99;
+  m.mem8[ACTIVE_OBJECT_COUNT] = 0x77;
+  m.mem8[ACTIVE_ENEMY_COUNT] = 0x99;
 }
 
 test("CRAFTED: array + both flag cells cleared to zero == oracle (RAM -stack)", () => {
@@ -61,8 +61,8 @@ test("CRAFTED: array + both flag cells cleared to zero == oracle (RAM -stack)", 
   assert.equal(ramDiff(o, c), null, "cleared block + flags match oracle");
   // Independent confirmation the fields actually went to zero.
   for (let a = 0x02d3; a <= 0x02de; a++) assert.equal(c.mem8[a], 0x00, `array ${a.toString(16)} cleared`);
-  assert.equal(c.mem8[loc_135], 0x00, "$135 cleared");
-  assert.equal(c.mem8[loc_a6], 0x00, "$a6 cleared");
+  assert.equal(c.mem8[ACTIVE_OBJECT_COUNT], 0x00, "$135 cleared");
+  assert.equal(c.mem8[ACTIVE_ENEMY_COUNT], 0x00, "$a6 cleared");
 });
 
 test("TEETH: a rewrite that skips clearing $a6 diverges from the oracle", () => {
@@ -71,7 +71,7 @@ test("TEETH: a rewrite that skips clearing $a6 diverges from the oracle", () => 
   oracle(o);
   const brokenSkipA6 = (m) => { // BUG: clears the array and $135 but leaves $a6 dirty
     for (let x = 0x0b; x >= 0; x--) m.mem8[(0x02d3 + x) & 0xffff] = 0x00;
-    m.mem8[loc_135] = 0x00;
+    m.mem8[ACTIVE_OBJECT_COUNT] = 0x00;
   };
   brokenSkipA6(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped $a6 clear");

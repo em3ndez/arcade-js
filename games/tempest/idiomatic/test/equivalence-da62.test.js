@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_da62 -- the self-test session loop. A one-time preamble seeds the state
 // machine, forwards a pending request byte, copies the 8-byte colour table into colour RAM, and idles
-// the coin/flip control; then each pass builds and shows one self-test frame (option switches -> loc_52
-// /loc_50, diagnostic inputs -> loc_4e/loc_4c, loc_db0f + loc_df0d + every-fourth-frame loc_de1b),
+// the coin/flip control; then each pass builds and shows one self-test frame (option switches -> SPINNER_POT_PREV
+// /SPINNER_ACCUM, diagnostic inputs -> INPUT_EDGE_FLAGS/INPUT_CUR, loc_db0f + loc_df0d + every-fourth-frame loc_de1b),
 // leaving once the self-test switch is released.
 //
 // This routine NEVER RETURNS in the oracle: with the switch idle-high it runs one frame then settles
@@ -22,7 +22,7 @@ import { Machine, FramesComplete } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_0, loc_75, loc_4c, loc_1c9, loc_2e, loc_2f, loc_78, loc_7d,
+  GAME_MODE, DRAW_CURSOR_HI, INPUT_CUR, PENDING_WORK_FLAGS, loc_2e, loc_2f, SEG_SPREAD_A_LO, SEG_SPREAD_A_LO_5,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -84,20 +84,20 @@ test("CAPTURE: real 0xda62 dispatches -- loc_da62 == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// No pending request (loc_1c9 == 0): the preamble stamps loc_0 = 2, which routes loc_db0f to its
+// No pending request (PENDING_WORK_FLAGS == 0): the preamble stamps GAME_MODE = 2, which routes loc_db0f to its
 // per-frame vector emit. Seed that emitter's counter + table cells so the frame builds a real list;
-// da62 itself points the display cursor at vector RAM (loc_75 = 0x20) so emits land in diffed space.
+// da62 itself points the display cursor at vector RAM (DRAW_CURSOR_HI = 0x20) so emits land in diffed space.
 function seedNoPending(m) {
-  m.mem.write8(loc_1c9, 0x00);
+  m.mem.write8(PENDING_WORK_FLAGS, 0x00);
   m.mem.write8(loc_2e, 0x37);
   m.mem.write8(loc_2f, 0x12);
-  m.mem.write8(loc_78 + 0x01, 0x01);
-  m.mem.write8(loc_7d + 0x01, 0x20);
+  m.mem.write8(SEG_SPREAD_A_LO + 0x01, 0x01);
+  m.mem.write8(SEG_SPREAD_A_LO_5 + 0x01, 0x20);
 }
-// Pending request (loc_1c9 != 0): the preamble forwards it to loc_7c, runs loc_ddf1, clears loc_1c9,
-// and stamps loc_0 = 0 (a different loc_db0f handler). Exercises the else-branch of the preamble.
+// Pending request (PENDING_WORK_FLAGS != 0): the preamble forwards it to SEG_SPREAD_A_LO_4, runs loc_ddf1, clears PENDING_WORK_FLAGS,
+// and stamps GAME_MODE = 0 (a different loc_db0f handler). Exercises the else-branch of the preamble.
 function seedPending(m) {
-  m.mem.write8(loc_1c9, 0x5a);
+  m.mem.write8(PENDING_WORK_FLAGS, 0x5a);
   m.mem.write8(loc_2e, 0x11);
   m.mem.write8(loc_2f, 0x03);
 }
@@ -110,11 +110,11 @@ test("CRAFTED (no pending): full self-test frame -- RAM equal (-stack)", () => {
   assert.equal(os, "done", "oracle reached its terminal spin (frame completed)");
   if (runIdiomatic(c) === "notimpl") { console.log("  CRAFTED(no-pending): idiomatic hit a stubbed draw arm -- skipped"); return; }
   assert.equal(ramDiff(o, c), null, "RAM equal after one self-test frame");
-  // Preamble/body signatures: no-pending -> loc_0 = 2 (unless the input branch double-bumped it),
-  // the display cursor high byte, and the idle-input default for loc_4c.
-  assert.equal(c.mem.read8(loc_0), o.mem.read8(loc_0), "loc_0 matches the oracle");
-  assert.equal(c.mem.read8(loc_75), 0x20, "display cursor high byte");
-  assert.equal(c.mem.read8(loc_4c), o.mem.read8(loc_4c), "loc_4c matches the oracle");
+  // Preamble/body signatures: no-pending -> GAME_MODE = 2 (unless the input branch double-bumped it),
+  // the display cursor high byte, and the idle-input default for INPUT_CUR.
+  assert.equal(c.mem.read8(GAME_MODE), o.mem.read8(GAME_MODE), "GAME_MODE matches the oracle");
+  assert.equal(c.mem.read8(DRAW_CURSOR_HI), 0x20, "display cursor high byte");
+  assert.equal(c.mem.read8(INPUT_CUR), o.mem.read8(INPUT_CUR), "INPUT_CUR matches the oracle");
 });
 
 test("CRAFTED (pending): preamble else-branch -- RAM equal (-stack)", () => {
@@ -125,7 +125,7 @@ test("CRAFTED (pending): preamble else-branch -- RAM equal (-stack)", () => {
   assert.equal(os, "done");
   if (runIdiomatic(c) === "notimpl") { console.log("  CRAFTED(pending): idiomatic hit a stubbed draw arm -- skipped"); return; }
   assert.equal(ramDiff(o, c), null, "RAM equal after one self-test frame (pending path)");
-  assert.equal(c.mem.read8(loc_1c9), 0x00, "pending request byte was cleared");
+  assert.equal(c.mem.read8(PENDING_WORK_FLAGS), 0x00, "pending request byte was cleared");
 });
 
 test("TEETH: a twin that drops the display-cursor write MUST diverge in RAM", () => {
@@ -134,12 +134,12 @@ test("TEETH: a twin that drops the display-cursor write MUST diverge in RAM", ()
   const os = runBoundedOracle(o);
   if (os === "notimpl") { console.log("  TEETH: oracle hit a stubbed draw arm -- skipped"); return; }
   assert.equal(os, "done");
-  // Broken twin: run the real routine, then revert loc_75 (a body signature the routine always sets to
+  // Broken twin: run the real routine, then revert DRAW_CURSOR_HI (a body signature the routine always sets to
   // 0x20). The RAM compare MUST catch the reverted write -- proves the test can fail.
   let tried = 0;
   const broken = (m) => {
     if (runIdiomatic(m) === "notimpl") return false;
-    m.mem.write8(loc_75, 0x00); // BUG: drop the display-cursor high byte
+    m.mem.write8(DRAW_CURSOR_HI, 0x00); // BUG: drop the display-cursor high byte
     tried++;
     return true;
   };

@@ -14,7 +14,7 @@ import { loc_ccf6 } from "../loc_ccf6.js";
 import { loc_ccc7 } from "../loc_ccc7.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_31, loc_32 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, loc_31, loc_32 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,7 +50,7 @@ test("CAPTURE: real 0xccf6 dispatches -- loc_ccf6 == oracle in RAM (-stack)", ()
 
 test("CRAFTED gate-open: bit7 of $05 set -> sound 0x9f registers via the dissolved call", () => {
   const seed = (m) => {
-    m.mem.write8(loc_5, 0x80);   // enable flag high bit set
+    m.mem.write8(STATUS_FLAGS, 0x80);   // enable flag high bit set
     m.regs.x = 0x5a;             // caller X -> $31
     m.regs.y = 0x3c;             // caller Y -> $32
   };
@@ -64,7 +64,7 @@ test("CRAFTED gate-open: bit7 of $05 set -> sound 0x9f registers via the dissolv
 
 test("CRAFTED gate-closed: bit7 of $05 clear -> nothing registers", () => {
   const seed = (m) => {
-    m.mem.write8(loc_5, 0x00);   // gate closed
+    m.mem.write8(STATUS_FLAGS, 0x00);   // gate closed
     m.regs.x = 0x5a;
     m.regs.y = 0x3c;
   };
@@ -77,7 +77,7 @@ test("CRAFTED gate-closed: bit7 of $05 clear -> nothing registers", () => {
 
 test("TEETH: a twin that seeds the WRONG sound id diverges from the oracle (gate open)", () => {
   const seed = (m) => {
-    m.mem.write8(loc_5, 0x80);   // gate open: oracle registers 0x9f
+    m.mem.write8(STATUS_FLAGS, 0x80);   // gate open: oracle registers 0x9f
     m.regs.x = 0x5a;
     m.regs.y = 0x3c;
   };

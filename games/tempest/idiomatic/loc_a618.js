@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u8, u16 } from "../../../core/int.js";
-import { loc_0, loc_3, loc_37, loc_10d, loc_10e, loc_283 } from "./names.js";
+import { GAME_MODE, FRAME_COUNTER, SLOT_LOOP_INDEX, SPAWN_FOUND_FLAG, SPAWN_BUDGET_TIMER, ENEMY_SLOT_FLAGS } from "./names.js";
 import { loc_a6a9 } from "./loc_a6a9.js";
 import { loc_a721 } from "./loc_a721.js";
 import { loc_a65b } from "./loc_a65b.js";
@@ -13,25 +13,25 @@ import { loc_a65b } from "./loc_a65b.js";
 // tick the countdown toward zero; if nothing was live or spawned, raise the mode-request byte.
 export function loc_a618(m, y = m.regs.y) {
   const { mem8 } = m;
-  mem8[loc_10d] = mem8[loc_10e];
+  mem8[SPAWN_FOUND_FLAG] = mem8[SPAWN_BUDGET_TIMER];
 
   for (let x = 0x0f; x >= 0; x--) {
-    if (mem8[u16(loc_283 + x)] !== 0) {
+    if (mem8[u16(ENEMY_SLOT_FLAGS + x)] !== 0) {
       // Live slot: integrate then step; only the step's return threads onward.
       loc_a6a9(m, x);
       y = loc_a721(m, x);
-      mem8[loc_10d] = 0xff;
-    } else if (mem8[loc_10e] !== 0) {
+      mem8[SPAWN_FOUND_FLAG] = 0xff;
+    } else if (mem8[SPAWN_BUDGET_TIMER] !== 0) {
       // Free slot with budget: spawn, consuming the threaded register.
       loc_a65b(m, x, y);
     }
   }
-  mem8[loc_37] = 0xff; // slot counter settles here after the walk
+  mem8[SLOT_LOOP_INDEX] = 0xff; // slot counter settles here after the walk
 
   // Even frames tick the spawn countdown toward zero.
-  if ((mem8[loc_3] & 0x01) === 0 && mem8[loc_10e] !== 0) {
-    mem8[loc_10e] = u8(mem8[loc_10e] - 1);
+  if ((mem8[FRAME_COUNTER] & 0x01) === 0 && mem8[SPAWN_BUDGET_TIMER] !== 0) {
+    mem8[SPAWN_BUDGET_TIMER] = u8(mem8[SPAWN_BUDGET_TIMER] - 1);
   }
   // Nothing live or spawned -> raise the mode-request byte.
-  if (mem8[loc_10d] === 0) mem8[loc_0] = 0x12;
+  if (mem8[SPAWN_FOUND_FLAG] === 0) mem8[GAME_MODE] = 0x12;
 }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_9ef1 (ROM 0x9ef1-0x9f5e) -- the per-slot(x) mover. loc_28a,x bit7 set -> RE-SEEK
-// (loc_9c99 with Y=0x04, then cmp #0x80 / bit loc_159 dispatch into loc_9f5f/loc_9f8a/loc_9f81); bit7 clear
-// -> ADVANCE the 16-bit coordinate (loc_29f,x / loc_2df,x) by the delta (loc_164 / loc_169), clamp the hi at
-// floor loc_202, then loc_3ab / zp loc_9f / hi-vs-0x20 produce the carry that (with loc_159's sign) picks the
+// Memory-equivalence for loc_9ef1 (ROM 0x9ef1-0x9f5e) -- the per-slot(x) mover. ENEMY_SLOT_DIR,x bit7 set -> RE-SEEK
+// (loc_9c99 with Y=0x04, then cmp #0x80 / bit ENEMY_FIRE_SELECT dispatch into loc_9f5f/loc_9f8a/loc_9f81); bit7 clear
+// -> ADVANCE the 16-bit coordinate (ENEMY_DEPTH_LO,x / ENEMY_DEPTH,x) by the delta (ENEMY_CLIMB_DELTA_LO_4 / ENEMY_CLIMB_DELTA_HI_4), clamp the hi at
+// floor PLAYER_SHOT_DEPTH, then FIRE_GATE / zp loc_9f / hi-vs-0x20 produce the carry that (with ENEMY_FIRE_SELECT's sign) picks the
 // same three callees. Live-out is RAM (minus STACK_SCRATCH); every non-early path tail-delegates, so its
 // register state belongs to the chosen callee and is compared only on the early-rts arm (A = new hi, Y = 0).
 // Oracle is the frozen translated loc_9ef1 in translated/loc_9ef1.js.
@@ -18,8 +18,8 @@ import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import {
-  STACK_SCRATCH, loc_9f, loc_159, loc_160, loc_164, loc_165, loc_169,
-  loc_202, loc_28a, loc_29f, loc_2df, loc_3ab,
+  STACK_SCRATCH, loc_9f, ENEMY_FIRE_SELECT, ENEMY_CLIMB_DELTA_LO_0, ENEMY_CLIMB_DELTA_LO_4, ENEMY_CLIMB_DELTA_HI_0, ENEMY_CLIMB_DELTA_HI_4,
+  PLAYER_SHOT_DEPTH, ENEMY_SLOT_DIR, ENEMY_DEPTH_LO, ENEMY_DEPTH, FIRE_GATE,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -66,16 +66,16 @@ test("CAPTURE: real 0x9ef1 dispatches -- loc_9ef1 == oracle in RAM (-stack)", ()
 function seed(m, o) {
   const x = o.x ?? 0x00;
   m.regs.x = x; m.regs.y = o.y ?? 0x00; m.regs.a = o.a ?? 0x00;
-  m.mem.write8(u16(loc_28a + x), o.gate ?? 0x00);   // bit7 selects re-seek vs advance
-  m.mem.write8(u16(loc_29f + x), o.lo ?? 0x00);     // coordinate low
-  m.mem.write8(u16(loc_2df + x), o.hi ?? 0x00);     // coordinate high
-  m.mem.write8(loc_164, o.dlo ?? 0x00);             // per-frame delta low
-  m.mem.write8(loc_169, o.dhi ?? 0x00);             // per-frame delta high
-  m.mem.write8(loc_202, o.floor ?? 0x00);           // hi-byte floor
-  m.mem.write8(loc_3ab, o.ab ?? 0x00);              // advance gate
+  m.mem.write8(u16(ENEMY_SLOT_DIR + x), o.gate ?? 0x00);   // bit7 selects re-seek vs advance
+  m.mem.write8(u16(ENEMY_DEPTH_LO + x), o.lo ?? 0x00);     // coordinate low
+  m.mem.write8(u16(ENEMY_DEPTH + x), o.hi ?? 0x00);     // coordinate high
+  m.mem.write8(ENEMY_CLIMB_DELTA_LO_4, o.dlo ?? 0x00);             // per-frame delta low
+  m.mem.write8(ENEMY_CLIMB_DELTA_HI_4, o.dhi ?? 0x00);             // per-frame delta high
+  m.mem.write8(PLAYER_SHOT_DEPTH, o.floor ?? 0x00);           // hi-byte floor
+  m.mem.write8(FIRE_GATE, o.ab ?? 0x00);              // advance gate
   m.mem.write8(loc_9f, o.zp9f ?? 0x00);             // zp gate vs 0x11
-  m.mem.write8(loc_159, o.s159 ?? 0x00);            // sign/bit6 selector
-  // NB loc_164 == loc_160+4 and loc_169 == loc_165+4: since loc_9ef1 fixes Y=4, its advance delta and
+  m.mem.write8(ENEMY_FIRE_SELECT, o.s159 ?? 0x00);            // sign/bit6 selector
+  // NB ENEMY_CLIMB_DELTA_LO_4 == ENEMY_CLIMB_DELTA_LO_0+4 and ENEMY_CLIMB_DELTA_HI_4 == ENEMY_CLIMB_DELTA_HI_0+4: since loc_9ef1 fixes Y=4, its advance delta and
   // the seg-4 delta loc_9c99 reads on the re-seek path are the SAME cells (set above via dlo/dhi).
 }
 const pair = (spec) => { const m = new Machine(ROM, OPTS); seed(m, spec); return [m.clone(), m.clone()]; };
@@ -88,22 +88,22 @@ test("CRAFTED re-seek: bit7 set, loc_9c99 returns A<0x80 -> loc_9f5f -- RAM equa
   if (!threw) { loc_9ef1(c); assert.equal(ramDiff(o, c), null, "RAM equal after loc_9f5f"); }
 });
 
-test("CRAFTED re-seek: bit7 set, A>=0x80, loc_159 bit6 set -> loc_9f81 -- RAM equal", () => {
-  // hi 0x90 - 0 = 0x90 (>= 0x80); loc_159 bit6 set -> bvc not taken -> loc_9f81
+test("CRAFTED re-seek: bit7 set, A>=0x80, ENEMY_FIRE_SELECT bit6 set -> loc_9f81 -- RAM equal", () => {
+  // hi 0x90 - 0 = 0x90 (>= 0x80); ENEMY_FIRE_SELECT bit6 set -> bvc not taken -> loc_9f81
   const [o, c] = pair({ gate: 0x80, lo: 0x00, hi: 0x90, s159: 0x40 });
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (!threw) { loc_9ef1(c); assert.equal(ramDiff(o, c), null, "RAM equal after loc_9f81"); }
 });
 
-test("CRAFTED re-seek: bit7 set, A>=0x80, loc_159 bit6 clear -> loc_9f8a -- RAM equal", () => {
+test("CRAFTED re-seek: bit7 set, A>=0x80, ENEMY_FIRE_SELECT bit6 clear -> loc_9f8a -- RAM equal", () => {
   const [o, c] = pair({ gate: 0x80, lo: 0x00, hi: 0x90, s159: 0x00 });
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (!threw) { loc_9ef1(c); assert.equal(ramDiff(o, c), null, "RAM equal after loc_9f8a"); }
 });
 
-test("CRAFTED advance clamp: hi < floor -> hi clamped to floor, loc_159 sign clear -> loc_9f8a -- RAM equal", () => {
+test("CRAFTED advance clamp: hi < floor -> hi clamped to floor, ENEMY_FIRE_SELECT sign clear -> loc_9f8a -- RAM equal", () => {
   // lo 0x00 + 0x01 = 0x01; hi 0x00 + 0x00 = 0x00 < floor 0x10 -> clamp hi to 0x10; carry clear, N clear -> loc_9f8a
   const [o, c] = pair({ gate: 0x00, lo: 0x00, dlo: 0x01, hi: 0x00, dhi: 0x00, floor: 0x10, s159: 0x00 });
   let threw = false;
@@ -111,13 +111,13 @@ test("CRAFTED advance clamp: hi < floor -> hi clamped to floor, loc_159 sign cle
   if (!threw) {
     loc_9ef1(c);
     assert.equal(ramDiff(o, c), null, "RAM equal after the clamp + loc_9f8a");
-    assert.equal(c.mem.read8(u16(loc_29f)), 0x01, "lo advanced by loc_164");
-    assert.equal(c.mem.read8(u16(loc_2df)), 0x10, "hi clamped up to the floor");
+    assert.equal(c.mem.read8(u16(ENEMY_DEPTH_LO)), 0x01, "lo advanced by ENEMY_CLIMB_DELTA_LO_4");
+    assert.equal(c.mem.read8(u16(ENEMY_DEPTH)), 0x10, "hi clamped up to the floor");
   }
 });
 
-test("CRAFTED advance keep, early rts: hi >= floor and loc_3ab == 0 -- RAM + A live-out equal (A = new hi)", () => {
-  // hi 0x50 >= floor 0x10, loc_3ab == 0 -> beq -> early rts, no delegation. A is the live-out the caller
+test("CRAFTED advance keep, early rts: hi >= floor and FIRE_GATE == 0 -- RAM + A live-out equal (A = new hi)", () => {
+  // hi 0x50 >= floor 0x10, FIRE_GATE == 0 -> beq -> early rts, no delegation. A is the live-out the caller
   // reads; the oracle's ldy #0 leaves Y=0 but that Y is UNCONSUMED (loc_9b98/loc_9b1e discard it), so the
   // idiomatic form no longer seats it and Y is not compared here.
   const [o, c] = pair({ x: 0x00, gate: 0x00, lo: 0x00, dlo: 0x00, hi: 0x50, dhi: 0x00, floor: 0x10, ab: 0x00 });
@@ -126,20 +126,20 @@ test("CRAFTED advance keep, early rts: hi >= floor and loc_3ab == 0 -- RAM + A l
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.x, o.regs.x, "X live-out matches");
   assert.equal(c.regs.a, 0x50, "A is the new hi byte");
-  assert.equal(c.mem.read8(u16(loc_2df)), 0x50, "hi kept (>= floor)");
+  assert.equal(c.mem.read8(u16(ENEMY_DEPTH)), 0x50, "hi kept (>= floor)");
 });
 
-test("CRAFTED advance keep, fire: loc_3ab!=0, zp loc_9f >= 0x11 -> carry set -> loc_9f5f -- RAM equal", () => {
-  // hi 0x50 >= floor 0x10; loc_3ab != 0; zp loc_9f 0x20 >= 0x11 -> bcs skips the 0x20 test, carry stays set -> loc_9f5f
+test("CRAFTED advance keep, fire: FIRE_GATE!=0, zp loc_9f >= 0x11 -> carry set -> loc_9f5f -- RAM equal", () => {
+  // hi 0x50 >= floor 0x10; FIRE_GATE != 0; zp loc_9f 0x20 >= 0x11 -> bcs skips the 0x20 test, carry stays set -> loc_9f5f
   const [o, c] = pair({ gate: 0x00, lo: 0x00, dlo: 0x00, hi: 0x50, dhi: 0x00, floor: 0x10, ab: 0x01, zp9f: 0x20 });
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (!threw) { loc_9ef1(c); assert.equal(ramDiff(o, c), null, "RAM equal after loc_9f5f"); }
 });
 
-test("CRAFTED advance keep, no fire: zp loc_9f < 0x11, hi < 0x20, loc_159 sign set -> loc_9f81 -- RAM equal", () => {
-  // hi 0x10 >= floor 0x05; loc_3ab != 0; zp loc_9f 0x05 < 0x11 -> cmp #0x20 (0x10 < 0x20 -> carry clear);
-  // loc_159 bit7 set -> bpl not taken -> loc_9f81
+test("CRAFTED advance keep, no fire: zp loc_9f < 0x11, hi < 0x20, ENEMY_FIRE_SELECT sign set -> loc_9f81 -- RAM equal", () => {
+  // hi 0x10 >= floor 0x05; FIRE_GATE != 0; zp loc_9f 0x05 < 0x11 -> cmp #0x20 (0x10 < 0x20 -> carry clear);
+  // ENEMY_FIRE_SELECT bit7 set -> bpl not taken -> loc_9f81
   const [o, c] = pair({ gate: 0x00, lo: 0x00, dlo: 0x00, hi: 0x10, dhi: 0x00, floor: 0x05, ab: 0x01, zp9f: 0x05, s159: 0x80 });
   let threw = false;
   try { oracle(o); } catch { threw = true; }
@@ -147,16 +147,16 @@ test("CRAFTED advance keep, no fire: zp loc_9f < 0x11, hi < 0x20, loc_159 sign s
 });
 
 test("TEETH: a twin that drops the 16-bit add carry into the hi byte diverges from the oracle in RAM", () => {
-  // lo 0xff + 0x02 carries, so the correct hi is +1. Early-rts seed (loc_3ab==0) so the ONLY RAM change is the
+  // lo 0xff + 0x02 carries, so the correct hi is +1. Early-rts seed (FIRE_GATE==0) so the ONLY RAM change is the
   // two coordinate bytes -- isolating the carry. The broken twin adds the hi with no carry-in.
   const [o, c] = pair({ x: 0x00, gate: 0x00, lo: 0xff, dlo: 0x02, hi: 0x40, dhi: 0x00, floor: 0x10, ab: 0x00 });
   oracle(o);
   const broken = (m, x = m.regs.x) => {
     const { mem8 } = m;
-    const loSum = mem8[u16(loc_29f + x)] + mem8[loc_164];
-    mem8[u16(loc_29f + x)] = loSum;
-    mem8[u16(loc_2df + x)] = (mem8[u16(loc_2df + x)] + mem8[loc_169]) & 0xff; // BUG: no carry-in
-    m.regs.y = 0x00; m.regs.a = mem8[u16(loc_2df + x)];
+    const loSum = mem8[u16(ENEMY_DEPTH_LO + x)] + mem8[ENEMY_CLIMB_DELTA_LO_4];
+    mem8[u16(ENEMY_DEPTH_LO + x)] = loSum;
+    mem8[u16(ENEMY_DEPTH + x)] = (mem8[u16(ENEMY_DEPTH + x)] + mem8[ENEMY_CLIMB_DELTA_HI_4]) & 0xff; // BUG: no carry-in
+    m.regs.y = 0x00; m.regs.a = mem8[u16(ENEMY_DEPTH + x)];
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the dropped add carry");

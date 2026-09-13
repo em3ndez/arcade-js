@@ -13,7 +13,7 @@ import { loc_9a9d as oracle } from "../../translated/loc_9a9d.js";
 import { loc_9a9d } from "../loc_9a9d.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_2b, loc_2c, loc_2d, loc_15d } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI, LIST_PTR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -49,9 +49,9 @@ test("CAPTURE: real 0x9a9d dispatches -- loc_9a9d == oracle in RAM (-stack) and 
 });
 
 function seed(m) {
-  m.mem.write8(loc_15d, 0x6e); // source byte -> $2d
+  m.mem.write8(LIST_PTR_HI, 0x6e); // source byte -> $2d
   m.mem.write8(loc_29, 0x42);  // holding cell -> A
-  m.mem.write8(loc_2c, 0xa1); m.mem.write8(loc_2b, 0xa2); m.mem.write8(loc_2d, 0xa3); // dirty sentinels
+  m.mem.write8(COORD_LIST_PTR_LO, 0xa1); m.mem.write8(loc_2b, 0xa2); m.mem.write8(COORD_LIST_PTR_HI, 0xa3); // dirty sentinels
 }
 
 test("CRAFTED: pointer-pair cells seeded and A reloaded -- RAM and A equal", () => {
@@ -61,7 +61,7 @@ test("CRAFTED: pointer-pair cells seeded and A reloaded -- RAM and A equal", () 
   assert.equal(ramDiff(o, c), null, "RAM equal after setup");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.mem.read8(loc_2b), 0x00, "$2b index cleared");
-  assert.equal(c.mem.read8(loc_2d), 0x6e, "$2d holds the source byte");
+  assert.equal(c.mem.read8(COORD_LIST_PTR_HI), 0x6e, "$2d holds the source byte");
   assert.equal(c.regs.a, 0x42, "A reloaded from $29");
 });
 
@@ -71,7 +71,7 @@ test("TEETH: a twin that skips the $2d store diverges from the oracle in RAM", (
   oracle(o);
   const broken = (m) => {
     const { mem8 } = m;
-    mem8[loc_2c] = mem8[0x9b02];
+    mem8[COORD_LIST_PTR_LO] = mem8[0x9b02];
     mem8[loc_2b] = 0x00;
     // BUG: never writes $2d from the source cell
     m.regs.a = mem8[loc_29];
@@ -86,9 +86,9 @@ test("TEETH (register): a twin that leaves A untouched diverges from the oracle 
   c.regs.a = 0x00;
   const broken = (m) => {
     const { mem8 } = m;
-    mem8[loc_2c] = mem8[0x9b02];
+    mem8[COORD_LIST_PTR_LO] = mem8[0x9b02];
     mem8[loc_2b] = 0x00;
-    mem8[loc_2d] = mem8[loc_15d];
+    mem8[COORD_LIST_PTR_HI] = mem8[LIST_PTR_HI];
     // BUG: never reloads A from $29
   };
   broken(c);

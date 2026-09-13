@@ -2,7 +2,7 @@
 // Memory-equivalence for loc_a463 (ROM 0xa463-0xa503) -- the near/far slot scan. It stores threshold A
 // in loc_2e, walks loc_2db slots y=10..0 forming delta = |entry - threshold|, and for qualifying slots
 // retires/spawns via loc_a36f (near), loc_a309 (far band 4) or loc_a38e (far other bands); afterwards, if
-// loc_2f2,x reads 0xff it clears loc_2d3,x/loc_2f2,x and drops loc_135. Inputs are A (threshold) and X
+// HIT_TALLY,x reads 0xff it clears SLOT_STATE,x/HIT_TALLY,x and drops ACTIVE_OBJECT_COUNT. Inputs are A (threshold) and X
 // (slot index); the routine ends with a plain RTS and produces no return value, so the contract is RAM
 // only (dumpState minus STACK_SCRATCH) -- no register is a live-out. Oracle is the frozen translated
 // loc_a463; the three internal JSRs are dissolved to direct calls in the idiomatic layer.
@@ -19,7 +19,7 @@ import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import {
   STACK_SCRATCH,
-  loc_2e, loc_38, loc_a7, loc_135, loc_151, loc_2ad, loc_2b5, loc_2d3, loc_2db, loc_2f2,
+  loc_2e, TABLE_CURSOR, HIT_DISTANCE_THRESHOLD, ACTIVE_OBJECT_COUNT, ENEMY_BAND_THRESHOLD_0, TARGET_SEG, loc_2b5, SLOT_STATE, loc_2db, HIT_TALLY,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -59,21 +59,21 @@ test("CAPTURE: real 0xa463 dispatches -- loc_a463 == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// No-call scan: every slot nonzero (so both the near y<4 and far y>=4 paths run), but loc_a7 and the band
-// thresholds loc_151 are 0 so every delta >= threshold and NO callee ever fires -- this exercises the
-// loc_2e store, the far-path loc_38 store, and the final clear block deterministically. loc_2f2,x = 0xff
-// arms the clear; loc_135 = 5 so its decrement is observable.
+// No-call scan: every slot nonzero (so both the near y<4 and far y>=4 paths run), but HIT_DISTANCE_THRESHOLD and the band
+// thresholds ENEMY_BAND_THRESHOLD_0 are 0 so every delta >= threshold and NO callee ever fires -- this exercises the
+// loc_2e store, the far-path TABLE_CURSOR store, and the final clear block deterministically. HIT_TALLY,x = 0xff
+// arms the clear; ACTIVE_OBJECT_COUNT = 5 so its decrement is observable.
 function seedNoCall(m) {
   m.regs.a = 0x80; m.regs.x = 0x05;
   m.mem.write8(loc_2e, 0x11);          // overwritten by the routine's threshold store
-  m.mem.write8(loc_a7, 0x00);          // near-slot delta gate wide open the wrong way -> near always skips
-  for (let b = 0; b < 8; b++) m.mem.write8(u16(loc_151 + b), 0x00); // far band thresholds -> far always skips
+  m.mem.write8(HIT_DISTANCE_THRESHOLD, 0x00);          // near-slot delta gate wide open the wrong way -> near always skips
+  for (let b = 0; b < 8; b++) m.mem.write8(u16(ENEMY_BAND_THRESHOLD_0 + b), 0x00); // far band thresholds -> far always skips
   for (let k = 0; k <= 10; k++) m.mem.write8(u16(loc_2db + k), 0x01); // all slots nonzero
-  m.mem.write8(u16(loc_2f2 + 0x05), 0xff); // arm the final clear for slot X
-  m.mem.write8(loc_135, 0x05);
+  m.mem.write8(u16(HIT_TALLY + 0x05), 0xff); // arm the final clear for slot X
+  m.mem.write8(ACTIVE_OBJECT_COUNT, 0x05);
 }
 
-test("CRAFTED: full scan with no callee fired -- RAM equal; loc_2e/loc_38/clear-block correct", () => {
+test("CRAFTED: full scan with no callee fired -- RAM equal; loc_2e/TABLE_CURSOR/clear-block correct", () => {
   const o = new Machine(ROM, OPTS); seedNoCall(o);
   const c = new Machine(ROM, OPTS); seedNoCall(c);
   let threw = false;
@@ -82,21 +82,21 @@ test("CRAFTED: full scan with no callee fired -- RAM equal; loc_2e/loc_38/clear-
   loc_a463(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the no-call scan + clear block");
   assert.equal(c.mem.read8(loc_2e), 0x80, "threshold stored to loc_2e");
-  assert.equal(c.mem.read8(loc_38), 0x04, "loc_38 holds the last far slot processed (y=4)");
-  assert.equal(c.mem.read8(u16(loc_2f2 + 0x05)), 0x00, "loc_2f2,x cleared");
-  assert.equal(c.mem.read8(u16(loc_2d3 + 0x05)), 0x00, "loc_2d3,x cleared");
-  assert.equal(c.mem.read8(loc_135), 0x04, "live count loc_135 decremented");
+  assert.equal(c.mem.read8(TABLE_CURSOR), 0x04, "TABLE_CURSOR holds the last far slot processed (y=4)");
+  assert.equal(c.mem.read8(u16(HIT_TALLY + 0x05)), 0x00, "HIT_TALLY,x cleared");
+  assert.equal(c.mem.read8(u16(SLOT_STATE + 0x05)), 0x00, "SLOT_STATE,x cleared");
+  assert.equal(c.mem.read8(ACTIVE_OBJECT_COUNT), 0x04, "live count ACTIVE_OBJECT_COUNT decremented");
 });
 
-// Near-slot retire: a single near slot (y=2) whose delta is under loc_a7 and whose loc_2b5,y matches
-// loc_2ad,x -> fires loc_a36f. The retire chain (ccc1/a3d4/...) may reach an unimplemented arm; skip on
+// Near-slot retire: a single near slot (y=2) whose delta is under HIT_DISTANCE_THRESHOLD and whose loc_2b5,y matches
+// TARGET_SEG,x -> fires loc_a36f. The retire chain (ccc1/a3d4/...) may reach an unimplemented arm; skip on
 // oracle throw. When it runs cleanly this covers a dissolved-call path end-to-end.
 function seedRetire(m) {
   m.regs.a = 0x10; m.regs.x = 0x05;
-  m.mem.write8(loc_a7, 0x40);           // delta gate open
+  m.mem.write8(HIT_DISTANCE_THRESHOLD, 0x40);           // delta gate open
   m.mem.write8(u16(loc_2db + 0x02), 0x11); // slot 2 entry -> delta = 1 < 0x40
   m.mem.write8(u16(loc_2b5 + 0x02), 0x07);
-  m.mem.write8(u16(loc_2ad + 0x05), 0x07); // match -> loc_a36f fires
+  m.mem.write8(u16(TARGET_SEG + 0x05), 0x07); // match -> loc_a36f fires
 }
 
 test("CRAFTED-CALL: near-slot retire fires loc_a36f -- RAM equal (skip on oracle throw)", () => {

@@ -13,7 +13,7 @@ import { loc_a8e7 as oracle } from "../../translated/loc_a8e7.js";
 import { loc_a8e7 } from "../loc_a8e7.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_00, loc_5, loc_3d, loc_3e, loc_43, loc_44, loc_45, loc_102 } from "../names.js";
+import { STACK_SCRATCH, GAME_MODE, STATUS_FLAGS, loc_3d, ACTIVE_SLOT_COUNT, loc_43, loc_44, loc_45, loc_102 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -36,9 +36,9 @@ function captureDispatches(K, maxFrames) {
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
 function seat(m, s = {}) {
-  m.mem.write8(loc_00, s.c00 ?? 0x00);
-  m.mem.write8(loc_5, s.c05 ?? 0x00);
-  m.mem.write8(loc_3e, s.c3e ?? 0x00);
+  m.mem.write8(GAME_MODE, s.c00 ?? 0x00);
+  m.mem.write8(STATUS_FLAGS, s.c05 ?? 0x00);
+  m.mem.write8(ACTIVE_SLOT_COUNT, s.c3e ?? 0x00);
   m.mem.write8(loc_43, s.c43 ?? 0x00);
   m.mem.write8(loc_44, s.c44 ?? 0x00);
   m.mem.write8(loc_45, s.c45 ?? 0x00);

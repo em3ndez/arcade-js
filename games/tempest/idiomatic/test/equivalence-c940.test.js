@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_c940 (ROM 0xc940-0xc97a) -- level-setup. It seeds the sizing/timer cells
-// (loc_1/loc_00/loc_2), and when the level id loc_3f differs from the last-seen loc_3d AND loc_5 is
-// negative it installs the new-level timers (loc_1/loc_00/loc_4, the last picked by loc_117) and swaps
-// the paired tables via loc_92b2; then it converges: loc_ca48, index loc_46 by loc_3d into loc_9f,
+// (MODE_DISPATCH_SEL/GAME_MODE/GAME_MODE_PENDING), and when the level id LEVEL_ID differs from the last-seen loc_3d AND STATUS_FLAGS is
+// negative it installs the new-level timers (MODE_DISPATCH_SEL/GAME_MODE/MODE_DELAY_TIMER, the last picked by loc_117) and swaps
+// the paired tables via loc_92b2; then it converges: loc_ca48, index PLAYER_LEVEL_TBL by loc_3d into loc_9f,
 // loc_9025 (startup init), and TAIL-DELEGATES to loc_cd95 (readout reset). Live-out is RAM only
 // (dumpState minus STACK_SCRATCH): c940 takes no input register and tail-jmps loc_cd95, so its exit
 // registers are the delegate's -- both layers run the identical delegate from the identical clone, so
@@ -19,7 +19,7 @@ import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_00, loc_1, loc_2, loc_4, loc_5, loc_3d, loc_3f, loc_46, loc_9f, loc_117, loc_74, loc_75,
+  GAME_MODE, MODE_DISPATCH_SEL, GAME_MODE_PENDING, MODE_DELAY_TIMER, STATUS_FLAGS, loc_3d, LEVEL_ID, PLAYER_LEVEL_TBL, loc_9f, loc_117, DRAW_CURSOR_LO, DRAW_CURSOR_HI,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -60,22 +60,22 @@ test("CAPTURE: real 0xc940 dispatches -- loc_c940 == oracle in RAM (-stack)", ()
   console.log(`  CAPTURE: ${checked}/${CAPS.length} dispatch(es) compared`);
 });
 
-// Seed the "level changed + loc_5 negative" path: loc_3f (new id) differs from loc_3d (last seen), loc_5
-// bit7 set so the new-level timer block runs, loc_117 nonzero so loc_4 takes the 40 branch, and a known
-// byte at loc_46 + (post-write loc_3d) so the loc_9f index is exercised. Point the display cursor at vector
+// Seed the "level changed + STATUS_FLAGS negative" path: LEVEL_ID (new id) differs from loc_3d (last seen), STATUS_FLAGS
+// bit7 set so the new-level timer block runs, loc_117 nonzero so MODE_DELAY_TIMER takes the 40 branch, and a known
+// byte at PLAYER_LEVEL_TBL + (post-write loc_3d) so the loc_9f index is exercised. Point the display cursor at vector
 // RAM so any downstream emit lands there, not zero page.
 function seedChanged(m) {
-  m.mem.write8(loc_3f, 0x02);  // new level id
+  m.mem.write8(LEVEL_ID, 0x02);  // new level id
   m.mem.write8(loc_3d, 0x01);  // last seen -> differs -> the block runs
-  m.mem.write8(loc_5, 0x80);  // negative -> the new-level timer block runs
-  m.mem.write8(loc_117, 0x01); // nonzero -> loc_4 = 40
-  m.mem.write8(loc_2, 0x00);  // pre-value so the unconditional loc_2 = 30 is observable
-  m.mem.write8(0x0048, 0x5a);  // loc_46 + 2 (loc_3d becomes 0x02) -> loc_9f source
-  m.mem.write8(loc_74, 0x00);
-  m.mem.write8(loc_75, 0x20);  // cursor into vector RAM 0x2000
+  m.mem.write8(STATUS_FLAGS, 0x80);  // negative -> the new-level timer block runs
+  m.mem.write8(loc_117, 0x01); // nonzero -> MODE_DELAY_TIMER = 40
+  m.mem.write8(GAME_MODE_PENDING, 0x00);  // pre-value so the unconditional GAME_MODE_PENDING = 30 is observable
+  m.mem.write8(0x0048, 0x5a);  // PLAYER_LEVEL_TBL + 2 (loc_3d becomes 0x02) -> loc_9f source
+  m.mem.write8(DRAW_CURSOR_LO, 0x00);
+  m.mem.write8(DRAW_CURSOR_HI, 0x20);  // cursor into vector RAM 0x2000
 }
 
-test("CRAFTED: changed level + negative loc_5 + loc_117 branch -- RAM equal", () => {
+test("CRAFTED: changed level + negative STATUS_FLAGS + loc_117 branch -- RAM equal", () => {
   const o = new Machine(ROM, OPTS); seedChanged(o);
   const c = new Machine(ROM, OPTS); seedChanged(c);
   let threw = false;
@@ -84,23 +84,23 @@ test("CRAFTED: changed level + negative loc_5 + loc_117 branch -- RAM equal", ()
   loc_c940(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the level-setup path");
   // Spot-checks on this routine's own signature writes.
-  assert.equal(c.mem.read8(loc_2), 30, "loc_2 seeded to 30");
-  assert.equal(c.mem.read8(loc_1), 14, "loc_1 took the new-level value");
-  assert.equal(c.mem.read8(loc_00), 10, "loc_00 took the new-level value");
-  assert.equal(c.mem.read8(loc_4), 40, "loc_4 took the loc_117-nonzero branch");
+  assert.equal(c.mem.read8(GAME_MODE_PENDING), 30, "GAME_MODE_PENDING seeded to 30");
+  assert.equal(c.mem.read8(MODE_DISPATCH_SEL), 14, "MODE_DISPATCH_SEL took the new-level value");
+  assert.equal(c.mem.read8(GAME_MODE), 10, "GAME_MODE took the new-level value");
+  assert.equal(c.mem.read8(MODE_DELAY_TIMER), 40, "MODE_DELAY_TIMER took the loc_117-nonzero branch");
   assert.equal(c.mem.read8(loc_3d), 0x02, "loc_3d latched the new level id");
   assert.equal(c.mem.read8(loc_9f), o.mem.read8(loc_9f), "loc_9f matches the oracle");
 });
 
-// Seed the "level unchanged" path: loc_3f == loc_3d, so the whole timer/swap block is skipped and only
+// Seed the "level unchanged" path: LEVEL_ID == loc_3d, so the whole timer/swap block is skipped and only
 // the convergence tail runs.
 function seedSame(m) {
-  m.mem.write8(loc_3f, 0x03);
+  m.mem.write8(LEVEL_ID, 0x03);
   m.mem.write8(loc_3d, 0x03);  // equal -> block skipped
-  m.mem.write8(loc_2, 0x00);
-  m.mem.write8(0x0049, 0x77);  // loc_46 + 3 -> loc_9f source
-  m.mem.write8(loc_74, 0x00);
-  m.mem.write8(loc_75, 0x20);
+  m.mem.write8(GAME_MODE_PENDING, 0x00);
+  m.mem.write8(0x0049, 0x77);  // PLAYER_LEVEL_TBL + 3 -> loc_9f source
+  m.mem.write8(DRAW_CURSOR_LO, 0x00);
+  m.mem.write8(DRAW_CURSOR_HI, 0x20);
 }
 
 test("CRAFTED: unchanged level -- block skipped, convergence tail -- RAM equal", () => {
@@ -111,24 +111,24 @@ test("CRAFTED: unchanged level -- block skipped, convergence tail -- RAM equal",
   if (threw) { console.log("  CRAFTED same: oracle threw on this seed -- skipped"); return; }
   loc_c940(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the skip path");
-  assert.equal(c.mem.read8(loc_2), 30, "loc_2 seeded to 30 even on the skip path");
-  assert.equal(c.mem.read8(loc_1), 0, "loc_1 stays 0 (timer block skipped)");
-  assert.equal(c.mem.read8(loc_00), 30, "loc_00 stays 30 (timer block skipped)");
+  assert.equal(c.mem.read8(GAME_MODE_PENDING), 30, "GAME_MODE_PENDING seeded to 30 even on the skip path");
+  assert.equal(c.mem.read8(MODE_DISPATCH_SEL), 0, "MODE_DISPATCH_SEL stays 0 (timer block skipped)");
+  assert.equal(c.mem.read8(GAME_MODE), 30, "GAME_MODE stays 30 (timer block skipped)");
 });
 
-test("TEETH: a twin that drops the unconditional loc_2 write MUST diverge in RAM", () => {
+test("TEETH: a twin that drops the unconditional GAME_MODE_PENDING write MUST diverge in RAM", () => {
   const o = new Machine(ROM, OPTS); seedChanged(o);
   const c = new Machine(ROM, OPTS); seedChanged(c);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
-  // Broken twin: identical to loc_c940 but reverts the unconditional loc_2 = 30 write. The seed leaves
-  // loc_2 = 0 before the call, so reverting guarantees a RAM divergence from the oracle's 30.
+  // Broken twin: identical to loc_c940 but reverts the unconditional GAME_MODE_PENDING = 30 write. The seed leaves
+  // GAME_MODE_PENDING = 0 before the call, so reverting guarantees a RAM divergence from the oracle's 30.
   const broken = (m) => {
-    const before02 = m.mem.read8(loc_2);
+    const before02 = m.mem.read8(GAME_MODE_PENDING);
     loc_c940(m);
-    m.mem.write8(loc_2, before02); // BUG: revert the sizing-cell write
+    m.mem.write8(GAME_MODE_PENDING, before02); // BUG: revert the sizing-cell write
   };
   broken(c);
-  assert.notEqual(ramDiff(o, c), null, "the dropped loc_2 write was NOT caught by the RAM compare");
+  assert.notEqual(ramDiff(o, c), null, "the dropped GAME_MODE_PENDING write was NOT caught by the RAM compare");
 });

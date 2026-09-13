@@ -12,7 +12,7 @@ import { loc_c97b as oracle } from "../../translated/loc_c97b.js";
 import { loc_c97b } from "../loc_c97b.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_0, loc_1, loc_2, loc_3, loc_4 } from "../names.js";
+import { STACK_SCRATCH, GAME_MODE, MODE_DISPATCH_SEL, GAME_MODE_PENDING, FRAME_COUNTER, MODE_DELAY_TIMER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -54,11 +54,11 @@ test("CRAFTED: $00/$01/$02/$04 seeded, $03 untouched == oracle (RAM -stack)", ()
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_c97b(c);
   assert.equal(ramDiff(o, c), null);
-  assert.equal(c.mem.read8(loc_0), 0x0a, "$00 = 0x0a");
-  assert.equal(c.mem.read8(loc_1), 0x00, "$01 = 0x00");
-  assert.equal(c.mem.read8(loc_2), 0x04, "$02 = 0x04");
-  assert.equal(c.mem.read8(loc_4), 0x14, "$04 = 0x14");
-  assert.equal(c.mem.read8(loc_3), 0x53, "$03 left at its sentinel (untouched)");
+  assert.equal(c.mem.read8(GAME_MODE), 0x0a, "$00 = 0x0a");
+  assert.equal(c.mem.read8(MODE_DISPATCH_SEL), 0x00, "$01 = 0x00");
+  assert.equal(c.mem.read8(GAME_MODE_PENDING), 0x04, "$02 = 0x04");
+  assert.equal(c.mem.read8(MODE_DELAY_TIMER), 0x14, "$04 = 0x14");
+  assert.equal(c.mem.read8(FRAME_COUNTER), 0x53, "$03 left at its sentinel (untouched)");
 });
 
 test("TEETH: a twin that forgets the $01 = 0x00 store diverges from the oracle", () => {
@@ -66,6 +66,6 @@ test("TEETH: a twin that forgets the $01 = 0x00 store diverges from the oracle",
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   // BUG: write $00/$02/$04 but leave $01 at its non-zero sentinel -- the RAM diff must catch it.
-  c.mem.write8(loc_0, 0x0a); c.mem.write8(loc_2, 0x04); c.mem.write8(loc_4, 0x14);
+  c.mem.write8(GAME_MODE, 0x0a); c.mem.write8(GAME_MODE_PENDING, 0x04); c.mem.write8(MODE_DELAY_TIMER, 0x14);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a missing $01 store");
 });

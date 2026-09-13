@@ -20,8 +20,8 @@ import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_5, loc_6, loc_7, loc_8, loc_3e, loc_53,
-  loc_406, loc_407, loc_408, loc_409, loc_40a, loc_40b,
+  STATUS_FLAGS, PHASE_COUNTER, IRQ_SUBTIMER, INPUT_PORT_LATCH, ACTIVE_SLOT_COUNT, IRQ_HEARTBEAT,
+  TIMER1_LO, TIMER1_MID, TIMER1_HI, TIMER2_LO, TIMER2_MID, TIMER2_HI,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -69,16 +69,16 @@ test("CAPTURE: real 0xd704 dispatches -- loc_d704 == oracle in RAM (-stack)", ()
 // is set so the $0409 chain runs too; $05 nonzero also selects the $3e+1 dispatch index. S=0xfd (fresh
 // post-reset) and $53 positive keep the guard on the main path.
 function seedMain(m) {
-  m.mem.write8(loc_53, 0x10);
-  m.mem.write8(loc_7, 0xff); // INC -> 0 -> enter the cascade block
-  m.mem.write8(loc_5, 0x40); // nonzero (dispatch = $3e+1) AND bit6 set (arm the $0409 chain)
-  m.mem.write8(loc_3e, 0x02);
-  m.mem.write8(loc_406, 0xff); // 0xff -> 0 -> carry into $0407
-  m.mem.write8(loc_407, 0xff); // 0xff -> 0 -> carry into $0408
-  m.mem.write8(loc_408, 0x20);
-  m.mem.write8(loc_409, 0xff); // 0xff -> 0 -> carry into $040a
-  m.mem.write8(loc_40a, 0xff); // 0xff -> 0 -> carry into $040b
-  m.mem.write8(loc_40b, 0x00);
+  m.mem.write8(IRQ_HEARTBEAT, 0x10);
+  m.mem.write8(IRQ_SUBTIMER, 0xff); // INC -> 0 -> enter the cascade block
+  m.mem.write8(STATUS_FLAGS, 0x40); // nonzero (dispatch = $3e+1) AND bit6 set (arm the $0409 chain)
+  m.mem.write8(ACTIVE_SLOT_COUNT, 0x02);
+  m.mem.write8(TIMER1_LO, 0xff); // 0xff -> 0 -> carry into $0407
+  m.mem.write8(TIMER1_MID, 0xff); // 0xff -> 0 -> carry into $0408
+  m.mem.write8(TIMER1_HI, 0x20);
+  m.mem.write8(TIMER2_LO, 0xff); // 0xff -> 0 -> carry into $040a
+  m.mem.write8(TIMER2_MID, 0xff); // 0xff -> 0 -> carry into $040b
+  m.mem.write8(TIMER2_HI, 0x00);
 }
 
 test("CRAFTED: main path with both timer cascades -- RAM equal + cascade cells correct", () => {
@@ -89,23 +89,23 @@ test("CRAFTED: main path with both timer cascades -- RAM equal + cascade cells c
   if (threw) { console.log("  CRAFTED: oracle threw (unported callee arm) -- skipped"); return; }
   loc_d704(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the main-path IRQ tick");
-  assert.equal(c.mem.read8(loc_53), 0x11, "heartbeat $53 advanced by 1");
-  assert.equal(c.mem.read8(loc_7), 0x00, "$07 wrapped to 0");
-  assert.equal(c.mem.read8(loc_406), 0x00, "$0406 wrapped to 0");
-  assert.equal(c.mem.read8(loc_407), 0x00, "$0407 wrapped to 0");
-  assert.equal(c.mem.read8(loc_408), 0x21, "$0408 carried +1");
-  assert.equal(c.mem.read8(loc_409), 0x00, "$0409 wrapped to 0 (bit6 of $05 armed the chain)");
-  assert.equal(c.mem.read8(loc_40a), 0x00, "$040a wrapped to 0");
-  assert.equal(c.mem.read8(loc_40b), 0x01, "$040b carried +1");
+  assert.equal(c.mem.read8(IRQ_HEARTBEAT), 0x11, "heartbeat $53 advanced by 1");
+  assert.equal(c.mem.read8(IRQ_SUBTIMER), 0x00, "$07 wrapped to 0");
+  assert.equal(c.mem.read8(TIMER1_LO), 0x00, "$0406 wrapped to 0");
+  assert.equal(c.mem.read8(TIMER1_MID), 0x00, "$0407 wrapped to 0");
+  assert.equal(c.mem.read8(TIMER1_HI), 0x21, "$0408 carried +1");
+  assert.equal(c.mem.read8(TIMER2_LO), 0x00, "$0409 wrapped to 0 (bit6 of $05 armed the chain)");
+  assert.equal(c.mem.read8(TIMER2_MID), 0x00, "$040a wrapped to 0");
+  assert.equal(c.mem.read8(TIMER2_HI), 0x01, "$040b carried +1");
 });
 
 test("CRAFTED: $07 low keeps the timer cascades and $0409 chain untouched", () => {
   const seed = (m) => {
-    m.mem.write8(loc_53, 0x10);
-    m.mem.write8(loc_7, 0x10);  // INC -> 0x11 (nonzero) -> skip ALL cascades
-    m.mem.write8(loc_5, 0x40);  // bit6 set, but the chain is gated by the $07 wrap that never happens
-    m.mem.write8(loc_406, 0x55);
-    m.mem.write8(loc_409, 0x66);
+    m.mem.write8(IRQ_HEARTBEAT, 0x10);
+    m.mem.write8(IRQ_SUBTIMER, 0x10);  // INC -> 0x11 (nonzero) -> skip ALL cascades
+    m.mem.write8(STATUS_FLAGS, 0x40);  // bit6 set, but the chain is gated by the $07 wrap that never happens
+    m.mem.write8(TIMER1_LO, 0x55);
+    m.mem.write8(TIMER2_LO, 0x66);
   };
   const o = pinClock(new Machine(ROM, OPTS)); seed(o);
   const c = pinClock(new Machine(ROM, OPTS)); seed(c);
@@ -114,9 +114,9 @@ test("CRAFTED: $07 low keeps the timer cascades and $0409 chain untouched", () =
   if (threw) { console.log("  CRAFTED-2: oracle threw -- skipped"); return; }
   loc_d704(c);
   assert.equal(ramDiff(o, c), null, "RAM equal on the no-cascade path");
-  assert.equal(c.mem.read8(loc_7), 0x11, "$07 advanced but did not wrap");
-  assert.equal(c.mem.read8(loc_406), 0x55, "$0406 untouched (no wrap)");
-  assert.equal(c.mem.read8(loc_409), 0x66, "$0409 untouched (chain gated off)");
+  assert.equal(c.mem.read8(IRQ_SUBTIMER), 0x11, "$07 advanced but did not wrap");
+  assert.equal(c.mem.read8(TIMER1_LO), 0x55, "$0406 untouched (no wrap)");
+  assert.equal(c.mem.read8(TIMER2_LO), 0x66, "$0409 untouched (chain gated off)");
 });
 
 test("TEETH: a twin that skips the $53 heartbeat INC MUST diverge in RAM", () => {
@@ -127,9 +127,9 @@ test("TEETH: a twin that skips the $53 heartbeat INC MUST diverge in RAM", () =>
   if (threw) { console.log("  TEETH: oracle threw -- skipped"); return; }
   let ran = false;
   const broken = (m) => {
-    const before = m.mem.read8(loc_53);
+    const before = m.mem.read8(IRQ_HEARTBEAT);
     loc_d704(m);
-    m.mem.write8(loc_53, before); // BUG: revert the +1/IRQ heartbeat advance
+    m.mem.write8(IRQ_HEARTBEAT, before); // BUG: revert the +1/IRQ heartbeat advance
     ran = true;
   };
   broken(c);
@@ -144,9 +144,9 @@ test("TEETH: a twin that skips latching raw IN0 into $08 MUST diverge in RAM", (
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH-2: oracle threw -- skipped"); return; }
   const broken = (m) => {
-    const before = m.mem.read8(loc_8);
+    const before = m.mem.read8(INPUT_PORT_LATCH);
     loc_d704(m);
-    m.mem.write8(loc_8, before); // BUG: never latched IN0 -> $08
+    m.mem.write8(INPUT_PORT_LATCH, before); // BUG: never latched IN0 -> $08
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the dropped $08 IN0 latch was NOT caught by the RAM compare");

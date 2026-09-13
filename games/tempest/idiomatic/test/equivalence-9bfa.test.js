@@ -13,7 +13,7 @@ import { loc_9bfa as oracle } from "../../translated/loc_9bfa.js";
 import { loc_9bfa } from "../loc_9bfa.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_10b, loc_10c, loc_a0f7 } from "../names.js";
+import { STACK_SCRATCH, SCRIPT_CURSOR, SCRIPT_BRANCH_FLAG, MOTION_SCRIPT_TABLE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -48,8 +48,8 @@ test("CAPTURE: real 0x9bfa dispatches -- loc_9bfa == oracle in RAM (-stack)", ()
 });
 
 function seed(m, s) {
-  m.mem8[loc_10b] = s.counter;
-  m.mem8[loc_10c] = s.gate;
+  m.mem8[SCRIPT_CURSOR] = s.counter;
+  m.mem8[SCRIPT_BRANCH_FLAG] = s.gate;
 }
 
 test("CRAFTED: gated (plain inc) and ungated (table reload) == oracle (RAM -stack)", () => {
@@ -74,14 +74,14 @@ test("TEETH: a rewrite that ignores the gate (never reloads) diverges from the o
   let counter = 0x10;
   for (let cand = 0; cand < 256; cand++) {
     const incd = (cand + 1) & 0xff;
-    if (probe.mem8[(loc_a0f7 + incd) & 0xffff] !== incd) { counter = cand; break; }
+    if (probe.mem8[(MOTION_SCRIPT_TABLE + incd) & 0xffff] !== incd) { counter = cand; break; }
   }
   const s = { counter, gate: 0x00 };
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o);
   const brokenNoReload = (m) => { // BUG: bumps the counter but never applies the table reload
-    m.mem8[loc_10b] = (m.mem8[loc_10b] + 1) & 0xff;
+    m.mem8[SCRIPT_CURSOR] = (m.mem8[SCRIPT_CURSOR] + 1) & 0xff;
   };
   brokenNoReload(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped table reload");

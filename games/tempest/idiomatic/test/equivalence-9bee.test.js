@@ -12,7 +12,7 @@ import { loc_9bee as oracle } from "../../translated/loc_9bee.js";
 import { loc_9bee } from "../loc_9bee.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_10b, loc_10c } from "../names.js";
+import { STACK_SCRATCH, SCRIPT_CURSOR, SCRIPT_BRANCH_FLAG } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const rd = (n) => new Uint8Array(readFileSync(new URL(n, ROM_DIR)));
@@ -46,8 +46,8 @@ test("CAPTURE: real 0x9bee dispatches -- loc_9bee == oracle in RAM (-stack)", ()
 
 function seeded(gate, step) {
   const m = new Machine(ROM, OPTS);
-  m.mem.write8(loc_10c, gate);
-  m.mem.write8(loc_10b, step);
+  m.mem.write8(SCRIPT_BRANCH_FLAG, gate);
+  m.mem.write8(SCRIPT_CURSOR, step);
   return m;
 }
 
@@ -62,7 +62,7 @@ test("CRAFTED: gate held -> no change; gate clear -> $010b += 2 (== oracle, RAM)
     const o = seeded(gate, step), c = seeded(gate, step);
     oracle(o); loc_9bee(c);
     assert.equal(ramDiff(o, c), null, tag);
-    assert.equal(c.mem.read8(loc_10b), expect, tag);
+    assert.equal(c.mem.read8(SCRIPT_CURSOR), expect, tag);
   }
 });
 
@@ -70,9 +70,9 @@ test("TEETH: a twin that advances by ONE (not two) diverges when the gate is cle
   // Non-default seed so the mutation bites: $010b starts at 0x40, oracle -> 0x42, a +1 twin -> 0x41.
   const o = seeded(0x00, 0x40);
   oracle(o);
-  assert.equal(o.mem.read8(loc_10b), 0x42, "precondition: oracle advanced by two");
+  assert.equal(o.mem.read8(SCRIPT_CURSOR), 0x42, "precondition: oracle advanced by two");
   const c = seeded(0x00, 0x40);
   loc_9bee(c);
-  c.mem.write8(loc_10b, 0x41); // BUG: advanced by one
+  c.mem.write8(SCRIPT_CURSOR, 0x41); // BUG: advanced by one
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a +1 (should be +2) advance");
 });

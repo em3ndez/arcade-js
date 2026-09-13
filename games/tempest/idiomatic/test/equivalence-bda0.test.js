@@ -15,7 +15,7 @@ import { loc_bda0 as oracleBda0, loc_bdcb as oracleBdcb } from "../../translated
 import { loc_bda0, loc_bdcb } from "../loc_bda0.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5b, loc_74, loc_75, loc_99 } from "../names.js";
+import { STACK_SCRATCH, DEPTH_LO, DRAW_CURSOR_LO, DRAW_CURSOR_HI, DRAW_RECORD_COUNT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -62,8 +62,8 @@ test("CAPTURE: real 0xbdcb mid-entry dispatches -- loc_bdcb == oracle in RAM (-s
 // quickly. The full-entry setup pulls both endpoints from the $03ce/$03de corner tables (ROM).
 function seedActive(m, a, y) {
   m.regs.a = a; m.regs.y = y;
-  m.mem.write8(loc_5b, 0x80);                              // negative -> skip the early-out
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20); // ($74) -> 0x2000
+  m.mem.write8(DEPTH_LO, 0x80);                              // negative -> skip the early-out
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); // ($74) -> 0x2000
 }
 
 test("CRAFTED: full entry, active path -- loc_bda0 == oracle in RAM", () => {
@@ -81,7 +81,7 @@ test("CRAFTED: mid-entry active path -- loc_bdcb == oracle in RAM", () => {
 });
 
 test("CRAFTED: early-out ($5b>=0 and $57<$5f) -- no change; RAM equal", () => {
-  const seed = (m) => { m.regs.y = 0x00; m.mem.write8(loc_5b, 0x00); m.mem.write8(0x57, 0x01); m.mem.write8(0x5f, 0x40); };
+  const seed = (m) => { m.regs.y = 0x00; m.mem.write8(DEPTH_LO, 0x00); m.mem.write8(0x57, 0x01); m.mem.write8(0x5f, 0x40); };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracleBdcb(o); loc_bdcb(c);
@@ -92,7 +92,7 @@ test("TEETH: a twin that skips the record-emit loop diverges from the oracle", (
   const o = new Machine(ROM, OPTS); seedActive(o, 0x00, 0x02); oracleBdcb(o);
   const c = new Machine(ROM, OPTS); seedActive(c, 0x00, 0x02); loc_bdcb(c);
   // Corrupt one emitted record byte the oracle wrote so the RAM images must differ.
-  const base = c.mem.read8(loc_74) | (c.mem.read8(loc_75) << 8);
+  const base = c.mem.read8(DRAW_CURSOR_LO) | (c.mem.read8(DRAW_CURSOR_HI) << 8);
   c.mem.write8(base & 0xffff, (c.mem.read8(base & 0xffff) ^ 0xff) & 0xff);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a corrupted emitted record");
 });
@@ -109,7 +109,7 @@ test("SP-TOOTH: the omitted-ret tail-caller (moved 0) is seam-placeable", () => 
   const m = new Machine(ROM, OPTS);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
-  m.mem.write8(loc_5b, 0x00); m.mem.write8(0x57, 0x01); m.mem.write8(0x5f, 0x40); // early-out: no side calls
+  m.mem.write8(DEPTH_LO, 0x00); m.mem.write8(0x57, 0x01); m.mem.write8(0x5f, 0x40); // early-out: no side calls
   const r = seamPlaceable(withOmittedRet, loc_bdcb, 0xbdcb, m);
   assert.equal(r.placeable, true, `loc_bdcb must be seam-placeable; got: ${r.error}`);
 });

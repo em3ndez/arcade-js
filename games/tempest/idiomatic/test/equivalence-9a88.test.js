@@ -17,7 +17,7 @@ import { loc_9a9d, loc_9aa9, loc_9ab3, loc_9ab7 } from "../loc_9a9d.js";
 import { loc_9abb } from "../loc_9abb.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_15d, loc_16d } from "../names.js";
+import { STACK_SCRATCH, loc_29, LIST_PTR_HI, LIST_SELECT_FLAGS } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -60,8 +60,8 @@ function seedBase(a) {
   const m = new Machine(ROM, OPTS);
   m.regs.a = a; m.regs.x = 0x05;
   m.mem.write8(loc_29, 0x42);  // holding cell -> A on the setup entries
-  m.mem.write8(loc_15d, 0x6e); // source byte -> $2d on entry 0
-  m.mem.write8(loc_16d, 0x30); // second held byte OR'd into the low pointer on entry 1
+  m.mem.write8(LIST_PTR_HI, 0x6e); // source byte -> $2d on entry 0
+  m.mem.write8(LIST_SELECT_FLAGS, 0x30); // second held byte OR'd into the low pointer on entry 1
   return m;
 }
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_00, loc_4e, loc_d00 } from "./names.js";
+import { GAME_MODE, INPUT_EDGE_FLAGS, DSW1_COINAGE } from "./names.js";
 import { loc_a7d2 } from "./loc_a7d2.js";
 import { loc_c90c } from "./loc_c90c.js";
 import { loc_c940 } from "./loc_c940.js";
@@ -19,8 +19,8 @@ import { loc_9729 } from "./loc_9729.js";
 import { loc_d7e1 } from "./loc_d7e1.js";
 import { loc_a618 } from "./loc_a618.js";
 
-// DSW-gated per-frame handler dispatch: skip entirely when (loc_d00 & 0x83) == 0x82; otherwise run a
-// pre-pass, set bit7 of loc_4e, and select one of the handlers by the byte offset in loc_00. Index 6 is
+// DSW-gated per-frame handler dispatch: skip entirely when (DSW1_COINAGE & 0x83) == 0x82; otherwise run a
+// pre-pass, set bit7 of INPUT_EDGE_FLAGS, and select one of the handlers by the byte offset in GAME_MODE. Index 6 is
 // an unused table slot (its word is zero); the caller never selects it.
 const TABLE = [
   loc_c90c, loc_c940, loc_970b, loc_c9af, loc_c9f1, loc_c800, null, loc_c98c, loc_ac3f, loc_ad6e,
@@ -29,9 +29,9 @@ const TABLE = [
 
 export function loc_c7bd(m) {
   const { mem8 } = m;
-  if ((mem8[loc_d00] & 0x83) === 0x82) return;
+  if ((mem8[DSW1_COINAGE] & 0x83) === 0x82) return;
   loc_a7d2(m);
-  const i = mem8[loc_00];
-  mem8[loc_4e] = mem8[loc_4e] | 0x80;
+  const i = mem8[GAME_MODE];
+  mem8[INPUT_EDGE_FLAGS] = mem8[INPUT_EDGE_FLAGS] | 0x80;
   return TABLE[i >> 1](m);
 }

@@ -14,7 +14,7 @@ import { loc_ae4e as oracle } from "../../translated/loc_ae4e.js";
 import { loc_ae4e } from "../loc_ae4e.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_37, loc_63 } from "../names.js";
+import { STACK_SCRATCH, SLOT_LOOP_INDEX, PROJ_X_LO } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const rd = (n) => new Uint8Array(readFileSync(new URL(n, ROM_DIR)));
@@ -61,8 +61,8 @@ test("CRAFTED: run the descending emit loop -- loc_ae4e == oracle in RAM", () =>
   const c = new Machine(ROM, OPTS); seat(c);
   oracle(o); loc_ae4e(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the full run");
-  assert.equal(c.mem.read8(loc_37), 0xfd, "$37 stepped past zero (0x00 - 3)");
-  assert.equal(c.mem.read8(loc_63), 0x11, "$63 = A live-in");
+  assert.equal(c.mem.read8(SLOT_LOOP_INDEX), 0xfd, "$37 stepped past zero (0x00 - 3)");
+  assert.equal(c.mem.read8(PROJ_X_LO), 0x11, "$63 = A live-in");
 });
 
 test("TEETH: a twin that corrupts a seeded glyph cell diverges from the oracle", () => {
@@ -75,7 +75,7 @@ test("TEETH: a twin that corrupts a seeded glyph cell diverges from the oracle",
 test("TEETH (marshalling): a twin that skips the whole emit run diverges from the oracle", () => {
   const o = new Machine(ROM, OPTS); seat(o); oracle(o);
   const c = new Machine(ROM, OPTS); seat(c);
-  const broken = (m, a = m.regs.a) => { m.mem8[loc_63] = a; }; // BUG: seats $63 but never emits anything
+  const broken = (m, a = m.regs.a) => { m.mem8[PROJ_X_LO] = a; }; // BUG: seats $63 but never emits anything
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped emit run");
 });

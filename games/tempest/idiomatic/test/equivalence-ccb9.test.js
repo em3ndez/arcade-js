@@ -13,7 +13,7 @@ import { loc_ccb9 as oracle } from "../../translated/loc_ccb9.js";
 import { loc_ccb9 } from "../loc_ccb9.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_31, loc_32 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, loc_31, loc_32 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -48,7 +48,7 @@ test("CAPTURE: real 0xccb9 dispatches -- loc_ccb9 == oracle in RAM (-stack)", ()
 });
 
 test("CRAFTED: gate enabled -- registers 0x4f, threading live X/Y into $0031/$0032", () => {
-  const seed = (m) => { m.mem.write8(loc_5, 0x80); m.regs.x = 0x12; m.regs.y = 0x34; };
+  const seed = (m) => { m.mem.write8(STATUS_FLAGS, 0x80); m.regs.x = 0x12; m.regs.y = 0x34; };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_ccb9(c);
@@ -58,7 +58,7 @@ test("CRAFTED: gate enabled -- registers 0x4f, threading live X/Y into $0031/$00
 });
 
 test("TEETH: a twin that drops the live X/Y bridge diverges from the oracle", () => {
-  const seed = (m) => { m.mem.write8(loc_5, 0x80); m.regs.x = 0x12; m.regs.y = 0x34; };
+  const seed = (m) => { m.mem.write8(STATUS_FLAGS, 0x80); m.regs.x = 0x12; m.regs.y = 0x34; };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);

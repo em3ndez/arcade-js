@@ -14,7 +14,7 @@ import { loc_a5cb as oracle } from "../../translated/loc_a5cb.js";
 import { loc_a5cb } from "../loc_a5cb.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_0, loc_2, loc_4, loc_9f, loc_106, loc_123, loc_125, loc_3ac } from "../names.js";
+import { STACK_SCRATCH, GAME_MODE, GAME_MODE_PENDING, MODE_DELAY_TIMER, loc_9f, SPIKE_ACTIVE_FLAG, SPIKED_SEGMENT_COUNT, WAVE_PHASE_LATCH, LANE_LIMIT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,43 +50,43 @@ test("CAPTURE: real 0xa5cb dispatches -- loc_a5cb == oracle in RAM (-stack)", ()
 
 test("CRAFTED: live entries + $9f<7 -- param block loads (RAM equal)", () => {
   const seed = (m) => {
-    m.mem.write8(loc_106, 0x01);
+    m.mem.write8(SPIKE_ACTIVE_FLAG, 0x01);
     m.mem.write8(loc_9f, 0x03);
-    for (let i = 0; i < 16; i++) m.mem.write8((loc_3ac + i) & 0xffff, (i === 4 || i === 9) ? 0x01 : 0x00);
+    for (let i = 0; i < 16; i++) m.mem.write8((LANE_LIMIT + i) & 0xffff, (i === 4 || i === 9) ? 0x01 : 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_a5cb(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after init");
-  assert.equal(c.mem.read8(loc_106) & 0x80, 0x80, "$0106 bit7 set");
-  assert.equal(c.mem.read8(loc_4), 0x1e, "param block $04 loaded");
-  assert.equal(c.mem.read8(loc_0), 0x0a, "param block $00 loaded");
-  assert.equal(c.mem.read8(loc_2), 0x20, "param block $02 loaded");
-  assert.equal(c.mem.read8(loc_123), 0x80, "param block $0123 loaded");
-  assert.equal(c.mem.read8(loc_125), 0xff, "$0125 marked ready");
+  assert.equal(c.mem.read8(SPIKE_ACTIVE_FLAG) & 0x80, 0x80, "$0106 bit7 set");
+  assert.equal(c.mem.read8(MODE_DELAY_TIMER), 0x1e, "param block $04 loaded");
+  assert.equal(c.mem.read8(GAME_MODE), 0x0a, "param block $00 loaded");
+  assert.equal(c.mem.read8(GAME_MODE_PENDING), 0x20, "param block $02 loaded");
+  assert.equal(c.mem.read8(SPIKED_SEGMENT_COUNT), 0x80, "param block $0123 loaded");
+  assert.equal(c.mem.read8(WAVE_PHASE_LATCH), 0xff, "$0125 marked ready");
 });
 
 test("CRAFTED: $9f>=7 -- param block skipped, count kept (RAM equal)", () => {
   const seed = (m) => {
-    m.mem.write8(loc_106, 0x00);
+    m.mem.write8(SPIKE_ACTIVE_FLAG, 0x00);
     m.mem.write8(loc_9f, 0x09);
-    for (let i = 0; i < 16; i++) m.mem.write8((loc_3ac + i) & 0xffff, i < 3 ? 0x01 : 0x00);
+    for (let i = 0; i < 16; i++) m.mem.write8((LANE_LIMIT + i) & 0xffff, i < 3 ? 0x01 : 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_a5cb(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after init");
-  assert.equal(c.mem.read8(loc_123), 0x03, "count kept (param block skipped)");
-  assert.equal(c.mem.read8(loc_0), 0x20, "$00 stays at 0x20 (block skipped)");
-  assert.equal(c.mem.read8(loc_125), 0xff, "$0125 marked ready regardless");
+  assert.equal(c.mem.read8(SPIKED_SEGMENT_COUNT), 0x03, "count kept (param block skipped)");
+  assert.equal(c.mem.read8(GAME_MODE), 0x20, "$00 stays at 0x20 (block skipped)");
+  assert.equal(c.mem.read8(WAVE_PHASE_LATCH), 0xff, "$0125 marked ready regardless");
 });
 
 test("TEETH: a twin that leaves $0125 untouched diverges from the oracle", () => {
   const seed = (m) => {
-    m.mem.write8(loc_106, 0x01);
+    m.mem.write8(SPIKE_ACTIVE_FLAG, 0x01);
     m.mem.write8(loc_9f, 0x03);
-    m.mem.write8(loc_125, 0x11); // non-default sentinel so the missing store bites
-    for (let i = 0; i < 16; i++) m.mem.write8((loc_3ac + i) & 0xffff, i === 4 ? 0x01 : 0x00);
+    m.mem.write8(WAVE_PHASE_LATCH, 0x11); // non-default sentinel so the missing store bites
+    for (let i = 0; i < 16; i++) m.mem.write8((LANE_LIMIT + i) & 0xffff, i === 4 ? 0x01 : 0x00);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);

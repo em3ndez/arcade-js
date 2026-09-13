@@ -14,7 +14,7 @@ import { loc_b0dd as oracle } from "../../translated/loc_b0dd.js";
 import { loc_b0dd } from "../loc_b0dd.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_72, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, VG_LAST_STAT, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -56,32 +56,32 @@ test("CAPTURE: real 0xb0dd dispatches -- loc_b0dd == oracle in RAM (-stack)", ()
 test("CRAFTED: unchanged branch is a no-op; changed branch latches $72 and emits == oracle (RAM -stack)", () => {
   // Unchanged: A already equals $72 -> early return, nothing touched.
   {
-    const s = { a: 0x33, mem: { [loc_72]: 0x33, [loc_74]: 0x00, [loc_75]: 0x20 } };
+    const s = { a: 0x33, mem: { [VG_LAST_STAT]: 0x33, [DRAW_CURSOR_LO]: 0x00, [DRAW_CURSOR_HI]: 0x20 } };
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
     oracle(o); loc_b0dd(c);
     assert.equal(ramDiff(o, c), null, "RAM: unchanged branch");
-    assert.equal(c.mem.read8(loc_72), 0x33, "$72 unchanged");
+    assert.equal(c.mem.read8(VG_LAST_STAT), 0x33, "$72 unchanged");
     assert.equal(c.mem.read8(0x2000), o.mem.read8(0x2000), "cursor target untouched");
   }
   // Changed: A differs -> latch $72 = A, emit {0x00, A|0x70}, cursor += 2.
   {
-    const s = { a: 0x05, mem: { [loc_72]: 0x33, [loc_74]: 0x00, [loc_75]: 0x20 } };
+    const s = { a: 0x05, mem: { [VG_LAST_STAT]: 0x33, [DRAW_CURSOR_LO]: 0x00, [DRAW_CURSOR_HI]: 0x20 } };
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
     oracle(o); loc_b0dd(c);
     assert.equal(ramDiff(o, c), null, "RAM: changed branch");
-    assert.equal(c.mem.read8(loc_72), 0x05, "$72 latched");
+    assert.equal(c.mem.read8(VG_LAST_STAT), 0x05, "$72 latched");
     assert.equal(c.mem.read8(0x2000), 0x00, "emit byte 0 = 0x00");
     assert.equal(c.mem.read8(0x2001), 0x75, "emit byte 1 = A|0x70");
-    assert.equal(c.mem.read8(loc_74) | (c.mem.read8(loc_75) << 8), 0x2002, "cursor += 2");
+    assert.equal(c.mem.read8(DRAW_CURSOR_LO) | (c.mem.read8(DRAW_CURSOR_HI) << 8), 0x2002, "cursor += 2");
   }
 });
 
 test("TEETH: twins that take the wrong branch or skip the latch diverge from the oracle", () => {
   // Twin A: A differs but the twin skips the whole body (treats it as a no-op).
   {
-    const s = { a: 0x05, mem: { [loc_72]: 0x33, [loc_74]: 0x00, [loc_75]: 0x20 } };
+    const s = { a: 0x05, mem: { [VG_LAST_STAT]: 0x33, [DRAW_CURSOR_LO]: 0x00, [DRAW_CURSOR_HI]: 0x20 } };
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
     oracle(o);
@@ -91,11 +91,11 @@ test("TEETH: twins that take the wrong branch or skip the latch diverge from the
   }
   // Twin B: latches $72 but never emits the vector word.
   {
-    const s = { a: 0x05, mem: { [loc_72]: 0x33, [loc_74]: 0x00, [loc_75]: 0x20 } };
+    const s = { a: 0x05, mem: { [VG_LAST_STAT]: 0x33, [DRAW_CURSOR_LO]: 0x00, [DRAW_CURSOR_HI]: 0x20 } };
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
     oracle(o);
-    const broken = (mm) => { mm.mem8[loc_72] = mm.regs.a; };
+    const broken = (mm) => { mm.mem8[VG_LAST_STAT] = mm.regs.a; };
     broken(c);
     assert.notEqual(ramDiff(o, c), null, "RAM diff FAILED to catch the missing emit");
   }

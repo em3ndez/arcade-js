@@ -12,7 +12,7 @@ import { loc_9bca as oracle } from "../../translated/loc_9bca.js";
 import { loc_9bca } from "../loc_9bca.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_10a } from "../names.js";
+import { STACK_SCRATCH, SCRIPT_WALK_CONTINUE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -52,16 +52,16 @@ function seed(m, s) { for (const [a, v] of Object.entries(s)) m.mem.write8(Numbe
 
 test("CRAFTED: $010a cleared == oracle (RAM -stack)", () => {
   // Non-default seed (0x7e) so the write-to-0 is observable and the arms must agree.
-  const s = { [loc_10a]: 0x7e };
+  const s = { [SCRIPT_WALK_CONTINUE]: 0x7e };
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o); loc_9bca(c);
   assert.equal(ramDiff(o, c), null);
-  assert.equal(o.mem.read8(loc_10a), 0x00, "precondition: oracle cleared $010a off 0x7e");
+  assert.equal(o.mem.read8(SCRIPT_WALK_CONTINUE), 0x00, "precondition: oracle cleared $010a off 0x7e");
 });
 
 test("TEETH: a rewrite that skips the $010a clear diverges from the oracle", () => {
-  const s = { [loc_10a]: 0x7e };
+  const s = { [SCRIPT_WALK_CONTINUE]: 0x7e };
   const o = new Machine(ROM, OPTS); seed(o, s); oracle(o);
   const c = new Machine(ROM, OPTS); seed(c, s); /* mutant: never clears $010a, leaves 0x7e */
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped $010a clear");

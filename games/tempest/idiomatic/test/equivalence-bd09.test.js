@@ -23,8 +23,8 @@ import { loc_df59 } from "../loc_df59.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_55, loc_57, loc_5b, loc_5f, loc_74, loc_75, loc_78, loc_a0, loc_a9,
-  loc_cec8, loc_cec9,
+  STACK_SCRATCH, DRAW_STYLE, OBJ_DEPTH, DEPTH_LO, DEPTH_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI, SEG_SPREAD_A_LO, loc_a0, DRAW_CURSOR_OFFSET,
+  OBJ_TEMPLATE_WORD_LO, OBJ_TEMPLATE_WORD_HI,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -51,12 +51,12 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 // store lands in the diff. $57>=0x10 drives bd3e's coprocessor branch; the c098 delta cells are seeded
 // so its (deterministic) math box run is reproducible. $55 indexes the $cec8/$cec9 template table.
 function seat(m, s = {}) {
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20);           // cursor -> 0x2000 (vector RAM)
-  m.mem.write8(loc_57, s.b57 ?? 0x40); m.mem.write8(loc_5f, s.b5f ?? 0x10); m.mem.write8(loc_5b, s.b5b ?? 0x00);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20);           // cursor -> 0x2000 (vector RAM)
+  m.mem.write8(OBJ_DEPTH, s.b57 ?? 0x40); m.mem.write8(DEPTH_HI, s.b5f ?? 0x10); m.mem.write8(DEPTH_LO, s.b5b ?? 0x00);
   m.mem.write8(loc_a0, s.ba0 ?? 0x02);
-  m.mem.write8(loc_78, s.b78 ?? 0x35);                              // color/intensity nibble source
-  m.mem.write8(loc_55, s.b55 ?? 0x00);                             // template index
-  m.mem.write8(loc_a9, s.ba9 ?? 0x00);                            // clobbered to 0 by bd09; seed is incidental
+  m.mem.write8(SEG_SPREAD_A_LO, s.b78 ?? 0x35);                              // color/intensity nibble source
+  m.mem.write8(DRAW_STYLE, s.b55 ?? 0x00);                             // template index
+  m.mem.write8(DRAW_CURSOR_OFFSET, s.ba9 ?? 0x00);                            // clobbered to 0 by bd09; seed is incidental
 }
 
 test("CAPTURE: real 0xbd09 dispatches -- loc_bd09 == oracle in RAM (-stack)", () => {
@@ -87,7 +87,7 @@ test("CRAFTED: the threaded exit-Y ($a9 -> 0, so Y=2) lands the entry at cursor+
   const c = new Machine(ROM, OPTS); seat(c, s);
   loc_bd09(c);
   // bd09 forces $a9=0 -> bd3e returns Y=2 -> the two stores use Y=2,3 -> $a9 stashed = 2+2 = 4.
-  assert.equal(c.mem.read8(loc_a9), 0x04, "$a9 persistently stashed to threaded-Y + 2");
+  assert.equal(c.mem.read8(DRAW_CURSOR_OFFSET), 0x04, "$a9 persistently stashed to threaded-Y + 2");
 });
 
 test("TEETH (register thread): threading the WRONG Y (stale entry Y=0, not bd3e's exit) diverges in $a9", () => {
@@ -102,30 +102,30 @@ test("TEETH (register thread): threading the WRONG Y (stale entry Y=0, not bd3e'
     const { mem8, mem16 } = m;
     loc_c098(m);
     loc_c765(m, 0x61);
-    mem8[loc_a9] = 0x00;
+    mem8[DRAW_CURSOR_OFFSET] = 0x00;
     loc_bd3e(m); // return IGNORED -- the defect
-    let a = mem8[loc_78] ^ 0x07;
+    let a = mem8[SEG_SPREAD_A_LO] ^ 0x07;
     a = (a << 1) & 0xff;
     if (a < 0x0a) a = 0x0a;
     a = (a << 4) & 0xff;
-    const ptr = mem16[loc_74];
+    const ptr = mem16[DRAW_CURSOR_LO];
     let y = 0x00; // WRONG: should be bd3e's exit Y ($a9 + 2 = 2)
     mem8[(ptr + y) & 0xffff] = a;
     y = (y + 1) & 0xff;
     mem8[(ptr + y) & 0xffff] = 0x60;
     y = (y + 1) & 0xff;
-    mem8[loc_a9] = y;
-    y = mem8[loc_55];
-    const x = mem8[(loc_cec9 + y) & 0xffff];
-    a = mem8[(loc_cec8 + y) & 0xffff];
-    y = mem8[loc_a9];
+    mem8[DRAW_CURSOR_OFFSET] = y;
+    y = mem8[DRAW_STYLE];
+    const x = mem8[(OBJ_TEMPLATE_WORD_HI + y) & 0xffff];
+    a = mem8[(OBJ_TEMPLATE_WORD_LO + y) & 0xffff];
+    y = mem8[DRAW_CURSOR_OFFSET];
     loc_df59(m, a, x, y);
   };
   broken(c);
   const d = ramDiff(o, c);
   assert.notEqual(d, null, "the RAM diff FAILED to catch the wrong threaded register");
   // And specifically the stash cell must be wrong.
-  assert.notEqual(o.mem.read8(loc_a9), c.mem.read8(loc_a9), "$a9 stash must differ (4 vs 2)");
+  assert.notEqual(o.mem.read8(DRAW_CURSOR_OFFSET), c.mem.read8(DRAW_CURSOR_OFFSET), "$a9 stash must differ (4 vs 2)");
 });
 
 test("TEETH: a twin that skips the 0x60 second entry byte diverges from the oracle", () => {
@@ -137,13 +137,13 @@ test("TEETH: a twin that skips the 0x60 second entry byte diverges from the orac
     const { mem8, mem16 } = m;
     loc_c098(m);
     loc_c765(m, 0x61);
-    mem8[loc_a9] = 0x00;
+    mem8[DRAW_CURSOR_OFFSET] = 0x00;
     const y0 = loc_bd3e(m);
-    let a = mem8[loc_78] ^ 0x07;
+    let a = mem8[SEG_SPREAD_A_LO] ^ 0x07;
     a = (a << 1) & 0xff;
     if (a < 0x0a) a = 0x0a;
     a = (a << 4) & 0xff;
-    const ptr = mem16[loc_74];
+    const ptr = mem16[DRAW_CURSOR_LO];
     mem8[(ptr + y0) & 0xffff] = a; // BUG: never writes the 0x60 byte, never advances/stashes $a9
   };
   broken(c);

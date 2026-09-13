@@ -12,7 +12,7 @@ import { loc_c43c as oracle } from "../../translated/loc_c43c.js";
 import { loc_c43c } from "../loc_c43c.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_37, loc_35a, loc_36a, loc_37a, loc_38a, loc_61, loc_62, loc_63, loc_64 } from "../names.js";
+import { STACK_SCRATCH, SLOT_LOOP_INDEX, OBJ_DY_HI, OBJ_DY_LO, OBJ_DX_HI, OBJ_DX_LO, PROJ_Y_LO, PROJ_Y_HI, PROJ_X_LO, PROJ_X_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => { const u = new URL(name, ROM_DIR); return existsSync(u) ? new Uint8Array(readFileSync(u)) : null; };
@@ -37,12 +37,12 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 // Seed $37 with the column index and plant four distinct values in the four parallel source tables.
 function seed(m, s = {}) {
   const x = s.x ?? 0x07;
-  m.mem8[loc_37] = x;
-  m.mem8[(loc_36a + x) & 0xffff] = s.v61 ?? 0x11;
-  m.mem8[(loc_35a + x) & 0xffff] = s.v62 ?? 0x22;
-  m.mem8[(loc_38a + x) & 0xffff] = s.v63 ?? 0x33;
-  m.mem8[(loc_37a + x) & 0xffff] = s.v64 ?? 0x44;
-  m.mem8[loc_61] = 0xee; m.mem8[loc_62] = 0xee; m.mem8[loc_63] = 0xee; m.mem8[loc_64] = 0xee;
+  m.mem8[SLOT_LOOP_INDEX] = x;
+  m.mem8[(OBJ_DY_LO + x) & 0xffff] = s.v61 ?? 0x11;
+  m.mem8[(OBJ_DY_HI + x) & 0xffff] = s.v62 ?? 0x22;
+  m.mem8[(OBJ_DX_LO + x) & 0xffff] = s.v63 ?? 0x33;
+  m.mem8[(OBJ_DX_HI + x) & 0xffff] = s.v64 ?? 0x44;
+  m.mem8[PROJ_Y_LO] = 0xee; m.mem8[PROJ_Y_HI] = 0xee; m.mem8[PROJ_X_LO] = 0xee; m.mem8[PROJ_X_HI] = 0xee;
 }
 
 test("CAPTURE: real 0xc43c dispatches -- loc_c43c == oracle in RAM (-stack)", () => {
@@ -65,8 +65,8 @@ test("CRAFTED: the four-column gather == oracle (RAM -stack)", () => {
     const c = new Machine(ROM, OPTS); seed(c, s);
     oracle(o); loc_c43c(c);
     assert.equal(ramDiff(o, c), null, s.tag);
-    assert.equal(c.mem8[loc_61], s.v61, `${s.tag}: $61`);
-    assert.equal(c.mem8[loc_64], s.v64, `${s.tag}: $64`);
+    assert.equal(c.mem8[PROJ_Y_LO], s.v61, `${s.tag}: $61`);
+    assert.equal(c.mem8[PROJ_X_HI], s.v64, `${s.tag}: $64`);
   }
 });
 
@@ -75,13 +75,13 @@ test("TEETH: a rewrite that skips the $64 copy diverges from the oracle", () => 
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
   const broken = (m) => { // BUG: never gathers the fourth column into $64 (leaves the 0xee garbage)
-    const x = m.mem8[loc_37];
-    m.mem8[loc_61] = m.mem8[(loc_36a + x) & 0xffff];
-    m.mem8[loc_62] = m.mem8[(loc_35a + x) & 0xffff];
-    m.mem8[loc_63] = m.mem8[(loc_38a + x) & 0xffff];
+    const x = m.mem8[SLOT_LOOP_INDEX];
+    m.mem8[PROJ_Y_LO] = m.mem8[(OBJ_DY_LO + x) & 0xffff];
+    m.mem8[PROJ_Y_HI] = m.mem8[(OBJ_DY_HI + x) & 0xffff];
+    m.mem8[PROJ_X_LO] = m.mem8[(OBJ_DX_LO + x) & 0xffff];
   };
   oracle(o); broken(c);
-  assert.notEqual(o.mem8[loc_64], 0xee, "precondition: oracle overwrote the $64 garbage");
+  assert.notEqual(o.mem8[PROJ_X_HI], 0xee, "precondition: oracle overwrote the $64 garbage");
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped $64 copy");
 });
 

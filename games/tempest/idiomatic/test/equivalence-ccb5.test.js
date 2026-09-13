@@ -14,7 +14,7 @@ import { loc_ccb5 } from "../loc_ccb5.js";
 import { loc_ccc3 } from "../loc_ccc3.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_5, loc_31, loc_32 } from "../names.js";
+import { STACK_SCRATCH, STATUS_FLAGS, loc_31, loc_32 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -49,7 +49,7 @@ test("CAPTURE: real 0xccb5 dispatches -- loc_ccb5 == oracle in RAM (-stack)", ()
 });
 
 function seed(m) {
-  m.mem.write8(loc_5, m.mem.read8(loc_5) | 0x80); // enable the sound gate
+  m.mem.write8(STATUS_FLAGS, m.mem.read8(STATUS_FLAGS) | 0x80); // enable the sound gate
   m.regs.x = 0x11;
   m.regs.y = 0x22;
 }

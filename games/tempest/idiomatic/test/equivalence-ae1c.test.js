@@ -20,7 +20,7 @@ import { loc_af26 } from "../loc_af26.js";
 import { loc_ae4e } from "../loc_ae4e.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_29, loc_11f, loc_60ca, loc_60da } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_11f, POKEY1_RANDOM, POKEY2_RANDOM } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -84,11 +84,11 @@ test("TEETH (A thread): a twin that hands loc_ae4e the wrong A (0x00) diverges a
   const broken = (m) => {
     const { mem8 } = m;
     loc_a8b4(m);
-    const r0 = mem8[loc_60ca];
-    mem8[loc_29] = mem8[loc_60ca];
+    const r0 = mem8[POKEY1_RANDOM];
+    mem8[loc_29] = mem8[POKEY1_RANDOM];
     mem8[loc_29] = (r0 >> 4) ^ mem8[loc_29];
-    const r1 = mem8[loc_60da];
-    const r1shift = mem8[loc_60da];
+    const r1 = mem8[POKEY2_RANDOM];
+    const r1shift = mem8[POKEY2_RANDOM];
     mem8[loc_29] = ((r1 ^ mem8[loc_29]) & 0xf0) ^ mem8[loc_29];
     mem8[loc_11f] = ((r1shift << 4) & 0xff) ^ mem8[loc_29];
     loc_af26(m);

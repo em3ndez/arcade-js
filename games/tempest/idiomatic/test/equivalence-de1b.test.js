@@ -15,7 +15,7 @@ import { loc_de1b as oracle } from "../../translated/loc_de1b.js";
 import { loc_de1b } from "../loc_de1b.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_1c7, loc_1ca, loc_1cc } from "../names.js";
+import { STACK_SCRATCH, EAROM_REGION_PENDING, EAROM_MODE, EAROM_CURSOR } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -56,8 +56,8 @@ test("CAPTURE: real 0xde1b dispatches -- loc_de1b == oracle in RAM (-stack) and 
 // arm: ASL of 0x80 sets carry, so the entry stores and the mode byte becomes 0x40.
 const seed = (m) => {
   m.regs.x = 0x37; m.regs.y = 0x99; // distinct entry X/Y so the carry/live-out is exercised
-  m.mem.write8(loc_1ca, 0x80); // mode byte nonzero -> ASL sets carry
-  m.mem.write8(loc_1cc, 0x00); // cursor 0 keeps the port write inside the EAROM window
+  m.mem.write8(EAROM_MODE, 0x80); // mode byte nonzero -> ASL sets carry
+  m.mem.write8(EAROM_CURSOR, 0x00); // cursor 0 keeps the port write inside the EAROM window
 };
 
 test("CRAFTED: carry arm retires the mode byte $01ca to 0x40, exit [x, y] matches oracle", () => {
@@ -66,13 +66,13 @@ test("CRAFTED: carry arm retires the mode byte $01ca to 0x40, exit [x, y] matche
   oracle(o);
   const [rx, ry] = loc_de1b(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the step");
-  assert.equal(c.mem.read8(loc_1ca), 0x40, "$01ca folded to 0x40");
+  assert.equal(c.mem.read8(EAROM_MODE), 0x40, "$01ca folded to 0x40");
   assert.equal(rx, o.regs.x, "X live-out matches oracle exit X");
   assert.equal(ry, o.regs.y, "Y live-out matches oracle exit Y (0x0e on the carry arm)");
 });
 
 test("CRAFTED: early-return arm (mode byte clear, no fresh row) exits [entryX, 0]", () => {
-  const early = (m) => { m.regs.x = 0x37; m.regs.y = 0x99; m.mem.write8(loc_1ca, 0x00); m.mem.write8(loc_1c7, 0x00); };
+  const early = (m) => { m.regs.x = 0x37; m.regs.y = 0x99; m.mem.write8(EAROM_MODE, 0x00); m.mem.write8(EAROM_REGION_PENDING, 0x00); };
   const o = new Machine(ROM, OPTS); early(o);
   const c = new Machine(ROM, OPTS); early(c);
   oracle(o);
@@ -99,7 +99,7 @@ test("TEETH (RAM): a twin that leaves the mode byte untouched diverges from the 
 
 test("TEETH (register): a twin that skips the Y=0 clear returns the wrong exit Y", () => {
   // RAM-correct but register-wrong: it clears $6040 correctly yet returns the stale carried Y instead of 0.
-  const early = (m) => { m.regs.x = 0x37; m.regs.y = 0x99; m.mem.write8(loc_1ca, 0x00); m.mem.write8(loc_1c7, 0x00); };
+  const early = (m) => { m.regs.x = 0x37; m.regs.y = 0x99; m.mem.write8(EAROM_MODE, 0x00); m.mem.write8(EAROM_REGION_PENDING, 0x00); };
   const o = new Machine(ROM, OPTS); early(o);
   const c = new Machine(ROM, OPTS); early(c);
   oracle(o);

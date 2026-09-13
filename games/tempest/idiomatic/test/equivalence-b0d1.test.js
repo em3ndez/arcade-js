@@ -13,7 +13,7 @@ import { loc_b0d1 as oracle } from "../../translated/loc_b0d1.js";
 import { loc_b0d1 } from "../loc_b0d1.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_9e, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, loc_9e, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -51,7 +51,7 @@ test("CAPTURE: real 0xb0d1 dispatches -- loc_b0d1 == oracle in RAM (-stack)", ()
 function seedEmit(m, y, latched) {
   m.regs.y = y;
   m.mem.write8(loc_9e, latched);
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20); // ($74) -> 0x2000
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); // ($74) -> 0x2000
 }
 
 test("CRAFTED: Y != $9e -- latches Y and emits; RAM equal", () => {

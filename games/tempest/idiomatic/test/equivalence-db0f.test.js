@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Equivalence for loc_db0f (ROM 0xdb0f-0xdb21) -- an RTS-trick COMPUTED-JUMP dispatcher: it reads a byte
-// offset from loc_00, clamps it to 0x02 (persisting the clamp to loc_00) when >= 0x0e, then pushes
+// offset from GAME_MODE, clamps it to 0x02 (persisting the clamp to GAME_MODE) when >= 0x0e, then pushes
 // word($db01+offset) and rts, jumping to (word+1). The seven targets (word+1) are 0xdb5a/0xdbf7/0xdb84/
 // 0xdb9a/0xdb7e/0xdb6f/0xdb22 -- the per-frame draw handlers -- and each RTS returns to loc_db0f's own
 // caller. The idiomatic form dissolves the push/pull16/rts-jump into TABLE[offset>>1](m). All seven
@@ -25,7 +25,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import {
-  STACK_SCRATCH, loc_00, loc_2e, loc_2f, loc_4e, loc_50, loc_52, loc_74, loc_75, loc_78, loc_7d,
+  STACK_SCRATCH, GAME_MODE, loc_2e, loc_2f, INPUT_EDGE_FLAGS, SPINNER_ACCUM, SPINNER_POT_PREV, DRAW_CURSOR_LO, DRAW_CURSOR_HI, SEG_SPREAD_A_LO, SEG_SPREAD_A_LO_5,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -44,20 +44,20 @@ const inDeadStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRAT
 const ramDiff = (ma, mb) =>
   firstStateDiff(ma.dumpState(), mb.dumpState(), (off) => ma.stateOffsetToAddr(off), inDeadStack);
 
-// Aim the dispatcher at table offset `off` (loc_00) and provision the draw pipeline so at least one
+// Aim the dispatcher at table offset `off` (GAME_MODE) and provision the draw pipeline so at least one
 // handler runs: the display cursor into vector RAM, the frame counter + both emit tables (entry 1's
 // vector-list emit needs), and a generic object-pointer table for the chasing handlers.
 function seed(m, off) {
-  m.mem.write8(loc_00, off);
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x20); // cursor -> vector RAM 0x2000
+  m.mem.write8(GAME_MODE, off);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x20); // cursor -> vector RAM 0x2000
   m.mem.write8(loc_2e, 0x37); m.mem.write8(loc_2f, 0x12); // frame counter nonzero
-  m.mem.write8(loc_4e, 0x05);
-  m.mem.write8(loc_52, 0x10);
-  m.mem.write8(loc_50, 0x02);
-  m.mem.write8(loc_78 + 0x01, 0x01);
-  m.mem.write8(loc_78 + 0x02, 0x03);
-  m.mem.write8(loc_7d + 0x01, 0x20);
-  m.mem.write8(loc_7d + 0x03, 0x40);
+  m.mem.write8(INPUT_EDGE_FLAGS, 0x05);
+  m.mem.write8(SPINNER_POT_PREV, 0x10);
+  m.mem.write8(SPINNER_ACCUM, 0x02);
+  m.mem.write8(SEG_SPREAD_A_LO + 0x01, 0x01);
+  m.mem.write8(SEG_SPREAD_A_LO + 0x02, 0x03);
+  m.mem.write8(SEG_SPREAD_A_LO_5 + 0x01, 0x20);
+  m.mem.write8(SEG_SPREAD_A_LO_5 + 0x03, 0x40);
   for (let i = 0; i < 0x20; i++) m.mem.write8(u16(0x0400 + i), 0x20); // object slots -> a list at 0x0420
   m.mem.write8(0x0420, 0x80); // one bit7-terminated list entry
 }
@@ -100,7 +100,7 @@ test("CRAFTED: each table entry off=0,2,4,6,8,10,12 -- loc_db0f == oracle in RAM
   assert.ok(checked >= 1, "no entry could be provisioned -- seed is inert");
 });
 
-test("CLAMP: an out-of-range offset (0x20) clamps to entry 1 -- loc_db0f == oracle, loc_00 rewritten to 2", () => {
+test("CLAMP: an out-of-range offset (0x20) clamps to entry 1 -- loc_db0f == oracle, GAME_MODE rewritten to 2", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x20);
   const c = new Machine(ROM, OPTS); seed(c, 0x20);
   let threw = false;
@@ -108,7 +108,7 @@ test("CLAMP: an out-of-range offset (0x20) clamps to entry 1 -- loc_db0f == orac
   if (threw) { console.log("  CLAMP: entry-1 seed threw -- skipped"); return; }
   loc_db0f(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the clamp path");
-  assert.equal(c.mem.read8(loc_00), 0x02, "loc_00 was clamped to 0x02 and persisted");
+  assert.equal(c.mem.read8(GAME_MODE), 0x02, "GAME_MODE was clamped to 0x02 and persisted");
 });
 
 test("TEETH: a twin that dispatches the WRONG entry (off>>1)^1 diverges in RAM", () => {

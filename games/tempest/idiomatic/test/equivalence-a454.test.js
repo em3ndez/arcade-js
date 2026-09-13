@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_a454 (ROM 0xa454-0xa461) -- scans slots x=7..0 of the loc_2d3 table and,
+// Memory-equivalence for loc_a454 (ROM 0xa454-0xa461) -- scans slots x=7..0 of the SLOT_STATE table and,
 // for each nonzero entry, invokes loc_a463 with that entry (threshold) and x (slot index). The oracle's
 // jsr loc_a463 sits mid-loop (its return address is a normal JSR return, dissolved into a direct call
 // in the idiomatic layer), so this is not a tail dispatcher: no live-out register, and no seam tooth.
@@ -16,7 +16,7 @@ import { loc_a454 as oracle } from "../../translated/loc_a454.js";
 import { loc_a454 } from "../loc_a454.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_2d3, loc_2e } from "../names.js";
+import { STACK_SCRATCH, SLOT_STATE, loc_2e } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -59,9 +59,9 @@ test("CAPTURE: real 0xa454 dispatches -- loc_a454 == oracle in RAM (-stack)", ()
 // table left zero, loc_a463 takes its minimal path (writes loc_2e = threshold, no sub-calls), which is
 // enough to exercise the caller loop and produce an observable RAM change.
 function seed(m) {
-  m.mem.write8(loc_2d3 + 0x02, 0x11);
-  m.mem.write8(loc_2d3 + 0x04, 0x22);
-  m.mem.write8(loc_2d3 + 0x07, 0x33);
+  m.mem.write8(SLOT_STATE + 0x02, 0x11);
+  m.mem.write8(SLOT_STATE + 0x04, 0x22);
+  m.mem.write8(SLOT_STATE + 0x07, 0x33);
 }
 
 test("CRAFTED: several nonzero slots invoke loc_a463 -- RAM equal", () => {
@@ -88,7 +88,7 @@ test("TEETH: a twin that never invokes the callee MUST diverge in RAM", () => {
   // callee writes on every invocation) is left untouched -- a guaranteed RAM divergence under this seed.
   const { mem8 } = c;
   let tried = 0;
-  for (let x = 7; x >= 0; x--) { if (mem8[loc_2d3 + x] !== 0) tried++; }
+  for (let x = 7; x >= 0; x--) { if (mem8[SLOT_STATE + x] !== 0) tried++; }
   assert.ok(tried > 0, "seed provisioned no nonzero slot -- teeth arm is inert");
   assert.notEqual(ramDiff(o, c), null, "the skipped callee was NOT caught by the RAM compare");
 });

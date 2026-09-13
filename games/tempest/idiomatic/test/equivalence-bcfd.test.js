@@ -15,7 +15,7 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import { loc_bd09 } from "../loc_bd09.js";
-import { STACK_SCRATCH, loc_55, loc_56, loc_58, loc_74, loc_435, loc_445 } from "../names.js";
+import { STACK_SCRATCH, DRAW_STYLE, PROJ_PT_Y, PROJ_PT_X, DRAW_CURSOR_LO, SEG_MID_X, SEG_MID_Y } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -53,8 +53,8 @@ test("CAPTURE: real 0xbcfd dispatches -- loc_bcfd == oracle in RAM (-stack)", ()
 function seedDistinct(m) {
   m.regs.a = 0x2a; m.regs.y = 0x05;
   // distinct per-index table values so an off-by-one index reads a different byte (teeth)
-  for (let i = 0; i < 8; i++) { m.mem.write8(u16(loc_435 + i), 0x30 + i); m.mem.write8(u16(loc_445 + i), 0x50 + i); }
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_74 + 1, 0x24); // ($74) -> 0x2400
+  for (let i = 0; i < 8; i++) { m.mem.write8(u16(SEG_MID_X + i), 0x30 + i); m.mem.write8(u16(SEG_MID_Y + i), 0x50 + i); }
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_LO + 1, 0x24); // ($74) -> 0x2400
 }
 
 test("CRAFTED: distinct A/Y -- loc_bcfd == oracle in RAM, work cells seated", () => {
@@ -62,9 +62,9 @@ test("CRAFTED: distinct A/Y -- loc_bcfd == oracle in RAM, work cells seated", ()
   const c = new Machine(ROM, OPTS); seedDistinct(c);
   oracle(o); loc_bcfd(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after store + table loads + emit");
-  assert.equal(c.mem.read8(loc_55), 0x2a, "$55 = A");
-  assert.equal(c.mem.read8(loc_56), c.mem.read8(u16(loc_435 + 5)), "$56 = [$0435+Y]");
-  assert.equal(c.mem.read8(loc_58), c.mem.read8(u16(loc_445 + 5)), "$58 = [$0445+Y]");
+  assert.equal(c.mem.read8(DRAW_STYLE), 0x2a, "$55 = A");
+  assert.equal(c.mem.read8(PROJ_PT_Y), c.mem.read8(u16(SEG_MID_X + 5)), "$56 = [$0435+Y]");
+  assert.equal(c.mem.read8(PROJ_PT_X), c.mem.read8(u16(SEG_MID_Y + 5)), "$58 = [$0445+Y]");
 });
 
 test("TEETH: a twin that skips the two table loads diverges from the oracle", () => {
@@ -72,7 +72,7 @@ test("TEETH: a twin that skips the two table loads diverges from the oracle", ()
   const c = new Machine(ROM, OPTS); seedDistinct(c);
   oracle(o);
   const brokenBcfd = (m, a = m.regs.a) => {
-    m.mem8[loc_55] = a; // BUG: never loads $56/$58, never emits
+    m.mem8[DRAW_STYLE] = a; // BUG: never loads $56/$58, never emits
   };
   brokenBcfd(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped loads");
@@ -83,9 +83,9 @@ test("TEETH (marshalling): a twin that reads the tables at the wrong index diver
   const c = new Machine(ROM, OPTS); seedDistinct(c);
   const wrongIndex = (m, a = m.regs.a, y = m.regs.y) => {
     const mem8 = m.mem8;
-    mem8[loc_55] = a;
-    mem8[loc_56] = mem8[u16(loc_435 + y + 1)]; // BUG: off-by-one index
-    mem8[loc_58] = mem8[u16(loc_445 + y + 1)];
+    mem8[DRAW_STYLE] = a;
+    mem8[PROJ_PT_Y] = mem8[u16(SEG_MID_X + y + 1)]; // BUG: off-by-one index
+    mem8[PROJ_PT_X] = mem8[u16(SEG_MID_Y + y + 1)];
     loc_bd09(m);
   };
   wrongIndex(c);

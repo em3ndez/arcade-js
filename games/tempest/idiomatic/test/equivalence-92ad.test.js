@@ -11,7 +11,7 @@ import { loc_92ad as oracle } from "../../translated/loc_92ad.js";
 import { loc_92ad } from "../loc_92ad.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_50 } from "../names.js";
+import { STACK_SCRATCH, SPINNER_ACCUM } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -51,17 +51,17 @@ function seed(m, s) { for (const [a, v] of Object.entries(s)) m.mem.write8(Numbe
 
 test("CRAFTED: $50 zeroed == oracle (RAM -stack)", () => {
   // Non-default seed (0x7e, not the 0 default) so the write-to-0 is observable and the arms must agree.
-  const s = { [loc_50]: 0x7e };
+  const s = { [SPINNER_ACCUM]: 0x7e };
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o); loc_92ad(c);
   assert.equal(ramDiff(o, c), null);
-  assert.equal(o.mem.read8(loc_50), 0x00, "precondition: oracle zeroed $50 off 0x7e");
+  assert.equal(o.mem.read8(SPINNER_ACCUM), 0x00, "precondition: oracle zeroed $50 off 0x7e");
 });
 
 test("TEETH: a rewrite that skips the $50 write diverges from the oracle", () => {
   // Non-default seed so a skipped write actually differs from the oracle's 0.
-  const s = { [loc_50]: 0x7e };
+  const s = { [SPINNER_ACCUM]: 0x7e };
   const o = new Machine(ROM, OPTS); seed(o, s); oracle(o);
   const c = new Machine(ROM, OPTS); seed(c, s); /* mutant: never writes $50, leaves 0x7e */
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a skipped $50 write");

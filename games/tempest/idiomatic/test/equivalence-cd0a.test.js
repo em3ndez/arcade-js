@@ -17,8 +17,8 @@ import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u8, u16 } from "../../../../core/int.js";
 import {
-  STACK_SCRATCH, loc_bf, loc_c0, loc_d0, loc_e0, loc_f0,
-  loc_cbcc, loc_cbcd, loc_cccc, loc_cccd,
+  STACK_SCRATCH, SOUND_SLOT_SENTINEL, SOUND_VOICE_VALUE, SOUND_VOICE_LEVEL, SOUND_FAST_TIMER, SOUND_SLOW_TIMER,
+  VOICE_ENV_FASTTIMER, VOICE_ENV_LEVEL, VOICE_ENV_FASTTIMER_HI, VOICE_ENV_LEVEL_HI,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -47,12 +47,12 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 // Seed every slot into the single-step branch: alive ($c0,x != 0), fast timer about to hit 0 ($e0,x = 1),
 // slow timer still running after decrement ($f0,x = 2). No inner loop, no POKEY-read coupling.
 function seedSingleStep(m) {
-  m.mem.write8(loc_bf, 0xff); // no slot equals the reserved index
+  m.mem.write8(SOUND_SLOT_SENTINEL, 0xff); // no slot equals the reserved index
   for (let x = 0; x < 16; x++) {
-    m.mem.write8((loc_c0 + x) & 0xff, 0x04 + x);
-    m.mem.write8((loc_d0 + x) & 0xff, 0x30 + x);
-    m.mem.write8((loc_e0 + x) & 0xff, 0x01);
-    m.mem.write8((loc_f0 + x) & 0xff, 0x02);
+    m.mem.write8((SOUND_VOICE_VALUE + x) & 0xff, 0x04 + x);
+    m.mem.write8((SOUND_VOICE_LEVEL + x) & 0xff, 0x30 + x);
+    m.mem.write8((SOUND_FAST_TIMER + x) & 0xff, 0x01);
+    m.mem.write8((SOUND_SLOW_TIMER + x) & 0xff, 0x02);
   }
 }
 
@@ -71,7 +71,7 @@ test("CRAFTED: single-step branch over all 16 slots -- zero-page cells match the
   oracle(o); loc_cd0a(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after stepping");
   for (let x = 0; x < 16; x++) {
-    assert.equal(c.mem.read8((loc_f0 + x) & 0xff), 0x01, `slot ${x}: $f0,x decremented`);
+    assert.equal(c.mem.read8((SOUND_SLOW_TIMER + x) & 0xff), 0x01, `slot ${x}: $f0,x decremented`);
   }
 });
 
@@ -83,30 +83,30 @@ test("TEETH: a twin that skips the $f0,x decrement store diverges from the oracl
   const brokenCd0a = (m) => {
     const mem8 = m.mem8;
     for (let x = 0x0f; x >= 0; x--) {
-      let a = mem8[u8(loc_c0 + x)];
+      let a = mem8[u8(SOUND_VOICE_VALUE + x)];
       if (a === 0) continue;
-      if (x === mem8[loc_bf]) continue;
-      const eDec = u8(mem8[u8(loc_e0 + x)] - 1);
-      mem8[u8(loc_e0 + x)] = eDec;
+      if (x === mem8[SOUND_SLOT_SENTINEL]) continue;
+      const eDec = u8(mem8[u8(SOUND_FAST_TIMER + x)] - 1);
+      mem8[u8(SOUND_FAST_TIMER + x)] = eDec;
       if (eDec !== 0) continue;
-      const fDec = u8(mem8[u8(loc_f0 + x)] - 1);
+      const fDec = u8(mem8[u8(SOUND_SLOW_TIMER + x)] - 1);
       // BUG: never stores the decremented $f0,x
       if (fDec !== 0) {
         const carry = (a & 0x80) !== 0;
         const y = u8(a << 1);
         if (carry) {
-          mem8[u8(loc_e0 + x)] = mem8[u16(loc_cccc + y)];
-          a = mem8[u16(loc_cccd + y)];
+          mem8[u8(SOUND_FAST_TIMER + x)] = mem8[u16(VOICE_ENV_FASTTIMER_HI + y)];
+          a = mem8[u16(VOICE_ENV_LEVEL_HI + y)];
         } else {
-          mem8[u8(loc_e0 + x)] = mem8[u16(loc_cbcc + y)];
-          a = mem8[u16(loc_cbcd + y)];
+          mem8[u8(SOUND_FAST_TIMER + x)] = mem8[u16(VOICE_ENV_FASTTIMER + y)];
+          a = mem8[u16(VOICE_ENV_LEVEL + y)];
         }
-        const prevD = mem8[u8(loc_d0 + x)];
+        const prevD = mem8[u8(SOUND_VOICE_LEVEL + x)];
         a = u8(a + prevD);
-        mem8[u8(loc_d0 + x)] = a;
+        mem8[u8(SOUND_VOICE_LEVEL + x)] = a;
         if ((x & 1) !== 0) {
-          const d = mem8[u8(loc_d0 + x)];
-          mem8[u8(loc_d0 + x)] = ((((prevD ^ d) & 0xf0) ^ d)) & 0xff;
+          const d = mem8[u8(SOUND_VOICE_LEVEL + x)];
+          mem8[u8(SOUND_VOICE_LEVEL + x)] = ((((prevD ^ d) & 0xf0) ^ d)) & 0xff;
         }
       }
     }

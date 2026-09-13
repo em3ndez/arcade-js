@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_123, loc_124, loc_148 } from "./names.js";
+import { SPIKED_SEGMENT_COUNT, RIM_COLOR_ANIM, ENEMY_ANIM_ACCUM } from "./names.js";
 import { loc_928f } from "./loc_928f.js";
 import { loc_926f } from "./loc_926f.js";
 import { loc_9246 } from "./loc_9246.js";
@@ -16,7 +16,7 @@ export function loc_902b(m) {
   loc_929f(m);
   loc_92ad(m);
   loc_c16e(m);
-  mem8[loc_124] = 0xff;
-  mem8[loc_148] = 0xff;
-  mem8[loc_123] = 0x00;
+  mem8[RIM_COLOR_ANIM] = 0xff;
+  mem8[ENEMY_ANIM_ACCUM] = 0xff;
+  mem8[SPIKED_SEGMENT_COUNT] = 0x00;
 }

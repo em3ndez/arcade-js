@@ -13,7 +13,7 @@ import { loc_a831 as oracle } from "../../translated/loc_a831.js";
 import { loc_a831 } from "../loc_a831.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_3aa, loc_125 } from "../names.js";
+import { STACK_SCRATCH, SWEEP_STAGE, WAVE_PHASE_LATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -50,22 +50,22 @@ test("CAPTURE: real 0xa831 dispatches -- loc_a831 == oracle in RAM (-stack)", ()
 function seed(m, s) { for (const [a, v] of Object.entries(s)) m.mem.write8(Number(a), v); }
 
 test("CRAFTED: both cells land at 0 from a non-default seed", () => {
-  const s = { [loc_3aa]: 0x9c, [loc_125]: 0x5a }; // NON-default so the clear actually bites
+  const s = { [SWEEP_STAGE]: 0x9c, [WAVE_PHASE_LATCH]: 0x5a }; // NON-default so the clear actually bites
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o); loc_a831(c);
   assert.equal(ramDiff(o, c), null, "RAM matches oracle");
-  assert.equal(c.mem.read8(loc_3aa), 0x00, "$03aa cleared");
-  assert.equal(c.mem.read8(loc_125), 0x00, "$0125 cleared");
+  assert.equal(c.mem.read8(SWEEP_STAGE), 0x00, "$03aa cleared");
+  assert.equal(c.mem.read8(WAVE_PHASE_LATCH), 0x00, "$0125 cleared");
 });
 
 test("TEETH: a twin that clears only $03aa (leaves $0125) diverges", () => {
-  const s = { [loc_3aa]: 0x9c, [loc_125]: 0x5a };
+  const s = { [SWEEP_STAGE]: 0x9c, [WAVE_PHASE_LATCH]: 0x5a };
   const o = new Machine(ROM, OPTS); seed(o, s);
   oracle(o);
-  assert.equal(o.mem.read8(loc_125), 0x00, "precondition: oracle cleared $0125");
+  assert.equal(o.mem.read8(WAVE_PHASE_LATCH), 0x00, "precondition: oracle cleared $0125");
   const broken0125 = 0x5a; // BUG: never cleared $0125
-  assert.notEqual(broken0125, o.mem.read8(loc_125), "the RAM diff FAILED to catch a skipped $0125 clear");
+  assert.notEqual(broken0125, o.mem.read8(WAVE_PHASE_LATCH), "the RAM diff FAILED to catch a skipped $0125 clear");
 });
 
 test("SP-TOOTH: the omitted-ret leaf (moved 0) is seam-placeable", () => {

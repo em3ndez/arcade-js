@@ -14,7 +14,7 @@ import { loc_b332 as oracle } from "../../translated/loc_b332.js";
 import { loc_b332 } from "../loc_b332.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75, loc_415, loc_16e, loc_2000, loc_cec4 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI, POINTER_PARITY, SCORE_DISPLAY_TIMER, VEC_LIST_HEADER_LO, VECHEAD0_PLAY } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -53,11 +53,11 @@ test("CAPTURE: real 0xb332 dispatches -- loc_b332 == oracle in RAM (-stack) and 
 
 function seed(m, s) {
   // $cec4 is ROM (fixed); only the gate/flag/pointer/scratch cells are seeded.
-  m.mem8[loc_2000] = s.gate & 0xff;
-  m.mem8[loc_415] = s.flag & 0xff;
-  m.mem8[loc_74] = s.ptr & 0xff;
-  m.mem8[loc_75] = (s.ptr >> 8) & 0xff;
-  m.mem8[loc_16e] = 0xee;
+  m.mem8[VEC_LIST_HEADER_LO] = s.gate & 0xff;
+  m.mem8[POINTER_PARITY] = s.flag & 0xff;
+  m.mem8[DRAW_CURSOR_LO] = s.ptr & 0xff;
+  m.mem8[DRAW_CURSOR_HI] = (s.ptr >> 8) & 0xff;
+  m.mem8[SCORE_DISPLAY_TIMER] = 0xee;
 }
 
 test("CRAFTED: differ->store+carry-set; equal->copy record+carry-clear == oracle (RAM -stack + carry)", () => {
@@ -79,7 +79,7 @@ test("CRAFTED: differ->store+carry-set; equal->copy record+carry-clear == oracle
 test("CRAFTED: equal path (gate := $cec4) copies the record and clears carry == oracle", () => {
   for (const flag of [0x00, 0x01]) {
     const probe = new Machine(ROM, OPTS);
-    const gate = probe.mem8[loc_cec4];            // make $2000 equal $cec4 -> take the copy path
+    const gate = probe.mem8[VECHEAD0_PLAY];            // make $2000 equal $cec4 -> take the copy path
     const s = { gate, flag, ptr: 0x0420 };
     const o = new Machine(ROM, OPTS); seed(o, s);
     const c = new Machine(ROM, OPTS); seed(c, s);
@@ -87,18 +87,18 @@ test("CRAFTED: equal path (gate := $cec4) copies the record and clears carry == 
     assert.equal(ramDiff(o, c), null, `RAM equal-path flag=${flag}`);
     assert.equal(cc, o.regs.fC, `carry equal-path flag=${flag}`);
     assert.equal(cc, false, `carry clear on copy path flag=${flag}`);
-    assert.equal(c.mem8[loc_16e], 0x00, "$016e cleared on copy path");
+    assert.equal(c.mem8[SCORE_DISPLAY_TIMER], 0x00, "$016e cleared on copy path");
   }
 });
 
 test("TEETH: a twin that always takes the store branch diverges when the gate already equals $cec4", () => {
   const probe = new Machine(ROM, OPTS);
-  const gate = probe.mem8[loc_cec4];
+  const gate = probe.mem8[VECHEAD0_PLAY];
   const s = { gate, flag: 0x01, ptr: 0x0430 };    // equal path is the oracle's; the mutant skips it
   const o = new Machine(ROM, OPTS); seed(o, s);
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o);
-  const broken = (m) => { m.mem8[loc_2000] = m.mem8[loc_cec4]; m.regs.fC = true; }; // BUG: never copies the record
+  const broken = (m) => { m.mem8[VEC_LIST_HEADER_LO] = m.mem8[VECHEAD0_PLAY]; m.regs.fC = true; }; // BUG: never copies the record
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped record copy");
 });

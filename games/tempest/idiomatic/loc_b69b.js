@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 import { u16 } from "../../../core/int.js";
 import {
-  loc_3, loc_56, loc_57, loc_58, loc_a9,
-  loc_2b9, loc_2cc, loc_2df, loc_3ce, loc_3de, loc_cec8, loc_cec9,
+  FRAME_COUNTER, PROJ_PT_Y, OBJ_DEPTH, PROJ_PT_X, DRAW_CURSOR_OFFSET,
+  ENEMY_SEGMENT, ENEMY_PHASE, ENEMY_DEPTH, SEG_BASE_X, SEG_BASE_Y, OBJ_TEMPLATE_WORD_LO, OBJ_TEMPLATE_WORD_HI,
 } from "./names.js";
 import { loc_b6fa } from "./loc_b6fa.js";
 import { loc_c098 } from "./loc_c098.js";
@@ -19,31 +19,31 @@ import { loc_df59 } from "./loc_df59.js";
 export function loc_b69b(m, x = m.regs.x) {
   const { mem8 } = m;
 
-  mem8[loc_57] = mem8[u16(loc_2df + x)];
-  const seg = mem8[u16(loc_2b9 + x)];
-  mem8[loc_56] = mem8[u16(loc_3ce + seg)];
-  mem8[loc_58] = mem8[u16(loc_3de + seg)];
+  mem8[OBJ_DEPTH] = mem8[u16(ENEMY_DEPTH + x)];
+  const seg = mem8[u16(ENEMY_SEGMENT + x)];
+  mem8[PROJ_PT_Y] = mem8[u16(SEG_BASE_X + seg)];
+  mem8[PROJ_PT_X] = mem8[u16(SEG_BASE_Y + seg)];
 
-  const phase = mem8[u16(loc_2cc + x)];
+  const phase = mem8[u16(ENEMY_PHASE + x)];
   if (phase & 0x80) {
     const next = (seg + 1) & 0x0f; // next segment index
-    let d0 = (mem8[u16(loc_3ce + next)] - mem8[loc_56]) & 0xff;
+    let d0 = (mem8[u16(SEG_BASE_X + next)] - mem8[PROJ_PT_Y]) & 0xff;
     d0 = loc_b6fa(m, d0, x);
-    mem8[loc_56] = d0 + mem8[loc_56];
-    let d1 = (mem8[u16(loc_3de + next)] - mem8[loc_58]) & 0xff;
+    mem8[PROJ_PT_Y] = d0 + mem8[PROJ_PT_Y];
+    let d1 = (mem8[u16(SEG_BASE_Y + next)] - mem8[PROJ_PT_X]) & 0xff;
     d1 = loc_b6fa(m, d1, x);
-    mem8[loc_58] = d1 + mem8[loc_58];
+    mem8[PROJ_PT_X] = d1 + mem8[PROJ_PT_X];
   }
 
   loc_c098(m);
   loc_c765(m, 0x61);
-  mem8[loc_a9] = 0x00;
+  mem8[DRAW_CURSOR_OFFSET] = 0x00;
   const yExit = loc_bd3e(m);   // appended pair returns its exit cursor
-  mem8[loc_a9] = yExit;        // persist the cursor for the emitter
+  mem8[DRAW_CURSOR_OFFSET] = yExit;        // persist the cursor for the emitter
 
-  const idx = (((mem8[loc_3] & 0x03) << 1) + 0x4e) & 0xff;
-  const a = mem8[u16(loc_cec8 + idx)];
-  const hx = mem8[u16(loc_cec9 + idx)];
-  const y = mem8[loc_a9];
+  const idx = (((mem8[FRAME_COUNTER] & 0x03) << 1) + 0x4e) & 0xff;
+  const a = mem8[u16(OBJ_TEMPLATE_WORD_LO + idx)];
+  const hx = mem8[u16(OBJ_TEMPLATE_WORD_HI + idx)];
+  const y = mem8[DRAW_CURSOR_OFFSET];
   return loc_df59(m, a, hx, y);
 }

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { loc_3aa, loc_125 } from "./names.js";
+import { SWEEP_STAGE, WAVE_PHASE_LATCH } from "./names.js";
 
 // Reset leaf: zero a pair of working cells at once.
 export function loc_a831(m) {
   const { mem8 } = m;
-  mem8[loc_3aa] = 0x00;
-  mem8[loc_125] = 0x00;
+  mem8[SWEEP_STAGE] = 0x00;
+  mem8[WAVE_PHASE_LATCH] = 0x00;
 }

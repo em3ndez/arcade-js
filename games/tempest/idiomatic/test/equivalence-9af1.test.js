@@ -15,7 +15,7 @@ import { loc_9af1 } from "../loc_9aee.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_29, loc_2b, loc_2c, loc_2d, loc_9afd } from "../names.js";
+import { STACK_SCRATCH, loc_29, loc_2b, COORD_LIST_PTR_LO, COORD_LIST_PTR_HI, LIST_PTR_TABLE_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -53,7 +53,7 @@ test("CAPTURE: real 0x9af1 dispatches -- loc_9af1 == oracle in RAM (-stack) and 
 function seed(m, low, y, a29) {
   m.regs.a = low; m.regs.y = y; // A carries the low pointer, Y the high-table index
   m.mem.write8(loc_29, a29);
-  m.mem.write8(loc_2c, 0xa1); m.mem.write8(loc_2b, 0xa2); m.mem.write8(loc_2d, 0xa3); // dirty sentinels
+  m.mem.write8(COORD_LIST_PTR_LO, 0xa1); m.mem.write8(loc_2b, 0xa2); m.mem.write8(COORD_LIST_PTR_HI, 0xa3); // dirty sentinels
 }
 
 test("CRAFTED: caller low pointer + index seated, A reloaded -- RAM and A equal", () => {
@@ -63,9 +63,9 @@ test("CRAFTED: caller low pointer + index seated, A reloaded -- RAM and A equal"
     oracle(o); loc_9af1(c);
     assert.equal(ramDiff(o, c), null, `RAM equal after setup (low=${low},y=${y})`);
     assert.equal(c.regs.a, o.regs.a, `A live-out matches (low=${low},y=${y})`);
-    assert.equal(c.mem.read8(loc_2c), low, `$2c = caller low pointer (low=${low},y=${y})`);
+    assert.equal(c.mem.read8(COORD_LIST_PTR_LO), low, `$2c = caller low pointer (low=${low},y=${y})`);
     assert.equal(c.mem.read8(loc_2b), y, `$2b holds the index (low=${low},y=${y})`);
-    assert.equal(c.mem.read8(loc_2d), o.mem.read8(loc_2d), `$2d high pointer matches oracle (low=${low},y=${y})`);
+    assert.equal(c.mem.read8(COORD_LIST_PTR_HI), o.mem.read8(COORD_LIST_PTR_HI), `$2d high pointer matches oracle (low=${low},y=${y})`);
     assert.equal(c.regs.a, 0x42, `A reloaded from $29 (low=${low},y=${y})`);
   }
 });
@@ -77,8 +77,8 @@ test("MUTATION: a twin that skips the index stash diverges from the oracle in RA
   oracle(o);
   const broken = (m, a = m.regs.a, yy = m.regs.y) => {
     const { mem8 } = m;
-    mem8[loc_2c] = a;
-    mem8[loc_2d] = mem8[u16(loc_9afd + yy)];
+    mem8[COORD_LIST_PTR_LO] = a;
+    mem8[COORD_LIST_PTR_HI] = mem8[u16(LIST_PTR_TABLE_HI + yy)];
     // BUG: never stashes the index, so the $2b sentinel survives
     m.regs.a = mem8[loc_29];
   };

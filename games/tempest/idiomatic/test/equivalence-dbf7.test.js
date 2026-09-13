@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_dbf7 (ROM 0xdbf7-0xdce0) -- the per-frame vector-list emit. When the 16-bit
 // counter loc_2e/loc_2f is nonzero it seeds the POKEY operand cells, runs the coprocessor scan loc_dce6,
-// and from its A/X/Y sets loc_78 (and the loc_60db status byte); it then advances the 15-bit counter,
-// builds the work word loc_60c0-loc_60c3 from loc_4d(=loc_60d8 & 0x78)/loc_4e, fires the readout draws
-// (loc_dd0d/dd2b/dd27), conditionally emits the loc_52-bit marker (loc_60e0 + the 0x4000 latch), walks
-// loc_7d,x for x=11..0 and loc_78,x for x=4..0, then TAIL-DELEGATES to loc_df73 with the loc_50-indexed
-// colour pair from loc_dfe8/loc_dfe4 and Y = 0xc0. Live-out is RAM (dumpState minus STACK_SCRATCH) PLUS
+// and from its A/X/Y sets SEG_SPREAD_A_LO (and the POKEY2_POTGO status byte); it then advances the 15-bit counter,
+// builds the work word POKEY1_AUDF1-POKEY1_AUDC2 from INPUT_DEBOUNCED(=POKEY2_AUDCTL & 0x78)/INPUT_EDGE_FLAGS, fires the readout draws
+// (loc_dd0d/dd2b/dd27), conditionally emits the SPINNER_POT_PREV-bit marker (LED_FLIP_LATCH + the 0x4000 latch), walks
+// SEG_SPREAD_A_LO_5,x for x=11..0 and SEG_SPREAD_A_LO,x for x=4..0, then TAIL-DELEGATES to loc_df73 with the SPINNER_ACCUM-indexed
+// colour pair from COLOR_PAIR_HI/COLOR_PAIR_LO and Y = 0xc0. Live-out is RAM (dumpState minus STACK_SCRATCH) PLUS
 // A/X/Y: dbf7 takes no input register and tail-jmps loc_df73, so its exit registers are whatever loc_df73's
 // chain (loc_df75 -> loc_df92) leaves; both layers run the identical delegate from the identical clone, so
 // A/X/Y match value-for-value (a matching value never false-fails). Oracle is the frozen translated loc_dbf7.
@@ -21,7 +21,7 @@ import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   STACK_SCRATCH,
-  loc_2e, loc_2f, loc_4d, loc_4e, loc_50, loc_52, loc_74, loc_75, loc_78, loc_7d,
+  loc_2e, loc_2f, INPUT_DEBOUNCED, INPUT_EDGE_FLAGS, SPINNER_ACCUM, SPINNER_POT_PREV, DRAW_CURSOR_LO, DRAW_CURSOR_HI, SEG_SPREAD_A_LO, SEG_SPREAD_A_LO_5,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -64,23 +64,23 @@ test("CAPTURE: real 0xdbf7 dispatches -- loc_dbf7 == oracle in RAM (-stack), A/X
 });
 
 // Seed the counter nonzero (so the loc_dce6 scan block runs), a couple of nonzero entries in both
-// tables (so both walks emit), the loc_52 marker bit, the final colour index loc_50, and point the
-// display cursor loc_74/loc_75 at vector RAM 0x2000 so every emit lands there (not zero page).
+// tables (so both walks emit), the SPINNER_POT_PREV marker bit, the final colour index SPINNER_ACCUM, and point the
+// display cursor DRAW_CURSOR_LO/DRAW_CURSOR_HI at vector RAM 0x2000 so every emit lands there (not zero page).
 function seed(m) {
   m.mem.write8(loc_2e, 0x37);   // counter low nonzero -> the scan block runs
   m.mem.write8(loc_2f, 0x12);   // counter high
-  m.mem.write8(loc_4e, 0x05);   // -> loc_60c2 = 0x0a, and the loc_dd27 run
-  m.mem.write8(loc_52, 0x10);   // marker bit set -> the loc_df39 marker branch runs
-  m.mem.write8(loc_50, 0x02);   // colour index for the tail-delegate
-  // loc_78,x walk (x = 4..0 -> 0x78..0x7c): nonzero entries so it takes the loc_dce1-indexed path
-  m.mem.write8(loc_78 + 0x01, 0x01);
-  m.mem.write8(loc_78 + 0x02, 0x03);
-  // loc_7d,x walk (x = 11..0 -> 0x7d..0x88): nonzero entries so the emit body runs
-  m.mem.write8(loc_7d + 0x01, 0x20);
-  m.mem.write8(loc_7d + 0x03, 0x40);
+  m.mem.write8(INPUT_EDGE_FLAGS, 0x05);   // -> POKEY1_AUDF2 = 0x0a, and the loc_dd27 run
+  m.mem.write8(SPINNER_POT_PREV, 0x10);   // marker bit set -> the loc_df39 marker branch runs
+  m.mem.write8(SPINNER_ACCUM, 0x02);   // colour index for the tail-delegate
+  // SEG_SPREAD_A_LO,x walk (x = 4..0 -> 0x78..0x7c): nonzero entries so it takes the POTMARK_WORD_INDEX-indexed path
+  m.mem.write8(SEG_SPREAD_A_LO + 0x01, 0x01);
+  m.mem.write8(SEG_SPREAD_A_LO + 0x02, 0x03);
+  // SEG_SPREAD_A_LO_5,x walk (x = 11..0 -> 0x7d..0x88): nonzero entries so the emit body runs
+  m.mem.write8(SEG_SPREAD_A_LO_5 + 0x01, 0x20);
+  m.mem.write8(SEG_SPREAD_A_LO_5 + 0x03, 0x40);
   // display cursor -> vector RAM 0x2000
-  m.mem.write8(loc_74, 0x00);
-  m.mem.write8(loc_75, 0x20);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00);
+  m.mem.write8(DRAW_CURSOR_HI, 0x20);
 }
 
 test("CRAFTED: counter + both table walks + marker + tail-delegate -- RAM and A/X/Y equal", () => {
@@ -95,8 +95,8 @@ test("CRAFTED: counter + both table walks + marker + tail-delegate -- RAM and A/
   // The counter advanced (loc_2e 0x37 -> 0x38, no wrap so loc_2f unchanged).
   assert.equal(c.mem.read8(loc_2e), 0x38, "counter low byte advanced");
   assert.equal(c.mem.read8(loc_2f), 0x12, "counter high byte unchanged (no wrap)");
-  // The work word low nibble came from loc_60d8 & 0x78 -> loc_4d.
-  assert.equal(c.mem.read8(loc_4d), o.mem.read8(loc_4d), "loc_4d matches the oracle");
+  // The work word low nibble came from POKEY2_AUDCTL & 0x78 -> INPUT_DEBOUNCED.
+  assert.equal(c.mem.read8(INPUT_DEBOUNCED), o.mem.read8(INPUT_DEBOUNCED), "INPUT_DEBOUNCED matches the oracle");
 });
 
 test("TEETH: a twin that drops the counter advance MUST diverge in RAM", () => {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Memory-equivalence for loc_c98c (ROM 0xc98c-0xc9ae). Index off loc_3d: read the loc_46-slot; while it is
-// below 0x62 increment that slot and loc_9f; seed loc_00 = 0x18; when the loc_102-slot is nonzero run the
+// Memory-equivalence for loc_c98c (ROM 0xc98c-0xc9ae). Index off loc_3d: read the PLAYER_LEVEL_TBL-slot; while it is
+// below 0x62 increment that slot and loc_9f; seed GAME_MODE = 0x18; when the loc_102-slot is nonzero run the
 // handler chain (loc_91b5 with the slot value, loc_ca6c with X=0xff, loc_ccb9); then TAIL-DELEGATE to
 // loc_9009. Contract is RAM (dumpState minus STACK_SCRATCH). Registers are NOT compared: the routine takes
 // no input register and tail-jmps loc_9009, so its exit registers are the delegate's -- both layers run the
@@ -15,7 +15,7 @@ import { loc_c98c as oracle } from "../../translated/loc_c98c.js";
 import { loc_c98c } from "../loc_c98c.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_00, loc_3d, loc_46, loc_9f } from "../names.js";
+import { STACK_SCRATCH, GAME_MODE, loc_3d, PLAYER_LEVEL_TBL, loc_9f } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -60,10 +60,10 @@ test("CAPTURE: real 0xc98c dispatches -- loc_c98c == oracle in RAM (-stack)", ()
 // so the loc_91b5/ca6c/ccb9 chain fires (trigger != 0) or is skipped (trigger == 0).
 function seed(m, idx, slotVal, trigger) {
   m.mem.write8(loc_3d, idx);
-  m.mem.write8((loc_46 + idx) & 0xff, slotVal);
+  m.mem.write8((PLAYER_LEVEL_TBL + idx) & 0xff, slotVal);
   m.mem.write8(loc_9f, 0x05);
   m.mem.write8((TRIGGER_BASE + idx) & 0xffff, trigger);
-  m.mem.write8(loc_00, 0xaa); // distinct from the routine's 0x18 write
+  m.mem.write8(GAME_MODE, 0xaa); // distinct from the routine's 0x18 write
 }
 
 test("CRAFTED: increment block + handler chain + tail-delegate -- RAM equal", () => {
@@ -90,25 +90,25 @@ test("CRAFTED: increment block + handler chain + tail-delegate -- RAM equal", ()
   try { oracle(o); } catch { threw = true; }
   if (!threw) {
     loc_c98c(c);
-    assert.equal(c.mem.read8(loc_00), 0x18, "loc_00 seeded to 0x18");
-    assert.equal(c.mem.read8((loc_46 + 0x03) & 0xff), o.mem.read8((loc_46 + 0x03) & 0xff), "slot matches oracle");
+    assert.equal(c.mem.read8(GAME_MODE), 0x18, "GAME_MODE seeded to 0x18");
+    assert.equal(c.mem.read8((PLAYER_LEVEL_TBL + 0x03) & 0xff), o.mem.read8((PLAYER_LEVEL_TBL + 0x03) & 0xff), "slot matches oracle");
     assert.equal(c.mem.read8(loc_9f), o.mem.read8(loc_9f), "loc_9f matches oracle");
   }
 });
 
-test("TEETH: a twin that drops the loc_00 = 0x18 signature write MUST diverge in RAM", () => {
+test("TEETH: a twin that drops the GAME_MODE = 0x18 signature write MUST diverge in RAM", () => {
   const o = new Machine(ROM, OPTS); seed(o, 0x03, 0x10, 0x07);
   const c = new Machine(ROM, OPTS); seed(c, 0x03, 0x10, 0x07);
   let threw = false;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
-  // Broken twin: run the real routine, then revert loc_00 to its pre-seed value. The delegate leaves
-  // loc_00 = 0x18 untouched, so reverting it alone guarantees a RAM divergence from the oracle.
+  // Broken twin: run the real routine, then revert GAME_MODE to its pre-seed value. The delegate leaves
+  // GAME_MODE = 0x18 untouched, so reverting it alone guarantees a RAM divergence from the oracle.
   const broken = (m) => {
-    const before00 = m.mem.read8(loc_00);
+    const before00 = m.mem.read8(GAME_MODE);
     loc_c98c(m);
-    m.mem.write8(loc_00, before00); // BUG: undo the 0x18 write
+    m.mem.write8(GAME_MODE, before00); // BUG: undo the 0x18 write
   };
   broken(c);
-  assert.notEqual(ramDiff(o, c), null, "the dropped loc_00 signature write was NOT caught by the RAM compare");
+  assert.notEqual(ramDiff(o, c), null, "the dropped GAME_MODE signature write was NOT caught by the RAM compare");
 });

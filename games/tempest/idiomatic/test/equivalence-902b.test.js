@@ -17,7 +17,7 @@ import { loc_902b as oracle } from "../../translated/loc_902b.js";
 import { loc_902b } from "../loc_902b.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_123, loc_124, loc_148, loc_3ab, loc_9f } from "../names.js";
+import { STACK_SCRATCH, SPIKED_SEGMENT_COUNT, RIM_COLOR_ANIM, ENEMY_ANIM_ACCUM, FIRE_GATE, loc_9f } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const opt = (name) => {
@@ -57,32 +57,32 @@ test("CAPTURE: real 0x902b dispatches -- loc_902b == oracle in RAM (-stack, poly
 test("CRAFTED: full reset spine == oracle (RAM -stack); final three flag bytes set", () => {
   const seed = (m) => {
     freezePokey(m);
-    m.mem.write8(loc_3ab, 0x04); // slot count for the 9246 fill loop
+    m.mem.write8(FIRE_GATE, 0x04); // slot count for the 9246 fill loop
     m.mem.write8(loc_9f, 0x30);  // table index for the c16e unpack
     m.mem.write8(0x0133, 0x00);
     // dirty sentinels on the three trailing flag bytes so their writes are observable
-    m.mem.write8(loc_124, 0x11);
-    m.mem.write8(loc_148, 0x22);
-    m.mem.write8(loc_123, 0x33);
+    m.mem.write8(RIM_COLOR_ANIM, 0x11);
+    m.mem.write8(ENEMY_ANIM_ACCUM, 0x22);
+    m.mem.write8(SPIKED_SEGMENT_COUNT, 0x33);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_902b(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after reset");
-  assert.equal(c.mem.read8(loc_124), 0xff, "$0124 = 0xff");
-  assert.equal(c.mem.read8(loc_148), 0xff, "$0148 = 0xff");
-  assert.equal(c.mem.read8(loc_123), 0x00, "$0123 = 0x00");
+  assert.equal(c.mem.read8(RIM_COLOR_ANIM), 0xff, "$0124 = 0xff");
+  assert.equal(c.mem.read8(ENEMY_ANIM_ACCUM), 0xff, "$0148 = 0xff");
+  assert.equal(c.mem.read8(SPIKED_SEGMENT_COUNT), 0x00, "$0123 = 0x00");
 });
 
 test("TEETH: a twin that skips the final flag stores diverges from the oracle", () => {
   const seed = (m) => {
     freezePokey(m);
-    m.mem.write8(loc_3ab, 0x04);
+    m.mem.write8(FIRE_GATE, 0x04);
     m.mem.write8(loc_9f, 0x30);
     m.mem.write8(0x0133, 0x00);
-    m.mem.write8(loc_124, 0x11);
-    m.mem.write8(loc_148, 0x22);
-    m.mem.write8(loc_123, 0x33);
+    m.mem.write8(RIM_COLOR_ANIM, 0x11);
+    m.mem.write8(ENEMY_ANIM_ACCUM, 0x22);
+    m.mem.write8(SPIKED_SEGMENT_COUNT, 0x33);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -90,9 +90,9 @@ test("TEETH: a twin that skips the final flag stores diverges from the oracle", 
   // Twin: runs the full spine but then re-dirties the three trailing flags, as if it never stored them.
   const broken = (mm) => {
     loc_902b(mm);
-    mm.mem8[loc_124] = 0x11; // BUG: leaves the trailing flags at their pre-reset sentinels
-    mm.mem8[loc_148] = 0x22;
-    mm.mem8[loc_123] = 0x33;
+    mm.mem8[RIM_COLOR_ANIM] = 0x11; // BUG: leaves the trailing flags at their pre-reset sentinels
+    mm.mem8[ENEMY_ANIM_ACCUM] = 0x22;
+    mm.mem8[SPIKED_SEGMENT_COUNT] = 0x33;
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped flag stores");
@@ -101,7 +101,7 @@ test("TEETH: a twin that skips the final flag stores diverges from the oracle", 
 test("SP-TOOTH: the omitted-ret routine (moved 0) is seam-placeable", () => {
   const m = new Machine(ROM, OPTS);
   freezePokey(m);
-  m.mem.write8(loc_3ab, 0x04);
+  m.mem.write8(FIRE_GATE, 0x04);
   m.mem.write8(loc_9f, 0x30);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12); // a real caller-return word for the seam

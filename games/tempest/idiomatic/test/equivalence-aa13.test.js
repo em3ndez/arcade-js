@@ -17,7 +17,7 @@ import { loc_df09 } from "../loc_df09.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_3e, loc_5, loc_43, loc_44, loc_45, loc_74, loc_75, loc_9f, loc_ce66, loc_cde6, loc_2f60 } from "../names.js";
+import { STACK_SCRATCH, ACTIVE_SLOT_COUNT, STATUS_FLAGS, loc_43, loc_44, loc_45, DRAW_CURSOR_LO, DRAW_CURSOR_HI, loc_9f, TEMPLATE_COPY_LEN, VECTOR_TEMPLATE_BLOCK, VEC_GLYPH_BUFFER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -44,7 +44,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 
 // Find an index whose ROM count byte keeps the copy inside diffed vector RAM.
 function pickSmallIndex(m) {
-  for (let i = 0; i < 128; i++) if (m.mem.read8(u16(loc_ce66 + i)) < 0x60) return i;
+  for (let i = 0; i < 128; i++) if (m.mem.read8(u16(TEMPLATE_COPY_LEN + i)) < 0x60) return i;
   return 0;
 }
 
@@ -61,9 +61,9 @@ test("CRAFTED (positive path, no af77): copy down into $2f60 -- RAM equal", () =
   const probe = new Machine(ROM, OPTS);
   const idx = pickSmallIndex(probe);
   const seed = (m) => {
-    m.mem.write8(loc_5, 0x00);           // positive -> bmi not taken, bpl taken (skip af77)
+    m.mem.write8(STATUS_FLAGS, 0x00);           // positive -> bmi not taken, bpl taken (skip af77)
     m.mem.write8(loc_43, 0x00); m.mem.write8(loc_44, 0x00); m.mem.write8(loc_45, 0x00); // X stays $3e
-    m.mem.write8(loc_3e, idx);
+    m.mem.write8(ACTIVE_SLOT_COUNT, idx);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
@@ -75,8 +75,8 @@ test("CRAFTED (negative path, af77): counter emit + copy -- RAM equal", () => {
   const probe = new Machine(ROM, OPTS);
   const idx = pickSmallIndex(probe);
   const seed = (m) => {
-    m.mem.write8(loc_5, 0x80);   // negative -> bmi taken (X stays $3e), bpl not taken (call af77)
-    m.mem.write8(loc_3e, idx);
+    m.mem.write8(STATUS_FLAGS, 0x80);   // negative -> bmi taken (X stays $3e), bpl not taken (call af77)
+    m.mem.write8(ACTIVE_SLOT_COUNT, idx);
     m.mem.write8(loc_9f, 0x2a);  // af77 input basis
   };
   const o = new Machine(ROM, OPTS); seed(o);
@@ -89,32 +89,32 @@ test("TEETH: a twin skipping the final y=0 copy diverges from the oracle", () =>
   const probe = new Machine(ROM, OPTS);
   const idx = pickSmallIndex(probe);
   const seed = (m) => {
-    m.mem.write8(loc_5, 0x00);
+    m.mem.write8(STATUS_FLAGS, 0x00);
     m.mem.write8(loc_43, 0x00); m.mem.write8(loc_44, 0x00); m.mem.write8(loc_45, 0x00);
-    m.mem.write8(loc_3e, idx);
+    m.mem.write8(ACTIVE_SLOT_COUNT, idx);
     // The final y=0 source byte ($cde6[0]) is 0x00 and the dest ($2f60) starts at 0x00, so
     // skipping that copy is invisible on a bare seed. Pre-load the y=0 dest with a sentinel
     // that differs from $cde6[0]: the oracle overwrites it to 0x00, the twin leaves it.
-    m.mem.write8(loc_2f60, 0x5a);
+    m.mem.write8(VEC_GLYPH_BUFFER, 0x5a);
   };
   const o = new Machine(ROM, OPTS); seed(o); oracle(o);
   const c = new Machine(ROM, OPTS); seed(c);
   const brokenAa13 = (m) => {
     const { mem8, mem16 } = m;
-    let x = mem8[loc_3e];
-    if (!(mem8[loc_5] & 0x80)) {
+    let x = mem8[ACTIVE_SLOT_COUNT];
+    if (!(mem8[STATUS_FLAGS] & 0x80)) {
       if ((mem8[loc_43] | mem8[loc_44] | mem8[loc_45]) !== 0) x = 0x01;
     }
-    mem8[loc_74] = 0x60;
-    mem8[loc_75] = 0x2f;
-    let y = mem8[u16(loc_ce66 + x)];
-    const savedSum = (y + mem8[loc_74] + 1) & 0xff;
+    mem8[DRAW_CURSOR_LO] = 0x60;
+    mem8[DRAW_CURSOR_HI] = 0x2f;
+    let y = mem8[u16(TEMPLATE_COPY_LEN + x)];
+    const savedSum = (y + mem8[DRAW_CURSOR_LO] + 1) & 0xff;
     do {
-      mem8[u16(mem16[loc_74] + y)] = mem8[u16(loc_cde6 + y)];
+      mem8[u16(mem16[DRAW_CURSOR_LO] + y)] = mem8[u16(VECTOR_TEMPLATE_BLOCK + y)];
       y = (y - 1) & 0xff;
     } while (y !== 0);
     // BUG: skips the final y=0 copy
-    mem8[loc_74] = savedSum;
+    mem8[DRAW_CURSOR_LO] = savedSum;
     return loc_df09(m);
   };
   brokenAa13(c);

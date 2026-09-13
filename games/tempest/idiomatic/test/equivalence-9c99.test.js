@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for the loc_9c99 mid-entry (ROM 0x9c99) -- the SUBTRACT path of the tube-coordinate
-// stepper: it subtracts the per-segment delta (low loc_160,y / high loc_165,y) from slot x's 16-bit
-// coordinate (low loc_29f,x / high loc_2df,x, with borrow), and floors the high byte to 0xf2 when it
+// stepper: it subtracts the per-segment delta (low ENEMY_CLIMB_DELTA_LO_0,y / high ENEMY_CLIMB_DELTA_HI_0,y) from slot x's 16-bit
+// coordinate (low ENEMY_DEPTH_LO,x / high ENEMY_DEPTH,x, with borrow), and floors the high byte to 0xf2 when it
 // underflows past 0xf0. Live-out is RAM (dumpState minus STACK_SCRATCH) plus A (the new high byte, or 0xf2),
 // which its dispatcher caller reads back. Oracle is the frozen mid-entry export loc_9c99 in translated/loc_9c58.js.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9c99.test.js
@@ -15,7 +15,7 @@ import { loc_9c99 } from "../loc_9c58.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_160, loc_165, loc_29f, loc_2df } from "../names.js";
+import { STACK_SCRATCH, ENEMY_CLIMB_DELTA_LO_0, ENEMY_CLIMB_DELTA_HI_0, ENEMY_DEPTH_LO, ENEMY_DEPTH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -52,10 +52,10 @@ test("CAPTURE: real 0x9c99 dispatches -- loc_9c99 == oracle in RAM (-stack) and 
 
 function seed(m, x, y, lo, hi, loD, hiD) {
   m.regs.x = x; m.regs.y = y; m.regs.a = 0x00;
-  m.mem.write8(u16(loc_29f + x), lo);
-  m.mem.write8(u16(loc_2df + x), hi);
-  m.mem.write8(u16(loc_160 + y), loD);
-  m.mem.write8(u16(loc_165 + y), hiD);
+  m.mem.write8(u16(ENEMY_DEPTH_LO + x), lo);
+  m.mem.write8(u16(ENEMY_DEPTH + x), hi);
+  m.mem.write8(u16(ENEMY_CLIMB_DELTA_LO_0 + y), loD);
+  m.mem.write8(u16(ENEMY_CLIMB_DELTA_HI_0 + y), hiD);
 }
 
 test("CRAFTED: plain subtract (no underflow) -- RAM and A equal, A is the new high byte", () => {
@@ -65,7 +65,7 @@ test("CRAFTED: plain subtract (no underflow) -- RAM and A equal, A is the new hi
   assert.equal(ramDiff(o, c), null, "RAM equal after the subtract");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.a, 0x40, "A is the new high byte (0x50 - 0x10)");
-  assert.equal(c.mem.read8(u16(loc_2df + 0x00)), 0x40, "high coordinate stepped down");
+  assert.equal(c.mem.read8(u16(ENEMY_DEPTH + 0x00)), 0x40, "high coordinate stepped down");
 });
 
 test("CRAFTED: underflow past 0xf0 floors the high byte to 0xf2 -- RAM and A equal", () => {
@@ -75,7 +75,7 @@ test("CRAFTED: underflow past 0xf0 floors the high byte to 0xf2 -- RAM and A equ
   assert.equal(ramDiff(o, c), null, "RAM equal after the floored subtract");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.a, 0xf2, "A is the floor value");
-  assert.equal(c.mem.read8(u16(loc_2df + 0x00)), 0xf2, "high coordinate floored to 0xf2");
+  assert.equal(c.mem.read8(u16(ENEMY_DEPTH + 0x00)), 0xf2, "high coordinate floored to 0xf2");
 });
 
 test("MUTATION: a twin that skips the 0xf2 floor diverges from the oracle in RAM", () => {
@@ -84,10 +84,10 @@ test("MUTATION: a twin that skips the 0xf2 floor diverges from the oracle in RAM
   oracle(o);
   const broken = (m, x = m.regs.x, y = m.regs.y) => {
     const { mem8 } = m;
-    const loDiff = mem8[u16(loc_29f + x)] - mem8[u16(loc_160 + y)];
-    mem8[u16(loc_29f + x)] = loDiff;
+    const loDiff = mem8[u16(ENEMY_DEPTH_LO + x)] - mem8[u16(ENEMY_CLIMB_DELTA_LO_0 + y)];
+    mem8[u16(ENEMY_DEPTH_LO + x)] = loDiff;
     const borrow = loDiff < 0 ? 1 : 0;
-    mem8[u16(loc_2df + x)] = (mem8[u16(loc_2df + x)] - mem8[u16(loc_165 + y)] - borrow) & 0xff;
+    mem8[u16(ENEMY_DEPTH + x)] = (mem8[u16(ENEMY_DEPTH + x)] - mem8[u16(ENEMY_CLIMB_DELTA_HI_0 + y)] - borrow) & 0xff;
     // BUG: never floors the underflowed high byte to 0xf2
   };
   broken(c);

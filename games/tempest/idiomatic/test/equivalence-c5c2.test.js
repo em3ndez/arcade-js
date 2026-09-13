@@ -15,8 +15,8 @@ import { loc_c5c2 } from "../loc_c5c2.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import {
-  STACK_SCRATCH, loc_5b, loc_5f, loc_74, loc_75, loc_a9, loc_aa, loc_ab,
-  loc_110, loc_111, loc_114, loc_39a,
+  STACK_SCRATCH, DEPTH_LO, DEPTH_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI, DRAW_CURSOR_OFFSET, DRAW_SRC_PTR_LO, DRAW_SRC_PTR_HI,
+  loc_110, TUBE_GEOM_FLAG, REDRAW_COUNTER, LANE_TARGET_FLAG,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -44,13 +44,13 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 5000) : [];
 // bytes seeded so the copies are observable.
 function seat(m) {
   m.mem.write8(loc_110, 0x00);
-  m.mem.write8(loc_5b, 0x01);   // nonzero -> skip the $5f gate
-  m.mem.write8(loc_5f, 0x00);
-  m.mem.write8(loc_111, 0x00);
-  m.mem.write8(loc_114, 0x00);
-  m.mem.write8(loc_74, 0x00); m.mem.write8(loc_75, 0x24); // dest 0x2400
-  m.mem.write8(loc_aa, 0x00); m.mem.write8(loc_ab, 0x26); // source 0x2600
-  for (let i = 0; i < 16; i++) m.mem.write8((loc_39a + i) & 0xffff, 0x00);
+  m.mem.write8(DEPTH_LO, 0x01);   // nonzero -> skip the $5f gate
+  m.mem.write8(DEPTH_HI, 0x00);
+  m.mem.write8(TUBE_GEOM_FLAG, 0x00);
+  m.mem.write8(REDRAW_COUNTER, 0x00);
+  m.mem.write8(DRAW_CURSOR_LO, 0x00); m.mem.write8(DRAW_CURSOR_HI, 0x24); // dest 0x2400
+  m.mem.write8(DRAW_SRC_PTR_LO, 0x00); m.mem.write8(DRAW_SRC_PTR_HI, 0x26); // source 0x2600
+  for (let i = 0; i < 16; i++) m.mem.write8((LANE_TARGET_FLAG + i) & 0xffff, 0x00);
   for (let i = 0; i < 0x100; i++) m.mem.write8((0x2600 + i) & 0xffff, (i * 7) & 0xff);
 }
 
@@ -81,7 +81,7 @@ test("TEETH: a twin that corrupts the write cursor diverges from the oracle", ()
   const o = new Machine(ROM, OPTS); seat(o);
   const c = new Machine(ROM, OPTS); seat(c);
   oracle(o);
-  const broken = (mm) => { loc_c5c2(mm); mm.mem8[loc_a9] ^= 0xff; }; // BUG: leaves a wrong cursor
+  const broken = (mm) => { loc_c5c2(mm); mm.mem8[DRAW_CURSOR_OFFSET] ^= 0xff; }; // BUG: leaves a wrong cursor
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the corrupted cursor");
 });

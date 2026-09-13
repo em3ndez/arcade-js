@@ -14,7 +14,7 @@ import { loc_ab0d as oracle } from "../../translated/loc_ab0d.js";
 import { loc_ab0d } from "../loc_ab0d.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -40,8 +40,8 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 // cursor land in a seedable, comparable region.
 function seed(m, s = {}) {
   const ptr = s.ptr ?? 0x2500;
-  m.mem.write8(loc_74, ptr & 0xff);
-  m.mem.write8(loc_75, (ptr >> 8) & 0xff);
+  m.mem.write8(DRAW_CURSOR_LO, ptr & 0xff);
+  m.mem.write8(DRAW_CURSOR_HI, (ptr >> 8) & 0xff);
   return ptr;
 }
 
@@ -62,7 +62,7 @@ test("CRAFTED: emits {0x20,0x80} at the cursor and advances it by 2", () => {
   assert.equal(ramDiff(o, c), null, "RAM equal");
   assert.equal(c.mem.read8(ptr), 0x20, "low byte emitted");
   assert.equal(c.mem.read8(ptr + 1), 0x80, "high byte emitted");
-  assert.equal(c.mem.read8(loc_74), (ptr + 2) & 0xff, "cursor advanced by 2");
+  assert.equal(c.mem.read8(DRAW_CURSOR_LO), (ptr + 2) & 0xff, "cursor advanced by 2");
 });
 
 test("CRAFTED (non-default seed): a cursor that carries into $75 still matches the oracle", () => {
@@ -80,9 +80,9 @@ test("TEETH: a twin that swaps the emitted byte pair diverges from the oracle", 
   oracle(o);
   const broken = (m) => {
     const { mem8 } = m;
-    const p = mem8[loc_74] | (mem8[loc_75] << 8);
+    const p = mem8[DRAW_CURSOR_LO] | (mem8[DRAW_CURSOR_HI] << 8);
     mem8[p] = 0x80; mem8[(p + 1) & 0xffff] = 0x20; // BUG: swapped low/high bytes
-    mem8[loc_74] = (mem8[loc_74] + 2) & 0xff;
+    mem8[DRAW_CURSOR_LO] = (mem8[DRAW_CURSOR_LO] + 2) & 0xff;
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the swapped emit");

@@ -14,7 +14,7 @@ import { loc_a1e4 } from "../loc_a1e4.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_200, loc_201, loc_2ad } from "../names.js";
+import { STACK_SCRATCH, PLAYER_SEGMENT, PLAYER_FINE_ANGLE, TARGET_SEG } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -54,9 +54,9 @@ const XREG = 0x02, YREG = 0x03;
 function seedFire(m) {
   freezePokey(m);
   m.regs.x = XREG; m.regs.y = YREG;
-  m.mem.write8(loc_200, 0x55);
-  m.mem.write8(u16(loc_2ad + XREG), 0x55); // == $0200 -> equal -> proceed
-  m.mem.write8(loc_201, 0x00); // non-negative -> proceed
+  m.mem.write8(PLAYER_SEGMENT, 0x55);
+  m.mem.write8(u16(TARGET_SEG + XREG), 0x55); // == $0200 -> equal -> proceed
+  m.mem.write8(PLAYER_FINE_ANGLE, 0x00); // non-negative -> proceed
 }
 
 test("CRAFTED: matching byte + clear flag -> a34b runs, flag latches to 0x81, RAM equal", () => {
@@ -64,7 +64,7 @@ test("CRAFTED: matching byte + clear flag -> a34b runs, flag latches to 0x81, RA
   const c = new Machine(ROM, OPTS); seedFire(c);
   oracle(o); loc_a1e4(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after the dissolved a34b call");
-  assert.equal(c.mem.read8(loc_201), 0x81, "flag latched");
+  assert.equal(c.mem.read8(PLAYER_FINE_ANGLE), 0x81, "flag latched");
 });
 
 test("TEETH: a twin that skips a34b + the flag latch diverges from the oracle", () => {
@@ -81,13 +81,13 @@ test("TEETH (guard): non-matching byte -> oracle no-ops; a twin that runs anyway
   const seedNoMatch = (m) => {
     freezePokey(m);
     m.regs.x = XREG; m.regs.y = YREG;
-    m.mem.write8(loc_200, 0x55);
-    m.mem.write8(u16(loc_2ad + XREG), 0x66); // != $0200 -> oracle returns unchanged
-    m.mem.write8(loc_201, 0x00);
+    m.mem.write8(PLAYER_SEGMENT, 0x55);
+    m.mem.write8(u16(TARGET_SEG + XREG), 0x66); // != $0200 -> oracle returns unchanged
+    m.mem.write8(PLAYER_FINE_ANGLE, 0x00);
   };
   const o = new Machine(ROM, OPTS); seedNoMatch(o); oracle(o);
   const c = new Machine(ROM, OPTS); seedNoMatch(c);
-  const alwaysRun = (m, x = m.regs.x) => { m.mem8[loc_201] = 0x81; }; // BUG: ignores the guard
+  const alwaysRun = (m, x = m.regs.x) => { m.mem8[PLAYER_FINE_ANGLE] = 0x81; }; // BUG: ignores the guard
   alwaysRun(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the ignored guard");
 });

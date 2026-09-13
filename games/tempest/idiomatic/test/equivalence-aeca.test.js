@@ -14,7 +14,7 @@ import { loc_aeca as oracle } from "../../translated/loc_aeca.js";
 import { loc_aeca } from "../loc_aeca.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_156, loc_58 } from "../names.js";
+import { STACK_SCRATCH, BONUS_LIFE_INTERVAL, PROJ_PT_X } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const rd = (n) => new Uint8Array(readFileSync(new URL(n, ROM_DIR)));
@@ -41,7 +41,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 // Flag path (X=0x34 inside ab14 -> $35=0x34): the ($ac),$35 lookup at $3b -> 0x0260, whose byte at 0x0261 has
 // bit7 set so the copy loop exits after one pass. ($74) -> vector RAM 0x2000 (diffed).
 function seatFlag(m) {
-  m.mem.write8(loc_156, 0x55);                              // flag non-zero -> take the ab14/dfb1 branch
+  m.mem.write8(BONUS_LIFE_INTERVAL, 0x55);                              // flag non-zero -> take the ab14/dfb1 branch
   m.mem.write8(0x00ac, 0x00); m.mem.write8(0x00ad, 0x02);  // ($ac) -> 0x0200
   m.mem.write8(0x0234, 0x60); m.mem.write8(0x0235, 0x02);  // ($ac),0x34 -> 0x0260
   m.mem.write8(0x0261, 0x80);                               // copy-loop terminator (bit7 set)
@@ -58,8 +58,8 @@ test("CAPTURE: real 0xaeca dispatches -- loc_aeca == oracle in RAM (-stack)", ()
 });
 
 test("CRAFTED (flag clear): $0156 == 0 -> checksum only -- loc_aeca == oracle in RAM", () => {
-  const o = new Machine(ROM, OPTS); o.mem.write8(loc_156, 0x00);
-  const c = new Machine(ROM, OPTS); c.mem.write8(loc_156, 0x00);
+  const o = new Machine(ROM, OPTS); o.mem.write8(BONUS_LIFE_INTERVAL, 0x00);
+  const c = new Machine(ROM, OPTS); c.mem.write8(BONUS_LIFE_INTERVAL, 0x00);
   oracle(o); const rv = loc_aeca(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after checksum");
   assert.equal(c.mem.read8(B5), o.mem.read8(B5), "$b5 checksum matches the oracle");
@@ -71,13 +71,13 @@ test("CRAFTED (flag set): $0156 != 0 -> ab14/dfb1 record + checksum -- loc_aeca 
   const c = new Machine(ROM, OPTS); seatFlag(c);
   oracle(o); const rv = loc_aeca(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after record + checksum");
-  assert.equal(c.mem.read8(loc_58), 0x55, "$58 seated from the flag byte");
+  assert.equal(c.mem.read8(PROJ_PT_X), 0x55, "$58 seated from the flag byte");
   assert.equal(rv, o.regs.a, "returned checksum matches the oracle's A live-out");
 });
 
 test("TEETH: a twin that seeds the checksum with the wrong constant diverges from the oracle", () => {
-  const o = new Machine(ROM, OPTS); o.mem.write8(loc_156, 0x00); oracle(o);
-  const c = new Machine(ROM, OPTS); c.mem.write8(loc_156, 0x00);
+  const o = new Machine(ROM, OPTS); o.mem.write8(BONUS_LIFE_INTERVAL, 0x00); oracle(o);
+  const c = new Machine(ROM, OPTS); c.mem.write8(BONUS_LIFE_INTERVAL, 0x00);
   const broken = (m) => {
     const { mem8 } = m;
     let acc = 0x00; // BUG: should start at 0x85
@@ -95,7 +95,7 @@ test("TEETH: a twin that seeds the checksum with the wrong constant diverges fro
 });
 
 test("SP-TOOTH: the omitted-ret caller (moved 0) is seam-placeable", () => {
-  const m = new Machine(ROM, OPTS); m.mem.write8(loc_156, 0x00);
+  const m = new Machine(ROM, OPTS); m.mem.write8(BONUS_LIFE_INTERVAL, 0x00);
   m.regs.s = 0xfb;
   m.mem.write8(0x01fc, 0x34); m.mem.write8(0x01fd, 0x12);
   const r = seamPlaceable(withOmittedRet, loc_aeca, TARGET, m);

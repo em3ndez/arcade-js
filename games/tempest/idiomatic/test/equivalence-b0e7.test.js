@@ -12,7 +12,7 @@ import { loc_b0e7 as oracle } from "../../translated/loc_b0e7.js";
 import { loc_b0e7 } from "../loc_b0e7.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_0, loc_1, loc_2, loc_4, loc_14d, loc_14e } from "../names.js";
+import { STACK_SCRATCH, GAME_MODE, MODE_DISPATCH_SEL, GAME_MODE_PENDING, MODE_DELAY_TIMER, loc_14d, loc_14e } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -37,10 +37,10 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 2000) : [];
 // Seed every target cell with a non-zero sentinel distinct from its written value so each write bites
 // (including $02 = 0x00, which must overwrite a nonzero sentinel).
 function seed(m) {
-  m.mem.write8(loc_0, 0x11);
-  m.mem.write8(loc_1, 0x22);
-  m.mem.write8(loc_2, 0x33);
-  m.mem.write8(loc_4, 0x44);
+  m.mem.write8(GAME_MODE, 0x11);
+  m.mem.write8(MODE_DISPATCH_SEL, 0x22);
+  m.mem.write8(GAME_MODE_PENDING, 0x33);
+  m.mem.write8(MODE_DELAY_TIMER, 0x44);
   m.mem.write8(loc_14d, 0x55);
   m.mem.write8(loc_14e, 0x66);
 }
@@ -59,10 +59,10 @@ test("CRAFTED: the fixed init block == oracle (RAM -stack)", () => {
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_b0e7(c);
   assert.equal(ramDiff(o, c), null);
-  assert.equal(c.mem.read8(loc_0), 0x0a, "$00");
-  assert.equal(c.mem.read8(loc_2), 0x00, "$02");
-  assert.equal(c.mem.read8(loc_4), 0xdf, "$04");
-  assert.equal(c.mem.read8(loc_1), 0x12, "$01");
+  assert.equal(c.mem.read8(GAME_MODE), 0x0a, "$00");
+  assert.equal(c.mem.read8(GAME_MODE_PENDING), 0x00, "$02");
+  assert.equal(c.mem.read8(MODE_DELAY_TIMER), 0xdf, "$04");
+  assert.equal(c.mem.read8(MODE_DISPATCH_SEL), 0x12, "$01");
   assert.equal(c.mem.read8(loc_14e), 0x19, "$014e");
   assert.equal(c.mem.read8(loc_14d), 0x18, "$014d");
 });
@@ -72,7 +72,7 @@ test("TEETH: a twin that writes the wrong $04 constant diverges from the oracle"
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
   // BUG: plant every constant except $04, which gets 0x00 instead of 0xdf.
-  c.mem.write8(loc_0, 0x0a); c.mem.write8(loc_2, 0x00); c.mem.write8(loc_4, 0x00);
-  c.mem.write8(loc_1, 0x12); c.mem.write8(loc_14e, 0x19); c.mem.write8(loc_14d, 0x18);
+  c.mem.write8(GAME_MODE, 0x0a); c.mem.write8(GAME_MODE_PENDING, 0x00); c.mem.write8(MODE_DELAY_TIMER, 0x00);
+  c.mem.write8(MODE_DISPATCH_SEL, 0x12); c.mem.write8(loc_14e, 0x19); c.mem.write8(loc_14d, 0x18);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch a wrong $04 constant");
 });

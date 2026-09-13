@@ -20,7 +20,7 @@ import { loc_b84e } from "../loc_b84e.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
-import { STACK_SCRATCH, loc_29, loc_56, loc_58, loc_13b, loc_13c, loc_435, loc_445, loc_b82a, loc_b83d, loc_cec8, loc_cec9, loc_74, loc_75 } from "../names.js";
+import { STACK_SCRATCH, loc_29, PROJ_PT_Y, PROJ_PT_X, OBJECT_ANIM_PHASE, OBJECT_ANIM_TIMER, SEG_MID_X, SEG_MID_Y, ANIM_PHASE_DURATION, ANIM_PHASE_CODE, OBJ_TEMPLATE_WORD_LO, OBJ_TEMPLATE_WORD_HI, DRAW_CURSOR_LO, DRAW_CURSOR_HI } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -46,11 +46,11 @@ const CAPS = ROM_PRESENT ? captureDispatches(16, 4000) : [];
 // the emitted word lands in the diffed region. $013c==1 forces the wrap (reload + phase advance) branch.
 function seed(m, s = {}) {
   m.mem.write8(loc_29, s.y ?? 0x00);
-  m.mem.write8(loc_13b, s.phase ?? 0x00);
-  m.mem.write8(loc_13c, s.timer ?? 0x03);
+  m.mem.write8(OBJECT_ANIM_PHASE, s.phase ?? 0x00);
+  m.mem.write8(OBJECT_ANIM_TIMER, s.timer ?? 0x03);
   const ptr = s.ptr ?? 0x2500;
-  m.mem.write8(loc_74, ptr & 0xff);
-  m.mem.write8(loc_75, (ptr >> 8) & 0xff);
+  m.mem.write8(DRAW_CURSOR_LO, ptr & 0xff);
+  m.mem.write8(DRAW_CURSOR_HI, (ptr >> 8) & 0xff);
 }
 
 test("CAPTURE: real 0xb7eb dispatches -- loc_b7eb == oracle in RAM (-stack)", () => {
@@ -68,9 +68,9 @@ test("CRAFTED: no-wrap (timer>1) -- axis params refresh, timer ticks, matches th
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o); loc_b7eb(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (no-wrap)");
-  assert.equal(c.mem.read8(loc_13c), 0x02, "sub-timer decremented");
-  assert.equal(c.mem.read8(loc_56), o.mem.read8(loc_56), "$56 axis param refreshed");
-  assert.equal(c.mem.read8(loc_58), o.mem.read8(loc_58), "$58 axis param refreshed");
+  assert.equal(c.mem.read8(OBJECT_ANIM_TIMER), 0x02, "sub-timer decremented");
+  assert.equal(c.mem.read8(PROJ_PT_Y), o.mem.read8(PROJ_PT_Y), "$56 axis param refreshed");
+  assert.equal(c.mem.read8(PROJ_PT_X), o.mem.read8(PROJ_PT_X), "$58 axis param refreshed");
 });
 
 test("CRAFTED: wrap (timer==1) -- phase advances and the timer reloads, matches the oracle in RAM", () => {
@@ -79,8 +79,8 @@ test("CRAFTED: wrap (timer==1) -- phase advances and the timer reloads, matches 
   const c = new Machine(ROM, OPTS); seed(c, s);
   oracle(o); loc_b7eb(c);
   assert.equal(ramDiff(o, c), null, "RAM equal (wrap)");
-  assert.equal(c.mem.read8(loc_13b), o.mem.read8(loc_13b), "phase advanced identically");
-  assert.equal(c.mem.read8(loc_13c), o.mem.read8(loc_13c), "sub-timer reloaded identically");
+  assert.equal(c.mem.read8(OBJECT_ANIM_PHASE), o.mem.read8(OBJECT_ANIM_PHASE), "phase advanced identically");
+  assert.equal(c.mem.read8(OBJECT_ANIM_TIMER), o.mem.read8(OBJECT_ANIM_TIMER), "sub-timer reloaded identically");
 });
 
 test("TEETH: a twin that never ticks the sub-timer diverges from the oracle", () => {
@@ -91,12 +91,12 @@ test("TEETH: a twin that never ticks the sub-timer diverges from the oracle", ()
   const broken = (m) => {
     const { mem8, mem16 } = m;
     const y = mem8[loc_29];
-    mem8[loc_56] = mem8[u16(loc_435 + y)];
-    mem8[loc_58] = mem8[u16(loc_445 + y)];
+    mem8[PROJ_PT_Y] = mem8[u16(SEG_MID_X + y)];
+    mem8[PROJ_PT_X] = mem8[u16(SEG_MID_Y + y)];
     loc_c098(m);
     loc_c765(m, 0x61);
-    const x = mem8[loc_13b]; // BUG: never decrements/reloads $013c, never advances the phase
-    const phase = mem8[u16(loc_b83d + x)];
+    const x = mem8[OBJECT_ANIM_PHASE]; // BUG: never decrements/reloads $013c, never advances the phase
+    const phase = mem8[u16(ANIM_PHASE_CODE + x)];
     if (phase < 0x80) loc_b84e(m, phase);
     // emit still happens, but $013c is left stale
     void mem16;
@@ -110,8 +110,8 @@ test("TEETH (marshalling): a twin that swaps the df57 emit pair diverges from th
   const idx = ((s.phase << 1) + 0x28) & 0xff;
   // Only meaningful when the two table bytes differ; assert that precondition, then check divergence.
   const probe = new Machine(ROM, OPTS);
-  const lo = probe.mem.read8((loc_cec8 + idx) & 0xffff);
-  const hi = probe.mem.read8((loc_cec9 + idx) & 0xffff);
+  const lo = probe.mem.read8((OBJ_TEMPLATE_WORD_LO + idx) & 0xffff);
+  const hi = probe.mem.read8((OBJ_TEMPLATE_WORD_HI + idx) & 0xffff);
   assert.notEqual(lo, hi, "precondition: the emit pair bytes differ so a swap is observable");
 
   const o = new Machine(ROM, OPTS); seed(o, s);
@@ -120,26 +120,26 @@ test("TEETH (marshalling): a twin that swaps the df57 emit pair diverges from th
   const broken = (m) => {
     const { mem8, mem16 } = m;
     const y = mem8[loc_29];
-    mem8[loc_56] = mem8[u16(loc_435 + y)];
-    mem8[loc_58] = mem8[u16(loc_445 + y)];
+    mem8[PROJ_PT_Y] = mem8[u16(SEG_MID_X + y)];
+    mem8[PROJ_PT_X] = mem8[u16(SEG_MID_Y + y)];
     loc_c098(m);
     loc_c765(m, 0x61);
-    let x = mem8[loc_13b];
-    const ticked = (mem8[loc_13c] - 1) & 0xff;
-    mem8[loc_13c] = ticked;
+    let x = mem8[OBJECT_ANIM_PHASE];
+    const ticked = (mem8[OBJECT_ANIM_TIMER] - 1) & 0xff;
+    mem8[OBJECT_ANIM_TIMER] = ticked;
     if (ticked === 0) {
       x = (x + 1) & 0xff;
-      mem8[loc_13b] = x;
-      mem8[loc_13c] = mem8[u16(loc_b82a + x)];
+      mem8[OBJECT_ANIM_PHASE] = x;
+      mem8[OBJECT_ANIM_TIMER] = mem8[u16(ANIM_PHASE_DURATION + x)];
     }
-    const phase = mem8[u16(loc_b83d + x)];
+    const phase = mem8[u16(ANIM_PHASE_CODE + x)];
     if (phase < 0x80) loc_b84e(m, phase);
-    const j = ((mem8[loc_13b] << 1) + 0x28) & 0xff;
-    const p = mem16[loc_74];
+    const j = ((mem8[OBJECT_ANIM_PHASE] << 1) + 0x28) & 0xff;
+    const p = mem16[DRAW_CURSOR_LO];
     // BUG: swapped low/high emit bytes
-    mem8[p] = mem8[u16(loc_cec9 + j)];
-    mem8[u16(p + 1)] = mem8[u16(loc_cec8 + j)];
-    mem8[loc_74] = (mem8[loc_74] + 2) & 0xff;
+    mem8[p] = mem8[u16(OBJ_TEMPLATE_WORD_HI + j)];
+    mem8[u16(p + 1)] = mem8[u16(OBJ_TEMPLATE_WORD_LO + j)];
+    mem8[DRAW_CURSOR_LO] = (mem8[DRAW_CURSOR_LO] + 2) & 0xff;
   };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the swapped emit pair");

@@ -14,7 +14,7 @@ import { loc_db6f } from "../loc_db6f.js";
 import { loc_df4c } from "../loc_df4c.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_50 } from "../names.js";
+import { STACK_SCRATCH, SPINNER_ACCUM } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -37,7 +37,7 @@ function captureDispatches(K, maxFrames) {
 }
 const CAPS = ROM_PRESENT ? captureDispatches(16, 3000) : [];
 
-const seat = (m, s = {}) => { m.mem.write8(loc_50, s.slots ?? 0x00); };
+const seat = (m, s = {}) => { m.mem.write8(SPINNER_ACCUM, s.slots ?? 0x00); };
 
 test("CAPTURE: real 0xdb6f dispatches -- loc_db6f == oracle in RAM (-stack, poly frozen)", () => {
   for (const cap of CAPS) {
@@ -63,7 +63,7 @@ test("TEETH: a twin that stops after df4c (skips db88's word/clear) diverges", (
   const c = freezePokey(new Machine(ROM, OPTS)); seat(c, s);
   oracle(o);
   // BUG: emits the header but never runs the db88 continuation.
-  const broken = (m) => { loc_df4c(m, 0x68, m.mem8[loc_50] >> 1); };
+  const broken = (m) => { loc_df4c(m, 0x68, m.mem8[SPINNER_ACCUM] >> 1); };
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped db88 continuation");
 });

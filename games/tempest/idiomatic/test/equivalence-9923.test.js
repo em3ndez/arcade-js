@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Memory-equivalence for loc_9923 (ROM 0x9923-0x994c) -- the slot-timer expiry handler for slot X. It
-// raises a spawn request (loc_29 = 0xf0), latches loc_203,x into loc_2a, saves X in loc_35, runs the
-// placement pass loc_99a5, then reloads X from loc_35. If the request survived (loc_29 still set) and
-// loc_994d allocates a free slot, it drops loc_3ab and clears this slot's timer loc_243,x; otherwise it
-// flags loc_2f = 0xff and re-arms the timer (inc loc_243,x). Both callees preserve X (loc_994d saves it in
-// loc_36 and restores it; loc_9923 saves it in loc_35 and reloads it), so exit X == the reloaded loc_35 in
-// every path -- X is the only live-out register (the caller loc_98a2 reads loc_243,x right after the call).
+// raises a spawn request (loc_29 = 0xf0), latches OBJECT_INDEX_TABLE,x into loc_2a, saves X in SAVED_INDEX, runs the
+// placement pass loc_99a5, then reloads X from SAVED_INDEX. If the request survived (loc_29 still set) and
+// loc_994d allocates a free slot, it drops FIRE_GATE and clears this slot's timer OBJECT_RECORD_TABLE,x; otherwise it
+// flags loc_2f = 0xff and re-arms the timer (inc OBJECT_RECORD_TABLE,x). Both callees preserve X (loc_994d saves it in
+// SAVED_INDEX2 and restores it; loc_9923 saves it in SAVED_INDEX and reloads it), so exit X == the reloaded SAVED_INDEX in
+// every path -- X is the only live-out register (the caller loc_98a2 reads OBJECT_RECORD_TABLE,x right after the call).
 // Contract = RAM (dumpState minus STACK_SCRATCH) PLUS X. Oracle is the frozen translated loc_9923.
 // Run: node --test games/tempest/idiomatic/test/equivalence-9923.test.js
 
@@ -20,8 +20,8 @@ import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u16 } from "../../../../core/int.js";
 import {
   STACK_SCRATCH,
-  loc_29, loc_2a, loc_2f, loc_35, loc_203, loc_243, loc_3ab,
-  loc_11c, loc_129, loc_12e, loc_142, loc_2df,
+  loc_29, loc_2a, loc_2f, SAVED_INDEX, OBJECT_INDEX_TABLE, OBJECT_RECORD_TABLE, FIRE_GATE,
+  ENEMY_SLOT_TOP, COLUMN_SPAWN_CAP, COLUMN_ENEMY_TARGET, LANE_ENEMY_COUNT_0, ENEMY_DEPTH,
 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -63,13 +63,13 @@ test("CAPTURE: real 0x9923 dispatches -- loc_9923 == oracle in RAM (-stack) and 
 });
 
 // Path B seed: on a fresh machine every deficit column is zero, so loc_99a5 finds no column to place and
-// clears loc_29. loc_994d is then skipped and loc_9923 takes the re-arm path: loc_2f = 0xff, inc loc_243,x.
+// clears loc_29. loc_994d is then skipped and loc_9923 takes the re-arm path: loc_2f = 0xff, inc OBJECT_RECORD_TABLE,x.
 function seedRearm(m, x) {
   m.regs.x = x;
-  m.mem.write8(u16(loc_203 + x), 0x07); // -> loc_2a
-  m.mem.write8(u16(loc_243 + x), 0x10); // this slot's timer -> inc to 0x11
+  m.mem.write8(u16(OBJECT_INDEX_TABLE + x), 0x07); // -> loc_2a
+  m.mem.write8(u16(OBJECT_RECORD_TABLE + x), 0x10); // this slot's timer -> inc to 0x11
   m.mem.write8(loc_2f, 0x00);           // distinct from the 0xff the routine writes
-  m.mem.write8(loc_3ab, 0x08);          // must stay untouched on this path
+  m.mem.write8(FIRE_GATE, 0x08);          // must stay untouched on this path
 }
 
 test("CRAFTED: no placement (loc_99a5 clears loc_29) -> re-arm path -- RAM and X equal", () => {
@@ -83,25 +83,25 @@ test("CRAFTED: no placement (loc_99a5 clears loc_29) -> re-arm path -- RAM and X
   assert.equal(ramDiff(o, c), null, "RAM equal after the re-arm path");
   assert.equal(c.regs.x, o.regs.x, "X live-out matches");
   assert.equal(c.regs.x, X, "X is the saved/reloaded slot index");
-  assert.equal(c.mem.read8(loc_2a), 0x07, "loc_2a latched from loc_203,x");
-  assert.equal(c.mem.read8(loc_35), X, "loc_35 holds the slot index");
+  assert.equal(c.mem.read8(loc_2a), 0x07, "loc_2a latched from OBJECT_INDEX_TABLE,x");
+  assert.equal(c.mem.read8(SAVED_INDEX), X, "SAVED_INDEX holds the slot index");
   assert.equal(c.mem.read8(loc_29), 0x00, "loc_99a5 cleared the spawn request");
   assert.equal(c.mem.read8(loc_2f), 0xff, "loc_2f flagged on the re-arm path");
-  assert.equal(c.mem.read8(u16(loc_243 + X)), 0x11, "this slot's timer was re-armed (inc)");
-  assert.equal(c.mem.read8(loc_3ab), 0x08, "loc_3ab untouched on the re-arm path");
+  assert.equal(c.mem.read8(u16(OBJECT_RECORD_TABLE + X)), 0x11, "this slot's timer was re-armed (inc)");
+  assert.equal(c.mem.read8(FIRE_GATE), 0x08, "FIRE_GATE untouched on the re-arm path");
 });
 
 // Success seed: one deficit column so loc_99a5 tries a placement. If that placement succeeds (loc_9a87
 // returns nonzero via the RTS-trick dispatch) loc_29 survives and loc_994d allocates a free slot, driving
-// the loc_3ab drop + timer clear. The dispatch may route to an unimplemented arm; skip on oracle throw.
+// the FIRE_GATE drop + timer clear. The dispatch may route to an unimplemented arm; skip on oracle throw.
 function seedPlace(m, x) {
   m.regs.x = x;
-  m.mem.write8(loc_11c, 0x04);           // active-count index -> cap 5, and the loc_994d scan span
-  m.mem.write8(u16(loc_12e + 0x02), 0x01); // column 2 wants one -> deficit 1
-  m.mem.write8(u16(loc_129 + 0x02), 0x01); // column 2 has a target -> count==1 path calls loc_9a87
-  m.mem.write8(u16(loc_203 + x), 0x03);
-  m.mem.write8(u16(loc_243 + x), 0x20);
-  m.mem.write8(loc_3ab, 0x08);
+  m.mem.write8(ENEMY_SLOT_TOP, 0x04);           // active-count index -> cap 5, and the loc_994d scan span
+  m.mem.write8(u16(COLUMN_ENEMY_TARGET + 0x02), 0x01); // column 2 wants one -> deficit 1
+  m.mem.write8(u16(COLUMN_SPAWN_CAP + 0x02), 0x01); // column 2 has a target -> count==1 path calls loc_9a87
+  m.mem.write8(u16(OBJECT_INDEX_TABLE + x), 0x03);
+  m.mem.write8(u16(OBJECT_RECORD_TABLE + x), 0x20);
+  m.mem.write8(FIRE_GATE, 0x08);
 }
 
 test("CRAFTED: placement path attempt (loc_99a5 keeps loc_29, loc_994d allocates) -- RAM and X equal", () => {
@@ -125,11 +125,11 @@ test("TEETH: a twin that drops the timer re-arm MUST diverge in RAM", () => {
   let tried = 0;
   try { oracle(o); } catch { threw = true; }
   if (threw) { console.log("  TEETH: oracle threw on this seed -- skipped"); return; }
-  // Broken twin: run the real routine, then undo the loc_243,x re-arm. The re-arm inc is a signature write
+  // Broken twin: run the real routine, then undo the OBJECT_RECORD_TABLE,x re-arm. The re-arm inc is a signature write
   // of the no-placement path, so dropping it guarantees a RAM divergence.
   const broken = (m, x = m.regs.x) => {
     loc_9923(m);
-    m.mem.write8(u16(loc_243 + x), m.mem.read8(u16(loc_243 + x)) - 1); // BUG: undo the timer re-arm
+    m.mem.write8(u16(OBJECT_RECORD_TABLE + x), m.mem.read8(u16(OBJECT_RECORD_TABLE + x)) - 1); // BUG: undo the timer re-arm
   };
   tried++;
   broken(c, X);

@@ -13,7 +13,7 @@ import { loc_dce6 as oracle } from "../../translated/loc_dce6.js";
 import { loc_dce6 } from "../loc_dce6.js";
 import { Machine, withOmittedRet } from "../../machine.js";
 import { firstStateDiff, seamPlaceable } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, loc_73, loc_414 } from "../names.js";
+import { STACK_SCRATCH, VG_RECORD_HEADER, loc_414 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -53,14 +53,14 @@ test("CAPTURE: real 0xdce6 dispatches -- loc_dce6 == oracle in RAM (-stack) and 
 test("CRAFTED: $0073 and $0414 clear to 0x00 and the register result pair matches", () => {
   const seed = (m) => {
     m.regs.a = 0x37; m.regs.x = 0x29; // non-default operands
-    m.mem.write8(loc_73, 0xaa);
+    m.mem.write8(VG_RECORD_HEADER, 0xaa);
     m.mem.write8(loc_414, 0x55);
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o); loc_dce6(c);
   assert.equal(ramDiff(o, c), null, "RAM equal after run");
-  assert.equal(c.mem.read8(loc_73), 0x00, "$0073 cleared");
+  assert.equal(c.mem.read8(VG_RECORD_HEADER), 0x00, "$0073 cleared");
   assert.equal(c.mem.read8(loc_414), 0x00, "$0414 cleared");
   assert.equal(c.regs.a, o.regs.a, "A live-out matches");
   assert.equal(c.regs.x, o.regs.x, "X live-out matches");
@@ -70,13 +70,13 @@ test("CRAFTED: $0073 and $0414 clear to 0x00 and the register result pair matche
 test("TEETH: a twin that leaves $0414 untouched diverges from the oracle", () => {
   const seed = (m) => {
     m.regs.a = 0x37; m.regs.x = 0x29;
-    m.mem.write8(loc_73, 0xaa);
+    m.mem.write8(VG_RECORD_HEADER, 0xaa);
     m.mem.write8(loc_414, 0x55); // non-default so the skipped store shows
   };
   const o = new Machine(ROM, OPTS); seed(o);
   const c = new Machine(ROM, OPTS); seed(c);
   oracle(o);
-  const broken = (m) => { m.mem8[loc_73] = 0x00; }; // BUG: never clears $0414
+  const broken = (m) => { m.mem8[VG_RECORD_HEADER] = 0x00; }; // BUG: never clears $0414
   broken(c);
   assert.notEqual(ramDiff(o, c), null, "the RAM diff FAILED to catch the skipped store");
 });
