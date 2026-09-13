@@ -40,10 +40,8 @@ export function loc_a23f(m) {
     mem8[u16(loc_2ad + x)] = mem8[loc_200];
     mem8[u16(loc_2c0 + x)] = mem8[loc_201];
     mem8[u16(loc_2f2 + x)] = 0;
-    // The spawn/sound chain reads m.regs.x (stamping it into loc_31/loc_32); the slot index rides
-    // the live X across the call, so seat regs.x from our local before delegating.
-    m.regs.x = x;
-    loc_ccea(m);
+    // The spawn/sound chain stamps the slot index into loc_31/loc_32; pass it explicitly.
+    loc_ccea(m, x);
     loc_a463(m, mem8[loc_202], x);
     break; // only the first free slot is filled
   }
