@@ -80,6 +80,10 @@ export class Io {
     this.dsw1 = 0x00; // 0x0D00 DSW1 (coinage), all defaults -> 0x00
     this.dsw2 = 0x00;
     this.cabinet = 0x10; // IN1_DSW0 (pokey1 pot) bit4: 1 = upright (default)
+
+    // Digital input tape: {port: pressedBits} per frame (Machine.applyInputs). Port 0 = IN0 (coins), port 2
+    // = IN2 (start/fire/superzapper, read through the pokey2 pots). The spinner (IN1 pot, analog) is separate.
+    this.inputAssert = null;
   }
 
   attachMemory(mem) {
@@ -97,10 +101,15 @@ export class Io {
   // IN0 (0x0C00): b0 coin3, b1 coin2, b2 coin1, b3 tilt, b4 self-test, b5 diag-step -- all ACTIVE-LOW (idle
   // 1); b6 = AVG done_r (ACTIVE-HIGH, 0 = busy, MAME's default); b7 = 3kHz clock = (total_cycles & 0x100).
   readIn0(cycles) {
-    let v = 0x3f; // b0-b5 idle high (nothing pressed)
+    let v = 0x3f & ~this._pressed(0); // b0-b5 idle high (active-low); a pressed coin/switch bit clears
     if (this.avg && this.avg.doneFlag) v |= 0x40;
     if (cycles & 0x100) v |= 0x80;
     return v;
+  }
+
+  // Pressed bits asserted by the input tape for a digital port (0 = IN0, 2 = IN2); 0 when nothing drives it.
+  _pressed(port) {
+    return this.inputAssert ? this.inputAssert[port] || 0 : 0;
   }
 
   // 0x0D00 = DSW1 (tempest.cpp map: portr("DSW1")), the coinage dip bank -- NOT the knob (the spinner is a
@@ -153,9 +162,11 @@ export class Io {
   // POKEY pots as 1-bit paddles (tempest.cpp input_port_{1,2}_bit_r): a SET bit -> pot value 0 (pokey_potgo
   // asserts ALLPOT-done instantly); a clear bit -> 228 (ramps). Attract-idle port values (grounded vs the
   // golden ALLPOT reads): IN1_DSW0 = knob 0 | cabinet b4 | active-low unknowns b5-7 = 0xf0; IN2 = 0xff.
-  // Dynamic spinner/button/start mapping is future gameplay-input grounding.
-  pokey1PotBits() { return this.cabinet | 0xe0; }
-  pokey2PotBits() { return 0xff; }
+  // IN2 start/fire/superzapper are active-low: a pressed bit CLEARS, so that pot ramps and ALLPOT (which the
+  // pokey model inverts under SK_RESET) reports it -- grounded via MAME: start1 -> ALLPOT 0x20 (bit5), matching
+  // this model exactly. IN2 bits: superzapper 0x08 (b3), fire 0x10 (b4), start1 0x20 (b5), start2 0x40 (b6).
+  pokey1PotBits() { return this.cabinet | 0xe0; } // spinner (b0-3) idle 0; analog knob injection is separate
+  pokey2PotBits() { return (0xff & ~this._pressed(2)) & 0xff; }
   pokeyRead(chip, reg, cycles) { return this.pokeys[chip].read(reg, cycles); }
   pokeyWrite(chip, reg, v, cycles) { this.pokeys[chip].write(reg, v, cycles); }
 }

@@ -55,11 +55,14 @@ export default {
   // Inputs (pending grounding): spinner (4-bit rotary, IN1 0x0D00 b0-3), fire + superzapper (POKEY pots),
   // start1/2, coins on IN0. Wired exactly once §3 reaches the input reads.
   inputs: {
-    ports: { in0: 0, in1: 1, dsw2: 2 },
+    ports: { in0: 0, in1: 1, in2: 2 }, // in0 = 0x0C00 (coins); in2 = start/fire/superzapper via the pokey2 pots
     actions: {
       coin: { port: 0, bit: 0x04 }, // IN0 b2 COIN1 (active-low)
+      start1: { port: 2, bit: 0x20 }, // IN2 b5 START1 (pokey2 pot; grounded via ALLPOT 0x20)
+      fire: { port: 2, bit: 0x10 }, // IN2 b4 = BUTTON1 fire (tempest_buttons_r << 3)
+      superzapper: { port: 2, bit: 0x08 }, // IN2 b3 = BUTTON2 superzapper
     },
-    keys: { Digit5: "coin" },
+    keys: { Digit5: "coin", Digit1: "start1", Space: "fire", ShiftLeft: "superzapper" },
   },
 
   // audio (§5): 2x POKEY @ 1.512MHz -> SYNTH model (like centiped/galaxian). Grounded from a play-time
