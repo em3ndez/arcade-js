@@ -351,7 +351,7 @@ export const VEC_LIST_JMP_LO = 0x2ffc;  // [seen] low byte of the display-list t
 export const VEC_LIST_JMP_HI = 0x2ffd;  // [seen] high byte of the display-list tail jump (|0x70 AVG JMPL opcode)
 export const VEC_LIST_HALT = 0x2fff;  // [seen] display-list terminator byte (0xc0 AVG halt)
 export const NIBBLE_GLYPH_TABLE = 0x31e4;  // [seen] vector-ROM stroke-word table indexed by nibble (digit/hex glyphs)
-export const NIBBLE_GLYPH_TABLE_HI = 0x31e5;  // [code] high-byte companion of the nibble glyph-word table
+export const NIBBLE_GLYPH_TABLE_HI = 0x31e5;  // [seen] high-byte companion of the nibble glyph-word table
 export const CHAR_GLYPH_TABLE = 0x31fa;  // [seen] vector-ROM glyph-word table indexed by character code
 export const BAR_GLYPH_LOW = 0x3284;  // [seen] vector-ROM glyph byte used when row <= threshold
 export const BAR_GLYPH_HIGH = 0x3286;  // [seen] vector-ROM glyph byte used when row > threshold
