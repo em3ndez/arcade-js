@@ -492,14 +492,14 @@ export const DIP_BONUS_INTERVAL = 0xd6f7;  // [seen] DIP-decoded bonus/award thr
 export const DIP_PARAM_158 = 0xd6ff;  // [seen] DIP-decoded configuration value loaded into DSW_BONUS_CONFIG, selected by DSW bits 7-6
 export const ATTRACT_SND_SLOTA = 0xdbd5;  // [seen] Attract/idle POKEY sequencer table selecting the slot to clear each phase
 export const ATTRACT_SND_SLOTB = 0xdbd6;  // [seen] Attract/idle POKEY sequencer table selecting the slot to write each phase
-export const POTMARK_WORD_INDEX = 0xdce1;  // [code] Coordinate-word table index selected per pot-readout slot in the spinner/pot draw
+export const POTMARK_WORD_INDEX = 0xdce1;  // [seen] Coordinate-word table index selected per pot-readout slot in the spinner/pot draw
 export const EAROM_REGION_START = 0xdddd;  // [seen] Per-region starting cursor for an EAROM read/write pass
 export const EAROM_REGION_LIMIT = 0xddde;  // [seen] Per-region ending limit for an EAROM read/write pass
 export const EAROM_REGION_PTR_LO = 0xdde3;  // [seen] Per-region low byte of the zero-page pointer to the EAROM region's RAM copy
 export const EAROM_REGION_PTR_HI = 0xdde4;  // [seen] Per-region high byte of the zero-page pointer to the EAROM region's RAM copy
 export const ATTRACT_SND_VALUE = 0xdfdc;  // [seen] Attract/idle POKEY sequencer table giving the value byte written to the sound register
-export const COLOR_PAIR_LO = 0xdfe4;  // [code] Colour-pair low byte selected by SPINNER_ACCUM for the final colour-pair emit
-export const COLOR_PAIR_HI = 0xdfe8;  // [code] Colour-pair high byte selected by SPINNER_ACCUM for the final colour-pair emit
+export const COLOR_PAIR_LO = 0xdfe4;  // [seen] Colour-pair low byte selected by SPINNER_ACCUM for the final colour-pair emit
+export const COLOR_PAIR_HI = 0xdfe8;  // [seen] Colour-pair high byte selected by SPINNER_ACCUM for the final colour-pair emit
 
 export const INPUT_CUR = 0x4c;  // [seen] Current-frame raw coin/switch input sample used for edge detection
 export const INPUT_PREV = 0x004f;  // [seen] Previous-frame held-input snapshot used to detect rising edges
