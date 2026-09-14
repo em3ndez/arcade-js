@@ -544,9 +544,9 @@ export const ATTRACT_TIMER_LIMIT_TABLE = 0xa883;  // [seen] per-stage attract-ti
 export const SLOT_BIT_MASK = 0xca38;  // [seen] Bit-mask lookup keyed by a slot's 4-bit tag, folded into the per-slot presence mask
 export const VECHEAD1_PLAY = 0xcec5;  // [seen] Second display-list head word constant latched at 0x2001 on the play/dispatch path
 export const IRQ_STATE_CODE = 0xd7dd;  // [seen] Interrupt-handler state-code dispatch table selected by the current game phase
-export const DIAG_MASK_TABLE = 0xd8b6;  // [code] Mask table AND-compared against a status cell in the diagnostic/service draw
-export const DIAG_VALUE_LO = 0xd8ba;  // [code] Diagnostic-display value selected by the low DSW nibble of DSW1_SNAPSHOT
-export const DIAG_VALUE_HI = 0xd8c2;  // [code] Diagnostic-display value selected by the high bits of DSW1_SNAPSHOT
+export const DIAG_MASK_TABLE = 0xd8b6;  // [seen] Mask table AND-compared against a status cell in the diagnostic/service draw
+export const DIAG_VALUE_LO = 0xd8ba;  // [seen] Diagnostic-display value selected by the low DSW nibble of DSW1_SNAPSHOT
+export const DIAG_VALUE_HI = 0xd8c2;  // [seen] Diagnostic-display value selected by the high bits of DSW1_SNAPSHOT
 export const SELFTEST_COLOR_TABLE = 0xdaf9;  // [seen] Eight-byte ROM colour table copied into colour RAM during the self-test session
 
 export const ROUTINES = {
