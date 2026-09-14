@@ -10,13 +10,34 @@ import {
 import { tickHeartbeatCounters } from "./tickHeartbeatCounters.js";
 import { stepSoundVoices } from "./stepSoundVoices.js";
 
-// The periodic ~246Hz interrupt handler (the heartbeat). It guards against a corrupt stack or a negative
-// heartbeat counter (both unreachable in the clock-free layer), then kicks the watchdog, advances the
-// coarse frame counter from the spinner pot, folds the coin/switch inputs into edge state, drives the
-// coin/LED output latch, picks a state code from a dispatch table by game phase, runs the two per-tick
-// updaters, ticks the software timer cascades, pulses the vector generator when AVG-done is asserted, and
-// latches the raw input port. Dispatched raw; the stack pointer is the only register read (the depth
-// guard), and there is no register live-out.
+/**
+ * serviceHeartbeatInterrupt — the periodic ~246Hz timer interrupt handler (the heartbeat). ROM 0xd704.
+ *
+ * Role in the machine: this is Tempest's clock. On the real board it fires from the 3kHz/12 timer IRQ
+ * and does all the fixed-cadence housekeeping the main loop cannot: it kicks the watchdog so the board
+ * does not reset, integrates the spinner pot into the coarse frame counter that rotates the player around
+ * the rim, debounces the coin/start/switch inputs into pressed/edge state, drives the coin-counter and
+ * LED output latch, selects a vector-generator state code by game phase, runs the two per-tick updaters
+ * (heartbeat counters and the sound voices), advances the software timer cascades, and pulses the vector
+ * generator to redraw the screen once the AVG reports done.
+ *
+ * Behavior: first a stack-depth + heartbeat-sign guard (both unreachable in this SP-retired clock-free
+ * layer; a trip means a real invariant break). Kick WATCHDOG_CLEAR and mirror the beat to a POKEY reg.
+ * Invert the spinner pot, form a sign-extended low-nibble delta vs the previous value, accumulate it into
+ * SPINNER_ACCUM and stash the pot's bit4 into loc_117. Latch the raw input port, then fold this frame's
+ * inputs against last frame's to maintain debounced/held/edge cells. Build the coin/LED latch from base
+ * flags plus one bit per active (negative) lane-counter status byte. Pick a dispatch index from the game
+ * phase and fold the table entry's low two bits into the VG mode cell. Run tickHeartbeatCounters and
+ * stepSoundVoices. Advance the heartbeat and sub-timer; on the sub-timer wrap drive the first carry
+ * cascade and (mode-gated) the second. Finally, on AVG-done bump the redraw counter and strobe the VG.
+ *
+ * Live-out: SPINNER_ACCUM/SPINNER_POT_PREV/loc_117, the input debounce/edge cells, COIN_FLIP_LATCH,
+ * VG_MODE_FLAG/LED_FLIP_LATCH, IRQ_HEARTBEAT/IRQ_SUBTIMER and the TIMER1/TIMER2 cascades, INPUT_PORT_LATCH,
+ * LEVEL_LAYOUT_TRIGGER, and the hardware strobe latches. Dispatched raw; the stack pointer is the only
+ * register read (the depth guard) and there is no register live-out.
+ *
+ * Grounding: [seen]
+ */
 export function serviceHeartbeatInterrupt(m, s = m.regs.s) {
   const { mem8 } = m;
 

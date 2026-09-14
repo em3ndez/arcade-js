@@ -2,38 +2,55 @@
 import { u16 } from "../../../core/int.js";
 import { loc_29, SLOT_LOOP_INDEX, SPIKE_TABLE_GUARD, loc_3fe } from "./names.js";
 
-// Remap an 8-entry table against a reference value: large entries shrink by a
-// fixed offset, mid entries snap to a rail chosen by the reference's sign, and a
-// zero entry adopts a rail based on its next neighbour. Each result is OR-folded;
-// if every entry ends up zero the reference is itself cleared. No-op when the
-// reference is already zero.
+/**
+ * stepSpikeTableCollapse — collapse the descending-spike height table one step. ROM 0xa7d2.
+ *
+ * Role in the machine: Tempest's Spikers crawl up a lane leaving a spike behind them; a separate
+ * descending-spike object animates those spikes shrinking back down. loc_3fe is the 8-entry table of
+ * per-lane spike heights and SPIKE_TABLE_GUARD ($0115) is that object's arm/guard flag. This routine
+ * advances the whole table one frame toward flat: tall spikes lose a fixed amount of height, short ones
+ * are pushed to one of two rails, and once the whole table has drained to zero the object disarms itself.
+ * The guard's sign bit selects which rail (0xf0 vs 0) the snap uses, so the same table can be driven up or
+ * down by flipping one flag.
+ *
+ * Behavior: no-op while the guard is zero (object not armed). Otherwise walk the eight slots from x=7 down
+ * to 0. A tall entry (>= 0x17) shrinks by 7. A smaller nonzero entry snaps to the guard-signed rail
+ * (0xf0 when the guard is negative, else 0). A zero entry stays 0 unless the guard is negative, in which
+ * case it may adopt 0xf0 by borrowing from its wrap-around next neighbour (only when that neighbour is
+ * nonzero and below 0xd5). Every result is OR-folded into acc so the loop learns whether anything remains.
+ *
+ * Live-out: the rewritten loc_3fe height table; loc_29 ($0029) holds the OR-fold of all results;
+ * SLOT_LOOP_INDEX ($0037) is reset to 0xff for the next per-slot walk; and SPIKE_TABLE_GUARD is cleared
+ * to 0 (disarming the object) once the table has fully collapsed. Grounding: [seen].
+ */
 export function stepSpikeTableCollapse(m) {
   const { mem8 } = m;
   const ref = mem8[SPIKE_TABLE_GUARD];
-  if (ref === 0) return;
+  if (ref === 0) return; // object not armed: nothing to collapse this frame
 
-  let acc = 0;
+  let acc = 0; // OR-fold of every result; zero at the end means the table has flattened
   for (let x = 7; x >= 0; x--) {
     const entry = mem8[u16(loc_3fe + x)];
     let result;
     if (entry === 0) {
+      // Empty slot: only a negative guard can (re)fill it, and only by borrowing its next neighbour's rail.
       if (mem8[SPIKE_TABLE_GUARD] & 0x80) {
-        const next = x === 7 ? 0 : x + 1;
+        const next = x === 7 ? 0 : x + 1; // wrap the top slot back to slot 0
         const nbr = mem8[u16(loc_3fe + next)];
-        result = nbr !== 0 && nbr < 0xd5 ? 0xf0 : 0;
+        result = nbr !== 0 && nbr < 0xd5 ? 0xf0 : 0; // adopt the rail only from a live, below-limit neighbour
       } else {
-        result = 0;
+        result = 0; // guard non-negative: stay empty
       }
     } else if (entry >= 0x17) {
-      result = entry - 7;
+      result = entry - 7; // tall spike: shrink by a fixed step toward the rail
     } else {
-      result = mem8[SPIKE_TABLE_GUARD] & 0x80 ? 0xf0 : 0;
+      result = mem8[SPIKE_TABLE_GUARD] & 0x80 ? 0xf0 : 0; // short spike: snap to the guard-signed rail
     }
     mem8[u16(loc_3fe + x)] = result;
     acc |= result;
   }
 
-  mem8[loc_29] = acc;
-  mem8[SLOT_LOOP_INDEX] = 0xff;
-  if (acc === 0) mem8[SPIKE_TABLE_GUARD] = 0;
+  mem8[loc_29] = acc; // publish the fold for the caller
+  mem8[SLOT_LOOP_INDEX] = 0xff; // reseed the slot walk index
+  if (acc === 0) mem8[SPIKE_TABLE_GUARD] = 0; // whole table drained: disarm the object
 }

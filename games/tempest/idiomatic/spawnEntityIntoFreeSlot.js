@@ -7,38 +7,60 @@ import {
 import { requestEnemySpawnSound } from "./requestEnemySpawnSound.js";
 import { resolveSlotProximityInteractions } from "./resolveSlotProximityInteractions.js";
 
-// Try to spawn into a free slot. Bails when PLAYER_FINE_ANGLE is negative. Then forms a gate: when STATUS_FLAGS is
-// negative the gate is INPUT_DEBOUNCED & 0x10, otherwise it seeds loc_29 from SPIKE_ACTIVE_FLAG and adds one per slot of
-// loc_2b5 (x = 10..0, gated by loc_2db nonzero) whose value sits within 1 of PLAYER_SEGMENT. A zero gate bails.
-// Otherwise it scans SLOT_STATE (x = 7..0) for the first free (zero) slot, seeds that slot across SLOT_STATE/
-// TARGET_SEG/loc_2c0/HIT_TALLY, bumps the live count ACTIVE_OBJECT_COUNT, and fires the two spawn helpers.
+/**
+ * spawnEntityIntoFreeSlot — conditionally spawn an entity at the player's position. ROM 0xa23f.
+ *
+ * Role in the machine: this decides whether to drop a new entity (an enemy/shot object seeded at the
+ * player's current tube position) and, if so, seats it in a free object slot. The go/no-go decision is
+ * a "gate": in one mode it is a debounced input bit, in the other it is a crowding count of how many
+ * flyers already sit near the player's segment plus a spike-active bias. Only when the gate is nonzero
+ * does it allocate a slot, copy the player's depth/segment/angle into it, and fire the spawn sound and
+ * proximity-interaction helpers.
+ *
+ * Behavior: bails immediately if PLAYER_FINE_ANGLE (loc_201) bit7 is set (player not spawnable). It then
+ * forms the gate. If STATUS_FLAGS (loc_5) is negative, the gate is simply INPUT_DEBOUNCED & 0x10
+ * (loc_4d, a fire/hold bit). Otherwise it seeds loc_29 from SPIKE_ACTIVE_FLAG (loc_106) and, for each
+ * flyer slot x = 10..0 that is occupied (loc_2db,x nonzero), takes the absolute segment distance between
+ * that flyer's segment loc_2b5,x and PLAYER_SEGMENT (loc_200); every flyer within 1 segment increments
+ * loc_29. The resulting loc_29 is the gate. A zero gate bails (nothing to spawn against). Otherwise it
+ * scans the object slot table SLOT_STATE (loc_2d3, x = 7..0) for the first free (zero) entry, bumps the
+ * live-object count ACTIVE_OBJECT_COUNT (loc_135), and seeds that slot: state = PLAYER_SHOT_DEPTH
+ * (loc_202), TARGET_SEG = PLAYER_SEGMENT (loc_200), loc_2c0 = PLAYER_FINE_ANGLE (loc_201), HIT_TALLY = 0.
+ * It then calls requestEnemySpawnSound and resolveSlotProximityInteractions for that slot and stops —
+ * only the first free slot is filled.
+ *
+ * Live-out: on a spawn, the seeded slot across SLOT_STATE/TARGET_SEG/loc_2c0/HIT_TALLY, the bumped
+ * ACTIVE_OBJECT_COUNT, and the queued spawn sound / proximity resolution; loc_29 holds the computed
+ * gate count. Grounding: [seen].
+ */
 export function spawnEntityIntoFreeSlot(m) {
   const { mem8 } = m;
 
-  if (mem8[PLAYER_FINE_ANGLE] & 0x80) return;
+  if (mem8[PLAYER_FINE_ANGLE] & 0x80) return; // player not spawnable
 
   let gate;
   if (mem8[STATUS_FLAGS] & 0x80) {
-    gate = mem8[INPUT_DEBOUNCED] & 0x10;
+    gate = mem8[INPUT_DEBOUNCED] & 0x10; // input-driven gate (fire/hold bit)
   } else {
+    // Crowding gate: spike bias plus one per flyer sitting within 1 segment of the player.
     mem8[loc_29] = mem8[SPIKE_ACTIVE_FLAG];
     for (let x = 10; x >= 0; x--) {
-      if (mem8[u16(loc_2db + x)] === 0) continue;
+      if (mem8[u16(loc_2db + x)] === 0) continue; // skip empty flyer slots
       let delta = u8(mem8[u16(loc_2b5 + x)] - mem8[PLAYER_SEGMENT]);
       if (delta & 0x80) delta = u8((delta ^ 0xff) + 1); // abs of the signed difference
-      if (delta < 2) mem8[loc_29] = u8(mem8[loc_29] + 1);
+      if (delta < 2) mem8[loc_29] = u8(mem8[loc_29] + 1); // within one segment -> count it
     }
     gate = mem8[loc_29];
   }
 
-  if (gate === 0) return;
+  if (gate === 0) return; // gate closed -> no spawn
 
   for (let x = 7; x >= 0; x--) {
-    if (mem8[u16(SLOT_STATE + x)] !== 0) continue;
-    mem8[ACTIVE_OBJECT_COUNT] = u8(mem8[ACTIVE_OBJECT_COUNT] + 1);
-    mem8[u16(SLOT_STATE + x)] = mem8[PLAYER_SHOT_DEPTH];
-    mem8[u16(TARGET_SEG + x)] = mem8[PLAYER_SEGMENT];
-    mem8[u16(loc_2c0 + x)] = mem8[PLAYER_FINE_ANGLE];
+    if (mem8[u16(SLOT_STATE + x)] !== 0) continue; // occupied slot
+    mem8[ACTIVE_OBJECT_COUNT] = u8(mem8[ACTIVE_OBJECT_COUNT] + 1); // one more live object
+    mem8[u16(SLOT_STATE + x)] = mem8[PLAYER_SHOT_DEPTH]; // seed depth from the player
+    mem8[u16(TARGET_SEG + x)] = mem8[PLAYER_SEGMENT];    // seed segment from the player
+    mem8[u16(loc_2c0 + x)] = mem8[PLAYER_FINE_ANGLE];    // seed fine angle from the player
     mem8[u16(HIT_TALLY + x)] = 0;
     // The spawn/sound chain stamps the slot index into loc_31/loc_32; pass it explicitly.
     requestEnemySpawnSound(m, x);

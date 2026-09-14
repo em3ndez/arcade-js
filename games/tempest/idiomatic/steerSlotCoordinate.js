@@ -6,14 +6,32 @@ import {
 import { advanceEnemyLaneDepth, reverseEnemyLaneDepth } from "./stepEnemyDepthInLaneDirection.js";
 import { insertObjectHeadTag7 } from "./insertObjectHeadTag9.js";
 
-// Per-slot(x) steering step, keyed on ENEMY_SLOT_DIR,x bit7.
-//  - bit7 set: SUB-step; probe = FIRE_GATE!=0 ? the step's new hi : 0xff; if probe >= NEAR_DEPTH_THRESHOLD flip bit7
-//    of ENEMY_SLOT_DIR,x. Y into the tail = FIRE_GATE.
-//  - bit7 clear: ADD-step with y = (ENEMY_DEPTH,x >= NEAR_DEPTH_THRESHOLD ? 0 : 1); Y into the tail = whatever the add
-//    step returns (its deep arms overwrite the index, shallow arms keep it).
-//  - common tail: with ENEMY_ANIM_ACCUM bit7 clear AND ENEMY_DEPTH,x < NEAR_DEPTH_THRESHOLD AND PLAYER_SEGMENT == ENEMY_SEGMENT,x AND
-//    PLAYER_FINE_ANGLE == ENEMY_PHASE,x, seed a fresh object with X = the slot and that Y (which the seed stores).
-// X passes through; A on each tail exit is the last compare operand (incidental on the seed arm).
+/**
+ * steerSlotCoordinate — advance one enemy slot's depth along its lane and seed on-player. ROM 0x9cb6.
+ *
+ * Role in the machine: every active enemy on the tube travels in/out along its lane; this steps slot X one
+ * tick of that motion. The slot's direction bit (ENEMY_SLOT_DIR,x bit7) says whether it is retreating
+ * (sub-step, moving away) or advancing (add-step, moving toward the rim), and at the end — if the enemy has
+ * arrived at the player's exact position and nothing blocks it — it seeds a fresh object for that slot. This
+ * is the per-slot body the enemy update loop sweeps over.
+ *
+ * Behavior, two arms then a shared tail:
+ *  - bit7 set (SUB-step): reverseEnemyLaneDepth steps the depth backward and returns the new high byte. Y is
+ *    loaded from FIRE_GATE and persists into the tail; its zero-ness picks the probe — probe = FIRE_GATE!=0 ?
+ *    stepped-hi : 0xff. If probe >= NEAR_DEPTH_THRESHOLD the enemy has reached the far threshold, so flip
+ *    ENEMY_SLOT_DIR,x bit7 to reverse direction.
+ *  - bit7 clear (ADD-step): y is a steering index — 0 if ENEMY_DEPTH,x is already at/over NEAR_DEPTH_THRESHOLD,
+ *    else 1 — and advanceEnemyLaneDepth steps forward, returning the Y the tail's seed will use (deep arms
+ *    overwrite the index, shallow arms keep it).
+ *  - common tail: bail if ENEMY_ANIM_ACCUM bit7 is set (busy), or ENEMY_DEPTH,x >= NEAR_DEPTH_THRESHOLD (not
+ *    close enough), or PLAYER_SEGMENT != ENEMY_SEGMENT,x (wrong lane), or PLAYER_FINE_ANGLE != ENEMY_PHASE,x
+ *    (wrong angle). Only when all four line up — the enemy is on the player — seed a fresh object via
+ *    insertObjectHeadTag7 with X = the slot and the stepped Y (which the seed stores).
+ *
+ * Live-out: ENEMY_DEPTH,x / the lane depth pair stepped by the chosen arm, possibly a flipped ENEMY_SLOT_DIR,x
+ * bit7, and on the seed arm a new object. X passes through; m.regs.a on each exit is the last compare operand
+ * (incidental on the seed arm). Grounding: [seen].
+ */
 export function steerSlotCoordinate(m, x = m.regs.x) {
   const { mem8 } = m;
   let y;

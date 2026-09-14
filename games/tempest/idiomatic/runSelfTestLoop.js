@@ -11,11 +11,38 @@ import { dispatchDrawHandler } from "./dispatchDrawHandler.js";
 import { emitHeaderedBodyRecord } from "./emitHeaderedBodyRecord.js";
 import { stepEaromTransfer } from "./stepEaromTransfer.js";
 
-// The self-test session loop. A one-time preamble seeds the state machine, forwards a pending request
-// byte, copies the 8-byte colour table into colour RAM, and idles the coin/flip control; then each pass
-// builds and shows one self-test frame, sampling the option switches and the diagnostic inputs, until
-// the self-test switch is released. The video-sync drain touches no work RAM, so it is modelled as the
-// watchdog + display-reset strobes it performs rather than as a busy-wait.
+/**
+ * runSelfTestLoop — the operator self-test session loop. ROM 0xda62.
+ *
+ * Role in the machine: when the cabinet's self-test switch is held, Tempest leaves normal play and runs a
+ * diagnostic session that draws test patterns and reports the option-DIP settings and input states on the
+ * vector monitor. This routine is that session: a one-time preamble that seeds the mode state machine and
+ * screen, followed by an unbounded per-frame loop that builds and shows one diagnostic frame at a time
+ * until the operator releases the switch. It sits directly after the power-on ROM checksum
+ * (checksumRomAndSettleEntropy tail-continues here).
+ *
+ * Preamble: arm the EAROM readback (armEaromReadback), then branch on the pending-work byte
+ * PENDING_WORK_FLAGS. If it is zero, set GAME_MODE = 2 (plain self-test). If nonzero, stash it into
+ * SEG_SPREAD_A_LO_4, queue an erase of every EAROM region (queueEaromEraseAllRegions), clear the pending
+ * byte, and set GAME_MODE = 0. Then copy the 8-byte SELFTEST_COLOR_TABLE into COLOR_RAM, blank the LED
+ * flip latch, and idle the coin/flip control with COIN_FLIP_LATCH = 0x10.
+ *
+ * Per-frame loop: strobe WATCHDOG_CLEAR and AVG_RESET_STROBE (both value-ignoring); reset the draw cursor
+ * to 0x2000 (DRAW_CURSOR_LO/HI); kick a POKEY pot scan (POKEY1_POTGO) and read the option switches back
+ * from POKEY1_AUDCTL into SPINNER_POT_PREV, keeping the low nibble in SPINNER_ACCUM. Read IN0_PORT,
+ * invert it, and mask 0x2f into INPUT_EDGE_FLAGS; if none of the two diagnostic-select bits (0x28) are
+ * set, reset INPUT_CUR to 0x20, else shift INPUT_CUR left one and, when the bit shifted out of the top was
+ * set, double-bump GAME_MODE by 2 (advancing the diagnostic page). Build and show the frame via
+ * dispatchDrawHandler + emitHeaderedBodyRecord (whose return strobes AVG_GO_STROBE to launch the display).
+ * Tick FRAME_COUNTER and, every fourth frame, service one EAROM transfer step (stepEaromTransfer). The
+ * loop returns the moment IN0_PORT bit 4 shows the self-test switch released. The real board also busy-
+ * waits on video sync here; that drain touches no work RAM, so it is modelled purely as the watchdog +
+ * display-reset strobes it performs rather than as a spin.
+ *
+ * Live-out: GAME_MODE (the entered diagnostic page), COLOR_RAM (test palette), the POKEY/latch strobes,
+ * INPUT_EDGE_FLAGS / INPUT_CUR / SPINNER_* sample cells, FRAME_COUNTER, and any queued EAROM erase/transfer
+ * work; returns on switch release. Grounding: [seen].
+ */
 export function runSelfTestLoop(m) {
   const { mem8 } = m;
 

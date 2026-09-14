@@ -5,18 +5,33 @@ import { seedPerLaneSpikeArray } from "./seedPerLaneSpikeArray.js";
 import { resetWorkingRamForStateEntry } from "./resetWorkingRamForStateEntry.js";
 import { clearReadyLatchPair } from "./clearReadyLatchPair.js";
 
-// Init sequence: run the four setup subroutines in order, then seed DEPTH_LO and clear
-// SPIKE_ACTIVE_FLAG/DEPTH_HI/MODE_DISPATCH_SEL.
+/**
+ * runWaveInit — initialize state for the start of a wave. ROM 0x9009.
+ *
+ * Role in the machine: at the top of each new wave (tube level) Tempest must rebuild its per-wave working
+ * state before enemies begin to appear — reseed the shared state tables, lay out the per-lane spikes,
+ * clear the scratch RAM the incoming mode will use, and reset the depth counter that governs how far down
+ * the tube the action currently reaches. This routine is that fixed setup sequence.
+ *
+ * Behavior: run the four setup passes in order — reseedStateTables (repopulate the state tables),
+ * seedPerLaneSpikeArray (lay out this wave's spikes per lane), resetWorkingRamForStateEntry (clear the
+ * working RAM for the state being entered), and clearReadyLatchPair (drop a pair of ready latches). Then
+ * seed DEPTH_LO = 250 (the initial 16-bit tube depth, high byte zeroed just below) and clear the wave-entry
+ * flags: SPIKE_ACTIVE_FLAG, DEPTH_HI, and MODE_DISPATCH_SEL. It is tail-reached from bumpLevelEnemyQuota.
+ *
+ * Live-out: the four passes' reseeded tables/spikes/RAM/latches, plus DEPTH_LO = 250 with DEPTH_HI = 0
+ * (depth counter primed) and SPIKE_ACTIVE_FLAG / MODE_DISPATCH_SEL cleared to 0. Grounding: [seen].
+ */
 export function runWaveInit(m) {
   const { mem8 } = m;
 
-  reseedStateTables(m);
-  seedPerLaneSpikeArray(m);
-  resetWorkingRamForStateEntry(m);
-  clearReadyLatchPair(m);
+  reseedStateTables(m);            // repopulate the shared per-wave state tables
+  seedPerLaneSpikeArray(m);        // lay out this wave's spikes, one per lane
+  resetWorkingRamForStateEntry(m); // clear working RAM for the state being entered
+  clearReadyLatchPair(m);          // drop the paired ready latches
 
-  mem8[DEPTH_LO] = 250;
-  mem8[SPIKE_ACTIVE_FLAG] = 0;
-  mem8[DEPTH_HI] = 0;
-  mem8[MODE_DISPATCH_SEL] = 0;
+  mem8[DEPTH_LO] = 250;            // prime the tube-depth counter (low byte)
+  mem8[SPIKE_ACTIVE_FLAG] = 0;     // no spike active yet
+  mem8[DEPTH_HI] = 0;              // depth high byte
+  mem8[MODE_DISPATCH_SEL] = 0;     // reset the mode dispatch selector
 }

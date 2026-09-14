@@ -7,25 +7,48 @@ import {
   POKEY1_AUDF1, POKEY1_AUDCTL,
 } from "./names.js";
 
-// Advance each of 16 per-slot timers: count down two timers, and when both expire step
-// the slot through an animation table (single step, or a walk until a nonzero frame),
-// then publish the slot's level to a POKEY register chosen by which half the slot is in.
+/**
+ * stepSoundVoices — the per-frame Tempest sound engine. ROM 0xcd0a.
+ *
+ * Role in the machine: Tempest builds every sound effect as an envelope that steps through a small
+ * animation table over time. This routine is the driver, run once per frame: it walks the 16 sound
+ * slots, ages each active slot's two timers, and when a slot's timers expire it advances that slot's
+ * envelope one frame (or several, walking the table to the next real frame) and writes the resulting
+ * level out to a POKEY audio register. The POKEY chips are the actual sound hardware; the value written
+ * to a slot's register is the current amplitude/frequency the chip will play.
+ *
+ * Behavior: for each slot x from 0x0f down to 0, skip it when the envelope pointer SOUND_VOICE_VALUE,x
+ * is 0 (idle) or when x is the reserved slot SOUND_SLOT_SENTINEL. Otherwise decrement the fast timer
+ * SOUND_FAST_TIMER,x; while it is still running, do nothing more this frame. When it hits zero, also
+ * decrement the slow timer SOUND_SLOW_TIMER,x. Two outcomes:
+ *   - slow timer still running -> take ONE table step: shift the envelope byte (its top bit selects the
+ *     hi/lo table half), reload the fast timer and a level increment from that table entry, add the
+ *     increment into the running level SOUND_VOICE_LEVEL,x (odd slots preserve the prior high nibble).
+ *   - both timers expired -> WALK the envelope: bump the pointer by two repeatedly, loading frame /
+ *     slow-timer / fast-timer bytes from the table each step, until a nonzero fast-timer frame lands
+ *     (or the walk falls through its zero terminators), settling on the next real animation frame.
+ * Finally publish the slot's level SOUND_VOICE_LEVEL,x to its POKEY register: slots < 8 to the first
+ * chip (POKEY1_AUDF1 + x), the upper slots to the second bank (POKEY1_AUDCTL + x).
+ *
+ * Live-out: the two per-slot timers, the envelope pointer and level for each stepped slot, and the
+ * POKEY audio registers that voice them. Grounding: [seen].
+ */
 export function stepSoundVoices(m) {
   const { mem8 } = m;
   for (let x = 0x0f; x >= 0; x--) {
     let a = mem8[u8(SOUND_VOICE_VALUE + x)];
     if (a === 0) continue;                 // slot idle
     if (x === mem8[SOUND_SLOT_SENTINEL]) continue;      // slot is the reserved one
-    const eDec = u8(mem8[u8(SOUND_FAST_TIMER + x)] - 1);
+    const eDec = u8(mem8[u8(SOUND_FAST_TIMER + x)] - 1); // age the fast timer
     mem8[u8(SOUND_FAST_TIMER + x)] = eDec;
     if (eDec !== 0) continue;              // fast timer still running
-    const fDec = u8(mem8[u8(SOUND_SLOW_TIMER + x)] - 1);
+    const fDec = u8(mem8[u8(SOUND_SLOW_TIMER + x)] - 1); // fast expired -> age the slow timer too
     mem8[u8(SOUND_SLOW_TIMER + x)] = fDec;
     let y;
     if (fDec !== 0) {
       // Fast timer expired, slow timer running: one table step.
-      const carry = (a & 0x80) !== 0;
-      y = u8(a << 1);
+      const carry = (a & 0x80) !== 0;      // top bit of the pointer selects the hi table half
+      y = u8(a << 1);                       // table index (word-stride entries)
       if (carry) {
         mem8[u8(SOUND_FAST_TIMER + x)] = mem8[u16(VOICE_ENV_FASTTIMER_HI + y)];
         a = mem8[u16(VOICE_ENV_LEVEL_HI + y)];

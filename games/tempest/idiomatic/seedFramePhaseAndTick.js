@@ -7,11 +7,32 @@ import { advanceLevelCounter } from "./advanceLevelCounter.js";
 import { stepEaromTransfer } from "./stepEaromTransfer.js";
 import { requestActiveSoundCue } from "./requestActiveSoundCue.js";
 
-// Per-frame dispatcher. A short setup decides the speed/mode cells (GAME_MODE/MODE_DISPATCH_SEL/loc_a2) from the
-// coin input, the mode flag STATUS_FLAGS, and the phase counters DSW2_SNAPSHOT/PHASE_COUNTER, then a common tail advances
-// the frame counter FRAME_COUNTER and fires the periodic sub-steps. The slot index rides X and Y from one
-// sub-step to the next (the setup step and the odd-frame step each leave a fresh pair) and into the
-// sound-register call, so both are threaded as locals rather than through the register file.
+/**
+ * seedFramePhaseAndTick -- per-frame mode/timing driver + periodic sub-step pump. ROM 0xc891.
+ *
+ * Role in the machine: one of the three per-update passes runMainFrameLoop fires each ~26.5Hz tick (with
+ * dispatchFramePhaseHandler and buildFrameVectors). It is the machine's frame heartbeat: a short setup
+ * decides this frame's phase/speed cells from the coin input, the status/mode flag and the phase counters,
+ * then a common tail advances the master frame counter and fires the periodic housekeeping sub-steps
+ * (EAROM transfer, sound register).
+ *
+ * Behavior -- setup: if the coin input (IN0_PORT/0xc00 bit4) is clear it forces GAME_MODE (0x00) = 0x22 and
+ * skips to the tail; else if STATUS_FLAGS (0x5) bit6 is set it also skips to the tail; else it branches on
+ * phase parity (DSW2_SNAPSHOT/0xa bit0). On the odd phase it reads PHASE_COUNTER (0x6) into y and works the
+ * loc_a2 gate: an expired counter arms it, and depending on y it either routes to the level-counter step,
+ * sets GAME_MODE = 0x14, or seeds MODE_DISPATCH_SEL (0x1) = 0x16 with GAME_MODE = 0x0a. When not tailing
+ * early, advanceLevelCounter runs on a live phase and every fourth frame (DSW1_SNAPSHOT/0x9 low two bits
+ * zero) reseeds PHASE_COUNTER = 0x02.
+ *
+ * Behavior -- common tail: increments FRAME_COUNTER (0x3); on odd frames runs stepEaromTransfer (the
+ * non-volatile high-score EAROM shift); when SOUND_STEP_GATE (0xc) is live calls requestActiveSoundCue to
+ * register the active sound; then trims bit7 of INPUT_EDGE_FLAGS (0x4e). The slot index rides X/Y from the
+ * setup step and the odd-frame step into the sound call, so both are threaded as locals rather than through
+ * the register file. A decimal-mode arm in the original is dead here (see the note at the tail).
+ *
+ * Live-out: GAME_MODE, MODE_DISPATCH_SEL, loc_a2, PHASE_COUNTER, FRAME_COUNTER, INPUT_EDGE_FLAGS, plus the
+ * side effects of advanceLevelCounter / stepEaromTransfer / requestActiveSoundCue. Grounding: [seen].
+ */
 export function seedFramePhaseAndTick(m, x = m.regs.x, y = m.regs.y) {
   const { mem8 } = m;
 

@@ -5,12 +5,25 @@ import { advanceEnemyFreeFlight } from "./advanceEnemyFreeFlight.js";
 import { decayEnemyFreeFlightVelocity } from "./decayEnemyFreeFlightVelocity.js";
 import { spawnEnemyInSlot } from "./spawnEnemyInSlot.js";
 
-// Per-frame enemy-slot walk: seed the frame-active flag from the spawn countdown, then walk
-// the 16 slots high-to-low. A live slot integrates and steps its motion axes and marks the
-// frame active; a free slot spawns a new enemy while the countdown is nonzero. The step leaves
-// its last axis whole in a register a later spawn stamps into memory, so the last live slot's
-// returned value is carried forward to each subsequent spawn. After the walk, on even frames
-// tick the countdown toward zero; if nothing was live or spawned, raise the mode-request byte.
+/**
+ * stepEnemyFleetAndSpawn — drive one frame of the enemy bank. ROM 0xa618.
+ *
+ * Role in the machine: once per frame this walks the 16 enemy slots, moving every active enemy and
+ * refilling empty slots with fresh spawns as long as the per-wave spawn budget still has entries. It is
+ * the top of the enemy update: the slot walk here calls the motion steps and the spawner, and its exit
+ * decides when the wave has emptied (no enemies live, none spawned) and asks the mode machine to move on.
+ *
+ * Behavior: seed the frame-active flag SPAWN_FOUND_FLAG from the spawn budget SPAWN_BUDGET_TIMER, then
+ * walk slots 0x0f..0. A live slot (ENEMY_SLOT_FLAGS,x != 0) integrates its free-flight position and then
+ * decays its velocity, and marks the frame active (SPAWN_FOUND_FLAG = 0xff). A free slot spawns a new
+ * enemy while the budget is nonzero. The register y threads the last live slot's decay return forward:
+ * spawnEnemyInSlot stamps it into the new enemy, so the last-stepped axis carries into each later spawn.
+ * After the walk SLOT_LOOP_INDEX settles at 0xff; on even frames (FRAME_COUNTER bit0 clear) the budget
+ * ticks one toward zero; and if nothing was live or spawned, GAME_MODE is raised to the mode-request 0x12.
+ *
+ * Live-out: the stepped enemy slots, SPAWN_BUDGET_TIMER (decremented on even frames), SLOT_LOOP_INDEX
+ * = 0xff, and GAME_MODE = 0x12 when the bank came up empty. Grounding: [seen].
+ */
 export function stepEnemyFleetAndSpawn(m, y = m.regs.y) {
   const { mem8 } = m;
   mem8[SPAWN_FOUND_FLAG] = mem8[SPAWN_BUDGET_TIMER];

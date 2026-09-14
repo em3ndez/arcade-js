@@ -6,10 +6,22 @@ import {
 import { settleEnemyAtTargetDepth } from "./settleEnemyAtTargetDepth.js";
 import { retireEnemyAndSpawnSplit } from "./retireEnemyAndSpawnSplit.js";
 
-// Step slot x's 16-bit tube coordinate (low ENEMY_DEPTH_LO,x / high ENEMY_DEPTH,x) by the per-segment delta from
-// the ENEMY_CLIMB_DELTA_LO_0/ENEMY_CLIMB_DELTA_HI_0 table, indexed by the slot's segment (ENEMY_SLOT_FLAGS,x & 7). Direction is the sign of
-// ENEMY_SLOT_DIR,x: bit7 clear -> add, bit7 set -> subtract. The segment index is passed explicitly so the
-// paths read the delta at that index.
+/**
+ * stepEnemyDepthInLaneDirection — step slot x's depth along its lane, in its travel direction. ROM 0x9c58.
+ *
+ * Role in the machine: every enemy has a 16-bit "depth" — how far down the tube it is, from the far rim
+ * toward the player's rim. This routine moves one enemy one tick of depth, in whichever direction the
+ * slot is travelling, using a per-segment speed so lanes of different length advance at matched rates.
+ * It is the fan-out point: it picks the speed and hands off to the add or subtract path.
+ *
+ * Behavior: read the slot's segment from ENEMY_SLOT_FLAGS,x & 7 (this indexes the ENEMY_CLIMB_DELTA_LO_0
+ * / ENEMY_CLIMB_DELTA_HI_0 speed table). Branch on the sign of ENEMY_SLOT_DIR,x: bit7 set -> subtract
+ * path (reverseEnemyLaneDepth, moving away/up), bit7 clear -> add path (advanceEnemyLaneDepth, moving
+ * toward the player). The segment index is passed explicitly so each path reads the delta at that index.
+ *
+ * Live-out: delegated to the chosen path — the updated ENEMY_DEPTH_LO,x / ENEMY_DEPTH,x and its
+ * register return. Grounding: [seen].
+ */
 export function stepEnemyDepthInLaneDirection(m, x = m.regs.x) {
   const { mem8 } = m;
   const seg = mem8[u16(ENEMY_SLOT_FLAGS + x)] & 0x07;

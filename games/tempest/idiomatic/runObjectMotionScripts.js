@@ -7,14 +7,35 @@ import { dispatchSlotMotionHandler } from "./dispatchSlotMotionHandler.js";
 import { cueSpikeCollisionSound } from "./cueSpikeCollisionSound.js";
 import { requestMotionFlipSound } from "./requestMotionFlipSound.js";
 
-// When PLAYER_FINE_ANGLE is nonnegative, walk slots SLOT_LOOP_INDEX = ENEMY_SLOT_TOP down to 0: for each nonzero ENEMY_DEPTH,x run a
-// per-entry motion pass — SCRIPT_CURSOR indexes a table into the motion dispatcher, advancing SCRIPT_CURSOR
-// until the continue flag SCRIPT_WALK_CONTINUE clears — then store SCRIPT_CURSOR back to ENEMY_SCRIPT_CURSOR,x. Then signed-accumulate the
-// delta ENEMY_ANIM_DELTA into ENEMY_ANIM_ACCUM; a sign flip triggers the cd06/cd02 corrections; finally, when ENEMY_ANIM_ACCUM leaves
-// the [0x0f, 0xc0] band, negate ENEMY_ANIM_DELTA to reverse direction.
-// xIn seeds the value the loop leaves in X for the tail sound cue: no routine in this dispatch
-// subtree rewrites X, so after the walk X = the last non-empty slot processed (or the incoming X if
-// the walk seated none). lastX mirrors that and is threaded to the tail sound cue that stores it.
+/**
+ * runObjectMotionScripts — the per-frame motion-script walker for every active tube object. ROM 0x9b1e.
+ *
+ * Role in the machine: each enemy occupying the tube runs a little byte-coded motion program that decides
+ * how it crawls, flips, and climbs along its lane. Once per frame this routine drives every occupied slot
+ * through its script, then advances the shared animation sweep that makes the whole field pulse and, at its
+ * limits, reverses direction — the visible back-and-forth "breathing" of the enemy set.
+ *
+ * Behavior: the walk runs only when PLAYER_FINE_ANGLE is nonnegative (bit 7 clear); a negative angle means
+ * the player field is mid-transition and the whole outer walk is skipped. When it runs, SLOT_LOOP_INDEX is
+ * seeded from ENEMY_SLOT_TOP and counted down to 0. For each slot with a nonzero ENEMY_DEPTH (i.e. actually
+ * present on the tube) it loads that slot's saved script cursor ENEMY_SCRIPT_CURSOR,x into SCRIPT_CURSOR,
+ * raises the continuation flag SCRIPT_WALK_CONTINUE, then loops dispatching the motion opcode found at
+ * MOTION_SCRIPT_TABLE[SCRIPT_CURSOR] (slot x passed as an explicit arg) and post-incrementing the cursor,
+ * until a handler clears the continuation flag; the advanced cursor is stored back to ENEMY_SCRIPT_CURSOR,x.
+ * After the walk it signed-accumulates ENEMY_ANIM_DELTA into ENEMY_ANIM_ACCUM: if that sum crosses a sign
+ * boundary it fires the sweep sound cues — cueSpikeCollisionSound when the sum turns negative, else
+ * requestMotionFlipSound when lanes are populated (LANE_ENEMY_COUNT_1 nonzero) and the field is settled.
+ * Finally, when ENEMY_ANIM_ACCUM leaves the [0x0f, 0xc0] band it negates ENEMY_ANIM_DELTA to reverse the
+ * sweep direction.
+ *
+ * xIn seeds the value the loop leaves in X for the tail sound cue: no routine in this dispatch subtree
+ * rewrites X, so after the walk X = the last non-empty slot processed (or the incoming X if the walk seated
+ * none). lastX mirrors that and is threaded to the tail sound cue that stores it.
+ *
+ * Live-out: each occupied slot's ENEMY_SCRIPT_CURSOR,x is advanced; ENEMY_ANIM_ACCUM holds the new sweep
+ * accumulator and ENEMY_ANIM_DELTA its (possibly negated) step; SCRIPT_CURSOR/SLOT_LOOP_INDEX/SCRIPT_WALK_
+ * CONTINUE are left as loop residue; sound cues may have been queued. Grounding: [seen].
+ */
 export function runObjectMotionScripts(m, xIn = m.regs.x) {
   const { mem8 } = m;
   let lastX = xIn;

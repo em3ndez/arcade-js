@@ -8,10 +8,25 @@ import { selectProjectionScale } from "./selectProjectionScale.js";
 import { runLevelInit } from "./runLevelInit.js";
 import { resetBothPokeyChips } from "./resetBothPokeyChips.js";
 
-// Level-setup: seed the sizing/timer cells, and when the level id LEVEL_ID has changed
-// since last seen (loc_3d) and STATUS_FLAGS is negative, install the new-level timers and swap
-// the paired tables. Then converge: run the flag setup, index PLAYER_LEVEL_TBL by loc_3d into loc_9f,
-// run startup init, and tail-delegate to the readout reset.
+/**
+ * setupLevelTimers -- seed the per-level mode/timer cells at level setup. ROM 0xc940.
+ *
+ * Role in the machine: run at the start of a level to arm the game-mode state machine and, on a
+ * genuine level change, install the new-level timers and swap the paired geometry tables before
+ * converging into the shared level-init path. This is what lets a fresh level pick up its size,
+ * timing, and readout.
+ *
+ * Behavior: it seeds MODE_DISPATCH_SEL = 0, GAME_MODE = 30, GAME_MODE_PENDING = 30. It then reads
+ * LEVEL_ID and compares it to the last-seen id loc_3d: if they differ it latches loc_3d = level, and
+ * when STATUS_FLAGS is negative (bit7 set) it overrides with the new-level timers -- MODE_DISPATCH_SEL
+ * = 14, GAME_MODE = 10, MODE_DELAY_TIMER = 40 when loc_117 is nonzero else 80 -- and swaps the
+ * parallel tables via swapParallelTables. It then converges unconditionally: selectProjectionScale
+ * sizes the projection, PLAYER_LEVEL_TBL indexed by loc_3d is copied into loc_9f, runLevelInit does
+ * the startup init, and it tail-delegates to resetBothPokeyChips (the POKEY/readout reset).
+ *
+ * Live-out: MODE_DISPATCH_SEL, GAME_MODE, GAME_MODE_PENDING, MODE_DELAY_TIMER, loc_3d, loc_9f, the
+ * swapped table pointers, and whatever the tail reset leaves. Grounding: [seen].
+ */
 export function setupLevelTimers(m) {
   const { mem8 } = m;
 

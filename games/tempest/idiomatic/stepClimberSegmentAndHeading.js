@@ -3,11 +3,24 @@ import { u16 } from "../../../core/int.js";
 import { ENEMY_SLOT_FLAGS, ENEMY_SEGMENT, ENEMY_PHASE } from "./names.js";
 import { lookupRingHeading } from "./lookupRingHeading.js";
 
-// Per-slot segment step -- the shared mid-entry body (the guard-less entry). Force bit7 on the
-// slot flag, then branch on its low-3-bit segment. Segment 4 (the seam): bit6 set steps the depth
-// down one (mod 16) and stores 0x87; bit6 clear stores 0x81 (depth untouched). Any other segment:
-// bit6 set steps the depth up one (mod 16); then look the depth up (bit6 selects the half-turn) and
-// store the bit7-forced direction. Slot chosen by x; live-out A = the stored direction byte.
+/**
+ * stepClimberSegmentAndHeading — step a climber one segment and set its next heading. ROM 0x9e5f
+ * (the guard-less mid entry; stepClimberSegmentGuarded falls into this same body).
+ *
+ * Role in the machine: a climber walks the rim of the tube in a zig-zag. Each call advances it one
+ * segment and computes the heading byte the renderer/mover reads to draw and move it that step. The
+ * low three bits of the slot flag encode which of the ring's segments the climber is on; segment 4 is
+ * the "seam" (the ring's wrap point) and is handled specially.
+ *
+ * Behavior: force bit7 on ENEMY_SLOT_FLAGS,x (mark the slot persistently live) and read back the
+ * low-3-bit segment. Ordinary segments (not 4): if bit6 is set, step the depth (ENEMY_SEGMENT,x) up one
+ * mod 16, then look the heading up in the ring table — bit6 selects the half-turn direction, bit7 is
+ * forced on — and store it into ENEMY_PHASE,x. Segment 4 (the seam): bit6 set steps the depth DOWN one
+ * mod 16 and stores 0x87; bit6 clear leaves depth alone and stores 0x81.
+ *
+ * Live-out: ENEMY_SLOT_FLAGS,x (bit7 forced on), ENEMY_SEGMENT,x (depth, when stepped), and the stored
+ * heading in ENEMY_PHASE,x; A = the stored direction byte. Grounding: [seen].
+ */
 export function stepClimberSegmentAndHeading(m, x = m.regs.x) {
   const { mem8 } = m;
   const flag = mem8[u16(ENEMY_SLOT_FLAGS + x)] | 0x80;   // set bit7 on the slot flag, persistently

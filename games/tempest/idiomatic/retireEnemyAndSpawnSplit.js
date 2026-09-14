@@ -7,12 +7,31 @@ import {
 import { setupEnemyCoordList } from "./setupEnemyCoordList.js";
 import { spawnClimberInFreeSlot } from "./spawnClimberInFreeSlot.js";
 
-// Retire the enemy in slot Y: clear its active-table entry ENEMY_DEPTH,y and adjust an active-count
-// cell -- when the slot value matches PLAYER_SHOT_DEPTH and the slot's lane (ENEMY_SLOT_FLAGS,y & 7) is not 4 the
-// per-type counter ENEMY_TYPE_COUNT drops, otherwise the total ENEMY_TOTAL_COUNT drops -- then drop the per-lane
-// counter LANE_ENEMY_COUNT_0 at that lane (X is parked in SAVED_INDEX and restored, so exit X == entry X). When
-// (ENEMY_SLOT_DIR,y & 3) is set, seat the draw cells loc_2b/loc_2a and spawn a replacement via the
-// list-setup and draw handlers, and if that spawn took, spawn a second mirrored one.
+/**
+ * retireEnemyAndSpawnSplit -- retire an enemy slot and, if armed, spawn its split replacements. ROM 0xa06f.
+ *
+ * Role in the machine: removing an enemy is more than clearing a cell -- the game tracks per-type and
+ * total live counts, a per-lane occupancy, and, for enemies that split (fuseballs/flippers dropping
+ * offspring), it may seat one or two fresh climbers on adjacent tube segments. This routine does all of
+ * that bookkeeping when a slot dies. It is called from the retire/spawn glue (respawnEnemyAndAward,
+ * spawnLaneEnemyAndAward) and from the depth-stepper 0x9c63.
+ *
+ * Behavior: read the slot's depth ENEMY_DEPTH,y ($2df,y) into scratch loc_29. Decide which live counter
+ * to decrement: if the depth equals PLAYER_SHOT_DEPTH ($202) AND the lane (ENEMY_SLOT_FLAGS,y & 7) is not 4,
+ * drop the per-type counter ENEMY_TYPE_COUNT ($109) and skip the total; otherwise drop the total
+ * ENEMY_TOTAL_COUNT ($108). Zero ENEMY_DEPTH,y. Park caller X in SAVED_INDEX and drop the per-lane counter
+ * LANE_ENEMY_COUNT_0+lane ($142). Read the split gate (ENEMY_SLOT_DIR,y & 3); if 0, return with A = 0.
+ * Otherwise seat the two draw cells: loc_2b from the gate (g-1, but g==3 -> 4), and loc_2a from
+ * (ENEMY_SEGMENT,y - 1) & 0x0f, snapping 0x0f -> 0 when TUBE_GEOM_FLAG bit7 is set (open vs closed tube).
+ * Build the coordinate list (setupEnemyCoordList), seed the script cursor SCRIPT_CURSOR from
+ * COORD_LIST_PTR_HI - 1, clear SCRIPT_WALK_CONTINUE, and spawn via spawnClimberInFreeSlot. If that spawn
+ * took, seat a mirrored second one: loc_2a += 2 (snap 0x0f -> 0x0e on TUBE_GEOM_FLAG bit7), set loc_2b bit6,
+ * and spawn again. X is reloaded from SAVED_INDEX inside the sub-chain, so exit X == entry X.
+ *
+ * Live-out: ENEMY_DEPTH,y cleared; one of ENEMY_TYPE_COUNT/ENEMY_TOTAL_COUNT and LANE_ENEMY_COUNT_0+lane
+ * decremented; on a split, up to two new climbers seated; A = the anded gate (0) or the final spawn result.
+ * Grounding: seen.
+ */
 export function retireEnemyAndSpawnSplit(m, y = m.regs.y, x = m.regs.x) {
   const { mem8 } = m;
 
