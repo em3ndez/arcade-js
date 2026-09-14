@@ -1,0 +1,7 @@
+# Grounding debt: honestly-irreducible ungrounded items (one "0xADDR  reason" per line).
+# done_gate.check_grounding SUBTRACTS these from the ungrounded count. Each is independently
+# reviewed (reviewer-rules R39) as un-groundable on a good ROM in any reachable state.
+0xd8ca  power-on RAM-march self-test error-tone entry (playPowerOnTone): reached ONLY from the zero-page/stack RAM marching-pattern test's mismatch branch (a RAM cell reading back wrong = faulty RAM); never taken on a good RAM/emulation image -- a dead error arm.
+0xd8cd  shared POKEY tone-burst driver for the three RAM-fault error-tone paths (d8ca/d92f/d931); has no non-fault caller, so reached only on a RAM readback mismatch -- dead error arm on a good image.
+0xd92f  RAM-march pattern-verify fault tone (foldToneTableByte): reached only at the self-test pattern-verify mismatch branch (faulty RAM); never taken on a good RAM/emulation image.
+0xd931  RAM-march fault tone-seed (seedToneBurstCount): reached only on a self-test RAM readback mismatch; never taken on a good RAM/emulation image -- dead error arm.
