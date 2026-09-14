@@ -353,8 +353,8 @@ export const VEC_LIST_HALT = 0x2fff;  // [seen] display-list terminator byte (0x
 export const NIBBLE_GLYPH_TABLE = 0x31e4;  // [seen] vector-ROM stroke-word table indexed by nibble (digit/hex glyphs)
 export const NIBBLE_GLYPH_TABLE_HI = 0x31e5;  // [code] high-byte companion of the nibble glyph-word table
 export const CHAR_GLYPH_TABLE = 0x31fa;  // [seen] vector-ROM glyph-word table indexed by character code
-export const BAR_GLYPH_LOW = 0x3284;  // [code] vector-ROM glyph byte used when row <= threshold
-export const BAR_GLYPH_HIGH = 0x3286;  // [code] vector-ROM glyph byte used when row > threshold
+export const BAR_GLYPH_LOW = 0x3284;  // [seen] vector-ROM glyph byte used when row <= threshold
+export const BAR_GLYPH_HIGH = 0x3286;  // [seen] vector-ROM glyph byte used when row > threshold
 export const BLANK_SLOT_VEC_LO = 0x3db2;  // [seen] low byte of the blank vector word for an inactive enemy slot
 export const BLANK_SLOT_VEC_HI = 0x3db3;  // [seen] high byte of the blank vector word for an inactive enemy slot
 export const COIN_FLIP_LATCH = 0x4000;  // [seen] coin-counter + AVG flip_x/flip_y control output latch
@@ -446,7 +446,7 @@ export const LEVEL_LAYOUT_PACKED = 0xc1fd;  // [seen] Packed ROM level-layout ta
 export const OUTLINE_HEADER = 0xc22d;  // [seen] ROM header word emitted at the start of a level outline draw
 export const ENEMY_LIST_HEADER = 0xc669;  // [seen] Fixed four-byte header copied ahead of every per-slot enemy display-list record
 export const SCORE_VALUE_LO = 0xcaf1;  // [seen] Per-type BCD score-award low byte added into the score triplet
-export const SCORE_VALUE_HI = 0xcaf9;  // [code] Per-type BCD score-award high byte added into the score triplet
+export const SCORE_VALUE_HI = 0xcaf9;  // [seen] Per-type BCD score-award high byte added into the score triplet
 export const SOUND_VOICE_TABLE = 0xcb01;  // [seen] Sound-definition table: one row per sound id giving a value byte for each of the sixteen voice slots
 export const VOICE_ENV_FRAME_A = 0xcbcb;  // [seen] Voice envelope frame-walk table (low-bit path) stepped until a non-zero frame
 export const VOICE_ENV_FASTTIMER = 0xcbcc;  // [seen] Voice envelope fast-timer reload value (low-bit path)
@@ -547,7 +547,7 @@ export const IRQ_STATE_CODE = 0xd7dd;  // [seen] Interrupt-handler state-code di
 export const DIAG_MASK_TABLE = 0xd8b6;  // [code] Mask table AND-compared against a status cell in the diagnostic/service draw
 export const DIAG_VALUE_LO = 0xd8ba;  // [code] Diagnostic-display value selected by the low DSW nibble of DSW1_SNAPSHOT
 export const DIAG_VALUE_HI = 0xd8c2;  // [code] Diagnostic-display value selected by the high bits of DSW1_SNAPSHOT
-export const SELFTEST_COLOR_TABLE = 0xdaf9;  // [code] Eight-byte ROM colour table copied into colour RAM during the self-test session
+export const SELFTEST_COLOR_TABLE = 0xdaf9;  // [seen] Eight-byte ROM colour table copied into colour RAM during the self-test session
 
 export const ROUTINES = {
   0x9677: { name: "dispatchRangeValueBySelector", role: "[seen] resolve the range-bracketed list value: read the even selector byte 0x15e, halve it, and tail-call the matching 0x96xx coordinate helper (loc_96c4/96b7/96ab/96e2/96db/9700), returning its byte to loc_92c5's table walk.", cert: "seen" },
